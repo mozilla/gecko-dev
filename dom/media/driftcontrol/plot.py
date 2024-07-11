@@ -69,10 +69,8 @@ MOZ_LOG_FILE=/tmp/driftcontrol.csv       \
         hysteresiscorrected = df["hysteresiscorrected"]
         configured = df["configured"]
         p = df["p"]
-        i = df["i"]
         d = df["d"]
         kpp = df["kpp"]
-        kii = df["kii"]
         kdd = df["kdd"]
         control = df["control"]
 
@@ -130,12 +128,10 @@ MOZ_LOG_FILE=/tmp/driftcontrol.csv       \
 
         fig3 = figure(x_range=fig1.x_range)
         fig3.line(t, p, color="goldenrod", legend_label="P")
-        fig3.line(t, i, color="dodgerblue", legend_label="I")
         fig3.line(t, d, color="seagreen", legend_label="D")
 
         fig4 = figure(x_range=fig1.x_range)
         fig4.line(t, kpp, color="goldenrod", legend_label="KpP")
-        fig4.line(t, kii, color="dodgerblue", legend_label="KiI")
         fig4.line(t, kdd, color="seagreen", legend_label="KdD")
         fig4.line(t, control, color="hotpink", legend_label="Control Signal")
 

@@ -373,7 +373,7 @@ TEST(TestAudioDriftCorrection, DynamicInputBufferSizeChanges)
   EXPECT_EQ(ad.BufferSize(), 9600U);
   // Adjustments to the desired buffering level continue.
   produceSomeData(transmitterBlockSize1, 20 * sampleRate);
-  EXPECT_LE(ad.NumCorrectionChanges(), numCorrectionChanges + 5);
+  EXPECT_LE(ad.NumCorrectionChanges(), numCorrectionChanges + 9);
   EXPECT_EQ(ad.NumUnderruns(), 1U);
 
   EXPECT_NEAR(inToneVerifier.EstimatedFreq(), tone.mFrequency, 1.0f);
@@ -445,7 +445,7 @@ TEST(TestAudioDriftCorrection, DriftStepResponseUnderrun)
     ad.RequestFrames(inSegment, interval / 100);
   }
 
-  inputRate = nominalRate * 998 / 1000;  // -0.2% drift
+  inputRate = nominalRate * 997 / 1000;  // -0.3% drift
   inputInterval = inputRate;
   for (uint32_t i = 0; i < interval * iterations; i += interval / 100) {
     AudioSegment inSegment;
@@ -503,7 +503,7 @@ TEST(TestAudioDriftCorrection, DriftStepResponseUnderrunHighLatencyInput)
       // with a non-empty input segment after the underun, the actual number
       // of frames buffered almost matches the pre-buffer size, with some
       // rounding from output to input frame count conversion.
-      EXPECT_EQ(ad.CurrentBuffering(), inputInterval1 * 11 / 10 * 2 - 1)
+      EXPECT_NEAR(ad.CurrentBuffering(), inputInterval1 * 11 / 10 * 2, 1)
           << "after first input after underrun";
     }
   }

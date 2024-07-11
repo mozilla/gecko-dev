@@ -98,24 +98,23 @@ class DriftController final {
                    uint32_t aBufferSize);
 
  private:
-  // This implements a simple PID controller with feedback.
+  // This implements a simple PD controller with feedback.
   // Set point:     SP = mDesiredBuffering.
   // Process value: PV(t) = mAvgBufferedFramesEst. This includes the feedback.
   // Error:         e(t) = mAvgBufferedFramesEst - mDesiredBuffering.
   //                Error is positive when the process value is high, which is
   //                the opposite of conventional PID controllers because this
   //                is a reverse-acting system.
-  // Control value: CV(t) = the value to add to the nominal source rate, i.e.
-  //                the corrected source rate = nominal source rate + CV(t).
+  // Control value: CV(t) = the value to add to the estimated source rate with
+  //                drift as measured by the output clock, i.e.
+  //                the corrected source rate = estimated source rate + CV(t).
   //
   // Controller:
   // Proportional part: The error, p(t) = e(t), multiplied by a gain factor, Kp.
-  // Integral part:     The historic cumulative value of the error,
-  //                    i(t+1) = i(t) + e(t+1), multiplied by a gain factor, Ki.
   // Derivative part:   The error's rate of change, d(t+1) = (e(t+1)-e(t))/1,
   //                    multiplied by a gain factor, Kd.
   // Control signal:    The sum of the parts' output,
-  //                    u(t) = Kp*p(t) + Ki*i(t) + Kd*d(t).
+  //                    u(t) = Kp*p(t) + Kd*d(t).
   //
   // Control action: Converting the control signal to a source sample rate.
   //                 Simplified, a positive control signal means the buffer is
@@ -138,14 +137,10 @@ class DriftController final {
   const uint32_t mSourceRate;
   const uint32_t mTargetRate;
   const media::TimeUnit mAdjustmentInterval = media::TimeUnit::FromSeconds(1);
-  const media::TimeUnit mIntegralCapTimeLimit =
-      media::TimeUnit(10, 1).ToBase(mTargetRate);
 
  private:
   media::TimeUnit mDesiredBuffering;
   float mPreviousError = 0.f;
-  float mIntegral = 0.0;
-  Maybe<float> mIntegralCenterForCap;
   float mCorrectedSourceRate;
   Maybe<int32_t> mLastHysteresisBoundaryCorrection;
   media::TimeUnit mDurationWithinHysteresis;
