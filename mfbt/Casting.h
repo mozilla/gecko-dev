@@ -10,7 +10,9 @@
 #define mozilla_Casting_h
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Sprintf.h"
 
+#include <cinttypes>
 #include <cstring>
 #include <type_traits>
 #include <limits>
@@ -76,6 +78,48 @@ template <typename T>
 constexpr uint64_t safe_integer_unsigned() {
   static_assert(std::is_floating_point_v<T>);
   return std::pow(2, std::numeric_limits<T>::digits);
+}
+
+template <typename T>
+const char* TypeToString();
+template <typename T>
+const char* TypeToFormatString();
+
+#define T2S(type, formatstring)                             \
+  template <>                                               \
+  inline constexpr const char* TypeToString<type>() {       \
+    return #type;                                           \
+  }                                                         \
+  template <>                                               \
+  inline constexpr const char* TypeToFormatString<type>() { \
+    return "%" formatstring;                                \
+  }
+
+T2S(uint8_t, PRIu8);
+T2S(uint16_t, PRIu16);
+T2S(uint32_t, PRIu32);
+T2S(uint64_t, PRIu64);
+T2S(int8_t, PRId8);
+T2S(int16_t, PRId16);
+T2S(int32_t, PRId32);
+T2S(int64_t, PRId64);
+T2S(char16_t, PRIu16);  // print as a number
+T2S(char32_t, PRIu32);  // print as a number
+#ifdef XP_MACOSX
+T2S(long, "ld");
+T2S(unsigned long, "lu");
+#endif
+T2S(float, "f");
+T2S(double, "lf");
+
+#undef T2S
+
+template <typename In, typename Out>
+inline void DiagnosticMessage(In aIn, char aDiagnostic[1024]) {
+  char number[128];
+  SprintfBuf(number, 128, TypeToFormatString<In>(), aIn);
+  SprintfBuf(aDiagnostic, 1024, "Cannot cast %s from %s to %s: out of range",
+             number, TypeToString<In>(), TypeToString<Out>());
 }
 
 // This is working around https://gcc.gnu.org/bugzilla/show_bug.cgi?id=81676,
@@ -180,7 +224,14 @@ bool IsInBounds(In aIn) {
 template <typename To, typename From>
 inline To AssertedCast(const From aFrom) {
   static_assert(std::is_arithmetic_v<To> && std::is_arithmetic_v<From>);
-  MOZ_ASSERT((detail::IsInBounds<From, To>(aFrom)));
+#ifdef DEBUG
+  if (!detail::IsInBounds<From, To>(aFrom)) {
+    char buf[1024];
+    detail::DiagnosticMessage<From, To>(aFrom, buf);
+    fprintf(stderr, "AssertedCast error: %s\n", buf);
+    MOZ_CRASH();
+  }
+#endif
   return static_cast<To>(aFrom);
 }
 
