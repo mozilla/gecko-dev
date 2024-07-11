@@ -88,7 +88,27 @@ export class FormAutofillChild extends JSWindowActorChild {
 
       const fieldDetails = handler.fieldDetails;
       // Inform the autocomplete controller these fields are autofillable.
-      fieldDetails.forEach(detail => this.#markAsAutofillField(detail.element));
+
+      // Bug 1905040. This is only a temporarily workaround for now to skip marking address fields
+      // autocompletable whenever we detect an address field. We only mark address field when
+      // it is a valid address section (This is done in the parent)
+      const fields = new Set(
+        fieldDetails
+          .map(f => f.fieldName)
+          .filter(fieldName => lazy.FormAutofillUtils.isAddressField(fieldName))
+      );
+      const validAddressSection =
+        fields.size >= lazy.FormAutofillUtils.AUTOFILL_FIELDS_THRESHOLD;
+
+      for (const fieldDetail of fieldDetails) {
+        if (
+          !validAddressSection &&
+          lazy.FormAutofillUtils.isAddressField(fieldDetail.fieldName)
+        ) {
+          continue;
+        }
+        this.#markAsAutofillField(fieldDetail.element);
+      }
 
       // Notify the parent when we detect autofillable fields.
       this.sendAsyncMessage(
