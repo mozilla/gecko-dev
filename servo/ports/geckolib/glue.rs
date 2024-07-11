@@ -6226,6 +6226,8 @@ pub extern "C" fn Servo_ResolveStartingStyle(
     };
 
     let element = GeckoElement(element);
+    context.thread_local.bloom_filter.rebuild(element);
+
     let mut resolver = StyleResolverForElement::new(
         element,
         &mut context,
