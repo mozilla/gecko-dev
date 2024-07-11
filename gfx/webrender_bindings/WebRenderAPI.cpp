@@ -695,10 +695,11 @@ void WebRenderAPI::Readback(const TimeStamp& aStartTime, gfx::IntSize size,
     MOZ_COUNTED_DTOR_OVERRIDE(Readback)
 
     void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
+      RendererStats stats = {0};
       aRenderThread.UpdateAndRender(aWindowId, VsyncId(), mStartTime,
                                     /* aRender */ true, Some(mSize),
                                     wr::SurfaceFormatToImageFormat(mFormat),
-                                    Some(mBuffer), mNeedsYFlip);
+                                    Some(mBuffer), &stats, mNeedsYFlip);
       layers::AutoCompleteTask complete(mTask);
     }
 

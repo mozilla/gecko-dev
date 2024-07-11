@@ -38,6 +38,7 @@
   MACRO(Rasterizing)                              \
   MACRO(WrDisplayListBuilding)                    \
   MACRO(LayerTransactions)                        \
+  MACRO(FrameBuilding)                            \
   MACRO(Compositing)                              \
   MACRO(Reflowing)                                \
   MACRO(Styling)                                  \
