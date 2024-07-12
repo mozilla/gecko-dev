@@ -6106,7 +6106,7 @@ nsresult Document::EditingStateChanged() {
   }
 
   const bool designMode = IsInDesignMode();
-  EditingState newState =
+  const EditingState newState =
       designMode ? EditingState::eDesignMode
                  : (mContentEditableCount > 0 ? EditingState::eContentEditable
                                               : EditingState::eOff);
@@ -6143,6 +6143,16 @@ nsresult Document::EditingStateChanged() {
         "ignored");
     return rv;
   }
+
+  const EditingState oldState = mEditingState;
+  MOZ_ASSERT(newState == EditingState::eDesignMode ||
+             newState == EditingState::eContentEditable);
+  MOZ_ASSERT_IF(newState == EditingState::eDesignMode,
+                oldState == EditingState::eContentEditable ||
+                    oldState == EditingState::eOff);
+  MOZ_ASSERT_IF(
+      newState == EditingState::eContentEditable,
+      oldState == EditingState::eDesignMode || oldState == EditingState::eOff);
 
   // Flush out style changes on our _parent_ document, if any, so that
   // our check for a presshell won't get stale information.
@@ -6198,7 +6208,6 @@ nsresult Document::EditingStateChanged() {
   htmlEditor = nullptr;
 
   {
-    EditingState oldState = mEditingState;
     nsAutoEditingState push(this, EditingState::eSettingUp);
 
     RefPtr<PresShell> presShell = GetPresShell();
@@ -6341,17 +6350,33 @@ nsresult Document::EditingStateChanged() {
 
   MaybeDispatchCheckKeyPressEventModelEvent();
 
-  // If this document keeps having focus and the HTMLEditor is in the design
-  // mode, it may not receive `focus` event for this editing state change since
-  // this may occur without a focus change.  Therefore, let's notify HTMLEditor
-  // of this editing state change.
-  if (thisDocumentHasFocus && htmlEditor->IsInDesignMode() &&
-      ThisDocumentHasFocus()) {
-    DebugOnly<nsresult> rvIgnored =
-        htmlEditor->FocusedElementOrDocumentBecomesEditable(*this, nullptr);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
-                         "HTMLEditor::FocusedElementOrDocumentBecomesEditable()"
-                         " failed, but ignored");
+  // If this document keeps having focus, the HTMLEditor may not receive `focus`
+  // event for this editing state change since this may occur without a focus
+  // change.  Therefore, let's notify HTMLEditor of this editing state change.
+  if (thisDocumentHasFocus && ThisDocumentHasFocus()) {
+    RefPtr<Element> focusedElement = nsFocusManager::GetFocusedElementStatic();
+    MOZ_ASSERT_IF(focusedElement, focusedElement->GetComposedDoc() == this);
+    if ((focusedElement && focusedElement->IsEditable() &&
+         (!focusedElement->IsTextControlElement() ||
+          !TextControlElement::FromNode(focusedElement)
+               ->IsSingleLineTextControlOrTextArea())) ||
+        (!focusedElement && IsInDesignMode())) {
+      DebugOnly<nsresult> rvIgnored =
+          htmlEditor->FocusedElementOrDocumentBecomesEditable(*this,
+                                                              focusedElement);
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rvIgnored),
+          "HTMLEditor::FocusedElementOrDocumentBecomesEditable() failed, but "
+          "ignored");
+    } else if (htmlEditor->HasFocus()) {
+      DebugOnly<nsresult> rvIgnored =
+          HTMLEditor::FocusedElementOrDocumentBecomesNotEditable(
+              htmlEditor, *this, focusedElement);
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rvIgnored),
+          "HTMLEditor::FocusedElementOrDocumentBecomesNotEditable() failed, "
+          "but ignored");
+    }
   }
 
   return NS_OK;

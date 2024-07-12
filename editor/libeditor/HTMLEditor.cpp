@@ -40,6 +40,8 @@
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/TextControlElement.h"
+#include "mozilla/TextEditor.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TextServicesDocument.h"
 #include "mozilla/ToString.h"
@@ -70,7 +72,7 @@
 #include "nsGkAtoms.h"
 #include "nsHTMLDocument.h"
 #include "nsIContent.h"
-#include "nsIContentInlines.h"
+#include "nsIContentInlines.h"  // for nsINode::IsInDesignMode()
 #include "nsIEditActionListener.h"
 #include "nsIFrame.h"
 #include "nsIPrincipal.h"
@@ -89,6 +91,8 @@ namespace mozilla {
 
 using namespace dom;
 using namespace widget;
+
+LazyLogModule gHTMLEditorFocusLog("HTMLEditorFocus");
 
 using EmptyCheckOption = HTMLEditUtils::EmptyCheckOption;
 using LeafNodeType = HTMLEditUtils::LeafNodeType;
@@ -715,14 +719,23 @@ void HTMLEditor::UpdateRootElement() {
 
 nsresult HTMLEditor::FocusedElementOrDocumentBecomesEditable(
     Document& aDocument, Element* aElement) {
-  const bool isInDesignMode =
-      (IsInDesignMode() && (!aElement || aElement->IsInDesignMode()));
+  MOZ_LOG(gHTMLEditorFocusLog, LogLevel::Info,
+          ("%s(aDocument=%p, aElement=%s): mHasFocus=%s, mIsInDesignMode=%s, "
+           "aDocument.IsInDesignMode()=%s, aElement->IsInDesignMode()=%s",
+           __FUNCTION__, &aDocument, ToString(RefPtr{aElement}).c_str(),
+           mHasFocus ? "true" : "false", mIsInDesignMode ? "true" : "false",
+           aDocument.IsInDesignMode() ? "true" : "false",
+           aElement ? (aElement->IsInDesignMode() ? "true" : "false") : "N/A"));
+
+  const bool enteringInDesignMode =
+      (aDocument.IsInDesignMode() && (!aElement || aElement->IsInDesignMode()));
 
   // If we should've already handled focus event, selection limiter should not
   // be set.  However, IMEStateManager is not notified the pseudo focus change
   // in this case. Therefore, we need to notify IMEStateManager of this.
-  if (GetSelectionAncestorLimiter()) {
-    if (isInDesignMode) {
+  if (mHasFocus) {
+    if (enteringInDesignMode) {
+      mIsInDesignMode = true;
       return NS_OK;
     }
     // Although editor is already initialized due to re-used, ISM may not
@@ -731,17 +744,34 @@ nsresult HTMLEditor::FocusedElementOrDocumentBecomesEditable(
     nsresult rv = GetPreferredIMEState(&newState);
     if (NS_FAILED(rv)) {
       NS_WARNING("EditorBase::GetPreferredIMEState() failed");
+      mIsInDesignMode = false;
       return NS_OK;
     }
-    if (const RefPtr<Element> focusedElement = GetFocusedElement()) {
+    const RefPtr<Element> focusedElement = GetFocusedElement();
+    if (focusedElement) {
       MOZ_ASSERT(focusedElement == aElement);
+      TextControlElement* const textControlElement =
+          TextControlElement::FromNode(focusedElement);
+      if (textControlElement &&
+          textControlElement->IsSingleLineTextControlOrTextArea()) {
+        // Let's emulate blur first.
+        nsresult rv = FinalizeSelection();
+        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                             "HTMLEditor::FinalizeSelection() failed");
+        mHasFocus = false;
+        mIsInDesignMode = false;
+      }
       IMEStateManager::UpdateIMEState(newState, focusedElement, *this);
+      // XXX Do we need to notify focused TextEditor of focus?  In theory,
+      // the TextEditor should get focus event in this case.
     }
+    mIsInDesignMode = false;
     return NS_OK;
   }
+
   // If we should be in the design mode, we want to handle focus event fired
   // on the document node.  Therefore, we should emulate it here.
-  if (isInDesignMode) {
+  if (enteringInDesignMode) {
     MOZ_ASSERT(&aDocument == GetDocument());
     nsresult rv = OnFocus(aDocument);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "HTMLEditor::OnFocus() failed");
@@ -754,8 +784,7 @@ nsresult HTMLEditor::FocusedElementOrDocumentBecomesEditable(
 
   // Otherwise, we should've already handled focus event on the element,
   // therefore, we need to emulate it here.
-  MOZ_ASSERT(nsFocusManager::GetFocusManager()->GetFocusedElement() ==
-             aElement);
+  MOZ_ASSERT(nsFocusManager::GetFocusedElementStatic() == aElement);
   nsresult rv = OnFocus(*aElement);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "HTMLEditor::OnFocus() failed");
 
@@ -770,6 +799,13 @@ nsresult HTMLEditor::FocusedElementOrDocumentBecomesEditable(
 }
 
 nsresult HTMLEditor::OnFocus(const nsINode& aOriginalEventTargetNode) {
+  MOZ_LOG(gHTMLEditorFocusLog, LogLevel::Info,
+          ("%s(aOriginalEventTarget=%s): mIsInDesignMode=%s, "
+           "aOriginalEventTargetNode.IsInDesignMode()=%s",
+           __FUNCTION__, ToString(RefPtr{&aOriginalEventTargetNode}).c_str(),
+           mIsInDesignMode ? "true" : "false",
+           aOriginalEventTargetNode.IsInDesignMode() ? "true" : "false"));
+
   // Before doing anything, we should check whether the original target is still
   // valid focus event target because it may have already lost focus.
   if (!CanKeepHandlingFocusEvent(aOriginalEventTargetNode)) {
@@ -781,58 +817,75 @@ nsresult HTMLEditor::OnFocus(const nsINode& aOriginalEventTargetNode) {
     return NS_ERROR_FAILURE;
   }
 
-  return EditorBase::OnFocus(aOriginalEventTargetNode);
+  nsresult rv = EditorBase::OnFocus(aOriginalEventTargetNode);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("EditorBase::OnFocus() failed");
+    return rv;
+  }
+  mHasFocus = true;
+  mIsInDesignMode = aOriginalEventTargetNode.IsInDesignMode();
+  return NS_OK;
 }
 
 nsresult HTMLEditor::FocusedElementOrDocumentBecomesNotEditable(
     HTMLEditor* aHTMLEditor, Document& aDocument, Element* aElement) {
+  MOZ_LOG(
+      gHTMLEditorFocusLog, LogLevel::Info,
+      ("%s(aHTMLEditor=%p, aDocument=%p, aElement=%s): "
+       "aHTMLEditor->HasFocus()=%s, aHTMLEditor->IsInDesignMode()=%s, "
+       "aDocument.IsInDesignMode()=%s, aElement->IsInDesignMode()=%s, "
+       "nsFocusManager::GetFocusedElementStatic()=%s",
+       __FUNCTION__, aHTMLEditor, &aDocument,
+       ToString(RefPtr{aElement}).c_str(),
+       aHTMLEditor ? (aHTMLEditor->HasFocus() ? "true" : "false") : "N/A",
+       aHTMLEditor ? (aHTMLEditor->IsInDesignMode() ? "true" : "false") : "N/A",
+       aDocument.IsInDesignMode() ? "true" : "false",
+       aElement ? (aElement->IsInDesignMode() ? "true" : "false") : "N/A",
+       ToString(RefPtr{nsFocusManager::GetFocusedElementStatic()}).c_str()));
+
   nsresult rv = [&]() MOZ_CAN_RUN_SCRIPT {
     // If HTMLEditor has not been created yet, we just need to adjust
     // IMEStateManager.  So, don't return error.
-    if (!aHTMLEditor) {
+    if (!aHTMLEditor || !aHTMLEditor->HasFocus()) {
       return NS_OK;
     }
 
-    nsIContent* const limiter = aHTMLEditor->GetSelectionAncestorLimiter();
-    // The HTMLEditor has not received `focus` event so that it does not need to
-    // emulate `blur`.
-    if (!limiter) {
-      return NS_OK;
-    }
+    // Let's emulate blur first.
+    nsresult rv = aHTMLEditor->FinalizeSelection();
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "HTMLEditor::FinalizeSelection() failed");
+    aHTMLEditor->mHasFocus = false;
 
-    // If we should be in the design mode, we should treat it as blur from
-    // the document node.
-    if (aHTMLEditor->IsInDesignMode() &&
-        (!aElement || aElement->IsInDesignMode())) {
-      MOZ_ASSERT(aHTMLEditor->GetDocument() == &aDocument);
-      nsresult rv = aHTMLEditor->OnBlur(&aDocument);
-      NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "HTMLEditor::OnBlur() failed");
-      return rv;
+    const RefPtr<Element> focusedElement =
+        nsFocusManager::GetFocusedElementStatic();
+    TextControlElement* const focusedTextControlElement =
+        TextControlElement::FromNodeOrNull(focusedElement);
+    if ((focusedElement && focusedElement->IsEditable() &&
+         (!focusedTextControlElement ||
+          !focusedTextControlElement->IsSingleLineTextControlOrTextArea())) ||
+        (!focusedElement && aDocument.IsInDesignMode())) {
+      // Then, the focused element is still editable, let's emulate focus to
+      // make the editor be ready to handle input.
+      DebugOnly<nsresult> rvIgnored = aHTMLEditor->OnFocus(
+          focusedElement ? static_cast<nsINode&>(*focusedElement)
+                         : static_cast<nsINode&>(aDocument));
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                           "HTMLEditor::OnFocus() failed, but ignored");
+    } else if (focusedTextControlElement &&
+               focusedTextControlElement->IsSingleLineTextControlOrTextArea()) {
+      if (RefPtr<TextEditor> textEditor =
+              focusedTextControlElement->GetTextEditorWithoutCreation()) {
+        textEditor->OnFocus(*focusedElement);
+      }
     }
-    // If the HTMLEditor has already received `focus` event for different
-    // element than aElement, we'll receive `blur` event later so that we need
-    // to do nothing here.
-    if (aElement != limiter) {
-      return NS_OK;
-    }
-
-    // Otherwise, even though the limiter keeps having focus but becomes not
-    // editable.  From HTMLEditor point of view, this is equivalent to the
-    // elements gets blurred.  Therefore, we should treat it as losing
-    // focus.
-    nsresult rv = aHTMLEditor->OnBlur(aElement);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "HTMLEditor::OnBlur() failed");
     return rv;
   }();
 
   // If the element becomes not editable without focus change, IMEStateManager
   // does not have a chance to disable IME.  Therefore, (even if we fail to
-  // handle the emulated blur above,) we should notify IMEStateManager of the
-  // editing state change.
-  RefPtr<Element> focusedElement = aElement ? aElement
-                                   : aHTMLEditor
-                                       ? aHTMLEditor->GetFocusedElement()
-                                       : nullptr;
+  // handle the emulated blur/focus above,) we should notify IMEStateManager of
+  // the editing state change.
+  RefPtr<Element> focusedElement = nsFocusManager::GetFocusedElementStatic();
   RefPtr<nsPresContext> presContext =
       focusedElement ? focusedElement->GetPresContext(
                            Element::PresContextFor::eForComposedDoc)
@@ -845,28 +898,39 @@ nsresult HTMLEditor::FocusedElementOrDocumentBecomesNotEditable(
 }
 
 nsresult HTMLEditor::OnBlur(const EventTarget* aEventTarget) {
-  // check if something else is focused. If another element is focused, then
-  // we should not change the selection.
-  nsFocusManager* focusManager = nsFocusManager::GetFocusManager();
-  if (MOZ_UNLIKELY(!focusManager)) {
-    return NS_OK;
-  }
+  MOZ_LOG(gHTMLEditorFocusLog, LogLevel::Info,
+          ("%s(aEventTarget=%s): mHasFocus=%s, mIsInDesignMode=%s, "
+           "aEventTarget->IsInDesignMode()=%s",
+           __FUNCTION__, ToString(RefPtr{aEventTarget}).c_str(),
+           mHasFocus ? "true" : "false", mIsInDesignMode ? "true" : "false",
+           nsINode::FromEventTargetOrNull(aEventTarget)
+               ? (nsINode::FromEventTarget(aEventTarget)->IsInDesignMode()
+                      ? "true"
+                      : "false")
+               : "N/A"));
 
   // If another element already has focus, we should not maintain the selection
   // because we may not have the rights doing it.
-  if (focusManager->GetFocusedElement()) {
+  if (nsFocusManager::GetFocusedElementStatic()) {
+    // XXX If we had focus and new focused element is a text control, we may
+    // need to notify focus of its TextEditor...
+    mIsInDesignMode = false;
+    mHasFocus = false;
     return NS_OK;
   }
 
-  // If it's in the designMode, and blur occurs, the target must be the
-  // document node.  If a blur event is fired and the target is an element, it
-  // must be delayed blur event at initializing the `HTMLEditor`.
-  if (IsInDesignMode() && Element::FromEventTargetOrNull(aEventTarget)) {
+  // If we're in the designMode and blur occurs, the target must be the document
+  // node.  If a blur event is fired and the target is an element, it must be
+  // delayed blur event at initializing the `HTMLEditor`.
+  if (mIsInDesignMode && Element::FromEventTargetOrNull(aEventTarget)) {
     return NS_OK;
   }
+
   nsresult rv = FinalizeSelection();
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::FinalizeSelection() failed");
+  mIsInDesignMode = false;
+  mHasFocus = false;
   return rv;
 }
 
@@ -896,18 +960,6 @@ Element* HTMLEditor::FindSelectionRoot(const nsINode& aNode) const {
   // For non-readonly editors we want to find the root of the editable subtree
   // containing aContent.
   return content->GetEditingHost();
-}
-
-bool HTMLEditor::IsInDesignMode() const {
-  // TODO: If active editing host is in a shadow tree, it means that we should
-  //       behave exactly same as contenteditable mode because shadow tree
-  //       content is not editable even if composed document is in design mode,
-  //       but contenteditable elements in shoadow trees are focusable and
-  //       their content is editable.  Changing this affects to drop event
-  //       handler and blur event handler, so please add new tests for them
-  //       when you change here.
-  Document* document = GetDocument();
-  return document && document->IsInDesignMode();
 }
 
 bool HTMLEditor::EntireDocumentIsEditable() const {
@@ -6850,7 +6902,8 @@ Element* HTMLEditor::GetFocusedElement() const {
   if (NS_WARN_IF(!document)) {
     return nullptr;
   }
-  const bool inDesignMode = IsInDesignMode();
+  const bool inDesignMode = focusedElement ? focusedElement->IsInDesignMode()
+                                           : document->IsInDesignMode();
   if (!focusedElement) {
     // in designMode, nobody gets focus in most cases.
     if (inDesignMode && OurWindowHasFocus()) {
@@ -6888,10 +6941,9 @@ bool HTMLEditor::IsActiveInDOMWindow() const {
   if (NS_WARN_IF(!document)) {
     return false;
   }
-  const bool inDesignMode = IsInDesignMode();
 
   // If we're in designMode, we're always active in the DOM window.
-  if (inDesignMode) {
+  if (IsInDesignMode()) {
     return true;
   }
 
@@ -6901,6 +6953,10 @@ bool HTMLEditor::IsActiveInDOMWindow() const {
       ourWindow, nsFocusManager::eOnlyCurrentWindow, getter_AddRefs(win));
   if (!content) {
     return false;
+  }
+
+  if (content->IsInDesignMode()) {
+    return true;
   }
 
   // We're HTML editor for contenteditable
@@ -6943,7 +6999,7 @@ Element* HTMLEditor::ComputeEditingHostInternal(
     return document->GetBodyElement();
   };
 
-  if (IsInDesignMode()) {
+  if (mIsInDesignMode) {
     // TODO: In this case, we need to compute editing host from aContent or the
     //       focus node of selection, and it may be in an editing host in a
     //       shadow DOM tree etc.  We need to do more complicated things.
@@ -6960,8 +7016,16 @@ Element* HTMLEditor::ComputeEditingHostInternal(
   const nsIContent* const content =
       aContent ? aContent
                : nsIContent::FromNodeOrNull(SelectionRef().GetFocusNode());
+  if (!content && document->IsInDesignMode()) {
+    return document->GetBodyElement();
+  }
+
   if (NS_WARN_IF(!content)) {
     return nullptr;
+  }
+
+  if (content->IsInDesignMode()) {
+    return document->GetBodyElement();
   }
 
   // If the active content isn't editable, we're not active.
@@ -7179,7 +7243,7 @@ bool HTMLEditor::IsAcceptableInputEvent(WidgetGUIEvent* aGUIEvent) const {
     return false;
   }
 
-  if (IsInDesignMode()) {
+  if (eventTargetNode->IsInDesignMode()) {
     // If this editor is in designMode and the event target is the document,
     // the event is for this editor.
     if (eventTargetNode->IsDocument()) {
@@ -7191,12 +7255,6 @@ bool HTMLEditor::IsAcceptableInputEvent(WidgetGUIEvent* aGUIEvent) const {
     }
     if (document == eventTargetNode->GetUncomposedDoc()) {
       return true;
-    }
-    // If the event target is in a shadow tree, the content is not editable
-    // by default, but if the focused content is an editing host, we need to
-    // handle it as contenteditable mode.
-    if (!eventTargetNode->IsInShadowTree()) {
-      return false;
     }
   }
 
