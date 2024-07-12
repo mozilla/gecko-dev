@@ -716,6 +716,8 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 .PanelUI-remotetabs-clientcontainer > label[itemtype="client"] {
   color: var(--text-color-deemphasized);
   font-size: 11px;
+  margin-top: 6px;
+  margin-bottom: 2px;
 }
 
 #appMenu-fxa-status2 {
@@ -1223,7 +1225,11 @@ panelview .toolbarbutton-1,
 
 .PanelUI-subView {
   .subviewbutton-nav-down::after {
+    -moz-context-properties: fill, fill-opacity;
     content: url(chrome://global/skin/icons/arrow-down.svg);
+    fill: currentColor;
+    fill-opacity: 0.6;
+    display: flex;
   }
 
   .toolbaritem-combined-buttons > .subviewbutton {
@@ -1354,21 +1360,36 @@ panelview .toolbarbutton-1 {
     opacity: 0;
     transform: translateY(-20px);
   }
+
+  > toolbarbutton[itemtype="tab"] {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+
+    &[disabled="true"] {
+      pointer-events: none;
+    }
+  }
 }
 
-.PanelUI-tabitem-container > toolbarbutton[itemtype="tab"] {
-  flex: 1;
-  min-width: 0;
-}
+toolbarbutton[itemtype="showmorebutton"],
+  toolbarbutton[itemtype="showinactivebutton"] {
+    padding-inline-start: 0;
+
+    > label {
+      /* Needed to properly left-align with the rest of list */
+      margin-inline-start: -8px;
+    }
+  }
 
 .remote-tabs-close-button {
-  -moz-context-properties: fill;
+  .toolbarbutton-icon {
+      /* To match the nav elements in the panel */
+  -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
-  /* To match the nav elements in the panel */
-  opacity: 0.6;
+  fill-opacity: 0.6;
+  display: flex;
 
-  &:hover {
-    opacity: 1;
   }
 }
 

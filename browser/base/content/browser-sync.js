@@ -350,6 +350,7 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
 
   _createShowInactiveTabsElement(client, device) {
     let showItem = document.createXULElement("toolbarbutton");
+    showItem.setAttribute("itemtype", "showinactivebutton");
     showItem.setAttribute("closemenu", "none");
     showItem.classList.add("subviewbutton", "subviewbutton-nav");
     document.l10n.setAttributes(

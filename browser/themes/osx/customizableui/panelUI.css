@@ -13,12 +13,13 @@
 }
 
 .PanelUI-remotetabs-clientcontainer > label[itemtype="client"] {
-  padding-inline-start: 6px;
+  padding-inline-start: 10px;
 }
 
 .PanelUI-remotetabs-notabsforclient-label {
   margin-inline-start: 19px;
   font-size: 13px;
+  padding: 4px 0;
 }
 
 #PanelUI-remotetabs[mainview] .PanelUI-remotetabs-notabsforclient-label {
