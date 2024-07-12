@@ -156,7 +156,7 @@ layers::ScrollDirection ScrollTimeline::Axis() const {
   MOZ_ASSERT(mSource && mSource.mElement->GetPrimaryFrame());
 
   const WritingMode wm = mSource.mElement->GetPrimaryFrame()->GetWritingMode();
-  return mAxis == StyleScrollAxis::Horizontal ||
+  return mAxis == StyleScrollAxis::X ||
                  (!wm.IsVertical() && mAxis == StyleScrollAxis::Inline) ||
                  (wm.IsVertical() && mAxis == StyleScrollAxis::Block)
              ? layers::ScrollDirection::eHorizontal

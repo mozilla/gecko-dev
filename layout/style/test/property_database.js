@@ -14008,20 +14008,20 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
       "scroll()",
       "scroll(block)",
       "scroll(inline)",
-      "scroll(horizontal)",
-      "scroll(vertical)",
+      "scroll(x)",
+      "scroll(y)",
       "scroll(root)",
       "scroll(nearest)",
       "scroll(inline nearest)",
-      "scroll(vertical root)",
-      "scroll(root horizontal)",
+      "scroll(y root)",
+      "scroll(root x)",
       "view()",
       "view(inline)",
       "view(auto)",
       "view(auto 1px)",
       "view(inline auto)",
-      "view(vertical auto auto)",
-      "view(horizontal 1px 1%)",
+      "view(y auto auto)",
+      "view(x 1px 1%)",
       "view(1px 1% block)",
     ],
     invalid_values: [
@@ -14062,8 +14062,8 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     initial_values: ["block"],
-    other_values: ["inline", "vertical", "horizontal"],
-    invalid_values: ["auto", "none", "abc"],
+    other_values: ["inline", "x", "y"],
+    invalid_values: ["auto", "none", "abc", "horizontal"],
   };
 
   gCSSProperties["scroll-timeline"] = {
@@ -14075,15 +14075,15 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
     other_values: [
       "auto inline",
       "bounce inline",
-      "bounce vertical",
+      "bounce y",
       "\\32bounce inline",
       "-bounce block",
-      "\\32 0bounce vertical",
-      "-\\32 0bounce horizontal",
+      "\\32 0bounce y",
+      "-\\32 0bounce x",
       "a, b, c",
-      "a block, b inline, c vertical",
+      "a block, b inline, c y",
     ],
-    invalid_values: ["", "bounce bounce", "horizontal a", "block abc"],
+    invalid_values: ["", "bounce bounce", "x a", "block abc"],
   };
 
   gCSSProperties["view-timeline-name"] = {
@@ -14116,8 +14116,8 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     initial_values: ["block"],
-    other_values: ["inline", "vertical", "horizontal", "inline, block"],
-    invalid_values: ["auto", "none", "abc", "inline block"],
+    other_values: ["inline", "x", "y", "inline, block"],
+    invalid_values: ["auto", "none", "abc", "inline block", "vertical"],
   };
 
   gCSSProperties["view-timeline-inset"] = {
@@ -14138,15 +14138,15 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
     other_values: [
       "auto inline",
       "bounce inline",
-      "bounce vertical",
+      "bounce y",
       "\\32bounce inline",
       "-bounce block",
-      "\\32 0bounce vertical",
-      "-\\32 0bounce horizontal",
+      "\\32 0bounce y",
+      "-\\32 0bounce x",
       "a, b, c",
-      "a block, b inline, c vertical",
+      "a block, b inline, c y",
     ],
-    invalid_values: ["", ",", "abc abc", "horizontal a", "block abc"],
+    invalid_values: ["", ",", "abc abc", "x a", "block abc"],
   };
 }
 

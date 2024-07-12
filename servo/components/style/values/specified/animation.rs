@@ -419,10 +419,10 @@ pub enum ScrollAxis {
     Block = 0,
     /// The inline axis of the scroll container.
     Inline = 1,
-    /// The vertical block axis of the scroll container.
-    Vertical = 2,
     /// The horizontal axis of the scroll container.
-    Horizontal = 3,
+    X = 2,
+    /// The vertical axis of the scroll container.
+    Y = 3,
 }
 
 impl ScrollAxis {

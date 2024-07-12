@@ -140,10 +140,9 @@ ScrollTimeline::ScrollOffsets ViewTimeline::ComputeInsets(
       aScrollContainerFrame->GetScrolledFrame()->GetWritingMode();
   const auto& scrollPadding =
       LogicalMargin(wm, aScrollContainerFrame->GetScrollPadding());
-  const bool isBlockAxis =
-      mAxis == StyleScrollAxis::Block ||
-      (mAxis == StyleScrollAxis::Horizontal && wm.IsVertical()) ||
-      (mAxis == StyleScrollAxis::Vertical && !wm.IsVertical());
+  const bool isBlockAxis = mAxis == StyleScrollAxis::Block ||
+                           (mAxis == StyleScrollAxis::X && wm.IsVertical()) ||
+                           (mAxis == StyleScrollAxis::Y && !wm.IsVertical());
 
   // The percentages of view-timelne-inset is relative to the corresponding
   // dimension of the relevant scrollport.
