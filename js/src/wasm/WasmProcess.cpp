@@ -54,8 +54,6 @@ Atomic<bool> wasm::CodeExists(false);
 static Atomic<ThreadSafeCodeBlockMap*> sThreadSafeCodeBlockMap(nullptr);
 
 bool wasm::RegisterCodeBlock(const CodeBlock* cs) {
-  MOZ_ASSERT(cs->code->initialized());
-
   if (cs->length() == 0) {
     return true;
   }

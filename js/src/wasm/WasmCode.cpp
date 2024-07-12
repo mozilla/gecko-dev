@@ -539,14 +539,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
     }
   }
 
-  // Initialization makes the code block visible to the whole process through
-  // the process code map. We must wait until we're no longer initializing the
-  // code block to do it.
-  if (!stubCodeBlock->initialize(*tierCodeBlock.code)) {
-    return false;
-  }
-
-  return guard->blocks.append(std::move(stubCodeBlock));
+  return addCodeBlock(guard, std::move(stubCodeBlock), nullptr);
 }
 
 bool Code::createOneLazyEntryStub(const WriteGuard& guard,
@@ -664,12 +657,12 @@ bool Code::requestTierUp(uint32_t funcIndex,
                              *this, nullptr, nullptr, nullptr);
 }
 
-bool Code::finishTier2(const LinkData& linkData,
-                       UniqueCodeBlock tier2Code) const {
+bool Code::finishTier2(UniqueCodeBlock tier2CodeBlock,
+                       UniqueLinkData tier2LinkData) const {
   MOZ_RELEASE_ASSERT(mode_ == CompileMode::EagerTiering ||
                      mode_ == CompileMode::LazyTiering);
   MOZ_RELEASE_ASSERT(hasCompleteTier2_ == false &&
-                     tier2Code->tier() == Tier::Optimized);
+                     tier2CodeBlock->tier() == Tier::Optimized);
   // Acquire the write guard before we start mutating anything. We hold this
   // for the minimum amount of time necessary.
   CodeBlock* tier2CodePointer;
@@ -679,12 +672,11 @@ bool Code::finishTier2(const LinkData& linkData,
     // Borrow the tier2 pointer before moving it into the block vector. This
     // ensures we maintain the invariant that completeTier2_ is never read if
     // hasCompleteTier2_ is false.
-    tier2CodePointer = tier2Code.get();
+    tier2CodePointer = tier2CodeBlock.get();
 
     // Publish this code to the process wide map.
-    if (!tier2Code->initialize(*this) ||
-        !guard->blocks.append(std::move(tier2Code)) ||
-        !blockMap_.insert(tier2CodePointer)) {
+    if (!addCodeBlock(guard, std::move(tier2CodeBlock),
+                      std::move(tier2LinkData))) {
       return false;
     }
 
@@ -757,6 +749,21 @@ bool Code::finishTier2(const LinkData& linkData,
   return true;
 }
 
+bool Code::addCodeBlock(const WriteGuard& guard, UniqueCodeBlock block,
+                        UniqueLinkData maybeLinkData) const {
+  // Don't bother saving the link data if the block won't be serialized
+  if (maybeLinkData && !block->isSerializable()) {
+    maybeLinkData = nullptr;
+  }
+
+  CodeBlock* blockPtr = block.get();
+  size_t codeBlockIndex = guard->blocks.length();
+  return guard->blocks.append(std::move(block)) &&
+         guard->blocksLinkData.append(std::move(maybeLinkData)) &&
+         blockMap_.insert(blockPtr) &&
+         blockPtr->initialize(*this, codeBlockIndex);
+}
+
 const LazyFuncExport* Code::lookupLazyFuncExport(const WriteGuard& guard,
                                                  uint32_t funcIndex) const {
   size_t match;
@@ -788,9 +795,10 @@ CodeBlock::~CodeBlock() {
   }
 }
 
-bool CodeBlock::initialize(const Code& code) {
+bool CodeBlock::initialize(const Code& code, size_t codeBlockIndex) {
   MOZ_ASSERT(!initialized());
   this->code = &code;
+  this->codeBlockIndex = codeBlockIndex;
   segment->setCode(code);
 
   SendCodeRangesToProfiler(segment->base(), code.codeMeta(),
@@ -1015,46 +1023,31 @@ Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
 
 bool Code::initialize(FuncImportVector&& funcImports,
                       UniqueCodeBlock sharedStubs,
-                      const LinkData& sharedStubsLinkData,
-                      UniqueCodeBlock tierCodeBlock) {
-  MOZ_ASSERT(!initialized());
-
+                      UniqueLinkData sharedStubsLinkData,
+                      UniqueCodeBlock tier1CodeBlock,
+                      UniqueLinkData tier1LinkData) {
   funcImports_ = std::move(funcImports);
 
   auto guard = data_.writeLock();
 
-  // Grab a mutable pointer to initialize the code block after we have
-  // installed it.
-  CodeBlock* sharedStubsCodePointer = sharedStubs.get();
-  CodeBlock* tier1CodePointer = tierCodeBlock.get();
-
   sharedStubs_ = sharedStubs.get();
-  completeTier1_ = tierCodeBlock.get();
-  trapCode_ = sharedStubs_->segment->base() + sharedStubsLinkData.trapOffset;
+  completeTier1_ = tier1CodeBlock.get();
+  trapCode_ = sharedStubs_->segment->base() + sharedStubsLinkData->trapOffset;
   if (!jumpTables_.initialize(mode_, *codeMeta_, *sharedStubs_,
                               *completeTier1_) ||
-      !guard->blocks.append(std::move(sharedStubs)) ||
-      !guard->blocks.append(std::move(tierCodeBlock)) ||
-      !blockMap_.insert(sharedStubs_) || !blockMap_.insert(completeTier1_)) {
-    // Reset the tier1 pointer to maintain the initialization invariant
-    completeTier1_ = nullptr;
-    MOZ_ASSERT(!initialized());
-    return false;
-  }
-
-  // Initialize the code block (which will publish it to the process) only
-  // after it has been completely installed.
-  if (!tier1CodePointer->initialize(*this) ||
-      !sharedStubsCodePointer->initialize(*this)) {
-    // Reset the tier1 pointer to maintain the initialization invariant
-    completeTier1_ = nullptr;
-    MOZ_ASSERT(!initialized());
+      !addCodeBlock(guard, std::move(sharedStubs),
+                    std::move(sharedStubsLinkData)) ||
+      !addCodeBlock(guard, std::move(tier1CodeBlock),
+                    std::move(tier1LinkData))) {
     return false;
   }
 
   if (mode_ == CompileMode::LazyTiering) {
     uint32_t numFuncDefs = codeMeta_->numFuncs() - codeMeta_->numFuncImports;
     funcStates_ = FuncStatesPointer(js_pod_calloc<FuncState>(numFuncDefs));
+    if (!funcStates_) {
+      return false;
+    }
     for (uint32_t funcDefIndex = 0; funcDefIndex < numFuncDefs;
          funcDefIndex++) {
       funcStates_.get()[funcDefIndex].bestTier = completeTier1_;
@@ -1062,7 +1055,6 @@ bool Code::initialize(FuncImportVector&& funcImports,
     }
   }
 
-  MOZ_ASSERT(initialized());
   return true;
 }
 
@@ -1119,6 +1111,19 @@ const CodeBlock& Code::completeTierCodeBlock(Tier tier) const {
       return *completeTier2_;
   }
   MOZ_CRASH();
+}
+
+const LinkData* Code::codeBlockLinkData(const CodeBlock& block) const {
+  auto guard = data_.readLock();
+  MOZ_ASSERT(block.initialized() && block.code == this);
+  return guard->blocksLinkData[block.codeBlockIndex].get();
+}
+
+void Code::clearLinkData() const {
+  auto guard = data_.writeLock();
+  for (UniqueLinkData& linkData : guard->blocksLinkData) {
+    linkData = nullptr;
+  }
 }
 
 bool Code::lookupFunctionTier(const CodeRange* codeRange, Tier* tier) const {
@@ -1244,7 +1249,8 @@ void Code::addSizeOfMiscIfNotSeen(
 
   auto guard = data_.readLock();
   *data +=
-      mallocSizeOf(this) +
+      mallocSizeOf(this) + guard->blocks.sizeOfExcludingThis(mallocSizeOf) +
+      guard->blocksLinkData.sizeOfExcludingThis(mallocSizeOf) +
       guard->lazyExports.sizeOfExcludingThis(mallocSizeOf) +
       (codeMetaForAsmJS() ? codeMetaForAsmJS()->sizeOfIncludingThisIfNotSeen(
                                 mallocSizeOf, seenCodeMetaForAsmJS)

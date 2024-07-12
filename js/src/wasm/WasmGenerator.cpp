@@ -157,8 +157,8 @@ bool ModuleGenerator::initializeCompleteTier(
   MOZ_ASSERT(isAsmJS() == !!codeMetaForAsmJS);
   codeMetaForAsmJS_ = codeMetaForAsmJS;
 
-  // Generate the shared stubs block
-  if (!generateSharedStubs()) {
+  // Generate the shared stubs block, if we're compiling tier-1
+  if (compilingTier1() && !prepareTier1()) {
     return false;
   }
 
@@ -905,7 +905,7 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
   return std::move(codeBlock_);
 }
 
-bool ModuleGenerator::generateSharedStubs() {
+bool ModuleGenerator::prepareTier1() {
   if (!startCodeBlock(CodeBlockKind::SharedStubs)) {
     return false;
   }
@@ -1092,9 +1092,7 @@ UniqueCodeBlock ModuleGenerator::finishTier(UniqueLinkData* linkData) {
 SharedModule ModuleGenerator::finishModule(
     const ShareableBytes& bytecode, MutableModuleMetadata moduleMeta,
     JS::OptimizedEncodingListener* maybeTier2Listener) {
-  MOZ_ASSERT(compileState_ == CompileState::Once ||
-             compileState_ == CompileState::EagerTier1 ||
-             compileState_ == CompileState::LazyTier1);
+  MOZ_ASSERT(compilingTier1());
 
   UniqueLinkData tier1LinkData;
   UniqueCodeBlock tier1Code = finishTier(&tier1LinkData);
@@ -1178,9 +1176,10 @@ SharedModule ModuleGenerator::finishModule(
                       compilerEnv_->mode() == CompileMode::LazyTiering;
   MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_,
                                   keepBytecode ? &bytecode : nullptr);
-  if (!code || !code->initialize(std::move(funcImports_),
-                                 std::move(sharedStubsCodeBlock_),
-                                 *sharedStubsLinkData_, std::move(tier1Code))) {
+  if (!code || !code->initialize(
+                   std::move(funcImports_), std::move(sharedStubsCodeBlock_),
+                   std::move(sharedStubsLinkData_), std::move(tier1Code),
+                   std::move(tier1LinkData))) {
     return nullptr;
   }
 
@@ -1192,13 +1191,15 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
 
+  // If we can serialize (not asm.js), are not planning on serializing already
+  // and are testing serialization, then do a roundtrip through serialization
+  // to test it out.
   if (!isAsmJS() && compileArgs_->features.testSerialization) {
     MOZ_RELEASE_ASSERT(mode() == CompileMode::Once &&
                        tier() == Tier::Serialized);
 
     Bytes serializedBytes;
-    if (!module->serialize(*sharedStubsLinkData_, *tier1LinkData,
-                           &serializedBytes)) {
+    if (!module->serialize(&serializedBytes)) {
       return nullptr;
     }
 
@@ -1222,7 +1223,7 @@ SharedModule ModuleGenerator::finishModule(
     module->startTier2(bytecode, maybeTier2Listener);
   } else if (tier() == Tier::Serialized && maybeTier2Listener) {
     Bytes bytes;
-    if (module->serialize(*sharedStubsLinkData_, *tier1LinkData, &bytes)) {
+    if (module->serialize(&bytes)) {
       maybeTier2Listener->storeOptimizedEncoding(bytes.begin(), bytes.length());
     }
   }
@@ -1233,6 +1234,7 @@ SharedModule ModuleGenerator::finishModule(
 // Complete all tier-2 construction.  This merely augments the existing Code
 // and does not require moduleMeta_.
 bool ModuleGenerator::finishTier2(const Module& module) {
+  MOZ_ASSERT(!compilingTier1());
   MOZ_ASSERT(compileState_ == CompileState::EagerTier2);
   MOZ_ASSERT(tier() == Tier::Optimized);
   MOZ_ASSERT(!compilerEnv_->debugEnabled());
@@ -1253,11 +1255,11 @@ bool ModuleGenerator::finishTier2(const Module& module) {
     ThisThread::SleepMilliseconds(500);
   }
 
-  return module.finishTier2(*sharedStubsLinkData_, *tier2LinkData,
-                            std::move(tier2Code));
+  return module.finishTier2(std::move(tier2Code), std::move(tier2LinkData));
 }
 
 bool ModuleGenerator::finishPartialTier2(const Code& code) {
+  MOZ_ASSERT(!compilingTier1());
   MOZ_ASSERT(compileState_ == CompileState::LazyTier2);
   MOZ_ASSERT(tier() == Tier::Optimized);
   MOZ_ASSERT(!compilerEnv_->debugEnabled());
@@ -1272,7 +1274,7 @@ bool ModuleGenerator::finishPartialTier2(const Code& code) {
     return false;
   }
 
-  return code.finishTier2(*tier2LinkData, std::move(tier2Code));
+  return code.finishTier2(std::move(tier2Code), std::move(tier2LinkData));
 }
 
 void ModuleGenerator::warnf(const char* msg, ...) {

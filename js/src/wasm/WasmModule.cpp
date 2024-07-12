@@ -160,10 +160,10 @@ void Module::startTier2(const ShareableBytes& bytecode,
   StartOffThreadWasmTier2Generator(std::move(task));
 }
 
-bool Module::finishTier2(const LinkData& sharedStubsLinkData,
-                         const LinkData& linkData2,
-                         UniqueCodeBlock code2) const {
-  if (!code_->finishTier2(linkData2, std::move(code2))) {
+bool Module::finishTier2(UniqueCodeBlock tier2CodeBlock,
+                         UniqueLinkData tier2LinkData) const {
+  if (!code_->finishTier2(std::move(tier2CodeBlock),
+                          std::move(tier2LinkData))) {
     return false;
   }
 
@@ -173,7 +173,7 @@ bool Module::finishTier2(const LinkData& sharedStubsLinkData,
 
   if (tier2Listener_) {
     Bytes bytes;
-    if (serialize(sharedStubsLinkData, linkData2, &bytes)) {
+    if (serialize(&bytes)) {
       tier2Listener_->storeOptimizedEncoding(bytes.begin(), bytes.length());
     }
     tier2Listener_ = nullptr;

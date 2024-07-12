@@ -157,6 +157,7 @@ struct LinkData : LinkDataCacheablePod {
 WASM_DECLARE_CACHEABLE_POD(LinkData::InternalLink);
 
 using UniqueLinkData = UniquePtr<LinkData>;
+using UniqueLinkDataVector = Vector<UniqueLinkData, 0, SystemAllocPolicy>;
 
 // Executable code must be deallocated specially.
 
@@ -174,7 +175,8 @@ class CodeBlock;
 
 using UniqueCodeBlock = UniquePtr<CodeBlock>;
 using UniqueConstCodeBlock = UniquePtr<const CodeBlock>;
-using UniqueCodeBlockVector = Vector<UniqueCodeBlock, 0, SystemAllocPolicy>;
+using UniqueConstCodeBlockVector =
+    Vector<UniqueConstCodeBlock, 0, SystemAllocPolicy>;
 using RawCodeBlockVector = Vector<const CodeBlock*, 0, SystemAllocPolicy>;
 
 enum class CodeBlockKind {
@@ -388,6 +390,8 @@ class CodeBlock {
  public:
   // Weak reference to the code that owns us, not serialized.
   const Code* code;
+  // The index we are held inside our containing Code::data::blocks_ vector.
+  size_t codeBlockIndex;
 
   // The following information is all serialized
   // Which kind of code is being stored in this block. Most consumers don't
@@ -427,14 +431,22 @@ class CodeBlock {
 
   explicit CodeBlock(CodeBlockKind kind)
       : code(nullptr),
+        codeBlockIndex((size_t)-1),
         kind(kind),
         debugTrapOffset(0),
         unregisterOnDestroy_(false) {}
   ~CodeBlock();
 
-  bool initialized() const { return !!code; }
+  bool initialized() const {
+    if (code) {
+      // Initialize should have given us an index too.
+      MOZ_ASSERT(codeBlockIndex != (size_t)-1);
+      return true;
+    }
+    return false;
+  }
 
-  bool initialize(const Code& code);
+  bool initialize(const Code& code, size_t codeBlockIndex);
 
   // Gets the tier for this code block. Only valid for non-lazy stub code.
   Tier tier() const {
@@ -446,6 +458,12 @@ class CodeBlock {
       default:
         MOZ_CRASH();
     }
+  }
+
+  // Returns whether this code block should be considered for serialization.
+  bool isSerializable() const {
+    return kind == CodeBlockKind::SharedStubs ||
+           kind == CodeBlockKind::OptimizedTier;
   }
 
   const uint8_t* base() const { return codeBase; }
@@ -755,8 +773,17 @@ using MetadataAnalysisHashMap =
 
 class Code : public ShareableBase<Code> {
   struct ProtectedData {
-    UniqueCodeBlockVector blocks;
+    // A vector of all of the code blocks owned by this code. Each code block
+    // is immutable once added to the vector, but this vector may grow.
+    UniqueConstCodeBlockVector blocks;
+    // A vector of link data paired 1:1 with `blocks`. Entries may be null if
+    // the code block is not serializable. This is separate from CodeBlock so
+    // that we may clear it out after serialization has happened.
+    UniqueLinkDataVector blocksLinkData;
+
+    // A vector of code segments that we can allocate lazy segments into
     SharedCodeSegmentVector lazySegments;
+    // A sorted vector of LazyFuncExport
     LazyFuncExportVector lazyExports;
   };
   using ReadGuard = RWExclusiveData<ProtectedData>::ReadGuard;
@@ -822,8 +849,13 @@ class Code : public ShareableBase<Code> {
   // tiering.
   Tiers completeTiers() const;
 
+  [[nodiscard]] bool addCodeBlock(const WriteGuard& guard,
+                                  UniqueCodeBlock block,
+                                  UniqueLinkData maybeLinkData) const;
+
   [[nodiscard]] const LazyFuncExport* lookupLazyFuncExport(
       const WriteGuard& guard, uint32_t funcIndex) const;
+
   // Returns a pointer to the raw interpreter entry of a given function for
   // which stubs have been lazily generated.
   [[nodiscard]] void* lookupLazyInterpEntry(const WriteGuard& guard,
@@ -851,16 +883,14 @@ class Code : public ShareableBase<Code> {
   Code(CompileMode mode, const CodeMetadata& codeMeta,
        const CodeMetadataForAsmJS* codeMetaForAsmJS,
        const ShareableBytes* maybeBytecode);
-  bool initialized() const {
-    return !!completeTier1_ && completeTier1_->initialized();
-  }
 
   [[nodiscard]] bool initialize(FuncImportVector&& funcImports,
                                 UniqueCodeBlock sharedStubs,
-                                const LinkData& sharedStubsLinkData,
-                                UniqueCodeBlock tier1CodeBlock);
-  [[nodiscard]] bool finishTier2(const LinkData& linkData,
-                                 UniqueCodeBlock tier2Code) const;
+                                UniqueLinkData sharedStubsLinkData,
+                                UniqueCodeBlock tier1CodeBlock,
+                                UniqueLinkData tier1LinkData);
+  [[nodiscard]] bool finishTier2(UniqueCodeBlock tier2CodeBlock,
+                                 UniqueLinkData tier2LinkData) const;
 
   [[nodiscard]] bool getOrCreateInterpEntry(uint32_t funcIndex,
                                             const FuncExport** funcExport,
@@ -924,6 +954,9 @@ class Code : public ShareableBase<Code> {
   bool funcHasTier(uint32_t funcIndex, Tier tier) const {
     return funcCodeBlock(funcIndex).tier() == tier;
   }
+
+  const LinkData* codeBlockLinkData(const CodeBlock& block) const;
+  void clearLinkData() const;
 
   // Code metadata lookup:
   const CallSite* lookupCallSite(void* pc) const {

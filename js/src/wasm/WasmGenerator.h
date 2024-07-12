@@ -246,7 +246,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
 
   // Generate a code block containing all stubs that are shared between the
   // different tiers.
-  [[nodiscard]] bool generateSharedStubs();
+  [[nodiscard]] bool prepareTier1();
 
   // Starts the creation of a complete tier of wasm code. Every function
   // defined in this module must be compiled, then finishTier must be
@@ -263,6 +263,11 @@ class MOZ_STACK_CLASS ModuleGenerator {
   Tier tier() const { return compilerEnv_->tier(); }
   CompileMode mode() const { return compilerEnv_->mode(); }
   bool debugEnabled() const { return compilerEnv_->debugEnabled(); }
+  bool compilingTier1() const {
+    return compileState_ == CompileState::Once ||
+      compileState_ == CompileState::EagerTier1 ||
+      compileState_ == CompileState::LazyTier1;
+  }
 
   void warnf(const char* msg, ...) MOZ_FORMAT_PRINTF(2, 3);
 
