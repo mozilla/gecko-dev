@@ -28,6 +28,11 @@ sealed class MenuAction : Action {
     data object AddBookmark : MenuAction()
 
     /**
+     * [MenuAction] dispatched when Reader View is to be turned on or off.
+     */
+    data object ToggleReaderView : MenuAction()
+
+    /**
      * [MenuAction] dispatched when a bookmark state is updated.
      *
      * @property bookmarkState The new [BookmarkState] to be updated.

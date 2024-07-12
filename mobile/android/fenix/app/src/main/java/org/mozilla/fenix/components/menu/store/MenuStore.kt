@@ -33,6 +33,7 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.DeleteBrowsingDataAndQuit,
         is MenuAction.OpenInApp,
         is MenuAction.InstallAddon,
+        is MenuAction.ToggleReaderView,
         is MenuAction.Navigate,
         -> state
 

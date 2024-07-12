@@ -118,6 +118,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
                     val isTranslationSupported = browserStore.state.translationEngine.isEngineSupported ?: false
+                    val isReaderable = selectedTab?.readerState?.readerable ?: false
                     val settings = components.settings
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
                     val translateLanguageCode = selectedTab?.translationsState?.translationEngineState
@@ -188,6 +189,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     }
                     val isPinned by store.observeAsState(initialValue = false) { state ->
                         state.browserMenuState != null && state.browserMenuState.isPinned
+                    }
+
+                    val isReaderViewActive by store.observeAsState(initialValue = false) { state ->
+                        state.browserMenuState != null && state.browserMenuState.selectedTab.readerState.active
                     }
 
                     NavHost(
@@ -270,7 +275,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             }
 
                             ToolsSubmenu(
-                                isReaderViewActive = false,
+                                isReaderable = isReaderable,
+                                isReaderViewActive = isReaderViewActive,
                                 hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,
                                 externalAppName = appLinksRedirect?.appName ?: "",
                                 isTranslated = selectedTab?.translationsState?.isTranslated ?: false,
@@ -287,7 +293,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 onBackButtonClick = {
                                     store.dispatch(MenuAction.Navigate.Back)
                                 },
-                                onReaderViewMenuClick = {},
+                                onReaderViewMenuClick = {
+                                    store.dispatch(MenuAction.ToggleReaderView)
+                                },
                                 onTranslatePageMenuClick = {
                                     selectedTab?.let {
                                         store.dispatch(MenuAction.Navigate.Translate)
