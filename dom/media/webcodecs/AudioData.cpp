@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Assertions.h"
+#include "mozilla/CheckedInt.h"
 #include "mozilla/Logging.h"
 #include "mozilla/dom/AudioData.h"
 #include "mozilla/dom/AudioDataBinding.h"
@@ -701,15 +702,24 @@ void AudioData::CloseIfNeeded() {
 RefPtr<mozilla::AudioData> AudioData::ToAudioData() const {
   // Always convert to f32 interleaved for now, as this Gecko's prefered
   // internal audio representation for encoding and decoding.
+  // mResource can be bigger than needed.
   Span<uint8_t> data = mResource->Data();
-  DebugOnly<uint32_t> frames = mNumberOfFrames;
+  CheckedUint64 sampleCount = mNumberOfFrames;
+  sampleCount *= mNumberOfChannels;
+  if (!sampleCount.isValid()) {
+    LOGE("Overflow AudioData::ToAudioData when computing the number of frames");
+    return nullptr;
+  }
   uint32_t bytesPerSample = BytesPerSamples(mAudioSampleFormat.value());
-  uint32_t samples = data.Length() / bytesPerSample;
-  DebugOnly<uint32_t> computedFrames = samples / mNumberOfChannels;
-  MOZ_ASSERT(frames == computedFrames);
-  AlignedAudioBuffer buf(samples);
+  CheckedInt64 storageNeeded = sampleCount.value();
+  storageNeeded *= bytesPerSample;
+  if (!storageNeeded.isValid()) {
+    LOGE("Overflow AudioData::ToAudioData when computing the number of bytes");
+    return nullptr;
+  }
+  AlignedAudioBuffer buf(sampleCount.value());
   Span<uint8_t> storage(reinterpret_cast<uint8_t*>(buf.Data()),
-                        samples * sizeof(float));
+                        storageNeeded.value());
 
   CopyToSpec spec(mNumberOfFrames, 0, 0, AudioSampleFormat::F32);
 #ifdef DEBUG
