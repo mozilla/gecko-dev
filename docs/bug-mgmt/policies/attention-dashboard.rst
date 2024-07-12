@@ -75,8 +75,8 @@ Handling needinfos
 
 TL;DR: Don’t leave people hanging.
 
-Many people have long lists of needinfos. Please don’t ignore them. Here’s how we suggest you burn them down, and keep them down.
-
+When setting or clearing needinfos, please bear in mind the intended semantics of "needinfo": a bug is considered to be unactionable if it has an open needinfo request. A prompt response to a needinfo request on a bug is expected to ensure appropriate action can be taken.
+Some people have long lists of needinfos. Please don’t ignore them. Here’s how we suggest you burn them down, and keep them down.
 
 
 Old needinfos
@@ -95,7 +95,7 @@ If you’re concerned about annoying the requester by clearing the needinfo, fee
 New needinfos
 ~~~~~~~~~~~~~
 
-For newer requests, don’t leave someone or something, .e.g BugBot hanging. If you can take action in the short term, do so. If you can’t do it straight away to come with a detailed response, consider replying something that might help move on the discussion, like:
+For newer requests, don’t leave someone or something, .e.g BugBot hanging. If you can take action in the short term, do so. If you can’t do it straight away to come with a detailed response, consider replying something that might help to move forward the discussion, like:
 
 * `I don't know, but you could do X in order to find out.`
 * `Can you please provide more information about Y?`
@@ -107,6 +107,15 @@ Providing visibility of your current plan helps move the needle, too. You can al
 
 This clears the needinfo.
 
+
+A note on personal bug bookmarks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you want to keep track of some bugs you are not the assignee of and need more than yet another cc-mail in your bugzilla inbox, you can now use the new reminder system of bugzilla. It enables you to get reminded of a bug after some time and to see the list of bugs that currently have a reminder set for you. Keep in mind, that this is only visible to your bmo account and cannot be shared. If you set a "When" that is far enough in the future, you can use this as your personal bookmark list. In particular reminders can largely substitute the former habit of adding a "needinfo to myself", so please consider transforming your existing self-ni? to reminders over time.
+
+In other words: we recommend to keep your "What needs my attention?" dashboard clear from your personal bookmarks, as they most likely do not need your immediate attention.
+
+For some more details about the reminder feature please refer to this announcement: https://discourse.mozilla.org/t/happy-bmo-push-day-20240611-2/131062.
 
 
 Review requests
