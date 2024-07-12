@@ -108,6 +108,72 @@ ConvertYCbCr16to8Line(uint8_t* aDst,
   libyuv::Convert16To8Plane(aSrc, aStride16, aDst, aStride, scale, aWidth, aHeight);
 }
 
+struct YUV8BitData {
+  explicit YUV8BitData(const layers::PlanarYCbCrData& aData) {
+    if (aData.mColorDepth == ColorDepth::COLOR_8) {
+      mData = aData;
+      return;
+    }
+
+    mData.mPictureRect = aData.mPictureRect;
+
+    // We align the destination stride to 32 bytes, so that libyuv can use
+    // SSE optimised code.
+    auto ySize = aData.YDataSize();
+    auto cbcrSize = aData.CbCrDataSize();
+    mData.mYStride = (ySize.width + 31) & ~31;
+    mData.mCbCrStride = (cbcrSize.width + 31) & ~31;
+    mData.mYUVColorSpace = aData.mYUVColorSpace;
+    mData.mColorDepth = ColorDepth::COLOR_8;
+    mData.mColorRange = aData.mColorRange;
+    mData.mChromaSubsampling = aData.mChromaSubsampling;
+
+    size_t yMemorySize = GetAlignedStride<1>(mData.mYStride, ySize.height);
+    size_t cbcrMemorySize =
+        GetAlignedStride<1>(mData.mCbCrStride, cbcrSize.height);
+    if (yMemorySize == 0) {
+      MOZ_DIAGNOSTIC_ASSERT(cbcrMemorySize == 0,
+                            "CbCr without Y makes no sense");
+      return;
+    }
+    mYChannel = MakeUnique<uint8_t[]>(yMemorySize);
+
+    mData.mYChannel = mYChannel.get();
+
+    int bitDepth = BitDepthForColorDepth(aData.mColorDepth);
+
+    ConvertYCbCr16to8Line(mData.mYChannel, mData.mYStride,
+                          reinterpret_cast<uint16_t*>(aData.mYChannel),
+                          aData.mYStride / 2, ySize.width, ySize.height,
+                          bitDepth);
+
+    if (cbcrMemorySize) {
+      mCbChannel = MakeUnique<uint8_t[]>(cbcrMemorySize);
+      mCrChannel = MakeUnique<uint8_t[]>(cbcrMemorySize);
+
+      mData.mCbChannel = mCbChannel.get();
+      mData.mCrChannel = mCrChannel.get();
+
+      ConvertYCbCr16to8Line(mData.mCbChannel, mData.mCbCrStride,
+                            reinterpret_cast<uint16_t*>(aData.mCbChannel),
+                            aData.mCbCrStride / 2, cbcrSize.width,
+                            cbcrSize.height, bitDepth);
+
+      ConvertYCbCr16to8Line(mData.mCrChannel, mData.mCbCrStride,
+                            reinterpret_cast<uint16_t*>(aData.mCrChannel),
+                            aData.mCbCrStride / 2, cbcrSize.width,
+                            cbcrSize.height, bitDepth);
+    }
+  }
+
+  const layers::PlanarYCbCrData& Get8BitData() { return mData; }
+
+  layers::PlanarYCbCrData mData;
+  UniquePtr<uint8_t[]> mYChannel;
+  UniquePtr<uint8_t[]> mCbChannel;
+  UniquePtr<uint8_t[]> mCrChannel;
+};
+
 void
 ConvertYCbCrToRGBInternal(const layers::PlanarYCbCrData& aData,
                           const SurfaceFormat& aDestFormat,
@@ -119,73 +185,8 @@ ConvertYCbCrToRGBInternal(const layers::PlanarYCbCrData& aData,
   // luma plane is odd sized. Monochrome images have 0-sized CbCr planes
   YUVType yuvtype = GetYUVType(aData);
 
-  // Used if converting to 8 bits YUV.
-  UniquePtr<uint8_t[]> yChannel;
-  UniquePtr<uint8_t[]> cbChannel;
-  UniquePtr<uint8_t[]> crChannel;
-  layers::PlanarYCbCrData dstData;
-  const layers::PlanarYCbCrData& srcData =
-    aData.mColorDepth == ColorDepth::COLOR_8 ? aData : dstData;
-
-  if (aData.mColorDepth != ColorDepth::COLOR_8) {
-    // Convert to 8 bits data first.
-    dstData.mPictureRect = aData.mPictureRect;
-    // We align the destination stride to 32 bytes, so that libyuv can use
-    // SSE optimised code.
-    auto ySize = aData.YDataSize();
-    auto cbcrSize = aData.CbCrDataSize();
-    dstData.mYStride = (ySize.width + 31) & ~31;
-    dstData.mCbCrStride = (cbcrSize.width + 31) & ~31;
-    dstData.mYUVColorSpace = aData.mYUVColorSpace;
-    dstData.mColorDepth = ColorDepth::COLOR_8;
-    dstData.mColorRange = aData.mColorRange;
-    dstData.mChromaSubsampling = aData.mChromaSubsampling;
-
-    size_t yMemorySize = GetAlignedStride<1>(dstData.mYStride, ySize.height);
-    size_t cbcrMemorySize =
-      GetAlignedStride<1>(dstData.mCbCrStride, cbcrSize.height);
-    if (yMemorySize == 0) {
-      MOZ_DIAGNOSTIC_ASSERT(cbcrMemorySize == 0, "CbCr without Y makes no sense");
-      return;
-    }
-    yChannel = MakeUnique<uint8_t[]>(yMemorySize);
-
-    dstData.mYChannel = yChannel.get();
-
-    int bitDepth = BitDepthForColorDepth(aData.mColorDepth);
-
-    ConvertYCbCr16to8Line(dstData.mYChannel,
-                          dstData.mYStride,
-                          reinterpret_cast<uint16_t*>(aData.mYChannel),
-                          aData.mYStride / 2,
-                          ySize.width,
-                          ySize.height,
-                          bitDepth);
-
-    if (cbcrMemorySize) {
-      cbChannel = MakeUnique<uint8_t[]>(cbcrMemorySize);
-      crChannel = MakeUnique<uint8_t[]>(cbcrMemorySize);
-
-      dstData.mCbChannel = cbChannel.get();
-      dstData.mCrChannel = crChannel.get();
-
-      ConvertYCbCr16to8Line(dstData.mCbChannel,
-                            dstData.mCbCrStride,
-                            reinterpret_cast<uint16_t*>(aData.mCbChannel),
-                            aData.mCbCrStride / 2,
-                            cbcrSize.width,
-                            cbcrSize.height,
-                            bitDepth);
-
-      ConvertYCbCr16to8Line(dstData.mCrChannel,
-                            dstData.mCbCrStride,
-                            reinterpret_cast<uint16_t*>(aData.mCrChannel),
-                            aData.mCbCrStride / 2,
-                            cbcrSize.width,
-                            cbcrSize.height,
-                            bitDepth);
-    }
-  }
+  YUV8BitData data(aData);
+  const layers::PlanarYCbCrData& srcData = data.Get8BitData();
 
   // Convert from YCbCr to RGB now, scaling the image if needed.
   if (aDestSize != srcData.mPictureRect.Size()) {
