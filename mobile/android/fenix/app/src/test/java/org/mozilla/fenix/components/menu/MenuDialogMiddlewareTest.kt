@@ -4,9 +4,11 @@
 
 package org.mozilla.fenix.components.menu
 
+import kotlinx.coroutines.runBlocking
 import android.content.Intent
 import kotlinx.coroutines.runBlocking
 import mozilla.appservices.places.BookmarkRoot
+import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.concept.storage.BookmarksStorage
@@ -654,6 +656,119 @@ class MenuDialogMiddlewareTest {
             onSuccess = any(),
             onError = any(),
         )
+    }
+
+    @Test
+    fun `GIVEN selected tab is readerable and reader view is off WHEN toggle reader view action is dispatched THEN reader state is updated`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        var dismissWasCalled = false
+
+        val readerState = ReaderState(
+            readerable = true,
+            active = false,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+                readerState = readerState,
+            ),
+        )
+        val appStore = spy(AppStore())
+        val store = spy(
+            createStore(
+                appStore = appStore,
+                menuState = MenuState(
+                    browserMenuState = browserMenuState,
+                ),
+                onDismiss = { dismissWasCalled = true },
+            ),
+        )
+
+        store.waitUntilIdle()
+
+        store.dispatch(MenuAction.ToggleReaderView).join()
+
+        verify(appStore).dispatch(
+            AppAction.UpdateReaderViewState(isReaderViewActive = true),
+        )
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN selected tab is readerable and reader view is on WHEN toggle reader view action is dispatched THEN reader state is updated`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        var dismissWasCalled = false
+
+        val readerState = ReaderState(
+            readerable = true,
+            active = true,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+                readerState = readerState,
+            ),
+        )
+        val appStore = spy(AppStore())
+        val store = spy(
+            createStore(
+                appStore = appStore,
+                menuState = MenuState(
+                    browserMenuState = browserMenuState,
+                ),
+                onDismiss = { dismissWasCalled = true },
+            ),
+        )
+
+        store.waitUntilIdle()
+
+        store.dispatch(MenuAction.ToggleReaderView).join()
+
+        verify(appStore).dispatch(
+            AppAction.UpdateReaderViewState(isReaderViewActive = false),
+        )
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN selected tab is not readerable WHEN toggle reader view action is dispatched THEN reader state is not updated`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        var dismissWasCalled = false
+
+        val readerState = ReaderState(
+            readerable = false,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+                readerState = readerState,
+            ),
+        )
+        val appStore = spy(AppStore())
+        val store = spy(
+            createStore(
+                appStore = appStore,
+                menuState = MenuState(
+                    browserMenuState = browserMenuState,
+                ),
+                onDismiss = { dismissWasCalled = true },
+            ),
+        )
+
+        store.waitUntilIdle()
+
+        store.dispatch(MenuAction.ToggleReaderView).join()
+
+        verify(appStore, never()).dispatch(
+            AppAction.UpdateReaderViewState(isReaderViewActive = true),
+        )
+        assertFalse(dismissWasCalled)
     }
 
     private fun createStore(

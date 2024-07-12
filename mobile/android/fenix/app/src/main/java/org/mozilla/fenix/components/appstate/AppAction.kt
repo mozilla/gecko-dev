@@ -46,6 +46,13 @@ sealed class AppAction : Action {
     data class UpdateFirstFrameDrawn(val drawn: Boolean) : AppAction()
 
     /**
+     * Updates the [AppState.isReaderViewActive] boolean
+     *
+     * @property isReaderViewActive Whether or not reader view is active.
+     */
+    data class UpdateReaderViewState(val isReaderViewActive: Boolean) : AppAction()
+
+    /**
      * Updates whether the [SearchDialogFragment] is visible.
      */
     data class UpdateSearchDialogVisibility(val isVisible: Boolean) : AppAction()

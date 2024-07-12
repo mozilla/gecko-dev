@@ -34,6 +34,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property isForeground Whether or not the app is in the foreground.
  * @property inactiveTabsExpanded A flag to know if the Inactive Tabs section of the Tabs Tray
  * should be expanded when the tray is opened.
+ * @property isReaderViewActive Whether or not reader view is active.
  * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
  * @property isSearchDialogVisible Flag indicating whether the user is interacting with the [SearchDialogFragment].
  * @property nonFatalCrashes List of non-fatal crashes that allow the app to continue being used.
@@ -66,6 +67,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
 data class AppState(
     val isForeground: Boolean = true,
     val inactiveTabsExpanded: Boolean = false,
+    val isReaderViewActive: Boolean = false,
     val firstFrameDrawn: Boolean = false,
     val isSearchDialogVisible: Boolean = false,
     val nonFatalCrashes: List<NativeCodeCrash> = emptyList(),
