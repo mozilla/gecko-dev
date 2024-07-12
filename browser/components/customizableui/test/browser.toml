@@ -6,6 +6,7 @@ support-files = [
 prefs = [
   "browser.sessionstore.closedTabsFromAllWindows=true",
   "browser.sessionstore.closedTabsFromClosedWindows=true",
+  "sidebar.revamp=false",
 ]
 
 ["browser_1003588_no_specials_in_panel.js"]

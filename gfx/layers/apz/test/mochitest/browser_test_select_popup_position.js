@@ -71,6 +71,15 @@ async function runPopupPositionTest(parentDocumentFileName) {
   const popupRect = selectPopup.getBoundingClientRect();
   const popupMarginTop = parseFloat(getComputedStyle(selectPopup).marginTop);
   const popupMarginLeft = parseFloat(getComputedStyle(selectPopup).marginLeft);
+  let sidebarRevampEnabled = Services.prefs.getBoolPref(
+    "sidebar.revamp",
+    false
+  );
+  let sidebarWidth;
+  if (sidebarRevampEnabled) {
+    const sidebar = document.querySelector("sidebar-main");
+    sidebarWidth = sidebar.getBoundingClientRect().width;
+  }
 
   info(
     `popup rect: (${popupRect.x}, ${popupRect.y}) ${popupRect.width}x${popupRect.height}`
@@ -81,7 +90,9 @@ async function runPopupPositionTest(parentDocumentFileName) {
   );
 
   is(
-    popupRect.left - popupMarginLeft,
+    !sidebarRevampEnabled
+      ? popupRect.left - popupMarginLeft
+      : popupRect.left - popupMarginLeft - sidebarWidth,
     selectRect.x * 2.0,
     "select popup position x should be scaled by the desktop zoom"
   );

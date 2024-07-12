@@ -20,6 +20,8 @@ prefs = [
   # The Screenshots extension is disabled by default in Mochitests. We re-enable
   # it here, since it's a more realistic configuration.
   "extensions.screenshots.disabled=false",
+  # Need to keep the revamped sidebar off until Bug 1905212 is done
+  "sidebar.revamp=false",
 ]
 support-files = ["head.js"]
 

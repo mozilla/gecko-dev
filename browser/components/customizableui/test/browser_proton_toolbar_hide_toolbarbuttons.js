@@ -208,10 +208,17 @@ add_task(async function testNullSavedState() {
     !navbarPlacements.includes("library-button"),
     "Library button isn't included by default"
   );
-  Assert.ok(
-    !navbarPlacements.includes("sidebar-button"),
-    "Sidebar button isn't included by default"
-  );
+  if (!Services.prefs.getBoolPref("sidebar.revamp", false)) {
+    Assert.ok(
+      !navbarPlacements.includes("sidebar-button"),
+      "Sidebar button isn't included by default"
+    );
+  } else {
+    Assert.ok(
+      navbarPlacements.includes("sidebar-button"),
+      "Sidebar button is included by default"
+    );
+  }
 
   // Cleanup
   CustomizableUI.setTestOnlyInternalProp("gSavedState", oldState);

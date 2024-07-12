@@ -3,8 +3,6 @@
 
 "use strict";
 
-add_setup(() => SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] }));
-
 registerCleanupFunction(() =>
   Services.prefs.clearUserPref("sidebar.main.tools")
 );

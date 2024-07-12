@@ -1,0 +1,15 @@
+[DEFAULT]
+dupe-manifest=true
+support-files = [
+  "head.js",
+  "simplifyArticleSample.html",
+]
+prefs = ["sidebar.revamp=true"]
+
+["browser_modal_print.js"]
+support-files = [
+  "file_portrait.html",
+  "file_landscape.html",
+  "file_first_portrait.html",
+  "file_first_landscape.html",
+]

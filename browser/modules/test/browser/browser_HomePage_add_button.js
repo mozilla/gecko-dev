@@ -124,17 +124,25 @@ add_task(async function testHomeButtonNotAddedExtensionControlled() {
 
 add_task(async function testHomeButtonPlacement() {
   await withTestSetup({}, async () => {
+    let sidebarRevampEnabled = Services.prefs.getBoolPref(
+      "sidebar.revamp",
+      false
+    );
     assertHomeButtonNotPlaced();
     HomePage._maybeAddHomeButtonToToolbar("https://example.com");
     let homePlacement = CustomizableUI.getPlacementOfWidget(kHomeButtonId);
     is(homePlacement.area, "nav-bar", "Home button is in the nav-bar");
-    is(homePlacement.position, 3, "Home button is after stop/refresh");
+    is(
+      homePlacement.position,
+      !sidebarRevampEnabled ? 3 : 4,
+      "Home button is after stop/refresh"
+    );
 
     let addressBarPlacement =
       CustomizableUI.getPlacementOfWidget(kUrlbarWidgetId);
     is(
       addressBarPlacement.position,
-      5,
+      !sidebarRevampEnabled ? 5 : 6,
       "There's a space between home and urlbar"
     );
     CustomizableUI.removeWidgetFromArea(kHomeButtonId);

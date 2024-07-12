@@ -1,0 +1,9 @@
+[DEFAULT]
+dupe-manifest=true
+prefs = [
+  "sidebar.revamp=true",
+]
+
+["browser_sidebar_app_locale_changed.js"]
+
+["browser_sidebar_keys.js"]

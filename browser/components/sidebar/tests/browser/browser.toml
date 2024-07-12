@@ -1,5 +1,8 @@
 [DEFAULT]
 support-files = ["head.js"]
+prefs = [
+  "sidebar.revamp=true",
+]
 
 ["browser_a11y_sidebar.js"]
 

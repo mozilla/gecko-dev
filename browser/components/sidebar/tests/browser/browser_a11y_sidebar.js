@@ -6,12 +6,10 @@
 let win;
 
 add_setup(async () => {
-  await SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] });
   win = await BrowserTestUtils.openNewBrowserWindow();
 });
 
 registerCleanupFunction(async () => {
-  await SpecialPowers.popPrefEnv();
   await BrowserTestUtils.closeWindow(win);
 });
 

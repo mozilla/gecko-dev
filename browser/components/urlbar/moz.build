@@ -86,6 +86,7 @@ BROWSER_CHROME_MANIFESTS += [
     "tests/browser-tips/suppress-tips/browser.toml",
     "tests/browser-updateResults/browser.toml",
     "tests/browser/browser.toml",
+    "tests/browser/browserSidebarRevamp.toml",
     "tests/engagementTelemetry/browser/browser.toml",
     "tests/quicksuggest/browser/browser.toml",
 ]

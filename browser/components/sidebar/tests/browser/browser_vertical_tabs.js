@@ -5,10 +5,7 @@
 
 add_setup(() =>
   SpecialPowers.pushPrefEnv({
-    set: [
-      ["sidebar.revamp", true],
-      ["sidebar.verticalTabs", false],
-    ],
+    set: [["sidebar.verticalTabs", false]],
   })
 );
 registerCleanupFunction(() => SpecialPowers.popPrefEnv());

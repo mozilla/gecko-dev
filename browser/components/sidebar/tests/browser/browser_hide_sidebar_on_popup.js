@@ -7,8 +7,6 @@ const DOMAIN = "https://example.com/";
 const PATH = "browser/browser/components/privatebrowsing/test/browser/";
 const TOP_PAGE = DOMAIN + PATH + "empty_file.html";
 
-add_setup(() => SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] }));
-
 add_task(async function test_sidebar_hidden_on_popup() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;

@@ -113,14 +113,60 @@ add_task(async function testTabOrder() {
     ok(true, "Print preview focused after shift+tab through the paginator");
 
     focused = BrowserTestUtils.waitForEvent(gNavToolbox, "focus", true);
-    EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
-    await focused;
-    ok(true, "Toolbox focused after shift+tab");
+    let sidebarRevampEnabled = Services.prefs.getBoolPref(
+      "sidebar.revamp",
+      false
+    );
+    if (!sidebarRevampEnabled) {
+      EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+      await focused;
+      ok(true, "Toolbox focused after shift+tab");
 
-    focused = BrowserTestUtils.waitForEvent(previewBrowser, "focus");
-    EventUtils.synthesizeKey("KEY_Tab");
-    await focused;
-    ok(true, "Print preview focused after tab");
+      focused = BrowserTestUtils.waitForEvent(previewBrowser, "focus");
+      EventUtils.synthesizeKey("KEY_Tab");
+      await focused;
+      ok(true, "Print preview focused after tab");
+    } else {
+      // Shift + Tab to the toolbar and continue Shift + Tabbing until you reach the toolbox
+      info("Shift + Tab to sidebar");
+      EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+      await BrowserTestUtils.waitForCondition(
+        () => document.activeElement.tagName.includes("sidebar-main"),
+        `Sidebar has focus`
+      );
+      let doesSidebarHaveFocus = true;
+      while (doesSidebarHaveFocus) {
+        if (document.activeElement.tagName.includes("sidebar-main")) {
+          info("Shift + Tab again");
+          EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+          await TestUtils.waitForTick();
+        } else {
+          await focused;
+          ok(true, "Toolbox focused after shift+tab");
+          doesSidebarHaveFocus = false;
+        }
+      }
+
+      focused = BrowserTestUtils.waitForEvent(previewBrowser, "focus");
+      // Tab to the toolbar and continue Tabbing until you reach the print preview
+      info("Tab to sidebar");
+      EventUtils.synthesizeKey("KEY_Tab");
+      await BrowserTestUtils.waitForCondition(
+        () => document.activeElement.tagName.includes("sidebar-main"),
+        `Sidebar has focus`
+      );
+      doesSidebarHaveFocus = true;
+      while (doesSidebarHaveFocus) {
+        if (document.activeElement.tagName.includes("sidebar-main")) {
+          EventUtils.synthesizeKey("KEY_Tab");
+          await TestUtils.waitForTick();
+        } else {
+          await focused;
+          ok(true, "Print preview focused after tab");
+          doesSidebarHaveFocus = false;
+        }
+      }
+    }
 
     for (let buttonId of [
       "navigateHome",

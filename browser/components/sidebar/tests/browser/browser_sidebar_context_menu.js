@@ -3,8 +3,6 @@
 
 "use strict";
 
-add_setup(() => SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] }));
-
 add_task(async function test_sidebar_extension_context_menu() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   await waitForBrowserWindowActive(win);

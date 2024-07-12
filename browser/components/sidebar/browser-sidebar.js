@@ -265,7 +265,12 @@ var SidebarController = {
     });
 
     if (this.sidebarRevampEnabled) {
-      await import("chrome://browser/content/sidebar/sidebar-main.mjs");
+      if (!customElements.get("sidebar-main")) {
+        ChromeUtils.importESModule(
+          "chrome://browser/content/sidebar/sidebar-main.mjs",
+          { global: "current" }
+        );
+      }
       this.revampComponentsLoaded = true;
       this.sidebarContainer.hidden =
         !window.toolbar.visible ||

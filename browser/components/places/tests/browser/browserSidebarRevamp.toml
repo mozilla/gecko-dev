@@ -1,0 +1,19 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+[DEFAULT]
+dupe-manifest=true
+support-files = [
+  "head.js",
+  "framedPage.html",
+  "frameLeft.html",
+  "frameRight.html",
+  "sidebarpanels_click_test_page.html",
+  "keyword_form.html",
+]
+prefs = [
+  "sidebar.revamp=true",
+]
+
+["browser_bookmark_context_menu_contents.js"]

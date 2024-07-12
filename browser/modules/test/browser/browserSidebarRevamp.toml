@@ -1,0 +1,9 @@
+[DEFAULT]
+dupe-manifest=true
+support-files = ["head.js"]
+prefs = [
+  "sidebar.revamp=true",
+  "telemetry.number_of_site_origin.min_interval=0",
+]
+
+["browser_HomePage_add_button.js"]

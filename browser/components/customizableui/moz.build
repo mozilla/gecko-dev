@@ -8,7 +8,7 @@ DIRS += [
     "content",
 ]
 
-BROWSER_CHROME_MANIFESTS += ["test/browser.toml"]
+BROWSER_CHROME_MANIFESTS += ["test/browser.toml", "test/browserSidebarRevamp.toml"]
 XPCSHELL_TESTS_MANIFESTS += ["test/unit/xpcshell.toml"]
 
 TESTING_JS_MODULES += [

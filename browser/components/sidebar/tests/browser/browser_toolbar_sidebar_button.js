@@ -10,15 +10,11 @@ let gAreas = CustomizableUI.getTestOnlyInternalProp("gAreas");
 
 const SIDEBAR_BUTTON_INTRODUCED_PREF =
   "browser.toolbarbuttons.introduced.sidebar-button";
-const SIDEBAR_REVAMP_PREF = "sidebar.revamp";
 const SIDEBAR_VISIBILITY_PREF = "sidebar.visibility";
 
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      [SIDEBAR_REVAMP_PREF, true],
-      [SIDEBAR_BUTTON_INTRODUCED_PREF, false],
-    ],
+    set: [[SIDEBAR_BUTTON_INTRODUCED_PREF, false]],
   });
   let navbarDefaults = gAreas.get("nav-bar").get("defaultPlacements");
   let hadSavedState = !!CustomizableUI.getTestOnlyInternalProp("gSavedState");
@@ -48,8 +44,8 @@ add_setup(async () => {
 
 add_task(async function test_toolbar_sidebar_button() {
   ok(
-    !document.getElementById("sidebar-button"),
-    "Sidebar button is not showing in the toolbar initially."
+    document.getElementById("sidebar-button"),
+    "Sidebar button is showing in the toolbar initially."
   );
   let gFuturePlacements =
     CustomizableUI.getTestOnlyInternalProp("gFuturePlacements");
@@ -58,34 +54,8 @@ add_task(async function test_toolbar_sidebar_button() {
     0,
     "All future placements should be dealt with by now."
   );
-  CustomizableUIInternal._updateForNewVersion();
-  is(
-    gFuturePlacements.size,
-    1,
-    "Sidebar button should be included in gFuturePlacements"
-  );
-  ok(
-    gFuturePlacements.get("nav-bar").has("sidebar-button"),
-    "sidebar-button is added to the nav bar"
-  );
 
-  // Then place the item so it updates the saved state. This would normally happen
-  // when we call `registerArea` at startup:
-  CustomizableUIInternal._placeNewDefaultWidgetsInArea("nav-bar");
-
-  // Check that we updated `gSavedState`'s placements.
-  let navbarSavedPlacements =
-    CustomizableUI.getTestOnlyInternalProp("gSavedState").placements["nav-bar"];
-  Assert.ok(
-    navbarSavedPlacements.includes("sidebar-button"),
-    `${navbarSavedPlacements.join(", ")} should include sidebar-button`
-  );
-  // At startup we'd then transfer this into `gPlacements` from `restoreStateForArea`
-  CustomizableUI.getTestOnlyInternalProp("gPlacements").set(
-    "nav-bar",
-    navbarSavedPlacements
-  );
-  // Check it's now actually present if we open a new window.
+  // Check it's actually present if we open a new window.
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document: newDoc } = win;
   ok(
@@ -192,6 +162,8 @@ add_task(async function test_states_for_hide_sidebar() {
     );
   };
 
+  // Hide the sidebar
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   info("Check default hidden state.");
   await checkStates({ hidden: true, expanded: false });
 

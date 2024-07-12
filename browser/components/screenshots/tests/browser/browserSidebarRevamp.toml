@@ -1,0 +1,24 @@
+[DEFAULT]
+dupe-manifest=true
+support-files = [
+  "head.js",
+  "iframe-test-page.html",
+  "first-iframe.html",
+  "second-iframe.html",
+  "test-page.html",
+  "short-test-page.html",
+  "large-test-page.html",
+  "test-page-resize.html",
+  "test-selectionAPI-page.html",
+  "rtl-test-page.html",
+]
+
+prefs = [
+  "extensions.screenshots.disabled=false",
+  "screenshots.browser.component.enabled=true",
+  "sidebar.revamp=true",
+]
+
+["browser_keyboard_tests.js"]
+
+["browser_screenshots_test_visible.js"]

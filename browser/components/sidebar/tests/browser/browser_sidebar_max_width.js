@@ -3,9 +3,6 @@
 
 "use strict";
 
-add_setup(() => SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] }));
-registerCleanupFunction(() => SpecialPowers.popPrefEnv());
-
 add_task(async function test_customize_sidebar_actions() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;

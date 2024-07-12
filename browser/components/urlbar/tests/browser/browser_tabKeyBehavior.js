@@ -9,6 +9,10 @@
 "use strict";
 
 add_setup(async function () {
+  let sidebarRevampEnabled = Services.prefs.getBoolPref(
+    "sidebar.revamp",
+    false
+  );
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.suggest.quickactions", false]],
   });
@@ -18,12 +22,13 @@ add_setup(async function () {
   }
 
   registerCleanupFunction(PlacesUtils.history.clear);
-
-  CustomizableUI.addWidgetToArea("home-button", "nav-bar", 0);
-  CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar");
+  // Make sure there's a non-disabled, non-hidden button before the address
+  // input field:
+  if (!sidebarRevampEnabled) {
+    CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar", 0);
+  }
   registerCleanupFunction(() => {
-    CustomizableUI.removeWidgetFromArea("home-button");
-    CustomizableUI.removeWidgetFromArea("sidebar-button");
+    CustomizableUI.reset();
   });
 });
 
@@ -32,14 +37,12 @@ add_task(async function tabWithSearchString() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "exam",
-    fireInputEvent: true,
   });
   await expectTabThroughResults();
   info("Reverse Tab with a search string");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "exam",
-    fireInputEvent: true,
   });
   await expectTabThroughResults({ reverse: true });
 });
@@ -49,14 +52,12 @@ add_task(async function tabNoSearchString() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "",
-    fireInputEvent: true,
   });
   await expectTabThroughToolbar();
   info("Reverse Tab without a search string");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "",
-    fireInputEvent: true,
   });
   await expectTabThroughToolbar({ reverse: true });
 });
@@ -66,7 +67,6 @@ add_task(async function tabAfterBlur() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "exam",
-    fireInputEvent: true,
   });
   await UrlbarTestUtils.promisePopupClose(window);
   await expectTabThroughToolbar();
@@ -115,7 +115,6 @@ add_task(async function tabRetainedResultMouseFocus() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "exam",
-    fireInputEvent: true,
   });
   await UrlbarTestUtils.promisePopupClose(window);
   await UrlbarTestUtils.promisePopupOpen(window, () => {
@@ -130,7 +129,6 @@ add_task(async function tabRetainedResultsKeyboardFocus() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "exam",
-    fireInputEvent: true,
   });
   await UrlbarTestUtils.promisePopupClose(window);
   await UrlbarTestUtils.promisePopupOpen(window, () => {
@@ -145,7 +143,6 @@ add_task(async function tabRetainedResults() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "exam",
-    fireInputEvent: true,
   });
   await UrlbarTestUtils.promisePopupClose(window);
   EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
@@ -159,7 +156,6 @@ add_task(async function tabSearchModePreview() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "@",
-    fireInputEvent: true,
   });
   await UrlbarTestUtils.promisePopupClose(window);
   await UrlbarTestUtils.promisePopupOpen(window, () => {
@@ -230,7 +226,6 @@ add_task(async function tabNoSearchStringSearchMode() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "",
-    fireInputEvent: true,
   });
   // Enter history search mode to avoid hitting the network.
   await UrlbarTestUtils.enterSearchMode(window, {
@@ -248,7 +243,6 @@ add_task(async function tabNoSearchStringSearchMode() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "",
-    fireInputEvent: true,
   });
   await UrlbarTestUtils.exitSearchMode(window);
   await UrlbarTestUtils.promisePopupClose(window);
@@ -264,7 +258,6 @@ add_task(async function tabOnTopSites() {
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
       value: "",
-      fireInputEvent: true,
     });
     Assert.ok(
       UrlbarTestUtils.getResultCount(window) > 0,
@@ -341,11 +334,18 @@ async function expectTabThroughToolbar(options = { reverse: false }) {
 }
 
 async function waitForFocusOnNextFocusableElement(reverse = false) {
+  let sidebarRevampEnabled = Services.prefs.getBoolPref(
+    "sidebar.revamp",
+    false
+  );
   if (
     !Services.prefs.getBoolPref("browser.toolbars.keyboard_navigation", true)
   ) {
+    let sidebar = document.querySelector("sidebar-main");
     return BrowserTestUtils.waitForCondition(
-      () => document.activeElement == gBrowser.selectedBrowser
+      () =>
+        document.activeElement ==
+        (!sidebarRevampEnabled ? gBrowser.selectedBrowser : sidebar)
     );
   }
   let urlbar = document.getElementById("urlbar-container");

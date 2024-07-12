@@ -5,13 +5,9 @@
 
 add_setup(() =>
   SpecialPowers.pushPrefEnv({
-    set: [
-      ["sidebar.revamp", true],
-      ["layout.css.devPixelsPerPx", 1],
-    ],
+    set: [["layout.css.devPixelsPerPx", 1]],
   })
 );
-registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
 const extData2 = { ...extData };
 

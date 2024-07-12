@@ -1,6 +1,9 @@
 [DEFAULT]
 support-files = ["head.js"]
-prefs = ["telemetry.number_of_site_origin.min_interval=0"]
+prefs = [
+  "sidebar.revamp=false",
+  "telemetry.number_of_site_origin.min_interval=0",
+]
 
 ["browser_BrowserWindowTracker.js"]
 

@@ -187,26 +187,58 @@ add_task(async function testReloadButtonPress() {
 // Test activation of the Sidebars button from the keyboard.
 // This is a toolbarbutton with a command handler.
 add_task(async function testSidebarsButtonPress() {
-  CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar");
+  let sidebarRevampEnabled = Services.prefs.getBoolPref(
+    "sidebar.revamp",
+    false
+  );
+  let sidebar, sidebarBox;
+  if (!sidebarRevampEnabled) {
+    CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar");
+  }
   let button = document.getElementById("sidebar-button");
   ok(!button.checked, "Sidebars button not checked at start of test");
-  let sidebarBox = document.getElementById("sidebar-box");
-  ok(sidebarBox.hidden, "Sidebar hidden at start of test");
+  if (!sidebarRevampEnabled) {
+    sidebarBox = document.getElementById("sidebar-box");
+    ok(sidebarBox.hidden, "Sidebar hidden at start of test");
+  } else {
+    sidebar = document.querySelector("sidebar-main");
+    ok(!sidebar.expanded, "Sidebar collapsed at start of test");
+  }
   await focusAndActivateElement(button, () => EventUtils.synthesizeKey(" "));
-  await TestUtils.waitForCondition(() => button.checked);
-  ok(true, "Sidebars button checked after press");
-  ok(!sidebarBox.hidden, "Sidebar visible after press");
+  if (!sidebarRevampEnabled) {
+    await TestUtils.waitForCondition(() => button.checked);
+    ok(true, "Sidebars button checked after press");
+    ok(!sidebarBox.hidden, "Sidebar visible after press");
+  } else {
+    await TestUtils.waitForCondition(
+      () => sidebar.expanded,
+      "Sidebar expanded after press"
+    );
+    ok(sidebar.expanded, "Sidebar expanded after press");
+  }
   // Make sure the sidebar is fully loaded before we hide it.
   // Otherwise, the unload event might call JS which isn't loaded yet.
   // We can't use BrowserTestUtils.browserLoaded because it fails on non-tab
   // docs. Instead, wait for something in the JS script.
-  let sidebarWin = document.getElementById("sidebar").contentWindow;
-  await TestUtils.waitForCondition(() => sidebarWin.PlacesUIUtils);
+  if (!sidebarRevampEnabled) {
+    let sidebarWin = document.getElementById("sidebar").contentWindow;
+    await TestUtils.waitForCondition(() => sidebarWin.PlacesUIUtils);
+  } else {
+    await sidebar.updateComplete;
+  }
   await focusAndActivateElement(button, () => EventUtils.synthesizeKey(" "));
-  await TestUtils.waitForCondition(() => !button.checked);
-  ok(true, "Sidebars button not checked after press");
-  ok(sidebarBox.hidden, "Sidebar hidden after press");
-  CustomizableUI.removeWidgetFromArea("sidebar-button");
+  if (!sidebarRevampEnabled) {
+    await TestUtils.waitForCondition(() => !button.checked);
+    ok(true, "Sidebars button not checked after press");
+    ok(sidebarBox.hidden, "Sidebar hidden after press");
+    CustomizableUI.removeWidgetFromArea("sidebar-button");
+  } else {
+    await TestUtils.waitForCondition(
+      () => !sidebar.expanded,
+      "Sidebar not expanded after press"
+    );
+    ok(!sidebar.expanded, "Sidebar not expanded after press");
+  }
 });
 
 // Test activation of the Bookmark this page button from the keyboard.

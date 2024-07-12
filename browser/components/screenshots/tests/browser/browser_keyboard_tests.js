@@ -248,9 +248,20 @@ add_task(async function test_elementSelectedOnEnter() {
       );
 
       let mouseEvent = BrowserTestUtils.waitForEvent(window, "mousemove");
-      const windowMiddleX =
-        (window.innerWidth / 2 + window.mozInnerScreenX) *
-        window.devicePixelRatio;
+      let windowMiddleX;
+      if (!Services.prefs.getBoolPref("sidebar.revamp", false)) {
+        windowMiddleX =
+          (window.innerWidth / 2 + window.mozInnerScreenX) *
+          window.devicePixelRatio;
+      } else {
+        const sidebar = document.querySelector("sidebar-main");
+        const sidebarWidth = sidebar.offsetWidth;
+        windowMiddleX =
+          ((window.innerWidth - sidebarWidth) / 2 +
+            window.mozInnerScreenX +
+            sidebarWidth) *
+          window.devicePixelRatio;
+      }
       const windowMiddleY =
         (browser.clientHeight / 2) * window.devicePixelRatio;
       const contentTop =
@@ -349,8 +360,16 @@ add_task(async function test_createRegionWithKeyboard() {
       await doKeyPress("ArrowRight", {}, window);
 
       let mouseEvent = BrowserTestUtils.waitForEvent(window, "mousemove");
-      const window100X =
-        (100 + window.mozInnerScreenX) * window.devicePixelRatio;
+      let window100X;
+      if (!Services.prefs.getBoolPref("sidebar.revamp", false)) {
+        window100X = (100 + window.mozInnerScreenX) * window.devicePixelRatio;
+      } else {
+        const sidebar = document.querySelector("sidebar-main");
+        const sidebarWidth = sidebar.offsetWidth;
+        window100X =
+          (100 + window.mozInnerScreenX + sidebarWidth) *
+          window.devicePixelRatio;
+      }
       const contentTop =
         (window.mozInnerScreenY + (window.innerHeight - browser.clientHeight)) *
         window.devicePixelRatio;
@@ -432,8 +451,16 @@ add_task(async function test_createRegionWithKeyboardWithShift() {
       await doKeyPress("ArrowRight", {}, window);
 
       let mouseEvent = BrowserTestUtils.waitForEvent(window, "mousemove");
-      const window100X =
-        (100 + window.mozInnerScreenX) * window.devicePixelRatio;
+      let window100X;
+      if (!Services.prefs.getBoolPref("sidebar.revamp", false)) {
+        window100X = (100 + window.mozInnerScreenX) * window.devicePixelRatio;
+      } else {
+        const sidebar = document.querySelector("sidebar-main");
+        const sidebarWidth = sidebar.offsetWidth;
+        window100X =
+          (100 + window.mozInnerScreenX + sidebarWidth) *
+          window.devicePixelRatio;
+      }
       const contentTop =
         (window.mozInnerScreenY + (window.innerHeight - browser.clientHeight)) *
         window.devicePixelRatio;

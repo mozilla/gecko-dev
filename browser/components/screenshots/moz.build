@@ -17,4 +17,5 @@ with Files("**"):
 
 BROWSER_CHROME_MANIFESTS += [
     "tests/browser/browser.toml",
+    "tests/browser/browserSidebarRevamp.toml",
 ]

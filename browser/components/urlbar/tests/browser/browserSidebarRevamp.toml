@@ -1,0 +1,21 @@
+[DEFAULT]
+dupe-manifest=true
+support-files = [
+  "dummy_page.html",
+  "head.js",
+  "head-common.js",
+]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && asan", # long running manifest
+  "os == 'linux' && os_version == '18.04' && tsan", # long running manifest
+  "win11_2009 && asan", # long running manifest
+]
+prefs = [
+  "browser.bookmarks.testing.skipDefaultBookmarksImport=true",
+  "browser.urlbar.trending.featureGate=false",
+  "extensions.screenshots.disabled=false",
+  "screenshots.browser.component.enabled=true",
+  "sidebar.revamp=true",
+]
+
+["browser_tabKeyBehavior.js"]

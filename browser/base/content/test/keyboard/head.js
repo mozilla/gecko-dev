@@ -55,7 +55,7 @@ async function expectFocusAfterKey(
   let receivedEvent = await focused;
   info(
     "Got focus on item: " +
-      (receivedEvent.target.id || receivedEvent.target.className)
+      (receivedEvent.target?.id || receivedEvent.target?.className)
   );
   ok(true, friendlyExpected + " focused after " + aKey + " pressed");
 }

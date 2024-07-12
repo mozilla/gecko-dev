@@ -508,7 +508,10 @@ if CONFIG["ENABLE_TESTS"]:
     DIRS += ["apz/test/gtest/mvm"]
 
 MOCHITEST_MANIFESTS += ["apz/test/mochitest/mochitest.toml"]
-BROWSER_CHROME_MANIFESTS += ["apz/test/mochitest/browser.toml"]
+BROWSER_CHROME_MANIFESTS += [
+    "apz/test/mochitest/browser.toml",
+    "apz/test/mochitest/browserSidebarRevamp.toml",
+]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]

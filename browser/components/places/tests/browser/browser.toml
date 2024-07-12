@@ -11,6 +11,9 @@ support-files = [
   "sidebarpanels_click_test_page.html",
   "keyword_form.html",
 ]
+prefs = [
+  "sidebar.revamp=false",
+]
 
 ["browser_addBookmarkForFrame.js"]
 

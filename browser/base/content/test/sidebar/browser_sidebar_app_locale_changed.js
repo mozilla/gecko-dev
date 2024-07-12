@@ -48,11 +48,15 @@ async function testLiveReloading(sidebarName) {
 }
 
 add_task(async function test_bookmarks_sidebar() {
-  await testLiveReloading("viewBookmarksSidebar");
+  if (!Services.prefs.getBoolPref("sidebar.revamp", false)) {
+    await testLiveReloading("viewBookmarksSidebar");
+  }
 });
 
 add_task(async function test_history_sidebar() {
-  await testLiveReloading("viewHistorySidebar");
+  if (!Services.prefs.getBoolPref("sidebar.revamp", false)) {
+    await testLiveReloading("viewHistorySidebar");
+  }
 });
 
 add_task(async function test_ext_sidebar_panel_reloaded_on_locale_changes() {

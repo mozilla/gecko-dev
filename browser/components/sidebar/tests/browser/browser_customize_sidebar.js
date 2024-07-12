@@ -7,8 +7,6 @@ requestLongerTimeout(2);
 
 const SIDEBAR_VISIBILITY_PREF = "sidebar.visibility";
 
-add_setup(() => SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] }));
-
 async function showCustomizePanel(win) {
   await win.SidebarController.show("viewCustomizeSidebar");
   const document = win.SidebarController.browser.contentDocument;

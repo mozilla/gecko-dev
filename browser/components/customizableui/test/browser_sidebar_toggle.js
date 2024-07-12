@@ -34,33 +34,65 @@ var hideSidebar = async function (win = window) {
 
 // Check the sidebar widget shows the default items
 add_task(async function () {
-  CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar");
-
-  await showSidebar();
-  is(
-    SidebarController.currentID,
-    "viewBookmarksSidebar",
-    "Default sidebar selected"
+  let sidebarRevampEnabled = Services.prefs.getBoolPref(
+    "sidebar.revamp",
+    false
   );
-  await SidebarController.show("viewHistorySidebar");
+  if (!sidebarRevampEnabled) {
+    CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar");
 
-  await hideSidebar();
-  await showSidebar();
-  is(
-    SidebarController.currentID,
-    "viewHistorySidebar",
-    "Selected sidebar remembered"
-  );
+    await showSidebar();
+    is(
+      SidebarController.currentID,
+      "viewBookmarksSidebar",
+      "Default sidebar selected"
+    );
+    await SidebarController.show("viewHistorySidebar");
 
-  await hideSidebar();
+    await hideSidebar();
+    await showSidebar();
+    is(
+      SidebarController.currentID,
+      "viewHistorySidebar",
+      "Selected sidebar remembered"
+    );
+
+    await hideSidebar();
+  } else {
+    const sidebar = document.querySelector("sidebar-main");
+    ok(sidebar, "Sidebar is shown.");
+    for (const [index, toolButton] of sidebar.toolButtons.entries()) {
+      await SidebarController.show(toolButton.getAttribute("view"));
+      is(
+        SidebarController.currentID,
+        toolButton.getAttribute("view"),
+        `${toolButton.getAttribute("view")} sidebar selected`
+      );
+      if (index < sidebar.toolButtons.length - 1) {
+        SidebarController.toggle(toolButton.getAttribute("view"));
+      }
+    }
+  }
   let otherWin = await BrowserTestUtils.openNewBrowserWindow();
-  await showSidebar(otherWin);
-  is(
-    otherWin.SidebarController.currentID,
-    "viewHistorySidebar",
-    "Selected sidebar remembered across windows"
-  );
-  await hideSidebar(otherWin);
+  if (!sidebarRevampEnabled) {
+    await showSidebar(otherWin);
+    is(
+      otherWin.SidebarController.currentID,
+      "viewHistorySidebar",
+      "Selected sidebar remembered across windows"
+    );
+    await hideSidebar(otherWin);
+  } else {
+    let otherSidebar = otherWin.document.querySelector("sidebar-main");
+    let lastTool =
+      otherSidebar.toolButtons[otherSidebar.toolButtons.length - 1];
+    is(
+      otherWin.SidebarController.currentID,
+      lastTool.getAttribute("view"),
+      "Selected sidebar remembered across windows"
+    );
+    otherWin.SidebarController.toggle(lastTool.getAttribute("view"));
+  }
 
   await BrowserTestUtils.closeWindow(otherWin);
 });

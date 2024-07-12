@@ -9,8 +9,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
 });
 
-add_setup(() => SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] }));
-
 add_task(async function test_adopt_from_window() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;

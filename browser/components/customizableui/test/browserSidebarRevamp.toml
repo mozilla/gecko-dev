@@ -1,0 +1,20 @@
+[DEFAULT]
+dupe-manifest=true
+support-files = [
+  "head.js",
+  "support/test_967000_charEncoding_page.html",
+]
+prefs = [
+  "browser.sessionstore.closedTabsFromAllWindows=true",
+  "browser.sessionstore.closedTabsFromClosedWindows=true",
+  "sidebar.revamp=true",
+]
+
+["browser_914138_widget_API_overflowable_toolbar.js"]
+tags = "overflowable-toolbar"
+skip-if = ["os == 'linux'"]
+
+["browser_proton_toolbar_hide_toolbarbuttons.js"]
+
+["browser_sidebar_toggle.js"]
+skip-if = ["verify"]

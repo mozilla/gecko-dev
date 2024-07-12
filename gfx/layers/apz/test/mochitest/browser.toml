@@ -7,6 +7,7 @@ support-files = [
   "!/browser/components/extensions/test/browser/head.js",
   "!/browser/components/extensions/test/browser/head_browserAction.js"
 ]
+prefs = ["sidebar.revamp=false"]
 
 ["browser_test_animations_without_apz_sampler.js"]
 
