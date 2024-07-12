@@ -8,7 +8,7 @@
 
 "no-feature-firefox-desktop":
   description: A dummy feature for experiments that target no feature.
-  owner: barret@mozilla.com
+  owner: beth@mozilla.com
   applications:
     - firefox-desktop
     - firefox-desktop-background-task
@@ -17,7 +17,7 @@
 
 testFeature:
   description: Test only feature
-  owner: barret@mozilla.com
+  owner: beth@mozilla.com
   applications:
     - firefox-desktop
     - firefox-desktop-background-task
@@ -40,7 +40,7 @@ testFeature:
 
 nimbus-qa-1:
   description: A feature for testing pref-setting on the default branch.
-  owner: barret@mozilla.com
+  owner: beth@mozilla.com
   hasExposure: false
   variables:
     value:
@@ -52,7 +52,7 @@ nimbus-qa-1:
 
 nimbus-qa-2:
   description: A feature for testing pref-setting on the user branch.
-  owner: barret@mozilla.com
+  owner: beth@mozilla.com
   hasExposure: false
   variables:
     value:
@@ -67,7 +67,7 @@ nimbus-qa-2:
 # the prefs you will control.
 prefFlips:
   description: Flip arbitrary prefs. Controlled by release management.
-  owner: barret@mozilla.com
+  owner: beth@mozilla.com
   hasExposure: false
   variables:
     prefs:
@@ -2223,7 +2223,7 @@ fxaClientAssociation:
 
 legacyHeartbeat:
   description: Normandy Heartbeat exposed to Nimbus
-  owner: barret@mozilla.com
+  owner: beth@mozilla.com
   hasExposure: false
   schema:
     uri: "resource://normandy/schemas/LegacyHeartbeat.schema.json"

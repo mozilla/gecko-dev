@@ -119,7 +119,7 @@ geckoview:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1603185#c13
     notification_emails:
-      - barret@mozilla.com
+      - beth@mozilla.com
       - perf-telemetry-alerts@mozilla.com
     expires: never
 

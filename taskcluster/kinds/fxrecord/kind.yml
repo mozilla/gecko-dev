@@ -41,5 +41,5 @@ tasks:
             subject: fxrecord run failed
             message: fxrecord run failed
             emails:
-                - "barret@mozilla.com"
+                - "beth@mozilla.com"
                 - "perftest-alerts@mozilla.com"

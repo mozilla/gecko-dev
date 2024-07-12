@@ -916,7 +916,7 @@ normandy:
     description: >
       This records when validation of a recipe fails.
     bug_numbers: [1762652]
-    notification_emails: ["barret@mozilla.com"]
+    notification_emails: ["beth@mozilla.com"]
     expiry_version: never
     extra_keys:
       reason: Why validation failed (one of "invalid-recipe", "invalid-branch", or "invalid-reason").

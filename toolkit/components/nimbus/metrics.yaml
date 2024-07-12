@@ -218,7 +218,7 @@ nimbus_events:
     data_sensitivity:
       - technical
     notification_emails:
-      - barret@mozilla.com
+      - beth@mozilla.com
     expires: never
     send_in_pings:
       - background-update

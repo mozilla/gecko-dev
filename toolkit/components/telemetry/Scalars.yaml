@@ -4280,7 +4280,7 @@ gfx.omtp:
       - gfx-telemetry-alerts@mozilla.com
       - rhunt@mozilla.com
       - perf-telemetry-alerts@mozilla.com
-      - barret@mozilla.com
+      - beth@mozilla.com
     products:
       - 'firefox'
       - 'fennec'
