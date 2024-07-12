@@ -1906,29 +1906,24 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
     return AsVariant(NonDecoderResult::OutOfMemory);
   }
 
+  PremultFunc premultOp = nullptr;
   if (decodedData->mAlpha) {
     const auto wantPremultiply =
         !bool(GetSurfaceFlags() & SurfaceFlags::NO_PREMULTIPLY_ALPHA);
     const bool& hasPremultiply = decodedData->mAlpha->mPremultiplied;
 
-    PremultFunc premultOp = nullptr;
     if (wantPremultiply && !hasPremultiply) {
       premultOp = libyuv::ARGBAttenuate;
     } else if (!wantPremultiply && hasPremultiply) {
       premultOp = libyuv::ARGBUnattenuate;
     }
-
-    MOZ_LOG(sAVIFLog, LogLevel::Debug,
-            ("[this=%p] calling gfx::ConvertYCbCrToRGB32 premultOp: %p", this,
-             premultOp));
-    gfx::ConvertYCbCrToRGB32(*decodedData, format, rgbBuf.get(),
-                             rgbStride.value(), premultOp);
-  } else {
-    MOZ_LOG(sAVIFLog, LogLevel::Debug,
-            ("[this=%p] calling gfx::ConvertYCbCrToRGB", this));
-    gfx::ConvertYCbCrToRGB(*decodedData, format, rgbSize, rgbBuf.get(),
-                           rgbStride.value());
   }
+
+  MOZ_LOG(sAVIFLog, LogLevel::Debug,
+          ("[this=%p] calling gfx::ConvertYCbCrToRGB32 premultOp: %p", this,
+           premultOp));
+  gfx::ConvertYCbCrToRGB32(*decodedData, format, rgbBuf.get(),
+                           rgbStride.value(), premultOp);
 
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
           ("[this=%p] calling SurfacePipeFactory::CreateSurfacePipe", this));
