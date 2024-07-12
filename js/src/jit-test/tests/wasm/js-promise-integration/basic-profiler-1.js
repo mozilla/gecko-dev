@@ -51,50 +51,52 @@ var tasks = res.then((r) => {
     [
       "",
       ">",
-      "2,>",                                   // enter $promising.exported
-      "<,2,>",                                 // JS $promising.create-suspender
-      "2,>",
-      ...wb("#ref.func function,2,>"),         // ref to $promising.trampoline
-      "2,>",
-      ...wb("#update suspender state util,2,>"),
-      "2,>",
-      "3,2,>",                                 // enter $promising.trampoline
-      "1,3,2,>",                               // enter "update_state_export"
-      "2,1,3,2,>",                             // enter $suspending.exported
-      ...wb("CurrentSuspender,2,1,3,2,>"),
-      "2,1,3,2,>",
-      ...wb("#ref.func function,2,1,3,2,>"),   // ref to $suspending.trampoline
-      "2,1,3,2,>",
-      ...wb("#update suspender state util,2,1,3,2,>"),
-      "2,1,3,2,>",
-      "2,>",                                   // stack switched
-      "3,2,>",                                 // enter $suspending.trampoline
-      "<,3,2,>",                               // $suspending.wrappedfn
-      "3,2,>",
-      ...wb("#ref.func function,3,2,>"),       // ref to $suspending.continue-on-suspendable
-      "3,2,>",
-      "<,3,2,>",                               // $suspending.add-promise-reactions
-      "3,2,>",
-      "2,>",
-      ...wb("#update suspender state util,2,>"),
-      "2,>",                                   // exiting $promising.exported
+      "1,>",                                   // enter $promising.exported
+      ...wb("CreateSuspender,1,>"),
+      "1,>",
+      ...wb("CreatePromisingPromise,1,>"),
+      "1,>",
+      ...wb("#ref.func function,1,>"),         // ref to $promising.trampoline
+      "1,>",
+      ...wb("#update suspender state util,1,>"),
+      "1,>",
+      "2,1,>",                                 // enter $promising.trampoline
+      "1,2,1,>",                               // enter "update_state_export"
+      "1,1,2,1,>",                             // enter $suspending.exported
+      ...wb("CurrentSuspender,1,1,2,1,>"),
+      "1,1,2,1,>",
+      ...wb("#ref.func function,1,1,2,1,>"),   // ref to $suspending.trampoline
+      "1,1,2,1,>",
+      ...wb("#update suspender state util,1,1,2,1,>"),
+      "1,1,2,1,>",
+      "1,>",                                   // stack switched
+      "2,1,>",                                 // enter $suspending.trampoline
+      "<,2,1,>",                               // $suspending.wrappedfn
+      "2,1,>",
+      ...wb("#ref.func function,2,1,>"),       // ref to $suspending.continue-on-suspendable
+      "2,1,>",
+      ...wb("AddPromiseReactions,2,1,>"),
+      "2,1,>",
+      "1,>",
+      ...wb("#update suspender state util,1,>"),
+      "1,>",                                   // exiting $promising.exported
       ">",
       "",
       ">",
-      "4,>",                                   // enter $suspending.continue-on-suspendable
-      "4,1,3,4,>",                             // back to "update_state_export"
-      "2,1,3,4,>",                             // back to $suspending.exported
-      ...wb("#update suspender state util,2,1,3,4,>"),
-      "2,1,3,4,>",
-      ...wb("GetSuspendingPromiseResult,2,1,3,4,>"),
-      "2,1,3,4,>",
-      "1,3,4,>",                               // exiting from "update_state_export"
-      "3,4,>",                                 // at $promising.trampoline
-      ...wb("SetPromisingPromiseResults,3,4,>"),
-      "3,4,>",
-      "4,>",
-      ...wb("#update suspender state util,4,>"),
-      "4,>",                                   // exiting $suspending.continue-on-suspendable
+      "3,>",                                   // enter $suspending.continue-on-suspendable
+      "3,1,2,3,>",                             // back to "update_state_export"
+      "1,1,2,3,>",                             // back to $suspending.exported
+      ...wb("#update suspender state util,1,1,2,3,>"),
+      "1,1,2,3,>",
+      ...wb("GetSuspendingPromiseResult,1,1,2,3,>"),
+      "1,1,2,3,>",
+      "1,2,3,>",                               // exiting from "update_state_export"
+      "2,3,>",                                 // at $promising.trampoline
+      ...wb("SetPromisingPromiseResults,2,3,>"),
+      "2,3,>",
+      "3,>",
+      ...wb("#update suspender state util,3,>"),
+      "3,>",                                   // exiting $suspending.continue-on-suspendable
       ">",
       ""
     ]

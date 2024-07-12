@@ -44,28 +44,29 @@ var res = update_state(4);
 var tasks = res.then((r) => {
   assertEq(r, .04);
   const stacks = disableSingleStepProfiling();
-  print(JSON.stringify(stacks));
   assertEqImpreciseStacks(stacks,
     [
       "",
       ">",
-      "2,>",                                   // enter $promising.exported
-      "<,2,>",                                 // JS $promising.create-suspender
-      "2,>",
-      ...wb("#ref.func function,2,>"),         // ref to $promising.trampoline
-      "2,>",
-      ...wb("#update suspender state util,2,>"),
-      "2,>",
-      "3,2,>",                                 // enter $promising.trampoline
-      "1,3,2,>",                               // enter "update_state_export"
-      "<,1,3,2,>",                             // JS compute_delta
-      "1,3,2,>",                               // exiting from "update_state_export"
-      "3,2,>",                                 // at $promising.trampoline
-      ...wb("SetPromisingPromiseResults,3,2,>"),
-      "3,2,>",
-      "2,>",
-      ...wb("#update suspender state util,2,>"),
-      "2,>",                                   // exiting $promising.exported
+      "1,>",                                   // enter $promising.exported
+      ...wb("CreateSuspender,1,>"),
+      "1,>",
+      ...wb("CreatePromisingPromise,1,>"),
+      "1,>",
+      ...wb("#ref.func function,1,>"),         // ref to $promising.trampoline
+      "1,>",
+      ...wb("#update suspender state util,1,>"),
+      "1,>",
+      "2,1,>",                                 // enter $promising.trampoline
+      "1,2,1,>",                               // enter "update_state_export"
+      "<,1,2,1,>",                             // JS compute_delta
+      "1,2,1,>",                               // exiting from "update_state_export"
+      "2,1,>",                                 // at $promising.trampoline
+      ...wb("SetPromisingPromiseResults,2,1,>"),
+      "2,1,>",
+      "1,>",
+      ...wb("#update suspender state util,1,>"),
+      "1,>",                                   // exiting $promising.exported
       ">",
       ""
     ]

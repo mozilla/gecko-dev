@@ -164,6 +164,9 @@
   args: [General, General, General]
 
 - ret: Int32
+  args: [General, General, General, General]
+
+- ret: Int32
   args: [General, General, General, Int32]
 
 - ret: Int32

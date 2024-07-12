@@ -103,6 +103,7 @@
 
 namespace js {
 
+class PromiseObject;
 class WasmStructObject;
 
 namespace wasm {
@@ -232,10 +233,19 @@ JSFunction* WasmPromisingFunctionCreate(JSContext* cx, HandleObject func,
 
 SuspenderObject* CurrentSuspender(Instance* instance, int reserved);
 
+SuspenderObject* CreateSuspender(Instance* instance, int reserved);
+
+PromiseObject* CreatePromisingPromise(Instance* instance,
+                                      SuspenderObject* suspender);
+
 SuspenderObject* CheckSuspender(Instance* instance, JSObject* maybeSuspender);
 
 JSObject* GetSuspendingPromiseResult(Instance* instance,
                                      SuspenderObject* suspender);
+
+int32_t AddPromiseReactions(Instance* instance, SuspenderObject* suspender,
+                            PromiseObject* promise,
+                            JSFunction* continueOnSuspendable);
 
 int32_t SetPromisingPromiseResults(Instance* instance,
                                    SuspenderObject* suspender,
