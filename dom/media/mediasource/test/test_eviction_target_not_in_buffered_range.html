@@ -49,9 +49,23 @@ runWithMSE(async (ms, el) => {
 // Helper functions
 async function seekAndFetchData(el, seekTime, sb, range) {
   const promise = once(el, "seeked");
+  const start = sb.buffered.start(0);
+  const end = sb.buffered.end(sb.buffered.length - 1);
+
+  // We need to wait for the data eviction finish first after seeking.
   el.currentTime = seekTime;
-  // We need to wait for the data eviction finish first.
   await monitorBufferedChange(sb);
+  const newStart = sb.buffered.start(0);
+  const newEnd = sb.buffered.end(sb.buffered.length - 1);
+  info(`Buffer range is changed from [${start}, ${end}] to [${newStart}, ${newEnd}]`);
+
+  // Check if we evict data from the correct side of the buffer.
+  if (seekTime > end) {
+    ok(newStart > start, "Evicted data from the head");
+  } else {
+    ok(newEnd < end, "Evicted data from the tail");
+  }
+
   try {
     info(`Append the data containing the seek target`);
     await fetchAndLoad(sb, "bipbop/bipbop_video", range, ".m4s");
@@ -60,7 +74,7 @@ async function seekAndFetchData(el, seekTime, sb, range) {
     ok(false, "Should be able to append new data due to the auto eviction");
   }
   await promise;
-  info(`Succefully append new data and seek to the desired position`);
+  info(`Succefully appended new data and seeked to the desired position`);
 }
 
 function monitorBufferedChange(sourceBuffer) {
