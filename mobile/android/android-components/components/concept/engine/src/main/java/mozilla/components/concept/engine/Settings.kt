@@ -251,6 +251,18 @@ abstract class Settings {
      * Setting to control the email tracker blocking feature in the private browsing mode.
      */
     open var emailTrackerBlockingPrivateBrowsing: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control whether privacy.fingerprintingProtection is enabled.
+     * This is enabled by default in private browsing mode (see variable below)
+     * and exposed in the ETP Custom UI as 'Suspected Fingerprinters'.
+     */
+    open var fingerprintingProtection: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control whether privacy.fingerprintingProtection.pbmode is enabled.
+     */
+    open var fingerprintingProtectionPrivateBrowsing: Boolean by UnsupportedSetting()
 }
 
 /**
@@ -290,6 +302,8 @@ data class DefaultSettings(
     override var enterpriseRootsEnabled: Boolean = false,
     override var httpsOnlyMode: Engine.HttpsOnlyMode = Engine.HttpsOnlyMode.DISABLED,
     override var globalPrivacyControlEnabled: Boolean = false,
+    override var fingerprintingProtection: Boolean = false,
+    override var fingerprintingProtectionPrivateBrowsing: Boolean = true,
     override var cookieBannerHandlingMode: CookieBannerHandlingMode = CookieBannerHandlingMode.DISABLED,
     override var cookieBannerHandlingModePrivateBrowsing: CookieBannerHandlingMode =
         CookieBannerHandlingMode.DISABLED,
