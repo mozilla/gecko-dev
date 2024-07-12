@@ -1,3 +1,9 @@
 {
-  "ui:order": ["thirdPartyId", "overridesId", "engineName", "urls"]
+  "ui:order": [
+    "thirdPartyId",
+    "overridesId",
+    "overridesAppIdv2",
+    "engineName",
+    "urls"
+  ]
 }
