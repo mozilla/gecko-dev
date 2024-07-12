@@ -161,7 +161,6 @@ class MenuTelemetryMiddleware(
             )
 
             MenuAction.InitAction,
-            MenuAction.ToggleReaderView,
             is MenuAction.InstallAddon,
             is MenuAction.Navigate.AddonDetails,
             MenuAction.Navigate.Back,

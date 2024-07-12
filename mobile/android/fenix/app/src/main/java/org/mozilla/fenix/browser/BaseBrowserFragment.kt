@@ -136,7 +136,6 @@ import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.OnLongPressedListener
 import org.mozilla.fenix.R
-import org.mozilla.fenix.ReaderViewBinding
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.readermode.DefaultReaderModeController
 import org.mozilla.fenix.browser.tabstrip.TabStrip
@@ -282,7 +281,6 @@ abstract class BaseBrowserFragment :
     private val screenOrientationFeature = ViewBoundFeatureWrapper<ScreenOrientationFeature>()
     private val biometricPromptFeature = ViewBoundFeatureWrapper<BiometricPromptFeature>()
     private val crashContentIntegration = ViewBoundFeatureWrapper<CrashContentIntegration>()
-    private val readerViewBinding = ViewBoundFeatureWrapper<ReaderViewBinding>()
     private var pipFeature: PictureInPictureFeature? = null
 
     var customTabSessionId: String? = null
@@ -590,15 +588,6 @@ abstract class BaseBrowserFragment :
                     isToolbarDynamic = isToolbarDynamic(context),
                     isToolbarPlacedAtTop = context.settings().toolbarPosition == ToolbarPosition.TOP,
                 ),
-            ),
-            owner = this,
-            view = view,
-        )
-
-        readerViewBinding.set(
-            feature = ReaderViewBinding(
-                appStore = context.components.appStore,
-                readerMenuController = readerMenuController,
             ),
             owner = this,
             view = view,

@@ -86,7 +86,6 @@ class MenuDialogMiddleware(
             is MenuAction.DeleteBrowsingDataAndQuit -> deleteBrowsingDataAndQuit()
             is MenuAction.OpenInApp -> openInApp(context.store)
             is MenuAction.InstallAddon -> installAddon(action.addon)
-            is MenuAction.ToggleReaderView -> toggleReaderView(context.store)
             else -> Unit
         }
 
@@ -267,24 +266,6 @@ class MenuDialogMiddleware(
                 logger.error("Failed to install addon", e)
             },
         )
-    }
-
-    private fun toggleReaderView(
-        store: Store<MenuState, MenuAction>,
-    ) = scope.launch {
-        val readerState = store.state.browserMenuState?.selectedTab?.readerState ?: return@launch
-
-        if (!readerState.readerable) {
-            return@launch
-        }
-
-        appStore.dispatch(
-            AppAction.UpdateReaderViewState(
-                isReaderViewActive = !readerState.active,
-            ),
-        )
-
-        onDismiss()
     }
 
     companion object {

@@ -256,10 +256,6 @@ internal object AppStoreReducer {
             )
         }
 
-        is AppAction.UpdateReaderViewState -> state.copy(
-            isReaderViewActive = action.isReaderViewActive,
-        )
-
         is AppAction.DeleteAndQuitStarted -> {
             state.copy(snackbarState = SnackbarState.DeletingBrowserDataInProgress)
         }

@@ -23,7 +23,6 @@ internal const val TOOLS_MENU_ROUTE = "tools_menu"
 @Suppress("LongParameterList")
 @Composable
 internal fun ToolsSubmenu(
-    isReaderable: Boolean,
     isReaderViewActive: Boolean,
     isTranslated: Boolean,
     isTranslationSupported: Boolean,
@@ -47,7 +46,6 @@ internal fun ToolsSubmenu(
     ) {
         MenuGroup {
             ReaderViewMenuItem(
-                readerable = isReaderable,
                 isReaderViewActive = isReaderViewActive,
                 onClick = onReaderViewMenuClick,
             )
@@ -105,17 +103,10 @@ internal fun ToolsSubmenu(
 
 @Composable
 private fun ReaderViewMenuItem(
-    readerable: Boolean,
     isReaderViewActive: Boolean,
     onClick: () -> Unit,
 ) {
-    if (!readerable) {
-        MenuItem(
-            label = stringResource(id = R.string.browser_menu_turn_on_reader_view),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_reader_view_24),
-            state = MenuItemState.DISABLED,
-        )
-    } else if (isReaderViewActive) {
+    if (isReaderViewActive) {
         MenuItem(
             label = stringResource(id = R.string.browser_menu_turn_off_reader_view),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_reader_view_fill_24),
@@ -166,7 +157,6 @@ private fun ToolsSubmenuPreview() {
             modifier = Modifier.background(color = FirefoxTheme.colors.layer3),
         ) {
             ToolsSubmenu(
-                isReaderable = true,
                 isReaderViewActive = false,
                 isTranslated = false,
                 isTranslationSupported = false,
@@ -192,7 +182,6 @@ private fun ToolsSubmenuPrivatePreview() {
             modifier = Modifier.background(color = FirefoxTheme.colors.layer3),
         ) {
             ToolsSubmenu(
-                isReaderable = true,
                 isReaderViewActive = false,
                 isTranslated = false,
                 isTranslationSupported = true,
