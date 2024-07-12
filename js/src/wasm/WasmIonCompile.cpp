@@ -5724,8 +5724,14 @@ static bool EmitTruncate(FunctionCompiler& f, ValType operandType,
   }
   if (resultType == ValType::I32) {
     if (f.codeMeta().isAsmJS()) {
-      if (input && (input->type() == MIRType::Double ||
-                    input->type() == MIRType::Float32)) {
+      if (f.inDeadCode()) {
+        // The read callsite line, produced by prepareCall, has to be
+        // consumed -- the MWasmBuiltinTruncateToInt32 and MTruncateToInt32
+        // will not create MIR node.
+        (void)f.readCallSiteLineOrBytecode();
+        f.iter().setResult(nullptr);
+      } else if (input && (input->type() == MIRType::Double ||
+                           input->type() == MIRType::Float32)) {
         f.iter().setResult(f.unary<MWasmBuiltinTruncateToInt32>(input));
       } else {
         f.iter().setResult(f.unary<MTruncateToInt32>(input));
