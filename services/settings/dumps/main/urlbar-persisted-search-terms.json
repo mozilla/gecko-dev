@@ -1,0 +1,48 @@
+{
+  "data": [
+    {
+      "schema": 1719398671127,
+      "providerId": "qwant",
+      "includeParams": [
+        {
+          "key": "t",
+          "values": [
+            "web"
+          ],
+          "canBeMissing": true
+        }
+      ],
+      "searchPageRegexp": "^https://www\\.qwant\\.com/",
+      "id": "aa456ed6-cf07-4c2a-af58-bcfe7f03cfee",
+      "last_modified": 1719927826949
+    },
+    {
+      "schema": 1719587527089,
+      "providerId": "duckduckgo",
+      "excludeParams": [
+        {
+          "key": "iax"
+        },
+        {
+          "key": "iar"
+        },
+        {
+          "key": "iaxm"
+        }
+      ],
+      "includeParams": [
+        {
+          "key": "ia",
+          "values": [
+            "web"
+          ],
+          "canBeMissing": true
+        }
+      ],
+      "searchPageRegexp": "^https://duckduckgo\\.com/",
+      "id": "ca94a030-39a0-48ed-a1d1-b003f2be1adb",
+      "last_modified": 1719927826946
+    }
+  ],
+  "timestamp": 1719927826946
+}

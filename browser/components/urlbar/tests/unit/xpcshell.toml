@@ -202,6 +202,9 @@ support-files = [
 
 ["test_unitConversion.js"]
 
+["test_urlbar_persisted_search_terms_validation.js"]
+support-files = ["../../schema/urlbar-persisted-search-terms-schema.json"]
+
 ["test_urlbar_search_terms_persistence.js"]
 
 ["test_word_boundary_search.js"]

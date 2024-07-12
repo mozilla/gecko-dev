@@ -9,6 +9,7 @@ if CONFIG["MOZ_BUILD_APP"] == "browser":
         "search-telemetry-v2.json",
         "sites-classification.json",
         "top-sites.json",
+        "urlbar-persisted-search-terms.json",
    ]
 
 # These collections are referenced in toolkit/ or other core code, however
