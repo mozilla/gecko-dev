@@ -8,6 +8,10 @@ const { LoginManagerChild } = ChromeUtils.importESModule(
   "resource://gre/modules/LoginManagerChild.sys.mjs"
 );
 
+const { FormLikeFactory } = ChromeUtils.importESModule(
+  "resource://gre/modules/FormLikeFactory.sys.mjs"
+);
+
 // expectation[0] tests cases when a form doesn't have a sign-in keyword.
 // expectation[1] tests cases when a form has a sign-in keyword.
 const TESTCASES = [
@@ -162,10 +166,11 @@ for (let tc of TESTCASES) {
           form.setAttribute("name", "login");
         }
 
+        const formLike = FormLikeFactory.createFromForm(form);
         const lmc = new LoginManagerChild();
         const docState = lmc.stateForDocument(form.ownerDocument);
         const element = docState.getUsernameFieldFromUsernameOnlyForm(
-          form,
+          formLike,
           testcase.fieldOverrideRecipe
         );
         Assert.strictEqual(

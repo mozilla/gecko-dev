@@ -102,7 +102,7 @@ const TESTCASES = [
   {
     description: "1 username field outside of a <form>",
     document: `<input id="un1" autocomplete=username>`,
-    returnedFieldIDs: [null, null, null],
+    returnedFieldIDs: ["un1", null, null],
   },
   {
     description: "username with type=user",

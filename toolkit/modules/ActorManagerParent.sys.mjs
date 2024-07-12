@@ -379,7 +379,7 @@ let JSWINDOWACTORS = {
         "form-submission-detected": { createActor: false },
         "before-form-submission": { createActor: false },
         DOMFormHasPassword: {},
-        DOMFormHasPossibleUsername: {},
+        DOMPossibleUsernameInputAdded: {},
         DOMInputPasswordAdded: {},
       },
     },

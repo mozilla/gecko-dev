@@ -4415,7 +4415,7 @@ void HTMLInputElement::MaybeDispatchLoginManagerEvents(HTMLFormElement* aForm) {
   }
 
   nsString eventType;
-  Element* target = nullptr;
+  EventTarget* target = nullptr;
 
   if (mType == FormControlType::InputPassword) {
     // Don't fire another event if we have a pending event.
@@ -4426,28 +4426,40 @@ void HTMLInputElement::MaybeDispatchLoginManagerEvents(HTMLFormElement* aForm) {
     // TODO(Bug 1864404): Use one event for formless and form inputs.
     eventType = aForm ? u"DOMFormHasPassword"_ns : u"DOMInputPasswordAdded"_ns;
 
-    target = aForm ? static_cast<Element*>(aForm) : this;
-
     if (aForm) {
+      target = aForm;
       aForm->mHasPendingPasswordEvent = true;
+    } else {
+      target = this;
     }
 
   } else if (mType == FormControlType::InputEmail ||
              mType == FormControlType::InputText) {
     // Don't fire a username event if:
-    // - <input> is not part of a form
     // - we have a pending event
     // - username only forms are not supported
-    if (!aForm || aForm->mHasPendingPossibleUsernameEvent ||
-        !StaticPrefs::signon_usernameOnlyForm_enabled()) {
+    // fire event if we have a username field without a form with the
+    // autcomplete value of username
+
+    if (!StaticPrefs::signon_usernameOnlyForm_enabled()) {
       return;
     }
 
-    eventType = u"DOMFormHasPossibleUsername"_ns;
-    target = aForm;
-
-    aForm->mHasPendingPossibleUsernameEvent = true;
-
+    if (aForm) {
+      if (aForm->mHasPendingPossibleUsernameEvent) {
+        return;
+      }
+      aForm->mHasPendingPossibleUsernameEvent = true;
+      target = aForm;
+    } else {
+      nsAutoString autocompleteValue;
+      GetAutocomplete(autocompleteValue);
+      if (!autocompleteValue.EqualsASCII("username")) {
+        return;
+      }
+      target = GetComposedDoc();
+    }
+    eventType = u"DOMPossibleUsernameInputAdded"_ns;
   } else {
     return;
   }

@@ -421,10 +421,10 @@ async function checkUnmodifiedFormInFrame(bc, formNum) {
   return SpecialPowers.spawn(bc, [formNum], formNumF => {
     let form = this.content.document.getElementById(`form${formNumF}`);
     ok(form, "Locating form " + formNumF);
+    const elements =
+      form.nodeName === "form" ? form.elements : form.querySelectorAll("input");
 
-    for (var i = 0; i < form.elements.length; i++) {
-      var ele = form.elements[i];
-
+    for (const ele of elements) {
       // No point in checking form submit/reset buttons.
       if (ele.type == "submit" || ele.type == "reset") {
         continue;
@@ -466,10 +466,15 @@ async function checkLoginFormInFrameWithElementValues(
 
       let numToCheck = arguments.length - 1;
 
+      const elements =
+        form.nodeName === "form"
+          ? form.elements
+          : form.querySelectorAll("input");
+
       if (!numToCheck--) {
         return;
       }
-      e = form.elements[0];
+      e = elements[0];
       if (val1F == null) {
         is(
           e.value,
@@ -488,7 +493,7 @@ async function checkLoginFormInFrameWithElementValues(
         return;
       }
 
-      e = form.elements[1];
+      e = elements[1];
       if (val2F == null) {
         is(
           e.value,
@@ -506,7 +511,7 @@ async function checkLoginFormInFrameWithElementValues(
       if (!numToCheck--) {
         return;
       }
-      e = form.elements[2];
+      e = elements[2];
       if (val3F == null) {
         is(
           e.value,

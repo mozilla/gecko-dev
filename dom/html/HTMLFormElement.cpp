@@ -164,7 +164,7 @@ NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(HTMLFormElement,
 void HTMLFormElement::AsyncEventRunning(AsyncEventDispatcher* aEvent) {
   if (aEvent->mEventType == u"DOMFormHasPassword"_ns) {
     mHasPendingPasswordEvent = false;
-  } else if (aEvent->mEventType == u"DOMFormHasPossibleUsername"_ns) {
+  } else if (aEvent->mEventType == u"DOMPossibleUsernameInputAdded"_ns) {
     mHasPendingPossibleUsernameEvent = false;
   }
 }

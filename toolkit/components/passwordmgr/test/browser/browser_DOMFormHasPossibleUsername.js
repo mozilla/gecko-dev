@@ -6,7 +6,7 @@ const ids = {
   INPUT_TYPE: "",
 };
 
-function task({ contentIds, expected }) {
+function task({ contentIds, expected, hasForm = true }) {
   let resolve;
   let promise = new Promise(r => {
     resolve = r;
@@ -27,14 +27,17 @@ function task({ contentIds, expected }) {
     removeEventListener("load", tabLoad, true);
 
     gDoc = content.document;
-    gDoc.addEventListener("DOMFormHasPossibleUsername", unexpectedContentEvent);
-    addEventListener("DOMFormHasPossibleUsername", unexpectedContentEvent);
+    gDoc.addEventListener(
+      "DOMPossibleUsernameInputAdded",
+      unexpectedContentEvent
+    );
+    addEventListener("DOMPossibleUsernameInputAdded", unexpectedContentEvent);
     gDoc.defaultView.setTimeout(test_inputAdd, 0);
   }
 
   function test_inputAdd() {
     if (expected) {
-      addEventListener("DOMFormHasPossibleUsername", test_inputAddHandler, {
+      addEventListener("DOMPossibleUsernameInputAdded", test_inputAddHandler, {
         once: true,
         capture: true,
       });
@@ -45,26 +48,46 @@ function task({ contentIds, expected }) {
     input.setAttribute("type", contentIds.INPUT_TYPE);
     input.setAttribute("id", contentIds.INPUT_ID);
     input.setAttribute("data-test", "unique-attribute");
-    gDoc.getElementById(contentIds.FORM1_ID).appendChild(input);
+    if (hasForm) {
+      gDoc.getElementById(contentIds.FORM1_ID).appendChild(input);
+    } else {
+      input.setAttribute("autocomplete", "username");
+      gDoc.querySelector("body").appendChild(input);
+    }
   }
 
   function test_inputAddHandler(evt) {
     if (expected) {
       evt.stopPropagation();
-      Assert.equal(
-        evt.target.id,
-        contentIds.FORM1_ID,
-        evt.type +
-          " event targets correct form element (added possible username element)"
-      );
+      if (hasForm) {
+        Assert.equal(
+          evt.target.id,
+          contentIds.FORM1_ID,
+          evt.type + " event targets correct username element"
+        );
+      } else {
+        Assert.ok(
+          HTMLDocument.isInstance(evt.target),
+          evt.type + " event targets document"
+        );
+      }
     }
-    gDoc.defaultView.setTimeout(test_inputChangeForm, 0);
+
+    let nextTask;
+    if (hasForm) {
+      nextTask = test_inputChangeForm;
+    } else if (!hasForm && contentIds.INPUT_TYPE !== "text") {
+      nextTask = test_inputChangesType;
+    } else {
+      nextTask = finish;
+    }
+    gDoc.defaultView.setTimeout(nextTask, 0);
   }
 
   function test_inputChangeForm() {
     if (expected) {
       addEventListener(
-        "DOMFormHasPossibleUsername",
+        "DOMPossibleUsernameInputAdded",
         test_inputChangeFormHandler,
         { once: true, capture: true }
       );
@@ -81,7 +104,7 @@ function task({ contentIds, expected }) {
       Assert.equal(
         evt.target.id,
         contentIds.FORM2_ID,
-        evt.type + " event targets correct form element (changed form)"
+        evt.type + " event targets correct username element"
       );
     }
     // TODO(Bug 1864405): Refactor this test to not expect a DOM event
@@ -96,7 +119,7 @@ function task({ contentIds, expected }) {
   function test_inputChangesType() {
     if (expected) {
       addEventListener(
-        "DOMFormHasPossibleUsername",
+        "DOMPossibleUsernameInputAdded",
         test_inputChangesTypeHandler,
         { once: true, capture: true }
       );
@@ -110,19 +133,29 @@ function task({ contentIds, expected }) {
   function test_inputChangesTypeHandler(evt) {
     if (expected) {
       evt.stopPropagation();
-      Assert.equal(
-        evt.target.id,
-        contentIds.FORM1_ID,
-        evt.type + " event targets correct form element (changed type)"
-      );
+      if (hasForm) {
+        Assert.equal(
+          evt.target.id,
+          contentIds.FORM1_ID,
+          evt.type + " event targets correct input element (changed type)"
+        );
+      } else {
+        Assert.ok(
+          HTMLDocument.isInstance(evt.target),
+          evt.type + " event targets document"
+        );
+      }
     }
     gDoc.defaultView.setTimeout(finish, 0);
   }
 
   function finish() {
-    removeEventListener("DOMFormHasPossibleUsername", unexpectedContentEvent);
+    removeEventListener(
+      "DOMPossibleUsernameInputAdded",
+      unexpectedContentEvent
+    );
     gDoc.removeEventListener(
-      "DOMFormHasPossibleUsername",
+      "DOMPossibleUsernameInputAdded",
       unexpectedContentEvent
     );
     resolve();
@@ -148,20 +181,20 @@ add_task(async function test_disconnectedInputs() {
       );
     };
 
-    addEventListener("DOMFormHasPossibleUsername", unexpectedEvent);
+    addEventListener("DOMPossibleUsernameInputAdded", unexpectedEvent);
     const form = content.document.createElement("form");
     const textInput = content.document.createElement("input");
     textInput.setAttribute("type", "text");
     form.appendChild(textInput);
 
     // Delay the execution for a bit to allow time for any asynchronously
-    // dispatched 'DOMFormHasPossibleUsername' events to be processed.
+    // dispatched 'DOMPossibleUsernameInputAdded' events to be processed.
     // This is necessary because such events might not be triggered immediately,
     // and we want to ensure that if they are dispatched, they are captured
     // before we remove the event listener.
     // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
     await new Promise(resolve => setTimeout(resolve, 50));
-    removeEventListener("DOMFormHasPossibleUsername", unexpectedEvent);
+    removeEventListener("DOMPossibleUsernameInputAdded", unexpectedEvent);
   });
 
   Assert.ok(true, "Test completed");
@@ -186,6 +219,30 @@ add_task(async function test_usernameOnlyForm() {
           <input id="${ids.CHANGE_INPUT_ID}">
         </form>
         <form id="${ids.FORM2_ID}"></form>
+        </body></html>`
+    );
+    await promise;
+
+    Assert.ok(true, "Test completed");
+    gBrowser.removeCurrentTab();
+  }
+});
+
+add_task(async function test_formlessUsernameInput() {
+  for (let type of ["text", "email"]) {
+    let tab = (gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser));
+
+    ids.INPUT_TYPE = type;
+    let promise = ContentTask.spawn(
+      tab.linkedBrowser,
+      { contentIds: ids, expected: true, hasForm: false },
+      task
+    );
+    BrowserTestUtils.startLoadingURIString(
+      tab.linkedBrowser,
+      `data:text/html;charset=utf-8,
+        <html><body>
+          <input id="${ids.CHANGE_INPUT_ID}" autocomplete="username">
         </body></html>`
     );
     await promise;

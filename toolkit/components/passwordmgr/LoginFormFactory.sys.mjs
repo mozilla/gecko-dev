@@ -49,18 +49,33 @@ export const LoginFormFactory = {
     let formLike = lazy.FormLikeFactory.createFromForm(aForm);
     formLike.action = lazy.LoginHelper.getFormActionOrigin(aForm);
 
-    let rootElementsSet = this.getRootElementsWeakSetForDocument(
-      formLike.ownerDocument
-    );
-    rootElementsSet.add(formLike.rootElement);
+    this._addLoginFormToRootElementsSet(formLike);
+
+    return formLike;
+  },
+
+  /**
+   * Create a LoginForm object from the HTMLHtmlElement that is the root of the document
+   *
+   * Currently all <input> not in a <form> are one LoginForm but this
+   * shouldn't be relied upon as the heuristics may change to detect multiple
+   * "forms" (e.g. registration and login) on one page with a <form>.
+   *
+   * @param {HTMLHtmlElement} aDocumentRoot
+   * @return {LoginForm}
+   * @throws Error if aDocumentRoot isn't an HTMLHtmlElement
+   */
+  createFromDocumentRoot(aDocumentRoot) {
+    const formLike = lazy.FormLikeFactory.createFromDocumentRoot(aDocumentRoot);
+    formLike.action = lazy.LoginHelper.getLoginOrigin(aDocumentRoot.baseURI);
+
     lazy.log.debug(
-      "adding",
-      formLike.rootElement,
-      "to root elements for",
-      formLike.ownerDocument
+      "Created non-form LoginForm for rootElement:",
+      aDocumentRoot
     );
 
-    this._loginFormsByRootElement.set(formLike.rootElement, formLike);
+    this._addLoginFormToRootElementsSet(formLike);
+
     return formLike;
   },
 
@@ -113,19 +128,7 @@ export const LoginFormFactory = {
       aField.ownerDocument.documentElement
     );
 
-    let rootElementsSet = this.getRootElementsWeakSetForDocument(
-      formLike.ownerDocument
-    );
-    rootElementsSet.add(formLike.rootElement);
-    lazy.log.debug(
-      "adding",
-      formLike.rootElement,
-      "to root elements for",
-      formLike.ownerDocument
-    );
-
-    this._loginFormsByRootElement.set(formLike.rootElement, formLike);
-
+    this._addLoginFormToRootElementsSet(formLike);
     return formLike;
   },
 
@@ -144,5 +147,20 @@ export const LoginFormFactory = {
 
   setForRootElement(aRootElement, aLoginForm) {
     return this._loginFormsByRootElement.set(aRootElement, aLoginForm);
+  },
+
+  _addLoginFormToRootElementsSet(formLike) {
+    let rootElementsSet = this.getRootElementsWeakSetForDocument(
+      formLike.ownerDocument
+    );
+    rootElementsSet.add(formLike.rootElement);
+    lazy.log.debug(
+      "adding",
+      formLike.rootElement,
+      "to root elements for",
+      formLike.ownerDocument
+    );
+
+    this._loginFormsByRootElement.set(formLike.rootElement, formLike);
   },
 };

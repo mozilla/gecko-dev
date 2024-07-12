@@ -57,7 +57,8 @@ class HTMLFormElement final : public nsGenericHTMLElement {
 
   /** Whether we already dispatched a DOMFormHasPassword event or not */
   bool mHasPendingPasswordEvent = false;
-  /** Whether we already dispatched a DOMFormHasPossibleUsername event or not */
+  /** Whether we already dispatched a DOMPossibleUsernameInputAdded event or not
+   */
   bool mHasPendingPossibleUsernameEvent = false;
 
   // nsIContent

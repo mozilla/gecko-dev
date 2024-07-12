@@ -13,7 +13,8 @@ Test autofill on username-form
 <script>
 add_setup(async () => {
   await setStoredLoginsAsync(
-    [window.location.origin, "https://autofill", null, "user1", "pass1"]
+    [window.location.origin, "https://autofill", null, "user1", "pass1"],
+    [window.location.origin, "http://mochi.test", null, "user2", "pass1"]
   );
 });
 
@@ -28,10 +29,9 @@ add_task(async function test_autofill_username_only_form() {
   let win = window.open("about:blank");
   SimpleTest.registerCleanupFunction(() => win.close());
 
-  // 5 out of the 7 forms should be autofilled
+  // 6 out of the 10 forms should be autofilled
   await loadFormIntoWindow(window.location.origin, `
-    <!-- no password field, 1 username field -->
-    <form id='form1' action='https://autofill'> 1
+    <!-- no password field, 1 username field --> <form id='form1' action='https://autofill'> 1
         <input type='text' name='uname' autocomplete='username' value=''>
 
         <button type='submit'>Submit</button>
@@ -85,7 +85,24 @@ add_task(async function test_autofill_username_only_form() {
 
         <button type='submit'>Submit</button>
         <button type='reset'> Reset </button>
-    </form>`, win, 5);
+    </form>
+	
+    <!--  no form, one text input field (without autocomplete == 'username'), should be ignored -->
+    <div id="form8"> 8
+         <input id='un1' name='shouldnotfill' placeholder=username value= ''>
+	  </div>
+		
+    <!-- no password field, 1 username field without autocomplete-->
+    <form id='form9' action='https://autofill'> 9
+         <input type="text" id="username" name='uname' value=''>
+    </form>
+
+    <!-- no form, two text input fields with autcomplete == 'username', should be ignored -->
+    <div id='form10'> 10
+         <input name='shouldnotfill' autocomplete=username value = ''>
+        <input name='shouldnotfill' autocomplete=username value = ''>
+    </div>`, win, 6);
+
 
   await checkLoginFormInFrameWithElementValues(win, 1, "user1");
   await checkLoginFormInFrameWithElementValues(win, 2, "someuser");
@@ -94,7 +111,21 @@ add_task(async function test_autofill_username_only_form() {
   await checkUnmodifiedFormInFrame(win, 5);
   await checkUnmodifiedFormInFrame(win, 6);
   await checkUnmodifiedFormInFrame(win, 7);
+  await checkUnmodifiedFormInFrame(win, 8);
+  await checkLoginFormInFrameWithElementValues(win, 9, "user1");
+  await checkUnmodifiedFormInFrame(win, 10);
 
+  // We must close and reopen the window since multiple formless inputs in one document are grouped together,
+  // which won't trigger autofill.
+  win.close()
+  win = window.open("about:blank");
+  await loadFormIntoWindow(window.location.origin, `
+    <!-- no form, 1 username field with autocomplete, without a value set -->
+    <div id='form1'> 1
+        <input type='text' name='uname' autocomplete='username' value=''>
+    </div>`, win, 1);
+
+  await checkLoginFormInFrameWithElementValues(win, 1, "user2");
   await resetRecipes();
 });
 </script>
