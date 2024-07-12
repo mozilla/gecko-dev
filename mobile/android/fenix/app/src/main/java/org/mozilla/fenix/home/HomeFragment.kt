@@ -651,8 +651,6 @@ class HomeFragment : Fragment() {
                                 dismissButtonColor = FirefoxTheme.colors.iconOnColor.toArgb(),
                                 indicatorDirection = CFRPopup.IndicatorDirection.DOWN,
                                 popupVerticalOffset = 10.dp,
-                                dismissOnBackPress = true,
-                                dismissOnClickOutside = false,
                                 indicatorArrowStartOffset = 130.dp,
                             ),
                             onCFRShown = { NavigationBar.navigationBarCfrShown.record(NoExtras()) },
