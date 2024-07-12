@@ -152,7 +152,9 @@ JSObject* AudioData::WrapObject(JSContext* aCx,
 }
 
 Result<Ok, nsCString> IsValidAudioDataInit(const AudioDataInit& aInit) {
-  if (aInit.mSampleRate <= 0.0) {
+  // The sample rate is an uint32_t within Gecko
+  uint32_t integerSampleRate = SaturatingCast<uint32_t>(aInit.mSampleRate);
+  if (integerSampleRate == 0) {
     auto msg = nsLiteralCString("sampleRate must be positive");
     LOGD("%s", msg.get());
     return Err(msg);
@@ -718,7 +720,7 @@ RefPtr<mozilla::AudioData> AudioData::ToAudioData() const {
 
   return MakeRefPtr<mozilla::AudioData>(
       0, media::TimeUnit::FromMicroseconds(mTimestamp), std::move(buf),
-      mNumberOfChannels, mSampleRate);
+      mNumberOfChannels, SaturatingCast<uint32_t>(mSampleRate));
 }
 
 #undef LOGD
