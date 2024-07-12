@@ -7,3 +7,4 @@ skip-if(Android) pref(dom.media.webcodecs.enabled,true) load 1889831.html
 skip-if(Android) pref(dom.media.webcodecs.enabled,true) pref(media.ffmpeg.encoder.enabled,true) load 1891117.html
 skip-if(Android) pref(dom.media.webcodecs.enabled,true) pref(media.ffmpeg.encoder.enabled,true) load 1897631.html
 skip-if(Android) pref(dom.media.webcodecs.enabled,true) load 1902555.html
+skip-if(Android) pref(dom.media.webcodecs.enabled,true) load 1905399.html

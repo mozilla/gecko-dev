@@ -1,0 +1,23 @@
+<script>
+// buf is larger than necessary
+let buf = new ArrayBuffer(32206)
+let view = new DataView(buf)
+let data = new AudioData({
+  "format": "s32",
+  "sampleRate": 0.73,
+  "numberOfFrames": 17,
+  "numberOfChannels": 69,
+  "timestamp": 1.22,
+  "data": view
+})
+let enc = new AudioEncoder({
+  "output": () => {},
+  "error": () => {}
+})
+enc.configure({
+  "codec": "foo",
+  "sampleRate": 1622585600,
+  "numberOfChannels": 64,
+})
+enc.encode(data)
+</script>
