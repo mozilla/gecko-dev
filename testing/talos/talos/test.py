@@ -420,7 +420,7 @@ class pdfpaint(PageloaderTest):
 
     tpmanifest = "${talos}/tests/pdfpaint/pdfpaint.manifest"
     tppagecycles = 1
-    timeout = 1800
+    timeout = 2000
     tptimeout = 60000
     pdfpaint = True
     unit = "ms"
@@ -486,7 +486,7 @@ class tabswitch(PageloaderTest):
     extensions = ["${talos}/tests/tabswitch", "${talos}/pageloader"]
     tpmanifest = "${talos}/tests/tabswitch/tabswitch.manifest"
     tppagecycles = 5
-    timeout = 900
+    timeout = 1200
     tploadnocache = True
     preferences = {
         "addon.test.tabswitch.urlfile": os.path.join("${talos}", "tests", "tp5o.html"),

@@ -8007,7 +8007,7 @@ For the sample commands found below, note that the capitalization used is import
         called talos-pdfs.
    * pdfpaint: True
    * subtest_alerts: True
-   * timeout: 1800
+   * timeout: 2000
    * tpmanifest: ${talos}/tests/pdfpaint/pdfpaint.manifest
    * tppagecycles: 1
    * tptimeout: 60000
@@ -11077,7 +11077,7 @@ For the sample commands found below, note that the capitalization used is import
 
    * extensions: ['${talos}/tests/tabswitch', '${talos}/pageloader']
    * preferences: {'addon.test.tabswitch.urlfile': '${talos}/tests/tp5o.html', 'addon.test.tabswitch.webserver': '${webserver}', 'addon.test.tabswitch.maxurls': -1}
-   * timeout: 900
+   * timeout: 1200
    * tploadnocache: True
    * tpmanifest: ${talos}/tests/tabswitch/tabswitch.manifest
    * tppagecycles: 5

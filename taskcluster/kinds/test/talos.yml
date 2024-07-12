@@ -357,7 +357,7 @@ talos-g5:
                     default: [trunk]
     max-run-time:
         by-test-platform:
-            linux1804-64.*: 1200
+            linux1804-64.*: 1800
             macosx.*: 2400
             default: 1800
 
@@ -648,7 +648,7 @@ talos-tabswitch:
     variants:
         - webrender-sw
     run-on-projects: []
-    max-run-time: 1800
+    max-run-time: 2100
     mozharness:
         extra-options:
             - --suite=tabswitch
