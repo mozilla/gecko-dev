@@ -1580,6 +1580,10 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     Tooltip,
 
+    /// Sidebar appearance.
+    #[parse(condition = "ParserContext::chrome_rules_enabled")]
+    MozSidebar,
+
     /// Mac help button.
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     MozMacHelpButton,
