@@ -908,28 +908,34 @@ class PartialTierModuleGenerator {
   }
 };
 
-bool wasm::CompilePartialTier2(const Bytes& bytecode, uint32_t funcIndex,
-                               uint32_t funcBytecodeOffset, const Code& code,
-                               UniqueChars* error, UniqueCharsVector* warnings,
-                               Atomic<bool>* cancelled) {
+bool wasm::CompilePartialTier2(const Code& code, uint32_t funcIndex) {
   CompilerEnvironment compilerEnv(CompileMode::LazyTiering, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
 
   const CodeMetadata& codeMeta = code.codeMeta();
-  ModuleGenerator mg(codeMeta, compilerEnv, CompileState::LazyTier2, cancelled,
-                     error, warnings);
+  UniqueChars error;
+  ModuleGenerator mg(codeMeta, compilerEnv, CompileState::LazyTier2, nullptr,
+                     &error, nullptr);
   if (!mg.initializePartialTier(code, funcIndex)) {
+    // The module is already validated, this must be an OOM
+    MOZ_ASSERT(!error);
     return false;
   }
 
-  const uint8_t* bodyBegin = bytecode.begin() + funcBytecodeOffset;
-  // We don't have end information here, so just extend to the end of the
-  // bytecode. Validation has already been performed so this won't be used.
-  const uint8_t* bodyEnd = bytecode.end();
-  Decoder d(bytecode.begin(), bytecode.end(), 0, error);
-  return mg.compileFuncDef(funcIndex, funcBytecodeOffset, bodyBegin, bodyEnd) &&
-         mg.finishFuncDefs() && mg.finishPartialTier2(code);
+  const Bytes& bytecode = code.bytecode();
+  const FuncDefRange& funcRange = code.codeMeta().funcDefRange(funcIndex);
+  const uint8_t* bodyBegin = bytecode.begin() + funcRange.bytecodeOffset;
+  const uint8_t* bodyEnd = bodyBegin + funcRange.bodyLength;
+  Decoder d(bytecode.begin(), bytecode.end(), 0, &error);
+  if (!mg.compileFuncDef(funcIndex, funcRange.bytecodeOffset, bodyBegin,
+                         bodyEnd) ||
+      !mg.finishFuncDefs() || !mg.finishPartialTier2(code)) {
+    // The module is already validated, this must be an OOM
+    MOZ_RELEASE_ASSERT(!error);
+    return false;
+  }
+  return true;
 }
 
 class StreamingDecoder {

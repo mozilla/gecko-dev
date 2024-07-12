@@ -205,6 +205,11 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // to ModuleMetadata?
   CustomSectionRangeVector customSectionRanges;
 
+  // The ranges of every function defined in this module. This is only
+  // accessible after we've decoded the code section. This means it is not
+  // available while doing a 'tier-1' or 'once' compilation.
+  FuncDefRangeVector funcDefRanges;
+
   // Indicates whether the branch hint section was successfully parsed.
   bool parsedBranchHints;
 
@@ -252,6 +257,18 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   }
   const FuncType& getFuncType(uint32_t funcIndex) const {
     return getFuncTypeDef(funcIndex).funcType();
+  }
+  uint32_t funcBytecodeOffset(uint32_t funcIndex) const {
+    if (funcIndex < numFuncImports) {
+      return 0;
+    }
+    uint32_t funcDefIndex = funcIndex - numFuncImports;
+    return funcDefRanges[funcDefIndex].bytecodeOffset;
+  }
+  const FuncDefRange& funcDefRange(uint32_t funcIndex) const {
+    MOZ_ASSERT(funcIndex >= numFuncImports);
+    uint32_t funcDefIndex = funcIndex - numFuncImports;
+    return funcDefRanges[funcDefIndex];
   }
 
   size_t numTables() const { return tables.length(); }

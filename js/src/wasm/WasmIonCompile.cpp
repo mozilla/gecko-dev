@@ -405,7 +405,7 @@ class FunctionCompiler {
     }
 #endif
     MOZ_ASSERT(inDeadCode());
-    MOZ_ASSERT_IF(compilerEnv_.mode() != CompileMode::LazyTiering, done());
+    MOZ_ASSERT(done());
     MOZ_ASSERT(func_.callSiteLineNums.length() == lastReadCallSite_);
   }
 
@@ -5070,11 +5070,7 @@ static bool EmitEnd(FunctionCompiler& f) {
       }
       f.iter().popEnd();
       MOZ_ASSERT(f.iter().controlStackEmpty());
-      // Lazy tiering doesn't have the function body end information, so skip
-      // that check.
-      bool shouldCheckEnd = f.compilerEnv().mode() != CompileMode::LazyTiering;
-      const uint8_t* functionBodyEnd = f.iter().end();
-      return f.iter().endFunction(shouldCheckEnd ? &functionBodyEnd : nullptr);
+      return f.iter().endFunction(f.iter().end());
     }
     case LabelKind::Block:
       MOZ_ASSERT(!control.tryControl);
@@ -9480,8 +9476,7 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
 
       bool hasUnwindInfo =
           unwindInfoBefore != masm.codeRangeUnwindInfos().length();
-      if (!code->codeRanges.emplaceBack(func.index, func.lineOrBytecode,
-                                        offsets, hasUnwindInfo)) {
+      if (!code->codeRanges.emplaceBack(func.index, offsets, hasUnwindInfo)) {
         return false;
       }
     }

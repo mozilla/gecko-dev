@@ -858,7 +858,7 @@ CoderResult CodeTrapSiteVectorArray(Coder<mode>& coder,
 template <CoderMode mode>
 CoderResult CodeScriptedCaller(Coder<mode>& coder,
                                CoderArg<mode, ScriptedCaller> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ScriptedCaller, 0);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ScriptedCaller, 16);
   MOZ_TRY((CodeUniqueChars(coder, &item->filename)));
   MOZ_TRY((CodePod(coder, &item->filenameIsURL)));
   MOZ_TRY((CodePod(coder, &item->line)));
@@ -868,7 +868,7 @@ CoderResult CodeScriptedCaller(Coder<mode>& coder,
 template <CoderMode mode>
 CoderResult CodeCompileArgs(Coder<mode>& coder,
                             CoderArg<mode, CompileArgs> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CompileArgs, 0);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CompileArgs, 64);
   MOZ_TRY((CodeScriptedCaller(coder, &item->scriptedCaller)));
   MOZ_TRY((CodeUniqueChars(coder, &item->sourceMapURL)));
   MOZ_TRY((CodePod(coder, &item->baselineEnabled)));
@@ -1065,7 +1065,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // NOTE: keep the field sequence here in sync with the sequence in the
   // declaration of CodeMetadata.
 
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 728);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 664);
   // Serialization doesn't handle asm.js or debug enabled modules
   MOZ_RELEASE_ASSERT(mode == MODE_SIZE || !item->isAsmJS());
   if constexpr (mode == MODE_ENCODE) {
@@ -1108,6 +1108,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // not serialized: asmJSSigToTableIndex
   // not serialized: codeSection
   // not serialized: customSectionRanges
+  MOZ_TRY(CodePodVector(coder, &item->funcDefRanges));
   MOZ_TRY(CodePod(coder, &item->parsedBranchHints));
   if constexpr (mode == MODE_DECODE) {
     // Initialize debugging state to disabled
@@ -1125,7 +1126,7 @@ CoderResult CodeModuleMetadata(Coder<mode>& coder,
   // NOTE: keep the field sequence here in sync with the sequence in the
   // declaration of ModuleMetadata.
 
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleMetadata, 248);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ModuleMetadata, 264);
   MOZ_TRY(Magic(coder, Marker::ModuleMetadata));
 
   MOZ_TRY((CodeRefPtr<mode, CodeMetadata, &CodeCodeMetadata>(coder,
@@ -1164,7 +1165,7 @@ CoderResult CodeFuncToCodeRangeMap(
 CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
                           wasm::UniqueCodeBlock* item,
                           const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 936);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 944);
   *item = js::MakeUnique<CodeBlock>(CodeBlock::kindFromTier(Tier::Serialized));
   if (!*item) {
     return Err(OutOfMemory());
@@ -1190,7 +1191,7 @@ template <CoderMode mode>
 CoderResult CodeCodeBlock(Coder<mode>& coder,
                           CoderArg<mode, wasm::CodeBlock> item,
                           const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 936);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 944);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
   // We don't support serializing sub-ranges yet. These only happen with
@@ -1211,7 +1212,7 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
 
 CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
                            const wasm::CodeMetadata& codeMeta) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 728);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 760);
 
   FuncImportVector funcImports;
   MOZ_TRY(CodePodVector(coder, &funcImports));
@@ -1244,7 +1245,7 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 template <CoderMode mode>
 CoderResult CodeSharedCode(Coder<mode>& coder,
                            CoderArg<mode, wasm::SharedCode> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 728);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 760);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   // Don't encode the CodeMetadata, that is handled by wasm::Module
   MOZ_TRY(CodePodVector(coder, &(*item)->funcImports()));

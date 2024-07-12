@@ -636,7 +636,7 @@ class MOZ_STACK_CLASS OpIter : private Policy {
 
   [[nodiscard]] bool startFunction(uint32_t funcIndex,
                                    const ValTypeVector& locals);
-  [[nodiscard]] bool endFunction(const uint8_t** maybeBodyEnd);
+  [[nodiscard]] bool endFunction(const uint8_t* bodyEnd);
 
   [[nodiscard]] bool startInitExpr(ValType expected);
   [[nodiscard]] bool endInitExpr();
@@ -1322,8 +1322,8 @@ inline bool OpIter<Policy>::startFunction(uint32_t funcIndex,
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::endFunction(const uint8_t** maybeBodyEnd) {
-  if (maybeBodyEnd && d_.currentPosition() != *maybeBodyEnd) {
+inline bool OpIter<Policy>::endFunction(const uint8_t* bodyEnd) {
+  if (d_.currentPosition() != bodyEnd) {
     return fail("function body length mismatch");
   }
 

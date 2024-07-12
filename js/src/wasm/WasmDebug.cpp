@@ -386,12 +386,9 @@ bool DebugState::debugGetLocalTypes(uint32_t funcIndex, ValTypeVector* locals,
   }
 
   // Decode local var types from wasm binary function body.
-  const CodeRange& range =
-      debugCode().codeRanges[funcToCodeRangeIndex(funcIndex)];
-  // In wasm, the Code points to the function start via funcLineOrBytecode.
-  size_t offsetInModule = range.funcLineOrBytecode();
-  Decoder d(bytecode().begin() + offsetInModule, bytecode().end(),
-            offsetInModule,
+  uint32_t bytecodeOffset = codeMeta().funcBytecodeOffset(funcIndex);
+  Decoder d(bytecode().begin() + bytecodeOffset, bytecode().end(),
+            bytecodeOffset,
             /* error = */ nullptr);
   return DecodeValidatedLocalEntries(types, d, locals);
 }

@@ -235,8 +235,9 @@ static void SendCodeRangesToProfiler(
         if (!name.append('\0')) {
           return;
         }
-        unsigned line = codeRange.funcLineOrBytecode();
-        CollectPerfSpewerWasmFunctionMap(start, size, file, line, name.begin());
+        CollectPerfSpewerWasmFunctionMap(
+            start, size, file,
+            codeMeta.funcBytecodeOffset(codeRange.funcIndex()), name.begin());
       } else if (codeRange.isInterpEntry()) {
         if (!AppendToString(" slow entry", &name)) {
           return;
@@ -644,8 +645,7 @@ bool Code::createTier2LazyEntryStubs(const WriteGuard& guard,
   return true;
 }
 
-bool Code::requestTierUp(uint32_t funcIndex,
-                         uint32_t funcBytecodeOffset) const {
+bool Code::requestTierUp(uint32_t funcIndex) const {
   MOZ_ASSERT(mode_ == CompileMode::LazyTiering);
   FuncState& state = funcStates_[funcIndex - codeMeta_->numFuncImports];
   if (!state.tierUpState.compareExchange(TierUpState::NotRequested,
@@ -653,8 +653,7 @@ bool Code::requestTierUp(uint32_t funcIndex,
     return true;
   }
 
-  return CompilePartialTier2(bytecode_->bytes, funcIndex, funcBytecodeOffset,
-                             *this, nullptr, nullptr, nullptr);
+  return CompilePartialTier2(*this, funcIndex);
 }
 
 bool Code::finishTier2(UniqueCodeBlock tier2CodeBlock,
@@ -1178,8 +1177,9 @@ bool Code::appendProfilingLabels(
 
     Int32ToCStringBuf cbuf;
     size_t bytecodeStrLen;
-    const char* bytecodeStr =
-        Uint32ToCString(&cbuf, codeRange.funcLineOrBytecode(), &bytecodeStrLen);
+    const char* bytecodeStr = Uint32ToCString(
+        &cbuf, codeMeta().funcBytecodeOffset(codeRange.funcIndex()),
+        &bytecodeStrLen);
     MOZ_ASSERT(bytecodeStr);
 
     UTF8Bytes name;

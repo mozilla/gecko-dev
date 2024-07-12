@@ -3817,8 +3817,7 @@ bool BaseCompiler::emitEnd() {
       doReturn(ContinuationKind::Fallthrough);
       iter_.popEnd();
       MOZ_ASSERT(iter_.controlStackEmpty());
-      const uint8_t* functionBodyEnd = iter_.end();
-      return iter_.endFunction(&functionBodyEnd);
+      return iter_.endFunction(iter_.end());
     }
     case LabelKind::Block:
       if (!endBlock(type)) {
@@ -11967,8 +11966,7 @@ bool js::wasm::BaselineCompileFunctions(const CodeMetadata& codeMeta,
     FuncOffsets offsets(f.finish());
     bool hasUnwindInfo =
         unwindInfoBefore != masm.codeRangeUnwindInfos().length();
-    if (!code->codeRanges.emplaceBack(func.index, func.lineOrBytecode, offsets,
-                                      hasUnwindInfo)) {
+    if (!code->codeRanges.emplaceBack(func.index, offsets, hasUnwindInfo)) {
       return false;
     }
 

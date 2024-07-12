@@ -896,7 +896,7 @@ class Code : public ShareableBase<Code> {
                                             const FuncExport** funcExport,
                                             void** interpEntry) const;
 
-  bool requestTierUp(uint32_t funcIndex, uint32_t funcBytecodeOffset) const;
+  bool requestTierUp(uint32_t funcIndex) const;
 
   CompileMode mode() const { return mode_; }
 

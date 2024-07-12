@@ -402,7 +402,6 @@ class CodeRange {
       uint32_t funcIndex_;
       union {
         struct {
-          uint32_t lineOrBytecode_;
           uint16_t beginToUncheckedCallEntry_;
           uint16_t beginToTierEntry_;
           bool hasUnwindInfo_;
@@ -414,7 +413,6 @@ class CodeRange {
   Kind kind_ : 8;
 
   WASM_CHECK_CACHEABLE_POD(begin_, ret_, end_, u.funcIndex_,
-                           u.func.lineOrBytecode_,
                            u.func.beginToUncheckedCallEntry_,
                            u.func.beginToTierEntry_, u.func.hasUnwindInfo_,
                            u.trap_, kind_);
@@ -425,8 +423,7 @@ class CodeRange {
   CodeRange(Kind kind, uint32_t funcIndex, Offsets offsets);
   CodeRange(Kind kind, CallableOffsets offsets);
   CodeRange(Kind kind, uint32_t funcIndex, CallableOffsets);
-  CodeRange(uint32_t funcIndex, uint32_t lineOrBytecode, FuncOffsets offsets,
-            bool hasUnwindInfo);
+  CodeRange(uint32_t funcIndex, FuncOffsets offsets, bool hasUnwindInfo);
 
   void offsetBy(uint32_t offset) {
     begin_ += offset;
@@ -507,10 +504,6 @@ class CodeRange {
   uint32_t funcTierEntry() const {
     MOZ_ASSERT(isFunction());
     return begin_ + u.func.beginToTierEntry_;
-  }
-  uint32_t funcLineOrBytecode() const {
-    MOZ_ASSERT(isFunction());
-    return u.func.lineOrBytecode_;
   }
   bool funcHasUnwindInfo() const {
     MOZ_ASSERT(isFunction());
