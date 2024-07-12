@@ -135,6 +135,28 @@ pub struct PageSelector {
     pub pseudos: PagePseudoClasses,
 }
 
+/// Computes the [specificity] given the g, h, and f values as in the spec.
+///
+/// g is number of `:first` or `:blank`, h is number of `:left` or `:right`,
+/// f is if the selector includes a page-name (selectors can only include one
+/// or zero page-names).
+///
+/// This places hard limits of 65535 on h and 32767 on g, at which point all
+/// higher values are treated as those limits respectively.
+///
+/// [specificity]: https://drafts.csswg.org/css-page/#specificity
+#[inline]
+fn selector_specificity(g: usize, h: usize, f: bool) -> u32 {
+    let h = h.min(0xFFFF) as u32;
+    let g = (g.min(0x7FFF) as u32) << 16;
+    let f = if f {
+        0x80000000
+    } else {
+        0
+    };
+    h + g + f
+}
+
 impl PageSelector {
     /// Checks if the ident matches a page-name's ident.
     ///
@@ -185,14 +207,7 @@ impl PageSelector {
                 PagePseudoClass::Left | PagePseudoClass::Right => h += 1,
             }
         }
-        let h = h.min(0xFFFF) as u32;
-        let g = (g.min(0x7FFF) as u32) << 16;
-        let f = if self.name.0.is_empty() {
-            0
-        } else {
-            0x80000000
-        };
-        Some(h + g + f)
+        Some(selector_specificity(g, h, !self.name.0.is_empty()))
     }
 }
 
@@ -219,13 +234,17 @@ impl Parse for PageSelector {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let name = input
-            .try_parse(parse_page_name)
-            .unwrap_or(AtomIdent::new(atom!("")));
+        let name = input.try_parse(parse_page_name);
         let mut pseudos = PagePseudoClasses::default();
         while let Ok(pc) = input.try_parse(PagePseudoClass::parse) {
             pseudos.push(pc);
         }
+        // If the result was empty, then we didn't get a selector.
+        let name = match name {
+            Ok(name) => name,
+            Err(..) if !pseudos.is_empty() => AtomIdent::new(atom!("")),
+            Err(err) => return Err(err),
+        };
         Ok(PageSelector { name, pseudos })
     }
 }
@@ -306,6 +325,11 @@ impl PageRule {
     ///
     /// The return type is ordered by page-rule specificity.
     pub fn match_specificity(&self, flags: PagePseudoClassFlags) -> Option<u32> {
+        if self.selectors.is_empty() {
+            // A page-rule with no selectors matches all pages, but with the
+            // lowest possible specificity.
+            return Some(selector_specificity(0, 0, false));
+        }
         let mut specificity = None;
         for s in self.selectors.0.iter().map(|s| s.match_specificity(flags)) {
             specificity = s.max(specificity);
