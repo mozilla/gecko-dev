@@ -62,6 +62,7 @@ add_task(async function testHEVCPrefSupportOnWindows() {
     set: [
       ["media.wmf.hevc.enabled", 2],
       ["media.wmf.media-engine.enabled", 2],
+      ["media.eme.playready.enabled", true],
     ],
   });
   capability = await navigator.mediaCapabilities.decodingInfo(videoConfiguration);
