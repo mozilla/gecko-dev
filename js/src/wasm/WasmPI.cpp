@@ -1767,7 +1767,7 @@ JSObject* GetSuspendingPromiseResult(Instance* instance,
 
     // The struct object is constructed based on returns of exported function.
     // It is the only way we can get ValType for Val::fromJSValue call.
-    const wasm::FuncType& sig = instance->code().getFuncExportType(
+    const wasm::FuncType& sig = instance->codeMeta().getFuncType(
         SuspendingFunctionModuleFactory::ExportedFnIndex);
 
     if (fields.length() == 1) {

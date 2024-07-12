@@ -23,19 +23,17 @@ namespace wasm {
 // function definition index.
 
 class FuncExport {
-  uint32_t typeIndex_;
   uint32_t funcIndex_;
   uint32_t eagerInterpEntryOffset_;  // Machine code offset
   bool hasEagerStubs_;
 
-  WASM_CHECK_CACHEABLE_POD(typeIndex_, funcIndex_, eagerInterpEntryOffset_,
+  WASM_CHECK_CACHEABLE_POD(funcIndex_, eagerInterpEntryOffset_,
                            hasEagerStubs_);
 
  public:
   FuncExport() = default;
-  explicit FuncExport(uint32_t typeIndex, uint32_t funcIndex,
+  explicit FuncExport(uint32_t funcIndex,
                       bool hasEagerStubs) {
-    typeIndex_ = typeIndex;
     funcIndex_ = funcIndex;
     eagerInterpEntryOffset_ = UINT32_MAX;
     hasEagerStubs_ = hasEagerStubs;
@@ -47,7 +45,6 @@ class FuncExport {
   }
 
   bool hasEagerStubs() const { return hasEagerStubs_; }
-  uint32_t typeIndex() const { return typeIndex_; }
   uint32_t funcIndex() const { return funcIndex_; }
   uint32_t eagerInterpEntryOffset() const {
     MOZ_ASSERT(eagerInterpEntryOffset_ != UINT32_MAX);
@@ -68,23 +65,20 @@ using FuncExportVector = Vector<FuncExport, 0, SystemAllocPolicy>;
 
 class FuncImport {
  private:
-  uint32_t typeIndex_;
   uint32_t instanceOffset_;
   uint32_t interpExitCodeOffset_;  // Machine code offset
   uint32_t jitExitCodeOffset_;     // Machine code offset
 
-  WASM_CHECK_CACHEABLE_POD(typeIndex_, instanceOffset_, interpExitCodeOffset_,
+  WASM_CHECK_CACHEABLE_POD(instanceOffset_, interpExitCodeOffset_,
                            jitExitCodeOffset_);
 
  public:
   FuncImport()
-      : typeIndex_(0),
-        instanceOffset_(0),
+      : instanceOffset_(0),
         interpExitCodeOffset_(0),
         jitExitCodeOffset_(0) {}
 
-  FuncImport(uint32_t typeIndex, uint32_t instanceOffset) {
-    typeIndex_ = typeIndex;
+  explicit FuncImport(uint32_t instanceOffset) {
     instanceOffset_ = instanceOffset;
     interpExitCodeOffset_ = 0;
     jitExitCodeOffset_ = 0;
@@ -99,7 +93,6 @@ class FuncImport {
     jitExitCodeOffset_ = off;
   }
 
-  uint32_t typeIndex() const { return typeIndex_; }
   uint32_t instanceOffset() const { return instanceOffset_; }
   uint32_t interpExitCodeOffset() const { return interpExitCodeOffset_; }
   uint32_t jitExitCodeOffset() const { return jitExitCodeOffset_; }
@@ -194,12 +187,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   Maybe<uint32_t> startFuncIndex;
   Maybe<uint32_t> nameCustomSectionIndex;
 
-  // OpIter needs to know types of functions for calls. This will increase size
-  // of Code/Metadata compared to before. We can probably shrink this class by
-  // removing typeIndex/typePtr redundancy and move the flag to ModuleEnv.
-  //
-  // We could also manually clear this vector when we're in a mode that is
-  // not doing partial tiering.
+  // Info about all functions (import and locally defined) in the module.
   FuncDescVector funcs;
 
   // Info about elem segments needed only for validation and compilation.
@@ -262,18 +250,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   }
   const FuncType& getFuncType(uint32_t funcIndex) const {
     return getFuncTypeDef(funcIndex).funcType();
-  }
-  const TypeDef& getFuncImportTypeDef(const FuncImport& funcImport) const {
-    return types->type(funcImport.typeIndex());
-  }
-  const FuncType& getFuncImportType(const FuncImport& funcImport) const {
-    return types->type(funcImport.typeIndex()).funcType();
-  }
-  const TypeDef& getFuncExportTypeDef(const FuncExport& funcExport) const {
-    return types->type(funcExport.typeIndex());
-  }
-  const FuncType& getFuncExportType(const FuncExport& funcExport) const {
-    return types->type(funcExport.typeIndex()).funcType();
   }
 
   size_t numTables() const { return tables.length(); }

@@ -416,7 +416,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
   DebugOnly<uint32_t> numExpectedRanges = 0;
   for (uint32_t funcExportIndex : funcExportIndices) {
     const FuncExport& fe = funcExports[funcExportIndex];
-    const FuncType& funcType = getFuncExportType(fe);
+    const FuncType& funcType = codeMeta_->getFuncType(fe.funcIndex());
     // Exports that don't support a jit entry get only the interp entry.
     numExpectedRanges += (funcType.canHaveJitEntry() ? 2 : 1);
     void* calleePtr =
@@ -495,7 +495,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
   uint32_t codeRangeIndex = 0;
   for (uint32_t funcExportIndex : funcExportIndices) {
     const FuncExport& fe = funcExports[funcExportIndex];
-    const FuncType& funcType = getFuncExportType(fe);
+    const FuncType& funcType = codeMeta_->getFuncType(fe.funcIndex());
 
     LazyFuncExport lazyExport(fe.funcIndex(), *stubBlockIndex, codeRangeIndex,
                               tierCodeBlock.kind);
@@ -569,7 +569,7 @@ bool Code::createOneLazyEntryStub(const WriteGuard& guard,
   const CodeRangeVector& codeRanges = block.codeRanges;
 
   const FuncExport& fe = tierCodeBlock.funcExports[funcExportIndex];
-  const FuncType& funcType = getFuncExportType(fe);
+  const FuncType& funcType = codeMeta_->getFuncType(fe.funcIndex());
 
   // We created one or two stubs, depending on the function type.
   uint32_t funcEntryRanges = funcType.canHaveJitEntry() ? 2 : 1;

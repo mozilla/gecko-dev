@@ -931,8 +931,7 @@ bool ModuleGenerator::generateSharedStubs() {
   }
 
   for (size_t i = 0; i < codeMeta_->numFuncImports; i++) {
-    funcImports_[i] = FuncImport(codeMeta_->funcs[i].typeIndex,
-                                 codeMeta_->offsetOfFuncImportInstanceData(i));
+    funcImports_[i] = FuncImport(codeMeta_->offsetOfFuncImportInstanceData(i));
   }
 
   // The shared stubs code will contains function definitions for each imported
@@ -962,7 +961,7 @@ bool ModuleGenerator::generateSharedStubs() {
     }
 
     codeBlock_->funcExports.infallibleEmplaceBack(
-        FuncExport(func.typeIndex, funcIndex, func.isEager()));
+        FuncExport(funcIndex, func.isEager()));
   }
 
   // Generate the stubs for the module first
@@ -1046,7 +1045,7 @@ bool ModuleGenerator::startCompleteTier() {
     }
 
     codeBlock_->funcExports.infallibleEmplaceBack(
-        FuncExport(func.typeIndex, funcIndex, func.isEager()));
+        FuncExport(funcIndex, func.isEager()));
   }
 
   return true;
@@ -1064,7 +1063,7 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
 
   const FuncDesc& func = codeMeta_->funcs[funcIndex];
   if (func.isExported() && !codeBlock_->funcExports.emplaceBack(FuncExport(
-                               func.typeIndex, funcIndex, func.isEager()))) {
+                               funcIndex, func.isEager()))) {
     return false;
   }
 

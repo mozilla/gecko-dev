@@ -5992,7 +5992,7 @@ bool WarpCacheIRTranspiler::emitCallWasmFunction(
   auto* wasmInstanceObj = &instanceObject->as<WasmInstanceObject>();
   const wasm::FuncExport* funcExport = wasmFuncExportField(funcExportOffset);
   const wasm::FuncType& sig =
-      wasmInstanceObj->instance().code().getFuncExportType(*funcExport);
+      wasmInstanceObj->instance().code().codeMeta().getFuncType(funcExport->funcIndex());
 
   if (!updateCallInfo(callee, flags)) {
     return false;

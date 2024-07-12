@@ -1129,7 +1129,6 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
 
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
   const CodeMetadata& codeMeta = module->codeMeta();
-  const Code& code = module->code();
 
   size_t numFuncImport = 0;
   size_t numMemoryImport = 0;
@@ -1170,7 +1169,7 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
     switch (import.kind) {
       case DefinitionKind::Function: {
         size_t funcIndex = numFuncImport++;
-        const FuncType& funcType = code.getFuncImportType(funcIndex);
+        const FuncType& funcType = codeMeta.getFuncType(funcIndex);
         typeObj = FuncTypeToObject(cx, funcType);
         break;
       }
@@ -1277,7 +1276,7 @@ bool WasmModuleObject::exports(JSContext* cx, unsigned argc, Value* vp) {
     switch (exp.kind()) {
       case DefinitionKind::Function: {
         const FuncType& funcType =
-            module->code().getFuncExportType(exp.funcIndex());
+            module->codeMeta().getFuncType(exp.funcIndex());
         typeObj = FuncTypeToObject(cx, funcType);
         break;
       }
@@ -2103,7 +2102,7 @@ bool WasmInstanceObject::getExportedFunction(
   const Instance& instance = instanceObj->instance();
   const CodeBlock& codeBlock = instance.code().funcCodeBlock(funcIndex);
   const FuncExport& funcExport = codeBlock.lookupFuncExport(funcIndex);
-  const TypeDef& funcTypeDef = instance.code().getFuncExportTypeDef(funcIndex);
+  const TypeDef& funcTypeDef = instance.codeMeta().getFuncTypeDef(funcIndex);
   unsigned numArgs = funcTypeDef.funcType().args().length();
 
   if (instance.isAsmJS()) {

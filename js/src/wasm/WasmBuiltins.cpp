@@ -1007,7 +1007,7 @@ static int32_t CoerceInPlace_JitEntry(int funcIndex, Instance* instance,
   JSContext* cx = TlsContext.get();  // Cold code
 
   const Code& code = instance->code();
-  const FuncType& funcType = code.getFuncExportType(funcIndex);
+  const FuncType& funcType = code.codeMeta().getFuncType(funcIndex);
 
   for (size_t i = 0; i < funcType.args().length(); i++) {
     HandleValue arg = HandleValue::fromMarkedLocation(&argv[i]);

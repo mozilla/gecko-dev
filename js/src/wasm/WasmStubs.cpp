@@ -1340,7 +1340,7 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
                                      Register scratch, uint32_t* callOffset) {
   MOZ_ASSERT(!IsCompilingWasm());
 
-  const FuncType& funcType = inst.code().getFuncExportType(fe);
+  const FuncType& funcType = inst.codeMeta().getFuncType(fe.funcIndex());
 
   size_t framePushedAtStart = masm.framePushed();
 
@@ -2887,7 +2887,7 @@ bool wasm::GenerateEntryStubs(const CodeMetadata& codeMeta,
   Maybe<ImmPtr> noAbsolute;
   for (size_t i = 0; i < exports.length(); i++) {
     const FuncExport& fe = exports[i];
-    const FuncType& funcType = (*codeMeta.types)[fe.typeIndex()].funcType();
+    const FuncType& funcType = codeMeta.getFuncType(fe.funcIndex());
     if (!fe.hasEagerStubs()) {
       continue;
     }
@@ -3040,7 +3040,7 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
   Maybe<ImmPtr> noAbsolute;
   for (size_t i = 0; i < exports.length(); i++) {
     const FuncExport& fe = exports[i];
-    const FuncType& funcType = (*codeMeta.types)[fe.typeIndex()].funcType();
+    const FuncType& funcType = codeMeta.getFuncType(fe.funcIndex());
     if (!fe.hasEagerStubs()) {
       continue;
     }

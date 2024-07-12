@@ -394,8 +394,8 @@ bool Module::instantiateFunctions(JSContext* cx,
     Instance& instance = ExportedFunctionToInstance(f);
 
     const TypeDef& exportFuncType =
-        instance.code().getFuncExportTypeDef(funcIndex);
-    const TypeDef& importFuncType = code().getFuncImportTypeDef(i);
+        instance.code().codeMeta().getFuncTypeDef(funcIndex);
+    const TypeDef& importFuncType = code().codeMeta().getFuncTypeDef(i);
 
     if (!TypeDef::isSubTypeOf(&exportFuncType, &importFuncType)) {
       const Import& import = FindImportFunction(moduleMeta().imports, i);

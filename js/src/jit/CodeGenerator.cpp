@@ -21369,7 +21369,7 @@ void CodeGenerator::emitIonToWasmCallBase(LIonToWasmCallBase<NumDefs>* lir) {
   MIonToWasmCall* mir = lir->mir();
   const wasm::FuncExport& funcExport = mir->funcExport();
   const wasm::FuncType& sig =
-      mir->instance()->code().getFuncExportType(funcExport);
+      mir->instance()->code().codeMeta().getFuncType(funcExport.funcIndex());
 
   WasmABIArgGenerator abi;
   for (size_t i = 0; i < lir->numOperands(); i++) {

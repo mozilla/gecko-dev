@@ -236,7 +236,7 @@ bool Instance::callImport(JSContext* cx, uint32_t funcImportIndex,
   AssertRealmUnchanged aru(cx);
 
   const FuncImport& fi = code().funcImport(funcImportIndex);
-  const FuncType& funcType = code().getFuncImportType(funcImportIndex);
+  const FuncType& funcType = codeMeta().getFuncType(funcImportIndex);
 
   ArgTypeVector argTypes(funcType);
   InvokeArgs args(cx);
@@ -2401,7 +2401,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 #ifdef ENABLE_WASM_JSPI
     if (JSObject* suspendingObject = MaybeUnwrapSuspendingObject(f)) {
       // Compile suspending function Wasm wrapper.
-      const FuncType& funcType = code().getFuncImportType(i);
+      const FuncType& funcType = codeMeta().getFuncType(i);
       RootedObject wrapped(cx, suspendingObject);
       RootedFunction wrapper(
           cx, WasmSuspendingFunctionCreate(cx, wrapped, funcType));
@@ -2415,7 +2415,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 
     MOZ_ASSERT(f->isCallable());
     const FuncImport& fi = code().funcImport(i);
-    const FuncType& funcType = code().getFuncImportType(i);
+    const FuncType& funcType = codeMeta().getFuncType(i);
     FuncImportInstanceData& import = funcImportInstanceData(fi);
     import.callable = f;
     if (f->is<JSFunction>()) {
@@ -2937,7 +2937,7 @@ static bool GetInterpEntryAndEnsureStubs(JSContext* cx, Instance& instance,
     return false;
   }
 
-  *funcType = &instance.code().getFuncExportType(funcIndex);
+  *funcType = &instance.codeMeta().getFuncType(funcIndex);
 
 #ifdef DEBUG
   // EnsureEntryStubs() has ensured proper jit-entry stubs have been created and
