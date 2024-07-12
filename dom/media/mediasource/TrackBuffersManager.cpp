@@ -572,39 +572,74 @@ void TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
     return;
   }
 
-  // The playback time isn't in the buffered range yet, we're waiting for the
-  // data so all data in current buffered range are evictable.
+  // The targeted playback time isn't in the buffered range yet, we're waiting
+  // for the data so all data in current buffered range are evictable.
   if (!aSizeToEvict) {
-    MOZ_ASSERT(track.mBufferedRanges.Find(aPlaybackTime) ==
-               TimeIntervals::NoIndex);
+    // If the targeted time has been appended to our buffer range, then we need
+    // to recalculate which part of data is evictable. We will only perform
+    // following eviction when all data in the buffer range are evictable.
+    if (track.mBufferedRanges.Find(aPlaybackTime) != TimeIntervals::NoIndex) {
+      return;
+    }
     // Evict data until the size falls below the threshold we set.
     const int64_t sizeToEvict =
         GetSize() - static_cast<int64_t>(EvictionThreshold() *
                                          mEvictionBufferWatermarkRatio);
-    uint32_t lastKeyFrameIndex = 0;
-    int64_t toEvict = sizeToEvict;
-    int64_t partialEvict = 0;
-    for (uint32_t i = 0; i < buffer.Length(); i++) {
-      const auto& frame = buffer[i];
-      if (frame->mKeyframe) {
-        lastKeyFrameIndex = i;
-        toEvict -= partialEvict;
-        if (toEvict < 0) {
-          break;
-        }
-        partialEvict = 0;
-      }
-      partialEvict +=
-          AssertedCast<int64_t>(frame->ComputedSizeOfIncludingThis());
+    // Another eviction or frame removal has been executed before this task.
+    if (sizeToEvict <= 0) {
+      return;
     }
-    TimeUnit start = track.mBufferedRanges[0].mStart;
-    TimeUnit end =
-        buffer[lastKeyFrameIndex]->mTime - TimeUnit::FromMicroseconds(1);
-    MSE_DEBUG("Auto evicting %" PRId64 " bytes from [%" PRId64 ", %" PRId64 "]",
-              sizeToEvict - toEvict, start.ToMicroseconds(),
+    int64_t toEvict = sizeToEvict;
+
+    // We need to evict data from a place which is the furthest from the
+    // playback time, otherwise we might incorrectly evict the data which should
+    // have stayed in the buffer in order to decode the frame at the targeted
+    // playback time. Eg. targeted time is X, and we might need a key frame from
+    // X-5. Therefore, we should evict data from a place which is far from X
+    // (maybe X±100)
+    const TimeUnit start = track.mBufferedRanges.GetStart();
+    const TimeUnit end = track.mBufferedRanges.GetEnd();
+    MSE_DEBUG("PlaybackTime=%" PRId64 ", extents=[%" PRId64 ", %" PRId64 "]",
+              aPlaybackTime.ToMicroseconds(), start.ToMicroseconds(),
               end.ToMicroseconds());
-    if (end > start) {
-      CodedFrameRemoval(TimeInterval(start, end));
+    if (end - aPlaybackTime > aPlaybackTime - start) {
+      size_t evictedFramesStartIndex = buffer.Length();
+      while (evictedFramesStartIndex > 0 && toEvict > 0) {
+        --evictedFramesStartIndex;
+        toEvict -= AssertedCast<int64_t>(
+            buffer[evictedFramesStartIndex]->ComputedSizeOfIncludingThis());
+      }
+      MSE_DEBUG("Auto evicting %" PRId64 " bytes [%" PRId64 ", inf] from tail",
+                sizeToEvict - toEvict,
+                buffer[evictedFramesStartIndex]->mTime.ToMicroseconds());
+      CodedFrameRemoval(TimeInterval(buffer[evictedFramesStartIndex]->mTime,
+                                     TimeUnit::FromInfinity()));
+    } else {
+      uint32_t lastKeyFrameIndex = 0;
+      int64_t partialEvict = 0;
+      for (uint32_t i = 0; i < buffer.Length(); i++) {
+        const auto& frame = buffer[i];
+        if (frame->mKeyframe) {
+          lastKeyFrameIndex = i;
+          toEvict -= partialEvict;
+          if (toEvict < 0) {
+            break;
+          }
+          partialEvict = 0;
+        }
+        partialEvict +=
+            AssertedCast<int64_t>(frame->ComputedSizeOfIncludingThis());
+      }
+      TimeUnit start = track.mBufferedRanges[0].mStart;
+      TimeUnit end =
+          buffer[lastKeyFrameIndex]->mTime - TimeUnit::FromMicroseconds(1);
+      MSE_DEBUG("Auto evicting %" PRId64 " bytes [%" PRId64 ", %" PRId64
+                "] from head",
+                sizeToEvict - toEvict, start.ToMicroseconds(),
+                end.ToMicroseconds());
+      if (end > start) {
+        CodedFrameRemoval(TimeInterval(start, end));
+      }
     }
     return;
   }
