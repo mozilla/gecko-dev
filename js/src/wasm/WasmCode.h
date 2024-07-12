@@ -698,8 +698,8 @@ class JumpTables {
       "SelfHostedLazyScript");
 
  public:
-  bool initialize(CompileMode mode, const CodeBlock& sharedStubs,
-                  const CodeBlock& tier1);
+  bool initialize(CompileMode mode, const CodeMetadata& codeMeta,
+                  const CodeBlock& sharedStubs, const CodeBlock& tier1);
 
   void setJitEntry(size_t i, void* target) const {
     // Make sure that write is atomic; see comment in wasm::Module::finishTier2

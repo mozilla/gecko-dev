@@ -2580,7 +2580,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 
   // Add debug filtering table.
   if (codeMeta().debugEnabled) {
-    size_t numFuncs = codeMeta().debugNumFuncs();
+    size_t numFuncs = codeMeta().numFuncs();
     size_t numWords = std::max<size_t>((numFuncs + 31) / 32, 1);
     debugFilter_ = (uint32_t*)js_calloc(numWords, sizeof(uint32_t));
     if (!debugFilter_) {

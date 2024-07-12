@@ -955,29 +955,17 @@ const FuncExport& CodeBlock::lookupFuncExport(uint32_t funcIndex,
                                                         funcExportIndex);
 }
 
-bool JumpTables::initialize(CompileMode mode, const CodeBlock& sharedStubs,
+bool JumpTables::initialize(CompileMode mode, const CodeMetadata& codeMeta,
+                            const CodeBlock& sharedStubs,
                             const CodeBlock& tier1) {
   static_assert(JSScript::offsetOfJitCodeRaw() == 0,
                 "wasm fast jit entry is at (void*) jit[funcIndex]");
 
   mode_ = mode;
-
-  size_t numFuncs = 0;
-  for (const CodeRange& cr : sharedStubs.codeRanges) {
-    if (cr.isFunction()) {
-      numFuncs++;
-    }
-  }
-  for (const CodeRange& cr : tier1.codeRanges) {
-    if (cr.isFunction()) {
-      numFuncs++;
-    }
-  }
-
-  numFuncs_ = numFuncs;
+  numFuncs_ = codeMeta.numFuncs();
 
   if (mode_ != CompileMode::Once) {
-    tiering_ = TablePointer(js_pod_calloc<void*>(numFuncs));
+    tiering_ = TablePointer(js_pod_calloc<void*>(numFuncs_));
     if (!tiering_) {
       return false;
     }
@@ -987,7 +975,7 @@ bool JumpTables::initialize(CompileMode mode, const CodeBlock& sharedStubs,
   // filling/looking up the jit entries and safe (worst case we'll crash
   // because of a null deref when trying to call the jit entry of an
   // unexported function).
-  jit_ = TablePointer(js_pod_calloc<void*>(numFuncs));
+  jit_ = TablePointer(js_pod_calloc<void*>(numFuncs_));
   if (!jit_) {
     return false;
   }
@@ -1046,7 +1034,8 @@ bool Code::initialize(FuncImportVector&& funcImports,
   sharedStubs_ = sharedStubs.get();
   completeTier1_ = tierCodeBlock.get();
   trapCode_ = sharedStubs_->segment->base() + sharedStubsLinkData.trapOffset;
-  if (!jumpTables_.initialize(mode_, *sharedStubs_, *completeTier1_) ||
+  if (!jumpTables_.initialize(mode_, *codeMeta_, *sharedStubs_,
+                              *completeTier1_) ||
       !guard->blocks.append(std::move(sharedStubs)) ||
       !guard->blocks.append(std::move(tierCodeBlock)) ||
       !blockMap_.insert(sharedStubs_) || !blockMap_.insert(completeTier1_)) {

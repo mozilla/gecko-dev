@@ -260,6 +260,5 @@ size_t CodeMetadata::sizeOfExcludingThis(
          funcs.sizeOfExcludingThis(mallocSizeOf) +
          elemSegmentTypes.sizeOfExcludingThis(mallocSizeOf) +
          asmJSSigToTableIndex.sizeOfExcludingThis(mallocSizeOf) +
-         customSectionRanges.sizeOfExcludingThis(mallocSizeOf) +
-         debugFuncTypeIndices.sizeOfExcludingThis(mallocSizeOf);
+         customSectionRanges.sizeOfExcludingThis(mallocSizeOf);
 }

@@ -1042,7 +1042,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // Serialization doesn't handle asm.js or debug enabled modules
   MOZ_RELEASE_ASSERT(mode == MODE_SIZE || !item->isAsmJS());
   if constexpr (mode == MODE_ENCODE) {
-    MOZ_ASSERT(!item->debugEnabled && item->debugFuncTypeIndices.empty());
+    MOZ_ASSERT(!item->debugEnabled);
   }
 
   MOZ_TRY(Magic(coder, Marker::CodeMetadata));
@@ -1056,14 +1056,14 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY(
       (CodeRefPtr<mode, TypeContext, &CodeTypeContext>(coder, &item->types)));
   // not serialized: branchHints
-  // not serialized: numFuncImports
-  // not serialized: numGlobalImports
+  MOZ_TRY(CodePod(coder, &item->numFuncImports));
+  MOZ_TRY(CodePod(coder, &item->numGlobalImports));
   MOZ_TRY((CodeVector<mode, GlobalDesc, &CodeGlobalDesc<mode>>(
       coder, &item->globals)));
   MOZ_TRY((CodeVector<mode, TagDesc, &CodeTagDesc<mode>>(coder, &item->tags)));
   MOZ_TRY((
       CodeVector<mode, TableDesc, &CodeTableDesc<mode>>(coder, &item->tables)));
-  // not serialized: funcImportsOffsetStart
+  MOZ_TRY(CodePod(coder, &item->funcImportsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->typeDefsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->memoriesOffsetStart));
   MOZ_TRY(CodePod(coder, &item->tablesOffsetStart));
@@ -1078,7 +1078,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY((CodeMaybe<mode, uint32_t, &CodePod>(coder, &item->startFuncIndex)));
   MOZ_TRY((CodeMaybe<mode, uint32_t, &CodePod>(coder,
                                                &item->nameCustomSectionIndex)));
-  // not serialized: funcs
+  MOZ_TRY(CodePodVector(coder, &item->funcs));
   // not serialized: elemSegmentTypes
   // not serialized: asmJSSigToTableIndex
   // not serialized: codeSection
@@ -1087,7 +1087,6 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   if constexpr (mode == MODE_DECODE) {
     // Initialize debugging state to disabled
     item->debugEnabled = false;
-    item->debugFuncTypeIndices.clear();
     MOZ_ASSERT(!item->isAsmJS());
   }
   // not serialized: debugHash

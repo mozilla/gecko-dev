@@ -318,7 +318,7 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
 
   MOZ_RELEASE_ASSERT(&instance->codeMeta() == &codeMeta());
   MOZ_RELEASE_ASSERT(instance->codeMetaForAsmJS() == codeMetaForAsmJS());
-  uint32_t numFuncs = codeMeta().debugNumFuncs();
+  uint32_t numFuncs = codeMeta().numFuncs();
   if (enabled) {
     MOZ_ASSERT(enterAndLeaveFrameTrapsCounter_ > 0);
     for (uint32_t funcIdx = 0; funcIdx < numFuncs; funcIdx++) {
@@ -373,7 +373,7 @@ bool DebugState::debugGetLocalTypes(uint32_t funcIndex, ValTypeVector* locals,
                                     size_t* argsLength,
                                     StackResults* stackResults) {
   const TypeContext& types = *codeMeta().types;
-  const FuncType& funcType = codeMeta().debugFuncType(funcIndex);
+  const FuncType& funcType = codeMeta().getFuncType(funcIndex);
   const ValTypeVector& args = funcType.args();
   const ValTypeVector& results = funcType.results();
   ResultType resultType(ResultType::Vector(results));

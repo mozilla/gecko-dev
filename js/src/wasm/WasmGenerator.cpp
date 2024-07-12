@@ -1133,15 +1133,6 @@ bool ModuleGenerator::finishCodeMetadata(const Bytes& bytecode) {
   if (compilerEnv_->debugEnabled()) {
     codeMeta_->debugEnabled = true;
 
-    const size_t numFuncs = codeMeta_->funcs.length();
-    if (!codeMeta_->debugFuncTypeIndices.resize(numFuncs)) {
-      return false;
-    }
-    for (size_t i = 0; i < numFuncs; i++) {
-      // FIXME: this seems pretty strange.  Do we need both?
-      codeMeta_->debugFuncTypeIndices[i] = codeMeta_->funcs[i].typeIndex;
-    }
-
     static_assert(sizeof(ModuleHash) <= sizeof(mozilla::SHA1Sum::Hash),
                   "The ModuleHash size shall not exceed the SHA1 hash size.");
     mozilla::SHA1Sum::Hash hash;

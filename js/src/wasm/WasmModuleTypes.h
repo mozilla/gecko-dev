@@ -201,6 +201,8 @@ struct FuncDesc {
   uint32_t typeIndex : 24;
   FuncFlags flags : 8;
 
+  WASM_CHECK_CACHEABLE_POD(typeIndex, flags);
+
   // Assert that the bit packing scheme is viable
   static_assert(MaxTypes <= (1 << 24) - 1);
   static_assert(sizeof(FuncFlags) == sizeof(uint8_t));
@@ -216,6 +218,8 @@ struct FuncDesc {
     return uint8_t(flags) & uint8_t(FuncFlags::CanRefFunc);
   }
 };
+
+WASM_DECLARE_CACHEABLE_POD(FuncDesc);
 
 using FuncDescVector = Vector<FuncDesc, 0, SystemAllocPolicy>;
 

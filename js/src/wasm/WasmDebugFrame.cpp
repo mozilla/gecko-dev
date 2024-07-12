@@ -136,7 +136,7 @@ bool DebugFrame::updateReturnJSValue(JSContext* cx) {
   rval.setUndefined();
   flags_.hasCachedReturnJSValue = true;
   ResultType resultType = ResultType::Vector(
-      instance()->codeMeta().debugFuncType(funcIndex()).results());
+      instance()->codeMeta().getFuncType(funcIndex()).results());
   Maybe<char*> stackResultsLoc;
   if (ABIResultIter::HasStackResults(resultType)) {
     stackResultsLoc = Some(static_cast<char*>(stackResultsPointer_));
