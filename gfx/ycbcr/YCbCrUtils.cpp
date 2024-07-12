@@ -164,6 +164,23 @@ struct YUV8BitData {
                             aData.mCbCrStride / 2, cbcrSize.width,
                             cbcrSize.height, bitDepth);
     }
+    if (aData.mAlpha) {
+      int32_t alphaStride8bpp = (aData.mAlpha->mSize.width + 31) & ~31;
+      size_t alphaSize =
+          GetAlignedStride<1>(alphaStride8bpp, aData.mAlpha->mSize.height);
+      mAlphaChannel = MakeUnique<uint8_t[]>(alphaSize);
+
+      mData.mAlpha.emplace();
+      mData.mAlpha->mPremultiplied = aData.mAlpha->mPremultiplied;
+      mData.mAlpha->mSize = aData.mAlpha->mSize;
+      mData.mAlpha->mChannel = mAlphaChannel.get();
+
+      ConvertYCbCr16to8Line(mData.mAlpha->mChannel, alphaStride8bpp,
+                            reinterpret_cast<uint16_t*>(aData.mAlpha->mChannel),
+                            aData.mYStride / 2, aData.mAlpha->mSize.width,
+                            aData.mAlpha->mSize.height,
+                            BitDepthForColorDepth(aData.mColorDepth));
+    }
   }
 
   const layers::PlanarYCbCrData& Get8BitData() { return mData; }
@@ -172,6 +189,7 @@ struct YUV8BitData {
   UniquePtr<uint8_t[]> mYChannel;
   UniquePtr<uint8_t[]> mCbChannel;
   UniquePtr<uint8_t[]> mCrChannel;
+  UniquePtr<uint8_t[]> mAlphaChannel;
 };
 
 static void ScaleYCbCrToRGB(const layers::PlanarYCbCrData& aData,
@@ -374,6 +392,42 @@ void ConvertYCbCrAToARGB(const layers::PlanarYCbCrData& aYCbCr,
   gfx::SwizzleData(aDestBuffer, aStride, gfx::SurfaceFormat::A8R8G8B8,
                    aDestBuffer, aStride, gfx::SurfaceFormat::B8G8R8A8,
                    aYCbCr.mPictureRect.Size());
+#endif
+}
+
+void ConvertYCbCrToRGB32(const layers::PlanarYCbCrData& aData,
+                         const SurfaceFormat& aDestFormat,
+                         unsigned char* aDestBuffer, int32_t aStride,
+                         PremultFunc premultiplyAlphaOp) {
+  MOZ_ASSERT(aDestFormat == SurfaceFormat::B8G8R8A8 ||
+             aDestFormat == SurfaceFormat::B8G8R8X8);
+
+  YUVType yuvtype = GetYUVType(aData);
+
+  YUV8BitData data8pp(aData);
+  const layers::PlanarYCbCrData& data = data8pp.Get8BitData();
+
+  ConvertYCbCrToRGB(data, aDestFormat, aDestBuffer, aStride, yuvtype);
+
+  if (data.mAlpha) {
+    // Alpha stride should be same as the Y stride.
+    FillAlphaToRGBA(data.mAlpha->mChannel, data.mYStride, aDestBuffer,
+                    data.mPictureRect.width, aData.mPictureRect.height,
+                    aDestFormat);
+
+    if (premultiplyAlphaOp) {
+      DebugOnly<int> err = premultiplyAlphaOp(aDestBuffer, aStride, aDestBuffer,
+                                              aStride, aData.mPictureRect.width,
+                                              aData.mPictureRect.height);
+      MOZ_ASSERT(!err);
+    }
+  }
+
+#if MOZ_BIG_ENDIAN()
+  // libyuv makes endian-correct result, which needs to be swapped to BGR*
+  gfx::SwizzleData(aDestBuffer, aStride, gfx::SurfaceFormat::X8R8G8B8,
+                   aDestBuffer, aStride, gfx::SurfaceFormat::B8G8R8X8,
+                   aData.mPictureRect.Size());
 #endif
 }
 

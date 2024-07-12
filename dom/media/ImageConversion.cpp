@@ -257,22 +257,18 @@ nsresult ConvertToRGBA(Image* aImage, const SurfaceFormat& aDestFormat,
   // Read YUV image to the given buffer in required RGBA format.
   if (const PlanarYCbCrData* data = GetPlanarYCbCrData(aImage)) {
     SurfaceFormat convertedFormat;
+    gfx::PremultFunc premultOp = nullptr;
     if (data->mAlpha && HasAlpha(aDestFormat)) {
       convertedFormat = SurfaceFormat::B8G8R8A8;
-
-      gfx::PremultFunc premultOp = nullptr;
       if (data->mAlpha->mPremultiplied) {
         premultOp = libyuv::ARGBUnattenuate;
       }
-
-      ConvertYCbCrAToARGB(*data, data->mAlpha.ref(), convertedFormat, destSize,
-                          aDestBuffer, AssertedCast<int32_t>(aDestStride),
-                          premultOp);
     } else {
       convertedFormat = SurfaceFormat::B8G8R8X8;
-      ConvertYCbCrToRGB(*data, convertedFormat, destSize, aDestBuffer,
-                        AssertedCast<int32_t>(aDestStride));
     }
+
+    ConvertYCbCrToRGB32(*data, convertedFormat, aDestBuffer,
+                        AssertedCast<int32_t>(aDestStride), premultOp);
 
     if (convertedFormat == aDestFormat) {
       return NS_OK;

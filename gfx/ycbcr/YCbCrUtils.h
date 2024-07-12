@@ -35,6 +35,14 @@ void ConvertYCbCrAToARGB(const layers::PlanarYCbCrData& aYCbCr,
                          unsigned char* aDestBuffer,
                          int32_t aStride, PremultFunc premultiplyAlphaOp);
 
+// Convert given YUV data w/ or w/out alpha into BGRA or BGRX data.
+void
+ConvertYCbCrToRGB32(const layers::PlanarYCbCrData& aData,
+                    const SurfaceFormat& aDestFormat,
+                    unsigned char* aDestBuffer,
+                    int32_t aStride,
+                    PremultFunc premultiplyAlphaOp);
+
 void
 ConvertI420AlphaToARGB(const uint8_t* aSrcY,
                        const uint8_t* aSrcU,
