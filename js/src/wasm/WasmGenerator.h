@@ -267,8 +267,8 @@ class MOZ_STACK_CLASS ModuleGenerator {
   void warnf(const char* msg, ...) MOZ_FORMAT_PRINTF(2, 3);
 
  public:
-  ModuleGenerator(const CompileArgs& args, const CodeMetadata* codeMeta,
-                  const CompilerEnvironment* compilerEnv,
+  ModuleGenerator(const CodeMetadata& codeMeta,
+                  const CompilerEnvironment& compilerEnv,
                   CompileState compilerState, const Atomic<bool>* cancelled,
                   UniqueChars* error, UniqueCharsVector* warnings);
   ~ModuleGenerator();

@@ -2200,8 +2200,8 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
       return nullptr;
     }
 
-    ModuleGenerator mg(*codeMeta_->compileArgs, codeMeta_, &compilerEnv_,
-                       compilerEnv_.initialState(), nullptr, nullptr, nullptr);
+    ModuleGenerator mg(*codeMeta_, compilerEnv_, compilerEnv_.initialState(),
+                       nullptr, nullptr, nullptr);
     if (!mg.initializeCompleteTier(codeMetaForAsmJS_.get())) {
       return nullptr;
     }

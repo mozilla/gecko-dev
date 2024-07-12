@@ -829,28 +829,27 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
   if (!moduleMeta || !moduleMeta->init(args)) {
     return nullptr;
   }
-  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
-  if (!codeMeta || !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
+
+  if (!DecodeModuleEnvironment(d, moduleMeta->codeMeta.get(), moduleMeta)) {
     return nullptr;
   }
   CompilerEnvironment compilerEnv(args);
   compilerEnv.computeParameters(d);
-
   if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
     return nullptr;
   }
 
-  ModuleGenerator mg(args, codeMeta, &compilerEnv, compilerEnv.initialState(),
-                     nullptr, error, warnings);
+  ModuleGenerator mg(*moduleMeta->codeMeta, compilerEnv,
+                     compilerEnv.initialState(), nullptr, error, warnings);
   if (!mg.initializeCompleteTier()) {
     return nullptr;
   }
 
-  if (!DecodeCodeSection(*codeMeta, d, mg)) {
+  if (!DecodeCodeSection(*moduleMeta->codeMeta, d, mg)) {
     return nullptr;
   }
 
-  if (!DecodeModuleTail(d, codeMeta, moduleMeta)) {
+  if (!DecodeModuleTail(d, moduleMeta->codeMeta, moduleMeta)) {
     return nullptr;
   }
 
@@ -865,8 +864,8 @@ bool wasm::CompileCompleteTier2(const Bytes& bytecode, const Module& module,
   compilerEnv.computeParameters();
 
   const CodeMetadata& codeMeta = module.codeMeta();
-  ModuleGenerator mg(*codeMeta.compileArgs, &codeMeta, &compilerEnv,
-                     CompileState::EagerTier2, cancelled, error, warnings);
+  ModuleGenerator mg(codeMeta, compilerEnv, CompileState::EagerTier2, cancelled,
+                     error, warnings);
   if (!mg.initializeCompleteTier()) {
     return false;
   }
@@ -918,8 +917,8 @@ bool wasm::CompilePartialTier2(const Bytes& bytecode, uint32_t funcIndex,
   compilerEnv.computeParameters();
 
   const CodeMetadata& codeMeta = code.codeMeta();
-  ModuleGenerator mg(*codeMeta.compileArgs, &codeMeta, &compilerEnv,
-                     CompileState::LazyTier2, cancelled, error, warnings);
+  ModuleGenerator mg(codeMeta, compilerEnv, CompileState::LazyTier2, cancelled,
+                     error, warnings);
   if (!mg.initializePartialTier(code, funcIndex)) {
     return false;
   }
@@ -1025,22 +1024,22 @@ SharedModule wasm::CompileStreaming(
   if (!moduleMeta || !moduleMeta->init(args)) {
     return nullptr;
   }
-  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
+  CodeMetadata& codeMeta = *moduleMeta->codeMeta;
 
   {
     Decoder d(envBytes, 0, error, warnings);
 
-    if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
+    if (!DecodeModuleEnvironment(d, &codeMeta, moduleMeta)) {
       return nullptr;
     }
     compilerEnv.computeParameters(d);
 
-    if (!codeMeta->codeSection) {
+    if (!codeMeta.codeSection) {
       d.fail("unknown section before code section");
       return nullptr;
     }
 
-    MOZ_RELEASE_ASSERT(codeMeta->codeSection->size == codeBytes.length());
+    MOZ_RELEASE_ASSERT(codeMeta.codeSection->size == codeBytes.length());
     MOZ_RELEASE_ASSERT(d.done());
   }
 
@@ -1048,17 +1047,17 @@ SharedModule wasm::CompileStreaming(
     return nullptr;
   }
 
-  ModuleGenerator mg(args, codeMeta, &compilerEnv, compilerEnv.initialState(),
+  ModuleGenerator mg(codeMeta, compilerEnv, compilerEnv.initialState(),
                      &cancelled, error, warnings);
   if (!mg.initializeCompleteTier()) {
     return nullptr;
   }
 
   {
-    StreamingDecoder d(*codeMeta, codeBytes, codeBytesEnd, cancelled, error,
+    StreamingDecoder d(codeMeta, codeBytes, codeBytesEnd, cancelled, error,
                        warnings);
 
-    if (!DecodeCodeSection(*codeMeta, d, mg)) {
+    if (!DecodeCodeSection(codeMeta, d, mg)) {
       return nullptr;
     }
 
@@ -1079,9 +1078,9 @@ SharedModule wasm::CompileStreaming(
   const Bytes& tailBytes = *streamEnd.tailBytes;
 
   {
-    Decoder d(tailBytes, codeMeta->codeSection->end(), error, warnings);
+    Decoder d(tailBytes, codeMeta.codeSection->end(), error, warnings);
 
-    if (!DecodeModuleTail(d, codeMeta, moduleMeta)) {
+    if (!DecodeModuleTail(d, &codeMeta, moduleMeta)) {
       return nullptr;
     }
 
@@ -1143,9 +1142,13 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
   if (!moduleMeta || !moduleMeta->init(*compileArgs)) {
     return false;
   }
-  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
-  DumpIonModuleGenerator mg(*codeMeta, targetFuncIndex, contents, out, error);
-  return DecodeModuleEnvironment(d, codeMeta, moduleMeta) &&
-         !moduleMeta->prepareForCompile(CompileMode::Once) &&
-         DecodeCodeSection(*codeMeta, d, mg);
+
+  if (!DecodeModuleEnvironment(d, moduleMeta->codeMeta, moduleMeta)) {
+    return false;
+  }
+
+  DumpIonModuleGenerator mg(*moduleMeta->codeMeta, targetFuncIndex, contents,
+                            out, error);
+  return moduleMeta->prepareForCompile(CompileMode::Once) &&
+         DecodeCodeSection(*moduleMeta->codeMeta, d, mg);
 }

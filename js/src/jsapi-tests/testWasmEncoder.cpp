@@ -70,8 +70,8 @@ BEGIN_TEST(testWasmEncodeBasic) {
                                            mozilla::Some(std::move(expName))));
   MOZ_ALWAYS_TRUE(moduleMeta->prepareForCompile(compilerEnv.mode()));
 
-  ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv,
-                     compilerEnv.initialState(), nullptr, nullptr, nullptr);
+  ModuleGenerator mg(*codeMeta, compilerEnv, compilerEnv.initialState(),
+                     nullptr, nullptr, nullptr);
   MOZ_ALWAYS_TRUE(mg.initializeCompleteTier());
 
   // Build function and keep bytecode around until the end.

@@ -71,20 +71,19 @@ static const unsigned COMPILATION_LIFO_DEFAULT_CHUNK_SIZE = 64 * 1024;
 ModuleGenerator::MacroAssemblerScope::MacroAssemblerScope(LifoAlloc& lifo)
     : masmAlloc(&lifo), masm(masmAlloc, /* limitedSize= */ false) {}
 
-ModuleGenerator::ModuleGenerator(const CompileArgs& args,
-                                 const CodeMetadata* codeMeta,
-                                 const CompilerEnvironment* compilerEnv,
+ModuleGenerator::ModuleGenerator(const CodeMetadata& codeMeta,
+                                 const CompilerEnvironment& compilerEnv,
                                  CompileState compileState,
                                  const Atomic<bool>* cancelled,
                                  UniqueChars* error,
                                  UniqueCharsVector* warnings)
-    : compileArgs_(&args),
+    : compileArgs_(codeMeta.compileArgs.get()),
       compileState_(compileState),
       error_(error),
       warnings_(warnings),
       cancelled_(cancelled),
-      codeMeta_(codeMeta),
-      compilerEnv_(compilerEnv),
+      codeMeta_(&codeMeta),
+      compilerEnv_(&compilerEnv),
       featureUsage_(FeatureUsage::None),
       codeBlock_(nullptr),
       linkData_(nullptr),

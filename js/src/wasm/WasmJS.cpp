@@ -4133,8 +4133,8 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
     return nullptr;
   }
 
-  ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv,
-                     compilerEnv.initialState(), nullptr, nullptr, nullptr);
+  ModuleGenerator mg(*codeMeta, compilerEnv, compilerEnv.initialState(),
+                     nullptr, nullptr, nullptr);
   if (!mg.initializeCompleteTier()) {
     return nullptr;
   }
