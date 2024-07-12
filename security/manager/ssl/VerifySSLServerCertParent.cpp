@@ -95,17 +95,7 @@ void IPCServerCertVerificationResult::Dispatch(
           [parent(mParent), builtCertChain{std::move(builtCertChain)},
            aCertificateTransparencyStatus, aEVStatus, aSucceeded, aFinalError,
            aOverridableErrorCategory, aIsBuiltCertChainRootBuiltInRoot,
-           aMadeOCSPRequests, aProviderFlags]() {
-            if (aSucceeded &&
-                !(aProviderFlags & nsISocketProvider::NO_PERMANENT_STORAGE)) {
-              nsTArray<nsTArray<uint8_t>> certBytesArray;
-              for (const auto& cert : builtCertChain) {
-                certBytesArray.AppendElement(cert.data().Clone());
-              }
-              // This dispatches an event that will run when the socket thread
-              // is idle.
-              SaveIntermediateCerts(certBytesArray);
-            }
+           aMadeOCSPRequests]() {
             parent->OnVerifiedSSLServerCert(
                 builtCertChain, aCertificateTransparencyStatus, aEVStatus,
                 aSucceeded, aFinalError, aOverridableErrorCategory,

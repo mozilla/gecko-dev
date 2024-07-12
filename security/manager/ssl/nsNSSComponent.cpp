@@ -1712,11 +1712,6 @@ void nsNSSComponent::PrepareForShutdown() {
 
   Preferences::RemoveObserver(this, "security.");
 
-  if (mIntermediatePreloadingHealerTimer) {
-    mIntermediatePreloadingHealerTimer->Cancel();
-    mIntermediatePreloadingHealerTimer = nullptr;
-  }
-
   // Release the default CertVerifier. This will cause any held NSS resources
   // to be released.
   MutexAutoLock lock(mMutex);
@@ -1724,154 +1719,6 @@ void nsNSSComponent::PrepareForShutdown() {
   // We don't actually shut down NSS - XPCOM does, after all threads have been
   // joined and the component manager has been shut down (and so there shouldn't
   // be any XPCOM objects holding NSS resources).
-}
-
-// The aim of the intermediate preloading healer is to remove intermediates
-// that were previously cached by PSM in the NSS certdb that are now preloaded
-// in cert_storage. When cached by PSM, these certificates will have no
-// particular trust set - they are intended to inherit their trust. If, upon
-// examination, these certificates do have trust bits set that affect
-// certificate validation, they must have been modified by the user, so we want
-// to leave them alone.
-bool CertHasDefaultTrust(CERTCertificate* cert) {
-  CERTCertTrust trust;
-  if (CERT_GetCertTrust(cert, &trust) != SECSuccess) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("CERT_GetCertTrust failed"));
-    return false;
-  }
-  // This is the active distrust test for CA certificates (this is expected to
-  // be an intermediate).
-  if ((trust.sslFlags & (CERTDB_TRUSTED_CA | CERTDB_TERMINAL_RECORD)) ==
-      CERTDB_TERMINAL_RECORD) {
-    return false;
-  }
-  // This is the trust anchor test.
-  if (trust.sslFlags & CERTDB_TRUSTED_CA) {
-    return false;
-  }
-  // This is the active distrust test for CA certificates (this is expected to
-  // be an intermediate).
-  if ((trust.emailFlags & (CERTDB_TRUSTED_CA | CERTDB_TERMINAL_RECORD)) ==
-      CERTDB_TERMINAL_RECORD) {
-    return false;
-  }
-  // This is the trust anchor test.
-  if (trust.emailFlags & CERTDB_TRUSTED_CA) {
-    return false;
-  }
-  return true;
-}
-
-void IntermediatePreloadingHealerCallback(nsITimer*, void*) {
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-          ("IntermediatePreloadingHealerCallback"));
-
-  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("Exiting healer due to app shutdown"));
-    return;
-  }
-
-  // Get the slot corresponding to the NSS certdb.
-  UniquePK11SlotInfo softokenSlot(PK11_GetInternalKeySlot());
-  if (!softokenSlot) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("PK11_GetInternalKeySlot failed"));
-    return;
-  }
-  // List the certificates in the NSS certdb.
-  UniqueCERTCertList softokenCertificates(
-      PK11_ListCertsInSlot(softokenSlot.get()));
-  if (!softokenCertificates) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("PK11_ListCertsInSlot failed"));
-    return;
-  }
-  nsCOMPtr<nsICertStorage> certStorage(do_GetService(NS_CERT_STORAGE_CID));
-  if (!certStorage) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("couldn't get cert_storage"));
-    return;
-  }
-  Vector<UniqueCERTCertificate> certsToDelete;
-  // For each certificate, look it up in cert_storage. If there's a match, this
-  // is a preloaded intermediate.
-  for (CERTCertListNode* n = CERT_LIST_HEAD(softokenCertificates);
-       !CERT_LIST_END(n, softokenCertificates); n = CERT_LIST_NEXT(n)) {
-    if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("Exiting healer due to app shutdown"));
-      return;
-    }
-
-    nsTArray<uint8_t> subject;
-    subject.AppendElements(n->cert->derSubject.data, n->cert->derSubject.len);
-    nsTArray<nsTArray<uint8_t>> certs;
-    nsresult rv = certStorage->FindCertsBySubject(subject, certs);
-    if (NS_FAILED(rv)) {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("FindCertsBySubject failed"));
-      break;
-    }
-    for (const auto& encodedCert : certs) {
-      if (encodedCert.Length() != n->cert->derCert.len) {
-        continue;
-      }
-      if (memcmp(encodedCert.Elements(), n->cert->derCert.data,
-                 encodedCert.Length()) != 0) {
-        continue;
-      }
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("found preloaded intermediate in certdb"));
-      if (!CertHasDefaultTrust(n->cert)) {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-                ("certificate doesn't have default trust - skipping"));
-        continue;
-      }
-      UniqueCERTCertificate certCopy(CERT_DupCertificate(n->cert));
-      if (!certCopy) {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("CERT_DupCertificate failed"));
-        continue;
-      }
-      // Note that we want to remove this certificate from the NSS certdb
-      // because it also exists in preloaded intermediate storage and is thus
-      // superfluous.
-      if (!certsToDelete.append(std::move(certCopy))) {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-                ("append failed - out of memory?"));
-        return;
-      }
-      break;
-    }
-    // Only delete 20 at a time.
-    if (certsToDelete.length() >= 20) {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("found limit of 20 preloaded intermediates in certdb"));
-      break;
-    }
-  }
-  for (const auto& certToDelete : certsToDelete) {
-    if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("Exiting healer due to app shutdown"));
-      return;
-    }
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("attempting to delete preloaded intermediate '%s'",
-             certToDelete->subjectName));
-    if (SEC_DeletePermCertificate(certToDelete.get()) != SECSuccess) {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("SEC_DeletePermCertificate failed"));
-    }
-  }
-
-  // This is for tests - notify that this ran.
-  nsCOMPtr<nsIRunnable> runnable(NS_NewRunnableFunction(
-      "IntermediatePreloadingHealerCallbackDone", []() -> void {
-        nsCOMPtr<nsIObserverService> observerService =
-            mozilla::services::GetObserverService();
-        if (observerService) {
-          observerService->NotifyObservers(
-              nullptr, "psm:intermediate-preloading-healer-ran", nullptr);
-        }
-      }));
-  Unused << NS_DispatchToMainThread(runnable.forget());
 }
 
 nsresult nsNSSComponent::Init() {
@@ -1907,49 +1754,6 @@ nsresult nsNSSComponent::Init() {
     return rv;
   }
 
-  rv = MaybeEnableIntermediatePreloadingHealer();
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  return NS_OK;
-}
-
-nsresult nsNSSComponent::MaybeEnableIntermediatePreloadingHealer() {
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-          ("nsNSSComponent::MaybeEnableIntermediatePreloadingHealer"));
-  MOZ_ASSERT(NS_IsMainThread());
-  if (!NS_IsMainThread()) {
-    return NS_ERROR_NOT_SAME_THREAD;
-  }
-
-  if (mIntermediatePreloadingHealerTimer) {
-    mIntermediatePreloadingHealerTimer->Cancel();
-    mIntermediatePreloadingHealerTimer = nullptr;
-  }
-
-  if (!StaticPrefs::security_intermediate_preloading_healer_enabled()) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIEventTarget> socketThread(
-      do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID));
-  if (!socketThread) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Error, ("couldn't get socket thread?"));
-    return NS_ERROR_FAILURE;
-  }
-  uint32_t timerDelayMS =
-      StaticPrefs::security_intermediate_preloading_healer_timer_interval_ms();
-  nsresult rv = NS_NewTimerWithFuncCallback(
-      getter_AddRefs(mIntermediatePreloadingHealerTimer),
-      IntermediatePreloadingHealerCallback, nullptr, timerDelayMS,
-      nsITimer::TYPE_REPEATING_SLACK_LOW_PRIORITY,
-      "IntermediatePreloadingHealer", socketThread);
-  if (NS_FAILED(rv)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Error,
-            ("NS_NewTimerWithFuncCallback failed"));
-    return rv;
-  }
   return NS_OK;
 }
 
@@ -2021,13 +1825,6 @@ nsNSSComponent::Observe(nsISupports* aSubject, const char* aTopic,
     }
     if (clearSessionCache) {
       ClearSSLExternalAndInternalSessionCache();
-    }
-
-    // Preferences that don't affect certificate verification.
-    if (prefName.Equals("security.intermediate_preloading_healer.enabled") ||
-        prefName.Equals(
-            "security.intermediate_preloading_healer.timer_interval_ms")) {
-      MaybeEnableIntermediatePreloadingHealer();
     }
   }
 

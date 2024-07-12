@@ -8,10 +8,6 @@
 // Tests that if a server does not send a complete certificate chain, we can
 // make use of cached intermediates to build a trust path.
 
-const { TestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TestUtils.sys.mjs"
-);
-
 do_get_profile(); // must be called before getting nsIX509CertDB
 
 registerCleanupFunction(() => {
@@ -49,40 +45,8 @@ function run_test() {
     run_next_test();
   });
 
-  // We have to start observing the topic before there's a chance it gets
-  // emitted.
-  add_test(() => {
-    TestUtils.topicObserved("psm:intermediate-certs-cached").then(
-      subjectAndData => {
-        Assert.equal(subjectAndData.length, 2, "expecting [subject, data]");
-        Assert.equal(subjectAndData[1], "1", `expecting "1" cert imported`);
-        run_next_test();
-      }
-    );
-    run_next_test();
-  });
-  // Connect and cache the intermediate.
-  add_connection_test(
-    "ee-from-missing-intermediate.example.com",
-    PRErrorCodeSuccess
-  );
-
-  // Add a dummy test so that the only way we advance from here is by observing
-  // "psm:intermediate-certs-cached".
-  add_test(() => {});
-
-  // Delete the intermediate on the server again.
-  add_test(() => {
-    clearSessionCache();
-    let certDir = Services.dirsvc.get("CurWorkD", Ci.nsIFile);
-    certDir.append("bad_certs");
-    Assert.ok(certDir.exists(), "bad_certs should exist");
-    let args = ["-D", "-n", "manually-added-missing-intermediate"];
-    run_certutil_on_directory(certDir.path, args);
-    run_next_test();
-  });
-
-  // Since we cached the intermediate in gecko, this should succeed.
+  // BadCertAndPinningServer should send the intermediate now, so the
+  // connection should succeed.
   add_connection_test(
     "ee-from-missing-intermediate.example.com",
     PRErrorCodeSuccess

@@ -1114,12 +1114,6 @@ SSLServerCertVerificationResult::Run() {
   MOZ_ASSERT(onSTSThread);
 #endif
 
-  if (mSucceeded && !XRE_IsSocketProcess() &&
-      !(mProviderFlags & nsISocketProvider::NO_PERMANENT_STORAGE)) {
-    // This dispatches an event that will run when the socket thread is idle.
-    SaveIntermediateCerts(mBuiltChain);
-  }
-
   mSocketControl->SetMadeOCSPRequests(mMadeOCSPRequests);
   mSocketControl->SetIsBuiltCertChainRootBuiltInRoot(
       mIsBuiltCertChainRootBuiltInRoot);

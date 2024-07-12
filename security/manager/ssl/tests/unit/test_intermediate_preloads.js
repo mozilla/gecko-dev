@@ -318,15 +318,6 @@ add_task(async function test_preload_basic() {
   // If the certdb is cached from a previous run, the intermediate will have
   // already been deleted, so this may "fail".
   run_certutil_on_directory(certDir.path, args, false);
-  let certsCachedPromise = TestUtils.topicObserved(
-    "psm:intermediate-certs-cached"
-  );
-  await asyncConnectTo("ee.example.com", PRErrorCodeSuccess);
-  let subjectAndData = await certsCachedPromise;
-  Assert.equal(subjectAndData.length, 2, "expecting [subject, data]");
-  // Since the intermediate is preloaded, we don't save it to the profile's
-  // certdb.
-  Assert.equal(subjectAndData[1], "0", `expecting "0" certs imported`);
 
   await checkCertErrorGeneric(
     certDB,
@@ -432,65 +423,6 @@ add_task(async function test_delete() {
     0,
     "shouldn't find intermediate in cert storage now"
   );
-});
-
-function findCertByCommonName(certDB, commonName) {
-  for (let cert of certDB.getCerts()) {
-    if (cert.commonName == commonName) {
-      return cert;
-    }
-  }
-  return null;
-}
-
-add_task(async function test_healer() {
-  Services.prefs.setBoolPref(INTERMEDIATES_ENABLED_PREF, true);
-  Services.prefs.setIntPref(INTERMEDIATES_DL_PER_POLL_PREF, 100);
-
-  let certDB = Cc["@mozilla.org/security/x509certdb;1"].getService(
-    Ci.nsIX509CertDB
-  );
-  // Add an intermediate as if it had previously been cached.
-  addCertFromFile(certDB, "test_intermediate_preloads/int.pem", ",,");
-  // Add an intermediate with non-default trust settings as if it had been added by the user.
-  addCertFromFile(certDB, "test_intermediate_preloads/int2.pem", "CTu,,");
-
-  let syncResult = await syncAndDownload(["int.pem", "int2.pem"]);
-  equal(syncResult, "success", "Preloading update should have run");
-
-  equal(
-    (await locallyDownloaded()).length,
-    2,
-    "There should have been 2 downloads"
-  );
-
-  let healerRanPromise = TestUtils.topicObserved(
-    "psm:intermediate-preloading-healer-ran"
-  );
-  Services.prefs.setIntPref(
-    "security.intermediate_preloading_healer.timer_interval_ms",
-    500
-  );
-  Services.prefs.setBoolPref(
-    "security.intermediate_preloading_healer.enabled",
-    true
-  );
-  await healerRanPromise;
-  Services.prefs.setBoolPref(
-    "security.intermediate_preloading_healer.enabled",
-    false
-  );
-
-  let intermediate = findCertByCommonName(
-    certDB,
-    "intermediate-preloading-intermediate"
-  );
-  equal(intermediate, null, "should not find intermediate in NSS");
-  let intermediate2 = findCertByCommonName(
-    certDB,
-    "intermediate-preloading-intermediate2"
-  );
-  notEqual(intermediate2, null, "should find second intermediate in NSS");
 });
 
 function run_test() {

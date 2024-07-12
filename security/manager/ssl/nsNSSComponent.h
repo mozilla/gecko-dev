@@ -110,8 +110,6 @@ class nsNSSComponent final : public nsINSSComponent, public nsIObserver {
   nsresult CommonGetEnterpriseCerts(
       nsTArray<nsTArray<uint8_t>>& enterpriseCerts, bool getRoots);
 
-  nsresult MaybeEnableIntermediatePreloadingHealer();
-
   // mLoadableCertsLoadedMonitor protects mLoadableCertsLoaded.
   mozilla::Monitor mLoadableCertsLoadedMonitor;
   bool mLoadableCertsLoaded MOZ_GUARDED_BY(mLoadableCertsLoadedMonitor);
@@ -134,12 +132,6 @@ class nsNSSComponent final : public nsINSSComponent, public nsIObserver {
 
   // The following members are accessed only on the main thread:
   static int mInstanceCount;
-  // If the intermediate preloading healer is enabled, the following timer
-  // periodically dispatches events to the socket thread. Each of these
-  // events scans the NSS certdb for preloaded intermediates that are in
-  // cert_storage and thus can be removed. By default, the interval is 5
-  // minutes.
-  nsCOMPtr<nsITimer> mIntermediatePreloadingHealerTimer;
 };
 
 inline nsresult BlockUntilLoadableCertsLoaded() {

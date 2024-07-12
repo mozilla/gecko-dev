@@ -15190,16 +15190,6 @@
   value: true
   mirror: always
 
-- name: security.intermediate_preloading_healer.enabled
-  type: RelaxedAtomicBool
-  value: @IS_NOT_ANDROID@
-  mirror: always
-
-- name: security.intermediate_preloading_healer.timer_interval_ms
-  type: RelaxedAtomicUint32
-  value: 300000
-  mirror: always
-
 # If true, attempt to load the osclientcerts PKCS#11 module at startup on a
 # background thread. This module allows Firefox to use client certificates
 # stored in OS certificate storage. Currently only available for Windows and
