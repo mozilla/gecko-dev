@@ -10881,10 +10881,16 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectConstructor() {
     return AttachDecision::NoAction;
   }
 
+  gc::AllocSite* site = nullptr;
   PlainObject* templateObj = nullptr;
   if (argc_ == 0) {
     // Stub doesn't support metadata builder
     if (cx_->realm()->hasAllocationMetadataBuilder()) {
+      return AttachDecision::NoAction;
+    }
+
+    site = generator_.maybeCreateAllocSite();
+    if (!site) {
       return AttachDecision::NoAction;
     }
 
@@ -10904,11 +10910,6 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectConstructor() {
   emitNativeCalleeGuard();
 
   if (argc_ == 0) {
-    gc::AllocSite* site = generator_.maybeCreateAllocSite();
-    if (!site) {
-      return AttachDecision::NoAction;
-    }
-
     uint32_t numFixedSlots = templateObj->numUsedFixedSlots();
     uint32_t numDynamicSlots = templateObj->numDynamicSlots();
     gc::AllocKind allocKind = templateObj->allocKindForTenure();
