@@ -241,7 +241,14 @@ export default class TabHoverPreviewPanel {
   }
 
   _isDisabled() {
-    return Boolean(this._openPopups.size);
+    return (
+      // Other popups are open.
+      this._openPopups.size ||
+      // TODO (bug 1899556): for now disable in background windows, as there are
+      // issues with windows ordering on Linux (bug 1897475), plus intermittent
+      // persistence of previews after session restore (bug 1888148).
+      this._win != Services.focus.activeWindow
+    );
   }
 
   get _displayTitle() {

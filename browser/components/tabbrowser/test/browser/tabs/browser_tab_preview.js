@@ -4,48 +4,16 @@
 
 "use strict";
 
+// NOTE on usage of sinon spies with THP components
+// since THP is lazy-loaded, the tab hover preview component *must*
+// be activated at least once in each test prior to setting up
+// any spies against this component.
+// Since each test reuses the same window, generally this issue will only
+// be made evident in chaos-mode tests that run out of order (and
+// thus will result in an intermittent).
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
-
-function scrollOverTab(tab) {
-  const tabs = document.getElementById("tabbrowser-tabs");
-
-  // Copied from apz_test_native_event_utils.js
-  let message = 0;
-  switch (AppConstants.platform) {
-    case "win":
-      message = 0x020a;
-      break;
-    case "linux":
-      message = 4;
-      break;
-    case "macosx":
-      message = 1;
-      break;
-  }
-
-  let rect = tab.getBoundingClientRect();
-  let screenRect = window.windowUtils.toScreenRect(
-    rect.x,
-    rect.y,
-    rect.width,
-    rect.height
-  );
-
-  window.windowUtils.sendNativeMouseScrollEvent(
-    screenRect.left + rect.width / 2,
-    screenRect.bottom - rect.height / 2,
-    message,
-    0,
-    3,
-    0,
-    0,
-    Ci.nsIDOMWindowUtils.MOUSESCROLL_SCROLL_LINES,
-    tabs,
-    null
-  );
-}
 
 async function openPreview(tab, win = window) {
   const previewShown = BrowserTestUtils.waitForPopupEvent(
@@ -107,18 +75,42 @@ add_task(async function hoverTests() {
     "First New Tab",
     "Preview of tab1 shows correct title"
   );
-
   await closePreviews();
+
   await openPreview(tab2);
   Assert.equal(
     previewContainer.querySelector(".tab-preview-title").innerText,
     "Second New Tab",
     "Preview of tab2 shows correct title"
   );
-
   await closePreviews();
 
-  // Bug 1897475 - don't show tab previews in background windows
+  BrowserTestUtils.removeTab(tab1);
+  BrowserTestUtils.removeTab(tab2);
+
+  // Move the mouse outside of the tab strip.
+  EventUtils.synthesizeMouseAtCenter(document.documentElement, {
+    type: "mouseover",
+  });
+});
+
+// Bug 1897475 - don't show tab previews in background windows
+// TODO Bug 1899556: If possible, write a test to confirm tab previews
+// aren't shown when /all/ windows are in the background
+add_task(async function noTabPreviewInBackgroundWindowTests() {
+  const bgWindow = window;
+
+  const bgTabUrl =
+    "data:text/html,<html><head><title>First New Tab</title></head><body>Hello</body></html>";
+  const bgTab = await BrowserTestUtils.openNewForegroundTab(gBrowser, bgTabUrl);
+
+  // tab must be opened at least once to ensure that bgWindow tab preview lazy loads
+  await openPreview(bgTab, bgWindow);
+  await closePreviews(bgWindow);
+
+  const bgPreviewComponent = bgWindow.gBrowser.tabContainer.previewPanel;
+  sinon.spy(bgPreviewComponent, "activate");
+
   let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
   let fgTab = fgWindow.gBrowser.tabs[0];
   let fgWindowPreviewContainer =
@@ -133,28 +125,26 @@ add_task(async function hoverTests() {
   await closePreviews(fgWindow);
 
   // ensure tab1 preview doesn't open, as it's now in a background window
-  let resolved = false;
-  let openPreviewPromise = openPreview(tab1).then(() => {
-    resolved = true;
+  EventUtils.synthesizeMouseAtCenter(bgTab, { type: "mouseover" }, bgWindow);
+  await BrowserTestUtils.waitForCondition(() => {
+    return bgPreviewComponent.activate.calledOnce;
   });
-  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-  let timeoutPromise = new Promise(resolve => setTimeout(resolve, 500));
-  await Promise.race([openPreviewPromise, timeoutPromise]);
-  Assert.ok(!resolved, "preview does not open from background window");
-  Assert.ok(
-    BrowserTestUtils.isHidden(previewContainer),
-    "Background window tab preview hidden"
+  Assert.equal(
+    bgPreviewComponent._panel.state,
+    "closed",
+    "preview does not open from background window"
   );
 
+  BrowserTestUtils.removeTab(fgTab);
   await BrowserTestUtils.closeWindow(fgWindow);
 
-  BrowserTestUtils.removeTab(tab1);
-  BrowserTestUtils.removeTab(tab2);
+  BrowserTestUtils.removeTab(bgTab);
 
   // Move the mouse outside of the tab strip.
   EventUtils.synthesizeMouseAtCenter(document.documentElement, {
     type: "mouseover",
   });
+  sinon.restore();
 });
 
 /**
@@ -362,12 +352,12 @@ add_task(async function delayTests() {
   const tabUrl2 =
     "data:text/html,<html><head><title>Second New Tab</title></head><body>Hello</body></html>";
   const tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser, tabUrl2);
-  const previewComponent = gBrowser.tabContainer.previewPanel;
   const previewElement = document.getElementById("tab-preview-panel");
 
-  sinon.spy(previewComponent, "deactivate");
-
   await openPreview(tab1);
+
+  const previewComponent = gBrowser.tabContainer.previewPanel;
+  sinon.spy(previewComponent, "deactivate");
 
   // I can't fake this like in hoverTests, need to send an updated-tab signal
   //await openPreview(tab2);
@@ -407,15 +397,13 @@ add_task(async function dragTests() {
   const tabUrl1 =
     "data:text/html,<html><head><title>First New Tab</title></head><body>Hello</body></html>";
   const tab1 = await BrowserTestUtils.openNewForegroundTab(gBrowser, tabUrl1);
-  const tabUrl2 =
-    "data:text/html,<html><head><title>Second New Tab</title></head><body>Hello</body></html>";
-  const tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser, tabUrl2);
-  const previewComponent = gBrowser.tabContainer.previewPanel;
   const previewElement = document.getElementById("tab-preview-panel");
 
+  await openPreview(tab1);
+
+  const previewComponent = gBrowser.tabContainer.previewPanel;
   sinon.spy(previewComponent, "deactivate");
 
-  await openPreview(tab1);
   const previewHidden = BrowserTestUtils.waitForPopupEvent(
     previewElement,
     "hidden"
@@ -423,7 +411,9 @@ add_task(async function dragTests() {
   let dragend = BrowserTestUtils.waitForEvent(tab1, "dragend");
   EventUtils.synthesizePlainDragAndDrop({
     srcElement: tab1,
-    destElement: tab2,
+    destElement: null,
+    stepX: 100,
+    stepY: 0,
   });
 
   await previewHidden;
@@ -434,9 +424,7 @@ add_task(async function dragTests() {
   );
 
   await dragend;
-
   BrowserTestUtils.removeTab(tab1);
-  BrowserTestUtils.removeTab(tab2);
   sinon.restore();
 
   // Move the mouse outside of the tab strip.
@@ -454,12 +442,23 @@ add_task(async function panelSuppressionOnContextMenuTests() {
   const tabUrl =
     "data:text/html,<html><head><title>First New Tab</title></head><body>Hello</body></html>";
   const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, tabUrl);
-  const previewComponent = gBrowser.tabContainer.previewPanel;
 
+  // tab must be opened at least once to ensure that tab preview lazy loads
+  await openPreview(tab);
+  await closePreviews();
+
+  const previewComponent = gBrowser.tabContainer.previewPanel;
   sinon.spy(previewComponent, "activate");
 
-  const otherMenu = document.getElementById("new-tab-button-popup");
-  otherMenu.openPopup();
+  const newTabMenu = document.getElementById("new-tab-button-popup");
+  const newTabButton = document.getElementById("tabs-newtab-button");
+  let newTabMenuShown = BrowserTestUtils.waitForPopupEvent(newTabMenu, "shown");
+  EventUtils.synthesizeMouseAtCenter(
+    newTabButton,
+    { type: "contextmenu" },
+    window
+  );
+  await newTabMenuShown;
 
   EventUtils.synthesizeMouseAtCenter(tab, { type: "mouseover" }, window);
 
@@ -468,7 +467,7 @@ add_task(async function panelSuppressionOnContextMenuTests() {
   });
   Assert.equal(previewComponent._panel.state, "closed", "");
 
-  otherMenu.hidePopup();
+  newTabMenu.hidePopup();
   BrowserTestUtils.removeTab(tab);
   sinon.restore();
 
@@ -485,8 +484,12 @@ add_task(async function panelSuppressionOnPanelTests() {
   const tabUrl =
     "data:text/html,<html><head><title>First New Tab</title></head><body>Hello</body></html>";
   const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, tabUrl);
-  const previewComponent = gBrowser.tabContainer.previewPanel;
 
+  // tab must be opened at least once to ensure that tab preview lazy loads
+  await openPreview(tab);
+  await closePreviews();
+
+  const previewComponent = gBrowser.tabContainer.previewPanel;
   sinon.spy(previewComponent, "activate");
 
   // The `openPopup` API appears to not be working for this panel,
@@ -513,7 +516,8 @@ add_task(async function panelSuppressionOnPanelTests() {
 });
 
 /**
- * Wheel events at the document-level of the window should hide the preview.
+ * The panel should be configured to roll up on wheel events iff
+ * the tab strip is overflowing.
  */
 add_task(async function wheelTests() {
   const previewPanel = document.getElementById("tab-preview-panel");
@@ -536,19 +540,6 @@ add_task(async function wheelTests() {
     previewPanel.getAttribute("rolluponmousewheel"),
     "true",
     "Panel has rolluponmousewheel=true when tabs overflow"
-  );
-
-  const previewHidden = BrowserTestUtils.waitForPopupEvent(
-    previewPanel,
-    "hidden"
-  );
-
-  scrollOverTab(tab1);
-  await previewHidden;
-  Assert.equal(
-    previewPanel.state,
-    "closed",
-    "Preview is closed after scrolling"
   );
 
   // Clean up extra tabs
