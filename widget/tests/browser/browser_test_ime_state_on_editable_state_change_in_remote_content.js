@@ -251,12 +251,15 @@ add_task(async function () {
           );
           return content.wrappedJSObject.waitForIMEContentObserverSendingNotifications();
         });
-        is(
+        // todo_is because of bug 1807597.  Gecko does not update focus when focused
+        // document is into the design mode.  Therefore, cannot initialize
+        // HTMLEditor with the document node properly.
+        todo_is(
           window.windowUtils.IMEStatus,
           Ci.nsIDOMWindowUtils.IME_STATUS_ENABLED,
           `test_setting_designMode_when_shadow_DOM_has_focus(${aMode}): IME should be enabled when focused <div> in a shadow DOM becomes editable`
         );
-        ok(
+        todo(
           tipWrapper.IMEHasFocus,
           `test_setting_designMode_when_shadow_DOM_has_focus(${aMode}): IME should have focus when focused <div> in a shadow DOM becomes editable`
         );
@@ -266,12 +269,12 @@ add_task(async function () {
         });
         is(
           window.windowUtils.IMEStatus,
-          Ci.nsIDOMWindowUtils.IME_STATUS_ENABLED,
-          `test_setting_designMode_when_shadow_DOM_has_focus(${aMode}): IME should keep being enabled when designMode is unset but an editable element in the shadow DOM has focus`
+          Ci.nsIDOMWindowUtils.IME_STATUS_DISABLED,
+          `test_setting_designMode_when_shadow_DOM_has_focus(${aMode}): IME should be disabled when designMode is unset`
         );
         ok(
-          tipWrapper.IMEHasFocus,
-          `test_setting_designMode_when_shadow_DOM_has_focus(${aMode}): IME should keep having focus when designMode is unset but an editable element in the shadow DOM has focus`
+          !tipWrapper.IMEHasFocus,
+          `test_setting_designMode_when_shadow_DOM_has_focus(${aMode}): IME should not have focus when designMode is unset`
         );
         await SpecialPowers.spawn(browser, [], () => {
           content.document.querySelector("div").remove();
