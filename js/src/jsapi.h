@@ -862,8 +862,7 @@ extern JS_PUBLIC_API void JS_SetOffthreadIonCompilationEnabled(JSContext* cx,
   Register(WASM_DELAY_TIER2, "wasm.delay-tier2") \
   Register(WASM_JIT_BASELINE, "wasm.baseline") \
   Register(WASM_JIT_OPTIMIZING, "wasm.optimizing") \
-  Register(REGEXP_DUPLICATE_NAMED_GROUPS, "regexp.duplicate-named-groups") \
-  Register(REGEXP_MODIFIERS, "regexp.modifiers")  // clang-format on
+  Register(REGEXP_DUPLICATE_NAMED_GROUPS, "regexp.duplicate-named-groups")  // clang-format on
 
 typedef enum JSJitCompilerOption {
 #define JIT_COMPILER_DECLARE(key, str) JSJITCOMPILER_##key,

@@ -1,4 +1,4 @@
-// |reftest| shell-option(--enable-regexp-modifiers) skip-if(!(this.hasOwnProperty('getBuildConfiguration')&&!getBuildConfiguration('release_or_beta'))||!xulRuntime.shell) error:SyntaxError -- regexp-modifiers is not enabled unconditionally, requires shell-options
+// |reftest| skip error:SyntaxError -- regexp-modifiers is not supported
 // Copyright (C) 2024 Igalia, S.L. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
