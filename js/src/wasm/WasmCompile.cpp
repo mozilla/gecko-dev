@@ -806,12 +806,11 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
   Decoder d(bytecode.bytes, 0, error, warnings);
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
+  if (!moduleMeta || !moduleMeta->init(args.features)) {
     return nullptr;
   }
-  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(args.features);
-  if (!codeMeta || !codeMeta->init() ||
-      !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
+  if (!codeMeta || !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return nullptr;
   }
   CompilerEnvironment compilerEnv(args);
@@ -842,12 +841,11 @@ bool wasm::CompileCompleteTier2(const CompileArgs& args, const Bytes& bytecode,
 
   // FIXME this shouldn't be needed!  (nullptr should be OK)
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
+  if (!moduleMeta || !moduleMeta->init(args.features)) {
     return false;
   }
-  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(args.features);
-  if (!codeMeta || !codeMeta->init() ||
-      !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
+  if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return false;
   }
   CompilerEnvironment compilerEnv(CompileMode::EagerTiering, Tier::Optimized,
@@ -899,12 +897,11 @@ bool wasm::CompilePartialTier2(const CompileArgs& args, const Bytes& bytecode,
   Decoder d(bytecode, 0, error);
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
+  if (!moduleMeta || !moduleMeta->init(args.features)) {
     return false;
   }
-  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(args.features);
-  if (!codeMeta || !codeMeta->init() ||
-      !DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
+  if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return false;
   }
   CompilerEnvironment compilerEnv(CompileMode::LazyTiering, Tier::Optimized,
@@ -1006,14 +1003,11 @@ SharedModule wasm::CompileStreaming(
     const Atomic<bool>& cancelled, UniqueChars* error,
     UniqueCharsVector* warnings) {
   CompilerEnvironment compilerEnv(args);
-  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(args.features);
-  if (!codeMeta || !codeMeta->init()) {
-    return nullptr;
-  }
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
+  if (!moduleMeta || !moduleMeta->init(args.features)) {
     return nullptr;
   }
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
 
   {
     Decoder d(envBytes, 0, error, warnings);
@@ -1118,15 +1112,11 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
   UniqueCharsVector warnings;
   Decoder d(bytecode.bytes, 0, error, &warnings);
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
+  if (!moduleMeta || !moduleMeta->init(FeatureArgs::allEnabled())) {
     return false;
   }
-  MutableCodeMetadata codeMeta =
-      js_new<CodeMetadata>(FeatureArgs::allEnabled());
-  if (!codeMeta) {
-    return false;
-  }
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
   DumpIonModuleGenerator mg(*codeMeta, targetFuncIndex, contents, out, error);
-  return codeMeta->init() && DecodeModuleEnvironment(d, codeMeta, moduleMeta) &&
+  return DecodeModuleEnvironment(d, codeMeta, moduleMeta) &&
          DecodeCodeSection(*codeMeta, d, mg);
 }

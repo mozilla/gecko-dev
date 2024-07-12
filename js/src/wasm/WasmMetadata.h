@@ -118,46 +118,6 @@ using FuncImportVector = Vector<FuncImport, 0, SystemAllocPolicy>;
 
 enum class NameContext { Standalone, BeforeLocation };
 
-// wasm::ModuleMetadata contains metadata whose lifetime ends at the same time
-// that the lifetime of wasm::Module ends.  In practice that means metadata
-// that is needed only for creating wasm::Instances.  Hence this metadata
-// conceptually belongs to, and is held alive by, wasm::Module.
-
-struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
-  // NOTE: if you add, remove, rename or reorder fields here, be sure to
-  // update CodeModuleMetadata() to keep it in sync.
-
-  // Module fields decoded from the module environment (or initialized while
-  // validating an asm.js module) and immutable during compilation:
-  ImportVector imports;
-  ExportVector exports;
-
-  // Info about elem segments needed for instantiation.  Should have the same
-  // length as CodeMetadata::elemSegmentTypes.
-  ModuleElemSegmentVector elemSegments;
-
-  // Info about data segments needed for instantiation.  These wind up having
-  // the same length.  Initially both are empty.  `dataSegmentRanges` is
-  // filled in during validation, and `dataSegments` remains empty.  Later, at
-  // module-generation time, `dataSegments` is filled in, by copying the
-  // underlying data blocks, and so the two vectors have the same length after
-  // that.
-  DataSegmentRangeVector dataSegmentRanges;
-  DataSegmentVector dataSegments;
-
-  CustomSectionVector customSections;
-
-  // Which features were observed when compiling this module.
-  FeatureUsage featureUsage;
-
-  explicit ModuleMetadata() = default;
-
-  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
-};
-
-using MutableModuleMetadata = RefPtr<ModuleMetadata>;
-using SharedModuleMetadata = RefPtr<const ModuleMetadata>;
-
 // wasm::CodeMetadata contains metadata whose lifetime ends at the same time
 // that the lifetime of wasm::Code ends.  This encompasses a wide variety of
 // uses.  In practice that means metadata needed for any and all aspects of
@@ -293,6 +253,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   }
 
   [[nodiscard]] bool init() {
+    MOZ_ASSERT(!types);
     types = js_new<TypeContext>(features);
     return types;
   }
@@ -439,6 +400,60 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
 
 using MutableCodeMetadata = RefPtr<CodeMetadata>;
 using SharedCodeMetadata = RefPtr<const CodeMetadata>;
+
+// wasm::ModuleMetadata contains metadata whose lifetime ends at the same time
+// that the lifetime of wasm::Module ends.  In practice that means metadata
+// that is needed only for creating wasm::Instances.  Hence this metadata
+// conceptually belongs to, and is held alive by, wasm::Module.
+
+struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
+  // NOTE: if you add, remove, rename or reorder fields here, be sure to
+  // update CodeModuleMetadata() to keep it in sync.
+
+  // The subset of module metadata that is shared between a module and
+  // instance.
+  MutableCodeMetadata codeMeta;
+
+  // Module fields decoded from the module environment (or initialized while
+  // validating an asm.js module) and immutable during compilation:
+  ImportVector imports;
+  ExportVector exports;
+
+  // Info about elem segments needed for instantiation.  Should have the same
+  // length as CodeMetadata::elemSegmentTypes.
+  ModuleElemSegmentVector elemSegments;
+
+  // Info about data segments needed for instantiation.  These wind up having
+  // the same length.  Initially both are empty.  `dataSegmentRanges` is
+  // filled in during validation, and `dataSegments` remains empty.  Later, at
+  // module-generation time, `dataSegments` is filled in, by copying the
+  // underlying data blocks, and so the two vectors have the same length after
+  // that.
+  DataSegmentRangeVector dataSegmentRanges;
+  DataSegmentVector dataSegments;
+
+  CustomSectionVector customSections;
+
+  // Which features were observed when compiling this module.
+  FeatureUsage featureUsage;
+
+  explicit ModuleMetadata() = default;
+
+  [[nodiscard]] bool init() {
+    codeMeta = js_new<CodeMetadata>();
+    return !!codeMeta && codeMeta->init();
+  }
+  [[nodiscard]] bool init(FeatureArgs features,
+                          ModuleKind kind = ModuleKind::Wasm) {
+    codeMeta = js_new<CodeMetadata>(features, kind);
+    return !!codeMeta && codeMeta->init();
+  }
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+};
+
+using MutableModuleMetadata = RefPtr<ModuleMetadata>;
+using SharedModuleMetadata = RefPtr<const ModuleMetadata>;
 
 }  // namespace wasm
 }  // namespace js

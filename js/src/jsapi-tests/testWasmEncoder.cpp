@@ -44,12 +44,11 @@ BEGIN_TEST(testWasmEncodeBasic) {
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   MOZ_ALWAYS_TRUE(moduleMeta);
-  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
-  MOZ_ALWAYS_TRUE(codeMeta);
+  MOZ_ALWAYS_TRUE(moduleMeta->init(compileArgs->features));
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
   CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
-  MOZ_ALWAYS_TRUE(codeMeta->init());
 
   ValTypeVector paramsImp, resultsImp;
   MOZ_ALWAYS_TRUE(paramsImp.emplaceBack(ValType::F64) &&

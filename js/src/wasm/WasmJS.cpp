@@ -4097,20 +4097,13 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   }
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
+  if (!moduleMeta || !moduleMeta->init(compileArgs->features)) {
     return nullptr;
   }
-  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
-  if (!codeMeta) {
-    return nullptr;
-  }
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
   CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
-
-  if (!codeMeta->init()) {
-    return nullptr;
-  }
 
   FuncType funcType = FuncType(std::move(params), std::move(results));
   if (!codeMeta->types->addType(std::move(funcType))) {

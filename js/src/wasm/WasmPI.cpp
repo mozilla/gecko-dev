@@ -874,22 +874,15 @@ class SuspendingFunctionModuleFactory {
     }
 
     MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-    if (!moduleMeta) {
+    if (!moduleMeta || !moduleMeta->init(compileArgs->features)) {
       return nullptr;
     }
-    MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
-    if (!codeMeta) {
-      return nullptr;
-    }
+    MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
 
     MOZ_ASSERT(IonAvailable(cx));
     CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                     DebugEnabled::False);
     compilerEnv.computeParameters();
-
-    if (!codeMeta->init()) {
-      return nullptr;
-    }
 
     RefType suspenderType = RefType::extern_();
     RefType promiseType = RefType::extern_();
@@ -1430,22 +1423,15 @@ class PromisingFunctionModuleFactory {
     }
 
     MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-    if (!moduleMeta) {
+    if (!moduleMeta || !moduleMeta->init(compileArgs->features)) {
       return nullptr;
     }
-    MutableCodeMetadata codeMeta = js_new<CodeMetadata>(compileArgs->features);
-    if (!codeMeta) {
-      return nullptr;
-    }
+    MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
 
     MOZ_ASSERT(IonAvailable(cx));
     CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                     DebugEnabled::False);
     compilerEnv.computeParameters();
-
-    if (!codeMeta->init()) {
-      return nullptr;
-    }
 
     StructType boxedParamsStruct;
     if (!StructType::createImmutable(params, &boxedParamsStruct)) {

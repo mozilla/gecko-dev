@@ -1420,8 +1420,6 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
   }
 
  protected:
-  [[nodiscard]] bool initCodeMetadata() { return codeMeta_->init(); }
-
   [[nodiscard]] bool addStandardLibraryMathInfo() {
     static constexpr struct {
       const char* name;
@@ -2005,9 +2003,6 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
     codeMetaForAsmJS_->alwaysUseFdlibm = parser_.options().alwaysUseFdlibm();
     codeMetaForAsmJS_->source = do_AddRef(parser_.ss);
 
-    if (!initCodeMetadata()) {
-      return false;
-    }
     return addStandardLibraryMathInfo();
   }
 
@@ -6441,14 +6436,10 @@ static SharedModule CheckModule(FrontendContext* fc,
   int64_t before = PRMJ_Now();
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
+  if (!moduleMeta || !moduleMeta->init(FeatureArgs(), ModuleKind::AsmJS)) {
     return nullptr;
   }
-  MutableCodeMetadata codeMeta =
-      js_new<CodeMetadata>(FeatureArgs(), ModuleKind::AsmJS);
-  if (!codeMeta) {
-    return nullptr;
-  }
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
 
   FunctionNode* moduleFunctionNode = parser.pc_->functionBox()->functionNode;
 

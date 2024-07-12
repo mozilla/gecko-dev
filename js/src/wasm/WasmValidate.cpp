@@ -3375,14 +3375,11 @@ bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
   Decoder d(bytecode.bytes, 0, error);
 
   FeatureArgs features = FeatureArgs::build(cx, options);
-  MutableCodeMetadata codeMeta = js_new<CodeMetadata>(features);
-  if (!codeMeta || !codeMeta->init()) {
-    return false;
-  }
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta) {
+  if (!moduleMeta || !moduleMeta->init(features)) {
     return false;
   }
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
 
   if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
     return false;
