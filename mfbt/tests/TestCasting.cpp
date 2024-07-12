@@ -11,9 +11,13 @@
 #include <cstdint>
 #include <limits>
 #include <type_traits>
+#include <iostream>
+#include <tuple>
+#include <type_traits>
 
 using mozilla::AssertedCast;
 using mozilla::BitwiseCast;
+using mozilla::SaturatingCast;
 using mozilla::detail::IsInBounds;
 
 static const uint8_t floatMantissaBitsPlusOne = 24;
@@ -243,6 +247,139 @@ void TestFloatConversion() {
       !(IsInBounds<double, float>(-std::numeric_limits<double>::max())));
 }
 
+#define ASSERT_EQ(a, b)                                                     \
+  if ((a) != (b)) {                                                         \
+    std::cerr << __FILE__ << ":" << __LINE__ << " Actual: " << +(a) << ", " \
+              << "expected: " << +(b) << std::endl;                         \
+    MOZ_CRASH();                                                            \
+  }
+
+#ifdef ENABLE_DEBUG_PRINT
+#  define DEBUG_PRINT(in, out) \
+    std::cout << "\tIn: " << +in << ", " << "out: " << +out << std::endl;
+#else
+#  define DEBUG_PRINT(in, out)
+#endif
+
+template <typename In, typename Out>
+void TestTypePairImpl() {
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  std::cout << std::fixed;
+  // Test casting infinities to integer works
+  if constexpr (std::is_floating_point_v<In> &&
+                !std::is_floating_point_v<Out>) {
+    Out v = SaturatingCast<Out>(std::numeric_limits<In>::infinity());
+    ASSERT_EQ(v, std::numeric_limits<Out>::max());
+    v = SaturatingCast<Out>(-std::numeric_limits<In>::infinity());
+    ASSERT_EQ(v, std::numeric_limits<Out>::lowest());
+  }
+  // Saturation of a floating point value that is infinity is infinity
+  if constexpr (std::is_floating_point_v<Out> && std::is_floating_point_v<In>) {
+    In in = std::numeric_limits<In>::infinity();
+    Out v = SaturatingCast<Out>(in);
+    DEBUG_PRINT(in, v);
+    ASSERT_EQ(v, std::numeric_limits<Out>::infinity());
+    in = -std::numeric_limits<In>::infinity();
+    v = SaturatingCast<In>(in);
+    DEBUG_PRINT(in, v);
+    ASSERT_EQ(v, -std::numeric_limits<Out>::infinity());
+    return;
+  } else {
+    if constexpr (sizeof(In) > sizeof(Out) && std::is_integral_v<Out>) {
+      // Test with a value just outside the range of the output type
+      In in = static_cast<In>(std::numeric_limits<Out>::max()) + 1ull;
+      Out v = SaturatingCast<Out>(in);
+      DEBUG_PRINT(in, v);
+      ASSERT_EQ(v, std::numeric_limits<Out>::max());
+
+      if (std::is_signed_v<In>) {
+        // Test with a value just below the range of the output type
+        Out lowest = std::numeric_limits<Out>::lowest();
+        in = static_cast<In>(lowest) - 1;
+        v = SaturatingCast<Out>(in);
+        DEBUG_PRINT(in, v);
+        if constexpr (std::is_signed_v<In> && !std::is_signed_v<Out>) {
+          ASSERT_EQ(v, 0);
+        } else {
+          ASSERT_EQ(v, std::numeric_limits<Out>::lowest());
+        }
+      }
+    } else if constexpr (std::is_integral_v<In> && std::is_integral_v<Out> &&
+                         sizeof(In) == sizeof(Out) && !std::is_signed_v<In> &&
+                         std::is_signed_v<Out>) {
+      // Test that max uintXX_t saturates to max intXX_t
+      In in = static_cast<In>(std::numeric_limits<Out>::max()) + 1;
+      Out v = SaturatingCast<Out>(in);
+      DEBUG_PRINT(in, v);
+      ASSERT_EQ(v, std::numeric_limits<Out>::max());
+    }
+
+    // SaturatingCast of zero is zero
+    In in = static_cast<In>(0);
+    Out v = SaturatingCast<Out>(in);
+    DEBUG_PRINT(in, v);
+    ASSERT_EQ(v, 0);
+
+    if constexpr (sizeof(In) >= sizeof(Out) && std::is_signed_v<Out> &&
+                  std::is_signed_v<In>) {
+      // Test with a value within the range of the output type
+      In in = static_cast<In>(std::numeric_limits<Out>::max() / 2);
+      Out v = SaturatingCast<Out>(in);
+      DEBUG_PRINT(in, v);
+      ASSERT_EQ(v, in);
+
+      // Test with a negative value within the range of the output type
+      in = static_cast<In>(std::numeric_limits<Out>::lowest() / 2);
+      v = SaturatingCast<Out>(in);
+      DEBUG_PRINT(in, v);
+      ASSERT_EQ(v, in);
+    }
+  }
+}
+
+template <typename In, typename Out>
+void TestTypePair() {
+  constexpr bool fromFloat = std::is_floating_point_v<In>;
+  constexpr bool toFloat = std::is_floating_point_v<Out>;
+  // Don't test casting to the same type
+  if constexpr (!std::is_same_v<In, Out>) {
+    if constexpr ((fromFloat && !toFloat) || (!fromFloat && !toFloat)) {
+      TestTypePairImpl<In, Out>();
+    }
+  }
+}
+
+template <typename T, typename... Ts>
+void for_each_type_pair(std::tuple<T, Ts...>) {
+  (TestTypePair<T, Ts>(), ...);
+  (TestTypePair<Ts, T>(), ...);
+  if constexpr (sizeof...(Ts) > 1) {
+    for_each_type_pair(std::tuple<Ts...>{});
+  }
+}
+
+template <typename... Args>
+void TestSaturatingCastImpl() {
+  for_each_type_pair(std::tuple<Args...>{});
+}
+
+template <typename T, typename... Ts>
+void TestFirstToOthers() {
+  (TestTypePair<T, Ts>(), ...);
+}
+
+void TestSaturatingCast() {
+  // Each integer type against every other
+  TestSaturatingCastImpl<short, int, long, int8_t, uint8_t, int16_t, uint16_t,
+                         int32_t, uint32_t, int64_t, uint64_t>();
+
+  // Floating point types to every integer type
+  TestFirstToOthers<float, short, int, long, int8_t, uint8_t, int16_t, uint16_t,
+                    int32_t, uint32_t, int64_t, uint64_t>();
+  TestFirstToOthers<double, short, int, long, int8_t, uint8_t, int16_t,
+                    uint16_t, int32_t, uint32_t, int64_t, uint64_t>();
+}
+
 int main() {
   TestBitwiseCast();
 
@@ -250,6 +387,7 @@ int main() {
   TestToBiggerSize();
   TestToSmallerSize();
   TestFloatConversion();
+  TestSaturatingCast();
 
   return 0;
 }

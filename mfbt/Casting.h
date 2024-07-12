@@ -249,6 +249,59 @@ inline To ReleaseAssertedCast(const From aFrom) {
   return static_cast<To>(aFrom);
 }
 
+/**
+ * Cast from type From to type To, clamping to minimum and maximum value of the
+ * destination type if needed.
+ */
+template <typename To, typename From>
+inline To SaturatingCast(const From aFrom) {
+  static_assert(std::is_arithmetic_v<To> && std::is_arithmetic_v<From>);
+  // This implementation works up to 64-bits integers.
+  static_assert(sizeof(From) <= 8 && sizeof(To) <= 8);
+  constexpr bool fromFloat = std::is_floating_point_v<From>;
+  constexpr bool toFloat = std::is_floating_point_v<To>;
+
+  // It's not clear what the caller wants here, it could be round, truncate,
+  // closest value, etc.
+  static_assert((fromFloat && !toFloat) || (!fromFloat && !toFloat),
+                "Handle manually depending on desired behaviour");
+
+  // If the source is floating point and the destination isn't, it can be that
+  // casting changes the value unexpectedly. Casting to double and clamping to
+  // the max of the destination type is correct, this also handles infinity.
+  if constexpr (fromFloat) {
+    if (aFrom > static_cast<double>(std::numeric_limits<To>::max())) {
+      return std::numeric_limits<To>::max();
+    }
+    if (aFrom < static_cast<double>(std::numeric_limits<To>::lowest())) {
+      return std::numeric_limits<To>::lowest();
+    }
+    return static_cast<To>(aFrom);
+  }
+  // Source and destination are of opposite signedness
+  if constexpr (std::is_signed_v<From> != std::is_signed_v<To>) {
+    // Input is negative, output is unsigned, return 0
+    if (std::is_signed_v<From> && aFrom < 0) {
+      return 0;
+    }
+    // At this point the input is positive, cast everything to uint64_t for
+    // simplicity and compare
+    uint64_t inflated = AssertedCast<uint64_t>(aFrom);
+    if (inflated > static_cast<uint64_t>(std::numeric_limits<To>::max())) {
+      return std::numeric_limits<To>::max();
+    }
+    return static_cast<To>(aFrom);
+  }
+  // Regular case: clamp to destination type range
+  if (aFrom > std::numeric_limits<To>::max()) {
+    return std::numeric_limits<To>::max();
+  }
+  if (aFrom < std::numeric_limits<To>::lowest()) {
+    return std::numeric_limits<To>::lowest();
+  }
+  return static_cast<To>(aFrom);
+}
+
 namespace detail {
 
 template <typename From>
