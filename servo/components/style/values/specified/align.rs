@@ -71,8 +71,14 @@ bitflags! {
 impl AlignFlags {
     /// Returns the enumeration value stored in the lower 5 bits.
     #[inline]
-    fn value(&self) -> Self {
+    pub fn value(&self) -> Self {
         *self & !AlignFlags::FLAG_BITS
+    }
+
+    /// Returns the flags stored in the upper 3 bits.
+    #[inline]
+    pub fn flags(&self) -> Self {
+        *self & AlignFlags::FLAG_BITS
     }
 }
 
