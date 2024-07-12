@@ -216,6 +216,44 @@ static void ScaleYCbCrToRGB(const layers::PlanarYCbCrData& aData,
                     FILTER_BILINEAR);
 }
 
+static void ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
+                              const SurfaceFormat& aDestFormat,
+                              unsigned char* aDestBuffer,
+                              int32_t aStride,
+                              YUVType aYUVType) {
+#if defined(HAVE_YCBCR_TO_RGB565)
+  if (aDestFormat == SurfaceFormat::R5G6B5_UINT16) {
+    ConvertYCbCrToRGB565(aData.mYChannel,
+                         aData.mCbChannel,
+                         aData.mCrChannel,
+                         aDestBuffer,
+                         aData.mPictureRect.x,
+                         aData.mPictureRect.y,
+                         aData.mPictureRect.width,
+                         aData.mPictureRect.height,
+                         aData.mYStride,
+                         aData.mCbCrStride,
+                         aStride,
+                         aYUVType);
+    return;
+  }
+#endif
+  ConvertYCbCrToRGB32(aData.mYChannel,
+                      aData.mCbChannel,
+                      aData.mCrChannel,
+                      aDestBuffer,
+                      aData.mPictureRect.x,
+                      aData.mPictureRect.y,
+                      aData.mPictureRect.width,
+                      aData.mPictureRect.height,
+                      aData.mYStride,
+                      aData.mCbCrStride,
+                      aStride,
+                      aYUVType,
+                      aData.mYUVColorSpace,
+                      aData.mColorRange);
+}
+
 void
 ConvertYCbCrToRGBInternal(const layers::PlanarYCbCrData& aData,
                           const SurfaceFormat& aDestFormat,
@@ -235,36 +273,7 @@ ConvertYCbCrToRGBInternal(const layers::PlanarYCbCrData& aData,
     ScaleYCbCrToRGB(srcData, aDestFormat, aDestSize, aDestBuffer, aStride,
                     yuvtype);
   } else { // no prescale
-#if defined(HAVE_YCBCR_TO_RGB565)
-    if (aDestFormat == SurfaceFormat::R5G6B5_UINT16) {
-      ConvertYCbCrToRGB565(srcData.mYChannel,
-                           srcData.mCbChannel,
-                           srcData.mCrChannel,
-                           aDestBuffer,
-                           srcData.mPictureRect.x,
-                           srcData.mPictureRect.y,
-                           srcData.mPictureRect.width,
-                           srcData.mPictureRect.height,
-                           srcData.mYStride,
-                           srcData.mCbCrStride,
-                           aStride,
-                           yuvtype);
-    } else // aDestFormat != SurfaceFormat::R5G6B5_UINT16
-#endif
-      ConvertYCbCrToRGB32(srcData.mYChannel, //
-                          srcData.mCbChannel,
-                          srcData.mCrChannel,
-                          aDestBuffer,
-                          srcData.mPictureRect.x,
-                          srcData.mPictureRect.y,
-                          srcData.mPictureRect.width,
-                          srcData.mPictureRect.height,
-                          srcData.mYStride,
-                          srcData.mCbCrStride,
-                          aStride,
-                          yuvtype,
-                          srcData.mYUVColorSpace,
-                          srcData.mColorRange);
+    ConvertYCbCrToRGB(srcData, aDestFormat, aDestBuffer, aStride, yuvtype);
   }
 }
 
