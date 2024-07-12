@@ -38,7 +38,8 @@ namespace wasm {
                                        const FuncCompileInputVector& inputs,
                                        CompiledCode* code, UniqueChars* error);
 
-[[nodiscard]] bool IonDumpFunction(const CodeMetadata& codeMeta,
+[[nodiscard]] bool IonDumpFunction(const CompilerEnvironment& compilerEnv,
+                                   const CodeMetadata& codeMeta,
                                    const FuncCompileInput& func,
                                    IonDumpContents contents,
                                    GenericPrinter& out, UniqueChars* error);

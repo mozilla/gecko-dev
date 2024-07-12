@@ -3810,14 +3810,16 @@ bool BaseCompiler::emitEnd() {
   // Every label case is responsible to pop the control item at the appropriate
   // time for the label case
   switch (kind) {
-    case LabelKind::Body:
+    case LabelKind::Body: {
       if (!endBlock(type)) {
         return false;
       }
       doReturn(ContinuationKind::Fallthrough);
       iter_.popEnd();
       MOZ_ASSERT(iter_.controlStackEmpty());
-      return iter_.endFunction(iter_.end());
+      const uint8_t* functionBodyEnd = iter_.end();
+      return iter_.endFunction(&functionBodyEnd);
+    }
     case LabelKind::Block:
       if (!endBlock(type)) {
         return false;
@@ -11870,7 +11872,7 @@ bool BaseCompiler::init() {
 }
 
 FuncOffsets BaseCompiler::finish() {
-  MOZ_ASSERT(iter_.done(), "all bytes must be consumed");
+  MOZ_ASSERT(iter_.done());
   MOZ_ASSERT(stk_.empty());
   MOZ_ASSERT(stackMapGenerator_.memRefsOnStk == 0);
 

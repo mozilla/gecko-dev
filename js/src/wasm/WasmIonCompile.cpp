@@ -245,6 +245,7 @@ class FunctionCompiler {
   using PendingBlockTargetVector =
       Vector<PendingBlockTarget, 0, SystemAllocPolicy>;
 
+  const CompilerEnvironment& compilerEnv_;
   const CodeMetadata& codeMeta_;
   IonOpIter iter_;
   uint32_t functionBodyOffset_;
@@ -279,10 +280,12 @@ class FunctionCompiler {
   VectorUniqueTryControl tryControlCache_;
 
  public:
-  FunctionCompiler(const CodeMetadata& codeMeta, Decoder& decoder,
+  FunctionCompiler(const CompilerEnvironment& compilerEnv,
+                   const CodeMetadata& codeMeta, Decoder& decoder,
                    const FuncCompileInput& func, const ValTypeVector& locals,
                    MIRGenerator& mirGen, TryNoteVector& tryNotes)
-      : codeMeta_(codeMeta),
+      : compilerEnv_(compilerEnv),
+        codeMeta_(codeMeta),
         iter_(codeMeta, decoder),
         functionBodyOffset_(decoder.beginOffset()),
         func_(func),
@@ -402,7 +405,7 @@ class FunctionCompiler {
     }
 #endif
     MOZ_ASSERT(inDeadCode());
-    MOZ_ASSERT(done(), "all bytes must be consumed");
+    MOZ_ASSERT_IF(compilerEnv_.mode() != CompileMode::LazyTiering, done());
     MOZ_ASSERT(func_.callSiteLineNums.length() == lastReadCallSite_);
   }
 
@@ -411,6 +414,7 @@ class FunctionCompiler {
   MIRGenerator& mirGen() const { return mirGen_; }
   MIRGraph& mirGraph() const { return graph_; }
   const CompileInfo& info() const { return info_; }
+  const CompilerEnvironment& compilerEnv() const { return compilerEnv_; }
 
   MDefinition* getLocalDef(unsigned slot) {
     if (inDeadCode()) {
@@ -5053,7 +5057,7 @@ static bool EmitEnd(FunctionCompiler& f) {
   // time for the label case
   DefVector postJoinDefs;
   switch (kind) {
-    case LabelKind::Body:
+    case LabelKind::Body: {
       MOZ_ASSERT(!control.tryControl);
       if (!f.emitBodyDelegateThrowPad(control)) {
         return false;
@@ -5066,7 +5070,12 @@ static bool EmitEnd(FunctionCompiler& f) {
       }
       f.iter().popEnd();
       MOZ_ASSERT(f.iter().controlStackEmpty());
-      return f.iter().endFunction(f.iter().end());
+      // Lazy tiering doesn't have the function body end information, so skip
+      // that check.
+      bool shouldCheckEnd = f.compilerEnv().mode() != CompileMode::LazyTiering;
+      const uint8_t* functionBodyEnd = f.iter().end();
+      return f.iter().endFunction(shouldCheckEnd ? &functionBodyEnd : nullptr);
+    }
     case LabelKind::Block:
       MOZ_ASSERT(!control.tryControl);
       if (!f.finishBlock(&postJoinDefs)) {
@@ -9337,7 +9346,8 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
 #undef CHECK
 }
 
-static bool IonBuildMIR(Decoder& d, const CodeMetadata& codeMeta,
+static bool IonBuildMIR(Decoder& d, const CompilerEnvironment& compilerEnv,
+                        const CodeMetadata& codeMeta,
                         const FuncCompileInput& func,
                         const ValTypeVector& locals, MIRGenerator& mir,
                         TryNoteVector& tryNotes, FeatureUsage* observedFeatures,
@@ -9352,7 +9362,7 @@ static bool IonBuildMIR(Decoder& d, const CodeMetadata& codeMeta,
   }
 
   // Build MIR graph
-  FunctionCompiler f(codeMeta, d, func, locals, mir, tryNotes);
+  FunctionCompiler f(compilerEnv, codeMeta, d, func, locals, mir, tryNotes);
   if (!f.init()) {
     return false;
   }
@@ -9432,8 +9442,8 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
 
     // Build MIR graph
     FeatureUsage observedFeatures;
-    if (!IonBuildMIR(d, codeMeta, func, locals, mir, masm.tryNotes(),
-                     &observedFeatures, error)) {
+    if (!IonBuildMIR(d, compilerEnv, codeMeta, func, locals, mir,
+                     masm.tryNotes(), &observedFeatures, error)) {
       return false;
     }
 
@@ -9494,7 +9504,8 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
   return code->swap(masm);
 }
 
-bool wasm::IonDumpFunction(const CodeMetadata& codeMeta,
+bool wasm::IonDumpFunction(const CompilerEnvironment& compilerEnv,
+                           const CodeMetadata& codeMeta,
                            const FuncCompileInput& func,
                            IonDumpContents contents, GenericPrinter& out,
                            UniqueChars* error) {
@@ -9519,8 +9530,8 @@ bool wasm::IonDumpFunction(const CodeMetadata& codeMeta,
   // Build MIR graph
   TryNoteVector tryNotes;
   FeatureUsage observedFeatures;
-  if (!IonBuildMIR(d, codeMeta, func, locals, mir, tryNotes, &observedFeatures,
-                   error)) {
+  if (!IonBuildMIR(d, compilerEnv, codeMeta, func, locals, mir, tryNotes,
+                   &observedFeatures, error)) {
     return false;
   }
 

@@ -202,7 +202,7 @@ static bool DecodeFunctionBodyExprs(const CodeMetadata& codeMeta,
         }
         iter.popEnd();
         if (iter.controlStackEmpty()) {
-          return iter.endFunction(bodyEnd);
+          return iter.endFunction(&bodyEnd);
         }
         break;
       }

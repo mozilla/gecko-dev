@@ -923,19 +923,13 @@ bool wasm::CompilePartialTier2(const Bytes& bytecode, uint32_t funcIndex,
     return false;
   }
 
-  // There must be a code section if we're doing a partial tier
-  MOZ_ASSERT(codeMeta.codeSection);
-
-  const SectionRange& codeSection = *codeMeta.codeSection;
-  const uint8_t* codeSectionStart = bytecode.begin() + codeSection.start;
-  const uint8_t* codeSectionEnd = codeSectionStart + codeSection.size;
-  Decoder d(codeSectionStart, codeSectionEnd, codeSection.start, error);
-  PartialTierModuleGenerator pmg(mg, funcIndex);
-  if (!DecodeCodeSection(codeMeta, d, pmg)) {
-    return false;
-  }
-
-  return mg.finishPartialTier2(code);
+  const uint8_t* bodyBegin = bytecode.begin() + funcBytecodeOffset;
+  // We don't have end information here, so just extend to the end of the
+  // bytecode. Validation has already been performed so this won't be used.
+  const uint8_t* bodyEnd = bytecode.end();
+  Decoder d(bytecode.begin(), bytecode.end(), 0, error);
+  return mg.compileFuncDef(funcIndex, funcBytecodeOffset, bodyBegin, bodyEnd) &&
+         mg.finishFuncDefs() && mg.finishPartialTier2(code);
 }
 
 class StreamingDecoder {
@@ -1097,6 +1091,7 @@ SharedModule wasm::CompileStreaming(
 
 class DumpIonModuleGenerator {
  private:
+  const CompilerEnvironment& compilerEnv_;
   CodeMetadata& codeMeta_;
   uint32_t targetFuncIndex_;
   IonDumpContents contents_;
@@ -1104,10 +1099,12 @@ class DumpIonModuleGenerator {
   UniqueChars* error_;
 
  public:
-  DumpIonModuleGenerator(CodeMetadata& codeMeta, uint32_t targetFuncIndex,
+  DumpIonModuleGenerator(const CompilerEnvironment& compilerEnv,
+                         CodeMetadata& codeMeta, uint32_t targetFuncIndex,
                          IonDumpContents contents, GenericPrinter& out,
                          UniqueChars* error)
-      : codeMeta_(codeMeta),
+      : compilerEnv_(compilerEnv),
+        codeMeta_(codeMeta),
         targetFuncIndex_(targetFuncIndex),
         contents_(contents),
         out_(out),
@@ -1122,7 +1119,8 @@ class DumpIonModuleGenerator {
 
     FuncCompileInput input(funcIndex, lineOrBytecode, begin, end,
                            Uint32Vector());
-    return IonDumpFunction(codeMeta_, input, contents_, out_, error_);
+    return IonDumpFunction(compilerEnv_, codeMeta_, input, contents_, out_,
+                           error_);
   }
 };
 
@@ -1135,6 +1133,9 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
   if (!compileArgs) {
     return false;
   }
+  CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
+                                  DebugEnabled::False);
+  compilerEnv.computeParameters();
 
   UniqueCharsVector warnings;
   Decoder d(bytecode.bytes, 0, error, &warnings);
@@ -1147,8 +1148,8 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
     return false;
   }
 
-  DumpIonModuleGenerator mg(*moduleMeta->codeMeta, targetFuncIndex, contents,
-                            out, error);
+  DumpIonModuleGenerator mg(compilerEnv, *moduleMeta->codeMeta, targetFuncIndex,
+                            contents, out, error);
   return moduleMeta->prepareForCompile(CompileMode::Once) &&
          DecodeCodeSection(*moduleMeta->codeMeta, d, mg);
 }
