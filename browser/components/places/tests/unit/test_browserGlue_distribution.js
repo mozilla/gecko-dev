@@ -127,7 +127,7 @@ add_task(async function () {
 
   toolbarItem = await PlacesUtils.bookmarks.fetch({
     parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-    index: 1 + DEFAULT_BOOKMARKS_ON_TOOLBAR,
+    index: 1,
   });
   Assert.equal(toolbarItem.title, "Toolbar Folder After");
   Assert.ok(

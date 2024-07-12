@@ -73,6 +73,17 @@ const click = el => {
 };
 
 add_task(async function toolbarButtons() {
+  info("Adding a bookmark to the bookmarks toolbar.");
+  let addedBookmark = await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+    title: "Test",
+    url: "https://example.com",
+  });
+
+  registerCleanupFunction(async () => {
+    await PlacesUtils.bookmarks.remove(addedBookmark);
+  });
+
   await BrowserTestUtils.withNewTab("https://example.com", async () => {
     let customButton = await new Promise(resolve => {
       CustomizableUI.createWidget({
