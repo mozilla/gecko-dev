@@ -6,12 +6,6 @@ permalink: /changelog/
 
 # 130.0 (In Development)
 
-* **browser-engine-gecko**
-  * Added `fingerprintingProtection` and `fingerprintingProtectionPrivateBrowsing` to settings. This allows user to toggle `privacy.fingerprintingProtection` and `privacy.fingerprintingProtection.pbmode` pref. [bug #1878911](https://bugzilla.mozilla.org/show_bug.cgi?id=1878911)
-
-* **concept-engine**
-  * Added `fingerprintingProtection` and `fingerprintingProtectionPrivateBrowsing` to settings. This allows user to toggle `privacy.fingerprintingProtection` and `privacy.fingerprintingProtection.pbmode` pref. [bug #1878911](https://bugzilla.mozilla.org/show_bug.cgi?id=1878911)
-
 # 129.0
 
 * **browser-engine-gecko**

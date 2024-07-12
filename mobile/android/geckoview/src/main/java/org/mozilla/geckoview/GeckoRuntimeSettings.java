@@ -634,10 +634,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new Pref<Boolean>("privacy.globalprivacycontrol.pbmode.enabled", true);
   /* package */ final Pref<Boolean> mGlobalPrivacyControlFunctionalityEnabled =
       new Pref<Boolean>("privacy.globalprivacycontrol.functionality.enabled", true);
-  /* package */ final Pref<Boolean> mFingerprintingProtection =
-      new Pref<Boolean>("privacy.fingerprintingProtection", false);
-  /* package */ final Pref<Boolean> mFingerprintingProtectionPrivateMode =
-      new Pref<Boolean>("privacy.fingerprintingProtection.pbmode", true);
 
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
@@ -775,47 +771,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     mGlobalPrivacyControlEnabledPrivateMode.commit(true);
     mGlobalPrivacyControlFunctionalityEnabled.commit(true);
     return this;
-  }
-
-  /**
-   * Set the Fingerprint protection in all tabs.
-   *
-   * @param enabled Whether we set the pref to true or false
-   * @return This GeckoRuntimeSettings instance
-   */
-  public @NonNull GeckoRuntimeSettings setFingerprintingProtection(final boolean enabled) {
-    mFingerprintingProtection.commit(enabled);
-    return this;
-  }
-
-  /**
-   * Set the Fingerprint protection in private tabs.
-   *
-   * @param enabled Whether we set the pref to true or false
-   * @return This GeckoRuntimeSettings instance
-   */
-  public @NonNull GeckoRuntimeSettings setFingerprintingProtectionPrivateBrowsing(
-      final boolean enabled) {
-    mFingerprintingProtectionPrivateMode.commit(enabled);
-    return this;
-  }
-
-  /**
-   * Get whether Fingerprint protection is enabled in all tabs.
-   *
-   * @return Whether Fingerprint protection is enabled in all tabs.
-   */
-  public boolean getFingerprintingProtection() {
-    return mFingerprintingProtection.get();
-  }
-
-  /**
-   * Get whether Fingerprint protection is enabled private browsing mode.
-   *
-   * @return Whether Fingerprint protection is enabled private browsing mode.
-   */
-  public boolean getFingerprintingProtectionPrivateBrowsing() {
-    return mFingerprintingProtectionPrivateMode.get();
   }
 
   /**

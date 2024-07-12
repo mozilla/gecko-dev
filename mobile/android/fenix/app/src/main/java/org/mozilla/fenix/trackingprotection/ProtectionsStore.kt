@@ -179,7 +179,7 @@ enum class CookieBannerUIMode(
 }
 
 /**
- * The 6 categories of Tracking Protection to display
+ * The 5 categories of Tracking Protection to display
  */
 enum class TrackingProtectionCategory(
     @StringRes val title: Int,
@@ -198,8 +198,8 @@ enum class TrackingProtectionCategory(
         R.string.etp_cryptominers_description,
     ),
     FINGERPRINTERS(
-        R.string.etp_known_fingerprinters_title,
-        R.string.etp_known_fingerprinters_description,
+        R.string.etp_fingerprinters_title,
+        R.string.etp_fingerprinters_description,
     ),
     TRACKING_CONTENT(
         R.string.etp_tracking_content_title,
@@ -208,10 +208,6 @@ enum class TrackingProtectionCategory(
     REDIRECT_TRACKERS(
         R.string.etp_redirect_trackers_title,
         R.string.etp_redirect_trackers_description,
-    ),
-    SUSPECTED_FINGERPRINTERS(
-        R.string.etp_suspected_fingerprinters_title,
-        R.string.etp_suspected_fingerprinters_description,
     ),
 }
 

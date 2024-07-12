@@ -52,12 +52,6 @@ class TrackingProtectionFragmentTest {
         val customRedirectTrackersCheckBox = settingsFragment.customRedirectTrackers.isChecked
         val customRedirectTrackersCheckBoxSettings = settings.blockRedirectTrackersInCustomTrackingProtection
 
-        val customSuspectedFingerprinters = settingsFragment.customSuspectedFingerprinters.isChecked
-        val customSuspectedFingerprintersSetting = settings.blockSuspectedFingerprintersInCustomTrackingProtection
-
-        val customSuspectedFingerprintersSelect = settingsFragment.customSuspectedFingerprintersSelect.value
-        val customSuspectedFingerprintersSelectSetting = settings.blockSuspectedFingerprintersSelectionInCustomTrackingProtection
-
         assertEquals(customCookiesCheckBoxSettings, customCookiesCheckBox)
         assertEquals(customCookiesSelectSettings, customCookiesSelect)
         assertEquals(customTrackingContentCheckBoxSettings, customTrackingContentCheckBox)
@@ -65,7 +59,5 @@ class TrackingProtectionFragmentTest {
         assertEquals(customCryptominersCheckBoxSettings, customCryptominersCheckBox)
         assertEquals(customFingerprintersCheckBoxSettings, customFingerprintersCheckBox)
         assertEquals(customRedirectTrackersCheckBoxSettings, customRedirectTrackersCheckBox)
-        assertEquals(customSuspectedFingerprinters, customSuspectedFingerprintersSetting)
-        assertEquals(customSuspectedFingerprintersSelect, customSuspectedFingerprintersSelectSetting)
     }
 }

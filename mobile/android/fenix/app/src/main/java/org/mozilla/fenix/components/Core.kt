@@ -151,8 +151,6 @@ class Core(
             ),
             httpsOnlyMode = context.settings().getHttpsOnlyMode(),
             globalPrivacyControlEnabled = context.settings().shouldEnableGlobalPrivacyControl,
-            fingerprintingProtection = context.settings().blockSuspectedFingerprinters,
-            fingerprintingProtectionPrivateBrowsing = context.settings().blockSuspectedFingerprintersPrivateBrowsing,
             cookieBannerHandlingMode = context.settings().getCookieBannerHandling(),
             cookieBannerHandlingModePrivateBrowsing = context.settings().getCookieBannerHandlingPrivateMode(),
             cookieBannerHandlingDetectOnlyMode = context.settings().shouldEnableCookieBannerDetectOnly,

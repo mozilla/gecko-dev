@@ -36,11 +36,6 @@
         <item>@string/private_string</item>
     </string-array>
 
-    <string-array name="suspected_fingerprinters_entry_values">
-        <item>@string/all</item>
-        <item>@string/private_string</item>
-    </string-array>
-
     <string name="resource_scheme">"resource://"</string>
     <string name="chrome_scheme">"chrome://</string>
     <string name="about_scheme">"about:"</string>

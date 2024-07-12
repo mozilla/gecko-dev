@@ -126,37 +126,4 @@ class RuntimeSettingsDefaultsTest : BaseSessionTest() {
             equalTo(true),
         )
     }
-
-    @Test
-    fun fingerprintProtectionsDefaults() {
-        val geckoRuntimeSettings = sessionRule.runtime.settings
-        val fingerprintingProtection =
-            (sessionRule.getPrefs("privacy.fingerprintingProtection").get(0)) as Boolean
-        val fingerprintingProtectionPrivateBrowsing =
-            (sessionRule.getPrefs("privacy.fingerprintingProtection.pbmode").get(0)) as Boolean
-
-        assertThat(
-            "Suspected Fingerprint Protection runtime settings should be disabled by default in normal tabs",
-            geckoRuntimeSettings.fingerprintingProtection,
-            equalTo(false),
-        )
-
-        assertThat(
-            "Suspected Fingerprint Protection runtime settings should be enabled by default in private tabs",
-            geckoRuntimeSettings.fingerprintingProtectionPrivateBrowsing,
-            equalTo(true),
-        )
-
-        assertThat(
-            "Suspected Fingerprint Protection should be disabled by default in normal tabs",
-            fingerprintingProtection,
-            equalTo(false),
-        )
-
-        assertThat(
-            "Suspected Fingerprint Protection should be disabled by default in private tabs",
-            fingerprintingProtectionPrivateBrowsing,
-            equalTo(true),
-        )
-    }
 }

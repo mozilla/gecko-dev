@@ -851,30 +851,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         true,
     )
 
-    val blockSuspectedFingerprintersInCustomTrackingProtection by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_tracking_protection_suspected_fingerprinters),
-        true,
-    )
-
-    val blockSuspectedFingerprintersSelectionInCustomTrackingProtection by stringPreference(
-        appContext.getPreferenceKey(R.string.pref_key_tracking_protection_suspected_fingerprinters_select),
-        "private",
-    )
-
-    val blockSuspectedFingerprinters: Boolean
-        get() {
-            return blockSuspectedFingerprintersInCustomTrackingProtection &&
-                blockSuspectedFingerprintersSelectionInCustomTrackingProtection == appContext.getString(R.string.all)
-        }
-
-    val blockSuspectedFingerprintersPrivateBrowsing: Boolean
-        get() {
-            return blockSuspectedFingerprintersInCustomTrackingProtection &&
-                blockSuspectedFingerprintersSelectionInCustomTrackingProtection == appContext.getString(
-                    R.string.private_string,
-                )
-        }
-
     /**
      * Prefer to use a fixed top toolbar when:
      * - a talkback service is enabled or
