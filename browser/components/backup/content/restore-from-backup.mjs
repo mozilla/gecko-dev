@@ -17,6 +17,8 @@ export default class RestoreFromBackup extends MozLitElement {
     backupFileToRestore: { type: String, reflect: true },
     backupFileInfo: { type: Object },
     _fileIconURL: { type: String },
+    recoveryInProgress: { type: Boolean },
+    recoveryErrorCode: { type: Number },
   };
 
   static get queries() {
@@ -106,7 +108,7 @@ export default class RestoreFromBackup extends MozLitElement {
 
   handleConfirm() {
     let backupFile = this.backupFileToRestore;
-    if (!backupFile) {
+    if (!backupFile || this.recoveryInProgress) {
       return;
     }
     let backupPassword = this.passwordInput?.value;
@@ -177,6 +179,10 @@ export default class RestoreFromBackup extends MozLitElement {
   }
 
   contentTemplate() {
+    let buttonL10nId = !this.recoveryInProgress
+      ? "restore-from-backup-confirm-button"
+      : "restore-from-backup-restoring-button";
+
     return html`
       <div
         id="restore-from-backup-wrapper"
@@ -203,7 +209,8 @@ export default class RestoreFromBackup extends MozLitElement {
             id="restore-from-backup-confirm-button"
             @click=${this.handleConfirm}
             type="primary"
-            data-l10n-id="restore-from-backup-confirm-button"
+            data-l10n-id="${buttonL10nId}"
+            ?disabled=${!this.backupFileToRestore || this.recoveryInProgress}
           ></moz-button>
         </moz-button-group>
       </div>
