@@ -1124,7 +1124,7 @@ class Raptor(
         ):
             options.extend(["--screenshot-on-failure"])
         if self.config.get("power_test", False):
-            options.extend("--power-test")
+            options.extend(["--power-test"])
 
         for (arg,), details in Raptor.browsertime_options:
             # Allow overriding defaults on the `./mach raptor-test ...` command-line
