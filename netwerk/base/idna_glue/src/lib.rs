@@ -103,6 +103,13 @@ pub unsafe extern "C" fn mozilla_net_domain_to_display_and_ascii_impl(
         let ascii_dst: &mut nsACString = &mut *ascii_dst;
         dst.truncate();
         ascii_dst.truncate();
+        #[cfg(feature = "mailnews")]
+        {
+            if src == "Local%20Folders" || src == "smart%20mailboxes" {
+                dst.assign(src);
+                return nserror::NS_OK;
+            }
+        }
         let unpercent: Cow<'_, [u8]> = percent_decode(src).into();
         match Uts46::new().process(
             &unpercent,
@@ -192,6 +199,16 @@ fn process<OutputUnicode: FnMut(&[char], &[char], bool) -> bool>(
     dst: &mut nsACString,
 ) -> nsresult {
     dst.truncate();
+    #[cfg(feature = "mailnews")]
+    {
+        if src == "Local Folders" || src == "local folders" {
+            dst.assign("Local%20Folders");
+            return nserror::NS_OK;
+        } else if src == "smart mailboxes" {
+            dst.assign("smart%20mailboxes");
+            return nserror::NS_OK;
+        }
+    }
     match Uts46::new().process(
         &src,
         if allow_any_glyphful_ascii {

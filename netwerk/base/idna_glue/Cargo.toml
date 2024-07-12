@@ -10,3 +10,6 @@ arraystring = "0.3.0"
 percent-encoding = "2.3.1"
 nsstring = { path = "../../../xpcom/rust/nsstring" }
 nserror = { path = "../../../xpcom/rust/nserror" }
+
+[features]
+mailnews = []
