@@ -109,9 +109,11 @@ static uint32_t ErrorNumber(RegExpError err) {
       return JSMSG_INVALID_QUANTIFIER;
     case RegExpError::kInvalidGroup:
       return JSMSG_INVALID_GROUP;
-    case RegExpError::kMultipleFlagDashes:
     case RegExpError::kRepeatedFlag:
+      return JSMSG_REPEATED_FLAG;
     case RegExpError::kInvalidFlagGroup:
+      return JSMSG_INVALID_FLAG_GROUP;
+    case RegExpError::kMultipleFlagDashes:
       // V8 contains experimental support for turning regexp flags on
       // and off in the middle of a regular expression. Unless it
       // becomes standardized, SM does not support this feature.

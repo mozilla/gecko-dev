@@ -7936,6 +7936,13 @@
     mirror: always
     set_spidermonkey_pref: startup
 
+  # Experimental support for Pattern Modifiers in JavaScript.
+-   name: javascript.options.experimental.regexp_modifiers
+    type: bool
+    value: false
+    mirror: always
+    set_spidermonkey_pref: startup
+
   # Experimental support for Import Assertions in JavaScript.
 -   name: javascript.options.experimental.import_attributes
     type: bool
