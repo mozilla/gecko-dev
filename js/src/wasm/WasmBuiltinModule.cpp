@@ -189,7 +189,7 @@ bool CompileBuiltinModule(JSContext* cx,
   // as the function declaration metadata uses pointers into the type vectors
   // that must be stable.
   for (uint32_t funcIndex = 0; funcIndex < ids.size(); funcIndex++) {
-    FuncDesc decl(&(*codeMeta->types)[funcIndex].funcType(), funcIndex);
+    FuncDesc decl(funcIndex);
     if (!codeMeta->funcs.append(decl)) {
       ReportOutOfMemory(cx);
       return false;

@@ -2992,7 +2992,7 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
 
   for (uint32_t funcIndex = 0; funcIndex < imports.length(); funcIndex++) {
     const FuncImport& fi = imports[funcIndex];
-    const FuncType& funcType = *codeMeta.funcs[funcIndex].type;
+    const FuncType& funcType = codeMeta.getFuncType(funcIndex);
 
     CallIndirectId callIndirectId =
         CallIndirectId::forFunc(codeMeta, funcIndex);

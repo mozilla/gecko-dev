@@ -39,7 +39,7 @@ bool CodeMetadata::addDefinedFunc(ModuleMetadata* moduleMeta,
     return false;
   }
 
-  FuncDesc funcDesc = FuncDesc(&(*types)[typeIndex].funcType(), typeIndex);
+  FuncDesc funcDesc = FuncDesc(typeIndex);
   uint32_t funcIndex = funcs.length();
   if (!funcs.append(funcDesc)) {
     return false;

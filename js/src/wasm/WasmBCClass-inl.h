@@ -26,7 +26,7 @@ namespace js {
 namespace wasm {
 
 const FuncType& BaseCompiler::funcType() const {
-  return *codeMeta_.funcs[func_.index].type;
+  return codeMeta_.getFuncType(func_.index);
 }
 
 bool BaseCompiler::usesMemory() const {

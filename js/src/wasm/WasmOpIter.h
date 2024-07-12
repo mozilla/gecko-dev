@@ -724,12 +724,12 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                   ValueVector* values, Value* condition);
   [[nodiscard]] bool readBrOnNonNull(uint32_t* relativeDepth, ResultType* type,
                                      ValueVector* values, Value* condition);
-  [[nodiscard]] bool readCall(uint32_t* funcTypeIndex, ValueVector* argValues);
+  [[nodiscard]] bool readCall(uint32_t* funcIndex, ValueVector* argValues);
   [[nodiscard]] bool readCallIndirect(uint32_t* funcTypeIndex,
                                       uint32_t* tableIndex, Value* callee,
                                       ValueVector* argValues);
 #ifdef ENABLE_WASM_TAIL_CALLS
-  [[nodiscard]] bool readReturnCall(uint32_t* funcTypeIndex,
+  [[nodiscard]] bool readReturnCall(uint32_t* funcIndex,
                                     ValueVector* argValues);
   [[nodiscard]] bool readReturnCallIndirect(uint32_t* funcTypeIndex,
                                             uint32_t* tableIndex, Value* callee,
@@ -745,7 +745,7 @@ class MOZ_STACK_CLASS OpIter : private Policy {
 #  endif
 #endif
   [[nodiscard]] bool readOldCallDirect(uint32_t numFuncImports,
-                                       uint32_t* funcTypeIndex,
+                                       uint32_t* funcIndex,
                                        ValueVector* argValues);
   [[nodiscard]] bool readOldCallIndirect(uint32_t* funcTypeIndex, Value* callee,
                                          ValueVector* argValues);
@@ -1305,7 +1305,7 @@ inline bool OpIter<Policy>::startFunction(uint32_t funcIndex,
   MOZ_ASSERT(controlStack_.empty());
   MOZ_ASSERT(op_.b0 == uint16_t(Op::Limit));
   MOZ_ASSERT(maxInitializedGlobalsIndexPlus1_ == 0);
-  BlockType type = BlockType::FuncResults(*codeMeta_.funcs[funcIndex].type);
+  BlockType type = BlockType::FuncResults(codeMeta_.getFuncType(funcIndex));
 
   // Initialize information related to branch hinting.
   lastBranchHintIndex_ = 0;
@@ -1313,7 +1313,7 @@ inline bool OpIter<Policy>::startFunction(uint32_t funcIndex,
     branchHintVector_ = &codeMeta_.branchHints.getHintVector(funcIndex);
   }
 
-  size_t numArgs = codeMeta_.funcs[funcIndex].type->args().length();
+  size_t numArgs = codeMeta_.getFuncType(funcIndex).args().length();
   if (!unsetLocals_.init(locals, numArgs)) {
     return false;
   }
@@ -2584,19 +2584,19 @@ inline bool OpIter<Policy>::popCallArgs(const ValTypeVector& expectedTypes,
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readCall(uint32_t* funcTypeIndex,
+inline bool OpIter<Policy>::readCall(uint32_t* funcIndex,
                                      ValueVector* argValues) {
   MOZ_ASSERT(Classify(op_) == OpKind::Call);
 
-  if (!readVarU32(funcTypeIndex)) {
+  if (!readVarU32(funcIndex)) {
     return fail("unable to read call function index");
   }
 
-  if (*funcTypeIndex >= codeMeta_.funcs.length()) {
+  if (*funcIndex >= codeMeta_.funcs.length()) {
     return fail("callee index out of range");
   }
 
-  const FuncType& funcType = *codeMeta_.funcs[*funcTypeIndex].type;
+  const FuncType& funcType = codeMeta_.getFuncType(*funcIndex);
 
   if (!popCallArgs(funcType.args(), argValues)) {
     return false;
@@ -2607,19 +2607,19 @@ inline bool OpIter<Policy>::readCall(uint32_t* funcTypeIndex,
 
 #ifdef ENABLE_WASM_TAIL_CALLS
 template <typename Policy>
-inline bool OpIter<Policy>::readReturnCall(uint32_t* funcTypeIndex,
+inline bool OpIter<Policy>::readReturnCall(uint32_t* funcIndex,
                                            ValueVector* argValues) {
   MOZ_ASSERT(Classify(op_) == OpKind::ReturnCall);
 
-  if (!readVarU32(funcTypeIndex)) {
+  if (!readVarU32(funcIndex)) {
     return fail("unable to read call function index");
   }
 
-  if (*funcTypeIndex >= codeMeta_.funcs.length()) {
+  if (*funcIndex >= codeMeta_.funcs.length()) {
     return fail("callee index out of range");
   }
 
-  const FuncType& funcType = *codeMeta_.funcs[*funcTypeIndex].type;
+  const FuncType& funcType = codeMeta_.getFuncType(*funcIndex);
 
   if (!popCallArgs(funcType.args(), argValues)) {
     return false;
@@ -2806,7 +2806,7 @@ inline bool OpIter<Policy>::readReturnCallRef(const FuncType** funcType,
 
 template <typename Policy>
 inline bool OpIter<Policy>::readOldCallDirect(uint32_t numFuncImports,
-                                              uint32_t* funcTypeIndex,
+                                              uint32_t* funcIndex,
                                               ValueVector* argValues) {
   MOZ_ASSERT(Classify(op_) == OpKind::OldCallDirect);
 
@@ -2819,13 +2819,13 @@ inline bool OpIter<Policy>::readOldCallDirect(uint32_t numFuncImports,
     return fail("callee index out of range");
   }
 
-  *funcTypeIndex = numFuncImports + funcDefIndex;
+  *funcIndex = numFuncImports + funcDefIndex;
 
-  if (*funcTypeIndex >= codeMeta_.funcs.length()) {
+  if (*funcIndex >= codeMeta_.funcs.length()) {
     return fail("callee index out of range");
   }
 
-  const FuncType& funcType = *codeMeta_.funcs[*funcTypeIndex].type;
+  const FuncType& funcType = codeMeta_.getFuncType(*funcIndex);
 
   if (!popCallArgs(funcType.args(), argValues)) {
     return false;

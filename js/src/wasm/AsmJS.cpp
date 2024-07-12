@@ -2135,16 +2135,12 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
          r.popFront()) {
       uint32_t funcIndex = r.front().value();
       uint32_t funcTypeIndex = r.front().key().sigIndex();
-      MOZ_ASSERT(!codeMeta_->funcs[funcIndex].type);
-      codeMeta_->funcs[funcIndex] = FuncDesc(
-          &codeMeta_->types->type(funcTypeIndex).funcType(), funcTypeIndex);
+      codeMeta_->funcs[funcIndex] = FuncDesc(funcTypeIndex);
     }
     for (const Func& func : funcDefs_) {
       uint32_t funcIndex = funcImportMap_.count() + func.funcDefIndex();
       uint32_t funcTypeIndex = func.sigIndex();
-      MOZ_ASSERT(!codeMeta_->funcs[funcIndex].type);
-      codeMeta_->funcs[funcIndex] = FuncDesc(
-          &codeMeta_->types->type(funcTypeIndex).funcType(), funcTypeIndex);
+      codeMeta_->funcs[funcIndex] = FuncDesc(funcTypeIndex);
     }
     for (const Export& exp : moduleMeta_->exports) {
       if (exp.kind() != DefinitionKind::Function) {

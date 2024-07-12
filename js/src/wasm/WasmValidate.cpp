@@ -98,7 +98,7 @@ bool wasm::DecodeLocalEntriesWithParams(Decoder& d,
     return d.fail("failed to read number of local entries");
   }
 
-  if (!locals->appendAll(codeMeta.funcs[funcIndex].type->args())) {
+  if (!locals->appendAll(codeMeta.getFuncType(funcIndex).args())) {
     return false;
   }
 
@@ -2159,9 +2159,7 @@ static bool DecodeImport(Decoder& d, CodeMetadata* codeMeta,
       if (!DecodeFuncTypeIndex(d, codeMeta->types, &funcTypeIndex)) {
         return false;
       }
-      if (!codeMeta->funcs.append(
-              FuncDesc(&codeMeta->types->type(funcTypeIndex).funcType(),
-                       funcTypeIndex))) {
+      if (!codeMeta->funcs.append(FuncDesc(funcTypeIndex))) {
         return false;
       }
       if (codeMeta->funcs.length() > MaxFuncs) {
@@ -2344,8 +2342,7 @@ static bool DecodeFunctionSection(Decoder& d, CodeMetadata* codeMeta) {
     if (!DecodeFuncTypeIndex(d, codeMeta->types, &funcTypeIndex)) {
       return false;
     }
-    codeMeta->funcs.infallibleAppend(FuncDesc(
-        &codeMeta->types->type(funcTypeIndex).funcType(), funcTypeIndex));
+    codeMeta->funcs.infallibleAppend(funcTypeIndex);
   }
 
   return d.finishSection(*range, "function");
@@ -2646,7 +2643,7 @@ static bool DecodeStartSection(Decoder& d, CodeMetadata* codeMeta,
     return d.fail("unknown start function");
   }
 
-  const FuncType& funcType = *codeMeta->funcs[funcIndex].type;
+  const FuncType& funcType = codeMeta->getFuncType(funcIndex);
   if (funcType.results().length() > 0) {
     return d.fail("start function must not return anything");
   }

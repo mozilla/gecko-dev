@@ -310,7 +310,7 @@ class FunctionCompiler {
   // FIXME(1401675): Replace with BlockType.
   uint32_t funcIndex() const { return func_.index; }
   const FuncType& funcType() const {
-    return *codeMeta_.funcs[func_.index].type;
+    return codeMeta_.getFuncType(func_.index);
   }
 
   MBasicBlock* getCurBlock() const { return curBlock_; }
@@ -5371,7 +5371,7 @@ static bool EmitCall(FunctionCompiler& f, bool asmJSFuncDef) {
     return true;
   }
 
-  const FuncType& funcType = *f.codeMeta().funcs[funcIndex].type;
+  const FuncType& funcType = f.codeMeta().getFuncType(funcIndex);
 
   CallCompileState call;
   if (!EmitCallArgs(f, funcType, args, &call)) {
@@ -5466,7 +5466,7 @@ static bool EmitReturnCall(FunctionCompiler& f) {
     return true;
   }
 
-  const FuncType& funcType = *f.codeMeta().funcs[funcIndex].type;
+  const FuncType& funcType = f.codeMeta().getFuncType(funcIndex);
 
   CallCompileState call;
   f.markReturnCall(&call);
@@ -9460,7 +9460,7 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
 
       BytecodeOffset prologueTrapOffset(func.lineOrBytecode);
       FuncOffsets offsets;
-      ArgTypeVector args(*codeMeta.funcs[func.index].type);
+      ArgTypeVector args(codeMeta.getFuncType(func.index));
       if (!codegen.generateWasm(CallIndirectId::forFunc(codeMeta, func.index),
                                 prologueTrapOffset, args, trapExitLayout,
                                 trapExitLayoutNumWords, &offsets,

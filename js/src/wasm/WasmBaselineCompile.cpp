@@ -5054,7 +5054,7 @@ bool BaseCompiler::emitCall() {
 
   sync();
 
-  const FuncType& funcType = *codeMeta_.funcs[funcIndex].type;
+  const FuncType& funcType = codeMeta_.getFuncType(funcIndex);
   bool import = codeMeta_.funcIsImport(funcIndex);
 
   uint32_t numArgs = funcType.args().length();
@@ -5115,7 +5115,7 @@ bool BaseCompiler::emitReturnCall() {
     return false;
   }
 
-  const FuncType& funcType = *codeMeta_.funcs[funcIndex].type;
+  const FuncType& funcType = codeMeta_.getFuncType(funcIndex);
   bool import = codeMeta_.funcIsImport(funcIndex);
 
   uint32_t numArgs = funcType.args().length();

@@ -4111,7 +4111,7 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   }
 
   // Add an (import (func ...))
-  FuncDesc funcDesc = FuncDesc(&(*codeMeta->types)[0].funcType(), 0);
+  FuncDesc funcDesc = FuncDesc(0);
   if (!codeMeta->funcs.append(funcDesc)) {
     return nullptr;
   }

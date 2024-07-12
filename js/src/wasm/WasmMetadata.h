@@ -258,6 +258,12 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     return types;
   }
 
+  const TypeDef& getFuncTypeDef(uint32_t funcIndex) const {
+    return types->type(funcs[funcIndex].typeIndex);
+  }
+  const FuncType& getFuncType(uint32_t funcIndex) const {
+    return getFuncTypeDef(funcIndex).funcType();
+  }
   const TypeDef& getFuncImportTypeDef(const FuncImport& funcImport) const {
     return types->type(funcImport.typeIndex());
   }
