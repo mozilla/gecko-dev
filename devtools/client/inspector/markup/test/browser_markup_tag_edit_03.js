@@ -17,7 +17,7 @@ add_task(async function () {
   await focusNode("#retag-me", inspector);
 
   info("Getting the markup-container for the test node");
-  let container = await getContainerForSelector("#retag-me", inspector);
+  let container = await getRetagMeContainer(inspector);
   ok(container.expanded, "The container is expanded");
 
   is(
@@ -38,18 +38,9 @@ add_task(async function () {
   );
 
   info("Changing #retag-me's tagname in the markup-view");
-  const mutated = inspector.once("markupmutation");
-  const tagEditor = container.editor.tag;
-  setEditableFieldValue(tagEditor, "p", inspector);
-  await mutated;
-
-  info("Checking that the markup-container exists and is correct");
-  container = await getContainerForSelector("#retag-me", inspector);
-  ok(container.expanded, "The container is still expanded");
-  ok(container.selected, "The container is still selected");
+  await setRetagMeTagnameValue(inspector, "p");
 
   info("Checking that the tagname change was done");
-
   is(
     (await getContentPageElementProperty("#retag-me", "tagName")).toLowerCase(),
     "p",
@@ -65,4 +56,80 @@ add_task(async function () {
     "retag-me-2",
     "#retag-me's only child is #retag-me-2"
   );
+  info("Checking that the markup-container exists and is correct");
+  container = await getRetagMeContainer(inspector);
+  ok(container.expanded, "The container is still expanded");
+  ok(container.selected, "The container is still selected");
+
+  info("Add attributes through tagname input");
+  // tagName is `p` at this point, let's keep it as is for now
+  await setRetagMeTagnameValue(
+    inspector,
+    `p data-x="hello world" class=my-attr readonly`
+  );
+
+  info("Checking that attributes were added");
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+    const el = content.document.getElementById("retag-me");
+    is(el.tagName.toLowerCase(), "p", "element tagName is still the same");
+    is(el.getAttribute("class"), "my-attr", "class attribute was set");
+    is(el.getAttribute("data-x"), "hello world", "data-x attribute was set");
+    ok(el.hasAttribute("readonly"), "readonly attribute was set");
+  });
+
+  info(
+    "Change tagName, add attributes and override others, all through tagname input"
+  );
+  // tagName is `p` at this point, let's change it, as well as `class` value
+  await setRetagMeTagnameValue(inspector, `main class=my-attr-2`);
+
+  info("Checking that attributes were added");
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+    const el = content.document.getElementById("retag-me");
+    is(el.tagName.toLowerCase(), "main", "element tagName was changed to main");
+    is(el.getAttribute("class"), "my-attr-2", "class attribute was updated");
+    is(el.getAttribute("data-x"), "hello world", "data-x attribute was kept");
+    ok(el.hasAttribute("readonly"), "readonly attribute was kept");
+  });
+
+  info("Only change attributes again so we can check that undo works");
+  // tagName is `main` at this point we want to keep it, and update attributes
+  await setRetagMeTagnameValue(inspector, `main class=my-attr-3 new-attr=true`);
+
+  info("Checking that attributes were added");
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+    const el = content.document.getElementById("retag-me");
+    is(el.tagName.toLowerCase(), "main", "element tagName was not changed");
+    is(el.getAttribute("class"), "my-attr-3", "class attribute was updated");
+    is(el.getAttribute("new-attr"), "true", "new-attr attribute was added");
+    is(el.getAttribute("data-x"), "hello world", "data-x attribute was kept");
+    ok(el.hasAttribute("readonly"), "readonly attribute was kept");
+  });
+
+  info("Undo the change");
+  await undoChange(inspector);
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+    const el = content.document.getElementById("retag-me");
+    is(el.tagName.toLowerCase(), "main", "element tagName was not changed");
+    is(
+      el.getAttribute("class"),
+      "my-attr-2",
+      "class attribute was changed back to its previous value"
+    );
+    ok(!el.hasAttribute("new-attr"), "new-attr attribute was removed");
+    is(el.getAttribute("data-x"), "hello world", "data-x attribute was kept");
+    ok(el.hasAttribute("readonly"), "readonly attribute was kept");
+  });
 });
+
+async function getRetagMeContainer(inspector) {
+  return getContainerForSelector("#retag-me", inspector);
+}
+
+async function setRetagMeTagnameValue(inspector, tagNameValue) {
+  const container = await getRetagMeContainer(inspector);
+  const tagEditor = container.editor.tag;
+  const mutated = inspector.once("markupmutation");
+  setEditableFieldValue(tagEditor, tagNameValue, inspector);
+  await mutated;
+}
