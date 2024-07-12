@@ -85,18 +85,13 @@ static void ReportTier2ResultsOffThread(bool success,
 }
 
 class Module::Tier2GeneratorTaskImpl : public Tier2GeneratorTask {
-  SharedCompileArgs compileArgs_;
   SharedBytes bytecode_;
   SharedModule module_;
   Atomic<bool> cancelled_;
 
  public:
-  Tier2GeneratorTaskImpl(const CompileArgs& compileArgs,
-                         const ShareableBytes& bytecode, Module& module)
-      : compileArgs_(&compileArgs),
-        bytecode_(&bytecode),
-        module_(&module),
-        cancelled_(false) {}
+  Tier2GeneratorTaskImpl(const ShareableBytes& bytecode, Module& module)
+      : bytecode_(&bytecode), module_(&module), cancelled_(false) {}
 
   ~Tier2GeneratorTaskImpl() override {
     module_->tier2Listener_ = nullptr;
@@ -116,15 +111,14 @@ class Module::Tier2GeneratorTaskImpl : public Tier2GeneratorTask {
       // okay.
       UniqueChars error;
       UniqueCharsVector warnings;
-      bool success =
-          CompileCompleteTier2(*compileArgs_, bytecode_->bytes, *module_,
-                               &error, &warnings, &cancelled_);
+      bool success = CompileCompleteTier2(bytecode_->bytes, *module_, &error,
+                                          &warnings, &cancelled_);
       if (!cancelled_) {
         // We could try to dispatch a runnable to the thread that started this
         // compilation, so as to report the warning/error using a JSContext*.
         // For now we just report to stderr.
-        ReportTier2ResultsOffThread(success, compileArgs_->scriptedCaller,
-                                    error, warnings);
+        ReportTier2ResultsOffThread(
+            success, module_->codeMeta().scriptedCaller(), error, warnings);
       }
     }
 
@@ -149,11 +143,11 @@ Module::~Module() {
   MOZ_ASSERT(!testingTier2Active_);
 }
 
-void Module::startTier2(const CompileArgs& args, const ShareableBytes& bytecode,
+void Module::startTier2(const ShareableBytes& bytecode,
                         JS::OptimizedEncodingListener* listener) {
   MOZ_ASSERT(!testingTier2Active_);
 
-  auto task = MakeUnique<Tier2GeneratorTaskImpl>(args, bytecode, *this);
+  auto task = MakeUnique<Tier2GeneratorTaskImpl>(bytecode, *this);
   if (!task) {
     return;
   }

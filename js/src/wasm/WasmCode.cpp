@@ -660,9 +660,8 @@ bool Code::requestTierUp(uint32_t funcIndex,
     return true;
   }
 
-  return CompilePartialTier2(*codeMeta_->compileArgs, bytecode_->bytes,
-                             funcIndex, funcBytecodeOffset, *this, nullptr,
-                             nullptr, nullptr);
+  return CompilePartialTier2(bytecode_->bytes, funcIndex, funcBytecodeOffset,
+                             *this, nullptr, nullptr, nullptr);
 }
 
 bool Code::finishTier2(const LinkData& linkData,

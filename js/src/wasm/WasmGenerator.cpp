@@ -1220,7 +1220,7 @@ SharedModule ModuleGenerator::finishModule(
   }
 
   if (compileState_ == CompileState::EagerTier1) {
-    module->startTier2(*compileArgs_, bytecode, maybeTier2Listener);
+    module->startTier2(bytecode, maybeTier2Listener);
   } else if (tier() == Tier::Serialized && maybeTier2Listener) {
     Bytes bytes;
     if (module->serialize(*sharedStubsLinkData_, *tier1LinkData, &bytes)) {

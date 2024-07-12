@@ -857,40 +857,33 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
   return mg.finishModule(bytecode, moduleMeta, listener);
 }
 
-bool wasm::CompileCompleteTier2(const CompileArgs& args, const Bytes& bytecode,
-                                const Module& module, UniqueChars* error,
-                                UniqueCharsVector* warnings,
+bool wasm::CompileCompleteTier2(const Bytes& bytecode, const Module& module,
+                                UniqueChars* error, UniqueCharsVector* warnings,
                                 Atomic<bool>* cancelled) {
-  Decoder d(bytecode, 0, error);
-
-  // FIXME this shouldn't be needed!  (nullptr should be OK)
-  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta || !moduleMeta->init(args)) {
-    return false;
-  }
-  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
-  if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
-    return false;
-  }
   CompilerEnvironment compilerEnv(CompileMode::EagerTiering, Tier::Optimized,
                                   DebugEnabled::False);
-  compilerEnv.computeParameters(d);
-  if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
-    return false;
-  }
+  compilerEnv.computeParameters();
 
-  ModuleGenerator mg(args, codeMeta, &compilerEnv, CompileState::EagerTier2,
-                     cancelled, error, warnings);
+  const CodeMetadata& codeMeta = module.codeMeta();
+  ModuleGenerator mg(*codeMeta.compileArgs, &codeMeta, &compilerEnv,
+                     CompileState::EagerTier2, cancelled, error, warnings);
   if (!mg.initializeCompleteTier()) {
     return false;
   }
 
-  if (!DecodeCodeSection(*codeMeta, d, mg)) {
-    return false;
-  }
-
-  if (!DecodeModuleTail(d, codeMeta, moduleMeta)) {
-    return false;
+  if (codeMeta.codeSection) {
+    const SectionRange& codeSection = *codeMeta.codeSection;
+    const uint8_t* codeSectionStart = bytecode.begin() + codeSection.start;
+    const uint8_t* codeSectionEnd = codeSectionStart + codeSection.size;
+    Decoder d(codeSectionStart, codeSectionEnd, codeSection.start, error);
+    if (!DecodeCodeSection(module.codeMeta(), d, mg)) {
+      return false;
+    }
+  } else {
+    MOZ_ASSERT(codeMeta.numFuncDefs() == 0);
+    if (!mg.finishFuncDefs()) {
+      return false;
+    }
   }
 
   return mg.finishTier2(module);
@@ -916,35 +909,30 @@ class PartialTierModuleGenerator {
   }
 };
 
-bool wasm::CompilePartialTier2(const CompileArgs& args, const Bytes& bytecode,
-                               uint32_t funcIndex, uint32_t funcBytecodeOffset,
-                               const Code& code, UniqueChars* error,
-                               UniqueCharsVector* warnings,
+bool wasm::CompilePartialTier2(const Bytes& bytecode, uint32_t funcIndex,
+                               uint32_t funcBytecodeOffset, const Code& code,
+                               UniqueChars* error, UniqueCharsVector* warnings,
                                Atomic<bool>* cancelled) {
-  Decoder d(bytecode, 0, error);
-
-  MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta || !moduleMeta->init(args)) {
-    return false;
-  }
-  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
-  if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
-    return false;
-  }
   CompilerEnvironment compilerEnv(CompileMode::LazyTiering, Tier::Optimized,
                                   DebugEnabled::False);
-  compilerEnv.computeParameters(d);
-  if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
-    return false;
-  }
+  compilerEnv.computeParameters();
 
-  ModuleGenerator mg(args, codeMeta, &compilerEnv, CompileState::LazyTier2,
-                     cancelled, error, warnings);
+  const CodeMetadata& codeMeta = code.codeMeta();
+  ModuleGenerator mg(*codeMeta.compileArgs, &codeMeta, &compilerEnv,
+                     CompileState::LazyTier2, cancelled, error, warnings);
   if (!mg.initializePartialTier(code, funcIndex)) {
     return false;
   }
+
+  // There must be a code section if we're doing a partial tier
+  MOZ_ASSERT(codeMeta.codeSection);
+
+  const SectionRange& codeSection = *codeMeta.codeSection;
+  const uint8_t* codeSectionStart = bytecode.begin() + codeSection.start;
+  const uint8_t* codeSectionEnd = codeSectionStart + codeSection.size;
+  Decoder d(codeSectionStart, codeSectionEnd, codeSection.start, error);
   PartialTierModuleGenerator pmg(mg, funcIndex);
-  if (!DecodeCodeSection(*codeMeta, d, pmg)) {
+  if (!DecodeCodeSection(codeMeta, d, pmg)) {
     return false;
   }
 
