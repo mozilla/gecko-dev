@@ -227,7 +227,7 @@ bool CookieStorage::FindSecureCookie(const nsACString& aBaseDomain,
       // aren't "/", then this situation needs to compare paths to
       // ensure only that a newly-created non-secure cookie does not
       // overlay an existing secure cookie.
-      if (CookieCommons::PathMatches(cookie, aCookie->GetFilePath())) {
+      if (CookieCommons::PathMatches(cookie, aCookie->Path())) {
         return true;
       }
     }

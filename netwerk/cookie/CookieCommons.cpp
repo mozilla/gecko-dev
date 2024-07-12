@@ -46,7 +46,7 @@ bool CookieCommons::DomainMatches(Cookie* aCookie, const nsACString& aHost) {
 
 // static
 bool CookieCommons::PathMatches(Cookie* aCookie, const nsACString& aPath) {
-  nsCString cookiePath(aCookie->GetFilePath());
+  const nsCString& cookiePath(aCookie->Path());
 
   // if our cookie path is empty we can't really perform our prefix check, and
   // also we can't check the last character of the cookie path, so we would
