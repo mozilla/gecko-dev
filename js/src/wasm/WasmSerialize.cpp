@@ -1056,6 +1056,7 @@ CoderResult CodeModuleMetadata(Coder<mode>& coder,
   MOZ_TRY(Magic(coder, Marker::CustomSections));
   MOZ_TRY((CodeVector<mode, CustomSection, &CodeCustomSection<mode>>(
       coder, &item->customSections)));
+  MOZ_TRY(CodePod(coder, &item->featureUsage));
   return Ok();
 }
 
@@ -1096,7 +1097,6 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY(CodePod(coder, &item->tablesOffsetStart));
   MOZ_TRY(CodePod(coder, &item->tagsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->instanceDataLength));
-  MOZ_TRY(CodePod(coder, &item->featureUsage));
   MOZ_TRY(CodePod(coder, &item->filenameIsURL));
   MOZ_TRY(CodeCacheableChars(coder, &item->filename));
   MOZ_TRY(CodeCacheableChars(coder, &item->sourceMapURL));

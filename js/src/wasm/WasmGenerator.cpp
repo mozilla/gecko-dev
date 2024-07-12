@@ -85,6 +85,7 @@ ModuleGenerator::ModuleGenerator(const CompileArgs& args,
       cancelled_(cancelled),
       codeMeta_(codeMeta),
       compilerEnv_(compilerEnv),
+      featureUsage_(FeatureUsage::None),
       codeBlock_(nullptr),
       linkData_(nullptr),
       lifo_(GENERATOR_LIFO_DEFAULT_CHUNK_SIZE),
@@ -401,7 +402,7 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
   JitContext jcx;
 
   // Combine observed features from the compiled code into the metadata
-  codeMeta_->featureUsage |= code.featureUsage;
+  featureUsage_ |= code.featureUsage;
 
   // Before merging in new code, if calls in a prior code range might go out of
   // range, insert far jumps to extend the range.
@@ -1171,6 +1172,9 @@ SharedModule ModuleGenerator::finishModule(
   if (!tier1Code) {
     return nullptr;
   }
+
+  // Record what features we encountered in this module
+  moduleMeta->featureUsage = featureUsage_;
 
   // Copy over data from the Bytecode, which is going away at the end of
   // compilation.

@@ -976,7 +976,7 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
   JSUseCounter useCounter =
       codeMeta().isAsmJS() ? JSUseCounter::ASMJS : JSUseCounter::WASM;
   cx->runtime()->setUseCounter(instance, useCounter);
-  SetUseCountersForFeatureUsage(cx, instance, codeMeta().featureUsage);
+  SetUseCountersForFeatureUsage(cx, instance, moduleMeta().featureUsage);
 
   if (cx->options().testWasmAwaitTier2() &&
       code().mode() != CompileMode::LazyTiering) {

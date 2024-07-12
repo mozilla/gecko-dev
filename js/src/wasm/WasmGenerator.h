@@ -199,6 +199,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   UniqueLinkData sharedStubsLinkData_;
   UniqueCodeBlock sharedStubsCodeBlock_;
   MutableCodeMetadataForAsmJS codeMetaForAsmJS_;
+  FeatureUsage featureUsage_;
 
   // Data that is used to construct a CodeBlock
   UniqueCodeBlock codeBlock_;

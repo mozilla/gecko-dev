@@ -147,6 +147,9 @@ struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
 
   CustomSectionVector customSections;
 
+  // Which features were observed when compiling this module.
+  FeatureUsage featureUsage;
+
   explicit ModuleMetadata() = default;
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
@@ -210,10 +213,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   uint32_t tagsOffsetStart;
   // The total size of the instance data.
   uint32_t instanceDataLength;
-
-  // ==== Observed feature usage
-  //
-  FeatureUsage featureUsage;
 
   // ==== Names of things
   //
@@ -281,7 +280,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
         tablesOffsetStart(UINT32_MAX),
         tagsOffsetStart(UINT32_MAX),
         instanceDataLength(0),
-        featureUsage(FeatureUsage::None),
         filenameIsURL(false),
         parsedBranchHints(false),
         debugEnabled(false),
