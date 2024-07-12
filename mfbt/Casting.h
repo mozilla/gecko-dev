@@ -291,15 +291,16 @@ inline To SaturatingCast(const From aFrom) {
       return std::numeric_limits<To>::max();
     }
     return static_cast<To>(aFrom);
+  } else {
+    // Regular case: clamp to destination type range
+    if (aFrom > std::numeric_limits<To>::max()) {
+      return std::numeric_limits<To>::max();
+    }
+    if (aFrom < std::numeric_limits<To>::lowest()) {
+      return std::numeric_limits<To>::lowest();
+    }
+    return static_cast<To>(aFrom);
   }
-  // Regular case: clamp to destination type range
-  if (aFrom > std::numeric_limits<To>::max()) {
-    return std::numeric_limits<To>::max();
-  }
-  if (aFrom < std::numeric_limits<To>::lowest()) {
-    return std::numeric_limits<To>::lowest();
-  }
-  return static_cast<To>(aFrom);
 }
 
 namespace detail {
