@@ -6,9 +6,6 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 const { ArchiveEncryptionState } = ChromeUtils.importESModule(
   "resource:///modules/backup/ArchiveEncryptionState.sys.mjs"
 );
-const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
-);
 const { ArchiveUtils } = ChromeUtils.importESModule(
   "resource:///modules/backup/ArchiveUtils.sys.mjs"
 );

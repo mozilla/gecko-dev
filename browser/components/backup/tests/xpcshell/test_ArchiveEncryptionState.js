@@ -3,21 +3,11 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
-);
 const { ArchiveEncryptionState } = ChromeUtils.importESModule(
   "resource:///modules/backup/ArchiveEncryptionState.sys.mjs"
 );
 
 const TEST_RECOVERY_CODE = "This is my recovery code.";
-
-add_setup(async () => {
-  OSKeyStoreTestUtils.setup();
-  registerCleanupFunction(async () => {
-    await OSKeyStoreTestUtils.cleanup();
-  });
-});
 
 /**
  * Tests that we can initialize an ArchiveEncryptionState from scratch, and

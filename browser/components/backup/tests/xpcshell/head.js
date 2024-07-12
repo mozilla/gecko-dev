@@ -28,6 +28,43 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
+const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
+);
+
+const { MockRegistrar } = ChromeUtils.importESModule(
+  "resource://testing-common/MockRegistrar.sys.mjs"
+);
+
+let gFakeOSKeyStore;
+
+add_setup(async () => {
+  // During our unit tests, we're not interested in showing OSKeyStore
+  // authentication dialogs, nor are we interested in actually using the "real"
+  // OSKeyStore. We instead swap in our own implementation of nsIOSKeyStore
+  // which provides some stubbed out values. We also set up OSKeyStoreTestUtils
+  // which will suppress any reauthentication dialogs.
+  gFakeOSKeyStore = {
+    asyncEncryptBytes: sinon.stub(),
+    asyncDecryptBytes: sinon.stub(),
+    asyncDeleteSecret: sinon.stub().resolves(),
+    asyncSecretAvailable: sinon.stub().resolves(true),
+    asyncGetRecoveryPhrase: sinon.stub().resolves("SomeRecoveryPhrase"),
+    asyncRecoverSecret: sinon.stub().resolves(),
+    QueryInterface: ChromeUtils.generateQI([Ci.nsIOSKeyStore]),
+  };
+  let osKeyStoreCID = MockRegistrar.register(
+    "@mozilla.org/security/oskeystore;1",
+    gFakeOSKeyStore
+  );
+
+  OSKeyStoreTestUtils.setup();
+  registerCleanupFunction(async () => {
+    await OSKeyStoreTestUtils.cleanup();
+    MockRegistrar.unregister(osKeyStoreCID);
+  });
+});
+
 const BYTES_IN_KB = 1000;
 
 const FAKE_METADATA = {

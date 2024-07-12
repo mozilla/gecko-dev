@@ -3,9 +3,6 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
-);
 const { ArchiveEncryptionState } = ChromeUtils.importESModule(
   "resource:///modules/backup/ArchiveEncryptionState.sys.mjs"
 );
@@ -31,11 +28,6 @@ add_setup(async () => {
   for (let i = 0; i < FAKE_BYTES_AMOUNT; ++i) {
     fakeBytes.set(gen.next().value, i);
   }
-
-  OSKeyStoreTestUtils.setup();
-  registerCleanupFunction(async () => {
-    await OSKeyStoreTestUtils.cleanup();
-  });
 });
 
 /**

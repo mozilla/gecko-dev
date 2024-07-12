@@ -151,6 +151,13 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsIUserIdleService"
 );
 
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "nativeOSKeyStore",
+  "@mozilla.org/security/oskeystore;1",
+  Ci.nsIOSKeyStore
+);
+
 /**
  * A class that wraps a multipart/mixed stream converter instance, and streams
  * in the binary part of a single-file archive (which should be at the second
@@ -795,6 +802,19 @@ export class BackupService extends EventTarget {
    */
   static get ARCHIVE_TEMPLATE() {
     return "chrome://browser/content/backup/archive.template.html";
+  }
+
+  /**
+   * The native OSKeyStore label used for the temporary recovery store. The
+   * temporary recovery store is initialized with the original OSKeyStore
+   * secret that was included in an encrypted backup, and then used by any
+   * BackupResource's that need to decrypt / re-encrypt OSKeyStore secrets for
+   * the current device.
+   *
+   * @type {string}
+   */
+  static get RECOVERY_OSKEYSTORE_LABEL() {
+    return AppConstants.MOZ_APP_BASENAME + " Backup Recovery Storage";
   }
 
   /**
@@ -2039,7 +2059,11 @@ export class BackupService extends EventTarget {
    * Attempts to extract the compressed backup snapshot from a single-file
    * archive, and write the extracted file to extractionDestPath. This may
    * reject if the single-file archive appears malformed or cannot be
-   * properly decrypted.
+   * properly decrypted. If the backup was encrypted, a native nsIOSKeyStore
+   * is also initialized with label BackupService.RECOVERY_OSKEYSTORE_LABEL
+   * with the secret used on the original backup machine. Callers are
+   * responsible for clearing this secret after any decryptions with it are
+   * completed.
    *
    * NOTE: Currently, this base64 decoding currently occurs on the main thread.
    * We may end up moving all of this into the Archive Worker if we can modify
@@ -2091,6 +2115,13 @@ export class BackupService extends EventTarget {
       new FileWriterStream(extractionDestPath, decryptor)
     );
     await archiveStream.pipeThrough(binaryDecoder).pipeTo(fileWriter);
+
+    if (decryptor) {
+      await lazy.nativeOSKeyStore.asyncRecoverSecret(
+        BackupService.RECOVERY_OSKEYSTORE_LABEL,
+        decryptor.OSKeyStoreSecret
+      );
+    }
   }
 
   /**
@@ -2289,12 +2320,36 @@ export class BackupService extends EventTarget {
       lazy.logConsole.warn("Could not remove ", RECOVERY_FILE_DEST_PATH);
     }
 
-    return this.recoverFromSnapshotFolder(
-      RECOVERY_FOLDER_DEST_PATH,
-      shouldLaunch,
-      profileRootPath,
-      encState
-    );
+    try {
+      // We're using a try/finally here to clean up the temporary OSKeyStore.
+      // We need to make sure that cleanup occurs _after_ the recovery has
+      // either fully succeeded, or fully failed. We await the return value
+      // of recoverFromSnapshotFolder so that the finally will not execute
+      // until after recoverFromSnapshotFolder has finished resolving or
+      // rejecting.
+      let newProfile = await this.recoverFromSnapshotFolder(
+        RECOVERY_FOLDER_DEST_PATH,
+        shouldLaunch,
+        profileRootPath,
+        encState
+      );
+      return newProfile;
+    } finally {
+      // If we had decrypted a backup, we would have created the temporary
+      // recovery OSKeyStore row with the label
+      // BackupService.RECOVERY_OSKEYSTORE_LABEL, which we will now delete,
+      // no matter if we succeeded or failed to recover.
+      //
+      // Note that according to nsIOSKeyStore, this is a no-op in the event that
+      // no secret exists at BackupService.RECOVERY_OSKEYSTORE_LABEL, so we're
+      // fine to do this even if we were recovering from an unencrypted
+      // backup.
+      if (recoveryCode) {
+        await lazy.nativeOSKeyStore.asyncDeleteSecret(
+          BackupService.RECOVERY_OSKEYSTORE_LABEL
+        );
+      }
+    }
   }
 
   /**
@@ -2312,6 +2367,9 @@ export class BackupService extends EventTarget {
    * 4. Writes a `post-recovery.json` file into the newly created profile
    *    directory.
    * 5. Returns the name of the newly created profile directory.
+   * 6. Regardless of whether or not recovery succeeded, clears the native
+   *    OSKeyStore of any secret labeled with
+   *    BackupService.RECOVERY_OSKEYSTORE_LABEL.
    *
    * @param {string} recoveryPath
    *   The path to the decompressed backup archive on the file system.

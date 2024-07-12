@@ -6,9 +6,6 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
-);
 
 const TEST_PASSWORD = "This is some test password.";
 
@@ -51,13 +48,6 @@ add_setup(async () => {
     createdProfile.value,
     "Profile set to current"
   );
-
-  // Ensure that enabling encryption doesn't cause the native OSKeyStore to
-  // require authentication.
-  OSKeyStoreTestUtils.setup();
-  registerCleanupFunction(async () => {
-    await OSKeyStoreTestUtils.cleanup();
-  });
 });
 
 /**
