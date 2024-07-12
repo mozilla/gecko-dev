@@ -817,7 +817,6 @@ class Code : public ShareableBase<Code> {
   // The bytecode for a module. Only available for debuggable modules, or if
   // doing lazy tiering.
   const SharedBytes bytecode_;
-  const SharedCompileArgs compileArgs_;
 
   // Methods for getting complete tiers, private while we're moving to partial
   // tiering.
@@ -851,8 +850,7 @@ class Code : public ShareableBase<Code> {
  public:
   Code(CompileMode mode, const CodeMetadata& codeMeta,
        const CodeMetadataForAsmJS* codeMetaForAsmJS,
-       const ShareableBytes* maybeBytecode,
-       const CompileArgs* maybeCompileArgs);
+       const ShareableBytes* maybeBytecode);
   bool initialized() const {
     return !!completeTier1_ && completeTier1_->initialized();
   }

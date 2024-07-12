@@ -44,7 +44,7 @@ BEGIN_TEST(testWasmEncodeBasic) {
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
   MOZ_ALWAYS_TRUE(moduleMeta);
-  MOZ_ALWAYS_TRUE(moduleMeta->init(compileArgs->features));
+  MOZ_ALWAYS_TRUE(moduleMeta->init(*compileArgs));
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
   CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                   DebugEnabled::False);
@@ -68,6 +68,7 @@ BEGIN_TEST(testWasmEncodeBasic) {
   MOZ_ALWAYS_TRUE(codeMeta->addDefinedFunc(moduleMeta, std::move(params),
                                            std::move(results), true,
                                            mozilla::Some(std::move(expName))));
+  MOZ_ALWAYS_TRUE(moduleMeta->prepareForCompile(compilerEnv.mode()));
 
   ModuleGenerator mg(*compileArgs, codeMeta, &compilerEnv,
                      compilerEnv.initialState(), nullptr, nullptr, nullptr);

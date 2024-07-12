@@ -221,12 +221,13 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
     return nullptr;
   }
 
-  CompileArgs* target = cx->new_<CompileArgs>(std::move(scriptedCaller));
+  CompileArgs* target = cx->new_<CompileArgs>();
   if (!target) {
     *error = CompileArgsError::OutOfMemory;
     return nullptr;
   }
 
+  target->scriptedCaller = std::move(scriptedCaller);
   target->baselineEnabled = baseline;
   target->ionEnabled = ion;
   target->debugEnabled = debug;
@@ -244,17 +245,36 @@ void wasm::SetUseCountersForFeatureUsage(JSContext* cx, JSObject* object,
 }
 
 SharedCompileArgs CompileArgs::buildForAsmJS(ScriptedCaller&& scriptedCaller) {
-  CompileArgs* target = js_new<CompileArgs>(std::move(scriptedCaller));
+  CompileArgs* target = js_new<CompileArgs>();
   if (!target) {
     return nullptr;
   }
 
+  target->scriptedCaller = std::move(scriptedCaller);
   // AsmJS is deprecated and doesn't have mechanisms for experimental features,
   // so we don't need to initialize the FeatureArgs. It also only targets the
   // Ion backend and does not need WASM debug support since it is de-optimized
   // to JS in that case.
   target->ionEnabled = true;
   target->debugEnabled = false;
+
+  return target;
+}
+
+SharedCompileArgs CompileArgs::buildForValidation(const FeatureArgs& args) {
+  CompileArgs* target = js_new<CompileArgs>();
+  if (!target) {
+    return nullptr;
+  }
+
+  // Validation will not need compilers, just mark them disabled
+  target->baselineEnabled = false;
+  target->ionEnabled = false;
+  target->debugEnabled = false;
+  target->forceTiering = false;
+
+  // Set the features
+  target->features = args;
 
   return target;
 }
@@ -806,7 +826,7 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
   Decoder d(bytecode.bytes, 0, error, warnings);
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta || !moduleMeta->init(args.features)) {
+  if (!moduleMeta || !moduleMeta->init(args)) {
     return nullptr;
   }
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
@@ -815,6 +835,10 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
   }
   CompilerEnvironment compilerEnv(args);
   compilerEnv.computeParameters(d);
+
+  if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
+    return nullptr;
+  }
 
   ModuleGenerator mg(args, codeMeta, &compilerEnv, compilerEnv.initialState(),
                      nullptr, error, warnings);
@@ -841,7 +865,7 @@ bool wasm::CompileCompleteTier2(const CompileArgs& args, const Bytes& bytecode,
 
   // FIXME this shouldn't be needed!  (nullptr should be OK)
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta || !moduleMeta->init(args.features)) {
+  if (!moduleMeta || !moduleMeta->init(args)) {
     return false;
   }
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
@@ -851,6 +875,9 @@ bool wasm::CompileCompleteTier2(const CompileArgs& args, const Bytes& bytecode,
   CompilerEnvironment compilerEnv(CompileMode::EagerTiering, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters(d);
+  if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
+    return false;
+  }
 
   ModuleGenerator mg(args, codeMeta, &compilerEnv, CompileState::EagerTier2,
                      cancelled, error, warnings);
@@ -897,7 +924,7 @@ bool wasm::CompilePartialTier2(const CompileArgs& args, const Bytes& bytecode,
   Decoder d(bytecode, 0, error);
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta || !moduleMeta->init(args.features)) {
+  if (!moduleMeta || !moduleMeta->init(args)) {
     return false;
   }
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
@@ -907,6 +934,9 @@ bool wasm::CompilePartialTier2(const CompileArgs& args, const Bytes& bytecode,
   CompilerEnvironment compilerEnv(CompileMode::LazyTiering, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters(d);
+  if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
+    return false;
+  }
 
   ModuleGenerator mg(args, codeMeta, &compilerEnv, CompileState::LazyTier2,
                      cancelled, error, warnings);
@@ -1004,7 +1034,7 @@ SharedModule wasm::CompileStreaming(
     UniqueCharsVector* warnings) {
   CompilerEnvironment compilerEnv(args);
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta || !moduleMeta->init(args.features)) {
+  if (!moduleMeta || !moduleMeta->init(args)) {
     return nullptr;
   }
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
@@ -1024,6 +1054,10 @@ SharedModule wasm::CompileStreaming(
 
     MOZ_RELEASE_ASSERT(codeMeta->codeSection->size == codeBytes.length());
     MOZ_RELEASE_ASSERT(d.done());
+  }
+
+  if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
+    return nullptr;
   }
 
   ModuleGenerator mg(args, codeMeta, &compilerEnv, compilerEnv.initialState(),
@@ -1109,14 +1143,21 @@ bool wasm::DumpIonFunctionInModule(const ShareableBytes& bytecode,
                                    uint32_t targetFuncIndex,
                                    IonDumpContents contents,
                                    GenericPrinter& out, UniqueChars* error) {
+  SharedCompileArgs compileArgs =
+      CompileArgs::buildForValidation(FeatureArgs::allEnabled());
+  if (!compileArgs) {
+    return false;
+  }
+
   UniqueCharsVector warnings;
   Decoder d(bytecode.bytes, 0, error, &warnings);
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta || !moduleMeta->init(FeatureArgs::allEnabled())) {
+  if (!moduleMeta || !moduleMeta->init(*compileArgs)) {
     return false;
   }
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
   DumpIonModuleGenerator mg(*codeMeta, targetFuncIndex, contents, out, error);
   return DecodeModuleEnvironment(d, codeMeta, moduleMeta) &&
+         !moduleMeta->prepareForCompile(CompileMode::Once) &&
          DecodeCodeSection(*codeMeta, d, mg);
 }

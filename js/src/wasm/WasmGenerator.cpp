@@ -72,8 +72,8 @@ ModuleGenerator::MacroAssemblerScope::MacroAssemblerScope(LifoAlloc& lifo)
     : masmAlloc(&lifo), masm(masmAlloc, /* limitedSize= */ false) {}
 
 ModuleGenerator::ModuleGenerator(const CompileArgs& args,
-                                 CodeMetadata* codeMeta,
-                                 CompilerEnvironment* compilerEnv,
+                                 const CodeMetadata* codeMeta,
+                                 const CompilerEnvironment* compilerEnv,
                                  CompileState compileState,
                                  const Atomic<bool>* cancelled,
                                  UniqueChars* error,
@@ -97,7 +97,9 @@ ModuleGenerator::ModuleGenerator(const CompileArgs& args,
       outstanding_(0),
       currentTask_(nullptr),
       batchedBytecode_(0),
-      finishedFuncDefs_(false) {}
+      finishedFuncDefs_(false) {
+  MOZ_ASSERT(codeMeta_->isPreparedForCompile());
+}
 
 ModuleGenerator::~ModuleGenerator() {
   MOZ_ASSERT_IF(finishedFuncDefs_, !batchedBytecode_);
@@ -156,14 +158,6 @@ bool ModuleGenerator::initializeCompleteTier(
   MOZ_ASSERT(isAsmJS() == !!codeMetaForAsmJS);
   codeMetaForAsmJS_ = codeMetaForAsmJS;
 
-  // Allocate space in instance for declarations that need it.  This sets
-  // various fields in `codeMeta_` and leaves the total length in
-  // `codeMeta_->instanceDataLength`.
-  MOZ_ASSERT(codeMeta_->instanceDataLength == 0);
-  if (!codeMeta_->initInstanceLayout(mode())) {
-    return false;
-  }
-
   // Generate the shared stubs block
   if (!generateSharedStubs()) {
     return false;
@@ -179,14 +173,6 @@ bool ModuleGenerator::initializePartialTier(const Code& code,
 
   // Initialize our task system
   if (!initTasks()) {
-    return false;
-  }
-
-  // Allocate space in instance for declarations that need it.  This sets
-  // various fields in `codeMeta_` and leaves the total length in
-  // `codeMeta_->instanceDataLength`.
-  MOZ_ASSERT(codeMeta_->instanceDataLength == 0);
-  if (!codeMeta_->initInstanceLayout(mode())) {
     return false;
   }
 
@@ -1102,52 +1088,6 @@ UniqueCodeBlock ModuleGenerator::finishTier(UniqueLinkData* linkData) {
   return finishCodeBlock(linkData);
 }
 
-bool ModuleGenerator::finishCodeMetadata(const Bytes& bytecode) {
-  // FIXME: this comment seems wrong.
-  // Finish initialization of Metadata, which is only needed for constructing
-  // the initial Module, not for tier-2 compilation.
-  MOZ_ASSERT(compileState_ != CompileState::EagerTier2);
-
-  if (compileArgs_->scriptedCaller.filename) {
-    codeMeta_->filename =
-        DuplicateString(compileArgs_->scriptedCaller.filename.get());
-    if (!codeMeta_->filename) {
-      return false;
-    }
-
-    codeMeta_->filenameIsURL = compileArgs_->scriptedCaller.filenameIsURL;
-  } else {
-    MOZ_ASSERT(!compileArgs_->scriptedCaller.filenameIsURL);
-  }
-
-  if (compileArgs_->sourceMapURL) {
-    codeMeta_->sourceMapURL = DuplicateString(compileArgs_->sourceMapURL.get());
-    if (!codeMeta_->sourceMapURL) {
-      return false;
-    }
-  }
-
-  // Copy over additional debug information.
-
-  if (compilerEnv_->debugEnabled()) {
-    codeMeta_->debugEnabled = true;
-
-    static_assert(sizeof(ModuleHash) <= sizeof(mozilla::SHA1Sum::Hash),
-                  "The ModuleHash size shall not exceed the SHA1 hash size.");
-    mozilla::SHA1Sum::Hash hash;
-    mozilla::SHA1Sum sha1Sum;
-    sha1Sum.update(bytecode.begin(), bytecode.length());
-    sha1Sum.finish(hash);
-    memcpy(codeMeta_->debugHash, hash, sizeof(ModuleHash));
-  }
-
-  MOZ_ASSERT_IF(codeMeta_->nameCustomSectionIndex, !!codeMeta_->namePayload);
-
-  // FIXME: does this comment make sense any more?
-  // Metadata shouldn't be mutably modified after finishCodeMetadata().
-  return true;
-}
-
 // Complete all tier-1 construction and return the resulting Module.  For this
 // we will need both codeMeta_ (and maybe codeMetaForAsmJS_) and moduleMeta_.
 SharedModule ModuleGenerator::finishModule(
@@ -1212,13 +1152,25 @@ SharedModule ModuleGenerator::finishModule(
     moduleMeta->customSections.infallibleAppend(std::move(sec));
   }
 
+  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
+
+  // Store a reference to the name section on the code metadata
   if (codeMeta_->nameCustomSectionIndex) {
-    codeMeta_->namePayload =
+    codeMeta->namePayload =
         moduleMeta->customSections[*codeMeta_->nameCustomSectionIndex].payload;
   }
 
-  if (!finishCodeMetadata(bytecode.bytes)) {
-    return nullptr;
+  // Initialize the debug hash for display urls, if we need to
+  if (compilerEnv_->debugEnabled()) {
+    codeMeta->debugEnabled = true;
+
+    static_assert(sizeof(ModuleHash) <= sizeof(mozilla::SHA1Sum::Hash),
+                  "The ModuleHash size shall not exceed the SHA1 hash size.");
+    mozilla::SHA1Sum::Hash hash;
+    mozilla::SHA1Sum sha1Sum;
+    sha1Sum.update(bytecode.begin(), bytecode.length());
+    sha1Sum.finish(hash);
+    memcpy(codeMeta->debugHash, hash, sizeof(ModuleHash));
   }
 
   // We keep the bytecode alive for debuggable modules, or if we're doing
@@ -1226,8 +1178,7 @@ SharedModule ModuleGenerator::finishModule(
   bool keepBytecode = compilerEnv_->debugEnabled() ||
                       compilerEnv_->mode() == CompileMode::LazyTiering;
   MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_,
-                                  keepBytecode ? &bytecode : nullptr,
-                                  keepBytecode ? compileArgs_.get() : nullptr);
+                                  keepBytecode ? &bytecode : nullptr);
   if (!code || !code->initialize(std::move(funcImports_),
                                  std::move(sharedStubsCodeBlock_),
                                  *sharedStubsLinkData_, std::move(tier1Code))) {

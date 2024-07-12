@@ -360,14 +360,13 @@ CoderResult CodeUniquePtr(Coder<mode>& coder, CoderArg<mode, UniquePtr<T>> item,
   }
 }
 
-// CacheableChars coding functions
+// UniqueChars coding functions
 
 static size_t StringLengthWithNullChar(const char* chars) {
   return chars ? strlen(chars) + 1 : 0;
 }
 
-CoderResult CodeCacheableChars(Coder<MODE_DECODE>& coder,
-                               CacheableChars* item) {
+CoderResult CodeUniqueChars(Coder<MODE_DECODE>& coder, UniqueChars* item) {
   uint32_t lengthWithNullChar;
   MOZ_TRY(CodePod(coder, &lengthWithNullChar));
 
@@ -386,8 +385,8 @@ CoderResult CodeCacheableChars(Coder<MODE_DECODE>& coder,
 }
 
 template <CoderMode mode>
-CoderResult CodeCacheableChars(Coder<mode>& coder, const CacheableChars* item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CacheableChars, 8);
+CoderResult CodeUniqueChars(Coder<mode>& coder, const UniqueChars* item) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(UniqueChars, 8);
   STATIC_ASSERT_ENCODING_OR_SIZING;
 
   // Encode the length
@@ -404,8 +403,16 @@ CoderResult CodeCacheableChars(Coder<mode>& coder, const CacheableChars* item) {
   return Ok();
 }
 
-// Code a CacheableName
+// Code a CacheableChars. This just forwards to UniqueChars, as that's the
+// only data in the class, via inheritance.
+template <CoderMode mode>
+CoderResult CodeCacheableChars(Coder<mode>& coder,
+                               CoderArg<mode, CacheableChars> item) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CacheableChars, 8);
+  return CodeUniqueChars(coder, (UniqueChars*)item);
+}
 
+// Code a CacheableName
 template <CoderMode mode>
 CoderResult CodeCacheableName(Coder<mode>& coder,
                               CoderArg<mode, CacheableName> item) {
@@ -851,6 +858,31 @@ CoderResult CodeTrapSiteVectorArray(Coder<mode>& coder,
   return Ok();
 }
 
+// WasmCompileArgs.h
+
+template <CoderMode mode>
+CoderResult CodeScriptedCaller(Coder<mode>& coder,
+                               CoderArg<mode, ScriptedCaller> item) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::ScriptedCaller, 0);
+  MOZ_TRY((CodeUniqueChars(coder, &item->filename)));
+  MOZ_TRY((CodePod(coder, &item->filenameIsURL)));
+  MOZ_TRY((CodePod(coder, &item->line)));
+  return Ok();
+}
+
+template <CoderMode mode>
+CoderResult CodeCompileArgs(Coder<mode>& coder,
+                            CoderArg<mode, CompileArgs> item) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CompileArgs, 0);
+  MOZ_TRY((CodeScriptedCaller(coder, &item->scriptedCaller)));
+  MOZ_TRY((CodeUniqueChars(coder, &item->sourceMapURL)));
+  MOZ_TRY((CodePod(coder, &item->baselineEnabled)));
+  MOZ_TRY((CodePod(coder, &item->ionEnabled)));
+  MOZ_TRY((CodePod(coder, &item->debugEnabled)));
+  MOZ_TRY((CodePod(coder, &item->forceTiering)));
+  return Ok();
+}
+
 // WasmGC.h
 
 CoderResult CodeStackMap(Coder<MODE_DECODE>& coder,
@@ -1047,7 +1079,8 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
 
   MOZ_TRY(Magic(coder, Marker::CodeMetadata));
   // not serialized: kind
-  MOZ_TRY(CodePod(coder, &item->features));
+  MOZ_TRY((CodeRefPtr<mode, const CompileArgs, &CodeCompileArgs>(
+      coder, &item->compileArgs)));
   // not serialized: dataCount
   MOZ_TRY(CodePodVector(coder, &item->memories));
   // Types go in relatively early, because deserialisation of various other
@@ -1069,9 +1102,6 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY(CodePod(coder, &item->tablesOffsetStart));
   MOZ_TRY(CodePod(coder, &item->tagsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->instanceDataLength));
-  MOZ_TRY(CodePod(coder, &item->filenameIsURL));
-  MOZ_TRY(CodeCacheableChars(coder, &item->filename));
-  MOZ_TRY(CodeCacheableChars(coder, &item->sourceMapURL));
   // not serialized: namePayload
   MOZ_TRY(CodePod(coder, &item->moduleName));
   MOZ_TRY(CodePodVector(coder, &item->funcNames));
@@ -1199,7 +1229,7 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   // Create and initialize the code
   MutableCode code =
       js_new<Code>(CompileMode::Once, codeMeta, /*codeMetaForAsmJS=*/nullptr,
-                   /*maybeBytecode=*/nullptr, /*maybeCompileArgs=*/nullptr);
+                   /*maybeBytecode=*/nullptr);
   if (!code ||
       !code->initialize(std::move(funcImports), std::move(sharedStubs),
                         sharedStubsLinkData, std::move(optimizedCode))) {

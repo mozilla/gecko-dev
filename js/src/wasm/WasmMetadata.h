@@ -129,7 +129,9 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // `const` only because it breaks constructor delegation in
   // CodeMetadata::CodeMetadata, which is a shame.
   ModuleKind kind;
-  FeatureArgs features;
+
+  // The compile arguments that were used for this module.
+  SharedCompileArgs compileArgs;
 
   // Module fields decoded from the module environment (or initialized while
   // validating an asm.js module) and immutable during compilation:
@@ -167,11 +169,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // The total size of the instance data.
   uint32_t instanceDataLength;
 
-  // ==== Names of things
-  //
-  bool filenameIsURL;
-  CacheableChars filename;
-  CacheableChars sourceMapURL;
   // namePayload points at the name section's CustomSection::payload so that
   // the Names (which are use payload-relative offsets) can be used
   // independently of the Module without duplicating the name section.  This
@@ -215,9 +212,10 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   bool debugEnabled;
   ModuleHash debugHash;
 
-  explicit CodeMetadata()
-      : kind(ModuleKind::Wasm),
-        features(),
+  explicit CodeMetadata(const CompileArgs* compileArgs = nullptr,
+                        ModuleKind kind = ModuleKind::Wasm)
+      : kind(kind),
+        compileArgs(compileArgs),
         numFuncImports(0),
         numGlobalImports(0),
         funcDefsOffsetStart(UINT32_MAX),
@@ -226,24 +224,28 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
         memoriesOffsetStart(UINT32_MAX),
         tablesOffsetStart(UINT32_MAX),
         tagsOffsetStart(UINT32_MAX),
-        instanceDataLength(0),
-        filenameIsURL(false),
+        instanceDataLength(UINT32_MAX),
         parsedBranchHints(false),
         debugEnabled(false),
         debugHash() {}
 
-  explicit CodeMetadata(FeatureArgs features_,
-                        ModuleKind kind_ = ModuleKind::Wasm)
-      : CodeMetadata() {
-    features = features_;
-    kind = kind_;
-  }
-
   [[nodiscard]] bool init() {
     MOZ_ASSERT(!types);
-    types = js_new<TypeContext>(features);
+    types = js_new<TypeContext>();
     return types;
   }
+
+  // Generates any new metadata necessary to compile this module. This must be
+  // called after the 'module environment' (everything before the code section)
+  // has been decoded.
+  [[nodiscard]] bool prepareForCompile(CompileMode mode);
+  bool isPreparedForCompile() const { return instanceDataLength != UINT32_MAX; }
+
+  const FeatureArgs& features() const { return compileArgs->features; }
+  const ScriptedCaller& scriptedCaller() const {
+    return compileArgs->scriptedCaller;
+  }
+  const UniqueChars& sourceMapURL() const { return compileArgs->sourceMapURL; }
 
   const TypeDef& getFuncTypeDef(uint32_t funcIndex) const {
     return types->type(funcs[funcIndex].typeIndex);
@@ -263,17 +265,17 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   size_t numMemories() const { return memories.length(); }
 
 #define WASM_FEATURE(NAME, SHORT_NAME, ...) \
-  bool SHORT_NAME##Enabled() const { return features.SHORT_NAME; }
+  bool SHORT_NAME##Enabled() const { return features().SHORT_NAME; }
   JS_FOR_WASM_FEATURES(WASM_FEATURE)
 #undef WASM_FEATURE
-  Shareable sharedMemoryEnabled() const { return features.sharedMemory; }
-  bool simdAvailable() const { return features.simd; }
+  Shareable sharedMemoryEnabled() const { return features().sharedMemory; }
+  bool simdAvailable() const { return features().simd; }
 
   bool isAsmJS() const { return kind == ModuleKind::AsmJS; }
   // A builtin module is a host constructed wasm module that exports host
   // functionality, using special opcodes. Otherwise, it has the same rules
   // as wasm modules and so it does not get a new ModuleKind.
-  bool isBuiltinModule() const { return features.isBuiltinModule; }
+  bool isBuiltinModule() const { return features().isBuiltinModule; }
 
   bool hugeMemoryEnabled(uint32_t memoryIndex) const {
     return !isAsmJS() && memoryIndex < memories.length() &&
@@ -311,11 +313,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   [[nodiscard]] bool allocateInstanceDataBytesN(uint32_t bytes, uint32_t align,
                                                 uint32_t count,
                                                 uint32_t* assignedOffset);
-  // Lay out the instance, writing results into `typeDefsOffsetStart`,
-  // `funcImportsOffsetStart`, `memoriesOffsetStart`, `tablesOffsetStart`,
-  // `tagsOffsetStart`, and, for each global, its `GlobalDesc::offset_`.  The
-  // total data length is also recorded in `instanceDataLength`.
-  [[nodiscard]] bool initInstanceLayout(CompileMode mode);
 
   uint32_t offsetOfFuncDefInstanceData(uint32_t funcIndex) const {
     MOZ_ASSERT(funcIndex >= numFuncImports && funcIndex < numFuncs());
@@ -414,15 +411,19 @@ struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
 
   explicit ModuleMetadata() = default;
 
-  [[nodiscard]] bool init() {
-    codeMeta = js_new<CodeMetadata>();
-    return !!codeMeta && codeMeta->init();
-  }
-  [[nodiscard]] bool init(FeatureArgs features,
+  [[nodiscard]] bool init(const CompileArgs& compileArgs,
                           ModuleKind kind = ModuleKind::Wasm) {
-    codeMeta = js_new<CodeMetadata>(features, kind);
+    codeMeta = js_new<CodeMetadata>(&compileArgs, kind);
     return !!codeMeta && codeMeta->init();
   }
+
+  // Generates any new metadata necessary to compile this module. This must be
+  // called after the 'module environment' (everything before the code section)
+  // has been decoded.
+  [[nodiscard]] bool prepareForCompile(CompileMode mode) {
+    return codeMeta->prepareForCompile(mode);
+  }
+  bool isPreparedForCompile() const { return codeMeta->isPreparedForCompile(); }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };

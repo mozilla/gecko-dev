@@ -188,8 +188,8 @@ class MOZ_STACK_CLASS ModuleGenerator {
   UniqueChars* const error_;
   UniqueCharsVector* const warnings_;
   const Atomic<bool>* const cancelled_;
-  CodeMetadata* const codeMeta_;
-  CompilerEnvironment* const compilerEnv_;
+  const CodeMetadata* const codeMeta_;
+  const CompilerEnvironment* const compilerEnv_;
 
   // Data that is used for partial tiering
   SharedCode partialTieringCode_;
@@ -259,8 +259,6 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // through an out-param that can be serialized with the code block.
   UniqueCodeBlock finishTier(UniqueLinkData* linkData);
 
-  bool finishCodeMetadata(const Bytes& bytecode);
-
   bool isAsmJS() const { return codeMeta_->isAsmJS(); }
   Tier tier() const { return compilerEnv_->tier(); }
   CompileMode mode() const { return compilerEnv_->mode(); }
@@ -269,10 +267,10 @@ class MOZ_STACK_CLASS ModuleGenerator {
   void warnf(const char* msg, ...) MOZ_FORMAT_PRINTF(2, 3);
 
  public:
-  ModuleGenerator(const CompileArgs& args, CodeMetadata* codeMeta,
-                  CompilerEnvironment* compilerEnv, CompileState compilerState,
-                  const Atomic<bool>* cancelled, UniqueChars* error,
-                  UniqueCharsVector* warnings);
+  ModuleGenerator(const CompileArgs& args, const CodeMetadata* codeMeta,
+                  const CompilerEnvironment* compilerEnv,
+                  CompileState compilerState, const Atomic<bool>* cancelled,
+                  UniqueChars* error, UniqueCharsVector* warnings);
   ~ModuleGenerator();
   [[nodiscard]] bool initializeCompleteTier(
       CodeMetadataForAsmJS* codeMetaForAsmJS = nullptr);

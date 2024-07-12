@@ -130,7 +130,8 @@ bool CodeMetadata::allocateInstanceDataBytesN(uint32_t bytes, uint32_t align,
   return allocateInstanceDataBytes(totalBytes.value(), align, assignedOffset);
 }
 
-bool CodeMetadata::initInstanceLayout(CompileMode mode) {
+bool CodeMetadata::prepareForCompile(CompileMode mode) {
+  MOZ_ASSERT(!isPreparedForCompile());
   instanceDataLength = 0;
 
   // Allocate space for function counters, if we have them
@@ -253,8 +254,6 @@ size_t CodeMetadata::sizeOfExcludingThis(
          globals.sizeOfExcludingThis(mallocSizeOf) +
          tags.sizeOfExcludingThis(mallocSizeOf) +
          tables.sizeOfExcludingThis(mallocSizeOf) +
-         filename.sizeOfExcludingThis(mallocSizeOf) +
-         sourceMapURL.sizeOfExcludingThis(mallocSizeOf) +
          namePayload->sizeOfExcludingThis(mallocSizeOf) +
          funcNames.sizeOfExcludingThis(mallocSizeOf) +
          funcs.sizeOfExcludingThis(mallocSizeOf) +

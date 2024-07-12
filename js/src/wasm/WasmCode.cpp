@@ -230,7 +230,7 @@ static void SendCodeRangesToProfiler(
     (void)size;
 
     if (PerfEnabled()) {
-      const char* file = codeMeta.filename.get();
+      const char* file = codeMeta.scriptedCaller().filename.get();
       if (codeRange.isFunction()) {
         if (!name.append('\0')) {
           return;
@@ -660,9 +660,9 @@ bool Code::requestTierUp(uint32_t funcIndex,
     return true;
   }
 
-  return CompilePartialTier2(*compileArgs_.get(), bytecode_->bytes, funcIndex,
-                             funcBytecodeOffset, *this, nullptr, nullptr,
-                             nullptr);
+  return CompilePartialTier2(*codeMeta_->compileArgs, bytecode_->bytes,
+                             funcIndex, funcBytecodeOffset, *this, nullptr,
+                             nullptr, nullptr);
 }
 
 bool Code::finishTier2(const LinkData& linkData,
@@ -1002,8 +1002,7 @@ bool JumpTables::initialize(CompileMode mode, const CodeMetadata& codeMeta,
 
 Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
            const CodeMetadataForAsmJS* codeMetaForAsmJS,
-           const ShareableBytes* maybeBytecode,
-           const CompileArgs* maybeCompileArgs)
+           const ShareableBytes* maybeBytecode)
     : mode_(mode),
       data_(mutexid::WasmCodeProtected),
       codeMeta_(&codeMeta),
@@ -1013,8 +1012,7 @@ Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
       profilingLabels_(mutexid::WasmCodeProfilingLabels,
                        CacheableCharsVector()),
       trapCode_(nullptr),
-      bytecode_(maybeBytecode),
-      compileArgs_(maybeCompileArgs) {}
+      bytecode_(maybeBytecode) {}
 
 bool Code::initialize(FuncImportVector&& funcImports,
                       UniqueCodeBlock sharedStubs,
@@ -1193,7 +1191,7 @@ bool Code::appendProfilingLabels(
       return false;
     }
 
-    if (const char* filename = codeMeta().filename.get()) {
+    if (const char* filename = codeMeta().scriptedCaller().filename.get()) {
       if (!name.append(filename, strlen(filename))) {
         return false;
       }

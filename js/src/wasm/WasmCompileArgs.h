@@ -208,6 +208,8 @@ struct CompileArgs : ShareableBase<CompileArgs> {
   //   errors.
   // - the 'buildForAsmJS' one, which uses the appropriate configuration for
   //   legacy asm.js code.
+  // - the 'buildForValidation' one, which takes just the features to enable
+  //   and sets the compilers to a null state.
   // - one that gives complete access to underlying fields.
   //
   // You should use the factory functions in general, unless you have a very
@@ -222,9 +224,10 @@ struct CompileArgs : ShareableBase<CompileArgs> {
                                           ScriptedCaller&& scriptedCaller,
                                           const FeatureOptions& options,
                                           bool reportOOM = false);
+  static SharedCompileArgs buildForValidation(const FeatureArgs& args);
 
-  explicit CompileArgs(ScriptedCaller&& scriptedCaller)
-      : scriptedCaller(std::move(scriptedCaller)),
+  explicit CompileArgs()
+      : scriptedCaller(),
         baselineEnabled(false),
         ionEnabled(false),
         debugEnabled(false),

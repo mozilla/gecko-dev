@@ -2179,23 +2179,6 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
     codeMetaForAsmJS_->srcLengthWithRightBrace =
         endAfterCurly - codeMetaForAsmJS_->srcStart;
 
-    ScriptedCaller scriptedCaller;
-    if (parser_.ss->filename()) {
-      scriptedCaller.line = 0;  // unused
-      scriptedCaller.filename = DuplicateString(parser_.ss->filename());
-      if (!scriptedCaller.filename) {
-        return nullptr;
-      }
-    }
-
-    // The default options are fine for asm.js
-    SharedCompileArgs args =
-        CompileArgs::buildForAsmJS(std::move(scriptedCaller));
-    if (!args) {
-      ReportOutOfMemory(fc_);
-      return nullptr;
-    }
-
     uint32_t codeSectionSize = 0;
     for (const Func& func : funcDefs_) {
       codeSectionSize += func.bytes().length();
@@ -2213,7 +2196,11 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
       return nullptr;
     }
 
-    ModuleGenerator mg(*args, codeMeta_, &compilerEnv_,
+    if (!moduleMeta_->prepareForCompile(compilerEnv_.mode())) {
+      return nullptr;
+    }
+
+    ModuleGenerator mg(*codeMeta_->compileArgs, codeMeta_, &compilerEnv_,
                        compilerEnv_.initialState(), nullptr, nullptr, nullptr);
     if (!mg.initializeCompleteTier(codeMetaForAsmJS_.get())) {
       return nullptr;
@@ -6431,8 +6418,25 @@ static SharedModule CheckModule(FrontendContext* fc,
                                 unsigned* time) {
   int64_t before = PRMJ_Now();
 
+  ScriptedCaller scriptedCaller;
+  if (parser.ss->filename()) {
+    scriptedCaller.line = 0;  // unused
+    scriptedCaller.filename = DuplicateString(parser.ss->filename());
+    if (!scriptedCaller.filename) {
+      return nullptr;
+    }
+  }
+
+  // The default options are fine for asm.js
+  SharedCompileArgs args =
+      CompileArgs::buildForAsmJS(std::move(scriptedCaller));
+  if (!args) {
+    ReportOutOfMemory(fc);
+    return nullptr;
+  }
+
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta || !moduleMeta->init(FeatureArgs(), ModuleKind::AsmJS)) {
+  if (!moduleMeta || !moduleMeta->init(*args, ModuleKind::AsmJS)) {
     return nullptr;
   }
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;

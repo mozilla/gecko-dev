@@ -874,7 +874,7 @@ class SuspendingFunctionModuleFactory {
     }
 
     MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-    if (!moduleMeta || !moduleMeta->init(compileArgs->features)) {
+    if (!moduleMeta || !moduleMeta->init(*compileArgs)) {
       return nullptr;
     }
     MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
@@ -1007,6 +1007,10 @@ class SuspendingFunctionModuleFactory {
                                   std::move(paramsContinueOnSuspendable),
                                   std::move(resultsContinueOnSuspendable),
                                   /*declareForRef = */ true)) {
+      return nullptr;
+    }
+
+    if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
       return nullptr;
     }
 
@@ -1423,7 +1427,7 @@ class PromisingFunctionModuleFactory {
     }
 
     MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-    if (!moduleMeta || !moduleMeta->init(compileArgs->features)) {
+    if (!moduleMeta || !moduleMeta->init(*compileArgs)) {
       return nullptr;
     }
     MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
@@ -1501,6 +1505,10 @@ class PromisingFunctionModuleFactory {
     if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsTrampoline),
                                   std::move(resultsTrampoline),
                                   /* declareFoRef = */ true)) {
+      return nullptr;
+    }
+
+    if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
       return nullptr;
     }
 

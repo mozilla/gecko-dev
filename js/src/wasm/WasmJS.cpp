@@ -148,6 +148,7 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
                           HandleObject importObj, ImportValues* imports) {
   const ModuleMetadata& moduleMeta = module.moduleMeta();
   const CodeMetadata& codeMeta = module.codeMeta();
+  const BuiltinModuleIds& builtinModules = codeMeta.features().builtinModules;
 
   if (!moduleMeta.imports.empty() && !importObj) {
     return ThrowBadImportArg(cx);
@@ -165,8 +166,8 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
   uint32_t tableIndex = 0;
   const TableDescVector& tables = codeMeta.tables;
   for (const Import& import : moduleMeta.imports) {
-    Maybe<BuiltinModuleId> builtinModule = ImportMatchesBuiltinModule(
-        import.module.utf8Bytes(), codeMeta.features.builtinModules);
+    Maybe<BuiltinModuleId> builtinModule =
+        ImportMatchesBuiltinModule(import.module.utf8Bytes(), builtinModules);
     if (builtinModule) {
       MutableHandle<JSObject*> builtinInstance =
           builtinInstances[*builtinModule];
@@ -457,7 +458,7 @@ bool wasm::CompileAndSerialize(JSContext* cx, const ShareableBytes& bytecode,
   MOZ_ASSERT(CodeCachingAvailable(cx));
 
   // Create and manually fill in compile args for code caching
-  MutableCompileArgs compileArgs = js_new<CompileArgs>(ScriptedCaller());
+  MutableCompileArgs compileArgs = js_new<CompileArgs>();
   if (!compileArgs) {
     return false;
   }
@@ -4096,7 +4097,7 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   }
 
   MutableModuleMetadata moduleMeta = js_new<ModuleMetadata>();
-  if (!moduleMeta || !moduleMeta->init(compileArgs->features)) {
+  if (!moduleMeta || !moduleMeta->init(*compileArgs)) {
     return nullptr;
   }
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
@@ -4125,6 +4126,10 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   CacheableName fieldName;
   if (!moduleMeta->exports.emplaceBack(std::move(fieldName), 0,
                                        DefinitionKind::Function)) {
+    return nullptr;
+  }
+
+  if (!moduleMeta->prepareForCompile(compilerEnv.mode())) {
     return nullptr;
   }
 

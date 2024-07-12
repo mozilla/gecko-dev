@@ -1351,7 +1351,7 @@ inline bool OpIter<Policy>::startInitExpr(ValType expected) {
 
   // GC allows accessing any previously defined global, not just those that are
   // imported and immutable.
-  if (codeMeta_.features.gc) {
+  if (codeMeta_.features().gc) {
     maxInitializedGlobalsIndexPlus1_ = codeMeta_.globals.length();
   } else {
     maxInitializedGlobalsIndexPlus1_ = codeMeta_.numGlobalImports;
@@ -1375,12 +1375,13 @@ inline bool OpIter<Policy>::endInitExpr() {
 
 template <typename Policy>
 inline bool OpIter<Policy>::readValType(ValType* type) {
-  return d_.readValType(*codeMeta_.types, codeMeta_.features, type);
+  return d_.readValType(*codeMeta_.types, codeMeta_.features(), type);
 }
 
 template <typename Policy>
 inline bool OpIter<Policy>::readHeapType(bool nullable, RefType* type) {
-  return d_.readHeapType(*codeMeta_.types, codeMeta_.features, nullable, type);
+  return d_.readHeapType(*codeMeta_.types, codeMeta_.features(), nullable,
+                         type);
 }
 
 template <typename Policy>
@@ -2456,7 +2457,7 @@ template <typename Policy>
 inline bool OpIter<Policy>::readRefNull(RefType* type) {
   MOZ_ASSERT(Classify(op_) == OpKind::RefNull);
 
-  if (!d_.readRefNull(*codeMeta_.types, codeMeta_.features, type)) {
+  if (!d_.readRefNull(*codeMeta_.types, codeMeta_.features(), type)) {
     return false;
   }
   return push(*type);
