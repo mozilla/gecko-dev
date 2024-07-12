@@ -32,7 +32,7 @@ addRDMTask(
 
     await testDefaults(ui);
     await testChangingDevice(ui);
-    await testResetWhenResizingViewport(ui);
+    await testResizingViewport(ui);
     await testChangingDevicePixelRatio(ui);
   },
   { waitForDeviceList: true }
@@ -76,8 +76,8 @@ async function testChangingDevice(ui) {
   testViewportDeviceMenuLabel(ui, testDevice.name);
 }
 
-async function testResetWhenResizingViewport(ui) {
-  info("Test reset when resizing the viewport");
+async function testResizingViewport(ui) {
+  info("Test resizing the viewport");
 
   await testViewportResize(
     ui,
@@ -89,11 +89,14 @@ async function testResetWhenResizingViewport(ui) {
     }
   );
 
-  const dppx = await waitForDevicePixelRatio(ui, DEFAULT_DPPX);
-  is(dppx, DEFAULT_DPPX, "Content has expected devicePixelRatio");
+  // Wait for a bit to let enough time to a change in dpr to happen
+  await wait(1000);
+
+  const dppx = await getViewportDevicePixelRatio(ui);
+  is(dppx, testDevice.pixelRatio, "Content has expected devicePixelRatio");
 
   testViewportDevicePixelRatioSelect(ui, {
-    value: DEFAULT_DPPX,
+    value: testDevice.pixelRatio,
     disabled: false,
   });
   testViewportDeviceMenuLabel(ui, "Responsive");

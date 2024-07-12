@@ -22,7 +22,7 @@ class ViewportDimension extends PureComponent {
   static get propTypes() {
     return {
       doResizeViewport: PropTypes.func.isRequired,
-      onRemoveDeviceAssociation: PropTypes.func.isRequired,
+      onRemoveDeviceAssociation: PropTypes.func,
       viewport: PropTypes.shape(Types.viewport).isRequired,
     };
   }
@@ -157,8 +157,8 @@ class ViewportDimension extends PureComponent {
 
     // Change the device selector back to an unselected device
     // TODO: Bug 1332754: Logic like this probably belongs in the action creator.
-    if (viewport.device) {
-      onRemoveDeviceAssociation(viewport.id);
+    if (viewport.device && typeof onRemoveDeviceAssociation === "function") {
+      onRemoveDeviceAssociation(viewport.id, { resetProfile: false });
     }
 
     doResizeViewport(

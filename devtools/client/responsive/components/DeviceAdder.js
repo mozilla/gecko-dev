@@ -165,7 +165,6 @@ class DeviceAdder extends PureComponent {
                 height,
               },
               doResizeViewport: this.onChangeSize,
-              onRemoveDeviceAssociation: () => {},
             })
           ),
           dom.label(

@@ -31,9 +31,10 @@ addRDMTask(
 
     await testDefaults(ui);
     await testChangingDevice(ui);
-    await testResizingViewport(ui, true, false);
+    await testResizingViewport(ui, { hasDevice: true, touch: true });
+    await testDisableTouchSimulation(ui);
+    await testResizingViewport(ui, { hasDevice: false, touch: false });
     await testEnableTouchSimulation(ui);
-    await testResizingViewport(ui, false, true);
     await testDisableTouchSimulation(ui);
 
     reloadOnTouchChange(false);
@@ -69,7 +70,7 @@ async function testChangingDevice(ui) {
   testViewportDeviceMenuLabel(ui, testDevice.name);
 }
 
-async function testResizingViewport(ui, hasDevice, touch) {
+async function testResizingViewport(ui, { hasDevice, touch }) {
   info(`Test resizing the viewport, device ${hasDevice}, touch ${touch}`);
 
   await testViewportResize(

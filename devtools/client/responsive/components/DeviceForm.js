@@ -170,7 +170,6 @@ class DeviceForm extends PureComponent {
         ViewportDimension({
           viewport: { width, height },
           doResizeViewport: this.onChangeSize,
-          onRemoveDeviceAssociation: () => {},
         })
       ),
       dom.label(

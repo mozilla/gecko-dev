@@ -377,17 +377,10 @@ async function testViewportResize(
   expectedHandleMove,
   { hasDevice } = {}
 ) {
-  let deviceRemoved;
-  let waitForDevToolsReload;
-  if (hasDevice) {
-    // If a device was defined, a reload will be triggered by the resize,
-    // wait for devtools to reload completely.
-    waitForDevToolsReload = await watchForDevToolsReload(
-      ui.getViewportBrowser()
-    );
-    // and wait for the device-associaton-removed event.
-    deviceRemoved = once(ui, "device-association-removed");
-  }
+  // If a device was defined, wait for the device-associaton-removed event.
+  const deviceRemoved = hasDevice
+    ? once(ui, "device-association-removed")
+    : null;
 
   const resized = ui.once("viewport-resize-dragend");
   const startRect = dragElementBy(selector, ...moveBy, ui);
@@ -405,12 +398,7 @@ async function testViewportResize(
     `The y move of ${selector} is as expected`
   );
 
-  if (hasDevice) {
-    const { reloadTriggered } = await deviceRemoved;
-    if (reloadTriggered) {
-      await waitForDevToolsReload();
-    }
-  }
+  await deviceRemoved;
 }
 
 async function openDeviceModal(ui) {

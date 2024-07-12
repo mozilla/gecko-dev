@@ -66,10 +66,10 @@ addRDMTask(
       }
     );
 
-    info("Should have default UA after resizing viewport");
-    await testUserAgent(ui, DEFAULT_UA);
-    await testDevicePixelRatio(ui, DEFAULT_DPPX);
-    await testTouchEventsOverride(ui, false);
+    info("Should have kept device profile  resizing viewport");
+    await testUserAgent(ui, testDevice.userAgent);
+    await testDevicePixelRatio(ui, testDevice.pixelRatio);
+    await testTouchEventsOverride(ui, true);
     testViewportDeviceMenuLabel(ui, "Responsive");
 
     // Test device with generic properties
