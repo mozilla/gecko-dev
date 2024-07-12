@@ -148,6 +148,37 @@ async function runSchemelessTest(aURI, aDesc, aAssertURLStartsWith) {
 }
 
 add_task(async function () {
+  info("(0) exempt loopback addresses");
+
+  await setPrefsAndResetFog(
+    false /* aHTTPSOnlyPref */,
+    false /* aHTTPSFirstPref */,
+    false /* aSchemeLessPref */
+  );
+
+  // the request to localhost will actually fail in our test infra,
+  // though the telemetry would be recorded.
+  await runUpgradeTest(
+    "https://localhost",
+    "(0) exempt loopback addresses",
+    "https://"
+  );
+  verifyGleanValues(
+    "(0) exempt loopback addresses",
+    null /* aNoUpgrade */,
+    null /* aAlreadyHTTPS */,
+    null /* aHSTS */,
+    null /* aHttpsOnlyUpgrade */,
+    null /* aHttpsOnlyUpgradeDowngrade */,
+    null /* aHttpsFirstUpgrade */,
+    null /* aHttpsFirstUpgradeDowngrade */,
+    null /* aHttpsFirstSchemelessUpgrade */,
+    null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aHttpsRR */
+  );
+});
+
+add_task(async function () {
   info("(1) no upgrade test");
 
   await setPrefsAndResetFog(

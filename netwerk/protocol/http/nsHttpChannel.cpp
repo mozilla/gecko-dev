@@ -8019,10 +8019,16 @@ nsresult nsHttpChannel::LogConsoleError(const char* aTag) {
   return NS_OK;
 }
 
-static void RecordHTTPSUpgradeTelemetry(nsILoadInfo* aLoadInfo) {
+static void RecordHTTPSUpgradeTelemetry(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
   // we record https telemetry only for top-level loads
   if (aLoadInfo->GetExternalContentPolicyType() !=
       ExtContentPolicy::TYPE_DOCUMENT) {
+    return;
+  }
+
+  // exempt loopback addresses because we only want to record telemetry
+  // for actual web requests
+  if (nsMixedContentBlocker::IsPotentiallyTrustworthyLoopbackURL(aURI)) {
     return;
   }
 
@@ -8226,7 +8232,7 @@ nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
     mTransferSize = mTransaction->GetTransferSize();
     mRequestSize = mTransaction->GetRequestSize();
 
-    RecordHTTPSUpgradeTelemetry(mLoadInfo);
+    RecordHTTPSUpgradeTelemetry(mURI, mLoadInfo);
 
     // If we are using the transaction to serve content, we also save the
     // time since async open in the cache entry so we can compare telemetry
