@@ -62,15 +62,15 @@ void SuspenderObjectData::releaseStackMemory() {
   stackMemory_ = nullptr;
 }
 
-#  ifdef _WIN64
+#  if defined(_WIN32)
 // On WIN64, the Thread Information Block stack limits has to be modified to
 // avoid failures on SP checks.
 void SuspenderObjectData::updateTIBStackFields() {
   _NT_TIB* tib = reinterpret_cast<_NT_TIB*>(::NtCurrentTeb());
   savedStackBase_ = tib->StackBase;
   savedStackLimit_ = tib->StackLimit;
-  uintptr_t stack_limit = (uintptr_t)stackMemory_ + SuspendableRedZoneSize;
-  uintptr_t stack_base = stack_limit + SuspendableStackSize;
+  uintptr_t stack_limit = (uintptr_t)stackMemory_;
+  uintptr_t stack_base = stack_limit + SuspendableStackPlusRedZoneSize;
   tib->StackBase = (void*)stack_base;
   tib->StackLimit = (void*)stack_limit;
 }
@@ -306,7 +306,7 @@ void SuspenderObject::finalize(JS::GCContext* gcx, JSObject* obj) {
 void SuspenderObject::setMoribund(JSContext* cx) {
   MOZ_ASSERT(state() == SuspenderState::Active);
   ResetInstanceStackLimits(cx);
-#  ifdef _WIN64
+#  if defined(_WIN32)
   data()->restoreTIBStackFields();
 #  endif
   SuspenderObjectData* data = this->data();
@@ -321,7 +321,7 @@ void SuspenderObject::setMoribund(JSContext* cx) {
 void SuspenderObject::setActive(JSContext* cx) {
   data()->setState(SuspenderState::Active);
   UpdateInstanceStackLimitsForSuspendableStack(cx, getStackMemoryLimit());
-#  ifdef _WIN64
+#  if defined(_WIN32)
   data()->updateTIBStackFields();
 #  endif
 }
@@ -329,7 +329,7 @@ void SuspenderObject::setActive(JSContext* cx) {
 void SuspenderObject::setSuspended(JSContext* cx) {
   data()->setState(SuspenderState::Suspended);
   ResetInstanceStackLimits(cx);
-#  ifdef _WIN64
+#  if defined(_WIN32)
   data()->restoreTIBStackFields();
 #  endif
 }
@@ -563,6 +563,35 @@ bool CallImportOnMainThread(JSContext* cx, Instance* instance,
           : "r"(stacks), "r"(CallImportData::Call), "r"(&data)         \
           : "rdi", "rax")
   INLINED_ASM(24, 32, 40, 48);
+#  elif defined(__i386__) || defined(_M_IX86)
+#    define CALLER_SAVED_REGS "eax", "ecx", "edx"
+#    define INLINED_ASM(MAIN_FP, MAIN_SP, SUSPENDABLE_FP, SUSPENDABLE_SP) \
+      CHECK_OFFSETS(MAIN_FP, MAIN_SP, SUSPENDABLE_FP, SUSPENDABLE_SP);    \
+      asm("\n   mov     %1, %%edx"                                        \
+          "\n   mov     %%ebp, " #SUSPENDABLE_FP "(%%edx)"                \
+          "\n   mov     %%esp, " #SUSPENDABLE_SP "(%%edx)"                \
+                                                                          \
+          "\n   mov     " #MAIN_FP "(%%edx), %%ebp"                       \
+          "\n   mov     " #MAIN_SP "(%%edx), %%esp"                       \
+                                                                          \
+          "\n   push    %%edx"                                            \
+          "\n   sub     $8, %%esp"                                        \
+          "\n   push    %3"                                               \
+          "\n   call    *%2"                                              \
+          "\n   add     $12, %%esp"                                       \
+          "\n   pop     %%edx"                                            \
+                                                                          \
+          "\n   mov     %%ebp, " #MAIN_FP "(%%edx)"                       \
+          "\n   mov     %%esp, " #MAIN_SP "(%%edx)"                       \
+                                                                          \
+          "\n   mov     " #SUSPENDABLE_FP "(%%edx), %%ebp"                \
+          "\n   mov     " #SUSPENDABLE_SP "(%%edx), %%esp"                \
+                                                                          \
+          "\n   mov     %%eax, %0"                                       \
+          : "=r"(res)                                                     \
+          : "r"(stacks), "r"(CallImportData::Call), "r"(&data)            \
+          : CALLER_SAVED_REGS)
+  INLINED_ASM(12, 16, 20, 24);
 
 #  else
   MOZ_CRASH("Not supported for this platform");

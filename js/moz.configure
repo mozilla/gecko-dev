@@ -813,10 +813,10 @@ def default_wasm_jspi(
     if not is_nightly:
         return
 
-    if simulator and (simulator[0] == "arm64"):
-        return True
+    if simulator:
+        return simulator[0] == "arm64"
 
-    if target.cpu in ("x86_64", "aarch64"):
+    if target.cpu in ("x86_64", "x86", "aarch64"):
         return True
 
 
@@ -852,10 +852,10 @@ def wasm_jspi(value, jit_enabled, simulator, gc, tail_calls, no_experimental, ta
     if simulator and (simulator[0] != "arm64"):
         die("--enable-wasm-jspi is only supported for arm64 simulator")
 
-    if target.cpu in ("x86_64", "aarch64"):
+    if target.cpu in ("x86_64", "x86", "aarch64"):
         return True
 
-    die("--enable-wasm-jspi only possible when targeting the x86_64/arm64 jits")
+    die("--enable-wasm-jspi only possible when targeting the x86_64/x86/arm64 jits")
 
 
 set_config("ENABLE_WASM_JSPI", wasm_jspi)
