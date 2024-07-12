@@ -1324,8 +1324,7 @@ CoderResult CodeModule(Coder<mode>& coder, CoderArg<mode, Module> item) {
 
 static bool GetSerializedSize(const Module& module, size_t* size) {
   Coder<MODE_SIZE> coder(module.codeMeta().types.get());
-  auto result =
-      CodeModule(coder, &module);
+  auto result = CodeModule(coder, &module);
   if (result.isErr()) {
     return false;
   }
@@ -1338,8 +1337,7 @@ bool Module::serialize(Bytes* bytes) const {
   MOZ_RELEASE_ASSERT(code_->hasCompleteTier(Tier::Serialized));
 
   size_t serializedSize;
-  if (!GetSerializedSize(*this,
-                         &serializedSize)) {
+  if (!GetSerializedSize(*this, &serializedSize)) {
     // An error is an overflow, return false
     return false;
   }
@@ -1351,8 +1349,7 @@ bool Module::serialize(Bytes* bytes) const {
 
   Coder<MODE_ENCODE> coder(codeMeta().types.get(), bytes->begin(),
                            serializedSize);
-  CoderResult result =
-      CodeModule(coder, this);
+  CoderResult result = CodeModule(coder, this);
   if (result.isErr()) {
     // An error is an OOM, return false
     return false;

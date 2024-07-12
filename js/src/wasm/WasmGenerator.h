@@ -266,8 +266,8 @@ class MOZ_STACK_CLASS ModuleGenerator {
   bool debugEnabled() const { return compilerEnv_->debugEnabled(); }
   bool compilingTier1() const {
     return compileState_ == CompileState::Once ||
-      compileState_ == CompileState::EagerTier1 ||
-      compileState_ == CompileState::LazyTier1;
+           compileState_ == CompileState::EagerTier1 ||
+           compileState_ == CompileState::LazyTier1;
   }
 
   void warnf(const char* msg, ...) MOZ_FORMAT_PRINTF(2, 3);

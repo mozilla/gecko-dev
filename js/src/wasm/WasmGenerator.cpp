@@ -1058,8 +1058,8 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
   }
 
   const FuncDesc& func = codeMeta_->funcs[funcIndex];
-  if (func.isExported() && !codeBlock_->funcExports.emplaceBack(FuncExport(
-                               funcIndex, func.isEager()))) {
+  if (func.isExported() && !codeBlock_->funcExports.emplaceBack(
+                               FuncExport(funcIndex, func.isEager()))) {
     return false;
   }
 

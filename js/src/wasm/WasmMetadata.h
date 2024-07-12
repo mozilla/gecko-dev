@@ -27,13 +27,11 @@ class FuncExport {
   uint32_t eagerInterpEntryOffset_;  // Machine code offset
   bool hasEagerStubs_;
 
-  WASM_CHECK_CACHEABLE_POD(funcIndex_, eagerInterpEntryOffset_,
-                           hasEagerStubs_);
+  WASM_CHECK_CACHEABLE_POD(funcIndex_, eagerInterpEntryOffset_, hasEagerStubs_);
 
  public:
   FuncExport() = default;
-  explicit FuncExport(uint32_t funcIndex,
-                      bool hasEagerStubs) {
+  explicit FuncExport(uint32_t funcIndex, bool hasEagerStubs) {
     funcIndex_ = funcIndex;
     eagerInterpEntryOffset_ = UINT32_MAX;
     hasEagerStubs_ = hasEagerStubs;
@@ -74,9 +72,7 @@ class FuncImport {
 
  public:
   FuncImport()
-      : instanceOffset_(0),
-        interpExitCodeOffset_(0),
-        jitExitCodeOffset_(0) {}
+      : instanceOffset_(0), interpExitCodeOffset_(0), jitExitCodeOffset_(0) {}
 
   explicit FuncImport(uint32_t instanceOffset) {
     instanceOffset_ = instanceOffset;
