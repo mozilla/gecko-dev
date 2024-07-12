@@ -1167,54 +1167,22 @@ ElementEditor.prototype = {
   /**
    * Called when the tag name editor has is done editing.
    */
-  async onTagEdit(inputValue, isCommit) {
-    if (!isCommit) {
-      return;
-    }
-
-    inputValue = inputValue.trim();
-    const spaceIndex = inputValue.indexOf(" ");
-    const newTagName =
-      spaceIndex === -1 ? inputValue : inputValue.substring(0, spaceIndex);
-
-    const shouldUpdateTagName =
-      newTagName.toLowerCase() !== this.node.tagName.toLowerCase();
-
-    // If there is content after the tagName, we could have attributes that we need to set
-    // Changing the tag name removes the node, so set the attributes first, then they
-    // will be copied in `editTagName`
-    const newAttributes =
-      spaceIndex === -1 ? null : inputValue.substring(spaceIndex + 1).trim();
-    if (newAttributes?.length) {
-      const doMods = this._startModifyingAttributes();
-      const undoMods = this._startModifyingAttributes();
-      this._applyAttributes(newAttributes, null, doMods, undoMods);
-      // if the tagName will be changed, a new node will be created, and we don't handle
-      // undo for this, so we can directly set the attributes.
-      if (shouldUpdateTagName) {
-        await doMods.apply();
-        undoMods.destroy();
-      } else {
-        this.container.undo.do(
-          () => doMods.apply(),
-          () => undoMods.apply()
-        );
-      }
-    }
-
-    if (!shouldUpdateTagName) {
+  onTagEdit(newTagName, isCommit) {
+    if (
+      !isCommit ||
+      newTagName.toLowerCase() === this.node.tagName.toLowerCase() ||
+      !("editTagName" in this.markup.walker)
+    ) {
       return;
     }
 
     // Changing the tagName removes the node. Make sure the replacing node gets
     // selected afterwards.
     this.markup.reselectOnRemoved(this.node, "edittagname");
-    try {
-      await this.node.walkerFront.editTagName(this.node, newTagName);
-    } catch (e) {
+    this.node.walkerFront.editTagName(this.node, newTagName).catch(() => {
       // Failed to edit the tag name, cancel the reselection.
       this.markup.cancelReselectOnRemoved();
-    }
+    });
   },
 
   destroy() {
