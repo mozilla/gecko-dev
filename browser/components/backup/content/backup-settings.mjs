@@ -25,8 +25,6 @@ export default class BackupSettings extends MozLitElement {
 
   static properties = {
     backupServiceState: { type: Object },
-    recoveryErrorCode: { type: Number },
-    recoveryInProgress: { type: Boolean },
     _enableEncryptionTypeAttr: { type: String },
   };
 
@@ -77,8 +75,6 @@ export default class BackupSettings extends MozLitElement {
       lastBackupDate: null,
       lastBackupFileName: "",
     };
-    this.recoveryInProgress = false;
-    this.recoveryErrorCode = 0;
     this._enableEncryptionTypeAttr = "";
   }
 
@@ -144,6 +140,7 @@ export default class BackupSettings extends MozLitElement {
         }
         break;
       case "restoreFromBackupConfirm":
+        this.restoreFromBackupDialogEl.close();
         this.dispatchEvent(
           new CustomEvent("BackupUI:RestoreFromBackupFile", {
             bubbles: true,
@@ -293,8 +290,6 @@ export default class BackupSettings extends MozLitElement {
         .backupFilePath=${backupFilePath}
         .backupFileToRestore=${backupFileToRestore}
         .backupFileInfo=${backupFileInfo}
-        .recoveryInProgress=${this.recoveryInProgress}
-        .recoveryErrorCode=${this.recoveryErrorCode}
       ></restore-from-backup>
     </dialog>`;
   }

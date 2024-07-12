@@ -6,16 +6,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BackupService: "resource:///modules/backup/BackupService.sys.mjs",
-  ERRORS: "resource:///modules/backup/BackupConstants.mjs",
-});
-
-ChromeUtils.defineLazyGetter(lazy, "logConsole", function () {
-  return console.createInstance({
-    prefix: "BackupUIParent",
-    maxLogLevel: Services.prefs.getBoolPref("browser.backup.log", false)
-      ? "Debug"
-      : "Warn",
-  });
 });
 
 /**
@@ -187,10 +177,10 @@ export class BackupUIParent extends JSWindowActorParent {
           true /* shouldLaunch */
         );
       } catch (e) {
-        lazy.logConsole.error(`Failed to restore file: ${backupFile}`, e);
-        return { success: false, errorCode: e.cause || lazy.ERRORS.UNKNOWN };
+        /**
+         * TODO: (Bug 1905156) display a localized version of error in the restore dialog.
+         */
       }
-      return { success: true };
     } else if (message.name == "ToggleEncryption") {
       let { isEncryptionEnabled, password } = message.data;
 
