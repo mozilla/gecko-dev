@@ -4,11 +4,11 @@
 <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css">
 <style>
   @starting-style {
-    unknowntagname {
+    tagname {
       color: red;
     }
   }
-  unknowntagname {
+  tagname {
     color: blue;
     opacity: 1;
 
@@ -16,9 +16,23 @@
       opacity: 0;
     }
   }
+
+  @starting-style {
+    body > tagnametwo {
+      background-color: salmon;
+    }
+  }
+  body tagnametwo {
+    background-color: tomato;
+
+    @starting-style {
+      background-color: gold;
+    }
+  }
 </style>
 <pre id="log"></pre>
-<unknowntagname></unknowntagname>
+<tagname></tagname>
+<tagnametwo></tagnametwo>
 <script>
 /**
  * This test checks that InspectorUtils.getCSSStyleRules setting
@@ -28,9 +42,11 @@
 
 const InspectorUtils = SpecialPowers.InspectorUtils;
 
-add_task(async function runTests() {
+add_task(async function testBasic() {
+  info("Check the basic case of @starting-style")
+
   const styleSheet = document.styleSheets[1];
-  const el = document.querySelector("unknowntagname");
+  const el = document.querySelector("tagname");
   let rules = InspectorUtils.getCSSStyleRules(el, "", false, true);
   is(rules.length, 3, "Expected rules");
 
@@ -43,13 +59,13 @@ add_task(async function runTests() {
   is(
     rules[1].cssText,
     styleSheet.cssRules[1].cssText,
-    "first returned rule is top-level unknowntagname rule"
+    "second returned rule is top-level tagname rule"
   );
 
   is(
     rules[2].cssText,
     styleSheet.cssRules[1].cssRules[0].cssRules[0].cssText,
-    "second returned rule is the one in the top-level starting-style rule"
+    "third returned rule is the starting-style nested in tagname rule"
   );
 
   info(
@@ -62,7 +78,37 @@ add_task(async function runTests() {
   is(
     rules[0].cssText,
     styleSheet.cssRules[1].cssText,
-    "Only returned rule is top-level unknowntagname rule"
+    "Only returned rule is top-level tagname rule"
+  );
+});
+
+add_task(async function testCombinator() {
+  info("Check that @starting-style with child/descendant combinator " +
+       "selectors are retrieved")
+
+  const styleSheet = document.styleSheets[1];
+  const el = document.querySelector("tagnametwo");
+  const rules = InspectorUtils.getCSSStyleRules(el, "", false, true);
+  is(rules.length, 3, "Got expected rules");
+
+  is(
+    rules[0].cssText,
+    styleSheet.cssRules[2].cssRules[0].cssText,
+    "first returned rule for `tagnametwo` is the one in the top-level " +
+    "starting-style rule"
+  );
+
+  is(
+    rules[1]?.cssText,
+    styleSheet.cssRules[3].cssText,
+    "second returned rule for `tagnametwo` is top-level `body tagnametwo` rule"
+  );
+
+  is(
+    rules[2]?.cssText,
+    styleSheet.cssRules[3].cssRules[0].cssRules[0].cssText,
+    "third returned rule for `tagnametwo` is the starting-style nested " +
+    "in `body tagnametwo` rule"
   );
 });
 </script>
