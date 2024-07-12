@@ -272,13 +272,10 @@ static void ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
                       aData.mColorRange);
 }
 
-void
-ConvertYCbCrToRGBInternal(const layers::PlanarYCbCrData& aData,
-                          const SurfaceFormat& aDestFormat,
-                          const IntSize& aDestSize,
-                          unsigned char* aDestBuffer,
-                          int32_t aStride)
-{
+void ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
+                       const SurfaceFormat& aDestFormat,
+                       const IntSize& aDestSize, unsigned char* aDestBuffer,
+                       int32_t aStride) {
   // ConvertYCbCrToRGB et al. assume the chroma planes are rounded up if the
   // luma plane is odd sized. Monochrome images have 0-sized CbCr planes
   YUVType yuvtype = GetYUVType(aData);
@@ -293,14 +290,7 @@ ConvertYCbCrToRGBInternal(const layers::PlanarYCbCrData& aData,
   } else { // no prescale
     ConvertYCbCrToRGB(srcData, aDestFormat, aDestBuffer, aStride, yuvtype);
   }
-}
 
-void ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
-                       const SurfaceFormat& aDestFormat,
-                       const IntSize& aDestSize, unsigned char* aDestBuffer,
-                       int32_t aStride) {
-  ConvertYCbCrToRGBInternal(aData, aDestFormat, aDestSize, aDestBuffer,
-                            aStride);
 #if MOZ_BIG_ENDIAN()
   // libyuv makes endian-correct result, which needs to be swapped to BGRX
   if (aDestFormat != SurfaceFormat::R5G6B5_UINT16) {
