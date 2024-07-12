@@ -3849,25 +3849,14 @@ export class UrlbarInput {
       this.setPageProxyState("invalid", true);
     }
 
-    if (this.view.isOpen) {
-      if (lazy.UrlbarPrefs.get("closeOtherPanelsOnOpen")) {
-        // UrlbarView rolls up all popups when it opens, but we should
-        // do the same for UrlbarInput when it's already open in case
-        // a tab preview was opened
-        this.window.docShell.treeOwner
-          .QueryInterface(Ci.nsIInterfaceRequestor)
-          .getInterface(Ci.nsIAppWindow)
-          .rollupAllPopups();
-      }
-      if (!value && !lazy.UrlbarPrefs.get("suggest.topsites")) {
-        this.view.clear();
-        if (!this.searchMode || !this.view.oneOffSearchButtons.hasView) {
-          this.view.close();
-          return;
-        }
-      }
-    } else {
+    if (!this.view.isOpen) {
       this.view.clear();
+    } else if (!value && !lazy.UrlbarPrefs.get("suggest.topsites")) {
+      this.view.clear();
+      if (!this.searchMode || !this.view.oneOffSearchButtons.hasView) {
+        this.view.close();
+        return;
+      }
     }
 
     this.view.removeAccessibleFocus();
