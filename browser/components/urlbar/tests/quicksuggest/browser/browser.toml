@@ -47,6 +47,9 @@ skip-if = ["true"] # Bug 1880214
 tags = "search-telemetry"
 skip-if = ["true"] # Bug 1880214
 
+["browser_telemetry_ingestTime.js"]
+tags = "search-telemetry"
+
 ["browser_telemetry_navigationalSuggestions.js"]
 tags = "search-telemetry"
 skip-if = ["true"] # Bug 1880214

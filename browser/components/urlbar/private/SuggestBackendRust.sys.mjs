@@ -316,14 +316,18 @@ export class SuggestBackendRust extends BaseFeature {
     this.logger.info("Starting ingest and configs fetch");
 
     // Do the ingest.
+    let timerId;
     this.logger.debug("Starting ingest");
     try {
+      timerId = Glean.urlbar.quickSuggestIngestTime.start();
       await this.#store.ingest(new lazy.SuggestIngestionConstraints());
+      Glean.urlbar.quickSuggestIngestTime.stopAndAccumulate(timerId);
     } catch (error) {
       // Ingest can throw a `SuggestApiError` subclass called `Other` that has a
       // custom `reason` message, which is very helpful for diagnosing problems
       // with remote settings data in tests in particular.
       this.logger.error("Ingest error: " + (error.reason ?? error));
+      Glean.urlbar.quickSuggestIngestTime.cancel(timerId);
     }
     this.logger.debug("Finished ingest");
 

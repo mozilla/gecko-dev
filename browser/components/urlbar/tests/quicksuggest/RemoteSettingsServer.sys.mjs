@@ -27,7 +27,7 @@ export class RemoteSettingsServer {
    *   on requests and responses like paths and status codes. Pass `Debug` to
    *   log more info like headers, response bodies, added and removed records.
    */
-  constructor({ maxLogLevel = "Info" } = {}) {
+  constructor({ maxLogLevel = "Error" } = {}) {
     this.#log = console.createInstance({
       prefix: "RemoteSettingsServer",
       maxLogLevel,
