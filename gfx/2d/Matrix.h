@@ -1986,6 +1986,16 @@ class Matrix4x4TypedFlagged
                                     _32, _33, _34, _41, _42, _43, _44, mType);
   }
 
+  static Matrix4x4TypedFlagged Translation2d(Float aX, Float aY) {
+    MatrixType matrixType = MatrixType::Simple;
+    if (aX == 0.0 && aY == 0.0) {
+      matrixType = MatrixType::Identity;
+    }
+    return Matrix4x4TypedFlagged(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+                                 0.0f, 0.0f, 1.0f, 0.0f, aX, aY, 0.0f, 1.0f,
+                                 matrixType);
+  }
+
   template <class F>
   PointTyped<TargetUnits, F> TransformPoint(
       const PointTyped<SourceUnits, F>& aPoint) const {
@@ -2324,9 +2334,8 @@ class Matrix4x4TypedFlagged
                         Float a44,
                         typename Matrix4x4TypedFlagged::MatrixType aType)
       : Parent(a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, a41,
-               a42, a43, a44) {
-    mType = aType;
-  }
+               a42, a43, a44),
+        mType(aType) {}
   static Matrix4x4TypedFlagged FromUnknownMatrix(
       const Matrix4x4Flagged& aUnknown) {
     return Matrix4x4TypedFlagged{

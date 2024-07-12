@@ -7463,7 +7463,7 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
    * outparam to null (indicating that there's nothing left) and will hand back
    * the identity matrix.
    */
-  if (!*aOutAncestor) return Matrix4x4();
+  if (!*aOutAncestor) return Matrix4x4Flagged();
 
   /* Keep iterating while the frame can't possibly be transformed. */
   const nsIFrame* current = this;
@@ -7495,9 +7495,9 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
   int32_t scaleFactor =
       ((aFlags & IN_CSS_UNITS) ? AppUnitsPerCSSPixel()
                                : PresContext()->AppUnitsPerDevPixel());
-  return Matrix4x4::Translation(NSAppUnitsToFloatPixels(delta.x, scaleFactor),
-                                NSAppUnitsToFloatPixels(delta.y, scaleFactor),
-                                0.0f);
+  return Matrix4x4Flagged::Translation2d(
+      NSAppUnitsToFloatPixels(delta.x, scaleFactor),
+      NSAppUnitsToFloatPixels(delta.y, scaleFactor));
 }
 
 static void InvalidateRenderingObservers(nsIFrame* aDisplayRoot,
