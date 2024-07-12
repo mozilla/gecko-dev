@@ -4800,7 +4800,7 @@ nsresult EditorBase::HandleDropEvent(DragEvent* aDropEvent) {
   // TODO: We need to add automated tests when dropping something into an
   //       editing host for contenteditable which is in a shadow DOM tree
   //       and its host which is in design mode.
-  else if (!AsHTMLEditor()->IsInDesignMode()) {
+  else if (!droppedAt.ContainerAs<nsIContent>()->IsInDesignMode()) {
     focusedElement = AsHTMLEditor()->ComputeEditingHost();
     if (focusedElement &&
         droppedAt.ContainerAs<nsIContent>()->IsInclusiveDescendantOf(

@@ -680,9 +680,15 @@ class HTMLEditor final : public EditorBase,
   }
 
   /**
-   * Return true if we're in designMode.
+   * Return true if this editor was notified of focus, but has not been notified
+   * of the blur.
    */
-  bool IsInDesignMode() const;
+  [[nodiscard]] bool HasFocus() const { return mHasFocus; }
+
+  /**
+   * Return true if this editor is in the designMode.
+   */
+  [[nodiscard]] bool IsInDesignMode() const { return mIsInDesignMode; }
 
   /**
    * Return true if entire the document is editable (although the document
@@ -4508,6 +4514,9 @@ class HTMLEditor final : public EditorBase,
   bool mOldLinkHandlingEnabled = false;
 
   bool mHasBeforeInputBeenCanceled = false;
+
+  bool mHasFocus = false;
+  bool mIsInDesignMode = false;
 
   ParagraphSeparator mDefaultParagraphSeparator;
 
