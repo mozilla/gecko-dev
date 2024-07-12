@@ -44,7 +44,7 @@ addRDMTask(
     info("Should have default UA at the start of the test");
     await testUserAgent(ui, DEFAULT_UA);
     await testDevicePixelRatio(ui, DEFAULT_DPPX);
-    await testTouchEventsOverride(ui, false);
+    testTouchEventsOverride(ui, false);
     testViewportDeviceMenuLabel(ui, "Responsive");
 
     // Test device with custom properties
@@ -53,7 +53,7 @@ addRDMTask(
     info("Should have device UA now that device is applied");
     await testUserAgent(ui, testDevice.userAgent);
     await testDevicePixelRatio(ui, testDevice.pixelRatio);
-    await testTouchEventsOverride(ui, true);
+    testTouchEventsOverride(ui, true);
 
     // Test resetting device when resizing viewport
     await testViewportResize(
@@ -69,7 +69,7 @@ addRDMTask(
     info("Should have kept device profile  resizing viewport");
     await testUserAgent(ui, testDevice.userAgent);
     await testDevicePixelRatio(ui, testDevice.pixelRatio);
-    await testTouchEventsOverride(ui, true);
+    testTouchEventsOverride(ui, true);
     testViewportDeviceMenuLabel(ui, "Responsive");
 
     // Test device with generic properties
@@ -78,7 +78,7 @@ addRDMTask(
     info("Should have default UA when using device without specific UA");
     await testUserAgent(ui, DEFAULT_UA);
     await testDevicePixelRatio(ui, 1);
-    await testTouchEventsOverride(ui, false);
+    testTouchEventsOverride(ui, false);
 
     reloadOnUAChange(false);
   },

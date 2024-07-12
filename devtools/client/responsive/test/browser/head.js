@@ -629,7 +629,7 @@ async function testDevicePixelRatio(ui, expected) {
   is(dppx, expected, `devicePixelRatio should be set to ${expected}`);
 }
 
-async function testTouchEventsOverride(ui, expected) {
+function testTouchEventsOverride(ui, expected) {
   const { document } = ui.toolWindow;
   const touchButton = document.getElementById("touch-simulation-button");
 

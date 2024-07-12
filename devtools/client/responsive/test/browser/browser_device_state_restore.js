@@ -54,7 +54,7 @@ addRDMTask(
     testViewportDimensions(ui, 320, 480);
     await testUserAgent(ui, DEFAULT_UA);
     await testDevicePixelRatio(ui, DEFAULT_DPPX);
-    await testTouchEventsOverride(ui, false);
+    testTouchEventsOverride(ui, false);
 
     info("Select a device");
     const waitForReload = await watchForDevToolsReload(ui.getViewportBrowser());
@@ -66,7 +66,7 @@ addRDMTask(
     testViewportDeviceMenuLabel(ui, TEST_DEVICE.name);
     await testUserAgent(ui, TEST_DEVICE.userAgent);
     await testDevicePixelRatio(ui, TEST_DEVICE.pixelRatio);
-    await testTouchEventsOverride(ui, TEST_DEVICE.touch);
+    testTouchEventsOverride(ui, TEST_DEVICE.touch);
 
     reloadOnUAChange(false);
   },
@@ -108,7 +108,7 @@ addRDMTaskWithPreAndPost(
     testViewportDimensions(ui, TEST_DEVICE.width, TEST_DEVICE.height);
     await testUserAgent(ui, TEST_DEVICE.userAgent);
     await testDevicePixelRatio(ui, TEST_DEVICE.pixelRatio);
-    await testTouchEventsOverride(ui, TEST_DEVICE.touch);
+    testTouchEventsOverride(ui, TEST_DEVICE.touch);
 
     info("Rotating the viewport.");
     rotateViewport(ui);
@@ -147,7 +147,7 @@ addRDMTask(
     testViewportDimensions(ui, TEST_DEVICE.height, TEST_DEVICE.width);
     await testUserAgent(ui, TEST_DEVICE.userAgent);
     await testDevicePixelRatio(ui, TEST_DEVICE.pixelRatio);
-    await testTouchEventsOverride(ui, TEST_DEVICE.touch);
+    testTouchEventsOverride(ui, TEST_DEVICE.touch);
 
     reloadOnUAChange(false);
   },

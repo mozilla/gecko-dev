@@ -26,7 +26,7 @@ addRDMTask(
     testViewportDimensions(ui, 320, 480);
     await testUserAgent(ui, DEFAULT_UA);
     await testDevicePixelRatio(ui, DEFAULT_DPPX);
-    await testTouchEventsOverride(ui, false);
+    testTouchEventsOverride(ui, false);
 
     info("Changing the RDM size, dppx, ua and toggle ON touch simulations.");
     await setViewportSize(ui, manager, 90, 500);
@@ -55,7 +55,7 @@ addRDMTask(
     testViewportDimensions(ui, 90, 500);
     await testUserAgent(ui, NEW_USER_AGENT);
     await testDevicePixelRatio(ui, NEW_DPPX);
-    await testTouchEventsOverride(ui, true);
+    testTouchEventsOverride(ui, true);
 
     info("Rotating the viewport.");
     rotateViewport(ui);
@@ -81,7 +81,7 @@ addRDMTask(
     testViewportDimensions(ui, 500, 90);
     await testUserAgent(ui, NEW_USER_AGENT);
     await testDevicePixelRatio(ui, NEW_DPPX);
-    await testTouchEventsOverride(ui, true);
+    testTouchEventsOverride(ui, true);
 
     reloadOnTouchChange(false);
     reloadOnUAChange(false);

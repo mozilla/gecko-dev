@@ -57,7 +57,7 @@ async function waitStartup(ui) {
 async function testDefaults(ui) {
   info("Test Defaults");
 
-  await testTouchEventsOverride(ui, false);
+  testTouchEventsOverride(ui, false);
   testViewportDeviceMenuLabel(ui, "Responsive");
 }
 
@@ -66,7 +66,7 @@ async function testChangingDevice(ui) {
 
   await selectDevice(ui, testDevice.name);
   await waitForViewportResizeTo(ui, testDevice.width, testDevice.height);
-  await testTouchEventsOverride(ui, true);
+  testTouchEventsOverride(ui, true);
   testViewportDeviceMenuLabel(ui, testDevice.name);
 }
 
@@ -82,7 +82,7 @@ async function testResizingViewport(ui, { hasDevice, touch }) {
       hasDevice,
     }
   );
-  await testTouchEventsOverride(ui, touch);
+  testTouchEventsOverride(ui, touch);
   testViewportDeviceMenuLabel(ui, "Responsive");
 }
 
@@ -90,12 +90,12 @@ async function testEnableTouchSimulation(ui) {
   info("Test enabling touch simulation via button");
 
   await toggleTouchSimulation(ui);
-  await testTouchEventsOverride(ui, true);
+  testTouchEventsOverride(ui, true);
 }
 
 async function testDisableTouchSimulation(ui) {
   info("Test disabling touch simulation via button");
 
   await toggleTouchSimulation(ui);
-  await testTouchEventsOverride(ui, false);
+  testTouchEventsOverride(ui, false);
 }
