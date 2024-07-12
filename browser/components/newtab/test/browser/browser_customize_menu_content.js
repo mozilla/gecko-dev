@@ -145,7 +145,7 @@ test_newtab({
 
     function promiseWeatherShown() {
       return ContentTaskUtils.waitForMutationCondition(
-        content.document.querySelector("aside"),
+        content.document.querySelector(".weatherWrapper"),
         { childList: true, subtree: true },
         () => getWeatherWidget()
       );

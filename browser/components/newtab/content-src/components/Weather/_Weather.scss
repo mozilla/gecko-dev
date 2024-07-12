@@ -6,10 +6,74 @@
 
 .weather {
   font-size: var(--font-size-root);
-  position: absolute;
-  inset-inline-start: var(--space-xlarge);
-  top: var(--space-xlarge);
-  z-index: 1;
+  margin-block-start: var(--space-xlarge);
+  margin-inline-start: var(--space-xlarge);
+  display: inline-block;
+
+  @media (min-width: $break-point-medium) {
+    position: absolute;
+    inset-inline-start: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
+    margin-block-start: 0;
+    margin-inline-start: 0;
+    z-index: 1;
+  }
+
+  // Edge case: users with weather enabled/search disabled
+  .no-search & {
+    position: relative;
+    margin-block-start: var(--space-xlarge);
+    margin-inline-start: var(--space-xlarge);
+
+    @media (min-width: $break-point-medium) {
+      margin-block-start: 0;
+      margin-inline-start: 0;
+    }
+
+    @media (min-width: $break-point-weather) {
+      position: absolute;
+      inset-inline-start: var(--space-xlarge);
+      inset-block-start: var(--space-xlarge);
+      margin-block-start: 0;
+      margin-inline-start: 0;
+    }
+  }
+}
+
+// Edge case: users with weather enabled/search disabled
+.has-weather.no-search {
+  .outer-wrapper {
+    padding-top: 0;
+
+    @media (min-width: $break-point-medium) {
+      padding-top: 30px;
+    }
+  }
+}
+
+// Edge case: users with weather enabled/search enabled
+.has-weather.has-search {
+  .outer-wrapper {
+    padding-top: 0;
+
+    @media (min-width: $break-point-medium) {
+      padding-top: 30px;
+    }
+  }
+
+  // Edge case: medium screens where we hide the weather icon and
+  // detail info row for overlap issues
+  .weatherIconCol, .weatherDetailedSummaryRow {
+    display: flex;
+
+    @media (min-width: $break-point-medium) {
+      display: none;
+    }
+
+    @media (min-width: $break-point-large) {
+      display: flex;
+    }
+  }
 }
 
 // Unavailable / Error State

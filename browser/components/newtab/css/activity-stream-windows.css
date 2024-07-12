@@ -2161,10 +2161,70 @@ main section {
 
 .weather {
   font-size: var(--font-size-root);
-  position: absolute;
-  inset-inline-start: var(--space-xlarge);
-  top: var(--space-xlarge);
-  z-index: 1;
+  margin-block-start: var(--space-xlarge);
+  margin-inline-start: var(--space-xlarge);
+  display: inline-block;
+}
+@media (min-width: 610px) {
+  .weather {
+    position: absolute;
+    inset-inline-start: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
+    margin-block-start: 0;
+    margin-inline-start: 0;
+    z-index: 1;
+  }
+}
+.no-search .weather {
+  position: relative;
+  margin-block-start: var(--space-xlarge);
+  margin-inline-start: var(--space-xlarge);
+}
+@media (min-width: 610px) {
+  .no-search .weather {
+    margin-block-start: 0;
+    margin-inline-start: 0;
+  }
+}
+@media (min-width: 1506px) {
+  .no-search .weather {
+    position: absolute;
+    inset-inline-start: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
+    margin-block-start: 0;
+    margin-inline-start: 0;
+  }
+}
+
+.has-weather.no-search .outer-wrapper {
+  padding-top: 0;
+}
+@media (min-width: 610px) {
+  .has-weather.no-search .outer-wrapper {
+    padding-top: 30px;
+  }
+}
+
+.has-weather.has-search .outer-wrapper {
+  padding-top: 0;
+}
+@media (min-width: 610px) {
+  .has-weather.has-search .outer-wrapper {
+    padding-top: 30px;
+  }
+}
+.has-weather.has-search .weatherIconCol, .has-weather.has-search .weatherDetailedSummaryRow {
+  display: flex;
+}
+@media (min-width: 610px) {
+  .has-weather.has-search .weatherIconCol, .has-weather.has-search .weatherDetailedSummaryRow {
+    display: none;
+  }
+}
+@media (min-width: 866px) {
+  .has-weather.has-search .weatherIconCol, .has-weather.has-search .weatherDetailedSummaryRow {
+    display: flex;
+  }
 }
 
 .weatherNotAvailable {
