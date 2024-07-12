@@ -174,6 +174,48 @@ struct YUV8BitData {
   UniquePtr<uint8_t[]> mCrChannel;
 };
 
+static void ScaleYCbCrToRGB(const layers::PlanarYCbCrData& aData,
+                            const SurfaceFormat& aDestFormat,
+                            const IntSize& aDestSize,
+                            unsigned char* aDestBuffer,
+                            int32_t aStride,
+                            YUVType aYUVType) {
+#if defined(HAVE_YCBCR_TO_RGB565)
+  if (aDestFormat == SurfaceFormat::R5G6B5_UINT16) {
+    ScaleYCbCrToRGB565(aData.mYChannel,
+                       aData.mCbChannel,
+                       aData.mCrChannel,
+                       aDestBuffer,
+                       aData.mPictureRect.x,
+                       aData.mPictureRect.y,
+                       aData.mPictureRect.width,
+                       aData.mPictureRect.height,
+                       aDestSize.width,
+                       aDestSize.height,
+                       aData.mYStride,
+                       aData.mCbCrStride,
+                       aStride,
+                       aYUVType,
+                       FILTER_BILINEAR);
+    return;
+  }
+#endif
+  ScaleYCbCrToRGB32(aData.mYChannel,
+                    aData.mCbChannel,
+                    aData.mCrChannel,
+                    aDestBuffer,
+                    aData.mPictureRect.width,
+                    aData.mPictureRect.height,
+                    aDestSize.width,
+                    aDestSize.height,
+                    aData.mYStride,
+                    aData.mCbCrStride,
+                    aStride,
+                    aYUVType,
+                    aData.mYUVColorSpace,
+                    FILTER_BILINEAR);
+}
+
 void
 ConvertYCbCrToRGBInternal(const layers::PlanarYCbCrData& aData,
                           const SurfaceFormat& aDestFormat,
@@ -190,39 +232,8 @@ ConvertYCbCrToRGBInternal(const layers::PlanarYCbCrData& aData,
 
   // Convert from YCbCr to RGB now, scaling the image if needed.
   if (aDestSize != srcData.mPictureRect.Size()) {
-#if defined(HAVE_YCBCR_TO_RGB565)
-    if (aDestFormat == SurfaceFormat::R5G6B5_UINT16) {
-      ScaleYCbCrToRGB565(srcData.mYChannel,
-                         srcData.mCbChannel,
-                         srcData.mCrChannel,
-                         aDestBuffer,
-                         srcData.mPictureRect.x,
-                         srcData.mPictureRect.y,
-                         srcData.mPictureRect.width,
-                         srcData.mPictureRect.height,
-                         aDestSize.width,
-                         aDestSize.height,
-                         srcData.mYStride,
-                         srcData.mCbCrStride,
-                         aStride,
-                         yuvtype,
-                         FILTER_BILINEAR);
-    } else
-#endif
-      ScaleYCbCrToRGB32(srcData.mYChannel, //
-                        srcData.mCbChannel,
-                        srcData.mCrChannel,
-                        aDestBuffer,
-                        srcData.mPictureRect.width,
-                        srcData.mPictureRect.height,
-                        aDestSize.width,
-                        aDestSize.height,
-                        srcData.mYStride,
-                        srcData.mCbCrStride,
-                        aStride,
-                        yuvtype,
-                        srcData.mYUVColorSpace,
-                        FILTER_BILINEAR);
+    ScaleYCbCrToRGB(srcData, aDestFormat, aDestSize, aDestBuffer, aStride,
+                    yuvtype);
   } else { // no prescale
 #if defined(HAVE_YCBCR_TO_RGB565)
     if (aDestFormat == SurfaceFormat::R5G6B5_UINT16) {
