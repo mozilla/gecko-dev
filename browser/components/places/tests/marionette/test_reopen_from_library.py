@@ -74,8 +74,10 @@ class TestReopenFromLibrary(WindowManagerMixin, MarionetteTestCase):
             PlacesUtils.bookmarks.virtualToolbarGuid
           );
 
+          // Bookmarks may be imported and shift the expected one, so search
+          // for it.
           let node;
-          for (let i = 0; i < window.ContentTree.view.result.root.childCount; ++i) {
+          for (let i = 1; i < window.ContentTree.view.result.root.childCount; ++i) {
             node = window.ContentTree.view.view.nodeForTreeIndex(i);
             if (node.uri.endsWith("empty.html")) {
               break;

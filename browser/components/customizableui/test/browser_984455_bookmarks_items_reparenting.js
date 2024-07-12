@@ -269,17 +269,6 @@ add_task(async function testOverflowingBookmarksButtonContextMenu() {
  * to the menu from the overflow panel, and then back to the toolbar.
  */
 add_task(async function testOverflowingBookmarksItemsContextMenu() {
-  info("Adding a bookmark to the bookmarks toolbar.");
-  let addedBookmark = await PlacesUtils.bookmarks.insert({
-    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-    title: "Test",
-    url: "https://example.com",
-  });
-
-  registerCleanupFunction(async () => {
-    await PlacesUtils.bookmarks.remove(addedBookmark);
-  });
-
   info("Ensuring panel is ready.");
   await PanelUI.ensureReady();
 
