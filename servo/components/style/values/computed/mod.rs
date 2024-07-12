@@ -36,11 +36,9 @@ use std::cmp;
 use std::f32;
 use std::ops::{Add, Sub};
 
-#[cfg(feature = "gecko")]
 pub use self::align::{
     AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment,
 };
-#[cfg(feature = "gecko")]
 pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
 pub use self::animation::{
@@ -122,7 +120,6 @@ pub use super::specified::ViewportVariant;
 pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use app_units::Au;
 
-#[cfg(feature = "gecko")]
 pub mod align;
 pub mod angle;
 pub mod animation;

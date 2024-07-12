@@ -15,6 +15,7 @@ use style_traits::{CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo,
 #[derive(
     Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct AlignFlags(u8);
 bitflags! {
@@ -153,8 +154,8 @@ pub enum AxisDirection {
     ToResolvedValue,
     ToShmem,
 )]
-#[repr(C)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[repr(C)]
 pub struct ContentDistribution {
     primary: AlignFlags,
     // FIXME(https://github.com/w3c/csswg-drafts/issues/1002): This will need to
@@ -271,6 +272,7 @@ impl ContentDistribution {
     ToResolvedValue,
     ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(transparent)]
 pub struct AlignContent(pub ContentDistribution);
 
@@ -309,6 +311,7 @@ impl SpecifiedValueInfo for AlignContent {
     ToResolvedValue,
     ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(transparent)]
 pub struct JustifyContent(pub ContentDistribution);
 
@@ -345,6 +348,7 @@ impl SpecifiedValueInfo for JustifyContent {
     ToResolvedValue,
     ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(transparent)]
 pub struct SelfAlignment(pub AlignFlags);
 
@@ -417,6 +421,7 @@ impl SelfAlignment {
     ToResolvedValue,
     ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct AlignSelf(pub SelfAlignment);
 
@@ -455,6 +460,7 @@ impl SpecifiedValueInfo for AlignSelf {
     ToResolvedValue,
     ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct JustifySelf(pub SelfAlignment);
 
@@ -493,6 +499,7 @@ impl SpecifiedValueInfo for JustifySelf {
     ToResolvedValue,
     ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct AlignItems(pub AlignFlags);
 
@@ -545,6 +552,7 @@ impl SpecifiedValueInfo for AlignItems {
 ///
 /// <https://drafts.csswg.org/css-align/#justify-items-property>
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct JustifyItems(pub AlignFlags);
 

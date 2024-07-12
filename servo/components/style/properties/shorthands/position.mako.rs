@@ -716,7 +716,8 @@
 
 <%helpers:shorthand
     name="place-content"
-    engines="gecko"
+    engines="gecko servo"
+    servo_pref="layout.flexbox.enabled",
     sub_properties="align-content justify-content"
     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
 >
@@ -771,7 +772,7 @@
 
 <%helpers:shorthand
     name="place-self"
-    engines="gecko"
+    engines="gecko servo"
     sub_properties="align-self justify-self"
     spec="https://drafts.csswg.org/css-align/#place-self-property"
 >
@@ -798,6 +799,7 @@
         })
     }
 
+    #[cfg(feature = "gecko")]
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.align_self.to_css(dest)?;
@@ -808,11 +810,35 @@
             Ok(())
         }
     }
+
+    #[cfg(feature = "servo")]
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            match (self.align_self, self.justify_self) {
+                (Some(align_self), Some(justify_self)) => {
+                    align_self.to_css(dest)?;
+                    if align_self.0 != justify_self.0 {
+                        dest.write_char(' ')?;
+                        justify_self.to_css(dest)?;
+                    }
+                }
+                (Some(align_self), None) => {
+                    align_self.to_css(dest)?;
+                }
+                (None, Some(justify_self)) => {
+                    justify_self.to_css(dest)?;
+                }
+                (None, None) => {}
+            }
+            Ok(())
+        }
+    }
 </%helpers:shorthand>
 
 <%helpers:shorthand
     name="place-items"
-    engines="gecko"
+    engines="gecko servo"
+    servo_pref="layout.flexbox.enabled",
     sub_properties="align-items justify-items"
     spec="https://drafts.csswg.org/css-align/#place-items-property"
 >
@@ -840,12 +866,29 @@
         })
     }
 
+    #[cfg(feature = "gecko")]
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.align_items.to_css(dest)?;
             if self.align_items.0 != self.justify_items.0 {
                 dest.write_char(' ')?;
                 self.justify_items.to_css(dest)?;
+            }
+
+            Ok(())
+        }
+    }
+
+    #[cfg(feature = "servo")]
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            self.align_items.to_css(dest)?;
+
+            if let Some(justify_items) = self.justify_items {
+                if self.align_items.0 != justify_items.0 {
+                    dest.write_char(' ')?;
+                    self.justify_items.to_css(dest)?;
+                }
             }
 
             Ok(())
