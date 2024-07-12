@@ -28,13 +28,6 @@ using PremultFunc = int (*)(const uint8_t* src_argb, int src_stride_argb,
                             uint8_t* dst_argb, int dst_stride_argb, int width,
                             int height);
 
-void ConvertYCbCrAToARGB(const layers::PlanarYCbCrData& aYCbCr,
-                         const layers::PlanarAlphaData& aAlpha,
-                         const SurfaceFormat& aDestFormat,
-                         const IntSize& aDestSize,
-                         unsigned char* aDestBuffer,
-                         int32_t aStride, PremultFunc premultiplyAlphaOp);
-
 // Convert given YUV data w/ or w/out alpha into BGRA or BGRX data.
 void
 ConvertYCbCrToRGB32(const layers::PlanarYCbCrData& aData,

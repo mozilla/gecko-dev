@@ -1919,11 +1919,10 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
     }
 
     MOZ_LOG(sAVIFLog, LogLevel::Debug,
-            ("[this=%p] calling gfx::ConvertYCbCrAToARGB premultOp: %p", this,
+            ("[this=%p] calling gfx::ConvertYCbCrToRGB32 premultOp: %p", this,
              premultOp));
-    gfx::ConvertYCbCrAToARGB(*decodedData, *decodedData->mAlpha, format,
-                             rgbSize, rgbBuf.get(), rgbStride.value(),
-                             premultOp);
+    gfx::ConvertYCbCrToRGB32(*decodedData, format, rgbBuf.get(),
+                             rgbStride.value(), premultOp);
   } else {
     MOZ_LOG(sAVIFLog, LogLevel::Debug,
             ("[this=%p] calling gfx::ConvertYCbCrToRGB", this));
