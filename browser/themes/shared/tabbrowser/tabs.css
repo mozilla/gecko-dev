@@ -37,13 +37,13 @@
     --tab-hover-outline-color: currentColor;
   }
   @media (forced-colors) {
-    --tab-outline-color: ButtonText;
-    --tab-hover-outline-color: SelectedItem;
-    --tab-selected-outline-color: SelectedItem;
+    &:not([lwtheme]) {
+      --tab-outline-color: ButtonText;
+      --tab-hover-outline-color: SelectedItem;
+      --tab-selected-outline-color: SelectedItem;
+    }
   }
   &[lwtheme] {
-    --tab-outline-color: var(--lwt-tab-line-color, currentColor);
-    --tab-hover-outline-color: var(--lwt-tab-line-color, currentColor);
     --tab-selected-outline-color: var(--lwt-tab-line-color, currentColor);
   }
 }
