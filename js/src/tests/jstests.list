@@ -687,10 +687,6 @@ skip script test262/annexB/language/eval-code/direct/script-decl-lex-no-collisio
 # Unicode Minus Sign no longer allowed in offset strings.
 skip script test262/intl402/DateTimeFormat/offset-timezone-no-unicode-minus-sign.js
 
-# https://github.com/tc39/proposal-arraybuffer-base64/pull/58
-skip script test262/built-ins/Uint8Array/prototype/setFromBase64/writes-up-to-error.js
-skip script test262/built-ins/Uint8Array/prototype/setFromHex/writes-up-to-error.js
-
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #
