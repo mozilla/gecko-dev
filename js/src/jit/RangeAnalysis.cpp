@@ -3404,7 +3404,7 @@ void MDiv::collectRangeInfoPreTrunc() {
     canBeNegativeZero_ = false;
   }
 
-  if (fallible()) {
+  if (type() == MIRType::Int32 && fallible()) {
     setGuardRangeBailoutsUnchecked();
   }
 }

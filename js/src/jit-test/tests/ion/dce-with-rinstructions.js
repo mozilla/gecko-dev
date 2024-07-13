@@ -352,6 +352,15 @@ function rdiv_number(i) {
     return i;
 }
 
+var uceFault_div_double = eval(`(${uceFault})`.replace('uceFault', 'uceFault_div_double'));
+function rdiv_double(i) {
+    var x = 1 / i;
+    if (uceFault_div_double(i) || uceFault_div_double(i))
+        assertEq(x, 0.010101010101010102  /* = 1 / 99 */);
+    assertRecoveredOnBailout(x, true);
+    return i;
+}
+
 var uceFault_div_float = eval(`(${uceFault})`.replace('uceFault', 'uceFault_div_float'));
 function rdiv_float(i) {
     var t = Math.fround(1/3);
@@ -2059,6 +2068,7 @@ for (j = 100 - max; j < 100; j++) {
     rimul_overflow(i);
     rimul_object(i);
     rdiv_number(i);
+    rdiv_double(i);
     rdiv_float(i);
     rdiv_object(i);
     rmod_number(i);
