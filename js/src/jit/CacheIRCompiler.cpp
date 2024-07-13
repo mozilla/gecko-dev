@@ -7125,6 +7125,7 @@ bool CacheIRCompiler::emitStoreDataViewValueResult(
     case Scalar::Uint16:
     case Scalar::Int32:
     case Scalar::Uint32:
+    case Scalar::Float16:
     case Scalar::Float32:
       scratch2.construct<AutoScratchRegister>(allocator, masm);
       break;
@@ -7207,6 +7208,14 @@ bool CacheIRCompiler::emitStoreDataViewValueResult(
     case Scalar::Uint32:
       masm.move32(*valInt32, valScratch32());
       break;
+    case Scalar::Float16: {
+      FloatRegister scratchFloat32 = floatScratch0.get().asSingle();
+      masm.convertDoubleToFloat16(floatScratch0, scratchFloat32, valScratch32(),
+                                  liveVolatileRegs());
+      masm.canonicalizeFloatIfDeterministic(scratchFloat32);
+      masm.moveFloat16ToGPR(scratchFloat32, valScratch32(), liveVolatileRegs());
+      break;
+    }
     case Scalar::Float32: {
       FloatRegister scratchFloat32 = floatScratch0.get().asSingle();
       masm.convertDoubleToFloat32(floatScratch0, scratchFloat32);
@@ -7244,6 +7253,7 @@ bool CacheIRCompiler::emitStoreDataViewValueResult(
       masm.byteSwap16SignExtend(valScratch32());
       break;
     case Scalar::Uint16:
+    case Scalar::Float16:
       masm.byteSwap16ZeroExtend(valScratch32());
       break;
     case Scalar::Int32:
@@ -7268,6 +7278,7 @@ bool CacheIRCompiler::emitStoreDataViewValueResult(
   switch (elementType) {
     case Scalar::Int16:
     case Scalar::Uint16:
+    case Scalar::Float16:
       masm.store16Unaligned(valScratch32(), dest);
       break;
     case Scalar::Int32:

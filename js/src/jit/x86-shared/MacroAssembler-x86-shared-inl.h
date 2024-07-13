@@ -18,6 +18,13 @@ namespace jit {
 // ===============================================================
 // Move instructions
 
+void MacroAssembler::moveFloat16ToGPR(FloatRegister src, Register dest) {
+  vmovd(src, dest);
+
+  // Ensure the hi-word is zeroed.
+  movzwl(dest, dest);
+}
+
 void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest) {
   // Ensure the hi-word is zeroed.
   movzwl(src, src);

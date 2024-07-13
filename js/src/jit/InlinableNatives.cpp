@@ -275,6 +275,7 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
     case InlinableNative::DataViewSetUint16:
     case InlinableNative::DataViewSetInt32:
     case InlinableNative::DataViewSetUint32:
+    case InlinableNative::DataViewSetFloat16:
     case InlinableNative::DataViewSetFloat32:
     case InlinableNative::DataViewSetFloat64:
     case InlinableNative::DataViewSetBigInt64:

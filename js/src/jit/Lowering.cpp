@@ -4792,6 +4792,8 @@ void LIRGenerator::visitStoreDataViewElement(MStoreDataViewElement* ins) {
   MOZ_ASSERT(ins->littleEndian()->type() == MIRType::Boolean);
 
   if (ins->isFloatWrite()) {
+    MOZ_ASSERT_IF(ins->writeType() == Scalar::Float16,
+                  ins->value()->type() == MIRType::Float32);
     MOZ_ASSERT_IF(ins->writeType() == Scalar::Float32,
                   ins->value()->type() == MIRType::Float32);
     MOZ_ASSERT_IF(ins->writeType() == Scalar::Float64,
@@ -4820,9 +4822,13 @@ void LIRGenerator::visitStoreDataViewElement(MStoreDataViewElement* ins) {
     temp64Def = tempInt64();
   }
 
-  add(new (alloc()) LStoreDataViewElement(elements, index, value, littleEndian,
-                                          tempDef, temp64Def),
-      ins);
+  auto* lir = new (alloc()) LStoreDataViewElement(
+      elements, index, value, littleEndian, tempDef, temp64Def);
+  add(lir, ins);
+
+  if (MacroAssembler::StoreRequiresCall(ins->writeType())) {
+    assignSafepoint(lir, ins);
+  }
 }
 
 void LIRGenerator::visitStoreTypedArrayElementHole(

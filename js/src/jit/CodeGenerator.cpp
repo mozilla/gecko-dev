@@ -18555,6 +18555,11 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
   const MStoreDataViewElement* mir = lir->mir();
   Scalar::Type writeType = mir->writeType();
 
+  LiveRegisterSet volatileRegs;
+  if (MacroAssembler::StoreRequiresCall(writeType)) {
+    volatileRegs = liveVolatileRegs(lir);
+  }
+
   BaseIndex dest(elements, ToRegister(lir->index()), TimesOne);
 
   bool noSwap = littleEndian->isConstant() &&
@@ -18566,9 +18571,7 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
   if (noSwap && (!Scalar::isFloatingType(writeType) ||
                  MacroAssembler::SupportsFastUnalignedFPAccesses())) {
     if (!Scalar::isBigIntType(writeType)) {
-      MOZ_ASSERT(writeType != Scalar::Float16);
-      StoreToTypedArray(masm, writeType, value, dest, InvalidReg,
-                        LiveRegisterSet{});
+      StoreToTypedArray(masm, writeType, value, dest, temp, volatileRegs);
     } else {
       masm.loadBigInt64(ToRegister(value), temp64);
       masm.storeToTypedBigIntArray(writeType, temp64, dest);
@@ -18588,6 +18591,12 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
         masm.move32(ToRegister(value), temp);
       }
       break;
+    case Scalar::Float16: {
+      FloatRegister fvalue = ToFloatRegister(value);
+      masm.canonicalizeFloatIfDeterministic(fvalue);
+      masm.moveFloat16ToGPR(fvalue, temp, volatileRegs);
+      break;
+    }
     case Scalar::Float32: {
       FloatRegister fvalue = ToFloatRegister(value);
       masm.canonicalizeFloatIfDeterministic(fvalue);
@@ -18625,6 +18634,7 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
         masm.byteSwap16SignExtend(temp);
         break;
       case Scalar::Uint16:
+      case Scalar::Float16:
         masm.byteSwap16ZeroExtend(temp);
         break;
       case Scalar::Int32:
@@ -18653,6 +18663,7 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
   switch (writeType) {
     case Scalar::Int16:
     case Scalar::Uint16:
+    case Scalar::Float16:
       masm.store16Unaligned(temp, dest);
       break;
     case Scalar::Int32:

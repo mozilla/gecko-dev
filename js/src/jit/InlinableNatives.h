@@ -57,6 +57,7 @@
   _(DataViewSetUint16)                             \
   _(DataViewSetInt32)                              \
   _(DataViewSetUint32)                             \
+  _(DataViewSetFloat16)                            \
   _(DataViewSetFloat32)                            \
   _(DataViewSetFloat64)                            \
   _(DataViewSetBigInt64)                           \

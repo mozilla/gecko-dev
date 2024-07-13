@@ -1140,6 +1140,10 @@ void MacroAssembler::moveGPRToFloat32(Register src, FloatRegister dest) {
   MOZ_CRASH();
 }
 
+void MacroAssembler::moveFloat16ToGPR(FloatRegister src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest) {
   MOZ_CRASH();
 }

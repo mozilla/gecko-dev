@@ -1167,8 +1167,8 @@ const JSFunctionSpec DataViewObject::methods[] = {
                     DataViewSetInt32),
     JS_INLINABLE_FN("setUint32", DataViewObject::fun_setUint32, 2, 0,
                     DataViewSetUint32),
-    // TODO: See Bug 1835034 for JIT support for Float16Array
-    JS_FN("setFloat16", DataViewObject::fun_setFloat16, 2, 0),
+    JS_INLINABLE_FN("setFloat16", DataViewObject::fun_setFloat16, 2, 0,
+                    DataViewSetFloat16),
     JS_INLINABLE_FN("setFloat32", DataViewObject::fun_setFloat32, 2, 0,
                     DataViewSetFloat32),
     JS_INLINABLE_FN("setFloat64", DataViewObject::fun_setFloat64, 2, 0,

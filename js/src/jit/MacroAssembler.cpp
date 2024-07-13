@@ -7746,20 +7746,7 @@ void MacroAssembler::storeFloat16(FloatRegister src, const T& dest,
   }
 
   canonicalizeFloatIfDeterministic(src);
-
-  LiveRegisterSet save = volatileLiveRegs;
-  save.takeUnchecked(temp);
-
-  PushRegsInMask(save);
-
-  using Fn = int32_t (*)(float);
-  setupUnalignedABICall(temp);
-  passABIArg(src, ABIType::Float32);
-  callWithABI<Fn, jit::Float32ToFloat16>();
-  storeCallInt32Result(temp);
-
-  PopRegsInMask(save);
-
+  moveFloat16ToGPR(src, temp, volatileLiveRegs);
   store16(temp, dest);
 }
 
@@ -7770,6 +7757,32 @@ template void MacroAssembler::storeFloat16(FloatRegister src,
 template void MacroAssembler::storeFloat16(FloatRegister src,
                                            const BaseIndex& dest, Register temp,
                                            LiveRegisterSet volatileLiveRegs);
+
+void MacroAssembler::moveFloat16ToGPR(FloatRegister src, Register dest,
+                                      LiveRegisterSet volatileLiveRegs) {
+  if (MacroAssembler::SupportsFloat32To16()) {
+    ScratchFloat32Scope fpscratch(*this);
+
+    // Float16 is currently passed as Float32, so first narrow to Float16.
+    convertFloat32ToFloat16(src, fpscratch);
+
+    moveFloat16ToGPR(fpscratch, dest);
+    return;
+  }
+
+  LiveRegisterSet save = volatileLiveRegs;
+  save.takeUnchecked(dest);
+
+  PushRegsInMask(save);
+
+  using Fn = int32_t (*)(float);
+  setupUnalignedABICall(dest);
+  passABIArg(src, ABIType::Float32);
+  callWithABI<Fn, jit::Float32ToFloat16>();
+  storeCallInt32Result(dest);
+
+  PopRegsInMask(save);
+}
 
 void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest,
                                       Register temp,

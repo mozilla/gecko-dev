@@ -60,6 +60,10 @@ void MacroAssembler::moveGPRToFloat32(Register src, FloatRegister dest) {
   moveToFloat32(src, dest);
 }
 
+void MacroAssembler::moveFloat16ToGPR(FloatRegister src, Register dest) {
+  MOZ_CRASH("Not supported for this target");
+}
+
 void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest) {
   MOZ_CRASH("Not supported for this target");
 }
