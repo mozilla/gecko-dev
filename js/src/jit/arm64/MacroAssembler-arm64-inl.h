@@ -2245,6 +2245,15 @@ FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat32(
   return doBaseIndex(ARMFPRegister(src, 32), addr, vixl::STR_s);
 }
 
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const Address& dest, Register) {
+  return Str(ARMFPRegister(src, 16), toMemOperand(dest));
+}
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const BaseIndex& dest, Register) {
+  return doBaseIndex(ARMFPRegister(src, 16), dest, vixl::STR_h);
+}
+
 void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
   // Bug 1715494: Discriminating barriers such as StoreStore are hard to reason
   // about.  Execute the full barrier for everything that requires a barrier.

@@ -5126,11 +5126,6 @@ AttachDecision SetPropIRGenerator::tryAttachSetTypedArrayElement(
   auto* tarr = &obj->as<TypedArrayObject>();
   Scalar::Type elementType = tarr->type();
 
-  if (elementType == Scalar::Float16) {
-    // TODO: See Bug 1835034 for JIT support for Float16Array.
-    return AttachDecision::NoAction;
-  }
-
   // Don't attach if the input type doesn't match the guard added below.
   if (!ValueCanConvertToNumeric(elementType, rhsVal_)) {
     return AttachDecision::NoAction;

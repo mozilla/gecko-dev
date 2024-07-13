@@ -2263,6 +2263,15 @@ class MacroAssembler : public MacroAssemblerSpecific {
   template <class T>
   inline FaultingCodeOffset storeFloat32(FloatRegister src, const T& dest);
 
+  inline FaultingCodeOffset storeUncanonicalizedFloat16(FloatRegister src,
+                                                        const Address& dest,
+                                                        Register scratch)
+      DEFINED_ON(x86_shared, arm, arm64, mips_shared, loong64, riscv64, wasm32);
+  inline FaultingCodeOffset storeUncanonicalizedFloat16(FloatRegister src,
+                                                        const BaseIndex& dest,
+                                                        Register scratch)
+      DEFINED_ON(x86_shared, arm, arm64, mips_shared, loong64, riscv64, wasm32);
+
   template <typename T>
   void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
                          const T& dest) PER_ARCH;
@@ -5224,6 +5233,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
     return type == Scalar::Float16 && !MacroAssembler::SupportsFloat32To16();
   }
 
+  static bool StoreRequiresCall(Scalar::Type type) {
+    return type == Scalar::Float16 && !MacroAssembler::SupportsFloat32To16();
+  }
+
   template <typename T>
   void loadFromTypedArray(Scalar::Type arrayType, const T& src,
                           AnyRegister dest, Register temp1, Register temp2,
@@ -5262,9 +5275,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
   }
 
   void storeToTypedFloatArray(Scalar::Type arrayType, FloatRegister value,
-                              const BaseIndex& dest);
+                              const BaseIndex& dest, Register temp,
+                              LiveRegisterSet volatileLiveRegs);
   void storeToTypedFloatArray(Scalar::Type arrayType, FloatRegister value,
-                              const Address& dest);
+                              const Address& dest, Register temp,
+                              LiveRegisterSet volatileLiveRegs);
 
   void storeToTypedBigIntArray(Scalar::Type arrayType, Register64 value,
                                const BaseIndex& dest);
@@ -5291,6 +5306,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   template <typename T>
   void loadFloat16(const T& src, FloatRegister dest, Register temp1,
                    Register temp2, LiveRegisterSet volatileLiveRegs);
+
+  template <typename T>
+  void storeFloat16(FloatRegister src, const T& dest, Register temp,
+                    LiveRegisterSet volatileLiveRegs);
 
   void moveGPRToFloat16(Register src, FloatRegister dest, Register temp,
                         LiveRegisterSet volatileLiveRegs);

@@ -4718,6 +4718,8 @@ void LIRGenerator::visitStoreUnboxedScalar(MStoreUnboxedScalar* ins) {
   MOZ_ASSERT(ins->index()->type() == MIRType::IntPtr);
 
   if (ins->isFloatWrite()) {
+    MOZ_ASSERT_IF(ins->writeType() == Scalar::Float16,
+                  ins->value()->type() == MIRType::Float32);
     MOZ_ASSERT_IF(ins->writeType() == Scalar::Float32,
                   ins->value()->type() == MIRType::Float32);
     MOZ_ASSERT_IF(ins->writeType() == Scalar::Float64,
@@ -4761,7 +4763,19 @@ void LIRGenerator::visitStoreUnboxedScalar(MStoreUnboxedScalar* ins) {
     add(fence, ins);
   }
   if (!ins->isBigIntWrite()) {
-    add(new (alloc()) LStoreUnboxedScalar(elements, index, value), ins);
+    // We need a temp register for Float16Array.
+    LDefinition tempDef = LDefinition::BogusTemp();
+    if (ins->writeType() == Scalar::Float16) {
+      tempDef = temp();
+    }
+
+    auto* lir =
+        new (alloc()) LStoreUnboxedScalar(elements, index, value, tempDef);
+    add(lir, ins);
+
+    if (MacroAssembler::StoreRequiresCall(ins->writeType())) {
+      assignSafepoint(lir, ins);
+    }
   } else {
     add(new (alloc()) LStoreUnboxedBigInt(elements, index, value, tempInt64()),
         ins);
@@ -4818,6 +4832,8 @@ void LIRGenerator::visitStoreTypedArrayElementHole(
   MOZ_ASSERT(ins->length()->type() == MIRType::IntPtr);
 
   if (ins->isFloatWrite()) {
+    MOZ_ASSERT_IF(ins->arrayType() == Scalar::Float16,
+                  ins->value()->type() == MIRType::Float32);
     MOZ_ASSERT_IF(ins->arrayType() == Scalar::Float32,
                   ins->value()->type() == MIRType::Float32);
     MOZ_ASSERT_IF(ins->arrayType() == Scalar::Float64,
@@ -4843,11 +4859,18 @@ void LIRGenerator::visitStoreTypedArrayElementHole(
   }
 
   if (!ins->isBigIntWrite()) {
-    LDefinition spectreTemp =
-        BoundsCheckNeedsSpectreTemp() ? temp() : LDefinition::BogusTemp();
-    auto* lir = new (alloc()) LStoreTypedArrayElementHole(
-        elements, length, index, value, spectreTemp);
+    LDefinition tempDef = LDefinition::BogusTemp();
+    if (BoundsCheckNeedsSpectreTemp() || ins->arrayType() == Scalar::Float16) {
+      tempDef = temp();
+    }
+
+    auto* lir = new (alloc())
+        LStoreTypedArrayElementHole(elements, length, index, value, tempDef);
     add(lir, ins);
+
+    if (MacroAssembler::StoreRequiresCall(ins->arrayType())) {
+      assignSafepoint(lir, ins);
+    }
   } else {
     auto* lir = new (alloc()) LStoreTypedArrayElementHoleBigInt(
         elements, length, index, value, tempInt64());

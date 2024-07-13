@@ -1251,6 +1251,23 @@ FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat32(
 template FaultingCodeOffset MacroAssembler::storeFloat32(FloatRegister src,
                                                          const Operand& dest);
 
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const Address& dest, Register scratch) {
+  vmovd(src, scratch);
+
+  FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
+  movw(scratch, Operand(dest));
+  return fco;
+}
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const BaseIndex& dest, Register scratch) {
+  vmovd(src, scratch);
+
+  FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
+  movw(scratch, Operand(dest));
+  return fco;
+}
+
 void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
   if (barrier & MembarStoreLoad) {
     // This implementation follows Linux.

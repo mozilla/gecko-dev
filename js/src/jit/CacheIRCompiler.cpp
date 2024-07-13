@@ -6611,7 +6611,7 @@ bool CacheIRCompiler::emitStoreTypedArrayElement(ObjOperandId objId,
   AutoScratchRegister scratch1(allocator, masm);
   Maybe<AutoScratchRegister> scratch2;
   Maybe<AutoSpectreBoundsScratchRegister> spectreScratch;
-  if (Scalar::isBigIntType(elementType) ||
+  if (Scalar::isBigIntType(elementType) || elementType == Scalar::Float16 ||
       viewKind == ArrayBufferViewKind::Resizable) {
     scratch2.emplace(allocator, masm);
   } else {
@@ -6651,12 +6651,10 @@ bool CacheIRCompiler::emitStoreTypedArrayElement(ObjOperandId objId,
 #ifndef JS_PUNBOX64
     masm.pop(obj);
 #endif
-  } else if (elementType == Scalar::Float32) {
-    ScratchFloat32Scope fpscratch(masm);
-    masm.convertDoubleToFloat32(floatScratch0, fpscratch);
-    masm.storeToTypedFloatArray(elementType, fpscratch, dest);
-  } else if (elementType == Scalar::Float64) {
-    masm.storeToTypedFloatArray(elementType, floatScratch0, dest);
+  } else if (Scalar::isFloatingType(elementType)) {
+    Register temp = scratch2 ? scratch2->get() : InvalidReg;
+    masm.storeToTypedFloatArray(elementType, floatScratch0, dest, temp,
+                                liveVolatileRegs());
   } else {
     masm.storeToTypedIntArray(elementType, *valInt32, dest);
   }

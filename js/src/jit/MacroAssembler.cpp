@@ -70,14 +70,28 @@ TrampolinePtr MacroAssembler::preBarrierTrampoline(MIRType type) {
   return rt->preBarrier(type);
 }
 
-template <typename S, typename T>
-static void StoreToTypedFloatArray(MacroAssembler& masm, int arrayType,
-                                   const S& value, const T& dest) {
+template <typename T>
+static void StoreToTypedFloatArray(MacroAssembler& masm, Scalar::Type arrayType,
+                                   FloatRegister value, const T& dest,
+                                   Register temp,
+                                   LiveRegisterSet volatileLiveRegs) {
   switch (arrayType) {
-    case Scalar::Float32:
-      masm.storeFloat32(value, dest);
+    case Scalar::Float16:
+      masm.storeFloat16(value, dest, temp, volatileLiveRegs);
       break;
+    case Scalar::Float32: {
+      if (value.isDouble()) {
+        ScratchFloat32Scope fpscratch(masm);
+        masm.convertDoubleToFloat32(value, fpscratch);
+        masm.storeFloat32(fpscratch, dest);
+      } else {
+        MOZ_ASSERT(value.isSingle());
+        masm.storeFloat32(value, dest);
+      }
+      break;
+    }
     case Scalar::Float64:
+      MOZ_ASSERT(value.isDouble());
       masm.storeDouble(value, dest);
       break;
     default:
@@ -87,13 +101,16 @@ static void StoreToTypedFloatArray(MacroAssembler& masm, int arrayType,
 
 void MacroAssembler::storeToTypedFloatArray(Scalar::Type arrayType,
                                             FloatRegister value,
-                                            const BaseIndex& dest) {
-  StoreToTypedFloatArray(*this, arrayType, value, dest);
+                                            const BaseIndex& dest,
+                                            Register temp,
+                                            LiveRegisterSet volatileLiveRegs) {
+  StoreToTypedFloatArray(*this, arrayType, value, dest, temp, volatileLiveRegs);
 }
 void MacroAssembler::storeToTypedFloatArray(Scalar::Type arrayType,
                                             FloatRegister value,
-                                            const Address& dest) {
-  StoreToTypedFloatArray(*this, arrayType, value, dest);
+                                            const Address& dest, Register temp,
+                                            LiveRegisterSet volatileLiveRegs) {
+  StoreToTypedFloatArray(*this, arrayType, value, dest, temp, volatileLiveRegs);
 }
 
 template <typename S, typename T>
@@ -7701,6 +7718,58 @@ template void MacroAssembler::loadFloat16(const BaseIndex& src,
                                           FloatRegister dest, Register temp1,
                                           Register temp2,
                                           LiveRegisterSet volatileLiveRegs);
+
+template <typename T>
+void MacroAssembler::storeFloat16(FloatRegister src, const T& dest,
+                                  Register temp,
+                                  LiveRegisterSet volatileLiveRegs) {
+  ScratchFloat32Scope fpscratch(*this);
+
+  if (src.isDouble()) {
+    if (MacroAssembler::SupportsFloat64To16()) {
+      canonicalizeDoubleIfDeterministic(src);
+      convertDoubleToFloat16(src, fpscratch);
+      storeUncanonicalizedFloat16(fpscratch, dest, temp);
+      return;
+    }
+
+    convertDoubleToFloat16(src, fpscratch, temp, volatileLiveRegs);
+    src = fpscratch;
+  }
+  MOZ_ASSERT(src.isSingle());
+
+  if (MacroAssembler::SupportsFloat32To16()) {
+    canonicalizeFloatIfDeterministic(src);
+    convertFloat32ToFloat16(src, fpscratch);
+    storeUncanonicalizedFloat16(fpscratch, dest, temp);
+    return;
+  }
+
+  canonicalizeFloatIfDeterministic(src);
+
+  LiveRegisterSet save = volatileLiveRegs;
+  save.takeUnchecked(temp);
+
+  PushRegsInMask(save);
+
+  using Fn = int32_t (*)(float);
+  setupUnalignedABICall(temp);
+  passABIArg(src, ABIType::Float32);
+  callWithABI<Fn, jit::Float32ToFloat16>();
+  storeCallInt32Result(temp);
+
+  PopRegsInMask(save);
+
+  store16(temp, dest);
+}
+
+template void MacroAssembler::storeFloat16(FloatRegister src,
+                                           const Address& dest, Register temp,
+                                           LiveRegisterSet volatileLiveRegs);
+
+template void MacroAssembler::storeFloat16(FloatRegister src,
+                                           const BaseIndex& dest, Register temp,
+                                           LiveRegisterSet volatileLiveRegs);
 
 void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest,
                                       Register temp,

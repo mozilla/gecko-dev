@@ -55,6 +55,10 @@
   ret: General
   args: [Float32]
 
+# int32_t f(float32)
+- ret: Int32
+  args: [Float32]
+
 # float f(float)
 - ret: Float32
   args: [Float32]

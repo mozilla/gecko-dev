@@ -1304,6 +1304,15 @@ FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat32(
   ma_ss(src, addr);
 }
 
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const Address& dest, Register) {
+  MOZ_CRASH("Not supported for this target");
+}
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const BaseIndex& dest, Register) {
+  MOZ_CRASH("Not supported for this target");
+}
+
 void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
   if (barrier) {
     as_sync();

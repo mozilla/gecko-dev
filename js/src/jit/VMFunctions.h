@@ -693,6 +693,7 @@ float RoundFloat16ToFloat32(float d);
 float RoundFloat16ToFloat32(double d);
 
 float Float16ToFloat32(int32_t value);
+int32_t Float32ToFloat16(float value);
 
 JSAtom* AtomizeStringNoGC(JSContext* cx, JSString* str);
 

@@ -834,6 +834,15 @@ FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat32(
   MOZ_CRASH();
 }
 
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const Address& dest, Register) {
+  MOZ_CRASH();
+}
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const BaseIndex& dest, Register) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::addPtr(Imm32 imm, const Address& dest) { MOZ_CRASH(); }
 
 void MacroAssembler::addPtr(const Address& src, Register dest) { MOZ_CRASH(); }

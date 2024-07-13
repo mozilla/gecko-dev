@@ -148,6 +148,7 @@ namespace jit {
   _(js::jit::EqualStringsHelperPure)                                  \
   _(js::jit::FinishBailoutToBaseline)                                 \
   _(js::jit::Float16ToFloat32)                                        \
+  _(js::jit::Float32ToFloat16)                                        \
   _(js::jit::FrameIsDebuggeeCheck)                                    \
   _(js::jit::GetContextSensitiveInterpreterStub)                      \
   _(js::jit::GetIndexFromString)                                      \

@@ -2537,6 +2537,15 @@ FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat32(
   return FaultingCodeOffset(offset.getOffset());
 }
 
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const Address& dest, Register) {
+  MOZ_CRASH("Not supported for this target");
+}
+FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
+    FloatRegister src, const BaseIndex& dest, Register) {
+  MOZ_CRASH("Not supported for this target");
+}
+
 void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
   // On ARMv6 the optional argument (BarrierST, etc) is ignored.
   if (barrier == (MembarStoreStore | MembarSynchronizing)) {
