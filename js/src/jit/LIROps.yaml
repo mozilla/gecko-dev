@@ -1488,6 +1488,24 @@
   operands:
     input: WordSized
 
+- name: DoubleToFloat16
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 1
+
+- name: Float32ToFloat16
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 1
+
+- name: Int32ToFloat16
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 1
+
 # Convert a value to a double.
 - name: ValueToDouble
   result_type: WordSized
@@ -1501,6 +1519,14 @@
   operands:
     input: BoxedValue
   mir_op: ToFloat32
+
+# Convert a value to a float16.
+- name: ValueToFloat16
+  result_type: WordSized
+  operands:
+    input: BoxedValue
+  num_temps: 1
+  mir_op: ToFloat16
 
 - name: ValueToInt32
   gen_boilerplate: false

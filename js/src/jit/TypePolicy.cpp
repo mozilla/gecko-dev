@@ -621,7 +621,7 @@ template bool CacheIdPolicy<1>::staticAdjustInputs(TempAllocator& alloc,
 
 bool ToDoublePolicy::staticAdjustInputs(TempAllocator& alloc,
                                         MInstruction* ins) {
-  MOZ_ASSERT(ins->isToDouble() || ins->isToFloat32());
+  MOZ_ASSERT(ins->isToDouble() || ins->isToFloat32() || ins->isToFloat16());
 
   MDefinition* in = ins->getOperand(0);
   switch (in->type()) {

@@ -1047,6 +1047,21 @@ void CodeGenerator::visitValueToFloat32(LValueToFloat32* lir) {
   bailoutFrom(&fail, lir->snapshot());
 }
 
+void CodeGenerator::visitValueToFloat16(LValueToFloat16* lir) {
+  ValueOperand operand = ToValue(lir, LValueToFloat16::InputIndex);
+  Register temp = ToTempRegisterOrInvalid(lir->temp0());
+  FloatRegister output = ToFloatRegister(lir->output());
+
+  LiveRegisterSet volatileRegs;
+  if (!MacroAssembler::SupportsFloat64To16()) {
+    volatileRegs = liveVolatileRegs(lir);
+  }
+
+  Label fail;
+  masm.convertValueToFloat16(operand, output, temp, volatileRegs, &fail);
+  bailoutFrom(&fail, lir->snapshot());
+}
+
 void CodeGenerator::visitValueToBigInt(LValueToBigInt* lir) {
   ValueOperand operand = ToValue(lir, LValueToBigInt::InputIndex);
   Register output = ToRegister(lir->output());
@@ -1091,6 +1106,36 @@ void CodeGenerator::visitDoubleToFloat32(LDoubleToFloat32* lir) {
 void CodeGenerator::visitInt32ToFloat32(LInt32ToFloat32* lir) {
   masm.convertInt32ToFloat32(ToRegister(lir->input()),
                              ToFloatRegister(lir->output()));
+}
+
+void CodeGenerator::visitDoubleToFloat16(LDoubleToFloat16* lir) {
+  LiveRegisterSet volatileRegs;
+  if (!MacroAssembler::SupportsFloat64To16()) {
+    volatileRegs = liveVolatileRegs(lir);
+  }
+  masm.convertDoubleToFloat16(
+      ToFloatRegister(lir->input()), ToFloatRegister(lir->output()),
+      ToTempRegisterOrInvalid(lir->temp0()), volatileRegs);
+}
+
+void CodeGenerator::visitFloat32ToFloat16(LFloat32ToFloat16* lir) {
+  LiveRegisterSet volatileRegs;
+  if (!MacroAssembler::SupportsFloat32To16()) {
+    volatileRegs = liveVolatileRegs(lir);
+  }
+  masm.convertFloat32ToFloat16(
+      ToFloatRegister(lir->input()), ToFloatRegister(lir->output()),
+      ToTempRegisterOrInvalid(lir->temp0()), volatileRegs);
+}
+
+void CodeGenerator::visitInt32ToFloat16(LInt32ToFloat16* lir) {
+  LiveRegisterSet volatileRegs;
+  if (!MacroAssembler::SupportsFloat32To16()) {
+    volatileRegs = liveVolatileRegs(lir);
+  }
+  masm.convertInt32ToFloat16(
+      ToRegister(lir->input()), ToFloatRegister(lir->output()),
+      ToTempRegisterOrInvalid(lir->temp0()), volatileRegs);
 }
 
 void CodeGenerator::visitDoubleToInt32(LDoubleToInt32* lir) {

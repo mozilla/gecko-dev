@@ -8737,6 +8737,28 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMathFRound() {
   return AttachDecision::Attach;
 }
 
+AttachDecision InlinableNativeIRGenerator::tryAttachMathF16Round() {
+  // Need one (number) argument.
+  if (argc_ != 1 || !args_[0].isNumber()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  initializeInputOperand();
+
+  // Guard callee is the 'f16round' native function.
+  emitNativeCalleeGuard();
+
+  ValOperandId argumentId =
+      writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  NumberOperandId numberId = writer.guardIsNumber(argumentId);
+  writer.mathF16RoundNumberResult(numberId);
+  writer.returnFromIC();
+
+  trackAttached("MathF16Round");
+  return AttachDecision::Attach;
+}
+
 static bool CanAttachInt32Pow(const Value& baseVal, const Value& powerVal) {
   auto valToInt32 = [](const Value& v) {
     if (v.isInt32()) {
@@ -11885,6 +11907,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
       return tryAttachMathSqrt();
     case InlinableNative::MathFRound:
       return tryAttachMathFRound();
+    case InlinableNative::MathF16Round:
+      return tryAttachMathF16Round();
     case InlinableNative::MathHypot:
       return tryAttachMathHypot();
     case InlinableNative::MathATan2:

@@ -3673,6 +3673,17 @@ bool WarpCacheIRTranspiler::emitMathFRoundNumberResult(
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitMathF16RoundNumberResult(
+    NumberOperandId inputId) {
+  MDefinition* input = getOperand(inputId);
+
+  auto* ins = MToFloat16::New(alloc(), input);
+  add(ins);
+
+  pushResult(ins);
+  return true;
+}
+
 bool WarpCacheIRTranspiler::emitMathAtan2NumberResult(NumberOperandId yId,
                                                       NumberOperandId xId) {
   MDefinition* y = getOperand(yId);

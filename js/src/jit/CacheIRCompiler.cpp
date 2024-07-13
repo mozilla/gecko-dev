@@ -5943,6 +5943,36 @@ bool CacheIRCompiler::emitMathFRoundNumberResult(NumberOperandId inputId) {
   return true;
 }
 
+bool CacheIRCompiler::emitMathF16RoundNumberResult(NumberOperandId inputId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoOutputRegister output(*this);
+  AutoScratchRegisterMaybeOutput scratch(allocator, masm, output);
+  AutoAvailableFloatRegister floatScratch(*this, FloatReg0);
+
+  allocator.ensureDoubleRegister(masm, inputId, floatScratch);
+
+  if (MacroAssembler::SupportsFloat64To16()) {
+    masm.convertDoubleToFloat16(floatScratch, floatScratch);
+    masm.convertFloat16ToDouble(floatScratch, floatScratch);
+  } else {
+    LiveRegisterSet save = liveVolatileRegs();
+    save.takeUnchecked(floatScratch);
+    masm.PushRegsInMask(save);
+
+    using Fn = double (*)(double);
+    masm.setupUnalignedABICall(scratch);
+    masm.passABIArg(floatScratch, ABIType::Float64);
+    masm.callWithABI<Fn, js::RoundFloat16>(ABIType::Float64);
+    masm.storeCallFloatResult(floatScratch);
+
+    masm.PopRegsInMask(save);
+  }
+
+  masm.boxDouble(floatScratch, output.valueReg(), floatScratch);
+  return true;
+}
+
 bool CacheIRCompiler::emitMathHypot2NumberResult(NumberOperandId first,
                                                  NumberOperandId second) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);

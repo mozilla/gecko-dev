@@ -2597,6 +2597,7 @@ ICInterpretOps(BaselineFrame* frame, VMFrameManager& frameMgr, State& state,
   CACHEOP_CASE_UNIMPL(MathImulResult)
   CACHEOP_CASE_UNIMPL(MathSqrtNumberResult)
   CACHEOP_CASE_UNIMPL(MathFRoundNumberResult)
+  CACHEOP_CASE_UNIMPL(MathF16RoundNumberResult)
   CACHEOP_CASE_UNIMPL(MathRandomResult)
   CACHEOP_CASE_UNIMPL(MathHypot2NumberResult)
   CACHEOP_CASE_UNIMPL(MathHypot3NumberResult)

@@ -91,6 +91,7 @@
   _(MathRandom)                                    \
   _(MathImul)                                      \
   _(MathFRound)                                    \
+  _(MathF16Round)                                  \
   _(MathSin)                                       \
   _(MathTan)                                       \
   _(MathCos)                                       \

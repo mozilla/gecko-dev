@@ -34,6 +34,7 @@
 #include "js/ScalarType.h"            // js::Scalar::Type
 #include "util/Text.h"
 #include "util/Unicode.h"
+#include "vm/Float16.h"
 #include "vm/Iteration.h"    // js::NativeIterator
 #include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/Uint8Clamped.h"
@@ -4156,6 +4157,33 @@ MDefinition* MToFloat32::foldsTo(TempAllocator& alloc) {
   if (input->isToDouble() &&
       input->toToDouble()->input()->type() == MIRType::Int32) {
     return MToFloat32::New(alloc, input->toToDouble()->input());
+  }
+
+  return this;
+}
+
+MDefinition* MToFloat16::foldsTo(TempAllocator& alloc) {
+  MDefinition* in = input();
+  if (in->isBox()) {
+    in = in->toBox()->input();
+  }
+
+  if (in->isConstant()) {
+    auto* cst = in->toConstant();
+    if (cst->isTypeRepresentableAsDouble()) {
+      double num = cst->numberToDouble();
+      return MConstant::NewFloat32(alloc, js::float16{num}.toFloat());
+    }
+  }
+
+  // Fold ToFloat16(ToDouble(float32)) to ToFloat16(float32).
+  // Fold ToFloat16(ToDouble(int32)) to ToFloat16(int32).
+  if (in->isToDouble()) {
+    auto* toDoubleInput = in->toToDouble()->input();
+    if (toDoubleInput->type() == MIRType::Float32 ||
+        toDoubleInput->type() == MIRType::Int32) {
+      return MToFloat16::New(alloc, toDoubleInput);
+    }
   }
 
   return this;

@@ -300,6 +300,26 @@ static bool math_fround(JSContext* cx, unsigned argc, Value* vp) {
   return RoundFloat32(cx, args[0], args.rval());
 }
 
+double js::RoundFloat16(double d) {
+  AutoUnsafeCallWithABI unsafe;
+
+  // http://tc39.es/proposal-float16array/#sec-function-properties-of-the-math-object
+
+  // 1. Let n be ? ToNumber(x).
+  // [Not applicable here]
+
+  // 2. If n is NaN, return NaN.
+  // 3. If n is one of +0𝔽, -0𝔽, +∞𝔽, or -∞𝔽, return n.
+  // 4. Let n16 be the result of converting n to IEEE 754-2019 binary16 format
+  // using roundTiesToEven mode.
+  js::float16 f16 = js::float16(d);
+
+  // 5. Let n64 be the result of converting n16 to IEEE 754-2019 binary64
+  // format.
+  // 6. Return the ECMAScript Number value corresponding to n64.
+  return f16.toDouble();
+}
+
 static bool math_f16round(JSContext* cx, unsigned argc, Value* vp) {
   // http://tc39.es/proposal-float16array/#sec-function-properties-of-the-math-object
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -314,15 +334,9 @@ static bool math_f16round(JSContext* cx, unsigned argc, Value* vp) {
   if (!ToNumber(cx, args[0], &d)) {
     return false;
   }
-  // 2. If n is NaN, return NaN.
-  // 3. If n is one of +0𝔽, -0𝔽, +∞𝔽, or -∞𝔽, return n.
-  // 4. Let n16 be the result of converting n to IEEE 754-2019 binary16 format
-  // using roundTiesToEven mode.
-  js::float16 f16 = js::float16(d);
-  // 5. Let n64 be the result of converting n16 to IEEE 754-2019 binary64
-  // format.
-  // 6. Return the ECMAScript Number value corresponding to n64.
-  args.rval().setDouble(f16.toDouble());
+
+  // Steps 2-6.
+  args.rval().setDouble(RoundFloat16(d));
   return true;
 }
 
@@ -1057,8 +1071,7 @@ static const JSFunctionSpec math_static_methods[] = {
     JS_INLINABLE_FN("floor", math_floor, 1, 0, MathFloor),
     JS_INLINABLE_FN("imul", math_imul, 2, 0, MathImul),
     JS_INLINABLE_FN("fround", math_fround, 1, 0, MathFRound),
-    // TODO: See Bug 1835034 for JIT support
-    JS_FN("f16round", math_f16round, 1, 0),
+    JS_INLINABLE_FN("f16round", math_f16round, 1, 0, MathF16Round),
     JS_INLINABLE_FN("log", math_log, 1, 0, MathLog),
     JS_INLINABLE_FN("max", math_max, 2, 0, MathMax),
     JS_INLINABLE_FN("min", math_min, 2, 0, MathMin),
@@ -1081,7 +1094,9 @@ static const JSFunctionSpec math_static_methods[] = {
     JS_INLINABLE_FN("hypot", math_hypot, 2, 0, MathHypot),
     JS_INLINABLE_FN("trunc", math_trunc, 1, 0, MathTrunc),
     JS_INLINABLE_FN("sign", math_sign, 1, 0, MathSign),
-    JS_INLINABLE_FN("cbrt", math_cbrt, 1, 0, MathCbrt), JS_FS_END};
+    JS_INLINABLE_FN("cbrt", math_cbrt, 1, 0, MathCbrt),
+    JS_FS_END,
+};
 
 static const JSPropertySpec math_static_properties[] = {
     JS_DOUBLE_PS("E", M_E, JSPROP_READONLY | JSPROP_PERMANENT),
@@ -1094,7 +1109,8 @@ static const JSPropertySpec math_static_properties[] = {
     JS_DOUBLE_PS("SQRT1_2", M_SQRT1_2, JSPROP_READONLY | JSPROP_PERMANENT),
 
     JS_STRING_SYM_PS(toStringTag, "Math", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static JSObject* CreateMathObject(JSContext* cx, JSProtoKey key) {
   RootedObject proto(cx, &cx->global()->getObjectPrototype());

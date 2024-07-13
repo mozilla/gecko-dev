@@ -3377,6 +3377,38 @@ class MToFloat32 : public MToFPInstruction {
   ALLOW_CLONE(MToFloat32)
 };
 
+// Converts a primitive (either typed or untyped) to a float16. If the input is
+// not primitive at runtime, a bailout occurs.
+class MToFloat16 : public MToFPInstruction {
+  explicit MToFloat16(MDefinition* def)
+      : MToFPInstruction(classOpcode, def, MIRType::Float32) {}
+
+ public:
+  INSTRUCTION_HEADER(ToFloat16)
+  TRIVIAL_NEW_WRAPPERS
+
+  virtual MDefinition* foldsTo(TempAllocator& alloc) override;
+  bool congruentTo(const MDefinition* ins) const override {
+    return congruentIfOperandsEqual(ins);
+  }
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+
+  // This instruction can produce but NOT consume float32.
+  bool canProduceFloat32() const override { return true; }
+
+#ifdef DEBUG
+  // Float16 inputs are typed as float32, but this instruction can NOT consume
+  // float32.
+  bool isConsistentFloat32Use(MUse* use) const override { return true; }
+#endif
+
+  [[nodiscard]] bool writeRecoverData(
+      CompactBufferWriter& writer) const override;
+  bool canRecoverOnBailout() const override { return true; }
+
+  ALLOW_CLONE(MToFloat16)
+};
+
 class MWrapInt64ToInt32 : public MUnaryInstruction, public NoTypePolicy::Data {
   bool bottomHalf_;
 

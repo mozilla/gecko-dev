@@ -1453,6 +1453,27 @@ function rtofloat32_object(i) {
     return i;
 }
 
+var uceFault_tofloat16_number = eval(`(${uceFault})`.replace('uceFault', 'uceFault_tofloat16_number'));
+function rtofloat16_number(i) {
+    var x = Math.f16round(i + 0.22);
+    if (uceFault_tofloat16_number(i) || uceFault_tofloat16_number(i))
+        assertEq(x, Math.f16round(99.22));
+    assertRecoveredOnBailout(x, true);
+    return i;
+}
+
+var uceFault_tofloat16_object = eval(`(${uceFault})`.replace('uceFault', 'uceFault_tofloat16_object'));
+function rtofloat16_object(i) {
+    var t = i + 0.22;
+    var o = { valueOf: function () { return t; } };
+    var x = Math.f16round(o);
+    t = 1000.22;
+    if (uceFault_tofloat16_object(i) || uceFault_tofloat16_object(i))
+        assertEq(x, Math.f16round(99.22));
+    assertRecoveredOnBailout(x, false);
+    return i;
+}
+
 var uceFault_trunc_to_int32_number = eval(`(${uceFault})`.replace('uceFault', 'uceFault_trunc_to_int32_number'));
 function rtrunc_to_int32_number(i) {
     var x = (i + 0.12) | 0;
@@ -2148,6 +2169,8 @@ for (j = 100 - max; j < 100; j++) {
     rtodouble_number(i);
     rtofloat32_number(i);
     rtofloat32_object(i);
+    rtofloat16_number(i);
+    rtofloat16_object(i);
     rtrunc_to_int32_number(i);
     rtrunc_to_int32_object(i);
     if (!warp) {

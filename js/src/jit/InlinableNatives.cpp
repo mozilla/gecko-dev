@@ -129,6 +129,7 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
     case InlinableNative::MathPow:
     case InlinableNative::MathImul:
     case InlinableNative::MathFRound:
+    case InlinableNative::MathF16Round:
     case InlinableNative::MathTrunc:
     case InlinableNative::MathSign:
     case InlinableNative::MathSin:

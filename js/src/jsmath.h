@@ -88,6 +88,8 @@ extern bool RoundFloat32(JSContext* cx, HandleValue arg,
 
 extern double RoundFloat32(double d);
 
+extern double RoundFloat16(double d);
+
 extern double math_log_impl(double x);
 
 extern bool math_use_fdlibm_for_sin_cos_tan();

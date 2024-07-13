@@ -191,6 +191,7 @@ namespace jit {
   _(js::ProxyGetProperty)                                             \
   _(js::RegExpInstanceOptimizableRaw)                                 \
   _(js::RegExpPrototypeOptimizableRaw)                                \
+  _(js::RoundFloat16)                                                 \
   _(js::SetIteratorObject::next)                                      \
   _(js::StringToNumberPure)                                           \
   _(js::TypedArraySortFromJit)                                        \

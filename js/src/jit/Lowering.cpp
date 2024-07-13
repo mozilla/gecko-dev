@@ -2965,6 +2965,90 @@ void LIRGenerator::visitToFloat32(MToFloat32* convert) {
   }
 }
 
+void LIRGenerator::visitToFloat16(MToFloat16* convert) {
+  MDefinition* opd = convert->input();
+
+  switch (opd->type()) {
+    case MIRType::Value: {
+      LDefinition tempDef = LDefinition::BogusTemp();
+      if (!MacroAssembler::SupportsFloat64To16()) {
+        tempDef = temp();
+      }
+
+      auto* lir = new (alloc()) LValueToFloat16(useBox(opd), tempDef);
+      assignSnapshot(lir, convert->bailoutKind());
+      define(lir, convert);
+
+      if (!MacroAssembler::SupportsFloat64To16()) {
+        assignSafepoint(lir, convert);
+      }
+      break;
+    }
+
+    case MIRType::Null:
+      lowerConstantFloat32(0, convert);
+      break;
+
+    case MIRType::Undefined:
+      lowerConstantFloat32(GenericNaN(), convert);
+      break;
+
+    case MIRType::Boolean:
+    case MIRType::Int32: {
+      LDefinition tempDef = LDefinition::BogusTemp();
+      if (!MacroAssembler::SupportsFloat32To16()) {
+        tempDef = temp();
+      }
+
+      auto* lir =
+          new (alloc()) LInt32ToFloat16(useRegisterAtStart(opd), tempDef);
+      define(lir, convert);
+
+      if (!MacroAssembler::SupportsFloat32To16()) {
+        assignSafepoint(lir, convert);
+      }
+      break;
+    }
+
+    case MIRType::Double: {
+      LDefinition tempDef = LDefinition::BogusTemp();
+      if (!MacroAssembler::SupportsFloat64To16()) {
+        tempDef = temp();
+      }
+
+      auto* lir =
+          new (alloc()) LDoubleToFloat16(useRegisterAtStart(opd), tempDef);
+      define(lir, convert);
+
+      if (!MacroAssembler::SupportsFloat64To16()) {
+        assignSafepoint(lir, convert);
+      }
+      break;
+    }
+
+    case MIRType::Float32: {
+      LDefinition tempDef = LDefinition::BogusTemp();
+      if (!MacroAssembler::SupportsFloat32To16()) {
+        tempDef = temp();
+      }
+
+      auto* lir =
+          new (alloc()) LFloat32ToFloat16(useRegisterAtStart(opd), tempDef);
+      define(lir, convert);
+
+      if (!MacroAssembler::SupportsFloat32To16()) {
+        assignSafepoint(lir, convert);
+      }
+      break;
+    }
+
+    default:
+      // Objects might be effectful. Symbols will throw.
+      // Strings are complicated - we don't handle them yet.
+      MOZ_CRASH("unexpected type");
+  }
+}
+
 void LIRGenerator::visitToNumberInt32(MToNumberInt32* convert) {
   MDefinition* opd = convert->input();
 

@@ -1545,6 +1545,22 @@ bool RToFloat32::recover(JSContext* cx, SnapshotIterator& iter) const {
   return true;
 }
 
+bool MToFloat16::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_ToFloat16));
+  return true;
+}
+
+RToFloat16::RToFloat16(CompactBufferReader& reader) {}
+
+bool RToFloat16::recover(JSContext* cx, SnapshotIterator& iter) const {
+  double num = iter.readNumber();
+  double result = js::RoundFloat16(num);
+
+  iter.storeInstructionResult(DoubleValue(result));
+  return true;
+}
+
 bool MTruncateToInt32::writeRecoverData(CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
   writer.writeUnsigned(uint32_t(RInstruction::Recover_TruncateToInt32));

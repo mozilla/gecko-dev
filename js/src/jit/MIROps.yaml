@@ -581,6 +581,9 @@
 - name: ToFloat32
   gen_boilerplate: false
 
+- name: ToFloat16
+  gen_boilerplate: false
+
 # Converts a uint32 to a double (coming from wasm).
 - name: WasmUnsignedToDouble
   operands:
