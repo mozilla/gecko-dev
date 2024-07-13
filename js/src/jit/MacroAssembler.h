@@ -5120,8 +5120,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void storeCallInt32Result(Register reg);
 
   void storeCallFloatResult(FloatRegister reg) {
-    if (reg != ReturnDoubleReg) {
-      moveDouble(ReturnDoubleReg, reg);
+    if (reg.isSingle()) {
+      if (reg != ReturnFloat32Reg) {
+        moveFloat32(ReturnFloat32Reg, reg);
+      }
+    } else {
+      if (reg != ReturnDoubleReg) {
+        moveDouble(ReturnDoubleReg, reg);
+      }
     }
   }
 
