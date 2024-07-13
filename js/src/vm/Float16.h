@@ -150,8 +150,7 @@ inline double half2float_impl(unsigned int value) {
   unsigned int abs = value & 0x7FFF;
   if (abs) {
     hi |= 0x3F000000 << static_cast<unsigned>(abs >= 0x7C00);
-    for (; abs < 0x400; abs <<= 1, hi -= 0x100000)
-      ;
+    for (; abs < 0x400; abs <<= 1, hi -= 0x100000);
     hi += static_cast<uint32>(abs) << 10;
   }
   bits<double>::type dbits = static_cast<bits<double>::type>(hi) << 32;
