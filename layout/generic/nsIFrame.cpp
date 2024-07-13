@@ -7469,7 +7469,7 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
   const nsIFrame* current = this;
   auto shouldStopAt = [](const nsIFrame* aCurrent, nsIFrame* aAncestor,
                          uint32_t aFlags) {
-    return aAncestor->IsTransformed() || nsLayoutUtils::IsPopup(aAncestor) ||
+    return aAncestor->IsTransformed() ||
            ViewportUtils::IsZoomedContentRoot(aAncestor) ||
            ((aFlags & STOP_AT_STACKING_CONTEXT_AND_DISPLAY_PORT) &&
             (aAncestor->IsStackingContext() ||
