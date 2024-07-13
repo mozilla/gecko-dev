@@ -172,12 +172,15 @@ class ImageBitmap final : public nsISupports, public nsWrapperCache {
    * the aIsPremultipliedAlpha to be false in the
    * CreateInternal(from ImageData) method.
    */
-  ImageBitmap(nsIGlobalObject* aGlobal, layers::Image* aData, bool aWriteOnly,
+  ImageBitmap(nsIGlobalObject* aGlobal, layers::Image* aData,
+              bool aAllocatedImageData, bool aWriteOnly,
               gfxAlphaType aAlphaType = gfxAlphaType::Premult);
 
   virtual ~ImageBitmap();
 
   void SetPictureRect(const gfx::IntRect& aRect, ErrorResult& aRv);
+
+  void RemoveAssociatedMemory();
 
   static already_AddRefed<ImageBitmap> CreateImageBitmapInternal(
       nsIGlobalObject* aGlobal, gfx::SourceSurface* aSurface,
@@ -278,6 +281,8 @@ class ImageBitmap final : public nsISupports, public nsWrapperCache {
    */
   bool mWriteOnly;
 };
+
+size_t BindingJSObjectMallocBytes(ImageBitmap* aBitmap);
 
 }  // namespace dom
 }  // namespace mozilla
