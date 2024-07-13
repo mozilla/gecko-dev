@@ -213,6 +213,7 @@ class CPUInfo {
   static bool lzcntPresent;
   static bool fmaPresent;
   static bool avx2Present;
+  static bool f16cPresent;
 
   static void SetMaxEnabledSSEVersion(SSEVersion v) {
     if (maxEnabledSSEVersion == UnknownSSE) {
@@ -240,6 +241,7 @@ class CPUInfo {
   static bool IsLZCNTPresent() { return lzcntPresent; }
   static bool IsFMAPresent() { return fmaPresent; }
   static bool IsAVX2Present() { return avx2Present; }
+  static bool IsF16CPresent() { return f16cPresent; }
 
   static bool FlagsHaveBeenComputed() { return maxSSEVersion != UnknownSSE; }
 
@@ -1180,6 +1182,7 @@ class AssemblerX86Shared : public AssemblerShared {
   static bool HasBMI1() { return CPUInfo::IsBMI1Present(); }
   static bool HasBMI2() { return CPUInfo::IsBMI2Present(); }
   static bool HasLZCNT() { return CPUInfo::IsLZCNTPresent(); }
+  static bool HasF16C() { return CPUInfo::IsF16CPresent(); }
   static bool SupportsFloatingPoint() { return CPUInfo::IsSSE2Present(); }
   static bool SupportsUnalignedAccesses() { return true; }
   static bool SupportsFastUnalignedFPAccesses() { return true; }
@@ -2563,6 +2566,14 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vcvtpd2ps(FloatRegister src, FloatRegister dest) {
     masm.vcvtpd2ps_rr(src.encoding(), dest.encoding());
+  }
+  void vcvtph2ps(FloatRegister src, FloatRegister dest) {
+    MOZ_ASSERT(HasF16C());
+    masm.vcvtph2ps_rr(src.encoding(), dest.encoding());
+  }
+  void vcvtps2ph(FloatRegister src, FloatRegister dest) {
+    MOZ_ASSERT(HasF16C());
+    masm.vcvtps2ph_rr(src.encoding(), dest.encoding());
   }
   void vmovmskpd(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());

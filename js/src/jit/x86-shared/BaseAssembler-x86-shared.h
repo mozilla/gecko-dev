@@ -4414,6 +4414,37 @@ class BaseAssembler : public GenericAssembler {
                     offset, base, index, scale, invalid_xmm, dst);
   }
 
+  // F16C instructions:
+
+  void vcvtph2ps_rr(XMMRegisterID src, XMMRegisterID dst) {
+    spew("vcvtph2ps  %s, %s", XMMRegName(src), XMMRegName(dst));
+    m_formatter.threeByteOpVex(VEX_PD, OP3_VCVTPH2PS_VxWxIb, ESCAPE_38,
+                               RegisterID(src), invalid_xmm, dst);
+  }
+
+  void vcvtps2ph_rr(XMMRegisterID src, XMMRegisterID dst) {
+    // Use MXCSR.RC for rounding.
+    //
+    // An explicit rounding mode can be given to this instruction, but using
+    // MXCSR.RC is the default option.
+    constexpr int8_t roundingMode = 4;
+
+    spew("vcvtps2ph  $0x%x, %s, %s", roundingMode, XMMRegName(src),
+         XMMRegName(dst));
+    m_formatter.threeByteOpVex(VEX_PD, OP3_VCVTPS2PH_WxVxIb, ESCAPE_3A,
+                               RegisterID(dst), invalid_xmm, src);
+    m_formatter.immediate8(roundingMode);
+  }
+
+  void vcvtps2ph_rr(XMMRegisterID src, XMMRegisterID dst,
+                    RoundingMode roundingMode) {
+    spew("vcvtps2ph  $0x%x, %s, %s", roundingMode, XMMRegName(src),
+         XMMRegName(dst));
+    m_formatter.threeByteOpVex(VEX_PD, OP3_VCVTPS2PH_WxVxIb, ESCAPE_3A,
+                               RegisterID(dst), invalid_xmm, src);
+    m_formatter.immediate8(roundingMode);
+  }
+
   // BMI instructions:
 
   void sarxl_rrr(RegisterID src, RegisterID shift, RegisterID dst) {
