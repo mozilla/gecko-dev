@@ -384,9 +384,9 @@ void CodeGenerator::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins) {
 
   Scalar::Type accessType = mir->accessType();
 
-  OutOfLineLoadTypedArrayOutOfBounds* ool = nullptr;
+  OutOfLineAsmJSLoadHeapOutOfBounds* ool = nullptr;
   if (mir->needsBoundsCheck()) {
-    ool = new (alloc()) OutOfLineLoadTypedArrayOutOfBounds(out, accessType);
+    ool = new (alloc()) OutOfLineAsmJSLoadHeapOutOfBounds(out, accessType);
     addOutOfLineCode(ool, mir);
 
     masm.wasmBoundsCheck32(Assembler::AboveOrEqual, ToRegister(ptr),
@@ -401,14 +401,13 @@ void CodeGenerator::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins) {
   }
 }
 
-void CodeGeneratorX86Shared::visitOutOfLineLoadTypedArrayOutOfBounds(
-    OutOfLineLoadTypedArrayOutOfBounds* ool) {
+void CodeGeneratorX86Shared::visitOutOfLineAsmJSLoadHeapOutOfBounds(
+    OutOfLineAsmJSLoadHeapOutOfBounds* ool) {
   switch (ool->viewType()) {
     case Scalar::Int64:
     case Scalar::BigInt64:
     case Scalar::BigUint64:
     case Scalar::Simd128:
-    // TODO: See Bug 1835034 for JIT support for Float16Array
     case Scalar::Float16:
     case Scalar::MaxTypedArrayViewType:
       MOZ_CRASH("unexpected array type");
@@ -2120,6 +2119,11 @@ void CodeGeneratorX86Shared::canonicalizeIfDeterministic(
   }
 
   switch (type) {
+    case Scalar::Float16: {
+      // This method is only used for LAsmJSStoreHeap, so Float16 values are
+      // unexpected here.
+      MOZ_CRASH("asm.js doesn't support Float16");
+    }
     case Scalar::Float32: {
       FloatRegister in = ToFloatRegister(value);
       masm.canonicalizeFloatIfDeterministic(in);

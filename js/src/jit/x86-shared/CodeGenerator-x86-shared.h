@@ -35,21 +35,20 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared {
   CodeGeneratorX86Shared(MIRGenerator* gen, LIRGraph* graph,
                          MacroAssembler* masm);
 
-  // Load a NaN or zero into a register for an out of bounds AsmJS or static
-  // typed array load.
-  class OutOfLineLoadTypedArrayOutOfBounds
+  // Load a NaN or zero into a register for an out of bounds AsmJS load.
+  class OutOfLineAsmJSLoadHeapOutOfBounds
       : public OutOfLineCodeBase<CodeGeneratorX86Shared> {
     AnyRegister dest_;
     Scalar::Type viewType_;
 
    public:
-    OutOfLineLoadTypedArrayOutOfBounds(AnyRegister dest, Scalar::Type viewType)
+    OutOfLineAsmJSLoadHeapOutOfBounds(AnyRegister dest, Scalar::Type viewType)
         : dest_(dest), viewType_(viewType) {}
 
     AnyRegister dest() const { return dest_; }
     Scalar::Type viewType() const { return viewType_; }
     void accept(CodeGeneratorX86Shared* codegen) override {
-      codegen->visitOutOfLineLoadTypedArrayOutOfBounds(this);
+      codegen->visitOutOfLineAsmJSLoadHeapOutOfBounds(this);
     }
   };
 
@@ -166,8 +165,8 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared {
   void visitModOverflowCheck(ModOverflowCheck* ool);
   void visitReturnZero(ReturnZero* ool);
   void visitOutOfLineTableSwitch(OutOfLineTableSwitch* ool);
-  void visitOutOfLineLoadTypedArrayOutOfBounds(
-      OutOfLineLoadTypedArrayOutOfBounds* ool);
+  void visitOutOfLineAsmJSLoadHeapOutOfBounds(
+      OutOfLineAsmJSLoadHeapOutOfBounds* ool);
   void visitOutOfLineWasmTruncateCheck(OutOfLineWasmTruncateCheck* ool);
 };
 
