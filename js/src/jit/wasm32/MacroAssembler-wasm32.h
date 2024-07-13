@@ -257,6 +257,11 @@ class MacroAssemblerWasm32 : public Assembler {
   }
 
   template <typename T>
+  void loadFloat16(T, FloatRegister, Register) {
+    MOZ_CRASH();
+  }
+
+  template <typename T>
   void loadFloat32(T, FloatRegister) {
     MOZ_CRASH();
   }

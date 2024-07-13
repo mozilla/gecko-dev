@@ -4538,18 +4538,30 @@ void LIRGenerator::visitLoadUnboxedScalar(MLoadUnboxedScalar* ins) {
   }
 
   if (!Scalar::isBigIntType(ins->storageType())) {
-    // We need a temp register for Uint32Array with known double result.
-    LDefinition tempDef = LDefinition::BogusTemp();
-    if (ins->storageType() == Scalar::Uint32 &&
-        IsFloatingPointType(ins->type())) {
-      tempDef = temp();
+    // We need a temp register for Uint32Array with known double result and for
+    // Float16Array.
+    LDefinition temp1 = LDefinition::BogusTemp();
+    if ((ins->storageType() == Scalar::Uint32 &&
+         IsFloatingPointType(ins->type())) ||
+        ins->storageType() == Scalar::Float16) {
+      temp1 = temp();
     }
 
-    auto* lir = new (alloc()) LLoadUnboxedScalar(elements, index, tempDef);
+    // Additional temp when Float16 to Float32 conversion requires a call.
+    LDefinition temp2 = LDefinition::BogusTemp();
+    if (MacroAssembler::LoadRequiresCall(ins->storageType())) {
+      temp2 = temp();
+    }
+
+    auto* lir = new (alloc()) LLoadUnboxedScalar(elements, index, temp1, temp2);
     if (ins->fallible()) {
       assignSnapshot(lir, ins->bailoutKind());
     }
     define(lir, ins);
+
+    if (MacroAssembler::LoadRequiresCall(ins->storageType())) {
+      assignSafepoint(lir, ins);
+    }
   } else {
     MOZ_ASSERT(ins->type() == MIRType::BigInt);
 
@@ -4663,12 +4675,21 @@ void LIRGenerator::visitLoadTypedArrayElementHole(
   const LAllocation length = useRegister(ins->length());
 
   if (!Scalar::isBigIntType(ins->arrayType())) {
-    auto* lir =
-        new (alloc()) LLoadTypedArrayElementHole(elements, index, length);
+    LDefinition tempDef = LDefinition::BogusTemp();
+    if (MacroAssembler::LoadRequiresCall(ins->arrayType())) {
+      tempDef = temp();
+    }
+
+    auto* lir = new (alloc())
+        LLoadTypedArrayElementHole(elements, index, length, tempDef);
     if (ins->fallible()) {
       assignSnapshot(lir, ins->bailoutKind());
     }
     defineBox(lir, ins);
+
+    if (MacroAssembler::LoadRequiresCall(ins->arrayType())) {
+      assignSafepoint(lir, ins);
+    }
   } else {
 #ifdef JS_CODEGEN_X86
     LInt64Definition temp64 = LInt64Definition::BogusTemp();

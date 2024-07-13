@@ -2143,7 +2143,7 @@
   operands:
     elements: WordSized
     index: WordSized
-  num_temps: 1
+  num_temps: 2
   mir_op: true
 
 - name: LoadUnboxedBigInt
@@ -2158,6 +2158,7 @@
     elements: WordSized
     index: WordSized
     length: WordSized
+  num_temps: 1
   mir_op: true
 
 - name: LoadTypedArrayElementHoleBigInt

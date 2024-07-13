@@ -3080,6 +3080,13 @@ float RoundFloat16ToFloat32(double d) {
   return js::float16{d}.toFloat();
 }
 
+float Float16ToFloat32(int32_t value) {
+  AutoUnsafeCallWithABI unsafe;
+  js::float16 f16;
+  f16.val = static_cast<uint16_t>(value);
+  return f16.toFloat();
+}
+
 JSAtom* AtomizeStringNoGC(JSContext* cx, JSString* str) {
   // IC code calls this directly so we shouldn't GC.
   AutoUnsafeCallWithABI unsafe;

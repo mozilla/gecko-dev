@@ -5215,14 +5215,20 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void boxUint32(Register source, ValueOperand dest, Uint32Mode uint32Mode,
                  Label* fail);
 
+  static bool LoadRequiresCall(Scalar::Type type) {
+    return type == Scalar::Float16 && !MacroAssembler::SupportsFloat32To16();
+  }
+
   template <typename T>
   void loadFromTypedArray(Scalar::Type arrayType, const T& src,
-                          AnyRegister dest, Register temp, Label* fail);
+                          AnyRegister dest, Register temp1, Register temp2,
+                          Label* fail, LiveRegisterSet volatileLiveReg);
 
   template <typename T>
   void loadFromTypedArray(Scalar::Type arrayType, const T& src,
                           const ValueOperand& dest, Uint32Mode uint32Mode,
-                          Register temp, Label* fail);
+                          Register temp, Label* fail,
+                          LiveRegisterSet volatileLiveReg);
 
   template <typename T>
   void loadFromTypedBigIntArray(Scalar::Type arrayType, const T& src,
@@ -5266,6 +5272,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   using MacroAssemblerSpecific::convertDoubleToFloat16;
   using MacroAssemblerSpecific::convertFloat32ToFloat16;
   using MacroAssemblerSpecific::convertInt32ToFloat16;
+  using MacroAssemblerSpecific::loadFloat16;
 
   void convertDoubleToFloat16(FloatRegister src, FloatRegister dest,
                               Register temp, LiveRegisterSet volatileLiveRegs);
@@ -5275,6 +5282,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   void convertInt32ToFloat16(Register src, FloatRegister dest, Register temp,
                              LiveRegisterSet volatileLiveRegs);
+
+  template <typename T>
+  void loadFloat16(const T& src, FloatRegister dest, Register temp1,
+                   Register temp2, LiveRegisterSet volatileLiveRegs);
 
   void debugAssertIsObject(const ValueOperand& val);
   void debugAssertObjHasFixedSlots(Register obj, Register scratch);

@@ -6676,7 +6676,7 @@ class MLoadUnboxedScalar : public MBinaryInstruction,
   void computeRange(TempAllocator& alloc) override;
 
   bool canProduceFloat32() const override {
-    return storageType_ == Scalar::Float32;
+    return storageType_ == Scalar::Float32 || storageType_ == Scalar::Float16;
   }
 
   ALLOW_CLONE(MLoadUnboxedScalar)
@@ -6786,7 +6786,7 @@ class MLoadTypedArrayElementHole : public MTernaryInstruction,
     return AliasSet::Load(AliasSet::UnboxedElement);
   }
   bool canProduceFloat32() const override {
-    return arrayType_ == Scalar::Float32;
+    return arrayType_ == Scalar::Float32 || arrayType_ == Scalar::Float16;
   }
 
   ALLOW_CLONE(MLoadTypedArrayElementHole)

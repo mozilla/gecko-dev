@@ -795,6 +795,25 @@ class MacroAssemblerX86Shared : public Assembler {
     vmovaps(src, dest);
   }
 
+  FaultingCodeOffset loadFloat16(const Address& addr, FloatRegister dest,
+                                 Register scratch) {
+    auto fco = load16ZeroExtend(addr, scratch);
+
+    // Move from GPR to FloatRegister.
+    vmovd(scratch, dest);
+
+    return fco;
+  }
+  FaultingCodeOffset loadFloat16(const BaseIndex& src, FloatRegister dest,
+                                 Register scratch) {
+    auto fco = load16ZeroExtend(src, scratch);
+
+    // Move from GPR to FloatRegister.
+    vmovd(scratch, dest);
+
+    return fco;
+  }
+
   // Checks whether a double is representable as a 32-bit integer. If so, the
   // integer is written to the output register. Otherwise, a bailout is taken to
   // the given snapshot. This function overwrites the scratch float register.

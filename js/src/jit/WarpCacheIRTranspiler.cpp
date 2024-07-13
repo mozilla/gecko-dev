@@ -2244,6 +2244,7 @@ static MIRType MIRTypeForArrayBufferViewRead(Scalar::Type arrayType,
       return MIRType::Int32;
     case Scalar::Uint32:
       return forceDoubleForUint32 ? MIRType::Double : MIRType::Int32;
+    case Scalar::Float16:
     case Scalar::Float32:
       return MIRType::Float32;
     case Scalar::Float64:

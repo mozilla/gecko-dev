@@ -227,6 +227,10 @@ class MacroAssemblerNone : public Assembler {
     MOZ_CRASH();
   }
   template <typename T>
+  FaultingCodeOffset loadFloat16(T, FloatRegister, Register) {
+    MOZ_CRASH();
+  }
+  template <typename T>
   FaultingCodeOffset loadFloat32(T, FloatRegister) {
     MOZ_CRASH();
   }

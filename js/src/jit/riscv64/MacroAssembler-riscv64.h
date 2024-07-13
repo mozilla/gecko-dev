@@ -1127,6 +1127,15 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     return fco;
   }
 
+  FaultingCodeOffset loadFloat16(const Address& addr, FloatRegister dest,
+                                 Register) {
+    MOZ_CRASH("Not supported for this target");
+  }
+  FaultingCodeOffset loadFloat16(const BaseIndex& src, FloatRegister dest,
+                                 Register) {
+    MOZ_CRASH("Not supported for this target");
+  }
+
   template <typename S>
   FaultingCodeOffset load64Unaligned(const S& src, Register64 dest) {
     return load64(src, dest);

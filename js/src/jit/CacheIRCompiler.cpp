@@ -6821,7 +6821,7 @@ bool CacheIRCompiler::emitLoadTypedArrayElementResult(
         forceDoubleForUint32 ? MacroAssembler::Uint32Mode::ForceDouble
                              : MacroAssembler::Uint32Mode::FailOnDouble;
     masm.loadFromTypedArray(elementType, source, output.valueReg(), uint32Mode,
-                            scratch1, failure->label());
+                            scratch1, failure->label(), liveVolatileRegs());
   }
 
   if (handleOOB) {
@@ -9854,7 +9854,7 @@ bool CacheIRCompiler::emitAtomicsLoadResult(ObjOperandId objId,
   Label* failUint32 = nullptr;
   MacroAssembler::Uint32Mode mode = MacroAssembler::Uint32Mode::ForceDouble;
   masm.loadFromTypedArray(elementType, source, output->valueReg(), mode,
-                          scratch, failUint32);
+                          InvalidReg, failUint32, LiveRegisterSet{});
   masm.memoryBarrierAfter(sync);
 
   return true;

@@ -1232,6 +1232,15 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
   FaultingCodeOffset loadFloat32(const Address& addr, FloatRegister dest);
   FaultingCodeOffset loadFloat32(const BaseIndex& src, FloatRegister dest);
 
+  FaultingCodeOffset loadFloat16(const Address& addr, FloatRegister dest,
+                                 Register) {
+    MOZ_CRASH("Not supported for this target");
+  }
+  FaultingCodeOffset loadFloat16(const BaseIndex& src, FloatRegister dest,
+                                 Register) {
+    MOZ_CRASH("Not supported for this target");
+  }
+
   FaultingCodeOffset store8(Register src, const Address& address);
   void store8(Imm32 imm, const Address& address);
   FaultingCodeOffset store8(Register src, const BaseIndex& address);

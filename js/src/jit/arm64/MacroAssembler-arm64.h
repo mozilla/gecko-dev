@@ -1135,6 +1135,29 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     }
   }
 
+  FaultingCodeOffset loadFloat16(const Address& addr, FloatRegister dest,
+                                 Register) {
+    return Ldr(ARMFPRegister(dest, 16), toMemOperand(addr));
+  }
+
+  FaultingCodeOffset loadFloat16(const BaseIndex& src, FloatRegister dest,
+                                 Register) {
+    ARMRegister base = toARMRegister(src.base, 64);
+    ARMRegister index(src.index, 64);
+    if (src.offset == 0) {
+      return Ldr(ARMFPRegister(dest, 16),
+                 MemOperand(base, index, vixl::LSL, unsigned(src.scale)));
+    } else {
+      vixl::UseScratchRegisterScope temps(this);
+      const ARMRegister scratch64 = temps.AcquireX();
+      MOZ_ASSERT(scratch64.asUnsized() != src.base);
+      MOZ_ASSERT(scratch64.asUnsized() != src.index);
+
+      Add(scratch64, base, Operand(index, vixl::LSL, unsigned(src.scale)));
+      return Ldr(ARMFPRegister(dest, 16), MemOperand(scratch64, src.offset));
+    }
+  }
+
   void moveDouble(FloatRegister src, FloatRegister dest) {
     fmov(ARMFPRegister(dest, 64), ARMFPRegister(src, 64));
   }
