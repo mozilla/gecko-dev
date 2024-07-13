@@ -820,12 +820,12 @@ class ElementSpecific {
       return true;
     }
 
-    if (std::is_same_v<T, int64_t>) {
+    if constexpr (std::is_same_v<T, int64_t>) {
       JS_TRY_VAR_OR_RETURN_FALSE(cx, *result, ToBigInt64(cx, v));
       return true;
     }
 
-    if (std::is_same_v<T, uint64_t>) {
+    if constexpr (std::is_same_v<T, uint64_t>) {
       JS_TRY_VAR_OR_RETURN_FALSE(cx, *result, ToBigUint64(cx, v));
       return true;
     }

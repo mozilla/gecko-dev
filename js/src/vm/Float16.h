@@ -52,6 +52,12 @@ struct bits<volatile T> : bits<T> {};
 template <typename T>
 struct bits<const volatile T> : bits<T> {};
 
+/// Unsigned integer of (at least) 32 bits width.
+template <>
+struct bits<float> {
+  typedef std::uint_least32_t type;
+};
+
 /// Unsigned integer of (at least) 64 bits width.
 template <>
 struct bits<double> {
@@ -80,6 +86,32 @@ constexpr unsigned int rounded(unsigned int value, int g, int s) {
   return value + (g & (s | value));
 }
 
+/// Convert IEEE single-precision to half-precision.
+/// \param value single-precision value to convert
+/// \return rounded half-precision value
+inline unsigned int float2half_impl(float value) {
+  bits<float>::type fbits;
+  std::memcpy(&fbits, &value, sizeof(float));
+  unsigned int sign = (fbits >> 16) & 0x8000;
+  fbits &= 0x7FFFFFFF;
+  if (fbits >= 0x7F800000)
+    return sign | 0x7C00 |
+           ((fbits > 0x7F800000) ? (0x200 | ((fbits >> 13) & 0x3FF)) : 0);
+  if (fbits >= 0x47800000) return overflow(sign);
+  if (fbits >= 0x38800000)
+    return rounded(
+        sign | (((fbits >> 23) - 112) << 10) | ((fbits >> 13) & 0x3FF),
+        (fbits >> 12) & 1, (fbits & 0xFFF) != 0);
+  if (fbits >= 0x33000000) {
+    int i = 125 - (fbits >> 23);
+    fbits = (fbits & 0x7FFFFF) | 0x800000;
+    return rounded(sign | (fbits >> (i + 1)), (fbits >> i) & 1,
+                   (fbits & ((static_cast<uint32>(1) << i) - 1)) != 0);
+  }
+  if (fbits != 0) return underflow(sign);
+  return sign;
+}
+
 /// Convert IEEE double-precision to half-precision.
 /// \param value double-precision value to convert
 /// \return rounded half-precision value
@@ -106,9 +138,13 @@ inline unsigned int float2half_impl(double value) {
   return sign;
 }
 
+template <typename T>
+inline T half2float_impl(unsigned int value);
+
 /// Convert half-precision to IEEE double-precision.
 /// \param value half-precision value to convert
 /// \return double-precision value
+template <>
 inline double half2float_impl(unsigned int value) {
   uint32 hi = static_cast<uint32>(value & 0x8000) << 16;
   unsigned int abs = value & 0x7FFF;
@@ -123,6 +159,25 @@ inline double half2float_impl(unsigned int value) {
   std::memcpy(&out, &dbits, sizeof(double));
   return out;
 }
+
+/// Convert half-precision to IEEE single-precision.
+/// \param value half-precision value to convert
+/// \return single-precision value
+template <>
+inline float half2float_impl(unsigned int value) {
+  bits<float>::type fbits = static_cast<bits<float>::type>(value & 0x8000)
+                            << 16;
+  int abs = value & 0x7FFF;
+  if (abs) {
+    fbits |= 0x38000000 << static_cast<unsigned>(abs >= 0x7C00);
+    for (; abs < 0x400; abs <<= 1, fbits -= 0x800000);
+    fbits += static_cast<bits<float>::type>(abs) << 13;
+  }
+
+  float out;
+  std::memcpy(&out, &fbits, sizeof(float));
+  return out;
+}
 }  // namespace half
 
 struct float16 {
@@ -131,16 +186,36 @@ struct float16 {
   float16() = default;
   float16(const float16& other) = default;
 
+  explicit float16(float x) { *this = x; }
   explicit float16(double x) { *this = x; }
 
+  explicit float16(std::int8_t x) { *this = float(x); }
+  explicit float16(std::int16_t x) { *this = float(x); }
+  explicit float16(std::int32_t x) { *this = float(x); }
+  explicit float16(std::int64_t x) { *this = double(x); }
+
+  explicit float16(std::uint8_t x) { *this = float(x); }
+  explicit float16(std::uint16_t x) { *this = float(x); }
+  explicit float16(std::uint32_t x) { *this = float(x); }
+  explicit float16(std::uint64_t x) { *this = double(x); }
+
+  explicit float16(bool x) { *this = float(x); }
+
   float16& operator=(const float16& x) = default;
+
+  float16& operator=(float x) {
+    this->val = half::float2half_impl(x);
+    return *this;
+  }
 
   float16& operator=(double x) {
     this->val = half::float2half_impl(x);
     return *this;
   }
 
-  double toDouble() { return half::half2float_impl(this->val); }
+  float toFloat() { return half::half2float_impl<float>(this->val); }
+
+  double toDouble() { return half::half2float_impl<double>(this->val); }
 };
 
 static_assert(sizeof(float16) == 2, "float16 has no extra padding");
