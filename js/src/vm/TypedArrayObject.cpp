@@ -2618,6 +2618,24 @@ static bool GetLastChunkHandlingOption(JSContext* cx, Handle<JSObject*> options,
   return false;
 }
 
+enum class OmitPadding : bool { No, Yes };
+
+/**
+ * Uint8Array.prototype.toBase64 ( [ options ] )
+ *
+ * Helper to retrieve the "omitPadding" option.
+ */
+static bool GetOmitPaddingOption(JSContext* cx, Handle<JSObject*> options,
+                                 OmitPadding* result) {
+  Rooted<Value> value(cx);
+  if (!GetProperty(cx, options, options, cx->names().omitPadding, &value)) {
+    return false;
+  }
+
+  *result = static_cast<OmitPadding>(JS::ToBoolean(value));
+  return true;
+}
+
 /**
  * Uint8Array.fromBase64 ( string [ , options ] )
  *
@@ -2945,6 +2963,7 @@ static bool uint8array_toBase64(JSContext* cx, const CallArgs& args) {
 
   // Steps 3-7.
   auto alphabet = Alphabet::Base64;
+  auto omitPadding = OmitPadding::No;
   if (args.hasDefined(0)) {
     // Step 3. (Inlined GetOptionsObject)
     Rooted<JSObject*> options(
@@ -2953,8 +2972,13 @@ static bool uint8array_toBase64(JSContext* cx, const CallArgs& args) {
       return false;
     }
 
-    // Steps 4-7.
+    // Steps 4-6.
     if (!GetAlphabetOption(cx, options, &alphabet)) {
+      return false;
+    }
+
+    // Step 7.
+    if (!GetOmitPaddingOption(cx, options, &omitPadding)) {
       return false;
     }
   }
@@ -2967,11 +2991,16 @@ static bool uint8array_toBase64(JSContext* cx, const CallArgs& args) {
   }
 
   // Compute the output string length. Three input bytes are encoded as four
-  // characters, so the output length is ⌈length × 4/3⌉.
+  // characters, so the output length is ⌈length × 4/3⌉. When omitting padding,
+  // the output length is length + ⌈length / 3⌉.
   auto outLength = mozilla::CheckedInt<size_t>{*length};
   outLength += 2;
   outLength /= 3;
-  outLength *= 4;
+  if (omitPadding == OmitPadding::No) {
+    outLength *= 4;
+  } else {
+    outLength += *length;
+  }
   if (!outLength.isValid() || outLength.value() > JSString::MAX_LENGTH) {
     ReportAllocationOverflow(cx);
     return false;
@@ -3009,28 +3038,32 @@ static bool uint8array_toBase64(JSContext* cx, const CallArgs& args) {
     sb.infallibleAppend(encode(u24 >> 0));
   }
 
-  // Trailing two and one element bytes are padded with '='.
+  // Trailing two and one element bytes are optionally padded with '='.
   if (toRead == 2) {
     // Combine two input bytes into a single uint24 value.
     auto byte0 = jit::AtomicOperations::loadSafeWhenRacy(data++);
     auto byte1 = jit::AtomicOperations::loadSafeWhenRacy(data++);
     auto u24 = (uint32_t(byte0) << 16) | (uint32_t(byte1) << 8);
 
-    // Encode the uint24 value as base64, including padding.
+    // Encode the uint24 value as base64, optionally including padding.
     sb.infallibleAppend(encode(u24 >> 18));
     sb.infallibleAppend(encode(u24 >> 12));
     sb.infallibleAppend(encode(u24 >> 6));
-    sb.infallibleAppend('=');
+    if (omitPadding == OmitPadding::No) {
+      sb.infallibleAppend('=');
+    }
   } else if (toRead == 1) {
     // Combine one input byte into a single uint24 value.
     auto byte0 = jit::AtomicOperations::loadSafeWhenRacy(data++);
     auto u24 = uint32_t(byte0) << 16;
 
-    // Encode the uint24 value as base64, including padding.
+    // Encode the uint24 value as base64, optionally including padding.
     sb.infallibleAppend(encode(u24 >> 18));
     sb.infallibleAppend(encode(u24 >> 12));
-    sb.infallibleAppend('=');
-    sb.infallibleAppend('=');
+    if (omitPadding == OmitPadding::No) {
+      sb.infallibleAppend('=');
+      sb.infallibleAppend('=');
+    }
   } else {
     MOZ_ASSERT(toRead == 0);
   }
