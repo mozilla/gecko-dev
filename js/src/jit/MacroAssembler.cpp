@@ -3721,10 +3721,10 @@ void MacroAssembler::convertInt32ValueToDouble(ValueOperand val) {
   bind(&done);
 }
 
-void MacroAssembler::convertValueToFloatingPoint(ValueOperand value,
-                                                 FloatRegister output,
-                                                 Label* fail,
-                                                 MIRType outputType) {
+void MacroAssembler::convertValueToFloatingPoint(
+    ValueOperand value, FloatRegister output, Register maybeTemp,
+    LiveRegisterSet volatileLiveRegs, Label* fail,
+    FloatingPointType outputType) {
   Label isDouble, isInt32OrBool, isNull, done;
 
   {
@@ -3739,7 +3739,8 @@ void MacroAssembler::convertValueToFloatingPoint(ValueOperand value,
   }
 
   // fall-through: undefined
-  if (outputType == MIRType::Float32) {
+  if (outputType == FloatingPointType::Float16 ||
+      outputType == FloatingPointType::Float32) {
     loadConstantFloat32(float(GenericNaN()), output);
   } else {
     loadConstantDouble(GenericNaN(), output);
@@ -3747,7 +3748,8 @@ void MacroAssembler::convertValueToFloatingPoint(ValueOperand value,
   jump(&done);
 
   bind(&isNull);
-  if (outputType == MIRType::Float32) {
+  if (outputType == FloatingPointType::Float16 ||
+      outputType == FloatingPointType::Float32) {
     loadConstantFloat32(0.0f, output);
   } else {
     loadConstantDouble(0.0, output);
@@ -3755,7 +3757,10 @@ void MacroAssembler::convertValueToFloatingPoint(ValueOperand value,
   jump(&done);
 
   bind(&isInt32OrBool);
-  if (outputType == MIRType::Float32) {
+  if (outputType == FloatingPointType::Float16) {
+    convertInt32ToFloat16(value.payloadOrValueReg(), output, maybeTemp,
+                          volatileLiveRegs);
+  } else if (outputType == FloatingPointType::Float32) {
     convertInt32ToFloat32(value.payloadOrValueReg(), output);
   } else {
     convertInt32ToDouble(value.payloadOrValueReg(), output);
@@ -3765,14 +3770,24 @@ void MacroAssembler::convertValueToFloatingPoint(ValueOperand value,
   // On some non-multiAlias platforms, unboxDouble may use the scratch register,
   // so do not merge code paths here.
   bind(&isDouble);
-  if (outputType == MIRType::Float32 && hasMultiAlias()) {
+  if ((outputType == FloatingPointType::Float16 ||
+       outputType == FloatingPointType::Float32) &&
+      hasMultiAlias()) {
     ScratchDoubleScope tmp(*this);
     unboxDouble(value, tmp);
-    convertDoubleToFloat32(tmp, output);
+
+    if (outputType == FloatingPointType::Float16) {
+      convertDoubleToFloat16(tmp, output, maybeTemp, volatileLiveRegs);
+    } else {
+      convertDoubleToFloat32(tmp, output);
+    }
   } else {
     FloatRegister tmp = output.asDouble();
     unboxDouble(value, tmp);
-    if (outputType == MIRType::Float32) {
+
+    if (outputType == FloatingPointType::Float16) {
+      convertDoubleToFloat16(tmp, output, maybeTemp, volatileLiveRegs);
+    } else if (outputType == FloatingPointType::Float32) {
       convertDoubleToFloat32(tmp, output);
     }
   }
@@ -7550,6 +7565,87 @@ void MacroAssembler::memoryBarrierBefore(Synchronization sync) {
 
 void MacroAssembler::memoryBarrierAfter(Synchronization sync) {
   memoryBarrier(sync.barrierAfter);
+}
+
+void MacroAssembler::convertDoubleToFloat16(FloatRegister src,
+                                            FloatRegister dest, Register temp,
+                                            LiveRegisterSet volatileLiveRegs) {
+  if (MacroAssembler::SupportsFloat64To16()) {
+    convertDoubleToFloat16(src, dest);
+
+    // Float16 is currently passed as Float32, so expand again to Float32.
+    convertFloat16ToFloat32(dest, dest);
+    return;
+  }
+
+  LiveRegisterSet save = volatileLiveRegs;
+  save.takeUnchecked(dest);
+  save.takeUnchecked(dest.asDouble());
+  save.takeUnchecked(temp);
+
+  PushRegsInMask(save);
+
+  using Fn = float (*)(double);
+  setupUnalignedABICall(temp);
+  passABIArg(src, ABIType::Float64);
+  callWithABI<Fn, jit::RoundFloat16ToFloat32>(ABIType::Float32);
+  storeCallFloatResult(dest);
+
+  PopRegsInMask(save);
+}
+
+void MacroAssembler::convertFloat32ToFloat16(FloatRegister src,
+                                             FloatRegister dest, Register temp,
+                                             LiveRegisterSet volatileLiveRegs) {
+  if (MacroAssembler::SupportsFloat32To16()) {
+    convertFloat32ToFloat16(src, dest);
+
+    // Float16 is currently passed as Float32, so expand again to Float32.
+    convertFloat16ToFloat32(dest, dest);
+    return;
+  }
+
+  LiveRegisterSet save = volatileLiveRegs;
+  save.takeUnchecked(dest);
+  save.takeUnchecked(dest.asDouble());
+  save.takeUnchecked(temp);
+
+  PushRegsInMask(save);
+
+  using Fn = float (*)(float);
+  setupUnalignedABICall(temp);
+  passABIArg(src, ABIType::Float32);
+  callWithABI<Fn, jit::RoundFloat16ToFloat32>(ABIType::Float32);
+  storeCallFloatResult(dest);
+
+  PopRegsInMask(save);
+}
+
+void MacroAssembler::convertInt32ToFloat16(Register src, FloatRegister dest,
+                                           Register temp,
+                                           LiveRegisterSet volatileLiveRegs) {
+  if (MacroAssembler::SupportsFloat32To16()) {
+    convertInt32ToFloat16(src, dest);
+
+    // Float16 is currently passed as Float32, so expand again to Float32.
+    convertFloat16ToFloat32(dest, dest);
+    return;
+  }
+
+  LiveRegisterSet save = volatileLiveRegs;
+  save.takeUnchecked(dest);
+  save.takeUnchecked(dest.asDouble());
+  save.takeUnchecked(temp);
+
+  PushRegsInMask(save);
+
+  using Fn = float (*)(int32_t);
+  setupUnalignedABICall(temp);
+  passABIArg(src);
+  callWithABI<Fn, jit::RoundFloat16ToFloat32>(ABIType::Float32);
+  storeCallFloatResult(dest);
+
+  PopRegsInMask(save);
 }
 
 void MacroAssembler::debugAssertIsObject(const ValueOperand& val) {

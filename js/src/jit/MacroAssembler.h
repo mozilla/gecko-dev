@@ -5263,6 +5263,19 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void memoryBarrierBefore(Synchronization sync);
   void memoryBarrierAfter(Synchronization sync);
 
+  using MacroAssemblerSpecific::convertDoubleToFloat16;
+  using MacroAssemblerSpecific::convertFloat32ToFloat16;
+  using MacroAssemblerSpecific::convertInt32ToFloat16;
+
+  void convertDoubleToFloat16(FloatRegister src, FloatRegister dest,
+                              Register temp, LiveRegisterSet volatileLiveRegs);
+
+  void convertFloat32ToFloat16(FloatRegister src, FloatRegister dest,
+                               Register temp, LiveRegisterSet volatileLiveRegs);
+
+  void convertInt32ToFloat16(Register src, FloatRegister dest, Register temp,
+                             LiveRegisterSet volatileLiveRegs);
+
   void debugAssertIsObject(const ValueOperand& val);
   void debugAssertObjHasFixedSlots(Register obj, Register scratch);
 
@@ -5853,18 +5866,31 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void convertInt32ValueToDouble(ValueOperand val);
 
  private:
+  enum class FloatingPointType { Double, Float32, Float16 };
+
   void convertValueToFloatingPoint(ValueOperand value, FloatRegister output,
-                                   Label* fail, MIRType outputType);
+                                   Register maybeTemp,
+                                   LiveRegisterSet volatileLiveRegs,
+                                   Label* fail, FloatingPointType outputType);
 
  public:
   void convertValueToDouble(ValueOperand value, FloatRegister output,
                             Label* fail) {
-    convertValueToFloatingPoint(value, output, fail, MIRType::Double);
+    convertValueToFloatingPoint(value, output, InvalidReg, LiveRegisterSet{},
+                                fail, FloatingPointType::Double);
   }
 
   void convertValueToFloat32(ValueOperand value, FloatRegister output,
                              Label* fail) {
-    convertValueToFloatingPoint(value, output, fail, MIRType::Float32);
+    convertValueToFloatingPoint(value, output, InvalidReg, LiveRegisterSet{},
+                                fail, FloatingPointType::Float32);
+  }
+
+  void convertValueToFloat16(ValueOperand value, FloatRegister output,
+                             Register maybeTemp,
+                             LiveRegisterSet volatileLiveRegs, Label* fail) {
+    convertValueToFloatingPoint(value, output, maybeTemp, volatileLiveRegs,
+                                fail, FloatingPointType::Float16);
   }
 
   //

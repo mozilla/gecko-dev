@@ -398,6 +398,37 @@ class MacroAssemblerX86Shared : public Assembler {
     vcvtsd2ss(src, dest, dest);
   }
 
+  void convertDoubleToFloat16(FloatRegister src, FloatRegister dest) {
+    MOZ_CRASH("Not supported for this target");
+  }
+  void convertFloat16ToDouble(FloatRegister src, FloatRegister dest) {
+    convertFloat16ToFloat32(src, dest);
+    convertFloat32ToDouble(dest, dest);
+  }
+  void convertFloat32ToFloat16(FloatRegister src, FloatRegister dest) {
+    vcvtps2ph(src, dest);
+  }
+  void convertFloat16ToFloat32(FloatRegister src, FloatRegister dest) {
+    // Zero extend word to quadword. This ensures all high words in the result
+    // are zeroed after vcvtph2ps.
+    vpmovzxwq(Operand(dest), dest);
+
+    // Convert Float16 to Float32.
+    vcvtph2ps(dest, dest);
+  }
+  void convertInt32ToFloat16(Register src, FloatRegister dest) {
+    // Clear the output register first to break dependencies; see above;
+    //
+    // This also ensures all high words in the result are zeroed.
+    zeroFloat32(dest);
+
+    // Convert Int32 to Float32.
+    vcvtsi2ss(src, dest, dest);
+
+    // Convert Float32 to Float16.
+    vcvtps2ph(dest, dest);
+  }
+
   void loadInt32x4(const Address& addr, FloatRegister dest) {
     vmovdqa(Operand(addr), dest);
   }

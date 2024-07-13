@@ -1709,6 +1709,11 @@ class Assembler : public AssemblerShared {
   // as_vldr_unaligned and as_vstr_unaligned instructions to get proper behavior
   // and those are NEON-specific and have to be asked for specifically.
   static bool SupportsFastUnalignedFPAccesses() { return false; }
+  // Conversion between single- and half-precision floats is available through
+  // the NEON vcvtb.f16.f32 and vcvtb.f32.f16 instructions, but we don't support
+  // these yet.
+  static bool SupportsFloat64To16() { return false; }
+  static bool SupportsFloat32To16() { return false; }
 
   static bool HasRoundInstruction(RoundingMode mode) { return false; }
 

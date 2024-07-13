@@ -544,6 +544,8 @@ class Assembler : public vixl::Assembler {
   static bool SupportsUnalignedAccesses() { return true; }
   static bool SupportsFastUnalignedFPAccesses() { return true; }
   static bool SupportsWasmSimd() { return true; }
+  static bool SupportsFloat64To16() { return true; }
+  static bool SupportsFloat32To16() { return true; }
 
   static bool HasRoundInstruction(RoundingMode mode) {
     switch (mode) {

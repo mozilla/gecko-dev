@@ -572,6 +572,25 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Fcvt(ARMFPRegister(dest, 32), ARMFPRegister(src, 64));
   }
 
+  void convertDoubleToFloat16(FloatRegister src, FloatRegister dest) {
+    Fcvt(ARMFPRegister(dest, 16), ARMFPRegister(src, 64));
+  }
+  void convertFloat16ToDouble(FloatRegister src, FloatRegister dest) {
+    Fcvt(ARMFPRegister(dest, 64), ARMFPRegister(src, 16));
+  }
+  void convertFloat32ToFloat16(FloatRegister src, FloatRegister dest) {
+    Fcvt(ARMFPRegister(dest, 16), ARMFPRegister(src, 32));
+  }
+  void convertFloat16ToFloat32(FloatRegister src, FloatRegister dest) {
+    Fcvt(ARMFPRegister(dest, 32), ARMFPRegister(src, 16));
+  }
+  void convertInt32ToFloat16(Register src, FloatRegister dest) {
+    // Direct "32-bit to half-precision" move requires (FEAT_FP16), so we
+    // instead use a "32-bit to single-precision" move.
+    convertInt32ToFloat32(src, dest);
+    convertFloat32ToFloat16(dest, dest);
+  }
+
   using vixl::MacroAssembler::B;
 
   void convertDoubleToInt32(FloatRegister src, Register dest, Label* fail,

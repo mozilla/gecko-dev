@@ -1187,6 +1187,8 @@ class AssemblerX86Shared : public AssemblerShared {
   static bool SupportsUnalignedAccesses() { return true; }
   static bool SupportsFastUnalignedFPAccesses() { return true; }
   static bool SupportsWasmSimd() { return CPUInfo::IsSSE41Present(); }
+  static bool SupportsFloat64To16() { return false; }
+  static bool SupportsFloat32To16() { return CPUInfo::IsF16CPresent(); }
   static bool HasAVX() { return CPUInfo::IsAVXPresent(); }
   static bool HasAVX2() { return CPUInfo::IsAVX2Present(); }
   static bool HasFMA() { return CPUInfo::IsFMAPresent(); }

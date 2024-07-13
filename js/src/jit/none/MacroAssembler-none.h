@@ -65,6 +65,8 @@ class MacroAssemblerNone : public Assembler {
   static bool SupportsFloatingPoint() { return false; }
   static bool SupportsUnalignedAccesses() { return false; }
   static bool SupportsFastUnalignedFPAccesses() { return false; }
+  static bool SupportsFloat64To16() { return false; }
+  static bool SupportsFloat32To16() { return false; }
 
   void executableCopy(void*, bool = true) { MOZ_CRASH(); }
   void copyJumpRelocationTable(uint8_t*) { MOZ_CRASH(); }
@@ -418,6 +420,12 @@ class MacroAssemblerNone : public Assembler {
     MOZ_CRASH();
   }
   void convertFloat32ToDouble(FloatRegister, FloatRegister) { MOZ_CRASH(); }
+
+  void convertDoubleToFloat16(FloatRegister, FloatRegister) { MOZ_CRASH(); }
+  void convertFloat16ToDouble(FloatRegister, FloatRegister) { MOZ_CRASH(); }
+  void convertFloat32ToFloat16(FloatRegister, FloatRegister) { MOZ_CRASH(); }
+  void convertFloat16ToFloat32(FloatRegister, FloatRegister) { MOZ_CRASH(); }
+  void convertInt32ToFloat16(Register, FloatRegister) { MOZ_CRASH(); }
 
   void loadConstantDouble(double, FloatRegister) { MOZ_CRASH(); }
   void loadConstantFloat32(float, FloatRegister) { MOZ_CRASH(); }

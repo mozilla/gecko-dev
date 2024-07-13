@@ -59,6 +59,18 @@
 - ret: Float32
   args: [Float32]
 
+# float f(double)
+- ret: Float32
+  args: [Float64]
+
+# float f(int)
+- ret: Float32
+  args: [General]
+
+# float f(int32_t)
+- ret: Float32
+  args: [Int32]
+
 # float f(int, int)
 - name: Float32_IntInt
   ret: Float32
