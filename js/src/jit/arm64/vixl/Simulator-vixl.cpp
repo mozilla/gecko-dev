@@ -2572,7 +2572,7 @@ void Simulator::VisitFPDataProcessing1Source(const Instruction* instr) {
       set_sreg(fd, FPToFloat(RawbitsToFloat16(hreg(fn)), ReadDN()));
       return;
     case FCVT_dh:
-      set_dreg(fd, FPToDouble(hreg(fn), ReadDN()));
+      set_dreg(fd, FPToDouble(RawbitsToFloat16(hreg(fn)), ReadDN()));
       return;
     case FCVT_hd:
       set_hreg(fd, Float16ToRawbits(FPToFloat16(dreg(fn), FPTieEven, ReadDN())));
