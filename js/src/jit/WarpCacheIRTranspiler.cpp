@@ -1307,7 +1307,7 @@ bool WarpCacheIRTranspiler::emitGuardBooleanToInt32(ValOperandId inputId,
 bool WarpCacheIRTranspiler::emitGuardIsNumber(ValOperandId inputId) {
   // Prefer MToDouble because it gets further optimizations downstream.
   MDefinition* def = getOperand(inputId);
-  if (def->type() == MIRType::Int32) {
+  if (def->type() == MIRType::Int32 || def->type() == MIRType::Float32) {
     auto* ins = MToDouble::New(alloc(), def);
     add(ins);
 

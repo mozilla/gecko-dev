@@ -4176,6 +4176,37 @@ MDefinition* MToFloat16::foldsTo(TempAllocator& alloc) {
     }
   }
 
+  auto isFloat16 = [](auto* def) -> MDefinition* {
+    // ToFloat16(ToDouble(float16)) => float16
+    // ToFloat16(ToFloat32(float16)) => float16
+    if (def->isToDouble()) {
+      def = def->toToDouble()->input();
+    } else if (def->isToFloat32()) {
+      def = def->toToFloat32()->input();
+    }
+
+    // ToFloat16(ToFloat16(x)) => ToFloat16(x)
+    if (def->isToFloat16()) {
+      return def;
+    }
+
+    // ToFloat16(LoadFloat16(x)) => LoadFloat16(x)
+    if (def->isLoadUnboxedScalar() &&
+        def->toLoadUnboxedScalar()->storageType() == Scalar::Float16) {
+      return def;
+    }
+    if (def->isLoadDataViewElement() &&
+        def->toLoadDataViewElement()->storageType() == Scalar::Float16) {
+      return def;
+    }
+    return nullptr;
+  };
+
+  // Fold loads which are guaranteed to return Float16.
+  if (auto* f16 = isFloat16(in)) {
+    return f16;
+  }
+
   // Fold ToFloat16(ToDouble(float32)) to ToFloat16(float32).
   // Fold ToFloat16(ToDouble(int32)) to ToFloat16(int32).
   if (in->isToDouble()) {

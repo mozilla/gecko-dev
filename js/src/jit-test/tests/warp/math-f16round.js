@@ -72,3 +72,43 @@ function fromFloat32() {
   }
 }
 for (let i = 0; i < 2; ++i) fromFloat32();
+
+function fromLoadFloat16() {
+  // ToFloat16(LoadFloat16(x)) is folded to LoadFloat16(x).
+
+  let f16 = new Float16Array([
+    -Math.PI,
+    -65519,
+    -65520,
+    -2048,
+    -2049,
+    -0.5,
+    -0.1,
+    -0,
+    0,
+    0.1,
+    0.5,
+    Math.PI,
+    2048,
+    2049,
+    65519,
+    65520,
+    Infinity,
+    NaN,
+  ]);
+
+  let dv = new DataView(f16.buffer);
+
+  const nativeIsLittleEndian = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+
+  for (let i = 0; i < 200; ++i) {
+    let idx = i % f16.length;
+    let x = f16[idx];
+    let y = dv.getFloat16(idx * Float16Array.BYTES_PER_ELEMENT, nativeIsLittleEndian);
+
+    assertEq(x, y);
+    assertEq(Math.f16round(x), x);
+    assertEq(Math.f16round(y), y);
+  }
+}
+for (let i = 0; i < 2; ++i) fromLoadFloat16();
