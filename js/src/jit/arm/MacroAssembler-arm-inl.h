@@ -24,6 +24,10 @@ void MacroAssembler::move64(Imm64 imm, Register64 dest) {
   move32(Imm32((imm.value >> 32) & 0xFFFFFFFFL), dest.high);
 }
 
+void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest) {
+  MOZ_CRASH("Not supported for this target");
+}
+
 void MacroAssembler::moveFloat32ToGPR(FloatRegister src, Register dest) {
   ma_vxfer(src, dest);
 }

@@ -4589,40 +4589,49 @@ void LIRGenerator::visitLoadDataViewElement(MLoadDataViewElement* ins) {
 
   // We need a temp register for:
   // - Uint32Array with known double result,
+  // - Float16Array,
   // - Float32Array,
   // - and BigInt64Array and BigUint64Array.
-  LDefinition tempDef = LDefinition::BogusTemp();
+  LDefinition temp1 = LDefinition::BogusTemp();
   if ((ins->storageType() == Scalar::Uint32 &&
        IsFloatingPointType(ins->type())) ||
+      ins->storageType() == Scalar::Float16 ||
       ins->storageType() == Scalar::Float32) {
-    tempDef = temp();
+    temp1 = temp();
   }
   if (Scalar::isBigIntType(ins->storageType())) {
 #ifdef JS_CODEGEN_X86
     // There are not enough registers on x86.
     if (littleEndian.isConstant()) {
-      tempDef = temp();
+      temp1 = temp();
     }
 #else
-    tempDef = temp();
+    temp1 = temp();
 #endif
+  }
+
+  // Additional temp when Float16 to Float64 conversion requires a call.
+  LDefinition temp2 = LDefinition::BogusTemp();
+  if (MacroAssembler::LoadRequiresCall(ins->storageType())) {
+    temp2 = temp();
   }
 
   // We also need a separate 64-bit temp register for:
   // - Float64Array
   // - and BigInt64Array and BigUint64Array.
-  LInt64Definition temp64Def = LInt64Definition::BogusTemp();
+  LInt64Definition temp64 = LInt64Definition::BogusTemp();
   if (Scalar::byteSize(ins->storageType()) == 8) {
-    temp64Def = tempInt64();
+    temp64 = tempInt64();
   }
 
   auto* lir = new (alloc())
-      LLoadDataViewElement(elements, index, littleEndian, tempDef, temp64Def);
+      LLoadDataViewElement(elements, index, littleEndian, temp1, temp2, temp64);
   if (ins->fallible()) {
     assignSnapshot(lir, ins->bailoutKind());
   }
   define(lir, ins);
-  if (Scalar::isBigIntType(ins->storageType())) {
+  if (Scalar::isBigIntType(ins->storageType()) ||
+      MacroAssembler::LoadRequiresCall(ins->storageType())) {
     assignSafepoint(lir, ins);
   }
 }

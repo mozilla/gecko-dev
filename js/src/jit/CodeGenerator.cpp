@@ -18137,12 +18137,18 @@ void CodeGenerator::visitLoadUnboxedBigInt(LLoadUnboxedBigInt* lir) {
 void CodeGenerator::visitLoadDataViewElement(LLoadDataViewElement* lir) {
   Register elements = ToRegister(lir->elements());
   const LAllocation* littleEndian = lir->littleEndian();
-  Register temp = ToTempRegisterOrInvalid(lir->temp());
+  Register temp1 = ToTempRegisterOrInvalid(lir->temp1());
+  Register temp2 = ToTempRegisterOrInvalid(lir->temp2());
   Register64 temp64 = ToTempRegister64OrInvalid(lir->temp64());
   AnyRegister out = ToAnyRegister(lir->output());
 
   const MLoadDataViewElement* mir = lir->mir();
   Scalar::Type storageType = mir->storageType();
+
+  LiveRegisterSet volatileRegs;
+  if (MacroAssembler::LoadRequiresCall(storageType)) {
+    volatileRegs = liveVolatileRegs(lir);
+  }
 
   BaseIndex source(elements, ToRegister(lir->index()), TimesOne);
 
@@ -18154,11 +18160,9 @@ void CodeGenerator::visitLoadDataViewElement(LLoadDataViewElement* lir) {
   if (noSwap && (!Scalar::isFloatingType(storageType) ||
                  MacroAssembler::SupportsFastUnalignedFPAccesses())) {
     if (!Scalar::isBigIntType(storageType)) {
-      MOZ_ASSERT(storageType != Scalar::Float16);
-
       Label fail;
-      masm.loadFromTypedArray(storageType, source, out, temp, InvalidReg, &fail,
-                              LiveRegisterSet{});
+      masm.loadFromTypedArray(storageType, source, out, temp1, temp2, &fail,
+                              volatileRegs);
 
       if (fail.used()) {
         bailoutFrom(&fail, lir->snapshot());
@@ -18166,7 +18170,7 @@ void CodeGenerator::visitLoadDataViewElement(LLoadDataViewElement* lir) {
     } else {
       masm.load64(source, temp64);
 
-      emitCreateBigInt(lir, storageType, temp64, out.gpr(), temp);
+      emitCreateBigInt(lir, storageType, temp64, out.gpr(), temp1);
     }
     return;
   }
@@ -18183,10 +18187,13 @@ void CodeGenerator::visitLoadDataViewElement(LLoadDataViewElement* lir) {
       masm.load32Unaligned(source, out.gpr());
       break;
     case Scalar::Uint32:
-      masm.load32Unaligned(source, out.isFloat() ? temp : out.gpr());
+      masm.load32Unaligned(source, out.isFloat() ? temp1 : out.gpr());
+      break;
+    case Scalar::Float16:
+      masm.load16UnalignedZeroExtend(source, temp1);
       break;
     case Scalar::Float32:
-      masm.load32Unaligned(source, temp);
+      masm.load32Unaligned(source, temp1);
       break;
     case Scalar::Float64:
     case Scalar::BigInt64:
@@ -18220,10 +18227,13 @@ void CodeGenerator::visitLoadDataViewElement(LLoadDataViewElement* lir) {
         masm.byteSwap32(out.gpr());
         break;
       case Scalar::Uint32:
-        masm.byteSwap32(out.isFloat() ? temp : out.gpr());
+        masm.byteSwap32(out.isFloat() ? temp1 : out.gpr());
+        break;
+      case Scalar::Float16:
+        masm.byteSwap16ZeroExtend(temp1);
         break;
       case Scalar::Float32:
-        masm.byteSwap32(temp);
+        masm.byteSwap32(temp1);
         break;
       case Scalar::Float64:
       case Scalar::BigInt64:
@@ -18250,7 +18260,7 @@ void CodeGenerator::visitLoadDataViewElement(LLoadDataViewElement* lir) {
       break;
     case Scalar::Uint32:
       if (out.isFloat()) {
-        masm.convertUInt32ToDouble(temp, out.fpu());
+        masm.convertUInt32ToDouble(temp1, out.fpu());
       } else {
         // Bail out if the value doesn't fit into a signed int32 value. This
         // is what allows MLoadDataViewElement to have a type() of
@@ -18258,8 +18268,12 @@ void CodeGenerator::visitLoadDataViewElement(LLoadDataViewElement* lir) {
         bailoutTest32(Assembler::Signed, out.gpr(), out.gpr(), lir->snapshot());
       }
       break;
+    case Scalar::Float16:
+      masm.moveGPRToFloat16(temp1, out.fpu(), temp2, volatileRegs);
+      masm.canonicalizeFloat(out.fpu());
+      break;
     case Scalar::Float32:
-      masm.moveGPRToFloat32(temp, out.fpu());
+      masm.moveGPRToFloat32(temp1, out.fpu());
       masm.canonicalizeFloat(out.fpu());
       break;
     case Scalar::Float64:
@@ -18268,7 +18282,7 @@ void CodeGenerator::visitLoadDataViewElement(LLoadDataViewElement* lir) {
       break;
     case Scalar::BigInt64:
     case Scalar::BigUint64:
-      emitCreateBigInt(lir, storageType, temp64, out.gpr(), temp);
+      emitCreateBigInt(lir, storageType, temp64, out.gpr(), temp1);
       break;
     case Scalar::Int8:
     case Scalar::Uint8:

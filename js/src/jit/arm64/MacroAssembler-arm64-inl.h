@@ -22,6 +22,15 @@ void MacroAssembler::move64(Imm64 imm, Register64 dest) {
   Mov(ARMRegister(dest.reg, 64), imm.value);
 }
 
+void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest) {
+  // Ensure the hi-word is zeroed.
+  Uxth(ARMRegister(src, 32), ARMRegister(src, 32));
+
+  // Direct "32-bit to half-precision" move requires (FEAT_FP16), so we
+  // instead use a "32-bit to single-precision" move.
+  Fmov(ARMFPRegister(dest, 32), ARMRegister(src, 32));
+}
+
 void MacroAssembler::moveFloat32ToGPR(FloatRegister src, Register dest) {
   Fmov(ARMRegister(dest, 32), ARMFPRegister(src, 32));
 }

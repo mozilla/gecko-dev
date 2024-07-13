@@ -14,6 +14,10 @@ namespace jit {
 
 //{{{ check_macroassembler_style
 
+void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest) {
+  MOZ_CRASH("Not supported for this target");
+}
+
 void MacroAssembler::moveFloat32ToGPR(FloatRegister src, Register dest) {
   moveFromFloat32(src, dest);
 }

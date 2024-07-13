@@ -6898,16 +6898,18 @@ bool CacheIRCompiler::emitLoadDataViewValueResult(
   Register64 outputReg64 = output.valueReg().toRegister64();
   Register outputScratch = outputReg64.scratchReg();
 
-  Register boundsCheckScratch;
+  Register scratch2;
 #ifndef JS_CODEGEN_X86
-  Maybe<AutoScratchRegister> maybeBoundsCheckScratch;
-  if (viewKind == ArrayBufferViewKind::Resizable) {
-    maybeBoundsCheckScratch.emplace(allocator, masm);
-    boundsCheckScratch = *maybeBoundsCheckScratch;
+  Maybe<AutoScratchRegister> maybeScratch2;
+  if (viewKind == ArrayBufferViewKind::Resizable ||
+      (elementType == Scalar::Float16 &&
+       !MacroAssembler::SupportsFloat32To16())) {
+    maybeScratch2.emplace(allocator, masm);
+    scratch2 = *maybeScratch2;
   }
 #else
   // Not enough registers on x86, so use the other part of outputReg64.
-  boundsCheckScratch = outputReg64.secondScratchReg();
+  scratch2 = outputReg64.secondScratchReg();
 #endif
 
   FailurePath* failure;
@@ -6918,7 +6920,7 @@ bool CacheIRCompiler::emitLoadDataViewValueResult(
   const size_t byteSize = Scalar::byteSize(elementType);
 
   emitDataViewBoundsCheck(viewKind, byteSize, obj, offset, outputScratch,
-                          boundsCheckScratch, failure->label());
+                          scratch2, failure->label());
 
   masm.loadPtr(Address(obj, DataViewObject::dataOffset()), outputScratch);
 
@@ -6935,6 +6937,7 @@ bool CacheIRCompiler::emitLoadDataViewValueResult(
       masm.load16UnalignedSignExtend(source, outputScratch);
       break;
     case Scalar::Uint16:
+    case Scalar::Float16:
       masm.load16UnalignedZeroExtend(source, outputScratch);
       break;
     case Scalar::Int32:
@@ -6963,6 +6966,7 @@ bool CacheIRCompiler::emitLoadDataViewValueResult(
         masm.byteSwap16SignExtend(outputScratch);
         break;
       case Scalar::Uint16:
+      case Scalar::Float16:
         masm.byteSwap16ZeroExtend(outputScratch);
         break;
       case Scalar::Int32:
@@ -7000,6 +7004,15 @@ bool CacheIRCompiler::emitLoadDataViewValueResult(
                                : MacroAssembler::Uint32Mode::FailOnDouble;
       masm.boxUint32(outputScratch, output.valueReg(), uint32Mode,
                      failure->label());
+      break;
+    }
+    case Scalar::Float16: {
+      FloatRegister scratchFloat32 = floatScratch0.get().asSingle();
+      masm.moveGPRToFloat16(outputScratch, scratchFloat32, scratch2,
+                            liveVolatileRegs());
+      masm.canonicalizeFloat(scratchFloat32);
+      masm.convertFloat32ToDouble(scratchFloat32, floatScratch0);
+      masm.boxDouble(floatScratch0, output.valueReg(), floatScratch0);
       break;
     }
     case Scalar::Float32: {

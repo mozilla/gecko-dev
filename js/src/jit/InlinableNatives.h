@@ -46,6 +46,7 @@
   _(DataViewGetUint16)                             \
   _(DataViewGetInt32)                              \
   _(DataViewGetUint32)                             \
+  _(DataViewGetFloat16)                            \
   _(DataViewGetFloat32)                            \
   _(DataViewGetFloat64)                            \
   _(DataViewGetBigInt64)                           \

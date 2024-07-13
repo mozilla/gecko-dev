@@ -2318,19 +2318,21 @@ class LLoadUnboxedBigInt : public LInstructionHelper<1, 2, 1 + INT64_PIECES> {
   const LInt64Definition temp64() { return getInt64Temp(1); }
 };
 
-class LLoadDataViewElement : public LInstructionHelper<1, 3, 1 + INT64_PIECES> {
+class LLoadDataViewElement : public LInstructionHelper<1, 3, 2 + INT64_PIECES> {
  public:
   LIR_HEADER(LoadDataViewElement)
 
   LLoadDataViewElement(const LAllocation& elements, const LAllocation& index,
-                       const LAllocation& littleEndian, const LDefinition& temp,
+                       const LAllocation& littleEndian,
+                       const LDefinition& temp1, const LDefinition& temp2,
                        const LInt64Definition& temp64)
       : LInstructionHelper(classOpcode) {
     setOperand(0, elements);
     setOperand(1, index);
     setOperand(2, littleEndian);
-    setTemp(0, temp);
-    setInt64Temp(1, temp64);
+    setTemp(0, temp1);
+    setTemp(1, temp2);
+    setInt64Temp(2, temp64);
   }
   const MLoadDataViewElement* mir() const {
     return mir_->toLoadDataViewElement();
@@ -2338,8 +2340,9 @@ class LLoadDataViewElement : public LInstructionHelper<1, 3, 1 + INT64_PIECES> {
   const LAllocation* elements() { return getOperand(0); }
   const LAllocation* index() { return getOperand(1); }
   const LAllocation* littleEndian() { return getOperand(2); }
-  const LDefinition* temp() { return getTemp(0); }
-  const LInt64Definition temp64() { return getInt64Temp(1); }
+  const LDefinition* temp1() { return getTemp(0); }
+  const LDefinition* temp2() { return getTemp(1); }
+  const LInt64Definition temp64() { return getInt64Temp(2); }
 };
 
 class LLoadTypedArrayElementHoleBigInt

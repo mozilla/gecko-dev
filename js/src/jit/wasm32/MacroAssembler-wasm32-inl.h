@@ -1131,6 +1131,10 @@ void MacroAssembler::moveGPRToFloat32(Register src, FloatRegister dest) {
   MOZ_CRASH();
 }
 
+void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::branchTestPrimitive(Condition cond,
                                          const ValueOperand& value,
                                          Label* label) {

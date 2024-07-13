@@ -11711,6 +11711,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
       return tryAttachDataViewGet(Scalar::Int32);
     case InlinableNative::DataViewGetUint32:
       return tryAttachDataViewGet(Scalar::Uint32);
+    case InlinableNative::DataViewGetFloat16:
+      return tryAttachDataViewGet(Scalar::Float16);
     case InlinableNative::DataViewGetFloat32:
       return tryAttachDataViewGet(Scalar::Float32);
     case InlinableNative::DataViewGetFloat64:

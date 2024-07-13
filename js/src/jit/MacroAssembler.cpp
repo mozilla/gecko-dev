@@ -7702,6 +7702,33 @@ template void MacroAssembler::loadFloat16(const BaseIndex& src,
                                           Register temp2,
                                           LiveRegisterSet volatileLiveRegs);
 
+void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest,
+                                      Register temp,
+                                      LiveRegisterSet volatileLiveRegs) {
+  if (MacroAssembler::SupportsFloat32To16()) {
+    moveGPRToFloat16(src, dest);
+
+    // Float16 is currently passed as Float32, so expand again to Float32.
+    convertFloat16ToFloat32(dest, dest);
+    return;
+  }
+
+  LiveRegisterSet save = volatileLiveRegs;
+  save.takeUnchecked(dest);
+  save.takeUnchecked(dest.asDouble());
+  save.takeUnchecked(temp);
+
+  PushRegsInMask(save);
+
+  using Fn = float (*)(int32_t);
+  setupUnalignedABICall(temp);
+  passABIArg(src);
+  callWithABI<Fn, jit::Float16ToFloat32>(ABIType::Float32);
+  storeCallFloatResult(dest);
+
+  PopRegsInMask(save);
+}
+
 void MacroAssembler::debugAssertIsObject(const ValueOperand& val) {
 #ifdef DEBUG
   Label ok;

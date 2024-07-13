@@ -6732,7 +6732,7 @@ class MLoadDataViewElement : public MTernaryInstruction,
   void computeRange(TempAllocator& alloc) override;
 
   bool canProduceFloat32() const override {
-    return storageType_ == Scalar::Float32;
+    return storageType_ == Scalar::Float32 || storageType_ == Scalar::Float16;
   }
 
   ALLOW_CLONE(MLoadDataViewElement)

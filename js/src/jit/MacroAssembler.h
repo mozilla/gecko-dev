@@ -981,6 +981,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void move64(Imm64 imm, Register64 dest) PER_ARCH;
   inline void move64(Register64 src, Register64 dest) PER_ARCH;
 
+
+  // Clears the high words of `src`.
+  inline void moveGPRToFloat16(Register src,
+                               FloatRegister dest) PER_SHARED_ARCH;
+
   inline void moveFloat32ToGPR(FloatRegister src,
                                Register dest) PER_SHARED_ARCH;
   inline void moveGPRToFloat32(Register src,
@@ -5286,6 +5291,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   template <typename T>
   void loadFloat16(const T& src, FloatRegister dest, Register temp1,
                    Register temp2, LiveRegisterSet volatileLiveRegs);
+
+  void moveGPRToFloat16(Register src, FloatRegister dest, Register temp,
+                        LiveRegisterSet volatileLiveRegs);
 
   void debugAssertIsObject(const ValueOperand& val);
   void debugAssertObjHasFixedSlots(Register obj, Register scratch);
