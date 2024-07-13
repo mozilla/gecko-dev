@@ -119,6 +119,10 @@
     <string name="erase_action_cfr_message">Trykk her for å starte ei ny privat økt. Slett historikken din, infokapslar — alt.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Surf raskare med ny navigasjon</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kameratilgang er nødvendig. Gå til Android-innstillingar, trykk på løyve, og trykk på tillat.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
