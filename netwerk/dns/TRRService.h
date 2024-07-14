@@ -111,7 +111,10 @@ class TRRService : public TRRServiceBase,
   static void AddObserver(nsIObserver* aObserver,
                           nsIObserverService* aObserverService = nullptr);
   static bool CheckCaptivePortalIsPassed();
-  static bool GetParentalControlEnabledInternal();
+  static bool GetParentalControlsEnabledInternal();
+  // Exposed for testing purposes only
+  static bool ReloadParentalControlsEnabled();
+
   static bool CheckPlatformDNSStatus(nsINetworkLinkService* aLinkService);
 
   nsresult ReadPrefs(const char* name);

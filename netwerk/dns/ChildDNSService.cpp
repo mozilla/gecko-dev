@@ -297,7 +297,7 @@ ChildDNSService::ReloadParentalControlEnabled() {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  mTRRServiceParent->UpdateParentalControlEnabled();
+  mTRRServiceParent->ReloadParentalControlsEnabled();
   return NS_OK;
 }
 
