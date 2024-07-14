@@ -483,6 +483,13 @@ export var AppConstants = Object.freeze({
     false,
 #endif
 
+  SQLITE_LIBRARY_FILENAME:
+#ifdef MOZ_FOLD_LIBS
+  "@DLL_PREFIX@nss3@DLL_SUFFIX@",
+#else
+  "@DLL_PREFIX@mozsqlite3@DLL_SUFFIX@",
+#endif
+
   // Returns true for CN region build when distibution id set as 'MozillaOnline'
   isChinaRepack() {
     return (
