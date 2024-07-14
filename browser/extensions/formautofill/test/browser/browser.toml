@@ -41,6 +41,7 @@ skip-if = [
 skip-if = [
   "verify",
   "win11_2009", # Bug 1797751
+  "os == 'linux'" , # Bug 1788900
 ]
 
 ["browser_fathom_cc.js"]
