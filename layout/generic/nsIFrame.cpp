@@ -7467,16 +7467,17 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
 
   /* Keep iterating while the frame can't possibly be transformed. */
   const nsIFrame* current = this;
-  auto shouldStopAt = [](const nsIFrame* aCurrent, nsIFrame* aAncestor,
-                         uint32_t aFlags) {
-    return aAncestor->IsTransformed() ||
-           ViewportUtils::IsZoomedContentRoot(aAncestor) ||
+  auto shouldStopAt = [](const nsIFrame* aCurrent, RelativeTo& aStopAtAncestor,
+                         nsIFrame* aOutAncestor, uint32_t aFlags) {
+    return aOutAncestor->IsTransformed() ||
+           ((aStopAtAncestor.mViewportType == ViewportType::Visual) &&
+            ViewportUtils::IsZoomedContentRoot(aOutAncestor)) ||
            ((aFlags & STOP_AT_STACKING_CONTEXT_AND_DISPLAY_PORT) &&
-            (aAncestor->IsStackingContext() ||
-             DisplayPortUtils::FrameHasDisplayPort(aAncestor, aCurrent)));
+            (aOutAncestor->IsStackingContext() ||
+             DisplayPortUtils::FrameHasDisplayPort(aOutAncestor, aCurrent)));
   };
   while (*aOutAncestor != aStopAtAncestor.mFrame &&
-         !shouldStopAt(current, *aOutAncestor, aFlags)) {
+         !shouldStopAt(current, aStopAtAncestor, *aOutAncestor, aFlags)) {
     /* If no parent, stop iterating.  Otherwise, update the ancestor. */
     nsIFrame* parent =
         nsLayoutUtils::GetCrossDocParentFrameInProcess(*aOutAncestor);
