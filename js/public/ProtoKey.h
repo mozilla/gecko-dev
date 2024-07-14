@@ -150,6 +150,8 @@
   REAL(WeakRef, OCLASP(WeakRef))                                            \
   REAL(Iterator, OCLASP(Iterator))                                          \
   REAL(AsyncIterator, OCLASP(AsyncIterator))                                \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(                                          \
+      REAL(DisposableStack, OCLASP(DisposableStack)))                       \
   REAL_IF_TEMPORAL(Temporal, OCLASP(temporal::Temporal))                    \
   REAL_IF_TEMPORAL(Calendar, OCLASP(temporal::Calendar))                    \
   REAL_IF_TEMPORAL(Duration, OCLASP(temporal::Duration))                    \

@@ -1695,7 +1695,7 @@ bool js::GetDisposeMethod(JSContext* cx, JS::Handle<JS::Value> objVal,
       // Step 1.b.iii. If method is undefined, throw a TypeError exception.
       if (disposeMethod.isNullOrUndefined() || !IsCallable(disposeMethod)) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                  JSMSG_NO_DISPOSE_IN_USING);
+                                  JSMSG_DISPOSE_NOT_CALLABLE);
         return false;
       }
 
@@ -1709,31 +1709,44 @@ bool js::GetDisposeMethod(JSContext* cx, JS::Handle<JS::Value> objVal,
 // Explicit Resource Management Proposal
 // CreateDisposableResource ( V, hint [ , method ] )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-createdisposableresource
-bool js::CreateDisposableResource(JSContext* cx, JS::Handle<JS::Value> obj,
-                                  UsingHint hint,
-                                  JS::MutableHandle<JS::Value> result) {
+bool js::CreateDisposableResource(
+    JSContext* cx, JS::Handle<JS::Value> obj, UsingHint hint,
+    JS::Handle<mozilla::Maybe<JS::Value>> methodVal,
+    JS::MutableHandle<JS::Value> result) {
   // Step 1. If method is not present, then
-  // (implicit)
-  // Step 1.a. If V is either null or undefined, then
   JS::Rooted<JS::Value> method(cx);
   JS::Rooted<JS::Value> object(cx);
-  if (obj.isNullOrUndefined()) {
-    // Step 1.a.i. Set V to undefined.
-    // Step 1.a.ii. Set method to undefined.
-    object.setUndefined();
-    method.setUndefined();
-  } else {
-    // Step 1.b. Else,
-    // Step 1.b.i. If V is not an Object, throw a TypeError exception.
-    if (!obj.isObject()) {
-      return ThrowCheckIsObject(cx, CheckIsObjectKind::Disposable);
+  if (!methodVal.isSome()) {
+    // Step 1.a. If V is either null or undefined, then
+    if (obj.isNullOrUndefined()) {
+      // Step 1.a.i. Set V to undefined.
+      // Step 1.a.ii. Set method to undefined.
+      object.setUndefined();
+      method.setUndefined();
+    } else {
+      // Step 1.b. Else,
+      // Step 1.b.i. If V is not an Object, throw a TypeError exception.
+      if (!obj.isObject()) {
+        return ThrowCheckIsObject(cx, CheckIsObjectKind::Disposable);
+      }
+
+      // Step 1.b.ii. Set method to ? GetDisposeMethod(V, hint).
+      // Step 1.b.iii. If method is undefined, throw a TypeError exception.
+      object.set(obj);
+      if (!GetDisposeMethod(cx, object, hint, &method)) {
+        return false;
+      }
     }
-    // Step 1.b.ii. Set method to ? GetDisposeMethod(V, hint).
-    // Step 1.b.iii. If method is undefined, throw a TypeError exception.
-    object.set(obj);
-    if (!GetDisposeMethod(cx, object, hint, &method)) {
+  } else {
+    // Step 2. Else,
+    // Step 2.a. If IsCallable(method) is false, throw a TypeError exception.
+    if (!IsCallable(*methodVal)) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_DISPOSE_NOT_CALLABLE);
       return false;
     }
+    object.set(obj);
+    method.set(*methodVal);
   }
 
   // Step 3. Return the
@@ -1789,119 +1802,71 @@ ErrorObject* js::CreateSuppressedError(JSContext* cx,
   return errorObj;
 }
 
-// Explicit Resource Management Proposal
-// DisposeResources ( disposeCapability, completion )
-// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
 bool js::DisposeDisposablesOnScopeLeave(JSContext* cx,
                                         JS::Handle<JSObject*> env) {
-  if (!env->is<LexicalEnvironmentObject>() &&
-      !env->is<ModuleEnvironmentObject>()) {
-    return true;
-  }
+  MOZ_ASSERT(env->is<LexicalEnvironmentObject>() ||
+             env->is<ModuleEnvironmentObject>());
 
-  Value maybeDisposables =
+  JS::Value maybeDisposables =
       env->is<LexicalEnvironmentObject>()
           ? env->as<LexicalEnvironmentObject>().getDisposables()
           : env->as<ModuleEnvironmentObject>().getDisposables();
 
   MOZ_ASSERT(maybeDisposables.isObject() || maybeDisposables.isUndefined());
 
-  if (maybeDisposables.isObject()) {
-    JS::Rooted<ListObject*> disposables(
-        cx, &maybeDisposables.toObject().as<ListObject>());
+  if (!maybeDisposables.isObject()) {
+    return true;
+  }
 
-    uint32_t index = disposables->length();
-
-    // hadError and latestException correspond to the completion value.
-    bool hadError = false;
-    JS::Rooted<JS::Value> latestException(cx);
-
-    if (cx->isExceptionPending()) {
-      hadError = true;
-      if (!cx->getPendingException(&latestException)) {
-        return false;
-      }
-      cx->clearPendingException();
-    }
-
-    // Step 3. For each element resource of
-    // disposeCapability.[[DisposableResourceStack]], in reverse list order, do
-    while (index) {
-      --index;
-      Value val = disposables->get(index);
-
-      MOZ_ASSERT(val.isObject());
-
-      JS::Rooted<DisposableRecordObject*> resource(
-          cx, &val.toObject().as<DisposableRecordObject>());
-
-      // Step 3.a. Let value be resource.[[ResourceValue]].
-      JS::Rooted<JS::Value> value(cx, resource->getObject());
-
-      // Step 3.b. Let hint be resource.[[Hint]].
-      // TODO: Implementation of async-dispose, implicitly sync-dispose for now
-      // (Bug 1906534).
-      // Step 3.c. Let method be resource.[[DisposeMethod]].
-      JS::Rooted<JS::Value> method(cx, resource->getMethod());
-
-      // Step 3.e. If method is not undefined, then
-      if (method.isUndefined()) {
-        continue;
-      }
-
-      // Step 3.e.i. Let result be Completion(Call(method, value)).
-      JS::Rooted<JS::Value> rval(cx);
-      if (!Call(cx, method, value, &rval)) {
-        // Step 3.e.iii. If result is a throw completion, then
-        if (hadError) {
-          // Step 3.e.iii.1.a. Set result to result.[[Value]].
-          JS::Rooted<JS::Value> result(cx);
-          if (!cx->getPendingException(&result)) {
-            return false;
-          }
-          cx->clearPendingException();
-
-          // Step 3.e.iii.1.b. Let suppressed be completion.[[Value]].
-          JS::Rooted<JS::Value> suppressed(cx, latestException);
-
-          // Steps 3.e.iii.1.c-e.
-          ErrorObject* errorObj = CreateSuppressedError(cx, result, suppressed);
-          if (!errorObj) {
-            return false;
-          }
-          // Step 3.e.iii.1.f. Set completion to ThrowCompletion(error).
-          latestException.set(ObjectValue(*errorObj));
-        } else {
-          // Step 3.e.iii.2. Else,
-          // Step 3.e.iii.2.a. Set completion to result.
-          hadError = true;
-          if (cx->isExceptionPending()) {
-            if (!cx->getPendingException(&latestException)) {
-              return false;
-            }
-            cx->clearPendingException();
-          }
-        }
-      }
-    }
-
-    // Step 6. Set disposeCapability.[[DisposableResourceStack]] to a new empty
-    // List.
+  auto clearFn = [env]() {
     if (env->is<LexicalEnvironmentObject>()) {
       env->as<LexicalEnvironmentObject>().clearDisposables();
     } else {
       env->as<ModuleEnvironmentObject>().clearDisposables();
     }
+  };
 
-    // Step 7. Return ? completion.
-    if (hadError) {
-      cx->setPendingException(latestException, ShouldCaptureStack::Maybe);
+  JS::Rooted<ListObject*> disposables(
+      cx, &maybeDisposables.toObject().as<ListObject>());
+
+  return DisposeResources(cx, disposables, clearFn);
+}
+
+// Explicit Resource Management Proposal
+// 7.5.4 AddDisposableResource ( disposeCapability, V, hint [ , method ] )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
+bool js::AddDisposableResource(
+    JSContext* cx, JS::Handle<ListObject*> disposeCapability,
+    JS::Handle<JS::Value> val, UsingHint hint,
+    JS::Handle<mozilla::Maybe<JS::Value>> methodVal) {
+  JS::Rooted<JS::Value> resource(cx);
+
+  // Step 1. If method is not present, then
+  if (!methodVal.isSome()) {
+    // Step 1.a. If V is either null or undefined and hint is sync-dispose,
+    // return unused.
+    if (val.isNullOrUndefined() && hint == UsingHint::Sync) {
+      return true;
+    }
+
+    // Step 1.c. Let resource be ? CreateDisposableResource(V, hint).
+    if (!CreateDisposableResource(cx, val, hint, methodVal, &resource)) {
+      return false;
+    }
+  } else {
+    // Step 2. Else,
+    // Step 2.a. Assert: V is undefined.
+    MOZ_ASSERT(val.isUndefined());
+
+    // Step 2.b. Let resource be ? CreateDisposableResource(undefined, hint,
+    // method).
+    if (!CreateDisposableResource(cx, val, hint, methodVal, &resource)) {
       return false;
     }
   }
 
-  // Step 7. Return ? completion.
-  return true;
+  // Step 3. Append resource to disposeCapability.[[DisposableResourceStack]].
+  return disposeCapability->append(cx, resource);
 }
 #endif
 
@@ -2260,23 +2225,27 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
                                     REGS.fp()->environmentChain());
 
       ReservedRooted<Value> val(&rootValue0, REGS.sp[-1]);
+      UsingHint hint = UsingHint::Sync;
+      JS::Rooted<ListObject*> disposableCapability(cx);
 
-      ReservedRooted<Value> recordVal(&rootValue1);
+      if (env->is<LexicalEnvironmentObject>()) {
+        disposableCapability =
+            env->as<LexicalEnvironmentObject>().getOrCreateDisposeCapability(
+                cx);
+      } else if (env->is<ModuleEnvironmentObject>()) {
+        disposableCapability =
+            env->as<ModuleEnvironmentObject>().getOrCreateDisposeCapability(cx);
+      } else {
+        MOZ_CRASH("Unexpected environment object for JSOp::AddDispose");
+      }
 
-      if (!CreateDisposableResource(cx, val, UsingHint::Sync, &recordVal)) {
+      if (!disposableCapability) {
         goto error;
       }
 
-      if (env->is<LexicalEnvironmentObject>()) {
-        if (!env->as<LexicalEnvironmentObject>().addDisposableObject(
-                cx, recordVal)) {
-          goto error;
-        }
-      } else if (env->is<ModuleEnvironmentObject>()) {
-        if (!env->as<ModuleEnvironmentObject>().addDisposableObject(
-                cx, recordVal)) {
-          goto error;
-        }
+      if (!AddDisposableResource(cx, disposableCapability, val, hint,
+                                 JS::NothingHandleValue)) {
+        goto error;
       }
     }
     END_CASE(AddDisposable)

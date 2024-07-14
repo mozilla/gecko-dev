@@ -619,7 +619,7 @@ class ModuleEnvironmentObject : public EnvironmentObject {
   static constexpr uint32_t MODULE_SLOT = 1;
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  static constexpr uint32_t DISPOSABLE_OBJECTS_SLOT = 2;
+  static constexpr uint32_t DISPOSABLE_RESOURCE_STACK_SLOT = 2;
 #endif
 
   static const ObjectOps objectOps_;
@@ -665,13 +665,13 @@ class ModuleEnvironmentObject : public EnvironmentObject {
   uint32_t firstSyntheticValueSlot() { return RESERVED_SLOTS; }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  bool addDisposableObject(JSContext* cx, JS::Handle<JS::Value> val);
+  ListObject* getOrCreateDisposeCapability(JSContext* cx);
 
   // Used to get the Disposable objects within the
   // lexical scope, it returns a ListObject* if there
   // is a non empty list of Disposables, else
   // UndefinedValue.
-  Value getDisposables();
+  JS::Value getDisposables();
 
   void clearDisposables();
 #endif
@@ -755,7 +755,7 @@ class LexicalEnvironmentObject : public EnvironmentObject {
   static constexpr uint32_t THIS_VALUE_OR_SCOPE_SLOT = 1;
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  static constexpr uint32_t DISPOSABLE_OBJECTS_SLOT = 2;
+  static constexpr uint32_t DISPOSABLE_RESOURCE_STACK_SLOT = 2;
 #endif
 
  public:
@@ -786,13 +786,13 @@ class LexicalEnvironmentObject : public EnvironmentObject {
   bool isSyntactic() const { return !isExtensible() || isGlobal(); }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  bool addDisposableObject(JSContext* cx, JS::Handle<JS::Value> val);
+  ListObject* getOrCreateDisposeCapability(JSContext* cx);
 
   // Used to get the Disposable objects within the
   // lexical scope, it returns a ListObject* if there
   // is a non empty list of Disposables, else
   // UndefinedValue.
-  Value getDisposables();
+  JS::Value getDisposables();
 
   void clearDisposables();
 #endif
