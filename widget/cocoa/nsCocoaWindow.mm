@@ -606,10 +606,7 @@ void nsCocoaWindow::Destroy() {
   // to be garbage-collected.
   if (mWindow && mWindowMadeHere) {
     CancelAllTransitions();
-
-    // TODO: Restore this (possibly with a delay) after confirming the effect
-    // of its removal.
-    // DestroyNativeWindow();
+    DestroyNativeWindow();
   }
 }
 
