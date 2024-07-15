@@ -1411,7 +1411,6 @@ export class DiscoveryStreamFeed {
             scheduled_corpus_item_id: item.scheduledCorpusItemId,
             url: item.url,
             title: item.title,
-            topic: item.topic,
             excerpt: item.excerpt,
             publisher: item.publisher,
             raw_image_src: item.imageUrl,
