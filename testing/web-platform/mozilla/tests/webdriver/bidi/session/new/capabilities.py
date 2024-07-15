@@ -49,6 +49,47 @@ async def test_proxy(
     assert response == {"type": "string", "value": page_content}
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        None,
+        "accept",
+        "accept and notify",
+        "dismiss",
+        "dismiss and notify",
+        "ignore",
+    ],
+)
+async def test_unhandledPromptBehavior_string(new_session, match_capabilities, value):
+    capabilities = match_capabilities("alwaysMatch", "unhandledPromptBehavior", value)
+
+    bidi_session = await new_session(capabilities=capabilities)
+
+    if value is None:
+        assert (
+            bidi_session.capabilities.get("unhandledPromptBehavior")
+            == "dismiss and notify"
+        )
+    else:
+        assert bidi_session.capabilities.get("unhandledPromptBehavior") == value
+
+
+@pytest.mark.parametrize("handler", ["accept", "dismiss", "ignore"])
+@pytest.mark.parametrize("prompt_type", ["alert", "beforeUnload", "confirm", "prompt"])
+async def test_unhandledPromptBehavior_object(
+    new_session, match_capabilities, handler, prompt_type
+):
+    capabilities = match_capabilities(
+        "alwaysMatch", "unhandledPromptBehavior", {prompt_type: handler}
+    )
+
+    bidi_session = await new_session(capabilities=capabilities)
+
+    assert bidi_session.capabilities.get("unhandledPromptBehavior") == {
+        prompt_type: handler
+    }
+
+
 @pytest.mark.parametrize("match_type", ["alwaysMatch", "firstMatch"])
 async def test_websocket_url(new_session, match_capabilities, match_type):
     capabilities = match_capabilities(match_type, "webSocketUrl", True)

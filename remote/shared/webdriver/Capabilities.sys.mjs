@@ -47,7 +47,6 @@ export const WEBDRIVER_CLASSIC_CAPABILITIES = [
   "pageLoadStrategy",
   "strictFileInteractability",
   "timeouts",
-  "unhandledPromptBehavior",
   "webSocketUrl",
 
   // Gecko specific capabilities
