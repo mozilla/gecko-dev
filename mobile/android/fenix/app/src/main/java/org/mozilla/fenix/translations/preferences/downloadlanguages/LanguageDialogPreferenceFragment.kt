@@ -25,6 +25,7 @@ import mozilla.components.concept.engine.translate.ModelState
 import mozilla.components.concept.engine.translate.OperationLevel
 import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.fenix.ext.requireComponents
+import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.FirefoxTheme
 import java.util.Locale
@@ -99,9 +100,11 @@ class LanguageDialogPreferenceFragment : DialogFragment() {
                                     languageToManage = args.languageCode,
                                 )
                             }
-                            findNavController().popBackStack()
+                            runIfFragmentIsAttached {
+                                findNavController().popBackStack()
+                            }
                         },
-                        onCancel = { findNavController().popBackStack() },
+                        onCancel = { runIfFragmentIsAttached { findNavController().popBackStack() } },
                     )
                 }
             }

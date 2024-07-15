@@ -41,6 +41,7 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.requireComponents
+import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.SupportUtils
@@ -77,12 +78,14 @@ class TranslationsDialogFragment : BottomSheetDialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
         super.onCreateDialog(savedInstanceState).apply {
             setOnShowListener {
-                val bottomSheet = findViewById<View?>(R.id.design_bottom_sheet)
-                bottomSheet?.setBackgroundResource(android.R.color.transparent)
-                behavior = BottomSheetBehavior.from(bottomSheet)
-                behavior?.peekHeight = resources.displayMetrics.heightPixels
-                behavior?.state = BottomSheetBehavior.STATE_EXPANDED
-                behavior?.hideFriction = DIALOG_FRICTION
+                runIfFragmentIsAttached {
+                    val bottomSheet = findViewById<View?>(R.id.design_bottom_sheet)
+                    bottomSheet?.setBackgroundResource(android.R.color.transparent)
+                    behavior = BottomSheetBehavior.from(bottomSheet)
+                    behavior?.peekHeight = resources.displayMetrics.heightPixels
+                    behavior?.state = BottomSheetBehavior.STATE_EXPANDED
+                    behavior?.hideFriction = DIALOG_FRICTION
+                }
             }
         }
 
