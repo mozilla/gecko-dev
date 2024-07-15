@@ -3288,7 +3288,6 @@ void WorkerPrivate::RunLoopNeverRan() {
   if (!mControlQueue.IsEmpty()) {
     WorkerRunnable* runnable = nullptr;
     while (mControlQueue.Pop(runnable)) {
-      runnable->Cancel();
       runnable->Release();
     }
   }
