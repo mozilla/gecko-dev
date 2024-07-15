@@ -131,6 +131,13 @@
     <string name="erase_action_cfr_message">یئنی بیر گیزلی اوتورم باشلادماق اوچون بورایا توخونون. گئچمیشینیزی، کوکی‌لرینیزی، هرشئیی سیلین.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">یئنی گزینمه ایله داها یئیین مرور ائله‌یین</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message">داها آرتیق مرور فضاسی اوچون آشاغی اسکرول ائتدیگینیز زامان بو بار اوزاقلاشیر.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">کامئرا ال چاتماسی لازیم.اندروید تنظیم‌لرینه گئدین، ایجازه‌لره توخونون و ایجازه وئرین.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1482,23 +1489,16 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">گیزلی تاغ‌لاریْ باغلا</string>
 
-    <!-- Microsuverys -->
-    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abrevation for "second". -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">فایرفاکس‌دا پرینتی یاخچیلاشدیرماغا کمک ائدین. یالنیز بیر ثانیه چکیر.</string>
-    <!-- Text shown in prompt for printing microsurvey. 'Firefox' intentionally hardcoded here--> --&gt;
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">فایرفاکس‌دا پرینت‌دن نه قدر راضیسینیز؟</string>
-
-
     <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources">اوْرتا</string>
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">اوْرتا</string>
     <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources">چوْخ ناراضیْ</string>
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">چوْخ ناراضیْ</string>
     <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources">ناراضیْ</string>
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">ناراضیْ</string>
     <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources">راضیْ</string>
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">راضیْ</string>
     <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources">چوْخ راضیْ</string>
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">چوْخ راضیْ</string>
 
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
@@ -1552,6 +1552,8 @@
     <string name="snackbar_tab_closed">تاغ باغلاندیْ</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">تاغلار باغلاندیْ</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">تاغلار باغلاندیْ: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">بوکمارک‌لار ساخلاندیْ !</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -1700,10 +1702,17 @@
 
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">یئرینه ایمیل استفاده ائدین</string>
+    <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
+    <string name="sign_in_create_account_text"><![CDATA[حسابینیز یوخ؟ فایرفاکسی جهازلار آراسیندا دؤنگل ائتمک اوچون <u>حساب آچین</u>.]]></string>
+    <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
+    <string name="sign_out_confirmation_message_2">%s حسابینیزلا دؤنگلی دایاندیراجاق. اما بو جهازداکی مرور دیتانیزی هیچ بیرینی سیلمه‌یه‌جک.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
     <string name="sign_out_disconnect">باغلانتینیْ کس</string>
     <!-- Option to cancel signing out shown in confirmation dialog to sign out of account -->
     <string name="sign_out_cancel">لغو</string>
+
+    <!-- Error message snackbar shown after the user tried to select a default folder which cannot be altered -->
+    <string name="bookmark_cannot_edit_root">وارساییلان پوشه‌لر دوزه‌لیش اوْلانماز</string>
 
     <!-- Enhanced Tracking Protection -->
     <!-- Link displayed in enhanced tracking protection panel to access tracking protection settings -->
@@ -1711,15 +1720,96 @@
 
     <!-- Preference title for enhanced tracking protection settings -->
     <string name="preference_enhanced_tracking_protection">گلیشمیش ایزله‌مه قوْرماسیْ</string>
+    <!-- Preference summary for enhanced tracking protection settings on/off switch -->
+    <string name="preference_enhanced_tracking_protection_summary">ایندی سایتلارآراسیْ ایزله‌ییجی‌لره قارشیْ اَن گوجلو مانع‌میز اوْلان بوتون کوکی قوْروماسینیْ تقدیم ائدیر.</string>
+    <!-- Description of enhanced tracking protection. The parameter is the name of the application (For example: Firefox Fenix) -->
+    <string name="preference_enhanced_tracking_protection_explanation_2">%s سیزی آنلاین گؤردوک‌لرینیزی ایزله‌ین اَن چوْخ یایغین ایزله‌ییجی‌لردن گؤرویور.</string>
     <!-- Text displayed that links to website about enhanced tracking protection -->
     <string name="preference_enhanced_tracking_protection_explanation_learn_more">آرتیق بیلین</string>
     <!-- Preference for enhanced tracking protection for the standard protection settings -->
     <string name="preference_enhanced_tracking_protection_standard_default_1">استاندارد (وارساییلان)</string>
 
+    <!-- Preference description for enhanced tracking protection for the standard protection settings -->
+    <string name="preference_enhanced_tracking_protection_standard_description_5">صفحه‌لر نرمال یوکله‌نه‌جک، اما داها آز ایزله‌ییجی‌نی مسدود ائلیه‌جک.</string>
+
+    <!--  Accessibility text for the Standard protection information icon  -->
+    <string name="preference_enhanced_tracking_protection_standard_info_button">استاندارد ایزله‌مه قوْروماسیْ طرفیندن مسدود اوْلانلار</string>
+    <!-- Preference for enhanced tracking protection for the strict protection settings -->
+    <string name="preference_enhanced_tracking_protection_strict">بَرک</string>
+    <!-- Preference description for enhanced tracking protection for the strict protection settings -->
+    <string name="preference_enhanced_tracking_protection_strict_description_4">داها گوجلو ایزله‌مه قوْروماسیْ و داها یئیین عملکرد، اما بعضی سایتلار دوزگون ایشلمیه بیلر.</string>
+    <!--  Accessibility text for the Strict protection information icon  -->
+    <string name="preference_enhanced_tracking_protection_strict_info_button">دقیق ایزله‌مه قوْروماسیْ ایله مسدود اوْلانلار</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom">اؤزل</string>
+    <!-- Preference description for enhanced tracking protection for the strict protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_description_2">هانسیْ ایزله‌ییجی‌لرین و اسکریپت‌لرین مسدود اوْلاجاغینیْ سئچین.</string>
+    <!--  Accessibility text for the Strict protection information icon  -->
+    <string name="preference_enhanced_tracking_protection_custom_info_button">اؤزل ایزله‌مه قوْروماسیْ ایله مسدود اوْلانلار</string>
+    <!-- Header for categories that are being blocked by current Enhanced Tracking Protection settings -->
+    <!-- Preference for enhanced tracking protection for the custom protection settings for cookies-->
+    <string name="preference_enhanced_tracking_protection_custom_cookies">کوکی‌لر</string>
+
+    <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
+    <string name="preference_enhanced_tracking_protection_custom_cookies_1">سایتلارآراسیْ و اجتماعی شبکه ایزله‌ییجی‌لری</string>
+    <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
+    <string name="preference_enhanced_tracking_protection_custom_cookies_2">باخیلمامیش سایتلاردان کوکی‌لر</string>
+    <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
+    <string name="preference_enhanced_tracking_protection_custom_cookies_3">بوتون شخص ثالت کوکی‌لری ( سایتلارین پوزولماسینا سبب اولا بیلر)</string>
+    <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
+    <string name="preference_enhanced_tracking_protection_custom_cookies_4">بوتون کوکی‌لر ( سایتلارین پوزولماسینا سبب اولا بیلر)</string>
+
+    <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
+    <string name="preference_enhanced_tracking_protection_custom_cookies_5">سایتلارآراسیْ کوکی‌لری آییرین</string>
+    <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: &-->
+    <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">سایتلارا دیتا پایلاشماماغیْ و ساتماماغیْ دئیین</string>
+
+    <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
+    <string name="preference_enhanced_tracking_protection_custom_tracking_content">ایزله‌مه محتواسی</string>
+    <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
+    <string name="preference_enhanced_tracking_protection_custom_tracking_content_1">بوتون تاغلاردا</string>
+    <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
+    <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">یالنیز اؤزل تاغلاردا</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_cryptominers">کریپتو معدنچی</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">بارماق ایزی یئغانلار</string>
+    <!-- Button label for navigating to the Enhanced Tracking Protection details -->
+    <string name="enhanced_tracking_protection_details">آیرینتی‌لار</string>
+    <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
+    <string name="enhanced_tracking_protection_blocked">مسدود اوْلان</string>
+    <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
+    <string name="enhanced_tracking_protection_allowed">ایجازه وئریلن‌لر</string>
+
+    <!-- Category of trackers (social media trackers) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_social_media_trackers_title">اجتماعی شبکه ایزله‌ییجی‌لری</string>
+    <!-- Description of social media trackers that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_social_media_trackers_description">اجتماعی شبکه‌لرین اینترنت‌ده گزن فعالیتینیزی ایزله‌مک ایمکانینیْ محدود ائلییر.</string>
+    <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_cookies_title">سایتلار آراسیْ ایزله‌مه کوکی‌لری</string>
+    <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_cookies_title_2">سایتلار آراسیْ کوکی‌لر</string>
+
+    <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_cookies_description">تبلیغاتی شبکه‌لری و تحلیلی شرکت‌لرین بیر چوْخ سایتلاردا مرور دیتانیزی یئغماق اوچون ایشه آلدیغیْ کوکی‌لری مسدود ائلییر.</string>
+
+    <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_cookies_description_2">بوتون کوکی قوْروماسیْ کوکی‌لری اوْلدوغونوز سایتدان آییریر کی، تبلیغاتی شبکه‌لر کیمی ایزله‌ییجی‌لر سایتلار آراسیندا سیزی ایزله‌مک اوچون اوْنلاردان استفاده ائده بیلمه‌سین.</string>
+    <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_cryptominers_title">کریپتو معدنچی</string>
+    <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_cryptominers_description">ضررلی اسکریپت‌لرین دیجیتال ارز الده ائتمک اوچون جهانیزا گیرمه‌سی‌نین قاباغینیْ آلیر.</string>
+
     <!-- Translations feature-->
 
 
     <!-- Micro survey -->
+
+
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">فایرفاکس‌دا پرینتی یاخچیلاشدیرماغا کمک ائدین. یالنیز بیر ثانیه چکیر.</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">فایرفاکس‌دا پرینت‌دن نه قدر راضیسینیز؟</string>
 
 
     </resources>
