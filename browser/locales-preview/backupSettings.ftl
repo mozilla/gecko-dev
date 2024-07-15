@@ -110,6 +110,7 @@ restore-from-backup-password-description = This unlocks your encrypted backup.
 
 restore-from-backup-cancel-button = Cancel
 restore-from-backup-confirm-button = Restore and restart
+restore-from-backup-restoring-button = Restoring…
 
 ## These strings are displayed in a modal when users want to enable encryption or change the password for an existing backup.
 

@@ -65,10 +65,18 @@ export class BackupUIChild extends JSWindowActorChild {
       });
     } else if (event.type == "BackupUI:RestoreFromBackupFile") {
       let { backupFile, backupPassword } = event.detail;
-      this.sendAsyncMessage("RestoreFromBackupFile", {
+      event.target.recoveryInProgress = true;
+      event.target.recoveryErrorCode = 0;
+      let result = await this.sendQuery("RestoreFromBackupFile", {
         backupFile,
         backupPassword,
       });
+      event.target.recoveryInProgress = false;
+      if (result.success) {
+        event.target.restoreFromBackupDialogEl?.close();
+      } else {
+        event.target.recoveryErrorCode = result.errorCode;
+      }
     } else if (event.type == "BackupUI:RestoreFromBackupChooseFile") {
       this.sendAsyncMessage("RestoreFromBackupChooseFile");
     } else if (event.type == "BackupUI:ToggleEncryption") {

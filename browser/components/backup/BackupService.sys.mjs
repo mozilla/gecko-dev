@@ -571,6 +571,13 @@ export class BackupService extends EventTarget {
   }
 
   /**
+   * True if a recovery is currently in progress.
+   *
+   * @type {boolean}
+   */
+  #recoveryInProgress = false;
+
+  /**
    * An object holding the current state of the BackupService instance, for
    * the purposes of representing it in the user interface. Ideally, this would
    * be named #state instead of #_state, but sphinx-js seems to be fairly
@@ -2280,75 +2287,85 @@ export class BackupService extends EventTarget {
     profilePath = PathUtils.profileDir,
     profileRootPath = null
   ) {
-    const RECOVERY_FILE_DEST_PATH = PathUtils.join(
-      profilePath,
-      BackupService.PROFILE_FOLDER_NAME,
-      BackupService.RECOVERY_ZIP_FILE_NAME
-    );
-    await this.extractCompressedSnapshotFromArchive(
-      archivePath,
-      RECOVERY_FILE_DEST_PATH,
-      recoveryCode
-    );
-
-    let encState = null;
-    if (recoveryCode) {
-      // We were passed a recovery code and made it to this line. That implies
-      // that the backup was encrypted, and the recovery code was the correct
-      // one to decrypt it. We now generate a new ArchiveEncryptionState with
-      // that recovery code to write into the recovered profile.
-      ({ instance: encState } = await lazy.ArchiveEncryptionState.initialize(
-        recoveryCode
-      ));
-    }
-
-    const RECOVERY_FOLDER_DEST_PATH = PathUtils.join(
-      profilePath,
-      BackupService.PROFILE_FOLDER_NAME,
-      "recovery"
-    );
-    await this.decompressRecoveryFile(
-      RECOVERY_FILE_DEST_PATH,
-      RECOVERY_FOLDER_DEST_PATH
-    );
-
-    // Now that we've decompressed it, reclaim some disk space by getting rid of
-    // the ZIP file.
-    try {
-      await IOUtils.remove(RECOVERY_FILE_DEST_PATH);
-    } catch (_) {
-      lazy.logConsole.warn("Could not remove ", RECOVERY_FILE_DEST_PATH);
+    // No concurrent recoveries.
+    if (this.#recoveryInProgress) {
+      lazy.logConsole.warn("Recovery attempt already in progress");
+      return null;
     }
 
     try {
-      // We're using a try/finally here to clean up the temporary OSKeyStore.
-      // We need to make sure that cleanup occurs _after_ the recovery has
-      // either fully succeeded, or fully failed. We await the return value
-      // of recoverFromSnapshotFolder so that the finally will not execute
-      // until after recoverFromSnapshotFolder has finished resolving or
-      // rejecting.
-      let newProfile = await this.recoverFromSnapshotFolder(
-        RECOVERY_FOLDER_DEST_PATH,
-        shouldLaunch,
-        profileRootPath,
-        encState
+      this.#recoveryInProgress = true;
+      const RECOVERY_FILE_DEST_PATH = PathUtils.join(
+        profilePath,
+        BackupService.PROFILE_FOLDER_NAME,
+        BackupService.RECOVERY_ZIP_FILE_NAME
       );
-      return newProfile;
-    } finally {
-      // If we had decrypted a backup, we would have created the temporary
-      // recovery OSKeyStore row with the label
-      // BackupService.RECOVERY_OSKEYSTORE_LABEL, which we will now delete,
-      // no matter if we succeeded or failed to recover.
-      //
-      // Note that according to nsIOSKeyStore, this is a no-op in the event that
-      // no secret exists at BackupService.RECOVERY_OSKEYSTORE_LABEL, so we're
-      // fine to do this even if we were recovering from an unencrypted
-      // backup.
+      await this.extractCompressedSnapshotFromArchive(
+        archivePath,
+        RECOVERY_FILE_DEST_PATH,
+        recoveryCode
+      );
+
+      let encState = null;
       if (recoveryCode) {
-        await lazy.nativeOSKeyStore.asyncDeleteSecret(
-          BackupService.RECOVERY_OSKEYSTORE_LABEL
-        );
+        // We were passed a recovery code and made it to this line. That implies
+        // that the backup was encrypted, and the recovery code was the correct
+        // one to decrypt it. We now generate a new ArchiveEncryptionState with
+        // that recovery code to write into the recovered profile.
+        ({ instance: encState } = await lazy.ArchiveEncryptionState.initialize(
+          recoveryCode
+        ));
       }
+
+      const RECOVERY_FOLDER_DEST_PATH = PathUtils.join(
+        profilePath,
+        BackupService.PROFILE_FOLDER_NAME,
+        "recovery"
+      );
+      await this.decompressRecoveryFile(
+        RECOVERY_FILE_DEST_PATH,
+        RECOVERY_FOLDER_DEST_PATH
+      );
+
+      // Now that we've decompressed it, reclaim some disk space by getting rid of
+      // the ZIP file.
+      try {
+        await IOUtils.remove(RECOVERY_FILE_DEST_PATH);
+      } catch (_) {
+        lazy.logConsole.warn("Could not remove ", RECOVERY_FILE_DEST_PATH);
+      }
+      try {
+        // We're using a try/finally here to clean up the temporary OSKeyStore.
+        // We need to make sure that cleanup occurs _after_ the recovery has
+        // either fully succeeded, or fully failed. We await the return value
+        // of recoverFromSnapshotFolder so that the finally will not execute
+        // until after recoverFromSnapshotFolder has finished resolving or
+        // rejecting.
+        let newProfile = await this.recoverFromSnapshotFolder(
+          RECOVERY_FOLDER_DEST_PATH,
+          shouldLaunch,
+          profileRootPath,
+          encState
+        );
+        return newProfile;
+      } finally {
+        // If we had decrypted a backup, we would have created the temporary
+        // recovery OSKeyStore row with the label
+        // BackupService.RECOVERY_OSKEYSTORE_LABEL, which we will now delete,
+        // no matter if we succeeded or failed to recover.
+        //
+        // Note that according to nsIOSKeyStore, this is a no-op in the event that
+        // no secret exists at BackupService.RECOVERY_OSKEYSTORE_LABEL, so we're
+        // fine to do this even if we were recovering from an unencrypted
+        // backup.
+        if (recoveryCode) {
+          await lazy.nativeOSKeyStore.asyncDeleteSecret(
+            BackupService.RECOVERY_OSKEYSTORE_LABEL
+          );
+        }
+      }
+    } finally {
+      this.#recoveryInProgress = false;
     }
   }
 
