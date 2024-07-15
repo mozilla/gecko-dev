@@ -46,6 +46,9 @@ path = "../support/error"
 [dependencies.interrupt-support]
 path = "../support/interrupt"
 
+[dependencies.payload-support]
+path = "../support/payload"
+
 [dependencies.rc_crypto]
 path = "../support/rc_crypto"
 features = ["hawk"]

@@ -777,6 +777,40 @@ export class SuggestStoreBuilder {
         return handleRustResult(functionCall(), liftResult, liftError);
     }
 
+    loadExtension(libraryName,entrypoint) {
+        const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(libraryName)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("libraryName");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterOptionalstring.checkType(entrypoint)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("entrypoint");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsync(
+                27, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
+                FfiConverterTypeSuggestStoreBuilder.lower(this),
+                FfiConverterString.lower(libraryName),
+                FfiConverterOptionalstring.lower(entrypoint),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
     remoteSettingsBucketName(bucketName) {
         const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
         const liftError = null;
@@ -790,7 +824,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                27, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
+                28, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(bucketName),
             )
@@ -811,7 +845,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                28, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
+                29, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterTypeRemoteSettingsServer.lower(server),
             )
@@ -1451,6 +1485,30 @@ Suggestion.Weather = class extends Suggestion{
             this.score = score;
         }
 }
+Suggestion.Fakespot = class extends Suggestion{
+    constructor(
+        fakespotGrade,
+        productId,
+        rating,
+        title,
+        totalReviews,
+        url,
+        icon,
+        iconMimetype,
+        score
+        ) {
+            super();
+            this.fakespotGrade = fakespotGrade;
+            this.productId = productId;
+            this.rating = rating;
+            this.title = title;
+            this.totalReviews = totalReviews;
+            this.url = url;
+            this.icon = icon;
+            this.iconMimetype = iconMimetype;
+            this.score = score;
+        }
+}
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
@@ -1518,6 +1576,18 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     );
             case 7:
                 return new Suggestion.Weather(
+                    FfiConverterF64.read(dataStream)
+                    );
+            case 8:
+                return new Suggestion.Fakespot(
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterF64.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterI64.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterOptionalSequenceu8.read(dataStream),
+                    FfiConverterOptionalstring.read(dataStream),
                     FfiConverterF64.read(dataStream)
                     );
             default:
@@ -1597,6 +1667,19 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             FfiConverterF64.write(dataStream, value.score);
             return;
         }
+        if (value instanceof Suggestion.Fakespot) {
+            dataStream.writeInt32(8);
+            FfiConverterString.write(dataStream, value.fakespotGrade);
+            FfiConverterString.write(dataStream, value.productId);
+            FfiConverterF64.write(dataStream, value.rating);
+            FfiConverterString.write(dataStream, value.title);
+            FfiConverterI64.write(dataStream, value.totalReviews);
+            FfiConverterString.write(dataStream, value.url);
+            FfiConverterOptionalSequenceu8.write(dataStream, value.icon);
+            FfiConverterOptionalstring.write(dataStream, value.iconMimetype);
+            FfiConverterF64.write(dataStream, value.score);
+            return;
+        }
         throw new UniFFITypeError("Unknown Suggestion variant");
     }
 
@@ -1667,6 +1750,18 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             totalSize += FfiConverterF64.computeSize(value.score);
             return totalSize;
         }
+        if (value instanceof Suggestion.Fakespot) {
+            totalSize += FfiConverterString.computeSize(value.fakespotGrade);
+            totalSize += FfiConverterString.computeSize(value.productId);
+            totalSize += FfiConverterF64.computeSize(value.rating);
+            totalSize += FfiConverterString.computeSize(value.title);
+            totalSize += FfiConverterI64.computeSize(value.totalReviews);
+            totalSize += FfiConverterString.computeSize(value.url);
+            totalSize += FfiConverterOptionalSequenceu8.computeSize(value.icon);
+            totalSize += FfiConverterOptionalstring.computeSize(value.iconMimetype);
+            totalSize += FfiConverterF64.computeSize(value.score);
+            return totalSize;
+        }
         throw new UniFFITypeError("Unknown Suggestion variant");
     }
 
@@ -1688,6 +1783,7 @@ export const SuggestionProvider = {
     MDN: 6,
     WEATHER: 7,
     AMP_MOBILE: 8,
+    FAKESPOT: 9,
 };
 
 Object.freeze(SuggestionProvider);
@@ -1711,6 +1807,8 @@ export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer 
                 return SuggestionProvider.WEATHER
             case 8:
                 return SuggestionProvider.AMP_MOBILE
+            case 9:
+                return SuggestionProvider.FAKESPOT
             default:
                 throw new UniFFITypeError("Unknown SuggestionProvider variant");
         }
@@ -1749,6 +1847,10 @@ export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer 
             dataStream.writeInt32(8);
             return;
         }
+        if (value === SuggestionProvider.FAKESPOT) {
+            dataStream.writeInt32(9);
+            return;
+        }
         throw new UniFFITypeError("Unknown SuggestionProvider variant");
     }
 
@@ -1757,7 +1859,7 @@ export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer 
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 8) {
+      if (!Number.isInteger(value) || value < 1 || value > 9) {
           throw new UniFFITypeError(`${value} is not a valid value for SuggestionProvider`);
       }
     }
@@ -2234,7 +2336,7 @@ export function rawSuggestionUrlMatches(rawUrl,url) {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                29, // suggest:uniffi_suggest_fn_func_raw_suggestion_url_matches
+                30, // suggest:uniffi_suggest_fn_func_raw_suggestion_url_matches
                 FfiConverterString.lower(rawUrl),
                 FfiConverterString.lower(url),
             )

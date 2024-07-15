@@ -169,7 +169,6 @@ impl TabsStorage {
                 .collect();
             // Sort the tabs so when we trim tabs it's the oldest tabs
             sanitized_tabs.sort_by(|a, b| b.last_used.cmp(&a.last_used));
-            // If trimming the tab length failed for some reason, just return the untrimmed tabs
             trim_tabs_length(&mut sanitized_tabs, MAX_PAYLOAD_SIZE);
             return Some(sanitized_tabs);
         }
@@ -270,8 +269,10 @@ impl TabsStorage {
             Ok(Some(conn)) => conn,
         };
         let pending_tabs_result: Result<Vec<(String, String)>> = conn.query_rows_and_then_cached(
-            "SELECT device_id, url FROM remote_tab_commands",
-            [],
+            "SELECT device_id, url
+             FROM remote_tab_commands
+             WHERE command = :command_close_tab",
+            rusqlite::named_params! { ":command_close_tab": CommandKind::CloseTab },
             |row| {
                 Ok((
                     row.get::<_, String>(0)?, // device_id
@@ -493,7 +494,7 @@ impl TabsStorage {
         let Some(conn) = self.open_if_exists()? else {
             return Ok(Vec::new());
         };
-        let records: Vec<Option<PendingCommand>> = match conn.query_rows_and_then_cached(
+        let result = conn.query_rows_and_then_cached(
             &format!(
                 "SELECT device_id, command, url, time_requested, time_sent
                     FROM remote_tab_commands
@@ -524,15 +525,14 @@ impl TabsStorage {
                     },
                 }))
             },
-        ) {
-            Ok(records) => records,
+        );
+        Ok(match result {
+            Ok(records) => records.into_iter().flatten().collect(),
             Err(e) => {
                 error_support::report_error!("tabs-get_unsent", "Failed to read database: {}", e);
-                return Ok(Vec::new());
+                Vec::new()
             }
-        };
-
-        Ok(records.into_iter().flatten().collect())
+        })
     }
 
     pub fn set_pending_command_sent(&mut self, command: &PendingCommand) -> Result<bool> {
@@ -589,11 +589,13 @@ impl TabsStorage {
                 .get(&record.id)
                 .and_then(|r| r.fxa_device_id.as_ref())
                 .unwrap_or(&record.id);
-            if let Some(url) = record.tabs.first().and_then(|tab| tab.url_history.first()) {
-                conn.execute(
-                    "INSERT INTO new_remote_tabs (device_id, url) VALUES (?, ?)",
-                    rusqlite::params![fxa_id, url],
-                )?;
+            for tab in &record.tabs {
+                if let Some(url) = tab.url_history.first() {
+                    conn.execute(
+                        "INSERT INTO new_remote_tabs (device_id, url) VALUES (?, ?)",
+                        rusqlite::params![fxa_id, url],
+                    )?;
+                }
             }
         }
 
@@ -618,7 +620,7 @@ impl TabsStorage {
             conn.changes()
         );
 
-        // Anything that couldn't be removed above and is older than 24 hours
+        // Anything that couldn't be removed above and is older than REMOTE_COMMAND_TTL_MS
         // is assumed not closeable and we can remove it from the list
         let sql = format!("
             DELETE FROM remote_tab_commands
@@ -667,26 +669,12 @@ impl ToSql for CommandKind {
     }
 }
 
-// Trim the amount of tabs in a list to fit the specified memory size
+/// Trim the amount of tabs in a list to fit the specified memory size.
+/// If trimming the tab length fails for some reason, just return the untrimmed tabs.
 fn trim_tabs_length(tabs: &mut Vec<RemoteTab>, payload_size_max_bytes: usize) {
-    // Ported from https://searchfox.org/mozilla-central/rev/84fb1c4511312a0b9187f647d90059e3a6dd27f8/services/sync/modules/util.sys.mjs#422
-    // See bug 535326 comment 8 for an explanation of the estimation
-    let max_serialized_size = (payload_size_max_bytes / 4) * 3 - 1500;
-    let size = compute_serialized_size(tabs);
-    if size > max_serialized_size {
-        // Estimate a little more than the direct fraction to maximize packing
-        let cutoff = (tabs.len() * max_serialized_size) / size;
-        tabs.truncate(cutoff);
-
-        // Keep dropping off the last entry until the data fits.
-        while compute_serialized_size(tabs) > max_serialized_size {
-            tabs.pop();
-        }
+    if let Some(count) = payload_support::try_fit_items(tabs, payload_size_max_bytes).as_some() {
+        tabs.truncate(count.get());
     }
-}
-
-fn compute_serialized_size(v: &Vec<RemoteTab>) -> usize {
-    serde_json::to_string(v).unwrap_or_default().len()
 }
 
 // Similar to places/utils.js
@@ -724,6 +712,7 @@ fn is_url_syncable(url: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use payload_support::compute_serialized_size;
     use std::time::Duration;
 
     use super::*;
@@ -938,14 +927,14 @@ mod tests {
                 ..Default::default()
             });
         }
-        let tabs_mem_size = compute_serialized_size(&too_many_tabs);
+        let tabs_mem_size = compute_serialized_size(&too_many_tabs).unwrap();
         // ensure we are definitely over the payload limit
         assert!(tabs_mem_size > MAX_PAYLOAD_SIZE);
         // Add our over-the-limit tabs to the local state
         storage.update_local_state(too_many_tabs.clone());
         // prepare_local_tabs_for_upload did the trimming we needed to get under payload size
         let tabs_to_upload = &storage.prepare_local_tabs_for_upload().unwrap();
-        assert!(compute_serialized_size(tabs_to_upload) <= MAX_PAYLOAD_SIZE);
+        assert!(compute_serialized_size(tabs_to_upload).unwrap() <= MAX_PAYLOAD_SIZE);
     }
     // Helper struct to model what's stored in the DB
     struct TabsSQLRecord {
@@ -1356,10 +1345,16 @@ mod tests {
             TabsRecord {
                 id: "device-recent".to_string(),
                 client_name: "".to_string(),
-                tabs: vec![TabsRecordTab {
-                    url_history: vec!["https://example.com".to_string()],
-                    ..Default::default()
-                }],
+                tabs: vec![
+                    TabsRecordTab {
+                        url_history: vec!["https://example99.com".to_string()],
+                        ..Default::default()
+                    },
+                    TabsRecordTab {
+                        url_history: vec!["https://example.com".to_string()],
+                        ..Default::default()
+                    },
+                ],
             },
             ServerTimestamp::default(),
         )];

@@ -103,10 +103,10 @@ impl Default for InfoConfiguration {
         InfoConfiguration {
             max_request_bytes: default_max_request_bytes(),
             max_record_payload_bytes: default_max_record_payload_bytes(),
-            max_post_records: usize::max_value(),
-            max_post_bytes: usize::max_value(),
-            max_total_records: usize::max_value(),
-            max_total_bytes: usize::max_value(),
+            max_post_records: usize::MAX,
+            max_post_bytes: usize::MAX,
+            max_total_records: usize::MAX,
+            max_total_bytes: usize::MAX,
         }
     }
 }

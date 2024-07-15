@@ -243,7 +243,11 @@ fn set_schema_version(conn: &Connection, version: u32) -> Result<()> {
 // our other crates.
 pub mod test_utils {
     use super::*;
-    use std::{cell::RefCell, collections::HashSet, path::PathBuf};
+    use std::{
+        cell::RefCell,
+        collections::{HashMap, HashSet},
+        path::PathBuf,
+    };
     use tempfile::TempDir;
 
     pub struct TestConnectionInitializer {
@@ -424,41 +428,13 @@ pub mod test_utils {
             let db = self.open();
             let new_db = open_memory_database(&self.connection_initializer).unwrap();
 
-            let table_names = get_table_names(&db);
-            let new_db_table_names = get_table_names(&new_db);
-            let extra_tables = Vec::from_iter(table_names.difference(&new_db_table_names));
-            if !extra_tables.is_empty() {
-                panic!("Extra tables not present in new database: {extra_tables:?}");
-            }
-            let new_db_extra_tables = Vec::from_iter(new_db_table_names.difference(&table_names));
-            if !new_db_extra_tables.is_empty() {
-                panic!("Extra tables only present in new database: {new_db_extra_tables:?}");
-            }
-            for table_name in table_names {
-                assert_eq!(
-                    get_table_sql(&db, &table_name),
-                    get_table_sql(&new_db, &table_name),
-                    "sql differs for table: {table_name}",
-                );
-            }
-
-            let index_names = get_index_names(&db);
-            let new_db_index_names = get_index_names(&new_db);
-            let extra_index = Vec::from_iter(index_names.difference(&new_db_index_names));
-            if !extra_index.is_empty() {
-                panic!("Extra indexes not present in new database: {extra_index:?}");
-            }
-            let new_db_extra_index = Vec::from_iter(new_db_index_names.difference(&index_names));
-            if !new_db_extra_index.is_empty() {
-                panic!("Extra indexes only present in new database: {new_db_extra_index:?}");
-            }
-            for index_name in index_names {
-                assert_eq!(
-                    get_index_sql(&db, &index_name),
-                    get_index_sql(&new_db, &index_name),
-                    "sql differs for index: {index_name}",
-                );
-            }
+            compare_sql_maps("table", get_sql(&db, "table"), get_sql(&new_db, "table"));
+            compare_sql_maps("index", get_sql(&db, "index"), get_sql(&new_db, "index"));
+            compare_sql_maps(
+                "trigger",
+                get_sql(&db, "trigger"),
+                get_sql(&new_db, "trigger"),
+            );
         }
 
         pub fn open(&self) -> Connection {
@@ -466,44 +442,40 @@ pub mod test_utils {
         }
     }
 
-    fn get_table_names(conn: &Connection) -> HashSet<String> {
+    fn get_sql(conn: &Connection, type_: &str) -> HashMap<String, String> {
         conn.query_rows_and_then(
-            "SELECT name FROM sqlite_master WHERE type='table'",
-            (),
-            |row| row.get(0),
+            "SELECT name, sql FROM sqlite_master WHERE type=?",
+            (type_,),
+            |row| -> rusqlite::Result<(String, String)> { Ok((row.get(0)?, row.get(1)?)) },
         )
         .unwrap()
         .into_iter()
         .collect()
     }
 
-    fn get_table_sql(conn: &Connection, table_name: &str) -> String {
-        conn.query_row_and_then(
-            "SELECT sql FROM sqlite_master WHERE name = ? AND type='table'",
-            (&table_name,),
-            |row| row.get::<_, String>(0),
-        )
-        .unwrap()
-    }
+    fn compare_sql_maps(
+        type_: &str,
+        old_items: HashMap<String, String>,
+        new_items: HashMap<String, String>,
+    ) {
+        let old_db_keys: HashSet<&String> = old_items.keys().collect();
+        let new_db_keys: HashSet<&String> = new_items.keys().collect();
 
-    fn get_index_names(conn: &Connection) -> HashSet<String> {
-        conn.query_rows_and_then(
-            "SELECT name FROM sqlite_master WHERE type='index'",
-            (),
-            |row| row.get(0),
-        )
-        .unwrap()
-        .into_iter()
-        .collect()
-    }
-
-    fn get_index_sql(conn: &Connection, index_name: &str) -> String {
-        conn.query_row_and_then(
-            "SELECT sql FROM sqlite_master WHERE name = ? AND type='index'",
-            (&index_name,),
-            |row| row.get::<_, String>(0),
-        )
-        .unwrap()
+        let old_db_extra_keys = Vec::from_iter(old_db_keys.difference(&new_db_keys));
+        if !old_db_extra_keys.is_empty() {
+            panic!("Extra keys not present in new database for {type_}: {old_db_extra_keys:?}");
+        }
+        let new_db_extra_keys = Vec::from_iter(new_db_keys.difference(&old_db_keys));
+        if !new_db_extra_keys.is_empty() {
+            panic!("Extra keys only present in new database for {type_}: {new_db_extra_keys:?}");
+        }
+        for key in old_db_keys {
+            assert_eq!(
+                old_items.get(key).unwrap(),
+                new_items.get(key).unwrap(),
+                "sql differs for {type_} {key}"
+            );
+        }
     }
 }
 

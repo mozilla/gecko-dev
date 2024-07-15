@@ -66,6 +66,11 @@ cargo doc --document-private-items --open
 
 Please help us keep our documentation useful for everyone, and feel free to file bugs for anything that looks unclear or out-of-date!
 
+## CLI
+
+`cargo suggest` providers a simple CLI for testing the suggest code.  Run `cargo suggest help` for
+usage instructions. The code that implements it is located in `examples/suggest-cli`.
+
 ## Tests
 
 We use a technique called ["snapshot testing"](https://notlaura.com/what-is-a-snapshot-test/) with the [`expect-test`](https://docs.rs/expect-test/latest/expect_test/) crate for the Suggest component's tests. This technique makes it easier to compare and update all the expected outputs when adding, removing, and changing suggestion types.

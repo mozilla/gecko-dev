@@ -13,6 +13,8 @@ pub struct SuggestionQuery {
 }
 
 impl SuggestionQuery {
+    // Builder style methods for creating queries (mostly used by the test code)
+
     pub fn all_providers(keyword: &str) -> Self {
         Self {
             keyword: keyword.to_string(),
@@ -95,6 +97,14 @@ impl SuggestionQuery {
         }
     }
 
+    pub fn fakespot(keyword: &str) -> Self {
+        Self {
+            keyword: keyword.into(),
+            providers: vec![SuggestionProvider::Fakespot],
+            limit: None,
+        }
+    }
+
     pub fn weather(keyword: &str) -> Self {
         Self {
             keyword: keyword.into(),
@@ -108,5 +118,97 @@ impl SuggestionQuery {
             limit: Some(limit),
             ..self
         }
+    }
+
+    // Other Functionality
+
+    /// Parse the `keyword` field into a set of keywords.
+    ///
+    /// This is used when passing the keywords into an FTS search.  It:
+    ///   - Strips out any `():^*"` chars.  These are typically used for advanced searches, which
+    ///     we don't support and it would be weird to only support for FTS searches, which
+    ///     currently means Fakespot searches.
+    ///   - Splits on whitespace to get a list of individual keywords
+    ///
+    pub(crate) fn parse_keywords(&self) -> Vec<&str> {
+        self.keyword
+            .split([' ', '(', ')', ':', '^', '*', '"'])
+            .filter(|s| !s.is_empty())
+            .collect()
+    }
+
+    /// Create an FTS query term for our keyword(s)
+    pub(crate) fn fts_query(&self) -> String {
+        let keywords = self.parse_keywords();
+        if keywords.is_empty() {
+            return String::from(r#""""#);
+        }
+        // Quote each term from `query` and join them together
+        let mut fts_query = keywords
+            .iter()
+            .map(|keyword| format!(r#""{keyword}""#))
+            .collect::<Vec<_>>()
+            .join(" ");
+        // If the input is > 3 characters, and there's no whitespace at the end.
+        // We want to append a `*` char to the end to do a prefix match on it.
+        let total_chars = keywords.iter().fold(0, |count, s| count + s.len());
+        let query_ends_in_whitespace = self.keyword.ends_with(' ');
+        if (total_chars > 3) && !query_ends_in_whitespace {
+            fts_query.push('*');
+        }
+        fts_query
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn check_parse_keywords(input: &str, expected: Vec<&str>) {
+        let query = SuggestionQuery::all_providers(input);
+        assert_eq!(query.parse_keywords(), expected);
+    }
+
+    #[test]
+    fn test_quote() {
+        check_parse_keywords("foo", vec!["foo"]);
+        check_parse_keywords("foo bar", vec!["foo", "bar"]);
+        // Special chars should be stripped
+        check_parse_keywords("\"foo()* ^bar:\"", vec!["foo", "bar"]);
+        // test some corner cases
+        check_parse_keywords("", vec![]);
+        check_parse_keywords(" ", vec![]);
+        check_parse_keywords("   foo     bar       ", vec!["foo", "bar"]);
+        check_parse_keywords("foo:bar", vec!["foo", "bar"]);
+    }
+
+    fn check_fts_query(input: &str, expected: &str) {
+        let query = SuggestionQuery::all_providers(input);
+        assert_eq!(query.fts_query(), expected);
+    }
+
+    #[test]
+    fn test_fts_query() {
+        // String with < 3 chars shouldn't get a prefix query
+        check_fts_query("r", r#""r""#);
+        check_fts_query("ru", r#""ru""#);
+        check_fts_query("run", r#""run""#);
+        // After 3 chars, we should append `*` to the last term to make it a prefix query
+        check_fts_query("runn", r#""runn"*"#);
+        check_fts_query("running", r#""running"*"#);
+        // The total number of chars is counted, not the number of chars in the last term
+        check_fts_query("running s", r#""running" "s"*"#);
+        // if the input ends in whitespace, then don't do a prefix query
+        check_fts_query("running ", r#""running""#);
+        // Special chars are filtered out
+        check_fts_query("running*\"()^: s", r#""running" "s"*"#);
+        check_fts_query("running *\"()^: s", r#""running" "s"*"#);
+        // Special chars shouldn't count towards the input size when deciding whether to do a
+        // prefix query or not
+        check_fts_query("r():", r#""r""#);
+        // Test empty strings
+        check_fts_query("", r#""""#);
+        check_fts_query(" ", r#""""#);
+        check_fts_query("()", r#""""#);
     }
 }
