@@ -3726,7 +3726,8 @@ void nsTextFrame::PropertyProvider::GetSpacingInternal(Range aRange,
         after = mLetterSpacing - before;
         break;
     }
-    bool atStart = mStartOfLineOffset == start.GetSkippedOffset();
+    bool atStart = mStartOfLineOffset == start.GetSkippedOffset() &&
+                   !mFrame->IsInSVGTextSubtree();
     while (run.NextRun()) {
       uint32_t runOffsetInSubstring = run.GetSkippedOffset() - aRange.start;
       gfxSkipCharsIterator iter = run.GetPos();
