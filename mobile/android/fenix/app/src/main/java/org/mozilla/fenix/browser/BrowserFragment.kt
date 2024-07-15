@@ -410,37 +410,40 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         )
     }
 
-    // Adds a home button to BrowserToolbar or, if FeltPrivateBrowsing is enabled, a clear data button instead.
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun addLeadingAction(
         context: Context,
-        feltPrivateBrowsingEnabled: Boolean,
-        isPrivate: Boolean,
+        showHomeButton: Boolean,
+        showEraseButton: Boolean,
     ) {
-        if (leadingAction == null) {
-            leadingAction = if (isPrivate && feltPrivateBrowsingEnabled) {
-                BrowserToolbar.Button(
-                    imageDrawable = AppCompatResources.getDrawable(
-                        context,
-                        R.drawable.mozac_ic_data_clearance_24,
-                    )!!,
-                    contentDescription = context.getString(R.string.browser_toolbar_erase),
-                    iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
-                    listener = browserToolbarInteractor::onEraseButtonClicked,
-                )
-            } else {
-                BrowserToolbar.Button(
-                    imageDrawable = AppCompatResources.getDrawable(
-                        context,
-                        R.drawable.mozac_ic_home_24,
-                    )!!,
-                    contentDescription = context.getString(R.string.browser_toolbar_home),
-                    iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
-                    listener = browserToolbarInteractor::onHomeButtonClicked,
-                )
-            }.also {
-                browserToolbarView.view.addNavigationAction(it)
-            }
+        if (leadingAction != null) return
+
+        leadingAction = if (showEraseButton) {
+            BrowserToolbar.Button(
+                imageDrawable = AppCompatResources.getDrawable(
+                    context,
+                    R.drawable.mozac_ic_data_clearance_24,
+                )!!,
+                contentDescription = context.getString(R.string.browser_toolbar_erase),
+                iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
+                listener = browserToolbarInteractor::onEraseButtonClicked,
+            )
+        } else if (showHomeButton) {
+            BrowserToolbar.Button(
+                imageDrawable = AppCompatResources.getDrawable(
+                    context,
+                    R.drawable.mozac_ic_home_24,
+                )!!,
+                contentDescription = context.getString(R.string.browser_toolbar_home),
+                iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
+                listener = browserToolbarInteractor::onHomeButtonClicked,
+            )
+        } else {
+            null
+        }
+
+        leadingAction?.let {
+            browserToolbarView.view.addNavigationAction(it)
         }
     }
 
@@ -510,11 +513,14 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         feltPrivateBrowsingEnabled: Boolean,
         context: Context,
     ) {
-        if (!redesignEnabled || isLandscape || isTablet) {
+        val showHomeButton = !redesignEnabled
+        val showEraseButton = feltPrivateBrowsingEnabled && isPrivate && (isLandscape || isTablet)
+
+        if (showHomeButton || showEraseButton) {
             addLeadingAction(
-                isPrivate = isPrivate,
-                feltPrivateBrowsingEnabled = feltPrivateBrowsingEnabled,
                 context = context,
+                showHomeButton = showHomeButton,
+                showEraseButton = showEraseButton,
             )
         } else {
             removeLeadingAction()
