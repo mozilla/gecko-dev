@@ -30,7 +30,10 @@ impl TabsStore {
 
     // like remote_tabs, but serves the uniffi layer
     pub fn get_all(&self) -> Vec<ClientRemoteTabs> {
-        self.remote_tabs().unwrap_or_default()
+        match self.remote_tabs() {
+            Some(list) => list,
+            None => vec![],
+        }
     }
 
     pub fn remote_tabs(&self) -> Option<Vec<ClientRemoteTabs>> {

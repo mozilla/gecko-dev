@@ -22,7 +22,6 @@ pub enum SuggestionProvider {
     Mdn = 6,
     Weather = 7,
     AmpMobile = 8,
-    Fakespot = 9,
 }
 
 impl FromSql for SuggestionProvider {
@@ -36,7 +35,7 @@ impl FromSql for SuggestionProvider {
 }
 
 impl SuggestionProvider {
-    pub fn all() -> [Self; 9] {
+    pub fn all() -> [Self; 8] {
         [
             Self::Amp,
             Self::Wikipedia,
@@ -46,7 +45,6 @@ impl SuggestionProvider {
             Self::Mdn,
             Self::Weather,
             Self::AmpMobile,
-            Self::Fakespot,
         ]
     }
 
@@ -60,8 +58,6 @@ impl SuggestionProvider {
             5 => Some(SuggestionProvider::Yelp),
             6 => Some(SuggestionProvider::Mdn),
             7 => Some(SuggestionProvider::Weather),
-            8 => Some(SuggestionProvider::AmpMobile),
-            9 => Some(SuggestionProvider::Fakespot),
             _ => None,
         }
     }
@@ -108,9 +104,6 @@ impl SuggestionProvider {
                     SuggestRecordType::Icon,
                     SuggestRecordType::GlobalConfig,
                 ]
-            }
-            SuggestionProvider::Fakespot => {
-                vec![SuggestRecordType::Fakespot]
             }
         }
     }

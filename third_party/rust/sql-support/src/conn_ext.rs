@@ -13,6 +13,8 @@ use std::time::Instant;
 
 use crate::maybe_cached::MaybeCached;
 
+pub struct Conn(rusqlite::Connection);
+
 /// This trait exists so that we can use these helpers on `rusqlite::{Transaction, Connection}`.
 /// Note that you must import ConnExt in order to call these methods on anything.
 pub trait ConnExt {

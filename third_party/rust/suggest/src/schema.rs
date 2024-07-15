@@ -3,12 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-use crate::db::Sqlite3Extension;
 use rusqlite::{Connection, Transaction};
-use sql_support::{
-    open_database::{self, ConnectionInitializer},
-    ConnExt,
-};
+use sql_support::open_database::{self, ConnectionInitializer};
 
 /// The current database schema version.
 ///
@@ -19,7 +15,7 @@ use sql_support::{
 ///     [`SuggestConnectionInitializer::upgrade_from`].
 ///    a. If suggestions should be re-ingested after the migration, call `clear_database()` inside
 ///       the migration.
-pub const VERSION: u32 = 22;
+pub const VERSION: u32 = 20;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -89,36 +85,6 @@ CREATE TABLE amo_custom_details(
     FOREIGN KEY(suggestion_id) REFERENCES suggestions(id) ON DELETE CASCADE
 );
 
-CREATE TABLE fakespot_custom_details(
-    suggestion_id INTEGER PRIMARY KEY,
-    fakespot_grade TEXT NOT NULL,
-    product_id TEXT NOT NULL,
-    rating REAL NOT NULL,
-    total_reviews INTEGER NOT NULL,
-    icon_id TEXT,
-    FOREIGN KEY(suggestion_id) REFERENCES suggestions(id) ON DELETE CASCADE
-);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS fakespot_fts USING FTS5(
-  title,
-  prefix='4 5 6 7 8 9 10 11',
-  content='',
-  contentless_delete=1,
-  tokenize=\"porter unicode61 remove_diacritics 2 tokenchars '''-'\"
-);
-
-CREATE TRIGGER fakespot_ai AFTER INSERT ON fakespot_custom_details BEGIN
-  INSERT INTO fakespot_fts(rowid, title)
-    SELECT id, title
-    FROM suggestions
-    WHERE id = new.suggestion_id;
-END;
-
--- DELETE/UPDATE triggers are difficult to implement, since the FTS contents are split between the fakespot_custom_details and suggestions tables.
--- If you use an AFTER trigger, then the data from the other table has already been deleted.
--- BEFORE triggers are discouraged by the SQLite docs.
--- Instead, the drop_suggestions function handles updating the FTS data.
-
 CREATE INDEX suggestions_record_id ON suggestions(record_id);
 
 CREATE TABLE icons(
@@ -164,35 +130,13 @@ CREATE TABLE dismissed_suggestions (
 
 /// Initializes an SQLite connection to the Suggest database, performing
 /// migrations as needed.
-#[derive(Default)]
-pub struct SuggestConnectionInitializer<'a> {
-    extensions_to_load: &'a [Sqlite3Extension],
-}
+pub struct SuggestConnectionInitializer;
 
-impl<'a> SuggestConnectionInitializer<'a> {
-    pub fn new(extensions_to_load: &'a [Sqlite3Extension]) -> Self {
-        Self { extensions_to_load }
-    }
-
-    pub fn load_extensions(&self, conn: &Connection) -> open_database::Result<()> {
-        // Safety: this relies on the extensions we're loading to operate correctly, for the
-        // entry point to be correct, etc.
-        unsafe {
-            let _guard = rusqlite::LoadExtensionGuard::new(conn)?;
-            for ext in self.extensions_to_load {
-                conn.load_extension(&ext.library, ext.entry_point.as_deref())?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl ConnectionInitializer for SuggestConnectionInitializer<'_> {
+impl ConnectionInitializer for SuggestConnectionInitializer {
     const NAME: &'static str = "suggest db";
     const END_VERSION: u32 = VERSION;
 
     fn prepare(&self, conn: &Connection, _db_empty: bool) -> open_database::Result<()> {
-        self.load_extensions(conn)?;
         let initial_pragmas = "
             -- Use in-memory storage for TEMP tables.
             PRAGMA temp_store = 2;
@@ -207,8 +151,7 @@ impl ConnectionInitializer for SuggestConnectionInitializer<'_> {
     }
 
     fn init(&self, db: &Transaction<'_>) -> open_database::Result<()> {
-        db.execute_batch(SQL)?;
-        Ok(())
+        Ok(db.execute_batch(SQL)?)
     }
 
     fn upgrade_from(&self, tx: &Transaction<'_>, version: u32) -> open_database::Result<()> {
@@ -284,68 +227,6 @@ CREATE UNIQUE INDEX keywords_suggestion_id_rank ON keywords(suggestion_id, rank)
                 )?;
                 Ok(())
             }
-
-            // Migration for the fakespot data.  This is not currently active for any users, it's
-            // only used for the tests.  It's safe to alter the fakespot_custom_detail schema and
-            // update this migration as the project moves forward.
-            //
-            // Note: if we want to add a regular migration while the fakespot code is still behind
-            // a feature flag, insert it before this one and make fakespot the last migration.
-            20 => {
-                tx.execute_batch(
-                    "
-CREATE TABLE fakespot_custom_details(
-    suggestion_id INTEGER PRIMARY KEY,
-    fakespot_grade TEXT NOT NULL,
-    product_id TEXT NOT NULL,
-    rating REAL NOT NULL,
-    total_reviews INTEGER NOT NULL,
-    FOREIGN KEY(suggestion_id) REFERENCES suggestions(id) ON DELETE CASCADE
-);
--- Create the Fakespot FTS table.
--- The `tokenize` param is hard to read.  The effect is that dashes and apostrophes are
--- considered valid tokens in a word, rather than separators.
-CREATE VIRTUAL TABLE IF NOT EXISTS fakespot_fts USING FTS5(
-  title,
-  prefix='4 5 6 7 8 9 10 11',
-  content='',
-  contentless_delete=1,
-  tokenize=\"porter unicode61 remove_diacritics 2 tokenchars '''-'\"
-);
-CREATE TRIGGER fakespot_ai AFTER INSERT ON fakespot_custom_details BEGIN
-  INSERT INTO fakespot_fts(rowid, title)
-    SELECT id, title
-    FROM suggestions
-    WHERE id = new.suggestion_id;
-END;
-                ",
-                )?;
-                Ok(())
-            }
-            21 => {
-                // Drop and re-create the fakespot_custom_details to add the icon_id column.
-                tx.execute_batch(
-                    "
-DROP TABLE fakespot_custom_details;
-CREATE TABLE fakespot_custom_details(
-    suggestion_id INTEGER PRIMARY KEY,
-    fakespot_grade TEXT NOT NULL,
-    product_id TEXT NOT NULL,
-    rating REAL NOT NULL,
-    total_reviews INTEGER NOT NULL,
-    icon_id TEXT,
-    FOREIGN KEY(suggestion_id) REFERENCES suggestions(id) ON DELETE CASCADE
-);
-CREATE TRIGGER fakespot_ai AFTER INSERT ON fakespot_custom_details BEGIN
-  INSERT INTO fakespot_fts(rowid, title)
-    SELECT id, title
-    FROM suggestions
-    WHERE id = new.suggestion_id;
-END;
-                    ",
-                )?;
-                Ok(())
-            }
             _ => Err(open_database::Error::IncompatibleVersion(version)),
         }
     }
@@ -366,13 +247,7 @@ pub fn clear_database(db: &Connection) -> rusqlite::Result<()> {
         DELETE FROM yelp_location_signs;
         DELETE FROM yelp_custom_details;
         ",
-    )?;
-    let table_exists: bool =
-        db.query_one("SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE name = 'fakespot_fts')")?;
-    if table_exists {
-        db.execute("DELETE FROM fakespot_fts", ())?;
-    }
-    Ok(())
+    )
 }
 
 #[cfg(test)]
@@ -497,8 +372,7 @@ PRAGMA user_version=16;
     /// If an upgrade fails, then this test will fail with a panic.
     #[test]
     fn test_all_upgrades() {
-        let db_file =
-            MigratedDatabaseFile::new(SuggestConnectionInitializer::default(), V16_SCHEMA);
+        let db_file = MigratedDatabaseFile::new(SuggestConnectionInitializer, V16_SCHEMA);
         db_file.run_all_upgrades();
         db_file.assert_schema_matches_new_database();
     }

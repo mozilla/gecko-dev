@@ -81,17 +81,6 @@ pub enum Suggestion {
     Weather {
         score: f64,
     },
-    Fakespot {
-        fakespot_grade: String,
-        product_id: String,
-        rating: f64,
-        title: String,
-        total_reviews: i64,
-        url: String,
-        icon: Option<Vec<u8>>,
-        icon_mimetype: Option<String>,
-        score: f64,
-    },
 }
 
 impl PartialOrd for Suggestion {
@@ -129,8 +118,7 @@ impl Suggestion {
             | Self::Wikipedia { url, .. }
             | Self::Amo { url, .. }
             | Self::Yelp { url, .. }
-            | Self::Mdn { url, .. }
-            | Self::Fakespot { url, .. } => Some(url),
+            | Self::Mdn { url, .. } => Some(url),
             _ => None,
         }
     }
@@ -147,29 +135,6 @@ impl Suggestion {
             | Self::Amo { url, .. }
             | Self::Yelp { url, .. }
             | Self::Mdn { url, .. } => Some(url),
-            _ => None,
-        }
-    }
-
-    pub fn title(&self) -> &str {
-        match self {
-            Self::Amp { title, .. }
-            | Self::Pocket { title, .. }
-            | Self::Wikipedia { title, .. }
-            | Self::Amo { title, .. }
-            | Self::Yelp { title, .. }
-            | Self::Mdn { title, .. } => title,
-            Self::Weather { .. } => "weather",
-            Self::Fakespot { title, .. } => title,
-        }
-    }
-
-    pub fn icon_data(&self) -> Option<&[u8]> {
-        match self {
-            Self::Amp { icon, .. }
-            | Self::Wikipedia { icon, .. }
-            | Self::Yelp { icon, .. }
-            | Self::Fakespot { icon, .. } => icon.as_deref(),
             _ => None,
         }
     }

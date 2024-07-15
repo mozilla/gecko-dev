@@ -38,6 +38,9 @@ use serde::{Deserialize, Deserializer};
 
 use crate::{error::Error, provider::SuggestionProvider, Result};
 
+/// The Suggest Remote Settings collection name.
+pub(crate) const REMOTE_SETTINGS_COLLECTION: &str = "quicksuggest";
+
 /// The maximum number of suggestions in a Suggest record's attachment.
 ///
 /// This should be the same as the `BUCKET_SIZE` constant in the
@@ -45,9 +48,7 @@ use crate::{error::Error, provider::SuggestionProvider, Result};
 pub(crate) const SUGGESTIONS_PER_ATTACHMENT: u64 = 200;
 
 /// A list of default record types to download if nothing is specified.
-/// This defaults to all record types available as-of Fx128.
-/// Consumers should specify provider types in `SuggestIngestionConstraints` if they want a
-/// different set.
+/// This currently defaults to all of the record types.
 pub(crate) const DEFAULT_RECORDS_TYPES: [SuggestRecordType; 9] = [
     SuggestRecordType::Icon,
     SuggestRecordType::AmpWikipedia,
@@ -68,58 +69,17 @@ pub(crate) trait Client {
     fn get_records(&self, request: RecordRequest) -> Result<Vec<Record>>;
 }
 
-/// Implements the [Client] trait using a real remote settings client
-pub struct RemoteSettingsClient {
-    // Create a separate client for each collection name
-    quicksuggest_client: remote_settings::Client,
-    fakespot_client: remote_settings::Client,
-}
-
-impl RemoteSettingsClient {
-    pub fn new(
-        server: Option<remote_settings::RemoteSettingsServer>,
-        bucket_name: Option<String>,
-        server_url: Option<String>,
-    ) -> Result<Self> {
-        Ok(Self {
-            quicksuggest_client: remote_settings::Client::new(
-                remote_settings::RemoteSettingsConfig {
-                    server: server.clone(),
-                    bucket_name: bucket_name.clone(),
-                    collection_name: "quicksuggest".to_owned(),
-                    server_url: server_url.clone(),
-                },
-            )?,
-            fakespot_client: remote_settings::Client::new(remote_settings::RemoteSettingsConfig {
-                server,
-                bucket_name,
-                collection_name: "fakespot-suggest-products".to_owned(),
-                server_url,
-            })?,
-        })
-    }
-
-    fn client_for_record_type(&self, record_type: &str) -> &remote_settings::Client {
-        match record_type {
-            "fakespot-suggestions" => &self.fakespot_client,
-            _ => &self.quicksuggest_client,
-        }
-    }
-}
-
-impl Client for RemoteSettingsClient {
+impl Client for remote_settings::Client {
     fn get_records(&self, request: RecordRequest) -> Result<Vec<Record>> {
-        let client = self.client_for_record_type(request.record_type.as_str());
         let options = request.into();
-        client
-            .get_records_with_options(&options)?
+        self.get_records_with_options(&options)?
             .records
             .into_iter()
             .map(|record| {
                 let attachment_data = record
                     .attachment
                     .as_ref()
-                    .map(|a| client.get_attachment(&a.location))
+                    .map(|a| self.get_attachment(&a.location))
                     .transpose()?;
                 Ok(Record::new(record, attachment_data))
             })
@@ -129,7 +89,7 @@ impl Client for RemoteSettingsClient {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct RecordRequest {
-    pub record_type: String,
+    pub record_type: Option<String>,
     pub last_modified: Option<u64>,
     pub limit: Option<u64>,
 }
@@ -143,7 +103,9 @@ impl From<RecordRequest> for GetItemsOptions {
         // so that we can eventually resume downloading where we left off.
         options.sort("last_modified", SortOrder::Ascending);
 
-        options.filter_eq("type", value.record_type);
+        if let Some(record_type) = value.record_type {
+            options.filter_eq("type", record_type);
+        }
 
         if let Some(last_modified) = value.last_modified {
             options.filter_gt("last_modified", last_modified.to_string());
@@ -218,8 +180,6 @@ pub(crate) enum SuggestRecord {
     GlobalConfig(DownloadedGlobalConfig),
     #[serde(rename = "amp-mobile-suggestions")]
     AmpMobile,
-    #[serde(rename = "fakespot-suggestions")]
-    Fakespot,
 }
 
 /// Enum for the different record types that can be consumed.
@@ -236,7 +196,6 @@ pub enum SuggestRecordType {
     Weather,
     GlobalConfig,
     AmpMobile,
-    Fakespot,
 }
 
 impl From<SuggestRecord> for SuggestRecordType {
@@ -251,7 +210,6 @@ impl From<SuggestRecord> for SuggestRecordType {
             SuggestRecord::Yelp => Self::Yelp,
             SuggestRecord::GlobalConfig(_) => Self::GlobalConfig,
             SuggestRecord::AmpMobile => Self::AmpMobile,
-            SuggestRecord::Fakespot => Self::Fakespot,
         }
     }
 }
@@ -268,7 +226,6 @@ impl fmt::Display for SuggestRecordType {
             Self::Weather => write!(f, "weather"),
             Self::GlobalConfig => write!(f, "configuration"),
             Self::AmpMobile => write!(f, "amp-mobile-suggestions"),
-            Self::Fakespot => write!(f, "fakespot-suggestions"),
         }
     }
 }
@@ -517,18 +474,6 @@ pub(crate) struct DownloadedMdnSuggestion {
     pub description: String,
     pub keywords: Vec<String>,
     pub score: f64,
-}
-
-/// A Fakespot suggestion to ingest from an attachment
-#[derive(Clone, Debug, Deserialize)]
-pub(crate) struct DownloadedFakespotSuggestion {
-    pub fakespot_grade: String,
-    pub product_id: String,
-    pub rating: f64,
-    pub score: f64,
-    pub title: String,
-    pub total_reviews: i64,
-    pub url: String,
 }
 
 /// Weather data to ingest from a weather record
