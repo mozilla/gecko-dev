@@ -252,7 +252,7 @@ class XPCStringConvert {
   static MOZ_ALWAYS_INLINE bool UCStringBufferToJSVal(
       JSContext* cx, mozilla::StringBuffer* buf, uint32_t length,
       JS::MutableHandle<JS::Value> rval) {
-    JSString* str = JS::NewStringFromTwoByteBuffer(cx, buf, length);
+    JSString* str = JS::NewStringFromKnownLiveTwoByteBuffer(cx, buf, length);
     if (!str) {
       return false;
     }
@@ -263,7 +263,7 @@ class XPCStringConvert {
   static MOZ_ALWAYS_INLINE bool Latin1StringBufferToJSVal(
       JSContext* cx, mozilla::StringBuffer* buf, uint32_t length,
       JS::MutableHandle<JS::Value> rval) {
-    JSString* str = JS::NewStringFromLatin1Buffer(cx, buf, length);
+    JSString* str = JS::NewStringFromKnownLiveLatin1Buffer(cx, buf, length);
     if (!str) {
       return false;
     }
@@ -274,7 +274,7 @@ class XPCStringConvert {
   static MOZ_ALWAYS_INLINE bool UTF8StringBufferToJSVal(
       JSContext* cx, mozilla::StringBuffer* buf, uint32_t length,
       JS::MutableHandle<JS::Value> rval) {
-    JSString* str = JS::NewStringFromUTF8Buffer(cx, buf, length);
+    JSString* str = JS::NewStringFromKnownLiveUTF8Buffer(cx, buf, length);
     if (!str) {
       return false;
     }

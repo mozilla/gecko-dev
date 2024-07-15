@@ -2281,9 +2281,8 @@ template JSString* NewMaybeExternalString(
 
 } /* namespace js */
 
-template <typename CharT>
-static JSString* NewStringFromBuffer(JSContext* cx,
-                                     RefPtr<mozilla::StringBuffer>&& buffer,
+template <typename CharT, typename BufferT>
+static JSString* NewStringFromBuffer(JSContext* cx, BufferT&& buffer,
                                      size_t length) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
@@ -2320,7 +2319,10 @@ static JSString* NewStringFromBuffer(JSContext* cx,
     str = NewInlineString<CanGC>(cx, mozilla::Range(s, length),
                                  gc::Heap::Default);
   } else {
-    Rooted<JSString::OwnedChars<CharT>> owned(cx, std::move(buffer), length);
+    // Note: |buffer| is either a StringBuffer* or a RefPtr<StringBuffer>, so
+    // ensure we have a RefPtr.
+    RefPtr<mozilla::StringBuffer> bufferRef(std::move(buffer));
+    Rooted<JSString::OwnedChars<CharT>> owned(cx, std::move(bufferRef), length);
     str = JSLinearString::new_<CanGC, CharT>(cx, &owned, gc::Heap::Default);
   }
   if (!str) {
@@ -2335,13 +2337,24 @@ JS_PUBLIC_API JSString* JS::NewStringFromLatin1Buffer(
   return NewStringFromBuffer<Latin1Char>(cx, std::move(buffer), length);
 }
 
+JS_PUBLIC_API JSString* JS::NewStringFromKnownLiveLatin1Buffer(
+    JSContext* cx, mozilla::StringBuffer* buffer, size_t length) {
+  return NewStringFromBuffer<Latin1Char>(cx, buffer, length);
+}
+
 JS_PUBLIC_API JSString* JS::NewStringFromTwoByteBuffer(
     JSContext* cx, RefPtr<mozilla::StringBuffer> buffer, size_t length) {
   return NewStringFromBuffer<char16_t>(cx, std::move(buffer), length);
 }
 
-JS_PUBLIC_API JSString* JS::NewStringFromUTF8Buffer(
-    JSContext* cx, RefPtr<mozilla::StringBuffer> buffer, size_t length) {
+JS_PUBLIC_API JSString* JS::NewStringFromKnownLiveTwoByteBuffer(
+    JSContext* cx, mozilla::StringBuffer* buffer, size_t length) {
+  return NewStringFromBuffer<char16_t>(cx, buffer, length);
+}
+
+template <typename BufferT>
+static JSString* NewStringFromUTF8Buffer(JSContext* cx, BufferT&& buffer,
+                                         size_t length) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
 
@@ -2355,6 +2368,16 @@ JS_PUBLIC_API JSString* JS::NewStringFromUTF8Buffer(
 
   // Non-ASCII case cannot use the string buffer.
   return NewStringCopyUTF8N(cx, utf8, encoding);
+}
+
+JS_PUBLIC_API JSString* JS::NewStringFromUTF8Buffer(
+    JSContext* cx, RefPtr<mozilla::StringBuffer> buffer, size_t length) {
+  return ::NewStringFromUTF8Buffer(cx, std::move(buffer), length);
+}
+
+JS_PUBLIC_API JSString* JS::NewStringFromKnownLiveUTF8Buffer(
+    JSContext* cx, mozilla::StringBuffer* buffer, size_t length) {
+  return ::NewStringFromUTF8Buffer(cx, buffer, length);
 }
 
 #if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW)

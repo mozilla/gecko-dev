@@ -120,10 +120,24 @@ extern JS_PUBLIC_API JSString* NewStringFromLatin1Buffer(
     JSContext* cx, RefPtr<mozilla::StringBuffer> buffer, size_t length);
 
 /**
+ * Like NewStringFromLatin1Buffer, but can be used to avoid refcounting overhead
+ * in cases where the returned string doesn't use the buffer. The caller must
+ * ensure the buffer outlives this call.
+ */
+extern JS_PUBLIC_API JSString* NewStringFromKnownLiveLatin1Buffer(
+    JSContext* cx, mozilla::StringBuffer* buffer, size_t length);
+
+/**
  * Similar to NewStringFromLatin1Buffer but for char16_t buffers.
  */
 extern JS_PUBLIC_API JSString* NewStringFromTwoByteBuffer(
     JSContext* cx, RefPtr<mozilla::StringBuffer> buffer, size_t length);
+
+/**
+ * Similar to NewStringFromKnownLiveLatin1Buffer but for char16_t buffers.
+ */
+extern JS_PUBLIC_API JSString* NewStringFromKnownLiveTwoByteBuffer(
+    JSContext* cx, mozilla::StringBuffer* buffer, size_t length);
 
 /**
  * Similar to NewStringFromLatin1Buffer but for UTF8 buffers.
@@ -136,6 +150,14 @@ extern JS_PUBLIC_API JSString* NewStringFromTwoByteBuffer(
  */
 extern JS_PUBLIC_API JSString* NewStringFromUTF8Buffer(
     JSContext* cx, RefPtr<mozilla::StringBuffer> buffer, size_t length);
+
+/**
+ * Like NewStringFromUTF8Buffer, but can be used to avoid refcounting overhead
+ * in cases where the returned string doesn't use the buffer. The caller must
+ * ensure the buffer outlives this call.
+ */
+extern JS_PUBLIC_API JSString* NewStringFromKnownLiveUTF8Buffer(
+    JSContext* cx, mozilla::StringBuffer* buffer, size_t length);
 
 }  // namespace JS
 
