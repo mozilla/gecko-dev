@@ -34,6 +34,7 @@ import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
 import org.mozilla.fenix.components.menu.toFenixFxAEntryPoint
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.SupportUtils.AMO_HOMEPAGE_FOR_ANDROID
 import org.mozilla.fenix.settings.SupportUtils.SumoTopic
@@ -188,7 +189,7 @@ class MenuNavigationMiddleware(
                     }
                 }
 
-                is MenuAction.Navigate.Translate -> navController.nav(
+                is MenuAction.Navigate.Translate -> navController.navigateSafe(
                     R.id.menuDialogFragment,
                     MenuDialogFragmentDirections.actionMenuDialogFragmentToTranslationsDialogFragment(),
                 )

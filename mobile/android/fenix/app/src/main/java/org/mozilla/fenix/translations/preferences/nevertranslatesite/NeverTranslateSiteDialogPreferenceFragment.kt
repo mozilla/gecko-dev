@@ -16,6 +16,7 @@ import androidx.navigation.fragment.navArgs
 import mozilla.components.browser.state.action.TranslationsAction
 import mozilla.components.browser.state.store.BrowserStore
 import org.mozilla.fenix.ext.requireComponents
+import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -48,10 +49,14 @@ class NeverTranslateSiteDialogPreferenceFragment : DialogFragment() {
                                 origin = args.neverTranslateSiteUrl,
                             ),
                         )
-                        findNavController().popBackStack()
+                        runIfFragmentIsAttached {
+                            findNavController().popBackStack()
+                        }
                     },
                     onCancel = {
-                        findNavController().popBackStack()
+                        runIfFragmentIsAttached {
+                            findNavController().popBackStack()
+                        }
                     },
                 )
             }
