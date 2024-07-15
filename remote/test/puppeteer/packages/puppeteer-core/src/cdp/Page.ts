@@ -56,7 +56,6 @@ import {Deferred} from '../util/Deferred.js';
 import {AsyncDisposableStack} from '../util/disposable.js';
 import {isErrorLike} from '../util/ErrorLike.js';
 
-import {Accessibility} from './Accessibility.js';
 import {Binding} from './Binding.js';
 import {CdpCDPSession} from './CDPSession.js';
 import {isTargetClosedError} from './Connection.js';
@@ -128,7 +127,6 @@ export class CdpPage extends Page {
   #keyboard: CdpKeyboard;
   #mouse: CdpMouse;
   #touchscreen: CdpTouchscreen;
-  #accessibility: Accessibility;
   #frameManager: FrameManager;
   #emulationManager: EmulationManager;
   #tracing: Tracing;
@@ -237,7 +235,6 @@ export class CdpPage extends Page {
     this.#keyboard = new CdpKeyboard(client);
     this.#mouse = new CdpMouse(client, this.#keyboard);
     this.#touchscreen = new CdpTouchscreen(client, this.#keyboard);
-    this.#accessibility = new Accessibility(client);
     this.#frameManager = new FrameManager(client, this, this._timeoutSettings);
     this.#emulationManager = new EmulationManager(client);
     this.#tracing = new Tracing(client);
@@ -302,6 +299,28 @@ export class CdpPage extends Page {
       .catch(debugError);
 
     this.#setupPrimaryTargetListeners();
+    this.#attachExistingTargets();
+  }
+
+  #attachExistingTargets(): void {
+    const queue = [];
+    for (const childTarget of this.#targetManager.getChildTargets(
+      this.#primaryTarget
+    )) {
+      queue.push(childTarget);
+    }
+    let idx = 0;
+    while (idx < queue.length) {
+      const next = queue[idx] as CdpTarget;
+      idx++;
+      const session = next._session();
+      if (session) {
+        this.#onAttachedToTarget(session);
+      }
+      for (const childTarget of this.#targetManager.getChildTargets(next)) {
+        queue.push(childTarget);
+      }
+    }
   }
 
   async #onActivation(newSession: CDPSession): Promise<void> {
@@ -315,7 +334,6 @@ export class CdpPage extends Page {
     this.#keyboard.updateClient(newSession);
     this.#mouse.updateClient(newSession);
     this.#touchscreen.updateClient(newSession);
-    this.#accessibility.updateClient(newSession);
     this.#emulationManager.updateClient(newSession);
     this.#tracing.updateClient(newSession);
     this.#coverage.updateClient(newSession);
@@ -523,10 +541,6 @@ export class CdpPage extends Page {
     return this.#tracing;
   }
 
-  override get accessibility(): Accessibility {
-    return this.#accessibility;
-  }
-
   override frames(): Frame[] {
     return this.#frameManager.frames();
   }
@@ -666,84 +680,48 @@ export class CdpPage extends Page {
         `Failed to add page binding with name ${name}: window['${name}'] already exists!`
       );
     }
-
+    const source = pageBindingInitString('exposedFun', name);
     let binding: Binding;
     switch (typeof pptrFunction) {
       case 'function':
         binding = new Binding(
           name,
-          pptrFunction as (...args: unknown[]) => unknown
+          pptrFunction as (...args: unknown[]) => unknown,
+          source
         );
         break;
       default:
         binding = new Binding(
           name,
-          pptrFunction.default as (...args: unknown[]) => unknown
+          pptrFunction.default as (...args: unknown[]) => unknown,
+          source
         );
         break;
     }
-
     this.#bindings.set(name, binding);
-
-    const expression = pageBindingInitString('exposedFun', name);
-    await this.#primaryTargetClient.send('Runtime.addBinding', {name});
-    // TODO: investigate this as it appears to only apply to the main frame and
-    // local subframes instead of the entire frame tree (including future
-    // frame).
-    const {identifier} = await this.#primaryTargetClient.send(
-      'Page.addScriptToEvaluateOnNewDocument',
-      {
-        source: expression,
-      }
-    );
-
+    const [{identifier}] = await Promise.all([
+      this.#frameManager.evaluateOnNewDocument(source),
+      this.#frameManager.addExposedFunctionBinding(binding),
+    ]);
     this.#exposedFunctions.set(name, identifier);
-
-    await Promise.all(
-      this.frames().map(frame => {
-        // If a frame has not started loading, it might never start. Rely on
-        // addScriptToEvaluateOnNewDocument in that case.
-        if (frame !== this.mainFrame() && !frame._hasStartedLoading) {
-          return;
-        }
-        return frame.evaluate(expression).catch(debugError);
-      })
-    );
   }
 
   override async removeExposedFunction(name: string): Promise<void> {
-    const exposedFun = this.#exposedFunctions.get(name);
-    if (!exposedFun) {
-      throw new Error(
-        `Failed to remove page binding with name ${name}: window['${name}'] does not exists!`
-      );
+    const exposedFunctionId = this.#exposedFunctions.get(name);
+    if (!exposedFunctionId) {
+      throw new Error(`Function with name "${name}" does not exist`);
     }
-
-    await this.#primaryTargetClient.send('Runtime.removeBinding', {name});
-    await this.removeScriptToEvaluateOnNewDocument(exposedFun);
-
-    await Promise.all(
-      this.frames().map(frame => {
-        // If a frame has not started loading, it might never start. Rely on
-        // addScriptToEvaluateOnNewDocument in that case.
-        if (frame !== this.mainFrame() && !frame._hasStartedLoading) {
-          return;
-        }
-        return frame
-          .evaluate(name => {
-            // Removes the dangling Puppeteer binding wrapper.
-            // @ts-expect-error: In a different context.
-            globalThis[name] = undefined;
-          }, name)
-          .catch(debugError);
-      })
-    );
-
+    // #bindings must be updated together with #exposedFunctions.
+    const binding = this.#bindings.get(name)!;
     this.#exposedFunctions.delete(name);
     this.#bindings.delete(name);
+    await Promise.all([
+      this.#frameManager.removeScriptToEvaluateOnNewDocument(exposedFunctionId),
+      this.#frameManager.removeExposedFunctionBinding(binding),
+    ]);
   }
 
-  override async authenticate(credentials: Credentials): Promise<void> {
+  override async authenticate(credentials: Credentials | null): Promise<void> {
     return await this.#frameManager.networkManager.authenticate(credentials);
   }
 
@@ -982,7 +960,7 @@ export class CdpPage extends Page {
     return await this.#emulationManager.emulateVisionDeficiency(type);
   }
 
-  override async setViewport(viewport: Viewport): Promise<void> {
+  override async setViewport(viewport: Viewport | null): Promise<void> {
     const needsReload = await this.#emulationManager.emulateViewport(viewport);
     this.#viewport = viewport;
     if (needsReload) {
@@ -1002,24 +980,14 @@ export class CdpPage extends Page {
     ...args: Params
   ): Promise<NewDocumentScriptEvaluation> {
     const source = evaluationString(pageFunction, ...args);
-    const {identifier} = await this.#primaryTargetClient.send(
-      'Page.addScriptToEvaluateOnNewDocument',
-      {
-        source,
-      }
-    );
-
-    return {identifier};
+    return await this.#frameManager.evaluateOnNewDocument(source);
   }
 
   override async removeScriptToEvaluateOnNewDocument(
     identifier: string
   ): Promise<void> {
-    await this.#primaryTargetClient.send(
-      'Page.removeScriptToEvaluateOnNewDocument',
-      {
-        identifier,
-      }
+    return await this.#frameManager.removeScriptToEvaluateOnNewDocument(
+      identifier
     );
   }
 
@@ -1104,21 +1072,24 @@ export class CdpPage extends Page {
       omitBackground,
       tagged: generateTaggedPDF,
       outline: generateDocumentOutline,
+      waitForFonts,
     } = parsePDFOptions(options);
 
     if (omitBackground) {
       await this.#emulationManager.setTransparentBackgroundColor();
     }
 
-    await firstValueFrom(
-      from(
-        this.mainFrame()
-          .isolatedRealm()
-          .evaluate(() => {
-            return document.fonts.ready;
-          })
-      ).pipe(raceWith(timeout(ms)))
-    );
+    if (waitForFonts) {
+      await firstValueFrom(
+        from(
+          this.mainFrame()
+            .isolatedRealm()
+            .evaluate(() => {
+              return document.fonts.ready;
+            })
+        ).pipe(raceWith(timeout(ms)))
+      );
+    }
 
     const printCommandPromise = this.#primaryTargetClient.send(
       'Page.printToPDF',
@@ -1169,6 +1140,7 @@ export class CdpPage extends Page {
   override async close(
     options: {runBeforeUnload?: boolean} = {runBeforeUnload: undefined}
   ): Promise<void> {
+    using _guard = await this.browserContext().waitForScreenshotOperations();
     const connection = this.#primaryTargetClient.connection();
     assert(
       connection,

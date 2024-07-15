@@ -34,13 +34,15 @@ import type {IsolatedWorld} from './IsolatedWorld.js';
 import {CdpJSHandle} from './JSHandle.js';
 import {
   addPageBinding,
+  CDP_BINDING_PREFIX,
   createEvaluationError,
   valueFromRemoteObject,
 } from './utils.js';
 
 const ariaQuerySelectorBinding = new Binding(
   '__ariaQuerySelector',
-  ARIAQueryHandler.queryOne as (...args: unknown[]) => unknown
+  ARIAQueryHandler.queryOne as (...args: unknown[]) => unknown,
+  '' // custom init
 );
 
 const ariaQuerySelectorAllBinding = new Binding(
@@ -56,7 +58,8 @@ const ariaQuerySelectorAllBinding = new Binding(
       },
       ...(await AsyncIterableUtil.collect(results))
     );
-  }) as (...args: unknown[]) => unknown
+  }) as (...args: unknown[]) => unknown,
+  '' // custom init
 );
 
 /**
@@ -124,16 +127,21 @@ export class ExecutionContext
         'Runtime.addBinding',
         this.#name
           ? {
-              name: binding.name,
+              name: CDP_BINDING_PREFIX + binding.name,
               executionContextName: this.#name,
             }
           : {
-              name: binding.name,
+              name: CDP_BINDING_PREFIX + binding.name,
               executionContextId: this.#id,
             }
       );
 
-      await this.evaluate(addPageBinding, 'internal', binding.name);
+      await this.evaluate(
+        addPageBinding,
+        'internal',
+        binding.name,
+        CDP_BINDING_PREFIX
+      );
 
       this.#bindings.set(binding.name, binding);
     } catch (error) {
@@ -158,6 +166,10 @@ export class ExecutionContext
   async #onBindingCalled(
     event: Protocol.Runtime.BindingCalledEvent
   ): Promise<void> {
+    if (event.executionContextId !== this.#id) {
+      return;
+    }
+
     let payload: BindingPayload;
     try {
       payload = JSON.parse(event.payload);
@@ -177,10 +189,6 @@ export class ExecutionContext
     }
 
     try {
-      if (event.executionContextId !== this.#id) {
-        return;
-      }
-
       const binding = this.#bindings.get(name);
       await binding?.run(this, seq, args, isTrivial);
     } catch (err) {

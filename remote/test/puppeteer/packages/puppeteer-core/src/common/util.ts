@@ -10,6 +10,7 @@ import type {OperatorFunction} from '../../third_party/rxjs/rxjs.js';
 import {
   filter,
   from,
+  fromEvent,
   map,
   mergeMap,
   NEVER,
@@ -362,6 +363,7 @@ export function parsePDFOptions(
     omitBackground: false,
     outline: false,
     tagged: true,
+    waitForFonts: true,
   };
 
   let width = 8.5;
@@ -461,6 +463,27 @@ export function fromEmitterEvent<
       emitter.off(eventName, listener);
     };
   });
+}
+
+/**
+ * @internal
+ */
+export function fromAbortSignal(
+  signal?: AbortSignal,
+  cause?: Error
+): Observable<never> {
+  return signal
+    ? fromEvent(signal, 'abort').pipe(
+        map(() => {
+          if (signal.reason instanceof Error) {
+            signal.reason.cause = cause;
+            throw signal.reason;
+          }
+
+          throw new Error(signal.reason, {cause});
+        })
+      )
+    : NEVER;
 }
 
 /**

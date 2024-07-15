@@ -24,7 +24,7 @@ describe('AriaQueryHandler', () => {
       );
       const expectFound = async (button: ElementHandle | null) => {
         assert(button);
-        const id = await button.evaluate((button: Element) => {
+        const id = await button.evaluate(button => {
           return button.id;
         });
         expect(id).toBe('btn');
@@ -621,7 +621,7 @@ describe('AriaQueryHandler', () => {
         `
           <h2 id="shown">title</h2>
           <h2 id="hidden" aria-hidden="true">title</h2>
-          <div id="node1" aria-labeledby="node2"></div>
+          <div id="node1" aria-labelledby="node2"></div>
           <div id="node2" aria-label="bar"></div>
           <div id="node3" aria-label="foo"></div>
           <div id="node4" class="container">
@@ -651,12 +651,14 @@ describe('AriaQueryHandler', () => {
           <!-- Accessible name for the <input> is "Accessible Name" -->
           <input id="node23">
           <div id="node24" title="Accessible Name"></div>
+          <div role="tree">
           <div role="treeitem" id="node30">
           <div role="treeitem" id="node31">
           <div role="treeitem" id="node32">item1</div>
           <div role="treeitem" id="node33">item2</div>
           </div>
           <div role="treeitem" id="node34">item3</div>
+          </div>
           </div>
           <!-- Accessible name for the <div> is "item1 item2 item3" -->
           <div aria-describedby="node30"></div>
@@ -667,7 +669,7 @@ describe('AriaQueryHandler', () => {
     const getIds = async (elements: ElementHandle[]) => {
       return await Promise.all(
         elements.map(element => {
-          return element.evaluate((element: Element) => {
+          return element.evaluate(element => {
             return element.id;
           });
         })
