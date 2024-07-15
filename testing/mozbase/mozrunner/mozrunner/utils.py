@@ -104,7 +104,7 @@ def test_environment(
         ldLibraryPath = xrePath
 
     envVar = None
-    if mozinfo.isUnix:
+    if mozinfo.isLinux:
         envVar = "LD_LIBRARY_PATH"
     elif mozinfo.isMac:
         envVar = "DYLD_LIBRARY_PATH"

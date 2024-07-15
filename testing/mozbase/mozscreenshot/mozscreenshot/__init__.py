@@ -32,7 +32,7 @@ def dump_screen(utilityPath, log, prefix="mozilla-test-fail-screenshot_"):
     is_structured_log = hasattr(log, "process_exit")
 
     # Need to figure out which OS-dependent tool to use
-    if mozinfo.isUnix:
+    if mozinfo.isLinux:
         utility = [os.path.join(utilityPath, "screentopng")]
         utilityname = "screentopng"
     elif mozinfo.isMac:

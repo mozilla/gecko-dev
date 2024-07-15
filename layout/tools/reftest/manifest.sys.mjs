@@ -612,16 +612,21 @@ function BuildConditionSandbox(aURL) {
   sandbox.mozinfo = Services.prefs.getStringPref("sandbox.mozinfo", {});
   let mozinfo = JSON.parse(sandbox.mozinfo);
 
-  sandbox.isDebugBuild = mozinfo.debug;
-  sandbox.isCoverageBuild = mozinfo.ccov;
-
   // Shortcuts for widget toolkits.
   sandbox.Android = mozinfo.os == "android";
   sandbox.cocoaWidget = mozinfo.toolkit == "cocoa";
   sandbox.gtkWidget = mozinfo.toolkit == "gtk";
   sandbox.winWidget = mozinfo.toolkit == "windows";
 
-  sandbox.is64Bit = mozinfo.bits == "64";
+  // arch
+  sandbox.is64Bit = mozinfo.bits == "64"; // to be replaced by x86_64 or aarch64
+  sandbox.x86 = mozinfo.processor == "x86";
+  sandbox.x86_64 = mozinfo.processor == "x86_64";
+  sandbox.aarch64 = mozinfo.processor == "aarch64";
+
+  // build type
+  sandbox.isDebugBuild = mozinfo.debug;
+  sandbox.isCoverageBuild = mozinfo.ccov;
   sandbox.AddressSanitizer = mozinfo.asan;
   sandbox.ThreadSanitizer = mozinfo.tsan;
   sandbox.optimized =

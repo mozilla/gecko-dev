@@ -13,10 +13,6 @@ Module variables:
 
    32 or 64
 
-.. attribute:: isBsd
-
-   Returns ``True`` if the operating system is BSD
-
 .. attribute:: isLinux
 
    Returns ``True`` if the operating system is Linux
@@ -35,7 +31,7 @@ Module variables:
 
 .. attribute:: processor
 
-   Processor architecture [``'x86'``, ``'x86_64'``, ``'ppc'``, ...]
+   Processor architecture [``'x86'``, ``'x86_64'``, ``'aarch64'``, ...]
 
 .. attribute:: version
 
