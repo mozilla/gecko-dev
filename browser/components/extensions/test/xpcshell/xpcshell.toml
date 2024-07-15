@@ -46,16 +46,11 @@ run-sequentially = "very high failure rate in parallel"
 
 ["test_ext_settings_overrides_defaults.js"]
 skip-if = ["condprof"] # Bug 1776135 - by design, modifies search settings at start of test
-support-files = [
-  "data/test/manifest.json",
-  "data/test2/manifest.json",
-]
 
 ["test_ext_settings_overrides_search.js"]
 
 ["test_ext_settings_overrides_search_mozParam.js"]
 skip-if = ["condprof"] # Bug 1776652
-support-files = ["data/test/manifest.json"]
 
 ["test_ext_settings_overrides_shutdown.js"]
 

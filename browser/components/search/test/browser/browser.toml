@@ -46,10 +46,6 @@ support-files = [
 ["browser_contextmenu_whereToOpenLink.js"]
 
 ["browser_defaultPrivate_nimbus.js"]
-support-files = [
-  "search-engines/basic/manifest.json",
-  "search-engines/private/manifest.json",
-]
 
 ["browser_google_behavior.js"]
 

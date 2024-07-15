@@ -15,9 +15,6 @@ const { NimbusFeatures } = ChromeUtils.importESModule(
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
-const { SearchUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/SearchUtils.sys.mjs"
-);
 
 AddonTestUtils.init(this);
 AddonTestUtils.overrideCertDB();
@@ -53,19 +50,6 @@ const params = [
   { name: "prefval", condition: "pref", pref: "code" },
 ];
 
-const CONFIG = [
-  {
-    webExtension: {
-      id: "test@search.mozilla.org",
-    },
-    appliesTo: [
-      {
-        included: { everywhere: true },
-        default: "yes",
-      },
-    ],
-  },
-];
 const CONFIG_V2 = [
   {
     recordType: "engine",
@@ -156,11 +140,7 @@ add_task(async function setup() {
   let readyStub = sinon.stub(NimbusFeatures.search, "ready").resolves();
   let updateStub = sinon.stub(NimbusFeatures.search, "onUpdate");
   await promiseStartupManager();
-  await SearchTestUtils.useTestEngines(
-    "data",
-    null,
-    SearchUtils.newSearchConfigEnabled ? CONFIG_V2 : CONFIG
-  );
+  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
   await Services.search.init();
   registerCleanupFunction(async () => {
     await promiseShutdownManager();
@@ -198,9 +178,7 @@ add_task(async function test_extension_setting_moz_params() {
     ).uri.spec;
     equal(
       expectedURL,
-      SearchUtils.newSearchConfigEnabled
-        ? `https://example.com/?${p.name}=${p.value}&${paramStr}&q=test`
-        : `https://example.com/?q=test&${p.name}=${p.value}&${paramStr}`,
+      `https://example.com/?${p.name}=${p.value}&${paramStr}&q=test`,
       "search url is expected"
     );
   }
@@ -271,9 +249,7 @@ add_task(async function test_nimbus_params() {
     ).uri.spec;
     equal(
       expectedURL,
-      SearchUtils.newSearchConfigEnabled
-        ? `https://example.com/?${p.name}=${p.value}&${paramStr}&q=test`
-        : `https://example.com/?q=test&${p.name}=${p.value}&${paramStr}`,
+      `https://example.com/?${p.name}=${p.value}&${paramStr}&q=test`,
       "search url is expected"
     );
   }

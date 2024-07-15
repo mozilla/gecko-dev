@@ -1,3 +1,0 @@
-{
-  "ui:order": ["telemetryId", "telemetrySuffix", "clickUrl", "params"]
-}

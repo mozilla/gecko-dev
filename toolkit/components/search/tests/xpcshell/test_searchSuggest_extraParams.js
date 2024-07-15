@@ -1,27 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const TEST_CONFIG = [
-  {
-    webExtension: {
-      id: "get@search.mozilla.org",
-      name: "Get Engine",
-      search_url: "https://example.com",
-      search_url_get_params: "webExtension=1&search={searchTerms}",
-      suggest_url: "https://example.com",
-      suggest_url_get_params: "webExtension=1&suggest={searchTerms}",
-    },
-    appliesTo: [{ included: { everywhere: true } }],
-    suggestExtraParams: [
-      {
-        name: "custom_param",
-        pref: "test_pref_param",
-        condition: "pref",
-      },
-    ],
-  },
-];
-
 const TEST_CONFIG_V2 = [
   {
     recordType: "engine",
@@ -76,7 +55,7 @@ add_setup(async function () {
   await SearchTestUtils.useTestEngines(
     "method-extensions",
     null,
-    SearchUtils.newSearchConfigEnabled ? TEST_CONFIG_V2 : TEST_CONFIG
+    TEST_CONFIG_V2
   );
   await AddonTestUtils.promiseStartupManager();
   await Services.search.init();

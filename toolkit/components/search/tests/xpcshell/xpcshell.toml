@@ -8,31 +8,10 @@ prefs = ["browser.search.removeEngineInfobar.enabled=true"]
 
 support-files = [
   "data/engine.xml",
-  "data/engine/manifest.json",
   "data/engine2.xml",
-  "data/engine2/manifest.json",
-  "data/engine-app/manifest.json",
-  "data/engine-diff-name/manifest.json",
-  "data/engine-diff-name/_locales/en/messages.json",
-  "data/engine-diff-name/_locales/gd/messages.json",
   "data/engine-fr.xml",
-  "data/engine-fr/manifest.json",
-  "data/engine-reordered/manifest.json",
   "data/engineMaker.sjs",
-  "data/engine-pref/manifest.json",
-  "data/engine-rel-searchform-purpose/manifest.json",
-  "data/engine-system-purpose/manifest.json",
   "data/engineImages.xml",
-  "data/engine-chromeicon/manifest.json",
-  "data/engine-purposes/manifest.json",
-  "data/engine-resourceicon/manifest.json",
-  "data/engine-resourceicon/_locales/en/messages.json",
-  "data/engine-resourceicon/_locales/gd/messages.json",
-  "data/engine-same-name/manifest.json",
-  "data/engine-same-name/_locales/en/messages.json",
-  "data/engine-same-name/_locales/gd/messages.json",
-  "data/engines-no-order-hint.json",
-  "data/engines.json",
   "data/search-config-v2.json",
   "data/search-config-v2-no-order-hint.json",
   "data/iconsRedirect.sjs",
@@ -47,31 +26,9 @@ support-files = [
   "data/search-obsolete-distribution.json",
   "data/search-obsolete-langpack.json",
   "data/searchSuggestions.sjs",
-  "data/geolookup-extensions/multilocale/favicon.ico",
-  "data/geolookup-extensions/multilocale/manifest.json",
-  "data/geolookup-extensions/multilocale/_locales/af/messages.json",
-  "data/geolookup-extensions/multilocale/_locales/an/messages.json",
-  "data1/engine1/manifest.json",
-  "data1/engine2/manifest.json",
-  "data1/exp2/manifest.json",
-  "data1/exp3/manifest.json",
-  "data1/engines.json",
   "data1/search-config-v2.json",
-  "simple-engines/engines.json",
   "simple-engines/search-config-v2.json",
-  "simple-engines/basic/manifest.json",
-  "simple-engines/simple/manifest.json",
-  "test-extensions/engines.json",
   "test-extensions/search-config-v2.json",
-  "test-extensions/plainengine/favicon.ico",
-  "test-extensions/plainengine/manifest.json",
-  "test-extensions/special-engine/favicon.ico",
-  "test-extensions/special-engine/manifest.json",
-  "test-extensions/multilocale/favicon-af.ico",
-  "test-extensions/multilocale/favicon-an.ico",
-  "test-extensions/multilocale/manifest.json",
-  "test-extensions/multilocale/_locales/af/messages.json",
-  "test-extensions/multilocale/_locales/an/messages.json",
 ]
 
 ["test_SearchStaticData.js"]
@@ -94,9 +51,6 @@ prefs = ["browser.search.newSearchConfig.enabled=true"]
 
 ["test_config_engine_params.js"]
 support-files = [
-  "method-extensions/get/manifest.json",
-  "method-extensions/post/manifest.json",
-  "method-extensions/engines.json",
   "method-extensions/search-config-v2.json",
 ]
 
@@ -113,20 +67,6 @@ support-files = [
 ["test_engine_ids.js"]
 
 ["test_engine_multiple_alias.js"]
-
-["test_engine_old_selector.js"]
-
-["test_engine_old_selector_application.js"]
-
-["test_engine_old_selector_application_distribution.js"]
-skip-if = ["true"] # Will be permanently removed as part of bug 1870686
-
-["test_engine_old_selector_application_name.js"]
-skip-if = ["true"] # Will be permanently removed as part of bug 1870686
-
-["test_engine_old_selector_order.js"]
-
-["test_engine_old_selector_override.js"]
 
 ["test_engine_selector_defaults.js"]
 
@@ -180,10 +120,6 @@ tags = "remotesettings searchmain"
 ["test_maybereloadengine_order.js"]
 
 ["test_migrateWebExtensionEngine.js"]
-
-["test_missing_engine.js"]
-prefs = ["browser.search.newSearchConfig.enabled=false"]
-skip-if = ["true"] # Will be permanently removed as part of bug 1870686
 
 ["test_nodb_pluschanges.js"]
 
@@ -270,10 +206,6 @@ support-files = [
 
 ["test_searchUrlDomain.js"]
 
-["test_search_config_v2_nimbus.js"]
-prefs = ["browser.search.newSearchConfig.enabled=false"]
-skip-if = ["true"] # Will be permanently removed as part of bug 1870686
-
 ["test_selectedEngine.js"]
 
 ["test_sendSubmissionURL.js"]
@@ -317,16 +249,12 @@ prefs = ["browser.search.newSearchConfig.enabled=true"]
 
 ["test_validate_manifests.js"]
 
-["test_webextensions_builtin_upgrade.js"]
-
 ["test_webextensions_install.js"]
 
 ["test_webextensions_language_switch.js"]
 
 ["test_webextensions_migrate_to.js"]
 support-files = ["data/search-migration.json"]
-
-["test_webextensions_normandy_upgrade.js"]
 
 ["test_webextensions_startup_duplicate.js"]
 

@@ -137,17 +137,6 @@ export var SearchTestUtils = {
    *   An object that is a sinon stub for the configuration getter.
    */
   async useTestEngines(folder = "data", subFolder = null, configData = null) {
-    if (!lazy.SearchUtils.newSearchConfigEnabled) {
-      let url = `resource://test/${folder}/`;
-      if (subFolder) {
-        url += `${subFolder}/`;
-      }
-      let resProt = Services.io
-        .getProtocolHandler("resource")
-        .QueryInterface(Ci.nsIResProtocolHandler);
-      resProt.setSubstitution("search-extensions", Services.io.newURI(url));
-    }
-
     const settings = await lazy.RemoteSettings(lazy.SearchUtils.SETTINGS_KEY);
     if (configData) {
       return lazy.sinon.stub(settings, "get").returns(configData);
@@ -160,9 +149,7 @@ export var SearchTestUtils = {
         workDir.path,
         folder,
         subFolder ?? "",
-        lazy.SearchUtils.newSearchConfigEnabled
-          ? "search-config-v2.json"
-          : "engines.json"
+        "search-config-v2.json"
       );
 
     let response = await fetch(configFileName);
@@ -174,8 +161,7 @@ export var SearchTestUtils = {
    * For mochitests, configures loading engines from test data located in
    * particular folders. This will cleanup at the end of the test.
    *
-   * This will be removed when the old configuration is removed
-   * (newSearchConfigEnabled = false).
+   * This will be removed when the new search config generation for tests is done.
    *
    * @param {nsIFile} testDir
    *   The test directory to use.
@@ -193,35 +179,6 @@ export var SearchTestUtils = {
     );
     gTestScope.registerCleanupFunction(() => {
       resProt.setSubstitution("search-extensions", originalSubstitution);
-    });
-  },
-
-  /**
-   * Utility function for mochitests to configure a custom search engine
-   * directory and search configuration.
-   *
-   * @param {string} testDir
-   *   The test directory to use.
-   * @param {Array} searchConfig
-   *   The test search configuration to use.
-   */
-  async setupTestEngines(testDir, searchConfig) {
-    let searchExtensions = gTestScope.getChromeDir(
-      gTestScope.getResolvedURI(gTestScope.gTestPath)
-    );
-    searchExtensions.append(testDir);
-    await this.useMochitestEngines(searchExtensions);
-
-    this.useMockIdleService();
-
-    await this.updateRemoteSettingsConfig(searchConfig);
-
-    gTestScope.registerCleanupFunction(async () => {
-      let settingsWritten = SearchTestUtils.promiseSearchNotification(
-        "write-settings-to-disk-complete"
-      );
-      await SearchTestUtils.updateRemoteSettingsConfig();
-      await settingsWritten;
     });
   },
 
@@ -245,15 +202,13 @@ export var SearchTestUtils = {
       // we're ready to remove old search-config and use search-config-v2 for all
       // clients. The id in appProvidedSearchEngine should be changed to
       // engine.identifier.
-      if (lazy.SearchUtils.newSearchConfigEnabled) {
-        let identifierComponents = NON_SPLIT_ENGINE_IDS.includes(e.identifier)
-          ? [e.identifier]
-          : e.identifier.split("-");
+      let identifierComponents = NON_SPLIT_ENGINE_IDS.includes(e.identifier)
+        ? [e.identifier]
+        : e.identifier.split("-");
 
-        e.webExtension.locale =
-          identifierComponents.slice(1).join("-") || "default";
-        e.webExtension.id = identifierComponents[0] + "@search.mozilla.org";
-      }
+      e.webExtension.locale =
+        identifierComponents.slice(1).join("-") || "default";
+      e.webExtension.id = identifierComponents[0] + "@search.mozilla.org";
     }
 
     for (let config of engineConfigurations) {

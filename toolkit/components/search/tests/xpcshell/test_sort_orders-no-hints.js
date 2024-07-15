@@ -16,11 +16,7 @@ add_setup(async function () {
     null,
     (
       await readJSONFile(
-        do_get_file(
-          SearchUtils.newSearchConfigEnabled
-            ? "data/search-config-v2-no-order-hint.json"
-            : "data/engines-no-order-hint.json"
-        )
+        do_get_file("data/search-config-v2-no-order-hint.json")
       )
     ).data
   );

@@ -8,8 +8,6 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineESModuleGetters(this, {
-  // Only needed when SearchUtils.newSearchConfigEnabled is false.
-  AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
   AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
@@ -18,8 +16,6 @@ ChromeUtils.defineESModuleGetters(this, {
   SearchEngineSelector: "resource://gre/modules/SearchEngineSelector.sys.mjs",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
-  SearchEngineSelectorOld:
-    "resource://gre/modules/SearchEngineSelectorOld.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   updateAppInfo: "resource://testing-common/AppInfo.sys.mjs",
 });
@@ -113,22 +109,12 @@ class SearchConfigTest {
    *   The version to simulate for running the tests.
    */
   async setup(version = "42.0") {
-    if (SearchUtils.newSearchConfigEnabled) {
-      updateAppInfo({
-        name: "firefox",
-        ID: "xpcshell@tests.mozilla.org",
-        version,
-        platformVersion: version,
-      });
-    } else {
-      AddonTestUtils.init(GLOBAL_SCOPE);
-      AddonTestUtils.createAppInfo(
-        "xpcshell@tests.mozilla.org",
-        "XPCShell",
-        version,
-        version
-      );
-    }
+    updateAppInfo({
+      name: "firefox",
+      ID: "xpcshell@tests.mozilla.org",
+      version,
+      platformVersion: version,
+    });
 
     await maybeSetupConfig();
 
@@ -146,9 +132,6 @@ class SearchConfigTest {
       true
     );
 
-    if (!SearchUtils.newSearchConfigEnabled) {
-      await AddonTestUtils.promiseStartupManager();
-    }
     await Services.search.init();
 
     // We must use the engine selector that the search service has created (if
@@ -156,9 +139,7 @@ class SearchConfigTest {
     // configuration once - after that, it tries to access the network.
     engineSelector =
       Services.search.wrappedJSObject._engineSelector ||
-      SearchUtils.newSearchConfigEnabled
-        ? new SearchEngineSelector()
-        : new SearchEngineSelectorOld();
+      new SearchEngineSelector();
 
     // Note: we don't use the helper function here, so that we have at least
     // one message output per process.

@@ -2,26 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const CONFIG_DEFAULT = [
-  {
-    webExtension: { id: "basic@search.mozilla.org" },
-    urls: {
-      trending: {
-        fullPath:
-          "https://example.com/browser/browser/components/search/test/browser/trendingSuggestionEngine.sjs",
-        query: "",
-      },
-    },
-    appliesTo: [{ included: { everywhere: true } }],
-    default: "yes",
-  },
-  {
-    webExtension: { id: "private@search.mozilla.org" },
-    appliesTo: [{ included: { everywhere: true } }],
-    default: "yes",
-  },
-];
-
 const CONFIG_V2 = [
   {
     recordType: "engine",
@@ -84,11 +64,6 @@ const CONFIG_V2 = [
 SearchTestUtils.init(this);
 
 add_setup(async () => {
-  // Use engines in test directory
-  let searchExtensions = getChromeDir(getResolvedURI(gTestPath));
-  searchExtensions.append("search-engines");
-  await SearchTestUtils.useMochitestEngines(searchExtensions);
-
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.urlbar.recentsearches.featureGate", false],
@@ -98,9 +73,7 @@ add_setup(async () => {
   });
 
   SearchTestUtils.useMockIdleService();
-  await SearchTestUtils.updateRemoteSettingsConfig(
-    SearchUtils.newSearchConfigEnabled ? CONFIG_V2 : CONFIG_DEFAULT
-  );
+  await SearchTestUtils.updateRemoteSettingsConfig(CONFIG_V2);
   Services.telemetry.clearScalars();
 
   registerCleanupFunction(async () => {

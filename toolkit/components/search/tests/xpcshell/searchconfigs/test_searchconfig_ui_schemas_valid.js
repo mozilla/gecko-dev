@@ -4,13 +4,8 @@
 "use strict";
 
 let schemas = [
-  ["search-config-schema.json", "search-config-ui-schema.json"],
   ["search-config-v2-schema.json", "search-config-v2-ui-schema.json"],
   ["search-config-icons-schema.json", "search-config-icons-ui-schema.json"],
-  [
-    "search-config-overrides-schema.json",
-    "search-config-overrides-ui-schema.json",
-  ],
   [
     "search-config-overrides-v2-schema.json",
     "search-config-overrides-v2-ui-schema.json",

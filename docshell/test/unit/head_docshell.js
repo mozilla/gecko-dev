@@ -26,22 +26,6 @@ const kPostSearchEngineID = "test_urifixup_search_engine_post";
 const kPostSearchEngineURL = "https://www.example.org/";
 const kPostSearchEngineData = "q={searchTerms}";
 
-const SEARCH_CONFIG = [
-  {
-    appliesTo: [
-      {
-        included: {
-          everywhere: true,
-        },
-      },
-    ],
-    default: "yes",
-    webExtension: {
-      id: "fixup_search@search.mozilla.org",
-    },
-  },
-];
-
 const CONFIG_V2 = [
   {
     recordType: "engine",
@@ -84,11 +68,7 @@ async function setupSearchService() {
     "42"
   );
 
-  await SearchTestUtils.useTestEngines(
-    ".",
-    null,
-    SearchUtils.newSearchConfigEnabled ? CONFIG_V2 : SEARCH_CONFIG
-  );
+  await SearchTestUtils.useTestEngines(".", null, CONFIG_V2);
   await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 }

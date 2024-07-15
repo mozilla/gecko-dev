@@ -11,46 +11,6 @@
 
 "use strict";
 
-const CONFIG = [
-  {
-    webExtension: {
-      id: "engine@search.mozilla.org",
-      name: "Test search engine",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-      ],
-    },
-    appliesTo: [
-      {
-        included: { everywhere: true },
-        default: "yes",
-      },
-    ],
-  },
-  {
-    webExtension: {
-      id: "engine-pref@search.mozilla.org",
-      name: "engine-pref",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-      ],
-    },
-    appliesTo: [
-      {
-        included: { regions: ["FR"] },
-      },
-    ],
-  },
-];
-
 const CONFIG_V2 = [
   {
     recordType: "engine",
@@ -111,11 +71,7 @@ add_setup(async () => {
   // `engine-pref`.
   Region._setHomeRegion("US", false);
 
-  await SearchTestUtils.useTestEngines(
-    "data",
-    null,
-    SearchUtils.newSearchConfigEnabled ? CONFIG_V2 : CONFIG
-  );
+  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
   await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });

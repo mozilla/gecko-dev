@@ -471,11 +471,9 @@ async function assertActualEnginesEqualsExpected(
 }
 
 add_setup(async function () {
-  settings = await RemoteSettings(SearchUtils.NEW_SETTINGS_KEY);
+  settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
   configStub = sinon.stub(settings, "get");
-  settingOverrides = await RemoteSettings(
-    SearchUtils.NEW_SETTINGS_OVERRIDES_KEY
-  );
+  settingOverrides = await RemoteSettings(SearchUtils.SETTINGS_OVERRIDES_KEY);
   overrideStub = sinon.stub(settingOverrides, "get");
   overrideStub.returns([]);
 });

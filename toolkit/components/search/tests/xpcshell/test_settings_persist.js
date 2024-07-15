@@ -7,23 +7,6 @@
 
 "use strict";
 
-const CONFIG_UPDATED = [
-  {
-    webExtension: {
-      id: "plainengine@search.mozilla.org",
-      name: "Plain",
-      search_url: "https://duckduckgo.com/",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-      ],
-    },
-    appliesTo: [{ included: { everywhere: true } }],
-  },
-];
-
 const SEARCH_CONFIG_V2_UPDATED = [
   {
     recordType: "engine",
@@ -106,11 +89,7 @@ add_task(async function () {
   );
 
   ss._removeObservers();
-  await updateConfig(
-    SearchUtils.newSearchConfigEnabled
-      ? SEARCH_CONFIG_V2_UPDATED
-      : CONFIG_UPDATED
-  );
+  await updateConfig(SEARCH_CONFIG_V2_UPDATED);
   ss = await startup();
 
   Assert.ok(

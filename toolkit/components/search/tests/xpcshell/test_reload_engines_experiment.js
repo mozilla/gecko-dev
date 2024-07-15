@@ -3,75 +3,6 @@
 
 "use strict";
 
-const CONFIG = [
-  {
-    // Just a basic engine that won't be changed.
-    webExtension: {
-      id: "engine@search.mozilla.org",
-      name: "Test search engine",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "contextmenu",
-          value: "rcs",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "keyword",
-          value: "fflb",
-        },
-      ],
-      suggest_url:
-        "https://suggestqueries.google.com/complete/search?output=firefox&client=firefox&q={searchTerms}",
-    },
-    appliesTo: [
-      {
-        included: { everywhere: true },
-        default: "yes",
-      },
-    ],
-  },
-  {
-    // This engine will have the locale swapped when the experiment is set.
-    webExtension: {
-      id: "engine-same-name@search.mozilla.org",
-      default_locale: "en",
-      searchProvider: {
-        en: {
-          name: "engine-same-name",
-          search_url: "https://www.google.com/search?q={searchTerms}",
-        },
-        gd: {
-          name: "engine-same-name",
-          search_url: "https://www.example.com/search?q={searchTerms}",
-        },
-      },
-    },
-    appliesTo: [
-      {
-        included: { everywhere: true },
-        webExtension: {
-          locales: ["en"],
-        },
-      },
-      {
-        included: { everywhere: true },
-        webExtension: {
-          locales: ["gd"],
-        },
-        experiment: "xpcshell",
-      },
-    ],
-  },
-];
-
 const CONFIG_V2 = [
   {
     recordType: "engine",
@@ -148,11 +79,7 @@ const CONFIG_V2 = [
 ];
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines(
-    "data",
-    null,
-    SearchUtils.newSearchConfigEnabled ? CONFIG_V2 : CONFIG
-  );
+  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
   await AddonTestUtils.promiseStartupManager();
 });
 
@@ -204,42 +131,23 @@ add_task(async function test_config_updated_engine_changes() {
   await reloadObserved;
   Services.obs.removeObserver(enginesObs, SearchUtils.TOPIC_ENGINE_MODIFIED);
 
-  if (SearchUtils.newSearchConfigEnabled) {
-    // In the new config, engine-same-name-en and engine-same-name-gd are two
-    // different engine configs and they will be treated as different engines
-    // and not the same. That's the reason why the assertions are different below.
-    Assert.deepEqual(
-      enginesAdded,
-      ["engine-same-name-gd"],
-      "Should have added the correct engines"
-    );
+  Assert.deepEqual(
+    enginesAdded,
+    ["engine-same-name-gd"],
+    "Should have added the correct engines"
+  );
 
-    Assert.deepEqual(
-      enginesModified.sort(),
-      ["engine", "engine-same-name-en"],
-      "Should have modified the expected engines"
-    );
+  Assert.deepEqual(
+    enginesModified.sort(),
+    ["engine", "engine-same-name-en"],
+    "Should have modified the expected engines"
+  );
 
-    Assert.deepEqual(
-      enginesRemoved,
-      ["engine-same-name"],
-      "Should have removed the expected engine"
-    );
-  } else {
-    Assert.deepEqual(enginesAdded, [], "Should have added the correct engines");
-
-    Assert.deepEqual(
-      enginesModified.sort(),
-      ["engine", "engine-same-name-gd"],
-      "Should have modified the expected engines"
-    );
-
-    Assert.deepEqual(
-      enginesRemoved,
-      [],
-      "Should have removed the expected engine"
-    );
-  }
+  Assert.deepEqual(
+    enginesRemoved,
+    ["engine-same-name"],
+    "Should have removed the expected engine"
+  );
 
   const installedEngines = await Services.search.getAppProvidedEngines();
 

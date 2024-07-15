@@ -377,7 +377,6 @@ support-files = [
 ["browser_raceWithTabs.js"]
 
 ["browser_recentsearches.js"]
-support-files = ["search-engines"]
 
 ["browser_redirect_error.js"]
 support-files = ["redirect_error.sjs"]
@@ -501,7 +500,7 @@ support-files = [
 ["browser_search_bookmarks_from_bookmarks_menu.js"]
 
 ["browser_search_continuation.js"]
-support-files = ["search-engines", "../../../search/test/browser/trendingSuggestionEngine.sjs"]
+support-files = ["../../../search/test/browser/trendingSuggestionEngine.sjs"]
 
 ["browser_search_history_from_history_panel.js"]
 

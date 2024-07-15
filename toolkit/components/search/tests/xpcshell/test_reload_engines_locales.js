@@ -8,70 +8,6 @@
 
 "use strict";
 
-const CONFIG = [
-  {
-    webExtension: {
-      id: "engine@search.mozilla.org",
-      name: "Test search engine",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "contextmenu",
-          value: "rcs",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "keyword",
-          value: "fflb",
-        },
-      ],
-      suggest_url:
-        "https://suggestqueries.google.com/complete/search?output=firefox&client=firefox&q={searchTerms}",
-    },
-    appliesTo: [
-      {
-        included: { everywhere: true },
-        default: "yes",
-      },
-    ],
-  },
-  {
-    webExtension: {
-      id: "engine-diff-name@search.mozilla.org",
-      default_locale: "en",
-      searchProvider: {
-        en: {
-          name: "engine-diff-name-en",
-          search_url: "https://en.wikipedia.com/search",
-        },
-        gd: {
-          name: "engine-diff-name-gd",
-          search_url: "https://gd.wikipedia.com/search",
-        },
-      },
-    },
-    appliesTo: [
-      {
-        included: { everywhere: true },
-        excluded: { locales: { matches: ["gd"] } },
-      },
-      {
-        included: { locales: { matches: ["gd"] } },
-        webExtension: {
-          locales: ["gd"],
-        },
-      },
-    ],
-  },
-];
-
 const CONFIG_V2 = [
   {
     recordType: "engine",
@@ -159,11 +95,7 @@ add_setup(async () => {
   ];
   Services.locale.requestedLocales = ["gd"];
 
-  await SearchTestUtils.useTestEngines(
-    "data",
-    null,
-    SearchUtils.newSearchConfigEnabled ? CONFIG_V2 : CONFIG
-  );
+  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
   await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
@@ -184,9 +116,7 @@ add_task(async function test_config_updated_engine_changes() {
   );
   Assert.equal(
     engine.getSubmission("test").uri.spec,
-    SearchUtils.newSearchConfigEnabled
-      ? "https://gd.wikipedia.com/search?q=test"
-      : "https://gd.wikipedia.com/search",
+    "https://gd.wikipedia.com/search?q=test",
     "Should have the gd search url"
   );
 
@@ -207,9 +137,7 @@ add_task(async function test_config_updated_engine_changes() {
   );
   Assert.equal(
     engine.getSubmission("test").uri.spec,
-    SearchUtils.newSearchConfigEnabled
-      ? "https://en.wikipedia.com/search?q=test"
-      : "https://en.wikipedia.com/search",
+    "https://en.wikipedia.com/search?q=test",
     "Should have the en search url"
   );
 });

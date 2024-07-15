@@ -14,38 +14,6 @@ ChromeUtils.defineESModuleGetters(this, {
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
 });
 
-const BASE_CONFIG = [
-  {
-    webExtension: {
-      id: "engine@search.mozilla.org",
-      name: "Test search engine",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "contextmenu",
-          value: "rcs",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "keyword",
-          value: "fflb",
-        },
-      ],
-      suggest_url:
-        "https://suggestqueries.google.com/complete/search?output=firefox&client=firefox&q={searchTerms}",
-    },
-    appliesTo: [{ included: { everywhere: true } }],
-    default: "yes",
-  },
-];
-
 const BASE_CONFIG_V2 = [
   {
     recordType: "engine",
@@ -86,122 +54,6 @@ const BASE_CONFIG_V2 = [
   {
     recordType: "engineOrders",
     orders: [],
-  },
-];
-const MAIN_CONFIG = [
-  {
-    webExtension: {
-      id: "engine@search.mozilla.org",
-      name: "Test search engine",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "contextmenu",
-          value: "rcs",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "keyword",
-          value: "fflb",
-        },
-      ],
-      suggest_url:
-        "https://suggestqueries.google.com/complete/search?output=firefox&client=firefox&q={searchTerms}",
-    },
-    appliesTo: [{ included: { everywhere: true } }],
-    default: "no",
-  },
-  {
-    webExtension: {
-      id: "engine-chromeicon@search.mozilla.org",
-      name: "engine-chromeicon",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-      ],
-    },
-    appliesTo: [{ included: { everywhere: true } }],
-    default: "yes-if-no-other",
-  },
-  {
-    webExtension: {
-      id: "engine-fr@search.mozilla.org",
-      name: "Test search engine (fr)",
-      search_url: "https://www.google.fr/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-        {
-          name: "ie",
-          value: "iso-8859-1",
-        },
-        {
-          name: "oe",
-          value: "iso-8859-1",
-        },
-      ],
-    },
-    appliesTo: [
-      { included: { everywhere: true } },
-      {
-        included: { locales: { matches: ["fr"] } },
-        excluded: { regions: ["DE"] },
-        default: "yes",
-      },
-    ],
-    default: "no",
-  },
-  {
-    webExtension: {
-      id: "engine-pref@search.mozilla.org",
-      name: "engine-pref",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-        {
-          name: "code",
-          condition: "pref",
-          pref: "code",
-        },
-        {
-          name: "test",
-          condition: "pref",
-          pref: "test",
-        },
-      ],
-    },
-    appliesTo: [
-      { included: { everywhere: true } },
-      { included: { regions: ["DE"] }, default: "yes" },
-    ],
-    default: "no",
-  },
-  {
-    webExtension: {
-      id: "engine2@search.mozilla.org",
-      name: "A second test engine",
-      search_url: "https://duckduckgo.com/?q={searchTerms}",
-    },
-    appliesTo: [
-      { included: { everywhere: true } },
-      { included: { everywhere: true }, experiment: "test1", default: "yes" },
-    ],
-    default: "no",
   },
 ];
 
@@ -356,44 +208,31 @@ const MAIN_CONFIG_V2 = [
 const testSearchEngine = {
   id: "engine",
   name: "Test search engine",
-  loadPath: SearchUtils.newSearchConfigEnabled
-    ? "[app]engine@search.mozilla.org"
-    : "[addon]engine@search.mozilla.org",
+  loadPath: "[app]engine@search.mozilla.org",
   submissionURL: "https://www.google.com/search?q=",
 };
 const testChromeIconEngine = {
   id: "engine-chromeicon",
   name: "engine-chromeicon",
-  loadPath: SearchUtils.newSearchConfigEnabled
-    ? "[app]engine-chromeicon@search.mozilla.org"
-    : "[addon]engine-chromeicon@search.mozilla.org",
-
+  loadPath: "[app]engine-chromeicon@search.mozilla.org",
   submissionURL: "https://www.google.com/search?q=",
 };
 const testFrEngine = {
   id: "engine-fr",
   name: "Test search engine (fr)",
-  loadPath: SearchUtils.newSearchConfigEnabled
-    ? "[app]engine-fr@search.mozilla.org"
-    : "[addon]engine-fr@search.mozilla.org",
-  submissionURL: SearchUtils.newSearchConfigEnabled
-    ? "https://www.google.fr/search?ie=iso-8859-1&oe=iso-8859-1&q="
-    : "https://www.google.fr/search?q=&ie=iso-8859-1&oe=iso-8859-1",
+  loadPath: "[app]engine-fr@search.mozilla.org",
+  submissionURL: "https://www.google.fr/search?ie=iso-8859-1&oe=iso-8859-1&q=",
 };
 const testPrefEngine = {
   id: "engine-pref",
   name: "engine-pref",
-  loadPath: SearchUtils.newSearchConfigEnabled
-    ? "[app]engine-pref@search.mozilla.org"
-    : "[addon]engine-pref@search.mozilla.org",
+  loadPath: "[app]engine-pref@search.mozilla.org",
   submissionURL: "https://www.google.com/search?q=",
 };
 const testEngine2 = {
   id: "engine2",
   name: "A second test engine",
-  loadPath: SearchUtils.newSearchConfigEnabled
-    ? "[app]engine2@search.mozilla.org"
-    : "[addon]engine2@search.mozilla.org",
+  loadPath: "[app]engine2@search.mozilla.org",
   submissionURL: "https://duckduckgo.com/?q=",
 };
 
@@ -527,11 +366,7 @@ add_setup(async () => {
     "_showRemovalOfSearchEngineNotificationBox"
   );
 
-  await SearchTestUtils.useTestEngines(
-    "data",
-    null,
-    SearchUtils.newSearchConfigEnabled ? BASE_CONFIG_V2 : BASE_CONFIG
-  );
+  await SearchTestUtils.useTestEngines("data", null, BASE_CONFIG_V2);
   await AddonTestUtils.promiseStartupManager();
 
   await Services.search.init();
@@ -540,9 +375,7 @@ add_setup(async () => {
 add_task(async function test_configuration_changes_default() {
   clearTelemetry();
 
-  await SearchTestUtils.updateRemoteSettingsConfig(
-    SearchUtils.newSearchConfigEnabled ? MAIN_CONFIG_V2 : MAIN_CONFIG
-  );
+  await SearchTestUtils.updateRemoteSettingsConfig(MAIN_CONFIG_V2);
 
   await checkTelemetry(
     "config",

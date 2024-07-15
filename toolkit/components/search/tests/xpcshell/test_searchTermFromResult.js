@@ -61,72 +61,7 @@ const TERM = "c;,?:@&=+$-_.!~*'()# d\u00E8f";
 const TERM_ENCODED = "c%3B%2C%3F%3A%40%26%3D%2B%24-_.!~*'()%23+d%C3%A8f";
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines(
-    "data",
-    null,
-    SearchUtils.newSearchConfigEnabled
-      ? CONFIG_V2
-      : [
-          {
-            webExtension: {
-              id: "engine-purposes@search.mozilla.org",
-              name: "Test Engine With Purposes",
-              search_url: "https://www.example.com/search",
-              params: [
-                {
-                  name: "form",
-                  condition: "purpose",
-                  purpose: "keyword",
-                  value: "MOZKEYWORD",
-                },
-                {
-                  name: "form",
-                  condition: "purpose",
-                  purpose: "contextmenu",
-                  value: "MOZCONTEXT",
-                },
-                {
-                  name: "form",
-                  condition: "purpose",
-                  purpose: "newtab",
-                  value: "MOZNEWTAB",
-                },
-                {
-                  name: "form",
-                  condition: "purpose",
-                  purpose: "searchbar",
-                  value: "MOZSEARCHBAR",
-                },
-                {
-                  name: "form",
-                  condition: "purpose",
-                  purpose: "homepage",
-                  value: "MOZHOMEPAGE",
-                },
-                {
-                  name: "pc",
-                  value: "FIREFOX",
-                },
-                {
-                  name: "channel",
-                  condition: "pref",
-                  pref: "testChannelEnabled",
-                },
-                {
-                  name: "q",
-                  value: "{searchTerms}",
-                },
-              ],
-            },
-            appliesTo: [
-              {
-                included: { everywhere: true },
-                default: "yes",
-              },
-            ],
-          },
-        ]
-  );
+  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
   await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 

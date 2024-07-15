@@ -5,8 +5,6 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
-  SearchEngineSelectorOld:
-    "resource://gre/modules/SearchEngineSelectorOld.sys.mjs",
 });
 
 /**
@@ -120,94 +118,59 @@ add_setup(async function () {
   updateAppInfo({ ID: "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}" });
 });
 
-add_task(async function test_search_config_validates_to_schema_v1() {
-  let selector = new SearchEngineSelectorOld(() => {});
+add_task(async function test_search_config_validates_to_schema() {
+  let selector = new SearchEngineSelector(() => {});
 
   await assertSearchConfigValidates({
-    collectionName: "search-config",
+    collectionName: "search-config-v2",
     collectionData: await selector.getEngineConfiguration(),
-    getEntryId: entry => entry.webExtension.id,
-  });
-});
-
-add_task(async function test_search_config_override_validates_to_schema_v1() {
-  let selector = new SearchEngineSelectorOld(() => {});
-
-  await assertSearchConfigValidates({
-    collectionName: "search-config-overrides",
-    collectionData: await selector.getEngineConfigurationOverrides(),
-    getEntryId: entry => entry.telemetryId,
-  });
-});
-
-add_task(
-  { skip_if: () => !SearchUtils.newSearchConfigEnabled },
-  async function test_search_config_validates_to_schema() {
-    delete SearchUtils.newSearchConfigEnabled;
-    SearchUtils.newSearchConfigEnabled = true;
-
-    let selector = new SearchEngineSelector(() => {});
-
-    await assertSearchConfigValidates({
-      collectionName: "search-config-v2",
-      collectionData: await selector.getEngineConfiguration(),
-      getEntryId: entry => entry.identifier,
-      extraAssertsFn: entry => {
-        // All engine objects should have the base URL defined for each entry in
-        // entry.base.urls.
-        // Unfortunately this is difficult to enforce in the schema as it would
-        // need a `required` field that works across multiple levels.
-        if (entry.recordType == "engine") {
-          for (let urlEntry of Object.values(entry.base.urls)) {
-            Assert.ok(
-              urlEntry.base,
-              "Should have a base url for every URL defined on the top-level base object."
-            );
-          }
-        }
-      },
-    });
-  }
-);
-
-add_task(
-  { skip_if: () => !SearchUtils.newSearchConfigEnabled },
-  async function test_search_config_valid_partner_codes() {
-    delete SearchUtils.newSearchConfigEnabled;
-    SearchUtils.newSearchConfigEnabled = true;
-
-    let selector = new SearchEngineSelector(() => {});
-
-    for (let entry of await selector.getEngineConfiguration()) {
+    getEntryId: entry => entry.identifier,
+    extraAssertsFn: entry => {
+      // All engine objects should have the base URL defined for each entry in
+      // entry.base.urls.
+      // Unfortunately this is difficult to enforce in the schema as it would
+      // need a `required` field that works across multiple levels.
       if (entry.recordType == "engine") {
-        for (let variant of entry.variants) {
-          if (
-            "partnerCode" in variant &&
-            "distributions" in variant.environment
-          ) {
-            Assert.ok(
-              variant.telemetrySuffix,
-              `${entry.identifier} should have a telemetrySuffix when a distribution is specified with a partnerCode.`
-            );
-          }
+        for (let urlEntry of Object.values(entry.base.urls)) {
+          Assert.ok(
+            urlEntry.base,
+            "Should have a base url for every URL defined on the top-level base object."
+          );
+        }
+      }
+    },
+  });
+});
+
+add_task(async function test_search_config_valid_partner_codes() {
+  let selector = new SearchEngineSelector(() => {});
+
+  for (let entry of await selector.getEngineConfiguration()) {
+    if (entry.recordType == "engine") {
+      for (let variant of entry.variants) {
+        if (
+          "partnerCode" in variant &&
+          "distributions" in variant.environment
+        ) {
+          Assert.ok(
+            variant.telemetrySuffix,
+            `${entry.identifier} should have a telemetrySuffix when a distribution is specified with a partnerCode.`
+          );
         }
       }
     }
   }
-);
+});
 
-add_task(
-  { skip_if: () => !SearchUtils.newSearchConfigEnabled },
-  async function test_search_config_override_validates_to_schema() {
-    let selector = new SearchEngineSelector(() => {});
+add_task(async function test_search_config_override_validates_to_schema() {
+  let selector = new SearchEngineSelector(() => {});
 
-    await assertSearchConfigValidates({
-      collectionName: "search-config-overrides-v2",
-      collectionData: await selector.getEngineConfigurationOverrides(),
-      getEntryId: entry => entry.identifier,
-    });
-  }
-);
+  await assertSearchConfigValidates({
+    collectionName: "search-config-overrides-v2",
+    collectionData: await selector.getEngineConfigurationOverrides(),
+    getEntryId: entry => entry.identifier,
+  });
+});
 
 add_task(async function test_search_config_icons_validates_to_schema() {
   let searchIcons = RemoteSettings("search-config-icons");

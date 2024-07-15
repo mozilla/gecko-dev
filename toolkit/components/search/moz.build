@@ -25,7 +25,6 @@ EXTRA_JS_MODULES += [
     "PolicySearchEngine.sys.mjs",
     "SearchEngine.sys.mjs",
     "SearchEngineSelector.sys.mjs",
-    "SearchEngineSelectorOld.sys.mjs",
     "SearchService.sys.mjs",
     "SearchSettings.sys.mjs",
     "SearchStaticData.sys.mjs",

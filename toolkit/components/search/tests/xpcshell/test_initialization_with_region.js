@@ -6,76 +6,6 @@
 const SEARCH_SERVICE_TOPIC = "browser-search-service";
 const SEARCH_ENGINE_TOPIC = "browser-search-engine-modified";
 
-const CONFIG = [
-  {
-    webExtension: {
-      id: "engine@search.mozilla.org",
-      name: "Test search engine",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "contextmenu",
-          value: "rcs",
-        },
-        {
-          name: "channel",
-          condition: "purpose",
-          purpose: "keyword",
-          value: "fflb",
-        },
-      ],
-      suggest_url:
-        "https://suggestqueries.google.com/complete/search?output=firefox&client=firefox&q={searchTerms}",
-    },
-    orderHint: 30,
-    appliesTo: [
-      {
-        included: { everywhere: true },
-        excluded: { regions: ["FR"] },
-        default: "yes",
-        defaultPrivate: "yes",
-      },
-    ],
-  },
-  {
-    webExtension: {
-      id: "engine-pref@search.mozilla.org",
-      name: "engine-pref",
-      search_url: "https://www.google.com/search",
-      params: [
-        {
-          name: "q",
-          value: "{searchTerms}",
-        },
-        {
-          name: "code",
-          condition: "pref",
-          pref: "code",
-        },
-        {
-          name: "test",
-          condition: "pref",
-          pref: "test",
-        },
-      ],
-    },
-    orderHint: 20,
-    appliesTo: [
-      {
-        included: { regions: ["FR"] },
-        default: "yes",
-        defaultPrivate: "yes",
-      },
-    ],
-  },
-];
-
 const CONFIG_V2 = [
   {
     recordType: "engine",
@@ -185,11 +115,7 @@ add_setup(async function () {
   );
 
   SearchTestUtils.useMockIdleService();
-  await SearchTestUtils.useTestEngines(
-    "data",
-    null,
-    SearchUtils.newSearchConfigEnabled ? CONFIG_V2 : CONFIG
-  );
+  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
   await AddonTestUtils.promiseStartupManager();
 });
 

@@ -27,9 +27,9 @@ export class SearchEngineSelector {
    *   A listener for configuration update changes.
    */
   constructor(listener) {
-    this._remoteConfig = lazy.RemoteSettings(lazy.SearchUtils.NEW_SETTINGS_KEY);
+    this._remoteConfig = lazy.RemoteSettings(lazy.SearchUtils.SETTINGS_KEY);
     this._remoteConfigOverrides = lazy.RemoteSettings(
-      lazy.SearchUtils.NEW_SETTINGS_OVERRIDES_KEY
+      lazy.SearchUtils.SETTINGS_OVERRIDES_KEY
     );
     this._listenerAdded = false;
     this._onConfigurationUpdated = this._onConfigurationUpdated.bind(this);

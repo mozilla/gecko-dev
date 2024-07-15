@@ -45,31 +45,9 @@ const test = new SearchConfigTest({
 });
 
 add_setup(async function () {
-  // We only need to do setup on one of the tests.
-  await test.setup("89.0");
+  await test.setup();
 });
 
 add_task(async function test_searchConfig_amazon() {
   await test.run();
 });
-
-add_task(
-  { skip_if: () => SearchUtils.newSearchConfigEnabled },
-  async function test_searchConfig_amazon_pre89() {
-    const version = "88.0";
-    AddonTestUtils.createAppInfo(
-      "xpcshell@tests.mozilla.org",
-      "XPCShell",
-      version,
-      version
-    );
-    // For pre-89, Amazon has a slightly different config.
-    let details = test._config.details.find(
-      d => d.telemetryId == "amazondotcom-us-adm"
-    );
-    details.telemetryId = "amazondotcom";
-    delete details.searchUrlCode;
-
-    await test.run();
-  }
-);

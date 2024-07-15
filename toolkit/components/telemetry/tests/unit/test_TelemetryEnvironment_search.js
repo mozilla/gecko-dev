@@ -8,9 +8,6 @@ const { SearchTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SearchTestUtils.sys.mjs"
 );
 
-const { SearchUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/SearchUtils.sys.mjs"
-);
 const { TelemetryEnvironmentTesting } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryEnvironmentTesting.sys.mjs"
 );
@@ -144,13 +141,10 @@ async function checkDefaultSearch(privateOn, reInitSearchService) {
   Assert.equal(data.settings.defaultSearchEngine, "telemetrySearchIdentifier");
   let expectedSearchEngineData = {
     name: "telemetrySearchIdentifier",
-    loadPath: SearchUtils.newSearchConfigEnabled
-      ? "[app]telemetrySearchIdentifier@search.mozilla.org"
-      : "[addon]telemetrySearchIdentifier@search.mozilla.org",
+    loadPath: "[app]telemetrySearchIdentifier@search.mozilla.org",
     origin: "default",
-    submissionURL: SearchUtils.newSearchConfigEnabled
-      ? "https://ar.wikipedia.org/wiki/%D8%AE%D8%A7%D8%B5:%D8%A8%D8%AD%D8%AB?sourceId=Mozilla-search&search="
-      : "https://ar.wikipedia.org/wiki/%D8%AE%D8%A7%D8%B5:%D8%A8%D8%AD%D8%AB?search=&sourceId=Mozilla-search",
+    submissionURL:
+      "https://ar.wikipedia.org/wiki/%D8%AE%D8%A7%D8%B5:%D8%A8%D8%AD%D8%AB?sourceId=Mozilla-search&search=",
   };
   Assert.deepEqual(
     data.settings.defaultSearchEngineData,

@@ -147,9 +147,7 @@ tests.push({
       engines,
       "GMX Search",
       "https://go.gmx.co.uk/br/moz_search_web/?enc=UTF-8&q=test",
-      SearchUtils.newSearchConfigEnabled
-        ? "https://suggestplugin.gmx.co.uk/s?brand=gmxcouk&origin=moz_splugin_ff&enc=UTF-8&q=test"
-        : "https://suggestplugin.gmx.co.uk/s?q=test&brand=gmxcouk&origin=moz_splugin_ff&enc=UTF-8"
+      "https://suggestplugin.gmx.co.uk/s?brand=gmxcouk&origin=moz_splugin_ff&enc=UTF-8&q=test"
     ) &&
     hasDefault(engines, "GMX Search") &&
     hasEnginesFirst(engines, ["GMX Search"]),
@@ -170,9 +168,7 @@ tests.push({
       engines,
       "GMX - Búsqueda web",
       "https://go.gmx.es/br/moz_search_web/?enc=UTF-8&q=test",
-      SearchUtils.newSearchConfigEnabled
-        ? "https://suggestplugin.gmx.es/s?brand=gmxes&origin=moz_splugin_ff&enc=UTF-8&q=test"
-        : "https://suggestplugin.gmx.es/s?q=test&brand=gmxes&origin=moz_splugin_ff&enc=UTF-8"
+      "https://suggestplugin.gmx.es/s?brand=gmxes&origin=moz_splugin_ff&enc=UTF-8&q=test"
     ) &&
     hasDefault(engines, "GMX Search") &&
     hasEnginesFirst(engines, ["GMX Search"]),
@@ -193,9 +189,7 @@ tests.push({
       engines,
       "GMX - Recherche web",
       "https://go.gmx.fr/br/moz_search_web/?enc=UTF-8&q=test",
-      SearchUtils.newSearchConfigEnabled
-        ? "https://suggestplugin.gmx.fr/s?brand=gmxfr&origin=moz_splugin_ff&enc=UTF-8&q=test"
-        : "https://suggestplugin.gmx.fr/s?q=test&brand=gmxfr&origin=moz_splugin_ff&enc=UTF-8"
+      "https://suggestplugin.gmx.fr/s?brand=gmxfr&origin=moz_splugin_ff&enc=UTF-8&q=test"
     ) &&
     hasDefault(engines, "GMX Search") &&
     hasEnginesFirst(engines, ["GMX Search"]),
@@ -304,28 +298,15 @@ function hasEnginesFirst(engines, expectedEngines) {
   }
 }
 
-engineSelector = SearchUtils.newSearchConfigEnabled
-  ? new SearchEngineSelector()
-  : new SearchEngineSelectorOld();
+engineSelector = new SearchEngineSelector();
 
 add_setup(async function () {
-  if (SearchUtils.newSearchConfigEnabled) {
-    updateAppInfo({
-      name: "firefox",
-      ID: "xpcshell@tests.mozilla.org",
-      version: "128",
-      platformVersion: "128",
-    });
-  } else {
-    AddonTestUtils.init(GLOBAL_SCOPE);
-    AddonTestUtils.createAppInfo(
-      "xpcshell@tests.mozilla.org",
-      "XPCShell",
-      "42",
-      "42"
-    );
-    await AddonTestUtils.promiseStartupManager();
-  }
+  updateAppInfo({
+    name: "firefox",
+    ID: "xpcshell@tests.mozilla.org",
+    version: "128",
+    platformVersion: "128",
+  });
 
   await maybeSetupConfig();
 });

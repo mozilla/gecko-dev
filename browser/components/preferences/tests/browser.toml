@@ -215,10 +215,6 @@ skip-if = ["true"]
 ["browser_searchChangedEngine.js"]
 
 ["browser_searchDefaultEngine.js"]
-support-files = [
-  "engine1/manifest.json",
-  "engine2/manifest.json",
-]
 
 ["browser_searchFindMoreLink.js"]
 

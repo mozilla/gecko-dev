@@ -157,35 +157,7 @@ add_task(async function setup() {
   AddonTestUtils.usePrivilegedSignatures = false;
   AddonTestUtils.overrideCertDB();
   await AddonTestUtils.promiseStartupManager();
-  await SearchTestUtils.useTestEngines(
-    "data",
-    null,
-    SearchUtils.newSearchConfigEnabled
-      ? CONFIG_V2
-      : [
-          {
-            webExtension: {
-              id: "test@search.mozilla.org",
-            },
-            appliesTo: [
-              {
-                included: { everywhere: true },
-                default: "yes",
-              },
-            ],
-          },
-          {
-            webExtension: {
-              id: "test2@search.mozilla.org",
-            },
-            appliesTo: [
-              {
-                included: { everywhere: true },
-              },
-            ],
-          },
-        ]
-  );
+  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
   await Services.search.init();
   registerCleanupFunction(async () => {
     await AddonTestUtils.promiseShutdownManager();
@@ -244,9 +216,7 @@ add_task(async function test_extension_changing_to_app_provided_default() {
 
   assertEngineParameters({
     name: "MozParamsTest2",
-    searchURL: SearchUtils.newSearchConfigEnabled
-      ? "https://example.com/2/?simple2=5&q={searchTerms}"
-      : "https://example.com/2/?q={searchTerms}&simple2=5",
+    searchURL: "https://example.com/2/?simple2=5&q={searchTerms}",
     messageSnippet: "left unchanged",
   });
 
@@ -335,9 +305,7 @@ add_task(async function test_extension_overriding_app_provided_default() {
   );
   assertEngineParameters({
     name: "MozParamsTest2",
-    searchURL: SearchUtils.newSearchConfigEnabled
-      ? "https://example.com/2/?simple2=5&q={searchTerms}"
-      : "https://example.com/2/?q={searchTerms}&simple2=5",
+    searchURL: "https://example.com/2/?simple2=5&q={searchTerms}",
     messageSnippet: "reverted",
   });
 
@@ -380,9 +348,7 @@ add_task(async function test_extension_overriding_app_provided_default() {
 
   assertEngineParameters({
     name: "MozParamsTest2",
-    searchURL: SearchUtils.newSearchConfigEnabled
-      ? "https://example.com/2/?simple2=5&q={searchTerms}"
-      : "https://example.com/2/?q={searchTerms}&simple2=5",
+    searchURL: "https://example.com/2/?simple2=5&q={searchTerms}",
     messageSnippet: "reverted",
   });
   sinon.restore();

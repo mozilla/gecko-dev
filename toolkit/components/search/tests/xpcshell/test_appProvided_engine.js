@@ -242,9 +242,7 @@ add_task(async function test_engine_remote_override() {
   Assert.equal(engine.clickUrl, null, "Should not have a click URL");
 
   // Now apply and test the overrides.
-  const overrides = await RemoteSettings(
-    SearchUtils.NEW_SETTINGS_OVERRIDES_KEY
-  );
+  const overrides = await RemoteSettings(SearchUtils.SETTINGS_OVERRIDES_KEY);
   sinon.stub(overrides, "get").returns(TEST_CONFIG_OVERRIDE);
 
   await Services.search.wrappedJSObject.reset();

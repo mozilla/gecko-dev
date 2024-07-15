@@ -7,7 +7,6 @@ ChromeUtils.defineESModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
-  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
 });
 
@@ -22,19 +21,14 @@ SearchTestUtils.init(this);
 const DEFAULT_ENGINE = {
   id: "basic",
   name: "basic",
-  loadPath: SearchUtils.newSearchConfigEnabled
-    ? "[app]basic@search.mozilla.org"
-    : "[addon]basic@search.mozilla.org",
-  submissionUrl: SearchUtils.newSearchConfigEnabled
-    ? "https://mochi.test:8888/browser/browser/components/search/test/browser/?foo=1&search="
-    : "https://mochi.test:8888/browser/browser/components/search/test/browser/?search=&foo=1",
+  loadPath: "[app]basic@search.mozilla.org",
+  submissionUrl:
+    "https://mochi.test:8888/browser/browser/components/search/test/browser/?foo=1&search=",
 };
 const ALTERNATE_ENGINE = {
   id: "simple",
   name: "Simple Engine",
-  loadPath: SearchUtils.newSearchConfigEnabled
-    ? "[app]simple@search.mozilla.org"
-    : "[addon]simple@search.mozilla.org",
+  loadPath: "[app]simple@search.mozilla.org",
   submissionUrl: "https://example.com/?sourceId=Mozilla-search&search=",
 };
 const ALTERNATE2_ENGINE = {
@@ -104,9 +98,7 @@ add_setup(async function () {
 
   SearchTestUtils.useMockIdleService();
   let response = await fetch(
-    SearchUtils.newSearchConfigEnabled
-      ? `resource://search-extensions/search-config-v2.json`
-      : `resource://search-extensions/engines.json`
+    "resource://search-extensions/search-config-v2.json"
   );
   let json = await response.json();
   await SearchTestUtils.updateRemoteSettingsConfig(json.data);

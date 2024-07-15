@@ -68,7 +68,7 @@ async function assertActualEnginesEqualsExpected(
 }
 
 add_setup(async function () {
-  settings = await RemoteSettings(SearchUtils.NEW_SETTINGS_KEY);
+  settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
   configStub = sinon.stub(settings, "get");
 });
 
