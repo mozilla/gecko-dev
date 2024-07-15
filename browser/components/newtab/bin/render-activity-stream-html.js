@@ -95,6 +95,16 @@ function templateHTML(options) {
       type="module"
       src="chrome://global/content/elements/moz-toggle.mjs"
     ></script>
+    <script
+      async
+      type="module"
+      src="chrome://global/content/elements/moz-button.mjs"
+    ></script>
+    <script
+      async
+      type="module"
+      src="chrome://global/content/elements/moz-button-group.mjs"
+    ></script>
   </body>
 </html>
 `.trimLeft();

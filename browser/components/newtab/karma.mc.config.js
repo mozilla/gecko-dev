@@ -180,6 +180,16 @@ module.exports = function (config) {
                 functions: 0,
                 branches: 0,
               },
+            /**
+             * TopicSelection.jsx is tested via an xpcshell test
+             */
+            "content-src/components/DiscoveryStreamComponents/TopicSelection/*.jsx":
+              {
+                statements: 0,
+                lines: 0,
+                functions: 0,
+                branches: 0,
+              },
             "content-src/components/DiscoveryStreamComponents/DSCard/DSCard.jsx":
               {
                 statements: 98.25,

@@ -60,6 +60,15 @@
     min-height: 19px;
     margin-bottom: 13px;
     position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    @media (max-width: $break-point-medium - 1) {
+      flex-direction: column;
+      gap: var(--space-small);
+      align-items: flex-start;
+    }
   }
 
   &.active {

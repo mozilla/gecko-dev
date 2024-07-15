@@ -86,6 +86,7 @@ export const INITIAL_STATE = {
     recentSavesData: [],
     isUserLoggedIn: false,
     recentSavesEnabled: false,
+    showTopicSelection: false,
   },
   Notifications: {
     showNotifications: false,
@@ -844,6 +845,11 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         };
       }
       return prevState;
+    case at.TOPIC_SELECTION_SPOTLIGHT_TOGGLE:
+      return {
+        ...prevState,
+        showTopicSelection: !prevState.showTopicSelection,
+      };
     default:
       return prevState;
   }

@@ -216,6 +216,7 @@ for (const type of [
   "SYSTEM_TICK",
   "TELEMETRY_IMPRESSION_STATS",
   "TELEMETRY_USER_EVENT",
+  "TOPIC_SELECTION_SPOTLIGHT_TOGGLE",
   "TOP_SITES_CANCEL_EDIT",
   "TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL",
   "TOP_SITES_EDIT",
@@ -4242,6 +4243,7 @@ ErrorBoundary.defaultProps = {
 
 
 
+
 /**
  * A section that can collapse. As of bug 1710937, it can no longer collapse.
  * See bug 1727365 for follow-up work to simplify this component.
@@ -4253,11 +4255,12 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
     this.onMenuButtonMouseEnter = this.onMenuButtonMouseEnter.bind(this);
     this.onMenuButtonMouseLeave = this.onMenuButtonMouseLeave.bind(this);
     this.onMenuUpdate = this.onMenuUpdate.bind(this);
+    this.setContextMenuButtonRef = this.setContextMenuButtonRef.bind(this);
+    this.handleTopicSelectionButtonClick = this.handleTopicSelectionButtonClick.bind(this);
     this.state = {
       menuButtonHover: false,
       showContextMenu: false
     };
-    this.setContextMenuButtonRef = this.setContextMenuButtonRef.bind(this);
   }
   setContextMenuButtonRef(element) {
     this.contextMenuButtonRef = element;
@@ -4279,6 +4282,11 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
     this.setState({
       showContextMenu
     });
+  }
+  handleTopicSelectionButtonClick() {
+    this.props.dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE
+    }));
   }
   render() {
     const {
@@ -4313,6 +4321,7 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
       };
     }
     const hasSubtitleClassName = subTitle ? `has-subtitle` : ``;
+    const topicSelectionEnabled = this.props.Prefs.values["discoverystream.topicSelection.enabled"];
     return /*#__PURE__*/external_React_default().createElement("section", {
       className: `collapsible-section ${this.props.className}${active ? " active" : ""}`
       // Note: data-section-id is used for web extension api tests in mozilla central
@@ -4342,7 +4351,11 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
     })), mayHaveSponsoredStories && this.props.spocMessageVariant === "variant-a" && /*#__PURE__*/external_React_default().createElement(SponsoredContentHighlight, {
       position: "inset-block-start inset-inline-start",
       dispatch: this.props.dispatch
-    }))), /*#__PURE__*/external_React_default().createElement(ErrorBoundary, {
+    })), topicSelectionEnabled && /*#__PURE__*/external_React_default().createElement("moz-button", {
+      label: "Personalize my feed",
+      type: "primary",
+      onClick: this.handleTopicSelectionButtonClick
+    })), /*#__PURE__*/external_React_default().createElement(ErrorBoundary, {
       className: "section-body-fallback"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       ref: this.onBodyMount,
@@ -4397,50 +4410,49 @@ class DSMessage extends (external_React_default()).PureComponent {
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-class ModalOverlayWrapper extends (external_React_default()).PureComponent {
-  constructor(props) {
-    super(props);
-    this.onKeyDown = this.onKeyDown.bind(this);
+function ModalOverlayWrapper({
+  document = globalThis.document,
+  unstyled,
+  innerClassName,
+  onClose,
+  children,
+  headerId,
+  id
+}) {
+  const modalRef = (0,external_React_namespaceObject.useRef)(null);
+  let className = unstyled ? "" : "modalOverlayInner active";
+  if (innerClassName) {
+    className += ` ${innerClassName}`;
   }
 
   // The intended behaviour is to listen for an escape key
   // but not for a click; see Bug 1582242
-  onKeyDown(event) {
+  const onKeyDown = (0,external_React_namespaceObject.useCallback)(event => {
     if (event.key === "Escape") {
-      this.props.onClose(event);
+      onClose(event);
     }
-  }
-  componentWillMount() {
-    this.props.document.addEventListener("keydown", this.onKeyDown);
-    this.props.document.body.classList.add("modal-open");
-  }
-  componentWillUnmount() {
-    this.props.document.removeEventListener("keydown", this.onKeyDown);
-    this.props.document.body.classList.remove("modal-open");
-  }
-  render() {
-    const {
-      props
-    } = this;
-    let className = props.unstyled ? "" : "modalOverlayInner active";
-    if (props.innerClassName) {
-      className += ` ${props.innerClassName}`;
-    }
-    return /*#__PURE__*/external_React_default().createElement("div", {
-      className: "modalOverlayOuter active",
-      onKeyDown: this.onKeyDown,
-      role: "presentation"
-    }, /*#__PURE__*/external_React_default().createElement("div", {
-      className: className,
-      "aria-labelledby": props.headerId,
-      id: props.id,
-      role: "dialog"
-    }, props.children));
-  }
+  }, [onClose]);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    document.addEventListener("keydown", onKeyDown);
+    document.body.classList.add("modal-open");
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.classList.remove("modal-open");
+    };
+  }, [document, onKeyDown]);
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "modalOverlayOuter active",
+    onKeyDown: onKeyDown,
+    role: "presentation"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: className,
+    "aria-labelledby": headerId,
+    id: id,
+    role: "dialog",
+    ref: modalRef
+  }, children));
 }
-ModalOverlayWrapper.defaultProps = {
-  document: globalThis.document
-};
+
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/DSPrivacyModal/DSPrivacyModal.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -5808,6 +5820,7 @@ const INITIAL_STATE = {
     recentSavesData: [],
     isUserLoggedIn: false,
     recentSavesEnabled: false,
+    showTopicSelection: false,
   },
   Notifications: {
     showNotifications: false,
@@ -6566,6 +6579,11 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         };
       }
       return prevState;
+    case actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE:
+      return {
+        ...prevState,
+        showTopicSelection: !prevState.showTopicSelection,
+      };
     default:
       return prevState;
   }
@@ -10524,6 +10542,177 @@ function Notifications_Notifications({
   }, getToast()));
 }
 
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
+// TODO: move strings to newtab.ftl once strings have been approved
+const TOPIC_LABELS = {
+  "newtab-topic-business": "Business",
+  "newtab-topic-arts": "Entertainment",
+  "newtab-topic-food": "Food",
+  "newtab-topic-health": "Health",
+  "newtab-topic-finance": "Money",
+  "newtab-topic-government": "Politics",
+  "newtab-topic-sports": "Sports",
+  "newtab-topic-tech": "Tech",
+  "newtab-topic-travel": "Travel",
+  "newtab-topic-education": "Science",
+  "newtab-topic-society": "Life Hacks"
+};
+const EMOJI_LABELS = {
+  business: "💼",
+  arts: "🎭",
+  food: "🍕",
+  health: "🩺",
+  finance: "💰",
+  government: "🏛️",
+  sports: "⚽️",
+  tech: "💻",
+  travel: "✈️",
+  education: "🧪",
+  society: "💡"
+};
+function TopicSelection() {
+  const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
+  const inputRef = (0,external_React_namespaceObject.useRef)(null);
+  const modalRef = (0,external_React_namespaceObject.useRef)(null);
+  const checkboxWrapperRef = (0,external_React_namespaceObject.useRef)(null);
+  const topics = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.topics"]).split(", ");
+  const selectedTopics = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.selectedTopics"]);
+  const suggestedTopics = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.suggestedTopics"]).split(", ");
+
+  // TODO: only show suggested topics during the first run
+  // if selectedTopics is empty - default to using the suggestedTopics as a starting value
+  const [topicsToSelect, setTopicsToSelect] = (0,external_React_namespaceObject.useState)(selectedTopics ? selectedTopics.split(", ") : suggestedTopics);
+  function handleModalClose() {
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE
+    }));
+  }
+
+  // when component mounts, set focus to input
+  (0,external_React_namespaceObject.useEffect)(() => {
+    inputRef?.current?.focus();
+  }, [inputRef]);
+  const handleFocus = (0,external_React_namespaceObject.useCallback)(e => {
+    // this list will have to be updated with other reusable components that get used inside of this modal
+    const tabbableElements = modalRef.current.querySelectorAll('a[href], button, moz-button, input[tabindex="0"]');
+    const [firstTabableEl] = tabbableElements;
+    const lastTabbableEl = tabbableElements[tabbableElements.length - 1];
+    let isTabPressed = e.key === "Tab" || e.keyCode === 9;
+    let isArrowPressed = e.key === "ArrowUp" || e.key === "ArrowDown";
+    if (isTabPressed) {
+      if (e.shiftKey) {
+        if (document.activeElement === firstTabableEl) {
+          lastTabbableEl.focus();
+          e.preventDefault();
+        }
+      } else if (document.activeElement === lastTabbableEl) {
+        firstTabableEl.focus();
+        e.preventDefault();
+      }
+    } else if (isArrowPressed && checkboxWrapperRef.current.contains(document.activeElement)) {
+      const checkboxElements = checkboxWrapperRef.current.querySelectorAll("input");
+      const [firstInput] = checkboxElements;
+      const lastInput = checkboxElements[checkboxElements.length - 1];
+      const inputArr = Array.from(checkboxElements);
+      const currentIndex = inputArr.indexOf(document.activeElement);
+      let nextEl;
+      if (e.key === "ArrowUp") {
+        nextEl = document.activeElement === firstInput ? lastInput : checkboxElements[currentIndex - 1];
+      } else if (e.key === "ArrowDown") {
+        nextEl = document.activeElement === lastInput ? firstInput : checkboxElements[currentIndex + 1];
+      }
+      nextEl.tabIndex = 0;
+      document.activeElement.tabIndex = -1;
+      nextEl.focus();
+    }
+  }, []);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const ref = modalRef.current;
+    ref.addEventListener("keydown", handleFocus);
+    inputRef.current.tabIndex = 0;
+    return () => {
+      ref.removeEventListener("keydown", handleFocus);
+    };
+  }, [handleFocus]);
+  function handleChange(e) {
+    const topic = e.target.name;
+    const isChecked = e.target.checked;
+    if (isChecked) {
+      setTopicsToSelect([...topicsToSelect, topic]);
+    } else {
+      const updatedTopics = topicsToSelect.filter(t => t !== topic);
+      setTopicsToSelect(updatedTopics);
+    }
+  }
+  function handleSubmit() {
+    dispatch(actionCreators.SetPref("discoverystream.topicSelection.selectedTopics", topicsToSelect.join(", ")));
+    handleModalClose();
+  }
+  return /*#__PURE__*/external_React_default().createElement(ModalOverlayWrapper, {
+    onClose: handleModalClose,
+    innerClassName: "topic-selection-container"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "topic-selection-form",
+    ref: modalRef
+  }, /*#__PURE__*/external_React_default().createElement("button", {
+    className: "dismiss-button",
+    title: "dismiss",
+    onClick: handleModalClose
+  }), /*#__PURE__*/external_React_default().createElement("h1", {
+    className: "title"
+  }, "Select topics you care about"), /*#__PURE__*/external_React_default().createElement("p", {
+    className: "subtitle"
+  }, "Tell us what you are interested in and we\u2019ll recommend you great stories!"), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "topic-list",
+    ref: checkboxWrapperRef
+  }, topics.map((topic, i) => {
+    const checked = topicsToSelect.includes(topic);
+    return /*#__PURE__*/external_React_default().createElement("label", {
+      className: `topic-item`,
+      key: topic
+    }, /*#__PURE__*/external_React_default().createElement("input", {
+      type: "checkbox",
+      id: topic,
+      name: topic,
+      ref: i === 0 ? inputRef : null,
+      onChange: handleChange,
+      checked: checked,
+      "aria-checked": checked,
+      tabIndex: -1
+    }), /*#__PURE__*/external_React_default().createElement("div", {
+      className: `topic-custom-checkbox`
+    }, /*#__PURE__*/external_React_default().createElement("span", {
+      className: "topic-icon"
+    }, EMOJI_LABELS[`${topic}`]), /*#__PURE__*/external_React_default().createElement("span", {
+      className: "topic-checked"
+    })), /*#__PURE__*/external_React_default().createElement("span", {
+      className: "topic-item-label"
+    }, TOPIC_LABELS[`newtab-topic-${topic}`]));
+  })), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "modal-footer"
+  }, /*#__PURE__*/external_React_default().createElement("a", {
+    href: "https://support.mozilla.org/en-US/kb/pocket-recommendations-firefox-new-tab"
+  }, "How we protect your data and privacy"), /*#__PURE__*/external_React_default().createElement("moz-button-group", {
+    className: "button-group"
+  }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+    label: "Remove topics",
+    onClick: handleModalClose
+  }), /*#__PURE__*/external_React_default().createElement("moz-button", {
+    label: "Save topics",
+    type: "primary",
+    onClick: handleSubmit
+  })))));
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/FeatureHighlight/WallpaperFeatureHighlight.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -10659,6 +10848,7 @@ function Base_extends() { Base_extends = Object.assign ? Object.assign.bind() : 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -10991,7 +11181,8 @@ class BaseContent extends (external_React_default()).PureComponent {
       props
     } = this;
     const {
-      App
+      App,
+      DiscoveryStream
     } = props;
     const {
       initialized,
@@ -11002,6 +11193,10 @@ class BaseContent extends (external_React_default()).PureComponent {
     const wallpapersEnabled = prefs["newtabWallpapers.enabled"];
     const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
     const weatherEnabled = prefs.showWeather;
+    const {
+      showTopicSelection
+    } = DiscoveryStream;
+    const mayShowTopicSelection = showTopicSelection && prefs["discoverystream.topicSelection.enabled"];
     const {
       pocketConfig
     } = prefs;
@@ -11080,7 +11275,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       firstVisibleTimestamp: this.state.firstVisibleTimestamp
     })) : /*#__PURE__*/external_React_default().createElement(Sections_Sections, null)), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null), wallpapersEnabled && this.renderWallpaperAttribution()), /*#__PURE__*/external_React_default().createElement("aside", null, this.props.Notifications?.showNotifications && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Notifications_Notifications, {
       dispatch: this.props.dispatch
-    })))));
+    }))), mayShowTopicSelection && /*#__PURE__*/external_React_default().createElement(TopicSelection, null)));
   }
 }
 BaseContent.defaultProps = {

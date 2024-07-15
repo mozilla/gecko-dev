@@ -534,6 +534,28 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.topicSelection.topics",
+    {
+      title: "Topics available",
+      value:
+        "business, arts, food, health, finance, government, sports, tech, travel, education, society",
+    },
+  ],
+  [
+    "discoverystream.topicSelection.selectedTopics",
+    {
+      title: "Selected topics",
+      value: "",
+    },
+  ],
+  [
+    "discoverystream.topicSelection.suggestedTopics",
+    {
+      title: "Suggested topics to choose during onboarding for topic selection",
+      value: "business, arts, government",
+    },
+  ],
+  [
     "showRecentSaves",
     {
       title: "Control whether a user wants recent saves visible on Newtab",

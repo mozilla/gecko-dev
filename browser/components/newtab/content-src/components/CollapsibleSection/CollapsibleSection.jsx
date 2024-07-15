@@ -7,6 +7,7 @@ import { FluentOrText } from "content-src/components/FluentOrText/FluentOrText";
 import { SponsoredContentHighlight } from "../DiscoveryStreamComponents/FeatureHighlight/SponsoredContentHighlight";
 import React from "react";
 import { connect } from "react-redux";
+import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 
 /**
  * A section that can collapse. As of bug 1710937, it can no longer collapse.
@@ -19,11 +20,13 @@ export class _CollapsibleSection extends React.PureComponent {
     this.onMenuButtonMouseEnter = this.onMenuButtonMouseEnter.bind(this);
     this.onMenuButtonMouseLeave = this.onMenuButtonMouseLeave.bind(this);
     this.onMenuUpdate = this.onMenuUpdate.bind(this);
+    this.setContextMenuButtonRef = this.setContextMenuButtonRef.bind(this);
+    this.handleTopicSelectionButtonClick =
+      this.handleTopicSelectionButtonClick.bind(this);
     this.state = {
       menuButtonHover: false,
       showContextMenu: false,
     };
-    this.setContextMenuButtonRef = this.setContextMenuButtonRef.bind(this);
   }
 
   setContextMenuButtonRef(element) {
@@ -44,6 +47,12 @@ export class _CollapsibleSection extends React.PureComponent {
 
   onMenuUpdate(showContextMenu) {
     this.setState({ showContextMenu });
+  }
+
+  handleTopicSelectionButtonClick() {
+    this.props.dispatch(
+      ac.AlsoToMain({ type: at.TOPIC_SELECTION_SPOTLIGHT_TOGGLE })
+    );
   }
 
   render() {
@@ -69,6 +78,8 @@ export class _CollapsibleSection extends React.PureComponent {
       titleStyle = { visibility: "hidden" };
     }
     const hasSubtitleClassName = subTitle ? `has-subtitle` : ``;
+    const topicSelectionEnabled =
+      this.props.Prefs.values["discoverystream.topicSelection.enabled"];
     return (
       <section
         className={`collapsible-section ${this.props.className}${
@@ -107,6 +118,13 @@ export class _CollapsibleSection extends React.PureComponent {
                 />
               )}
           </h3>
+          {topicSelectionEnabled && (
+            <moz-button
+              label="Personalize my feed"
+              type="primary"
+              onClick={this.handleTopicSelectionButtonClick}
+            />
+          )}
         </div>
         <ErrorBoundary className="section-body-fallback">
           <div ref={this.onBodyMount} style={bodyStyle}>

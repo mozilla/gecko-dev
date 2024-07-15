@@ -2,55 +2,62 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import React from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 
-export class ModalOverlayWrapper extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.onKeyDown = this.onKeyDown.bind(this);
+function ModalOverlayWrapper({
+  document = globalThis.document,
+  unstyled,
+  innerClassName,
+  onClose,
+  children,
+  headerId,
+  id,
+}) {
+  const modalRef = useRef(null);
+
+  let className = unstyled ? "" : "modalOverlayInner active";
+  if (innerClassName) {
+    className += ` ${innerClassName}`;
   }
 
   // The intended behaviour is to listen for an escape key
   // but not for a click; see Bug 1582242
-  onKeyDown(event) {
-    if (event.key === "Escape") {
-      this.props.onClose(event);
-    }
-  }
+  const onKeyDown = useCallback(
+    event => {
+      if (event.key === "Escape") {
+        onClose(event);
+      }
+    },
+    [onClose]
+  );
 
-  componentWillMount() {
-    this.props.document.addEventListener("keydown", this.onKeyDown);
-    this.props.document.body.classList.add("modal-open");
-  }
+  useEffect(() => {
+    document.addEventListener("keydown", onKeyDown);
+    document.body.classList.add("modal-open");
 
-  componentWillUnmount() {
-    this.props.document.removeEventListener("keydown", this.onKeyDown);
-    this.props.document.body.classList.remove("modal-open");
-  }
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.classList.remove("modal-open");
+    };
+  }, [document, onKeyDown]);
 
-  render() {
-    const { props } = this;
-    let className = props.unstyled ? "" : "modalOverlayInner active";
-    if (props.innerClassName) {
-      className += ` ${props.innerClassName}`;
-    }
-    return (
+  return (
+    <div
+      className="modalOverlayOuter active"
+      onKeyDown={onKeyDown}
+      role="presentation"
+    >
       <div
-        className="modalOverlayOuter active"
-        onKeyDown={this.onKeyDown}
-        role="presentation"
+        className={className}
+        aria-labelledby={headerId}
+        id={id}
+        role="dialog"
+        ref={modalRef}
       >
-        <div
-          className={className}
-          aria-labelledby={props.headerId}
-          id={props.id}
-          role="dialog"
-        >
-          {props.children}
-        </div>
+        {children}
       </div>
-    );
-  }
+    </div>
+  );
 }
 
-ModalOverlayWrapper.defaultProps = { document: globalThis.document };
+export { ModalOverlayWrapper };

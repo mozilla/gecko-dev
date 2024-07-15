@@ -1,0 +1,163 @@
+/* stylelint-disable max-nesting-depth */
+
+.modalOverlayOuter.active:has(.topic-selection-container) {
+  background-color: rgba(21, 20, 26, 50%);
+}
+
+.topic-selection-container {
+  --transition: 0.6s opacity, 0.6s scale, 0.6s rotate, 0.6s translate;
+
+  position: relative;
+  border-radius: var(--space-small);
+  box-shadow: $shadow-large;
+  padding: var(--size-item-large);
+  max-width: 745px;
+  height: auto;
+
+  .dismiss-button {
+    position: absolute;
+    appearance: none;
+    border: none;
+    z-index: 2;
+    top: 0;
+    inset-inline: auto 0;
+    border-radius: var(--border-radius-small);
+    padding: 0;
+    margin: var(--space-small);
+    display: block;
+    float: inline-end;
+    background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px;
+    height: var(--size-item-large);
+    width: var(--size-item-large);
+    align-self: end;
+    // override default min-height and min-width for buttons
+    min-height: var(--size-item-large);
+    min-width: var(--size-item-large);
+    -moz-context-properties: fill;
+    fill: currentColor;
+    transition: var(--transition);
+
+    &:hover {
+      background-color: var(--button-background-color-hover);
+
+      &:active {
+        background-color: var(--button-background-color-active)
+      }
+    }
+
+  }
+
+  .title {
+    text-align: center;
+    font-size: var(--font-size-xlarge);
+    font-weight: var(--font-weight-bold);
+    margin-block-end: var(--space-small);
+  }
+
+  .subtitle {
+    text-align: center;
+    margin-block: 0 var(--space-xlarge);
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .button-group {
+      gap: var(--space-medium);
+      display: flex;
+    }
+  }
+}
+
+.topic-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-item-small);
+  margin: var(--size-item-large) auto;
+  justify-content: center;
+  width: fit-content;
+
+  .topic-item {
+    border-radius: 40px;
+    padding-inline: 6px var(--size-item-small);
+    padding-block: 6px;
+    border: 1px solid var(--color-gray-60);
+    display: flex;
+    align-items: center;
+    justify-self: center;
+    max-width: fit-content;
+
+    &:hover {
+      cursor: pointer;
+      background-color: var(--button-background-color-hover);
+    }
+
+    &:active {
+      background-color: var(--button-background-color-active);
+    }
+
+    &:has(input:checked) {
+      border-color: var(--color-accent-primary);
+    }
+
+    &:focus-within {
+      outline-offset: 2px;
+      outline: 2px solid var(--color-accent-primary);
+    }
+
+    .topic-item-label {
+      margin-inline-end: var(--space-small);
+    }
+
+    .topic-custom-checkbox {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 100%;
+      background-color: var(--newtab-button-static-background);
+      margin-inline-end: var(--space-large);
+
+      .topic-icon {
+        font-size: 25px;
+      }
+
+      .topic-checked {
+        display: none;
+      }
+    }
+
+    input[type='checkbox'] {
+      opacity: 0;
+      width: 1em;
+      height: 1em;
+      position: absolute;
+      inset-inline-start: 0.5em;
+      top: 0.4em;
+
+      &:checked~.topic-custom-checkbox {
+        background-color: var(--color-accent-primary);
+        position: relative;
+
+        .topic-icon {
+          display: none;
+        }
+
+        .topic-checked {
+          color: var(--color-white);
+          -moz-context-properties: fill;
+          display: block;
+          fill: currentColor;
+          background: url('chrome://global/skin/icons/check.svg');
+          background-size: cover;
+          width: 26px;
+          height: 26px;
+        }
+      }
+    }
+  }
+}

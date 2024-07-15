@@ -2951,6 +2951,16 @@ main section {
   min-height: 19px;
   margin-bottom: 13px;
   position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+@media (max-width: 609px) {
+  .collapsible-section .section-top-bar {
+    flex-direction: column;
+    gap: var(--space-small);
+    align-items: flex-start;
+  }
 }
 .collapsible-section.active {
   background: var(--newtab-element-hover-color);
@@ -5429,4 +5439,144 @@ main section {
   margin-inline-start: auto;
   background-color: var(--button-background-color);
   margin-block-start: var(--space-small);
+}
+
+/* stylelint-disable max-nesting-depth */
+.modalOverlayOuter.active:has(.topic-selection-container) {
+  background-color: rgba(21, 20, 26, 0.5);
+}
+
+.topic-selection-container {
+  --transition: 0.6s opacity, 0.6s scale, 0.6s rotate, 0.6s translate;
+  position: relative;
+  border-radius: var(--space-small);
+  box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
+  padding: var(--size-item-large);
+  max-width: 745px;
+  height: auto;
+}
+.topic-selection-container .dismiss-button {
+  position: absolute;
+  appearance: none;
+  border: none;
+  z-index: 2;
+  top: 0;
+  inset-inline: auto 0;
+  border-radius: var(--border-radius-small);
+  padding: 0;
+  margin: var(--space-small);
+  display: block;
+  float: inline-end;
+  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px;
+  height: var(--size-item-large);
+  width: var(--size-item-large);
+  align-self: end;
+  min-height: var(--size-item-large);
+  min-width: var(--size-item-large);
+  -moz-context-properties: fill;
+  fill: currentColor;
+  transition: var(--transition);
+}
+.topic-selection-container .dismiss-button:hover {
+  background-color: var(--button-background-color-hover);
+}
+.topic-selection-container .dismiss-button:hover:active {
+  background-color: var(--button-background-color-active);
+}
+.topic-selection-container .title {
+  text-align: center;
+  font-size: var(--font-size-xlarge);
+  font-weight: var(--font-weight-bold);
+  margin-block-end: var(--space-small);
+}
+.topic-selection-container .subtitle {
+  text-align: center;
+  margin-block: 0 var(--space-xlarge);
+}
+.topic-selection-container .modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.topic-selection-container .modal-footer .button-group {
+  gap: var(--space-medium);
+  display: flex;
+}
+
+.topic-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-item-small);
+  margin: var(--size-item-large) auto;
+  justify-content: center;
+  width: fit-content;
+}
+.topic-list .topic-item {
+  border-radius: 40px;
+  padding-inline: 6px var(--size-item-small);
+  padding-block: 6px;
+  border: 1px solid var(--color-gray-60);
+  display: flex;
+  align-items: center;
+  justify-self: center;
+  max-width: fit-content;
+}
+.topic-list .topic-item:hover {
+  cursor: pointer;
+  background-color: var(--button-background-color-hover);
+}
+.topic-list .topic-item:active {
+  background-color: var(--button-background-color-active);
+}
+.topic-list .topic-item:has(input:checked) {
+  border-color: var(--color-accent-primary);
+}
+.topic-list .topic-item:focus-within {
+  outline-offset: 2px;
+  outline: 2px solid var(--color-accent-primary);
+}
+.topic-list .topic-item .topic-item-label {
+  margin-inline-end: var(--space-small);
+}
+.topic-list .topic-item .topic-custom-checkbox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 100%;
+  background-color: var(--newtab-button-static-background);
+  margin-inline-end: var(--space-large);
+}
+.topic-list .topic-item .topic-custom-checkbox .topic-icon {
+  font-size: 25px;
+}
+.topic-list .topic-item .topic-custom-checkbox .topic-checked {
+  display: none;
+}
+.topic-list .topic-item input[type=checkbox] {
+  opacity: 0;
+  width: 1em;
+  height: 1em;
+  position: absolute;
+  inset-inline-start: 0.5em;
+  top: 0.4em;
+}
+.topic-list .topic-item input[type=checkbox]:checked ~ .topic-custom-checkbox {
+  background-color: var(--color-accent-primary);
+  position: relative;
+}
+.topic-list .topic-item input[type=checkbox]:checked ~ .topic-custom-checkbox .topic-icon {
+  display: none;
+}
+.topic-list .topic-item input[type=checkbox]:checked ~ .topic-custom-checkbox .topic-checked {
+  color: var(--color-white);
+  -moz-context-properties: fill;
+  display: block;
+  fill: currentColor;
+  background: url("chrome://global/skin/icons/check.svg");
+  background-size: cover;
+  width: 26px;
+  height: 26px;
 }

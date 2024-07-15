@@ -942,6 +942,18 @@ pocketNewtab:
         browser.newtabpage.activity-stream.discoverystream.topicSelection.enabled
       description: >-
         Enables topic selection for discovery stream.
+    availableTopics:
+      type: string
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.topicSelection.topics
+      description: >-
+        List of available topics to select for topic selection
+    suggestedTopics:
+      type: string
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.topicSelection.suggestedTopics
+      description: >-
+        List of pre-selected topics to display on first run of topic selection modal
     spocsCacheTimeout:
       type: int
       fallbackPref: >-

@@ -14,6 +14,7 @@ import { Search } from "content-src/components/Search/Search";
 import { Sections } from "content-src/components/Sections/Sections";
 import { Weather } from "content-src/components/Weather/Weather";
 import { Notifications } from "content-src/components/Notifications/Notifications";
+import { TopicSelection } from "content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection";
 import { WallpaperFeatureHighlight } from "../DiscoveryStreamComponents/FeatureHighlight/WallpaperFeatureHighlight";
 
 const VISIBLE = "visible";
@@ -385,7 +386,7 @@ export class BaseContent extends React.PureComponent {
 
   render() {
     const { props } = this;
-    const { App } = props;
+    const { App, DiscoveryStream } = props;
     const { initialized, customizeMenuVisible } = App;
     const prefs = props.Prefs.values;
 
@@ -394,6 +395,9 @@ export class BaseContent extends React.PureComponent {
     const wallpapersEnabled = prefs["newtabWallpapers.enabled"];
     const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
     const weatherEnabled = prefs.showWeather;
+    const { showTopicSelection } = DiscoveryStream;
+    const mayShowTopicSelection =
+      showTopicSelection && prefs["discoverystream.topicSelection.enabled"];
 
     const { pocketConfig } = prefs;
 
@@ -535,6 +539,7 @@ export class BaseContent extends React.PureComponent {
               </ErrorBoundary>
             )}
           </aside>
+          {mayShowTopicSelection && <TopicSelection />}
         </div>
       </div>
     );
