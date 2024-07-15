@@ -1,7 +1,6 @@
 <!doctype html>
 <title>Allow text fragments in HTML documents only</title>
 <meta charset=utf-8>
-<meta name="timeout" content="long">
 <link rel="help" href="https://wicg.github.io/ScrollToTextFragment/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -45,6 +44,10 @@ const test_cases = [
   },
   {
     filename: 'application-xml.xml',
+    expected: 'blocked',
+  },
+  {
+    filename: 'application-json.json',
     expected: 'blocked',
   },
 ];
