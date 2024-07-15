@@ -206,42 +206,6 @@ You can find an `example of code not
 formatted <https://searchfox.org/mozilla-central/rev/501eb4718d73870892d28f31a99b46f4783efaa0/xpcom/io/nsEscape.cpp#22>`__.
 
 
-Merging formatted and unformatted code
---------------------------------------
-
-During the transition to using chromium style enforced by clang-format
-for all code in tree, it will often be necessary to rebase non-formatted
-code onto a formatted tree.
-
-
-Mercurial
-~~~~~~~~~
-
-The ``format-source`` extension, now bundled with
-``version-control-tools``, and installed by ``./mach bootstrap``, may be
-used to seamlessly handle this situation. More details may be found in
-this
-`document <https://docs.google.com/document/d/13AwAsvKMhH0mflDlfatBqn6LmZHiQih76oxM4zfrPl4/edit>`__.
-
-The parent changeset of the reformat has been tagged as
-``PRE_TREEWIDE_CLANG_FORMAT``.
-
-
-Git
-~~~
-
-To perform a rebase onto mozilla-central after the merge, a handy merge
-driver, ``clang-format-merge``, has been written:
-
-.. code:: shell
-
-   $ git clone https://github.com/emilio/clang-format-merge
-   $ /path/to/clang-format-merge/git-wrapper rebase <upstream>
-
-The wrapper should clean up after itself, and the clone may be deleted
-after the rebase is complete.
-
-
 Ignore lists
 ------------
 
