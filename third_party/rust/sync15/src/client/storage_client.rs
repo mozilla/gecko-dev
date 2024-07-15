@@ -36,7 +36,7 @@ pub enum Sync15ClientResponse<T> {
 fn parse_seconds(seconds_str: &str) -> Option<u32> {
     let secs = seconds_str.parse::<f64>().ok()?.ceil();
     // Note: u32 doesn't impl TryFrom<f64> :(
-    if !secs.is_finite() || secs < 0.0 || secs > f64::from(u32::max_value()) {
+    if !secs.is_finite() || secs < 0.0 || secs > f64::from(u32::MAX) {
         log::warn!("invalid backoff value: {}", secs);
         None
     } else {

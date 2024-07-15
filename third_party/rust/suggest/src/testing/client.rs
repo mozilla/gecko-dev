@@ -152,11 +152,8 @@ pub struct MockIcon {
 
 impl Client for MockRemoteSettingsClient {
     fn get_records(&self, request: RecordRequest) -> Result<Vec<Record>> {
-        let record_type = request.record_type.unwrap_or_else(|| {
-            panic!("MockRemoteSettingsClient.get_records: record_type required ")
-        });
         // Note: limit and modified time are ignored
-        Ok(match self.records.get(&record_type) {
+        Ok(match self.records.get(&request.record_type) {
             Some(records) => records.clone(),
             None => vec![],
         })

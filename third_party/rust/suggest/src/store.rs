@@ -18,12 +18,12 @@ use serde::de::DeserializeOwned;
 
 use crate::{
     config::{SuggestGlobalConfig, SuggestProviderConfig},
-    db::{ConnectionType, SuggestDao, SuggestDb},
+    db::{ConnectionType, Sqlite3Extension, SuggestDao, SuggestDb},
     error::Error,
     provider::SuggestionProvider,
     rs::{
-        Client, Record, RecordRequest, SuggestAttachment, SuggestRecord, SuggestRecordId,
-        SuggestRecordType, DEFAULT_RECORDS_TYPES, REMOTE_SETTINGS_COLLECTION,
+        Client, Record, RecordRequest, RemoteSettingsClient, SuggestAttachment, SuggestRecord,
+        SuggestRecordId, SuggestRecordType, DEFAULT_RECORDS_TYPES,
     },
     Result, SuggestApiResult, Suggestion, SuggestionQuery,
 };
@@ -39,6 +39,7 @@ struct SuggestStoreBuilderInner {
     data_path: Option<String>,
     remote_settings_server: Option<RemoteSettingsServer>,
     remote_settings_bucket_name: Option<String>,
+    extensions_to_load: Vec<Sqlite3Extension>,
 }
 
 impl Default for SuggestStoreBuilder {
@@ -72,23 +73,35 @@ impl SuggestStoreBuilder {
         self
     }
 
+    pub fn load_extension(
+        self: Arc<Self>,
+        library: String,
+        entry_point: Option<String>,
+    ) -> Arc<Self> {
+        self.0.lock().extensions_to_load.push(Sqlite3Extension {
+            library,
+            entry_point,
+        });
+        self
+    }
+
     #[handle_error(Error)]
     pub fn build(&self) -> SuggestApiResult<Arc<SuggestStore>> {
         let inner = self.0.lock();
+        let extensions_to_load = inner.extensions_to_load.clone();
         let data_path = inner
             .data_path
             .clone()
             .ok_or_else(|| Error::SuggestStoreBuilder("data_path not specified".to_owned()))?;
 
-        let remote_settings_config = RemoteSettingsConfig {
-            server: inner.remote_settings_server.clone(),
-            bucket_name: inner.remote_settings_bucket_name.clone(),
-            server_url: None,
-            collection_name: REMOTE_SETTINGS_COLLECTION.into(),
-        };
-        let settings_client = remote_settings::Client::new(remote_settings_config)?;
+        let client = RemoteSettingsClient::new(
+            inner.remote_settings_server.clone(),
+            inner.remote_settings_bucket_name.clone(),
+            None,
+        )?;
+
         Ok(Arc::new(SuggestStore {
-            inner: SuggestStoreInner::new(data_path, settings_client),
+            inner: SuggestStoreInner::new(data_path, extensions_to_load, client),
         }))
     }
 }
@@ -134,7 +147,7 @@ pub enum InterruptKind {
 ///    later, while a desktop on a fast link might download the entire dataset
 ///    on the first launch.
 pub struct SuggestStore {
-    inner: SuggestStoreInner<remote_settings::Client>,
+    inner: SuggestStoreInner<RemoteSettingsClient>,
 }
 
 impl SuggestStore {
@@ -144,18 +157,20 @@ impl SuggestStore {
         path: &str,
         settings_config: Option<RemoteSettingsConfig>,
     ) -> SuggestApiResult<Self> {
-        let settings_client = || -> Result<_> {
-            Ok(remote_settings::Client::new(
-                settings_config.unwrap_or_else(|| RemoteSettingsConfig {
-                    server: None,
-                    server_url: None,
-                    bucket_name: None,
-                    collection_name: REMOTE_SETTINGS_COLLECTION.into(),
-                }),
-            )?)
-        }()?;
+        let client = match settings_config {
+            Some(settings_config) => RemoteSettingsClient::new(
+                settings_config.server,
+                settings_config.bucket_name,
+                settings_config.server_url,
+                // Note: collection name is ignored, since we fetch from multiple collections
+                // (fakespot-suggest-products and quicksuggest).  No consumer sets it to a
+                // non-default value anyways.
+            )?,
+            None => RemoteSettingsClient::new(None, None, None)?,
+        };
+
         Ok(Self {
-            inner: SuggestStoreInner::new(path.to_owned(), settings_client),
+            inner: SuggestStoreInner::new(path.to_owned(), vec![], client),
         })
     }
 
@@ -232,6 +247,25 @@ pub struct SuggestIngestionConstraints {
     pub empty_only: bool,
 }
 
+impl SuggestIngestionConstraints {
+    pub fn all_providers() -> Self {
+        Self {
+            providers: Some(vec![
+                SuggestionProvider::Amp,
+                SuggestionProvider::Wikipedia,
+                SuggestionProvider::Amo,
+                SuggestionProvider::Pocket,
+                SuggestionProvider::Yelp,
+                SuggestionProvider::Mdn,
+                SuggestionProvider::Weather,
+                SuggestionProvider::AmpMobile,
+                SuggestionProvider::Fakespot,
+            ]),
+            ..Self::default()
+        }
+    }
+}
+
 /// The implementation of the store. This is generic over the Remote Settings
 /// client, and is split out from the concrete [`SuggestStore`] for testing
 /// with a mock client.
@@ -243,13 +277,19 @@ pub(crate) struct SuggestStoreInner<S> {
     #[allow(unused)]
     data_path: PathBuf,
     dbs: OnceCell<SuggestStoreDbs>,
+    extensions_to_load: Vec<Sqlite3Extension>,
     settings_client: S,
 }
 
 impl<S> SuggestStoreInner<S> {
-    pub fn new(data_path: impl Into<PathBuf>, settings_client: S) -> Self {
+    pub fn new(
+        data_path: impl Into<PathBuf>,
+        extensions_to_load: Vec<Sqlite3Extension>,
+        settings_client: S,
+    ) -> Self {
         Self {
             data_path: data_path.into(),
+            extensions_to_load,
             dbs: OnceCell::new(),
             settings_client,
         }
@@ -259,7 +299,7 @@ impl<S> SuggestStoreInner<S> {
     /// they're not already open.
     fn dbs(&self) -> Result<&SuggestStoreDbs> {
         self.dbs
-            .get_or_try_init(|| SuggestStoreDbs::open(&self.data_path))
+            .get_or_try_init(|| SuggestStoreDbs::open(&self.data_path, &self.extensions_to_load))
     }
 
     fn query(&self, query: SuggestionQuery) -> Result<Vec<Suggestion>> {
@@ -357,32 +397,35 @@ where
         dao: &mut SuggestDao,
         constraints: &SuggestIngestionConstraints,
     ) -> Result<()> {
+        let last_ingest_key = ingest_record_type.last_ingest_meta_key();
         let request = RecordRequest {
-            record_type: Some(ingest_record_type.to_string()),
-            last_modified: dao
-                .get_meta::<u64>(ingest_record_type.last_ingest_meta_key().as_str())?,
+            record_type: ingest_record_type.to_string(),
+            last_modified: dao.get_meta::<u64>(&last_ingest_key)?,
             limit: constraints.max_suggestions,
         };
 
         let records = self.settings_client.get_records(request)?;
-        self.ingest_records(&ingest_record_type.last_ingest_meta_key(), dao, &records)?;
+        for record in &records {
+            // Drop any data that we previously ingested from this record.
+            // Suggestions in particular don't have a stable identifier, and
+            // determining which suggestions in the record actually changed is
+            // more complicated than dropping and re-ingesting all of them.
+            dao.delete_record_data(record)?;
+        }
+        self.ingest_records(dao, &records)?;
+        if let Some(max_last_modified) = records.iter().map(|r| r.last_modified).max() {
+            dao.put_last_ingest_if_newer(&last_ingest_key, max_last_modified)?;
+        }
         Ok(())
     }
 
-    fn ingest_records(
-        &self,
-        last_ingest_key: &str,
-        dao: &mut SuggestDao,
-        records: &[Record],
-    ) -> Result<()> {
+    fn ingest_records(&self, dao: &mut SuggestDao, records: &[Record]) -> Result<()> {
         for record in records {
-            let record_id = SuggestRecordId::from(&record.id);
             if record.deleted {
-                // If the entire record was deleted, drop all its suggestions
-                // and advance the last ingest time.
-                dao.handle_deleted_record(last_ingest_key, record)?;
                 continue;
             }
+
+            let record_id = SuggestRecordId::from(&record.id);
             let Ok(fields) =
                 serde_json::from_value(serde_json::Value::Object(record.fields.clone()))
             else {
@@ -393,27 +436,14 @@ where
 
             match fields {
                 SuggestRecord::AmpWikipedia => {
-                    self.ingest_attachment(
-                        // TODO: Currently re-creating the last_ingest_key because using last_ingest_meta
-                        // breaks the tests (particularly the unparsable functionality). So, keeping
-                        // a direct reference until we remove the "unparsable" functionality.
-                        &SuggestRecordType::AmpWikipedia.last_ingest_meta_key(),
-                        dao,
-                        record,
-                        |dao, record_id, suggestions| {
-                            dao.insert_amp_wikipedia_suggestions(record_id, suggestions)
-                        },
-                    )?;
+                    self.ingest_attachment(dao, record, |dao, record_id, suggestions| {
+                        dao.insert_amp_wikipedia_suggestions(record_id, suggestions)
+                    })?;
                 }
                 SuggestRecord::AmpMobile => {
-                    self.ingest_attachment(
-                        &SuggestRecordType::AmpMobile.last_ingest_meta_key(),
-                        dao,
-                        record,
-                        |dao, record_id, suggestions| {
-                            dao.insert_amp_mobile_suggestions(record_id, suggestions)
-                        },
-                    )?;
+                    self.ingest_attachment(dao, record, |dao, record_id, suggestions| {
+                        dao.insert_amp_mobile_suggestions(record_id, suggestions)
+                    })?;
                 }
                 SuggestRecord::Icon => {
                     let (Some(icon_id), Some(attachment)) =
@@ -422,105 +452,50 @@ where
                         // An icon record should have an icon ID and an
                         // attachment. Icons that don't have these are
                         // malformed, so skip to the next record.
-                        dao.put_last_ingest_if_newer(
-                            &SuggestRecordType::Icon.last_ingest_meta_key(),
-                            record.last_modified,
-                        )?;
                         continue;
                     };
                     let data = record.require_attachment_data()?;
                     dao.put_icon(icon_id, data, &attachment.mimetype)?;
-                    dao.handle_ingested_record(
-                        &SuggestRecordType::Icon.last_ingest_meta_key(),
-                        record,
-                    )?;
                 }
                 SuggestRecord::Amo => {
-                    self.ingest_attachment(
-                        &SuggestRecordType::Amo.last_ingest_meta_key(),
-                        dao,
-                        record,
-                        |dao, record_id, suggestions| {
-                            dao.insert_amo_suggestions(record_id, suggestions)
-                        },
-                    )?;
+                    self.ingest_attachment(dao, record, |dao, record_id, suggestions| {
+                        dao.insert_amo_suggestions(record_id, suggestions)
+                    })?;
                 }
                 SuggestRecord::Pocket => {
-                    self.ingest_attachment(
-                        &SuggestRecordType::Pocket.last_ingest_meta_key(),
-                        dao,
-                        record,
-                        |dao, record_id, suggestions| {
-                            dao.insert_pocket_suggestions(record_id, suggestions)
-                        },
-                    )?;
+                    self.ingest_attachment(dao, record, |dao, record_id, suggestions| {
+                        dao.insert_pocket_suggestions(record_id, suggestions)
+                    })?;
                 }
                 SuggestRecord::Yelp => {
-                    self.ingest_attachment(
-                        &SuggestRecordType::Yelp.last_ingest_meta_key(),
-                        dao,
-                        record,
-                        |dao, record_id, suggestions| match suggestions.first() {
+                    self.ingest_attachment(dao, record, |dao, record_id, suggestions| {
+                        match suggestions.first() {
                             Some(suggestion) => dao.insert_yelp_suggestions(record_id, suggestion),
                             None => Ok(()),
-                        },
-                    )?;
+                        }
+                    })?;
                 }
                 SuggestRecord::Mdn => {
-                    self.ingest_attachment(
-                        &SuggestRecordType::Mdn.last_ingest_meta_key(),
-                        dao,
-                        record,
-                        |dao, record_id, suggestions| {
-                            dao.insert_mdn_suggestions(record_id, suggestions)
-                        },
-                    )?;
+                    self.ingest_attachment(dao, record, |dao, record_id, suggestions| {
+                        dao.insert_mdn_suggestions(record_id, suggestions)
+                    })?;
                 }
-                SuggestRecord::Weather(data) => {
-                    self.ingest_record(
-                        &SuggestRecordType::Weather.last_ingest_meta_key(),
-                        dao,
-                        record,
-                        |dao, record_id| dao.insert_weather_data(record_id, &data),
-                    )?;
-                }
+                SuggestRecord::Weather(data) => dao.insert_weather_data(&record_id, &data)?,
                 SuggestRecord::GlobalConfig(config) => {
-                    self.ingest_record(
-                        &SuggestRecordType::GlobalConfig.last_ingest_meta_key(),
-                        dao,
-                        record,
-                        |dao, _| dao.put_global_config(&SuggestGlobalConfig::from(&config)),
-                    )?;
+                    dao.put_global_config(&SuggestGlobalConfig::from(&config))?
+                }
+                SuggestRecord::Fakespot => {
+                    self.ingest_attachment(dao, record, |dao, record_id, suggestions| {
+                        dao.insert_fakespot_suggestions(record_id, suggestions)
+                    })?;
                 }
             }
         }
         Ok(())
     }
 
-    fn ingest_record(
-        &self,
-        last_ingest_key: &str,
-        dao: &mut SuggestDao,
-        record: &Record,
-        ingestion_handler: impl FnOnce(&mut SuggestDao<'_>, &SuggestRecordId) -> Result<()>,
-    ) -> Result<()> {
-        let record_id = SuggestRecordId::from(&record.id);
-
-        // Drop any data that we previously ingested from this record.
-        // Suggestions in particular don't have a stable identifier, and
-        // determining which suggestions in the record actually changed is
-        // more complicated than dropping and re-ingesting all of them.
-        dao.drop_suggestions(&record_id)?;
-
-        // Ingest (or re-ingest) all data in the record.
-        ingestion_handler(dao, &record_id)?;
-
-        dao.handle_ingested_record(last_ingest_key, record)
-    }
-
     fn ingest_attachment<T>(
         &self,
-        last_ingest_key: &str,
         dao: &mut SuggestDao,
         record: &Record,
         ingestion_handler: impl FnOnce(&mut SuggestDao<'_>, &SuggestRecordId, &[T]) -> Result<()>,
@@ -529,18 +504,16 @@ where
         T: DeserializeOwned,
     {
         if record.attachment.is_none() {
-            // This method should be called only when a record is expected to
-            // have an attachment. If it doesn't have one, it's malformed, so
-            // skip to the next record.
-            dao.put_last_ingest_if_newer(last_ingest_key, record.last_modified)?;
             return Ok(());
         };
 
         let attachment_data = record.require_attachment_data()?;
         match serde_json::from_slice::<SuggestAttachment<T>>(attachment_data) {
-            Ok(attachment) => self.ingest_record(last_ingest_key, dao, record, |dao, record_id| {
-                ingestion_handler(dao, record_id, attachment.suggestions())
-            }),
+            Ok(attachment) => ingestion_handler(
+                dao,
+                &SuggestRecordId::from(&record.id),
+                attachment.suggestions(),
+            ),
             // If the attachment doesn't match our expected schema, just skip it.  It's possible
             // that we're using an older version.  If so, we'll get the data when we re-ingest
             // after updating the schema.
@@ -580,7 +553,7 @@ where
                 self.ingest_records_by_type(
                     ingest_record_type,
                     dao,
-                    &SuggestIngestionConstraints::default(),
+                    &SuggestIngestionConstraints::all_providers(),
                 )
             })
             .unwrap()
@@ -631,11 +604,11 @@ struct SuggestStoreDbs {
 }
 
 impl SuggestStoreDbs {
-    fn open(path: &Path) -> Result<Self> {
+    fn open(path: &Path, extensions_to_load: &[Sqlite3Extension]) -> Result<Self> {
         // Order is important here: the writer must be opened first, so that it
         // can set up the database and run any migrations.
-        let writer = SuggestDb::open(path, ConnectionType::ReadWrite)?;
-        let reader = SuggestDb::open(path, ConnectionType::ReadOnly)?;
+        let writer = SuggestDb::open(path, extensions_to_load, ConnectionType::ReadWrite)?;
+        let reader = SuggestDb::open(path, extensions_to_load, ConnectionType::ReadOnly)?;
         Ok(Self { writer, reader })
     }
 }
@@ -665,7 +638,7 @@ mod tests {
                 COUNTER.fetch_add(1, Ordering::Relaxed),
             );
             Self {
-                inner: SuggestStoreInner::new(db_path, client),
+                inner: SuggestStoreInner::new(db_path, vec![], client),
             }
         }
 
@@ -747,7 +720,7 @@ mod tests {
                 .with_record("data", "1234", json![los_pollos_amp()])
                 .with_icon(los_pollos_icon()),
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::amp("lo")),
             vec![los_pollos_suggestion("los")],
@@ -770,7 +743,7 @@ mod tests {
         // This ingestion should run, since the DB is empty
         store.ingest(SuggestIngestionConstraints {
             empty_only: true,
-            ..SuggestIngestionConstraints::default()
+            ..SuggestIngestionConstraints::all_providers()
         });
         // suggestions_table_empty returns false after the ingestion is complete
         assert!(!store.read(|dao| dao.suggestions_table_empty())?);
@@ -783,7 +756,7 @@ mod tests {
         ));
         store.ingest(SuggestIngestionConstraints {
             empty_only: true,
-            ..SuggestIngestionConstraints::default()
+            ..SuggestIngestionConstraints::all_providers()
         });
         // "la" should not match the good place eats suggestion, since that should not have been
         // ingested.
@@ -808,7 +781,7 @@ mod tests {
                 .with_icon(good_place_eats_icon()),
         );
         // This ingestion should run, since the DB is empty
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::amp("lo")),
@@ -862,7 +835,7 @@ mod tests {
             .with_icon(good_place_eats_icon())
             .with_icon(california_icon())
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::amp("lo")),
@@ -905,7 +878,7 @@ mod tests {
                 .with_record("data", "1234", los_pollos_amp())
                 .with_icon(los_pollos_icon()),
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::amp("lo")),
             vec![los_pollos_suggestion("los")],
@@ -925,7 +898,7 @@ mod tests {
             json!([los_pollos_amp(), good_place_eats_amp()]),
         ));
         // Ingest once
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         // Update the snapshot with new suggestions: Los pollos has a new name and Good place eats
         // is now serving Penne
         store.replace_client(MockRemoteSettingsClient::default().with_record(
@@ -942,7 +915,7 @@ mod tests {
                 }))
             ]),
         ));
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert!(matches!(
             store.fetch_suggestions(SuggestionQuery::amp("lo")).as_slice(),
@@ -974,7 +947,7 @@ mod tests {
                 .with_icon(good_place_eats_icon()),
         );
         // This ingestion should run, since the DB is empty
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         // Reingest with updated icon data
         //  - Los pollos gets new data and a new id
@@ -999,7 +972,7 @@ mod tests {
                     ..good_place_eats_icon()
                 }),
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert!(matches!(
             store.fetch_suggestions(SuggestionQuery::amp("lo")).as_slice(),
@@ -1029,7 +1002,7 @@ mod tests {
                 ),
         );
 
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::amo("masking e")),
@@ -1058,7 +1031,7 @@ mod tests {
                     ]),
                 ),
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::amo("masking e")),
@@ -1093,7 +1066,7 @@ mod tests {
                 .with_icon(los_pollos_icon())
                 .with_icon(good_place_eats_icon()),
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::amp("lo")),
             vec![los_pollos_suggestion("los")],
@@ -1112,7 +1085,7 @@ mod tests {
                 .with_icon_tombstone(los_pollos_icon())
                 .with_icon_tombstone(good_place_eats_icon()),
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(store.fetch_suggestions(SuggestionQuery::amp("lo")), vec![]);
         assert!(matches!(
@@ -1136,7 +1109,7 @@ mod tests {
                 .with_icon(los_pollos_icon())
                 .with_icon(good_place_eats_icon()),
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         assert!(store.count_rows("suggestions") > 0);
         assert!(store.count_rows("keywords") > 0);
         assert!(store.count_rows("icons") > 0);
@@ -1186,7 +1159,7 @@ mod tests {
                 .with_icon(multimatch_wiki_icon()),
         );
 
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::all_providers("")),
@@ -1610,7 +1583,7 @@ mod tests {
                 .with_icon(california_icon()),
         );
 
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::all_providers("amp wiki match")),
             vec![
@@ -1669,7 +1642,7 @@ mod tests {
                 // things would work in practice, but it's okay for the tests.
                 .with_icon(good_place_eats_icon()),
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         // The query results should be exactly the same for both the Amp and AmpMobile data
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::amp_mobile("las")),
@@ -1699,7 +1672,7 @@ mod tests {
                 .with_record("icon", "bad-icon-id", json!("i-am-an-icon")),
         );
 
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         store.read(|dao| {
             assert_eq!(
@@ -1746,7 +1719,7 @@ mod tests {
         let constraints = SuggestIngestionConstraints {
             max_suggestions: Some(100),
             providers: Some(vec![SuggestionProvider::Amp, SuggestionProvider::Pocket]),
-            ..SuggestIngestionConstraints::default()
+            ..SuggestIngestionConstraints::all_providers()
         };
         store.ingest(constraints);
 
@@ -1843,7 +1816,7 @@ mod tests {
                 .with_icon(good_place_eats_icon()),
         );
 
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         // Test that the valid record was read
         assert_eq!(
@@ -1865,7 +1838,7 @@ mod tests {
             "mdn-1",
             json!([array_mdn()]),
         ));
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         // prefix
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::mdn("array")),
@@ -1905,7 +1878,7 @@ mod tests {
                 json!([ramen_yelp()]),
             ), // Note: yelp_favicon() is missing
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         assert!(matches!(
             store.fetch_suggestions(SuggestionQuery::yelp("ramen")).as_slice(),
             [Suggestion::Yelp { icon, icon_mimetype, .. }] if icon.is_none() && icon_mimetype.is_none()
@@ -1927,7 +1900,7 @@ mod tests {
                 "score": "0.24"
             }),
         ));
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         // No match since the query doesn't match any keyword
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::weather("xab")),
@@ -2029,7 +2002,7 @@ mod tests {
                 "show_less_frequently_cap": 3,
             }),
         ));
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
             store.fetch_global_config(),
             SuggestGlobalConfig {
@@ -2045,7 +2018,7 @@ mod tests {
         before_each();
 
         let store = TestStore::new(MockRemoteSettingsClient::default());
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(
             store.fetch_global_config(),
             SuggestGlobalConfig {
@@ -2061,7 +2034,7 @@ mod tests {
         before_each();
 
         let store = TestStore::new(MockRemoteSettingsClient::default());
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         assert_eq!(store.fetch_provider_config(SuggestionProvider::Amp), None);
         assert_eq!(
             store.fetch_provider_config(SuggestionProvider::Weather),
@@ -2084,7 +2057,7 @@ mod tests {
                 "score": "0.24"
             }),
         ));
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
         // Getting the config for a different provider should return None.
         assert_eq!(store.fetch_provider_config(SuggestionProvider::Amp), None);
         Ok(())
@@ -2129,7 +2102,7 @@ mod tests {
                 .with_icon(good_place_eats_icon())
                 .with_icon(caltech_icon()),
         );
-        store.ingest(SuggestIngestionConstraints::default());
+        store.ingest(SuggestIngestionConstraints::all_providers());
 
         // A query for cats should return all suggestions
         let query = SuggestionQuery::all_providers("cats");
@@ -2148,6 +2121,126 @@ mod tests {
         // Clearing the dismissals should cause them to be returned again
         store.inner.clear_dismissed_suggestions()?;
         assert_eq!(store.fetch_suggestions(query.clone()).len(), 6);
+
+        Ok(())
+    }
+
+    #[test]
+    fn query_fakespot() -> anyhow::Result<()> {
+        before_each();
+
+        let store = TestStore::new(
+            MockRemoteSettingsClient::default()
+                .with_record(
+                    "fakespot-suggestions",
+                    "fakespot-1",
+                    json!([snowglobe_fakespot(), simpsons_fakespot()]),
+                )
+                .with_icon(fakespot_amazon_icon()),
+        );
+        store.ingest(SuggestIngestionConstraints::all_providers());
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("globe")),
+            vec![snowglobe_suggestion()],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("simpsons")),
+            vec![simpsons_suggestion()],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("snow")),
+            vec![simpsons_suggestion(), snowglobe_suggestion()],
+        );
+        // Test FTS by using a query where the keywords are separated in the source text
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("simpsons snow")),
+            vec![simpsons_suggestion()],
+        );
+        // Special characters should be stripped out
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("simpsons + snow")),
+            vec![simpsons_suggestion()],
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn fakespot_prefix_matching() -> anyhow::Result<()> {
+        before_each();
+
+        let store = TestStore::new(
+            MockRemoteSettingsClient::default()
+                .with_record(
+                    "fakespot-suggestions",
+                    "fakespot-1",
+                    json!([snowglobe_fakespot(), simpsons_fakespot()]),
+                )
+                .with_icon(fakespot_amazon_icon()),
+        );
+        store.ingest(SuggestIngestionConstraints::all_providers());
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("simp")),
+            vec![simpsons_suggestion()],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("simps")),
+            vec![simpsons_suggestion()],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("simpson")),
+            vec![simpsons_suggestion()],
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn fakespot_updates_and_deletes() -> anyhow::Result<()> {
+        before_each();
+
+        let mut store = TestStore::new(
+            MockRemoteSettingsClient::default()
+                .with_record(
+                    "fakespot-suggestions",
+                    "fakespot-1",
+                    json!([snowglobe_fakespot(), simpsons_fakespot()]),
+                )
+                .with_icon(fakespot_amazon_icon()),
+        );
+        store.ingest(SuggestIngestionConstraints::all_providers());
+
+        // Update the snapshot so that:
+        //   - The Simpsons entry is deleted
+        //   - Snow globes now use sea glass instead of glitter
+        store.replace_client(
+            MockRemoteSettingsClient::default()
+                .with_record(
+                    "fakespot-suggestions",
+                    "fakespot-1",
+                    json!([snowglobe_fakespot()
+                        .merge(json!({"title": "Make Your Own Sea Glass Snow Globes"}))]),
+                )
+                .with_icon(fakespot_amazon_icon()),
+        );
+        store.ingest(SuggestIngestionConstraints::all_providers());
+
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("glitter")),
+            vec![],
+        );
+        assert!(matches!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("sea glass")).as_slice(),
+            [
+                Suggestion::Fakespot { title, .. }
+            ]
+            if title == "Make Your Own Sea Glass Snow Globes"
+        ));
+
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::fakespot("simpsons")),
+            vec![],
+        );
 
         Ok(())
     }

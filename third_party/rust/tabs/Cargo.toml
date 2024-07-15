@@ -38,6 +38,9 @@ path = "../support/error"
 [dependencies.interrupt-support]
 path = "../support/interrupt"
 
+[dependencies.payload-support]
+path = "../support/payload"
+
 [dependencies.rusqlite]
 version = "0.31.0"
 features = [

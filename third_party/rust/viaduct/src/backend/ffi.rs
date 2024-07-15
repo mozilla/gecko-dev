@@ -67,7 +67,7 @@ impl Backend for FfiBackend {
             .status
             .ok_or_else(|| backend_error!("Missing HTTP status"))?;
 
-        if status < 0 || status > i32::from(u16::max_value()) {
+        if status < 0 || status > i32::from(u16::MAX) {
             return Err(backend_error!("Illegal HTTP status: {}", status));
         }
 
