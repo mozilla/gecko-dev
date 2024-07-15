@@ -131,6 +131,25 @@ where
     for_element == for_candidate
 }
 
+/// Whether a given element and a candidate share a set of scope activations
+/// for revalidation.
+#[inline]
+pub fn revalidate_scope<E>(
+    target: &mut StyleSharingTarget<E>,
+    candidate: &mut StyleSharingCandidate<E>,
+    shared_context: &SharedStyleContext,
+    selector_caches: &mut SelectorCaches,
+) -> bool
+where
+    E: TElement,
+{
+    let stylist = &shared_context.stylist;
+    let for_element = target.scope_revalidation_results(stylist, selector_caches);
+    let for_candidate = candidate.scope_revalidation_results(stylist, selector_caches);
+
+    for_element == for_candidate
+}
+
 /// Checks whether we might have rules for either of the two ids.
 #[inline]
 pub fn may_match_different_id_rules<E>(

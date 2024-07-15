@@ -34,7 +34,7 @@ use crate::selector_parser::{
     NonTSPseudoClass, PerPseudoElementMap, PseudoElement, SelectorImpl, SnapshotMap,
 };
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
-use crate::sharing::RevalidationResult;
+use crate::sharing::{RevalidationResult, ScopeRevalidationResult};
 use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
 use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 use crate::stylesheets::container_rule::ContainerCondition;
@@ -1594,6 +1594,41 @@ impl Stylist {
                     true
                 },
             );
+        }
+
+        result
+    }
+
+    /// Computes currently active scopes for the given element for revalidation purposes.
+    pub fn revalidate_scopes<E: TElement>(
+        &self,
+        element: &E,
+        selector_caches: &mut SelectorCaches,
+        needs_selector_flags: NeedsSelectorFlags,
+    ) -> ScopeRevalidationResult {
+        let mut matching_context = MatchingContext::new(
+            MatchingMode::Normal,
+            None,
+            selector_caches,
+            self.quirks_mode,
+            needs_selector_flags,
+            MatchingForInvalidation::No,
+        );
+
+        let mut result = ScopeRevalidationResult::default();
+        let matches_document_rules =
+            element.each_applicable_non_document_style_rule_data(|data, host| {
+                matching_context.with_shadow_host(Some(host), |matching_context| {
+                    data.revalidate_scopes(self, element, matching_context, &mut result);
+                })
+            });
+
+        for (data, origin) in self.cascade_data.iter_origins() {
+            if origin == Origin::Author && !matches_document_rules {
+                continue;
+            }
+
+            data.revalidate_scopes(self, element, &mut matching_context, &mut result);
         }
 
         result
@@ -3747,6 +3782,29 @@ impl CascadeData {
     /// Returns the custom properties map.
     pub fn custom_property_registrations(&self) -> &LayerOrderedMap<Arc<PropertyRegistration>> {
         &self.custom_property_registrations
+    }
+
+    fn revalidate_scopes<E: TElement>(
+        &self,
+        stylist: &Stylist,
+        element: &E,
+        matching_context: &mut MatchingContext<E::Impl>,
+        result: &mut ScopeRevalidationResult,
+    ) {
+        // TODO(dshin): A scope block may not contain style rule for this element, but we don't keep
+        // track of that, so we check _all_ scope conditions. It's possible for two comparable elements
+        // to share scope & relevant styles rules, but also differ in scopes that do not contain style
+        // rules relevant to them. So while we can be certain that an identical result share scoped styles
+        // (Given that other sharing conditions are met), it is uncertain if elements with non-matching
+        // results do not.
+        for condition_id in 1..self.scope_conditions.len() {
+            result.scopes_matched.push(!self.scope_condition_matches(
+                ScopeConditionId(condition_id as u16),
+                stylist,
+                *element,
+                matching_context
+            ).is_empty());
+        }
     }
 
     /// Clears the cascade data, but not the invalidation data.
