@@ -408,6 +408,14 @@ typedef struct vpx_rc_gop_decision {
   vpx_rc_ref_frame_t ref_frame_list[VPX_RC_MAX_STATIC_GF_GROUP_LENGTH + 2];
 } vpx_rc_gop_decision_t;
 
+/*!\brief The decision made by the external rate control model to set the
+ * key frame location and the show frame count in the key frame group
+ */
+typedef struct vpx_rc_key_frame_decision {
+  int key_frame_show_index; /**< This key frame's show index in the video */
+  int key_frame_group_size; /**< Show frame count of this key frame group */
+} vpx_rc_key_frame_decision_t;
+
 /*!\brief Create an external rate control model callback prototype
  *
  * This callback is invoked by the encoder to create an external rate control
@@ -470,6 +478,18 @@ typedef vpx_rc_status_t (*vpx_rc_get_encodeframe_decision_cb_fn_t)(
 typedef vpx_rc_status_t (*vpx_rc_update_encodeframe_result_cb_fn_t)(
     vpx_rc_model_t rate_ctrl_model,
     const vpx_rc_encodeframe_result_t *encode_frame_result);
+
+/*!\brief Get the key frame decision from the external rate control model.
+ *
+ * This callback is invoked by the encoder to get key frame decision from
+ * the external rate control model.
+ *
+ * \param[in]  rate_ctrl_model    rate control model
+ * \param[out] key_frame_decision key frame decision from the model
+ */
+typedef vpx_rc_status_t (*vpx_rc_get_key_frame_decision_cb_fn_t)(
+    vpx_rc_model_t rate_ctrl_model,
+    vpx_rc_key_frame_decision_t *key_frame_decision);
 
 /*!\brief Get the GOP structure from the external rate control model.
  *
@@ -536,6 +556,10 @@ typedef struct vpx_rc_funcs {
    * Update encodeframe result to the external rate control model.
    */
   vpx_rc_update_encodeframe_result_cb_fn_t update_encodeframe_result;
+  /*!
+   * Get key frame decision from the external rate control model.
+   */
+  vpx_rc_get_key_frame_decision_cb_fn_t get_key_frame_decision;
   /*!
    * Get GOP decisions from the external rate control model.
    */
