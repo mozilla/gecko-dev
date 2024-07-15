@@ -52,14 +52,7 @@ class Rule {
     this.domRule = options.rule;
     this.compatibilityIssues = null;
 
-    if (this.domRule.hasMatchedSelectorIndexesTrait) {
-      this.matchedSelectorIndexes = options.matchedSelectorIndexes || [];
-    } else {
-      // @backward-compat { version 128 } this.matchedDesugaredSelectors can be removed
-      // once 128 hits release
-      this.matchedDesugaredSelectors = options.matchedDesugaredSelectors || [];
-    }
-
+    this.matchedSelectorIndexes = options.matchedSelectorIndexes || [];
     this.pseudoElement = options.pseudoElement || "";
     this.isSystem = options.isSystem;
     this.isUnmatched = options.isUnmatched || false;
@@ -108,23 +101,14 @@ class Rule {
   }
 
   get selector() {
-    const data = {
+    return {
       getUniqueSelector: this.getUniqueSelector,
+      matchedSelectorIndexes: this.matchedSelectorIndexes,
       selectors: this.domRule.selectors,
       selectorsSpecificity: this.domRule.selectorsSpecificity,
       selectorWarnings: this.domRule.selectors,
       selectorText: this.keyframes ? this.domRule.keyText : this.selectorText,
     };
-
-    if (this.domRule.hasMatchedSelectorIndexesTrait) {
-      data.matchedSelectorIndexes = this.matchedSelectorIndexes;
-    } else {
-      // @backward-compat { version 128 } matchedDesugaredSelectors can be removed
-      // once 128 hits release
-      data.matchedDesugaredSelectors = this.matchedDesugaredSelectors;
-    }
-
-    return data;
   }
 
   get sourceMapURLService() {
@@ -652,13 +636,8 @@ class Rule {
    * properties as needed.
    */
   refresh(options) {
-    if (this.domRule.hasMatchedSelectorIndexesTrait) {
-      this.matchedSelectorIndexes = options.matchedSelectorIndexes || [];
-    } else {
-      // @backward-compat { version 128 } this.matchedDesugaredSelectors can be removed
-      // once 128 hits release
-      this.matchedDesugaredSelectors = options.matchedDesugaredSelectors || [];
-    }
+    this.matchedSelectorIndexes = options.matchedSelectorIndexes || [];
+
     const newTextProps = this._getTextProperties();
 
     // The element style rule behaves differently on refresh. We basically need to update

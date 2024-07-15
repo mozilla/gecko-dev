@@ -93,33 +93,11 @@ class StyleRuleFront extends FrontClassWithSpec(styleRuleSpec) {
   }
 
   /**
-   * When a rule is nested in another non-at-rule (aka CSS Nesting), this will return
-   * the "full" selectors, which includes ancestor rules selectors.
-   * To compute it, the parent selector (&) is recursively replaced by the parent
-   * rule selector wrapped in `:is()`.
-   * For example, with the following nested rule: `body { & > main {} }`,
-   * the desugared selectors will be [`:is(body) > main`],
-   * while the "regular" selectors will only be [`main`].
-   *
-   * See https://www.w3.org/TR/css-nesting-1/#nest-selector for more information.
-   *
-   * @returns {Array<String>} An array of the desugared selectors for this rule.
-   *                          This falls back to the regular list of selectors
-   *                          when desugared selectors are not sent by the server.
-   */
-  get desugaredSelectors() {
-    // @backward-compat { version 128 } This whole function can be removed once 128 hits release
-    // We don't send the desugaredSelectors for top-level selectors, so fall back to
-    // the regular selectors in that case.
-    return this._form.desugaredSelectors || this._form.selectors;
-  }
-
-  /**
    * Returns a concatenation of the rule's selector and all its ancestor "selectors".
-   * This is different than desugaredSelector as what's returned is not an actual
-   * selector, but some kind of key that represent the rule selectors. This is used
-   * for the selector highlighter, where we need to know what's being highlighted (we shouldn't
-   * use desugaredSelector as it can be very expensive).
+   * This is different from a "desugared" selector as what's returned is not an
+   * actual selector, but some kind of key that represent the rule selectors.
+   * This is used for the selector highlighter, where we need to know what's
+   * being highlighted.
    *
    * @returns {String}
    */
@@ -175,11 +153,6 @@ class StyleRuleFront extends FrontClassWithSpec(styleRuleSpec) {
 
   get canSetRuleText() {
     return this._form.traits && this._form.traits.canSetRuleText;
-  }
-
-  // @backward-compat { version 128 } Can be removed when 128 hits release
-  get hasMatchedSelectorIndexesTrait() {
-    return this._form.traits?.hasMatchedSelectorIndexes;
   }
 
   get location() {

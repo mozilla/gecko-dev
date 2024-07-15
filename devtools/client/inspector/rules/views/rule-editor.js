@@ -356,13 +356,7 @@ RuleEditor.prototype = {
       // This is a "normal" rule with a selector.
       let computedSelector = "";
       if (this.rule.domRule.selectors) {
-        if (this.rule.domRule.hasMatchedSelectorIndexesTrait) {
-          computedSelector = this.rule.domRule.computedSelector;
-        } else {
-          // @backward-compat { version 128 } This else block can be removed once 128 hits
-          // release.
-          computedSelector = this.rule.domRule.desugaredSelectors?.join(", ");
-        }
+        computedSelector = this.rule.domRule.computedSelector;
         // Otherwise, the rule is either inherited or inline, and selectors will
         // be computed on demand when the highlighter is requested.
       }
@@ -641,9 +635,8 @@ RuleEditor.prototype = {
     } else if (this.rule.domRule.type === CSSRule.KEYFRAME_RULE) {
       this.selectorText.textContent = this.rule.domRule.keyText;
     } else {
-      const desugaredSelectors = this.rule.domRule.desugaredSelectors;
       this.rule.domRule.selectors.forEach((selector, i) => {
-        this._populateSelector(selector, i, desugaredSelectors);
+        this._populateSelector(selector, i);
       });
     }
 
@@ -689,11 +682,8 @@ RuleEditor.prototype = {
    *
    * @param {String} selector: The selector text to display
    * @param {Number} selectorIndex: Its index in the rule
-   * @param {Array<String>} desugaredSelectors: The array of desugared selectors for the
-   *        rule. This is only for backward compatibility and can be removed when 128
-   *        hits release.
    */
-  _populateSelector(selector, selectorIndex, desugaredSelectors) {
+  _populateSelector(selector, selectorIndex) {
     if (selectorIndex !== 0) {
       createChild(this.selectorText, "span", {
         class: "ruleview-selector-separator",
@@ -706,21 +696,10 @@ RuleEditor.prototype = {
     // Only add matched/unmatched class when the rule does have some matched
     // selectors. We don't always have some (e.g. rules for pseudo elements)
 
-    if (this.rule.domRule.hasMatchedSelectorIndexesTrait) {
-      if (this.rule.matchedSelectorIndexes.length) {
-        containerClass += this.rule.matchedSelectorIndexes.includes(
-          selectorIndex
-        )
-          ? "matched"
-          : "unmatched";
-      }
-    } else if (this.rule.matchedDesugaredSelectors.length) {
-      // @backward-compat { version 128 } This whole elseif block can be removed once 128
-      // hits release, as matchedDesugaredSelectors shouldn't be used then.
-      const desugaredSelector = desugaredSelectors[selectorIndex];
-      const matchedSelector =
-        this.rule.matchedDesugaredSelectors.includes(desugaredSelector);
-      containerClass += matchedSelector ? "matched" : "unmatched";
+    if (this.rule.matchedSelectorIndexes.length) {
+      containerClass += this.rule.matchedSelectorIndexes.includes(selectorIndex)
+        ? "matched"
+        : "unmatched";
     }
 
     let selectorContainerTitle;
@@ -996,11 +975,7 @@ RuleEditor.prototype = {
     this.isEditing = true;
 
     // Remove highlighter for the previous selector.
-    const computedSelector = this.rule.domRule.hasMatchedSelectorIndexesTrait
-      ? this.rule.domRule.computedSelector
-      : // @backward-compat { version 128 } We can remove the ternary and directly use
-        // this.rule.domRule.computedSelector once 128 hits release
-        this.rule.domRule.desugaredSelectors?.join(", ");
+    const computedSelector = this.rule.domRule.computedSelector;
     if (this.ruleView.isSelectorHighlighted(computedSelector)) {
       await this.ruleView.toggleSelectorHighlighter(
         this.rule,
