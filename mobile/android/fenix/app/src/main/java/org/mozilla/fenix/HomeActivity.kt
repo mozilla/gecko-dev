@@ -30,6 +30,7 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
@@ -157,6 +158,8 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     lateinit var browsingModeManager: BrowsingModeManager
 
     private var isVisuallyComplete = false
+
+    var isMicrosurveyPromptDismissed = mutableStateOf(false)
 
     private var privateNotificationObserver: PrivateNotificationFeature<PrivateNotificationService>? =
         null

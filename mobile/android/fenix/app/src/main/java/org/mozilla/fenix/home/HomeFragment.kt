@@ -25,8 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -602,16 +600,16 @@ class HomeFragment : Fragment() {
             content = {
                 FirefoxTheme {
                     Column {
-                        val shouldShowMicrosurveyPrompt =
-                            remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
-
-                        if (shouldShowMicrosurveyPrompt.value && !context.settings().shouldShowNavigationBarCFR) {
+                        if (!activity.isMicrosurveyPromptDismissed.value &&
+                            !context.settings().shouldShowNavigationBarCFR
+                        ) {
                             currentMicrosurvey.let {
                                 if (it == null) {
                                     binding.bottomBarShadow.visibility = View.VISIBLE
                                 } else {
                                     MicrosurveyRequestPrompt(
                                         microsurvey = it,
+                                        activity = activity,
                                         onStartSurveyClicked = {
                                             context.components.appStore.dispatch(
                                                 MicrosurveyAction.Started(it.id),
@@ -626,7 +624,6 @@ class HomeFragment : Fragment() {
                                                 MicrosurveyAction.Dismissed(it.id),
                                             )
                                             context.settings().shouldShowMicrosurveyPrompt = false
-                                            shouldShowMicrosurveyPrompt.value = false
                                         },
                                     )
 
@@ -794,18 +791,19 @@ class HomeFragment : Fragment() {
             content = {
                 FirefoxTheme {
                     Column {
-                        val shouldShowMicrosurveyPrompt =
-                            remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
+                        val activity = requireActivity() as HomeActivity
+
                         val shouldShowNavBarCFR =
                             context.shouldAddNavigationBar() && context.settings().shouldShowNavigationBarCFR
 
-                        if (shouldShowMicrosurveyPrompt.value && !shouldShowNavBarCFR) {
+                        if (!activity.isMicrosurveyPromptDismissed.value && !shouldShowNavBarCFR) {
                             currentMicrosurvey.let {
                                 if (it == null) {
                                     binding.bottomBarShadow.visibility = View.VISIBLE
                                 } else {
                                     MicrosurveyRequestPrompt(
                                         microsurvey = it,
+                                        activity = activity,
                                         onStartSurveyClicked = {
                                             context.components.appStore.dispatch(MicrosurveyAction.Started(it.id))
                                             findNavController().nav(
@@ -818,7 +816,6 @@ class HomeFragment : Fragment() {
                                                 MicrosurveyAction.Dismissed(it.id),
                                             )
                                             context.settings().shouldShowMicrosurveyPrompt = false
-                                            shouldShowMicrosurveyPrompt.value = false
                                         },
                                     )
 

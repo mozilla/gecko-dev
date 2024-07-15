@@ -30,6 +30,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
+import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
@@ -43,12 +44,14 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * Initial microsurvey prompt displayed to the user to request completion of feedback.
  *
  * @param microsurvey Contains the required microsurvey data for the UI.
+ * @param activity [HomeActivity] used to have access to [isMicrosurveyPromptDismissed]
  * @param onStartSurveyClicked Handles the on click event of the start survey button.
  * @param onCloseButtonClicked Invoked when the user clicks on the close button.
  */
 @Composable
 fun MicrosurveyRequestPrompt(
     microsurvey: MicrosurveyUIData,
+    activity: HomeActivity,
     onStartSurveyClicked: () -> Unit = {},
     onCloseButtonClicked: () -> Unit,
 ) {
@@ -56,9 +59,11 @@ fun MicrosurveyRequestPrompt(
     var isMicrosurveyVisible by remember { mutableStateOf(true) }
     isMicrosurveyVisible = isKeyboardVisible == KeyboardState.Closed
 
+    activity.isMicrosurveyPromptDismissed = remember { mutableStateOf(false) }
+
     // Animation properties for the microsurvey's visibility transitions.
     AnimatedVisibility(
-        visible = isMicrosurveyVisible,
+        visible = isMicrosurveyVisible && !activity.isMicrosurveyPromptDismissed.value,
         enter = slideInVertically(initialOffsetY = { it }),
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
@@ -70,7 +75,10 @@ fun MicrosurveyRequestPrompt(
                     .background(color = FirefoxTheme.colors.layer1)
                     .padding(all = 16.dp),
             ) {
-                Header(microsurvey.promptTitle) { onCloseButtonClicked() }
+                Header(microsurvey.promptTitle) {
+                    onCloseButtonClicked()
+                    activity.isMicrosurveyPromptDismissed.value = true
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -131,6 +139,7 @@ private fun MicrosurveyRequestPromptPreview() {
                 question = "",
                 answers = emptyList(),
             ),
+            activity = HomeActivity(),
             onStartSurveyClicked = {},
             onCloseButtonClicked = {},
         )

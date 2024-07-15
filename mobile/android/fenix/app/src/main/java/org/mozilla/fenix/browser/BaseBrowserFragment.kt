@@ -23,8 +23,6 @@ import androidx.annotation.CallSuper
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.layout.Column
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
@@ -146,7 +144,6 @@ import org.mozilla.fenix.components.FindInPageIntegration
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction
-import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerIntegration
@@ -1418,13 +1415,11 @@ abstract class BaseBrowserFragment :
             content = {
                 FirefoxTheme {
                     Column {
-                        val shouldShowMicrosurveyPrompt =
-                            remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
-
-                        if (shouldShowMicrosurveyPrompt.value) {
+                        if (!activity.isMicrosurveyPromptDismissed.value) {
                             currentMicrosurvey?.let {
                                 MicrosurveyRequestPrompt(
                                     microsurvey = it,
+                                    activity = activity,
                                     onStartSurveyClicked = {
                                         context.components.appStore.dispatch(MicrosurveyAction.Started(it.id))
                                         findNavController().nav(
@@ -1437,7 +1432,6 @@ abstract class BaseBrowserFragment :
                                             MicrosurveyAction.Dismissed(it.id),
                                         )
                                         context.settings().shouldShowMicrosurveyPrompt = false
-                                        shouldShowMicrosurveyPrompt.value = false
 
                                         resumeDownloadDialogState(
                                             getCurrentTab()?.id,
@@ -1578,13 +1572,13 @@ abstract class BaseBrowserFragment :
             content = {
                 FirefoxTheme {
                     Column {
-                        val shouldShowMicrosurveyPrompt =
-                            remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
+                        val activity = requireActivity() as HomeActivity
 
-                        if (shouldShowMicrosurveyPrompt.value) {
+                        if (!activity.isMicrosurveyPromptDismissed.value) {
                             currentMicrosurvey?.let {
                                 MicrosurveyRequestPrompt(
                                     microsurvey = it,
+                                    activity = activity,
                                     onStartSurveyClicked = {
                                         context.components.appStore.dispatch(MicrosurveyAction.Started(it.id))
                                         findNavController().nav(
@@ -1597,7 +1591,6 @@ abstract class BaseBrowserFragment :
                                             MicrosurveyAction.Dismissed(it.id),
                                         )
                                         context.settings().shouldShowMicrosurveyPrompt = false
-                                        shouldShowMicrosurveyPrompt.value = false
 
                                         resumeDownloadDialogState(
                                             getCurrentTab()?.id,
