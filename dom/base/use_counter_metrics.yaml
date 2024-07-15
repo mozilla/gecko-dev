@@ -20371,10 +20371,10 @@ use.counter.css.page:
     send_in_pings:
       - use-counters
 
-  css_position_try_options:
+  css_position_try_fallbacks:
     type: counter
     description: >
-      Whether a page used the CSS property position-try-options.
+      Whether a page used the CSS property position-try-fallbacks.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -32341,10 +32341,10 @@ use.counter.css.doc:
     send_in_pings:
       - use-counters
 
-  css_position_try_options:
+  css_position_try_fallbacks:
     type: counter
     description: >
-      Whether a document used the CSS property position-try-options.
+      Whether a document used the CSS property position-try-fallbacks.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:

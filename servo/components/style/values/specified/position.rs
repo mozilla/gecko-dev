@@ -506,11 +506,11 @@ impl PositionAnchor {
 )]
 #[css(bitflags(mixed = "flip-block,flip-inline,flip-start"))]
 #[repr(C)]
-/// https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic
+/// https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic
 /// <try-tactic>
-pub struct PositionTryOptionsTryTactic(u8);
+pub struct PositionTryFallbacksTryTactic(u8);
 bitflags! {
-    impl PositionTryOptionsTryTactic: u8 {
+    impl PositionTryFallbacksTryTactic: u8 {
         /// `flip-block`
         const FLIP_BLOCK = 1 << 0;
         /// `flip-inline`
@@ -532,13 +532,13 @@ bitflags! {
     ToShmem,
 )]
 #[repr(C)]
-/// https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-options
+/// https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-fallbacks
 /// <dashed-ident> || <try-tactic>
 pub struct DashedIdentAndOrTryTactic {
     /// `<dashed-ident>`
     pub ident: DashedIdent,
     /// `<try-tactic>`
-    pub try_tactic: PositionTryOptionsTryTactic,
+    pub try_tactic: PositionTryFallbacksTryTactic,
 }
 
 impl Parse for DashedIdentAndOrTryTactic {
@@ -548,7 +548,7 @@ impl Parse for DashedIdentAndOrTryTactic {
     ) -> Result<Self, ParseError<'i>> {
         let mut result = Self {
             ident: DashedIdent::empty(),
-            try_tactic: PositionTryOptionsTryTactic::empty(),
+            try_tactic: PositionTryFallbacksTryTactic::empty(),
         };
 
         loop {
@@ -560,7 +560,7 @@ impl Parse for DashedIdentAndOrTryTactic {
             }
             if result.try_tactic.is_empty() {
                 if let Ok(try_tactic) =
-                    input.try_parse(|i| PositionTryOptionsTryTactic::parse(context, i))
+                    input.try_parse(|i| PositionTryFallbacksTryTactic::parse(context, i))
                 {
                     result.try_tactic = try_tactic;
                     continue;
@@ -589,9 +589,9 @@ impl Parse for DashedIdentAndOrTryTactic {
     ToShmem,
 )]
 #[repr(u8)]
-/// https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-options
+/// https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-fallbacks
 /// [ [<dashed-ident> || <try-tactic>] | <'inset-area'> ]
-pub enum PositionTryOptionsItem {
+pub enum PositionTryFallbacksItem {
     /// `<dashed-ident> || <try-tactic>`
     IdentAndOrTactic(DashedIdentAndOrTryTactic),
     #[parse(parse_fn = "InsetArea::parse_except_none")]
@@ -613,14 +613,14 @@ pub enum PositionTryOptionsItem {
 )]
 #[css(comma)]
 #[repr(C)]
-/// https://drafts.csswg.org/css-anchor-position-1/#position-try-options
-pub struct PositionTryOptions(
+/// https://drafts.csswg.org/css-anchor-position-1/#position-try-fallbacks
+pub struct PositionTryFallbacks(
     #[css(iterable, if_empty = "none")]
     #[ignore_malloc_size_of = "Arc"]
-    pub crate::ArcSlice<PositionTryOptionsItem>,
+    pub crate::ArcSlice<PositionTryFallbacksItem>,
 );
 
-impl PositionTryOptions {
+impl PositionTryFallbacks {
     #[inline]
     /// Return the `none` value.
     pub fn none() -> Self {
@@ -633,7 +633,7 @@ impl PositionTryOptions {
     }
 }
 
-impl Parse for PositionTryOptions {
+impl Parse for PositionTryFallbacks {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -643,10 +643,10 @@ impl Parse for PositionTryOptions {
         }
         // The common case is unlikely to include many alternate positioning
         // styles, so space for four on the stack should typically be enough.
-        let mut items: SmallVec<[PositionTryOptionsItem; 4]> =
-            smallvec![PositionTryOptionsItem::parse(context, input)?];
+        let mut items: SmallVec<[PositionTryFallbacksItem; 4]> =
+            smallvec![PositionTryFallbacksItem::parse(context, input)?];
         while input.try_parse(|input| input.expect_comma()).is_ok() {
-            items.push(PositionTryOptionsItem::parse(context, input)?);
+            items.push(PositionTryFallbacksItem::parse(context, input)?);
         }
         Ok(Self(ArcSlice::from_iter(items.drain(..))))
     }
