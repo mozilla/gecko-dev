@@ -45,32 +45,33 @@ ENABLE_DOTPROD
 #define LOOP_ALIGN      2
 
 
-// Lookup table used to help conversion of shifted 32-bit values to 8-bit.
-        .align 4
-L(hv_tbl_neon_dotprod):
-        .byte  1,  2,  5,  6,   9, 10, 13, 14,  17, 18, 21, 22,  25, 26, 29, 30
-
-// Shuffle indices to permute horizontal samples in preparation for input to
-// SDOT instructions. The 8-tap horizontal convolution uses sample indices in the
-// interval of [-3, 4] relative to the current sample position.
-        .align 4
-L(h_tbl_neon_dotprod):
+const h_tbl_neon_dotprod, align=4
+        // Shuffle indices to permute horizontal samples in preparation for
+        // input to SDOT instructions. The 8-tap horizontal convolution uses
+        // sample indices in the interval of [-3, 4] relative to the current
+        // sample position.
         .byte  0,  1,  2,  3,   1,  2,  3,  4,   2,  3,  4,  5,   3,  4,  5,  6
         .byte  4,  5,  6,  7,   5,  6,  7,  8,   6,  7,  8,  9,   7,  8,  9, 10
         .byte  8,  9, 10, 11,   9, 10, 11, 12,  10, 11, 12, 13,  11, 12, 13, 14
 
-// Vertical convolutions are also using SDOT instructions, where a 128-bit
-// register contains a transposed 4x4 matrix of values. Subsequent iterations of
-// the vertical convolution can reuse the 3x4 sub-matrix from the previous loop
-// iteration. These shuffle indices shift and merge this 4x4 matrix with the
-// values of a new line.
-        .align 4
-L(v_tbl_neon_dotprod):
+        // Lookup table used to help conversion of shifted 32-bit values to 8-bit.
+#define OFFSET_CVT_32_8 48
+        .byte  1,  2,  5,  6,   9, 10, 13, 14,  17, 18, 21, 22,  25, 26, 29, 30
+endconst
+
+const v_tbl_neon_dotprod, align=4
+        // Vertical convolutions are also using SDOT instructions, where a
+        // 128-bit register contains a transposed 4x4 matrix of values.
+        // Subsequent iterations of the vertical convolution can reuse the
+        // 3x4 sub-matrix from the previous loop iteration. These shuffle
+        // indices shift and merge this 4x4 matrix with the values of a new
+        // line.
         .byte  1,  2,  3, 16,   5,  6,  7, 20,   9, 10, 11, 24,  13, 14, 15, 28
         .byte  1,  2,  3, 16,   5,  6,  7, 17,   9, 10, 11, 18,  13, 14, 15, 19
         .byte  1,  2,  3, 20,   5,  6,  7, 21,   9, 10, 11, 22,  13, 14, 15, 23
         .byte  1,  2,  3, 24,   5,  6,  7, 25,   9, 10, 11, 26,  13, 14, 15, 27
         .byte  1,  2,  3, 28,   5,  6,  7, 29,   9, 10, 11, 30,  13, 14, 15, 31
+endconst
 
 
 .macro make_8tap_fn op, type, type_h, type_v, isa, jump=1
@@ -109,7 +110,7 @@ function \type\()_8tap_\isa, align=FUNC_ALIGN
         .align JUMP_ALIGN
 L(\type\()_8tap_v_\isa):
         madd            \my, \my, w11, w10
-        ldr             q6, L(v_tbl_neon_dotprod)
+        movrel          x13, v_tbl_neon_dotprod
         sub             \src, \src, \s_strd
 .ifc \isa, neon_dotprod
     .ifc \type, prep
@@ -121,12 +122,12 @@ L(\type\()_8tap_v_\isa):
 .endif
         ubfx            w11, \my, #7, #7
         and             \my, \my, #0x7F
-        ldr             q28, L(v_tbl_neon_dotprod) + 16
+        ldp             q6, q28, [x13]
         cmp             \h, #4
         csel            \my, \my, w11, le
         sub             \src, \src, \s_strd, lsl #1     // src - s_strd * 3
         add             \xmy, x12, \xmy, lsl #3         // subpel V filter address
-        ldr             q29, L(v_tbl_neon_dotprod) + 32
+        ldr             q29, [x13, #32]
 .ifc \isa, neon_dotprod
         movi            v5.16b, #128
 .endif
@@ -137,8 +138,7 @@ L(\type\()_8tap_v_\isa):
 
         // .align JUMP_ALIGN    // fallthrough
 160:    // V - 16xN+
-        ldr             q30, L(v_tbl_neon_dotprod) + 48
-        ldr             q31, L(v_tbl_neon_dotprod) + 64
+        ldp             q30, q31, [x13, #48]
 .ifc \type, prep
         add             \wd_strd, \w, \w
 .endif
@@ -676,12 +676,13 @@ L(\type\()_8tap_v_\isa):
 L(\type\()_8tap_h_hv_\isa):
         madd            \mx, \mx, w11, w9
         madd            w14, \my, w11, w10      // for HV
-        ldr             q28, L(h_tbl_neon_dotprod)
 .ifc \isa, neon_dotprod
         mov             w13, 0x2002             // FILTER_WEIGHT * 128 + rounding
         dup             v27.4s, w13             // put H overrides this
 .endif
+        movrel          x13, h_tbl_neon_dotprod
         sub             \src, \src, #3          // src - 3
+        ldr             q28, [x13]
         ubfx            w9, \mx, #7, #7
         and             \mx, \mx, #0x7F
         ubfx            w11, w14, #7, #7        // for HV
@@ -702,8 +703,8 @@ L(\type\()_8tap_h_hv_\isa):
         mov             x15, x30
         ldr             d7, [\xmy]
 .ifc \type, put
-        ldr             q25, L(hv_tbl_neon_dotprod)
-.endif
+        ldr             q25, [x13, #(OFFSET_CVT_32_8)] // LUT to help conversion
+.endif                                                 // of 32b values to 8b
         sxtl            v7.8h, v7.8b
         cmp             w10, SHARP1
         b.ne            L(\type\()_6tap_hv_\isa)    // vertical != SHARP1
@@ -718,8 +719,7 @@ L(\type\()_8tap_h_hv_\isa):
 
         // .align JUMP_ALIGN    // fallthrough
 80:     // HV8 - 8xN+
-        ldr             q29, L(h_tbl_neon_dotprod) + 16
-        ldr             q30, L(h_tbl_neon_dotprod) + 32
+        ldp             q29, q30, [x13, #16]
         ldr             d26, [\xmx]
 .ifc \type, prep
         add             \wd_strd, \w, \w
@@ -860,7 +860,7 @@ L(\type\()_8tap_h_hv_\isa):
 
         .align JUMP_ALIGN
 40:     // HV8 - 4xN
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
@@ -930,7 +930,7 @@ L(\type\()_8tap_h_hv_\isa):
 .ifc \type, put
         .align JUMP_ALIGN
 20:     // HV8 - 2xN
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
@@ -1005,13 +1005,11 @@ L(\type\()_6tap_hv_\isa):
 
         // .align JUMP_ALIGN    // fallthrough
 80:     // HV6 - 8xN+
-        ldr             q29, L(h_tbl_neon_dotprod) + 16
-        ldr             q30, L(h_tbl_neon_dotprod) + 32
+        ldp             q29, q30, [x13, #16]
         ldr             d26, [\xmx]
 .ifc \type, prep
         add             \wd_strd, \w, \w
 .endif
-
         .align LOOP_ALIGN
 81:
         mov             \lsrc, \src
@@ -1145,7 +1143,7 @@ L(\type\()_hv_filter4_\isa):
 
         .align JUMP_ALIGN
 40:     // HV6 - 4xN
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
@@ -1206,7 +1204,7 @@ L(\type\()_hv_filter4_\isa):
 .ifc \type, put
         .align JUMP_ALIGN
 20:     // HV6 - 2xN
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
         add             \src, \src, #2
 
         bl              L(\type\()_hv_filter4_\isa)
@@ -1284,7 +1282,7 @@ L(\type\()_8tap_h_\isa):
 20:     // H - 2xN
         AARCH64_VALID_JUMP_TARGET
         add             \src, \src, #2
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
 
         .align LOOP_ALIGN
 2:
@@ -1321,7 +1319,7 @@ L(\type\()_8tap_h_\isa):
 40:     // H - 4xN
         AARCH64_VALID_JUMP_TARGET
         add             \src, \src, #2
-        ldr             s26, [\xmx, #2]
+        ldur            s26, [\xmx, #2]
 
         .align LOOP_ALIGN
 4:
@@ -1370,8 +1368,7 @@ L(\type\()_8tap_h_\isa):
         .align JUMP_ALIGN
 80:     // H - 8xN
         AARCH64_VALID_JUMP_TARGET
-        ldr             q29, L(h_tbl_neon_dotprod) + 16
-        ldr             q30, L(h_tbl_neon_dotprod) + 32
+        ldp             q29, q30, [x13, #16]
         ldr             d26, [\xmx]
 
         .align LOOP_ALIGN
@@ -1436,14 +1433,13 @@ L(\type\()_8tap_h_\isa):
         .align JUMP_ALIGN
 160:    // H - 16xN
         AARCH64_VALID_JUMP_TARGET
-        ldr             q29, L(h_tbl_neon_dotprod) + 16
-        ldr             q30, L(h_tbl_neon_dotprod) + 32
+        ldp             q29, q30, [x13, #16]
         ldr             d26, [\xmx]
 
         .align LOOP_ALIGN
 16:
         ldr             q16, [\src]
-        ldr             q17, [\src, #12]  // avoid 2 register TBL for small cores
+        ldur            q17, [\src, #12]  // avoid 2 register TBL for small cores
         add             \src, \src, \s_strd
 .ifc \type\()_\isa, prep_neon_i8mm
         movi            v6.4s, #0
@@ -1501,8 +1497,7 @@ L(\type\()_8tap_h_\isa):
 640:
 1280:
         AARCH64_VALID_JUMP_TARGET
-        ldr             q29, L(h_tbl_neon_dotprod) + 16
-        ldr             q30, L(h_tbl_neon_dotprod) + 32
+        ldp             q29, q30, [x13, #16]
         ldr             d26, [\xmx]
 .ifc \type, put
         sub             \d_strd, \d_strd, \w, uxtw
@@ -1513,7 +1508,7 @@ L(\type\()_8tap_h_\isa):
         .align LOOP_ALIGN
 32:
         ldr             q16, [\src]
-        ldr             q17, [\src, #12]  // avoid 2 register TBL for small cores
+        ldur            q17, [\src, #12]  // avoid 2 register TBL for small cores
         add             \src, \src, #16
 .ifc \type\()_\isa, prep_neon_i8mm
         movi            v6.4s, #0
