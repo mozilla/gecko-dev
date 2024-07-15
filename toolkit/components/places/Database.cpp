@@ -8,7 +8,6 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_places.h"
-#include "mozilla/glean/GleanMetrics.h"
 
 #include "Database.h"
 
@@ -146,25 +145,6 @@ bool isRecentCorruptFile(const nsCOMPtr<nsIFile>& aCorruptFile) {
   return NS_SUCCEEDED(aCorruptFile->GetLastModifiedTime(&lastMod)) &&
          lastMod > 0 && (PR_Now() - lastMod) <= RECENT_BACKUP_TIME_MICROSEC;
 }
-
-// Defines the stages in the process of replacing a corrupt database.
-enum eCorruptDBReplaceStage : int8_t {
-  stage_closing = 0,
-  stage_removing,
-  stage_reopening,
-  stage_replaced,
-  stage_cloning,
-  stage_cloned,
-  stage_count
-};
-
-/**
- * Maps a database replacement stage (eCorruptDBReplaceStage) to its string
- * representation.
- */
-static constexpr nsLiteralCString sCorruptDBStages[stage_count] = {
-    "stage_closing"_ns,  "stage_removing"_ns, "stage_reopening"_ns,
-    "stage_replaced"_ns, "stage_cloning"_ns,  "stage_cloned"_ns};
 
 /**
  * Removes a file, optionally adding a suffix to the file name.
@@ -861,6 +841,14 @@ nsresult Database::BackupAndReplaceDatabaseFile(
   // The only thing we can try to do is to replace the database on the next
   // startup, and report the problem through telemetry.
   {
+    enum eCorruptDBReplaceStage : int8_t {
+      stage_closing = 0,
+      stage_removing,
+      stage_reopening,
+      stage_replaced,
+      stage_cloning,
+      stage_cloned
+    };
     eCorruptDBReplaceStage stage = stage_closing;
     auto guard = MakeScopeExit([&]() {
       // In case we failed to close the connection or remove the database file,
@@ -872,10 +860,6 @@ nsresult Database::BackupAndReplaceDatabaseFile(
       Telemetry::Accumulate(
           Telemetry::PLACES_DATABASE_CORRUPTION_HANDLING_STAGE,
           static_cast<int8_t>(stage));
-
-      glean::places::places_database_corruption_handling_stage
-          .Get(NS_ConvertUTF16toUTF8(aDbFilename))
-          .Set(sCorruptDBStages[stage]);
     });
 
     // Close database connection if open.
