@@ -29,6 +29,7 @@ main = [
   "SuggestStore.interrupt",
   "SuggestStoreBuilder",
   "SuggestStoreBuilder.data_path",
+  "SuggestStoreBuilder.load_extension",
   "SuggestStoreBuilder.remote_settings_bucket_name",
   "SuggestStoreBuilder.remote_settings_server",
   "SuggestStoreBuilder.build",

@@ -797,18 +797,14 @@ export class SuggestStoreBuilder {
                 }
                 throw e;
             }
-            return UniFFIScaffolding.callAsync(
+            return UniFFIScaffolding.callSync(
                 27, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(libraryName),
                 FfiConverterOptionalstring.lower(entrypoint),
             )
         }
-        try {
-            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
-        }  catch (error) {
-            return Promise.reject(error)
-        }
+        return handleRustResult(functionCall(), liftResult, liftError);
     }
 
     remoteSettingsBucketName(bucketName) {
