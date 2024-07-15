@@ -123,6 +123,12 @@
   height: 2px;
   border-radius: 2px;
   margin: -3px 2px 0;
+
+  #tabbrowser-tabs[orient="vertical"] & {
+    height: 100%;
+    margin: 0 -2px;
+    width: 2px;
+  }
 }
 
 .userContext-icon,
