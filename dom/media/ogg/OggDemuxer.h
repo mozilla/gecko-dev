@@ -111,12 +111,11 @@ class OggDemuxer : public MediaDataDemuxer,
                             const media::TimeUnit& aStartTime,
                             const media::TimeUnit& aEndTime, bool aExact);
 
-  // Seeks to aTarget usecs in the buffered range aRange using bisection search,
-  // or to the keyframe prior to aTarget if we have video. aAdjustedTarget is
-  // an adjusted version of the target used to account for Opus pre-roll, if
-  // necessary. aStartTime must be the presentation time at the start of media,
-  // and aEndTime the time at end of media. aRanges must be the time/byte ranges
-  // buffered in the media cache as per GetSeekRanges().
+  // Seeks to aTarget usecs in the buffered range aRange using bisection search.
+  // aAdjustedTarget is an adjusted version of the target used to account for
+  // Opus pre-roll, if necessary. aStartTime must be the presentation time at
+  // the start of media, and aEndTime the time at end of media. aRanges must be
+  // the time/byte ranges buffered in the media cache as per GetSeekRanges().
   nsresult SeekInBufferedRange(TrackInfo::TrackType aType,
                                const media::TimeUnit& aTarget,
                                media::TimeUnit& aAdjustedTarget,
@@ -125,8 +124,8 @@ class OggDemuxer : public MediaDataDemuxer,
                                const nsTArray<SeekRange>& aRanges,
                                const SeekRange& aRange);
 
-  // Seeks to before aTarget usecs in media using bisection search. If the media
-  // has video, this will seek to before the keyframe required to render the
+  // Seeks to before aTarget usecs in media using bisection search.
+  // This will seek to the packet required to render the
   // media at aTarget. Will use aRanges in order to narrow the bisection
   // search space. aStartTime must be the presentation time at the start of
   // media, and aEndTime the time at end of media. aRanges must be the time/byte
@@ -138,8 +137,8 @@ class OggDemuxer : public MediaDataDemuxer,
                             const nsTArray<SeekRange>& aRanges);
 
   // Performs a seek bisection to move the media stream's read cursor to the
-  // last ogg page boundary which has end time before aTarget usecs on both the
-  // Theora and Vorbis bitstreams. Limits its search to data inside aRange;
+  // last ogg page boundary which has end time before aTarget usecs
+  // on the Vorbis bitstreams. Limits its search to data inside aRange;
   // i.e. it will only read inside of the aRange's start and end offsets.
   // aFuzz is the number of usecs of leniency we'll allow; we'll terminate the
   // seek when we land in the range (aTime - aFuzz, aTime) usecs.
@@ -259,9 +258,6 @@ class OggDemuxer : public MediaDataDemuxer,
   // Map of codec-specific bitstream states.
   OggCodecStore mCodecStore;
 
-  // Decode state of the Theora bitstream we're decoding, if we have video.
-  OggCodecState* mTheoraState;
-
   // Decode state of the Vorbis bitstream we're decoding, if we have audio.
   OggCodecState* mVorbisState;
 
@@ -299,7 +295,6 @@ class OggDemuxer : public MediaDataDemuxer,
   MediaResourceIndex* Resource(TrackInfo::TrackType aType);
   MediaResourceIndex* CommonResource();
   OggStateContext mAudioOggState;
-  OggStateContext mVideoOggState;
 
   Maybe<media::TimeUnit> mStartTime;
 
@@ -313,10 +308,6 @@ class OggDemuxer : public MediaDataDemuxer,
   bool HaveStartTime(TrackInfo::TrackType aType);
   media::TimeUnit StartTime() const;
   media::TimeUnit StartTime(TrackInfo::TrackType aType);
-
-  // The picture region inside Theora frame to be displayed, if we have
-  // a Theora video track.
-  gfx::IntRect mPicture;
 
   // True if we are decoding a chained ogg.
   bool mIsChained;

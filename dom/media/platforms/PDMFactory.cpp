@@ -19,7 +19,6 @@
 #include "MP4Decoder.h"
 #include "MediaChangeMonitor.h"
 #include "MediaInfo.h"
-#include "TheoraDecoder.h"
 #include "VPXDecoder.h"
 #include "VideoUtils.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -845,9 +844,6 @@ DecodeSupportSet PDMFactory::SupportsMimeType(
       return MCSInfo::GetDecodeSupportSet(MediaCodec::AV1, aSupported);
     }
 #endif
-    if (TheoraDecoder::IsTheora(aMimeType)) {
-      return MCSInfo::GetDecodeSupportSet(MediaCodec::Theora, aSupported);
-    }
     if (MP4Decoder::IsHEVC(aMimeType)) {
       return MCSInfo::GetDecodeSupportSet(MediaCodec::HEVC, aSupported);
     }
@@ -880,7 +876,6 @@ DecodeSupportSet PDMFactory::SupportsMimeType(
 bool PDMFactory::AllDecodersAreRemote() {
   return StaticPrefs::media_rdd_process_enabled() &&
          StaticPrefs::media_rdd_opus_enabled() &&
-         StaticPrefs::media_rdd_theora_enabled() &&
          StaticPrefs::media_rdd_vorbis_enabled() &&
          StaticPrefs::media_rdd_vpx_enabled() &&
 #if defined(MOZ_WMF)
