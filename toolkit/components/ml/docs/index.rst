@@ -10,6 +10,7 @@ of the browser. To try out some inference tasks, you can refer to the
 `1000+ models <https://huggingface.co/models?library=transformers.js>`_
 that are available in the Hugging Face Hub that are compatible with this runtime.
 
+To enable the engine, flip the `browser.ml.enable` preference to `true` in `about:config`.
 
 Running the pipeline API
 ::::::::::::::::::::::::
@@ -24,17 +25,15 @@ In the example below, a text summarization task is performed using the `summariz
 
 .. code-block:: javascript
 
-  const {PipelineOptions, EngineProcess } = ChromeUtils.importESModule("chrome://global/content/ml/EngineProcess.sys.mjs");
-  const options = new PipelineOptions(
-    {
+  const { createEngine } = ChromeUtils.importESModule("chrome://global/content/ml/EngineProcess.sys.mjs");
+  const options = {
     taskName: "summarization",
     modelId: "mozilla/text_summarization",
     modelRevision: "main"
     }
   );
 
-  const engineParent = await EngineProcess.getMLEngineParent();
-  const engine = engineParent.getEngine(options);
+  const engine = await createEngine(options);
 
   const text = 'The tower is 324 metres (1,063 ft) tall, about the same height as an 81-storey building, ' +
   'and the tallest structure in Paris. Its base is square, measuring 125 metres (410 ft) on each side. ' +
@@ -52,6 +51,36 @@ In the example below, a text summarization task is performed using the `summariz
 
 When running this code, Firefox will look for models in the Mozilla model hub located at https://model-hub.mozilla.org
 which contains a curated list of models.
+
+Available Options
+:::::::::::::::::
+
+Options passed to the `createEngine` function are verified and converted into a `PipelineOptions` object.
+
+Below are the options available:
+
+- taskName: The name of the task the pipeline is configured for.
+- timeoutMS: The maximum amount of time in milliseconds the pipeline should wait for a response.
+- modelHubRootUrl: The root URL of the model hub where models are hosted.
+- modelHubUrlTemplate: A template URL for building the full URL for the model.
+- modelId: The identifier for the specific model to be used by the pipeline.
+- modelRevision: The revision for the specific model to be used by the pipeline.
+- tokenizerId: The identifier for the tokenizer associated with the model, used for pre-processing inputs.
+- tokenizerRevision: The revision for the tokenizer associated with the model, used for pre-processing inputs.
+- processorId: The identifier for any processor required by the model, used for additional input processing.
+- processorRevision: The revision for any processor required by the model, used for additional input processing.
+- logLevel: The log level used in the worker
+- runtimeFilename: Name of the runtime wasm file.
+
+**taskName** and **modelId** are required, the others are optional and will be filled automatically
+using values pulled from Remote Settings when the task id is recognized.
+
+Some values are also set from the preferences (set in `about:config`):
+
+- browser.ml.logLevel
+- browser.ml.modelHubRootUrl
+- browser.ml.modelHubUrlTemplate
+- browser.ml.modelCacheTimeout
 
 
 Using the Hugging Face model hub
@@ -79,17 +108,13 @@ In the example below, an image is converted to text using the `moz-image-to-text
 
 .. code-block:: javascript
 
-  const {PipelineOptions, EngineProcess } = ChromeUtils.importESModule("chrome://global/content/ml/EngineProcess.sys.mjs");
+  const { createEngine } = ChromeUtils.importESModule("chrome://global/content/ml/EngineProcess.sys.mjs");
 
-  // First we create a pipeline options object, which contains the task name
-  // and any other options needed for the task
-  const options = new PipelineOptions({taskName: "moz-image-to-text" });
+  // options needed for the task
+  const options = {taskName: "moz-image-to-text" };
 
-  // Next, we create an engine parent object via EngineProcess
-  const engineParent = await EngineProcess.getMLEngineParent();
-
-  // We then create the engine object, using the options
-  const engine = engineParent.getEngine(options);
+  // We create the engine object, using the options
+  const engine = await createEngine(options);
 
   // Preparing a request
   const request = {url: "https://huggingface.co/datasets/mishig/sample_images/resolve/main/football-match.jpg"};

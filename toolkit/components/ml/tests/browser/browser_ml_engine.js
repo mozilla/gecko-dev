@@ -36,6 +36,7 @@ async function setup({ disabled = false, prefs = [] } = {}) {
   };
 }
 
+const RAW_PIPELINE_OPTIONS = { taskName: "moz-echo" };
 const PIPELINE_OPTIONS = new PipelineOptions({ taskName: "moz-echo" });
 
 async function checkForRemoteType(remoteType) {
@@ -51,11 +52,8 @@ async function checkForRemoteType(remoteType) {
 add_task(async function test_ml_engine_basics() {
   const { cleanup, remoteClients } = await setup();
 
-  info("Get the engine process");
-  const mlEngineParent = await EngineProcess.getMLEngineParent();
-
   info("Get summarizer");
-  const summarizer = mlEngineParent.getEngine(PIPELINE_OPTIONS);
+  const summarizer = await createEngine(RAW_PIPELINE_OPTIONS);
 
   info("Check the inference process is running");
   Assert.equal(await checkForRemoteType("inference"), true);

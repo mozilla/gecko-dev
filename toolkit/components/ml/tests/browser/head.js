@@ -20,7 +20,7 @@ const { getRuntimeWasmFilename } = ChromeUtils.importESModule(
   "chrome://global/content/ml/Utils.sys.mjs"
 );
 
-const { PipelineOptions } = ChromeUtils.importESModule(
+const { createEngine, PipelineOptions } = ChromeUtils.importESModule(
   "chrome://global/content/ml/EngineProcess.sys.mjs"
 );
 

@@ -423,3 +423,16 @@ export class EngineProcess {
     element.remove();
   }
 }
+
+/**
+ * Creates a new ML engine instance with the provided options.
+ *
+ * @param {object} options - Configuration options for the ML engine.
+ * @returns {Promise<MLEngine>} - A promise that resolves to the ML engine instance.
+ *
+ */
+export async function createEngine(options) {
+  const pipelineOptions = new PipelineOptions(options);
+  const engineParent = await EngineProcess.getMLEngineParent();
+  return engineParent.getEngine(pipelineOptions);
+}
