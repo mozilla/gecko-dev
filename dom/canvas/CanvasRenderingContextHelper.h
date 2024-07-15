@@ -83,7 +83,7 @@ class CanvasRenderingContextHelper {
   already_AddRefed<nsICanvasRenderingContextInternal> CreateContextHelper(
       CanvasContextType aContextType, layers::LayersBackend aCompositorBackend);
 
-  virtual nsIntSize GetWidthHeight() = 0;
+  virtual CSSIntSize GetWidthHeight() = 0;
 
   CanvasContextType mCurrentContextType;
   nsCOMPtr<nsICanvasRenderingContextInternal> mCurrentContext;

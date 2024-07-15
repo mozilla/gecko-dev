@@ -177,11 +177,11 @@ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(CanvasFeatureUsage);
 
 class CanvasUsage {
  public:
-  nsIntSize mSize;
+  CSSIntSize mSize;
   dom::CanvasContextType mType;
   CanvasFeatureUsage mFeatureUsage;
 
-  CanvasUsage(nsIntSize aSize, dom::CanvasContextType aType,
+  CanvasUsage(CSSIntSize aSize, dom::CanvasContextType aType,
               CanvasFeatureUsage aFeatureUsage)
       : mSize(aSize), mType(aType), mFeatureUsage(aFeatureUsage) {}
 };

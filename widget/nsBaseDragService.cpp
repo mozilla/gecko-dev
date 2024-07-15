@@ -1031,9 +1031,9 @@ nsresult nsBaseDragSession::DrawDragForImage(
     aScreenDragRect->SizeTo(aPresContext->CSSPixelsToDevPixels(imageWidth),
                             aPresContext->CSSPixelsToDevPixels(imageHeight));
   } else {
-    // XXX The canvas size should be converted to dev pixels.
+    // Bug 1907668: The canvas size should be converted to dev pixels.
     NS_ASSERTION(aCanvas, "both image and canvas are null");
-    nsIntSize sz = aCanvas->GetSize();
+    CSSIntSize sz = aCanvas->GetSize();
     aScreenDragRect->SizeTo(sz.width, sz.height);
   }
 

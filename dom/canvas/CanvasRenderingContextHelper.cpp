@@ -98,7 +98,7 @@ void CanvasRenderingContextHelper::ToBlob(EncodeCompleteCallback* aCallback,
                                           bool aUsingCustomOptions,
                                           bool aUsePlaceholder,
                                           ErrorResult& aRv) {
-  const nsIntSize elementSize = GetWidthHeight();
+  const CSSIntSize elementSize = GetWidthHeight();
   if (mCurrentContext) {
     // We disallow canvases of width or height zero, and set them to 1, so
     // we will have a discrepancy with the sizes of the canvas and the context.
@@ -119,7 +119,8 @@ void CanvasRenderingContextHelper::ToBlob(EncodeCompleteCallback* aCallback,
 
   aRv = ImageEncoder::ExtractDataAsync(
       aType, aEncodeOptions, aUsingCustomOptions, std::move(imageBuffer),
-      format, {imageSize.width, imageSize.height}, aUsePlaceholder, callback);
+      format, CSSIntSize::FromUnknownSize(imageSize), aUsePlaceholder,
+      callback);
 }
 
 UniquePtr<uint8_t[]> CanvasRenderingContextHelper::GetImageBuffer(
@@ -266,7 +267,7 @@ nsresult CanvasRenderingContextHelper::UpdateContext(
     ErrorResult& aRvForDictionaryInit) {
   if (!mCurrentContext) return NS_OK;
 
-  nsIntSize sz = GetWidthHeight();
+  CSSIntSize sz = GetWidthHeight();
 
   nsCOMPtr<nsICanvasRenderingContextInternal> currentContext = mCurrentContext;
 

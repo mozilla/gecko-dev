@@ -601,10 +601,10 @@ nsresult nsPageSequenceFrame::PrePrintNextSheet(nsITimerCallback* aCallback,
       }
 
       for (HTMLCanvasElement* canvas : Reversed(mCurrentCanvasList)) {
-        nsIntSize size = canvas->GetSize();
+        CSSIntSize size = canvas->GetSize();
 
-        RefPtr<DrawTarget> canvasTarget =
-            drawTarget->CreateSimilarDrawTarget(size, drawTarget->GetFormat());
+        RefPtr<DrawTarget> canvasTarget = drawTarget->CreateSimilarDrawTarget(
+            size.ToUnknownSize(), drawTarget->GetFormat());
         if (!canvasTarget) {
           continue;
         }

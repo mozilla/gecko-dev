@@ -139,9 +139,7 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
 
   virtual bool GetOpaqueAttr() override { return false; }
 
-  virtual nsIntSize GetWidthHeight() override {
-    return nsIntSize(mWidth, mHeight);
-  }
+  CSSIntSize GetWidthHeight() override { return CSSIntSize(mWidth, mHeight); }
 
   virtual already_AddRefed<nsICanvasRenderingContextInternal> CreateContext(
       CanvasContextType aContextType) override;
