@@ -115,7 +115,7 @@ class EnhancedTrackingProtectionRobot {
     fun verifyFingerprintersBlocked(isBlocked: Boolean) {
         assertUIObjectExists(itemWithResId("$packageName:id/fingerprinters"))
         Log.i(TAG, "verifyFingerprintersBlocked: Trying to click fingerprinters block list button")
-        fingerprintersBlockListButton().click()
+        knownFingerprintersBlockListButton().click()
         Log.i(TAG, "verifyFingerprintersBlocked: Clicked fingerprinters block list button")
         // Verifies the trackers block/allow list
         Log.i(TAG, "verifyFingerprintersBlocked: Trying to verify fingerprinters are blocked: $isBlocked")
@@ -335,10 +335,10 @@ private fun cryptominersBlockListButton() =
         ),
     )
 
-private fun fingerprintersBlockListButton() =
+private fun knownFingerprintersBlockListButton() =
     onView(
         allOf(
             withId(R.id.fingerprinters),
-            withText("Fingerprinters"),
+            withText("Known Fingerprinters"),
         ),
     )

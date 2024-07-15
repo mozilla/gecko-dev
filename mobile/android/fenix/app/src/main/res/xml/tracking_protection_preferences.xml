@@ -70,13 +70,26 @@
         android:dependency="@string/pref_key_tracking_protection_custom_option"
         android:key="@string/pref_key_tracking_protection_custom_fingerprinters"
         android:layout="@layout/checkbox_left_preference_etp"
-        android:title="@string/preference_enhanced_tracking_protection_custom_fingerprinters" />
+        android:title="@string/preference_enhanced_tracking_protection_custom_known_fingerprinters" />
     <CheckBoxPreference
         android:defaultValue="true"
         android:dependency="@string/pref_key_tracking_protection_custom_option"
         android:key="@string/pref_key_tracking_protection_redirect_trackers"
         android:layout="@layout/checkbox_left_preference_etp"
         android:title="@string/etp_redirect_trackers_title" />
+    <CheckBoxPreference
+        android:defaultValue="true"
+        android:dependency="@string/pref_key_tracking_protection_custom_option"
+        android:key="@string/pref_key_tracking_protection_suspected_fingerprinters"
+        android:layout="@layout/checkbox_left_preference_etp"
+        android:title="@string/etp_suspected_fingerprinters_title" />
+    <org.mozilla.fenix.settings.DropDownListPreference
+        android:defaultValue="@string/private_string"
+        android:dependency="@string/pref_key_tracking_protection_suspected_fingerprinters"
+        android:entries="@array/tracking_content_options_entries"
+        android:entryValues="@array/suspected_fingerprinters_entry_values"
+        android:key="@string/pref_key_tracking_protection_suspected_fingerprinters_select"
+        app:useSimpleSummaryProvider="true" />
     <androidx.preference.SwitchPreference
         android:defaultValue="false"
         android:key="@string/pref_key_privacy_enable_global_privacy_control"

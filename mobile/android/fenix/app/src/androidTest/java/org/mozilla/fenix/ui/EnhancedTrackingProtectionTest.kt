@@ -408,7 +408,8 @@ class EnhancedTrackingProtectionTest : TestSetup() {
             selectTrackingProtectionOption("Cookies")
             selectTrackingProtectionOption("Tracking content")
             selectTrackingProtectionOption("Cryptominers")
-            selectTrackingProtectionOption("Fingerprinters")
+            selectTrackingProtectionOption("Known Fingerprinters")
+            selectTrackingProtectionOption("Suspected Fingerprinters")
             selectTrackingProtectionOption("Redirect Trackers")
         }.goBackToHomeScreen {
             mDevice.waitForIdle()

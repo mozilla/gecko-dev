@@ -190,9 +190,15 @@ class SettingsSubMenuEnhancedTrackingProtectionRobot {
         Log.i(TAG, "verifyCustomTrackingProtectionSettings: Trying to verify that the \"Cryptominers\" check box is displayed")
         cryptominersCheckbox().check(matches(isDisplayed()))
         Log.i(TAG, "verifyCustomTrackingProtectionSettings: Verified that the \"Cryptominers\" check box is displayed")
-        Log.i(TAG, "verifyCustomTrackingProtectionSettings: Trying to verify that the \"Fingerprinters\" check box is displayed")
-        fingerprintersCheckbox().check(matches(isDisplayed()))
-        Log.i(TAG, "verifyCustomTrackingProtectionSettings: Verified that the \"Fingerprinters\" check box is displayed")
+        Log.i(TAG, "verifyCustomTrackingProtectionSettings: Trying to verify that the \"Known Fingerprinters\" check box is displayed")
+        knownFingerprintersCheckbox().check(matches(isDisplayed()))
+        Log.i(TAG, "verifyCustomTrackingProtectionSettings: Verified that the \"Known Fingerprinters\" check box is displayed")
+        Log.i(TAG, "verifyCustomTrackingProtectionSettings: Trying to verify that the \"Suspected Fingerprinters\" check box is displayed")
+        suspectedFingerprintersCheckbox().check(matches(isDisplayed()))
+        Log.i(TAG, "verifyCustomTrackingProtectionSettings: Verified that the \"Suspected Fingerprinters\" check box is displayed")
+        Log.i(TAG, "verifyCustomTrackingProtectionSettings: Trying to verify that the \"Suspected Fingerprinters\" drop down is displayed")
+        suspectedFingerprintersDropDownDefault().check(matches(isDisplayed()))
+        Log.i(TAG, "verifyCustomTrackingProtectionSettings: Verified that the \"Suspected Fingerprinters\" drop down is displayed")
         Log.i(TAG, "verifyCustomTrackingProtectionSettings: Trying to verify that the \"Redirect trackers\" check box is displayed")
         redirectTrackersCheckbox().check(matches(isDisplayed()))
         Log.i(TAG, "verifyCustomTrackingProtectionSettings: Verified that the \"Redirect trackers\" check box is displayed")
@@ -318,17 +324,21 @@ private fun openExceptions() =
 
 private fun cookiesCheckbox() = onView(withText("Cookies"))
 
-private fun cookiesDropDownMenuDefault() = onView(withText("Isolate cross-site cookies"))
+private fun cookiesDropDownMenuDefault() = onView(withText(R.string.preference_enhanced_tracking_protection_custom_cookies_5))
 
-private fun trackingContentCheckbox() = onView(withText("Tracking content"))
+private fun trackingContentCheckbox() = onView(withText(R.string.preference_enhanced_tracking_protection_custom_tracking_content))
 
-private fun trackingcontentDropDownDefault() = onView(withText("In all tabs"))
+private fun trackingcontentDropDownDefault() = onView(withText(R.string.preference_enhanced_tracking_protection_custom_tracking_content_1))
 
-private fun cryptominersCheckbox() = onView(withText("Cryptominers"))
+private fun cryptominersCheckbox() = onView(withText(R.string.etp_cryptominers_title))
 
-private fun fingerprintersCheckbox() = onView(withText("Fingerprinters"))
+private fun knownFingerprintersCheckbox() = onView(withText(R.string.etp_known_fingerprinters_title))
 
-private fun redirectTrackersCheckbox() = onView(withText("Redirect Trackers"))
+private fun suspectedFingerprintersCheckbox() = onView(withText(R.string.etp_suspected_fingerprinters_title))
+
+private fun suspectedFingerprintersDropDownDefault() = onView(withText(R.string.preference_enhanced_tracking_protection_custom_tracking_content_2))
+
+private fun redirectTrackersCheckbox() = onView(withText(R.string.etp_redirect_trackers_title))
 
 private fun blockedByStandardETPInfo() {
     Log.i(TAG, "blockedByStandardETPInfo: Trying to verify that the \"Social Media Trackers\" title is displayed")
@@ -349,9 +359,9 @@ private fun blockedByStandardETPInfo() {
     Log.i(TAG, "blockedByStandardETPInfo: Trying to verify that the \"Cryptominers\" summary is displayed")
     onView(withText("Prevents malicious scripts gaining access to your device to mine digital currency.")).check(matches(isDisplayed()))
     Log.i(TAG, "blockedByStandardETPInfo: Verified that the \"Cryptominers\" summary is displayed")
-    Log.i(TAG, "blockedByStandardETPInfo: Trying to verify that the \"Fingerprinters\" title is displayed")
-    onView(withText("Fingerprinters")).check(matches(isDisplayed()))
-    Log.i(TAG, "blockedByStandardETPInfo: Verified that the \"Fingerprinters\" title is displayed")
+    Log.i(TAG, "blockedByStandardETPInfo: Trying to verify that the \"Known Fingerprinters\" title is displayed")
+    onView(withText("Known Fingerprinters")).check(matches(isDisplayed()))
+    Log.i(TAG, "blockedByStandardETPInfo: Verified that the \"Known Fingerprinters\" title is displayed")
     Log.i(TAG, "blockedByStandardETPInfo: Trying to verify that the \"Fingerprinters\" summary is displayed")
     onView(withText("Stops uniquely identifiable data from being collected about your device that can be used for tracking purposes.")).check(matches(isDisplayed()))
     Log.i(TAG, "blockedByStandardETPInfo: Verified that the \"Fingerprinters\" summary is displayed")
