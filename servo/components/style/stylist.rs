@@ -42,8 +42,7 @@ use crate::stylesheets::import_rule::ImportLayer;
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::layer_rule::{LayerName, LayerOrder};
 use crate::stylesheets::scope_rule::{
-    collect_scope_roots, element_is_outside_of_scope, ImplicitScopeRoot, ScopeRootCandidate,
-    ScopeTarget,
+    collect_scope_roots, element_is_outside_of_scope, ImplicitScopeRoot, ScopeRootCandidate, ScopeSubjectMap, ScopeTarget
 };
 #[cfg(feature = "gecko")]
 use crate::stylesheets::{
@@ -2640,6 +2639,9 @@ pub struct CascadeData {
     /// The list of scope conditions, indexed by their id.
     scope_conditions: SmallVec<[ScopeConditionReference; 1]>,
 
+    /// Map of unique selectors on scope start selectors' subjects.
+    scope_subject_map: ScopeSubjectMap,
+
     /// Effective media query results cached from the last rebuild.
     effective_media_query_results: EffectiveMediaQueryResults,
 
@@ -2699,6 +2701,7 @@ impl CascadeData {
             layers: smallvec::smallvec![CascadeLayer::root()],
             container_conditions: smallvec::smallvec![ContainerConditionReference::none()],
             scope_conditions: smallvec::smallvec![ScopeConditionReference::none()],
+            scope_subject_map: Default::default(),
             extra_data: ExtraStyleData::default(),
             effective_media_query_results: EffectiveMediaQueryResults::new(),
             rules_source_order: 0,
@@ -2996,7 +2999,7 @@ impl CascadeData {
         };
 
         let potential_scope_roots = if is_outermost_scope {
-            collect_scope_roots(element, None, context, &root_target, matches_shadow_host)
+            collect_scope_roots(element, None, context, &root_target, matches_shadow_host, &self.scope_subject_map)
         } else {
             let mut result = vec![];
             for activation in &outer_scope_roots {
@@ -3006,6 +3009,7 @@ impl CascadeData {
                     context,
                     &root_target,
                     matches_shadow_host,
+                    &self.scope_subject_map,
                 );
                 result.append(&mut this_result);
             }
@@ -3071,6 +3075,7 @@ impl CascadeData {
         self.mapped_ids.shrink_if_needed();
         self.layer_id.shrink_if_needed();
         self.selectors_for_cache_revalidation.shrink_if_needed();
+        self.scope_subject_map.shrink_if_needed();
     }
 
     fn compute_layer_order(&mut self) {
@@ -3599,6 +3604,10 @@ impl CascadeData {
                         ScopeBoundsWithHashes::new(quirks_mode, start, end)
                     };
 
+                    if let Some(selectors) = replaced.start.as_ref() {
+                        self.scope_subject_map.add_bound_start(&selectors.selectors, quirks_mode);
+                    }
+
                     self.scope_conditions.push(ScopeConditionReference {
                         parent: containing_rule_state.scope_condition_id,
                         condition: Some(replaced),
@@ -3850,6 +3859,7 @@ impl CascadeData {
         self.nth_of_mapped_ids.clear();
         self.selectors_for_cache_revalidation.clear();
         self.effective_media_query_results.clear();
+        self.scope_subject_map.clear();
     }
 }
 
