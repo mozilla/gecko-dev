@@ -3213,7 +3213,9 @@ class _DSCard extends (external_React_default()).PureComponent {
     return /*#__PURE__*/external_React_default().createElement("article", {
       className: `ds-card ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
       ref: this.setContextMenuButtonHostRef
-    }, /*#__PURE__*/external_React_default().createElement("div", {
+    }, this.props.showTopics && this.props.topic && /*#__PURE__*/external_React_default().createElement("span", {
+      className: "ds-card-topic"
+    }, this.props.topic), /*#__PURE__*/external_React_default().createElement("div", {
       className: "img-wrapper"
     }, /*#__PURE__*/external_React_default().createElement(DSImage, {
       extraClassNames: "img",
@@ -3578,6 +3580,7 @@ const TopicsWidget = (0,external_ReactRedux_namespaceObject.connect)(state => ({
 
 const PREF_ONBOARDING_EXPERIENCE_DISMISSED = "discoverystream.onboardingExperience.dismissed";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
+const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
 const CardGrid_VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -3851,6 +3854,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const showRecentSaves = prefs.showRecentSaves && recentSavesEnabled;
     const isOnboardingExperienceDismissed = prefs[PREF_ONBOARDING_EXPERIENCE_DISMISSED];
     const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
+    const showTopics = prefs[PREF_TOPICS_ENABLED];
     const recs = this.props.data.recommendations.slice(0, items);
     const cards = [];
     let essentialReadsCards = [];
@@ -3868,6 +3872,8 @@ class _CardGrid extends (external_React_default()).PureComponent {
         word_count: rec.word_count,
         time_to_read: rec.time_to_read,
         title: rec.title,
+        topic: rec.topic,
+        showTopics: showTopics,
         excerpt: rec.excerpt,
         url: rec.url,
         id: rec.id,
