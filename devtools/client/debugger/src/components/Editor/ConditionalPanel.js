@@ -116,6 +116,9 @@ export class ConditionalPanel extends PureComponent {
 
   showConditionalPanel(prevProps) {
     const { location, editor, breakpoint, selectedSource } = this.props;
+    if (!selectedSource || !location) {
+      return;
+    }
     // When breakpoint is removed
     if (prevProps?.breakpoint && !breakpoint) {
       editor.removeLineContentMarker(markerTypes.CONDITIONAL_BP_MARKER);
@@ -182,6 +185,9 @@ export class ConditionalPanel extends PureComponent {
       this.clearConditionalPanel();
     }
     const { location, editor } = props;
+    if (!location) {
+      return;
+    }
 
     const editorLine = toEditorLine(location.source.id, location.line || 0);
     this.cbPanel = editor.codeMirror.addLineWidget(
@@ -309,7 +315,7 @@ const mapStateToProps = state => {
   const location = getConditionalPanelLocation(state);
 
   if (!location) {
-    throw new Error("Conditional panel location needed.");
+    return {};
   }
 
   const breakpoint = getClosestBreakpoint(state, location);

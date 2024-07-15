@@ -195,9 +195,8 @@ export class HighlightLine extends Component {
 
 export default connect(state => {
   const selectedLocation = getSelectedLocation(state);
-
   if (!selectedLocation) {
-    throw new Error("must have selected location");
+    return {};
   }
   return {
     pauseCommand: getPauseCommand(state, getCurrentThread(state)),
