@@ -85,6 +85,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ResetPBMPanel: "resource:///modules/ResetPBMPanel.sys.mjs",
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.sys.mjs",
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
+  SandboxUtils: "resource://gre/modules/SandboxUtils.sys.mjs",
   SaveToPocket: "chrome://pocket/content/SaveToPocket.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
   SearchSERPCategorization: "resource:///modules/SearchSERPTelemetry.sys.mjs",
@@ -1713,6 +1714,16 @@ BrowserGlue.prototype = {
     );
   },
 
+  _verifySandboxUserNamespaces: function BG_verifySandboxUserNamespaces(aWin) {
+    if (!AppConstants.MOZ_SANDBOX) {
+      return;
+    }
+
+    lazy.SandboxUtils.maybeWarnAboutMissingUserNamespaces(
+      aWin.gNotificationBox
+    );
+  },
+
   _earlyBlankFirstPaint(cmdLine) {
     let startTime = Cu.now();
     if (
@@ -1975,6 +1986,8 @@ BrowserGlue.prototype = {
       "browser.contentblocking.features.strict",
       this._setPrefExpectationsAndUpdate
     );
+
+    this._verifySandboxUserNamespaces(aWindow);
   },
 
   _maybeOfferProfileReset() {
