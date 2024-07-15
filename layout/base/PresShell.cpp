@@ -3093,11 +3093,16 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
   //       end node.
   // 3.4.2 While target is non-null and is not an element, set target to
   //       target's parent.
+  // ------
+  // Common closest ancestor is not suitable here, as it can scroll to positions
+  // where no text directive is visible. Instead, scroll to the start container
+  // of the text directive.
+  // see https://bugzil.la/1906895 and
+  // https://github.com/WICG/scroll-to-text-fragment/issues/259
   Element* textFragmentTargetElement = [&aFirstTextDirective]() -> Element* {
-    nsINode* node =
-        aFirstTextDirective
-            ? aFirstTextDirective->GetClosestCommonInclusiveAncestor()
-            : nullptr;
+    nsINode* node = aFirstTextDirective
+                        ? aFirstTextDirective->GetStartContainer()
+                        : nullptr;
     while (node && !node->IsElement()) {
       node = node->GetParent();
     }
