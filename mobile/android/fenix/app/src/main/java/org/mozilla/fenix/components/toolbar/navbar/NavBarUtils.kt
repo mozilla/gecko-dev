@@ -6,12 +6,14 @@ package org.mozilla.fenix.components.toolbar.navbar
 
 import android.content.Context
 import mozilla.components.support.utils.ext.isLandscape
+import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.ext.settings
 
 /**
  * Returns true if navigation bar should be displayed. The returned value depends on the feature state, as well as the
- * device type and orientation – we don't show the navigation bar for tablets and in landscape mode.
+ * device type and orientation – we don't show the navigation bar for tablets, landscape or when tab strip is enabled.
  * NB: don't use it with the app context – it doesn't get recreated when a foldable changes its modes.
  */
-fun Context.shouldAddNavigationBar() = settings().navigationToolbarEnabled && !isLandscape() && !isTablet()
+fun Context.shouldAddNavigationBar() = settings().navigationToolbarEnabled && !isLandscape() &&
+    !isTablet() && !isTabStripEnabled()
