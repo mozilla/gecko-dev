@@ -8,6 +8,7 @@ import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -117,6 +118,7 @@ class SettingsPrivacyTest {
         }
     }
 
+    @Ignore("Failing on Beta, see https://bugzilla.mozilla.org/show_bug.cgi?id=1906806")
     @Test
     fun verifyCrossSiteCookiesBlockedTest() {
         val sameSiteCookiesUrl = getStorageTestAsset(webServer, "same-site-cookies.html").url
