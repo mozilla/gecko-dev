@@ -119,11 +119,5 @@
   // _TopSites.scss
   .top-site-outer {
     margin-block-end: 0;
-
-    .top-site-inner>a {
-      // Setting individual properties to negative undefined variable reference ($half-base-gutter)
-      padding-top: var(--space-xsmall);
-      padding-bottom: var(--space-xsmall);
-    }
   }
 }
