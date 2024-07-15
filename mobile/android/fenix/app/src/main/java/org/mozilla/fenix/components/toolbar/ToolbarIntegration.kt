@@ -6,6 +6,7 @@ package org.mozilla.fenix.components.toolbar
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import mozilla.components.browser.state.selector.normalTabs
@@ -119,7 +120,22 @@ class DefaultToolbarIntegration(
             DisplayToolbar.Indicators.HIGHLIGHT,
         )
 
+        addNewTabBrowserAction()
         addTabCounterBrowserAction()
+    }
+
+    private fun addNewTabBrowserAction() {
+        val newTabAction = BrowserToolbar.Button(
+            imageDrawable = AppCompatResources.getDrawable(context, R.drawable.mozac_ic_plus_24)!!,
+            contentDescription = context.getString(R.string.library_new_tab),
+            visible = {
+                context.settings().navigationToolbarEnabled && !context.shouldAddNavigationBar()
+            },
+            iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
+            listener = interactor::onNewTabButtonClicked,
+        )
+
+        toolbar.addBrowserAction(newTabAction)
     }
 
     private fun addTabCounterBrowserAction() {
