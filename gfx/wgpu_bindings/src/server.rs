@@ -549,10 +549,12 @@ pub unsafe extern "C" fn wgpu_server_buffer_get_mapped_range(
         Some(size)
     ));
 
-    let (ptr, length) = result.unwrap_or_else(|error| {
-        error_buf.init(error);
-        (std::ptr::null_mut(), 0)
-    });
+    let (ptr, length) = result
+        .map(|(ptr, len)| (ptr.as_ptr(), len))
+        .unwrap_or_else(|error| {
+            error_buf.init(error);
+            (std::ptr::null_mut(), 0)
+        });
     MappedBufferSlice { ptr, length }
 }
 

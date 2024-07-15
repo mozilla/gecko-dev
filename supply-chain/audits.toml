@@ -1478,7 +1478,7 @@ who = [
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
+delta = "0.20.0 -> 0.20.0@git:a0c185a28c232ee2ab63f72d6fd3a63a3f787309"
 importable = false
 
 [[audits.darling]]
@@ -3066,7 +3066,7 @@ who = [
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
+delta = "0.20.0 -> 0.20.0@git:a0c185a28c232ee2ab63f72d6fd3a63a3f787309"
 importable = false
 
 [[audits.net2]]
@@ -5019,7 +5019,7 @@ who = [
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
+delta = "0.20.0 -> 0.20.0@git:a0c185a28c232ee2ab63f72d6fd3a63a3f787309"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -5087,7 +5087,7 @@ who = [
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
+delta = "0.20.0 -> 0.20.0@git:a0c185a28c232ee2ab63f72d6fd3a63a3f787309"
 importable = false
 
 [[audits.wgpu-types]]
@@ -5155,7 +5155,7 @@ who = [
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
+delta = "0.20.0 -> 0.20.0@git:a0c185a28c232ee2ab63f72d6fd3a63a3f787309"
 importable = false
 
 [[audits.whatsys]]
