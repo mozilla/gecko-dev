@@ -2697,6 +2697,7 @@ export class nsContextMenu {
       }
 
       if (displayName) {
+        translateSelectionItem.setAttribute("target-language", toLanguage);
         this.document.l10n.setAttributes(
           translateSelectionItem,
           this.isTextSelected
@@ -2710,6 +2711,7 @@ export class nsContextMenu {
 
     // Either no to-language exists, or an error occurred,
     // so localize the menuitem without a target language.
+    translateSelectionItem.removeAttribute("target-language");
     this.document.l10n.setAttributes(
       translateSelectionItem,
       this.isTextSelected
@@ -2774,6 +2776,7 @@ export class nsContextMenu {
       this.#isFullPageTranslationsActive();
 
     if (translateSelectionItem.hidden) {
+      translateSelectionItem.removeAttribute("target-language");
       return;
     }
 

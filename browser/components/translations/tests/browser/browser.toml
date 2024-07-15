@@ -107,6 +107,12 @@ skip-if = ["os == 'linux' && !debug"] # Bug 1863227
 
 ["browser_translations_select_context_menu_feature_disabled.js"]
 
+["browser_translations_select_context_menu_preferred_app_locales.js"]
+
+["browser_translations_select_context_menu_preferred_language_edge_cases.js"]
+
+["browser_translations_select_context_menu_preferred_web_languages.js"]
+
 ["browser_translations_select_context_menu_with_full_page_translations_active.js"]
 
 ["browser_translations_select_context_menu_with_hyperlink.js"]
