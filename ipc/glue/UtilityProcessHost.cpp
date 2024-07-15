@@ -277,11 +277,15 @@ void UtilityProcessHost::Shutdown() {
   DestroyProcess();
 }
 
-void UtilityProcessHost::OnChannelClosed() {
+void UtilityProcessHost::OnChannelClosed(
+    IProtocol::ActorDestroyReason aReason) {
   MOZ_ASSERT(NS_IsMainThread());
   LOGD("[%p] UtilityProcessHost::OnChannelClosed", this);
 
-  RejectPromise(LaunchError("UtilityProcessHost::OnChannelClosed"));
+  // `aReason` was not originally passed into this function; a value of 0 for
+  // the `why` in telemetry means it's from an older build with no info
+  RejectPromise(
+      LaunchError("UtilityProcessHost::OnChannelClosed", 1 + (long)aReason));
 
   if (!mShutdownRequested && mListener) {
     // This is an unclean shutdown. Notify our listener that we're going away.

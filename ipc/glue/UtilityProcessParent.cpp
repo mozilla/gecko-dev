@@ -177,7 +177,7 @@ void UtilityProcessParent::ActorDestroy(ActorDestroyReason aWhy) {
     NS_WARNING("Could not get a nsIObserverService, ipc:utility-shutdown skip");
   }
 
-  mHost->OnChannelClosed();
+  mHost->OnChannelClosed(aWhy);
 }
 
 // To ensure that IPDL is finished before UtilityParent gets deleted.
