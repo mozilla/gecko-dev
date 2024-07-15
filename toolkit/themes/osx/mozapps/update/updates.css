@@ -48,9 +48,6 @@
 }
 
 #update-button-box button {
-  appearance: auto;
-  -moz-default-appearance: toolbarbutton;
-  color: ButtonText;
   min-height: 22px;
 }
 
