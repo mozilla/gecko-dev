@@ -2862,6 +2862,8 @@ impl CascadeData {
         element: E,
         context: &mut MatchingContext<E::Impl>,
     ) -> ScopeProximity {
+        context.extra_data.cascade_input_flags.insert(ComputedValueFlags::CONSIDERED_SCOPED_STYLE);
+
         let candidates = self.scope_condition_matches(
             rule.scope_condition_id,
             stylist,
