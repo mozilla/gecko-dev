@@ -72,16 +72,16 @@ add_task(async _ => {
 
   let tests = [
     {
-      cookie: "foo=b;max-age=3600, c=d;path=/; sameSite=strict",
+      cookie: "foo=b;max-age=3600;path=/; sameSite=strict",
       sameSite: 2,
       rawSameSite: 2,
     },
     {
-      cookie: "foo=b;max-age=3600, c=d;path=/; sameSite=lax",
+      cookie: "foo=b;max-age=3600;path=/; sameSite=lax",
       sameSite: 1,
       rawSameSite: 1,
     },
-    { cookie: "foo=b;max-age=3600, c=d;path=/", sameSite: 1, rawSameSite: 0 },
+    { cookie: "foo=b;max-age=3600;path=/", sameSite: 1, rawSameSite: 0 },
   ];
 
   for (let i = 0; i < tests.length; ++i) {

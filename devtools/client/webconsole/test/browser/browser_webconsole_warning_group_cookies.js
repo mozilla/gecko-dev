@@ -148,3 +148,49 @@ add_task(async function testInvalidSameSiteMessage() {
 });
 
 add_task(cleanUp);
+
+add_task(async function testInvalidMaxAgeMessage() {
+  const message1 =
+    "Invalid “max-age“ value for cookie “a”. The attribute is ignored.";
+  const message2 =
+    "Invalid “max-age“ value for cookie “b”. The attribute is ignored.";
+
+  const { hud, tab, win } = await openNewWindowAndConsole(
+    "http://example.org/" + TEST_FILE
+  );
+
+  info("Test cookie messages");
+
+  SpecialPowers.spawn(tab.linkedBrowser, [], () => {
+    content.wrappedJSObject.createCookie("a=1; max-age=abc; samesite=lax");
+    content.wrappedJSObject.createCookie("b=1; max-age=1,2; samesite=lax");
+  });
+
+  const { node } = await waitForMessageByType(hud, COOKIE_GROUP, ".warn");
+  is(
+    node.querySelector(".warning-group-badge").textContent,
+    "2",
+    "The badge has the expected text"
+  );
+
+  await checkConsoleOutputForWarningGroup(hud, [`▶︎⚠ ${COOKIE_GROUP} 2`]);
+
+  info("Open the group");
+  node.querySelector(".arrow").click();
+  await waitFor(() => findWarningMessage(hud, "Cookie"));
+
+  await checkConsoleOutputForWarningGroup(hud, [
+    `▼︎⚠ ${COOKIE_GROUP} 2`,
+    `| ${message1}`,
+    `| ${message2}`,
+  ]);
+
+  // Source map are being resolved in background and we might have
+  // pending request related to this service if we close the window
+  // immeditely. So just wait for these request to finish before proceeding.
+  await hud.toolbox.sourceMapURLService.waitForSourcesLoading();
+
+  await win.close();
+});
+
+add_task(cleanUp);

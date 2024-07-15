@@ -6,10 +6,12 @@
 #include "CookieParser.h"
 #include "CookieLogging.h"
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/net/Cookie.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/TextUtils.h"
 #include "nsIConsoleReportCollector.h"
 #include "nsIScriptError.h"
 #include "nsIURI.h"
@@ -23,6 +25,7 @@ constexpr auto CONSOLE_CHIPS_CATEGORY = "cookiesCHIPS"_ns;
 constexpr auto CONSOLE_OVERSIZE_CATEGORY = "cookiesOversize"_ns;
 constexpr auto CONSOLE_REJECTION_CATEGORY = "cookiesRejection"_ns;
 constexpr auto CONSOLE_SAMESITE_CATEGORY = "cookieSameSite"_ns;
+constexpr auto CONSOLE_INVALID_ATTRIBUTE_CATEGORY = "cookieInvalidAttribute"_ns;
 constexpr auto SAMESITE_MDN_URL =
     "https://developer.mozilla.org/docs/Web/HTTP/Headers/Set-Cookie/"
     u"SameSite"_ns;
@@ -158,8 +161,8 @@ CookieParser::~CookieParser() {
 
   for (const char* attribute : mWarnings.mAttributeOverwritten) {
     CookieLogging::LogMessageToConsole(
-        mCRC, mHostURI, nsIScriptError::warningFlag, CONSOLE_OVERSIZE_CATEGORY,
-        "CookieAttributeOverwritten"_ns,
+        mCRC, mHostURI, nsIScriptError::warningFlag,
+        CONSOLE_INVALID_ATTRIBUTE_CATEGORY, "CookieAttributeOverwritten"_ns,
         AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(mCookieData.name()),
                                 NS_ConvertUTF8toUTF16(attribute)});
   }
@@ -168,6 +171,13 @@ CookieParser::~CookieParser() {
     CookieLogging::LogMessageToConsole(
         mCRC, mHostURI, nsIScriptError::infoFlag, CONSOLE_SAMESITE_CATEGORY,
         "CookieSameSiteValueInvalid2"_ns,
+        AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(mCookieData.name())});
+  }
+
+  if (mWarnings.mInvalidMaxAgeAttribute) {
+    CookieLogging::LogMessageToConsole(
+        mCRC, mHostURI, nsIScriptError::infoFlag,
+        CONSOLE_INVALID_ATTRIBUTE_CATEGORY, "CookieInvalidMaxAgeAttribute"_ns,
         AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(mCookieData.name())});
   }
 
@@ -641,6 +651,52 @@ bool CookieParser::CheckPrefixes(CookieStruct& aCookieData,
   return true;
 }
 
+bool CookieParser::ParseMaxAgeAttribute(const nsACString& aMaxage,
+                                        int64_t* aValue) {
+  MOZ_ASSERT(aValue);
+
+  if (aMaxage.IsEmpty()) {
+    return false;
+  }
+
+  nsACString::const_char_iterator iter;
+  aMaxage.BeginReading(iter);
+
+  nsACString::const_char_iterator end;
+  aMaxage.EndReading(end);
+
+  // Negative values mean that the cookie is already expired. Don't bother to
+  // parse.
+  if (*iter == '-') {
+    *aValue = INT64_MIN;
+    return true;
+  }
+
+  CheckedInt<int64_t> value(0);
+
+  for (; iter != end; ++iter) {
+    if (!mozilla::IsAsciiDigit(*iter)) {
+      mWarnings.mInvalidMaxAgeAttribute = true;
+      return false;
+    }
+
+    value *= 10;
+    if (!value.isValid()) {
+      *aValue = INT64_MAX;
+      return true;
+    }
+
+    value += *iter - '0';
+    if (!value.isValid()) {
+      *aValue = INT64_MAX;
+      return true;
+    }
+  }
+
+  *aValue = value.value();
+  return true;
+}
+
 bool CookieParser::GetExpiry(CookieStruct& aCookieData,
                              const nsACString& aExpires,
                              const nsACString& aMaxage, int64_t aCurrentTime,
@@ -659,26 +715,22 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
    * Note: We need to consider accounting for network lag here, per RFC.
    */
   // check for max-age attribute first; this overrides expires attribute
-  if (!aMaxage.IsEmpty()) {
-    // obtain numeric value of maxageAttribute
-    int64_t maxage;
-    int32_t numInts = PR_sscanf(aMaxage.BeginReading(), "%lld", &maxage);
-
-    // default to session cookie if the conversion failed
-    if (numInts != 1) {
-      return true;
-    }
-
-    // if this addition overflows, expiryTime will be less than currentTime
-    // and the cookie will be expired - that's okay.
-    if (maxageCap) {
-      aCookieData.expiry() = aCurrentTime + std::min(maxage, maxageCap);
+  int64_t maxage = 0;
+  if (ParseMaxAgeAttribute(aMaxage, &maxage)) {
+    if (maxage == INT64_MIN || maxage == INT64_MAX) {
+      aCookieData.expiry() = maxage;
     } else {
-      aCookieData.expiry() = aCurrentTime + maxage;
+      CheckedInt<int64_t> value(aCurrentTime);
+      value += maxageCap ? std::min(maxage, maxageCap) : maxage;
+
+      aCookieData.expiry() = value.isValid() ? value.value() : INT64_MAX;
     }
 
-    // check for expires attribute
-  } else if (!aExpires.IsEmpty()) {
+    return false;
+  }
+
+  // check for expires attribute
+  if (!aExpires.IsEmpty()) {
     PRTime expires;
 
     // parse expiry time
@@ -699,14 +751,13 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
       aCookieData.expiry() = expires / int64_t(PR_USEC_PER_SEC);
     }
 
-    // default to session cookie if no attributes found.  Here we don't need to
-    // enforce the maxage cap, because session cookies are short-lived by
-    // definition.
-  } else {
-    return true;
+    return false;
   }
 
-  return false;
+  // default to session cookie if no attributes found.  Here we don't need to
+  // enforce the maxage cap, because session cookies are short-lived by
+  // definition.
+  return true;
 }
 
 // returns true if 'a' is equal to or a subdomain of 'b',

@@ -63,6 +63,9 @@ class CookieParser final {
     return mCookieData;
   }
 
+  // Public for testing
+  bool ParseMaxAgeAttribute(const nsACString& aMaxage, int64_t* aValue);
+
  private:
   static bool GetTokenValue(nsACString::const_char_iterator& aIter,
                             nsACString::const_char_iterator& aEndIter,
@@ -73,9 +76,9 @@ class CookieParser final {
   bool ParseAttributes(nsCString& aCookieHeader, nsACString& aExpires,
                        nsACString& aMaxage, bool& aAcceptedByParser);
 
-  static bool GetExpiry(CookieStruct& aCookieData, const nsACString& aExpires,
-                        const nsACString& aMaxage, int64_t aCurrentTime,
-                        bool aFromHttp);
+  bool GetExpiry(CookieStruct& aCookieData, const nsACString& aExpires,
+                 const nsACString& aMaxage, int64_t aCurrentTime,
+                 bool aFromHttp);
 
   bool CheckPath();
   bool CheckAttributeSize(const nsACString& currentValue,
@@ -101,6 +104,7 @@ class CookieParser final {
     nsTArray<const char*> mAttributeOverwritten;
 
     bool mInvalidSameSiteAttribute = false;
+    bool mInvalidMaxAgeAttribute = false;
     bool mSameSiteNoneRequiresSecureForBeta = false;
     bool mSameSiteLaxForced = false;
     bool mSameSiteLaxForcedForBeta = false;

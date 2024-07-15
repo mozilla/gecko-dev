@@ -25,7 +25,9 @@
 #include "mozilla/Unused.h"
 #include "mozilla/net/CookieJarSettings.h"
 #include "Cookie.h"
+#include "CookieParser.h"
 #include "nsIURI.h"
+#include "nsIConsoleReportCollector.h"
 
 using namespace mozilla;
 using namespace mozilla::net;
@@ -35,7 +37,6 @@ static NS_DEFINE_CID(kPrefServiceCID, NS_PREFSERVICE_CID);
 
 // various pref strings
 static const char kCookiesPermissions[] = "network.cookie.cookieBehavior";
-static const char kPrefCookieQuotaPerHost[] = "network.cookie.quotaPerHost";
 static const char kCookiesMaxPerHost[] = "network.cookie.maxPerHost";
 
 #define OFFSET_ONE_WEEK int64_t(604800) * PR_USEC_PER_SEC
@@ -1124,4 +1125,81 @@ TEST(TestCookie, BlockUnicode)
 
   EXPECT_NS_SUCCEEDED(cookieMgr->RemoveAll());
   Preferences::ClearUser("network.cookie.blockUnicode");
+}
+
+TEST(TestCookie, MaxAgeParser)
+{
+  nsCOMPtr<nsIURI> uri;
+  NS_NewURI(getter_AddRefs(uri), "https://maxage.net");
+
+  nsCOMPtr<nsIIOService> service = do_GetIOService();
+
+  nsCOMPtr<nsIChannel> channel;
+  Unused << service->NewChannelFromURI(
+      uri, nullptr, nsContentUtils::GetSystemPrincipal(),
+      nsContentUtils::GetSystemPrincipal(), 0, nsIContentPolicy::TYPE_DOCUMENT,
+      getter_AddRefs(channel));
+
+  nsCOMPtr<nsIConsoleReportCollector> crc = do_QueryInterface(channel);
+
+  CookieParser cp(crc, uri);
+
+  int64_t value;
+  EXPECT_FALSE(cp.ParseMaxAgeAttribute(""_ns, &value));
+
+  EXPECT_TRUE(cp.ParseMaxAgeAttribute("0"_ns, &value));
+  EXPECT_EQ(value, 0);
+
+  EXPECT_TRUE(cp.ParseMaxAgeAttribute("1"_ns, &value));
+  EXPECT_EQ(value, 1);
+
+  EXPECT_TRUE(cp.ParseMaxAgeAttribute("1234"_ns, &value));
+  EXPECT_EQ(value, 1234);
+
+  EXPECT_TRUE(cp.ParseMaxAgeAttribute("00000000000000001234"_ns, &value));
+  EXPECT_EQ(value, 1234);
+
+  EXPECT_TRUE(cp.ParseMaxAgeAttribute("-1234"_ns, &value));
+  EXPECT_EQ(value, INT64_MIN);
+
+  {
+    nsCString str;
+    for (int i = 0; i < 1024; ++i) {
+      str.Append("9");
+    }
+    EXPECT_TRUE(cp.ParseMaxAgeAttribute(str, &value));
+    EXPECT_EQ(value, INT64_MAX);
+  }
+
+  EXPECT_FALSE(cp.ParseMaxAgeAttribute("1234a"_ns, &value));
+  EXPECT_FALSE(cp.ParseMaxAgeAttribute("12a34"_ns, &value));
+  EXPECT_FALSE(cp.ParseMaxAgeAttribute("12🌊34"_ns, &value));
+
+  nsresult rv;
+  nsCOMPtr<nsICookieManager> cookieMgr =
+      do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv);
+  ASSERT_NS_SUCCEEDED(rv);
+
+  EXPECT_NS_SUCCEEDED(cookieMgr->RemoveAll());
+
+  nsCOMPtr<nsICookieService> cookieService =
+      do_GetService(kCookieServiceCID, &rv);
+  ASSERT_NS_SUCCEEDED(rv);
+
+  SetACookie(cookieService, "http://maxage.net/", "a=1; max-age=1234");
+
+  nsCString cookieStr;
+  GetACookie(cookieService, "http://maxage.net/", cookieStr);
+  EXPECT_TRUE(CheckResult(cookieStr.get(), MUST_EQUAL, "a=1"));
+
+  nsTArray<RefPtr<nsICookie>> cookies;
+  EXPECT_NS_SUCCEEDED(cookieMgr->GetCookies(cookies));
+  EXPECT_EQ(cookies.Length(), (uint64_t)1);
+
+  Cookie* cookie = static_cast<Cookie*>(cookies[0].get());
+  EXPECT_FALSE(cookie->IsSession());
+
+  SetACookie(cookieService, "http://maxage.net/", "a=1; max-age=-1");
+  GetACookie(cookieService, "http://maxage.net/", cookieStr);
+  EXPECT_TRUE(CheckResult(cookieStr.get(), MUST_EQUAL, ""));
 }

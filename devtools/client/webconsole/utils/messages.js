@@ -1025,9 +1025,12 @@ function isTrackingProtectionMessage(message) {
  */
 function isCookieMessage(message) {
   const { category } = message;
-  return ["cookiesCHIPS", "cookiesOversize", "cookieSameSite"].includes(
-    category
-  );
+  return [
+    "cookiesCHIPS",
+    "cookiesOversize",
+    "cookieSameSite",
+    "cookieInvalidAttribute",
+  ].includes(category);
 }
 
 /**
