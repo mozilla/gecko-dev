@@ -159,14 +159,11 @@ media/libopus/.*
 media/libpng/.*
 media/libsoundtouch/.*
 media/libspeex_resampler/.*
-media/libtheora/.*
-media/libtremor/.*
 media/libvorbis/.*
 media/libvpx/.*
 media/libwebp/.*
 media/libyuv/.*
 media/mozva/va/.*
-media/openmax_dl/.*
 media/openmax_il/.*
 media/webrtc/signaling/src/sdp/sipcc/.*
 media/webrtc/trunk/.*

@@ -1382,14 +1382,12 @@ media/libopus/
 media/libpng/
 media/libsoundtouch/
 media/libspeex_resampler/
-media/libtheora/
 media/libvorbis/
 media/libvpx/
 media/libwebp/
 media/libyuv/
 media/mozva/va
 media/mp4parse-rust/
-media/openmax_dl/
 media/openmax_il/
 media/webrtc/signaling/gtest/MockCall.h
 mfbt/double-conversion/double-conversion/
