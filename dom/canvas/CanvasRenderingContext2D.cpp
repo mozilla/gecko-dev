@@ -5743,6 +5743,10 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
       // We avoid copying the whole canvas by manually copying just the part
       // that we need.
       srcSurf = ExtractSubrect(srcSurf, &sourceRect, mTarget);
+      // The SFE result may inadvertently keep the snapshot alive, forcing a
+      // copy when MarkChanged is called. Clear out possibly the last reference
+      // to the original snapshot to avoid this.
+      res.mSourceSurface = nullptr;
     }
 
     AdjustedTarget tempTarget(this, bounds.IsEmpty() ? nullptr : &bounds, true);

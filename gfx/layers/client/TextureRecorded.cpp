@@ -32,7 +32,10 @@ RecordedTextureData::~RecordedTextureData() {
   // because the TextureData might need to destroy its DrawTarget within a lock.
   mSnapshot = nullptr;
   DetachSnapshotWrapper();
-  mDT = nullptr;
+  if (mDT) {
+    mDT->DetachTextureData(this);
+    mDT = nullptr;
+  }
   mCanvasChild->CleanupTexture(mTextureId);
   mCanvasChild->RecordEvent(RecordedTextureDestruction(
       mTextureId, ToRemoteTextureTxnType(mFwdTransactionTracker),
@@ -78,6 +81,8 @@ bool RecordedTextureData::Lock(OpenMode aMode) {
     if (!mDT) {
       return false;
     }
+
+    mDT->AttachTextureData(this);
 
     // We lock the TextureData when we create it to get the remote DrawTarget.
     mLockedMode = aMode;
@@ -139,16 +144,20 @@ void RecordedTextureData::EndDraw() {
   }
 }
 
+void RecordedTextureData::DrawTargetWillChange() {
+  // The DrawTargetRecording will be modified, so ensure that possibly the last
+  // reference to a snapshot is discarded so that it does not inadvertently
+  // force a copy.
+  mSnapshot = nullptr;
+  DetachSnapshotWrapper(true);
+}
+
 already_AddRefed<gfx::SourceSurface> RecordedTextureData::BorrowSnapshot() {
   if (mSnapshotWrapper) {
-    if (!mDT || !mDT->IsDirty()) {
-      // The DT is unmodified since the last time snapshot was borrowed, so it
-      // is safe to reattach the snapshot for shmem readbacks.
-      mCanvasChild->AttachSurface(mSnapshotWrapper);
-      return do_AddRef(mSnapshotWrapper);
-    }
-
-    DetachSnapshotWrapper();
+    // The DT is unmodified since the last time snapshot was borrowed, so it
+    // is safe to reattach the snapshot for shmem readbacks.
+    mCanvasChild->AttachSurface(mSnapshotWrapper);
+    return do_AddRef(mSnapshotWrapper);
   }
 
   // There are some failure scenarios where we have no DrawTarget and
@@ -156,8 +165,6 @@ already_AddRefed<gfx::SourceSurface> RecordedTextureData::BorrowSnapshot() {
   if (!mDT) {
     return nullptr;
   }
-
-  mDT->MarkClean();
 
   RefPtr<gfx::SourceSurface> wrapper = mCanvasChild->WrapSurface(
       mSnapshot ? mSnapshot : mDT->Snapshot(), mTextureId);

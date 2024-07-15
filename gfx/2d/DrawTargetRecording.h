@@ -13,6 +13,7 @@
 namespace mozilla {
 namespace layers {
 class CanvasDrawEventRecorder;
+class RecordedTextureData;
 struct RemoteTextureOwnerId;
 }  // namespace layers
 
@@ -373,13 +374,21 @@ class DrawTargetRecording final : public DrawTarget {
     return mFinalDT->IsCurrentGroupOpaque();
   }
 
-  bool IsDirty() const { return mIsDirty; }
-
-  void MarkClean() { mIsDirty = false; }
-
   void SetOptimizeTransform(bool aOptimizeTransform) {
     mOptimizeTransform = aOptimizeTransform;
   }
+
+ protected:
+  friend class layers::RecordedTextureData;
+
+  void AttachTextureData(layers::RecordedTextureData* aTextureData) {
+    mTextureData = aTextureData;
+  }
+  void DetachTextureData(layers::RecordedTextureData*) {
+    mTextureData = nullptr;
+  }
+
+  layers::RecordedTextureData* mTextureData = nullptr;
 
  private:
   /**
@@ -443,7 +452,6 @@ class DrawTargetRecording final : public DrawTarget {
   };
   std::vector<PushedLayer> mPushedLayers;
 
-  bool mIsDirty = false;
   bool mOptimizeTransform = false;
 
   // Last transform that was used in the recording.

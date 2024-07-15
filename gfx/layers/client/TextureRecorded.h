@@ -53,6 +53,11 @@ class RecordedTextureData final : public TextureData {
   already_AddRefed<FwdTransactionTracker> UseCompositableForwarder(
       CompositableForwarder* aForwarder) final;
 
+ protected:
+  friend class gfx::DrawTargetRecording;
+
+  void DrawTargetWillChange();
+
  private:
   DISALLOW_COPY_AND_ASSIGN(RecordedTextureData);
 
