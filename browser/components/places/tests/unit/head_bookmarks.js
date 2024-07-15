@@ -31,8 +31,7 @@ updateAppInfo({
   platformVersion: "",
 });
 
-// Default bookmarks constants.
-const DEFAULT_BOOKMARKS_ON_TOOLBAR = 1;
+// Default bookmarks constant.
 const DEFAULT_BOOKMARKS_ON_MENU = 1;
 
 var createCorruptDB = async function () {

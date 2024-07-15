@@ -25,6 +25,17 @@ add_task(async function test() {
   ok(!tab5.multiselected, "Tab5 is not multiselected");
   is(gBrowser.multiSelectedTabsCount, 2, "Two multiselected tabs");
 
+  info("Adding a bookmark to the bookmarks toolbar.");
+  let addedBookmark = await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+    title: "Test",
+    url: "https://example.com",
+  });
+
+  registerCleanupFunction(async () => {
+    await PlacesUtils.bookmarks.remove(addedBookmark);
+  });
+
   // Use getElementsByClassName so the list is live and will update as items change.
   let currentBookmarks =
     bookmarksToolbar.getElementsByClassName("bookmark-item");

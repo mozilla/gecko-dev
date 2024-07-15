@@ -155,6 +155,17 @@ add_task(async function test_actionContextMenus() {
 });
 
 add_task(async function test_bookmarkContextMenu() {
+  info("Adding a bookmark to the bookmarks toolbar.");
+  let addedBookmark = await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+    title: "Test",
+    url: "https://example.com",
+  });
+
+  registerCleanupFunction(async () => {
+    await PlacesUtils.bookmarks.remove(addedBookmark);
+  });
+
   const ext = ExtensionTestUtils.loadExtension({
     manifest: {
       permissions: ["menus", "bookmarks"],
