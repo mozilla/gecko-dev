@@ -991,7 +991,7 @@ abstract class BaseBrowserFragment :
         )
 
         val accentHighContrastColor =
-            ThemeManager.resolveAttribute(R.attr.accentHighContrast, context)
+            ThemeManager.resolveAttribute(R.attr.actionPrimary, context)
 
         sitePermissionsFeature.set(
             feature = SitePermissionsFeature(
@@ -1002,7 +1002,7 @@ abstract class BaseBrowserFragment :
                     gravity = getAppropriateLayoutGravity(),
                     shouldWidthMatchParent = true,
                     positiveButtonBackgroundColor = accentHighContrastColor,
-                    positiveButtonTextColor = R.color.photonWhite,
+                    positiveButtonTextColor = R.color.fx_mobile_text_color_action_primary,
                 ),
                 sessionId = customTabSessionId,
                 onNeedToRequestPermissions = { permissions ->
