@@ -426,6 +426,13 @@
     "comment": "TODO: add a comment explaining why this expectation is required (include links to issues)"
   },
   {
+    "testIdPattern": "[launcher.spec] Launcher specs Puppeteer Puppeteer.executablePath should work",
+    "platforms": ["darwin", "linux", "win32"],
+    "parameters": ["firefox"],
+    "expectations": ["SKIP"],
+    "comment": "TODO: add a comment explaining why this expectation is required (include links to issues)"
+  },
+  {
     "testIdPattern": "[launcher.spec] Launcher specs Puppeteer Puppeteer.launch should be able to launch Chrome",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox"],
@@ -2662,7 +2669,7 @@
   {
     "testIdPattern": "[oopif.spec] OOPIF should evaluate on a page with a PDF viewer",
     "platforms": ["darwin", "linux", "win32"],
-    "parameters": ["firefox", "webDriverBiDi"],
+    "parameters": ["firefox"],
     "expectations": ["SKIP"],
     "comment": "chrome-specific test"
   },
@@ -3113,6 +3120,13 @@
     "comment": "Test requires CDP"
   },
   {
+    "testIdPattern": "[requestinterception-experimental.spec] cooperative request interception Page.setRequestInterception should work with missing stylesheets",
+    "platforms": ["darwin", "linux", "win32"],
+    "parameters": ["firefox", "webDriverBiDi"],
+    "expectations": ["FAIL", "PASS"],
+    "comment": "On Firefox, the responseCompleted event for the missing stylesheet might not be received when the navigation ends"
+  },
+  {
     "testIdPattern": "[requestinterception-experimental.spec] cooperative request interception Request.continue should redirect in a way non-observable to page",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox", "webDriverBiDi"],
@@ -3195,6 +3209,13 @@
     "parameters": ["chrome", "webDriverBiDi"],
     "expectations": ["FAIL"],
     "comment": "CDP specific issue, maybe we can support it from BiDi+"
+  },
+  {
+    "testIdPattern": "[requestinterception.spec] request interception Page.setRequestInterception should work with missing stylesheets",
+    "platforms": ["darwin", "linux", "win32"],
+    "parameters": ["firefox", "webDriverBiDi"],
+    "expectations": ["FAIL", "PASS"],
+    "comment": "On Firefox, the responseCompleted event for the missing stylesheet might not be received when the navigation ends"
   },
   {
     "testIdPattern": "[requestinterception.spec] request interception Request.continue should redirect in a way non-observable to page",
