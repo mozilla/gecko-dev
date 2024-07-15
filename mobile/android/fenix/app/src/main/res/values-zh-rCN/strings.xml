@@ -1973,7 +1973,7 @@
     <!-- The label for the expiration date year of a credit card to be used by a11y services-->
     <string name="credit_cards_expiration_date_year">到期年份</string>
     <!-- The header for the name on the credit card -->
-    <string name="credit_cards_name_on_card">持卡人姓名</string>
+    <string name="credit_cards_name_on_card">卡面姓名</string>
     <!-- The text for the "Delete card" menu item for deleting a credit card -->
     <string name="credit_cards_menu_delete_card">删除卡片</string>
     <!-- The text for the "Delete card" button for deleting a credit card -->
@@ -1995,7 +1995,7 @@
     <!-- Error message for card number validation -->
     <string name="credit_cards_number_validation_error_message_2">请输入有效卡号</string>
     <!-- Error message for card name on card validation -->
-    <string name="credit_cards_name_on_card_validation_error_message_2">请输入持卡人姓名</string>
+    <string name="credit_cards_name_on_card_validation_error_message_2">请输入姓名</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
     <string name="credit_cards_biometric_prompt_message">解锁后即可查看保存的卡片信息</string>
 
