@@ -9,19 +9,20 @@
 // except according to those terms.
 
 #![feature(test)]
+#![feature(hint_assert_unchecked)]
 
-extern crate test;
+extern crate bit_vec;
 extern crate rand;
 extern crate rand_xorshift;
-extern crate bit_vec;
+extern crate test;
 
-use test::{Bencher, black_box};
+use bit_vec::BitVec;
 use rand::{Rng, RngCore, SeedableRng};
 use rand_xorshift::XorShiftRng;
-use bit_vec::BitVec;
+use test::{black_box, Bencher};
 
-const HUGE_BENCH_BITS : usize = 1 << 20;
-const BENCH_BITS : usize = 1 << 14;
+const HUGE_BENCH_BITS: usize = 1 << 20;
+const BENCH_BITS: usize = 1 << 14;
 const U32_BITS: usize = 32;
 
 fn small_rng() -> XorShiftRng {
@@ -31,7 +32,7 @@ fn small_rng() -> XorShiftRng {
 #[bench]
 fn bench_usize_small(b: &mut Bencher) {
     let mut r = small_rng();
-    let mut bit_vec = 0 as usize;
+    let mut bit_vec = 0_usize;
     b.iter(|| {
         for _ in 0..100 {
             bit_vec |= 1 << ((r.next_u32() as usize) % U32_BITS);
@@ -77,21 +78,71 @@ fn bench_bit_set_small(b: &mut Bencher) {
 }
 
 #[bench]
+fn bench_bit_get_checked_small(b: &mut Bencher) {
+    let mut r = small_rng();
+    let size = 200;
+    let mut bit_vec = BitVec::from_elem(size, false);
+    for _ in 0..20 {
+        bit_vec.set((r.next_u32() as usize) % size, true);
+    }
+    let bit_vec = black_box(bit_vec);
+    b.iter(|| {
+        for _ in 0..100 {
+            black_box(bit_vec.get((r.next_u32() as usize) % size));
+        }
+    });
+}
+
+#[bench]
+fn bench_bit_get_unchecked_small(b: &mut Bencher) {
+    let mut r = small_rng();
+    let size = 200;
+    let mut bit_vec = BitVec::from_elem(size, false);
+    for _ in 0..20 {
+        bit_vec.set((r.next_u32() as usize) % size, true);
+    }
+    let bit_vec = black_box(bit_vec);
+    b.iter(|| {
+        for _ in 0..100 {
+            unsafe {
+                black_box(bit_vec.get_unchecked((r.next_u32() as usize) % size));
+            }
+        }
+    });
+}
+
+#[bench]
+fn bench_bit_get_unchecked_small_assume(b: &mut Bencher) {
+    let mut r = small_rng();
+    let size = 200;
+    let mut bit_vec = BitVec::from_elem(size, false);
+    for _ in 0..20 {
+        bit_vec.set((r.next_u32() as usize) % size, true);
+    }
+    let bit_vec = black_box(bit_vec);
+    b.iter(|| {
+        for _ in 0..100 {
+            unsafe {
+                let idx = (r.next_u32() as usize) % size;
+                ::std::hint::assert_unchecked(!(idx >= bit_vec.len()));
+                black_box(bit_vec.get(idx));
+            }
+        }
+    });
+}
+
+#[bench]
 fn bench_bit_vec_big_or(b: &mut Bencher) {
     let mut b1 = BitVec::from_elem(BENCH_BITS, false);
     let b2 = BitVec::from_elem(BENCH_BITS, false);
-    b.iter(|| {
-        b1.or(&b2)
-    })
+    b.iter(|| b1.or(&b2))
 }
 
 #[bench]
 fn bench_bit_vec_big_xnor(b: &mut Bencher) {
     let mut b1 = BitVec::from_elem(BENCH_BITS, false);
     let b2 = BitVec::from_elem(BENCH_BITS, false);
-    b.iter(|| {
-        b1.xnor(&b2)
-    })
+    b.iter(|| b1.xnor(&b2))
 }
 
 #[bench]
@@ -109,9 +160,7 @@ fn bench_bit_vec_big_negate_xor(b: &mut Bencher) {
 fn bench_bit_vec_huge_xnor(b: &mut Bencher) {
     let mut b1 = BitVec::from_elem(HUGE_BENCH_BITS, false);
     let b2 = BitVec::from_elem(HUGE_BENCH_BITS, false);
-    b.iter(|| {
-        b1.xnor(&b2)
-    })
+    b.iter(|| b1.xnor(&b2))
 }
 
 #[bench]
@@ -157,7 +206,8 @@ fn bench_from_elem(b: &mut Bencher) {
     let bit = black_box(true);
     b.iter(|| {
         // create a BitVec and popcount it
-        BitVec::from_elem(cap, bit).blocks()
+        BitVec::from_elem(cap, bit)
+            .blocks()
             .fold(0, |acc, b| acc + b.count_ones())
     });
     b.bytes = cap as u64 / 8;
@@ -172,7 +222,7 @@ fn bench_erathostenes(b: &mut test::Bencher) {
         black_box(&mut sieve);
         let mut i = 2;
         while i < sieve.len() {
-            if sieve[i] == true {
+            if sieve[i] {
                 primes.push(i);
             }
             let mut j = i;
@@ -197,7 +247,7 @@ fn bench_erathostenes_set_all(b: &mut test::Bencher) {
         black_box(&mut sieve);
         let mut i = 2;
         while i < sieve.len() {
-            if sieve[i] == true {
+            if sieve[i] {
                 primes.push(i);
             }
             let mut j = i;

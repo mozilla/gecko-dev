@@ -88,7 +88,7 @@ RefPtr<AdapterPromise> WebGPUChild::InstanceRequestAdapter(
 }
 
 Maybe<DeviceRequest> WebGPUChild::AdapterRequestDevice(
-    RawId aSelfId, const ffi::WGPUDeviceDescriptor& aDesc) {
+    RawId aSelfId, const ffi::WGPUFfiDeviceDescriptor& aDesc) {
   RawId id = ffi::wgpu_client_make_device_id(mClient.get(), aSelfId);
 
   ByteBuf bb;

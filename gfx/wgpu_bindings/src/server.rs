@@ -191,7 +191,7 @@ pub unsafe extern "C" fn wgpu_server_instance_request_adapter(
     #[cfg(target_os = "windows")]
     if global.global.instance.dx12.is_some() && adapter_luid.is_some() {
         let hal = global.global.instance_as_hal::<wgc::api::Dx12>().unwrap();
-        for adapter in hal.enumerate_adapters() {
+        for adapter in hal.enumerate_adapters(None) {
             let raw_adapter = adapter.adapter.raw_adapter();
             let mut desc: dxgi::DXGI_ADAPTER_DESC = unsafe { mem::zeroed() };
             unsafe {
@@ -476,7 +476,7 @@ pub extern "C" fn wgpu_server_device_create_buffer(
             message: "Out of memory",
             r#type: ErrorBufferType::OutOfMemory,
         });
-        gfx_select!(self_id => global.create_buffer_error(Some(buffer_id), label));
+        gfx_select!(self_id => global.create_buffer_error(Some(buffer_id)));
         return;
     }
 
@@ -682,7 +682,7 @@ impl Global {
                     || desc.size.height > max
                     || desc.size.depth_or_array_layers > max
                 {
-                    gfx_select!(self_id => self.create_texture_error(Some(id), desc.label));
+                    gfx_select!(self_id => self.create_texture_error(Some(id)));
                     error_buf.init(ErrMsg {
                         message: "Out of memory",
                         r#type: ErrorBufferType::OutOfMemory,
@@ -717,7 +717,7 @@ impl Global {
                             )
                         };
                         if ret != true {
-                            gfx_select!(self_id => self.create_texture_error(Some(id), desc.label));
+                            gfx_select!(self_id => self.create_texture_error(Some(id)));
                             error_buf.init(ErrMsg {
                                 message: "Failed to create external texture",
                                 r#type: ErrorBufferType::Internal,
@@ -735,7 +735,7 @@ impl Global {
                         let handle =
                             unsafe { wgpu_server_get_external_texture_handle(self.owner, id) };
                         if handle.is_null() {
-                            gfx_select!(self_id => self.create_texture_error(Some(id), desc.label));
+                            gfx_select!(self_id => self.create_texture_error(Some(id)));
                             error_buf.init(ErrMsg {
                                 message: "Failed to get external texture handle",
                                 r#type: ErrorBufferType::Internal,
@@ -751,7 +751,7 @@ impl Global {
                             )
                         };
                         if hr != 0 {
-                            gfx_select!(self_id => self.create_texture_error(Some(id), desc.label));
+                            gfx_select!(self_id => self.create_texture_error(Some(id)));
                             error_buf.init(ErrMsg {
                                 message: "Failed to open shared handle",
                                 r#type: ErrorBufferType::Internal,
@@ -878,8 +878,8 @@ impl Global {
                     error_buf.init(err);
                 }
             }
-            DeviceAction::CreateRenderBundleError(buffer_id, label) => {
-                self.create_render_bundle_error::<A>(Some(buffer_id), label);
+            DeviceAction::CreateRenderBundleError(buffer_id, _label) => {
+                self.create_render_bundle_error::<A>(Some(buffer_id));
             }
             DeviceAction::CreateCommandEncoder(id, desc) => {
                 let (_, error) = self.device_create_command_encoder::<A>(self_id, &desc, Some(id));

@@ -860,11 +860,21 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.5.2 -> 0.5.3"
 
+[[audits.bit-set]]
+who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.5.3 -> 0.6.0"
+
 [[audits.bit-vec]]
 who = "Aria Beingessner <a.beingessner@gmail.com>"
 criteria = "safe-to-deploy"
 version = "0.6.3"
 notes = "Another crate I own via contain-rs that is ancient and in maintenance mode but otherwise perfectly fine."
+
+[[audits.bit-vec]]
+who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.6.3 -> 0.7.0"
 
 [[audits.bitflags]]
 who = "Alex Franchuk <afranchuk@mozilla.com>"
@@ -1464,11 +1474,11 @@ delta = "0.19.0 -> 0.20.0"
 [[audits.d3d12]]
 who = [
     "Jim Blandy <jimb@red-bean.com>",
-    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:82210e1cdc63cbd5e53f43788f9956bb0d4a2c6a"
+delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
 importable = false
 
 [[audits.darling]]
@@ -3052,11 +3062,11 @@ delta = "0.19.2 -> 0.20.0"
 [[audits.naga]]
 who = [
     "Jim Blandy <jimb@red-bean.com>",
-    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:82210e1cdc63cbd5e53f43788f9956bb0d4a2c6a"
+delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
 importable = false
 
 [[audits.net2]]
@@ -5005,11 +5015,11 @@ delta = "0.19.3 -> 0.20.0"
 [[audits.wgpu-core]]
 who = [
     "Jim Blandy <jimb@red-bean.com>",
-    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:82210e1cdc63cbd5e53f43788f9956bb0d4a2c6a"
+delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -5073,11 +5083,11 @@ delta = "0.19.3 -> 0.20.0"
 [[audits.wgpu-hal]]
 who = [
     "Jim Blandy <jimb@red-bean.com>",
-    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:82210e1cdc63cbd5e53f43788f9956bb0d4a2c6a"
+delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
 importable = false
 
 [[audits.wgpu-types]]
@@ -5141,11 +5151,11 @@ delta = "0.19.2 -> 0.20.0"
 [[audits.wgpu-types]]
 who = [
     "Jim Blandy <jimb@red-bean.com>",
-    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "0.20.0 -> 0.20.0@git:82210e1cdc63cbd5e53f43788f9956bb0d4a2c6a"
+delta = "0.20.0 -> 0.20.0@git:c5e4bfa5a15069a8ec08c9081e511ec15efa92e8"
 importable = false
 
 [[audits.whatsys]]

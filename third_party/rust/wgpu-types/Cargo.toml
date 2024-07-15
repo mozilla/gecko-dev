@@ -41,15 +41,15 @@ bitflags = "2"
 
 [dependencies.serde]
 version = "1"
-features = ["serde_derive"]
+features = ["derive"]
 optional = true
 
 [dev-dependencies]
-serde_json = "1.0.116"
+serde_json = "1.0.119"
 
 [dev-dependencies.serde]
 version = "1"
-features = ["serde_derive"]
+features = ["derive"]
 
 [features]
 counters = []

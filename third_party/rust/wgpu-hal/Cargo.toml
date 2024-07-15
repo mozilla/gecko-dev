@@ -98,7 +98,7 @@ cfg_aliases = "0.1"
 [features]
 device_lost_panic = []
 dx12 = [
-    "naga/hlsl-out",
+    "naga/hlsl-out-if-target-windows",
     "dep:d3d12",
     "dep:bit-set",
     "dep:libloading",
@@ -124,7 +124,7 @@ gles = [
 ]
 internal_error_panic = []
 metal = [
-    "naga/msl-out",
+    "naga/msl-out-if-target-apple",
     "dep:block",
 ]
 oom_panic = []
@@ -223,7 +223,7 @@ optional = true
 libc = "0.2"
 
 [target."cfg(windows)".dependencies.bit-set]
-version = "0.5"
+version = "0.6"
 optional = true
 
 [target."cfg(windows)".dependencies.d3d12]

@@ -43,8 +43,8 @@ path = "tests/root.rs"
 
 [dependencies]
 arrayvec = "0.7"
-bit-set = "0.5"
-bitflags = "2.5"
+bit-set = "0.6"
+bitflags = "2.6"
 log = "0.4"
 rustc-hash = "1.1.0"
 thiserror = "1.0.61"
@@ -110,6 +110,9 @@ features = ["derive"]
 version = "0.3"
 features = ["deserialize"]
 
+[build-dependencies]
+cfg_aliases = "0.1"
+
 [features]
 arbitrary = [
     "dep:arbitrary",
@@ -127,7 +130,9 @@ dot-out = []
 glsl-in = ["dep:pp-rs"]
 glsl-out = []
 hlsl-out = []
+hlsl-out-if-target-windows = []
 msl-out = []
+msl-out-if-target-apple = []
 serialize = [
     "dep:serde",
     "bitflags/serde",

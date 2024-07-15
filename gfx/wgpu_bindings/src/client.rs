@@ -509,13 +509,26 @@ pub extern "C" fn wgpu_client_adapter_extract_info(
     };
 }
 
+#[repr(C)]
+pub struct FfiDeviceDescriptor<'a> {
+    pub label: Option<&'a nsACString>,
+    pub required_features: wgt::Features,
+    pub required_limits: wgt::Limits,
+}
+
 #[no_mangle]
 pub extern "C" fn wgpu_client_serialize_device_descriptor(
-    desc: &wgt::DeviceDescriptor<Option<&nsACString>>,
+    desc: &FfiDeviceDescriptor,
     bb: &mut ByteBuf,
 ) {
     let label = wgpu_string(desc.label);
-    *bb = make_byte_buf(&desc.map_label(|_| label));
+    let desc = wgt::DeviceDescriptor {
+        label,
+        required_features: desc.required_features.clone(),
+        required_limits: desc.required_limits.clone(),
+        memory_hints: wgt::MemoryHints::MemoryUsage,
+    };
+    *bb = make_byte_buf(&desc);
 }
 
 #[no_mangle]
@@ -831,11 +844,11 @@ pub extern "C" fn wgpu_client_free_render_bundle_id(client: &Client, id: id::Ren
 #[repr(C)]
 pub struct ComputePassDescriptor<'a> {
     pub label: Option<&'a nsACString>,
-    pub timestamp_writes: Option<&'a ComputePassTimestampWrites<'a>>,
+    pub timestamp_writes: Option<&'a PassTimestampWrites<'a>>,
 }
 
 #[repr(C)]
-pub struct ComputePassTimestampWrites<'a> {
+pub struct PassTimestampWrites<'a> {
     pub query_set: id::QuerySetId,
     pub beginning_of_pass_write_index: Option<&'a u32>,
     pub end_of_pass_write_index: Option<&'a u32>,
@@ -853,14 +866,14 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_compute_pass(
     let label = wgpu_string(label);
 
     let timestamp_writes = timestamp_writes.map(|tsw| {
-        let &ComputePassTimestampWrites {
+        let &PassTimestampWrites {
             query_set,
             beginning_of_pass_write_index,
             end_of_pass_write_index,
         } = tsw;
         let beginning_of_pass_write_index = beginning_of_pass_write_index.cloned();
         let end_of_pass_write_index = end_of_pass_write_index.cloned();
-        wgc::command::ComputePassTimestampWrites {
+        wgc::command::PassTimestampWrites {
             query_set,
             beginning_of_pass_write_index,
             end_of_pass_write_index,
@@ -895,15 +908,8 @@ pub struct RenderPassDescriptor<'a> {
     pub color_attachments: *const wgc::command::RenderPassColorAttachment,
     pub color_attachments_length: usize,
     pub depth_stencil_attachment: *const wgc::command::RenderPassDepthStencilAttachment,
-    pub timestamp_writes: Option<&'a RenderPassTimestampWrites<'a>>,
+    pub timestamp_writes: Option<&'a PassTimestampWrites<'a>>,
     pub occlusion_query_set: Option<wgc::id::QuerySetId>,
-}
-
-#[repr(C)]
-pub struct RenderPassTimestampWrites<'a> {
-    pub query_set: wgc::id::QuerySetId,
-    pub beginning_of_pass_write_index: Option<&'a u32>,
-    pub end_of_pass_write_index: Option<&'a u32>,
 }
 
 #[no_mangle]
@@ -922,14 +928,14 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_render_pass(
     let label = wgpu_string(label);
 
     let timestamp_writes = timestamp_writes.map(|tsw| {
-        let &RenderPassTimestampWrites {
+        let &PassTimestampWrites {
             query_set,
             beginning_of_pass_write_index,
             end_of_pass_write_index,
         } = tsw;
         let beginning_of_pass_write_index = beginning_of_pass_write_index.cloned();
         let end_of_pass_write_index = end_of_pass_write_index.cloned();
-        wgc::command::RenderPassTimestampWrites {
+        wgc::command::PassTimestampWrites {
             query_set,
             beginning_of_pass_write_index,
             end_of_pass_write_index,

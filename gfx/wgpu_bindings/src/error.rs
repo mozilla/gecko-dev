@@ -300,7 +300,7 @@ mod foreign {
             match self {
                 CreatePipelineLayoutError::Device(e) => e.error_type(),
 
-                CreatePipelineLayoutError::InvalidBindGroupLayout(_)
+                CreatePipelineLayoutError::InvalidBindGroupLayoutId(_)
                 | CreatePipelineLayoutError::MisalignedPushConstantRange { .. }
                 | CreatePipelineLayoutError::MissingFeatures(_)
                 | CreatePipelineLayoutError::MoreThanOnePushConstantRangePerStage { .. }
@@ -322,7 +322,7 @@ mod foreign {
                 CreateBindGroupError::InvalidLayout
                 | CreateBindGroupError::InvalidBufferId(_)
                 | CreateBindGroupError::InvalidTextureViewId(_)
-                | CreateBindGroupError::InvalidSampler(_)
+                | CreateBindGroupError::InvalidSamplerId(_)
                 | CreateBindGroupError::BindingArrayPartialLengthMismatch { .. }
                 | CreateBindGroupError::BindingArrayLengthMismatch { .. }
                 | CreateBindGroupError::BindingArrayZeroLength
@@ -495,8 +495,6 @@ mod foreign {
                 TransferError::InvalidBufferId(_)
                 | TransferError::InvalidTextureId(_)
                 | TransferError::SameSourceDestinationBuffer
-                | TransferError::MissingCopySrcUsageFlag
-                | TransferError::MissingCopyDstUsageFlag(_, _)
                 | TransferError::MissingRenderAttachmentUsageFlag(_)
                 | TransferError::BufferOverrun { .. }
                 | TransferError::TextureOverrun { .. }
@@ -548,7 +546,7 @@ mod foreign {
                 QueryError::Use(e) => e.error_type(),
                 QueryError::Resolve(e) => e.error_type(),
 
-                QueryError::InvalidBufferId(_) | QueryError::InvalidQuerySet(_) => {
+                QueryError::InvalidBufferId(_) | QueryError::InvalidQuerySetId(_) => {
                     ErrorBufferType::Validation
                 }
 

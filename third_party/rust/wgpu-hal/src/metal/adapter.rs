@@ -25,6 +25,7 @@ impl crate::Adapter for super::Adapter {
         &self,
         features: wgt::Features,
         _limits: &wgt::Limits,
+        _memory_hints: &wgt::MemoryHints,
     ) -> Result<crate::OpenDevice<super::Api>, crate::DeviceError> {
         let queue = self
             .shared
@@ -914,7 +915,6 @@ impl super::PrivateCapabilities {
         features.set(F::ADDRESS_MODE_CLAMP_TO_ZERO, true);
 
         features.set(F::RG11B10UFLOAT_RENDERABLE, self.format_rg11b10_all);
-        features.set(F::SHADER_UNUSED_VERTEX_OUTPUT, true);
 
         if self.supports_simd_scoped_operations {
             features.insert(F::SUBGROUP | F::SUBGROUP_BARRIER);

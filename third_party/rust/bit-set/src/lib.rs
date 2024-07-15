@@ -8,6 +8,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! # Description
+//!
 //! An implementation of a set using a bit vector as an underlying
 //! representation for holding unsigned numerical elements.
 //!
@@ -48,15 +50,15 @@
 //! ```
 
 #![no_std]
-#![cfg_attr(all(test, feature = "nightly"), feature(test))]
+#![cfg_attr(feature = "bench", feature(test))]
+
 extern crate bit_vec;
-#[cfg(all(test, feature = "nightly"))]
+#[cfg(test)]
 extern crate rand;
-#[cfg(all(test, feature = "nightly"))]
+#[cfg(feature = "bench")]
 extern crate test;
 
-#[cfg(test)]
-#[macro_use]
+#[cfg(any(test, feature = "std"))]
 extern crate std;
 
 use bit_vec::{BitBlock, BitVec, Blocks};
@@ -85,6 +87,7 @@ fn blocks_for_bits<B: BitBlock>(bits: usize) -> usize {
     }
 }
 
+#[allow(clippy::iter_skip_zero)]
 // Take two BitVec's, and return iterators of their words, where the shorter one
 // has been padded with 0's
 fn match_words<'a, 'b, B: BitBlock>(
@@ -161,7 +164,7 @@ impl<B: BitBlock> Extend<usize> for BitSet<B> {
 impl<B: BitBlock> PartialOrd for BitSet<B> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.iter().partial_cmp(other)
+        Some(self.cmp(other))
     }
 }
 
@@ -390,11 +393,12 @@ impl<B: BitBlock> BitSet<B> {
     /// use bit_set::BitSet;
     ///
     /// let mut s = BitSet::new();
-    /// s.insert(32183231);
-    /// s.remove(32183231);
+    /// s.insert(3231);
+    /// s.remove(3231);
     ///
     /// // Internal storage will probably be bigger than necessary
     /// println!("old capacity: {}", s.capacity());
+    /// assert!(s.capacity() >= 3231);
     ///
     /// // Now should be smaller
     /// s.shrink_to_fit();
@@ -753,9 +757,7 @@ impl<B: BitBlock> BitSet<B> {
     /// Returns the number of set bits in this set.
     #[inline]
     pub fn len(&self) -> usize {
-        self.bit_vec
-            .blocks()
-            .fold(0, |acc, n| acc + n.count_ones() as usize)
+        self.bit_vec.blocks().fold(0, |acc, n| acc + n.count_ones())
     }
 
     /// Returns whether there are no bits set in this set
@@ -888,7 +890,7 @@ pub struct Difference<'a, B: 'a>(BlockIter<TwoBitPositions<'a, B>, B>);
 #[derive(Clone)]
 pub struct SymmetricDifference<'a, B: 'a>(BlockIter<TwoBitPositions<'a, B>, B>);
 
-impl<'a, T, B: BitBlock> Iterator for BlockIter<T, B>
+impl<T, B: BitBlock> Iterator for BlockIter<T, B>
 where
     T: Iterator<Item = B>,
 {
@@ -911,7 +913,7 @@ where
         // update block, removing the LSB
         self.head = self.head & (self.head - B::one());
         // return offset + (index of LSB)
-        Some(self.head_offset + (B::count_ones(k) as usize))
+        Some(self.head_offset + (B::count_ones(k)))
     }
 
     #[inline]
@@ -1029,6 +1031,7 @@ mod tests {
     use bit_vec::BitVec;
     use std::cmp::Ordering::{Equal, Greater, Less};
     use std::vec::Vec;
+    use std::{format, vec};
 
     #[test]
     fn test_bit_set_show() {
@@ -1555,11 +1558,11 @@ mod tests {
     */
 }
 
-#[cfg(all(test, feature = "nightly"))]
+#[cfg(feature = "bench")]
 mod bench {
     use super::BitSet;
     use bit_vec::BitVec;
-    use rand::{thread_rng, Rng, ThreadRng};
+    use rand::{rngs::ThreadRng, thread_rng, RngCore};
 
     use test::{black_box, Bencher};
 

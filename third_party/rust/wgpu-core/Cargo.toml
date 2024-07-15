@@ -41,7 +41,7 @@ targets = [
 
 [dependencies]
 arrayvec = "0.7"
-bit-vec = "0.6"
+bit-vec = "0.7"
 bitflags = "2"
 document-features = "0.2.8"
 indexmap = "2"
@@ -80,7 +80,7 @@ optional = true
 
 [dependencies.serde]
 version = "1"
-features = ["serde_derive"]
+features = ["derive"]
 optional = true
 
 [dependencies.wgt]
@@ -102,6 +102,7 @@ fragile-send-sync-non-atomic-wasm = [
 gles = ["hal/gles"]
 glsl = ["naga/glsl-in"]
 metal = ["hal/metal"]
+raw-window-handle = ["dep:raw-window-handle"]
 renderdoc = ["hal/renderdoc"]
 replay = [
     "serde",

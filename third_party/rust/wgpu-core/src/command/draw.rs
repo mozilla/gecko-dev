@@ -1,28 +1,35 @@
 use crate::{
     binding_model::{LateMinBufferBindingSizeMismatch, PushConstantUploadError},
-    error::ErrorFormatter,
     id,
-    resource::{DestroyedResourceError, MissingBufferUsageError, MissingTextureUsageError},
+    resource::{
+        DestroyedResourceError, MissingBufferUsageError, MissingTextureUsageError,
+        ResourceErrorIdent,
+    },
     track::ResourceUsageCompatibilityError,
 };
 use wgt::VertexStepMode;
 
 use thiserror::Error;
 
+use super::bind::BinderError;
+
 /// Error validating a draw call.
-#[derive(Clone, Debug, Error, Eq, PartialEq)]
+#[derive(Clone, Debug, Error)]
 #[non_exhaustive]
 pub enum DrawError {
     #[error("Blend constant needs to be set")]
     MissingBlendConstant,
     #[error("Render pipeline must be set")]
     MissingPipeline,
-    #[error("Vertex buffer {index} must be set")]
-    MissingVertexBuffer { index: u32 },
+    #[error("Currently set {pipeline} requires vertex buffer {index} to be set")]
+    MissingVertexBuffer {
+        pipeline: ResourceErrorIdent,
+        index: u32,
+    },
     #[error("Index buffer must be set")]
     MissingIndexBuffer,
-    #[error("Incompatible bind group at index {index} in the current render pipeline")]
-    IncompatibleBindGroup { index: u32, diff: Vec<String> },
+    #[error(transparent)]
+    IncompatibleBindGroup(#[from] Box<BinderError>),
     #[error("Vertex {last_vertex} extends beyond limit {vertex_limit} imposed by the buffer in slot {slot}. Did you bind the correct `Vertex` step-rate vertex buffer?")]
     VertexBeyondLimit {
         last_vertex: u64,
@@ -45,11 +52,12 @@ pub enum DrawError {
     #[error("Index {last_index} extends beyond limit {index_limit}. Did you bind the correct index buffer?")]
     IndexBeyondLimit { last_index: u64, index_limit: u64 },
     #[error(
-        "Pipeline index format ({pipeline:?}) and buffer index format ({buffer:?}) do not match"
+        "Index buffer format {buffer_format:?} doesn't match {pipeline}'s index format {pipeline_format:?}"
     )]
     UnmatchedIndexFormats {
-        pipeline: wgt::IndexFormat,
-        buffer: wgt::IndexFormat,
+        pipeline: ResourceErrorIdent,
+        pipeline_format: wgt::IndexFormat,
+        buffer_format: wgt::IndexFormat,
     },
     #[error(transparent)]
     BindingSizeTooSmall(#[from] LateMinBufferBindingSizeMismatch),
@@ -72,16 +80,16 @@ pub enum RenderCommandError {
     VertexBufferIndexOutOfRange { index: u32, max: u32 },
     #[error("Dynamic buffer offset {0} does not respect device's requested `{1}` limit {2}")]
     UnalignedBufferOffset(u64, &'static str, u32),
-    #[error("Number of buffer offsets ({actual}) does not match the number of dynamic bindings ({expected})")]
-    InvalidDynamicOffsetCount { actual: usize, expected: usize },
-    #[error("Render pipeline {0:?} is invalid")]
-    InvalidPipeline(id::RenderPipelineId),
+    #[error("RenderPipelineId {0:?} is invalid")]
+    InvalidPipelineId(id::RenderPipelineId),
     #[error("QuerySet {0:?} is invalid")]
     InvalidQuerySet(id::QuerySetId),
     #[error("Render pipeline targets are incompatible with render pass")]
     IncompatiblePipelineTargets(#[from] crate::device::RenderPassCompatibilityError),
-    #[error("Pipeline writes to depth/stencil, while the pass has read-only depth/stencil")]
-    IncompatiblePipelineRods,
+    #[error("{0} writes to depth, while the pass has read-only depth access")]
+    IncompatibleDepthAccess(ResourceErrorIdent),
+    #[error("{0} writes to stencil, while the pass has read-only stencil access")]
+    IncompatibleStencilAccess(ResourceErrorIdent),
     #[error(transparent)]
     ResourceUsageCompatibility(#[from] ResourceUsageCompatibilityError),
     #[error(transparent)]
@@ -100,20 +108,6 @@ pub enum RenderCommandError {
     InvalidScissorRect(Rect<u32>, wgt::Extent3d),
     #[error("Support for {0} is not implemented yet")]
     Unimplemented(&'static str),
-}
-impl crate::error::PrettyError for RenderCommandError {
-    fn fmt_pretty(&self, fmt: &mut ErrorFormatter) {
-        fmt.error(self);
-        match *self {
-            Self::InvalidBindGroupId(id) => {
-                fmt.bind_group_label(&id);
-            }
-            Self::InvalidPipeline(id) => {
-                fmt.render_pipeline_label(&id);
-            }
-            _ => {}
-        };
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]

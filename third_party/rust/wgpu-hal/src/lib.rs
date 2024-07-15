@@ -447,7 +447,11 @@ pub trait Instance: Sized + WasmNotSendSync {
         window_handle: raw_window_handle::RawWindowHandle,
     ) -> Result<<Self::A as Api>::Surface, InstanceError>;
     unsafe fn destroy_surface(&self, surface: <Self::A as Api>::Surface);
-    unsafe fn enumerate_adapters(&self) -> Vec<ExposedAdapter<Self::A>>;
+    /// `surface_hint` is only used by the GLES backend targeting WebGL2
+    unsafe fn enumerate_adapters(
+        &self,
+        surface_hint: Option<&<Self::A as Api>::Surface>,
+    ) -> Vec<ExposedAdapter<Self::A>>;
 }
 
 pub trait Surface: WasmNotSendSync {
@@ -558,6 +562,7 @@ pub trait Adapter: WasmNotSendSync {
         &self,
         features: wgt::Features,
         limits: &wgt::Limits,
+        memory_hints: &wgt::MemoryHints,
     ) -> Result<OpenDevice<Self::A>, DeviceError>;
 
     /// Return the set of supported capabilities for a texture format.
@@ -2190,7 +2195,7 @@ pub struct BuildAccelerationStructureDescriptor<'a, A: Api> {
 /// - All buffers, buffer addresses and offsets will be ignored.
 /// - The build mode will be ignored.
 /// - Reducing the amount of Instances, Triangle groups or AABB groups (or the number of Triangles/AABBs in corresponding groups),
-/// may result in reduced size requirements.
+///   may result in reduced size requirements.
 /// - Any other change may result in a bigger or smaller size requirement.
 #[derive(Clone, Debug)]
 pub struct GetAccelerationStructureBuildSizesDescriptor<'a, A: Api> {

@@ -11,8 +11,13 @@
 
 [package]
 name = "bit-set"
-version = "0.5.3"
+version = "0.6.0"
 authors = ["Alexis Beingessner <a.beingessner@gmail.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A set of bits"
 homepage = "https://github.com/contain-rs/bit-set"
 documentation = "https://contain-rs.github.io/bit-set/bit_set"
@@ -24,13 +29,18 @@ keywords = [
 license = "MIT/Apache-2.0"
 repository = "https://github.com/contain-rs/bit-set"
 
+[lib]
+name = "bit_set"
+path = "src/lib.rs"
+
 [dependencies.bit-vec]
-version = "0.6.1"
+version = "0.7.0"
 default-features = false
 
 [dev-dependencies.rand]
-version = "0.3"
+version = "0.8"
 
 [features]
+bench = []
 default = ["std"]
 std = ["bit-vec/std"]

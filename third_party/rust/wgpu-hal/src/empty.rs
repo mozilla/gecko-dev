@@ -54,7 +54,10 @@ impl crate::Instance for Context {
         Ok(Context)
     }
     unsafe fn destroy_surface(&self, surface: Context) {}
-    unsafe fn enumerate_adapters(&self) -> Vec<crate::ExposedAdapter<Api>> {
+    unsafe fn enumerate_adapters(
+        &self,
+        _surface_hint: Option<&Context>,
+    ) -> Vec<crate::ExposedAdapter<Api>> {
         Vec::new()
     }
 }
@@ -89,6 +92,7 @@ impl crate::Adapter for Context {
         &self,
         features: wgt::Features,
         _limits: &wgt::Limits,
+        _memory_hints: &wgt::MemoryHints,
     ) -> DeviceResult<crate::OpenDevice<Api>> {
         Err(crate::DeviceError::Lost)
     }

@@ -445,7 +445,7 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
 
     // -
 
-    ffi::WGPUDeviceDescriptor ffiDesc = {};
+    ffi::WGPUFfiDeviceDescriptor ffiDesc = {};
     ffiDesc.required_features = *MakeFeatureBits(aDesc.mRequiredFeatures);
     ffiDesc.required_limits = deviceLimits;
     auto request = mBridge->AdapterRequestDevice(mId, ffiDesc);

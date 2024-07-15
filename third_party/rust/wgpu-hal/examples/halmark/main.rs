@@ -111,7 +111,7 @@ impl<A: hal::Api> Example<A> {
         };
 
         let (adapter, capabilities) = unsafe {
-            let mut adapters = instance.enumerate_adapters();
+            let mut adapters = instance.enumerate_adapters(Some(&surface));
             if adapters.is_empty() {
                 return Err("no adapters found".into());
             }
@@ -125,7 +125,11 @@ impl<A: hal::Api> Example<A> {
 
         let hal::OpenDevice { device, queue } = unsafe {
             adapter
-                .open(wgt::Features::empty(), &wgt::Limits::default())
+                .open(
+                    wgt::Features::empty(),
+                    &wgt::Limits::default(),
+                    &wgt::MemoryHints::default(),
+                )
                 .unwrap()
         };
 
