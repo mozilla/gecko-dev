@@ -331,7 +331,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                         setViewState(
                             headline = if (result.foundLogin.username.isEmpty()) {
                                 context?.getString(
-                                    R.string.mozac_feature_prompt_login_add_username_headline,
+                                    R.string.mozac_feature_prompt_login_add_username_headline_2,
                                 )
                             } else {
                                 context?.getString(R.string.mozac_feature_prompt_login_update_headline_2)
