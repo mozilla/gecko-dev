@@ -319,7 +319,7 @@ pub struct StyleSharingCandidate<E: TElement> {
     /// The element.
     element: E,
     validation_data: ValidationData,
-    may_contain_scoped_style: bool,
+    considered_nontrivial_scoped_style: bool,
 }
 
 struct FakeCandidate {
@@ -532,7 +532,7 @@ impl<E: TElement> SharingCache<E> {
         &mut self,
         element: E,
         validation_data_holder: Option<&mut StyleSharingTarget<E>>,
-        may_contain_scoped_style: bool,
+        considered_nontrivial_scoped_style: bool,
     ) {
         let validation_data = match validation_data_holder {
             Some(v) => v.take_validation_data(),
@@ -541,7 +541,7 @@ impl<E: TElement> SharingCache<E> {
         self.entries.insert(StyleSharingCandidate {
             element,
             validation_data,
-            may_contain_scoped_style,
+            considered_nontrivial_scoped_style,
         });
     }
 }
@@ -693,7 +693,7 @@ impl<E: TElement> StyleSharingCache<E> {
         self.cache_mut().insert(
             *element,
             validation_data_holder,
-            style.style().flags.intersects(ComputedValueFlags::CONSIDERED_SCOPED_STYLE),
+            style.style().flags.intersects(ComputedValueFlags::CONSIDERED_NONTRIVIAL_SCOPED_STYLE),
         );
     }
 
@@ -854,7 +854,7 @@ impl<E: TElement> StyleSharingCache<E> {
 
         // While the scoped style rules may be different (e.g. `@scope { .foo + .foo { /* .. */} }`),
         // we rely on revalidation to handle that.
-        if candidate.may_contain_scoped_style && !checks::revalidate_scope(target, candidate, shared, selector_caches) {
+        if candidate.considered_nontrivial_scoped_style && !checks::revalidate_scope(target, candidate, shared, selector_caches) {
             trace!("Miss: Active Scopes");
             return None;
         }

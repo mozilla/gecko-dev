@@ -42,7 +42,7 @@ use crate::stylesheets::import_rule::ImportLayer;
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::layer_rule::{LayerName, LayerOrder};
 use crate::stylesheets::scope_rule::{
-    collect_scope_roots, element_is_outside_of_scope, ImplicitScopeRoot, ScopeRootCandidate, ScopeSubjectMap, ScopeTarget
+    collect_scope_roots, element_is_outside_of_scope, scope_selector_list_is_trivial, ImplicitScopeRoot, ScopeRootCandidate, ScopeSubjectMap, ScopeTarget
 };
 #[cfg(feature = "gecko")]
 use crate::stylesheets::{
@@ -2464,6 +2464,7 @@ struct ScopeConditionReference {
     condition: Option<ScopeBoundsWithHashes>,
     #[ignore_malloc_size_of = "Raw ptr behind the scenes"]
     implicit_scope_root: Option<StylistImplicitScopeRoot>,
+    is_trivial: bool,
 }
 
 impl ScopeConditionReference {
@@ -2472,6 +2473,39 @@ impl ScopeConditionReference {
             parent: ScopeConditionId::none(),
             condition: None,
             implicit_scope_root: None,
+            is_trivial: true,
+        }
+    }
+}
+
+fn scope_bounds_is_trivial(bounds: &ScopeBoundsWithHashes) -> bool {
+    fn scope_bound_is_trivial(bound: &Option<ScopeBoundWithHashes>, default: bool) -> bool {
+        bound.as_ref().map_or(default, |bound| scope_selector_list_is_trivial(&bound.selectors))
+    }
+
+    // Given an implicit scope, we are unable to tell if the cousins share the same implicit root.
+    scope_bound_is_trivial(&bounds.start, false) && scope_bound_is_trivial(&bounds.end, true)
+}
+
+struct ScopeRootCandidates {
+    candidates: Vec<ScopeRootCandidate>,
+    is_trivial: bool,
+}
+
+impl Default for ScopeRootCandidates {
+    fn default() -> Self {
+        Self {
+            candidates: vec![],
+            is_trivial: true,
+        }
+    }
+}
+
+impl ScopeRootCandidates {
+    fn empty(is_trivial: bool) -> Self {
+        Self {
+            candidates: vec![],
+            is_trivial,
         }
     }
 }
@@ -2900,15 +2934,15 @@ impl CascadeData {
         element: E,
         context: &mut MatchingContext<E::Impl>,
     ) -> ScopeProximity {
-        context.extra_data.cascade_input_flags.insert(ComputedValueFlags::CONSIDERED_SCOPED_STYLE);
+        context.extra_data.cascade_input_flags.insert(ComputedValueFlags::CONSIDERED_NONTRIVIAL_SCOPED_STYLE);
 
-        let candidates = self.scope_condition_matches(
+        let result = self.scope_condition_matches(
             rule.scope_condition_id,
             stylist,
             element,
             context,
         );
-        for candidate in candidates {
+        for candidate in result.candidates {
             if context.nest_for_scope(Some(candidate.root), |context| {
                 matches_selector(
                     &rule.selector,
@@ -2924,29 +2958,31 @@ impl CascadeData {
         ScopeProximity::infinity()
     }
 
-    pub(crate) fn scope_condition_matches<E>(
+    fn scope_condition_matches<E>(
         &self,
         id: ScopeConditionId,
         stylist: &Stylist,
         element: E,
         context: &mut MatchingContext<E::Impl>,
-    ) -> Vec<ScopeRootCandidate>
+    ) -> ScopeRootCandidates
     where
         E: TElement,
     {
         let condition_ref = &self.scope_conditions[id.0 as usize];
         let bounds = match condition_ref.condition {
-            None => return vec![],
+            None => return ScopeRootCandidates::default(),
             Some(ref c) => c,
         };
         // Make sure the parent scopes ara evaluated first. This runs a bit counter to normal
         // selector matching where rightmost selectors match first. However, this avoids having
         // to traverse through descendants (i.e. Avoids tree traversal vs linear traversal).
-        let outer_scope_roots =
+        let outer_result =
             self.scope_condition_matches(condition_ref.parent, stylist, element, context);
+
+        let is_trivial = condition_ref.is_trivial && outer_result.is_trivial;
         let is_outermost_scope = condition_ref.parent == ScopeConditionId::none();
-        if !is_outermost_scope && outer_scope_roots.is_empty() {
-            return vec![];
+        if !is_outermost_scope && outer_result.candidates.is_empty() {
+            return ScopeRootCandidates::empty(is_trivial);
         }
 
         let (root_target, matches_shadow_host) = if let Some(start) = bounds.start.as_ref() {
@@ -2956,7 +2992,7 @@ impl CascadeData {
                 // so the filter contains more data than it should, the further we go up the ancestor
                 // chain. It wouldn't generate wrong results, but makes the traversal even more pointless.
                 if !start.hashes.iter().any(|entry| selector_may_match(entry, filter)) {
-                    return vec![];
+                    return ScopeRootCandidates::empty(is_trivial);
                 }
             }
             (
@@ -2974,7 +3010,7 @@ impl CascadeData {
             match implicit_root {
                 StylistImplicitScopeRoot::Normal(r) => {
                     match r.element(context.current_host.clone()) {
-                        None => return vec![],
+                        None => return ScopeRootCandidates::empty(is_trivial),
                         Some(root) => (ScopeTarget::Element(root), r.matches_shadow_host()),
                     }
                 },
@@ -2986,10 +3022,10 @@ impl CascadeData {
                         element.containing_shadow().expect("Not shadow host and not under shadow tree?")
                     };
                     match shadow_root.implicit_scope_for_sheet(*index) {
-                        None => return vec![],
+                        None => return ScopeRootCandidates::empty(is_trivial),
                         Some(root) => {
                             match root.element(context.current_host.clone()) {
-                                None => return vec![],
+                                None => return ScopeRootCandidates::empty(is_trivial),
                                 Some(r) =>  (ScopeTarget::Element(r), root.matches_shadow_host()),
                             }
                         },
@@ -3002,7 +3038,7 @@ impl CascadeData {
             collect_scope_roots(element, None, context, &root_target, matches_shadow_host, &self.scope_subject_map)
         } else {
             let mut result = vec![];
-            for activation in &outer_scope_roots {
+            for activation in outer_result.candidates {
                 let mut this_result = collect_scope_roots(
                     element,
                     Some(activation.root),
@@ -3017,10 +3053,10 @@ impl CascadeData {
         };
 
         if potential_scope_roots.is_empty() {
-            return potential_scope_roots;
+            return ScopeRootCandidates::empty(is_trivial);
         }
 
-        if let Some(end) = bounds.end.as_ref() {
+        let candidates = if let Some(end) = bounds.end.as_ref() {
             let mut result = vec![];
             // If any scope-end selector matches, we're not in scope.
             for scope_root in potential_scope_roots {
@@ -3047,6 +3083,11 @@ impl CascadeData {
             result
         } else {
             potential_scope_roots
+        };
+
+        ScopeRootCandidates {
+            candidates,
+            is_trivial,
         }
     }
 
@@ -3608,10 +3649,12 @@ impl CascadeData {
                         self.scope_subject_map.add_bound_start(&selectors.selectors, quirks_mode);
                     }
 
+                    let is_trivial = scope_bounds_is_trivial(&replaced);
                     self.scope_conditions.push(ScopeConditionReference {
                         parent: containing_rule_state.scope_condition_id,
                         condition: Some(replaced),
                         implicit_scope_root,
+                        is_trivial,
                     });
                     containing_rule_state
                         .scope_matches_shadow_host
@@ -3807,12 +3850,21 @@ impl CascadeData {
         // (Given that other sharing conditions are met), it is uncertain if elements with non-matching
         // results do not.
         for condition_id in 1..self.scope_conditions.len() {
-            result.scopes_matched.push(!self.scope_condition_matches(
-                ScopeConditionId(condition_id as u16),
-                stylist,
-                *element,
-                matching_context
-            ).is_empty());
+            let condition = &self.scope_conditions[condition_id];
+            let matches = if condition.is_trivial {
+                // Just ignore this condition - for style sharing candidates, guaranteed
+                // the same match result.
+                continue;
+            } else {
+                let result = self.scope_condition_matches(
+                    ScopeConditionId(condition_id as u16),
+                    stylist,
+                    *element,
+                    matching_context
+                );
+                !result.candidates.is_empty()
+            };
+            result.scopes_matched.push(matches);
         }
     }
 

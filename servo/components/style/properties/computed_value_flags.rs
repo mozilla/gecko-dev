@@ -128,7 +128,7 @@ bitflags! {
         const HAS_AUTHOR_SPECIFIED_TEXT_COLOR = 1 << 25;
 
         /// Whether this style considered a scope style rule.
-        const CONSIDERED_SCOPED_STYLE = 1 << 26;
+        const CONSIDERED_NONTRIVIAL_SCOPED_STYLE = 1 << 26;
     }
 }
 
@@ -162,7 +162,7 @@ impl ComputedValueFlags {
     #[inline]
     fn cascade_input_flags() -> Self {
         Self::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES |
-        Self::CONSIDERED_SCOPED_STYLE
+        Self::CONSIDERED_NONTRIVIAL_SCOPED_STYLE
     }
 
     /// Returns the flags that are always propagated to descendants.

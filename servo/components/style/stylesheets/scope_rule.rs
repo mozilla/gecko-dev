@@ -417,3 +417,37 @@ impl ScopeSubjectMap {
         true
     }
 }
+
+/// Determine if this selector list, when used as a scope bound selector, is considered trivial.
+pub fn scope_selector_list_is_trivial(list: &SelectorList<SelectorImpl>) -> bool {
+    fn scope_selector_is_trivial(selector: &Selector<SelectorImpl>) -> bool {
+        // A selector is trivial if:
+        // * There is no selector conditional on its siblings and/or descendant to match, and
+        // * There is no dependency on sibling relations, and
+        // * There's no ID selector in the selector. A more correct approach may be to ensure that
+        //   scoping roots of the style sharing candidates and targets have matching IDs, but that
+        //   requires re-plumbing what we pass around for scope roots.
+        let mut iter = selector.iter();
+        loop {
+            while let Some(c) = iter.next() {
+                match c {
+                    Component::ID(_) | Component::Nth(_) | Component::NthOf(_) | Component::Has(_) => return false,
+                    Component::Is(ref list) | Component::Where(ref list) | Component::Negation(ref list) =>
+                        if !scope_selector_list_is_trivial(list) {
+                            return false;
+                        }
+                    _ => (),
+                }
+            }
+
+            match iter.next_sequence() {
+                Some(c) => if c.is_sibling() {
+                    return false;
+                },
+                None => return true,
+            }
+        }
+    }
+
+    list.slice().iter().all(|s| scope_selector_is_trivial(s))
+}
