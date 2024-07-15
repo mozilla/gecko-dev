@@ -55,7 +55,9 @@ ServiceWorkerRegistrationDescriptor::ServiceWorkerRegistrationDescriptor(
 ServiceWorkerRegistrationDescriptor::ServiceWorkerRegistrationDescriptor(
     const IPCServiceWorkerRegistrationDescriptor& aDescriptor)
     : mData(MakeUnique<IPCServiceWorkerRegistrationDescriptor>(aDescriptor)) {
+#ifndef FUZZING_SNAPSHOT
   MOZ_DIAGNOSTIC_ASSERT(IsValid());
+#endif
 }
 
 ServiceWorkerRegistrationDescriptor::ServiceWorkerRegistrationDescriptor(
