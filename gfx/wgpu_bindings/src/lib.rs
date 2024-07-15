@@ -29,7 +29,7 @@ fn cow_label(raw: &RawString) -> Option<Cow<'_, str>> {
 }
 
 // Hides the repeated boilerplate of turning a `Option<&nsACString>` into a `Option<Cow<str>`.
-pub fn wgpu_string(gecko_string: Option<&nsACString>) -> Option<Cow<str>> {
+pub fn wgpu_string(gecko_string: Option<&nsACString>) -> Option<Cow<'_, str>> {
     gecko_string.map(|s| s.to_utf8())
 }
 
