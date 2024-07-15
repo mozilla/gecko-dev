@@ -39,7 +39,7 @@ def is_release_promotion_available(parameters):
                 "type": "string",
                 "description": "The type of release promotion to perform.",
                 "enum": sorted(graph_config["merge-automation"]["behaviors"].keys()),
-                "default": "central-to-beta",
+                "default": "REPLACE ME",
             },
             "from-repo": {
                 "type": "string",
