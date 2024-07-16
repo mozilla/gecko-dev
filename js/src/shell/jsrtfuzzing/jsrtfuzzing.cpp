@@ -132,6 +132,14 @@ int js::shell::FuzzJSRuntimeFuzz(const uint8_t* buf, size_t size) {
     return 1;
   }
 
+  if (gCx->isThrowingOutOfMemory()) {
+    // If the target is throwing out of memory, try to recover and indicate
+    // to the fuzzer that we don't want to keep this sample as it usually
+    // slows down execution.
+    gCx->recoverFromOutOfMemory();
+    return 1;
+  }
+
   // The fuzzing module is required to handle any exceptions
   CrashOnPendingException();
 

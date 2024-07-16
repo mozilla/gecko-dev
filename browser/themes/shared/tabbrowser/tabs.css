@@ -520,14 +520,16 @@
  * width of the close button. We don't do this in forced-colors mode since
  * the button has a visible outline shown. */
 @media not (forced-colors) {
-  .tabbrowser-tab:not([labelendaligned], :hover) > .tab-stack > .tab-content > .tab-close-button {
-    padding-inline-start: 0;
-    width: 18px;
-  }
+  #tabbrowser-tabs:not([orient="vertical"]) {
+    .tabbrowser-tab:not([labelendaligned], :hover) > .tab-stack > .tab-content > .tab-close-button {
+      padding-inline-start: 0;
+      width: 18px;
+    }
 
-  .tabbrowser-tab[visuallyselected]:not([labelendaligned]):hover,
-  #tabbrowser-tabs:not([closebuttons=activetab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab:not([visuallyselected], [labelendaligned]):hover {
-    --tab-label-mask-size: 2em;
+    .tabbrowser-tab[visuallyselected]:not([labelendaligned]):hover,
+    &:not([closebuttons=activetab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab:not([visuallyselected], [labelendaligned]):hover {
+      --tab-label-mask-size: 2em;
+    }
   }
 }
 
@@ -741,14 +743,22 @@
     display: none;
   }
 
-  &::part(scrollbox-clip) {
-    min-height: inherit;
+  &::part(scrollbox) {
+    scrollbar-width: thin;
+    overflow-y: auto;
   }
+
+  &[overflowing="true"]:not([scrolledtoend="true"]) {
+    mask-image: linear-gradient(to bottom, black 98%, transparent 100%);
+  }
+}
+
+#tabbrowser-tabs[orient="vertical"]:has(> #tabbrowser-arrowscrollbox[overflowing="true"]) {
+  border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent);
 }
 
 #vertical-tabs {
   overflow-y: hidden;
-  scrollbar-width: thin;
   display: none;
 
   &[activated] {

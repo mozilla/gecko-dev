@@ -41,6 +41,10 @@ function getBrowser(panel) {
   browser.setAttribute("tooltip", "aHTMLTooltip");
   browser.setAttribute("autocompletepopup", "PopupAutoComplete");
 
+  if (gAllowTransparentBrowser) {
+    browser.setAttribute("transparent", "true");
+  }
+
   // Ensure that the browser is going to run in the same bc group as the other
   // extension pages from the same addon.
   browser.setAttribute(
@@ -175,3 +179,10 @@ function loadPanel(extensionId, extensionUrl, browserStyle) {
     browser.fixupAndLoadURIString(extensionUrl, { triggeringPrincipal });
   });
 }
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "gAllowTransparentBrowser",
+  "browser.tabs.allow_transparent_browser",
+  false
+);

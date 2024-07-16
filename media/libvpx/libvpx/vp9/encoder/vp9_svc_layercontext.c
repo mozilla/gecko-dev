@@ -1342,7 +1342,7 @@ void vp9_svc_adjust_avg_frame_qindex(VP9_COMP *const cpi) {
   // Reset it for all temporal layers on base spatial layer.
   if (cm->frame_type == KEY_FRAME && cpi->oxcf.rc_mode == VPX_CBR &&
       !svc->simulcast_mode &&
-      rc->projected_frame_size > 3 * rc->avg_frame_bandwidth) {
+      rc->projected_frame_size / 3 > rc->avg_frame_bandwidth) {
     int tl;
     rc->avg_frame_qindex[INTER_FRAME] =
         VPXMAX(rc->avg_frame_qindex[INTER_FRAME],

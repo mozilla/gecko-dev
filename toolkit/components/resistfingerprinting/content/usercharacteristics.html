@@ -264,6 +264,492 @@
       </div>
     </div>
 
+    <!--
+      MathML Width Tests. Last 10 examples from the MathML Torture Test.
+      https://github.com/mdn/archived-content/blob/b0aa15f42b0b53e790dc175ae8914b61460593a8/files/en-us/mozilla/mathml_project/mathml_torture_test/raw.html
+     -->
+    <div>
+      <math id="1">
+        <mrow>
+          <munder>
+            <mo>∑</mo>
+            <mrow>
+              <mi>p</mi>
+              <mtext>&nbsp;prime</mtext>
+            </mrow>
+          </munder>
+          <mi>f</mi>
+          <mo stretchy="false">(</mo>
+          <mi>p</mi>
+          <mo stretchy="false">)</mo>
+          <mo>=</mo>
+          <msub>
+            <mo stretchy="false">∫</mo>
+            <mrow>
+              <mi>t</mi>
+              <mo>&gt;</mo>
+              <mn>1</mn>
+            </mrow>
+          </msub>
+          <mi>f</mi>
+          <mo stretchy="false">(</mo>
+          <mi>t</mi>
+          <mo stretchy="false">)</mo>
+          <mspace width="thinmathspace"></mspace>
+          <mi>d</mi>
+          <mi>π</mi>
+          <mo stretchy="false">(</mo>
+          <mi>t</mi>
+          <mo stretchy="false">)</mo>
+        </mrow>
+      </math>
+      <math id="2">
+        <mrow>
+          <mo stretchy="false">{</mo>
+          <munder>
+            <mrow>
+              <mover>
+                <mrow>
+                  <mpadded width="0em">
+                    <mphantom>
+                      <mo>(</mo>
+                    </mphantom>
+                  </mpadded>
+                  <mi>a</mi>
+                  <mo>,</mo>
+                  <mo>...</mo>
+                  <mo>,</mo>
+                  <mi>a</mi>
+                </mrow>
+                <mover>
+                  <mo>⏞</mo>
+                  <mrow>
+                    <mi>k</mi>
+                    <mtext>&nbsp;</mtext>
+                    <mi>a</mi>
+                    <mtext>'s</mtext>
+                  </mrow>
+                </mover>
+              </mover>
+              <mo>,</mo>
+              <mover>
+                <mrow>
+                  <mpadded width="0em">
+                    <mphantom>
+                      <mo>(</mo>
+                    </mphantom>
+                  </mpadded>
+                  <mi>b</mi>
+                  <mo>,</mo>
+                  <mo>...</mo>
+                  <mo>,</mo>
+                  <mi>b</mi>
+                </mrow>
+                <mover>
+                  <mo>⏞</mo>
+                  <mrow>
+                    <mi>ℓ</mi>
+                    <mtext>&nbsp;</mtext>
+                    <mi>b</mi>
+                    <mtext>'s</mtext>
+                  </mrow>
+                </mover>
+              </mover>
+            </mrow>
+            <munder>
+              <mo>⏟</mo>
+              <mrow>
+                <mi>k</mi>
+                <mo>+</mo>
+                <mi>ℓ</mi>
+                <mtext>&nbsp;elements</mtext>
+              </mrow>
+            </munder>
+          </munder>
+          <mo stretchy="false">}</mo>
+        </mrow>
+      </math>
+      <math id="3">
+        <mrow>
+          <mo>(</mo>
+          <mtable>
+            <mtr>
+              <mtd columnalign="center">
+                <mrow>
+                  <mo>(</mo>
+                  <mtable>
+                    <mtr>
+                      <mtd columnalign="center">
+                        <mi>a</mi>
+                      </mtd>
+                      <mtd columnalign="center">
+                        <mi>b</mi>
+                      </mtd>
+                    </mtr>
+                    <mtr>
+                      <mtd columnalign="center">
+                        <mi>c</mi>
+                      </mtd>
+                      <mtd columnalign="center">
+                        <mi>d</mi>
+                      </mtd>
+                    </mtr>
+                  </mtable>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+              <mtd columnalign="center">
+                <mrow>
+                  <mo>(</mo>
+                  <mtable>
+                    <mtr>
+                      <mtd columnalign="center">
+                        <mi>e</mi>
+                      </mtd>
+                      <mtd columnalign="center">
+                        <mi>f</mi>
+                      </mtd>
+                    </mtr>
+                    <mtr>
+                      <mtd columnalign="center">
+                        <mi>g</mi>
+                      </mtd>
+                      <mtd columnalign="center">
+                        <mi>h</mi>
+                      </mtd>
+                    </mtr>
+                  </mtable>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd columnalign="center">
+                <mn>0</mn>
+              </mtd>
+              <mtd columnalign="center">
+                <mrow>
+                  <mo>(</mo>
+                  <mtable>
+                    <mtr>
+                      <mtd columnalign="center">
+                        <mi>i</mi>
+                      </mtd>
+                      <mtd columnalign="center">
+                        <mi>j</mi>
+                      </mtd>
+                    </mtr>
+                    <mtr>
+                      <mtd columnalign="center">
+                        <mi>k</mi>
+                      </mtd>
+                      <mtd columnalign="center">
+                        <mi>l</mi>
+                      </mtd>
+                    </mtr>
+                  </mtable>
+                  <mo>)</mo>
+                </mrow>
+              </mtd>
+            </mtr>
+          </mtable>
+          <mo>)</mo>
+        </mrow>
+      </math>
+      <math id="4">
+        <mrow>
+          <mi>det</mi>
+          <mo>|</mo>
+          <mtable>
+            <mtr>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mn>0</mn>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mn>1</mn>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mn>2</mn>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <mo>…</mo>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mi>n</mi>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mn>1</mn>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mn>2</mn>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mn>3</mn>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <mo>…</mo>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mrow>
+                    <mi>n</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                  </mrow>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mn>2</mn>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mn>3</mn>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mn>4</mn>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <mo>…</mo>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mrow>
+                    <mi>n</mi>
+                    <mo>+</mo>
+                    <mn>2</mn>
+                  </mrow>
+                </msub>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd columnalign="center">
+                <mo>⋮</mo>
+              </mtd>
+              <mtd columnalign="center">
+                <mo>⋮</mo>
+              </mtd>
+              <mtd columnalign="center">
+                <mo>⋮</mo>
+              </mtd>
+              <mtd columnalign="center"> </mtd>
+              <mtd columnalign="center">
+                <mo>⋮</mo>
+              </mtd>
+            </mtr>
+            <mtr>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mi>n</mi>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mrow>
+                    <mi>n</mi>
+                    <mo>+</mo>
+                    <mn>1</mn>
+                  </mrow>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mrow>
+                    <mi>n</mi>
+                    <mo>+</mo>
+                    <mn>2</mn>
+                  </mrow>
+                </msub>
+              </mtd>
+              <mtd columnalign="center">
+                <mo>…</mo>
+              </mtd>
+              <mtd columnalign="center">
+                <msub>
+                  <mi>c</mi>
+                  <mrow>
+                    <mn>2</mn>
+                    <mi>n</mi>
+                  </mrow>
+                </msub>
+              </mtd>
+            </mtr>
+          </mtable>
+          <mo>|</mo>
+          <mo>&gt;</mo>
+          <mn>0</mn>
+        </mrow>
+      </math>
+      <math id="5">
+        <msub>
+          <mi>y</mi>
+          <msub>
+            <mi>x</mi>
+            <mn>2</mn>
+          </msub>
+        </msub>
+      </math>
+      <math id="6">
+        <mrow>
+          <msubsup>
+            <mi>x</mi>
+            <mn>92</mn>
+            <mn>31415</mn>
+          </msubsup>
+          <mo>+</mo>
+          <mi>π</mi>
+        </mrow>
+      </math>
+      <math id="7">
+        <msubsup>
+          <mi>x</mi>
+          <msubsup>
+            <mi>y</mi>
+            <mi>b</mi>
+            <mi>a</mi>
+          </msubsup>
+          <msubsup>
+            <mi>z</mi>
+            <mi>c</mi>
+            <mi>d</mi>
+          </msubsup>
+        </msubsup>
+      </math>
+      <math id="8">
+        <msubsup>
+          <mi>y</mi>
+          <mn>3</mn>
+          <mo>‴</mo>
+        </msubsup>
+      </math>
+      <math id="9" xmlns="http://www.w3.org/1998/Math/MathML">
+        <mrow>
+          <munder>
+            <mo lspace="0em" rspace="0em">lim</mo>
+            <mrow>
+              <mi>n</mi>
+              <mo stretchy="false">→</mo>
+              <mo>+</mo>
+              <mn>∞</mn>
+            </mrow>
+          </munder>
+          <mfrac>
+            <msqrt>
+              <mrow>
+                <mn>2</mn>
+                <mi>π</mi>
+                <mi>n</mi>
+              </mrow>
+            </msqrt>
+            <mrow>
+              <mi>n</mi>
+              <mo>!</mo>
+            </mrow>
+          </mfrac>
+          <msup>
+            <mrow>
+              <mo>(</mo>
+              <mfrac>
+                <mi>n</mi>
+                <mi>e</mi>
+              </mfrac>
+              <mo>)</mo>
+            </mrow>
+            <mi>n</mi>
+          </msup>
+        </mrow>
+        <mo>=</mo>
+        <mn>1</mn>
+      </math>
+      <math id="10" xmlns="http://www.w3.org/1998/Math/MathML">
+        <mrow>
+          <mrow>
+            <mo lspace="0em" rspace="0em">det</mo>
+            <mo stretchy="false">(</mo>
+            <mi>A</mi>
+            <mo stretchy="false">)</mo>
+          </mrow>
+          <mo>=</mo>
+          <munder>
+            <mo>∑</mo>
+            <mrow>
+              <mi>σ</mi>
+              <mo>∊</mo>
+              <msub>
+                <mi>S</mi>
+                <mi>n</mi>
+              </msub>
+            </mrow>
+          </munder>
+          <mrow>
+            <mi>ϵ</mi>
+            <mo stretchy="false">(</mo>
+            <mi>σ</mi>
+            <mo stretchy="false">)</mo>
+          </mrow>
+          <mrow>
+            <munderover>
+              <mo>∏</mo>
+              <mrow>
+                <mi>i</mi>
+                <mo>=</mo>
+                <mn>1</mn>
+              </mrow>
+              <mi>n</mi>
+            </munderover>
+            <msub>
+              <mi>a</mi>
+              <mrow>
+                <mi>i</mi>
+                <mo>,</mo>
+                <msub>
+                  <mi>σ</mi>
+                  <mi>i</mi>
+                </msub>
+              </mrow>
+            </msub>
+          </mrow>
+        </mrow>
+      </math>
+    </div>
+
     <script src="chrome://global/content/usercharacteristics/gl-matrix.js"></script>
     <script src="chrome://global/content/usercharacteristics/ssdeep.js"></script>
     <script src="chrome://global/content/usercharacteristics/usercharacteristics.js"></script>

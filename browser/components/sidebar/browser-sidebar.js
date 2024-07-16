@@ -247,6 +247,15 @@ var SidebarController = {
     this._switcherTarget = document.getElementById("sidebar-switcher-target");
     this._switcherArrow = document.getElementById("sidebar-switcher-arrow");
 
+    if (
+      Services.prefs.getBoolPref(
+        "browser.tabs.allow_transparent_browser",
+        false
+      )
+    ) {
+      this.browser.setAttribute("transparent", "true");
+    }
+
     const menubar = document.getElementById("viewSidebarMenu");
     for (const [commandID, sidebar] of this.sidebars.entries()) {
       if (

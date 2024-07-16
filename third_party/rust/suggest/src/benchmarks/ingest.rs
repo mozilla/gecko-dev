@@ -27,6 +27,7 @@ impl IngestBenchmark {
         let temp_dir = tempfile::tempdir().unwrap();
         let store = SuggestStoreInner::new(
             temp_dir.path().join("warmup.sqlite"),
+            vec![],
             RemoteSettingsWarmUpClient::new(),
         );
         store.benchmark_ingest_records_by_type(record_type);
@@ -52,7 +53,7 @@ impl BenchmarkWithInput for IngestBenchmark {
             "db{}.sqlite",
             DB_FILE_COUNTER.fetch_add(1, Ordering::Relaxed)
         ));
-        let store = SuggestStoreInner::new(data_path, self.client.clone());
+        let store = SuggestStoreInner::new(data_path, vec![], self.client.clone());
         store.ensure_db_initialized();
         if self.reingest {
             store.force_reingest(self.record_type);
@@ -148,6 +149,7 @@ pub fn print_debug_ingestion_sizes() {
     viaduct_reqwest::use_reqwest_backend();
     let store = SuggestStoreInner::new(
         "file:debug_ingestion_sizes?mode=memory&cache=shared",
+        vec![],
         RemoteSettingsWarmUpClient::new(),
     );
     store

@@ -1145,6 +1145,20 @@ async function populateSensorInfo() {
   return promise;
 }
 
+async function populateMathML() {
+  // We only collect width of the math elements.
+  // FPJS reports that height of elements fluctuates.
+  // https://github.com/fingerprintjs/fingerprintjs/blob/143479cba3d4bfd6f2cd773c61c26e8e74a70c06/src/sources/font_preferences.ts#L128-L132
+  // We use getBoundingClientRect().width and not offsetWidth as math elements don't have a offsetWidth property.
+  const mathElements = [...document.querySelectorAll("math[id]")];
+
+  return mathElements.reduce((acc, el) => {
+    // We multiply by 10^15 to include the decimal part.
+    acc["mathml" + el.id] = el.getBoundingClientRect().width * 10 ** 15;
+    return acc;
+  }, {});
+}
+
 // A helper function to generate an array of asynchronous functions to populate
 // canvases using both software and hardware rendering.
 function getCanvasSources() {
@@ -1206,6 +1220,7 @@ const LocalFiraSans = new FontFace(
     populatePointerInfo,
     populateICEFoundations,
     populateSensorInfo,
+    populateMathML,
   ];
   // Catches errors in promise-creating functions. E.g. if populateVoiceList
   // throws an error before returning any of its `key: (Promise<any> | any)`

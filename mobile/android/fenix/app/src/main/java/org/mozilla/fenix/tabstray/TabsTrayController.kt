@@ -277,10 +277,12 @@ class DefaultTabsTrayController(
     override fun handleTrayScrollingToPosition(position: Int, smoothScroll: Boolean) {
         val page = Page.positionToPage(position)
 
-        when (page) {
-            Page.NormalTabs -> TabsTray.normalModeTapped.record(NoExtras())
-            Page.PrivateTabs -> TabsTray.privateModeTapped.record(NoExtras())
-            Page.SyncedTabs -> TabsTray.syncedModeTapped.record(NoExtras())
+        if (page != tabsTrayStore.state.selectedPage) {
+            when (page) {
+                Page.NormalTabs -> TabsTray.normalModeTapped.record(NoExtras())
+                Page.PrivateTabs -> TabsTray.privateModeTapped.record(NoExtras())
+                Page.SyncedTabs -> TabsTray.syncedModeTapped.record(NoExtras())
+            }
         }
 
         selectTabPosition(position, smoothScroll)

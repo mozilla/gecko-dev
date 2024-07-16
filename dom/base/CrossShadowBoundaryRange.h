@@ -58,6 +58,7 @@ class CrossShadowBoundaryRange final : public StaticRange,
 
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
+  NS_DECL_NSIMUTATIONOBSERVER_PARENTCHAINCHANGED
 
  private:
   explicit CrossShadowBoundaryRange(nsINode* aNode, nsRange* aOwner)

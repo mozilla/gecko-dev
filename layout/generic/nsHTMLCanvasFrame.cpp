@@ -38,10 +38,8 @@ using namespace mozilla::gfx;
  * @return The canvas's intrinsic size, as an IntrinsicSize object.
  */
 static IntrinsicSize IntrinsicSizeFromCanvasSize(
-    const nsIntSize& aCanvasSizeInPx) {
-  return IntrinsicSize(
-      nsPresContext::CSSPixelsToAppUnits(aCanvasSizeInPx.width),
-      nsPresContext::CSSPixelsToAppUnits(aCanvasSizeInPx.height));
+    const CSSIntSize& aCanvasSizeInPx) {
+  return IntrinsicSize(CSSIntSize::ToAppUnits(aCanvasSizeInPx));
 }
 
 /* Helper for our nsIFrame::GetIntrinsicRatio() impl. Takes the result of
@@ -51,8 +49,8 @@ static IntrinsicSize IntrinsicSizeFromCanvasSize(
  * @return The canvas's intrinsic ratio.
  */
 static AspectRatio IntrinsicRatioFromCanvasSize(
-    const nsIntSize& aCanvasSizeInPx) {
-  return AspectRatio::FromSize(aCanvasSizeInPx.width, aCanvasSizeInPx.height);
+    const CSSIntSize& aCanvasSizeInPx) {
+  return AspectRatio::FromSize(aCanvasSizeInPx);
 }
 
 class nsDisplayCanvas final : public nsPaintedDisplayItem {
@@ -80,7 +78,7 @@ class nsDisplayCanvas final : public nsPaintedDisplayItem {
       nsRect constraintRect = GetBounds(aBuilder, aSnap);
 
       // Need intrinsic size & ratio, for ComputeObjectDestRect:
-      nsIntSize canvasSize = f->GetCanvasSize();
+      CSSIntSize canvasSize = f->GetCanvasSize();
       IntrinsicSize intrinsicSize = IntrinsicSizeFromCanvasSize(canvasSize);
       AspectRatio intrinsicRatio = IntrinsicRatioFromCanvasSize(canvasSize);
 
@@ -114,7 +112,7 @@ class nsDisplayCanvas final : public nsPaintedDisplayItem {
       element->FlushOffscreenCanvas();
 
       auto* canvasFrame = static_cast<nsHTMLCanvasFrame*>(mFrame);
-      nsIntSize canvasSizeInPx = canvasFrame->GetCanvasSize();
+      CSSIntSize canvasSizeInPx = canvasFrame->GetCanvasSize();
       IntrinsicSize intrinsicSize = IntrinsicSizeFromCanvasSize(canvasSizeInPx);
       AspectRatio intrinsicRatio = IntrinsicRatioFromCanvasSize(canvasSizeInPx);
       nsRect area = mFrame->GetContentRectRelativeToSelf() + ToReferenceFrame();
@@ -157,7 +155,8 @@ class nsDisplayCanvas final : public nsPaintedDisplayItem {
         // Push IFrame for async image pipeline.
         // XXX Remove this once partial display list update is supported.
 
-        nsIntSize canvasSizeInPx = data->GetSize();
+        CSSIntSize canvasSizeInPx =
+            CSSIntSize::FromUnknownSize(data->GetSize());
         IntrinsicSize intrinsicSize =
             IntrinsicSizeFromCanvasSize(canvasSizeInPx);
         AspectRatio intrinsicRatio =
@@ -193,7 +192,7 @@ class nsDisplayCanvas final : public nsPaintedDisplayItem {
       case CanvasContextType::ImageBitmap: {
         nsHTMLCanvasFrame* canvasFrame =
             static_cast<nsHTMLCanvasFrame*>(mFrame);
-        nsIntSize canvasSizeInPx = canvasFrame->GetCanvasSize();
+        CSSIntSize canvasSizeInPx = canvasFrame->GetCanvasSize();
         if (canvasSizeInPx.width <= 0 || canvasSizeInPx.height <= 0) {
           return true;
         }
@@ -248,7 +247,7 @@ class nsDisplayCanvas final : public nsPaintedDisplayItem {
     HTMLCanvasElement* canvas = HTMLCanvasElement::FromNode(f->GetContent());
 
     nsRect area = f->GetContentRectRelativeToSelf() + ToReferenceFrame();
-    nsIntSize canvasSizeInPx = f->GetCanvasSize();
+    CSSIntSize canvasSizeInPx = f->GetCanvasSize();
 
     nsPresContext* presContext = f->PresContext();
     canvas->HandlePrintCallback(presContext);
@@ -353,8 +352,8 @@ void nsHTMLCanvasFrame::Destroy(DestroyContext& aContext) {
 
 nsHTMLCanvasFrame::~nsHTMLCanvasFrame() = default;
 
-nsIntSize nsHTMLCanvasFrame::GetCanvasSize() const {
-  nsIntSize size(0, 0);
+CSSIntSize nsHTMLCanvasFrame::GetCanvasSize() const {
+  CSSIntSize size;
   if (auto* canvas = HTMLCanvasElement::FromNodeOrNull(GetContent())) {
     size = canvas->GetSize();
     MOZ_ASSERT(size.width >= 0 && size.height >= 0,

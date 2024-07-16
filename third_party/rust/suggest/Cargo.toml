@@ -55,6 +55,7 @@ version = "0.31.0"
 features = [
     "functions",
     "bundled",
+    "load_extension",
 ]
 
 [dependencies.serde]

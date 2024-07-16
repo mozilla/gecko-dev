@@ -254,11 +254,7 @@ where
         let may_reuse = self.element.matches_user_and_content_rules() &&
             parent_style.is_some() &&
             inputs.rules.is_some() &&
-            include_starting_style == IncludeStartingStyle::No &&
-            // If this style was considered in any way for relative selector matching,
-            // we do not want to lose that fact by sharing a style with something that
-            // did not.
-            !inputs.flags.contains(ComputedValueFlags::CONSIDERED_RELATIVE_SELECTOR);
+            include_starting_style == IncludeStartingStyle::No;
 
         if may_reuse {
             let cached = self.context.thread_local.sharing_cache.lookup_by_rules(

@@ -4,6 +4,7 @@
 
 import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 const lazy = {};
 
@@ -240,6 +241,7 @@ export class SuggestBackendRust extends BaseFeature {
 
     let builder = lazy.SuggestStoreBuilder.init()
       .dataPath(this.#storeDataPath)
+      .loadExtension(AppConstants.SQLITE_LIBRARY_FILENAME, "sqlite3_fts5_init")
       .remoteSettingsServer(this.#remoteSettingsServer)
       .remoteSettingsBucketName(this.#remoteSettingsBucketName);
     try {

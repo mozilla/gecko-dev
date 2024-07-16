@@ -15,14 +15,15 @@ use crate::shared_lock::{
 };
 use crate::str::CssStringWriter;
 use crate::stylesheets::CssRules;
+use crate::simple_buckets_map::SimpleBucketsMap;
 use cssparser::{Parser, SourceLocation, ToCss};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{
     MallocSizeOfOps, MallocUnconditionalShallowSizeOf, MallocUnconditionalSizeOf,
 };
-use selectors::context::MatchingContext;
+use selectors::context::{MatchingContext, QuirksMode};
 use selectors::matching::matches_selector;
-use selectors::parser::{ParseRelative, Selector, SelectorList};
+use selectors::parser::{Component, ParseRelative, Selector, SelectorList};
 use selectors::OpaqueElement;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
@@ -206,15 +207,19 @@ pub enum ScopeTarget<'a> {
 
 impl<'a> ScopeTarget<'a> {
     /// Check if the given element is the scope.
-    pub fn check<E: TElement>(
+    fn check<E: TElement>(
         &self,
         element: E,
         scope: Option<OpaqueElement>,
+        scope_subject_map: &ScopeSubjectMap,
         context: &mut MatchingContext<E::Impl>,
     ) -> bool {
         match self {
             Self::Selector(list) => {
                 context.nest_for_scope_condition(scope, |context| {
+                    if scope_subject_map.early_reject(element, context.quirks_mode()) {
+                        return false;
+                    }
                     for selector in list.slice().iter() {
                         if matches_selector(selector, 0, None, &element, context) {
                             return true;
@@ -245,6 +250,7 @@ pub fn collect_scope_roots<E>(
     context: &mut MatchingContext<E::Impl>,
     target: &ScopeTarget,
     matches_shadow_host: bool,
+    scope_subject_map: &ScopeSubjectMap,
 ) -> Vec<ScopeRootCandidate>
 where
     E: TElement,
@@ -256,7 +262,7 @@ where
         if ceiling == Some(p.opaque()) {
             break;
         }
-        if target.check(p, ceiling, context) {
+        if target.check(p, ceiling, scope_subject_map, context) {
             result.push(ScopeRootCandidate {
                 root: p.opaque(),
                 proximity: ScopeProximity::new(proximity),
@@ -307,4 +313,141 @@ where
         }
         return false;
     })
+}
+
+/// A map containing simple selectors in subjects of scope selectors.
+/// This allows fast-rejecting scopes before running the full match.
+#[derive(Clone, Debug, Default, MallocSizeOf)]
+pub struct ScopeSubjectMap {
+    buckets: SimpleBucketsMap<()>,
+    any: bool,
+}
+
+impl ScopeSubjectMap {
+    /// Add the `<scope-start>` of a scope.
+    pub fn add_bound_start(&mut self, selectors: &SelectorList<SelectorImpl>, quirks_mode: QuirksMode) {
+        if self.add_selector_list(selectors, quirks_mode) {
+            self.any = true;
+        }
+    }
+
+    fn add_selector_list(&mut self, selectors: &SelectorList<SelectorImpl>, quirks_mode: QuirksMode) -> bool {
+        let mut is_any = false;
+        for selector in selectors.slice().iter() {
+            is_any = is_any || self.add_selector(selector, quirks_mode);
+        }
+        is_any
+    }
+
+    fn add_selector(&mut self, selector: &Selector<SelectorImpl>, quirks_mode: QuirksMode) -> bool {
+        let mut is_any = true;
+        let mut iter = selector.iter();
+        while let Some(c) = iter.next() {
+            let component_any = match c {
+                Component::Class(cls) => {
+                    match self.buckets.classes.try_entry(cls.0.clone(), quirks_mode) {
+                        Ok(e) => {
+                            e.or_insert(());
+                            false
+                        },
+                        Err(_) => true,
+                    }
+                },
+                Component::ID(id) => {
+                    match self.buckets.ids.try_entry(id.0.clone(), quirks_mode) {
+                        Ok(e) => {
+                            e.or_insert(());
+                            false
+                        },
+                        Err(_) => true,
+                    }
+                },
+                Component::LocalName(local_name) => {
+                    self.buckets.local_names.insert(local_name.lower_name.clone(), ());
+                    false
+                },
+                Component::Is(ref list) | Component::Where(ref list) => {
+                    self.add_selector_list(list, quirks_mode)
+                },
+                _ => true,
+            };
+
+            is_any = is_any && component_any;
+        }
+        is_any
+    }
+
+    /// Shrink the map as much as possible.
+    pub fn shrink_if_needed(&mut self) {
+        self.buckets.shrink_if_needed();
+    }
+
+    /// Clear the map.
+    pub fn clear(&mut self) {
+        self.buckets.clear();
+        self.any = false;
+    }
+
+    /// Could a given element possibly be a scope root?
+    fn early_reject<E: TElement>(&self, element: E, quirks_mode: QuirksMode) -> bool {
+        if self.any {
+            return false;
+        }
+
+        if let Some(id) = element.id() {
+            if self.buckets.ids.get(id, quirks_mode).is_some() {
+                return false;
+            }
+        }
+
+        let mut found = false;
+        element.each_class(|cls| {
+            if self.buckets.classes.get(cls, quirks_mode).is_some() {
+                found = true;
+            }
+        });
+        if found {
+            return false;
+        }
+
+        if self.buckets.local_names.get(element.local_name()).is_some() {
+            return false;
+        }
+
+        true
+    }
+}
+
+/// Determine if this selector list, when used as a scope bound selector, is considered trivial.
+pub fn scope_selector_list_is_trivial(list: &SelectorList<SelectorImpl>) -> bool {
+    fn scope_selector_is_trivial(selector: &Selector<SelectorImpl>) -> bool {
+        // A selector is trivial if:
+        // * There is no selector conditional on its siblings and/or descendant to match, and
+        // * There is no dependency on sibling relations, and
+        // * There's no ID selector in the selector. A more correct approach may be to ensure that
+        //   scoping roots of the style sharing candidates and targets have matching IDs, but that
+        //   requires re-plumbing what we pass around for scope roots.
+        let mut iter = selector.iter();
+        loop {
+            while let Some(c) = iter.next() {
+                match c {
+                    Component::ID(_) | Component::Nth(_) | Component::NthOf(_) | Component::Has(_) => return false,
+                    Component::Is(ref list) | Component::Where(ref list) | Component::Negation(ref list) =>
+                        if !scope_selector_list_is_trivial(list) {
+                            return false;
+                        }
+                    _ => (),
+                }
+            }
+
+            match iter.next_sequence() {
+                Some(c) => if c.is_sibling() {
+                    return false;
+                },
+                None => return true,
+            }
+        }
+    }
+
+    list.slice().iter().all(|s| scope_selector_is_trivial(s))
 }

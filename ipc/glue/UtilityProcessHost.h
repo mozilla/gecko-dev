@@ -100,7 +100,7 @@ class UtilityProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
 
   // Called on the main thread when the mUtilityProcessParent actor is shutting
   // down.
-  void OnChannelClosed();
+  void OnChannelClosed(IProtocol::ActorDestroyReason aReason);
 
   // Kill the remote process, triggering IPC shutdown.
   void KillHard(const char* aReason);

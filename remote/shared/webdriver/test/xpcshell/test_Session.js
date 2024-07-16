@@ -72,7 +72,7 @@ add_task(function test_WebDriverSession_ctor() {
   // BiDi session
   session = createSession({ capabilities, isBidi: true });
   equal(session.acceptInsecureCerts, true);
-  equal(session.userPromptHandler.toJSON(), "dismiss and notify");
+  equal(session.userPromptHandler.toJSON(), "ignore");
 
   equal(session.pageLoadStrategy, undefined);
   equal(session.strictFileInteractability, undefined);

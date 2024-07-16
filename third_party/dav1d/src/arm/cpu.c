@@ -104,6 +104,52 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
     return flags;
 }
 
+#elif defined(__OpenBSD__)
+
+#if ARCH_AARCH64
+#include <machine/armreg.h>
+#include <machine/cpu.h>
+#include <sys/types.h>
+#include <sys/sysctl.h>
+
+COLD unsigned dav1d_get_cpu_flags_arm(void) {
+     unsigned flags = DAV1D_ARM_CPU_FLAG_NEON;
+
+#ifdef CPU_ID_AA64ISAR0
+     int mib[2];
+     uint64_t isar0;
+     uint64_t isar1;
+     size_t len;
+
+     mib[0] = CTL_MACHDEP;
+     mib[1] = CPU_ID_AA64ISAR0;
+     len = sizeof(isar0);
+     if (sysctl(mib, 2, &isar0, &len, NULL, 0) != -1) {
+         if (ID_AA64ISAR0_DP(isar0) >= ID_AA64ISAR0_DP_IMPL)
+             flags |= DAV1D_ARM_CPU_FLAG_DOTPROD;
+     }
+
+     mib[0] = CTL_MACHDEP;
+     mib[1] = CPU_ID_AA64ISAR1;
+     len = sizeof(isar1);
+     if (sysctl(mib, 2, &isar1, &len, NULL, 0) != -1) {
+#ifdef ID_AA64ISAR1_I8MM_IMPL
+         if (ID_AA64ISAR1_I8MM(isar1) >= ID_AA64ISAR1_I8MM_IMPL)
+             flags |= DAV1D_ARM_CPU_FLAG_I8MM;
+#endif
+     }
+#endif
+
+     return flags;
+}
+#else  /* !ARCH_AARCH64 */
+
+COLD unsigned dav1d_get_cpu_flags_arm(void) {
+    unsigned flags = DAV1D_ARM_CPU_FLAG_NEON;
+    return flags;
+}
+#endif /* ARCH_AARCH64 */
+
 #elif defined(_WIN32)
 #include <windows.h>
 

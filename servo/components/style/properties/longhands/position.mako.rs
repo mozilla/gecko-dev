@@ -281,14 +281,14 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "position-try-options",
-    "PositionTryOptions",
-    "computed::PositionTryOptions::none()",
+    "position-try-fallbacks",
+    "PositionTryFallbacks",
+    "computed::PositionTryFallbacks::none()",
     engines="gecko",
-    initial_specified_value="specified::PositionTryOptions::none()",
+    initial_specified_value="specified::PositionTryFallbacks::none()",
     animation_value_type="discrete",
     gecko_pref="layout.css.anchor-positioning.enabled",
-    spec="https://drafts.csswg.org/css-anchor-position-1/#position-try-options",
+    spec="https://drafts.csswg.org/css-anchor-position-1/#position-try-fallbacks",
     affects="layout",
 )}
 

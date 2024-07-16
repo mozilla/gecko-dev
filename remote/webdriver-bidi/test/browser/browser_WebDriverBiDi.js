@@ -114,7 +114,7 @@ add_task(async function test_createSession() {
     wdBiDi => {
       is(wdBiDi.session.bidi, true);
       is(wdBiDi.session.acceptInsecureCerts, true);
-      is(wdBiDi.session.userPromptHandler.toJSON(), "dismiss and notify");
+      is(wdBiDi.session.userPromptHandler.toJSON(), "ignore");
 
       is(wdBiDi.session.pageLoadStrategy, undefined);
       is(wdBiDi.session.strictFileInteractability, undefined);

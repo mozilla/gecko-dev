@@ -129,40 +129,6 @@ impl QuirksMode {
     }
 }
 
-/// Whether or not this matching considered relative selector.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum RelativeSelectorMatchingState {
-    /// Was not considered for any relative selector.
-    None,
-    /// Relative selector was considered for a match, but the element to be
-    /// under matching would not anchor the relative selector. i.e. The
-    /// relative selector was not part of the first compound selector (in match
-    /// order).
-    Considered,
-    /// Same as above, but the relative selector was part of the first compound
-    /// selector (in match order).
-    ConsideredAnchor,
-}
-
-impl RelativeSelectorMatchingState {
-    /// Update the matching state to indicate that the relative selector matching
-    /// happened in the subject position.
-    pub fn considered_anchor(&mut self) {
-        *self = Self::ConsideredAnchor;
-    }
-
-    /// Update the matching state to indicate that the relative selector matching
-    /// happened in a non-subject position.
-    pub fn considered(&mut self) {
-        // Being considered an anchor is stronger (e.g. `:has(.a):is(:has(.b) .c)`).
-        if *self == Self::ConsideredAnchor {
-            *self = Self::ConsideredAnchor;
-        } else {
-            *self = Self::Considered;
-        }
-    }
-}
-
 /// Set of caches (And cache-likes) that speed up expensive selector matches.
 #[derive(Default)]
 pub struct SelectorCaches {
@@ -225,7 +191,6 @@ where
 
     /// The current element we're anchoring on for evaluating the relative selector.
     current_relative_selector_anchor: Option<OpaqueElement>,
-    pub considered_relative_selector: RelativeSelectorMatchingState,
 
     quirks_mode: QuirksMode,
     needs_selector_flags: NeedsSelectorFlags,
@@ -293,7 +258,6 @@ where
             pseudo_element_matching_fn: None,
             extra_data: Default::default(),
             current_relative_selector_anchor: None,
-            considered_relative_selector: RelativeSelectorMatchingState::None,
             selector_caches,
             _impl: ::std::marker::PhantomData,
         }

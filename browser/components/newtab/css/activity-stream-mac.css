@@ -5078,10 +5078,6 @@ main section {
 .thumbs-ui-compact .top-site-outer {
   margin-block-end: 0;
 }
-.thumbs-ui-compact .top-site-outer .top-site-inner > a {
-  padding-top: var(--space-xsmall);
-  padding-bottom: var(--space-xsmall);
-}
 
 .ds-signup {
   max-width: 300px;

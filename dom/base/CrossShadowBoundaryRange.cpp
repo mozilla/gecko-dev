@@ -243,4 +243,13 @@ void CrossShadowBoundaryRange::CharacterDataChanged(
                mOwner);
   }
 }
+
+// DOM mutation for shadow-crossing selection is not specified.
+// Spec issue: https://github.com/w3c/selection-api/issues/168
+void CrossShadowBoundaryRange::ParentChainChanged(nsIContent* aContent) {
+  MOZ_ASSERT(mCommonAncestor == aContent,
+             "Wrong ParentChainChanged notification");
+  MOZ_ASSERT(mOwner);
+  mOwner->ResetCrossShadowBoundaryRange();
+}
 }  // namespace mozilla::dom

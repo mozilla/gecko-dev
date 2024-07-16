@@ -7005,7 +7005,7 @@ SurfaceFromElementResult nsLayoutUtils::SurfaceFromOffscreenCanvas(
     RefPtr<DrawTarget>& aTarget) {
   SurfaceFromElementResult result;
 
-  IntSize size = aOffscreenCanvas->GetWidthHeight();
+  IntSize size = aOffscreenCanvas->GetWidthHeight().ToUnknownSize();
   if (size.IsEmpty()) {
     return result;
   }
@@ -7358,7 +7358,7 @@ SurfaceFromElementResult nsLayoutUtils::SurfaceFromElement(
     RefPtr<DrawTarget>& aTarget) {
   SurfaceFromElementResult result;
 
-  IntSize size = aElement->GetSize();
+  IntSize size = aElement->GetSize().ToUnknownSize();
   if (size.IsEmpty()) {
     return result;
   }

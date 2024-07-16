@@ -397,6 +397,16 @@ export class UserCharacteristicsPageService {
         "motionFreq",
         "orientationFreq",
         "orientationabsFreq",
+        "mathml1",
+        "mathml2",
+        "mathml3",
+        "mathml4",
+        "mathml5",
+        "mathml6",
+        "mathml7",
+        "mathml8",
+        "mathml9",
+        "mathml10",
       ],
     };
 

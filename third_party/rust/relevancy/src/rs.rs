@@ -34,6 +34,7 @@ impl RelevancyRemoteSettingsClient for remote_settings::Client {
 /// A record in the Relevancy Remote Settings collection.
 #[derive(Clone, Debug, Deserialize)]
 pub struct RelevancyRecord {
+    #[allow(dead_code)]
     #[serde(rename = "type")]
     pub record_type: String,
     pub record_custom_details: RecordCustomDetails,
@@ -48,7 +49,9 @@ pub struct RecordCustomDetails {
 /// Category information related to the record.
 #[derive(Clone, Debug, Deserialize)]
 pub struct CategoryToDomains {
+    #[allow(dead_code)]
     pub version: i32,
+    #[allow(dead_code)]
     pub category: String,
     pub category_code: i32,
 }

@@ -50,6 +50,7 @@ impl Suggestion {
             Self::Mdn { score, .. } => score,
             Self::Weather { score, .. } => score,
             Self::Wikipedia { .. } => panic!("with_score not valid for wikipedia suggestions"),
+            Self::Fakespot { score, .. } => score,
         };
         *current_score = score;
         self

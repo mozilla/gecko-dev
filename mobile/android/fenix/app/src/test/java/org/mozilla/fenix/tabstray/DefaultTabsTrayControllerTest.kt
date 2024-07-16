@@ -316,6 +316,10 @@ class DefaultTabsTrayControllerTest {
 
     @Test
     fun `WHEN handleTrayScrollingToPosition is called with smoothScroll=true THEN it scrolls to that position with smoothScroll`() {
+        val pagePosition = 3
+
+        every { trayStore.state.selectedPage } returns Page.positionToPage(pagePosition)
+
         var selectTabPositionInvoked = false
         createController(
             selectTabPosition = { position, smoothScroll ->
@@ -323,23 +327,31 @@ class DefaultTabsTrayControllerTest {
                 assertTrue(smoothScroll)
                 selectTabPositionInvoked = true
             },
-        ).handleTrayScrollingToPosition(3, true)
+        ).handleTrayScrollingToPosition(position = pagePosition, smoothScroll = true)
 
         assertTrue(selectTabPositionInvoked)
     }
 
     @Test
     fun `WHEN handleTrayScrollingToPosition is called with smoothScroll=true THEN it emits an action for the tray page of that tab position`() {
-        createController().handleTrayScrollingToPosition(33, true)
+        val pagePosition = 33
 
-        verify { trayStore.dispatch(TabsTrayAction.PageSelected(Page.positionToPage(33))) }
+        every { trayStore.state.selectedPage } returns Page.positionToPage(pagePosition)
+
+        createController().handleTrayScrollingToPosition(position = pagePosition, smoothScroll = true)
+
+        verify { trayStore.dispatch(TabsTrayAction.PageSelected(Page.positionToPage(position = pagePosition))) }
     }
 
     @Test
     fun `WHEN handleTrayScrollingToPosition is called with smoothScroll=false THEN it emits an action for the tray page of that tab position`() {
-        createController().handleTrayScrollingToPosition(44, true)
+        val pagePosition = 44
 
-        verify { trayStore.dispatch(TabsTrayAction.PageSelected(Page.positionToPage(44))) }
+        every { trayStore.state.selectedPage } returns Page.positionToPage(pagePosition)
+
+        createController().handleTrayScrollingToPosition(position = pagePosition, smoothScroll = true)
+
+        verify { trayStore.dispatch(TabsTrayAction.PageSelected(Page.positionToPage(position = pagePosition))) }
     }
 
     @Test
@@ -1186,30 +1198,69 @@ class DefaultTabsTrayControllerTest {
     }
 
     @Test
-    fun `WHEN the normal tabs page button is clicked THEN report the metric`() {
+    fun `GIVEN active page is not normal tabs WHEN the normal tabs page button is clicked THEN report the metric`() {
+        every { trayStore.state.selectedPage } returns Page.PrivateTabs
+
         assertNull(TabsTray.normalModeTapped.testGetValue())
 
-        createController().handleTrayScrollingToPosition(Page.NormalTabs.ordinal, false)
+        createController().handleTrayScrollingToPosition(position = Page.NormalTabs.ordinal, smoothScroll = false)
 
         assertNotNull(TabsTray.normalModeTapped.testGetValue())
     }
 
     @Test
-    fun `WHEN the private tabs page button is clicked THEN report the metric`() {
+    fun `GIVEN active page is normal tabs WHEN normal tabs page button is clicked THEN do not report the metric`() {
+        every { trayStore.state.selectedPage } returns Page.NormalTabs
+
+        assertNull(TabsTray.normalModeTapped.testGetValue())
+
+        createController().handleTrayScrollingToPosition(position = Page.NormalTabs.ordinal, smoothScroll = false)
+
+        assertNull(TabsTray.normalModeTapped.testGetValue())
+    }
+
+    @Test
+    fun `GIVEN active page is not private tabs WHEN the private tabs page button is clicked THEN report the metric`() {
+        every { trayStore.state.selectedPage } returns Page.NormalTabs
+
         assertNull(TabsTray.privateModeTapped.testGetValue())
 
-        createController().handleTrayScrollingToPosition(Page.PrivateTabs.ordinal, false)
+        createController().handleTrayScrollingToPosition(position = Page.PrivateTabs.ordinal, smoothScroll = false)
 
         assertNotNull(TabsTray.privateModeTapped.testGetValue())
     }
 
     @Test
-    fun `WHEN the synced tabs page button is clicked THEN report the metric`() {
+    fun `GIVEN active page is private tabs WHEN the private tabs button is clicked THEN do not report the metric`() {
+        every { trayStore.state.selectedPage } returns Page.PrivateTabs
+
+        assertNull(TabsTray.privateModeTapped.testGetValue())
+
+        createController().handleTrayScrollingToPosition(position = Page.PrivateTabs.ordinal, smoothScroll = false)
+
+        assertNull(TabsTray.privateModeTapped.testGetValue())
+    }
+
+    @Test
+    fun `GIVEN active page is not synced tabs WHEN the synced tabs page button is clicked THEN report the metric`() {
+        every { trayStore.state.selectedPage } returns Page.NormalTabs
+
         assertNull(TabsTray.syncedModeTapped.testGetValue())
 
-        createController().handleTrayScrollingToPosition(Page.SyncedTabs.ordinal, false)
+        createController().handleTrayScrollingToPosition(position = Page.SyncedTabs.ordinal, smoothScroll = false)
 
         assertNotNull(TabsTray.syncedModeTapped.testGetValue())
+    }
+
+    @Test
+    fun `GIVEN active page is synced tabs WHEN the synced tabs page button is clicked THEN do not report the metric`() {
+        every { trayStore.state.selectedPage } returns Page.SyncedTabs
+
+        assertNull(TabsTray.syncedModeTapped.testGetValue())
+
+        createController().handleTrayScrollingToPosition(position = Page.SyncedTabs.ordinal, smoothScroll = false)
+
+        assertNull(TabsTray.syncedModeTapped.testGetValue())
     }
 
     private fun createController(

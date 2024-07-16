@@ -545,7 +545,7 @@ class BrowserFragmentTest {
     }
 
     @Test
-    fun `GIVEN redesign feature is on and configuration is landscape WHEN updating navigation icons THEN navigation buttons and a leading action are added in order`() {
+    fun `GIVEN redesign feature is on and configuration is landscape WHEN updating navigation actions THEN navigation actions action are added`() {
         mockThemeManagerAndAppCompatResources()
 
         val redesignEnabled = true
@@ -559,14 +559,9 @@ class BrowserFragmentTest {
             feltPrivateBrowsingEnabled = false,
         )
 
-        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any(), any()) }
+        verify(exactly = 0) { browserFragment.addLeadingAction(any(), any(), any()) }
         verify(exactly = 0) { browserFragment.addTabletActions(any()) }
         verify(exactly = 1) { browserFragment.addNavigationActions(any()) }
-
-        verifyOrder {
-            browserFragment.addNavigationActions(any())
-            browserFragment.addLeadingAction(any(), any(), any())
-        }
 
         unmockThemeManagerAndAppCompatResources()
     }
@@ -620,7 +615,7 @@ class BrowserFragmentTest {
     }
 
     @Test
-    fun `GIVEN redesign feature is on and orientation is portrait and it is tablet WHEN updating navigation icons THEN navigation items and leading action are added`() {
+    fun `GIVEN redesign feature is on and orientation is portrait and it is tablet WHEN updating navigation actions THEN navigation actions are added`() {
         mockThemeManagerAndAppCompatResources()
 
         val redesignEnabled = true
@@ -636,7 +631,7 @@ class BrowserFragmentTest {
             feltPrivateBrowsingEnabled = false,
         )
 
-        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any(), any()) }
+        verify(exactly = 0) { browserFragment.addLeadingAction(any(), any(), any()) }
         verify(exactly = 1) { browserFragment.addNavigationActions(any()) }
 
         unmockThemeManagerAndAppCompatResources()

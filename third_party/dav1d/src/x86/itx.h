@@ -107,7 +107,9 @@ decl_itx_fns(ssse3);
 decl_itx_fn(dav1d_inv_txfm_add_wht_wht_4x4_16bpc_avx2);
 decl_itx_fn(BF(dav1d_inv_txfm_add_wht_wht_4x4, sse2));
 
-static ALWAYS_INLINE void itx_dsp_init_x86(Dav1dInvTxfmDSPContext *const c, const int bpc) {
+static ALWAYS_INLINE void itx_dsp_init_x86(Dav1dInvTxfmDSPContext *const c,
+                                           const int bpc, int *const all_simd)
+{
 #define assign_itx_bpc_fn(pfx, w, h, type, type_enum, bpc, ext) \
     c->itxfm_add[pfx##TX_##w##X##h][type_enum] = \
         BF_BPC(dav1d_inv_txfm_add_##type##_##w##x##h, bpc, ext)
@@ -167,6 +169,7 @@ static ALWAYS_INLINE void itx_dsp_init_x86(Dav1dInvTxfmDSPContext *const c, cons
     assign_itx1_fn (R, 64, 16, ssse3);
     assign_itx1_fn (R, 64, 32, ssse3);
     assign_itx1_fn ( , 64, 64, ssse3);
+    *all_simd = 1;
 #endif
 
     if (!(flags & DAV1D_X86_CPU_FLAG_SSE41)) return;
@@ -192,6 +195,7 @@ static ALWAYS_INLINE void itx_dsp_init_x86(Dav1dInvTxfmDSPContext *const c, cons
         assign_itx1_fn (R, 64, 16, sse4);
         assign_itx1_fn (R, 64, 32, sse4);
         assign_itx1_fn (,  64, 64, sse4);
+        *all_simd = 1;
     }
 #endif
 

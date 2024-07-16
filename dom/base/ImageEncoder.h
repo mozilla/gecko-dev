@@ -37,7 +37,7 @@ class ImageEncoder {
   // aOptions, NS_ERROR_INVALID_ARG will be returned. When encountering this
   // error it is usual to call this function again without any options at all.
   static nsresult ExtractData(nsAString& aType, const nsAString& aOptions,
-                              const nsIntSize aSize, bool aUsePlaceholder,
+                              const CSSIntSize aSize, bool aUsePlaceholder,
                               nsICanvasRenderingContextInternal* aContext,
                               OffscreenCanvasDisplayHelper* aOffscreenDisplay,
                               nsIInputStream** aStream);
@@ -56,7 +56,7 @@ class ImageEncoder {
   static nsresult ExtractDataAsync(nsAString& aType, const nsAString& aOptions,
                                    bool aUsingCustomOptions,
                                    UniquePtr<uint8_t[]> aImageBuffer,
-                                   int32_t aFormat, const nsIntSize aSize,
+                                   int32_t aFormat, const CSSIntSize aSize,
                                    bool aUsePlaceholder,
                                    EncodeCompleteCallback* aEncodeCallback);
 
@@ -83,7 +83,7 @@ class ImageEncoder {
   // When called asynchronously, aContext and aRenderer are null.
   static nsresult ExtractDataInternal(
       const nsAString& aType, const nsAString& aOptions, uint8_t* aImageBuffer,
-      int32_t aFormat, const nsIntSize aSize, bool aUsePlaceholder,
+      int32_t aFormat, const CSSIntSize aSize, bool aUsePlaceholder,
       layers::Image* aImage, nsICanvasRenderingContextInternal* aContext,
       OffscreenCanvasDisplayHelper* aOffscreenDisplay, nsIInputStream** aStream,
       imgIEncoder* aEncoder);

@@ -36,7 +36,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.TabSessionState
@@ -226,9 +225,7 @@ private fun Thumbnail(
             size = size,
             modifier = Modifier
                 .size(width = 92.dp, height = 72.dp)
-                .semantics(mergeDescendants = true) {
-                    testTag = TabsTrayTestTag.tabItemThumbnail
-                },
+                .testTag(TabsTrayTestTag.tabItemThumbnail),
             contentDescription = stringResource(id = R.string.mozac_browser_tabstray_open_tab),
         )
 

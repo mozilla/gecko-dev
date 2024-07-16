@@ -13456,7 +13456,7 @@ if (IsCSSPropertyPrefEnabled("layout.css.anchor-positioning.enabled")) {
   };
 
   gCSSProperties["position-try-options"] = {
-    domProp: "positionTryOptions",
+    domProp: "positionTryFallbacks",
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     initial_values: ["none"],
