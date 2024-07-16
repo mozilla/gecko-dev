@@ -682,6 +682,11 @@ bool DMABufSurfaceRGBA::CreateTexture(GLContext* aGLContext, int aPlane) {
     return false;
   }
 
+  if (!aGLContext->IsExtensionSupported(gl::GLContext::OES_EGL_image)) {
+    LOGDMABUF(("DMABufSurfaceRGBA::CreateTexture(): no OES_EGL_image."));
+    return false;
+  }
+
   const auto& gle = gl::GLContextEGL::Cast(aGLContext);
   const auto& egl = gle->mEgl;
   mEGLImage =
