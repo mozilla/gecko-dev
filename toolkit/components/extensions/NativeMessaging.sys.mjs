@@ -85,6 +85,9 @@ export class NativeApp extends EventEmitter {
           // Normalize in case the extension used / instead of \.
           command = command.replaceAll("/", "\\");
 
+          // Relative paths are only supported on Windows. On Linux and macOS,
+          // _tryPath in NativeManifests.sys.mjs enforces that the command path
+          // is absolute.
           if (!PathUtils.isAbsolute(command)) {
             // Note: hostInfo.path is an absolute path to the manifest.
             const parentPath = PathUtils.parent(
@@ -94,11 +97,6 @@ export class NativeApp extends EventEmitter {
             // but command is allowed to contain ".." to traverse the directory.
             command = `${parentPath}\\${command}`;
           }
-        } else if (!PathUtils.isAbsolute(command)) {
-          // Only windows supports relative paths.
-          throw new Error(
-            "NativeApp requires absolute path to command on this platform"
-          );
         }
 
         let subprocessOpts = {
