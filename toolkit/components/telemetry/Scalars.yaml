@@ -6730,7 +6730,7 @@ networking:
     bug_numbers:
       - 1543005
     description: >
-      Hom many KB has been transfer over a captive portal during a subsession.
+      How many KB have been transferred over a captive portal during a subsession.
     expires: "73"
     keyed: false
     kind: uint
