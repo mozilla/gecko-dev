@@ -1853,6 +1853,26 @@ bool ScriptSource::xdrFinalizeEncoder(JSContext* cx,
   return true;
 }
 
+bool ScriptSource::xdrFinalizeEncoder(JSContext* cx, JS::Stencil** stencilOut) {
+  if (!hasEncoder()) {
+    JS_ReportErrorASCII(cx, "XDR encoding failure");
+    return false;
+  }
+
+  auto cleanup = mozilla::MakeScopeExit([&] { xdrEncoder_.reset(); });
+
+  UniquePtr<frontend::ExtensibleCompilationStencil> extensibleStencil =
+      xdrEncoder_.merger_->takeResult();
+  extensibleStencil->source = this;
+  RefPtr<frontend::CompilationStencil> stencil =
+      cx->new_<frontend::CompilationStencil>(std::move(extensibleStencil));
+  if (!stencil) {
+    return false;
+  }
+  stencil.forget(stencilOut);
+  return true;
+}
+
 void ScriptSource::xdrAbortEncoder() { xdrEncoder_.reset(); }
 
 template <typename Unit>

@@ -4850,6 +4850,18 @@ JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
 }
 
 JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
+                                                 JS::HandleScript script,
+                                                 JS::Stencil** stencilOut) {
+  if (!script) {
+    return false;
+  }
+  if (!script->scriptSource()->xdrFinalizeEncoder(cx, stencilOut)) {
+    return false;
+  }
+  return true;
+}
+
+JS_PUBLIC_API bool JS::FinishIncrementalEncoding(JSContext* cx,
                                                  JS::Handle<JSObject*> module,
                                                  TranscodeBuffer& buffer) {
   if (!module->as<ModuleObject>()

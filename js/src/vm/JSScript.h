@@ -1095,6 +1095,8 @@ class ScriptSource {
   // |buffer| is considered undefined.
   bool xdrFinalizeEncoder(JSContext* cx, JS::TranscodeBuffer& buffer);
 
+  bool xdrFinalizeEncoder(JSContext* cx, JS::Stencil** stencilOut);
+
   // Discard the incremental encoding data and free the XDR encoder.
   void xdrAbortEncoder();
 };

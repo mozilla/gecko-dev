@@ -19,7 +19,14 @@
 
 #include "js/TypeDecls.h"
 
+// Underlying opaque type.
+namespace js::frontend {
+struct CompilationStencil;
+}  // namespace js::frontend
+
 namespace JS {
+
+using Stencil = js::frontend::CompilationStencil;
 
 class JS_PUBLIC_API ReadOnlyCompileOptions;
 
@@ -120,6 +127,14 @@ extern JS_PUBLIC_API bool FinishIncrementalEncoding(JSContext* cx,
 extern JS_PUBLIC_API bool FinishIncrementalEncoding(JSContext* cx,
                                                     Handle<JSObject*> module,
                                                     TranscodeBuffer& buffer);
+
+// Instead of transcoding to a buffer, return the JS::Stencil that reflects
+// the delazification from the execution.
+// The resulting stencil's ownership is passed to the consumer and the
+// ref count is 1.
+extern JS_PUBLIC_API bool FinishIncrementalEncoding(JSContext* cx,
+                                                    Handle<JSScript*> script,
+                                                    JS::Stencil** stencilOut);
 
 // Abort incremental encoding started by JS::StartIncrementalEncoding.
 extern JS_PUBLIC_API void AbortIncrementalEncoding(Handle<JSScript*> script);
