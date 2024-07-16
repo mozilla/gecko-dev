@@ -961,6 +961,20 @@ SandboxBrokerPolicyFactory::GetRDDPolicy(int aPid) {
   AddV4l2Dependencies(policy.get());
 #endif  // MOZ_ENABLE_V4L2
 
+  // Bug 1903688: NVIDIA Tegra hardware decoding from Linux4Tegra
+  // Only built on ARM64 since Tegra is ARM64 SoC with different drivers, so the
+  // path are not needed on e.g. x86-64
+#if defined(__aarch64__)
+  policy->AddDir(rdonly, "/sys/devices/system/present");
+  policy->AddDir(rdonly, "/sys/module/tegra_fuse");
+  policy->AddPath(rdwr, "/dev/nvmap");
+  policy->AddPath(rdwr, "/dev/nvhost-ctrl");
+  policy->AddPath(rdwr, "/dev/nvhost-ctrl-gpu");
+  policy->AddPath(rdwr, "/dev/nvhost-nvdec");
+  policy->AddPath(rdwr, "/dev/nvhost-nvdec1");
+  policy->AddPath(rdwr, "/dev/nvhost-vic");
+#endif  // defined(__aarch64__)
+
   if (policy->IsEmpty()) {
     policy = nullptr;
   }

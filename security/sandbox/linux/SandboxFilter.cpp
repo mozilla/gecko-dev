@@ -1889,11 +1889,20 @@ class RDDSandboxPolicy final : public SandboxPolicyCommon {
         static constexpr unsigned long kVideoType =
             static_cast<unsigned long>('V') << _IOC_TYPESHIFT;
 #endif
-        // nvidia uses some ioctls from this range (but not actual
+        // nvidia non-tegra uses some ioctls from this range (but not actual
         // fbdev ioctls; nvidia uses values >= 200 for the NR field
         // (low 8 bits))
         static constexpr unsigned long kFbDevType =
             static_cast<unsigned long>('F') << _IOC_TYPESHIFT;
+
+#if defined(__aarch64__)
+        // NVIDIA decoder, from Linux4Tegra
+        // http://lists.mplayerhq.hu/pipermail/ffmpeg-devel/2024-May/328552.html
+        static constexpr unsigned long kNvidiaNvmapType =
+            static_cast<unsigned long>('N') << _IOC_TYPESHIFT;
+        static constexpr unsigned long kNvidiaNvhostType =
+            static_cast<unsigned long>('H') << _IOC_TYPESHIFT;
+#endif  // defined(__aarch64__)
 
         // Allow DRI and DMA-Buf for VA-API. Also allow V4L2 if enabled
         return If(shifted_type == kDrmType, Allow())
@@ -1901,7 +1910,12 @@ class RDDSandboxPolicy final : public SandboxPolicyCommon {
 #ifdef MOZ_ENABLE_V4L2
             .ElseIf(shifted_type == kVideoType, Allow())
 #endif
-            // Hack for nvidia, which isn't supported yet:
+        // NVIDIA decoder from Linux4Tegra, this is specific to Tegra ARM64 SoC
+#if defined(__aarch64__)
+            .ElseIf(shifted_type == kNvidiaNvmapType, Allow())
+            .ElseIf(shifted_type == kNvidiaNvhostType, Allow())
+#endif  // defined(__aarch64__)
+        // Hack for nvidia non-tegra devices, which isn't supported yet:
             .ElseIf(shifted_type == kFbDevType, Error(ENOTTY))
             .Else(SandboxPolicyCommon::EvaluateSyscall(sysno));
       }
