@@ -3820,11 +3820,21 @@ void nsGlobalWindowInner::ScrollTo(double aXScroll, double aYScroll) {
 }
 
 void nsGlobalWindowInner::ScrollTo(const ScrollToOptions& aOptions) {
+  Maybe<int32_t> left;
+  Maybe<int32_t> top;
+  if (aOptions.mLeft.WasPassed()) {
+    left.emplace(static_cast<int32_t>(
+        mozilla::ToZeroIfNonfinite(aOptions.mLeft.Value())));
+  }
+  if (aOptions.mTop.WasPassed()) {
+    top.emplace(static_cast<int32_t>(
+        mozilla::ToZeroIfNonfinite(aOptions.mTop.Value())));
+  }
+
   // When scrolling to a non-zero offset, we need to determine whether that
   // position is within our scrollable range, so we need updated layout
   // information.
-  if ((aOptions.mLeft.WasPassed() && aOptions.mLeft.Value() > 0) ||
-      (aOptions.mTop.WasPassed() && aOptions.mTop.Value() > 0)) {
+  if ((top && *top != 0) || (left && *left != 0)) {
     FlushPendingNotifications(FlushType::Layout);
   }
 
@@ -3833,13 +3843,11 @@ void nsGlobalWindowInner::ScrollTo(const ScrollToOptions& aOptions) {
     return;
   }
   CSSIntPoint scrollPos = sf->GetRoundedScrollPositionCSSPixels();
-  if (aOptions.mLeft.WasPassed()) {
-    scrollPos.x = static_cast<int32_t>(
-        mozilla::ToZeroIfNonfinite(aOptions.mLeft.Value()));
+  if (left) {
+    scrollPos.x = *left;
   }
-  if (aOptions.mTop.WasPassed()) {
-    scrollPos.y =
-        static_cast<int32_t>(mozilla::ToZeroIfNonfinite(aOptions.mTop.Value()));
+  if (*top) {
+    scrollPos.y = *top;
   }
   // Here we calculate what the max pixel value is that we can
   // scroll to, we do this by dividing maxint with the pixel to
