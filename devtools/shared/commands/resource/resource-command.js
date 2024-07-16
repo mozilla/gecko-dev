@@ -1246,9 +1246,15 @@ class ResourceCommand {
       return;
     }
 
-    const onAvailable = this._onResourceAvailable.bind(this, { targetFront });
-    const onUpdated = this._onResourceUpdated.bind(this, { targetFront });
-    const onDestroyed = this._onResourceDestroyed.bind(this, { targetFront });
+    const onAvailableArray = this._onResourceAvailableArray.bind(this, {
+      targetFront,
+    });
+    const onUpdatedArray = this._onResourceUpdatedArray.bind(this, {
+      targetFront,
+    });
+    const onDestroyedArray = this._onResourceDestroyedArray.bind(this, {
+      targetFront,
+    });
 
     if (!(resourceType in LegacyListeners)) {
       throw new Error(`Missing legacy listener for ${resourceType}`);
@@ -1273,9 +1279,9 @@ class ResourceCommand {
       await LegacyListeners[resourceType]({
         targetCommand: this.targetCommand,
         targetFront,
-        onAvailable,
-        onDestroyed,
-        onUpdated,
+        onAvailableArray,
+        onDestroyedArray,
+        onUpdatedArray,
       });
     } catch (e) {
       // Swallow the error to avoid breaking calls to watchResources which will

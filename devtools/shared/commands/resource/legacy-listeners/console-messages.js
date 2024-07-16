@@ -6,7 +6,11 @@
 
 const ResourceCommand = require("resource://devtools/shared/commands/resource/resource-command.js");
 
-module.exports = async function ({ targetCommand, targetFront, onAvailable }) {
+module.exports = async function ({
+  targetCommand,
+  targetFront,
+  onAvailableArray,
+}) {
   // Allow the top level target unconditionnally.
   // Also allow frame, but only in content toolbox, i.e. still ignore them in
   // the context of the browser toolbox as we inspect messages via the process
@@ -40,10 +44,7 @@ module.exports = async function ({ targetCommand, targetFront, onAvailable }) {
   // /!\ The actor implementation requires to call startListeners(ConsoleAPI) first /!\
   const { messages } = await webConsoleFront.getCachedMessages(["ConsoleAPI"]);
 
-  for (const message of messages) {
-    message.resourceType = ResourceCommand.TYPES.CONSOLE_MESSAGE;
-  }
-  onAvailable(messages);
+  onAvailableArray([[ResourceCommand.TYPES.CONSOLE_MESSAGE, messages]]);
 
   // Forward new message events
   webConsoleFront.on("consoleAPICall", message => {
@@ -53,7 +54,6 @@ module.exports = async function ({ targetCommand, targetFront, onAvailable }) {
       return;
     }
 
-    message.resourceType = ResourceCommand.TYPES.CONSOLE_MESSAGE;
-    onAvailable([message]);
+    onAvailableArray([[ResourceCommand.TYPES.CONSOLE_MESSAGE, [message]]]);
   });
 };

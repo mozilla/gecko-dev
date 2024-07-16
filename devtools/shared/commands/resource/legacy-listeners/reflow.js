@@ -6,19 +6,14 @@
 
 const ResourceCommand = require("resource://devtools/shared/commands/resource/resource-command.js");
 
-module.exports = async function ({ targetFront, onAvailable }) {
+module.exports = async function ({ targetFront, onAvailableArray }) {
   if (!targetFront.getTrait("isBrowsingContext")) {
     // The reflows only work with BrowsingContext targets
     return;
   }
   const reflowFront = await targetFront.getFront("reflow");
   reflowFront.on("reflows", reflows =>
-    onAvailable([
-      {
-        resourceType: ResourceCommand.TYPES.REFLOW,
-        reflows,
-      },
-    ])
+    onAvailableArray([[ResourceCommand.TYPES.REFLOW, [{ reflows }]]])
   );
   await reflowFront.start();
 };

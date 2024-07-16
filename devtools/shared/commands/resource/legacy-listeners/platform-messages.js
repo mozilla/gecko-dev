@@ -6,7 +6,11 @@
 
 const ResourceCommand = require("resource://devtools/shared/commands/resource/resource-command.js");
 
-module.exports = async function ({ targetCommand, targetFront, onAvailable }) {
+module.exports = async function ({
+  targetCommand,
+  targetFront,
+  onAvailableArray,
+}) {
   // Only allow the top level target and processes.
   // Frames can be ignored as logMessage are never sent to them anyway.
   // Also ignore workers as they are not supported yet. (see bug 1592584)
@@ -32,13 +36,9 @@ module.exports = async function ({ targetCommand, targetFront, onAvailable }) {
   // /!\ The actor implementation requires to call startListeners("PageError") first /!\
   const { messages } = await webConsoleFront.getCachedMessages(["LogMessage"]);
 
-  for (const message of messages) {
-    message.resourceType = ResourceCommand.TYPES.PLATFORM_MESSAGE;
-  }
-  onAvailable(messages);
+  onAvailableArray([[ResourceCommand.TYPES.PLATFORM_MESSAGE, messages]]);
 
-  webConsoleFront.on("logMessage", message => {
-    message.resourceType = ResourceCommand.TYPES.PLATFORM_MESSAGE;
-    onAvailable([message]);
-  });
+  webConsoleFront.on("logMessage", message =>
+    onAvailableArray([[ResourceCommand.TYPES.PLATFORM_MESSAGE, [message]]])
+  );
 };

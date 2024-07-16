@@ -7,7 +7,11 @@
 const ResourceCommand = require("resource://devtools/shared/commands/resource/resource-command.js");
 const { MESSAGE_CATEGORY } = require("resource://devtools/shared/constants.js");
 
-module.exports = async function ({ targetCommand, targetFront, onAvailable }) {
+module.exports = async function ({
+  targetCommand,
+  targetFront,
+  onAvailableArray,
+}) {
   // Allow the top level target unconditionnally.
   // Also allow frame, but only in content toolbox, i.e. still ignore them in
   // the context of the browser toolbox as we inspect messages via the process
@@ -43,12 +47,9 @@ module.exports = async function ({ targetCommand, targetFront, onAvailable }) {
     message => message.pageError.category !== MESSAGE_CATEGORY.CSS_PARSER
   );
 
-  messages.forEach(message => {
-    message.resourceType = ResourceCommand.TYPES.ERROR_MESSAGE;
-  });
   // Cached messages don't have the same shape as live messages,
   // so we need to transform them.
-  onAvailable(messages);
+  onAvailableArray([[ResourceCommand.TYPES.ERROR_MESSAGE, messages]]);
 
   webConsoleFront.on("pageError", message => {
     // On server < v79, we're getting CSS Messages that we need to filter out.
@@ -56,7 +57,6 @@ module.exports = async function ({ targetCommand, targetFront, onAvailable }) {
       return;
     }
 
-    message.resourceType = ResourceCommand.TYPES.ERROR_MESSAGE;
-    onAvailable([message]);
+    onAvailableArray([[ResourceCommand.TYPES.ERROR_MESSAGE, [message]]]);
   });
 };

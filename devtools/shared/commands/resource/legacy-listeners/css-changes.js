@@ -6,7 +6,7 @@
 
 const ResourceCommand = require("resource://devtools/shared/commands/resource/resource-command.js");
 
-module.exports = async function ({ targetFront, onAvailable }) {
+module.exports = async function ({ targetFront, onAvailableArray }) {
   if (!targetFront.hasActor("changes")) {
     return;
   }
@@ -16,13 +16,9 @@ module.exports = async function ({ targetFront, onAvailable }) {
   // Get all changes collected up to this point by the ChangesActor on the server,
   // then fire each change as "add-change".
   const changes = await changesFront.allChanges();
-  await onAvailable(changes.map(change => toResource(change)));
+  await onAvailableArray([[ResourceCommand.TYPES.CSS_CHANGE, changes]]);
 
-  changesFront.on("add-change", change => onAvailable([toResource(change)]));
+  changesFront.on("add-change", change =>
+    onAvailableArray([[ResourceCommand.TYPES.CSS_CHANGE, [change]]])
+  );
 };
-
-function toResource(change) {
-  return Object.assign(change, {
-    resourceType: ResourceCommand.TYPES.CSS_CHANGE,
-  });
-}
