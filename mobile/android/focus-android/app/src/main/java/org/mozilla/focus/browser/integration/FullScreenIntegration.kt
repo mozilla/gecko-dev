@@ -9,12 +9,12 @@ import android.os.Build
 import android.view.View
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.isVisible
-import androidx.fragment.app.FragmentManager
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.prompts.dialog.FullScreenNotification
-import mozilla.components.feature.prompts.dialog.FullScreenNotificationDialog
+import mozilla.components.feature.prompts.dialog.FullScreenNotificationToast
+import mozilla.components.feature.prompts.dialog.GestureNavUtils
 import mozilla.components.feature.session.FullScreenFeature
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.support.base.feature.LifecycleAwareFeature
@@ -38,7 +38,6 @@ class FullScreenIntegration(
     private val toolbarView: BrowserToolbar,
     private val statusBar: View,
     private val engineView: EngineView,
-    private val parentFragmentManager: FragmentManager,
 ) : LifecycleAwareFeature, UserInteractionHandler {
     @VisibleForTesting
     internal var feature = FullScreenFeature(
@@ -61,13 +60,18 @@ class FullScreenIntegration(
     internal fun fullScreenChanged(
         enabled: Boolean,
         fullScreenNotification: FullScreenNotification =
-            FullScreenNotificationDialog(R.layout.dialog_full_screen_notification),
+            FullScreenNotificationToast(
+                activity,
+                activity.resources.getString(R.string.exit_fullscreen_with_gesture),
+                activity.resources.getString(R.string.exit_fullscreen_with_back_button),
+                GestureNavUtils,
+            ),
     ) {
         if (enabled) {
             enterBrowserFullscreen()
             statusBar.isVisible = false
 
-            fullScreenNotification.show(parentFragmentManager)
+            fullScreenNotification.show()
 
             switchToImmersiveMode()
         } else {

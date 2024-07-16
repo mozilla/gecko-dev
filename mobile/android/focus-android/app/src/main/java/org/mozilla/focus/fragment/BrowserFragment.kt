@@ -295,7 +295,6 @@ class BrowserFragment :
                 binding.browserToolbar,
                 binding.statusBarBackground,
                 binding.engineView,
-                parentFragmentManager,
             ),
             this,
             view,
