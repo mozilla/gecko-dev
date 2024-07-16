@@ -2617,11 +2617,23 @@ nsresult nsHttpChannel::ContinueProcessResponse1() {
     LOG(("  continuation state has been reset"));
   }
 
+  gHttpHandler->OnAfterExamineResponse(this);
+
   // No process switch needed, continue as normal.
   return ContinueProcessResponse2(rv);
 }
 
 nsresult nsHttpChannel::ContinueProcessResponse2(nsresult rv) {
+  if (mSuspendCount) {
+    LOG(("Waiting until resume to finish processing response [this=%p]\n",
+         this));
+    mCallOnResume = [rv](nsHttpChannel* self) {
+      self->ContinueProcessResponse2(rv);
+      return NS_OK;
+    };
+    return NS_OK;
+  }
+
   if (NS_FAILED(rv) && !mCanceled) {
     // The process switch failed, cancel this channel.
     Cancel(rv);
