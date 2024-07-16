@@ -3846,7 +3846,7 @@ void nsGlobalWindowInner::ScrollTo(const ScrollToOptions& aOptions) {
   if (left) {
     scrollPos.x = *left;
   }
-  if (*top) {
+  if (top) {
     scrollPos.y = *top;
   }
   // Here we calculate what the max pixel value is that we can
