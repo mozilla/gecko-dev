@@ -459,6 +459,26 @@ serp:
     send_in_pings:
       - serp-categorization
 
+  ads_blocked_count:
+    type: labeled_counter
+    description: >
+      Counts the specific type of block.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907097
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D216208
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    data_sensitivity:
+      - technical
+    labels:
+      - beyond_viewport
+      - hidden_parent
+      - hidden_child
+
+
 search_with:
   reporting_url:
     type: url

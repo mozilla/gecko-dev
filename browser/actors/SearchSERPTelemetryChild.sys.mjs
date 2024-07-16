@@ -889,6 +889,7 @@ class SearchAdImpression {
         opacityProperty: true,
       })
     ) {
+      Glean.serp.adsBlockedCount.hidden_parent.add();
       return {
         adsVisible: 0,
         adsHidden: adsLoaded,
@@ -901,6 +902,7 @@ class SearchAdImpression {
       elementRect.bottom < 0 &&
       innerWindowHeight + scrollY + elementRect.bottom < 0
     ) {
+      Glean.serp.adsBlockedCount.beyond_viewport.add();
       return {
         adsVisible: 0,
         adsHidden: adsLoaded,
@@ -933,6 +935,7 @@ class SearchAdImpression {
         })
       ) {
         adsHidden += 1;
+        Glean.serp.adsBlockedCount.hidden_child.add();
         continue;
       }
 
