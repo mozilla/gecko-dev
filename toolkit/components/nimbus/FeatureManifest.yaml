@@ -297,7 +297,6 @@ urlbar:
         command without any limit.
     pocketSuggestIndex:
       type: int
-      fallbackPref: browser.urlbar.pocket.suggestedIndex
       description: >-
         The group-relative suggestedIndex of Pocket suggestions within the Firefox
         Suggest section.
