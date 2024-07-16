@@ -525,3 +525,61 @@ def win32_redist_dir(redist, automation, c_compiler, vc_path, target):
 
 
 set_config("WIN32_REDIST_DIR", win32_redist_dir)
+
+
+@template
+def check_w32API_version():
+    # minimum version of toolkit libs used by mozilla
+    W32API_VERSION = Version("3.14")
+    # Check w32api version
+    try_compile(
+        includes=["w32api.h"],
+        check_msg=f"for w32api version >= {W32API_VERSION}",
+        body=f"""
+        #if (__W32API_MAJOR_VERSION < {W32API_VERSION.major}) || \
+            (__W32API_MAJOR_VERSION == {W32API_VERSION.major} && \
+             __W32API_MINOR_VERSION < {W32API_VERSION.minor})
+            #error "test failed."
+        #endif
+        """,
+        onerror=lambda: die(f"w32api version {W32API_VERSION} or higher required."),
+        when=target_is_windows & building_with_gnu_compatible_cc,
+    )
+
+
+check_w32API_version()
+
+
+# -Zc:sizedDealloc- disables C++14 global sized deallocation (see bug 1160146)
+add_flag(
+    "-Zc:sizedDealloc-", compiler=cxx_compiler, when=~building_with_gnu_compatible_cc
+)
+
+
+set_define("_USE_MATH_DEFINES", True)  # Otherwise Windows' math.h doesn't #define M_PI.
+
+WINVER = dependable("0A00")
+set_define("WINVER", depends(WINVER)(lambda WINVER: f"0x{WINVER}"))
+set_define("_WIN32_WINNT", depends(WINVER)(lambda WINVER: f"0x{WINVER}"))
+set_define("_WIN32_IE", "0x0A00")
+
+with only_when(depends(c_compiler)(lambda c: c.type == "clang-cl")):
+    set_config("MSVC_C_RUNTIME_DLL", "vcruntime140.dll")
+    set_config(
+        "MSVC_C_RUNTIME_1_DLL",
+        "vcruntime140_1.dll",
+        when=depends(target)(lambda target: target.cpu != "x86"),
+    )
+    set_config("MSVC_CXX_RUNTIME_DLL", "msvcp140.dll")
+
+    # Disable warnings about using MSVC-specific secure CRT functions.
+    set_define("_CRT_SECURE_NO_WARNINGS", True)
+    set_define("_CRT_NONSTDC_NO_WARNINGS", True)
+
+    set_define("HAVE_SEH_EXCEPTIONS", True)
+    set_define("HAVE_IO_H", True)
+
+with only_when(depends(c_compiler)(lambda c: c.type != "clang-cl")):
+    # strsafe.h on mingw uses macros for function deprecation that pollutes namespace
+    # causing problems with local implementations with the same name.
+    set_define("STRSAFE_NO_DEPRECATE", True)

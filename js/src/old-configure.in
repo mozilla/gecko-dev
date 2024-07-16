@@ -35,8 +35,6 @@ esac
 
 dnl Set the minimum version of toolkit libs used by mozilla
 dnl ========================================================
-W32API_VERSION=3.14
-
 LDFLAGS="$LDFLAGS $LINKER_LDFLAGS $PACK_REL_RELOC_FLAGS"
 
 if test -z "$JS_STANDALONE"; then
@@ -69,79 +67,6 @@ else
     AC_PROG_CC
     AC_PROG_CXX
 fi
-
-dnl Special win32 checks
-dnl ========================================================
-
-WINVER=0A00
-
-case "$target" in
-*-mingw*)
-    if test "$CC_TYPE" = clang-cl; then
-        # Check to see if we are really running in a msvc environemnt
-        _WIN32_MSVC=1
-
-        # Make sure compilers are valid
-        CXXFLAGS="$CXXFLAGS -TP"
-        # _CRT_SECURE_NO_WARNINGS disables warnings about using MSVC-specific
-        # secure CRT functions.
-        CXXFLAGS="$CXXFLAGS -D_CRT_SECURE_NO_WARNINGS"
-        AC_LANG_SAVE
-        AC_LANG_C
-        AC_TRY_COMPILE([#include <stdio.h>],
-            [ printf("Hello World\n"); ],,
-            AC_MSG_ERROR([\$(CC) test failed.  You must have MS VC++ in your path to build.]) )
-
-        AC_LANG_CPLUSPLUS
-        AC_TRY_COMPILE([#include <new.h>],
-            [ unsigned *test = new unsigned(42); ],,
-            AC_MSG_ERROR([\$(CXX) test failed.  You must have MS VC++ in your path to build.]) )
-        AC_LANG_RESTORE
-
-        AC_DEFINE(_CRT_SECURE_NO_WARNINGS)
-        AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS)
-
-        MSVC_C_RUNTIME_DLL=vcruntime140.dll
-        if test "$TARGET_CPU" != "x86"; then
-            MSVC_C_RUNTIME_1_DLL=vcruntime140_1.dll
-        fi
-        MSVC_CXX_RUNTIME_DLL=msvcp140.dll
-
-        # -Zc:sizedDealloc- disables C++14 global sized deallocation (see bug 1160146)
-        CXXFLAGS="$CXXFLAGS -Zc:sizedDealloc-"
-
-        AC_SUBST(MSVC_C_RUNTIME_DLL)
-        AC_SUBST(MSVC_C_RUNTIME_1_DLL)
-        AC_SUBST(MSVC_CXX_RUNTIME_DLL)
-
-        CFLAGS="$CFLAGS -D_HAS_EXCEPTIONS=0"
-        CXXFLAGS="$CXXFLAGS -D_HAS_EXCEPTIONS=0"
-    else
-        # Check w32api version
-        _W32API_MAJOR_VERSION=`echo $W32API_VERSION | $AWK -F\. '{ print $1 }'`
-        _W32API_MINOR_VERSION=`echo $W32API_VERSION | $AWK -F\. '{ print $2 }'`
-        AC_MSG_CHECKING([for w32api version >= $W32API_VERSION])
-        AC_TRY_COMPILE([#include <w32api.h>],
-            #if (__W32API_MAJOR_VERSION < $_W32API_MAJOR_VERSION) || \
-                (__W32API_MAJOR_VERSION == $_W32API_MAJOR_VERSION && \
-                 __W32API_MINOR_VERSION < $_W32API_MINOR_VERSION)
-                #error "test failed."
-            #endif
-            , [ res=yes ], [ res=no ])
-        AC_MSG_RESULT([$res])
-        if test "$res" != "yes"; then
-            AC_MSG_ERROR([w32api version $W32API_VERSION or higher required.])
-        fi
-    fi
-
-    AC_DEFINE(_USE_MATH_DEFINES) # Otherwise Windows' math.h doesn't #define M_PI.
-
-    AC_DEFINE_UNQUOTED(WINVER,0x$WINVER)
-    AC_DEFINE_UNQUOTED(_WIN32_WINNT,0x$WINVER)
-    AC_DEFINE_UNQUOTED(_WIN32_IE,0x0A00)
-
-    ;;
-esac
 
 fi # COMPILE_ENVIRONMENT
 

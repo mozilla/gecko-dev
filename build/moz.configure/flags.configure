@@ -98,6 +98,8 @@ with only_when(building_with_gnu_compatible_cc):
     add_flag("-fno-math-errno")
     add_flag("-fno-exceptions", compiler=cxx_compiler)
 
+add_flag("-D_HAS_EXCEPTIONS=0", when=target_is_windows)
+
 # We only use -faddrsig with clang on android, and all version of clang we
 # support have it.
 add_addrsig_flag = depends(c_compiler, when=target_is_android)(

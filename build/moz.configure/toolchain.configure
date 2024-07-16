@@ -3261,6 +3261,9 @@ llvm_objdump = check_prog(
 
 add_old_configure_assignment("LLVM_OBJDUMP", llvm_objdump)
 
+# Force clang-cl compiler to treat input as C++
+# ==============================================================
+add_flag("-TP", cxx_compiler, when=target_is_windows & ~building_with_gnu_compatible_cc)
 
 option(
     "--enable-clang-plugin-alpha",
