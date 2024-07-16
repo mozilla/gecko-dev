@@ -40,7 +40,7 @@
 .cm-lineNumbers .cm-gutterElement:not(.empty-line, .cm6-gutter-breakpoint):hover {
   background: url(chrome://devtools/content/debugger/images/breakpoint.svg) no-repeat;
   background-size: auto 15px;
-  background-position: right;
+  background-position: top right;
   -moz-context-properties: fill, stroke;
   fill: var(--gutter-hover-background-color);
   stroke: var(--gutter-hover-background-color);
