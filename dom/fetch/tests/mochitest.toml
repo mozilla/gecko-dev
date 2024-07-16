@@ -1,5 +1,11 @@
 [DEFAULT]
 
+support-files = [
+  "multipart.sjs",
+]
+
 ["test_ext_response_constructor.html"]
 
 ["test_invalid_header_exception.html"]
+
+["test_bug1752761.html"]

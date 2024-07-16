@@ -290,6 +290,10 @@ class MOZ_STACK_CLASS FormDataParser {
           mFilename.SetIsVoid(true);
           mContentType = "text/plain"_ns;
 
+          while (start != end && NS_IsHTTPWhitespace(*start)) {
+            ++start;
+          }
+
           // MUST start with boundary.
           if (!PushOverBoundary(boundaryString, start, end)) {
             return false;
