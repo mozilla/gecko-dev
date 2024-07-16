@@ -215,16 +215,32 @@ const EXCLUDED_TAGS = new Set([
 ]);
 
 /**
- * Attributes to be translated
+ * Attributes to be translated, a tuple of the tag name and the element. If the attribute
+ * is not particular to an element, leave it as an empty string.
+ *
+ * @type {Array<[string, string]>}
  */
-const TRANSLATABLE_ATTRIBUTES = ["title", "placeholder"];
+const TRANSLATABLE_ATTRIBUTES = [
+  ["", "aria-brailledescription"],
+  ["", "aria-braillelabel"],
+  ["", "aria-description"],
+  ["", "aria-label"],
+  ["", "aria-placeholder"],
+  ["", "aria-roledescription"],
+  ["", "aria-valuetext"],
+  ["", "placeholder"],
+  ["", "title"],
+  ["IMG", "alt"],
+  ["INPUT", "value"],
+  ["TRACK", "label"],
+];
 
 /**
- * Selector to get all the attributes
- *  ["[attribute1]", "[attribute2]", ...];
+ * Selectors to get all the attributes.
+ * e.g. "[title]", "[placeholder]", "input[value]"
  */
 const TRANSLATABLE_ATTRIBUTES_SELECTOR = TRANSLATABLE_ATTRIBUTES.map(
-  attribute => "[" + attribute + "]"
+  ([tagName, attribute]) => `${tagName}[${attribute}]`
 );
 
 /**
@@ -235,7 +251,9 @@ const MUTATION_OBSERVER_OPTIONS = {
   childList: true,
   subtree: true,
   attributes: true,
-  attributeFilter: TRANSLATABLE_ATTRIBUTES,
+  attributeFilter: TRANSLATABLE_ATTRIBUTES.map(
+    ([_tagName, attribute]) => attribute
+  ),
 };
 
 /**
@@ -449,10 +467,14 @@ export class TranslationsDocument {
             this.subdivideNodeForTranslations(mutation.target);
             break;
           case "attributes":
-            this.queueAttributeNodeForTranslation(mutation.target, [
-              mutation.attributeName,
-            ]);
-            this.dispatchQueuedAttributeTranslations();
+            if (
+              isAttributeTranslatable(mutation.target, mutation.attributeName)
+            ) {
+              this.queueAttributeNodeForTranslation(mutation.target, [
+                mutation.attributeName,
+              ]);
+              this.dispatchQueuedAttributeTranslations();
+            }
             break;
           default:
             break;
@@ -1330,9 +1352,17 @@ function getTranslatableAttributes(node) {
   if (node.nodeType !== Node.ELEMENT_NODE) {
     return [];
   }
-  return TRANSLATABLE_ATTRIBUTES.filter(attribute =>
-    node.hasAttribute(attribute)
-  );
+  const attributes = [];
+  for (const [tagName, attribute] of TRANSLATABLE_ATTRIBUTES) {
+    if (tagName && node.tagName !== tagName) {
+      // The tagName does not match.
+      continue;
+    }
+    if (node.hasAttribute(attribute)) {
+      attributes.push(attribute);
+    }
+  }
+  return attributes;
 }
 
 /**
@@ -2202,4 +2232,20 @@ class QueuedTranslator {
     this.#requests = new Map();
     this.#queue = new Map();
   }
+}
+
+/**
+ * @param {Element} element
+ * @param {string} attribute
+ */
+function isAttributeTranslatable(element, attribute) {
+  for (const [tagName, translatableAttribute] of TRANSLATABLE_ATTRIBUTES) {
+    if (
+      (!tagName || tagName === element.tagName) &&
+      attribute === translatableAttribute
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
