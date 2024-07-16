@@ -591,29 +591,6 @@ with only_when(depends(c_compiler)(lambda c: c.type == "clang-cl")):
         "-SUBSYSTEM:WINDOWS,{}".format(win32_subsystem_version()),
     )
 
-    add_flag("-Gy")
-    add_flag("-Zc:inline")
-
-    # VS2013+ supports -Gw for better linker optimizations.
-    # http://blogs.msdn.com/b/vcblog/archive/2013/09/11/introducing-gw-compiler-switch.aspx
-    # Disabled on ASan because it causes false-positive ODR violations.
-    add_flag("-Gw", when=~asan)
-
-    # String tail merging doesn't play nice with ASan's ODR checker.
-    add_linker_flag("-opt:nolldtailmerge", when=asan)
-
-    # Silence VS2017 15.5+ TR1 deprecation warnings hit by older gtest versions
-    add_flag("-D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING", compiler=cxx_compiler)
-
-    with only_when(depends(target.cpu)(lambda cpu: cpu == "x86")):
-        add_linker_flag("-LARGEADDRESSAWARE")
-        add_linker_flag("-SAFESEH")
-
-    set_define("WIN32_LEAN_AND_MEAN", True)
-
-    # See http://support.microsoft.com/kb/143208 to use STL
-    set_define("NOMINMAX", True)
-
 
 with only_when(depends(c_compiler)(lambda c: c.type != "clang-cl")):
     # strsafe.h on mingw uses macros for function deprecation that pollutes namespace
@@ -622,11 +599,3 @@ with only_when(depends(c_compiler)(lambda c: c.type != "clang-cl")):
 
     set_config("WIN32_CONSOLE_EXE_LDFLAGS", "-mconsole")
     set_config("WIN32_GUI_EXE_LDFLAGS", "-mwindows")
-
-    # Silence problematic clang warnings
-    add_flag("-Wno-incompatible-ms-struct", compiler=cxx_compiler)
-    add_linker_flag("-Wl,--no-insert-timestamp")
-
-    with only_when(depends(target.cpu)(lambda cpu: cpu == "x86")):
-        add_flag("-mstackrealign")
-        add_linker_flag("-Wl,--large-address-aware")
