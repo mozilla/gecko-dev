@@ -105,8 +105,10 @@ T2S(int32_t, PRId32);
 T2S(int64_t, PRId64);
 T2S(char16_t, PRIu16);  // print as a number
 T2S(char32_t, PRIu32);  // print as a number
-#ifdef XP_MACOSX
+#if defined(XP_DARWIN) || defined(XP_WIN)
 T2S(long, "ld");
+#endif
+#if defined(XP_DARWIN)
 T2S(unsigned long, "lu");
 #endif
 T2S(float, "f");
