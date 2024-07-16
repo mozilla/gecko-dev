@@ -6,11 +6,42 @@
 #include "WebGLExtensions.h"
 
 #include "GLContext.h"
+#include "mozilla/Casting.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_webgl.h"
 #include "WebGLContext.h"
 
 namespace mozilla {
+
+static bool TestShaderCompile(gl::GLContext* const gl, const GLenum type,
+                              const std::string& source) {
+  const auto shader = gl->fCreateShader(type);
+  const auto cleanup = MakeScopeExit([&]() { gl->fDeleteShader(shader); });
+
+  const std::array<const char*, 1> parts = {source.c_str()};
+  gl->fShaderSource(shader, parts.size(), parts.data(), nullptr);
+  gl->fCompileShader(shader);
+
+  GLint status = 0;
+  gl->fGetShaderiv(shader, LOCAL_GL_COMPILE_STATUS, &status);
+
+  if (status == LOCAL_GL_TRUE) return true;
+
+  std::vector<char> chars;
+  chars.resize(1000);
+  gl->fGetShaderInfoLog(shader, LazyAssertedCast(chars.size() - 1), nullptr,
+                        chars.data());
+  printf_stderr("GetShaderInfoLog() ->\n%s\n", chars.data());
+
+  gl->fGetShaderSource(shader, LazyAssertedCast(chars.size() - 1), nullptr,
+                       chars.data());
+  printf_stderr("GetShaderSource() ->\n%s\n", chars.data());
+
+  return false;
+}
+
+// -
 
 WebGLExtensionBlendMinMax::WebGLExtensionBlendMinMax(WebGLContext* webgl)
     : WebGLExtensionBase(webgl) {
@@ -466,15 +497,31 @@ WebGLExtensionDrawBuffers::WebGLExtensionDrawBuffers(WebGLContext* webgl)
 }
 
 bool WebGLExtensionDrawBuffers::IsSupported(const WebGLContext* webgl) {
-  if (webgl->IsWebGL2()) return false;
+  if (!webgl->mIsSupportedCache_DrawBuffers) {
+    webgl->mIsSupportedCache_DrawBuffers = [&]() {
+      gl::GLContext* const gl = webgl->GL();
 
-  gl::GLContext* gl = webgl->GL();
-  if (gl->IsGLES() && gl->Version() >= 300) {
-    // ANGLE's shader translator can't translate ESSL1 exts to ESSL3. (bug
-    // 1524804)
-    return false;
+      if (webgl->IsWebGL2()) return false;
+      if (!gl->IsSupported(gl::GLFeature::draw_buffers)) return false;
+
+      if (gl->IsGLES() && gl->Version() >= 300) {
+        // ANGLE's shader translator can't translate ESSL1 exts to ESSL3. (bug
+        // 1524804)
+        // The spec (and some implementations of ES3) don't require support for
+        // any extensions in ESSL 100, but an implementation can choose to
+        // support them anyway. So let's check!
+        const bool ok = TestShaderCompile(gl, LOCAL_GL_FRAGMENT_SHADER, R"(
+#extension GL_EXT_draw_buffers: require
+void main() {}
+)");
+        if (!ok) return false;
+      }
+
+      return true;
+    }();
   }
-  return gl->IsSupported(gl::GLFeature::draw_buffers);
+
+  return *webgl->mIsSupportedCache_DrawBuffers;
 }
 
 // -
@@ -578,16 +625,32 @@ WebGLExtensionFragDepth::WebGLExtensionFragDepth(WebGLContext* webgl)
   MOZ_ASSERT(IsSupported(webgl), "Don't construct extension if unsupported.");
 }
 
-bool WebGLExtensionFragDepth::IsSupported(const WebGLContext* webgl) {
-  if (webgl->IsWebGL2()) return false;
+bool WebGLExtensionFragDepth::IsSupported(const WebGLContext* const webgl) {
+  if (!webgl->mIsSupportedCache_FragDepth) {
+    webgl->mIsSupportedCache_FragDepth = [&]() {
+      gl::GLContext* const gl = webgl->GL();
 
-  gl::GLContext* gl = webgl->GL();
-  if (gl->IsGLES() && gl->Version() >= 300) {
-    // ANGLE's shader translator can't translate ESSL1 exts to ESSL3. (bug
-    // 1524804)
-    return false;
+      if (webgl->IsWebGL2()) return false;
+      if (!gl->IsSupported(gl::GLFeature::frag_depth)) return false;
+
+      if (gl->IsGLES() && gl->Version() >= 300) {
+        // ANGLE's shader translator can't translate ESSL1 exts to ESSL3. (bug
+        // 1524804)
+        // The spec (and some implementations of ES3) don't require support for
+        // any extensions in ESSL 100, but an implementation can choose to
+        // support them anyway. So let's check!
+        const bool ok = TestShaderCompile(gl, LOCAL_GL_FRAGMENT_SHADER, R"(
+#extension GL_EXT_frag_depth: require
+void main() {}
+)");
+        if (!ok) return false;
+      }
+
+      return true;
+    }();
   }
-  return gl->IsSupported(gl::GLFeature::frag_depth);
+
+  return *webgl->mIsSupportedCache_FragDepth;
 }
 
 // -
@@ -629,15 +692,30 @@ WebGLExtensionShaderTextureLod::WebGLExtensionShaderTextureLod(
 }
 
 bool WebGLExtensionShaderTextureLod::IsSupported(const WebGLContext* webgl) {
-  if (webgl->IsWebGL2()) return false;
+  if (!webgl->mIsSupportedCache_ShaderTextureLod) {
+    webgl->mIsSupportedCache_ShaderTextureLod = [&]() {
+      gl::GLContext* const gl = webgl->GL();
 
-  gl::GLContext* gl = webgl->GL();
-  if (gl->IsGLES() && gl->Version() >= 300) {
-    // ANGLE's shader translator doesn't yet translate
-    // WebGL1+EXT_shader_texture_lod to ES3. (Bug 1491221)
-    return false;
+      if (webgl->IsWebGL2()) return false;
+      if (!gl->IsSupported(gl::GLFeature::shader_texture_lod)) return false;
+
+      if (gl->IsGLES() && gl->Version() >= 300) {
+        // ANGLE's shader translator doesn't yet translate
+        // WebGL1+EXT_shader_texture_lod to ES3. (Bug 1491221)
+        // The spec (and some implementations of ES3) don't require support for
+        // any extensions in ESSL 100, but an implementation can choose to
+        // support them anyway. So let's check!
+        const bool ok = TestShaderCompile(gl, LOCAL_GL_FRAGMENT_SHADER, R"(
+#extension GL_EXT_shader_texture_lod: require
+void main() {}
+)");
+        if (!ok) return false;
+      }
+
+      return true;
+    }();
   }
-  return gl->IsSupported(gl::GLFeature::shader_texture_lod);
+  return *webgl->mIsSupportedCache_ShaderTextureLod;
 }
 
 // -

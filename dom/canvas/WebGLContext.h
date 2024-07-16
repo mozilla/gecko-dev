@@ -210,8 +210,10 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
   friend class WebGLExtensionDepthTexture;
   friend class WebGLExtensionDisjointTimerQuery;
   friend class WebGLExtensionDrawBuffers;
+  friend class WebGLExtensionFragDepth;
   friend class WebGLExtensionLoseContext;
   friend class WebGLExtensionMOZDebug;
+  friend class WebGLExtensionShaderTextureLod;
   friend class WebGLExtensionVertexArray;
   friend class WebGLMemoryTracker;
   friend class webgl::AvailabilityRunnable;
@@ -302,6 +304,12 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
       StaticPrefs::webgl_perf_max_acceptable_fb_status_invals();
   bool mWarnOnce_DepthTexCompareFilterable = true;
   mutable bool mRemapImplReadType_HalfFloatOes = false;
+
+  mutable std::optional<bool> mIsSupportedCache_DrawBuffers;
+  mutable std::optional<bool> mIsSupportedCache_FragDepth;
+  mutable std::optional<bool> mIsSupportedCache_ShaderTextureLod;
+
+  // -
 
   uint64_t mNextFenceId = 1;
   uint64_t mCompletedFenceId = 0;
