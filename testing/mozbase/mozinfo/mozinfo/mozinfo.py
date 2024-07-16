@@ -11,6 +11,7 @@
 import os
 import platform
 import re
+import sys
 from ctypes.util import find_library
 
 from .string_version import StringVersion
@@ -105,12 +106,18 @@ elif system == "Linux":
 
     info["os"] = "linux"
     info["linux_distro"] = distribution
+elif system in ["DragonFly", "FreeBSD", "NetBSD", "OpenBSD"]:
+    info["os"] = "bsd"  # community builds
+    version = os_version = sys.platform
 elif system == "Darwin":
     (release, versioninfo, machine) = platform.mac_ver()
     version = "OS X %s" % release
     versionNums = release.split(".")[:2]
     os_version = "%s.%s" % (versionNums[0], versionNums[1].ljust(2, "0"))
     info["os"] = "mac"
+elif sys.platform in ("solaris", "sunos5"):
+    info["os"] = "unix"  # community builds
+    os_version = version = sys.platform
 else:
     os_version = version = unknown
 
