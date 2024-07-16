@@ -401,11 +401,9 @@ def add_gnu_specific_dso_flags(
     dso_flags.ldopts.extend(ldopts)
 
 
-@depends(
-    dso_flags, target, win32_subsystem_version, when=~building_with_gnu_compatible_cc
-)
-def add_non_gnu_dso_flags(dso_flags, target, win32_subsystem_version):
-    ldopts = [f"-SUBSYSTEM:WINDOWS,{win32_subsystem_version}"]
+@depends(dso_flags, target, when=~building_with_gnu_compatible_cc)
+def add_non_gnu_dso_flags(dso_flags, target):
+    ldopts = ["-SUBSYSTEM:WINDOWS,{}".format(win32_subsystem_version())]
     if target.cpu == "x86":
         ldopts.append("-MACHINE:X86")
     if target.cpu == "x86_64":

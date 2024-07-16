@@ -105,13 +105,7 @@ case "$target" in
         LDFLAGS="$LDFLAGS -Wl,--no-insert-timestamp"
 
         MOZ_OPTIMIZE_FLAGS="-O2"
-
-        WIN32_CONSOLE_EXE_LDFLAGS=-mconsole
-        WIN32_GUI_EXE_LDFLAGS=-mwindows
     else
-        WIN32_SUBSYSTEM_VERSION=10.0
-        WIN32_CONSOLE_EXE_LDFLAGS=-SUBSYSTEM:CONSOLE,$WIN32_SUBSYSTEM_VERSION
-        WIN32_GUI_EXE_LDFLAGS=-SUBSYSTEM:WINDOWS,$WIN32_SUBSYSTEM_VERSION
         CFLAGS="$CFLAGS -Gy -Zc:inline"
         CXXFLAGS="$CXXFLAGS -Gy -Zc:inline"
         if test "$TARGET_CPU" = "x86";then
@@ -286,9 +280,6 @@ AC_SUBST_LIST(OS_LDFLAGS)
 
 AC_SUBST(HOST_CC)
 AC_SUBST(HOST_CXX)
-
-AC_SUBST(WIN32_CONSOLE_EXE_LDFLAGS)
-AC_SUBST(WIN32_GUI_EXE_LDFLAGS)
 
 dnl Set various defines and substitutions
 dnl ========================================================
