@@ -102,10 +102,12 @@ import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
+import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.PrivateShortcutCreateManager
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.MessagingAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerIntegration
@@ -1281,13 +1283,19 @@ class HomeFragment : Fragment() {
 
         hideToolbar()
 
+        val components = requireComponents
         // Whenever a tab is selected its last access timestamp is automatically updated by A-C.
         // However, in the case of resuming the app to the home fragment, we already have an
         // existing selected tab, but its last access timestamp is outdated. No action is
         // triggered to cause an automatic update on warm start (no tab selection occurs). So we
         // update it manually here.
-        requireComponents.useCases.sessionUseCases.updateLastAccess()
+        components.useCases.sessionUseCases.updateLastAccess()
+
+        evaluateMessagesForMicrosurvey(components)
     }
+
+    private fun evaluateMessagesForMicrosurvey(components: Components) =
+        components.appStore.dispatch(MessagingAction.Evaluate(FenixMessageSurfaceId.MICROSURVEY))
 
     override fun onPause() {
         super.onPause()
