@@ -1361,6 +1361,8 @@ void GatherCertificateCompressionTelemetry(SECStatus rv,
     mozilla::glean::cert_compression::failures.Get(decoder).Add(1);
     return;
   }
+  // Glam requires us to send 0 in case of success.
+  mozilla::glean::cert_compression::failures.Get(decoder).Add(0);
 
   PRUint64 diffActualEncodedLen = actualCertLen - encodedCertLen;
   if (actualCertLen >= encodedCertLen) {
