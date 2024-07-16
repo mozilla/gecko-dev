@@ -167,6 +167,16 @@ class AntiTrackingUtils final {
    * that is not exposed to child processes.
    */
   static void UpdateAntiTrackingInfoForChannel(nsIChannel* aChannel);
+
+ private:
+  // Helper function for ComputeIsThirdPartyToTopWindow to peer into the
+  // partition
+  // key in the case that we don't have any other way to determine
+  // third-partiness to the top level, e.g. third party SharedWorker script
+  // loads.
+  static nsresult IsThirdPartyToPartitionKeySite(nsIChannel* aChannel,
+                                                 const nsCOMPtr<nsIURI>& aURI,
+                                                 bool* aIsThirdParty);
 };
 
 }  // namespace mozilla

@@ -18,7 +18,7 @@ add_setup(async function () {
 
 add_task(async function runTest() {
   info("Creating the tab");
-  let tab = BrowserTestUtils.addTab(gBrowser, TEST_TOP_PAGE);
+  let tab = BrowserTestUtils.addTab(gBrowser, TEST_TOP_PAGE_HTTPS);
   gBrowser.selectedTab = tab;
 
   let browser = tab.linkedBrowser;
@@ -27,7 +27,7 @@ add_task(async function runTest() {
   info("Creating the third-party iframe");
   let ifrBC = await SpecialPowers.spawn(
     browser,
-    [TEST_TOP_PAGE_7],
+    [TEST_4TH_PARTY_PAGE_HTTPS],
     async page => {
       let ifr = content.document.createElement("iframe");
 
@@ -43,7 +43,7 @@ add_task(async function runTest() {
   info("Creating the ABA iframe");
   let ifrABABC = await SpecialPowers.spawn(
     ifrBC,
-    [TEST_TOP_PAGE],
+    [TEST_TOP_PAGE_HTTPS],
     async page => {
       let ifr = content.document.createElement("iframe");
 
@@ -75,6 +75,20 @@ add_task(async function runTest() {
     return content.localStorage.getItem("foo");
   });
   is(storage, null, "LocalStorage update is not in the top level");
+
+  let abaSubresourceBody = await SpecialPowers.spawn(
+    ifrBC,
+    [TEST_DOMAIN_HTTPS + TEST_PATH + "cookiesCORS.sjs"],
+    async resource => {
+      let result = await content.fetch(resource, { credentials: "include" });
+      return await result.text();
+    }
+  );
+  is(
+    abaSubresourceBody,
+    "cookie:foo",
+    "Partitioned cookie exists in A(B-fetch->A) request"
+  );
 
   info("Clean up");
   BrowserTestUtils.removeTab(tab);
