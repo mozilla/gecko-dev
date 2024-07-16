@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 pub mod http;
-pub mod legacy_telemetry;
 mod libcurl;
+pub mod ping;
 pub mod report;
 
 #[cfg(test)]

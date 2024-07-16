@@ -6,6 +6,7 @@ import string
 import textwrap
 
 import buildconfig
+from variables import get_buildid
 
 
 def generate_bool(name):
@@ -78,6 +79,20 @@ def generate(output):
             """
         )
     )
+
+    # buildid.h is only available in these conditions (see the top-level moz.build)
+    if not buildconfig.substs.get("JS_STANDALONE") or not buildconfig.substs.get(
+        "MOZ_BUILD_APP"
+    ):
+        output.write(
+            textwrap.dedent(
+                f"""
+                /// The build id of the current build.
+                pub const MOZ_BUILDID: &str = {escape_rust_string(get_buildid())};
+
+                """
+            )
+        )
 
     windows_rs_dir = buildconfig.substs.get("MOZ_WINDOWS_RS_DIR")
     if windows_rs_dir:

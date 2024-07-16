@@ -1028,6 +1028,7 @@ dependencies = [
  "env_logger",
  "flate2",
  "fluent",
+ "glean",
  "gtkbind",
  "intl-memoizer",
  "libloading",

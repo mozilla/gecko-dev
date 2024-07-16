@@ -174,3 +174,11 @@ impl From<&str> for PathBuf {
         PathBuf(s.into())
     }
 }
+
+impl super::mock::MockUnwrap for PathBuf {
+    type Inner = std::path::PathBuf;
+
+    fn unwrap(self) -> Self::Inner {
+        self.0
+    }
+}

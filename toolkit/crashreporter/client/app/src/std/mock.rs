@@ -103,6 +103,12 @@ pub trait MockKey: MockKeyStored + Sized {
 /// Mock data which can be shared amongst threads.
 pub struct SharedMockData(AtomicPtr<MockDataMap>);
 
+impl std::fmt::Debug for SharedMockData {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("SharedMockData").finish_non_exhaustive()
+    }
+}
+
 impl Clone for SharedMockData {
     fn clone(&self) -> Self {
         SharedMockData(AtomicPtr::new(self.0.load(Relaxed)))
@@ -121,6 +127,14 @@ impl SharedMockData {
     /// Callers must ensure that the mock data outlives the lifetime of the thread.
     pub unsafe fn set(self) {
         MOCK_DATA.with(|ptr| ptr.store(self.0.into_inner(), Relaxed));
+    }
+
+    /// Call the given function with this mock data set.
+    pub fn call<R>(&self, f: impl FnOnce() -> R) -> R {
+        let prev = MOCK_DATA.with(|ptr| ptr.swap(self.0.load(Relaxed), Relaxed));
+        let ret = f();
+        MOCK_DATA.with(|ptr| ptr.store(prev, Relaxed));
+        ret
     }
 }
 
@@ -252,3 +266,14 @@ macro_rules! mock_key {
 }
 
 pub(crate) use mock_key;
+
+/// A trait for unwrapping mocked types for use with external APIs.
+pub trait MockUnwrap {
+    type Inner;
+    fn unwrap(self) -> Self::Inner;
+}
+
+/// Unwrap a mocked type.
+pub fn unwrap<T: MockUnwrap>(value: T) -> T::Inner {
+    value.unwrap()
+}

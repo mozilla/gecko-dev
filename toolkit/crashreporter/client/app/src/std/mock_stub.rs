@@ -18,3 +18,9 @@ pub fn hook<T: std::any::Any + Send + Sync + Clone>(normally: T, _name: &'static
 pub fn try_hook<T: std::any::Any + Send + Sync + Clone>(fallback: T, _name: &'static str) -> T {
     fallback
 }
+
+/// Unwrap a mocked type.
+#[inline(always)]
+pub fn unwrap<T>(value: T) -> T {
+    value
+}

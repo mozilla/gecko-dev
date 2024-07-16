@@ -61,15 +61,12 @@ impl ReportCrash {
     pub fn run(mut self) -> anyhow::Result<bool> {
         self.set_log_file();
         let hash = self.compute_minidump_hash().map(Some).unwrap_or_else(|e| {
-            log::warn!("failed to compute minidump hash: {e}");
+            log::warn!("failed to compute minidump hash: {e:#}");
             None
         });
-        let ping_uuid = self.send_crash_ping(hash.as_deref()).unwrap_or_else(|e| {
-            log::warn!("failed to send crash ping: {e}");
-            None
-        });
+        let ping_uuid = self.send_crash_ping(hash.as_deref());
         if let Err(e) = self.update_events_file(hash.as_deref(), ping_uuid) {
-            log::warn!("failed to update events file: {e}");
+            log::warn!("failed to update events file: {e:#}");
         }
         self.sanitize_extra();
         self.check_eol_version()?;
@@ -111,57 +108,18 @@ impl ReportCrash {
         Ok(s)
     }
 
-    /// Send a crash ping to telemetry.
+    /// Send crash pings to legacy telemetry and Glean.
     ///
-    /// Returns the crash ping uuid.
-    fn send_crash_ping(&self, minidump_hash: Option<&str>) -> anyhow::Result<Option<Uuid>> {
-        if self.config.ping_dir.is_none() {
-            log::warn!("not sending crash ping because no ping directory configured");
-            return Ok(None);
+    /// Returns the crash ping uuid used in legacy telemetry.
+    fn send_crash_ping(&self, minidump_hash: Option<&str>) -> Option<Uuid> {
+        net::ping::CrashPing {
+            crash_id: self.config.local_dump_id().as_ref(),
+            extra: &self.extra,
+            ping_dir: self.config.ping_dir.as_deref(),
+            minidump_hash,
+            pingsender_path: self.config.sibling_program_path("pingsender").as_ref(),
         }
-
-        //TODO support glean crash pings (or change pingsender to do so)
-
-        let dump_id = self.config.local_dump_id();
-        let ping = net::legacy_telemetry::Ping::crash(&self.extra, dump_id.as_ref(), minidump_hash)
-            .context("failed to create telemetry crash ping")?;
-
-        let submission_url = ping
-            .submission_url(&self.extra)
-            .context("failed to generate ping submission URL")?;
-
-        let target_file = self
-            .config
-            .ping_dir
-            .as_ref()
-            .unwrap()
-            .join(format!("{}.json", ping.id()));
-
-        let file = std::fs::File::create(&target_file).with_context(|| {
-            format!(
-                "failed to open ping file {} for writing",
-                target_file.display()
-            )
-        })?;
-
-        serde_json::to_writer(file, &ping).context("failed to serialize telemetry crash ping")?;
-
-        let pingsender_path = self.config.sibling_program_path("pingsender");
-
-        crate::process::background_command(&pingsender_path)
-            .arg(submission_url)
-            .arg(target_file)
-            .spawn()
-            .with_context(|| {
-                format!(
-                    "failed to launch pingsender process at {}",
-                    pingsender_path.display()
-                )
-            })?;
-
-        // TODO asynchronously get pingsender result and log it?
-
-        Ok(Some(ping.id().clone()))
+        .send()
     }
 
     /// Remove unneeded entries from the extra file, and add some that indicate from where the data

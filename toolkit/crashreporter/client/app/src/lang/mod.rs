@@ -35,6 +35,11 @@ impl LangStrings {
         LangStrings { bundle, rtl }
     }
 
+    /// Return the language identifier string for the primary locale.
+    pub fn locale(&self) -> String {
+        self.bundle.locales.first().unwrap().to_string()
+    }
+
     /// Return whether the localized language has right-to-left text flow.
     pub fn is_rtl(&self) -> bool {
         self.rtl
