@@ -440,7 +440,7 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
             cmd.append("--skip-implementation-status=%s" % implementation_status)
 
         # Bug 1643177 - reduce timeout multiplier for web-platform-tests backlog
-        if c["timeout_multiplier"]:
+        if "timeout_multiplier" in c:
             cmd.append("--timeout-multiplier=%s" % c["timeout_multiplier"])
         elif c["backlog"]:
             cmd.append("--timeout-multiplier=0.25")
