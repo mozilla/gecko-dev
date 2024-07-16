@@ -7684,40 +7684,28 @@ fn get_surface_rects(
             let unclipped: LayoutRect = surface.unclipped_local_rect
                 .cast_unit();
 
-            // Calculate the expanded rect from source rect, note that this can
-            // produce a valid target rect even with an empty source rect in the
-            // case of filters like feFlood, feComponentTransfer, feColorMatrix,
-            // feImage and feTurbulence which can fill their whole subregion
-            // even if given empty SourceGraphic
-            let (_coverage, _source, target) = composite_mode.get_coverage_svgfe(
+            // Get the rects of SourceGraphic and target based on the local rect
+            // and clip rect.
+            let (coverage, _source, target) = composite_mode.get_coverage_svgfe(
                 filters, clipped, true, false);
 
-            // Clip the expanded rect
-            let clipped: LayoutRect = target.cast_unit()
-                .intersection(&local_clip_rect)
-                .unwrap_or(PictureRect::zero())
-                .cast_unit();
-
-            // If the target rect was empty to begin with, or clipped away
-            // entirely then there is nothing to do here, this is the hot path
-            // for culling of composited pictures
+            // If no part of the source rect contributes to target pixels, we're
+            // done here; this is the hot path for quick culling of composited
+            // pictures, where the view doesn't overlap the target.
             //
-            // Note that the target rect is somewhat independent of source rect
-            // due to feFlood and others, even if source is empty we still may
-            // have target pixels to render
-            if clipped.is_empty() {
+            // Note that the filter may contain fill regions such as feFlood
+            // which do not depend on the source at all, so the source rect is
+            // largely irrelevant to our decision here as it may be empty.
+            if target.is_empty() {
                 return None;
             }
 
-            // Now that we have the clipped target rect, calculate source rect
-            //
             // Since the design of WebRender PictureCompositeMode does not
             // actually permit source and target rects as separate concepts, we
-            // have to use the combined coverage rect
-            let (coverage, _source, _target) = composite_mode.get_coverage_svgfe(
-                filters, clipped.cast_unit(), false, false);
+            // have to use the combined coverage rect.
+            let clipped = coverage;
 
-            (coverage.cast_unit(), unclipped)
+            (clipped.cast_unit(), unclipped)
         }
         PictureCompositeMode::Filter(Filter::DropShadows(ref shadows)) => {
             let local_prim_rect = surface.clipped_local_rect;
