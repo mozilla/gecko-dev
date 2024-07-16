@@ -2442,8 +2442,9 @@ nsresult EvalInSandbox(JSContext* cx, JS::HandleObject sandbox,
 nsresult GetSandboxMetadata(JSContext* cx, JS::HandleObject sandboxArg,
                             JS::MutableHandleValue rval);
 
-nsresult SetSandboxMetadata(JSContext* cx, JS::HandleObject sandboxArg,
-                            JS::HandleValue metadata);
+[[nodiscard]] nsresult SetSandboxMetadata(JSContext* cx,
+                                          JS::HandleObject sandboxArg,
+                                          JS::HandleValue metadata);
 
 bool CreateObjectIn(JSContext* cx, JS::HandleValue vobj,
                     CreateObjectInOptions& options,
