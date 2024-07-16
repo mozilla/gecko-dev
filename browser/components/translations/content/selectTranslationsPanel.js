@@ -201,8 +201,20 @@ var SelectTranslationsPanel = new (class {
    * Many of these are cases where the SelectTranslationsPanel is available
    * even though the FullPageTranslationsPanel is not, so this helps inform
    * whether the translate-full-page button should be allowed in this context.
+   *
+   * @type {boolean}
    */
   #isFullPageTranslationsRestrictedForPage = true;
+
+  /**
+   * The BCP-47 language tag of the active target language for Full-Page Translations,
+   * if available. This may not be available if Full-Page Translations is not currently
+   * active in the current tab of the current window, or if Full-Page Translations is
+   * restricted on the current page.
+   *
+   * @type { string | undefined }
+   */
+  #activeFullPageTranslationsTargetLanguage = undefined;
 
   /**
    * The internal state of the SelectTranslationsPanel.
@@ -334,6 +346,13 @@ var SelectTranslationsPanel = new (class {
       return this.#languageInfo;
     }
 
+    this.#isFullPageTranslationsRestrictedForPage =
+      TranslationsParent.isFullPageTranslationsRestrictedForPage(gBrowser);
+    this.#activeFullPageTranslationsTargetLanguage = this
+      .#isFullPageTranslationsRestrictedForPage
+      ? undefined
+      : this.#maybeGetActiveFullPageTranslationsTargetLanguage();
+
     this.#languageInfo = {
       docLangTag: undefined,
       isDocLangTagSupported: undefined,
@@ -350,7 +369,11 @@ var SelectTranslationsPanel = new (class {
       const preferredLanguages = TranslationsParent.getPreferredLanguages();
       const topPreferredLanguage = preferredLanguages?.[0];
       this.#languageInfo = {
-        docLangTag,
+        docLangTag:
+          // If Full-Page Translations (FPT) is active, we need to assume that the effective
+          // document language tag matches the language of the FPT target language, otherwise,
+          // if FPT is not active, we can take the real docLangTag value.
+          this.#activeFullPageTranslationsTargetLanguage ?? docLangTag,
         isDocLangTagSupported,
         topPreferredLanguage,
       };
@@ -561,8 +584,6 @@ var SelectTranslationsPanel = new (class {
 
     try {
       this.#sourceTextWordCount = undefined;
-      this.#isFullPageTranslationsRestrictedForPage =
-        TranslationsParent.isFullPageTranslationsRestrictedForPage(gBrowser);
       this.#initializeEventListeners();
       await this.#ensureLangListsBuilt();
       await Promise.all([
@@ -584,6 +605,26 @@ var SelectTranslationsPanel = new (class {
     }
 
     this.#openPopup(event, screenX, screenY);
+  }
+
+  /**
+   * Attempts to retrieve the language tag of the requested target language
+   * for Full Page Translations, if Full Page Translations is active on the page
+   * within the active tab of the active window.
+   *
+   * @returns {string | undefined} - The BCP-47 language tag.
+   */
+  #maybeGetActiveFullPageTranslationsTargetLanguage() {
+    try {
+      const { requestedTranslationPair } =
+        TranslationsParent.getTranslationsActor(
+          gBrowser.selectedBrowser
+        ).languageState;
+      return requestedTranslationPair?.toLanguage;
+    } catch {
+      this.console.warn("Failed to retrieve the TranslationsParent actor.");
+    }
+    return undefined;
   }
 
   /**
@@ -1769,6 +1810,20 @@ var SelectTranslationsPanel = new (class {
   }
 
   /**
+   * Returns true if the translate-full-page button should be hidden in the current panel view.
+   *
+   * @returns {boolean}
+   */
+  #shouldHideTranslateFullPageButton() {
+    return (
+      // Do not offer to translate the full page if it is restricted on this page.
+      this.#isFullPageTranslationsRestrictedForPage ||
+      // Do not offer to translate the full page if Full-Page Translations is already active.
+      this.#activeFullPageTranslationsTargetLanguage
+    );
+  }
+
+  /**
    * Determines whether translation should continue based on panel state and language pair.
    *
    * @param {number} translationId - The id of the translation request to match.
@@ -1874,7 +1929,7 @@ var SelectTranslationsPanel = new (class {
     translateFullPageButton.disabled =
       invalidLangPairSelected ||
       fromLanguage === toLanguage ||
-      this.#isFullPageTranslationsRestrictedForPage;
+      this.#shouldHideTranslateFullPageButton();
   }
 
   /**
@@ -1917,7 +1972,7 @@ var SelectTranslationsPanel = new (class {
         translationFailureMessageBar,
         tryAgainButton,
         unsupportedLanguageContent,
-        ...(this.#isFullPageTranslationsRestrictedForPage
+        ...(this.#shouldHideTranslateFullPageButton()
           ? [translateFullPageButton]
           : []),
       ],
@@ -1926,7 +1981,7 @@ var SelectTranslationsPanel = new (class {
         copyButton,
         doneButtonPrimary,
         textArea,
-        ...(this.#isFullPageTranslationsRestrictedForPage
+        ...(this.#shouldHideTranslateFullPageButton()
           ? []
           : [translateFullPageButton]),
       ],

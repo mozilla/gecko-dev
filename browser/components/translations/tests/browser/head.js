@@ -200,6 +200,24 @@ function logAction(...params) {
 }
 
 /**
+ * Returns true if Full-Page Translations is currently active, otherwise false.
+ *
+ * @returns {boolean}
+ */
+function isFullPageTranslationsActive() {
+  try {
+    const { requestedTranslationPair } =
+      TranslationsParent.getTranslationsActor(
+        gBrowser.selectedBrowser
+      ).languageState;
+    return !!requestedTranslationPair;
+  } catch {
+    // Translations actor unavailable, continue on.
+  }
+  return false;
+}
+
+/**
  * Navigate to a URL and indicate a message as to why.
  */
 async function navigate(
@@ -1707,14 +1725,20 @@ class SelectTranslationsTestUtils {
       textArea: true,
       toLabel: true,
       toMenuList: true,
-      translateFullPageButton: !isFullPageTranslationsRestrictedForPage,
+      translateFullPageButton: !(
+        isFullPageTranslationsRestrictedForPage ||
+        isFullPageTranslationsActive()
+      ),
     });
     SelectTranslationsTestUtils.#assertConditionalUIEnabled({
       copyButton: true,
       doneButtonPrimary: true,
       textArea: true,
-      translateFullPageButton:
-        !sameLanguageSelected && !isFullPageTranslationsRestrictedForPage,
+      translateFullPageButton: !(
+        sameLanguageSelected ||
+        isFullPageTranslationsRestrictedForPage ||
+        isFullPageTranslationsActive()
+      ),
     });
 
     await waitForCondition(
@@ -1730,7 +1754,11 @@ class SelectTranslationsTestUtils {
     await SelectTranslationsTestUtils.#assertPanelTextAreaOverflow();
 
     let footerButtons;
-    if (sameLanguageSelected || isFullPageTranslationsRestrictedForPage) {
+    if (
+      sameLanguageSelected ||
+      isFullPageTranslationsRestrictedForPage ||
+      isFullPageTranslationsActive()
+    ) {
       footerButtons = [copyButton, doneButtonPrimary];
     } else {
       footerButtons =
@@ -1961,7 +1989,10 @@ class SelectTranslationsTestUtils {
       textArea: true,
       toLabel: true,
       toMenuList: true,
-      translateFullPageButton: !isFullPageTranslationsRestrictedForPage,
+      translateFullPageButton: !(
+        isFullPageTranslationsRestrictedForPage ||
+        isFullPageTranslationsActive()
+      ),
     });
     SelectTranslationsTestUtils.#assertPanelHasTranslatingPlaceholder();
   }
@@ -1990,7 +2021,8 @@ class SelectTranslationsTestUtils {
       doneButtonPrimary: true,
       translateFullPageButton:
         fromMenuList.value !== toMenuList.value &&
-        !isFullPageTranslationsRestrictedForPage,
+        !isFullPageTranslationsRestrictedForPage &&
+        !isFullPageTranslationsActive(),
     });
   }
 
@@ -2012,7 +2044,9 @@ class SelectTranslationsTestUtils {
       copyButton: true,
       doneButtonPrimary: true,
       translateFullPageButton:
-        fromLanguage !== toLanguage && !isFullPageTranslationsRestrictedForPage,
+        fromLanguage !== toLanguage &&
+        !isFullPageTranslationsRestrictedForPage &&
+        !isFullPageTranslationsActive(),
     });
 
     if (fromLanguage === toLanguage) {
