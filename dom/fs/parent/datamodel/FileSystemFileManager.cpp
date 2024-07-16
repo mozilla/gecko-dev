@@ -175,7 +175,7 @@ nsresult EnsureFileSystemDirectory(
 
   QM_TRY_INSPECT(
       const auto& fileSystemDirectory,
-      quotaManager->EnsureTemporaryOriginIsInitialized(aOriginMetadata)
+      quotaManager->EnsureTemporaryOriginIsInitializedInternal(aOriginMetadata)
           .map([](const auto& aPair) { return aPair.first; }));
 
   QM_TRY(QM_TO_RESULT(fileSystemDirectory->AppendRelativePath(

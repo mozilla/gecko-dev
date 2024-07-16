@@ -1185,14 +1185,15 @@ nsresult OpenOp::DatabaseWork() {
         this]()
            -> mozilla::Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult> {
         if (persistenceType == PERSISTENCE_TYPE_PERSISTENT) {
-          QM_TRY_RETURN(quotaManager->EnsurePersistentOriginIsInitialized(
-              mOriginMetadata));
+          QM_TRY_RETURN(
+              quotaManager->EnsurePersistentOriginIsInitializedInternal(
+                  mOriginMetadata));
         }
 
         QM_TRY(MOZ_TO_RESULT(
             quotaManager->EnsureTemporaryStorageIsInitializedInternal()));
-        QM_TRY_RETURN(
-            quotaManager->EnsureTemporaryOriginIsInitialized(mOriginMetadata));
+        QM_TRY_RETURN(quotaManager->EnsureTemporaryOriginIsInitializedInternal(
+            mOriginMetadata));
       }()
                   .map([](const auto& res) { return res.first; })));
 

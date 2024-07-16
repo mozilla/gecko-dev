@@ -403,11 +403,11 @@ Context::QuotaInitRunnable::Run() {
         QM_TRY(MOZ_TO_RESULT(
             quotaManager->EnsureTemporaryStorageIsInitializedInternal()));
 
-        QM_TRY_UNWRAP(
-            mDirectoryMetadata->mDir,
-            quotaManager
-                ->EnsureTemporaryOriginIsInitialized(*mDirectoryMetadata)
-                .map([](const auto& res) { return res.first; }));
+        QM_TRY_UNWRAP(mDirectoryMetadata->mDir,
+                      quotaManager
+                          ->EnsureTemporaryOriginIsInitializedInternal(
+                              *mDirectoryMetadata)
+                          .map([](const auto& res) { return res.first; }));
 
         auto* cacheQuotaClient = CacheQuotaClient::Get();
         MOZ_DIAGNOSTIC_ASSERT(cacheQuotaClient);

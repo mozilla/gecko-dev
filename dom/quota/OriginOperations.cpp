@@ -1584,11 +1584,12 @@ nsresult InitializePersistentOriginOp::DoDirectoryWork(
   QM_TRY(OkIf(aQuotaManager.IsStorageInitializedInternal()),
          NS_ERROR_NOT_INITIALIZED);
 
-  QM_TRY_UNWRAP(mCreated,
-                (aQuotaManager
-                     .EnsurePersistentOriginIsInitialized(OriginMetadata{
-                         mPrincipalMetadata, PERSISTENCE_TYPE_PERSISTENT})
-                     .map([](const auto& res) { return res.second; })));
+  QM_TRY_UNWRAP(
+      mCreated,
+      (aQuotaManager
+           .EnsurePersistentOriginIsInitializedInternal(
+               OriginMetadata{mPrincipalMetadata, PERSISTENCE_TYPE_PERSISTENT})
+           .map([](const auto& res) { return res.second; })));
 
   return NS_OK;
 }
@@ -1624,7 +1625,7 @@ nsresult InitializeTemporaryOriginOp::DoDirectoryWork(
 
   QM_TRY_UNWRAP(mCreated,
                 (aQuotaManager
-                     .EnsureTemporaryOriginIsInitialized(
+                     .EnsureTemporaryOriginIsInitializedInternal(
                          OriginMetadata{mPrincipalMetadata, mPersistenceType})
                      .map([](const auto& res) { return res.second; })));
 
@@ -1700,9 +1701,9 @@ nsresult InitializePersistentClientOp::DoDirectoryWork(
   QM_TRY(MOZ_TO_RESULT(aQuotaManager.IsStorageInitializedInternal()),
          NS_ERROR_FAILURE);
 
-  QM_TRY(
-      MOZ_TO_RESULT(aQuotaManager.IsOriginInitialized(mClientMetadata.mOrigin)),
-      NS_ERROR_FAILURE);
+  QM_TRY(MOZ_TO_RESULT(aQuotaManager.IsPersistentOriginInitializedInternal(
+             mClientMetadata.mOrigin)),
+         NS_ERROR_FAILURE);
 
   QM_TRY_UNWRAP(
       mCreated,
@@ -1740,8 +1741,8 @@ nsresult InitializeTemporaryClientOp::DoDirectoryWork(
   QM_TRY(MOZ_TO_RESULT(aQuotaManager.IsTemporaryStorageInitializedInternal()),
          NS_ERROR_FAILURE);
 
-  QM_TRY(MOZ_TO_RESULT(
-             aQuotaManager.IsTemporaryOriginInitialized(mClientMetadata)),
+  QM_TRY(MOZ_TO_RESULT(aQuotaManager.IsTemporaryOriginInitializedInternal(
+             mClientMetadata)),
          NS_ERROR_FAILURE);
 
   QM_TRY_UNWRAP(
@@ -2055,7 +2056,8 @@ void ClearRequestBase::DeleteFilesInternal(
 
             const bool initialized =
                 aPersistenceType == PERSISTENCE_TYPE_PERSISTENT
-                    ? aQuotaManager.IsOriginInitialized(metadata.mOrigin)
+                    ? aQuotaManager.IsPersistentOriginInitializedInternal(
+                          metadata.mOrigin)
                     : aQuotaManager.IsTemporaryStorageInitializedInternal();
 
             // If it hasn't been initialized, we don't need to update the

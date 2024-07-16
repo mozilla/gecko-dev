@@ -38,7 +38,7 @@ void InitializeClientDirectory(const ClientMetadata& aClientMetadata) {
 
   QM_TRY_INSPECT(
       const auto& directory,
-      quotaManager->EnsureTemporaryOriginIsInitialized(aClientMetadata)
+      quotaManager->EnsureTemporaryOriginIsInitializedInternal(aClientMetadata)
           .map([](const auto& aPair) { return aPair.first; }),
       QM_TEST_FAIL);
 
