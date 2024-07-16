@@ -1,9 +1,7 @@
 # Using ESLint in DevTools
 <!--TODO paths, executables and everything here should be reviewed when we go to GitHub-->
 
-The main rule set is in `devtools/.eslintrc`. It is meant to be used with ESLint 3.5.0.
-
-Note that the file `.eslintignore` at the root of the repository contains a list of paths to ignore. This is because a lot of the code isn't ESLint compliant yet. We're in the process of making code free of ESLint warnings and errors, but this takes time. In the meantime, make sure the file or folder you are running ESLint on isn't ignored.
+The main rule set is in `devtools/.eslintrc`.
 
 ## Installing
 
@@ -82,7 +80,7 @@ You should see errors and warnings in the gutter as shown in the screenshot belo
       (when (string-match "^\\([a-z]+_\\)" base)
 	(setq-local flycheck-temp-prefix (match-string 1 base))))
     (let ((base-dir (locate-dominating-file (buffer-file-name)
-					    ".eslintignore")))
+					    ".eslintrc-ignores.js")))
       (when base-dir
 	(let ((eslint (expand-file-name
 		       "tools/lint/eslint/node_modules/.bin/eslint" base-dir)))
@@ -150,7 +148,6 @@ This should help you write eslint-clean code:
 
 * When moving or refactoring a piece of code, consider this as an opportunity to remove all ESlint errors from this piece of code. In fact, it may even be a good opportunity to remove all ESLint errors from the entire file.
 * When doing ESLint-only changes, please do them in a separate patch from the actual functionality changes or bug fix. This helps make the review easier, and isolate the actual changes when looking at the source history.
-* When cleaning an entire file or folder from ESLint errors, do not forget to remove the corresponding entry from the `.eslintignore` file.
 * When writing new code, from scratch, please make it ESLint compliant from the start. This is a lot easier than having to revisit it later.
 * ESLint also runs on `<script>` tags in HTML files, so if you create new HTML test files for mochitests for example, make sure that JavaScript code in those files is free of ESLint errors.
 * In test files (xpcshell and mochitest), all globals from the corresponding `head.js` file are imported automatically, so you don't need to define them using a `/* globals ... */` comment or a `/* import-globals-from head.js */` comment.

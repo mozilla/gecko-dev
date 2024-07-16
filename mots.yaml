@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-07-11T11:59:38.343950+00:00'
+updated_at: '2024-07-16T08:22:11.710542+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3844,9 +3844,10 @@ modules:
       such as lint configurations, formatting and naming style.
     includes:
       - .eslintrc-test-paths.js
-      - '**/.eslintignore'
-      - '**/.eslintrc.js'
+      - '**/.eslintrc*.js'
       - tools/lint/eslint/**/*
+      - .prettier*
+      - .stylelint*
     excludes: []
     owners:
       - *mossop
@@ -4358,5 +4359,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 9d863547e5bafe974d1808b92938fd54c2442a77
-  export: fb113b325e4913583a923e07c6489f81b5821e4d
+  config: 88ddd3cecb58efb56b9d66154814744230f1e697
+  export: b9ecdb3054da5099fe2937bfa928027b725ea8e7

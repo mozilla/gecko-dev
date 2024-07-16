@@ -9,8 +9,8 @@ eslint:
     support-files:
         - '**/.eslintrc.js'
         - '.eslintrc*.js'
-        - '.eslintignore'
         - 'tools/lint/eslint/**'
+        - '.prettier*'
         # Files that can influence global variables
         - 'browser/base/content/utilityOverlay.js'
         - 'browser/components/customizableui/content/panelUI.js'

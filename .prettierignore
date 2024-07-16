@@ -989,7 +989,7 @@ tools/jprof/README.html
 uriloader/exthandler/tests/mochitest/save_filenames.html
 
 ##############################################################################
-# The list below is copied from .eslintignore. Prettier doesn't currently
+# The list below is copied from .eslintrc-ignores.js. Prettier doesn't currently
 # support multiple ignore files or dynamic ignore configurations.
 # When this is implemented, we'll update the configuration below (bug 1825508)
 ##############################################################################
@@ -1042,9 +1042,7 @@ browser/locales/
 # Generated data files
 browser/extensions/formautofill/phonenumberutils/PhoneNumberMetaData.jsm
 
-# Ignore devtools debugger files which aren't intended for linting, and also
-# aren't included in any .eslintignore or .prettierignore file.
-# See https://github.com/firefox-devtools/debugger/blob/master/package.json#L24
+# Ignore devtools debugger files which aren't intended for linting.
 devtools/client/debugger/bin/
 devtools/client/debugger/configs/
 devtools/client/debugger/dist/

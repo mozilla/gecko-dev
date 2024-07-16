@@ -8,6 +8,7 @@ const xpcshellTestConfig = require("eslint-plugin-mozilla/lib/configs/xpcshell-t
 const browserTestConfig = require("eslint-plugin-mozilla/lib/configs/browser-test.js");
 const mochitestTestConfig = require("eslint-plugin-mozilla/lib/configs/mochitest-test.js");
 const chromeTestConfig = require("eslint-plugin-mozilla/lib/configs/chrome-test.js");
+const globalIgnores = require("./.eslintrc-ignores.js");
 const { testPaths } = require("./.eslintrc-test-paths.js");
 const { rollouts } = require("./.eslintrc-rollouts.js");
 const fs = require("fs");
@@ -36,6 +37,7 @@ function readFile(path) {
 }
 
 const ignorePatterns = [
+  ...globalIgnores,
   ...readFile(
     path.join(__dirname, "tools", "rewriting", "ThirdPartyPaths.txt")
   ),

@@ -122,8 +122,7 @@ rsync_filter_list = """
 + /moz.configure
 + /test.mozbuild
 + /.babel-eslint.rc.js
-+ /.eslintignore
-+ /.eslintrc.js
++ /.eslintrc*.js
 + /.flake8
 + /.gitignore
 + /.hgignore

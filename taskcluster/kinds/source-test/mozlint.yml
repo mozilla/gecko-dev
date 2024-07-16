@@ -113,9 +113,9 @@ eslint:
             - '**/*.xhtml'
             - '**/*.xml'
             - 'tools/lint/eslint.yml'
-            # Run when eslint policies change.
-            - '**/.eslintignore'
+            # Run when eslint or prettier policies change.
             - '**/*eslintrc*'
+            - '.prettier*'
             # The plugin implementing custom checks.
             - 'tools/lint/eslint/eslint-plugin-mozilla/**'
             - 'tools/lint/eslint/eslint-plugin-spidermonkey-js/**'
