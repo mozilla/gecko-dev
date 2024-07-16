@@ -17005,6 +17005,14 @@
   value: 2
   mirror: always
 
+# Whether to allow dragging and dropping tabs onto another application. This is
+# disallowed by default because most applications that say they can handle
+# Firefox tabs are lying (bug 1598915).
+- name: widget.windows.allow-external-tab-drag
+  type: bool
+  value: false
+  mirror: always
+
 # Whether to apply a hack (adjusting the window height by -1px and back again)
 # upon first entering fullscreen intended to work around a bug exhibited under
 # on some Windows 11 machines under some configurations. (See bug 1763981.)

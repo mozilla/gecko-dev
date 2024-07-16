@@ -270,7 +270,7 @@ nsresult nsDragSession::StartInvokingDragSession(nsIWidget* aWidget,
   // Call the native D&D method
   HRESULT res = ::DoDragDrop(aDataObj, nativeDragSrc, effects, &winDropRes);
 
-  // In  cases where the drop operation completed outside the application,
+  // In cases where the drop operation completed outside the application,
   // update the source node's DataTransfer dropEffect value so it is up to date.
   if (!mSentLocalDropEvent) {
     uint32_t dropResult;
@@ -285,6 +285,15 @@ nsresult nsDragSession::StartInvokingDragSession(nsIWidget* aWidget,
       dropResult = nsIDragService::DRAGDROP_ACTION_NONE;
 
     if (mDataTransfer) {
+      if (mozilla::StaticPrefs::widget_windows_allow_external_tab_drag()) {
+        // Special case: if we're dropping a browser tab onto another
+        // application, assume that application is lying if they say they're
+        // prepared to handle it. (This is sadly common. See bug 1598915.)
+        if (mDataTransfer->HasType(u"application/x-moz-tabbrowser-tab"_ns)) {
+          dropResult = nsIDragService::DRAGDROP_ACTION_NONE;
+        }
+      }
+
       if (res == DRAGDROP_S_DROP)  // Success
         mDataTransfer->SetDropEffectInt(dropResult);
       else
