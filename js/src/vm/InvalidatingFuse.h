@@ -52,6 +52,10 @@ class DependentScriptSet {
   bool addScriptForFuse(InvalidatingFuse* fuse, Handle<JSScript*> script);
   void invalidateForFuse(JSContext* cx, InvalidatingFuse* fuse);
 
+  void removeScript(JSScript* script) {
+    jit::RemoveFromScriptSet(weakScripts, script);
+  }
+
  private:
   js::jit::WeakScriptCache weakScripts;
 };
@@ -72,6 +76,12 @@ class DependentScriptGroup {
                                                     InvalidatingFuse* fuse);
   DependentScriptSet* begin() { return dependencies.begin(); }
   DependentScriptSet* end() { return dependencies.end(); }
+
+  void removeScript(JSScript* script) {
+    for (auto& set : dependencies) {
+      set.removeScript(script);
+    }
+  }
 };
 
 }  // namespace js
