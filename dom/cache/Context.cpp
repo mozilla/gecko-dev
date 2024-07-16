@@ -406,8 +406,7 @@ Context::QuotaInitRunnable::Run() {
         QM_TRY_UNWRAP(
             mDirectoryMetadata->mDir,
             quotaManager
-                ->EnsureTemporaryOriginIsInitialized(
-                    mDirectoryMetadata->mPersistenceType, *mDirectoryMetadata)
+                ->EnsureTemporaryOriginIsInitialized(*mDirectoryMetadata)
                 .map([](const auto& res) { return res.first; }));
 
         auto* cacheQuotaClient = CacheQuotaClient::Get();

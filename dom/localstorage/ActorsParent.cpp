@@ -4202,11 +4202,10 @@ nsresult Connection::InitTemporaryOriginHelper::RunOnIOThread() {
   QuotaManager* quotaManager = QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
-  QM_TRY_INSPECT(const auto& directoryEntry,
-                 quotaManager
-                     ->EnsureTemporaryOriginIsInitialized(
-                         PERSISTENCE_TYPE_DEFAULT, mOriginMetadata)
-                     .map([](const auto& res) { return res.first; }));
+  QM_TRY_INSPECT(
+      const auto& directoryEntry,
+      quotaManager->EnsureTemporaryOriginIsInitialized(mOriginMetadata)
+          .map([](const auto& res) { return res.first; }));
 
   QM_TRY(MOZ_TO_RESULT(directoryEntry->GetPath(mOriginDirectoryPath)));
 
@@ -6943,10 +6942,10 @@ nsresult PrepareDatastoreOp::DatabaseWork() {
         ([hasDataForMigration, &quotaManager,
           this]() -> mozilla::Result<nsCOMPtr<nsIFile>, nsresult> {
           if (hasDataForMigration) {
-            QM_TRY_RETURN(quotaManager
-                              ->EnsureTemporaryOriginIsInitialized(
-                                  PERSISTENCE_TYPE_DEFAULT, mOriginMetadata)
-                              .map([](const auto& res) { return res.first; }));
+            QM_TRY_RETURN(
+                quotaManager
+                    ->EnsureTemporaryOriginIsInitialized(mOriginMetadata)
+                    .map([](const auto& res) { return res.first; }));
           }
 
           MOZ_ASSERT(mOriginMetadata.mPersistenceType ==

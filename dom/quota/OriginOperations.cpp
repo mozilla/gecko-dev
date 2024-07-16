@@ -1625,7 +1625,6 @@ nsresult InitializeTemporaryOriginOp::DoDirectoryWork(
   QM_TRY_UNWRAP(mCreated,
                 (aQuotaManager
                      .EnsureTemporaryOriginIsInitialized(
-                         mPersistenceType,
                          OriginMetadata{mPrincipalMetadata, mPersistenceType})
                      .map([](const auto& res) { return res.second; })));
 

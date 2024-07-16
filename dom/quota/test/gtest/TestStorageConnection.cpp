@@ -36,12 +36,11 @@ void InitializeClientDirectory(const ClientMetadata& aClientMetadata) {
              quotaManager->EnsureTemporaryStorageIsInitializedInternal()),
          QM_TEST_FAIL);
 
-  QM_TRY_INSPECT(const auto& directory,
-                 quotaManager
-                     ->EnsureTemporaryOriginIsInitialized(
-                         aClientMetadata.mPersistenceType, aClientMetadata)
-                     .map([](const auto& aPair) { return aPair.first; }),
-                 QM_TEST_FAIL);
+  QM_TRY_INSPECT(
+      const auto& directory,
+      quotaManager->EnsureTemporaryOriginIsInitialized(aClientMetadata)
+          .map([](const auto& aPair) { return aPair.first; }),
+      QM_TEST_FAIL);
 
   QM_TRY(MOZ_TO_RESULT(directory->Append(
              Client::TypeToString(aClientMetadata.mClientType))),

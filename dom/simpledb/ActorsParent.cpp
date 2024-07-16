@@ -1191,8 +1191,8 @@ nsresult OpenOp::DatabaseWork() {
 
         QM_TRY(MOZ_TO_RESULT(
             quotaManager->EnsureTemporaryStorageIsInitializedInternal()));
-        QM_TRY_RETURN(quotaManager->EnsureTemporaryOriginIsInitialized(
-            persistenceType, mOriginMetadata));
+        QM_TRY_RETURN(
+            quotaManager->EnsureTemporaryOriginIsInitialized(mOriginMetadata));
       }()
                   .map([](const auto& res) { return res.first; })));
 

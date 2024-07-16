@@ -61,8 +61,8 @@ TEST_F(TestFileOutputStream, extendFileStreamWithSetEOF) {
         ASSERT_NS_SUCCEEDED(
             quotaManager->EnsureTemporaryStorageIsInitializedInternal());
 
-        auto res = quotaManager->EnsureTemporaryOriginIsInitialized(
-            quota::PERSISTENCE_TYPE_DEFAULT, originMetadata);
+        auto res =
+            quotaManager->EnsureTemporaryOriginIsInitialized(originMetadata);
         ASSERT_TRUE(res.isOk());
       }
 
