@@ -2604,3 +2604,54 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  oscpu:
+    type: string
+    description: >
+      User's OS CPU reported by the navigator
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907170
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907170#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  pdf_viewer:
+    type: boolean
+    description: >
+      PDF viewer support reported by the navigator
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907170
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907170#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  platform:
+    type: string
+    description: >
+      Platform reported by the navigator
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907170
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907170#c1
+    expires: never
+    data_sensitivity:
+      - technical

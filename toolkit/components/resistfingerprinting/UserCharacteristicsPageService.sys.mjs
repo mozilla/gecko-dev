@@ -408,6 +408,9 @@ export class UserCharacteristicsPageService {
         "mathml9",
         "mathml10",
         "monochrome",
+        "oscpu",
+        "pdfViewer",
+        "platform",
       ],
     };
 
