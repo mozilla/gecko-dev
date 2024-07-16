@@ -539,6 +539,7 @@ const OptionKind = {
   VIEWER: 0x02,
   API: 0x04,
   WORKER: 0x08,
+  EVENT_DISPATCH: 0x10,
   PREFERENCE: 0x80
 };
 const defaultOptions = {
@@ -576,7 +577,7 @@ const defaultOptions = {
   },
   toolbarDensity: {
     value: 0,
-    kind: OptionKind.BROWSER
+    kind: OptionKind.BROWSER + OptionKind.EVENT_DISPATCH
   },
   annotationEditorMode: {
     value: 0,
@@ -632,6 +633,10 @@ const defaultOptions = {
   },
   enableScripting: {
     value: true,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
+  enableUpdatedAddImage: {
+    value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
   externalLinkRel: {
@@ -777,6 +782,7 @@ const defaultOptions = {
 };
 const userOptions = Object.create(null);
 class AppOptions {
+  static eventBus;
   constructor() {
     throw new Error("Cannot initialize AppOptions.");
   }
@@ -797,9 +803,38 @@ class AppOptions {
   static set(name, value) {
     userOptions[name] = value;
   }
-  static setAll(options, init = false) {
+  static setAll(options, prefs = false) {
+    let events;
     for (const name in options) {
-      userOptions[name] = options[name];
+      const userOption = options[name];
+      if (prefs) {
+        const defaultOption = defaultOptions[name];
+        if (!defaultOption) {
+          continue;
+        }
+        const {
+          kind,
+          value
+        } = defaultOption;
+        if (!(kind & OptionKind.BROWSER || kind & OptionKind.PREFERENCE)) {
+          continue;
+        }
+        if (typeof userOption !== typeof value) {
+          continue;
+        }
+        if (this.eventBus && kind & OptionKind.EVENT_DISPATCH) {
+          (events ||= new Map()).set(name, userOption);
+        }
+      }
+      userOptions[name] = userOption;
+    }
+    if (events) {
+      for (const [name, value] of events) {
+        this.eventBus.dispatch(name.toLowerCase(), {
+          source: this,
+          value
+        });
+      }
     }
   }
   static remove(name) {
@@ -1130,7 +1165,7 @@ class PDFLinkService {
       case "FitBH":
       case "FitV":
       case "FitBV":
-        if (args.length !== 1) {
+        if (args.length > 1) {
           return false;
         }
         break;
@@ -1381,17 +1416,6 @@ class BaseExternalServices {
 ;// CONCATENATED MODULE: ./web/preferences.js
 
 class BasePreferences {
-  #browserDefaults = Object.freeze({
-    canvasMaxAreaInBytes: -1,
-    isInAutomation: false,
-    supportsCaretBrowsingMode: false,
-    supportsDocumentFonts: true,
-    supportsIntegratedFind: false,
-    supportsMouseWheelZoomCtrlKey: true,
-    supportsMouseWheelZoomMetaKey: true,
-    supportsPinchToZoom: true,
-    toolbarDensity: 0
-  });
   #defaults = Object.freeze({
     annotationEditorMode: 0,
     annotationMode: 2,
@@ -1405,6 +1429,7 @@ class BasePreferences {
     enablePermissions: false,
     enablePrintAutoRotate: true,
     enableScripting: true,
+    enableUpdatedAddImage: false,
     externalLinkTarget: 0,
     highlightEditorColors: "yellow=#FFFF98,green=#53FFBC,blue=#80EBFF,pink=#FFCBE6,red=#FF4F5F",
     historyUpdateUrl: false,
@@ -1425,9 +1450,7 @@ class BasePreferences {
     enableHWA: false,
     enableXfa: true
   });
-  #prefs = Object.create(null);
   #initializedPromise = null;
-  static #eventToDispatch = new Set(["toolbarDensity"]);
   constructor() {
     if (this.constructor === BasePreferences) {
       throw new Error("Cannot initialize BasePreferences.");
@@ -1436,52 +1459,28 @@ class BasePreferences {
       browserPrefs,
       prefs
     }) => {
-      const options = Object.create(null);
-      for (const [name, val] of Object.entries(this.#browserDefaults)) {
-        const prefVal = browserPrefs?.[name];
-        options[name] = typeof prefVal === typeof val ? prefVal : val;
-      }
-      for (const [name, val] of Object.entries(this.#defaults)) {
-        const prefVal = prefs?.[name];
-        options[name] = this.#prefs[name] = typeof prefVal === typeof val ? prefVal : val;
-      }
-      AppOptions.setAll(options, true);
+      AppOptions.setAll({
+        ...browserPrefs,
+        ...prefs
+      }, true);
     });
-    window.addEventListener("updatedPreference", evt => {
-      this.#updatePref(evt.detail);
+    window.addEventListener("updatedPreference", async ({
+      detail: {
+        name,
+        value
+      }
+    }) => {
+      await this.#initializedPromise;
+      AppOptions.setAll({
+        [name]: value
+      }, true);
     });
-    this.eventBus = null;
   }
   async _writeToStorage(prefObj) {
     throw new Error("Not implemented: _writeToStorage");
   }
   async _readFromStorage(prefObj) {
     throw new Error("Not implemented: _readFromStorage");
-  }
-  async #updatePref({
-    name,
-    value
-  }) {
-    await this.#initializedPromise;
-    if (name in this.#browserDefaults) {
-      if (typeof value !== typeof this.#browserDefaults[name]) {
-        return;
-      }
-    } else if (name in this.#defaults) {
-      if (typeof value !== typeof this.#defaults[name]) {
-        return;
-      }
-      this.#prefs[name] = value;
-    } else {
-      return;
-    }
-    AppOptions.set(name, value);
-    if (BasePreferences.#eventToDispatch.has(name)) {
-      this.eventBus?.dispatch(name.toLowerCase(), {
-        source: this,
-        value
-      });
-    }
   }
   async reset() {
     throw new Error("Please use `about:config` to change preferences.");
@@ -5932,6 +5931,7 @@ class PDFViewer {
   #enableHWA = false;
   #enableHighlightFloatingButton = false;
   #enablePermissions = false;
+  #enableUpdatedAddImage = false;
   #eventAbortController = null;
   #mlManager = null;
   #onPageRenderedCallback = null;
@@ -5945,7 +5945,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.5.47";
+    const viewerVersion = "4.5.82";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -5966,6 +5966,7 @@ class PDFViewer {
     this.#annotationEditorMode = options.annotationEditorMode ?? AnnotationEditorType.NONE;
     this.#annotationEditorHighlightColors = options.annotationEditorHighlightColors || null;
     this.#enableHighlightFloatingButton = options.enableHighlightFloatingButton === true;
+    this.#enableUpdatedAddImage = options.enableUpdatedAddImage === true;
     this.imageResourcesPath = options.imageResourcesPath || "";
     this.enablePrintAutoRotate = options.enablePrintAutoRotate || false;
     this.maxCanvasPixels = options.maxCanvasPixels;
@@ -6358,7 +6359,7 @@ class PDFViewer {
         if (pdfDocument.isPureXfa) {
           console.warn("Warning: XFA-editing is not implemented.");
         } else if (isValidAnnotationEditorMode(mode)) {
-          this.#annotationEditorUIManager = new AnnotationEditorUIManager(this.container, viewer, this.#altTextManager, eventBus, pdfDocument, pageColors, this.#annotationEditorHighlightColors, this.#enableHighlightFloatingButton, this.#mlManager);
+          this.#annotationEditorUIManager = new AnnotationEditorUIManager(this.container, viewer, this.#altTextManager, eventBus, pdfDocument, pageColors, this.#annotationEditorHighlightColors, this.#enableHighlightFloatingButton, this.#enableUpdatedAddImage, this.#mlManager);
           eventBus.dispatch("annotationeditoruimanager", {
             source: this,
             uiManager: this.#annotationEditorUIManager
@@ -7351,11 +7352,11 @@ class PDFViewer {
     const updater = () => {
       this.#cleanupSwitchAnnotationEditorMode();
       this.#annotationEditorMode = mode;
+      this.#annotationEditorUIManager.updateMode(mode, editId, isFromKeyboard);
       eventBus.dispatch("annotationeditormodechanged", {
         source: this,
         mode
       });
-      this.#annotationEditorUIManager.updateMode(mode, editId, isFromKeyboard);
     };
     if (mode === AnnotationEditorType.NONE || this.#annotationEditorMode === AnnotationEditorType.NONE) {
       const isEditing = mode !== AnnotationEditorType.NONE;
@@ -7366,7 +7367,7 @@ class PDFViewer {
         pageView.toggleEditingMode(isEditing);
       }
       const idsToRefresh = this.#switchToEditAnnotationMode();
-      if (isEditing && editId && idsToRefresh) {
+      if (isEditing && idsToRefresh) {
         this.#cleanupSwitchAnnotationEditorMode();
         this.#onPageRenderedCallback = ({
           pageNumber
@@ -7577,7 +7578,6 @@ class ViewHistory {
 
 
 const FORCE_PAGES_LOADED_TIMEOUT = 10000;
-const WHEEL_ZOOM_DISABLED_TIMEOUT = 1000;
 const ViewOnLoad = {
   UNKNOWN: -1,
   PREVIOUS: 0,
@@ -7752,7 +7752,7 @@ const PDFViewerApplication = {
       l10n
     } = this;
     let eventBus;
-    eventBus = this.preferences.eventBus = new FirefoxEventBus(await this._allowedGlobalEventsPromise, externalServices, AppOptions.get("isInAutomation"));
+    eventBus = AppOptions.eventBus = new FirefoxEventBus(await this._allowedGlobalEventsPromise, externalServices, AppOptions.get("isInAutomation"));
     this._allowedGlobalEventsPromise = null;
     this.eventBus = eventBus;
     this.overlayManager = new OverlayManager();
@@ -7804,6 +7804,7 @@ const PDFViewerApplication = {
       annotationEditorMode,
       annotationEditorHighlightColors: AppOptions.get("highlightEditorColors"),
       enableHighlightFloatingButton: AppOptions.get("enableHighlightFloatingButton"),
+      enableUpdatedAddImage: AppOptions.get("enableUpdatedAddImage"),
       imageResourcesPath: AppOptions.get("imageResourcesPath"),
       enablePrintAutoRotate: AppOptions.get("enablePrintAutoRotate"),
       maxCanvasPixels: AppOptions.get("maxCanvasPixels"),
@@ -8814,9 +8815,6 @@ const PDFViewerApplication = {
       });
     }
     addWindowResolutionChange();
-    window.addEventListener("visibilitychange", webViewerVisibilityChange, {
-      signal
-    });
     window.addEventListener("wheel", webViewerWheel, {
       passive: false,
       signal
@@ -9222,20 +9220,6 @@ function webViewerPageChanging({
 function webViewerResolutionChange(evt) {
   PDFViewerApplication.pdfViewer.refresh();
 }
-function webViewerVisibilityChange(evt) {
-  if (document.visibilityState === "visible") {
-    setZoomDisabledTimeout();
-  }
-}
-let zoomDisabledTimeout = null;
-function setZoomDisabledTimeout() {
-  if (zoomDisabledTimeout) {
-    clearTimeout(zoomDisabledTimeout);
-  }
-  zoomDisabledTimeout = setTimeout(function () {
-    zoomDisabledTimeout = null;
-  }, WHEEL_ZOOM_DISABLED_TIMEOUT);
-}
 function webViewerWheel(evt) {
   const {
     pdfViewer,
@@ -9253,7 +9237,7 @@ function webViewerWheel(evt) {
   const origin = [evt.clientX, evt.clientY];
   if (isPinchToZoom || evt.ctrlKey && supportsMouseWheelZoomCtrlKey || evt.metaKey && supportsMouseWheelZoomMetaKey) {
     evt.preventDefault();
-    if (PDFViewerApplication._isScrolling || zoomDisabledTimeout || document.visibilityState === "hidden" || PDFViewerApplication.overlayManager.active) {
+    if (PDFViewerApplication._isScrolling || document.visibilityState === "hidden" || PDFViewerApplication.overlayManager.active) {
       return;
     }
     if (isPinchToZoom && supportsPinchToZoom) {
@@ -9669,8 +9653,8 @@ function webViewerReportTelemetry({
 
 
 
-const pdfjsVersion = "4.5.47";
-const pdfjsBuild = "1bdd6920f";
+const pdfjsVersion = "4.5.82";
+const pdfjsBuild = "e190cebf9";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

@@ -981,6 +981,7 @@ class PixelsPerInch {
   static PDF_TO_CSS_UNITS = this.CSS / this.PDF;
 }
 class DOMFilterFactory extends BaseFilterFactory {
+  #baseUrl;
   #_cache;
   #_defs;
   #docId;
@@ -1044,6 +1045,20 @@ class DOMFilterFactory extends BaseFilterFactory {
     }
     return [bufferR.join(","), bufferG.join(","), bufferB.join(",")];
   }
+  #createUrl(id) {
+    if (this.#baseUrl === undefined) {
+      this.#baseUrl = "";
+      const url = this.#document.URL;
+      if (url !== this.#document.baseURI) {
+        if (isDataScheme(url)) {
+          warn('#createUrl: ignore "data:"-URL for performance reasons.');
+        } else {
+          this.#baseUrl = url.split("#", 1)[0];
+        }
+      }
+    }
+    return `url(${this.#baseUrl}#${id})`;
+  }
   addFilter(maps) {
     if (!maps) {
       return "none";
@@ -1060,7 +1075,7 @@ class DOMFilterFactory extends BaseFilterFactory {
       return value;
     }
     const id = `g_${this.#docId}_transfer_map_${this.#id++}`;
-    const url = `url(#${id})`;
+    const url = this.#createUrl(id);
     this.#cache.set(maps, url);
     this.#cache.set(key, url);
     const filter = this.#createFilter(id);
@@ -1118,7 +1133,7 @@ class DOMFilterFactory extends BaseFilterFactory {
       return arr.join(",");
     };
     this.#addTransferMapConversion(getSteps(0, 5), getSteps(1, 5), getSteps(2, 5), filter);
-    info.url = `url(#${id})`;
+    info.url = this.#createUrl(id);
     return info.url;
   }
   addAlphaFilter(map) {
@@ -1134,7 +1149,7 @@ class DOMFilterFactory extends BaseFilterFactory {
       return value;
     }
     const id = `g_${this.#docId}_alpha_map_${this.#id++}`;
-    const url = `url(#${id})`;
+    const url = this.#createUrl(id);
     this.#cache.set(map, url);
     this.#cache.set(key, url);
     const filter = this.#createFilter(id);
@@ -1159,7 +1174,7 @@ class DOMFilterFactory extends BaseFilterFactory {
       return value;
     }
     const id = `g_${this.#docId}_luminosity_map_${this.#id++}`;
-    const url = `url(#${id})`;
+    const url = this.#createUrl(id);
     this.#cache.set(map, url);
     this.#cache.set(key, url);
     const filter = this.#createFilter(id);
@@ -1222,7 +1237,7 @@ class DOMFilterFactory extends BaseFilterFactory {
     const filter = info.filter = this.#createFilter(id);
     this.#addGrayConversion(filter);
     this.#addTransferMapConversion(getSteps(newFgRGB[0], newBgRGB[0], 5), getSteps(newFgRGB[1], newBgRGB[1], 5), getSteps(newFgRGB[2], newBgRGB[2], 5), filter);
-    info.url = `url(#${id})`;
+    info.url = this.#createUrl(id);
     return info.url;
   }
   destroy(keepHCM = false) {
@@ -2185,6 +2200,7 @@ class AnnotationEditorUIManager {
   #editorTypes = null;
   #editorsToRescale = new Set();
   #enableHighlightFloatingButton = false;
+  #enableUpdatedAddImage = false;
   #filterFactory = null;
   #focusMainContainerTimeoutId = null;
   #highlightColors = null;
@@ -2284,7 +2300,7 @@ class AnnotationEditorUIManager {
       checker: arrowChecker
     }]]));
   }
-  constructor(container, viewer, altTextManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, mlManager) {
+  constructor(container, viewer, altTextManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, enableUpdatedAddImage, mlManager) {
     this._signal = this.#abortController.signal;
     this.#container = container;
     this.#viewer = viewer;
@@ -2302,6 +2318,7 @@ class AnnotationEditorUIManager {
     this.#pageColors = pageColors;
     this.#highlightColors = highlightColors || null;
     this.#enableHighlightFloatingButton = enableHighlightFloatingButton;
+    this.#enableUpdatedAddImage = enableUpdatedAddImage;
     this.#mlManager = mlManager || null;
     this.viewParameters = {
       realScale: PixelsPerInch.PDF_TO_CSS_UNITS,
@@ -2344,6 +2361,9 @@ class AnnotationEditorUIManager {
   isMLEnabledFor(name) {
     return !!this.#mlManager?.isEnabledFor(name);
   }
+  get useNewAltTextFlow() {
+    return this.#enableUpdatedAddImage;
+  }
   get hcmFilter() {
     return shadow(this, "hcmFilter", this.#pageColors ? this.#filterFactory.addHCMFilter(this.#pageColors.foreground, this.#pageColors.background) : "none");
   }
@@ -2361,6 +2381,16 @@ class AnnotationEditorUIManager {
   }
   editAltText(editor) {
     this.#altTextManager?.editAltText(this, editor);
+  }
+  switchToMode(mode, callback) {
+    this._eventBus.on("annotationeditormodechanged", callback, {
+      once: true,
+      signal: this._signal
+    });
+    this._eventBus.dispatch("showannotationeditorui", {
+      source: this,
+      mode
+    });
   }
   onPageChanging({
     pageNumber
@@ -2413,6 +2443,20 @@ class AnnotationEditorUIManager {
   }) {
     return anchorNode.nodeType === Node.TEXT_NODE ? anchorNode.parentElement : anchorNode;
   }
+  #getLayerForTextLayer(textLayer) {
+    const {
+      currentLayer
+    } = this;
+    if (currentLayer.hasTextLayer(textLayer)) {
+      return currentLayer;
+    }
+    for (const layer of this.#allLayers.values()) {
+      if (layer.hasTextLayer(textLayer)) {
+        return layer;
+      }
+    }
+    return null;
+  }
   highlightSelection(methodOfCreation = "") {
     const selection = document.getSelection();
     if (!selection || selection.isCollapsed) {
@@ -2432,30 +2476,30 @@ class AnnotationEditorUIManager {
       return;
     }
     selection.empty();
-    if (this.#mode === AnnotationEditorType.NONE) {
-      this._eventBus.dispatch("showannotationeditorui", {
-        source: this,
-        mode: AnnotationEditorType.HIGHLIGHT
+    const layer = this.#getLayerForTextLayer(textLayer);
+    const isNoneMode = this.#mode === AnnotationEditorType.NONE;
+    const callback = () => {
+      layer?.createAndAddNewEditor({
+        x: 0,
+        y: 0
+      }, false, {
+        methodOfCreation,
+        boxes,
+        anchorNode,
+        anchorOffset,
+        focusNode,
+        focusOffset,
+        text
       });
-      this.showAllEditors("highlight", true, true);
-    }
-    for (const layer of this.#allLayers.values()) {
-      if (layer.hasTextLayer(textLayer)) {
-        layer.createAndAddNewEditor({
-          x: 0,
-          y: 0
-        }, false, {
-          methodOfCreation,
-          boxes,
-          anchorNode,
-          anchorOffset,
-          focusNode,
-          focusOffset,
-          text
-        });
-        break;
+      if (isNoneMode) {
+        this.showAllEditors("highlight", true, true);
       }
+    };
+    if (isNoneMode) {
+      this.switchToMode(AnnotationEditorType.HIGHLIGHT, callback);
+      return;
     }
+    callback();
   }
   #displayHighlightToolbar() {
     const selection = document.getSelection();
@@ -2519,11 +2563,14 @@ class AnnotationEditorUIManager {
     }
     this.#highlightWhenShiftUp = this.isShiftKeyDown;
     if (!this.isShiftKeyDown) {
+      const activeLayer = this.#mode === AnnotationEditorType.HIGHLIGHT ? this.#getLayerForTextLayer(textLayer) : null;
+      activeLayer?.toggleDrawing();
       const signal = this._signal;
       const pointerup = e => {
         if (e.type === "pointerup" && e.button !== 0) {
           return;
         }
+        activeLayer?.toggleDrawing(true);
         window.removeEventListener("pointerup", pointerup);
         window.removeEventListener("blur", pointerup);
         if (e.type === "pointerup") {
@@ -9330,6 +9377,7 @@ class TextLayer {
     div.style.opacity = 0;
     div.style.lineHeight = 1;
     div.style.fontSize = "1px";
+    div.style.position = "absolute";
     div.textContent = "X";
     document.body.append(div);
     this.#minFontSize = div.getBoundingClientRect().height;
@@ -9520,7 +9568,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.5.47",
+    apiVersion: "4.5.82",
     data,
     password,
     disableAutoFetch,
@@ -11191,8 +11239,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.5.47";
-const build = "1bdd6920f";
+const version = "4.5.82";
+const build = "e190cebf9";
 
 ;// CONCATENATED MODULE: ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -17473,6 +17521,9 @@ class AnnotationEditorLayer {
   addCommands(params) {
     this.#uiManager.addCommands(params);
   }
+  toggleDrawing(enabled = false) {
+    this.div.classList.toggle("drawing", !enabled);
+  }
   togglePointerEvents(enabled = false) {
     this.div.classList.toggle("disabled", !enabled);
   }
@@ -17600,7 +17651,10 @@ class AnnotationEditorLayer {
   }
   #textLayerPointerDown(event) {
     this.#uiManager.unselectAll();
-    if (event.target === this.#textLayer.div) {
+    const {
+      target
+    } = event;
+    if (target === this.#textLayer.div || target.classList.contains("endOfContent") && this.#textLayer.div.contains(target)) {
       const {
         isMac
       } = util_FeatureTest.platform;
@@ -17609,9 +17663,11 @@ class AnnotationEditorLayer {
       }
       this.#uiManager.showAllEditors("highlight", true, true);
       this.#textLayer.div.classList.add("free");
+      this.toggleDrawing();
       HighlightEditor.startHighlighting(this, this.#uiManager.direction === "ltr", event);
       this.#textLayer.div.addEventListener("pointerup", () => {
         this.#textLayer.div.classList.remove("free");
+        this.toggleDrawing(true);
       }, {
         once: true,
         signal: this.#uiManager._signal
@@ -18167,8 +18223,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.5.47";
-const pdfjsBuild = "1bdd6920f";
+const pdfjsVersion = "4.5.82";
+const pdfjsBuild = "e190cebf9";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

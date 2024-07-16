@@ -34,6 +34,7 @@ pref("pdfjs.enableHighlightFloatingButton", false);
 pref("pdfjs.enablePermissions", false);
 pref("pdfjs.enablePrintAutoRotate", true);
 pref("pdfjs.enableScripting", true);
+pref("pdfjs.enableUpdatedAddImage", false);
 pref("pdfjs.enableXfa", true);
 pref("pdfjs.externalLinkTarget", 0);
 pref("pdfjs.forcePageColors", false);
