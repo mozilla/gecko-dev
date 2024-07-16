@@ -107,6 +107,9 @@ Build Using Android Studio
 
 -  Install `Android
    Studio <https://developer.android.com/studio/install>`_.
+-  If on Windows, create a JAVA_HOME environment variable
+   and set it to the path of the Android Studio jbr. With the default installation locations, it is
+   ``C:\Program Files\Android\Android Studio\jbr``.
 -  Choose File->Open from the toolbar
 -  Navigate to the root of your ``mozilla-central`` source directory and
    click “Open”
@@ -137,6 +140,26 @@ making Android Studio and Gradle do this automatically.
 If you want set up code formatting for Kotlin, please reference
 `IntelliJ IDEA configuration
 <https://pinterest.github.io/ktlint/rules/configuration-intellij-idea/>`_.
+
+Mobile Devices and Emulators
+-------------------------------------
+
+The default mozconfig file, located in the root directory of your ``mozilla-central`` contains
+configurations for running mobile test devices in x86, arm64, and x86_64 architectures.
+
+With the default mozconfig configurations, your machine's architecture should match the test device's
+architecture. On newer Macs built on Apple Silicon, the mozconfig will likely not need to be changed
+since it runs on arm64 and most mobile devices run on arm64.
+
+If your machine has a different architecture compared to your physical test device, you should
+uncomment the option matching your test device. Usually, this means uncommenting the arm64 option:
+
+.. code:: bash
+
+   ac_add_options --target=aarch64
+
+**Note:** When using an emulator, the mozconfig target configuration will most likely need to match
+the architecture of your machine.
 
 Custom mozconfig with Android Studio
 ------------------------------------

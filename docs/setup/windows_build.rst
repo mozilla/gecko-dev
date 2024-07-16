@@ -10,13 +10,26 @@ If you'd prefer to build Firefox for Windows in a virtual machine,
 you may be interested in the `Windows images provided by Microsoft
 <https://developer.microsoft.com/en-us/windows/downloads/virtual-machines/>`_.
 
-Requirements
-------------
+System Requirements
+-------------------
 
 -  **Memory:** 4GB RAM minimum, 8GB+ recommended.
 -  **Disk Space:** At least 40GB of free disk space.
--  **Operating System:** Windows 10. It is advisable to have Windows Update be fully
+-  **Operating System:** Windows 10 or later. It is advisable to have Windows Update be fully
    up-to-date. See :ref:`build_hosts` for more information.
+
+Required Installations
+----------------------
+-  **Mercurial:** Ensure that the ``hg`` command works from PowerShell. If it is not set up,
+   download `Mercurial/TortoiseHg <https://www.mercurial-scm.org/downloads>`_ and ensure
+   the hg directory is added to your path. For example, this could be
+   ``C:\Program Files\Mercurial`` or
+   ``C:\Program Files\TortoiseHg``.
+-  **Python:** Ensure that the ``python`` and ``pip3`` commands work from PowerShell. If it is not
+   set up, download `python 3.11 <https://www.python.org/downloads/release/python-3119/>`_, and add
+   the python directory
+   ``C:\Users\<user>\AppData\Local\Programs\Python\Python311`` and the pip3 directory
+   ``C:\Users\<user>\AppData\Local\Programs\Python\Python311\Scripts`` to your path.
 
 Recommended (For Windows 11 Users)
 ----------------------------------
@@ -89,10 +102,9 @@ If you aren't modifying the Firefox backend, then select one of the
 :ref:`Artifact Mode <Understanding Artifact Builds>` options. If you are
 building Firefox for Android, you should also see the :ref:`GeckoView Contributor Guide <geckoview-contributor-guide>`.
 
-.. _Ensure antivirus exclusions:
-
 Ensure antivirus exclusions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _ensure-antivirus-exclusions:
 
 Microsoft Defender Antivirus and some third-party antivirus products
 are known to significantly degrade build times and sometimes even cause failed
@@ -191,7 +203,9 @@ Spaces in folder names
 
 **Firefox will not build** if the path to MozillaBuild or the Firefox source
 contain **spaces** or other breaking characters such as pluses, quotation marks,
-or metacharacters.  The Visual Studio tools and SDKs are an exception - they may
+or metacharacters. Windows usernames are a common cause for spaces in the path,
+so please ensure that your Windows username does not contain spaces, or miniconda
+will have errors during fenix builds. The Visual Studio tools and SDKs are an exception - they may
 be installed in a directory which contains spaces. It is strongly recommended
 that you accept the default settings for all installation locations.
 
@@ -201,6 +215,13 @@ Quotation marks in ``PATH``
 Quotation marks (") aren't translated properly when passed to MozillaBuild
 sub-shells. Since they're not usually necessary, you should ensure they're
 not in your ``PATH`` environment variable.
+
+Python failed to find files in directories
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Python can sometimes fail to find files in directories when path length limits are reached,
+even when the root directory is kept relatively short: ``C:\mozilla-source\mozilla-unified``. This can be resolved by
+`turning Windows long paths on <https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry>`_.
 
 ``PYTHON`` environment variable
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
