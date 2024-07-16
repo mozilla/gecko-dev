@@ -5,8 +5,7 @@
 //! Generic values for properties related to animations and transitions.
 
 use crate::values::generics::length::GenericLengthPercentageOrAuto;
-use crate::values::specified::animation::{ScrollAxis, ScrollFunction};
-use crate::values::TimelineName;
+use crate::values::specified::animation::{ScrollAxis, ScrollFunction, TimelineName};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -56,7 +55,8 @@ pub enum GenericAnimationTimeline<LengthPercent> {
     /// Use default timeline. The animation’s timeline is a DocumentTimeline.
     Auto,
     /// The scroll-timeline name or view-timeline-name.
-    /// https://drafts.csswg.org/scroll-animations-1/#scroll-timelines-named
+    /// This also includes `none` value by using an empty atom.
+    /// https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-name
     /// https://drafts.csswg.org/scroll-animations-1/#view-timeline-name
     Timeline(TimelineName),
     /// The scroll() notation.

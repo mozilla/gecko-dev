@@ -34,7 +34,7 @@
       width: 100px;
       height: 100px;
       overflow: scroll;
-      scroll-timeline-name: scroll_timeline;
+      scroll-timeline-name: --scroll_timeline;
     }
 
     .content {
@@ -129,7 +129,7 @@ waitUntilApzStable().then(() => {
 // with document-timeline.
 addAsyncAnimTest(async function() {
   new_scroller();
-  new_div("animation: geometry 10s scroll_timeline, always_fifty 1s infinite;");
+  new_div("animation: geometry 10s --scroll_timeline, always_fifty 1s infinite;");
   await waitForPaintsFlushed();
 
   // Note: width is not a OMTA property, so it must be running on the main
@@ -144,7 +144,7 @@ addAsyncAnimTest(async function() {
 // transform property with scroll-driven animations.
 addAsyncAnimTest(async function() {
   let scroller = new_scroller();
-  new_div("animation: transform_anim 1s linear scroll_timeline;");
+  new_div("animation: transform_anim 1s linear --scroll_timeline;");
   await waitForPaintsFlushed();
 
   scroller.scrollTop = 50;
@@ -163,7 +163,7 @@ addAsyncAnimTest(async function() {
 // active phase to the before phase.
 addAsyncAnimTest(async function() {
   let scroller = new_scroller();
-  new_div("animation: always_fifty 5s linear 5s scroll_timeline; " +
+  new_div("animation: always_fifty 5s linear 5s --scroll_timeline; " +
           "transform: translate(25px);");
   await waitForPaintsFlushed();
 
@@ -212,7 +212,7 @@ addAsyncAnimTest(async function() {
 // the active phase to the before phase.
 addAsyncAnimTest(async function() {
   let scroller = new_scroller();
-  new_div("animation: always_fifty 5s linear 5s scroll_timeline; ");
+  new_div("animation: always_fifty 5s linear 5s --scroll_timeline; ");
   await waitForPaintsFlushed();
 
   // NOTE: getOMTAStyle() can't detect the animation is running on the
@@ -252,7 +252,7 @@ addAsyncAnimTest(async function() {
 addAsyncAnimTest(async function() {
   let scroller = new_scroller();
   new_div("animation: transform_anim 10s linear -5s paused, " +
-          "           always_fifty 5s linear 5s scroll_timeline;");
+          "           always_fifty 5s linear 5s --scroll_timeline;");
   await waitForPaintsFlushed();
 
   omta_is_approx("transform", { tx: 100 }, 0.1, RunningOn.Compositor,
@@ -335,7 +335,7 @@ addAsyncAnimTest(async function() {
   let subject = document.createElement("div");
   subject.style.width = "50px";
   subject.style.height = "50px";
-  subject.style.viewTimelineName = "view_timeline";
+  subject.style.viewTimelineName = "--view_timeline";
   scroller.appendChild(subject);
 
   // Let |target| be the child of |subject|, so view-timeline-name property of
@@ -362,7 +362,7 @@ addAsyncAnimTest(async function() {
 
   scroller.scrollTop = 0;
   target.style.animation = "transform_anim 10s linear";
-  target.style.animationTimeline = "view_timeline";
+  target.style.animationTimeline = "--view_timeline";
   await waitForPaintsFlushed();
 
   omta_is_approx("transform", { tx: 0 }, 0.1, RunningOn.OnMainThread,

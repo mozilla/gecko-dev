@@ -43,7 +43,7 @@ pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
 pub use self::animation::{
     AnimationComposition, AnimationDirection, AnimationFillMode, AnimationIterationCount,
-    AnimationName, AnimationPlayState, AnimationTimeline, ScrollAxis, ScrollTimelineName,
+    AnimationName, AnimationPlayState, AnimationTimeline, ScrollAxis, TimelineName,
     TransitionBehavior, TransitionProperty, ViewTimelineInset,
 };
 pub use self::background::{BackgroundRepeat, BackgroundSize};

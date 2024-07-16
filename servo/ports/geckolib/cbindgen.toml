@@ -88,6 +88,7 @@ exclude = [
 include = [
   "AnchorName",
   "AnchorScope",
+  "AnimationName",
   "AnimationTimeline",
   "AnimationIterationCount",
   "AnimationDirection",
@@ -157,7 +158,7 @@ include = [
   "ScrollSnapStop",
   "ScrollSnapStrictness",
   "ScrollSnapType",
-  "ScrollTimelineName",
+  "TimelineName",
   "TransitionBehavior",
   "ViewTimelineInset",
   "OverflowAnchor",
@@ -972,11 +973,6 @@ renaming_overrides_prefixing = true
   bool IsNamedFamily(const nsAString&) const;
 """
 
-"TimelineOrKeyframesName" = """
- public:
-  inline nsAtom* AsAtom() const;
-"""
-
 "FontWeight" = """
  SERVO_FIXED_POINT_HELPERS(StyleFontWeight, uint16_t, StyleFONT_WEIGHT_FRACTION_BITS);
  bool IsNormal() const { return *this == NORMAL; }
@@ -1016,6 +1012,12 @@ renaming_overrides_prefixing = true
 "AnimationName" = """
  public:
   StyleAnimationName() : _0(nsGkAtoms::_empty) {}
+"""
+
+"TimelineName" = """
+ public:
+  StyleTimelineName() : _0(nsGkAtoms::_empty) {}
+  nsAtom* AsAtom() const { return _0.AsAtom(); }
 """
 
 "GenericViewTimelineInset" = """

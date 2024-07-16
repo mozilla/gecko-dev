@@ -723,57 +723,6 @@ impl TimelineOrKeyframesName {
 
 impl Eq for TimelineOrKeyframesName {}
 
-/// The typedef of <timeline-name>.
-#[repr(transparent)]
-#[derive(
-    Clone,
-    Debug,
-    Deref,
-    Hash,
-    Eq,
-    PartialEq,
-    MallocSizeOf,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
-)]
-pub struct TimelineName(TimelineOrKeyframesName);
-
-impl TimelineName {
-    /// Create a new TimelineName from Atom.
-    #[cfg(feature = "gecko")]
-    pub fn from_atom(atom: Atom) -> Self {
-        Self(TimelineOrKeyframesName::from_atom(atom))
-    }
-
-    /// Returns the `none` value.
-    pub fn none() -> Self {
-        Self(TimelineOrKeyframesName::none())
-    }
-}
-
-impl Parse for TimelineName {
-    fn parse<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        Ok(Self(TimelineOrKeyframesName::parse(
-            input,
-            &["none", "auto"],
-        )?))
-    }
-}
-
-impl ToCss for TimelineName {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.0.to_css(dest, &["none", "auto"])
-    }
-}
-
 /// The typedef of <keyframes-name>.
 #[repr(transparent)]
 #[derive(

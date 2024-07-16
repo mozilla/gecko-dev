@@ -12,7 +12,7 @@ use style_traits::{CssWriter, ToCss};
 
 pub use crate::values::specified::animation::{
     AnimationComposition, AnimationDirection, AnimationFillMode, AnimationName, AnimationPlayState,
-    ScrollAxis, ScrollTimelineName, TransitionBehavior, TransitionProperty,
+    ScrollAxis, TimelineName, TransitionBehavior, TransitionProperty,
 };
 
 /// A computed value for the `animation-iteration-count` property.

@@ -365,8 +365,8 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "scroll-timeline-name",
-    "ScrollTimelineName",
-    "computed::ScrollTimelineName::none()",
+    "TimelineName",
+    "computed::TimelineName::none()",
     vector=True,
     need_index=True,
     engines="gecko",
@@ -393,8 +393,8 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "view-timeline-name",
-    "ScrollTimelineName",
-    "computed::ScrollTimelineName::none()",
+    "TimelineName",
+    "computed::TimelineName::none()",
     vector=True,
     need_index=True,
     engines="gecko",
