@@ -8,15 +8,19 @@ class PictureInPictureVideoWrapper {
   constructor(video) {
     this.player = video.wrappedJSObject.__HuluDashPlayer__;
   }
+
   play() {
     this.player.play();
   }
+
   pause() {
     this.player.pause();
   }
+
   isMuted(video) {
     return video.volume === 0;
   }
+
   setMuted(video, shouldMute) {
     let muteButton = document.querySelector(".VolumeControl > div");
 
@@ -24,9 +28,11 @@ class PictureInPictureVideoWrapper {
       muteButton.click();
     }
   }
+
   setCurrentTime(video, position) {
     this.player.currentTime = position;
   }
+
   setCaptionContainerObserver(video, updateCaptionsFunction) {
     let container = document.querySelector(".ClosedCaption");
 
@@ -54,15 +60,20 @@ class PictureInPictureVideoWrapper {
       // immediately invoke the callback function to add subtitles to the PiP window
       callback([1], null);
 
-      let captionsObserver = new MutationObserver(callback);
+      this.captionsObserver = new MutationObserver(callback);
 
-      captionsObserver.observe(container, {
+      this.captionsObserver.observe(container, {
         attributes: false,
         childList: true,
         subtree: true,
       });
     }
   }
+
+  removeCaptionContainerObserver() {
+    this.captionsObserver?.disconnect();
+  }
+
   getDuration() {
     return this.player.duration;
   }

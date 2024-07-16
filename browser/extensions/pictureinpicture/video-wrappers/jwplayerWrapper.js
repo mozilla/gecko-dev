@@ -25,14 +25,18 @@ class PictureInPictureVideoWrapper {
       // immediately invoke the callback function to add subtitles to the PiP window
       callback();
 
-      let captionsObserver = new MutationObserver(callback);
+      this.captionsObserver = new MutationObserver(callback);
 
-      captionsObserver.observe(container, {
+      this.captionsObserver.observe(container, {
         attributes: false,
         childList: true,
         subtree: true,
       });
     }
+  }
+
+  removeCaptionContainerObserver() {
+    this.captionsObserver?.disconnect();
   }
 }
 

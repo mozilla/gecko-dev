@@ -14,9 +14,11 @@ class PictureInPictureVideoWrapper {
       ? shortsPlayer
       : video.closest("#movie_player")?.wrappedJSObject;
   }
+
   isLive() {
     return !!document.querySelector(".ytp-live");
   }
+
   setMuted(video, shouldMute) {
     if (this.player) {
       if (shouldMute) {
@@ -28,12 +30,14 @@ class PictureInPictureVideoWrapper {
       video.muted = shouldMute;
     }
   }
+
   getDuration(video) {
     if (this.isLive(video)) {
       return Infinity;
     }
     return video.duration;
   }
+
   setCaptionContainerObserver(video, updateCaptionsFunction) {
     let container = document.getElementById("ytp-caption-window-container");
 
@@ -59,18 +63,24 @@ class PictureInPictureVideoWrapper {
       // immediately invoke the callback function to add subtitles to the PiP window
       callback([1], null);
 
-      let captionsObserver = new MutationObserver(callback);
+      this.captionsObserver = new MutationObserver(callback);
 
-      captionsObserver.observe(container, {
+      this.captionsObserver.observe(container, {
         attributes: false,
         childList: true,
         subtree: true,
       });
     }
   }
+
+  removeCaptionContainerObserver() {
+    this.captionsObserver?.disconnect();
+  }
+
   shouldHideToggle(video) {
     return !!video.closest(".ytd-video-preview");
   }
+
   setVolume(video, volume) {
     if (this.player) {
       this.player.setVolume(volume * 100);
@@ -78,6 +88,7 @@ class PictureInPictureVideoWrapper {
       video.volume = volume;
     }
   }
+
   getVolume(video) {
     if (this.player) {
       return this.player.getVolume() / 100;

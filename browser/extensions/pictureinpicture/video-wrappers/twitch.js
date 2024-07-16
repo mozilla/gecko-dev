@@ -8,6 +8,7 @@ class PictureInPictureVideoWrapper {
   isLive() {
     return !document.querySelector(".seekbar-bar");
   }
+
   getDuration(video) {
     if (this.isLive(video)) {
       return Infinity;

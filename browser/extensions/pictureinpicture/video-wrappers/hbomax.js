@@ -8,9 +8,11 @@ class PictureInPictureVideoWrapper {
   setVolume(video, volume) {
     video.volume = volume;
   }
+
   isMuted(video) {
     return video.volume === 0;
   }
+
   setMuted(video, shouldMute) {
     if (shouldMute) {
       this.setVolume(video, 0);
@@ -18,6 +20,7 @@ class PictureInPictureVideoWrapper {
       this.setVolume(video, 1);
     }
   }
+
   setCaptionContainerObserver(video, updateCaptionsFunction) {
     let container = document.querySelector(
       '[data-testid="CueBoxContainer"]'
@@ -34,14 +37,18 @@ class PictureInPictureVideoWrapper {
 
       callback([1], null);
 
-      let captionsObserver = new MutationObserver(callback);
+      this.captionsObserver = new MutationObserver(callback);
 
-      captionsObserver.observe(container, {
+      this.captionsObserver.observe(container, {
         attributes: false,
         childList: true,
         subtree: true,
       });
     }
+  }
+
+  removeCaptionContainerObserver() {
+    this.captionsObserver?.disconnect();
   }
 }
 
