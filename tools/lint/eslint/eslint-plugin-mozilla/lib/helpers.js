@@ -634,17 +634,23 @@ module.exports = {
 
   /**
    * Gets the root directory of the repository by walking up directories from
-   * this file until a .eslintignore file is found. If this fails, the same
-   * procedure will be attempted from the current working dir.
+   * this file until the top-level mozilla-central package.json file is found.
+   * If this fails, the same procedure will be attempted from the current
+   * working dir.
+   *
    * @return {String} The absolute path of the repository directory
    */
   get rootDir() {
     if (!gRootDir) {
-      function searchUpForIgnore(dirName, filename) {
+      function searchUpForPackage(dirName) {
         let parsed = path.parse(dirName);
         while (parsed.root !== dirName) {
-          if (fs.existsSync(path.join(dirName, filename))) {
-            return dirName;
+          let possibleFile = path.join(dirName, "package.json");
+          if (fs.existsSync(possibleFile)) {
+            let packageData = require(possibleFile);
+            if (packageData.name == "mozilla-central") {
+              return dirName;
+            }
           }
           // Move up a level
           dirName = parsed.dir;
@@ -653,15 +659,9 @@ module.exports = {
         return null;
       }
 
-      let possibleRoot = searchUpForIgnore(
-        path.dirname(module.filename),
-        ".eslintignore"
-      );
+      let possibleRoot = searchUpForPackage(path.dirname(module.filename));
       if (!possibleRoot) {
-        possibleRoot = searchUpForIgnore(path.resolve(), ".eslintignore");
-      }
-      if (!possibleRoot) {
-        possibleRoot = searchUpForIgnore(path.resolve(), "package.json");
+        possibleRoot = searchUpForPackage(path.resolve());
       }
       if (!possibleRoot) {
         // We've couldn't find a root from the module or CWD, so lets just go
