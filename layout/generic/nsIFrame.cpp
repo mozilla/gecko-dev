@@ -7266,17 +7266,11 @@ nsPoint nsIFrame::GetOffsetToCrossDoc(const nsIFrame* aOther) const {
 nsPoint nsIFrame::GetOffsetToCrossDoc(const nsIFrame* aOther,
                                       const int32_t aAPD) const {
   MOZ_ASSERT(aOther, "Must have frame for destination coordinate system!");
-  NS_ASSERTION(PresContext()->GetRootPresContext() ==
-                   aOther->PresContext()->GetRootPresContext(),
-               "trying to get the offset between frames in different document "
-               "hierarchies?");
-  if (PresContext()->GetRootPresContext() !=
-      aOther->PresContext()->GetRootPresContext()) {
-    // crash right away, we are almost certainly going to crash anyway.
-    MOZ_CRASH(
-        "trying to get the offset between frames in different "
-        "document hierarchies?");
-  }
+  MOZ_DIAGNOSTIC_ASSERT(
+      PresContext()->GetRootPresContext() ==
+          aOther->PresContext()->GetRootPresContext(),
+      "trying to get the offset between frames in different document "
+      "hierarchies?");
 
   const nsIFrame* root = nullptr;
   // offset will hold the final offset
