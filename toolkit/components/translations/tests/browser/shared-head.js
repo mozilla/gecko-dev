@@ -66,11 +66,6 @@ const NEVER_TRANSLATE_LANGS_PREF =
  * The data must support structural cloning and will be passed into the
  * content process.
  *
- * @param {(args: { dataForContent: T, selectors: Record<string, string> }) => Promise<void>} options.runInPage
- * This function must not capture any values, as it will be cloned in the content process.
- * Any required data should be passed in using the "dataForContent" parameter. The
- * "selectors" property contains any useful selectors for the content.
- *
  * @param {boolean} [options.disabled]
  * Disable the panel through a pref.
  *
@@ -79,13 +74,30 @@ const NEVER_TRANSLATE_LANGS_PREF =
  *
  * @param {Array<[string, string]>} options.prefs
  * Prefs to push on for the test.
+ *
+ * @param {boolean} [options.autoDownloadFromRemoteSettings=true]
+ * Initiate the mock model downloads when this function is invoked instead of
+ * waiting for the resolveDownloads or rejectDownloads to be externally invoked
+ *
+ * @returns {object} object
+ *
+ * @returns {(args: { dataForContent: T, selectors: Record<string, string> }) => Promise<void>} object.runInPage
+ * This function must not capture any values, as it will be cloned in the content process.
+ * Any required data should be passed in using the "dataForContent" parameter. The
+ * "selectors" property contains any useful selectors for the content.
+ *
+ * @returns {() => Promise<void>} object.cleanup
+ *
+ * @returns {(count: number) => Promise<void>} object.resolveDownloads
+ *
+ * @returns {(count: number) => Promise<void>} object.rejectDownloads
  */
 async function openAboutTranslations({
   dataForContent,
   disabled,
-  runInPage,
   languagePairs = LANGUAGE_PAIRS,
   prefs,
+  autoDownloadFromRemoteSettings = false,
 }) {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -107,6 +119,7 @@ async function openAboutTranslations({
     translationResult: "#translation-to",
     translationResultBlank: "#translation-to-blank",
     translationInfo: "#translation-info",
+    translationResultsPlaceholder: "#translation-results-placeholder",
     noSupportMessage: "[data-l10n-id='about-translations-no-support']",
   };
 
@@ -119,9 +132,7 @@ async function openAboutTranslations({
 
   const { removeMocks, remoteClients } = await createAndMockRemoteSettings({
     languagePairs,
-    // TODO(Bug 1814168) - Do not test download behavior as this is not robustly
-    // handled for about:translations yet.
-    autoDownloadFromRemoteSettings: true,
+    autoDownloadFromRemoteSettings,
   });
 
   // Now load the about:translations page, since the actor could be mocked.
@@ -131,24 +142,46 @@ async function openAboutTranslations({
   );
   await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
-  await remoteClients.translationsWasm.resolvePendingDownloads(1);
-  await remoteClients.translationModels.resolvePendingDownloads(
-    languagePairs.length * FILES_PER_LANGUAGE_PAIR
-  );
+  /**
+   * @param {number} count - Count of the language pairs expected.
+   */
+  const resolveDownloads = async count => {
+    await remoteClients.translationsWasm.resolvePendingDownloads(1);
+    await remoteClients.translationModels.resolvePendingDownloads(
+      FILES_PER_LANGUAGE_PAIR * count
+    );
+  };
 
-  await ContentTask.spawn(
-    tab.linkedBrowser,
-    { dataForContent, selectors },
-    runInPage
-  );
+  /**
+   * @param {number} count - Count of the language pairs expected.
+   */
+  const rejectDownloads = async count => {
+    await remoteClients.translationsWasm.rejectPendingDownloads(1);
+    await remoteClients.translationModels.rejectPendingDownloads(
+      FILES_PER_LANGUAGE_PAIR * count
+    );
+  };
 
-  await loadBlankPage();
-  BrowserTestUtils.removeTab(tab);
+  return {
+    runInPage(callback) {
+      return ContentTask.spawn(
+        tab.linkedBrowser,
+        { dataForContent, selectors }, // Data to inject.
+        callback
+      );
+    },
+    async cleanup() {
+      await loadBlankPage();
+      BrowserTestUtils.removeTab(tab);
 
-  await removeMocks();
-  await EngineProcess.destroyTranslationsEngine();
+      await removeMocks();
+      await EngineProcess.destroyTranslationsEngine();
 
-  await SpecialPowers.popPrefEnv();
+      await SpecialPowers.popPrefEnv();
+    },
+    resolveDownloads,
+    rejectDownloads,
+  };
 }
 
 /**

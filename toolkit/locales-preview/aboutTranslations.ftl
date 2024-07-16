@@ -6,6 +6,7 @@
 about-translations-title = Translations
 about-translations-header = { -translations-brand-name }
 about-translations-results-placeholder = Translation
+about-translations-translating-message = Translating…
 # Text displayed on from-language dropdown when no language is selected
 about-translations-detect = Detect language
 # Text displayed on from-language dropdown when a language is detected

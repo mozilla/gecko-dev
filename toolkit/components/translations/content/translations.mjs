@@ -18,6 +18,11 @@ window.DEBOUNCE_DELAY = 200;
 // Allow tests to test the debounce behavior by counting debounce runs.
 window.DEBOUNCE_RUN_COUNT = 0;
 
+const l10nIds = {
+  resultsPlaceholder: "about-translations-results-placeholder",
+  translatingMessage: "about-translations-translating-message",
+};
+
 /**
  * @typedef {import("../translations").SupportedLanguages} SupportedLanguages
  */
@@ -169,7 +174,9 @@ class TranslationsState {
         messageToTranslate,
         AT_isHtmlTranslation()
       );
+      this.ui.setResultPlaceholderTextContent(l10nIds.translatingMessage);
       const translation = await this.translationRequest;
+      this.ui.setResultPlaceholderTextContent(l10nIds.resultsPlaceholder);
 
       // The measure events will show up in the Firefox Profiler.
       performance.measure(
@@ -265,6 +272,7 @@ class TranslationsState {
       this.maybeRequestTranslation();
     } catch (error) {
       this.ui.showInfo("about-translations-engine-error");
+      this.ui.setResultPlaceholderTextContent(l10nIds.resultsPlaceholder);
       AT_logError("Failed to get the Translations worker", error);
     }
   }
@@ -353,6 +361,10 @@ class TranslationsUI {
   translationInfo = document.getElementById("translation-info");
   /** @type {HTMLDivElement} */
   translationInfoMessage = document.getElementById("translation-info-message");
+  /** @type {HTMLDivElement} */
+  translationResultsPlaceholder = document.getElementById(
+    "translation-results-placeholder"
+  );
   /** @type {TranslationsState} */
   state;
 
@@ -490,6 +502,15 @@ class TranslationsUI {
         "about-translations-detect"
       );
     }
+  }
+
+  /**
+   * Sets the translation result placeholder text based on the l10n id provided
+   *
+   * @param {string} l10nId
+   */
+  setResultPlaceholderTextContent(l10nId) {
+    document.l10n.setAttributes(this.translationResultsPlaceholder, l10nId);
   }
 
   /**
