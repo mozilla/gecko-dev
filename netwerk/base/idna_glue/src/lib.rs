@@ -19,6 +19,9 @@ use percent_encoding::percent_decode;
 /// Using AsciiDenyList::URL is https://bugzilla.mozilla.org/show_bug.cgi?id=1815926 .
 const GECKO: AsciiDenyList = AsciiDenyList::new(true, "%#/:<>?@[\\]^|*\"");
 
+/// The `GECKO` deny list minus percent. https://bugzilla.mozilla.org/show_bug.cgi?id=1527462
+const MAILNEWS: AsciiDenyList = AsciiDenyList::new(true, "#/:<>?@[\\]^|*\"");
+
 /// Deny only glyphless ASCII to accommodate legacy callers.
 const GLYPHLESS: AsciiDenyList = AsciiDenyList::new(true, "");
 
@@ -84,6 +87,7 @@ pub unsafe extern "C" fn mozilla_net_domain_to_display_impl(
 #[no_mangle]
 pub unsafe extern "C" fn mozilla_net_domain_to_display_and_ascii_impl(
     src: *const nsACString,
+    mailnews: bool,
     dst: *mut nsACString,
     ascii_dst: *mut nsACString,
 ) -> nsresult {
@@ -109,7 +113,7 @@ pub unsafe extern "C" fn mozilla_net_domain_to_display_and_ascii_impl(
         let unpercent: Cow<'_, [u8]> = percent_decode(src).into();
         match Uts46::new().process(
             &unpercent,
-            GECKO,
+            if mailnews { MAILNEWS } else { GECKO },
             Hyphens::Allow,
             ErrorPolicy::FailFast,
             |label, tld, _| unsafe {
