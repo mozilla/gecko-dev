@@ -4505,6 +4505,15 @@ main section {
   box-shadow: 0 0 0 3px var(--newtab-primary-action-background-dimmed), 0 0 0 1px var(--newtab-primary-action-background);
   transition: none;
 }
+.ds-card .ds-card-topic {
+  position: absolute;
+  z-index: 1;
+  background: light-dark(#F0F0F4, var(--newtab-background-color-secondary));
+  border-radius: var(--border-radius-small);
+  padding: var(--space-small);
+  margin: var(--space-small);
+  font-size: 14px;
+}
 .ds-card .meta {
   display: flex;
   flex-direction: column;

@@ -559,6 +559,9 @@ export class _DSCard extends React.PureComponent {
         className={`ds-card ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
         ref={this.setContextMenuButtonHostRef}
       >
+        {this.props.showTopics && this.props.topic && (
+          <span className="ds-card-topic">{this.props.topic}</span>
+        )}
         <div className="img-wrapper">
           <DSImage
             extraClassNames="img"
