@@ -66,7 +66,10 @@ fun MicrosurveyBottomSheet(
         shape = bottomSheetShape,
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 8.dp),
+            modifier = Modifier
+                .padding(vertical = 8.dp)
+                .nestedScroll(rememberNestedScrollInteropConnection())
+                .verticalScroll(rememberScrollState()),
         ) {
             BottomSheetHandle(
                 onRequestDismiss = {},
@@ -81,37 +84,31 @@ fun MicrosurveyBottomSheet(
                 onCloseButtonClicked()
             }
 
-            Column(
-                modifier = Modifier
-                    .nestedScroll(rememberNestedScrollInteropConnection())
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                if (isSubmitted) {
-                    MicrosurveyCompleted()
-                } else {
-                    MicroSurveyContent(
-                        question = question,
-                        icon = icon,
-                        answers = answers,
-                        selectedAnswer = selectedAnswer,
-                        onSelectionChange = { selectedAnswer = it },
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                MicroSurveyFooter(
-                    isSubmitted = isSubmitted,
-                    isContentAnswerSelected = selectedAnswer != null,
-                    onPrivacyPolicyLinkClick = onPrivacyPolicyLinkClick,
-                    onButtonClick = {
-                        selectedAnswer?.let {
-                            onSubmitButtonClicked(it)
-                            isSubmitted = true
-                        }
-                    },
+            if (isSubmitted) {
+                MicrosurveyCompleted()
+            } else {
+                MicroSurveyContent(
+                    question = question,
+                    icon = icon,
+                    answers = answers,
+                    selectedAnswer = selectedAnswer,
+                    onSelectionChange = { selectedAnswer = it },
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            MicroSurveyFooter(
+                isSubmitted = isSubmitted,
+                isContentAnswerSelected = selectedAnswer != null,
+                onPrivacyPolicyLinkClick = onPrivacyPolicyLinkClick,
+                onButtonClick = {
+                    selectedAnswer?.let {
+                        onSubmitButtonClicked(it)
+                        isSubmitted = true
+                    }
+                },
+            )
         }
     }
 }
