@@ -141,7 +141,6 @@ class MessagingMiddleware(
                 updateMessage(context, oldMessage, newMessage)
             } else {
                 if (newMessage.isMicrosurvey()) settings.shouldShowMicrosurveyPrompt = false
-                consumeMessageToShowIfNeeded(context, oldMessage)
                 removeMessage(context, oldMessage)
             }
             context.store.dispatch(UpdateMessages(newMessages))

@@ -461,10 +461,12 @@ class MessagingMiddlewareTest {
         store.waitUntilIdle()
 
         assertEquals(messageDisplayed.displayCount, store.state.messaging.messages[0].displayCount)
+        assertEquals(1, store.state.messaging.messages.size)
+        assertEquals(1, store.state.messaging.messageToShow.size)
     }
 
     @Test
-    fun `GIVEN a message with that surpassed the maxDisplayCount WHEN onMessagedDisplayed THEN remove the message and consume it`() = runTestOnMain {
+    fun `GIVEN a message has reached the maxDisplayCount WHEN onMessagedDisplayed THEN remove the message`() = runTestOnMain {
         val message = createMessage(createMetadata(displayCount = 4))
         val messageDisplayed = createMessage(createMetadata(displayCount = 5))
         assertFalse(message.isExpired)
@@ -502,7 +504,7 @@ class MessagingMiddlewareTest {
         store.waitUntilIdle()
 
         assertEquals(0, store.state.messaging.messages.size)
-        assertEquals(0, store.state.messaging.messageToShow.size)
+        assertEquals(1, store.state.messaging.messageToShow.size)
     }
 
     @Test
@@ -536,7 +538,7 @@ class MessagingMiddlewareTest {
 
         verify { settings.shouldShowMicrosurveyPrompt = false }
         assertEquals(0, store.state.messaging.messages.size)
-        assertEquals(0, store.state.messaging.messageToShow.size)
+        assertEquals(1, store.state.messaging.messageToShow.size)
     }
 
     @Test
