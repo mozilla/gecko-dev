@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-07-16T08:22:11.710542+00:00'
+updated_at: '2024-07-16T22:24:33.200389+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -827,6 +827,10 @@ people:
     bmo_id: 404637
     name: Paul Adenot
     nick: padenot
+  - &pbone
+    bmo_id: 595166
+    name: Paul Bone
+    nick: pbone
   - &pbz
     bmo_id: 636491
     name: Paul Zühlcke
@@ -2163,7 +2167,8 @@ modules:
         - Core::jemalloc
     owners:
       - *glandium
-    peers: []
+    peers:
+      - *pbone
     machine_name: core_memory_allocator
 
   - name: 'Core: mfbt'
@@ -4359,5 +4364,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 88ddd3cecb58efb56b9d66154814744230f1e697
-  export: b9ecdb3054da5099fe2937bfa928027b725ea8e7
+  config: e9c9decfa7bea769115e4df4b352a8abc2d2229b
+  export: c649371ba13fe3db312f0d7c7059ec4523407cd6
