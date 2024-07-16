@@ -165,7 +165,7 @@ def test_query_tags(run_mach, capfd, tag):
     "tag",
     [
         {"tags": ["webextensions"], "results": 0},
-        {"tags": ["webextensions", "devtools"], "results": 2},
+        {"tags": ["webextensions", "devtools"], "results": 0},
     ],
 )
 def test_query_multiple_tags(run_mach, capfd, tag):
@@ -180,7 +180,7 @@ def test_query_multiple_tags(run_mach, capfd, tag):
         cmd.extend(["--tag", t])
 
     if tag["results"] == 0:
-        assert run_mach(cmd) == 0
+        assert run_mach(cmd) == tag["results"]
     else:
         with pytest.raises(SystemExit) as result:
             run_mach(cmd)

@@ -318,12 +318,6 @@ def try_fuzzy(command_context, **kwargs):
         )
         return
 
-    if len(kwargs["tag"]) > 1:
-        command_context._mach_context.handler.parser.error(
-            "ERROR: detected multiple tags defined."
-            "please only use --tag once and provide a single value"
-        )
-
     if kwargs.get("paths"):
         kwargs["test_paths"] = kwargs["paths"]
 

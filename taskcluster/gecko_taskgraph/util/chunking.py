@@ -268,11 +268,14 @@ class DefaultLoader(BaseManifestLoader):
         # Compute all tests for the given suite/subsuite.
         tests = self.get_tests(suite)
 
-        # TODO: the only exception here is we schedule webgpu as that is a --tag
         if "web-platform-tests" in suite:
             manifests = set()
             subsuite = [x for x in WPT_SUBSUITES.keys() if mozinfo[x]]
             for t in tests:
+                if json.loads(mozinfo["tag"]) and not any(
+                    x in t.get("tags", []) for x in json.loads(mozinfo["tag"])
+                ):
+                    continue
                 if subsuite:
                     # add specific directories
                     if any(x in t["manifest"] for x in WPT_SUBSUITES[subsuite[0]]):

@@ -610,6 +610,7 @@ class TestResolver(MozbuildObject):
         self._puppeteer_loaded = False
         self._tests_loaded = False
         self._wpt_loaded = False
+        self.meta_tags = {}
 
     def _reset_state(self):
         self._tests_by_path = defaultdict(list)
@@ -661,6 +662,43 @@ class TestResolver(MozbuildObject):
                 self._test_dirs.add(test["dir_relpath"])
         return self._test_dirs
 
+    def get_test_tags(self, test_tags, metadata_base, path):
+        paths = []
+
+        # similar logic to wpt TestLoader::load_dir_metadata
+        path_parts = os.path.dirname(path).split(os.path.sep)
+        for i in range(1, len(path_parts) + 1):
+            p = os.path.join(
+                metadata_base, os.path.sep.join(path_parts[:i]), "__dir__.ini"
+            )
+            if not p:
+                break
+            if os.path.exists(p):
+                paths.append(p)
+
+        paths.append(os.path.join(metadata_base, "%s.ini" % path))
+
+        for file_path in paths:
+            if file_path in self.meta_tags:
+                test_tags.extend(self.meta_tags[file_path])
+                continue
+
+            try:
+                with open(file_path, "rb") as f:
+                    # __dir__.ini are not proper .ini files, configParser doesn't work
+                    # WPT uses a custom reader for __dir__.ini, but hard to load/use here.
+                    data = f.read().decode("utf-8")
+                    for line in data.split("\n"):
+                        if "tags: [" in line:
+                            self.meta_tags[file_path] = (
+                                line.split("[")[1].split("]")[0].split(" ")
+                            )
+                            test_tags.extend(self.meta_tags[file_path])
+            except IOError:
+                pass
+
+        return list(set(test_tags))
+
     def _resolve(
         self, paths=None, flavor="", subsuite=None, under_path=None, tags=None
     ):
@@ -706,7 +744,8 @@ class TestResolver(MozbuildObject):
                 if subsuite and test.get("subsuite", "undefined") != subsuite:
                     continue
 
-                if tags and not (tags & set(test.get("tags", "").split())):
+                test_tags = set(test.get("tags", "").split())
+                if tags and not (tags & test_tags):
                     continue
 
                 if under_path and not test["file_relpath"].startswith(under_path):
@@ -908,6 +947,9 @@ class TestResolver(MozbuildObject):
 
                 full_path = mozpath.join(tests_root, path)  # absolute path on disk
                 src_path = mozpath.relpath(full_path, self.topsrcdir)
+                test_tags = self.get_test_tags(
+                    [], manifests[manifest].get("metadata_path", ""), path
+                )
 
                 for test in tests:
                     testobj = {
@@ -921,6 +963,7 @@ class TestResolver(MozbuildObject):
                         "file_relpath": src_path,
                         "srcdir_relpath": src_path,
                         "dir_relpath": mozpath.dirname(src_path),
+                        "tags": " ".join(test_tags),
                     }
                     group = self.get_wpt_group(testobj)
                     testobj["manifest"] = group
