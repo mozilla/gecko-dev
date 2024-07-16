@@ -16,6 +16,9 @@ const fieldTemplates = {
       name: item.fieldId,
       required: item.required,
       value: item.value ?? "",
+      // Conditionally add pattern attribute since pattern=""/false/undefined
+      // results in weird behaviour.
+      ...(item.pattern && { pattern: item.pattern }),
     };
   },
   input(item) {
