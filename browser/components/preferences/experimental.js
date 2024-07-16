@@ -91,7 +91,7 @@ var gExperimentalPane = {
 
     setEventListener(
       "experimentalCategory-reset",
-      "command",
+      "click",
       gExperimentalPane.resetAllFeatures
     );
 

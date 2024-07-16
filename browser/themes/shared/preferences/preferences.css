@@ -1508,3 +1508,16 @@ richlistitem .text-link:hover {
     appearance: none;
   }
 }
+
+.section-heading,
+.section-description {
+  margin: 0 0 var(--space-small);
+}
+
+.section-header-last {
+  margin: 0 0 var(--space-large);
+}
+
+.search-header:has(.section-heading) {
+  margin: 0;
+}

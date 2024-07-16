@@ -10,20 +10,20 @@
       class="subcategory"
       hidden="true"
       data-category="paneExperimental">
-  <html:h1 data-l10n-id="settings-pane-labs-title"/>
+  <html:h1 data-l10n-id="settings-pane-labs-title" class="section-heading"/>
 </vbox>
 
 <html:div data-category="paneExperimental"
           id="pane-experimental-featureGates"
           hidden="true">
   <label class="search-header" hidden="true">
-    <html:h2 data-l10n-id="settings-pane-labs-title"/>
+    <html:h2 data-l10n-id="settings-pane-labs-title" class="section-heading"/>
   </label>
-  <html:p data-l10n-id="pane-experimental-description3" class="description-deemphasized"/>
-  <hbox pack="end">
-    <button id="experimentalCategory-reset"
-            class="accessory-button"
-            data-l10n-id="pane-experimental-reset"/>
+  <html:p data-l10n-id="pane-experimental-description3"
+          class="description-deemphasized section-description"/>
+  <hbox pack="start" class="section-header-last">
+    <html:moz-button id="experimentalCategory-reset"
+                     data-l10n-id="pane-experimental-reset"/>
   </hbox>
 </html:div>
 </html:template>
