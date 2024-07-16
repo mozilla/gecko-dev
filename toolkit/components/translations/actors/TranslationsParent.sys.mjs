@@ -812,16 +812,19 @@ export class TranslationsParent extends JSWindowActorParent {
   /**
    * Requests a new translations port.
    *
-   * @param {number} innerWindowId - The id of the current window.
    * @param {string} fromLanguage - The BCP-47 from-language tag.
    * @param {string} toLanguage - The BCP-47 to-language tag.
+   * @param {number} [innerWindowId] - The id of the current window.
+   *   NOTE: This value should be provided only if your port is associated with Full Page Translations.
+   *   This will associate this translations port with the TranslationsParent actor instance for the provided id,
+   *   which will mean that changes in the translation state will affect the state of the Translations URL-bar button etc.
    *
    * @returns {Promise<MessagePort | undefined>} The port for communication with the translation engine, or undefined on failure.
    */
   static async requestTranslationsPort(
-    innerWindowId,
     fromLanguage,
-    toLanguage
+    toLanguage,
+    innerWindowId
   ) {
     let translationsEngineParent;
     try {
@@ -3036,7 +3039,7 @@ class TranslationsLanguageState {
   }
 
   /**
-   * The last error that occured during translation.
+   * The last error that occurred during translation.
    */
   get error() {
     return this.#error;
