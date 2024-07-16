@@ -165,7 +165,8 @@
 <%helpers:shorthand
     name="grid-${kind}"
     sub_properties="grid-${kind}-start grid-${kind}-end"
-    engines="gecko",
+    engines="gecko servo",
+    servo_pref="layout.grid.enabled",
     spec="https://drafts.csswg.org/css-grid/#propdef-grid-${kind}"
 >
     use crate::values::specified::GridLine;
@@ -219,7 +220,8 @@
 
 <%helpers:shorthand
     name="grid-area"
-    engines="gecko"
+    engines="gecko servo"
+    servo_pref="layout.grid.enabled",
     sub_properties="grid-row-start grid-row-end grid-column-start grid-column-end"
     spec="https://drafts.csswg.org/css-grid/#propdef-grid-area"
 >
@@ -314,7 +316,8 @@
 
 <%helpers:shorthand
     name="grid-template"
-    engines="gecko"
+    engines="gecko servo"
+    servo_pref="layout.grid.enabled",
     sub_properties="grid-template-rows grid-template-columns grid-template-areas"
     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
 >
@@ -555,7 +558,8 @@
 
 <%helpers:shorthand
     name="grid"
-    engines="gecko"
+    engines="gecko servo"
+    servo_pref="layout.grid.enabled",
     sub_properties="grid-template-rows grid-template-columns grid-template-areas
                     grid-auto-rows grid-auto-columns grid-auto-flow"
     spec="https://drafts.csswg.org/css-grid/#propdef-grid"
