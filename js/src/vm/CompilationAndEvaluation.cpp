@@ -110,7 +110,8 @@ JSScript* JS::Compile(JSContext* cx, const ReadOnlyCompileOptions& options,
 }
 
 JS_PUBLIC_API bool JS::StartIncrementalEncoding(JSContext* cx,
-                                                RefPtr<JS::Stencil>&& stencil) {
+                                                RefPtr<JS::Stencil>&& stencil,
+                                                bool& alreadyStarted) {
   MOZ_ASSERT(cx);
   MOZ_ASSERT(!stencil->hasMultipleReference());
 
@@ -133,7 +134,8 @@ JS_PUBLIC_API bool JS::StartIncrementalEncoding(JSContext* cx,
     }
   }
 
-  return source->startIncrementalEncoding(cx, std::move(initial));
+  return source->startIncrementalEncoding(cx, std::move(initial),
+                                          alreadyStarted);
 }
 
 JSScript* JS::CompileUtf8File(JSContext* cx,

@@ -214,9 +214,12 @@ nsresult ModuleLoader::CompileFetchedModule(
 
     if (aRequest->IsTextSource() &&
         aRequest->PassedConditionForBytecodeEncoding()) {
-      if (!JS::StartIncrementalEncoding(aCx, std::move(stencil))) {
+      bool alreadyStarted;
+      if (!JS::StartIncrementalEncoding(aCx, std::move(stencil),
+                                        alreadyStarted)) {
         return NS_ERROR_FAILURE;
       }
+      MOZ_ASSERT(!alreadyStarted);
     }
 
     return NS_OK;
@@ -263,9 +266,12 @@ nsresult ModuleLoader::CompileFetchedModule(
 
   if (aRequest->IsTextSource() &&
       aRequest->PassedConditionForBytecodeEncoding()) {
-    if (!JS::StartIncrementalEncoding(aCx, std::move(stencil))) {
+    bool alreadyStarted;
+    if (!JS::StartIncrementalEncoding(aCx, std::move(stencil),
+                                      alreadyStarted)) {
       return NS_ERROR_FAILURE;
     }
+    MOZ_ASSERT(!alreadyStarted);
   }
 
   return NS_OK;

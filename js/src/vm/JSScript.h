@@ -1085,7 +1085,8 @@ class ScriptSource {
 
   [[nodiscard]] bool startIncrementalEncoding(
       JSContext* cx,
-      UniquePtr<frontend::ExtensibleCompilationStencil>&& initial);
+      UniquePtr<frontend::ExtensibleCompilationStencil>&& initial,
+      bool& alreadyStarted);
 
   [[nodiscard]] bool addDelazificationToIncrementalEncoding(
       JSContext* cx, const frontend::CompilationStencil& stencil);

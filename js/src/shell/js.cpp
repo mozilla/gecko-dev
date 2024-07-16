@@ -2777,9 +2777,12 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     if (saveIncrementalBytecode) {
-      if (!JS::StartIncrementalEncoding(cx, std::move(stencil))) {
+      bool alreadyStarted;
+      if (!JS::StartIncrementalEncoding(cx, std::move(stencil),
+                                        alreadyStarted)) {
         return false;
       }
+      MOZ_ASSERT(!alreadyStarted);
     }
 
     if (execute) {

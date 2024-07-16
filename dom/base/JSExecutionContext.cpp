@@ -191,11 +191,14 @@ nsresult JSExecutionContext::InstantiateStencil(
   }
 
   if (mEncodeBytecode) {
-    if (!JS::StartIncrementalEncoding(mCx, std::move(aStencil))) {
+    bool alreadyStarted;
+    if (!JS::StartIncrementalEncoding(mCx, std::move(aStencil),
+                                      alreadyStarted)) {
       mSkip = true;
       mRv = EvaluationExceptionToNSResult(mCx);
       return mRv;
     }
+    MOZ_ASSERT(!alreadyStarted);
   }
 
   MOZ_ASSERT(!mScript);
