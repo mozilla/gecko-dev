@@ -85,8 +85,7 @@ import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.feature.prompts.PromptFeature.Companion.PIN_REQUEST
 import mozilla.components.feature.prompts.address.AddressDelegate
 import mozilla.components.feature.prompts.creditcard.CreditCardDelegate
-import mozilla.components.feature.prompts.dialog.FullScreenNotificationToast
-import mozilla.components.feature.prompts.dialog.GestureNavUtils
+import mozilla.components.feature.prompts.dialog.FullScreenNotificationDialog
 import mozilla.components.feature.prompts.file.AndroidPhotoPicker
 import mozilla.components.feature.prompts.identitycredential.DialogColors
 import mozilla.components.feature.prompts.identitycredential.DialogColorsProvider
@@ -2057,19 +2056,15 @@ abstract class BaseBrowserFragment :
 
     @VisibleForTesting
     internal fun fullScreenChanged(inFullScreen: Boolean) {
-        val activity = activity ?: return
         if (inFullScreen) {
             // Close find in page bar if opened
             findInPageIntegration.onBackPressed()
 
-            FullScreenNotificationToast(
-                activity = activity,
-                gestureNavString = getString(R.string.exit_fullscreen_with_gesture),
-                backButtonString = getString(R.string.exit_fullscreen_with_back_button),
-                GestureNavUtils,
-            ).show()
+            FullScreenNotificationDialog(R.layout.full_screen_notification_dialog).show(
+                parentFragmentManager,
+            )
 
-            activity.enterImmersiveMode()
+            activity?.enterImmersiveMode()
             (view as? SwipeGestureLayout)?.isSwipeEnabled = false
             browserToolbarView.collapse()
             browserToolbarView.gone()
@@ -2088,12 +2083,12 @@ abstract class BaseBrowserFragment :
 
             MediaState.fullscreen.record(NoExtras())
         } else {
-            activity.exitImmersiveMode()
+            activity?.exitImmersiveMode()
             (view as? SwipeGestureLayout)?.isSwipeEnabled = true
-            (activity as? HomeActivity)?.let { homeActivity ->
+            (activity as? HomeActivity)?.let { activity ->
                 // ExternalAppBrowserActivity exclusively handles it's own theming unless in private mode.
-                if (homeActivity !is ExternalAppBrowserActivity || homeActivity.browsingModeManager.mode.isPrivate) {
-                    homeActivity.themeManager.applyStatusBarTheme(homeActivity)
+                if (activity !is ExternalAppBrowserActivity || activity.browsingModeManager.mode.isPrivate) {
+                    activity.themeManager.applyStatusBarTheme(activity)
                 }
             }
             if (webAppToolbarShouldBeVisible) {

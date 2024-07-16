@@ -2668,10 +2668,4 @@
     <string name="debug_drawer_cfr_tools_title">CFR Tools</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Reset CFRs</string>
-
-    <!-- Messages explaining how to exit fullscreen mode -->
-    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">To exit fullscreen, drag from top and use back gesture</string>
-    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">To exit fullscreen, drag from top and press back</string>
 </resources>
