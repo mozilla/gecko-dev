@@ -1702,16 +1702,17 @@ class AbstractFetchDownloadServiceTest {
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
             },
         )
+        val append = true
         val uniqueFile: DownloadState = mock()
         val qSdkVersion = 29
         doReturn(uniqueFile).`when`(service).makeUniqueFileNameIfNecessary(any(), anyBoolean())
         doNothing().`when`(service).updateDownloadState(uniqueFile)
-        doNothing().`when`(service).useFileStreamScopedStorage(eq(uniqueFile), any())
+        doNothing().`when`(service).useFileStreamScopedStorage(eq(uniqueFile), eq(append), any())
         doReturn(qSdkVersion).`when`(service).getSdkVersion()
 
-        service.useFileStream(mock(), true) {}
+        service.useFileStream(mock(), append) {}
 
-        verify(service).useFileStreamScopedStorage(eq(uniqueFile), any())
+        verify(service).useFileStreamScopedStorage(eq(uniqueFile), eq(append), any())
     }
 
     @Test

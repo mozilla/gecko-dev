@@ -885,7 +885,7 @@ abstract class AbstractFetchDownloadService : Service() {
         updateDownloadState(downloadWithUniqueFileName)
 
         if (shouldUseScopedStorage()) {
-            useFileStreamScopedStorage(downloadWithUniqueFileName, block)
+            useFileStreamScopedStorage(downloadWithUniqueFileName, append, block)
         } else {
             useFileStreamLegacy(downloadWithUniqueFileName, append, block)
         }
@@ -935,7 +935,7 @@ abstract class AbstractFetchDownloadService : Service() {
 
     @TargetApi(Build.VERSION_CODES.Q)
     @VisibleForTesting
-    internal fun useFileStreamScopedStorage(download: DownloadState, block: (OutputStream) -> Unit) {
+    internal fun useFileStreamScopedStorage(download: DownloadState, append: Boolean, block: (OutputStream) -> Unit) {
         val values = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, download.fileName)
             put(
@@ -955,7 +955,8 @@ abstract class AbstractFetchDownloadService : Service() {
         }
 
         downloadUri?.let {
-            val pfd = resolver.openFileDescriptor(it, "w")
+            val writingMode = if (append) "wa" else "w"
+            val pfd = resolver.openFileDescriptor(it, writingMode)
             ParcelFileDescriptor.AutoCloseOutputStream(pfd).use(block)
 
             values.clear()
