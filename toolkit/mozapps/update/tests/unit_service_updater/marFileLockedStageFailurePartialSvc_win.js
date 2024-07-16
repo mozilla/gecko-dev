@@ -8,7 +8,7 @@ async function run_test() {
   if (!setupTestCommon()) {
     return;
   }
-  const STATE_AFTER_STAGE = STATE_PENDING;
+  const STATE_AFTER_STAGE = STATE_PENDING_SVC;
   gTestFiles = gTestFilesPartialSuccess;
   gTestDirs = gTestDirsPartialSuccess;
   setTestFilesAndDirsForFailure();
