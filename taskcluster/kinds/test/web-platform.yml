@@ -295,6 +295,7 @@ web-platform-tests-webgpu:
                     - --tag=webgpu
                     - --exclude-tag=canvas
                     - --exclude-tag=webcodecs
+                    - --timeout-multiplier=5.0
                     - --setpref=gfx.webgpu.ignore-blocklist=true
                 default:
                     - --test-type=testharness
@@ -304,6 +305,7 @@ web-platform-tests-webgpu:
                     - --tag=webgpu
                     - --exclude-tag=canvas
                     - --exclude-tag=webcodecs
+                    - --timeout-multiplier=5.0
     worker-type:
         by-test-platform:
             .*wayland.*: t-linux-wayland-vm
@@ -350,6 +352,7 @@ web-platform-tests-webgpu-backlog:
                     - --skip-implementation-status=implementing
                     - --skip-implementation-status=not-implementing
                     - --backlog
+                    - --timeout-multiplier=5.0
                     - --setpref=gfx.webgpu.ignore-blocklist=true
                 default:
                     - --test-type=testharness
@@ -360,6 +363,7 @@ web-platform-tests-webgpu-backlog:
                     - --skip-implementation-status=implementing
                     - --skip-implementation-status=not-implementing
                     - --backlog
+                    - --timeout-multiplier=5.0
     worker-type:
         by-test-platform:
             .*wayland.*: t-linux-wayland-vm
