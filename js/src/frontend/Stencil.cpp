@@ -5620,3 +5620,22 @@ JS::InstantiationStorage::~InstantiationStorage() {
     gcOutput_ = nullptr;
   }
 }
+
+JS_PUBLIC_API JS::Stencil* JS::DuplicateStencil(JSContext* cx,
+                                                JS::Stencil* stencil) {
+  UniquePtr<ExtensibleCompilationStencil> extensibleStencil(
+      cx->new_<ExtensibleCompilationStencil>(stencil->source));
+  if (!extensibleStencil) {
+    return nullptr;
+  }
+
+  {
+    AutoReportFrontendContext fc(cx);
+    if (!extensibleStencil->cloneFrom(&fc, *stencil)) {
+      return nullptr;
+    }
+  }
+
+  JS::Stencil* dup = cx->new_<CompilationStencil>(std::move(extensibleStencil));
+  return dup;
+}

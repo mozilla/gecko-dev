@@ -212,4 +212,18 @@ extern JS_PUBLIC_API bool StartIncrementalEncoding(JSContext* cx,
 
 }  // namespace JS
 
+// ************************************************************************
+//   Copy
+// ************************************************************************
+
+namespace JS {
+
+// Duplicate the stencil object.
+//
+// This is a temporary workaround until JS::StartIncrementalEncoding gets
+// refactored not to take the ownership.
+extern JS_PUBLIC_API Stencil* DuplicateStencil(JSContext* cx, Stencil* stencil);
+
+}  // namespace JS
+
 #endif  // js_experimental_JSStencil_h
