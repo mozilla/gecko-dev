@@ -1158,7 +1158,7 @@ void ContentSubtreeIterator::Next() {
     // as long as we are finding ancestors of the endpoint of the range,
     // dive down into their children
     ShadowRoot* root = ShadowDOMSelectionHelpers::GetShadowRoot(
-        Element::FromNode(nextNode), IterAllowCrossShadowBoundary());
+        nextNode, IterAllowCrossShadowBoundary());
     if (!root) {
       nextNode = nextNode->GetFirstChild();
     } else {
