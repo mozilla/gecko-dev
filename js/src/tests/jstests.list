@@ -684,9 +684,6 @@ skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/yield-next-rej
 skip script test262/language/global-code/script-decl-lex-var-declared-via-eval.js
 skip script test262/annexB/language/eval-code/direct/script-decl-lex-no-collision.js
 
-# Unicode Minus Sign no longer allowed in offset strings.
-skip script test262/intl402/DateTimeFormat/offset-timezone-no-unicode-minus-sign.js
-
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #

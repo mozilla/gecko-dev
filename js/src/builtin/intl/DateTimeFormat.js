@@ -275,15 +275,9 @@ function TimeZoneOffsetString(offsetString) {
   assert(typeof(offsetString) === "string", "offsetString is a string");
 
   // UTCOffset :::
-  //   TemporalSign Hour
-  //   TemporalSign Hour HourSubcomponents[+Extended]
-  //   TemporalSign Hour HourSubcomponents[~Extended]
-  //
-  // TemporalSign :::
-  //   ASCIISign
-  //   <MINUS>
-  //
-  // With <MINUS> = U+2212
+  //   ASCIISign Hour
+  //   ASCIISign Hour HourSubcomponents[+Extended]
+  //   ASCIISign Hour HourSubcomponents[~Extended]
   //
   // ASCIISign ::: one of
   //   + -
@@ -316,40 +310,19 @@ function TimeZoneOffsetString(offsetString) {
     return null;
   }
 
-  // Self-hosted code only supports Latin-1 permanent atoms, so the Unicode <MINUS>
-  // can't be used in a string literal "\u2212". That means the first character has
-  // to be checked using the character code instead of performing a normal string
-  // comparison. Alternatively <MINUS> could be generated at runtime through
-  // |std_String_fromCharCode(0x2212)|, but that means allocating a string just for
-  // the comparison. And for consistency also check the remaining characters through
-  // their character code.
-
-  #define PLUS_SIGN 0x2b
-  #define HYPHEN_MINUS 0x2d
-  #define MINUS 0x2212
-  #define COLON 0x3a
-  #define DIGIT_ZERO 0x30
-  #define DIGIT_TWO 0x32
-  #define DIGIT_THREE 0x33
-  #define DIGIT_FIVE 0x35
-  #define DIGIT_NINE 0x39
-
-  /* global PLUS_SIGN, HYPHEN_MINUS, MINUS, COLON */
-  /* global DIGIT_ZERO, DIGIT_TWO, DIGIT_THREE, DIGIT_FIVE, DIGIT_NINE */
-
-  // The first character must match |TemporalSign|.
-  var sign = callFunction(std_String_charCodeAt, offsetString, 0);
-  if (sign !== PLUS_SIGN && sign !== HYPHEN_MINUS && sign !== MINUS) {
+  // The first character must match |ASCIISign|.
+  var sign = offsetString[0];
+  if (sign !== "+" && sign !== "-") {
     return null;
   }
 
   // Read the next two characters for the |Hour| grammar production.
-  var hourTens = callFunction(std_String_charCodeAt, offsetString, 1);
-  var hourOnes = callFunction(std_String_charCodeAt, offsetString, 2);
+  var hourTens = offsetString[1];
+  var hourOnes = offsetString[2];
 
   // Read the remaining characters for the optional |MinuteSecond| grammar production.
-  var minutesTens = DIGIT_ZERO;
-  var minutesOnes = DIGIT_ZERO;
+  var minutesTens = "0";
+  var minutesOnes = "0";
   if (offsetString.length > 3) {
     // |TimeSeparator| is optional.
     var separatorLength = offsetString[3] === ":" ? 1 : 0;
@@ -359,65 +332,38 @@ function TimeZoneOffsetString(offsetString) {
       return null;
     }
 
-    minutesTens = callFunction(
-      std_String_charCodeAt,
-      offsetString,
-      3 + separatorLength,
-    );
-    minutesOnes = callFunction(
-      std_String_charCodeAt,
-      offsetString,
-      4 + separatorLength,
-    );
+    minutesTens = offsetString[3 + separatorLength];
+    minutesOnes = offsetString[4 + separatorLength];
   }
 
   // Validate the characters match the |Hour| and |MinuteSecond| productions:
   // - hours must be in the range 0..23
   // - minutes must in the range 0..59
   if (
-    hourTens < DIGIT_ZERO ||
-    hourOnes < DIGIT_ZERO ||
-    minutesTens < DIGIT_ZERO ||
-    minutesOnes < DIGIT_ZERO ||
-    hourTens > DIGIT_TWO ||
-    hourOnes > DIGIT_NINE ||
-    minutesTens > DIGIT_FIVE ||
-    minutesOnes > DIGIT_NINE ||
-    (hourTens === DIGIT_TWO && hourOnes > DIGIT_THREE)
+    hourTens < "0" ||
+    hourOnes < "0" ||
+    minutesTens < "0" ||
+    minutesOnes < "0" ||
+    hourTens > "2" ||
+    hourOnes > "9" ||
+    minutesTens > "5" ||
+    minutesOnes > "9" ||
+    (hourTens === "2" && hourOnes > "3")
   ) {
     return null;
   }
 
   // FormatOffsetTimeZoneIdentifier, steps 1-5.
   if (
-    hourTens === DIGIT_ZERO &&
-    hourOnes === DIGIT_ZERO &&
-    minutesTens === DIGIT_ZERO &&
-    minutesOnes === DIGIT_ZERO
+    hourTens === "0" &&
+    hourOnes === "0" &&
+    minutesTens === "0" &&
+    minutesOnes === "0"
   ) {
-    sign = PLUS_SIGN;
-  } else if (sign === MINUS) {
-    sign = HYPHEN_MINUS;
+    sign = "+";
   }
 
-  return std_String_fromCharCode(
-    sign,
-    hourTens,
-    hourOnes,
-    COLON,
-    minutesTens,
-    minutesOnes,
-  );
-
-  #undef PLUS_SIGN
-  #undef HYPHEN_MINUS
-  #undef MINUS
-  #undef COLON
-  #undef DIGIT_ZERO
-  #undef DIGIT_TWO
-  #undef DIGIT_THREE
-  #undef DIGIT_FIVE
-  #undef DIGIT_NINE
+  return sign + hourTens + hourOnes + ":" + minutesTens + minutesOnes;
 }
 
 /* eslint-disable complexity */
