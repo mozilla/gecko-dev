@@ -22,12 +22,6 @@ async function run_test() {
   checkUpdateLogContains(ERR_BACKUP_CREATE_7);
   checkUpdateLogContains(STATE_FAILED_WRITE_ERROR + "\n" + CALL_QUIT);
   await waitForUpdateXMLFiles(true, false);
-  await checkUpdateManager(
-    STATE_PENDING_SVC,
-    true,
-    STATE_PENDING_SVC,
-    WRITE_ERROR,
-    0
-  );
+  await checkUpdateManager(STATE_PENDING, true, STATE_PENDING, WRITE_ERROR, 0);
   checkCallbackLog();
 }

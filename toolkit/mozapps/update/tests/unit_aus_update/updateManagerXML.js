@@ -268,12 +268,9 @@ async function run_test() {
     "patch enumerator should be an instance of nsISimpleEnumerator"
   );
   results = Array.from(patch.enumerator);
-
-  // Two properties from this test, one from _postUpdateProcessing
-  // (see Bug 1853821)
   Assert.equal(
     results.length,
-    3,
+    2,
     "the length of the array created from the patch enumerator" +
       MSG_SHOULD_EQUAL
   );
@@ -301,16 +298,6 @@ async function run_test() {
     results[1].value,
     "custom2 patch value",
     "the second property value" + MSG_SHOULD_EQUAL
-  );
-  Assert.equal(
-    results[2].name,
-    "numTotalInstallAttempts",
-    "the third property name" + MSG_SHOULD_EQUAL
-  );
-  Assert.equal(
-    results[2].value,
-    "1",
-    "the third property value" + MSG_SHOULD_EQUAL
   );
 
   debugDump("checking the second update properties");

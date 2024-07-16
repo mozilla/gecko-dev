@@ -146,9 +146,6 @@ const BITS_ACTIVE_NO_PROGRESS_TIMEOUT_SECS = 5;
 const BITS_IDLE_POLL_RATE_MS = 1000;
 const BITS_ACTIVE_POLL_RATE_MS = 200;
 
-// The number of update attempts when a write error occurs during an attempt
-const MAX_TOTAL_INSTALL_ATTEMPTS = 2;
-
 // The values below used by this code are from common/updatererrors.h
 const WRITE_ERROR = 7;
 const ELEVATION_CANCELED = 9;
@@ -1583,23 +1580,10 @@ function readStringFromFile(file) {
  */
 function handleUpdateFailure(update) {
   if (WRITE_ERRORS.includes(update.errorCode)) {
-    let nextState = getBestPendingState();
-
-    // Check how many install attempts we have with this patch
-    let totalInstallAttempts =
-      update.selectedPatch
-        .QueryInterface(Ci.nsIWritablePropertyBag)
-        .getProperty("numTotalInstallAttempts") ?? 0;
-    // Out of retries, unable to handle the update failure here
-    if (totalInstallAttempts >= MAX_TOTAL_INSTALL_ATTEMPTS) {
-      return false;
-    }
-
     LOG(
-      "handleUpdateFailure - Failure is a write error. Setting state to " +
-        nextState
+      "handleUpdateFailure - Failure is a write error. Setting state to pending"
     );
-    writeStatusFile(getReadyUpdateDir(), (update.state = nextState));
+    writeStatusFile(getReadyUpdateDir(), (update.state = STATE_PENDING));
     transitionState(Ci.nsIApplicationUpdateService.STATE_PENDING);
     return true;
   }
@@ -3076,8 +3060,7 @@ export class UpdateService {
     }
 
     let parts = status.split(":");
-    status = parts[0];
-    update.state = status;
+    update.state = parts[0];
     LOG(
       `UpdateService:_postUpdateProcessing - Setting update's state from ` +
         `the status file (="${update.state}")`
@@ -3094,21 +3077,6 @@ export class UpdateService {
       // Rotate the update logs so the update log isn't removed. By passing
       // false the patch directory won't be removed.
       cleanUpReadyUpdateDir(false);
-    }
-
-    // Track number of installation attempts for this patch
-    if (
-      update.selectedPatch &&
-      [STATE_SUCCEEDED, STATE_FAILED].includes(status)
-    ) {
-      let totalInstallAttempts =
-        update.selectedPatch
-          .QueryInterface(Ci.nsIWritablePropertyBag)
-          .getProperty("numTotalInstallAttempts") ?? 0;
-
-      update.selectedPatch
-        .QueryInterface(Ci.nsIWritablePropertyBag)
-        .setProperty("numTotalInstallAttempts", totalInstallAttempts + 1);
     }
 
     if (status == STATE_SUCCEEDED) {
