@@ -3,21 +3,7 @@
 Building Firefox for Android
 ============================
 
-Run Fenix using command line
-----------------------------
-
 As a first step, you need to set up your development environment using the instruction :ref:`here <firefox_for_android>`.
-
-
-Run Fenix or other Android projects using command line
----------------------------------------------------------
-.. _run_fenix_from_commandline:
-
-From the root mozilla-central directory, you can run an emulator with the following command:
-
-.. code-block:: shell
-
-    ./mach android-emulator
 
 Before building, set the paths to your Java installation and Android SDK
 
@@ -34,6 +20,29 @@ Before building, set the paths to your Java installation and Android SDK
 
     export JAVA_HOME=$HOME/.mozbuild/jdk/jdk-<latest-version>
     export ANDROID_HOME=$HOME/.mozbuild/android-sdk-<os_name>
+
+
+Build Fenix using command line
+------------------------------
+
+From the ``mobile/android/fenix`` working directory, build Fenix:
+
+.. code-block:: shell
+
+    ./gradlew clean app:assembleDebug
+
+You can then find the generated debug apks under
+``mobile/android/fenix/app/build/outputs/apk/fenix/debug``
+
+Run Fenix or other Android projects using command line
+---------------------------------------------------------
+.. _run_fenix_from_commandline:
+
+From the root mozilla-central directory, you can run an emulator with the following command:
+
+.. code-block:: shell
+
+    ./mach android-emulator
 
 From the `mobile/android/fenix` working directory, build, install and launch Fenix:
 
