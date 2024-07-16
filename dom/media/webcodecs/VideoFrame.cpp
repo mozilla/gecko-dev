@@ -1245,10 +1245,11 @@ static Result<RefPtr<layers::Image>, MediaResult> ConvertToRGBAImage(
                            "Failed to allocate buffer for converted image"_ns));
   }
 
+  // Bug 1906717: Optimize YUV-to-RGBA with specified color space.
+
   VideoFrame::Format format(aFormat);
   gfx::SurfaceFormat surfaceFormat = format.ToSurfaceFormat();
 
-  // TODO: Take aColorSpace into account (bug 1904471)
   nsresult r =
       ConvertToRGBA(aImage.get(), surfaceFormat, buffer.get(), stride.value(),
                     aImage->GetSize().Width(), aImage->GetSize().Height());
@@ -1256,6 +1257,17 @@ static Result<RefPtr<layers::Image>, MediaResult> ConvertToRGBAImage(
     return Err(
         MediaResult(r, nsPrintfCString("Failed to convert into %s image",
                                        dom::GetEnumString(aFormat).get())));
+  }
+
+  if (aColorSpace == PredefinedColorSpace::Display_p3) {
+    r = ConvertSRGBBufferToDisplayP3(buffer.get(), surfaceFormat, buffer.get(),
+                                     aImage->GetSize().Width(),
+                                     aImage->GetSize().Height());
+    if (NS_FAILED(r)) {
+      return Err(MediaResult(
+          r, nsPrintfCString("Failed to convert image from srgb into %s color",
+                             dom::GetEnumString(aColorSpace).get())));
+    }
   }
 
   Span<uint8_t> data(buffer.get(), size.value());

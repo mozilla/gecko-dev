@@ -47,6 +47,15 @@ nsresult ConvertToRGBA(layers::Image* aImage,
                        uint8_t* aDestBuffer, int aDestStride, int aWidth,
                        int aHeight);
 
+/*
+ * Convert the RGBA image data from SRGB color into DisplayP3 color.
+ * aSrcBuffer and aDestBuffer can be the same.
+ */
+nsresult ConvertSRGBBufferToDisplayP3(uint8_t* aSrcBuffer,
+                                      const gfx::SurfaceFormat& aSrcFormat,
+                                      uint8_t* aDestBuffer, int aWidth,
+                                      int aHeight);
+
 }  // namespace mozilla
 
 #endif /* ImageToI420Converter_h */

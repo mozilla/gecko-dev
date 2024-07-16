@@ -335,4 +335,11 @@ nsresult ConvertToRGBA(Image* aImage, const SurfaceFormat& aDestFormat,
   return NS_OK;
 }
 
+nsresult ConvertSRGBBufferToDisplayP3(uint8_t* aSrcBuffer,
+                                      const gfx::SurfaceFormat& aSrcFormat,
+                                      uint8_t* aDestBuffer, int aWidth,
+                                      int aHeight) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 }  // namespace mozilla
