@@ -24,5 +24,7 @@
   "engines": {
     "node": ">=6.9.1"
   },
-  "license": "MPL-2.0"
+  "license": "MPL-2.0",
+  "notes(private)": "We don't want to publish to npm, so this is marked as private",
+  "private": true
 }

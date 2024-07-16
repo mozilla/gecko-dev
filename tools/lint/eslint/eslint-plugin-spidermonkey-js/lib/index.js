@@ -7,14 +7,17 @@
 
 "use strict";
 
+const { name, version } = require("../package.json");
+
 // ------------------------------------------------------------------------------
 // Plugin Definition
 // ------------------------------------------------------------------------------
 module.exports = {
+  meta: { name, version },
   processors: {
-    processor: require("../lib/processors/self-hosted"),
+    processor: require("./processors/self-hosted"),
   },
   environments: {
-    environment: require("../lib/environments/self-hosted"),
+    environment: require("./environments/self-hosted"),
   },
 };
