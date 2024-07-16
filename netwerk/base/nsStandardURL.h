@@ -260,8 +260,7 @@ class nsStandardURL : public nsIFileURL,
   void InvalidateCache(bool invalidateCachedFile = true);
 
   static bool IsValidOfBase(unsigned char c, const uint32_t base);
-  nsresult NormalizeIDN(const nsACString& aHost, bool aMailnews,
-                        nsACString& aResult);
+  nsresult NormalizeIDN(const nsACString& aHost, nsACString& aResult);
   nsresult CheckIfHostIsAscii();
   void CoalescePath(netCoalesceFlags coalesceFlag, char* path);
 

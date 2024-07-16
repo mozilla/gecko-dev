@@ -46,22 +46,6 @@ static mozilla::LazyLogModule gStandardURLLog("nsStandardURL");
 
 using namespace mozilla::ipc;
 
-inline bool IsMailNews() {
-#if defined(MOZ_THUNDERBIRD) || defined(MOZ_SUITE)
-  // This gives bogus behavior to https/http URLs
-  // in Thuderbird and Suite. This really should
-  // be a call to a method that checks for all the
-  // relevant schemes that need the exception.
-  // See
-  // https://searchfox.org/comm-central/rev/6ed52969390e2998785fb7587ef2a0b798bc8469/mailnews/base/src/nsNewMailnewsURI.cpp#48-128
-  // for candidates.
-  // https://bugzilla.mozilla.org/show_bug.cgi?id=1527462
-  return true;
-#else
-  return false;
-#endif
-}
-
 /**
  * The UTS #46 ToUnicode operation as parametrized by the WHATWG URL Standard,
  * except potentially misleading labels are treated according to ToASCII
@@ -80,10 +64,10 @@ inline bool IsMailNews() {
  * closure to use.)
  */
 inline nsresult NS_DomainToDisplayAndASCII(const nsACString& aDomain,
-                                           bool aMailnews, nsACString& aDisplay,
+                                           nsACString& aDisplay,
                                            nsACString& aASCII) {
-  return mozilla_net_domain_to_display_and_ascii_impl(&aDomain, aMailnews,
-                                                      &aDisplay, &aASCII);
+  return mozilla_net_domain_to_display_and_ascii_impl(&aDomain, &aDisplay,
+                                                      &aASCII);
 }
 
 namespace mozilla {
@@ -642,14 +626,13 @@ nsresult nsStandardURL::NormalizeIPv4(const nsACString& host,
 
 nsIIDNService* nsStandardURL::GetIDNService() { return gIDN.get(); }
 
-nsresult nsStandardURL::NormalizeIDN(const nsACString& aHost, bool aMailnews,
+nsresult nsStandardURL::NormalizeIDN(const nsACString& aHost,
                                      nsACString& aResult) {
   mDisplayHost.Truncate();
   mCheckedIfHostA = true;
   nsCString displayHost;  // Intentionally not nsAutoCString to avoid copy when
                           // assigning to field
-  nsresult rv =
-      NS_DomainToDisplayAndASCII(aHost, aMailnews, displayHost, aResult);
+  nsresult rv = NS_DomainToDisplayAndASCII(aHost, displayHost, aResult);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -887,7 +870,7 @@ nsresult nsStandardURL::BuildNormalizedSpec(const char* spec,
         return rv;
       }
     } else {
-      rv = NormalizeIDN(tempHost, IsMailNews(), encHost);
+      rv = NormalizeIDN(tempHost, encHost);
       if (NS_FAILED(rv)) {
         return rv;
       }
@@ -2199,7 +2182,7 @@ nsresult nsStandardURL::SetHost(const nsACString& input) {
       return rv;
     }
   } else {
-    rv = NormalizeIDN(flat, IsMailNews(), hostBuf);
+    rv = NormalizeIDN(flat, hostBuf);
     if (NS_FAILED(rv)) {
       return rv;
     }
