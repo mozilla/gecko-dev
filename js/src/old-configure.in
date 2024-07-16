@@ -97,15 +97,8 @@ case "$target" in
 
 *-mingw*)
     if test "$CC_TYPE" != clang-cl ; then
-
-        # Silence problematic clang warnings
-        CXXFLAGS="$CXXFLAGS -Wno-incompatible-ms-struct"
-        LDFLAGS="$LDFLAGS -Wl,--no-insert-timestamp"
-
         MOZ_OPTIMIZE_FLAGS="-O2"
     else
-        CFLAGS="$CFLAGS -Gy -Zc:inline"
-        CXXFLAGS="$CXXFLAGS -Gy -Zc:inline"
         if test "$TARGET_CPU" = "x86";then
           dnl VS2012+ defaults to -arch:SSE2. We want to target nothing
           dnl more recent, so set that explicitly here unless another
@@ -119,16 +112,6 @@ case "$target" in
           fi
           changequote([,])
         fi
-        dnl VS2013+ supports -Gw for better linker optimizations.
-        dnl http://blogs.msdn.com/b/vcblog/archive/2013/09/11/introducing-gw-compiler-switch.aspx
-        dnl Disabled on ASan because it causes false-positive ODR violations.
-        if test -z "$MOZ_ASAN"; then
-            CFLAGS="$CFLAGS -Gw"
-            CXXFLAGS="$CXXFLAGS -Gw"
-        else
-            # String tail merging doesn't play nice with ASan's ODR checker.
-            LDFLAGS="$LDFLAGS -opt:nolldtailmerge"
-        fi
         MOZ_DEBUG_LDFLAGS='-DEBUG'
         if test "$HOST_OS_ARCH" != "WINNT"; then
           # %_PDB% is a special signal to emit only the PDB basename. This
@@ -136,12 +119,7 @@ case "$target" in
           MOZ_DEBUG_LDFLAGS="$MOZ_DEBUG_LDFLAGS -PDBALTPATH:%_PDB%"
         fi
         MOZ_OPTIMIZE_FLAGS="-O2"
-        LDFLAGS="$LDFLAGS -LARGEADDRESSAWARE"
     fi
-    AC_DEFINE(HAVE__MSIZE)
-    AC_DEFINE(WIN32_LEAN_AND_MEAN)
-    dnl See http://support.microsoft.com/kb/143208 to use STL
-    AC_DEFINE(NOMINMAX)
 
     case "$host_os" in
     cygwin*|msvc*|mks*)
@@ -151,14 +129,6 @@ case "$target" in
 
     case "$target" in
     i*86-*)
-        if test "$CC_TYPE" != clang-cl ; then
-            CFLAGS="$CFLAGS -mstackrealign"
-            CXXFLAGS="$CXXFLAGS -mstackrealign"
-            LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
-        else
-            LDFLAGS="$LDFLAGS -SAFESEH"
-        fi
-
     	AC_DEFINE(_X86_)
 	;;
     x86_64-*)
