@@ -166,9 +166,8 @@ class nsDataObj : public IDataObject, public IDataObjectAsyncCapability {
  private:
   nsTArray<nsCString> mDataFlavors;
 
-  nsITransferable* mTransferable;  // nsDataObj owns and ref counts
-                                   // nsITransferable, the nsITransferable does
-                                   // know anything about the nsDataObj
+  // the nsITransferable knows nothing about the nsDataObj
+  RefPtr<nsITransferable> mTransferable;
 
  protected:
   CEnumFormatEtc* m_enumFE;  // Ownership Rules:
