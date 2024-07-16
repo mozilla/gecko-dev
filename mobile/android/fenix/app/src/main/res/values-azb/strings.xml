@@ -1800,6 +1800,21 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">ضررلی اسکریپت‌لرین دیجیتال ارز الده ائتمک اوچون جهانیزا گیرمه‌سی‌نین قاباغینیْ آلیر.</string>
 
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_fingerprinters_title">بارماق ایزی‌لری</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_fingerprinters_description">جهانیز حاقیندا ایزله‌مه هدفی ایله استفاده ائدیله بیله‌جک بنزرسیز اوْلاراق تانیلابیلیر دیتالارین یئغماسینیْ دایاندیریر.</string>
+
+    <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_tracking_content_title">ایزله‌مه محتواسی</string>
+    <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_tracking_content_description">ایزله‌مه کوْدو اوْلان خارجی تبلیغاتلارین، ویدئولارین و باشقا محتوالارین دوْلماسینیْ دایاندیریر. بعضی سایت عملکردلرینه تاثیر ائده بیلر.</string>
+
+    <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
+    <string name="etp_panel_on">بو سایت اوچون قوْرومالار آچیقدیر</string>
+    <!-- Enhanced Tracking Protection message that protection is currently off for this site -->
+    <string name="etp_panel_off">بو سایت اوچون قوْرومالار باغلیدیر</string>
+
     <!-- Translations feature-->
 
 
