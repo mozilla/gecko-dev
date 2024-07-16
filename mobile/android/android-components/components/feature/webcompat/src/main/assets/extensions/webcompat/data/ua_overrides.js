@@ -1210,6 +1210,23 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1842767 - UA override for passport.bilibili.com
+     *
+     * Spoofing as Chrome makes the login page use a mobile layout.
+     */
+    id: "bug1842767",
+    platform: "android",
+    domain: "passport.bilibili.com",
+    bug: "1842767",
+    config: {
+      matches: ["*://*.passport.bilibili.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
