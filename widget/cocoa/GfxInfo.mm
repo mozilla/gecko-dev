@@ -470,12 +470,6 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         OperatingSystem::OSX, DeviceFamily::IntelSandyBridge,
         nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
         "FEATURE_FAILURE_INTEL_MAC_HD3000_NO_WEBRENDER");
-
-    // wgpu doesn't safely support OOB behavior on Metal yet.
-    IMPLEMENT_MAC_DRIVER_BLOCKLIST(
-        OperatingSystem::OSX, DeviceFamily::All, nsIGfxInfo::FEATURE_WEBGPU,
-        nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-        "FEATURE_FAILURE_MAC_WGPU_NO_METAL_BOUNDS_CHECKS");
   }
   return *sDriverInfo;
 }
