@@ -74,6 +74,8 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                     onItemClick = { downloadLanguageItemPreference ->
                         if (downloadLanguageItemPreference.languageModel.status ==
                             ModelState.DOWNLOADED ||
+                            downloadLanguageItemPreference.languageModel.status ==
+                            ModelState.DOWNLOAD_IN_PROGRESS ||
                             shouldShowPrefDownloadLanguageFileDialog(
                                 downloadLanguageItemPreference,
                             )
@@ -229,10 +231,7 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                         DownloadLanguageItemPreference(
                             languageModel = languageModel,
                             type = DownloadLanguageItemTypePreference.GeneralLanguage,
-                            enabled = !(
-                                languageModel.status == ModelState.DOWNLOAD_IN_PROGRESS ||
-                                    languageModel.status == ModelState.DELETION_IN_PROGRESS
-                                ),
+                            enabled = languageModel.status != ModelState.DELETION_IN_PROGRESS,
                         ),
                     )
                 }

@@ -54,6 +54,7 @@ import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoCard
 import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoType
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.translations.DownloadIconIndicator
+import org.mozilla.fenix.translations.DownloadInProgressIndicator
 import java.util.Locale
 
 /**
@@ -423,10 +424,19 @@ private fun downloadLanguageItemContentDescriptionPreference(
                 )
         }
 
-        ModelState.DOWNLOAD_IN_PROGRESS, ModelState.DELETION_IN_PROGRESS -> {
+        ModelState.DELETION_IN_PROGRESS -> {
             contentDescription =
                 "$label $itemDescription " + stringResource(
-                    id = R.string.download_languages_item_content_description_in_progress_state,
+                    id = R.string.download_languages_item_content_description_delete_in_progress_state,
+                )
+        }
+
+        ModelState.DOWNLOAD_IN_PROGRESS -> {
+            contentDescription =
+                stringResource(
+                    id = R.string.download_languages_item_content_description_download_in_progress_state,
+                    item.languageModel.language?.localizedDisplayName ?: "",
+                    item.languageModel.size?.toMegabyteOrKilobyteString() ?: "0",
                 )
         }
     }
@@ -462,7 +472,11 @@ private fun IconDownloadLanguageItemPreference(
             )
         }
 
-        ModelState.DOWNLOAD_IN_PROGRESS, ModelState.DELETION_IN_PROGRESS -> {
+        ModelState.DOWNLOAD_IN_PROGRESS -> {
+            DownloadInProgressIndicator()
+        }
+
+        ModelState.DELETION_IN_PROGRESS -> {
             DownloadIconIndicator(
                 icon = painterResource(id = R.drawable.mozac_ic_sync_24),
             )
