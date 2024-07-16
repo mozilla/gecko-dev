@@ -1,0 +1,82 @@
+<!doctype html>
+<title>Test dragend target should be same as dragstart</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
+<style>
+</style>
+<div draggable="true" id="draggable">
+  <span id="start">Outer1</span>
+  <span id="end">Outer2</span>
+</div>
+
+<input id="dropzone" />
+<script>
+
+const selection = window.getSelection();
+const start = document.getElementById("start");
+ const end = document.getElementById("end");
+const dropzone = document.getElementById("dropzone");
+
+add_task(async function test_dragend_target() {
+  selection.setBaseAndExtent(start.firstChild, 2, end.firstChild, 5);
+
+  let dragstartTarget = new Promise( r => {
+    start.addEventListener("dragstart", function(e) {
+      r(e.target);
+
+    });
+  });
+
+  let dragendTarget = new Promise( r => {
+    start.addEventListener("dragend", function(e) {
+      r(e.target);
+    });
+  });
+
+  await synthesizePlainDragAndDrop({
+    srcElement: start,
+    destElement: dropzone
+  });
+
+  is(dropzone.value, "ter1 Outer", "drag and drop success");
+
+  await Promise.all([dragstartTarget, dragendTarget]).then(values => {
+    ok(values[0] == values[1], "dragstart's target and dragend's target");
+    ok(values[0] == start.firstChild, "the target should be the start");
+  });
+
+  dropzone.value = '';
+  selection.empty();
+});
+
+add_task(async function test_dragend_target() {
+  selection.setBaseAndExtent(start.firstChild, 2, end.firstChild, 5);
+
+  let dragstartTarget = new Promise( r => {
+    end.addEventListener("dragstart", function(e) {
+      r(e.target);
+    });
+  });
+
+  let dragendTarget = new Promise( r => {
+    end.addEventListener("dragend", function(e) {
+      r(e.target);
+    });
+  });
+
+  await synthesizePlainDragAndDrop({
+    srcElement: end,
+    destElement: dropzone
+  });
+
+  is(dropzone.value, "ter1 Outer", "drag and drop success");
+
+  await Promise.all([dragstartTarget, dragendTarget]).then(values => {
+    ok(values[0] == values[1], "dragstart's target and dragend's target");
+    ok(values[0] == end.firstChild, "the target should be the end");
+  });
+
+  dropzone.value = '';
+});
+</script>

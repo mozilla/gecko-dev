@@ -442,6 +442,8 @@ skip-if = ["os == 'android'"] # Needs interaction with the scrollbar
 
 ["test_dragdrop.html"]
 
+["test_dragend_target.html"]
+
 ["test_execCommandPaste_noTarget.html"]
 
 ["test_focus_caret_navigation_between_nested_editors.html"]

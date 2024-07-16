@@ -88,7 +88,8 @@ class nsBaseDragSession : public nsIDragSession {
       nsIPrincipal* aPrincipal, nsIContentSecurityPolicy* aCsp,
       nsICookieJarSettings* aCookieJarSettings, nsIArray* aTransferableArray,
       uint32_t aActionType, mozilla::dom::DragEvent* aDragEvent,
-      mozilla::dom::DataTransfer* aDataTransfer, bool aIsSynthesizedForTests);
+      mozilla::dom::DataTransfer* aDataTransfer, nsINode* aTargetContent,
+      bool aIsSynthesizedForTests);
 
   // The nsIDragService uses this to create nsIDragSessions when dragging
   // from anywhere else.
