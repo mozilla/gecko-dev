@@ -1726,6 +1726,8 @@ pref("browser.newtabpage.activity-stream.weather.display", "simple");
 #else
   pref("browser.newtabpage.activity-stream.discoverystream.region-weather-config", "");
 #endif
+// List of locales that weather widget supports.
+pref("browser.newtabpage.activity-stream.discoverystream.locale-weather-config", "en-US,en-GB,en-CA");
 
 // Preference to enable wallpaper selection in the Customize Menu of new tab page
 #ifdef NIGHTLY_BUILD
