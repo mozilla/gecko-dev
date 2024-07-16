@@ -2635,24 +2635,6 @@ export class nsContextMenu {
   }
 
   /**
-   * Determines if Full Page Translations is currently active on this page.
-   *
-   * @returns {boolean}
-   */
-  #isFullPageTranslationsActive() {
-    try {
-      const { requestedTranslationPair } =
-        lazy.TranslationsParent.getTranslationsActor(
-          this.browser
-        ).languageState;
-      return requestedTranslationPair !== null;
-    } catch {
-      // Failed to retrieve the Full Page Translations actor, do nothing.
-    }
-    return false;
-  }
-
-  /**
    * Opens the SelectTranslationsPanel singleton instance.
    *
    * @param {Event} event - The triggering event for opening the panel.
@@ -2771,9 +2753,7 @@ export class nsContextMenu {
       // Only show the item if Translations is supported on this hardware.
       !lazy.TranslationsParent.getIsTranslationsEngineSupported() ||
       // If there is no text to translate, we have nothing to do.
-      textToTranslate.length === 0 ||
-      // We do not allow translating selections on top of Full Page Translations.
-      this.#isFullPageTranslationsActive();
+      textToTranslate.length === 0;
 
     if (translateSelectionItem.hidden) {
       translateSelectionItem.removeAttribute("target-language");

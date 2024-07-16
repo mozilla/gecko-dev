@@ -54,9 +54,10 @@ add_task(
       {
         selectSpanishSentence: true,
         openAtSpanishSentence: true,
-        expectMenuItemVisible: false,
+        expectMenuItemVisible: true,
+        expectedTargetLanguage: "en",
       },
-      "The translate-selection context menu item should be unavailable while full-page translations is active."
+      "The translate-selection context menu item should be available even while full-page translations is active."
     );
 
     await FullPageTranslationsTestUtils.openPanel({
@@ -133,9 +134,10 @@ add_task(
       {
         selectSpanishSentence: false,
         openAtSpanishHyperlink: true,
-        expectMenuItemVisible: false,
+        expectMenuItemVisible: true,
+        expectedTargetLanguage: "en",
       },
-      "The translate-selection context menu item should be unavailable while full-page translations is active."
+      "The translate-selection context menu item should be available even while full-page translations is active."
     );
 
     await FullPageTranslationsTestUtils.openPanel({
