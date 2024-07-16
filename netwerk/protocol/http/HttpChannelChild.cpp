@@ -493,6 +493,12 @@ void HttpChannelChild::OnStartRequest(
     SetCookie(aArgs.cookie());
   }
 
+  // Note: this is where we would notify "http-on-after-examine-response"
+  // observers.  We have deliberately disabled this for child processes (see bug
+  // 806753)
+  //
+  // gHttpHandler->OnAfterExamineResponse(this);
+
   if (aArgs.shouldWaitForOnStartRequestSent() &&
       !mRecvOnStartRequestSentCalled) {
     LOG(("  > pending DoOnStartRequest until RecvOnStartRequestSent\n"));
