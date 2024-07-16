@@ -78,8 +78,6 @@ dnl ========================================================
 dnl System overrides of the defaults for target
 dnl ========================================================
 
-MOZ_OPTIMIZE_LDFLAGS="${_COMPILATION_OPTIMIZE_LDFLAGS} ${MOZ_OPTIMIZE_FLAGS}"
-
 case "$target" in
 *-darwin*)
     MOZ_OPTIMIZE_FLAGS="-O3"
@@ -220,22 +218,10 @@ if test -n "$MOZ_OPTIMIZE"; then
         AC_MSG_ERROR([These compiler flags are invalid: $MOZ_OPTIMIZE_FLAGS])
     fi
     CFLAGS=$_SAVE_CFLAGS
-    if test -n "$MOZ_LTO" -a "$CC_TYPE" = clang ; then
-        # When using llvm-based LTO, non numeric optimization levels are
-        # not supported by the linker, so force the linker to use -O2 (
-        # which doesn't influence the level compilation units are actually
-        # compiled at).
-        case " $MOZ_OPTIMIZE_FLAGS " in
-        *\ -Os\ *|*\ -Oz\ *)
-            MOZ_OPTIMIZE_LDFLAGS="$MOZ_OPTIMIZE_LDFLAGS -O2"
-            ;;
-        esac
-    fi
 fi
 fi # COMPILE_ENVIRONMENT
 
 AC_SUBST_LIST(MOZ_OPTIMIZE_FLAGS)
-AC_SUBST_LIST(MOZ_OPTIMIZE_LDFLAGS)
 AC_SUBST_LIST(MOZ_PGO_OPTIMIZE_FLAGS)
 
 dnl ========================================================

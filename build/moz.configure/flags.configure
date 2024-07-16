@@ -644,10 +644,6 @@ def os_asflags(
 
 # Please keep these last in this file.
 add_old_configure_assignment("_COMPILATION_LDFLAGS", linker_flags.ldflags)
-add_old_configure_assignment(
-    "_COMPILATION_OPTIMIZE_LDFLAGS", linker_optimize_flags.ldflags
-)
-
 add_old_configure_assignment("CPPFLAGS", os_cppflags)
 
 add_old_configure_assignment("_COMPILATION_CFLAGS", compilation_flags.cflags)

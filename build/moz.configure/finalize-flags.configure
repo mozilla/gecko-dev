@@ -1,0 +1,24 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+
+@depends(linker_optimize_flags, moz_optimize_flags, lto, c_compiler)
+def moz_optimize_ldflags(linker_optimize_flags, moz_optimize_flags, lto, c_compiler):
+    flags = []
+    if linker_optimize_flags:
+        flags += linker_optimize_flags.ldflags
+    flags += moz_optimize_flags
+
+    # When using llvm-based LTO, non numeric optimization levels are
+    # not supported by the linker, so force the linker to use -O2 (
+    # which doesn't influence the level compilation units are actually
+    # compiled at).
+    if lto and lto.enabled and c_compiler.type == "clang":
+        flags = ["-O2" if flag in ("-Oz", "-Os") else flag for flag in flags]
+    return flags
+
+
+set_config("MOZ_OPTIMIZE_LDFLAGS", moz_optimize_ldflags)

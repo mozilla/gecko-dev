@@ -434,6 +434,15 @@ dmd = dependable(False)
 
 include(include_project_configure)
 
+# Final flags validation and gathering
+# -------------------------------------------------
+
+include(
+    "build/moz.configure/finalize-flags.configure", when="--enable-compile-environment"
+)
+
+# -------------------------------------------------
+
 
 @depends("--help")
 @imports(_from="mozbuild.backend", _import="backends")
