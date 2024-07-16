@@ -51,35 +51,32 @@ void js::DependentScriptSet::invalidateForFuse(JSContext* cx,
     return;
   }
 
-  for (auto r = weakScripts.all(); !r.empty(); r.popFront()) {
+  jit::InvalidateAndClearScriptSet(cx, weakScripts, "fuse");
+}
+
+void js::jit::InvalidateAndClearScriptSet(JSContext* cx,
+                                          WeakScriptCache& scripts,
+                                          const char* reason) {
+  for (auto r = scripts.all(); !r.empty(); r.popFront()) {
     JSScript* script = r.front().get();
     // A script may have lost its ion script for other reasons
     // by the time this is invoked, so need to ensure it's still there
     // before calling invaidate.
     if (script->hasIonScript()) {
-      JitSpew(jit::JitSpew_IonInvalidate, "Invalidating ion script %p",
-              script->ionScript());
+      JitSpew(jit::JitSpew_IonInvalidate, "Invalidating ion script %p for %s",
+              script->ionScript(), reason);
       js::jit::Invalidate(cx, script);
     }
   }
 
   // Scripts are invalidated, flush them.
-  weakScripts.clear();
+  scripts.clear();
 }
 
 bool js::DependentScriptSet::addScriptForFuse(InvalidatingFuse* fuse,
                                               Handle<JSScript*> script) {
   MOZ_ASSERT(fuse == associatedFuse);
-
-  WeakScriptSet::AddPtr p = weakScripts.lookupForAdd(script);
-  if (!p) {
-    if (!weakScripts.add(p, script)) {
-      return false;
-    }
-  }
-
-  // Script is already in the set, no need to re-add.
-  return true;
+  return jit::AddScriptToSet(weakScripts, script);
 }
 
 js::DependentScriptSet* js::DependentScriptGroup::getOrCreateDependentScriptSet(
@@ -97,4 +94,17 @@ js::DependentScriptSet* js::DependentScriptGroup::getOrCreateDependentScriptSet(
   auto& dss = dependencies.back();
   MOZ_ASSERT(dss.associatedFuse == fuse);
   return &dss;
+}
+
+bool js::jit::AddScriptToSet(WeakScriptCache& scripts,
+                             Handle<JSScript*> script) {
+  js::jit::WeakScriptSet::AddPtr p = scripts.lookupForAdd(script);
+  if (!p) {
+    if (!scripts.add(p, script)) {
+      return false;
+    }
+  }
+
+  // Script is already in the set, no need to re-add.
+  return true;
 }
