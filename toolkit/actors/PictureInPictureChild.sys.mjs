@@ -1681,6 +1681,8 @@ export class PictureInPictureChild extends JSWindowActorChild {
   removeTextTracks(originatingVideo) {
     const isWebVTTSupported = !!originatingVideo.textTracks;
 
+    this.removeCaptionChangeListener(originatingVideo);
+
     if (!isWebVTTSupported) {
       return;
     }
@@ -2262,6 +2264,12 @@ export class PictureInPictureChild extends JSWindowActorChild {
   setUpCaptionChangeListener(originatingVideo) {
     if (this.videoWrapper) {
       this.videoWrapper.setCaptionContainerObserver(originatingVideo, this);
+    }
+  }
+
+  removeCaptionChangeListener(originatingVideo) {
+    if (this.videoWrapper) {
+      this.videoWrapper.removeCaptionContainerObserver(originatingVideo, this);
     }
   }
 
@@ -3116,6 +3124,24 @@ class PictureInPictureChildVideoWrapper {
           this.updatePiPTextTracks(text);
         },
       ],
+      fallback: () => {},
+      validateRetVal: retVal => retVal == null,
+    });
+  }
+
+  /**
+   * OVERRIDABLE - calls the removeCaptionContainerObserver() method defined in the site wrapper script. Runs a fallback implementation
+   * if the method does not exist or if an error is thrown while calling it. This method is meant to remove any caption observers that
+   * may have been set in setCaptionContainerObserver().
+   * @param {HTMLVideoElement} video
+   *  The originating video source element
+   * @param {Function} _callback
+   *  The callback function to be executed when cue changes are detected
+   */
+  removeCaptionContainerObserver(video, _callback) {
+    return this.#callWrapperMethod({
+      name: "removeCaptionContainerObserver",
+      args: [video],
       fallback: () => {},
       validateRetVal: retVal => retVal == null,
     });
