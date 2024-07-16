@@ -50,7 +50,7 @@ add_setup(async () => {
 // group-relative suggestedIndex. The default Pocket suggestedIndex is 0.
 add_task(async function nimbusSuggestedIndex() {
   const cleanUpNimbusEnable = await UrlbarTestUtils.initNimbusFeature({
-    pocketSuggestIndex: -1,
+    pocketSuggestIndex: 0,
   });
   await QuickSuggestTestUtils.forceSync();
 
@@ -62,7 +62,7 @@ add_task(async function nimbusSuggestedIndex() {
     matches: [
       makeExpectedResult({
         searchString: LOW_KEYWORD,
-        suggestedIndex: -1,
+        suggestedIndex: 0,
       }),
     ],
   });
@@ -91,7 +91,7 @@ add_task(async function nimbusSuggestedIndex() {
     matches: [
       makeExpectedResult({
         searchString: LOW_KEYWORD,
-        suggestedIndex: 0,
+        suggestedIndex: -1,
       }),
     ],
   });
@@ -551,7 +551,7 @@ function makeExpectedResult({
   url.searchParams.set("utm_campaign", "pocket-collections-in-the-address-bar");
   url.searchParams.set("utm_content", "treatment");
 
-  let expectedSuggestedIndex = 0;
+  let expectedSuggestedIndex = -1;
   if (suggestedIndex !== undefined) {
     expectedSuggestedIndex = suggestedIndex;
   } else if (isTopPick) {
