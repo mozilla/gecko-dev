@@ -2587,3 +2587,20 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  monochrome:
+    type: boolean
+    description: >
+      Whether the user's device is monochrome
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907164
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907164#c1
+    expires: never
+    data_sensitivity:
+      - technical
