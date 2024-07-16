@@ -82,14 +82,14 @@ fn run(args: CliArgs) -> miette::Result<()> {
                     dir
                 })
         };
-        let gecko_source_root = find_up(".hg").or_else(|e| match find_up(".git") {
+        let gecko_source_root = find_up(".hg").or_else(|hg_err| match find_up(".git") {
             Ok(path) => {
-                log::debug!("{e:?}");
+                log::debug!("{hg_err:?}");
                 Ok(path)
             }
-            Err(e2) => {
-                log::warn!("{e:?}");
-                log::warn!("{e2:?}");
+            Err(git_err) => {
+                log::warn!("{hg_err:?}");
+                log::warn!("{git_err:?}");
                 bail!("failed to find a Gecko repository root")
             }
         })?;
