@@ -403,6 +403,8 @@ if CONFIG["ENABLE_TESTS"]:
 
 include("/ipc/chromium/chromium-config.mozbuild")
 
+LOCAL_INCLUDES += CONFIG["SKIA_INCLUDES"]
+
 # Suppress some GCC warnings being treated as errors:
 #  - about attributes on forward declarations for types that are already
 #    defined, which complains about an important MOZ_EXPORT for android::AString

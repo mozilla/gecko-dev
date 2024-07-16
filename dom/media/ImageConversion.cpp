@@ -5,10 +5,16 @@
 
 #include "ImageConversion.h"
 
+#include "skia/include/core/SkBitmap.h"
+#include "skia/include/core/SkColorSpace.h"
+#include "skia/include/core/SkImage.h"
+#include "skia/include/core/SkImageInfo.h"
+
 #include "ImageContainer.h"
 #include "YCbCrUtils.h"
 #include "libyuv/convert.h"
 #include "libyuv/convert_from_argb.h"
+#include "mozilla/PodOperations.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
@@ -335,11 +341,73 @@ nsresult ConvertToRGBA(Image* aImage, const SurfaceFormat& aDestFormat,
   return NS_OK;
 }
 
+static SkColorType ToSkColorType(const SurfaceFormat& aFormat) {
+  switch (aFormat) {
+    case SurfaceFormat::B8G8R8A8:
+    case SurfaceFormat::B8G8R8X8:
+      return kBGRA_8888_SkColorType;
+    case SurfaceFormat::R8G8B8A8:
+    case SurfaceFormat::R8G8B8X8:
+      return kRGBA_8888_SkColorType;
+    default:
+      break;
+  }
+  return kUnknown_SkColorType;
+}
+
 nsresult ConvertSRGBBufferToDisplayP3(uint8_t* aSrcBuffer,
-                                      const gfx::SurfaceFormat& aSrcFormat,
+                                      const SurfaceFormat& aSrcFormat,
                                       uint8_t* aDestBuffer, int aWidth,
                                       int aHeight) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (!aSrcBuffer || !aDestBuffer || aWidth <= 0 || aHeight <= 0 ||
+      !IsRGBX(aSrcFormat)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  SkColorType srcColorType = ToSkColorType(aSrcFormat);
+  if (srcColorType == kUnknown_SkColorType) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  // TODO: Provide source's color space info to customize SkColorSpace.
+  auto srcColorSpace = SkColorSpace::MakeSRGB();
+  SkImageInfo srcInfo = SkImageInfo::Make(aWidth, aHeight, srcColorType,
+                                          kUnpremul_SkAlphaType, srcColorSpace);
+
+  constexpr size_t bytesPerPixel = 4;
+  CheckedInt<size_t> rowBytes(bytesPerPixel);
+  rowBytes *= aWidth;
+  if (!rowBytes.isValid()) {
+    return NS_ERROR_DOM_MEDIA_OVERFLOW_ERR;
+  }
+
+  SkBitmap srcBitmap;
+  if (!srcBitmap.installPixels(srcInfo, aSrcBuffer, rowBytes.value())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // TODO: Provide destination's color space info to customize SkColorSpace.
+  auto destColorSpace =
+      SkColorSpace::MakeRGB(SkNamedTransferFn::kSRGB, SkNamedGamut::kDisplayP3);
+
+  SkBitmap destBitmap;
+  if (!destBitmap.tryAllocPixels(srcInfo.makeColorSpace(destColorSpace))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!srcBitmap.readPixels(destBitmap.pixmap())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  CheckedInt<size_t> size(rowBytes.value());
+  size *= aHeight;
+  if (!size.isValid()) {
+    return NS_ERROR_DOM_MEDIA_OVERFLOW_ERR;
+  }
+
+  PodCopy(aDestBuffer, reinterpret_cast<uint8_t*>(destBitmap.getPixels()),
+          size.value());
+  return NS_OK;
 }
 
 }  // namespace mozilla
