@@ -749,6 +749,7 @@ PresShell::PresShell(Document* aDocument)
     : mDocument(aDocument),
       mViewManager(nullptr),
       mAutoWeakFrames(nullptr),
+      mLastAnchorVerticalScrollViewPosition(WhereToScroll::Start),
 #ifdef ACCESSIBILITY
       mDocAccessible(nullptr),
 #endif  // ACCESSIBILITY
@@ -3172,6 +3173,7 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
       if (ScrollContainerFrame* rootScroll = GetRootScrollContainerFrame()) {
         mLastAnchorScrolledTo = target;
         mLastAnchorScrollPositionY = rootScroll->GetScrollPosition().y;
+        mLastAnchorVerticalScrollViewPosition = verticalScrollPosition;
       }
     }
 
@@ -3279,7 +3281,8 @@ nsresult PresShell::ScrollToAnchor() {
     return NS_OK;
   }
   return ScrollContentIntoView(
-      lastAnchor, ScrollAxis(WhereToScroll::Start, WhenToScroll::Always),
+      lastAnchor,
+      ScrollAxis(mLastAnchorVerticalScrollViewPosition, WhenToScroll::Always),
       ScrollAxis(), ScrollFlags::AnchorScrollFlags);
 }
 

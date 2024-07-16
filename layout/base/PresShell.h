@@ -2989,6 +2989,11 @@ class PresShell final : public nsStubDocumentObserver,
 
   nsCOMPtr<nsIContent> mLastAnchorScrolledTo;
 
+  // Text directives are supposed to be scrolled to the center of the viewport.
+  // Since `ScrollToAnchor()` might get called after `GoToAnchor()` during a
+  // load, the vertical view position should be preserved.
+  WhereToScroll mLastAnchorVerticalScrollViewPosition;
+
   // Information needed to properly handle scrolling content into view if the
   // pre-scroll reflow flush can be interrupted.  mContentToScrollTo is non-null
   // between the initial scroll attempt and the first time we finish processing
