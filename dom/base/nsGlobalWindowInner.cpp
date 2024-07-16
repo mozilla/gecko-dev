@@ -3812,162 +3812,132 @@ already_AddRefed<nsPIWindowRoot> nsGlobalWindowInner::GetTopWindowRoot() {
   return outer->GetTopWindowRoot();
 }
 
-void nsGlobalWindowInner::Scroll(double aXScroll, double aYScroll) {
-  // Convert -Inf, Inf, and NaN to 0; otherwise, convert by C-style cast.
-  auto scrollPos = CSSIntPoint::Truncate(mozilla::ToZeroIfNonfinite(aXScroll),
-                                         mozilla::ToZeroIfNonfinite(aYScroll));
-  ScrollTo(scrollPos, ScrollOptions());
-}
-
 void nsGlobalWindowInner::ScrollTo(double aXScroll, double aYScroll) {
-  // Convert -Inf, Inf, and NaN to 0; otherwise, convert by C-style cast.
-  auto scrollPos = CSSIntPoint::Truncate(mozilla::ToZeroIfNonfinite(aXScroll),
-                                         mozilla::ToZeroIfNonfinite(aYScroll));
-  ScrollTo(scrollPos, ScrollOptions());
+  ScrollToOptions options;
+  options.mLeft.Construct(aXScroll);
+  options.mTop.Construct(aYScroll);
+  ScrollTo(options);
 }
 
 void nsGlobalWindowInner::ScrollTo(const ScrollToOptions& aOptions) {
   // When scrolling to a non-zero offset, we need to determine whether that
   // position is within our scrollable range, so we need updated layout
-  // information which requires a layout flush, otherwise all we need is to
-  // flush frames to be able to access our scrollable frame here.
-  FlushType flushType =
-      ((aOptions.mLeft.WasPassed() && aOptions.mLeft.Value() > 0) ||
-       (aOptions.mTop.WasPassed() && aOptions.mTop.Value() > 0))
-          ? FlushType::Layout
-          : FlushType::Frames;
-  FlushPendingNotifications(flushType);
-  ScrollContainerFrame* sf = GetScrollContainerFrame();
-
-  if (sf) {
-    CSSIntPoint scrollPos = sf->GetRoundedScrollPositionCSSPixels();
-    if (aOptions.mLeft.WasPassed()) {
-      scrollPos.x = static_cast<int32_t>(
-          mozilla::ToZeroIfNonfinite(aOptions.mLeft.Value()));
-    }
-    if (aOptions.mTop.WasPassed()) {
-      scrollPos.y = static_cast<int32_t>(
-          mozilla::ToZeroIfNonfinite(aOptions.mTop.Value()));
-    }
-
-    ScrollTo(scrollPos, aOptions);
+  // information.
+  if ((aOptions.mLeft.WasPassed() && aOptions.mLeft.Value() > 0) ||
+      (aOptions.mTop.WasPassed() && aOptions.mTop.Value() > 0)) {
+    FlushPendingNotifications(FlushType::Layout);
   }
-}
 
-void nsGlobalWindowInner::Scroll(const ScrollToOptions& aOptions) {
-  ScrollTo(aOptions);
-}
-
-void nsGlobalWindowInner::ScrollTo(const CSSIntPoint& aScroll,
-                                   const ScrollOptions& aOptions) {
-  // When scrolling to a non-zero offset, we need to determine whether that
-  // position is within our scrollable range, so we need updated layout
-  // information which requires a layout flush, otherwise all we need is to
-  // flush frames to be able to access our scrollable frame here.
-  FlushType flushType =
-      (aScroll.x || aScroll.y) ? FlushType::Layout : FlushType::Frames;
-  FlushPendingNotifications(flushType);
   ScrollContainerFrame* sf = GetScrollContainerFrame();
-
-  if (sf) {
-    // Here we calculate what the max pixel value is that we can
-    // scroll to, we do this by dividing maxint with the pixel to
-    // twips conversion factor, and subtracting 4, the 4 comes from
-    // experimenting with this value, anything less makes the view
-    // code not scroll correctly, I have no idea why. -- jst
-    const int32_t maxpx = nsPresContext::AppUnitsToIntCSSPixels(0x7fffffff) - 4;
-
-    CSSIntPoint scroll(aScroll);
-    if (scroll.x > maxpx) {
-      scroll.x = maxpx;
-    }
-
-    if (scroll.y > maxpx) {
-      scroll.y = maxpx;
-    }
-
-    ScrollMode scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
-                                ? ScrollMode::SmoothMsd
-                                : ScrollMode::Instant;
-
-    sf->ScrollToCSSPixels(scroll, scrollMode);
+  if (!sf) {
+    return;
   }
+  CSSIntPoint scrollPos = sf->GetRoundedScrollPositionCSSPixels();
+  if (aOptions.mLeft.WasPassed()) {
+    scrollPos.x = static_cast<int32_t>(
+        mozilla::ToZeroIfNonfinite(aOptions.mLeft.Value()));
+  }
+  if (aOptions.mTop.WasPassed()) {
+    scrollPos.y =
+        static_cast<int32_t>(mozilla::ToZeroIfNonfinite(aOptions.mTop.Value()));
+  }
+  // Here we calculate what the max pixel value is that we can
+  // scroll to, we do this by dividing maxint with the pixel to
+  // twips conversion factor, and subtracting 4, the 4 comes from
+  // experimenting with this value, anything less makes the view
+  // code not scroll correctly, I have no idea why. -- jst
+  const int32_t maxpx = nsPresContext::AppUnitsToIntCSSPixels(0x7fffffff) - 4;
+  if (scrollPos.x > maxpx) {
+    scrollPos.x = maxpx;
+  }
+  if (scrollPos.y > maxpx) {
+    scrollPos.y = maxpx;
+  }
+  auto scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
+                        ? ScrollMode::SmoothMsd
+                        : ScrollMode::Instant;
+  sf->ScrollToCSSPixels(scrollPos, scrollMode);
 }
 
 void nsGlobalWindowInner::ScrollBy(double aXScrollDif, double aYScrollDif) {
-  FlushPendingNotifications(FlushType::Layout);
-  ScrollContainerFrame* sf = GetScrollContainerFrame();
-
-  if (sf) {
-    // It seems like it would make more sense for ScrollBy to use
-    // SMOOTH mode, but tests seem to depend on the synchronous behaviour.
-    // Perhaps Web content does too.
-    ScrollToOptions options;
-    options.mLeft.Construct(aXScrollDif);
-    options.mTop.Construct(aYScrollDif);
-    ScrollBy(options);
-  }
+  ScrollToOptions options;
+  options.mLeft.Construct(aXScrollDif);
+  options.mTop.Construct(aYScrollDif);
+  // It seems like it would make more sense for ScrollBy to use
+  // SMOOTH mode, but tests seem to depend on the synchronous behaviour.
+  // Perhaps Web content does too.
+  ScrollBy(options);
 }
 
 void nsGlobalWindowInner::ScrollBy(const ScrollToOptions& aOptions) {
+  CSSIntPoint scrollDelta;
+  if (aOptions.mLeft.WasPassed()) {
+    scrollDelta.x = static_cast<int32_t>(
+        mozilla::ToZeroIfNonfinite(aOptions.mLeft.Value()));
+  }
+  if (aOptions.mTop.WasPassed()) {
+    scrollDelta.y =
+        static_cast<int32_t>(mozilla::ToZeroIfNonfinite(aOptions.mTop.Value()));
+  }
+
+  if (!scrollDelta.x && !scrollDelta.y) {
+    return;
+  }
+
   FlushPendingNotifications(FlushType::Layout);
   ScrollContainerFrame* sf = GetScrollContainerFrame();
-
-  if (sf) {
-    CSSIntPoint scrollDelta;
-    if (aOptions.mLeft.WasPassed()) {
-      scrollDelta.x = static_cast<int32_t>(
-          mozilla::ToZeroIfNonfinite(aOptions.mLeft.Value()));
-    }
-    if (aOptions.mTop.WasPassed()) {
-      scrollDelta.y = static_cast<int32_t>(
-          mozilla::ToZeroIfNonfinite(aOptions.mTop.Value()));
-    }
-
-    ScrollMode scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
-                                ? ScrollMode::SmoothMsd
-                                : ScrollMode::Instant;
-
-    sf->ScrollByCSSPixels(scrollDelta, scrollMode);
+  if (!sf) {
+    return;
   }
+
+  auto scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
+                        ? ScrollMode::SmoothMsd
+                        : ScrollMode::Instant;
+  sf->ScrollByCSSPixels(scrollDelta, scrollMode);
 }
 
 void nsGlobalWindowInner::ScrollByLines(int32_t numLines,
                                         const ScrollOptions& aOptions) {
+  if (!numLines) {
+    return;
+  }
   FlushPendingNotifications(FlushType::Layout);
   ScrollContainerFrame* sf = GetScrollContainerFrame();
-  if (sf) {
-    // It seems like it would make more sense for ScrollByLines to use
-    // SMOOTH mode, but tests seem to depend on the synchronous behaviour.
-    // Perhaps Web content does too.
-    ScrollMode scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
-                                ? ScrollMode::SmoothMsd
-                                : ScrollMode::Instant;
-
-    sf->ScrollBy(nsIntPoint(0, numLines), ScrollUnit::LINES, scrollMode);
+  if (!sf) {
+    return;
   }
+  // It seems like it would make more sense for ScrollByLines to use
+  // SMOOTH mode, but tests seem to depend on the synchronous behaviour.
+  // Perhaps Web content does too.
+  ScrollMode scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
+                              ? ScrollMode::SmoothMsd
+                              : ScrollMode::Instant;
+  sf->ScrollBy(nsIntPoint(0, numLines), ScrollUnit::LINES, scrollMode);
 }
 
 void nsGlobalWindowInner::ScrollByPages(int32_t numPages,
                                         const ScrollOptions& aOptions) {
+  if (!numPages) {
+    return;
+  }
   FlushPendingNotifications(FlushType::Layout);
   ScrollContainerFrame* sf = GetScrollContainerFrame();
-  if (sf) {
-    // It seems like it would make more sense for ScrollByPages to use
-    // SMOOTH mode, but tests seem to depend on the synchronous behaviour.
-    // Perhaps Web content does too.
-    ScrollMode scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
-                                ? ScrollMode::SmoothMsd
-                                : ScrollMode::Instant;
-
-    sf->ScrollBy(nsIntPoint(0, numPages), ScrollUnit::PAGES, scrollMode);
+  if (!sf) {
+    return;
   }
+  // It seems like it would make more sense for ScrollByPages to use
+  // SMOOTH mode, but tests seem to depend on the synchronous behaviour.
+  // Perhaps Web content does too.
+  ScrollMode scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
+                              ? ScrollMode::SmoothMsd
+                              : ScrollMode::Instant;
+
+  sf->ScrollBy(nsIntPoint(0, numPages), ScrollUnit::PAGES, scrollMode);
 }
 
 void nsGlobalWindowInner::MozScrollSnap() {
   FlushPendingNotifications(FlushType::Layout);
-  ScrollContainerFrame* sf = GetScrollContainerFrame();
-  if (sf) {
+  if (ScrollContainerFrame* sf = GetScrollContainerFrame()) {
     sf->ScrollSnap();
   }
 }
