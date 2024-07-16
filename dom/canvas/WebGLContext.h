@@ -301,6 +301,7 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
   const uint32_t mMaxAcceptableFBStatusInvals =
       StaticPrefs::webgl_perf_max_acceptable_fb_status_invals();
   bool mWarnOnce_DepthTexCompareFilterable = true;
+  mutable bool mRemapImplReadType_HalfFloatOes = false;
 
   uint64_t mNextFenceId = 1;
   uint64_t mCompletedFenceId = 0;

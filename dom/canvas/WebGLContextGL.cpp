@@ -866,7 +866,13 @@ bool WebGLContext::DoReadPixelsAndConvert(
   const auto& x = desc.srcOffset.x;
   const auto& y = desc.srcOffset.y;
   const auto size = *ivec2::From(desc.size);
-  const auto& pi = desc.pi;
+
+  auto pi = desc.pi;
+  if (mRemapImplReadType_HalfFloatOes) {
+    if (pi.type == LOCAL_GL_HALF_FLOAT_OES) {
+      pi.type = LOCAL_GL_HALF_FLOAT;
+    }
+  }
 
   // On at least Win+NV, we'll get PBO errors if we don't have at least
   // `rowStride * height` bytes available to read into.
@@ -990,8 +996,7 @@ static webgl::PackingInfo DefaultReadPixelPI(
   }
 }
 
-static bool ArePossiblePackEnums(const WebGLContext* webgl,
-                                 const webgl::PackingInfo& pi) {
+static bool ArePossiblePackEnums(const webgl::PackingInfo& pi) {
   // OpenGL ES 2.0 $4.3.1 - IMPLEMENTATION_COLOR_READ_{TYPE/FORMAT} is a valid
   // combination for glReadPixels()...
 
@@ -1030,7 +1035,14 @@ webgl::PackingInfo WebGLContext::ValidImplementationColorReadPI(
   gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_TYPE,
                    (GLint*)&implPI.type);
 
-  if (!ArePossiblePackEnums(this, implPI)) return defaultPI;
+  if (!IsWebGL2()) {
+    if (implPI.type == LOCAL_GL_HALF_FLOAT) {
+      mRemapImplReadType_HalfFloatOes = true;
+      implPI.type = LOCAL_GL_HALF_FLOAT_OES;
+    }
+  }
+
+  if (!ArePossiblePackEnums(implPI)) return defaultPI;
 
   return implPI;
 }
@@ -1038,7 +1050,7 @@ webgl::PackingInfo WebGLContext::ValidImplementationColorReadPI(
 static bool ValidateReadPixelsFormatAndType(
     const webgl::FormatUsageInfo* srcUsage, const webgl::PackingInfo& pi,
     gl::GLContext* gl, WebGLContext* webgl) {
-  if (!ArePossiblePackEnums(webgl, pi)) {
+  if (!ArePossiblePackEnums(pi)) {
     webgl->ErrorInvalidEnum("Unexpected format or type.");
     return false;
   }
