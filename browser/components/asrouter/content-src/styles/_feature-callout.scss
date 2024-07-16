@@ -127,22 +127,14 @@
 
     // auto height to allow for arrow positioning based on height
     height: auto;
-  }
 
-  // use a different approach to flipping to avoid the fuzzy aliasing that
-  // transform causes.
-  &:dir(rtl) {
+    // use a different approach to flipping to avoid the fuzzy aliasing that
+    // transform causes.
     transform: none;
-    direction: ltr;
-  }
-
-  & .outer-wrapper:dir(rtl) {
-    transform: none;
-    direction: rtl;
   }
 
   .screen {
-    // override transform in about:welcome
+    // override the RTL transform in about:welcome
     &:dir(rtl) {
       transform: none;
     }
@@ -198,7 +190,7 @@
       }
 
       .welcome-text {
-        align-items: baseline;
+        align-items: start;
         text-align: start;
         margin: 0;
         padding: 0;

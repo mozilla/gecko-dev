@@ -258,14 +258,7 @@ div#feature-callout.hidden {
 #feature-callout .onboardingContainer .outer-wrapper {
   --transition: none;
   height: auto;
-}
-#feature-callout:dir(rtl) {
   transform: none;
-  direction: ltr;
-}
-#feature-callout .outer-wrapper:dir(rtl) {
-  transform: none;
-  direction: rtl;
 }
 #feature-callout .screen:dir(rtl) {
   transform: none;
@@ -309,7 +302,7 @@ div#feature-callout.hidden {
   transform: rotateY(180deg);
 }
 #feature-callout .screen[pos=callout] .welcome-text {
-  align-items: baseline;
+  align-items: start;
   text-align: start;
   margin: 0;
   padding: 0;
