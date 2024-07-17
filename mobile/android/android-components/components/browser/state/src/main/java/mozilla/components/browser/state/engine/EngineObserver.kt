@@ -335,6 +335,12 @@ internal class EngineObserver(
         )
     }
 
+    override fun onHideDynamicToolbar() {
+        store.dispatch(
+            ContentAction.UpdateExpandedToolbarStateAction(tabId, false),
+        )
+    }
+
     override fun onMediaActivated(mediaSessionController: MediaSession.Controller) {
         store.dispatch(
             MediaSessionAction.ActivatedMediaSessionAction(
