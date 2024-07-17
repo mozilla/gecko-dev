@@ -20,12 +20,13 @@ class WindowFeatures;
 
 webidl BrowsingContext;
 interface mozIDOMWindowProxy;
-interface nsISimpleEnumerator;
-interface nsIWebBrowserChrome;
-interface nsIDocShellTreeItem;
 interface nsIArray;
-interface nsIRemoteTab;
+interface nsIDocShellTreeItem;
 interface nsIOpenWindowInfo;
+interface nsIRemoteTab;
+interface nsISimpleEnumerator;
+interface nsIURI;
+interface nsIWebBrowserChrome;
 native nsDocShellLoadStatePtr(nsDocShellLoadState*);
 [ref] native WindowFeaturesRef(const mozilla::dom::WindowFeatures);
 [ref] native UserActivationModifiersRef(const mozilla::dom::UserActivation::Modifiers);
@@ -99,7 +100,7 @@ interface nsPIWindowWatcher : nsISupports
             aParent).  This is not guaranteed, however.
   */
   [noscript]
-  BrowsingContext openWindow2(in mozIDOMWindowProxy aParent, in ACString aUrl,
+  BrowsingContext openWindow2(in mozIDOMWindowProxy aParent, in nsIURI aUri,
                               in ACString aName, in ACString aFeatures,
                               in UserActivationModifiersRef aModifiers,
                               in boolean aCalledFromScript,

@@ -83,6 +83,13 @@ class nsWindowWatcher : public nsIWindowWatcher,
       bool aCalledFromJS, bool aDialog, bool aNavigate, nsIArray* aArgv,
       bool aIsPopupSpam, bool aForceNoOpener, bool aForceNoReferrer, PrintKind,
       nsDocShellLoadState* aLoadState, mozilla::dom::BrowsingContext** aResult);
+  nsresult OpenWindowInternal(
+      mozIDOMWindowProxy* aParent, nsIURI* aUri, const nsACString& aName,
+      const nsACString& aFeatures,
+      const mozilla::dom::UserActivation::Modifiers& aModifiers,
+      bool aCalledFromJS, bool aDialog, bool aNavigate, nsIArray* aArgv,
+      bool aIsPopupSpam, bool aForceNoOpener, bool aForceNoReferrer, PrintKind,
+      nsDocShellLoadState* aLoadState, mozilla::dom::BrowsingContext** aResult);
 
   static nsresult URIfromURL(const nsACString& aURL,
                              mozIDOMWindowProxy* aParent, nsIURI** aURI);

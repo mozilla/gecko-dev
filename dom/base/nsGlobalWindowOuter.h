@@ -7,6 +7,7 @@
 #ifndef nsGlobalWindowOuter_h___
 #define nsGlobalWindowOuter_h___
 
+#include "nsNodeInfoManager.h"
 #include "nsPIDOMWindow.h"
 
 #include "nsTHashtable.h"
@@ -81,6 +82,8 @@ namespace mozilla {
 class AbstractThread;
 class DOMEventTargetHelper;
 class ErrorResult;
+template <typename V, typename E>
+class Result;
 class ThrottledEventQueue;
 class ScrollContainerFrame;
 namespace dom {
@@ -756,9 +759,11 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
                         PrintKind aPrintKind,
                         mozilla::dom::BrowsingContext** aReturn);
 
- public:
-  nsresult SecurityCheckURL(const char* aURL, nsIURI** aURI);
+  mozilla::Result<already_AddRefed<nsIURI>, nsresult>
+  URIfromURLAndMaybeDoSecurityCheck(const nsACString& aURL,
+                                    bool aSecurityCheck);
 
+ public:
   mozilla::dom::PopupBlocker::PopupControlState RevisePopupAbuseLevel(
       mozilla::dom::PopupBlocker::PopupControlState aState);
   void FireAbuseEvents(const nsAString& aPopupURL,
