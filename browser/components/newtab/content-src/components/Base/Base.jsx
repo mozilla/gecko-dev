@@ -437,11 +437,17 @@ export class BaseContent extends React.PureComponent {
     const hasThumbsUpDownLayout =
       prefs["discoverystream.thumbsUpDown.searchTopsitesCompact"];
 
+    const featureClassName = [
+      weatherEnabled && mayHaveWeather && "has-weather", // Show is weather is enabled/visible
+      prefs.showSearch ? "has-search" : "no-search",
+    ]
+      .filter(v => v)
+      .join(" ");
+
     const outerClassName = [
       "outer-wrapper",
       isDiscoveryStream && pocketEnabled && "ds-outer-wrapper-search-alignment",
       isDiscoveryStream && "ds-outer-wrapper-breakpoint-override",
-      !prefs.showSearch && "no-search",
       prefs.showSearch &&
         this.state.fixedSearch &&
         !noSectionsEnabled &&
@@ -457,7 +463,7 @@ export class BaseContent extends React.PureComponent {
     }
 
     return (
-      <div>
+      <div className={featureClassName}>
         {/* Floating menu for customize menu toggle */}
         <menu className="personalizeButtonWrapper">
           <CustomizeMenu
@@ -483,6 +489,13 @@ export class BaseContent extends React.PureComponent {
             />
           )}
         </menu>
+        <div className="weatherWrapper">
+          {weatherEnabled && (
+            <ErrorBoundary>
+              <Weather />
+            </ErrorBoundary>
+          )}
+        </div>
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions*/}
         <div className={outerClassName} onClick={this.closeCustomizationMenu}>
           <main>
@@ -516,11 +529,6 @@ export class BaseContent extends React.PureComponent {
             {wallpapersEnabled && this.renderWallpaperAttribution()}
           </main>
           <aside>
-            {weatherEnabled && (
-              <ErrorBoundary>
-                <Weather />
-              </ErrorBoundary>
-            )}
             {this.props.Notifications?.showNotifications && (
               <ErrorBoundary>
                 <Notifications dispatch={this.props.dispatch} />
