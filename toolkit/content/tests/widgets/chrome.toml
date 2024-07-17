@@ -79,3 +79,6 @@ skip-if = [
 ]
 
 ["test_videocontrols_onclickplay.html"]
+skip-if = [
+   "os == 'linux' && os_version == '18.04' && debug", # Bug 1787007
+]
