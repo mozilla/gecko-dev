@@ -5,11 +5,11 @@
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
-// eslint-disable-next-line import/no-unassigned-import
+/* eslint-disable-next-line import/no-unassigned-import, mozilla/no-browser-refs-in-toolkit */
 import "chrome://browser/content/aboutlogins/components/input-field/login-origin-field.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+/* eslint-disable-next-line import/no-unassigned-import, mozilla/no-browser-refs-in-toolkit */
 import "chrome://browser/content/aboutlogins/components/input-field/login-username-field.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+/* eslint-disable-next-line import/no-unassigned-import, mozilla/no-browser-refs-in-toolkit */
 import "chrome://browser/content/aboutlogins/components/input-field/login-password-field.mjs";
 
 export class PasswordCard extends MozLitElement {
@@ -22,8 +22,10 @@ export class PasswordCard extends MozLitElement {
 
   #revealIconSrc(concealed) {
     return !concealed
-      ? "chrome://browser/content/aboutlogins/icons/password-hide.svg"
-      : "chrome://browser/content/aboutlogins/icons/password.svg";
+      ? /* eslint-disable-next-line mozilla/no-browser-refs-in-toolkit */
+        "chrome://browser/content/aboutlogins/icons/password-hide.svg"
+      : /* eslint-disable-next-line mozilla/no-browser-refs-in-toolkit */
+        "chrome://browser/content/aboutlogins/icons/password.svg";
   }
 
   handleCommand(commandId, lineIndex) {

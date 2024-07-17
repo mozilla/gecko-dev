@@ -58,6 +58,8 @@ add_task(async function test_passwords_sidebar() {
   checkPasswordCardFields(megalist);
 
   LoginTestUtils.clearData();
+  info("Closing the sidebar");
+  SidebarController.hide();
 });
 
 function checkPasswordCardFields(megalist) {

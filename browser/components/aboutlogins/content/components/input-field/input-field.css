@@ -5,7 +5,7 @@
 :host {
   display: grid;
   grid-template-areas: "label label" "input actions";
-  grid-template-columns: 1fr min-content;
+  grid-template-columns: minmax(0, auto) min-content;
   align-items: center;
 }
 
@@ -62,4 +62,5 @@ button.reveal-password-button:hover:active {
 
 .actions {
   display: flex;
+  justify-content: end;
 }

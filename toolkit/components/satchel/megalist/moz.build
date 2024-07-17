@@ -6,7 +6,8 @@
 
 
 BROWSER_CHROME_MANIFESTS += ["content/tests/browser/browser.toml"]
-MOCHITEST_CHROME_MANIFESTS += ["content/tests/chrome/chrome.toml"]
+# Re-enable when using VirtualizedList to display logins
+# MOCHITEST_CHROME_MANIFESTS += ["content/tests/chrome/chrome.toml"]
 XPCSHELL_TESTS_MANIFESTS += ["aggregator/tests/unit/xpcshell.toml"]
 
 DIRS += [

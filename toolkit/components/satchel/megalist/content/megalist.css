@@ -276,7 +276,7 @@ virtualized-list {
 
 /* Password Card styles */
 password-card {
-  margin-block: 8px;
+  margin-block: var(--space-small);
 }
 
 .passwords-list {
@@ -287,9 +287,63 @@ password-card {
 .password-card-container {
   display: grid;
   grid-template-rows: 1fr 1fr 1fr;
-  grid-gap: 12px;
+  grid-gap: var(--space-medium);
 }
 
 .edit-button {
   justify-self: end;
+}
+
+.searchContainer {
+  height: 32px;
+  padding: 8px;
+  cursor: text;
+  border-radius: 4px;
+  border: 1px solid var(--in-content-border-color);
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+
+  &:focus-within {
+    outline: 1px auto;
+  }
+}
+
+.searchIcon {
+  background-image: url(chrome://global/skin/icons/search-textbox.svg);
+  background-position: center;
+  background-repeat: no-repeat;
+  fill: currentColor;
+  -moz-context-properties: fill;
+  width: 18px;
+  margin-inline-end: 4px;
+  flex-shrink: 0;
+}
+
+.search {
+  border: none;
+  background-color: transparent;
+  outline: none;
+}
+
+.first-row {
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  grid-gap: 12px;
+  align-items: center;
+  margin-block-end: 20px;
+}
+
+.second-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.toggle-buttons {
+  display: flex;
+  gap: var(--space-small);
+}
+
+.selected::part(button) {
+  background-color: var(--button-background-color-active);
 }

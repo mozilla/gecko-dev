@@ -4,6 +4,5 @@ support-files = [
 ]
 
 ["browser_passwords_sidebar.js"]
-skip-if = ["os == 'linux'"]
 
 ["browser_viewmodel.js"]

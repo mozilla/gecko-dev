@@ -541,7 +541,7 @@ export class LoginDataSource extends DataSourceBase {
         login.password.toUpperCase().includes(searchText)
     );
 
-    this.#header.value = stats.total;
+    this.#header.value.total = stats.total;
   }
 
   /**
@@ -563,6 +563,7 @@ export class LoginDataSource extends DataSourceBase {
       ? await lazy.LoginBreaches.getPotentialBreachesByLoginGUID(logins)
       : new Map();
 
+    let alertsAcc = 0;
     logins.forEach(login => {
       // Similar domains will be grouped together
       // www. will have least effect on the sorting
@@ -579,8 +580,10 @@ export class LoginDataSource extends DataSourceBase {
       let alertValue;
       if (isLoginBreached) {
         alertValue = ALERT_VALUES.breached;
+        alertsAcc += 1;
       } else if (isLoginVulnerable) {
         alertValue = ALERT_VALUES.vulnerable;
+        alertsAcc += 1;
       } else {
         alertValue = ALERT_VALUES.none;
       }
@@ -606,13 +609,15 @@ export class LoginDataSource extends DataSourceBase {
       originLine.breached = isLoginBreached;
       passwordLine.vulnerable = isLoginVulnerable;
     });
+    this.#header.value.alerts = alertsAcc;
     this.afterReloadingDataSource();
   }
 
   #reloadEmptyDataSource() {
     this.lines.length = 0;
     //todo: user can enable passwords by activating Passwords header line
-    this.#header.value = 0;
+    this.#header.value.total = 0;
+    this.#header.value.alerts = 0;
     this.refreshAllLinesOnScreen();
   }
 

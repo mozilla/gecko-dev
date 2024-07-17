@@ -2,11 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html } from "chrome://global/content/vendor/lit.all.mjs";
+import { html, classMap } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/megalist/PasswordCard.mjs";
+
+const DISPLAY_MODES = {
+  ALERTS: "alerts",
+  ALL: "all",
+};
 
 export class MegalistAlpha extends MozLitElement {
   constructor() {
@@ -15,6 +20,7 @@ export class MegalistAlpha extends MozLitElement {
     this.searchText = "";
     this.records = [];
     this.header = null;
+    this.displayMode = DISPLAY_MODES.ALL;
 
     window.addEventListener("MessageFromViewModel", ev =>
       this.#onMessageFromViewModel(ev)
@@ -27,6 +33,7 @@ export class MegalistAlpha extends MozLitElement {
       searchText: { type: String },
       records: { type: Array },
       header: { type: Object },
+      displayMode: { type: String },
     };
   }
 
@@ -41,6 +48,32 @@ export class MegalistAlpha extends MozLitElement {
       console.warn(`Received unknown message "${detail.name}"`);
     }
     this[functionName]?.(detail.data);
+  }
+
+  #onInputChange(e) {
+    const searchText = e.target.value;
+    this.searchText = searchText;
+    this.#messageToViewModel("UpdateFilter", { searchText });
+  }
+
+  #onAddButtonClick() {
+    // TODO: implement me!
+  }
+
+  #onShowAllButtonClick() {
+    this.displayMode = DISPLAY_MODES.ALL;
+    this.#messageToViewModel("Command", {
+      commandId: "SortByName",
+      snapshotId: 0,
+    });
+  }
+
+  #onSortByAlertsButtonClick() {
+    this.displayMode = DISPLAY_MODES.ALERTS;
+    this.#messageToViewModel("Command", {
+      commandId: "SortByAlerts",
+      snapshotId: 0,
+    });
   }
 
   #messageToViewModel(messageName, data) {
@@ -98,13 +131,93 @@ export class MegalistAlpha extends MozLitElement {
       : "";
   }
 
+  renderSearch() {
+    return html`
+      <div class="searchContainer">
+        <div class="searchIcon"></div>
+        <input
+          class="search"
+          type="search"
+          data-l10n-id="filter-input"
+          .value=${this.searchText}
+          @input=${e => this.#onInputChange(e)}
+        />
+      </div>
+    `;
+  }
+
+  renderFirstRow() {
+    return html`<div class="first-row">
+      ${this.renderSearch()}
+      <moz-button
+        @click=${this.#onAddButtonClick}
+        data-l10n-id="create-login-button"
+        type="icon"
+        iconSrc="chrome://global/skin/icons/plus.svg"
+      ></moz-button>
+    </div>`;
+  }
+
+  renderButton(title, selected, onClick) {
+    return html`<moz-button
+      class=${classMap({ selected })}
+      iconSrc=${selected ? "chrome://global/skin/icons/check.svg" : ""}
+      @click=${onClick}
+    >
+      ${title}
+    </moz-button>`;
+  }
+
+  renderToggleButtons() {
+    return html`
+      <div class="toggle-buttons">
+        ${this.renderButton(
+          `All (${this.header.value.total})`,
+          this.displayMode === DISPLAY_MODES.ALL,
+          this.#onShowAllButtonClick
+        )}
+        ${this.renderButton(
+          `Alerts (${this.header.value.alerts})`,
+          this.displayMode === DISPLAY_MODES.ALERTS,
+          this.#onSortByAlertsButtonClick
+        )}
+      </div>
+    `;
+  }
+
+  renderActionsPanel() {
+    return html`
+      <panel-list>
+        <panel-item accesskey="N">Import from another browser…</panel-item>
+        <panel-item accesskey="O">Import from a file…</panel-item>
+        <panel-item accesskey="S">Export passwords</panel-item>
+        <panel-item accesskey="S">Remove all passwords</panel-item>
+        <hr />
+        <panel-item accesskey="Q">Options</panel-item>
+        <panel-item accesskey="Q">Help</panel-item>
+      </panel-list>
+    `;
+  }
+
+  renderSecondRow() {
+    if (!this.header) {
+      return "";
+    }
+
+    return html`<div class="second-row">
+      ${this.renderToggleButtons()} ${this.renderActionsPanel()}
+    </div>`;
+  }
+
   render() {
     return html`
       <link
         rel="stylesheet"
         href="chrome://global/content/megalist/megalist.css"
       />
-      <div class="container">${this.renderList()}</div>
+      <div class="container">
+        ${this.renderFirstRow()} ${this.renderSecondRow()} ${this.renderList()}
+      </div>
     `;
   }
 }

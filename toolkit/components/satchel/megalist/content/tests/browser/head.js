@@ -47,4 +47,8 @@ async function addMockPasswords() {
     password: "pass3",
     origin: "https://example3.com",
   });
+
+  for (let login of await Services.logins.getAllLogins()) {
+    info(`Saved login: ${login.username}, ${login.password}, ${login.origin}`);
+  }
 }

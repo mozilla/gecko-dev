@@ -73,7 +73,9 @@ export class DataSourceBase {
 
   async localizeStrings(strings) {
     const keys = Object.keys(strings);
-    const localisationIds = Object.values(strings).map(id => ({ id }));
+    const localisationIds = Object.values(strings)
+      .filter(id => id)
+      .map(id => ({ id }));
     const messages = await DataSourceBase.ftl.formatMessages(localisationIds);
 
     for (let i = 0; i < messages.length; i++) {
@@ -90,11 +92,20 @@ export class DataSourceBase {
   }
 
   getPlatformFtl(messageId) {
+    // OS auth is only supported on Windows and macOS
+    if (
+      AppConstants.platform == "linux" &&
+      "passwords-export-os-auth-dialog-message"
+    ) {
+      return null;
+    }
+
     if (AppConstants.platform == "macosx") {
       messageId += "-macosx";
     } else if (AppConstants.platform == "win") {
       messageId += "-win";
     }
+
     return messageId;
   }
 
@@ -192,7 +203,7 @@ export class DataSourceBase {
   createHeaderLine(label, tooltip) {
     const result = {
       label,
-      value: "",
+      value: {},
       collapsed: false,
       start: true,
       end: true,

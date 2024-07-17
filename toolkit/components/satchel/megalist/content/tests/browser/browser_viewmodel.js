@@ -9,7 +9,7 @@ const { MegalistViewModel } = ChromeUtils.importESModule(
 
 const EXPECTED_SNAPSHOTS_DATA = [
   // header data
-  { lineIndex: 0, value: 3, field: undefined },
+  { lineIndex: 0, value: { total: 3, alerts: 0 }, field: undefined },
 
   // first record
   { lineIndex: 1, value: "example1.com", field: "origin" },
@@ -61,7 +61,7 @@ add_task(async function test_viewmodel_rebuildSnapshots() {
     const { lineIndex } = snapshot;
     const expected = EXPECTED_SNAPSHOTS_DATA[lineIndex];
     is(snapshot.field, expected.field, "field property matches.");
-    is(snapshot.value, expected.value, "value property matches.");
+    Assert.deepEqual(snapshot.value, expected.value, "value property matches.");
 
     if (snapshot.field === "password") {
       ok(snapshot.concealed, "password is concealed.");
