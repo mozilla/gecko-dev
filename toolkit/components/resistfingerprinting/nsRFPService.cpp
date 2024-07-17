@@ -34,6 +34,7 @@
 #include "mozilla/MacroForEach.h"
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Services.h"
 #include "mozilla/Sprintf.h"
@@ -1513,6 +1514,8 @@ nsresult nsRFPService::GenerateCanvasKeyFromImageData(
     nsICookieJarSettings* aCookieJarSettings, uint8_t* aImageData,
     uint32_t aSize, nsTArray<uint8_t>& aCanvasKey) {
   NS_ENSURE_ARG_POINTER(aCookieJarSettings);
+  AUTO_PROFILER_MARKER_TEXT("nsRFPService", OTHER, {},
+                            "nsRFPService::GenerateCanvasKeyFromImageData"_ns);
 
   nsTArray<uint8_t> randomKey;
   nsresult rv =
