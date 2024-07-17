@@ -26,6 +26,7 @@ UNIFIED_SOURCES += [
     "TestTextures.cpp",
     "TestTreeTraversal.cpp",
     "TestVsync.cpp",
+    "TestYUVtoRGB32.cpp",
 ]
 
 if CONFIG["OS_TARGET"] != "Android":
