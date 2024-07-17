@@ -280,3 +280,4 @@ load 1890888.html
 load 1890899.html
 load 1896225.html
 load 1897248.html
+asserts(0-1) load 1907228.html # see bug 1908485 for assert

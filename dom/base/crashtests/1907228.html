@@ -1,0 +1,22 @@
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  b.addEventListener("DOMNodeRemoved", () => {
+    document.execCommand("removeFormat", false)
+  })
+  document.designMode = "on"
+  document.execCommand("selectAll", false)
+  a.addEventListener("DOMAttrModified", () => {
+    document.execCommand("bold", false)
+    document.getSelection().deleteFromDocument()
+  })
+  a.className = "A"
+})
+</script>
+<map id="a"></map>
+<font></font>
+<area>
+<meter>
+<object id="b"></object>
+<font>
+</font>
+</meter>
