@@ -66,11 +66,6 @@ const TEST_PROVIDER_INFO = [
 const client = RemoteSettings(TELEMETRY_CATEGORIZATION_KEY);
 const db = client.db;
 
-function sleep(ms) {
-  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 add_setup(async function () {
   SearchSERPTelemetry.overrideSearchTelemetryForTests(TEST_PROVIDER_INFO);
   await waitForIdle();
@@ -186,6 +181,8 @@ add_task(async function test_quick_activity_to_inactivity_alternation() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
   await promise;
 
+  BrowserTestUtils.removeTab(tab);
+
   let activityDetectedPromise = TestUtils.topicObserved(
     "user-interaction-active"
   );
@@ -206,12 +203,11 @@ add_task(async function test_quick_activity_to_inactivity_alternation() {
     submitted,
     "Ping should not be submitted after a quick alternation from activity to inactivity."
   );
-
-  BrowserTestUtils.removeTab(tab);
 });
 
 add_task(async function test_submit_after_activity_then_inactivity() {
   resetTelemetry();
+
   let oldActivityLimit = Services.prefs.getIntPref(
     "telemetry.fog.test.activity_limit"
   );
@@ -223,6 +219,12 @@ add_task(async function test_submit_after_activity_then_inactivity() {
     "Should not have recorded any metrics yet."
   );
 
+  let url = getSERPUrl("searchTelemetryDomainCategorizationReporting.html");
+  info("Load a sample SERP with organic and sponsored results.");
+  let promise = waitForPageWithCategorizedDomains();
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
+  await promise;
+
   let submitted = false;
   GleanPings.serpCategorization.testBeforeNextSubmit(reason => {
     submitted = true;
@@ -233,11 +235,7 @@ add_task(async function test_submit_after_activity_then_inactivity() {
     );
   });
 
-  let url = getSERPUrl("searchTelemetryDomainCategorizationReporting.html");
-  info("Load a sample SERP with organic and sponsored results.");
-  let promise = waitForPageWithCategorizedDomains();
-  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
-  await promise;
+  BrowserTestUtils.removeTab(tab);
 
   let activityDetectedPromise = TestUtils.topicObserved(
     "user-interaction-active"
@@ -260,7 +258,6 @@ add_task(async function test_submit_after_activity_then_inactivity() {
     "Ping should be submitted after 2+ seconds of activity, followed by inactivity."
   );
 
-  BrowserTestUtils.removeTab(tab);
   Services.prefs.setIntPref(
     "telemetry.fog.test.activity_limit",
     oldActivityLimit

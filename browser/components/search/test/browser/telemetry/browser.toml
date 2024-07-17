@@ -37,6 +37,9 @@ support-files = ["searchTelemetryAd_searchbox_with_content.html", "serp.css"]
 
 ["browser_search_telemetry_adblock_count.js"]
 
+["browser_search_telemetry_categorization_experiment_info.js"]
+support-files = ["searchTelemetryDomainCategorizationReporting.html"]
+
 ["browser_search_telemetry_categorization_timing.js"]
 
 ["browser_search_telemetry_content.js"]
@@ -147,9 +150,6 @@ support-files = [
   "serp.css",
 ]
 
-["browser_search_telemetry_engagement_target_after_load.js"]
-support-files = ["searchTelemetryAd_components_text.html", "serp.css"]
-
 ["browser_search_telemetry_engagement_target.js"]
 support-files = [
   "searchTelemetryAd_components_text.html",
@@ -157,6 +157,9 @@ support-files = [
   "searchTelemetryAd_searchbox.html^headers^",
   "serp.css",
 ]
+
+["browser_search_telemetry_engagement_target_after_load.js"]
+support-files = ["searchTelemetryAd_components_text.html", "serp.css"]
 
 ["browser_search_telemetry_new_window.js"]
 support-files = ["searchTelemetry.html", "searchTelemetryAd.html"]

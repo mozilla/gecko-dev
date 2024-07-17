@@ -65,6 +65,11 @@ SearchTestUtils.init(this);
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function sleep(ms) {
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // sharedData messages are only passed to the child on idle. Therefore
 // we wait for a few idles to try and ensure the messages have been able
 // to be passed across and handled.

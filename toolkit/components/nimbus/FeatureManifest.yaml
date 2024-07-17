@@ -156,6 +156,11 @@ search:
         effect when the user restarts.
         Obsolete. This is kept until all multi-feature roll-outs using it are
         ended to prevent un-enrollment.
+    targetExperiment:
+      type: string
+      description: >-
+        The slug of the experiment someone is requesting enrollment and branch
+        information for. (Note that the featureId needs to be set to "search".)
 
 # `searchConfiguration` is for search experiment features for items that require
 # isEarlyStartup to be true. These items may require a reload of the search
