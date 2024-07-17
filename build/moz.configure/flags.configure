@@ -610,6 +610,32 @@ def os_cppflags(env_cppflags):
     return flags
 
 
+@depends("CFLAGS", compilation_flags, android_flags, all_arm_flags)
+@imports(_from="mozbuild.shellutil", _import="split")
+def os_cflags(env_cflags, compilation_flags, android_flags, all_arm_flags):
+    flags = []
+    if android_flags:
+        flags.extend(android_flags.cflags)
+    if all_arm_flags:
+        flags.extend(all_arm_flags)
+    flags.extend(compilation_flags.cflags)
+    flags.extend(split(env_cflags[0]))
+    return flags
+
+
+@depends("CXXFLAGS", compilation_flags, android_flags, all_arm_flags)
+@imports(_from="mozbuild.shellutil", _import="split")
+def os_cxxflags(env_cxxflags, compilation_flags, android_flags, all_arm_flags):
+    flags = []
+    if android_flags:
+        flags.extend(android_flags.cxxflags)
+    if all_arm_flags:
+        flags.extend(all_arm_flags)
+    flags.extend(compilation_flags.cxxflags)
+    flags.extend(split(env_cxxflags[0]))
+    return flags
+
+
 @depends(
     "ASFLAGS",
     asm_flags,
@@ -642,12 +668,24 @@ def os_asflags(
     return flags
 
 
-# Please keep these last in this file.
-add_old_configure_assignment("_COMPILATION_LDFLAGS", linker_flags.ldflags)
-add_old_configure_assignment("CPPFLAGS", os_cppflags)
+@depends("LDFLAGS", linker_flags, android_flags, thumb_option)
+@imports(_from="mozbuild.shellutil", _import="split")
+def os_ldflags(env_ldflags, linker_flags, android_flags, thumb_option):
+    flags = []
+    if android_flags:
+        flags.extend(android_flags.ldflags)
+    if thumb_option:
+        flags.extend(thumb_option)
+    flags.extend(split(env_ldflags[0]))
+    flags.extend(linker_flags.ldflags)
+    return flags
 
-add_old_configure_assignment("_COMPILATION_CFLAGS", compilation_flags.cflags)
-add_old_configure_assignment("_COMPILATION_CXXFLAGS", compilation_flags.cxxflags)
+
+# Please keep these last in this file.
+add_old_configure_assignment("CPPFLAGS", os_cppflags)
+add_old_configure_assignment("CFLAGS", os_cflags)
+add_old_configure_assignment("CXXFLAGS", os_cxxflags)
+add_old_configure_assignment("LDFLAGS", os_ldflags)
 
 set_config("HOST_CPPFLAGS", host_cppflags)
 set_config("HOST_CFLAGS", host_cflags)

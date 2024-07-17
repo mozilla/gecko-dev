@@ -47,8 +47,32 @@ option(
 
 
 option(
+    env="CFLAGS",
+    help="Extra flags for compiling C sources.",
+    nargs=1,
+    default="",
+)
+
+
+option(
+    env="CXXFLAGS",
+    help="Extra flags for compiling C++ sources.",
+    nargs=1,
+    default="",
+)
+
+
+option(
     env="ASFLAGS",
     help="Extra flags for assembling sources.",
+    nargs=1,
+    default="",
+)
+
+
+option(
+    env="LDFLAGS",
+    help="Extra flags for linking object files.",
     nargs=1,
     default="",
 )
@@ -60,6 +84,7 @@ option(
     nargs=1,
     default="",
 )
+
 
 # Code optimization
 # ==============================================================

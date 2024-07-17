@@ -172,10 +172,6 @@ def all_arm_flags(flags, interwork):
     return flags + interwork
 
 
-add_old_configure_assignment("_ARM_FLAGS", all_arm_flags)
-add_old_configure_assignment("_THUMB_FLAGS", thumb_option)
-
-
 @depends(configure_cache, c_compiler, all_arm_flags)
 @checking("ARM version support in compiler", lambda x: x.arm_arch)
 @imports(_from="textwrap", _import="dedent")

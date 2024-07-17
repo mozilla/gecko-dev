@@ -11,27 +11,6 @@ AC_INIT(js/src/jsapi.h)
 AC_CONFIG_AUX_DIR(${srcdir}/build/autoconf)
 AC_CANONICAL_SYSTEM
 
-dnl ========================================================
-dnl =
-dnl = Don't change the following lines. Doing so breaks:
-dnl =
-dnl = CFLAGS="-foo" ./configure
-dnl =
-dnl ========================================================
-CFLAGS="${CFLAGS=}"
-CXXFLAGS="${CXXFLAGS=}"
-LDFLAGS="${LDFLAGS=}"
-
-dnl Propagate extra android flags
-dnl =============================
-case "$target" in
-*-android*|*-linuxandroid*)
-    LDFLAGS="$ANDROID_LDFLAGS $LDFLAGS"
-    CFLAGS="$ANDROID_CFLAGS $CFLAGS"
-    CXXFLAGS="$ANDROID_CXXFLAGS $CXXFLAGS"
-    ;;
-esac
-
 
 dnl Set the minimum version of toolkit libs used by mozilla
 dnl ========================================================
@@ -69,10 +48,6 @@ else
 fi
 
 fi # COMPILE_ENVIRONMENT
-
-dnl Configure platform-specific CPU architecture compiler options.
-dnl ==============================================================
-MOZ_ARCH_OPTS
 
 dnl ========================================================
 dnl System overrides of the defaults for target
@@ -213,19 +188,6 @@ AC_SUBST_LIST(MOZ_DEBUG_LDFLAGS)
 AC_SUBST(MOZ_POST_PROGRAM_COMMAND)
 
 AC_SUBST(MOZ_APP_DISPLAYNAME)
-
-dnl Echo the CFLAGS to remove extra whitespace.
-CFLAGS=`echo \
-	$_COMPILATION_CFLAGS \
-	$CFLAGS`
-
-CXXFLAGS=`echo \
-	$_COMPILATION_CXXFLAGS \
-	$CXXFLAGS`
-
-LDFLAGS=`echo \
-    $LDFLAGS \
-    $_COMPILATION_LDFLAGS`
 
 OS_CFLAGS="$CFLAGS"
 OS_CXXFLAGS="$CXXFLAGS"

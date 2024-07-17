@@ -9,6 +9,10 @@ NO_CACHE=1
 # Override any toolchain defines we've inherited from other mozconfigs.
 unset CC
 unset CXX
+unset CPPFLAGS
+unset CFLAGS
+unset CXXFLAGS
+unset LDFLAGS
 unset HOST_CC
 unset HOST_CXX
 unset HOST_CPPFLAGS
