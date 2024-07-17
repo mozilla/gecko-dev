@@ -621,7 +621,7 @@ static Result<CombinedBufferLayout, MediaResult> ParseVideoFrameCopyToOptions(
     format = VideoFrame::Format(aOptions.mFormat.Value());
   }
 
-  return ComputeLayoutAndAllocationSize(parsedRect, aFormat, optLayout);
+  return ComputeLayoutAndAllocationSize(parsedRect, format, optLayout);
 }
 
 static bool IsYUVFormat(const VideoPixelFormat& aFormat) {
