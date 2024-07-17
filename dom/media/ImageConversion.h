@@ -44,8 +44,7 @@ nsresult ConvertToNV12(layers::Image* aImage, uint8_t* aDestY, int aDestStrideY,
  */
 nsresult ConvertToRGBA(layers::Image* aImage,
                        const gfx::SurfaceFormat& aDestFormat,
-                       uint8_t* aDestBuffer, int aDestStride, int aWidth,
-                       int aHeight);
+                       uint8_t* aDestBuffer, int aDestStride);
 
 /*
  * Convert the RGBA image data from SRGB color into DisplayP3 color.

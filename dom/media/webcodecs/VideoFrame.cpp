@@ -1251,8 +1251,7 @@ static Result<RefPtr<layers::Image>, MediaResult> ConvertToRGBAImage(
   gfx::SurfaceFormat surfaceFormat = format.ToSurfaceFormat();
 
   nsresult r =
-      ConvertToRGBA(aImage.get(), surfaceFormat, buffer.get(), stride.value(),
-                    aImage->GetSize().Width(), aImage->GetSize().Height());
+      ConvertToRGBA(aImage.get(), surfaceFormat, buffer.get(), stride.value());
   if (NS_FAILED(r)) {
     return Err(
         MediaResult(r, nsPrintfCString("Failed to convert into %s image",
