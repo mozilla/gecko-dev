@@ -108,11 +108,11 @@ class SharedSurface {
   virtual void Commit() {}
 
  protected:
-  virtual void LockProdImpl(){};
-  virtual void UnlockProdImpl(){};
+  virtual void LockProdImpl() {};
+  virtual void UnlockProdImpl() {};
 
-  virtual void ProducerAcquireImpl(){};
-  virtual void ProducerReleaseImpl(){};
+  virtual void ProducerAcquireImpl() {};
+  virtual void ProducerReleaseImpl() {};
 
   virtual void ProducerReadAcquireImpl() { ProducerAcquireImpl(); }
   virtual void ProducerReadReleaseImpl() { ProducerReleaseImpl(); }

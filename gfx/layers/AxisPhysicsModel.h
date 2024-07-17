@@ -55,14 +55,14 @@ class AxisPhysicsModel {
 
  protected:
   struct State {
-    State(double ap, double av) : p(ap), v(av){};
+    State(double ap, double av) : p(ap), v(av) {};
     double p;  // Position
     double v;  // Velocity
   };
 
   struct Derivative {
-    Derivative() : dp(0.0), dv(0.0){};
-    Derivative(double aDp, double aDv) : dp(aDp), dv(aDv){};
+    Derivative() : dp(0.0), dv(0.0) {};
+    Derivative(double aDp, double aDv) : dp(aDp), dv(aDv) {};
     double dp;  // dp / delta time = Position
     double dv;  // dv / delta time = Velocity
   };

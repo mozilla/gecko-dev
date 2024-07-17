@@ -21,7 +21,7 @@ namespace mozilla::dom {
 
 struct ValueWithSize : LinkedListElement<ValueWithSize> {
   ValueWithSize(JS::Handle<JS::Value> aValue, double aSize)
-      : mValue(aValue), mSize(aSize){};
+      : mValue(aValue), mSize(aSize) {};
 
   JS::Heap<JS::Value> mValue;
   double mSize = 0.0f;

@@ -217,7 +217,7 @@ struct opAppendCommentToDocument {
   int32_t mLength;
 
   explicit opAppendCommentToDocument(char16_t* aBuffer, int32_t aLength)
-      : mBuffer(aBuffer), mLength(aLength){};
+      : mBuffer(aBuffer), mLength(aLength) {};
 };
 
 class nsHtml5TreeOperationStringPair {
@@ -320,7 +320,7 @@ struct opGetFosterParent {
 struct opMarkAsBroken {
   nsresult mResult;
 
-  explicit opMarkAsBroken(nsresult aResult) : mResult(aResult){};
+  explicit opMarkAsBroken(nsresult aResult) : mResult(aResult) {};
 };
 
 struct opRunScriptThatMayDocumentWriteOrBlock {
@@ -372,7 +372,7 @@ struct opUpdateCharsetSource {
   nsCharsetSource mCharsetSource;
 
   explicit opUpdateCharsetSource(nsCharsetSource aCharsetSource)
-      : mCharsetSource(aCharsetSource){};
+      : mCharsetSource(aCharsetSource) {};
 };
 
 struct opCharsetSwitchTo {
@@ -384,7 +384,7 @@ struct opCharsetSwitchTo {
                              int32_t aCharsetSource, int32_t aLineNumber)
       : mEncoding(aEncoding),
         mCharsetSource(aCharsetSource),
-        mLineNumber(aLineNumber){};
+        mLineNumber(aLineNumber) {};
 };
 
 struct opUpdateStyleSheet {
@@ -398,7 +398,7 @@ struct opUpdateStyleSheet {
 struct opProcessOfflineManifest {
   char16_t* mUrl;
 
-  explicit opProcessOfflineManifest(char16_t* aUrl) : mUrl(aUrl){};
+  explicit opProcessOfflineManifest(char16_t* aUrl) : mUrl(aUrl) {};
 };
 
 struct opMarkMalformedIfScript {
@@ -449,14 +449,14 @@ struct opMaybeComplainAboutCharset {
 
   explicit opMaybeComplainAboutCharset(char* aMsgId, bool aError,
                                        int32_t aLineNumber)
-      : mMsgId(aMsgId), mError(aError), mLineNumber(aLineNumber){};
+      : mMsgId(aMsgId), mError(aError), mLineNumber(aLineNumber) {};
 };
 
 struct opMaybeComplainAboutDeepTree {
   int32_t mLineNumber;
 
   explicit opMaybeComplainAboutDeepTree(int32_t aLineNumber)
-      : mLineNumber(aLineNumber){};
+      : mLineNumber(aLineNumber) {};
 };
 
 struct opAddClass {
@@ -486,7 +486,7 @@ struct opAddViewSourceBase {
   int32_t mLength;
 
   explicit opAddViewSourceBase(char16_t* aBuffer, int32_t aLength)
-      : mBuffer(aBuffer), mLength(aLength){};
+      : mBuffer(aBuffer), mLength(aLength) {};
 };
 
 struct opAddErrorType {

@@ -14,7 +14,7 @@ namespace widget {
 
 class ScreenHelperWin final : public ScreenManager::Helper {
  public:
-  ScreenHelperWin(){};
+  ScreenHelperWin() {};
   ~ScreenHelperWin() override {}
 
   static void RefreshScreens();

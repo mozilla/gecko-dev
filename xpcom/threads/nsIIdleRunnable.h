@@ -31,7 +31,7 @@ class nsIIdleRunnable : public nsISupports {
    * Notify the task of a point in time in the future when the task
    * should stop executing.
    */
-  virtual void SetDeadline(mozilla::TimeStamp aDeadline){};
+  virtual void SetDeadline(mozilla::TimeStamp aDeadline) {};
   virtual void SetTimer(uint32_t aDelay, nsIEventTarget* aTarget) {
     MOZ_ASSERT_UNREACHABLE(
         "The nsIIdleRunnable instance does not support "

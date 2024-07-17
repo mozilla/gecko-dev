@@ -30,7 +30,7 @@ typedef tis_char th_char;
 #  define TH_THAIBEGIN_ 0xa0
 #  define th_isthai(c) ((c) >= 0xa0)
 #endif
-#define th_zcode(c) ((c)-TH_THAIBEGIN_)
+#define th_zcode(c) ((c) - TH_THAIBEGIN_)
 
 enum TH_CHARNAME {
   TH_THAIBEGIN = TH_THAIBEGIN_,

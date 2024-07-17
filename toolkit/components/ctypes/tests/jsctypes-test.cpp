@@ -121,8 +121,7 @@ CTYPES_FOR_EACH_TYPE(DEFINE_CDECL_TYPE_STATS)
 template <typename T>
 int32_t StrLen(const T* string) {
   const T* end;
-  for (end = string; *end; ++end)
-    ;
+  for (end = string; *end; ++end);
   return end - string;
 }
 

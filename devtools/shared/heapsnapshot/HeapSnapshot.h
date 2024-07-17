@@ -173,7 +173,7 @@ class HeapSnapshot final : public nsISupports, public nsWrapperCache {
 // serializes it to disk, or memory, or a socket, etc.
 class CoreDumpWriter {
  public:
-  virtual ~CoreDumpWriter(){};
+  virtual ~CoreDumpWriter() {};
 
   // Write the given bits of metadata we would like to associate with this core
   // dump.

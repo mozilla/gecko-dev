@@ -279,10 +279,11 @@ class NativePtrPicker {
   // so we only enable this overload if Impl is refcounted AND it does not
   // implement OnWeakNonIntrusiveDetach. Yields type REFPTR.
   template <typename I>
-  static auto Test(void*) -> std::enable_if_t<
-      std::conjunction_v<IsRefCounted<I>,
-                         std::negation<HasWeakNonIntrusiveDetach<I>>>,
-      ResultTypeT<NativePtrType::REFPTR>>;
+  static auto Test(void*)
+      -> std::enable_if_t<
+          std::conjunction_v<IsRefCounted<I>,
+                             std::negation<HasWeakNonIntrusiveDetach<I>>>,
+          ResultTypeT<NativePtrType::REFPTR>>;
 
   // This overload uses '...' as its param to make its arguments less specific;
   // the compiler prefers more-specific overloads to less-specific ones.

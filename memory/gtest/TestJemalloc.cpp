@@ -349,9 +349,9 @@ class SizeClassesBetween {
 };
 
 #define ALIGNMENT_CEILING(s, alignment) \
-  (((s) + ((alignment)-1)) & (~((alignment)-1)))
+  (((s) + ((alignment) - 1)) & (~((alignment) - 1)))
 
-#define ALIGNMENT_FLOOR(s, alignment) ((s) & (~((alignment)-1)))
+#define ALIGNMENT_FLOOR(s, alignment) ((s) & (~((alignment) - 1)))
 
 static bool IsSameRoundedHugeClass(size_t aSize1, size_t aSize2,
                                    jemalloc_stats_t& aStats) {

@@ -19,8 +19,8 @@ WorkerLoadContext::WorkerLoadContext(
       mKind(aKind),
       mClientInfo(aClientInfo),
       mScriptLoader(aScriptLoader),
-      mOnlyExistingCachedResourcesAllowed(
-          aOnlyExistingCachedResourcesAllowed){};
+      mOnlyExistingCachedResourcesAllowed(aOnlyExistingCachedResourcesAllowed) {
+      };
 
 ThreadSafeRequestHandle::ThreadSafeRequestHandle(
     JS::loader::ScriptLoadRequest* aRequest, nsISerialEventTarget* aSyncTarget)

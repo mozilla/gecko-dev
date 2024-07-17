@@ -23,8 +23,8 @@ NS_IMPL_ISUPPORTS(BackstagePass, nsIXPCScriptable, nsIGlobalObject,
                   nsISupportsWeakReference)
 
 BackstagePass::BackstagePass()
-    : mPrincipal(nsContentUtils::GetSystemPrincipal()), mWrapper(nullptr) {}
-
+    : mPrincipal(nsContentUtils::GetSystemPrincipal()),
+      mWrapper(nullptr){}
 // XXX(nika): It appears we don't have support for mayresolve hooks in
 // nsIXPCScriptable, and I don't really want to add it because I'd rather just
 // kill nsIXPCScriptable alltogether, so we don't use it here.
@@ -42,7 +42,8 @@ BackstagePass::BackstagePass()
    XPC_SCRIPTABLE_DONT_REFLECT_INTERFACE_NAMES)
 #include "xpc_map_end.h" /* This will #undef the above */
 
-JSObject* BackstagePass::GetGlobalJSObject() {
+          JSObject
+          * BackstagePass::GetGlobalJSObject() {
   if (mWrapper) {
     return mWrapper->GetFlatJSObject();
   }

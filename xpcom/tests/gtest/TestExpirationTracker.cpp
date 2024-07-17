@@ -171,8 +171,7 @@ static bool test_random4() { return test_random<4>(); }
 static bool test_random8() { return test_random<8>(); }
 
 typedef bool (*TestFunc)();
-#define DECL_TEST(name) \
-  { #name, name }
+#define DECL_TEST(name) {#name, name}
 
 static const struct Test {
   const char* name;

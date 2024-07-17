@@ -132,7 +132,7 @@ class MessagePump {
   virtual nsISerialEventTarget* GetXPCOMThread() { return nullptr; }
 
  protected:
-  virtual ~MessagePump(){};
+  virtual ~MessagePump() {};
 };
 
 }  // namespace base

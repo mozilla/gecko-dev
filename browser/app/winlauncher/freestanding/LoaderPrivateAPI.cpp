@@ -17,8 +17,9 @@ using GlobalInitializerFn = void(__cdecl*)(void);
 
 // Allocation of static initialization section for the freestanding library
 #pragma section(".freestd$a", read)
-__declspec(allocate(".freestd$a")) static const GlobalInitializerFn
-    FreeStdStart = reinterpret_cast<GlobalInitializerFn>(0);
+__declspec(allocate(
+    ".freestd$a")) static const GlobalInitializerFn FreeStdStart =
+    reinterpret_cast<GlobalInitializerFn>(0);
 
 #pragma section(".freestd$z", read)
 __declspec(allocate(".freestd$z")) static const GlobalInitializerFn FreeStdEnd =

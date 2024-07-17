@@ -255,7 +255,7 @@ class TestingJumpListBackend : public JumpListBackend {
   Monitor& GetMonitor() { return mMonitor; }
 
  protected:
-  virtual ~TestingJumpListBackend() override{};
+  virtual ~TestingJumpListBackend() override {};
 
  private:
   Monitor mMonitor;

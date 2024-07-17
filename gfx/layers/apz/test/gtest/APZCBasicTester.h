@@ -58,8 +58,7 @@ class APZCBasicTester : public APZCTesterBase {
   }
 
   virtual void TearDown() {
-    while (mcc->RunThroughDelayedTasks())
-      ;
+    while (mcc->RunThroughDelayedTasks());
     apzc->Destroy();
     tm->ClearTree();
     tm->ClearContentController();

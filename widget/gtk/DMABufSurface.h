@@ -161,7 +161,7 @@ class DMABufSurface {
   virtual void ReleaseSurface() = 0;
 
 #ifdef DEBUG
-  virtual void DumpToFile(const char* pFile){};
+  virtual void DumpToFile(const char* pFile) {};
 #endif
 
   DMABufSurface(SurfaceType aSurfaceType);

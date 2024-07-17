@@ -39,7 +39,7 @@ class ShadowRealmGlobalScope final : public nsIGlobalObject,
   NS_DECLARE_STATIC_IID_ACCESSOR(SHADOWREALMGLOBALSCOPE_IID)
 
   explicit ShadowRealmGlobalScope(nsIGlobalObject* aCreatingGlobal)
-      : mCreatingGlobal(aCreatingGlobal){};
+      : mCreatingGlobal(aCreatingGlobal) {};
 
   nsIGlobalObject* GetCreatingGlobal() const { return mCreatingGlobal; }
   OriginTrials Trials() const override { return {}; }

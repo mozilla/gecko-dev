@@ -20,7 +20,7 @@ namespace a11y {
 
 class sdnTextAccessible final : public ISimpleDOMText {
  public:
-  explicit sdnTextAccessible(MsaaAccessible* aMsaa) : mMsaa(aMsaa){};
+  explicit sdnTextAccessible(MsaaAccessible* aMsaa) : mMsaa(aMsaa) {};
   ~sdnTextAccessible() {}
 
   DECL_IUNKNOWN

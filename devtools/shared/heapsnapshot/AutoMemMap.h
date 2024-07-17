@@ -47,7 +47,7 @@ class MOZ_RAII AutoMemMap {
 
  public:
   explicit AutoMemMap()
-      : fileSize(0), fd(nullptr), fileMap(nullptr), addr(nullptr){};
+      : fileSize(0), fd(nullptr), fileMap(nullptr), addr(nullptr) {};
   ~AutoMemMap();
 
   // Initialize this AutoMemMap.

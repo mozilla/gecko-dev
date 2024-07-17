@@ -28,7 +28,7 @@ namespace mozilla::ipc {
 class UtilityAudioDecoderChildShutdownObserver : public nsIObserver {
  public:
   explicit UtilityAudioDecoderChildShutdownObserver(SandboxingKind aKind)
-      : mSandbox(aKind){};
+      : mSandbox(aKind) {};
 
   NS_DECL_ISUPPORTS
 

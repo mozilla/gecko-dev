@@ -21,10 +21,10 @@ class nsWindowsDHCPClient final : public nsIDHCPClient {
   explicit nsWindowsDHCPClient(
       WindowsNetworkFunctionsWrapper* aNetworkFunctions =
           new WindowsNetworkFunctionsWrapper())
-      : mNetworkFunctions(aNetworkFunctions){};
+      : mNetworkFunctions(aNetworkFunctions) {};
 
  private:
-  ~nsWindowsDHCPClient(){};
+  ~nsWindowsDHCPClient() {};
   WindowsNetworkFunctionsWrapper* mNetworkFunctions;
 };
 

@@ -1109,21 +1109,21 @@ class MozPromise : public MozPromiseBase {
 
     template <typename... Ts>
     auto Then(Ts&&... aArgs) -> decltype(std::declval<PromiseType>().Then(
-        std::forward<Ts>(aArgs)...)) {
+                                 std::forward<Ts>(aArgs)...)) {
       return static_cast<RefPtr<PromiseType>>(*this)->Then(
           std::forward<Ts>(aArgs)...);
     }
 
     template <typename... Ts>
     auto Map(Ts&&... aArgs) -> decltype(std::declval<PromiseType>().Map(
-        std::forward<Ts>(aArgs)...)) {
+                                std::forward<Ts>(aArgs)...)) {
       return static_cast<RefPtr<PromiseType>>(*this)->Map(
           std::forward<Ts>(aArgs)...);
     }
 
     template <typename... Ts>
     auto MapErr(Ts&&... aArgs) -> decltype(std::declval<PromiseType>().MapErr(
-        std::forward<Ts>(aArgs)...)) {
+                                   std::forward<Ts>(aArgs)...)) {
       return static_cast<RefPtr<PromiseType>>(*this)->MapErr(
           std::forward<Ts>(aArgs)...);
     }
@@ -1586,7 +1586,7 @@ class MozPromiseHolder
  public:
   using MozPromiseHolderBase<
       PromiseType, MozPromiseHolder<PromiseType>>::MozPromiseHolderBase;
-  static constexpr void Check(){};
+  static constexpr void Check() {};
 };
 
 template <typename PromiseType>

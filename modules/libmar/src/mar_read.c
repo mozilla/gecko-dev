@@ -149,8 +149,7 @@ static int mar_read_index(MarFile* mar) {
 
   bufptr = buf;
   bufend = buf + size_of_index;
-  while (bufptr < bufend && mar_consume_index(mar, &bufptr, bufend) == 0)
-    ;
+  while (bufptr < bufend && mar_consume_index(mar, &bufptr, bufend) == 0);
 
   free(buf);
   return (bufptr == bufend) ? 0 : -1;

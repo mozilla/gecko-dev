@@ -47,7 +47,7 @@ class Probe {
   nsresult Trigger();
 
  protected:
-  ~Probe(){};
+  ~Probe() {};
 
   Probe(const nsCID& aGUID, const nsACString& aName, ProbeManager* aManager);
   friend class ProbeManager;

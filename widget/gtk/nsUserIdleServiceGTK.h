@@ -17,7 +17,7 @@ class nsUserIdleServiceGTK;
 class UserIdleServiceImpl {
  public:
   explicit UserIdleServiceImpl(nsUserIdleServiceGTK* aUserIdleService)
-      : mUserIdleServiceGTK(aUserIdleService){};
+      : mUserIdleServiceGTK(aUserIdleService) {};
 
   virtual bool PollIdleTime(uint32_t* aIdleTime) = 0;
   virtual bool ProbeImplementation() = 0;

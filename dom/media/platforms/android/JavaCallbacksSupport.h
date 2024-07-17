@@ -44,7 +44,7 @@ class JavaCallbacksSupport
   }
 
   virtual void HandleOutputFormatChanged(
-      java::sdk::MediaFormat::Param aFormat){};
+      java::sdk::MediaFormat::Param aFormat) {};
 
   void OnOutputFormatChanged(jni::Object::Param aFormat) {
     if (!mCanceled) {

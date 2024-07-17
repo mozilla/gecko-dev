@@ -41,7 +41,7 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
  public:
   BounceTrackingProtectionStorage()
       : mMonitor("mozilla::BounceTrackingProtectionStorage::mMonitor"),
-        mPendingWrites(0){};
+        mPendingWrites(0) {};
 
   // Initialises the storage including the on-disk database.
   [[nodiscard]] nsresult Init();

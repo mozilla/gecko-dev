@@ -259,8 +259,7 @@ void MessagePumpForChildProcess::Run(base::MessagePump::Delegate* aDelegate) {
   bool nestableTasksAllowed = loop->NestableTasksAllowed();
   loop->SetNestableTasksAllowed(true);
 
-  while (aDelegate->DoWork())
-    ;
+  while (aDelegate->DoWork());
 
   loop->SetNestableTasksAllowed(nestableTasksAllowed);
 

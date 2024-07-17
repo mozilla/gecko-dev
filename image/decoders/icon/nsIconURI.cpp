@@ -197,8 +197,8 @@ static void extractAttributeValue(const char* aSearchString,
           aResult.Assign(startOfAttribute);
         }
       }  // if we have a attribute value
-    }    // if we have a attribute name
-  }      // if we got non-null search string and attribute name values
+    }  // if we have a attribute name
+  }  // if we got non-null search string and attribute name values
 }
 
 nsresult nsMozIconURI::SetSpecInternal(const nsACString& aSpec) {

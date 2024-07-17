@@ -16,7 +16,7 @@ class nsAndroidSystemProxySettings : public nsISystemProxySettings {
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISYSTEMPROXYSETTINGS
 
-  nsAndroidSystemProxySettings(){};
+  nsAndroidSystemProxySettings() {};
 
  private:
   virtual ~nsAndroidSystemProxySettings() {}
@@ -49,7 +49,7 @@ nsAndroidSystemProxySettings::GetSystemWPADSetting(bool* aSystemWPADSetting) {
   return NS_OK;
 }
 
-void test(){};
+void test() {};
 
 NS_IMPL_COMPONENT_FACTORY(nsAndroidSystemProxySettings) {
   return mozilla::MakeAndAddRef<nsAndroidSystemProxySettings>()

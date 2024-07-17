@@ -197,7 +197,7 @@ class PerfSpewerRangeRecorder {
   void appendEntry(UniqueChars& desc);
 
  public:
-  explicit PerfSpewerRangeRecorder(MacroAssembler& masm_) : masm(masm_){};
+  explicit PerfSpewerRangeRecorder(MacroAssembler& masm_) : masm(masm_) {};
   void recordOffset(const char* name);
   void recordOffset(const char* name, JSContext* cx, JSScript* script);
   void recordVMWrapperOffset(const char* name);

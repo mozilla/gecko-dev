@@ -66,7 +66,7 @@ class TestDLLLoadObserver : public nsIObserver {
   explicit TestDLLLoadObserver(DLLFilter dllFilter)
       : mDllFilter(std::move(dllFilter)),
         mMainThreadNotificationsCount(0),
-        mNonMainThreadNotificationsCount(0){};
+        mNonMainThreadNotificationsCount(0) {};
 
   NS_DECL_THREADSAFE_ISUPPORTS
 

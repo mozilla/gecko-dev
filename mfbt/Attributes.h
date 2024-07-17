@@ -866,11 +866,11 @@
  * warning, so use pragmas to disable the warning.
  */
 #    ifdef __clang__
-#      define MOZ_HEAP_ALLOCATOR                                 \
-        _Pragma("clang diagnostic push")                         \
-            _Pragma("clang diagnostic ignored \"-Wgcc-compat\"") \
-                __attribute__((annotate("moz_heap_allocator")))  \
-                _Pragma("clang diagnostic pop")
+#      define MOZ_HEAP_ALLOCATOR                                         \
+        _Pragma("clang diagnostic push")                                 \
+            _Pragma("clang diagnostic ignored \"-Wgcc-compat\"")         \
+                __attribute__((annotate("moz_heap_allocator"))) _Pragma( \
+                    "clang diagnostic pop")
 #    else
 #      define MOZ_HEAP_ALLOCATOR __attribute__((annotate("moz_heap_allocator")))
 #    endif

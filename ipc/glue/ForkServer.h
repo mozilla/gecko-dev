@@ -20,7 +20,7 @@ class ForkServer {
   static constexpr int kClientPipeFd = 3;
 
   ForkServer();
-  ~ForkServer(){};
+  ~ForkServer() {};
 
   void InitProcess(int* aArgc, char*** aArgv);
   bool HandleMessages();

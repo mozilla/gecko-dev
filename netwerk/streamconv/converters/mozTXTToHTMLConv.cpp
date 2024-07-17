@@ -523,7 +523,7 @@ bool mozTXTToHTMLConv::FindURL(const char16_t* aInString, int32_t aInLength,
         state[check] = success;
       }
     }  // if
-  }    // for
+  }  // for
   return state[check] == success;
 }
 
@@ -933,12 +933,10 @@ int32_t mozTXTToHTMLConv::CiteLevelTXT(const char16_t* line,
     uint32_t i = logLineStart;
 
 #ifdef QUOTE_RECOGNITION_AGGRESSIVE
-    for (; int32_t(i) < lineLength && IsSpace(line[i]); i++)
-      ;
+    for (; int32_t(i) < lineLength && IsSpace(line[i]); i++);
     for (; int32_t(i) < lineLength && IsAsciiAlpha(line[i]) &&
            nsCRT::IsUpper(line[i]);
-         i++)
-      ;
+         i++);
     if (int32_t(i) < lineLength && (line[i] == '>' || line[i] == ']'))
 #else
     if (int32_t(i) < lineLength && line[i] == '>')

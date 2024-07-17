@@ -3698,7 +3698,7 @@ nsresult HTMLEditor::RemoveInlinePropertiesAsSubAction(
       // cases.
       FlushAndStopTrackingAndShrinkSelectionRange();
     }  // for-loop of selectionRanges
-  }    // for-loop of styles
+  }  // for-loop of styles
 
   MOZ_ASSERT(!selectionRanges.HasSavedRanges());
   nsresult rv = selectionRanges.ApplyTo(SelectionRef());

@@ -49,8 +49,7 @@ struct Test {
   void (*func)(void);
   const char* const name;
 };
-#define PTEST(aName) \
-  { aName, #aName }
+#define PTEST(aName) {aName, #aName}
 
 /**
  * Runs the next text.

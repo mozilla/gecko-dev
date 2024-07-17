@@ -194,6 +194,7 @@ using namespace dom;
   return NS_ERROR_FAILURE;
 #  endif
   int mib[] = {
+      // clang-format off
     CTL_KERN,
     KERN_PROC,
     KERN_PROC_PID,
@@ -202,6 +203,7 @@ using namespace dom;
     sizeof(KINFO_PROC),
     1,
 #  endif
+      // clang-format on
   };
   u_int miblen = sizeof(mib) / sizeof(mib[0]);
   size_t size = sizeof(KINFO_PROC);

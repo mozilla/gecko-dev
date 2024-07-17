@@ -25,7 +25,7 @@ class nsMacPreferencesReader : public nsIMacPreferencesReader {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMACPREFERENCESREADER
 
-  nsMacPreferencesReader(){};
+  nsMacPreferencesReader() {};
 
  protected:
   virtual ~nsMacPreferencesReader() = default;

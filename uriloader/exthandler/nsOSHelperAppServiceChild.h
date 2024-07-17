@@ -19,7 +19,7 @@ class nsIMIMEInfo;
  */
 class nsOSHelperAppServiceChild : public nsExternalHelperAppService {
  public:
-  nsOSHelperAppServiceChild(){};
+  nsOSHelperAppServiceChild() {};
   virtual ~nsOSHelperAppServiceChild() = default;
 
   NS_IMETHOD GetProtocolHandlerInfoFromOS(const nsACString& aScheme,

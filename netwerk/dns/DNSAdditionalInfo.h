@@ -16,7 +16,7 @@ class DNSAdditionalInfo : public nsIDNSAdditionalInfo {
   NS_DECL_NSIDNSADDITIONALINFO
  public:
   explicit DNSAdditionalInfo(const nsACString& aURL, int32_t aPort)
-      : mURL(aURL), mPort(aPort){};
+      : mURL(aURL), mPort(aPort) {};
   static nsCString URL(nsIDNSAdditionalInfo* aInfo) {
     nsCString url;
     if (aInfo) {

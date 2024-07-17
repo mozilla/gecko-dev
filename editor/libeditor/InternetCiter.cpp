@@ -287,7 +287,7 @@ void InternetCiter::Rewrap(const nsAString& aInString, uint32_t aWrapCol,
         BreakLine(aOutString, outStringCol, citeLevel);
       }
     }  // end inner loop within one line of aInString
-  }    // end outer loop over lines of aInString
+  }  // end outer loop over lines of aInString
 }
 
 }  // namespace mozilla

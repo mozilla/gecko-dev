@@ -429,8 +429,8 @@ class MOZ_NEEDS_NO_VTABLE_TYPE nsTHashtable {
   };
 
   template <class F>
-  auto WithEntryHandle(KeyType aKey, F&& aFunc)
-      -> std::invoke_result_t<F, EntryHandle&&> {
+  auto WithEntryHandle(KeyType aKey,
+                       F&& aFunc) -> std::invoke_result_t<F, EntryHandle&&> {
     return this->mTable.WithEntryHandle(
         EntryType::KeyToPointer(aKey),
         [&aKey, &aFunc](auto entryHandle) -> decltype(auto) {
@@ -874,8 +874,8 @@ class nsTHashtable<nsPtrHashKey<T>>
   };
 
   template <class F>
-  auto WithEntryHandle(KeyType aKey, F aFunc)
-      -> std::invoke_result_t<F, EntryHandle&&> {
+  auto WithEntryHandle(KeyType aKey,
+                       F aFunc) -> std::invoke_result_t<F, EntryHandle&&> {
     return Base::WithEntryHandle(aKey, [&aFunc](auto entryHandle) {
       return aFunc(EntryHandle{std::move(entryHandle)});
     });

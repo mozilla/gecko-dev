@@ -1806,7 +1806,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
 
   already_AddRefed<PlayPromise> CreatePlayPromise(ErrorResult& aRv) const;
 
-  virtual void MaybeBeginCloningVisually(){};
+  virtual void MaybeBeginCloningVisually() {};
 
   uint32_t GetPreloadDefault() const;
   uint32_t GetPreloadDefaultAuto() const;

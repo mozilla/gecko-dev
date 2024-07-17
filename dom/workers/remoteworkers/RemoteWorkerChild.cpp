@@ -136,7 +136,7 @@ class RemoteWorkerCSPEventListener final : public nsICSPEventListener {
   NS_DECL_ISUPPORTS
 
   explicit RemoteWorkerCSPEventListener(RemoteWorkerChild* aActor)
-      : mActor(aActor){};
+      : mActor(aActor) {};
 
   NS_IMETHOD OnCSPViolationEvent(const nsAString& aJSON) override {
     mActor->CSPViolationPropagationOnMainThread(aJSON);

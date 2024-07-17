@@ -165,8 +165,7 @@ class SVGElement : public SVGElementBase  // nsIContent
   // Only visible for SVGGraphicElement, so it's a no-op here, and that
   // subclass has the useful implementation.
   virtual void SetAnimateMotionTransform(
-      const mozilla::gfx::Matrix* aMatrix) { /*no-op*/
-  }
+      const mozilla::gfx::Matrix* aMatrix) { /*no-op*/ }
   virtual const mozilla::gfx::Matrix* GetAnimateMotionTransform() const {
     return nullptr;
   }

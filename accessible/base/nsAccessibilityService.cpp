@@ -372,14 +372,13 @@ static int32_t sPlatformDisabledState = 0;
 ////////////////////////////////////////////////////////////////////////////////
 // Markup maps array.
 
-#define Attr(name, value) \
-  { nsGkAtoms::name, nsGkAtoms::value }
+#define Attr(name, value) {nsGkAtoms::name, nsGkAtoms::value}
 
 #define AttrFromDOM(name, DOMAttrName) \
-  { nsGkAtoms::name, nullptr, nsGkAtoms::DOMAttrName }
+  {nsGkAtoms::name, nullptr, nsGkAtoms::DOMAttrName}
 
 #define AttrFromDOMIf(name, DOMAttrName, DOMAttrValue) \
-  { nsGkAtoms::name, nullptr, nsGkAtoms::DOMAttrName, nsGkAtoms::DOMAttrValue }
+  {nsGkAtoms::name, nullptr, nsGkAtoms::DOMAttrName, nsGkAtoms::DOMAttrValue}
 
 #define MARKUPMAP(atom, new_func, r, ...) \
   {nsGkAtoms::atom, new_func, static_cast<a11y::role>(r), {__VA_ARGS__}},

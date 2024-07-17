@@ -150,8 +150,9 @@ static auto ForEachNode(Node aRoot, const PreAction& aPreAction,
  * ForEachNode pre-order traversal, using TraversalFlag.
  */
 template <typename Iterator, typename Node, typename PreAction>
-auto ForEachNode(Node aRoot, const PreAction& aPreAction) -> std::enable_if_t<
-    std::is_same_v<decltype(aPreAction(aRoot)), TraversalFlag>, bool> {
+auto ForEachNode(Node aRoot, const PreAction& aPreAction)
+    -> std::enable_if_t<
+        std::is_same_v<decltype(aPreAction(aRoot)), TraversalFlag>, bool> {
   return ForEachNode<Iterator>(
       aRoot, aPreAction, [](Node aNode) { return TraversalFlag::Continue; });
 }
@@ -184,8 +185,7 @@ template <typename Iterator, typename Node, typename PostAction>
 auto ForEachNodePostOrder(Node aRoot, const PostAction& aPostAction)
     -> std::enable_if_t<std::is_same_v<decltype(aPostAction(aRoot)), void>,
                         void> {
-  ForEachNode<Iterator>(
-      aRoot, [](Node aNode) {}, aPostAction);
+  ForEachNode<Iterator>(aRoot, [](Node aNode) {}, aPostAction);
 }
 
 /*

@@ -171,8 +171,7 @@ static void ProcessMarginRightValue(const nsAString* aInputString,
   }
 }
 
-#define CSS_EQUIV_TABLE_NONE \
-  { CSSEditUtils::eCSSEditableProperty_NONE, 0 }
+#define CSS_EQUIV_TABLE_NONE {CSSEditUtils::eCSSEditableProperty_NONE, 0}
 
 const CSSEditUtils::CSSEquivTable boldEquivTable[] = {
     {CSSEditUtils::eCSSEditableProperty_font_weight, true, false, ProcessBValue,

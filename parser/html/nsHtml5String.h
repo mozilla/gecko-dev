@@ -129,7 +129,7 @@ class nsHtml5String final {
   /**
    * Constructor from raw bits.
    */
-  explicit nsHtml5String(uintptr_t aBits) : mBits(aBits){};
+  explicit nsHtml5String(uintptr_t aBits) : mBits(aBits) {};
 
   /**
    * Zero if null, one if empty, otherwise tagged pointer

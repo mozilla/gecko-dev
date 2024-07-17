@@ -17,8 +17,8 @@ namespace a11y {
 
 class sdnDocAccessible final : public ISimpleDOMDocument {
  public:
-  explicit sdnDocAccessible(MsaaDocAccessible* aMsaa) : mMsaa(aMsaa){};
-  ~sdnDocAccessible(){};
+  explicit sdnDocAccessible(MsaaDocAccessible* aMsaa) : mMsaa(aMsaa) {};
+  ~sdnDocAccessible() {};
 
   DECL_IUNKNOWN
 

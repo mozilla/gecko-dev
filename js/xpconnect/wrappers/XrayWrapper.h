@@ -383,7 +383,7 @@ class XrayWrapper : public Base {
  public:
   constexpr explicit XrayWrapper(unsigned flags)
       : Base(flags | WrapperFactory::IS_XRAY_WRAPPER_FLAG,
-             /* aHasPrototype = */ true){};
+             /* aHasPrototype = */ true) {};
 
   /* Standard internal methods. */
   virtual bool getOwnPropertyDescriptor(

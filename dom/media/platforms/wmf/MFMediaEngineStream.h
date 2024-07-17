@@ -127,7 +127,7 @@ class MFMediaEngineStream
 
   // Overwrite this method if inherited class needs to perform clean up on the
   // task queue when the stream gets shutdowned.
-  virtual void ShutdownCleanUpOnTaskQueue(){};
+  virtual void ShutdownCleanUpOnTaskQueue() {};
 
   // Inherited class must implement this method to return decoded data. it
   // should uses `mRawDataQueueForGeneratingOutput` to generate output.

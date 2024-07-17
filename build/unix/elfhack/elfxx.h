@@ -136,7 +136,7 @@ class ElfPlainValue : public ElfValue {
   unsigned int value;
 
  public:
-  ElfPlainValue(unsigned int val) : value(val){};
+  ElfPlainValue(unsigned int val) : value(val) {};
   unsigned int getValue() { return value; }
 };
 
@@ -146,7 +146,7 @@ class ElfLocation : public ElfValue {
 
  public:
   enum position { ABSOLUTE, RELATIVE };
-  ElfLocation() : section(nullptr), offset(0){};
+  ElfLocation() : section(nullptr), offset(0) {};
   ElfLocation(ElfSection* section, unsigned int off,
               enum position pos = RELATIVE);
   ElfLocation(unsigned int location, Elf* elf);
@@ -159,7 +159,7 @@ class ElfSize : public ElfValue {
   ElfSection* section;
 
  public:
-  ElfSize(ElfSection* s) : section(s){};
+  ElfSize(ElfSection* s) : section(s) {};
   unsigned int getValue();
   ElfSection* getSection() { return section; }
 };
@@ -168,7 +168,7 @@ class ElfEntSize : public ElfValue {
   ElfSection* section;
 
  public:
-  ElfEntSize(ElfSection* s) : section(s){};
+  ElfEntSize(ElfSection* s) : section(s) {};
   unsigned int getValue();
   ElfSection* getSection() { return section; }
 };
@@ -176,8 +176,8 @@ class ElfEntSize : public ElfValue {
 template <typename T>
 class serializable : public T::Type64 {
  public:
-  serializable(){};
-  serializable(const typename T::Type64& p) : T::Type64(p){};
+  serializable() {};
+  serializable(const typename T::Type64& p) : T::Type64(p) {};
 
  private:
   template <typename R>
@@ -493,9 +493,9 @@ class Elf_Ehdr : public serializable<Elf_Ehdr_Traits>, public ElfSection {
 
 class Elf_Phdr : public serializable<Elf_Phdr_Traits> {
  public:
-  Elf_Phdr(){};
+  Elf_Phdr() {};
   Elf_Phdr(std::ifstream& file, unsigned char ei_class, unsigned char ei_data)
-      : serializable<Elf_Phdr_Traits>(file, ei_class, ei_data){};
+      : serializable<Elf_Phdr_Traits>(file, ei_class, ei_data) {};
   bool contains(ElfSection* section) {
     unsigned int size = section->getSize();
     unsigned int addr = section->getAddr();
@@ -563,10 +563,10 @@ class ElfSymtab_Section : public ElfSection {
 
 class Elf_Rel : public serializable<Elf_Rel_Traits> {
  public:
-  Elf_Rel() : serializable<Elf_Rel_Traits>(){};
+  Elf_Rel() : serializable<Elf_Rel_Traits>() {};
 
   Elf_Rel(std::ifstream& file, unsigned char ei_class, unsigned char ei_data)
-      : serializable<Elf_Rel_Traits>(file, ei_class, ei_data){};
+      : serializable<Elf_Rel_Traits>(file, ei_class, ei_data) {};
 
   static const unsigned int sh_type = SHT_REL;
   static const unsigned int d_tag = DT_REL;
@@ -575,10 +575,10 @@ class Elf_Rel : public serializable<Elf_Rel_Traits> {
 
 class Elf_Rela : public serializable<Elf_Rela_Traits> {
  public:
-  Elf_Rela() : serializable<Elf_Rela_Traits>(){};
+  Elf_Rela() : serializable<Elf_Rela_Traits>() {};
 
   Elf_Rela(std::ifstream& file, unsigned char ei_class, unsigned char ei_data)
-      : serializable<Elf_Rela_Traits>(file, ei_class, ei_data){};
+      : serializable<Elf_Rela_Traits>(file, ei_class, ei_data) {};
 
   static const unsigned int sh_type = SHT_RELA;
   static const unsigned int d_tag = DT_RELA;
@@ -654,8 +654,7 @@ inline unsigned char Elf::getMachine() { return ehdr->e_machine; }
 inline unsigned int Elf::getSize() {
   ElfSection* section;
   for (section = shdr_section /* It's usually not far from the end */;
-       section->getNext() != nullptr; section = section->getNext())
-    ;
+       section->getNext() != nullptr; section = section->getNext());
   return section->getOffset() + section->getSize();
 }
 

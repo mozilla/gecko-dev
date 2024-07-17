@@ -97,11 +97,12 @@ using TimeConverter = SystemTimeConverter<GTestTime, MockTimeStamp>;
 // Checks the expectation that the TimeStamp `ts` is exactly `ms` milliseconds
 // after the baseline timestamp. This is a macro so gtest still gives us useful
 // line numbers for failures.
-#define EXPECT_TS(ts, ms) \
-  EXPECT_EQ((ts)-MockTimeStamp::Baseline(), TimeDuration::FromMilliseconds(ms))
+#define EXPECT_TS(ts, ms)                     \
+  EXPECT_EQ((ts) - MockTimeStamp::Baseline(), \
+            TimeDuration::FromMilliseconds(ms))
 
 #define EXPECT_TS_FUZZY(ts, ms) \
-  EXPECT_DOUBLE_EQ(((ts)-MockTimeStamp::Baseline()).ToMilliseconds(), ms)
+  EXPECT_DOUBLE_EQ(((ts) - MockTimeStamp::Baseline()).ToMilliseconds(), ms)
 
 TEST(TimeConverter, SanityCheck)
 {

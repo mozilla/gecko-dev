@@ -173,7 +173,7 @@ class MediaStreamTrackSource : public nsISupports {
   /**
    * Same for GetSettings (no-op).
    */
-  virtual void GetSettings(dom::MediaTrackSettings& aResult){};
+  virtual void GetSettings(dom::MediaTrackSettings& aResult) {};
 
   /**
    * Called by the source interface when all registered sinks with
@@ -343,12 +343,12 @@ class MediaStreamTrackConsumer : public SupportsWeakPtr {
    * Unlike the "ended" event exposed to script this is called for any reason,
    * including MediaStreamTrack::Stop().
    */
-  virtual void NotifyEnded(MediaStreamTrack* aTrack){};
+  virtual void NotifyEnded(MediaStreamTrack* aTrack) {};
 
   /**
    * Called when the track's enabled state changes.
    */
-  virtual void NotifyEnabledChanged(MediaStreamTrack* aTrack, bool aEnabled){};
+  virtual void NotifyEnabledChanged(MediaStreamTrack* aTrack, bool aEnabled) {};
 };
 
 // clang-format off

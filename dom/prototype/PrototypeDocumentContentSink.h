@@ -69,10 +69,10 @@ class PrototypeDocumentContentSink final : public nsIStreamLoaderObserver,
   // nsIContentSink
   NS_IMETHOD WillParse(void) override { return NS_OK; };
   NS_IMETHOD WillInterrupt(void) override { return NS_OK; };
-  void WillResume() override{};
+  void WillResume() override {};
   NS_IMETHOD SetParser(nsParserBase* aParser) override;
   virtual void InitialTranslationCompleted() override;
-  virtual void FlushPendingNotifications(FlushType aType) override{};
+  virtual void FlushPendingNotifications(FlushType aType) override {};
   virtual void SetDocumentCharset(NotNull<const Encoding*> aEncoding) override;
   virtual nsISupports* GetTarget() override;
   virtual bool IsScriptExecuting() override;

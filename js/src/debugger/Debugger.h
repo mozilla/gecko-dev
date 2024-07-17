@@ -428,7 +428,7 @@ class MOZ_RAII EvalOptions {
   EnvKind kind_;
 
  public:
-  explicit EvalOptions(EnvKind kind) : kind_(kind){};
+  explicit EvalOptions(EnvKind kind) : kind_(kind) {};
   ~EvalOptions() = default;
   const char* filename() const { return filename_.get(); }
   unsigned lineno() const { return lineno_; }

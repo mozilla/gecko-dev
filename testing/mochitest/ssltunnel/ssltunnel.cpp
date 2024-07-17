@@ -919,10 +919,10 @@ void HandleConnection(void* data) {
               buffers[s2].compact();
             }
           }
-        }                 // PR_POLL_WRITE handling
+        }  // PR_POLL_WRITE handling
         LOG_END_BLOCK();  // end the log
-      }                   // for...
-    }                     // while, poll
+      }  // for...
+    }  // while, poll
   } else
     client_error = true;
 

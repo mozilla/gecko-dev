@@ -1233,37 +1233,39 @@ SPAN_TEST(from_cstring) {
   }
 }
 
-SPAN_TEST(from_convertible_Span_constructor){{Span<DerivedClass> avd;
-Span<const DerivedClass> avcd = avd;
-static_cast<void>(avcd);
-}
+SPAN_TEST(from_convertible_Span_constructor) {
+  {
+    Span<DerivedClass> avd;
+    Span<const DerivedClass> avcd = avd;
+    static_cast<void>(avcd);
+  }
 
-{
+  {
 #ifdef CONFIRM_COMPILATION_ERRORS
-  Span<DerivedClass> avd;
-  Span<BaseClass> avb = avd;
-  static_cast<void>(avb);
+    Span<DerivedClass> avd;
+    Span<BaseClass> avb = avd;
+    static_cast<void>(avb);
 #endif
-}
+  }
 
 #ifdef CONFIRM_COMPILATION_ERRORS
-{
-  Span<int> s;
-  Span<unsigned int> s2 = s;
-  static_cast<void>(s2);
-}
+  {
+    Span<int> s;
+    Span<unsigned int> s2 = s;
+    static_cast<void>(s2);
+  }
 
-{
-  Span<int> s;
-  Span<const unsigned int> s2 = s;
-  static_cast<void>(s2);
-}
+  {
+    Span<int> s;
+    Span<const unsigned int> s2 = s;
+    static_cast<void>(s2);
+  }
 
-{
-  Span<int> s;
-  Span<short> s2 = s;
-  static_cast<void>(s2);
-}
+  {
+    Span<int> s;
+    Span<short> s2 = s;
+    static_cast<void>(s2);
+  }
 #endif
 }
 

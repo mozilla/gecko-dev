@@ -56,7 +56,7 @@ class FdWatcher : public MessageLoopForIO::Watcher, public nsIObserver {
    * function is also called when you're at eof (read() returns 0 in this case).
    */
   virtual void OnFileCanReadWithoutBlocking(int aFd) override = 0;
-  virtual void OnFileCanWriteWithoutBlocking(int aFd) override{};
+  virtual void OnFileCanWriteWithoutBlocking(int aFd) override {};
 
   NS_DECL_THREADSAFE_ISUPPORTS
 

@@ -120,7 +120,7 @@ class UserIdleServiceX11 : public UserIdleServiceImpl {
   }
 
   explicit UserIdleServiceX11(nsUserIdleServiceGTK* aUserIdleService)
-      : UserIdleServiceImpl(aUserIdleService){};
+      : UserIdleServiceImpl(aUserIdleService) {};
 
   ~UserIdleServiceX11() {
 #  ifdef MOZ_X11
@@ -238,7 +238,7 @@ class UserIdleServiceMutter : public UserIdleServiceImpl {
   }
 
   explicit UserIdleServiceMutter(nsUserIdleServiceGTK* aUserIdleService)
-      : UserIdleServiceImpl(aUserIdleService){};
+      : UserIdleServiceImpl(aUserIdleService) {};
 
   ~UserIdleServiceMutter() {
     if (mCancellable) {

@@ -286,7 +286,7 @@ class TextureData {
     return false;
   };
 
-  virtual void SyncWithObject(RefPtr<SyncObjectClient> aSyncObject){};
+  virtual void SyncWithObject(RefPtr<SyncObjectClient> aSyncObject) {};
 
   virtual TextureFlags GetTextureFlags() const {
     return TextureFlags::NO_FLAGS;

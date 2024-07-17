@@ -23,10 +23,10 @@ class nsWindowsSystemProxySettings final : public nsISystemProxySettings {
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISYSTEMPROXYSETTINGS
 
-  nsWindowsSystemProxySettings(){};
+  nsWindowsSystemProxySettings() {};
 
  private:
-  ~nsWindowsSystemProxySettings(){};
+  ~nsWindowsSystemProxySettings() {};
 
   bool MatchOverride(const nsACString& aHost);
   bool PatternMatch(const nsACString& aHost, const nsACString& aOverride);

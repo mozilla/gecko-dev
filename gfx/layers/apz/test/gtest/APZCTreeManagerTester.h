@@ -38,8 +38,7 @@ class APZCTreeManagerTester : public APZCTesterBase {
   }
 
   virtual void TearDown() {
-    while (mcc->RunThroughDelayedTasks())
-      ;
+    while (mcc->RunThroughDelayedTasks());
     manager->ClearTree();
     manager->ClearContentController();
 

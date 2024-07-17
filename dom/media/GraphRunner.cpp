@@ -112,7 +112,7 @@ void PromoteRenderingThreadAndroid() {
           ("GraphRunner promoted thread priority: %d",
            java::sdk::Process::GetThreadPriority(java::sdk::Process::MyTid())));
 }
-};      // namespace
+};  // namespace
 #endif  // MOZ_WIDGET_ANDROID
 
 NS_IMETHODIMP GraphRunner::Run() {

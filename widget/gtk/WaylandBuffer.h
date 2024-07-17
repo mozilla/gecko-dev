@@ -49,7 +49,7 @@ class WaylandBuffer {
   virtual already_AddRefed<gfx::DrawTarget> Lock() { return nullptr; };
   virtual void* GetImageData() { return nullptr; }
   virtual GLuint GetTexture() { return 0; }
-  virtual void DestroyGLResources(){};
+  virtual void DestroyGLResources() {};
 
   LayoutDeviceIntSize GetSize() { return mSize; };
   bool IsMatchingSize(const LayoutDeviceIntSize& aSize) {

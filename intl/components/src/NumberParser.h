@@ -22,7 +22,7 @@ class NumberParser {
   static Result<UniquePtr<NumberParser>, ICUError> TryCreate(
       const char* aLocale, bool aUseGrouping);
 
-  NumberParser() : mNumberFormat(nullptr){};
+  NumberParser() : mNumberFormat(nullptr) {};
   NumberParser(const NumberParser&) = delete;
   NumberParser& operator=(const NumberParser&) = delete;
   ~NumberParser();

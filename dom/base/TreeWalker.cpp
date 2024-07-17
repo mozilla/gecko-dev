@@ -27,8 +27,7 @@ TreeWalker::TreeWalker(nsINode* aRoot, uint32_t aWhatToShow,
                        NodeFilter* aFilter)
     : nsTraversal(aRoot, aWhatToShow, aFilter), mCurrentNode(aRoot) {}
 
-TreeWalker::~TreeWalker() { /* destructor code */
-}
+TreeWalker::~TreeWalker() { /* destructor code */ }
 
 /*
  * nsISupports and cycle collection stuff

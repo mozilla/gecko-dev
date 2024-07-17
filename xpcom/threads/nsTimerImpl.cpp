@@ -44,7 +44,7 @@ using mozilla::TimeStamp;
 // the timer thread.
 class TimerThreadWrapper {
  public:
-  constexpr TimerThreadWrapper() : mThread(nullptr){};
+  constexpr TimerThreadWrapper() : mThread(nullptr) {};
   ~TimerThreadWrapper() = default;
 
   nsresult Init();

@@ -97,13 +97,10 @@ nsTSubstring<T>::BulkWrite(size_type aCapacity, size_type aPrefixToPreserve,
 }
 
 template <typename T>
-auto nsTSubstring<T>::StartBulkWriteImpl(size_type aCapacity,
-                                         size_type aPrefixToPreserve,
-                                         bool aAllowShrinking,
-                                         size_type aSuffixLength,
-                                         size_type aOldSuffixStart,
-                                         size_type aNewSuffixStart)
-    -> mozilla::Result<size_type, nsresult> {
+auto nsTSubstring<T>::StartBulkWriteImpl(
+    size_type aCapacity, size_type aPrefixToPreserve, bool aAllowShrinking,
+    size_type aSuffixLength, size_type aOldSuffixStart,
+    size_type aNewSuffixStart) -> mozilla::Result<size_type, nsresult> {
   // Note! Capacity does not include room for the terminating null char.
 
   MOZ_ASSERT(aPrefixToPreserve <= aCapacity,
@@ -1024,8 +1021,7 @@ void nsTSubstring<T>::StripChars(const char_type* aChars) {
     char_type theChar = *from++;
     const char_type* test = aChars;
 
-    for (; *test && *test != theChar; ++test)
-      ;
+    for (; *test && *test != theChar; ++test);
 
     if (!*test) {
       // Not stripped, copy this char.

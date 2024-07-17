@@ -180,8 +180,7 @@ NS_IMETHODIMP nsDecodeAppleFile::Write(const char* buffer, uint32_t bufferSize,
                m_headers.magic == APPLESINGLE_MAGIC) &&
               m_headers.version == VERSION && m_headers.entriesCount) {
             /* Just to be sure, the filler must contains only 0 */
-            for (i = 0; i < 4 && m_headers.fill[i] == 0L; i++)
-              ;
+            for (i = 0; i < 4 && m_headers.fill[i] == 0L; i++);
             if (i == 4) m_state = parseEntries;
           }
           m_dataBufferLength = 0;

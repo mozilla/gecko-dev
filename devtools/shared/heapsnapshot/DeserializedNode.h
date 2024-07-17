@@ -201,7 +201,7 @@ struct DeserializedStackFrame {
         functionDisplayName(nullptr),
         isSystem(false),
         isSelfHosted(false),
-        owner(nullptr){};
+        owner(nullptr) {};
 };
 
 struct DeserializedStackFrame::HashPolicy {

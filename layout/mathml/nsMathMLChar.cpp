@@ -1193,8 +1193,7 @@ bool nsMathMLChar::StretchEnumContext::TryParts(
     int32_t i;
     // Try and find the first existing part and then determine the extremal
     // horizontal metrics of the parts.
-    for (i = 0; i <= 3 && !textRun[i]; i++)
-      ;
+    for (i = 0; i <= 3 && !textRun[i]; i++);
     if (i == 4) {
       NS_ERROR("Cannot stretch - All parts missing");
       return false;
@@ -1227,8 +1226,7 @@ bool nsMathMLChar::StretchEnumContext::TryParts(
     int32_t i;
     // Try and find the first existing part and then determine the extremal
     // vertical metrics of the parts.
-    for (i = 0; i <= 3 && !textRun[i]; i++)
-      ;
+    for (i = 0; i <= 3 && !textRun[i]; i++);
     if (i == 4) {
       NS_ERROR("Cannot stretch - All parts missing");
       return false;

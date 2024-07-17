@@ -50,8 +50,7 @@ static bool ParseFloat(const nsAString& aString, double& aDouble) {
   }
 
   if (IsAsciiDigit(*iter)) {
-    for (; iter != end && IsAsciiDigit(*iter); ++iter)
-      ;
+    for (; iter != end && IsAsciiDigit(*iter); ++iter);
   } else if (*iter == char16_t('.')) {
     // Do nothing, jumps to fraction part
   } else {
@@ -67,8 +66,7 @@ static bool ParseFloat(const nsAString& aString, double& aDouble) {
       return false;
     }
 
-    for (; iter != end && IsAsciiDigit(*iter); ++iter)
-      ;
+    for (; iter != end && IsAsciiDigit(*iter); ++iter);
   }
 
   if (iter != end && (*iter == char16_t('e') || *iter == char16_t('E'))) {
@@ -82,8 +80,7 @@ static bool ParseFloat(const nsAString& aString, double& aDouble) {
       return false;
     }
 
-    for (; iter != end && IsAsciiDigit(*iter); ++iter)
-      ;
+    for (; iter != end && IsAsciiDigit(*iter); ++iter);
   }
 
   if (iter != end) {
@@ -118,8 +115,7 @@ void ResponsiveImageSelector::ParseSourceSet(
     // Extra commas at this point are a non-fatal syntax error.
     for (; iter != end &&
            (nsContentUtils::IsHTMLWhitespace(*iter) || *iter == char16_t(','));
-         ++iter)
-      ;
+         ++iter);
 
     if (iter == end) {
       break;
@@ -128,8 +124,7 @@ void ResponsiveImageSelector::ParseSourceSet(
     url = iter;
 
     // Find end of url
-    for (; iter != end && !nsContentUtils::IsHTMLWhitespace(*iter); ++iter)
-      ;
+    for (; iter != end && !nsContentUtils::IsHTMLWhitespace(*iter); ++iter);
 
     // Omit trailing commas from URL.
     // Multiple commas are a non-fatal error.
@@ -476,7 +471,7 @@ void ResponsiveImageCandidate::SetParameterAsDensity(double aDensity) {
 // there is no candidate type that uses all of these. This should generally
 // match the mValue union of ResponsiveImageCandidate.
 struct ResponsiveImageDescriptors {
-  ResponsiveImageDescriptors() : mInvalid(false){};
+  ResponsiveImageDescriptors() : mInvalid(false) {};
 
   Maybe<double> mDensity;
   Maybe<int32_t> mWidth;
@@ -603,8 +598,7 @@ bool ResponsiveImageCandidate::ConsumeDescriptors(
   // https://html.spec.whatwg.org/#parse-a-srcset-attribute
 
   // Skip initial whitespace
-  for (; iter != end && nsContentUtils::IsHTMLWhitespace(*iter); ++iter)
-    ;
+  for (; iter != end && nsContentUtils::IsHTMLWhitespace(*iter); ++iter);
 
   nsAString::const_iterator currentDescriptor = iter;
 
@@ -628,8 +622,7 @@ bool ResponsiveImageCandidate::ConsumeDescriptors(
         // End of current descriptor, consume it, skip spaces
         // ("After descriptor" state in spec) before continuing
         descriptors.AddDescriptor(Substring(currentDescriptor, iter));
-        for (; iter != end && nsContentUtils::IsHTMLWhitespace(*iter); ++iter)
-          ;
+        for (; iter != end && nsContentUtils::IsHTMLWhitespace(*iter); ++iter);
         if (iter == end) {
           break;
         }

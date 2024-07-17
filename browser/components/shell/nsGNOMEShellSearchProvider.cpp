@@ -70,7 +70,7 @@ class AsyncFaviconDataReady final : public nsIFaviconDataCallback {
                         int aIconIndex, int aTimeStamp)
       : mSearchResult(std::move(aSearchResult)),
         mIconIndex(aIconIndex),
-        mTimeStamp(aTimeStamp){};
+        mTimeStamp(aTimeStamp) {};
 
  private:
   ~AsyncFaviconDataReady() {}

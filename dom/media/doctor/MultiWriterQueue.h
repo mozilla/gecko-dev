@@ -36,8 +36,8 @@ class MOZ_CAPABILITY("mutex") MultiWriterQueueReaderLocking_Mutex {
 class MOZ_CAPABILITY("dummy lock") MultiWriterQueueReaderLocking_None {
  public:
 #ifndef DEBUG
-  void Lock() MOZ_CAPABILITY_ACQUIRE(){};
-  void Unlock() MOZ_CAPABILITY_RELEASE(){};
+  void Lock() MOZ_CAPABILITY_ACQUIRE() {};
+  void Unlock() MOZ_CAPABILITY_RELEASE() {};
 #else
   // DEBUG-mode checks to catch concurrent misuses.
   void Lock() MOZ_CAPABILITY_ACQUIRE() {

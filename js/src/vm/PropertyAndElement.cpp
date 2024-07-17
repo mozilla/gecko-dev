@@ -304,7 +304,7 @@ JS_PUBLIC_API bool JS_DefineProperty(JSContext* cx, JS::Handle<JSObject*> obj,
       cx, obj, name, JS::Handle<JS::Value>::fromMarkedLocation(&value), attrs);
 }
 
-#define AUTO_NAMELEN(s, n) (((n) == (size_t)-1) ? js_strlen(s) : (n))
+#define AUTO_NAMELEN(s, n) (((n) == (size_t) - 1) ? js_strlen(s) : (n))
 
 JS_PUBLIC_API bool JS_DefineUCProperty(JSContext* cx, JS::Handle<JSObject*> obj,
                                        const char16_t* name, size_t namelen,

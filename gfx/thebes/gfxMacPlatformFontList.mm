@@ -85,7 +85,7 @@ class gfxSingleFaceMacFontFamily final : public gfxFontFamily {
   virtual ~gfxSingleFaceMacFontFamily() = default;
 
   void FindStyleVariationsLocked(FontInfoData* aFontInfoData = nullptr)
-      MOZ_REQUIRES(mLock) override{};
+      MOZ_REQUIRES(mLock) override {};
 
   void LocalizedName(nsACString& aLocalizedName) override;
 

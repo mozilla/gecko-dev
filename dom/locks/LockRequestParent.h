@@ -18,7 +18,7 @@ class LockRequestParent final : public PLockRequestParent {
   NS_INLINE_DECL_REFCOUNTING(LockRequestParent)
 
   explicit LockRequestParent(const IPCLockRequest& aRequest)
-      : mRequest(aRequest){};
+      : mRequest(aRequest) {};
 
   const IPCLockRequest& Data() { return mRequest; }
 

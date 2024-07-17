@@ -1059,7 +1059,7 @@ struct SpyWithISupports : public ISpyWithISupports, public Spy {
   virtual ~SpyWithISupports() = default;
 
  public:
-  explicit SpyWithISupports(int aID) : Spy(aID){};
+  explicit SpyWithISupports(int aID) : Spy(aID) {};
   NS_DECL_ISUPPORTS
   NS_IMETHOD_(nsrefcnt) RefCnt() override { return mRefCnt; }
   NS_IMETHOD_(int32_t) ID() override { return mID; }

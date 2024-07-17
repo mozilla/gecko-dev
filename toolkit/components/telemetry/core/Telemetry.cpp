@@ -1361,8 +1361,7 @@ struct TrackedDBEntry {
   TrackedDBEntry(TrackedDBEntry&) = delete;
 };
 
-#define TRACKEDDB_ENTRY(_name) \
-  { _name, (sizeof(_name) - 1) }
+#define TRACKEDDB_ENTRY(_name) {_name, (sizeof(_name) - 1)}
 
 // An allowlist of database names. If the database name exactly matches one of
 // these then its SQL statements will always be recorded.

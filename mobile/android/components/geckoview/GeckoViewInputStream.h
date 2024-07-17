@@ -17,7 +17,7 @@ class GeckoViewInputStream : public nsIInputStream {
 
   explicit GeckoViewInputStream(
       mozilla::java::GeckoViewInputStream::LocalRef aInstance)
-      : mInstance(aInstance){};
+      : mInstance(aInstance) {};
   bool isClosed() const;
 
  protected:

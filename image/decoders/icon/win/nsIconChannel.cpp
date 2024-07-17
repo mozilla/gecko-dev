@@ -442,7 +442,7 @@ static nsresult MakeIconBuffer(HICON aIcon, ByteBuf* aOutBuffer) {
           }  // if we got mask bits
           delete colorInfo;
         }  // if we allocated the buffer
-      }    // if we got mask size
+      }  // if we got mask size
 
       DeleteDC(hDC);
       DeleteObject(iconInfo.hbmColor);

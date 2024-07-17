@@ -124,7 +124,7 @@ class nsNativeAppSupportUnix : public nsNativeAppSupportBase {
  public:
 #if MOZ_X11
   nsNativeAppSupportUnix()
-      : mSessionConnection(nullptr), mClientState(STATE_DISCONNECTED){};
+      : mSessionConnection(nullptr), mClientState(STATE_DISCONNECTED) {};
   ~nsNativeAppSupportUnix() {
     // this goes out of scope after "web-workers-shutdown" async shutdown phase
     // so it's safe to disconnect here (i.e. the application won't lose data)
@@ -143,7 +143,7 @@ class nsNativeAppSupportUnix : public nsNativeAppSupportBase {
                              Bool fast);
   static void DieCB(SmcConn smc_conn, SmPointer client_data);
   static void InteractCB(SmcConn smc_conn, SmPointer client_data);
-  static void SaveCompleteCB(SmcConn smc_conn, SmPointer client_data){};
+  static void SaveCompleteCB(SmcConn smc_conn, SmPointer client_data) {};
   static void ShutdownCancelledCB(SmcConn smc_conn, SmPointer client_data);
   void DoInteract();
   void SetClientState(ClientState aState) {

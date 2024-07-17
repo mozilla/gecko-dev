@@ -51,8 +51,8 @@ void RemoteTrackSource::Destroy() {
 }
 
 auto RemoteTrackSource::ApplyConstraints(
-    const dom::MediaTrackConstraints& aConstraints, dom::CallerType aCallerType)
-    -> RefPtr<ApplyConstraintsPromise> {
+    const dom::MediaTrackConstraints& aConstraints,
+    dom::CallerType aCallerType) -> RefPtr<ApplyConstraintsPromise> {
   return ApplyConstraintsPromise::CreateAndReject(
       MakeRefPtr<MediaMgrError>(
           dom::MediaStreamError::Name::OverconstrainedError, ""),

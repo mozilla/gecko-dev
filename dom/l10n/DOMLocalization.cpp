@@ -214,7 +214,7 @@ class ElementTranslationHandler : public PromiseNativeHandler {
  public:
   explicit ElementTranslationHandler(DOMLocalization* aDOMLocalization,
                                      nsXULPrototypeDocument* aProto)
-      : mDOMLocalization(aDOMLocalization), mProto(aProto){};
+      : mDOMLocalization(aDOMLocalization), mProto(aProto) {};
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(ElementTranslationHandler)

@@ -34,7 +34,7 @@ class HeadlessLookAndFeel : public nsXPLookAndFeel {
   explicit HeadlessLookAndFeel();
   virtual ~HeadlessLookAndFeel();
 
-  void NativeInit() final{};
+  void NativeInit() final {};
   nsresult NativeGetInt(IntID, int32_t& aResult) override;
   nsresult NativeGetFloat(FloatID, float& aResult) override;
   nsresult NativeGetColor(ColorID, ColorScheme, nscolor& aResult) override;

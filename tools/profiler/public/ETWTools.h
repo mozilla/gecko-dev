@@ -329,8 +329,8 @@ static inline void EmitETWMarker(const mozilla::ProfilerString8View& aName,
       return;
     }
 
-    static const __declspec(allocate(_tlgSegMetadataEvents)) __declspec(
-        align(1)) constexpr StaticMetaData<MarkerType>
+    static const __declspec(allocate(_tlgSegMetadataEvents))
+    __declspec(align(1)) constexpr StaticMetaData<MarkerType>
         staticData;
 
     // Allocate the exact amount of descriptors required by this event.

@@ -68,33 +68,33 @@ class DOMMediaStream : public DOMEventTargetHelper,
      * Called when the DOMMediaStream has a live track added, either by
      * script (addTrack()) or the source creating one.
      */
-    virtual void NotifyTrackAdded(const RefPtr<MediaStreamTrack>& aTrack){};
+    virtual void NotifyTrackAdded(const RefPtr<MediaStreamTrack>& aTrack) {};
 
     /**
      * Called when the DOMMediaStream removes a live track from playback, either
      * by script (removeTrack(), track.stop()) or the source ending it.
      */
-    virtual void NotifyTrackRemoved(const RefPtr<MediaStreamTrack>& aTrack){};
+    virtual void NotifyTrackRemoved(const RefPtr<MediaStreamTrack>& aTrack) {};
 
     /**
      * Called when the DOMMediaStream has become active.
      */
-    virtual void NotifyActive(){};
+    virtual void NotifyActive() {};
 
     /**
      * Called when the DOMMediaStream has become inactive.
      */
-    virtual void NotifyInactive(){};
+    virtual void NotifyInactive() {};
 
     /**
      * Called when the DOMMediaStream has become audible.
      */
-    virtual void NotifyAudible(){};
+    virtual void NotifyAudible() {};
 
     /**
      * Called when the DOMMediaStream has become inaudible.
      */
-    virtual void NotifyInaudible(){};
+    virtual void NotifyInaudible() {};
 
    protected:
     virtual ~TrackListener() = default;

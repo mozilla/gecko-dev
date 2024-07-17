@@ -610,7 +610,7 @@ NS_EXPORT_(void) setupProfilingStuff(void) {
         timerMilliSec = 0; /* This makes JP_FIRST work right. */
         realTime = 1;      /* It's the _R_TC and all.  ;) */
 
-#  define IS_POWER_OF_TWO(x) (((x) & ((x)-1)) == 0)
+#  define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 
         if (!IS_POWER_OF_TWO(rtcHz) || rtcHz < 2) {
           fprintf(stderr,

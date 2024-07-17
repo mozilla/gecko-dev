@@ -23,7 +23,8 @@ class WinWebAuthnService final : public nsIWebAuthnService {
   static nsresult EnsureWinWebAuthnModuleLoaded();
 
   WinWebAuthnService()
-      : mTransactionState(Nothing(), "WinWebAuthnService::mTransactionState"){};
+      : mTransactionState(Nothing(), "WinWebAuthnService::mTransactionState") {
+        };
 
  private:
   ~WinWebAuthnService();

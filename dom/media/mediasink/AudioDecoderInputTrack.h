@@ -70,10 +70,10 @@ class AudioDecoderInputTrack final : public ProcessedMediaTrack {
     };
     struct EOS {};
 
-    SPSCData() : mData(Empty()){};
-    explicit SPSCData(ClearFutureData&& aArg) : mData(std::move(aArg)){};
-    explicit SPSCData(DecodedData&& aArg) : mData(std::move(aArg)){};
-    explicit SPSCData(EOS&& aArg) : mData(std::move(aArg)){};
+    SPSCData() : mData(Empty()) {};
+    explicit SPSCData(ClearFutureData&& aArg) : mData(std::move(aArg)) {};
+    explicit SPSCData(DecodedData&& aArg) : mData(std::move(aArg)) {};
+    explicit SPSCData(EOS&& aArg) : mData(std::move(aArg)) {};
 
     bool HasData() const { return !mData.is<Empty>(); }
     bool IsClearFutureData() const { return mData.is<ClearFutureData>(); }

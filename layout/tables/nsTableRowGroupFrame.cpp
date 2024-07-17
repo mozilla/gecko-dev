@@ -740,8 +740,8 @@ void nsTableRowGroupFrame::CalculateRowBSizes(nsPresContext* aPresContext,
           }  // if (rowSpan > 1)
           cellFrame = cellFrame->GetNextCell();
         }  // while (cellFrame)
-      }    // if (tableFrame->RowHasSpanningCells(startRowIndex + rowIndex) {
-    }      // while (rowFrame)
+      }  // if (tableFrame->RowHasSpanningCells(startRowIndex + rowIndex) {
+    }  // while (rowFrame)
   }
 
   // pct bsize rows have already got their content bsizes.

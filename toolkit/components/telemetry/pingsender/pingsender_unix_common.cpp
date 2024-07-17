@@ -90,19 +90,17 @@ CurlWrapper::~CurlWrapper() {
 bool CurlWrapper::Init() {
   const char* libcurlPaths[] = {
 #if defined(XP_MACOSX)
-    // macOS
-    "/usr/lib/libcurl.dylib",
-    "/usr/lib/libcurl.4.dylib",
-    "/usr/lib/libcurl.3.dylib",
+      // macOS
+      "/usr/lib/libcurl.dylib",
+      "/usr/lib/libcurl.4.dylib",
+      "/usr/lib/libcurl.3.dylib",
 #else  // Linux, *BSD, ...
-    "libcurl.so",
-    "libcurl.so.4",
-    // Debian gives libcurl a different name when it is built against GnuTLS
-    "libcurl-gnutls.so",
-    "libcurl-gnutls.so.4",
-    // Older versions in case we find nothing better
-    "libcurl.so.3",
-    "libcurl-gnutls.so.3",  // See above for Debian
+      "libcurl.so", "libcurl.so.4",
+      // Debian gives libcurl a different name when it is built against GnuTLS
+      "libcurl-gnutls.so", "libcurl-gnutls.so.4",
+      // Older versions in case we find nothing better
+      "libcurl.so.3",
+      "libcurl-gnutls.so.3",  // See above for Debian
 #endif
   };
 

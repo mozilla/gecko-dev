@@ -184,7 +184,7 @@ class nsAHttpTransaction : public nsSupportsWeakReference {
   virtual void SetIsHttp2Websocket(bool) {}
   virtual bool IsHttp2Websocket() { return false; }
   virtual void SetTRRInfo(nsIRequest::TRRMode aMode,
-                          TRRSkippedReason aSkipReason){};
+                          TRRSkippedReason aSkipReason) {};
 
   // We call this function if we want to use alt-svc host again on the next
   // restart. If this function is not called on the next restart the

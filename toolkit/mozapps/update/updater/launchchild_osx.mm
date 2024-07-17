@@ -369,8 +369,7 @@ bool ObtainUpdaterArguments(int* aArgc, char*** aArgv,
 
   while ([self shouldKeepRunning] &&
          [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                  beforeDate:[NSDate distantFuture]])
-    ;
+                                  beforeDate:[NSDate distantFuture]]);
   return ![self wasAborted];
 }
 

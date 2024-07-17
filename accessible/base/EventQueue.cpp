@@ -231,7 +231,7 @@ void EventQueue::CoalesceEvents() {
 
     default:
       break;  // case eAllowDupes, eDoNotEmit
-  }           // switch
+  }  // switch
 }
 
 void EventQueue::CoalesceSelChangeEvents(AccSelChangeEvent* aTailEvent,

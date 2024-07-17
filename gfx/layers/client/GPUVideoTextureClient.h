@@ -28,7 +28,7 @@ class GPUVideoTextureData : public TextureData {
 
   bool Lock(OpenMode) override { return true; };
 
-  void Unlock() override{};
+  void Unlock() override {};
 
   bool Serialize(SurfaceDescriptor& aOutDescriptor) override;
 

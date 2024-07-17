@@ -83,11 +83,9 @@ static bool test_basic_array(ElementType* data, size_t dataLen,
   if (ary.Length() != (oldLen - 1)) return false;
   if (!(ary == ary)) return false;
 
-  if (ary.ApplyIf(
-          extra, []() { return true; }, []() { return false; }))
+  if (ary.ApplyIf(extra, []() { return true; }, []() { return false; }))
     return false;
-  if (ary.ApplyIf(
-          extra, [](size_t) { return true; }, []() { return false; }))
+  if (ary.ApplyIf(extra, [](size_t) { return true; }, []() { return false; }))
     return false;
   // On a non-const array, ApplyIf's first lambda may use either const or non-
   // const element types.
@@ -107,8 +105,7 @@ static bool test_basic_array(ElementType* data, size_t dataLen,
           []() { return false; }))
     return false;
 
-  if (cary.ApplyIf(
-          extra, []() { return true; }, []() { return false; }))
+  if (cary.ApplyIf(extra, []() { return true; }, []() { return false; }))
     if (cary.ApplyIf(
             extra, [](size_t) { return true; }, []() { return false; }))
       // On a const array, ApplyIf's first lambda must only use const element
@@ -159,11 +156,9 @@ static bool test_basic_array(ElementType* data, size_t dataLen,
   ary.Clear();
   if (ary.IndexOf(extra) != ary.NoIndex) return false;
   if (ary.LastIndexOf(extra) != ary.NoIndex) return false;
-  if (ary.ApplyIf(
-          extra, []() { return true; }, []() { return false; }))
+  if (ary.ApplyIf(extra, []() { return true; }, []() { return false; }))
     return false;
-  if (cary.ApplyIf(
-          extra, []() { return true; }, []() { return false; }))
+  if (cary.ApplyIf(extra, []() { return true; }, []() { return false; }))
     return false;
 
   ary.Clear();
@@ -986,8 +981,8 @@ TEST(TArray, test_indexof)
   // we should not find the 5!
   auto no_index = array.NoIndex;  // Fixes gtest compilation error.
   ASSERT_EQ(array.IndexOf(5, 1), no_index);
-  ASSERT_FALSE(array.ApplyIf(
-      5, 1, []() { return true; }, []() { return false; }));
+  ASSERT_FALSE(
+      array.ApplyIf(5, 1, []() { return true; }, []() { return false; }));
 }
 
 //----

@@ -734,7 +734,7 @@ class RLBoxExpatClosure {
  public:
   RLBoxExpatClosure(RLBoxExpatSandboxData* aSbxData,
                     tainted_expat<XML_Parser> aExpatParser)
-      : mSbxData(aSbxData), mExpatParser(aExpatParser){};
+      : mSbxData(aSbxData), mExpatParser(aExpatParser) {};
   inline rlbox_sandbox_expat* Sandbox() const { return mSbxData->Sandbox(); };
   inline tainted_expat<XML_Parser> Parser() const { return mExpatParser; };
 

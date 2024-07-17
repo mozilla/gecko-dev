@@ -20,11 +20,8 @@
 
 #define NS_MEDIA_SNIFFER_CONTRACTID "@mozilla.org/media/sniffer;1"
 
-#define PATTERN_ENTRY(mask, pattern, contentType)                    \
-  {                                                                  \
-    (const uint8_t*)mask, (const uint8_t*)pattern, sizeof(mask) - 1, \
-        contentType                                                  \
-  }
+#define PATTERN_ENTRY(mask, pattern, contentType) \
+  {(const uint8_t*)mask, (const uint8_t*)pattern, sizeof(mask) - 1, contentType}
 
 struct nsMediaSnifferEntry {
   const uint8_t* mMask;

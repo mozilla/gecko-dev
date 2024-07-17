@@ -158,8 +158,7 @@ TEST_F(APZEventRegionsTesterMock, HitRegionImmediateResponse) {
   nsTArray<ScrollableLayerGuid> targets;
   targets.AppendElement(left->GetGuid());
   manager->SetTargetAPZC(result.mInputBlockId, targets);
-  while (mcc->RunThroughDelayedTasks())
-    ;  // this runs the tap event
+  while (mcc->RunThroughDelayedTasks());  // this runs the tap event
   check.Call("Tapped on left this time");
 }
 

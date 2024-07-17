@@ -202,8 +202,7 @@ class JS_PUBLIC_API GenericPrinter {
   virtual size_t index() const { return 0; }
 
   // In some printers, this ensure that the content is fully written.
-  virtual void flush() { /* Do nothing */
-  }
+  virtual void flush() { /* Do nothing */ }
 
   // Report that a string operation failed to get the memory it requested.
   virtual void reportOutOfMemory();

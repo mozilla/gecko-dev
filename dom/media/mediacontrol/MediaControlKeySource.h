@@ -107,9 +107,9 @@ class MediaControlKeySource {
   // Override these methods if the inherited key source want to know the change
   // for following attributes. For example, GeckoView would use these methods
   // to notify change to the embedded application.
-  virtual void SetEnableFullScreen(bool aIsEnabled){};
-  virtual void SetEnablePictureInPictureMode(bool aIsEnabled){};
-  virtual void SetPositionState(const Maybe<PositionState>& aState){};
+  virtual void SetEnableFullScreen(bool aIsEnabled) {};
+  virtual void SetEnablePictureInPictureMode(bool aIsEnabled) {};
+  virtual void SetPositionState(const Maybe<PositionState>& aState) {};
 
  protected:
   virtual ~MediaControlKeySource() = default;

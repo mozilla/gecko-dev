@@ -43,7 +43,7 @@ class SimpleMap {
   using MapType = AutoTArray<ElementType, 16>;
 
  public:
-  SimpleMap() : mLock("SimpleMap"){};
+  SimpleMap() : mLock("SimpleMap") {};
 
   // Check if aKey is in the map.
   bool Contains(const K& aKey) {

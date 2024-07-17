@@ -125,7 +125,7 @@ class StackResultsLoc {
   Maybe<uint32_t> height_;
 
  public:
-  StackResultsLoc() : bytes_(0), count_(0){};
+  StackResultsLoc() : bytes_(0), count_(0) {};
   StackResultsLoc(uint32_t bytes, size_t count, uint32_t height)
       : bytes_(bytes), count_(count), height_(Some(height)) {
     MOZ_ASSERT(bytes != 0);

@@ -391,8 +391,7 @@ void RectParamInfo(nsCString& str, uint64_t value, const char* name,
                    rect->top, rect->right, rect->bottom);
 }
 
-#define VALANDNAME_ENTRY(_msg) \
-  { _msg, #_msg }
+#define VALANDNAME_ENTRY(_msg) {_msg, #_msg}
 
 void CreateStructParamInfo(nsCString& str, uint64_t value, const char* name,
                            bool /* isPreCall */) {

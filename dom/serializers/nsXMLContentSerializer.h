@@ -301,7 +301,7 @@ class nsXMLContentSerializer : public nsIContentSerializer {
    * the serialization of the end tag.
    * (called at the end of AppendElementStart)
    */
-  virtual void AfterElementEnd(nsIContent* aContent, nsAString& aStr){};
+  virtual void AfterElementEnd(nsIContent* aContent, nsAString& aStr) {};
 
   /**
    * Returns true if a line break should be inserted before an element open tag

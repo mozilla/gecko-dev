@@ -142,7 +142,7 @@ class PCUuidGenerator : public mozilla::JsepUuidGenerator {
 // elapsed time is recorded in seconds.
 struct PeerConnectionAutoTimer {
   PeerConnectionAutoTimer()
-      : mRefCnt(0), mStart(TimeStamp::Now()), mUsedAV(false){};
+      : mRefCnt(0), mStart(TimeStamp::Now()), mUsedAV(false) {};
   void RegisterConnection();
   void UnregisterConnection(bool aContainedAV);
   bool IsStopped();

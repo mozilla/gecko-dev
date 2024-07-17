@@ -549,7 +549,7 @@ auto TokenizerBase<TChar>::Parse(Token& aToken) const ->
         aToken = Token::Char(*mCursor);
         return next;
     }  // switch (state)
-  }    // while (next < end)
+  }  // while (next < end)
 
   MOZ_ASSERT(!mInputFinished);
   return mCursor;

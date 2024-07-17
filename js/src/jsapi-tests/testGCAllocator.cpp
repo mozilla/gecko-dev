@@ -248,8 +248,7 @@ bool positionIsCorrect(const char* str, void* base, void** chunkPool,
   int len = strlen(str);
   int i;
   // Find the index of the desired address.
-  for (i = 0; i < len && str[i] != 'o'; ++i)
-    ;
+  for (i = 0; i < len && str[i] != 'o'; ++i);
   void* desired = (void*)(uintptr_t(base) + i * Chunk);
   // Map the regions indicated by str.
   for (i = 0; i < len; ++i) {

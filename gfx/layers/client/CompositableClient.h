@@ -79,7 +79,7 @@ class CompositableClient {
 
   virtual void Dump(std::stringstream& aStream, const char* aPrefix = "",
                     bool aDumpHtml = false,
-                    TextureDumpMode aCompress = TextureDumpMode::Compress){};
+                    TextureDumpMode aCompress = TextureDumpMode::Compress) {};
 
   virtual TextureInfo GetTextureInfo() const = 0;
 

@@ -133,8 +133,7 @@ TEST_F(APZCGestureDetectorTester, Pan_After_Pinch) {
 
   // Clear out any remaining fling animation and pending tasks
   apzc->AdvanceAnimationsUntilEnd();
-  while (mcc->RunThroughDelayedTasks())
-    ;
+  while (mcc->RunThroughDelayedTasks());
   apzc->AssertStateIsReset();
 }
 #endif
@@ -225,8 +224,7 @@ TEST_F(APZCGestureDetectorTester, Pan_With_Tap) {
 
   // Clear out any remaining fling animation and pending tasks
   apzc->AdvanceAnimationsUntilEnd();
-  while (mcc->RunThroughDelayedTasks())
-    ;
+  while (mcc->RunThroughDelayedTasks());
   apzc->AssertStateIsReset();
 }
 
@@ -286,14 +284,12 @@ class APZCFlingStopTester : public APZCGestureDetectorTester {
                 HandleTap(TapType::eSingleTap, _, 0, apzc->GetGuid(), _, _))
         .Times(tapCallsExpected);
     Tap(apzc, ScreenIntPoint(10, 10), 0);
-    while (mcc->RunThroughDelayedTasks())
-      ;
+    while (mcc->RunThroughDelayedTasks());
 
     // Deliver another tap, to make sure that taps are flowing properly once
     // the fling is aborted.
     Tap(apzc, ScreenIntPoint(100, 100), 0);
-    while (mcc->RunThroughDelayedTasks())
-      ;
+    while (mcc->RunThroughDelayedTasks());
 
     // Verify that we didn't advance any further after the fling was aborted, in
     // either case.
@@ -847,8 +843,7 @@ TEST_F(APZCGestureDetectorTester, TapTimeoutInterruptedByWheel) {
       Wheel(apzc, ScreenIntPoint(10, 10), ScreenPoint(0, -10), mcc->Time())
           .mInputBlockId;
   EXPECT_NE(result.mInputBlockId, wheelBlockId);
-  while (mcc->RunThroughDelayedTasks())
-    ;
+  while (mcc->RunThroughDelayedTasks());
 }
 
 TEST_F(APZCGestureDetectorTester, LongPressWithInputQueueDelay) {

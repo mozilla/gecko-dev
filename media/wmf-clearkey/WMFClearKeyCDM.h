@@ -112,14 +112,14 @@ class SessionManagerWrapper final : public RefCounted, private cdm::Host_10 {
                            const cdm::KeyInformation* aKeysInfo,
                            uint32_t aKeysInfoCount) override;
   void OnExpirationChange(const char* aSessionId, uint32_t aSessionIdSize,
-                          cdm::Time aNewExpiryTime) override{
-      // No need to implement this because the session would never expire in
-      // testing.
+                          cdm::Time aNewExpiryTime) override {
+    // No need to implement this because the session would never expire in
+    // testing.
   };
   void OnSessionClosed(const char* aSessionId,
-                       uint32_t aSessionIdSize) override{
-      // No need to implement this because session doesn't have close callback
-      // or events.
+                       uint32_t aSessionIdSize) override {
+    // No need to implement this because session doesn't have close callback
+    // or events.
   };
   cdm::FileIO* CreateFileIO(cdm::FileIOClient* aClient) override {
     // We don't support this because we only support temporary session.
@@ -129,7 +129,7 @@ class SessionManagerWrapper final : public RefCounted, private cdm::Host_10 {
                              const char* aChallenge,
                              uint32_t aChallengeSize) override {}
   void EnableOutputProtection(uint32_t aDesiredProtectionMask) override {}
-  void QueryOutputProtectionStatus() override{};
+  void QueryOutputProtectionStatus() override {};
   void OnDeferredInitializationDone(cdm::StreamType aStreamType,
                                     cdm::Status aDecoderStatus) override {}
   void RequestStorageId(uint32_t aVersion) override {}

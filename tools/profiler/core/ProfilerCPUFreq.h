@@ -46,9 +46,9 @@ class ProfilerCPUFreq {
   uint32_t GetCPUSpeedMHz(unsigned cpuId);
 #  endif
 #else
-  explicit ProfilerCPUFreq(){};
-  ~ProfilerCPUFreq(){};
-  void Sample(){};
+  explicit ProfilerCPUFreq() {};
+  ~ProfilerCPUFreq() {};
+  void Sample() {};
 #endif
 
  private:

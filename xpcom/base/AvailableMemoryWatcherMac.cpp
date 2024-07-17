@@ -75,7 +75,7 @@ class nsAvailableMemoryWatcher final : public nsITimerCallback,
       const UniquePtr<ipc::CrashReporterHost>& aCrashReporter) override;
 
  private:
-  ~nsAvailableMemoryWatcher(){};
+  ~nsAvailableMemoryWatcher() {};
 
   void OnMemoryPressureChangedInternal(MacMemoryPressureLevel aNewLevel,
                                        bool aIsInitialLevel);

@@ -49,7 +49,7 @@ class SharedSurface_EGLImage final : public SharedSurface {
   virtual void ProducerReleaseImpl() override;
 
   virtual void ProducerReadAcquireImpl() override;
-  virtual void ProducerReadReleaseImpl() override{};
+  virtual void ProducerReadReleaseImpl() override {};
 
   Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor() override;
 };

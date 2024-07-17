@@ -95,7 +95,7 @@ extern JS_PUBLIC_API uint32_t GetThreadType(void);
 #  else
 
 inline bool InitThreadType(void) { return true; }
-inline void SetThreadType(ThreadType t){};
+inline void SetThreadType(ThreadType t) {};
 inline uint32_t GetThreadType(void) { return 0; }
 inline uint32_t GetAllocationThreadType(void) { return 0; }
 inline uint32_t GetStackCheckThreadType(void) { return 0; }

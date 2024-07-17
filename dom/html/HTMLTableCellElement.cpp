@@ -186,9 +186,7 @@ void HTMLTableCellElement::MapAttributesIntoRule(
 NS_IMETHODIMP_(bool)
 HTMLTableCellElement::IsAttributeMapped(const nsAtom* aAttribute) const {
   static const MappedAttributeEntry attributes[] = {
-    {nsGkAtoms::align},
-    {nsGkAtoms::valign},
-    {nsGkAtoms::nowrap},
+      {nsGkAtoms::align}, {nsGkAtoms::valign}, {nsGkAtoms::nowrap},
 #if 0
     // XXXldb If these are implemented, they might need to move to
     // GetAttributeChangeHint (depending on how, and preferably not).
@@ -197,10 +195,7 @@ HTMLTableCellElement::IsAttributeMapped(const nsAtom* aAttribute) const {
     { nsGkAtoms::headers },
     { nsGkAtoms::scope },
 #endif
-    {nsGkAtoms::width},
-    {nsGkAtoms::height},
-    {nullptr}
-  };
+      {nsGkAtoms::width}, {nsGkAtoms::height}, {nullptr}};
 
   static const MappedAttributeEntry* const map[] = {
       attributes,

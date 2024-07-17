@@ -27,10 +27,9 @@ auto SdpTelemetry::RecordCompare(const SdpTelemetry::Results& aFirst,
   Telemetry::ScalarAdd(Telemetry::ScalarID::WEBRTC_SDP_PARSER_DIFF, bucket, 1);
 }
 
-auto SdpTelemetry::BucketNameFragment(const SdpTelemetry::Results& aResult,
-                                      const SdpTelemetry::Modes& aMode,
-                                      const SdpTelemetry::Roles& aRole)
-    -> nsAutoString {
+auto SdpTelemetry::BucketNameFragment(
+    const SdpTelemetry::Results& aResult, const SdpTelemetry::Modes& aMode,
+    const SdpTelemetry::Roles& aRole) -> nsAutoString {
   auto mode = [&]() -> std::string {
     switch (aMode) {
       case Modes::Parallel:

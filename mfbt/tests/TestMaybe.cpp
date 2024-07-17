@@ -1026,13 +1026,11 @@ static bool TestComparisonOperators() {
 // class (i.e. that the compiler doesn't warn when we invoke the superclass's
 // destructor explicitly in |reset()|.
 class MySuperClass {
-  virtual void VirtualMethod() { /* do nothing */
-  }
+  virtual void VirtualMethod() { /* do nothing */ }
 };
 
 class MyDerivedClass : public MySuperClass {
-  void VirtualMethod() override { /* do nothing */
-  }
+  void VirtualMethod() override { /* do nothing */ }
 };
 
 static bool TestVirtualFunction() {

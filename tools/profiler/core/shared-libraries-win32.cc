@@ -142,5 +142,4 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoFromPath(const wchar_t* aPath) {
   return sharedLibraryInfo;
 }
 
-void SharedLibraryInfo::Initialize() { /* do nothing */
-}
+void SharedLibraryInfo::Initialize() { /* do nothing */ }

@@ -27,8 +27,8 @@ class SdpTelemetry {
   static auto RecordParse(const Results& aResults, const Modes& aMode,
                           const Roles& aRole) -> void;
 
-  static auto RecordSecondaryParse(const Results& aResult, const Modes& aMode)
-      -> void;
+  static auto RecordSecondaryParse(const Results& aResult,
+                                   const Modes& aMode) -> void;
 
   static auto RecordCompare(const Results& aFirst, const Results& aSecond,
                             const Modes& aMode) -> void;

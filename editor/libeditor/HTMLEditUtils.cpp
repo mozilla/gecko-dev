@@ -1204,13 +1204,10 @@ struct ElementInfo final {
 
 #ifdef DEBUG
 #  define ELEM(_tag, _isContainer, _canContainSelf, _group, _canContainGroups) \
-    {                                                                          \
-      eHTMLTag_##_tag, _group, _canContainGroups, _isContainer,                \
-          _canContainSelf                                                      \
-    }
+    {eHTMLTag_##_tag, _group, _canContainGroups, _isContainer, _canContainSelf}
 #else
 #  define ELEM(_tag, _isContainer, _canContainSelf, _group, _canContainGroups) \
-    { _group, _canContainGroups, _isContainer, _canContainSelf }
+    {_group, _canContainGroups, _isContainer, _canContainSelf}
 #endif
 
 static const ElementInfo kElements[eHTMLTag_userdefined] = {

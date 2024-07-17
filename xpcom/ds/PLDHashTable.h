@@ -600,8 +600,8 @@ class PLDHashTable {
   };
 
   template <class F>
-  auto WithEntryHandle(const void* aKey, F&& aFunc)
-      -> std::invoke_result_t<F, EntryHandle&&> {
+  auto WithEntryHandle(const void* aKey,
+                       F&& aFunc) -> std::invoke_result_t<F, EntryHandle&&> {
     return std::forward<F>(aFunc)(MakeEntryHandle(aKey));
   }
 

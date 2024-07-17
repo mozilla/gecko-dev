@@ -77,10 +77,10 @@ uint16_t RotorRule::Match(Accessible* aAcc) {
 
 RotorRoleRule::RotorRoleRule(role aRole, Accessible* aDirectDescendantsFrom,
                              const nsString& aSearchText)
-    : RotorRule(aDirectDescendantsFrom, aSearchText), mRole(aRole){};
+    : RotorRule(aDirectDescendantsFrom, aSearchText), mRole(aRole) {};
 
 RotorRoleRule::RotorRoleRule(role aRole, const nsString& aSearchText)
-    : RotorRule(aSearchText), mRole(aRole){};
+    : RotorRule(aSearchText), mRole(aRole) {};
 
 uint16_t RotorRoleRule::Match(Accessible* aAcc) {
   uint16_t result = RotorRule::Match(aAcc);
@@ -135,10 +135,10 @@ uint16_t RotorMacRoleRule::Match(Accessible* aAcc) {
 
 RotorControlRule::RotorControlRule(Accessible* aDirectDescendantsFrom,
                                    const nsString& aSearchText)
-    : RotorRule(aDirectDescendantsFrom, aSearchText){};
+    : RotorRule(aDirectDescendantsFrom, aSearchText) {};
 
 RotorControlRule::RotorControlRule(const nsString& aSearchText)
-    : RotorRule(aSearchText){};
+    : RotorRule(aSearchText) {};
 
 uint16_t RotorControlRule::Match(Accessible* aAcc) {
   uint16_t result = RotorRule::Match(aAcc);
@@ -207,10 +207,10 @@ uint16_t RotorControlRule::Match(Accessible* aAcc) {
 
 RotorTextEntryRule::RotorTextEntryRule(Accessible* aDirectDescendantsFrom,
                                        const nsString& aSearchText)
-    : RotorRule(aDirectDescendantsFrom, aSearchText){};
+    : RotorRule(aDirectDescendantsFrom, aSearchText) {};
 
 RotorTextEntryRule::RotorTextEntryRule(const nsString& aSearchText)
-    : RotorRule(aSearchText){};
+    : RotorRule(aSearchText) {};
 
 uint16_t RotorTextEntryRule::Match(Accessible* aAcc) {
   uint16_t result = RotorRule::Match(aAcc);
@@ -232,10 +232,10 @@ uint16_t RotorTextEntryRule::Match(Accessible* aAcc) {
 
 RotorLinkRule::RotorLinkRule(Accessible* aDirectDescendantsFrom,
                              const nsString& aSearchText)
-    : RotorRule(aDirectDescendantsFrom, aSearchText){};
+    : RotorRule(aDirectDescendantsFrom, aSearchText) {};
 
 RotorLinkRule::RotorLinkRule(const nsString& aSearchText)
-    : RotorRule(aSearchText){};
+    : RotorRule(aSearchText) {};
 
 uint16_t RotorLinkRule::Match(Accessible* aAcc) {
   uint16_t result = RotorRule::Match(aAcc);
@@ -325,10 +325,10 @@ uint16_t RotorNotMacRoleRule::Match(Accessible* aAcc) {
 
 RotorStaticTextRule::RotorStaticTextRule(Accessible* aDirectDescendantsFrom,
                                          const nsString& aSearchText)
-    : RotorRule(aDirectDescendantsFrom, aSearchText){};
+    : RotorRule(aDirectDescendantsFrom, aSearchText) {};
 
 RotorStaticTextRule::RotorStaticTextRule(const nsString& aSearchText)
-    : RotorRule(aSearchText){};
+    : RotorRule(aSearchText) {};
 
 uint16_t RotorStaticTextRule::Match(Accessible* aAcc) {
   uint16_t result = RotorRule::Match(aAcc);
@@ -353,11 +353,11 @@ RotorHeadingLevelRule::RotorHeadingLevelRule(int32_t aLevel,
                                              Accessible* aDirectDescendantsFrom,
                                              const nsString& aSearchText)
     : RotorRoleRule(roles::HEADING, aDirectDescendantsFrom, aSearchText),
-      mLevel(aLevel){};
+      mLevel(aLevel) {};
 
 RotorHeadingLevelRule::RotorHeadingLevelRule(int32_t aLevel,
                                              const nsString& aSearchText)
-    : RotorRoleRule(roles::HEADING, aSearchText), mLevel(aLevel){};
+    : RotorRoleRule(roles::HEADING, aSearchText), mLevel(aLevel) {};
 
 uint16_t RotorHeadingLevelRule::Match(Accessible* aAcc) {
   uint16_t result = RotorRoleRule::Match(aAcc);

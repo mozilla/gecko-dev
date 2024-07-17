@@ -16,8 +16,7 @@ class CacheWorkerRef;
 class ActorChild {
  public:
   virtual void StartDestroy() = 0;
-  virtual void NoteDeletedActor() { /*no-op*/
-  }
+  virtual void NoteDeletedActor() { /*no-op*/ }
 
   void SetWorkerRef(SafeRefPtr<CacheWorkerRef> aWorkerRef);
 

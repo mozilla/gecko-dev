@@ -109,18 +109,18 @@ void TestDocumentationExample() {
     MOZ_RELEASE_ASSERT(val.LoadLargeAndInCharge() == int_max); \
   }
 
-#define GENERATE_TEST_LOPSIDED(aSize)                                        \
-  struct LopsidedA##aSize {                                                  \
-    MOZ_ATOMIC_BITFIELDS(mAtomicFields, aSize,                               \
-                         ((bool, HappyLittleBit, 1),                         \
-                          (uint##aSize##_t, LargeAndInCharge, ((aSize)-1)))) \
-  };                                                                         \
-  struct LopsidedB##aSize {                                                  \
-    MOZ_ATOMIC_BITFIELDS(mAtomicFields, aSize,                               \
-                         ((uint##aSize##_t, LargeAndInCharge, ((aSize)-1)),  \
-                          (bool, HappyLittleBit, 1)))                        \
-  };                                                                         \
-  GENERATE_TEST_LOPSIDED_FUNC(A, aSize);                                     \
+#define GENERATE_TEST_LOPSIDED(aSize)                                          \
+  struct LopsidedA##aSize {                                                    \
+    MOZ_ATOMIC_BITFIELDS(mAtomicFields, aSize,                                 \
+                         ((bool, HappyLittleBit, 1),                           \
+                          (uint##aSize##_t, LargeAndInCharge, ((aSize) - 1)))) \
+  };                                                                           \
+  struct LopsidedB##aSize {                                                    \
+    MOZ_ATOMIC_BITFIELDS(mAtomicFields, aSize,                                 \
+                         ((uint##aSize##_t, LargeAndInCharge, ((aSize) - 1)),  \
+                          (bool, HappyLittleBit, 1)))                          \
+  };                                                                           \
+  GENERATE_TEST_LOPSIDED_FUNC(A, aSize);                                       \
   GENERATE_TEST_LOPSIDED_FUNC(B, aSize);
 
 #define TEST_LOPSIDED(aSize) \

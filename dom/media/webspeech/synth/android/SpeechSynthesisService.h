@@ -21,7 +21,7 @@ class SpeechSynthesisService final
   NS_DECL_ISUPPORTS
   NS_DECL_NSISPEECHSERVICE
 
-  SpeechSynthesisService(){};
+  SpeechSynthesisService() {};
 
   void Setup();
 
@@ -46,7 +46,7 @@ class SpeechSynthesisService final
   static StaticRefPtr<SpeechSynthesisService> sSingleton;
 
  private:
-  virtual ~SpeechSynthesisService(){};
+  virtual ~SpeechSynthesisService() {};
 
   nsCOMPtr<nsISpeechTask> mTask;
 

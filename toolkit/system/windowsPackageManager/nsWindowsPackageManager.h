@@ -18,7 +18,7 @@ class nsWindowsPackageManager final : public nsIWindowsPackageManager {
   NS_DECL_NSIWINDOWSPACKAGEMANAGER
 
  private:
-  ~nsWindowsPackageManager(){};
+  ~nsWindowsPackageManager() {};
 };
 
 }  // namespace system

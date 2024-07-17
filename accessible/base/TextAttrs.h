@@ -211,7 +211,7 @@ class TextAttrsMgr {
   class InvalidTextAttr : public TTextAttr<uint32_t> {
    public:
     InvalidTextAttr(nsIContent* aRootElm, nsIContent* aElm);
-    virtual ~InvalidTextAttr(){};
+    virtual ~InvalidTextAttr() {};
 
    protected:
     enum { eFalse, eGrammar, eSpelling, eTrue };

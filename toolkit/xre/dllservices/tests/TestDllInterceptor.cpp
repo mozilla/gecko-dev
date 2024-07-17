@@ -76,7 +76,7 @@ struct payload {
 };
 
 extern "C" __declspec(dllexport) __declspec(noinline) payload
-    rotatePayload(payload p) {
+rotatePayload(payload p) {
   UINT64 tmp = p.a;
   p.a = p.b;
   p.b = p.c;
@@ -88,7 +88,7 @@ extern "C" __declspec(dllexport) __declspec(noinline) payload
 // We cannot use rotatePayload for that purpose because our detour cannot hook
 // a function detoured already.  Please keep this function always unhooked.
 extern "C" __declspec(dllexport) __declspec(noinline) payload
-    payloadNotHooked(payload p) {
+payloadNotHooked(payload p) {
   // Do something different from rotatePayload to avoid ICF.
   p.a ^= p.b;
   p.b ^= p.c;

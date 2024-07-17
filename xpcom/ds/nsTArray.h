@@ -2474,11 +2474,9 @@ auto nsTArray_Impl<E, Alloc>::AssignInternal(const Item* aArray,
 
 template <typename E, class Alloc>
 template <typename ActualAlloc, class Item>
-auto nsTArray_Impl<E, Alloc>::ReplaceElementsAtInternal(index_type aStart,
-                                                        size_type aCount,
-                                                        const Item* aArray,
-                                                        size_type aArrayLen)
-    -> value_type* {
+auto nsTArray_Impl<E, Alloc>::ReplaceElementsAtInternal(
+    index_type aStart, size_type aCount, const Item* aArray,
+    size_type aArrayLen) -> value_type* {
   if (MOZ_UNLIKELY(aStart > Length())) {
     mozilla::detail::InvalidArrayIndex_CRASH(aStart, Length());
   }
@@ -2576,10 +2574,8 @@ auto nsTArray_Impl<E, Alloc>::RemoveElementsBy(Predicate aPredicate)
 
 template <typename E, class Alloc>
 template <typename ActualAlloc, class Item>
-auto nsTArray_Impl<E, Alloc>::InsertElementsAtInternal(index_type aIndex,
-                                                       size_type aCount,
-                                                       const Item& aItem)
-    -> value_type* {
+auto nsTArray_Impl<E, Alloc>::InsertElementsAtInternal(
+    index_type aIndex, size_type aCount, const Item& aItem) -> value_type* {
   if (!ActualAlloc::Successful(this->template InsertSlotsAt<ActualAlloc>(
           aIndex, aCount, sizeof(value_type), MOZ_ALIGNOF(value_type)))) {
     return nullptr;
@@ -2617,9 +2613,8 @@ auto nsTArray_Impl<E, Alloc>::InsertElementAtInternal(index_type aIndex)
 
 template <typename E, class Alloc>
 template <typename ActualAlloc, class Item>
-auto nsTArray_Impl<E, Alloc>::InsertElementAtInternal(index_type aIndex,
-                                                      Item&& aItem)
-    -> value_type* {
+auto nsTArray_Impl<E, Alloc>::InsertElementAtInternal(
+    index_type aIndex, Item&& aItem) -> value_type* {
   if (MOZ_UNLIKELY(aIndex > Length())) {
     mozilla::detail::InvalidArrayIndex_CRASH(aIndex, Length());
   }
@@ -2638,9 +2633,8 @@ auto nsTArray_Impl<E, Alloc>::InsertElementAtInternal(index_type aIndex,
 
 template <typename E, class Alloc>
 template <typename ActualAlloc, class Item>
-auto nsTArray_Impl<E, Alloc>::AppendElementsInternal(const Item* aArray,
-                                                     size_type aArrayLen)
-    -> value_type* {
+auto nsTArray_Impl<E, Alloc>::AppendElementsInternal(
+    const Item* aArray, size_type aArrayLen) -> value_type* {
   if (!ActualAlloc::Successful(this->template ExtendCapacity<ActualAlloc>(
           Length(), aArrayLen, sizeof(value_type)))) {
     return nullptr;

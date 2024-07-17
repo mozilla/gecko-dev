@@ -89,7 +89,7 @@ class GetFilesHelper : public Runnable, public GetFilesHelperBase {
 
   virtual void Work(ErrorResult& aRv);
 
-  virtual void Cancel(){};
+  virtual void Cancel() {};
 
   NS_IMETHOD
   Run() override;

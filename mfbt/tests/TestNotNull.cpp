@@ -21,7 +21,7 @@ using mozilla::WrapNotNull;
 class Blah {
  public:
   Blah() : mX(0) {}
-  void blah(){};
+  void blah() {};
   int mX;
 };
 

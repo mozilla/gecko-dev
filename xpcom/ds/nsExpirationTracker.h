@@ -374,14 +374,14 @@ class ExpirationTrackerImpl {
    * done while still holding the lock. It will be called once after each timer
    * event, and each low memory event has been handled.
    */
-  virtual void NotifyHandlerEndLocked(const AutoLock&){};
+  virtual void NotifyHandlerEndLocked(const AutoLock&) {};
 
   /**
    * This may be overridden to perform any post-aging work that needs to be
    * done outside the lock. It will be called once after each
    * NotifyEndTransactionLocked call.
    */
-  virtual void NotifyHandlerEnd(){};
+  virtual void NotifyHandlerEnd() {};
 
   virtual Mutex& GetMutex() = 0;
 

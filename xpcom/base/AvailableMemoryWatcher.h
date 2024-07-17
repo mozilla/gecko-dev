@@ -60,9 +60,9 @@ class nsAvailableMemoryWatcherBase : public nsIAvailableMemoryWatcherBase,
   nsAvailableMemoryWatcherBase();
 
 #if defined(XP_DARWIN)
-  virtual void OnMemoryPressureChanged(MacMemoryPressureLevel aNewLevel){};
+  virtual void OnMemoryPressureChanged(MacMemoryPressureLevel aNewLevel) {};
   virtual void AddChildAnnotations(
-      const UniquePtr<ipc::CrashReporterHost>& aCrashReporter){};
+      const UniquePtr<ipc::CrashReporterHost>& aCrashReporter) {};
 #endif
 
   NS_DECL_THREADSAFE_ISUPPORTS

@@ -575,8 +575,7 @@ void leaky::generateReportHTML(FILE* fp, int* countArray, int count,
   int totalTimerHits = count;
   int* rankingTable = new int[usefulSymbols];
 
-  for (int cnt = usefulSymbols; --cnt >= 0; rankingTable[cnt] = cnt)
-    ;
+  for (int cnt = usefulSymbols; --cnt >= 0; rankingTable[cnt] = cnt);
 
   // Drat.  I would use ::qsort() but I would need a global variable and my
   // intro-pascal professor threatened to flunk anyone who used globals.

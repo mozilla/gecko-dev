@@ -52,8 +52,7 @@ static constexpr struct {
   VAProfile mVAProfile;
   const char* mName;
 } kVAAPiProfileName[] = {
-#define MAP(v) \
-  { VAProfile##v, #v }
+#define MAP(v) {VAProfile##v, #v}
     MAP(H264ConstrainedBaseline),
     MAP(H264Main),
     MAP(H264High),

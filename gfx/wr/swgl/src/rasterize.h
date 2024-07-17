@@ -806,7 +806,7 @@ static inline void draw_quad_spans(int nump, Point2D p[4], uint32_t z,
     // Helper to find the previous index in the points array, walking backward.
 #define PREV_POINT(idx)        \
   ({                           \
-    int cur = (idx)-1;         \
+    int cur = (idx) - 1;       \
     cur >= 0 ? cur : nump - 1; \
   })
     // Start looking for "left"-side and "right"-side descending edges starting
