@@ -27,7 +27,22 @@ class CacheControlParser final : Tokenizer {
   bool Immutable();
 
  private:
+  enum CacheControlDirective : uint32_t {
+    NO_CACHE = 0,
+    NO_STORE,
+    MAX_AGE,
+    MAX_STALE,
+    MIN_FRESH,
+    STALE_WHILE_REVALIDATE,
+    PUBLIC,
+    PRIVATE,
+    IMMUTABLE,
+    DIRECTIVE_UNKNOWN
+  };
+  Token mDirectiveTokens[DIRECTIVE_UNKNOWN];
+
   void Directive();
+
   void IgnoreDirective();
   [[nodiscard]] bool SecondsValue(uint32_t* seconds, uint32_t defaultVal = 0);
 
