@@ -280,9 +280,6 @@ struct CopyToSpec {
   const uint32_t mFrameOffset;
   const uint32_t mPlaneIndex;
   const AudioSampleFormat mFormat;
-  // False if this is used internally, and this copy call doesn't come from
-  // script.
-  DebugOnly<bool> mFromScript = true;
 };
 
 bool IsInterleaved(const AudioSampleFormat& aFormat) {
@@ -435,7 +432,6 @@ void CopySamples(Span<S> aSource, Span<D> aDest, uint32_t aSourceChannelCount,
   }
 
   if (!IsInterleaved(aSourceFormat) && IsInterleaved(aCopyToSpec.mFormat)) {
-    MOZ_ASSERT(!aCopyToSpec.mFromScript);
     // Planar to interleaved -- copy of all channels of the source into the
     // destination buffer.
     MOZ_ASSERT(aCopyToSpec.mPlaneIndex == 0);
@@ -722,9 +718,6 @@ RefPtr<mozilla::AudioData> AudioData::ToAudioData() const {
                         storageNeeded.value());
 
   CopyToSpec spec(mNumberOfFrames, 0, 0, AudioSampleFormat::F32);
-#ifdef DEBUG
-  spec.mFromScript = false;
-#endif
 
   DoCopy(data, storage, mNumberOfChannels, mAudioSampleFormat.value(), spec);
 

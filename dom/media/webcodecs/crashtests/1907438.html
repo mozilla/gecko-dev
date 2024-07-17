@@ -1,0 +1,16 @@
+<script>
+  let a = new ArrayBuffer(4096);
+  let b = new AudioData({
+  "format": "s16-planar",
+  "sampleRate": 2.75e+38,
+  "numberOfFrames": 88,
+  "numberOfChannels": 20,
+  "timestamp": 97.5,
+  "data": a,
+  }):
+  let c = new Uint8ClampedArray(61932);
+  b.copyTo(c, {
+  "planeIndex": 0,
+  "format": "s16"
+  });
+</script>
