@@ -347,39 +347,6 @@ export var SearchTestUtils = {
   },
 
   /**
-   * Install a search engine as a system extension to simulate
-   * Normandy updates. For xpcshell-tests only.
-   *
-   * @param {object} [options]
-   *   See {@link createEngineManifest}
-   */
-  async installSystemSearchExtension(options = {}) {
-    options.id = (options.id ?? "example") + "@search.mozilla.org";
-    let xpi = await lazy.AddonTestUtils.createTempWebExtensionFile({
-      manifest: this.createEngineManifest(options),
-      background() {
-        // eslint-disable-next-line no-undef
-        browser.test.sendMessage("started");
-      },
-    });
-    let wrapper = gTestScope.ExtensionTestUtils.expectExtension(options.id);
-
-    const install = await lazy.AddonManager.getInstallForURL(
-      `file://${xpi.path}`,
-      {
-        useSystemLocation: true,
-      }
-    );
-
-    install.install();
-
-    await wrapper.awaitStartup();
-    await wrapper.awaitMessage("started");
-
-    return wrapper;
-  },
-
-  /**
    * Create a search engine extension manifest.
    *
    * @param {object} [options]
