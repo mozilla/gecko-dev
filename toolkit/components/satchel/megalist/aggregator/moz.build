@@ -10,8 +10,6 @@ EXTRA_JS_MODULES["megalist/aggregator"] += [
 ]
 
 EXTRA_JS_MODULES["megalist/aggregator/datasources"] += [
-    "datasources/AddressesDataSource.sys.mjs",
-    "datasources/BankCardDataSource.sys.mjs",
     "datasources/DataSourceBase.sys.mjs",
     "datasources/LoginDataSource.sys.mjs",
 ]

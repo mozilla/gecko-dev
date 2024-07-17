@@ -132,7 +132,13 @@ export class DataSourceBase {
     },
 
     copyToClipboard(text) {
-      lazy.ClipboardHelper.copyString(text, lazy.ClipboardHelper.Sensitive);
+      lazy.ClipboardHelper.copyString(
+        text,
+        null,
+        lazy.ClipboardHelper.Sensitive
+      );
+
+      this.refreshOnScreen();
     },
 
     openLinkInTab(url) {
@@ -247,7 +253,10 @@ export class DataSourceBase {
    * It will forget lines that are no longer at the source and refresh screen.
    */
   afterReloadingDataSource() {
-    if (this.#linesToForget.size) {
+    // We do a null checks on `linesToForget` despite being initialized to a
+    // Set in `beforeReloadingDataSource`. We should re-evaluate the callsites
+    // of before/afterReloadingDataSource.
+    if (this.#linesToForget?.size) {
       for (let i = this.lines.length; i >= 0; i--) {
         if (this.#linesToForget.has(this.lines[i])) {
           this.lines.splice(i, 1);
@@ -274,7 +283,7 @@ export class DataSourceBase {
     );
 
     if (found) {
-      this.#linesToForget.delete(this.lines[index]);
+      this.#linesToForget?.delete(this.lines[index]);
     } else {
       const line = Object.create(fieldPrototype, { id: { value: id } });
       this.lines.splice(index, 0, line);

@@ -11,32 +11,27 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
- * View Model for Megalist.
  *
- * Responsible for filtering, grouping, moving selection, editing.
+ * Responsible for filtering lines data from the Aggregator and receiving user
+ * commands from the view.
+ *
  * Refers to the same MegalistAggregator in the parent process to access data.
  * Paired to exactly one MegalistView in the child process to present to the user.
- * Receives user commands from MegalistView.
  *
- * There can be multiple snapshots of the same line displayed in different contexts.
- *
- * snapshotId - an id for a snapshot of a line used between View Model and View.
  */
 export class MegalistViewModel {
   /**
    *
    * View Model prepares snapshots in the parent process to be displayed
-   * by the View in the child process. View gets the firstSnapshotId + length of the
-   * list. Making it a very short message for each time we filter or refresh data.
+   * by the View in the child process.
    *
-   * View requests line data by providing snapshotId = firstSnapshotId + index.
+   * View requests line data by providing snapshotId.
    *
    */
-  #firstSnapshotId = 0;
   #snapshots = [];
-  #selectedIndex = 0;
   #searchText = "";
   #messageToView;
+
   static #aggregator = new DefaultAggregator();
 
   constructor(messageToView) {
@@ -54,86 +49,63 @@ export class MegalistViewModel {
 
   refreshSingleLineOnScreen(line) {
     if (this.#searchText) {
-      // Data is filtered, which may require rebuilding the whole list
-      //@sg check if current filter would affected by this line
-      //@sg throttle refresh operation
+      // TODO: we should be throttling search input
       this.#rebuildSnapshots();
     } else {
       const snapshotIndex = this.#snapshots.indexOf(line);
       if (snapshotIndex >= 0) {
-        const snapshotId = snapshotIndex + this.#firstSnapshotId;
-        this.#sendSnapshotToView(snapshotId, line);
+        const snapshot = this.#processSnapshotView(line, snapshotIndex);
+        this.#messageToView("Snapshot", {
+          snapshotId: snapshotIndex,
+          snapshot,
+        });
       }
     }
-  }
-
-  #commandsArray(snapshot) {
-    if (Array.isArray(snapshot.commands)) {
-      return snapshot.commands;
-    }
-    return Array.from(snapshot.commands());
   }
 
   /**
    *
    * Send snapshot of necessary line data across parent-child boundary.
    *
-   * @param {number} snapshotId
    * @param {object} snapshotData
+   * @param {number} index
    */
-  async #sendSnapshotToView(snapshotId, snapshotData) {
-    if (!snapshotData) {
-      return;
-    }
-
-    // Only usable set of fields is sent over to the View.
-    // Line object may contain other data used by the Data Source.
+  #processSnapshotView(snapshotData, index) {
     const snapshot = {
       label: snapshotData.label,
-      value: await snapshotData.value,
+      value: snapshotData.value,
+      field: snapshotData.field,
+      lineIndex: index,
     };
-    if ("template" in snapshotData) {
-      snapshot.template = snapshotData.template;
-    }
-    if ("start" in snapshotData) {
-      snapshot.start = snapshotData.start;
-    }
-    if ("end" in snapshotData) {
-      snapshot.end = snapshotData.end;
-    }
+
     if ("commands" in snapshotData) {
-      snapshot.commands = this.#commandsArray(snapshotData);
+      snapshot.commands = snapshotData.commands;
     }
+
     if ("valueIcon" in snapshotData) {
       snapshot.valueIcon = snapshotData.valueIcon;
     }
+
     if ("href" in snapshotData) {
       snapshot.href = snapshotData.href;
     }
+
     if (snapshotData.stickers) {
       for (const sticker of snapshotData.stickers()) {
         snapshot.stickers ??= [];
         snapshot.stickers.push(sticker);
       }
     }
+
     if ("toggleTooltip" in snapshotData) {
       snapshot.toggleTooltip = snapshotData.toggleTooltip;
     }
 
-    this.#messageToView("Snapshot", { snapshotId, snapshot });
-  }
-
-  receiveRequestSnapshot({ snapshotId }) {
-    const snapshotIndex = snapshotId - this.#firstSnapshotId;
-    const snapshot = this.#snapshots[snapshotIndex];
-    if (!snapshot) {
-      // Ignore request for unknown line index or outdated list
-      return;
+    if ("concealed" in snapshotData) {
+      snapshot.concealed = snapshotData.concealed;
     }
 
-    if (snapshot.lineIsReady()) {
-      this.#sendSnapshotToView(snapshotId, snapshot);
-    }
+    return snapshot;
   }
 
   handleViewMessage({ name, data }) {
@@ -149,33 +121,19 @@ export class MegalistViewModel {
   }
 
   #rebuildSnapshots() {
-    // Remember current selection to attempt to restore it later
-    const prevSelected = this.#snapshots[this.#selectedIndex];
-
-    // Rebuild snapshots
-    this.#firstSnapshotId += this.#snapshots.length;
     this.#snapshots = Array.from(
       MegalistViewModel.#aggregator.enumerateLines(this.#searchText)
     );
 
+    // Expose relevant line properties to view
+    const viewSnapshots = this.#snapshots.map((snapshot, i) =>
+      this.#processSnapshotView(snapshot, i)
+    );
+
     // Update snapshots on screen
     this.#messageToView("ShowSnapshots", {
-      firstSnapshotId: this.#firstSnapshotId,
-      count: this.#snapshots.length,
+      snapshots: viewSnapshots,
     });
-
-    // Restore selection
-    const usedToBeSelectedNewIndex = this.#snapshots.findIndex(
-      snapshot => snapshot == prevSelected
-    );
-    if (usedToBeSelectedNewIndex >= 0) {
-      this.#selectSnapshotByIndex(usedToBeSelectedNewIndex);
-    } else {
-      // Make sure selection is within visible lines
-      this.#selectSnapshotByIndex(
-        Math.min(this.#selectedIndex, this.#snapshots.length - 1)
-      );
-    }
   }
 
   receiveUpdateFilter({ searchText } = { searchText: "" }) {
@@ -188,9 +146,7 @@ export class MegalistViewModel {
 
   async receiveCommand({ commandId, snapshotId, value } = {}) {
     const dotIndex = commandId?.indexOf(".");
-    const index = snapshotId
-      ? snapshotId - this.#firstSnapshotId
-      : this.#selectedIndex;
+    const index = snapshotId;
     const snapshot = this.#snapshots[index];
 
     if (dotIndex >= 0) {
@@ -205,7 +161,7 @@ export class MegalistViewModel {
     }
 
     if (snapshot) {
-      const commands = this.#commandsArray(snapshot);
+      const commands = snapshot.commands;
       commandId = commandId ?? commands[0]?.id;
       const mustVerify = commands.find(c => c.id == commandId)?.verify;
       if (!mustVerify || (await this.#verifyUser())) {
@@ -213,49 +169,6 @@ export class MegalistViewModel {
         await snapshot[`execute${commandId}`]?.(value);
       }
     }
-  }
-
-  receiveSelectSnapshot({ snapshotId }) {
-    const index = snapshotId - this.#firstSnapshotId;
-    if (index >= 0) {
-      this.#selectSnapshotByIndex(index);
-    }
-  }
-
-  receiveSelectNextSnapshot() {
-    this.#selectSnapshotByIndex(this.#selectedIndex + 1);
-  }
-
-  receiveSelectPreviousSnapshot() {
-    this.#selectSnapshotByIndex(this.#selectedIndex - 1);
-  }
-
-  receiveSelectNextGroup() {
-    let i = this.#selectedIndex + 1;
-    while (i < this.#snapshots.length - 1 && !this.#snapshots[i].start) {
-      i += 1;
-    }
-    this.#selectSnapshotByIndex(i);
-  }
-
-  receiveSelectPreviousGroup() {
-    let i = this.#selectedIndex - 1;
-    while (i >= 0 && !this.#snapshots[i].start) {
-      i -= 1;
-    }
-    this.#selectSnapshotByIndex(i);
-  }
-
-  #selectSnapshotByIndex(index) {
-    if (index >= 0 && index < this.#snapshots.length) {
-      this.#selectedIndex = index;
-      const selectedIndex = this.#selectedIndex;
-      this.#messageToView("UpdateSelection", { selectedIndex });
-    }
-  }
-
-  setLayout(layout) {
-    this.#messageToView("SetLayout", { layout });
   }
 
   async #verifyUser(promptMessage, prefName) {

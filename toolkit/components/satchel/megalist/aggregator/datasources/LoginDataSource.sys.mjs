@@ -150,6 +150,7 @@ export class LoginDataSource extends DataSourceBase {
       };
 
       this.#originPrototype = this.prototypeDataLine({
+        field: { value: "origin" },
         label: { value: strings.originLabel },
         start: { value: true },
         value: {
@@ -209,6 +210,7 @@ export class LoginDataSource extends DataSourceBase {
         },
       });
       this.#usernamePrototype = this.prototypeDataLine({
+        field: { value: "username" },
         label: { value: strings.usernameLabel },
         value: {
           get() {
@@ -237,6 +239,7 @@ export class LoginDataSource extends DataSourceBase {
         },
       });
       this.#passwordPrototype = this.prototypeDataLine({
+        field: { value: "password" },
         label: { value: strings.passwordLabel },
         concealed: { value: true, writable: true },
         end: { value: true },
