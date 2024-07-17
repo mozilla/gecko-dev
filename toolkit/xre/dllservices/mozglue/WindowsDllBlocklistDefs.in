@@ -424,6 +424,9 @@ GMPLUGIN_PROCESSES += [
     DllBlocklistEntry("ipseng32.dll", ALL_VERSIONS),
     DllBlocklistEntry("ks3rdhmpg.dll", ALL_VERSIONS),
     DllBlocklistEntry("kwsui64.dll", ALL_VERSIONS),
+
+    # Morphisec, bug 1896442
+    DllBlocklistEntry("protector64.dll", ALL_VERSIONS),
 ]
 
 GMPLUGIN_PROCESSES_TESTS += [
