@@ -155,7 +155,7 @@ AST_MATCHER(CallExpr, isInWhitelistForFopenUsage) {
   StringRef FileName =
       getFilename(Finder->getASTContext().getSourceManager(), Loc);
 
-  return llvm::sys::path::rbegin(FileName)->equals(Whitelist);
+  return *llvm::sys::path::rbegin(FileName) == Whitelist;
 }
 
 /// This matcher will match a list of files.  These files contain
@@ -167,7 +167,7 @@ AST_MATCHER(BinaryOperator, isInWhitelistForNaNExpr) {
   StringRef FileName =
       getFilename(Finder->getASTContext().getSourceManager(), Loc);
   for (auto itr = std::begin(whitelist); itr != std::end(whitelist); itr++) {
-    if (llvm::sys::path::rbegin(FileName)->equals(*itr)) {
+    if (*llvm::sys::path::rbegin(FileName) == *itr) {
       return true;
     }
   }
@@ -210,7 +210,7 @@ AST_MATCHER(CallExpr, isInAllowlistForThreads) {
       auto it1 = rbegin(FileName), it2 = rbegin(thread_file),
            end1 = rend(FileName), end2 = rend(thread_file);
       for (; it2 != end2; ++it1, ++it2) {
-        if (it1 == end1 || !it1->equals(*it2)) {
+        if (it1 == end1 || *it1 != *it2) {
           return false;
         }
       }
@@ -227,7 +227,7 @@ AST_MATCHER(CallExpr, isInAllowlistForThreads) {
   if (nameArg) {
     const StringRef name = nameArg->getString();
     for (auto thread_name : allow_thread_names) {
-      if (name.equals(thread_name)) {
+      if (name == thread_name) {
         return true;
       }
     }
