@@ -1487,7 +1487,7 @@ CssRuleView.prototype = {
       if (this._focusNextUserAddedRule && rule.domRule.userAdded) {
         this._focusNextUserAddedRule = null;
         rule.editor.selectorText.click();
-        this.emitForTests("new-rule-added");
+        this.emitForTests("new-rule-added", rule);
       }
     }
 

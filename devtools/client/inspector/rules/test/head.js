@@ -449,7 +449,8 @@ var togglePropStatus = async function (view, textProp) {
  *        The instance of InspectorPanel currently loaded in the toolbox
  * @param {CssRuleView} view
  *        The instance of the rule-view panel
- * @return a promise that resolves after the rule has been added
+ * @returns {Rule} a promise that resolves the new model Rule after the rule has
+ *          been added
  */
 async function addNewRule(inspector, view) {
   const onNewRuleAdded = view.once("new-rule-added");
@@ -457,8 +458,10 @@ async function addNewRule(inspector, view) {
   view.addRuleButton.click();
 
   info("Waiting for new-rule-added event…");
-  await onNewRuleAdded;
+  const rule = await onNewRuleAdded;
   info("…received new-rule-added");
+
+  return rule;
 }
 
 /**
@@ -473,7 +476,8 @@ async function addNewRule(inspector, view) {
  *        The value we expect the selector to have
  * @param {Number} expectedIndex
  *        The index we expect the rule to have in the rule-view
- * @return a promise that resolves after the rule has been added
+ * @returns {Rule} a promise that resolves the new model Rule after the rule has
+ *          been added
  */
 async function addNewRuleAndDismissEditor(
   inspector,
@@ -481,7 +485,7 @@ async function addNewRuleAndDismissEditor(
   expectedSelector,
   expectedIndex
 ) {
-  await addNewRule(inspector, view);
+  const rule = await addNewRule(inspector, view);
 
   info("Getting the new rule at index " + expectedIndex);
   const ruleEditor = getRuleViewRuleEditor(view, expectedIndex);
@@ -500,6 +504,8 @@ async function addNewRuleAndDismissEditor(
     expectedSelector,
     "The new selector has the correct text: " + expectedSelector
   );
+
+  return rule;
 }
 
 /**

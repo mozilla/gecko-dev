@@ -21,7 +21,21 @@ add_task(async function () {
   const { inspector, view } = await openRuleView();
   await selectNode("#testid", inspector);
 
-  await addNewRuleAndDismissEditor(inspector, view, "#testid", 1);
+  const rule = await addNewRuleAndDismissEditor(inspector, view, "#testid", 1);
+
+  // Wait for the new rule to be connected to its parent stylesheet, because
+  // adding a new property will require to guess the indentation from the
+  // stylesheet.
+  // The parent stylesheet is coming from a resource, which might be available
+  // later than the actual rule front. See Bug 1899341.
+  await waitFor(
+    () => rule.domRule.parentStyleSheet,
+    "Wait until the stylesheet resource owning the style rule was received"
+  );
+  ok(
+    rule.domRule.parentStyleSheet,
+    "The rule front is connected to its parent stylesheet"
+  );
 
   info("Adding a new property to the new rule");
   await testAddingProperty(view, 1);
