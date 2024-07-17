@@ -29,9 +29,10 @@ add_task(async function test_passwords_sidebar() {
   await BrowserTestUtils.waitForMutationCondition(
     megalist,
     { childList: true, subtree: true },
-    async () =>
-      !!megalist.querySelector(".passwords-list")?.children.length === 3
+    async () => {
+      const passwordsList = megalist.querySelector(".passwords-list");
+      return passwordsList?.querySelectorAll("password-card").length === 3;
+    }
   );
-
-  ok(true, "3 records are rendered.");
+  ok(true, "3 password cards are rendered.");
 });
