@@ -415,7 +415,7 @@ class LoadInfo final : public nsILoadInfo {
   bool mWasSchemelessInput = false;
 
   nsILoadInfo::HTTPSUpgradeTelemetryType mHttpsUpgradeTelemetry =
-      nsILoadInfo::NO_UPGRADE;
+      nsILoadInfo::NOT_INITIALIZED;
 };
 
 // This is exposed solely for testing purposes and should not be used outside of

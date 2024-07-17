@@ -1176,6 +1176,7 @@ networking:
       - seceng-telemetry@mozilla.com
     expires: never
     labels:
+      - not_initialized
       - no_upgrade
       - already_https
       - hsts
@@ -1186,6 +1187,8 @@ networking:
       - https_first_schemeless_upgrade
       - https_first_schemeless_upgrade_downgrade
       - https_rr
+      - web_extension_upgrade
+      - upgrade_exception
 
   http_channel_sub_open_to_first_sent_https_rr:
     type: timing_distribution

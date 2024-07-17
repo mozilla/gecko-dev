@@ -17,8 +17,8 @@ template <>
 struct ParamTraits<nsILoadInfo::HTTPSUpgradeTelemetryType>
     : public ContiguousEnumSerializerInclusive<
           nsILoadInfo::HTTPSUpgradeTelemetryType,
-          nsILoadInfo::HTTPSUpgradeTelemetryType::NO_UPGRADE,
-          nsILoadInfo::HTTPSUpgradeTelemetryType::HTTPS_RR> {};
+          nsILoadInfo::HTTPSUpgradeTelemetryType::NOT_INITIALIZED,
+          nsILoadInfo::HTTPSUpgradeTelemetryType::UPGRADE_EXCEPTION> {};
 
 }  // namespace IPC
 

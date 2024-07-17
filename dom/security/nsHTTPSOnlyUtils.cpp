@@ -764,6 +764,21 @@ void nsHTTPSOnlyUtils::TestSitePermissionAndPotentiallyAddExemption(
     httpsOnlyStatus |= nsILoadInfo::HTTPS_ONLY_EXEMPT;
   }
   loadInfo->SetHttpsOnlyStatus(httpsOnlyStatus);
+
+  // For the telemetry we do not want downgrade values to be overwritten
+  // in the loadinfo. We only want e.g. a reload() or a back() click
+  // to carry the upgrade exception.
+  if (httpsOnlyStatus & nsILoadInfo::HTTPS_ONLY_EXEMPT) {
+    nsILoadInfo::HTTPSUpgradeTelemetryType httpsTelemetry =
+        nsILoadInfo::NOT_INITIALIZED;
+    loadInfo->GetHttpsUpgradeTelemetry(&httpsTelemetry);
+    if (httpsTelemetry != nsILoadInfo::HTTPS_ONLY_UPGRADE_DOWNGRADE &&
+        httpsTelemetry != nsILoadInfo::HTTPS_FIRST_UPGRADE_DOWNGRADE &&
+        httpsTelemetry !=
+            nsILoadInfo::HTTPS_FIRST_SCHEMELESS_UPGRADE_DOWNGRADE) {
+      loadInfo->SetHttpsUpgradeTelemetry(nsILoadInfo::UPGRADE_EXCEPTION);
+    }
+  }
 }
 
 /* static */

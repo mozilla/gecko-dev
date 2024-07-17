@@ -2304,6 +2304,11 @@ HttpBaseChannel::UpgradeToSecure() {
   NS_ENSURE_TRUE(LoadUpgradableToSecure(), NS_ERROR_NOT_AVAILABLE);
 
   StoreUpgradeToSecure(true);
+  // todo: Currently UpgradeToSecure() is called only by web extensions, if
+  // that ever changes, we need to update the following telemetry collection
+  // to reflect any future changes.
+  mLoadInfo->SetHttpsUpgradeTelemetry(nsILoadInfo::WEB_EXTENSION_UPGRADE);
+
   return NS_OK;
 }
 

@@ -8045,9 +8045,14 @@ static void RecordHTTPSUpgradeTelemetry(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
   }
 
   nsILoadInfo::HTTPSUpgradeTelemetryType httpsTelemetry =
-      nsILoadInfo::NO_UPGRADE;
+      nsILoadInfo::NOT_INITIALIZED;
   aLoadInfo->GetHttpsUpgradeTelemetry(&httpsTelemetry);
   switch (httpsTelemetry) {
+    case nsILoadInfo::NOT_INITIALIZED:
+      mozilla::glean::networking::http_to_https_upgrade_reason
+          .Get("not_initialized"_ns)
+          .Add(1);
+      break;
     case nsILoadInfo::NO_UPGRADE:
       mozilla::glean::networking::http_to_https_upgrade_reason
           .Get("no_upgrade"_ns)
@@ -8095,6 +8100,16 @@ static void RecordHTTPSUpgradeTelemetry(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     case nsILoadInfo::HTTPS_RR:
       mozilla::glean::networking::http_to_https_upgrade_reason
           .Get("https_rr"_ns)
+          .Add(1);
+      break;
+    case nsILoadInfo::WEB_EXTENSION_UPGRADE:
+      mozilla::glean::networking::http_to_https_upgrade_reason
+          .Get("web_extension_upgrade"_ns)
+          .Add(1);
+      break;
+    case nsILoadInfo::UPGRADE_EXCEPTION:
+      mozilla::glean::networking::http_to_https_upgrade_reason
+          .Get("upgrade_exception"_ns)
           .Add(1);
       break;
     default:
