@@ -2225,7 +2225,7 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
                                     REGS.fp()->environmentChain());
 
       ReservedRooted<Value> val(&rootValue0, REGS.sp[-1]);
-      UsingHint hint = UsingHint::Sync;
+      UsingHint hint = UsingHint(GET_UINT8(REGS.pc));
       JS::Rooted<ListObject*> disposableCapability(cx);
 
       if (env->is<LexicalEnvironmentObject>()) {

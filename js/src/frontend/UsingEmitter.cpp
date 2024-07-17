@@ -16,50 +16,34 @@ UsingEmitter::UsingEmitter(BytecodeEmitter* bce) : bce_(bce) {}
 bool UsingEmitter::prepareForDisposableScopeBody() {
   depthAtDisposables_ = bce_->bytecodeSection().stackDepth();
   disposableStart_ = bce_->bytecodeSection().offset();
-  if (!bce_->emit1(JSOp::TryUsing)) {
-    return false;
-  }
-  return true;
+  return bce_->emit1(JSOp::TryUsing);
 }
 
-bool UsingEmitter::prepareForAssignment(Kind kind) {
-  MOZ_ASSERT(kind == Kind::Sync);
+bool UsingEmitter::prepareForAssignment(UsingHint hint) {
+  MOZ_ASSERT(hint == UsingHint::Sync);
 
   MOZ_ASSERT(bce_->innermostEmitterScope()->hasDisposables());
 
-  if (!bce_->emit1(JSOp::AddDisposable)) {
-    //        [stack] VAL
-    return false;
-  }
-
-  return true;
+  //        [stack] VAL
+  return bce_->emit2(JSOp::AddDisposable, uint8_t(hint));
 }
 
 bool UsingEmitter::prepareForForOfLoopIteration() {
   MOZ_ASSERT(bce_->innermostEmitterScopeNoCheck()->hasDisposables());
-  if (!bce_->emit2(JSOp::DisposeDisposables,
-                   uint8_t(DisposeJumpKind::JumpOnError))) {
-    return false;
-  }
-  return true;
+  return bce_->emit2(JSOp::DisposeDisposables,
+                     uint8_t(DisposeJumpKind::JumpOnError));
 }
 
 bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
   MOZ_ASSERT(bce_->innermostEmitterScopeNoCheck()->hasDisposables());
-  if (!bce_->emit2(JSOp::DisposeDisposables,
-                   uint8_t(DisposeJumpKind::NoJumpOnError))) {
-    return false;
-  }
-  return true;
+  return bce_->emit2(JSOp::DisposeDisposables,
+                     uint8_t(DisposeJumpKind::NoJumpOnError));
 }
 
 bool UsingEmitter::emitNonLocalJump(EmitterScope* present) {
   MOZ_ASSERT(present->hasDisposables());
-  if (!bce_->emit2(JSOp::DisposeDisposables,
-                   uint8_t(DisposeJumpKind::JumpOnError))) {
-    return false;
-  }
-  return true;
+  return bce_->emit2(JSOp::DisposeDisposables,
+                     uint8_t(DisposeJumpKind::JumpOnError));
 }
 
 bool UsingEmitter::emitEnd() {

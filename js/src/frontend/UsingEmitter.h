@@ -8,6 +8,7 @@
 #include "mozilla/Attributes.h"
 
 #include "frontend/BytecodeOffset.h"
+#include "vm/UsingHint.h"
 
 namespace js::frontend {
 
@@ -26,13 +27,11 @@ class MOZ_STACK_CLASS UsingEmitter {
   // management for this emitter. (Bug 1904346)
 
  public:
-  enum Kind { Sync, Async };
-
   explicit UsingEmitter(BytecodeEmitter* bce);
 
   [[nodiscard]] bool prepareForDisposableScopeBody();
 
-  [[nodiscard]] bool prepareForAssignment(Kind kind);
+  [[nodiscard]] bool prepareForAssignment(UsingHint hint);
 
   [[nodiscard]] bool prepareForForOfLoopIteration();
 

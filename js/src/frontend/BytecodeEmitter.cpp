@@ -4260,7 +4260,7 @@ bool BytecodeEmitter::emitSingleDeclaration(ListNode* declList, NameNode* decl,
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
   if (declList->isKind(ParseNodeKind::UsingDecl)) {
     if (!innermostEmitterScope()->prepareForDisposableAssignment(
-            UsingEmitter::Kind::Sync)) {
+            UsingHint::Sync)) {
       //            [stack] ENV? V
       return false;
     }
@@ -5810,7 +5810,7 @@ bool BytecodeEmitter::emitInitializeForInOrOfTarget(TernaryNode* forHead) {
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     if (declarationList->isKind(ParseNodeKind::UsingDecl)) {
       if (!innermostEmitterScope()->prepareForDisposableAssignment(
-              UsingEmitter::Kind::Sync)) {
+              UsingHint::Sync)) {
         //            [stack] ENV? V
         return false;
       }

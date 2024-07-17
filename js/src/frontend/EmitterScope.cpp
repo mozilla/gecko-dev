@@ -361,9 +361,9 @@ bool EmitterScope::prepareForModuleDisposableScopeBody(BytecodeEmitter* bce) {
   return prepareForDisposableScopeBody(bce);
 }
 
-bool EmitterScope::prepareForDisposableAssignment(UsingEmitter::Kind kind) {
+bool EmitterScope::prepareForDisposableAssignment(UsingHint hint) {
   MOZ_ASSERT(hasDisposables());
-  return usingEmitter_->prepareForAssignment(kind);
+  return usingEmitter_->prepareForAssignment(hint);
 }
 
 bool EmitterScope::prepareForForOfLoopIteration() {

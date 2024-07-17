@@ -191,7 +191,7 @@ class EmitterScope : public Nestable<EmitterScope> {
 
   [[nodiscard]] bool emitModuleDisposableScopeBodyEnd(BytecodeEmitter* bce);
 
-  [[nodiscard]] bool prepareForDisposableAssignment(UsingEmitter::Kind kind);
+  [[nodiscard]] bool prepareForDisposableAssignment(UsingHint hint);
 
   [[nodiscard]] bool prepareForForOfLoopIteration();
 
