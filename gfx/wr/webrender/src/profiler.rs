@@ -806,7 +806,7 @@ impl Profiler {
                         flush_counters(&mut counters, selection);
                         self.append_to_ui(selection, preset_str);
                     } else {
-                        selection.push(Item::Text(format!("Unknonw counter: {}", name)));
+                        selection.push(Item::Text(format!("Unknown counter: {}", name)));
                     }
                 }
             }
