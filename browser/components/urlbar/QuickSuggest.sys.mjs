@@ -207,8 +207,8 @@ class _QuickSuggest {
       }
     }
 
-    this._updateFeatureState();
-    lazy.NimbusFeatures.urlbar.onUpdate(() => this._updateFeatureState());
+    this.#updateAll();
+    lazy.NimbusFeatures.urlbar.onUpdate(() => this.#updateAll());
     lazy.UrlbarPrefs.addObserver(this);
   }
 
@@ -518,7 +518,7 @@ class _QuickSuggest {
   /**
    * Updates state based on whether quick suggest and its features are enabled.
    */
-  _updateFeatureState() {
+  #updateAll() {
     // IMPORTANT: This method is a `NimbusFeatures.urlbar.onUpdate()` callback,
     // which means it's called on every change to any pref that is a fallback
     // for a urlbar Nimbus variable.

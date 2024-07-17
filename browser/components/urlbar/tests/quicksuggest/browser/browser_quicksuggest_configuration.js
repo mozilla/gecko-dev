@@ -24,59 +24,6 @@ add_setup(async function () {
   await QuickSuggestTestUtils.ensureQuickSuggestInit();
 });
 
-// Makes sure `QuickSuggest._updateFeatureState()` is called when the
-// `browser.urlbar.quicksuggest.enabled` pref is changed.
-add_task(async function test_updateFeatureState_pref() {
-  Assert.ok(
-    UrlbarPrefs.get("quicksuggest.enabled"),
-    "Sanity check: quicksuggest.enabled is true by default"
-  );
-
-  let sandbox = sinon.createSandbox();
-  let spy = sandbox.spy(QuickSuggest, "_updateFeatureState");
-
-  UrlbarPrefs.set("quicksuggest.enabled", false);
-  Assert.equal(
-    spy.callCount,
-    1,
-    "_updateFeatureState called once after changing pref"
-  );
-
-  UrlbarPrefs.clear("quicksuggest.enabled");
-  Assert.equal(
-    spy.callCount,
-    2,
-    "_updateFeatureState called again after clearing pref"
-  );
-
-  sandbox.restore();
-});
-
-// Makes sure `QuickSuggest._updateFeatureState()` is called when a Nimbus
-// experiment is installed and uninstalled.
-add_task(async function test_updateFeatureState_experiment() {
-  let sandbox = sinon.createSandbox();
-  let spy = sandbox.spy(QuickSuggest, "_updateFeatureState");
-
-  await QuickSuggestTestUtils.withExperiment({
-    callback: () => {
-      Assert.equal(
-        spy.callCount,
-        1,
-        "_updateFeatureState called once after installing experiment"
-      );
-    },
-  });
-
-  Assert.equal(
-    spy.callCount,
-    2,
-    "_updateFeatureState called again after uninstalling experiment"
-  );
-
-  sandbox.restore();
-});
-
 add_task(async function test_indexes() {
   await QuickSuggestTestUtils.withExperiment({
     valueOverrides: {

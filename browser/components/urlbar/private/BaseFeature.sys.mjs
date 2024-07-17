@@ -5,6 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
@@ -207,16 +208,44 @@ export class BaseFeature {
 
   /**
    * Enables or disables the feature according to `shouldEnable` and whether
-   * quick suggest is enabled. If the feature is already enabled appropriately,
-   * does nothing.
+   * quick suggest is enabled. If the feature's enabled status changes,
+   * `enable()` is called with the new status; otherwise `enable()` is not
+   * called. If the feature manages any Rust suggestion types that become
+   * enabled as a result, they will be ingested.
    */
   update() {
+    // Collect the feature's Rust suggestion types that are currently enabled.
+    // Features can manage multiple types. Some may be enabled while others are
+    // disabled. As long as one is enabled, the feature itself will be enabled.
+    let { rustBackend } = lazy.QuickSuggest;
+    let oldEnabledRustSuggestionTypes =
+      rustBackend.isEnabled && this.isEnabled
+        ? this.rustSuggestionTypes.filter(type =>
+            this.isRustSuggestionTypeEnabled(type)
+          )
+        : [];
+
+    // Update the feature's enabled status.
     let enable =
       lazy.UrlbarPrefs.get("quickSuggestEnabled") && this.shouldEnable;
     if (enable != this.isEnabled) {
       this.logger.info(`Setting enabled = ${enable}`);
       this.enable(enable);
       this.#isEnabled = enable;
+    }
+
+    // Ingest all the feature's Rust suggestion types that just became enabled.
+    // This will be their initial ingests. After that, their ingests will occur
+    // according to the ingest timer in the backend.
+    if (rustBackend.isEnabled && enable) {
+      for (let type of this.rustSuggestionTypes) {
+        if (
+          this.isRustSuggestionTypeEnabled(type) &&
+          !oldEnabledRustSuggestionTypes.includes(type)
+        ) {
+          rustBackend.ingestSuggestionType(type);
+        }
+      }
     }
   }
 

@@ -67,7 +67,7 @@ add_task(async function interval() {
 
   // Re-enable the backend with a small ingest interval. A new ingest will
   // immediately start.
-  let intervalSecs = 1;
+  let intervalSecs = 3;
   UrlbarPrefs.set("quicksuggest.rustIngestIntervalSeconds", intervalSecs);
   UrlbarPrefs.set("quicksuggest.rustEnabled", false);
   UrlbarPrefs.set("quicksuggest.rustEnabled", true);
@@ -99,7 +99,7 @@ add_task(async function interval() {
     );
 
     // Wait for ingest to start and finish.
-    info("Waiting for ingest to start at index " + i);
+    info(`Waiting ${intervalSecs}s for ingest to start at index ${i}`);
     ({ ingestPromise } = await waitForIngestStart(ingestPromise));
     info("Waiting for ingest to finish at index " + i);
     await ingestPromise;
@@ -118,7 +118,7 @@ add_task(async function interval() {
   // We'll simply wait for a few seconds up to two times until no new ingests
   // start.
 
-  let waitSecs = 3 * intervalSecs;
+  let waitSecs = 2 * intervalSecs;
   // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
   let wait = () => new Promise(r => setTimeout(r, 1000 * waitSecs));
 

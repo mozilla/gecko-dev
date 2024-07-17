@@ -12,9 +12,6 @@ const REMOTE_SETTINGS_RECORDS = [
   },
 ];
 
-// This stupid test can time out in verify mode on Treeherder Mac machines.
-requestLongerTimeout(5);
-
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.search.suggest.enabled", false]],
@@ -49,9 +46,17 @@ add_task(async function successfulIngest() {
     "number",
     "newValue.count should be a number"
   );
+
+  let enabledCount = 0;
+  for (let [type, feature] of QuickSuggest.featuresByRustSuggestionType) {
+    if (feature.isEnabled && feature.isRustSuggestionTypeEnabled(type)) {
+      enabledCount++;
+    }
+  }
+
   Assert.equal(
     newValue.count,
-    oldValue.count + 1,
-    "One new value should have been recorded after ingest"
+    oldValue.count + enabledCount,
+    "One new value per enabled suggestion type should have been recorded after ingest"
   );
 });
