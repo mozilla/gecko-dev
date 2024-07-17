@@ -66,13 +66,13 @@ int GBRPlanarToARGB(const uint8_t* src_y, int y_pitch,
   return 0;
 }
 
-// Convert a frame of YUV to 32 bit ARGB.
+// Convert a frame of YUV to 32 bit ARGB or ABGR.
 void ConvertYCbCrToRGB32(const uint8_t* y_buf, const uint8_t* u_buf,
                          const uint8_t* v_buf, uint8_t* rgb_buf, int pic_x,
                          int pic_y, int pic_width, int pic_height, int y_pitch,
                          int uv_pitch, int rgb_pitch, YUVType yuv_type,
                          YUVColorSpace yuv_color_space,
-                         ColorRange color_range) {
+                         ColorRange color_range, RGB32Type rgb32_type) {
   // Deprecated function's conversion is accurate.
   // libyuv converion is a bit inaccurate to get performance. It dynamically
   // calculates RGB from YUV to use simd. In it, signed byte is used for
@@ -93,7 +93,7 @@ void ConvertYCbCrToRGB32(const uint8_t* y_buf, const uint8_t* u_buf,
   if (use_deprecated) {
     ConvertYCbCrToRGB32_deprecated(y_buf, u_buf, v_buf, rgb_buf, pic_x, pic_y,
                                    pic_width, pic_height, y_pitch, uv_pitch,
-                                   rgb_pitch, yuv_type);
+                                   rgb_pitch, yuv_type, rgb32_type);
     return;
   }
 
@@ -102,17 +102,18 @@ void ConvertYCbCrToRGB32(const uint8_t* y_buf, const uint8_t* u_buf,
   const uint8_t* src_u = nullptr;
   const uint8_t* src_v = nullptr;
   const libyuv::YuvConstants* yuv_constant = nullptr;
+  bool swap_uv = rgb32_type == RGB32Type::ABGR;
 
   switch (yuv_color_space) {
     case YUVColorSpace::BT2020:
       yuv_constant = color_range == ColorRange::LIMITED
-        ? &libyuv::kYuv2020Constants
-        : &libyuv::kYuvV2020Constants;
+        ? swap_uv? &libyuv::kYvu2020Constants : &libyuv::kYuv2020Constants
+        : swap_uv? &libyuv::kYvuV2020Constants : &libyuv::kYuvV2020Constants;
       break;
     case YUVColorSpace::BT709:
       yuv_constant = color_range == ColorRange::LIMITED
-        ? &libyuv::kYuvH709Constants
-        : &libyuv::kYuvF709Constants;
+        ? swap_uv? &libyuv::kYvuH709Constants : &libyuv::kYuvH709Constants
+        : swap_uv? &libyuv::kYvuF709Constants : &libyuv::kYuvF709Constants;
       break;
     case YUVColorSpace::Identity:
       MOZ_ASSERT(yuv_type == YV24, "Identity (aka RGB) with chroma subsampling is unsupported");
@@ -124,8 +125,8 @@ void ConvertYCbCrToRGB32(const uint8_t* y_buf, const uint8_t* u_buf,
       MOZ_FALLTHROUGH_ASSERT("Unsupported YUVColorSpace");
     case YUVColorSpace::BT601:
       yuv_constant = color_range == ColorRange::LIMITED
-        ? &libyuv::kYuvI601Constants
-        : &libyuv::kYuvJPEGConstants;
+        ? swap_uv? &libyuv::kYvuI601Constants : &libyuv::kYuvI601Constants
+        : swap_uv? &libyuv::kYvuJPEGConstants : &libyuv::kYuvJPEGConstants;
       break;
   }
 
@@ -136,10 +137,12 @@ void ConvertYCbCrToRGB32(const uint8_t* y_buf, const uint8_t* u_buf,
       src_v = v_buf + uv_pitch * pic_y + pic_x;
 
       if (yuv_color_space == YUVColorSpace::Identity) {
+        const uint8_t* u_channel = swap_uv? src_v : src_u;
+        const uint8_t* v_channel = swap_uv? src_u : src_v;
         // Special case for RGB image
         DebugOnly<int> err =
-          GBRPlanarToARGB(src_y, y_pitch, src_u, uv_pitch, src_v, uv_pitch,
-                            rgb_buf, rgb_pitch, pic_width, pic_height);
+          GBRPlanarToARGB(src_y, y_pitch, u_channel, uv_pitch, v_channel,
+                          uv_pitch, rgb_buf, rgb_pitch, pic_width, pic_height);
         MOZ_ASSERT(!err);
         return;
       }
@@ -186,13 +189,15 @@ void ConvertYCbCrToRGB32(const uint8_t* y_buf, const uint8_t* u_buf,
       MOZ_ASSERT_UNREACHABLE("Unsupported YUV type");
   }
 
+  const uint8_t* u_channel = swap_uv? src_v : src_u;
+  const uint8_t* v_channel = swap_uv? src_u : src_v;
   DebugOnly<int> err =
-    fConvertYUVToARGB(src_y, y_pitch, src_u, uv_pitch, src_v, uv_pitch,
+    fConvertYUVToARGB(src_y, y_pitch, u_channel, uv_pitch, v_channel, uv_pitch,
                       rgb_buf, rgb_pitch, yuv_constant, pic_width, pic_height);
   MOZ_ASSERT(!err);
 }
 
-// Convert a frame of YUV to 32 bit ARGB.
+// Convert a frame of YUV to 32 bit ARGB or ABGR.
 void ConvertYCbCrToRGB32_deprecated(const uint8_t* y_buf,
                                     const uint8_t* u_buf,
                                     const uint8_t* v_buf,
@@ -204,7 +209,8 @@ void ConvertYCbCrToRGB32_deprecated(const uint8_t* y_buf,
                                     int y_pitch,
                                     int uv_pitch,
                                     int rgb_pitch,
-                                    YUVType yuv_type) {
+                                    YUVType yuv_type,
+                                    RGB32Type rgb32_type) {
   unsigned int y_shift = yuv_type == YV12 ? 1 : 0;
   unsigned int x_shift = yuv_type == YV24 ? 0 : 1;
   // Test for SSE because the optimized code uses movntq, which is not part of MMX.
@@ -214,12 +220,15 @@ void ConvertYCbCrToRGB32_deprecated(const uint8_t* y_buf,
   has_sse &= yuv_type != YV24;
   bool odd_pic_x = yuv_type != YV24 && pic_x % 2 != 0;
   int x_width = odd_pic_x ? pic_width - 1 : pic_width;
+  bool swap_uv = rgb32_type == RGB32Type::ABGR;
+  const uint8_t* u_channel = swap_uv? v_buf : u_buf;
+  const uint8_t* v_channel = swap_uv? u_buf : v_buf;
 
   for (int y = pic_y; y < pic_height + pic_y; ++y) {
     uint8_t* rgb_row = rgb_buf + (y - pic_y) * rgb_pitch;
     const uint8_t* y_ptr = y_buf + y * y_pitch + pic_x;
-    const uint8_t* u_ptr = u_buf + (y >> y_shift) * uv_pitch + (pic_x >> x_shift);
-    const uint8_t* v_ptr = v_buf + (y >> y_shift) * uv_pitch + (pic_x >> x_shift);
+    const uint8_t* u_ptr = u_channel + (y >> y_shift) * uv_pitch + (pic_x >> x_shift);
+    const uint8_t* v_ptr = v_channel + (y >> y_shift) * uv_pitch + (pic_x >> x_shift);
 
     if (odd_pic_x) {
       // Handle the single odd pixel manually and use the

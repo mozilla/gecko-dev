@@ -238,7 +238,8 @@ static void ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
                               const SurfaceFormat& aDestFormat,
                               unsigned char* aDestBuffer,
                               int32_t aStride,
-                              YUVType aYUVType) {
+                              YUVType aYUVType,
+                              RGB32Type aRGB32Type) {
 #if defined(HAVE_YCBCR_TO_RGB565)
   if (aDestFormat == SurfaceFormat::R5G6B5_UINT16) {
     ConvertYCbCrToRGB565(aData.mYChannel,
@@ -269,7 +270,8 @@ static void ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
                       aStride,
                       aYUVType,
                       aData.mYUVColorSpace,
-                      aData.mColorRange);
+                      aData.mColorRange,
+                      aRGB32Type);
 }
 
 void ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
@@ -287,8 +289,9 @@ void ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
   if (aDestSize != srcData.mPictureRect.Size()) {
     ScaleYCbCrToRGB(srcData, aDestFormat, aDestSize, aDestBuffer, aStride,
                     yuvtype);
-  } else { // no prescale
-    ConvertYCbCrToRGB(srcData, aDestFormat, aDestBuffer, aStride, yuvtype);
+  } else {  // no prescale
+    ConvertYCbCrToRGB(srcData, aDestFormat, aDestBuffer, aStride, yuvtype,
+                      RGB32Type::ARGB);
   }
 
 #if MOZ_BIG_ENDIAN()
@@ -305,8 +308,9 @@ void FillAlphaToRGBA(const uint8_t* aAlpha, const int32_t aAlphaStride,
                      uint8_t* aBuffer, const int32_t aWidth,
                      const int32_t aHeight, const gfx::SurfaceFormat& aFormat) {
   MOZ_ASSERT(aAlphaStride >= aWidth);
-  MOZ_ASSERT(aFormat ==
-             SurfaceFormat::B8G8R8A8);  // required for SurfaceFormatBit::OS_A
+  // required for SurfaceFormatBit::OS_A
+  MOZ_ASSERT(aFormat == SurfaceFormat::B8G8R8A8 ||
+             aFormat == SurfaceFormat::R8G8B8A8);
 
   const int bpp = BytesPerPixel(aFormat);
   const size_t rgbaStride = aWidth * bpp;
@@ -327,16 +331,28 @@ void ConvertYCbCrToRGB32(const layers::PlanarYCbCrData& aData,
                          unsigned char* aDestBuffer, int32_t aStride,
                          PremultFunc premultiplyAlphaOp) {
   MOZ_ASSERT(aDestFormat == SurfaceFormat::B8G8R8A8 ||
-             aDestFormat == SurfaceFormat::B8G8R8X8);
+             aDestFormat == SurfaceFormat::B8G8R8X8 ||
+             aDestFormat == SurfaceFormat::R8G8B8A8 ||
+             aDestFormat == SurfaceFormat::R8G8B8X8);
 
   YUVType yuvtype = GetYUVType(aData);
 
   YUV8BitData data8pp(aData);
   const layers::PlanarYCbCrData& data = data8pp.Get8BitData();
 
-  ConvertYCbCrToRGB(data, aDestFormat, aDestBuffer, aStride, yuvtype);
+  // The order of SurfaceFormat's R, G, B, A is reversed compared to libyuv's
+  // order.
+  RGB32Type rgb32Type = aDestFormat == SurfaceFormat::B8G8R8A8 ||
+                                aDestFormat == SurfaceFormat::B8G8R8X8
+                            ? RGB32Type::ARGB
+                            : RGB32Type::ABGR;
 
-  if (data.mAlpha) {
+  ConvertYCbCrToRGB(data, aDestFormat, aDestBuffer, aStride, yuvtype,
+                    rgb32Type);
+
+  bool needAlpha = aDestFormat == SurfaceFormat::B8G8R8A8 ||
+                   aDestFormat == SurfaceFormat::R8G8B8A8;
+  if (data.mAlpha && needAlpha) {
     // Alpha stride should be same as the Y stride.
     FillAlphaToRGBA(data.mAlpha->mChannel, data.mYStride, aDestBuffer,
                     data.mPictureRect.width, aData.mPictureRect.height,
@@ -351,7 +367,8 @@ void ConvertYCbCrToRGB32(const layers::PlanarYCbCrData& aData,
   }
 
 #if MOZ_BIG_ENDIAN()
-  // libyuv makes endian-correct result, which needs to be swapped to BGR*
+  // libyuv makes endian-correct result, which needs to be reversed to BGR* or
+  // RGB*.
   gfx::SwizzleData(aDestBuffer, aStride, gfx::SurfaceFormat::X8R8G8B8,
                    aDestBuffer, aStride, gfx::SurfaceFormat::B8G8R8X8,
                    aData.mPictureRect.Size());

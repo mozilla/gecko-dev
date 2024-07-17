@@ -259,15 +259,20 @@ nsresult ConvertToRGBA(Image* aImage, const SurfaceFormat& aDestFormat,
 
   // Read YUV image to the given buffer in required RGBA format.
   if (const PlanarYCbCrData* data = GetPlanarYCbCrData(aImage)) {
-    SurfaceFormat convertedFormat;
+    SurfaceFormat convertedFormat = aDestFormat;
     gfx::PremultFunc premultOp = nullptr;
     if (data->mAlpha && HasAlpha(aDestFormat)) {
-      convertedFormat = SurfaceFormat::B8G8R8A8;
+      if (aDestFormat == SurfaceFormat::A8R8G8B8) {
+        convertedFormat = SurfaceFormat::B8G8R8A8;
+      }
       if (data->mAlpha->mPremultiplied) {
         premultOp = libyuv::ARGBUnattenuate;
       }
     } else {
-      convertedFormat = SurfaceFormat::B8G8R8X8;
+      if (aDestFormat == SurfaceFormat::X8R8G8B8 ||
+          aDestFormat == SurfaceFormat::A8R8G8B8) {
+        convertedFormat = SurfaceFormat::B8G8R8X8;
+      }
     }
 
     ConvertYCbCrToRGB32(*data, convertedFormat, aDestBuffer,
@@ -278,8 +283,8 @@ nsresult ConvertToRGBA(Image* aImage, const SurfaceFormat& aDestFormat,
     }
 
     // Since format of the converted data returned from ConvertYCbCrToRGB or
-    // ConvertYCbCrAToARGB is BRGX or BRGA, we need swap the RGBA channels to
-    // the required format.
+    // ConvertYCbCrAToARGB is BRG* or RBG*, we need swap the RGBA channels to
+    // the required format if needed.
 
     RefPtr<DataSourceSurface> surf =
         gfx::Factory::CreateWrappingDataSourceSurface(

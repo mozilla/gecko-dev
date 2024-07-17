@@ -44,7 +44,11 @@ enum ScaleFilter {
   FILTER_BILINEAR = 3     // Bilinear filter.
 };
 
-// Convert a frame of YUV to 32 bit ARGB.
+enum RGB32Type {
+  ARGB = 0,
+  ABGR = 1
+};
+// Convert a frame of YUV to 32 bit ARGB or ABGR.
 // Pass in YV16/YV12 depending on source format
 void ConvertYCbCrToRGB32(const uint8_t* yplane,
                          const uint8_t* uplane,
@@ -59,7 +63,8 @@ void ConvertYCbCrToRGB32(const uint8_t* yplane,
                          int rgbstride,
                          YUVType yuv_type,
                          YUVColorSpace yuv_color_space,
-                         ColorRange color_range);
+                         ColorRange color_range,
+                         RGB32Type rgb32_type);
 
 void ConvertYCbCrToRGB32_deprecated(const uint8_t* yplane,
                                     const uint8_t* uplane,
@@ -72,7 +77,8 @@ void ConvertYCbCrToRGB32_deprecated(const uint8_t* yplane,
                                     int ystride,
                                     int uvstride,
                                     int rgbstride,
-                                    YUVType yuv_type);
+                                    YUVType yuv_type,
+                                    RGB32Type rgb32_type);
 
 // Scale a frame of YUV to 32 bit ARGB.
 // Supports rotation and mirroring.
