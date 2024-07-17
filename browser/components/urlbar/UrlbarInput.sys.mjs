@@ -3197,7 +3197,9 @@ export class UrlbarInput {
   #maybeUntrimUrl({ moveCursorToStart = false } = {}) {
     // Check if we can untrim the current value.
     if (
-      !lazy.UrlbarPrefs.get("untrimOnUserInteraction.featureGate") ||
+      !lazy.UrlbarPrefs.getScotchBonnetPref(
+        "untrimOnUserInteraction.featureGate"
+      ) ||
       !this._protocolIsTrimmed ||
       !this.focused ||
       this.#allTextSelected
@@ -3684,7 +3686,7 @@ export class UrlbarInput {
         try {
           let expectedURI = Services.io.newURI(this._untrimmedValue);
           if (
-            lazy.UrlbarPrefs.get("trimHttps") &&
+            lazy.UrlbarPrefs.getScotchBonnetPref("trimHttps") &&
             this._untrimmedValue.startsWith("https://")
           ) {
             untrim =

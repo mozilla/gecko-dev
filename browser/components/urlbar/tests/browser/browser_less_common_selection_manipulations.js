@@ -143,7 +143,9 @@ const tests = [
     get selection() {
       // When untrimming is enabled, the behavior differs depending on whether
       // the selected text can generate a valid URL, so there may be an offset.
-      let startOffset = UrlbarPrefs.get("untrimOnUserInteraction.featureGate")
+      let startOffset = UrlbarPrefs.getScotchBonnetPref(
+        "untrimOnUserInteraction.featureGate"
+      )
         ? gURLBar.value.indexOf(this._expectedSelectedText)
         : 0;
       return [startOffset, startOffset + this._expectedSelectedText.length];

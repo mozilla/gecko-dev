@@ -854,7 +854,10 @@ var gIdentityHandler = {
 
       if (this._isMixedActiveContentLoaded) {
         this._identityBox.classList.add("mixedActiveContent");
-        if (UrlbarPrefs.get("trimHttps") && warnTextOnInsecure) {
+        if (
+          UrlbarPrefs.getScotchBonnetPref("trimHttps") &&
+          warnTextOnInsecure
+        ) {
           icon_label = gNavigatorBundle.getString("identity.notSecure.label");
           this._identityBox.classList.add("notSecureText");
         }

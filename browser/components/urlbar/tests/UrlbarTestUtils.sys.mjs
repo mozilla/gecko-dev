@@ -1069,7 +1069,7 @@ export var UrlbarTestUtils = {
     }
 
     // Also remove emphasis markers if present.
-    if (lazy.UrlbarPrefs.get("trimHttps")) {
+    if (lazy.UrlbarPrefs.getScotchBonnetPref("trimHttps")) {
       sanitizedURL = sanitizedURL.replace(/^<?https:\/\/>?/, "");
     } else {
       sanitizedURL = sanitizedURL.replace(/^<?http:\/\/>?/, "");
@@ -1086,7 +1086,7 @@ export var UrlbarTestUtils = {
    */
   getTrimmedProtocolWithSlashes() {
     if (Services.prefs.getBoolPref("browser.urlbar.trimURLs")) {
-      return Services.prefs.getBoolPref("browser.urlbar.trimHttps")
+      return lazy.UrlbarPrefs.getScotchBonnetPref("trimHttps")
         ? "https://"
         : "http://"; // eslint-disable-this-line @microsoft/sdl/no-insecure-url
     }

@@ -847,7 +847,7 @@ class ProviderAutofill extends UrlbarProvider {
     if (title) {
       payload.title = [title, UrlbarUtils.HIGHLIGHT.TYPED];
     } else {
-      let trimHttps = lazy.UrlbarPrefs.get("trimHttps");
+      let trimHttps = lazy.UrlbarPrefs.getScotchBonnetPref("trimHttps");
       let displaySpec = UrlbarUtils.prepareUrlForDisplay(finalCompleteValue, {
         trimURL: false,
       });

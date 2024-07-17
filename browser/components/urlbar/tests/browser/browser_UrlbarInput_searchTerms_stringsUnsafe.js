@@ -51,7 +51,10 @@ async function checkSearchString(searchString, isIpv6) {
   // decodeURI is necessary for matching square brackets in IPV6.
   let expectedUrl = isIpv6 ? decodeURI(searchUrl) : searchUrl;
 
-  if (UrlbarPrefs.get("trimHttps") && expectedUrl.startsWith("https://")) {
+  if (
+    UrlbarPrefs.getScotchBonnetPref("trimHttps") &&
+    expectedUrl.startsWith("https://")
+  ) {
     expectedUrl = expectedUrl.slice("https://".length);
   }
 
