@@ -1150,7 +1150,8 @@ export class Unexpected extends RelevancyApiError {
         reason,
         ...params
     ) {
-        super(...params);
+        const message = `reason: ${ reason }`;
+        super(message, ...params);
         this.reason = reason;
     }
     toString() {

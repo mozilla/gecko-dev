@@ -1195,7 +1195,8 @@ export class Backoff extends SuggestApiError {
         seconds,
         ...params
     ) {
-        super(...params);
+        const message = `seconds: ${ seconds }`;
+        super(message, ...params);
         this.seconds = seconds;
     }
     toString() {
@@ -1209,7 +1210,8 @@ export class Network extends SuggestApiError {
         reason,
         ...params
     ) {
-        super(...params);
+        const message = `reason: ${ reason }`;
+        super(message, ...params);
         this.reason = reason;
     }
     toString() {
@@ -1223,7 +1225,8 @@ export class Other extends SuggestApiError {
         reason,
         ...params
     ) {
-        super(...params);
+        const message = `reason: ${ reason }`;
+        super(message, ...params);
         this.reason = reason;
     }
     toString() {

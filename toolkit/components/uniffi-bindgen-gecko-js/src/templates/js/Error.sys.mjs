@@ -17,7 +17,12 @@ export class {{ variant.name().to_upper_camel_case() }} extends {{ error.nm() }}
         {% endfor -%}
         ...params
     ) {
+        {%- if !variant.fields().is_empty() %}
+        const message = `{% for field in variant.fields() %}{{ field.nm() }}: ${ {{ field.nm() }} }{% if !loop.last %}, {% endif %}{% endfor %}`;
+        super(message, ...params);
+        {%- else %}
         super(...params);
+        {%- endif %}
         {%- for field in variant.fields() %}
         this.{{field.nm()}} = {{ field.nm() }};
         {%- endfor %}
