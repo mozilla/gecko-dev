@@ -2473,11 +2473,6 @@ def preprocess_option(compiler):
 set_config("PREPROCESS_OPTION", preprocess_option)
 
 
-# We only want to include windows.configure when we are compiling on
-# Windows, or for Windows.
-include("windows.configure", when=is_windows)
-
-
 # On Power ISA, determine compiler flags for VMX, VSX and VSX-3.
 
 set_config(
@@ -2823,6 +2818,10 @@ any_ubsan = ubsan | ub_signed_overflow_san | ub_unsigned_overflow_san
 set_define("MOZ_UBSAN", True, when=any_ubsan)
 set_config("MOZ_UBSAN", any_ubsan)
 
+
+# We only want to include windows.configure when we are compiling on
+# Windows, or for Windows.
+include("windows.configure", when=is_windows)
 
 # Security Hardening
 # ==============================================================
