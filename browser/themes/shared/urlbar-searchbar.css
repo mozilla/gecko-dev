@@ -1087,7 +1087,8 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
-    #urlbar[focused] & {
+    /* Don't show on mousedown to avoid shifting input field text */
+    #urlbar[focused]:not([focusing-via-mousedown]) & {
       display: flex;
     }
   }
@@ -1144,7 +1145,8 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 
 /* stylelint-disable-next-line media-query-no-invalid */
 @media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
-  #urlbar[focused] #identity-box,
+  /* Don't hide on mousedown to avoid shifting input field text */
+  #urlbar[focused]:not([focusing-via-mousedown]) #identity-box,
   #urlbar[searchmode] > .urlbar-input-container > #urlbar-search-mode-indicator {
     display: none;
   }

@@ -238,6 +238,7 @@ export class UrlbarInput {
       this.window.addEventListener("draggableregionleftmousedown", this);
     }
     this.textbox.addEventListener("mousedown", this);
+    this.textbox.addEventListener("mouseup", this);
 
     // This listener handles clicks from our children too, included the search mode
     // indicator close button.
@@ -3663,7 +3664,13 @@ export class UrlbarInput {
     // pageproxystate. In order to only show the search icon, switch to
     // an invalid pageproxystate.
     if (this.window.gBrowser.selectedBrowser.searchTerms) {
-      this.setPageProxyState("invalid", true);
+      // When focusing via mousedown, we don't want to cause a shift of the
+      // string, thus we postpone to the mouseup event.
+      if (this.focusedViaMousedown) {
+        this.#setProxyStateToInvalidOnMouseUp = true;
+      } else {
+        this.setPageProxyState("invalid", true);
+      }
     }
 
     // If the value was trimmed, check whether we should untrim it.
@@ -3728,6 +3735,7 @@ export class UrlbarInput {
   _on_mousedown(event) {
     switch (event.currentTarget) {
       case this.textbox: {
+        this.toggleAttribute("focusing-via-mousedown", !this.focused);
         this._mousedownOnUrlbarDescendant = true;
 
         if (
@@ -3804,6 +3812,15 @@ export class UrlbarInput {
           this.view.close();
         }
         break;
+    }
+  }
+
+  _on_mouseup() {
+    this.toggleAttribute("focusing-via-mousedown", false);
+
+    if (this.#setProxyStateToInvalidOnMouseUp) {
+      this.#setProxyStateToInvalidOnMouseUp = false;
+      this.setPageProxyState("invalid", true);
     }
   }
 
@@ -4414,6 +4431,8 @@ export class UrlbarInput {
         this._isKeyDownWithMetaAndLeft)
     );
   }
+
+  #setProxyStateToInvalidOnMouseUp = false;
 }
 
 /**
