@@ -16,6 +16,7 @@ const l10nMap = new Map([
   ["viewBookmarksSidebar", "sidebar-menu-bookmarks-label"],
 ]);
 const VISIBILITY_SETTING_PREF = "sidebar.visibility";
+const TAB_DIRECTION_SETTING_PREF = "sidebar.verticalTabs";
 
 export class SidebarCustomize extends SidebarPage {
   constructor() {
@@ -37,6 +38,7 @@ export class SidebarCustomize extends SidebarPage {
     extensionLinks: { all: ".extension-link" },
     positionInputs: { all: ".position-setting" },
     visibilityInputs: { all: ".visibility-setting" },
+    verticalTabsInputs: { all: ".vertical-tabs-setting" },
   };
 
   connectedCallback() {
@@ -171,7 +173,7 @@ export class SidebarCustomize extends SidebarPage {
       <div class="container">
         <sidebar-panel-header data-l10n-id="sidebar-menu-customize-header" data-l10n-attrs="heading" view="viewCustomizeSidebar">
         </sidebar-panel-header>
-        <moz-fieldset class="customize-firefox-tools" data-l10n-id="sidebar-customize-firefox-tools">
+        <moz-fieldset class="customize-firefox-tools" data-l10n-id="sidebar-customize-firefox-tools-header">
           ${this.getWindow()
             .SidebarController.getTools()
             .map(tool => this.inputTemplate(tool))}
@@ -181,7 +183,7 @@ export class SidebarCustomize extends SidebarPage {
           () => html`<div class="customize-extensions">
             <h5
               class="heading-medium customize-extensions-heading"
-              data-l10n-id="sidebar-customize-extensions"
+              data-l10n-id="sidebar-customize-extensions-header"
             ></h5>
             <div role="list" class="extensions">
               ${extensions.map((extension, index) =>
@@ -193,7 +195,7 @@ export class SidebarCustomize extends SidebarPage {
         <moz-radio-group
           @change=${this.#handleVisibilityChange}
           name="visibility"
-          data-l10n-id="sidebar-customize-settings"
+          data-l10n-id="sidebar-customize-settings-header"
         >
           <moz-radio
             class="visibility-setting"
@@ -218,10 +220,8 @@ export class SidebarCustomize extends SidebarPage {
             class="position-setting"
             id="position-left"
             value=${true}
-            ?checked=${
-              this.getWindow().SidebarController._positionStart === true
-            }
-            iconsrc="chrome://browser/skin/sidebars.svg"
+            ?checked=${this.getWindow().SidebarController._positionStart}
+            iconsrc="chrome://browser/content/sidebar/sidebar-collapsed.svg"
             data-l10n-id="sidebar-position-left"
           ></moz-radio>
           <moz-radio
@@ -233,6 +233,32 @@ export class SidebarCustomize extends SidebarPage {
             }
             iconsrc="chrome://browser/skin/sidebars.svg"
             data-l10n-id="sidebar-position-right"
+          ></moz-radio>
+        </moz-radio-group>
+        <moz-radio-group
+            @change=${this.#handleTabDirectionChange}
+            name="tabDirection"
+            data-l10n-id="sidebar-customize-tabs-header">
+          <moz-radio
+            class="vertical-tabs-setting"
+            id="vertical-tabs"
+            value=${true}
+            ?checked=${
+              this.getWindow().SidebarController.sidebarVerticalTabsEnabled
+            }
+            iconsrc="chrome://browser/content/sidebar/sidebar-collapsed.svg"
+            data-l10n-id="sidebar-vertical-tabs"
+          ></moz-radio>
+          <moz-radio
+            class="vertical-tabs-setting"
+            id="horizontal-tabs"
+            value=${false}
+            ?checked=${
+              this.getWindow().SidebarController.sidebarVerticalTabsEnabled ===
+              false
+            }
+            iconsrc="chrome://browser/content/sidebar/sidebar-horizontal-tabs.svg"
+            data-l10n-id="sidebar-horizontal-tabs"
           ></moz-radio>
         </moz-radio-group>
         <div id="manage-settings">
@@ -252,6 +278,10 @@ export class SidebarCustomize extends SidebarPage {
   #handleVisibilityChange({ target: { value } }) {
     this.visibility = value;
     Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, value);
+  }
+
+  #handleTabDirectionChange({ target: { value } }) {
+    Services.prefs.setBoolPref(TAB_DIRECTION_SETTING_PREF, value == "true");
   }
 }
 

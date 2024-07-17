@@ -5,9 +5,10 @@
 menu-view-genai-chat =
   .label = AI Chatbot
 
-## Variables:
-##   $date (string) - Date to be formatted based on locale
+## Labels for sidebar history panel
 
+# Variables:
+#   $date (string) - Date to be formatted based on locale
 sidebar-history-date-today =
   .heading = Today — { DATETIME($date, dateStyle: "full") }
 sidebar-history-date-yesterday =
@@ -17,7 +18,7 @@ sidebar-history-date-this-month =
 sidebar-history-date-prev-month =
   .heading = { DATETIME($date, month: "long", year: "numeric") }
 
-##
+## Labels for sidebar search
 
 # "Search" is a noun (as in "Results of the search for")
 # Variables:
@@ -27,13 +28,26 @@ sidebar-search-results-header =
 
 ## Labels for sidebar customize panel
 
-sidebar-customize-firefox-tools =
+sidebar-customize-extensions-header = Sidebar extensions
+sidebar-customize-firefox-tools-header =
   .label = { -brand-product-name } tools
 sidebar-customize-firefox-settings = Manage { -brand-short-name } settings
 sidebar-position-left =
   .label = Show on the left
 sidebar-position-right =
   .label = Show on the right
+sidebar-vertical-tabs =
+  .label = Vertical tabs
+sidebar-horizontal-tabs =
+  .label = Horizontal tabs
+sidebar-customize-tabs-header =
+  .label = Tab Settings
+sidebar-customize-settings-header =
+  .label = Sidebar settings
+sidebar-visibility-always-show =
+  .label = Always show
+sidebar-visibility-hide-sidebar =
+  .label = Hide sidebar
 
 ## Labels for sidebar context menu items
 
@@ -43,9 +57,6 @@ sidebar-context-menu-remove-extension =
   .label = Remove extension
 sidebar-context-menu-report-extension =
   .label = Report extension
-
-# A header for a list of sidebar-specific extensions in the sidebar
-sidebar-customize-extensions = Sidebar extensions
 
 ## Labels for sidebar menu items.
 
@@ -80,10 +91,3 @@ sidebar-menu-history-header =
   .heading = History
 sidebar-menu-syncedtabs-header =
   .heading = Tabs from other devices
-
-sidebar-customize-settings =
-  .label = Sidebar settings
-sidebar-visibility-always-show =
-  .label = Always show
-sidebar-visibility-hide-sidebar =
-  .label = Hide sidebar

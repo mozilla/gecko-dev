@@ -6,6 +6,7 @@
 requestLongerTimeout(2);
 
 const SIDEBAR_VISIBILITY_PREF = "sidebar.visibility";
+const TAB_DIRECTION_PREF = "sidebar.verticalTabs";
 
 async function showCustomizePanel(win) {
   await win.SidebarController.show("viewCustomizeSidebar");
@@ -223,4 +224,37 @@ add_task(async function test_customize_visibility_setting() {
   await BrowserTestUtils.closeWindow(newWin);
 
   Services.prefs.clearUserPref(SIDEBAR_VISIBILITY_PREF);
+});
+
+add_task(async function test_vertical_tabs_setting() {
+  const deferredPrefChange = Promise.withResolvers();
+  const prefObserver = () => deferredPrefChange.resolve();
+  Services.prefs.addObserver(TAB_DIRECTION_PREF, prefObserver);
+  registerCleanupFunction(() =>
+    Services.prefs.removeObserver(TAB_DIRECTION_PREF, prefObserver)
+  );
+
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const panel = await showCustomizePanel(win);
+  const [verticalTabs, horizontalTabs] = panel.verticalTabsInputs;
+  ok(horizontalTabs.checked, "Horizontal tabs is enabled by default.");
+  EventUtils.synthesizeMouseAtCenter(
+    verticalTabs,
+    {},
+    win.SidebarController.browser.contentWindow
+  );
+  ok(verticalTabs.checked, "Vertical tabs is enabled.");
+  await deferredPrefChange.promise;
+  const newPrefValue = Services.prefs.getBoolPref(TAB_DIRECTION_PREF);
+  is(newPrefValue, true, "Vertical tabs pref updated.");
+
+  const newWin = await BrowserTestUtils.openNewBrowserWindow();
+  const newPanel = await showCustomizePanel(newWin);
+  const [newVerticalTabs] = newPanel.verticalTabsInputs;
+  ok(newVerticalTabs.checked, "Vertical tabs setting persists.");
+
+  await BrowserTestUtils.closeWindow(win);
+  await BrowserTestUtils.closeWindow(newWin);
+
+  Services.prefs.clearUserPref(TAB_DIRECTION_PREF);
 });
