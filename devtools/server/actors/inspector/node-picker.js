@@ -38,7 +38,8 @@ class NodePicker {
     this._currentNode = null;
 
     this._onHovered = this._onHovered.bind(this);
-    this._onKey = this._onKey.bind(this);
+    this._onKeyDown = this._onKeyDown.bind(this);
+    this._onKeyUp = this._onKeyUp.bind(this);
     this._onPick = this._onPick.bind(this);
     this._onSuppressedEvent = this._onSuppressedEvent.bind(this);
     this._preventContentEvent = this._preventContentEvent.bind(this);
@@ -54,7 +55,16 @@ class NodePicker {
     return this.#remoteNodePickerNoticeHighlighter;
   }
 
-  _findAndAttachElement(event) {
+  /**
+   * Find the element from the passed mouse event. If shift isn't pressed (or shiftKey is false)
+   * this will ignore all elements who can't consume pointer events (e.g. with inert attribute
+   * or `pointer-events: none` style).
+   *
+   * @param {MouseEvent} event
+   * @param {Boolean} shiftKey: If passed, will override event.shiftKey
+   * @returns {Object} An object compatible with the disconnectedNode type.
+   */
+  _findAndAttachElement(event, shiftKey = event.shiftKey) {
     // originalTarget allows access to the "real" element before any retargeting
     // is applied, such as in the case of XBL anonymous elements.  See also
     // https://developer.mozilla.org/docs/XBL/XBL_1.0_Reference/Anonymous_Content#Event_Flow_and_Targeting
@@ -63,7 +73,7 @@ class NodePicker {
     // When holding the Shift key, search for the element at the mouse position (as opposed
     // to the event target). This would make it possible to pick nodes for which we won't
     // get events for  (e.g. elements with `pointer-events: none`).
-    if (event.shiftKey) {
+    if (shiftKey) {
       node = this._findNodeAtMouseEventPosition(event) || node;
     }
 
@@ -211,7 +221,13 @@ class NodePicker {
     this._walker.emit("picker-node-picked", this._currentNode);
   }
 
-  _onHovered(event) {
+  /**
+   * mousemove event handler
+   *
+   * @param {MouseEvent} event
+   * @param {Boolean} shiftKeyOverride: If passed, will override event.shiftKey in _findAndAttachElement
+   */
+  _onHovered(event, shiftKeyOverride) {
     // If the hovered node is a remote frame, then we need to let the event through
     // since there's a highlighter actor in that sub-frame also picking.
     if (isRemoteBrowserElement(event.target)) {
@@ -223,6 +239,8 @@ class NodePicker {
       return;
     }
 
+    this._lastMouseMoveEvent = event;
+
     // Always call remoteNodePickerNotice handleHoveredElement so the hover state can be updated
     // (it doesn't have its own event listeners to avoid managing events and suppressed
     // events for the same target from different places).
@@ -233,14 +251,15 @@ class NodePicker {
       }
     }
 
-    this._currentNode = this._findAndAttachElement(event);
+    this._currentNode = this._findAndAttachElement(event, shiftKeyOverride);
     if (this._hoveredNode !== this._currentNode.node) {
       this._walker.emit("picker-node-hovered", this._currentNode);
       this._hoveredNode = this._currentNode.node;
     }
   }
 
-  _onKey(event) {
+  // eslint-disable-next-line complexity
+  _onKeyDown(event) {
     if (!this._currentNode || !this._isPicking) {
       return;
     }
@@ -258,6 +277,7 @@ class NodePicker {
      * RIGHT_KEY: narrower or child
      * ENTER/CARRIAGE_RETURN: Picks currentNode
      * ESC/CTRL+SHIFT+C: Cancels picker, picks currentNode
+     * SHIFT: Trigger onHover, handling `pointer-events: none` nodes
      */
     switch (event.keyCode) {
       // Wider.
@@ -309,6 +329,9 @@ class NodePicker {
           this._walker.emit("picker-node-canceled");
         }
         return;
+      case event.DOM_VK_SHIFT:
+        this._onHovered(this._lastMouseMoveEvent, true);
+        return;
       default:
         return;
     }
@@ -316,6 +339,13 @@ class NodePicker {
     // Store currently attached element
     this._currentNode = this._walker.attachElement(currentNode);
     this._walker.emit("picker-node-hovered", this._currentNode);
+  }
+
+  _onKeyUp(event) {
+    if (event.keyCode === event.DOM_VK_SHIFT) {
+      this._onHovered(this._lastMouseMoveEvent, false);
+    }
+    this._preventContentEvent(event);
   }
 
   _onSuppressedEvent(event) {
@@ -374,8 +404,8 @@ class NodePicker {
     target.addEventListener("mousedown", this._preventContentEvent, config);
     target.addEventListener("mouseup", this._preventContentEvent, config);
     target.addEventListener("dblclick", this._preventContentEvent, config);
-    target.addEventListener("keydown", this._onKey, config);
-    target.addEventListener("keyup", this._preventContentEvent, config);
+    target.addEventListener("keydown", this._onKeyDown, config);
+    target.addEventListener("keyup", this._onKeyUp, config);
 
     this._setSuppressedEventListener(this._onSuppressedEvent);
   }
@@ -393,6 +423,7 @@ class NodePicker {
     this._stopPickerListeners();
     this._isPicking = false;
     this._hoveredNode = null;
+    this._lastMouseMoveEvent = null;
     if (this.#remoteNodePickerNoticeHighlighter) {
       this.#remoteNodePickerNoticeHighlighter.hide();
     }

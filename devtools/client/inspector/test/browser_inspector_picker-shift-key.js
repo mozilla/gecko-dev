@@ -8,9 +8,10 @@
 
 const TEST_URI = `data:text/html;charset=utf-8,
   <!DOCTYPE html>
-  <main style="display:flex">
+  <main style="display:flex; margin-top: 100px;">
     <div id="pointer">Regular element</div>
-    <div id="nopointer" style="pointer-events: none">Element with pointer-events: none</div>
+    <-- ⚠️ Make the element overlap with its parent so assertHighlightedNode can be used -->
+    <div id="nopointer" style="pointer-events: none;translate: 0 -10%; outline: 1px solid">Element with pointer-events: none</div>
     <div id="transluscent" style="pointer-events: none;opacity: 0.1">Element with opacity of 0.1</div>
     <div id="invisible" style="pointer-events: none;opacity: 0">Element with opacity of 0</div>
     <div>
@@ -103,6 +104,42 @@ add_task(async function () {
     shiftKey: true,
   });
   await checkElementSelected("#negative-z-index-child", inspector);
+
+  info("Hover pointer-events element without holding Shift");
+  await hoverElement(inspector, "#nopointer");
+
+  ok(
+    await highlighterTestFront.assertHighlightedNode("main"),
+    "The highlighter is shown on the expected node"
+  );
+
+  info("Pressing Shift should highlight the pointer-events element");
+  let onHovered = inspector.toolbox.nodePicker.once("picker-node-hovered");
+  await BrowserTestUtils.synthesizeKey(
+    "VK_SHIFT",
+    { type: "keydown" },
+    gBrowser.selectedBrowser
+  );
+  await onHovered;
+  ok(true, "Got a picker-node-hovered event when pressing shift");
+  ok(
+    await highlighterTestFront.assertHighlightedNode("#nopointer"),
+    "The highlighter is shown on the expected node"
+  );
+
+  info("Releasing Shift should unhighlight the pointer-events element");
+  onHovered = inspector.toolbox.nodePicker.once("picker-node-hovered");
+  await BrowserTestUtils.synthesizeKey(
+    "VK_SHIFT",
+    { type: "keyup" },
+    gBrowser.selectedBrowser
+  );
+  await onHovered;
+  ok(true, "Got a picker-node-hovered event when releasing shift");
+  ok(
+    await highlighterTestFront.assertHighlightedNode("main"),
+    "The highlighter is shown on the expected node"
+  );
 });
 
 async function clickElement({ selector, inspector, shiftKey }) {
