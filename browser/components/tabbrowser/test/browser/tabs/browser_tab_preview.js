@@ -501,11 +501,33 @@ add_task(async function panelSuppressionOnPanelTests() {
   EventUtils.synthesizeMouseAtCenter(tab, { type: "mouseover" }, window);
 
   await BrowserTestUtils.waitForCondition(() => {
-    return previewComponent.activate.called;
+    return previewComponent.activate.calledOnce;
   });
   Assert.equal(previewComponent._panel.state, "closed", "");
 
+  // Reset state: close the app menu popup and move the mouse off the tab
+  const tabs = window.document.getElementById("tabbrowser-tabs");
+  EventUtils.synthesizeMouse(
+    tabs,
+    0,
+    tabs.outerHeight + 1,
+    {
+      type: "mouseout",
+    },
+    window
+  );
+
+  const popupHidingEvent = BrowserTestUtils.waitForEvent(
+    appMenuPopup,
+    "popuphiding"
+  );
   appMenuPopup.hidePopup();
+  await popupHidingEvent;
+
+  // Attempt to open the tab preview immediately after the popup hiding event
+  await openPreview(tab);
+  Assert.equal(previewComponent._panel.state, "open", "");
+
   BrowserTestUtils.removeTab(tab);
   sinon.restore();
 

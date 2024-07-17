@@ -237,7 +237,7 @@ export default class TabHoverPreviewPanel {
       });
     };
     handleExternalPopupEvent("popupshowing", "add");
-    handleExternalPopupEvent("popuphidden", "delete");
+    handleExternalPopupEvent("popuphiding", "delete");
   }
 
   _isDisabled() {
