@@ -223,7 +223,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                     }
                 },
                 owner = this,
-                view = browserToolbarView.view,
+                view = view,
             )
         }
 
