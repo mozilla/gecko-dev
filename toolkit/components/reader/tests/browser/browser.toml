@@ -57,6 +57,10 @@ support-files = [
 ]
 
 ["browser_readerMode_refresh.js"]
+skip-if = [
+   "apple_catalina", # Bug 1776032
+]
+
 support-files = [
   "readerModeArticleShort.html",
   "readerModeArticleTextPlain.txt",
