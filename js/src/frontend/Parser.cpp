@@ -7877,7 +7877,7 @@ bool GeneralParser<ParseHandler, Unit>::classMember(
       return false;
     }
     if (classStmt.constructorBox) {
-      errorAt(propNameOffset, JSMSG_DUPLICATE_PROPERTY, "constructor");
+      errorAt(propNameOffset, JSMSG_DUPLICATE_CONSTRUCTOR);
       return false;
     }
     propType = hasHeritage == HasHeritage::Yes
