@@ -84,21 +84,6 @@ case "$target" in
         fi
         MOZ_OPTIMIZE_FLAGS="-O2"
     fi
-
-    case "$target" in
-    i*86-*)
-    	AC_DEFINE(_X86_)
-	;;
-    x86_64-*)
-        AC_DEFINE(_AMD64_)
-        ;;
-    aarch64-*)
-        AC_DEFINE(_ARM64_)
-        ;;
-    *)
-    	AC_DEFINE(_CPU_ARCH_NOT_DEFINED)
-	;;
-    esac
     ;;
 
 *-netbsd*)
