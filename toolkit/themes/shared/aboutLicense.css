@@ -13,9 +13,3 @@
   align-items: center;
   padding-inline-end: 320px;
 }
-
-td:nth-child(1),
-td:nth-child(2) {
-  text-align: left;
-  vertical-align: top;
-}
