@@ -12,8 +12,9 @@
 #include "nscore.h"
 #include "mozilla/Assertions.h"
 
-// NOTE: the long lines in this file are intentional to make compiler error
-// messages more readable.
+namespace mozilla {
+class ScrollContainerFrame;
+}
 
 #define NS_DECL_QUERYFRAME_TARGET(classname)      \
   static const nsQueryFrame::FrameIID kFrameIID = \
@@ -85,18 +86,18 @@ class nsQueryFrame {
 
 class nsIFrame;
 
-template <class Source>
+template <typename Source>
 class do_QueryFrameHelper {
  public:
   explicit do_QueryFrameHelper(Source* s) : mRawPtr(s) {}
 
   // The return and argument types here are arbitrarily selected so no
   // corresponding member function exists.
-  typedef void (do_QueryFrameHelper::*MatchNullptr)(double, float);
+  using MatchNullptr = void (*)(double, float);
   // Implicit constructor for nullptr, trick borrowed from already_AddRefed.
   MOZ_IMPLICIT do_QueryFrameHelper(MatchNullptr aRawPtr) : mRawPtr(nullptr) {}
 
-  template <class Dest>
+  template <typename Dest>
   operator Dest*() {
     static_assert(std::is_same_v<std::remove_const_t<Dest>,
                                  typename Dest::Has_NS_DECL_QUERYFRAME_TARGET>,
@@ -104,40 +105,71 @@ class do_QueryFrameHelper {
     if (!mRawPtr) {
       return nullptr;
     }
-    if (Dest* f = FastQueryFrame<Source, Dest>::QueryFrame(mRawPtr)) {
+    if constexpr (FastQueryFrame<Dest>::kSupported) {
+      static_assert(
+          std::is_base_of_v<nsIFrame, Source>,
+          "We only support fast do_QueryFrame() where the source must be a "
+          "derived class of nsIFrame. Consider a two-step do_QueryFrame() "
+          "(once to nsIFrame, another to the target) if absolutely needed.");
+      Dest* f = FastQueryFrame<Dest>::QueryFrame(mRawPtr);
       MOZ_ASSERT(
           f == reinterpret_cast<Dest*>(mRawPtr->QueryFrame(Dest::kFrameIID)),
           "fast and slow paths should give the same result");
       return f;
     }
+    if constexpr (std::is_base_of_v<nsIFrame, Source> &&
+                  std::is_base_of_v<nsIFrame, Dest>) {
+      // For non-final frames we can still optimize the virtual call some of the
+      // time.
+      if (nsQueryFrame::FrameIID(mRawPtr->mClass) == Dest::kFrameIID) {
+        auto* f = static_cast<Dest*>(mRawPtr);
+        MOZ_ASSERT(
+            f == reinterpret_cast<Dest*>(mRawPtr->QueryFrame(Dest::kFrameIID)),
+            "fast and slow paths should give the same result");
+        return f;
+      }
+    }
     return reinterpret_cast<Dest*>(mRawPtr->QueryFrame(Dest::kFrameIID));
   }
 
  private:
-  // For non-nsIFrame types there is no fast-path.
-  template <class Src, class Dst, typename = void, typename = void>
+  template <typename Dest, typename = void>
   struct FastQueryFrame {
-    static Dst* QueryFrame(Src* aFrame) { return nullptr; }
+    static constexpr bool kSupported = false;
   };
 
-  // Specialization for any nsIFrame type to any nsIFrame type -- if the source
-  // instance's mClass matches kFrameIID of the destination type then
-  // downcasting is safe.
-  template <class Src, class Dst>
-  struct FastQueryFrame<
-      Src, Dst, std::enable_if_t<std::is_base_of<nsIFrame, Src>::value>,
-      std::enable_if_t<std::is_base_of<nsIFrame, Dst>::value>> {
-    static Dst* QueryFrame(Src* aFrame) {
-      return nsQueryFrame::FrameIID(aFrame->mClass) == Dst::kFrameIID
-                 ? reinterpret_cast<Dst*>(aFrame)
+  // For final classes we can check the class id.
+  template <typename Dest>
+  struct FastQueryFrame<Dest, std::enable_if_t<std::is_final_v<Dest>, void>> {
+    static constexpr bool kSupported = true;
+
+    template <typename Src>
+    static Dest* QueryFrame(Src* aPtr) {
+      return nsQueryFrame::FrameIID(aPtr->mClass) == Dest::kFrameIID
+                 ? static_cast<Dest*>(aPtr)
                  : nullptr;
     }
   };
 
+#define IMPL_FAST_QUERYFRAME(Dest_, Check_)                        \
+  template <>                                                      \
+  struct FastQueryFrame<Dest_, void> {                             \
+    static constexpr bool kSupported = true;                       \
+    template <typename Src>                                        \
+    static Dest_* QueryFrame(Src* aPtr) {                          \
+      return aPtr->Check_() ? static_cast<Dest_*>(aPtr) : nullptr; \
+    }                                                              \
+  }
+
+  IMPL_FAST_QUERYFRAME(mozilla::ScrollContainerFrame,
+                       IsScrollContainerOrSubclass);
+
+#undef IMPL_FAST_QUERYFRAME
+
   Source* mRawPtr;
 };
 
-template <class T>
+template <typename T>
 inline do_QueryFrameHelper<T> do_QueryFrame(T* s) {
   return do_QueryFrameHelper<T>(s);
 }

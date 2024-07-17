@@ -39,7 +39,7 @@ NS_IMPL_FRAMEARENA_HELPERS(SVGClipPathFrame)
 void SVGClipPathFrame::ApplyClipPath(gfxContext& aContext,
                                      nsIFrame* aClippedFrame,
                                      const gfxMatrix& aMatrix) {
-  ISVGDisplayableFrame* singleClipPathChild = nullptr;
+  nsIFrame* singleClipPathChild = nullptr;
   DebugOnly<bool> trivial = IsTrivial(&singleClipPathChild);
   MOZ_ASSERT(trivial, "Caller needs to use GetClipMask");
 
@@ -297,7 +297,7 @@ bool SVGClipPathFrame::PointIsInsideClipPath(nsIFrame* aClippedFrame,
   return false;
 }
 
-bool SVGClipPathFrame::IsTrivial(ISVGDisplayableFrame** aSingleChild) {
+bool SVGClipPathFrame::IsTrivial(nsIFrame** aSingleChild) {
   // If the clip path is clipped then it's non-trivial
   if (SVGObserverUtils::GetAndObserveClipPath(this, nullptr) ==
       SVGObserverUtils::eHasRefsAllValid) {
@@ -308,25 +308,25 @@ bool SVGClipPathFrame::IsTrivial(ISVGDisplayableFrame** aSingleChild) {
     *aSingleChild = nullptr;
   }
 
-  ISVGDisplayableFrame* foundChild = nullptr;
-
+  nsIFrame* foundChild = nullptr;
   for (auto* kid : mFrames) {
     ISVGDisplayableFrame* svgChild = do_QueryFrame(kid);
-    if (svgChild) {
-      // We consider a non-trivial clipPath to be one containing
-      // either more than one svg child and/or a svg container
-      if (foundChild || svgChild->IsDisplayContainer()) {
-        return false;
-      }
-
-      // or where the child is itself clipped
-      if (SVGObserverUtils::GetAndObserveClipPath(kid, nullptr) ==
-          SVGObserverUtils::eHasRefsAllValid) {
-        return false;
-      }
-
-      foundChild = svgChild;
+    if (!svgChild) {
+      continue;
     }
+    // We consider a non-trivial clipPath to be one containing
+    // either more than one svg child and/or a svg container
+    if (foundChild || svgChild->IsDisplayContainer()) {
+      return false;
+    }
+
+    // or where the child is itself clipped
+    if (SVGObserverUtils::GetAndObserveClipPath(kid, nullptr) ==
+        SVGObserverUtils::eHasRefsAllValid) {
+      return false;
+    }
+
+    foundChild = kid;
   }
   if (aSingleChild) {
     *aSingleChild = foundChild;
