@@ -1031,6 +1031,11 @@ bool BFCacheInParent() {
          StaticPrefs::fission_bfcacheInParent_DoNotUseDirectly();
 }
 
+bool NavigationAPI() {
+  return SessionHistoryInParent() &&
+         StaticPrefs::dom_navigation_webidl_enabled();
+}
+
 }  // namespace mozilla
 
 /**
