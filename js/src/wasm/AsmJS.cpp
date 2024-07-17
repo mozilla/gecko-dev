@@ -2059,9 +2059,8 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
       return false;
     }
 
-    Limits limits = Limits(mask + 1, Nothing(), Shareable::False);
     codeMeta_->asmJSSigToTableIndex[sigIndex] = codeMeta_->tables.length();
-    if (!codeMeta_->tables.emplaceBack(limits, RefType::func(),
+    if (!codeMeta_->tables.emplaceBack(RefType::func(), mask + 1, Nothing(),
                                        /* initExpr */ Nothing(),
                                        /*isAsmJS*/ true)) {
       return false;

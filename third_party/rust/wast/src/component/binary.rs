@@ -634,19 +634,37 @@ impl From<core::TableType<'_>> for wasm_encoder::TableType {
             element_type: ty.elem.into(),
             minimum: ty.limits.min,
             maximum: ty.limits.max,
-            table64: ty.limits.is64,
         }
     }
 }
 
 impl From<core::MemoryType> for wasm_encoder::MemoryType {
     fn from(ty: core::MemoryType) -> Self {
+        let (minimum, maximum, memory64, shared, page_size_log2) = match ty {
+            core::MemoryType::B32 {
+                limits,
+                shared,
+                page_size_log2,
+            } => (
+                limits.min.into(),
+                limits.max.map(Into::into),
+                false,
+                shared,
+                page_size_log2,
+            ),
+            core::MemoryType::B64 {
+                limits,
+                shared,
+                page_size_log2,
+            } => (limits.min, limits.max, true, shared, page_size_log2),
+        };
+
         Self {
-            minimum: ty.limits.min,
-            maximum: ty.limits.max,
-            memory64: ty.limits.is64,
-            shared: ty.shared,
-            page_size_log2: ty.page_size_log2,
+            minimum,
+            maximum,
+            memory64,
+            shared,
+            page_size_log2,
         }
     }
 }

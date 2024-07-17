@@ -11,9 +11,8 @@
 
 [package]
 edition = "2021"
-rust-version = "1.76.0"
 name = "wasm-smith"
-version = "0.210.0"
+version = "0.205.0"
 authors = ["Nick Fitzgerald <fitzgen@gmail.com>"]
 exclude = ["/benches/corpus"]
 description = "A WebAssembly test case generator"
@@ -49,49 +48,38 @@ version = "0.4"
 
 [dependencies.indexmap]
 version = "2.0.0"
-default-features = false
 
 [dependencies.leb128]
 version = "0.2.4"
 
 [dependencies.serde]
 version = "1.0.166"
-features = ["alloc"]
 optional = true
-default-features = false
 
 [dependencies.serde_derive]
 version = "1.0.166"
 optional = true
 
 [dependencies.wasm-encoder]
-version = "0.210.0"
+version = "0.205.0"
 
 [dependencies.wasmparser]
-version = "0.210.0"
-features = [
-    "std",
-    "validate",
-]
+version = "0.205.0"
 optional = true
-default-features = false
 
 [dependencies.wat]
-version = "1.210.0"
+version = "1.205.0"
 optional = true
 
 [dev-dependencies.criterion]
-version = "0.5.1"
-default-features = false
+version = "0.3.3"
 
 [dev-dependencies.rand]
 version = "0.8.4"
 features = ["small_rng"]
 
 [dev-dependencies.wasmparser]
-version = "0.210.0"
-features = ["std"]
-default-features = false
+version = "0.205.0"
 
 [features]
 _internal_cli = [

@@ -51,9 +51,8 @@ excluded_tests = [
 
 [[repos]]
 name = "memory64"
-url = "https://github.com/WebAssembly/memory64"
-branch = "main"
-parent = "spec"
+url = "https://github.com/mozilla-spidermonkey/memory64"
+branch = "test-cases"
 directive = "; --setpref=wasm_memory64=true; skip-if: !wasmMemory64Enabled()"
 excluded_tests = []
 

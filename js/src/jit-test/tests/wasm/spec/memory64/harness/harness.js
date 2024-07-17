@@ -248,12 +248,11 @@ function get(instanceish, field) {
 function assert_trap(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected trap but got no error (${message})`);
+    throw new Error("expected trap");
   } catch (err) {
     if (err instanceof WebAssembly.RuntimeError) {
       return;
     }
-    err.message = `expected trap (${message}): ${err.message}`;
     throw err;
   }
 }
@@ -269,57 +268,57 @@ try {
 function assert_exhaustion(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected exhaustion but got no error (${message})`);
+    assertEq("normal return", "exhaustion");
   } catch (err) {
-    if (err instanceof StackOverflow) {
-      return;
-    }
-    err.message = `expected exhaustion (${message}): ${err.message}`;
-    throw err;
+    assertEq(
+      err instanceof StackOverflow,
+      true,
+      "expected exhaustion",
+    );
   }
 }
 
 function assert_invalid(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected invalid module but got no error (${message})`);
+    assertEq("valid module", "invalid module");
   } catch (err) {
-    if (err instanceof WebAssembly.LinkError || err instanceof WebAssembly.CompileError) {
-      return;
-    }
-    err.message = `expected invalid module (${message}): ${err.message}`;
-    throw err;
+    assertEq(
+      err instanceof WebAssembly.LinkError ||
+        err instanceof WebAssembly.CompileError,
+      true,
+      "expected an invalid module",
+    );
   }
 }
 
 function assert_unlinkable(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected an unlinkable module (${message})`);
+    assertEq(true, false, "expected an unlinkable module");
   } catch (err) {
-    if (err instanceof WebAssembly.LinkError || err instanceof WebAssembly.CompileError) {
-      return;
-    }
-    err.message = `expected an unlinkable module (${message}): ${err.message}`;
-    throw err;
+    assertEq(
+      err instanceof WebAssembly.LinkError ||
+        err instanceof WebAssembly.CompileError,
+      true,
+      "expected an unlinkable module",
+    );
   }
 }
 
 function assert_malformed(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected a malformed module (${message})`);
+    assertEq("valid module", "malformed module");
   } catch (err) {
-    if (
+    assertEq(
       err instanceof TypeError ||
-      err instanceof SyntaxError ||
-      err instanceof WebAssembly.CompileError ||
-      err instanceof WebAssembly.LinkError
-    ) {
-      return;
-    }
-    err.message = `expected a malformed module (${message}): ${err.message}`;
-    throw err;
+        err instanceof SyntaxError ||
+        err instanceof WebAssembly.CompileError ||
+        err instanceof WebAssembly.LinkError,
+      true,
+      `expected a malformed module`,
+    );
   }
 }
 

@@ -615,7 +615,8 @@ enum class LimitsKind {
 // Represents the resizable limits of memories and tables.
 
 struct Limits {
-  // `indexType` may be I64 when memory64 is enabled.
+  // `indexType` will always be I32 for tables, but may be I64 for memories
+  // when memory64 is enabled.
   IndexType indexType;
 
   // The initial and maximum limit. The unit is pages for memories and elements
@@ -694,43 +695,36 @@ using MemoryDescVector = Vector<MemoryDesc, 1, SystemAllocPolicy>;
 // using a uint64_t.
 static_assert(MaxMemory32LimitField <= UINT64_MAX / PageSize);
 
+// TableDesc describes a table as well as the offset of the table's base pointer
+// in global memory.
+//
+// A TableDesc contains the element type and whether the table is for asm.js,
+// which determines the table representation.
+//  - ExternRef: a wasm anyref word (wasm::AnyRef)
+//  - FuncRef: a two-word FunctionTableElem (wasm indirect call ABI)
+//  - FuncRef (if `isAsmJS`): a two-word FunctionTableElem (asm.js ABI)
+// Eventually there should be a single unified AnyRef representation.
+
 struct TableDesc {
-  Limits limits;
   RefType elemType;
   bool isImported;
   bool isExported;
   bool isAsmJS;
+  uint32_t initialLength;
+  Maybe<uint32_t> maximumLength;
   Maybe<InitExpr> initExpr;
 
   TableDesc() = default;
-  TableDesc(Limits limits, RefType elemType, Maybe<InitExpr>&& initExpr,
+  TableDesc(RefType elemType, uint32_t initialLength,
+            Maybe<uint32_t> maximumLength, Maybe<InitExpr>&& initExpr,
             bool isAsmJS, bool isImported = false, bool isExported = false)
-      : limits(limits),
-        elemType(elemType),
+      : elemType(elemType),
         isImported(isImported),
         isExported(isExported),
         isAsmJS(isAsmJS),
-        initExpr(std::move(initExpr)) {
-    // Table limits are enforced by validation to never be greater than
-    // UINT32_MAX. This means that we can always safely convert table limits to
-    // uint32_t (unlike with memories, which are the other main use of Limits.)
-    static_assert(MaxTableLimitField <= UINT32_MAX);
-    MOZ_ASSERT(limits.initial <= UINT32_MAX);
-    MOZ_ASSERT_IF(limits.maximum.isSome(),
-                  limits.maximum.value() <= UINT32_MAX);
-  }
-
-  IndexType indexType() const { return limits.indexType; }
-
-  uint32_t initialLength() const {
-    // Note the conversion to uint32_t.
-    return limits.initial;
-  }
-
-  Maybe<uint32_t> maximumLength() const {
-    // Note the conversion to uint32_t.
-    return limits.maximum;
-  }
+        initialLength(initialLength),
+        maximumLength(maximumLength),
+        initExpr(std::move(initExpr)) {}
 };
 
 using TableDescVector = Vector<TableDesc, 0, SystemAllocPolicy>;

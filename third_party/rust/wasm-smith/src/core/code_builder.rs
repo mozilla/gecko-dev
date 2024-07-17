@@ -621,31 +621,21 @@ pub(crate) struct CodeBuilderAllocations {
     tags: BTreeMap<Vec<ValType>, Vec<u32>>,
 
     // Tables in this module which have a funcref element type.
-    table32_with_funcref: Vec<u32>,
-    table64_with_funcref: Vec<u32>,
+    funcref_tables: Vec<u32>,
 
     // Functions that are referenced in the module through globals and segments.
     referenced_functions: Vec<u32>,
 
-    // Precomputed tables/element segments that can be used for `table.init`,
-    // stored as (segment, table).
-    table32_init: Vec<(u32, u32)>,
-    table64_init: Vec<(u32, u32)>,
+    // Flag that indicates if any element segments have the same type as any
+    // table
+    table_init_possible: bool,
 
-    // Precomputed valid tables to copy between, stored in (src, dst) order.
-    table_copy_32_to_32: Vec<(u32, u32)>,
-    table_copy_32_to_64: Vec<(u32, u32)>,
-    table_copy_64_to_32: Vec<(u32, u32)>,
-    table_copy_64_to_64: Vec<(u32, u32)>,
-
-    // Lists of table/memory indices which are either 32-bit or 64-bit. This is
-    // used for faster lookup in validating instructions to know which memories
-    // have which types. For example if there are no 64-bit memories then we
+    // Lists of memory indices which are either 32-bit or 64-bit. This is used
+    // for faster lookup in validating instructions to know which memories have
+    // which types. For example if there are no 64-bit memories then we
     // shouldn't ever look for i64 on the stack for `i32.load`.
     memory32: Vec<u32>,
     memory64: Vec<u32>,
-    table32: Vec<u32>,
-    table64: Vec<u32>,
 
     // State used when dropping operands to avoid dropping them into the ether
     // but instead folding their final values into module state, at this time
@@ -743,20 +733,12 @@ impl CodeBuilderAllocations {
                 .push(idx);
         }
 
-        let mut table32_with_funcref = Vec::new();
-        let mut table64_with_funcref = Vec::new();
-        let mut table32_tys = Vec::new();
-        let mut table64_tys = Vec::new();
+        let mut funcref_tables = Vec::new();
+        let mut table_tys = Vec::new();
         for (i, table) in module.tables.iter().enumerate() {
-            let funcref_dst = if table.table64 {
-                table64_tys.push(table.element_type);
-                &mut table64_with_funcref
-            } else {
-                table32_tys.push(table.element_type);
-                &mut table32_with_funcref
-            };
+            table_tys.push(table.element_type);
             if table.element_type == RefType::FUNCREF {
-                funcref_dst.push(i as u32);
+                funcref_tables.push(i as u32);
             }
         }
 
@@ -766,10 +748,7 @@ impl CodeBuilderAllocations {
                 referenced_functions.insert(i);
             }
         }
-
-        let mut table32_init = Vec::new();
-        let mut table64_init = Vec::new();
-        for (i, g) in module.elems.iter().enumerate() {
+        for g in module.elems.iter() {
             match &g.items {
                 Elements::Expressions(e) => {
                     let iter = e.iter().filter_map(|e| e.get_ref_func());
@@ -779,17 +758,9 @@ impl CodeBuilderAllocations {
                     referenced_functions.extend(e.iter().cloned());
                 }
             }
-            for (j, table) in module.tables.iter().enumerate() {
-                if module.ref_type_is_sub_type(g.ty, table.element_type) {
-                    let dst = if table.table64 {
-                        &mut table64_init
-                    } else {
-                        &mut table32_init
-                    };
-                    dst.push((i as u32, j as u32));
-                }
-            }
         }
+
+        let table_init_possible = module.elems.iter().any(|e| table_tys.contains(&e.ty));
 
         let mut memory32 = Vec::new();
         let mut memory64 = Vec::new();
@@ -798,32 +769,6 @@ impl CodeBuilderAllocations {
                 memory64.push(i as u32);
             } else {
                 memory32.push(i as u32);
-            }
-        }
-
-        let mut table32 = Vec::new();
-        let mut table64 = Vec::new();
-        let mut table_copy_32_to_32 = Vec::new();
-        let mut table_copy_32_to_64 = Vec::new();
-        let mut table_copy_64_to_32 = Vec::new();
-        let mut table_copy_64_to_64 = Vec::new();
-        for (i, t) in module.tables.iter().enumerate() {
-            if t.table64 {
-                table64.push(i as u32);
-            } else {
-                table32.push(i as u32);
-            }
-
-            for (j, t2) in module.tables.iter().enumerate() {
-                if module.val_type_is_sub_type(t.element_type.into(), t2.element_type.into()) {
-                    let dst = match (t.table64, t2.table64) {
-                        (false, false) => &mut table_copy_32_to_32,
-                        (false, true) => &mut table_copy_32_to_64,
-                        (true, false) => &mut table_copy_64_to_32,
-                        (true, true) => &mut table_copy_64_to_64,
-                    };
-                    dst.push((i as u32, j as u32));
-                }
             }
         }
 
@@ -870,19 +815,11 @@ impl CodeBuilderAllocations {
             functions,
             tags,
             mutable_globals,
-            table32_with_funcref,
-            table64_with_funcref,
+            funcref_tables,
             referenced_functions: referenced_functions.into_iter().collect(),
-            table32_init,
-            table64_init,
-            table_copy_32_to_32,
-            table_copy_32_to_64,
-            table_copy_64_to_32,
-            table_copy_64_to_64,
+            table_init_possible,
             memory32,
             memory64,
-            table32,
-            table64,
 
             global_dropped_i32,
             global_dropped_i64,
@@ -2044,18 +1981,14 @@ fn call_ref(
 
 #[inline]
 fn call_indirect_valid(module: &Module, builder: &mut CodeBuilder) -> bool {
+    if builder.allocs.funcref_tables.is_empty() || !builder.type_on_stack(module, ValType::I32) {
+        return false;
+    }
     if module.config.disallow_traps {
         // We have no way to reflect, at run time, on a `funcref` in
         // the `i`th slot in a table and dynamically avoid trapping
         // `call_indirect`s. Therefore, we can't emit *any*
         // `call_indirect` instructions if we want to avoid traps.
-        return false;
-    }
-    let can_call32 = builder.type_on_stack(module, ValType::I32)
-        && builder.allocs.table32_with_funcref.len() > 0;
-    let can_call64 = builder.type_on_stack(module, ValType::I64)
-        && builder.allocs.table64_with_funcref.len() > 0;
-    if !can_call32 && !can_call64 {
         return false;
     }
     let ty = builder.allocs.operands.pop().unwrap();
@@ -2072,7 +2005,7 @@ fn call_indirect(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    let table = select_call_indirect_table(u, module, builder)?;
+    builder.pop_operands(module, &[ValType::I32]);
 
     let choices = module
         .func_types()
@@ -2081,26 +2014,12 @@ fn call_indirect(
     let (type_idx, ty) = u.choose(&choices)?;
     builder.pop_operands(module, &ty.params);
     builder.push_operands(&ty.results);
+    let table = *u.choose(&builder.allocs.funcref_tables)?;
     instructions.push(Instruction::CallIndirect {
         ty: *type_idx as u32,
         table,
     });
     Ok(())
-}
-
-fn select_call_indirect_table(
-    u: &mut Unstructured,
-    module: &Module,
-    builder: &mut CodeBuilder,
-) -> Result<u32> {
-    let tables = if builder.type_on_stack(module, ValType::I32) {
-        builder.pop_operands(module, &[ValType::I32]);
-        &builder.allocs.table32_with_funcref
-    } else {
-        builder.pop_operands(module, &[ValType::I64]);
-        &builder.allocs.table64_with_funcref
-    };
-    Ok(*u.choose(tables)?)
 }
 
 #[inline]
@@ -2194,11 +2113,25 @@ fn return_call_ref(
 
 #[inline]
 fn return_call_indirect_valid(module: &Module, builder: &mut CodeBuilder) -> bool {
-    if !module.config.tail_call_enabled {
+    if !module.config.tail_call_enabled
+        || builder.allocs.funcref_tables.is_empty()
+        || !builder.type_on_stack(module, ValType::I32)
+    {
         return false;
     }
 
-    call_indirect_valid(module, builder)
+    if module.config.disallow_traps {
+        // See comment in `call_indirect_valid`; same applies here.
+        return false;
+    }
+
+    let ty = builder.allocs.operands.pop().unwrap();
+    let is_valid = module.func_types().any(|(_, ty)| {
+        builder.types_on_stack(module, &ty.params)
+            && builder.allocs.controls[0].label_types() == &ty.results
+    });
+    builder.allocs.operands.push(ty);
+    is_valid
 }
 
 fn return_call_indirect(
@@ -2207,7 +2140,7 @@ fn return_call_indirect(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    let table = select_call_indirect_table(u, module, builder)?;
+    builder.pop_operands(module, &[ValType::I32]);
 
     let choices = module
         .func_types()
@@ -2219,6 +2152,7 @@ fn return_call_indirect(
     let (type_idx, ty) = u.choose(&choices)?;
     builder.pop_operands(module, &ty.params);
     builder.push_operands(&ty.results);
+    let table = *u.choose(&builder.allocs.funcref_tables)?;
     instructions.push(Instruction::ReturnCallIndirect {
         ty: *type_idx as u32,
         table,
@@ -2734,7 +2668,7 @@ fn local_tee(
         .count();
     debug_assert!(n > 0);
     let i = u.int_in_range(0..=n - 1)?;
-    let (j, ty) = builder
+    let (j, _) = builder
         .func_ty
         .params
         .iter()
@@ -2743,9 +2677,7 @@ fn local_tee(
         .filter(|(_, ty)| builder.type_on_stack(module, **ty))
         .nth(i)
         .unwrap();
-    builder.allocs.operands.pop();
     instructions.push(Instruction::LocalTee(j as u32));
-    builder.push_operand(Some(*ty));
     Ok(())
 }
 
@@ -3394,28 +3326,28 @@ fn memory_copy_valid(module: &Module, builder: &mut CodeBuilder) -> bool {
         return false;
     }
 
-    let n32 = builder.allocs.memory32.len();
-    let n64 = builder.allocs.memory64.len();
-
-    if builder.types_on_stack(module, &[ValType::I64, ValType::I64, ValType::I64]) && n64 > 0 {
+    if builder.types_on_stack(module, &[ValType::I64, ValType::I64, ValType::I64])
+        && builder.allocs.memory64.len() > 0
+    {
         return true;
     }
-    if builder.types_on_stack(module, &[ValType::I32, ValType::I32, ValType::I32]) && n32 > 0 {
+    if builder.types_on_stack(module, &[ValType::I32, ValType::I32, ValType::I32])
+        && builder.allocs.memory32.len() > 0
+    {
         return true;
     }
     if builder.types_on_stack(module, &[ValType::I64, ValType::I32, ValType::I32])
-        && n32 > 0
-        && n64 > 0
+        && builder.allocs.memory32.len() > 0
+        && builder.allocs.memory64.len() > 0
     {
         return true;
     }
     if builder.types_on_stack(module, &[ValType::I32, ValType::I64, ValType::I32])
-        && n32 > 0
-        && n64 > 0
+        && builder.allocs.memory32.len() > 0
+        && builder.allocs.memory64.len() > 0
     {
         return true;
     }
-
     false
 }
 
@@ -3425,46 +3357,36 @@ fn memory_copy(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    let (src, dst) = gen_copy_src_and_dst(module, builder);
-    let src_mem = src.choose(u, &builder.allocs.memory32, &builder.allocs.memory64)?;
-    let dst_mem = dst.choose(u, &builder.allocs.memory32, &builder.allocs.memory64)?;
+    let (src_mem, dst_mem) =
+        if builder.types_on_stack(module, &[ValType::I64, ValType::I64, ValType::I64]) {
+            builder.pop_operands(module, &[ValType::I64, ValType::I64, ValType::I64]);
+            (
+                memory_index(u, builder, ValType::I64)?,
+                memory_index(u, builder, ValType::I64)?,
+            )
+        } else if builder.types_on_stack(module, &[ValType::I32, ValType::I32, ValType::I32]) {
+            builder.pop_operands(module, &[ValType::I32, ValType::I32, ValType::I32]);
+            (
+                memory_index(u, builder, ValType::I32)?,
+                memory_index(u, builder, ValType::I32)?,
+            )
+        } else if builder.types_on_stack(module, &[ValType::I64, ValType::I32, ValType::I32]) {
+            builder.pop_operands(module, &[ValType::I64, ValType::I32, ValType::I32]);
+            (
+                memory_index(u, builder, ValType::I32)?,
+                memory_index(u, builder, ValType::I64)?,
+            )
+        } else if builder.types_on_stack(module, &[ValType::I32, ValType::I64, ValType::I32]) {
+            builder.pop_operands(module, &[ValType::I32, ValType::I64, ValType::I32]);
+            (
+                memory_index(u, builder, ValType::I64)?,
+                memory_index(u, builder, ValType::I32)?,
+            )
+        } else {
+            unreachable!()
+        };
     instructions.push(Instruction::MemoryCopy { dst_mem, src_mem });
     Ok(())
-}
-
-enum CopyIndexSize {
-    I32,
-    I64,
-}
-
-impl CopyIndexSize {
-    fn choose(&self, u: &mut Unstructured<'_>, n32: &[u32], n64: &[u32]) -> Result<u32> {
-        Ok(match self {
-            CopyIndexSize::I32 => *u.choose(n32)?,
-            CopyIndexSize::I64 => *u.choose(n64)?,
-        })
-    }
-}
-
-fn gen_copy_src_and_dst(
-    module: &Module,
-    builder: &mut CodeBuilder,
-) -> (CopyIndexSize, CopyIndexSize) {
-    if builder.types_on_stack(module, &[ValType::I64, ValType::I64, ValType::I64]) {
-        builder.pop_operands(module, &[ValType::I64, ValType::I64, ValType::I64]);
-        (CopyIndexSize::I64, CopyIndexSize::I64)
-    } else if builder.types_on_stack(module, &[ValType::I32, ValType::I32, ValType::I32]) {
-        builder.pop_operands(module, &[ValType::I32, ValType::I32, ValType::I32]);
-        (CopyIndexSize::I32, CopyIndexSize::I32)
-    } else if builder.types_on_stack(module, &[ValType::I64, ValType::I32, ValType::I32]) {
-        builder.pop_operands(module, &[ValType::I64, ValType::I32, ValType::I32]);
-        (CopyIndexSize::I32, CopyIndexSize::I64)
-    } else if builder.types_on_stack(module, &[ValType::I32, ValType::I64, ValType::I32]) {
-        builder.pop_operands(module, &[ValType::I32, ValType::I64, ValType::I32]);
-        (CopyIndexSize::I64, CopyIndexSize::I32)
-    } else {
-        unreachable!()
-    }
 }
 
 #[inline]
@@ -5562,24 +5484,12 @@ fn table_fill_valid(module: &Module, builder: &mut CodeBuilder) -> bool {
     module.config.reference_types_enabled
         && module.config.bulk_memory_enabled
         && !module.config.disallow_traps // Non-trapping table fill generation not yet implemented
-        && table_fill_candidates(module, builder).next().is_some()
-}
-
-fn table_fill_candidates<'a>(
-    module: &'a Module,
-    builder: &'a CodeBuilder,
-) -> impl Iterator<Item = u32> + 'a {
-    module
-        .tables
-        .iter()
-        .enumerate()
-        .filter(move |(_, t)| {
-            builder.types_on_stack(
-                module,
-                &[t.index_type(), t.element_type.into(), t.index_type()],
-            )
+        && [ValType::EXTERNREF, ValType::FUNCREF].iter().any(|ty| {
+            builder.types_on_stack(module, &[ValType::I32, *ty, ValType::I32])
+                && module.tables.iter().any(|t| {
+                    module.val_type_is_sub_type(*ty, t.element_type.into())
+                })
         })
-        .map(|(i, _)| i as u32)
 }
 
 fn table_fill(
@@ -5588,12 +5498,14 @@ fn table_fill(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    let table = *u.choose(&table_fill_candidates(module, builder).collect::<Vec<_>>())?;
-    let ty = &module.tables[table as usize];
-    builder.pop_operands(
-        module,
-        &[ty.index_type(), ty.element_type.into(), ty.index_type()],
-    );
+    builder.pop_operands(module, &[ValType::I32]);
+    let table = match builder.pop_ref_type() {
+        Some(ty) => table_index(ty, u, module)?,
+        // Stack polymorphic, can choose any reference type we have a table for,
+        // so just choose the table directly.
+        None => u.int_in_range(0..=u32::try_from(module.tables.len()).unwrap())?,
+    };
+    builder.pop_operands(module, &[ValType::I32]);
     instructions.push(Instruction::TableFill(table));
     Ok(())
 }
@@ -5602,21 +5514,12 @@ fn table_fill(
 fn table_set_valid(module: &Module, builder: &mut CodeBuilder) -> bool {
     module.config.reference_types_enabled
     && !module.config.disallow_traps // Non-trapping table.set generation not yet implemented
-    && table_set_candidates(module, builder).next().is_some()
-}
-
-fn table_set_candidates<'a>(
-    module: &'a Module,
-    builder: &'a CodeBuilder,
-) -> impl Iterator<Item = u32> + 'a {
-    module
-        .tables
-        .iter()
-        .enumerate()
-        .filter(move |(_, t)| {
-            builder.types_on_stack(module, &[t.index_type(), t.element_type.into()])
+        && [ValType::EXTERNREF, ValType::FUNCREF].iter().any(|ty| {
+            builder.types_on_stack(module, &[ValType::I32, *ty])
+                && module.tables.iter().any(|t| {
+                    module.val_type_is_sub_type(*ty, t.element_type.into())
+                })
         })
-        .map(|(i, _)| i as u32)
 }
 
 fn table_set(
@@ -5625,29 +5528,23 @@ fn table_set(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    let table = *u.choose(&table_set_candidates(module, builder).collect::<Vec<_>>())?;
-    let ty = &module.tables[table as usize];
-    builder.pop_operands(module, &[ty.index_type(), ty.element_type.into()]);
+    let table = match builder.pop_ref_type() {
+        Some(ty) => table_index(ty, u, module)?,
+        // Stack polymorphic, can choose any reference type we have a table for,
+        // so just choose the table directly.
+        None => u.int_in_range(0..=u32::try_from(module.tables.len()).unwrap())?,
+    };
+    builder.pop_operands(module, &[ValType::I32]);
     instructions.push(Instruction::TableSet(table));
     Ok(())
 }
 
 #[inline]
 fn table_get_valid(module: &Module, builder: &mut CodeBuilder) -> bool {
-    if !module.config.reference_types_enabled {
-        return false;
-    }
-    // Non-trapping table.get generation not yet implemented
-    if module.config.disallow_traps {
-        return false;
-    }
-    if builder.type_on_stack(module, ValType::I32) && builder.allocs.table32.len() > 0 {
-        return true;
-    }
-    if builder.type_on_stack(module, ValType::I64) && builder.allocs.table64.len() > 0 {
-        return true;
-    }
-    false
+    module.config.reference_types_enabled
+    && !module.config.disallow_traps // Non-trapping table.get generation not yet implemented
+        && builder.type_on_stack(module, ValType::I32)
+        && module.tables.len() > 0
 }
 
 fn table_get(
@@ -5656,15 +5553,9 @@ fn table_get(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    let candidates = if builder.type_on_stack(module, ValType::I32) {
-        builder.pop_operands(module, &[ValType::I32]);
-        &builder.allocs.table32
-    } else {
-        builder.pop_operands(module, &[ValType::I64]);
-        &builder.allocs.table64
-    };
-    let idx = *u.choose(candidates)?;
-    let ty = module.tables[idx as usize].element_type;
+    builder.pop_operands(module, &[ValType::I32]);
+    let idx = u.int_in_range(0..=module.tables.len() - 1)?;
+    let ty = module.tables[idx].element_type;
     builder.push_operands(&[ty.into()]);
     instructions.push(Instruction::TableGet(idx as u32));
     Ok(())
@@ -5681,30 +5572,22 @@ fn table_size(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    let table = u.int_in_range(0..=module.tables.len() - 1)?;
-    let ty = &module.tables[table];
-    builder.push_operands(&[ty.index_type()]);
-    instructions.push(Instruction::TableSize(table as u32));
+    let table = u.int_in_range(0..=module.tables.len() - 1)? as u32;
+    builder.push_operands(&[ValType::I32]);
+    instructions.push(Instruction::TableSize(table));
     Ok(())
 }
 
 #[inline]
 fn table_grow_valid(module: &Module, builder: &mut CodeBuilder) -> bool {
-    module.config.reference_types_enabled && table_grow_candidates(module, builder).next().is_some()
-}
-
-fn table_grow_candidates<'a>(
-    module: &'a Module,
-    builder: &'a CodeBuilder,
-) -> impl Iterator<Item = u32> + 'a {
-    module
-        .tables
-        .iter()
-        .enumerate()
-        .filter(move |(_, t)| {
-            builder.types_on_stack(module, &[t.element_type.into(), t.index_type()])
+    module.config.reference_types_enabled
+        && [ValType::EXTERNREF, ValType::FUNCREF].iter().any(|ty| {
+            builder.types_on_stack(module, &[*ty, ValType::I32])
+                && module
+                    .tables
+                    .iter()
+                    .any(|t| module.val_type_is_sub_type(*ty, t.element_type.into()))
         })
-        .map(|(i, _)| i as u32)
 }
 
 fn table_grow(
@@ -5713,36 +5596,24 @@ fn table_grow(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    let table = *u.choose(&table_grow_candidates(module, builder).collect::<Vec<_>>())?;
-    let ty = &module.tables[table as usize];
-    builder.pop_operands(module, &[ty.element_type.into(), ty.index_type()]);
-    builder.push_operands(&[ty.index_type()]);
+    builder.pop_operands(module, &[ValType::I32]);
+    let table = match builder.pop_ref_type() {
+        Some(ty) => table_index(ty, u, module)?,
+        // Stack polymorphic, can choose any reference type we have a table for,
+        // so just choose the table directly.
+        None => u.int_in_range(0..=u32::try_from(module.tables.len()).unwrap())?,
+    };
+    builder.push_operands(&[ValType::I32]);
     instructions.push(Instruction::TableGrow(table));
     Ok(())
 }
 
 #[inline]
 fn table_copy_valid(module: &Module, builder: &mut CodeBuilder) -> bool {
-    if !module.config.bulk_memory_enabled {
-        return false;
-    }
-    // Non-trapping table.copy generation not yet implemented
-    if module.config.disallow_traps {
-        return false;
-    }
-    if builder.types_on_stack(module, &[ValType::I64, ValType::I64, ValType::I64]) {
-        return builder.allocs.table_copy_64_to_64.len() > 0;
-    }
-    if builder.types_on_stack(module, &[ValType::I32, ValType::I32, ValType::I32]) {
-        return builder.allocs.table_copy_32_to_32.len() > 0;
-    }
-    if builder.types_on_stack(module, &[ValType::I64, ValType::I32, ValType::I32]) {
-        return builder.allocs.table_copy_32_to_64.len() > 0;
-    }
-    if builder.types_on_stack(module, &[ValType::I32, ValType::I64, ValType::I32]) {
-        return builder.allocs.table_copy_64_to_32.len() > 0;
-    }
-    false
+    module.config.bulk_memory_enabled
+    && !module.config.disallow_traps // Non-trapping table.copy generation not yet implemented
+        && module.tables.len() > 0
+        && builder.types_on_stack(module, &[ValType::I32, ValType::I32, ValType::I32])
 }
 
 fn table_copy(
@@ -5751,14 +5622,9 @@ fn table_copy(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    use CopyIndexSize::*;
-
-    let (src_table, dst_table) = match gen_copy_src_and_dst(module, builder) {
-        (I32, I32) => *u.choose(&builder.allocs.table_copy_32_to_32)?,
-        (I32, I64) => *u.choose(&builder.allocs.table_copy_32_to_64)?,
-        (I64, I32) => *u.choose(&builder.allocs.table_copy_64_to_32)?,
-        (I64, I64) => *u.choose(&builder.allocs.table_copy_64_to_64)?,
-    };
+    builder.pop_operands(module, &[ValType::I32, ValType::I32, ValType::I32]);
+    let src_table = u.int_in_range(0..=module.tables.len() - 1)? as u32;
+    let dst_table = table_index(module.tables[src_table as usize].element_type, u, module)?;
     instructions.push(Instruction::TableCopy {
         src_table,
         dst_table,
@@ -5768,24 +5634,10 @@ fn table_copy(
 
 #[inline]
 fn table_init_valid(module: &Module, builder: &mut CodeBuilder) -> bool {
-    if !module.config.bulk_memory_enabled {
-        return false;
-    }
-    // Non-trapping table.init generation not yet implemented.
-    if module.config.disallow_traps {
-        return false;
-    }
-    if builder.allocs.table32_init.len() > 0
+    module.config.bulk_memory_enabled
+    && !module.config.disallow_traps // Non-trapping table.init generation not yet implemented.
+        && builder.allocs.table_init_possible
         && builder.types_on_stack(module, &[ValType::I32, ValType::I32, ValType::I32])
-    {
-        return true;
-    }
-    if builder.allocs.table64_init.len() > 0
-        && builder.types_on_stack(module, &[ValType::I64, ValType::I32, ValType::I32])
-    {
-        return true;
-    }
-    false
 }
 
 fn table_init(
@@ -5794,16 +5646,20 @@ fn table_init(
     builder: &mut CodeBuilder,
     instructions: &mut Vec<Instruction>,
 ) -> Result<()> {
-    let candidates = if builder.types_on_stack(module, &[ValType::I64, ValType::I32, ValType::I32])
-    {
-        builder.pop_operands(module, &[ValType::I64, ValType::I32, ValType::I32]);
-        &builder.allocs.table64_init
-    } else {
-        builder.pop_operands(module, &[ValType::I32, ValType::I32, ValType::I32]);
-        &builder.allocs.table32_init
-    };
-    let (elem_index, table) = *u.choose(&candidates)?;
-    instructions.push(Instruction::TableInit { elem_index, table });
+    builder.pop_operands(module, &[ValType::I32, ValType::I32, ValType::I32]);
+    let segments = module
+        .elems
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| module.tables.iter().any(|t| t.element_type == e.ty))
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
+    let segment = *u.choose(&segments)?;
+    let table = table_index(module.elems[segment].ty, u, module)?;
+    instructions.push(Instruction::TableInit {
+        elem_index: segment as u32,
+        table,
+    });
     Ok(())
 }
 
@@ -6668,6 +6524,17 @@ fn extern_convert_any(
     })));
     instructions.push(Instruction::ExternConvertAny);
     Ok(())
+}
+
+fn table_index(ty: RefType, u: &mut Unstructured, module: &Module) -> Result<u32> {
+    let tables = module
+        .tables
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| module.ref_type_is_sub_type(ty, t.element_type))
+        .map(|t| t.0 as u32)
+        .collect::<Vec<_>>();
+    Ok(*u.choose(&tables)?)
 }
 
 fn lane_index(u: &mut Unstructured, number_of_lanes: u8) -> Result<u8> {

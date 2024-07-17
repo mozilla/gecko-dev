@@ -1,4 +1,4 @@
-use crate::{encode_section, ConstExpr, Encode, RefType, Section, SectionId, ValType};
+use crate::{encode_section, ConstExpr, Encode, RefType, Section, SectionId};
 
 /// An encoder for the table section.
 ///
@@ -14,7 +14,6 @@ use crate::{encode_section, ConstExpr, Encode, RefType, Section, SectionId, ValT
 ///     element_type: RefType::FUNCREF,
 ///     minimum: 128,
 ///     maximum: None,
-///     table64: false,
 /// });
 ///
 /// let mut module = Module::new();
@@ -81,23 +80,10 @@ impl Section for TableSection {
 pub struct TableType {
     /// The table's element type.
     pub element_type: RefType,
-    /// Whether or not this is a 64-bit table.
-    pub table64: bool,
     /// Minimum size, in elements, of this table
-    pub minimum: u64,
+    pub minimum: u32,
     /// Maximum size, in elements, of this table
-    pub maximum: Option<u64>,
-}
-
-impl TableType {
-    /// Returns the type used to index this table.
-    pub fn index_type(&self) -> ValType {
-        if self.table64 {
-            ValType::I64
-        } else {
-            ValType::I32
-        }
-    }
+    pub maximum: Option<u32>,
 }
 
 impl Encode for TableType {
@@ -105,9 +91,6 @@ impl Encode for TableType {
         let mut flags = 0;
         if self.maximum.is_some() {
             flags |= 0b001;
-        }
-        if self.table64 {
-            flags |= 0b100;
         }
 
         self.element_type.encode(sink);
@@ -128,7 +111,6 @@ impl TryFrom<wasmparser::TableType> for TableType {
             element_type: table_ty.element_type.try_into()?,
             minimum: table_ty.initial,
             maximum: table_ty.maximum,
-            table64: table_ty.table64,
         })
     }
 }

@@ -1216,30 +1216,6 @@ RegI64 BaseCompiler::popIndexToInt64(IndexType indexType) {
 #endif
 }
 
-RegI32 BaseCompiler::popTableIndexToClampedInt32(IndexType indexType) {
-  if (indexType == IndexType::I32) {
-    return popI32();
-  }
-
-#ifdef ENABLE_WASM_MEMORY64
-  MOZ_ASSERT(indexType == IndexType::I64);
-  RegI64 val = popI64();
-  RegI32 clamped = narrowI64(val);
-  masm.wasmClampTable64Index(val, clamped);
-  return clamped;
-#else
-  MOZ_CRASH("got i64 table index without memory64 enabled");
-#endif
-}
-
-void BaseCompiler::replaceTableIndexWithClampedInt32(IndexType indexType) {
-  if (indexType == IndexType::I32) {
-    return;
-  }
-
-  pushI32(popTableIndexToClampedInt32(indexType));
-}
-
 #ifdef JS_CODEGEN_ARM
 // Pop an I64 as a valid register pair.
 RegI64 BaseCompiler::popI64Pair() {

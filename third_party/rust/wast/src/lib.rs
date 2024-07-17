@@ -96,7 +96,7 @@ macro_rules! custom_keyword {
         #[allow(non_camel_case_types)]
         #[allow(missing_docs)]
         #[derive(Debug, Copy, Clone)]
-        pub struct $name(#[allow(dead_code)] pub $crate::token::Span);
+        pub struct $name(pub $crate::token::Span);
 
         impl<'a> $crate::parser::Parse<'a> for $name {
             fn parse(parser: $crate::parser::Parser<'a>) -> $crate::parser::Result<Self> {
@@ -317,8 +317,8 @@ macro_rules! annotation {
         impl<'a> $crate::parser::Parse<'a> for $name {
             fn parse(parser: $crate::parser::Parser<'a>) -> $crate::parser::Result<Self> {
                 parser.step(|c| {
-                    if let Some((a, rest)) = c.annotation()? {
-                        if a == $annotation {
+                    if let Some((a, rest)) = c.reserved()? {
+                        if a == concat!("@", $annotation) {
                             return Ok(($name(c.cur_span()), rest));
                         }
                     }
@@ -329,8 +329,8 @@ macro_rules! annotation {
 
         impl $crate::parser::Peek for $name {
             fn peek(cursor: $crate::parser::Cursor<'_>) -> $crate::parser::Result<bool> {
-                Ok(if let Some((a, _rest)) = cursor.annotation()? {
-                    a == $annotation
+                Ok(if let Some((a, _rest)) = cursor.reserved()? {
+                    a == concat!("@", $annotation)
                 } else {
                     false
                 })
@@ -347,16 +347,12 @@ pub mod lexer;
 pub mod parser;
 pub mod token;
 
-#[cfg(feature = "wasm-module")]
 mod encode;
 mod error;
-#[cfg(feature = "wasm-module")]
 mod gensym;
-#[cfg(feature = "wasm-module")]
 mod names;
 pub use self::error::*;
 
-#[cfg(feature = "wasm-module")]
 macro_rules! id {
     ($($t:tt)*) => ($($t)*)
 }

@@ -51,7 +51,7 @@ if (typeof assertNoWarning === 'undefined') {
 }
 
 if (typeof assertErrorMessage === 'undefined') {
-    var assertErrorMessage = function assertErrorMessage(f, ctor, test, message) {
+    var assertErrorMessage = function assertErrorMessage(f, ctor, test) {
         try {
             f();
         } catch (e) {
@@ -60,17 +60,17 @@ if (typeof assertErrorMessage === 'undefined') {
             if (e === "out of memory")
                 throw e;
             if (!(e instanceof ctor))
-                throw new Error("Assertion failed: expected exception " + ctor.name + ", got " + e + (message ? `: ${message}` : ""));
+                throw new Error("Assertion failed: expected exception " + ctor.name + ", got " + e);
             if (typeof test == "string") {
                 if (test != e.message)
-                    throw new Error("Assertion failed: expected " + test + ", got " + e.message + (message ? `: ${message}` : ""));
+                    throw new Error("Assertion failed: expected " + test + ", got " + e.message);
             } else {
                 if (!test.test(e.message))
-                    throw new Error("Assertion failed: expected " + test.toString() + ", got " + e.message + (message ? `: ${message}` : ""));
+                    throw new Error("Assertion failed: expected " + test.toString() + ", got " + e.message);
             }
             return;
         }
-        throw new Error("Assertion failed: expected exception " + ctor.name + ", no exception thrown" + (message ? `: ${message}` : ""));
+        throw new Error("Assertion failed: expected exception " + ctor.name + ", no exception thrown");
     };
 }
 

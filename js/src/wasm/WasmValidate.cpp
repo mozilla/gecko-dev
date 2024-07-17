@@ -1934,7 +1934,7 @@ static bool DecodeLimits(Decoder& d, LimitsKind kind, Limits* limits) {
                    uint32_t(flags & ~uint8_t(mask)));
   }
 
-  // Memory limits may be shared
+  // Memory limits may be shared or specify an alternate index type
   if (kind == LimitsKind::Memory) {
     if ((flags & uint8_t(LimitsFlags::IsShared)) &&
         !(flags & uint8_t(LimitsFlags::HasMaximum))) {
@@ -1944,19 +1944,20 @@ static bool DecodeLimits(Decoder& d, LimitsKind kind, Limits* limits) {
     limits->shared = (flags & uint8_t(LimitsFlags::IsShared))
                          ? Shareable::True
                          : Shareable::False;
-  } else {
-    limits->shared = Shareable::False;
-  }
 
 #ifdef ENABLE_WASM_MEMORY64
-  limits->indexType =
-      (flags & uint8_t(LimitsFlags::IsI64)) ? IndexType::I64 : IndexType::I32;
+    limits->indexType =
+        (flags & uint8_t(LimitsFlags::IsI64)) ? IndexType::I64 : IndexType::I32;
 #else
-  limits->indexType = IndexType::I32;
-  if (flags & uint8_t(LimitsFlags::IsI64)) {
-    return d.fail("i64 is not supported for memory or table limits");
-  }
+    limits->indexType = IndexType::I32;
+    if (flags & uint8_t(LimitsFlags::IsI64)) {
+      return d.fail("i64 is not supported for memory limits");
+    }
 #endif
+  } else {
+    limits->shared = Shareable::False;
+    limits->indexType = IndexType::I32;
+  }
 
   uint64_t initial;
   if (!DecodeLimitBound(d, limits->indexType, &initial)) {
@@ -1972,10 +1973,9 @@ static bool DecodeLimits(Decoder& d, LimitsKind kind, Limits* limits) {
 
     if (limits->initial > maximum) {
       return d.failf(
-          "%s size minimum must not be greater than maximum; "
+          "memory size minimum must not be greater than maximum; "
           "maximum length %" PRIu64 " is less than initial length %" PRIu64,
-          kind == LimitsKind::Memory ? "memory" : "table", maximum,
-          limits->initial);
+          maximum, limits->initial);
     }
 
     limits->maximum.emplace(maximum);
@@ -2009,9 +2009,8 @@ static bool DecodeTableTypeAndLimits(Decoder& d, CodeMetadata* codeMeta) {
     return false;
   }
 
-  if (limits.indexType == IndexType::I64 && !codeMeta->memory64Enabled()) {
-    return d.fail("memory64 is disabled");
-  }
+  // Decoding limits for a table only supports i32
+  MOZ_ASSERT(limits.indexType == IndexType::I32);
 
   // If there's a maximum, check it is in range.  The check to exclude
   // initial > maximum is carried out by the DecodeLimits call above, so
@@ -2028,6 +2027,12 @@ static bool DecodeTableTypeAndLimits(Decoder& d, CodeMetadata* codeMeta) {
 
   // The rest of the runtime expects table limits to be within a 32-bit range.
   static_assert(MaxTableLimitField <= UINT32_MAX, "invariant");
+  uint32_t initialLength = uint32_t(limits.initial);
+  Maybe<uint32_t> maximumLength;
+  if (limits.maximum) {
+    maximumLength = Some(uint32_t(*limits.maximum));
+  }
+
   Maybe<InitExpr> initExpr;
   if (initExprPresent) {
     InitExpr initializer;
@@ -2042,8 +2047,8 @@ static bool DecodeTableTypeAndLimits(Decoder& d, CodeMetadata* codeMeta) {
     }
   }
 
-  return codeMeta->tables.emplaceBack(limits, tableElemType,
-                                      std::move(initExpr),
+  return codeMeta->tables.emplaceBack(tableElemType, initialLength,
+                                      maximumLength, std::move(initExpr),
                                       /* isAsmJS */ false);
 }
 
@@ -2707,9 +2712,7 @@ static bool DecodeElemSegment(Decoder& d, CodeMetadata* codeMeta,
     seg.tableIndex = tableIndex;
 
     InitExpr offset;
-    if (!InitExpr::decodeAndValidate(
-            d, codeMeta, ToValType(codeMeta->tables[tableIndex].indexType()),
-            &offset)) {
+    if (!InitExpr::decodeAndValidate(d, codeMeta, ValType::I32, &offset)) {
       return false;
     }
     seg.offsetIfActive.emplace(std::move(offset));

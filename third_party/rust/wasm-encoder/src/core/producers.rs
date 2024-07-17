@@ -121,7 +121,7 @@ mod test {
     #[test]
     fn roundtrip_example() {
         use crate::{Module, ProducersField, ProducersSection};
-        use wasmparser::{KnownCustom, Parser, Payload};
+        use wasmparser::{Parser, Payload, ProducersSectionReader};
 
         // Create a new producers section.
         let mut field = ProducersField::new();
@@ -151,10 +151,9 @@ mod test {
         match payload {
             Payload::CustomSection(c) => {
                 assert_eq!(c.name(), "producers");
-                let mut section = match c.as_known() {
-                    KnownCustom::Producers(s) => s.into_iter(),
-                    _ => panic!("unknown custom section"),
-                };
+                let mut section = ProducersSectionReader::new(c.data(), c.data_offset())
+                    .expect("readable as a producers section")
+                    .into_iter();
                 let field = section
                     .next()
                     .expect("section has an element")

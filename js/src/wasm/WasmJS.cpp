@@ -600,34 +600,36 @@ static bool GetLimits(JSContext* cx, HandleObject obj, LimitsKind kind,
                       Limits* limits) {
   limits->indexType = IndexType::I32;
 
-  // Limits may specify an alternate index type, and we need this to check the
-  // ranges for initial and maximum, so look for the index type first.
+  // Memory limits may specify an alternate index type, and we need this to
+  // check the ranges for initial and maximum, so look for the index type first.
+  if (kind == LimitsKind::Memory) {
 #ifdef ENABLE_WASM_MEMORY64
-  // Get the index type field
-  JSAtom* indexTypeAtom = Atomize(cx, "index", strlen("index"));
-  if (!indexTypeAtom) {
-    return false;
-  }
-  RootedId indexTypeId(cx, AtomToId(indexTypeAtom));
+    // Get the index type field
+    JSAtom* indexTypeAtom = Atomize(cx, "index", strlen("index"));
+    if (!indexTypeAtom) {
+      return false;
+    }
+    RootedId indexTypeId(cx, AtomToId(indexTypeAtom));
 
-  RootedValue indexTypeVal(cx);
-  if (!GetProperty(cx, obj, obj, indexTypeId, &indexTypeVal)) {
-    return false;
-  }
-
-  // The index type has a default value
-  if (!indexTypeVal.isUndefined()) {
-    if (!ToIndexType(cx, indexTypeVal, &limits->indexType)) {
+    RootedValue indexTypeVal(cx);
+    if (!GetProperty(cx, obj, obj, indexTypeId, &indexTypeVal)) {
       return false;
     }
 
-    if (limits->indexType == IndexType::I64 && !Memory64Available(cx)) {
-      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                JSMSG_WASM_NO_MEM64_LINK);
-      return false;
+    // The index type has a default value
+    if (!indexTypeVal.isUndefined()) {
+      if (!ToIndexType(cx, indexTypeVal, &limits->indexType)) {
+        return false;
+      }
+
+      if (limits->indexType == IndexType::I64 && !Memory64Available(cx)) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_WASM_NO_MEM64_LINK);
+        return false;
+      }
     }
-  }
 #endif
+  }
 
   const char* noun = (kind == LimitsKind::Memory ? "Memory" : "Table");
   // 2^48 is a valid value, so the range goes to 49 bits.  Values above 2^48 are
@@ -796,12 +798,6 @@ static JSString* TypeToString(JSContext* cx, T type) {
       cx, JS::ConstUTF8CharsZ(chars.get(), strlen(chars.get())));
 }
 
-#  ifdef ENABLE_WASM_MEMORY64
-static JSString* IndexTypeToString(JSContext* cx, IndexType type) {
-  return JS_NewStringCopyZ(cx, ToString(type));
-}
-#  endif
-
 [[nodiscard]] static JSObject* ValTypesToArray(JSContext* cx,
                                                const ValTypeVector& valTypes) {
   Rooted<ArrayObject*> arrayObj(cx, NewDenseEmptyArray(cx));
@@ -841,9 +837,8 @@ static JSObject* FuncTypeToObject(JSContext* cx, const FuncType& type) {
   return NewPlainObjectWithUniqueNames(cx, props);
 }
 
-static JSObject* TableTypeToObject(JSContext* cx, IndexType indexType,
-                                   RefType type, uint32_t initial,
-                                   Maybe<uint32_t> maximum) {
+static JSObject* TableTypeToObject(JSContext* cx, RefType type,
+                                   uint32_t initial, Maybe<uint32_t> maximum) {
   Rooted<IdValueVector> props(cx, IdValueVector(cx));
 
   RootedString elementType(cx, TypeToString(cx, type));
@@ -866,18 +861,6 @@ static JSObject* TableTypeToObject(JSContext* cx, IndexType indexType,
     ReportOutOfMemory(cx);
     return nullptr;
   }
-
-#  ifdef ENABLE_WASM_MEMORY64
-  RootedString it(cx, IndexTypeToString(cx, indexType));
-  if (!it) {
-    return nullptr;
-  }
-  if (!props.append(
-          IdValuePair(NameToId(cx->names().index), StringValue(it)))) {
-    ReportOutOfMemory(cx);
-    return nullptr;
-  }
-#  endif
 
   return NewPlainObjectWithUniqueNames(cx, props);
 }
@@ -915,7 +898,8 @@ static JSObject* MemoryTypeToObject(JSContext* cx, bool shared,
   }
 
 #  ifdef ENABLE_WASM_MEMORY64
-  RootedString it(cx, IndexTypeToString(cx, indexType));
+  RootedString it(
+      cx, JS_NewStringCopyZ(cx, indexType == IndexType::I32 ? "i32" : "i64"));
   if (!it) {
     return nullptr;
   }
@@ -1193,9 +1177,8 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
       case DefinitionKind::Table: {
         size_t tableIndex = numTableImport++;
         const TableDesc& table = codeMeta.tables[tableIndex];
-        typeObj =
-            TableTypeToObject(cx, table.indexType(), table.elemType,
-                              table.initialLength(), table.maximumLength());
+        typeObj = TableTypeToObject(cx, table.elemType, table.initialLength,
+                                    table.maximumLength);
         break;
       }
       case DefinitionKind::Memory: {
@@ -1300,9 +1283,8 @@ bool WasmModuleObject::exports(JSContext* cx, unsigned argc, Value* vp) {
       }
       case DefinitionKind::Table: {
         const TableDesc& table = codeMeta.tables[exp.tableIndex()];
-        typeObj =
-            TableTypeToObject(cx, table.indexType(), table.elemType,
-                              table.initialLength(), table.maximumLength());
+        typeObj = TableTypeToObject(cx, table.elemType, table.initialLength,
+                                    table.maximumLength);
         break;
       }
       case DefinitionKind::Memory: {
@@ -2845,13 +2827,14 @@ void WasmTableObject::trace(JSTracer* trc, JSObject* obj) {
 // value is omitted. An implementation of [1].
 //
 // [1]
-// https://webassembly.github.io/spec/js-api/#defaultvalue
-static Value RefTypeDefaultValue(wasm::RefType tableType) {
+// https://webassembly.github.io/reference-types/js-api/index.html#defaultvalue
+static Value RefTypeDefautValue(wasm::RefType tableType) {
   return tableType.isExtern() ? UndefinedValue() : NullValue();
 }
 
 /* static */
-WasmTableObject* WasmTableObject::create(JSContext* cx, Limits limits,
+WasmTableObject* WasmTableObject::create(JSContext* cx, uint32_t initialLength,
+                                         Maybe<uint32_t> maximumLength,
                                          wasm::RefType tableType,
                                          HandleObject proto) {
   AutoSetNewObjectMetadata metadata(cx);
@@ -2863,7 +2846,7 @@ WasmTableObject* WasmTableObject::create(JSContext* cx, Limits limits,
 
   MOZ_ASSERT(obj->isNewborn());
 
-  TableDesc td(limits, tableType, Nothing(),
+  TableDesc td(tableType, initialLength, maximumLength, Nothing(),
                /*isAsmJS*/ false,
                /*isImported=*/true, /*isExported=*/true);
 
@@ -2922,6 +2905,9 @@ bool WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  // Converting limits for a table only supports i32
+  MOZ_ASSERT(limits.indexType == IndexType::I32);
+
   if (limits.initial > MaxTableLength) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                              JSMSG_WASM_TABLE_IMP_LIMIT);
@@ -2937,32 +2923,39 @@ bool WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 
   // The rest of the runtime expects table limits to be within a 32-bit range.
   static_assert(MaxTableLimitField <= UINT32_MAX, "invariant");
+  uint32_t initialLength = uint32_t(limits.initial);
+  Maybe<uint32_t> maximumLength;
+  if (limits.maximum) {
+    maximumLength = Some(uint32_t(*limits.maximum));
+  }
+
   Rooted<WasmTableObject*> table(
-      cx, WasmTableObject::create(cx, limits, tableType, proto));
+      cx, WasmTableObject::create(cx, initialLength, maximumLength, tableType,
+                                  proto));
   if (!table) {
     return false;
   }
 
   // Initialize the table to a default value
   RootedValue initValue(
-      cx, args.length() < 2 ? RefTypeDefaultValue(tableType) : args[1]);
-  if (!CheckRefType(cx, tableType, initValue)) {
+      cx, args.length() < 2 ? RefTypeDefautValue(tableType) : args[1]);
+  if (!wasm::CheckRefType(cx, tableType, initValue)) {
     return false;
   }
 
   // Skip initializing the table if the fill value is null, as that is the
   // default value.
   if (!initValue.isNull() &&
-      !table->fillRange(cx, 0, limits.initial, initValue)) {
+      !table->fillRange(cx, 0, initialLength, initValue)) {
     return false;
   }
 #ifdef DEBUG
   // Assert that null is the default value of a new table.
   if (initValue.isNull()) {
-    table->table().assertRangeNull(0, limits.initial);
+    table->table().assertRangeNull(0, initialLength);
   }
   if (!tableType.isNullable()) {
-    table->table().assertRangeNotNull(0, limits.initial);
+    table->table().assertRangeNotNull(0, initialLength);
   }
 #endif
 
@@ -2992,32 +2985,13 @@ const JSPropertySpec WasmTableObject::properties[] = {
     JS_STRING_SYM_PS(toStringTag, "WebAssembly.Table", JSPROP_READONLY),
     JS_PS_END};
 
-static bool ToTableIndexOrDelta(JSContext* cx, HandleValue v,
-                                const Table& table, const char* noun,
-                                uint32_t* index, bool isIndex) {
-  switch (table.indexType()) {
-    case IndexType::I32: {
-      if (!EnforceRangeU32(cx, v, "Table", noun, index)) {
-        return false;
-      }
-    } break;
-    case IndexType::I64: {
-      uint64_t index64;
-      if (!EnforceRangeU64(cx, v, "Table", noun, &index64)) {
-        return false;
-      }
-
-      // Since our runtime limits for table length are always less than
-      // UINT32_MAX, clamping i64 values to UINT32_MAX will always trigger
-      // bounds checks. See MacroAssembler::wasmClampTable64Index and its uses.
-      static_assert(MaxTableLength < UINT32_MAX);
-      *index = index64 > UINT32_MAX ? UINT32_MAX : uint32_t(index64);
-    } break;
-    default:
-      MOZ_CRASH("unknown index type");
+static bool ToTableIndex(JSContext* cx, HandleValue v, const Table& table,
+                         const char* noun, uint32_t* index) {
+  if (!EnforceRangeU32(cx, v, "Table", noun, index)) {
+    return false;
   }
 
-  if (isIndex && *index >= table.length()) {
+  if (*index >= table.length()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_WASM_BAD_RANGE, "Table", noun);
     return false;
@@ -3030,9 +3004,8 @@ static bool ToTableIndexOrDelta(JSContext* cx, HandleValue v,
 /* static */
 bool WasmTableObject::typeImpl(JSContext* cx, const CallArgs& args) {
   Table& table = args.thisv().toObject().as<WasmTableObject>().table();
-  RootedObject typeObj(
-      cx, TableTypeToObject(cx, table.indexType(), table.elemType(),
-                            table.length(), table.maximum()));
+  RootedObject typeObj(cx, TableTypeToObject(cx, table.elemType(),
+                                             table.length(), table.maximum()));
   if (!typeObj) {
     return false;
   }
@@ -3058,7 +3031,7 @@ bool WasmTableObject::getImpl(JSContext* cx, const CallArgs& args) {
   }
 
   uint32_t index;
-  if (!ToTableIndexOrDelta(cx, args.get(0), table, "get index", &index, true)) {
+  if (!ToTableIndex(cx, args.get(0), table, "get index", &index)) {
     return false;
   }
 
@@ -3082,12 +3055,12 @@ bool WasmTableObject::setImpl(JSContext* cx, const CallArgs& args) {
   }
 
   uint32_t index;
-  if (!ToTableIndexOrDelta(cx, args.get(0), table, "set index", &index, true)) {
+  if (!ToTableIndex(cx, args.get(0), table, "set index", &index)) {
     return false;
   }
 
   RootedValue fillValue(
-      cx, args.length() < 2 ? RefTypeDefaultValue(table.elemType()) : args[1]);
+      cx, args.length() < 2 ? RefTypeDefautValue(table.elemType()) : args[1]);
   if (!tableObj->fillRange(cx, index, 1, fillValue)) {
     return false;
   }
@@ -3113,14 +3086,13 @@ bool WasmTableObject::growImpl(JSContext* cx, const CallArgs& args) {
   }
 
   uint32_t delta;
-  if (!ToTableIndexOrDelta(cx, args.get(0), table, "grow delta", &delta,
-                           false)) {
+  if (!EnforceRangeU32(cx, args.get(0), "Table", "grow delta", &delta)) {
     return false;
   }
 
   RootedValue fillValue(
-      cx, args.length() < 2 ? RefTypeDefaultValue(table.elemType()) : args[1]);
-  if (!CheckRefType(cx, table.elemType(), fillValue)) {
+      cx, args.length() < 2 ? RefTypeDefautValue(table.elemType()) : args[1]);
+  if (!wasm::CheckRefType(cx, table.elemType(), fillValue)) {
     return false;
   }
 
@@ -3341,7 +3313,7 @@ bool WasmGlobalObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   // Override with non-undefined value, if provided.
   RootedValue valueVal(cx);
   if (globalType.isRefType()) {
-    valueVal.set(args.length() < 2 ? RefTypeDefaultValue(globalType.refType())
+    valueVal.set(args.length() < 2 ? RefTypeDefautValue(globalType.refType())
                                    : args[1]);
     if (!Val::fromJSValue(cx, globalType, valueVal, &globalVal)) {
       return false;

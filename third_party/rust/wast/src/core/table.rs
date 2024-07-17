@@ -41,8 +41,6 @@ pub enum TableKind<'a> {
     Inline {
         /// The element type of this table.
         elem: RefType<'a>,
-        /// Whether or not this will be creating a 64-bit table
-        is64: bool,
         /// The element table entries to have, and the length of this list is
         /// the limits of the table as well.
         payload: ElemPayload<'a>,
@@ -62,14 +60,7 @@ impl<'a> Parse<'a> for Table<'a> {
         //  * `(import "a" "b") limits`
         //  * `limits`
         let mut l = parser.lookahead1();
-
-        let has_index_type = l.peek::<kw::i32>()? | l.peek::<kw::i64>()?;
-        let kind = if l.peek::<RefType>()? || (has_index_type && parser.peek2::<RefType>()?) {
-            let is64 = if parser.parse::<Option<kw::i32>>()?.is_some() {
-                false
-            } else {
-                parser.parse::<Option<kw::i64>>()?.is_some()
-            };
+        let kind = if l.peek::<RefType>()? {
             let elem = parser.parse()?;
             let payload = parser.parens(|p| {
                 p.parse::<kw::elem>()?;
@@ -79,12 +70,8 @@ impl<'a> Parse<'a> for Table<'a> {
                     ElemPayload::parse_indices(p, Some(elem))
                 }
             })?;
-            TableKind::Inline {
-                elem,
-                is64,
-                payload,
-            }
-        } else if has_index_type || l.peek::<u64>()? {
+            TableKind::Inline { elem, payload }
+        } else if l.peek::<u32>()? {
             TableKind::Normal {
                 ty: parser.parse()?,
                 init_expr: if !parser.is_empty() {

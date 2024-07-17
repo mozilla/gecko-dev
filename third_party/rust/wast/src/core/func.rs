@@ -81,7 +81,7 @@ impl<'a> Parse<'a> for Func<'a> {
 ///
 /// Each local has an optional identifier for name resolution, an optional name
 /// for the custom `name` section, and a value type.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Local<'a> {
     /// An identifier that this local is resolved with (optionally) for name
     /// resolution.

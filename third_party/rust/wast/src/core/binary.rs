@@ -449,44 +449,69 @@ impl Encode for Index<'_> {
 impl<'a> Encode for TableType<'a> {
     fn encode(&self, e: &mut Vec<u8>) {
         self.elem.encode(e);
+        self.limits.encode(e);
+    }
+}
 
-        let mut flags = 0;
-        if self.limits.max.is_some() {
-            flags |= 1 << 0;
-        }
-        if self.limits.is64 {
-            flags |= 1 << 2;
-        }
-        e.push(flags);
-        self.limits.min.encode(e);
-        if let Some(max) = self.limits.max {
-            max.encode(e);
+impl Encode for Limits {
+    fn encode(&self, e: &mut Vec<u8>) {
+        match self.max {
+            Some(max) => {
+                e.push(0x01);
+                self.min.encode(e);
+                max.encode(e);
+            }
+            None => {
+                e.push(0x00);
+                self.min.encode(e);
+            }
         }
     }
 }
 
 impl Encode for MemoryType {
     fn encode(&self, e: &mut Vec<u8>) {
-        let mut flags = 0;
-        if self.limits.max.is_some() {
-            flags |= 1 << 0;
-        }
-        if self.shared {
-            flags |= 1 << 1;
-        }
-        if self.limits.is64 {
-            flags |= 1 << 2;
-        }
-        if self.page_size_log2.is_some() {
-            flags |= 1 << 3;
-        }
-        e.push(flags);
-        self.limits.min.encode(e);
-        if let Some(max) = self.limits.max {
-            max.encode(e);
-        }
-        if let Some(p) = self.page_size_log2 {
-            p.encode(e);
+        match self {
+            MemoryType::B32 {
+                limits,
+                shared,
+                page_size_log2,
+            } => {
+                let flag_max = limits.max.is_some() as u8;
+                let flag_shared = *shared as u8;
+                let flag_page_size = page_size_log2.is_some() as u8;
+                let flags = flag_max | (flag_shared << 1) | (flag_page_size << 3);
+                e.push(flags);
+                limits.min.encode(e);
+                if let Some(max) = limits.max {
+                    max.encode(e);
+                }
+                if let Some(p) = page_size_log2 {
+                    p.encode(e);
+                }
+            }
+            MemoryType::B64 {
+                limits,
+                shared,
+                page_size_log2,
+            } => {
+                let flag_max = limits.max.is_some();
+                let flag_shared = *shared;
+                let flag_mem64 = true;
+                let flag_page_size = page_size_log2.is_some();
+                let flags = ((flag_max as u8) << 0)
+                    | ((flag_shared as u8) << 1)
+                    | ((flag_mem64 as u8) << 2)
+                    | ((flag_page_size as u8) << 3);
+                e.push(flags);
+                limits.min.encode(e);
+                if let Some(max) = limits.max {
+                    max.encode(e);
+                }
+                if let Some(p) = page_size_log2 {
+                    p.encode(e);
+                }
+            }
         }
     }
 }
@@ -886,7 +911,6 @@ struct Names<'a> {
     data_idx: u32,
     elems: Vec<(u32, &'a str)>,
     elem_idx: u32,
-    fields: Vec<(u32, Vec<(u32, &'a str)>)>,
 }
 
 fn find_names<'a>(
@@ -1021,24 +1045,6 @@ fn find_names<'a>(
             }
         }
 
-        // Handle struct fields separately from above
-        if let ModuleField::Type(ty) = field {
-            let mut field_names = vec![];
-            match &ty.def {
-                TypeDef::Func(_) | TypeDef::Array(_) => {}
-                TypeDef::Struct(ty_struct) => {
-                    for (idx, field) in ty_struct.fields.iter().enumerate() {
-                        if let Some(name) = get_name(&field.id, &None) {
-                            field_names.push((idx as u32, name))
-                        }
-                    }
-                }
-            }
-            if field_names.len() > 0 {
-                ret.fields.push((*idx, field_names))
-            }
-        }
-
         *idx += 1;
     }
 
@@ -1055,9 +1061,8 @@ impl Names<'_> {
             && self.memories.is_empty()
             && self.tables.is_empty()
             && self.types.is_empty()
-            && self.elems.is_empty()
             && self.data.is_empty()
-            && self.fields.is_empty()
+            && self.elems.is_empty()
             && self.tags.is_empty()
         // NB: specifically don't check modules/instances since they're
         // not encoded for now.
@@ -1113,10 +1118,6 @@ impl Encode for Names<'_> {
         if self.data.len() > 0 {
             self.data.encode(&mut tmp);
             subsec(9, &mut tmp);
-        }
-        if self.fields.len() > 0 {
-            self.fields.encode(&mut tmp);
-            subsec(10, &mut tmp);
         }
         if self.tags.len() > 0 {
             self.tags.encode(&mut tmp);

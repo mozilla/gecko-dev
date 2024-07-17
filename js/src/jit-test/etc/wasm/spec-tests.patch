@@ -78,58 +78,6 @@ diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory_trap64.wast.js b/js
 +        value("i64", 7523094288207667809n),
 +    ]);
 +}
-diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js b/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js
---- a/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js
-@@ -33,14 +33,16 @@ let $4 = instantiate(`(module (memory 1 256))`);
- // ./test/core/memory.wast:8
- let $5 = instantiate(`(module (memory 0 65536))`);
- 
--// ./test/core/memory.wast:10
--assert_invalid(() => instantiate(`(module (memory 0) (memory 0))`), `multiple memories`);
-+if (!wasmMultiMemoryEnabled()) {
-+  // ./test/core/memory.wast:10
-+  assert_invalid(() => instantiate(`(module (memory 0) (memory 0))`), `multiple memories`);
- 
--// ./test/core/memory.wast:11
--assert_invalid(
--  () => instantiate(`(module (memory (import "spectest" "memory") 0) (memory 0))`),
--  `multiple memories`,
--);
-+  // ./test/core/memory.wast:11
-+  assert_invalid(
-+    () => instantiate(`(module (memory (import "spectest" "memory") 0) (memory 0))`),
-+    `multiple memories`,
-+  );
-+}
- 
- // ./test/core/memory.wast:13
- let $6 = instantiate(`(module (memory (data)) (func (export "memsize") (result i32) (memory.size)))`);
-@@ -147,24 +149,6 @@ assert_invalid(
-   `memory size must be at most 65536 pages (4GiB)`,
- );
- 
--// ./test/core/memory.wast:79
--assert_invalid(
--  () => instantiate(`(memory 0x1_0000_0000) `),
--  `memory size must be at most 65536 pages (4GiB)`,
--);
--
--// ./test/core/memory.wast:83
--assert_invalid(
--  () => instantiate(`(memory 0x1_0000_0000 0x1_0000_0000) `),
--  `memory size must be at most 65536 pages (4GiB)`,
--);
--
--// ./test/core/memory.wast:87
--assert_invalid(
--  () => instantiate(`(memory 0 0x1_0000_0000) `),
--  `memory size must be at most 65536 pages (4GiB)`,
--);
--
- // ./test/core/memory.wast:92
- let $9 = instantiate(`(module
-   (memory 1)
 diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js b/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js
 --- a/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js
 +++ b/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js
@@ -137,25 +85,25 @@ diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js b/js/src/
  // ./test/core/memory64.wast:6
  let $3 = instantiate(`(module (memory i64 0 65536))`);
  
--// ./test/core/memory64.wast:9
+-// ./test/core/memory64.wast:8
 -assert_invalid(
 -  () => instantiate(`(module (memory i64 0) (memory i64 0))`),
 -  `multiple memories`,
 -);
 -
--// ./test/core/memory64.wast:10
+-// ./test/core/memory64.wast:9
 -assert_invalid(
 -  () => instantiate(`(module (memory (import "spectest" "memory") i64 0) (memory i64 0))`),
 -  `multiple memories`,
 -);
 +if (!wasmMultiMemoryEnabled()) {
-+  // ./test/core/memory64.wast:9
++  // ./test/core/memory64.wast:8
 +  assert_invalid(
 +    () => instantiate(`(module (memory i64 0) (memory i64 0))`),
 +    `multiple memories`,
 +  );
 +
-+  // ./test/core/memory64.wast:10
++  // ./test/core/memory64.wast:9
 +  assert_invalid(
 +    () => instantiate(`(module (memory (import "spectest" "memory") i64 0) (memory i64 0))`),
 +    `multiple memories`,
@@ -164,15 +112,6 @@ diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js b/js/src/
  
  // ./test/core/memory64.wast:11
  let $4 = instantiate(`(module (memory i64 (data)) (func (export "memsize") (result i64) (memory.size)))`);
-diff --git a/js/src/jit-test/tests/wasm/spec/memory64/simd_address.wast.js b/js/src/jit-test/tests/wasm/spec/memory64/simd_address.wast.js
---- a/js/src/jit-test/tests/wasm/spec/memory64/simd_address.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/memory64/simd_address.wast.js
-@@ -1,3 +1,5 @@
-+// |jit-test| skip-if: !wasmSimdEnabled()
-+
- /* Copyright 2021 Mozilla Foundation
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
 diff --git a/js/src/jit-test/tests/wasm/spec/multi-memory/simd_load.wast.js b/js/src/jit-test/tests/wasm/spec/multi-memory/simd_load.wast.js
 --- a/js/src/jit-test/tests/wasm/spec/multi-memory/simd_load.wast.js
 +++ b/js/src/jit-test/tests/wasm/spec/multi-memory/simd_load.wast.js

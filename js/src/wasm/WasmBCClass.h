@@ -772,14 +772,6 @@ struct BaseCompiler final {
   // Pop an I32 or I64 as an I64. The value is zero extended out to 64-bits.
   inline RegI64 popIndexToInt64(IndexType indexType);
 
-  // Pop an I32 or I64 as an I32. The value is clamped to UINT32_MAX to ensure
-  // that it trips bounds checks.
-  inline RegI32 popTableIndexToClampedInt32(IndexType indexType);
-
-  // A combined push/pop that replaces an I32 or I64 on the stack with a clamped
-  // I32, which will trip bounds checks if out of I32 range.
-  inline void replaceTableIndexWithClampedInt32(IndexType indexType);
-
   // Pop the stack until it has the desired size, but do not move the physical
   // stack pointer.
   inline void popValueStackTo(uint32_t stackSize);

@@ -404,7 +404,7 @@ define_config! {
 
         /// The maximum, elements, of any table's initial or maximum
         /// size. Defaults to 1 million.
-        pub max_table_elements: u64 = 1_000_000,
+        pub max_table_elements: u32 = 1_000_000,
 
         /// The maximum number of tables to use. Defaults to 1.
         ///

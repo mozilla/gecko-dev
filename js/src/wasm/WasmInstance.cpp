@@ -925,13 +925,9 @@ bool Instance::initSegments(JSContext* cx,
       if (!seg.offset().evaluate(cx, instanceObj, &offsetVal)) {
         return false;  // OOM
       }
+      uint32_t offset = offsetVal.get().i32();
 
-      const wasm::Table* table = tables()[seg.tableIndex];
-      uint64_t offset = table->indexType() == IndexType::I32
-                            ? offsetVal.get().i32()
-                            : offsetVal.get().i64();
-
-      uint64_t tableLength = table->length();
+      uint32_t tableLength = tables()[seg.tableIndex]->length();
       if (offset > tableLength || tableLength - offset < seg.numElements()) {
         JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                  JSMSG_WASM_OUT_OF_BOUNDS);

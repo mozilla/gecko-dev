@@ -2669,8 +2669,7 @@ inline bool OpIter<Policy>::readCallIndirect(uint32_t* funcTypeIndex,
     return fail("indirect calls must go through a table of 'funcref'");
   }
 
-  if (!popWithType(ToValType(codeMeta_.tables[*tableIndex].indexType()),
-                   callee)) {
+  if (!popWithType(ValType::I32, callee)) {
     return false;
   }
 
@@ -2717,8 +2716,7 @@ inline bool OpIter<Policy>::readReturnCallIndirect(uint32_t* funcTypeIndex,
     return fail("indirect calls must go through a table of 'funcref'");
   }
 
-  if (!popWithType(ToValType(codeMeta_.tables[*tableIndex].indexType()),
-                   callee)) {
+  if (!popWithType(ValType::I32, callee)) {
     return false;
   }
 
@@ -3031,14 +3029,13 @@ inline bool OpIter<Policy>::readMemOrTableCopy(bool isMem,
   if (isMem) {
     dstPtrType = ToValType(codeMeta_.memories[*dstMemOrTableIndex].indexType());
     srcPtrType = ToValType(codeMeta_.memories[*srcMemOrTableIndex].indexType());
+    if (dstPtrType == ValType::I64 && srcPtrType == ValType::I64) {
+      lenType = ValType::I64;
+    } else {
+      lenType = ValType::I32;
+    }
   } else {
-    dstPtrType = ToValType(codeMeta_.tables[*dstMemOrTableIndex].indexType());
-    srcPtrType = ToValType(codeMeta_.tables[*srcMemOrTableIndex].indexType());
-  }
-  if (dstPtrType == ValType::I64 && srcPtrType == ValType::I64) {
-    lenType = ValType::I64;
-  } else {
-    lenType = ValType::I32;
+    dstPtrType = srcPtrType = lenType = ValType::I32;
   }
 
   if (!popWithType(lenType, len)) {
@@ -3157,7 +3154,7 @@ inline bool OpIter<Policy>::readMemOrTableInit(bool isMem, uint32_t* segIndex,
 
   ValType ptrType =
       isMem ? ToValType(codeMeta_.memories[*dstMemOrTableIndex].indexType())
-            : ToValType(codeMeta_.tables[*dstMemOrTableIndex].indexType());
+            : ValType::I32;
   return popWithType(ptrType, dst);
 }
 
@@ -3173,15 +3170,13 @@ inline bool OpIter<Policy>::readTableFill(uint32_t* tableIndex, Value* start,
     return fail("table index out of range for table.fill");
   }
 
-  const TableDesc& table = codeMeta_.tables[*tableIndex];
-
-  if (!popWithType(ToValType(table.indexType()), len)) {
+  if (!popWithType(ValType::I32, len)) {
     return false;
   }
-  if (!popWithType(table.elemType, val)) {
+  if (!popWithType(codeMeta_.tables[*tableIndex].elemType, val)) {
     return false;
   }
-  return popWithType(ToValType(table.indexType()), start);
+  return popWithType(ValType::I32, start);
 }
 
 template <typename Policy>
@@ -3216,13 +3211,11 @@ inline bool OpIter<Policy>::readTableGet(uint32_t* tableIndex, Value* index) {
     return fail("table index out of range for table.get");
   }
 
-  const TableDesc& table = codeMeta_.tables[*tableIndex];
-
-  if (!popWithType(ToValType(table.indexType()), index)) {
+  if (!popWithType(ValType::I32, index)) {
     return false;
   }
 
-  infalliblePush(table.elemType);
+  infalliblePush(codeMeta_.tables[*tableIndex].elemType);
   return true;
 }
 
@@ -3238,16 +3231,14 @@ inline bool OpIter<Policy>::readTableGrow(uint32_t* tableIndex,
     return fail("table index out of range for table.grow");
   }
 
-  const TableDesc& table = codeMeta_.tables[*tableIndex];
-
-  if (!popWithType(ToValType(table.indexType()), delta)) {
+  if (!popWithType(ValType::I32, delta)) {
     return false;
   }
-  if (!popWithType(table.elemType, initValue)) {
+  if (!popWithType(codeMeta_.tables[*tableIndex].elemType, initValue)) {
     return false;
   }
 
-  infalliblePush(ToValType(table.indexType()));
+  infalliblePush(ValType::I32);
   return true;
 }
 
@@ -3263,13 +3254,11 @@ inline bool OpIter<Policy>::readTableSet(uint32_t* tableIndex, Value* index,
     return fail("table index out of range for table.set");
   }
 
-  const TableDesc& table = codeMeta_.tables[*tableIndex];
-
-  if (!popWithType(table.elemType, value)) {
+  if (!popWithType(codeMeta_.tables[*tableIndex].elemType, value)) {
     return false;
   }
 
-  return popWithType(ToValType(table.indexType()), index);
+  return popWithType(ValType::I32, index);
 }
 
 template <typename Policy>
@@ -3285,7 +3274,7 @@ inline bool OpIter<Policy>::readTableSize(uint32_t* tableIndex) {
     return fail("table index out of range for table.size");
   }
 
-  return push(ToValType(codeMeta_.tables[*tableIndex].indexType()));
+  return push(ValType::I32);
 }
 
 template <typename Policy>

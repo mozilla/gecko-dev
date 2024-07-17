@@ -292,8 +292,8 @@ CalleeDesc CalleeDesc::wasmTable(const CodeMetadata& codeMeta,
   c.which_ = WasmTable;
   c.u.table.instanceDataOffset_ =
       codeMeta.offsetOfTableInstanceData(tableIndex);
-  c.u.table.minLength_ = desc.initialLength();
-  c.u.table.maxLength_ = desc.maximumLength();
+  c.u.table.minLength_ = desc.initialLength;
+  c.u.table.maxLength_ = desc.maximumLength;
   c.u.table.callIndirectId_ = callIndirectId;
   return c;
 }
