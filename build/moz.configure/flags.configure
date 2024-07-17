@@ -668,6 +668,25 @@ def os_asflags(
     return flags
 
 
+# VS2012+ defaults to -arch:SSE2. We want to target nothing more recent, so set
+# that explicitly here unless another target arch has already been set.
+@template
+def add_sse2_flag_if_needed(flags):
+    @depends(
+        flags,
+        when=~building_with_gnu_compatible_cc
+        & depends(target.cpu)(lambda cpu: cpu == "x86"),
+    )
+    def add_sse2_flag(flags):
+        is_arch_flag = lambda flag: flag.lower().startswith(("-arch:", "/arch:"))
+        if not any(is_arch_flag(flag) for flag in flags):
+            flags.append("-arch:SSE2")
+
+
+add_sse2_flag_if_needed(os_cflags)
+add_sse2_flag_if_needed(os_cxxflags)
+
+
 # Please keep these last in this file.
 add_old_configure_assignment("CPPFLAGS", os_cppflags)
 add_old_configure_assignment("CFLAGS", os_cflags)

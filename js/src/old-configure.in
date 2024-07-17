@@ -66,24 +66,7 @@ case "$target" in
     ;;
 
 *-mingw*)
-    if test "$CC_TYPE" != clang-cl ; then
-        MOZ_OPTIMIZE_FLAGS="-O2"
-    else
-        if test "$TARGET_CPU" = "x86";then
-          dnl VS2012+ defaults to -arch:SSE2. We want to target nothing
-          dnl more recent, so set that explicitly here unless another
-          dnl target arch has already been set.
-          changequote(,)
-          if test -z `echo $CFLAGS | grep -i [-/]arch:` ; then
-            CFLAGS="$CFLAGS -arch:SSE2"
-          fi
-          if test -z `echo $CXXFLAGS | grep -i [-/]arch:` ; then
-            CXXFLAGS="$CXXFLAGS -arch:SSE2"
-          fi
-          changequote([,])
-        fi
-        MOZ_OPTIMIZE_FLAGS="-O2"
-    fi
+    MOZ_OPTIMIZE_FLAGS="-O2"
     ;;
 
 *-netbsd*)
