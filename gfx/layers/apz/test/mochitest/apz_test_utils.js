@@ -1320,3 +1320,23 @@ function compareVisualViewport(
     );
   }
 }
+
+// Loads a URL in an iframe and waits until APZ is stable
+async function setupIframe(aIFrame, aURL) {
+  const iframeLoadPromise = promiseOneEvent(aIFrame, "load", null);
+  aIFrame.src = aURL;
+  await iframeLoadPromise;
+
+  await SpecialPowers.spawn(aIFrame, [], async () => {
+    await content.wrappedJSObject.waitUntilApzStable();
+    await SpecialPowers.contentTransformsReceived(content);
+  });
+}
+
+// Loads a URL in an iframe and replaces its origin to
+// create an out-of-process iframe
+async function setupCrossOriginIFrame(aIFrame, aUrl) {
+  let iframeURL = SimpleTest.getTestFileURL(aUrl);
+  iframeURL = iframeURL.replace(window.location.origin, "https://example.com");
+  await setupIframe(aIFrame, iframeURL);
+}

@@ -53,6 +53,8 @@ run-if = [ # FIXME: enable on more desktop platforms (see bug 1608506 comment 4)
   "os == 'mac'",
 ]
 
+["test_group_fission.html"]
+
 ["test_group_fullscreen.html"]
 run-if = ["os == 'android'"]
 
