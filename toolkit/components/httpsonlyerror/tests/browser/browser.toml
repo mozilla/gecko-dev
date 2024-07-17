@@ -2,7 +2,13 @@
 support-files = ["head.js"]
 
 ["browser_errorpage.js"]
-skip-if = ["os == 'linux' && asan && !debug"] # Bug 1658616
+skip-if = [
+   "os == 'linux' && asan", # Bug 1658616
+   "os == 'linux' && !debug", # Bug 1775881
+   "os == 'win' && os_version == '11.2009' && debug", # Bug 1775881
+   "os == 'win' && os_version == '11.2009' && asan", # Bug 1775881
+   "apple_catalina && debug", # Bug 1775881
+]
 
 ["browser_errorpage_no_timeout.js"]
 support-files = ["file_errorpage_no_timeout_server.sjs", "file_https_telemetry_hsts.sjs"]
