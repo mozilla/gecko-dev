@@ -1867,7 +1867,8 @@ static JSAtom* NewAtomDeflatedValidLength(JSContext* cx, const char16_t* s,
   MOZ_ASSERT(CanStoreCharsAsLatin1(s, n));
   FillFromCompatible(news.get(), s, n);
 
-  return JSAtom::newValidLength(cx, std::move(news), n, hash);
+  JSString::OwnedChars<Latin1Char> newChars(std::move(news), n);
+  return JSAtom::newValidLength<Latin1Char>(cx, newChars, hash);
 }
 
 template <AllowGC allowGC, typename CharT>
@@ -2053,7 +2054,8 @@ JSAtom* NewAtomCopyNDontDeflateValidLength(JSContext* cx, const CharT* s,
 
   PodCopy(news.get(), s, n);
 
-  return JSAtom::newValidLength(cx, std::move(news), n, hash);
+  JSString::OwnedChars<CharT> newChars(std::move(news), n);
+  return JSAtom::newValidLength<CharT>(cx, newChars, hash);
 }
 
 template JSAtom* NewAtomCopyNDontDeflateValidLength(JSContext* cx,

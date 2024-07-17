@@ -579,7 +579,8 @@ static MOZ_ALWAYS_INLINE JSAtom* MakeUTF8AtomHelperNonStaticValidLength(
 
   InflateUTF8CharsToBuffer(chars->utf8, newStr.get(), length, chars->encoding);
 
-  return JSAtom::newValidLength(cx, std::move(newStr), length, hash);
+  JSString::OwnedChars<CharT> newChars(std::move(newStr), length);
+  return JSAtom::newValidLength<CharT>(cx, newChars, hash);
 }
 
 // Another variant of NewAtomNonStaticValidLength.

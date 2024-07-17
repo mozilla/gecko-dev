@@ -534,17 +534,22 @@ MOZ_ALWAYS_INLINE JSLinearString* JSLinearString::newValidLength(
 }
 
 template <typename CharT>
-MOZ_ALWAYS_INLINE JSAtom* JSAtom::newValidLength(
-    JSContext* cx, js::UniquePtr<CharT[], JS::FreePolicy> chars, size_t length,
-    js::HashNumber hash) {
+MOZ_ALWAYS_INLINE JSAtom* JSAtom::newValidLength(JSContext* cx,
+                                                 OwnedChars<CharT>& chars,
+                                                 js::HashNumber hash) {
+  size_t length = chars.length();
   MOZ_ASSERT(validateLength(cx, length));
   MOZ_ASSERT(cx->zone()->isAtomsZone());
-  JSAtom* str =
-      cx->newCell<js::NormalAtom, js::NoGC>(chars.get(), length, hash);
+
+  // Note: atom allocation can't GC. The unrooted |chars| argument relies on
+  // this.
+  JSAtom* str = cx->newCell<js::NormalAtom, js::NoGC>(chars, hash);
   if (!str) {
     return nullptr;
   }
-  (void)chars.release();
+
+  // The atom now owns the chars.
+  chars.release();
 
   MOZ_ASSERT(str->isTenured());
   cx->zone()->addCellMemory(str, length * sizeof(CharT),
@@ -689,22 +694,25 @@ MOZ_ALWAYS_INLINE JSExternalString* JSExternalString::new_(
   return newImpl(cx, chars, length, callbacks);
 }
 
-inline js::NormalAtom::NormalAtom(const char16_t* chars, size_t length,
+template <typename CharT>
+inline js::NormalAtom::NormalAtom(const OwnedChars<CharT>& chars,
                                   js::HashNumber hash)
     : hash_(hash) {
-  setLengthAndFlags(length, INIT_LINEAR_FLAGS | ATOM_BIT);
   // Check that the new buffer is located in the StringBufferArena
-  checkStringCharsArena(chars, /* usesStringBuffer = */ false);
-  d.s.u2.nonInlineCharsTwoByte = chars;
-}
+  checkStringCharsArena(chars.data(), chars.hasStringBuffer());
 
-inline js::NormalAtom::NormalAtom(const JS::Latin1Char* chars, size_t length,
-                                  js::HashNumber hash)
-    : hash_(hash) {
-  setLengthAndFlags(length, INIT_LINEAR_FLAGS | LATIN1_CHARS_BIT | ATOM_BIT);
-  // Check that the new buffer is located in the StringBufferArena
-  checkStringCharsArena(chars, /* usesStringBuffer = */ false);
-  d.s.u2.nonInlineCharsLatin1 = chars;
+  uint32_t flags = INIT_LINEAR_FLAGS | ATOM_BIT;
+  if (chars.hasStringBuffer()) {
+    flags |= HAS_STRING_BUFFER_BIT;
+  }
+
+  if constexpr (std::is_same_v<CharT, char16_t>) {
+    setLengthAndFlags(chars.length(), flags);
+    d.s.u2.nonInlineCharsTwoByte = chars.data();
+  } else {
+    setLengthAndFlags(chars.length(), flags | LATIN1_CHARS_BIT);
+    d.s.u2.nonInlineCharsLatin1 = chars.data();
+  }
 }
 
 #ifndef JS_64BIT

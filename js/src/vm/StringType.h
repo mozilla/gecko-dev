@@ -1521,9 +1521,8 @@ class JSAtom : public JSLinearString {
 
  public:
   template <typename CharT>
-  static inline JSAtom* newValidLength(
-      JSContext* cx, js::UniquePtr<CharT[], JS::FreePolicy> chars,
-      size_t length, js::HashNumber hash);
+  static inline JSAtom* newValidLength(JSContext* cx, OwnedChars<CharT>& chars,
+                                       js::HashNumber hash);
 
   /* Returns the PropertyName for this.  isIndex() must be false. */
   inline js::PropertyName* asPropertyName();
@@ -1594,9 +1593,9 @@ class NormalAtom : public JSAtom {
   // For subclasses to call.
   explicit NormalAtom(js::HashNumber hash) : hash_(hash) {}
 
-  // Out of line atoms, mimicking JSLinearString constructors.
-  NormalAtom(const char16_t* chars, size_t length, js::HashNumber hash);
-  NormalAtom(const JS::Latin1Char* chars, size_t length, js::HashNumber hash);
+  // Out of line atoms, mimicking JSLinearString constructor.
+  template <typename CharT>
+  NormalAtom(const OwnedChars<CharT>& chars, js::HashNumber hash);
 
  public:
   HashNumber hash() const { return hash_; }
