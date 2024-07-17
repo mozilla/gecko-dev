@@ -31,13 +31,13 @@ import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
- * The header UI used for micro-survey.
+ * The header UI used for microsurvey.
  *
  * @param title The text that will be visible on the header.
  * @param onCloseButtonClick Invoked when the close button is clicked.
  */
 @Composable
-fun MicroSurveyHeader(
+fun MicrosurveyHeader(
     title: String,
     onCloseButtonClick: () -> Unit,
 ) {
@@ -84,12 +84,12 @@ fun MicroSurveyHeader(
     fontScale = 2.0f,
 )
 @Composable
-private fun MicroSurveyHeaderPreview() {
+private fun MicrosurveyHeaderPreview() {
     FirefoxTheme {
         Box(
             modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
         ) {
-            MicroSurveyHeader(stringResource(R.string.micro_survey_survey_header_2)) {}
+            MicrosurveyHeader(stringResource(R.string.micro_survey_survey_header_2)) {}
         }
     }
 }

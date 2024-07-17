@@ -89,7 +89,7 @@ fun MicrosurveyCompleted(
 @PreviewScreenSizes
 @LightDarkPreview
 @Composable
-fun MicroSurveyCompletedPreview() {
+fun MicrosurveyCompletedPreview() {
     FirefoxTheme {
         MicrosurveyCompleted()
     }

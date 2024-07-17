@@ -34,7 +34,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
 private val shape = RoundedCornerShape(8.dp)
 
 /**
- * The micro survey content UI to hold question and answer data.
+ * The microsurvey content UI to hold question and answer data.
  *
  * @param question The survey question text.
  * @param answers The survey answer text options available for the question.
@@ -44,7 +44,7 @@ private val shape = RoundedCornerShape(8.dp)
  * @param onSelectionChange An event that updates the [selectedAnswer].
  */
 @Composable
-fun MicroSurveyContent(
+fun MicrosurveyContent(
     question: String,
     answers: List<String>,
     @DrawableRes icon: Int = R.drawable.ic_print,
@@ -101,14 +101,14 @@ private fun Header(icon: Int, question: String) {
 }
 
 /**
- * Preview for [MicroSurveyContent].
+ * Preview for [MicrosurveyContent].
  */
 @PreviewScreenSizes
 @LightDarkPreview
 @Composable
-fun MicroSurveyContentPreview() {
+fun MicrosurveyContentPreview() {
     FirefoxTheme {
-        MicroSurveyContent(
+        MicrosurveyContent(
             question = "How satisfied are you with printing in Firefox?",
             icon = R.drawable.ic_print,
             answers = listOf(

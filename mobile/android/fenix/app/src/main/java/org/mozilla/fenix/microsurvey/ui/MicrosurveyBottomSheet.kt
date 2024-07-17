@@ -80,35 +80,41 @@ fun MicrosurveyBottomSheet(
                     .semantics { traversalIndex = -1f },
             )
 
-            MicroSurveyHeader(title = stringResource(id = R.string.micro_survey_survey_header_2)) {
+            MicrosurveyHeader(title = stringResource(id = R.string.micro_survey_survey_header_2)) {
                 onCloseButtonClicked()
             }
 
-            if (isSubmitted) {
-                MicrosurveyCompleted()
-            } else {
-                MicroSurveyContent(
-                    question = question,
-                    icon = icon,
-                    answers = answers,
-                    selectedAnswer = selectedAnswer,
-                    onSelectionChange = { selectedAnswer = it },
+            Column(
+                modifier = Modifier
+                    .nestedScroll(rememberNestedScrollInteropConnection())
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                if (isSubmitted) {
+                    MicrosurveyCompleted()
+                } else {
+                    MicrosurveyContent(
+                        question = question,
+                        icon = icon,
+                        answers = answers,
+                        selectedAnswer = selectedAnswer,
+                        onSelectionChange = { selectedAnswer = it },
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                MicrosurveyFooter(
+                    isSubmitted = isSubmitted,
+                    isContentAnswerSelected = selectedAnswer != null,
+                    onPrivacyPolicyLinkClick = onPrivacyPolicyLinkClick,
+                    onButtonClick = {
+                        selectedAnswer?.let {
+                            onSubmitButtonClicked(it)
+                            isSubmitted = true
+                        }
+                    },
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            MicroSurveyFooter(
-                isSubmitted = isSubmitted,
-                isContentAnswerSelected = selectedAnswer != null,
-                onPrivacyPolicyLinkClick = onPrivacyPolicyLinkClick,
-                onButtonClick = {
-                    selectedAnswer?.let {
-                        onSubmitButtonClicked(it)
-                        isSubmitted = true
-                    }
-                },
-            )
         }
     }
 }
@@ -120,7 +126,7 @@ fun MicrosurveyBottomSheet(
     fontScale = 2.0f,
 )
 @Composable
-private fun MicroSurveyBottomSheetPreview() {
+private fun MicrosurveyBottomSheetPreview() {
     FirefoxTheme {
         MicrosurveyBottomSheet(
             question = "How satisfied are you with printing in Firefox?",

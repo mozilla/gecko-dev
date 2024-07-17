@@ -26,7 +26,7 @@ import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
- * The footer UI used for micro-survey.
+ * The footer UI used for microsurvey.
  *
  * @param isSubmitted Whether the user has "Submitted" the survey or not.
  * @param isContentAnswerSelected Whether the user clicked on one of the answers or not.
@@ -34,7 +34,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param onButtonClick Invoked when the "Submit"/"Close" button is clicked.
  */
 @Composable
-fun MicroSurveyFooter(
+fun MicrosurveyFooter(
     isSubmitted: Boolean,
     isContentAnswerSelected: Boolean,
     onPrivacyPolicyLinkClick: () -> Unit,
@@ -80,21 +80,21 @@ private fun ReviewQualityCheckFooterPreview() {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            MicroSurveyFooter(
+            MicrosurveyFooter(
                 isSubmitted = false,
                 isContentAnswerSelected = false,
                 onPrivacyPolicyLinkClick = {},
                 onButtonClick = {},
             )
 
-            MicroSurveyFooter(
+            MicrosurveyFooter(
                 isSubmitted = false,
                 isContentAnswerSelected = true,
                 onPrivacyPolicyLinkClick = {},
                 onButtonClick = {},
             )
 
-            MicroSurveyFooter(
+            MicrosurveyFooter(
                 isSubmitted = true,
                 isContentAnswerSelected = true,
                 onPrivacyPolicyLinkClick = {},
