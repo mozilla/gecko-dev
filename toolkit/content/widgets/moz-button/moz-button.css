@@ -26,7 +26,6 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: var(--space-small);
 
   &[size=small] {
     min-height: var(--button-min-height-small);
@@ -127,6 +126,10 @@ button {
       border-color: var(--button-border-color-ghost-disabled);
       color: var(--button-text-color-ghost-disabled);
     }
+  }
+
+  &.labelled {
+    gap: var(--space-small)
   }
 
   &[type~=icon]:not(.labelled) {

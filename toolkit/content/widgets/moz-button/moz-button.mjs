@@ -5,6 +5,9 @@
 import { html, ifDefined, classMap } from "../vendor/lit.all.mjs";
 import { MozLitElement } from "../lit-utils.mjs";
 
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-label.mjs";
+
 /**
  * A button with multiple types and two sizes.
  *
@@ -49,6 +52,8 @@ export default class MozButton extends MozLitElement {
     ariaLabel: { type: String, state: true },
     iconSrc: { type: String },
     hasVisibleLabel: { type: Boolean, state: true },
+    accessKeyAttribute: { type: String, attribute: "accesskey", reflect: true },
+    accessKey: { type: String, state: true },
   };
 
   static queries = {
@@ -72,6 +77,10 @@ export default class MozButton extends MozLitElement {
     if (changes.has("ariaLabelAttribute")) {
       this.ariaLabel = this.ariaLabelAttribute;
       this.ariaLabelAttribute = null;
+    }
+    if (changes.has("accessKeyAttribute")) {
+      this.accessKey = this.accessKeyAttribute;
+      this.accessKeyAttribute = null;
     }
   }
 
@@ -107,11 +116,14 @@ export default class MozButton extends MozLitElement {
         aria-label=${ifDefined(this.ariaLabel)}
         part="button"
         class=${classMap({ labelled: this.label || this.hasVisibleLabel })}
+        accesskey=${ifDefined(this.accessKey)}
       >
         ${this.iconSrc
           ? html`<img src=${this.iconSrc} role="presentation" />`
           : ""}
-        ${this.labelTemplate()}
+        <label is="moz-label" shownaccesskey=${ifDefined(this.accessKey)}>
+          ${this.labelTemplate()}
+        </label>
       </button>
     `;
   }

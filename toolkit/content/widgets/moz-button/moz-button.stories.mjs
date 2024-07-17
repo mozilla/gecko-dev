@@ -44,14 +44,24 @@ moz-button-aria-labelled =
   },
 };
 
-const Template = ({ type, size, l10nId, iconSrc, disabled }) => html`
+const Template = ({
+  type,
+  size,
+  l10nId,
+  iconSrc,
+  disabled,
+  accesskey,
+  clickHandler,
+}) => html`
   <moz-button
+    @click=${clickHandler}
     data-l10n-id=${l10nId}
     data-l10n-attrs="label"
     type=${type}
     size=${size}
     ?disabled=${disabled}
     iconSrc=${ifDefined(iconSrc)}
+    accesskey=${ifDefined(accesskey)}
   ></moz-button>
 `;
 
@@ -105,4 +115,10 @@ IconText.args = {
   size: "default",
   iconSrc: "chrome://global/skin/icons/edit-copy.svg",
   l10nId: "moz-button-labelled",
+};
+export const WithAccesskey = Template.bind({});
+WithAccesskey.args = {
+  ...Default.args,
+  accesskey: "t",
+  clickHandler: () => alert("Activating the accesskey clicks the button"),
 };

@@ -227,6 +227,82 @@
       await new Promise(resolve => requestAnimationFrame(resolve));
       verifyImageIcon(nine);
     });
+
+    add_task(async function testAccesskey() {
+      let firstButton = document.querySelector(".one");
+      let secondButton = document.querySelector(".two");
+      let accesskey = "t";
+      let seenEvents = [];
+
+      function trackEvent(event) {
+        seenEvents.push(event.type);
+      }
+
+      [firstButton, secondButton].forEach(button => {
+        button.addEventListener("click", trackEvent);
+      });
+
+      firstButton.setAttribute("accesskey", accesskey);
+      await firstButton.updateComplete;
+
+      firstButton.blur();
+      isnot(document.activeElement, firstButton, "First button is not focused.");
+      isnot(
+        firstButton.shadowRoot.activeElement,
+        firstButton.buttonEl,
+        "Inner button element is not focused."
+      );
+
+      synthesizeKey(
+        accesskey,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        firstButton,
+        "First button recieves focus after accesskey is pressed."
+      );
+      is(
+        firstButton.shadowRoot.activeElement,
+        firstButton.buttonEl,
+        "Inner button input element is focused after accesskey is pressed."
+      );
+      is(seenEvents.length, 1, "One event was triggered.");
+      is(seenEvents[0], "click", "The first button was clicked.");
+
+      secondButton.setAttribute("accesskey", accesskey);
+      await secondButton.updateComplete;
+
+      synthesizeKey(
+        accesskey,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        secondButton,
+        "Focus cycles between buttons with the same accesskey."
+      );
+
+      synthesizeKey(
+        accesskey,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        firstButton,
+        "Focus cycles between buttons with the same accesskey."
+      );
+      is(seenEvents.length, 1, "No additional click events were triggered.");
+    });
   </script>
 </head>
 <body>
