@@ -76,8 +76,37 @@ class FenixTabCounterMenuTest {
     }
 
     @Test
-    fun `return two new tab items and a close button`() {
-        val (newTab, newPrivateTab, divider, closeTab) = menu.menuItems(ToolbarPosition.TOP)
+    fun `GIVEN top toolbar position WHEN menu items getter is called THEN return two new tab items and a close button`() {
+        val (newTab, newPrivateTab, divider, closeTab) = menu.menuItems(
+            toolbarPosition = ToolbarPosition.TOP,
+            isNavBarEnabled = false,
+        )
+
+        assertEquals("New tab", (newTab as TextMenuCandidate).text)
+        assertEquals("New private tab", (newPrivateTab as TextMenuCandidate).text)
+        assertEquals("Close tab", (closeTab as TextMenuCandidate).text)
+        assertEquals(DividerMenuCandidate(), divider)
+    }
+
+    @Test
+    fun `GIVEN bottom toolbar position WHEN menu items getter is called THEN return two new tab items and a close button`() {
+        val (closeTab, divider, newPrivateTab, newTab) = menu.menuItems(
+            toolbarPosition = ToolbarPosition.BOTTOM,
+            isNavBarEnabled = false,
+        )
+
+        assertEquals("New tab", (newTab as TextMenuCandidate).text)
+        assertEquals("New private tab", (newPrivateTab as TextMenuCandidate).text)
+        assertEquals("Close tab", (closeTab as TextMenuCandidate).text)
+        assertEquals(DividerMenuCandidate(), divider)
+    }
+
+    @Test
+    fun `GIVEN navigation bar is enabled WHEN menu items getter is called THEN return two new tab items and a close button`() {
+        val (newTab, newPrivateTab, divider, closeTab) = menu.menuItems(
+            toolbarPosition = ToolbarPosition.BOTTOM,
+            isNavBarEnabled = true,
+        )
 
         assertEquals("New tab", (newTab as TextMenuCandidate).text)
         assertEquals("New private tab", (newPrivateTab as TextMenuCandidate).text)
