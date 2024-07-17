@@ -806,7 +806,11 @@ class GitRepository(Repository):
 
     @property
     def branch(self):
-        return self._run("branch", "--show-current").strip() or None
+        # This mimics `git branch --show-current` for older versions of git.
+        branch = self._run("symbolic-ref", "-q", "HEAD", return_codes=[0, 1]).strip()
+        if not branch.startswith("refs/heads/"):
+            return None
+        return branch[len("refs/heads/") :]
 
     @property
     def has_git_cinnabar(self):
