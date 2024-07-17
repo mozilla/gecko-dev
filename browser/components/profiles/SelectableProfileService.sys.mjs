@@ -7,6 +7,7 @@
 /* eslint-disable no-unused-private-class-members */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+import { SelectableProfile } from "./SelectableProfile.sys.mjs";
 
 const lazy = {};
 
@@ -49,7 +50,7 @@ export class SelectableProfileService {
   }
 
   async getProfilesStorePath() {
-    if (!this.#groupToolkitProfile.storeID) {
+    if (!this.#groupToolkitProfile?.storeID) {
       await this.createProfilesStorePath();
     }
 
@@ -237,38 +238,115 @@ export class SelectableProfileService {
   /**
    * Create an empty SelectableProfile and add it to the group DB.
    * This is an unmanaged profile from the nsToolkitProfile perspective.
+   *
+   * @param {object} profile An object that contains a path, name, themeL10nId,
+   *                 themeFg, and themeBg for creating a new profile.
    */
-  createProfile() {}
+  async createProfile(profile) {
+    await this.#connection.execute(
+      `INSERT INTO Profiles VALUES (NULL, :path, :name, :avatar, :themeL10nId, :themeFg, :themeBg);`,
+      profile
+    );
+    return this.getProfileByName(profile.name);
+  }
 
   /**
    * Delete a SelectableProfile from the group DB.
    * If it was the last profile in the group, also call deleteProfileGroup().
+   *
+   * @param {SelectableProfile} aSelectableProfile The SelectableProfile to be deleted
    */
-  deleteProfile() {}
+  async deleteProfile(aSelectableProfile) {
+    await this.#connection.execute("DELETE FROM Profiles WHERE id = :id;", {
+      id: aSelectableProfile.id,
+    });
+  }
+
+  /**
+   * Close all active instances running the current profile
+   */
+  closeActiveProfileInstances() {}
 
   /**
    * Schedule deletion of the current SelectableProfile as a background task, then exit.
    */
-  deleteCurrentProfile() {}
+  async deleteCurrentProfile() {
+    this.closeActiveProfileInstances();
+
+    await this.#connection.executeBeforeShutdown(
+      "SelectableProfileService: deleteCurrentProfile",
+      db =>
+        db.execute("DELETE FROM Profiles WHERE id = :id;", {
+          id: this.currentProfile.id,
+        })
+    );
+  }
 
   /**
    * Write an updated profile to the DB.
    *
-   * @param {SelectableProfile} aSelectableProfile The SelectableProfile to be update
+   * @param {SelectableProfile} aSelectableProfile The SelectableProfile to be updated
    */
-  updateProfile(aSelectableProfile) {}
+  async updateProfile(aSelectableProfile) {
+    let profile = {
+      id: aSelectableProfile.id,
+      path: aSelectableProfile.path,
+      name: aSelectableProfile.name,
+      avatar: aSelectableProfile.avatar,
+      ...aSelectableProfile.theme,
+    };
+
+    await this.#connection.execute(
+      `UPDATE Profiles
+       SET path = :path, name = :name, avatar = :avatar, themeL10nId = :themeL10nId, themeFg = :themeFg, themeBg = :themeBg
+       WHERE id = :id;`,
+      profile
+    );
+  }
 
   /**
    * Get the complete list of profiles in the group.
    */
-  getProfiles() {}
+  async getProfiles() {
+    return (
+      await this.#connection.executeCached("SELECT * FROM Profiles;")
+    ).map(row => {
+      return new SelectableProfile(row);
+    });
+  }
 
   /**
    * Get a specific profile by its internal ID.
    *
    * @param {number} aProfileID The internal id of the profile
    */
-  getProfile(aProfileID) {}
+  async getProfile(aProfileID) {
+    let row = (
+      await this.#connection.execute("SELECT * FROM Profiles WHERE id = :id;", {
+        id: aProfileID,
+      })
+    )[0];
+
+    return new SelectableProfile(row);
+  }
+
+  /**
+   * Get a specific profile by its name.
+   *
+   * @param {string} aProfileNanme The name of the profile
+   */
+  async getProfileByName(aProfileNanme) {
+    let row = (
+      await this.#connection.execute(
+        "SELECT * FROM Profiles WHERE name = :name;",
+        {
+          name: aProfileNanme,
+        }
+      )
+    )[0];
+
+    return new SelectableProfile(row);
+  }
 
   // Shared Prefs management
 

@@ -22,9 +22,28 @@ export class SelectableProfile {
 
   // Cached theme properties, used to allow displaying a SelectableProfile
   // without loading the AddonManager to get theme info.
-  #themeL10nID;
-  #themeFG;
-  #themeBG;
+  #themeL10nId;
+  #themeFg;
+  #themeBg;
+
+  constructor(row) {
+    this.#id = row.getResultByName("id");
+    this.#path = row.getResultByName("path");
+    this.#name = row.getResultByName("name");
+    this.#avatar = row.getResultByName("avatar");
+    this.#themeL10nId = row.getResultByName("themeL10nId");
+    this.#themeFg = row.getResultByName("themeFg");
+    this.#themeBg = row.getResultByName("themeBg");
+  }
+
+  /**
+   * Get the id of the profile.
+   *
+   * @returns {number} Id of profile
+   */
+  get id() {
+    return this.#id;
+  }
 
   // Note: setters update the object, then ask the SelectableProfileService to save it.
 
@@ -86,13 +105,13 @@ export class SelectableProfile {
    *     the theme foreground color as CSS style string, like "rgb(1,1,1)",
    *     the theme background color as CSS style string, like "rgb(0,0,0)".
    *
-   * @returns {object} an object of the form { l10nID, fgColor, bgColor }.
+   * @returns {object} an object of the form { themeL10nId, themeFg, themeBg }.
    */
   get theme() {
     return {
-      l10nID: this.#themeL10nID,
-      fgColor: this.#themeFG,
-      bgColor: this.#themeBG,
+      themeL10nId: this.#themeL10nId,
+      themeFg: this.#themeFg,
+      themeBg: this.#themeBg,
     };
   }
 
@@ -101,14 +120,14 @@ export class SelectableProfile {
    * the profile, which will notify() other running instances.
    *
    * @param {object} param0 The theme object
-   * @param {string} param0.l10nID L10n id of the theme
-   * @param {string} param0.fgColor Foreground color of theme as CSS style string, like "rgb(1,1,1)",
-   * @param {string} param0.bgColor Background color of theme as CSS style string, like "rgb(0,0,0)".
+   * @param {string} param0.themeL10nId L10n id of the theme
+   * @param {string} param0.themeFg Foreground color of theme as CSS style string, like "rgb(1,1,1)",
+   * @param {string} param0.themeBg Background color of theme as CSS style string, like "rgb(0,0,0)".
    */
-  set theme({ l10nID, fgColor, bgColor }) {
-    this.#themeL10nID = l10nID;
-    this.#themeFG = fgColor;
-    this.#themeBG = bgColor;
+  set theme({ themeL10nId, themeFg, themeBg }) {
+    this.#themeL10nId = themeL10nId;
+    this.#themeFg = themeFg;
+    this.#themeBg = themeBg;
 
     this.saveUpdatesToDB();
   }
