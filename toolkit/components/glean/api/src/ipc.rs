@@ -300,9 +300,7 @@ pub fn replay_from_buf(buf: &[u8]) -> Result<(), ()> {
                 .read()
                 .expect("Read lock for dynamic memory dist map was poisoned");
             if let Some(metric) = map.get(&id) {
-                samples
-                    .into_iter()
-                    .for_each(|sample| metric.accumulate(sample));
+                metric.accumulate_samples(samples);
             }
         } else if let Some(metric) = __glean_metric_maps::MEMORY_DISTRIBUTION_MAP.get(&id) {
             samples

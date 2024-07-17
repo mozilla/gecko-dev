@@ -50,6 +50,23 @@ impl MemoryDistributionMetric {
             }
         }
     }
+
+    pub fn accumulate_samples(&self, samples: Vec<u64>) {
+        match self {
+            MemoryDistributionMetric::Parent { inner, .. } => {
+                inner.accumulate_samples(samples.into_iter().map(|s| s as _).collect());
+            }
+            MemoryDistributionMetric::Child(c) => {
+                with_ipc_payload(move |payload| {
+                    if let Some(v) = payload.memory_samples.get_mut(&c.0) {
+                        v.extend(samples);
+                    } else {
+                        payload.memory_samples.insert(c.0, samples);
+                    }
+                });
+            }
+        }
+    }
 }
 
 #[inherent]
