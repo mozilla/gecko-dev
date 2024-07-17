@@ -121,6 +121,7 @@ fenix:
         - "'signing-apk-fenix-android-test-debug"
         - "'test-apk-fenix-debug"
         - "'ui-test-apk-fenix-arm-debug"
+        - "^source-test 'fenix"
 
 firefox-android:
     selector: fuzzy
@@ -141,6 +142,7 @@ firefox-android:
         - "'signing-apk-focus-android-test-debug"
         - "'test-apk-focus-debug"
         - "'ui-test-apk-focus-arm-debug"
+        - "^source-test 'android | 'fenix | 'focus"
 
 focus:
     selector: fuzzy
@@ -153,6 +155,7 @@ focus:
         - "'signing-apk-focus-android-test-debug"
         - "'test-apk-focus-debug"
         - "'ui-test-apk-focus-arm-debug"
+        - "^source-test 'focus"
 
 fpush-linux-android:
     selector: fuzzy
