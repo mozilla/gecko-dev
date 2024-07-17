@@ -695,12 +695,7 @@ class HomeFragment : Fragment() {
                                         else -> null
                                     },
                                 ).also {
-                                    it.updateMenu(
-                                        showOnly = when (browsingModeManager.mode) {
-                                            BrowsingMode.Normal -> BrowsingMode.Private
-                                            BrowsingMode.Private -> BrowsingMode.Normal
-                                        },
-                                    )
+                                    it.updateMenu()
                                 },
                                 onSearchButtonClick = {
                                     NavigationBar.homeSearchTapped.record(NoExtras())

@@ -76,7 +76,8 @@ class NavigationToolbarRobot {
     fun verifyTabButtonShortcutMenuItemsForNormalHomescreen() {
         Log.i(TAG, "verifyTabButtonShortcutMenuItemsForNormalHomescreen: Trying to verify tab counter shortcut options")
         onView(withId(R.id.mozac_browser_menu_recyclerView))
-            .check(matches(hasItemsCount(1)))
+            .check(matches(hasItemsCount(2)))
+            .check(matches(hasDescendant(withText("New tab"))))
             .check(matches(hasDescendant(withText("New private tab"))))
         Log.i(TAG, "verifyTabButtonShortcutMenuItemsForNormalHomescreen: Verified tab counter shortcut options")
     }
@@ -84,8 +85,9 @@ class NavigationToolbarRobot {
     fun verifyTabButtonShortcutMenuItemsForPrivateHomescreen() {
         Log.i(TAG, "verifyTabButtonShortcutMenuItemsForPrivateHomescreen: Trying to verify tab counter shortcut options")
         onView(withId(R.id.mozac_browser_menu_recyclerView))
-            .check(matches(hasItemsCount(1)))
+            .check(matches(hasItemsCount(2)))
             .check(matches(hasDescendant(withText("New tab"))))
+            .check(matches(hasDescendant(withText("New private tab"))))
         Log.i(TAG, "verifyTabButtonShortcutMenuItemsForPrivateHomescreen: Verified tab counter shortcut options")
     }
 

@@ -18,6 +18,9 @@ class FenixTabCounterMenu(
 ) : TabCounterMenu(context, onItemTapped, iconColor) {
 
     @VisibleForTesting
+    internal fun menuItems(): List<MenuCandidate> = listOf(newTabItem, newPrivateTabItem)
+
+    @VisibleForTesting
     internal fun menuItems(showOnly: BrowsingMode): List<MenuCandidate> {
         return when (showOnly) {
             BrowsingMode.Normal -> listOf(newTabItem)
@@ -38,6 +41,13 @@ class FenixTabCounterMenu(
             ToolbarPosition.BOTTOM -> items.reversed()
             ToolbarPosition.TOP -> items
         }
+    }
+
+    /**
+     * Update the displayed menu items with the new tab and new private tab menu items.
+     */
+    fun updateMenu() {
+        menuController.submitList(menuItems())
     }
 
     /**

@@ -59,6 +59,23 @@ class FenixTabCounterMenuTest {
     }
 
     @Test
+    fun `WHEN menu items getter is called THEN return the new tab and private tab menu item`() {
+        val items = menu.menuItems()
+        val newTab = items[0] as TextMenuCandidate
+        val newPrivateTab = items[1] as TextMenuCandidate
+
+        assertEquals(2, items.size)
+        assertEquals("New tab", newTab.text)
+        assertEquals("New private tab", newPrivateTab.text)
+
+        newTab.onClick()
+        verify { onItemTapped(TabCounterMenu.Item.NewTab) }
+
+        newPrivateTab.onClick()
+        verify { onItemTapped(TabCounterMenu.Item.NewPrivateTab) }
+    }
+
+    @Test
     fun `return two new tab items and a close button`() {
         val (newTab, newPrivateTab, divider, closeTab) = menu.menuItems(ToolbarPosition.TOP)
 
