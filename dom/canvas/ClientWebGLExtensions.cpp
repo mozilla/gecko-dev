@@ -57,6 +57,21 @@ DEFINE_WEBGL_EXTENSION_GOOP(WEBGL_provoking_vertex,
 
 // --------------
 
+JSObject* ClientWebGLExtensionDepthClamp::WrapObject(
+    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+  return dom::EXT_depth_clamp_Binding::Wrap(cx, this, givenProto);
+}
+
+ClientWebGLExtensionDepthClamp::ClientWebGLExtensionDepthClamp(
+    ClientWebGLContext& webgl)
+    : ClientWebGLExtensionBase(webgl) {
+  auto& state = webgl.State();
+  // Add slot for new key:
+  state.mIsEnabledMap[LOCAL_GL_DEPTH_CLAMP] = false;
+}
+
+// --------------
+
 JSObject* ClientWebGLExtensionDisjointTimerQuery::WrapObject(
     JSContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::EXT_disjoint_timer_query_Binding::Wrap(cx, this, givenProto);

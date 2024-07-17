@@ -697,6 +697,13 @@ void WebGLContext::FinishInit() {
   mScissorRect = {0, 0, size.width, size.height};
   mScissorRect.Apply(*gl);
 
+  {
+    const auto& isEnabledMap = webgl::MakeIsEnabledMap(IsWebGL2());
+    for (const auto& pair : isEnabledMap) {
+      mIsEnabledMapKeys.insert(pair.first);
+    }
+  }
+
   //////
   // Check everything
 

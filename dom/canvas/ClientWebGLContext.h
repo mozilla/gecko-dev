@@ -177,7 +177,7 @@ class ContextGenerationInfo final {
 
   webgl::ProvokingVertex mProvokingVertex = webgl::ProvokingVertex::LastVertex;
 
-  mutable Maybe<std::unordered_map<GLenum, bool>> mIsEnabledMap;
+  mutable std::unordered_map<GLenum, bool> mIsEnabledMap;
 };
 
 // -

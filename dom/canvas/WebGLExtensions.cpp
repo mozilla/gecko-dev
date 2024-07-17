@@ -433,6 +433,13 @@ bool WebGLExtensionCompressedTextureS3TC_SRGB::IsSupported(
 
 // -
 
+WebGLExtensionDepthClamp::WebGLExtensionDepthClamp(WebGLContext* const webgl)
+    : WebGLExtensionBase(webgl) {
+  webgl->mIsEnabledMapKeys.insert(LOCAL_GL_DEPTH_CLAMP);
+}
+
+// -
+
 WebGLExtensionDepthTexture::WebGLExtensionDepthTexture(
     WebGLContext* const webgl)
     : WebGLExtensionBase(webgl) {

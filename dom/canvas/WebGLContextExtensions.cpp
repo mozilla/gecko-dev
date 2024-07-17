@@ -26,6 +26,7 @@ const char* GetExtensionName(const WebGLExtensionID ext) {
     WEBGL_EXTENSION_IDENTIFIER(EXT_blend_minmax)
     WEBGL_EXTENSION_IDENTIFIER(EXT_color_buffer_float)
     WEBGL_EXTENSION_IDENTIFIER(EXT_color_buffer_half_float)
+    WEBGL_EXTENSION_IDENTIFIER(EXT_depth_clamp)
     WEBGL_EXTENSION_IDENTIFIER(EXT_disjoint_timer_query)
     WEBGL_EXTENSION_IDENTIFIER(EXT_float_blend)
     WEBGL_EXTENSION_IDENTIFIER(EXT_frag_depth)
@@ -137,6 +138,8 @@ RefPtr<ClientWebGLExtensionBase> ClientWebGLContext::GetExtension(
           return new ClientWebGLExtensionEXTColorBufferFloat(*this);
         case WebGLExtensionID::EXT_color_buffer_half_float:
           return new ClientWebGLExtensionColorBufferHalfFloat(*this);
+        case WebGLExtensionID::EXT_depth_clamp:
+          return new ClientWebGLExtensionDepthClamp(*this);
         case WebGLExtensionID::EXT_disjoint_timer_query:
           return new ClientWebGLExtensionDisjointTimerQuery(*this);
         case WebGLExtensionID::EXT_float_blend:
@@ -257,6 +260,9 @@ bool WebGLContext::IsExtensionSupported(WebGLExtensionID ext) const {
 
     case WebGLExtensionID::EXT_color_buffer_half_float:
       return WebGLExtensionColorBufferHalfFloat::IsSupported(this);
+
+    case WebGLExtensionID::EXT_depth_clamp:
+      return gl->IsSupported(gl::GLFeature::depth_clamp);
 
     case WebGLExtensionID::EXT_disjoint_timer_query:
       return WebGLExtensionDisjointTimerQuery::IsSupported(this);
@@ -413,6 +419,9 @@ void WebGLContext::RequestExtension(const WebGLExtensionID ext,
       break;
     case WebGLExtensionID::EXT_color_buffer_half_float:
       slot.reset(new WebGLExtensionColorBufferHalfFloat(this));
+      break;
+    case WebGLExtensionID::EXT_depth_clamp:
+      slot.reset(new WebGLExtensionDepthClamp(this));
       break;
     case WebGLExtensionID::EXT_disjoint_timer_query:
       slot.reset(new WebGLExtensionDisjointTimerQuery(this));

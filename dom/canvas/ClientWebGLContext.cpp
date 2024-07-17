@@ -939,6 +939,8 @@ bool ClientWebGLContext::CreateHostContext(const uvec2& requestedSize) {
   // Init state
   const auto& limits = Limits();
   auto& state = State();
+  state.mIsEnabledMap = webgl::MakeIsEnabledMap(mIsWebGL2);
+
   state.mDefaultTfo = new WebGLTransformFeedbackJS(*this);
   state.mDefaultVao = new WebGLVertexArrayJS(this);
 
@@ -977,8 +979,6 @@ bool ClientWebGLContext::CreateHostContext(const uvec2& requestedSize) {
     (void)state
         .mCurrentQueryByTarget[LOCAL_GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN];
   }
-
-  state.mIsEnabledMap = Some(webgl::MakeIsEnabledMap(mIsWebGL2));
 
   return true;
 }
@@ -1934,7 +1934,7 @@ void ClientWebGLContext::SetEnabledI(const GLenum cap, const Maybe<GLuint> i,
   const FuncScope funcScope(*this, "enable/disable");
   if (IsContextLost()) return;
 
-  auto& map = *mNotLost->state.mIsEnabledMap;
+  auto& map = mNotLost->state.mIsEnabledMap;
   auto slot = MaybeFind(map, cap);
   if (i && cap != LOCAL_GL_BLEND) {
     slot = nullptr;
@@ -1955,7 +1955,7 @@ bool ClientWebGLContext::IsEnabled(const GLenum cap) const {
   const FuncScope funcScope(*this, "isEnabled");
   if (IsContextLost()) return false;
 
-  const auto& map = *mNotLost->state.mIsEnabledMap;
+  const auto& map = mNotLost->state.mIsEnabledMap;
   const auto slot = MaybeFind(map, cap);
   if (!slot) {
     EnqueueError_ArgEnum("cap", cap);
@@ -2163,6 +2163,11 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
       retval.set(JS::NumberValue(UnderlyingValue(state.mProvokingVertex)));
       return;
 
+    case LOCAL_GL_DEPTH_CLAMP:
+      if (!IsExtensionEnabled(WebGLExtensionID::EXT_depth_clamp)) break;
+      retval.set(JS::BooleanValue(state.mIsEnabledMap[LOCAL_GL_DEPTH_CLAMP]));
+      return;
+
     // -
     // Array returns
 
@@ -2318,7 +2323,7 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
         retval.set(JS::NumberValue(state.mPixelUnpackState.skipRows));
         return;
     }  // switch pname
-  }    // if webgl2
+  }  // if webgl2
 
   // -
 

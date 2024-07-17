@@ -18,6 +18,12 @@ support-files = [
 
 ["ensure-exts/test_EXT_color_buffer_half_float.html"]
 
+["ensure-exts/test_EXT_depth_clamp.html"]
+fail-if = [
+  "os == 'android'",
+  "os == 'win'",
+]
+
 ["ensure-exts/test_EXT_disjoint_timer_query.html"]
 fail-if = ["true"]
 

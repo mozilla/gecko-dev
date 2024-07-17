@@ -207,6 +207,7 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
   friend class WebGLExtensionCompressedTextureRGTC;
   friend class WebGLExtensionCompressedTextureS3TC;
   friend class WebGLExtensionCompressedTextureS3TC_SRGB;
+  friend class WebGLExtensionDepthClamp;
   friend class WebGLExtensionDepthTexture;
   friend class WebGLExtensionDisjointTimerQuery;
   friend class WebGLExtensionDrawBuffers;
@@ -1236,6 +1237,8 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
 
   std::bitset<webgl::kMaxDrawBuffers> mColorWriteMaskNonzero = -1;
   std::bitset<webgl::kMaxDrawBuffers> mBlendEnabled = 0;
+
+  std::unordered_set<GLenum> mIsEnabledMapKeys;
 
   GLint mViewportX = 0;
   GLint mViewportY = 0;
