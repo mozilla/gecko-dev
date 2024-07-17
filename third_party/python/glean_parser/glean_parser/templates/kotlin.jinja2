@@ -121,24 +121,6 @@ data class {{ obj.name|Camelize }}{{ suffix }}(
 
 {% endmacro %}
 
-{%- macro generate_structure_typealias(name, struct) %}
-{%- if struct.type == "array" -%}
-    {{ generate_structure_typealias(name ~ "Item", struct["items"]) }}
-{%- elif struct.type == "object" -%}
-    {% for itemname, val in struct.properties.items() %}
-        {% if val.type == "array" %}
-        {% set nested_name = name ~ "Item" ~ itemname|Camelize %}
-        {{ generate_structure_typealias(nested_name, val) }}
-        {% elif val.type == "object" %}
-        {% set nested_name = name ~ "Item" ~ itemname|Camelize ~ "Object" %}
-        {{ generate_structure_typealias(nested_name, val) }}
-        {% endif %}
-    {% endfor %}
-{%- else -%}
-    typealias {{ name }} = {{ struct.type|structure_type_name }}
-{% endif %}
-{% endmacro %}
-
 /* ktlint-disable no-blank-line-before-rbrace */
 @file:Suppress("PackageNaming", "MaxLineLength")
 package {{ namespace }}
@@ -165,13 +147,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 {% endif %}
 
-{# HACK HACK HACK -- typealiases MUST BE top-level #}
-{% for obj in objs.values() %}
-{% if obj|attr("_generate_structure") %}
-{{ generate_structure_typealias(obj.name|Camelize ~ "Object", obj._generate_structure) }}
-{%- endif %}
-{% endfor %}
-{# HACK end #}
 internal object {{ category_name|Camelize }} {
 {% for obj in objs.values() %}
     {% if obj.type == "ping" %}
