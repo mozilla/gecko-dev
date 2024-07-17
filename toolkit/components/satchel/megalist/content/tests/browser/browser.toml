@@ -1,4 +1,9 @@
 [DEFAULT]
+support-files = [
+  "head.js",
+]
 
 ["browser_passwords_sidebar.js"]
 skip-if = ["os == 'linux'"]
+
+["browser_viewmodel.js"]

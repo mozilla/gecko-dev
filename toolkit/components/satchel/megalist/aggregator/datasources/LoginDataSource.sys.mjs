@@ -40,7 +40,6 @@ export class LoginDataSource extends DataSourceBase {
   #originPrototype;
   #usernamePrototype;
   #passwordPrototype;
-  #loginsDisabledMessage;
   #enabled;
   #header;
   #exportPasswordsStrings;
@@ -92,7 +91,6 @@ export class LoginDataSource extends DataSourceBase {
         expand: strings.expandSection,
         collapse: strings.collapseSection,
       };
-      this.#loginsDisabledMessage = strings.passwordsDisabled;
       this.#header = this.createHeaderLine(strings.headerLabel, tooltip);
       this.#header.commands.push(
         { id: "Create", label: "passwords-command-create" },
@@ -546,15 +544,7 @@ export class LoginDataSource extends DataSourceBase {
         login.password.toUpperCase().includes(searchText)
     );
 
-    this.formatMessages({
-      id:
-        stats.count == stats.total
-          ? "passwords-count"
-          : "passwords-filtered-count",
-      args: stats,
-    }).then(([headerLabel]) => {
-      this.#header.value = headerLabel;
-    });
+    this.#header.value = stats.total;
   }
 
   /**
@@ -625,7 +615,7 @@ export class LoginDataSource extends DataSourceBase {
   #reloadEmptyDataSource() {
     this.lines.length = 0;
     //todo: user can enable passwords by activating Passwords header line
-    this.#header.value = this.#loginsDisabledMessage;
+    this.#header.value = 0;
     this.refreshAllLinesOnScreen();
   }
 

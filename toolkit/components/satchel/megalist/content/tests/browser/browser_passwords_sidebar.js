@@ -3,10 +3,6 @@
 
 "use strict";
 
-const { LoginTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/LoginTestUtils.sys.mjs"
-);
-
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -21,10 +17,7 @@ add_setup(async function () {
 });
 
 add_task(async function test_passwords_sidebar() {
-  info("Add passwords");
-  await LoginTestUtils.addLogin({ username: "bob", password: "pass1" });
-  await LoginTestUtils.addLogin({ username: "sally", password: "pass2" });
-  await LoginTestUtils.addLogin({ username: "ned", password: "pass3" });
+  await addMockPasswords();
 
   info("Open Passwords sidebar");
   await SidebarController.show("viewMegalistSidebar");
