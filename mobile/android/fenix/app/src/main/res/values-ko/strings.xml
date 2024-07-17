@@ -50,15 +50,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">선택됨</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">최근에 저장됨</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">저장된 북마크 모두 표시</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">삭제</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">북마크</string>
@@ -125,7 +116,10 @@
     <string name="navbar_cfr_title">새로운 네비게이션으로 더 빠르게 탐색</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">이 막대는 아래로 스크롤하면 사라져 추가 탐색 공간을 확보할 수 있습니다.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">아래로 스크롤하면 이 막대는 사라져 추가 탐색 공간을 확보할 수 있습니다.</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">웹 사이트에서, 아래로 스크롤하면 이 막대는 사라져 추가 탐색 공간을 확보할 수 있습니다.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">카메라 액세스가 필요합니다. Android 설정으로 이동하여 권한을 누른 다음 허용을 누르세요.</string>
@@ -626,8 +620,6 @@
     <string name="preferences_account_sync_error">다시 연결하여 동기화를 계속하세요</string>
     <!-- Preference for language -->
     <string name="preferences_language">언어</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">번역</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">번역</string>
     <!-- Preference for data choices -->
@@ -725,8 +717,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">최근 탭</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">최근 북마크</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">북마크</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1732,7 +1722,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">암호화폐 채굴기</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">디지털 지문</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">디지털 지문</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">알려진 디지털 지문</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">상세 정보</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1756,9 +1748,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">악의적인 스크립트가 디지털 통화를 채굴하기 위해 기기에 액세스하는 것을 방지합니다.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">디지털 지문</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">디지털 지문</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">추적 목적으로 사용할 수 있는 사용자 기기에 대해 고유하게 식별 가능한 데이터가 수집되지 않도록합니다.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">추적 목적으로 사용할 수 있는 사용자 기기에 대해 고유하게 식별 가능한 데이터가 수집되지 않도록합니다.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">추적 목적으로 사용할 수 있는 사용자 기기에 대해 고유하게 식별 가능한 데이터가 수집되지 않도록합니다.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">추적 콘텐츠</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1785,6 +1779,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">알려진 추적 웹 사이트로 리디렉션하여 설정된 쿠키를 지웁니다.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">의심되는 디지털 지문</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">의심되는 디지털 지문을 차단하기 위해 디지털 지문 보호를 활성화합니다.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">알려진 디지털 지문</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">아래에 표시된 일부 추적기는 사용자가 *과 상호 작용했기 때문에 이 페이지에서 부분적으로 차단 해제되었습니다.</string>
@@ -2660,8 +2660,6 @@
     <string name="download_languages_item_content_description_in_progress_state">진행 중</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">다운로드</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">선택됨</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">언어를 로드할 수 없습니다. 나중에 다시 확인해 주세요.</string>
@@ -2724,8 +2722,6 @@
     <string name="debug_drawer_tab_tools_title">탭 도구</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">탭 수</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">활성</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">활성</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2821,4 +2817,10 @@
     <string name="debug_drawer_logins_add_login_button">이 도메인에 대한 가짜 로그인 추가</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">사용자 이름 %s의 로그인 삭제</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">CFR 도구</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">CFR 초기화</string>
 </resources>

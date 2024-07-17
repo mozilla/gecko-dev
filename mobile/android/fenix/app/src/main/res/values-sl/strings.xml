@@ -47,15 +47,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Izbrano</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">Nedavno shranjeno</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">Prikaži vse shranjene zaznamke</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Odstrani</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Zaznamki</string>
@@ -120,7 +111,7 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Brskajte hitreje z novo navigacijo</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">Ta vrstica se umakne, ko se pomaknete navzdol, da napravi prostor za brskanje.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Ta vrstica se umakne, ko se pomaknete navzdol, da napravi prostor za brskanje.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Potreben je dostop do kamere. Odprite nastavitve sistema Android in v dovoljenjih tapnite Dovoli.</string>
@@ -614,8 +605,6 @@
     <string name="preferences_account_sync_error">Ponovno se povežite za nadaljevanje sinhronizacije</string>
     <!-- Preference for language -->
     <string name="preferences_language">Jezik</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Prevajanje</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">Prevajanje</string>
     <!-- Preference for data choices -->
@@ -713,8 +702,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Skoči nazaj</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Nedavni zaznamki</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">Zaznamki</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1695,7 +1682,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Kriptorudarje</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Sledilce prstnih odtisov</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Sledilce prstnih odtisov</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Znane sledilce prstnih odtisov</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Podrobnosti</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1719,9 +1708,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Preprečuje, da bi zlonamerni skripti dostopali do vaše naprave za rudarjenje digitalne valute.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Sledilci prstnih odtisov</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Sledilci prstnih odtisov</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Preprečuje zbiranje podatkov o vaši napravi, ki se lahko uporabijo za vašo prepoznavo in sledenje.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Preprečuje zbiranje podatkov o vaši napravi, ki se lahko uporabijo za vašo prepoznavo in sledenje.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Preprečuje zbiranje podatkov o vaši napravi, ki se lahko uporabijo za vašo prepoznavo in sledenje.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Sledilna vsebina</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1747,6 +1738,10 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Počisti piškotke, ki jih nastavijo preusmeritve na znana sledilna spletna mesta.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Morebitne sledilce prstnih odtisov</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Znane sledilce prstnih odtisov</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Nekateri spodaj označeni sledilci so na tej strani delno dovoljeni, ker ste bili v interakciji z njimi *.</string>
@@ -2618,8 +2613,6 @@
     <string name="download_languages_item_content_description_in_progress_state">V teku</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Prenesi</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Izbrano</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">Jezikov ni bilo mogoče naložiti. Poskusite znova pozneje.</string>
@@ -2679,8 +2672,6 @@
     <string name="debug_drawer_tab_tools_title">Orodja za zavihke</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">Št. zavihkov</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">Dejavni</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">Dejaven</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2774,4 +2765,5 @@
     <string name="debug_drawer_logins_current_domain_label">Trenutna domena: %s</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Izbriši prijavo z uporabniškim imenom %s</string>
-</resources>
+
+    </resources>

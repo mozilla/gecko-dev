@@ -46,15 +46,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">נבחר</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">נשמרו לאחרונה</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">הצגת כל הסימניות השמורות</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">הסרה</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">סימניות</string>
@@ -118,7 +109,10 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">גלישה מהירה יותר עם ניווט חדש</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">סרגל זה מתחבא בעת גלילה כלפי מטה, לקבלת שטח גלישה נוסף.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">סרגל זה מתחבא בעת גלילה כלפי מטה, לקבלת שטח גלישה נוסף.</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">בעת גלישה באתרים, סרגל זה מתחבא בעת גלילה כלפי מטה, לקבלת שטח גלישה נוסף.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">דרושה גישה למצלמה. יש לעבור להגדרות ה־Android, להקיש על הרשאות ולאחר מכן על ״לאפשר״.</string>
@@ -611,8 +605,6 @@
     <string name="preferences_account_sync_error">יש להתחבר מחדש כדי להמשיך בסנכרון</string>
     <!-- Preference for language -->
     <string name="preferences_language">שפה</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">תרגום</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">תרגומים</string>
     <!-- Preference for data choices -->
@@ -711,8 +703,6 @@
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">המשך גלישה</string>
 
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">סימניות אחרונות</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">סימניות</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1687,7 +1677,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">כורי מטבעות דיגיטליים</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">רכיבי זהות דיגיטלית</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">רכיבי זהות דיגיטלית</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">רכיבי זהות דיגיטלית ידועים</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">פרטים</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1711,9 +1703,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">מונע מתסריטים זדוניים לקבל גישה למכשיר שלך כדי לכרות מטבעות דיגיטליים.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">רכיבי זהות דיגיטלית</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">רכיבי זהות דיגיטלית</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">עוצר איסוף של נתונים המאפשרים זיהוי ייחודי של המכשיר שלך שעלולים לשמש לצרכי מעקב.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">עוצר איסוף של נתונים המאפשרים זיהוי ייחודי של המכשיר שלך שעלולים לשמש לצרכי מעקב.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">עוצר איסוף של נתונים המאפשרים זיהוי ייחודי של המכשיר שלך שעלולים לשמש לצרכי מעקב.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">תוכן מעקב</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1739,6 +1733,10 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">מנקה עוגיות המוגדרות על־ידי הפניות לאתרי מעקב ידועים.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">רכיבי זהות דיגיטלית חשודים</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">רכיבי זהות דיגיטלית ידועים</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">החסימה של חלק מרכיבי המעקב המסומנים למטה בוטלה באופן חלקי בדף זה מכיוון שתיקשרת איתם *.</string>
@@ -2610,8 +2608,6 @@
     <string name="download_languages_item_content_description_in_progress_state">בתהליך</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">הורדה</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">נבחר</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">לא ניתן היה לטעון שפות. נא לנסות שוב מאוחר יותר.</string>
@@ -2672,8 +2668,6 @@
     <string name="debug_drawer_tab_tools_title">כלי לשוניות</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">ספירת לשוניות</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">פעיל</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">פעילים</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2768,4 +2762,10 @@
     <string name="debug_drawer_logins_add_login_button">הוספת כניסה מזויפת עבור שם מתחם זה</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">מחיקת הכניסה עם שם המשתמש %s</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">כלי CFR</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">איפוס CFR</string>
 </resources>

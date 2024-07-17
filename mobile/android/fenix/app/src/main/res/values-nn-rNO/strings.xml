@@ -49,15 +49,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Vald</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">Nyleg lagra</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">Vis alle lagra bokmerke</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Fjern</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Bokmerke</string>
@@ -124,7 +115,7 @@
     <string name="navbar_cfr_title">Surf raskare med ny navigasjon</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">Denne linja gøymer seg når du blar nedover for å gi ekstra visingsplass.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Denne linja gøymer seg når du blar nedover for å gi ekstra visingsplass.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kameratilgang er nødvendig. Gå til Android-innstillingar, trykk på løyve, og trykk på tillat.</string>
@@ -620,8 +611,6 @@
     <string name="preferences_account_sync_error">Kople til igjen for å halde fram synkroniseringa</string>
     <!-- Preference for language -->
     <string name="preferences_language">Språk</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Omsetting</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">Omsettingar</string>
     <!-- Preference for data choices -->
@@ -719,8 +708,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Hopp inn igjen</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Nylege bokmerke</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">Bokmerke</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1701,7 +1688,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Kryptoutvinnarar</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Nettlesaravtrykk</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Nettlesaravtrykk</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Detaljar</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1725,9 +1712,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Hindrar vondsinna skript i å få tilgang til eininga di for å utvinne digitale valutaer.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Nettlesaravtrykk</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Nettlesaravtrykk</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Stoppar innsamling av unikt identifiserbare data om eininga di som kan brukast til å spore deg rundt om på nettet.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Stoppar innsamling av unikt identifiserbare data om eininga di som kan brukast til å spore deg rundt om på nettet.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Stoppar innsamling av unikt identifiserbare data om eininga di som kan brukast til å spore deg rundt om på nettet.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Sporingsinnhald</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -2633,8 +2622,6 @@
     <string name="download_languages_item_content_description_in_progress_state">I framdrift</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Last ned</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Valt</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">Klarte ikkje å laste inn språk. Prøv igjen seinare.</string>
@@ -2695,8 +2682,6 @@
     <string name="debug_drawer_tab_tools_title">Faneverktøy</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">Antal faner</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">Verksam</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">Aktiv</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2792,4 +2777,10 @@
     <string name="debug_drawer_logins_add_login_button">Legg til ei falsk innlogging for dette domenet</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Slett innlogging med brukarnamn %s</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">CFR-verktøy</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Tilbakestill CFR</string>
 </resources>
