@@ -21,6 +21,9 @@ prefs = [
 ["browser_firefoxview_paused.js"]
 
 ["browser_firefoxview_search_telemetry.js"]
+skip-if = [
+   "os == 'linux' && os_version == '18.04' && !debug", # Bug 1880113
+]
 
 ["browser_firefoxview_tab.js"]
 
