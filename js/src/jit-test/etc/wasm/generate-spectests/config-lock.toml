@@ -12,7 +12,7 @@ commit = 'a78b98a6'
 
 [[repos]]
 name = 'memory64'
-commit = '8d8f532d3'
+commit = '9edc82d34'
 
 [[repos]]
 name = 'relaxed-simd'
