@@ -515,8 +515,6 @@ LexerResult nsGIFDecoder2::DoDecode(SourceBufferIterator& aIterator,
             return ReadNetscapeExtensionData(aData);
           case State::IMAGE_DESCRIPTOR:
             return ReadImageDescriptor(aData);
-          case State::FINISH_IMAGE_DESCRIPTOR:
-            return FinishImageDescriptor(aData);
           case State::LOCAL_COLOR_TABLE:
             return ReadLocalColorTable(aData, aLength);
           case State::FINISHED_LOCAL_COLOR_TABLE:
@@ -532,6 +530,8 @@ LexerResult nsGIFDecoder2::DoDecode(SourceBufferIterator& aIterator,
           case State::FINISHED_LZW_DATA:
             return Transition::To(State::IMAGE_DATA_SUB_BLOCK,
                                   SUB_BLOCK_HEADER_LEN);
+          case State::FINISH_END_IMAGE_FRAME:
+            return Transition::To(State::BLOCK_HEADER, BLOCK_HEADER_LEN);
           case State::SKIP_SUB_BLOCKS:
             return SkipSubBlocks(aData);
           case State::SKIP_DATA_THEN_SKIP_SUB_BLOCKS:
@@ -807,13 +807,7 @@ LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadImageDescriptor(
   }
 
   MOZ_ASSERT(Size() == OutputSize(), "Downscaling an animated image?");
-
-  if (WantsFrameCount()) {
-    return FinishImageDescriptor(aData);
-  }
-
-  // Yield to allow access to the previous frame before we start a new one.
-  return Transition::ToAfterYield(State::FINISH_IMAGE_DESCRIPTOR);
+  return FinishImageDescriptor(aData);
 }
 
 LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::FinishImageDescriptor(
@@ -1020,9 +1014,12 @@ LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadImageDataSubBlock(
     const char* aData) {
   const uint8_t subBlockLength = aData[0];
   if (subBlockLength == 0) {
-    // We hit the block terminator.
+    // We hit the block terminator. Yield if we are decoding multiple frames.
     EndImageFrame();
-    return Transition::To(State::BLOCK_HEADER, BLOCK_HEADER_LEN);
+    if (IsFirstFrameDecode()) {
+      return Transition::To(State::BLOCK_HEADER, BLOCK_HEADER_LEN);
+    }
+    return Transition::ToAfterYield(State::FINISH_END_IMAGE_FRAME);
   }
 
   if (mGIFStruct.pixels_remaining == 0) {
