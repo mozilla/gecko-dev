@@ -21,7 +21,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 
 @RunWith(FenixRobolectricTestRunner::class)
-class TabCounterMenuTest {
+class FenixTabCounterMenuTest {
 
     private lateinit var context: Context
     private lateinit var onItemTapped: (TabCounterMenu.Item) -> Unit
