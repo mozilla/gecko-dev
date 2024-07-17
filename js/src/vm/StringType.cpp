@@ -685,6 +685,41 @@ static MOZ_ALWAYS_INLINE JSString::OwnedChars<CharT> AllocChars(JSContext* cx,
   return {std::move(buffer), length};
 }
 
+// Like AllocChars but for atom characters. Does not report an exception on OOM.
+template <typename CharT>
+JSString::OwnedChars<CharT> js::AllocAtomCharsValidLength(JSContext* cx,
+                                                          size_t length) {
+  MOZ_ASSERT(cx->zone()->isAtomsZone());
+  MOZ_ASSERT(JSAtom::validateLength(cx, length));
+  MOZ_ASSERT(mozilla::StringBuffer::IsValidLength<CharT>(length));
+
+  static_assert(JSString::MIN_BYTES_FOR_BUFFER % sizeof(CharT) == 0);
+
+  if (length < JSString::MIN_BYTES_FOR_BUFFER / sizeof(CharT)) {
+    auto buffer =
+        cx->make_pod_arena_array<CharT>(js::StringBufferArena, length);
+    if (!buffer) {
+      cx->recoverFromOutOfMemory();
+      return {};
+    }
+    return {std::move(buffer), length};
+  }
+
+  // Note: StringBuffers must be null-terminated.
+  RefPtr<mozilla::StringBuffer> buffer = mozilla::StringBuffer::Alloc(
+      (length + 1) * sizeof(CharT), mozilla::Some(js::StringBufferArena));
+  if (!buffer) {
+    return {};
+  }
+  static_cast<CharT*>(buffer->Data())[length] = '\0';
+  return {std::move(buffer), length};
+}
+
+template JSString::OwnedChars<Latin1Char> js::AllocAtomCharsValidLength(
+    JSContext* cx, size_t length);
+template JSString::OwnedChars<char16_t> js::AllocAtomCharsValidLength(
+    JSContext* cx, size_t length);
+
 template <typename CharT>
 UniquePtr<CharT[], JS::FreePolicy> JSRope::copyCharsInternal(
     JSContext* maybecx, arena_id_t destArenaId) const {
@@ -1858,16 +1893,15 @@ static JSAtom* NewAtomDeflatedValidLength(JSContext* cx, const char16_t* s,
     return NewInlineAtomDeflated(cx, s, n, hash);
   }
 
-  auto news = cx->make_pod_arena_array<Latin1Char>(js::StringBufferArena, n);
-  if (!news) {
-    cx->recoverFromOutOfMemory();
+  JSString::OwnedChars<Latin1Char> newChars(
+      AllocAtomCharsValidLength<Latin1Char>(cx, n));
+  if (!newChars) {
     return nullptr;
   }
 
   MOZ_ASSERT(CanStoreCharsAsLatin1(s, n));
-  FillFromCompatible(news.get(), s, n);
+  FillFromCompatible(newChars.data(), s, n);
 
-  JSString::OwnedChars<Latin1Char> newChars(std::move(news), n);
   return JSAtom::newValidLength<Latin1Char>(cx, newChars, hash);
 }
 
@@ -2046,15 +2080,13 @@ JSAtom* NewAtomCopyNDontDeflateValidLength(JSContext* cx, const CharT* s,
     return NewInlineAtom(cx, s, n, hash);
   }
 
-  auto news = cx->make_pod_arena_array<CharT>(js::StringBufferArena, n);
-  if (!news) {
-    cx->recoverFromOutOfMemory();
+  JSString::OwnedChars<CharT> newChars(AllocAtomCharsValidLength<CharT>(cx, n));
+  if (!newChars) {
     return nullptr;
   }
 
-  PodCopy(news.get(), s, n);
+  PodCopy(newChars.data(), s, n);
 
-  JSString::OwnedChars<CharT> newChars(std::move(news), n);
   return JSAtom::newValidLength<CharT>(cx, newChars, hash);
 }
 
