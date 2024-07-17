@@ -41,9 +41,9 @@ async function run_test() {
     false // aUpdatesExists
   );
   await checkUpdateManager(
-    STATE_PENDING, // aStatusFileState
+    STATE_PENDING_SVC, // aStatusFileState
     true, // aHasActiveUpdate
-    STATE_PENDING, // aUpdateStatusState
+    STATE_PENDING_SVC, // aUpdateStatusState
     WRITE_ERROR_BACKGROUND_TASK_SHARING_VIOLATION,
     0 // aUpdateCount
   );

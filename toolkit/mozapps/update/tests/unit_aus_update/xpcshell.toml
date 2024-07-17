@@ -79,6 +79,8 @@ reason = "Update directory migration is currently Windows only"
 
 ["updateEnabledTelemetry.js"]
 
+["updateFailureFallBack.js"]
+
 ["updateManagerXML.js"]
 
 ["updateSyncManager.js"]
