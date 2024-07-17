@@ -2,37 +2,186 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// TDOD: Remove this line once methods are updated. See bug 1896727
+// TDOD: Remove eslint-disable lines once methods are updated. See bug 1896727
 /* eslint-disable no-unused-vars */
+/* eslint-disable no-unused-private-class-members */
+
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
+});
+
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "ProfileService",
+  "@mozilla.org/toolkit/profile-service;1",
+  "nsIToolkitProfileService"
+);
+
+function getProfileGroupsDir() {
+  return PathUtils.join(
+    Services.dirsvc.get("UAppData", Ci.nsIFile).path,
+    "Profile Groups"
+  );
+}
 
 /**
  * The service that manages selectable profiles
  */
 export class SelectableProfileService {
+  #connection = null;
+  #asyncShutdownBlocker = null;
+  #initialized = false;
+  #groupToolkitProfile = null;
+
+  async createProfilesStorePath() {
+    await IOUtils.makeDirectory(getProfileGroupsDir());
+
+    const storageID = Services.uuid
+      .generateUUID()
+      .toString()
+      .replace("{", "")
+      .split("-")[0];
+    this.#groupToolkitProfile.storeID = storageID;
+  }
+
+  async getProfilesStorePath() {
+    if (!this.#groupToolkitProfile.storeID) {
+      await this.createProfilesStorePath();
+    }
+
+    return PathUtils.join(
+      getProfileGroupsDir(),
+      `${this.#groupToolkitProfile.storeID}.sqlite`
+    );
+  }
+
   /**
    * At startup, store the nsToolkitProfile for the group.
    * Get the groupDBPath from the nsToolkitProfile, and connect to it.
-   *
-   * @param {nsToolkitProfile} groupProfile The current toolkit profile
    */
-  init(groupProfile) {}
+  async init() {
+    if (this.#initialized) {
+      return;
+    }
+
+    this.#groupToolkitProfile = lazy.ProfileService.currentProfile;
+
+    await this.initConnection();
+
+    this.#initialized = true;
+  }
+
+  async initConnection() {
+    if (this.#connection) {
+      return;
+    }
+
+    let path = await this.getProfilesStorePath();
+
+    // TODO: (Bug 1902320) Handle exceptions on connection opening
+    // This could fail if the store is corrupted.
+    this.#connection = await lazy.Sqlite.openConnection({
+      path,
+      openNotExclusive: true,
+    });
+
+    await this.#connection.execute("PRAGMA journal_mode = WAL");
+    await this.#connection.execute("PRAGMA wal_autocheckpoint = 16");
+
+    this.#asyncShutdownBlocker = async () => {
+      await this.#connection.close();
+      this.#connection = null;
+    };
+
+    // This could fail if we're adding it during shutdown. In this case,
+    // don't throw but close the connection.
+    try {
+      lazy.Sqlite.shutdown.addBlocker(
+        "Profiles:ProfilesSqlite closing",
+        this.#asyncShutdownBlocker
+      );
+    } catch (ex) {
+      await this.closeConnection();
+      return;
+    }
+
+    await this.createProfilesDBTables();
+  }
+
+  async closeConnection() {
+    if (this.#asyncShutdownBlocker) {
+      lazy.Sqlite.shutdown.removeBlocker(this.#asyncShutdownBlocker);
+      this.#asyncShutdownBlocker = null;
+    }
+
+    if (this.#connection) {
+      // An error could occur while closing the connection. We suppress the
+      // error since it is not a critical part of the browser.
+      try {
+        await this.#connection.close();
+      } catch (ex) {}
+      this.#connection = null;
+    }
+  }
+
+  /**
+   * Create tables for Selectable Profiles if they don't already exist
+   */
+  async createProfilesDBTables() {
+    // TODO: (Bug 1902320) Handle exceptions on connection opening
+    await this.#connection.executeTransaction(async () => {
+      const createProfilesTable = `
+        CREATE TABLE IF NOT EXISTS "Profiles" (
+          id  INTEGER NOT NULL,
+          path	TEXT NOT NULL UNIQUE,
+          name	TEXT NOT NULL,
+          avatar	TEXT NOT NULL,
+          themeL10nId	TEXT NOT NULL,
+          themeFg	TEXT NOT NULL,
+          themeBg	TEXT NOT NULL,
+          PRIMARY KEY(id)
+        );`;
+
+      await this.#connection.execute(createProfilesTable);
+
+      const createSharedPrefsTable = `
+        CREATE TABLE IF NOT EXISTS "SharedPrefs" (
+          id	INTEGER NOT NULL,
+          name	TEXT NOT NULL UNIQUE,
+          value	BLOB,
+          isBoolean	INTEGER,
+          PRIMARY KEY(id)
+        );`;
+
+      await this.#connection.execute(createSharedPrefsTable);
+    });
+  }
 
   /**
    * Create the SQLite DB for the profile group.
    * Init shared prefs for the group and add to DB.
    * Create the Group DB path to aNamedProfile entry in profiles.ini.
    * Import aNamedProfile into DB.
-   *
-   * @param {nsToolkitProfile} groupProfile The current toolkit profile
    */
-  createProfileGroup(groupProfile) {}
+  createProfileGroup() {}
 
   /**
    * When the last selectable profile in a group is deleted,
    * also remove the profile group's named profile entry from profiles.ini
-   * and delete the group DB.
+   * and vacuum the group DB.
    */
-  deleteProfileGroup() {}
+  async deleteProfileGroup() {
+    if (this.getProfiles().length) {
+      return;
+    }
+
+    this.#groupToolkitProfile.storeID = null;
+    await this.vacuumAndCloseGroupDB();
+  }
 
   // App session lifecycle methods and multi-process support
 
@@ -160,7 +309,10 @@ export class SelectableProfileService {
   createGroupDB() {}
 
   /**
-   * Delete the SQLite DB when the last selectable profile is deleted.
+   * Vacuum the SQLite DB.
    */
-  deleteGroupDB() {}
+  async vacuumAndCloseGroupDB() {
+    await this.#connection.execute("VACUUM;");
+    await this.closeConnection();
+  }
 }
