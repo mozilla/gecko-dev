@@ -38,7 +38,10 @@ static inline bool WaitForFrameGPUQuery(ID3D11Device* aDevice,
   TimeStamp start = TimeStamp::Now();
   bool success = true;
   while (aContext->GetData(aQuery, aOut, sizeof(*aOut), 0) != S_OK) {
-    if (aDevice->GetDeviceRemovedReason() != S_OK) {
+    HRESULT hr = aDevice->GetDeviceRemovedReason();
+    if (hr != S_OK) {
+      gfxCriticalNoteOnce << "WaitForFrameGPUQuery device removed: "
+                          << gfx::hexa(hr);
       return false;
     }
     if (TimeStamp::Now() - start > TimeDuration::FromSeconds(2)) {
