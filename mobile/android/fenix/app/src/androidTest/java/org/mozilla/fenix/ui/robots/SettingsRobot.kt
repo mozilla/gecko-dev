@@ -59,7 +59,6 @@ import org.mozilla.fenix.helpers.TestHelper.scrollToElementByText
 import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.settings.SupportUtils
-import org.mozilla.fenix.ui.robots.SettingsRobot.Companion.DEFAULT_APPS_SETTINGS_ACTION
 
 /**
  * Implementation of Robot Pattern for the settings menu.
@@ -343,6 +342,11 @@ class SettingsRobot {
 
     fun verifyExternalDownloadManagerButton() {
         Log.i(TAG, "verifyExternalDownloadManagerButton: Trying to verify that the \"External download manager\" button is visible")
+        onView(withId(R.id.recycler_view)).perform(
+            RecyclerViewActions.scrollTo<RecyclerView.ViewHolder>(
+                hasDescendant(withText(R.string.preferences_external_download_manager)),
+            ),
+        )
         onView(
             withText(R.string.preferences_external_download_manager),
         ).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
@@ -350,6 +354,11 @@ class SettingsRobot {
     }
 
     fun verifyExternalDownloadManagerToggle(enabled: Boolean) {
+        onView(withId(R.id.recycler_view)).perform(
+            RecyclerViewActions.scrollTo<RecyclerView.ViewHolder>(
+                hasDescendant(withText(R.string.preferences_external_download_manager)),
+            ),
+        )
         Log.i(TAG, "verifyExternalDownloadManagerToggle: Trying to verify that the \"External download manager\" toggle is enabled: $enabled")
         onView(withText(R.string.preferences_external_download_manager))
             .check(
@@ -370,6 +379,11 @@ class SettingsRobot {
     }
 
     fun verifyLeakCanaryToggle(enabled: Boolean) {
+        onView(withId(R.id.recycler_view)).perform(
+            RecyclerViewActions.scrollTo<RecyclerView.ViewHolder>(
+                hasDescendant(withText(R.string.preference_leakcanary)),
+            ),
+        )
         Log.i(TAG, "verifyLeakCanaryToggle: Trying to verify that the \"LeakCanary\" toggle is enabled: $enabled")
         onView(withText(R.string.preference_leakcanary))
             .check(
@@ -390,6 +404,11 @@ class SettingsRobot {
     }
 
     fun verifyRemoteDebuggingToggle(enabled: Boolean) {
+        onView(withId(R.id.recycler_view)).perform(
+            RecyclerViewActions.scrollTo<RecyclerView.ViewHolder>(
+                hasDescendant(withText(R.string.preferences_remote_debugging)),
+            ),
+        )
         Log.i(TAG, "verifyRemoteDebuggingToggle: Trying to verify that the \"Remote debugging via USB\" toggle is enabled: $enabled")
         onView(withText(R.string.preferences_remote_debugging))
             .check(
@@ -436,8 +455,16 @@ class SettingsRobot {
         Log.i(TAG, "verifyAboutHeading: Verified that the \"About\" heading is visible")
     }
 
-    fun verifyRateOnGooglePlay() = assertUIObjectExists(rateOnGooglePlayHeading())
-    fun verifyAboutFirefoxPreview() = assertUIObjectExists(aboutFirefoxHeading())
+    fun verifyRateOnGooglePlay() {
+        settingsList().scrollToEnd(LISTS_MAXSWIPES)
+        assertUIObjectExists(rateOnGooglePlayHeading())
+    }
+
+    fun verifyAboutFirefoxPreview() {
+        settingsList().scrollToEnd(LISTS_MAXSWIPES)
+        assertUIObjectExists(aboutFirefoxHeading())
+    }
+
     fun verifyGooglePlayRedirect() {
         if (isPackageInstalled(GOOGLE_PLAY_SERVICES)) {
             Log.i(TAG, "verifyGooglePlayRedirect: $GOOGLE_PLAY_SERVICES is installed")
