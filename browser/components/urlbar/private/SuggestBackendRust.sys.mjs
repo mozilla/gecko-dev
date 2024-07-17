@@ -32,6 +32,8 @@ XPCOMUtils.defineLazyServiceGetter(
 
 const SUGGEST_DATA_STORE_BASENAME = "suggest.sqlite";
 
+const SPONSORED_SUGGESTION_TYPES = new Set(["Amp", "Fakespot", "Yelp"]);
+
 // This ID is used to register our ingest timer with nsIUpdateTimerManager.
 const INGEST_TIMER_ID = "suggest-ingest";
 const INGEST_TIMER_LAST_UPDATE_PREF = `app.update.lastUpdateTime.${INGEST_TIMER_ID}`;
@@ -144,7 +146,7 @@ export class SuggestBackendRust extends BaseFeature {
 
       suggestion.source = "rust";
       suggestion.provider = type;
-      suggestion.is_sponsored = type == "Amp" || type == "Yelp";
+      suggestion.is_sponsored = SPONSORED_SUGGESTION_TYPES.has(type);
       if (Array.isArray(suggestion.icon)) {
         suggestion.icon_blob = new Blob([new Uint8Array(suggestion.icon)], {
           type: suggestion.iconMimetype ?? "",

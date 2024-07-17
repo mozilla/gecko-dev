@@ -5,74 +5,66 @@
 
 // Test for Fakespot suggestions.
 
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  sinon: "resource://testing-common/Sinon.sys.mjs",
-});
-
-// TODO: Replace with proper remote settings data once the Fakespot Rust feature
-// is vendored in to mozilla-central.
-const DUMMY_RESULT = [
+const REMOTE_SETTINGS_RECORDS = [
   {
-    source: "rust",
-    provider: "Fakespot",
-    url: "https://example.com/maybe-good-item",
-    title: "Maybe Good Item",
-    rating: 4.8,
-    totalReviews: 1234567,
-    fakespotGrade: "A",
-    productId: "amazon-0",
-  },
-  {
-    source: "rust",
-    provider: "Fakespot",
-    url: "https://example.com/1-review-item",
-    title: "1 review item",
-    rating: 5,
-    totalReviews: 1,
-    fakespotGrade: "A",
-    productId: "amazon-1",
-  },
-  {
-    source: "rust",
-    provider: "Fakespot",
-    url: "https://example.com/2-reviews-item",
-    title: "2 reviews item",
-    rating: 4,
-    totalReviews: 2,
-    fakespotGrade: "A",
-    productId: "amazon-2",
-  },
-  {
-    source: "rust",
-    provider: "Fakespot",
-    url: "https://example.com/1000-reviews-item",
-    title: "1000 reviews item",
-    rating: 3,
-    totalReviews: 1000,
-    fakespotGrade: "A",
-    productId: "amazon-3",
-  },
-  {
-    source: "rust",
-    provider: "Fakespot",
-    url: "https://example.com/99999-reviews-item",
-    title: "99999 reviews item",
-    rating: 2,
-    totalReviews: 99999,
-    fakespotGrade: "A",
-    productId: "amazon-4",
-  },
-  {
-    source: "rust",
-    provider: "Fakespot",
-    url: "https://example.com/100000-reviews-item",
-    title: "100000 reviews item",
-    rating: 1,
-    totalReviews: 100000,
-    fakespotGrade: "A",
-    productId: "amazon-5",
+    collection: "fakespot-suggest-products",
+    type: "fakespot-suggestions",
+    attachment: [
+      {
+        url: "https://example.com/maybe-good-item",
+        title: "Maybe Good Item",
+        rating: 4.8,
+        total_reviews: 1234567,
+        fakespot_grade: "A",
+        product_id: "amazon-0",
+        score: 0.01,
+      },
+      {
+        url: "https://example.com/1-review-item",
+        title: "1 review item",
+        rating: 5,
+        total_reviews: 1,
+        fakespot_grade: "A",
+        product_id: "amazon-1",
+        score: 0.1,
+      },
+      {
+        url: "https://example.com/2-reviews-item",
+        title: "2 reviews item",
+        rating: 4,
+        total_reviews: 2,
+        fakespot_grade: "A",
+        product_id: "amazon-2",
+        score: 0.2,
+      },
+      {
+        url: "https://example.com/1000-reviews-item",
+        title: "1000 reviews item",
+        rating: 3,
+        total_reviews: 1000,
+        fakespot_grade: "A",
+        product_id: "amazon-3",
+        score: 0.3,
+      },
+      {
+        url: "https://example.com/99999-reviews-item",
+        title: "99999 reviews item",
+        rating: 2,
+        total_reviews: 99999,
+        fakespot_grade: "A",
+        product_id: "amazon-4",
+        score: 0.4,
+      },
+      {
+        url: "https://example.com/100000-reviews-item",
+        title: "100000 reviews item",
+        rating: 1,
+        total_reviews: 100000,
+        fakespot_grade: "A",
+        product_id: "amazon-5",
+        score: 0.5,
+      },
+    ],
   },
 ];
 
@@ -81,28 +73,21 @@ const HELP_URL =
   "awesome-bar-result-menu";
 
 add_setup(async function () {
-  const sandbox = lazy.sinon.createSandbox();
-  sandbox
-    .stub(lazy.QuickSuggest.rustBackend, "query")
-    .callsFake(async searchString =>
-      DUMMY_RESULT.filter(r =>
-        r.title.toLowerCase().startsWith(searchString.toLowerCase())
-      )
-    );
-
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.quicksuggest.enabled", true],
-      ["browser.urlbar.quicksuggest.rustEnabled", true],
-      ["browser.urlbar.suggest.quicksuggest.sponsored", true],
-      ["browser.urlbar.fakespot.featureGate", true],
-      ["browser.urlbar.suggest.fakespot", true],
+    set: [["browser.search.suggest.enabled", false]],
+  });
+
+  await QuickSuggestTestUtils.ensureQuickSuggestInit({
+    remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
+    prefs: [
+      ["suggest.quicksuggest.sponsored", true],
+      ["suggest.fakespot", true],
+      ["fakespot.featureGate", true],
     ],
   });
 
   registerCleanupFunction(async () => {
     await PlacesUtils.history.clear();
-    sandbox.restore();
   });
 });
 

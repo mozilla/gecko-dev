@@ -6,55 +6,117 @@
 
 "use strict";
 
-// TODO: Replace with proper remote settings data once the Fakespot Rust feature
-// is vendored in to mozilla-central.
-const DUMMY_SUGGESTIONS = [
+const REMOTE_SETTINGS_RECORDS = [
   {
-    source: "rust",
-    provider: "Fakespot",
-    url: "https://example.com/fakespot-0",
-    title: "Example Fakespot suggestion",
-    rating: 4.6,
-    fakespotGrade: "A",
-    totalReviews: 167,
-    productId: "amazon-0",
-    score: 0.68416834,
-    is_sponsored: true,
-  },
-  {
-    source: "rust",
-    provider: "Fakespot",
-    url: "https://example.com/fakespot-1",
-    title: "Another Fakespot suggestion",
-    rating: 3.5,
-    fakespotGrade: "B",
-    totalReviews: 100,
-    productId: "amazon-1",
-    score: 0.5,
-    is_sponsored: true,
+    collection: "fakespot-suggest-products",
+    type: "fakespot-suggestions",
+    attachment: [
+      {
+        url: "https://example.com/fakespot-0",
+        title: "Example Fakespot suggestion",
+        rating: 4.6,
+        fakespot_grade: "A",
+        total_reviews: 167,
+        product_id: "amazon-0",
+        score: 0.68416834,
+      },
+      {
+        url: "https://example.com/fakespot-1",
+        title: "Another Fakespot suggestion",
+        rating: 3.5,
+        fakespot_grade: "B",
+        total_reviews: 100,
+        product_id: "amazon-1",
+        score: 0.5,
+      },
+    ],
   },
 ];
 
 const PRIMARY_SEARCH_STRING = "example";
-const PRIMARY_TITLE = DUMMY_SUGGESTIONS[0].title;
-const PRIMARY_URL = DUMMY_SUGGESTIONS[0].url;
+const PRIMARY_TITLE = REMOTE_SETTINGS_RECORDS[0].attachment[0].title;
+const PRIMARY_URL = REMOTE_SETTINGS_RECORDS[0].attachment[0].url;
 
 add_setup(async function () {
   Services.prefs.setBoolPref("browser.search.suggest.enabled", false);
 
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
-    remoteSettingsRecords: [],
+    remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
     prefs: [
       ["suggest.quicksuggest.sponsored", true],
       ["suggest.fakespot", true],
       ["fakespot.featureGate", true],
     ],
   });
+});
 
-  let sandbox = sinon.createSandbox();
-  sandbox
-    .stub(QuickSuggest.rustBackend, "query")
-    .callsFake(async () => DUMMY_SUGGESTIONS);
+add_task(async function basic() {
+  const TEST_DATA = [
+    {
+      description: "Basic",
+      query: "example fakespot suggestion",
+      expected: {
+        url: PRIMARY_URL,
+        title: PRIMARY_TITLE,
+      },
+    },
+    {
+      description: "With upper case",
+      query: "ExAmPlE fAKeSpOt SuGgEsTiOn",
+      expected: {
+        url: PRIMARY_URL,
+        title: PRIMARY_TITLE,
+      },
+    },
+    {
+      description: "Prefix match 1",
+      query: "ex",
+      expected: null,
+    },
+    {
+      description: "Prefix match 2",
+      query: "examp",
+      expected: {
+        url: PRIMARY_URL,
+        title: PRIMARY_TITLE,
+      },
+    },
+    {
+      description: "First full word",
+      query: "example",
+      expected: {
+        url: PRIMARY_URL,
+        title: PRIMARY_TITLE,
+      },
+    },
+    {
+      description: "First full word + prefix",
+      query: "example f",
+      expected: {
+        url: PRIMARY_URL,
+        title: PRIMARY_TITLE,
+      },
+    },
+  ];
+
+  for (let { description, query, expected } of TEST_DATA) {
+    info(
+      "Doing basic subtest: " +
+        JSON.stringify({
+          description,
+          query,
+          expected,
+        })
+    );
+
+    await check_results({
+      context: createContext(query, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: expected ? [makeExpectedResult(expected)] : [],
+    });
+  }
 });
 
 add_task(async function telemetryType() {
@@ -255,11 +317,11 @@ add_task(async function notRelevant() {
     }),
     matches: [
       makeExpectedResult({
-        url: DUMMY_SUGGESTIONS[1].url,
-        title: DUMMY_SUGGESTIONS[1].title,
-        rating: DUMMY_SUGGESTIONS[1].rating,
-        totalReviews: DUMMY_SUGGESTIONS[1].totalReviews,
-        fakespotGrade: DUMMY_SUGGESTIONS[1].fakespotGrade,
+        url: REMOTE_SETTINGS_RECORDS[0].attachment[1].url,
+        title: REMOTE_SETTINGS_RECORDS[0].attachment[1].title,
+        rating: REMOTE_SETTINGS_RECORDS[0].attachment[1].rating,
+        totalReviews: REMOTE_SETTINGS_RECORDS[0].attachment[1].total_reviews,
+        fakespotGrade: REMOTE_SETTINGS_RECORDS[0].attachment[1].fakespot_grade,
       }),
     ],
   });
@@ -442,6 +504,31 @@ add_task(async function showLessFrequently() {
   UrlbarPrefs.clear("fakespot.minKeywordLength");
 });
 
+// The `Fakespot` Rust provider should be passed to the Rust component when
+// querying depending on whether Fakespot suggestions are enabled.
+add_task(async function rustProviders() {
+  await doRustProvidersTests({
+    searchString: PRIMARY_SEARCH_STRING,
+    tests: [
+      {
+        prefs: {
+          "suggest.fakespot": true,
+        },
+        expectedUrls: [PRIMARY_URL],
+      },
+      {
+        prefs: {
+          "suggest.fakespot": false,
+        },
+        expectedUrls: [],
+      },
+    ],
+  });
+
+  UrlbarPrefs.clear("suggest.fakespot");
+  await QuickSuggestTestUtils.forceSync();
+});
+
 add_task(async function minKeywordLength_noPrefValue() {
   await doMinKeywordLengthTest({
     // expected min length: 5 (Nimbus value)
@@ -601,26 +688,20 @@ add_task(async function minKeywordLength_onlyPrefValue() {
 });
 
 // When no min length is defined in Nimbus or the pref, we should fall back to
-// the hardcoded value of 2.
+// the natural threshold in the Rust component of 4.
 add_task(async function minKeywordLength_noNimbusOrPrefValue() {
   await doMinKeywordLengthTest({
-    // expected min length: 2 (hardcoded)
+    // expected min length: 4 (in Rust component)
     prefValue: null,
     nimbusValue: null,
     tests: [
       {
         query: "ex",
-        expected: {
-          url: PRIMARY_URL,
-          title: PRIMARY_TITLE,
-        },
+        expected: null,
       },
       {
         query: "exa",
-        expected: {
-          url: PRIMARY_URL,
-          title: PRIMARY_TITLE,
-        },
+        expected: null,
       },
       {
         query: "exam",
@@ -689,9 +770,9 @@ function makeExpectedResult({
   originalUrl = undefined,
   displayUrl = undefined,
   telemetryType = "fakespot_amazon",
-  rating = DUMMY_SUGGESTIONS[0].rating,
-  totalReviews = DUMMY_SUGGESTIONS[0].totalReviews,
-  fakespotGrade = DUMMY_SUGGESTIONS[0].fakespotGrade,
+  rating = REMOTE_SETTINGS_RECORDS[0].attachment[0].rating,
+  totalReviews = REMOTE_SETTINGS_RECORDS[0].attachment[0].total_reviews,
+  fakespotGrade = REMOTE_SETTINGS_RECORDS[0].attachment[0].fakespot_grade,
 } = {}) {
   originalUrl ??= url;
 
@@ -723,6 +804,7 @@ function makeExpectedResult({
       fakespotGrade,
       shouldNavigate: true,
       dynamicType: "fakespot",
+      icon: null,
     },
   };
 }
