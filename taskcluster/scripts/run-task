@@ -684,57 +684,6 @@ def vcs_checkout_from_args(args, project):
         sparse_profile=options['sparse-profile'])
 
 
-def maybe_run_resource_monitoring():
-    """Run the resource monitor if available.
-
-    Discussion in https://github.com/taskcluster/taskcluster-rfcs/pull/160
-    and https://bugzil.la/1648051
-    """
-    if 'MOZ_FETCHES' not in os.environ:
-        return
-    if 'RESOURCE_MONITOR_OUTPUT' not in os.environ:
-        return
-
-    prefix = b'resource_monitor'
-
-    executable = '{}/resource-monitor/resource-monitor{}'.format(
-        os.environ.get('MOZ_FETCHES_DIR'), '.exe' if IS_WINDOWS else '')
-
-    if not os.path.exists(executable) or not os.access(executable, os.X_OK):
-        print_line(prefix, b"%s not executable\n" % executable.encode('utf-8'))
-        return
-    args = [
-        executable,
-        '-process',
-        str(os.getpid()),
-        '-output',
-        os.environ["RESOURCE_MONITOR_OUTPUT"],
-    ]
-    print_line(prefix, b"Resource monitor starting: %s\n" % str(args).encode('utf-8'))
-    # Avoid environment variables the payload doesn't need.
-    del os.environ['RESOURCE_MONITOR_OUTPUT']
-
-    # Without CREATE_NEW_PROCESS_GROUP Windows signals will attempt to kill run-task, too.
-    process = subprocess.Popen(args,
-                               bufsize=0,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT,
-                               creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if IS_WINDOWS else 0,
-                               cwd=os.getcwd())
-
-    def capture_output():
-        fh = io.TextIOWrapper(process.stdout, encoding='latin1')
-        while True:
-            data = fh.readline().encode('latin1')
-            if data == b'':
-                break
-            print_line(prefix, data)
-
-    monitor_process = Thread(target=capture_output)
-    monitor_process.start()
-    return process
-
-
 def main(args):
     print_line(b'setup', b'run-task started in %s\n' % os.getcwd().encode('utf-8'))
     running_as_root = IS_POSIX and os.getuid() == 0
@@ -943,85 +892,67 @@ def main(args):
     vcs_checkout_from_args(args, 'gecko')
     vcs_checkout_from_args(args, 'comm')
 
-    resource_process = None
+    for k in ('GECKO_PATH', 'MOZ_FETCHES_DIR', 'UPLOAD_DIR', 'MOZ_PYTHON_HOME'):
+        if k in os.environ:
+            # Normalize paths to use forward slashes. Some shell scripts
+            # tolerate that better on Windows.
+            os.environ[k] = os.path.abspath(os.environ[k]).replace(os.sep, '/')
+            print_line(b'setup', b'%s is %s\n' % (
+                k.encode('utf-8'),
+                os.environ[k].encode('utf-8')))
 
-    try:
-        for k in ('GECKO_PATH', 'MOZ_FETCHES_DIR', 'UPLOAD_DIR', 'MOZ_PYTHON_HOME'):
-            if k in os.environ:
-                # Normalize paths to use forward slashes. Some shell scripts
-                # tolerate that better on Windows.
-                os.environ[k] = os.path.abspath(os.environ[k]).replace(os.sep, '/')
-                print_line(b'setup', b'%s is %s\n' % (
-                    k.encode('utf-8'),
-                    os.environ[k].encode('utf-8')))
+    if 'MOZ_FETCHES' in os.environ:
+        fetch_artifacts()
 
-        if 'MOZ_FETCHES' in os.environ:
-            fetch_artifacts()
+        # If Python is a fetch dependency, add it to the PATH and setting
+        # the mozilla-specific MOZ_PYTHON_HOME to relocate binaries.
+        if 'MOZ_PYTHON_HOME' in os.environ:
 
-            # If Python is a fetch dependency, add it to the PATH and setting
-            # the mozilla-specific MOZ_PYTHON_HOME to relocate binaries.
-            if 'MOZ_PYTHON_HOME' in os.environ:
+            print_line(b'setup',
+                       b'Setting up local python environment\n')
+            prev = [os.environ['PATH']] if 'PATH' in os.environ else []
 
-                print_line(b'setup',
-                           b'Setting up local python environment\n')
-                prev = [os.environ['PATH']] if 'PATH' in os.environ else []
-
-                moz_python_home = os.environ['MOZ_PYTHON_HOME']
-                if IS_WINDOWS:
-                    ext = '.exe'
-                    moz_python_bindir = moz_python_home
-                else:
-                    ext = ''
-                    moz_python_bindir = moz_python_home + '/bin'
-
-
-                new = os.environ['PATH'] = os.pathsep.join([moz_python_bindir]
-                                                           + prev)
-
-                # Relocate the python binary. Standard way uses PYTHONHOME, but
-                # this conflicts with system python (e.g. used by hg) so we
-                # maintain a small patch to use MOZPYTHONHOME instead.
-                os.environ['MOZPYTHONHOME'] = moz_python_home
-
-                pyinterp = os.path.join(moz_python_bindir, f'python3{ext}')
-                # just a sanity check
-                if not os.path.exists(pyinterp):
-                    raise RuntimeError("Inconsistent Python installation: "
-                                       "archive found, but no python3 binary "
-                                       "detected")
-
-                if IS_MACOSX:
-                    # On OSX, we may not have access to the system certificate,
-                    # so use the certifi ones.
-                    certifi_cert_file = subprocess.check_output(
-                    [pyinterp, '-c',
-                     'import certifi; print(certifi.where())'],
-                    text=True
-                    )
-                    os.environ['SSL_CERT_FILE'] = certifi_cert_file.strip()
-                    print_line(b'setup',
-                               b'patching ssl certificate\n')
-
-                print_line(b'setup',
-                           b'updated PATH with python artifact: '
-                           + new.encode() + b'\n')
-
-
-        resource_process = maybe_run_resource_monitoring()
-
-        return run_and_prefix_output(b'task', task_args, cwd=args.task_cwd)
-    finally:
-        if resource_process:
-            print_line(b'resource_monitor', b'terminating\n')
+            moz_python_home = os.environ['MOZ_PYTHON_HOME']
             if IS_WINDOWS:
-                # .terminate() on Windows is not a graceful shutdown, due to
-                # differences in signals. CTRL_BREAK_EVENT will work provided
-                # the subprocess is in a different process group, so this script
-                # isn't also killed.
-                os.kill(resource_process.pid, signal.CTRL_BREAK_EVENT)
+                ext = '.exe'
+                moz_python_bindir = moz_python_home
             else:
-                resource_process.terminate()
-            resource_process.wait()
+                ext = ''
+                moz_python_bindir = moz_python_home + '/bin'
+
+
+            new = os.environ['PATH'] = os.pathsep.join([moz_python_bindir]
+                                                       + prev)
+
+            # Relocate the python binary. Standard way uses PYTHONHOME, but
+            # this conflicts with system python (e.g. used by hg) so we
+            # maintain a small patch to use MOZPYTHONHOME instead.
+            os.environ['MOZPYTHONHOME'] = moz_python_home
+
+            pyinterp = os.path.join(moz_python_bindir, f'python3{ext}')
+            # just a sanity check
+            if not os.path.exists(pyinterp):
+                raise RuntimeError("Inconsistent Python installation: "
+                                   "archive found, but no python3 binary "
+                                   "detected")
+
+            if IS_MACOSX:
+                # On OSX, we may not have access to the system certificate,
+                # so use the certifi ones.
+                certifi_cert_file = subprocess.check_output(
+                [pyinterp, '-c',
+                 'import certifi; print(certifi.where())'],
+                text=True
+                )
+                os.environ['SSL_CERT_FILE'] = certifi_cert_file.strip()
+                print_line(b'setup',
+                           b'patching ssl certificate\n')
+
+            print_line(b'setup',
+                       b'updated PATH with python artifact: '
+                       + new.encode() + b'\n')
+
+    return run_and_prefix_output(b'task', task_args, cwd=args.task_cwd)
 
 
 if __name__ == '__main__':

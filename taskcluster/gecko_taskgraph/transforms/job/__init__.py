@@ -162,47 +162,6 @@ def set_label(config, jobs):
 
 
 @transforms.add
-def add_resource_monitor(config, jobs):
-    for job in jobs:
-        if job.get("attributes", {}).get("resource-monitor"):
-            worker_implementation, worker_os = worker_type_implementation(
-                config.graph_config, config.params, job["worker-type"]
-            )
-            # Normalise worker os so that linux-bitbar and similar use linux tools.
-            worker_os = worker_os.split("-")[0]
-            # We don't currently support an Arm worker, due to gopsutil's indirect
-            # dependencies (go-ole)
-            if "aarch64" in job["worker-type"]:
-                yield job
-                continue
-            elif "win7" in job["worker-type"]:
-                arch = "32"
-            else:
-                arch = "64"
-            job.setdefault("fetches", {})
-            job["fetches"].setdefault("toolchain", [])
-            job["fetches"]["toolchain"].append(f"{worker_os}{arch}-resource-monitor")
-
-            if worker_implementation == "docker-worker":
-                artifact_source = "/builds/worker/monitoring/resource-monitor.json"
-            else:
-                artifact_source = "monitoring/resource-monitor.json"
-            job["worker"].setdefault("artifacts", [])
-            job["worker"]["artifacts"].append(
-                {
-                    "name": "public/monitoring/resource-monitor.json",
-                    "type": "file",
-                    "path": artifact_source,
-                }
-            )
-            # Set env for output file
-            job["worker"].setdefault("env", {})
-            job["worker"]["env"]["RESOURCE_MONITOR_OUTPUT"] = artifact_source
-
-        yield job
-
-
-@transforms.add
 def make_task_description(config, jobs):
     """Given a build description, create a task description"""
     # import plugin modules first, before iterating over jobs
