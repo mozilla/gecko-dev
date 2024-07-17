@@ -115,7 +115,9 @@ definitions:
               of the metric to be stored at a given set of labels. The labeled
               metric types include:
 
-                `labeled_boolean`, `labeled_string`, `labeled_counter`.
+                `labeled_boolean`, `labeled_string`, `labeled_counter`,
+                `labeled_custom_distribution`, `labeled_memory_distribution`,
+                `labeled_timing_distribution`.
 
             - `text`: Record long text data.
 
@@ -141,6 +143,9 @@ definitions:
           - labeled_boolean
           - labeled_string
           - labeled_counter
+          - labeled_custom_distribution
+          - labeled_memory_distribution
+          - labeled_timing_distribution
           - rate
           - text
           - object

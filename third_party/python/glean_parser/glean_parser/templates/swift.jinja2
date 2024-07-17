@@ -80,7 +80,11 @@ struct {{ obj.name|Camelize }}{{ suffix }}: EventExtras {
         {% endif %}
     {% endfor %}
 
-{%- endif -%}
+{%- else -%}
+
+    typealias {{ name }} = {{ struct.type|structure_type_name }}
+
+{% endif -%}
 
 {% endmacro %}
 

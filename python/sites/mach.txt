@@ -66,6 +66,8 @@ vendored:third_party/python/charset_normalizer
 vendored:third_party/python/click
 vendored:third_party/python/colorama
 vendored:third_party/python/distro
+# See bug 1908020
+vendored:third_party/python/glean_parser
 vendored:third_party/python/idna
 vendored:third_party/python/importlib_metadata
 vendored:third_party/python/importlib_resources
