@@ -4179,7 +4179,7 @@ int NS_main(int argc, NS_tchar** argv) {
                 "NS_main: callback app file in use, failed to exclusively open "
                 "executable file from background task: " LOG_S,
                 argv[callbackIndex]));
-            WriteStatusFile(WRITE_ERROR_BACKGROUND_TASK_SHARING_VIOLATION);
+            WriteStatusFile(BACKGROUND_TASK_SHARING_VIOLATION);
 
             proceedWithoutExclusive = false;
           }

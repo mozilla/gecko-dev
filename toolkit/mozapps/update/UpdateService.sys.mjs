@@ -191,7 +191,7 @@ const INVALID_UPDATER_STATE_CODE = 98;
 const INVALID_UPDATER_STATUS_CODE = 99;
 
 const SILENT_UPDATE_NEEDED_ELEVATION_ERROR = 105;
-const WRITE_ERROR_BACKGROUND_TASK_SHARING_VIOLATION = 106;
+const BACKGROUND_TASK_SHARING_VIOLATION = 106;
 
 // Array of write errors to simplify checks for write errors
 const WRITE_ERRORS = [
@@ -208,7 +208,6 @@ const WRITE_ERRORS = [
   WRITE_ERROR_DIR_ACCESS_DENIED,
   WRITE_ERROR_DELETE_BACKUP,
   WRITE_ERROR_EXTRACT,
-  WRITE_ERROR_BACKGROUND_TASK_SHARING_VIOLATION,
 ];
 
 // Array of write errors to simplify checks for service errors
@@ -1600,6 +1599,17 @@ function handleUpdateFailure(update) {
         nextState
     );
     writeStatusFile(getReadyUpdateDir(), (update.state = nextState));
+    transitionState(Ci.nsIApplicationUpdateService.STATE_PENDING);
+    return true;
+  }
+
+  if (update.errorCode == BACKGROUND_TASK_SHARING_VIOLATION) {
+    let newState = getBestPendingState();
+    LOG(
+      "handleUpdateFailure - witnessed BACKGROUND_TASK_SHARING_VIOLATION, setting state to " +
+        newState
+    );
+    writeStatusFile(getReadyUpdateDir(), (update.state = newState));
     transitionState(Ci.nsIApplicationUpdateService.STATE_PENDING);
     return true;
   }

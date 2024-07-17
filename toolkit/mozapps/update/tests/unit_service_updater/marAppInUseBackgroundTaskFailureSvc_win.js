@@ -22,7 +22,7 @@ async function run_test() {
   await setupUpdaterTest(FILE_COMPLETE_MAR, false);
   await runHelperFileInUse(DIR_RESOURCES + gCallbackBinFile, false);
   runUpdate(
-    STATE_FAILED_WRITE_ERROR_BACKGROUND_TASK_SHARING_VIOLATION,
+    STATE_FAILED_BACKGROUND_TASK_SHARING_VIOLATION,
     false, // aSwitchApp
     1, // aExpectedExitValue
     true // aCheckSvcLog
@@ -41,10 +41,10 @@ async function run_test() {
     false // aUpdatesExists
   );
   await checkUpdateManager(
-    STATE_PENDING_SVC, // aStatusFileState
+    gIsServiceTest ? STATE_PENDING_SVC : STATE_PENDING, // aStatusFileState
     true, // aHasActiveUpdate
     STATE_PENDING_SVC, // aUpdateStatusState
-    WRITE_ERROR_BACKGROUND_TASK_SHARING_VIOLATION,
+    BACKGROUND_TASK_SHARING_VIOLATION,
     0 // aUpdateCount
   );
   checkCallbackLog();
