@@ -42,6 +42,11 @@ inline ValType ToValType(IndexType it) {
   return it == IndexType::I64 ? ValType::I64 : ValType::I32;
 }
 
+inline IndexType MinIndexType(IndexType a, IndexType b) {
+  return (a == IndexType::I32 || b == IndexType::I32) ? IndexType::I32
+                                                      : IndexType::I64;
+}
+
 extern bool ToIndexType(JSContext* cx, HandleValue value, IndexType* indexType);
 
 extern const char* ToString(IndexType indexType);

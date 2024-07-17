@@ -10480,6 +10480,16 @@ void CodeGenerator::visitWasmStoreElementI64(LWasmStoreElementI64* ins) {
 #endif
 }
 
+void CodeGenerator::visitWasmClampTable64Index(LWasmClampTable64Index* lir) {
+#ifdef ENABLE_WASM_MEMORY64
+  Register64 index = ToRegister64(lir->index());
+  Register out = ToRegister(lir->output());
+  masm.wasmClampTable64Index(index, out);
+#else
+  MOZ_CRASH("table64 indexes should not be valid without memory64");
+#endif
+}
+
 void CodeGenerator::visitArrayBufferByteLength(LArrayBufferByteLength* lir) {
   Register obj = ToRegister(lir->object());
   Register out = ToRegister(lir->output());

@@ -566,7 +566,13 @@ bool Module::instantiateImportedTable(JSContext* cx, const TableDesc& td,
   MOZ_ASSERT(!codeMeta().isAsmJS());
 
   Table& table = tableObj->table();
-  if (!CheckLimits(cx, td.initialLength, td.maximumLength,
+  if (table.indexType() != td.indexType()) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_IMP_INDEX,
+                             ToString(tableObj->table().indexType()));
+    return false;
+  }
+  if (!CheckLimits(cx, td.initialLength(), td.maximumLength(),
                    /* declaredMin */ MaxTableLimitField,
                    /* actualLength */ table.length(), table.maximum(),
                    codeMeta().isAsmJS(), "Table")) {
@@ -589,7 +595,7 @@ bool Module::instantiateImportedTable(JSContext* cx, const TableDesc& td,
 bool Module::instantiateLocalTable(JSContext* cx, const TableDesc& td,
                                    WasmTableObjectVector* tableObjs,
                                    SharedTableVector* tables) const {
-  if (td.initialLength > MaxTableLength) {
+  if (td.initialLength() > MaxTableLength) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                              JSMSG_WASM_TABLE_IMP_LIMIT);
     return false;
@@ -599,8 +605,7 @@ bool Module::instantiateLocalTable(JSContext* cx, const TableDesc& td,
   Rooted<WasmTableObject*> tableObj(cx);
   if (td.isExported) {
     RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmTable));
-    tableObj.set(WasmTableObject::create(cx, td.initialLength, td.maximumLength,
-                                         td.elemType, proto));
+    tableObj.set(WasmTableObject::create(cx, td.limits, td.elemType, proto));
     if (!tableObj) {
       return false;
     }
@@ -634,6 +639,7 @@ bool Module::instantiateTables(JSContext* cx,
   for (const TableDesc& td : codeMeta().tables) {
     if (tableIndex < tableImports.length()) {
       Rooted<WasmTableObject*> tableObj(cx, tableImports[tableIndex]);
+
       if (!instantiateImportedTable(cx, td, tableObj, &tableObjs.get(),
                                     tables)) {
         return false;

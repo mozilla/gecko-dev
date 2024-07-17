@@ -40,10 +40,11 @@ Table::Table(JSContext* cx, const TableDesc& desc,
     : maybeObject_(maybeObject),
       observers_(cx->zone()),
       functions_(std::move(functions)),
+      indexType_(desc.indexType()),
       elemType_(desc.elemType),
       isAsmJS_(desc.isAsmJS),
-      length_(desc.initialLength),
-      maximum_(desc.maximumLength) {
+      length_(desc.initialLength()),
+      maximum_(desc.maximumLength()) {
   // Acquire a strong reference to the type definition this table may be
   // referencing.
   elemType_.AddRef();
@@ -55,10 +56,11 @@ Table::Table(JSContext* cx, const TableDesc& desc,
     : maybeObject_(maybeObject),
       observers_(cx->zone()),
       objects_(std::move(objects)),
+      indexType_(desc.indexType()),
       elemType_(desc.elemType),
       isAsmJS_(desc.isAsmJS),
-      length_(desc.initialLength),
-      maximum_(desc.maximumLength) {
+      length_(desc.initialLength()),
+      maximum_(desc.maximumLength()) {
   // Acquire a strong reference to the type definition this table may be
   // referencing.
   elemType_.AddRef();
@@ -79,7 +81,7 @@ SharedTable Table::create(JSContext* cx, const TableDesc& desc,
   switch (desc.elemType.tableRepr()) {
     case TableRepr::Func: {
       FuncRefVector functions;
-      if (!functions.resize(desc.initialLength)) {
+      if (!functions.resize(desc.initialLength())) {
         ReportOutOfMemory(cx);
         return nullptr;
       }
@@ -88,7 +90,7 @@ SharedTable Table::create(JSContext* cx, const TableDesc& desc,
     }
     case TableRepr::Ref: {
       TableAnyRefVector objects;
-      if (!objects.resize(desc.initialLength)) {
+      if (!objects.resize(desc.initialLength())) {
         ReportOutOfMemory(cx);
         return nullptr;
       }
