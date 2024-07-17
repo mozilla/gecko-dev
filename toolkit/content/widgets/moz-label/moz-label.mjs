@@ -16,6 +16,7 @@ class MozTextLabel extends HTMLLabelElement {
   #insertSeparator = false;
   #alwaysAppendAccessKey = false;
   #lastFormattedAccessKey = null;
+  #observer = null;
 
   // Default to underlining accesskeys for Windows and Linux.
   static #underlineAccesskey = !navigator.platform.includes("Mac");
@@ -67,6 +68,18 @@ class MozTextLabel extends HTMLLabelElement {
   connectedCallback() {
     this.#setStyles();
     this.formatAccessKey();
+    if (!this.#observer) {
+      this.#observer = new MutationObserver(() => {
+        this.formatAccessKey();
+      }).observe(this, { characterData: true, childList: true, subtree: true });
+    }
+  }
+
+  disconnectedCallback() {
+    if (this.#observer) {
+      this.#observer.disconnect();
+      this.#observer = null;
+    }
   }
 
   // Bug 1820588 - we may want to generalize this into

@@ -388,6 +388,74 @@
 
     });
 
+    add_task(async function testCheckboxAccesskey() {
+      let mozCheckbox1 = document.getElementById("moz-checkbox-1");
+      let mozCheckbox2 = document.getElementById("moz-checkbox-2");
+      let accesskey = "t";
+
+      mozCheckbox1.setAttribute("accesskey", accesskey);
+      mozCheckbox1.checked = false;
+      await mozCheckbox1.updateComplete;
+
+      mozCheckbox1.blur();
+      isnot(document.activeElement, mozCheckbox1, "Checkbox is not focused.");
+      isnot(
+        mozCheckbox1.shadowRoot.activeElement,
+        mozCheckbox1.checkboxEl,
+        "Checkbox input element is not focused."
+      );
+      ok(!mozCheckbox1.checked, "Checkbox is not checked.");
+
+      synthesizeKey(
+        accesskey,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        mozCheckbox1,
+        "Checkbox recieves focus after accesskey is pressed."
+      );
+      is(
+        mozCheckbox1.shadowRoot.activeElement,
+        mozCheckbox1.checkboxEl,
+        "Checkbox input element is focused after accesskey is pressed."
+      );
+      ok(mozCheckbox1.checked, "Checkbox is checked after accesskey is pressed.");
+
+      mozCheckbox2.setAttribute("accesskey", accesskey);
+      mozCheckbox2.checked = false;
+      await mozCheckbox2.updateComplete;
+
+      synthesizeKey(
+        accesskey,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        mozCheckbox2,
+        "Focus cycles between checkboxes with the same accesskey."
+      );
+      ok(!mozCheckbox2.checked, "Second checkbox is not checked.");
+
+      synthesizeKey(
+        accesskey,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        mozCheckbox1,
+        "Focus cycles between checkboxes with the same accesskey."
+      );
+    });
   </script>
 </pre>
 </body>

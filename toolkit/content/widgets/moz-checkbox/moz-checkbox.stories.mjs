@@ -35,6 +35,7 @@ const Template = ({
   iconSrc,
   description,
   hasSlottedDescription,
+  accesskey,
 }) => html`
   <moz-checkbox
     ?checked=${checked}
@@ -43,6 +44,7 @@ const Template = ({
     data-l10n-id=${ifDefined(l10nId)}
     .iconSrc=${iconSrc}
     ?disabled=${disabled}
+    accesskey=${ifDefined(accesskey)}
   >
     ${hasSlottedDescription
       ? html`<div slot="description">test slot text</div>`
@@ -60,6 +62,7 @@ Default.args = {
   iconSrc: "",
   description: "",
   label: "",
+  accesskey: "",
 };
 
 export const WithIcon = Template.bind({});
@@ -90,4 +93,10 @@ export const WithSlottedDescription = Template.bind({});
 WithSlottedDescription.args = {
   ...Default.args,
   hasSlottedDescription: true,
+};
+
+export const WithAccesskey = Template.bind({});
+WithAccesskey.args = {
+  ...Default.args,
+  accesskey: "c",
 };

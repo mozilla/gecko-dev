@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html } from "../vendor/lit.all.mjs";
+import { html, ifDefined } from "../vendor/lit.all.mjs";
 import { MozLitElement } from "../lit-utils.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
@@ -31,6 +31,12 @@ export default class MozCheckbox extends MozLitElement {
     checked: { type: Boolean, reflect: true },
     disabled: { type: Boolean, reflect: true },
     description: { type: String, fluent: true },
+    accessKeyAttribute: {
+      type: String,
+      attribute: "accesskey",
+      reflect: true,
+    },
+    accessKey: { type: String, state: true },
   };
 
   static get queries() {
@@ -78,6 +84,13 @@ export default class MozCheckbox extends MozLitElement {
     this.dispatchEvent(newEvent);
   }
 
+  willUpdate(changes) {
+    if (changes.has("accessKeyAttribute")) {
+      this.accessKey = this.accessKeyAttribute;
+      this.accessKeyAttribute = null;
+    }
+  }
+
   iconTemplate() {
     if (this.iconSrc) {
       return html`<img src=${this.iconSrc} role="presentation" class="icon" />`;
@@ -99,7 +112,11 @@ export default class MozCheckbox extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/content/elements/moz-checkbox.css"
       />
-      <label is="moz-label" for="moz-checkbox">
+      <label
+        is="moz-label"
+        for="moz-checkbox"
+        shownaccesskey=${ifDefined(this.accessKey)}
+      >
         <input
           id="moz-checkbox"
           type="checkbox"
@@ -110,6 +127,7 @@ export default class MozCheckbox extends MozLitElement {
           @change=${this.redispatchEvent}
           .disabled=${this.disabled}
           aria-describedby="description"
+          accesskey=${ifDefined(this.accessKey)}
         />
         <span class="label-content">
           ${this.iconTemplate()}
