@@ -184,7 +184,7 @@
     <!-- This is the caption for the extension installation progress overlay -->
     <string name="mozac_extension_install_progress_caption">Downloading and verifying extension&#8230;</string>
     <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
-    <string name="mozac_feature_addons_failed_to_query_extensions">Failed to query Extensions!</string>
+    <string name="mozac_feature_addons_failed_to_query_extensions">Failed to query extensions!</string>
     <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
     <string name="mozac_feature_addons_failed_to_translate">Translation not found, for locale %1$s neither default language %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
