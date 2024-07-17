@@ -4,6 +4,10 @@
 
 browser.jar:
   content/browser/aboutlogins/components/input-field/input-field.css     (content/components/input-field/input-field.css)
+  content/browser/aboutlogins/components/input-field/input-field.mjs     (content/components/input-field/input-field.mjs)
+  content/browser/aboutlogins/components/input-field/login-origin-field.mjs  (content/components/input-field/login-origin-field.mjs)
+  content/browser/aboutlogins/components/input-field/login-username-field.mjs  (content/components/input-field/login-username-field.mjs)
+  content/browser/aboutlogins/components/input-field/login-password-field.mjs  (content/components/input-field/login-password-field.mjs)
   content/browser/aboutlogins/components/login-list-lit-item.mjs        (content/components/login-list-lit-item.mjs)
   content/browser/aboutlogins/components/login-list-lit-item.css        (content/components/login-list-lit-item.css)
   content/browser/aboutlogins/components/login-alert.css                 (content/components/login-alert.css)

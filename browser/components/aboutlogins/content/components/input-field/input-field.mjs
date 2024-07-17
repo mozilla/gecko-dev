@@ -21,12 +21,17 @@ export const editableFieldTemplate = ({
   onFocus,
   onBlur,
 }) =>
-  html`<input
-    class="input-field"
-    data-l10n-id=${ifDefined(inputId)}
-    type=${type}
-    value=${value}
-    ?disabled=${disabled}
-    @focus=${onFocus}
-    @blur=${onBlur}
-  />`;
+  html`
+    <input
+      class="input-field"
+      data-l10n-id=${ifDefined(inputId)}
+      type=${type}
+      value=${value}
+      ?disabled=${disabled}
+      @focus=${onFocus}
+      @blur=${onBlur}
+    />
+    <div class="actions">
+      <slot name="actions"></slot>
+    </div>
+  `;

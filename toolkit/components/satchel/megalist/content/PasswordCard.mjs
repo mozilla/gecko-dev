@@ -5,6 +5,13 @@
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/aboutlogins/components/input-field/login-origin-field.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/aboutlogins/components/input-field/login-username-field.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/aboutlogins/components/input-field/login-password-field.mjs";
+
 export class PasswordCard extends MozLitElement {
   static properties = {
     origin: { type: Object },
@@ -13,7 +20,12 @@ export class PasswordCard extends MozLitElement {
     messageToViewModel: { type: Function },
   };
 
-  // TODO: Pass to login field components.
+  #revealIconSrc(concealed) {
+    return !concealed
+      ? "chrome://browser/content/aboutlogins/icons/password-hide.svg"
+      : "chrome://browser/content/aboutlogins/icons/password.svg";
+  }
+
   handleCommand(commandId, lineIndex) {
     this.messageToViewModel("Command", { commandId, snapshotId: lineIndex });
   }
@@ -22,19 +34,64 @@ export class PasswordCard extends MozLitElement {
     // TODO: Implement me!
   }
 
+  onCopyButtonClick(lineIndex) {
+    this.handleCommand("Copy", lineIndex);
+  }
+
+  onPasswordRevealClick(concealed, lineIndex) {
+    if (concealed) {
+      this.handleCommand("Reveal", lineIndex);
+    } else {
+      this.handleCommand("Conceal", lineIndex);
+    }
+  }
+
   renderOriginField() {
-    // TODO: Implement me!
-    return "";
+    return html`<login-origin-field readonly .value=${this.origin.value}>
+      <moz-button
+        slot="actions"
+        @click=${() => this.onCopyButtonClick(this.origin.lineIndex)}
+        type="icon ghost"
+        iconSrc="chrome://global/skin/icons/edit-copy.svg"
+      ></moz-button>
+    </login-origin-field>`;
   }
 
   renderUsernameField() {
-    // TODO: Implement me!
-    return "";
+    return html`<login-username-field readonly .value=${this.username.value}>
+      <moz-button
+        slot="actions"
+        @click=${() => this.onCopyButtonClick(this.username.lineIndex)}
+        @click=${this.onCopyButtonClick}
+        type="icon ghost"
+        iconSrc="chrome://global/skin/icons/edit-copy.svg"
+      ></moz-button>
+    </login-username-field>`;
   }
 
   renderPasswordField() {
-    // TODO: Implement me!
-    return "";
+    return html`<login-password-field
+      readonly
+      .value=${this.password.value}
+      .visible=${!this.password.concealed}
+    >
+      <moz-button
+        slot="actions"
+        @click=${() =>
+          this.onPasswordRevealClick(
+            this.password.concealed,
+            this.password.lineIndex
+          )}
+        type="icon ghost"
+        iconSrc=${this.#revealIconSrc(this.password.concealed)}
+      ></moz-button>
+      <moz-button
+        slot="actions"
+        @click=${() => this.onCopyButtonClick(this.password.lineIndex)}
+        type="icon ghost"
+        iconSrc="chrome://global/skin/icons/edit-copy.svg"
+      ></moz-button>
+    </login-password-field>`;
   }
 
   renderButton() {

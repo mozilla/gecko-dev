@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, classMap } from "chrome://global/content/vendor/lit.all.mjs";
+import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { editableFieldTemplate, stylesTemplate } from "./input-field.mjs";
 
@@ -49,14 +49,6 @@ class LoginPasswordField extends MozLitElement {
         onFocus: this.handleFocus,
         onBlur: this.handleBlur,
       })}
-      <button
-        class=${classMap({
-          revealed: this.visible,
-          "reveal-password-button": true,
-        })}
-        data-l10n-id="login-item-password-reveal-checkbox"
-        @click=${this.toggleVisibility}
-      ></button>
     `;
   }
 

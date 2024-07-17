@@ -5,29 +5,30 @@
 :host {
   display: grid;
   grid-template-areas: "label label" "input actions";
+  grid-template-columns: 1fr min-content;
   align-items: center;
-  font-family: monospace;
 }
 
 label {
   grid-area: label;
   display: block;
   color: var(--in-content-page-color);
-  margin-bottom: 8px;
+  align-self: end;
 }
 
 /** input.input-field needed to override margin in themes/osx/global/in-content/common.css */
 input.input-field {
   grid-area: input;
   margin: 0;
+  appearance: textfield;
 }
-
 
 .input-field:read-only {
   all: unset;
   display: inline-block;
   text-overflow: ellipsis;
   overflow: hidden;
+  appearance: textfield;
 }
 
 .reveal-password-button {
@@ -57,4 +58,8 @@ button.reveal-password-button:hover {
 button.reveal-password-button:hover:active {
   opacity: 1;
   background-color: transparent;
+}
+
+.actions {
+  display: flex;
 }
