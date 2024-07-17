@@ -166,7 +166,6 @@ class SettingsSubMenuEnhancedTrackingProtectionRobot {
     }
 
     fun verifyCustomTrackingProtectionSettings() {
-        scrollToElementByText("Redirect Trackers")
         Log.i(TAG, "verifyCustomTrackingProtectionSettings: Trying to verify that the \"Custom\" ETP option summary is displayed")
         onView(withText(R.string.preference_enhanced_tracking_protection_custom_description_2))
             .check(matches(isDisplayed()))
@@ -175,6 +174,7 @@ class SettingsSubMenuEnhancedTrackingProtectionRobot {
         onView(withContentDescription(R.string.preference_enhanced_tracking_protection_custom_info_button))
             .check(matches(isDisplayed()))
         Log.i(TAG, "verifyCustomTrackingProtectionSettings: Verified that the \"Custom\" ETP option info button is displayed")
+        scrollToElementByText("Redirect Trackers")
         Log.i(TAG, "verifyCustomTrackingProtectionSettings: Trying to verify that the \"Cookies\" check box is displayed")
         cookiesCheckbox().check(matches(isDisplayed()))
         Log.i(TAG, "verifyCustomTrackingProtectionSettings: Verified that the \"Cookies\" check box is displayed")
