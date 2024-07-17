@@ -697,12 +697,12 @@ PRErrorCode AuthCertificateParseResults(
 }
 
 static nsTArray<nsTArray<uint8_t>> CreateCertBytesArray(
-    const UniqueCERTCertList& aCertChain) {
+    const UniqueSECItemArray& aCertChain) {
   nsTArray<nsTArray<uint8_t>> certsBytes;
-  for (CERTCertListNode* n = CERT_LIST_HEAD(aCertChain);
-       !CERT_LIST_END(n, aCertChain); n = CERT_LIST_NEXT(n)) {
+  for (size_t i = 0; i < aCertChain->len; i++) {
     nsTArray<uint8_t> certBytes;
-    certBytes.AppendElements(n->cert->derCert.data, n->cert->derCert.len);
+    certBytes.AppendElements(aCertChain->items[i].data,
+                             aCertChain->items[i].len);
     certsBytes.AppendElement(std::move(certBytes));
   }
   return certsBytes;
@@ -921,11 +921,15 @@ SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig,
     return SECFailure;
   }
 
-  UniqueCERTCertList peerCertChain(SSL_PeerCertificateChain(fd));
-  if (!peerCertChain) {
+  UniqueSECItemArray peerCertChain;
+  SECStatus rv =
+      SSL_PeerCertificateChainDER(fd, TempPtrToSetter(&peerCertChain));
+  if (rv != SECSuccess) {
     PR_SetError(PR_INVALID_STATE_ERROR, 0);
     return SECFailure;
   }
+  MOZ_ASSERT(peerCertChain,
+             "AuthCertificateHook: peerCertChain unexpectedly null");
 
   nsTArray<nsTArray<uint8_t>> peerCertsBytes =
       CreateCertBytesArray(peerCertChain);
@@ -964,8 +968,8 @@ SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig,
   // Get DC information
   Maybe<DelegatedCredentialInfo> dcInfo;
   SSLPreliminaryChannelInfo channelPreInfo;
-  SECStatus rv = SSL_GetPreliminaryChannelInfo(fd, &channelPreInfo,
-                                               sizeof(channelPreInfo));
+  rv = SSL_GetPreliminaryChannelInfo(fd, &channelPreInfo,
+                                     sizeof(channelPreInfo));
   if (rv != SECSuccess) {
     PR_SetError(PR_INVALID_STATE_ERROR, 0);
     return SECFailure;
