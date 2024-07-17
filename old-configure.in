@@ -82,12 +82,6 @@ case "$target" in
         MOZ_OPTIMIZE_FLAGS='-O2'
     fi
 
-    case "$host_os" in
-    cygwin*|msvc*|mks*)
-        AC_MSG_ERROR([Using a Cygwin build environment is unsupported. Configure cannot check for presence of necessary headers. Please upgrade to MozillaBuild; see https://developer.mozilla.org/en/Windows_Build_Prerequisites.])
-        ;;
-    esac
-
     case "$target" in
     i*86-*)
         AC_DEFINE(_X86_)
