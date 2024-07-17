@@ -82,6 +82,7 @@ use std::usize;
 /// modules/components which be far trickier. For now we just say that when
 /// the parser goes too deep we return an error saying there's too many
 /// nested items. It would be great to not return an error here, though!
+#[cfg(feature = "wasm-module")]
 pub(crate) const MAX_PARENS_DEPTH: usize = 100;
 
 /// A top-level convenience parsing function that parses a `T` from `buf` and
@@ -424,8 +425,9 @@ impl ParseBuffer<'_> {
                 // annotation as known annotations are specifically registered
                 // as "someone's gonna parse this".
                 TokenKind::LParen => {
-                    if let Some(annotation) = self.lexer.annotation(pos) {
-                        match self.known_annotations.borrow().get(annotation) {
+                    if let Some(annotation) = self.lexer.annotation(pos)? {
+                        let text = annotation.annotation(self.lexer.input())?;
+                        match self.known_annotations.borrow().get(&text[..]) {
                             Some(0) | None => {
                                 self.skip_annotation(&mut pos)?;
                                 continue;
@@ -483,6 +485,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[cfg(feature = "wasm-module")]
     pub(crate) fn has_meaningful_tokens(self) -> bool {
         self.buf.lexer.iter(0).any(|t| match t {
             Ok(token) => !matches!(
@@ -759,6 +762,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Checks that the parser parens depth hasn't exceeded the maximum depth.
+    #[cfg(feature = "wasm-module")]
     pub(crate) fn depth_check(&self) -> Result<()> {
         if self.parens_depth() > MAX_PARENS_DEPTH {
             Err(self.error("item nesting too deep"))
@@ -1151,7 +1155,14 @@ impl<'a> Cursor<'a> {
             _ => return Ok(None),
         }
         self.advance_past(&token);
-        Ok(Some((token.id(self.parser.buf.lexer.input()), self)))
+        let id = match token.id(self.parser.buf.lexer.input())? {
+            Cow::Borrowed(id) => id,
+            // Our `self.parser.buf` only retains `Vec<u8>` so briefly convert
+            // this owned string to `Vec<u8>` and then convert it back to `&str`
+            // out the other end.
+            Cow::Owned(s) => std::str::from_utf8(self.parser.buf.push_str(s.into_bytes())).unwrap(),
+        };
+        Ok(Some((id, self)))
     }
 
     /// Attempts to advance this cursor if the current token is a
@@ -1174,6 +1185,35 @@ impl<'a> Cursor<'a> {
         }
         self.advance_past(&token);
         Ok(Some((token.keyword(self.parser.buf.lexer.input()), self)))
+    }
+
+    /// Attempts to advance this cursor if the current token is a
+    /// [`Token::Annotation`](crate::lexer::Token)
+    ///
+    /// If the current token is `Annotation`, returns the annotation token as well
+    /// as a new [`Cursor`] pointing at the rest of the tokens in the stream.
+    /// Otherwise returns `None`.
+    ///
+    /// This function will automatically skip over any comments, whitespace, or
+    /// unknown annotations.
+    pub fn annotation(mut self) -> Result<Option<(&'a str, Self)>> {
+        let token = match self.token()? {
+            Some(token) => token,
+            None => return Ok(None),
+        };
+        match token.kind {
+            TokenKind::Annotation => {}
+            _ => return Ok(None),
+        }
+        self.advance_past(&token);
+        let annotation = match token.annotation(self.parser.buf.lexer.input())? {
+            Cow::Borrowed(id) => id,
+            // Our `self.parser.buf` only retains `Vec<u8>` so briefly convert
+            // this owned string to `Vec<u8>` and then convert it back to `&str`
+            // out the other end.
+            Cow::Owned(s) => std::str::from_utf8(self.parser.buf.push_str(s.into_bytes())).unwrap(),
+        };
+        Ok(Some((annotation, self)))
     }
 
     /// Attempts to advance this cursor if the current token is a

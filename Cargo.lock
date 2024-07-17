@@ -6114,9 +6114,9 @@ dependencies = [
 
 [[package]]
 name = "unic-langid"
-version = "0.9.5"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23dd9d1e72a73b25e07123a80776aae3e7b0ec461ef94f9151eed6ec88005a44"
+checksum = "398f9ad7239db44fd0f80fe068d12ff22d78354080332a5077dc6f52f14dcf2f"
 dependencies = [
  "unic-langid-impl",
 ]
@@ -6132,9 +6132,9 @@ dependencies = [
 
 [[package]]
 name = "unic-langid-impl"
-version = "0.9.5"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a5422c1f65949306c99240b81de9f3f15929f5a8bfe05bb44b034cc8bf593e5"
+checksum = "e35bfd2f2b8796545b55d7d3fd3e89a0613f68a0d1c8bc28cb7ff96b411a35ff"
 dependencies = [
  "tinystr",
 ]
@@ -6548,18 +6548,18 @@ version = "0.2.100"
 
 [[package]]
 name = "wasm-encoder"
-version = "0.205.0"
+version = "0.210.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90e95b3563d164f33c1cfb0a7efbd5940c37710019be10cd09f800fdec8b0e5c"
+checksum = "e7e3764d9d6edabd8c9e16195e177be0d20f6ab942ad18af52860f12f82bc59a"
 dependencies = [
  "leb128",
 ]
 
 [[package]]
 name = "wasm-smith"
-version = "0.205.0"
+version = "0.210.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1218f393276f7a13f6c54467434633144b46c33ecbc3cbafdc938033f0315d1a"
+checksum = "c9ffe2374e5d2f9e52463c8bfdca4d6fe265f07b9697dad3b7e2f7c12277d552"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -6571,9 +6571,9 @@ dependencies = [
 
 [[package]]
 name = "wast"
-version = "205.0.0"
+version = "210.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "441a6a195b3b5245e26d450bbcc91366c6b652382a22f63cbe3c73240e13b2bb"
+checksum = "aa835c59bd615e00f16be65705d85517d40b44b3c831d724e450244685176c3c"
 dependencies = [
  "bumpalo",
  "leb128",

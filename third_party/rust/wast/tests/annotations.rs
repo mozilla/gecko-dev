@@ -99,8 +99,8 @@ fn assert_local_name(name: &str, wat: &str) -> anyhow::Result<()> {
 fn get_name_section(wasm: &[u8]) -> anyhow::Result<NameSectionReader<'_>> {
     for payload in Parser::new(0).parse_all(&wasm) {
         if let Payload::CustomSection(c) = payload? {
-            if c.name() == "name" {
-                return Ok(NameSectionReader::new(c.data(), c.data_offset()));
+            if let KnownCustom::Name(s) = c.as_known() {
+                return Ok(s);
             }
         }
     }

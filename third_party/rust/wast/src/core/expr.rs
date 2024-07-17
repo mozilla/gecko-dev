@@ -803,6 +803,13 @@ instructions! {
         // proposal: shared-everything-threads
         GlobalAtomicGet(OrderedAccess<'a>) : [0xfe, 0x4f] : "global.atomic.get",
         GlobalAtomicSet(OrderedAccess<'a>) : [0xfe, 0x50] : "global.atomic.set",
+        GlobalAtomicRmwAdd(OrderedAccess<'a>) : [0xfe, 0x51] : "global.atomic.rmw.add",
+        GlobalAtomicRmwSub(OrderedAccess<'a>) : [0xfe, 0x52] : "global.atomic.rmw.sub",
+        GlobalAtomicRmwAnd(OrderedAccess<'a>) : [0xfe, 0x53] : "global.atomic.rmw.and",
+        GlobalAtomicRmwOr(OrderedAccess<'a>) : [0xfe, 0x54] : "global.atomic.rmw.or",
+        GlobalAtomicRmwXor(OrderedAccess<'a>) : [0xfe, 0x55] : "global.atomic.rmw.xor",
+        GlobalAtomicRmwXchg(OrderedAccess<'a>) : [0xfe, 0x56] : "global.atomic.rmw.xchg",
+        GlobalAtomicRmwCmpxchg(OrderedAccess<'a>) : [0xfe, 0x57] : "global.atomic.rmw.cmpxchg",
 
         // proposal: simd
         //
