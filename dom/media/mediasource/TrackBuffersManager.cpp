@@ -704,7 +704,7 @@ void TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
   // Don't evict before the end of the current segment
   TimeUnit upperLimit = futureBuffered[0].mEnd;
   uint32_t evictedFramesStartIndex = buffer.Length();
-  for (uint32_t i = buffer.Length() - 1; i-- > 0;) {
+  for (uint32_t i = buffer.Length(); i-- > 0;) {
     const auto& frame = buffer[i];
     if (frame->mTime <= upperLimit || toEvict < 0) {
       // We've reached a frame that shouldn't be evicted -> Evict after it ->
