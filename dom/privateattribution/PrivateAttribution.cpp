@@ -30,6 +30,15 @@ JSObject* PrivateAttribution::WrapObject(JSContext* aCx,
 
 PrivateAttribution::~PrivateAttribution() = default;
 
+bool PrivateAttribution::ShouldRecord() {
+#ifdef MOZ_TELEMETRY_REPORTING
+  return (StaticPrefs::dom_private_attribution_submission_enabled() &&
+          StaticPrefs::datareporting_healthreport_uploadEnabled());
+#else
+  return false;
+#endif
+}
+
 bool PrivateAttribution::GetSourceHostIfNonPrivate(nsACString& aSourceHost,
                                                    ErrorResult& aRv) {
   MOZ_ASSERT(mOwner);
@@ -55,7 +64,7 @@ bool PrivateAttribution::GetSourceHostIfNonPrivate(nsACString& aSourceHost,
 
 void PrivateAttribution::SaveImpression(
     const PrivateAttributionImpressionOptions& aOptions, ErrorResult& aRv) {
-  if (!StaticPrefs::dom_private_attribution_submission_enabled()) {
+  if (!ShouldRecord()) {
     return;
   }
 
@@ -89,7 +98,7 @@ void PrivateAttribution::SaveImpression(
 
 void PrivateAttribution::MeasureConversion(
     const PrivateAttributionConversionOptions& aOptions, ErrorResult& aRv) {
-  if (!StaticPrefs::dom_private_attribution_submission_enabled()) {
+  if (!ShouldRecord()) {
     return;
   }
 

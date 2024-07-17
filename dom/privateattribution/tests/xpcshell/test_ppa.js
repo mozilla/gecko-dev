@@ -11,6 +11,10 @@ const { PrivateAttributionService } = ChromeUtils.importESModule(
   "resource://gre/modules/PrivateAttributionService.sys.mjs"
 );
 
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
+
 const BinaryInputStream = Components.Constructor(
   "@mozilla.org/binaryinputstream;1",
   "nsIBinaryInputStream",
@@ -146,7 +150,9 @@ add_task(async function testIsEnabled() {
   const ppa1 = new PrivateAttributionService();
   Assert.equal(
     ppa1.isEnabled(),
-    Services.prefs.getBoolPref("toolkit.telemetry.enabled")
+    AppConstants.MOZ_TELEMETRY_REPORTING &&
+      Services.prefs.getBoolPref("datareporting.healthreport.uploadEnabled") &&
+      Services.prefs.getBoolPref("dom.private-attribution.submission.enabled")
   );
 
   // Should always be enabled with the test flag
