@@ -12,6 +12,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import mozilla.components.feature.addons.ui.translateName
 import org.mozilla.fenix.R
+import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.databinding.FragmentAddOnInternalSettingsBinding
 import org.mozilla.fenix.ext.showToolbar
 
@@ -21,6 +22,8 @@ import org.mozilla.fenix.ext.showToolbar
 class AddonInternalSettingsFragment : AddonPopupBaseFragment() {
 
     private val args by navArgs<AddonInternalSettingsFragmentArgs>()
+    private var _binding: FragmentAddOnInternalSettingsBinding? = null
+    internal val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -33,7 +36,7 @@ class AddonInternalSettingsFragment : AddonPopupBaseFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val binding = FragmentAddOnInternalSettingsBinding.bind(view)
+        _binding = FragmentAddOnInternalSettingsBinding.bind(view)
         args.addon.installedState?.optionsPageUrl?.let {
             engineSession?.let { engineSession ->
                 binding.addonSettingsEngineView.render(engineSession)
@@ -42,10 +45,23 @@ class AddonInternalSettingsFragment : AddonPopupBaseFragment() {
         } ?: findNavController().navigateUp()
     }
 
+    override fun provideDownloadContainer(): ViewGroup {
+        return binding.startDownloadDialogContainer
+    }
+
+    override fun provideDownloadDialogLayoutBinding(): DownloadDialogLayoutBinding {
+        return binding.viewDynamicDownloadDialog
+    }
+
     override fun onResume() {
         super.onResume()
         context?.let {
             showToolbar(title = args.addon.translateName(it))
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

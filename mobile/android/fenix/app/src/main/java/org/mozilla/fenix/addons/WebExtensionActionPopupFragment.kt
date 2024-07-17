@@ -15,6 +15,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.lib.state.ext.consumeFrom
 import org.mozilla.fenix.R
+import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.databinding.FragmentAddOnInternalSettingsBinding
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.showToolbar
@@ -32,6 +33,8 @@ class WebExtensionActionPopupFragment : AddonPopupBaseFragment(), EngineSession.
         set(value) {
             safeArguments.putBoolean("isSessionConsumed", value)
         }
+    private var _binding: FragmentAddOnInternalSettingsBinding? = null
+    internal val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -55,7 +58,7 @@ class WebExtensionActionPopupFragment : AddonPopupBaseFragment(), EngineSession.
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val binding = FragmentAddOnInternalSettingsBinding.bind(view)
+        _binding = FragmentAddOnInternalSettingsBinding.bind(view)
 
         val session = engineSession
         // If we have the session, render it otherwise consume it from the store.
@@ -82,6 +85,18 @@ class WebExtensionActionPopupFragment : AddonPopupBaseFragment(), EngineSession.
         }
     }
 
+    override fun provideDownloadContainer(): ViewGroup {
+        return binding.startDownloadDialogContainer
+    }
+
+    override fun provideDownloadDialogLayoutBinding(): DownloadDialogLayoutBinding {
+        return binding.viewDynamicDownloadDialog
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
     private fun consumePopupSession() {
         coreComponents.store.dispatch(
             WebExtensionAction.UpdatePopupSessionAction(args.webExtensionId, popupSession = null),
