@@ -485,7 +485,7 @@
   margin-block: 0.18em;
 }
 
-.urlbarView-row-inner[selected] .urlbarView-dynamic-fakespot-rating-five-stars {
+.urlbarView-row[selected] > .urlbarView-row-inner > .urlbarView-dynamic-fakespot-body > .urlbarView-dynamic-fakespot-description > .urlbarView-dynamic-fakespot-rating-five-stars {
   --icon-color: var(--urlbarView-highlight-color);
 }
 
@@ -542,7 +542,7 @@
   font-size: var(--urlbarView-small-font-size);
 }
 
-.urlbarView-row-inner:not([selected]) > .urlbarView-dynamic-fakespot-body {
+.urlbarView-row:not([selected]) > .urlbarView-row-inner > .urlbarView-dynamic-fakespot-body {
   > .urlbarView-dynamic-fakespot-description,
   > .urlbarView-dynamic-fakespot-footer {
     color: var(--urlbarView-secondary-text-color);
