@@ -133,6 +133,19 @@ export var NativeManifests = {
       return null;
     }
     if (
+      type === "stdio" &&
+      AppConstants.platform != "win" &&
+      !PathUtils.isAbsolute(manifest.path)
+    ) {
+      // manifest.path is defined for type "stdio" and "pkcs11".
+      // stdio requires an absolute path on Linux and macOS,
+      // pkcs11 also accepts relative paths.
+      Cu.reportError(
+        `Native manifest ${path} has relative path value ${manifest.path} (expected absolute path)`
+      );
+      return null;
+    }
+    if (
       manifest.allowed_extensions &&
       !manifest.allowed_extensions.includes(context.extension.id)
     ) {

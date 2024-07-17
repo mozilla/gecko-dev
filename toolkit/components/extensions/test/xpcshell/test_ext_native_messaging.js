@@ -429,18 +429,20 @@ if (AppConstants.platform == "win") {
   add_task(function test_relative_path_unsupported() {
     return testBrokenApp({
       appname: "relative.echo",
-      expectedError: "An unexpected error occurred",
+      expectedError: "No such native application relative.echo",
       expectedConsoleMessages: [
-        /NativeApp requires absolute path to command on this platform/,
+        /Native manifest .*\/relative\.echo\.json has relative path value relative\.echo\.py \(expected absolute path\)/,
+        /No such native application relative\.echo/,
       ],
     });
   });
   add_task(function test_relative_dotdot_path_unsupported() {
     return testBrokenApp({
       appname: "relative_dotdot.echo",
-      expectedError: "An unexpected error occurred",
+      expectedError: "No such native application relative_dotdot.echo",
       expectedConsoleMessages: [
-        /NativeApp requires absolute path to command on this platform/,
+        /Native manifest .*\/relative_dotdot\.echo\.json has relative path value .*\/relative_dotdot\.echo\.py \(expected absolute path\)/,
+        /No such native application relative_dotdot\.echo/,
       ],
     });
   });
