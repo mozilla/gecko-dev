@@ -959,10 +959,8 @@ void nsWindow::ApplySizeConstraints() {
 
     uint32_t hints = 0;
     if (mSizeConstraints.mMinSize != LayoutDeviceIntSize()) {
-      if (GdkIsWaylandDisplay()) {
-        gtk_widget_set_size_request(GTK_WIDGET(mContainer), geometry.min_width,
-                                    geometry.min_height);
-      }
+      gtk_widget_set_size_request(GTK_WIDGET(mContainer), geometry.min_width,
+                                  geometry.min_height);
       AddCSDDecorationSize(&geometry.min_width, &geometry.min_height);
       hints |= GDK_HINT_MIN_SIZE;
     }
