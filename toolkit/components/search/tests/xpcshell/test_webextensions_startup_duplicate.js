@@ -5,8 +5,6 @@
 
 const lazy = {};
 
-const { promiseShutdownManager, promiseStartupManager } = AddonTestUtils;
-
 ChromeUtils.defineESModuleGetters(lazy, {
   ExtensionTestUtils:
     "resource://testing-common/ExtensionXPCShellUtils.sys.mjs",
@@ -16,11 +14,7 @@ add_setup(async function () {
   let server = useHttpServer();
   server.registerContentType("sjs", "sjs");
   await SearchTestUtils.useTestEngines("test-extensions");
-  await promiseStartupManager();
-
-  registerCleanupFunction(async () => {
-    await promiseShutdownManager();
-  });
+  await SearchTestUtils.initXPCShellAddonManager();
 });
 
 add_task(async function test_install_duplicate_engine_startup() {

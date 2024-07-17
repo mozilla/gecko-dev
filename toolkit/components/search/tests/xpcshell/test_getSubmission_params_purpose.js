@@ -12,8 +12,6 @@ add_setup(async function () {
   // The test engines used in this test need to be recognized as 'default'
   // engines, or their MozParams used to set the purpose will be ignored.
   await SearchTestUtils.useTestEngines();
-
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
 

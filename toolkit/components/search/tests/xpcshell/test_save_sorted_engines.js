@@ -15,7 +15,6 @@
 
 add_setup(async function () {
   useHttpServer();
-  await AddonTestUtils.promiseStartupManager();
 });
 
 add_task(async function test_save_sorted_engines() {

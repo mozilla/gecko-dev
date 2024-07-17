@@ -367,7 +367,6 @@ add_setup(async () => {
   );
 
   await SearchTestUtils.useTestEngines("data", null, BASE_CONFIG_V2);
-  await AddonTestUtils.promiseStartupManager();
 
   await Services.search.init();
 });

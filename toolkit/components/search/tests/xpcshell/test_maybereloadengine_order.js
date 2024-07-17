@@ -9,9 +9,6 @@
 
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("test-extensions");
-  await AddonTestUtils.promiseStartupManager();
-
-  registerCleanupFunction(AddonTestUtils.promiseShutdownManager);
 });
 
 add_task(async function basic_multilocale_test() {

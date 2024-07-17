@@ -28,7 +28,6 @@ async function loadSettingsFile(settingsFile) {
  */
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("data1");
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
 

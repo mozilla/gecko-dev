@@ -9,7 +9,6 @@
 
 add_setup(async function () {
   Region._setHomeRegion("an", false);
-  await AddonTestUtils.promiseStartupManager();
   await SearchTestUtils.useTestEngines("test-extensions");
 });
 

@@ -9,7 +9,6 @@
 
 add_task(async function setup() {
   useHttpServer();
-  await AddonTestUtils.promiseStartupManager();
 });
 
 add_task(async function test_parseSubmissionURL() {

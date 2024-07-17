@@ -6,8 +6,6 @@
 "use strict";
 
 add_setup(async function () {
-  await AddonTestUtils.promiseStartupManager();
-
   Services.prefs.setBoolPref(
     SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault.ui.enabled",
     true

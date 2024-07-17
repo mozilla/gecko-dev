@@ -33,7 +33,6 @@ const SUBMISSION_NO = [
 
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("data1");
-  await AddonTestUtils.promiseStartupManager();
 });
 
 async function addAndMakeDefault(name, search_url, search_url_get_params) {

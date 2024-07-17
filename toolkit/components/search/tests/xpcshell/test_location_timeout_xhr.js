@@ -29,10 +29,6 @@ function verifyProbeSum(probe, sum) {
   equal(snapshot.sum, sum, probe);
 }
 
-add_setup(async function () {
-  await AddonTestUtils.promiseStartupManager();
-});
-
 add_task(async function test_location_timeout_xhr() {
   let resolveContinuePromise;
   let continuePromise = new Promise(resolve => {

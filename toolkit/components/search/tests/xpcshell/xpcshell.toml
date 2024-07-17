@@ -103,8 +103,6 @@ tags = "remotesettings searchmain"
 
 ["test_ignorelist_update.js"]
 
-["test_initialization.js"]
-
 ["test_initialization_status_telemetry.js"]
 
 ["test_initialization_with_region.js"]

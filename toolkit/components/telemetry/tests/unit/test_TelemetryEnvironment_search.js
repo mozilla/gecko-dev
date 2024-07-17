@@ -12,7 +12,12 @@ const { TelemetryEnvironmentTesting } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryEnvironmentTesting.sys.mjs"
 );
 
+const { ExtensionTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/ExtensionXPCShellUtils.sys.mjs"
+);
+
 SearchTestUtils.init(this);
+ExtensionTestUtils.init(this);
 
 function promiseNextTick() {
   return new Promise(resolve => executeSoon(resolve));

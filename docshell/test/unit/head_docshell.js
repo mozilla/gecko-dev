@@ -7,7 +7,6 @@ var { XPCOMUtils } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineESModuleGetters(this, {
-  AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
   HttpServer: "resource://testing-common/httpd.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
@@ -59,17 +58,7 @@ const CONFIG_V2 = [
 async function setupSearchService() {
   SearchTestUtils.init(this);
 
-  AddonTestUtils.init(this);
-  AddonTestUtils.overrideCertDB();
-  AddonTestUtils.createAppInfo(
-    "xpcshell@tests.mozilla.org",
-    "XPCShell",
-    "1",
-    "42"
-  );
-
   await SearchTestUtils.useTestEngines(".", null, CONFIG_V2);
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 }
 

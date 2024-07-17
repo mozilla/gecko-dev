@@ -4,7 +4,6 @@
 const NAME = "Test Alias Engine";
 
 add_setup(async function () {
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
 

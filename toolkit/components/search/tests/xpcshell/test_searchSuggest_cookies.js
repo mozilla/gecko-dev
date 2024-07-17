@@ -60,8 +60,6 @@ function countCookieEntries() {
 let engines;
 
 add_setup(async function () {
-  await AddonTestUtils.promiseStartupManager();
-
   Services.prefs.setBoolPref("browser.search.suggest.enabled", true);
   Services.prefs.setBoolPref("browser.search.suggest.enabled.private", true);
 

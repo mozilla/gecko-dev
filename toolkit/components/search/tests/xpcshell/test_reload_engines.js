@@ -270,7 +270,6 @@ add_setup(async function () {
 
   SearchTestUtils.useMockIdleService();
   await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
-  await AddonTestUtils.promiseStartupManager();
 });
 
 // This is to verify that the loaded configuration matches what we expect for

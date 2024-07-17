@@ -227,7 +227,7 @@ let remoteSettingsStub;
 
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("simple-engines");
-  await AddonTestUtils.promiseStartupManager();
+  await SearchTestUtils.initXPCShellAddonManager();
   await Services.search.init();
 
   baseExtension = ExtensionTestUtils.loadExtension({

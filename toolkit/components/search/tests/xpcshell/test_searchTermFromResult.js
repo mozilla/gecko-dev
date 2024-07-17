@@ -62,7 +62,6 @@ const TERM_ENCODED = "c%3B%2C%3F%3A%40%26%3D%2B%24-_.!~*'()%23+d%C3%A8f";
 
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 
   defaultEngine = Services.search.getEngineByName("Test Engine With Purposes");

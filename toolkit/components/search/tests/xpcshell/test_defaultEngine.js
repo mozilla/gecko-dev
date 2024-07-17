@@ -16,7 +16,6 @@ add_setup(async () => {
   Services.fog.initializeFOG();
 
   useHttpServer();
-  await AddonTestUtils.promiseStartupManager();
 
   await Services.search.init();
 

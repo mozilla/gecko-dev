@@ -3,8 +3,6 @@
 
 "use strict";
 
-const { promiseShutdownManager, promiseStartupManager } = AddonTestUtils;
-
 add_setup(async function () {
   Services.locale.availableLocales = [
     ...Services.locale.availableLocales,
@@ -15,11 +13,8 @@ add_setup(async function () {
   Services.locale.requestedLocales = ["en"];
 
   await SearchTestUtils.useTestEngines("data1");
-  await promiseStartupManager();
   await Services.search.init();
   await promiseAfterSettings();
-
-  registerCleanupFunction(promiseShutdownManager);
 });
 
 add_task(async function test_language_switch_changes_name() {

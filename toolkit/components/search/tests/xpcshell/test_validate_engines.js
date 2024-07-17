@@ -48,6 +48,5 @@ add_task(async function test_validate_engines() {
   });
 
   sinon.stub(settings, "get").returns(config);
-  await AddonTestUtils.promiseStartupManager();
   await ss.init();
 });

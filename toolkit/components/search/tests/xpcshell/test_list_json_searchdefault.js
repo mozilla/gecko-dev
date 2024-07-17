@@ -16,7 +16,6 @@ add_task(async function test_searchDefaultEngineUS() {
 
   Services.prefs.setCharPref(SearchUtils.BROWSER_SEARCH_PREF + "region", "US");
 
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 
   Assert.ok(Services.search.isInitialized, "search initialized");

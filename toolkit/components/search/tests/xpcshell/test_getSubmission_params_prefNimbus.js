@@ -38,7 +38,6 @@ add_task(async function test_pref_initial_value() {
     },
   ]);
 
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 
   Assert.ok(

@@ -2,7 +2,6 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 add_setup(async function () {
-  await AddonTestUtils.promiseStartupManager();
   await SearchTestUtils.useTestEngines("simple-engines");
   Services.fog.initializeFOG();
 });

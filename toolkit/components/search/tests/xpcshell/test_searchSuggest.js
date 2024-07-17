@@ -45,8 +45,6 @@ add_setup(async function () {
   let server = useHttpServer();
   server.registerContentType("sjs", "sjs");
 
-  await AddonTestUtils.promiseStartupManager();
-
   let getEngineData = {
     baseURL: gDataUrl,
     name: "GET suggestion engine",

@@ -7,7 +7,6 @@ const prefix = "https://example.com/?sourceId=Mozilla-search&search=";
 
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("simple-engines");
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
 

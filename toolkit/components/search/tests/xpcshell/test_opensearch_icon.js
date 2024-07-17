@@ -6,7 +6,6 @@
 add_setup(async function () {
   let server = useHttpServer();
   server.registerContentType("sjs", "sjs");
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
 

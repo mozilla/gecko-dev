@@ -11,7 +11,6 @@ let timerManager;
 add_setup(async function () {
   let server = useHttpServer("");
   server.registerContentType("sjs", "sjs");
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 
   timerManager = Cc["@mozilla.org/updates/timer-manager;1"].getService(

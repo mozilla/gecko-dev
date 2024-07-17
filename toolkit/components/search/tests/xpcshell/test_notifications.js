@@ -7,7 +7,6 @@ let engine;
 let appDefaultEngine;
 
 add_setup(async function () {
-  await AddonTestUtils.promiseStartupManager();
   useHttpServer();
 
   Services.prefs.setBoolPref(

@@ -9,7 +9,6 @@
 
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("simple-engines");
-  await AddonTestUtils.promiseStartupManager();
 
   const result = await Services.search.init();
   Assert.ok(

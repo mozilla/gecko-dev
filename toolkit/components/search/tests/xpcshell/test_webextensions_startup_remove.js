@@ -7,8 +7,17 @@ const ENGINE_ID = "enginetest@example.com";
 let xpi;
 let profile = do_get_profile().clone();
 
+AddonTestUtils.init(this, false);
+AddonTestUtils.createAppInfo(
+  "xpcshell@tests.mozilla.org",
+  "xpcshell",
+  "42",
+  "42"
+);
+
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("data1");
+
   xpi = AddonTestUtils.createTempWebExtensionFile({
     manifest: {
       version: "1.0",
@@ -27,9 +36,8 @@ add_setup(async function () {
 });
 
 add_task(async function test_removeAddonOnStartup() {
-  // First startup the add-on manager and ensure the engine is installed.
-  await AddonTestUtils.promiseStartupManager();
   let promise = promiseAfterSettings();
+  await SearchTestUtils.initXPCShellAddonManager();
   await Services.search.init();
 
   let engine = Services.search.getEngineByName("Test Engine");

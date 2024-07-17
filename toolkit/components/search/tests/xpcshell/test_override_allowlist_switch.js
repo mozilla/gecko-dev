@@ -168,7 +168,6 @@ add_setup(async function () {
   ];
   Services.locale.requestedLocales = ["en"];
 
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 
   const settings = await RemoteSettings(SearchUtils.SETTINGS_ALLOWLIST_KEY);

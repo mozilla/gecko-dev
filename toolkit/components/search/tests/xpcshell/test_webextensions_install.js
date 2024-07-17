@@ -3,8 +3,6 @@
 
 "use strict";
 
-const { promiseShutdownManager, promiseStartupManager } = AddonTestUtils;
-
 let gBaseUrl;
 
 async function getEngineNames() {
@@ -18,7 +16,6 @@ add_setup(async function () {
   gBaseUrl = `http://localhost:${server.identity.primaryPort}/`;
 
   await SearchTestUtils.useTestEngines("test-extensions");
-  await promiseStartupManager();
 
   Services.locale.availableLocales = [
     ...Services.locale.availableLocales,
@@ -26,7 +23,6 @@ add_setup(async function () {
   ];
 
   registerCleanupFunction(async () => {
-    await promiseShutdownManager();
     Services.prefs.clearUserPref("browser.search.region");
   });
 });

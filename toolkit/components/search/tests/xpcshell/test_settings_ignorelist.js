@@ -17,8 +17,6 @@ var settingsTemplate;
  * Test reading from search.json.mozlz4
  */
 add_setup(async function () {
-  await AddonTestUtils.promiseStartupManager();
-
   await setupRemoteSettings();
 
   settingsTemplate = await readJSONFile(

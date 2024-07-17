@@ -7,7 +7,7 @@
 
 add_setup(async function () {
   useHttpServer("opensearch");
-  await AddonTestUtils.promiseStartupManager();
+
   await Services.search.init();
 
   // This test purposely attempts to load an invalid engine.

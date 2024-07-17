@@ -35,7 +35,6 @@ add_setup(async function () {
 add_task(async function test_bad_nimbus_setting_on_init() {
   getVariableStub.withArgs("extraParams").returns({ foo: "bar" });
 
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 
   Assert.ok(

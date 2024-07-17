@@ -26,13 +26,6 @@ const { DiscoveryStreamFeed } = ChromeUtils.importESModule(
 );
 
 SearchTestUtils.init(this);
-AddonTestUtils.init(this);
-AddonTestUtils.createAppInfo(
-  "xpcshell@tests.mozilla.org",
-  "XPCShell",
-  "42",
-  "42"
-);
 
 const { AboutNewTab } = ChromeUtils.importESModule(
   "resource:///modules/AboutNewTab.sys.mjs"
@@ -61,7 +54,7 @@ add_setup(async function () {
   do_get_profile();
   // The SearchService is also needed in order to construct the initial state,
   // which means that the AddonManager needs to be available.
-  await AddonTestUtils.promiseStartupManager();
+  await SearchTestUtils.initXPCShellAddonManager();
 
   // The example.com domain will be used to host the dynamic layout JSON and
   // the top stories JSON.

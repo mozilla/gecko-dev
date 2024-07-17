@@ -45,8 +45,6 @@ add_setup(async function () {
     "engine-reordered@search.mozilla.org",
   ]);
 
-  await AddonTestUtils.promiseStartupManager();
-
   appDefault = await Services.search.getDefault();
   appPrivateDefault = await Services.search.getDefaultPrivate();
 });

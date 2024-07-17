@@ -12,11 +12,6 @@ const kSearchEngineURL2 =
   "https://example.com/?search={searchTerms}&IGNORE=TRUE";
 const kSearchEngineURL3 = "https://example.com/?search={searchTerms}";
 const kExtensionID = "searchignore@mozilla.com";
-
-add_setup(async function () {
-  await AddonTestUtils.promiseStartupManager();
-});
-
 add_task(async function test_ignoreList() {
   await setupRemoteSettings();
 

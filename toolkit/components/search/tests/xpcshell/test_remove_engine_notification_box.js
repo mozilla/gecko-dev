@@ -105,7 +105,6 @@ add_setup(async function () {
   SearchSettings.SETTINGS_INVALIDATION_DELAY = 100;
   SearchTestUtils.useMockIdleService();
   await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
-  await AddonTestUtils.promiseStartupManager();
 
   stub = sinon.stub(
     await Services.search.wrappedJSObject,

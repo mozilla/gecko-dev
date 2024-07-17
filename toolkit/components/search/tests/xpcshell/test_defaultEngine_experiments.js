@@ -47,8 +47,6 @@ add_setup(async () => {
 
   await SearchTestUtils.useTestEngines("data1");
 
-  await AddonTestUtils.promiseStartupManager();
-
   let promiseSaved = promiseSaveSettingsData();
   await Services.search.init();
   await promiseSaved;

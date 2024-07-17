@@ -72,7 +72,6 @@ add_setup(async () => {
   Region._setHomeRegion("US", false);
 
   await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
 

@@ -7,15 +7,12 @@ const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
 
-const { promiseShutdownManager, promiseStartupManager } = AddonTestUtils;
-
 let extension;
 let extensionPostData;
 let oldRemoveEngineFunc;
 
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("simple-engines");
-  await promiseStartupManager();
 
   Services.telemetry.canRecordExtended = true;
 
@@ -45,7 +42,7 @@ add_setup(async function () {
   Services.search.wrappedJSObject.removeEngine = () => {};
 
   registerCleanupFunction(async () => {
-    await promiseShutdownManager();
+    await extensionPostData.unload();
   });
 });
 

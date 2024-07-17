@@ -4,7 +4,6 @@ import { NON_SPLIT_ENGINE_IDS } from "resource://gre/modules/SearchService.sys.m
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
   ExtensionTestUtils:
     "resource://testing-common/ExtensionXPCShellUtils.sys.mjs",
@@ -24,17 +23,25 @@ class _SearchTestUtils {
    */
   #testScope = null;
 
+  /**
+   * True if we are in a mochitest scope, false for xpcshell-tests.
+   *
+   * @type {boolean?}
+   */
+  #isMochitest = null;
+
+  /**
+   * Initialises the test utils, setting up the scope and working out if these
+   * are mochitest or xpcshell-test.
+   *
+   * @param {object} testScope
+   *   The global scope for the test.
+   */
   init(testScope) {
     this.#testScope = testScope;
-    this._isMochitest = !Services.env.exists("XPCSHELL_TEST_PROFILE_DIR");
-    if (this._isMochitest) {
-      this._isMochitest = true;
+    this.#isMochitest = !Services.env.exists("XPCSHELL_TEST_PROFILE_DIR");
+    if (this.#isMochitest) {
       lazy.AddonTestUtils.initMochitest(testScope);
-    } else {
-      this._isMochitest = false;
-      // This handles xpcshell-tests.
-      this.#testScope.ExtensionTestUtils = lazy.ExtensionTestUtils;
-      this.initXPCShellAddonManager(testScope);
     }
   }
 
@@ -229,29 +236,26 @@ class _SearchTestUtils {
   }
 
   /**
-   * Provides various setup for xpcshell-tests installing WebExtensions. Should
-   * be called from the global scope of the test.
-   *
-   * @param {object} scope
-   *  The global scope of the test being run.
-   * @param {*} usePrivilegedSignatures
-   *  How to sign created addons.
+   * Sets up the add-on manager so that it is ready for loading WebExtension
+   * in xpcshell-tests.
    */
-  initXPCShellAddonManager(scope, usePrivilegedSignatures = false) {
-    let scopes =
-      lazy.AddonManager.SCOPE_PROFILE | lazy.AddonManager.SCOPE_APPLICATION;
-    Services.prefs.setIntPref("extensions.enabledScopes", scopes);
-    // Only do this once.
-    try {
-      this.#testScope.ExtensionTestUtils.init(scope);
-    } catch (ex) {
-      // This can happen if init is called twice.
-      if (ex.result != Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
-        throw ex;
-      }
+  async initXPCShellAddonManager() {
+    this.#testScope.ExtensionTestUtils = lazy.ExtensionTestUtils;
+
+    if (
+      lazy.ExtensionTestUtils.addonManagerStarted ||
+      lazy.AddonTestUtils.addonIntegrationService
+    ) {
+      // We have already started the add-on manager, and the following functions
+      // may throw if they are called twice.
+      return;
     }
-    lazy.AddonTestUtils.usePrivilegedSignatures = usePrivilegedSignatures;
+
+    lazy.ExtensionTestUtils.init(this.#testScope);
     lazy.AddonTestUtils.overrideCertDB();
+    lazy.AddonTestUtils.init(this.#testScope, false);
+
+    await lazy.ExtensionTestUtils.startAddonManager();
   }
 
   /**
@@ -292,6 +296,10 @@ class _SearchTestUtils {
     } = {},
     files = {}
   ) {
+    if (!this.#isMochitest) {
+      await this.initXPCShellAddonManager();
+    }
+
     await Services.search.init();
 
     let extensionInfo = {
@@ -323,7 +331,7 @@ class _SearchTestUtils {
 
     // Cleanup must be registered before loading the extension to avoid
     // failures for mochitests.
-    if (!skipUnload && this._isMochitest) {
+    if (!skipUnload && this.#isMochitest) {
       this.#testScope.registerCleanupFunction(cleanup);
     }
 
@@ -347,7 +355,7 @@ class _SearchTestUtils {
 
     // For xpcshell-tests we must register the unload after adding the extension.
     // See bug 1694409 for why this is.
-    if (!skipUnload && !this._isMochitest) {
+    if (!skipUnload && !this.#isMochitest) {
       this.#testScope.registerCleanupFunction(cleanup);
     }
 
@@ -367,6 +375,9 @@ class _SearchTestUtils {
    *   The display name to use for the WebExtension.
    * @param {string} [options.version]
    *   The version to use for the WebExtension.
+   * @param {boolean} [options.is_default]
+   *   Whether or not to ask for the search engine in the WebExtension to be
+   *   attempted to set as default.
    * @param {string} [options.favicon_url]
    *   The favicon to use for the search engine in the WebExtension.
    * @param {string} [options.keyword]
@@ -403,6 +414,7 @@ class _SearchTestUtils {
       chrome_settings_overrides: {
         search_provider: {
           name: options.name,
+          is_default: !!options.is_default,
           search_url: options.search_url ?? "https://example.com/",
         },
       },

@@ -5,7 +5,6 @@ const kDefaultEngineName = "engine1";
 
 add_setup(async function () {
   useHttpServer();
-  await AddonTestUtils.promiseStartupManager();
   await SearchTestUtils.useTestEngines("data1");
   Assert.ok(!Services.search.isInitialized);
   Services.prefs.setBoolPref(

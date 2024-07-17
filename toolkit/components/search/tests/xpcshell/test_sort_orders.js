@@ -20,8 +20,6 @@ const EXPECTED_ORDER = [
 ];
 
 add_setup(async function () {
-  await AddonTestUtils.promiseStartupManager();
-
   await SearchTestUtils.useTestEngines();
 
   Services.locale.availableLocales = [

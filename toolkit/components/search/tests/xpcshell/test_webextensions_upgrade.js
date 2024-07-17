@@ -3,15 +3,10 @@
 
 "use strict";
 
-const { promiseShutdownManager, promiseStartupManager } = AddonTestUtils;
-
 add_setup(async function () {
   await SearchTestUtils.useTestEngines("data1");
-  await promiseStartupManager();
   await Services.search.init();
   await promiseAfterSettings();
-
-  registerCleanupFunction(promiseShutdownManager);
 });
 
 add_task(async function test_basic_upgrade() {

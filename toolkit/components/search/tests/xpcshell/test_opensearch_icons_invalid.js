@@ -8,7 +8,6 @@
 add_setup(async function () {
   let server = useHttpServer("");
   server.registerContentType("sjs", "sjs");
-  await AddonTestUtils.promiseStartupManager();
 });
 
 add_task(async function test_installedresourceicon() {

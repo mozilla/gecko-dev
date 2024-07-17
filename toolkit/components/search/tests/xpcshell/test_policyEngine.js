@@ -41,7 +41,6 @@ add_setup(async function () {
   policies.observe(null, "policies-startup", null);
 
   Services.fog.initializeFOG();
-  await AddonTestUtils.promiseStartupManager();
   await SearchTestUtils.useTestEngines();
 
   SearchUtils.GENERAL_SEARCH_ENGINE_IDS = new Set([

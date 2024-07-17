@@ -14,19 +14,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://testing-common/ExtensionXPCShellUtils.sys.mjs",
 });
 
-const { promiseShutdownManager, promiseStartupManager } = AddonTestUtils;
-
 let extension;
 
 add_setup(async function () {
   let server = useHttpServer();
   server.registerContentType("sjs", "sjs");
   await SearchTestUtils.useTestEngines("test-extensions");
-  await promiseStartupManager();
-
-  registerCleanupFunction(async () => {
-    await promiseShutdownManager();
-  });
+  await SearchTestUtils.initXPCShellAddonManager();
 });
 
 add_task(async function test_startup_with_new_addon() {

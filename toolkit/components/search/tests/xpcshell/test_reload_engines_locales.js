@@ -96,7 +96,6 @@ add_setup(async () => {
   Services.locale.requestedLocales = ["gd"];
 
   await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
 

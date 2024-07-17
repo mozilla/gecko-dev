@@ -57,7 +57,6 @@ const CONFIG_V2 = [
 add_setup(async function () {
   useHttpServer("opensearch");
   await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
 

@@ -9,7 +9,6 @@
 
 add_setup(async function () {
   Services.fog.initializeFOG();
-  await AddonTestUtils.promiseStartupManager();
   await Services.search.init();
 });
 
