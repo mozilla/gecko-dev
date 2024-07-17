@@ -1813,8 +1813,6 @@ with only_when("--enable-compile-environment"):
         if may_use_pack_relative_relocs:
             return flags
 
-    add_old_configure_assignment("PACK_REL_RELOC_FLAGS", pack_relative_relocs_flags)
-
     @depends(
         select_linker,
         pack_relative_relocs_flags,

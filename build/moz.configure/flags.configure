@@ -668,24 +668,10 @@ def os_asflags(
     return flags
 
 
-@depends("LDFLAGS", linker_flags, android_flags, thumb_option)
-@imports(_from="mozbuild.shellutil", _import="split")
-def os_ldflags(env_ldflags, linker_flags, android_flags, thumb_option):
-    flags = []
-    if android_flags:
-        flags.extend(android_flags.ldflags)
-    if thumb_option:
-        flags.extend(thumb_option)
-    flags.extend(split(env_ldflags[0]))
-    flags.extend(linker_flags.ldflags)
-    return flags
-
-
 # Please keep these last in this file.
 add_old_configure_assignment("CPPFLAGS", os_cppflags)
 add_old_configure_assignment("CFLAGS", os_cflags)
 add_old_configure_assignment("CXXFLAGS", os_cxxflags)
-add_old_configure_assignment("LDFLAGS", os_ldflags)
 
 set_config("HOST_CPPFLAGS", host_cppflags)
 set_config("HOST_CFLAGS", host_cflags)

@@ -11,12 +11,6 @@ AC_INIT(config/config.mk)
 AC_CONFIG_AUX_DIR(${srcdir}/build/autoconf)
 AC_CANONICAL_SYSTEM
 
-dnl Set the minimum version of toolkit libs used by mozilla
-dnl ========================================================
-
-
-LDFLAGS="$LDFLAGS $LINKER_LDFLAGS $PACK_REL_RELOC_FLAGS"
-
 dnl ========================================================
 dnl Checks for compilers.
 dnl ========================================================
@@ -311,10 +305,8 @@ AC_SUBST(MOZ_APP_MAXVERSION)
 
 OS_CFLAGS="$CFLAGS"
 OS_CXXFLAGS="$CXXFLAGS"
-OS_LDFLAGS="$LDFLAGS"
 AC_SUBST_LIST(OS_CFLAGS)
 AC_SUBST_LIST(OS_CXXFLAGS)
-AC_SUBST_LIST(OS_LDFLAGS)
 
 AC_SUBST(HOST_CC)
 AC_SUBST(HOST_CXX)

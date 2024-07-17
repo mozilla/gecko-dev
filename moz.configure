@@ -432,7 +432,11 @@ fold_libs = dependable(False)
 # And dmd
 dmd = dependable(False)
 
+# Only available when toolkit/moz.configure is included
+pack_relative_relocs_flags = dependable(False)
+
 include(include_project_configure)
+
 
 # Final flags validation and gathering
 # -------------------------------------------------
