@@ -609,6 +609,18 @@ with only_when(depends(c_compiler)(lambda c: c.type == "clang-cl")):
         add_linker_flag("-LARGEADDRESSAWARE")
         add_linker_flag("-SAFESEH")
 
+    @depends(host)
+    def moz_debug_ldflags(host):
+        flags = ["-DEBUG"]
+        if host.kernel != "WINNT":
+            # %_PDB% is a special signal to emit only the PDB basename. This
+            # avoids problems in Windows tools that don't like forward-slashes.
+            flags.append("-PDBALTPATH:%_PDB%")
+        return flags
+
+    set_config("MOZ_DEBUG_LDFLAGS", moz_debug_ldflags)
+
+
 set_define("WIN32_LEAN_AND_MEAN", True)
 
 # See http://support.microsoft.com/kb/143208 to use STL
