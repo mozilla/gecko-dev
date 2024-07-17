@@ -861,7 +861,7 @@ sec_pkcs7_encoder_sig_and_certs(SEC_PKCS7ContentInfo *cinfo,
     if (signerinfos != NULL) {
         for (si = 0; signerinfos[si] != NULL; si++) {
             signerinfo = signerinfos[si];
-            for (ci = 0; ci < signerinfo->certList->len; ci++)
+            for (ci = 0; signerinfo->certList && ci < signerinfo->certList->len; ci++)
                 rawcerts[rci++] = &(signerinfo->certList->certs[ci]);
         }
     }

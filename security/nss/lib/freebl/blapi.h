@@ -1942,6 +1942,8 @@ extern SECStatus ED_VerifyMessage(ECPublicKey *key, const SECItem *signature,
  */
 extern SECStatus ED_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey);
 
+extern SECStatus X25519_DerivePublicKey(SECItem *privateKey, SECItem *publicKey);
+
 SEC_END_PROTOS
 
 #endif /* _BLAPI_H_ */

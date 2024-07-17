@@ -50,6 +50,7 @@
         'pk11_seed_cbc_unittest.cc',
         'pk11_symkey_unittest.cc',
         'pk11_signature_test.cc',
+        'pk11_x25519_unittest.cc',
         '<(DEPTH)/gtests/common/gtests.cc'
       ],
       'dependencies': [

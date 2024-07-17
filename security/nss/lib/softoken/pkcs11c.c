@@ -20,6 +20,7 @@
 
 #include <limits.h> /* for UINT_MAX and ULONG_MAX */
 
+#include "lowkeyti.h"
 #include "seccomon.h"
 #include "secitem.h"
 #include "secport.h"
@@ -92,13 +93,98 @@ sftk_Null(void *data, PRBool freeit)
 #define SEC_PRINT(a, b, c, d)
 #endif
 
+/* Wrappers to avoid undefined behavior calling functions through a pointer of incorrect type. */
+#define SFTKHashWrap(ctxtype, mmm)                                                        \
+    static void                                                                           \
+        SFTKHash_##mmm##_Update(void *vctx, const unsigned char *input, unsigned int len) \
+    {                                                                                     \
+        ctxtype *ctx = vctx;                                                              \
+        mmm##_Update(ctx, input, len);                                                    \
+    }                                                                                     \
+    static void                                                                           \
+        SFTKHash_##mmm##_End(void *vctx, unsigned char *digest,                           \
+                             unsigned int *len, unsigned int maxLen)                      \
+    {                                                                                     \
+        ctxtype *ctx = vctx;                                                              \
+        mmm##_End(ctx, digest, len, maxLen);                                              \
+    }                                                                                     \
+    static void                                                                           \
+        SFTKHash_##mmm##_DestroyContext(void *vctx, PRBool freeit)                        \
+    {                                                                                     \
+        ctxtype *ctx = vctx;                                                              \
+        mmm##_DestroyContext(ctx, freeit);                                                \
+    }
+
+SFTKHashWrap(MD2Context, MD2);
+SFTKHashWrap(MD5Context, MD5);
+SFTKHashWrap(SHA1Context, SHA1);
+SFTKHashWrap(SHA224Context, SHA224);
+SFTKHashWrap(SHA256Context, SHA256);
+SFTKHashWrap(SHA384Context, SHA384);
+SFTKHashWrap(SHA512Context, SHA512);
+SFTKHashWrap(SHA3_224Context, SHA3_224);
+SFTKHashWrap(SHA3_256Context, SHA3_256);
+SFTKHashWrap(SHA3_384Context, SHA3_384);
+SFTKHashWrap(SHA3_512Context, SHA3_512);
+SFTKHashWrap(sftk_MACCtx, sftk_MAC);
+
+static void
+SFTKHash_SHA1_Begin(void *vctx)
+{
+    SHA1Context *ctx = vctx;
+    SHA1_Begin(ctx);
+}
+
+static void
+SFTKHash_MD5_Begin(void *vctx)
+{
+    MD5Context *ctx = vctx;
+    MD5_Begin(ctx);
+}
+
+#define SFTKCipherWrap(ctxtype, mmm)                                         \
+    static SECStatus                                                         \
+        SFTKCipher_##mmm(void *vctx, unsigned char *output,                  \
+                         unsigned int *outputLen, unsigned int maxOutputLen, \
+                         const unsigned char *input, unsigned int inputLen)  \
+    {                                                                        \
+        ctxtype *ctx = vctx;                                                 \
+        return mmm(ctx, output, outputLen, maxOutputLen,                     \
+                   input, inputLen);                                         \
+    }
+
+SFTKCipherWrap(AESKeyWrapContext, AESKeyWrap_EncryptKWP);
+SFTKCipherWrap(AESKeyWrapContext, AESKeyWrap_DecryptKWP);
+
+#define SFTKCipherWrap2(ctxtype, mmm)                                        \
+    SFTKCipherWrap(ctxtype, mmm##_Encrypt);                                  \
+    SFTKCipherWrap(ctxtype, mmm##_Decrypt);                                  \
+    static void SFTKCipher_##mmm##_DestroyContext(void *vctx, PRBool freeit) \
+    {                                                                        \
+        ctxtype *ctx = vctx;                                                 \
+        mmm##_DestroyContext(ctx, freeit);                                   \
+    }
+
+SFTKCipherWrap2(RC2Context, RC2);
+SFTKCipherWrap2(RC4Context, RC4);
+SFTKCipherWrap2(DESContext, DES);
+SFTKCipherWrap2(SEEDContext, SEED);
+SFTKCipherWrap2(CamelliaContext, Camellia);
+SFTKCipherWrap2(AESContext, AES);
+SFTKCipherWrap2(AESKeyWrapContext, AESKeyWrap);
+
+#if NSS_SOFTOKEN_DOES_RC5
+SFTKCipherWrap2(RC5Context, RC5);
+#endif
+
 /*
  * free routines.... Free local type  allocated data, and convert
  * other free routines to the destroy signature.
  */
 static void
-sftk_FreePrivKey(NSSLOWKEYPrivateKey *key, PRBool freeit)
+sftk_FreePrivKey(void *vkey, PRBool freeit)
 {
+    NSSLOWKEYPrivateKey *key = vkey;
     nsslowkey_DestroyPrivateKey(key);
 }
 
@@ -477,10 +563,11 @@ sftk_aes_mode(CK_MECHANISM_TYPE mechanism)
 }
 
 static SECStatus
-sftk_RSAEncryptRaw(NSSLOWKEYPublicKey *key, unsigned char *output,
+sftk_RSAEncryptRaw(void *ctx, unsigned char *output,
                    unsigned int *outputLen, unsigned int maxLen,
                    const unsigned char *input, unsigned int inputLen)
 {
+    NSSLOWKEYPublicKey *key = ctx;
     SECStatus rv = SECFailure;
 
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
@@ -499,10 +586,11 @@ sftk_RSAEncryptRaw(NSSLOWKEYPublicKey *key, unsigned char *output,
 }
 
 static SECStatus
-sftk_RSADecryptRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
+sftk_RSADecryptRaw(void *ctx, unsigned char *output,
                    unsigned int *outputLen, unsigned int maxLen,
                    const unsigned char *input, unsigned int inputLen)
 {
+    NSSLOWKEYPrivateKey *key = ctx;
     SECStatus rv = SECFailure;
 
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
@@ -521,10 +609,11 @@ sftk_RSADecryptRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
 }
 
 static SECStatus
-sftk_RSAEncrypt(NSSLOWKEYPublicKey *key, unsigned char *output,
+sftk_RSAEncrypt(void *ctx, unsigned char *output,
                 unsigned int *outputLen, unsigned int maxLen,
                 const unsigned char *input, unsigned int inputLen)
 {
+    NSSLOWKEYPublicKey *key = ctx;
     SECStatus rv = SECFailure;
 
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
@@ -543,10 +632,11 @@ sftk_RSAEncrypt(NSSLOWKEYPublicKey *key, unsigned char *output,
 }
 
 static SECStatus
-sftk_RSADecrypt(NSSLOWKEYPrivateKey *key, unsigned char *output,
+sftk_RSADecrypt(void *ctx, unsigned char *output,
                 unsigned int *outputLen, unsigned int maxLen,
                 const unsigned char *input, unsigned int inputLen)
 {
+    NSSLOWKEYPrivateKey *key = ctx;
     SECStatus rv = SECFailure;
 
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
@@ -565,17 +655,19 @@ sftk_RSADecrypt(NSSLOWKEYPrivateKey *key, unsigned char *output,
 }
 
 static void
-sftk_freeRSAOAEPInfo(SFTKOAEPInfo *info, PRBool freeit)
+sftk_freeRSAOAEPInfo(void *ctx, PRBool freeit)
 {
+    SFTKOAEPInfo *info = ctx;
     PORT_ZFree(info->params.pSourceData, info->params.ulSourceDataLen);
     PORT_ZFree(info, sizeof(SFTKOAEPInfo));
 }
 
 static SECStatus
-sftk_RSAEncryptOAEP(SFTKOAEPInfo *info, unsigned char *output,
+sftk_RSAEncryptOAEP(void *ctx, unsigned char *output,
                     unsigned int *outputLen, unsigned int maxLen,
                     const unsigned char *input, unsigned int inputLen)
 {
+    SFTKOAEPInfo *info = ctx;
     HASH_HashType hashAlg;
     HASH_HashType maskHashAlg;
 
@@ -595,10 +687,11 @@ sftk_RSAEncryptOAEP(SFTKOAEPInfo *info, unsigned char *output,
 }
 
 static SECStatus
-sftk_RSADecryptOAEP(SFTKOAEPInfo *info, unsigned char *output,
+sftk_RSADecryptOAEP(void *ctx, unsigned char *output,
                     unsigned int *outputLen, unsigned int maxLen,
                     const unsigned char *input, unsigned int inputLen)
 {
+    SFTKOAEPInfo *info = ctx;
     SECStatus rv = SECFailure;
     HASH_HashType hashAlg;
     HASH_HashType maskHashAlg;
@@ -670,9 +763,10 @@ sftk_ChaCha20Poly1305_CreateContext(const unsigned char *key,
 }
 
 static void
-sftk_ChaCha20Poly1305_DestroyContext(SFTKChaCha20Poly1305Info *ctx,
+sftk_ChaCha20Poly1305_DestroyContext(void *vctx,
                                      PRBool freeit)
 {
+    SFTKChaCha20Poly1305Info *ctx = vctx;
     ChaCha20Poly1305_DestroyContext(&ctx->freeblCtx, PR_FALSE);
     if (ctx->adOverflow != NULL) {
         PORT_ZFree(ctx->adOverflow, ctx->adLen);
@@ -687,11 +781,12 @@ sftk_ChaCha20Poly1305_DestroyContext(SFTKChaCha20Poly1305Info *ctx,
 }
 
 static SECStatus
-sftk_ChaCha20Poly1305_Encrypt(const SFTKChaCha20Poly1305Info *ctx,
+sftk_ChaCha20Poly1305_Encrypt(void *vctx,
                               unsigned char *output, unsigned int *outputLen,
                               unsigned int maxOutputLen,
                               const unsigned char *input, unsigned int inputLen)
 {
+    const SFTKChaCha20Poly1305Info *ctx = vctx;
     const unsigned char *ad = ctx->adOverflow;
 
     if (ad == NULL) {
@@ -704,11 +799,12 @@ sftk_ChaCha20Poly1305_Encrypt(const SFTKChaCha20Poly1305Info *ctx,
 }
 
 static SECStatus
-sftk_ChaCha20Poly1305_Decrypt(const SFTKChaCha20Poly1305Info *ctx,
+sftk_ChaCha20Poly1305_Decrypt(void *vctx,
                               unsigned char *output, unsigned int *outputLen,
                               unsigned int maxOutputLen,
                               const unsigned char *input, unsigned int inputLen)
 {
+    const SFTKChaCha20Poly1305Info *ctx = vctx;
     const unsigned char *ad = ctx->adOverflow;
 
     if (ad == NULL) {
@@ -721,7 +817,7 @@ sftk_ChaCha20Poly1305_Decrypt(const SFTKChaCha20Poly1305Info *ctx,
 }
 
 static SECStatus
-sftk_ChaCha20Ctr(const SFTKChaCha20CtrInfo *ctx,
+sftk_ChaCha20Ctr(void *vctx,
                  unsigned char *output, unsigned int *outputLen,
                  unsigned int maxOutputLen,
                  const unsigned char *input, unsigned int inputLen)
@@ -730,6 +826,7 @@ sftk_ChaCha20Ctr(const SFTKChaCha20CtrInfo *ctx,
         PORT_SetError(SEC_ERROR_OUTPUT_LEN);
         return SECFailure;
     }
+    SFTKChaCha20CtrInfo *ctx = vctx;
     ChaCha20_Xor(output, input, inputLen, ctx->key,
                  ctx->nonce, ctx->counter);
     *outputLen = inputLen;
@@ -737,10 +834,11 @@ sftk_ChaCha20Ctr(const SFTKChaCha20CtrInfo *ctx,
 }
 
 static void
-sftk_ChaCha20Ctr_DestroyContext(SFTKChaCha20CtrInfo *ctx,
+sftk_ChaCha20Ctr_DestroyContext(void *vctx,
                                 PRBool freeit)
 {
-    memset(ctx, 0, sizeof(*ctx));
+    SFTKChaCha20CtrInfo *ctx = vctx;
+    memset(ctx, 0, sizeof(SFTKChaCha20CtrInfo));
     if (freeit) {
         PORT_Free(ctx);
     }
@@ -820,9 +918,9 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 }
                 context->maxLen = nsslowkey_PublicModulusLen(pubKey);
                 context->cipherInfo = (void *)pubKey;
-                context->update = (SFTKCipher)(pMechanism->mechanism == CKM_RSA_X_509
-                                                   ? sftk_RSAEncryptRaw
-                                                   : sftk_RSAEncrypt);
+                context->update = pMechanism->mechanism == CKM_RSA_X_509
+                                      ? sftk_RSAEncryptRaw
+                                      : sftk_RSAEncrypt;
             } else {
                 NSSLOWKEYPrivateKey *privKey = sftk_GetPrivKey(key, CKK_RSA, &crv);
                 if (privKey == NULL) {
@@ -831,9 +929,9 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 }
                 context->maxLen = nsslowkey_PrivateModulusLen(privKey);
                 context->cipherInfo = (void *)privKey;
-                context->update = (SFTKCipher)(pMechanism->mechanism == CKM_RSA_X_509
-                                                   ? sftk_RSADecryptRaw
-                                                   : sftk_RSADecrypt);
+                context->update = pMechanism->mechanism == CKM_RSA_X_509
+                                      ? sftk_RSADecryptRaw
+                                      : sftk_RSADecrypt;
             }
             context->destroy = sftk_Null;
             break;
@@ -882,7 +980,7 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                         crv = CKR_KEY_HANDLE_INVALID;
                         break;
                     }
-                    context->update = (SFTKCipher)sftk_RSAEncryptOAEP;
+                    context->update = sftk_RSAEncryptOAEP;
                     context->maxLen = nsslowkey_PublicModulusLen(info->key.pub);
                 } else {
                     info->key.priv = sftk_GetPrivKey(key, CKK_RSA, &crv);
@@ -891,12 +989,12 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                         crv = CKR_KEY_HANDLE_INVALID;
                         break;
                     }
-                    context->update = (SFTKCipher)sftk_RSADecryptOAEP;
+                    context->update = sftk_RSADecryptOAEP;
                     context->maxLen = nsslowkey_PrivateModulusLen(info->key.priv);
                 }
                 context->cipherInfo = info;
             }
-            context->destroy = (SFTKDestroy)sftk_freeRSAOAEPInfo;
+            context->destroy = sftk_freeRSAOAEPInfo;
             break;
 #ifndef NSS_DISABLE_DEPRECATED_RC2
         case CKM_RC2_CBC_PAD:
@@ -930,8 +1028,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            context->update = (SFTKCipher)(isEncrypt ? RC2_Encrypt : RC2_Decrypt);
-            context->destroy = (SFTKDestroy)RC2_DestroyContext;
+            context->update = isEncrypt ? SFTKCipher_RC2_Encrypt : SFTKCipher_RC2_Decrypt;
+            context->destroy = SFTKCipher_RC2_DestroyContext;
             break;
 #endif /* NSS_DISABLE_DEPRECATED_RC2 */
 
@@ -967,8 +1065,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            context->update = (SFTKCipher)(isEncrypt ? RC5_Encrypt : RC5_Decrypt);
-            context->destroy = (SFTKDestroy)RC5_DestroyContext;
+            context->update = isEncrypt ? SFTKCipher_RC5_Encrypt : SFTKCipher_RC5_Decrypt;
+            context->destroy = SFTKCipher_RC5_DestroyContext;
             break;
 #endif
         case CKM_RC4:
@@ -989,8 +1087,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 crv = CKR_HOST_MEMORY; /* WRONG !!! */
                 break;
             }
-            context->update = (SFTKCipher)(isEncrypt ? RC4_Encrypt : RC4_Decrypt);
-            context->destroy = (SFTKDestroy)RC4_DestroyContext;
+            context->update = isEncrypt ? SFTKCipher_RC4_Encrypt : SFTKCipher_RC4_Decrypt;
+            context->destroy = SFTKCipher_RC4_DestroyContext;
             break;
         case CKM_CDMF_CBC_PAD:
             context->doPad = PR_TRUE;
@@ -1072,8 +1170,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            context->update = (SFTKCipher)(isEncrypt ? DES_Encrypt : DES_Decrypt);
-            context->destroy = (SFTKDestroy)DES_DestroyContext;
+            context->update = isEncrypt ? SFTKCipher_DES_Encrypt : SFTKCipher_DES_Decrypt;
+            context->destroy = SFTKCipher_DES_DestroyContext;
             break;
 #ifndef NSS_DISABLE_DEPRECATED_SEED
         case CKM_SEED_CBC_PAD:
@@ -1107,8 +1205,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            context->update = (SFTKCipher)(isEncrypt ? SEED_Encrypt : SEED_Decrypt);
-            context->destroy = (SFTKDestroy)SEED_DestroyContext;
+            context->update = isEncrypt ? SFTKCipher_SEED_Encrypt : SFTKCipher_SEED_Decrypt;
+            context->destroy = SFTKCipher_SEED_DestroyContext;
             break;
 #endif /* NSS_DISABLE_DEPRECATED_SEED */
         case CKM_CAMELLIA_CBC_PAD:
@@ -1145,8 +1243,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            context->update = (SFTKCipher)(isEncrypt ? Camellia_Encrypt : Camellia_Decrypt);
-            context->destroy = (SFTKDestroy)Camellia_DestroyContext;
+            context->update = isEncrypt ? SFTKCipher_Camellia_Encrypt : SFTKCipher_Camellia_Decrypt;
+            context->destroy = SFTKCipher_Camellia_DestroyContext;
             break;
 
         case CKM_AES_CBC_PAD:
@@ -1230,8 +1328,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            context->update = (SFTKCipher)(isEncrypt ? AES_Encrypt : AES_Decrypt);
-            context->destroy = (SFTKDestroy)AES_DestroyContext;
+            context->update = isEncrypt ? SFTKCipher_AES_Encrypt : SFTKCipher_AES_Decrypt;
+            context->destroy = SFTKCipher_AES_DestroyContext;
             break;
 
         case CKM_NSS_CHACHA20_POLY1305:
@@ -1283,8 +1381,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 crv = sftk_MapCryptError(PORT_GetError());
                 break;
             }
-            context->update = (SFTKCipher)(isEncrypt ? sftk_ChaCha20Poly1305_Encrypt : sftk_ChaCha20Poly1305_Decrypt);
-            context->destroy = (SFTKDestroy)sftk_ChaCha20Poly1305_DestroyContext;
+            context->update = isEncrypt ? sftk_ChaCha20Poly1305_Encrypt : sftk_ChaCha20Poly1305_Decrypt;
+            context->destroy = sftk_ChaCha20Poly1305_DestroyContext;
             break;
 
         case CKM_NSS_CHACHA20_CTR: /* old NSS private version */
@@ -1365,8 +1463,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             }
             memcpy(ctx->nonce, nonce, nonce_len);
             context->cipherInfo = ctx;
-            context->update = (SFTKCipher)sftk_ChaCha20Ctr;
-            context->destroy = (SFTKDestroy)sftk_ChaCha20Ctr_DestroyContext;
+            context->update = sftk_ChaCha20Ctr;
+            context->destroy = sftk_ChaCha20Ctr_DestroyContext;
             break;
         }
 
@@ -1398,13 +1496,13 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 break;
             }
             if (pMechanism->mechanism == CKM_AES_KEY_WRAP_KWP) {
-                context->update = (SFTKCipher)(isEncrypt ? AESKeyWrap_EncryptKWP
-                                                         : AESKeyWrap_DecryptKWP);
+                context->update = isEncrypt ? SFTKCipher_AESKeyWrap_EncryptKWP
+                                            : SFTKCipher_AESKeyWrap_DecryptKWP;
             } else {
-                context->update = (SFTKCipher)(isEncrypt ? AESKeyWrap_Encrypt
-                                                         : AESKeyWrap_Decrypt);
+                context->update = isEncrypt ? SFTKCipher_AESKeyWrap_Encrypt
+                                            : SFTKCipher_AESKeyWrap_Decrypt;
             }
-            context->destroy = (SFTKDestroy)AESKeyWrap_DestroyContext;
+            context->destroy = SFTKCipher_AESKeyWrap_DestroyContext;
             break;
 
         default:
@@ -1898,9 +1996,9 @@ NSC_DigestInit(CK_SESSION_HANDLE hSession,
         context->cipherInfo = (void *)mmm##_ctx;               \
         context->cipherInfoLen = mmm##_FlattenSize(mmm##_ctx); \
         context->currentMech = CKM_##mmm;                      \
-        context->hashUpdate = (SFTKHash)mmm##_Update;          \
-        context->end = (SFTKEnd)mmm##_End;                     \
-        context->destroy = (SFTKDestroy)mmm##_DestroyContext;  \
+        context->hashUpdate = SFTKHash_##mmm##_Update;         \
+        context->end = SFTKHash_##mmm##_End;                   \
+        context->destroy = SFTKHash_##mmm##_DestroyContext;    \
         context->maxLen = mmm##_LENGTH;                        \
         if (mmm##_ctx)                                         \
             mmm##_Begin(mmm##_ctx);                            \
@@ -2045,20 +2143,20 @@ NSC_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest,
  * these helper functions are used by Generic Macing and Signing functions
  * that use hashes as part of their operations.
  */
-#define DOSUB(mmm)                                                \
-    static CK_RV                                                  \
-        sftk_doSub##mmm(SFTKSessionContext *context)              \
-    {                                                             \
-        mmm##Context *mmm##_ctx = mmm##_NewContext();             \
-        context->hashInfo = (void *)mmm##_ctx;                    \
-        context->hashUpdate = (SFTKHash)mmm##_Update;             \
-        context->end = (SFTKEnd)mmm##_End;                        \
-        context->hashdestroy = (SFTKDestroy)mmm##_DestroyContext; \
-        if (!context->hashInfo) {                                 \
-            return CKR_HOST_MEMORY;                               \
-        }                                                         \
-        mmm##_Begin(mmm##_ctx);                                   \
-        return CKR_OK;                                            \
+#define DOSUB(mmm)                                              \
+    static CK_RV                                                \
+        sftk_doSub##mmm(SFTKSessionContext *context)            \
+    {                                                           \
+        mmm##Context *mmm##_ctx = mmm##_NewContext();           \
+        context->hashInfo = (void *)mmm##_ctx;                  \
+        context->hashUpdate = SFTKHash_##mmm##_Update;          \
+        context->end = SFTKHash_##mmm##_End;                    \
+        context->hashdestroy = SFTKHash_##mmm##_DestroyContext; \
+        if (!context->hashInfo) {                               \
+            return CKR_HOST_MEMORY;                             \
+        }                                                       \
+        mmm##_Begin(mmm##_ctx);                                 \
+        return CKR_OK;                                          \
     }
 
 DOSUB(MD2)
@@ -2071,13 +2169,13 @@ DOSUB(SHA512)
 
 static SECStatus
 sftk_SignCopy(
-    CK_ULONG *copyLen,
-    void *out, unsigned int *outLength,
+    void *copyLen,
+    unsigned char *out, unsigned int *outLength,
     unsigned int maxLength,
     const unsigned char *hashResult,
     unsigned int hashResultLength)
 {
-    unsigned int toCopy = *copyLen;
+    unsigned int toCopy = *(CK_ULONG *)copyLen;
     if (toCopy > maxLength) {
         toCopy = maxLength;
     }
@@ -2093,10 +2191,10 @@ sftk_SignCopy(
 
 /* Verify is just a compare for HMAC */
 static SECStatus
-sftk_HMACCmp(CK_ULONG *copyLen, unsigned char *sig, unsigned int sigLen,
-             unsigned char *hash, unsigned int hashLen)
+sftk_HMACCmp(void *copyLen, const unsigned char *sig, unsigned int sigLen,
+             const unsigned char *hash, unsigned int hashLen)
 {
-    if (NSS_SecureMemcmp(sig, hash, *copyLen) == 0) {
+    if (NSS_SecureMemcmp(sig, hash, *(CK_ULONG *)copyLen) == 0) {
         return SECSuccess;
     }
 
@@ -2128,19 +2226,19 @@ sftk_doMACInit(CK_MECHANISM_TYPE mech, SFTKSessionContext *session,
     /* Required by FIPS 198 Section 4. Delay this check until after the MAC
      * has been initialized to steal the output size of the MAC. */
     if (isFIPS && (mac_size < 4 || mac_size < context->mac_size / 2)) {
-        sftk_MAC_Destroy(context, PR_TRUE);
+        sftk_MAC_DestroyContext(context, PR_TRUE);
         return CKR_BUFFER_TOO_SMALL;
     }
 
     /* Configure our helper functions appropriately. Note that these casts
      * ignore the return values. */
-    session->hashUpdate = (SFTKHash)sftk_MAC_Update;
-    session->end = (SFTKEnd)sftk_MAC_Finish;
-    session->hashdestroy = (SFTKDestroy)sftk_MAC_Destroy;
+    session->hashUpdate = SFTKHash_sftk_MAC_Update;
+    session->end = SFTKHash_sftk_MAC_End;
+    session->hashdestroy = SFTKHash_sftk_MAC_DestroyContext;
 
     intpointer = PORT_New(CK_ULONG);
     if (intpointer == NULL) {
-        sftk_MAC_Destroy(context, PR_TRUE);
+        sftk_MAC_DestroyContext(context, PR_TRUE);
         return CKR_HOST_MEMORY;
     }
     *intpointer = mac_size;
@@ -2148,9 +2246,9 @@ sftk_doMACInit(CK_MECHANISM_TYPE mech, SFTKSessionContext *session,
 
     /* Since we're only "hashing", copy the result from session->end to the
      * caller using sftk_SignCopy. */
-    session->update = (SFTKCipher)sftk_SignCopy;
-    session->verify = (SFTKVerify)sftk_HMACCmp;
-    session->destroy = (SFTKDestroy)sftk_Space;
+    session->update = sftk_SignCopy;
+    session->verify = sftk_HMACCmp;
+    session->destroy = sftk_Space;
 
     session->maxLen = context->mac_size;
 
@@ -2190,9 +2288,10 @@ static unsigned char ssl_pad_2[60] = {
 };
 
 static SECStatus
-sftk_SSLMACSign(SFTKSSLMACInfo *info, unsigned char *sig, unsigned int *sigLen,
-                unsigned int maxLen, unsigned char *hash, unsigned int hashLen)
+sftk_SSLMACSign(void *ctx, unsigned char *sig, unsigned int *sigLen,
+                unsigned int maxLen, const unsigned char *hash, unsigned int hashLen)
 {
+    SFTKSSLMACInfo *info = ctx;
     unsigned char tmpBuf[SFTK_MAX_MAC_LENGTH];
     unsigned int out;
 
@@ -2208,9 +2307,10 @@ sftk_SSLMACSign(SFTKSSLMACInfo *info, unsigned char *sig, unsigned int *sigLen,
 }
 
 static SECStatus
-sftk_SSLMACVerify(SFTKSSLMACInfo *info, unsigned char *sig, unsigned int sigLen,
-                  unsigned char *hash, unsigned int hashLen)
+sftk_SSLMACVerify(void *ctx, const unsigned char *sig, unsigned int sigLen,
+                  const unsigned char *hash, unsigned int hashLen)
 {
+    SFTKSSLMACInfo *info = ctx;
     unsigned char tmpBuf[SFTK_MAX_MAC_LENGTH];
     unsigned int out;
     int cmp;
@@ -2242,13 +2342,13 @@ sftk_doSSLMACInit(SFTKSessionContext *context, SECOidTag oid,
         crv = sftk_doSubSHA1(context);
         if (crv != CKR_OK)
             return crv;
-        begin = (SFTKBegin)SHA1_Begin;
+        begin = SFTKHash_SHA1_Begin;
         padSize = 40;
     } else {
         crv = sftk_doSubMD5(context);
         if (crv != CKR_OK)
             return crv;
-        begin = (SFTKBegin)MD5_Begin;
+        begin = SFTKHash_MD5_Begin;
         padSize = 48;
     }
     context->multi = PR_TRUE;
@@ -2277,9 +2377,9 @@ sftk_doSSLMACInit(SFTKSessionContext *context, SECOidTag oid,
     sslmacinfo->padSize = padSize;
     sftk_FreeAttribute(keyval);
     context->cipherInfo = (void *)sslmacinfo;
-    context->destroy = (SFTKDestroy)sftk_ZSpace;
-    context->update = (SFTKCipher)sftk_SSLMACSign;
-    context->verify = (SFTKVerify)sftk_SSLMACVerify;
+    context->destroy = sftk_ZSpace;
+    context->update = sftk_SSLMACSign;
+    context->verify = sftk_SSLMACVerify;
     context->maxLen = mac_size;
     return CKR_OK;
 }
@@ -2505,10 +2605,11 @@ fail:
  * encode RSA PKCS #1 Signature data before signing...
  */
 static SECStatus
-sftk_RSAHashSign(SFTKHashSignInfo *info, unsigned char *sig,
+sftk_RSAHashSign(void *ctx, unsigned char *sig,
                  unsigned int *sigLen, unsigned int maxLen,
                  const unsigned char *hash, unsigned int hashLen)
 {
+    SFTKHashSignInfo *info = ctx;
     PORT_Assert(info->key->keyType == NSSLOWKEYRSAKey);
     if (info->key->keyType != NSSLOWKEYRSAKey) {
         PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -2596,10 +2697,11 @@ loser:
 }
 
 static SECStatus
-sftk_RSASign(NSSLOWKEYPrivateKey *key, unsigned char *output,
+sftk_RSASign(void *ctx, unsigned char *output,
              unsigned int *outputLen, unsigned int maxOutputLen,
              const unsigned char *input, unsigned int inputLen)
 {
+    NSSLOWKEYPrivateKey *key = ctx;
     SECStatus rv = SECFailure;
 
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
@@ -2617,10 +2719,11 @@ sftk_RSASign(NSSLOWKEYPrivateKey *key, unsigned char *output,
 }
 
 static SECStatus
-sftk_RSASignRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
+sftk_RSASignRaw(void *ctx, unsigned char *output,
                 unsigned int *outputLen, unsigned int maxOutputLen,
                 const unsigned char *input, unsigned int inputLen)
 {
+    NSSLOWKEYPrivateKey *key = ctx;
     SECStatus rv = SECFailure;
 
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
@@ -2638,10 +2741,11 @@ sftk_RSASignRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
 }
 
 static SECStatus
-sftk_RSASignPSS(SFTKPSSSignInfo *info, unsigned char *sig,
+sftk_RSASignPSS(void *ctx, unsigned char *sig,
                 unsigned int *sigLen, unsigned int maxLen,
                 const unsigned char *hash, unsigned int hashLen)
 {
+    SFTKPSSSignInfo *info = ctx;
     SECStatus rv = SECFailure;
     HASH_HashType hashAlg;
     HASH_HashType maskHashAlg;
@@ -2665,21 +2769,21 @@ sftk_RSASignPSS(SFTKPSSSignInfo *info, unsigned char *sig,
 }
 
 static SECStatus
-nsc_DSA_Verify_Stub(void *ctx, void *sigBuf, unsigned int sigLen,
-                    void *dataBuf, unsigned int dataLen)
+nsc_DSA_Verify_Stub(void *ctx, const unsigned char *sigBuf, unsigned int sigLen,
+                    const unsigned char *dataBuf, unsigned int dataLen)
 {
+    NSSLOWKEYPublicKey *key = ctx;
     SECItem signature = { siBuffer, (unsigned char *)sigBuf, sigLen };
     SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
-    NSSLOWKEYPublicKey *key = (NSSLOWKEYPublicKey *)ctx;
     return DSA_VerifyDigest(&(key->u.dsa), &signature, &digest);
 }
 
 static SECStatus
-nsc_DSA_Sign_Stub(void *ctx, void *sigBuf,
+nsc_DSA_Sign_Stub(void *ctx, unsigned char *sigBuf,
                   unsigned int *sigLen, unsigned int maxSigLen,
-                  void *dataBuf, unsigned int dataLen)
+                  const unsigned char *dataBuf, unsigned int dataLen)
 {
-    NSSLOWKEYPrivateKey *key = (NSSLOWKEYPrivateKey *)ctx;
+    NSSLOWKEYPrivateKey *key = ctx;
     SECItem signature = { siBuffer, (unsigned char *)sigBuf, maxSigLen };
     SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
     SECStatus rv = DSA_SignDigest(&(key->u.dsa), &signature, &digest);
@@ -2691,22 +2795,22 @@ nsc_DSA_Sign_Stub(void *ctx, void *sigBuf,
 }
 
 static SECStatus
-nsc_ECDSAVerifyStub(void *ctx, void *sigBuf, unsigned int sigLen,
-                    void *dataBuf, unsigned int dataLen)
+nsc_ECDSAVerifyStub(void *ctx, const unsigned char *sigBuf, unsigned int sigLen,
+                    const unsigned char *dataBuf, unsigned int dataLen)
 {
+    NSSLOWKEYPublicKey *key = ctx;
     SECItem signature = { siBuffer, (unsigned char *)sigBuf, sigLen };
     SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
-    NSSLOWKEYPublicKey *key = (NSSLOWKEYPublicKey *)ctx;
     return ECDSA_VerifyDigest(&(key->u.ec), &signature, &digest);
 }
 
 static SECStatus
-nsc_ECDSASignStub(void *ctx, void *sigBuf,
+nsc_ECDSASignStub(void *ctx, unsigned char *sigBuf,
                   unsigned int *sigLen, unsigned int maxSigLen,
-                  void *dataBuf, unsigned int dataLen)
+                  const unsigned char *dataBuf, unsigned int dataLen)
 {
-    NSSLOWKEYPrivateKey *key = (NSSLOWKEYPrivateKey *)ctx;
-    SECItem signature = { siBuffer, (unsigned char *)sigBuf, maxSigLen };
+    NSSLOWKEYPrivateKey *key = ctx;
+    SECItem signature = { siBuffer, sigBuf, maxSigLen };
     SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
 
     SECStatus rv = ECDSA_SignDigest(&(key->u.ec), &signature, &digest);
@@ -2718,22 +2822,22 @@ nsc_ECDSASignStub(void *ctx, void *sigBuf,
 }
 
 static SECStatus
-nsc_EDDSAVerifyStub(void *ctx, void *sigBuf, unsigned int sigLen,
-                    void *dataBuf, unsigned int dataLen)
+nsc_EDDSAVerifyStub(void *ctx, const unsigned char *sigBuf, unsigned int sigLen,
+                    const unsigned char *dataBuf, unsigned int dataLen)
 {
+    NSSLOWKEYPublicKey *key = ctx;
     SECItem signature = { siBuffer, (unsigned char *)sigBuf, sigLen };
     SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
-    NSSLOWKEYPublicKey *key = (NSSLOWKEYPublicKey *)ctx;
     return ED_VerifyMessage(&(key->u.ec), &signature, &digest);
 }
 
 static SECStatus
-nsc_EDDSASignStub(void *ctx, void *sigBuf,
+nsc_EDDSASignStub(void *ctx, unsigned char *sigBuf,
                   unsigned int *sigLen, unsigned int maxSigLen,
-                  void *dataBuf, unsigned int dataLen)
+                  const unsigned char *dataBuf, unsigned int dataLen)
 {
-    NSSLOWKEYPrivateKey *key = (NSSLOWKEYPrivateKey *)ctx;
-    SECItem signature = { siBuffer, (unsigned char *)sigBuf, maxSigLen };
+    NSSLOWKEYPrivateKey *key = ctx;
+    SECItem signature = { siBuffer, sigBuf, maxSigLen };
     SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
 
     SECStatus rv = ED_SignMessage(&(key->u.ec), &signature, &digest);
@@ -2799,19 +2903,19 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
 
     context->multi = PR_FALSE;
 
-#define INIT_RSA_SIGN_MECH(mmm)                         \
-    case CKM_##mmm##_RSA_PKCS:                          \
-        context->multi = PR_TRUE;                       \
-        crv = sftk_doSub##mmm(context);                 \
-        if (crv != CKR_OK)                              \
-            break;                                      \
-        context->update = (SFTKCipher)sftk_RSAHashSign; \
-        info = PORT_New(SFTKHashSignInfo);              \
-        if (info == NULL) {                             \
-            crv = CKR_HOST_MEMORY;                      \
-            break;                                      \
-        }                                               \
-        info->hashOid = SEC_OID_##mmm;                  \
+#define INIT_RSA_SIGN_MECH(mmm)             \
+    case CKM_##mmm##_RSA_PKCS:              \
+        context->multi = PR_TRUE;           \
+        crv = sftk_doSub##mmm(context);     \
+        if (crv != CKR_OK)                  \
+            break;                          \
+        context->update = sftk_RSAHashSign; \
+        info = PORT_New(SFTKHashSignInfo);  \
+        if (info == NULL) {                 \
+            crv = CKR_HOST_MEMORY;          \
+            break;                          \
+        }                                   \
+        info->hashOid = SEC_OID_##mmm;      \
         goto finish_rsa;
 
     switch (pMechanism->mechanism) {
@@ -2824,10 +2928,10 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
         INIT_RSA_SIGN_MECH(SHA512)
 
         case CKM_RSA_PKCS:
-            context->update = (SFTKCipher)sftk_RSASign;
+            context->update = sftk_RSASign;
             goto finish_rsa;
         case CKM_RSA_X_509:
-            context->update = (SFTKCipher)sftk_RSASignRaw;
+            context->update = sftk_RSASignRaw;
         finish_rsa:
             if (key_type != CKK_RSA) {
                 crv = CKR_KEY_TYPE_INCONSISTENT;
@@ -2846,10 +2950,10 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             if (info) {
                 info->key = privKey;
                 context->cipherInfo = info;
-                context->destroy = (SFTKDestroy)sftk_Space;
+                context->destroy = sftk_Space;
             } else {
                 context->cipherInfo = privKey;
-                context->destroy = (SFTKDestroy)sftk_Null;
+                context->destroy = sftk_Null;
             }
             context->maxLen = nsslowkey_PrivateModulusLen(privKey);
             break;
@@ -2899,8 +3003,8 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
                 break;
             }
             context->cipherInfo = pinfo;
-            context->destroy = (SFTKDestroy)sftk_ZSpace;
-            context->update = (SFTKCipher)sftk_RSASignPSS;
+            context->destroy = sftk_ZSpace;
+            context->update = sftk_RSASignPSS;
             context->maxLen = nsslowkey_PrivateModulusLen(pinfo->key);
             break;
 
@@ -2927,8 +3031,8 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
                 break;
             }
             context->cipherInfo = privKey;
-            context->update = (SFTKCipher)nsc_DSA_Sign_Stub;
-            context->destroy = (privKey == key->objectInfo) ? (SFTKDestroy)sftk_Null : (SFTKDestroy)sftk_FreePrivKey;
+            context->update = nsc_DSA_Sign_Stub;
+            context->destroy = (privKey == key->objectInfo) ? sftk_Null : sftk_FreePrivKey;
             context->maxLen = DSA_MAX_SIGNATURE_LEN;
 
             break;
@@ -2957,8 +3061,8 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
                 break;
             }
             context->cipherInfo = privKey;
-            context->update = (SFTKCipher)nsc_ECDSASignStub;
-            context->destroy = (privKey == key->objectInfo) ? (SFTKDestroy)sftk_Null : (SFTKDestroy)sftk_FreePrivKey;
+            context->update = nsc_ECDSASignStub;
+            context->destroy = (privKey == key->objectInfo) ? sftk_Null : sftk_FreePrivKey;
             context->maxLen = MAX_ECKEY_LEN * 2;
 
             break;
@@ -2980,8 +3084,8 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
                 break;
             }
             context->cipherInfo = privKey;
-            context->update = (SFTKCipher)nsc_EDDSASignStub;
-            context->destroy = (privKey == key->objectInfo) ? (SFTKDestroy)sftk_Null : (SFTKDestroy)sftk_FreePrivKey;
+            context->update = nsc_EDDSASignStub;
+            context->destroy = (privKey == key->objectInfo) ? sftk_Null : sftk_FreePrivKey;
             context->maxLen = MAX_ECKEY_LEN * 2;
 
             break;
@@ -3083,7 +3187,7 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             crv = sftk_TLSPRFInit(context, key, key_type, tlsPrfHash,
                                   tls12_mac_params->ulMacLength);
             if (crv == CKR_OK) {
-                context->hashUpdate(context->hashInfo, label, 15);
+                context->hashUpdate(context->hashInfo, (unsigned char *)label, 15);
             }
             break;
         }
@@ -3114,7 +3218,7 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             context->hashUpdate = sftk_HMACConstantTime_Update;
             context->hashdestroy = sftk_MACConstantTime_DestroyContext;
             context->end = sftk_MACConstantTime_EndHash;
-            context->update = (SFTKCipher)sftk_SignCopy;
+            context->update = sftk_SignCopy;
             context->destroy = sftk_Space;
             context->maxLen = 64;
             context->multi = PR_TRUE;
@@ -3144,7 +3248,7 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             context->hashUpdate = sftk_SSLv3MACConstantTime_Update;
             context->hashdestroy = sftk_MACConstantTime_DestroyContext;
             context->end = sftk_MACConstantTime_EndHash;
-            context->update = (SFTKCipher)sftk_SignCopy;
+            context->update = sftk_SignCopy;
             context->destroy = sftk_Space;
             context->maxLen = 64;
             context->multi = PR_TRUE;
@@ -3493,10 +3597,11 @@ NSC_SignRecover(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData,
 
 /* Handle RSA Signature formatting */
 static SECStatus
-sftk_hashCheckSign(SFTKHashVerifyInfo *info, const unsigned char *sig,
+sftk_hashCheckSign(void *ctx, const unsigned char *sig,
                    unsigned int sigLen, const unsigned char *digest,
                    unsigned int digestLen)
 {
+    SFTKHashVerifyInfo *info = ctx;
     PORT_Assert(info->key->keyType == NSSLOWKEYRSAKey);
     if (info->key->keyType != NSSLOWKEYRSAKey) {
         PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -3548,10 +3653,11 @@ RSA_HashCheckSign(SECOidTag digestOid, NSSLOWKEYPublicKey *key,
 }
 
 static SECStatus
-sftk_RSACheckSign(NSSLOWKEYPublicKey *key, const unsigned char *sig,
+sftk_RSACheckSign(void *ctx, const unsigned char *sig,
                   unsigned int sigLen, const unsigned char *digest,
                   unsigned int digestLen)
 {
+    NSSLOWKEYPublicKey *key = ctx;
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
     if (key->keyType != NSSLOWKEYRSAKey) {
         PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -3562,10 +3668,11 @@ sftk_RSACheckSign(NSSLOWKEYPublicKey *key, const unsigned char *sig,
 }
 
 static SECStatus
-sftk_RSACheckSignRaw(NSSLOWKEYPublicKey *key, const unsigned char *sig,
+sftk_RSACheckSignRaw(void *ctx, const unsigned char *sig,
                      unsigned int sigLen, const unsigned char *digest,
                      unsigned int digestLen)
 {
+    NSSLOWKEYPublicKey *key = ctx;
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
     if (key->keyType != NSSLOWKEYRSAKey) {
         PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -3576,10 +3683,11 @@ sftk_RSACheckSignRaw(NSSLOWKEYPublicKey *key, const unsigned char *sig,
 }
 
 static SECStatus
-sftk_RSACheckSignPSS(SFTKPSSVerifyInfo *info, const unsigned char *sig,
+sftk_RSACheckSignPSS(void *ctx, const unsigned char *sig,
                      unsigned int sigLen, const unsigned char *digest,
                      unsigned int digestLen)
 {
+    SFTKPSSVerifyInfo *info = ctx;
     HASH_HashType hashAlg;
     HASH_HashType maskHashAlg;
     CK_RSA_PKCS_PSS_PARAMS *params = &info->params;
@@ -3632,19 +3740,19 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
 
     context->multi = PR_FALSE;
 
-#define INIT_RSA_VFY_MECH(mmm)                            \
-    case CKM_##mmm##_RSA_PKCS:                            \
-        context->multi = PR_TRUE;                         \
-        crv = sftk_doSub##mmm(context);                   \
-        if (crv != CKR_OK)                                \
-            break;                                        \
-        context->verify = (SFTKVerify)sftk_hashCheckSign; \
-        info = PORT_New(SFTKHashVerifyInfo);              \
-        if (info == NULL) {                               \
-            crv = CKR_HOST_MEMORY;                        \
-            break;                                        \
-        }                                                 \
-        info->hashOid = SEC_OID_##mmm;                    \
+#define INIT_RSA_VFY_MECH(mmm)                \
+    case CKM_##mmm##_RSA_PKCS:                \
+        context->multi = PR_TRUE;             \
+        crv = sftk_doSub##mmm(context);       \
+        if (crv != CKR_OK)                    \
+            break;                            \
+        context->verify = sftk_hashCheckSign; \
+        info = PORT_New(SFTKHashVerifyInfo);  \
+        if (info == NULL) {                   \
+            crv = CKR_HOST_MEMORY;            \
+            break;                            \
+        }                                     \
+        info->hashOid = SEC_OID_##mmm;        \
         goto finish_rsa;
 
     switch (pMechanism->mechanism) {
@@ -3657,10 +3765,10 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
         INIT_RSA_VFY_MECH(SHA512)
 
         case CKM_RSA_PKCS:
-            context->verify = (SFTKVerify)sftk_RSACheckSign;
+            context->verify = sftk_RSACheckSign;
             goto finish_rsa;
         case CKM_RSA_X_509:
-            context->verify = (SFTKVerify)sftk_RSACheckSignRaw;
+            context->verify = sftk_RSACheckSignRaw;
         finish_rsa:
             if (key_type != CKK_RSA) {
                 crv = CKR_KEY_TYPE_INCONSISTENT;
@@ -3712,8 +3820,8 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
                 break;
             }
             context->cipherInfo = pinfo;
-            context->destroy = (SFTKDestroy)sftk_ZSpace;
-            context->verify = (SFTKVerify)sftk_RSACheckSignPSS;
+            context->destroy = sftk_ZSpace;
+            context->verify = sftk_RSACheckSignPSS;
             break;
 
             INIT_DSA_SIG_MECH(SHA1)
@@ -3732,7 +3840,7 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
                 break;
             }
             context->cipherInfo = pubKey;
-            context->verify = (SFTKVerify)nsc_DSA_Verify_Stub;
+            context->verify = nsc_DSA_Verify_Stub;
             context->destroy = sftk_Null;
             break;
 
@@ -3753,7 +3861,7 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
                 break;
             }
             context->cipherInfo = pubKey;
-            context->verify = (SFTKVerify)nsc_ECDSAVerifyStub;
+            context->verify = nsc_ECDSAVerifyStub;
             context->destroy = sftk_Null;
             break;
 
@@ -3786,7 +3894,7 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
             }
 
             context->cipherInfo = pubKey;
-            context->verify = (SFTKVerify)nsc_EDDSAVerifyStub;
+            context->verify = nsc_EDDSAVerifyStub;
             context->destroy = sftk_Null;
             break;
 
@@ -3929,10 +4037,11 @@ NSC_VerifyFinal(CK_SESSION_HANDLE hSession,
  ************** Crypto Functions:     Verify  Recover ************************
  */
 static SECStatus
-sftk_RSACheckSignRecover(NSSLOWKEYPublicKey *key, unsigned char *data,
+sftk_RSACheckSignRecover(void *ctx, unsigned char *data,
                          unsigned int *dataLen, unsigned int maxDataLen,
                          const unsigned char *sig, unsigned int sigLen)
 {
+    NSSLOWKEYPublicKey *key = ctx;
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
     if (key->keyType != NSSLOWKEYRSAKey) {
         PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -3944,10 +4053,11 @@ sftk_RSACheckSignRecover(NSSLOWKEYPublicKey *key, unsigned char *data,
 }
 
 static SECStatus
-sftk_RSACheckSignRecoverRaw(NSSLOWKEYPublicKey *key, unsigned char *data,
+sftk_RSACheckSignRecoverRaw(void *ctx, unsigned char *data,
                             unsigned int *dataLen, unsigned int maxDataLen,
                             const unsigned char *sig, unsigned int sigLen)
 {
+    NSSLOWKEYPublicKey *key = ctx;
     PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
     if (key->keyType != NSSLOWKEYRSAKey) {
         PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -4000,9 +4110,9 @@ NSC_VerifyRecoverInit(CK_SESSION_HANDLE hSession,
                 break;
             }
             context->cipherInfo = pubKey;
-            context->update = (SFTKCipher)(pMechanism->mechanism == CKM_RSA_X_509
-                                               ? sftk_RSACheckSignRecoverRaw
-                                               : sftk_RSACheckSignRecover);
+            context->update = pMechanism->mechanism == CKM_RSA_X_509
+                                  ? sftk_RSACheckSignRecoverRaw
+                                  : sftk_RSACheckSignRecover;
             context->destroy = sftk_Null;
             break;
         default:
@@ -4311,6 +4421,8 @@ nsc_parameter_gen(CK_KEY_TYPE key_type, SFTKObject *key)
     counter = vfy->counter;
     crv = sftk_AddAttributeType(key, CKA_NSS_PQG_COUNTER,
                                 &counter, sizeof(counter));
+    if (crv != CKR_OK)
+        goto loser;
     crv = sftk_AddAttributeType(key, CKA_NSS_PQG_SEED,
                                 vfy->seed.data, vfy->seed.len);
     if (crv != CKR_OK)
@@ -4928,6 +5040,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession, SFTKSlot *slot,
      *
      * For derive           CKK_DH   => CKM_DH_PKCS_DERIVE
      *                      CKK_EC   => CKM_ECDH1_DERIVE
+     *                      CKK_EC_MONTGOMERY   => CKM_ECDH1_DERIVE
      *                      others   => CKM_INVALID_MECHANISM
      *
      * The parameters for these mechanisms is the public key.
@@ -5226,6 +5339,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession, SFTKSlot *slot,
                 mech.pParameter = pubAttribute->attrib.pValue;
                 mech.ulParameterLen = pubAttribute->attrib.ulValueLen;
                 break;
+            case CKK_EC_MONTGOMERY:
             case CKK_EC:
                 mech.mechanism = CKM_ECDH1_DERIVE;
                 pubAttribute = sftk_FindAttribute(publicKey, CKA_EC_POINT);
@@ -5807,11 +5921,12 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             SECITEM_FreeItem(&pubKey, PR_FALSE);
             break;
 
+        case CKM_EC_MONTGOMERY_KEY_PAIR_GEN:
         case CKM_EC_EDWARDS_KEY_PAIR_GEN:
             sftk_DeleteAttributeType(privateKey, CKA_EC_PARAMS);
             sftk_DeleteAttributeType(privateKey, CKA_VALUE);
             sftk_DeleteAttributeType(privateKey, CKA_NSS_DB);
-            key_type = CKK_EC_EDWARDS;
+            key_type = (pMechanism->mechanism == CKM_EC_EDWARDS_KEY_PAIR_GEN) ? CKK_EC_EDWARDS : CKK_EC_MONTGOMERY;
 
             /* extract the necessary parameters and copy them to private keys */
             crv = sftk_Attribute2SSecItem(NULL, &ecEncodedParams, publicKey,
@@ -7112,7 +7227,7 @@ sftk_DeriveEncrypt(SFTKCipher encrypt, void *cipherInfo,
         keySize = len;
     }
 
-    rv = (*encrypt)(cipherInfo, &tmpdata, &outLen, len, data, len);
+    rv = (*encrypt)(cipherInfo, (unsigned char *)&tmpdata, &outLen, len, data, len);
     if (rv != SECSuccess) {
         crv = sftk_MapCryptError(PORT_GetError());
         return crv;
@@ -7386,8 +7501,8 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     /*
      * now lets create an object to hang the attributes off of
      */
-    if (phKey)
-        *phKey = CK_INVALID_HANDLE;
+    PORT_Assert(phKey);
+    *phKey = CK_INVALID_HANDLE;
 
     key = sftk_NewObject(slot); /* fill in the handle later */
     if (key == NULL) {
@@ -8131,7 +8246,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            crv = sftk_DeriveEncrypt((SFTKCipher)DES_Encrypt,
+            crv = sftk_DeriveEncrypt(SFTKCipher_DES_Encrypt,
                                      cipherInfo, 8, key, keySize,
                                      data, len);
             DES_DestroyContext(cipherInfo, PR_TRUE);
@@ -8177,7 +8292,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            crv = sftk_DeriveEncrypt((SFTKCipher)AES_Encrypt,
+            crv = sftk_DeriveEncrypt(SFTKCipher_AES_Encrypt,
                                      cipherInfo, 16, key, keySize,
                                      data, len);
             AES_DestroyContext(cipherInfo, PR_TRUE);
@@ -8226,7 +8341,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            crv = sftk_DeriveEncrypt((SFTKCipher)Camellia_Encrypt,
+            crv = sftk_DeriveEncrypt(SFTKCipher_Camellia_Encrypt,
                                      cipherInfo, 16, key, keySize,
                                      data, len);
             Camellia_DestroyContext(cipherInfo, PR_TRUE);
@@ -8274,7 +8389,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 crv = CKR_HOST_MEMORY;
                 break;
             }
-            crv = sftk_DeriveEncrypt((SFTKCipher)SEED_Encrypt,
+            crv = sftk_DeriveEncrypt(SFTKCipher_SEED_Encrypt,
                                      cipherInfo, 16, key, keySize,
                                      data, len);
             SEED_DestroyContext(cipherInfo, PR_TRUE);
@@ -8566,9 +8681,9 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 crv = sftk_Attribute2SecItem(NULL, &dhSubPrime,
                                              sourceKey, CKA_SUBPRIME);
                 /* we ignore the value of crv here, We treat a valid
-                * return of len = 0 and a failure to find a subrime the same
-                * NOTE: we free the subprime in both cases depending on
-                * PORT_Free of NULL to be a noop */
+                 * return of len = 0 and a failure to find a subrime the same
+                 * NOTE: we free the subprime in both cases depending on
+                 * PORT_Free of NULL to be a noop */
                 if (dhSubPrime.len != 0) {
                     PRBool isSafe = PR_FALSE;
 
@@ -8726,10 +8841,10 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
              */
             if (mechParams->kdf == CKD_NULL) {
                 /*
-             * tmp is the raw data created by ECDH_Derive,
-             * secret and secretlen are the values we will
-             * eventually pass as our generated key.
-             */
+                 * tmp is the raw data created by ECDH_Derive,
+                 * secret and secretlen are the values we will
+                 * eventually pass as our generated key.
+                 */
                 secret = tmp.data;
                 secretlen = tmp.len;
             } else {

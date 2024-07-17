@@ -2133,6 +2133,8 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
         case rsaOaepKey:
         case kyberKey:
         case nullKey:
+        case edKey:
+        case ecMontKey:
             PORT_SetError(SEC_ERROR_BAD_KEY);
             break;
         case dsaKey:
@@ -2218,9 +2220,6 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
                 return symKey;
             PORT_SetError(PK11_MapError(crv));
         } break;
-        case edKey:
-            PORT_SetError(SEC_ERROR_BAD_KEY);
-            break;
         case ecKey: {
             CK_BBOOL cktrue = CK_TRUE;
             CK_OBJECT_CLASS keyClass = CKO_SECRET_KEY;
@@ -2330,6 +2329,7 @@ pk11_ECGetPubkeyEncoding(const SECKEYPublicKey *pubKey)
     if (rv == SECSuccess) {
         SECOidTag tag = SECOID_FindOIDTag(&oid);
         switch (tag) {
+            case SEC_OID_X25519:
             case SEC_OID_CURVE25519:
                 encoding = ECPoint_XOnly;
                 break;
@@ -2386,7 +2386,7 @@ pk11_PubDeriveECKeyWithKDF(
     CK_ATTRIBUTE *attrs = keyTemplate;
     CK_ECDH1_DERIVE_PARAMS *mechParams = NULL;
 
-    if (pubKey->keyType != ecKey) {
+    if (pubKey->keyType != ecKey && pubKey->keyType != ecMontKey) {
         PORT_SetError(SEC_ERROR_BAD_KEY);
         return NULL;
     }
@@ -2599,6 +2599,7 @@ PK11_PubDeriveWithKDF(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
             return PK11_PubDerive(privKey, pubKey, isSender, randomA, randomB,
                                   derive, target, operation, keySize, wincx);
         case ecKey:
+        case ecMontKey:
             return pk11_PubDeriveECKeyWithKDF(privKey, pubKey, isSender,
                                               randomA, randomB, derive, target,
                                               operation, keySize,

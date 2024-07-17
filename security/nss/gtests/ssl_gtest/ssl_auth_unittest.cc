@@ -28,6 +28,14 @@ TEST_P(TlsConnectGeneric, ServerAuthBigRsa) {
   CheckKeys();
 }
 
+TEST_P(TlsConnectGeneric, PeerCertificateChainConsistency) {
+  Reset("rsa_chain");
+  Connect();
+  CheckKeys();
+  client_->CheckPeerChainFunctionConsistency();
+  server_->CheckPeerChainFunctionConsistency();
+}
+
 TEST_P(TlsConnectGeneric, ServerAuthRsaChain) {
   Reset("rsa_chain");
   Connect();

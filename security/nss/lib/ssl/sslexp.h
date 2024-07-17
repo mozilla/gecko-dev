@@ -1085,6 +1085,19 @@ typedef struct SSLMaskingContextStr {
                           SSLCertificateCompressionAlgorithm t),   \
                          (fd, t))
 
+/*
+ * SSL_PeerCertificateChainDER() returns the certificates that were presented
+ * by the peer as a SECItemArray of DER certificates. It is a replacement for
+ * SSL_PeerCertificateChain() which returns a CERTCertList. Returns SECFailure
+ * with error SSL_ERROR_NO_CERTIFICATE if the peer did not present
+ * certificates. The caller is responsible for freeing the output with
+ * SECItem_FreeArray(..., PR_TRUE) when this function returns SECSuccess.
+ */
+#define SSL_PeerCertificateChainDER(fd, out)                       \
+    SSL_EXPERIMENTAL_API("SSL_PeerCertificateChainDER",            \
+                         (PRFileDesc * _fd, SECItemArray * *_out), \
+                         (fd, out))
+
 /* Deprecated experimental APIs */
 #define SSL_UseAltServerHelloType(fd, enable) SSL_DEPRECATED_EXPERIMENTAL_API
 #define SSL_SetupAntiReplay(a, b, c) SSL_DEPRECATED_EXPERIMENTAL_API

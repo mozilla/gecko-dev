@@ -15,6 +15,8 @@
 #define Ed25519_PUBLIC_KEYLEN 32
 #define Ed25519_SIGN_LEN 64
 
+#define X25519_PUBLIC_KEYLEN 32
+
 struct ECMethodStr {
     ECCurveName name;
     SECStatus (*pt_mul)(SECItem *result, SECItem *scalar, SECItem *point);

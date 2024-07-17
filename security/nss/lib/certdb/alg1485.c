@@ -663,7 +663,6 @@ escapeAndQuote(char* dst, int dstlen, char* src, int srclen, EQMode* pEQMode)
         PORT_SetError(SEC_ERROR_OUTPUT_LEN);
         return SECFailure;
     }
-    reqLen += 1;
 
     if (mode == minimalEscapeAndQuote)
         *dst++ = C_DOUBLE_QUOTE;

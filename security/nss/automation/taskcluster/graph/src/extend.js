@@ -35,12 +35,6 @@ const FUZZ_IMAGE = {
   path: "automation/taskcluster/docker-fuzz"
 };
 
-// Bug 1488148 - temporary image for fuzzing 32-bit builds.
-const FUZZ_IMAGE_32 = {
-  name: "fuzz32",
-  path: "automation/taskcluster/docker-fuzz32"
-};
-
 const WINDOWS_CHECKOUT_CMD =
   "bash -c \"hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss || " +
     "(sleep 2; hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss) || " +
@@ -778,7 +772,7 @@ async function scheduleFuzzing32() {
     features: ["allowPtrace"],
     platform: "linux32",
     collection: "fuzz",
-    image: FUZZ_IMAGE_32
+    image: FUZZ_IMAGE
   };
 
   // Build base definition.

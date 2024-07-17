@@ -2824,7 +2824,10 @@ cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
         }
     } else {
         /* error adding new CRL to cache */
-        if (!oldEntry) {
+        if (!newEntry) {
+            // allocation failure in addCRLToCache
+            rv = SECFailure;
+        } else if (!oldEntry) {
             /* no old cache entry, use the new one even though it's bad */
             if (NULL == PL_HashTableAdd(namedCRLCache.entries,
                                         (void*)newEntry->canonicalizedName,

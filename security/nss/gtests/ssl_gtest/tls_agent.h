@@ -207,6 +207,7 @@ class TlsAgent : public PollTarget {
   void ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups);
   void EnableECDHEServerKeyReuse();
   bool GetPeerChainLength(size_t* count);
+  void CheckPeerChainFunctionConsistency();
   void CheckCipherSuite(uint16_t cipher_suite);
   void SetResumptionTokenCallback();
   bool MaybeSetResumptionToken();

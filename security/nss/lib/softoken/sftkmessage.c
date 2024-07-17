@@ -14,30 +14,62 @@
 #include "softoken.h"
 
 static SECStatus
-sftk_ChaCha20_Poly1305_Message_Encrypt(ChaCha20Poly1305Context *ctx,
-                                       unsigned char *cipherText, unsigned int *cipherTextLen,
-                                       unsigned int maxOutLen, const unsigned char *plainText,
+sftk_ChaCha20_Poly1305_Message_Encrypt(void *vctx,
+                                       void *cipherText, unsigned int *cipherTextLen,
+                                       unsigned int maxOutLen, void *plainText,
                                        unsigned int plainTextLen,
-                                       CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS *params,
-                                       unsigned int paramsLen, const unsigned char *aad,
+                                       void *vparams,
+                                       unsigned int paramsLen, void *aad,
                                        unsigned int aadLen)
 {
+    ChaCha20Poly1305Context *ctx = vctx;
+    CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS *params = vparams;
     return ChaCha20Poly1305_Encrypt(ctx, cipherText, cipherTextLen, maxOutLen,
                                     plainText, plainTextLen, params->pNonce, params->ulNonceLen,
                                     aad, aadLen, params->pTag);
 }
+
 static SECStatus
-sftk_ChaCha20_Poly1305_Message_Decrypt(ChaCha20Poly1305Context *ctx,
-                                       unsigned char *plainText, unsigned int *plainTextLen,
-                                       unsigned int maxOutLen, const unsigned char *cipherText,
+sftk_ChaCha20_Poly1305_Message_Decrypt(void *vctx,
+                                       void *plainText, unsigned int *plainTextLen,
+                                       unsigned int maxOutLen, void *cipherText,
                                        unsigned int cipherTextLen,
-                                       CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS *params,
-                                       unsigned int paramsLen, const unsigned char *aad,
+                                       void *vparams,
+                                       unsigned int paramsLen, void *aad,
                                        unsigned int aadLen)
 {
+    ChaCha20Poly1305Context *ctx = vctx;
+    CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS *params = vparams;
     return ChaCha20Poly1305_Decrypt(ctx, plainText, plainTextLen, maxOutLen,
                                     cipherText, cipherTextLen, params->pNonce, params->ulNonceLen,
                                     aad, aadLen, params->pTag);
+}
+
+void
+sftk_ChaCha20Poly1305_DestroyContext(void *vctx, PRBool freeit)
+{
+    ChaCha20Poly1305Context *ctx = vctx;
+    ChaCha20Poly1305_DestroyContext(ctx, freeit);
+}
+
+static SECStatus
+sftk_AES_AEAD(void *vctx,
+              void *plainText, unsigned int *plainTextLen,
+              unsigned int maxOutLen, void *cipherText,
+              unsigned int cipherTextLen,
+              void *params,
+              unsigned int paramsLen, void *aad,
+              unsigned int aadLen)
+{
+    AESContext *ctx = vctx;
+    return AES_AEAD(ctx, plainText, plainTextLen, maxOutLen, cipherText, cipherTextLen, params, paramsLen, aad, aadLen);
+}
+
+void
+sftk_AES_DestroyContext(void *ctx, PRBool freeit)
+{
+    AESContext *actx = ctx;
+    AES_DestroyContext(actx, freeit);
 }
 
 /*
@@ -95,15 +127,15 @@ sftk_MessageCryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 (unsigned char *)att->attrib.pValue,
                 NULL, NSS_AES_GCM, encrypt, att->attrib.ulValueLen,
                 AES_BLOCK_SIZE);
-            context->aeadUpdate = (SFTKAEADCipher)AES_AEAD;
-            context->destroy = (SFTKDestroy)AES_DestroyContext;
+            context->aeadUpdate = sftk_AES_AEAD;
+            context->destroy = sftk_AES_DestroyContext;
             break;
         case CKM_CHACHA20_POLY1305:
             context->cipherInfo = ChaCha20Poly1305_CreateContext(
                 (unsigned char *)att->attrib.pValue, att->attrib.ulValueLen,
                 16);
-            context->aeadUpdate = (SFTKAEADCipher)(encrypt ? sftk_ChaCha20_Poly1305_Message_Encrypt : sftk_ChaCha20_Poly1305_Message_Decrypt);
-            context->destroy = (SFTKDestroy)ChaCha20Poly1305_DestroyContext;
+            context->aeadUpdate = (encrypt ? sftk_ChaCha20_Poly1305_Message_Encrypt : sftk_ChaCha20_Poly1305_Message_Decrypt);
+            context->destroy = sftk_ChaCha20Poly1305_DestroyContext;
             break;
         default:
             crv = CKR_MECHANISM_INVALID;

@@ -149,6 +149,10 @@ std::unique_ptr<ParamHolder> Pkcs11KeyPairGenerator::MakeParams() const {
       return std::unique_ptr<ParamHolder>(
           new EcParamHolder(SEC_OID_ED25519_PUBLIC_KEY));
 
+    case CKM_EC_MONTGOMERY_KEY_PAIR_GEN:
+      std::cerr << "Generate X25519 pair on " << curve_ << std::endl;
+      return std::unique_ptr<ParamHolder>(new EcParamHolder(SEC_OID_X25519));
+
     case CKM_EC_KEY_PAIR_GEN:
       std::cerr << "Generate EC pair on " << curve_ << std::endl;
       return std::unique_ptr<ParamHolder>(new EcParamHolder(curve_));

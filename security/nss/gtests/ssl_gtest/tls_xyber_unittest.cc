@@ -97,6 +97,73 @@ TEST_P(TlsKeyExchangeTest13, Xyber768d00ServerDisabledByPolicy) {
                   {ssl_grp_kem_xyber768d00}, ssl_grp_ec_secp256r1);
 }
 
+void CheckECDHShareReuse(const std::shared_ptr<TlsExtensionCapture>& capture) {
+  EXPECT_TRUE(capture->captured());
+  const DataBuffer& ext = capture->extension();
+  DataBuffer xyber_share;
+  DataBuffer x25519_share;
+
+  size_t offset = 0;
+  uint32_t ext_len;
+  ext.Read(0, 2, &ext_len);
+  EXPECT_EQ(ext.len() - 2, ext_len);
+  offset += 2;
+
+  uint32_t named_group;
+  uint32_t named_group_len;
+  ext.Read(offset, 2, &named_group);
+  ext.Read(offset + 2, 2, &named_group_len);
+  while (offset < ext.len()) {
+    if (named_group == ssl_grp_kem_xyber768d00) {
+      xyber_share = DataBuffer(ext.data() + offset + 2 + 2, named_group_len);
+    }
+    if (named_group == ssl_grp_ec_curve25519) {
+      x25519_share = DataBuffer(ext.data() + offset + 2 + 2, named_group_len);
+    }
+    offset += 2 + 2 + named_group_len;
+    ext.Read(offset, 2, &named_group);
+    ext.Read(offset + 2, 2, &named_group_len);
+  }
+  EXPECT_EQ(offset, ext.len());
+
+  ASSERT_TRUE(xyber_share.data());
+  ASSERT_TRUE(x25519_share.data());
+  ASSERT_GT(xyber_share.len(), x25519_share.len());
+  EXPECT_EQ(0, memcmp(xyber_share.data(), x25519_share.data(), x25519_share.len()));
+}
+
+TEST_P(TlsKeyExchangeTest13, XyberShareReuseFirst) {
+  if (variant_ == ssl_variant_datagram) {
+    /* Bug 1874451 - reenable this test */
+    return;
+  }
+  EnsureKeyShareSetup();
+  ConfigNamedGroups({ssl_grp_kem_xyber768d00, ssl_grp_ec_curve25519});
+  EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 1));
+
+  Connect();
+
+  CheckKEXDetails({ssl_grp_kem_xyber768d00, ssl_grp_ec_curve25519},
+                  {ssl_grp_kem_xyber768d00, ssl_grp_ec_curve25519});
+  CheckECDHShareReuse(shares_capture_);
+}
+
+TEST_P(TlsKeyExchangeTest13, XyberShareReuseSecond) {
+  if (variant_ == ssl_variant_datagram) {
+    /* Bug 1874451 - reenable this test */
+    return;
+  }
+  EnsureKeyShareSetup();
+  ConfigNamedGroups({ssl_grp_ec_curve25519, ssl_grp_kem_xyber768d00});
+  EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 1));
+
+  Connect();
+
+  CheckKEXDetails({ssl_grp_ec_curve25519, ssl_grp_kem_xyber768d00},
+                  {ssl_grp_ec_curve25519, ssl_grp_kem_xyber768d00});
+  CheckECDHShareReuse(shares_capture_);
+}
+
 class XyberShareDamager : public TlsExtensionFilter {
  public:
   typedef enum {

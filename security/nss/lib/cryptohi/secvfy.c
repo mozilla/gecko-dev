@@ -776,7 +776,6 @@ vfy_CreateContext(const SECKEYPublicKey *key, const SECItem *sig,
     }
     cx->key = SECKEY_CopyPublicKey(key);
     cx->pkcs1RSADigestInfo = NULL;
-    rv = SECSuccess;
     if (mech != CKM_INVALID_MECHANISM) {
         rv = vfy_ImportPublicKey(cx);
         /* if we can't import the key, then we probably can't
@@ -787,7 +786,6 @@ vfy_CreateContext(const SECKEYPublicKey *key, const SECItem *sig,
         }
     }
     if (sig) {
-        rv = SECFailure;
         /* sigh, if we are prehashing, we still need to do verifyRecover
          * recover for RSA PKCS #1 */
         if ((mech == CKM_INVALID_MECHANISM || prehash) && (type == rsaKey)) {

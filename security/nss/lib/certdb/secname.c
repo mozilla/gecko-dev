@@ -255,7 +255,7 @@ CERT_CreateRDN(PLArenaPool *arena, CERTAVA *ava0, ...)
         if (ava0) {
             count++;
             va_start(ap, ava0);
-            while ((ava = va_arg(ap, CERTAVA *)) != 0) {
+            while (va_arg(ap, CERTAVA *) != 0) {
                 count++;
             }
             va_end(ap);
@@ -348,7 +348,7 @@ CERT_CreateName(CERTRDN *rdn0, ...)
         } else {
             count = 1;
             va_start(ap, rdn0);
-            while ((rdn = va_arg(ap, CERTRDN *)) != 0) {
+            while (va_arg(ap, CERTRDN *) != 0) {
                 count++;
             }
             va_end(ap);

@@ -317,24 +317,24 @@ struct mechanismList {
 static const struct mechanismList mechanisms[] = {
 
     /*
-      * PKCS #11 Mechanism List.
-      *
-      * The first argument is the PKCS #11 Mechanism we support.
-      * The second argument is Mechanism info structure. It includes:
-      *    The minimum key size,
-      *       in bits for RSA, DSA, DH, EC*, KEA, RC2 and RC4 * algs.
-      *       in bytes for RC5, AES, Camellia, and CAST*
-      *       ignored for DES*, IDEA and FORTEZZA based
-      *    The maximum key size,
-      *       in bits for RSA, DSA, DH, EC*, KEA, RC2 and RC4 * algs.
-      *       in bytes for RC5, AES, Camellia, and CAST*
-      *       ignored for DES*, IDEA and FORTEZZA based
-      *     Flags
-      *       What operations are supported by this mechanism.
-      *  The third argument is a bool which tells if this mechanism is
-      *    supported in the database token.
-      *
-      */
+     * PKCS #11 Mechanism List.
+     *
+     * The first argument is the PKCS #11 Mechanism we support.
+     * The second argument is Mechanism info structure. It includes:
+     *    The minimum key size,
+     *       in bits for RSA, DSA, DH, EC*, KEA, RC2 and RC4 * algs.
+     *       in bytes for RC5, AES, Camellia, and CAST*
+     *       ignored for DES*, IDEA and FORTEZZA based
+     *    The maximum key size,
+     *       in bits for RSA, DSA, DH, EC*, KEA, RC2 and RC4 * algs.
+     *       in bytes for RC5, AES, Camellia, and CAST*
+     *       ignored for DES*, IDEA and FORTEZZA based
+     *     Flags
+     *       What operations are supported by this mechanism.
+     *  The third argument is a bool which tells if this mechanism is
+     *    supported in the database token.
+     *
+     */
 
     /* ------------------------- RSA Operations ---------------------------*/
     { CKM_RSA_PKCS_KEY_PAIR_GEN, { RSA_MIN_MODULUS_BITS, CK_MAX, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
@@ -381,6 +381,7 @@ static const struct mechanismList mechanisms[] = {
     { CKM_ECDSA_SHA384, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDSA_SHA512, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     { CKM_EC_EDWARDS_KEY_PAIR_GEN, { ECD_MIN_KEY_BITS, ECD_MAX_KEY_BITS, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
+    { CKM_EC_MONTGOMERY_KEY_PAIR_GEN, { ECD_MIN_KEY_BITS, ECD_MAX_KEY_BITS, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
     { CKM_EDDSA, { ECD_MIN_KEY_BITS, ECD_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_POC }, PR_TRUE },
     /* ------------------------- RC2 Operations --------------------------- */
     { CKM_RC2_KEY_GEN, { 1, 128, CKF_GENERATE }, PR_TRUE },
@@ -668,6 +669,16 @@ ForkedChild(void)
 }
 
 #endif
+
+#define SFTKFreeWrap(ctxtype, mmm) \
+    void SFTKFree_##mmm(void *vp)  \
+    {                              \
+        ctxtype *p = vp;           \
+        mmm(p);                    \
+    }
+
+SFTKFreeWrap(NSSLOWKEYPublicKey, nsslowkey_DestroyPublicKey);
+SFTKFreeWrap(NSSLOWKEYPrivateKey, nsslowkey_DestroyPrivateKey);
 
 static char *
 sftk_setStringName(const char *inString, char *buffer, int buffer_length, PRBool nullTerminate)
@@ -1132,7 +1143,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
     if (object->objectInfo == NULL) {
         return crv;
     }
-    object->infoFree = (SFTKFree)nsslowkey_DestroyPublicKey;
+    object->infoFree = SFTKFree_nsslowkey_DestroyPublicKey;
 
     /* Check that an imported EC key is valid */
     if (key_type == CKK_EC || key_type == CKK_EC_EDWARDS || key_type == CKK_EC_MONTGOMERY) {
@@ -1370,7 +1381,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
         object->objectInfo = sftk_mkPrivKey(object, key_type, &crv);
         if (object->objectInfo == NULL)
             return crv;
-        object->infoFree = (SFTKFree)nsslowkey_DestroyPrivateKey;
+        object->infoFree = SFTKFree_nsslowkey_DestroyPrivateKey;
     }
     return CKR_OK;
 }
@@ -2013,7 +2024,7 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
     }
 
     object->objectInfo = pubKey;
-    object->infoFree = (SFTKFree)nsslowkey_DestroyPublicKey;
+    object->infoFree = SFTKFree_nsslowkey_DestroyPublicKey;
     return pubKey;
 }
 
@@ -2139,7 +2150,7 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
                 if (crv != CKR_OK)
                     break;
                 /* privKey was zero'd so public value is already set to NULL, 0
-             * if we don't set it explicitly */
+                 * if we don't set it explicitly */
             }
             rv = DER_SetUInteger(privKey->arena, &privKey->u.ec.version,
                                  NSSLOWKEY_EC_PRIVATE_KEY_VERSION);
@@ -2359,7 +2370,7 @@ sftk_GetPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
 
     priv = sftk_mkPrivKey(object, key_type, crvp);
     object->objectInfo = priv;
-    object->infoFree = (SFTKFree)nsslowkey_DestroyPrivateKey;
+    object->infoFree = SFTKFree_nsslowkey_DestroyPrivateKey;
     return priv;
 }
 

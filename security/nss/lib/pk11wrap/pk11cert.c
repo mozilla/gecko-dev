@@ -172,6 +172,7 @@ PK11_IsUserCert(PK11SlotInfo *slot, CERTCertificate *cert,
                 break;
             case ecKey:
             case edKey:
+            case ecMontKey:
                 PK11_SETATTRS(&theTemplate, CKA_EC_POINT,
                               pubKey->u.ec.publicValue.data,
                               pubKey->u.ec.publicValue.len);
@@ -188,7 +189,7 @@ PK11_IsUserCert(PK11SlotInfo *slot, CERTCertificate *cert,
             SECKEY_DestroyPublicKey(pubKey);
             return PR_FALSE;
         }
-        if (pubKey->keyType != ecKey && pubKey->keyType != edKey) {
+        if (pubKey->keyType != ecKey && pubKey->keyType != edKey && pubKey->keyType != ecMontKey) {
             pk11_SignedToUnsigned(&theTemplate);
         }
         if (pk11_FindObjectByTemplate(slot, &theTemplate, 1) != CK_INVALID_HANDLE) {
@@ -1115,6 +1116,7 @@ PK11_GetPubIndexKeyID(CERTCertificate *cert)
             break;
         case ecKey:
         case edKey:
+        case ecMontKey:
             newItem = SECITEM_DupItem(&pubk->u.ec.publicValue);
             break;
         case fortezzaKey:

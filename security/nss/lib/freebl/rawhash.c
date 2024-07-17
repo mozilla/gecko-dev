@@ -11,6 +11,67 @@
 #include "blapi.h" /* below the line */
 #include "secerr.h"
 
+#define RawHashBase(ctxtype, mmm)                                                        \
+    static void *                                                                        \
+        RawHash_##mmm##_NewContext(void)                                                 \
+    {                                                                                    \
+        ctxtype *ctx = mmm##_NewContext();                                               \
+        return ctx;                                                                      \
+    }                                                                                    \
+    static void                                                                          \
+        RawHash_##mmm##_Begin(void *vctx)                                                \
+    {                                                                                    \
+        ctxtype *ctx = vctx;                                                             \
+        mmm##_Begin(ctx);                                                                \
+    }                                                                                    \
+    static void                                                                          \
+        RawHash_##mmm##_Update(void *vctx, const unsigned char *input, unsigned int len) \
+    {                                                                                    \
+        ctxtype *ctx = vctx;                                                             \
+        mmm##_Update(ctx, input, len);                                                   \
+    }                                                                                    \
+    static void                                                                          \
+        RawHash_##mmm##_End(void *vctx, unsigned char *digest,                           \
+                            unsigned int *len, unsigned int maxLen)                      \
+    {                                                                                    \
+        ctxtype *ctx = vctx;                                                             \
+        mmm##_End(ctx, digest, len, maxLen);                                             \
+    }                                                                                    \
+    static void                                                                          \
+        RawHash_##mmm##_DestroyContext(void *vctx, PRBool freeit)                        \
+    {                                                                                    \
+        ctxtype *ctx = vctx;                                                             \
+        mmm##_DestroyContext(ctx, freeit);                                               \
+    }
+
+RawHashBase(MD2Context, MD2);
+RawHashBase(MD5Context, MD5);
+RawHashBase(SHA1Context, SHA1);
+RawHashBase(SHA224Context, SHA224);
+RawHashBase(SHA256Context, SHA256);
+RawHashBase(SHA384Context, SHA384);
+RawHashBase(SHA512Context, SHA512);
+RawHashBase(SHA3_224Context, SHA3_224);
+RawHashBase(SHA3_256Context, SHA3_256);
+RawHashBase(SHA3_384Context, SHA3_384);
+RawHashBase(SHA3_512Context, SHA3_512);
+
+#define RawHashExtra(ctxtype, mmm)                                     \
+    static void                                                        \
+        RawHash_##mmm##_EndRaw(void *vctx, unsigned char *digest,      \
+                               unsigned int *len, unsigned int maxLen) \
+    {                                                                  \
+        ctxtype *ctx = vctx;                                           \
+        mmm##_EndRaw(ctx, digest, len, maxLen);                        \
+    }
+
+RawHashExtra(MD5Context, MD5);
+RawHashExtra(SHA1Context, SHA1);
+RawHashExtra(SHA224Context, SHA224);
+RawHashExtra(SHA256Context, SHA256);
+RawHashExtra(SHA384Context, SHA384);
+RawHashExtra(SHA512Context, SHA512);
+
 static void *
 null_hash_new_context(void)
 {
@@ -49,139 +110,124 @@ null_hash_destroy_context(void *v, PRBool b)
 
 const SECHashObject SECRawHashObjects[] = {
     { 0,
-      (void *(*)(void))null_hash_new_context,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))null_hash_destroy_context,
-      (void (*)(void *))null_hash_begin,
-      (void (*)(void *, const unsigned char *, unsigned int))null_hash_update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))null_hash_end,
+      null_hash_new_context,
+      null_hash_clone_context,
+      null_hash_destroy_context,
+      null_hash_begin,
+      null_hash_update,
+      null_hash_end,
       0,
       HASH_AlgNULL,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))null_hash_end },
+      null_hash_end },
     {
         MD2_LENGTH,
-        (void *(*)(void))MD2_NewContext,
-        (void *(*)(void *))null_hash_clone_context,
-        (void (*)(void *, PRBool))MD2_DestroyContext,
-        (void (*)(void *))MD2_Begin,
-        (void (*)(void *, const unsigned char *, unsigned int))MD2_Update,
-        (void (*)(void *, unsigned char *, unsigned int *, unsigned int))MD2_End,
+        RawHash_MD2_NewContext,
+        null_hash_clone_context,
+        RawHash_MD2_DestroyContext,
+        RawHash_MD2_Begin,
+        RawHash_MD2_Update,
+        RawHash_MD2_End,
         MD2_BLOCK_LENGTH,
         HASH_AlgMD2,
         NULL /* end_raw */
     },
     { MD5_LENGTH,
-      (void *(*)(void))MD5_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))MD5_DestroyContext,
-      (void (*)(void *))MD5_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))MD5_Update,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))MD5_End,
+      RawHash_MD5_NewContext,
+      null_hash_clone_context,
+      RawHash_MD5_DestroyContext,
+      RawHash_MD5_Begin,
+      RawHash_MD5_Update,
+      RawHash_MD5_End,
       MD5_BLOCK_LENGTH,
       HASH_AlgMD5,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))MD5_EndRaw },
+      RawHash_MD5_EndRaw },
     { SHA1_LENGTH,
-      (void *(*)(void))SHA1_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))SHA1_DestroyContext,
-      (void (*)(void *))SHA1_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))SHA1_Update,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))SHA1_End,
+      RawHash_SHA1_NewContext,
+      null_hash_clone_context,
+      RawHash_SHA1_DestroyContext,
+      RawHash_SHA1_Begin,
+      RawHash_SHA1_Update,
+      RawHash_SHA1_End,
       SHA1_BLOCK_LENGTH,
       HASH_AlgSHA1,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          SHA1_EndRaw },
+      RawHash_SHA1_EndRaw },
     { SHA256_LENGTH,
-      (void *(*)(void))SHA256_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))SHA256_DestroyContext,
-      (void (*)(void *))SHA256_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))SHA256_Update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA256_End,
+      RawHash_SHA256_NewContext,
+      null_hash_clone_context,
+      RawHash_SHA256_DestroyContext,
+      RawHash_SHA256_Begin,
+      RawHash_SHA256_Update,
+      RawHash_SHA256_End,
       SHA256_BLOCK_LENGTH,
       HASH_AlgSHA256,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA256_EndRaw },
+      RawHash_SHA256_EndRaw },
     { SHA384_LENGTH,
-      (void *(*)(void))SHA384_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))SHA384_DestroyContext,
-      (void (*)(void *))SHA384_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))SHA384_Update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA384_End,
+      RawHash_SHA384_NewContext,
+      null_hash_clone_context,
+      RawHash_SHA384_DestroyContext,
+      RawHash_SHA384_Begin,
+      RawHash_SHA384_Update,
+      RawHash_SHA384_End,
       SHA384_BLOCK_LENGTH,
       HASH_AlgSHA384,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA384_EndRaw },
+      RawHash_SHA384_EndRaw },
     { SHA512_LENGTH,
-      (void *(*)(void))SHA512_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))SHA512_DestroyContext,
-      (void (*)(void *))SHA512_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))SHA512_Update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA512_End,
+      RawHash_SHA512_NewContext,
+      null_hash_clone_context,
+      RawHash_SHA512_DestroyContext,
+      RawHash_SHA512_Begin,
+      RawHash_SHA512_Update,
+      RawHash_SHA512_End,
       SHA512_BLOCK_LENGTH,
       HASH_AlgSHA512,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA512_EndRaw },
+      RawHash_SHA512_EndRaw },
     { SHA224_LENGTH,
-      (void *(*)(void))SHA224_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))SHA224_DestroyContext,
-      (void (*)(void *))SHA224_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))SHA224_Update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA224_End,
+      RawHash_SHA224_NewContext,
+      null_hash_clone_context,
+      RawHash_SHA224_DestroyContext,
+      RawHash_SHA224_Begin,
+      RawHash_SHA224_Update,
+      RawHash_SHA224_End,
       SHA224_BLOCK_LENGTH,
       HASH_AlgSHA224,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA224_EndRaw },
+      RawHash_SHA224_EndRaw },
     { SHA3_224_LENGTH,
-      (void *(*)(void))SHA3_224_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))SHA3_224_DestroyContext,
-      (void (*)(void *))SHA3_224_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))SHA3_224_Update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA3_224_End,
+      RawHash_SHA3_224_NewContext,
+      null_hash_clone_context,
+      RawHash_SHA3_224_DestroyContext,
+      RawHash_SHA3_224_Begin,
+      RawHash_SHA3_224_Update,
+      RawHash_SHA3_224_End,
       SHA3_224_BLOCK_LENGTH,
       HASH_AlgSHA3_224,
       NULL },
     { SHA3_256_LENGTH,
-      (void *(*)(void))SHA3_256_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))SHA3_256_DestroyContext,
-      (void (*)(void *))SHA3_256_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))SHA3_256_Update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA3_256_End,
+      RawHash_SHA3_256_NewContext,
+      null_hash_clone_context,
+      RawHash_SHA3_256_DestroyContext,
+      RawHash_SHA3_256_Begin,
+      RawHash_SHA3_256_Update,
+      RawHash_SHA3_256_End,
       SHA3_256_BLOCK_LENGTH,
       HASH_AlgSHA3_256,
       NULL },
     { SHA3_384_LENGTH,
-      (void *(*)(void))SHA3_384_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))SHA3_384_DestroyContext,
-      (void (*)(void *))SHA3_384_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))SHA3_384_Update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA3_384_End,
+      RawHash_SHA3_384_NewContext,
+      null_hash_clone_context,
+      RawHash_SHA3_384_DestroyContext,
+      RawHash_SHA3_384_Begin,
+      RawHash_SHA3_384_Update,
+      RawHash_SHA3_384_End,
       SHA3_384_BLOCK_LENGTH,
       HASH_AlgSHA3_384,
       NULL },
     { SHA3_512_LENGTH,
-      (void *(*)(void))SHA3_512_NewContext,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))SHA3_512_DestroyContext,
-      (void (*)(void *))SHA3_512_Begin,
-      (void (*)(void *, const unsigned char *, unsigned int))SHA3_512_Update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))SHA3_512_End,
+      RawHash_SHA3_512_NewContext,
+      null_hash_clone_context,
+      RawHash_SHA3_512_DestroyContext,
+      RawHash_SHA3_512_Begin,
+      RawHash_SHA3_512_Update,
+      RawHash_SHA3_512_End,
       SHA3_512_BLOCK_LENGTH,
       HASH_AlgSHA3_512,
       NULL },

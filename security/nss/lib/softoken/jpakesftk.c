@@ -47,8 +47,8 @@ jpake_Sign(PLArenaPool *arena, const PQGParams *pqg, HASH_HashType hashType,
                                      NULL, &gx, &gv, &r),
                           CKR_MECHANISM_PARAM_INVALID);
     if (crv == CKR_OK) {
-        if ((out->pGX != NULL && out->ulGXLen >= gx.len) ||
-            (out->pGV != NULL && out->ulGVLen >= gv.len) ||
+        if ((out->pGX != NULL && out->ulGXLen >= gx.len) &&
+            (out->pGV != NULL && out->ulGVLen >= gv.len) &&
             (out->pR != NULL && out->ulRLen >= r.len)) {
             PORT_Memcpy(out->pGX, gx.data, gx.len);
             PORT_Memcpy(out->pGV, gv.data, gv.len);

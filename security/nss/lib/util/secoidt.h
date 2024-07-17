@@ -530,6 +530,7 @@ typedef enum {
     SEC_OID_RC2_64_CBC = 385,
     SEC_OID_RC2_128_CBC = 386,
     SEC_OID_ECDH_KEA = 387,
+    SEC_OID_X25519 = 388,
 
     SEC_OID_TOTAL
 } SECOidTag;

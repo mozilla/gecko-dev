@@ -572,7 +572,7 @@ FreeblInit(void)
 }
 
 SECStatus
-BL_Init()
+BL_Init(void)
 {
     if (PR_CallOnce(&coFreeblInit, FreeblInit) != PR_SUCCESS) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);

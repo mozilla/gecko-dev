@@ -176,6 +176,7 @@ EC_FillParams(PLArenaPool *arena, const SECItem *encodedParams,
 
             break;
 
+        case SEC_OID_X25519:
         case SEC_OID_CURVE25519:
             /* Populate params for Curve25519 */
             params->type = ec_params_montgomery_named;

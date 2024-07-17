@@ -465,7 +465,7 @@ loser:
     if (slot) {
         PK11_FreeSlot(slot);
     }
-    if (safeInfo->cinfo) {
+    if (safeInfo && safeInfo->cinfo) {
         SEC_PKCS7DestroyContentInfo(safeInfo->cinfo);
     }
 
@@ -1887,6 +1887,9 @@ sec_pkcs12_encoder_asafe_process(sec_PKCS12EncoderContext *p12ecx)
         /* finish up safe content info */
         rv = SEC_PKCS7EncoderFinish(innerP7ecx, p12ecx->p12exp->pwfn,
                                     p12ecx->p12exp->pwfnarg);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
     }
     memset(&p12ecx->innerBuf, 0, sizeof p12ecx->innerBuf);
     return SECSuccess;

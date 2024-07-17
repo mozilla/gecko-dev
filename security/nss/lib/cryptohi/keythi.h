@@ -37,6 +37,7 @@ typedef enum {
     rsaOaepKey = 8,
     kyberKey = 9,
     edKey = 10,
+    ecMontKey = 11,
 } KeyType;
 
 /*

@@ -47,11 +47,11 @@ s_mp_redc(mp_int *T, mp_mont_modulus *mmm)
     /* T /= R */
     s_mp_rshd(T, MP_USED(&mmm->N));
 
-    if ((res = s_mp_cmp(T, &mmm->N)) >= 0) {
+    if (s_mp_cmp(T, &mmm->N) >= 0) {
         /* T = T - N */
         MP_CHECKOK(s_mp_sub(T, &mmm->N));
 #ifdef DEBUG
-        if ((res = mp_cmp(T, &mmm->N)) >= 0) {
+        if (mp_cmp(T, &mmm->N) >= 0) {
             res = MP_UNDEF;
             goto CLEANUP;
         }

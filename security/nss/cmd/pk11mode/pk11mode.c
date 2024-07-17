@@ -4815,6 +4815,7 @@ PKM_TLSKeyAndMacDerive(CK_FUNCTION_LIST_PTR pFunctionList,
     CK_ATTRIBUTE attrs[9];
 
     CK_OBJECT_HANDLE mk_obj = CK_INVALID_HANDLE;
+    CK_OBJECT_HANDLE derive_obj = CK_INVALID_HANDLE;
     CK_SSL3_KEY_MAT_PARAMS km_params;
     CK_SSL3_KEY_MAT_OUT kmo;
     CK_BYTE IVClient[8];
@@ -4942,7 +4943,7 @@ PKM_TLSKeyAndMacDerive(CK_FUNCTION_LIST_PTR pFunctionList,
             break;
     }
     crv = pFunctionList->C_DeriveKey(hSession, &kmd_mech, mk_obj, NULL, 0,
-                                     NULL);
+                                     &derive_obj);
     if (crv != CKR_MECHANISM_PARAM_INVALID) {
         PKM_Error("key materials derivation returned unexpected "
                   "error 0x%08X, %-26s\n",
@@ -4958,7 +4959,7 @@ correct:
      * derive the key materials
      */
     crv = pFunctionList->C_DeriveKey(hSession, &kmd_mech, mk_obj, NULL, 0,
-                                     NULL);
+                                     &derive_obj);
     if (crv != CKR_OK) {
         PKM_Error("Cannot derive the key materials, crv 0x%08X, %-26s\n",
                   crv, PKM_CK_RVtoStr(crv));

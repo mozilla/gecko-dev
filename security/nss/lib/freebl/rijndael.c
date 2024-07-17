@@ -6,9 +6,10 @@
 #include "stubs.h"
 #endif
 
-#include "prinit.h"
+#include "blapit.h"
 #include "prenv.h"
 #include "prerr.h"
+#include "prinit.h"
 #include "secerr.h"
 
 #include "prtypes.h"
@@ -743,8 +744,9 @@ rijndael_decryptBlock128(AESContext *cx,
 static SECStatus
 rijndael_encryptECB(AESContext *cx, unsigned char *output,
                     unsigned int *outputLen, unsigned int maxOutputLen,
-                    const unsigned char *input, unsigned int inputLen)
+                    const unsigned char *input, unsigned int inputLen, unsigned int blocksize)
 {
+    PORT_Assert(blocksize == AES_BLOCK_SIZE);
     PRBool aesni = aesni_support();
     while (inputLen > 0) {
         if (aesni) {
@@ -762,8 +764,9 @@ rijndael_encryptECB(AESContext *cx, unsigned char *output,
 static SECStatus
 rijndael_encryptCBC(AESContext *cx, unsigned char *output,
                     unsigned int *outputLen, unsigned int maxOutputLen,
-                    const unsigned char *input, unsigned int inputLen)
+                    const unsigned char *input, unsigned int inputLen, unsigned int blocksize)
 {
+    PORT_Assert(blocksize == AES_BLOCK_SIZE);
     unsigned char *lastblock = cx->iv;
     unsigned char inblock[AES_BLOCK_SIZE * 8];
     PRBool aesni = aesni_support();
@@ -794,8 +797,9 @@ rijndael_encryptCBC(AESContext *cx, unsigned char *output,
 static SECStatus
 rijndael_decryptECB(AESContext *cx, unsigned char *output,
                     unsigned int *outputLen, unsigned int maxOutputLen,
-                    const unsigned char *input, unsigned int inputLen)
+                    const unsigned char *input, unsigned int inputLen, unsigned int blocksize)
 {
+    PORT_Assert(blocksize == AES_BLOCK_SIZE);
     PRBool aesni = aesni_support();
     while (inputLen > 0) {
         if (aesni) {
@@ -813,8 +817,9 @@ rijndael_decryptECB(AESContext *cx, unsigned char *output,
 static SECStatus
 rijndael_decryptCBC(AESContext *cx, unsigned char *output,
                     unsigned int *outputLen, unsigned int maxOutputLen,
-                    const unsigned char *input, unsigned int inputLen)
+                    const unsigned char *input, unsigned int inputLen, unsigned int blocksize)
 {
+    PORT_Assert(blocksize == AES_BLOCK_SIZE);
     const unsigned char *in;
     unsigned char *out;
     unsigned char newIV[AES_BLOCK_SIZE];
@@ -851,6 +856,144 @@ rijndael_decryptCBC(AESContext *cx, unsigned char *output,
     memcpy(cx->iv, newIV, AES_BLOCK_SIZE);
     return SECSuccess;
 }
+
+#define FREEBL_CIPHER_WRAP(ctxtype, mmm)                                                    \
+    static SECStatus freeblCipher_##mmm(void *vctx, unsigned char *output,                  \
+                                        unsigned int *outputLen, unsigned int maxOutputLen, \
+                                        const unsigned char *input, unsigned int inputLen,  \
+                                        unsigned int blocksize)                             \
+    {                                                                                       \
+        ctxtype *ctx = vctx;                                                                \
+        return mmm(ctx, output, outputLen, maxOutputLen, input, inputLen, blocksize);       \
+    }
+
+FREEBL_CIPHER_WRAP(CTRContext, CTR_Update);
+FREEBL_CIPHER_WRAP(CTSContext, CTS_DecryptUpdate);
+FREEBL_CIPHER_WRAP(CTSContext, CTS_EncryptUpdate);
+FREEBL_CIPHER_WRAP(GCMContext, GCM_DecryptUpdate);
+FREEBL_CIPHER_WRAP(GCMContext, GCM_EncryptUpdate);
+FREEBL_CIPHER_WRAP(AESContext, rijndael_decryptCBC);
+FREEBL_CIPHER_WRAP(AESContext, rijndael_decryptECB);
+FREEBL_CIPHER_WRAP(AESContext, rijndael_encryptCBC);
+FREEBL_CIPHER_WRAP(AESContext, rijndael_encryptECB);
+
+#if defined(INTEL_GCM) && defined(USE_HW_AES)
+FREEBL_CIPHER_WRAP(intel_AES_GCMContext, intel_AES_GCM_DecryptUpdate);
+FREEBL_CIPHER_WRAP(intel_AES_GCMContext, intel_AES_GCM_EncryptUpdate);
+#elif defined(USE_PPC_CRYPTO) && defined(PPC_GCM)
+FREEBL_CIPHER_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_DecryptUpdate);
+FREEBL_CIPHER_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_EncryptUpdate);
+#endif
+
+#if defined(USE_HW_AES)
+#if defined(NSS_X86_OR_X64)
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_encrypt_ecb_128);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_decrypt_ecb_128);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_encrypt_cbc_128);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_decrypt_cbc_128);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_encrypt_ecb_192);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_decrypt_ecb_192);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_encrypt_cbc_192);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_decrypt_cbc_192);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_encrypt_ecb_256);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_decrypt_ecb_256);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_encrypt_cbc_256);
+FREEBL_CIPHER_WRAP(AESContext, intel_aes_decrypt_cbc_256);
+
+#define freeblCipher_native_aes_ecb_worker(encrypt, keysize)                            \
+    ((encrypt)                                                                          \
+         ? ((keysize) == 16 ? freeblCipher_intel_aes_encrypt_ecb_128                    \
+                            : (keysize) == 24 ? freeblCipher_intel_aes_encrypt_ecb_192  \
+                                              : freeblCipher_intel_aes_encrypt_ecb_256) \
+         : ((keysize) == 16 ? freeblCipher_intel_aes_decrypt_ecb_128                    \
+                            : (keysize) == 24 ? freeblCipher_intel_aes_decrypt_ecb_192  \
+                                              : freeblCipher_intel_aes_decrypt_ecb_256))
+
+#define freeblCipher_native_aes_cbc_worker(encrypt, keysize)                            \
+    ((encrypt)                                                                          \
+         ? ((keysize) == 16 ? freeblCipher_intel_aes_encrypt_cbc_128                    \
+                            : (keysize) == 24 ? freeblCipher_intel_aes_encrypt_cbc_192  \
+                                              : freeblCipher_intel_aes_encrypt_cbc_256) \
+         : ((keysize) == 16 ? freeblCipher_intel_aes_decrypt_cbc_128                    \
+                            : (keysize) == 24 ? freeblCipher_intel_aes_decrypt_cbc_192  \
+                                              : freeblCipher_intel_aes_decrypt_cbc_256))
+#else
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_ecb_128);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_ecb_128);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_cbc_128);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_cbc_128);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_ecb_192);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_ecb_192);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_cbc_192);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_cbc_192);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_ecb_256);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_ecb_256);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_cbc_256);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_cbc_256);
+
+#define freeblCipher_native_aes_ecb_worker(encrypt, keysize)                          \
+    ((encrypt)                                                                        \
+         ? ((keysize) == 16 ? freeblCipher_arm_aes_encrypt_ecb_128                    \
+                            : (keysize) == 24 ? freeblCipher_arm_aes_encrypt_ecb_192  \
+                                              : freeblCipher_arm_aes_encrypt_ecb_256) \
+         : ((keysize) == 16 ? freeblCipher_arm_aes_decrypt_ecb_128                    \
+                            : (keysize) == 24 ? freeblCipher_arm_aes_decrypt_ecb_192  \
+                                              : freeblCipher_arm_aes_decrypt_ecb_256))
+
+#define freeblCipher_native_aes_cbc_worker(encrypt, keysize)                          \
+    ((encrypt)                                                                        \
+         ? ((keysize) == 16 ? freeblCipher_arm_aes_encrypt_cbc_128                    \
+                            : (keysize) == 24 ? freeblCipher_arm_aes_encrypt_cbc_192  \
+                                              : freeblCipher_arm_aes_encrypt_cbc_256) \
+         : ((keysize) == 16 ? freeblCipher_arm_aes_decrypt_cbc_128                    \
+                            : (keysize) == 24 ? freeblCipher_arm_aes_decrypt_cbc_192  \
+                                              : freeblCipher_arm_aes_decrypt_cbc_256))
+#endif
+#endif
+
+#if defined(USE_HW_AES) && defined(_MSC_VER) && defined(NSS_X86_OR_X64)
+FREEBL_CIPHER_WRAP(CTRContext, CTR_Update_HW_AES);
+#endif
+
+#define FREEBL_AEAD_WRAP(ctxtype, mmm)                                                                                \
+    static SECStatus freeblAead_##mmm(void *vctx, unsigned char *output,                                              \
+                                      unsigned int *outputLen, unsigned int maxOutputLen,                             \
+                                      const unsigned char *input, unsigned int inputLen,                              \
+                                      void *params, unsigned int paramsLen,                                           \
+                                      const unsigned char *aad, unsigned int aadLen,                                  \
+                                      unsigned int blocksize)                                                         \
+    {                                                                                                                 \
+        ctxtype *ctx = vctx;                                                                                          \
+        return mmm(ctx, output, outputLen, maxOutputLen, input, inputLen, params, paramsLen, aad, aadLen, blocksize); \
+    }
+
+FREEBL_AEAD_WRAP(GCMContext, GCM_EncryptAEAD);
+FREEBL_AEAD_WRAP(GCMContext, GCM_DecryptAEAD);
+
+#if defined(INTEL_GCM) && defined(USE_HW_AES)
+FREEBL_AEAD_WRAP(intel_AES_GCMContext, intel_AES_GCM_EncryptAEAD);
+FREEBL_AEAD_WRAP(intel_AES_GCMContext, intel_AES_GCM_DecryptAEAD);
+#elif defined(USE_PPC_CRYPTO) && defined(PPC_GCM)
+FREEBL_AEAD_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_EncryptAEAD);
+FREEBL_AEAD_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_DecryptAEAD);
+#endif
+
+#define FREEBL_DESTROY_WRAP(ctxtype, mmm)                      \
+    static void freeblDestroy_##mmm(void *vctx, PRBool freeit) \
+    {                                                          \
+        ctxtype *ctx = vctx;                                   \
+        mmm(ctx, freeit);                                      \
+    }
+
+FREEBL_DESTROY_WRAP(CTRContext, CTR_DestroyContext);
+FREEBL_DESTROY_WRAP(CTSContext, CTS_DestroyContext);
+FREEBL_DESTROY_WRAP(GCMContext, GCM_DestroyContext);
+
+#if defined(INTEL_GCM) && defined(USE_HW_AES)
+FREEBL_DESTROY_WRAP(intel_AES_GCMContext, intel_AES_GCM_DestroyContext);
+#elif defined(USE_PPC_CRYPTO) && defined(PPC_GCM)
+FREEBL_DESTROY_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_DestroyContext);
+#endif
 
 /************************************************************************
  *
@@ -918,26 +1061,20 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
         memcpy(cx->iv, iv, AES_BLOCK_SIZE);
 #ifdef USE_HW_AES
         if (use_hw_aes) {
-            cx->worker = (freeblCipherFunc)
-                native_aes_cbc_worker(encrypt, keysize);
+            cx->worker = freeblCipher_native_aes_cbc_worker(encrypt, keysize);
         } else
 #endif
         {
-            cx->worker = (freeblCipherFunc)(encrypt
-                                                ? &rijndael_encryptCBC
-                                                : &rijndael_decryptCBC);
+            cx->worker = encrypt ? freeblCipher_rijndael_encryptCBC : freeblCipher_rijndael_decryptCBC;
         }
     } else {
 #ifdef USE_HW_AES
         if (use_hw_aes) {
-            cx->worker = (freeblCipherFunc)
-                native_aes_ecb_worker(encrypt, keysize);
+            cx->worker = freeblCipher_native_aes_ecb_worker(encrypt, keysize);
         } else
 #endif
         {
-            cx->worker = (freeblCipherFunc)(encrypt
-                                                ? &rijndael_encryptECB
-                                                : &rijndael_decryptECB);
+            cx->worker = encrypt ? freeblCipher_rijndael_encryptECB : freeblCipher_rijndael_decryptECB;
         }
     }
     PORT_Assert((cx->Nb * (cx->Nr + 1)) <= RIJNDAEL_MAX_EXP_KEY_SIZE);
@@ -1011,8 +1148,8 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
     switch (mode) {
         case NSS_AES_CTS:
             cx->worker_cx = CTS_CreateContext(cx, cx->worker, iv);
-            cx->worker = (freeblCipherFunc)(encrypt ? CTS_EncryptUpdate : CTS_DecryptUpdate);
-            cx->destroy = (freeblDestroyFunc)CTS_DestroyContext;
+            cx->worker = encrypt ? freeblCipher_CTS_EncryptUpdate : freeblCipher_CTS_DecryptUpdate;
+            cx->destroy = freeblDestroy_CTS_DestroyContext;
             cx->isBlock = PR_FALSE;
             break;
         case NSS_AES_GCM:
@@ -1020,32 +1157,32 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
             if (aesni_support() && (keysize % 8) == 0 && avx_support() &&
                 clmul_support()) {
                 cx->worker_cx = intel_AES_GCM_CreateContext(cx, cx->worker, iv);
-                cx->worker = (freeblCipherFunc)(encrypt ? intel_AES_GCM_EncryptUpdate
-                                                        : intel_AES_GCM_DecryptUpdate);
-                cx->worker_aead = (freeblAeadFunc)(encrypt ? intel_AES_GCM_EncryptAEAD
-                                                           : intel_AES_GCM_DecryptAEAD);
-                cx->destroy = (freeblDestroyFunc)intel_AES_GCM_DestroyContext;
+                cx->worker = encrypt ? freeblCipher_intel_AES_GCM_EncryptUpdate
+                                     : freeblCipher_intel_AES_GCM_DecryptUpdate;
+                cx->worker_aead = encrypt ? freeblAead_intel_AES_GCM_EncryptAEAD
+                                          : freeblAead_intel_AES_GCM_DecryptAEAD;
+                cx->destroy = freeblDestroy_intel_AES_GCM_DestroyContext;
                 cx->isBlock = PR_FALSE;
             } else
 #elif defined(USE_PPC_CRYPTO) && defined(PPC_GCM)
             if (ppc_crypto_support() && (keysize % 8) == 0) {
                 cx->worker_cx = ppc_AES_GCM_CreateContext(cx, cx->worker, iv);
-                cx->worker = (freeblCipherFunc)(encrypt ? ppc_AES_GCM_EncryptUpdate
-                                                        : ppc_AES_GCM_DecryptUpdate);
-                cx->worker_aead = (freeblAeadFunc)(encrypt ? ppc_AES_GCM_EncryptAEAD
-                                                           : ppc_AES_GCM_DecryptAEAD);
-                cx->destroy = (freeblDestroyFunc)ppc_AES_GCM_DestroyContext;
+                cx->worker = encrypt ? freeblCipher_ppc_AES_GCM_EncryptUpdate
+                                     : freeblCipher_ppc_AES_GCM_DecryptUpdate;
+                cx->worker_aead = encrypt ? freeblAead_ppc_AES_GCM_EncryptAEAD
+                                          : freeblAead_ppc_AES_GCM_DecryptAEAD;
+                cx->destroy = freeblDestroy_ppc_AES_GCM_DestroyContext;
                 cx->isBlock = PR_FALSE;
             } else
 #endif
             {
                 cx->worker_cx = GCM_CreateContext(cx, cx->worker, iv);
-                cx->worker = (freeblCipherFunc)(encrypt ? GCM_EncryptUpdate
-                                                        : GCM_DecryptUpdate);
-                cx->worker_aead = (freeblAeadFunc)(encrypt ? GCM_EncryptAEAD
-                                                           : GCM_DecryptAEAD);
+                cx->worker = encrypt ? freeblCipher_GCM_EncryptUpdate
+                                     : freeblCipher_GCM_DecryptUpdate;
+                cx->worker_aead = encrypt ? freeblAead_GCM_EncryptAEAD
+                                          : freeblAead_GCM_DecryptAEAD;
 
-                cx->destroy = (freeblDestroyFunc)GCM_DestroyContext;
+                cx->destroy = freeblDestroy_GCM_DestroyContext;
                 cx->isBlock = PR_FALSE;
             }
             break;
@@ -1053,13 +1190,13 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
             cx->worker_cx = CTR_CreateContext(cx, cx->worker, iv);
 #if defined(USE_HW_AES) && defined(_MSC_VER) && defined(NSS_X86_OR_X64)
             if (aesni_support() && (keysize % 8) == 0) {
-                cx->worker = (freeblCipherFunc)CTR_Update_HW_AES;
+                cx->worker = freeblCipher_CTR_Update_HW_AES;
             } else
 #endif
             {
-                cx->worker = (freeblCipherFunc)CTR_Update;
+                cx->worker = freeblCipher_CTR_Update;
             }
-            cx->destroy = (freeblDestroyFunc)CTR_DestroyContext;
+            cx->destroy = freeblDestroy_CTR_DestroyContext;
             cx->isBlock = PR_FALSE;
             break;
         default:

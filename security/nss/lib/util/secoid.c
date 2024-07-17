@@ -629,20 +629,23 @@ CONST_OID evIncorporationCountry[] = { EV_NAME_ATTRIBUTE, 3 };
 CONST_OID curve25519[] = { 0x2B, 0x06, 0x01, 0x04, 0x01, 0xDA, 0x47, 0x0F, 0x01 };
 
 /*
-	https://oid-rep.orange-labs.fr/get/1.3.101.112
-	A.1.  ASN.1 Object for Ed25519
-	id-Ed25519 OBJECT IDENTIFIER ::= { 1.3.101.112 }
-	Parameters are absent.  Length is 7 bytes.
-	Binary encoding: 3005 0603 2B65 70
-	
-	The same algorithm identifiers are used for identifying a public key,
-	a private key, and a signature (for the two EdDSA related OIDs).
-	Additional encoding information is provided below for each of these
-	locations.
+        https://oid-rep.orange-labs.fr/get/1.3.101.112
+        A.1.  ASN.1 Object for Ed25519
+        id-Ed25519 OBJECT IDENTIFIER ::= { 1.3.101.112 }
+        Parameters are absent.  Length is 7 bytes.
+        Binary encoding: 3005 0603 2B65 70
+
+        The same algorithm identifiers are used for identifying a public key,
+        a private key, and a signature (for the two EdDSA related OIDs).
+        Additional encoding information is provided below for each of these
+        locations.
 */
 
 CONST_OID ed25519PublicKey[] = { 0x2B, 0x65, 0x70 };
 CONST_OID ed25519Signature[] = { 0x2B, 0x65, 0x70 };
+
+/*https://www.rfc-editor.org/rfc/rfc8410#section-3*/
+CONST_OID x25519PublicKey[] = { 0x2b, 0x65, 0x6e };
 
 #define OI(x)                                  \
     {                                          \
@@ -1890,6 +1893,9 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
     ODE(SEC_OID_RC2_64_CBC, "RC2-64-CBC", CKM_RC2_CBC, INVALID_CERT_EXTENSION),
     ODE(SEC_OID_RC2_128_CBC, "RC2-128-CBC", CKM_RC2_CBC, INVALID_CERT_EXTENSION),
     ODE(SEC_OID_ECDH_KEA, "ECDH", CKM_ECDH1_DERIVE, INVALID_CERT_EXTENSION),
+    OD(x25519PublicKey, SEC_OID_X25519,
+       "X25519 key exchange", CKM_EC_MONTGOMERY_KEY_PAIR_GEN, INVALID_CERT_EXTENSION),
+
 };
 
 /* PRIVATE EXTENDED SECOID Table
@@ -1932,7 +1938,7 @@ static int dynOidEntriesAllocated;
 static int dynOidEntriesUsed;
 
 /* Creates NSSRWLock and dynOidPool at initialization time.
-*/
+ */
 static SECStatus
 secoid_InitDynOidData(void)
 {
@@ -2023,7 +2029,6 @@ SECOID_AddEntry(const SECOidData *src)
     dynXOid **table;
     SECOidTag ret = SEC_OID_UNKNOWN;
     SECStatus rv;
-    int tableEntries;
     int used;
 
     if (!src || !src->oid.data || !src->oid.len ||
@@ -2063,12 +2068,11 @@ SECOID_AddEntry(const SECOidData *src)
     }
 
     table = dynOidTable;
-    tableEntries = dynOidEntriesAllocated;
     used = dynOidEntriesUsed;
 
-    if (used + 1 > tableEntries) {
+    if (used + 1 > dynOidEntriesAllocated) {
         dynXOid **newTable;
-        int newTableEntries = tableEntries + 16;
+        int newTableEntries = dynOidEntriesAllocated + 16;
 
         newTable = (dynXOid **)PORT_Realloc(table,
                                             newTableEntries * sizeof(dynXOid *));
@@ -2076,7 +2080,7 @@ SECOID_AddEntry(const SECOidData *src)
             goto done;
         }
         dynOidTable = table = newTable;
-        dynOidEntriesAllocated = tableEntries = newTableEntries;
+        dynOidEntriesAllocated = newTableEntries;
     }
 
     /* copy oid structure */

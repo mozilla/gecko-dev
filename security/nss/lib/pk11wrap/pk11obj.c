@@ -576,8 +576,8 @@ PK11_SignatureLen(SECKEYPrivateKey *key)
                 return length * 2;
             }
             return pk11_backupGetSignLength(key);
-        case edKey:
         case ecKey:
+        case edKey:
             rv = PK11_ReadAttribute(key->pkcs11Slot, key->pkcs11ID, CKA_EC_PARAMS,
                                     NULL, &attributeItem);
             if (rv == SECSuccess) {

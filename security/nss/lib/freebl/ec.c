@@ -673,3 +673,23 @@ ED_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey)
     Hacl_Ed25519_secret_to_public(publicKey->data, privateKey->data);
     return SECSuccess;
 }
+
+SECStatus
+X25519_DerivePublicKey(SECItem *privateKey, SECItem *publicKey)
+{
+    SECStatus rv = SECFailure;
+    /* Currently supporting only X25519.*/
+    if (!privateKey || privateKey->len == 0 || !publicKey || publicKey->len != X25519_PUBLIC_KEYLEN) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    const ECMethod *method = ec_get_method_from_name(ECCurve25519);
+    if (method == NULL || method->pt_mul == NULL) {
+        PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+        return SECFailure;
+    }
+
+    rv = method->pt_mul(publicKey, privateKey, NULL);
+    return rv;
+}

@@ -1007,7 +1007,7 @@ AddBasicConstraint(PLArenaPool *arena, void *extHandle)
 
         rv = SECU_EncodeAndAddExtensionValue(arena, extHandle,
                                              &basicConstraint, yesNoAns, SEC_OID_X509_BASIC_CONSTRAINTS,
-                                             (EXTEN_EXT_VALUE_ENCODER)CERT_EncodeBasicConstraintValue);
+                                             EXTEN_EXT_VALUE_ENCODER_CERT_EncodeBasicConstraintValue);
     } while (0);
 
     return (rv);
@@ -1103,7 +1103,7 @@ AddNameConstraints(void *extHandle)
 
         rv = SECU_EncodeAndAddExtensionValue(arena, extHandle, constraints,
                                              yesNoAns, oidIdent,
-                                             (EXTEN_EXT_VALUE_ENCODER)CERT_EncodeNameConstraintsExtension);
+                                             EXTEN_EXT_VALUE_ENCODER_CERT_EncodeNameConstraintsExtension);
     }
     if (arena)
         PORT_FreeArena(arena, PR_FALSE);
@@ -1154,7 +1154,7 @@ AddAuthKeyID(void *extHandle)
 
         rv = SECU_EncodeAndAddExtensionValue(arena, extHandle,
                                              authKeyID, yesNoAns, SEC_OID_X509_AUTH_KEY_ID,
-                                             (EXTEN_EXT_VALUE_ENCODER)CERT_EncodeAuthKeyID);
+                                             EXTEN_EXT_VALUE_ENCODER_CERT_EncodeAuthKeyID);
         if (rv)
             break;
 
@@ -1192,7 +1192,7 @@ AddSubjKeyID(void *extHandle)
 
         rv = SECU_EncodeAndAddExtensionValue(arena, extHandle,
                                              &keyID, yesNoAns, SEC_OID_X509_SUBJECT_KEY_ID,
-                                             (EXTEN_EXT_VALUE_ENCODER)CERT_EncodeSubjectKeyID);
+                                             EXTEN_EXT_VALUE_ENCODER_CERT_EncodeSubjectKeyID);
         if (rv)
             break;
 
@@ -1338,7 +1338,7 @@ AddCrlDistPoint(void *extHandle)
 
         rv = SECU_EncodeAndAddExtensionValue(arena, extHandle,
                                              crlDistPoints, yesNoAns, SEC_OID_X509_CRL_DIST_POINTS,
-                                             (EXTEN_EXT_VALUE_ENCODER)CERT_EncodeCRLDistributionPoints);
+                                             EXTEN_EXT_VALUE_ENCODER_CERT_EncodeCRLDistributionPoints);
     }
     if (arena)
         PORT_FreeArena(arena, PR_FALSE);
@@ -1415,7 +1415,7 @@ AddPolicyConstraints(void *extHandle)
 
         rv = SECU_EncodeAndAddExtensionValue(arena, extHandle, policyConstr,
                                              yesNoAns, SEC_OID_X509_POLICY_CONSTRAINTS,
-                                             (EXTEN_EXT_VALUE_ENCODER)CERT_EncodePolicyConstraintsExtension);
+                                             EXTEN_EXT_VALUE_ENCODER_CERT_EncodePolicyConstraintsExtension);
     } else {
         fprintf(stdout, "Policy Constraint extensions must contain "
                         "at least one policy field\n");
@@ -1467,7 +1467,7 @@ AddInhibitAnyPolicy(void *extHandle)
 
     rv = SECU_EncodeAndAddExtensionValue(arena, extHandle, &certInhibitAny,
                                          yesNoAns, SEC_OID_X509_INHIBIT_ANY_POLICY,
-                                         (EXTEN_EXT_VALUE_ENCODER)CERT_EncodeInhibitAnyExtension);
+                                         EXTEN_EXT_VALUE_ENCODER_CERT_EncodeInhibitAnyExtension);
 loser:
     if (arena) {
         PORT_FreeArena(arena, PR_FALSE);
@@ -1558,7 +1558,7 @@ AddPolicyMappings(void *extHandle)
         mappings.policyMaps = policyMapArr;
         rv = SECU_EncodeAndAddExtensionValue(arena, extHandle, &mappings,
                                              yesNoAns, SEC_OID_X509_POLICY_MAPPINGS,
-                                             (EXTEN_EXT_VALUE_ENCODER)CERT_EncodePolicyMappingExtension);
+                                             EXTEN_EXT_VALUE_ENCODER_CERT_EncodePolicyMappingExtension);
     }
     if (arena)
         PORT_FreeArena(arena, PR_FALSE);
@@ -1843,7 +1843,7 @@ AddCertPolicies(void *extHandle)
 
         rv = SECU_EncodeAndAddExtensionValue(arena, extHandle, &policies,
                                              yesNoAns, SEC_OID_X509_CERTIFICATE_POLICIES,
-                                             (EXTEN_EXT_VALUE_ENCODER)CERT_EncodeCertPoliciesExtension);
+                                             EXTEN_EXT_VALUE_ENCODER_CERT_EncodeCertPoliciesExtension);
     }
     if (arena)
         PORT_FreeArena(arena, PR_FALSE);
@@ -1982,7 +1982,7 @@ AddInfoAccess(void *extHandle, PRBool addSIAExt, PRBool isCACert)
         }
         rv = SECU_EncodeAndAddExtensionValue(arena, extHandle, infoAccArr,
                                              yesNoAns, oidIdent,
-                                             (EXTEN_EXT_VALUE_ENCODER)CERT_EncodeInfoAccessExtension);
+                                             EXTEN_EXT_VALUE_ENCODER_CERT_EncodeInfoAccessExtension);
     }
     if (arena)
         PORT_FreeArena(arena, PR_FALSE);

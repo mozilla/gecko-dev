@@ -819,7 +819,7 @@ kbkdf_CounterRaw(const CK_SP800_108_KDF_PARAMS *params, sftk_MACCtx *ctx, unsign
         }
 
         /* Finalize this iteration of the PRF. */
-        ret = sftk_MAC_Finish(ctx, ret_buffer + buffer_offset, NULL, block_size);
+        ret = sftk_MAC_End(ctx, ret_buffer + buffer_offset, NULL, block_size);
         if (ret != CKR_OK) {
             return ret;
         }
@@ -936,7 +936,7 @@ kbkdf_FeedbackRaw(const CK_SP800_108_KDF_PARAMS *params, const unsigned char *in
          * first save this to the chaining value so that we can reuse it
          * in the next iteration before copying the necessary length to
          * the output buffer. */
-        ret = sftk_MAC_Finish(ctx, chaining_value, NULL, chaining_length);
+        ret = sftk_MAC_End(ctx, chaining_value, NULL, chaining_length);
         if (ret != CKR_OK) {
             goto finish;
         }
@@ -1065,7 +1065,7 @@ kbkdf_PipelineRaw(const CK_SP800_108_KDF_PARAMS *params, sftk_MACCtx *ctx, unsig
 
         /* Save the PRF output to chaining_value for use in the second
          * pipeline. */
-        ret = sftk_MAC_Finish(ctx, chaining_value, NULL, chaining_length);
+        ret = sftk_MAC_End(ctx, chaining_value, NULL, chaining_length);
         if (ret != CKR_OK) {
             goto finish;
         }
@@ -1089,7 +1089,7 @@ kbkdf_PipelineRaw(const CK_SP800_108_KDF_PARAMS *params, sftk_MACCtx *ctx, unsig
         /* Finalize this iteration of the PRF directly to the output buffer.
          * Unlike Feedback mode, this pipeline doesn't influence the previous
          * stage. */
-        ret = sftk_MAC_Finish(ctx, ret_buffer + buffer_offset, NULL, block_size);
+        ret = sftk_MAC_End(ctx, ret_buffer + buffer_offset, NULL, block_size);
         if (ret != CKR_OK) {
             goto finish;
         }
@@ -1128,7 +1128,7 @@ kbkdf_RawDispatch(CK_MECHANISM_TYPE mech,
     CK_RV ret;
     /* Context for our underlying PRF function.
      *
-     * Zeroing context required unconditional call of sftk_MAC_Destroy.
+     * Zeroing context required unconditional call of sftk_MAC_DestroyContext.
      */
     sftk_MACCtx ctx = { 0 };
 
@@ -1227,7 +1227,7 @@ finish:
     PORT_ZFree(output_buffer, buffer_length);
 
     /* Free the PRF. This should handle clearing all sensitive information. */
-    sftk_MAC_Destroy(&ctx, PR_FALSE);
+    sftk_MAC_DestroyContext(&ctx, PR_FALSE);
     return ret;
 }
 

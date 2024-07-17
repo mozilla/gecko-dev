@@ -67,7 +67,9 @@ SSLExp_MakeVariantAead(PRUint16 version, PRUint16 cipherSuite, SSLProtocolVarian
     out->ivLen = cipher->iv_size + cipher->explicit_nonce_size;
     out->tagLen = cipher->tag_size;
 
-    memcpy(label, labelPrefix, labelPrefixLen);
+    if (labelPrefixLen > 0) {
+        memcpy(label, labelPrefix, labelPrefixLen);
+    }
     memcpy(label + labelPrefixLen, ivSuffix, strlen(ivSuffix));
     unsigned int labelLen = labelPrefixLen + strlen(ivSuffix);
     unsigned int ivLen = cipher->iv_size + cipher->explicit_nonce_size;

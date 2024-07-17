@@ -29,6 +29,59 @@ SSL_PeerCertificate(PRFileDesc *fd)
 }
 
 /* NEED LOCKS IN HERE.  */
+SECStatus
+SSLExp_PeerCertificateChainDER(PRFileDesc *fd, SECItemArray **out)
+{
+    sslSocket *ss;
+    ssl3CertNode *cur;
+    SECItemArray *chain;
+    unsigned int count;
+    unsigned int index;
+    SECStatus rv;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in PeerCertificateChainDER",
+                 SSL_GETPID(), fd));
+        return SECFailure;
+    }
+    if (!ss->opt.useSecurity || !ss->sec.peerCert) {
+        PORT_SetError(SSL_ERROR_NO_CERTIFICATE);
+        return SECFailure;
+    }
+
+    count = 1; // for ss->sec.peerCert
+    for (cur = ss->ssl3.peerCertChain; cur; cur = cur->next) {
+        ++count;
+    }
+
+    chain = SECITEM_AllocArray(NULL, NULL, count);
+    if (chain == NULL) {
+        return SECFailure; /* error code set in SECITEM_AllocArray */
+    }
+
+    index = 0;
+    rv = SECITEM_CopyItem(NULL, &chain->items[index++], &ss->sec.peerCert->derCert);
+    if (rv != SECSuccess) {
+        goto loser; /* error code set in SECITEM_CopyItem */
+    }
+
+    for (cur = ss->ssl3.peerCertChain; cur; cur = cur->next) {
+        rv = SECITEM_CopyItem(NULL, &chain->items[index++], cur->derCert);
+        if (rv != SECSuccess) {
+            goto loser; /* error code set in SECITEM_CopyItem */
+        }
+    }
+
+    *out = chain;
+    return SECSuccess;
+
+loser:
+    SECITEM_FreeArray(chain, PR_TRUE);
+    return SECFailure;
+}
+
+/* NEED LOCKS IN HERE.  */
 CERTCertList *
 SSL_PeerCertificateChain(PRFileDesc *fd)
 {
@@ -56,8 +109,9 @@ SSL_PeerCertificateChain(PRFileDesc *fd)
         goto loser;
     }
     for (cur = ss->ssl3.peerCertChain; cur; cur = cur->next) {
-        cert = CERT_DupCertificate(cur->cert);
-        if (CERT_AddCertToListTail(chain, cert) != SECSuccess) {
+        cert = CERT_NewTempCertificate(ss->dbHandle, cur->derCert,
+                                       NULL, PR_FALSE, PR_TRUE);
+        if (!cert || CERT_AddCertToListTail(chain, cert) != SECSuccess) {
             goto loser;
         }
     }
@@ -270,8 +324,15 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
     /* this may seem backwards, but isn't. */
     certUsage = isServer ? certUsageSSLClient : certUsageSSLServer;
 
+    /* Calling SSL_PeerCertificateChain here ensures that all certs from the
+     * peer's presented chain are in the database for path finding.
+     */
+    CERTCertList *peerChain = SSL_PeerCertificateChain(fd);
+
     rv = CERT_VerifyCert(handle, ss->sec.peerCert, checkSig, certUsage,
                          now, ss->pkcs11PinArg, NULL);
+
+    CERT_DestroyCertList(peerChain);
 
     if (rv != SECSuccess || isServer)
         return rv;

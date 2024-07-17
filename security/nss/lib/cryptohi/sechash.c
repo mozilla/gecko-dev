@@ -109,125 +109,155 @@ sha3_512_NewContext(void)
     return (void *)PK11_CreateDigestContext(SEC_OID_SHA3_512);
 }
 
+static void *
+SECHash_PK11_CloneContext(void *ctx)
+{
+    PK11Context *pctx = ctx;
+    return PK11_CloneContext(pctx);
+}
+
+static void
+SECHash_PK11_DestroyContext(void *ctx, PRBool freeit)
+{
+    PK11Context *pctx = ctx;
+    PK11_DestroyContext(pctx, freeit);
+}
+
+void
+SECHash_PK11_DigestBegin(void *ctx)
+{
+    PK11Context *pctx = ctx;
+    SECStatus rv = PK11_DigestBegin(pctx);
+    PORT_Assert(rv == SECSuccess);
+    (void)rv;
+}
+
+void
+SECHash_PK11_DigestOp(void *ctx, const unsigned char *in, unsigned inLen)
+{
+    PK11Context *pctx = ctx;
+    SECStatus rv = PK11_DigestOp(pctx, in, inLen);
+    PORT_Assert(rv == SECSuccess);
+    (void)rv;
+}
+
+void
+SECHash_PK11_DigestFinal(void *ctx, unsigned char *data,
+                         unsigned int *outLen, unsigned int length)
+{
+    PK11Context *pctx = ctx;
+    SECStatus rv = PK11_DigestFinal(pctx, data, outLen, length);
+    PORT_Assert(rv == SECSuccess);
+    (void)rv;
+}
+
 const SECHashObject SECHashObjects[] = {
     { 0,
-      (void *(*)(void))null_hash_new_context,
-      (void *(*)(void *))null_hash_clone_context,
-      (void (*)(void *, PRBool))null_hash_destroy_context,
-      (void (*)(void *))null_hash_begin,
-      (void (*)(void *, const unsigned char *, unsigned int))null_hash_update,
-      (void (*)(void *, unsigned char *, unsigned int *,
-                unsigned int))null_hash_end,
+      null_hash_new_context,
+      null_hash_clone_context,
+      null_hash_destroy_context,
+      null_hash_begin,
+      null_hash_update,
+      null_hash_end,
       0,
       HASH_AlgNULL },
     { MD2_LENGTH,
-      (void *(*)(void))md2_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      md2_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       MD2_BLOCK_LENGTH,
       HASH_AlgMD2 },
     { MD5_LENGTH,
-      (void *(*)(void))md5_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      md5_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       MD5_BLOCK_LENGTH,
       HASH_AlgMD5 },
     { SHA1_LENGTH,
-      (void *(*)(void))sha1_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      sha1_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       SHA1_BLOCK_LENGTH,
       HASH_AlgSHA1 },
     { SHA256_LENGTH,
-      (void *(*)(void))sha256_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      sha256_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       SHA256_BLOCK_LENGTH,
       HASH_AlgSHA256 },
     { SHA384_LENGTH,
-      (void *(*)(void))sha384_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      sha384_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       SHA384_BLOCK_LENGTH,
       HASH_AlgSHA384 },
     { SHA512_LENGTH,
-      (void *(*)(void))sha512_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      sha512_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       SHA512_BLOCK_LENGTH,
       HASH_AlgSHA512 },
     { SHA224_LENGTH,
-      (void *(*)(void))sha224_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      sha224_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       SHA224_BLOCK_LENGTH,
       HASH_AlgSHA224 },
     { SHA3_224_LENGTH,
-      (void *(*)(void))sha3_224_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      sha3_224_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       SHA3_224_BLOCK_LENGTH,
       HASH_AlgSHA3_224 },
     { SHA3_256_LENGTH,
-      (void *(*)(void))sha3_256_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      sha3_256_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       SHA3_256_BLOCK_LENGTH,
       HASH_AlgSHA3_256 },
     { SHA3_384_LENGTH,
-      (void *(*)(void))sha3_384_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      sha3_384_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       SHA3_384_BLOCK_LENGTH,
       HASH_AlgSHA3_384 },
     { SHA3_512_LENGTH,
-      (void *(*)(void))sha3_512_NewContext,
-      (void *(*)(void *))PK11_CloneContext,
-      (void (*)(void *, PRBool))PK11_DestroyContext,
-      (void (*)(void *))PK11_DigestBegin,
-      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
-      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
-          PK11_DigestFinal,
+      sha3_512_NewContext,
+      SECHash_PK11_CloneContext,
+      SECHash_PK11_DestroyContext,
+      SECHash_PK11_DigestBegin,
+      SECHash_PK11_DigestOp,
+      SECHash_PK11_DigestFinal,
       SHA3_512_BLOCK_LENGTH,
       HASH_AlgSHA3_512 },
 };

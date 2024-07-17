@@ -100,7 +100,7 @@ static struct RSABlindingParamsListStr blindingParamsList = { 0 };
 
 /* Global, allows optional use of blinding.  On by default. */
 /* Cannot be changed at the moment, due to thread-safety issues. */
-static PRBool nssRSAUseBlinding = PR_TRUE;
+static const PRBool nssRSAUseBlinding = PR_TRUE;
 
 static SECStatus
 rsa_build_from_primes(const mp_int *p, const mp_int *q,

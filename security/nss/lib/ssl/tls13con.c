@@ -445,16 +445,41 @@ tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef,
                 PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
                 return SECFailure;
             }
-            rv = ssl_CreateECDHEphemeralKeyPair(ss, ssl_LookupNamedGroup(ssl_grp_ec_curve25519), &keyPair);
-            if (rv != SECSuccess) {
-                return SECFailure;
+            const sslNamedGroupDef *x25519 = ssl_LookupNamedGroup(ssl_grp_ec_curve25519);
+            sslEphemeralKeyPair *x25519Pair = ssl_LookupEphemeralKeyPair(ss, x25519);
+            if (x25519Pair) {
+                keyPair = ssl_CopyEphemeralKeyPair(x25519Pair);
+            }
+            if (!keyPair) {
+                rv = ssl_CreateECDHEphemeralKeyPair(ss, x25519, &keyPair);
+                if (rv != SECSuccess) {
+                    return SECFailure;
+                }
             }
             keyPair->group = groupDef;
             break;
         case ssl_kea_ecdh:
-            rv = ssl_CreateECDHEphemeralKeyPair(ss, groupDef, &keyPair);
-            if (rv != SECSuccess) {
-                return SECFailure;
+            if (groupDef->name == ssl_grp_ec_curve25519) {
+                const sslNamedGroupDef *xyber = ssl_LookupNamedGroup(ssl_grp_kem_xyber768d00);
+                sslEphemeralKeyPair *xyberPair = ssl_LookupEphemeralKeyPair(ss, xyber);
+                if (xyberPair) {
+                    // We could use ssl_CopyEphemeralKeyPair here, but we would need to free
+                    // the KEM components. We should pull this out into a utility function when
+                    // we refactor to support multiple hybrid mechanisms.
+                    keyPair = PORT_ZNew(sslEphemeralKeyPair);
+                    if (!keyPair) {
+                        return SECFailure;
+                    }
+                    PR_INIT_CLIST(&keyPair->link);
+                    keyPair->group = groupDef;
+                    keyPair->keys = ssl_GetKeyPairRef(xyberPair->keys);
+                }
+            }
+            if (!keyPair) {
+                rv = ssl_CreateECDHEphemeralKeyPair(ss, groupDef, &keyPair);
+                if (rv != SECSuccess) {
+                    return SECFailure;
+                }
             }
             break;
         case ssl_kea_dh:
@@ -757,7 +782,7 @@ tls13_HandleKEMKey(sslSocket *ss,
     PK11_FreeSlot(peerKey->pkcs11Slot);
 
     PORT_DestroyCheapArena(&arena);
-    return SECSuccess;
+    return rv;
 
 loser:
     PORT_DestroyCheapArena(&arena);
@@ -2806,8 +2831,8 @@ loser:
 static SECStatus
 tls13_ReinjectHandshakeTranscript(sslSocket *ss)
 {
-    SSL3Hashes hashes;
-    SSL3Hashes echInnerHashes;
+    SSL3Hashes hashes = { 0 };
+    SSL3Hashes echInnerHashes = { 0 };
     SECStatus rv;
 
     /* First compute the hash. */
@@ -3125,6 +3150,9 @@ tls13_HandleCertificateRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
             return rv;
         }
         rv = tls13_SendPostHandshakeCertificate(ss);
+        if (rv != SECSuccess) {
+            return rv; /* error code is set. */
+        }
     } else {
         TLS13_SET_HS_STATE(ss, wait_server_cert);
     }
@@ -3796,14 +3824,12 @@ loser:
 
 static SECStatus
 tls13_HandleCertificateEntry(sslSocket *ss, SECItem *data, PRBool first,
-                             CERTCertificate **certp)
+                             SECItem *certData)
 {
     SECStatus rv;
-    SECItem certData;
     SECItem extensionsData;
-    CERTCertificate *cert = NULL;
 
-    rv = ssl3_ConsumeHandshakeVariable(ss, &certData,
+    rv = ssl3_ConsumeHandshakeVariable(ss, certData,
                                        3, &data->data, &data->len);
     if (rv != SECSuccess) {
         return SECFailure;
@@ -3825,25 +3851,6 @@ tls13_HandleCertificateEntry(sslSocket *ss, SECItem *data, PRBool first,
         }
         /* TODO(ekr@rtfm.com): Copy out SCTs. Bug 1315727. */
     }
-
-    cert = CERT_NewTempCertificate(ss->dbHandle, &certData, NULL,
-                                   PR_FALSE, PR_TRUE);
-
-    if (!cert) {
-        PRErrorCode errCode = PORT_GetError();
-        switch (errCode) {
-            case PR_OUT_OF_MEMORY_ERROR:
-            case SEC_ERROR_BAD_DATABASE:
-            case SEC_ERROR_NO_MEMORY:
-                FATAL_ERROR(ss, errCode, internal_error);
-                return SECFailure;
-            default:
-                ssl3_SendAlertForCertError(ss, errCode);
-                return SECFailure;
-        }
-    }
-
-    *certp = cert;
 
     return SECSuccess;
 }
@@ -4132,17 +4139,30 @@ tls13_HandleCertificate(sslSocket *ss, PRUint8 *b, PRUint32 length, PRBool alrea
     }
 
     while (certList.len) {
-        CERTCertificate *cert;
-
+        SECItem derCert; // will hold a weak reference into certList
         rv = tls13_HandleCertificateEntry(ss, &certList, first,
-                                          &cert);
+                                          &derCert);
         if (rv != SECSuccess) {
             ss->xtnData.signedCertTimestamps.len = 0;
             return SECFailure;
         }
 
         if (first) {
-            ss->sec.peerCert = cert;
+            ss->sec.peerCert = CERT_NewTempCertificate(ss->dbHandle, &derCert,
+                                                       NULL, PR_FALSE, PR_TRUE);
+            if (!ss->sec.peerCert) {
+                PRErrorCode errCode = PORT_GetError();
+                switch (errCode) {
+                    case PR_OUT_OF_MEMORY_ERROR:
+                    case SEC_ERROR_BAD_DATABASE:
+                    case SEC_ERROR_NO_MEMORY:
+                        FATAL_ERROR(ss, errCode, internal_error);
+                        return SECFailure;
+                    default:
+                        ssl3_SendAlertForCertError(ss, errCode);
+                        return SECFailure;
+                }
+            }
 
             if (ss->xtnData.signedCertTimestamps.len) {
                 sslSessionID *sid = ss->sec.ci.sid;
@@ -4161,7 +4181,8 @@ tls13_HandleCertificate(sslSocket *ss, PRUint8 *b, PRUint32 length, PRBool alrea
                 FATAL_ERROR(ss, SEC_ERROR_NO_MEMORY, internal_error);
                 return SECFailure;
             }
-            c->cert = cert;
+            c->derCert = SECITEM_ArenaDupItem(ss->ssl3.peerCertArena,
+                                              &derCert);
             c->next = NULL;
 
             if (lastCert) {

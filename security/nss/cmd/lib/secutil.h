@@ -368,6 +368,22 @@ SECU_FindCrlIssuer(CERTCertDBHandle *dbHandle, SECItem *subject,
 typedef SECStatus (*EXTEN_EXT_VALUE_ENCODER)(PLArenaPool *extHandleArena,
                                              void *value, SECItem *encodedValue);
 
+#define DECL_EXTEN_EXT_VALUE_ENCODER(mmm)                                \
+    SECStatus EXTEN_EXT_VALUE_ENCODER_##mmm(PLArenaPool *extHandleArena, \
+                                            void *value, SECItem *encodedValue);
+
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeAltNameExtension);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeAuthKeyID);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeBasicConstraintValue);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeCRLDistributionPoints);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeCertPoliciesExtension);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeInfoAccessExtension);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeInhibitAnyExtension);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeNameConstraintsExtension);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodePolicyConstraintsExtension);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodePolicyMappingExtension);
+DECL_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeSubjectKeyID);
+
 /* Encodes and adds extensions to the CRL or CRL entries. */
 SECStatus
 SECU_EncodeAndAddExtensionValue(PLArenaPool *arena, void *extHandle,

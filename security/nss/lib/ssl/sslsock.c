@@ -1647,7 +1647,7 @@ SSLExp_CipherSuiteOrderGet(PRFileDesc *fd, PRUint16 *cipherOrder,
  * (Client Hello). */
 SECStatus
 SSLExp_CipherSuiteOrderSet(PRFileDesc *fd, const PRUint16 *cipherOrder,
-                           unsigned int numCiphers)
+                           PRUint16 numCiphers)
 {
     if (!fd) {
         SSL_DBG(("%d: SSL: file descriptor in CipherSuiteOrderGet is null",
@@ -4377,6 +4377,7 @@ struct {
     EXP(SetServerEchConfigs),
     EXP(SetTimeFunc),
     EXP(SetCertificateCompressionAlgorithm),
+    EXP(PeerCertificateChainDER),
 #endif
     { "", NULL }
 };

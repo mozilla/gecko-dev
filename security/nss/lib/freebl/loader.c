@@ -2882,3 +2882,13 @@ ED_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey)
         return SECFailure;
     return (vector->p_ED_DerivePublicKey)(privateKey, publicKey);
 }
+
+/* ============== New for 3.0029 =============================== */
+
+SECStatus
+X25519_DerivePublicKey(SECItem *privateKey, SECItem *publicKey)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_X25519_DerivePublicKey)(privateKey, publicKey);
+}

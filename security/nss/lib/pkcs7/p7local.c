@@ -19,6 +19,8 @@
 #include "secpkcs5.h"
 #include "secerr.h"
 
+#include <limits.h>
+
 /*
  * -------------------------------------------------------------------
  * Cipher stuff.
@@ -31,6 +33,27 @@ typedef SECStatus (*sec_pkcs7_cipher_function)(void *,
                                                const unsigned char *,
                                                unsigned int);
 typedef SECStatus (*sec_pkcs7_cipher_destroy)(void *, PRBool);
+
+static SECStatus
+SECPKCS7Cipher_PK11_CipherOp(void *vctx, unsigned char *output,
+                             unsigned int *outputLen, unsigned int maxOutputLen,
+                             const unsigned char *input, unsigned int inputLen)
+{
+    PK11Context *ctx = vctx;
+    PORT_Assert(maxOutputLen <= INT_MAX);
+    int signedOutputLen = maxOutputLen;
+    SECStatus rv = PK11_CipherOp(ctx, output, &signedOutputLen, maxOutputLen, input, inputLen);
+    PORT_Assert(signedOutputLen >= 0);
+    *outputLen = signedOutputLen;
+    return rv;
+}
+static SECStatus
+SECPKCS7Cipher_PK11_DestroyContext(void *vctx, PRBool freeit)
+{
+    PK11Context *ctx = vctx;
+    PK11_DestroyContext(ctx, freeit);
+    return SECSuccess;
+}
 
 #define BLOCK_SIZE 4096
 
@@ -118,8 +141,8 @@ sec_PKCS7CreateDecryptObject(PK11SymKey *key, SECAlgorithmID *algid)
     }
 
     result->cx = ciphercx;
-    result->doit = (sec_pkcs7_cipher_function)PK11_CipherOp;
-    result->destroy = (sec_pkcs7_cipher_destroy)PK11_DestroyContext;
+    result->doit = SECPKCS7Cipher_PK11_CipherOp;
+    result->destroy = SECPKCS7Cipher_PK11_DestroyContext;
     result->encrypt = PR_FALSE;
     result->pending_count = 0;
 
@@ -211,8 +234,8 @@ sec_PKCS7CreateEncryptObject(PLArenaPool *poolp, PK11SymKey *key,
     SECITEM_FreeItem(param, PR_TRUE);
 
     result->cx = ciphercx;
-    result->doit = (sec_pkcs7_cipher_function)PK11_CipherOp;
-    result->destroy = (sec_pkcs7_cipher_destroy)PK11_DestroyContext;
+    result->doit = SECPKCS7Cipher_PK11_CipherOp;
+    result->destroy = SECPKCS7Cipher_PK11_DestroyContext;
     result->encrypt = PR_TRUE;
     result->pending_count = 0;
 

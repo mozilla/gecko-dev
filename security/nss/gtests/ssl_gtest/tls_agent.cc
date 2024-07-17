@@ -442,20 +442,46 @@ bool TlsAgent::CheckClientAuthCallbacksCompleted(uint8_t expected) {
 }
 
 bool TlsAgent::GetPeerChainLength(size_t* count) {
-  CERTCertList* chain = SSL_PeerCertificateChain(ssl_fd());
-  if (!chain) return false;
-  *count = 0;
+  SECItemArray* chain = nullptr;
+  SECStatus rv = SSL_PeerCertificateChainDER(ssl_fd(), &chain);
+  if (rv != SECSuccess) return false;
 
-  for (PRCList* cursor = PR_NEXT_LINK(&chain->list); cursor != &chain->list;
-       cursor = PR_NEXT_LINK(cursor)) {
-    CERTCertListNode* node = (CERTCertListNode*)cursor;
-    std::cerr << node->cert->subjectName << std::endl;
-    ++(*count);
-  }
+  *count = chain->len;
 
-  CERT_DestroyCertList(chain);
+  SECITEM_FreeArray(chain, true);
 
   return true;
+}
+
+void TlsAgent::CheckPeerChainFunctionConsistency() {
+  SECItemArray* derChain = nullptr;
+  SECStatus rv = SSL_PeerCertificateChainDER(ssl_fd(), &derChain);
+  PRErrorCode err1 = PR_GetError();
+  CERTCertList* chain = SSL_PeerCertificateChain(ssl_fd());
+  PRErrorCode err2 = PR_GetError();
+  if (rv != SECSuccess) {
+    ASSERT_EQ(nullptr, chain);
+    ASSERT_EQ(nullptr, derChain);
+    ASSERT_EQ(err1, SSL_ERROR_NO_CERTIFICATE);
+    ASSERT_EQ(err2, SSL_ERROR_NO_CERTIFICATE);
+    return;
+  }
+  ASSERT_NE(nullptr, chain);
+  ASSERT_NE(nullptr, derChain);
+
+  unsigned int count = 0;
+  for (PRCList* cursor = PR_NEXT_LINK(&chain->list);
+       count < derChain->len && cursor != &chain->list;
+       cursor = PR_NEXT_LINK(cursor)) {
+    CERTCertListNode* node = (CERTCertListNode*)cursor;
+    EXPECT_TRUE(
+        SECITEM_ItemsAreEqual(&node->cert->derCert, &derChain->items[count]));
+    ++count;
+  }
+  ASSERT_EQ(count, derChain->len);
+
+  SECITEM_FreeArray(derChain, true);
+  CERT_DestroyCertList(chain);
 }
 
 void TlsAgent::CheckCipherSuite(uint16_t suite) {

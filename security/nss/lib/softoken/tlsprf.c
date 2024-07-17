@@ -28,9 +28,10 @@ typedef struct {
 } TLSPRFContext;
 
 static void
-sftk_TLSPRFHashUpdate(TLSPRFContext *cx, const unsigned char *data,
+sftk_TLSPRFHashUpdate(void *ctx, const unsigned char *data,
                       unsigned int data_len)
 {
+    TLSPRFContext *cx = ctx;
     PRUint32 bytesUsed = cx->cxKeyLen + cx->cxDataLen;
 
     if (cx->cxRv != SECSuccess) /* function has previously failed. */
@@ -58,7 +59,7 @@ sftk_TLSPRFHashUpdate(TLSPRFContext *cx, const unsigned char *data,
 }
 
 static void
-sftk_TLSPRFEnd(TLSPRFContext *ctx, unsigned char *hashout,
+sftk_TLSPRFEnd(void *ctx, unsigned char *hashout,
                unsigned int *pDigestLen, unsigned int maxDigestLen)
 {
     *pDigestLen = 0; /* tells Verify that no data has been input yet. */
@@ -66,13 +67,14 @@ sftk_TLSPRFEnd(TLSPRFContext *ctx, unsigned char *hashout,
 
 /* Compute the PRF values from the data previously input. */
 static SECStatus
-sftk_TLSPRFUpdate(TLSPRFContext *cx,
-                  unsigned char *sig,   /* output goes here. */
-                  unsigned int *sigLen, /* how much output.  */
-                  unsigned int maxLen,  /* output buffer size */
-                  unsigned char *hash,  /* unused. */
-                  unsigned int hashLen) /* unused. */
+sftk_TLSPRFUpdate(void *ctx,
+                  unsigned char *sig,        /* output goes here. */
+                  unsigned int *sigLen,      /* how much output.  */
+                  unsigned int maxLen,       /* output buffer size */
+                  const unsigned char *hash, /* unused. */
+                  unsigned int hashLen)      /* unused. */
 {
+    TLSPRFContext *cx = ctx;
     SECStatus rv;
     SECItem sigItem;
     SECItem seedItem;
@@ -109,12 +111,13 @@ sftk_TLSPRFUpdate(TLSPRFContext *cx,
 }
 
 static SECStatus
-sftk_TLSPRFVerify(TLSPRFContext *cx,
-                  unsigned char *sig,   /* input, for comparison. */
-                  unsigned int sigLen,  /* length of sig.         */
-                  unsigned char *hash,  /* data to be verified.   */
-                  unsigned int hashLen) /* size of hash data.     */
+sftk_TLSPRFVerify(void *ctx,
+                  const unsigned char *sig,  /* input, for comparison. */
+                  unsigned int sigLen,       /* length of sig.         */
+                  const unsigned char *hash, /* data to be verified.   */
+                  unsigned int hashLen)      /* size of hash data.     */
 {
+    TLSPRFContext *cx = ctx;
     unsigned char *tmp = (unsigned char *)PORT_Alloc(sigLen);
     unsigned int tmpLen = sigLen;
     SECStatus rv;
@@ -136,8 +139,9 @@ sftk_TLSPRFVerify(TLSPRFContext *cx,
 }
 
 static void
-sftk_TLSPRFHashDestroy(TLSPRFContext *cx, PRBool freeit)
+sftk_TLSPRFHashDestroy(void *ctx, PRBool freeit)
 {
+    TLSPRFContext *cx = ctx;
     if (freeit) {
         if (cx->cxBufPtr != cx->cxBuf)
             PORT_ZFree(cx->cxBufPtr, cx->cxBufSize);
@@ -183,12 +187,12 @@ sftk_TLSPRFInit(SFTKSessionContext *context,
 
     context->hashInfo = (void *)prf_cx;
     context->cipherInfo = (void *)prf_cx;
-    context->hashUpdate = (SFTKHash)sftk_TLSPRFHashUpdate;
-    context->end = (SFTKEnd)sftk_TLSPRFEnd;
-    context->update = (SFTKCipher)sftk_TLSPRFUpdate;
-    context->verify = (SFTKVerify)sftk_TLSPRFVerify;
-    context->destroy = (SFTKDestroy)sftk_TLSPRFNull;
-    context->hashdestroy = (SFTKDestroy)sftk_TLSPRFHashDestroy;
+    context->hashUpdate = sftk_TLSPRFHashUpdate;
+    context->end = sftk_TLSPRFEnd;
+    context->update = sftk_TLSPRFUpdate;
+    context->verify = sftk_TLSPRFVerify;
+    context->destroy = sftk_TLSPRFNull;
+    context->hashdestroy = sftk_TLSPRFHashDestroy;
     crv = CKR_OK;
 
 done:

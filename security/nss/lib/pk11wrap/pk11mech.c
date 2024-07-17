@@ -1561,7 +1561,9 @@ pk11_GenerateNewParamWithKeyLen(CK_MECHANISM_TYPE type, int keyLen)
                 rv = SECFailure;
                 break;
             }
-            PORT_Memcpy(mech->data, iv.data, iv.len);
+            if (iv.len) {
+                PORT_Memcpy(mech->data, iv.data, iv.len);
+            }
             mech->len = iv.len;
             PORT_Free(iv.data);
             break;

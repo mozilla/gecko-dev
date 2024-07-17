@@ -43,6 +43,7 @@ pk11_MakeIDFromPublicKey(SECKEYPublicKey *pubKey)
             break;
         case edKey:
         case ecKey:
+        case ecMontKey:
             pubKeyIndex = &pubKey->u.ec.publicValue;
             break;
         case kyberKey:
@@ -204,6 +205,19 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
                               pubKey->u.ec.publicValue.len);
                 attrs++;
                 break;
+            case ecMontKey:
+                keyType = CKK_EC_MONTGOMERY;
+                PK11_SETATTRS(attrs, CKA_DERIVE, &cktrue, sizeof(CK_BBOOL));
+                attrs++;
+                PK11_SETATTRS(attrs, CKA_EC_PARAMS,
+                              pubKey->u.ec.DEREncodedParams.data,
+                              pubKey->u.ec.DEREncodedParams.len);
+                attrs++;
+                PK11_SETATTRS(attrs, CKA_EC_POINT,
+                              pubKey->u.ec.publicValue.data,
+                              pubKey->u.ec.publicValue.len);
+                attrs++;
+                break;
             case ecKey:
                 keyType = CKK_EC;
                 PK11_SETATTRS(attrs, CKA_VERIFY, &cktrue, sizeof(CK_BBOOL));
@@ -262,7 +276,8 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
         }
         templateCount = attrs - theTemplate;
         PORT_Assert(templateCount <= (sizeof(theTemplate) / sizeof(CK_ATTRIBUTE)));
-        if (pubKey->keyType != ecKey && pubKey->keyType != kyberKey && pubKey->keyType != edKey) {
+        if (pubKey->keyType != ecKey && pubKey->keyType != kyberKey && pubKey->keyType != edKey &&
+            pubKey->keyType != ecMontKey) {
             PORT_Assert(signedattr);
             signedcount = attrs - signedattr;
             for (attrs = signedattr; signedcount; attrs++, signedcount--) {
@@ -420,6 +435,7 @@ pk11_get_EC_PointLenInBytes(PLArenaPool *arena, const SECItem *ecParams,
         case SEC_OID_SECG_EC_SECT571K1:
         case SEC_OID_SECG_EC_SECT571R1:
             return 145; /*curve len in bytes = 72 bytes */
+        case SEC_OID_X25519:
         case SEC_OID_CURVE25519:
         case SEC_OID_ED25519_PUBLIC_KEY:
             *plain = PR_TRUE;
@@ -657,6 +673,9 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
             case CKK_EC:
                 keyType = ecKey;
                 break;
+            case CKK_EC_MONTGOMERY:
+                keyType = ecMontKey;
+                break;
             case CKK_EC_EDWARDS:
                 keyType = edKey;
                 break;
@@ -791,6 +810,7 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
             break;
         case edKey:
         case ecKey:
+        case ecMontKey:
             pubKey->u.ec.size = 0;
             ecparams = attrs;
             PK11_SETATTRS(attrs, CKA_EC_PARAMS, NULL, 0);
@@ -804,7 +824,10 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
             if (crv != CKR_OK)
                 break;
 
-            if ((keyClass != CKO_PUBLIC_KEY) || (pk11KeyType != CKK_EC && pk11KeyType != CKK_EC_EDWARDS)) {
+            if ((keyClass != CKO_PUBLIC_KEY) ||
+                (pubKey->keyType == ecKey && pk11KeyType != CKK_EC) ||
+                (pubKey->keyType == edKey && pk11KeyType != CKK_EC_EDWARDS) ||
+                (pubKey->keyType == ecMontKey && pk11KeyType != CKK_EC_MONTGOMERY)) {
                 crv = CKR_OBJECT_HANDLE_INVALID;
                 break;
             }
@@ -904,6 +927,9 @@ PK11_MakePrivKey(PK11SlotInfo *slot, KeyType keyType,
                 break;
             case CKK_EC:
                 keyType = ecKey;
+                break;
+            case CKK_EC_MONTGOMERY:
+                keyType = ecMontKey;
                 break;
             case CKK_EC_EDWARDS:
                 keyType = edKey;
@@ -1116,6 +1142,7 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
             break;
         case ecKey:
         case edKey:
+        case ecMontKey:
             ap->type = CKA_EC_PARAMS;
             ap++;
             count++;
@@ -1151,8 +1178,8 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
     if (arena == NULL)
         return NULL;
     /*
-      * read out the old attributes.
-      */
+     * read out the old attributes.
+     */
     crv = PK11_GetAttributes(arena, privKey->pkcs11Slot, privKey->pkcs11ID,
                              privTemplate, count);
     if (crv != CKR_OK) {
@@ -1169,7 +1196,7 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
      * them the raw data as unsigned. The exception is EC,
      * where the values are encoded or zero-preserving
      * per-RFC5915 */
-    if (privKey->keyType != ecKey && privKey->keyType != edKey) {
+    if (privKey->keyType != ecKey && privKey->keyType != edKey && privKey->keyType != ecMontKey) {
         for (ap = attrs; extra_count; ap++, extra_count--) {
             pk11_SignedToUnsigned(ap);
         }
@@ -1525,6 +1552,16 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
             keyType = kyberKey;
             test_mech.mechanism = CKM_NSS_KYBER;
             break;
+        case CKM_EC_MONTGOMERY_KEY_PAIR_GEN:
+            ecParams = (SECKEYECParams *)param;
+            attrs = ecPubTemplate;
+            PK11_SETATTRS(attrs, CKA_EC_PARAMS, ecParams->data,
+                          ecParams->len);
+            attrs++;
+            pubTemplate = ecPubTemplate;
+            keyType = ecMontKey;
+            test_mech.mechanism = CKM_ECDH1_DERIVE;
+            break;
         case CKM_EC_EDWARDS_KEY_PAIR_GEN:
             ecParams = (SECKEYECParams *)param;
             attrs = ecPubTemplate;
@@ -1830,8 +1867,8 @@ SECKEY_SetPublicValue(SECKEYPrivateKey *privKey, SECItem *publicValue)
     pubKey.pkcs11Slot = NULL;
     pubKey.pkcs11ID = CK_INVALID_HANDLE;
     /* can't use PORT_InitCheapArena here becase SECKEY_DestroyPublic is used
-      * to free it, and it uses PORT_FreeArena which not only frees the 
-      * underlying arena, it also frees the allocated arena struct. */
+     * to free it, and it uses PORT_FreeArena which not only frees the
+     * underlying arena, it also frees the allocated arena struct. */
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     pubKey.arena = arena;
     if (arena == NULL) {
@@ -1875,8 +1912,9 @@ SECKEY_SetPublicValue(SECKEYPrivateKey *privKey, SECItem *publicValue)
             rv = PK11_ReadAttribute(slot, privKeyID, CKA_BASE,
                                     arena, &pubKey.u.dh.base);
             break;
-        case edKey:
         case ecKey:
+        case edKey:
+        case ecMontKey:
             pubKey.u.ec.publicValue = *publicValue;
             pubKey.u.ec.encoding = ECPoint_Undefined;
             pubKey.u.ec.size = 0;
@@ -2004,6 +2042,11 @@ PK11_ImportEncryptedPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
         case edKey:
             key_type = CKK_EC_EDWARDS;
             usage = edUsage;
+            usageCount = 1;
+            break;
+        case ecMontKey:
+            key_type = CKK_EC_MONTGOMERY;
+            usage = dhUsage;
             usageCount = 1;
             break;
     }

@@ -50,9 +50,30 @@ static char consoleName[] = {
 #endif
 };
 
+#include "cert.h"
 #include "nssutil.h"
 #include "ssl.h"
 #include "sslproto.h"
+#include "xconst.h"
+
+#define DEFN_EXTEN_EXT_VALUE_ENCODER(mmm)                                       \
+    SECStatus EXTEN_EXT_VALUE_ENCODER_##mmm(PLArenaPool *extHandleArena,        \
+                                            void *value, SECItem *encodedValue) \
+    {                                                                           \
+        return mmm(extHandleArena, value, encodedValue);                        \
+    }
+
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeAltNameExtension)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeAuthKeyID)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeBasicConstraintValue)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeCRLDistributionPoints)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeCertPoliciesExtension)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeInfoAccessExtension)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeInhibitAnyExtension)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeNameConstraintsExtension)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodePolicyConstraintsExtension)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodePolicyMappingExtension)
+DEFN_EXTEN_EXT_VALUE_ENCODER(CERT_EncodeSubjectKeyID)
 
 static PRBool utf8DisplayEnabled = PR_FALSE;
 
