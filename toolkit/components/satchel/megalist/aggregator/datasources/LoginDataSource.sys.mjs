@@ -167,16 +167,13 @@ export class LoginDataSource extends DataSourceBase {
           },
         },
         commands: {
-          *value() {
-            yield { id: "Open", label: "command-open" };
-            yield copyCommand;
-            yield "-";
-            yield deleteCommand;
-
-            if (this.breached) {
-              yield dismissBreachCommand;
-            }
-          },
+          value: [
+            { id: "Open", label: "command-open" },
+            copyCommand,
+            editCommand,
+            deleteCommand,
+            dismissBreachCommand,
+          ],
         },
         executeDismissBreach: {
           value() {
@@ -261,17 +258,17 @@ export class LoginDataSource extends DataSourceBase {
           },
         },
         commands: {
-          *value() {
-            if (this.concealed) {
-              yield { id: "Reveal", label: "command-reveal", verify: true };
-            } else {
-              yield { id: "Conceal", label: "command-conceal" };
-            }
-            yield { ...copyCommand, verify: true };
-            yield editCommand;
-            yield "-";
-            yield deleteCommand;
-          },
+          value: [
+            { ...copyCommand, verify: true },
+            {
+              id: "Reveal",
+              label: "command-reveal",
+              verify: true,
+            },
+            { id: "Conceal", label: "command-conceal" },
+            editCommand,
+            deleteCommand,
+          ],
         },
         executeReveal: {
           value() {

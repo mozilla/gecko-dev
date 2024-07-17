@@ -55,6 +55,13 @@ export class MegalistAlpha extends MozLitElement {
     this.records = records;
   }
 
+  receiveSnapshot({ snapshotId, snapshot }) {
+    const recordIndex = Math.floor((snapshotId - 1) / 3);
+    const field = snapshot.field;
+    this.records[recordIndex][field] = snapshot;
+    this.requestUpdate();
+  }
+
   #createLoginRecords(snapshots) {
     const header = snapshots.shift();
     const records = [];
