@@ -34,7 +34,6 @@
 #include "mozilla/MacroForEach.h"
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Services.h"
 #include "mozilla/Sprintf.h"
@@ -90,7 +89,6 @@
 #include "nscore.h"
 #include "prenv.h"
 #include "prtime.h"
-#include "siphash.h"
 #include "xpcpublic.h"
 
 #include "js/Date.h"
@@ -1515,8 +1513,6 @@ nsresult nsRFPService::GenerateCanvasKeyFromImageData(
     nsICookieJarSettings* aCookieJarSettings, uint8_t* aImageData,
     uint32_t aSize, nsTArray<uint8_t>& aCanvasKey) {
   NS_ENSURE_ARG_POINTER(aCookieJarSettings);
-  AUTO_PROFILER_MARKER_TEXT("nsRFPService", OTHER, {},
-                            "nsRFPService::GenerateCanvasKeyFromImageData"_ns);
 
   nsTArray<uint8_t> randomKey;
   nsresult rv =
@@ -1529,44 +1525,19 @@ nsresult nsRFPService::GenerateCanvasKeyFromImageData(
     return NS_ERROR_FAILURE;
   }
 
-  if (StaticPrefs::
-          privacy_resistFingerprinting_randomization_canvas_use_siphash()) {
-    struct sipkey key = {{0, 0}};
+  // Generate the key for randomizing the canvas data using hMAC. The key is
+  // based on the random key of the document and the canvas data itself. So,
+  // different canvas would have different keys.
+  HMAC hmac;
 
-    // SipHash takes 128 bits data as the key. So, we will only use the first
-    // half of the random key.
-    sip_tokey(&key, randomKey.Elements());
-    uint64_t digest = siphash24(aImageData, aSize, &key);
+  rv = hmac.Begin(SEC_OID_SHA256, Span(randomKey));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    aCanvasKey.SetLength(32);
-    aCanvasKey.ClearAndRetainStorage();
+  rv = hmac.Update(aImageData, aSize);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    // SipHash outputs 64 bits data as the hash result. But we need a 256 bits
-    // canvas key. So, we use a random number generator to expand the key.
-    non_crypto::XorShift128PlusRNG rng(digest, ~digest);
-
-    for (size_t i = 0; i < 4; ++i) {
-      uint64_t val = rng.next();
-      for (size_t j = 0; j < 8; ++j) {
-        uint8_t data = static_cast<uint8_t>((val >> (j * 8)) & 0xFF);
-        aCanvasKey.InsertElementAt((i * 8) + j, data);
-      }
-    }
-  } else {
-    // Generate the key for randomizing the canvas data using hMAC. The key is
-    // based on the random key of the document and the canvas data itself. So,
-    // different canvas would have different keys.
-    HMAC hmac;
-
-    rv = hmac.Begin(SEC_OID_SHA256, Span(randomKey));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = hmac.Update(aImageData, aSize);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = hmac.End(aCanvasKey);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  rv = hmac.End(aCanvasKey);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }

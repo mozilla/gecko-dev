@@ -9,7 +9,6 @@ include("sources.mozbuild")
 EXPORTS += [
     'expat.h',
     'expat_external.h',
-    'siphash.h',
 ]
 
 if CONFIG["MOZ_WASM_SANDBOXING_EXPAT"]:

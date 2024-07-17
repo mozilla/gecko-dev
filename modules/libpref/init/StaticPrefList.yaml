@@ -14398,11 +14398,6 @@
   value: false
   mirror: always
 
-# Control whether we use the SipHash to generate the canvas random key.
-- name:  privacy.resistFingerprinting.randomization.canvas.use_siphash
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
 
 # Anti-tracking permission expiration.
 - name: privacy.restrict3rdpartystorage.expiration
