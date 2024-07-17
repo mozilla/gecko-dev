@@ -758,7 +758,10 @@ skip-if = ["true"] # bug 475110 - disabled since we don't play Wave files standa
 # This test attempts to load 20 videos to test something network-related, and
 # Android devices that aren't an emulator hit a device-specific decoder limit,
 # that make the test fail.
-skip-if = ["os == 'android' && !is_emulator"]
+skip-if = [
+   "os == 'android' && !is_emulator"
+   "os == 'win' && os_version == '11.2009' && bits == 64 && !debug", # Bug 1889375
+]
 
 ["test_constants.html"]
 
