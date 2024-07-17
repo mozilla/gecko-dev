@@ -971,8 +971,7 @@ nsresult nsScriptSecurityManager::CheckLoadURIFlags(
   nsresult rv = aTargetBaseURI->GetScheme(targetScheme);
   if (NS_FAILED(rv)) return rv;
 
-  // Check for system target URI.  Regular (non web accessible) extension
-  // URIs will also have URI_DANGEROUS_TO_LOAD.
+  // Check for system target URI.
   rv = DenyAccessIfURIHasFlags(aTargetURI,
                                nsIProtocolHandler::URI_DANGEROUS_TO_LOAD);
   if (NS_FAILED(rv)) {
@@ -984,31 +983,18 @@ nsresult nsScriptSecurityManager::CheckLoadURIFlags(
     return rv;
   }
 
-  // Used by ExtensionProtocolHandler to prevent loading extension resources
-  // in private contexts if the extension does not have permission.
-  if (aFromPrivateWindow) {
-    rv = DenyAccessIfURIHasFlags(
-        aTargetURI, nsIProtocolHandler::URI_DISALLOW_IN_PRIVATE_CONTEXT);
-    if (NS_FAILED(rv)) {
-      if (reportErrors) {
-        ReportError(errorTag, aSourceURI, aTargetURI, aFromPrivateWindow,
-                    aInnerWindowID);
-      }
-      return rv;
-    }
-  }
-
-  // If MV3 Extension uris are web accessible they have
-  // WEBEXT_URI_WEB_ACCESSIBLE.
-  bool maybeWebAccessible = false;
-  NS_URIChainHasFlags(aTargetURI, nsIProtocolHandler::WEBEXT_URI_WEB_ACCESSIBLE,
-                      &maybeWebAccessible);
+  // WebExtension URIs are only accessible if the ExtensionPolicyService allows
+  // the source URI to load them.
+  bool targetURIIsWebExtensionResource = false;
+  rv = NS_URIChainHasFlags(aTargetURI,
+                           nsIProtocolHandler::URI_IS_WEBEXTENSION_RESOURCE,
+                           &targetURIIsWebExtensionResource);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (maybeWebAccessible) {
-    bool isWebAccessible = false;
+  if (targetURIIsWebExtensionResource) {
+    bool isAccessible = false;
     rv = ExtensionPolicyService::GetSingleton().SourceMayLoadExtensionURI(
-        aSourceURI, aTargetURI, &isWebAccessible);
-    if (NS_SUCCEEDED(rv) && isWebAccessible) {
+        aSourceURI, aTargetURI, aFromPrivateWindow, &isAccessible);
+    if (NS_SUCCEEDED(rv) && isAccessible) {
       return NS_OK;
     }
     if (reportErrors) {

@@ -735,11 +735,13 @@ nsresult ExtensionPolicyService::GetExtensionName(const nsAString& aAddonId,
 }
 
 nsresult ExtensionPolicyService::SourceMayLoadExtensionURI(
-    nsIURI* aSourceURI, nsIURI* aExtensionURI, bool* aResult) {
+    nsIURI* aSourceURI, nsIURI* aExtensionURI, bool aFromPrivateWindow,
+    bool* aResult) {
   URLInfo source(aSourceURI);
   URLInfo url(aExtensionURI);
   if (RefPtr<WebExtensionPolicyCore> policy = GetCoreByURL(url)) {
-    *aResult = policy->SourceMayAccessPath(source, url.FilePath());
+    *aResult = (!aFromPrivateWindow || policy->PrivateBrowsingAllowed()) &&
+               policy->SourceMayAccessPath(source, url.FilePath());
     return NS_OK;
   }
   return NS_ERROR_INVALID_ARG;

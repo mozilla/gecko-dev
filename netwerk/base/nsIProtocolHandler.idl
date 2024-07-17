@@ -146,7 +146,7 @@ interface nsIProtocolHandler : nsISupports
     /**
      * +-------------------------------------------------------------------+
      * |                                                                   |
-     * |  ALL PROTOCOL HANDLERS MUST SET ONE OF THE FOLLOWING FIVE FLAGS.  |
+     * |  ALL PROTOCOL HANDLERS MUST SET ONE OF THE FOLLOWING SIX FLAGS.   |
      * |                                                                   |
      * +-------------------------------------------------------------------+
      *
@@ -155,6 +155,7 @@ interface nsIProtocolHandler : nsISupports
      *    * URI_IS_UI_RESOURCE
      *    * URI_IS_LOCAL_FILE
      *    * URI_LOADABLE_BY_SUBSUMERS
+     *    * URI_IS_WEBEXTENSION_RESOURCE
      *
      * These flags are used to determine who is allowed to load URIs for this
      * protocol.  Note that if a URI is nested, only the flags for the
@@ -252,47 +253,43 @@ interface nsIProtocolHandler : nsISupports
     const unsigned long URI_IS_POTENTIALLY_TRUSTWORTHY = (1<<17);
 
     /**
+     * The URI corresponds to a WebExtension resource (i.e. moz-extension://).
+     * If this flag is set, the ExtensionPolicyService must be consulted to
+     * determine whether loading this URI is allowed.
+     */
+    const unsigned long URI_IS_WEBEXTENSION_RESOURCE = (1<<18);
+
+    /**
      * If this flag is set, then the origin for this protocol is the full URI
      * spec, not just the scheme + host + port.
      *
      * Note: this is not supported in Firefox.  It is currently only available
      * in Thunderbird and SeaMonkey.
      */
-    const unsigned long ORIGIN_IS_FULL_SPEC = (1 << 19);
+    const unsigned long ORIGIN_IS_FULL_SPEC = (1<<19);
 
     /**
      * If this flag is set, the URI does not always allow content using the same
      * protocol to link to it.
      */
-    const unsigned long URI_SCHEME_NOT_SELF_LINKABLE = (1 << 20);
+    const unsigned long URI_SCHEME_NOT_SELF_LINKABLE = (1<<20);
 
     /**
      * The URIs for this protocol can be loaded by extensions.
      */
-    const unsigned long URI_LOADABLE_BY_EXTENSIONS = (1 << 21);
-
-    /**
-     * The URIs for this protocol can not be loaded into private contexts.
-     */
-    const unsigned long URI_DISALLOW_IN_PRIVATE_CONTEXT = (1 << 22);
+    const unsigned long URI_LOADABLE_BY_EXTENSIONS = (1<<21);
 
     /**
      * This protocol handler forbids accessing cookies e.g. for mail related
      * protocols. Only used in Mailnews (comm-central).
      */
-    const unsigned long URI_FORBIDS_COOKIE_ACCESS = (1 << 23);
-
-    /**
-     * This is an extension web accessible uri that is loadable if checked
-     * against an allowlist using ExtensionPolicyService::SourceMayLoadExtensionURI.
-     */
-    const unsigned long WEBEXT_URI_WEB_ACCESSIBLE = (1 << 24);
+    const unsigned long URI_FORBIDS_COOKIE_ACCESS = (1<<22);
 
     /**
      * This URI has a webexposed origin, meaning the URI has a non-null origin
      * See https://url.spec.whatwg.org/#origin
      */
-    const unsigned long URI_HAS_WEB_EXPOSED_ORIGIN = (1 << 25);
+    const unsigned long URI_HAS_WEB_EXPOSED_ORIGIN = (1<<23);
 
     /**
      * Flags which are allowed to be different from the static flags when
@@ -300,10 +297,12 @@ interface nsIProtocolHandler : nsISupports
      *
      * All other flags must match the flags provided when the protocol handler
      * was registered.
+     *
+     * The following protocols are the reasons why each flag is dynamic:
+     *  about: URI_LOADABLE_BY_ANYONE, URI_DANGEROUS_TO_LOAD, URI_IS_POTENTIALLY_TRUSTWORTHY
+     *  view-source: URI_LOADABLE_BY_EXTENSIONS
      */
     const unsigned long DYNAMIC_URI_FLAGS =
         URI_LOADABLE_BY_ANYONE | URI_DANGEROUS_TO_LOAD |
-        URI_IS_POTENTIALLY_TRUSTWORTHY | URI_LOADABLE_BY_EXTENSIONS |
-        URI_DISALLOW_IN_PRIVATE_CONTEXT | WEBEXT_URI_WEB_ACCESSIBLE |
-        URI_HAS_WEB_EXPOSED_ORIGIN;
+        URI_IS_POTENTIALLY_TRUSTWORTHY | URI_LOADABLE_BY_EXTENSIONS;
 };

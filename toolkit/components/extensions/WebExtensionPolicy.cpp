@@ -283,6 +283,10 @@ bool WebExtensionPolicyCore::QuarantinedFromURI(const URLInfo& aURI) const {
   return !IgnoreQuarantine() && WebExtensionPolicy::IsQuarantinedURI(aURI);
 }
 
+bool WebExtensionPolicyCore::PrivateBrowsingAllowed() const {
+  return HasPermission(nsGkAtoms::privateBrowsingAllowedPermission);
+}
+
 /*****************************************************************************
  * WebExtensionPolicy
  *****************************************************************************/
@@ -598,10 +602,6 @@ JSObject* WebExtensionPolicy::WrapObject(JSContext* aCx,
 void WebExtensionPolicy::GetContentScripts(
     nsTArray<RefPtr<WebExtensionContentScript>>& aScripts) const {
   aScripts.AppendElements(mContentScripts);
-}
-
-bool WebExtensionPolicy::PrivateBrowsingAllowed() const {
-  return HasPermission(nsGkAtoms::privateBrowsingAllowedPermission);
 }
 
 bool WebExtensionPolicy::CanAccessContext(nsILoadContext* aContext) const {

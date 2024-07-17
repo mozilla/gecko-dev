@@ -16,14 +16,11 @@ namespace net {
 
 class ExtensionStreamGetter;
 
-class ExtensionProtocolHandler final
-    : public nsISubstitutingProtocolHandler,
-      public nsIProtocolHandlerWithDynamicFlags,
-      public SubstitutingProtocolHandler,
-      public nsSupportsWeakReference {
+class ExtensionProtocolHandler final : public nsISubstitutingProtocolHandler,
+                                       public SubstitutingProtocolHandler,
+                                       public nsSupportsWeakReference {
  public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIPROTOCOLHANDLERWITHDYNAMICFLAGS
   NS_FORWARD_NSIPROTOCOLHANDLER(SubstitutingProtocolHandler::)
   NS_FORWARD_NSISUBSTITUTINGPROTOCOLHANDLER(SubstitutingProtocolHandler::)
 

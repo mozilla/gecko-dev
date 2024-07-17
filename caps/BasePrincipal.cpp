@@ -660,18 +660,18 @@ nsresult BasePrincipal::CheckMayLoadHelper(nsIURI* aURI,
 
   // If the URL being loaded corresponds to a WebExtension URL, ask the policy
   // if the path should be accessible.
-  //
-  // This is done directly, rather than first checking `NS_URIChainHasFlags` for
-  // `WEBEXT_URI_WEB_ACCESSIBLE`, as `CheckMayLoadHelper` may be called
-  // off-main-thread, and it is not safe to check dynamic URI flags
-  // off-main-thread. MV2 web-accessible resources also currently do not set
-  // `WEBEXT_URI_WEB_ACCESSIBLE`, and need to be allowed in this code.
-  extensions::URLInfo urlInfo(aURI);
-  if (RefPtr<extensions::WebExtensionPolicyCore> urlPolicyCore =
-          ExtensionPolicyService::GetCoreByURL(urlInfo)) {
-    extensions::URLInfo prinUrlInfo(prinURI);
-    if (urlPolicyCore->SourceMayAccessPath(prinUrlInfo, urlInfo.FilePath())) {
-      return NS_OK;
+  bool isWebExtensionResource;
+  rv = NS_URIChainHasFlags(aURI,
+                           nsIProtocolHandler::URI_IS_WEBEXTENSION_RESOURCE,
+                           &isWebExtensionResource);
+  if (NS_SUCCEEDED(rv) && isWebExtensionResource) {
+    extensions::URLInfo urlInfo(aURI);
+    if (RefPtr<extensions::WebExtensionPolicyCore> urlPolicyCore =
+            ExtensionPolicyService::GetCoreByURL(urlInfo)) {
+      extensions::URLInfo prinUrlInfo(prinURI);
+      if (urlPolicyCore->SourceMayAccessPath(prinUrlInfo, urlInfo.FilePath())) {
+        return NS_OK;
+      }
     }
   }
 

@@ -145,6 +145,8 @@ class WebExtensionPolicyCore final {
   bool QuarantinedFromDoc(const DocInfo& aDoc) const;
   bool QuarantinedFromURI(const URLInfo& aURI) const MOZ_EXCLUDES(mLock);
 
+  bool PrivateBrowsingAllowed() const;
+
   // Try to get a reference to the cycle-collected main-thread-only
   // WebExtensionPolicy instance.
   //
@@ -320,7 +322,9 @@ class WebExtensionPolicy final : public nsISupports, public nsWrapperCache {
   bool Active() const { return mActive; }
   void SetActive(bool aActive, ErrorResult& aRv);
 
-  bool PrivateBrowsingAllowed() const;
+  bool PrivateBrowsingAllowed() const {
+    return mCore->PrivateBrowsingAllowed();
+  }
 
   bool CanAccessContext(nsILoadContext* aContext) const;
 
