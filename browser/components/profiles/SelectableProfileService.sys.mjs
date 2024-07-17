@@ -350,33 +350,168 @@ export class SelectableProfileService {
 
   // Shared Prefs management
 
+  getPrefValueFromRow(row) {
+    let value = row.getResultByName("value");
+    if (row.getResultByName("isBoolean")) {
+      return value === 1;
+    }
+
+    return value;
+  }
+
   /**
    * Get all shared prefs as a list.
    */
-  getAllPrefs() {}
+  async getAllPrefs() {
+    return (
+      await this.#connection.executeCached("SELECT * FROM SharedPrefs;")
+    ).map(row => {
+      let value = this.getPrefValueFromRow(row);
+      return {
+        name: row.getResultByName("name"),
+        value,
+        type: typeof value,
+      };
+    });
+  }
 
   /**
    * Get the value of a specific shared pref.
    *
    * @param {string} aPrefName The name of the pref to get
+   *
+   * @returns {any} Value of the pref
    */
-  getPref(aPrefName) {}
+  async getPref(aPrefName) {
+    let row = (
+      await this.#connection.execute(
+        "SELECT value, isBoolean FROM SharedPrefs WHERE name = :name;",
+        {
+          name: aPrefName,
+        }
+      )
+    )[0];
+
+    return this.getPrefValueFromRow(row);
+  }
+
+  /**
+   * Get the value of a specific shared pref.
+   *
+   * @param {string} aPrefName The name of the pref to get
+   *
+   * @returns {boolean} Value of the pref
+   */
+  async getBoolPref(aPrefName) {
+    let prefValue = await this.getPref(aPrefName);
+    if (typeof prefValue !== "boolean") {
+      return null;
+    }
+
+    return prefValue;
+  }
+
+  /**
+   * Get the value of a specific shared pref.
+   *
+   * @param {string} aPrefName The name of the pref to get
+   *
+   * @returns {number} Value of the pref
+   */
+  async getIntPref(aPrefName) {
+    let prefValue = await this.getPref(aPrefName);
+    if (typeof prefValue !== "number") {
+      return null;
+    }
+
+    return prefValue;
+  }
+
+  /**
+   * Get the value of a specific shared pref.
+   *
+   * @param {string} aPrefName The name of the pref to get
+   *
+   * @returns {string} Value of the pref
+   */
+  async getStringPref(aPrefName) {
+    let prefValue = await this.getPref(aPrefName);
+    if (typeof prefValue !== "string") {
+      return null;
+    }
+
+    return prefValue;
+  }
 
   /**
    * Insert or update a pref value, then notify() other running instances.
    *
    * @param {string} aPrefName The name of the pref
-   * @param {string} aPrefType The type of the pref
    * @param {any} aPrefValue The value of the pref
    */
-  createOrUpdatePref(aPrefName, aPrefType, aPrefValue) {}
+  async setPref(aPrefName, aPrefValue) {
+    await this.#connection.execute(
+      "INSERT INTO SharedPrefs(id, name, value, isBoolean) VALUES (NULL, :name, :value, :isBoolean) ON CONFLICT(name) DO UPDATE SET value=excluded.value, isBoolean=excluded.isBoolean;",
+      {
+        name: aPrefName,
+        value: aPrefValue,
+        isBoolean: typeof aPrefValue === "boolean",
+      }
+    );
+  }
+
+  /**
+   * Insert or update a pref value, then notify() other running instances.
+   *
+   * @param {string} aPrefName The name of the pref
+   * @param {boolean} aPrefValue The value of the pref
+   */
+  async setBoolPref(aPrefName, aPrefValue) {
+    if (typeof aPrefValue !== "boolean") {
+      throw new Error("aPrefValue must be of type boolean");
+    }
+    await this.setPref(aPrefName, aPrefValue);
+  }
+
+  /**
+   * Insert or update a pref value, then notify() other running instances.
+   *
+   * @param {string} aPrefName The name of the pref
+   * @param {number} aPrefValue The value of the pref
+   */
+  async setIntPref(aPrefName, aPrefValue) {
+    if (typeof aPrefValue !== "number") {
+      throw new Error("aPrefValue must be of type number");
+    }
+    await this.setPref(aPrefName, aPrefValue);
+  }
+
+  /**
+   * Insert or update a pref value, then notify() other running instances.
+   *
+   * @param {string} aPrefName The name of the pref
+   * @param {string} aPrefValue The value of the pref
+   */
+  async setStringPref(aPrefName, aPrefValue) {
+    if (typeof aPrefValue !== "string") {
+      throw new Error("aPrefValue must be of type string");
+    }
+    await this.setPref(aPrefName, aPrefValue);
+  }
 
   /**
    * Remove a shared pref, then notify() other running instances.
    *
    * @param {string} aPrefName The name of the pref to delete
    */
-  deletePref(aPrefName) {}
+  async deletePref(aPrefName) {
+    await this.#connection.execute(
+      "DELETE FROM SharedPrefs WHERE name = :name;",
+      {
+        name: aPrefName,
+      }
+    );
+  }
 
   // DB lifecycle
 
