@@ -387,11 +387,7 @@ def instruments(value, target):
 
 set_config("MOZ_INSTRUMENTS", instruments)
 set_define("MOZ_INSTRUMENTS", instruments)
-add_old_configure_assignment(
-    "MOZ_INSTRUMENTS_LIBS",
-    ["-framework", "CoreFoundation"],
-    when=instruments,
-)
+
 imply_option("--enable-profiling", instruments, reason="--enable-instruments")
 
 option("--enable-callgrind", env="MOZ_CALLGRIND", help="Enable callgrind profiling")
@@ -1493,6 +1489,33 @@ def moz_glue_in_program(is_excluded_target, is_js_without_jemalloc):
 
 set_define("MOZ_GLUE_IN_PROGRAM", True, when=moz_glue_in_program)
 set_config("MOZ_GLUE_IN_PROGRAM", True, when=moz_glue_in_program)
+
+
+# JavaScript shell
+# ==============================================================
+@depends(milestone.symbolversion, js_standalone)
+def js_library_name(symbolversion, js_standalone):
+    if js_standalone:
+        return f"mozjs-{symbolversion}"
+    else:
+        return "mozjs"
+
+
+set_config("JS_LIBRARY_NAME", js_library_name)
+add_old_configure_assignment("JS_LIBRARY_NAME", js_library_name)
+
+
+@depends(nspr_libs, instruments)
+def js_config_libs(nspr_libs, instruments):
+    libs = []
+    if nspr_libs:
+        libs += nspr_libs
+    if instruments:
+        libs += ["-framework", "CoreFoundation"]
+    return libs
+
+
+set_config("JS_CONFIG_LIBS", js_config_libs)
 
 #
 # Checks for library functions
