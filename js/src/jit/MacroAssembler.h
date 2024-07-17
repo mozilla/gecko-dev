@@ -5519,7 +5519,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void loadSetObjectSize(Register setObj, Register result);
   void loadMapObjectSize(Register mapObj, Register result);
 
-  // Inline version of js_TypedArray_uint8_clamp_double.
+  // Inline version of js::ClampDoubleToUint8.
   // This function clobbers the input register.
   void clampDoubleToUint8(FloatRegister input, Register output) PER_ARCH;
 

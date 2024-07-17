@@ -2139,69 +2139,44 @@ void MacroAssemblerARMCompat::storePtr(Register src, AbsoluteAddress dest) {
 
 // Note: this function clobbers the input register.
 void MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output) {
-  if (HasVFPv3()) {
-    Label notSplit;
-    {
-      ScratchDoubleScope scratchDouble(*this);
-      MOZ_ASSERT(input != scratchDouble);
-      loadConstantDouble(0.5, scratchDouble);
+  ScratchDoubleScope scratchDouble(*this);
+  MOZ_ASSERT(input != scratchDouble);
 
-      ma_vadd(input, scratchDouble, scratchDouble);
-      // Convert the double into an unsigned fixed point value with 24 bits of
-      // precision. The resulting number will look like 0xII.DDDDDD
-      as_vcvtFixed(scratchDouble, false, 24, true);
-    }
+  Label done;
 
-    // Move the fixed point value into an integer register.
-    {
-      ScratchFloat32Scope scratchFloat(*this);
-      as_vxfer(output, InvalidReg, scratchFloat.uintOverlay(), FloatToCore);
-    }
+  // Set to zero if NaN.
+  compareDouble(input, NoVFPRegister);
+  ma_mov(Imm32(0), output, VFP_Unordered);
+  ma_b(&done, VFP_Unordered);
 
-    ScratchRegisterScope scratch(*this);
+  // Do the conversion to an integer.
+  as_vcvt(VFPRegister(scratchDouble).uintOverlay(), VFPRegister(input));
 
-    // See if this value *might* have been an exact integer after adding
-    // 0.5. This tests the 1/2 through 1/16,777,216th places, but 0.5 needs
-    // to be tested out to the 1/140,737,488,355,328th place.
-    ma_tst(output, Imm32(0x00ffffff), scratch);
-    // Convert to a uint8 by shifting out all of the fraction bits.
-    ma_lsr(Imm32(24), output, output);
-    // If any of the bottom 24 bits were non-zero, then we're good, since
-    // this number can't be exactly XX.0
-    ma_b(&notSplit, NonZero);
-    as_vxfer(scratch, InvalidReg, input, FloatToCore);
-    as_cmp(scratch, Imm8(0));
-    // If the lower 32 bits of the double were 0, then this was an exact number,
-    // and it should be even.
-    as_bic(output, output, Imm8(1), LeaveCC, Zero);
-    bind(&notSplit);
-  } else {
-    ScratchDoubleScope scratchDouble(*this);
-    MOZ_ASSERT(input != scratchDouble);
-    loadConstantDouble(0.5, scratchDouble);
+  // Copy the converted value out.
+  as_vxfer(output, InvalidReg, scratchDouble, FloatToCore);
 
-    Label outOfRange;
-    ma_vcmpz(input);
-    // Do the add, in place so we can reference it later.
-    ma_vadd(input, scratchDouble, input);
-    // Do the conversion to an integer.
-    as_vcvt(VFPRegister(scratchDouble).uintOverlay(), VFPRegister(input));
-    // Copy the converted value out.
-    as_vxfer(output, InvalidReg, scratchDouble, FloatToCore);
-    as_vmrs(pc);
-    ma_mov(Imm32(0), output, Overflow);  // NaN => 0
-    ma_b(&outOfRange, Overflow);         // NaN
-    as_cmp(output, Imm8(0xff));
-    ma_mov(Imm32(0xff), output, Above);
-    ma_b(&outOfRange, Above);
-    // Convert it back to see if we got the same value back.
-    as_vcvt(scratchDouble, VFPRegister(scratchDouble).uintOverlay());
-    // Do the check.
-    as_vcmp(scratchDouble, input);
-    as_vmrs(pc);
-    as_bic(output, output, Imm8(1), LeaveCC, Zero);
-    bind(&outOfRange);
-  }
+  // Clamp to 255.
+  as_cmp(output, Imm8(0xff));
+  ma_mov(Imm32(0xff), output, Above);
+  ma_b(&done, AboveOrEqual);
+
+  // Convert it back to see if we got the same value back.
+  as_vcvt(scratchDouble, VFPRegister(scratchDouble).uintOverlay());
+  ma_vsub(input, scratchDouble, input);
+
+  loadConstantDouble(0.5, scratchDouble);
+
+  // Do the check.
+  compareDouble(input, scratchDouble);
+
+  // Round up if > 0.5.
+  as_add(output, output, Imm8(1), LeaveCC, VFP_GreaterThan);
+
+  // Round up if == 0.5 and output is odd.
+  as_add(output, output, Imm8(1), LeaveCC, VFP_Equal);
+  as_bic(output, output, Imm8(1), LeaveCC, VFP_Equal);
+
+  bind(&done);
 }
 
 void MacroAssemblerARMCompat::cmp32(Register lhs, Imm32 rhs) {

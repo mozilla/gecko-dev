@@ -310,35 +310,28 @@ void FixedLengthTypedArrayObject::setInlineElements() {
 
 uint32_t js::ClampDoubleToUint8(const double x) {
   // Not < so that NaN coerces to 0
-  if (!(x >= 0)) {
+  if (!(x > 0)) {
     return 0;
   }
 
-  if (x > 255) {
+  if (x >= 255) {
     return 255;
   }
 
-  double toTruncate = x + 0.5;
-  uint8_t y = uint8_t(toTruncate);
+  // Convert with truncation.
+  uint8_t y = uint8_t(x);
 
-  /*
-   * now val is rounded to nearest, ties rounded up.  We want
-   * rounded to nearest ties to even, so check whether we had a
-   * tie.
-   */
-  if (y == toTruncate) {
-    /*
-     * It was a tie (since adding 0.5 gave us the exact integer
-     * we want).  Since we rounded up, we either already have an
-     * even number or we have an odd number but the number we
-     * want is one less.  So just unconditionally masking out the
-     * ones bit should do the trick to get us the value we
-     * want.
-     */
-    return y & ~1;
+  // Now |y| is rounded toward zero. We want rounded to nearest, ties to even.
+  double r = x - double(y);
+
+  // It was a tie (since the difference is exactly 0.5). Round up if the number
+  // is odd.
+  if (r == 0.5) {
+    return y + (y & 1);
   }
 
-  return y;
+  // Round up if truncation incorrectly rounded down.
+  return y + (r > 0.5);
 }
 
 static void ReportOutOfBounds(JSContext* cx, TypedArrayObject* typedArray) {

@@ -35,31 +35,48 @@ void MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output) {
 
   bind(&positive);
 
-  // Add 0.5 and truncate.
-  loadConstantDouble(0.5, scratch);
-  addDouble(scratch, input);
+  if (HasRoundInstruction(RoundingMode::NearestTiesToEven)) {
+    // Round input to nearest integer.
+    nearbyIntDouble(RoundingMode::NearestTiesToEven, input, input);
 
-  Label outOfRange;
+    // Truncate to int32 and ensure the result <= 255. This relies on the
+    // processor setting output to a value > 255 for doubles outside the int32
+    // range (for instance 0x80000000).
+    vcvttsd2si(input, output);
+    branch32(Assembler::BelowOrEqual, output, Imm32(255), &done);
+    move32(Imm32(255), output);
+  } else {
+    Label outOfRange;
 
-  // Truncate to int32 and ensure the result <= 255. This relies on the
-  // processor setting output to a value > 255 for doubles outside the int32
-  // range (for instance 0x80000000).
-  vcvttsd2si(input, output);
-  branch32(Assembler::Above, output, Imm32(255), &outOfRange);
-  {
-    // Check if we had a tie.
-    convertInt32ToDouble(output, scratch);
-    branchDouble(DoubleNotEqual, input, scratch, &done);
+    // Truncate to int32 and ensure the result <= 255. This relies on the
+    // processor setting output to a value > 255 for doubles outside the int32
+    // range (for instance 0x80000000).
+    vcvttsd2si(input, output);
+    branch32(Assembler::AboveOrEqual, output, Imm32(255), &outOfRange);
+    {
+      // Check if we had a tie.
+      convertInt32ToDouble(output, scratch);
+      subDouble(scratch, input);
 
-    // It was a tie. Mask out the ones bit to get an even value.
-    // See also js_TypedArray_uint8_clamp_double.
-    and32(Imm32(~1), output);
-    jump(&done);
+      loadConstantDouble(0.5, scratch);
+
+      Label roundUp;
+      vucomisd(scratch, input);
+      j(Above, &roundUp);
+      j(NotEqual, &done);
+
+      // It was a tie. Round up if the output is odd.
+      branchTest32(Zero, output, Imm32(1), &done);
+
+      bind(&roundUp);
+      add32(Imm32(1), output);
+      jump(&done);
+    }
+
+    // > 255 --> 255
+    bind(&outOfRange);
+    move32(Imm32(255), output);
   }
-
-  // > 255 --> 255
-  bind(&outOfRange);
-  { move32(Imm32(255), output); }
 
   bind(&done);
 }
