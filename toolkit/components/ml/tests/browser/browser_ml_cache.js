@@ -6,6 +6,10 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
+const { ProgressStatusText, ProgressType } = ChromeUtils.importESModule(
+  "chrome://global/content/ml/Utils.sys.mjs"
+);
+
 // Root URL of the fake hub, see the `data` dir in the tests.
 const FAKE_HUB =
   "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data";
@@ -268,6 +272,157 @@ add_task(async function test_getting_file_from_cache() {
   hub.cache._testGetData.restore();
 
   Assert.deepEqual(array, array2);
+});
+
+/**
+ * Test that the callback is appropriately called when the data is retrieved from the server
+ * or from the cache.
+ */
+add_task(async function test_getting_file_from_url_cache_with_callback() {
+  const hub = new ModelHub({ rootUrl: FAKE_HUB });
+
+  hub.cache = await initializeCache();
+
+  let numCalls = 0;
+  let currentData = null;
+  let array = await hub.getModelFileAsArrayBuffer({
+    ...FAKE_MODEL_ARGS,
+    progressCallback: data => {
+      // expecting initiate status and download
+      currentData = data;
+      if (numCalls == 0) {
+        Assert.deepEqual(
+          {
+            type: data.type,
+            statusText: data.statusText,
+            ok: data.ok,
+            model: currentData?.metadata?.model,
+            file: currentData?.metadata?.file,
+            revision: currentData?.metadata?.revision,
+          },
+          {
+            type: ProgressType.DOWNLOAD,
+            statusText: ProgressStatusText.INITIATE,
+            ok: true,
+            ...FAKE_MODEL_ARGS,
+          },
+          "Initiate Data from server should be correct"
+        );
+      }
+
+      if (numCalls == 1) {
+        Assert.deepEqual(
+          {
+            type: data.type,
+            statusText: data.statusText,
+            ok: data.ok,
+            model: currentData?.metadata?.model,
+            file: currentData?.metadata?.file,
+            revision: currentData?.metadata?.revision,
+          },
+          {
+            type: ProgressType.DOWNLOAD,
+            statusText: ProgressStatusText.SIZE_ESTIMATE,
+            ok: true,
+            ...FAKE_MODEL_ARGS,
+          },
+          "size estimate Data from server should be correct"
+        );
+      }
+
+      numCalls += 1;
+    },
+  });
+
+  Assert.greaterOrEqual(numCalls, 3);
+
+  // last received message is DONE
+  Assert.deepEqual(
+    {
+      type: currentData?.type,
+      statusText: currentData?.statusText,
+      ok: currentData?.ok,
+      model: currentData?.metadata?.model,
+      file: currentData?.metadata?.file,
+      revision: currentData?.metadata?.revision,
+    },
+    {
+      type: ProgressType.DOWNLOAD,
+      statusText: ProgressStatusText.DONE,
+      ok: true,
+      ...FAKE_MODEL_ARGS,
+    },
+    "Done Data from server should be correct"
+  );
+
+  // stub to verify that the data was retrieved from IndexDB
+  let matchMethod = hub.cache._testGetData;
+
+  sinon.stub(hub.cache, "_testGetData").callsFake(function () {
+    return matchMethod.apply(this, arguments).then(result => {
+      Assert.notEqual(result, null);
+      return result;
+    });
+  });
+
+  numCalls = 0;
+  currentData = null;
+
+  // Now we expect the callback to indicate cache usage.
+  let array2 = await hub.getModelFileAsArrayBuffer({
+    ...FAKE_MODEL_ARGS,
+    progressCallback: data => {
+      // expecting initiate status and download
+
+      currentData = data;
+
+      if (numCalls == 0) {
+        Assert.deepEqual(
+          {
+            type: data.type,
+            statusText: data.statusText,
+            ok: data.ok,
+            model: currentData?.metadata?.model,
+            file: currentData?.metadata?.file,
+            revision: currentData?.metadata?.revision,
+          },
+          {
+            type: ProgressType.LOAD_FROM_CACHE,
+            statusText: ProgressStatusText.INITIATE,
+            ok: true,
+            ...FAKE_MODEL_ARGS,
+          },
+          "Initiate Data from cache should be correct"
+        );
+      }
+
+      numCalls += 1;
+    },
+  });
+  hub.cache._testGetData.restore();
+
+  Assert.deepEqual(array, array2);
+
+  // last received message is DONE
+  Assert.deepEqual(
+    {
+      type: currentData?.type,
+      statusText: currentData?.statusText,
+      ok: currentData?.ok,
+      model: currentData?.metadata?.model,
+      file: currentData?.metadata?.file,
+      revision: currentData?.metadata?.revision,
+    },
+    {
+      type: ProgressType.LOAD_FROM_CACHE,
+      statusText: ProgressStatusText.DONE,
+      ok: true,
+      ...FAKE_MODEL_ARGS,
+    },
+    "Done Data from cache should be correct"
+  );
+
+  await deleteCache(hub.cache);
 });
 
 /**

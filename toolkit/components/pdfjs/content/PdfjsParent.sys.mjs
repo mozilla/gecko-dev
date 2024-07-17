@@ -19,10 +19,18 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
+  MultiProgressAggregator: "chrome://global/content/ml/Utils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PdfJsTelemetry: "resource://pdf.js/PdfJsTelemetry.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SetClipboardSearchString: "resource://gre/modules/Finder.sys.mjs",
+});
+
+ChromeUtils.defineLazyGetter(lazy, "console", () => {
+  return console.createInstance({
+    maxLogLevelPref: "browser.ml.logLevel",
+    prefix: "PDF_JS",
+  });
 });
 
 var Svc = {};
@@ -95,6 +103,10 @@ export class PdfjsParent extends JSWindowActorParent {
     lazy.PdfJsTelemetry.report(aMsg.data);
   }
 
+  _initProgressBar(progressData) {
+    lazy.console.debug("progess_from_pdfjs", progressData);
+  }
+
   async _mlGuess({ data: { service, request } }) {
     if (!lazy.createEngine) {
       return null;
@@ -102,10 +114,20 @@ export class PdfjsParent extends JSWindowActorParent {
     if (service !== "image-to-text") {
       throw new Error("Invalid service");
     }
-    // We are using the internal task name prefixed with moz-
-    const engine = await lazy.createEngine({
-      taskName: "moz-image-to-text",
+
+    let aggregator = new lazy.MultiProgressAggregator({
+      progressCallback: this._initProgressBar,
     });
+
+    const callback = aggregator.aggregateCallback.bind(aggregator);
+
+    // We are using the internal task name prefixed with moz-
+    const engine = await lazy.createEngine(
+      {
+        taskName: "moz-image-to-text",
+      },
+      callback
+    );
     return engine.run(request);
   }
 

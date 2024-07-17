@@ -4,6 +4,7 @@
 
 /**
  * @typedef {object} Lazy
+ * @typedef {import("../content/Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
  * @property {typeof console} console
  * @property {typeof import("../content/Utils.sys.mjs").getRuntimeWasmFilename} getRuntimeWasmFilename
  * @property {typeof import("../content/EngineProcess.sys.mjs").EngineProcess} EngineProcess
@@ -80,10 +81,15 @@ export class MLEngineParent extends JSWindowActorParent {
   /** Creates a new MLEngine.
    *
    * @param {PipelineOptions} pipelineOptions
+   * @param {?function(ProgressAndStatusCallbackParams):void} notificationsCallback A function to call to indicate progress status.
    * @returns {MLEngine}
    */
-  getEngine(pipelineOptions) {
-    return new MLEngine({ mlEngineParent: this, pipelineOptions });
+  getEngine(pipelineOptions, notificationsCallback = null) {
+    return new MLEngine({
+      mlEngineParent: this,
+      pipelineOptions,
+      notificationsCallback,
+    });
   }
 
   /** Extracts the task name from the name and validates it.
@@ -316,13 +322,22 @@ class MLEngine {
   engineStatus = "uninitialized";
 
   /**
+   * Callback to call when receiving an initializing progress status.
+   *
+   * @type {?function(ProgressAndStatusCallbackParams):void}
+   */
+  notificationsCallback = null;
+
+  /**
    * @param {object} config - The configuration object for the instance.
    * @param {object} config.mlEngineParent - The parent machine learning engine associated with this instance.
    * @param {object} config.pipelineOptions - The options for configuring the pipeline associated with this instance.
+   * @param {?function(ProgressAndStatusCallbackParams):void} config.notificationsCallback - The initialization progress callback function to call.
    */
-  constructor({ mlEngineParent, pipelineOptions }) {
+  constructor({ mlEngineParent, pipelineOptions, notificationsCallback }) {
     this.mlEngineParent = mlEngineParent;
     this.pipelineOptions = pipelineOptions;
+    this.notificationsCallback = notificationsCallback;
     this.#setupPortCommunication();
   }
 
@@ -400,6 +415,10 @@ class MLEngine {
         // will need to be requested.
         this.engineStatus = "closed";
         this.discardPort();
+        break;
+      }
+      case "EnginePort:InitProgress": {
+        this.notificationsCallback?.(data.statusResponse);
         break;
       }
       default:

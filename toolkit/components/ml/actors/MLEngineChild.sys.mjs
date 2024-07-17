@@ -10,6 +10,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 /**
  * @typedef {object} Lazy
+ * @typedef {import("../content/Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
  * @property {typeof import("../../promiseworker/PromiseWorker.sys.mjs").BasePromiseWorker} BasePromiseWorker
  * @property {typeof setTimeout} setTimeout
  * @property {typeof clearTimeout} clearTimeout
@@ -160,9 +161,10 @@ class EngineDispatcher {
    * Any exception here will be bubbled up for the constructor to log.
    *
    * @param {PipelineOptions} pipelineOptions
+   * @param {?function(ProgressAndStatusCallbackParams):void} notificationsCallback The callback to call for updating about notifications such as dowload progress status.
    * @returns {Promise<Engine>}
    */
-  async initializeInferenceEngine(pipelineOptions) {
+  async initializeInferenceEngine(pipelineOptions, notificationsCallback) {
     // Create the inference engine given the wasm runtime and the options.
     const wasm = await this.mlEngineChild.getWasmArrayBuffer();
     const inferenceOptions = await this.mlEngineChild.getInferenceOptions(
@@ -171,7 +173,11 @@ class EngineDispatcher {
     lazy.console.debug("Inference engine options:", inferenceOptions);
     pipelineOptions.updateOptions(inferenceOptions);
 
-    return InferenceEngine.create(wasm, pipelineOptions);
+    return InferenceEngine.create({
+      wasm,
+      pipelineOptions,
+      notificationsCallback,
+    });
   }
 
   /**
@@ -184,7 +190,12 @@ class EngineDispatcher {
     this.#taskName = pipelineOptions.taskName;
     this.timeoutMS = pipelineOptions.timeoutMS;
 
-    this.#engine = this.initializeInferenceEngine(pipelineOptions);
+    this.#engine = this.initializeInferenceEngine(
+      pipelineOptions,
+      notificationsData => {
+        this.handleInitProgressStatus(port, notificationsData);
+      }
+    );
 
     // Trigger the keep alive timer.
     this.#engine
@@ -199,6 +210,13 @@ class EngineDispatcher {
       });
 
     this.setupMessageHandler(port);
+  }
+
+  handleInitProgressStatus(port, notificationsData) {
+    port.postMessage({
+      type: "EnginePort:InitProgress",
+      statusResponse: notificationsData,
+    });
   }
 
   /**
@@ -338,12 +356,14 @@ let modelHub = null; // This will hold the ModelHub instance to reuse it.
  * then fetches the model file using the ModelHub API. The `modelHub` instance is created
  * only once and reused for subsequent calls to optimize performance.
  *
- * @param {string} url - The URL of the model file to fetch. Can be a path relative to
+ * @param {object} config
+ * @param {string} config.url - The URL of the model file to fetch. Can be a path relative to
  * the model hub root or an absolute URL.
+ * @param {?function(ProgressAndStatusCallbackParams):void} config.progressCallback The callback to call for notifying about download progress status.
  * @returns {Promise} A promise that resolves to a Meta object containing the URL, response headers,
  * and data as an ArrayBuffer. The data is marked for transfer to avoid cloning.
  */
-async function getModelFile(url) {
+async function getModelFile({ url, progressCallback }) {
   // Create the model hub instance if needed
   if (!modelHub) {
     lazy.console.debug("Creating model hub instance");
@@ -365,7 +385,10 @@ async function getModelFile(url) {
   // if this errors out, it will be caught in the worker
   const parsedUrl = modelHub.parseUrl(url);
 
-  let [data, headers] = await modelHub.getModelFileAsArrayBuffer(parsedUrl);
+  let [data, headers] = await modelHub.getModelFileAsArrayBuffer({
+    ...parsedUrl,
+    progressCallback,
+  });
   return new lazy.BasePromiseWorker.Meta([url, headers, data], {
     transfers: [data],
   });
@@ -381,16 +404,22 @@ class InferenceEngine {
   /**
    * Initialize the worker.
    *
-   * @param {ArrayBuffer} wasm
-   * @param {PipelineOptions} pipelineOptions
+   * @param {object} config
+   * @param {ArrayBuffer} config.wasm
+   * @param {PipelineOptions} config.pipelineOptions
+   * @param {?function(ProgressAndStatusCallbackParams):void} config.notificationsCallback The callback to call for updating about notifications such as dowload progress status.
    * @returns {InferenceEngine}
    */
-  static async create(wasm, pipelineOptions) {
+  static async create({ wasm, pipelineOptions, notificationsCallback }) {
     /** @type {BasePromiseWorker} */
     const worker = new lazy.BasePromiseWorker(
       "chrome://global/content/ml/MLEngine.worker.mjs",
       { type: "module" },
-      { getModelFile }
+      {
+        getModelFile: async url => {
+          return getModelFile({ url, progressCallback: notificationsCallback });
+        },
+      }
     );
 
     const args = [wasm, pipelineOptions];

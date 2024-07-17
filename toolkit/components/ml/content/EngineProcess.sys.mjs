@@ -16,6 +16,7 @@ ChromeUtils.defineESModuleGetters(
 
 /**
  * @typedef {import("../actors/MLEngineParent.sys.mjs").MLEngineParent} MLEngineParent
+ * @typedef {import("../content/Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
  */
 
 /**
@@ -428,11 +429,12 @@ export class EngineProcess {
  * Creates a new ML engine instance with the provided options.
  *
  * @param {object} options - Configuration options for the ML engine.
+ * @param {?function(ProgressAndStatusCallbackParams):void} notificationsCallback A function to call to indicate notifications.
  * @returns {Promise<MLEngine>} - A promise that resolves to the ML engine instance.
  *
  */
-export async function createEngine(options) {
+export async function createEngine(options, notificationsCallback = null) {
   const pipelineOptions = new PipelineOptions(options);
   const engineParent = await EngineProcess.getMLEngineParent();
-  return engineParent.getEngine(pipelineOptions);
+  return engineParent.getEngine(pipelineOptions, notificationsCallback);
 }
