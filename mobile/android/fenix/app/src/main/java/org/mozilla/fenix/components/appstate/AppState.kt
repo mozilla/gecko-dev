@@ -37,6 +37,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property isReaderViewActive Whether or not reader view is active.
  * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
  * @property isSearchDialogVisible Flag indicating whether the user is interacting with the [SearchDialogFragment].
+ * @property openInFirefoxRequested Flag indicating whether a custom tab should be opened in the browser.
  * @property nonFatalCrashes List of non-fatal crashes that allow the app to continue being used.
  * @property collections The list of [TabCollection] to display in the [HomeFragment].
  * @property expandedCollections A set containing the ids of the [TabCollection] that are expanded
@@ -70,6 +71,7 @@ data class AppState(
     val isReaderViewActive: Boolean = false,
     val firstFrameDrawn: Boolean = false,
     val isSearchDialogVisible: Boolean = false,
+    val openInFirefoxRequested: Boolean = false,
     val nonFatalCrashes: List<NativeCodeCrash> = emptyList(),
     val collections: List<TabCollection> = emptyList(),
     val expandedCollections: Set<Long> = emptySet(),

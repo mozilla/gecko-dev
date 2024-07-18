@@ -379,7 +379,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             CustomTabMenu(
                                 onSwitchToDesktopSiteMenuClick = {},
                                 onFindInPageMenuClick = {},
-                                onOpenInFirefoxMenuClick = {},
+                                onOpenInFirefoxMenuClick = {
+                                    store.dispatch(MenuAction.OpenInFirefox)
+                                },
                             )
                         }
                     }

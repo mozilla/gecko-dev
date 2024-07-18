@@ -67,6 +67,11 @@ sealed class MenuAction : Action {
     data object OpenInApp : MenuAction()
 
     /**
+     * [MenuAction] dispatched when a custom tab is to be opened in the browser.
+     */
+    data object OpenInFirefox : MenuAction()
+
+    /**
      * [MenuAction] dispatched when the extension state is updated.
      *
      * @property recommendedAddons The recommended [Addon]s to suggest.

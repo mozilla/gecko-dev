@@ -203,4 +203,30 @@ class AppStoreReducerTest {
             appStore.state.snackbarState,
         )
     }
+
+    @Test
+    fun `WHEN open in firefox started action is dispatched THEN open in firefox requested is true`() {
+        val appStore = AppStore()
+        assertFalse(appStore.state.openInFirefoxRequested)
+
+        appStore.dispatch(AppAction.OpenInFirefoxStarted)
+            .joinBlocking()
+
+        assertTrue(appStore.state.openInFirefoxRequested)
+    }
+
+    @Test
+    fun `WHEN open in firefox finished action is dispatched THEN open in firefox requested is false`() {
+        val appStore = AppStore(
+            initialState = AppState(
+                openInFirefoxRequested = true,
+            ),
+        )
+        assertTrue(appStore.state.openInFirefoxRequested)
+
+        appStore.dispatch(AppAction.OpenInFirefoxFinished)
+            .joinBlocking()
+
+        assertFalse(appStore.state.openInFirefoxRequested)
+    }
 }

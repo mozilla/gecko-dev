@@ -162,6 +162,7 @@ class MenuTelemetryMiddleware(
 
             MenuAction.InitAction,
             MenuAction.ToggleReaderView,
+            MenuAction.OpenInFirefox,
             is MenuAction.InstallAddon,
             is MenuAction.Navigate.AddonDetails,
             MenuAction.Navigate.Back,

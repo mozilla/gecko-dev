@@ -85,6 +85,7 @@ class MenuDialogMiddleware(
             is MenuAction.RemoveShortcut -> removeShortcut(context.store)
             is MenuAction.DeleteBrowsingDataAndQuit -> deleteBrowsingDataAndQuit()
             is MenuAction.OpenInApp -> openInApp(context.store)
+            is MenuAction.OpenInFirefox -> openInFirefox()
             is MenuAction.InstallAddon -> installAddon(action.addon)
             is MenuAction.ToggleReaderView -> toggleReaderView(context.store)
             else -> Unit
@@ -255,6 +256,11 @@ class MenuDialogMiddleware(
         redirect.appIntent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK
 
         appLinksUseCases.openAppLink.invoke(redirect.appIntent)
+    }
+
+    private fun openInFirefox() = scope.launch {
+        appStore.dispatch(AppAction.OpenInFirefoxStarted)
+        onDismiss()
     }
 
     private fun installAddon(

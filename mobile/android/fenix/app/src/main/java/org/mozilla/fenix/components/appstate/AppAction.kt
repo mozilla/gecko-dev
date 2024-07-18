@@ -168,6 +168,16 @@ sealed class AppAction : Action {
     data object DeleteAndQuitStarted : AppAction()
 
     /**
+     * Action dispatched when open in firefox action is selected from custom tab.
+     */
+    data object OpenInFirefoxStarted : AppAction()
+
+    /**
+     * Action dispatched when open in firefox action is completed.
+     */
+    data object OpenInFirefoxFinished : AppAction()
+
+    /**
      * [Action]s related to interactions with the Messaging Framework.
      */
     sealed class MessagingAction : AppAction() {

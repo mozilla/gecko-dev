@@ -770,6 +770,36 @@ class MenuDialogMiddlewareTest {
         assertFalse(dismissWasCalled)
     }
 
+    @Test
+    fun `WHEN open in Firefox action is dispatched for a custom tab THEN the tab is opened in the browser`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        var dismissedWasCalled = false
+
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+            ),
+        )
+        val appStore = spy(AppStore())
+        val store = createStore(
+            appStore = appStore,
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+            onDismiss = { dismissedWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.OpenInFirefox)
+        store.waitUntilIdle()
+
+        verify(appStore).dispatch(
+            AppAction.OpenInFirefoxStarted,
+        )
+        assertTrue(dismissedWasCalled)
+    }
+
     private fun createStore(
         appStore: AppStore = AppStore(),
         menuState: MenuState = MenuState(),

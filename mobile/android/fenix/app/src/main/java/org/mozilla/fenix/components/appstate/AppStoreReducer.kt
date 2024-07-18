@@ -264,6 +264,14 @@ internal object AppStoreReducer {
             state.copy(snackbarState = SnackbarState.DeletingBrowserDataInProgress)
         }
 
+        is AppAction.OpenInFirefoxStarted -> {
+            state.copy(openInFirefoxRequested = true)
+        }
+
+        is AppAction.OpenInFirefoxFinished -> {
+            state.copy(openInFirefoxRequested = false)
+        }
+
         is AppAction.ShortcutAction -> ShortcutStateReducer.reduce(state, action)
         is AppAction.ShoppingAction -> ShoppingStateReducer.reduce(state, action)
         is AppAction.SnackbarAction -> SnackbarStateReducer.reduce(state, action)

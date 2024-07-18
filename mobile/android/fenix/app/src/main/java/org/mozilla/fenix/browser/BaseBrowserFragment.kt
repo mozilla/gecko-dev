@@ -134,6 +134,7 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.OnLongPressedListener
+import org.mozilla.fenix.OpenInFirefoxBinding
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ReaderViewBinding
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -284,6 +285,7 @@ abstract class BaseBrowserFragment :
     private val biometricPromptFeature = ViewBoundFeatureWrapper<BiometricPromptFeature>()
     private val crashContentIntegration = ViewBoundFeatureWrapper<CrashContentIntegration>()
     private val readerViewBinding = ViewBoundFeatureWrapper<ReaderViewBinding>()
+    private val openInFirefoxBinding = ViewBoundFeatureWrapper<OpenInFirefoxBinding>()
     private var pipFeature: PictureInPictureFeature? = null
 
     var customTabSessionId: String? = null
@@ -600,6 +602,19 @@ abstract class BaseBrowserFragment :
             feature = ReaderViewBinding(
                 appStore = context.components.appStore,
                 readerMenuController = readerMenuController,
+            ),
+            owner = this,
+            view = view,
+        )
+
+        openInFirefoxBinding.set(
+            feature = OpenInFirefoxBinding(
+                activity = activity,
+                appStore = context.components.appStore,
+                customTabSessionId = customTabSessionId,
+                customTabsUseCases = context.components.useCases.customTabsUseCases,
+                openInFenixIntent = openInFenixIntent,
+                sessionFeature = sessionFeature,
             ),
             owner = this,
             view = view,
