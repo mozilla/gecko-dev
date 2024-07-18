@@ -26,6 +26,7 @@
 #include "nsCRT.h"
 #include "nsNetCID.h"
 #include "nsThreadUtils.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/Components.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_network.h"
@@ -583,6 +584,10 @@ bool nsNetworkLinkService::IPv6NetworkId(SHA1Sum* sha1) {
 
 void nsNetworkLinkService::calculateNetworkIdWithDelay(uint32_t aDelay) {
   MOZ_ASSERT(NS_IsMainThread());
+
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownNetTeardown)) {
+    return;
+  }
 
   if (aDelay) {
     if (mNetworkIdTimer) {
