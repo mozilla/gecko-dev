@@ -2182,8 +2182,8 @@ impl Renderer {
     fn handle_prims(
         &mut self,
         draw_target: &DrawTarget,
-        prim_instances: &[Vec<PrimitiveInstanceData>],
-        prim_instances_with_scissor: &FastHashMap<(DeviceIntRect, PatternKind), Vec<PrimitiveInstanceData>>,
+        prim_instances: &[FastHashMap<TextureSource, Vec<PrimitiveInstanceData>>],
+        prim_instances_with_scissor: &FastHashMap<(DeviceIntRect, PatternKind), FastHashMap<TextureSource, Vec<PrimitiveInstanceData>>>,
         projection: &default::Transform3D<f32>,
         stats: &mut RendererStats,
     ) {
@@ -2192,12 +2192,10 @@ impl Renderer {
         {
             let _timer = self.gpu_profiler.start_timer(GPU_TAG_INDIRECT_PRIM);
 
-            if prim_instances.iter().any(|instances| !instances.is_empty()) {
-                self.set_blend(false, FramebufferKind::Other);
-            }
+            self.set_blend(false, FramebufferKind::Other);
 
-            for (pattern_idx, prim_instances) in prim_instances.iter().enumerate() {
-                if prim_instances.is_empty() {
+            for (pattern_idx, prim_instances_map) in prim_instances.iter().enumerate() {
+                if prim_instances_map.is_empty() {
                     continue;
                 }
                 let pattern = PatternKind::from_u32(pattern_idx as u32);
@@ -2210,15 +2208,16 @@ impl Renderer {
                     &mut self.profile,
                 );
 
-                // TODO: Some patterns will need to be able to sample textures.
-                let texture_bindings = BatchTextures::empty();
+                for (texture_source, prim_instances) in prim_instances_map {
+                    let texture_bindings = BatchTextures::composite_rgb(*texture_source);
 
-                self.draw_instanced_batch(
-                    prim_instances,
-                    VertexArrayKind::Primitive,
-                    &texture_bindings,
-                    stats,
-                );
+                    self.draw_instanced_batch(
+                        prim_instances,
+                        VertexArrayKind::Primitive,
+                        &texture_bindings,
+                        stats,
+                    );
+                }
             }
 
             if !prim_instances_with_scissor.is_empty() {
@@ -2228,7 +2227,7 @@ impl Renderer {
 
                 let mut prev_pattern = None;
 
-                for ((scissor_rect, pattern), prim_instances) in prim_instances_with_scissor {
+                for ((scissor_rect, pattern), prim_instances_map) in prim_instances_with_scissor {
                     if prev_pattern != Some(*pattern) {
                         prev_pattern = Some(*pattern);
                         self.shaders.borrow_mut().get_quad_shader(*pattern).bind(
@@ -2241,13 +2240,17 @@ impl Renderer {
                     }
 
                     self.device.set_scissor_rect(draw_target.to_framebuffer_rect(*scissor_rect));
-                    // TODO: hook up the right pattern.
-                    self.draw_instanced_batch(
-                        prim_instances,
-                        VertexArrayKind::Primitive,
-                        &BatchTextures::empty(),
-                        stats,
-                    );
+
+                    for (texture_source, prim_instances) in prim_instances_map {
+                        let texture_bindings = BatchTextures::composite_rgb(*texture_source);
+
+                        self.draw_instanced_batch(
+                            prim_instances,
+                            VertexArrayKind::Primitive,
+                            &texture_bindings,
+                            stats,
+                        );
+                    }
                 }
 
                 self.device.disable_scissor();

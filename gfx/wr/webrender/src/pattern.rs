@@ -4,7 +4,7 @@
 
 use api::ColorF;
 
-use crate::{renderer::GpuBufferBuilder, scene::SceneProperties};
+use crate::{render_task_graph::RenderTaskId, renderer::GpuBufferBuilder, scene::SceneProperties};
 
 #[repr(u32)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -42,6 +42,21 @@ impl Default for PatternShaderInput {
     }
 }
 
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct PatternTextureInput {
+    pub task_id: RenderTaskId,
+}
+
+impl Default for PatternTextureInput {
+    fn default() -> Self {
+        PatternTextureInput {
+            task_id: RenderTaskId::INVALID,
+        }
+    }
+}
+
 pub struct PatternBuilderContext<'a> {
     pub scene_properties: &'a SceneProperties,
 }
@@ -62,6 +77,7 @@ pub trait PatternBuilder {
 pub struct Pattern {
     pub kind: PatternKind,
     pub shader_input: PatternShaderInput,
+    pub texture_input: PatternTextureInput,
     pub base_color: ColorF,
     pub is_opaque: bool,
 }
@@ -71,6 +87,7 @@ impl Pattern {
         Pattern {
             kind: PatternKind::ColorOrTexture,
             shader_input: PatternShaderInput::default(),
+            texture_input: PatternTextureInput::default(),
             base_color: color,
             is_opaque: color.a >= 1.0,
         }
@@ -81,6 +98,7 @@ impl Pattern {
         Pattern {
             kind: PatternKind::ColorOrTexture,
             shader_input: PatternShaderInput::default(),
+            texture_input: PatternTextureInput::default(),
             base_color: ColorF::BLACK,
             is_opaque: false,
         }

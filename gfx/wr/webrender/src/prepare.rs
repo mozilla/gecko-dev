@@ -6,7 +6,7 @@
 //!
 //! TODO: document this!
 
-use api::{PremultipliedColorF, PropertyBinding};
+use api::{ColorF, PropertyBinding};
 use api::{BoxShadowClipMode, BorderStyle, ClipMode};
 use api::units::*;
 use euclid::Scale;
@@ -16,6 +16,7 @@ use crate::command_buffer::{PrimitiveCommand, CommandBufferIndex};
 use crate::image_tiling::{self, Repetition};
 use crate::border::{get_max_scale_for_border, build_border_instances};
 use crate::clip::{ClipStore, ClipNodeRange};
+use crate::pattern::Pattern;
 use crate::spatial_tree::{SpatialNodeIndex, SpatialTree};
 use crate::clip::{ClipDataStore, ClipNodeFlags, ClipChainInstance, ClipItemKind};
 use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureContext, PictureState};
@@ -952,11 +953,13 @@ fn prepare_interned_prim_for_render(
                     .clipped_local_rect
                     .cast_unit();
 
+                let pattern = Pattern::color(ColorF::WHITE);
+
                 let prim_address_f = quad::write_prim_blocks(
                     &mut frame_state.frame_gpu_data.f32,
                     prim_local_rect,
                     prim_instance.vis.clip_chain.local_clip_rect,
-                    PremultipliedColorF::WHITE,
+                    &pattern,
                     &[],
                     ScaleOffset::identity(),
                 );

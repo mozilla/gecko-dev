@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{units::*, ClipMode, PremultipliedColorF};
+use api::{units::*, ClipMode};
 use euclid::point2;
 
 use crate::batch::{BatchKey, BatchKind, BatchTextures};
@@ -143,7 +143,7 @@ pub fn prepare_quad(
         &mut frame_state.frame_gpu_data.f32,
         *local_rect,
         clip_chain.local_clip_rect,
-        pattern.base_color.premultiplied(),
+        &pattern,
         &[],
         ScaleOffset::identity(),
     );
@@ -164,6 +164,15 @@ pub fn prepare_quad(
             prim_spatial_node_index,
             targets,
         );
+
+        // If the pattern samples from a texture, add it as a dependency
+        // of the surface we're drawing directly on to.
+        if pattern.texture_input.task_id != RenderTaskId::INVALID {
+            frame_state
+                .surface_builder
+                .add_child_render_task(pattern.texture_input.task_id, frame_state.rg_builder);
+        }
+
         return;
     }
 
@@ -171,6 +180,17 @@ pub fn prepare_quad(
     let Some(clipped_surface_rect) = surface.get_surface_rect(
         &clip_chain.pic_coverage_rect, frame_context.spatial_tree
     ) else {
+        // In the rare case of getting to here with a prim that wasn't culled
+        // earlier, but that gets clipped here (e.g. float issues), we need
+        // to add any render task created by the pattern as a dependency to
+        // the surface so it gets freed when building the graph.
+        // TODO(gw): We should maybe have a proper way to cancel render tasks...
+        if pattern.texture_input.task_id != RenderTaskId::INVALID {
+            frame_state
+                .surface_builder
+                .add_child_render_task(pattern.texture_input.task_id, frame_state.rg_builder);
+        }
+
         return;
     };
 
@@ -707,8 +727,15 @@ fn add_render_task_with_mask(
             aa_flags,
             quad_flags,
             needs_scissor_rect,
+            pattern.texture_input.task_id,
         ),
     ));
+
+    // If the pattern samples from a texture, add it as a dependency
+    // of the indirect render task that relies on it.
+    if pattern.texture_input.task_id != RenderTaskId::INVALID {
+        frame_state.rg_builder.add_dependency(task_id, pattern.texture_input.task_id);
+    }
 
     if clips_range.count > 0 {
         let masks = MaskSubPass {
@@ -743,7 +770,7 @@ fn add_pattern_prim(
         &mut frame_state.frame_gpu_data.f32,
         rect,
         clip_rect,
-        pattern.base_color.premultiplied(),
+        pattern,
         segments,
         pattern_transform,
     );
@@ -790,7 +817,7 @@ fn add_composite_prim(
         // in the quad primitive). However, passing opaque white
         // here causes glitches with Adreno GPUs on Windows specifically
         // (See bug 1897444).
-        pattern.base_color.premultiplied(),
+        pattern,
         segments,
         ScaleOffset::identity(),
     );
@@ -823,27 +850,21 @@ pub fn write_prim_blocks(
     builder: &mut GpuBufferBuilderF,
     prim_rect: LayoutRect,
     clip_rect: LayoutRect,
-    color: PremultipliedColorF,
+    pattern: &Pattern,
     segments: &[QuadSegment],
     scale_offset: ScaleOffset,
 ) -> GpuBufferAddress {
-    let mut writer = builder.write_blocks(4 + segments.len() * 2);
+    let mut writer = builder.write_blocks(5 + segments.len() * 2);
 
     writer.push_one(prim_rect);
     writer.push_one(clip_rect);
+    writer.push_render_task(pattern.texture_input.task_id);
     writer.push_one(scale_offset);
-    writer.push_one(color);
+    writer.push_one(pattern.base_color.premultiplied());
 
     for segment in segments {
         writer.push_one(segment.rect);
-        match segment.task_id {
-            RenderTaskId::INVALID => {
-                writer.push_one([0.0; 4]);
-            }
-            task_id => {
-                writer.push_render_task(task_id);
-            }
-        }
+        writer.push_render_task(segment.task_id)
     }
 
     writer.finish()

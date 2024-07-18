@@ -96,6 +96,7 @@ struct PrimitiveInfo {
 struct QuadPrimitive {
     RectWithEndpoint bounds;
     RectWithEndpoint clip;
+    RectWithEndpoint uv_rect;
     vec4 pattern_scale_offset;
     vec4 color;
 };
@@ -103,7 +104,7 @@ struct QuadPrimitive {
 QuadSegment fetch_segment(int base, int index) {
     QuadSegment seg;
 
-    vec4 texels[2] = fetch_from_gpu_buffer_2f(base + 4 + index * 2);
+    vec4 texels[2] = fetch_from_gpu_buffer_2f(base + 5 + index * 2);
 
     seg.rect = RectWithEndpoint(texels[0].xy, texels[0].zw);
     seg.uv_rect = RectWithEndpoint(texels[1].xy, texels[1].zw);
@@ -114,12 +115,13 @@ QuadSegment fetch_segment(int base, int index) {
 QuadPrimitive fetch_primitive(int index) {
     QuadPrimitive prim;
 
-    vec4 texels[4] = fetch_from_gpu_buffer_4f(index);
+    vec4 texels[5] = fetch_from_gpu_buffer_5f(index);
 
     prim.bounds = RectWithEndpoint(texels[0].xy, texels[0].zw);
     prim.clip = RectWithEndpoint(texels[1].xy, texels[1].zw);
-    prim.pattern_scale_offset = texels[2];
-    prim.color = texels[3];
+    prim.uv_rect = RectWithEndpoint(texels[2].xy, texels[2].zw);
+    prim.pattern_scale_offset = texels[3];
+    prim.color = texels[4];
 
     return prim;
 }
@@ -246,7 +248,7 @@ PrimitiveInfo quad_primive_info(void) {
     QuadSegment seg;
     if (qi.segment_index == INVALID_SEGMENT_INDEX) {
         seg.rect = prim.bounds;
-        seg.uv_rect = RectWithEndpoint(vec2(0.0), vec2(0.0));
+        seg.uv_rect = prim.uv_rect;
     } else {
         seg = fetch_segment(qi.prim_address_f, qi.segment_index);
     }
