@@ -238,19 +238,19 @@ export class ProtonScreen extends React.PureComponent {
       <picture className={className} style={{ marginInline, marginBlock }}>
         {darkModeReducedMotionImageURL ? (
           <source
-            srcSet={darkModeReducedMotionImageURL}
+            srcset={darkModeReducedMotionImageURL}
             media="(prefers-color-scheme: dark) and (prefers-reduced-motion: reduce)"
           />
         ) : null}
         {darkModeImageURL ? (
           <source
-            srcSet={darkModeImageURL}
+            srcset={darkModeImageURL}
             media="(prefers-color-scheme: dark)"
           />
         ) : null}
         {reducedMotionImageURL ? (
           <source
-            srcSet={reducedMotionImageURL}
+            srcset={reducedMotionImageURL}
             media="(prefers-reduced-motion: reduce)"
           />
         ) : null}

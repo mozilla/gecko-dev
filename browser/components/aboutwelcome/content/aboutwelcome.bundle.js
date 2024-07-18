@@ -1001,13 +1001,13 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
         marginBlock
       }
     }, darkModeReducedMotionImageURL ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("source", {
-      srcSet: darkModeReducedMotionImageURL,
+      srcset: darkModeReducedMotionImageURL,
       media: "(prefers-color-scheme: dark) and (prefers-reduced-motion: reduce)"
     }) : null, darkModeImageURL ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("source", {
-      srcSet: darkModeImageURL,
+      srcset: darkModeImageURL,
       media: "(prefers-color-scheme: dark)"
     }) : null, reducedMotionImageURL ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("source", {
-      srcSet: reducedMotionImageURL,
+      srcset: reducedMotionImageURL,
       media: "(prefers-reduced-motion: reduce)"
     }) : null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
       text: alt

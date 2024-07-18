@@ -103,7 +103,7 @@ module.exports = {
     "react/no-unknown-property": [
       "error",
       {
-        // Custom HTML properties used in aboutwelcome React components.
+        // Custom HTML attributes used in aboutwelcome React components.
         ignore: [
           "flow",
           "alignment",
@@ -115,6 +115,7 @@ module.exports = {
           "no-rdm",
           "above-button",
           "fullscreen",
+          "srcset",
         ],
       },
     ],
