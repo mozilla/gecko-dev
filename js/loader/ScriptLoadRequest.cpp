@@ -159,6 +159,20 @@ const ModuleLoadRequest* ScriptLoadRequest::AsModuleRequest() const {
   return static_cast<const ModuleLoadRequest*>(this);
 }
 
+bool ScriptLoadRequest::IsCacheable() const {
+  if (HasScriptLoadContext() && GetScriptLoadContext()->mIsInline) {
+    return false;
+  }
+
+  if (mExpirationTime == 0) {
+    return true;
+  }
+
+  uint32_t now = nsContentUtils::SecondsFromPRTime(PR_Now());
+
+  return mExpirationTime > now;
+}
+
 void ScriptLoadRequest::NoCacheEntryFound() {
   MOZ_ASSERT(IsCheckingCache());
   MOZ_ASSERT(mURI);
