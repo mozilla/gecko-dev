@@ -530,18 +530,13 @@ export class ExtensionChild extends EventEmitter {
     if (path.startsWith(this.baseURL)) {
       // Historically, when the input is an already-resolved extension URL,
       // we return the parsed version of it as-is.
-      return this.baseURI.resolve(path);
+      return path;
     }
-    if (path.includes("//")) {
-      // When .resolve() is passed an absolute URL or starts with "//", it may
-      // discard parts of the baseURL's origin. To avoid that, prepend it.
-      if (path.startsWith("/")) {
-        // this.baseURL already contains a "/".
-        path = path.slice(1);
-      }
-      path = this.baseURL + path;
+    if (path.startsWith("/")) {
+      // this.baseURL already contains a "/".
+      path = path.slice(1);
     }
-    return this.baseURI.resolve(path);
+    return this.baseURL + path;
   }
 
   emit(event, ...args) {

@@ -56,18 +56,18 @@ add_task(async function test_runtime_getURL() {
     checkURL("//example", `${origin}//example`);
 
     // Case 8: "passing URL which is exactly ."
-    checkURL(".", `${origin}/`);
+    checkURL(".", `${origin}/.`);
 
     // Case 9: "passing URL which starts with ./"
-    checkURL("././/example", `${origin}//example`);
+    checkURL("././/example", `${origin}/././/example`);
 
     // Case 10: "passing URL which contains ../"
-    checkURL("../../example/..//test/", `${origin}//test/`);
+    checkURL("../../example/..//test/", `${origin}/../../example/..//test/`);
 
     // Case 11: "../ artifact edge-cases"
-    checkURL("../", `${origin}/`);
-    checkURL("..", `${origin}/`);
-    checkURL("/.././", `${origin}/`);
+    checkURL("../", `${origin}/../`);
+    checkURL("..", `${origin}/..`);
+    checkURL("/.././", `${origin}/.././`);
 
     // More edge cases not covered above.
 
