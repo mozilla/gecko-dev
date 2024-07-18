@@ -9,6 +9,7 @@
 #include "ScriptTrace.h"
 #include "ModuleLoader.h"
 #include "nsGenericHTMLElement.h"
+#include "SharedScriptCache.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/FetchPriority.h"
@@ -165,13 +166,28 @@ inline void ImplCycleCollectionTraverse(
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ScriptLoader)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION(ScriptLoader, mNonAsyncExternalScriptInsertedRequests,
-                         mLoadingAsyncRequests, mLoadedAsyncRequests,
-                         mOffThreadCompilingRequests, mDeferRequests,
-                         mXSLTRequests, mParserBlockingRequest,
-                         mBytecodeEncodingQueue, mPreloads,
-                         mPendingChildLoaders, mModuleLoader,
-                         mWebExtModuleLoaders, mShadowRealmModuleLoaders)
+NS_IMPL_CYCLE_COLLECTION_CLASS(ScriptLoader)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(ScriptLoader)
+  if (tmp->mDocument) {
+    tmp->DropDocumentReference();
+  }
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(
+      mNonAsyncExternalScriptInsertedRequests, mLoadingAsyncRequests,
+      mLoadedAsyncRequests, mOffThreadCompilingRequests, mDeferRequests,
+      mXSLTRequests, mParserBlockingRequest, mBytecodeEncodingQueue, mPreloads,
+      mPendingChildLoaders, mModuleLoader, mWebExtModuleLoaders,
+      mShadowRealmModuleLoaders)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(ScriptLoader)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(
+      mNonAsyncExternalScriptInsertedRequests, mLoadingAsyncRequests,
+      mLoadedAsyncRequests, mOffThreadCompilingRequests, mDeferRequests,
+      mXSLTRequests, mParserBlockingRequest, mBytecodeEncodingQueue, mPreloads,
+      mPendingChildLoaders, mModuleLoader, mWebExtModuleLoaders,
+      mShadowRealmModuleLoaders)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(ScriptLoader)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(ScriptLoader)
@@ -271,6 +287,29 @@ void ScriptLoader::SetGlobalObject(nsIGlobalObject* aGlobalObject) {
   MOZ_ASSERT(mModuleLoader->GetGlobalObject() == aGlobalObject);
   MOZ_ASSERT(aGlobalObject->GetModuleLoader(dom::danger::GetJSContext()) ==
              mModuleLoader);
+}
+
+void ScriptLoader::DropDocumentReference() {
+  if (mDocument && mCache) {
+    DeregisterFromCache();
+  }
+
+  mDocument = nullptr;
+}
+
+void ScriptLoader::RegisterToCache() {
+  if (mCache) {
+    MOZ_ASSERT(mDocument);
+    mCache->RegisterLoader(*this);
+  }
+}
+
+void ScriptLoader::DeregisterFromCache() {
+  if (mCache) {
+    MOZ_ASSERT(mDocument);
+    mCache->CancelLoadsForLoader(*this);
+    mCache->UnregisterLoader(*this);
+  }
 }
 
 nsIPrincipal* ScriptLoader::LoaderPrincipal() const {
