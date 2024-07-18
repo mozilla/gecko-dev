@@ -324,7 +324,7 @@ class Client:
             )
 
         async def await_text(self, text, **kwargs):
-            xpath = f"//*[contains(text(),'{text}')]"
+            xpath = f"//*[text()[contains(.,'{text}')]]"
             return await self.await_xpath(self, xpath, **kwargs)
 
         async def await_xpath(
@@ -567,8 +567,8 @@ class Client:
 
     def find_text(self, text, is_displayed=None, **kwargs):
         try:
-            ele = self.find_xpath(f"//*[contains(text(),'{text}')]", **kwargs)
-            return self._do_is_displayed_check(ele, is_displayed)
+            e = self.find_xpath(f"//*[text()[contains(.,'{text}')]]", **kwargs)
+            return self._do_is_displayed_check(e, is_displayed)
         except webdriver.error.NoSuchElementException:
             return None
 

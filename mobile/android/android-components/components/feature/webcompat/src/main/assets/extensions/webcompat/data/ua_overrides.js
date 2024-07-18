@@ -1227,6 +1227,23 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1896354 - UA override for my.rhinoshield.fr
+     *
+     * Sites only supports Chrome, but seems to work with a UA spoof.
+     */
+    id: "bug1896354",
+    platform: "all",
+    domain: "my.rhinoshield.fr",
+    bug: "1896354",
+    config: {
+      matches: ["*://my.rhinoshield.fr/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
