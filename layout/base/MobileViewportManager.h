@@ -138,6 +138,8 @@ class MobileViewportManager final : public nsIDOMEventListener,
 
   static mozilla::LazyLogModule gLog;
 
+  mozilla::CSSToScreenScale GetZoom() const;
+
  private:
   ~MobileViewportManager();
 
@@ -196,8 +198,6 @@ class MobileViewportManager final : public nsIDOMEventListener,
    */
   mozilla::ScreenIntSize GetCompositionSize(
       const mozilla::ScreenIntSize& aDisplaySize) const;
-
-  mozilla::CSSToScreenScale GetZoom() const;
 
   RefPtr<mozilla::MVMContext> mContext;
   ManagerType mManagerType;

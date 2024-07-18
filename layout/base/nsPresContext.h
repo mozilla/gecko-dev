@@ -411,27 +411,35 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   MOZ_CAN_RUN_SCRIPT
   void SetDynamicToolbarMaxHeight(mozilla::ScreenIntCoord aHeight);
 
-  mozilla::ScreenIntCoord GetDynamicToolbarMaxHeight() const {
-    MOZ_ASSERT(IsRootContentDocumentCrossProcess());
-    return mDynamicToolbarMaxHeight;
-  }
-
   /**
    * Returns true if we are using the dynamic toolbar.
    */
-  bool HasDynamicToolbar() const {
-    MOZ_ASSERT(IsRootContentDocumentCrossProcess());
-    return mDynamicToolbarMaxHeight > 0;
-  }
+  bool HasDynamicToolbar() const { return GetDynamicToolbarMaxHeight() > 0; }
 
   /*
    * |aOffset| must be offset from the bottom edge of the ICB and it's negative.
    */
   void UpdateDynamicToolbarOffset(mozilla::ScreenIntCoord aOffset);
+
+  mozilla::ScreenIntCoord GetDynamicToolbarMaxHeight() const {
+    MOZ_ASSERT_IF(mDynamicToolbarMaxHeight > 0,
+                  IsRootContentDocumentCrossProcess());
+    return mDynamicToolbarMaxHeight;
+  }
+
+  nscoord GetDynamicToolbarMaxHeightInAppUnits() const;
+
   mozilla::ScreenIntCoord GetDynamicToolbarHeight() const {
-    MOZ_ASSERT(IsRootContentDocumentCrossProcess());
+    MOZ_ASSERT_IF(mDynamicToolbarHeight > 0,
+                  IsRootContentDocumentCrossProcess());
     return mDynamicToolbarHeight;
   }
+
+  /**
+   * Returns the maximum height of the dynamic toolbar if the toolbar state is
+   * `DynamicToolbarState::Collapsed`, otherwise returns zero.
+   */
+  nscoord GetBimodalDynamicToolbarHeightInAppUnits() const;
 
   /**
    * Returns the state of the dynamic toolbar.

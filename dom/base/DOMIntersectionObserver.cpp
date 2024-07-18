@@ -373,7 +373,8 @@ static Maybe<nsRect> ComputeTheIntersection(
         // root margin, which is already in aRootBounds).
         break;
       }
-      nsRect subFrameRect = scrollContainerFrame->GetScrollPortRect();
+      nsRect subFrameRect =
+          scrollContainerFrame->GetScrollPortRectAccountingForDynamicToolbar();
 
       // 3.1 Map intersectionRect to the coordinate space of container.
       nsRect intersectionRectRelativeToContainer =
@@ -518,7 +519,8 @@ static Maybe<OopIframeMetrics> GetOopIframeMetrics(
   nsRect inProcessRootRect;
   if (ScrollContainerFrame* rootScrollContainerFrame =
           rootPresShell->GetRootScrollContainerFrame()) {
-    inProcessRootRect = rootScrollContainerFrame->GetScrollPortRect();
+    inProcessRootRect = rootScrollContainerFrame
+                            ->GetScrollPortRectAccountingForDynamicToolbar();
   }
 
   Maybe<LayoutDeviceRect> remoteDocumentVisibleRect =
@@ -559,7 +561,9 @@ IntersectionInput DOMIntersectionObserver::ComputeInput(
               do_QueryFrame(rootFrame)) {
         // rootRectRelativeToRootFrame should be the content rect of rootFrame,
         // not including the scrollbars.
-        rootRectRelativeToRootFrame = scrollContainerFrame->GetScrollPortRect();
+        rootRectRelativeToRootFrame =
+            scrollContainerFrame
+                ->GetScrollPortRectAccountingForDynamicToolbar();
       } else {
         // rootRectRelativeToRootFrame should be the border rect of rootFrame.
         rootRectRelativeToRootFrame = rootFrame->GetRectRelativeToSelf();
@@ -593,7 +597,8 @@ IntersectionInput DOMIntersectionObserver::ComputeInput(
         // scrollbars in rootRect, if needed.
         if (ScrollContainerFrame* rootScrollContainerFrame =
                 presShell->GetRootScrollContainerFrame()) {
-          rootRect = rootScrollContainerFrame->GetScrollPortRect();
+          rootRect = rootScrollContainerFrame
+                         ->GetScrollPortRectAccountingForDynamicToolbar();
         } else if (rootFrame) {
           rootRect = rootFrame->GetRectRelativeToSelf();
         }
