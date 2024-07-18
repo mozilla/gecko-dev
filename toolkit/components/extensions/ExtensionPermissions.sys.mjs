@@ -632,7 +632,7 @@ export var OriginControls = {
    */
   getState(policy, nativeTab) {
     // Note: don't use the nativeTab directly because it's different on mobile.
-    let tab = policy?.extension?.tabManager.getWrapper(nativeTab);
+    let tab = policy?.extension?.tabManager?.getWrapper(nativeTab);
     let temporaryAccess = tab?.hasActiveTabPermission;
     let uri = tab?.browser.currentURI;
 

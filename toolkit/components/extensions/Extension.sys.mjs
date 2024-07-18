@@ -2890,8 +2890,19 @@ export class Extension extends ExtensionData {
   /** @type {import("ExtensionShortcuts.sys.mjs").ExtensionShortcuts} */
   shortcuts;
 
-  /** @type {TabManagerBase} */
+  /**
+   * Extension's TabManager, initialized at "startup" event of Management.
+   *
+   * @type {TabManagerBase}
+   */
   tabManager;
+
+  /**
+   * Extension's WindowManager, initialized at "startup" event of Management.
+   *
+   * @type {WindowManagerBase}
+   */
+  windowManager;
 
   /** @type {(options?: { ignoreDevToolsAttached?: boolean, disableResetIdleForTest?: boolean }) => Promise} */
   terminateBackground;
