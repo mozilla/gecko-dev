@@ -369,6 +369,10 @@ inline void SECITEM_FreeItem_true(SECItem* s) {
   return SECITEM_FreeItem(s, true);
 }
 
+inline void SECITEM_FreeArray_true(SECItemArray* s) {
+  return SECITEM_FreeArray(s, true);
+}
+
 inline void SECOID_DestroyAlgorithmID_true(SECAlgorithmID* a) {
   return SECOID_DestroyAlgorithmID(a, true);
 }
@@ -432,6 +436,8 @@ MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECAlgorithmID, SECAlgorithmID,
                                       internal::SECOID_DestroyAlgorithmID_true)
 MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECItem, SECItem,
                                       internal::SECITEM_FreeItem_true)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECItemArray, SECItemArray,
+                                      internal::SECITEM_FreeArray_true)
 MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECKEYPrivateKey, SECKEYPrivateKey,
                                       SECKEY_DestroyPrivateKey)
 MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECKEYPrivateKeyList,

@@ -531,6 +531,7 @@ SECITEM_CopyItem_Util
 SECITEM_DupArray
 SECITEM_DupItem
 SECITEM_DupItem_Util
+SECITEM_FreeArray
 SECITEM_FreeItem
 SECITEM_FreeItem_Util
 SECITEM_HashCompare
