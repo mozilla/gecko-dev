@@ -173,6 +173,29 @@ bool ScriptLoadRequest::IsCacheable() const {
   return mExpirationTime > now;
 }
 
+void ScriptLoadRequest::CacheEntryFound(LoadedScript* aLoadedScript) {
+  MOZ_ASSERT(IsCheckingCache());
+  MOZ_ASSERT(mURI);
+
+  mLoadedScript = aLoadedScript;
+
+  MOZ_ASSERT(mFetchOptions->IsCompatible(mLoadedScript->GetFetchOptions()));
+
+  switch (mKind) {
+    case ScriptKind::eClassic:
+    case ScriptKind::eImportMap:
+      MOZ_ASSERT(mLoadedScript->IsClassicScript());
+      break;
+    case ScriptKind::eModule:
+      MOZ_ASSERT(mLoadedScript->IsModuleScript());
+      break;
+    case ScriptKind::eEvent:
+      MOZ_ASSERT_UNREACHABLE("EventScripts are not using ScriptLoadRequest");
+      break;
+  }
+  mState = State::Ready;
+}
+
 void ScriptLoadRequest::NoCacheEntryFound() {
   MOZ_ASSERT(IsCheckingCache());
   MOZ_ASSERT(mURI);

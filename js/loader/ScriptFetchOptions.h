@@ -86,6 +86,21 @@ class ScriptFetchOptions {
    *  TODO: Move to ScriptLoadContext
    */
   nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
+
+  // Returns true if given fetch option is compatible with this fetch option
+  // in term of sharing the server response.
+  inline bool IsCompatible(ScriptFetchOptions* other) {
+    bool equals;
+    (void)mTriggeringPrincipal->Equals(other->mTriggeringPrincipal, &equals);
+
+    if (!equals) {
+      return false;
+    }
+
+    // NOTE: mParserMetadata can be ignored.
+    return mCORSMode == other->mCORSMode && mNonce == other->mNonce &&
+           mFetchPriority == other->mFetchPriority;
+  }
 };
 
 }  // namespace JS::loader
