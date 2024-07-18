@@ -8,11 +8,14 @@
 #define js_loader_LoadedScript_h
 
 #include "js/AllocPolicy.h"
+#include "js/experimental/JSStencil.h"
 #include "js/Transcoding.h"
 
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MaybeOneOf.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 #include "mozilla/Variant.h"
 #include "mozilla/Vector.h"
@@ -112,8 +115,9 @@ class LoadedScript : public nsIMemoryReporter {
   template <typename... Ts>
   using VariantType = mozilla::VariantType<Ts...>;
 
-  // Type of data provided by the nsChannel.
-  enum class DataType : uint8_t { eUnknown, eTextSource, eBytecode };
+  // Type of data this instance holds, which is either provided by the nsChannel
+  // or retrieved from the cache.
+  enum class DataType : uint8_t { eUnknown, eTextSource, eBytecode, eStencil };
 
   // Use a vector backed by the JS allocator for script text so that contents
   // can be transferred in constant time to the JS engine, not copied in linear
@@ -128,6 +132,7 @@ class LoadedScript : public nsIMemoryReporter {
   bool IsTextSource() const { return mDataType == DataType::eTextSource; }
   bool IsSource() const { return IsTextSource(); }
   bool IsBytecode() const { return mDataType == DataType::eBytecode; }
+  bool IsStencil() const { return mDataType == DataType::eStencil; }
 
   void SetUnknownDataType() {
     mDataType = DataType::eUnknown;
@@ -143,6 +148,12 @@ class LoadedScript : public nsIMemoryReporter {
   void SetBytecode() {
     MOZ_ASSERT(IsUnknownDataType());
     mDataType = DataType::eBytecode;
+  }
+
+  void SetStencil(already_AddRefed<JS::Stencil> aStencil) {
+    SetUnknownDataType();
+    mDataType = DataType::eStencil;
+    mStencil = aStencil;
   }
 
   bool IsUTF16Text() const {
@@ -193,7 +204,7 @@ class LoadedScript : public nsIMemoryReporter {
   }
 
   bool CanHaveBytecode() const {
-    return IsBytecode() || IsSource();
+    return IsBytecode() || IsSource() || IsStencil();
   }
 
   JS::TranscodeBuffer& SRIAndBytecode() {
@@ -225,6 +236,14 @@ class LoadedScript : public nsIMemoryReporter {
     mScriptBytecode.clearAndFree();
   }
 
+  JS::Stencil* GetStencil() const {
+    MOZ_ASSERT(IsStencil());
+    return mStencil;
+  }
+
+ public:
+  // Fields.
+
   // Determine whether the mScriptData or mScriptBytecode is used.
   DataType mDataType;
 
@@ -242,6 +261,8 @@ class LoadedScript : public nsIMemoryReporter {
   // or, if compression is enabled, ScriptBytecodeCompressedDataLayout.
   JS::TranscodeBuffer mScriptBytecode;
   uint32_t mBytecodeOffset;  // Offset of the bytecode in mScriptBytecode
+
+  RefPtr<JS::Stencil> mStencil;
 };
 
 // Provide accessors for any classes `Derived` which is providing the
@@ -274,6 +295,7 @@ class LoadedScriptDelegate {
   bool IsTextSource() const { return GetLoadedScript()->IsTextSource(); }
   bool IsSource() const { return GetLoadedScript()->IsSource(); }
   bool IsBytecode() const { return GetLoadedScript()->IsBytecode(); }
+  bool IsStencil() const { return GetLoadedScript()->IsStencil(); }
 
   void SetUnknownDataType() { GetLoadedScript()->SetUnknownDataType(); }
 
@@ -282,6 +304,10 @@ class LoadedScriptDelegate {
   }
 
   void SetBytecode() { GetLoadedScript()->SetBytecode(); }
+
+  void SetStencil(already_AddRefed<JS::Stencil> aStencil) {
+    GetLoadedScript()->SetStencil(std::move(aStencil));
+  }
 
   bool IsUTF16Text() const { return GetLoadedScript()->IsUTF16Text(); }
   bool IsUTF8Text() const { return GetLoadedScript()->IsUTF8Text(); }
@@ -331,6 +357,8 @@ class LoadedScriptDelegate {
   }
 
   void DropBytecode() { GetLoadedScript()->DropBytecode(); }
+
+  JS::Stencil* GetStencil() const { return GetLoadedScript()->GetStencil(); }
 };
 
 class ClassicScript final : public LoadedScript {

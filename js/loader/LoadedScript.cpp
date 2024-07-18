@@ -105,6 +105,8 @@ size_t LoadedScript::SizeOfIncludingThis(
   }
 
   bytes += mScriptBytecode.sizeOfExcludingThis(aMallocSizeOf);
+
+  // NOTE: Stencil is reported by SpiderMonkey.
   return bytes;
 }
 
