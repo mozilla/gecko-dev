@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.toolbar.navbar
 
 import android.content.res.Configuration
+import androidx.annotation.ColorInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -227,6 +230,9 @@ fun HomeNavBar(
  * @param onForwardButtonLongPress Invoked when the user long-presses the forward button in the nav bar.
  * @param onOpenInBrowserButtonClick Invoked when the user clicks the open in fenix button in the nav bar.
  * @param onMenuButtonClick Invoked when the user clicks on the menu button in the navigation bar.
+ * @param backgroundColor Custom background color of the navigation bar.
+ * When `null`, [FirefoxTheme.layer1] will be used.
+ * @param buttonTint Custom button tint color of the navigation bar. When `null`, [Color.White] will be used.
  * @param isMenuRedesignEnabled Whether or not the menu redesign is enabled.
  */
 @Composable
@@ -241,6 +247,8 @@ fun CustomTabNavBar(
     onForwardButtonLongPress: () -> Unit,
     onOpenInBrowserButtonClick: () -> Unit,
     onMenuButtonClick: () -> Unit,
+    @ColorInt backgroundColor: Int? = null,
+    @ColorInt buttonTint: Int? = null,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
     // A follow up: https://bugzilla.mozilla.org/show_bug.cgi?id=1888573
@@ -250,39 +258,50 @@ fun CustomTabNavBar(
     val canGoForward by browserStore.observeAsState(initialValue = false) {
         it.findCustomTab(customTabSessionId)?.content?.canGoForward ?: false
     }
+    val background = backgroundColor?.let { Color(it) } ?: FirefoxTheme.colors.layer1
+    val iconTint = buttonTint?.let { Color(it) } ?: FirefoxTheme.colors.iconPrimary
 
-    NavBar {
+    NavBar(
+        background = background,
+    ) {
         BackButton(
             onBackButtonClick = onBackButtonClick,
             onBackButtonLongPress = onBackButtonLongPress,
             enabled = canGoBack,
+            buttonEnabledTint = iconTint,
         )
 
         ForwardButton(
             onForwardButtonClick = onForwardButtonClick,
             onForwardButtonLongPress = onForwardButtonLongPress,
             enabled = canGoForward,
+            buttonEnabledTint = iconTint,
         )
 
-        OpenInBrowserButton(onOpenInBrowserButtonClick = onOpenInBrowserButtonClick)
+        OpenInBrowserButton(
+            onOpenInBrowserButtonClick = onOpenInBrowserButtonClick,
+            tint = iconTint,
+        )
 
         MenuButton(
             menuButton = menuButton,
             isMenuRedesignEnabled = isMenuRedesignEnabled,
             onMenuButtonClick = onMenuButtonClick,
+            tint = iconTint,
         )
     }
 }
 
 @Composable
 private fun NavBar(
+    background: Color = FirefoxTheme.colors.layer1,
     content: @Composable RowScope.() -> Unit,
 ) {
     val keyboardState by keyboardAsState()
     if (keyboardState == KeyboardState.Closed) {
         Row(
             modifier = Modifier
-                .background(FirefoxTheme.colors.layer1)
+                .background(background)
                 .height(dimensionResource(id = R.dimen.browser_navbar_height))
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
@@ -298,6 +317,7 @@ private fun BackButton(
     onBackButtonClick: () -> Unit,
     onBackButtonLongPress: () -> Unit,
     enabled: Boolean,
+    buttonEnabledTint: Color = FirefoxTheme.colors.iconPrimary,
 ) {
     LongPressIconButton(
         onClick = onBackButtonClick,
@@ -308,7 +328,7 @@ private fun BackButton(
         Icon(
             painter = painterResource(R.drawable.mozac_ic_back_24),
             stringResource(id = R.string.browser_menu_back),
-            tint = if (enabled) FirefoxTheme.colors.iconPrimary else FirefoxTheme.colors.iconDisabled,
+            tint = if (enabled) buttonEnabledTint else FirefoxTheme.colors.iconDisabled,
         )
     }
 }
@@ -318,6 +338,7 @@ private fun ForwardButton(
     onForwardButtonClick: () -> Unit,
     onForwardButtonLongPress: () -> Unit,
     enabled: Boolean,
+    buttonEnabledTint: Color = FirefoxTheme.colors.iconPrimary,
 ) {
     LongPressIconButton(
         onClick = onForwardButtonClick,
@@ -328,7 +349,7 @@ private fun ForwardButton(
         Icon(
             painter = painterResource(R.drawable.mozac_ic_forward_24),
             stringResource(id = R.string.browser_menu_forward),
-            tint = if (enabled) FirefoxTheme.colors.iconPrimary else FirefoxTheme.colors.iconDisabled,
+            tint = if (enabled) buttonEnabledTint else FirefoxTheme.colors.iconDisabled,
         )
     }
 }
@@ -369,6 +390,7 @@ private fun MenuButton(
     menuButton: MenuButton,
     isMenuRedesignEnabled: Boolean,
     onMenuButtonClick: () -> Unit,
+    tint: Color = FirefoxTheme.colors.iconPrimary,
 ) {
     if (isMenuRedesignEnabled) {
         IconButton(
@@ -378,7 +400,7 @@ private fun MenuButton(
             Icon(
                 painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
                 contentDescription = stringResource(id = R.string.mozac_browser_menu_button),
-                tint = FirefoxTheme.colors.iconPrimary,
+                tint = tint,
             )
         }
     } else {
@@ -391,6 +413,7 @@ private fun MenuButton(
 
 @Composable
 private fun OpenInBrowserButton(
+    tint: Color = FirefoxTheme.colors.iconPrimary,
     onOpenInBrowserButtonClick: () -> Unit,
 ) {
     IconButton(
@@ -399,7 +422,7 @@ private fun OpenInBrowserButton(
         Icon(
             painter = painterResource(R.drawable.mozac_ic_open_in),
             stringResource(R.string.browser_menu_open_in_fenix, R.string.app_name),
-            tint = FirefoxTheme.colors.iconPrimary,
+            tint = tint,
         )
     }
 }
@@ -480,7 +503,7 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
 @Composable
 private fun CustomTabNavBarPreviewRoot(isPrivateMode: Boolean) {
     val context = LocalContext.current
-    val colorId = if (isPrivateMode) {
+    val menuButtonTint = if (isPrivateMode) {
         // private mode preview keeps using black colour as textPrimary
         ThemeManager.resolveAttribute(R.attr.textOnColorPrimary, context)
     } else {
@@ -490,7 +513,7 @@ private fun CustomTabNavBarPreviewRoot(isPrivateMode: Boolean) {
         setColorFilter(
             ContextCompat.getColor(
                 context,
-                colorId,
+                menuButtonTint,
             ),
         )
     }
@@ -506,6 +529,8 @@ private fun CustomTabNavBarPreviewRoot(isPrivateMode: Boolean) {
         onOpenInBrowserButtonClick = {},
         onMenuButtonClick = {},
         isMenuRedesignEnabled = false,
+        backgroundColor = FirefoxTheme.colors.layer1.toArgb(),
+        buttonTint = FirefoxTheme.colors.iconPrimary.toArgb(),
     )
 }
 

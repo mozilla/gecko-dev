@@ -79,7 +79,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                 context = requireContext(),
                 browserStore = requireComponents.core.store,
                 customTabSessionId = customTabSessionId,
-                defaultMenuBuilder = browserToolbarView.menuToolbar.menuBuilder,
+                toolbar = browserToolbarView,
             )
 
             val isToolbarAtBottom = requireComponents.settings.toolbarPosition == ToolbarPosition.BOTTOM
@@ -129,6 +129,8 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                                     ),
                                 )
                             },
+                            backgroundColor = navbarIntegration.backgroundColor,
+                            buttonTint = navbarIntegration.buttonTint,
                         )
                     }
                 }

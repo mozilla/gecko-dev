@@ -289,7 +289,7 @@ private fun getColorSchemeParams(safeIntent: SafeIntent, @ColorScheme colorSchem
  * @param currentNightMode The current night mode set in [Configuration.uiMode].
  * @param preferredNightMode Optional [AppCompatDelegate.NightMode] preference set by the user for the application.
  */
-internal fun CustomTabConfig.getConfiguredColorSchemeParams(
+fun CustomTabConfig.getConfiguredColorSchemeParams(
     currentNightMode: Int,
     @NightMode preferredNightMode: Int? = null,
 ): ColorSchemeParams? {
@@ -338,7 +338,7 @@ internal fun CustomTabConfig.getConfiguredColorSchemeParams(
  * @param fallbackColor The fallback color to use if the toolbar color is not set and [shouldUpdateTheme] is `true`.
  */
 @ColorInt
-internal fun ColorSchemeParams?.getToolbarContrastColor(
+fun ColorSchemeParams?.getToolbarContrastColor(
     context: Context,
     shouldUpdateTheme: Boolean,
     @ColorInt fallbackColor: Int,

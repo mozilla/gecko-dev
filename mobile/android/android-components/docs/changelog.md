@@ -9,6 +9,7 @@ permalink: /changelog/
   * ⚠️ **Breaking change**: `FullScreenNotification` interface is now implemented using a `FullScreenNotificationToast`. `FullScreenNotificationDialog` has been removed, see [Bug 1902996](https://bugzilla.mozilla.org/show_bug.cgi?id=1902996).
 
 * **feature-customtabs**
+  * 🆕 New `CustomTabConfig.getConfiguredColorSchemeParams` and `ColorSchemeParams?.getToolbarContrastColor` to help get the colors specified in custom tabs configurations. [Bug 1904325](https://bugzilla.mozilla.org/show_bug.cgi?id=1904325)
   * 🆕 New `BrowserMenuBuilder?.addCustomMenuItems` method for populating the current menu builder with custom tabs items specified in the custom tabs configuration. [Bug 1904325](https://bugzilla.mozilla.org/show_bug.cgi?id=1904325)
 
 * **browser-engine-gecko**
