@@ -6,7 +6,7 @@ let module = new WebAssembly.Module(wasmTextToBinary(`(module
     (result i32)
   )
   (global (import "'" "string") (ref extern))
-)`), {builtins: ['js-string'], importedStringConstants: true});
+)`), {builtins: ['js-string'], importedStringConstants: "'"});
 let imports = WebAssembly.Module.imports(module);
 
 // All imports that refer to a builtin module are suppressed from import

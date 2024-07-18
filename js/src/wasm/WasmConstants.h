@@ -991,23 +991,6 @@ enum class BuiltinModuleId {
   JSStringConstants,
 };
 
-struct BuiltinModuleIds {
-  BuiltinModuleIds() = default;
-
-  bool selfTest = false;
-  bool intGemm = false;
-  bool jsString = false;
-  bool jsStringConstants = false;
-
-  bool hasNone() const {
-    return !selfTest && !intGemm && !jsString && !jsStringConstants;
-  }
-
-  WASM_CHECK_CACHEABLE_POD(selfTest, intGemm, jsString, jsStringConstants)
-};
-
-WASM_DECLARE_CACHEABLE_POD(BuiltinModuleIds)
-
 enum class StackSwitchKind {
   SwitchToSuspendable,
   SwitchToMain,

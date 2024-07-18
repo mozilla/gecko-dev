@@ -215,6 +215,7 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
     if (isImportedStringModule) {
       RootedString stringConstant(cx, import.field.toJSString(cx));
       if (!stringConstant) {
+        ReportOutOfMemory(cx);
         return false;
       }
       importFieldValue = StringValue(stringConstant);

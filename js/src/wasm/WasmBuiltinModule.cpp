@@ -317,7 +317,6 @@ static BuiltinModuleFuncId JSStringFuncs[] = {
     BuiltinModuleFuncId::StringEquals,
     BuiltinModuleFuncId::StringCompare};
 static const char* JSStringModuleName = "wasm:js-string";
-static const char* JSStringConstantsModuleName = "'";
 #endif  // ENABLE_WASM_JS_STRING_BUILTINS
 
 Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
@@ -328,7 +327,9 @@ Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
     return Some(BuiltinModuleId::JSString);
   }
   if (enabledBuiltins.jsStringConstants &&
-      importName == mozilla::MakeStringSpan(JSStringConstantsModuleName)) {
+      importName ==
+          mozilla::MakeStringSpan(
+              enabledBuiltins.jsStringConstantsNamespace->chars.get())) {
     return Some(BuiltinModuleId::JSStringConstants);
   }
 #endif  // ENABLE_WASM_JS_STRING_BUILTINS
