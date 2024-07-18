@@ -18,6 +18,7 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -339,7 +340,7 @@ class LoginsTest : TestSetup() {
         browserScreen {
         }.openThreeDotMenu {
         }.refreshPage {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             clickPageObject(itemWithResId("togglePassword"))
             verifyPrefilledLoginCredentials("android", "fenix", true)
         }
@@ -499,13 +500,13 @@ class LoginsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(loginPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             setPageObjectText(itemWithResId("username"), "mozilla")
             waitForAppWindowToBeUpdated()
             setPageObjectText(itemWithResId("password"), "firefox")
             waitForAppWindowToBeUpdated()
             clickPageObject(itemWithResId("submit"))
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             verifySaveLoginPromptIsDisplayed()
             clickPageObject(itemWithText("Save"))
         }.openTabDrawer(activityTestRule) {
@@ -514,7 +515,7 @@ class LoginsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(loginPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             clickPageObject(itemWithResId("togglePassword"))
             verifyPrefilledLoginCredentials("mozilla", "firefox", true)
         }.openTabDrawer(activityTestRule) {

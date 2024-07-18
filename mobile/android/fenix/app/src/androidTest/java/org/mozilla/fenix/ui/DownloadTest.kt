@@ -19,6 +19,7 @@ import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.HomeActivityTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -343,7 +344,7 @@ class DownloadTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(downloadTestPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickDownloadLink(downloadFile) {
             verifyDownloadPrompt(downloadFile)
             setNetworkEnabled(false)

@@ -15,6 +15,7 @@ import org.mozilla.fenix.helpers.HomeActivityTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.RetryTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.clickPageObject
@@ -112,7 +113,7 @@ class BrowsingErrorPagesTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(url.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             verifyAddressNotFoundErrorMessage()
             clickPageObject(itemWithResId("errorTryAgain"))
             verifyAddressNotFoundErrorMessage()
@@ -135,7 +136,7 @@ class BrowsingErrorPagesTest : TestSetup() {
 
         browserScreen {
             clickPageObject(itemWithResId("errorTryAgain"))
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             verifyPageContent("Example Domain")
         }
     }

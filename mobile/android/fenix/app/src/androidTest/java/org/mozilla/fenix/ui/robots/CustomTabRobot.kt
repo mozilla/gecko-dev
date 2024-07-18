@@ -132,9 +132,9 @@ class CustomTabRobot {
         )
     }
 
-    fun waitForPageToLoad() {
+    fun waitForPageToLoad(pageLoadWaitingTime: Long = waitingTime) {
         Log.i(TAG, "waitForPageToLoad: Waiting for $waitingTime ms until progress bar is gone")
-        progressBar().waitUntilGone(waitingTime)
+        progressBar().waitUntilGone(pageLoadWaitingTime)
         Log.i(TAG, "waitForPageToLoad: Waited for $waitingTime ms until progress bar was gone")
     }
 

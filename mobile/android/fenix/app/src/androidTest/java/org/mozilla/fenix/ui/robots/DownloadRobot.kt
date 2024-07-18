@@ -135,7 +135,7 @@ class DownloadRobot {
     fun openPageAndDownloadFile(url: Uri, downloadFile: String) {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(url) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickDownloadLink(downloadFile) {
             verifyDownloadPrompt(downloadFile)
         }.clickDownload {

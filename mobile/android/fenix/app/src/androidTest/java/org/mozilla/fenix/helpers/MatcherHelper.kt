@@ -107,7 +107,7 @@ object MatcherHelper {
         }
     }
 
-    fun assertUIObjectIsGone(vararg appItems: UiObject) {
+    fun assertUIObjectIsGone(vararg appItems: UiObject, waitingTime: Long = TestAssetHelper.waitingTime) {
         for (appItem in appItems) {
             Log.i(TAG, "assertUIObjectIsGone: Trying to verify that ${appItem.selector} is gone")
             assertTrue("${appItem.selector} is not gone", appItem.waitUntilGone(waitingTime))

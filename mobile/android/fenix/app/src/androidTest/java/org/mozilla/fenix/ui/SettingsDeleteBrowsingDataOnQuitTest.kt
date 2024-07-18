@@ -19,6 +19,7 @@ import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.getStorageTestAsset
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.restartApp
@@ -212,7 +213,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         }
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton {
             verifyMicrophonePermissionPrompt(testPageSubstring)
             selectRememberPermissionDecision()
@@ -226,7 +227,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         restartApp(composeTestRule.activityRule)
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton {
             verifyMicrophonePermissionPrompt(testPageSubstring)
         }
@@ -247,7 +248,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         homeScreen {
             verifyExistingTopSitesTabs(pocketTopArticles)
         }.openTopSiteTabWithTitle(pocketTopArticles) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.goToHomescreen {
         }.openThreeDotMenu {
             clickQuit()

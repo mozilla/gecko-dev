@@ -11,6 +11,7 @@ import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.clickPageObject
@@ -81,7 +82,7 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
         }
         navigationToolbar {
         }.enterURLAndEnterToBrowser(httpPageUrl.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openNavigationToolbar {
             verifyUrl(httpsPageUrl)
         }.enterURLAndEnterToBrowser(insecureHttpPage.toUri()) {
@@ -149,7 +150,7 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
         }.togglePrivateBrowsingMode()
         navigationToolbar {
         }.enterURLAndEnterToBrowser(httpPageUrl.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openNavigationToolbar {
             verifyUrl(httpsPageUrl)
         }.enterURLAndEnterToBrowser(insecureHttpPage.toUri()) {
@@ -178,7 +179,7 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
         }
         navigationToolbar {
         }.enterURLAndEnterToBrowser(httpPageUrl.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openNavigationToolbar {
             verifyUrl(httpsPageUrl)
         }.enterURLAndEnterToBrowser(insecureHttpPage.toUri()) {

@@ -14,6 +14,7 @@ import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -80,7 +81,7 @@ class SettingsAdvancedTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(externalLinksPage.url) {
             clickPageObject(playStoreLink)
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             verifyUrl(playStoreUrl)
         }
     }
@@ -108,7 +109,7 @@ class SettingsAdvancedTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(externalLinksPage.url) {
             clickPageObject(playStoreLink)
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             verifyUrl(playStoreUrl)
         }
     }
@@ -288,7 +289,7 @@ class SettingsAdvancedTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser("https://m.youtube.com/".toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             verifyOpenLinksInAppsCFRExists(true)
             clickOpenLinksInAppsDismissCFRButton()
             verifyOpenLinksInAppsCFRExists(false)
@@ -304,7 +305,7 @@ class SettingsAdvancedTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser("https://m.youtube.com/".toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             verifyOpenLinksInAppsCFRExists(true)
         }.clickOpenLinksInAppsGoToSettingsCFRButton {
             verifyOpenLinksInAppsButton()

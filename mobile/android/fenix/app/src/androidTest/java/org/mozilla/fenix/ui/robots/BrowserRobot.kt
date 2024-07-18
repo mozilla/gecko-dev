@@ -74,7 +74,7 @@ import java.time.LocalDate
 class BrowserRobot {
     private lateinit var sessionLoadedIdlingResource: SessionLoadedIdlingResource
 
-    fun waitForPageToLoad() = assertUIObjectIsGone(progressBar())
+    fun waitForPageToLoad(pageLoadWaitingTime: Long = waitingTime) = assertUIObjectIsGone(progressBar(), waitingTime = pageLoadWaitingTime)
 
     fun verifyCurrentPrivateSession(context: Context) {
         val selectedTab = context.components.core.store.state.selectedTab
@@ -877,7 +877,7 @@ class BrowserRobot {
                     browserScreen {
                     }.openThreeDotMenu {
                     }.refreshPage {
-                        waitForPageToLoad()
+                        waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
                         clickPageObject(pageObject)
                     }
                 }
@@ -937,7 +937,7 @@ class BrowserRobot {
                     browserScreen {
                     }.openThreeDotMenu {
                     }.refreshPage {
-                        waitForPageToLoad()
+                        waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
                     }
                 }
             }
@@ -1393,7 +1393,7 @@ fun clickPageObject(item: UiObject) {
                 browserScreen {
                 }.openThreeDotMenu {
                 }.refreshPage {
-                    waitForPageToLoad()
+                    waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
                 }
             }
         }
@@ -1462,7 +1462,7 @@ fun setPageObjectText(webPageItem: UiObject, text: String) {
                 browserScreen {
                 }.openThreeDotMenu {
                 }.refreshPage {
-                    waitForPageToLoad()
+                    waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
                 }
             }
         }

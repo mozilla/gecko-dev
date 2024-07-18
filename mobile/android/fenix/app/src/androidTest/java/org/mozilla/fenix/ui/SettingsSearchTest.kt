@@ -21,6 +21,7 @@ import org.mozilla.fenix.helpers.MockBrowserDataHelper.createBookmarkItem
 import org.mozilla.fenix.helpers.MockBrowserDataHelper.createHistoryItem
 import org.mozilla.fenix.helpers.SearchDispatcher
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.appContext
 import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
@@ -575,7 +576,7 @@ class SettingsSearchTest : TestSetup() {
         }.openNavigationToolbar {
             verifyClipboardSuggestionsAreDisplayed(link, true)
         }.visitLinkFromClipboard {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openTabDrawer(activityTestRule) {
         }.openNewTab {
         }

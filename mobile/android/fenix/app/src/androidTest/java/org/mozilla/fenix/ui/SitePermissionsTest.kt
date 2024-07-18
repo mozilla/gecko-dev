@@ -23,6 +23,7 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MockLocationUpdatesRule
 import org.mozilla.fenix.helpers.RetryTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.appContext
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.browserScreen
@@ -71,7 +72,7 @@ class SitePermissionsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartAudioVideoButton {
             verifyAudioVideoPermissionPrompt(testPageSubstring)
         }.clickPagePermissionButton(false) {
@@ -90,7 +91,7 @@ class SitePermissionsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartAudioVideoButton {
             verifyAudioVideoPermissionPrompt(testPageSubstring)
             selectRememberPermissionDecision()
@@ -98,7 +99,7 @@ class SitePermissionsTest : TestSetup() {
             verifyPageContent("Camera and Microphone not allowed")
         }.openThreeDotMenu {
         }.refreshPage {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartAudioVideoButton { }
         browserScreen {
             verifyPageContent("Camera and Microphone not allowed")
@@ -113,7 +114,7 @@ class SitePermissionsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartAudioVideoButton {
             verifyAudioVideoPermissionPrompt(testPageSubstring)
             selectRememberPermissionDecision()
@@ -121,7 +122,7 @@ class SitePermissionsTest : TestSetup() {
             verifyPageContent("Camera and Microphone allowed")
         }.openThreeDotMenu {
         }.refreshPage {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartAudioVideoButton { }
         browserScreen {
             verifyPageContent("Camera and Microphone allowed")
@@ -135,7 +136,7 @@ class SitePermissionsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton {
             verifyMicrophonePermissionPrompt(testPageSubstring)
         }.clickPagePermissionButton(false) {
@@ -153,7 +154,7 @@ class SitePermissionsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton {
             verifyMicrophonePermissionPrompt(testPageSubstring)
             selectRememberPermissionDecision()
@@ -161,7 +162,7 @@ class SitePermissionsTest : TestSetup() {
             verifyPageContent("Microphone not allowed")
         }.openThreeDotMenu {
         }.refreshPage {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton { }
         browserScreen {
             verifyPageContent("Microphone not allowed")
@@ -175,7 +176,7 @@ class SitePermissionsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton {
             verifyMicrophonePermissionPrompt(testPageSubstring)
             selectRememberPermissionDecision()
@@ -183,7 +184,7 @@ class SitePermissionsTest : TestSetup() {
             verifyPageContent("Microphone allowed")
         }.openThreeDotMenu {
         }.refreshPage {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartMicrophoneButton { }
         browserScreen {
             verifyPageContent("Microphone allowed")
@@ -197,7 +198,7 @@ class SitePermissionsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartCameraButton {
             verifyCameraPermissionPrompt(testPageSubstring)
         }.clickPagePermissionButton(false) {
@@ -215,7 +216,7 @@ class SitePermissionsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartCameraButton {
             verifyCameraPermissionPrompt(testPageSubstring)
             selectRememberPermissionDecision()
@@ -223,7 +224,7 @@ class SitePermissionsTest : TestSetup() {
             verifyPageContent("Camera not allowed")
         }.openThreeDotMenu {
         }.refreshPage {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartCameraButton { }
         browserScreen {
             verifyPageContent("Camera not allowed")
@@ -237,7 +238,7 @@ class SitePermissionsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartCameraButton {
             verifyCameraPermissionPrompt(testPageSubstring)
             selectRememberPermissionDecision()
@@ -245,7 +246,7 @@ class SitePermissionsTest : TestSetup() {
             verifyPageContent("Camera allowed")
         }.openThreeDotMenu {
         }.refreshPage {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickStartCameraButton { }
         browserScreen {
             verifyPageContent("Camera allowed")
@@ -264,7 +265,7 @@ class SitePermissionsTest : TestSetup() {
             verifyPageContent("Notifications not allowed")
         }.openThreeDotMenu {
         }.refreshPage {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.clickOpenNotificationButton {
             verifyNotificationsPermissionPrompt(testPageSubstring, true)
         }

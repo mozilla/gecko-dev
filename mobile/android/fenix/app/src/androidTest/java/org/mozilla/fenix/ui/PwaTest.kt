@@ -10,6 +10,7 @@ import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.clickPageObject
@@ -36,7 +37,7 @@ class PwaTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(externalLinksPWAPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openThreeDotMenu {
         }.clickInstall {
             clickAddAutomaticallyButton()
@@ -54,7 +55,7 @@ class PwaTest : TestSetup() {
     fun appLikeExperiencePWATest() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(externalLinksPWAPage.toUri()) {
-            waitForPageToLoad()
+            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openThreeDotMenu {
         }.clickInstall {
             clickAddAutomaticallyButton()
