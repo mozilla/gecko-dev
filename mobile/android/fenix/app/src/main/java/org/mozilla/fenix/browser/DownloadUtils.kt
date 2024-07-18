@@ -43,7 +43,7 @@ internal fun BaseBrowserFragment.handleOnDownloadFinished(
                 tryAgain = tryAgain,
                 onCannotOpenFile = onCannotOpenFile,
                 binding = binding.viewDynamicDownloadDialog,
-                bottomToolbarHeight = safeContext.settings().getBottomToolbarHeight(),
+                bottomToolbarHeight = safeContext.settings().getBottomToolbarHeight(safeContext),
             ) { sharedViewModel.downloadDialogState.remove(downloadState.sessionId) }
 
             dynamicDownloadDialog.show()

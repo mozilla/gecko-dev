@@ -41,6 +41,7 @@ import org.mozilla.fenix.components.settings.counterPreference
 import org.mozilla.fenix.components.settings.featureFlagPreference
 import org.mozilla.fenix.components.settings.lazyFeatureFlagPreference
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.nimbus.CookieBannersSection
@@ -2053,9 +2054,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      *  - a combination of a navigation and address bar & a microsurvey.
      *  - a combination of address bar & a microsurvey.
      *  - be absent.
+     *
+     *  @param context to be used for [shouldAddNavigationBar] function
      */
-    fun getBottomToolbarHeight(): Int {
-        val isNavbarEnabled = navigationToolbarEnabled
+    fun getBottomToolbarHeight(context: Context): Int {
+        val isNavbarVisible = context.shouldAddNavigationBar()
         val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
         val isToolbarAtBottom = toolbarPosition == ToolbarPosition.BOTTOM
 
@@ -2066,14 +2069,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
             appContext.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
 
         return when {
-            isNavbarEnabled && isMicrosurveyEnabled && isToolbarAtBottom ->
+            isNavbarVisible && isMicrosurveyEnabled && isToolbarAtBottom ->
                 navbarHeight + microsurveyHeight + toolbarHeight
 
-            isNavbarEnabled && isMicrosurveyEnabled -> navbarHeight + microsurveyHeight
-            isNavbarEnabled && isToolbarAtBottom -> navbarHeight + toolbarHeight
+            isNavbarVisible && isMicrosurveyEnabled -> navbarHeight + microsurveyHeight
+            isNavbarVisible && isToolbarAtBottom -> navbarHeight + toolbarHeight
             isMicrosurveyEnabled && isToolbarAtBottom -> microsurveyHeight + toolbarHeight
 
-            isNavbarEnabled -> navbarHeight
+            isNavbarVisible -> navbarHeight
             isMicrosurveyEnabled -> microsurveyHeight
             isToolbarAtBottom -> toolbarHeight
 

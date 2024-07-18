@@ -756,7 +756,7 @@ abstract class BaseBrowserFragment :
             )
         }
 
-        val bottomToolbarHeight = context.settings().getBottomToolbarHeight()
+        val bottomToolbarHeight = context.settings().getBottomToolbarHeight(context)
 
         downloadFeature.onDownloadStopped = { downloadState, _, downloadJobStatus ->
             handleOnDownloadFinished(downloadState, downloadJobStatus, downloadFeature::tryAgain)
@@ -1441,7 +1441,7 @@ abstract class BaseBrowserFragment :
                                             getCurrentTab()?.id,
                                             context.components.core.store,
                                             context,
-                                            context.settings().getBottomToolbarHeight(),
+                                            context.settings().getBottomToolbarHeight(context),
                                         )
                                     },
                                 )
@@ -1600,7 +1600,7 @@ abstract class BaseBrowserFragment :
                                             getCurrentTab()?.id,
                                             context.components.core.store,
                                             context,
-                                            context.settings().getBottomToolbarHeight(),
+                                            context.settings().getBottomToolbarHeight(context),
                                         )
                                     },
                                 )
@@ -1746,7 +1746,7 @@ abstract class BaseBrowserFragment :
                 browserToolbarView.expand()
 
                 val context = requireContext()
-                val bottomToolbarHeight = context.settings().getBottomToolbarHeight()
+                val bottomToolbarHeight = context.settings().getBottomToolbarHeight(context)
                 resumeDownloadDialogState(selectedTab.id, context.components.core.store, context, bottomToolbarHeight)
                 it.announceForAccessibility(selectedTab.toDisplayTitle())
             }
@@ -2114,12 +2114,7 @@ abstract class BaseBrowserFragment :
             if (webAppToolbarShouldBeVisible) {
                 browserToolbarView.visible()
                 _bottomToolbarContainerView?.toolbarContainerView?.isVisible = true
-                initializeEngineView(
-                    topToolbarHeight = requireContext().settings().getTopToolbarHeight(
-                        includeTabStrip = customTabSessionId == null && requireContext().isTabStripEnabled(),
-                    ),
-                    bottomToolbarHeight = requireContext().settings().getBottomToolbarHeight(),
-                )
+                reinitializeEngineView()
                 browserToolbarView.expand()
                 _bottomToolbarContainerView?.toolbarContainerView?.expand()
             }
@@ -2143,6 +2138,7 @@ abstract class BaseBrowserFragment :
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = ::reinitializeMicrosurveyPrompt,
             )
+            reinitializeEngineView()
         }
 
         // If the microsurvey feature is visible, we should update it's state.
@@ -2169,6 +2165,15 @@ abstract class BaseBrowserFragment :
             browserToolbar = browserToolbarView.view,
             view = requireView(),
             context = requireContext(),
+        )
+    }
+
+    private fun reinitializeEngineView() {
+        initializeEngineView(
+            topToolbarHeight = requireContext().settings().getTopToolbarHeight(
+                includeTabStrip = customTabSessionId == null && requireContext().isTabStripEnabled(),
+            ),
+            bottomToolbarHeight = requireContext().settings().getBottomToolbarHeight(requireContext()),
         )
     }
 
