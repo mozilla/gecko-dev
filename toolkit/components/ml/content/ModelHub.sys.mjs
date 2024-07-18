@@ -456,7 +456,12 @@ export class IndexedDBCache {
       request.onerror = event => reject(event.target.error);
       request.onsuccess = event => {
         const cursor = event.target.result;
-        if (cursor?.value.id !== "totalSize") {
+
+        // The `headersStoreName` object store contains one `id` field
+        // which can be `totalSize` (the total size of the stored data)
+        // or a model identifier `model/organization/revision`
+        // When we list models here, we ignore `totalSize`
+        if (cursor && cursor.value.id !== "totalSize") {
           const model = this.parseModelString(cursor.value.id);
           models.push(model);
           cursor.continue();

@@ -25,15 +25,11 @@ async function setupRemoteClient() {
 async function runInferenceProcess(remoteClients) {
   info("Building the egnine process");
 
-  const { PipelineOptions, EngineProcess } = ChromeUtils.importESModule(
+  const { createEngine } = ChromeUtils.importESModule(
     "chrome://global/content/ml/EngineProcess.sys.mjs"
   );
 
-  const options = new PipelineOptions({
-    taskName: "moz-echo",
-  });
-  const engineParent = await EngineProcess.getMLEngineParent();
-  const engine = engineParent.getEngine(options);
+  const engine = await createEngine({ taskName: "moz-echo" });
   const inferencePromise = engine.run({ data: "This gets echoed." });
   await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
   Assert.equal(
