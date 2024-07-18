@@ -773,8 +773,10 @@ static int16_t nsSSLIOLayerPoll(PRFileDesc* fd, int16_t in_flags,
   return result;
 }
 
-nsSSLIOLayerHelpers::nsSSLIOLayerHelpers(uint32_t aTlsFlags)
+nsSSLIOLayerHelpers::nsSSLIOLayerHelpers(PublicOrPrivate aPublicOrPrivate,
+                                         uint32_t aTlsFlags)
     : mVersionFallbackLimit(SSL_LIBRARY_VERSION_TLS_1_0),
+      mPublicOrPrivate(aPublicOrPrivate),
       mutex("nsSSLIOLayerHelpers.mutex"),
       mTlsFlags(aTlsFlags) {}
 
@@ -959,12 +961,10 @@ nsSSLIOLayerHelpers::Observe(nsISupports* aSubject, const char* aTopic,
     if (prefName.EqualsLiteral("security.tls.version.fallback-limit")) {
       loadVersionFallbackLimit();
     } else if (prefName.EqualsLiteral("security.tls.insecure_fallback_hosts")) {
-      // Changes to the allowlist on the public side will update the pref.
-      // Don't propagate the changes to the private side.
-      if (isPublic()) {
-        initInsecureFallbackSites();
-      }
+      initInsecureFallbackSites();
     }
+  } else if (nsCRT::strcmp(aTopic, "last-pb-context-exited") == 0) {
+    clearStoredData();
   }
   return NS_OK;
 }
@@ -1069,8 +1069,18 @@ nsresult nsSSLIOLayerHelpers::Init() {
     initInsecureFallbackSites();
 
     Preferences::AddStrongObserver(this, "security.tls.version.fallback-limit");
-    Preferences::AddStrongObserver(this,
-                                   "security.tls.insecure_fallback_hosts");
+    if (isPublic()) {
+      // Changes to the allowlist on the public side will update the pref.
+      // Don't propagate the changes to the private side.
+      Preferences::AddStrongObserver(this,
+                                     "security.tls.insecure_fallback_hosts");
+    } else {
+      nsCOMPtr<nsIObserverService> obsSvc =
+          mozilla::services::GetObserverService();
+      if (obsSvc) {
+        obsSvc->AddObserver(this, "last-pb-context-exited", false);
+      }
+    }
   } else {
     MOZ_ASSERT(mTlsFlags, "Only per socket version can ignore prefs");
   }
@@ -1131,8 +1141,7 @@ void nsSSLIOLayerHelpers::initInsecureFallbackSites() {
 }
 
 bool nsSSLIOLayerHelpers::isPublic() const {
-  RefPtr<nsSSLIOLayerHelpers> publicHelpers(PublicSSLState()->IOLayerHelpers());
-  return this == publicHelpers;
+  return mPublicOrPrivate == PublicOrPrivate::Public;
 }
 
 class FallbackPrefRemover final : public Runnable {
@@ -1718,7 +1727,8 @@ nsresult nsSSLIOLayerAddToSocket(int32_t family, const char* host, int32_t port,
   SharedSSLState* sharedState = nullptr;
   RefPtr<SharedSSLState> allocatedState;
   if (providerTlsFlags) {
-    allocatedState = new SharedSSLState(providerTlsFlags);
+    allocatedState =
+        new SharedSSLState(PublicOrPrivate::Public, providerTlsFlags);
     sharedState = allocatedState.get();
   } else {
     bool isPrivate = providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE ||

@@ -39,12 +39,15 @@ enum class EchExtensionStatus {
   kReal         // A 'real' ECH Extension was sent
 };
 
+enum class PublicOrPrivate { Public, Private };
+
 class nsSSLIOLayerHelpers : public nsIObserver {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
-  explicit nsSSLIOLayerHelpers(uint32_t aTlsFlags = 0);
+  explicit nsSSLIOLayerHelpers(PublicOrPrivate aPublicOrPrivate,
+                               uint32_t aTlsFlags = 0);
 
   nsresult Init();
   void Cleanup();
@@ -97,6 +100,8 @@ class nsSSLIOLayerHelpers : public nsIObserver {
   uint16_t mVersionFallbackLimit;
 
  private:
+  const PublicOrPrivate mPublicOrPrivate;
+
   mozilla::Mutex mutex MOZ_UNANNOTATED;
   uint32_t mTlsFlags;
 };

@@ -15,7 +15,8 @@ const int16_t PORT = 443;
 
 class psm_TLSIntoleranceTest : public ::testing::Test {
  protected:
-  RefPtr<nsSSLIOLayerHelpers> helpers = new nsSSLIOLayerHelpers(0);
+  RefPtr<nsSSLIOLayerHelpers> helpers =
+      new nsSSLIOLayerHelpers(PublicOrPrivate::Public, 0);
 };
 
 TEST_F(psm_TLSIntoleranceTest, FullFallbackProcess) {

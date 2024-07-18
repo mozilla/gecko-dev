@@ -9,15 +9,14 @@
 
 #include "nsNSSIOLayer.h"
 
-class nsIObserver;
-
 namespace mozilla {
 namespace psm {
 
 class SharedSSLState {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SharedSSLState)
-  explicit SharedSSLState(uint32_t aTlsFlags = 0);
+  explicit SharedSSLState(PublicOrPrivate aPublicOrPrivate,
+                          uint32_t aTlsFlags = 0);
 
   static void GlobalInit();
   static void GlobalCleanup();
@@ -26,16 +25,11 @@ class SharedSSLState {
     return do_AddRef(mIOLayerHelpers);
   }
 
-  // Main-thread only
-  void ResetStoredData();
-  void NotePrivateBrowsingStatus();
-
  private:
   ~SharedSSLState();
 
   void Cleanup();
 
-  nsCOMPtr<nsIObserver> mObserver;
   RefPtr<nsSSLIOLayerHelpers> mIOLayerHelpers;
 };
 

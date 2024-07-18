@@ -25,59 +25,23 @@ namespace mozilla {
 namespace psm {
 
 namespace {
-class PrivateBrowsingObserver : public nsIObserver {
- public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-  explicit PrivateBrowsingObserver(SharedSSLState* aOwner) : mOwner(aOwner) {}
-
- protected:
-  virtual ~PrivateBrowsingObserver() = default;
-
- private:
-  SharedSSLState* mOwner;
-};
-
 SharedSSLState* gPublicState;
 SharedSSLState* gPrivateState;
 }  // namespace
 
-NS_IMPL_ISUPPORTS(PrivateBrowsingObserver, nsIObserver)
-
-NS_IMETHODIMP
-PrivateBrowsingObserver::Observe(nsISupports* aSubject, const char* aTopic,
-                                 const char16_t* aData) {
-  if (!nsCRT::strcmp(aTopic, "last-pb-context-exited")) {
-    mOwner->ResetStoredData();
-  }
-  return NS_OK;
-}
-
-SharedSSLState::SharedSSLState(uint32_t aTlsFlags)
-    : mIOLayerHelpers(new nsSSLIOLayerHelpers(aTlsFlags)) {
+SharedSSLState::SharedSSLState(PublicOrPrivate aPublicOrPrivate,
+                               uint32_t aTlsFlags)
+    : mIOLayerHelpers(new nsSSLIOLayerHelpers(aPublicOrPrivate, aTlsFlags)) {
   mIOLayerHelpers->Init();
 }
 
 SharedSSLState::~SharedSSLState() = default;
 
-void SharedSSLState::NotePrivateBrowsingStatus() {
-  MOZ_ASSERT(NS_IsMainThread(), "Not on main thread");
-  mObserver = new PrivateBrowsingObserver(this);
-  nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
-  obsSvc->AddObserver(mObserver, "last-pb-context-exited", false);
-}
-
-void SharedSSLState::ResetStoredData() {
-  MOZ_ASSERT(NS_IsMainThread(), "Not on main thread");
-  mIOLayerHelpers->clearStoredData();
-}
-
 /*static*/
 void SharedSSLState::GlobalInit() {
   MOZ_ASSERT(NS_IsMainThread(), "Not on main thread");
-  gPublicState = new SharedSSLState();
-  gPrivateState = new SharedSSLState();
-  gPrivateState->NotePrivateBrowsingStatus();
+  gPublicState = new SharedSSLState(PublicOrPrivate::Public);
+  gPrivateState = new SharedSSLState(PublicOrPrivate::Private);
 }
 
 /*static*/
