@@ -317,6 +317,7 @@ static BuiltinModuleFuncId JSStringFuncs[] = {
     BuiltinModuleFuncId::StringEquals,
     BuiltinModuleFuncId::StringCompare};
 static const char* JSStringModuleName = "wasm:js-string";
+static const char* JSStringConstantsModuleName = "'";
 #endif  // ENABLE_WASM_JS_STRING_BUILTINS
 
 Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
@@ -325,6 +326,10 @@ Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
   if (enabledBuiltins.jsString &&
       importName == mozilla::MakeStringSpan(JSStringModuleName)) {
     return Some(BuiltinModuleId::JSString);
+  }
+  if (enabledBuiltins.jsStringConstants &&
+      importName == mozilla::MakeStringSpan(JSStringConstantsModuleName)) {
+    return Some(BuiltinModuleId::JSStringConstants);
   }
 #endif  // ENABLE_WASM_JS_STRING_BUILTINS
   // Not supported for implicit instantiation yet
@@ -335,7 +340,13 @@ Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
 Maybe<const BuiltinModuleFunc*> wasm::ImportMatchesBuiltinModuleFunc(
     mozilla::Span<const char> importName, BuiltinModuleId module) {
 #ifdef ENABLE_WASM_JS_STRING_BUILTINS
-  // Not supported for implicit instantiation yet
+  // Imported string constants don't define any functions
+  if (module == BuiltinModuleId::JSStringConstants) {
+    return Nothing();
+  }
+
+  // Only the wasm:js-string module defines functions at this point, and is
+  // supported by implicit instantiation.
   MOZ_RELEASE_ASSERT(module == BuiltinModuleId::JSString);
   for (BuiltinModuleFuncId funcId : JSStringFuncs) {
     const BuiltinModuleFunc& func = BuiltinModuleFuncs::getFromId(funcId);
@@ -361,6 +372,8 @@ bool wasm::CompileBuiltinModule(JSContext* cx, BuiltinModuleId module,
 #ifdef ENABLE_WASM_JS_STRING_BUILTINS
     case BuiltinModuleId::JSString:
       return CompileBuiltinModule(cx, JSStringFuncs, Nothing(), result);
+    case BuiltinModuleId::JSStringConstants:
+      MOZ_CRASH();
 #endif  // ENABLE_WASM_JS_STRING_BUILTINS
     default:
       MOZ_CRASH();

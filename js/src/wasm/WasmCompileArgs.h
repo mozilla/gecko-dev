@@ -76,7 +76,8 @@ class Tiers {
 struct FeatureOptions {
   FeatureOptions()
       : isBuiltinModule(false),
-        jsStringBuiltins(false)
+        jsStringBuiltins(false),
+        jsStringConstants(false)
 #ifdef ENABLE_WASM_GC
         ,
         requireGC(false)
@@ -93,6 +94,9 @@ struct FeatureOptions {
   // Enable JS String builtins for this module, only available if the feature
   // is also enabled.
   bool jsStringBuiltins;
+  // Enable imported string constants for this module, only available if the
+  // feature is also enabled.
+  bool jsStringConstants;
 
 #ifdef ENABLE_WASM_GC
   // Enable GC support.

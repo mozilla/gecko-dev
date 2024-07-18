@@ -276,6 +276,7 @@
   MACRO_(ignorePunctuation, "ignorePunctuation")                               \
   MACRO_(implements, "implements")                                             \
   MACRO_(import, "import")                                                     \
+  MACRO_(importedStringConstants, "importedStringConstants")                   \
   MACRO2(in, "in")                                                             \
   MACRO_(includes, "includes")                                                 \
   MACRO_(incumbentGlobal, "incumbentGlobal")                                   \

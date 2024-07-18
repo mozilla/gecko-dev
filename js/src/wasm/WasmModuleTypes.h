@@ -87,6 +87,7 @@ struct CacheableName {
   [[nodiscard]] static bool fromUTF8Chars(const char* utf8Chars,
                                           CacheableName* name);
 
+  [[nodiscard]] JSString* toJSString(JSContext* cx) const;
   [[nodiscard]] JSAtom* toAtom(JSContext* cx) const;
   [[nodiscard]] bool toPropertyKey(JSContext* cx,
                                    MutableHandleId propertyKey) const;
