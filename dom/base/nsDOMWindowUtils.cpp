@@ -33,6 +33,7 @@
 #include "mozilla/ScrollContainerFrame.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/SharedStyleSheetCache.h"
+#include "mozilla/dom/SharedScriptCache.h"
 #include "mozilla/StaticPrefs_test.h"
 #include "mozilla/InputTaskManager.h"
 #include "nsIObjectLoadingContent.h"
@@ -1286,6 +1287,12 @@ nsDOMWindowUtils::SuppressAnimation(bool aSuppress) {
 NS_IMETHODIMP
 nsDOMWindowUtils::ClearSharedStyleSheetCache() {
   SharedStyleSheetCache::Clear();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::ClearSharedScriptCache() {
+  SharedScriptCache::Clear();
   return NS_OK;
 }
 

@@ -2701,6 +2701,7 @@ interface nsIDOMWindowUtils extends nsISupports {
   sendNativeTouchpadDoubleTap(aScreenX: i32, aScreenY: i32, aModifierFlags: i32): void;
   sendNativeTouchpadPan(aEventPhase: u32, aScreenX: i32, aScreenY: i32, aDeltaX: double, aDeltaY: double, aModifierFlags: i32, aObserver?: nsIObserver): void;
   clearSharedStyleSheetCache(): void;
+  clearSharedScriptCache(): void;
   readonly parsedStyleSheets: u32;
   activateNativeMenuItemAt(indexString: string): void;
   forceUpdateNativeMenuAt(indexString: string): void;
