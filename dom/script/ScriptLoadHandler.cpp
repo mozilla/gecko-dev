@@ -30,6 +30,7 @@
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
 #include "nsDebug.h"
+#include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsICacheInfoChannel.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
@@ -123,10 +124,27 @@ ScriptLoadHandler::ScriptLoadHandler(
 
 ScriptLoadHandler::~ScriptLoadHandler() = default;
 
-NS_IMPL_ISUPPORTS(ScriptLoadHandler, nsIIncrementalStreamLoaderObserver)
+NS_IMPL_ISUPPORTS(ScriptLoadHandler, nsIIncrementalStreamLoaderObserver,
+                  nsIChannelEventSink, nsIInterfaceRequestor)
+
+static uint32_t CalculateExpirationTime(nsIRequest* aRequest, nsIURI* aURI) {
+  auto info = nsContentUtils::GetSubresourceCacheValidationInfo(aRequest, aURI);
+
+  // For now, we never cache entries that we have to revalidate, or whose
+  // channel don't support caching.
+  if (info.mMustRevalidate || !info.mExpirationTime) {
+    return nsContentUtils::SecondsFromPRTime(PR_Now()) - 1;
+  }
+  return *info.mExpirationTime;
+}
 
 NS_IMETHODIMP
-ScriptLoadHandler::OnStartRequest(nsIRequest* aRequest) { return NS_OK; }
+ScriptLoadHandler::OnStartRequest(nsIRequest* aRequest) {
+  mRequest->SetMinimumExpirationTime(
+      CalculateExpirationTime(aRequest, mRequest->mURI));
+
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 ScriptLoadHandler::OnIncrementalData(nsIIncrementalStreamLoader* aLoader,
@@ -364,6 +382,11 @@ ScriptLoadHandler::OnStreamComplete(nsIIncrementalStreamLoader* aLoader,
   nsCOMPtr<nsIRequest> channelRequest;
   aLoader->GetRequest(getter_AddRefs(channelRequest));
 
+  {
+    nsCOMPtr<nsIChannel> channel = do_QueryInterface(channelRequest);
+    channel->SetNotificationCallbacks(nullptr);
+  }
+
   auto firstMessage = !mPreloadStartNotified;
   if (!mPreloadStartNotified) {
     mPreloadStartNotified = true;
@@ -464,6 +487,26 @@ ScriptLoadHandler::OnStreamComplete(nsIIncrementalStreamLoader* aLoader,
   }
 
   return rv;
+}
+
+NS_IMETHODIMP
+ScriptLoadHandler::GetInterface(const nsIID& aIID, void** aResult) {
+  if (aIID.Equals(NS_GET_IID(nsIChannelEventSink))) {
+    return QueryInterface(aIID, aResult);
+  }
+
+  return NS_NOINTERFACE;
+}
+
+nsresult ScriptLoadHandler::AsyncOnChannelRedirect(
+    nsIChannel* aOld, nsIChannel* aNew, uint32_t aFlags,
+    nsIAsyncVerifyRedirectCallback* aCallback) {
+  mRequest->SetMinimumExpirationTime(
+      CalculateExpirationTime(aOld, mRequest->mURI));
+
+  aCallback->OnRedirectVerifyCallback(NS_OK);
+
+  return NS_OK;
 }
 
 #undef LOG_ENABLED
