@@ -218,6 +218,7 @@ class ScriptLoadRequest : public nsISupports,
   bool HasWorkerLoadContext() const;
 
   mozilla::dom::ScriptLoadContext* GetScriptLoadContext();
+  const mozilla::dom::ScriptLoadContext* GetScriptLoadContext() const;
 
   mozilla::loader::SyncLoadContext* GetSyncLoadContext();
 
