@@ -3,14 +3,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/EndianUtils.h"
-#include "gfx2DGlue.h"
-#include "mozilla/gfx/Swizzle.h"
-
 #include "YCbCrUtils.h"
-#include "yuv_convert.h"
-#include "ycbcr_to_rgb565.h"
+
+#include "gfx2DGlue.h"
 #include "libyuv.h"
+#include "mozilla/EndianUtils.h"
+#include "mozilla/gfx/Swizzle.h"
+#include "ycbcr_to_rgb565.h"
+#include "yuv_convert.h"
 
 namespace mozilla {
 namespace gfx {

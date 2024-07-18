@@ -6,8 +6,8 @@
 #ifndef Y_CB_CR_UTILS_H_
 #define Y_CB_CR_UTILS_H_
 
-#include "mozilla/gfx/Types.h"
 #include "ImageContainer.h"
+#include "mozilla/gfx/Types.h"
 
 namespace mozilla {
 namespace gfx {
