@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<script>
+  function rgb2yuv(r, g, b) {
+    let y = r * .299000 + g * .587000 + b * .114000
+    let u = r * -.168736 + g * -.331264 + b * .500000 + 128
+    let v = r * .500000 + g * -.418688 + b * -.081312 + 128
+
+    y = Math.round(y);
+    u = Math.round(u);
+    v = Math.round(v);
+    return { y, u, v }
+  }
+
+  function ceilingOfHalf(value) {
+    return (value + 1) / 2;
+  }
+
+  function makeI420Frame(width, height, rgbColor) {
+    const yuvColor = rgb2yuv(rgbColor.r, rgbColor.g, rgbColor.b);
+
+    const ySize = width * height;
+    const uSize = ceilingOfHalf(width) * ceilingOfHalf(height);
+    const vSize = uSize;
+
+    const buffer = new Uint8Array(ySize + uSize + vSize);
+    buffer.fill(yuvColor.y, 0, ySize);
+    buffer.fill(yuvColor.u, ySize, ySize + uSize);
+    buffer.fill(yuvColor.v, ySize + uSize, ySize + uSize + vSize);
+
+    const colorSpace = { matrix: "rgb" };
+    const init = {
+      format: 'I420',
+      timestamp: 0,
+      codedWidth: width,
+      codedHeight: height,
+      colorSpace: colorSpace,
+    };
+    return new VideoFrame(buffer, init);
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const width = 4;
+    const height = 2;
+    const red = {r: 0xFF, g: 0x00, b: 0x00};
+
+    const frame = makeI420Frame(width, height, red);
+
+    const options = {
+      rect: { x: 0, y: 0, width: width, height: height },
+      format: "RGBX",
+    };
+    const bufferSize = frame.allocationSize(options);
+    const buffer = new Uint8Array(bufferSize);
+    await frame.copyTo(buffer, options);
+  })
+</script>
