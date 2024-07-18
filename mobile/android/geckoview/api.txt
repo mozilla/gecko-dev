@@ -45,6 +45,7 @@ import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
+import androidx.core.view.WindowInsetsCompat;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.Boolean;
@@ -713,6 +714,7 @@ package org.mozilla.geckoview {
     method @UiThread public boolean shouldPinOnScreen();
     method @UiThread public void surfaceChanged(@NonNull GeckoDisplay.SurfaceInfo);
     method @UiThread public void surfaceDestroyed();
+    method @UiThread public void windowInsetsChanged(@NonNull WindowInsetsCompat);
   }
 
   public static interface GeckoDisplay.NewSurfaceProvider {
