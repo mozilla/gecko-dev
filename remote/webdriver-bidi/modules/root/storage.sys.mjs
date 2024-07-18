@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   deserializeBytesValue:
     "chrome://remote/content/webdriver-bidi/modules/root/network.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   UserContextManager:
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
@@ -255,7 +256,7 @@ class StorageModule extends Module {
     const { cookie: cookieSpec, partition: partitionSpec = null } = options;
     lazy.assert.object(
       cookieSpec,
-      `Expected "cookie" to be an object, got ${cookieSpec}`
+      lazy.pprint`Expected "cookie" to be an object, got ${cookieSpec}`
     );
 
     const {
@@ -325,7 +326,7 @@ class StorageModule extends Module {
   #assertCookie(cookie) {
     lazy.assert.object(
       cookie,
-      `Expected "cookie" to be an object, got ${cookie}`
+      lazy.pprint`Expected "cookie" to be an object, got ${cookie}`
     );
 
     const { domain, expiry, httpOnly, name, path, sameSite, secure, value } =
@@ -333,29 +334,35 @@ class StorageModule extends Module {
 
     lazy.assert.string(
       domain,
-      `Expected "domain" to be a string, got ${domain}`
+      lazy.pprint`Expected cookie "domain" to be a string, got ${domain}`
     );
 
-    lazy.assert.string(name, `Expected "name" to be a string, got ${name}`);
+    lazy.assert.string(
+      name,
+      lazy.pprint`Expected cookie "name" to be a string, got ${name}`
+    );
 
     this.#assertValue(value);
 
     if (expiry !== null) {
       lazy.assert.positiveInteger(
         expiry,
-        `Expected "expiry" to be a positive number, got ${expiry}`
+        lazy.pprint`Expected cookie "expiry" to be a positive integer, got ${expiry}`
       );
     }
 
     if (httpOnly !== null) {
       lazy.assert.boolean(
         httpOnly,
-        `Expected "httpOnly" to be a boolean, got ${httpOnly}`
+        lazy.pprint`Expected cookie "httpOnly" to be a boolean, got ${httpOnly}`
       );
     }
 
     if (path !== null) {
-      lazy.assert.string(path, `Expected "path" to be a string, got ${path}`);
+      lazy.assert.string(
+        path,
+        lazy.pprint`Expected cookie "path" to be a string, got ${path}`
+      );
     }
 
     this.#assertSameSite(sameSite);
@@ -363,7 +370,7 @@ class StorageModule extends Module {
     if (secure !== null) {
       lazy.assert.boolean(
         secure,
-        `Expected "secure" to be a boolean, got ${secure}`
+        lazy.pprint`Expected cookie "secure" to be a boolean, got ${secure}`
       );
     }
   }
@@ -371,7 +378,7 @@ class StorageModule extends Module {
   #assertCookieFilter(filter) {
     lazy.assert.object(
       filter,
-      `Expected "filter" to be an object, got ${filter}`
+      lazy.pprint`Expected "filter" to be an object, got ${filter}`
     );
 
     const {
@@ -389,35 +396,35 @@ class StorageModule extends Module {
     if (domain !== null) {
       lazy.assert.string(
         domain,
-        `Expected "filter.domain" to be a string, got ${domain}`
+        lazy.pprint`Expected filter "domain" to be a string, got ${domain}`
       );
     }
 
     if (expiry !== null) {
       lazy.assert.positiveInteger(
         expiry,
-        `Expected "filter.expiry" to be a positive number, got ${expiry}`
+        lazy.pprint`Expected filter "expiry" to be a positive integer, got ${expiry}`
       );
     }
 
     if (httpOnly !== null) {
       lazy.assert.boolean(
         httpOnly,
-        `Expected "filter.httpOnly" to be a boolean, got ${httpOnly}`
+        lazy.pprint`Expected filter "httpOnly" to be a boolean, got ${httpOnly}`
       );
     }
 
     if (name !== null) {
       lazy.assert.string(
         name,
-        `Expected "filter.name" to be a string, got ${name}`
+        lazy.pprint`Expected filter "name" to be a string, got ${name}`
       );
     }
 
     if (path !== null) {
       lazy.assert.string(
         path,
-        `Expected "filter.path" to be a string, got ${path}`
+        lazy.pprint`Expected filter "path" to be a string, got ${path}`
       );
     }
 
@@ -426,14 +433,14 @@ class StorageModule extends Module {
     if (secure !== null) {
       lazy.assert.boolean(
         secure,
-        `Expected "filter.secure" to be a boolean, got ${secure}`
+        lazy.pprint`Expected filter "secure" to be a boolean, got ${secure}`
       );
     }
 
     if (size !== null) {
       lazy.assert.positiveInteger(
         size,
-        `Expected "filter.size" to be a positive number, got ${size}`
+        lazy.pprint`Expected filter "size" to be a positive integer, got ${size}`
       );
     }
 
@@ -460,13 +467,13 @@ class StorageModule extends Module {
     }
     lazy.assert.object(
       partitionSpec,
-      `Expected "partition" to be an object, got ${partitionSpec}`
+      lazy.pprint`Expected "partition" to be an object, got ${partitionSpec}`
     );
 
     const { type } = partitionSpec;
     lazy.assert.string(
       type,
-      `Expected "partition.type" to be a string, got ${type}`
+      lazy.pprint`Expected partition "type" to be a string, got ${type}`
     );
 
     switch (type) {
@@ -474,7 +481,7 @@ class StorageModule extends Module {
         const { context } = partitionSpec;
         lazy.assert.string(
           context,
-          `Expected "partition.context" to be a string, got ${context}`
+          lazy.pprint`Expected partition "context" to be a string, got ${context}`
         );
 
         break;
@@ -485,23 +492,23 @@ class StorageModule extends Module {
         if (sourceOrigin !== null) {
           lazy.assert.string(
             sourceOrigin,
-            `Expected "partition.sourceOrigin" to be a string, got ${sourceOrigin}`
+            lazy.pprint`Expected partition "sourceOrigin" to be a string, got ${sourceOrigin}`
           );
           lazy.assert.that(
             sourceOrigin => URL.canParse(sourceOrigin),
-            `Expected "partition.sourceOrigin" to be a valid URL, got ${sourceOrigin}`
+            lazy.pprint`Expected partition "sourceOrigin" to be a valid URL, got ${sourceOrigin}`
           )(sourceOrigin);
 
           const url = new URL(sourceOrigin);
           lazy.assert.that(
             url => url.pathname === "/" && url.hash === "" && url.search === "",
-            `Expected "partition.sourceOrigin" to contain only origin, got ${sourceOrigin}`
+            lazy.pprint`Expected partition "sourceOrigin" to contain only origin, got ${sourceOrigin}`
           )(url);
         }
         if (userContext !== null) {
           lazy.assert.string(
             userContext,
-            `Expected "partition.userContext" to be a string, got ${userContext}`
+            lazy.pprint`Expected partition "userContext" to be a string, got ${userContext}`
           );
 
           if (!lazy.UserContextManager.hasUserContextId(userContext)) {
@@ -529,7 +536,7 @@ class StorageModule extends Module {
       lazy.assert.in(
         sameSite,
         sameSiteTypeValue,
-        `Expected "${fieldName}" to be one of ${sameSiteTypeValue}, got ${sameSite}`
+        lazy.pprint`Expected "${fieldName}" to be one of ${sameSiteTypeValue}, got ${sameSite}`
       );
     }
   }
@@ -537,7 +544,7 @@ class StorageModule extends Module {
   #assertValue(value, fieldName = "value") {
     lazy.assert.object(
       value,
-      `Expected "${fieldName}" to be an object, got ${value}`
+      lazy.pprint`Expected "${fieldName}" to be an object, got ${value}`
     );
 
     const { type, value: protocolBytesValue } = value;
@@ -546,12 +553,12 @@ class StorageModule extends Module {
     lazy.assert.in(
       type,
       bytesValueTypeValue,
-      `Expected "${fieldName}.type" to be one of ${bytesValueTypeValue}, got ${type}`
+      lazy.pprint`Expected ${fieldName} "type" to be one of ${bytesValueTypeValue}, got ${type}`
     );
 
     lazy.assert.string(
       protocolBytesValue,
-      `Expected "${fieldName}.value" to be string, got ${protocolBytesValue}`
+      lazy.pprint`Expected ${fieldName} "value" to be string, got ${protocolBytesValue}`
     );
   }
 

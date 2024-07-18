@@ -21,6 +21,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/webdriver-bidi/modules/root/browsingContext.sys.mjs",
   OwnershipModel: "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs",
   PollPromise: "chrome://remote/content/shared/Sync.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
 });
 
 const DOCUMENT_FRAGMENT_NODE = 11;
@@ -528,7 +529,7 @@ class BrowsingContextModule extends WindowGlobalBiDiModule {
             [DOCUMENT_FRAGMENT_NODE, DOCUMENT_NODE, ELEMENT_NODE].includes(
               startNode.nodeType
             ),
-          `Expected an item of "startNodes" to be an Element, got ${startNode}`
+          lazy.pprint`Expected an item of "startNodes" to be an Element, got ${startNode}`
         )(startNode);
 
         contextNodes.push(startNode);

@@ -9,6 +9,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   WindowGlobalMessageHandler:
     "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
@@ -22,7 +23,7 @@ class InputModule extends Module {
 
     lazy.assert.string(
       contextId,
-      `Expected "context" to be a string, got ${contextId}`
+      lazy.pprint`Expected "context" to be a string, got ${contextId}`
     );
 
     const context = lazy.TabManager.getBrowsingContextById(contextId);
@@ -66,7 +67,7 @@ class InputModule extends Module {
 
     lazy.assert.string(
       contextId,
-      `Expected "context" to be a string, got ${contextId}`
+      lazy.pprint`Expected "context" to be a string, got ${contextId}`
     );
 
     const context = lazy.TabManager.getBrowsingContextById(contextId);
@@ -118,7 +119,7 @@ class InputModule extends Module {
 
     lazy.assert.string(
       contextId,
-      `Expected "context" to be a string, got ${contextId}`
+      lazy.pprint`Expected "context" to be a string, got ${contextId}`
     );
 
     const context = lazy.TabManager.getBrowsingContextById(contextId);
@@ -128,12 +129,15 @@ class InputModule extends Module {
       );
     }
 
-    lazy.assert.array(files, `Expected "files" to be an array, got ${files}`);
+    lazy.assert.array(
+      files,
+      lazy.pprint`Expected "files" to be an array, got ${files}`
+    );
 
     for (const file of files) {
       lazy.assert.string(
         file,
-        `Expected an element of "files" to be a string, got ${file}`
+        lazy.pprint`Expected an element of "files" to be a string, got ${file}`
       );
     }
 

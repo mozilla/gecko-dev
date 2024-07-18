@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   permissions: "chrome://remote/content/shared/Permissions.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
   UserContextManager:
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
 });
@@ -74,18 +75,18 @@ class PermissionsModule extends Module {
 
     lazy.assert.string(
       origin,
-      `Expected "origin" to be a string, got ${origin}`
+      lazy.pprint`Expected "origin" to be a string, got ${origin}`
     );
     lazy.assert.that(
       origin => URL.canParse(origin),
-      `Expected "origin" to be a valid URL, got ${origin}`
+      lazy.pprint`Expected "origin" to be a valid URL, got ${origin}`
     )(origin);
 
     let userContext;
     if (userContextId !== null) {
       lazy.assert.string(
         userContextId,
-        `Expected "userContext" to be a string, got ${userContextId}`
+        lazy.pprint`Expected "userContext" to be a string, got ${userContextId}`
       );
 
       if (!lazy.UserContextManager.hasUserContextId(userContextId)) {

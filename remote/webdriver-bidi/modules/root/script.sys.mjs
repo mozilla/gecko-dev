@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
   OwnershipModel: "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
   processExtraData:
     "chrome://remote/content/webdriver-bidi/modules/Intercept.sys.mjs",
   RealmType: "chrome://remote/content/shared/Realm.sys.mjs",
@@ -125,18 +126,18 @@ class ScriptModule extends Module {
     if (contextIds != null) {
       lazy.assert.array(
         contextIds,
-        `Expected "contexts" to be an array, got ${contextIds}`
+        lazy.pprint`Expected "contexts" to be an array, got ${contextIds}`
       );
       lazy.assert.that(
         contexts => !!contexts.length,
-        `Expected "contexts" array to have at least one item, got ${contextIds}`
+        lazy.pprint`Expected "contexts" array to have at least one item, got ${contextIds}`
       )(contextIds);
 
       contexts = new Set();
       for (const contextId of contextIds) {
         lazy.assert.string(
           contextId,
-          `Expected elements of "contexts" to be a string, got ${contextId}`
+          lazy.pprint`Expected elements of "contexts" to be a string, got ${contextId}`
         );
         const context = this.#getBrowsingContext(contextId);
 
@@ -152,31 +153,27 @@ class ScriptModule extends Module {
 
     lazy.assert.string(
       functionDeclaration,
-      `Expected "functionDeclaration" to be a string, got ${functionDeclaration}`
+      lazy.pprint`Expected "functionDeclaration" to be a string, got ${functionDeclaration}`
     );
 
     if (sandbox != null) {
       lazy.assert.string(
         sandbox,
-        `Expected "sandbox" to be a string, got ${sandbox}`
+        lazy.pprint`Expected "sandbox" to be a string, got ${sandbox}`
       );
     }
 
     lazy.assert.array(
       commandArguments,
-      `Expected "arguments" to be an array, got ${commandArguments}`
+      lazy.pprint`Expected "arguments" to be an array, got ${commandArguments}`
     );
-    lazy.assert.that(
-      commandArguments =>
-        commandArguments.every(({ type, value }) => {
-          if (type === "channel") {
-            this.#assertChannelArgument(value);
-            return true;
-          }
-          return false;
-        }),
-      `One of the arguments has an unsupported type, only type "channel" is supported`
-    )(commandArguments);
+    commandArguments.forEach(({ type, value }) => {
+      lazy.assert.that(
+        t => t === "channel",
+        lazy.pprint`Expected argument "type" to be "channel", got ${type}`
+      )(type);
+      this.#assertChannelArgument(value);
+    });
 
     const script = lazy.generateUUID();
     const preloadScript = {
@@ -333,17 +330,17 @@ class ScriptModule extends Module {
 
     lazy.assert.string(
       functionDeclaration,
-      `Expected "functionDeclaration" to be a string, got ${functionDeclaration}`
+      lazy.pprint`Expected "functionDeclaration" to be a string, got ${functionDeclaration}`
     );
 
     lazy.assert.boolean(
       awaitPromise,
-      `Expected "awaitPromise" to be a boolean, got ${awaitPromise}`
+      lazy.pprint`Expected "awaitPromise" to be a boolean, got ${awaitPromise}`
     );
 
     lazy.assert.boolean(
       userActivation,
-      `Expected "userActivation" to be a boolean, got ${userActivation}`
+      lazy.pprint`Expected "userActivation" to be a boolean, got ${userActivation}`
     );
 
     this.#assertResultOwnership(resultOwnership);
@@ -351,7 +348,7 @@ class ScriptModule extends Module {
     if (commandArguments != null) {
       lazy.assert.array(
         commandArguments,
-        `Expected "arguments" to be an array, got ${commandArguments}`
+        lazy.pprint`Expected "arguments" to be an array, got ${commandArguments}`
       );
       commandArguments.forEach(({ type, value }) => {
         if (type === "channel") {
@@ -404,12 +401,12 @@ class ScriptModule extends Module {
 
     lazy.assert.array(
       handles,
-      `Expected "handles" to be an array, got ${handles}`
+      lazy.pprint`Expected "handles" to be an array, got ${handles}`
     );
     handles.forEach(handle => {
       lazy.assert.string(
         handle,
-        `Expected "handles" to be an array of strings, got ${handle}`
+        lazy.pprint`Expected "handles" to be an array of strings, got ${handle}`
       );
     });
 
@@ -472,17 +469,17 @@ class ScriptModule extends Module {
 
     lazy.assert.string(
       source,
-      `Expected "expression" to be a string, got ${source}`
+      lazy.pprint`Expected "expression" to be a string, got ${source}`
     );
 
     lazy.assert.boolean(
       awaitPromise,
-      `Expected "awaitPromise" to be a boolean, got ${awaitPromise}`
+      lazy.pprint`Expected "awaitPromise" to be a boolean, got ${awaitPromise}`
     );
 
     lazy.assert.boolean(
       userActivation,
-      `Expected "userActivation" to be a boolean, got ${userActivation}`
+      lazy.pprint`Expected "userActivation" to be a boolean, got ${userActivation}`
     );
 
     this.#assertResultOwnership(resultOwnership);
@@ -587,7 +584,7 @@ class ScriptModule extends Module {
     if (contextId !== null) {
       lazy.assert.string(
         contextId,
-        `Expected "context" to be a string, got ${contextId}`
+        lazy.pprint`Expected "context" to be a string, got ${contextId}`
       );
       destination.id = this.#getBrowsingContext(contextId).id;
     } else {
@@ -632,7 +629,7 @@ class ScriptModule extends Module {
 
     lazy.assert.string(
       script,
-      `Expected "script" to be a string, got ${script}`
+      lazy.pprint`Expected "script" to be a string, got ${script}`
     );
 
     if (!this.#preloadScriptMap.has(script)) {
@@ -680,20 +677,26 @@ class ScriptModule extends Module {
   }
 
   #assertChannelArgument(value) {
-    lazy.assert.object(value);
+    lazy.assert.object(
+      value,
+      lazy.pprint`Expected channel argument to be an object, got ${value}`
+    );
     const {
       channel,
       ownership = lazy.OwnershipModel.None,
       serializationOptions,
     } = value;
-    lazy.assert.string(channel);
+    lazy.assert.string(
+      channel,
+      lazy.pprint`Expected channel argument "channel" to be a string, got ${channel}`
+    );
     lazy.setDefaultAndAssertSerializationOptions(serializationOptions);
     lazy.assert.that(
       ownership =>
         [lazy.OwnershipModel.None, lazy.OwnershipModel.Root].includes(
           ownership
         ),
-      `Expected "ownership" to be one of ${Object.values(
+      lazy.pprint`Expected channel argument "ownership" to be one of ${Object.values(
         lazy.OwnershipModel
       )}, got ${ownership}`
     )(ownership);
@@ -718,7 +721,7 @@ class ScriptModule extends Module {
   #assertTarget(target) {
     lazy.assert.object(
       target,
-      `Expected "target" to be an object, got ${target}`
+      lazy.pprint`Expected "target" to be an object, got ${target}`
     );
 
     const { context: contextId = null, sandbox = null } = target;
@@ -727,13 +730,13 @@ class ScriptModule extends Module {
     if (contextId != null) {
       lazy.assert.string(
         contextId,
-        `Expected "context" to be a string, got ${contextId}`
+        lazy.pprint`Expected target "context" to be a string, got ${contextId}`
       );
 
       if (sandbox != null) {
         lazy.assert.string(
           sandbox,
-          `Expected "sandbox" to be a string, got ${sandbox}`
+          lazy.pprint`Expected target "sandbox" to be a string, got ${sandbox}`
         );
       }
 
@@ -742,7 +745,7 @@ class ScriptModule extends Module {
     } else if (realmId != null) {
       lazy.assert.string(
         realmId,
-        `Expected "realm" to be a string, got ${realmId}`
+        lazy.pprint`Expected target "realm" to be a string, got ${realmId}`
       );
     } else {
       throw new lazy.error.InvalidArgumentError(`No context or realm provided`);

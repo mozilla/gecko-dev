@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () =>
@@ -136,7 +137,7 @@ function buildSerialized(type, handle = null) {
 function deserializeValueList(serializedValueList, realm, extraOptions) {
   lazy.assert.array(
     serializedValueList,
-    `Expected "serializedValueList" to be an array, got ${serializedValueList}`
+    lazy.pprint`Expected "serializedValueList" to be an array, got ${serializedValueList}`
   );
 
   const deserializedValues = [];
@@ -169,7 +170,7 @@ function deserializeValueList(serializedValueList, realm, extraOptions) {
 function deserializeKeyValueList(serializedKeyValueList, realm, extraOptions) {
   lazy.assert.array(
     serializedKeyValueList,
-    `Expected "serializedKeyValueList" to be an array, got ${serializedKeyValueList}`
+    lazy.pprint`Expected "serializedKeyValueList" to be an array, got ${serializedKeyValueList}`
   );
 
   const deserializedKeyValueList = [];
@@ -268,7 +269,7 @@ export function deserialize(serializedValue, realm, extraOptions) {
   if (sharedId !== undefined) {
     lazy.assert.string(
       sharedId,
-      `Expected "sharedId" to be a string, got ${sharedId}`
+      lazy.pprint`Expected "sharedId" to be a string, got ${sharedId}`
     );
 
     return deserializeSharedReference(sharedId, realm, extraOptions);
@@ -278,7 +279,7 @@ export function deserialize(serializedValue, realm, extraOptions) {
   if (handle !== undefined) {
     lazy.assert.string(
       handle,
-      `Expected "handle" to be a string, got ${handle}`
+      lazy.pprint`Expected "handle" to be a string, got ${handle}`
     );
 
     const object = realm.getObjectForHandle(handle);
@@ -291,7 +292,10 @@ export function deserialize(serializedValue, realm, extraOptions) {
     return object;
   }
 
-  lazy.assert.string(type, `Expected "type" to be a string, got ${type}`);
+  lazy.assert.string(
+    type,
+    lazy.pprint`Expected "type" to be a string, got ${type}`
+  );
 
   // Primitive protocol values
   switch (type) {
@@ -302,7 +306,7 @@ export function deserialize(serializedValue, realm, extraOptions) {
     case "string":
       lazy.assert.string(
         value,
-        `Expected "value" to be a string, got ${value}`
+        lazy.pprint`Expected "value" to be a string, got ${value}`
       );
       return value;
     case "number":
@@ -315,19 +319,19 @@ export function deserialize(serializedValue, realm, extraOptions) {
       lazy.assert.in(
         value,
         ["NaN", "-0", "Infinity", "-Infinity"],
-        `Expected "value" to be one of "NaN", "-0", "Infinity", "-Infinity", got ${value}`
+        lazy.pprint`Expected "value" to be one of "NaN", "-0", "Infinity", "-Infinity", got ${value}`
       );
       return Number(value);
     case "boolean":
       lazy.assert.boolean(
         value,
-        `Expected "value" to be a boolean, got ${value}`
+        lazy.pprint`Expected "value" to be a boolean, got ${value}`
       );
       return value;
     case "bigint":
       lazy.assert.string(
         value,
-        `Expected "value" to be a string, got ${value}`
+        lazy.pprint`Expected "value" to be a string, got ${value}`
       );
       try {
         return BigInt(value);
@@ -377,17 +381,17 @@ export function deserialize(serializedValue, realm, extraOptions) {
     case "regexp":
       lazy.assert.object(
         value,
-        `Expected "value" for RegExp to be an object, got ${value}`
+        lazy.pprint`Expected "value" for RegExp to be an object, got ${value}`
       );
       const { pattern, flags } = value;
       lazy.assert.string(
         pattern,
-        `Expected "pattern" for RegExp to be a string, got ${pattern}`
+        lazy.pprint`Expected "pattern" for RegExp to be a string, got ${pattern}`
       );
       if (flags !== undefined) {
         lazy.assert.string(
           flags,
-          `Expected "flags" for RegExp to be a string, got ${flags}`
+          lazy.pprint`Expected "flags" for RegExp to be a string, got ${flags}`
         );
       }
       try {
@@ -959,7 +963,10 @@ export function setDefaultSerializationOptions(options = {}) {
  *    Serialiation options with default value added.
  */
 export function setDefaultAndAssertSerializationOptions(options = {}) {
-  lazy.assert.object(options);
+  lazy.assert.object(
+    options,
+    lazy.pprint`Expected "options" to be an object, got ${options}`
+  );
 
   const serializationOptions = setDefaultSerializationOptions(options);
 
@@ -967,18 +974,22 @@ export function setDefaultAndAssertSerializationOptions(options = {}) {
     serializationOptions;
 
   if (maxDomDepth !== null) {
-    lazy.assert.positiveInteger(maxDomDepth);
+    lazy.assert.positiveInteger(
+      maxDomDepth,
+      lazy.pprint`Expected "maxDomDepth" to be a positive integer or null, got ${maxDomDepth}`
+    );
   }
   if (maxObjectDepth !== null) {
-    lazy.assert.positiveInteger(maxObjectDepth);
+    lazy.assert.positiveInteger(
+      maxObjectDepth,
+      lazy.pprint`Expected "maxObjectDepth" to be a positive integer or null, got ${maxObjectDepth}`
+    );
   }
   const includeShadowTreeModesValues = Object.values(IncludeShadowTreeMode);
   lazy.assert.that(
     includeShadowTree =>
       includeShadowTreeModesValues.includes(includeShadowTree),
-    `includeShadowTree ${includeShadowTree} doesn't match allowed values "${includeShadowTreeModesValues.join(
-      "/"
-    )}"`
+    lazy.pprint`Expected "includeShadowTree" to be one of ${includeShadowTreeModesValues}, got ${includeShadowTree}`
   )(includeShadowTree);
 
   return serializationOptions;

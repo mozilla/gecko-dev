@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
   processCapabilities:
     "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
   quit: "chrome://remote/content/shared/Browser.sys.mjs",
@@ -173,9 +174,18 @@ export class WebDriverBiDiConnection extends WebSocketConnection {
 
     try {
       // First check for mandatory field in the command packet
-      lazy.assert.positiveInteger(id, "id: unsigned integer value expected");
-      lazy.assert.string(method, "method: string value expected");
-      lazy.assert.object(params, "params: object value expected");
+      lazy.assert.positiveInteger(
+        id,
+        lazy.pprint`Expected "id" to be a postive integer, got ${id}`
+      );
+      lazy.assert.string(
+        method,
+        lazy.pprint`Expected "method" to be a string, got ${method}`
+      );
+      lazy.assert.object(
+        params,
+        lazy.pprint`Expected "params" to be an object, got ${params}`
+      );
 
       // Extract the module and the command name out of `method` attribute
       const { module, command } = splitMethod(method);

@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   getWebDriverSessionById:
     "chrome://remote/content/shared/webdriver/Session.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   UserContextManager:
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
@@ -116,7 +117,7 @@ class BrowserModule extends Module {
 
     lazy.assert.string(
       userContextId,
-      `Expected "userContext" to be a string, got ${userContextId}`
+      lazy.pprint`Expected "userContext" to be a string, got ${userContextId}`
     );
 
     if (userContextId === lazy.UserContextManager.defaultUserContextId) {

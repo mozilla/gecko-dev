@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   getWebDriverSessionById:
     "chrome://remote/content/shared/webdriver/Session.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
   RootMessageHandler:
     "chrome://remote/content/shared/messagehandler/RootMessageHandler.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
@@ -134,16 +135,16 @@ class SessionModule extends Module {
   #assertNonEmptyArrayWithStrings(array, variableName) {
     lazy.assert.array(
       array,
-      `Expected "${variableName}" to be an array, got ${array}`
+      lazy.pprint`Expected "${variableName}" to be an array, got ${array}`
     );
     lazy.assert.that(
       array => !!array.length,
-      `Expected "${variableName}" array to have at least one item`
+      lazy.pprint`Expected "${variableName}" array to have at least one item, got ${array}`
     )(array);
     array.forEach(item => {
       lazy.assert.string(
         item,
-        `Expected elements of "${variableName}" to be a string, got ${item}`
+        lazy.pprint`Expected elements of "${variableName}" to be a string, got ${item}`
       );
     });
   }

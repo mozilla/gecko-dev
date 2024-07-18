@@ -1264,24 +1264,24 @@ class NetworkModule extends Module {
     const deserializedHeaders = [];
     lazy.assert.array(
       headers,
-      `Expected "headers" to be an array got ${headers}`
+      lazy.pprint`Expected "headers" to be an array got ${headers}`
     );
 
     for (const header of headers) {
       this.#assertHeader(
         header,
-        `Expected values in "headers" to be network.Header, got ${header}`
+        lazy.pprint`Expected values in "headers" to be network.Header, got ${header}`
       );
 
       // Deserialize headers immediately to validate the value
       const deserializedHeader = this.#deserializeHeader(header);
       lazy.assert.that(
         value => this.#isValidHttpToken(value),
-        `Expected "header" name to be a valid HTTP token, got ${deserializedHeader[0]}`
+        lazy.pprint`Expected "header" name to be a valid HTTP token, got ${deserializedHeader[0]}`
       )(deserializedHeader[0]);
       lazy.assert.that(
         value => this.#isValidHeaderValue(value),
-        `Expected "header" value to be a valid header value, got ${deserializedHeader[1]}`
+        lazy.pprint`Expected "header" value to be a valid header value, got ${deserializedHeader[1]}`
       )(deserializedHeader[1]);
 
       deserializedHeaders.push(deserializedHeader);
