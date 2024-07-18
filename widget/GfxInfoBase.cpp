@@ -28,7 +28,6 @@
 #include "nsIXULAppInfo.h"
 #include "mozilla/BinarySearch.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/LookAndFeel.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/gfx/2D.h"
@@ -1597,14 +1596,13 @@ static void AppendMonitor(JSContext* aCx, widget::Screen& aScreen,
   JS::Rooted<JS::Value> screenHeight(aCx, JS::Int32Value(screenSize.height));
   JS_SetProperty(aCx, obj, "screenHeight", screenHeight);
 
-  JS::Rooted<JS::Value> defaultCssScaleFactor(
-      aCx,
-      JS::Float32Value(static_cast<float>(aScreen.GetDefaultCSSScaleFactor())));
-  JS_SetProperty(aCx, obj, "defaultCSSScaleFactor", defaultCssScaleFactor);
-
-  JS::Rooted<JS::Value> contentsScaleFactor(
+  // XXX Just preserving behavior since this is exposed to telemetry, but we
+  // could consider including this everywhere.
+#ifdef XP_MACOSX
+  JS::Rooted<JS::Value> scale(
       aCx, JS::NumberValue(aScreen.GetContentsScaleFactor()));
-  JS_SetProperty(aCx, obj, "contentsScaleFactor", contentsScaleFactor);
+  JS_SetProperty(aCx, obj, "scale", scale);
+#endif
 
 #ifdef XP_WIN
   JS::Rooted<JS::Value> refreshRate(aCx,
@@ -2191,12 +2189,6 @@ GfxInfoBase::GetMaxRefreshRate(bool* aMixed) {
   }
 
   return maxRefreshRate > 0 ? maxRefreshRate : -1;
-}
-
-NS_IMETHODIMP
-GfxInfoBase::GetTextScaleFactor(float* aOutValue) {
-  *aOutValue = LookAndFeel::GetTextScaleFactor();
-  return NS_OK;
 }
 
 NS_IMETHODIMP
