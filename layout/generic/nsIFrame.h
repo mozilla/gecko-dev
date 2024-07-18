@@ -3379,6 +3379,9 @@ class nsIFrame : public nsQueryFrame {
     return sLayoutFrameTypes[uint8_t(mClass)];
   }
 
+  /** Return this frame's class id */
+  ClassID GetClassID() const { return mClass; }
+
   /**
    * Get the type flags of the frame.
    *
@@ -5110,7 +5113,7 @@ class nsIFrame : public nsQueryFrame {
   mozilla::WritingMode mWritingMode;
 
   /** The ClassID of the concrete class of this instance. */
-  ClassID mClass;  // 1 byte
+  const ClassID mClass;  // 1 byte
 
   bool mMayHaveRoundedCorners : 1;
 

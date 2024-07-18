@@ -109,7 +109,7 @@ class SVGClipPathFrame final : public SVGContainerFrame {
   // Check if this clipPath is made up of more than one geometry object.
   // If so, the clipping API in cairo isn't enough and we need to use
   // mask based clipping.
-  bool IsTrivial(ISVGDisplayableFrame** aSingleChild = nullptr);
+  bool IsTrivial(nsIFrame** aSingleChild = nullptr);
 
   // nsIFrame interface:
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,

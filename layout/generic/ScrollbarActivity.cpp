@@ -100,8 +100,7 @@ ScrollbarActivity::HandleEvent(dom::Event* aEvent) {
     // of our scroll frame) and we don't want those to activate us.
     nsIFrame* scrollFrame = do_QueryFrame(mScrollableFrame);
     MOZ_ASSERT(scrollFrame);
-    ScrollContainerFrame* scrollContainerFrame =
-        do_QueryFrame(mScrollableFrame);
+    ScrollContainerFrame* scrollContainerFrame = do_QueryFrame(scrollFrame);
     nsCOMPtr<nsIContent> targetContent =
         do_QueryInterface(aEvent->GetOriginalTarget());
     nsIFrame* targetFrame =

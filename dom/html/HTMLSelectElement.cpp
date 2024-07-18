@@ -1261,12 +1261,7 @@ nsMapRuleToAttributesFunc HTMLSelectElement::GetAttributeMappingFunction()
 }
 
 bool HTMLSelectElement::IsDisabledForEvents(WidgetEvent* aEvent) {
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
-  nsIFrame* formFrame = nullptr;
-  if (formControlFrame) {
-    formFrame = do_QueryFrame(formControlFrame);
-  }
-  return IsElementDisabledForEvents(aEvent, formFrame);
+  return IsElementDisabledForEvents(aEvent, GetPrimaryFrame());
 }
 
 void HTMLSelectElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
@@ -1479,10 +1474,8 @@ HTMLSelectElement::SubmitNamesValues(FormData* aFormData) {
 }
 
 void HTMLSelectElement::DispatchContentReset() {
-  if (nsIFormControlFrame* formControlFrame = GetFormControlFrame(false)) {
-    if (nsListControlFrame* listFrame = do_QueryFrame(formControlFrame)) {
-      listFrame->OnContentReset();
-    }
+  if (nsListControlFrame* listFrame = do_QueryFrame(GetPrimaryFrame())) {
+    listFrame->OnContentReset();
   }
 }
 
@@ -1630,8 +1623,7 @@ void HTMLSelectElement::SetUserInteracted(bool aInteracted) {
 void HTMLSelectElement::SetPreviewValue(const nsAString& aValue) {
   mPreviewValue = aValue;
   nsContentUtils::RemoveNewlines(mPreviewValue);
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
-  nsComboboxControlFrame* comboFrame = do_QueryFrame(formControlFrame);
+  nsComboboxControlFrame* comboFrame = do_QueryFrame(GetPrimaryFrame());
   if (comboFrame) {
     comboFrame->RedisplaySelectedText();
   }
