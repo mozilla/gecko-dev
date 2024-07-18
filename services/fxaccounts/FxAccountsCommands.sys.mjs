@@ -26,6 +26,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PushCrypto: "resource://gre/modules/PushCrypto.sys.mjs",
   getRemoteCommandStore: "resource://services-sync/TabsStore.sys.mjs",
   RemoteCommand: "resource://services-sync/TabsStore.sys.mjs",
+  Utils: "resource://services-sync/util.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -40,6 +41,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 const TOPIC_TABS_CHANGED = "services.sync.tabs.changed";
+const COMMAND_MAX_PAYLOAD_SIZE = 16 * 1024;
 
 export class FxAccountsCommands {
   constructor(fxAccountsInternal) {
@@ -534,9 +536,8 @@ export class CloseRemoteTab extends Command {
    * @param {Device} target - Device object (typically returned by fxAccounts.getDevicesList()).
    * @param {String[]} urls - array of urls that should be closed on the remote device
    */
-  async sendCloseTabsCommand(target, urls) {
+  async sendCloseTabsCommand(target, urls, flowID) {
     log.info(`Sending tab closures to ${target.id} device.`);
-    const flowID = this._fxai.telemetry.generateFlowID();
     const encoder = new TextEncoder();
     try {
       const streamID = this._fxai.telemetry.generateFlowID();
@@ -703,39 +704,41 @@ export class CommandQueue {
           continue;
         }
       }
-      // this should be cleaned up a little more to better dispatch to the commands.
-      let toSendCloseTab = [];
-      for (let cmdToSend of toSend) {
-        if (cmdToSend.command instanceof lazy.RemoteCommand.CloseTab) {
-          toSendCloseTab.push(cmdToSend);
-        } else {
-          console.error("Unknown command", cmdToSend);
-          continue;
-        }
-      }
-      if (toSendCloseTab.length) {
-        let urlsToClose = toSendCloseTab.map(c => c.command.url);
-        // XXX - failure should cause a new error handling timer strategy (eg, ideally exponential backoff etc)
-        if (
-          await this._commands.closeTab.sendCloseTabsCommand(
-            device,
-            urlsToClose
-          )
-        ) {
-          // success! Mark them as sent.
-          for (let cmd of toSendCloseTab) {
-            log.trace(
-              `Setting pending command for device ${deviceId} as sent`,
-              cmd
-            );
-            await store.setPendingCommandSent(cmd);
-            didSend = true;
+
+      if (toSend.length) {
+        let urlsToClose = toSend.map(c => c.command.url);
+        // Generate a flowID to use for all chunked commands
+        const flowID = this._fxai.telemetry.generateFlowID();
+        // If we're dealing with large sets of urls, we should split them across
+        // multiple payloads to prevent breaking the issues for the user
+        let chunks = this.chunkUrls(urlsToClose, COMMAND_MAX_PAYLOAD_SIZE);
+        for (let chunk of chunks) {
+          if (
+            await this._commands.closeTab.sendCloseTabsCommand(
+              device,
+              chunk,
+              flowID
+            )
+          ) {
+            // We build a set from the sent urls for faster comparing
+            const urlChunkSet = new Set(chunk);
+            // success! Mark them as sent.
+            for (let cmd of toSend.filter(c =>
+              urlChunkSet.has(c.command.url)
+            )) {
+              log.trace(
+                `Setting pending command for device ${deviceId} as sent`,
+                cmd
+              );
+              await store.setPendingCommandSent(cmd);
+              didSend = true;
+            }
+          } else {
+            // We should investigate a better backoff strategy
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1899433
+            // For now just say 60s.
+            nextTime = Math.min(nextTime, now + 60000);
           }
-        } else {
-          // We should investigate a better backoff strategy
-          // https://bugzilla.mozilla.org/show_bug.cgi?id=1899433
-          // For now just say 60s.
-          nextTime = Math.min(nextTime, now + 60000);
         }
       }
     }
@@ -751,6 +754,31 @@ export class CommandQueue {
       let delay = nextTime - now + 10;
       this._ensureTimer(delay);
     }
+  }
+
+  // Take a an array of urls and a max size and split them into chunks
+  // that are smaller than the passed in max size
+  // Note: This method modifies the passed in array
+  chunkUrls(urls, maxSize) {
+    let chunks = [];
+
+    // For optimal packing, we sort the array of urls from shortest-to-longest
+    urls.sort((a, b) => a.length - b.length);
+
+    while (urls.length) {
+      let chunk = lazy.Utils.tryFitItems(urls, maxSize);
+      if (!chunk.length) {
+        // None of the remaining URLs can fit into a single command
+        urls.forEach(url => {
+          log.warn(`Skipping oversized URL: ${url}`);
+        });
+        break;
+      }
+      chunks.push(chunk);
+      // Remove the processed URLs from the list
+      urls.splice(0, chunk.length);
+    }
+    return chunks;
   }
 
   async _ensureTimer(timeout) {

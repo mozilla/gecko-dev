@@ -362,3 +362,112 @@ add_task(async function test_telemetry_on_sendCloseTabsCommand() {
 
   commandQueue.shutdown();
 });
+
+// Should match the one in the FxAccountsCommands
+const COMMAND_MAX_PAYLOAD_SIZE = 16 * 1024;
+add_task(async function test_closetab_chunking() {
+  const targetDevice = { id: "dev1", name: "Device 1" };
+
+  const fxai = FxaInternalMock([targetDevice]);
+  let fxaCommands = {};
+  const closeTab = (fxaCommands.closeTab = new CloseRemoteTab(
+    fxaCommands,
+    fxai
+  ));
+  const commandQueue = (fxaCommands.commandQueue = new CommandQueue(
+    fxaCommands,
+    fxai
+  ));
+  let commandMock = sinon.mock(closeTab);
+  let queueMock = sinon.mock(commandQueue);
+
+  // freeze "now" to <= when the command was sent.
+  let now = Date.now();
+  commandQueue.now = () => now;
+
+  // Set the delay to 10ms
+  commandQueue.DELAY = 10;
+
+  // Generate a large number of commands to exceed the 16KB payload limit
+  const largeNumberOfCommands = [];
+  for (let i = 0; i < 300; i++) {
+    largeNumberOfCommands.push(
+      new RemoteCommand.CloseTab(
+        `https://example.com/addingsomeextralongstring/tab${i}`
+      )
+    );
+  }
+
+  // Add these commands to the store
+  const store = await getRemoteCommandStore();
+  for (let command of largeNumberOfCommands) {
+    await store.addRemoteCommandAt(targetDevice.id, command, now - 15);
+  }
+
+  const encoder = new TextEncoder();
+  // Calculate expected number of chunks
+  const totalPayloadSize = encoder.encode(
+    JSON.stringify(largeNumberOfCommands.map(cmd => cmd.url))
+  ).byteLength;
+  const expectedChunks = Math.ceil(totalPayloadSize / COMMAND_MAX_PAYLOAD_SIZE);
+
+  let flowIDUsed;
+  let chunksSent = 0;
+  commandMock
+    .expects("sendCloseTabsCommand")
+    .exactly(expectedChunks)
+    .callsFake((device, urls, flowID) => {
+      console.log(
+        "Chunk sent with size:",
+        encoder.encode(JSON.stringify(urls)).length
+      );
+      chunksSent++;
+      if (!flowIDUsed) {
+        flowIDUsed = flowID;
+      } else {
+        Assert.equal(
+          flowID,
+          flowIDUsed,
+          "FlowID should be consistent across chunks"
+        );
+      }
+
+      const chunkSize = encoder.encode(JSON.stringify(urls)).length;
+      Assert.ok(
+        chunkSize <= COMMAND_MAX_PAYLOAD_SIZE,
+        `Chunk size (${chunkSize}) should not exceed max payload size (${COMMAND_MAX_PAYLOAD_SIZE})`
+      );
+
+      return Promise.resolve(true);
+    });
+
+  await commandQueue.flushQueue();
+
+  // Check that all commands have been sent
+  Assert.equal((await store.getUnsentCommands()).length, 0);
+  Assert.equal(
+    chunksSent,
+    expectedChunks,
+    `Should have sent ${expectedChunks} chunks`
+  );
+
+  commandMock.verify();
+  queueMock.verify();
+
+  // Test edge case: URL exceeding max size
+  const oversizedCommand = new RemoteCommand.CloseTab(
+    "https://example.com/" + "a".repeat(COMMAND_MAX_PAYLOAD_SIZE)
+  );
+  await store.addRemoteCommandAt(targetDevice.id, oversizedCommand, now);
+
+  await commandQueue.flushQueue();
+
+  // The oversized command should still be unsent
+  Assert.equal((await store.getUnsentCommands()).length, 1);
+
+  commandMock.verify();
+  queueMock.verify();
+  commandQueue.shutdown();
+  commandMock.restore();
+  queueMock.restore();
+});
