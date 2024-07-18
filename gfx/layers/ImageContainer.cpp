@@ -689,8 +689,9 @@ nsresult PlanarYCbCrImage::BuildSurfaceDescriptorBuffer(
       }
     }
 
-    gfx::ConvertYCbCrToRGB(mData, format, size, buffer, stride);
-    return NS_OK;
+    rv = gfx::ConvertYCbCrToRGB(mData, format, size, buffer, stride);
+    MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to convert YUV into RGB data");
+    return rv;
   }
 
   auto ySize = pdata->YDataSize();
@@ -878,8 +879,11 @@ already_AddRefed<gfx::SourceSurface> PlanarYCbCrImage::GetAsSourceSurface() {
     return nullptr;
   }
 
-  gfx::ConvertYCbCrToRGB(mData, format, size, mapping.GetData(),
-                         mapping.GetStride());
+  if (NS_WARN_IF(NS_FAILED(gfx::ConvertYCbCrToRGB(
+          mData, format, size, mapping.GetData(), mapping.GetStride())))) {
+    MOZ_ASSERT_UNREACHABLE("Failed to convert YUV into RGB data");
+    return nullptr;
+  }
 
   mSourceSurface = surface;
 
@@ -957,8 +961,11 @@ already_AddRefed<SourceSurface> NVImage::GetAsSourceSurface() {
     return nullptr;
   }
 
-  gfx::ConvertYCbCrToRGB(aData, format, size, mapping.GetData(),
-                         mapping.GetStride());
+  if (NS_WARN_IF(NS_FAILED(gfx::ConvertYCbCrToRGB(
+          aData, format, size, mapping.GetData(), mapping.GetStride())))) {
+    MOZ_ASSERT_UNREACHABLE("Failed to convert YUV into RGB data");
+    return nullptr;
+  }
 
   mSourceSurface = surface;
 
@@ -1025,7 +1032,11 @@ nsresult NVImage::BuildSurfaceDescriptorBuffer(
   }
 
   if (!mSourceSurface) {
-    gfx::ConvertYCbCrToRGB(aData, format, size, output, stride);
+    rv = gfx::ConvertYCbCrToRGB(aData, format, size, output, stride);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      MOZ_ASSERT_UNREACHABLE("Failed to convert YUV into RGB data");
+      return rv;
+    }
     return NS_OK;
   }
 

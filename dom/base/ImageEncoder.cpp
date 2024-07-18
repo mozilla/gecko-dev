@@ -366,8 +366,12 @@ nsresult ImageEncoder::ExtractDataInternal(
       }
       data.SetCapacity(length);
 
-      ConvertYCbCrToRGB(*ycbcrImage->GetData(), format, aSize.ToUnknownSize(),
-                        data.Elements(), stride);
+      rv = ConvertYCbCrToRGB(*ycbcrImage->GetData(), format,
+                             aSize.ToUnknownSize(), data.Elements(), stride);
+      if (NS_FAILED(rv)) {
+        MOZ_ASSERT_UNREACHABLE("Failed to convert YUV into RGB data");
+        return rv;
+      }
 
       rv = aEncoder->InitFromData(data.Elements(),
                                   aSize.width * aSize.height * 4, aSize.width,

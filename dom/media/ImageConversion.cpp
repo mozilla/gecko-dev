@@ -275,8 +275,12 @@ nsresult ConvertToRGBA(Image* aImage, const SurfaceFormat& aDestFormat,
       }
     }
 
-    ConvertYCbCrToRGB32(*data, convertedFormat, aDestBuffer,
-                        AssertedCast<int32_t>(aDestStride), premultOp);
+    nsresult result =
+        ConvertYCbCrToRGB32(*data, convertedFormat, aDestBuffer,
+                            AssertedCast<int32_t>(aDestStride), premultOp);
+    if (NS_FAILED(result)) {
+      return result;
+    }
 
     if (convertedFormat == aDestFormat) {
       return NS_OK;

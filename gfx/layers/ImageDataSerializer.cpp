@@ -9,6 +9,7 @@
 #include "YCbCrUtils.h"           // for YCbCr conversions
 #include "gfx2DGlue.h"            // for SurfaceFormatToImageFormat
 #include "mozilla/Assertions.h"   // for MOZ_ASSERT, etc
+#include "mozilla/DebugOnly.h"    // for DebugOnly
 #include "mozilla/gfx/2D.h"       // for DataSourceSurface, Factory
 #include "mozilla/gfx/Logging.h"  // for gfxDebug
 #include "mozilla/gfx/Tools.h"    // for GetAlignedStride, etc
@@ -319,8 +320,12 @@ already_AddRefed<DataSourceSurface> DataSourceSurfaceFromYCbCrDescriptor(
   ycbcrData.mColorDepth = aDescriptor.colorDepth();
   ycbcrData.mChromaSubsampling = aDescriptor.chromaSubsampling();
 
-  gfx::ConvertYCbCrToRGB(ycbcrData, gfx::SurfaceFormat::B8G8R8X8, size,
-                         map.mData, map.mStride);
+  if (NS_WARN_IF(NS_FAILED(
+          gfx::ConvertYCbCrToRGB(ycbcrData, gfx::SurfaceFormat::B8G8R8X8, size,
+                                 map.mData, map.mStride)))) {
+    MOZ_ASSERT_UNREACHABLE("Failed to convert YUV into RGB data");
+    return nullptr;
+  }
 
   result->Unmap();
   return result.forget();
@@ -345,8 +350,9 @@ void ConvertAndScaleFromYCbCrDescriptor(uint8_t* aBuffer,
   ycbcrData.mColorDepth = aDescriptor.colorDepth();
   ycbcrData.mChromaSubsampling = aDescriptor.chromaSubsampling();
 
-  gfx::ConvertYCbCrToRGB(ycbcrData, aDestFormat, aDestSize, aDestBuffer,
-                         aStride);
+  DebugOnly<nsresult> result = gfx::ConvertYCbCrToRGB(
+      ycbcrData, aDestFormat, aDestSize, aDestBuffer, aStride);
+  MOZ_ASSERT(NS_SUCCEEDED(result), "Failed to convert YUV into RGB data");
 }
 
 gfx::IntSize GetCroppedCbCrSize(const YCbCrDescriptor& aDescriptor) {

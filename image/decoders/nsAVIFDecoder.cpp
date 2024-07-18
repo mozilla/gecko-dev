@@ -1922,8 +1922,9 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
           ("[this=%p] calling gfx::ConvertYCbCrToRGB32 premultOp: %p", this,
            premultOp));
-  gfx::ConvertYCbCrToRGB32(*decodedData, format, rgbBuf.get(),
-                           rgbStride.value(), premultOp);
+  DebugOnly<nsresult> result = gfx::ConvertYCbCrToRGB32(
+      *decodedData, format, rgbBuf.get(), rgbStride.value(), premultOp);
+  MOZ_ASSERT(NS_SUCCEEDED(result), "Failed to convert YUV into RGB data");
 
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
           ("[this=%p] calling SurfacePipeFactory::CreateSurfacePipe", this));

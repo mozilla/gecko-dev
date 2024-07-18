@@ -72,8 +72,13 @@ static nsresult CopyFromLockedMacIOSurface(MacIOSurface* aSurface,
                                                : gfx::ColorRange::LIMITED;
     data.mChromaSubsampling = ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
 
-    ConvertYCbCrToRGB(data, SurfaceFormat::B8G8R8X8, aSize, aData, aStride);
-  } else if (ioFormat == SurfaceFormat::YUV422) {
+    nsresult result =
+        ConvertYCbCrToRGB(data, SurfaceFormat::B8G8R8X8, aSize, aData, aStride);
+    MOZ_ASSERT(NS_SUCCEEDED(result), "Failed to convert YUV into RGB data");
+    return result;
+  }
+
+  if (ioFormat == SurfaceFormat::YUV422) {
     if (aSize.width == ALIGNED_32(aSize.width)) {
       // Optimization when width is aligned to 32.
       libyuv::ConvertToARGB((uint8_t*)aSurface->GetBaseAddress(),
@@ -135,7 +140,10 @@ static nsresult CopyFromLockedMacIOSurface(MacIOSurface* aSurface,
                                                  : gfx::ColorRange::LIMITED;
       data.mChromaSubsampling = ChromaSubsampling::HALF_WIDTH;
 
-      ConvertYCbCrToRGB(data, SurfaceFormat::B8G8R8X8, aSize, aData, aStride);
+      nsresult result = ConvertYCbCrToRGB(data, SurfaceFormat::B8G8R8X8, aSize,
+                                          aData, aStride);
+      MOZ_ASSERT(NS_SUCCEEDED(result), "Failed to convert YUV into RGB data");
+      return result;
     }
   } else {
     unsigned char* ioData = (unsigned char*)aSurface->GetBaseAddress();

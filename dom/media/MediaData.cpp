@@ -448,12 +448,16 @@ already_AddRefed<VideoData> VideoData::CreateAndCopyData(
 
   // The naming convention for libyuv and associated utils is word-order.
   // The naming convention in the gfx stack is byte-order.
-  ConvertI420AlphaToARGB(aBuffer.mPlanes[0].mData, aBuffer.mPlanes[1].mData,
-                         aBuffer.mPlanes[2].mData, aAlphaPlane.mData,
-                         AssertedCast<int>(aBuffer.mPlanes[0].mStride),
-                         AssertedCast<int>(aBuffer.mPlanes[1].mStride),
-                         buffer.data, buffer.stride, buffer.size.width,
-                         buffer.size.height);
+  nsresult result = ConvertI420AlphaToARGB(
+      aBuffer.mPlanes[0].mData, aBuffer.mPlanes[1].mData,
+      aBuffer.mPlanes[2].mData, aAlphaPlane.mData,
+      AssertedCast<int>(aBuffer.mPlanes[0].mStride),
+      AssertedCast<int>(aBuffer.mPlanes[1].mStride), buffer.data, buffer.stride,
+      buffer.size.width, buffer.size.height);
+  if (NS_FAILED(result)) {
+    MOZ_ASSERT_UNREACHABLE("Failed to convert I420 YUVA into RGBA data");
+    return nullptr;
+  }
 
   return v.forget();
 }
