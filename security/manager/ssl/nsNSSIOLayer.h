@@ -54,11 +54,6 @@ class nsSSLIOLayerHelpers {
   static PRIOMethods nsSSLIOLayerMethods;
   static PRIOMethods nsSSLPlaintextLayerMethods;
 
-  bool mTreatUnsafeNegotiationAsBroken;
-
-  void setTreatUnsafeNegotiationAsBroken(bool broken);
-  bool treatUnsafeNegotiationAsBroken();
-
  private:
   struct IntoleranceEntry {
     uint16_t tolerant;

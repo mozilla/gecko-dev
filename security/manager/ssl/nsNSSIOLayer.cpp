@@ -771,8 +771,7 @@ static int16_t nsSSLIOLayerPoll(PRFileDesc* fd, int16_t in_flags,
 }
 
 nsSSLIOLayerHelpers::nsSSLIOLayerHelpers(uint32_t aTlsFlags)
-    : mTreatUnsafeNegotiationAsBroken(false),
-      mVersionFallbackLimit(SSL_LIBRARY_VERSION_TLS_1_0),
+    : mVersionFallbackLimit(SSL_LIBRARY_VERSION_TLS_1_0),
       mutex("nsSSLIOLayerHelpers.mutex"),
       mTlsFlags(aTlsFlags) {}
 
@@ -971,13 +970,7 @@ PrefObserver::Observe(nsISupports* aSubject, const char* aTopic,
   if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
     NS_ConvertUTF16toUTF8 prefName(someData);
 
-    if (prefName.EqualsLiteral(
-            "security.ssl.treat_unsafe_negotiation_as_broken")) {
-      bool enabled;
-      Preferences::GetBool("security.ssl.treat_unsafe_negotiation_as_broken",
-                           &enabled);
-      mOwner->setTreatUnsafeNegotiationAsBroken(enabled);
-    } else if (prefName.EqualsLiteral("security.tls.version.fallback-limit")) {
+    if (prefName.EqualsLiteral("security.tls.version.fallback-limit")) {
       mOwner->loadVersionFallbackLimit();
     } else if (prefName.EqualsLiteral("security.tls.insecure_fallback_hosts")) {
       // Changes to the allowlist on the public side will update the pref.
@@ -1010,8 +1003,6 @@ nsSSLIOLayerHelpers::~nsSSLIOLayerHelpers() {
   // mPrefObserver will only be set if this->Init was called. The GTest tests
   // do not call Init.
   if (mPrefObserver) {
-    Preferences::RemoveObserver(
-        mPrefObserver, "security.ssl.treat_unsafe_negotiation_as_broken");
     Preferences::RemoveObserver(mPrefObserver,
                                 "security.tls.version.fallback-limit");
     Preferences::RemoveObserver(mPrefObserver,
@@ -1095,16 +1086,9 @@ nsresult nsSSLIOLayerHelpers::Init() {
 
   // non main thread helpers will need to use defaults
   if (NS_IsMainThread()) {
-    bool enabled = false;
-    Preferences::GetBool("security.ssl.treat_unsafe_negotiation_as_broken",
-                         &enabled);
-    setTreatUnsafeNegotiationAsBroken(enabled);
-
     initInsecureFallbackSites();
 
     mPrefObserver = new PrefObserver(this);
-    Preferences::AddStrongObserver(
-        mPrefObserver, "security.ssl.treat_unsafe_negotiation_as_broken");
     Preferences::AddStrongObserver(mPrefObserver,
                                    "security.tls.version.fallback-limit");
     Preferences::AddStrongObserver(mPrefObserver,
@@ -1118,12 +1102,7 @@ nsresult nsSSLIOLayerHelpers::Init() {
 
 void nsSSLIOLayerHelpers::loadVersionFallbackLimit() {
   // see nsNSSComponent::SetEnabledTLSVersions for pref handling rules
-  uint32_t limit = 3;  // TLS 1.2
-
-  if (NS_IsMainThread()) {
-    limit = Preferences::GetUint("security.tls.version.fallback-limit",
-                                 3);  // 3 = TLS 1.2
-  }
+  uint32_t limit = StaticPrefs::security_tls_version_fallback_limit();
 
   // set fallback limit if it is set in the tls flags
   uint32_t tlsFlagsFallbackLimit = getTLSProviderFlagFallbackLimit(mTlsFlags);
@@ -1231,16 +1210,6 @@ void nsSSLIOLayerHelpers::removeInsecureFallbackSite(const nsACString& hostname,
 bool nsSSLIOLayerHelpers::isInsecureFallbackSite(const nsACString& hostname) {
   MutexAutoLock lock(mutex);
   return mInsecureFallbackSites.Contains(hostname);
-}
-
-void nsSSLIOLayerHelpers::setTreatUnsafeNegotiationAsBroken(bool broken) {
-  MutexAutoLock lock(mutex);
-  mTreatUnsafeNegotiationAsBroken = broken;
-}
-
-bool nsSSLIOLayerHelpers::treatUnsafeNegotiationAsBroken() {
-  MutexAutoLock lock(mutex);
-  return mTreatUnsafeNegotiationAsBroken;
 }
 
 nsresult nsSSLIOLayerNewSocket(int32_t family, const char* host, int32_t port,

@@ -19,6 +19,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Span.h"
 #include "mozilla/SpinEventLoopUntil.h"
+#include "mozilla/StaticPrefs_security.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/intl/Localization.h"
@@ -1086,8 +1087,9 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
     // TLS 1.3 dropped support for renegotiation.
     siteSupportsSafeRenego = true;
   }
-  bool renegotiationUnsafe = !siteSupportsSafeRenego &&
-                             ioLayerHelpers.treatUnsafeNegotiationAsBroken();
+  bool renegotiationUnsafe =
+      !siteSupportsSafeRenego &&
+      StaticPrefs::security_ssl_treat_unsafe_negotiation_as_broken();
 
   bool deprecatedTlsVer =
       (channelInfo.protocolVersion < SSL_LIBRARY_VERSION_TLS_1_2);
