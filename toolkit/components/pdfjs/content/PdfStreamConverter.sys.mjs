@@ -512,6 +512,13 @@ class ChromeActions {
     });
   }
 
+  async setPreferences(data, sendResponse) {
+    const actor = getActor(this.domWindow);
+    await actor?.sendQuery("PDFJS:Parent:setPreferences", data);
+
+    sendResponse(null);
+  }
+
   /**
    * Set the different editor states in order to be able to update the context
    * menu.

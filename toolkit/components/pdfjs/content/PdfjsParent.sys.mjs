@@ -57,6 +57,8 @@ let gFindTypes = [
 ];
 
 export class PdfjsParent extends JSWindowActorParent {
+  #mutablePreferences = new Set(["enableAltText"]);
+
   constructor() {
     super();
     this._boundToFindbar = null;
@@ -83,6 +85,8 @@ export class PdfjsParent extends JSWindowActorParent {
         return this._reportTelemetry(aMsg);
       case "PDFJS:Parent:mlGuess":
         return this._mlGuess(aMsg);
+      case "PDFJS:Parent:setPreferences":
+        return this._setPreferences(aMsg);
     }
     return undefined;
   }
@@ -93,6 +97,35 @@ export class PdfjsParent extends JSWindowActorParent {
 
   get browser() {
     return this.browsingContext.top.embedderElement;
+  }
+
+  _setPreferences({ data }) {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+    const branch = Services.prefs.getBranch("pdfjs.");
+    for (const [key, value] of Object.entries(data)) {
+      if (!this.#mutablePreferences.has(key)) {
+        continue;
+      }
+      switch (branch.getPrefType(key)) {
+        case Services.prefs.PREF_STRING:
+          if (typeof value === "string") {
+            branch.setStringPref(key, value);
+          }
+          break;
+        case Services.prefs.PREF_INT:
+          if (Number.isInteger(value)) {
+            branch.setIntPref(key, value);
+          }
+          break;
+        case Services.prefs.PREF_BOOL:
+          if (typeof value === "boolean") {
+            branch.setBoolPref(key, value);
+          }
+          break;
+      }
+    }
   }
 
   _recordExposure() {

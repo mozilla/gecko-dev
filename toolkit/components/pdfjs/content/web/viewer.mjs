@@ -1486,7 +1486,13 @@ class BasePreferences {
     throw new Error("Please use `about:config` to change preferences.");
   }
   async set(name, value) {
-    throw new Error("Please use `about:config` to change preferences.");
+    await this.#initializedPromise;
+    AppOptions.setAll({
+      [name]: value
+    }, true);
+    await this._writeToStorage({
+      [name]: AppOptions.get(name)
+    });
   }
   async get(name) {
     throw new Error("Not implemented: get");
@@ -1677,6 +1683,9 @@ class DownloadManager {
 class Preferences extends BasePreferences {
   async _readFromStorage(prefObj) {
     return FirefoxCom.requestAsync("getPreferences", prefObj);
+  }
+  async _writeToStorage(prefObj) {
+    return FirefoxCom.requestAsync("setPreferences", prefObj);
   }
 }
 (function listenFindEvents() {
