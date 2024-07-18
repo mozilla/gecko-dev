@@ -47,6 +47,8 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -206,7 +208,7 @@ class CustomTabsToolbarFeatureTest {
     }
 
     @Test
-    fun `initialize does not update toolbar background if flag is set`() {
+    fun `initialize does not update toolbar colors if this functionality is disabled`() {
         val tab = createCustomTab(
             "https://www.mozilla.org",
             id = "mozilla",
@@ -230,6 +232,7 @@ class CustomTabsToolbarFeatureTest {
         val window: Window = mock()
         `when`(window.decorView).thenReturn(mock())
         `when`(window.insetsController).thenReturn(mock())
+        val initialDisplayToolbarColors = toolbar.display.colors
 
         run {
             val feature = CustomTabsToolbarFeature(
@@ -238,12 +241,15 @@ class CustomTabsToolbarFeatureTest {
                 sessionId = "mozilla",
                 useCases = useCases,
                 window = window,
-                updateTheme = false,
+                customTabsColorsConfig = CustomTabsColorsConfig(
+                    updateToolbarsColor = false,
+                ),
             ) {}
 
             feature.init(tab.config)
 
             verify(toolbar, never()).setBackgroundColor(Color.RED)
+            assertSame(initialDisplayToolbarColors, toolbar.display.colors)
         }
 
         run {
@@ -253,12 +259,189 @@ class CustomTabsToolbarFeatureTest {
                 sessionId = "mozilla",
                 useCases = useCases,
                 window = window,
-                updateTheme = true,
+                customTabsColorsConfig = CustomTabsColorsConfig(
+                    updateToolbarsColor = true,
+                ),
             ) {}
 
             feature.init(tab.config)
 
             verify(toolbar).setBackgroundColor(Color.RED)
+            assertNotSame(initialDisplayToolbarColors, toolbar.display.colors)
+        }
+    }
+
+    @Test
+    fun `GIVEN changing the status bar color is enabled WHEN customizing the UI for a custom tab THEN change the status bar color`() {
+        val tab = createCustomTab(
+            "https://www.mozilla.org",
+            id = "mozilla",
+            config = CustomTabConfig(
+                colorSchemes = ColorSchemes(
+                    defaultColorSchemeParams = ColorSchemeParams(toolbarColor = Color.GREEN),
+                ),
+            ),
+        )
+        val store = BrowserStore(
+            BrowserState(
+                customTabs = listOf(tab),
+            ),
+        )
+        val toolbar = BrowserToolbar(testContext)
+        val useCases = CustomTabsUseCases(
+            store = store,
+            loadUrlUseCase = SessionUseCases(store).loadUrl,
+        )
+        val window: Window = mock()
+        `when`(window.decorView).thenReturn(mock())
+        `when`(window.insetsController).thenReturn(mock())
+
+        run {
+            val feature = CustomTabsToolbarFeature(
+                store,
+                toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+                window = window,
+                customTabsColorsConfig = CustomTabsColorsConfig(
+                    updateStatusBarColor = true,
+                ),
+            ) {}
+
+            feature.init(tab.config)
+
+            verify(window).statusBarColor = Color.GREEN
+        }
+    }
+
+    @Test
+    fun `GIVEN changing the status bar color is disabled WHEN customizing the UI for a custom tab THEN don't change the status bar color`() {
+        val tab = createCustomTab(
+            "https://www.mozilla.org",
+            id = "mozilla",
+            config = CustomTabConfig(
+                colorSchemes = ColorSchemes(
+                    defaultColorSchemeParams = ColorSchemeParams(toolbarColor = Color.GREEN),
+                ),
+            ),
+        )
+        val store = BrowserStore(
+            BrowserState(
+                customTabs = listOf(tab),
+            ),
+        )
+        val toolbar = BrowserToolbar(testContext)
+        val useCases = CustomTabsUseCases(
+            store = store,
+            loadUrlUseCase = SessionUseCases(store).loadUrl,
+        )
+        val window: Window = mock()
+        `when`(window.decorView).thenReturn(mock())
+        `when`(window.insetsController).thenReturn(mock())
+
+        run {
+            val feature = CustomTabsToolbarFeature(
+                store,
+                toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+                window = window,
+                customTabsColorsConfig = CustomTabsColorsConfig(
+                    updateStatusBarColor = false,
+                ),
+            ) {}
+
+            feature.init(tab.config)
+
+            verify(window, never()).statusBarColor = Color.GREEN
+        }
+    }
+
+    @Test
+    fun `GIVEN changing the system navigation bar color is enabled WHEN customizing the UI for a custom tab THEN change the system navigation bar color`() {
+        val tab = createCustomTab(
+            "https://www.mozilla.org",
+            id = "mozilla",
+            config = CustomTabConfig(
+                colorSchemes = ColorSchemes(
+                    defaultColorSchemeParams = ColorSchemeParams(toolbarColor = Color.BLUE),
+                ),
+            ),
+        )
+
+        val store = BrowserStore(
+            BrowserState(
+                customTabs = listOf(tab),
+            ),
+        )
+        val toolbar = BrowserToolbar(testContext)
+        val useCases = CustomTabsUseCases(
+            store = store,
+            loadUrlUseCase = SessionUseCases(store).loadUrl,
+        )
+        val window: Window = mock()
+        `when`(window.decorView).thenReturn(mock())
+        `when`(window.insetsController).thenReturn(mock())
+
+        run {
+            val feature = CustomTabsToolbarFeature(
+                store,
+                toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+                window = window,
+                customTabsColorsConfig = CustomTabsColorsConfig(
+                    updateSystemNavigationBarColor = true,
+                ),
+            ) {}
+
+            feature.init(tab.config)
+
+            verify(window).navigationBarColor = Color.BLUE
+        }
+    }
+
+    @Test
+    fun `GIVEN changing the system navigation bar color is disabled WHEN customizing the UI for a custom tab THEN don't change the system navigation bar color`() {
+        val tab = createCustomTab(
+            "https://www.mozilla.org",
+            id = "mozilla",
+            config = CustomTabConfig(
+                colorSchemes = ColorSchemes(
+                    defaultColorSchemeParams = ColorSchemeParams(toolbarColor = Color.BLUE),
+                ),
+            ),
+        )
+
+        val store = BrowserStore(
+            BrowserState(
+                customTabs = listOf(tab),
+            ),
+        )
+        val toolbar = BrowserToolbar(testContext)
+        val useCases = CustomTabsUseCases(
+            store = store,
+            loadUrlUseCase = SessionUseCases(store).loadUrl,
+        )
+        val window: Window = mock()
+        `when`(window.decorView).thenReturn(mock())
+        `when`(window.insetsController).thenReturn(mock())
+
+        run {
+            val feature = CustomTabsToolbarFeature(
+                store,
+                toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+                window = window,
+                customTabsColorsConfig = CustomTabsColorsConfig(
+                    updateSystemNavigationBarColor = false,
+                ),
+            ) {}
+
+            feature.init(tab.config)
+
+            verify(window, never()).navigationBarColor = Color.BLUE
         }
     }
 
@@ -1271,6 +1454,77 @@ class CustomTabsToolbarFeatureTest {
     }
 
     @Test
+    fun `GIVEN the close button has enabled customization WHEN needing to show the close button THEN use the provided icon`() {
+        val customCloseIcon: Bitmap = mock()
+        val tab = createCustomTab(
+            "https://www.mozilla.org",
+            id = "mozilla",
+            config = CustomTabConfig(
+                closeButtonIcon = customCloseIcon,
+            ),
+        )
+        val store = BrowserStore(
+            BrowserState(
+                customTabs = listOf(tab),
+            ),
+        )
+        val toolbar = BrowserToolbar(testContext)
+        val useCases = CustomTabsUseCases(
+            store = store,
+            loadUrlUseCase = SessionUseCases(store).loadUrl,
+        )
+        val feature = spy(
+            CustomTabsToolbarFeature(
+                store,
+                toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+            ) {},
+        )
+
+        feature.start()
+
+        verify(feature).addCloseButton(toolbar.display.colors.menu, customCloseIcon)
+    }
+
+    @Test
+    fun `GIVEN the close button has disabled customization WHEN needing to show the close button THEN use the default icon`() {
+        val customCloseIcon: Bitmap = mock()
+        val tab = createCustomTab(
+            "https://www.mozilla.org",
+            id = "mozilla",
+            config = CustomTabConfig(
+                closeButtonIcon = customCloseIcon,
+            ),
+        )
+        val store = BrowserStore(
+            BrowserState(
+                customTabs = listOf(tab),
+            ),
+        )
+        val toolbar = BrowserToolbar(testContext)
+        val useCases = CustomTabsUseCases(
+            store = store,
+            loadUrlUseCase = SessionUseCases(store).loadUrl,
+        )
+        val feature = spy(
+            CustomTabsToolbarFeature(
+                store,
+                toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+                customTabsToolbarButtonConfig = CustomTabsToolbarButtonConfig(
+                    allowCustomizingCloseButton = false,
+                ),
+            ) {},
+        )
+
+        feature.start()
+
+        verify(feature).addCloseButton(toolbar.display.colors.menu, null)
+    }
+
+    @Test
     fun `WHEN tab is private THEN readableColor is the default private color`() {
         val tab = createCustomTab(
             "https://www.mozilla.org",
@@ -1295,7 +1549,7 @@ class CustomTabsToolbarFeatureTest {
                 useCases = useCases,
                 menuBuilder = BrowserMenuBuilder(listOf(mock(), mock())),
                 menuItemIndex = 4,
-                updateTheme = false,
+                customTabsColorsConfig = getPrivateCustomTabColorsConfig(),
             ) {},
         )
 
@@ -1472,4 +1726,10 @@ class CustomTabsToolbarFeatureTest {
 
         return actionView
     }
+
+    private fun getPrivateCustomTabColorsConfig() = CustomTabsColorsConfig(
+        updateToolbarsColor = false,
+        updateStatusBarColor = false,
+        updateSystemNavigationBarColor = false,
+    )
 }

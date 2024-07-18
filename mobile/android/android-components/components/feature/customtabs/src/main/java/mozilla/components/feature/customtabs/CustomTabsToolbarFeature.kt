@@ -13,6 +13,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.NightMode
 import androidx.appcompat.content.res.AppCompatResources.getDrawable
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -49,11 +50,11 @@ import mozilla.components.ui.icons.R as iconsR
  * @property menuBuilder [BrowserMenuBuilder] reference to pull menu options from.
  * @property menuItemIndex Location to insert any custom menu options into the predefined menu list.
  * @property window Reference to the [Window] so the navigation bar color can be set.
- * @property updateTheme Whether or not the toolbar and system bar colors should be changed.
  * @property appNightMode The [NightMode] used in the app. Defaults to [MODE_NIGHT_FOLLOW_SYSTEM].
  * @property forceActionButtonTinting When set to true the [toolbar] action button will always be tinted
  * based on the [toolbar] background, ignoring the value of [CustomTabActionButtonConfig.tint].
  * @property customTabsToolbarButtonConfig Holds button configurations for the toolbar.
+ * @property customTabsColorsConfig Contains the color configurations for styling the application and system UI.
  * @property customTabsToolbarListeners Holds click listeners for buttons on the toolbar.
  * @property closeListener Invoked when the close button is pressed.
  */
@@ -66,11 +67,11 @@ class CustomTabsToolbarFeature(
     private val menuBuilder: BrowserMenuBuilder? = null,
     private val menuItemIndex: Int = menuBuilder?.items?.size ?: 0,
     private val window: Window? = null,
-    private val updateTheme: Boolean = true,
     @NightMode private val appNightMode: Int = MODE_NIGHT_FOLLOW_SYSTEM,
     private val forceActionButtonTinting: Boolean = false,
     private val customTabsToolbarButtonConfig: CustomTabsToolbarButtonConfig =
         CustomTabsToolbarButtonConfig(),
+    private val customTabsColorsConfig: CustomTabsColorsConfig = CustomTabsColorsConfig(),
     private val customTabsToolbarListeners: CustomTabsToolbarListeners = CustomTabsToolbarListeners(),
     private val closeListener: () -> Unit,
 ) : LifecycleAwareFeature, UserInteractionHandler {
@@ -124,11 +125,11 @@ class CustomTabsToolbarFeature(
 
         val readableColor = colorSchemeParams.getToolbarContrastColor(
             context = context,
-            shouldUpdateTheme = updateTheme,
+            shouldUpdateTheme = customTabsColorsConfig.isAnyColorUpdateAllowed(),
             fallbackColor = toolbar.display.colors.menu,
         )
 
-        if (updateTheme) {
+        if (customTabsColorsConfig.isAnyColorUpdateAllowed()) {
             colorSchemeParams.let {
                 updateTheme(
                     toolbarColor = it?.toolbarColor,
@@ -141,7 +142,11 @@ class CustomTabsToolbarFeature(
 
         // Add navigation close action
         if (config.showCloseButton) {
-            addCloseButton(readableColor, config.closeButtonIcon)
+            val closeIcon = when {
+                customTabsToolbarButtonConfig.allowCustomizingCloseButton -> config.closeButtonIcon
+                else -> null
+            }
+            addCloseButton(readableColor, closeIcon)
         }
 
         // Add action button
@@ -175,8 +180,8 @@ class CustomTabsToolbarFeature(
         @ColorInt navigationBarDividerColor: Int? = null,
         @ColorInt readableColor: Int,
     ) {
-        toolbarColor?.let {
-            toolbar.setBackgroundColor(it)
+        if (customTabsColorsConfig.updateToolbarsColor && toolbarColor != null) {
+            toolbar.setBackgroundColor(toolbarColor)
 
             toolbar.display.colors = toolbar.display.colors.copy(
                 text = readableColor,
@@ -186,14 +191,25 @@ class CustomTabsToolbarFeature(
                 trackingProtection = readableColor,
                 menu = readableColor,
             )
-
-            window?.setStatusBarTheme(it)
         }
 
-        if (navigationBarColor != null || navigationBarDividerColor != null) {
-            window?.setNavigationBarTheme(navigationBarColor, navigationBarDividerColor)
+        when (customTabsColorsConfig.updateStatusBarColor) {
+            true -> toolbarColor?.let { window?.setStatusBarTheme(it) }
+            false -> window?.setStatusBarTheme(getDefaultSystemBarsColor())
+        }
+
+        when (customTabsColorsConfig.updateSystemNavigationBarColor) {
+            true -> {
+                // Update navigation bar colors with custom tabs specified ones or keep the current colors.
+                if (navigationBarColor != null || navigationBarDividerColor != null) {
+                    window?.setNavigationBarTheme(navigationBarColor, navigationBarDividerColor)
+                }
+            }
+            false -> window?.setNavigationBarTheme(getDefaultSystemBarsColor())
         }
     }
+
+    private fun getDefaultSystemBarsColor() = ContextCompat.getColor(context, android.R.color.black)
 
     /**
      * Display a close button at the start of the toolbar.
@@ -338,12 +354,32 @@ class CustomTabsToolbarFeature(
  *
  * @property showMenu Whether or not to show the menu button.
  * @property showRefreshButton Whether or not to show the refresh button.
+ * @property allowCustomizingCloseButton Whether or not to allow a custom icon for the close button.
  */
-
 data class CustomTabsToolbarButtonConfig(
     val showMenu: Boolean = true,
     val showRefreshButton: Boolean = false,
+    val allowCustomizingCloseButton: Boolean = true,
 )
+
+/**
+ * Contains the color configurations for styling the application and system UI.
+ *
+ * @property updateStatusBarColor Whether or not to update the status bar color.
+ * @property updateSystemNavigationBarColor Whether or not to update the system navigation bar color.
+ * @property updateToolbarsColor Whether or not to update the application's toolbars color.
+ */
+data class CustomTabsColorsConfig(
+    val updateStatusBarColor: Boolean = true,
+    val updateSystemNavigationBarColor: Boolean = true,
+    val updateToolbarsColor: Boolean = true,
+) {
+    /**
+     * Get if any color customisation is allowed for application's UI elements.
+     */
+    fun isAnyColorUpdateAllowed() =
+        updateStatusBarColor || updateSystemNavigationBarColor || updateToolbarsColor
+}
 
 /**
  * Holds click listeners for buttons on the custom tabs toolbar.

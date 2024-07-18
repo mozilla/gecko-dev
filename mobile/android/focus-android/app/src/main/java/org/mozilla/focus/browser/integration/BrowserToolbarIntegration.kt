@@ -182,7 +182,6 @@ class BrowserToolbarIntegration(
                 window = fragment.activity?.window,
                 menuItemIndex = menu.menuBuilder.items.size - 1,
                 closeListener = { fragment.closeCustomTab() },
-                updateTheme = true,
                 forceActionButtonTinting = false,
             )
         }

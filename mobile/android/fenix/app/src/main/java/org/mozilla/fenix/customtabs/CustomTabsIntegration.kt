@@ -12,6 +12,7 @@ import androidx.appcompat.content.res.AppCompatResources.getDrawable
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.display.DisplayToolbar
+import mozilla.components.feature.customtabs.CustomTabsColorsConfig
 import mozilla.components.feature.customtabs.CustomTabsToolbarButtonConfig
 import mozilla.components.feature.customtabs.CustomTabsToolbarFeature
 import mozilla.components.feature.customtabs.CustomTabsToolbarListeners
@@ -29,11 +30,11 @@ class CustomTabsIntegration(
     useCases: CustomTabsUseCases,
     toolbar: BrowserToolbar,
     sessionId: String,
-    activity: Activity,
+    private val activity: Activity,
     onItemTapped: (ToolbarMenu.Item) -> Unit = {},
     shouldReverseItems: Boolean,
     isSandboxCustomTab: Boolean,
-    isPrivate: Boolean,
+    private val isPrivate: Boolean,
     isNavBarEnabled: Boolean,
 ) : LifecycleAwareFeature, UserInteractionHandler {
 
@@ -77,13 +78,14 @@ class CustomTabsIntegration(
             refreshListener = { onItemTapped.invoke(ToolbarMenu.Item.Reload(bypassCache = false)) },
         ),
         closeListener = { activity.finishAndRemoveTask() },
-        updateTheme = !isPrivate,
         appNightMode = activity.settings().getAppNightMode(),
         forceActionButtonTinting = isPrivate,
         customTabsToolbarButtonConfig = CustomTabsToolbarButtonConfig(
             showMenu = !isNavBarEnabled,
             showRefreshButton = isNavBarEnabled,
+            allowCustomizingCloseButton = !isNavBarEnabled,
         ),
+        customTabsColorsConfig = getCustomTabsColorsConfig(),
     )
 
     private fun Settings.getAppNightMode() = if (shouldFollowDeviceTheme) {
@@ -94,6 +96,19 @@ class CustomTabsIntegration(
         } else {
             MODE_NIGHT_YES
         }
+    }
+
+    private fun getCustomTabsColorsConfig() = when (activity.settings().navigationToolbarEnabled) {
+        true -> CustomTabsColorsConfig(
+            updateStatusBarColor = false,
+            updateSystemNavigationBarColor = false,
+            updateToolbarsColor = !isPrivate,
+        )
+        false -> CustomTabsColorsConfig(
+            updateStatusBarColor = !isPrivate,
+            updateSystemNavigationBarColor = !isPrivate,
+            updateToolbarsColor = !isPrivate,
+        )
     }
 
     override fun start() = feature.start()
