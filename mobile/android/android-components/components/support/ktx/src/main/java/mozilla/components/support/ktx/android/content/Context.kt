@@ -117,7 +117,7 @@ fun Context.share(text: String, subject: String = getString(R.string.mozac_suppo
         )
         true
     } catch (e: ActivityNotFoundException) {
-        Log.log(Log.Priority.WARN, message = "No activity to share to found", throwable = e, tag = "Reference-Browser")
+        Log.log(Log.Priority.WARN, message = "No activity to share to found", throwable = e, tag = "share")
         false
     }
 }
