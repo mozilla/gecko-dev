@@ -28,7 +28,14 @@ const ALLOWED_HUBS = [
   "https://localhost",
   "https://model-hub.mozilla.org",
 ];
-const ALLOWED_HEADERS_KEYS = ["Content-Type", "ETag", "status"];
+
+const ALLOWED_HEADERS_KEYS = [
+  "Content-Type",
+  "ETag",
+  "status",
+  "fileSize", // the size in bytes we store
+  "Content-Length", // the size we download (can be different when gzipped)
+];
 const DEFAULT_URL_TEMPLATE = "{model}/resolve/{revision}";
 
 /**
@@ -278,7 +285,7 @@ export class IndexedDBCache {
     const headersKey = `${model}/${revision}`;
     const cacheKey = `${model}/${revision}/${file}`;
     const headers = await this.#getData(this.headersStoreName, headersKey);
-    if (headers && headers.files[cacheKey]) {
+    if (headers?.files[cacheKey]) {
       return headers.files[cacheKey];
     }
     return null; // Return null if no headers is found
@@ -308,27 +315,30 @@ export class IndexedDBCache {
    * @param {string} model - The model name (organization/name).
    * @param {string} revision - The model version.
    * @param {string} file - The file name.
-   * @param {ArrayBuffer} arrayBuffer - The data to cache.
+   * @param {Blob} data - The data to cache.
    * @param {object} [headers] - The headers for the file.
    * @returns {Promise<void>}
    */
-  async put(model, revision, file, arrayBuffer, headers = {}) {
+  async put(model, revision, file, data, headers = {}) {
+    const fileSize = data.size;
     const cacheKey = `${model}/${revision}/${file}`;
-    const newSize = this.totalSize + arrayBuffer.byteLength;
+    const newSize = this.totalSize + fileSize;
     if (newSize > this.#maxSize) {
       throw new Error("Exceeding total cache size limit of 1GB");
     }
 
     const headersKey = `${model}/${revision}`;
-    const data = { id: cacheKey, data: arrayBuffer };
+    const fileEntry = { id: cacheKey, data };
 
     // Store the file data
-    await this.#updateData(this.fileStoreName, data);
+    lazy.console.debug(`Storing ${cacheKey} with size:`, file);
+    await this.#updateData(this.fileStoreName, fileEntry);
 
     // Update headers store - whith defaults for ETag and Content-Type
     headers = headers || {};
     headers["Content-Type"] =
       headers["Content-Type"] ?? "application/octet-stream";
+    headers.fileSize = fileSize;
     headers.ETag = headers.ETag ?? NO_ETAG;
 
     // filter out any keys that are not allowed
@@ -339,6 +349,7 @@ export class IndexedDBCache {
         return obj;
       }, {});
 
+    lazy.console.debug(`Storing ${cacheKey} with headers:`, headers);
     const headersStore = (await this.#getData(
       this.headersStoreName,
       headersKey
@@ -350,7 +361,7 @@ export class IndexedDBCache {
     await this.#updateData(this.headersStoreName, headersStore);
 
     // Update size
-    await this.#updateTotalSize(arrayBuffer.byteLength);
+    await this.#updateTotalSize(fileSize);
   }
 
   /**
@@ -374,6 +385,7 @@ export class IndexedDBCache {
    * @returns {Promise<void>}
    */
   async deleteModel(model, revision) {
+    lazy.console.debug("Deleting model", model, revision);
     const headersKey = `${model}/${revision}`;
     const headers = await this.#getData(this.headersStoreName, headersKey);
     if (headers) {
@@ -382,6 +394,49 @@ export class IndexedDBCache {
       }
       await this.#deleteData(this.headersStoreName, headersKey); // Remove headers entry after files are deleted
     }
+  }
+
+  /**
+   * Lists all files for a given model and revision stored in the cache.
+   *
+   * @param {string} model - The model name (organization/name).
+   * @param {string} revision - The model version.
+   * @returns {Promise<Array<string>>} An array of file identifiers.
+   */
+  async listFiles(model, revision) {
+    const headersKey = `${model}/${revision}`;
+    let files = [];
+    const headers = await this.#getData(this.headersStoreName, headersKey);
+    if (headers?.files) {
+      const prefix = `${headersKey}/`;
+      for (const file in headers.files) {
+        const filePath = file.startsWith(prefix)
+          ? file.slice(prefix.length)
+          : file;
+        files.push({ path: filePath, headers: headers.files[file] });
+      }
+    }
+    return files;
+  }
+
+  /**
+   * Parses a string with three '/' like 'model/distilvit/main'
+   * and returns an object with name and revision.
+   *
+   * @param {string} str - The input string.
+   * @returns {{name: string, revision: string}} An object with name and revision.
+   */
+  parseModelString(str) {
+    const parts = str.split("/");
+    if (parts.length === 3) {
+      return {
+        name: `${parts[0]}/${parts[1]}`,
+        revision: parts[2],
+      };
+    }
+    throw new Error(
+      "Invalid model string format. Expected format: 'model/name/revision'"
+    );
   }
 
   /**
@@ -401,8 +456,9 @@ export class IndexedDBCache {
       request.onerror = event => reject(event.target.error);
       request.onsuccess = event => {
         const cursor = event.target.result;
-        if (cursor) {
-          models.push(cursor.value.id); // Assuming id is the organization/modelName
+        if (cursor?.value.id !== "totalSize") {
+          const model = this.parseModelString(cursor.value.id);
+          models.push(model);
           cursor.continue();
         } else {
           resolve(models);
@@ -778,6 +834,7 @@ export class ModelHub {
           // We don't store the boundary or the charset, just the content type,
           // so we drop what's after the semicolon.
           "Content-Type": response.headers.get("Content-Type").split(";")[0],
+          "Content-Length": response.headers.get("Content-Length"),
           ETag: response.headers.get("ETag"),
         };
 

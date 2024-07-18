@@ -1,0 +1,60 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://global/skin/in-content/common.css");
+
+html {
+  background-color: var(--in-content-page-background);
+}
+
+button {
+  min-width: 10px;
+  padding: 2px;
+  background: none;
+}
+
+button:hover {
+  background-color: var(--in-content-hover-background);
+  cursor: pointer;
+}
+
+body {
+  padding: 0 2em;
+  min-width: 45em;
+  margin: auto;
+}
+
+caption {
+  caption-side: top;
+  padding: 10px;
+  font-weight: bold;
+}
+
+table {
+  border-collapse: collapse;
+  font-family: sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
+
+th,
+td {
+  border: 1px solid var(--in-content-border-color);
+  padding: 8px 10px;
+}
+td {
+  text-align: center;
+}
+
+tr:nth-child(even) td {
+  background-color: var(--in-content-box-background);
+}
+
+tr:nth-child(odd) td {
+  background-color: var(--in-content-box-background-odd);
+}
+
+#warning {
+  display: none;
+}

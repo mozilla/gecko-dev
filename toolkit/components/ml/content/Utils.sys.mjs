@@ -16,7 +16,7 @@ export function arrayBufferToBlobURL(buffer) {
 /**
  * Validate some simple Wasm that uses a SIMD operation.
  */
-function detectSimdSupport() {
+export function detectSimdSupport() {
   return WebAssembly.validate(
     new Uint8Array(
       // ```

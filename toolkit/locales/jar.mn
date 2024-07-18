@@ -13,6 +13,7 @@
 #endif
 #if defined(NIGHTLY_BUILD)
   preview/megalist.ftl                             (../components/satchel/megalist/content/megalist.ftl)
+  preview/aboutInference.ftl                       (../components/aboutinference/content/aboutInference.ftl)
 #endif
 
 @AB_CD@.jar:

@@ -176,3 +176,9 @@ In the code above, **progressData** is an object of type `ProgressAndStatusCallb
 - **id**: An ID uniquely identifying the object/file being tracked.
 - **ok**: A boolean indicating if the operation was succesfull.
 - **metadata**: Any additional metadata for the operation being tracked.
+
+
+about:inference
+:::::::::::::::
+
+In Nightly, you can use `about:inference <about:inference>`_ to check the status of the engine and manage downloads of models.

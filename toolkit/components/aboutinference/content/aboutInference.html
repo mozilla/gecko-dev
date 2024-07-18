@@ -1,0 +1,44 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src chrome:;img-src data:; object-src 'none'"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title data-l10n-id="about-inference-title"></title>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <link rel="localization" href="preview/aboutInference.ftl" />
+    <script src="chrome://global/content/aboutInference.js"></script>
+    <link rel="stylesheet" href="chrome://global/content/aboutInference.css" />
+  </head>
+  <body>
+    <h1 data-l10n-id="about-inference-header"></h1>
+    <p data-l10n-id="about-inference-description"></p>
+
+    <div id="warning" data-l10n-id="about-inference-warning"></div>
+
+    <div id="generalInfo">
+      <ul>
+        <li>
+          <span data-l10n-id="about-inference-simd-supported"></span>:
+          <span id="onnxSimd"></span>
+        </li>
+        <li>
+          <span data-l10n-id="about-inference-onnx-runtime-file"></span>:
+          <span id="onnxRuntime"></span>
+        </li>
+      </ul>
+    </div>
+
+    <h2 data-l10n-id="about-inference-processes-title"></h2>
+    <div id="runningInference"></div>
+
+    <h2 data-l10n-id="about-inference-models-title"></h2>
+    <p data-l10n-id="about-inference-downloads-description"></p>
+    <div id="modelFiles"></div>
+  </body>
+</html>
