@@ -74,22 +74,30 @@ Selection.prototype = {
     let attributeChange = false;
     let pseudoChange = false;
     let detached = false;
-    let parentNode = null;
+    let detachedNodeParent = null;
 
     for (const m of mutations) {
-      if (!attributeChange && m.type == "attributes") {
+      if (m.type == "attributes") {
         attributeChange = true;
-      }
-      if (m.type == "childList") {
-        if (!detached && !this.isConnected()) {
-          if (this.isNode()) {
-            parentNode = m.target;
-          }
-          detached = true;
-        }
       }
       if (m.type == "pseudoClassLock") {
         pseudoChange = true;
+      }
+      if (m.type == "childList") {
+        if (
+          // If the node that was selected was removed…
+          !this.isConnected() &&
+          // …directly in this mutation, let's pick its parent node
+          (m.removed.some(nodeFront => nodeFront == this.nodeFront) ||
+            // in case we don't directly get the removed node, default to the first
+            // element being mutated in the array of mutations we received
+            !detachedNodeParent)
+        ) {
+          if (this.isNode()) {
+            detachedNodeParent = m.target;
+          }
+          detached = true;
+        }
       }
     }
 
@@ -101,7 +109,7 @@ Selection.prototype = {
       this.emit("pseudoclass");
     }
     if (detached) {
-      this.emit("detached-front", parentNode);
+      this.emit("detached-front", detachedNodeParent);
     }
   },
 
