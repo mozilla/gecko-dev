@@ -343,12 +343,12 @@ class ChromeActions {
     });
   }
 
-  getLocaleProperties(_data, sendResponse) {
+  getLocaleProperties() {
     const { requestedLocale, defaultLocale, isAppLocaleRTL } = Services.locale;
-    sendResponse({
+    return {
       lang: requestedLocale || defaultLocale,
       isRTL: isAppLocaleRTL,
-    });
+    };
   }
 
   supportsIntegratedFind() {
@@ -356,10 +356,18 @@ class ChromeActions {
     return this.domWindow.windowGlobalChild.browsingContext.parent === null;
   }
 
-  getBrowserPrefs() {
+  async getBrowserPrefs() {
+    const isMobile = this.isMobile();
+    const nimbusDataStr = isMobile
+      ? await this.getNimbusExperimentData()
+      : null;
+
     return {
+      allowedGlobalEvents: this.#allowedGlobalEvents,
       canvasMaxAreaInBytes: Services.prefs.getIntPref("gfx.max-alloc-size"),
       isInAutomation: Cu.isInAutomation,
+      localeProperties: this.getLocaleProperties(),
+      nimbusDataStr,
       supportsDocumentFonts:
         !!Services.prefs.getIntPref("browser.display.use_document_fonts") &&
         Services.prefs.getBoolPref("gfx.downloadable_fonts.enabled"),
@@ -372,7 +380,7 @@ class ChromeActions {
       supportsCaretBrowsingMode: Services.prefs.getBoolPref(
         caretBrowsingModePref
       ),
-      toolbarDensity: this.isMobile()
+      toolbarDensity: isMobile
         ? 0
         : Services.prefs.getIntPref(toolbarDensityPref),
     };
@@ -382,11 +390,12 @@ class ChromeActions {
     return AppConstants.platform === "android";
   }
 
-  getNimbusExperimentData(_data, sendResponse) {
+  async getNimbusExperimentData() {
     if (!this.isMobile()) {
-      sendResponse(null);
-      return;
+      return null;
     }
+    const { promise, resolve } = Promise.withResolvers();
+
     const actor = getActor(this.domWindow);
     actor.sendAsyncMessage("PDFJS:Parent:getNimbus");
     Services.obs.addObserver(
@@ -394,16 +403,13 @@ class ChromeActions {
         observe(aSubject, aTopic) {
           if (aTopic === "pdfjs-getNimbus") {
             Services.obs.removeObserver(this, aTopic);
-            sendResponse(aSubject && JSON.stringify(aSubject.wrappedJSObject));
+            resolve(aSubject && JSON.stringify(aSubject.wrappedJSObject));
           }
         },
       },
       "pdfjs-getNimbus"
     );
-  }
-
-  getGlobalEventNames(_data, sendResponse) {
-    sendResponse(this.#allowedGlobalEvents);
+    return promise;
   }
 
   async dispatchGlobalEvent({ eventName, detail }) {
@@ -477,7 +483,9 @@ class ChromeActions {
     actor?.sendAsyncMessage("PDFJS:Parent:updateMatchesCount", data);
   }
 
-  getPreferences(prefs, sendResponse) {
+  async getPreferences(prefs, sendResponse) {
+    const browserPrefs = await this.getBrowserPrefs();
+
     var defaultBranch = Services.prefs.getDefaultBranch("pdfjs.");
     var currentPrefs = {},
       numberOfPrefs = 0;
@@ -507,7 +515,7 @@ class ChromeActions {
     }
 
     sendResponse({
-      browserPrefs: this.getBrowserPrefs(),
+      browserPrefs,
       prefs: currentPrefs,
     });
   }

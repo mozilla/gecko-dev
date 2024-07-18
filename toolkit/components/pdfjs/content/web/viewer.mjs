@@ -543,12 +543,24 @@ const OptionKind = {
   PREFERENCE: 0x80
 };
 const defaultOptions = {
+  allowedGlobalEvents: {
+    value: null,
+    kind: OptionKind.BROWSER
+  },
   canvasMaxAreaInBytes: {
     value: -1,
     kind: OptionKind.BROWSER + OptionKind.API
   },
   isInAutomation: {
     value: false,
+    kind: OptionKind.BROWSER
+  },
+  localeProperties: {
+    value: null,
+    kind: OptionKind.BROWSER
+  },
+  nimbusDataStr: {
+    value: "",
     kind: OptionKind.BROWSER
   },
   supportsCaretBrowsingMode: {
@@ -1406,10 +1418,6 @@ class BaseExternalServices {
   updateEditorStates(data) {
     throw new Error("Not implemented: updateEditorStates");
   }
-  async getNimbusExperimentData() {}
-  async getGlobalEventNames() {
-    return null;
-  }
   dispatchGlobalEvent(_event) {}
 }
 
@@ -1587,6 +1595,7 @@ class L10n {
 const GenericL10n = null;
 
 ;// CONCATENATED MODULE: ./web/firefoxcom.js
+
 
 
 
@@ -1874,17 +1883,11 @@ class ExternalServices extends BaseExternalServices {
     FirefoxCom.request("updateEditorStates", data);
   }
   async createL10n() {
-    const [localeProperties] = await Promise.all([FirefoxCom.requestAsync("getLocaleProperties", null), document.l10n.ready]);
-    return new L10n(localeProperties, document.l10n);
+    await document.l10n.ready;
+    return new L10n(AppOptions.get("localeProperties"), document.l10n);
   }
   createScripting() {
     return FirefoxScripting;
-  }
-  async getNimbusExperimentData() {
-    return null;
-  }
-  async getGlobalEventNames() {
-    return FirefoxCom.requestAsync("getGlobalEventNames", null);
   }
   dispatchGlobalEvent(event) {
     FirefoxCom.request("dispatchGlobalEvent", event);
@@ -10699,7 +10702,6 @@ const PDFViewerApplication = {
   isViewerEmbedded: window.parent !== window,
   url: "",
   baseUrl: "",
-  _allowedGlobalEventsPromise: null,
   _downloadUrl: "",
   _eventBusAbortController: null,
   _windowAbortController: null,
@@ -10719,13 +10721,9 @@ const PDFViewerApplication = {
   _printAnnotationStoragePromise: null,
   _touchInfo: null,
   _isCtrlKeyDown: false,
-  _nimbusDataPromise: null,
   _caretBrowsing: null,
   _isScrolling: false,
   async initialize(appConfig) {
-    let l10nPromise;
-    l10nPromise = this.externalServices.createL10n();
-    this._allowedGlobalEventsPromise = this.externalServices.getGlobalEventNames();
     this.appConfig = appConfig;
     try {
       await this.preferences.initializedPromise;
@@ -10735,7 +10733,7 @@ const PDFViewerApplication = {
     if (AppOptions.get("pdfBugEnabled")) {
       await this._parseHashParams();
     }
-    this.l10n = await l10nPromise;
+    this.l10n = await this.externalServices.createL10n();
     document.getElementsByTagName("html")[0].dir = this.l10n.getDirection();
     if (this.isViewerEmbedded && AppOptions.get("externalLinkTarget") === LinkTarget.NONE) {
       AppOptions.set("externalLinkTarget", LinkTarget.TOP);
@@ -10830,8 +10828,7 @@ const PDFViewerApplication = {
       l10n
     } = this;
     let eventBus;
-    eventBus = AppOptions.eventBus = new FirefoxEventBus(await this._allowedGlobalEventsPromise, externalServices, AppOptions.get("isInAutomation"));
-    this._allowedGlobalEventsPromise = null;
+    eventBus = AppOptions.eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
     this.eventBus = eventBus;
     this.overlayManager = new OverlayManager();
     const pdfRenderingQueue = new PDFRenderingQueue();
