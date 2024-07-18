@@ -411,6 +411,9 @@ public class GeckoSession {
     @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
     public native void onSafeAreaInsetsChanged(int top, int right, int bottom, int left);
 
+    @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
+    public native void onKeyboardHeightChanged(int height);
+
     @WrapForJNI(calledFrom = "ui")
     public void setPointerIcon(
         final int defaultCursor, final Bitmap customCursor, final float x, final float y) {
@@ -2639,6 +2642,10 @@ public class GeckoSession {
     } else {
       // Delete any pending memory pressure events since we're active again.
       ThreadUtils.removeUiThreadCallbacks(mNotifyMemoryPressure);
+
+      if (mAttachedCompositor) {
+        mCompositor.onKeyboardHeightChanged(mKeyboardHeight);
+      }
     }
 
     ThreadUtils.runOnUiThread(() -> getAutofillSupport().onActiveChanged(active));
@@ -7905,6 +7912,10 @@ public class GeckoSession {
     }
 
     mKeyboardHeight = height;
+
+    if (mAttachedCompositor) {
+      mCompositor.onKeyboardHeightChanged(mKeyboardHeight);
+    }
   }
 
   /* package */ void setPointerIcon(

@@ -433,6 +433,8 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
     return mDynamicToolbarHeight;
   }
 
+  void UpdateKeyboardHeight(mozilla::ScreenIntCoord aHeight);
+
   /**
    * Returns the state of the dynamic toolbar.
    */
@@ -1219,6 +1221,8 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   // The maximum height of the dynamic toolbar on mobile.
   mozilla::ScreenIntCoord mDynamicToolbarMaxHeight;
   mozilla::ScreenIntCoord mDynamicToolbarHeight;
+  // The software keyboard height.
+  mozilla::ScreenIntCoord mKeyboardHeight;
   // Safe area insets support
   mozilla::ScreenIntMargin mSafeAreaInsets;
   nsSize mPageSize;
