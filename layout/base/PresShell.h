@@ -1521,9 +1521,6 @@ class PresShell final : public nsStubDocumentObserver,
   // shown/hidden.
   nsSize GetVisualViewportSizeUpdatedByDynamicToolbar() const;
 
-  // Trigger refreshing the MobileViewportManager's size metrics.
-  void RefreshViewportSize();
-
   /* Enable/disable author style level. Disabling author style disables the
    * entire author level of the cascade, including the HTML preshint level.
    */

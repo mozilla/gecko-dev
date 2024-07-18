@@ -401,7 +401,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
    * Set the currently visible area. The units for r are standard
    * nscoord units (as scaled by the device context).
    */
-  void SetVisibleArea(const nsRect& aRect);
+  void SetVisibleArea(const nsRect& r);
 
   nsSize GetSizeForViewportUnits() const { return mSizeForViewportUnits; }
 
@@ -432,10 +432,6 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
     MOZ_ASSERT(IsRootContentDocumentCrossProcess());
     return mDynamicToolbarHeight;
   }
-
-  void UpdateKeyboardHeight(mozilla::ScreenIntCoord aHeight);
-
-  mozilla::ScreenIntCoord GetKeyboardHeight() const { return mKeyboardHeight; }
 
   /**
    * Returns the state of the dynamic toolbar.
@@ -1223,8 +1219,6 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   // The maximum height of the dynamic toolbar on mobile.
   mozilla::ScreenIntCoord mDynamicToolbarMaxHeight;
   mozilla::ScreenIntCoord mDynamicToolbarHeight;
-  // The software keyboard height.
-  mozilla::ScreenIntCoord mKeyboardHeight;
   // Safe area insets support
   mozilla::ScreenIntMargin mSafeAreaInsets;
   nsSize mPageSize;

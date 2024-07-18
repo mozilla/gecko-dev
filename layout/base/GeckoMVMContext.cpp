@@ -213,7 +213,4 @@ ScreenIntCoord GeckoMVMContext::GetDynamicToolbarOffset() {
              : ScreenIntCoord(0);
 }
 
-dom::InteractiveWidget GeckoMVMContext::GetInteractiveWidgetMode() const {
-  return mDocument->InteractiveWidget();
-}
 }  // namespace mozilla

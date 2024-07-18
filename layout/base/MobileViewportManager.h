@@ -15,7 +15,6 @@
 #include "nsIDOMEventListener.h"
 #include "nsIObserver.h"
 #include "Units.h"
-#include "UnitTransforms.h"
 
 class nsViewportInfo;
 
@@ -97,10 +96,8 @@ class MobileViewportManager final : public nsIDOMEventListener,
    * presShell is initialized. */
   void SetInitialViewport();
 
-  mozilla::LayoutDeviceIntSize DisplaySize() const {
-    return mozilla::ViewAs<mozilla::LayoutDevicePixel>(
-        GetLayoutDisplaySize(),
-        mozilla::PixelCastJustification::LayoutDeviceIsScreenForBounds);
+  const mozilla::LayoutDeviceIntSize& DisplaySize() const {
+    return mDisplaySize;
   };
 
   /*
@@ -139,16 +136,14 @@ class MobileViewportManager final : public nsIDOMEventListener,
 
   mozilla::ParentLayerSize GetCompositionSizeWithoutDynamicToolbar() const;
 
-  void UpdateKeyboardHeight(mozilla::ScreenIntCoord aKeyboardHeight);
-
   static mozilla::LazyLogModule gLog;
+
+ private:
+  ~MobileViewportManager();
 
   /* Main helper method to update the CSS viewport and any other properties that
    * need updating. */
   void RefreshViewportSize(bool aForceAdjustResolution);
-
- private:
-  ~MobileViewportManager();
 
   /* Secondary main helper method to update just the visual viewport size. */
   void RefreshVisualViewportSize();
@@ -180,9 +175,11 @@ class MobileViewportManager final : public nsIDOMEventListener,
   void UpdateResolutionForContentSizeChange(
       const mozilla::CSSSize& aContentSize);
 
-  void ApplyNewZoom(const mozilla::CSSToScreenScale& aNewZoom);
+  void ApplyNewZoom(const mozilla::ScreenIntSize& aDisplaySize,
+                    const mozilla::CSSToScreenScale& aNewZoom);
 
-  void UpdateVisualViewportSize(const mozilla::CSSToScreenScale& aZoom);
+  void UpdateVisualViewportSize(const mozilla::ScreenIntSize& aDisplaySize,
+                                const mozilla::CSSToScreenScale& aZoom);
 
   /* Updates the displayport margins for the presShell's root scrollable frame
    */
@@ -200,23 +197,12 @@ class MobileViewportManager final : public nsIDOMEventListener,
   mozilla::ScreenIntSize GetCompositionSize(
       const mozilla::ScreenIntSize& aDisplaySize) const;
 
-  /*
-   * Returns the display size for layout. It varies depending on the
-   * interactive-widget value.
-   */
-  mozilla::ScreenIntSize GetLayoutDisplaySize() const;
-
-  /*
-   * Returns the display size for visual viewport events. It varies depending on
-   * the interactive-widget value. The size doesn't match above
-   * GetLayoutDisplaySize() in the case of resizes-visual.
-   */
-  mozilla::ScreenIntSize GetDisplaySizeForVisualViewport() const;
-
   mozilla::CSSToScreenScale GetZoom() const;
 
   RefPtr<mozilla::MVMContext> mContext;
   ManagerType mManagerType;
+  bool mIsFirstPaint;
+  bool mPainted;
   mozilla::LayoutDeviceIntSize mDisplaySize;
   mozilla::CSSSize mMobileViewportSize;
   mozilla::Maybe<float> mRestoreResolution;
@@ -229,17 +215,6 @@ class MobileViewportManager final : public nsIDOMEventListener,
    * FrameMetrics.mFixedLayerMargins to conform with this value.
    */
   nsSize mVisualViewportSizeUpdatedByDynamicToolbar;
-
-  /*
-   * The software keyboard height.
-   */
-  mozilla::ScreenIntCoord mKeyboardHeight;
-
-  bool mIsFirstPaint;
-  bool mPainted;
-  // True if this MobileViewportManager needs to update the visual viewport size
-  // even if the layout viewport size is unchanged.
-  bool mInvalidViewport;
 };
 
 #endif

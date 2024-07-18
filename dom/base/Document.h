@@ -246,6 +246,7 @@ class FeaturePolicy;
 class FontFaceSet;
 class FragmentDirective;
 class FrameRequestCallback;
+class ImageTracker;
 class HighlightRegistry;
 class HTMLAllCollection;
 class HTMLBodyElement;
@@ -254,8 +255,6 @@ class HTMLMetaElement;
 class HTMLDialogElement;
 class HTMLSharedElement;
 class HTMLImageElement;
-class ImageTracker;
-enum class InteractiveWidget : uint8_t;
 struct LifecycleCallbackArgs;
 class Link;
 class Location;
@@ -3939,10 +3938,6 @@ class Document : public nsINode,
  public:
   const OriginTrials& Trials() const { return mTrials; }
 
-  dom::InteractiveWidget InteractiveWidget() const {
-    return mInteractiveWidgetMode;
-  }
-
  private:
   void DoCacheAllKnownLangPrefs();
   void RecomputeLanguageFromCharset();
@@ -5170,9 +5165,6 @@ class Document : public nsINode,
   // viewport-fit described by
   // https://drafts.csswg.org/css-round-display/#viewport-fit-descriptor
   ViewportFitType mViewportFit;
-
-  // https://drafts.csswg.org/css-viewport/#interactive-widget-section
-  dom::InteractiveWidget mInteractiveWidgetMode;
 
   // XXXdholbert This should really be modernized to a nsTHashMap or similar,
   // though note that the modernization will need to take care to also convert

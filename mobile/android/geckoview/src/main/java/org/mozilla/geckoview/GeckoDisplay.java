@@ -8,15 +8,12 @@ package org.mozilla.geckoview;
 
 import android.graphics.Bitmap;
 import android.graphics.Rect;
-import android.os.Build;
 import android.view.Surface;
 import android.view.SurfaceControl;
-import android.view.WindowInsets;
 import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
-import androidx.core.view.WindowInsetsCompat;
 import org.mozilla.gecko.util.ThreadUtils;
 
 /**
@@ -529,47 +526,5 @@ public class GeckoDisplay {
   @UiThread
   public @NonNull ScreenshotBuilder screenshot() {
     return new ScreenshotBuilder(mSession);
-  }
-
-  private static int getKeyboardHeight(@NonNull final WindowInsetsCompat insetsCompat) {
-    if (Build.VERSION.SDK_INT >= 30) {
-      final WindowInsets insets = insetsCompat.toWindowInsets();
-      if (insets == null) {
-        return 0;
-      }
-
-      // https://developer.android.com/reference/android/view/WindowInsets.Type#ime()
-      final int imeHeight = insets.getInsets(WindowInsets.Type.ime()).bottom;
-      if (imeHeight == 0) {
-        return 0;
-      }
-      return imeHeight - insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
-    }
-
-    if (Build.VERSION.SDK_INT >= 29) {
-      final int imeHeight = insetsCompat.getInsets(WindowInsetsCompat.Type.ime()).bottom;
-      if (imeHeight == 0) {
-        return 0;
-      }
-      return imeHeight - insetsCompat.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
-    }
-
-    return insetsCompat.getSystemWindowInsets().bottom;
-  }
-
-  /**
-   * Called when the root window insets changed.
-   *
-   * @param insets the WindowInsetsCompat
-   */
-  @UiThread
-  public void windowInsetsChanged(@NonNull final WindowInsetsCompat insets) {
-    ThreadUtils.assertOnUiThread();
-
-    final int keyboardHeight = getKeyboardHeight(insets);
-
-    if (mSession != null) {
-      mSession.onKeyboardHeight(keyboardHeight);
-    }
   }
 }

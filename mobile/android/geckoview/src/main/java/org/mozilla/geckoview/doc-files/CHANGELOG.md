@@ -16,13 +16,8 @@ exclude: true
 ## v130
 - ⚠️ Removed [`TranslationState`][127.4] constructor, please use the new [`TranslationState`][127.3] constructor with `hasVisibleChange`. ([bug 1895275]({{bugzilla}}1895275))
 - Added support for controlling `privacy.fingerprintingProtection` and `privacy.fingerprintingProtection.pbmode` via [`GeckoRuntimeSettings.setFingerprintingProtection`][130.1]
-- Added [`GeckoDisplay.windowInsetsChanged`][130.2].
-- Added [`GeckoView.addWindowInsetsListener`][130.3] and [`GeckoView.removeWindowInsetsListener`][130.4] to allow listening WindowInsets changes of Activity's root window with multiple listeners.
 
 [130.1]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setFingerprintingProtection
-[130.2]: {{javadoc_uri}}/GeckoDisplay.html#windowInsetsChanged
-[130.3]: {{javadoc_uri}}/GeckoView.html#addWindowInsetsListener
-[130.4]: {{javadoc_uri}}/GeckoView.html#removeWindowInsetsListener
 
 ## v129
 - Added [`ERROR_ADMIN_INSTALL_ONLY`][129.1] to `WebExtension.InstallException.ErrorCodes`. ([bug 1902222]({{bugzilla}}1902222))
@@ -1594,4 +1589,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: f935b93b2a809fdf1fc8561189f3f14d3105ddce
+[api-version]: 54de491a757351b552176a5686609f62afb23da6

@@ -16,10 +16,6 @@ class nsIDOMEventListener;
 class nsIObserver;
 class nsISupports;
 
-namespace mozilla::dom {
-enum class InteractiveWidget : uint8_t;
-}  // namespace mozilla::dom
-
 namespace mozilla {
 
 /**
@@ -66,7 +62,6 @@ class MVMContext {
 
   virtual void Reflow(const CSSSize& aNewSize) = 0;
   virtual ScreenIntCoord GetDynamicToolbarOffset() = 0;
-  virtual dom::InteractiveWidget GetInteractiveWidgetMode() const = 0;
 };
 
 }  // namespace mozilla

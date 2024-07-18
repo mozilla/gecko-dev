@@ -1315,21 +1315,6 @@ class LayerViewSupport final
     gkWindow->UpdateDynamicToolbarMaxHeight(ScreenIntCoord(aHeight));
   }
 
-  void OnKeyboardHeightChanged(int32_t aHeight) {
-    MOZ_ASSERT(NS_IsMainThread());
-    auto win(mWindow.Access());
-    if (!win) {
-      return;  // Already shut down.
-    }
-
-    nsWindow* gkWindow = win->GetNsWindow();
-    if (!gkWindow) {
-      return;
-    }
-
-    gkWindow->KeyboardHeightChanged(ScreenIntCoord(aHeight));
-  }
-
   void SyncPauseCompositor() {
     MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
 
@@ -3271,16 +3256,6 @@ void nsWindow::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
 
   if (mAttachedWidgetListener) {
     mAttachedWidgetListener->DynamicToolbarOffsetChanged(aOffset);
-  }
-}
-
-void nsWindow::KeyboardHeightChanged(ScreenIntCoord aHeight) {
-  if (mWidgetListener) {
-    mWidgetListener->KeyboardHeightChanged(aHeight);
-  }
-
-  if (mAttachedWidgetListener) {
-    mAttachedWidgetListener->KeyboardHeightChanged(aHeight);
   }
 }
 

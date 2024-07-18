@@ -284,7 +284,6 @@ public class GeckoSession {
   private float mViewportLeft;
   private float mViewportTop;
   private float mViewportZoom = 1.0f;
-  private int mKeyboardHeight = 0; // The software keyboard height, 0 if it's hidden.
 
   //
   // NOTE: These values are also defined in
@@ -410,9 +409,6 @@ public class GeckoSession {
 
     @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
     public native void onSafeAreaInsetsChanged(int top, int right, int bottom, int left);
-
-    @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
-    public native void onKeyboardHeightChanged(int height);
 
     @WrapForJNI(calledFrom = "ui")
     public void setPointerIcon(
@@ -2642,10 +2638,6 @@ public class GeckoSession {
     } else {
       // Delete any pending memory pressure events since we're active again.
       ThreadUtils.removeUiThreadCallbacks(mNotifyMemoryPressure);
-
-      if (mAttachedCompositor) {
-        mCompositor.onKeyboardHeightChanged(mKeyboardHeight);
-      }
     }
 
     ThreadUtils.runOnUiThread(() -> getAutofillSupport().onActiveChanged(active));
@@ -7901,20 +7893,6 @@ public class GeckoSession {
 
     if (mAttachedCompositor) {
       mCompositor.onSafeAreaInsetsChanged(top, right, bottom, left);
-    }
-  }
-
-  /* package */ void onKeyboardHeight(final int height) {
-    ThreadUtils.assertOnUiThread();
-
-    if (mKeyboardHeight == height) {
-      return;
-    }
-
-    mKeyboardHeight = height;
-
-    if (mAttachedCompositor) {
-      mCompositor.onKeyboardHeightChanged(mKeyboardHeight);
     }
   }
 

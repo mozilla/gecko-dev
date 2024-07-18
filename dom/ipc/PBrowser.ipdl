@@ -697,9 +697,7 @@ child:
 
     async DynamicToolbarMaxHeightChanged(ScreenIntCoord height);
 
-    async DynamicToolbarOffsetChanged(ScreenIntCoord offset);
-
-    async KeyboardHeightChanged(ScreenIntCoord height);
+    async DynamicToolbarOffsetChanged(ScreenIntCoord height);
 
     /**
      * StopIMEStateManagement() is called when the process loses focus and

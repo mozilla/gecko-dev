@@ -12,7 +12,6 @@
 #include "MobileViewportManager.h"
 #include "mozilla/MVMContext.h"
 #include "mozilla/dom/Event.h"
-#include "mozilla/dom/InteractiveWidget.h"
 
 using namespace mozilla;
 
@@ -43,7 +42,6 @@ class MockMVMContext : public MVMContext {
   MOCK_METHOD0(PostVisualViewportResizeEventByDynamicToolbar, void());
   MOCK_METHOD0(UpdateDisplayPortMargins, void());
   MOCK_METHOD0(GetDynamicToolbarOffset, ScreenIntCoord());
-  MOCK_CONST_METHOD0(GetInteractiveWidgetMode, dom::InteractiveWidget());
 
   void SetMVM(MobileViewportManager* aMVM) { mMVM = aMVM; }
 

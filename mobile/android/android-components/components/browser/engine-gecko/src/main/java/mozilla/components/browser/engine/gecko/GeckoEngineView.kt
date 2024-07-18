@@ -23,7 +23,6 @@ import org.mozilla.geckoview.BasicSelectionActionDelegate
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import java.lang.ref.WeakReference
-import androidx.core.view.OnApplyWindowInsetsListener as AndroidxOnApplyWindowInsetsListener
 
 /**
  * Gecko-based EngineView implementation.
@@ -233,13 +232,6 @@ class GeckoEngineView @JvmOverloads constructor(
         geckoView.visibility = visibility
         super.setVisibility(visibility)
     }
-
-    override fun addWindowInsetsListener(
-        key: String,
-        listener: AndroidxOnApplyWindowInsetsListener?,
-    ) = geckoView.addWindowInsetsListener(key, listener)
-
-    override fun removeWindowInsetsListener(key: String) = geckoView.removeWindowInsetsListener(key)
 
     companion object {
         internal const val DARK_COVER = 0xFF2A2A2E.toInt()

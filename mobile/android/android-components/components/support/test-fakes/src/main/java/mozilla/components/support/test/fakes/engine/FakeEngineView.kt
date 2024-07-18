@@ -10,15 +10,11 @@ import android.view.View
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.selection.SelectionActionDelegate
-import androidx.core.view.OnApplyWindowInsetsListener as AndroidxOnApplyWindowInsetsListener
 
 /**
  * A fake [EngineView] to be used in tests.
  */
-class FakeEngineView(
-    context: Context,
-) : View(context),
-    EngineView {
+class FakeEngineView(context: Context) : View(context), EngineView {
     override fun render(session: EngineSession) = Unit
 
     override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) = Unit
@@ -32,13 +28,6 @@ class FakeEngineView(
     override fun setActivityContext(context: Context?) = Unit
 
     override fun release() = Unit
-
-    override fun addWindowInsetsListener(
-        key: String,
-        listener: AndroidxOnApplyWindowInsetsListener?,
-    ) = Unit
-
-    override fun removeWindowInsetsListener(key: String) = Unit
 
     override var selectionActionDelegate: SelectionActionDelegate? = null
 }

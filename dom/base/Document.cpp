@@ -194,7 +194,6 @@
 #include "mozilla/dom/HTMLTextAreaElement.h"
 #include "mozilla/dom/ImageTracker.h"
 #include "mozilla/dom/InspectorUtils.h"
-#include "mozilla/dom/InteractiveWidget.h"
 #include "mozilla/dom/Link.h"
 #include "mozilla/dom/MediaQueryList.h"
 #include "mozilla/dom/MediaSource.h"
@@ -1433,7 +1432,6 @@ Document::Document(const char* aContentType)
       mHttpsOnlyStatus(nsILoadInfo::HTTPS_ONLY_UNINITIALIZED),
       mViewportType(Unknown),
       mViewportFit(ViewportFitType::Auto),
-      mInteractiveWidgetMode(InteractiveWidget::ResizesContent),
       mHeaderData(nullptr),
       mServoRestyleRootDirtyBits(0),
       mThrowOnDynamicMarkupInsertionCounter(0),
@@ -10952,46 +10950,10 @@ ViewportMetaData Document::GetViewportMetaData() const {
                                        : ViewportMetaData();
 }
 
-static InteractiveWidget ParseInteractiveWidget(
-    const ViewportMetaData& aViewportMetaData) {
-  if (aViewportMetaData.mInteractiveWidgetMode.IsEmpty()) {
-    // The spec defines "use `resizes-visual` if no value specified", but here
-    // we use `resizes-content` for the backward compatibility now.
-    // We will change it in bug 1884807.
-    return InteractiveWidget::ResizesContent;
-  }
-
-  if (aViewportMetaData.mInteractiveWidgetMode.EqualsIgnoreCase(
-          "resizes-visual")) {
-    return InteractiveWidget::ResizesVisual;
-  }
-  if (aViewportMetaData.mInteractiveWidgetMode.EqualsIgnoreCase(
-          "resizes-content")) {
-    return InteractiveWidget::ResizesContent;
-  }
-  if (aViewportMetaData.mInteractiveWidgetMode.EqualsIgnoreCase(
-          "overlays-content")) {
-    return InteractiveWidget::OverlaysContent;
-  }
-  // For the same reason above empty case, we use `resizes-content` here.
-  return InteractiveWidget::ResizesContent;
-}
-
 void Document::SetMetaViewportData(UniquePtr<ViewportMetaData> aData) {
   mLastModifiedViewportMetaData = std::move(aData);
   // Trigger recomputation of the nsViewportInfo the next time it's queried.
   mViewportType = Unknown;
-
-  // Parse interactive-widget here anyway. Normally we parse any data in the
-  // meta viewport tag in GetViewportInfo(), but GetViewportInfo() depends on
-  // the document state (e.g. display size, fullscreen, desktop-mode etc.)
-  // whereas interactive-widget is independent from the document state, it's
-  // necessary whatever the document state is.
-  dom::InteractiveWidget interactiveWidget =
-      ParseInteractiveWidget(*mLastModifiedViewportMetaData);
-  if (mInteractiveWidgetMode != interactiveWidget) {
-    mInteractiveWidgetMode = interactiveWidget;
-  }
 
   AsyncEventDispatcher::RunDOMEventWhenSafe(
       *this, u"DOMMetaViewportFitChanged"_ns, CanBubble::eYes,

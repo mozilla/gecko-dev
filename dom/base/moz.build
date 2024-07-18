@@ -208,7 +208,6 @@ EXPORTS.mozilla.dom += [
     "IDTracker.h",
     "ImageEncoder.h",
     "ImageTracker.h",
-    "InteractiveWidget.h",
     "IntlUtils.h",
     "JSExecutionContext.h",
     "Link.h",
