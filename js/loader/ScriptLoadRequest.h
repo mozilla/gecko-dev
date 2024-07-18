@@ -207,7 +207,8 @@ class ScriptLoadRequest : public nsISupports,
   }
 
   void MarkSkippedBytecodeEncoding() {
-    MOZ_ASSERT(mBytecodeEncodingPlan == BytecodeEncodingPlan::Uninitialized);
+    MOZ_ASSERT(mBytecodeEncodingPlan == BytecodeEncodingPlan::Uninitialized ||
+               mBytecodeEncodingPlan == BytecodeEncodingPlan::PassedCondition);
     mBytecodeEncodingPlan = BytecodeEncodingPlan::Skipped;
   }
 

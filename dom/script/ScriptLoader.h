@@ -462,12 +462,14 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
  private:
   ~ScriptLoader();
 
+  enum class RequestType { Inline, External, Preload };
+
   already_AddRefed<ScriptLoadRequest> CreateLoadRequest(
       ScriptKind aKind, nsIURI* aURI, nsIScriptElement* aElement,
       nsIPrincipal* aTriggeringPrincipal, mozilla::CORSMode aCORSMode,
       const nsAString& aNonce, RequestPriority aRequestPriority,
       const SRIMetadata& aIntegrity, ReferrerPolicy aReferrerPolicy,
-      JS::loader::ParserMetadata aParserMetadata);
+      JS::loader::ParserMetadata aParserMetadata, RequestType requestType);
 
   /**
    * Unblocks the creator parser of the parser-blocking scripts.
@@ -624,11 +626,25 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   // Implements https://html.spec.whatwg.org/#execute-the-script-block
   nsresult EvaluateScriptElement(ScriptLoadRequest* aRequest);
 
-  // Handles both bytecode and text source scripts; populates exec with a
-  // compiled script
-  nsresult CompileOrDecodeClassicScript(JSContext* aCx,
-                                        JSExecutionContext& aExec,
-                                        ScriptLoadRequest* aRequest);
+  // Instantiate classic script from one of the following data:
+  //   * text source
+  //   * encoded bytecode
+  //   * cached stencil
+  nsresult InstantiateClassicScriptFromAny(JSContext* aCx,
+                                           JSExecutionContext& aExec,
+                                           ScriptLoadRequest* aRequest);
+
+  // Instantiate classic script from one of the following data:
+  //   * text source
+  //   * encoded bytecode
+  nsresult InstantiateClassicScriptFromMaybeEncodedSource(
+      JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest);
+
+  // Instantiate classic script from the following data:
+  //   * cached stencil
+  nsresult InstantiateClassicScriptFromCachedStencil(
+      JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest,
+      JS::Stencil* aStencil);
 
   static nsCString& BytecodeMimeTypeFor(ScriptLoadRequest* aRequest);
 
