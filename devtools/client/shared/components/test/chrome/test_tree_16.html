@@ -91,11 +91,11 @@ window.onload = async function () {
     await forceRender(tree);
 
     isRenderedTree(document.body.textContent, [
-      "---K:false",
-      "---L:false",
       "--F:false",
       "--G:false",
       "-C:false",
+      "--H:false",
+      "--I:false",
     ], "Should render shown item correctly");
 
     info("Test mid item shown when it's already rendered.");
@@ -103,11 +103,11 @@ window.onload = async function () {
     await forceRender(tree);
 
     isRenderedTree(document.body.textContent, [
-      "---L:false",
       "--F:false",
       "--G:false",
       "-C:false",
       "--H:false",
+      "--I:false",
     ], "Should render shown item correctly");
 
     info("Test item that is not in traversal.");
@@ -115,11 +115,11 @@ window.onload = async function () {
     await forceRender(tree);
 
     isRenderedTree(document.body.textContent, [
-      "---L:false",
       "--F:false",
       "--G:false",
       "-C:false",
       "--H:false",
+      "--I:false",
     ], "Should render without changes");
 
     info("Test item that is already shown.");

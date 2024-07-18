@@ -6,6 +6,13 @@
 
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
 
+loader.lazyRequireGetter(
+  this,
+  "TRACER_LOG_METHODS",
+  "resource://devtools/shared/specs/tracer.js",
+  true
+);
+
 class TracerCommand extends EventEmitter {
   constructor({ commands }) {
     super();
@@ -41,9 +48,6 @@ class TracerCommand extends EventEmitter {
       if (resource.resourceType != this.#resourceCommand.TYPES.JSTRACER_STATE) {
         continue;
       }
-      this.isTracingActive = resource.enabled;
-      // In case the tracer is started without the DevTools frontend, also force it to be reported as enabled
-      this.isTracingEnabled = resource.enabled;
 
       // Clear the list of collected frames each time we start a new tracer record.
       // The tracer will reset its frame counter to zero on stop, but on the frontend
@@ -51,6 +55,17 @@ class TracerCommand extends EventEmitter {
       if (resource.enabled) {
         resource.targetFront.getJsTracerCollectedFramesArray().length = 0;
       }
+
+      if (
+        resource.enabled == this.isTracingActive &&
+        resource.enabled == this.isTracingEnabled
+      ) {
+        continue;
+      }
+
+      this.isTracingActive = resource.enabled;
+      // In case the tracer is started without the DevTools frontend, also force it to be reported as enabled
+      this.isTracingEnabled = resource.enabled;
 
       this.emit("toggle");
     }
@@ -64,11 +79,17 @@ class TracerCommand extends EventEmitter {
    *         Configuration object.
    */
   getTracingOptions() {
+    const logMethod = Services.prefs.getStringPref(
+      "devtools.debugger.javascript-tracing-log-method",
+      ""
+    );
     return {
-      logMethod: Services.prefs.getStringPref(
-        "devtools.debugger.javascript-tracing-log-method",
-        ""
-      ),
+      logMethod,
+      // Force enabling DOM Mutation logging as soon as we selected the sidebar log output
+      traceDOMMutations:
+        logMethod == TRACER_LOG_METHODS.DEBUGGER_SIDEBAR
+          ? ["add", "attributes", "remove"]
+          : null,
       traceValues: Services.prefs.getBoolPref(
         "devtools.debugger.javascript-tracing-values",
         false

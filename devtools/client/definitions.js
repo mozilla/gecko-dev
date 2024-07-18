@@ -648,6 +648,22 @@ exports.ToolboxButtons = [
       const { logMethod } = options;
       menu.append(
         new MenuItem({
+          id: "jstracer-menu-item-debugger-sidebar",
+          label: l10n(
+            "toolbox.buttons.jstracer.menu-item.trace-to-debugger-sidebar"
+          ),
+          checked: logMethod == TRACER_LOG_METHODS.DEBUGGER_SIDEBAR,
+          type: "radio",
+          click: () => {
+            Services.prefs.setStringPref(
+              "devtools.debugger.javascript-tracing-log-method",
+              TRACER_LOG_METHODS.DEBUGGER_SIDEBAR
+            );
+          },
+        })
+      );
+      menu.append(
+        new MenuItem({
           id: "jstracer-menu-item-console",
           label: l10n("traceInWebConsole"),
           checked: logMethod == TRACER_LOG_METHODS.CONSOLE,

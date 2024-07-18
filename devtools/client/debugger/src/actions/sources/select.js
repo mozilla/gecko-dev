@@ -36,6 +36,7 @@ import {
   hasSourceActor,
   hasPrettyTab,
   isSourceActorWithSourceMap,
+  getSourceByActorId,
 } from "../../selectors/index";
 
 // This is only used by jest tests (and within this module)
@@ -85,6 +86,24 @@ export function selectSourceURL(url, options) {
 
     const location = createLocation({ ...options, source });
     return dispatch(selectLocation(location));
+  };
+}
+
+export function selectSourceBySourceActorID(sourceActorId, options) {
+  return async thunkArgs => {
+    const { dispatch, getState } = thunkArgs;
+    const source = getSourceByActorId(getState(), sourceActorId);
+    if (!source) {
+      throw new Error(`Unable to find source actor with id ${sourceActorId}`);
+    }
+
+    const generatedLocation = createLocation({ ...options, source });
+
+    const originalLocation = await getOriginalLocation(
+      generatedLocation,
+      thunkArgs
+    );
+    return dispatch(selectLocation(originalLocation));
   };
 }
 

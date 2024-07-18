@@ -1,0 +1,334 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
+
+/**
+ * Store variable on the root element, as it may be used by HTMLTooltip elements,
+ *  which are added outside of .tracer-container.
+ */
+:root {
+  --tracer-event-color: var(--grey-50);
+  --tracer-mouse-event-color: var(--green-60);
+  --tracer-key-event-color: var(--teal-60);
+  --tracer-mutation-color: var(--purple-30);
+  --tracer-mutation-darker-color: oklch(from var(--tracer-mutation-color) calc(l * 0.6) c h);
+  --slider-bar-background: var(--blue-55);
+}
+
+.tracer-container {
+  height: 100%;
+  max-height: 100%;
+
+  display: grid;
+  grid-template-areas: "toolbar           toolbar"
+                       "timeline-toolbar  timeline-toolbar"
+                       "timeline          tree";
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto 1fr;
+
+  & > .tracer-toolbar {
+    grid-area: toolbar;
+  }
+  & > .tracer-timeline-toolbar {
+    grid-area: timeline-toolbar;
+  }
+  & > .tracer-timeline {
+    grid-area: timeline;
+  }
+  & > :is(.tracer-message, .tree) {
+    grid-area: tree;
+  }
+}
+
+.tracer-toolbar .tracer-experimental-notice {
+  --icon-size: 16px;
+  --icon-inline-padding: 4px;
+
+  background-color: var(--theme-body-alternate-emphasized-background);
+  border-block-end: 1px solid var(--theme-splitter-color);
+  padding: 1em;
+  padding-inline-start: calc(var(--icon-inline-padding) * 2 + var(--icon-size));
+  background-image: url("chrome://global/skin/icons/experiments.svg");
+  background-position-x: var(--icon-inline-padding);
+  background-position-y: 50%;
+  background-repeat: no-repeat;
+  background-size: var(--icon-size);
+  -moz-context-properties: fill;
+  fill: var(--theme-icon-checked-color);
+}
+
+.tracer-tab .tracer-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-style: italic;
+  text-align: center;
+  padding: 0.5em;
+  font-size: 12px;
+  user-select: none;
+}
+
+.tracer-tab .tree {
+  overflow-x: auto;
+  overflow-y: auto;
+  border-inline-start: 1px solid var(--theme-splitter-color);
+  padding-inline-start: 4px !important;
+}
+
+.tracer-tab .tree-node {
+  /* This matches `itemHeight` set on VirtualizedTree component */
+  height: var(--tree-node-height);
+  line-height: var(--tree-node-height);
+  text-wrap: nowrap;
+  margin-inline-start: calc(5px * var(--tree-node-depth));
+  /* make the tree node at least as wide as its content so the hover style isn't weird */
+  width: min-content;
+  min-width: 100%;
+}
+
+.tracer-tab .tree-node .trace-line {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.tracer-tab .frame-link {
+  display: flex;
+  width: 100%;
+  padding: 0 10px;
+  gap: 10px;
+}
+
+/* Force the smart trace link to be light color when the focused style make the background blue */
+.tracer-tab .tree-node.focused .frame-link-source {
+  color: var(--theme-selection-color);
+}
+
+.tracer-tab .frame-link.match, .tracer-tab .frame-link.match .frame-link-source {
+  background: var(--theme-contrast-background);
+  color: var(--theme-contrast-color);
+}
+
+.tracer-tab .tree-node:has(.frame-link.onstack) {
+  background-color: light-dark(lightblue, var(--theme-body-alternate-emphasized-background));
+}
+
+.tracer-tab .frame-link-source {
+  max-width:200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  color: var(--theme-internal-link-color);
+}
+
+.tracer-tab .frame-link-function-display-name {
+  flex: 1;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  text-wrap: nowrap;
+  font-family: var(--monospace-font-family);
+}
+
+.tracer-dom-event, .tracer-dom-mutation {
+  padding-inline: 4px;
+  margin-inline: 5px;
+
+  &.mouse {
+    --event-color: var(--tracer-mouse-event-color);
+  }
+  &.key {
+    --event-color: var(--tracer-key-event-color);
+  }
+  &.tracer-dom-mutation {
+    --event-color: var(--tracer-mutation-color);
+  }
+
+  &::before {
+    content: "";
+    height: 8px;
+    aspect-ratio: 1 / 1;
+    margin-inline-end: 4px;
+    background-color: var(--event-color, var(--tracer-event-color));
+    display: inline-block;
+    vertical-align: baseline;
+    outline: 1px solid;
+  }
+}
+
+.tracer-timeline {
+  width: 50px;
+  padding-inline: 2px 4px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--theme-body-alternate-emphasized-background);
+
+  &.hidden {
+    display: none;
+  }
+}
+
+.tracer-timeline-toolbar {
+  border-bottom: 1px solid var(--theme-splitter-color);
+
+  .tracer-reset-zoom {
+    padding: 0.5em 2em;
+    margin-inline: auto;
+    display: block;
+  }
+}
+
+.tracer-slider-box {
+  flex: 1;
+  position: relative;
+}
+
+/**
+ * .selected-before and .selected-after are little blue arrows shown
+ * on top and bottom of the slider to indicate when the selected trace
+ * is outside of the current viewport.
+ */
+.tracer-slider-box.selected-before .tracer-slice-slider::before,
+.tracer-slider-box.selected-after .tracer-slice-slider::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  left: 0;
+  z-index: 10;
+
+  background-image: url("chrome://devtools/skin/images/arrow.svg");
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-size: 10px;
+
+  -moz-context-properties: fill;
+}
+
+.tracer-slider-box.selected-before .tracer-slice-slider::before {
+  top: 0;
+  transform: rotate(180deg);
+  fill: var(--slider-bar-background);
+}
+
+.tracer-slider-box.selected-after .tracer-slice-slider::after {
+  bottom: 0;
+  left: -2px;
+  fill: white;
+}
+
+.tracer-slider-box:is(.cut-start, .cut-end) {
+  --shadow-size: 10px;
+  --shadow-color: rgb(0 0 0 / 0.3);
+}
+
+.tracer-slider-box.cut-start::before {
+  content: "";
+  height: var(--shadow-size);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to bottom, var(--shadow-color), transparent);
+}
+.tracer-slider-box.cut-end::after {
+  content: "";
+  height: var(--shadow-size);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, var(--shadow-color), transparent);
+}
+
+.tracer-slice-slider {
+  position: absolute;
+  cursor: pointer;
+  height: 100%;
+  width: 100%;
+  /* ignore overflows of mutations icons going over limits on top or bottom */
+  overflow: hidden;
+}
+
+.tracer-slider-bar {
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(
+    var(--slider-bar-background) var(--slider-bar-progress, 0%),
+    transparent var(--slider-bar-progress, 0%)
+  );
+  background-color: var(--theme-body-background);
+  border: 1px solid var(--theme-splitter-color);
+  position: absolute;
+  z-index: 5;
+}
+
+.tracer-slider-position {
+  position: absolute;
+  top: var(--slider-bar-progress);
+  z-index: 15;
+  width: 100%;
+  height: 3px;
+  background-color: var(--slider-bar-background);
+  border-inline-start: 1px solid var(--theme-splitter-color);
+}
+.tracer-slider-event, .tracer-slider-mutation {
+  position: absolute;
+  width: 3px;
+  left: 12px;
+  z-index: 8;
+
+}
+.tracer-slider-event {
+  background-color: var(--tracer-event-color);
+  --top-line-height: 2px;
+  --left-line-width: 10px;
+  clip-path: polygon(0% 0%, 100% 0%, 100% var(--top-line-height), var(--left-line-width) var(--top-line-height), var(--left-line-width) 100%, 0px 100%);
+  width: 30px;
+
+  &.mouse {
+    background-color: var(--tracer-mouse-event-color);
+  }
+  &.key {
+    background-color: var(--tracer-key-event-color);
+  }
+  &:hover {
+    background-color: var(--blue-30);
+  }
+}
+
+.tracer-slider-mutation {
+  position: absolute;
+  aspect-ratio: 1 / 1;
+  width: 18px;
+  align-content: center;
+  text-align: center;
+
+  border: 1px solid var(--tracer-mutation-darker-color);
+
+  /**
+   * Move the element at its middle of its coordinate so that the JS code
+   * defining its coordinate doesn't have to care about its size
+   */
+  transform: translateX(6px) translateY(-50%);
+
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 50%;
+}
+
+.tracer-slider-mutation, .tracer-slider-mutation div {
+  background-color: var(--tracer-mutation-color);
+  color: var(--tracer-mutation-darker-color);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.event-tooltip .tooltip-panel {
+  padding: 10px;
+
+  hr {
+    border: none;
+    border-block-end: 1px solid var(--theme-splitter-color);
+  }
+}

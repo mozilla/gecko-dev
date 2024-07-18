@@ -711,6 +711,9 @@ Toolbox.prototype = {
     const { logMethod } = this.commands.tracerCommand.getTracingOptions();
     if (logMethod == TRACER_LOG_METHODS.CONSOLE) {
       await this.openSplitConsole({ focusConsoleInput: false });
+    } else if (logMethod == TRACER_LOG_METHODS.DEBUGGER_SIDEBAR) {
+      const panel = await this.selectTool("jsdebugger");
+      panel.showTracerSidebar();
     }
   },
 

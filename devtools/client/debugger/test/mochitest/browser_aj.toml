@@ -292,6 +292,11 @@ skip-if = [
   "tsan", # Bug 1832135
 ]
 
+["browser_dbg-javascript-tracer-sidebar.js"]
+skip-if = [
+  "tsan", # Bug 1832135
+]
+
 ["browser_dbg-javascript-tracer-values.js"]
 skip-if = [
   "tsan", # Bug 1832135
