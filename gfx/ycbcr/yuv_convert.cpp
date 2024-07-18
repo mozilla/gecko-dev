@@ -19,13 +19,13 @@
 
 #include "yuv_convert.h"
 
-#include "mozilla/StaticPrefs_gfx.h"
 #include "libyuv.h"
+#include "mozilla/IntegerRange.h"
+#include "mozilla/SSE.h"
+#include "mozilla/StaticPrefs_gfx.h"
 #include "scale_yuv_argb.h"
 // Header for low level row functions.
 #include "yuv_row.h"
-#include "mozilla/SSE.h"
-#include "mozilla/IntegerRange.h"
 
 namespace mozilla {
 
