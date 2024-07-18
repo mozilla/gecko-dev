@@ -143,12 +143,12 @@ class MobileViewportManager final : public nsIDOMEventListener,
 
   static mozilla::LazyLogModule gLog;
 
- private:
-  ~MobileViewportManager();
-
   /* Main helper method to update the CSS viewport and any other properties that
    * need updating. */
   void RefreshViewportSize(bool aForceAdjustResolution);
+
+ private:
+  ~MobileViewportManager();
 
   /* Secondary main helper method to update just the visual viewport size. */
   void RefreshVisualViewportSize();
