@@ -12,6 +12,8 @@
 #define mozilla_dom_ScriptLoadHandler_h
 
 #include "nsIIncrementalStreamLoader.h"
+#include "nsIChannelEventSink.h"
+#include "nsIInterfaceRequestor.h"
 #include "nsISupports.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/Maybe.h"
@@ -65,7 +67,9 @@ class ScriptDecoder {
   mozilla::UniquePtr<mozilla::Decoder> mDecoder;
 };
 
-class ScriptLoadHandler final : public nsIIncrementalStreamLoaderObserver {
+class ScriptLoadHandler final : public nsIIncrementalStreamLoaderObserver,
+                                public nsIChannelEventSink,
+                                public nsIInterfaceRequestor {
  public:
   explicit ScriptLoadHandler(
       ScriptLoader* aScriptLoader, JS::loader::ScriptLoadRequest* aRequest,
@@ -73,6 +77,8 @@ class ScriptLoadHandler final : public nsIIncrementalStreamLoaderObserver {
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIINCREMENTALSTREAMLOADEROBSERVER
+  NS_DECL_NSICHANNELEVENTSINK
+  NS_DECL_NSIINTERFACEREQUESTOR
 
  private:
   virtual ~ScriptLoadHandler();

@@ -832,7 +832,8 @@ nsresult ScriptLoader::PrepareHttpRequestAndInitiatorType(
 }
 
 nsresult ScriptLoader::PrepareIncrementalStreamLoader(
-    nsIIncrementalStreamLoader** aOutLoader, ScriptLoadRequest* aRequest) {
+    nsIIncrementalStreamLoader** aOutLoader, nsIChannel* aChannel,
+    ScriptLoadRequest* aRequest) {
   UniquePtr<mozilla::dom::SRICheckDataVerifier> sriDataVerifier;
   if (!aRequest->mIntegrity.IsEmpty()) {
     nsAutoCString sourceUri;
@@ -845,6 +846,8 @@ nsresult ScriptLoader::PrepareIncrementalStreamLoader(
 
   RefPtr<ScriptLoadHandler> handler =
       new ScriptLoadHandler(this, aRequest, std::move(sriDataVerifier));
+
+  aChannel->SetNotificationCallbacks(handler);
 
   nsresult rv = NS_NewIncrementalStreamLoader(aOutLoader, handler);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -895,7 +898,8 @@ nsresult ScriptLoader::StartLoadInternal(
       mDocument->NodePrincipal()->OriginAttributesRef());
 
   nsCOMPtr<nsIIncrementalStreamLoader> loader;
-  rv = PrepareIncrementalStreamLoader(getter_AddRefs(loader), aRequest);
+  rv =
+      PrepareIncrementalStreamLoader(getter_AddRefs(loader), channel, aRequest);
   NS_ENSURE_SUCCESS(rv, rv);
 
   auto key = PreloadHashKey::CreateAsScript(

@@ -111,6 +111,19 @@ class ScriptLoadRequest : public nsISupports,
   ModuleLoadRequest* AsModuleRequest();
   const ModuleLoadRequest* AsModuleRequest() const;
 
+  uint32_t ExpirationTime() const { return mExpirationTime; }
+
+  void SetMinimumExpirationTime(uint32_t aExpirationTime) {
+    // 0 means "doesn't expire".
+    // Otherwise, calculate the minimum value.
+    if (aExpirationTime == 0) {
+      return;
+    }
+    if (mExpirationTime == 0 || aExpirationTime < mExpirationTime) {
+      mExpirationTime = aExpirationTime;
+    }
+  }
+
   virtual bool IsTopLevel() const { return true; };
 
   virtual void Cancel();
@@ -262,6 +275,9 @@ class ScriptLoadRequest : public nsISupports,
   // The referrer policy used for the initial fetch and for fetching any
   // imported modules
   enum mozilla::dom::ReferrerPolicy mReferrerPolicy;
+
+  uint32_t mExpirationTime = 0;
+
   RefPtr<ScriptFetchOptions> mFetchOptions;
   const SRIMetadata mIntegrity;
   const nsCOMPtr<nsIURI> mReferrer;

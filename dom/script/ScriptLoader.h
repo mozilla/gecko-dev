@@ -509,7 +509,8 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
       const Maybe<nsAutoString>& aCharsetForPreload);
 
   [[nodiscard]] nsresult PrepareIncrementalStreamLoader(
-      nsIIncrementalStreamLoader** aOutLoader, ScriptLoadRequest* aRequest);
+      nsIIncrementalStreamLoader** aOutLoader, nsIChannel* aChannel,
+      ScriptLoadRequest* aRequest);
 
   /**
    * Start a load for a script (module or classic) URI.
