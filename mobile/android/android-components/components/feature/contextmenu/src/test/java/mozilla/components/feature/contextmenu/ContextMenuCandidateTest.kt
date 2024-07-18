@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.contextmenu
 
-import android.content.ActivityNotFoundException
 import android.content.ClipboardManager
 import android.content.Context
 import android.view.View
@@ -44,7 +43,6 @@ import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
-import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -1210,36 +1208,6 @@ class ContextMenuCandidateTest {
                 HitResult.VIDEO("https://www.mozilla.org"),
             ),
         )
-    }
-
-    @Test
-    fun `GIVEN share error WHEN invoking share link candidate THEN does not crash`() {
-        val context = spy(testContext)
-        var errorThrown = false
-
-        doThrow(ActivityNotFoundException()).`when`(context).startActivity(any())
-        val shareLink = ContextMenuCandidate.createShareLinkCandidate(context)
-
-        val store = BrowserStore(
-            initialState = BrowserState(
-                tabs = listOf(
-                    createTab("https://www.mozilla.org", id = "mozilla", private = true),
-                ),
-                selectedTabId = "mozilla",
-            ),
-        )
-
-        try {
-            shareLink.action.invoke(
-                store.state.tabs.first(),
-                HitResult.IMAGE_SRC("https://firefox.com", "https://getpocket.com"),
-            )
-        } catch (e: Exception) {
-            errorThrown = true
-        }
-
-        verify(context).startActivity(any())
-        assertFalse(errorThrown)
     }
 
     @Test

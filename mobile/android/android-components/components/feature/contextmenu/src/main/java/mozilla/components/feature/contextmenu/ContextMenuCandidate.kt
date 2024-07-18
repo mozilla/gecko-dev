@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.contextmenu
 
-import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -20,7 +19,6 @@ import mozilla.components.concept.engine.HitResult
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.contextmenu.ContextMenuCandidate.Companion.MAX_TITLE_LENGTH
 import mozilla.components.feature.tabs.TabsUseCases
-import mozilla.components.support.base.log.Log
 import mozilla.components.support.ktx.android.content.addContact
 import mozilla.components.support.ktx.android.content.createChooserExcludingCurrentApp
 import mozilla.components.support.ktx.android.content.share
@@ -493,22 +491,12 @@ data class ContextMenuCandidate(
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     putExtra(Intent.EXTRA_TEXT, hitResult.getLink())
                 }
-
-                try {
-                    context.startActivity(
-                        intent.createChooserExcludingCurrentApp(
-                            context,
-                            context.getString(R.string.mozac_feature_contextmenu_share_link),
-                        ),
-                    )
-                } catch (e: ActivityNotFoundException) {
-                    Log.log(
-                        Log.Priority.WARN,
-                        message = "No activity to share to found",
-                        throwable = e,
-                        tag = "createShareLinkCandidate"
-                    )
-                }
+                context.startActivity(
+                    intent.createChooserExcludingCurrentApp(
+                        context,
+                        context.getString(R.string.mozac_feature_contextmenu_share_link),
+                    ),
+                )
             },
         )
 
