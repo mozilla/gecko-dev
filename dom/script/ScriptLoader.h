@@ -153,6 +153,19 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
    */
   void DropDocumentReference() { mDocument = nullptr; }
 
+  // Methods for SharedScriptCache.
+  nsIPrincipal* LoaderPrincipal() const;
+  nsIPrincipal* PartitionedPrincipal() const;
+
+  bool ShouldBypassCache() const;
+
+  template <typename T>
+  bool HasLoaded(const T& aKey) {
+    // NOTE: ScriptLoader doesn't cache pending/loading requests, and
+    //       this method is unsed.
+    return false;
+  }
+
   /**
    * Add an observer for all scripts loaded through this loader.
    *
