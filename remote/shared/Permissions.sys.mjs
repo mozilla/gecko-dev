@@ -7,6 +7,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
 });
 
 /**
@@ -111,12 +112,12 @@ permissions.set = function (descriptor, state, origin, userContextId) {
 permissions.validateDescriptor = function (descriptor) {
   lazy.assert.object(
     descriptor,
-    `Expected "descriptor" to be an object, got ${descriptor}`
+    lazy.pprint`Expected "descriptor" to be an object, got ${descriptor}`
   );
   const permissionName = descriptor.name;
   lazy.assert.string(
     permissionName,
-    `Expected "descriptor.name" to be a string, got ${permissionName}`
+    lazy.pprint`Expected descriptor "name" to be a string, got ${permissionName}`
   );
 
   // Bug 1609427: PermissionDescriptor for "camera" and "microphone" are not yet implemented.
@@ -140,6 +141,6 @@ permissions.validateState = function (state) {
   const permissionStateTypes = Object.keys(PermissionState);
   lazy.assert.that(
     state => permissionStateTypes.includes(state),
-    `Expected "state" to be one of ${permissionStateTypes}, got ${state}`
+    lazy.pprint`Expected "state" to be one of ${permissionStateTypes}, got ${state}`
   )(state);
 };

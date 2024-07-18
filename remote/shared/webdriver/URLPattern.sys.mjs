@@ -7,6 +7,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
+  pprint: "chrome://remote/content/shared/Format.sys.mjs",
 });
 
 /**
@@ -125,7 +126,7 @@ export function matchURLPattern(urlPattern, url) {
 export function parseURLPattern(pattern) {
   lazy.assert.object(
     pattern,
-    `Expected url pattern to be an object, got ${pattern}`
+    lazy.pprint`Expected URL pattern to be an object, got ${pattern}`
   );
 
   let hasProtocol = true;
@@ -181,7 +182,7 @@ export function parseURLPattern(pattern) {
     case URLPatternType.String:
       lazy.assert.string(
         pattern.pattern,
-        `Expected "urlPattern" of type "string" to have a string "pattern" property, got ${pattern.pattern}`
+        lazy.pprint`Expected URL pattern "pattern" to be a string, got ${pattern.pattern}`
       );
       patternUrl = unescapeUrlPattern(pattern.pattern);
       break;
@@ -288,7 +289,7 @@ function parseHostname(hostname, scheme) {
 function parsePathname(pathname) {
   lazy.assert.string(
     pathname,
-    `Expected URLPattern "pathname" to be a string, got ${pathname}`
+    lazy.pprint`Expected URL pattern "pathname" to be a string, got ${pathname}`
   );
 
   pathname = unescapeUrlPattern(pathname);
@@ -380,7 +381,7 @@ function parseProtocol(protocol) {
 function parseSearch(search) {
   lazy.assert.string(
     search,
-    `Expected URLPattern "search" to be a string, got ${search}`
+    lazy.pprint`Expected URL pattern "search" to be a string, got ${search}`
   );
 
   search = unescapeUrlPattern(search);

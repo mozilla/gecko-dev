@@ -412,7 +412,10 @@ class PointerInputSource extends InputSource {
    *     True if |button| is in set of pressed buttons.
    */
   isPressed(button) {
-    lazy.assert.positiveInteger(button);
+    lazy.assert.positiveInteger(
+      button,
+      lazy.pprint`Expected "button" to be a positive integer, got ${button}`
+    );
     return this.pressed.has(button);
   }
 
@@ -426,7 +429,10 @@ class PointerInputSource extends InputSource {
    *     Set of pressed buttons.
    */
   press(button) {
-    lazy.assert.positiveInteger(button);
+    lazy.assert.positiveInteger(
+      button,
+      lazy.pprint`Expected "button" to be a positive integer, got ${button}`
+    );
     this.pressed.add(button);
   }
 
@@ -440,7 +446,10 @@ class PointerInputSource extends InputSource {
    *     True if |button| was present before removals, false otherwise.
    */
   release(button) {
-    lazy.assert.positiveInteger(button);
+    lazy.assert.positiveInteger(
+      button,
+      lazy.pprint`Expected "button" to be a positive integer, got ${button}`
+    );
     return this.pressed.delete(button);
   }
 
