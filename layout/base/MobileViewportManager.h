@@ -180,11 +180,9 @@ class MobileViewportManager final : public nsIDOMEventListener,
   void UpdateResolutionForContentSizeChange(
       const mozilla::CSSSize& aContentSize);
 
-  void ApplyNewZoom(const mozilla::ScreenIntSize& aDisplaySize,
-                    const mozilla::CSSToScreenScale& aNewZoom);
+  void ApplyNewZoom(const mozilla::CSSToScreenScale& aNewZoom);
 
-  void UpdateVisualViewportSize(const mozilla::ScreenIntSize& aDisplaySize,
-                                const mozilla::CSSToScreenScale& aZoom);
+  void UpdateVisualViewportSize(const mozilla::CSSToScreenScale& aZoom);
 
   /* Updates the displayport margins for the presShell's root scrollable frame
    */
@@ -207,6 +205,13 @@ class MobileViewportManager final : public nsIDOMEventListener,
    * interactive-widget value.
    */
   mozilla::ScreenIntSize GetLayoutDisplaySize() const;
+
+  /*
+   * Returns the display size for visual viewport events. It varies depending on
+   * the interactive-widget value. The size doesn't match above
+   * GetLayoutDisplaySize() in the case of resizes-visual.
+   */
+  mozilla::ScreenIntSize GetDisplaySizeForVisualViewport() const;
 
   mozilla::CSSToScreenScale GetZoom() const;
 
