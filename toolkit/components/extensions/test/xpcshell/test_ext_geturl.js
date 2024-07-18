@@ -3,6 +3,91 @@
 const server = createHttpServer({ hosts: ["example.com"] });
 server.registerDirectory("/data/", do_get_file("data"));
 
+add_task(async function test_runtime_getURL() {
+  function background() {
+    const origin = location.origin;
+    function checkURL(input, expectedOutput, extraDescription = "") {
+      browser.test.assertEq(
+        expectedOutput,
+        browser.runtime.getURL(input),
+        `Expected result for runtime.getURL(${input}) : ${extraDescription}`
+      );
+    }
+
+    // Common cases: leading / is optional.
+    checkURL("test.txt", `${origin}/test.txt`, "Leading / is optional");
+    checkURL("/test.txt", `${origin}/test.txt`, "With leading /");
+
+    // Test cases from https://github.com/w3c/webextensions/issues/281
+
+    // Case 1: "passing non-string parameter"
+    browser.test.assertThrows(
+      () => browser.runtime.getURL(200),
+      "Incorrect argument types for runtime.getURL.",
+      "getURL() with non-string should throw"
+    );
+    browser.test.assertThrows(
+      () => browser.runtime.getURL(),
+      "Incorrect argument types for runtime.getURL.",
+      "getURL() requires a parameter"
+    );
+
+    // Case 2: "passing lesser known utf-8 characters"
+    checkURL("Ω", `${origin}/Ω`, "Lesser known utf-8 character");
+
+    // Case 3: "passing a full external URL"
+    checkURL("https://example.com/", `${origin}/https://example.com/`);
+
+    // Case 4: "passing a full extension-owned URL"
+    // Note: Firefox has historically returned the parsed URL when the input is
+    // the moz-extension:-URL. To minimize the odds of regressions, we preserve
+    // the behavior. Note: Chrome returns `${origin}/${origin}`.
+    checkURL(`${origin}/`, `${origin}/`, "");
+    checkURL(location.href, location.href, "Full moz-extension URL");
+
+    // Case 5: "passing URL which is exactly //"
+    checkURL("//", `${origin}//`);
+
+    // Case 6: "passing URL which starts with or is three slashes ///"
+    checkURL("///", `${origin}///`);
+
+    // Case 7: "passing URL which starts with exactly two slashes and at least
+    //          one non-slash character"
+    checkURL("//example", `${origin}//example`);
+
+    // Case 8: "passing URL which is exactly ."
+    checkURL(".", `${origin}/`);
+
+    // Case 9: "passing URL which starts with ./"
+    checkURL("././/example", `${origin}//example`);
+
+    // Case 10: "passing URL which contains ../"
+    checkURL("../../example/..//test/", `${origin}//test/`);
+
+    // Case 11: "../ artifact edge-cases"
+    checkURL("../", `${origin}/`);
+    checkURL("..", `${origin}/`);
+    checkURL("/.././", `${origin}/`);
+
+    // More edge cases not covered above.
+
+    // moz-extension:-URL, not this extension.
+    checkURL("moz-extension://uuid/", `${origin}/moz-extension://uuid/`);
+    // moz-extension:-origin (missing trailing slash, not a URL).
+    checkURL(origin, `${origin}/${origin}`, "moz-extension without path slash");
+
+    browser.test.sendMessage("check_origin", origin);
+  }
+  let extension = ExtensionTestUtils.loadExtension({ background });
+  await extension.startup();
+  equal(
+    await extension.awaitMessage("check_origin"),
+    `moz-extension://${extension.uuid}`,
+    "Got expected base URL (origin)"
+  );
+  await extension.unload();
+});
+
 add_task(async function test_contentscript() {
   let extension = ExtensionTestUtils.loadExtension({
     background() {

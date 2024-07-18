@@ -524,6 +524,26 @@ export class ExtensionChild extends EventEmitter {
     return lazy.ExtensionContent.getContext(this, window);
   }
 
+  // Implementation of runtime.getURL / extension.getURL.
+  // ExtensionData.prototype.getURL has a similar signature and return value.
+  getURL(path = "") {
+    if (path.startsWith(this.baseURL)) {
+      // Historically, when the input is an already-resolved extension URL,
+      // we return the parsed version of it as-is.
+      return this.baseURI.resolve(path);
+    }
+    if (path.includes("//")) {
+      // When .resolve() is passed an absolute URL or starts with "//", it may
+      // discard parts of the baseURL's origin. To avoid that, prepend it.
+      if (path.startsWith("/")) {
+        // this.baseURL already contains a "/".
+        path = path.slice(1);
+      }
+      path = this.baseURL + path;
+    }
+    return this.baseURI.resolve(path);
+  }
+
   emit(event, ...args) {
     Services.cpmm.sendAsyncMessage(this.MESSAGE_EMIT_EVENT, { event, args });
     return super.emit(event, ...args);

@@ -92,7 +92,7 @@ this.runtime = class extends ExtensionAPI {
         id: extension.id,
 
         getURL(url) {
-          return extension.baseURI.resolve(url);
+          return extension.getURL(url);
         },
 
         getFrameId(target) {

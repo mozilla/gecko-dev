@@ -22,7 +22,6 @@ add_task(async function test_allowScriptsToClose() {
           browser.tabs.executeScript({ file: "close.js" });
         }
       }
-      options.url = browser.runtime.getURL(options.url);
       browser.windows.create(options);
       if (msg === "create+execute") {
         browser.tabs.onUpdated.addListener(listener);
@@ -46,7 +45,9 @@ add_task(async function test_allowScriptsToClose() {
   await extension.startup();
   await extension.awaitFinish();
 
-  extension.sendMessage("create", { url: "dummy.html" });
+  extension.sendMessage("create", {
+    url: `moz-extension://${extension.uuid}/dummy.html`,
+  });
   let win = await BrowserTestUtils.waitForNewWindow();
   await BrowserTestUtils.windowClosed(win);
   info("script allowed to close the window");

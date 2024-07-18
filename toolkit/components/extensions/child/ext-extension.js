@@ -8,7 +8,7 @@ this.extension = class extends ExtensionAPI {
   getAPI(context) {
     let api = {
       getURL(url) {
-        return context.extension.baseURI.resolve(url);
+        return context.extension.getURL(url);
       },
 
       get lastError() {
