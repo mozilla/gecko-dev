@@ -239,11 +239,12 @@ function get(instanceish, field) {
 function assert_trap(thunk, message) {
   try {
     thunk();
-    throw new Error("expected trap");
+    throw new Error(`expected trap but got no error (${message})`);
   } catch (err) {
     if (err instanceof WebAssembly.RuntimeError) {
       return;
     }
+    err.message = `expected trap (${message}): ${err.message}`;
     throw err;
   }
 }
@@ -259,57 +260,57 @@ try {
 function assert_exhaustion(thunk, message) {
   try {
     thunk();
-    assertEq("normal return", "exhaustion");
+    throw new Error(`expected exhaustion but got no error (${message})`);
   } catch (err) {
-    assertEq(
-      err instanceof StackOverflow,
-      true,
-      "expected exhaustion",
-    );
+    if (err instanceof StackOverflow) {
+      return;
+    }
+    err.message = `expected exhaustion (${message}): ${err.message}`;
+    throw err;
   }
 }
 
 function assert_invalid(thunk, message) {
   try {
     thunk();
-    assertEq("valid module", "invalid module");
+    throw new Error(`expected invalid module but got no error (${message})`);
   } catch (err) {
-    assertEq(
-      err instanceof WebAssembly.LinkError ||
-        err instanceof WebAssembly.CompileError,
-      true,
-      "expected an invalid module",
-    );
+    if (err instanceof WebAssembly.LinkError || err instanceof WebAssembly.CompileError) {
+      return;
+    }
+    err.message = `expected invalid module (${message}): ${err.message}`;
+    throw err;
   }
 }
 
 function assert_unlinkable(thunk, message) {
   try {
     thunk();
-    assertEq(true, false, "expected an unlinkable module");
+    throw new Error(`expected an unlinkable module (${message})`);
   } catch (err) {
-    assertEq(
-      err instanceof WebAssembly.LinkError ||
-        err instanceof WebAssembly.CompileError,
-      true,
-      "expected an unlinkable module",
-    );
+    if (err instanceof WebAssembly.LinkError || err instanceof WebAssembly.CompileError) {
+      return;
+    }
+    err.message = `expected an unlinkable module (${message}): ${err.message}`;
+    throw err;
   }
 }
 
 function assert_malformed(thunk, message) {
   try {
     thunk();
-    assertEq("valid module", "malformed module");
+    throw new Error(`expected a malformed module (${message})`);
   } catch (err) {
-    assertEq(
+    if (
       err instanceof TypeError ||
-        err instanceof SyntaxError ||
-        err instanceof WebAssembly.CompileError ||
-        err instanceof WebAssembly.LinkError,
-      true,
-      `expected a malformed module`,
-    );
+      err instanceof SyntaxError ||
+      err instanceof WebAssembly.CompileError ||
+      err instanceof WebAssembly.LinkError
+    ) {
+      return;
+    }
+    err.message = `expected a malformed module (${message}): ${err.message}`;
+    throw err;
   }
 }
 
