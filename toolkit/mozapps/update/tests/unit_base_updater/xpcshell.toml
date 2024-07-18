@@ -134,6 +134,13 @@ reason = "Windows only test"
 run-if = ["os == 'win'"]
 reason = "Windows only test"
 
+["marPostUpdateEnvironment.js"]
+run-if = [
+  "os == 'win'",
+  "os == 'mac'",
+]
+reason = "Post-update only supported  on Windows and macOS"
+
 ["marRMRFDirFileInUseStageFailureComplete_win.js"]
 run-if = ["os == 'win'"]
 reason = "Windows only test"

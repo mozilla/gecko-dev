@@ -3155,13 +3155,16 @@ async function waitForHelperExit() {
  *          When true, copy or symlink omnijars as well.  This may be required
  *          to launch the updated application and have non-trivial functionality
  *          available.
+ * @param   options.asyncExeArg
+ *          When `aPostUpdateAsync`, the (single) post-argument to invoke the
+ *          post-update process with.  Default: "post-update-async".
  */
 async function setupUpdaterTest(
   aMarFile,
   aPostUpdateAsync,
   aPostUpdateExeRelPathPrefix = "",
   aSetupActiveUpdate = true,
-  { requiresOmnijar = false } = {}
+  { requiresOmnijar = false, asyncExeArg = "post-update-async" } = {}
 ) {
   debugDump("start - updater test setup");
   // Make sure that update has already been initialized. If post update
@@ -3310,7 +3313,9 @@ async function setupUpdaterTest(
   }
 
   if (aPostUpdateAsync !== null) {
-    createUpdaterINI(aPostUpdateAsync, aPostUpdateExeRelPathPrefix);
+    createUpdaterINI(aPostUpdateAsync, aPostUpdateExeRelPathPrefix, {
+      asyncExeArg,
+    });
   }
 
   await TestUtils.waitForCondition(() => {
@@ -3336,9 +3341,16 @@ async function setupUpdaterTest(
  *          order to test the default launch behavior which is async.
  * @param   aExeRelPathPrefix
  *          A string to prefix the ExeRelPath values in the updater.ini.
+ * @param   options.asyncExeArg
+ *          When `aIsExeAsync`, the (single) argument to invoke the
+ *          post-update process with.  Default: "post-update-async".
  */
-function createUpdaterINI(aIsExeAsync, aExeRelPathPrefix) {
-  let exeArg = "ExeArg=post-update-async\n";
+function createUpdaterINI(
+  aIsExeAsync,
+  aExeRelPathPrefix,
+  { asyncExeArg = "post-update-async" } = {}
+) {
+  let exeArg = `ExeArg=${asyncExeArg}\n`;
   let exeAsync = "";
   if (aIsExeAsync !== undefined) {
     if (aIsExeAsync) {
@@ -4101,8 +4113,13 @@ function getPostUpdateFile(aSuffix) {
 /**
  * Checks the contents of the updater post update binary log. When completed
  * checkPostUpdateAppLogFinished will be called.
+ *
+ * @param   options.expectedContents
+ *          The expected log content.  Default: "post-update\n".
  */
-async function checkPostUpdateAppLog() {
+async function checkPostUpdateAppLog({
+  expectedContents = "post-update\n",
+} = {}) {
   // Only Mac OS X and Windows support post update.
   if (AppConstants.platform == "macosx" || AppConstants.platform == "win") {
     let file = getPostUpdateFile(".log");
@@ -4111,10 +4128,20 @@ async function checkPostUpdateAppLog() {
       "Waiting for file to exist, path: " + file.path
     );
 
-    let expectedContents = "post-update\n";
     await TestUtils.waitForCondition(
       () => readFile(file) == expectedContents,
-      "Waiting for expected file contents: " + expectedContents
+      // This is wonky: the message is evaluated _first_, not _finally_!  But
+      // when there's a mismatch and not a race, it still has the final content.
+      "Waiting for expected file contents: " +
+        expectedContents +
+        ", first read: " +
+        readFile(file)
+    );
+
+    Assert.equal(
+      readFile(file),
+      expectedContents,
+      "the post update log contents" + MSG_SHOULD_EQUAL
     );
   }
 }

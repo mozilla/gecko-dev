@@ -23,15 +23,22 @@
 #include <string.h>
 #include <sys/stat.h>
 
-static void WriteMsg(const NS_tchar* path, const char* status) {
+static void WriteMsg(const NS_tchar* path, const char* fmt, ...) {
   FILE* outFP = NS_tfopen(path, NS_T("wb"));
   if (!outFP) {
     return;
   }
 
-  fprintf(outFP, "%s\n", status);
+  va_list ap;
+  va_start(ap, fmt);
+
+  vfprintf(outFP, fmt, ap);
+  fprintf(outFP, "\n");
+
   fclose(outFP);
   outFP = nullptr;
+
+  va_end(ap);
 }
 
 static bool CheckMsg(const NS_tchar* path, const char* expected) {
@@ -77,7 +84,8 @@ static bool CheckMsg(const NS_tchar* path, const char* expected) {
 int NS_main(int argc, NS_tchar** argv) {
   if (argc == 2) {
     if (!NS_tstrcmp(argv[1], NS_T("post-update-async")) ||
-        !NS_tstrcmp(argv[1], NS_T("post-update-sync"))) {
+        !NS_tstrcmp(argv[1], NS_T("post-update-sync")) ||
+        !NS_tstrcmp(argv[1], NS_T("post-update-environment"))) {
       NS_tchar exePath[MAXPATHLEN];
 #ifdef XP_WIN
       if (!::GetModuleFileNameW(0, exePath, MAXPATHLEN)) {
@@ -124,7 +132,31 @@ int NS_main(int argc, NS_tchar** argv) {
                          NS_T("%s.log"), exePath)) {
         return 1;
       }
+
       WriteMsg(logFilePath, "post-update");
+
+      if (!NS_tstrcmp(argv[1], NS_T("post-update-environment"))) {
+        // Right now only one argument is supported for post update invocations,
+        // so we hardcode the environment variable under test rather than
+        // accepting it as an argument.
+        //
+        // N.b., any content written overwrites earlier content.
+
+#if defined(XP_WIN) || defined(XP_MACOSX)
+        const char* envVal = getenv("MOZ_TEST_POST_UPDATE_VAR");
+        if (envVal) {
+          WriteMsg(logFilePath, "MOZ_TEST_POST_UPDATE_VAR='%s'", envVal);
+        } else {
+          WriteMsg(logFilePath, "MOZ_TEST_POST_UPDATE_VAR=", envVal);
+        }
+#else
+        // A failure with a message will be much easier to debug than an
+        // abnormal exit code.
+        WriteMsg(logFilePath,
+                 "post-update-environment not supported on this platform");
+#endif  // defined(XP_WIN) || defined(XP_MACOSX)
+      }
+
       return 0;
     }
   }
@@ -142,7 +174,9 @@ int NS_main(int argc, NS_tchar** argv) {
         "   or: remove-symlink dir1 dir2 file symlink\n"
         "   or: check-symlink symlink\n"
         "   or: check-umask existing-umask\n"
-        "   or: post-update\n"
+        "   or: post-update-sync\n"
+        "   or: post-update-async\n"
+        "   or: post-update-environment\n"
         "   or: create-update-dir\n"
         "\n"
         "  WORKINGDIR  \tThe relative path to the working directory to use.\n"

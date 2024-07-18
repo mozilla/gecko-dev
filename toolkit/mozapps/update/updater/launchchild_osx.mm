@@ -203,6 +203,13 @@ void LaunchMacPostProcess(const char* aAppBundle) {
   NSTask* task = [[NSTask alloc] init];
   [task setLaunchPath:exeFullPath];
   [task setArguments:[NSArray arrayWithObject:exeArg]];
+
+  // Invoke post-update with a minimal environment to avoid environment
+  // variables intended to relaunch Firefox impacting post-update operations, in
+  // particular background tasks.  The updater will invoke the callback
+  // application with the current (non-minimal) environment.
+  [task setEnvironment:@{}];
+
   [task launch];
   if (!readResult) {
     NSString* exeAsync = [NSString stringWithUTF8String:optVal.get()];
