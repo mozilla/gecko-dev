@@ -10,7 +10,7 @@
  * W3C liability, trademark and document use rules apply.
  */
 
-enum NavigationTimingType {
+enum NavigationType {
   "navigate",
   "reload",
   "back_forward",
@@ -20,16 +20,16 @@ enum NavigationTimingType {
 [Exposed=Window,
  Func="mozilla::dom::PerformanceNavigationTiming::Enabled"]
 interface PerformanceNavigationTiming : PerformanceResourceTiming {
-  readonly        attribute DOMHighResTimeStamp  unloadEventStart;
-  readonly        attribute DOMHighResTimeStamp  unloadEventEnd;
-  readonly        attribute DOMHighResTimeStamp  domInteractive;
-  readonly        attribute DOMHighResTimeStamp  domContentLoadedEventStart;
-  readonly        attribute DOMHighResTimeStamp  domContentLoadedEventEnd;
-  readonly        attribute DOMHighResTimeStamp  domComplete;
-  readonly        attribute DOMHighResTimeStamp  loadEventStart;
-  readonly        attribute DOMHighResTimeStamp  loadEventEnd;
-  readonly        attribute NavigationTimingType type;
-  readonly        attribute unsigned short       redirectCount;
+  readonly        attribute DOMHighResTimeStamp unloadEventStart;
+  readonly        attribute DOMHighResTimeStamp unloadEventEnd;
+  readonly        attribute DOMHighResTimeStamp domInteractive;
+  readonly        attribute DOMHighResTimeStamp domContentLoadedEventStart;
+  readonly        attribute DOMHighResTimeStamp domContentLoadedEventEnd;
+  readonly        attribute DOMHighResTimeStamp domComplete;
+  readonly        attribute DOMHighResTimeStamp loadEventStart;
+  readonly        attribute DOMHighResTimeStamp loadEventEnd;
+  readonly        attribute NavigationType      type;
+  readonly        attribute unsigned short      redirectCount;
 
   [Default] object toJSON();
 };

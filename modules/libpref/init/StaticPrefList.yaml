@@ -3222,12 +3222,6 @@
   value: false
   mirror: always
 
-# Whether the navigation API will be exposed.
-- name: dom.navigation.webidl.enabled
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # Network Information API
 # This feature is not available on Firefox desktop. It exposes too much
 # user information. Let's be consistent and disable it on Android.

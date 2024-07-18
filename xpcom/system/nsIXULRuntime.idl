@@ -37,10 +37,6 @@ bool SessionStorePlatformCollection();
 // Returns true if SessionHistoryInParent() returns true and
 // fission.bfcacheInParent is true.
 bool BFCacheInParent();
-
-// Returns true if SessionHistoryInParent() returns true and
-// dom.navigation.webidl.enabled is true.
-bool NavigationAPI();
 }
 
 %}
