@@ -375,19 +375,31 @@ ${ArchiveUtils.INLINE_MIME_END_MARKER}
         // which might be displayed in the markup of the page, are multiple
         // bytes long). To work around this, we use a TextEncoder to encode
         // everything leading up to the marker, and count the number of bytes.
-        // Then we count the number of bytes in our match. The sum of these
-        // two values, plus the priorIndex gives us the byte index of the point
-        // right after our regular expression match in a Unicode-character
-        // compatible way.
+        // Since the buffer may have cut through a multibyte character, we
+        // also need to work around the workaround by discounting undecoded
+        // characters (which TextDecoder replaces with �).Then we count the
+        // number of bytes in our match. The sum of these two values, plus
+        // the priorIndex gives us the byte index of the point right after
+        // our regular expression match in a Unicode-character compatible way.
         //
         // This all presumes that the archive file was encoded as UTF-8. Since
         // we control the generation of this file, this is a safe assumption.
+
         let match = markerMatches[0];
+        let matchBytes = textEncoder.encode(match).byteLength;
         let matchIndex = decodedString.indexOf(match);
-        let substringUpToMatch = decodedString.slice(0, matchIndex);
+
+        let numberOfUndecodedCharacters =
+          ArchiveUtils.countReplacementCharacters(decodedString);
+        // Skip the undecoded characters at the start of the string,
+        // if necessary
+        let substringUpToMatch = decodedString.slice(
+          numberOfUndecodedCharacters,
+          matchIndex
+        );
         let substringUpToMatchBytes =
           textEncoder.encode(substringUpToMatch).byteLength;
-        let matchBytes = textEncoder.encode(markerMatches[0]).byteLength;
+
         startByteOffset = priorIndex + substringUpToMatchBytes + matchBytes;
         contentType = markerMatches[1];
         break;
@@ -397,6 +409,14 @@ ${ArchiveUtils.INLINE_MIME_END_MARKER}
       currentIndex += bytesToRead;
       oldBuffer = buffer;
     }
+
+    if (!contentType) {
+      throw new BackupError(
+        "Failed to find embedded data in archive",
+        ERRORS.CORRUPTED_ARCHIVE
+      );
+    }
+
     return { startByteOffset, contentType };
   }
 

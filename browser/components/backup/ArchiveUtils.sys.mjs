@@ -279,4 +279,42 @@ export const ArchiveUtils = {
 
     return { archiveEncKey, authKey };
   },
+
+  /**
+   * Given a string decoded from a byte buffer by `TextDecoder.decode`,
+   * returns the number of bytes (0-3) at the start of the string that
+   * could not be decoded.
+   *
+   * This assumes undecoded content will only appear at the beginning of
+   * the string. This also assumes undecoded content spans no more than
+   * 3 bytes. These assumptions are based on running `TextDecoder.decode`
+   * on an arbitrary span of bytes from a valid UTF-8 string.
+   *
+   * @param {string} str
+   *   String whose beginning you want to inspect for the Unicode replacement
+   *   character: U+FFFD (�).
+   * @returns {number}
+   *   Number of characters, between 0 and 3, at the beginning of the string
+   *   that could not be decoded by `TextDecoder` and so were replaced by the
+   *   Unicode replacement character: U+FFFD (�).
+   *
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/TextDecoder/fatal
+   *
+   * @example countReplacementCharacters("\uFFFD\uFFFD\uFFFD🌞") == 3
+   * @example countReplacementCharacters("\uFFFD\uFFFD🌞") == 2
+   * @example countReplacementCharacters("\uFFFD🌞") == 1
+   * @example countReplacementCharacters("🌞") == 0
+   */
+  countReplacementCharacters(str) {
+    let count = 0;
+    let lengthToCheck = Math.min(4, str.length);
+
+    for (let index = 0; index < lengthToCheck; index += 1) {
+      if (str[index] == "\uFFFD") {
+        count += 1;
+      }
+    }
+
+    return count;
+  },
 };

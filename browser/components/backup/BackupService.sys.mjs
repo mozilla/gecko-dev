@@ -223,6 +223,7 @@ class BinaryReadableStream {
       QueryInterface: ChromeUtils.generateQI([
         "nsIStreamListener",
         "nsIRequestObserver",
+        "nsIMultiPartChannelListener",
       ]),
 
       /**
@@ -283,6 +284,19 @@ class BinaryReadableStream {
           throw Components.Exception(
             "Got binary block - cancelling loading the multipart stream.",
             Cr.NS_BINDING_ABORTED
+          );
+        }
+      },
+
+      onAfterLastPart() {
+        if (!this._done) {
+          // We finished reading the parts before we found the binary block,
+          // so the binary block is missing.
+          controller.error(
+            new BackupError(
+              "Could not find binary block.",
+              ERRORS.CORRUPTED_ARCHIVE
+            )
           );
         }
       },
@@ -1821,6 +1835,7 @@ export class BackupService extends EventTarget {
         QueryInterface: ChromeUtils.generateQI([
           "nsIStreamListener",
           "nsIRequestObserver",
+          "nsIMultiPartChannelListener",
         ]),
 
         /**
@@ -1890,6 +1905,19 @@ export class BackupService extends EventTarget {
             throw Components.Exception(
               "Got JSON block. Aborting further reads.",
               Cr.NS_BINDING_ABORTED
+            );
+          }
+        },
+
+        onAfterLastPart() {
+          if (!this._done) {
+            // We finished reading the parts before we found the JSON block, so
+            // the JSON block is missing.
+            reject(
+              new BackupError(
+                "Could not find JSON block.",
+                ERRORS.CORRUPTED_ARCHIVE
+              )
             );
           }
         },

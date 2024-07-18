@@ -14,6 +14,8 @@ prefs = [
 
 ["test_ArchiveEncryption_nonce.js"]
 
+["test_ArchiveUtils_countReplacementCharacters.js"]
+
 ["test_BackupResource.js"]
 support-files = ["data/test_xulstore.json"]
 
@@ -21,7 +23,12 @@ support-files = ["data/test_xulstore.json"]
 support-files = ["data/test_archive.template.html"]
 
 ["test_BackupService_archive.js"]
-support-files = ["data/corrupt.zip"]
+support-files = [
+  "data/corrupt.zip",
+  "data/break_over_unicode.html",
+  "data/missing_binary_block.html",
+  "data/missing_json_block.html",
+]
 
 ["test_BackupService_enable_disable_encryption.js"]
 
