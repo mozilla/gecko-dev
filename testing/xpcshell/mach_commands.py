@@ -178,6 +178,11 @@ class AndroidXPCShellRunner(MozbuildObject):
             else:
                 raise Exception("APK not found in objdir. You must specify an APK.")
 
+        if not kwargs["xrePath"]:
+            MOZ_HOST_BIN = os.environ.get("MOZ_HOST_BIN")
+            if MOZ_HOST_BIN:
+                kwargs["xrePath"] = MOZ_HOST_BIN
+
         xpcshell = remotexpcshelltests.XPCShellRemote(kwargs, log)
 
         result = xpcshell.runTests(

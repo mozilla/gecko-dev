@@ -6,16 +6,23 @@
 /* import-globals-from head_cookies.js */
 /* import-globals-from head_servers.js */
 
+async function create_h3_server() {
+  let h3ServerPath = Services.env.get("MOZ_HTTP3_SERVER_PATH");
+  let h3DBPath = Services.env.get("MOZ_HTTP3_CERT_DB_PATH");
+  let server = new HTTP3Server();
+  let h3Port = await server.start(h3ServerPath, h3DBPath);
+  registerCleanupFunction(async () => {
+    await server.stop();
+  });
+  return h3Port;
+}
+
 async function http3_setup_tests(http3version, reload) {
   let h3Port;
-  if (reload) {
-    let h3ServerPath = Services.env.get("MOZ_HTTP3_SERVER_PATH");
-    let h3DBPath = Services.env.get("MOZ_HTTP3_CERT_DB_PATH");
-    let server = new HTTP3Server();
-    h3Port = await server.start(h3ServerPath, h3DBPath);
-    registerCleanupFunction(async () => {
-      await server.stop();
-    });
+  let isAndroid = mozinfo.os == "android";
+  // On Android, we don't have a way to start the server on the host on demand.
+  if (reload && !isAndroid) {
+    h3Port = await create_h3_server();
   } else {
     h3Port = Services.env.get("MOZHTTP3_PORT");
   }
@@ -27,7 +34,16 @@ async function http3_setup_tests(http3version, reload) {
   do_get_profile();
 
   Services.prefs.setBoolPref("network.http.http3.enable", true);
-  Services.prefs.setCharPref("network.dns.localDomains", "foo.example.com");
+  if (isAndroid) {
+    const overrideService = Cc[
+      "@mozilla.org/network/native-dns-override;1"
+    ].getService(Ci.nsINativeDNSResolverOverride);
+    // To connect to the http3Server running on the host, we need to set this
+    // special IP address.
+    overrideService.addIPOverride("foo.example.com", "10.0.2.2");
+  } else {
+    Services.prefs.setCharPref("network.dns.localDomains", "foo.example.com");
+  }
   Services.prefs.setBoolPref("network.dns.disableIPv6", true);
   Services.prefs.setCharPref(
     "network.http.http3.alt-svc-mapping-for-testing",

@@ -1486,13 +1486,19 @@ class XPCShellTests(object):
         if sys.platform == "win32":
             binSuffix = ".exe"
         http3ServerPath = self.http3ServerPath
+        serverEnv = self.env.copy()
         if not http3ServerPath:
-            http3ServerPath = os.path.join(
-                SCRIPT_DIR, "http3server", "http3server" + binSuffix
-            )
-            if build:
+            if self.mozInfo["buildapp"] == "mobile/android":
+                # For android, use binary from host utilities.
+                http3ServerPath = os.path.join(self.xrePath, "http3server" + binSuffix)
+                serverEnv["LD_LIBRARY_PATH"] = self.xrePath
+            elif build:
                 http3ServerPath = os.path.join(
                     build.topobjdir, "dist", "bin", "http3server" + binSuffix
+                )
+            else:
+                http3ServerPath = os.path.join(
+                    SCRIPT_DIR, "http3server", "http3server" + binSuffix
                 )
         dbPath = os.path.join(SCRIPT_DIR, "http3server", "http3serverDB")
         if build:
@@ -1502,7 +1508,6 @@ class XPCShellTests(object):
         options["profilePath"] = dbPath
         options["isMochitest"] = False
         options["isWin"] = sys.platform == "win32"
-        serverEnv = self.env.copy()
         serverLog = self.env.get("MOZHTTP3_SERVER_LOG")
         if serverLog is not None:
             serverEnv["RUST_LOG"] = serverLog

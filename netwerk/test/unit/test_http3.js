@@ -23,6 +23,7 @@ let h3Route;
 let httpsOrigin;
 let httpOrigin;
 let h3AltSvc;
+let h3Port;
 
 let prefs;
 
@@ -61,7 +62,7 @@ function run_test() {
   let h2Port = Services.env.get("MOZHTTP2_PORT");
   Assert.notEqual(h2Port, null);
   Assert.notEqual(h2Port, "");
-  let h3Port = Services.env.get("MOZHTTP3_PORT");
+  h3Port = Services.env.get("MOZHTTP3_PORT");
   Assert.notEqual(h3Port, null);
   Assert.notEqual(h3Port, "");
   h3AltSvc = ":" + h3Port;
@@ -244,6 +245,19 @@ function doTest(uri, expectedRoute, altSvc) {
 function test_https_alt_svc() {
   dump("test_https_alt_svc()\n");
   do_test_pending();
+  if (mozinfo.os == "android") {
+    // Set necessary prefs to make Firefox connect to the http3Server on the
+    // host machine.
+    prefs.setCharPref("network.dns.localDomains", "");
+    const overrideService = Cc[
+      "@mozilla.org/network/native-dns-override;1"
+    ].getService(Ci.nsINativeDNSResolverOverride);
+    overrideService.addIPOverride("foo.example.com", "10.0.2.2");
+    prefs.setCharPref(
+      "network.http.http3.alt-svc-mapping-for-testing",
+      `foo.example.com;h3-29=:${h3Port}`
+    );
+  }
   doTest(httpsOrigin + "http3-test", h3Route, h3AltSvc);
 }
 
@@ -461,7 +475,14 @@ function test_patch() {
 // Test alt-svc for http (without s)
 function test_http_alt_svc() {
   dump("test_http_alt_svc()\n");
-
+  // Skip this test on Android because the httpOrigin (http://foo.example.com)
+  // is on 127.0.0.1, while the http3Server (https://foo.example.com) is
+  // on 10.0.2.2. Currently, we can't change the IP mapping dynamically.
+  if (mozinfo.os == "android") {
+    current_test++;
+    run_next_test();
+    return;
+  }
   do_test_pending();
   doTest(httpOrigin + "http3-test", h3Route, h3AltSvc);
 }

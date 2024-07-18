@@ -638,7 +638,6 @@ head = "head_channels.js head_cache.js head_cookies.js head_servers.js head_trr.
 
 ["test_http3.js"]
 skip-if = [
-  "os == 'android'", # bug 1622901
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
 ]
 run-sequentially = "http3server"
@@ -646,7 +645,6 @@ run-sequentially = "http3server"
 ["test_http3_0rtt.js"]
 skip-if = [
   "os == 'win'",
-  "os == 'android'",
 ]
 
 ["test_http3_421.js"]
@@ -674,7 +672,6 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_http3_direct_proxy.js"]
 skip-if = [
-  "os == 'android'",
   "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
 ]
 run-sequentially = "node server exceptions dont replay well"
@@ -688,7 +685,6 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_http3_early_hint_listener.js"]
 skip-if = [
-  "os == 'android'",
   "os == 'linux'", # Bug 1773916
   "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
 ]
@@ -724,8 +720,8 @@ skip-if = [
 ["test_http3_large_post.js"]
 skip-if = [
   "os == 'win'",
-  "os == 'android'",
 ]
+run-sequentially = "http3server"
 
 ["test_http3_large_post_telemetry.js"]
 disabled = "bug 1771744 - telemetry probe expired"
@@ -745,7 +741,6 @@ run-sequentially = "http3server"
 
 ["test_http3_prio_disabled.js"]
 skip-if = [
-  "os == 'android'",
   "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
 ]
 run-sequentially = "http3server"
@@ -772,7 +767,6 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_http3_trans_close.js"]
 skip-if = [
-  "os == 'android'",
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
 ]
 run-sequentially = "http3server"
@@ -780,7 +774,6 @@ run-sequentially = "http3server"
 ["test_http3_version1.js"]
 skip-if = [
   "os == 'win'",
-  "os == 'android'",
 ]
 run-sequentially = "node server exceptions dont replay well"
 
@@ -963,7 +956,6 @@ skip-if = ["os == 'win' && socketprocess_networking"]
 ["test_progress_no_proxy_and_proxy.js"]
 skip-if = [
   "os == 'win'",
-  "os == 'android'",
 ]
 run-sequentially = "node server exceptions dont replay well"
 
@@ -1143,7 +1135,6 @@ fail-if = ["os == 'android'"]
 
 ["test_tls13_disabled.js"]
 skip-if = [
-  "os == 'android'",
   "verify && os == 'win'",
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
 ]
@@ -1287,7 +1278,6 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_websocket_with_h3_active.js"]
 skip-if = [
-  "os == 'android'",
   "verify && os == 'win'",
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
 ]
