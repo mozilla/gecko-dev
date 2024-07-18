@@ -82,9 +82,33 @@
   display: flex;
   align-items: center;
   border-radius: var(--border-radius-medium);
-  padding: var(--space-small);
+  height: 52px;
+  max-width: 205px;
 
-  // Contrast fix for users who have wallpapers set
+  &:hover {
+    background-color: var(--button-background-color-ghost-hover);
+  }
+
+  &:active {
+    background-color: var(--button-background-color-ghost-active);
+  }
+
+  .icon {
+    margin-inline-start: var(--space-small);
+    min-width: var(--size-item-small);
+  }
+
+  p {
+    margin-inline-start: var(--space-small);
+  }
+
+  .weatherButtonContextMenuWrapper {
+    align-self: stretch;
+    padding-inline: var(--space-small);
+  }
+
+  // Bug 1908010 - This overwrites the design system color because of a
+  // know transparency issue with color-mix syntax when a wallpaper is set
   .lightWallpaper &,
   .darkWallpaper & {
     background-color: var(--newtab-weather-background-color);
@@ -145,7 +169,6 @@
   cursor: pointer;
 
   &:hover {
-    // TODO: Add Wallpaper Background Color Fix
     background-color: var(--button-background-color-ghost-hover);
 
     &::after {
@@ -153,7 +176,6 @@
     }
 
     &:active {
-      // TODO: Add Wallpaper Background Color Fix
       background-color: var(--button-background-color-ghost-active);
     }
   }
@@ -162,7 +184,8 @@
     outline: var(--focus-outline);
   }
 
-  // Contrast fix for users who have wallpapers set
+  // Bug 1908010 - This overwrites the design system color because of a
+  // know transparency issue with color-mix syntax when a wallpaper is set
   .lightWallpaper &,
   .darkWallpaper & {
     background-color: var(--newtab-weather-background-color);
@@ -455,7 +478,8 @@
   padding: var(--space-small);
   position: relative;
 
-  // Contrast fix for users who have wallpapers set
+  // Bug 1908010 - This overwrites the design system color because of a
+  // know transparency issue with color-mix syntax when a wallpaper is set
   .lightWallpaper &,
   .darkWallpaper & {
     background-color: var(--newtab-weather-background-color);

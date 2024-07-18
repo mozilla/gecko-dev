@@ -2232,7 +2232,25 @@ main section {
   display: flex;
   align-items: center;
   border-radius: var(--border-radius-medium);
-  padding: var(--space-small);
+  height: 52px;
+  max-width: 205px;
+}
+.weatherNotAvailable:hover {
+  background-color: var(--button-background-color-ghost-hover);
+}
+.weatherNotAvailable:active {
+  background-color: var(--button-background-color-ghost-active);
+}
+.weatherNotAvailable .icon {
+  margin-inline-start: var(--space-small);
+  min-width: var(--size-item-small);
+}
+.weatherNotAvailable p {
+  margin-inline-start: var(--space-small);
+}
+.weatherNotAvailable .weatherButtonContextMenuWrapper {
+  align-self: stretch;
+  padding-inline: var(--space-small);
 }
 .lightWallpaper .weatherNotAvailable, .darkWallpaper .weatherNotAvailable {
   background-color: var(--newtab-weather-background-color);

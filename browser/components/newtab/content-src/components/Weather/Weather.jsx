@@ -234,6 +234,40 @@ export class _Weather extends React.PureComponent {
       "HideWeather",
       "OpenLearnMoreURL",
     ];
+    const WEATHER_SOURCE_ERROR_CONTEXT_MENU_OPTIONS = [
+      ...(this.props.Prefs.values["weather.locationSearchEnabled"]
+        ? ["ChangeWeatherLocation"]
+        : []),
+      "HideWeather",
+      "OpenLearnMoreURL",
+    ];
+
+    const contextMenu = contextOpts => (
+      <div className="weatherButtonContextMenuWrapper">
+        <button
+          aria-haspopup="true"
+          onKeyDown={this.onKeyDown}
+          onClick={this.onClick}
+          data-l10n-id="newtab-menu-section-tooltip"
+          className="weatherButtonContextMenu"
+        >
+          {showContextMenu ? (
+            <LinkMenu
+              dispatch={dispatch}
+              index={index}
+              source={eventSource}
+              onUpdate={this.onUpdate}
+              options={contextOpts}
+              site={{
+                url: "https://support.mozilla.org/kb/customize-items-on-firefox-new-tab-page",
+              }}
+              link="https://support.mozilla.org/kb/customize-items-on-firefox-new-tab-page"
+              shouldSendImpressionStats={shouldSendImpressionStats}
+            />
+          ) : null}
+        </button>
+      </div>
+    );
 
     if (Weather.searchActive) {
       return <LocationSearch outerClassName={outerClassName} />;
@@ -302,30 +336,7 @@ export class _Weather extends React.PureComponent {
                 ) : null}
               </div>
             </a>
-            <div className="weatherButtonContextMenuWrapper">
-              <button
-                aria-haspopup="true"
-                onKeyDown={this.onKeyDown}
-                onClick={this.onClick}
-                data-l10n-id="newtab-menu-section-tooltip"
-                className="weatherButtonContextMenu"
-              >
-                {showContextMenu ? (
-                  <LinkMenu
-                    dispatch={dispatch}
-                    index={index}
-                    source={eventSource}
-                    onUpdate={this.onUpdate}
-                    options={WEATHER_SOURCE_CONTEXT_MENU_OPTIONS}
-                    site={{
-                      url: "https://support.mozilla.org/kb/customize-items-on-firefox-new-tab-page",
-                    }}
-                    link="https://support.mozilla.org/kb/customize-items-on-firefox-new-tab-page"
-                    shouldSendImpressionStats={shouldSendImpressionStats}
-                  />
-                ) : null}
-              </button>
-            </div>
+            {contextMenu(WEATHER_SOURCE_CONTEXT_MENU_OPTIONS)}
           </div>
           <span className="weatherSponsorText">
             <span
@@ -340,8 +351,9 @@ export class _Weather extends React.PureComponent {
     return (
       <div ref={this.setErrorRef} className={outerClassName}>
         <div className="weatherNotAvailable">
-          <span className="icon icon-small-spacer icon-info-warning" />{" "}
-          <span data-l10n-id="newtab-weather-error-not-available"></span>
+          <span className="icon icon-info-warning" />{" "}
+          <p data-l10n-id="newtab-weather-error-not-available"></p>
+          {contextMenu(WEATHER_SOURCE_ERROR_CONTEXT_MENU_OPTIONS)}
         </div>
       </div>
     );

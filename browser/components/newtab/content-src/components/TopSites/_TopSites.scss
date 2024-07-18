@@ -26,7 +26,8 @@ $letter-fallback-color: $white;
     .top-site-outer:is(.active, :focus, :hover) {
       background: var(--newtab-element-hover-color);
 
-      // Contrast fix for users who have wallpapers set
+      // Bug 1908010 - This overwrites the design system color because of a
+      // know transparency issue with color-mix syntax when a wallpaper is set
       .lightWallpaper &,
       .darkWallpaper & {
         background-color: var(--newtab-weather-background-color);
