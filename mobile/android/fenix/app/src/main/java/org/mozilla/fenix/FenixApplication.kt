@@ -822,14 +822,6 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
             tabViewSetting.set(settings.getTabViewPingString())
             closeTabSetting.set(settings.getTabTimeoutPingString())
 
-            val installSourcePackage = if (SDK_INT >= Build.VERSION_CODES.R) {
-                packageManager.getInstallSourceInfo(packageName).installingPackageName
-            } else {
-                @Suppress("DEPRECATION")
-                packageManager.getInstallerPackageName(packageName)
-            }
-            installSource.set(installSourcePackage.orEmpty())
-
             val isDefaultTheCurrentWallpaper =
                 Wallpaper.nameIsDefault(settings.currentWallpaperName)
 

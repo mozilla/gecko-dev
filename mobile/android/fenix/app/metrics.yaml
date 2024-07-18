@@ -2699,21 +2699,6 @@ metrics:
     metadata:
       tags:
         - Performance
-  install_source:
-    type: string
-    lifetime: application
-    description: |
-      Used to identify the source the app was installed from.
-    bugs:
-      - https://github.com/mozilla-mobile/fenix/issues/22138
-    data_reviews:
-      - https://github.com/mozilla-mobile/fenix/pull/22224#issuecomment-956749994
-      - https://github.com/mozilla-mobile/fenix/pull/23453#issuecomment-1024694220
-    data_sensitivity:
-      - technical
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
   inactive_tabs_count:
     type: quantity
     description: |
@@ -7797,15 +7782,23 @@ first_session:
     lifetime: application
     description: |
       Used to identify the source the app was installed from.
+    send_in_pings:
+      - metrics
+      - first-session
+      - baseline
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898363
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908383
     data_reviews:
       - https://phabricator.services.mozilla.com/D212913
+      - https://phabricator.services.mozilla.com/D216935
     data_sensitivity:
       - technical
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+    no_lint:
+      - BASELINE_PING
 play_store_attribution:
   install_referrer_response:
     type: text
