@@ -157,7 +157,7 @@ impl<'a> Resolver<'a> {
             ComponentField::CoreType(t) => self.core_ty(t),
             ComponentField::Component(c) => self.component(c),
             ComponentField::Instance(i) => self.instance(i),
-            ComponentField::Alias(a) => self.alias(a, false),
+            ComponentField::Alias(a) => self.alias(a),
             ComponentField::Type(t) => self.ty(t),
             ComponentField::CanonicalFunc(f) => self.canonical_func(f),
             ComponentField::CoreFunc(_) => unreachable!("should be expanded already"),
@@ -288,7 +288,6 @@ impl<'a> Resolver<'a> {
         index: &mut Index<'a>,
         kind: T,
         span: Span,
-        enclosing_only: bool,
     ) -> Result<(), Error> {
         // Short-circuit when both indices are already resolved as this
         // helps to write tests for invalid modules where wasmparser should
@@ -328,13 +327,6 @@ impl<'a> Resolver<'a> {
             ));
         }
 
-        if enclosing_only && depth > 1 {
-            return Err(Error::new(
-                span,
-                "only the local or enclosing scope can be aliased".to_string(),
-            ));
-        }
-
         *outer = Index::Num(depth, span);
 
         // Resolve `index` within the computed scope depth.
@@ -344,7 +336,7 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
-    fn alias(&mut self, alias: &mut Alias<'a>, enclosing_only: bool) -> Result<(), Error> {
+    fn alias(&mut self, alias: &mut Alias<'a>) -> Result<(), Error> {
         match &mut alias.target {
             AliasTarget::Export {
                 instance,
@@ -357,7 +349,7 @@ impl<'a> Resolver<'a> {
                 kind: _,
             } => self.resolve_ns(instance, Ns::CoreInstance),
             AliasTarget::Outer { outer, index, kind } => {
-                self.outer_alias(outer, index, *kind, alias.span, enclosing_only)
+                self.outer_alias(outer, index, *kind, alias.span)
             }
         }
     }
@@ -550,7 +542,7 @@ impl<'a> Resolver<'a> {
         self.resolve_prepending_aliases(
             &mut c.decls,
             |resolver, decl| match decl {
-                ComponentTypeDecl::Alias(alias) => resolver.alias(alias, false),
+                ComponentTypeDecl::Alias(alias) => resolver.alias(alias),
                 ComponentTypeDecl::CoreType(ty) => resolver.core_ty(ty),
                 ComponentTypeDecl::Type(ty) => resolver.ty(ty),
                 ComponentTypeDecl::Import(import) => resolver.item_sig(&mut import.item),
@@ -583,7 +575,7 @@ impl<'a> Resolver<'a> {
         self.resolve_prepending_aliases(
             &mut c.decls,
             |resolver, decl| match decl {
-                InstanceTypeDecl::Alias(alias) => resolver.alias(alias, false),
+                InstanceTypeDecl::Alias(alias) => resolver.alias(alias),
                 InstanceTypeDecl::CoreType(ty) => resolver.core_ty(ty),
                 InstanceTypeDecl::Type(ty) => resolver.ty(ty),
                 InstanceTypeDecl::Export(export) => resolver.item_sig(&mut export.item),
@@ -740,7 +732,7 @@ impl<'a> Resolver<'a> {
         return self.resolve_prepending_aliases(
             &mut ty.decls,
             |resolver, decl| match decl {
-                ModuleTypeDecl::Alias(alias) => resolver.alias(alias, true),
+                ModuleTypeDecl::Alias(alias) => resolver.alias(alias),
                 ModuleTypeDecl::Type(_) => Ok(()),
                 ModuleTypeDecl::Import(import) => resolve_item_sig(resolver, &mut import.item),
                 ModuleTypeDecl::Export(_, item) => resolve_item_sig(resolver, item),

@@ -13,32 +13,10 @@ impl<'a> Namespace<'a> {
         let index = self.alloc();
         if let Some(name) = name {
             if let Some(_prev) = self.names.insert(name, index) {
-                // FIXME: temporarily allow duplicately-named data and element
-                // segments. This is a sort of dumb hack to get the spec test
-                // suite working (ironically).
-                //
-                // So as background, the text format disallows duplicate
-                // identifiers, causing a parse error if they're found. There
-                // are two tests currently upstream, however, data.wast and
-                // elem.wast, which *look* like they have duplicately named
-                // element and data segments. These tests, however, are using
-                // pre-bulk-memory syntax where a bare identifier was the
-                // table/memory being initialized. In post-bulk-memory this
-                // identifier is the name of the segment. Since we implement
-                // post-bulk-memory features that means that we're parsing the
-                // memory/table-to-initialize as the name of the segment.
-                //
-                // This is technically incorrect behavior but no one is
-                // hopefully relying on this too much. To get the spec tests
-                // passing we ignore errors for elem/data segments. Once the
-                // spec tests get updated enough we can remove this condition
-                // and return errors for them.
-                if desc != "elem" && desc != "data" {
-                    return Err(Error::new(
-                        name.span(),
-                        format!("duplicate {} identifier", desc),
-                    ));
-                }
+                return Err(Error::new(
+                    name.span(),
+                    format!("duplicate {} identifier", desc),
+                ));
             }
         }
         Ok(index)

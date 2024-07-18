@@ -31,6 +31,7 @@ use std::char;
 use std::fmt;
 use std::slice;
 use std::str;
+use std::str::Utf8Error;
 
 /// A structure used to lex the s-expression syntax of WAT files.
 ///
@@ -99,6 +100,12 @@ pub enum TokenKind {
     /// The payload here is the original source text.
     Keyword,
 
+    /// An annotation (like `@foo`).
+    ///
+    /// All annotations start with `@` and the payload will be the name of the
+    /// annotation.
+    Annotation,
+
     /// A reserved series of `idchar` symbols. Unknown what this is meant to be
     /// used for, you'll probably generate an error about an unexpected token.
     Reserved,
@@ -136,8 +143,15 @@ pub enum FloatKind {
 }
 
 enum ReservedKind {
+    /// "..."
     String,
+    /// anything that's just a sequence of `idchars!()`
     Idchars,
+    /// $"..."
+    IdString,
+    /// @"..."
+    AnnotationString,
+    /// everything else (a conglomeration of strings, idchars, etc)
     Reserved,
 }
 
@@ -199,6 +213,16 @@ pub enum LexError {
     /// version to behave differently than the compiler-visible version, so
     /// these are simply rejected for now.
     ConfusingUnicode(char),
+
+    /// An invalid utf-8 sequence was found in a quoted identifier, such as
+    /// `$"\ff"`.
+    InvalidUtf8Id(Utf8Error),
+
+    /// An empty identifier was found, or a lone `$`.
+    EmptyId,
+
+    /// An empty identifier was found, or a lone `@`.
+    EmptyAnnotation,
 }
 
 /// A sign token for an integer.
@@ -420,13 +444,20 @@ impl<'a> Lexer<'a> {
                         if let Some(ret) = self.classify_number(src) {
                             return Ok(Some(ret));
                         // https://webassembly.github.io/spec/core/text/values.html#text-id
-                        } else if *c == b'$' && src.len() > 1 {
+                        } else if *c == b'$' {
                             return Ok(Some(TokenKind::Id));
+                        // part of the WebAssembly/annotations proposal
+                        // (no online url yet)
+                        } else if *c == b'@' {
+                            return Ok(Some(TokenKind::Annotation));
                         // https://webassembly.github.io/spec/core/text/lexical.html#text-keyword
                         } else if b'a' <= *c && *c <= b'z' {
                             return Ok(Some(TokenKind::Keyword));
                         }
                     }
+
+                    ReservedKind::IdString => return Ok(Some(TokenKind::Id)),
+                    ReservedKind::AnnotationString => return Ok(Some(TokenKind::Annotation)),
 
                     // ... otherwise this was a conglomeration of idchars,
                     // strings, or just idchars that don't match a prior rule,
@@ -538,7 +569,7 @@ impl<'a> Lexer<'a> {
     /// eaten. The classification assists in determining what the actual token
     /// here eaten looks like.
     fn parse_reserved(&self, pos: &mut usize) -> Result<(ReservedKind, &'a str), Error> {
-        let mut idchars = false;
+        let mut idchars = 0u32;
         let mut strings = 0u32;
         let start = *pos;
         while let Some(byte) = self.input.as_bytes().get(*pos) {
@@ -546,7 +577,7 @@ impl<'a> Lexer<'a> {
                 // Normal `idchars` production which appends to the reserved
                 // token that's being produced.
                 idchars!() => {
-                    idchars = true;
+                    idchars += 1;
                     *pos += 1;
                 }
 
@@ -575,9 +606,13 @@ impl<'a> Lexer<'a> {
         }
         let ret = &self.input[start..*pos];
         Ok(match (idchars, strings) {
-            (false, 0) => unreachable!(),
-            (false, 1) => (ReservedKind::String, ret),
-            (true, 0) => (ReservedKind::Idchars, ret),
+            (0, 0) => unreachable!(),
+            (0, 1) => (ReservedKind::String, ret),
+            (_, 0) => (ReservedKind::Idchars, ret),
+            // Pattern match `@"..."` and `$"..."` for string-based
+            // identifiers and annotations.
+            (1, 1) if ret.starts_with("$") => (ReservedKind::IdString, ret),
+            (1, 1) if ret.starts_with("@") => (ReservedKind::AnnotationString, ret),
             _ => (ReservedKind::Reserved, ret),
         })
     }
@@ -813,6 +848,37 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Parses an id-or-string-based name from `it`.
+    ///
+    /// Note that `it` should already have been lexed and this is just
+    /// extracting the value. If the token lexed was `@a` then this should point
+    /// to `a`.
+    ///
+    /// This will automatically detect quoted syntax such as `@"..."` and the
+    /// byte string will be parsed and validated as utf-8.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a quoted byte string is found and contains invalid
+    /// utf-8.
+    fn parse_name(it: &mut str::Chars<'a>) -> Result<Cow<'a, str>, LexError> {
+        if it.clone().next() == Some('"') {
+            it.next();
+            match Lexer::parse_str(it, true)? {
+                Cow::Borrowed(bytes) => match std::str::from_utf8(bytes) {
+                    Ok(s) => Ok(Cow::Borrowed(s)),
+                    Err(e) => Err(LexError::InvalidUtf8Id(e)),
+                },
+                Cow::Owned(bytes) => match String::from_utf8(bytes) {
+                    Ok(s) => Ok(Cow::Owned(s)),
+                    Err(e) => Err(LexError::InvalidUtf8Id(e.utf8_error())),
+                },
+            }
+        } else {
+            Ok(Cow::Borrowed(it.as_str()))
+        }
+    }
+
     fn hexnum(it: &mut str::Chars<'_>) -> Result<u32, LexError> {
         let n = Lexer::hexdigit(it)?;
         let mut last_underscore = false;
@@ -878,28 +944,23 @@ impl<'a> Lexer<'a> {
         std::iter::from_fn(move || self.parse(&mut pos).transpose())
     }
 
-    /// Returns whether an annotation is present at `pos` and the name of the
-    /// annotation.
-    pub fn annotation(&self, mut pos: usize) -> Option<&'a str> {
+    /// Returns whether an annotation is present at `pos`. If it is present then
+    /// `Ok(Some(token))` is returned corresponding to the token, otherwise
+    /// `Ok(None)` is returned. If the next token cannot be parsed then an error
+    /// is returned.
+    pub fn annotation(&self, mut pos: usize) -> Result<Option<Token>, Error> {
         let bytes = self.input.as_bytes();
         // Quickly reject anything that for sure isn't an annotation since this
         // method is used every time an lparen is parsed.
         if bytes.get(pos) != Some(&b'@') {
-            return None;
+            return Ok(None);
         }
-        match self.parse(&mut pos) {
-            Ok(Some(token)) => {
-                match token.kind {
-                    TokenKind::Reserved => {}
-                    _ => return None,
-                }
-                if token.len == 1 {
-                    None // just the `@` character isn't a valid annotation
-                } else {
-                    Some(&token.src(self.input)[1..])
-                }
-            }
-            Ok(None) | Err(_) => None,
+        match self.parse(&mut pos)? {
+            Some(token) => match token.kind {
+                TokenKind::Annotation => Ok(Some(token)),
+                _ => Ok(None),
+            },
+            None => Ok(None),
         }
     }
 }
@@ -913,9 +974,49 @@ impl Token {
     /// Returns the identifier, without the leading `$` symbol, that this token
     /// represents.
     ///
+    /// Note that this method returns the contents of the identifier. With a
+    /// string-based identifier this means that escapes have been resolved to
+    /// their string-based equivalent.
+    ///
     /// Should only be used with `TokenKind::Id`.
-    pub fn id<'a>(&self, s: &'a str) -> &'a str {
-        &self.src(s)[1..]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this is a string-based identifier (e.g. `$"..."`)
+    /// which is invalid utf-8.
+    pub fn id<'a>(&self, s: &'a str) -> Result<Cow<'a, str>, Error> {
+        let mut ch = self.src(s).chars();
+        let dollar = ch.next();
+        debug_assert_eq!(dollar, Some('$'));
+        let id = Lexer::parse_name(&mut ch).map_err(|e| self.error(s, e))?;
+        if id.is_empty() {
+            return Err(self.error(s, LexError::EmptyId));
+        }
+        Ok(id)
+    }
+
+    /// Returns the annotation, without the leading `@` symbol, that this token
+    /// represents.
+    ///
+    /// Note that this method returns the contents of the identifier. With a
+    /// string-based identifier this means that escapes have been resolved to
+    /// their string-based equivalent.
+    ///
+    /// Should only be used with `TokenKind::Annotation`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this is a string-based identifier (e.g. `$"..."`)
+    /// which is invalid utf-8.
+    pub fn annotation<'a>(&self, s: &'a str) -> Result<Cow<'a, str>, Error> {
+        let mut ch = self.src(s).chars();
+        let at = ch.next();
+        debug_assert_eq!(at, Some('@'));
+        let id = Lexer::parse_name(&mut ch).map_err(|e| self.error(s, e))?;
+        if id.is_empty() {
+            return Err(self.error(s, LexError::EmptyAnnotation));
+        }
+        Ok(id)
     }
 
     /// Returns the keyword this token represents.
@@ -1061,6 +1162,16 @@ impl Token {
             val,
         }
     }
+
+    fn error(&self, src: &str, err: LexError) -> Error {
+        Error::lex(
+            Span {
+                offset: self.offset,
+            },
+            src,
+            err,
+        )
+    }
 }
 
 impl<'a> Integer<'a> {
@@ -1107,6 +1218,9 @@ impl fmt::Display for LexError {
             InvalidUnicodeValue(c) => write!(f, "invalid unicode scalar value 0x{:x}", c)?,
             LoneUnderscore => write!(f, "bare underscore in numeric literal")?,
             ConfusingUnicode(c) => write!(f, "likely-confusing unicode character found {:?}", c)?,
+            InvalidUtf8Id(_) => write!(f, "malformed UTF-8 encoding of string-based id")?,
+            EmptyId => write!(f, "empty identifier")?,
+            EmptyAnnotation => write!(f, "empty annotation id")?,
         }
         Ok(())
     }
@@ -1254,10 +1368,10 @@ mod tests {
 
     #[test]
     fn id() {
-        fn get_id(input: &str) -> &str {
+        fn get_id(input: &str) -> String {
             let token = get_token(input);
             match token.kind {
-                TokenKind::Id => token.id(input),
+                TokenKind::Id => token.id(input).unwrap().to_string(),
                 other => panic!("not id {:?}", other),
             }
         }
@@ -1267,6 +1381,23 @@ mod tests {
         assert_eq!(get_id("$0^"), "0^");
         assert_eq!(get_id("$0^;;"), "0^");
         assert_eq!(get_id("$0^ ;;"), "0^");
+        assert_eq!(get_id("$\"x\" ;;"), "x");
+    }
+
+    #[test]
+    fn annotation() {
+        fn get_annotation(input: &str) -> String {
+            let token = get_token(input);
+            match token.kind {
+                TokenKind::Annotation => token.annotation(input).unwrap().to_string(),
+                other => panic!("not annotation {:?}", other),
+            }
+        }
+        assert_eq!(get_annotation("@foo"), "foo");
+        assert_eq!(get_annotation("@foo "), "foo");
+        assert_eq!(get_annotation("@f "), "f");
+        assert_eq!(get_annotation("@\"x\" "), "x");
+        assert_eq!(get_annotation("@0 "), "0");
     }
 
     #[test]
@@ -1294,7 +1425,6 @@ mod tests {
                 other => panic!("not reserved {:?}", other),
             }
         }
-        assert_eq!(get_reserved("$ "), "$");
         assert_eq!(get_reserved("^_x "), "^_x");
     }
 
