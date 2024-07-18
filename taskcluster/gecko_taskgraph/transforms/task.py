@@ -146,8 +146,8 @@ task_description_schema = Schema(
             # 'by-tier' behavior will be used.
             "rank": Any(
                 # Rank is equal the timestamp of the build_date for tier-1
-                # tasks, and zero for non-tier-1.  This sorts tier-{2,3}
-                # builds below tier-1 in the index.
+                # tasks, and one for non-tier-1.  This sorts tier-{2,3}
+                # builds below tier-1 in the index, but above eager-index.
                 "by-tier",
                 # Rank is given as an integer constant (e.g. zero to make
                 # sure a task is last in the index).
@@ -1875,10 +1875,11 @@ def add_index_routes(config, tasks):
         rank = index.get("rank", "by-tier")
 
         if rank == "by-tier":
-            # rank is zero for non-tier-1 tasks and based on pushid for others;
-            # this sorts tier-{2,3} builds below tier-1 in the index
+            # rank is one for non-tier-1 tasks and based on pushid for others;
+            # this sorts tier-{2,3} builds below tier-1 in the index, but above
+            # eager-index
             tier = task.get("treeherder", {}).get("tier", 3)
-            extra_index["rank"] = 0 if tier > 1 else int(config.params["build_date"])
+            extra_index["rank"] = 1 if tier > 1 else int(config.params["build_date"])
         elif rank == "build_date":
             extra_index["rank"] = int(config.params["build_date"])
         else:
