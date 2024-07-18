@@ -183,7 +183,7 @@ static PRStatus nsSSLIOLayerConnect(PRFileDesc* fd, const PRNetAddr* addr,
 }
 
 void nsSSLIOLayerHelpers::rememberTolerantAtVersion(const nsACString& hostName,
-                                                    int16_t port,
+                                                    uint16_t port,
                                                     uint16_t tolerant) {
   nsCString key;
   getSiteKey(hostName, port, key);
@@ -210,7 +210,7 @@ void nsSSLIOLayerHelpers::rememberTolerantAtVersion(const nsACString& hostName,
 }
 
 void nsSSLIOLayerHelpers::forgetIntolerance(const nsACString& hostName,
-                                            int16_t port) {
+                                            uint16_t port) {
   nsCString key;
   getSiteKey(hostName, port, key);
 
@@ -238,7 +238,7 @@ bool nsSSLIOLayerHelpers::fallbackLimitReached(const nsACString& hostName,
 
 // returns true if we should retry the handshake
 bool nsSSLIOLayerHelpers::rememberIntolerantAtVersion(
-    const nsACString& hostName, int16_t port, uint16_t minVersion,
+    const nsACString& hostName, uint16_t port, uint16_t minVersion,
     uint16_t intolerant, PRErrorCode intoleranceReason) {
   if (intolerant <= minVersion || fallbackLimitReached(hostName, intolerant)) {
     // We can't fall back any further. Assume that intolerance isn't the issue.
@@ -275,7 +275,7 @@ bool nsSSLIOLayerHelpers::rememberIntolerantAtVersion(
 }
 
 void nsSSLIOLayerHelpers::adjustForTLSIntolerance(
-    const nsACString& hostName, int16_t port,
+    const nsACString& hostName, uint16_t port,
     /*in/out*/ SSLVersionRange& range) {
   IntoleranceEntry entry;
 
@@ -301,7 +301,7 @@ void nsSSLIOLayerHelpers::adjustForTLSIntolerance(
 }
 
 PRErrorCode nsSSLIOLayerHelpers::getIntoleranceReason(
-    const nsACString& hostName, int16_t port) {
+    const nsACString& hostName, uint16_t port) {
   IntoleranceEntry entry;
 
   {
@@ -460,7 +460,8 @@ bool retryDueToTLSIntolerance(PRErrorCode err, NSSSocketControl* socketInfo) {
   }
 
   SSLVersionRange range = socketInfo->GetTLSVersionRange();
-  nsSSLIOLayerHelpers& helpers = socketInfo->SharedState().IOLayerHelpers();
+  RefPtr<nsSSLIOLayerHelpers> helpers =
+      socketInfo->SharedState().IOLayerHelpers();
 
   if (err == SSL_ERROR_UNSUPPORTED_VERSION &&
       range.min == SSL_LIBRARY_VERSION_TLS_1_0) {
@@ -479,12 +480,13 @@ bool retryDueToTLSIntolerance(PRErrorCode err, NSSSocketControl* socketInfo) {
     // First, track the original cause of the version fallback.  This uses the
     // same buckets as the telemetry below, except that bucket 0 will include
     // all cases where there wasn't an original reason.
-    PRErrorCode originalReason = helpers.getIntoleranceReason(
+    PRErrorCode originalReason = helpers->getIntoleranceReason(
         socketInfo->GetHostName(), socketInfo->GetPort());
     Telemetry::Accumulate(Telemetry::SSL_VERSION_FALLBACK_INAPPROPRIATE,
                           tlsIntoleranceTelemetryBucket(originalReason));
 
-    helpers.forgetIntolerance(socketInfo->GetHostName(), socketInfo->GetPort());
+    helpers->forgetIntolerance(socketInfo->GetHostName(),
+                               AssertedCast<uint16_t>(socketInfo->GetPort()));
 
     return false;
   }
@@ -532,9 +534,10 @@ bool retryDueToTLSIntolerance(PRErrorCode err, NSSSocketControl* socketInfo) {
   // TLS intolerance fallback due to remembered tolerance.
   Telemetry::Accumulate(pre, reason);
 
-  if (!helpers.rememberIntolerantAtVersion(socketInfo->GetHostName(),
-                                           socketInfo->GetPort(), range.min,
-                                           range.max, err)) {
+  if (!helpers->rememberIntolerantAtVersion(
+          socketInfo->GetHostName(),
+          AssertedCast<uint16_t>(socketInfo->GetPort()), range.min, range.max,
+          err)) {
     return false;
   }
 
@@ -945,38 +948,21 @@ static PRStatus PSMConnectcontinue(PRFileDesc* fd, int16_t out_flags) {
   return fd->lower->methods->connectcontinue(fd, out_flags);
 }
 
-namespace {
-
-class PrefObserver : public nsIObserver {
- public:
-  NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-  explicit PrefObserver(nsSSLIOLayerHelpers* aOwner) : mOwner(aOwner) {}
-
- protected:
-  virtual ~PrefObserver() = default;
-
- private:
-  nsSSLIOLayerHelpers* mOwner;
-};
-
-}  // unnamed namespace
-
-NS_IMPL_ISUPPORTS(PrefObserver, nsIObserver)
+NS_IMPL_ISUPPORTS(nsSSLIOLayerHelpers, nsIObserver)
 
 NS_IMETHODIMP
-PrefObserver::Observe(nsISupports* aSubject, const char* aTopic,
-                      const char16_t* someData) {
+nsSSLIOLayerHelpers::Observe(nsISupports* aSubject, const char* aTopic,
+                             const char16_t* someData) {
   if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
     NS_ConvertUTF16toUTF8 prefName(someData);
 
     if (prefName.EqualsLiteral("security.tls.version.fallback-limit")) {
-      mOwner->loadVersionFallbackLimit();
+      loadVersionFallbackLimit();
     } else if (prefName.EqualsLiteral("security.tls.insecure_fallback_hosts")) {
       // Changes to the allowlist on the public side will update the pref.
       // Don't propagate the changes to the private side.
-      if (mOwner->isPublic()) {
-        mOwner->initInsecureFallbackSites();
+      if (isPublic()) {
+        initInsecureFallbackSites();
       }
     }
   }
@@ -1000,14 +986,8 @@ static int32_t PlaintextRecv(PRFileDesc* fd, void* buf, int32_t amount,
 }
 
 nsSSLIOLayerHelpers::~nsSSLIOLayerHelpers() {
-  // mPrefObserver will only be set if this->Init was called. The GTest tests
-  // do not call Init.
-  if (mPrefObserver) {
-    Preferences::RemoveObserver(mPrefObserver,
-                                "security.tls.version.fallback-limit");
-    Preferences::RemoveObserver(mPrefObserver,
-                                "security.tls.insecure_fallback_hosts");
-  }
+  Preferences::RemoveObserver(this, "security.tls.version.fallback-limit");
+  Preferences::RemoveObserver(this, "security.tls.insecure_fallback_hosts");
 }
 
 template <typename R, R return_value, typename... Args>
@@ -1088,10 +1068,8 @@ nsresult nsSSLIOLayerHelpers::Init() {
   if (NS_IsMainThread()) {
     initInsecureFallbackSites();
 
-    mPrefObserver = new PrefObserver(this);
-    Preferences::AddStrongObserver(mPrefObserver,
-                                   "security.tls.version.fallback-limit");
-    Preferences::AddStrongObserver(mPrefObserver,
+    Preferences::AddStrongObserver(this, "security.tls.version.fallback-limit");
+    Preferences::AddStrongObserver(this,
                                    "security.tls.insecure_fallback_hosts");
   } else {
     MOZ_ASSERT(mTlsFlags, "Only per socket version can ignore prefs");
@@ -1153,7 +1131,8 @@ void nsSSLIOLayerHelpers::initInsecureFallbackSites() {
 }
 
 bool nsSSLIOLayerHelpers::isPublic() const {
-  return this == &PublicSSLState()->IOLayerHelpers();
+  RefPtr<nsSSLIOLayerHelpers> publicHelpers(PublicSSLState()->IOLayerHelpers());
+  return this == publicHelpers;
 }
 
 class FallbackPrefRemover final : public Runnable {
@@ -1496,8 +1475,11 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
   }
 
   uint16_t maxEnabledVersion = range.max;
-  infoObject->SharedState().IOLayerHelpers().adjustForTLSIntolerance(
-      infoObject->GetHostName(), infoObject->GetPort(), range);
+  RefPtr<nsSSLIOLayerHelpers> ioLayerHelpers =
+      infoObject->SharedState().IOLayerHelpers();
+  ioLayerHelpers->adjustForTLSIntolerance(
+      infoObject->GetHostName(), AssertedCast<uint16_t>(infoObject->GetPort()),
+      range);
   MOZ_LOG(
       gPIPNSSLog, LogLevel::Debug,
       ("[%p] nsSSLIOLayerSetOptions: using TLS version range (0x%04x,0x%04x)\n",

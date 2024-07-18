@@ -54,8 +54,8 @@ PrivateBrowsingObserver::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 SharedSSLState::SharedSSLState(uint32_t aTlsFlags)
-    : mIOLayerHelpers(aTlsFlags) {
-  mIOLayerHelpers.Init();
+    : mIOLayerHelpers(new nsSSLIOLayerHelpers(aTlsFlags)) {
+  mIOLayerHelpers->Init();
 }
 
 SharedSSLState::~SharedSSLState() = default;
@@ -69,7 +69,7 @@ void SharedSSLState::NotePrivateBrowsingStatus() {
 
 void SharedSSLState::ResetStoredData() {
   MOZ_ASSERT(NS_IsMainThread(), "Not on main thread");
-  mIOLayerHelpers.clearStoredData();
+  mIOLayerHelpers->clearStoredData();
 }
 
 /*static*/
@@ -97,7 +97,7 @@ void SharedSSLState::GlobalCleanup() {
   }
 }
 
-void SharedSSLState::Cleanup() { mIOLayerHelpers.Cleanup(); }
+void SharedSSLState::Cleanup() { mIOLayerHelpers->Cleanup(); }
 
 SharedSSLState* PublicSSLState() { return gPublicState; }
 

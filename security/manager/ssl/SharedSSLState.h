@@ -22,7 +22,9 @@ class SharedSSLState {
   static void GlobalInit();
   static void GlobalCleanup();
 
-  nsSSLIOLayerHelpers& IOLayerHelpers() { return mIOLayerHelpers; }
+  already_AddRefed<nsSSLIOLayerHelpers> IOLayerHelpers() {
+    return do_AddRef(mIOLayerHelpers);
+  }
 
   // Main-thread only
   void ResetStoredData();
@@ -34,7 +36,7 @@ class SharedSSLState {
   void Cleanup();
 
   nsCOMPtr<nsIObserver> mObserver;
-  nsSSLIOLayerHelpers mIOLayerHelpers;
+  RefPtr<nsSSLIOLayerHelpers> mIOLayerHelpers;
 };
 
 SharedSSLState* PublicSSLState();

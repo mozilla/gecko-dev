@@ -11,6 +11,7 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
+#include "nsIObserver.h"
 #include "nsIProxyInfo.h"
 #include "nsITLSSocketControl.h"
 #include "nsITlsHandshakeListener.h"
@@ -31,8 +32,6 @@ const uint32_t kIPCClientCertsSlotTypeLegacy = 2;
 
 using mozilla::OriginAttributes;
 
-class nsIObserver;
-
 // Order matters for UpdateEchExtensioNStatus.
 enum class EchExtensionStatus {
   kNotPresent,  // No ECH Extension was sent
@@ -40,10 +39,12 @@ enum class EchExtensionStatus {
   kReal         // A 'real' ECH Extension was sent
 };
 
-class nsSSLIOLayerHelpers {
+class nsSSLIOLayerHelpers : public nsIObserver {
  public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
   explicit nsSSLIOLayerHelpers(uint32_t aTlsFlags = 0);
-  ~nsSSLIOLayerHelpers();
 
   nsresult Init();
   void Cleanup();
@@ -53,6 +54,9 @@ class nsSSLIOLayerHelpers {
   static PRDescIdentity nsSSLPlaintextLayerIdentity;
   static PRIOMethods nsSSLIOLayerMethods;
   static PRIOMethods nsSSLPlaintextLayerMethods;
+
+ protected:
+  virtual ~nsSSLIOLayerHelpers();
 
  private:
   struct IntoleranceEntry {
@@ -71,16 +75,16 @@ class nsSSLIOLayerHelpers {
   nsTHashtable<nsCStringHashKey> mInsecureFallbackSites;
 
  public:
-  void rememberTolerantAtVersion(const nsACString& hostname, int16_t port,
+  void rememberTolerantAtVersion(const nsACString& hostname, uint16_t port,
                                  uint16_t tolerant);
   bool fallbackLimitReached(const nsACString& hostname, uint16_t intolerant);
-  bool rememberIntolerantAtVersion(const nsACString& hostname, int16_t port,
+  bool rememberIntolerantAtVersion(const nsACString& hostname, uint16_t port,
                                    uint16_t intolerant, uint16_t minVersion,
                                    PRErrorCode intoleranceReason);
-  void forgetIntolerance(const nsACString& hostname, int16_t port);
-  void adjustForTLSIntolerance(const nsACString& hostname, int16_t port,
+  void forgetIntolerance(const nsACString& hostname, uint16_t port);
+  void adjustForTLSIntolerance(const nsACString& hostname, uint16_t port,
                                /*in/out*/ SSLVersionRange& range);
-  PRErrorCode getIntoleranceReason(const nsACString& hostname, int16_t port);
+  PRErrorCode getIntoleranceReason(const nsACString& hostname, uint16_t port);
 
   void clearStoredData();
   void loadVersionFallbackLimit();
@@ -94,7 +98,6 @@ class nsSSLIOLayerHelpers {
 
  private:
   mozilla::Mutex mutex MOZ_UNANNOTATED;
-  nsCOMPtr<nsIObserver> mPrefObserver;
   uint32_t mTlsFlags;
 };
 
