@@ -138,11 +138,12 @@ ConvertYCbCrToRGB32(const uint8_t* y_buf,
         : swap_uv? &libyuv::kYvuF709Constants : &libyuv::kYuvF709Constants;
       break;
     case YUVColorSpace::Identity:
-      MOZ_ASSERT(yuv_type == YV24, "Identity (aka RGB) with chroma subsampling is unsupported");
       if (yuv_type == YV24) {
         break;
       }
-      [[fallthrough]]; // Assuming BT601 for unsupported input is better than crashing
+      NS_WARNING("Identity (aka RGB) with chroma subsampling is unsupported");
+      return NS_ERROR_NOT_IMPLEMENTED;
+      // TODO: Consider using BT601 for unsupported input?
     default:
       MOZ_FALLTHROUGH_ASSERT("Unsupported YUVColorSpace");
     case YUVColorSpace::BT601:
