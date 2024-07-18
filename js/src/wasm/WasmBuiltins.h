@@ -316,7 +316,7 @@ bool EnsureBuiltinThunksInitialized();
 bool EnsureBuiltinThunksInitialized(
     jit::AutoMarkJitCodeWritableForThread& writable);
 
-bool HandleThrow(JSContext* cx, WasmFrameIter& iter,
+void HandleThrow(JSContext* cx, WasmFrameIter& iter,
                  jit::ResumeFromException* rfe);
 
 void* SymbolicAddressTarget(SymbolicAddress sym);
