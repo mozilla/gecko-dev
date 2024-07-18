@@ -4,7 +4,11 @@
 
 package org.mozilla.fenix.components.toolbar.navbar
 
+import android.content.Context
 import android.content.res.Configuration
+import android.util.AttributeSet
+import android.view.LayoutInflater
+import android.widget.RelativeLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -15,36 +19,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import mozilla.components.feature.tabs.R
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
-import mozilla.components.ui.tabcounter.TabCounter
 import mozilla.components.ui.tabcounter.TabCounterMenu
+import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import org.mozilla.fenix.databinding.NewTabButtonBinding
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
-// Interim composable for a tab counter button that supports showing a menu on long press.
-// With this being implemented as an AndroidView the menu can be shown as low to the bottom of the screen as needed.
-// To be replaced with a fully Compose implementation in the future that use a DropdownMenu once
-// https://github.com/JetBrains/compose-multiplatform/issues/1878 is resolved.
+// Interim composable for a new tab button that supports showing a menu on long press.
+// With this being implemented as an AndroidView the menu can be shown as low to the bottom of the
+// screen as needed. To be replaced with a fully Compose implementation in the future that use a
+// DropdownMenu once https://github.com/JetBrains/compose-multiplatform/issues/1878 is resolved.
 
 /**
- * Composable that delegates to an AndroidView to display a tab counter button and optionally a menu.
- * If a menu is provided it will be shown as low to the bottom of the screen as needed and will be shown
- * on long presses of the tab counter button irrespective of the [onLongPress] callback being set or not.
+ * Composable that delegates to an [AndroidView] to display a new tab button and optionally a menu.
  *
- * @param tabCount The number of tabs to display in the tab counter.
- * @param isPrivateMode Whether the browser is in private mode.
- * @param isFeltPrivateBrowsingEnabled Whether the felt private browsing feature is enabled.
- * @param onClick Invoked when the tab counter is clicked.
- * @param menu Optional menu to show when the tab counter is long clicked.
- * @param onLongPress Optional callback for when the tab counter is long clicked.
+ * If a menu is provided it will be shown as low to the bottom of the screen as needed and will
+ * be shown on long presses of the tab counter button irrespective of the [onLongPress] callback
+ * being set or not.
+ *
+ * @param onClick Invoked when the button is clicked.
+ * @param menu Optional menu to show when the button is long clicked.
+ * @param onLongPress Optional callback for when the button is long clicked.
  */
 @Composable
-fun ToolbarTabCounterButton(
-    tabCount: Int,
-    isPrivateMode: Boolean,
-    isFeltPrivateBrowsingEnabled: Boolean,
+fun NewTabButton(
     onClick: () -> Unit,
     menu: TabCounterMenu? = null,
     onLongPress: () -> Unit = {},
@@ -54,7 +54,7 @@ fun ToolbarTabCounterButton(
     ) {
         AndroidView(
             factory = { context ->
-                TabCounter(context).apply {
+                NewTabButton(context).apply {
                     setOnClickListener {
                         onClick() // This ensures clicks in the 34dp touch target are caught.
                     }
@@ -67,9 +67,8 @@ fun ToolbarTabCounterButton(
                         }
                     }
 
-                    contentDescription = context.getString(R.string.mozac_feature_tabs_toolbar_tabs_button)
+                    contentDescription = context.getString(R.string.library_new_tab)
 
-                    toggleCounterMask(isFeltPrivateBrowsingEnabled && isPrivateMode)
                     setBackgroundResource(
                         context.theme.resolveAttribute(
                             android.R.attr.selectableItemBackgroundBorderless,
@@ -78,51 +77,51 @@ fun ToolbarTabCounterButton(
                 }
             },
             // The IconButton composable has a 48dp size and it's own ripple with a 24dp radius.
-            // The TabCounter view has it's own inherent ripple that has a bigger radius
+            // The NewTabButton view has it's own inherent ripple that has a bigger radius
             // so based on manual testing we set a size of 34dp for this View which would
             // ensure it's ripple matches the composable one. Otherwise there is a visible mismatch.
             modifier = Modifier.size(34.dp),
-            update = { tabCounter ->
-                tabCounter.setCount(tabCount)
-            },
         )
     }
 }
 
-@Suppress("MagicNumber")
+private class NewTabButton @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyle: Int = 0,
+) : RelativeLayout(context, attrs, defStyle) {
+
+    init {
+        NewTabButtonBinding.inflate(LayoutInflater.from(context), this)
+    }
+}
+
 @LightDarkPreview
 @Composable
-private fun ToolbarTabCounterButtonPreview() {
+private fun NewTabButtonPreview() {
     FirefoxTheme {
         Box(
             modifier = Modifier
                 .background(FirefoxTheme.colors.layer1)
                 .padding(10.dp),
         ) {
-            ToolbarTabCounterButton(
-                tabCount = 5,
-                isPrivateMode = false,
-                isFeltPrivateBrowsingEnabled = false,
+            NewTabButton(
                 onClick = {},
             )
         }
     }
 }
 
-@Suppress("MagicNumber")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun ToolbarTabCounterButtonWithFeltPrivacyPreview() {
+private fun NewTabButtonPrivatePreview() {
     FirefoxTheme(theme = Theme.Private) {
         Box(
             modifier = Modifier
                 .background(FirefoxTheme.colors.layer1)
                 .padding(10.dp),
         ) {
-            ToolbarTabCounterButton(
-                tabCount = 5,
-                isPrivateMode = true,
-                isFeltPrivateBrowsingEnabled = true,
+            NewTabButton(
                 onClick = {},
             )
         }

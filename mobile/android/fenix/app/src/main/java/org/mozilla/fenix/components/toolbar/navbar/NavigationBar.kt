@@ -41,6 +41,7 @@ import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.components
+import org.mozilla.fenix.components.toolbar.NewTabMenu
 import org.mozilla.fenix.compose.LongPressIconButton
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.utils.KeyboardState
@@ -58,6 +59,8 @@ import org.mozilla.fenix.theme.ThemeManager
  * @param browserStore The [BrowserStore] instance used to observe tabs state.
  * @param menuButton A [MenuButton] to be used as an [AndroidView]. The view implementation
  * contains the builder for the menu, so for the time being we are not implementing it as a composable.
+ * @param newTabMenu A [TabCounterMenu] to be used as an [AndroidView] for when the user
+ * long taps on the new tab button.
  * @param tabsCounterMenu A [TabCounterMenu] to be used as an [AndroidView] for when the user
  * long taps on the tab counter.
  * @param onBackButtonClick Invoked when the user clicks on the back button in the navigation bar.
@@ -77,6 +80,7 @@ fun BrowserNavBar(
     isFeltPrivateBrowsingEnabled: Boolean,
     browserStore: BrowserStore,
     menuButton: MenuButton,
+    newTabMenu: TabCounterMenu,
     tabsCounterMenu: TabCounterMenu,
     onBackButtonClick: () -> Unit,
     onBackButtonLongPress: () -> Unit,
@@ -115,6 +119,7 @@ fun BrowserNavBar(
 
         NewTabButton(
             onClick = onNewTabButtonClick,
+            menu = newTabMenu,
         )
 
         ToolbarTabCounterButton(
@@ -355,22 +360,6 @@ private fun ForwardButton(
 }
 
 @Composable
-private fun NewTabButton(
-    onClick: () -> Unit,
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier.size(48.dp),
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.mozac_ic_plus_24),
-            contentDescription = stringResource(id = R.string.library_new_tab),
-            tint = FirefoxTheme.colors.iconPrimary,
-        )
-    }
-}
-
-@Composable
 private fun SearchWebButton(
     onSearchButtonClick: () -> Unit,
 ) {
@@ -481,12 +470,14 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
         )
     }
     val tabsCounterMenu = TabCounterMenu(context, onItemTapped = {})
+    val newTabMenu = NewTabMenu(context, onItemTapped = {})
 
     BrowserNavBar(
         isPrivateMode = false,
         isFeltPrivateBrowsingEnabled = false,
         browserStore = BrowserStore(),
         menuButton = menuButton,
+        newTabMenu = newTabMenu,
         tabsCounterMenu = tabsCounterMenu,
         onBackButtonClick = {},
         onBackButtonLongPress = {},

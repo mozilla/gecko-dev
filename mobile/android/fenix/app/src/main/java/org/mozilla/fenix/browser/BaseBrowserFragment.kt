@@ -157,6 +157,7 @@ import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarController
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarMenuController
 import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
+import org.mozilla.fenix.components.toolbar.NewTabMenu
 import org.mozilla.fenix.components.toolbar.ToolbarIntegration
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
@@ -1458,6 +1459,16 @@ abstract class BaseBrowserFragment :
                             isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
                             browserStore = context.components.core.store,
                             menuButton = menuButton,
+                            newTabMenu = NewTabMenu(
+                                context = context,
+                                onItemTapped = { item ->
+                                    browserToolbarInteractor.onTabCounterMenuItemTapped(item)
+                                },
+                                iconColor = when (activity.browsingModeManager.mode.isPrivate) {
+                                    true -> getColor(context, R.color.fx_mobile_private_icon_color_primary)
+                                    else -> null
+                                },
+                            ),
                             tabsCounterMenu = FenixTabCounterMenu(
                                 context = context,
                                 onItemTapped = { item ->

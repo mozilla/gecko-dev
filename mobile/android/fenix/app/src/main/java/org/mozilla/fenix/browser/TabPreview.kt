@@ -24,6 +24,7 @@ import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
+import org.mozilla.fenix.components.toolbar.NewTabMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.BrowserNavBar
 import org.mozilla.fenix.compose.Divider
@@ -84,6 +85,7 @@ class TabPreview @JvmOverloads constructor(
                                 isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
                                 browserStore = browserStore,
                                 menuButton = MenuButton(context),
+                                newTabMenu = NewTabMenu(context, onItemTapped = {}),
                                 tabsCounterMenu = TabCounterMenu(context, onItemTapped = {}),
                                 onBackButtonClick = {
                                     // no-op
