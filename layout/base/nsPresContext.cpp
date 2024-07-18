@@ -3064,24 +3064,31 @@ DynamicToolbarState nsPresContext::GetDynamicToolbarState() const {
   return DynamicToolbarState::InTransition;
 }
 
+static CSSToScreenScale GetMVMScale(PresShell* aPS) {
+  if (aPS) {
+    if (RefPtr mvm = aPS->GetMobileViewportManager()) {
+      return mvm->GetZoom();
+    }
+  }
+  return CSSToScreenScale(1.0f);
+}
+
 nscoord nsPresContext::GetDynamicToolbarMaxHeightInAppUnits() const {
   if (mDynamicToolbarMaxHeight == 0) {
     return 0;
   }
-  RefPtr<MobileViewportManager> mvm = mPresShell->GetMobileViewportManager();
-  CSSToScreenScale scale = mvm ? mvm->GetZoom() : CSSToScreenScale(1.0f);
   return CSSPixel::ToAppUnits(ScreenCoord(GetDynamicToolbarMaxHeight()) /
-                              scale);
+                              GetMVMScale(mPresShell));
 }
 
 nscoord nsPresContext::GetBimodalDynamicToolbarHeightInAppUnits() const {
-  if (GetDynamicToolbarState() == DynamicToolbarState::Collapsed) {
-    RefPtr<MobileViewportManager> mvm = mPresShell->GetMobileViewportManager();
-    CSSToScreenScale scale = mvm ? mvm->GetZoom() : CSSToScreenScale(1.0f);
-    return CSSPixel::ToAppUnits(
-        ScreenCoord(GetDynamicToolbarMaxHeightInAppUnits()) / scale);
+  if (GetDynamicToolbarState() != DynamicToolbarState::Collapsed) {
+    return 0;
   }
-  return 0;
+  // FIXME: Should be GetDynamicToolbarMaxHeight() right?
+  return CSSPixel::ToAppUnits(
+      ScreenCoord(GetDynamicToolbarMaxHeightInAppUnits()) /
+      GetMVMScale(mPresShell));
 }
 
 void nsPresContext::SetSafeAreaInsets(const ScreenIntMargin& aSafeAreaInsets) {
