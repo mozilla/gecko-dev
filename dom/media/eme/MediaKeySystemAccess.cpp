@@ -1057,8 +1057,8 @@ MediaKeySystemAccess::GetSupportedConfig(MediaKeySystemAccessRequest* aRequest,
       DoesKeySystemSupportHardwareDecryption(aRequest->mKeySystem);
 
 #ifdef MOZ_WMF_CDM
-  if (ShouldBlockMFCDMSupportByOrigin(aRequest->mKeySystem, aIsPrivateBrowsing,
-                                      aDocument)) {
+  if (ShouldBlockMFCDMSupportByOrigin(aRequest->mKeySystem,
+                                      isHardwareDecryptionRequest, aDocument)) {
     return KeySystemConfig::KeySystemConfigPromise::CreateAndReject(false,
                                                                     __func__);
   }
