@@ -53,49 +53,58 @@ export const cookie = {
 cookie.fromJSON = function (json) {
   let newCookie = {};
 
-  lazy.assert.object(json, lazy.pprint`Expected cookie object, got ${json}`);
+  lazy.assert.object(
+    json,
+    lazy.pprint`Expected "cookie" to be an object, got ${json}`
+  );
 
-  newCookie.name = lazy.assert.string(json.name, "Cookie name must be string");
+  newCookie.name = lazy.assert.string(
+    json.name,
+    lazy.pprint`Expected cookie "name" to be a string, got ${json.name}`
+  );
   newCookie.value = lazy.assert.string(
     json.value,
-    "Cookie value must be string"
+    lazy.pprint`Expected cookie "value" to be a string, got ${json.value}`
   );
 
   if (typeof json.path != "undefined") {
     newCookie.path = lazy.assert.string(
       json.path,
-      "Cookie path must be string"
+      lazy.pprint`Expected cookie "path" to be a string, got ${json.path}`
     );
   }
   if (typeof json.domain != "undefined") {
     newCookie.domain = lazy.assert.string(
       json.domain,
-      "Cookie domain must be string"
+      lazy.pprint`Expected cookie "domain" to be a string, got ${json.domain}`
     );
   }
   if (typeof json.secure != "undefined") {
     newCookie.secure = lazy.assert.boolean(
       json.secure,
-      "Cookie secure flag must be boolean"
+      lazy.pprint`Expected cookie "secure" to be a boolean, got ${json.secure}`
     );
   }
   if (typeof json.httpOnly != "undefined") {
     newCookie.httpOnly = lazy.assert.boolean(
       json.httpOnly,
-      "Cookie httpOnly flag must be boolean"
+      lazy.pprint`Expected cookie "httpOnly" to be a boolean, got ${json.httpOnly}`
     );
   }
   if (typeof json.expiry != "undefined") {
     newCookie.expiry = lazy.assert.positiveInteger(
       json.expiry,
-      "Cookie expiry must be a positive integer"
+      lazy.pprint`Expected cookie "expiry" to be a positive integer, got ${json.expiry}`
     );
   }
   if (typeof json.sameSite != "undefined") {
+    const validOptions = Array.from(SAMESITE_MAP.keys());
     newCookie.sameSite = lazy.assert.in(
       json.sameSite,
-      Array.from(SAMESITE_MAP.keys()),
-      "Cookie SameSite flag must be one of None, Lax, or Strict"
+      validOptions,
+      lazy.pprint`Expected cookie "sameSite" to be one of ${validOptions.toString()}, got ${
+        json.sameSite
+      }`
     );
   }
 
@@ -126,8 +135,14 @@ cookie.add = function (
   newCookie,
   { restrictToHost = null, protocol = null } = {}
 ) {
-  lazy.assert.string(newCookie.name, "Cookie name must be string");
-  lazy.assert.string(newCookie.value, "Cookie value must be string");
+  lazy.assert.string(
+    newCookie.name,
+    lazy.pprint`Expected cookie "name" to be a string, got ${newCookie.name}`
+  );
+  lazy.assert.string(
+    newCookie.value,
+    lazy.pprint`Expected cookie "value" to be a string, got ${newCookie.value}`
+  );
 
   if (typeof newCookie.path == "undefined") {
     newCookie.path = "/";
@@ -138,7 +153,10 @@ cookie.add = function (
     hostOnly = true;
     newCookie.domain = restrictToHost;
   }
-  lazy.assert.string(newCookie.domain, "Cookie domain must be string");
+  lazy.assert.string(
+    newCookie.domain,
+    lazy.pprint`Expected cookie "domain" to be a string, got ${newCookie.domain}`
+  );
   if (newCookie.domain.substring(0, 1) === ".") {
     newCookie.domain = newCookie.domain.substring(1);
   }
@@ -257,8 +275,14 @@ cookie.remove = function (toDelete) {
  *     Iterator.
  */
 cookie.iter = function* (host, currentPath = "/") {
-  lazy.assert.string(host, "host must be string");
-  lazy.assert.string(currentPath, "currentPath must be string");
+  lazy.assert.string(
+    host,
+    lazy.pprint`Expected "host" to be a string, got ${host}`
+  );
+  lazy.assert.string(
+    currentPath,
+    lazy.pprint`Expected "currentPath" to be a string, got ${currentPath}`
+  );
 
   const isForCurrentPath = path => currentPath.includes(path);
 

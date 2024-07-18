@@ -26,7 +26,10 @@ export class WebReference {
    *     for the contract to be upheld.
    */
   constructor(uuid) {
-    this.uuid = lazy.assert.string(uuid);
+    this.uuid = lazy.assert.string(
+      uuid,
+      lazy.pprint`Expected "uuid" to be a string, got ${uuid}`
+    );
   }
 
   /**
@@ -105,7 +108,10 @@ export class WebReference {
    *     If <var>json</var> is not a web reference.
    */
   static fromJSON(json) {
-    lazy.assert.object(json);
+    lazy.assert.object(
+      json,
+      lazy.pprint`Expected web reference to be object, got ${json}`
+    );
     if (json instanceof WebReference) {
       return json;
     }
@@ -197,7 +203,10 @@ export class ShadowRoot extends WebReference {
    *     If <var>uuid</var> is not a string.
    */
   static fromUUID(uuid) {
-    lazy.assert.string(uuid);
+    lazy.assert.string(
+      uuid,
+      lazy.pprint`Expected "uuid" to be a string, got: ${uuid}`
+    );
 
     return new ShadowRoot(uuid);
   }
