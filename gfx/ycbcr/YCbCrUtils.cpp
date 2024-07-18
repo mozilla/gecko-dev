@@ -107,10 +107,10 @@ ConvertYCbCr16to8Line(uint8_t* aDst,
 }
 
 struct YUV8BitData {
-  explicit YUV8BitData(const layers::PlanarYCbCrData& aData) {
+  nsresult Init(const layers::PlanarYCbCrData& aData) {
     if (aData.mColorDepth == ColorDepth::COLOR_8) {
       mData = aData;
-      return;
+      return NS_OK;
     }
 
     mData.mPictureRect = aData.mPictureRect;
@@ -132,9 +132,12 @@ struct YUV8BitData {
     if (yMemorySize == 0) {
       MOZ_DIAGNOSTIC_ASSERT(cbcrMemorySize == 0,
                             "CbCr without Y makes no sense");
-      return;
+      return NS_ERROR_INVALID_ARG;
     }
     mYChannel = MakeUnique<uint8_t[]>(yMemorySize);
+    if (!mYChannel) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
 
     mData.mYChannel = mYChannel.get();
 
@@ -147,7 +150,13 @@ struct YUV8BitData {
 
     if (cbcrMemorySize) {
       mCbChannel = MakeUnique<uint8_t[]>(cbcrMemorySize);
+      if (!mCbChannel) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
       mCrChannel = MakeUnique<uint8_t[]>(cbcrMemorySize);
+      if (!mCrChannel) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
 
       mData.mCbChannel = mCbChannel.get();
       mData.mCrChannel = mCrChannel.get();
@@ -167,6 +176,9 @@ struct YUV8BitData {
       size_t alphaSize =
           GetAlignedStride<1>(alphaStride8bpp, aData.mAlpha->mSize.height);
       mAlphaChannel = MakeUnique<uint8_t[]>(alphaSize);
+      if (!mAlphaChannel) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
 
       mData.mAlpha.emplace();
       mData.mAlpha->mPremultiplied = aData.mAlpha->mPremultiplied;
@@ -179,6 +191,7 @@ struct YUV8BitData {
                             aData.mAlpha->mSize.height,
                             BitDepthForColorDepth(aData.mColorDepth));
     }
+    return NS_OK;
   }
 
   const layers::PlanarYCbCrData& Get8BitData() { return mData; }
@@ -280,11 +293,14 @@ nsresult ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
   // luma plane is odd sized. Monochrome images have 0-sized CbCr planes
   YUVType yuvtype = GetYUVType(aData);
 
-  YUV8BitData data(aData);
+  YUV8BitData data;
+  nsresult result = data.Init(aData);
+  if (NS_FAILED(result)) {
+    return result;
+  }
   const layers::PlanarYCbCrData& srcData = data.Get8BitData();
 
   // Convert from YCbCr to RGB now, scaling the image if needed.
-  nsresult result = NS_OK;
   if (aDestSize != srcData.mPictureRect.Size()) {
     result = ScaleYCbCrToRGB(srcData, aDestFormat, aDestSize, aDestBuffer,
                              aStride, yuvtype);
@@ -342,7 +358,11 @@ nsresult ConvertYCbCrToRGB32(const layers::PlanarYCbCrData& aData,
 
   YUVType yuvtype = GetYUVType(aData);
 
-  YUV8BitData data8pp(aData);
+  YUV8BitData data8pp;
+  nsresult result = data8pp.Init(aData);
+  if (NS_FAILED(result)) {
+    return result;
+  }
   const layers::PlanarYCbCrData& data = data8pp.Get8BitData();
 
   // The order of SurfaceFormat's R, G, B, A is reversed compared to libyuv's
@@ -352,8 +372,8 @@ nsresult ConvertYCbCrToRGB32(const layers::PlanarYCbCrData& aData,
                             ? RGB32Type::ARGB
                             : RGB32Type::ABGR;
 
-  nsresult result = ConvertYCbCrToRGB(data, aDestFormat, aDestBuffer, aStride,
-                                      yuvtype, rgb32Type);
+  result = ConvertYCbCrToRGB(data, aDestFormat, aDestBuffer, aStride, yuvtype,
+                             rgb32Type);
   if (NS_FAILED(result)) {
     return result;
   }
