@@ -96,6 +96,7 @@
 #include "mozilla/layers/APZThreadUtils.h"
 #include "MobileViewportManager.h"
 #include "mozilla/dom/ImageTracker.h"
+#include "mozilla/dom/InteractiveWidget.h"
 #ifdef ACCESSIBILITY
 #  include "mozilla/a11y/DocAccessible.h"
 #endif
@@ -3037,13 +3038,27 @@ void nsPresContext::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
     return;
   }
 
-  // Forcibly flush position:fixed elements in the case where the dynamic
-  // toolbar is going to be completely hidden or starts to be visible so that
-  // %-based style values will be recomputed with the visual viewport size which
-  // is including the area covered by the dynamic toolbar.
-  if (mDynamicToolbarHeight == 0 || aOffset == -mDynamicToolbarMaxHeight) {
-    mPresShell->MarkFixedFramesForReflow(IntrinsicDirty::None);
-    mPresShell->AddResizeEventFlushObserverIfNeeded();
+  dom::InteractiveWidget interactiveWidget = mDocument->InteractiveWidget();
+  if (interactiveWidget == InteractiveWidget::OverlaysContent &&
+      mKeyboardHeight > 0) {
+    // On overlays-content mode, the toolbar offset change should NOT affect
+    // the visual viewport while the software keyboard is being shown since
+    // the toolbar will be positioned somewhere in the middle of the visual
+    // viewport.
+    return;
+  }
+
+  if (interactiveWidget == InteractiveWidget::ResizesContent ||
+      mKeyboardHeight == 0) {
+    // On resizes-content mode or the software keyboard is not visible, forcibly
+    // flush position:fixed elements in the case where the dynamic toolbar is
+    // going to be completely hidden or starts to be visible so that %-based
+    // style values will be recomputed with the visual viewport size which is
+    // including the area covered by the dynamic toolbar.
+    if (mDynamicToolbarHeight == 0 || aOffset == -mDynamicToolbarMaxHeight) {
+      mPresShell->MarkFixedFramesForReflow(IntrinsicDirty::None);
+      mPresShell->AddResizeEventFlushObserverIfNeeded();
+    }
   }
 
   mDynamicToolbarHeight = mDynamicToolbarMaxHeight + aOffset;
