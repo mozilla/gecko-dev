@@ -7,6 +7,7 @@ package mozilla.components.concept.engine
 import android.content.Context
 import android.graphics.Bitmap
 import android.view.View
+import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -137,6 +138,24 @@ interface EngineView {
      * @param context The Activity context.
      */
     fun setActivityContext(context: Context?)
+
+    /**
+     * Add an OnApplyWindowInsetsListener to observe the root view WindowInsets changes through
+     * the listener set on GeckoView
+     *
+     * @param key The key associated to the listener.
+     * @param listener The OnApplyWindowInsetsListener to be invoked.
+     */
+    fun addWindowInsetsListener(
+        key: String,
+        listener: OnApplyWindowInsetsListener?,
+    )
+
+    /**
+     * Remove the OnApplyWindowInsetsListener to stop observing WindowInsets changed.
+     * @param key The key associated to the listener to remove.
+     */
+    fun removeWindowInsetsListener(key: String)
 
     /**
      * A delegate that will handle interactions with text selection context menus.

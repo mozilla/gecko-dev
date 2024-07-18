@@ -44,6 +44,7 @@ import android.widget.FrameLayout
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.browser.engine.system.permission.SystemPermissionRequest
@@ -703,6 +704,18 @@ class SystemEngineView @JvmOverloads constructor(
 
     override fun setActivityContext(context: Context?) {
         // no-op
+    }
+
+    override fun addWindowInsetsListener(
+        key: String,
+        listener: androidx.core.view.OnApplyWindowInsetsListener?,
+    ) {
+        val rootView = (context as Activity).window.decorView.rootView
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, listener)
+    }
+
+    override fun removeWindowInsetsListener(key: String) {
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, null)
     }
 
     override fun canScrollVerticallyUp() = session?.webView?.canScrollVertically(-1) ?: false
