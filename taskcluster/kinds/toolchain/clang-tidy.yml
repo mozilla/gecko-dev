@@ -88,7 +88,6 @@ win64-clang-tidy:
         job-name: win64-clang-tidy
     treeherder:
         symbol: TW64(clang-tidy)
-        tier: 2
     worker:
         max-run-time: 7200
     run:
