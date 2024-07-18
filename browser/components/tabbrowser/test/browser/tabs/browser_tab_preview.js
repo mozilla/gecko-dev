@@ -450,15 +450,20 @@ add_task(async function panelSuppressionOnContextMenuTests() {
   const previewComponent = gBrowser.tabContainer.previewPanel;
   sinon.spy(previewComponent, "activate");
 
-  const newTabMenu = document.getElementById("new-tab-button-popup");
-  const newTabButton = document.getElementById("tabs-newtab-button");
-  let newTabMenuShown = BrowserTestUtils.waitForPopupEvent(newTabMenu, "shown");
+  const contentAreaContextMenu = document.getElementById(
+    "contentAreaContextMenu"
+  );
+  const contextMenuShown = BrowserTestUtils.waitForPopupEvent(
+    contentAreaContextMenu,
+    "shown"
+  );
+
   EventUtils.synthesizeMouseAtCenter(
-    newTabButton,
+    document.documentElement,
     { type: "contextmenu" },
     window
   );
-  await newTabMenuShown;
+  await contextMenuShown;
 
   EventUtils.synthesizeMouseAtCenter(tab, { type: "mouseover" }, window);
 
@@ -467,7 +472,7 @@ add_task(async function panelSuppressionOnContextMenuTests() {
   });
   Assert.equal(previewComponent._panel.state, "closed", "");
 
-  newTabMenu.hidePopup();
+  contentAreaContextMenu.hidePopup();
   BrowserTestUtils.removeTab(tab);
   sinon.restore();
 
