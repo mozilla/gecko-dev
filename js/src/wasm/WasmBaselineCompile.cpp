@@ -5167,11 +5167,13 @@ bool BaseCompiler::emitCallIndirect() {
     return true;
   }
 
+  // Stack: ... arg1 .. argn callee
+
+  replaceTableIndexWithClampedInt32(codeMeta_.tables[tableIndex].indexType());
+
   sync();
 
   const FuncType& funcType = (*codeMeta_.types)[funcTypeIndex].funcType();
-
-  // Stack: ... arg1 .. argn callee
 
   uint32_t numArgs = funcType.args().length() + 1;
   size_t stackArgBytes = stackConsumed(numArgs);
@@ -5231,14 +5233,16 @@ bool BaseCompiler::emitReturnCallIndirect() {
     return true;
   }
 
+  // Stack: ... arg1 .. argn callee
+
+  replaceTableIndexWithClampedInt32(codeMeta_.tables[tableIndex].indexType());
+
   sync();
   if (!insertDebugCollapseFrame()) {
     return false;
   }
 
   const FuncType& funcType = (*codeMeta_.types)[funcTypeIndex].funcType();
-
-  // Stack: ... arg1 .. argn callee
 
   uint32_t numArgs = funcType.args().length() + 1;
 
@@ -6499,10 +6503,7 @@ bool BaseCompiler::memCopyCall(uint32_t dstMemIndex, uint32_t srcMemIndex) {
   // shared.
   IndexType dstIndexType = codeMeta_.memories[dstMemIndex].indexType();
   IndexType srcIndexType = codeMeta_.memories[srcMemIndex].indexType();
-  IndexType lenIndexType =
-      (dstIndexType == IndexType::I32 || srcIndexType == IndexType::I32)
-          ? IndexType::I32
-          : IndexType::I64;
+  IndexType lenIndexType = MinIndexType(dstIndexType, srcIndexType);
 
   // Pop the operands off of the stack and widen them
   RegI64 len = popIndexToInt64(lenIndexType);
@@ -6587,11 +6588,11 @@ bool BaseCompiler::emitMemInit() {
 // Bulk table operations.
 
 bool BaseCompiler::emitTableCopy() {
-  uint32_t dstMemOrTableIndex = 0;
-  uint32_t srcMemOrTableIndex = 0;
+  uint32_t dstTable = 0;
+  uint32_t srcTable = 0;
   Nothing nothing;
-  if (!iter_.readMemOrTableCopy(false, &dstMemOrTableIndex, &nothing,
-                                &srcMemOrTableIndex, &nothing, &nothing)) {
+  if (!iter_.readMemOrTableCopy(false, &dstTable, &nothing, &srcTable, &nothing,
+                                &nothing)) {
     return false;
   }
 
@@ -6599,29 +6600,63 @@ bool BaseCompiler::emitTableCopy() {
     return true;
   }
 
-  pushI32(dstMemOrTableIndex);
-  pushI32(srcMemOrTableIndex);
+  IndexType dstIndexType = codeMeta_.tables[dstTable].indexType();
+  IndexType srcIndexType = codeMeta_.tables[srcTable].indexType();
+  IndexType lenIndexType = MinIndexType(dstIndexType, srcIndexType);
+
+  // Instance::tableCopy(dstOffset:u32, srcOffset:u32, len:u32, dstTable:u32,
+  // srcTable:u32)
+  RegI32 len = popTableIndexToClampedInt32(lenIndexType);
+  RegI32 src = popTableIndexToClampedInt32(srcIndexType);
+  replaceTableIndexWithClampedInt32(dstIndexType);
+  pushI32(src);
+  pushI32(len);
+  pushI32(dstTable);
+  pushI32(srcTable);
   return emitInstanceCall(SASigTableCopy);
 }
 
 bool BaseCompiler::emitTableInit() {
-  return emitInstanceCallOp<uint32_t, uint32_t>(
-      SASigTableInit,
-      [this](uint32_t* segIndex, uint32_t* dstTableIndex) -> bool {
-        Nothing nothing;
-        return iter_.readMemOrTableInit(/*isMem*/ false, segIndex,
-                                        dstTableIndex, &nothing, &nothing,
-                                        &nothing);
-      });
+  uint32_t segIndex = 0;
+  uint32_t dstTable = 0;
+  Nothing nothing;
+  if (!iter_.readMemOrTableInit(false, &segIndex, &dstTable, &nothing, &nothing,
+                                &nothing)) {
+    return false;
+  }
+
+  if (deadCode_) {
+    return true;
+  }
+
+  // Instance::tableInit(dst:u32, src:u32, len:u32, seg:u32, table:u32)
+  RegI32 len = popI32();
+  RegI32 src = popI32();
+  replaceTableIndexWithClampedInt32(codeMeta_.tables[dstTable].indexType());
+  pushI32(src);
+  pushI32(len);
+  pushI32(segIndex);
+  pushI32(dstTable);
+  return emitInstanceCall(SASigTableInit);
 }
 
 bool BaseCompiler::emitTableFill() {
-  // fill(start:u32, val:ref, len:u32, table:u32) -> void
-  return emitInstanceCallOp<uint32_t>(
-      SASigTableFill, [this](uint32_t* tableIndex) -> bool {
-        Nothing nothing;
-        return iter_.readTableFill(tableIndex, &nothing, &nothing, &nothing);
-      });
+  uint32_t tableIndex;
+  Nothing nothing;
+  if (!iter_.readTableFill(&tableIndex, &nothing, &nothing, &nothing)) {
+    return false;
+  }
+
+  IndexType indexType = codeMeta_.tables[tableIndex].indexType();
+
+  // Instance::tableFill(start:u32, val:ref, len:u32, table:u32) -> void
+  RegI32 len = popTableIndexToClampedInt32(indexType);
+  AnyReg val = popAny();
+  replaceTableIndexWithClampedInt32(indexType);
+  pushAny(val);
+  pushI32(len);
+  pushI32(tableIndex);
+  return emitInstanceCall(SASigTableFill);
 }
 
 bool BaseCompiler::emitMemDiscard() {
@@ -6651,21 +6686,43 @@ bool BaseCompiler::emitTableGet() {
   if (deadCode_) {
     return true;
   }
+
+  replaceTableIndexWithClampedInt32(codeMeta_.tables[tableIndex].indexType());
   if (codeMeta_.tables[tableIndex].elemType.tableRepr() == TableRepr::Ref) {
     return emitTableGetAnyRef(tableIndex);
   }
   pushI32(tableIndex);
-  // get(index:u32, table:u32) -> AnyRef
+  // Instance::tableGet(index:u32, table:u32) -> AnyRef
   return emitInstanceCall(SASigTableGet);
 }
 
 bool BaseCompiler::emitTableGrow() {
-  // grow(initValue:anyref, delta:u32, table:u32) -> u32
-  return emitInstanceCallOp<uint32_t>(
-      SASigTableGrow, [this](uint32_t* tableIndex) -> bool {
-        Nothing nothing;
-        return iter_.readTableGrow(tableIndex, &nothing, &nothing);
-      });
+  uint32_t tableIndex;
+  Nothing nothing;
+  if (!iter_.readTableGrow(&tableIndex, &nothing, &nothing)) {
+    return false;
+  }
+  if (deadCode_) {
+    return true;
+  }
+
+  IndexType indexType = codeMeta_.tables[tableIndex].indexType();
+
+  // Instance::tableGrow(initValue:anyref, delta:u32, table:u32) -> u32
+  replaceTableIndexWithClampedInt32(indexType);
+  pushI32(tableIndex);
+  if (!emitInstanceCall(SASigTableGrow)) {
+    return false;
+  }
+
+  if (indexType == IndexType::I64) {
+    RegI64 r;
+    popI32ForSignExtendI64(&r);
+    masm.move32To64SignExtend(lowPart(r), r);
+    pushI64(r);
+  }
+
+  return true;
 }
 
 bool BaseCompiler::emitTableSet() {
@@ -6677,11 +6734,16 @@ bool BaseCompiler::emitTableSet() {
   if (deadCode_) {
     return true;
   }
+  if (codeMeta_.tables[tableIndex].indexType() == IndexType::I64) {
+    AnyReg value = popAny();
+    replaceTableIndexWithClampedInt32(IndexType::I64);
+    pushAny(value);
+  }
   if (codeMeta_.tables[tableIndex].elemType.tableRepr() == TableRepr::Ref) {
     return emitTableSetAnyRef(tableIndex);
   }
   pushI32(tableIndex);
-  // set(index:u32, value:ref, table:u32) -> void
+  // Instance::tableSet(index:u32, value:ref, table:u32) -> void
   return emitInstanceCall(SASigTableSet);
 }
 
@@ -6700,7 +6762,11 @@ bool BaseCompiler::emitTableSize() {
   fr.loadInstancePtr(instance);
   loadTableLength(tableIndex, instance, length);
 
-  pushI32(length);
+  if (codeMeta_.tables[tableIndex].indexType() == IndexType::I64) {
+    pushU32AsI64(length);
+  } else {
+    pushI32(length);
+  }
   freePtr(instance);
   return true;
 }

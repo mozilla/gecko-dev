@@ -1843,6 +1843,21 @@ class FunctionCompiler {
                           MIRType::Pointer);
   }
 
+  MDefinition* tableIndexToI32(IndexType indexType, MDefinition* index) {
+    switch (indexType) {
+      case IndexType::I32:
+        return index;
+      case IndexType::I64:
+        auto* clamp = MWasmClampTable64Index::New(alloc(), index);
+        if (!clamp) {
+          return nullptr;
+        }
+        curBlock_->add(clamp);
+        return clamp;
+    }
+    MOZ_CRASH("unknown index type");
+  }
+
   MDefinition* tableGetAnyRef(uint32_t tableIndex, MDefinition* index) {
     // Load the table length and perform a bounds check with spectre index
     // masking
@@ -2331,8 +2346,13 @@ class FunctionCompiler {
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Indirect);
     ArgTypeVector args(funcType);
 
+    MDefinition* index32 = tableIndexToI32(table.indexType(), index);
+    if (!index32) {
+      return false;
+    }
+
     auto* ins = MWasmReturnCall::New(alloc(), desc, callee, call.regArgs_,
-                                     StackArgAreaSizeUnaligned(args), index);
+                                     StackArgAreaSizeUnaligned(args), index32);
     if (!ins) {
       return false;
     }
@@ -2357,9 +2377,9 @@ class FunctionCompiler {
       MOZ_ASSERT(callIndirectId.kind() == CallIndirectIdKind::AsmJS);
       uint32_t tableIndex = codeMeta_.asmJSSigToTableIndex[funcTypeIndex];
       const TableDesc& table = codeMeta_.tables[tableIndex];
-      MOZ_ASSERT(IsPowerOfTwo(table.initialLength));
+      MOZ_ASSERT(IsPowerOfTwo(table.initialLength()));
 
-      MDefinition* mask = constantI32(int32_t(table.initialLength - 1));
+      MDefinition* mask = constantI32(int32_t(table.initialLength() - 1));
       MBitAnd* maskedIndex = MBitAnd::New(alloc(), index, mask, MIRType::Int32);
       curBlock_->add(maskedIndex);
 
@@ -2370,6 +2390,10 @@ class FunctionCompiler {
       const TableDesc& table = codeMeta_.tables[tableIndex];
       callee =
           CalleeDesc::wasmTable(codeMeta_, table, tableIndex, callIndirectId);
+      index = tableIndexToI32(table.indexType(), index);
+      if (!index) {
+        return false;
+      }
     }
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Indirect);
@@ -6637,11 +6661,36 @@ static bool EmitTableCopy(FunctionCompiler& f) {
   }
 
   uint32_t bytecodeOffset = f.readBytecodeOffset();
+  const TableDesc& dstTable = f.codeMeta().tables[dstTableIndex];
+  const TableDesc& srcTable = f.codeMeta().tables[srcTableIndex];
+
+  IndexType dstIndexType = dstTable.indexType();
+  IndexType srcIndexType = srcTable.indexType();
+  IndexType lenIndexType =
+      dstIndexType == IndexType::I64 && srcIndexType == IndexType::I64
+          ? IndexType::I64
+          : IndexType::I32;
+
+  MDefinition* dst32 = f.tableIndexToI32(dstIndexType, dst);
+  if (!dst32) {
+    return false;
+  }
+
+  MDefinition* src32 = f.tableIndexToI32(srcIndexType, src);
+  if (!src32) {
+    return false;
+  }
+
+  MDefinition* len32 = f.tableIndexToI32(lenIndexType, len);
+  if (!len32) {
+    return false;
+  }
+
   MDefinition* dti = f.constantI32(int32_t(dstTableIndex));
   MDefinition* sti = f.constantI32(int32_t(srcTableIndex));
 
-  return f.emitInstanceCall5(bytecodeOffset, SASigTableCopy, dst, src, len, dti,
-                             sti);
+  return f.emitInstanceCall5(bytecodeOffset, SASigTableCopy, dst32, src32,
+                             len32, dti, sti);
 }
 
 static bool EmitDataOrElemDrop(FunctionCompiler& f, bool isData) {
@@ -6799,11 +6848,11 @@ static bool EmitMemFill(FunctionCompiler& f) {
   return EmitMemFillCall(f, memoryIndex, start, val, len);
 }
 
-static bool EmitMemOrTableInit(FunctionCompiler& f, bool isMem) {
-  uint32_t segIndexVal = 0, dstMemOrTableIndex = 0;
+static bool EmitMemInit(FunctionCompiler& f) {
+  uint32_t segIndexVal = 0, dstMemIndex = 0;
   MDefinition *dstOff, *srcOff, *len;
-  if (!f.iter().readMemOrTableInit(isMem, &segIndexVal, &dstMemOrTableIndex,
-                                   &dstOff, &srcOff, &len)) {
+  if (!f.iter().readMemOrTableInit(true, &segIndexVal, &dstMemIndex, &dstOff,
+                                   &srcOff, &len)) {
     return false;
   }
 
@@ -6813,16 +6862,14 @@ static bool EmitMemOrTableInit(FunctionCompiler& f, bool isMem) {
 
   uint32_t bytecodeOffset = f.readBytecodeOffset();
   const SymbolicAddressSignature& callee =
-      isMem
-          ? (f.isMem32(dstMemOrTableIndex) ? SASigMemInitM32 : SASigMemInitM64)
-          : SASigTableInit;
+      (f.isMem32(dstMemIndex) ? SASigMemInitM32 : SASigMemInitM64);
 
   MDefinition* segIndex = f.constantI32(int32_t(segIndexVal));
   if (!segIndex) {
     return false;
   }
 
-  MDefinition* dti = f.constantI32(int32_t(dstMemOrTableIndex));
+  MDefinition* dti = f.constantI32(int32_t(dstMemIndex));
   if (!dti) {
     return false;
   }
@@ -6831,8 +6878,39 @@ static bool EmitMemOrTableInit(FunctionCompiler& f, bool isMem) {
                              segIndex, dti);
 }
 
-// Note, table.{get,grow,set} on table(funcref) are currently rejected by the
-// verifier.
+static bool EmitTableInit(FunctionCompiler& f) {
+  uint32_t segIndexVal = 0, dstTableIndex = 0;
+  MDefinition *dstOff, *srcOff, *len;
+  if (!f.iter().readMemOrTableInit(false, &segIndexVal, &dstTableIndex, &dstOff,
+                                   &srcOff, &len)) {
+    return false;
+  }
+
+  if (f.inDeadCode()) {
+    return true;
+  }
+
+  uint32_t bytecodeOffset = f.readBytecodeOffset();
+  const TableDesc& table = f.codeMeta().tables[dstTableIndex];
+
+  MDefinition* dstOff32 = f.tableIndexToI32(table.indexType(), dstOff);
+  if (!dstOff32) {
+    return false;
+  }
+
+  MDefinition* segIndex = f.constantI32(int32_t(segIndexVal));
+  if (!segIndex) {
+    return false;
+  }
+
+  MDefinition* dti = f.constantI32(int32_t(dstTableIndex));
+  if (!dti) {
+    return false;
+  }
+
+  return f.emitInstanceCall5(bytecodeOffset, SASigTableInit, dstOff32, srcOff,
+                             len, segIndex, dti);
+}
 
 static bool EmitTableFill(FunctionCompiler& f) {
   uint32_t tableIndex;
@@ -6846,14 +6924,25 @@ static bool EmitTableFill(FunctionCompiler& f) {
   }
 
   uint32_t bytecodeOffset = f.readBytecodeOffset();
+  const TableDesc& table = f.codeMeta().tables[tableIndex];
+
+  MDefinition* start32 = f.tableIndexToI32(table.indexType(), start);
+  if (!start32) {
+    return false;
+  }
+
+  MDefinition* len32 = f.tableIndexToI32(table.indexType(), len);
+  if (!len32) {
+    return false;
+  }
 
   MDefinition* tableIndexArg = f.constantI32(int32_t(tableIndex));
   if (!tableIndexArg) {
     return false;
   }
 
-  return f.emitInstanceCall4(bytecodeOffset, SASigTableFill, start, val, len,
-                             tableIndexArg);
+  return f.emitInstanceCall4(bytecodeOffset, SASigTableFill, start32, val,
+                             len32, tableIndexArg);
 }
 
 #if ENABLE_WASM_MEMORY_CONTROL
@@ -6893,8 +6982,14 @@ static bool EmitTableGet(FunctionCompiler& f) {
   }
 
   const TableDesc& table = f.codeMeta().tables[tableIndex];
+
+  MDefinition* index32 = f.tableIndexToI32(table.indexType(), index);
+  if (!index32) {
+    return false;
+  }
+
   if (table.elemType.tableRepr() == TableRepr::Ref) {
-    MDefinition* ret = f.tableGetAnyRef(tableIndex, index);
+    MDefinition* ret = f.tableGetAnyRef(tableIndex, index32);
     if (!ret) {
       return false;
     }
@@ -6912,8 +7007,8 @@ static bool EmitTableGet(FunctionCompiler& f) {
   // The return value here is either null, denoting an error, or a short-lived
   // pointer to a location containing a possibly-null ref.
   MDefinition* ret;
-  if (!f.emitInstanceCall2(bytecodeOffset, SASigTableGet, index, tableIndexArg,
-                           &ret)) {
+  if (!f.emitInstanceCall2(bytecodeOffset, SASigTableGet, index32,
+                           tableIndexArg, &ret)) {
     return false;
   }
 
@@ -6934,6 +7029,12 @@ static bool EmitTableGrow(FunctionCompiler& f) {
   }
 
   uint32_t bytecodeOffset = f.readBytecodeOffset();
+  const TableDesc& table = f.codeMeta().tables[tableIndex];
+
+  MDefinition* delta32 = f.tableIndexToI32(table.indexType(), delta);
+  if (!delta32) {
+    return false;
+  }
 
   MDefinition* tableIndexArg = f.constantI32(int32_t(tableIndex));
   if (!tableIndexArg) {
@@ -6941,9 +7042,16 @@ static bool EmitTableGrow(FunctionCompiler& f) {
   }
 
   MDefinition* ret;
-  if (!f.emitInstanceCall3(bytecodeOffset, SASigTableGrow, initValue, delta,
+  if (!f.emitInstanceCall3(bytecodeOffset, SASigTableGrow, initValue, delta32,
                            tableIndexArg, &ret)) {
     return false;
+  }
+
+  if (table.indexType() == IndexType::I64) {
+    ret = f.extendI32(ret, false);
+    if (!ret) {
+      return false;
+    }
   }
 
   f.iter().setResult(ret);
@@ -6965,8 +7073,14 @@ static bool EmitTableSet(FunctionCompiler& f) {
   uint32_t bytecodeOffset = f.readBytecodeOffset();
 
   const TableDesc& table = f.codeMeta().tables[tableIndex];
+
+  MDefinition* index32 = f.tableIndexToI32(table.indexType(), index);
+  if (!index32) {
+    return false;
+  }
+
   if (table.elemType.tableRepr() == TableRepr::Ref) {
-    return f.tableSetAnyRef(tableIndex, index, value, bytecodeOffset);
+    return f.tableSetAnyRef(tableIndex, index32, value, bytecodeOffset);
   }
 
   MDefinition* tableIndexArg = f.constantI32(int32_t(tableIndex));
@@ -6974,7 +7088,7 @@ static bool EmitTableSet(FunctionCompiler& f) {
     return false;
   }
 
-  return f.emitInstanceCall3(bytecodeOffset, SASigTableSet, index, value,
+  return f.emitInstanceCall3(bytecodeOffset, SASigTableSet, index32, value,
                              tableIndexArg);
 }
 
@@ -6991,6 +7105,13 @@ static bool EmitTableSize(FunctionCompiler& f) {
   MDefinition* length = f.loadTableLength(tableIndex);
   if (!length) {
     return false;
+  }
+
+  if (f.codeMeta().tables[tableIndex].indexType() == IndexType::I64) {
+    length = f.extendI32(length, true);
+    if (!length) {
+      return false;
+    }
   }
 
   f.iter().setResult(length);
@@ -9037,13 +9158,13 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
           case uint32_t(MiscOp::MemoryFill):
             CHECK(EmitMemFill(f));
           case uint32_t(MiscOp::MemoryInit):
-            CHECK(EmitMemOrTableInit(f, /*isMem=*/true));
+            CHECK(EmitMemInit(f));
           case uint32_t(MiscOp::TableCopy):
             CHECK(EmitTableCopy(f));
           case uint32_t(MiscOp::ElemDrop):
             CHECK(EmitDataOrElemDrop(f, /*isData=*/false));
           case uint32_t(MiscOp::TableInit):
-            CHECK(EmitMemOrTableInit(f, /*isMem=*/false));
+            CHECK(EmitTableInit(f));
           case uint32_t(MiscOp::TableFill):
             CHECK(EmitTableFill(f));
 #if ENABLE_WASM_MEMORY_CONTROL

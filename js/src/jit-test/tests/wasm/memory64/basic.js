@@ -1,20 +1,20 @@
-// |jit-test| allow-oom
+// |jit-test| allow-oom; test-also=--setpref=wasm_tail_calls=false
 
 // Basic tests around creating and linking memories with i64 indices
 
-const MaxMemory64Field = 0x1_0000_0000_0000; // pages
+const MaxMemory64Pages = 0x1_0000_0000_0000;
+const MaxTable64Elems = 0xFFFF_FFFF; // for validation
 const MaxUint32 = 0xFFFF_FFFF;
+const MaxTableElems = 10000000; // for runtime
 
 // test the validity of different i64 memory types in validation, compilation,
 // and the JS-API.
 function memoryTypeModuleText(shared, initial, max) {
   return `(module
-            (memory i64 ${initial} ${max !== undefined ? max : ''} ${shared ? `shared` : ''}))`;
+            (memory i64 ${initial} ${max ?? ''} ${shared ? `shared` : ''}))`;
 }
 function memoryTypeDescriptor(shared, initial, max) {
   return {
-    // TODO: "index" is not yet part of the spec
-    // https://github.com/WebAssembly/memory64/issues/24
     index: 'i64',
     initial,
     maximum: max,
@@ -24,16 +24,36 @@ function memoryTypeDescriptor(shared, initial, max) {
 function validMemoryType(shared, initial, max) {
   wasmValidateText(memoryTypeModuleText(shared, initial, max));
   wasmEvalText(memoryTypeModuleText(shared, initial, max));
-  // TODO: JS-API cannot specify pages above UINT32_MAX
-  // https://github.com/WebAssembly/memory64/issues/24
   new WebAssembly.Memory(memoryTypeDescriptor(shared, initial, max));
 }
 function invalidMemoryType(shared, initial, max, compileMessage, jsMessage) {
   wasmFailValidateText(memoryTypeModuleText(shared, initial, max), compileMessage);
   assertErrorMessage(() => wasmEvalText(memoryTypeModuleText(shared, initial, max)), WebAssembly.CompileError, compileMessage);
-  // TODO: JS-API cannot specify pages above UINT32_MAX
-  // https://github.com/WebAssembly/memory64/issues/24
   assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(shared, initial, max)), Error, jsMessage);
+}
+
+function tableTypeModuleText(element, initial, max) {
+  return `(module
+    (table i64 ${initial} ${max ?? ''} ${element})
+  )`;
+}
+function tableTypeDescriptor(element, initial, max) {
+  return {
+    index: 'i64',
+    element,
+    initial,
+    maximum: max,
+  };
+}
+function validTableType(element, initial, max) {
+  wasmValidateText(tableTypeModuleText(element, initial, max));
+  wasmEvalText(tableTypeModuleText(element, initial, max));
+  new WebAssembly.Table(tableTypeDescriptor(element, initial, max));
+}
+function invalidTableType(element, initial, max, compileMessage, jsMessage) {
+  wasmFailValidateText(tableTypeModuleText(element, initial, max), compileMessage);
+  assertErrorMessage(() => wasmEvalText(tableTypeModuleText(element, initial, max)), WebAssembly.CompileError, compileMessage);
+  assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor(element, initial, max)), Error, jsMessage);
 }
 
 // valid to define a memory with i64
@@ -47,17 +67,26 @@ validMemoryType(true, 1, 2);
 // invalid to define shared memory without max with i64
 invalidMemoryType(true, 1, undefined, /maximum length required for shared memory/, /maximum is not specified/);
 
-// test the limits of memory64
-validMemoryType(false, 0, MaxMemory64Field);
-invalidMemoryType(false, 0, MaxMemory64Field + 1, /maximum memory size too big/, /bad Memory maximum/);
-validMemoryType(true, 0, MaxMemory64Field);
-invalidMemoryType(true, 0, MaxMemory64Field + 1, /maximum memory size too big/, /bad Memory maximum/);
+// valid to define a table with i64
+validTableType('funcref', 0);
+// valid to define table max with i64
+validTableType('funcref', 0, 1);
+// invalid for table min to be greater than max with i64
+invalidTableType('funcref', 2, 1, /minimum must not be greater than maximum/, /bad Table maximum size/);
+
+// test the limits of memory64 memories
+validMemoryType(false, 0, MaxMemory64Pages);
+invalidMemoryType(false, 0, MaxMemory64Pages + 1, /maximum memory size too big/, /bad Memory maximum/);
+validMemoryType(true, 0, MaxMemory64Pages);
+invalidMemoryType(true, 0, MaxMemory64Pages + 1, /maximum memory size too big/, /bad Memory maximum/);
+
+// test the limits of memory64 tables
+validTableType('funcref', 0, MaxTable64Elems);
+invalidTableType('funcref', 0, MaxTable64Elems + 1, /too many table elements/, /bad Table maximum/);
 
 // test that linking requires index types to be equal
-function testLink(importedIndexType, importIndexType) {
+function testLinkMemory(importedIndexType, importIndexType) {
   let imported = new WebAssembly.Memory({
-    // TODO: "index" is not yet part of the spec
-    // https://github.com/WebAssembly/memory64/issues/24
     index: importedIndexType,
     initial: 0,
   });
@@ -70,24 +99,60 @@ function testLink(importedIndexType, importIndexType) {
     assertErrorMessage(() => wasmEvalText(testModule, {"": {imported}}), WebAssembly.LinkError, /index type/);
   }
 }
+function testLinkTable(importedIndexType, importIndexType) {
+  const imported = new WebAssembly.Table({
+    element: 'funcref',
+    index: importedIndexType,
+    initial: 0,
+  });
+  const testModule =
+      `(module
+         (table (import "" "imported") ${importIndexType} 0 funcref))`;
+  if (importedIndexType === importIndexType) {
+    wasmEvalText(testModule, {"": {imported}});
+  } else {
+    assertErrorMessage(() => wasmEvalText(testModule, {"": {imported}}), WebAssembly.LinkError, /index type/);
+  }
+}
 
-var memTypes = [
-    ['i64', 'i64'],
-    ['i32', 'i32'],
-    ['i64', 'i32'],
-    ['i32', 'i64']];
+var types = [
+  ['i64', 'i64'],
+  ['i32', 'i32'],
+  ['i64', 'i32'],
+  ['i32', 'i64']
+];
 
-for ( let [a,b] of memTypes ) {
-    testLink(a, b);
+for ( let [a,b] of types ) {
+  testLinkMemory(a, b);
+  testLinkTable(a, b);
 }
 
 // Active data segments use the index type for the init expression
 
-for ( let [memType,exprType] of memTypes ) {
-    assertEq(WebAssembly.validate(wasmTextToBinary(`
-(module
-  (memory ${memType} 1)
-  (data (${exprType}.const 0) "abcde"))`)), memType == exprType);
+for ( let [memType, exprType] of types ) {
+  const moduleText = `
+  (module
+    (memory ${memType} 1)
+    (data (${exprType}.const 0) "abcde"))`;
+  if (memType == exprType) {
+    wasmEvalText(moduleText);
+  } else {
+    wasmFailValidateText(moduleText, new RegExp(`expression has type ${exprType} but expected ${memType}`));
+  }
+}
+
+// Active element segments use the index type for the init expression
+
+for ( let [tableType, exprType] of types ) {
+  const moduleText = `
+  (module
+    (table ${tableType} 1 funcref)
+    (elem (table 0) (offset ${exprType}.const 0) funcref (ref.null func)))`;
+  if (tableType == exprType) {
+    wasmEvalText(moduleText);
+  } else {
+    wasmFailValidateText(moduleText, new RegExp(`expression has type ${exprType} but expected ${tableType}`));
+  }
 }
 
 // Validate instructions using 32/64-bit pointers in 32/64-bit memories.
@@ -96,7 +161,7 @@ var validOffsets = {i32: ['', 'offset=0x10000000'],
                     i64: ['', 'offset=0x10000000', 'offset=0x200000000']}
 
 // Basic load/store
-for (let [memType, ptrType] of memTypes ) {
+for (let [memType, ptrType] of types ) {
     for (let offs of validOffsets[memType]) {
         assertEq(WebAssembly.validate(wasmTextToBinary(`
 (module
@@ -129,24 +194,127 @@ for (let [memType, ptrType] of memTypes ) {
     }
 }
 
+// Basic table get/set
+for (const [tableType, ptrType] of types) {
+  function mod(ins) {
+    return `(module
+      (table ${tableType} 1 funcref)
+      (func (param $p ${ptrType})
+        ${ins}
+      )
+    )`;
+  }
+
+  if (tableType === ptrType) {
+    wasmValidateText(mod(`(drop (table.get (${ptrType}.const 0)))`));
+    wasmValidateText(mod(`(table.set (${ptrType}.const 0) (ref.null func))`));
+  } else {
+    wasmFailValidateText(
+      mod(`(drop (table.get (${ptrType}.const 0)))`),
+      new RegExp(`expression has type ${ptrType} but expected ${tableType}`),
+    );
+    wasmFailValidateText(
+      mod(`(table.set (${ptrType}.const 0) (ref.null func))`),
+      new RegExp(`expression has type ${ptrType} but expected ${tableType}`),
+    );
+  }
+}
+
 // Bulk memory operations
-for (let [memType, ptrType] of memTypes ) {
-    assertEq(WebAssembly.validate(wasmTextToBinary(`
-(module
-  (memory ${memType} 1)
-  (data $seg "0123456789abcdef")
-  (func (param $p ${ptrType})
-    (drop (${ptrType}.add (${ptrType}.const 1) (memory.size)))
-    (drop (${ptrType}.add (${ptrType}.const 1) (memory.grow (${ptrType}.const 1))))
-    (memory.copy (local.get $p) (${ptrType}.const 0) (${ptrType}.const 628))
-    (memory.fill (local.get $p) (i32.const 37) (${ptrType}.const 1024))
-    (memory.init $seg (local.get $p) (i32.const 3) (i32.const 5))
-))`)), memType == ptrType);
+for (const [memType, ptrType] of types) {
+  function mod(ins) {
+    return `(module
+      (memory ${memType} 1)
+      (data $seg "0123456789abcdef")
+      (func (param $p ${ptrType})
+        ${ins}
+      )
+    )`;
+  }
+
+  if (memType === ptrType) {
+    wasmValidateText(mod(`(drop (${ptrType}.add (${ptrType}.const 1) (memory.size)))`));
+    wasmValidateText(mod(`(drop (${ptrType}.add (${ptrType}.const 1) (memory.grow (${ptrType}.const 1))))`));
+    wasmValidateText(mod(`(memory.copy (local.get $p) (${ptrType}.const 0) (${ptrType}.const 628))`));
+    wasmValidateText(mod(`(memory.fill (local.get $p) (i32.const 37) (${ptrType}.const 1024))`));
+    wasmValidateText(mod(`(memory.init $seg (local.get $p) (i32.const 3) (i32.const 5))`));
+  } else {
+    wasmFailValidateText(
+      mod(`(drop (${ptrType}.add (${ptrType}.const 1) (memory.size)))`),
+      new RegExp(`expression has type ${memType} but expected ${ptrType}`),
+    );
+    wasmFailValidateText(
+      mod(`(drop (memory.grow (${ptrType}.const 1)))`),
+      new RegExp(`expression has type ${ptrType} but expected ${memType}`),
+    );
+    wasmFailValidateText(
+      mod(`(drop (${ptrType}.add (${ptrType}.const 1) (memory.grow (${memType}.const 1))))`),
+      new RegExp(`expression has type ${memType} but expected ${ptrType}`),
+    );
+    wasmFailValidateText(
+      mod(`(memory.copy (local.get $p) (${ptrType}.const 0) (${ptrType}.const 628))`),
+      new RegExp(`expression has type ${ptrType} but expected ${memType}`),
+    );
+    wasmFailValidateText(
+      mod(`(memory.fill (local.get $p) (i32.const 37) (${ptrType}.const 1024))`),
+      new RegExp(`expression has type ${ptrType} but expected ${memType}`),
+    );
+    wasmFailValidateText(
+      mod(`(memory.init $seg (local.get $p) (i32.const 3) (i32.const 5))`),
+      new RegExp(`expression has type ${ptrType} but expected ${memType}`),
+    );
+  }
+}
+
+// Bulk table operations
+for (const [tableType, ptrType] of types) {
+  function mod(ins) {
+    return `(module
+      (table ${tableType} 1 funcref)
+      (elem $seg funcref (ref.null func))
+      (func (param $p ${ptrType})
+        ${ins}
+      )
+    )`;
+  }
+
+  if (tableType === ptrType) {
+    wasmValidateText(mod(`(drop (${ptrType}.add (${ptrType}.const 1) (table.size)))`));
+    wasmValidateText(mod(`(drop (${ptrType}.add (${ptrType}.const 1) (table.grow (ref.null func) (${ptrType}.const 1))))`));
+    wasmValidateText(mod(`(table.copy (local.get $p) (${ptrType}.const 0) (${ptrType}.const 628))`));
+    wasmValidateText(mod(`(table.fill (local.get $p) (ref.null func) (${ptrType}.const 1024))`));
+    wasmValidateText(mod(`(table.init $seg (local.get $p) (i32.const 3) (i32.const 5))`));
+  } else {
+    wasmFailValidateText(
+      mod(`(drop (${ptrType}.add (${ptrType}.const 1) (table.size)))`),
+      new RegExp(`expression has type ${tableType} but expected ${ptrType}`),
+    );
+    wasmFailValidateText(
+      mod(`(drop (table.grow (ref.null func) (${ptrType}.const 1)))`),
+      new RegExp(`expression has type ${ptrType} but expected ${tableType}`),
+    );
+    wasmFailValidateText(
+      mod(`(drop (${ptrType}.add (${ptrType}.const 1) (table.grow (ref.null func) (${tableType}.const 1))))`),
+      new RegExp(`expression has type ${tableType} but expected ${ptrType}`),
+    );
+    wasmFailValidateText(
+      mod(`(table.copy (local.get $p) (${ptrType}.const 0) (${ptrType}.const 628))`),
+      new RegExp(`expression has type ${ptrType} but expected ${tableType}`),
+    );
+    wasmFailValidateText(
+      mod(`(table.fill (local.get $p) (ref.null func) (${ptrType}.const 1024))`),
+      new RegExp(`expression has type ${ptrType} but expected ${tableType}`),
+    );
+    wasmFailValidateText(
+      mod(`(table.init $seg (local.get $p) (i32.const 3) (i32.const 5))`),
+      new RegExp(`expression has type ${ptrType} but expected ${tableType}`),
+    );
+  }
 }
 
 // SIMD
 if (wasmSimdEnabled()) {
-    for (let [memType, ptrType] of memTypes ) {
+    for (let [memType, ptrType] of types ) {
         for (let offs of validOffsets[memType]) {
             assertEq(WebAssembly.validate(wasmTextToBinary(`
 (module
@@ -181,7 +349,7 @@ if (wasmSimdEnabled()) {
 
 // Threads
 if (wasmThreadsEnabled()) {
-    for (let [memType, ptrType] of memTypes ) {
+    for (let [memType, ptrType] of types ) {
         for (let offs of validOffsets[memType]) {
             assertEq(WebAssembly.validate(wasmTextToBinary(`
 (module
@@ -217,20 +385,11 @@ if (wasmThreadsEnabled()) {
 
 // Cursorily check that invalid offsets are rejected.
 
-assertEq(WebAssembly.validate(wasmTextToBinary(`
+wasmFailValidateText(`
 (module
   (memory i32 1)
   (func (param $p i32)
-    (drop (i32.load offset=0x100000000 (local.get $p)))))`)), false);
-
-
-// For Memory64, any valid wat-syntaxed offset is valid.
-
-assertEq(WebAssembly.validate(wasmTextToBinary(`
-(module
-  (memory i64 1)
-  (func (param $p i64)
-    (drop (i32.load offset=0x1000000000000 (local.get $p)))))`)), true);
+    (drop (i32.load offset=0x100000000 (local.get $p)))))`, /offset too large for memory type/);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -240,9 +399,6 @@ assertEq(WebAssembly.validate(wasmTextToBinary(`
 // Smoketest: Can we actually allocate a memory larger than 4GB?
 
 if (getBuildConfiguration("pointer-byte-size") == 8) {
-    // TODO: "index" is not yet part of the spec
-    // https://github.com/WebAssembly/memory64/issues/24
-
     try {
         new WebAssembly.Memory({index:"i64", initial:65536 * 1.5, maximum:65536 * 2});
     } catch (e) {
@@ -256,21 +412,28 @@ if (getBuildConfiguration("pointer-byte-size") == 8) {
 // JS-API
 
 if (WebAssembly.Function) {
-    // TODO: "index" is not yet part of the spec
-    // TODO: values outside the u32 range are not yet part of the spec
-    // https://github.com/WebAssembly/memory64/issues/24
+  const m64 = new WebAssembly.Memory({ index: "i64", initial:1 });
+  assertEq(m64.type().index, "i64");
 
-    let m64 = new WebAssembly.Memory({index:"i64", initial:1});
-    assertEq(m64.type().index, "i64");
+  const m32 = new WebAssembly.Memory({ initial:1 });
+  assertEq(m32.type().index, "i32");
 
-    let m32 = new WebAssembly.Memory({initial:1});
-    assertEq(m32.type().index, "i32");
+  const t64 = new WebAssembly.Table({ index: "i64", element: "funcref", initial: 1 });
+  assertEq(t64.type().index, "i64");
 
-    let ins = new WebAssembly.Instance(new WebAssembly.Module(wasmTextToBinary(`
-(module
-  (memory (export "mem") i64 1 0x100000000))`)));
-    assertEq(ins.exports.mem.type().minimum, 1);
-    assertEq(ins.exports.mem.type().maximum, 0x100000000);
+  const t32 = new WebAssembly.Table({ initial: 1, element: "funcref" });
+  assertEq(t32.type().index, "i32");
+
+  const ins = wasmEvalText(`(module
+    (memory (export "mem") i64 1 0x100000000)
+    (table (export "table") i64 1 0x1000 funcref)
+  )`);
+  assertEq(ins.exports.mem.type().index, "i64");
+  assertEq(ins.exports.mem.type().minimum, 1);
+  assertEq(ins.exports.mem.type().maximum, 0x100000000);
+  assertEq(ins.exports.table.type().index, "i64");
+  assertEq(ins.exports.table.type().minimum, 1);
+  assertEq(ins.exports.table.type().maximum, 0x1000);
 }
 
 // Instructions
@@ -1572,4 +1735,487 @@ if (getBuildConfiguration("pointer-byte-size") == 8) {
                            /out of bounds/);
         assertEq(mem[Number(oobTarget-1n)], 0);
     }
+}
+
+////////////////////////////////////
+// Table64 execution
+
+// get / set
+const table64Tests = [
+  {
+    elem: "funcref",
+    jsval: new WebAssembly.Function({ parameters: ["i32"], results: [] }, () => {}),
+    wasmval: `(ref.func 0)`,
+  },
+  {
+    elem: "anyref",
+    jsval: "haha you cannot represent me",
+    wasmval: `(struct.new_default $s)`,
+  },
+];
+for (const test of table64Tests) {
+  const externalTable = new WebAssembly.Table({ index: "i64", element: test.elem, initial: 2 });
+  externalTable.set(0, test.jsval);
+  externalTable.set(1, null);
+
+  const {
+    internalTable,
+    extIsNull,
+    swapExt,
+    getInternal,
+    getExternal,
+    setInternal,
+    setExternal,
+  } = wasmEvalText(`(module
+    (import "" "externalTable" (table $ext i64 2 ${test.elem}))
+
+    (table $int (export "internalTable") i64 2 ${test.elem})
+    (elem declare func 0)
+    (type $s (struct))
+
+    (func $start
+      (table.set $int (i64.const 0) ${test.wasmval})
+    )
+    (start $start)
+
+    (func (export "extIsNull") (param $i i64) (result i32)
+      (ref.is_null (table.get $ext (local.get $i)))
+    )
+    (func (export "swapExt")
+      (local $tmp ${test.elem})
+
+      (local.set $tmp (table.get $ext (i64.const 0)))
+      (table.set $ext (i64.const 0) (table.get $ext (i64.const 1)))
+      (table.set $ext (i64.const 1) (local.get $tmp))
+    )
+
+    (func (export "getInternal") (param i64) (result ${test.elem})
+      (table.get $int (local.get 0))
+    )
+    (func (export "getExternal") (param i64) (result ${test.elem})
+      (table.get $ext (local.get 0))
+    )
+    (func (export "setInternal") (param i64 ${test.elem})
+      (table.set $int (local.get 0) (local.get 1))
+    )
+    (func (export "setExternal") (param i64 ${test.elem})
+      (table.set $ext (local.get 0) (local.get 1))
+    )
+  )`, { "": { externalTable } }).exports;
+
+  assertEq(internalTable.get(0) === null, false);
+  assertEq(internalTable.get(1) === null, true);
+  assertEq(extIsNull(0n), 0);
+  assertEq(extIsNull(1n), 1);
+
+  swapExt();
+  const tmp = internalTable.get(0);
+  internalTable.set(0, internalTable.get(1));
+  internalTable.set(1, tmp);
+
+  assertEq(internalTable.get(0) === null, true);
+  assertEq(internalTable.get(1) === null, false);
+  assertEq(extIsNull(0n), 1);
+  assertEq(extIsNull(1n), 0);
+
+  // Test bounds checks
+  const indexes = [
+    [-1, TypeError],
+    [2, RangeError],
+    [0 + (MaxUint32 + 1), RangeError],
+    [1 + (MaxUint32 + 1), RangeError],
+    [2 + (MaxUint32 + 1), RangeError],
+    [Number.MAX_SAFE_INTEGER, RangeError],
+    [Number.MAX_SAFE_INTEGER + 1, TypeError],
+  ];
+  for (const [index, jsError] of indexes) {
+    assertErrorMessage(() => getInternal(BigInt(index)), WebAssembly.RuntimeError, /index out of bounds/);
+    assertErrorMessage(() => setInternal(BigInt(index), null), WebAssembly.RuntimeError, /index out of bounds/);
+    assertErrorMessage(() => internalTable.get(index), jsError, /bad Table get index/);
+    assertErrorMessage(() => internalTable.set(index, null), jsError, /bad Table set index/);
+
+    assertErrorMessage(() => getExternal(BigInt(index)), WebAssembly.RuntimeError, /index out of bounds/);
+    assertErrorMessage(() => setExternal(BigInt(index), null), WebAssembly.RuntimeError, /index out of bounds/);
+    assertErrorMessage(() => externalTable.get(index), jsError, /bad Table get index/);
+    assertErrorMessage(() => externalTable.set(index, null), jsError, /bad Table set index/);
+  }
+}
+
+// call_indirect / call_ref / return_call_indirect / return_call_ref
+{
+  const {
+    callIndirect,
+    callRef,
+    returnCallIndirect,
+    returnCallRef,
+  } = wasmEvalText(`(module
+    (table $int (export "internalTable") i64 funcref
+      (elem (ref.func 0) (ref.null func))
+    )
+
+    (type $ft (func (param i32) (result i32)))
+    (func (type $ft)
+      (i32.add (local.get 0) (i32.const 10))
+    )
+    (func (export "callIndirect") (param i64 i32) (result i32)
+      (call_indirect $int (type $ft) (local.get 1) (local.get 0))
+    )
+    (func (export "callRef") (param i64 i32) (result i32)
+      (call_ref $ft (local.get 1) (ref.cast (ref null $ft) (table.get $int (local.get 0))))
+    )
+    ${ !wasmTailCallsEnabled() ? "" : `
+      (func (export "returnCallIndirect") (param i64 i32) (result i32)
+        (return_call_indirect $int (type $ft) (local.get 1) (local.get 0))
+      )
+      (func (export "returnCallRef") (param i64 i32) (result i32)
+        (return_call_ref $ft (local.get 1) (ref.cast (ref null $ft) (table.get $int (local.get 0))))
+      )
+    `}
+  )`).exports;
+
+  assertEq(callIndirect(0n, 1), 11);
+  assertEq(callRef(0n, 2), 12);
+  assertErrorMessage(() => callIndirect(1n, 1), WebAssembly.RuntimeError, /indirect call to null/);
+  assertErrorMessage(() => callRef(1n, 2), WebAssembly.RuntimeError, /dereferencing null pointer/);
+  if (wasmTailCallsEnabled()) {
+    assertEq(returnCallIndirect(0n, 3), 13);
+    assertEq(returnCallRef(0n, 4), 14);
+    assertErrorMessage(() => returnCallIndirect(1n, 3), WebAssembly.RuntimeError, /indirect call to null/);
+    assertErrorMessage(() => returnCallRef(1n, 4), WebAssembly.RuntimeError, /dereferencing null pointer/);
+  }
+
+  // Test bounds checks
+  const indexes = [
+    -1,
+    2,
+    0 + (MaxUint32 + 1),
+    1 + (MaxUint32 + 1),
+    2 + (MaxUint32 + 1),
+    Number.MAX_SAFE_INTEGER,
+    Number.MAX_SAFE_INTEGER + 1,
+  ];
+  for (const index of indexes) {
+    assertErrorMessage(() => callIndirect(BigInt(index), 1), WebAssembly.RuntimeError, /index out of bounds/);
+    assertErrorMessage(() => callRef(BigInt(index), 2), WebAssembly.RuntimeError, /table index out of bounds/);
+    if (wasmTailCallsEnabled()) {
+      assertErrorMessage(() => returnCallIndirect(BigInt(index), 3), WebAssembly.RuntimeError, /index out of bounds/);
+      assertErrorMessage(() => returnCallRef(BigInt(index), 4), WebAssembly.RuntimeError, /table index out of bounds/);
+    }
+  }
+}
+
+// Bulk table operations
+for (const [idxType1, idxType2] of types) {
+  const lenType = idxType1 === "i64" && idxType2 === "i64" ? "i64" : "i32";
+
+  const {
+    f1, f2, e1, e2,
+    callF1, callF2,
+    getE1, getE2,
+    initF1, initE1,
+    copyF, copyE,
+    growF1, growE1,
+    growF2, growE2,
+    sizeF1, sizeE1,
+    sizeF2, sizeE2,
+    fillF1WithA,
+    fillE1WithA,
+  } = wasmEvalText(`(module
+    (global $ea (import "" "ea") externref)
+    (global $eb (import "" "eb") externref)
+    (global $ec (import "" "ec") externref)
+    (global $ed (import "" "ed") externref)
+
+    (table $f1 (export "f1") ${idxType1} 8 funcref)
+    (table $f2 (export "f2") ${idxType2} 8 funcref)
+    (table $e1 (export "e1") ${idxType1} 8 externref)
+    (table $e2 (export "e2") ${idxType2} 8 externref)
+
+    (elem (table $f1) (offset ${idxType1}.const 2) funcref (ref.func $a) (ref.func $b))
+    (elem $fcd funcref (ref.func $c) (ref.func $d))
+    (elem (table $e1) (offset ${idxType1}.const 2) externref (global.get $ea) (global.get $eb))
+    (elem $ecd externref (global.get $ec) (global.get $ed))
+
+    (type $ft (func (result i32)))
+    (func $a (result i32) i32.const 97)   ;; 'a'
+    (func $b (result i32) i32.const 98)   ;; 'b'
+    (func $c (result i32) i32.const 99)   ;; 'c'
+    (func $d (result i32) i32.const 100)  ;; 'd'
+
+    (func (export "callF1") (param ${idxType1}) (result i32)
+      (if (ref.is_null (table.get $f1 (local.get 0)))
+        (then
+          (return (i32.const 0))
+        )
+      )
+
+      (table.get $f1 (local.get 0))
+      ref.cast (ref $ft)
+      call_ref $ft
+    )
+    (func (export "callF2") (param ${idxType2}) (result i32)
+      (if (ref.is_null (table.get $f2 (local.get 0)))
+        (then
+          (return (i32.const 0))
+        )
+      )
+
+      (table.get $f2 (local.get 0))
+      ref.cast (ref $ft)
+      call_ref $ft
+    )
+
+    (func (export "getE1") (param ${idxType1}) (result externref)
+      (table.get $e1 (local.get 0))
+    )
+    (func (export "getE2") (param ${idxType2}) (result externref)
+      (table.get $e2 (local.get 0))
+    )
+
+    (func (export "sizeF1") (result ${idxType1}) table.size $f1)
+    (func (export "sizeF2") (result ${idxType2}) table.size $f2)
+    (func (export "sizeE1") (result ${idxType1}) table.size $e1)
+    (func (export "sizeE2") (result ${idxType2}) table.size $e2)
+
+    (func (export "initF1") (param ${idxType1} i32 i32)
+      (table.init $f1 $fcd (local.get 0) (local.get 1) (local.get 2))
+    )
+    (func (export "initE1") (param ${idxType1} i32 i32)
+      (table.init $e1 $ecd (local.get 0) (local.get 1) (local.get 2))
+    )
+
+    (func (export "copyF") (param ${idxType2} ${idxType1} ${lenType})
+      (table.copy $f2 $f1 (local.get 0) (local.get 1) (local.get 2))
+    )
+    (func (export "copyE") (param ${idxType2} ${idxType1} ${lenType})
+      (table.copy $e2 $e1 (local.get 0) (local.get 1) (local.get 2))
+    )
+
+    (func (export "growF1") (param ${idxType1}) (result ${idxType1})
+      (table.grow $f1 (ref.null func) (local.get 0))
+    )
+    (func (export "growE1") (param ${idxType1}) (result ${idxType1})
+      (table.grow $e1 (ref.null extern) (local.get 0))
+    )
+
+    (func (export "growF2") (param ${idxType2}) (result ${idxType2})
+      (table.grow $f2 (ref.null func) (local.get 0))
+    )
+    (func (export "growE2") (param ${idxType2}) (result ${idxType2})
+      (table.grow $e2 (ref.null extern) (local.get 0))
+    )
+
+    (func (export "fillF1WithA") (param ${idxType1} ${idxType1})
+      (table.fill $f1 (local.get 0) (ref.func $a) (local.get 1))
+    )
+    (func (export "fillE1WithA") (param ${idxType1} ${idxType1})
+      (table.fill $e1 (local.get 0) (global.get $ea) (local.get 1))
+    )
+  )`, {
+    "": {
+      "ea": "a",
+      "eb": "b",
+      "ec": "c",
+      "ed": "d",
+    },
+  }).exports;
+
+  function idx1(n) {
+    return idxType1 === "i64" ? BigInt(n) : n;
+  }
+
+  function idx2(n) {
+    return idxType2 === "i64" ? BigInt(n) : n;
+  }
+
+  function len(n) {
+    return lenType === "i64" ? BigInt(n) : n;
+  }
+
+  function tryGrow(growFunc) {
+    const res = growFunc();
+    if (res < 0) {
+      throw new RangeError(`failed table grow inside wasm (result ${res})`);
+    }
+  }
+
+  function testFuncTable(table, vals) {
+    const actual = (table === 1 ? sizeF1 : sizeF2)();
+    const expected = table === 1 ? idx1(vals.length) : idx2(vals.length);
+    assertEq(actual, expected, `table $f${table} had wrong size`);
+
+    for (let i = 0; i < vals.length; i++) {
+      const idx = table === 1 ? idx1(i) : idx2(i);
+      const expected = typeof vals[i] === "string" ? vals[i].charCodeAt(0) : vals[i];
+      const actual = (table === 1 ? callF1 : callF2)(idx);
+      assertEq(actual, expected, `table $e${table} index ${i}`);
+    }
+  }
+
+  // "extern" is "extn" here to line up with "func" for aesthetic reasons.
+  // I will not apologize for this.
+  function testExtnTable(table, vals) {
+    const actual = (table === 1 ? sizeE1 : sizeE2)();
+    const expected = table === 1 ? idx1(vals.length) : idx2(vals.length);
+    assertEq(actual, expected, `table $e${table} had wrong size`);
+
+    for (let i = 0; i < vals.length; i++) {
+      const idx = table === 1 ? idx1(i) : idx2(i);
+      const expected = vals[i];
+      const actual = (table === 1 ? getE1 : getE2)(idx);
+      assertEq(actual, expected, `table $e${table} index ${i}`);
+    }
+  }
+
+  testFuncTable(1, [0, 0, "a", "b", 0, 0, 0, 0]);
+  testFuncTable(2, [0, 0, 0, 0, 0, 0, 0, 0]);
+  testExtnTable(1, [null, null, "a", "b", null, null, null, null]);
+  testExtnTable(2, [null, null, null, null, null, null, null, null]);
+
+  initF1(idx1(4), 0, 2);
+  initE1(idx1(4), 0, 2);
+
+  testFuncTable(1, [0, 0, "a", "b", "c", "d", 0, 0]);
+  testFuncTable(2, [0, 0, 0, 0, 0, 0, 0, 0]);
+  testExtnTable(1, [null, null, "a", "b", "c", "d", null, null]);
+  testExtnTable(2, [null, null, null, null, null, null, null, null]);
+
+  copyF(idx2(4), idx1(2), len(4));
+  copyE(idx2(4), idx1(2), len(4));
+
+  testFuncTable(1, [0, 0, "a", "b", "c", "d", 0, 0]);
+  testFuncTable(2, [0, 0, 0, 0, "a", "b", "c", "d"]);
+  testExtnTable(1, [null, null, "a", "b", "c", "d", null, null]);
+  testExtnTable(2, [null, null, null, null, "a", "b", "c", "d"]);
+
+  tryGrow(() => growF1(idx1(4)));
+  tryGrow(() => growF2(idx2(4)));
+  tryGrow(() => growE1(idx1(4)));
+  tryGrow(() => growE2(idx2(4)));
+
+  testFuncTable(1, [0, 0, "a", "b", "c", "d", 0, 0, 0, 0, 0, 0]);
+  testFuncTable(2, [0, 0, 0, 0, "a", "b", "c", "d", 0, 0, 0, 0]);
+  testExtnTable(1, [null, null, "a", "b", "c", "d", null, null, null, null, null, null]);
+  testExtnTable(2, [null, null, null, null, "a", "b", "c", "d", null, null, null, null]);
+
+  fillF1WithA(idx1(8), idx1(4));
+  fillE1WithA(idx1(8), idx1(4));
+
+  testFuncTable(1, [0, 0, "a", "b", "c", "d", 0, 0, "a", "a", "a", "a"]);
+  testFuncTable(2, [0, 0, 0, 0, "a", "b", "c", "d", 0, 0, 0, 0]);
+  testExtnTable(1, [null, null, "a", "b", "c", "d", null, null, "a", "a", "a", "a"]);
+  testExtnTable(2, [null, null, null, null, "a", "b", "c", "d", null, null, null, null]);
+
+  // and now explode!
+
+  const indexes = [
+    -1,
+    11, // length is 12, so test around the boundary
+    12,
+    13,
+    0 + (MaxUint32 + 1),
+    1 + (MaxUint32 + 1),
+    2 + (MaxUint32 + 1),
+    Number.MAX_SAFE_INTEGER,
+    Number.MAX_SAFE_INTEGER + 1,
+  ];
+  if (idxType1 === "i64") {
+    for (const i of indexes) {
+      assertErrorMessage(
+        () => fillF1WithA(idx1(i), idx1(2)),
+        WebAssembly.RuntimeError, /index out of bounds/,
+        `start index ${i}`,
+      );
+      assertErrorMessage(
+        () => fillE1WithA(idx1(i), idx1(2)),
+        WebAssembly.RuntimeError, /index out of bounds/,
+        `start index ${i}`,
+      );
+
+      assertErrorMessage(
+        () => copyF(idx2(0), idx1(i), len(2)),
+        WebAssembly.RuntimeError, /index out of bounds/,
+        `src index ${i}`,
+      );
+      assertErrorMessage(
+        () => copyE(idx2(0), idx1(i), len(2)),
+        WebAssembly.RuntimeError, /index out of bounds/,
+        `src index ${i}`,
+      );
+
+      assertErrorMessage(
+        () => initF1(idx1(i), 0, 2),
+        WebAssembly.RuntimeError, /index out of bounds/,
+        `dst index ${i}`,
+      );
+      assertErrorMessage(
+        () => initE1(idx1(i), 0, 2),
+        WebAssembly.RuntimeError, /index out of bounds/,
+        `dst index ${i}`,
+      );
+    }
+  }
+  if (idxType2 === "i64") {
+    for (const i of indexes) {
+      assertErrorMessage(
+        () => copyF(idx2(i), idx1(0), len(2)),
+        WebAssembly.RuntimeError, /index out of bounds/,
+        `dst index ${i}`,
+      );
+      assertErrorMessage(
+        () => copyE(idx2(i), idx1(0), len(2)),
+        WebAssembly.RuntimeError, /index out of bounds/,
+        `dst index ${i}`,
+      );
+    }
+  }
+
+  const maxDelta = MaxTableElems - 12;
+  assertEq(maxDelta % 2, 0, "maxDelta needs to be even for this test to work");
+
+  try {
+    // Grow the tables up to max size using both the instruction and the JS API
+    tryGrow(() => growF1(idx1(maxDelta / 2)));
+    tryGrow(() => growF2(idx2(maxDelta / 2)));
+    tryGrow(() => growE1(idx1(maxDelta / 2)));
+    tryGrow(() => growE2(idx2(maxDelta / 2)));
+    f1.grow(maxDelta / 2, null);
+    f2.grow(maxDelta / 2, null);
+    e1.grow(maxDelta / 2, null);
+    e2.grow(maxDelta / 2, null);
+
+    assertEq(sizeF1(), idx1(MaxTableElems));
+    assertEq(sizeF2(), idx2(MaxTableElems));
+    assertEq(sizeE1(), idx1(MaxTableElems));
+    assertEq(sizeE2(), idx2(MaxTableElems));
+
+    for (const delta of indexes) {
+      if (idxType1 === "i64") {
+        console.log(delta);
+        assertEq(growF1(idx1(delta)), idx1(-1), `growing by ${delta}`);
+        assertEq(growE1(idx1(delta)), idx1(-1), `growing by ${delta}`);
+        assertErrorMessage(() => f1.grow(delta, null), Error, /grow/); // Loose to accept either TypeError or RangeError
+        assertErrorMessage(() => e1.grow(delta, null), Error, /grow/);
+      }
+      if (idxType2 === "i64") {
+        assertEq(growF2(idx2(delta)), idx2(-1), `growing by ${delta}`);
+        assertEq(growE2(idx2(delta)), idx2(-1), `growing by ${delta}`);
+        assertErrorMessage(() => f2.grow(delta, null), Error, /grow/);
+        assertErrorMessage(() => e2.grow(delta, null), Error, /grow/);
+      }
+    }
+
+    assertEq(sizeF1(), idx1(MaxTableElems));
+    assertEq(sizeF2(), idx2(MaxTableElems));
+    assertEq(sizeE1(), idx1(MaxTableElems));
+    assertEq(sizeE2(), idx2(MaxTableElems));
+  } catch (e) {
+    if (e instanceof RangeError) {
+      // This can happen due to resource exhaustion on some platforms and is not worth
+      // failing the whole test over.
+      print("WARNING: Failed to test all cases of table grow.", e);
+    } else {
+      throw e;
+    }
+  }
 }

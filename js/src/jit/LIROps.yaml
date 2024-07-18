@@ -3270,6 +3270,12 @@
     input: WordSized
   mir_op: true
 
+- name: WasmClampTable64Index
+  result_type: WordSized
+  operands:
+    index: Int64
+  mir_op: true
+
 - name: WasmAlignmentCheck
   operands:
     ptr: WordSized

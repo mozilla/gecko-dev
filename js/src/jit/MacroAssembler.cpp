@@ -6334,6 +6334,20 @@ void MacroAssembler::wasmBoundsCheckRange32(
   bind(&ok);
 }
 
+#ifdef ENABLE_WASM_MEMORY64
+void MacroAssembler::wasmClampTable64Index(Register64 index, Register out) {
+  Label oob;
+  Label ret;
+  branch64(Assembler::Above, index, Imm64(UINT32_MAX), &oob);
+  move64To32(index, out);
+  jump(&ret);
+  bind(&oob);
+  static_assert(wasm::MaxTableLength < UINT32_MAX);
+  move32(Imm32(UINT32_MAX), out);
+  bind(&ret);
+};
+#endif
+
 BranchWasmRefIsSubtypeRegisters MacroAssembler::regsForBranchWasmRefIsSubtype(
     wasm::RefType type) {
   MOZ_ASSERT(type.isValid());
