@@ -128,6 +128,12 @@ mozilla::dom::ScriptLoadContext* ScriptLoadRequest::GetScriptLoadContext() {
   return mLoadContext->AsWindowContext();
 }
 
+const mozilla::dom::ScriptLoadContext* ScriptLoadRequest::GetScriptLoadContext()
+    const {
+  MOZ_ASSERT(mLoadContext);
+  return mLoadContext->AsWindowContext();
+}
+
 mozilla::loader::SyncLoadContext* ScriptLoadRequest::GetSyncLoadContext() {
   MOZ_ASSERT(mLoadContext);
   return mLoadContext->AsSyncContext();
