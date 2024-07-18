@@ -327,29 +327,6 @@ CoderResult CodeRefPtr(Coder<mode>& coder, CoderArg<mode, RefPtr<T>> item) {
   }
 }
 
-// The same as CodeRefPtr, but allowing for nullable pointers.
-template <CoderMode mode, typename T,
-          CodeFunc<mode, std::remove_const_t<T>> CodeT>
-CoderResult CodeNullableRefPtr(Coder<mode>& coder,
-                               CoderArg<mode, RefPtr<T>> item) {
-  if constexpr (mode == MODE_DECODE) {
-    uint32_t isNull;
-    MOZ_TRY(CodePod(coder, &isNull));
-    if (isNull == 0) {
-      MOZ_ASSERT(item->get() == nullptr);
-      return Ok();
-    }
-    return CodeRefPtr<mode, T, CodeT>(coder, item);
-  } else {
-    uint32_t isNull = !!item->get() ? 1 : 0;
-    MOZ_TRY(CodePod(coder, &isNull));
-    if (isNull == 0) {
-      return Ok();
-    }
-    return CodeRefPtr<mode, T, CodeT>(coder, item);
-  }
-}
-
 // This function implements encoding and decoding of UniquePtr<T>.
 // A coding function is provided for the inner value as a function parameter.
 template <CoderMode mode, typename T,
@@ -428,14 +405,6 @@ CoderResult CodeCacheableChars(Coder<mode>& coder,
                                CoderArg<mode, CacheableChars> item) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CacheableChars, 8);
   return CodeUniqueChars(coder, (UniqueChars*)item);
-}
-
-// Code a ShareableChars. This functions only needs to forward to the inner
-// unique chars.
-template <CoderMode mode>
-CoderResult CodeShareableChars(Coder<mode>& coder,
-                               CoderArg<mode, ShareableChars> item) {
-  return CodeUniqueChars(coder, &item->chars);
 }
 
 // Code a CacheableName
@@ -896,44 +865,15 @@ CoderResult CodeScriptedCaller(Coder<mode>& coder,
 }
 
 template <CoderMode mode>
-CoderResult CodeBuiltinModuleIds(Coder<mode>& coder,
-                                 CoderArg<mode, BuiltinModuleIds> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(BuiltinModuleIds, 16);
-  MOZ_TRY(CodePod(coder, &item->selfTest));
-  MOZ_TRY(CodePod(coder, &item->intGemm));
-  MOZ_TRY(CodePod(coder, &item->jsString));
-  MOZ_TRY(CodePod(coder, &item->jsStringConstants));
-  MOZ_TRY((CodeNullableRefPtr<mode, const ShareableChars, &CodeShareableChars>(
-      coder, &item->jsStringConstantsNamespace)));
-  return Ok();
-}
-
-template <CoderMode mode>
-CoderResult CodeFeatureArgs(Coder<mode>& coder,
-                            CoderArg<mode, FeatureArgs> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(FeatureArgs, 40);
-#define WASM_FEATURE(NAME, LOWER_NAME, ...) \
-  MOZ_TRY(CodePod(coder, &item->LOWER_NAME));
-  JS_FOR_WASM_FEATURES(WASM_FEATURE)
-#undef WASM_FEATURE
-  MOZ_TRY(CodePod(coder, &item->sharedMemory));
-  MOZ_TRY(CodePod(coder, &item->simd));
-  MOZ_TRY(CodePod(coder, &item->isBuiltinModule));
-  MOZ_TRY(CodeBuiltinModuleIds(coder, &item->builtinModules));
-  return Ok();
-}
-
-template <CoderMode mode>
 CoderResult CodeCompileArgs(Coder<mode>& coder,
                             CoderArg<mode, CompileArgs> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CompileArgs, 80);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CompileArgs, 64);
   MOZ_TRY((CodeScriptedCaller(coder, &item->scriptedCaller)));
   MOZ_TRY((CodeUniqueChars(coder, &item->sourceMapURL)));
   MOZ_TRY((CodePod(coder, &item->baselineEnabled)));
   MOZ_TRY((CodePod(coder, &item->ionEnabled)));
   MOZ_TRY((CodePod(coder, &item->debugEnabled)));
   MOZ_TRY((CodePod(coder, &item->forceTiering)));
-  MOZ_TRY((CodeFeatureArgs(coder, &item->features)));
   return Ok();
 }
 
@@ -1206,6 +1146,7 @@ CoderResult CodeModuleMetadata(Coder<mode>& coder,
   MOZ_TRY(Magic(coder, Marker::CustomSections));
   MOZ_TRY((CodeVector<mode, CustomSection, &CodeCustomSection<mode>>(
       coder, &item->customSections)));
+  MOZ_TRY(CodePod(coder, &item->featureUsage));
   return Ok();
 }
 

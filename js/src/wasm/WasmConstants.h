@@ -986,10 +986,21 @@ enum class BuiltinModuleId {
   SelfTest = 0,
   IntGemm,
   JSString,
-
-  // Not technically a builtin module, but it uses most of the same machinery.
-  JSStringConstants,
 };
+
+struct BuiltinModuleIds {
+  BuiltinModuleIds() = default;
+
+  bool selfTest = false;
+  bool intGemm = false;
+  bool jsString = false;
+
+  bool hasNone() const { return !selfTest && !intGemm && !jsString; }
+
+  WASM_CHECK_CACHEABLE_POD(selfTest, intGemm, jsString)
+};
+
+WASM_DECLARE_CACHEABLE_POD(BuiltinModuleIds)
 
 enum class StackSwitchKind {
   SwitchToSuspendable,

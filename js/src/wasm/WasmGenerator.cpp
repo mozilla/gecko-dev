@@ -1227,7 +1227,7 @@ SharedModule ModuleGenerator::finishModule(
 
     // Perform storeOptimizedEncoding here instead of below so we don't have to
     // re-serialize the module.
-    if (maybeTier2Listener && codeMeta_->features().builtinModules.hasNone()) {
+    if (maybeTier2Listener) {
       maybeTier2Listener->storeOptimizedEncoding(serializedBytes.begin(),
                                                  serializedBytes.length());
       maybeTier2Listener = nullptr;
@@ -1236,8 +1236,7 @@ SharedModule ModuleGenerator::finishModule(
 
   if (compileState_ == CompileState::EagerTier1) {
     module->startTier2(bytecode, maybeTier2Listener);
-  } else if (tier() == Tier::Serialized && maybeTier2Listener &&
-             codeMeta_->features().builtinModules.hasNone()) {
+  } else if (tier() == Tier::Serialized && maybeTier2Listener) {
     Bytes bytes;
     if (module->serialize(&bytes)) {
       maybeTier2Listener->storeOptimizedEncoding(bytes.begin(), bytes.length());

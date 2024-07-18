@@ -171,7 +171,7 @@ bool Module::finishTier2(UniqueCodeBlock tier2CodeBlock,
   // purposes so that wasmHasTier2CompilationCompleted() only returns true
   // after tier-2 has been fully cached.
 
-  if (tier2Listener_ && code_->codeMeta().features().builtinModules.hasNone()) {
+  if (tier2Listener_) {
     Bytes bytes;
     if (serialize(&bytes)) {
       tier2Listener_->storeOptimizedEncoding(bytes.begin(), bytes.length());

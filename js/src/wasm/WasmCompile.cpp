@@ -22,7 +22,6 @@
 
 #include <algorithm>
 
-#include "js/Conversions.h"
 #include "js/Equality.h"
 #include "js/ForOfIterator.h"
 #include "js/PropertyAndElement.h"
@@ -107,95 +106,47 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
     }
     RootedObject obj(cx, &val.toObject());
 
-    // Check the 'importedStringConstants' option
-    RootedValue importedStringConstants(cx);
-    if (!JS_GetProperty(cx, obj, "importedStringConstants",
-                        &importedStringConstants)) {
-      return false;
-    }
-
-    if (importedStringConstants.isNullOrUndefined()) {
-      this->jsStringConstants = false;
-    } else if (importedStringConstants.isBoolean() &&
-               importedStringConstants.toBoolean()) {
-      // Temporary backwards compatibility hack to interpret 'true' as "'"
-      this->jsStringConstants = true;
-
-      UniqueChars jsStringConstantsNamespace = JS_smprintf("'");
-      if (!jsStringConstantsNamespace) {
-        return false;
-      }
-
-      this->jsStringConstantsNamespace =
-          js_new<ShareableChars>(std::move(jsStringConstantsNamespace));
-      if (!this->jsStringConstantsNamespace) {
-        return false;
-      }
-    } else {
-      this->jsStringConstants = true;
-
-      RootedString importedStringConstantsString(
-          cx, JS::ToString(cx, importedStringConstants));
-      if (!importedStringConstantsString) {
-        return false;
-      }
-
-      UniqueChars jsStringConstantsNamespace =
-          StringToNewUTF8CharsZ(cx, *importedStringConstantsString);
-      if (!jsStringConstantsNamespace) {
-        return false;
-      }
-
-      this->jsStringConstantsNamespace =
-          js_new<ShareableChars>(std::move(jsStringConstantsNamespace));
-      if (!this->jsStringConstantsNamespace) {
-        return false;
-      }
-    }
-
     // Get the `builtins` iterable
     RootedValue builtins(cx);
     if (!JS_GetProperty(cx, obj, "builtins", &builtins)) {
       return false;
     }
 
-    if (!builtins.isUndefined()) {
-      JS::ForOfIterator iterator(cx);
+    JS::ForOfIterator iterator(cx);
 
-      if (!iterator.init(builtins, JS::ForOfIterator::ThrowOnNonIterable)) {
+    if (!iterator.init(builtins, JS::ForOfIterator::ThrowOnNonIterable)) {
+      return false;
+    }
+
+    RootedValue jsStringModule(cx, StringValue(cx->names().jsStringModule));
+    RootedValue nextBuiltin(cx);
+    while (true) {
+      bool done;
+      if (!iterator.next(&nextBuiltin, &done)) {
+        return false;
+      }
+      if (done) {
+        break;
+      }
+
+      bool jsStringBuiltins;
+      if (!JS::LooselyEqual(cx, nextBuiltin, jsStringModule,
+                            &jsStringBuiltins)) {
         return false;
       }
 
-      RootedValue jsStringModule(cx, StringValue(cx->names().jsStringModule));
-      RootedValue nextBuiltin(cx);
-      while (true) {
-        bool done;
-        if (!iterator.next(&nextBuiltin, &done)) {
-          return false;
-        }
-        if (done) {
-          break;
-        }
-
-        bool jsStringBuiltins;
-        if (!JS::LooselyEqual(cx, nextBuiltin, jsStringModule,
-                              &jsStringBuiltins)) {
-          return false;
-        }
-
-        if (!jsStringBuiltins) {
-          JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                                   JSMSG_WASM_UNKNOWN_BUILTIN);
-          return false;
-        }
-
-        if (this->jsStringBuiltins && jsStringBuiltins) {
-          JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                                   JSMSG_WASM_DUPLICATE_BUILTIN);
-          return false;
-        }
-        this->jsStringBuiltins = jsStringBuiltins;
+      if (!jsStringBuiltins) {
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                 JSMSG_WASM_UNKNOWN_BUILTIN);
+        return false;
       }
+
+      if (this->jsStringBuiltins && jsStringBuiltins) {
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                 JSMSG_WASM_DUPLICATE_BUILTIN);
+        return false;
+      }
+      this->jsStringBuiltins = jsStringBuiltins;
     }
   }
 #endif
@@ -218,9 +169,6 @@ FeatureArgs FeatureArgs::build(JSContext* cx, const FeatureOptions& options) {
   features.isBuiltinModule = options.isBuiltinModule;
   if (features.jsStringBuiltins) {
     features.builtinModules.jsString = options.jsStringBuiltins;
-    features.builtinModules.jsStringConstants = options.jsStringConstants;
-    features.builtinModules.jsStringConstantsNamespace =
-        options.jsStringConstantsNamespace;
   }
 #ifdef ENABLE_WASM_GC
   if (options.requireGC) {

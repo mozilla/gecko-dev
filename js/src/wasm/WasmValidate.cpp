@@ -2235,7 +2235,6 @@ static bool CheckImportsAgainstBuiltinModules(Decoder& d,
   }
 
   uint32_t importFuncIndex = 0;
-  uint32_t importGlobalIndex = 0;
   for (auto& import : moduleMeta->imports) {
     Maybe<BuiltinModuleId> builtinModule =
         ImportMatchesBuiltinModule(import.module.utf8Bytes(), builtinModules);
@@ -2263,31 +2262,6 @@ static bool CheckImportsAgainstBuiltinModules(Decoder& d,
         if (!TypeDef::isSubTypeOf((*builtinFunc)->typeDef(), &importTypeDef)) {
           return d.failf("type mismatch in %s", (*builtinFunc)->exportName());
         }
-        break;
-      }
-      case DefinitionKind::Global: {
-        const GlobalDesc& global = codeMeta->globals[importGlobalIndex];
-        importGlobalIndex += 1;
-
-        // Skip this import if it doesn't refer to a builtin module. We do have
-        // to increment the import global index regardless though.
-        if (!builtinModule) {
-          continue;
-        }
-
-        // Only the imported string constants module has globals defined.
-        if (*builtinModule != BuiltinModuleId::JSStringConstants) {
-          return d.fail("unrecognized builtin module field");
-        }
-
-        // All imported globals must match a provided global type of
-        // `(global (ref extern))`.
-        if (global.isMutable() ||
-            !ValType::isSubTypeOf(ValType(RefType::extern_().asNonNullable()),
-                                  global.type())) {
-          return d.failf("type mismatch");
-        }
-
         break;
       }
       default: {
