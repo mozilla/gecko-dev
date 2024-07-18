@@ -158,7 +158,7 @@ export class FakespotSuggestions extends BaseFeature {
     return {
       icon: {
         attributes: {
-          src: lazy.UrlbarUtils.ICON.DEFAULT,
+          src: result.payload.iconBlob,
         },
       },
       "rating-five-stars": {

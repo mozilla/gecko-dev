@@ -129,6 +129,7 @@ export class RemoteSettingsServer {
 
     for (let record of records) {
       let copy = { ...record };
+
       if (!copy.hasOwnProperty("id")) {
         copy.id = String(this.#nextRecordId++);
       }
@@ -494,8 +495,13 @@ export class RemoteSettingsServer {
       attachment
     );
 
-    let encoder = new TextEncoder();
-    let bytes = encoder.encode(JSON.stringify(attachment));
+    let bytes;
+    if (attachment instanceof Array) {
+      bytes = Uint8Array.from(attachment);
+    } else {
+      let encoder = new TextEncoder();
+      bytes = encoder.encode(JSON.stringify(attachment));
+    }
 
     let hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
     let hashBytes = new Uint8Array(hashBuffer);
@@ -507,10 +513,12 @@ export class RemoteSettingsServer {
     record.attachment = {
       hash,
       filename,
-      mimetype: "application/json; charset=UTF-8",
+      mimetype: record.attachmentMimetype ?? "application/json; charset=UTF-8",
       size: bytes.length,
       location: `attachments/${bucket}/${collection}/${filename}`,
     };
+
+    delete record.attachmentMimetype;
   }
 
   #attachmentsKey(bucket, collection, filename) {

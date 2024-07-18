@@ -1443,8 +1443,10 @@ export class UrlbarView {
    *   signals an attribute should be removed, and `undefined` in which case
    *   the attribute won't be set nor removed. The `id` attribute is reserved
    *   and cannot be set here.
+   * @param {UrlbarResult} result
+   *   The UrlbarResult displayed to the node. This is optional.
    */
-  #setDynamicAttributes(node, attributes) {
+  #setDynamicAttributes(node, attributes, result) {
     if (!attributes) {
       return;
     }
@@ -1463,6 +1465,8 @@ export class UrlbarView {
         node.removeAttribute(name);
       } else if (typeof value == "boolean") {
         node.toggleAttribute(name, value);
+      } else if (Blob.isInstance(value) && result) {
+        node.setAttribute(name, this.#getBlobUrlForResult(result, value));
       } else {
         node.setAttribute(name, value);
       }
@@ -2074,19 +2078,8 @@ export class UrlbarView {
       return result.payload.icon;
     }
     if (result.payload.iconBlob) {
-      // Blob icons are currently limited to Suggest results, which will define
-      // a `payload.originalUrl` if the result URL contains timestamp templates
-      // that are replaced at query time.
-      let resultUrl = result.payload.originalUrl || result.payload.url;
-      if (resultUrl) {
-        let blobUrl = this.#blobUrlsByResultUrl?.get(resultUrl);
-        if (!blobUrl) {
-          blobUrl = URL.createObjectURL(result.payload.iconBlob);
-          // Since most users will not trigger results with blob icons, we
-          // create this map lazily.
-          this.#blobUrlsByResultUrl ||= new Map();
-          this.#blobUrlsByResultUrl.set(resultUrl, blobUrl);
-        }
+      let blobUrl = this.#getBlobUrlForResult(result, result.payload.iconBlob);
+      if (blobUrl) {
         return blobUrl;
       }
     }
@@ -2106,6 +2099,25 @@ export class UrlbarView {
     }
 
     return lazy.UrlbarUtils.ICON.DEFAULT;
+  }
+
+  #getBlobUrlForResult(result, blob) {
+    // Blob icons are currently limited to Suggest results, which will define
+    // a `payload.originalUrl` if the result URL contains timestamp templates
+    // that are replaced at query time.
+    let resultUrl = result.payload.originalUrl || result.payload.url;
+    if (resultUrl) {
+      let blobUrl = this.#blobUrlsByResultUrl?.get(resultUrl);
+      if (!blobUrl) {
+        blobUrl = URL.createObjectURL(blob);
+        // Since most users will not trigger results with blob icons, we
+        // create this map lazily.
+        this.#blobUrlsByResultUrl ||= new Map();
+        this.#blobUrlsByResultUrl.set(resultUrl, blobUrl);
+      }
+      return blobUrl;
+    }
+    return null;
   }
 
   async #updateRowForDynamicType(item, result) {
@@ -2146,7 +2158,7 @@ export class UrlbarView {
     // Update each node in the view by name.
     for (let [nodeName, update] of Object.entries(viewUpdate)) {
       let node = item.querySelector(`#${item.id}-${nodeName}`);
-      this.#setDynamicAttributes(node, update.attributes);
+      this.#setDynamicAttributes(node, update.attributes, result);
       if (update.style) {
         for (let [styleName, value] of Object.entries(update.style)) {
           node.style[styleName] = value;

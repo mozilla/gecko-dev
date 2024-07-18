@@ -7,6 +7,18 @@
 
 const REMOTE_SETTINGS_RECORDS = [
   {
+    type: "icon",
+    id: "icon-fakespot-amazon",
+    attachmentMimetype: "image/png",
+    attachment: [1, 2, 3],
+  },
+  {
+    type: "icon",
+    id: "icon-fakespot-bestbuy",
+    attachmentMimetype: "image/svg+xml",
+    attachment: [4, 5, 6],
+  },
+  {
     collection: "fakespot-suggest-products",
     type: "fakespot-suggestions",
     attachment: [
@@ -63,6 +75,33 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "amazon-5",
         score: 0.5,
+      },
+      {
+        url: "https://example.com/png-image-item",
+        title: "png image item",
+        rating: 5,
+        total_reviews: 1,
+        fakespot_grade: "A",
+        product_id: "amazon-6",
+        score: 0.6,
+      },
+      {
+        url: "https://example.com/svg-image-item",
+        title: "svg image item",
+        rating: 5,
+        total_reviews: 1,
+        fakespot_grade: "A",
+        product_id: "bestbuy-1",
+        score: 0.7,
+      },
+      {
+        url: "https://example.com/no-image-item",
+        title: "no image item",
+        rating: 5,
+        total_reviews: 1,
+        fakespot_grade: "A",
+        product_id: "walmart-1",
+        score: 0.8,
       },
     ],
   },
@@ -503,6 +542,55 @@ add_task(async function ratingAndTotalReviewsLabel() {
         ".urlbarView-dynamic-fakespot-rating-and-total-reviews"
       ).textContent,
       expected
+    );
+
+    await UrlbarTestUtils.promisePopupClose(window);
+  }
+});
+
+// Test the icons.
+add_task(async function icons() {
+  const testData = [
+    {
+      input: "png image",
+      expectedIcon: REMOTE_SETTINGS_RECORDS.find(
+        r => r.id == "icon-fakespot-amazon"
+      ),
+    },
+    {
+      input: "svg image",
+      expectedIcon: REMOTE_SETTINGS_RECORDS.find(
+        r => r.id == "icon-fakespot-bestbuy"
+      ),
+    },
+    { input: "no image", expectedIcon: null },
+  ];
+
+  for (const { input, expectedIcon } of testData) {
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: input,
+    });
+    Assert.equal(UrlbarTestUtils.getResultCount(window), 2);
+
+    const { element } = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
+    const src = element.row.querySelector(
+      ".urlbarView-dynamic-fakespot-icon"
+    ).src;
+
+    if (!expectedIcon) {
+      Assert.equal(src, "");
+      return;
+    }
+
+    const content = await fetch(src);
+    const blob = await content.blob();
+    const bytes = await blob.bytes();
+
+    Assert.equal(blob.type, expectedIcon.attachmentMimetype);
+    Assert.equal(
+      new TextDecoder().decode(bytes),
+      JSON.stringify(expectedIcon.attachment)
     );
 
     await UrlbarTestUtils.promisePopupClose(window);
