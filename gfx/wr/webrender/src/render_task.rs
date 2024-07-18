@@ -297,6 +297,8 @@ pub struct BorderTask {
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct BlitTask {
     pub source: RenderTaskId,
+    // Normalized rect within the source task to blit from
+    pub source_rect: DeviceIntRect,
 }
 
 #[derive(Debug)]
@@ -1123,6 +1125,7 @@ impl RenderTask {
     pub fn new_blit(
         size: DeviceIntSize,
         source: RenderTaskId,
+        source_rect: DeviceIntRect,
         rg_builder: &mut RenderTaskGraphBuilder,
     ) -> RenderTaskId {
         // If this blit uses a render task as a source,
@@ -1133,7 +1136,7 @@ impl RenderTask {
 
         let blit_task_id = rg_builder.add().init(RenderTask::new_dynamic(
             size,
-            RenderTaskKind::Blit(BlitTask { source }),
+            RenderTaskKind::Blit(BlitTask { source, source_rect }),
         ));
 
         rg_builder.add_dependency(blit_task_id, source);

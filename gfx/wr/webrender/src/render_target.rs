@@ -473,6 +473,7 @@ impl RenderTarget for ColorRenderTarget {
                 let target_rect = task.get_target_rect();
                 self.blits.push(BlitJob {
                     source: task_info.source,
+                    source_rect: task_info.source_rect,
                     target_rect,
                 });
             }
@@ -768,6 +769,7 @@ impl TextureCacheRenderTarget {
                 // task to this target.
                 self.blits.push(BlitJob {
                     source: task_info.source,
+                    source_rect: task_info.source_rect,
                     target_rect,
                 });
             }
@@ -1139,6 +1141,8 @@ fn add_svg_filter_node_instances(
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct BlitJob {
     pub source: RenderTaskId,
+    // Normalized region within the source task to blit from
+    pub source_rect: DeviceIntRect,
     pub target_rect: DeviceIntRect,
 }
 

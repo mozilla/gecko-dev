@@ -2420,13 +2420,12 @@ impl Renderer {
                 // TODO(gw): Support R8 format here once we start
                 //           creating mips for alpha masks.
                 let task = &render_tasks[blit.source];
-                let source_rect = task.get_target_rect();
+                let source_rect = blit.source_rect.translate(task.get_target_rect().min.to_vector());
                 let source_texture = task.get_texture_source();
 
                 (source_texture, source_rect)
             };
 
-            debug_assert_eq!(source_rect.size(), blit.target_rect.size());
             let (texture, swizzle) = self.texture_resolver
                 .resolve(&source)
                 .expect("BUG: invalid source texture");
