@@ -32,6 +32,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/ScrollingMetrics.h"
 #include "mozilla/SharedStyleSheetCache.h"
+#include "mozilla/dom/SharedScriptCache.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/ContentParent.h"
@@ -1370,6 +1371,20 @@ void ChromeUtils::ClearStyleSheetCacheByBaseDomain(
 
 void ChromeUtils::ClearStyleSheetCache(GlobalObject&) {
   SharedStyleSheetCache::Clear();
+}
+
+void ChromeUtils::ClearScriptCacheByPrincipal(GlobalObject&,
+                                              nsIPrincipal* aForPrincipal) {
+  SharedScriptCache::Clear(aForPrincipal);
+}
+
+void ChromeUtils::ClearScriptCacheByBaseDomain(GlobalObject&,
+                                               const nsACString& aBaseDomain) {
+  SharedScriptCache::Clear(nullptr, &aBaseDomain);
+}
+
+void ChromeUtils::ClearScriptCache(GlobalObject&) {
+  SharedScriptCache::Clear();
 }
 
 #define PROCTYPE_TO_WEBIDL_CASE(_procType, _webidl) \

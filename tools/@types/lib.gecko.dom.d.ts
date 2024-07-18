@@ -24056,6 +24056,9 @@ declare namespace ChromeUtils {
     function clearStyleSheetCache(): void;
     function clearStyleSheetCacheByBaseDomain(baseDomain: string): void;
     function clearStyleSheetCacheByPrincipal(principal: Principal): void;
+    function clearScriptCache(): void;
+    function clearScriptCacheByBaseDomain(baseDomain: UTF8String): void;
+    function clearScriptCacheByPrincipal(principal: Principal): void;
     function collectPerfStats(): Promise<string>;
     function collectScrollingData(): Promise<InteractionData>;
     function compileScript(url: string, options?: CompileScriptOptionsDictionary): Promise<PrecompiledScript>;

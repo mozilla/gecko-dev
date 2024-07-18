@@ -244,6 +244,22 @@ namespace ChromeUtils {
   undefined clearStyleSheetCache();
 
   /**
+   * Clears the JavaScript cache by baseDomain. This includes associated
+   * state-partitioned cache.
+   */
+  undefined clearScriptCacheByBaseDomain(UTF8String baseDomain);
+
+  /**
+   * Clears the JavaScript cache by principal.
+   */
+  undefined clearScriptCacheByPrincipal(Principal principal);
+
+  /**
+   * Clears the entire JavaScript cache.
+   */
+  undefined clearScriptCache();
+
+  /**
    * If the profiler is currently running and recording the current thread,
    * add a marker for the current thread. No-op otherwise.
    *
