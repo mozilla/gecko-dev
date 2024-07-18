@@ -3010,7 +3010,7 @@ uint32_t TrackBuffersManager::SkipToNextRandomAccessPoint(
   } else if (i > 0) {
     // Go back to the previous keyframe or the original position so the next
     // demux can succeed and be decoded.
-    for (uint32_t j = i - 1; j-- > originalPos;) {
+    for (uint32_t j = i; j-- > originalPos;) {
       const RefPtr<MediaRawData>& sample = track[j];
       if (sample->mKeyframe) {
         trackData.mNextSampleTimecode = sample->mTimecode;
