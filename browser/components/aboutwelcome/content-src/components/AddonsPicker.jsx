@@ -20,9 +20,13 @@ export const InstallButton = props => {
   const [installing, setInstalling] = useState(false);
   const [installComplete, setInstallComplete] = useState(false);
 
+  const defaultInstallLabel = { string_id: "amo-picker-install-button-label" };
+  const defaultInstallCompleteLabel = {
+    string_id: "amo-picker-install-complete-label",
+  };
   let buttonLabel = installComplete
-    ? { string_id: "amo-picker-install-complete-label" }
-    : { string_id: "amo-picker-install-button-label" };
+    ? props.install_complete_label || defaultInstallCompleteLabel
+    : props.install_label || defaultInstallLabel;
 
   function onClick(event) {
     props.handleAction(event);
@@ -46,7 +50,7 @@ export const InstallButton = props => {
       ) : (
         <Localized text={buttonLabel}>
           <button
-            id={props.name}
+            id={`install-button-${props.addonId}`}
             value={props.index}
             onClick={onClick}
             disabled={installComplete}
@@ -82,36 +86,49 @@ export const AddonsPicker = props => {
 
   return (
     <div className={"addons-picker-container"}>
-      {content.tiles.data.map(({ id, name, type, description, icon }, index) =>
-        name ? (
-          <div key={id} className="addon-container">
-            <div className="rtamo-icon">
-              <img
-                className={`${
-                  type === "theme" ? "rtamo-theme-icon" : "brand-logo"
-                }`}
-                src={icon}
-                role="presentation"
-                alt=""
+      {content.tiles.data.map(
+        (
+          {
+            id,
+            name,
+            type,
+            description,
+            icon,
+            install_label,
+            install_complete_label,
+          },
+          index
+        ) =>
+          name ? (
+            <div key={id} className="addon-container">
+              <div className="rtamo-icon">
+                <img
+                  className={`${
+                    type === "theme" ? "rtamo-theme-icon" : "brand-logo"
+                  }`}
+                  src={icon}
+                  role="presentation"
+                  alt=""
+                />
+              </div>
+              <div className="addon-details">
+                <Localized text={name}>
+                  <div className="addon-title" />
+                </Localized>
+                <Localized text={description}>
+                  <div className="addon-description" />
+                </Localized>
+              </div>
+              <InstallButton
+                key={id}
+                addonId={id}
+                handleAction={handleAction}
+                index={index}
+                install_label={install_label}
+                install_complete_label={install_complete_label}
               />
             </div>
-            <div className="addon-details">
-              <Localized text={name}>
-                <div className="addon-title" />
-              </Localized>
-              <Localized text={description}>
-                <div className="addon-description" />
-              </Localized>
-            </div>
-            <InstallButton
-              key={id}
-              addonId={id}
-              name={name}
-              handleAction={handleAction}
-              index={index}
-            />
-          </div>
-        ) : null
+          ) : null
       )}
     </div>
   );

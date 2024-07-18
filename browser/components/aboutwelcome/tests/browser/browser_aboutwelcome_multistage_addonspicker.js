@@ -56,7 +56,10 @@ add_task(async function test_aboutwelcome_addonspicker() {
             {
               id: "addon-one-id",
               name: "uBlock Origin",
-              install_label: "Add to Firefox",
+              install_label: { string_id: "btn-1-install" },
+              install_complete_label: {
+                string_id: "btn-1-install-complete",
+              },
               icon: "",
               type: "extension",
               description: "An efficient wide-spectrum content blocker.",
@@ -72,7 +75,6 @@ add_task(async function test_aboutwelcome_addonspicker() {
             {
               id: "addon-two-id",
               name: "Tree-Style Tabs",
-              install_label: "Add to Firefox",
               icon: "",
               type: "extension",
               description: "Show tabs like a tree.",
@@ -128,9 +130,18 @@ add_task(async function test_aboutwelcome_addonspicker() {
     messageSandbox.restore();
   });
   // Stub AboutWelcomeParent's Content Message Handler
-  const messageStub = messageSandbox
-    .stub(aboutWelcomeActor, "onContentMessage")
-    .withArgs("AWPage:SPECIAL_ACTION");
+  const messageStub = messageSandbox.stub(
+    aboutWelcomeActor,
+    "onContentMessage"
+  );
+
+  messageStub.withArgs("AWPage:SPECIAL_ACTION").resolves(true);
+  messageStub
+    .withArgs("AWPage:ENSURE_ADDON_INSTALLED", "addon-one-id")
+    .resolves("complete");
+  messageStub
+    .withArgs("AWPage:ENSURE_ADDON_INSTALLED", "addon-two-id")
+    .resolves("install failed");
 
   // execution
   await test_screen_content(
@@ -140,6 +151,7 @@ add_task(async function test_aboutwelcome_addonspicker() {
     [
       "main.AW_ADDONS_PICKER",
       "div.addons-picker-container",
+      "button[data-l10n-id='btn-1-install']",
       "button[value='secondary_button']",
       "button[value='additional_button']",
     ],
@@ -149,12 +161,19 @@ add_task(async function test_aboutwelcome_addonspicker() {
       `main.screen[pos="split"]`,
       "main.AW_SET_DEFAULT",
       "button[value='primary_button']",
+      "button[data-l10n-id='btn-1-install-complete']",
     ]
   );
 
   await clickVisibleButton(browser, ".addon-container button[value='0']"); //click the first install button
 
-  const installExtensionCall = messageStub.getCall(0);
+  let calls = messageStub.getCalls();
+  const installExtensionCall = calls.find(
+    call =>
+      call.args[0] === "AWPage:SPECIAL_ACTION" &&
+      call.args[1].type === "INSTALL_ADDON_FROM_URL"
+  );
+
   info(
     `Call #${installExtensionCall}: ${
       installExtensionCall.args[0]
@@ -169,6 +188,58 @@ add_task(async function test_aboutwelcome_addonspicker() {
     installExtensionCall.args[1].type,
     "INSTALL_ADDON_FROM_URL",
     "Special action type is INSTALL_ADDON_FROM_URL"
+  );
+
+  const ensureInstalledCall = calls.find(
+    call =>
+      call.args[0] === "AWPage:ENSURE_ADDON_INSTALLED" &&
+      call.args[1] === "addon-one-id"
+  );
+
+  info(
+    `--- Call #${ensureInstalledCall}: ${
+      ensureInstalledCall.args[0]
+    } ${JSON.stringify(ensureInstalledCall.args[1])}`
+  );
+  Assert.equal(
+    ensureInstalledCall.args[0],
+    "AWPage:ENSURE_ADDON_INSTALLED",
+    "ensure addon installed was called"
+  );
+
+  await test_screen_content(
+    browser,
+    "renders the install complete label if addon is added successfully",
+    //Expected selectors
+    ["button[data-l10n-id='btn-1-install-complete']"],
+
+    //Unexpected selectors:
+    ["button[data-l10n-id='btn-1-install']"]
+  );
+
+  await clickVisibleButton(browser, ".addon-container button[value='1']"); //click the second install button
+
+  calls = messageStub.getCalls();
+  const ensureInstalledCall2 = calls.find(
+    call =>
+      call.args[0] === "AWPage:ENSURE_ADDON_INSTALLED" &&
+      call.args[1] === "addon-two-id"
+  );
+
+  Assert.equal(
+    ensureInstalledCall2.args[0],
+    "AWPage:ENSURE_ADDON_INSTALLED",
+    "ensure addon installed was called"
+  );
+
+  await test_screen_content(
+    browser,
+    "renders the install label if addon is not added successfully",
+    //Expected selectors
+    ["button[data-l10n-id='amo-picker-install-button-label']"],
+
+    //Unexpected selectors:
+    ["button[data-l10n-id='amo-picker-install-complete-label']"]
   );
 
   // cleanup
