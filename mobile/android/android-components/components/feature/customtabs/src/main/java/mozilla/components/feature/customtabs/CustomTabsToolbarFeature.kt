@@ -5,31 +5,20 @@
 package mozilla.components.feature.customtabs
 
 import android.app.PendingIntent
-import android.app.UiModeManager.MODE_NIGHT_YES
-import android.content.Context
-import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.util.Size
 import android.view.Window
 import androidx.annotation.ColorInt
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
 import androidx.appcompat.app.AppCompatDelegate.NightMode
 import androidx.appcompat.content.res.AppCompatResources.getDrawable
-import androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_DARK
-import androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_LIGHT
-import androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_SYSTEM
-import androidx.browser.customtabs.CustomTabsIntent.ColorScheme
-import androidx.core.content.ContextCompat.getColor
 import androidx.core.graphics.drawable.toDrawable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.state.selector.findCustomTab
-import mozilla.components.browser.state.state.ColorSchemeParams
-import mozilla.components.browser.state.state.ColorSchemes
 import mozilla.components.browser.state.state.CustomTabActionButtonConfig
 import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.CustomTabSessionState
@@ -42,13 +31,11 @@ import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
-import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.content.share
 import mozilla.components.support.ktx.android.util.dpToPx
 import mozilla.components.support.ktx.android.view.setNavigationBarTheme
 import mozilla.components.support.ktx.android.view.setStatusBarTheme
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
-import mozilla.components.support.utils.ColorUtils.getReadableTextColor
 import mozilla.components.support.utils.ext.resizeMaintainingAspectRatio
 import mozilla.components.ui.icons.R as iconsR
 
@@ -130,24 +117,16 @@ class CustomTabsToolbarFeature(
         // Don't allow clickable toolbar so a custom tab can't switch to edit mode.
         toolbar.display.onUrlClicked = { false }
 
-        // Use the intent provided color scheme or fallback to the app night mode preference.
-        val nightMode = config.colorScheme?.toNightMode() ?: appNightMode
-
-        val colorSchemeParams = config.colorSchemes?.getConfiguredColorSchemeParams(
-            nightMode = nightMode,
-            isDarkMode = context.isDarkMode(),
+        val colorSchemeParams = config.getConfiguredColorSchemeParams(
+            currentNightMode = context.resources.configuration.uiMode,
+            preferredNightMode = appNightMode,
         )
 
-        val readableColor = if (updateTheme) {
-            colorSchemeParams?.toolbarColor?.let { getReadableTextColor(it) }
-                ?: toolbar.display.colors.menu
-        } else {
-            // It's private mode, the readable color needs match the app.
-            // Note: The main app is configuring the private theme, Custom Tabs is adding the
-            // additional theming for the dynamic UI elements e.g. action & share buttons.
-            val colorResId = context.theme.resolveAttribute(android.R.attr.textColorPrimary)
-            getColor(context, colorResId)
-        }
+        val readableColor = colorSchemeParams.getToolbarContrastColor(
+            context = context,
+            shouldUpdateTheme = updateTheme,
+            fallbackColor = toolbar.display.colors.menu,
+        )
 
         if (updateTheme) {
             colorSchemeParams.let {
@@ -353,75 +332,6 @@ class CustomTabsToolbarFeature(
         private val ACTION_BUTTON_MAX_DRAWABLE_DP_SIZE = Size(48, 24)
     }
 }
-
-@VisibleForTesting
-internal fun ColorSchemes.getConfiguredColorSchemeParams(
-    @NightMode nightMode: Int? = null,
-    isDarkMode: Boolean = false,
-) = when {
-    noColorSchemeParamsSet() -> null
-
-    defaultColorSchemeParamsOnly() -> defaultColorSchemeParams
-
-    // Try to follow specified color scheme.
-    nightMode == MODE_NIGHT_FOLLOW_SYSTEM -> {
-        if (isDarkMode) {
-            darkColorSchemeParams?.withDefault(defaultColorSchemeParams)
-                ?: defaultColorSchemeParams
-        } else {
-            lightColorSchemeParams?.withDefault(defaultColorSchemeParams)
-                ?: defaultColorSchemeParams
-        }
-    }
-
-    nightMode == MODE_NIGHT_NO -> lightColorSchemeParams?.withDefault(
-        defaultColorSchemeParams,
-    ) ?: defaultColorSchemeParams
-
-    nightMode == MODE_NIGHT_YES -> darkColorSchemeParams?.withDefault(
-        defaultColorSchemeParams,
-    ) ?: defaultColorSchemeParams
-
-    // No color scheme set, try to use default.
-    else -> defaultColorSchemeParams
-}
-
-/**
- * Try to convert the given [ColorScheme] to [NightMode].
- */
-@VisibleForTesting
-@NightMode
-internal fun Int.toNightMode() = when (this) {
-    COLOR_SCHEME_SYSTEM -> MODE_NIGHT_FOLLOW_SYSTEM
-    COLOR_SCHEME_LIGHT -> MODE_NIGHT_NO
-    COLOR_SCHEME_DARK -> MODE_NIGHT_YES
-    else -> null
-}
-
-private fun ColorSchemes.noColorSchemeParamsSet() =
-    defaultColorSchemeParams == null && lightColorSchemeParams == null && darkColorSchemeParams == null
-
-private fun ColorSchemes.defaultColorSchemeParamsOnly() =
-    defaultColorSchemeParams != null && lightColorSchemeParams == null && darkColorSchemeParams == null
-
-private fun Context.isDarkMode() =
-    resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-
-/**
- * Try to create a [ColorSchemeParams] using the given [defaultColorSchemeParam] as a fallback if
- * there are missing properties.
- */
-@VisibleForTesting
-internal fun ColorSchemeParams.withDefault(defaultColorSchemeParam: ColorSchemeParams?) = ColorSchemeParams(
-    toolbarColor = toolbarColor
-        ?: defaultColorSchemeParam?.toolbarColor,
-    secondaryToolbarColor = secondaryToolbarColor
-        ?: defaultColorSchemeParam?.secondaryToolbarColor,
-    navigationBarColor = navigationBarColor
-        ?: defaultColorSchemeParam?.navigationBarColor,
-    navigationBarDividerColor = navigationBarDividerColor
-        ?: defaultColorSchemeParam?.navigationBarDividerColor,
-)
 
 /**
  * Holds button configurations for the custom tabs toolbar.
