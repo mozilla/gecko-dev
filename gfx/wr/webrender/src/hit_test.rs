@@ -179,6 +179,11 @@ impl HitTestingScene {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.clip_nodes.clear();
+        self.items.clear();
+    }
+
     /// Get stats about the current scene allocation sizes.
     pub fn get_stats(&self) -> HitTestingSceneStats {
         HitTestingSceneStats {

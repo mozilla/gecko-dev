@@ -187,6 +187,20 @@ impl ClipTree {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.nodes.clear();
+        self.nodes.push(ClipTreeNode {
+            handle: ClipDataHandle::INVALID,
+            children: Vec::new(),
+            parent: ClipNodeId::NONE,
+        });
+
+        self.leaves.clear();
+
+        self.clip_root_stack.clear();
+        self.clip_root_stack.push(ClipNodeId::NONE);
+    }
+
     /// Add a set of clips to the provided tree node id, reusing existing
     /// nodes in the tree where possible
     fn add_impl(
@@ -428,6 +442,24 @@ impl ClipTreeBuilder {
             tree: ClipTree::new(),
             clip_handles_buffer: Vec::new(),
         }
+    }
+
+    pub fn begin(&mut self) {
+        self.clip_map.clear();
+        self.clip_chain_map.clear();
+        self.clip_chains.clear();
+        self.clip_stack.clear();
+        self.clip_stack.push(ClipStackEntry {
+            clip_node_id: ClipNodeId::NONE,
+            last_clip_chain_cache: None,
+            seen_clips: FastHashSet::default(),
+        });
+        self.tree.reset();
+        self.clip_handles_buffer.clear();
+    }
+
+    pub fn recycle_tree(&mut self, tree: ClipTree) {
+        self.tree = tree;
     }
 
     /// Define a new rect clip
@@ -685,8 +717,15 @@ impl ClipTreeBuilder {
     }
 
     /// Finalize building and return the clip-tree
-    pub fn finalize(self) -> ClipTree {
-        self.tree
+    pub fn finalize(&mut self) -> ClipTree {
+        // Note: After this, the builder's clip tree does not hold allocations and
+        // is not in valid state. `ClipTreeBuilder::begin()` must be called before
+        // building can happen again.
+        std::mem::replace(&mut self.tree, ClipTree {
+            nodes: Vec::new(),
+            leaves: Vec::new(),
+            clip_root_stack: Vec::new(),
+        })
     }
 
     /// Get a clip node by id
@@ -1251,6 +1290,14 @@ impl ClipStore {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.clip_node_instances.clear();
+        self.mask_tiles.clear();
+        self.active_clip_node_info.clear();
+        self.active_local_clip_rect = None;
+        self.active_pic_coverage_rect = PictureRect::max_rect();
+    }
+
     pub fn get_instance_from_range(
         &self,
         node_range: &ClipNodeRange,
@@ -1547,6 +1594,12 @@ impl ClipStore {
         } else {
             &[]
         }
+    }
+}
+
+impl Default for ClipStore {
+    fn default() -> Self {
+        ClipStore::new()
     }
 }
 
