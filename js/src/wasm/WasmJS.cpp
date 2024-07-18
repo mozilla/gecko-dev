@@ -1144,7 +1144,7 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-#ifdef ENABLE_WASM_TYPE_REFLECTIONS
+#if defined(ENABLE_WASM_JS_STRING_BUILTINS) || defined(ENABLE_WASM_TYPE_REFLECTIONS)
   const CodeMetadata& codeMeta = module->codeMeta();
 
   size_t numFuncImport = 0;
@@ -1155,6 +1155,14 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
 #endif  // ENABLE_WASM_TYPE_REFLECTIONS
 
   for (const Import& import : moduleMeta.imports) {
+#ifdef ENABLE_WASM_JS_STRING_BUILTINS
+    Maybe<BuiltinModuleId> builtinModule = ImportMatchesBuiltinModule(
+        import.module.utf8Bytes(), codeMeta.features().builtinModules);
+    if (builtinModule) {
+      continue;
+    }
+#endif
+
     Rooted<IdValueVector> props(cx, IdValueVector(cx));
     if (!props.reserve(3)) {
       return false;
