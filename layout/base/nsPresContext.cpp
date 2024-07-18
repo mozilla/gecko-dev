@@ -3082,13 +3082,9 @@ nscoord nsPresContext::GetDynamicToolbarMaxHeightInAppUnits() const {
 }
 
 nscoord nsPresContext::GetBimodalDynamicToolbarHeightInAppUnits() const {
-  if (GetDynamicToolbarState() != DynamicToolbarState::Collapsed) {
-    return 0;
-  }
-  // FIXME: Should be GetDynamicToolbarMaxHeight() right?
-  return CSSPixel::ToAppUnits(
-      ScreenCoord(GetDynamicToolbarMaxHeightInAppUnits()) /
-      GetMVMScale(mPresShell));
+  return GetDynamicToolbarState() == DynamicToolbarState::Collapsed
+             ? GetDynamicToolbarMaxHeightInAppUnits()
+             : 0;
 }
 
 void nsPresContext::SetSafeAreaInsets(const ScreenIntMargin& aSafeAreaInsets) {
