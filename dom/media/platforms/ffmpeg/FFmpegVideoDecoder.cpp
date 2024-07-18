@@ -1008,6 +1008,10 @@ void FFmpegVideoDecoder<LIBAV_VER>::DecodeStats::UpdateDecodeTimes(
   mDecodeStart = now;
 
   const float frameDuration = Duration(aFrame) / 1000.0f;
+  if (frameDuration <= 0.0f) {
+    FFMPEGV_LOG("Incorrect frame duration, skipping decode stats.");
+    return;
+  }
 
   mDecodedFrames++;
   mAverageFrameDuration =
