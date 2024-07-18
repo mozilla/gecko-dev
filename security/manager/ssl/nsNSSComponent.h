@@ -38,6 +38,7 @@ namespace psm {
 [[nodiscard]] ::already_AddRefed<mozilla::psm::SharedCertVerifier>
 GetDefaultCertVerifier();
 UniqueCERTCertList FindClientCertificatesWithPrivateKeys();
+CertVerifier::CertificateTransparencyMode GetCertificateTransparencyMode();
 
 }  // namespace psm
 }  // namespace mozilla

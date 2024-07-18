@@ -1667,12 +1667,13 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
     return NS_ERROR_FAILURE;
   }
 
-  bool enabled = infoObject->SharedState().IsOCSPStaplingEnabled();
+  bool enabled = StaticPrefs::security_ssl_enable_ocsp_stapling();
   if (SECSuccess != SSL_OptionSet(fd, SSL_ENABLE_OCSP_STAPLING, enabled)) {
     return NS_ERROR_FAILURE;
   }
 
-  bool sctsEnabled = infoObject->SharedState().IsSignedCertTimestampsEnabled();
+  bool sctsEnabled = GetCertificateTransparencyMode() !=
+                     CertVerifier::CertificateTransparencyMode::Disabled;
   if (SECSuccess !=
       SSL_OptionSet(fd, SSL_ENABLE_SIGNED_CERT_TIMESTAMPS, sctsEnabled)) {
     return NS_ERROR_FAILURE;

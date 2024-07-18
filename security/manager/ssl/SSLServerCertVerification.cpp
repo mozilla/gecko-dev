@@ -109,6 +109,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/StaticPrefs_security.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
@@ -956,8 +957,8 @@ SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig,
   socketInfo->GetProviderFlags(&providerFlags);
 
   uint32_t certVerifierFlags = 0;
-  if (!socketInfo->SharedState().IsOCSPStaplingEnabled() ||
-      !socketInfo->SharedState().IsOCSPMustStapleEnabled()) {
+  if (!StaticPrefs::security_ssl_enable_ocsp_stapling() ||
+      !StaticPrefs::security_ssl_enable_ocsp_must_staple()) {
     certVerifierFlags |= CertVerifier::FLAG_TLS_IGNORE_STATUS_REQUEST;
   }
 
@@ -1015,11 +1016,8 @@ SECStatus AuthCertificateHookWithInfo(
   }
 
   uint32_t certVerifierFlags = 0;
-  // QuicSocketControl does not have a SharedState as NSSSocketControl.
-  // Here we need prefs for ocsp. This are prefs they are the same for
-  // PublicSSLState and PrivateSSLState, just take them from one of them.
-  if (!PublicSSLState()->IsOCSPStaplingEnabled() ||
-      !PublicSSLState()->IsOCSPMustStapleEnabled()) {
+  if (!StaticPrefs::security_ssl_enable_ocsp_stapling() ||
+      !StaticPrefs::security_ssl_enable_ocsp_must_staple()) {
     certVerifierFlags |= CertVerifier::FLAG_TLS_IGNORE_STATUS_REQUEST;
   }
 

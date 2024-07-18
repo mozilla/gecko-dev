@@ -121,10 +121,7 @@ PrivateBrowsingObserver::Observe(nsISupports* aSubject, const char* aTopic,
 SharedSSLState::SharedSSLState(uint32_t aTlsFlags)
     : mIOLayerHelpers(aTlsFlags),
       mMutex("SharedSSLState::mMutex"),
-      mSocketCreated(false),
-      mOCSPStaplingEnabled(false),
-      mOCSPMustStapleEnabled(false),
-      mSignedCertTimestampsEnabled(false) {
+      mSocketCreated(false) {
   mIOLayerHelpers.Init();
 }
 
