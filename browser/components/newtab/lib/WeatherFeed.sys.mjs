@@ -91,6 +91,9 @@ export class WeatherFeed {
           query: weatherQuery || "",
           providers: MERINO_PROVIDER,
           timeoutMs: 7000,
+          otherParams: {
+            request_type: "weather",
+          },
         });
       } catch (error) {
         // We don't need to do anything with this right now.
