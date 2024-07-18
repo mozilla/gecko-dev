@@ -1881,8 +1881,13 @@ pref("browser.newtabpage.activity-stream.discoverystream.onboardingExperience.di
 pref("browser.newtabpage.activity-stream.discoverystream.onboardingExperience.enabled", false);
 
 // Allow users to give thumbs up/down on recommended stories
-pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.enabled", false);
-pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.searchTopsitesCompact", false);
+#ifdef NIGHTLY_BUILD
+  pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.enabled", true);
+  pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.searchTopsitesCompact", true);
+#else
+  pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.enabled", false);
+  pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.searchTopsitesCompact", false);
+#endif
 
 // User pref to show stories on newtab (feeds.system.topstories has to be set to true as well)
 pref("browser.newtabpage.activity-stream.feeds.section.topstories", true);
