@@ -496,6 +496,9 @@ MarkupView.prototype = {
   },
 
   _enableImagePreviewTooltip() {
+    if (!this.imagePreviewTooltip) {
+      return;
+    }
     this.imagePreviewTooltip.startTogglingOnHover(
       this._elt,
       this._isImagePreviewTarget
