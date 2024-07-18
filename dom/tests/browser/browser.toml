@@ -141,6 +141,18 @@ support-files = ["test_mixed_content_image.html"]
 
 ["browser_pointerlock_warning.js"]
 
+["browser_scriptCache_clear.js"]
+skip-if = ["!nightly_build"]
+support-files = [
+  "counter_server.sjs",
+]
+
+["browser_scriptCache_redirect.js"]
+skip-if = ["!nightly_build"]
+support-files = [
+  "redirect_server.sjs",
+]
+
 ["browser_sessionStorage_navigation.js"]
 skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1712961
 support-files = [
