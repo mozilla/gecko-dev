@@ -2827,6 +2827,26 @@ describe("DiscoveryStreamFeed", () => {
 
       assert.isTrue(result);
     });
+    it("should return true for spocs on startup for thirty minutes with modified spocsStartupCacheTimeout", () => {
+      feed.store.getState = () => ({
+        Prefs: {
+          values: {
+            pocketConfig: {
+              spocsStartupCacheTimeout: 30,
+            },
+          },
+        },
+      });
+      const spocs = { lastUpdated: Date.now() };
+      clock.tick(THIRTY_MINUTES + 1);
+      const result = feed.isExpired({
+        cachedData: { spocs },
+        key: "spocs",
+        isStartup: true,
+      });
+
+      assert.isTrue(result);
+    });
   });
 
   describe("#checkIfAnyCacheExpired", () => {

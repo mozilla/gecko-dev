@@ -439,25 +439,47 @@ export class DiscoveryStreamFeed {
    */
   isExpired({ cachedData, key, url, isStartup }) {
     const { spocs, feeds } = cachedData;
-    const updateTimePerComponent = {
-      spocs: this.spocsCacheUpdateTime,
-      feed: COMPONENT_FEEDS_UPDATE_TIME,
-    };
-    const EXPIRATION_TIME = isStartup
-      ? STARTUP_CACHE_EXPIRE_TIME
-      : updateTimePerComponent[key];
+
     switch (key) {
-      case "spocs":
-        return !spocs || !(Date.now() - spocs.lastUpdated < EXPIRATION_TIME);
-      case "feed":
+      case "spocs": {
+        const nimbusConfig =
+          this.store.getState().Prefs.values?.pocketConfig || {};
+        const { spocsStartupCacheTimeout } = nimbusConfig;
+        // Min and max times are 7 days and whatever the spoc cache time is.
+        // We don't want our startup spoc cache to be faster than the regular spoc cache.
+        const MAX_TIMEOUT = STARTUP_CACHE_EXPIRE_TIME;
+        const MIN_TIMEOUT = this.spocsCacheUpdateTime;
+        let expirationTime = isStartup
+          ? STARTUP_CACHE_EXPIRE_TIME
+          : this.spocsCacheUpdateTime;
+        if (isStartup && spocsStartupCacheTimeout) {
+          // This value is in minutes, but we want ms.
+          const spocsStartupCacheTimeoutMs =
+            spocsStartupCacheTimeout * 60 * 1000;
+          if (
+            spocsStartupCacheTimeoutMs <= MAX_TIMEOUT &&
+            spocsStartupCacheTimeoutMs >= MIN_TIMEOUT
+          ) {
+            expirationTime = spocsStartupCacheTimeoutMs;
+          }
+        }
+        // isExpired returns true if cache has expired or is missing.
+        return !spocs || !(Date.now() - spocs.lastUpdated < expirationTime);
+      }
+      case "feed": {
+        const expirationTime = isStartup
+          ? STARTUP_CACHE_EXPIRE_TIME
+          : COMPONENT_FEEDS_UPDATE_TIME;
         return (
           !feeds ||
           !feeds[url] ||
-          !(Date.now() - feeds[url].lastUpdated < EXPIRATION_TIME)
+          !(Date.now() - feeds[url].lastUpdated < expirationTime)
         );
-      default:
+      }
+      default: {
         // istanbul ignore next
         throw new Error(`${key} is not a valid key`);
+      }
     }
   }
 

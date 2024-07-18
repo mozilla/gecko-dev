@@ -964,6 +964,12 @@ pocketNewtab:
         browser.newtabpage.activity-stream.discoverystream.spocs.cacheTimeout
       description: >-
         Set sponsored content cache timeout in minutes.
+    spocsStartupCacheTimeout:
+      type: int
+      fallbackPref: >-
+        browser.newtabpage.activity-stream.discoverystream.spocs.startupCacheTimeout
+      description: >-
+        Set sponsored content startup cache timeout in minutes.
     discoveryStreamConfig:
       description: A JSON blob of discovery stream configuration.
       type: string
