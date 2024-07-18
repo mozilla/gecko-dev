@@ -2083,11 +2083,8 @@ static bool WasmDumpIon(JSContext* cx, unsigned argc, Value* vp) {
 
   args.rval().set(UndefinedValue());
 
-  SharedMem<uint8_t*> dataPointer;
-  size_t byteLength;
-  if (!args.get(0).isObject() || !IsBufferSource(args.get(0).toObjectOrNull(),
-                                                 &dataPointer, &byteLength)) {
-    JS_ReportErrorASCII(cx, "argument is not a buffer source");
+  if (!args.get(0).isObject()) {
+    JS_ReportErrorASCII(cx, "argument is not an object");
     return false;
   }
 
@@ -2100,6 +2097,14 @@ static bool WasmDumpIon(JSContext* cx, unsigned argc, Value* vp) {
   wasm::IonDumpContents contents = wasm::IonDumpContents::Default;
   if (args.length() > 2 && !ToIonDumpContents(cx, args.get(2), &contents)) {
     JS_ReportErrorASCII(cx, "argument is not a valid dump contents");
+    return false;
+  }
+
+  SharedMem<uint8_t*> dataPointer;
+  size_t byteLength;
+  if (!IsBufferSource(args.get(0).toObjectOrNull(), &dataPointer,
+                      &byteLength)) {
+    JS_ReportErrorASCII(cx, "argument is not a buffer source");
     return false;
   }
 
