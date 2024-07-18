@@ -536,7 +536,8 @@ class StorageModule extends Module {
       lazy.assert.in(
         sameSite,
         sameSiteTypeValue,
-        lazy.pprint`Expected "${fieldName}" to be one of ${sameSiteTypeValue}, got ${sameSite}`
+        `Expected "${fieldName}" to be one of ${sameSiteTypeValue}, ` +
+          lazy.pprint`got ${sameSite}`
       );
     }
   }
@@ -544,7 +545,7 @@ class StorageModule extends Module {
   #assertValue(value, fieldName = "value") {
     lazy.assert.object(
       value,
-      lazy.pprint`Expected "${fieldName}" to be an object, got ${value}`
+      `Expected "${fieldName}" to be an object, ` + lazy.pprint`got ${value}`
     );
 
     const { type, value: protocolBytesValue } = value;
@@ -553,12 +554,14 @@ class StorageModule extends Module {
     lazy.assert.in(
       type,
       bytesValueTypeValue,
-      lazy.pprint`Expected ${fieldName} "type" to be one of ${bytesValueTypeValue}, got ${type}`
+      `Expected ${fieldName} "type" to be one of ${bytesValueTypeValue}, ` +
+        lazy.pprint`got ${type}`
     );
 
     lazy.assert.string(
       protocolBytesValue,
-      lazy.pprint`Expected ${fieldName} "value" to be string, got ${protocolBytesValue}`
+      `Expected ${fieldName} "value" to be string, ` +
+        lazy.pprint`got ${protocolBytesValue}`
     );
   }
 

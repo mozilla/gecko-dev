@@ -135,16 +135,18 @@ class SessionModule extends Module {
   #assertNonEmptyArrayWithStrings(array, variableName) {
     lazy.assert.array(
       array,
-      lazy.pprint`Expected "${variableName}" to be an array, got ${array}`
+      `Expected "${variableName}" to be an array, ` + lazy.pprint`got ${array}`
     );
     lazy.assert.that(
       array => !!array.length,
-      lazy.pprint`Expected "${variableName}" array to have at least one item, got ${array}`
+      `Expected "${variableName}" array to have at least one item, ` +
+        lazy.pprint`got ${array}`
     )(array);
     array.forEach(item => {
       lazy.assert.string(
         item,
-        lazy.pprint`Expected elements of "${variableName}" to be a string, got ${item}`
+        `Expected elements of "${variableName}" to be a string, ` +
+          lazy.pprint`got ${item}`
       );
     });
   }

@@ -696,9 +696,9 @@ class ScriptModule extends Module {
         [lazy.OwnershipModel.None, lazy.OwnershipModel.Root].includes(
           ownership
         ),
-      lazy.pprint`Expected channel argument "ownership" to be one of ${Object.values(
+      `Expected channel argument "ownership" to be one of ${Object.values(
         lazy.OwnershipModel
-      )}, got ${ownership}`
+      )}, ` + lazy.pprint`got ${ownership}`
     )(ownership);
 
     return true;
@@ -713,7 +713,7 @@ class ScriptModule extends Module {
       throw new lazy.error.InvalidArgumentError(
         `Expected "resultOwnership" to be one of ${Object.values(
           lazy.OwnershipModel
-        )}, got ${resultOwnership}`
+        )}, ` + lazy.pprint`got ${resultOwnership}`
       );
     }
   }

@@ -67,18 +67,21 @@ cookie.manager = {
 add_task(function test_fromJSON() {
   // object
   for (let invalidType of ["foo", 42, true, [], null, undefined]) {
-    Assert.throws(() => cookie.fromJSON(invalidType), /Expected cookie object/);
+    Assert.throws(
+      () => cookie.fromJSON(invalidType),
+      /Expected "cookie" to be an object/
+    );
   }
 
   // name and value
   for (let invalidType of [42, true, [], {}, null, undefined]) {
     Assert.throws(
       () => cookie.fromJSON({ name: invalidType }),
-      /Cookie name must be string/
+      /Expected cookie "name" to be a string/
     );
     Assert.throws(
       () => cookie.fromJSON({ name: "foo", value: invalidType }),
-      /Cookie value must be string/
+      /Expected cookie "value" to be a string/
     );
   }
 
@@ -91,7 +94,7 @@ add_task(function test_fromJSON() {
     };
     Assert.throws(
       () => cookie.fromJSON(domainTest),
-      /Cookie domain must be string/
+      /Expected cookie "domain" to be a string/
     );
   }
   let domainTest = {
@@ -111,7 +114,7 @@ add_task(function test_fromJSON() {
     };
     Assert.throws(
       () => cookie.fromJSON(pathTest),
-      /Cookie path must be string/
+      /Expected cookie "path" to be a string/
     );
   }
 
@@ -124,7 +127,7 @@ add_task(function test_fromJSON() {
     };
     Assert.throws(
       () => cookie.fromJSON(secureTest),
-      /Cookie secure flag must be boolean/
+      /Expected cookie "secure" to be a boolean/
     );
   }
 
@@ -137,7 +140,7 @@ add_task(function test_fromJSON() {
     };
     Assert.throws(
       () => cookie.fromJSON(httpOnlyTest),
-      /Cookie httpOnly flag must be boolean/
+      /Expected cookie "httpOnly" to be a boolean/
     );
   }
 
@@ -158,7 +161,7 @@ add_task(function test_fromJSON() {
     };
     Assert.throws(
       () => cookie.fromJSON(expiryTest),
-      /Cookie expiry must be a positive integer/
+      /Expected cookie "expiry" to be a positive integer/
     );
   }
 
@@ -171,7 +174,7 @@ add_task(function test_fromJSON() {
     };
     Assert.throws(
       () => cookie.fromJSON(sameSiteTest),
-      /Cookie SameSite flag must be one of None, Lax, or Strict/
+      /Expected cookie "sameSite" to be one of None,Lax,Strict/
     );
   }
 
@@ -217,15 +220,15 @@ add_task(function test_add() {
   for (let invalidType of [42, true, [], {}, null, undefined]) {
     Assert.throws(
       () => cookie.add({ name: invalidType }),
-      /Cookie name must be string/
+      /Expected cookie "name" to be a string/
     );
     Assert.throws(
       () => cookie.add({ name: "name", value: invalidType }),
-      /Cookie value must be string/
+      /Expected cookie "value" to be a string/
     );
     Assert.throws(
       () => cookie.add({ name: "name", value: "value", domain: invalidType }),
-      /Cookie domain must be string/
+      /Expected cookie "domain" to be a string/
     );
   }
 

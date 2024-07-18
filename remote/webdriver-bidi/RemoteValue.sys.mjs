@@ -989,7 +989,8 @@ export function setDefaultAndAssertSerializationOptions(options = {}) {
   lazy.assert.that(
     includeShadowTree =>
       includeShadowTreeModesValues.includes(includeShadowTree),
-    lazy.pprint`Expected "includeShadowTree" to be one of ${includeShadowTreeModesValues}, got ${includeShadowTree}`
+    `Expected "includeShadowTree" to be one of ${includeShadowTreeModesValues}, ` +
+      lazy.pprint`got ${includeShadowTree}`
   )(includeShadowTree);
 
   return serializationOptions;

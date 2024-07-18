@@ -335,7 +335,8 @@ class BrowsingContextModule extends Module {
     const originTypeValues = Object.values(OriginType);
     lazy.assert.that(
       value => originTypeValues.includes(value),
-      lazy.pprint`Expected "origin" to be one of ${originTypeValues}, got ${origin}`
+      `Expected "origin" to be one of ${originTypeValues}, ` +
+        lazy.pprint`got ${origin}`
     )(origin);
 
     if (clip !== null) {
@@ -384,7 +385,7 @@ class BrowsingContextModule extends Module {
           throw new lazy.error.InvalidArgumentError(
             `Expected "type" to be one of ${Object.values(
               ClipRectangleType
-            )}, got ${type}`
+            )}, ` + lazy.pprint`got ${type}`
           );
       }
     }
@@ -448,7 +449,7 @@ class BrowsingContextModule extends Module {
 
     lazy.assert.boolean(
       promptUnload,
-      `Expected "promptUnload" to be a boolean, got ${promptUnload}`
+      lazy.pprint`Expected "promptUnload" to be a boolean, got ${promptUnload}`
     );
 
     const context = lazy.TabManager.getBrowsingContextById(contextId);
@@ -508,9 +509,8 @@ class BrowsingContextModule extends Module {
 
     if (![CreateType.tab, CreateType.window].includes(typeHint)) {
       throw new lazy.error.InvalidArgumentError(
-        `Expected "type" to be one of ${Object.values(
-          CreateType
-        )}, got ${typeHint}`
+        `Expected "type" to be one of ${Object.values(CreateType)}, ` +
+          lazy.pprint`got ${typeHint}`
       );
     }
 
@@ -952,7 +952,8 @@ class BrowsingContextModule extends Module {
 
     lazy.assert.that(
       locatorType => locatorTypes.includes(locatorType),
-      lazy.pprint`Expected "locator.type" to be one of ${locatorTypes}, got ${locator.type}`
+      `Expected "locator.type" to be one of ${locatorTypes}, ` +
+        lazy.pprint`got ${locator.type}`
     )(locator.type);
 
     if (
@@ -962,26 +963,30 @@ class BrowsingContextModule extends Module {
     ) {
       lazy.assert.string(
         locator.value,
-        lazy.pprint`Expected "locator.value" of "locator.type" "${locator.type}" to be a string, got ${locator.value}`
+        `Expected "locator.value" of "locator.type" "${locator.type}" to be a string, ` +
+          lazy.pprint`got ${locator.value}`
       );
     }
     if (locator.type == LocatorType.accessibility) {
       lazy.assert.object(
         locator.value,
-        lazy.pprint`Expected "locator.value" of "locator.type" "${locator.type}" to be an object, got ${locator.value}`
+        `Expected "locator.value" of "locator.type" "${locator.type}" to be an object, ` +
+          lazy.pprint`got ${locator.value}`
       );
 
       const { name = null, role = null } = locator.value;
       if (name !== null) {
         lazy.assert.string(
           locator.value.name,
-          lazy.pprint`Expected "locator.value.name" of "locator.type" "${locator.type}" to be a string, got ${name}`
+          `Expected "locator.value.name" of "locator.type" "${locator.type}" to be a string, ` +
+            lazy.pprint`got ${name}`
         );
       }
       if (role !== null) {
         lazy.assert.string(
           locator.value.role,
-          lazy.pprint`Expected "locator.value.role" of "locator.type" "${locator.type}" to be a string, got ${role}`
+          `Expected "locator.value.role" of "locator.type" "${locator.type}" to be a string, ` +
+            lazy.pprint`got ${role}`
         );
       }
     }
@@ -997,11 +1002,11 @@ class BrowsingContextModule extends Module {
     }
 
     if (maxNodeCount != null) {
-      const maxNodeCountErrorMsg = `Expected "maxNodeCount" to be an integer and greater than 0, got ${maxNodeCount}`;
+      const maxNodeCountErrorMsg = lazy.pprint`Expected "maxNodeCount" to be an integer and greater than 0, got ${maxNodeCount}`;
       lazy.assert.that(maxNodeCount => {
-        lazy.assert.integer(maxNodeCount, lazy.pprint`${maxNodeCountErrorMsg}`);
+        lazy.assert.integer(maxNodeCount, maxNodeCountErrorMsg);
         return maxNodeCount > 0;
-      }, lazy.pprint`${maxNodeCountErrorMsg}`)(maxNodeCount);
+      }, maxNodeCountErrorMsg)(maxNodeCount);
     }
 
     const serializationOptionsWithDefaults =
@@ -1085,7 +1090,8 @@ class BrowsingContextModule extends Module {
     const waitConditions = Object.values(WaitCondition);
     if (!waitConditions.includes(wait)) {
       throw new lazy.error.InvalidArgumentError(
-        `Expected "wait" to be one of ${waitConditions}, got ${wait}`
+        `Expected "wait" to be one of ${waitConditions}, ` +
+          lazy.pprint`got ${wait}`
       );
     }
 
@@ -1233,23 +1239,26 @@ class BrowsingContextModule extends Module {
     for (const prop of ["top", "bottom", "left", "right"]) {
       lazy.assert.positiveNumber(
         settings.margin[prop],
-        lazy.pprint`Expected "margin.${prop}" to be a positive number, got ${settings.margin[prop]}`
+        `Expected "margin.${prop}" to be a positive number, ` +
+          lazy.pprint`got ${settings.margin[prop]}`
       );
     }
     for (const prop of ["width", "height"]) {
       lazy.assert.positiveNumber(
         settings.page[prop],
-        lazy.pprint`Expected "page.${prop}" to be a positive number, got ${settings.page[prop]}`
+        `Expected "page.${prop}" to be a positive number, ` +
+          lazy.pprint`got ${settings.page[prop]}`
       );
     }
     lazy.assert.positiveNumber(
       settings.scale,
-      lazy.pprint`Expected "scale" to be a positive number, got ${settings.scale}`
+      `Expected "scale" to be a positive number, ` +
+        lazy.pprint`got ${settings.scale}`
     );
     lazy.assert.that(
       scale =>
         scale >= lazy.print.minScaleValue && scale <= lazy.print.maxScaleValue,
-      lazy.pprint`scale ${settings.scale} is outside the range ${lazy.print.minScaleValue}-${lazy.print.maxScaleValue}`
+      `scale ${settings.scale} is outside the range ${lazy.print.minScaleValue}-${lazy.print.maxScaleValue}`
     )(settings.scale);
     lazy.assert.boolean(
       settings.shrinkToFit,
@@ -1257,11 +1266,8 @@ class BrowsingContextModule extends Module {
     );
     lazy.assert.that(
       orientation => lazy.print.defaults.orientationValue.includes(orientation),
-      lazy.pprint`orientation ${
-        settings.orientation
-      } doesn't match allowed values "${lazy.print.defaults.orientationValue.join(
-        "/"
-      )}"`
+      `Expected "orientation" to be one of ${lazy.print.defaults.orientationValue}", ` +
+        lazy.pprint`got {settings.orientation}`
     )(settings.orientation);
     lazy.assert.boolean(
       settings.background,
@@ -1323,7 +1329,8 @@ class BrowsingContextModule extends Module {
     const waitConditions = Object.values(WaitCondition);
     if (!waitConditions.includes(wait)) {
       throw new lazy.error.InvalidArgumentError(
-        `Expected "wait" to be one of ${waitConditions}, got ${wait}`
+        `Expected "wait" to be one of ${waitConditions}, ` +
+          lazy.pprint`got ${wait}`
       );
     }
 

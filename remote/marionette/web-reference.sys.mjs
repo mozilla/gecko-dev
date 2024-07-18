@@ -110,7 +110,7 @@ export class WebReference {
   static fromJSON(json) {
     lazy.assert.object(
       json,
-      lazy.pprint`Expected web reference to be object, got ${json}`
+      lazy.pprint`Expected web reference to be an object, got ${json}`
     );
     if (json instanceof WebReference) {
       return json;

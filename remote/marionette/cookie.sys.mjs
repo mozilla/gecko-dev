@@ -102,9 +102,8 @@ cookie.fromJSON = function (json) {
     newCookie.sameSite = lazy.assert.in(
       json.sameSite,
       validOptions,
-      lazy.pprint`Expected cookie "sameSite" to be one of ${validOptions.toString()}, got ${
-        json.sameSite
-      }`
+      `Expected cookie "sameSite" to be one of ${validOptions.toString()}, ` +
+        lazy.pprint`got ${json.sameSite}`
     );
   }
 

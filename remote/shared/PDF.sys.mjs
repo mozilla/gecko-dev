@@ -171,13 +171,10 @@ function parseRanges(ranges) {
       limits = [range, range];
     } else {
       // We got a string presumably of the form <int> | <int>? "-" <int>?
-      const msg = `Expected "range" to be of the form <int> or <int>-<int>, got ${range}`;
+      const msg = lazy.pprint`Expected "range" to be of the form <int> or <int>-<int>, got ${range}`;
 
       limits = range.split("-").map(x => x.trim());
-      lazy.assert.that(
-        o => [1, 2].includes(o.length),
-        lazy.pprint`${msg}`
-      )(limits);
+      lazy.assert.that(o => [1, 2].includes(o.length), msg)(limits);
 
       // Single numbers map to a range with that page at the start and the end
       if (limits.length == 1) {
@@ -186,10 +183,7 @@ function parseRanges(ranges) {
 
       // Need to check that both limits are strings consisting only of
       // decimal digits (or empty strings)
-      const assertNumeric = lazy.assert.that(
-        o => /^\d*$/.test(o),
-        lazy.pprint`${msg}`
-      );
+      const assertNumeric = lazy.assert.that(o => /^\d*$/.test(o), msg);
       limits.every(x => assertNumeric(x));
 
       // Convert from strings representing numbers to actual numbers
