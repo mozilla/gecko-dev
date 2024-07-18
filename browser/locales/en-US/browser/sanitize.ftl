@@ -112,7 +112,7 @@ item-cached-content =
     .label = Temporary cached files and pages
     .accesskey = f
 
-item-cached-content-description = Clears items that helps sites load faster
+item-cached-content-description = Clears items that help sites load faster
 
 item-form-search-history =
     .label = Form & search history
