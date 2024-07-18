@@ -7,6 +7,7 @@
 #ifndef js_loader_ScriptLoadRequest_h
 #define js_loader_ScriptLoadRequest_h
 
+#include "js/experimental/JSStencil.h"
 #include "js/RootingAPI.h"
 #include "js/SourceText.h"
 #include "js/TypeDecls.h"
@@ -188,6 +189,10 @@ class ScriptLoadRequest : public nsISupports,
   nsIPrincipal* TriggeringPrincipal() const {
     return mFetchOptions->mTriggeringPrincipal;
   }
+
+  // Convert a CheckingCache ScriptLoadRequest into a Ready one, by populating
+  // the script data from cached script.
+  void CacheEntryFound(LoadedScript* aLoadedScript);
 
   // Convert a CheckingCache ScriptLoadRequest into a Fetching one, by creating
   // a new LoadedScript which is matching the ScriptKind provided when
