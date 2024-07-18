@@ -8,6 +8,7 @@
 #define nsNSSIOLayer_h
 
 #include "mozilla/Assertions.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
@@ -22,9 +23,6 @@
 
 namespace mozilla {
 class OriginAttributes;
-namespace psm {
-class SharedSSLState;
-}  // namespace psm
 }  // namespace mozilla
 
 const uint32_t kIPCClientCertsSlotTypeModern = 1;
@@ -49,8 +47,10 @@ class nsSSLIOLayerHelpers : public nsIObserver {
   explicit nsSSLIOLayerHelpers(PublicOrPrivate aPublicOrPrivate,
                                uint32_t aTlsFlags = 0);
 
+  static void GlobalInit();
+  static void GlobalCleanup();
+
   nsresult Init();
-  void Cleanup();
 
   static bool nsSSLIOLayerInitialized;
   static PRDescIdentity nsSSLIOLayerIdentity;
@@ -105,6 +105,14 @@ class nsSSLIOLayerHelpers : public nsIObserver {
   mozilla::Mutex mutex MOZ_UNANNOTATED;
   uint32_t mTlsFlags;
 };
+
+namespace {
+static mozilla::StaticRefPtr<nsSSLIOLayerHelpers> gPublicSSLIOLayerHelpers;
+static mozilla::StaticRefPtr<nsSSLIOLayerHelpers> gPrivateSSLIOLayerHelpers;
+}  // namespace
+
+already_AddRefed<nsSSLIOLayerHelpers> PublicSSLIOLayerHelpers();
+already_AddRefed<nsSSLIOLayerHelpers> PrivateSSLIOLayerHelpers();
 
 nsresult nsSSLIOLayerNewSocket(int32_t family, const char* host, int32_t port,
                                nsIProxyInfo* proxy,

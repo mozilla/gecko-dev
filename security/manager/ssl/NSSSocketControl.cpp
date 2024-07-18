@@ -20,14 +20,14 @@ using namespace mozilla::psm;
 
 extern LazyLogModule gPIPNSSLog;
 
-NSSSocketControl::NSSSocketControl(const nsCString& aHostName, int32_t aPort,
-                                   SharedSSLState& aState,
-                                   uint32_t providerFlags,
-                                   uint32_t providerTlsFlags)
+NSSSocketControl::NSSSocketControl(
+    const nsCString& aHostName, int32_t aPort,
+    already_AddRefed<nsSSLIOLayerHelpers> aSSLIOLayerHelpers,
+    uint32_t providerFlags, uint32_t providerTlsFlags)
     : CommonSocketControl(aHostName, aPort, providerFlags),
       mFd(nullptr),
       mCertVerificationState(BeforeCertVerification),
-      mSharedState(aState),
+      mSSLIOLayerHelpers(aSSLIOLayerHelpers),
       mForSTARTTLS(false),
       mTLSVersionRange{0, 0},
       mHandshakePending(true),
@@ -506,16 +506,6 @@ void NSSSocketControl::ClientAuthCertificateSelected(
   if (mTlsHandshakeCallback) {
     Unused << mTlsHandshakeCallback->ClientAuthCertificateSelected();
   }
-}
-
-SharedSSLState& NSSSocketControl::SharedState() {
-  COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
-  return mSharedState;
-}
-
-void NSSSocketControl::SetSharedOwningReference(SharedSSLState* aRef) {
-  COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
-  mOwningSharedRef = aRef;
 }
 
 NS_IMETHODIMP

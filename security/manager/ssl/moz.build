@@ -141,7 +141,6 @@ UNIFIED_SOURCES += [
     "PublicKeyPinningService.cpp",
     "RootCertificateTelemetryUtils.cpp",
     "SecretDecoderRing.cpp",
-    "SharedSSLState.cpp",
     "SSLServerCertVerification.cpp",
     "TLSClientAuthCertSelection.cpp",
     "TransportSecurityInfo.cpp",

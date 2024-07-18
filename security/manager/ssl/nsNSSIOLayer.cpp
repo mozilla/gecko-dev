@@ -16,11 +16,9 @@
 #include "PSMRunnable.h"
 #include "SSLServerCertVerification.h"
 #include "ScopedNSSTypes.h"
-#include "SharedSSLState.h"
 #include "TLSClientAuthCertSelection.h"
 #include "keyhi.h"
 #include "mozilla/Base64.h"
-#include "mozilla/Casting.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
@@ -122,12 +120,6 @@ void getSiteKey(const nsACString& hostName, uint16_t port,
 }  // unnamed namespace
 
 extern LazyLogModule gPIPNSSLog;
-
-void nsSSLIOLayerHelpers::Cleanup() {
-  MutexAutoLock lock(mutex);
-  mTLSIntoleranceInfo.Clear();
-  mInsecureFallbackSites.Clear();
-}
 
 namespace {
 
@@ -460,8 +452,6 @@ bool retryDueToTLSIntolerance(PRErrorCode err, NSSSocketControl* socketInfo) {
   }
 
   SSLVersionRange range = socketInfo->GetTLSVersionRange();
-  RefPtr<nsSSLIOLayerHelpers> helpers =
-      socketInfo->SharedState().IOLayerHelpers();
 
   if (err == SSL_ERROR_UNSUPPORTED_VERSION &&
       range.min == SSL_LIBRARY_VERSION_TLS_1_0) {
@@ -480,13 +470,11 @@ bool retryDueToTLSIntolerance(PRErrorCode err, NSSSocketControl* socketInfo) {
     // First, track the original cause of the version fallback.  This uses the
     // same buckets as the telemetry below, except that bucket 0 will include
     // all cases where there wasn't an original reason.
-    PRErrorCode originalReason = helpers->getIntoleranceReason(
-        socketInfo->GetHostName(), socketInfo->GetPort());
+    PRErrorCode originalReason = socketInfo->GetTLSIntoleranceReason();
     Telemetry::Accumulate(Telemetry::SSL_VERSION_FALLBACK_INAPPROPRIATE,
                           tlsIntoleranceTelemetryBucket(originalReason));
 
-    helpers->forgetIntolerance(socketInfo->GetHostName(),
-                               AssertedCast<uint16_t>(socketInfo->GetPort()));
+    socketInfo->ForgetTLSIntolerance();
 
     return false;
   }
@@ -534,10 +522,7 @@ bool retryDueToTLSIntolerance(PRErrorCode err, NSSSocketControl* socketInfo) {
   // TLS intolerance fallback due to remembered tolerance.
   Telemetry::Accumulate(pre, reason);
 
-  if (!helpers->rememberIntolerantAtVersion(
-          socketInfo->GetHostName(),
-          AssertedCast<uint16_t>(socketInfo->GetPort()), range.min, range.max,
-          err)) {
+  if (!socketInfo->RememberTLSIntolerant(err)) {
     return false;
   }
 
@@ -967,6 +952,35 @@ nsSSLIOLayerHelpers::Observe(nsISupports* aSubject, const char* aTopic,
     clearStoredData();
   }
   return NS_OK;
+}
+
+void nsSSLIOLayerHelpers::GlobalInit() {
+  MOZ_ASSERT(NS_IsMainThread(), "Not on main thread");
+  gPublicSSLIOLayerHelpers = new nsSSLIOLayerHelpers(PublicOrPrivate::Public);
+  gPublicSSLIOLayerHelpers->Init();
+  gPrivateSSLIOLayerHelpers = new nsSSLIOLayerHelpers(PublicOrPrivate::Private);
+  gPrivateSSLIOLayerHelpers->Init();
+}
+
+/*static*/
+void nsSSLIOLayerHelpers::GlobalCleanup() {
+  MOZ_ASSERT(NS_IsMainThread(), "Not on main thread");
+
+  if (gPrivateSSLIOLayerHelpers) {
+    gPrivateSSLIOLayerHelpers = nullptr;
+  }
+
+  if (gPublicSSLIOLayerHelpers) {
+    gPublicSSLIOLayerHelpers = nullptr;
+  }
+}
+
+already_AddRefed<nsSSLIOLayerHelpers> PublicSSLIOLayerHelpers() {
+  return do_AddRef(gPublicSSLIOLayerHelpers);
+}
+
+already_AddRefed<nsSSLIOLayerHelpers> PrivateSSLIOLayerHelpers() {
+  return do_AddRef(gPrivateSSLIOLayerHelpers);
 }
 
 static int32_t PlaintextRecv(PRFileDesc* fd, void* buf, int32_t amount,
@@ -1484,11 +1498,7 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
   }
 
   uint16_t maxEnabledVersion = range.max;
-  RefPtr<nsSSLIOLayerHelpers> ioLayerHelpers =
-      infoObject->SharedState().IOLayerHelpers();
-  ioLayerHelpers->adjustForTLSIntolerance(
-      infoObject->GetHostName(), AssertedCast<uint16_t>(infoObject->GetPort()),
-      range);
+  infoObject->AdjustForTLSIntolerance(range);
   MOZ_LOG(
       gPIPNSSLog, LogLevel::Debug,
       ("[%p] nsSSLIOLayerSetOptions: using TLS version range (0x%04x,0x%04x)\n",
@@ -1724,30 +1734,27 @@ nsresult nsSSLIOLayerAddToSocket(int32_t family, const char* host, int32_t port,
                                  nsITLSSocketControl** tlsSocketControl,
                                  bool forSTARTTLS, uint32_t providerFlags,
                                  uint32_t providerTlsFlags) {
-  SharedSSLState* sharedState = nullptr;
-  RefPtr<SharedSSLState> allocatedState;
+  RefPtr<nsSSLIOLayerHelpers> sslIOLayerHelpers;
   if (providerTlsFlags) {
-    allocatedState =
-        new SharedSSLState(PublicOrPrivate::Public, providerTlsFlags);
-    sharedState = allocatedState.get();
+    sslIOLayerHelpers =
+        new nsSSLIOLayerHelpers(PublicOrPrivate::Public, providerTlsFlags);
+    sslIOLayerHelpers->Init();
   } else {
     bool isPrivate = providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE ||
                      originAttributes.IsPrivateBrowsing();
-    sharedState = isPrivate ? PrivateSSLState() : PublicSSLState();
+    sslIOLayerHelpers =
+        isPrivate ? PrivateSSLIOLayerHelpers() : PublicSSLIOLayerHelpers();
   }
 
-  RefPtr<NSSSocketControl> infoObject(
-      new NSSSocketControl(nsDependentCString(host), port, *sharedState,
-                           providerFlags, providerTlsFlags));
+  RefPtr<NSSSocketControl> infoObject(new NSSSocketControl(
+      nsDependentCString(host), port, sslIOLayerHelpers.forget(), providerFlags,
+      providerTlsFlags));
   if (!infoObject) {
     return NS_ERROR_FAILURE;
   }
 
   infoObject->SetForSTARTTLS(forSTARTTLS);
   infoObject->SetOriginAttributes(originAttributes);
-  if (allocatedState) {
-    infoObject->SetSharedOwningReference(allocatedState);
-  }
 
   bool haveProxy = false;
   bool haveHTTPSProxy = false;

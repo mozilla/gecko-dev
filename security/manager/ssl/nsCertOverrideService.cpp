@@ -8,7 +8,6 @@
 
 #include "NSSCertDBTrustDomain.h"
 #include "ScopedNSSTypes.h"
-#include "SharedSSLState.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/TaskQueue.h"

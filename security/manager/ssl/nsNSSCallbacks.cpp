@@ -10,7 +10,6 @@
 #include "PSMRunnable.h"
 #include "ScopedNSSTypes.h"
 #include "SharedCertVerifier.h"
-#include "SharedSSLState.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"
@@ -990,8 +989,6 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   PreliminaryHandshakeDone(fd);
 
   NSSSocketControl* infoObject = (NSSSocketControl*)fd->higher->secret;
-  RefPtr<nsSSLIOLayerHelpers> ioLayerHelpers =
-      infoObject->SharedState().IOLayerHelpers();
 
   SSLVersionRange versions(infoObject->GetTLSVersionRange());
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
@@ -999,11 +996,8 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
            "(0x%04x,0x%04x)\n",
            fd, static_cast<unsigned int>(versions.min),
            static_cast<unsigned int>(versions.max)));
-
   // If the handshake completed, then we know the site is TLS tolerant
-  ioLayerHelpers->rememberTolerantAtVersion(
-      infoObject->GetHostName(), AssertedCast<uint16_t>(infoObject->GetPort()),
-      versions.max);
+  infoObject->RememberTLSTolerant();
 
   SSLChannelInfo channelInfo;
   SECStatus rv = SSL_GetChannelInfo(fd, &channelInfo, sizeof(channelInfo));
@@ -1104,8 +1098,7 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
     rv = SSL_VersionRangeGetDefault(ssl_variant_stream, &defVersion);
     if (rv == SECSuccess && versions.max >= defVersion.max) {
       // we know this site no longer requires a version fallback
-      ioLayerHelpers->removeInsecureFallbackSite(infoObject->GetHostName(),
-                                                 infoObject->GetPort());
+      infoObject->RemoveInsecureTLSFallback();
     }
   }
 

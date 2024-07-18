@@ -14,7 +14,6 @@
 #include "PKCS11ModuleDB.h"
 #include "SSLTokensCache.h"
 #include "ScopedNSSTypes.h"
-#include "SharedSSLState.h"
 #include "cert.h"
 #include "cert_storage/src/cert_storage.h"
 #include "certdb.h"
@@ -62,6 +61,7 @@
 #include "nsIXULRuntime.h"
 #include "nsLiteralString.h"
 #include "nsNSSHelper.h"
+#include "nsNSSIOLayer.h"
 #include "nsNetCID.h"
 #include "nsPK11TokenDB.h"
 #include "nsPrintfCString.h"
@@ -293,7 +293,7 @@ nsNSSComponent::~nsNSSComponent() {
   // All cleanup code requiring services needs to happen in xpcom_shutdown
 
   PrepareForShutdown();
-  SharedSSLState::GlobalCleanup();
+  nsSSLIOLayerHelpers::GlobalCleanup();
   --mInstanceCount;
 
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsNSSComponent::dtor finished\n"));
@@ -930,14 +930,14 @@ nsresult CommonInit() {
   DisableMD5();
 
   mozilla::pkix::RegisterErrorTable();
-  SharedSSLState::GlobalInit();
+  nsSSLIOLayerHelpers::GlobalInit();
 
   return NS_OK;
 }
 
 void PrepareForShutdownInSocketProcess() {
   MOZ_ASSERT(XRE_IsSocketProcess());
-  SharedSSLState::GlobalCleanup();
+  nsSSLIOLayerHelpers::GlobalCleanup();
 }
 
 bool HandleTLSPrefChange(const nsCString& prefName) {

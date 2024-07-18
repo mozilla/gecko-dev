@@ -8,7 +8,6 @@
 #include "CryptoTask.h"
 #include "ExtendedValidation.h"
 #include "NSSCertDBTrustDomain.h"
-#include "SharedSSLState.h"
 #include "certdb.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Assertions.h"

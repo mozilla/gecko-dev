@@ -22,7 +22,6 @@
 #include "pk11pub.h"
 #include "certdb.h"
 #include "sechash.h"
-#include "SharedSSLState.h"
 
 #include "nsJSUtils.h"
 

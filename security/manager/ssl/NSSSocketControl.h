@@ -8,8 +8,9 @@
 #define NSSSocketControl_h
 
 #include "CommonSocketControl.h"
-#include "SharedSSLState.h"
 #include "TLSClientAuthCertSelection.h"
+#include "mozilla/Casting.h"
+#include "nsNSSIOLayer.h"
 #include "nsThreadUtils.h"
 
 extern mozilla::LazyLogModule gPIPNSSLog;
@@ -19,8 +20,8 @@ class SelectClientAuthCertificate;
 class NSSSocketControl final : public CommonSocketControl {
  public:
   NSSSocketControl(const nsCString& aHostName, int32_t aPort,
-                   mozilla::psm::SharedSSLState& aState, uint32_t providerFlags,
-                   uint32_t providerTlsFlags);
+                   already_AddRefed<nsSSLIOLayerHelpers> aSSLIOLayerHelpers,
+                   uint32_t providerFlags, uint32_t providerTlsFlags);
 
   NS_INLINE_DECL_REFCOUNTING_INHERITED(NSSSocketControl, CommonSocketControl);
 
@@ -47,6 +48,44 @@ class NSSSocketControl final : public CommonSocketControl {
     COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
     return mTLSVersionRange;
   };
+
+  void RememberTLSTolerant() {
+    COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
+    mSSLIOLayerHelpers->rememberTolerantAtVersion(
+        GetHostName(), mozilla::AssertedCast<uint16_t>(GetPort()),
+        mTLSVersionRange.max);
+  }
+
+  void RemoveInsecureTLSFallback() {
+    COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
+    mSSLIOLayerHelpers->removeInsecureFallbackSite(
+        GetHostName(), mozilla::AssertedCast<uint16_t>(GetPort()));
+  }
+
+  PRErrorCode GetTLSIntoleranceReason() {
+    COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
+    return mSSLIOLayerHelpers->getIntoleranceReason(
+        GetHostName(), mozilla::AssertedCast<uint16_t>(GetPort()));
+  }
+
+  void ForgetTLSIntolerance() {
+    COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
+    mSSLIOLayerHelpers->forgetIntolerance(
+        GetHostName(), mozilla::AssertedCast<uint16_t>(GetPort()));
+  }
+
+  bool RememberTLSIntolerant(PRErrorCode err) {
+    COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
+    return mSSLIOLayerHelpers->rememberIntolerantAtVersion(
+        GetHostName(), mozilla::AssertedCast<uint16_t>(GetPort()),
+        mTLSVersionRange.min, mTLSVersionRange.max, err);
+  }
+
+  void AdjustForTLSIntolerance(SSLVersionRange& range) {
+    COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
+    mSSLIOLayerHelpers->adjustForTLSIntolerance(
+        GetHostName(), mozilla::AssertedCast<uint16_t>(GetPort()), range);
+  }
 
   // From nsITLSSocketControl.
   NS_IMETHOD ProxyStartSSL(void) override;
@@ -147,8 +186,6 @@ class NSSSocketControl final : public CommonSocketControl {
     return mProviderTlsFlags;
   }
 
-  mozilla::psm::SharedSSLState& SharedState();
-
   enum CertVerificationState {
     BeforeCertVerification,
     WaitingForCertVerification,
@@ -242,8 +279,6 @@ class NSSSocketControl final : public CommonSocketControl {
   }
 #endif
 
-  void SetSharedOwningReference(mozilla::psm::SharedSSLState* ref);
-
   nsresult SetResumptionTokenFromExternalCache(PRFileDesc* fd);
 
   void SetPreliminaryHandshakeInfo(const SSLChannelInfo& channelInfo,
@@ -290,7 +325,7 @@ class NSSSocketControl final : public CommonSocketControl {
 
   CertVerificationState mCertVerificationState;
 
-  mozilla::psm::SharedSSLState& mSharedState;
+  RefPtr<nsSSLIOLayerHelpers> mSSLIOLayerHelpers;
   bool mForSTARTTLS;
   SSLVersionRange mTLSVersionRange;
   bool mHandshakePending;
@@ -352,13 +387,6 @@ class NSSSocketControl final : public CommonSocketControl {
   // so it can include them in the message, we cache them here as temporary
   // certificates.
   mozilla::UniqueCERTCertList mClientCertChain;
-
-  // if non-null this is a reference to the mSharedState (which is
-  // not an owning reference). If this is used, the info has a private
-  // state that does not share things like intolerance lists with the
-  // rest of the session. This is normally used when you have per
-  // socket tls flags overriding session wide defaults.
-  RefPtr<mozilla::psm::SharedSSLState> mOwningSharedRef;
 
   nsCOMPtr<nsITlsHandshakeCallbackListener> mTlsHandshakeCallback;
 
