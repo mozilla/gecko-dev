@@ -49,15 +49,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Iţufren</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">Yettwasekles melmi kan</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">Sken akk ticraḍ n yisebtar yettwaskelsen</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Kkes</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Ticraḍ n yisebtar</string>
@@ -610,8 +601,6 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="preferences_account_sync_error">Ales tuqqna akken ad ikemmel umtawi</string>
     <!-- Preference for language -->
     <string name="preferences_language">Tutlayt</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Tasuqilt</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">Tisuqilin</string>
     <!-- Preference for data choices -->
@@ -710,8 +699,6 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Uɣal ɣer deffir</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Ticraḍ n yisebtar n melmi kan</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">Ticraḍ n yisebtar</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1690,7 +1677,9 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Ikripṭuminaren</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Idsilen umḍinen</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Idsilen umḍinen</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Idsilen umḍinen yettwassnen</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Talqayt</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1715,9 +1704,11 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Ad isewḥel yir iskripten ad kecmen ɣer yibenk-ik akken ad kksen tadrimt tumḍint.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Idsilen umḍinen</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Idsilen umḍinen</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Ad isewḥel alqaḍ n yisefka  yettwammalen s wudem asuf ɣef yibenk-ik daɣen wid i izemren ad ttwasqedcen i uḍfar.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Ad isewḥel alqaḍ n yisefka  yettwammalen s wudem asuf ɣef yibenk-ik daɣen wid i izemren ad ttwasqedcen i uḍfar.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Ad isewḥel alqaḍ n yisefka  yettwammalen s wudem asuf ɣef yibenk-ik daɣen wid i izemren ad ttwasqedcen i uḍfar.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Agbur n uḍfaṛ</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1744,6 +1735,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Yesfaḍay inagan n tuqqna yettusbadun s yiwellhen n yismal web n uḍfar yettwassnen.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Idlisen umḍinen yella ccek deg-sen</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Idsilen umḍinen yettwassnen</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Kra n yineḍfaren yettwaṛecmen ddaw-a yekkes-asen usewḥel amuran ɣef usebter-a acku temyigweḍ yid-sen*.</string>
@@ -2465,6 +2460,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="translations_bottom_sheet_negative_button">Mačči tura</string>
     <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
     <string name="translations_bottom_sheet_negative_button_restore">Sken aɣbalu</string>
+    <!-- Accessibility announcement (not visible, for screen readers etc.) for the translations dialog after restore button was pressed that indicates the original untranslated page was loaded. -->
+    <string name="translations_bottom_sheet_restore_accessibility_announcement">Asebter agejdan ur yettwasuqqlen ara yuli-d</string>
     <!-- Button text on the translations dialog when a translation error appears, used to dismiss the dialog and return to the browser. -->
     <string name="translations_bottom_sheet_negative_button_error">Immed</string>
     <!-- Button text on the translations dialog to begin a translation of the website. -->
@@ -2595,8 +2592,6 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="download_languages_item_content_description_in_progress_state">Iteddu</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Sader</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Yettwafran</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">Ggumant ad d-alint tutlayin. Ttxil-k·m ɛreḍ tikkelt niḍen.</string>
@@ -2653,8 +2648,6 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">Amḍan n waccaren</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">Urmid</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">Urmid</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_inactive">Insa</string>
@@ -2669,6 +2662,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="debug_drawer_tab_tools_tab_creation_tool_text_field_label">Amḍan n waccaren ara yettwarnan</string>
     <!-- The error message of the text field in the tab creation tool when the text field is empty -->
     <string name="debug_drawer_tab_tools_tab_quantity_empty_error">Urti n uḍris d ilem</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Ttxil-k sekcem amḍan nnig ilem</string>
     <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
     <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">Rnu ɣer waccaren urmiden</string>
     <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
@@ -2742,4 +2737,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="debug_drawer_logins_add_login_button">Rnu meffer anekcum i taɣult-a</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Kkes anekcum s yisem n useqdac %s</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">Ifecka CFR</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Wennez CFRs</string>
 </resources>
