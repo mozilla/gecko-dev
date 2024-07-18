@@ -58,7 +58,6 @@ class LoadContextBase : public nsISupports {
   // Casting to the different contexts
   bool IsWindowContext() const { return mKind == ContextKind::Window; }
   mozilla::dom::ScriptLoadContext* AsWindowContext();
-  const mozilla::dom::ScriptLoadContext* AsWindowContext() const;
 
   bool IsSyncContext() const { return mKind == ContextKind::Sync; }
   mozilla::loader::SyncLoadContext* AsSyncContext();

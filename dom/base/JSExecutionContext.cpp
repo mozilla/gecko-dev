@@ -102,17 +102,7 @@ nsresult JSExecutionContext::JoinOffThread(ScriptLoadContext* aContext) {
     return mRv;
   }
 
-  if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(mCx, stencil.get());
-    if (!mStencil) {
-      mSkip = true;
-      mRv = EvaluationExceptionToNSResult(mCx);
-      return mRv;
-    }
-  }
-
-  bool unused;
-  return InstantiateStencil(std::move(stencil), unused, &storage);
+  return InstantiateStencil(std::move(stencil), &storage);
 }
 
 template <typename Unit>
@@ -135,17 +125,7 @@ nsresult JSExecutionContext::InternalCompile(JS::SourceText<Unit>& aSrcBuf) {
     return mRv;
   }
 
-  if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(mCx, stencil.get());
-    if (!mStencil) {
-      mSkip = true;
-      mRv = EvaluationExceptionToNSResult(mCx);
-      return mRv;
-    }
-  }
-
-  bool unused;
-  return InstantiateStencil(std::move(stencil), unused);
+  return InstantiateStencil(std::move(stencil));
 }
 
 nsresult JSExecutionContext::Compile(JS::SourceText<char16_t>& aSrcBuf) {
@@ -195,22 +175,11 @@ nsresult JSExecutionContext::Decode(const JS::TranscodeRange& aBytecodeBuf) {
     return mRv;
   }
 
-  if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(mCx, stencil.get());
-    if (!mStencil) {
-      mSkip = true;
-      mRv = EvaluationExceptionToNSResult(mCx);
-      return mRv;
-    }
-  }
-
-  bool unused;
-  return InstantiateStencil(std::move(stencil), unused);
+  return InstantiateStencil(std::move(stencil));
 }
 
 nsresult JSExecutionContext::InstantiateStencil(
-    RefPtr<JS::Stencil>&& aStencil, bool& incrementalEncodingAlreadyStarted,
-    JS::InstantiationStorage* aStorage) {
+    RefPtr<JS::Stencil>&& aStencil, JS::InstantiationStorage* aStorage) {
   JS::InstantiateOptions instantiateOptions(mCompileOptions);
   JS::Rooted<JSScript*> script(
       mCx, JS::InstantiateGlobalStencil(mCx, instantiateOptions, aStencil,
@@ -222,12 +191,14 @@ nsresult JSExecutionContext::InstantiateStencil(
   }
 
   if (mEncodeBytecode) {
+    bool alreadyStarted;
     if (!JS::StartIncrementalEncoding(mCx, std::move(aStencil),
-                                      incrementalEncodingAlreadyStarted)) {
+                                      alreadyStarted)) {
       mSkip = true;
       mRv = EvaluationExceptionToNSResult(mCx);
       return mRv;
     }
+    MOZ_ASSERT(!alreadyStarted);
   }
 
   MOZ_ASSERT(!mScript);

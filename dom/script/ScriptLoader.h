@@ -16,7 +16,6 @@
 #include "nsCOMPtr.h"
 #include "nsRefPtrHashtable.h"
 #include "nsIScriptElement.h"
-#include "SharedScriptCache.h"
 #include "nsCOMArray.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsTArray.h"
@@ -152,35 +151,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
    * which it is initialized. This call forces the reference to
    * be dropped.
    */
-  void DropDocumentReference();
-
-  /**
-   * Register this loader to the shared script cache.
-   *
-   * When the principal for the document for the loader is modified,
-   * DeregisterFromCache and RegisterToCache should be called to reflect the
-   * modification (See Document::SetPrincipals).
-   */
-  void RegisterToCache();
-
-  /**
-   * Deregister this loader from the shared script cache and
-   * clear the cache data associated with this loader.
-   */
-  void DeregisterFromCache();
-
-  // Methods for SharedScriptCache.
-  nsIPrincipal* LoaderPrincipal() const;
-  nsIPrincipal* PartitionedPrincipal() const;
-
-  bool ShouldBypassCache() const;
-
-  template <typename T>
-  bool HasLoaded(const T& aKey) {
-    // NOTE: ScriptLoader doesn't cache pending/loading requests, and
-    //       this method is unsed.
-    return false;
-  }
+  void DropDocumentReference() { mDocument = nullptr; }
 
   /**
    * Add an observer for all scripts loaded through this loader.
@@ -462,14 +433,12 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
  private:
   ~ScriptLoader();
 
-  enum class RequestType { Inline, External, Preload };
-
   already_AddRefed<ScriptLoadRequest> CreateLoadRequest(
       ScriptKind aKind, nsIURI* aURI, nsIScriptElement* aElement,
       nsIPrincipal* aTriggeringPrincipal, mozilla::CORSMode aCORSMode,
       const nsAString& aNonce, RequestPriority aRequestPriority,
       const SRIMetadata& aIntegrity, ReferrerPolicy aReferrerPolicy,
-      JS::loader::ParserMetadata aParserMetadata, RequestType requestType);
+      JS::loader::ParserMetadata aParserMetadata);
 
   /**
    * Unblocks the creator parser of the parser-blocking scripts.
@@ -540,8 +509,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
       const Maybe<nsAutoString>& aCharsetForPreload);
 
   [[nodiscard]] nsresult PrepareIncrementalStreamLoader(
-      nsIIncrementalStreamLoader** aOutLoader, nsIChannel* aChannel,
-      ScriptLoadRequest* aRequest);
+      nsIIncrementalStreamLoader** aOutLoader, ScriptLoadRequest* aRequest);
 
   /**
    * Start a load for a script (module or classic) URI.
@@ -626,25 +594,11 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   // Implements https://html.spec.whatwg.org/#execute-the-script-block
   nsresult EvaluateScriptElement(ScriptLoadRequest* aRequest);
 
-  // Instantiate classic script from one of the following data:
-  //   * text source
-  //   * encoded bytecode
-  //   * cached stencil
-  nsresult InstantiateClassicScriptFromAny(JSContext* aCx,
-                                           JSExecutionContext& aExec,
-                                           ScriptLoadRequest* aRequest);
-
-  // Instantiate classic script from one of the following data:
-  //   * text source
-  //   * encoded bytecode
-  nsresult InstantiateClassicScriptFromMaybeEncodedSource(
-      JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest);
-
-  // Instantiate classic script from the following data:
-  //   * cached stencil
-  nsresult InstantiateClassicScriptFromCachedStencil(
-      JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest,
-      JS::Stencil* aStencil);
+  // Handles both bytecode and text source scripts; populates exec with a
+  // compiled script
+  nsresult CompileOrDecodeClassicScript(JSContext* aCx,
+                                        JSExecutionContext& aExec,
+                                        ScriptLoadRequest* aRequest);
 
   static nsCString& BytecodeMimeTypeFor(ScriptLoadRequest* aRequest);
 
@@ -810,8 +764,6 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   RefPtr<ModuleLoader> mModuleLoader;
   nsTArray<RefPtr<ModuleLoader>> mWebExtModuleLoaders;
   nsTArray<RefPtr<ModuleLoader>> mShadowRealmModuleLoaders;
-
-  RefPtr<SharedScriptCache> mCache;
 
   // Logging
  public:

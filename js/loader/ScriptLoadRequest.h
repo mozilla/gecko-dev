@@ -7,7 +7,6 @@
 #ifndef js_loader_ScriptLoadRequest_h
 #define js_loader_ScriptLoadRequest_h
 
-#include "js/experimental/JSStencil.h"
 #include "js/RootingAPI.h"
 #include "js/SourceText.h"
 #include "js/TypeDecls.h"
@@ -112,21 +111,6 @@ class ScriptLoadRequest : public nsISupports,
   ModuleLoadRequest* AsModuleRequest();
   const ModuleLoadRequest* AsModuleRequest() const;
 
-  bool IsCacheable() const;
-
-  uint32_t ExpirationTime() const { return mExpirationTime; }
-
-  void SetMinimumExpirationTime(uint32_t aExpirationTime) {
-    // 0 means "doesn't expire".
-    // Otherwise, calculate the minimum value.
-    if (aExpirationTime == 0) {
-      return;
-    }
-    if (mExpirationTime == 0 || aExpirationTime < mExpirationTime) {
-      mExpirationTime = aExpirationTime;
-    }
-  }
-
   virtual bool IsTopLevel() const { return true; };
 
   virtual void Cancel();
@@ -190,10 +174,6 @@ class ScriptLoadRequest : public nsISupports,
     return mFetchOptions->mTriggeringPrincipal;
   }
 
-  // Convert a CheckingCache ScriptLoadRequest into a Ready one, by populating
-  // the script data from cached script.
-  void CacheEntryFound(LoadedScript* aLoadedScript);
-
   // Convert a CheckingCache ScriptLoadRequest into a Fetching one, by creating
   // a new LoadedScript which is matching the ScriptKind provided when
   // constructing this ScriptLoadRequest.
@@ -207,8 +187,7 @@ class ScriptLoadRequest : public nsISupports,
   }
 
   void MarkSkippedBytecodeEncoding() {
-    MOZ_ASSERT(mBytecodeEncodingPlan == BytecodeEncodingPlan::Uninitialized ||
-               mBytecodeEncodingPlan == BytecodeEncodingPlan::PassedCondition);
+    MOZ_ASSERT(mBytecodeEncodingPlan == BytecodeEncodingPlan::Uninitialized);
     mBytecodeEncodingPlan = BytecodeEncodingPlan::Skipped;
   }
 
@@ -239,7 +218,6 @@ class ScriptLoadRequest : public nsISupports,
   bool HasWorkerLoadContext() const;
 
   mozilla::dom::ScriptLoadContext* GetScriptLoadContext();
-  const mozilla::dom::ScriptLoadContext* GetScriptLoadContext() const;
 
   mozilla::loader::SyncLoadContext* GetSyncLoadContext();
 
@@ -283,9 +261,6 @@ class ScriptLoadRequest : public nsISupports,
   // The referrer policy used for the initial fetch and for fetching any
   // imported modules
   enum mozilla::dom::ReferrerPolicy mReferrerPolicy;
-
-  uint32_t mExpirationTime = 0;
-
   RefPtr<ScriptFetchOptions> mFetchOptions;
   const SRIMetadata mIntegrity;
   const nsCOMPtr<nsIURI> mReferrer;

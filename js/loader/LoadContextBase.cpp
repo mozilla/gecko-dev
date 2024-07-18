@@ -42,12 +42,6 @@ mozilla::dom::ScriptLoadContext* LoadContextBase::AsWindowContext() {
   return static_cast<mozilla::dom::ScriptLoadContext*>(this);
 }
 
-const mozilla::dom::ScriptLoadContext* LoadContextBase::AsWindowContext()
-    const {
-  MOZ_ASSERT(IsWindowContext());
-  return static_cast<const mozilla::dom::ScriptLoadContext*>(this);
-}
-
 mozilla::loader::SyncLoadContext* LoadContextBase::AsSyncContext() {
   MOZ_ASSERT(IsSyncContext());
   return static_cast<mozilla::loader::SyncLoadContext*>(this);

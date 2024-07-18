@@ -468,37 +468,6 @@ const CSSCacheCleaner = {
   },
 };
 
-const JSCacheCleaner = {
-  async deleteByHost(aHost, aOriginAttributes) {
-    // Delete data from both HTTP and HTTPS sites.
-    let httpURI = Services.io.newURI("http://" + aHost);
-    let httpsURI = Services.io.newURI("https://" + aHost);
-    let httpPrincipal = Services.scriptSecurityManager.createContentPrincipal(
-      httpURI,
-      aOriginAttributes
-    );
-    let httpsPrincipal = Services.scriptSecurityManager.createContentPrincipal(
-      httpsURI,
-      aOriginAttributes
-    );
-
-    ChromeUtils.clearScriptCacheByPrincipal(httpPrincipal);
-    ChromeUtils.clearScriptCacheByPrincipal(httpsPrincipal);
-  },
-
-  async deleteByPrincipal(aPrincipal) {
-    ChromeUtils.clearScriptCacheByPrincipal(aPrincipal);
-  },
-
-  async deleteByBaseDomain(aBaseDomain) {
-    ChromeUtils.clearScriptCacheByBaseDomain(aBaseDomain);
-  },
-
-  async deleteAll() {
-    ChromeUtils.clearScriptCache();
-  },
-};
-
 const ImageCacheCleaner = {
   async deleteByHost(aHost, aOriginAttributes) {
     let imageCache = Cc["@mozilla.org/image/tools;1"]
@@ -1922,11 +1891,6 @@ const FLAGS_MAP = [
   {
     flag: Ci.nsIClearDataService.CLEAR_CSS_CACHE,
     cleaners: [CSSCacheCleaner],
-  },
-
-  {
-    flag: Ci.nsIClearDataService.CLEAR_JS_CACHE,
-    cleaners: [JSCacheCleaner],
   },
 
   {

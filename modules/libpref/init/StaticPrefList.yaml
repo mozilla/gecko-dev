@@ -3690,12 +3690,6 @@
   value: false
   mirror: always
 
-# Cache stencil across navigation
-- name: dom.script_loader.navigation_cache
-  type: bool
-  value: false
-  mirror: always
-
 - name: dom.securecontext.allowlist_onions
   type: bool
   value: false

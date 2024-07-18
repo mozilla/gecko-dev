@@ -128,12 +128,6 @@ mozilla::dom::ScriptLoadContext* ScriptLoadRequest::GetScriptLoadContext() {
   return mLoadContext->AsWindowContext();
 }
 
-const mozilla::dom::ScriptLoadContext* ScriptLoadRequest::GetScriptLoadContext()
-    const {
-  MOZ_ASSERT(mLoadContext);
-  return mLoadContext->AsWindowContext();
-}
-
 mozilla::loader::SyncLoadContext* ScriptLoadRequest::GetSyncLoadContext() {
   MOZ_ASSERT(mLoadContext);
   return mLoadContext->AsSyncContext();
@@ -157,43 +151,6 @@ ModuleLoadRequest* ScriptLoadRequest::AsModuleRequest() {
 const ModuleLoadRequest* ScriptLoadRequest::AsModuleRequest() const {
   MOZ_ASSERT(IsModuleRequest());
   return static_cast<const ModuleLoadRequest*>(this);
-}
-
-bool ScriptLoadRequest::IsCacheable() const {
-  if (HasScriptLoadContext() && GetScriptLoadContext()->mIsInline) {
-    return false;
-  }
-
-  if (mExpirationTime == 0) {
-    return true;
-  }
-
-  uint32_t now = nsContentUtils::SecondsFromPRTime(PR_Now());
-
-  return mExpirationTime > now;
-}
-
-void ScriptLoadRequest::CacheEntryFound(LoadedScript* aLoadedScript) {
-  MOZ_ASSERT(IsCheckingCache());
-  MOZ_ASSERT(mURI);
-
-  mLoadedScript = aLoadedScript;
-
-  MOZ_ASSERT(mFetchOptions->IsCompatible(mLoadedScript->GetFetchOptions()));
-
-  switch (mKind) {
-    case ScriptKind::eClassic:
-    case ScriptKind::eImportMap:
-      MOZ_ASSERT(mLoadedScript->IsClassicScript());
-      break;
-    case ScriptKind::eModule:
-      MOZ_ASSERT(mLoadedScript->IsModuleScript());
-      break;
-    case ScriptKind::eEvent:
-      MOZ_ASSERT_UNREACHABLE("EventScripts are not using ScriptLoadRequest");
-      break;
-  }
-  mState = State::Ready;
 }
 
 void ScriptLoadRequest::NoCacheEntryFound() {

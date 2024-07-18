@@ -842,11 +842,6 @@ interface nsIDOMWindowUtils : nsISupports {
   void clearSharedStyleSheetCache();
 
   /**
-   * Clears the SharedScriptCache.
-   */
-  void clearSharedScriptCache();
-
-  /**
    * Returns the number of stylesheets that have been parsed on this document.
    * Useful to test caching.
    */

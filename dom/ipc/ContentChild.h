@@ -252,10 +252,6 @@ class ContentChild final : public PContentChild,
       const Maybe<RefPtr<nsIPrincipal>>& aForPrincipal,
       const Maybe<nsCString>& aBaseDomain);
 
-  mozilla::ipc::IPCResult RecvClearScriptCache(
-      const Maybe<RefPtr<nsIPrincipal>>& aForPrincipal,
-      const Maybe<nsCString>& aBaseDomain);
-
   mozilla::ipc::IPCResult RecvClearImageCacheFromPrincipal(
       nsIPrincipal* aPrincipal);
   mozilla::ipc::IPCResult RecvClearImageCacheFromBaseDomain(

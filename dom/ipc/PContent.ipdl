@@ -666,9 +666,6 @@ child:
     async ClearStyleSheetCache(nullable nsIPrincipal? aForPrincipal,
                                nsCString? aBaseDomain);
 
-    async ClearScriptCache(nullable nsIPrincipal? aForPrincipal,
-                           nsCString? aBaseDomain);
-
     async SetOffline(bool offline);
     async SetConnectivity(bool connectivity);
     async SetCaptivePortalState(int32_t aState);
