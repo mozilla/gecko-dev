@@ -17,7 +17,19 @@ import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.TrustedWebUtils
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.menu.BrowserMenuBuilder
+import mozilla.components.browser.menu.item.BrowserMenuCheckbox
+import mozilla.components.browser.menu.item.BrowserMenuDivider
+import mozilla.components.browser.menu.item.BrowserMenuSwitch
+import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
+import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ColorSchemeParams
+import mozilla.components.browser.state.state.ContentState
+import mozilla.components.browser.state.state.CustomTabConfig
+import mozilla.components.browser.state.state.CustomTabMenuItem
+import mozilla.components.browser.state.state.CustomTabSessionState
+import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.toSafeIntent
@@ -377,6 +389,50 @@ class CustomTabConfigHelperTest {
 
         val customTabConfig = createCustomTabConfigFromIntent(customTabsIntent, testContext.resources)
         assertNotNull(customTabConfig.sessionToken)
+    }
+
+    @Test
+    fun `GIVEN a custom tab has custom menu items it wants to show WHEN creating the menu builder THEN include the custom menu items to be shown`() {
+        val defaultItems = listOf(
+            BrowserMenuCheckbox("item1") {},
+            BrowserMenuDivider(),
+            BrowserMenuSwitch("item3") {},
+        )
+        val defaultExtras = mapOf("default" to "extras")
+        val customMenuItems = listOf(
+            CustomTabMenuItem("customItem1", mock()),
+            CustomTabMenuItem("customItem2", mock()),
+        )
+        val defaultMenuBuilder = BrowserMenuBuilder(defaultItems, defaultExtras)
+        val customTab = CustomTabSessionState(
+            id = "customTabId",
+            config = CustomTabConfig(
+                menuItems = customMenuItems,
+            ),
+            content = ContentState("http://test.com"),
+        )
+        val browserStore = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(
+                    mock<TabSessionState>(),
+                ),
+                customTabs = listOf(customTab, mock()),
+            ),
+        )
+
+        val customTabMenu = defaultMenuBuilder.addCustomMenuItems(
+            context = testContext,
+            browserStore = browserStore,
+            customTabSessionId = customTab.id,
+            customTabMenuInsertIndex = 1,
+        )
+
+        assertEquals(5, customTabMenu!!.items.size)
+        assertEquals(defaultItems[0], customTabMenu.items[0])
+        assertTrue(customTabMenu.items[1] is SimpleBrowserMenuItem)
+        assertTrue(customTabMenu.items[2] is SimpleBrowserMenuItem)
+        assertEquals(defaultItems[1], customTabMenu.items[3])
+        assertEquals(defaultItems[2], customTabMenu.items[4])
     }
 
     private fun createColorSchemeParams() = ColorSchemeParams(

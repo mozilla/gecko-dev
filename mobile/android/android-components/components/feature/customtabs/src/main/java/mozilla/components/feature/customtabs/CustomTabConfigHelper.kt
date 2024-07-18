@@ -5,6 +5,7 @@
 package mozilla.components.feature.customtabs
 
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Bitmap
@@ -43,12 +44,17 @@ import androidx.browser.customtabs.CustomTabsIntent.SHOW_PAGE_TITLE
 import androidx.browser.customtabs.CustomTabsIntent.TOOLBAR_ACTION_BUTTON_ID
 import androidx.browser.customtabs.CustomTabsSessionToken
 import androidx.browser.customtabs.TrustedWebUtils.EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY
+import mozilla.components.browser.menu.BrowserMenuBuilder
+import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
+import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.state.ColorSchemeParams
 import mozilla.components.browser.state.state.ColorSchemes
 import mozilla.components.browser.state.state.CustomTabActionButtonConfig
 import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.CustomTabMenuItem
 import mozilla.components.browser.state.state.ExternalAppType
+import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.feature.customtabs.menu.sendWithUrl
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.toSafeBundle
 import mozilla.components.support.utils.toSafeIntent
@@ -115,6 +121,45 @@ fun createCustomTabConfigFromIntent(intent: Intent, resources: Resources?): Cust
             null
         },
         externalAppType = ExternalAppType.CUSTOM_TAB,
+    )
+}
+
+/**
+ * Helper function to add menu items from the custom tab configuration to the current menu builder.
+ *
+ * @param context Android [Context] used for system interactions.
+ * @param browserStore The [BrowserStore] containing data about the current custom tabs.
+ * @param customTabSessionId ID of the custom tab session. No-op if null or invalid.
+ * @param customTabMenuInsertIndex Optional index at which the custom menu items should be inserted.
+ */
+fun BrowserMenuBuilder?.addCustomMenuItems(
+    context: Context,
+    browserStore: BrowserStore,
+    customTabSessionId: String?,
+    customTabMenuInsertIndex: Int = 0,
+): BrowserMenuBuilder? {
+    val customTab = customTabSessionId?.let { browserStore.state.findCustomTab(it) } ?: return this
+
+    val customMenuItems = customTab.config.menuItems.map { item ->
+        SimpleBrowserMenuItem(item.name) {
+            item.pendingIntent.sendWithUrl(
+                context,
+                // Try to use the current url if the user navigated to another page in the meantime
+                // and default to the url from when the menu was constructed if we can't get the current one.
+                (browserStore.state.findCustomTab(customTabSessionId) ?: customTab).content.url,
+            )
+        }
+    }
+
+    val safeCustomMenuInsertIndex = customTabMenuInsertIndex.coerceIn(0, this?.items?.size ?: 0)
+    val defaultMenuItems = this?.items ?: emptyList()
+    val defaultMenuExtras = this?.extras ?: emptyMap()
+
+    return BrowserMenuBuilder(
+        items = defaultMenuItems.toMutableList().apply {
+            addAll(safeCustomMenuInsertIndex, customMenuItems)
+        },
+        extras = defaultMenuExtras + Pair("customTab", true),
     )
 }
 

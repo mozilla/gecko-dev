@@ -27,14 +27,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.menu.BrowserMenuBuilder
-import mozilla.components.browser.menu.BrowserMenuItem
-import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.state.ColorSchemeParams
 import mozilla.components.browser.state.state.ColorSchemes
 import mozilla.components.browser.state.state.CustomTabActionButtonConfig
 import mozilla.components.browser.state.state.CustomTabConfig
-import mozilla.components.browser.state.state.CustomTabMenuItem
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.toolbar.BrowserToolbar
@@ -184,7 +181,7 @@ class CustomTabsToolbarFeature(
 
         // Add menu items
         if (config.menuItems.isNotEmpty() || menuBuilder?.items?.isNotEmpty() == true) {
-            addMenuItems(config.menuItems, menuItemIndex)
+            addMenuItems()
         }
 
         if (!customTabsToolbarButtonConfig.showMenu) {
@@ -330,33 +327,8 @@ class CustomTabsToolbarFeature(
      * Build the menu items displayed when the 3-dot overflow menu is opened.
      */
     @VisibleForTesting
-    internal fun addMenuItems(
-        menuItems: List<CustomTabMenuItem>,
-        index: Int,
-    ) {
-        menuItems.map { item ->
-            SimpleBrowserMenuItem(item.name) {
-                session?.let {
-                    item.pendingIntent.sendWithUrl(context, it.content.url)
-                }
-            }
-        }.also { items ->
-            val combinedItems = menuBuilder?.let { builder ->
-                val newMenuItemList = mutableListOf<BrowserMenuItem>()
-                val insertIndex = index.coerceIn(0, builder.items.size)
-
-                newMenuItemList.apply {
-                    addAll(builder.items)
-                    addAll(insertIndex, items)
-                }
-            } ?: items
-
-            val combinedExtras = menuBuilder?.let { builder ->
-                builder.extras + Pair("customTab", true)
-            }
-
-            toolbar.display.menuBuilder = BrowserMenuBuilder(combinedItems, combinedExtras.orEmpty())
-        }
+    internal fun addMenuItems() {
+        toolbar.display.menuBuilder = menuBuilder.addCustomMenuItems(context, store, sessionId, menuItemIndex)
     }
 
     /**

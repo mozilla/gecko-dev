@@ -52,7 +52,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.ArgumentMatchers.anyList
 import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.never
@@ -61,6 +60,7 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.robolectric.annotation.Config
+
 @RunWith(AndroidJUnit4::class)
 class CustomTabsToolbarFeatureTest {
     @Test
@@ -754,7 +754,7 @@ class CustomTabsToolbarFeatureTest {
 
         feature.start()
 
-        verify(feature).addMenuItems(anyList(), anyInt())
+        verify(feature).addMenuItems()
     }
 
     @Test
@@ -790,7 +790,7 @@ class CustomTabsToolbarFeatureTest {
 
         feature.start()
 
-        verify(feature).addMenuItems(anyList(), anyInt())
+        verify(feature).addMenuItems()
     }
 
     @Test

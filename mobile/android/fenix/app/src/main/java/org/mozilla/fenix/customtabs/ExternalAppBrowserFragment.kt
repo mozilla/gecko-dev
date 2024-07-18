@@ -9,14 +9,12 @@ import android.view.View
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import mozilla.components.browser.menu.view.MenuButton
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.browser.state.state.SessionState
@@ -47,7 +45,6 @@ import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.settings.quicksettings.protections.cookiebanners.getCookieBannerUIMode
 import org.mozilla.fenix.theme.FirefoxTheme
-import org.mozilla.fenix.theme.ThemeManager
 
 /**
  * Fragment used for browsing the web within external apps.
@@ -78,17 +75,12 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
         // during the super.initializeUI call with BrowserNavBar.
         // A follow up: https://bugzilla.mozilla.org/show_bug.cgi?id=1888300
         if (requireContext().shouldAddNavigationBar()) {
-            // We need a second menu button, but we could reuse the existing builder.
-            val menuButton = MenuButton(requireContext()).apply {
-                menuBuilder = browserToolbarView.menuToolbar.menuBuilder
-                // We have to set colorFilter manually as the button isn't being managed by a [BrowserToolbarView].
-                setColorFilter(
-                    ContextCompat.getColor(
-                        context,
-                        ThemeManager.resolveAttribute(R.attr.textPrimary, context),
-                    ),
-                )
-            }
+            val navbarIntegration = CustomTabsNavigationBarIntegration(
+                context = requireContext(),
+                browserStore = requireComponents.core.store,
+                customTabSessionId = customTabSessionId,
+                defaultMenuBuilder = browserToolbarView.menuToolbar.menuBuilder,
+            )
 
             val isToolbarAtBottom = requireComponents.settings.toolbarPosition == ToolbarPosition.BOTTOM
             bottomToolbarContainerView.updateContent {
@@ -103,7 +95,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                         CustomTabNavBar(
                             customTabSessionId = customTabSessionId,
                             browserStore = requireComponents.core.store,
-                            menuButton = menuButton,
+                            menuButton = navbarIntegration.navbarMenu,
                             onBackButtonClick = {
                                 browserToolbarInteractor.onBrowserToolbarMenuItemTapped(
                                     ToolbarMenu.Item.Back(viewHistory = false),
