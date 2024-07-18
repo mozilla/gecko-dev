@@ -273,6 +273,21 @@ void ScriptLoader::SetGlobalObject(nsIGlobalObject* aGlobalObject) {
              mModuleLoader);
 }
 
+nsIPrincipal* ScriptLoader::LoaderPrincipal() const {
+  return mDocument->NodePrincipal();
+}
+
+nsIPrincipal* ScriptLoader::PartitionedPrincipal() const {
+  if (mDocument && StaticPrefs::privacy_partition_network_state()) {
+    return mDocument->PartitionedPrincipal();
+  }
+  return LoaderPrincipal();
+}
+
+bool ScriptLoader::ShouldBypassCache() const {
+  return mDocument && nsContentUtils::ShouldBypassSubResourceCache(mDocument);
+}
+
 void ScriptLoader::RegisterContentScriptModuleLoader(ModuleLoader* aLoader) {
   MOZ_ASSERT(aLoader);
   MOZ_ASSERT(aLoader->GetScriptLoader() == this);
