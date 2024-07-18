@@ -100,6 +100,14 @@ export class PlacesFrecencyRecalculator {
   #alternativeFrecencyHelper = null;
 
   /**
+   * Tracks whether the recalculator was finalized, usually due to shutdown.
+   * We use this explicit boolean rather than checking for a null `#task`
+   * because, due to async behavior, `#task` could be resurrected by
+   * `#createOrUpdateTask`.
+   */
+  #finalized = false;
+
+  /**
    * This is useful for testing.
    */
   get alternativeFrecencyInfo() {
@@ -117,15 +125,16 @@ export class PlacesFrecencyRecalculator {
     // Do not initialize during shutdown.
     if (
       Services.startup.isInOrBeyondShutdownPhase(
-        Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNTEARDOWN
+        Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
       )
     ) {
+      this.#finalized = true;
       return;
     }
 
     this.#createOrUpdateTask();
 
-    lazy.AsyncShutdown.profileChangeTeardown.addBlocker(
+    lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
       "PlacesFrecencyRecalculator: shutdown",
       () => this.#finalize()
     );
@@ -150,6 +159,10 @@ export class PlacesFrecencyRecalculator {
   }
 
   #createOrUpdateTask() {
+    if (this.#finalized) {
+      lazy.logger.trace(`Not resurrecting #task because finalized`);
+      return;
+    }
     let wasArmed = this.#task?.isArmed;
     if (this.#task) {
       this.#task.disarm();
@@ -191,6 +204,7 @@ export class PlacesFrecencyRecalculator {
     // next session.
     this.#task.disarm();
     this.#task.finalize().catch(console.error);
+    this.#finalized = true;
   }
 
   #lastEventsCount = 0;
@@ -420,6 +434,10 @@ export class PlacesFrecencyRecalculator {
 
   observe(subject, topic) {
     lazy.logger.trace(`Got ${topic} topic`);
+    if (this.#finalized) {
+      lazy.logger.trace(`Ignoring topic because finalized`);
+      return;
+    }
     switch (topic) {
       case "idle-daily":
         this.pendingFrecencyDecayPromise = this.decay();
