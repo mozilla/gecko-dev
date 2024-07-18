@@ -2794,6 +2794,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Document)
     NS_IMPL_CYCLE_COLLECTION_UNLINK(mCSSLoader)
   }
 
+  if (tmp->mScriptLoader) {
+    tmp->mScriptLoader->DropDocumentReference();
+    NS_IMPL_CYCLE_COLLECTION_UNLINK(mScriptLoader)
+  }
+
   // We own only the items in mDOMMediaQueryLists that have listeners;
   // this reference is managed by their AddListener and RemoveListener
   // methods.
@@ -4359,6 +4364,7 @@ void Document::SetPrincipals(nsIPrincipal* aNewPrincipal,
     }
   }
 
+  mScriptLoader->DeregisterFromCache();
   mCSSLoader->DeregisterFromSheetCache();
 
   mNodeInfoManager->SetDocumentPrincipal(aNewPrincipal);
@@ -4367,6 +4373,7 @@ void Document::SetPrincipals(nsIPrincipal* aNewPrincipal,
   mCachedURLData = nullptr;
 
   mCSSLoader->RegisterInSheetCache();
+  mScriptLoader->RegisterToCache();
 
   RecomputeResistFingerprinting();
 
