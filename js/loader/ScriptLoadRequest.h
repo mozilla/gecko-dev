@@ -111,6 +111,8 @@ class ScriptLoadRequest : public nsISupports,
   ModuleLoadRequest* AsModuleRequest();
   const ModuleLoadRequest* AsModuleRequest() const;
 
+  bool IsCacheable() const;
+
   uint32_t ExpirationTime() const { return mExpirationTime; }
 
   void SetMinimumExpirationTime(uint32_t aExpirationTime) {
