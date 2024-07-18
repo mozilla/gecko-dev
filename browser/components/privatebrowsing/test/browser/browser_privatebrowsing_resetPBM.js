@@ -203,22 +203,16 @@ add_task(async function test_toolbar_button_visibility() {
     });
 
     info(
-      "Test that the toolbar button is never visible in a normal browsing window."
+      "Test that the toolbar button does not exist in a normal browsing window."
     );
     let toolbarButtonNormalBrowsing = document.querySelector(
       SELECTOR_TOOLBAR_BUTTON
     );
     Assert.equal(
       !!toolbarButtonNormalBrowsing,
-      isEnabled,
-      "Normal browsing toolbar button element exists, depending on enabled pref state."
+      false,
+      "Normal browsing toolbar button element does not exist."
     );
-    if (toolbarButtonNormalBrowsing) {
-      Assert.ok(
-        !BrowserTestUtils.isVisible(toolbarButtonNormalBrowsing),
-        "Toolbar button is not visible in normal browsing"
-      );
-    }
 
     info(
       "Test that the toolbar button is visible in a private browsing window, depending on enabled pref state."
