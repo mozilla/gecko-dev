@@ -8124,7 +8124,8 @@ bool nsIFrame::IsImageFrameOrSubclass() const {
 
 bool nsIFrame::IsScrollContainerOrSubclass() const {
   const bool result = IsScrollContainerFrame() || IsListControlFrame();
-  MOZ_ASSERT(result == !!QueryFrame(ScrollContainerFrame::kFrameIID));
+  MOZ_ASSERT(result ==
+             !!static_cast<const ScrollContainerFrame*>(do_QueryFrame(this)));
   return result;
 }
 

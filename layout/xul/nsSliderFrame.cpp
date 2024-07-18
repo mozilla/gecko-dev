@@ -408,12 +408,7 @@ static bool UsesCustomScrollbarMediator(nsIFrame* scrollbarBox) {
   if (nsScrollbarFrame* scrollbarFrame = do_QueryFrame(scrollbarBox)) {
     if (nsIScrollbarMediator* mediator =
             scrollbarFrame->GetScrollbarMediator()) {
-      // Note we can't queryframe from nsIScrollbarMediator to
-      // ScrollContainerFrame directly due to an optimization in the queryframe
-      // implementation for ScrollContainerFrame.
-      nsIFrame* mediatorAsFrame = do_QueryFrame(mediator);
-      ScrollContainerFrame* scrollContainerFrame =
-          do_QueryFrame(mediatorAsFrame);
+      ScrollContainerFrame* scrollContainerFrame = do_QueryFrame(mediator);
       // The scrollbar mediator is not the scroll container frame.
       // That means this scroll container frame has a custom scrollbar mediator.
       if (!scrollContainerFrame) {
