@@ -178,6 +178,11 @@ interface nsIClearDataService : nsISupports
   const uint32_t CLEAR_IMAGE_CACHE = 1 << 2;
 
   /**
+   * In-memory JS cache.
+   */
+  const uint32_t CLEAR_JS_CACHE = 1 << 3;
+
+  /**
    * Completed downloads.
    */
   const uint32_t CLEAR_DOWNLOADS = 1 << 4;
@@ -338,7 +343,7 @@ interface nsIClearDataService : nsISupports
    * Delete all the possible caches.
    */
   const uint32_t CLEAR_ALL_CACHES = CLEAR_NETWORK_CACHE | CLEAR_IMAGE_CACHE |
-    CLEAR_CSS_CACHE | CLEAR_PREFLIGHT_CACHE | CLEAR_HSTS;
+    CLEAR_JS_CACHE | CLEAR_CSS_CACHE | CLEAR_PREFLIGHT_CACHE | CLEAR_HSTS;
 
   /**
    * Delete all DOM storages
