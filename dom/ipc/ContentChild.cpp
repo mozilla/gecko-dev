@@ -41,6 +41,7 @@
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/SharedStyleSheetCache.h"
+#include "mozilla/dom/SharedScriptCache.h"
 #include "mozilla/SimpleEnumerator.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_browser.h"
@@ -2127,6 +2128,16 @@ mozilla::ipc::IPCResult ContentChild::RecvClearStyleSheetCache(
       aForPrincipal ? aForPrincipal.value().get() : nullptr;
   const nsCString* baseDomain = aBaseDomain ? aBaseDomain.ptr() : nullptr;
   SharedStyleSheetCache::Clear(principal, baseDomain);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult ContentChild::RecvClearScriptCache(
+    const Maybe<RefPtr<nsIPrincipal>>& aForPrincipal,
+    const Maybe<nsCString>& aBaseDomain) {
+  nsIPrincipal* principal =
+      aForPrincipal ? aForPrincipal.value().get() : nullptr;
+  const nsCString* baseDomain = aBaseDomain ? aBaseDomain.ptr() : nullptr;
+  SharedScriptCache::Clear(principal, baseDomain);
   return IPC_OK();
 }
 
