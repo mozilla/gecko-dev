@@ -1873,8 +1873,6 @@ nsresult nsSSLIOLayerAddToSocket(int32_t family, const char* host, int32_t port,
     infoObject->SetHandshakeNotPending();
   }
 
-  infoObject->SharedState().NoteSocketCreated();
-
   rv = infoObject->SetResumptionTokenFromExternalCache(sslSock);
   if (NS_FAILED(rv)) {
     return rv;

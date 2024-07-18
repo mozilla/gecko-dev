@@ -1674,8 +1674,6 @@ void nsSocketTransportService::ClosePrivateConnections() {
       DetachSocket(mIdleList, &mIdleList[i]);
     }
   }
-
-  ClearPrivateSSLState();
 }
 
 NS_IMETHODIMP

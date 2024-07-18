@@ -1781,6 +1781,8 @@ nsNSSComponent::Observe(nsISupports* aSubject, const char* aTopic,
     if (clearSessionCache) {
       ClearSSLExternalAndInternalSessionCache();
     }
+  } else if (!nsCRT::strcmp(aTopic, "last-pb-context-exited")) {
+    nsNSSComponent::DoClearSSLExternalAndInternalSessionCache();
   }
 
   return NS_OK;
@@ -1840,6 +1842,7 @@ nsresult nsNSSComponent::RegisterObservers() {
   // least as long as the observer service.
   observerService->AddObserver(this, PROFILE_BEFORE_CHANGE_TOPIC, false);
   observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
+  observerService->AddObserver(this, "last-pb-context-exited", false);
 
   return NS_OK;
 }

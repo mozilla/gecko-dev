@@ -28,11 +28,6 @@ class SharedSSLState {
   void ResetStoredData();
   void NotePrivateBrowsingStatus();
 
-  // The following methods may be called from any thread
-  bool SocketCreated();
-  void NoteSocketCreated();
-  static void NoteCertOverrideServiceInstantiated();
-
  private:
   ~SharedSSLState();
 
@@ -40,12 +35,6 @@ class SharedSSLState {
 
   nsCOMPtr<nsIObserver> mObserver;
   nsSSLIOLayerHelpers mIOLayerHelpers;
-
-  // True if any sockets have been created that use this shared data.
-  // Requires synchronization between the socket and main threads for
-  // reading/writing.
-  Mutex mMutex MOZ_UNANNOTATED;
-  bool mSocketCreated;
 };
 
 SharedSSLState* PublicSSLState();
