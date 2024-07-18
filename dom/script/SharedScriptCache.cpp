@@ -140,7 +140,16 @@ SharedScriptCache::Observe(nsISupports* aSubject, const char* aTopic,
 
 void SharedScriptCache::Clear(nsIPrincipal* aForPrincipal,
                               const nsACString* aBaseDomain) {
-  // TODO: Send message to content process.
+  using ContentParent = dom::ContentParent;
+
+  if (XRE_IsParentProcess()) {
+    auto forPrincipal = aForPrincipal ? Some(RefPtr(aForPrincipal)) : Nothing();
+    auto baseDomain = aBaseDomain ? Some(nsCString(*aBaseDomain)) : Nothing();
+
+    for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
+      Unused << cp->SendClearScriptCache(forPrincipal, baseDomain);
+    }
+  }
 
   if (sInstance) {
     sInstance->ClearInProcess(aForPrincipal, aBaseDomain);
