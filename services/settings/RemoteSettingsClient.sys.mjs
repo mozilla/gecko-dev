@@ -210,6 +210,9 @@ class AttachmentDownloader extends Downloader {
       prune: async excludeIds => {
         return this._client.db.pruneAttachments(excludeIds);
       },
+      hasData: async () => {
+        return this._client.db.hasAttachments();
+      },
     };
     Object.defineProperty(this, "cacheImpl", { value: cacheImpl });
     return cacheImpl;
