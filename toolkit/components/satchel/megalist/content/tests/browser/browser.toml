@@ -4,5 +4,7 @@ support-files = [
 ]
 
 ["browser_passwords_sidebar.js"]
+skip-if = ["release_or_beta"] # bug 1908665
 
 ["browser_viewmodel.js"]
+skip-if = ["release_or_beta"]
