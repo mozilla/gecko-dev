@@ -321,16 +321,6 @@ class IntermediatePreloads {
         return;
       }
     }
-
-    try {
-      // fetches a bundle containing all attachments, download() is called further down to force a re-sync on hash mismatches for old data or if the bundle fails to download
-      await this.client.attachments.cacheAll();
-    } catch (err) {
-      lazy.log.warn(
-        `Error fetching/caching attachment bundle in intermediate preloading: ${err}`
-      );
-    }
-
     let current;
     try {
       current = await this.client.db.list();
@@ -442,9 +432,8 @@ class IntermediatePreloads {
 
     let dataAsString = null;
     try {
-      let { buffer } = await this.client.attachments.download(record, {
+      let buffer = await this.client.attachments.downloadAsBytes(record, {
         retries: 0,
-        checkHash: true,
       });
       dataAsString = lazy.gTextDecoder.decode(new Uint8Array(buffer));
     } catch (err) {

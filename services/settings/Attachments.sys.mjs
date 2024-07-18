@@ -20,14 +20,6 @@ class DownloadError extends Error {
   }
 }
 
-class DownloadBundleError extends Error {
-  constructor(url, resp) {
-    super(`Could not download bundle ${url}`);
-    this.name = "DownloadBundleError";
-    this.resp = resp;
-  }
-}
-
 class BadContentError extends Error {
   constructor(path) {
     super(`${path} content does not match server hash`);
@@ -111,9 +103,6 @@ export class Downloader {
   static get DownloadError() {
     return DownloadError;
   }
-  static get DownloadBundleError() {
-    return DownloadBundleError;
-  }
   static get BadContentError() {
     return BadContentError;
   }
@@ -124,10 +113,8 @@ export class Downloader {
     return NotFoundError;
   }
 
-  constructor(bucketName, collectionName) {
-    this.folders = ["settings", bucketName, collectionName];
-    this.bucketName = bucketName;
-    this.collectionName = collectionName;
+  constructor(...folders) {
+    this.folders = ["settings", ...folders];
     this._cdnURLs = {};
   }
 
@@ -170,107 +157,6 @@ export class Downloader {
    */
   async download(record, options) {
     return this.#fetchAttachment(record, options);
-  }
-
-  /**
-   * Downloads an attachment bundle for a given collection, if one exists. Fills in the cache
-   * for all attachments provided by the bundle.
-   *
-   * @param {Boolean} force Set to true to force a sync even when local data exists
-   * @returns {Boolean} True if all attachments were processed successfully, false if failed, null if skipped.
-   */
-  async cacheAll(force = false) {
-    // If we're offline, don't try
-    if (lazy.Utils.isOffline) {
-      return null;
-    }
-
-    // Do nothing if local cache has some data and force is not true
-    if (!force && (await this.cacheImpl.hasData())) {
-      return null;
-    }
-
-    const url =
-      (await this._baseAttachmentsURL()) +
-      `bundles/${this.bucketName}--${this.collectionName}.zip`;
-    const tmpZipFilePath = PathUtils.join(
-      PathUtils.tempDir,
-      `${Services.uuid.generateUUID().toString().slice(1, -1)}.zip`
-    );
-    let allSuccess = true;
-
-    try {
-      // 1. Download the zip archive to disk
-      const resp = await lazy.Utils.fetch(url);
-      if (!resp.ok) {
-        throw new Downloader.DownloadBundleError(url, resp);
-      }
-
-      const downloaded = await resp.arrayBuffer();
-      await IOUtils.write(tmpZipFilePath, new Uint8Array(downloaded), {
-        tmpPath: `${tmpZipFilePath}.tmp`,
-      });
-
-      // 2. Read the zipped content
-      const zipReader = Cc["@mozilla.org/libjar/zip-reader;1"].createInstance(
-        Ci.nsIZipReader
-      );
-
-      let tmpZipFile = await IOUtils.getFile(tmpZipFilePath);
-      zipReader.open(tmpZipFile);
-
-      for (const entryName of zipReader.findEntries("*.meta.json")) {
-        try {
-          // 3. Read the meta.json entry
-          const recordZStream = zipReader.getInputStream(entryName);
-          const recordDataLength = recordZStream.available();
-          const recordStream = Cc[
-            "@mozilla.org/scriptableinputstream;1"
-          ].createInstance(Ci.nsIScriptableInputStream);
-          recordStream.init(recordZStream);
-          const recordBytes = recordStream.readBytes(recordDataLength);
-          const recordBlob = new Blob([recordBytes], {
-            type: "application/json",
-          });
-          const record = JSON.parse(await recordBlob.text());
-          recordZStream.close();
-          recordStream.close();
-
-          // 4. Read the attachment entry
-          const zStream = zipReader.getInputStream(record.id);
-          const dataLength = zStream.available();
-          const stream = Cc[
-            "@mozilla.org/scriptableinputstream;1"
-          ].createInstance(Ci.nsIScriptableInputStream);
-          stream.init(zStream);
-          const fileBytes = stream.readBytes(dataLength);
-          const blob = new Blob([fileBytes]);
-
-          // 5. Save to cache
-          this.cacheImpl.set(record.id, { record, blob });
-
-          stream.close();
-          zStream.close();
-        } catch (ex) {
-          lazy.console.warn(
-            `${this.bucketName}/${this.collectionName}: Unable to save attachment entry for ${entryName}.`,
-            ex
-          );
-          allSuccess = false;
-        }
-      }
-    } catch (ex) {
-      lazy.console.warn(
-        `${this.bucketName}/${this.collectionName}: Unable to retrieve remote-settings attachment bundle.`,
-        ex
-      );
-      return false;
-    } finally {
-      // 6. Temp file cleanup
-      await IOUtils.remove(tmpZipFilePath, { ignoreAbsent: true });
-    }
-
-    return allSuccess;
   }
 
   /**

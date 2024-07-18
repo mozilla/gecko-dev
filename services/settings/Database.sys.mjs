@@ -254,34 +254,6 @@ export class Database {
     }
   }
 
-  async hasAttachments() {
-    let count = 0;
-    try {
-      const range = IDBKeyRange.bound(
-        [this.identifier],
-        [this.identifier, []],
-        false,
-        true
-      );
-      await executeIDB(
-        "attachments",
-        store => {
-          store.count(range).onsuccess = e => {
-            count = e.target.result;
-          };
-        },
-        { mode: "readonly" }
-      );
-    } catch (e) {
-      throw new lazy.IDBHelpers.IndexedDBError(
-        e,
-        "hasAttachments()",
-        this.identifier
-      );
-    }
-    return count > 0;
-  }
-
   /**
    * Delete all attachments which don't match any record.
    *
