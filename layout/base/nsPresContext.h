@@ -401,7 +401,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
    * Set the currently visible area. The units for r are standard
    * nscoord units (as scaled by the device context).
    */
-  void SetVisibleArea(const nsRect& r);
+  void SetVisibleArea(const nsRect& aRect);
 
   nsSize GetSizeForViewportUnits() const { return mSizeForViewportUnits; }
 
@@ -434,6 +434,8 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   }
 
   void UpdateKeyboardHeight(mozilla::ScreenIntCoord aHeight);
+
+  mozilla::ScreenIntCoord GetKeyboardHeight() const { return mKeyboardHeight; }
 
   /**
    * Returns the state of the dynamic toolbar.

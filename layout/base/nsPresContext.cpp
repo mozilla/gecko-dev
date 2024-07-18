@@ -2962,9 +2962,9 @@ gfx::PaletteCache& nsPresContext::FontPaletteCache() {
   return *mFontPaletteCache.get();
 }
 
-void nsPresContext::SetVisibleArea(const nsRect& r) {
-  if (!r.IsEqualEdges(mVisibleArea)) {
-    mVisibleArea = r;
+void nsPresContext::SetVisibleArea(const nsRect& aRect) {
+  if (!aRect.IsEqualEdges(mVisibleArea)) {
+    mVisibleArea = aRect;
     mSizeForViewportUnits = mVisibleArea.Size();
     if (IsRootContentDocumentCrossProcess()) {
       AdjustSizeForViewportUnits();
@@ -3060,6 +3060,15 @@ void nsPresContext::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
 void nsPresContext::UpdateKeyboardHeight(ScreenIntCoord aHeight) {
   MOZ_ASSERT(IsRootContentDocumentCrossProcess());
   mKeyboardHeight = aHeight;
+
+  if (!mPresShell) {
+    return;
+  }
+
+  if (RefPtr<MobileViewportManager> mvm =
+          mPresShell->GetMobileViewportManager()) {
+    mvm->UpdateKeyboardHeight(aHeight);
+  }
 }
 
 DynamicToolbarState nsPresContext::GetDynamicToolbarState() const {
