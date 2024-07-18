@@ -2033,6 +2033,8 @@ EnvironmentCache.prototype = {
       Headless: getGfxField("isHeadless", null),
       EmbeddedInFirefoxReality: getGfxField("EmbeddedInFirefoxReality", null),
       TargetFrameRate: getGfxField("TargetFrameRate", null),
+      textScaleFactor: getGfxField("textScaleFactor", null),
+
       // The following line is disabled due to main thread jank and will be enabled
       // again as part of bug 1154500.
       // DWriteVersion: getGfxField("DWriteVersion", null),
