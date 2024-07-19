@@ -1426,10 +1426,7 @@ export class DiscoveryStreamFeed {
         let { recommendations } = feedResponse;
         if (this.isMerino) {
           recommendations = feedResponse.data.map(item => ({
-            id: item.scheduledCorpusItemId,
-            // We duplicate scheduledCorpusItemId for backwards comp reasons.
-            // These ids are functionally the same.
-            // We need scheduled_corpus_item_id to pass along to telemetry.
+            id: item.tileId,
             scheduled_corpus_item_id: item.scheduledCorpusItemId,
             url: item.url,
             title: item.title,
