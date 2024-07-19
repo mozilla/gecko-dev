@@ -38,6 +38,10 @@ TryEmitter::TryEmitter(BytecodeEmitter* bce, Kind kind, ControlKind controlKind)
   }
 }
 
+#ifdef DEBUG
+bool TryEmitter::hasControlInfo() { return controlInfo_.isSome(); }
+#endif
+
 bool TryEmitter::emitTry() {
   MOZ_ASSERT(state_ == State::Start);
 

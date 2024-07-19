@@ -202,6 +202,10 @@ class MOZ_STACK_CLASS TryEmitter {
  public:
   TryEmitter(BytecodeEmitter* bce, Kind kind, ControlKind controlKind);
 
+#ifdef DEBUG
+  bool hasControlInfo();
+#endif
+
   [[nodiscard]] bool emitTry();
 
   enum class ExceptionStack : bool {

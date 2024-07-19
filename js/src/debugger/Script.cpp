@@ -1501,6 +1501,9 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::Try:
     case JSOp::Throw:
     case JSOp::ThrowWithStack:
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    case JSOp::ThrowWithStackWithoutJump:
+#endif
     case JSOp::Goto:
     case JSOp::TableSwitch:
     case JSOp::Case:
@@ -1698,9 +1701,6 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::InitTuple:
     case JSOp::AddTupleElement:
     case JSOp::FinishTuple:
-#endif
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-    case JSOp::TryUsing:
 #endif
       return false;
 

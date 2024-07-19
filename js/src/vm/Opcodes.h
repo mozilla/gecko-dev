@@ -2639,6 +2639,20 @@
      */ \
     MACRO(ThrowWithStack, throw_with_stack, NULL, 1, 2, 0, JOF_BYTE) \
     /*
+     * Throw `exc` without jumping to error handling code.
+     *
+     * This sets the pending exception to `exc`, the pending exception stack
+     * to `stack` but unlike ThrowWithStack it doesnt jump to error-handling
+     * code. This is used in Disposable Scopes to set the pending exception as the
+     * initial completion to be used while disposing resources.
+     *
+     *   Category: Control flow
+     *   Type: Exceptions
+     *   Operands:
+     *   Stack: exc, stack =>
+     */ \
+    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(ThrowWithStackWithoutJump, throw_with_stack_without_jump, NULL, 1, 2, 0, JOF_BYTE)) \
+    /*
      * Create and throw an Error object.
      *
      * Sometimes we know at emit time that an operation always throws. For
@@ -2691,17 +2705,6 @@
      *   Stack: =>
      */ \
     MACRO(TryDestructuring, try_destructuring, NULL, 1, 0, 0, JOF_BYTE) \
-    /*
-     * No-op instruction used by the exception unwinder to determine the
-     * correct environment to unwind to when an exception occurs in a
-     * environment with disposables.
-     *
-     *   Category: Control flow
-     *   Type: Exceptions
-     *   Operands:
-     *   Stack: =>
-     */ \
-    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(TryUsing, try_using, NULL, 1, 0, 0, JOF_BYTE)) \
     /*
      * Push and clear the pending exception. ┬──┬◡ﾉ(° -°ﾉ)
      *

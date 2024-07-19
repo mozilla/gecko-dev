@@ -1165,15 +1165,6 @@ static void SettleOnTryNote(JSContext* cx, const TryNote* tn,
   // Unwind the environment to the beginning of the JSOp::Try.
   UnwindEnvironment(cx, ei, UnwindEnvironmentToTryPc(regs.fp()->script(), tn));
 
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  if (tn->kind() == TryNoteKind::Using) {
-    regs.pc = regs.fp()->script()->offsetToPC(tn->start);
-    regs.sp = regs.spForStackDepth(tn->stackDepth);
-    MOZ_ASSERT(JSOp(*regs.pc) == JSOp::TryUsing);
-    return;
-  }
-#endif
-
   // Set pc to the first bytecode after the the try note to point
   // to the beginning of catch or finally.
   regs.pc = regs.fp()->script()->offsetToPC(tn->start + tn->length);
@@ -1269,17 +1260,6 @@ static HandleErrorContinuation ProcessTryNotes(JSContext* cx,
         }
         break;
       }
-
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-      case TryNoteKind::Using: {
-        SettleOnTryNote(cx, tn, ei, regs);
-        Rooted<JSObject*> env(cx, regs.fp()->environmentChain());
-        if (!DisposeDisposablesOnScopeLeave(cx, env)) {
-          return ErrorReturnContinuation;
-        }
-        break;
-      }
-#endif
 
       case TryNoteKind::ForOf:
       case TryNoteKind::Loop:
@@ -1815,7 +1795,7 @@ bool js::DisposeDisposablesOnScopeLeave(JSContext* cx,
   MOZ_ASSERT(maybeDisposables.isObject() || maybeDisposables.isUndefined());
 
   if (!maybeDisposables.isObject()) {
-    return true;
+    return !cx->isExceptionPending();
   }
 
   auto clearFn = [env]() {
@@ -2111,9 +2091,6 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     CASE(Try)
     CASE(NopDestructuring)
     CASE(NopIsAssignOp)
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-    CASE(TryUsing)
-#endif
     CASE(TryDestructuring) {
       MOZ_ASSERT(GetBytecodeLength(REGS.pc) == 1);
       ADVANCE_AND_DISPATCH(1);
@@ -2220,6 +2197,15 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     END_CASE(LeaveWith)
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    CASE(ThrowWithStackWithoutJump) {
+      ReservedRooted<Value> v(&rootValue0);
+      ReservedRooted<Value> stack(&rootValue1);
+      POP_COPY_TO(stack);
+      POP_COPY_TO(v);
+      MOZ_ALWAYS_FALSE(ThrowWithStackOperation(cx, v, stack));
+    }
+    END_CASE(ThrowWithStackWithoutJump)
+
     CASE(AddDisposable) {
       ReservedRooted<JSObject*> env(&rootObject0,
                                     REGS.fp()->environmentChain());
