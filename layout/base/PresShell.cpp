@@ -3218,7 +3218,7 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
     // TODO(emilio): Do we really want to clear the focus even if aScroll is
     // false?
     const bool shouldFocusTarget = [&] {
-      if (!aScroll) {
+      if (!aScroll || thereIsATextFragment) {
         return false;
       }
       nsIFrame* targetFrame = target->GetPrimaryFrame();
