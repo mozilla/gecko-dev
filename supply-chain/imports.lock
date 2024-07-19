@@ -719,6 +719,13 @@ user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
+[[publisher.thiserror]]
+version = "1.0.63"
+when = "2024-07-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
 [[publisher.thiserror-impl]]
 version = "1.0.57"
 when = "2024-02-11"
@@ -736,6 +743,13 @@ user-name = "David Tolnay"
 [[publisher.thiserror-impl]]
 version = "1.0.61"
 when = "2024-05-17"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
+[[publisher.thiserror-impl]]
+version = "1.0.63"
+when = "2024-07-17"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"

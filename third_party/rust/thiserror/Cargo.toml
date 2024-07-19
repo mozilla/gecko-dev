@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.56"
 name = "thiserror"
-version = "1.0.61"
+version = "1.0.63"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 build = "build.rs"
 autobins = false
@@ -41,40 +41,12 @@ name = "thiserror"
 path = "src/lib.rs"
 
 [[test]]
-name = "test_error"
-path = "tests/test_error.rs"
-
-[[test]]
-name = "test_source"
-path = "tests/test_source.rs"
-
-[[test]]
-name = "test_generics"
-path = "tests/test_generics.rs"
-
-[[test]]
-name = "test_from"
-path = "tests/test_from.rs"
-
-[[test]]
-name = "test_lints"
-path = "tests/test_lints.rs"
-
-[[test]]
-name = "test_transparent"
-path = "tests/test_transparent.rs"
+name = "compiletest"
+path = "tests/compiletest.rs"
 
 [[test]]
 name = "test_backtrace"
 path = "tests/test_backtrace.rs"
-
-[[test]]
-name = "test_path"
-path = "tests/test_path.rs"
-
-[[test]]
-name = "compiletest"
-path = "tests/compiletest.rs"
 
 [[test]]
 name = "test_deprecated"
@@ -85,15 +57,43 @@ name = "test_display"
 path = "tests/test_display.rs"
 
 [[test]]
-name = "test_option"
-path = "tests/test_option.rs"
+name = "test_error"
+path = "tests/test_error.rs"
 
 [[test]]
 name = "test_expr"
 path = "tests/test_expr.rs"
 
+[[test]]
+name = "test_from"
+path = "tests/test_from.rs"
+
+[[test]]
+name = "test_generics"
+path = "tests/test_generics.rs"
+
+[[test]]
+name = "test_lints"
+path = "tests/test_lints.rs"
+
+[[test]]
+name = "test_option"
+path = "tests/test_option.rs"
+
+[[test]]
+name = "test_path"
+path = "tests/test_path.rs"
+
+[[test]]
+name = "test_source"
+path = "tests/test_source.rs"
+
+[[test]]
+name = "test_transparent"
+path = "tests/test_transparent.rs"
+
 [dependencies.thiserror-impl]
-version = "=1.0.61"
+version = "=1.0.63"
 
 [dev-dependencies.anyhow]
 version = "1.0.73"
