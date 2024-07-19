@@ -210,7 +210,13 @@ void SVGImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
                                    bool aNotify) {
   if (aName == nsGkAtoms::href && (aNamespaceID == kNameSpaceID_None ||
                                    aNamespaceID == kNameSpaceID_XLink)) {
-    if (aValue) {
+    if (aNamespaceID == kNameSpaceID_XLink &&
+        mStringAttributes[HREF].IsExplicitlySet()) {
+      // href overrides xlink:href
+      return;
+    }
+    if (aValue || (aNamespaceID == kNameSpaceID_None &&
+                   mStringAttributes[XLINK_HREF].IsExplicitlySet())) {
       if (ShouldLoadImage()) {
         LoadSVGImage(true, aNotify);
       }
