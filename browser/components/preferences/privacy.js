@@ -511,6 +511,15 @@ var gPrivacyPane = {
     let httpsOnlyExceptionButton = document.getElementById(
       "httpsOnlyExceptionButton"
     );
+    let httpsOnlyRadioEnabled = document.getElementById(
+      "httpsOnlyRadioEnabled"
+    );
+    let httpsOnlyRadioEnabledPBM = document.getElementById(
+      "httpsOnlyRadioEnabledPBM"
+    );
+    let httpsOnlyRadioDisabled = document.getElementById(
+      "httpsOnlyRadioDisabled"
+    );
 
     if (httpsOnlyOnPref) {
       httpsOnlyRadioGroup.value = "enabled";
@@ -532,6 +541,23 @@ var gPrivacyPane = {
     ) {
       httpsOnlyRadioGroup.disabled = true;
     }
+
+    document.l10n.setAttributes(
+      httpsOnlyRadioEnabled,
+      httpsFirstOnPref ? "httpsonly-radio-enabled2" : "httpsonly-radio-enabled"
+    );
+    document.l10n.setAttributes(
+      httpsOnlyRadioEnabledPBM,
+      httpsFirstOnPref
+        ? "httpsonly-radio-enabled-pbm2"
+        : "httpsonly-radio-enabled-pbm"
+    );
+    document.l10n.setAttributes(
+      httpsOnlyRadioDisabled,
+      httpsFirstOnPref
+        ? "httpsonly-radio-disabled2"
+        : "httpsonly-radio-disabled"
+    );
   },
 
   syncToHttpsOnlyPref() {

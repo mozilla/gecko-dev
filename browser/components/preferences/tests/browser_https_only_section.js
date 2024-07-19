@@ -72,3 +72,64 @@ function check(radioGroupElement, expectedValue) {
     "HTTPS-Only PBM pref should match expected value."
   );
 }
+
+add_task(async function httpsOnlyCorrectLabels() {
+  registerCleanupFunction(async function () {
+    Services.prefs.clearUserPref("dom.security.https_first");
+  });
+
+  function ensureL10nIds(httpsFirstEnabled) {
+    return SpecialPowers.spawn(
+      gBrowser.selectedBrowser,
+      [httpsFirstEnabled],
+      _httpsFirstEnabled => {
+        function ensureL10nId(elementId, l10nId) {
+          const element = content.document.getElementById(elementId);
+          ok(element, `${elementId} should be on the settings page`);
+          is(
+            content.document.l10n.getAttributes(element).id,
+            l10nId,
+            `${elementId} should have the correct data-l10n-id attribute`
+          );
+        }
+
+        ensureL10nId(
+          "httpsOnlyRadioEnabled",
+          _httpsFirstEnabled
+            ? "httpsonly-radio-enabled2"
+            : "httpsonly-radio-enabled"
+        );
+        ensureL10nId(
+          "httpsOnlyRadioEnabledPBM",
+          _httpsFirstEnabled
+            ? "httpsonly-radio-enabled-pbm2"
+            : "httpsonly-radio-enabled-pbm"
+        );
+        ensureL10nId(
+          "httpsOnlyRadioDisabled",
+          _httpsFirstEnabled
+            ? "httpsonly-radio-disabled2"
+            : "httpsonly-radio-disabled"
+        );
+      }
+    );
+  }
+
+  // Load the page with HTTPS-First disabled and then enable it while on the
+  // page
+  await SpecialPowers.setBoolPref("dom.security.https_first", false);
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
+  await ensureL10nIds(false);
+  await SpecialPowers.setBoolPref("dom.security.https_first", true);
+  await ensureL10nIds(true);
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+
+  // Load the page with HTTPS-First enabled and then disable it while on the
+  // page
+  await SpecialPowers.setBoolPref("dom.security.https_first", true);
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
+  await ensureL10nIds(true);
+  await SpecialPowers.setBoolPref("dom.security.https_first", false);
+  await ensureL10nIds(false);
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
