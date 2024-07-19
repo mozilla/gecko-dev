@@ -1472,13 +1472,8 @@ bool SavedStacks::insertFrames(JSContext* cx, MutableHandle<SavedFrame*> frame,
       //   real stack. Because we're using different rules for walking the
       //   stack, we can reach frames that weren't cached in a previous
       //   AllFrames traversal.
-      // - Similarly, if we've seen an evalInFrame frame but haven't reached
-      //   its target yet, we don't stop when we reach an async parent, so we
-      //   can reach frames that weren't cached in a previous traversal that
-      //   didn't include the evalInFrame.
       DebugOnly<bool> hasGoodExcuse = framePtr->isRematerializedFrame() ||
-                                      capture.is<JS::FirstSubsumedFrame>() ||
-                                      !unreachedEvalTargets.empty();
+                                      capture.is<JS::FirstSubsumedFrame>();
       MOZ_ASSERT_IF(seenCached,
                     framePtr->hasCachedSavedFrame() || hasGoodExcuse);
       seenCached |= framePtr->hasCachedSavedFrame();
@@ -1606,6 +1601,16 @@ bool SavedStacks::insertFrames(JSContext* cx, MutableHandle<SavedFrame*> frame,
         // checkForEvalInFramePrev to fail.
         break;
       }
+
+      // At this point, we would normally stop walking the stack, but
+      // we're continuing because of an unreached eval target. If a
+      // previous capture stopped here, it's possible that this frame was
+      // already cached, but its non-async parent wasn't, which violates
+      // our `seenCached` invariant. By clearing `seenCached` here, we
+      // avoid spurious assertions. We continue to enforce the invariant
+      // for subsequent frames: if any frame above this is cached, then
+      // all of that frame's parents should also be cached.
+      seenCached = false;
     }
 
     if (capture.is<JS::MaxFrames>()) {
