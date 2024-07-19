@@ -10,6 +10,7 @@ import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.ext.recordNewImpression
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.reducer.FindInPageStateReducer
 import org.mozilla.fenix.components.appstate.shopping.ShoppingStateReducer
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarStateReducer
@@ -272,6 +273,7 @@ internal object AppStoreReducer {
             state.copy(openInFirefoxRequested = false)
         }
 
+        is AppAction.FindInPageAction -> FindInPageStateReducer.reduce(state, action)
         is AppAction.ShortcutAction -> ShortcutStateReducer.reduce(state, action)
         is AppAction.ShoppingAction -> ShoppingStateReducer.reduce(state, action)
         is AppAction.SnackbarAction -> SnackbarStateReducer.reduce(state, action)

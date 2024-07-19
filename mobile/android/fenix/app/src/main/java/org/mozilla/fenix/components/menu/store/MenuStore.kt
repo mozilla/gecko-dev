@@ -31,6 +31,7 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.AddShortcut,
         is MenuAction.RemoveShortcut,
         is MenuAction.DeleteBrowsingDataAndQuit,
+        is MenuAction.FindInPage,
         is MenuAction.OpenInApp,
         is MenuAction.OpenInFirefox,
         is MenuAction.InstallAddon,

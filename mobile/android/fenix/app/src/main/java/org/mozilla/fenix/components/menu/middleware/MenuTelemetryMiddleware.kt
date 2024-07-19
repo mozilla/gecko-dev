@@ -160,6 +160,12 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
+            MenuAction.FindInPage -> Events.browserMenuAction.record(
+                Events.BrowserMenuActionExtra(
+                    item = "find_in_page",
+                ),
+            )
+
             MenuAction.InitAction,
             MenuAction.ToggleReaderView,
             MenuAction.OpenInFirefox,
