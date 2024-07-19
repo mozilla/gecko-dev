@@ -1522,12 +1522,14 @@ void XMLHttpRequestWorker::SetResponseToNetworkError() {
   MOZ_LOG(gXMLHttpRequestLog, LogLevel::Debug, ("SetResponseToNetworkError"));
   mStateData->mStatus = 0;
   mStateData->mStatusText.Truncate();
-  mProxy->mLastLengthComputable = false;
-  mProxy->mLastLoaded = 0;
-  mProxy->mLastTotal = 0;
-  mProxy->mLastUploadLengthComputable = false;
-  mProxy->mLastUploadLoaded = 0;
-  mProxy->mLastUploadTotal = 0;
+  if (mProxy) {
+    mProxy->mLastLengthComputable = false;
+    mProxy->mLastLoaded = 0;
+    mProxy->mLastTotal = 0;
+    mProxy->mLastUploadLengthComputable = false;
+    mProxy->mLastUploadLoaded = 0;
+    mProxy->mLastUploadTotal = 0;
+  }
 }
 
 void XMLHttpRequestWorker::RequestErrorSteps(
@@ -1551,7 +1553,7 @@ void XMLHttpRequestWorker::RequestErrorSteps(
   SetResponseToNetworkError();
 
   // Step 4: If xhr’s synchronous flag is set, then throw exception.
-  if (mProxy->mIsSyncXHR) {
+  if (!mProxy || mProxy->mIsSyncXHR) {
     aRv.Throw(aException);
     return;
   }
@@ -1562,7 +1564,8 @@ void XMLHttpRequestWorker::RequestErrorSteps(
   }
 
   // Step 6: If xhr’s upload complete flag is unset, then:
-  if (mUpload && mProxy->mSeenUploadLoadStart && !mProxy->mSeenUploadLoadEnd) {
+  if (mUpload && mProxy && mProxy->mSeenUploadLoadStart &&
+      !mProxy->mSeenUploadLoadEnd) {
     // Gecko-specific: we can only know whether the proxy XHR's upload
     // complete flag is set by waiting for the related upload loadend
     // event to happen (at which point upload complete has just been set,
