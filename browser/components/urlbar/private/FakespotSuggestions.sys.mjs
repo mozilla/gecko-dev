@@ -161,6 +161,10 @@ export class FakespotSuggestions extends BaseFeature {
           src: result.payload.iconBlob,
         },
       },
+      title: {
+        textContent: result.payload.title,
+        highlights: result.payloadHighlights.title,
+      },
       "rating-five-stars": {
         attributes: {
           rating: result.payload.rating,

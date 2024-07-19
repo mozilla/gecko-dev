@@ -2129,25 +2129,6 @@ export class UrlbarView {
       idsByName.set(name, node.id);
     }
 
-    // First, apply highlighting. We do this before updating via getViewUpdate
-    // so the dynamic provider can override the highlighting by setting the
-    // textContent of the highlighted node, if it wishes.
-    for (let [payloadName, highlights] of Object.entries(
-      result.payloadHighlights
-    )) {
-      if (!highlights.length) {
-        continue;
-      }
-      // Highlighting only works if the dynamic element name is the same as the
-      // highlighted payload property name.
-      let nodeToHighlight = item.querySelector(`#${item.id}-${payloadName}`);
-      this.#addTextContentWithHighlights(
-        nodeToHighlight,
-        result.payload[payloadName],
-        highlights
-      );
-    }
-
     // Get the view update from the result's provider.
     let provider = lazy.UrlbarProvidersManager.getProvider(result.providerName);
     let viewUpdate = await provider.getViewUpdate(result, idsByName);
@@ -2173,7 +2154,11 @@ export class UrlbarView {
         }
         this.#setElementL10n(node, update.l10n);
       } else if (update.textContent) {
-        node.textContent = update.textContent;
+        this.#addTextContentWithHighlights(
+          node,
+          update.textContent,
+          update.highlights
+        );
       }
     }
   }
