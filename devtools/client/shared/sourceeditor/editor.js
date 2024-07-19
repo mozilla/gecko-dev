@@ -1387,7 +1387,7 @@ class Editor extends EventEmitter {
 
     cm.dispatch({
       effects: [
-        this.#compartments.lineWrapCompartment.reconfigure(
+        this.#compartments.lineNumberCompartment.reconfigure(
           lineNumbers({ domEventHandlers })
         ),
         this.#compartments.foldGutterCompartment.reconfigure(
