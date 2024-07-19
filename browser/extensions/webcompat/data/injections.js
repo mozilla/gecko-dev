@@ -1111,6 +1111,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1896571",
+    platform: "all",
+    domain: "gracobaby.ca",
+    bug: "1896571",
+    contentScripts: {
+      matches: ["*://www.gracobaby.ca/*"],
+      css: [
+        {
+          file: "injections/css/bug1896571-gracobaby.ca-unlock-scrolling.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
