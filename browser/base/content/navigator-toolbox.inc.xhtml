@@ -304,14 +304,13 @@
             </box>
             <toolbarbutton id="urlbar-searchmode-switcher"
                            data-l10n-id="urlbar-searchmode-button"
-                           onmousedown="SearchModeSwitcher.openPanel(this, event)" onkeypress="SearchModeSwitcher.openPanel(this, event)"
+                           data-action="openpopup"
                            align="center" noautofocus="true" tooltip="dynamic-shortcut-tooltip" class="chromeclass-toolbar-additional">
               <image id="searchmode-switcher-icon" />
               <label id="searchmode-switcher-title" />
               <image id="searchmode-switcher-dropmarker" data-l10n-id="urlbar-searchmode-dropmarker"
                      class="toolbarbutton-icon toolbarbutton-combined-buttons-dropmarker" />
-              <toolbarbutton id="searchmode-switcher-close" noautofocus="true" class="toolbarbutton-icon close-button"
-                             onmousedown="SearchModeSwitcher.exitSearchMode(this, event)" />
+              <toolbarbutton id="searchmode-switcher-close" data-action="exitsearchmode" noautofocus="true" class="toolbarbutton-icon close-button" />
             </toolbarbutton>
             <box id="urlbar-label-box" align="center">
               <label id="urlbar-label-switchtab" class="urlbar-label" data-l10n-id="urlbar-switch-to-tab"/>

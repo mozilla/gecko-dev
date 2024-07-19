@@ -36,3 +36,42 @@ add_task(async function basic() {
   window.document.querySelector("#searchmode-switcher-close").click();
   await UrlbarTestUtils.assertSearchMode(window, null);
 });
+
+function updateEngine(fun) {
+  let updated = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  fun();
+  return updated;
+}
+
+add_task(async function new_window() {
+  let oldEngine = Services.search.getEngineByName("Bing");
+  await updateEngine(() => {
+    oldEngine.hidden = true;
+  });
+
+  let newWin = await BrowserTestUtils.openNewBrowserWindow();
+  let popup = UrlbarTestUtils.searchModeSwitcherPopup(newWin);
+
+  info("Open the urlbar and searchmode switcher popup");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window: newWin,
+    value: "",
+  });
+  await UrlbarTestUtils.openSearchModeSwitcher(newWin);
+
+  info("Open popup and check list of engines is redrawn");
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(newWin);
+  Assert.ok(
+    !popup.querySelector(`toolbarbutton[label=${oldEngine.name}]`),
+    "List has been redrawn"
+  );
+  popup.querySelector("toolbarbutton[label=Google]").click();
+  await popupHidden;
+  newWin.document.querySelector("#searchmode-switcher-close").click();
+
+  await Services.search.restoreDefaultEngines();
+  await BrowserTestUtils.closeWindow(newWin);
+});

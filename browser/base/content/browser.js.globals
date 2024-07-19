@@ -159,7 +159,6 @@
   "Sanitizer",
   "SaveToPocket",
   "ScreenshotsUtils",
-  "SearchModeSwitcher",
   "SearchUIUtils",
   "SessionStartup",
   "SessionStore",
