@@ -23,7 +23,11 @@ function test(constructor) {
     assertEq(Object.getPrototypeOf(proto2), Object.prototype);
     assertEq(Object.prototype.toString.call(proto2), "[object Object]");
 
-    assertDeepEq(Reflect.ownKeys(proto2), [Symbol.iterator]);
+    if (getBuildConfiguration("explicit-resource-management")) {
+      assertDeepEq(Reflect.ownKeys(proto2), [Symbol.iterator, Symbol.dispose]);
+    } else {
+      assertDeepEq(Reflect.ownKeys(proto2), [Symbol.iterator]);
+    }
     assertEq(proto2[Symbol.iterator](), proto2);
 
     // Check there's a single %IteratorPrototype% object.
