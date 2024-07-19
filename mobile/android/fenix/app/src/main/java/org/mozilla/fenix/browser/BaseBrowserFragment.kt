@@ -1525,6 +1525,9 @@ abstract class BaseBrowserFragment :
                             onNewTabButtonClick = {
                                 browserToolbarInteractor.onNewTabButtonClicked()
                             },
+                            onNewTabButtonLongPress = {
+                                browserToolbarInteractor.onNewTabButtonLongClicked()
+                            },
                             onTabsButtonClick = {
                                 NavigationBar.browserTabTrayTapped.record(NoExtras())
                                 thumbnailsFeature.get()?.requestScreenshot()

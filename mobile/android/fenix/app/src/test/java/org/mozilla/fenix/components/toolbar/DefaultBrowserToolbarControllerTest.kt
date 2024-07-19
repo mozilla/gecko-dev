@@ -42,6 +42,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.Events
+import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.HomeActivity
@@ -481,6 +482,11 @@ class DefaultBrowserToolbarControllerTest {
                 BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
             )
         }
+
+        assertNotNull(NavigationBar.browserNewTabTapped.testGetValue())
+        val recordedEvents = NavigationBar.browserNewTabTapped.testGetValue()!!
+        assertEquals(1, recordedEvents.size)
+        assertEquals(null, recordedEvents.single().extra)
     }
 
     @Test
@@ -500,6 +506,17 @@ class DefaultBrowserToolbarControllerTest {
                 BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
             )
         }
+    }
+
+    @Test
+    fun `WHEN new tab button is long clicked THEN record the telemetry event`() {
+        val controller = createController()
+        controller.handleNewTabButtonLongClick()
+
+        assertNotNull(NavigationBar.browserNewTabLongTapped.testGetValue())
+        val recordedEvents = NavigationBar.browserNewTabLongTapped.testGetValue()!!
+        assertEquals(1, recordedEvents.size)
+        assertEquals(null, recordedEvents.single().extra)
     }
 
     private fun createController(

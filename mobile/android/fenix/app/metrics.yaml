@@ -11839,6 +11839,32 @@ navigation_bar:
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+  browser_new_tab_tapped:
+    type: event
+    description: |
+      When navigation bar new tab button is tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908836
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908836
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  browser_new_tab_long_tapped:
+    type: event
+    description: |
+      When navigation bar new tab button is long tapped by the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908836
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908836
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
   browser_tab_tray_tapped:
     type: event
     description: |

@@ -68,6 +68,7 @@ import org.mozilla.fenix.theme.ThemeManager
  * @param onForwardButtonClick Invoked when the user clicks on the forward button in the navigation bar.
  * @param onForwardButtonLongPress Invoked when the user long-presses the forward button in the navigation bar.
  * @param onNewTabButtonClick Invoked when the user click on the new tab button in the navigation bar.
+ * @param onNewTabButtonLongPress Invoked when the user long-presses the new tab button in the navigation bar.
  * @param onTabsButtonClick Invoked when the user clicks on the tabs button in the navigation bar.
  * @param onTabsButtonLongPress Invoked when the user long-presses the tabs button in the navigation bar.
  * @param onMenuButtonClick Invoked when the user clicks on the menu button in the navigation bar.
@@ -87,6 +88,7 @@ fun BrowserNavBar(
     onForwardButtonClick: () -> Unit,
     onForwardButtonLongPress: () -> Unit,
     onNewTabButtonClick: () -> Unit,
+    onNewTabButtonLongPress: () -> Unit,
     onTabsButtonClick: () -> Unit,
     onTabsButtonLongPress: () -> Unit,
     onMenuButtonClick: () -> Unit,
@@ -120,6 +122,7 @@ fun BrowserNavBar(
         NewTabButton(
             onClick = onNewTabButtonClick,
             menu = newTabMenu,
+            onLongPress = onNewTabButtonLongPress,
         )
 
         ToolbarTabCounterButton(
@@ -484,6 +487,7 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
         onForwardButtonClick = {},
         onForwardButtonLongPress = {},
         onNewTabButtonClick = {},
+        onNewTabButtonLongPress = {},
         onTabsButtonClick = {},
         onTabsButtonLongPress = {},
         onMenuButtonClick = {},

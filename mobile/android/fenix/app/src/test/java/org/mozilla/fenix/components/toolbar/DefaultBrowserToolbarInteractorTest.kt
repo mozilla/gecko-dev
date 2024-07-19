@@ -108,4 +108,11 @@ class DefaultBrowserToolbarInteractorTest {
 
         verify { browserToolbarController.handleNewTabButtonClick() }
     }
+
+    @Test
+    fun onNewTabButtonLongClicked() {
+        interactor.onNewTabButtonLongClicked()
+
+        verify { browserToolbarController.handleNewTabButtonLongClick() }
+    }
 }
