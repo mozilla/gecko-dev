@@ -24,11 +24,13 @@ use thiserror::Error;
 use std::{
     borrow::Borrow,
     fmt::Debug,
-    iter,
-    mem::{self, ManuallyDrop},
+    iter, mem,
     ops::Range,
     ptr::NonNull,
-    sync::{atomic::Ordering, Arc, Weak},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Weak,
+    },
 };
 
 /// Information about the wgpu-core resource.
@@ -61,7 +63,7 @@ pub(crate) struct TrackingData {
     /// sequentially. Thus, when a queue submission completes, we know any
     /// resources used in that submission and any lower-numbered submissions are
     /// no longer in use by the GPU.
-    submission_index: hal::AtomicFenceValue,
+    submission_index: AtomicUsize,
 }
 
 impl Drop for TrackingData {
@@ -75,7 +77,7 @@ impl TrackingData {
         Self {
             tracker_index: tracker_indices.alloc(),
             tracker_indices,
-            submission_index: hal::AtomicFenceValue::new(0),
+            submission_index: AtomicUsize::new(0),
         }
     }
 
@@ -86,11 +88,12 @@ impl TrackingData {
     /// Record that this resource will be used by the queue submission with the
     /// given index.
     pub(crate) fn use_at(&self, submit_index: SubmissionIndex) {
-        self.submission_index.store(submit_index, Ordering::Release);
+        self.submission_index
+            .store(submit_index as _, Ordering::Release);
     }
 
     pub(crate) fn submission_index(&self) -> SubmissionIndex {
-        self.submission_index.load(Ordering::Acquire)
+        self.submission_index.load(Ordering::Acquire) as _
     }
 }
 
@@ -252,7 +255,10 @@ pub enum BufferMapAsyncStatus {
 #[derive(Debug)]
 pub(crate) enum BufferMapState<A: HalApi> {
     /// Mapped at creation.
-    Init { staging_buffer: StagingBuffer<A> },
+    Init {
+        staging_buffer: StagingBuffer<A>,
+        ptr: NonNull<u8>,
+    },
     /// Waiting for GPU to be done before mapping
     Waiting(BufferPendingMapping<A>),
     /// Mapped
@@ -644,10 +650,15 @@ impl<A: HalApi> Buffer<A> {
         let raw_buf = self.try_raw(&snatch_guard)?;
         log::debug!("{} map state -> Idle", self.error_ident());
         match mem::replace(&mut *self.map_state.lock(), BufferMapState::Idle) {
-            BufferMapState::Init { staging_buffer } => {
+            BufferMapState::Init {
+                staging_buffer,
+                ptr,
+            } => {
                 #[cfg(feature = "trace")]
                 if let Some(ref mut trace) = *device.trace.lock() {
-                    let data = trace.make_binary("bin", staging_buffer.get_data());
+                    let data = trace.make_binary("bin", unsafe {
+                        std::slice::from_raw_parts(ptr.as_ptr(), self.size as usize)
+                    });
                     trace.add(trace::Action::WriteBuffer {
                         id: buffer_id,
                         data,
@@ -655,11 +666,17 @@ impl<A: HalApi> Buffer<A> {
                         queued: true,
                     });
                 }
+                let _ = ptr;
 
-                let mut pending_writes = device.pending_writes.lock();
-                let pending_writes = pending_writes.as_mut().unwrap();
-
-                let staging_buffer = staging_buffer.flush();
+                let raw_staging_buffer_guard = staging_buffer.raw.lock();
+                let raw_staging_buffer = raw_staging_buffer_guard.as_ref().unwrap();
+                if !staging_buffer.is_coherent {
+                    unsafe {
+                        device
+                            .raw()
+                            .flush_mapped_ranges(raw_staging_buffer, iter::once(0..self.size));
+                    }
+                }
 
                 self.use_at(device.active_submission_index.load(Ordering::Relaxed) + 1);
                 let region = wgt::BufferSize::new(self.size).map(|size| hal::BufferCopy {
@@ -668,13 +685,15 @@ impl<A: HalApi> Buffer<A> {
                     size,
                 });
                 let transition_src = hal::BufferBarrier {
-                    buffer: staging_buffer.raw(),
+                    buffer: raw_staging_buffer,
                     usage: hal::BufferUses::MAP_WRITE..hal::BufferUses::COPY_SRC,
                 };
                 let transition_dst = hal::BufferBarrier {
                     buffer: raw_buf,
                     usage: hal::BufferUses::empty()..hal::BufferUses::COPY_DST,
                 };
+                let mut pending_writes = device.pending_writes.lock();
+                let pending_writes = pending_writes.as_mut().unwrap();
                 let encoder = pending_writes.activate();
                 unsafe {
                     encoder.transition_buffers(
@@ -682,13 +701,14 @@ impl<A: HalApi> Buffer<A> {
                     );
                     if self.size > 0 {
                         encoder.copy_buffer_to_buffer(
-                            staging_buffer.raw(),
+                            raw_staging_buffer,
                             raw_buf,
                             region.into_iter(),
                         );
                     }
                 }
-                pending_writes.consume(staging_buffer);
+                drop(raw_staging_buffer_guard);
+                pending_writes.consume_temp(queue::TempResource::StagingBuffer(staging_buffer));
                 pending_writes.insert_buffer(self);
             }
             BufferMapState::Idle => {
@@ -714,7 +734,12 @@ impl<A: HalApi> Buffer<A> {
                     }
                     let _ = (ptr, range);
                 }
-                unsafe { device.raw().unmap_buffer(raw_buf) };
+                unsafe {
+                    device
+                        .raw()
+                        .unmap_buffer(raw_buf)
+                        .map_err(DeviceError::from)?
+                };
             }
         }
         Ok(None)
@@ -819,11 +844,6 @@ impl<A: HalApi> Drop for DestroyedBuffer<A> {
     }
 }
 
-#[cfg(send_sync)]
-unsafe impl<A: HalApi> Send for StagingBuffer<A> {}
-#[cfg(send_sync)]
-unsafe impl<A: HalApi> Sync for StagingBuffer<A> {}
-
 /// A temporary buffer, consumed by the command that uses it.
 ///
 /// A [`StagingBuffer`] is designed for one-shot uploads of data to the GPU. It
@@ -845,128 +865,33 @@ unsafe impl<A: HalApi> Sync for StagingBuffer<A> {}
 /// [`Device::pending_writes`]: crate::device::Device
 #[derive(Debug)]
 pub struct StagingBuffer<A: HalApi> {
-    raw: A::Buffer,
-    device: Arc<Device<A>>,
+    pub(crate) raw: Mutex<Option<A::Buffer>>,
+    pub(crate) device: Arc<Device<A>>,
     pub(crate) size: wgt::BufferSize,
-    is_coherent: bool,
-    ptr: NonNull<u8>,
+    pub(crate) is_coherent: bool,
 }
 
-impl<A: HalApi> StagingBuffer<A> {
-    pub(crate) fn new(device: &Arc<Device<A>>, size: wgt::BufferSize) -> Result<Self, DeviceError> {
-        use hal::Device;
-        profiling::scope!("StagingBuffer::new");
-        let stage_desc = hal::BufferDescriptor {
-            label: crate::hal_label(Some("(wgpu internal) Staging"), device.instance_flags),
-            size: size.get(),
-            usage: hal::BufferUses::MAP_WRITE | hal::BufferUses::COPY_SRC,
-            memory_flags: hal::MemoryFlags::TRANSIENT,
-        };
-
-        let raw = unsafe { device.raw().create_buffer(&stage_desc)? };
-        let mapping = unsafe { device.raw().map_buffer(&raw, 0..size.get()) }?;
-
-        let staging_buffer = StagingBuffer {
-            raw,
-            device: device.clone(),
-            size,
-            is_coherent: mapping.is_coherent,
-            ptr: mapping.ptr,
-        };
-
-        Ok(staging_buffer)
-    }
-
-    /// SAFETY: You must not call any functions of `self`
-    /// until you stopped using the returned pointer.
-    pub(crate) unsafe fn ptr(&self) -> NonNull<u8> {
-        self.ptr
-    }
-
-    #[cfg(feature = "trace")]
-    pub(crate) fn get_data(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.ptr.as_ptr(), self.size.get() as usize) }
-    }
-
-    pub(crate) fn write_zeros(&mut self) {
-        unsafe { core::ptr::write_bytes(self.ptr.as_ptr(), 0, self.size.get() as usize) };
-    }
-
-    pub(crate) fn write(&mut self, data: &[u8]) {
-        assert!(data.len() >= self.size.get() as usize);
-        // SAFETY: With the assert above, all of `copy_nonoverlapping`'s
-        // requirements are satisfied.
-        unsafe {
-            core::ptr::copy_nonoverlapping(
-                data.as_ptr(),
-                self.ptr.as_ptr(),
-                self.size.get() as usize,
-            );
-        }
-    }
-
-    /// SAFETY: The offsets and size must be in-bounds.
-    pub(crate) unsafe fn write_with_offset(
-        &mut self,
-        data: &[u8],
-        src_offset: isize,
-        dst_offset: isize,
-        size: usize,
-    ) {
-        unsafe {
-            core::ptr::copy_nonoverlapping(
-                data.as_ptr().offset(src_offset),
-                self.ptr.as_ptr().offset(dst_offset),
-                size,
-            );
-        }
-    }
-
-    pub(crate) fn flush(self) -> FlushedStagingBuffer<A> {
-        use hal::Device;
-        let device = self.device.raw();
-        if !self.is_coherent {
-            unsafe { device.flush_mapped_ranges(&self.raw, iter::once(0..self.size.get())) };
-        }
-        unsafe { device.unmap_buffer(&self.raw) };
-
-        let StagingBuffer {
-            raw, device, size, ..
-        } = self;
-
-        FlushedStagingBuffer {
-            raw: ManuallyDrop::new(raw),
-            device,
-            size,
+impl<A: HalApi> Drop for StagingBuffer<A> {
+    fn drop(&mut self) {
+        if let Some(raw) = self.raw.lock().take() {
+            resource_log!("Destroy raw {}", self.error_ident());
+            unsafe {
+                use hal::Device;
+                self.device.raw().destroy_buffer(raw);
+            }
         }
     }
 }
 
 crate::impl_resource_type!(StagingBuffer);
+// TODO: add label
+impl<A: HalApi> Labeled for StagingBuffer<A> {
+    fn label(&self) -> &str {
+        ""
+    }
+}
+crate::impl_parent_device!(StagingBuffer);
 crate::impl_storage_item!(StagingBuffer);
-
-#[derive(Debug)]
-pub struct FlushedStagingBuffer<A: HalApi> {
-    raw: ManuallyDrop<A::Buffer>,
-    device: Arc<Device<A>>,
-    pub(crate) size: wgt::BufferSize,
-}
-
-impl<A: HalApi> FlushedStagingBuffer<A> {
-    pub(crate) fn raw(&self) -> &A::Buffer {
-        &self.raw
-    }
-}
-
-impl<A: HalApi> Drop for FlushedStagingBuffer<A> {
-    fn drop(&mut self) {
-        use hal::Device;
-        resource_log!("Destroy raw StagingBuffer");
-        // SAFETY: We are in the Drop impl and we don't use self.raw anymore after this point.
-        let raw = unsafe { ManuallyDrop::take(&mut self.raw) };
-        unsafe { self.device.raw().destroy_buffer(raw) };
-    }
-}
 
 pub type TextureDescriptor<'a> = wgt::TextureDescriptor<Label<'a>, Vec<wgt::TextureFormat>>;
 

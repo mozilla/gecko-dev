@@ -331,7 +331,7 @@ impl ImplicitLayout<'_> {
             pipeline: identities.pipeline_layouts.process(backend),
             bind_groups: Cow::Owned(
                 (0..8) // hal::MAX_BIND_GROUPS
-                    .map(|_| identities.bind_group_layouts.process(backend))
+                    .map(|_| Some(identities.bind_group_layouts.process(backend)))
                     .collect(),
             ),
         }
@@ -1276,7 +1276,7 @@ pub unsafe extern "C" fn wgpu_client_create_compute_pipeline(
             let implicit = ImplicitLayout::new(identities.select(backend), backend);
             ptr::write(implicit_pipeline_layout_id, Some(implicit.pipeline));
             for (i, bgl_id) in implicit.bind_groups.iter().enumerate() {
-                *implicit_bind_group_layout_ids.add(i) = Some(*bgl_id);
+                *implicit_bind_group_layout_ids.add(i) = *bgl_id;
             }
             Some(implicit)
         }
@@ -1331,7 +1331,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_pipeline(
             let implicit = ImplicitLayout::new(identities.select(backend), backend);
             ptr::write(implicit_pipeline_layout_id, Some(implicit.pipeline));
             for (i, bgl_id) in implicit.bind_groups.iter().enumerate() {
-                *implicit_bind_group_layout_ids.add(i) = Some(*bgl_id);
+                *implicit_bind_group_layout_ids.add(i) = *bgl_id;
             }
             Some(implicit)
         }

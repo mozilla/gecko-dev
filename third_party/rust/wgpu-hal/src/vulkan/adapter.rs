@@ -428,14 +428,12 @@ impl PhysicalDeviceFeatures {
             shader_atomic_int64: if device_api_version >= vk::API_VERSION_1_2
                 || enabled_extensions.contains(&khr::shader_atomic_int64::NAME)
             {
-                let needed = requested_features.intersects(
-                    wgt::Features::SHADER_INT64_ATOMIC_ALL_OPS
-                        | wgt::Features::SHADER_INT64_ATOMIC_MIN_MAX,
-                );
                 Some(
                     vk::PhysicalDeviceShaderAtomicInt64Features::default()
-                        .shader_buffer_int64_atomics(needed)
-                        .shader_shared_int64_atomics(needed),
+                        .shader_buffer_int64_atomics(requested_features.intersects(
+                            wgt::Features::SHADER_INT64_ATOMIC_ALL_OPS
+                                | wgt::Features::SHADER_INT64_ATOMIC_MIN_MAX,
+                        )),
                 )
             } else {
                 None
@@ -1230,17 +1228,6 @@ impl super::InstanceShared {
                 let next = features
                     .timeline_semaphore
                     .insert(vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR::default());
-                features2 = features2.push_next(next);
-            }
-
-            // `VK_KHR_shader_atomic_int64` is promoted to 1.2, but has no
-            // changes, so we can keep using the extension unconditionally.
-            if capabilities.device_api_version >= vk::API_VERSION_1_2
-                || capabilities.supports_extension(khr::shader_atomic_int64::NAME)
-            {
-                let next = features
-                    .shader_atomic_int64
-                    .insert(vk::PhysicalDeviceShaderAtomicInt64Features::default());
                 features2 = features2.push_next(next);
             }
 

@@ -7,7 +7,7 @@ use objc::{rc::autoreleasepool, runtime::YES};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::ControlFlow,
-    raw_window_handle::{HasWindowHandle, RawWindowHandle},
+    platform::macos::WindowExtMacOS,
 };
 
 use std::mem;
@@ -43,11 +43,9 @@ impl App {
         layer.set_presents_with_transaction(false);
         layer.set_framebuffer_only(false);
         unsafe {
-            if let Ok(RawWindowHandle::AppKit(rw)) = window.window_handle().map(|wh| wh.as_raw()) {
-                let view = rw.ns_view.as_ptr() as cocoa_id;
-                view.setWantsLayer(YES);
-                view.setLayer(mem::transmute(layer.as_ref()));
-            }
+            let view = window.ns_view() as cocoa_id;
+            view.setWantsLayer(YES);
+            view.setLayer(mem::transmute(layer.as_ref()));
         }
         let draw_size = window.inner_size();
         layer.set_drawable_size(CGSize::new(draw_size.width as f64, draw_size.height as f64));
@@ -143,37 +141,37 @@ impl App {
 }
 
 fn main() {
-    let event_loop = winit::event_loop::EventLoop::new().unwrap();
+    let events_loop = winit::event_loop::EventLoop::new();
     let size = winit::dpi::LogicalSize::new(800, 600);
 
     let window = winit::window::WindowBuilder::new()
         .with_inner_size(size)
         .with_title("Metal Shader Dylib Example".to_string())
-        .build(&event_loop)
+        .build(&events_loop)
         .unwrap();
 
     let mut app = App::new(&window);
 
-    event_loop
-        .run(move |event, event_loop| {
-            autoreleasepool(|| {
-                event_loop.set_control_flow(ControlFlow::Poll);
+    events_loop.run(move |event, _, control_flow| {
+        autoreleasepool(|| {
+            *control_flow = ControlFlow::Poll;
 
-                match event {
-                    Event::AboutToWait => window.request_redraw(),
-                    Event::WindowEvent { event, .. } => match event {
-                        WindowEvent::CloseRequested => event_loop.exit(),
-                        WindowEvent::Resized(size) => {
-                            app.resize(size.width, size.height);
-                        }
-                        WindowEvent::RedrawRequested => {
-                            app.draw();
-                        }
-                        _ => (),
-                    },
-                    _ => {}
+            match event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                    WindowEvent::Resized(size) => {
+                        app.resize(size.width, size.height);
+                    }
+                    _ => (),
+                },
+                Event::MainEventsCleared => {
+                    window.request_redraw();
                 }
-            });
-        })
-        .unwrap();
+                Event::RedrawRequested(_) => {
+                    app.draw();
+                }
+                _ => {}
+            }
+        });
+    });
 }

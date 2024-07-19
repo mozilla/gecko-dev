@@ -301,7 +301,7 @@ impl<A: hal::Api> Example<A> {
                 mapping.ptr.as_ptr(),
                 texture_data.len(),
             );
-            device.unmap_buffer(&staging_buffer);
+            device.unmap_buffer(&staging_buffer).unwrap();
             assert!(mapping.is_coherent);
         }
 
@@ -410,7 +410,7 @@ impl<A: hal::Api> Example<A> {
                 mapping.ptr.as_ptr(),
                 mem::size_of::<Globals>(),
             );
-            device.unmap_buffer(&buffer);
+            device.unmap_buffer(&buffer).unwrap();
             assert!(mapping.is_coherent);
             buffer
         };
@@ -647,7 +647,7 @@ impl<A: hal::Api> Example<A> {
                     size,
                 );
                 assert!(mapping.is_coherent);
-                self.device.unmap_buffer(&self.local_buffer);
+                self.device.unmap_buffer(&self.local_buffer).unwrap();
             }
         }
 
@@ -813,8 +813,6 @@ fn main() {
 
     let example_result = Example::<Api>::init(&window);
     let mut example = Some(example_result.expect("Selected backend is not supported"));
-
-    println!("Press space to spawn bunnies.");
 
     let mut last_frame_inst = Instant::now();
     let (mut frame_count, mut accum_time) = (0, 0.0);

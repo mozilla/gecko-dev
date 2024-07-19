@@ -8,7 +8,7 @@ use std::mem;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::ControlFlow,
-    raw_window_handle::{HasWindowHandle, RawWindowHandle},
+    platform::macos::WindowExtMacOS,
 };
 
 pub mod camera;
@@ -31,13 +31,13 @@ fn find_raytracing_supporting_device() -> Device {
 }
 
 fn main() {
-    let event_loop = winit::event_loop::EventLoop::new().unwrap();
+    let events_loop = winit::event_loop::EventLoop::new();
     let size = winit::dpi::LogicalSize::new(800, 600);
 
     let window = winit::window::WindowBuilder::new()
         .with_inner_size(size)
         .with_title("Metal Raytracing Example".to_string())
-        .build(&event_loop)
+        .build(&events_loop)
         .unwrap();
 
     let device = find_raytracing_supporting_device();
@@ -48,11 +48,9 @@ fn main() {
     layer.set_presents_with_transaction(false);
 
     unsafe {
-        if let Ok(RawWindowHandle::AppKit(rw)) = window.window_handle().map(|wh| wh.as_raw()) {
-            let view = rw.ns_view.as_ptr() as cocoa_id;
-            view.setWantsLayer(YES);
-            view.setLayer(mem::transmute(layer.as_ref()));
-        }
+        let view = window.ns_view() as cocoa_id;
+        view.setWantsLayer(YES);
+        view.setLayer(mem::transmute(layer.as_ref()));
     }
 
     let draw_size = window.inner_size();
@@ -62,28 +60,28 @@ fn main() {
     let mut renderer = renderer::Renderer::new(device);
     renderer.window_resized(cg_size);
 
-    event_loop
-        .run(move |event, event_loop| {
-            autoreleasepool(|| {
-                event_loop.set_control_flow(ControlFlow::Poll);
+    events_loop.run(move |event, _, control_flow| {
+        autoreleasepool(|| {
+            *control_flow = ControlFlow::Poll;
 
-                match event {
-                    Event::AboutToWait => window.request_redraw(),
-                    Event::WindowEvent { event, .. } => match event {
-                        WindowEvent::CloseRequested => event_loop.exit(),
-                        WindowEvent::Resized(size) => {
-                            let size = CGSize::new(size.width as f64, size.height as f64);
-                            layer.set_drawable_size(size);
-                            renderer.window_resized(size);
-                        }
-                        WindowEvent::RedrawRequested => {
-                            renderer.draw(&layer);
-                        }
-                        _ => (),
-                    },
-                    _ => {}
+            match event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                    WindowEvent::Resized(size) => {
+                        let size = CGSize::new(size.width as f64, size.height as f64);
+                        layer.set_drawable_size(size);
+                        renderer.window_resized(size);
+                    }
+                    _ => (),
+                },
+                Event::MainEventsCleared => {
+                    window.request_redraw();
                 }
-            });
-        })
-        .unwrap();
+                Event::RedrawRequested(_) => {
+                    renderer.draw(&layer);
+                }
+                _ => {}
+            }
+        });
+    });
 }

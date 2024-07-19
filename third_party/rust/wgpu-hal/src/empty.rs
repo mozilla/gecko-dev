@@ -151,7 +151,9 @@ impl crate::Device for Context {
     ) -> DeviceResult<crate::BufferMapping> {
         Err(crate::DeviceError::Lost)
     }
-    unsafe fn unmap_buffer(&self, buffer: &Resource) {}
+    unsafe fn unmap_buffer(&self, buffer: &Resource) -> DeviceResult<()> {
+        Ok(())
+    }
     unsafe fn flush_mapped_ranges<I>(&self, buffer: &Resource, ranges: I) {}
     unsafe fn invalidate_mapped_ranges<I>(&self, buffer: &Resource, ranges: I) {}
 

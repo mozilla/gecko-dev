@@ -9,39 +9,39 @@ pub mod structs {
     #[error("...")]
     pub struct OptSourceNoBacktrace {
         #[source]
-        pub source: Option<anyhow::Error>,
+        source: Option<anyhow::Error>,
     }
 
     #[derive(Error, Debug)]
     #[error("...")]
     pub struct OptSourceAlwaysBacktrace {
         #[source]
-        pub source: Option<anyhow::Error>,
-        pub backtrace: Backtrace,
+        source: Option<anyhow::Error>,
+        backtrace: Backtrace,
     }
 
     #[derive(Error, Debug)]
     #[error("...")]
     pub struct NoSourceOptBacktrace {
         #[backtrace]
-        pub backtrace: Option<Backtrace>,
+        backtrace: Option<Backtrace>,
     }
 
     #[derive(Error, Debug)]
     #[error("...")]
     pub struct AlwaysSourceOptBacktrace {
-        pub source: anyhow::Error,
+        source: anyhow::Error,
         #[backtrace]
-        pub backtrace: Option<Backtrace>,
+        backtrace: Option<Backtrace>,
     }
 
     #[derive(Error, Debug)]
     #[error("...")]
     pub struct OptSourceOptBacktrace {
         #[source]
-        pub source: Option<anyhow::Error>,
+        source: Option<anyhow::Error>,
         #[backtrace]
-        pub backtrace: Option<Backtrace>,
+        backtrace: Option<Backtrace>,
     }
 }
 
@@ -101,8 +101,5 @@ pub mod enums {
 }
 
 #[test]
-#[cfg_attr(
-    not(thiserror_nightly_testing),
-    ignore = "requires `--cfg=thiserror_nightly_testing`"
-)]
+#[cfg_attr(not(thiserror_nightly_testing), ignore)]
 fn test_option() {}

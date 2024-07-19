@@ -270,8 +270,5 @@ pub mod enums {
 }
 
 #[test]
-#[cfg_attr(
-    not(thiserror_nightly_testing),
-    ignore = "requires `--cfg=thiserror_nightly_testing`"
-)]
+#[cfg_attr(not(thiserror_nightly_testing), ignore)]
 fn test_backtrace() {}
