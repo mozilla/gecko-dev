@@ -7,7 +7,6 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -40,26 +39,14 @@ class MainMenuTest : TestSetup() {
     val composeTestRule = AndroidComposeTestRule(activityTestRule) { it.activity }
 
     // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/233849
-
-    @Before
-    override fun setUp() {
-        super.setUp()
-        FxNimbus.features.translations.withInitializer { _, _ ->
-            // These are FML generated objects and enums
-            Translations(
-                mainFlowToolbarEnabled = true,
-                mainFlowBrowserMenuEnabled = true,
-                pageSettingsEnabled = true,
-                globalSettingsEnabled = true,
-                globalLangSettingsEnabled = true,
-                globalSiteSettingsEnabled = true,
-                downloadsEnabled = true,
-            )
-        }
-    }
-
     @Test
     fun verifyTabMainMenuItemsTest() {
+        FxNimbus.features.translations.withInitializer { _, _ ->
+            Translations(
+                mainFlowBrowserMenuEnabled = true,
+            )
+        }
+
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
