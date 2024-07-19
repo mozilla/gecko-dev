@@ -222,7 +222,7 @@ class TranslationsState {
     ) {
       if (this.translator) {
         // The engine is no longer needed.
-        this.translator.then(translator => translator.destroy());
+        this.translator.destroy();
         this.translator = null;
       }
       return;
