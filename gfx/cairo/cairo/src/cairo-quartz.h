@@ -49,10 +49,6 @@
 #include <ApplicationServices/ApplicationServices.h>
 #endif
 
-#if CAIRO_HAS_IMAGE_IO
-#include <ImageIO/ImageIO.h>
-#endif
-
 CAIRO_BEGIN_DECLS
 
 cairo_public cairo_surface_t *
@@ -64,6 +60,12 @@ cairo_public cairo_surface_t *
 cairo_quartz_surface_create_for_cg_context (CGContextRef cgContext,
                                             unsigned int width,
                                             unsigned int height);
+
+cairo_public cairo_surface_t *
+cairo_quartz_surface_create_cg_layer (cairo_surface_t *surface,
+                                      cairo_content_t content,
+                                      unsigned int width,
+                                      unsigned int height);
 
 cairo_public CGContextRef
 cairo_quartz_surface_get_cg_context (cairo_surface_t *surface);

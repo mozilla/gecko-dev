@@ -389,13 +389,3 @@ cairo_quartz_image_surface_get_image (cairo_surface_t *asurface)
 
     return (cairo_surface_t*) surface->imageSurface;
 }
-
-cairo_bool_t
-_cairo_surface_is_quartz_image (const cairo_surface_t *surface) {
-    return surface->backend == &cairo_quartz_image_surface_backend;
-}
-
-cairo_bool_t
-_cairo_quartz_image_surface_is_zero (const cairo_quartz_image_surface_t *surface) {
-    return surface->width == 0 || surface->height == 0;
-}
