@@ -893,10 +893,10 @@ struct Cert<'a> {
 
 impl<'a> Cert<'a> {
     fn new(der: &'a [u8], subject: &'a [u8], trust: i16) -> Result<Cert<'a>, SecurityStateError> {
-        if der.len() > u16::max as usize {
+        if der.len() > u16::MAX as usize {
             return Err(SecurityStateError::from("certificate is too long"));
         }
-        if subject.len() > u16::max as usize {
+        if subject.len() > u16::MAX as usize {
             return Err(SecurityStateError::from("subject is too long"));
         }
         Ok(Cert {
@@ -961,12 +961,12 @@ impl<'a> Cert<'a> {
                 + size_of::<i16>(),
         );
         bytes.write_u8(CERT_SERIALIZATION_VERSION_1)?;
-        if self.der.len() > u16::max as usize {
+        if self.der.len() > u16::MAX as usize {
             return Err(SecurityStateError::from("certificate is too long"));
         }
         bytes.write_u16::<NetworkEndian>(self.der.len() as u16)?;
         bytes.extend_from_slice(&self.der);
-        if self.subject.len() > u16::max as usize {
+        if self.subject.len() > u16::MAX as usize {
             return Err(SecurityStateError::from("subject is too long"));
         }
         bytes.write_u16::<NetworkEndian>(self.subject.len() as u16)?;
