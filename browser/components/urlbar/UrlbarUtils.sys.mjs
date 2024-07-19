@@ -56,6 +56,7 @@ export var UrlbarUtils = {
     RECENT_SEARCH: "recentSearch",
     REMOTE_SUGGESTION: "remoteSuggestion",
     REMOTE_TAB: "remoteTab",
+    RESTRICT_SEARCH_KEYWORD: "restrictSearchKeyword",
     SUGGESTED_INDEX: "suggestedIndex",
     TAIL_SUGGESTION: "tailSuggestion",
   },
@@ -94,6 +95,8 @@ export var UrlbarUtils = {
     TIP: 7,
     // A type of result which layout is defined at runtime.
     DYNAMIC: 8,
+    // A restrict keyword result, could be @bookmarks, @history, or @tabs.
+    RESTRICT: 9,
 
     // When you add a new type, also add its schema to
     // UrlbarUtils.RESULT_PAYLOAD_SCHEMA below.  Also consider checking if
@@ -560,6 +563,8 @@ export var UrlbarUtils = {
         return UrlbarUtils.RESULT_GROUP.OMNIBOX;
       case UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
         return UrlbarUtils.RESULT_GROUP.REMOTE_TAB;
+      case UrlbarUtils.RESULT_TYPE.RESTRICT:
+        return UrlbarUtils.RESULT_GROUP.RESTRICT_SEARCH_KEYWORD;
     }
     return UrlbarUtils.RESULT_GROUP.GENERAL;
   },
@@ -2089,6 +2094,23 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       // property, when the result is selected the browser will navigate to the
       // `url`.
       shouldNavigate: {
+        type: "boolean",
+      },
+    },
+  },
+  [UrlbarUtils.RESULT_TYPE.RESTRICT]: {
+    type: "object",
+    properties: {
+      icon: {
+        type: "string",
+      },
+      keyword: {
+        type: "string",
+      },
+      l10nRestrictKeyword: {
+        type: "string",
+      },
+      providesSearchMode: {
         type: "boolean",
       },
     },

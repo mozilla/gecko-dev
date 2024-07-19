@@ -119,6 +119,10 @@ add_task(function makeResultGroups_true() {
                       flex: 2,
                       group: UrlbarUtils.RESULT_GROUP.ABOUT_PAGES,
                     },
+                    {
+                      flex: 99,
+                      group: UrlbarUtils.RESULT_GROUP.RESTRICT_SEARCH_KEYWORD,
+                    },
                   ],
                 },
                 {
@@ -187,6 +191,10 @@ add_task(function makeResultGroups_false() {
                     {
                       flex: 2,
                       group: UrlbarUtils.RESULT_GROUP.ABOUT_PAGES,
+                    },
+                    {
+                      flex: 99,
+                      group: UrlbarUtils.RESULT_GROUP.RESTRICT_SEARCH_KEYWORD,
                     },
                   ],
                 },

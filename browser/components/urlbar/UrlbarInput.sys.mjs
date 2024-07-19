@@ -1279,6 +1279,15 @@ export class UrlbarInput {
         );
         return;
       }
+      case lazy.UrlbarUtils.RESULT_TYPE.RESTRICT: {
+        this.handleRevert();
+        this.maybeConfirmSearchModeFromResult({
+          result,
+          checkValue: false,
+        });
+
+        return;
+      }
     }
 
     if (!url) {

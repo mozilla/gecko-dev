@@ -334,6 +334,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // grouped release.
   ["scotchBonnet.enableOverride", false],
 
+  // Feature gate pref for search restrict keywords being shown in the urlbar.
+  ["searchRestrictKeywords.featureGate", false],
+
   // Hidden pref. Disables checks that prevent search tips being shown, thus
   // showing them every time the newtab page or the default search engine
   // homepage is opened.
@@ -681,6 +684,10 @@ function makeResultGroups({ showSearchSuggestionsFirst }) {
                 // only added for queries starting with "about:".
                 flex: 2,
                 group: lazy.UrlbarUtils.RESULT_GROUP.ABOUT_PAGES,
+              },
+              {
+                flex: 99,
+                group: lazy.UrlbarUtils.RESULT_GROUP.RESTRICT_SEARCH_KEYWORD,
               },
             ],
           },

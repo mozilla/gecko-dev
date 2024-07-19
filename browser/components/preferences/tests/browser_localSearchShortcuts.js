@@ -10,9 +10,13 @@
 ChromeUtils.defineESModuleGetters(this, {
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
+  UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
 });
 
 let gTree;
+const isRestrictKeywordsFeatureOn = UrlbarPrefs.getScotchBonnetPref(
+  "searchRestrictKeywords.featureGate"
+);
 
 add_setup(async function () {
   let prefs = await openPreferencesViaOpenPreferencesAPI("search", {
@@ -156,10 +160,17 @@ add_task(async function keywordNotEditable_enterKey() {
       shortcut.restrict,
       "Sanity check: Shortcut restriction char is non-empty"
     );
+
+    let tokenToKeyword = await UrlbarTokenizer.getL10nRestrictKeywords();
+    let keyword = tokenToKeyword.get(shortcut.restrict).toLowerCase();
     Assert.equal(
       gTree.view.getCellText(row, col),
-      shortcut.restrict,
-      "Sanity check: Keyword column has correct restriction char initially"
+      isRestrictKeywordsFeatureOn
+        ? `@${keyword}, ${shortcut.restrict}`
+        : shortcut.restrict,
+      isRestrictKeywordsFeatureOn
+        ? "Sanity check: Keyword column has correct restriction keyword and char initially"
+        : "Sanity check: Keyword column has correct restriction char initially"
     );
 
     gTree.view.selection.select(row);
@@ -173,8 +184,12 @@ add_task(async function keywordNotEditable_enterKey() {
 
     Assert.equal(
       gTree.view.getCellText(row, col),
-      shortcut.restrict,
-      "Keyword column is still restriction char"
+      isRestrictKeywordsFeatureOn
+        ? `@${keyword}, ${shortcut.restrict}`
+        : shortcut.restrict,
+      isRestrictKeywordsFeatureOn
+        ? "Keyword column is still restriction keyword and char"
+        : "Keyword column is still restriction char"
     );
   });
 });
@@ -183,14 +198,21 @@ add_task(async function keywordNotEditable_enterKey() {
 add_task(async function keywordNotEditable_click() {
   let col = gTree.columns.getNamedColumn("engineKeyword");
   await forEachLocalShortcutRow(async (row, shortcut) => {
+    let tokenToKeyword = await UrlbarTokenizer.getL10nRestrictKeywords();
+    let keyword = tokenToKeyword.get(shortcut.restrict).toLowerCase();
+
     Assert.ok(
       shortcut.restrict,
       "Sanity check: Shortcut restriction char is non-empty"
     );
     Assert.equal(
       gTree.view.getCellText(row, col),
-      shortcut.restrict,
-      "Sanity check: Keyword column has correct restriction char initially"
+      isRestrictKeywordsFeatureOn
+        ? `@${keyword}, ${shortcut.restrict}`
+        : shortcut.restrict,
+      isRestrictKeywordsFeatureOn
+        ? "Sanity check: Keyword column has correct restriction keyword and char initially"
+        : "Sanity check: Keyword column has correct restriction char initially"
     );
 
     let rect = gTree.getCoordsForCellItem(row, col, "text");
@@ -228,8 +250,12 @@ add_task(async function keywordNotEditable_click() {
 
     Assert.equal(
       gTree.view.getCellText(row, col),
-      shortcut.restrict,
-      "Keyword column is still restriction char"
+      isRestrictKeywordsFeatureOn
+        ? `@${keyword}, ${shortcut.restrict}`
+        : shortcut.restrict,
+      isRestrictKeywordsFeatureOn
+        ? "Keyword column is still restriction keyword and char"
+        : "Keyword column is still restriction char"
     );
   });
 });

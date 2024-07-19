@@ -42,6 +42,7 @@ EXTRA_JS_MODULES += [
     "UrlbarProviderQuickSuggestContextualOptIn.sys.mjs",
     "UrlbarProviderRecentSearches.sys.mjs",
     "UrlbarProviderRemoteTabs.sys.mjs",
+    "UrlbarProviderRestrictKeywords.sys.mjs",
     "UrlbarProviderSearchSuggestions.sys.mjs",
     "UrlbarProviderSearchTips.sys.mjs",
     "UrlbarProvidersManager.sys.mjs",

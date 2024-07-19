@@ -60,6 +60,8 @@ var localProviderModules = {
     "resource:///modules/UrlbarProviderRecentSearches.sys.mjs",
   UrlbarProviderRemoteTabs:
     "resource:///modules/UrlbarProviderRemoteTabs.sys.mjs",
+  UrlbarProviderRestrictKeywords:
+    "resource:///modules/UrlbarProviderRestrictKeywords.sys.mjs",
   UrlbarProviderSearchTips:
     "resource:///modules/UrlbarProviderSearchTips.sys.mjs",
   UrlbarProviderSearchSuggestions:

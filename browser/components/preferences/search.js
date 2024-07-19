@@ -10,6 +10,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
 });
 
 const PREF_URLBAR_QUICKSUGGEST_BLOCKLIST =
@@ -1178,6 +1179,17 @@ class EngineView {
     } else if (column.id == "engineKeyword") {
       let shortcut = this._getLocalShortcut(index);
       if (shortcut) {
+        if (
+          lazy.UrlbarPrefs.getScotchBonnetPref(
+            "searchRestrictKeywords.featureGate"
+          )
+        ) {
+          const keyword =
+            "@" +
+            this._localShortcutL10nNames.get(shortcut.source).toLowerCase();
+          return `${keyword}, ${shortcut.restrict}`;
+        }
+
         return shortcut.restrict;
       }
       return this._engineStore.engines[index].originalEngine.aliases.join(", ");

@@ -1972,8 +1972,9 @@ export class UrlbarView {
         if (result.heuristic && !result.payload.title) {
           isVisitAction = true;
         } else if (
-          result.providerName != lazy.UrlbarProviderQuickSuggest.name ||
-          result.payload.shouldShowUrl
+          (result.providerName != lazy.UrlbarProviderQuickSuggest.name ||
+            result.payload.shouldShowUrl) &&
+          !result.payload.providesSearchMode
         ) {
           setURL = true;
         }
@@ -2720,6 +2721,13 @@ export class UrlbarView {
     }
 
     if (result.payload.providesSearchMode) {
+      if (result.type == lazy.UrlbarUtils.RESULT_TYPE.RESTRICT) {
+        this.#setElementL10n(titleNode, {
+          id: "urlbar-result-action-search-w-engine",
+          args: { engine: result.payload.l10nRestrictKeyword },
+        });
+        return;
+      }
       // Keyword offers are the only result that require a localized title.
       // We localize the title instead of using the action text as a title
       // because some keyword offer results use both a title and action text
