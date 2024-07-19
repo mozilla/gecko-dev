@@ -393,6 +393,12 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
       "subviewbutton"
     );
     closeBtn.setAttribute("closemenu", "none");
+    closeBtn.setAttribute(
+      "tooltiptext",
+      gSync.fluentStrings.formatValueSync("synced-tabs-context-close-tab", {
+        deviceName: device.name,
+      })
+    );
     closeBtn.addEventListener("click", e => {
       e.stopPropagation();
 
