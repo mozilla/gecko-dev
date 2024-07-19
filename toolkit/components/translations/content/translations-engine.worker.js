@@ -558,6 +558,23 @@ class BergamotUtils {
   }
 
   /**
+   * Do any cleaning steps for the text that are required before sending it into
+   * the translation engine.
+   *
+   * @param {string} sourceText
+   * @returns {string}
+   */
+  static cleanText(sourceText) {
+    // Whitespace at the beginning or end can confuse translations.
+    sourceText = sourceText.trim();
+
+    // Remove any soft hyphens, as they will break tokenization.
+    sourceText = sourceText.replaceAll("\u00AD", "");
+
+    return sourceText;
+  }
+
+  /**
    * JS objects need to be translated into wasm objects to configure the translation engine.
    *
    * @param {Bergamot} bergamot
@@ -567,8 +584,8 @@ class BergamotUtils {
   static getTranslationArgs(bergamot, sourceText, isHTML) {
     const messages = new bergamot.VectorString();
     const options = new bergamot.VectorResponseOptions();
+    sourceText = BergamotUtils.cleanText(sourceText);
 
-    sourceText = sourceText.trim();
     // Empty paragraphs break the translation.
     if (sourceText) {
       messages.push_back(sourceText);
