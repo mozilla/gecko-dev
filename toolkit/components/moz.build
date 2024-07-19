@@ -13,7 +13,6 @@ if CONFIG["MOZ_HAS_REMOTE"]:
 
 DIRS += [
     "aboutcheckerboard",
-    "aboutinference",
     "aboutmemory",
     "aboutprocesses",
     "alerts",
@@ -141,6 +140,8 @@ if CONFIG["MOZ_BACKGROUNDTASKS"]:
 if CONFIG["MOZ_UNIFFI_FIXTURES"]:
     DIRS += ["uniffi-bindgen-gecko-js/fixtures"]
 
+if CONFIG["NIGHTLY_BUILD"]:
+    DIRS += ["aboutinference"]
 
 UNIFIED_SOURCES += [
     "/toolkit/components/antitracking/ContentBlockingAllowList.cpp",
