@@ -50,9 +50,6 @@ var gSearchResultsPane = {
     }
     this.inited = true;
     this.searchInput = document.getElementById("searchInput");
-    this.searchInput.hidden = !Services.prefs.getBoolPref(
-      "browser.preferences.search"
-    );
 
     window.addEventListener("resize", () => {
       this._recomputeTooltipPositions();

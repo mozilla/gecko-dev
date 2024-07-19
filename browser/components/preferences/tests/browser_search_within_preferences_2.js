@@ -4,15 +4,6 @@
  */
 
 /**
- * Enabling searching functionality. Will display search bar from this testcase forward.
- */
-add_task(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.preferences.search", true]],
-  });
-});
-
-/**
  * Test that we only search the selected child of a XUL deck.
  * When we search "Remove Account",
  * it should not show the "Remove Account" button if the Firefox account is not logged in yet.

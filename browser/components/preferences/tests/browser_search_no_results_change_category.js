@@ -1,12 +1,6 @@
 "use strict";
 
 add_task(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.preferences.search", true]],
-  });
-});
-
-add_task(async function () {
   await openPreferencesViaOpenPreferencesAPI("paneGeneral", {
     leaveOpen: true,
   });

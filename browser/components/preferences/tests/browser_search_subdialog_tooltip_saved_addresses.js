@@ -1,11 +1,5 @@
 "use strict";
 
-add_task(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.preferences.search", true]],
-  });
-});
-
 add_task(async function test_show_search_term_tooltip_in_subdialog() {
   await openPreferencesViaOpenPreferencesAPI("paneGeneral", {
     leaveOpen: true,

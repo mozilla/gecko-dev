@@ -1237,8 +1237,6 @@ pref("accessibility.typeaheadfind.timeout", 5000);
 pref("accessibility.typeaheadfind.linksonly", false);
 pref("accessibility.typeaheadfind.flashBar", 1);
 
-// Toggling Search bar on and off in about:preferences
-pref("browser.preferences.search", true);
 // Whether we can show the "Firefox Labs" section.
 pref("browser.preferences.experimental", true);
 // Whether we had to hide the "Firefox Labs" section because it would be empty.
