@@ -2118,7 +2118,10 @@ struct nsGridContainerFrame::Tracks {
     uint32_t mBaselineTrack;
     nscoord mBaseline;
     nscoord mSize;
+    // True if the baseline is not parallel to the alignment context.
+    bool mIsOrthogonal;
     GridItemInfo* mGridItem;
+
     static bool IsBaselineTrackLessThan(const ItemBaselineData& a,
                                         const ItemBaselineData& b) {
       return a.mBaselineTrack < b.mBaselineTrack;
@@ -5918,6 +5921,7 @@ void nsGridContainerFrame::Tracks::CalculateItemBaselines(
   nscoord maxDescent = 0;
   uint32_t currentTrack = kAutoLine;  // guaranteed to not match any item
   uint32_t trackStartIndex = 0;
+  bool trackHasParallelItems = false;
   for (uint32_t i = 0, len = aBaselineItems.Length(); true; ++i) {
     // Find the maximum baseline and descent in the current track.
     if (i != len) {
@@ -5925,15 +5929,29 @@ void nsGridContainerFrame::Tracks::CalculateItemBaselines(
       if (currentTrack == item.mBaselineTrack) {
         maxBaseline = std::max(maxBaseline, item.mBaseline);
         maxDescent = std::max(maxDescent, item.mSize - item.mBaseline);
+        trackHasParallelItems |= !item.mIsOrthogonal;
         continue;
       }
     }
-    // Iterate the current track again and update the baseline offsets making
-    // all items baseline-aligned within this group in this track.
-    for (uint32_t j = trackStartIndex; j < i; ++j) {
-      const ItemBaselineData& item = aBaselineItems[j];
-      item.mGridItem->mBaselineOffset[mAxis] = maxBaseline - item.mBaseline;
-      MOZ_ASSERT(item.mGridItem->mBaselineOffset[mAxis] >= 0);
+    // Baseline alignment does not take effect if all items in the alignment
+    // context is orthogonal to the baseline axis.
+    if (trackHasParallelItems) {
+      // Iterate the current track again and update the baseline offsets making
+      // all items baseline-aligned within this group in this track.
+      for (uint32_t j = trackStartIndex; j < i; ++j) {
+        const ItemBaselineData& item = aBaselineItems[j];
+        item.mGridItem->mBaselineOffset[mAxis] = maxBaseline - item.mBaseline;
+        MOZ_ASSERT(item.mGridItem->mBaselineOffset[mAxis] >= 0);
+      }
+    } else {
+      for (uint32_t j = trackStartIndex; j < i; ++j) {
+        const ItemBaselineData& item = aBaselineItems[j];
+        item.mGridItem->mBaselineOffset[mAxis] = 0;
+        // The item is still baseline aligned, but we remove the type so that we
+        // can still get fallback alignment.
+        item.mGridItem->mState[mAxis] &=
+            ~(ItemState::eSelfBaseline | ItemState::eContentBaseline);
+      }
     }
     if (i != 0) {
       // Store the size of this baseline-aligned subtree.
@@ -5954,6 +5972,7 @@ void nsGridContainerFrame::Tracks::CalculateItemBaselines(
     // Initialize data for the next track with baseline-aligned items.
     const ItemBaselineData& item = aBaselineItems[i];
     currentTrack = item.mBaselineTrack;
+    trackHasParallelItems = !item.mIsOrthogonal;
     trackStartIndex = i;
     maxBaseline = item.mBaseline;
     maxDescent = item.mSize - item.mBaseline;
@@ -6177,8 +6196,9 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
             (baselineSharingGroup == BaselineSharingGroup::First)
                 ? firstBaselineItems
                 : lastBaselineItems;
-        baselineItems.AppendElement(ItemBaselineData{
-            baselineTrack, finalBaseline, alignSize, &gridItem});
+        baselineItems.AppendElement(
+            ItemBaselineData{baselineTrack, finalBaseline, alignSize,
+                             !itemHasBaselineParallelToTrack, &gridItem});
       } else {
         state &= ~ItemState::eAllBaselineBits;
       }
@@ -6321,8 +6341,9 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselinesInMasonryAxis(
                 baseline;
           }
           alignSize = frameSize;
-          aFirstBaselineItems.AppendElement(ItemBaselineData(
-              {baselineTrack, baseline, alignSize, &gridItem}));
+          aFirstBaselineItems.AppendElement(
+              ItemBaselineData({baselineTrack, baseline, alignSize,
+                                /* isOrthogonal */ false, &gridItem}));
         } else {
           state &= ~ItemState::eAllBaselineBits;
         }
@@ -6372,7 +6393,8 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselinesInMasonryAxis(
           auto alignSize =
               frameSize + (isInlineAxis ? m.IStartEnd(wm) : m.BStartEnd(wm));
           aLastBaselineItems.AppendElement(
-              ItemBaselineData({baselineTrack, descent, alignSize, &gridItem}));
+              ItemBaselineData({baselineTrack, descent, alignSize,
+                                /* isOrthogonal */ false, &gridItem}));
         } else {
           state &= ~ItemState::eAllBaselineBits;
         }
