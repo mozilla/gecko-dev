@@ -24,7 +24,6 @@ interface nsIGfxInfo : nsISupports
   readonly attribute boolean hasBattery;
   readonly attribute AString DWriteVersion;
   readonly attribute AString cleartypeParameters;
-  readonly attribute float textScaleFactor;
 
   /*
    * These are non-Android linux-specific

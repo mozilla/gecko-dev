@@ -103,10 +103,6 @@ class MockGfxInfo final : public nsIGfxInfo {
     return mMaxRefreshRate;
   }
 
-  NS_IMETHOD GetTextScaleFactor(float* aTextScaleFactor) override {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
   NS_IMETHODIMP GetEmbeddedInFirefoxReality(
       bool* aEmbeddedInFirefoxReality) override {
     return NS_ERROR_NOT_IMPLEMENTED;
