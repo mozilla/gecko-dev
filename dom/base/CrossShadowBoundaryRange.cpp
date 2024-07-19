@@ -68,6 +68,9 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(CrossShadowBoundaryRange)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(CrossShadowBoundaryRange,
                                                 StaticRange)
+  if (tmp->mCommonAncestor) {
+    tmp->mCommonAncestor->RemoveMutationObserver(tmp);
+  }
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCommonAncestor)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -247,9 +250,9 @@ void CrossShadowBoundaryRange::CharacterDataChanged(
 // DOM mutation for shadow-crossing selection is not specified.
 // Spec issue: https://github.com/w3c/selection-api/issues/168
 void CrossShadowBoundaryRange::ParentChainChanged(nsIContent* aContent) {
-  MOZ_ASSERT(mCommonAncestor == aContent,
-             "Wrong ParentChainChanged notification");
-  MOZ_ASSERT(mOwner);
+  MOZ_DIAGNOSTIC_ASSERT(mCommonAncestor == aContent,
+                        "Wrong ParentChainChanged notification");
+  MOZ_DIAGNOSTIC_ASSERT(mOwner);
   mOwner->ResetCrossShadowBoundaryRange();
 }
 }  // namespace mozilla::dom
