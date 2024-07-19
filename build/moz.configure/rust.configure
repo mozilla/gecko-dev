@@ -605,7 +605,7 @@ set_config("RUSTFLAGS", depends("RUSTFLAGS")(lambda flags: flags))
 
 @depends(moz_optimize)
 def rustc_opt_level_default(moz_optimize):
-    return "2" if moz_optimize.optimize else "0"
+    return "2" if moz_optimize else "0"
 
 
 option(

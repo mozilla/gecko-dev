@@ -92,30 +92,33 @@ option(
 option("--disable-optimize", nargs="?", help="Disable optimizations via compiler flags")
 
 
+@depends(target, when="MOZ_PGO")
+def forced_pgo_optimization_level(target):
+    if target.kernel == "Linux" and target.os != "Android":
+        return "-O3"
+
+
 @depends("--enable-optimize")
 def moz_optimize(option):
-    flags = None
-
     if len(option):
-        flags = option[0]
-        if "-O0" in flags:
-            val = None
-        else:
-            val = "2"
+        if "-O0" not in option[0]:
+            return "2"
     elif option:
-        val = "1"
-    else:
-        val = None
-
-    return namespace(
-        optimize=val,
-        flags=flags,
-    )
+        return "1"
 
 
-set_config("MOZ_OPTIMIZE", moz_optimize.optimize)
-add_old_configure_assignment("MOZ_OPTIMIZE", moz_optimize.optimize)
-add_old_configure_assignment("MOZ_CONFIGURE_OPTIMIZE_FLAGS", moz_optimize.flags)
+@depends("--enable-optimize", forced_pgo_optimization_level)
+@imports(_from="mozbuild.shellutil", _import="split")
+def moz_optimize_flags(option, forced_pgo_optimization_level):
+    if len(option):
+        return split(option[0])
+    elif option and forced_pgo_optimization_level:
+        return [forced_pgo_optimization_level]
+
+
+set_config("MOZ_OPTIMIZE", moz_optimize)
+add_old_configure_assignment("MOZ_OPTIMIZE", moz_optimize)
+add_old_configure_assignment("MOZ_CONFIGURE_OPTIMIZE_FLAGS", moz_optimize_flags)
 
 
 @depends("MOZ_OPTIMIZE_FLAGS")
@@ -2699,7 +2702,7 @@ option(
 )
 
 
-@depends("--enable-undefined-sanitizer", moz_optimize.optimize)
+@depends("--enable-undefined-sanitizer", moz_optimize)
 def ubsan(options, optimize):
     if not options:
         return
@@ -3015,7 +3018,7 @@ def frame_pointer_flags(compiler):
 
 
 @depends(
-    moz_optimize.optimize,
+    moz_optimize,
     moz_debug,
     target,
     "--enable-memory-sanitizer",

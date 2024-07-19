@@ -61,7 +61,6 @@ case "$target" in
     ;;
 
 *-*linux*)
-    MOZ_PGO_OPTIMIZE_FLAGS="-O3"
     MOZ_OPTIMIZE_FLAGS="-O3"
     ;;
 
@@ -118,7 +117,6 @@ fi
 fi # COMPILE_ENVIRONMENT
 
 AC_SUBST_LIST(MOZ_OPTIMIZE_FLAGS)
-AC_SUBST_LIST(MOZ_PGO_OPTIMIZE_FLAGS)
 
 dnl ========================================================
 dnl = Enable using the clang plugin to build

@@ -514,14 +514,7 @@ class TargetCompileFlags(BaseCompileFlags):
     def _optimize_flags(self):
         if not self._context.config.substs.get("MOZ_OPTIMIZE"):
             return []
-        optimize_flags = None
-        if self._context.config.substs.get("MOZ_PGO"):
-            optimize_flags = self._context.config.substs.get("MOZ_PGO_OPTIMIZE_FLAGS")
-        if not optimize_flags:
-            # If MOZ_PGO_OPTIMIZE_FLAGS is empty we fall back to
-            # MOZ_OPTIMIZE_FLAGS. Presently this occurs on Windows.
-            optimize_flags = self._context.config.substs.get("MOZ_OPTIMIZE_FLAGS")
-        return optimize_flags
+        return self._context.config.substs.get("MOZ_OPTIMIZE_FLAGS")
 
     def __setitem__(self, key, value):
         if key not in self._known_keys:
