@@ -137,7 +137,6 @@ import org.mozilla.fenix.OnLongPressedListener
 import org.mozilla.fenix.OpenInFirefoxBinding
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ReaderViewBinding
-import org.mozilla.fenix.bindings.FindInPageBinding
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.readermode.DefaultReaderModeController
 import org.mozilla.fenix.browser.tabstrip.TabStrip
@@ -287,8 +286,6 @@ abstract class BaseBrowserFragment :
     private val crashContentIntegration = ViewBoundFeatureWrapper<CrashContentIntegration>()
     private val readerViewBinding = ViewBoundFeatureWrapper<ReaderViewBinding>()
     private val openInFirefoxBinding = ViewBoundFeatureWrapper<OpenInFirefoxBinding>()
-    private val findInPageBinding = ViewBoundFeatureWrapper<FindInPageBinding>()
-
     private var pipFeature: PictureInPictureFeature? = null
 
     var customTabSessionId: String? = null
@@ -588,7 +585,6 @@ abstract class BaseBrowserFragment :
         findInPageIntegration.set(
             feature = FindInPageIntegration(
                 store = store,
-                appStore = requireComponents.appStore,
                 sessionId = customTabSessionId,
                 view = binding.findInPageView,
                 engineView = binding.engineView,
@@ -597,15 +593,6 @@ abstract class BaseBrowserFragment :
                     isToolbarDynamic = isToolbarDynamic(context),
                     isToolbarPlacedAtTop = context.settings().toolbarPosition == ToolbarPosition.TOP,
                 ),
-            ),
-            owner = this,
-            view = view,
-        )
-
-        findInPageBinding.set(
-            feature = FindInPageBinding(
-                appStore = context.components.appStore,
-                onFindInPageLaunch = { findInPageIntegration.withFeature { it.launch() } },
             ),
             owner = this,
             view = view,

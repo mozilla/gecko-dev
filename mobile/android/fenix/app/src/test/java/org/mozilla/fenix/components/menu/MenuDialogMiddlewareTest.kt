@@ -38,7 +38,6 @@ import org.mockito.Mockito.verify
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
-import org.mozilla.fenix.components.appstate.AppAction.FindInPageAction
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase.AddBookmarksUseCase
 import org.mozilla.fenix.components.menu.fake.FakeBookmarksStorage
 import org.mozilla.fenix.components.menu.middleware.MenuDialogMiddleware
@@ -799,38 +798,6 @@ class MenuDialogMiddlewareTest {
             AppAction.OpenInFirefoxStarted,
         )
         assertTrue(dismissedWasCalled)
-    }
-
-    @Test
-    fun `WHEN find in page action is dispatched THEN find in page app action is dispatched`() = runTestOnMain {
-        val url = "https://www.mozilla.org"
-        val title = "Mozilla"
-        var dismissWasCalled = false
-
-        val browserMenuState = BrowserMenuState(
-            selectedTab = createTab(
-                url = url,
-                title = title,
-            ),
-        )
-        val appStore = spy(AppStore())
-        val store = spy(
-            createStore(
-                appStore = appStore,
-                menuState = MenuState(
-                    browserMenuState = browserMenuState,
-                ),
-                onDismiss = { dismissWasCalled = true },
-            ),
-        )
-
-        store.waitUntilIdle()
-
-        store.dispatch(MenuAction.FindInPage)
-        store.waitUntilIdle()
-
-        verify(appStore).dispatch(FindInPageAction.FindInPageStarted)
-        assertTrue(dismissWasCalled)
     }
 
     private fun createStore(

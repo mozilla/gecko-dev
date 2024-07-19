@@ -19,14 +19,11 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.FindInPageIntegration.ToolbarInfo
-import org.mozilla.fenix.components.appstate.AppAction.FindInPageAction
-import org.mozilla.fenix.components.appstate.AppState
 
 /**
  * BrowserFragment delegate to handle all layout updates needed to show or hide the find in page bar.
  *
  * @param store The [BrowserStore] used to look up the current selected tab.
- * @param appStore The [AppStore] used to update the [AppState.showFindInPage] state.
  * @param sessionId ID of the [store] session in which the query will be performed.
  * @param view The [FindInPageBar] view to display.
  * @param engineView the browser in which the queries will be made and which needs to be better positioned
@@ -36,7 +33,6 @@ import org.mozilla.fenix.components.appstate.AppState
  */
 class FindInPageIntegration(
     private val store: BrowserStore,
-    private val appStore: AppStore,
     private val sessionId: String? = null,
     private val view: FindInPageBar,
     private val engineView: EngineView,
@@ -51,7 +47,6 @@ class FindInPageIntegration(
 
     override fun stop() {
         feature.stop()
-        appStore.dispatch(FindInPageAction.FindInPageDismissed)
     }
 
     override fun onBackPressed(): Boolean {
@@ -61,7 +56,6 @@ class FindInPageIntegration(
     private fun onClose() {
         view.visibility = View.GONE
         restorePreviousLayout()
-        appStore.dispatch(FindInPageAction.FindInPageDismissed)
     }
 
     /**

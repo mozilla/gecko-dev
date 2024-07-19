@@ -429,25 +429,4 @@ sealed class AppAction : Action {
          */
         data object Reset : SnackbarAction()
     }
-
-    /**
-     * [AppAction]s related to the find in page feature.
-     */
-    sealed class FindInPageAction : AppAction() {
-
-        /**
-         * [FindInPageAction] dispatched for launching the find in page feature.
-         */
-        data object FindInPageStarted : FindInPageAction()
-
-        /**
-         * [FindInPageAction] dispatched when find in page feature is shown.
-         */
-        data object FindInPageShown : FindInPageAction()
-
-        /**
-         * [FindInPageAction] dispatched when find in page feature is dismissed.
-         */
-        data object FindInPageDismissed : FindInPageAction()
-    }
 }

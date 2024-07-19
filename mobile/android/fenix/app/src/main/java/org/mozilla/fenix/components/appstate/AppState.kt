@@ -62,7 +62,6 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property standardSnackbarError A snackbar error message to display.
  * @property shoppingState Holds state for shopping feature that's required to live the lifetime of a session.
  * @property snackbarState The [SnackbarState] to display.
- * @property showFindInPage Whether or not to show the find in page feature.
  * @property wasLastTabClosedPrivate Whether the last remaining tab that was closed in private mode. This is used to
  * display an undo snackbar message relevant to the browsing mode. If null, no snackbar is shown.
  */
@@ -94,6 +93,5 @@ data class AppState(
     val standardSnackbarError: StandardSnackbarError? = null,
     val shoppingState: ShoppingState = ShoppingState(),
     val snackbarState: SnackbarState = SnackbarState.None,
-    val showFindInPage: Boolean = false,
     val wasLastTabClosedPrivate: Boolean? = null,
 ) : State

@@ -269,16 +269,6 @@ class MenuTelemetryMiddlewareTest {
         assertTelemetryRecorded(Events.browserMenuAction, item = "quit")
     }
 
-    @Test
-    fun `WHEN find in page feature is started THEN record the find in page browser menu telemetry`() {
-        val store = createStore()
-        assertNull(Events.browserMenuAction.testGetValue())
-
-        store.dispatch(MenuAction.DeleteBrowsingDataAndQuit).joinBlocking()
-
-        assertTelemetryRecorded(Events.browserMenuAction, item = "find_in_page")
-    }
-
     private fun assertTelemetryRecorded(
         event: EventMetricType<Events.BrowserMenuActionExtra>,
         item: String,

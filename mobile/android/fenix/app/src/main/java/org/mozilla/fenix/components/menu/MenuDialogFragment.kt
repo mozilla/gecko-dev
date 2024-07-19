@@ -233,9 +233,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     store.dispatch(MenuAction.Navigate.NewPrivateTab)
                                 },
                                 onSwitchToDesktopSiteMenuClick = {},
-                                onFindInPageMenuClick = {
-                                    store.dispatch(MenuAction.FindInPage)
-                                },
+                                onFindInPageMenuClick = {},
                                 onToolsMenuClick = {
                                     store.dispatch(MenuAction.Navigate.Tools)
                                 },
@@ -380,9 +378,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         composable(route = CUSTOM_TAB_MENU_ROUTE) {
                             CustomTabMenu(
                                 onSwitchToDesktopSiteMenuClick = {},
-                                onFindInPageMenuClick = {
-                                    store.dispatch(MenuAction.FindInPage)
-                                },
+                                onFindInPageMenuClick = {},
                                 onOpenInFirefoxMenuClick = {
                                     store.dispatch(MenuAction.OpenInFirefox)
                                 },

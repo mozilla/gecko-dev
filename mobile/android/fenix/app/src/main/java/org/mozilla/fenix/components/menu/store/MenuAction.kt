@@ -72,11 +72,6 @@ sealed class MenuAction : Action {
     data object OpenInFirefox : MenuAction()
 
     /**
-     * [MenuAction] dispatched to launch find in page feature for the current site.
-     */
-    data object FindInPage : MenuAction()
-
-    /**
      * [MenuAction] dispatched when the extension state is updated.
      *
      * @property recommendedAddons The recommended [Addon]s to suggest.
