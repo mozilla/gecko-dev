@@ -940,41 +940,6 @@ void BaseCompiler::restoreRegisterReturnValues(const ResultType& resultType) {
 // stub routine for the whole module, whereas for debugging, there are
 // per-function stub routines as well as a whole-module stub routine involved.
 
-// bool BaseCompiler::addHotnessCheck() {
-//   if (compilerEnv_.mode() != CompileMode::LazyTiering) {
-//     return true;
-//   }
-//
-// #ifdef RABALDR_PIN_INSTANCE
-//   Register tmp(InstanceReg);
-// #else
-//   ScratchI32 tmp(*this);
-//   fr.loadInstancePtr(tmp);
-// #endif
-//   Label isHot;
-//   Label rejoin;
-//   RegI32 scratch = needI32();
-//   Address addressOfCounter =
-//       Address(tmp, wasm::Instance::offsetInData(
-//                        codeMeta_.offsetOfFuncDefInstanceData(func_.index)));
-//   masm.load32(addressOfCounter, scratch);
-//   masm.branchSub32(Assembler::Signed, Imm32(1), scratch, &isHot);
-//   masm.store32(scratch, addressOfCounter);
-//   masm.jump(&rejoin);
-//
-//   masm.bind(&isHot);
-//   masm.wasmTrap(wasm::Trap::CheckHotness, bytecodeOffset());
-//   if (!createStackMap("addHotnessCheck")) {
-//     freeI32(scratch);
-//     return false;
-//   }
-//
-//   masm.bind(&rejoin);
-//   freeI32(scratch);
-//
-//   return true;
-// }
-
 bool BaseCompiler::addHotnessCheck() {
   if (compilerEnv_.mode() != CompileMode::LazyTiering) {
     return true;

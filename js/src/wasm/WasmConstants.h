@@ -200,10 +200,6 @@ enum class Trap {
   // the same over-recursed error as JS.
   StackOverflow,
 
-  // A function has crossed the hotness threshold and an optimized version
-  // should be compiled.
-  RequestTierUp,
-
   // The wasm execution has potentially run too long and the engine must call
   // CheckForInterrupt(). This trap is resumable.
   CheckInterrupt,
