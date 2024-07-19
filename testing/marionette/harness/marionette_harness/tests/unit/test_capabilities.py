@@ -275,7 +275,7 @@ class TestCapabilityMatching(MarionetteTestCase):
         self.marionette.start_session({"unhandledPromptBehavior": {}})
         self.assertEqual(
             self.marionette.session_capabilities["unhandledPromptBehavior"],
-            "dismiss and notify",
+            {},
         )
 
         for prompt_type in PROMPT_TYPES:

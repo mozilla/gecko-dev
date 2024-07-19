@@ -61,12 +61,20 @@ export const PromptTypes = {
   BeforeUnload: "beforeUnload",
   // A simple confirm dialog
   Confirm: "confirm",
-  // Fallback value when no specific handler is defined. Not used for the
-  // `beforeunload` prompt type.
+  // Default value when no specific handler is configured. Can only be set when
+  // specifying the unhandlePromptBehavior capability with a map containing a
+  // "default" entry. See FALLBACK_DEFAULT_PROMPT_TYPE.
   Default: "default",
   // A simple prompt dialog
   Prompt: "prompt",
 };
+
+/**
+ * Internal prompt type used when the unhandledPromptBehavior capability is
+ * set as a string. The "fallbackDefault" type will apply to "alert", "confirm"
+ * and "prompt" prompts, but will not apply to "beforeUnload" prompts.
+ */
+const FALLBACK_DEFAULT_PROMPT_TYPE = "fallbackDefault";
 
 export class PromptHandlerConfiguration {
   #handler;
@@ -121,7 +129,9 @@ export class UserPromptHandler {
   #promptTypeToHandlerMap;
 
   constructor() {
-    this.#promptTypeToHandlerMap = new Map();
+    // Note: this map is null until update-the-user-prompt-handler initializes
+    // it.
+    this.#promptTypeToHandlerMap = null;
   }
 
   get activePromptHandlers() {
@@ -150,10 +160,12 @@ export class UserPromptHandler {
    * @see https://w3c.github.io/webdriver/#dfn-deserialize-as-an-unhandled-prompt-behavior
    */
   static fromJSON(json) {
+    let isStringValue = false;
     let value = json;
     if (typeof value === "string") {
       // A single specified prompt behavior or for WebDriver classic.
-      value = { [PromptTypes.Default]: value };
+      value = { [FALLBACK_DEFAULT_PROMPT_TYPE]: value };
+      isStringValue = true;
     }
 
     lazy.assert.object(
@@ -161,14 +173,16 @@ export class UserPromptHandler {
       lazy.pprint`Expected "unhandledPromptBehavior" to be an object, got ${value}`
     );
 
-    const userPromptHandler = new UserPromptHandler();
+    const userPromptHandlerCapability = new Map();
     for (let [promptType, handler] of Object.entries(value)) {
-      const validPromptTypes = Object.values(PromptTypes);
-      lazy.assert.in(
-        promptType,
-        validPromptTypes,
-        lazy.pprint`Expected "promptType" to be one of ${validPromptTypes}, got ${promptType}`
-      );
+      if (!isStringValue) {
+        const validPromptTypes = Object.values(PromptTypes);
+        lazy.assert.in(
+          promptType,
+          validPromptTypes,
+          lazy.pprint`Expected "promptType" to be one of ${validPromptTypes}, got ${promptType}`
+        );
+      }
 
       const knownPromptHandlers = Object.values(PromptHandlers);
       lazy.assert.in(
@@ -193,9 +207,10 @@ export class UserPromptHandler {
       }
 
       const configuration = new PromptHandlerConfiguration(handler, notify);
-      userPromptHandler.set(promptType, configuration);
+      userPromptHandlerCapability.set(promptType, configuration);
     }
-
+    const userPromptHandler = new UserPromptHandler();
+    userPromptHandler.update(userPromptHandlerCapability);
     return userPromptHandler;
   }
 
@@ -212,7 +227,7 @@ export class UserPromptHandler {
   getPromptHandler(promptType) {
     let handlers;
 
-    if (this.#promptTypeToHandlerMap.size === 0) {
+    if (this.#promptTypeToHandlerMap === null) {
       handlers = new Map();
     } else {
       handlers = this.#promptTypeToHandlerMap;
@@ -222,27 +237,38 @@ export class UserPromptHandler {
       return handlers.get(promptType);
     }
 
+    if (handlers.has(PromptTypes.Default)) {
+      return handlers.get(PromptTypes.Default);
+    }
+
     if (promptType === PromptTypes.BeforeUnload) {
       return new PromptHandlerConfiguration(PromptHandlers.Accept, false);
     }
 
-    if (handlers.has(PromptTypes.Default)) {
-      return handlers.get(PromptTypes.Default);
+    if (handlers.has(FALLBACK_DEFAULT_PROMPT_TYPE)) {
+      return handlers.get(FALLBACK_DEFAULT_PROMPT_TYPE);
     }
 
     return new PromptHandlerConfiguration(PromptHandlers.Dismiss, true);
   }
 
   /**
-   * Sets a prompt handler configuration for a given prompt type.
+   * Updates the prompt handler configuration for a given requested prompt
+   * handler map.
    *
-   * @param {string} promptType
-   *     Prompt type to set the handler configuration for.
-   * @param {PromptHandlerConfiguration} handler
-   *     Handler for the prompt type.
+   * @param {Map} requestedPromptHandler
+   *     The request prompt handler configuration map.
+   *
+   * @see https://w3c.github.io/webdriver/#dfn-update-the-user-prompt-handler
    */
-  set(promptType, handler) {
-    this.#promptTypeToHandlerMap.set(promptType, handler);
+  update(requestedPromptHandler) {
+    if (this.#promptTypeToHandlerMap === null) {
+      this.#promptTypeToHandlerMap = new Map();
+    }
+
+    for (const [promptType, handler] of requestedPromptHandler) {
+      this.#promptTypeToHandlerMap.set(promptType, handler);
+    }
   }
 
   /**
@@ -253,16 +279,18 @@ export class UserPromptHandler {
    * @see https://w3c.github.io/webdriver/#dfn-serialize-the-user-prompt-handler
    */
   toJSON() {
-    if (this.#promptTypeToHandlerMap.size == 0) {
+    if (this.#promptTypeToHandlerMap === null) {
       // Fallback to "dismiss and notify" if no handler is set
       return PromptHandlers.DismissAndNotify;
     }
 
     if (
       this.#promptTypeToHandlerMap.size === 1 &&
-      this.#promptTypeToHandlerMap.has(PromptTypes.Default)
+      this.#promptTypeToHandlerMap.has(FALLBACK_DEFAULT_PROMPT_TYPE)
     ) {
-      return this.#promptTypeToHandlerMap.get(PromptTypes.Default).toJSON();
+      return this.#promptTypeToHandlerMap
+        .get(FALLBACK_DEFAULT_PROMPT_TYPE)
+        .toJSON();
     }
 
     const serialized = {};

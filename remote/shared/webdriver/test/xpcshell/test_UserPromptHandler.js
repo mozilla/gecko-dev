@@ -47,7 +47,7 @@ add_task(function test_PromptHandlerConfiguration_toJSON() {
 
 add_task(function test_UserPromptHandler_ctor() {
   const handler = new UserPromptHandler();
-  equal(handler.activePromptHandlers.size, 0);
+  equal(handler.activePromptHandlers, null);
 });
 
 add_task(function test_UserPromptHandler_toString() {
@@ -56,20 +56,23 @@ add_task(function test_UserPromptHandler_toString() {
 
 add_task(function test_UserPromptHandler_fromJSON() {
   let promptHandler;
+  let serialized;
 
   // Unhandled prompt behavior as string
   for (const behavior of Object.values(PromptHandlers)) {
     console.log(`Test as string for ${behavior}`);
     promptHandler = UserPromptHandler.fromJSON(behavior);
     equal(promptHandler.activePromptHandlers.size, 1);
-    ok(promptHandler.activePromptHandlers.has("default"));
-    const handler = promptHandler.activePromptHandlers.get("default");
+    ok(promptHandler.activePromptHandlers.has("fallbackDefault"));
+    const handler = promptHandler.activePromptHandlers.get("fallbackDefault");
     ok(behavior.startsWith(handler.handler));
     if (behavior == "ignore") {
       ok(handler.notify);
     } else {
       equal(handler.notify, /and notify/.test(behavior));
     }
+    serialized = promptHandler.toJSON();
+    equal(serialized, behavior);
   }
 
   // Unhandled prompt behavior as object
@@ -86,8 +89,16 @@ add_task(function test_UserPromptHandler_fromJSON() {
       } else {
         equal(handler.notify, /and notify/.test(behavior));
       }
+      serialized = promptHandler.toJSON();
+      deepEqual(serialized, { [promptType]: behavior });
     }
   }
+
+  // Empty object
+  promptHandler = UserPromptHandler.fromJSON({});
+  equal(promptHandler.activePromptHandlers.size, 0);
+  serialized = promptHandler.toJSON();
+  deepEqual(serialized, {});
 });
 
 add_task(function test_UserPromptHandler_fromJSON_invalid() {
@@ -133,10 +144,10 @@ add_task(function test_UserPromptHandler_getPromptHandler() {
   let configuration, promptHandler;
 
   // Check the default value with no handlers defined
-  promptHandler = new UserPromptHandler();
-  equal(promptHandler.activePromptHandlers.size, 0);
   for (const promptType of Object.values(PromptTypes)) {
     console.log(`Test default behavior for ${promptType}`);
+    promptHandler = new UserPromptHandler();
+    equal(promptHandler.activePromptHandlers, null);
     const handler = promptHandler.getPromptHandler(promptType);
     if (promptType === PromptTypes.BeforeUnload) {
       equal(handler.handler, PromptHandlers.Accept);
@@ -148,15 +159,32 @@ add_task(function test_UserPromptHandler_getPromptHandler() {
   }
 
   // Check custom default behavior for all prompt types
-  promptHandler = new UserPromptHandler();
-  configuration = new PromptHandlerConfiguration(PromptHandlers.Ignore, false);
-  promptHandler.set(PromptTypes.Default, configuration);
   for (const promptType of Object.values(PromptTypes)) {
     console.log(`Test custom default behavior for ${promptType}`);
+    promptHandler = new UserPromptHandler();
+    configuration = new PromptHandlerConfiguration(
+      PromptHandlers.Ignore,
+      false
+    );
+    promptHandler.update(new Map([[PromptTypes.Default, configuration]]));
+    equal(promptHandler.activePromptHandlers.size, 1);
+    const handler = promptHandler.getPromptHandler(promptType);
+    equal(handler.handler, PromptHandlers.Ignore);
+    equal(handler.notify, false);
+  }
+
+  // Check custom fallbackDefault behavior for all prompt types
+  for (const promptType of Object.values(PromptTypes)) {
+    console.log(`Test custom fallbackDefault behavior for ${promptType}`);
+    promptHandler = new UserPromptHandler();
+    configuration = new PromptHandlerConfiguration(
+      PromptHandlers.Ignore,
+      false
+    );
+    promptHandler.update(new Map([["fallbackDefault", configuration]]));
     equal(promptHandler.activePromptHandlers.size, 1);
     const handler = promptHandler.getPromptHandler(promptType);
     if (promptType === PromptTypes.BeforeUnload) {
-      // For backward compatibility with WebDriver classic it is not overridden
       equal(handler.handler, PromptHandlers.Accept);
       equal(handler.notify, false);
     } else {
@@ -166,17 +194,61 @@ add_task(function test_UserPromptHandler_getPromptHandler() {
   }
 
   // Check custom behavior overrides default for all prompt types
-  promptHandler = new UserPromptHandler();
-  configuration = new PromptHandlerConfiguration(PromptHandlers.Ignore, false);
-  promptHandler.set(PromptTypes.Default, configuration);
   for (const promptType of Object.values(PromptTypes)) {
     if (promptType === PromptTypes.Default) {
       continue;
     }
 
     console.log(`Test custom behavior overrides default for ${promptType}`);
+    promptHandler = new UserPromptHandler();
+    configuration = new PromptHandlerConfiguration(
+      PromptHandlers.Ignore,
+      false
+    );
+    promptHandler.update(new Map([[PromptTypes.Default, configuration]]));
     configuration = new PromptHandlerConfiguration(PromptHandlers.Accept, true);
-    promptHandler.set(promptType, configuration);
+    promptHandler.update(new Map([[promptType, configuration]]));
+    const handler = promptHandler.getPromptHandler(promptType);
+    equal(handler.handler, PromptHandlers.Accept);
+    equal(handler.notify, true);
+  }
+
+  // Check custom behavior overrides fallbackDefault for all prompt types
+  for (const promptType of Object.values(PromptTypes)) {
+    console.log(
+      `Test custom behavior overrides fallbackDefault for ${promptType}`
+    );
+    promptHandler = new UserPromptHandler();
+    configuration = new PromptHandlerConfiguration(
+      PromptHandlers.Ignore,
+      false
+    );
+    promptHandler.update(new Map([["fallbackDefault", configuration]]));
+    configuration = new PromptHandlerConfiguration(PromptHandlers.Accept, true);
+    promptHandler.update(new Map([[promptType, configuration]]));
+    const handler = promptHandler.getPromptHandler(promptType);
+    equal(handler.handler, PromptHandlers.Accept);
+    equal(handler.notify, true);
+  }
+
+  // Check default behavior overrides fallbackDefault for all prompt types
+  promptHandler = new UserPromptHandler();
+  promptHandler.update(
+    new Map([
+      [
+        "fallbackDefault",
+        new PromptHandlerConfiguration(PromptHandlers.Ignore, false),
+      ],
+      [
+        PromptTypes.Default,
+        new PromptHandlerConfiguration(PromptHandlers.Accept, true),
+      ],
+    ])
+  );
+  for (const promptType of Object.values(PromptTypes)) {
+    console.log(
+      `Test default behavior overrides fallbackDefault for ${promptType}`
+    );
     const handler = promptHandler.getPromptHandler(promptType);
     equal(handler.handler, PromptHandlers.Accept);
     equal(handler.notify, true);
@@ -194,18 +266,20 @@ add_task(function test_UserPromptHandler_toJSON() {
   // Custom default behavior
   promptHandler = new UserPromptHandler();
   configuration = new PromptHandlerConfiguration(PromptHandlers.Accept, false);
-  promptHandler.set(PromptTypes.Default, configuration);
+  promptHandler.update(new Map([[PromptTypes.Default, configuration]]));
   serialized = promptHandler.toJSON();
-  equal(serialized, "accept");
+  deepEqual(serialized, {
+    default: "accept",
+  });
 
   // Multiple handler definitions
   promptHandler = new UserPromptHandler();
   configuration = new PromptHandlerConfiguration(PromptHandlers.Ignore, false);
-  promptHandler.set(PromptTypes.Default, configuration);
+  promptHandler.update(new Map([[PromptTypes.Default, configuration]]));
   configuration = new PromptHandlerConfiguration(PromptHandlers.Accept, true);
-  promptHandler.set(PromptTypes.Alert, configuration);
+  promptHandler.update(new Map([[PromptTypes.Alert, configuration]]));
   configuration = new PromptHandlerConfiguration(PromptHandlers.Dismiss, false);
-  promptHandler.set(PromptTypes.Confirm, configuration);
+  promptHandler.update(new Map([[PromptTypes.Confirm, configuration]]));
 
   serialized = promptHandler.toJSON();
   deepEqual(serialized, {
