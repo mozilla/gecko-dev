@@ -656,8 +656,11 @@ static const wasm::TryNote* FindNonDelegateTryNote(
 
 // Request tier-2 compilation for the calling wasm function.
 
-static void WasmHandleRequestTierUp() {
-  JSContext* cx = TlsContext.get();  // Cold code
+static void WasmHandleRequestTierUp(Instance* instance) {
+  JSContext* cx = instance->cx();
+
+  // Don't turn this into a release assert - TlsContext.get() can be expensive.
+  MOZ_ASSERT(cx == TlsContext.get());
 
   // Neither this routine nor the stub that calls it make any attempt to
   // communicate roots to the GC.  This is OK because we will only be
@@ -666,9 +669,16 @@ static void WasmHandleRequestTierUp() {
 
   JitActivation* activation = CallingActivation(cx);
   Frame* fp = activation->wasmExitFP();
-  Instance* instance = GetNearestEffectiveInstance(fp);
-  void* resumePC = fp->returnAddress();
 
+  // Similarly, don't turn this into a release assert.
+  MOZ_ASSERT(instance == GetNearestEffectiveInstance(fp));
+
+  // Figure out the requesting funcIndex.  We could add a field to the
+  // Instance and, in the slow path of BaseCompiler::addHotnessCheck, write it
+  // in there.  That would avoid having to call LookupCodeBlock here, but (1)
+  // LookupCodeBlock is pretty cheap and (2) this would make hotness checks
+  // larger.  It doesn't seem like a worthwhile tradeoff.
+  void* resumePC = fp->returnAddress();
   const CodeRange* codeRange;
   const CodeBlock* codeBlock = LookupCodeBlock(resumePC, &codeRange);
   MOZ_RELEASE_ASSERT(codeBlock && codeRange);
@@ -1207,7 +1217,7 @@ void* wasm::AddressOf(SymbolicAddress imm, ABIFunctionType* abiType) {
       *abiType = Args_General0;
       return FuncCast(WasmHandleDebugTrap, *abiType);
     case SymbolicAddress::HandleRequestTierUp:
-      *abiType = Args_General0;
+      *abiType = Args_General1;
       return FuncCast(WasmHandleRequestTierUp, *abiType);
     case SymbolicAddress::HandleThrow:
       *abiType = Args_General1;
