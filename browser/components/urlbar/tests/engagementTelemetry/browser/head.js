@@ -52,19 +52,22 @@ async function addTopSites(url) {
 }
 
 function assertAbandonmentTelemetry(expectedExtraList) {
-  _assertGleanTelemetry("abandonment", expectedExtraList);
+  assertGleanTelemetry("abandonment", expectedExtraList);
 }
 
 function assertEngagementTelemetry(expectedExtraList) {
-  _assertGleanTelemetry("engagement", expectedExtraList);
+  assertGleanTelemetry("engagement", expectedExtraList);
 }
 
 function assertExposureTelemetry(expectedExtraList) {
-  _assertGleanTelemetry("exposure", expectedExtraList);
+  assertGleanTelemetry("exposure", expectedExtraList);
 }
 
-function _assertGleanTelemetry(telemetryName, expectedExtraList) {
-  const telemetries = Glean.urlbar[telemetryName].testGetValue() ?? [];
+function assertGleanTelemetry(telemetryName, expectedExtraList) {
+  const camelName = telemetryName.replaceAll(/_(.)/g, (match, p1) =>
+    p1.toUpperCase()
+  );
+  const telemetries = Glean.urlbar[camelName].testGetValue() ?? [];
   info(
     "Asserting Glean telemetry is correct, actual events are: " +
       JSON.stringify(telemetries)
@@ -93,7 +96,6 @@ function _assertGleanTelemetry(telemetryName, expectedExtraList) {
 
 async function ensureQuickSuggestInit({ ...args } = {}) {
   return lazy.QuickSuggestTestUtils.ensureQuickSuggestInit({
-    ...args,
     remoteSettingsRecords: [
       {
         type: "data",
@@ -127,6 +129,7 @@ async function ensureQuickSuggestInit({ ...args } = {}) {
         weather: MerinoTestUtils.WEATHER_RS_DATA,
       },
     ],
+    ...args,
   });
 }
 

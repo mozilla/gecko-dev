@@ -432,6 +432,33 @@ urlbar:
       - fx-search-telemetry@mozilla.com
     expires: never
 
+  fakespot_engagement:
+    type: event
+    description: >
+      Recorded when the user engages with a Fakespot suggestion.
+    extra_keys:
+      grade:
+        description: >
+          The Fakespot grade: "A", "B", etc.
+        type: string
+      rating:
+        description: >
+          The Fakespot rating: "4.1", "5.0", etc.
+        type: string
+      provider:
+        description: >
+          The product provider: "amazon", "bestbuy", "walmart"
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907990
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907990
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+
   exposure:
     type: event
     description: >

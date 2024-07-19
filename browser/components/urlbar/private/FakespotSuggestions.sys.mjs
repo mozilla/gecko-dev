@@ -114,16 +114,7 @@ export class FakespotSuggestions extends BaseFeature {
   }
 
   getSuggestionTelemetryType(suggestion) {
-    // The Fakespot provider is encoded in the `productId` like this:
-    // `{provider}-{id}`. To avoid recording unexpected values in telemetry that
-    // might be dangerous or impact the user's privacy, we look up the parsed
-    // provider in the `KNOWN_SUGGESTION_PROVIDERS` safe list and record it as
-    // `UNKNOWN_SUGGESTION_PROVIDER` if it's absent.
-    let provider = suggestion.productId?.split("-")[0];
-    if (!KNOWN_SUGGESTION_PROVIDERS.has(provider)) {
-      provider = UNKNOWN_SUGGESTION_PROVIDER;
-    }
-    return `fakespot_${provider}`;
+    return "fakespot_" + this.#parseProvider(suggestion);
   }
 
   makeResult(queryContext, suggestion, searchString) {
@@ -138,6 +129,7 @@ export class FakespotSuggestions extends BaseFeature {
       rating: Number(suggestion.rating),
       totalReviews: Number(suggestion.totalReviews),
       fakespotGrade: suggestion.fakespotGrade,
+      fakespotProvider: this.#parseProvider(suggestion),
       shouldNavigate: true,
       dynamicType: "fakespot",
     };
@@ -300,11 +292,32 @@ export class FakespotSuggestions extends BaseFeature {
     }
   }
 
+  onEngagement(queryContext, controller, details) {
+    let { result } = details;
+    Glean.urlbar.fakespotEngagement.record({
+      grade: result.payload.fakespotGrade,
+      rating: String(result.payload.rating),
+      provider: result.payload.fakespotProvider,
+    });
+  }
+
   get #minKeywordLength() {
     let minLength =
       lazy.UrlbarPrefs.get("fakespot.minKeywordLength") ||
       lazy.UrlbarPrefs.get("fakespotMinKeywordLength") ||
       0;
     return Math.max(minLength, 0);
+  }
+
+  #parseProvider({ productId }) {
+    // The Fakespot provider is encoded in the `productId` like this:
+    // `{provider}-{id}`. To avoid recording unexpected values in telemetry that
+    // might be dangerous or impact the user's privacy, we look up the parsed
+    // provider in the `KNOWN_SUGGESTION_PROVIDERS` safe list and record it as
+    // `UNKNOWN_SUGGESTION_PROVIDER` if it's absent.
+    let provider = productId?.split("-")[0];
+    return KNOWN_SUGGESTION_PROVIDERS.has(provider)
+      ? provider
+      : UNKNOWN_SUGGESTION_PROVIDER;
   }
 }

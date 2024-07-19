@@ -268,6 +268,10 @@ class ProviderQuickSuggest extends UrlbarProvider {
         // Handle dismissals.
         this.#dismissResult(controller, details.result);
       }
+
+      if (state == "engagement" && feature?.onEngagement) {
+        feature.onEngagement(queryContext, controller, details);
+      }
     }
 
     this.#resultFromLastQuery = null;
