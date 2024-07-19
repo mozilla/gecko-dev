@@ -848,7 +848,7 @@ impl Global {
                 let implicit_ids = implicit
                     .as_ref()
                     .map(|imp| wgc::device::ImplicitPipelineIds {
-                        root_id: Some(imp.pipeline),
+                        root_id: imp.pipeline,
                         group_ids: &imp.bind_groups,
                     });
                 let (_, error) = self.device_create_compute_pipeline::<A>(
@@ -865,7 +865,7 @@ impl Global {
                 let implicit_ids = implicit
                     .as_ref()
                     .map(|imp| wgc::device::ImplicitPipelineIds {
-                        root_id: Some(imp.pipeline),
+                        root_id: imp.pipeline,
                         group_ids: &imp.bind_groups,
                     });
                 let (_, error) =

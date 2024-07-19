@@ -10,10 +10,6 @@
 #![allow(non_upper_case_globals)]
 
 #[macro_use]
-pub extern crate bitflags;
-#[macro_use]
-pub extern crate log;
-#[macro_use]
 pub extern crate objc;
 #[macro_use]
 pub extern crate foreign_types;

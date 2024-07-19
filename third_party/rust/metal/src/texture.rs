@@ -33,7 +33,7 @@ pub enum MTLTextureCompressionType {
     Lossy = 1,
 }
 
-bitflags! {
+bitflags::bitflags! {
     /// See <https://developer.apple.com/documentation/metal/mtltextureusage>
     #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
     pub struct MTLTextureUsage: NSUInteger {

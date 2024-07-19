@@ -1,6 +1,6 @@
 use super::*;
 
-bitflags! {
+bitflags::bitflags! {
     /// See <https://developer.apple.com/documentation/metal/mtlindirectcommandtype/>
     #[allow(non_upper_case_globals)]
     #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]

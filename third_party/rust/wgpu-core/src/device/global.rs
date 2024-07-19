@@ -321,10 +321,7 @@ impl Global {
                     .raw()
                     .flush_mapped_ranges(raw_buf, iter::once(offset..offset + data.len() as u64));
             }
-            device
-                .raw()
-                .unmap_buffer(raw_buf)
-                .map_err(DeviceError::from)?;
+            device.raw().unmap_buffer(raw_buf);
         }
 
         Ok(())
@@ -370,10 +367,7 @@ impl Global {
                 );
             }
             ptr::copy_nonoverlapping(mapping.ptr.as_ptr(), data.as_mut_ptr(), data.len());
-            device
-                .raw()
-                .unmap_buffer(raw_buf)
-                .map_err(DeviceError::from)?;
+            device.raw().unmap_buffer(raw_buf);
         }
 
         Ok(())
@@ -1391,12 +1385,18 @@ impl Global {
 
         let hub = A::hub(self);
 
+        let missing_implicit_pipeline_ids =
+            desc.layout.is_none() && id_in.is_some() && implicit_pipeline_ids.is_none();
+
         let fid = hub.render_pipelines.prepare(id_in);
         let implicit_context = implicit_pipeline_ids.map(|ipi| ipi.prepare(hub));
 
-        let is_auto_layout = desc.layout.is_none();
-
         let error = 'error: {
+            if missing_implicit_pipeline_ids {
+                // TODO: categorize this error as API misuse
+                break 'error pipeline::ImplicitLayoutError::MissingImplicitPipelineIds.into();
+            }
+
             let device = match hub.devices.get(device_id) {
                 Ok(device) => device,
                 Err(_) => break 'error DeviceError::InvalidDeviceId.into(),
@@ -1511,23 +1511,18 @@ impl Global {
                 Err(e) => break 'error e,
             };
 
-            if is_auto_layout {
-                // TODO: categorize the errors below as API misuse
-                let ids = if let Some(ids) = implicit_context.as_ref() {
-                    let group_count = pipeline.layout.bind_group_layouts.len();
-                    if ids.group_ids.len() < group_count {
-                        log::error!(
-                            "Not enough bind group IDs ({}) specified for the implicit layout ({})",
-                            ids.group_ids.len(),
-                            group_count
-                        );
-                        break 'error pipeline::ImplicitLayoutError::MissingIds(group_count as _)
-                            .into();
-                    }
-                    ids
-                } else {
-                    break 'error pipeline::ImplicitLayoutError::MissingIds(0).into();
-                };
+            if let Some(ids) = implicit_context.as_ref() {
+                let group_count = pipeline.layout.bind_group_layouts.len();
+                if ids.group_ids.len() < group_count {
+                    log::error!(
+                        "Not enough bind group IDs ({}) specified for the implicit layout ({})",
+                        ids.group_ids.len(),
+                        group_count
+                    );
+                    // TODO: categorize this error as API misuse
+                    break 'error pipeline::ImplicitLayoutError::MissingIds(group_count as _)
+                        .into();
+                }
 
                 let mut pipeline_layout_guard = hub.pipeline_layouts.write();
                 let mut bgl_guard = hub.bind_group_layouts.write();
@@ -1558,16 +1553,14 @@ impl Global {
 
         let id = fid.assign_error();
 
-        if is_auto_layout {
-            // We also need to assign errors to the implicit pipeline layout and the
-            // implicit bind group layouts.
-            if let Some(ids) = implicit_context {
-                let mut pipeline_layout_guard = hub.pipeline_layouts.write();
-                let mut bgl_guard = hub.bind_group_layouts.write();
-                pipeline_layout_guard.insert_error(ids.root_id);
-                for bgl_id in ids.group_ids {
-                    bgl_guard.insert_error(bgl_id);
-                }
+        // We also need to assign errors to the implicit pipeline layout and the
+        // implicit bind group layouts.
+        if let Some(ids) = implicit_context {
+            let mut pipeline_layout_guard = hub.pipeline_layouts.write();
+            let mut bgl_guard = hub.bind_group_layouts.write();
+            pipeline_layout_guard.insert_error(ids.root_id);
+            for bgl_id in ids.group_ids {
+                bgl_guard.insert_error(bgl_id);
             }
         }
 
@@ -1635,12 +1628,18 @@ impl Global {
 
         let hub = A::hub(self);
 
+        let missing_implicit_pipeline_ids =
+            desc.layout.is_none() && id_in.is_some() && implicit_pipeline_ids.is_none();
+
         let fid = hub.compute_pipelines.prepare(id_in);
         let implicit_context = implicit_pipeline_ids.map(|ipi| ipi.prepare(hub));
 
-        let is_auto_layout = desc.layout.is_none();
-
         let error = 'error: {
+            if missing_implicit_pipeline_ids {
+                // TODO: categorize this error as API misuse
+                break 'error pipeline::ImplicitLayoutError::MissingImplicitPipelineIds.into();
+            }
+
             let device = match hub.devices.get(device_id) {
                 Ok(device) => device,
                 Err(_) => break 'error DeviceError::InvalidDeviceId.into(),
@@ -1709,23 +1708,18 @@ impl Global {
                 Err(e) => break 'error e,
             };
 
-            if is_auto_layout {
-                // TODO: categorize the errors below as API misuse
-                let ids = if let Some(ids) = implicit_context.as_ref() {
-                    let group_count = pipeline.layout.bind_group_layouts.len();
-                    if ids.group_ids.len() < group_count {
-                        log::error!(
-                            "Not enough bind group IDs ({}) specified for the implicit layout ({})",
-                            ids.group_ids.len(),
-                            group_count
-                        );
-                        break 'error pipeline::ImplicitLayoutError::MissingIds(group_count as _)
-                            .into();
-                    }
-                    ids
-                } else {
-                    break 'error pipeline::ImplicitLayoutError::MissingIds(0).into();
-                };
+            if let Some(ids) = implicit_context.as_ref() {
+                let group_count = pipeline.layout.bind_group_layouts.len();
+                if ids.group_ids.len() < group_count {
+                    log::error!(
+                        "Not enough bind group IDs ({}) specified for the implicit layout ({})",
+                        ids.group_ids.len(),
+                        group_count
+                    );
+                    // TODO: categorize this error as API misuse
+                    break 'error pipeline::ImplicitLayoutError::MissingIds(group_count as _)
+                        .into();
+                }
 
                 let mut pipeline_layout_guard = hub.pipeline_layouts.write();
                 let mut bgl_guard = hub.bind_group_layouts.write();
@@ -1756,16 +1750,14 @@ impl Global {
 
         let id = fid.assign_error();
 
-        if is_auto_layout {
-            // We also need to assign errors to the implicit pipeline layout and the
-            // implicit bind group layouts.
-            if let Some(ids) = implicit_context {
-                let mut pipeline_layout_guard = hub.pipeline_layouts.write();
-                let mut bgl_guard = hub.bind_group_layouts.write();
-                pipeline_layout_guard.insert_error(ids.root_id);
-                for bgl_id in ids.group_ids {
-                    bgl_guard.insert_error(bgl_id);
-                }
+        // We also need to assign errors to the implicit pipeline layout and the
+        // implicit bind group layouts.
+        if let Some(ids) = implicit_context {
+            let mut pipeline_layout_guard = hub.pipeline_layouts.write();
+            let mut bgl_guard = hub.bind_group_layouts.write();
+            pipeline_layout_guard.insert_error(ids.root_id);
+            for bgl_id in ids.group_ids {
+                bgl_guard.insert_error(bgl_id);
             }
         }
 
@@ -2525,7 +2517,7 @@ impl Global {
         }
         let map_state = &*buffer.map_state.lock();
         match *map_state {
-            resource::BufferMapState::Init { ref ptr, .. } => {
+            resource::BufferMapState::Init { ref staging_buffer } => {
                 // offset (u64) can not be < 0, so no need to validate the lower bound
                 if offset + range_size > buffer.size {
                     return Err(BufferAccessError::OutOfBoundsOverrun {
@@ -2533,12 +2525,9 @@ impl Global {
                         max: buffer.size,
                     });
                 }
-                unsafe {
-                    Ok((
-                        NonNull::new_unchecked(ptr.as_ptr().offset(offset as isize)),
-                        range_size,
-                    ))
-                }
+                let ptr = unsafe { staging_buffer.ptr() };
+                let ptr = unsafe { NonNull::new_unchecked(ptr.as_ptr().offset(offset as isize)) };
+                Ok((ptr, range_size))
             }
             resource::BufferMapState::Active {
                 ref ptr, ref range, ..

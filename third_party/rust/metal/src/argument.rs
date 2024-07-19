@@ -106,6 +106,30 @@ pub enum MTLDataType {
     RGB10A2Unorm = 75,
     RG11B10Float = 76,
     RGB9E5Float = 77,
+
+    RenderPipeline = 78,
+    ComputePipeline = 79,
+    IndirectCommandBuffer = 80,
+
+    Long = 81,
+    Long2 = 82,
+    Long3 = 83,
+    Long4 = 84,
+
+    ULong = 85,
+    ULong2 = 86,
+    ULong3 = 87,
+    ULong4 = 88,
+
+    VisibleFunctionTable = 115,
+    IntersectionFunctionTable = 116,
+    PrimitiveAccelerationStructure = 117,
+    InstanceAccelerationStructure = 118,
+
+    BFloat = 121,
+    BFloat2 = 122,
+    BFloat3 = 123,
+    BFloat4 = 124,
 }
 
 /// See <https://developer.apple.com/documentation/metal/mtlargumenttype>

@@ -47,7 +47,7 @@ pub enum MTLBlendOperation {
     Max = 4,
 }
 
-bitflags! {
+bitflags::bitflags! {
     /// See <https://developer.apple.com/documentation/metal/mtlcolorwritemask>
     #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
     pub struct MTLColorWriteMask: NSUInteger {
@@ -664,6 +664,16 @@ impl RenderPipelineDescriptorRef {
         unsafe { msg_send![self, setBinaryArchives: ns_array] }
     }
 
+    /// API_AVAILABLE(macos(11.0), ios(14.0));
+    pub fn fragment_linked_functions(&self) -> &LinkedFunctionsRef {
+        unsafe { msg_send![self, fragmentLinkedFunctions] }
+    }
+
+    /// API_AVAILABLE(macos(11.0), ios(14.0));
+    pub fn set_fragment_linked_functions(&self, functions: &LinkedFunctionsRef) {
+        unsafe { msg_send![self, setFragmentLinkedFunctions: functions] }
+    }
+
     pub fn reset(&self) {
         unsafe { msg_send![self, reset] }
     }
@@ -687,6 +697,39 @@ impl RenderPipelineStateRef {
             let label = msg_send![self, label];
             crate::nsstring_as_str(label)
         }
+    }
+
+    /// Only available on (macos(11.0), ios(14.0))
+    pub fn new_intersection_function_table_with_descriptor(
+        &self,
+        descriptor: &IntersectionFunctionTableDescriptorRef,
+        stage: MTLRenderStages,
+    ) -> IntersectionFunctionTable {
+        unsafe {
+            msg_send![self, newIntersectionFunctionTableWithDescriptor: descriptor
+                                                                            stage:stage]
+        }
+    }
+
+    /// Only available on (macos(11.0), ios(14.0))
+    pub fn function_handle_with_function(
+        &self,
+        function: &FunctionRef,
+        stage: MTLRenderStages,
+    ) -> Option<&FunctionHandleRef> {
+        unsafe {
+            msg_send![self, functionHandleWithFunction: function
+                                                            stage:stage]
+        }
+    }
+
+    /// Only available on (macos(11.0), ios(14.0))
+    pub fn new_visible_function_table_with_descriptor(
+        &self,
+        descriptor: &VisibleFunctionTableDescriptorRef,
+        stage: MTLRenderStages,
+    ) -> VisibleFunctionTable {
+        unsafe { msg_send![self, newVisibleFunctionTableWithDescriptor: descriptor stage:stage] }
     }
 }
 

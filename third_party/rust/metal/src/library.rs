@@ -148,7 +148,7 @@ impl FunctionConstantRef {
     }
 }
 
-bitflags! {
+bitflags::bitflags! {
     /// Only available on (macos(11.0), ios(14.0))
     ///
     /// See <https://developer.apple.com/documentation/metal/mtlfunctionoptions/>
@@ -263,8 +263,6 @@ impl FunctionHandleRef {
 }
 
 // TODO:
-// MTLVisibleFunctionTableDescriptor
-// MTLVisibleFunctionTable
 // MTLIntersectionFunctionSignature
 // MTLIntersectionFunctionTableDescriptor
 // MTLIntersectionFunctionTable
