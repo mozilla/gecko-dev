@@ -48,15 +48,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">ਚੁਣੇ ਹੋਏ</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">ਤਾਜ਼ਾ ਸੰਭਾਲੇ</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">ਸਾਰੇ ਸੰਭਾਲੇ ਬੁੱਕਮਾਰਕਾਂ ਨੂੰ ਵੇਖੋ</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">ਹਟਾਓ</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">ਬੁੱਕਮਾਰਕ</string>
@@ -123,7 +114,7 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">ਨਵੀਂ ਨੈਵੀਗੇਸ਼ਨ ਨਾਲ ਵੱਧ ਤੇਜ਼ੀ ਨਾਲ ਬਰਾਊਜ਼ ਕਰੋ</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">ਵਾਧੂ ਬਰਾਊਜ਼ ਕਰਨ ਲਈ ਥਾਂ ਬਣਾਉਣ ਵਾਸਤੇ ਸਕਰੋਲ ਕਰਨ ਦੇ ਦੌਰਾਨ ਇਹ ਪੱਟੀ ਪਾਸੇ ਕਰ ਦਿੱਤੀ ਜਾਂਦੀ ਹੈ।</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">ਵਾਧੂ ਬਰਾਊਜ਼ ਕਰਨ ਲਈ ਥਾਂ ਬਣਾਉਣ ਵਾਸਤੇ ਸਕਰੋਲ ਕਰਨ ਦੇ ਦੌਰਾਨ ਇਹ ਪੱਟੀ ਪਾਸੇ ਕਰ ਦਿੱਤੀ ਜਾਂਦੀ ਹੈ।</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">ਕੈਮਰੇ ਲਈ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ। Android ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ, ਇਜਾਜ਼ਤਾਂ ਨੂੰ
@@ -627,8 +618,6 @@
     <string name="preferences_account_sync_error">ਸਿੰਕ ਕਰਨ ਨੂੰ ਬਹਾਲ ਕਰਨ ਲਈ ਮੁੜ-ਕਨੈਕਟ ਕਰੋ</string>
     <!-- Preference for language -->
     <string name="preferences_language">ਭਾਸ਼ਾ</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">ਉਲੱਥਾ</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">ਅਨੁਵਾਦ</string>
     <!-- Preference for data choices -->
@@ -725,8 +714,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">ਵਾਪਸ ਜਾਓ</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">ਸੱਜਰੇ ਬੁੱਕਮਾਰਕ</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">ਬੁੱਕਮਾਰਕ</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1706,7 +1693,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">ਕ੍ਰਿਪਟੋ-ਮਾਈਨਰ</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">ਫਿੰਗਰਪਰਿੰਟਰ</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">ਫਿੰਗਰਪਰਿੰਟਰ</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">ਵੇਰਵੇ</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1730,9 +1717,9 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">ਤੁਹਾਡੇ ਡਿਵਾਈਸ ਨੂੰ ਡਿਜ਼ਿਟਲ ਮੁਦਰਾ ਦੀ ਟਕਸਾਲ ਵਜੋਂ ਵਰਤਣ ਲਈ ਪਹੁੰਚ ਪ੍ਰਾਪਤ ਕਰਨ ਵਾਲੀਆਂ ਦੋਖੀ ਸਕ੍ਰਿਪਟਾਂ ਨੂੰ ਰੋਕਦਾ ਹੈ।</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">ਫਿੰਗਰਪਰਿੰਟਰ</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">ਫਿੰਗਰਪਰਿੰਟਰ</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">ਤੁਹਾਡੇ ਡਿਵਾਈਸ ਬਾਰੇ ਵਿਲੱਖਣ ਤੌਰ ‘ਤੇ ਪਛਾਣੇ ਜਾਣੇ ਵਾਲੇ ਡਾਟੇ ਨੂੰ ਇਕੱਤਰ ਹੋਣ ਤੋਂ ਰੋਕਦਾ ਹੈ, ਜਿਸ ਨੂੰ ਟਰੈਕਿੰਗ ਲਈ ਵਰਤਿਆ ਜਾ ਸਕਦਾ ਹੈ।</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">ਤੁਹਾਡੇ ਡਿਵਾਈਸ ਬਾਰੇ ਵਿਲੱਖਣ ਤੌਰ ‘ਤੇ ਪਛਾਣੇ ਜਾਣੇ ਵਾਲੇ ਡਾਟੇ ਨੂੰ ਇਕੱਤਰ ਹੋਣ ਤੋਂ ਰੋਕਦਾ ਹੈ, ਜਿਸ ਨੂੰ ਟਰੈਕਿੰਗ ਲਈ ਵਰਤਿਆ ਜਾ ਸਕਦਾ ਹੈ।</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ਸਮੱਗਰੀ ਟਰੈਕ ਕਰਨ ਵਾਲੇ</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -2627,8 +2614,6 @@
     <string name="download_languages_item_content_description_in_progress_state">ਜਾਰੀ ਹੈ</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">ਡਾਊਨਲੋਡ</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">ਚੁਣੀ</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">ਭਾਸ਼ਾਵਾਂ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ। ਬਾਅਦ ਵਿੱਚ ਮੁੜ ਜਾਂਚੋ।</string>
@@ -2690,8 +2675,6 @@
     <string name="debug_drawer_tab_tools_title">ਟੈਬ ਟੂਲ</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">ਟੈਬ ਗਿਣਤੀ</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">ਸਰਗਰਮ</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">ਸਰਗਰਮ</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2786,4 +2769,10 @@
     <string name="debug_drawer_logins_add_login_button">ਇਸ ਡੋਮੇਨ ਲਈ ਫ਼ਰਜ਼ੀ ਲਾਗਇਨ ਜੋੜੋ</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">%s ਵਰਤੋਂਕਾਰ-ਨਾਂ ਨਾਲ ਲਾਗਇਨ ਨੂੰ ਹਟਾਓ</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">CFR ਟੂਲ</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">CFR ਮੁੜ-ਸੈੱਟ ਕਰੋ</string>
 </resources>

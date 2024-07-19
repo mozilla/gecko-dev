@@ -46,15 +46,6 @@
     <string name="tab_tray_multiselect_selected_content_description">تاللانغان</string>
 
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">يېقىنداق ساقلانغان</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">ساقلانغان بارلىق خەتكۈچنى كۆرسەت</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">چىقىرىۋەت</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">خەتكۈچ</string>
@@ -122,7 +113,10 @@
     <string name="navbar_cfr_title">يېڭى يولباشچى ئىشلىتىلسە، تور كۆرگۈ تېزلىشىدۇ</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">بەتنى دومىلاتقىنىڭىزدا بۇ بالداق ئۆزلۈكىدىن يوشۇرۇلۇپ كۆز يۈگۈرتۈشكە تېخىمۇ كۆپ بوشلۇق ئاجرىتىدۇ.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">بەتنى دومىلاتقىنىڭىزدا بۇ بالداق ئۆزلۈكىدىن يوشۇرۇلۇپ كۆز يۈگۈرتۈشكە تېخىمۇ كۆپ بوشلۇق ئاجرىتىدۇ.</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">تور بېكەتتە بەتنى دومىلاتقىنىڭىزدا بۇ بالداق ئۆزلۈكىدىن يوشۇرۇلۇپ كۆز يۈگۈرتۈشكە تېخىمۇ كۆپ بوشلۇق ئاجرىتىدۇ. </string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">كامېرا ئىجازىتى زۆرۈر. ئاندىرويىد تەڭشىكىگە يۆتكىلىپ، ئىجازەتنى چېكىپ، ئاندىن يول قوينى چېكىڭ.</string>
@@ -610,8 +604,6 @@
     <!-- Preference for language -->
     <string name="preferences_language">تىل</string>
 
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">تەرجىمە</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">تەرجىمە</string>
     <!-- Preference for data choices -->
@@ -709,8 +701,6 @@
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">كەينىگە قايت</string>
 
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">يېقىنقى خەتكۈچلەر</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">خەتكۈچ</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1677,7 +1667,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">شىفىرلىق پۇل قازغۇچ</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">بارماق ئىزى ئىزلىغۇچ</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">بارماق ئىزى ئىزلىغۇچ</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">مەلۇملۇق ئىز قالدۇرغۇ</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">تەپسىلاتى</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1701,9 +1693,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">يامان غەرەزلىك قوليازمىلارنىڭ ئۈسكۈنىڭىزدە رەقەملىك پۇل قېزىشىنى توسىدۇ.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">بارماق ئىزى ئىزلىغۇچ</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">بارماق ئىزى ئىزلىغۇچ</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">ئىز قوغلاش مەقسىتىدە ئىشلىتىلىدىغان ئۈسكۈنىڭىزگە ئائىت بىردىنبىر پەرقلىنىدىغان سانلىق مەلۇماتلارنى توپلاشنى توختىتىدۇ.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">ئىز قوغلاش مەقسىتىدە ئىشلىتىلىدىغان ئۈسكۈنىڭىزگە ئائىت بىردىنبىر پەرقلىنىدىغان سانلىق مەلۇماتلارنى توپلاشنى توختىتىدۇ.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">ئىز قوغلاش مەقسىتىدە ئىشلىتىلىدىغان ئۈسكۈنىڭىزگە ئائىت بىردىنبىر پەرقلىنىدىغان سانلىق مەلۇماتلارنى توپلاشنى توختىتىدۇ.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ئىز قوغلاش مەزمۇنى</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1726,6 +1720,12 @@
     <string name="etp_redirect_trackers_title">قايتا نىشانلايدىغان ئىز قوغلىغۇچ</string>
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">مەلۇملۇق ئىزلىغۇچى تور بېكەتلەرنىڭ قايتا نىشانلاش تەڭشىكى بار ساقلانمىلارنى تازىلايدۇ.</string>
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">گۇمانلىق ئىز قالدۇرغۇ</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">گۇمانلىق ئىز قالدۇرغۇنى توختىتىشتا ئىز قالدۇرغۇدىن قوغداش قوزغىتىلىدۇ.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">مەلۇملۇق ئىز قالدۇرغۇ</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">بۇ بەتتىكى تۆۋەندە بەلگە قويۇلغان بەزى ئىزچىلار قىسمەن قۇلۇپلانمىدى، چۈنكى سىز ئۇلار بىلەن تەسىرلەشتىڭىز*.</string>
@@ -2599,8 +2599,6 @@
     <string name="download_languages_item_content_description_in_progress_state">ئىلگىرىلەش</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">چۈشۈر</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">تاللانغان</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">تىلنى يۈكلىيەلمەيدۇ. كېيىن قايتا تەكشۈرۈڭ.</string>
@@ -2660,8 +2658,6 @@
     <string name="debug_drawer_tab_tools_title">بەتكۈچ قوراللىرى</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">بەتكۈچ سانى</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">ئاكتىپ</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">ئاكتىپ</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2757,4 +2753,10 @@
     <string name="debug_drawer_logins_add_login_button">بۇ تور دائىرىسىگە ساختا كىرىش ئۇچۇرى قوش</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">ئىشلەتكۈچى ئاتى %s بولغان تىزىمغا كىرىش ئۇچۇرىنى ئۆچۈرىدۇ</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">CFR قورالى</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">CFR نى ئەسلىگە قايتۇر</string>
 </resources>

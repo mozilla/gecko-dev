@@ -114,7 +114,7 @@
     <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Esta barra se oculta a medida que te desplazás hacia abajo para tener más espacio de navegación.</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message_2">En un sitio web, esta barra se oculta a medida que te desplazas hacia abajo para obtener espacio de navegación adicional.</string>
+    <string name="navbar_cfr_message_2">En un sitio web, esta barra se oculta a medida que te desplazás hacia abajo para tener más espacio de navegación.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Se necesita acceso a la cámara. Andá a la configuración de Android, pulsá permisos y permitir.</string>
@@ -1699,7 +1699,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Detectores de huellas digitales</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Detectores de huellas digitales conocidos</string>
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Detectores de huellas digitales conocidas</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Detalles</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1755,9 +1755,9 @@
     <!-- Preference for fingerprinting protection for the custom protection settings -->
     <string name="etp_suspected_fingerprinters_title">Presuntos detectores de huellas digitales</string>
     <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
-    <string name="etp_suspected_fingerprinters_description">Habilita la protección de huellas digitales para detener a los sospechosos de huellas digitales.</string>
+    <string name="etp_suspected_fingerprinters_description">Habilita la protección de huellas digitales para detener a los detectores de huellas digitales sospechosos.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_known_fingerprinters_title">Detectores de huellas digitales conocidos</string>
+    <string name="etp_known_fingerprinters_title">Detectores de huellas digitales conocidas</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Algunos rastreadores marcados a continuación fueron parcialmente desbloqueados en esta página porque interactuaste con ellos *.</string>
@@ -2787,7 +2787,7 @@
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
-    <string name="debug_drawer_cfr_tools_title">Herramientas CFR</string>
+    <string name="debug_drawer_cfr_tools_title">Herramientas de CFR</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Restablecer CFRs</string>
 </resources>
