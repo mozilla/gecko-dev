@@ -204,7 +204,6 @@ interface nsIPrintSettings;
   [PutForwards=href, LegacyUnforgeable, CrossOriginReadable,
    CrossOriginWritable] readonly attribute Location location;
   [Throws] readonly attribute History history;
-  [Pref="dom.navigation.webidl.enabled"] readonly attribute Navigation navigation;
   readonly attribute CustomElementRegistry customElements;
   [Replaceable, Throws] readonly attribute BarProp locationbar;
   [Replaceable, Throws] readonly attribute BarProp menubar;

@@ -104,7 +104,6 @@ DIRS += [
     "l10n",
     "origin-trials",
     "webscheduling",
-    "navigation",
 ]
 
 
