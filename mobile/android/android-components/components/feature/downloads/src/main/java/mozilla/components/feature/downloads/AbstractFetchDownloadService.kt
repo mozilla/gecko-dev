@@ -723,7 +723,7 @@ abstract class AbstractFetchDownloadService : Service() {
 
         var isUsingHttpClient = false
         val request = Request(
-            download.url.sanitizeURL(),
+            url = download.url.sanitizeURL(),
             headers = headers,
             private = download.private,
             referrerUrl = download.referrerUrl,
