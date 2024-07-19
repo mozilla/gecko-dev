@@ -263,6 +263,16 @@ abstract class Settings {
      * Setting to control whether privacy.fingerprintingProtection.pbmode is enabled.
      */
     open var fingerprintingProtectionPrivateBrowsing: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to enable or disable certain fingerprinting protection features.
+     */
+    open var fingerprintingProtectionOverrides: String by UnsupportedSetting()
+
+    /**
+     * Setting to control whehter to use fdlibm for Math.sin, Math.cos, and Math.tan.
+     */
+    open var fdlibmMathEnabled: Boolean by UnsupportedSetting()
 }
 
 /**
@@ -304,6 +314,8 @@ data class DefaultSettings(
     override var globalPrivacyControlEnabled: Boolean = false,
     override var fingerprintingProtection: Boolean = false,
     override var fingerprintingProtectionPrivateBrowsing: Boolean = true,
+    override var fingerprintingProtectionOverrides: String = "",
+    override var fdlibmMathEnabled: Boolean = false,
     override var cookieBannerHandlingMode: CookieBannerHandlingMode = CookieBannerHandlingMode.DISABLED,
     override var cookieBannerHandlingModePrivateBrowsing: CookieBannerHandlingMode =
         CookieBannerHandlingMode.DISABLED,

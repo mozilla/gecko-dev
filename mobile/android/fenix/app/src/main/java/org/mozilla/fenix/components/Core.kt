@@ -151,8 +151,25 @@ class Core(
             ),
             httpsOnlyMode = context.settings().getHttpsOnlyMode(),
             globalPrivacyControlEnabled = context.settings().shouldEnableGlobalPrivacyControl,
-            fingerprintingProtection = context.settings().blockSuspectedFingerprinters,
-            fingerprintingProtectionPrivateBrowsing = context.settings().blockSuspectedFingerprintersPrivateBrowsing,
+            fingerprintingProtection =
+            if (FxNimbus.features.fingerprintingProtection.value().enabled) {
+                FxNimbus.features.fingerprintingProtection.value().enabledNormal
+            } else {
+                context.settings().blockSuspectedFingerprinters
+            },
+            fingerprintingProtectionPrivateBrowsing =
+            if (FxNimbus.features.fingerprintingProtection.value().enabled) {
+                FxNimbus.features.fingerprintingProtection.value().enabledPrivate
+            } else {
+                context.settings().blockSuspectedFingerprintersPrivateBrowsing
+            },
+            fingerprintingProtectionOverrides =
+            if (FxNimbus.features.fingerprintingProtection.value().enabled) {
+                FxNimbus.features.fingerprintingProtection.value().overrides
+            } else {
+                ""
+            },
+            fdlibmMathEnabled = FxNimbus.features.fingerprintingProtection.value().fdlibmMath,
             cookieBannerHandlingMode = context.settings().getCookieBannerHandling(),
             cookieBannerHandlingModePrivateBrowsing = context.settings().getCookieBannerHandlingPrivateMode(),
             cookieBannerHandlingDetectOnlyMode = context.settings().shouldEnableCookieBannerDetectOnly,
