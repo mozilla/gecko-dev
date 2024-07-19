@@ -21,4 +21,13 @@ translations-settings-never-sites-description = To add to this list, visit a sit
 translations-settings-download-languages = Download languages
 translations-settings-download-all-languages = All languages
 translations-settings-download-languages-link = Learn more about downloading languages
+# Variables:
+#   $size (number) - The size of the download in megabites
+translations-settings-download-size = ({ $size })
 translations-settings-language-header = Language
+translations-settings-language-download-error =
+    .heading = Download Error
+    .message = Language download failed. Try again.
+translations-settings-language-remove-error =
+    .heading = Remove Error
+    .message = Failed to remove language. Try again.

@@ -100,7 +100,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "alwaysTranslateLangTags",
   ALWAYS_TRANSLATE_LANGS_PREF,
   /* aDefaultPrefValue */ "",
-  /* onUpdate */ null,
+  /* onUpdate */ () =>
+    Services.obs.notifyObservers(
+      null,
+      "translations:always-translate-languages-changed"
+    ),
   /* aTransform */ rawLangTags =>
     rawLangTags ? new Set(rawLangTags.split(",")) : new Set()
 );
@@ -113,7 +117,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "neverTranslateLangTags",
   NEVER_TRANSLATE_LANGS_PREF,
   /* aDefaultPrefValue */ "",
-  /* onUpdate */ null,
+  /* onUpdate */ () =>
+    Services.obs.notifyObservers(
+      null,
+      "translations:never-translate-languages-changed"
+    ),
   /* aTransform */ rawLangTags =>
     rawLangTags ? new Set(rawLangTags.split(",")) : new Set()
 );
@@ -1156,6 +1164,21 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
+   * Get the display name for the given language Tag.
+   *
+   * @param {string} langTag
+   * @returns {string}
+   */
+  static getLanguageDisplayName(langTag) {
+    // Services.intl.getLanguageDisplayNames takes a list of language codes and
+    // returns a list of correspoding display names. Hence the langTag is sent as a list
+    let displayName = Services.intl.getLanguageDisplayNames(undefined, [
+      langTag,
+    ]);
+    return displayName[0];
+  }
+
+  /**
    * @param {object} event
    * @param {object} event.data
    * @param {TranslationModelRecord[]} event.data.created
@@ -2063,6 +2086,23 @@ export class TranslationsParent extends JSWindowActorParent {
     return results;
   }
 
+  static async getLanguageSize(language) {
+    const records = [
+      ...(await TranslationsParent.#getTranslationModelRecords()).values(),
+    ];
+
+    let downloadSize = 0;
+    await Promise.all(
+      records.map(async record => {
+        if (record.fromLang !== language && record.toLang !== language) {
+          return;
+        }
+        downloadSize += parseInt(record.attachment.size);
+      })
+    );
+    return downloadSize;
+  }
+
   /**
    * Gets the expected download size that will occur (if any) if translate is called on two given languages for display purposes.
    *
@@ -2711,6 +2751,14 @@ export class TranslationsParent extends JSWindowActorParent {
     this.addLangTagToPref(docLangTag, ALWAYS_TRANSLATE_LANGS_PREF);
     this.removeLangTagFromPref(docLangTag, NEVER_TRANSLATE_LANGS_PREF);
     return true;
+  }
+
+  static getAlwaysTranslateLanguages() {
+    return lazy.alwaysTranslateLangTags;
+  }
+
+  static getNeverTranslateLanguages() {
+    return lazy.neverTranslateLangTags;
   }
 
   /**

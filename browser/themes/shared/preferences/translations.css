@@ -34,7 +34,6 @@
   display: flex;
   flex-direction: column;
   max-height: calc( 7 * var(--space-xlarge));
-  overflow: auto;
   padding-inline: calc( 2 * var(--space-small));
 }
 
@@ -42,6 +41,10 @@
   margin: calc( 2 * var(--space-small)) 0;
   font-size: var(--font-size-root);
   font-weight: var(--font-weight-bold);
+}
+
+.translations-settings-language-list {
+  overflow: auto;
 }
 
 .translations-settings-language {
@@ -53,11 +56,21 @@
     margin: 0px calc( 2 * var(--space-small));
   }
 }
-
+.translations-settings-language-error {
+  flex: 100%;
+}
 .translations-settings-download-icon[type~="icon"]::part(button) {
   background-image: url(chrome://browser/skin/downloads/downloads.svg);
 }
 
 .translations-settings-delete-icon[type~="icon"]::part(button) {
   background-image: url(chrome://global/skin/icons/delete.svg);
+}
+
+.translations-settings-loading-icon[type~="icon"]::part(button) {
+  background-image: url(chrome://global/skin/icons/loading.svg);
+}
+
+.translations-settings-download-size {
+  color: var(--color-gray-60);
 }
