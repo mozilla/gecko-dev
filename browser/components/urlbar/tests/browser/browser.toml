@@ -64,6 +64,9 @@ skip-if = ["apple_catalina && debug"] # Bug 1773790
 
 ["browser_UrlbarInput_trimURLs.js"]
 https_first_disabled = true
+support-files = [
+  "slow_loading_page.sjs"
+]
 
 ["browser_UrlbarInput_untrimOnUserInteraction.js"]
 

@@ -2573,7 +2573,14 @@ export class UrlbarInput {
     // If the selection doesn't start at the beginning or doesn't span the
     // full domain or the URL bar is modified or there is no text at all,
     // nothing else to do here.
-    if (this.selectionStart > 0 || this.valueIsTyped || selectedVal == "") {
+    // TODO (Bug 1908360): the valueIsTyped usage here is confusing, as often
+    // it doesn't really indicate a user typed a value, it's rather used as
+    // a way to tell if the value was modified.
+    if (
+      this.selectionStart > 0 ||
+      selectedVal == "" ||
+      (this.valueIsTyped && !this._protocolIsTrimmed)
+    ) {
       return selectedVal;
     }
 

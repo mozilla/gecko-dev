@@ -117,8 +117,30 @@ add_task(async function () {
   await testCopy("example.com", "http://example.com/");
 
   gURLBar.setPageProxyState("invalid");
-  gURLBar.valueIsTyped = true;
+  // After input only the visible text is copied.
+  UrlbarTestUtils.fireInputEvent(window);
   await testCopy("example.com", "example.com");
+});
+
+add_task(async function test_slow_loading_page_copy() {
+  for (let protocol of ["http://", "https://"]) {
+    let url =
+      getRootDirectory(gTestPath).replace(
+        "chrome://mochitests/content",
+        protocol + "example.com"
+      ) + "slow_loading_page.sjs";
+    let loaded = false;
+    let promise = BrowserTestUtils.openNewForegroundTab(gBrowser, url).finally(
+      () => {
+        loaded = true;
+      }
+    );
+    await testCopy(BrowserUIUtils.trimURL(url), url);
+    // The page should not have finished loading yet.
+    Assert.ok(!loaded, "Page should still be loading");
+    let tab = await promise;
+    BrowserTestUtils.removeTab(tab);
+  }
 });
 
 function testVal(originalValue, targetValue) {
