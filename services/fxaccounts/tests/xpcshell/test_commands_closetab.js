@@ -89,75 +89,107 @@ add_task(async function test_closetab_send() {
   let commandMock = sinon.mock(closeTab);
   let queueMock = sinon.mock(commandQueue);
 
-  // freeze "now" to <= when the command was sent.
+  // freeze "now" to a specific time
   let now = Date.now();
   commandQueue.now = () => now;
 
   // Set the delay to 10ms
   commandQueue.DELAY = 10;
 
-  // Our second command will be written "now", so becomes due in 10ms. Our timer adds 10ms "slop",
-  // so expect a timer in 20ms.
-  queueMock.expects("_ensureTimer").once().withArgs(20);
-  commandMock
-    .expects("sendCloseTabsCommand")
-    .once()
-    .withArgs(targetDevice, ["https://foo.bar/early"])
-    .resolves(true);
-
-  // In this test we expect no commands sent but a timer instead.
-  closeTab.invoke = sinon.spy((cmd, device, payload) => {
-    Assert.equal(payload.encrypted, "encryptedpayload");
-  });
-
   const store = await getRemoteCommandStore();
-  // queue 2 tabs to close - one before our threshold (ie, so it should be sent) and one
-  // recent enough that it remains queued and a new timer is set for it.
-  const command1 = new RemoteCommand.CloseTab("https://foo.bar/early");
-  Assert.ok(
-    await store.addRemoteCommandAt(targetDevice.id, command1, now - 15),
-    "adding the remote command should work"
-  );
-  const command2 = new RemoteCommand.CloseTab("https://foo.bar/late");
-  Assert.ok(
-    await store.addRemoteCommandAt(targetDevice.id, command2, now),
-    "adding the remote command should work"
-  );
 
-  // We have the tabs queued
-  const pending = await store.getUnsentCommands();
-  Assert.equal(pending.length, 2);
+  // Queue 3 tabs to close with different timings
+  const command1 = new RemoteCommand.CloseTab("https://foo.bar/must-send");
+  await store.addRemoteCommandAt(targetDevice.id, command1, now - 15);
 
-  Assert.equal(pending[0].deviceId, targetDevice.id);
-  Assert.ok(pending[0].command.url, "https://foo.bar/early");
-  Assert.equal(pending[1].deviceId, targetDevice.id);
-  Assert.ok(pending[1].command.url, "https://foo.bar/late");
+  const command2 = new RemoteCommand.CloseTab("https://foo.bar/can-send");
+  await store.addRemoteCommandAt(targetDevice.id, command2, now - 12);
 
+  const command3 = new RemoteCommand.CloseTab("https://foo.bar/early");
+  await store.addRemoteCommandAt(targetDevice.id, command3, now - 5);
+
+  // Verify initial state
+  let pending = await store.getUnsentCommands();
+  Assert.equal(pending.length, 3);
+
+  commandMock.expects("sendCloseTabsCommand").never();
+  // We expect command1 to be "overdue": 10ms slop + 5ms + 10ms delay
+  queueMock.expects("_ensureTimer").once().withArgs(16);
+
+  // Run the flush
   await commandQueue.flushQueue();
-  // The push has been sent but a timer remains for the one remaining.
-  Assert.equal((await store.getUnsentCommands()).length, 1);
+
+  // Verify state after flush - all commands should still be there
+  pending = await store.getUnsentCommands();
+  Assert.equal(pending.length, 3);
 
   commandMock.verify();
   queueMock.verify();
 
-  // move "now" to be 20ms timer - ie, pretending the timer fired.
-  now += 20;
-  // We expect the final tab to now qualify, meaning no timer is set.
+  // Move time forward by 15ms
+  now += 15;
+
+  // Reset mocks
   commandMock = sinon.mock(closeTab);
   queueMock = sinon.mock(commandQueue);
-  queueMock.expects("_ensureTimer").never();
+
   commandMock
     .expects("sendCloseTabsCommand")
     .once()
-    .withArgs(targetDevice, ["https://foo.bar/late"])
+    .withArgs(targetDevice, [
+      "https://foo.bar/early",
+      "https://foo.bar/can-send",
+      "https://foo.bar/must-send",
+    ])
     .resolves(true);
 
+  queueMock.expects("_ensureTimer").never();
+
   await commandQueue.flushQueue();
-  // No tabs waiting
-  Assert.equal((await store.getUnsentCommands()).length, 0);
+
+  // Verify final state - all commands should be sent
+  pending = await store.getUnsentCommands();
+  Assert.equal(pending.length, 0);
 
   commandMock.verify();
   queueMock.verify();
+
+  // Testing we don't send commands if there are
+  // no "overdue" items but there are "due" ones
+
+  // Queue 2 more tabs
+  let command4 = new RemoteCommand.CloseTab("https://foo.bar/due");
+  await store.addRemoteCommandAt(targetDevice.id, command4, now - 5);
+  let command5 = new RemoteCommand.CloseTab("https://foo.bar/due2");
+  await store.addRemoteCommandAt(targetDevice.id, command5, now);
+
+  // Verify initial state
+  pending = await store.getUnsentCommands();
+  Assert.equal(pending.length, 2);
+
+  commandMock = sinon.mock(closeTab);
+  queueMock = sinon.mock(commandQueue);
+
+  commandMock.expects("sendCloseTabsCommand").never();
+  queueMock.expects("_ensureTimer").once().withArgs(16); // 10ms slop + 5ms + 1ms delay
+
+  // Move the timer a little but not due enough
+  now += 5;
+
+  // Run the flush
+  await commandQueue.flushQueue();
+
+  // all commands should still be there
+  pending = await store.getUnsentCommands();
+  Assert.equal(pending.length, 2);
+
+  commandMock.verify();
+  queueMock.verify();
+
+  // Clean up unsent commands
+  await store.removeRemoteCommand(targetDevice.id, command4);
+  await store.removeRemoteCommand(targetDevice.id, command5);
+
   commandMock.restore();
   queueMock.restore();
   commandQueue.shutdown();

@@ -648,16 +648,19 @@ export class CommandQueue {
     let store = await lazy.getRemoteCommandStore();
     let pending = await store.getUnsentCommands();
     log.trace("flushQueue total queued items", pending.length);
-    // any timeRequested less than `sendThreshold` should be sent now.
     let now = this.now();
-    let sendThreshold = now - this.DELAY;
+    // We want to be efficient with batching commands to send to the user
+    // so we categorize things into 3 buckets:
+    // mustSend - overdue and should be sent as early as we can
+    // canSend - is due but not yet "overdue", should be sent if possible
+    // early - can still be undone and should not be sent yet
+    const mustSendThreshold = now - this.DELAY;
+    const canSendThreshold = now - this.DELAY * 2;
     // make a map of deviceId -> device
     let recentDevices = this._fxai.device.recentDeviceList;
     if (!recentDevices.length) {
       // If we can't map a device ID to the device with the keys etc, we are screwed!
-      log.error(
-        "Trying to handle a queued tab command but no devices are available"
-      );
+      log.error("No devices available for queued tab commands");
       return;
     }
     let deviceMap = new Map(recentDevices.map(d => [d.id, d]));
@@ -671,37 +674,45 @@ export class CommandQueue {
         // If we can't map *this* device ID to a device with the keys etc, we are screwed!
         // This however *is* possible if the target device was disconnected before we had a chance to send it,
         // so remove this item.
-        log.warn(
-          "Trying to handle a queued tab command for an unknown device",
-          deviceId
+        log.warn("Unknown device for queued tab commands", deviceId);
+        await Promise.all(
+          commands.map(command => store.removeRemoteCommand(deviceId, command))
         );
-        for (const command of commands) {
-          await store.removeRemoteCommand(deviceId, command);
-        }
         continue;
       }
       let toSend = [];
-      for (const command of commands) {
-        if (command.command instanceof lazy.RemoteCommand.CloseTab) {
-          if (command.timeRequested <= sendThreshold) {
-            log.trace(
-              `command for url ${command.command.url} was queued for sending ${
-                (now - command.timeRequested) / 1000
-              }s ago, so sending it now`
-            );
+      // We process in reverse order so it's newest-to-oldest
+      // which means if the newest is already a "must send"
+      // we can simply send all of the "can sends"
+      for (const command of commands.reverse()) {
+        if (!(command.command instanceof lazy.RemoteCommand.CloseTab)) {
+          log.error(`Ignoring unknown pending command ${command}`);
+          continue;
+        }
+        if (command.timeRequested <= mustSendThreshold) {
+          log.trace(
+            `command for url ${command.command.url} is overdue, adding to send`
+          );
+          toSend.push(command);
+        } else if (command.timeRequested <= canSendThreshold) {
+          if (toSend.length) {
+            log.trace(`command for url ${command.command.url} is due,
+              since there others to be sent, also adding to send`);
             toSend.push(command);
           } else {
-            log.trace(
-              `command for url ${command.command.url} was queued for sending ${
-                (now - command.timeRequested) / 1000
-              }s ago, so ensuring the next timer is set for it.`
-            );
+            // Though it's due, since there are no others we can check again
+            // and see if we can batch
             nextTime = Math.min(nextTime, command.timeRequested + this.DELAY);
           }
         } else {
-          log.error(`ignoring unknown pending command ${command}`);
-          // I guess we should try and delete it, but this is already "impossible", so :shrug
-          continue;
+          // We set the next timer just a little later to ensure we'll have an overdue
+          nextTime = Math.min(
+            nextTime,
+            command.timeRequested + this.DELAY * 1.1
+          );
+          // Since the list is sorted newest to oldest,
+          // we can assume the rest are not ready
+          break;
         }
       }
 
@@ -737,9 +748,14 @@ export class CommandQueue {
             // We should investigate a better backoff strategy
             // https://bugzilla.mozilla.org/show_bug.cgi?id=1899433
             // For now just say 60s.
+            log.warn(
+              `Failed to send close tab commands for device ${deviceId}`
+            );
             nextTime = Math.min(nextTime, now + 60000);
           }
         }
+      } else {
+        log.trace(`Skipping send for device ${deviceId}`);
       }
     }
 
@@ -748,10 +764,10 @@ export class CommandQueue {
     }
 
     if (nextTime == Infinity) {
-      log.info(`No new close-tab timer needed because there's nothing to do`);
+      log.info("No new close-tab timer needed");
     } else {
-      // We set the timer to be just a little bit more than requested (XXX - probably not necessary?!)
       let delay = nextTime - now + 10;
+      log.trace(`Setting new close-tab timer for ${delay}ms`);
       this._ensureTimer(delay);
     }
   }
