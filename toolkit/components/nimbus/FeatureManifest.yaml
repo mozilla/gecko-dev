@@ -3338,3 +3338,30 @@ bounceTrackingProtection:
         classifies but does not purge trackers. This mode is helpful for testing
         the feature without risking data loss. Telemetry is still collected
         normally.
+
+crlite:
+  description: Prefs that control the use of CRLite
+  owner: jschanck@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: security.remote_settings.crlite_filters.enabled
+      description: >-
+        Whether CRLite artifacts will be downloaded.
+    channel:
+      type: string
+      setPref:
+        branch: default
+        pref: security.pki.crlite_channel
+      description: >-
+        The channel from which CRLite artifacts will be downloaded.
+    mode:
+      type: int
+      setPref:
+        branch: default
+        pref: security.pki.crlite_mode
+      description: >-
+        How CRLite results will be interpreted.
