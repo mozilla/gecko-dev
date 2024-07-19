@@ -68,13 +68,25 @@ impl ErrorBuffer {
         }
 
         assert_ne!(self.message_capacity, 0);
+        // Since we need to store a nul terminator after the content, the
+        // content length must always be strictly less than the buffer's
+        // capacity.
         let length = if message.len() >= self.message_capacity {
+            // Thanks to the structure of UTF-8, `std::is_char_boundary` is
+            // O(1), so this should examine a few bytes at most.
+            //
+            // The largest value in this range is `self.message_capacity - 1`,
+            // which is a safe length.
+            let truncated_length = (0..self.message_capacity)
+                .rfind(|&offset| message.is_char_boundary(offset))
+                .unwrap_or(0);
             log::warn!(
-                "Error message's length {} reached capacity {}, truncating",
+                "Error message's length {} reached capacity {}, truncating to {}",
                 message.len(),
-                self.message_capacity
+                self.message_capacity,
+                truncated_length,
             );
-            self.message_capacity - 1
+            truncated_length
         } else {
             message.len()
         };

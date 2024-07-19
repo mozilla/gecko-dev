@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8" />
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <script>
+      // Ensure that, when WebGPU generates an error message that is later
+      // truncated by `wgpu_bindings::error::ErrorBuffer::init`, that
+      // truncation always produces valid UTF-8, even when the error contains
+      // multi-byte encodings.
+      async function truncate_error_messages() {
+        // The specific error we'll try to provoke is submitting a command
+        // buffer to the wrong device's queue.
+        const adapter = await navigator.gpu.requestAdapter();
+        const device1 = await adapter.requestDevice();
+        const device2 = await adapter.requestDevice();
+
+        // Try a range of label lengths (578±200, where 578 is the length that
+        // tickles the original bug), searching for one that, when combined with
+        // the error message and then truncated at whatever error message byte
+        // length limit Firefox is imposing, will produce invalid UTF-8.
+        //
+        // Use a label containing n space characters followed by a crab emoji,
+        // U+1F980, which requires four bytes to encode in UTF-8. Since this has
+        // a four-byte encoding at the end, we only need to try every third
+        // length to ensure we will always try a truncation point in the midst
+        // of that encoding.
+        for (let len = 378; len < 778; len += 3) {
+          const label = ' '.repeat(len) + '\uD83E\uDD80';
+          const encoder = device1.createCommandEncoder({ label });
+          const command_buffer = encoder.finish();
+
+          // We don't want an error scope around this, because what makes
+          // Firefox notice the bad UTF-8 is attempting to log the uncaught
+          // WebGPU error as a warning.
+          device2.queue.submit([command_buffer]);
+        }
+      }
+
+      truncate_error_messages()
+        .catch(e => {
+          console.log(e);
+        })
+        .finally(() => {
+          // End the crashtest.
+          document.documentElement.removeAttribute("class");
+        });
+    </script>
+  </body>
+</html>
