@@ -84,11 +84,7 @@ fun MicrosurveyBottomSheet(
                 onCloseButtonClicked()
             }
 
-            Column(
-                modifier = Modifier
-                    .nestedScroll(rememberNestedScrollInteropConnection())
-                    .verticalScroll(rememberScrollState()),
-            ) {
+            Column {
                 if (isSubmitted) {
                     MicrosurveyCompleted()
                 } else {

@@ -2003,6 +2003,13 @@
     </issue>
 
     <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_home` appears to be unused">
+        <location
+            file="src/main/res/drawable/ic_home.xml"/>
+    </issue>
+
+    <issue
         id="RedundantNamespace"
         message="This namespace declaration is redundant"
         errorLine1="        &lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
