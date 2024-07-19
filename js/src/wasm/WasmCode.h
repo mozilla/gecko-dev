@@ -415,9 +415,6 @@ class CodeBlock {
   TryNoteVector tryNotes;
   CodeRangeUnwindInfoVector codeRangeUnwindInfos;
 
-  // Debug information, not serialized.
-  uint32_t debugStubOffset;
-
   // Track whether we are registered in the process map of code blocks.
   bool unregisterOnDestroy_;
 
@@ -433,7 +430,6 @@ class CodeBlock {
       : code(nullptr),
         codeBlockIndex((size_t)-1),
         kind(kind),
-        debugStubOffset(0),
         unregisterOnDestroy_(false) {}
   ~CodeBlock();
 
@@ -809,6 +805,7 @@ class Code : public ShareableBase<Code> {
 
   const CodeBlock* sharedStubs_;
   const CodeBlock* completeTier1_;
+
   // [SMDOC] Tier-2 data
   //
   // hasCompleteTier2_ and completeTier2_ implement a three-state protocol for
@@ -830,6 +827,7 @@ class Code : public ShareableBase<Code> {
   // true.
   mutable const CodeBlock* completeTier2_;
   mutable Atomic<bool> hasCompleteTier2_;
+
   // State for every defined function (not imported) in this module. This is
   // only needed if we're doing partial tiering.
   mutable FuncStatesPointer funcStates_;
@@ -840,6 +838,12 @@ class Code : public ShareableBase<Code> {
 
   // Where to redirect PC to for handling traps from the signal handler.
   uint8_t* trapCode_;
+
+  // Offset of the debug stub in the `sharedStubs_` CodeBlock.  Not serialized.
+  uint32_t debugStubOffset_;
+
+  // Offset of the request-tier-up stub in the `sharedStubs_` CodeBlock.
+  uint32_t requestTierUpStubOffset_;
 
   // The bytecode for a module. Only available for debuggable modules, or if
   // doing lazy tiering.
@@ -911,6 +915,14 @@ class Code : public ShareableBase<Code> {
   uint32_t getFuncIndex(JSFunction* fun) const;
 
   uint8_t* trapCode() const { return trapCode_; }
+
+  uint32_t debugStubOffset() const { return debugStubOffset_; }
+  void setDebugStubOffset(uint32_t offs) { debugStubOffset_ = offs; }
+
+  uint32_t requestTierUpStubOffset() const { return requestTierUpStubOffset_; }
+  void setRequestTierUpStubOffset(uint32_t offs) {
+    requestTierUpStubOffset_ = offs;
+  }
 
   const Bytes& bytecode() const {
     MOZ_ASSERT(codeMeta().debugEnabled || mode_ == CompileMode::LazyTiering);

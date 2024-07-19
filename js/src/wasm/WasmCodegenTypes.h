@@ -380,16 +380,17 @@ using FuncOffsetsVector = Vector<FuncOffsets, 0, SystemAllocPolicy>;
 class CodeRange {
  public:
   enum Kind {
-    Function,          // function definition
-    InterpEntry,       // calls into wasm from C++
-    JitEntry,          // calls into wasm from jit code
-    ImportInterpExit,  // slow-path calling from wasm into C++ interp
-    ImportJitExit,     // fast-path calling from wasm into jit code
-    BuiltinThunk,      // fast-path calling from wasm into a C++ native
-    TrapExit,          // calls C++ to report and jumps to throw stub
-    DebugStub,         // calls C++ to handle debug event
-    FarJumpIsland,     // inserted to connect otherwise out-of-range insns
-    Throw              // special stack-unwinding stub jumped to by other stubs
+    Function,           // function definition
+    InterpEntry,        // calls into wasm from C++
+    JitEntry,           // calls into wasm from jit code
+    ImportInterpExit,   // slow-path calling from wasm into C++ interp
+    ImportJitExit,      // fast-path calling from wasm into jit code
+    BuiltinThunk,       // fast-path calling from wasm into a C++ native
+    TrapExit,           // calls C++ to report and jumps to throw stub
+    DebugStub,          // calls C++ to handle debug event
+    RequestTierUpStub,  // calls C++ to request tier-2 compilation
+    FarJumpIsland,      // inserted to connect otherwise out-of-range insns
+    Throw               // special stack-unwinding stub jumped to by other stubs
   };
 
  private:
@@ -560,7 +561,8 @@ class CallSiteDesc {
     LeaveFrame,     // call to a leave frame handler
     CollapseFrame,  // call to a leave frame handler during tail call
     StackSwitch,    // stack switch point
-    Breakpoint      // call to instruction breakpoint
+    Breakpoint,     // call to instruction breakpoint
+    RequestTierUp   // call to request tier-2 compilation of this function
   };
   CallSiteDesc() : lineOrBytecode_(0), kind_(0) {}
   explicit CallSiteDesc(Kind kind) : lineOrBytecode_(0), kind_(kind) {

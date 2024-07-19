@@ -205,6 +205,10 @@ class alignas(16) Instance {
   const void* addressOfGCZealModeBits_;
 #endif
 
+  // Pointer to a per-module builtin stub that will request tier-up for the
+  // wasm function that calls it.
+  void* requestTierUpStub_ = nullptr;
+
   // The data must be the last field.  Globals for the module start here
   // and are inline in this structure.  16-byte alignment is required for SIMD
   // data.
@@ -282,6 +286,9 @@ class alignas(16) Instance {
   static constexpr size_t offsetOfDebugStub() {
     return offsetof(Instance, debugStub_);
   }
+  static constexpr size_t offsetOfRequestTierUpStub() {
+    return offsetof(Instance, requestTierUpStub_);
+  }
 
   static constexpr size_t offsetOfRealm() { return offsetof(Instance, realm_); }
   static constexpr size_t offsetOfCx() { return offsetof(Instance, cx_); }
@@ -340,6 +347,7 @@ class alignas(16) Instance {
   JSContext* cx() const { return cx_; }
   void* debugStub() const { return debugStub_; }
   void setDebugStub(void* newStub) { debugStub_ = newStub; }
+  void setRequestTierUpStub(void* newStub) { requestTierUpStub_ = newStub; }
   JS::Realm* realm() const { return realm_; }
   bool debugEnabled() const { return !!maybeDebug_; }
   DebugState& debug() { return *maybeDebug_; }

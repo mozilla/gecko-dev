@@ -156,41 +156,6 @@ bool BaseCompiler::generateOutOfLineCode() {
 //
 // Sundry code generation.
 
-bool BaseCompiler::addHotnessCheck() {
-  if (compilerEnv_.mode() != CompileMode::LazyTiering) {
-    return true;
-  }
-
-#ifdef RABALDR_PIN_INSTANCE
-  Register tmp(InstanceReg);
-#else
-  ScratchI32 tmp(*this);
-  fr.loadInstancePtr(tmp);
-#endif
-  Label isHot;
-  Label rejoin;
-  RegI32 scratch = needI32();
-  Address addressOfCounter =
-      Address(tmp, wasm::Instance::offsetInData(
-                       codeMeta_.offsetOfFuncDefInstanceData(func_.index)));
-  masm.load32(addressOfCounter, scratch);
-  masm.branchSub32(Assembler::Signed, Imm32(1), scratch, &isHot);
-  masm.store32(scratch, addressOfCounter);
-  masm.jump(&rejoin);
-
-  masm.bind(&isHot);
-  masm.wasmTrap(wasm::Trap::RequestTierUp, bytecodeOffset());
-  if (!createStackMap("addHotnessCheck")) {
-    freeI32(scratch);
-    return false;
-  }
-
-  masm.bind(&rejoin);
-  freeI32(scratch);
-
-  return true;
-}
-
 bool BaseCompiler::addInterruptCheck() {
 #ifdef RABALDR_PIN_INSTANCE
   Register tmp(InstanceReg);
@@ -962,6 +927,144 @@ void BaseCompiler::restoreRegisterReturnValues(const ResultType& resultType) {
 #endif
     }
   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// Support for lazy tiering
+
+// The key thing here is, we generate a short piece of code which, most of the
+// time, has no effect, but just occasionally wants to call out to C++ land.
+// That's a similar requirement to the Debugger API support (see above) and so
+// we have a similar, but simpler, solution.  Specifically, we use a single
+// stub routine for the whole module, whereas for debugging, there are
+// per-function stub routines as well as a whole-module stub routine involved.
+
+// bool BaseCompiler::addHotnessCheck() {
+//   if (compilerEnv_.mode() != CompileMode::LazyTiering) {
+//     return true;
+//   }
+//
+// #ifdef RABALDR_PIN_INSTANCE
+//   Register tmp(InstanceReg);
+// #else
+//   ScratchI32 tmp(*this);
+//   fr.loadInstancePtr(tmp);
+// #endif
+//   Label isHot;
+//   Label rejoin;
+//   RegI32 scratch = needI32();
+//   Address addressOfCounter =
+//       Address(tmp, wasm::Instance::offsetInData(
+//                        codeMeta_.offsetOfFuncDefInstanceData(func_.index)));
+//   masm.load32(addressOfCounter, scratch);
+//   masm.branchSub32(Assembler::Signed, Imm32(1), scratch, &isHot);
+//   masm.store32(scratch, addressOfCounter);
+//   masm.jump(&rejoin);
+//
+//   masm.bind(&isHot);
+//   masm.wasmTrap(wasm::Trap::CheckHotness, bytecodeOffset());
+//   if (!createStackMap("addHotnessCheck")) {
+//     freeI32(scratch);
+//     return false;
+//   }
+//
+//   masm.bind(&rejoin);
+//   freeI32(scratch);
+//
+//   return true;
+// }
+
+bool BaseCompiler::addHotnessCheck() {
+  if (compilerEnv_.mode() != CompileMode::LazyTiering) {
+    return true;
+  }
+
+  // Here's an example of what we'll create.  The path that almost always
+  // happens, where the counter doesn't go negative, has just one branch.
+  //
+  // movl       0x160(%r14), %eax
+  // subl       $1, %eax
+  // jns        counterNonNegative // almost always taken
+  //
+  // call       *0x158(%r14) // RequestTierUpStub
+  // jmp        after
+  //
+  // counterNonNegative:
+  // movl       %eax, 0x160(%r14)
+  //
+  // after:
+
+  AutoCreatedBy acb(masm, "BC::addHotnessCheck");
+
+#ifdef RABALDR_PIN_INSTANCE
+  Register instance(InstanceReg);
+#else
+  // This seems to assume that any non-RABALDR_PIN_INSTANCE target is 32-bit
+  ScratchI32 instance(*this);
+  fr.loadInstancePtr(instance);
+#endif
+
+  Label counterNotNegative;
+  Label after;
+
+  Address addressOfCounter = Address(
+      instance, wasm::Instance::offsetInData(
+                    codeMeta_.offsetOfFuncDefInstanceData(func_.index)));
+
+  RegI32 counter = needI32();
+  masm.load32(addressOfCounter, counter);
+  masm.branchSub32(Assembler::NotSigned,  // almost always taken
+                   Imm32(1), counter, &counterNotNegative);
+
+  // This is the unlikely path, where we call the (per-module) request-tier-up
+  // stub.  The stub wants the instance pointer to be in the official
+  // InstanceReg at this point, but InstanceReg itself might hold arbitrary
+  // other live data.  Hence, if necessary, swap `instance` and InstanceReg
+  // before the call and swap them back later.
+#ifndef RABALDR_PIN_INSTANCE
+  if (Register(instance) != InstanceReg) {
+#  ifdef JS_CODEGEN_X86
+    // On x86_32 this is easy.
+    masm.xchgl(instance, InstanceReg);
+#  elif JS_CODEGEN_ARM
+    // Use `counter` to do the swap, since it's now dead, but still reserved.
+    masm.mov(instance, counter);  // note, destination is second arg
+    masm.mov(InstanceReg, instance);
+    masm.mov(counter, InstanceReg);
+#  else
+    MOZ_CRASH("BaseCompiler::addHotnessCheck #1");
+#  endif
+  }
+#endif
+  // Call the stub
+  masm.call(Address(InstanceReg, Instance::offsetOfRequestTierUpStub()));
+  masm.append(
+      CallSiteDesc(iter_.lastOpcodeOffset(), CallSiteDesc::RequestTierUp),
+      CodeOffset(masm.currentOffset()));
+  // And swap again, if we swapped above.
+#ifndef RABALDR_PIN_INSTANCE
+  if (Register(instance) != InstanceReg) {
+#  ifdef JS_CODEGEN_X86
+    masm.xchgl(instance, InstanceReg);
+#  elif JS_CODEGEN_ARM
+    masm.mov(instance, counter);
+    masm.mov(InstanceReg, instance);
+    masm.mov(counter, InstanceReg);
+#  else
+    MOZ_CRASH("BaseCompiler::addHotnessCheck #2");
+#  endif
+  }
+#endif
+  masm.jump(&after);
+
+  masm.bind(&counterNotNegative);
+  masm.store32(counter, addressOfCounter);
+
+  masm.bind(&after);
+  freeI32(counter);
+
+  return true;
 }
 
 //////////////////////////////////////////////////////////////////////////////

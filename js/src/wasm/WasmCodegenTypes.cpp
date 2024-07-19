@@ -185,6 +185,7 @@ CodeRange::CodeRange(Kind kind, CallableOffsets offsets)
   switch (kind_) {
     case DebugStub:
     case BuiltinThunk:
+    case RequestTierUpStub:
       break;
     default:
       MOZ_CRASH("should use more specific constructor");

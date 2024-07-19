@@ -1148,6 +1148,7 @@ void ProfilingFrameIterator::initFromExitFP(const Frame* fp) {
     case CodeRange::BuiltinThunk:
     case CodeRange::TrapExit:
     case CodeRange::DebugStub:
+    case CodeRange::RequestTierUpStub:
     case CodeRange::Throw:
     case CodeRange::FarJumpIsland:
       MOZ_CRASH("Unexpected CodeRange kind");
@@ -1299,6 +1300,7 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
     case CodeRange::ImportInterpExit:
     case CodeRange::BuiltinThunk:
     case CodeRange::DebugStub:
+    case CodeRange::RequestTierUpStub:
 #if defined(JS_CODEGEN_MIPS64)
       if (codeRange->isThunk()) {
         // The FarJumpIsland sequence temporary scrambles ra.
@@ -1651,6 +1653,7 @@ void ProfilingFrameIterator::operator++() {
     case CodeRange::BuiltinThunk:
     case CodeRange::TrapExit:
     case CodeRange::DebugStub:
+    case CodeRange::RequestTierUpStub:
     case CodeRange::FarJumpIsland: {
       stackAddress_ = callerFP_;
       const auto* frame = Frame::fromUntaggedWasmExitFP(callerFP_);
@@ -1673,6 +1676,7 @@ static const char* ThunkedNativeToDescription(SymbolicAddress func) {
   MOZ_ASSERT(NeedsBuiltinThunk(func));
   switch (func) {
     case SymbolicAddress::HandleDebugTrap:
+    case SymbolicAddress::HandleRequestTierUp:
     case SymbolicAddress::HandleThrow:
     case SymbolicAddress::HandleTrap:
     case SymbolicAddress::CallImport_General:
@@ -1893,6 +1897,7 @@ const char* ProfilingFrameIterator::label() const {
       "fast exit trampoline to native (in wasm)";
   static const char trapDescription[] = "trap handling (in wasm)";
   static const char debugStubDescription[] = "debug trap handling (in wasm)";
+  static const char requestTierUpDescription[] = "tier-up request (in wasm)";
 
   if (!exitReason_.isFixed()) {
     return ThunkedNativeToDescription(exitReason_.symbolic());
@@ -1911,6 +1916,8 @@ const char* ProfilingFrameIterator::label() const {
       return trapDescription;
     case ExitReason::Fixed::DebugStub:
       return debugStubDescription;
+    case ExitReason::Fixed::RequestTierUp:
+      return requestTierUpDescription;
   }
 
   switch (codeRange_->kind()) {
@@ -1930,6 +1937,8 @@ const char* ProfilingFrameIterator::label() const {
       return trapDescription;
     case CodeRange::DebugStub:
       return debugStubDescription;
+    case CodeRange::RequestTierUpStub:
+      return requestTierUpDescription;
     case CodeRange::FarJumpIsland:
       return "interstitial (in wasm)";
     case CodeRange::Throw:

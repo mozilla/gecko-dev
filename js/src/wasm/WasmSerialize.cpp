@@ -1270,7 +1270,7 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
 
 CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
                            const wasm::CodeMetadata& codeMeta) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 760);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 768);
 
   FuncImportVector funcImports;
   MOZ_TRY(CodePodVector(coder, &funcImports));
@@ -1296,6 +1296,12 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
                                  std::move(optimizedCodeLinkData))) {
     return Err(OutOfMemory());
   }
+  // not serialized: debugStubOffset_
+  {
+    uint32_t offs = 0;
+    MOZ_TRY(CodePod(coder, &offs));
+    code->setRequestTierUpStubOffset(offs);
+  }
   *item = code;
   return Ok();
 }
@@ -1303,7 +1309,7 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 template <CoderMode mode>
 CoderResult CodeSharedCode(Coder<mode>& coder,
                            CoderArg<mode, wasm::SharedCode> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 760);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 768);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   // Don't encode the CodeMetadata, that is handled by wasm::Module
   MOZ_TRY(CodePodVector(coder, &(*item)->funcImports()));
@@ -1318,6 +1324,11 @@ CoderResult CodeSharedCode(Coder<mode>& coder,
       *(*item)->codeBlockLinkData(optimizedCodeBlock);
   MOZ_TRY(CodeLinkData(coder, &optimizedLinkData));
   MOZ_TRY(CodeCodeBlock(coder, &optimizedCodeBlock, optimizedLinkData));
+  // not serialized: debugStubOffset_
+  {
+    uint32_t offs = (*item)->requestTierUpStubOffset();
+    MOZ_TRY(CodePod(coder, &offs));
+  }
   return Ok();
 }
 

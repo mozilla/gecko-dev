@@ -654,6 +654,48 @@ static const wasm::TryNote* FindNonDelegateTryNote(
   return tryNote;
 }
 
+// Request tier-2 compilation for the calling wasm function.
+
+static void WasmHandleRequestTierUp() {
+  JSContext* cx = TlsContext.get();  // Cold code
+
+  // Neither this routine nor the stub that calls it make any attempt to
+  // communicate roots to the GC.  This is OK because we will only be
+  // compiling code here, which shouldn't GC.  Nevertheless ..
+  JS::AutoAssertNoGC nogc(cx);
+
+  JitActivation* activation = CallingActivation(cx);
+  Frame* fp = activation->wasmExitFP();
+  Instance* instance = GetNearestEffectiveInstance(fp);
+  void* resumePC = fp->returnAddress();
+
+  const CodeRange* codeRange;
+  const CodeBlock* codeBlock = LookupCodeBlock(resumePC, &codeRange);
+  MOZ_RELEASE_ASSERT(codeBlock && codeRange);
+
+  uint32_t funcIndex = codeRange->funcIndex();
+
+  // Function `funcIndex` is requesting tier-up.  This can go one of three ways:
+  // - the request is a duplicate -- ignore
+  // - tier-up compilation succeeds -- we hope
+  // - tier-up compilation fails (eg, OOMs).
+  //   We have no feasible way to recover.
+  //
+  // Regardless of the outcome, we want to defer duplicate requests as long as
+  // possible.  So set the counter to "infinity" right now.
+  instance->resetHotnessCounter(funcIndex);
+
+  // Try to Ion-compile it.  Note that `ok == true` signifies either
+  // "duplicate request" or "not a duplicate, and compilation succeeded".
+  bool ok = codeBlock->code->requestTierUp(funcIndex);
+
+  // If compilation failed, there's no feasible way to recover.
+  if (!ok) {
+    wasm::Log(cx, "Failed to tier-up function=%d in instance=%p.", funcIndex,
+              instance);
+  }
+}
+
 // Unwind the activation in response to a thrown exception. This function is
 // responsible for notifying the debugger of each unwound frame.
 //
@@ -1200,6 +1242,9 @@ void* wasm::AddressOf(SymbolicAddress imm, ABIFunctionType* abiType) {
     case SymbolicAddress::HandleDebugTrap:
       *abiType = Args_General0;
       return FuncCast(WasmHandleDebugTrap, *abiType);
+    case SymbolicAddress::HandleRequestTierUp:
+      *abiType = Args_General0;
+      return FuncCast(WasmHandleRequestTierUp, *abiType);
     case SymbolicAddress::HandleThrow:
       *abiType = Args_General1;
       return FuncCast(WasmHandleThrow, *abiType);
@@ -1623,6 +1668,7 @@ bool wasm::NeedsBuiltinThunk(SymbolicAddress sym) {
     // the activation exit: when called, arbitrary wasm registers are live and
     // must be saved, and the stack pointer may not be aligned for any ABI.
     case SymbolicAddress::HandleDebugTrap:  // GenerateDebugStub
+    case SymbolicAddress::HandleRequestTierUp:  // GenerateRequestTierUpStub
 
     // No thunk, because their caller manages the activation exit explicitly
     case SymbolicAddress::CallImport_General:      // GenerateImportInterpExit

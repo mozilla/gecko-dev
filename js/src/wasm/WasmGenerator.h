@@ -209,6 +209,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   Maybe<MacroAssemblerScope> masmScope_;
   jit::WasmMacroAssembler* masm_;
   uint32_t debugStubCodeOffset_;
+  uint32_t requestTierUpStubCodeOffset_;
   CallFarJumpVector callFarJumps_;
   CallSiteTargetVector callSiteTargets_;
   uint32_t lastPatchedCallSite_;

@@ -70,6 +70,7 @@ enum class SymbolicAddress {
   PowD,
   ATan2D,
   HandleDebugTrap,
+  HandleRequestTierUp,
   HandleThrow,
   HandleTrap,
   ReportV128JSCall,

@@ -2317,7 +2317,15 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   addressOfGCZealModeBits_ = cx->runtime()->gc.addressOfZealModeBits();
 #endif
 
-  // Initialize the hotness counters, if any
+  // Initialize the request-tier-up stub pointer, if relevant
+  if (code().mode() == CompileMode::LazyTiering) {
+    setRequestTierUpStub(code().sharedStubs().segment->base() +
+                         code().requestTierUpStubOffset());
+  } else {
+    setRequestTierUpStub(nullptr);
+  }
+
+  // Initialize the hotness counters, if relevant
   if (code().mode() == CompileMode::LazyTiering) {
     for (uint32_t funcIndex = codeMeta().numFuncImports;
          funcIndex < codeMeta().numFuncs(); funcIndex++) {

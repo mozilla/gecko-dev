@@ -2875,6 +2875,61 @@ static bool GenerateDebugStub(MacroAssembler& masm, Label* throwLabel,
   return FinishOffsets(masm, offsets);
 }
 
+static bool GenerateRequestTierUpStub(MacroAssembler& masm,
+                                      CallableOffsets* offsets) {
+  // This is almost identical to GenerateDebugStub, differing only in
+  // the C++ function called (obviously) and the fact that the function does
+  // not return any indication of success or failure.
+
+  AutoCreatedBy acb(masm, "GenerateRequestTierUpStub");
+  AssertExpectedSP(masm);
+  masm.haltingAlign(CodeAlignment);
+  masm.setFramePushed(0);
+
+  GenerateExitPrologue(masm, 0, ExitReason::Fixed::RequestTierUp, offsets);
+
+  // Save all registers used between baseline compiler operations.
+  masm.PushRegsInMask(AllAllocatableRegs);
+
+  uint32_t framePushed = masm.framePushed();
+
+  // This method might be called with unaligned stack -- aligning and
+  // saving old stack pointer at the top.
+#ifdef JS_CODEGEN_ARM64
+  // On ARM64 however the stack is always aligned.
+  static_assert(ABIStackAlignment == 16, "ARM64 SP alignment");
+#else
+  Register scratch = ABINonArgReturnReg0;
+  masm.moveStackPtrTo(scratch);
+  masm.subFromStackPtr(Imm32(sizeof(intptr_t)));
+  masm.andToStackPtr(Imm32(~(ABIStackAlignment - 1)));
+  masm.storePtr(scratch, Address(masm.getStackPointer(), 0));
+#endif
+
+  if (ShadowStackSpace) {
+    masm.subFromStackPtr(Imm32(ShadowStackSpace));
+  }
+  masm.assertStackAlignment(ABIStackAlignment);
+
+  masm.call(SymbolicAddress::HandleRequestTierUp);
+  // The call can't fail (meaning, if it does fail, we ignore that)
+
+  if (ShadowStackSpace) {
+    masm.addToStackPtr(Imm32(ShadowStackSpace));
+  }
+#ifndef JS_CODEGEN_ARM64
+  masm.Pop(scratch);
+  masm.moveToStackPtr(scratch);
+#endif
+
+  masm.setFramePushed(framePushed);
+  masm.PopRegsInMask(AllAllocatableRegs);
+
+  GenerateExitEpilogue(masm, 0, ExitReason::Fixed::RequestTierUp, offsets);
+
+  return FinishOffsets(masm, offsets);
+}
+
 bool wasm::GenerateEntryStubs(const CodeMetadata& codeMeta,
                               const FuncExportVector& exports,
                               CompiledCode* code) {
@@ -3072,6 +3127,14 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
     return false;
   }
   if (!code->codeRanges.emplaceBack(CodeRange::DebugStub, callableOffsets)) {
+    return false;
+  }
+
+  if (!GenerateRequestTierUpStub(masm, &callableOffsets)) {
+    return false;
+  }
+  if (!code->codeRanges.emplaceBack(CodeRange::RequestTierUpStub,
+                                    callableOffsets)) {
     return false;
   }
 

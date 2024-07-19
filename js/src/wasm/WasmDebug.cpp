@@ -297,7 +297,7 @@ void DebugState::disableDebuggingForFunction(Instance* instance,
 
 void DebugState::enableDebugTrapping(Instance* instance) {
   instance->setDebugStub(code_->sharedStubs().segment->base() +
-                         code_->sharedStubs().debugStubOffset);
+                         code_->debugStubOffset());
 }
 
 void DebugState::disableDebugTrapping(Instance* instance) {

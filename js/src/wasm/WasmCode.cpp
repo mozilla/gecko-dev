@@ -1018,6 +1018,8 @@ Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
       profilingLabels_(mutexid::WasmCodeProfilingLabels,
                        CacheableCharsVector()),
       trapCode_(nullptr),
+      debugStubOffset_(0),
+      requestTierUpStubOffset_(0),
       bytecode_(maybeBytecode) {}
 
 bool Code::initialize(FuncImportVector&& funcImports,
