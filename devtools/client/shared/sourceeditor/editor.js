@@ -625,7 +625,13 @@ class Editor extends EventEmitter {
       codemirrorView: { EditorView, lineNumbers },
       codemirrorState: { EditorState, Compartment },
       codemirrorSearch: { highlightSelectionMatches },
-      codemirrorLanguage,
+      codemirrorLanguage: {
+        syntaxTreeAvailable,
+        indentUnit,
+        codeFolding,
+        syntaxHighlighting,
+        bracketMatching,
+      },
       codemirrorLangJavascript,
       lezerHighlight,
     } = this.#CodeMirror6;
@@ -663,21 +669,30 @@ class Editor extends EventEmitter {
     );
 
     const extensions = [
-      codemirrorLanguage.bracketMatching(),
-      indentCompartment.of(codemirrorLanguage.indentUnit.of(indentStr)),
+      bracketMatching(),
+      indentCompartment.of(indentUnit.of(indentStr)),
       tabSizeCompartment.of(EditorState.tabSize.of(this.config.tabSize)),
       lineWrapCompartment.of(
         this.config.lineWrapping ? EditorView.lineWrapping : []
       ),
       EditorState.readOnly.of(this.config.readOnly),
       lineNumberCompartment.of(this.config.lineNumbers ? lineNumbers() : []),
-      codemirrorLanguage.codeFolding({
+      codeFolding({
         placeholderText: "↔",
       }),
       foldGutterCompartment.of([]),
-      codemirrorLanguage.syntaxHighlighting(lezerHighlight.classHighlighter),
+      syntaxHighlighting(lezerHighlight.classHighlighter),
       EditorView.updateListener.of(v => {
+        if (!cm.isDocumentLoadComplete) {
+          // Check that the full syntax tree is available the current viewport
+          if (syntaxTreeAvailable(v.state, v.view.viewState.viewport.to)) {
+            cm.isDocumentLoadComplete = true;
+          }
+        }
         if (v.viewportChanged || v.docChanged) {
+          if (v.docChanged) {
+            cm.isDocumentLoadComplete = false;
+          }
           // reset line gutter markers for the new visible ranges
           // when the viewport changes(e.g when the page is scrolled).
           if (this.#lineGutterMarkers.size > 0) {
@@ -708,6 +723,8 @@ class Editor extends EventEmitter {
       extensions,
     });
 
+    cm.isDocumentLoadComplete = false;
+    this.#ownerDoc.sourceEditor = { editor: this, cm };
     editors.set(this, cm);
   }
 
