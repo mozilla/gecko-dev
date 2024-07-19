@@ -5,6 +5,7 @@
 package org.mozilla.fenix.browser
 
 import android.content.Context
+import android.content.res.Configuration
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -28,9 +29,12 @@ import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
 import org.mozilla.fenix.components.toolbar.NewTabMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.BrowserNavBar
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
+import org.mozilla.fenix.components.toolbar.navbar.updateNavBarForConfigurationChange
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.databinding.TabPreviewBinding
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.ThemeManager
@@ -50,7 +54,13 @@ class TabPreview @JvmOverloads constructor(
     private val binding = TabPreviewBinding.inflate(LayoutInflater.from(context), this)
     private val thumbnailLoader = ThumbnailLoader(context.components.core.thumbnailStorage)
 
+    private var bottomToolbarContainerView: BottomToolbarContainerView? = null
+
     init {
+        initializeView()
+    }
+
+    private fun initializeView() {
         val isToolbarAtTop = context.settings().toolbarPosition == ToolbarPosition.TOP
         if (isToolbarAtTop) {
             binding.fakeToolbar.updateLayoutParams<LayoutParams> {
@@ -63,19 +73,21 @@ class TabPreview @JvmOverloads constructor(
             )
         }
 
-        val isNavBarEnabled = context.settings().navigationToolbarEnabled
-        binding.tabButton.isVisible = !isNavBarEnabled
-        binding.menuButton.isVisible = !isNavBarEnabled
+        val isNavBarVisible = context.shouldAddNavigationBar()
+        binding.tabButton.isVisible = !isNavBarVisible
+        binding.menuButton.isVisible = !isNavBarVisible
 
-        if (isNavBarEnabled) {
+        if (isNavBarVisible) {
             val browserStore = context.components.core.store
-            BottomToolbarContainerView(
+            bottomToolbarContainerView = BottomToolbarContainerView(
                 context = context,
                 parent = this,
                 content = {
                     FirefoxTheme {
                         Column {
                             if (!isToolbarAtTop) {
+                                // before adding fake navigation bar in the preview, remove fake toolbar
+                                removeView(binding.fakeToolbar)
                                 AndroidView(factory = { _ -> binding.fakeToolbar })
                             } else {
                                 Divider()
@@ -124,15 +136,11 @@ class TabPreview @JvmOverloads constructor(
                     }
                 },
             )
-
-            if (!isToolbarAtTop) {
-                removeView(binding.fakeToolbar)
-            }
         }
 
         // Change view properties to avoid confusing the UI tests
-        binding.tabButton.findViewById<View>(R.id.counter_box).id = View.NO_ID
-        binding.tabButton.findViewById<View>(R.id.counter_text).id = View.NO_ID
+        binding.tabButton.findViewById<View>(R.id.counter_box)?.id = View.NO_ID
+        binding.tabButton.findViewById<View>(R.id.counter_text)?.id = View.NO_ID
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -148,6 +156,20 @@ class TabPreview @JvmOverloads constructor(
             binding.fakeToolbar.height.toFloat()
         } else {
             0f
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (context.settings().navigationToolbarEnabled && !context.isTablet()) {
+            updateNavBarForConfigurationChange(
+                context = context,
+                parent = this,
+                toolbarView = binding.fakeToolbar,
+                bottomToolbarContainerView = bottomToolbarContainerView?.toolbarContainerView,
+                reinitializeNavBar = ::initializeView,
+                reinitializeMicrosurveyPrompt = {},
+            )
         }
     }
 

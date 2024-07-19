@@ -116,6 +116,7 @@ import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.HomeNavBar
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
+import org.mozilla.fenix.components.toolbar.navbar.updateNavBarForConfigurationChange
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
@@ -131,7 +132,6 @@ import org.mozilla.fenix.ext.scaleToBottomOfView
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.tabClosedUndoMessage
 import org.mozilla.fenix.ext.updateMicrosurveyPromptForConfigurationChange
-import org.mozilla.fenix.ext.updateNavBarForConfigurationChange
 import org.mozilla.fenix.home.bookmarks.BookmarksFeature
 import org.mozilla.fenix.home.bookmarks.controller.DefaultBookmarksController
 import org.mozilla.fenix.home.pocket.DefaultPocketStoriesController
@@ -539,6 +539,7 @@ class HomeFragment : Fragment() {
             requireContext().settings().navigationToolbarEnabled && !isTablet()
         if (shouldUpdateNavBarState) {
             updateNavBarForConfigurationChange(
+                context = requireContext(),
                 parent = binding.homeLayout,
                 toolbarView = binding.toolbarLayout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
