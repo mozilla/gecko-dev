@@ -40,6 +40,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   }
 );
 
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "idleService",
+  "@mozilla.org/widget/useridleservice;1",
+  "nsIUserIdleService"
+);
+
 const TOPIC_TABS_CHANGED = "services.sync.tabs.changed";
 const COMMAND_MAX_PAYLOAD_SIZE = 16 * 1024;
 
@@ -611,10 +618,21 @@ export class CommandQueue {
   closeTabNotificationCount = 0;
   hasPendingCloseTabNotification = false;
 
+  // We ensure the queue is flushed soon after startup. After the first tab sync we see, we
+  // wait for this many seconds of being idle before checking.
+  // Note that this delay has nothing to do with DELAY - that is for "undo" capability, this
+  // delay is to ensure we don't put unnecessary load on the browser during startup.
+  #idleThresholdSeconds = 3;
+  #isObservingTabSyncs = false;
+  // This helps ensure we aren't flushing the queue multiple times concurrently.
+  #flushQueuePromise = null;
+
   constructor(commands, fxAccountsInternal) {
     this._commands = commands;
     this._fxai = fxAccountsInternal;
     Services.obs.addObserver(this, "services.sync.tabs.command-queued");
+    Services.obs.addObserver(this, "weave:engine:sync:finish");
+    this.#isObservingTabSyncs = true;
     log.trace("Command queue observer created");
   }
 
@@ -624,6 +642,10 @@ export class CommandQueue {
       clearTimeout(this.#timer);
     }
     Services.obs.removeObserver(this, "services.sync.tabs.command-queued");
+    if (this.#isObservingTabSyncs) {
+      Services.obs.removeObserver(this, "weave:engine:sync:finish");
+      this.#isObservingTabSyncs = false;
+    }
   }
 
   observe(subject, topic, data) {
@@ -636,12 +658,63 @@ export class CommandQueue {
           log.error("Failed to flush the outgoing queue", e);
         });
         break;
+
+      case "weave:engine:sync:finish":
+        // This is to pick up pending commands we failed to send in the last session.
+        if (data != "tabs") {
+          return;
+        }
+        Services.obs.removeObserver(this, "weave:engine:sync:finish");
+        this.#isObservingTabSyncs = false;
+        this.#checkQueueAfterStartup();
+        break;
+
       default:
         log.error(`unexpected observer topic: ${topic}`);
     }
   }
 
+  // for test mocking.
+  _getIdleService() {
+    return lazy.idleService;
+  }
+
+  async #checkQueueAfterStartup() {
+    // do this on idle because we are probably syncing quite close to startup.
+    const idleService = this._getIdleService();
+    const idleObserver = (/* subject, topic, data */) => {
+      idleService.removeIdleObserver(idleObserver, this.#idleThresholdSeconds);
+      log.info("checking if the command queue is empty now we are idle");
+      this.flushQueue()
+        .then(didSend => {
+          // TODO: it would be good to get telemetry here, because we expect this to be true rarely.
+          log.info(
+            `pending command check had ${didSend ? "some" : "no"} commands`
+          );
+        })
+        .catch(err => {
+          log.error(
+            "Checking for pending tab commands after first tab sync failed",
+            err
+          );
+        });
+    };
+    idleService.addIdleObserver(idleObserver, this.#idleThresholdSeconds);
+  }
+
   async flushQueue() {
+    // We really don't want multiple queue flushes concurrently, which is a real possibility.
+    if (this.#flushQueuePromise == null) {
+      this.#flushQueuePromise = this.#flushQueue();
+    }
+    try {
+      return await this.#flushQueuePromise;
+    } finally {
+      this.#flushQueuePromise = null;
+    }
+  }
+
+  async #flushQueue() {
     // get all the queued items to work out what's ready to send. If a device has queued item less than
     // our pushDelay, then we don't send *any* command for that device yet, but ensure a timer is set
     // for the delay.
@@ -661,7 +734,7 @@ export class CommandQueue {
     if (!recentDevices.length) {
       // If we can't map a device ID to the device with the keys etc, we are screwed!
       log.error("No devices available for queued tab commands");
-      return;
+      return false;
     }
     let deviceMap = new Map(recentDevices.map(d => [d.id, d]));
     // make a map of commands keyed by device ID.
@@ -770,6 +843,7 @@ export class CommandQueue {
       log.trace(`Setting new close-tab timer for ${delay}ms`);
       this._ensureTimer(delay);
     }
+    return didSend;
   }
 
   // Take a an array of urls and a max size and split them into chunks
