@@ -13,11 +13,11 @@ use core_graphics_types::geometry::CGSize;
 use metal::*;
 use objc::{rc::autoreleasepool, runtime::YES};
 use std::mem;
-use winit::platform::macos::WindowExtMacOS;
 
 use winit::{
     event::{Event, WindowEvent},
     event_loop::ControlFlow,
+    raw_window_handle::{HasWindowHandle, RawWindowHandle},
 };
 
 #[repr(C)]
@@ -85,13 +85,13 @@ fn prepare_render_pass_descriptor(descriptor: &RenderPassDescriptorRef, texture:
 }
 
 fn main() {
-    let events_loop = winit::event_loop::EventLoop::new();
+    let event_loop = winit::event_loop::EventLoop::new().unwrap();
     let size = winit::dpi::LogicalSize::new(800, 600);
 
     let window = winit::window::WindowBuilder::new()
         .with_inner_size(size)
         .with_title("Metal Window Example".to_string())
-        .build(&events_loop)
+        .build(&event_loop)
         .unwrap();
 
     let device = Device::system_default().expect("no device found");
@@ -102,9 +102,11 @@ fn main() {
     layer.set_presents_with_transaction(false);
 
     unsafe {
-        let view = window.ns_view() as cocoa_id;
-        view.setWantsLayer(YES);
-        view.setLayer(mem::transmute(layer.as_ref()));
+        if let Ok(RawWindowHandle::AppKit(rw)) = window.window_handle().map(|wh| wh.as_raw()) {
+            let view = rw.ns_view.as_ptr() as cocoa_id;
+            view.setWantsLayer(YES);
+            view.setLayer(mem::transmute(layer.as_ref()));
+        }
     }
 
     let draw_size = window.inner_size();
@@ -161,101 +163,107 @@ fn main() {
         MTLResourceOptions::CPUCacheModeDefaultCache | MTLResourceOptions::StorageModeManaged,
     );
 
-    events_loop.run(move |event, _, control_flow| {
-        autoreleasepool(|| {
-            *control_flow = ControlFlow::Poll;
+    event_loop
+        .run(move |event, event_loop| {
+            autoreleasepool(|| {
+                event_loop.set_control_flow(ControlFlow::Poll);
 
-            match event {
-                Event::WindowEvent { event, .. } => match event {
-                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(size) => {
-                        layer.set_drawable_size(CGSize::new(size.width as f64, size.height as f64));
-                    }
-                    _ => (),
-                },
-                Event::MainEventsCleared => {
-                    window.request_redraw();
+                match event {
+                    Event::AboutToWait => window.request_redraw(),
+                    Event::WindowEvent { event, .. } => match event {
+                        WindowEvent::CloseRequested => event_loop.exit(),
+                        WindowEvent::Resized(size) => {
+                            layer.set_drawable_size(CGSize::new(
+                                size.width as f64,
+                                size.height as f64,
+                            ));
+                        }
+                        WindowEvent::RedrawRequested => {
+                            let p = vbuf.contents();
+                            let vertex_data = [
+                                0.0f32,
+                                0.5,
+                                1.0,
+                                0.0,
+                                0.0,
+                                -0.5 + (r.cos() / 2. + 0.5),
+                                -0.5,
+                                0.0,
+                                1.0,
+                                0.0,
+                                0.5 - (r.cos() / 2. + 0.5),
+                                -0.5,
+                                0.0,
+                                0.0,
+                                1.0,
+                            ];
+
+                            unsafe {
+                                std::ptr::copy(
+                                    vertex_data.as_ptr(),
+                                    p as *mut f32,
+                                    (vertex_data.len() * mem::size_of::<f32>()) as usize,
+                                );
+                            }
+
+                            vbuf.did_modify_range(crate::NSRange::new(
+                                0 as u64,
+                                (vertex_data.len() * mem::size_of::<f32>()) as u64,
+                            ));
+
+                            let drawable = match layer.next_drawable() {
+                                Some(drawable) => drawable,
+                                None => return,
+                            };
+
+                            let render_pass_descriptor = RenderPassDescriptor::new();
+
+                            prepare_render_pass_descriptor(
+                                &render_pass_descriptor,
+                                drawable.texture(),
+                            );
+
+                            let command_buffer = command_queue.new_command_buffer();
+                            let encoder =
+                                command_buffer.new_render_command_encoder(&render_pass_descriptor);
+
+                            encoder.set_scissor_rect(MTLScissorRect {
+                                x: 20,
+                                y: 20,
+                                width: 100,
+                                height: 100,
+                            });
+                            encoder.set_render_pipeline_state(&clear_rect_pipeline_state);
+                            encoder.set_vertex_buffer(0, Some(&clear_rect_buffer), 0);
+                            encoder.draw_primitives_instanced(
+                                metal::MTLPrimitiveType::TriangleStrip,
+                                0,
+                                4,
+                                1,
+                            );
+                            let physical_size = window.inner_size();
+                            encoder.set_scissor_rect(MTLScissorRect {
+                                x: 0,
+                                y: 0,
+                                width: physical_size.width as _,
+                                height: physical_size.height as _,
+                            });
+
+                            encoder.set_render_pipeline_state(&triangle_pipeline_state);
+                            encoder.set_vertex_buffer(0, Some(&vbuf), 0);
+                            encoder.draw_primitives(MTLPrimitiveType::Triangle, 0, 3);
+                            encoder.end_encoding();
+
+                            command_buffer.present_drawable(&drawable);
+                            command_buffer.commit();
+
+                            r += 0.01f32;
+                        }
+                        _ => (),
+                    },
+                    _ => {}
                 }
-                Event::RedrawRequested(_) => {
-                    let p = vbuf.contents();
-                    let vertex_data = [
-                        0.0f32,
-                        0.5,
-                        1.0,
-                        0.0,
-                        0.0,
-                        -0.5 + (r.cos() / 2. + 0.5),
-                        -0.5,
-                        0.0,
-                        1.0,
-                        0.0,
-                        0.5 - (r.cos() / 2. + 0.5),
-                        -0.5,
-                        0.0,
-                        0.0,
-                        1.0,
-                    ];
-
-                    unsafe {
-                        std::ptr::copy(
-                            vertex_data.as_ptr(),
-                            p as *mut f32,
-                            (vertex_data.len() * mem::size_of::<f32>()) as usize,
-                        );
-                    }
-
-                    vbuf.did_modify_range(crate::NSRange::new(
-                        0 as u64,
-                        (vertex_data.len() * mem::size_of::<f32>()) as u64,
-                    ));
-
-                    let drawable = match layer.next_drawable() {
-                        Some(drawable) => drawable,
-                        None => return,
-                    };
-
-                    let render_pass_descriptor = RenderPassDescriptor::new();
-
-                    prepare_render_pass_descriptor(&render_pass_descriptor, drawable.texture());
-
-                    let command_buffer = command_queue.new_command_buffer();
-                    let encoder =
-                        command_buffer.new_render_command_encoder(&render_pass_descriptor);
-
-                    encoder.set_scissor_rect(MTLScissorRect {
-                        x: 20,
-                        y: 20,
-                        width: 100,
-                        height: 100,
-                    });
-                    encoder.set_render_pipeline_state(&clear_rect_pipeline_state);
-                    encoder.set_vertex_buffer(0, Some(&clear_rect_buffer), 0);
-                    encoder.draw_primitives_instanced(
-                        metal::MTLPrimitiveType::TriangleStrip,
-                        0,
-                        4,
-                        1,
-                    );
-                    let physical_size = window.inner_size();
-                    encoder.set_scissor_rect(MTLScissorRect {
-                        x: 0,
-                        y: 0,
-                        width: physical_size.width as _,
-                        height: physical_size.height as _,
-                    });
-
-                    encoder.set_render_pipeline_state(&triangle_pipeline_state);
-                    encoder.set_vertex_buffer(0, Some(&vbuf), 0);
-                    encoder.draw_primitives(MTLPrimitiveType::Triangle, 0, 3);
-                    encoder.end_encoding();
-
-                    command_buffer.present_drawable(&drawable);
-                    command_buffer.commit();
-
-                    r += 0.01f32;
-                }
-                _ => {}
-            }
-        });
-    });
+            });
+        })
+        .unwrap();
 }

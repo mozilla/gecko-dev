@@ -14,11 +14,11 @@ use crate::{
     hal_label,
     id::{self, QueueId},
     init_tracker::{has_copy_partial_init_tracker_coverage, TextureInitRange},
-    lock::{rank, Mutex, RwLockWriteGuard},
+    lock::RwLockWriteGuard,
     resource::{
         Buffer, BufferAccessError, BufferMapState, DestroyedBuffer, DestroyedResourceError,
-        DestroyedTexture, Labeled, ParentDevice, ResourceErrorIdent, StagingBuffer, Texture,
-        TextureInner, Trackable,
+        DestroyedTexture, FlushedStagingBuffer, Labeled, ParentDevice, ResourceErrorIdent,
+        StagingBuffer, Texture, TextureInner, Trackable,
     },
     resource_log,
     track::{self, Tracker, TrackerIndex},
@@ -29,8 +29,9 @@ use hal::{CommandEncoder as _, Device as _, Queue as _};
 use smallvec::SmallVec;
 
 use std::{
-    iter, mem,
-    ptr::{self, NonNull},
+    iter,
+    mem::{self},
+    ptr::NonNull,
     sync::{atomic::Ordering, Arc},
 };
 use thiserror::Error;
@@ -135,7 +136,7 @@ pub struct WrappedSubmissionIndex {
 ///   submission, to be freed when it completes
 #[derive(Debug)]
 pub enum TempResource<A: HalApi> {
-    StagingBuffer(StagingBuffer<A>),
+    StagingBuffer(FlushedStagingBuffer<A>),
     DestroyedBuffer(DestroyedBuffer<A>),
     DestroyedTexture(DestroyedTexture<A>),
 }
@@ -255,7 +256,7 @@ impl<A: HalApi> PendingWrites<A> {
         self.temp_resources.push(resource);
     }
 
-    fn consume(&mut self, buffer: StagingBuffer<A>) {
+    pub fn consume(&mut self, buffer: FlushedStagingBuffer<A>) {
         self.temp_resources
             .push(TempResource::StagingBuffer(buffer));
     }
@@ -309,47 +310,6 @@ impl<A: HalApi> PendingWrites<A> {
             }
             self.is_recording = false;
         }
-    }
-}
-
-pub(crate) fn prepare_staging_buffer<A: HalApi>(
-    device: &Arc<Device<A>>,
-    size: wgt::BufferSize,
-    instance_flags: wgt::InstanceFlags,
-) -> Result<(StagingBuffer<A>, NonNull<u8>), DeviceError> {
-    profiling::scope!("prepare_staging_buffer");
-    let stage_desc = hal::BufferDescriptor {
-        label: hal_label(Some("(wgpu internal) Staging"), instance_flags),
-        size: size.get(),
-        usage: hal::BufferUses::MAP_WRITE | hal::BufferUses::COPY_SRC,
-        memory_flags: hal::MemoryFlags::TRANSIENT,
-    };
-
-    let buffer = unsafe { device.raw().create_buffer(&stage_desc)? };
-    let mapping = unsafe { device.raw().map_buffer(&buffer, 0..size.get()) }?;
-
-    let staging_buffer = StagingBuffer {
-        raw: Mutex::new(rank::STAGING_BUFFER_RAW, Some(buffer)),
-        device: device.clone(),
-        size,
-        is_coherent: mapping.is_coherent,
-    };
-
-    Ok((staging_buffer, mapping.ptr))
-}
-
-impl<A: HalApi> StagingBuffer<A> {
-    unsafe fn flush(&self, device: &A::Device) -> Result<(), DeviceError> {
-        if !self.is_coherent {
-            unsafe {
-                device.flush_mapped_ranges(
-                    self.raw.lock().as_ref().unwrap(),
-                    iter::once(0..self.size.get()),
-                )
-            };
-        }
-        unsafe { device.unmap_buffer(self.raw.lock().as_ref().unwrap())? };
-        Ok(())
     }
 }
 
@@ -445,23 +405,15 @@ impl Global {
         // Platform validation requires that the staging buffer always be
         // freed, even if an error occurs. All paths from here must call
         // `device.pending_writes.consume`.
-        let (staging_buffer, staging_buffer_ptr) =
-            prepare_staging_buffer(device, data_size, device.instance_flags)?;
+        let mut staging_buffer = StagingBuffer::new(device, data_size)?;
         let mut pending_writes = device.pending_writes.lock();
         let pending_writes = pending_writes.as_mut().unwrap();
 
-        if let Err(flush_error) = unsafe {
+        let staging_buffer = {
             profiling::scope!("copy");
-            ptr::copy_nonoverlapping(
-                data.as_ptr(),
-                staging_buffer_ptr.as_ptr(),
-                data_size.get() as usize,
-            );
-            staging_buffer.flush(device.raw())
-        } {
-            pending_writes.consume(staging_buffer);
-            return Err(flush_error.into());
-        }
+            staging_buffer.write(data);
+            staging_buffer.flush()
+        };
 
         let result = self.queue_write_staging_buffer_impl(
             &queue,
@@ -492,14 +444,14 @@ impl Global {
 
         let device = &queue.device;
 
-        let (staging_buffer, staging_buffer_ptr) =
-            prepare_staging_buffer(device, buffer_size, device.instance_flags)?;
+        let staging_buffer = StagingBuffer::new(device, buffer_size)?;
+        let ptr = unsafe { staging_buffer.ptr() };
 
         let fid = hub.staging_buffers.prepare(id_in);
         let id = fid.assign(Arc::new(staging_buffer));
         resource_log!("Queue::create_staging_buffer {id:?}");
 
-        Ok((id, staging_buffer_ptr))
+        Ok((id, ptr))
     }
 
     pub fn queue_write_staging_buffer<A: HalApi>(
@@ -532,10 +484,7 @@ impl Global {
         // user. Platform validation requires that the staging buffer always
         // be freed, even if an error occurs. All paths from here must call
         // `device.pending_writes.consume`.
-        if let Err(flush_error) = unsafe { staging_buffer.flush(device.raw()) } {
-            pending_writes.consume(staging_buffer);
-            return Err(flush_error.into());
-        }
+        let staging_buffer = staging_buffer.flush();
 
         let result = self.queue_write_staging_buffer_impl(
             &queue,
@@ -600,7 +549,7 @@ impl Global {
         queue: &Arc<Queue<A>>,
         device: &Arc<Device<A>>,
         pending_writes: &mut PendingWrites<A>,
-        staging_buffer: &StagingBuffer<A>,
+        staging_buffer: &FlushedStagingBuffer<A>,
         buffer_id: id::BufferId,
         buffer_offset: u64,
     ) -> Result<(), QueueWriteError> {
@@ -630,20 +579,15 @@ impl Global {
             dst_offset: buffer_offset,
             size: staging_buffer.size,
         };
-        let inner_buffer = staging_buffer.raw.lock();
         let barriers = iter::once(hal::BufferBarrier {
-            buffer: inner_buffer.as_ref().unwrap(),
+            buffer: staging_buffer.raw(),
             usage: hal::BufferUses::MAP_WRITE..hal::BufferUses::COPY_SRC,
         })
         .chain(transition.map(|pending| pending.into_hal(&dst, &snatch_guard)));
         let encoder = pending_writes.activate();
         unsafe {
             encoder.transition_buffers(barriers);
-            encoder.copy_buffer_to_buffer(
-                inner_buffer.as_ref().unwrap(),
-                dst_raw,
-                iter::once(region),
-            );
+            encoder.copy_buffer_to_buffer(staging_buffer.raw(), dst_raw, iter::once(region));
         }
 
         pending_writes.insert_buffer(&dst);
@@ -832,17 +776,17 @@ impl Global {
         // Platform validation requires that the staging buffer always be
         // freed, even if an error occurs. All paths from here must call
         // `device.pending_writes.consume`.
-        let (staging_buffer, staging_buffer_ptr) =
-            prepare_staging_buffer(device, stage_size, device.instance_flags)?;
+        let mut staging_buffer = StagingBuffer::new(device, stage_size)?;
 
         if stage_bytes_per_row == bytes_per_row {
             profiling::scope!("copy aligned");
             // Fast path if the data is already being aligned optimally.
             unsafe {
-                ptr::copy_nonoverlapping(
-                    data.as_ptr().offset(data_layout.offset as isize),
-                    staging_buffer_ptr.as_ptr(),
-                    stage_size.get() as usize,
+                staging_buffer.write_with_offset(
+                    data,
+                    data_layout.offset as isize,
+                    0,
+                    (data.len() as u64 - data_layout.offset) as usize,
                 );
             }
         } else {
@@ -851,27 +795,22 @@ impl Global {
             let copy_bytes_per_row = stage_bytes_per_row.min(bytes_per_row) as usize;
             for layer in 0..size.depth_or_array_layers {
                 let rows_offset = layer * block_rows_per_image;
-                for row in 0..height_blocks {
+                for row in rows_offset..rows_offset + height_blocks {
+                    let src_offset = data_layout.offset as u32 + row * bytes_per_row;
+                    let dst_offset = row * stage_bytes_per_row;
                     unsafe {
-                        ptr::copy_nonoverlapping(
-                            data.as_ptr().offset(
-                                data_layout.offset as isize
-                                    + (rows_offset + row) as isize * bytes_per_row as isize,
-                            ),
-                            staging_buffer_ptr.as_ptr().offset(
-                                (rows_offset + row) as isize * stage_bytes_per_row as isize,
-                            ),
+                        staging_buffer.write_with_offset(
+                            data,
+                            src_offset as isize,
+                            dst_offset as isize,
                             copy_bytes_per_row,
-                        );
+                        )
                     }
                 }
             }
         }
 
-        if let Err(e) = unsafe { staging_buffer.flush(device.raw()) } {
-            pending_writes.consume(staging_buffer);
-            return Err(e.into());
-        }
+        let staging_buffer = staging_buffer.flush();
 
         let regions = (0..array_layer_count).map(|rel_array_layer| {
             let mut texture_base = dst_base.clone();
@@ -890,9 +829,8 @@ impl Global {
         });
 
         {
-            let inner_buffer = staging_buffer.raw.lock();
             let barrier = hal::BufferBarrier {
-                buffer: inner_buffer.as_ref().unwrap(),
+                buffer: staging_buffer.raw(),
                 usage: hal::BufferUses::MAP_WRITE..hal::BufferUses::COPY_SRC,
             };
 
@@ -904,7 +842,7 @@ impl Global {
             unsafe {
                 encoder.transition_textures(transition.map(|pending| pending.into_hal(dst_raw)));
                 encoder.transition_buffers(iter::once(barrier));
-                encoder.copy_buffer_to_texture(inner_buffer.as_ref().unwrap(), dst_raw, regions);
+                encoder.copy_buffer_to_texture(staging_buffer.raw(), dst_raw, regions);
             }
         }
 
@@ -1131,7 +1069,7 @@ impl Global {
             let fence = fence_guard.as_mut().unwrap();
             let submit_index = device
                 .active_submission_index
-                .fetch_add(1, Ordering::Relaxed)
+                .fetch_add(1, Ordering::SeqCst)
                 + 1;
             let mut active_executions = Vec::new();
 
@@ -1454,6 +1392,11 @@ impl Global {
                         )
                         .map_err(DeviceError::from)?;
                 }
+
+                // Advance the successful submission index.
+                device
+                    .last_successful_submission_index
+                    .fetch_max(submit_index, Ordering::SeqCst);
             }
 
             profiling::scope!("cleanup");

@@ -1,7 +1,17 @@
 # Changelog
 
+## 0.2.1O - 2024-07-12
 
-## 0.2.7 - 2023-12-29
+* Revert parsing of multi-lines string while parsing features
+  (Keep parsing of multi-lines string when detecting if we need to use Cargo.toml.orig)
+
+## 0.2.9 - 2024-07-11
+
+* Fix parsing of multi-lines string (#25)
+* Fix `out_of_scope_macro_calls` compatibility warning
+* Fix documentation having too many `#` (#22)
+
+## 0.2.8 - 2023-12-29
 
 * Remove `\n` between features (#17)
 * Don't throw an error when there is no features in Cargo.toml (#20)

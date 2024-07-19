@@ -9,7 +9,7 @@ use super::*;
 use block::{Block, RcBlock};
 use std::ptr;
 
-#[cfg(feature = "dispatch_queue")]
+#[cfg(feature = "dispatch")]
 use dispatch;
 
 /// See <https://developer.apple.com/documentation/metal/mtlsharedeventnotificationblock>
@@ -136,7 +136,7 @@ impl FenceRef {
     }
 }
 
-bitflags! {
+bitflags::bitflags! {
     /// The render stages at which a synchronization command is triggered.
     ///
     /// Render stages provide finer control for specifying when synchronization must occur,

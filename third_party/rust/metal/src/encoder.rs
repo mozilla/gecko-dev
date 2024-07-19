@@ -74,7 +74,7 @@ pub enum MTLTriangleFillMode {
     Lines = 1,
 }
 
-bitflags! {
+bitflags::bitflags! {
     /// https://developer.apple.com/documentation/metal/mtlblitoption
     #[allow(non_upper_case_globals)]
     #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -440,6 +440,34 @@ impl RenderCommandEncoderRef {
                 self,
                 setVertexIntersectionFunctionTable: table
                 atBufferIndex: index
+            ]
+        }
+    }
+
+    pub fn set_vertex_visible_function_table(
+        &self,
+        buffer_index: NSUInteger,
+        visible_function_table: Option<&VisibleFunctionTableRef>,
+    ) {
+        unsafe {
+            msg_send![self,
+            setVertexVisibleFunctionTable:visible_function_table
+            atBufferIndex:buffer_index]
+        }
+    }
+
+    pub fn set_vertex_visible_function_tables(
+        &self,
+        buffer_start_index: NSUInteger,
+        visible_function_tables: &[&VisibleFunctionTableRef],
+    ) {
+        unsafe {
+            msg_send![self,
+                setVertexVisibleFunctionTables:visible_function_tables.as_ptr()
+                withBufferRange: NSRange {
+                    location: buffer_start_index,
+                    length: visible_function_tables.len() as _,
+                }
             ]
         }
     }
@@ -862,6 +890,34 @@ impl RenderCommandEncoderRef {
                 self,
                 setFragmentIntersectionFunctionTable: table
                 atBufferIndex: index
+            ]
+        }
+    }
+
+    pub fn set_fragment_visible_function_table(
+        &self,
+        buffer_index: NSUInteger,
+        visible_function_table: Option<&VisibleFunctionTableRef>,
+    ) {
+        unsafe {
+            msg_send![self,
+            setFragmentVisibleFunctionTable:visible_function_table
+            atBufferIndex:buffer_index]
+        }
+    }
+
+    pub fn set_fragment_visible_function_tables(
+        &self,
+        buffer_start_index: NSUInteger,
+        visible_function_tables: &[&VisibleFunctionTableRef],
+    ) {
+        unsafe {
+            msg_send![self,
+                setFragmentVisibleFunctionTables:visible_function_tables.as_ptr()
+                withBufferRange: NSRange {
+                    location: buffer_start_index,
+                    length: visible_function_tables.len() as _,
+                }
             ]
         }
     }
@@ -1590,6 +1646,34 @@ impl ComputeCommandEncoderRef {
                 setBytes: bytes
                 length: length
                 atIndex: index
+            ]
+        }
+    }
+
+    pub fn set_visible_function_table(
+        &self,
+        buffer_index: NSUInteger,
+        visible_function_table: Option<&VisibleFunctionTableRef>,
+    ) {
+        unsafe {
+            msg_send![self,
+            setVisibleFunctionTable:visible_function_table
+            atBufferIndex:buffer_index]
+        }
+    }
+
+    pub fn set_visible_function_tables(
+        &self,
+        buffer_start_index: NSUInteger,
+        visible_function_tables: &[&VisibleFunctionTableRef],
+    ) {
+        unsafe {
+            msg_send![self,
+                setVisibleFunctionTables:visible_function_tables.as_ptr()
+                withBufferRange: NSRange {
+                    location: buffer_start_index,
+                    length: visible_function_tables.len() as _,
+                }
             ]
         }
     }

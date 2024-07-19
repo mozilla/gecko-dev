@@ -41,40 +41,38 @@ in where they occur. Use them to group features, for example.
 ## Examples:
 
 */
-// Note: because rustdoc escapes the first `#` of a line starting with `#`,
-// these docs comments have one more `#` ,
 #![doc = self_test!(/**
 [package]
 name = "..."
-## ...
+# ...
 
 [features]
 default = ["foo"]
-##! This comments goes on top
+#! This comments goes on top
 
-### The foo feature enables the `foo` functions
+## The foo feature enables the `foo` functions
 foo = []
 
-### The bar feature enables the bar module
+## The bar feature enables the bar module
 bar = []
 
-##! ### Experimental features
-##! The following features are experimental
+#! ### Experimental features
+#! The following features are experimental
 
-### Enable the fusion reactor
-###
-### ⚠️ Can lead to explosions
+## Enable the fusion reactor
+##
+## ⚠️ Can lead to explosions
 fusion = []
 
 [dependencies]
 document-features = "0.2"
 
-##! ### Optional dependencies
+#! ### Optional dependencies
 
-### Enable this feature to implement the trait for the types from the genial crate
+## Enable this feature to implement the trait for the types from the genial crate
 genial = { version = "0.2", optional = true }
 
-### This awesome dependency is specified in its own table
+## This awesome dependency is specified in its own table
 [dependencies.awesome]
 version = "1.3.5"
 optional = true
@@ -256,11 +254,11 @@ fn document_features_impl(args: &Args) -> Result<TokenStream, TokenStream> {
     let mut cargo_toml = std::fs::read_to_string(Path::new(&path).join("Cargo.toml"))
         .map_err(|e| error(&format!("Can't open Cargo.toml: {:?}", e)))?;
 
-    if !cargo_toml.contains("\n##") && !cargo_toml.contains("\n#!") {
+    if !has_doc_comments(&cargo_toml) {
         // On crates.io, Cargo.toml is usually "normalized" and stripped of all comments.
         // The original Cargo.toml has been renamed Cargo.toml.orig
         if let Ok(orig) = std::fs::read_to_string(Path::new(&path).join("Cargo.toml.orig")) {
-            if orig.contains("##") || orig.contains("#!") {
+            if has_doc_comments(&orig) {
                 cargo_toml = orig;
             }
         }
@@ -268,6 +266,109 @@ fn document_features_impl(args: &Args) -> Result<TokenStream, TokenStream> {
 
     let result = process_toml(&cargo_toml, args).map_err(|e| error(&e))?;
     Ok(std::iter::once(proc_macro::TokenTree::from(proc_macro::Literal::string(&result))).collect())
+}
+
+/// Check if the Cargo.toml has comments that looks like doc comments.
+fn has_doc_comments(cargo_toml: &str) -> bool {
+    let mut lines = cargo_toml.lines().map(str::trim);
+    while let Some(line) = lines.next() {
+        if line.starts_with("## ") || line.starts_with("#! ") {
+            return true;
+        }
+        let before_coment = line.split_once('#').map_or(line, |(before, _)| before);
+        if line.starts_with("#") {
+            continue;
+        }
+        if let Some((_, mut quote)) = before_coment.split_once("\"\"\"") {
+            loop {
+                // skip slashes.
+                if let Some((_, s)) = quote.split_once('\\') {
+                    quote = s.strip_prefix('\\').or_else(|| s.strip_prefix('"')).unwrap_or(s);
+                    continue;
+                }
+                // skip quotes.
+                if let Some((_, out_quote)) = quote.split_once("\"\"\"") {
+                    let out_quote = out_quote.trim_start_matches('"');
+                    let out_quote =
+                        out_quote.split_once('#').map_or(out_quote, |(before, _)| before);
+                    if let Some((_, q)) = out_quote.split_once("\"\"\"") {
+                        quote = q;
+                        continue;
+                    }
+                    break;
+                };
+                match lines.next() {
+                    Some(l) => quote = l,
+                    None => return false,
+                }
+            }
+        }
+    }
+    false
+}
+
+#[test]
+fn test_has_doc_coment() {
+    assert!(has_doc_comments("foo\nbar\n## comment\nddd"));
+    assert!(!has_doc_comments("foo\nbar\n#comment\nddd"));
+    assert!(!has_doc_comments(
+        r#"
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1 # not a doc comment
+file = "CHANGELOG.md"
+replace = """
+<!-- next-header -->
+## [Unreleased] - ReleaseDate
+"""
+search = "<!-- next-header -->"
+array = ["""foo""", """
+bar""", """eee
+## not a comment
+"""]
+    "#
+    ));
+    assert!(has_doc_comments(
+        r#"
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1 # """
+file = "CHANGELOG.md"
+replace = """
+<!-- next-header -->
+## [Unreleased] - ReleaseDate
+"""
+search = "<!-- next-header -->"
+array = ["""foo""", """
+bar""", """eee
+## not a comment
+"""]
+## This is a comment
+feature = "45"
+        "#
+    ));
+
+    assert!(!has_doc_comments(
+        r#"
+[[package.metadata.release.pre-release-replacements]]
+value = """" string \"""
+## within the string
+\""""
+another_string = """"" # """
+## also within"""
+"#
+    ));
+
+    assert!(has_doc_comments(
+        r#"
+[[package.metadata.release.pre-release-replacements]]
+value = """" string \"""
+## within the string
+\""""
+another_string = """"" # """
+## also within"""
+## out of the string
+foo = bar
+        "#
+    ));
 }
 
 fn process_toml(cargo_toml: &str, args: &Args) -> Result<String, String> {
@@ -465,14 +566,20 @@ fn test_get_balanced() {
 #[doc(hidden)]
 /// Helper macro for the tests. Do not use
 pub fn self_test_helper(input: TokenStream) -> TokenStream {
-    process_toml((&input).to_string().trim_matches(|c| c == '"' || c == '#'), &Args::default())
-        .map_or_else(
-            |e| error(&e),
-            |r| {
-                std::iter::once(proc_macro::TokenTree::from(proc_macro::Literal::string(&r)))
-                    .collect()
-            },
-        )
+    let mut code = String::new();
+    for line in (&input).to_string().trim_matches(|c| c == '"' || c == '#').lines() {
+        // Rustdoc removes the lines that starts with `# ` and removes one `#` from lines that starts with # followed by space.
+        // We need to re-add the `#` that was removed by rustdoc to get the original.
+        if line.strip_prefix('#').map_or(false, |x| x.is_empty() || x.starts_with(' ')) {
+            code += "#";
+        }
+        code += line;
+        code += "\n";
+    }
+    process_toml(&code, &Args::default()).map_or_else(
+        |e| error(&e),
+        |r| std::iter::once(proc_macro::TokenTree::from(proc_macro::Literal::string(&r))).collect(),
+    )
 }
 
 #[cfg(feature = "self-test")]
@@ -506,6 +613,8 @@ macro_rules! self_test {
         )
     };
 }
+
+use self_test;
 
 // The following struct is inserted only during generation of the documentation in order to exploit doc-tests.
 // These doc-tests are used to check that invalid arguments to the `document_features!` macro cause a compile time error.

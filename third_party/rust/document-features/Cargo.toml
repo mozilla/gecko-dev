@@ -12,10 +12,10 @@
 [package]
 edition = "2018"
 name = "document-features"
-version = "0.2.8"
-authors = ["Slint Developers <info@slint-ui.com>"]
+version = "0.2.10"
+authors = ["Slint Developers <info@slint.dev>"]
 description = "Extract documentation for the feature flags from comments in Cargo.toml"
-homepage = "https://slint-ui.com"
+homepage = "https://slint.rs"
 readme = "README.md"
 keywords = [
     "documentation",
