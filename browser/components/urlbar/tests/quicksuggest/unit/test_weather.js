@@ -723,16 +723,25 @@ add_tasks_with_rust(async function block() {
   let result = context.results[0];
   let provider = UrlbarProvidersManager.getProvider(result.providerName);
   Assert.ok(provider, "Sanity check: Result provider found");
-  provider.onLegacyEngagement(
-    "engagement",
-    context,
-    {
+
+  if (result.providerName === "UrlbarProviderQuickSuggest") {
+    provider.onLegacyEngagement(
+      "engagement",
+      context,
+      {
+        result,
+        selType: "dismiss",
+        selIndex: context.results[0].rowIndex,
+      },
+      controller
+    );
+  } else {
+    provider.onEngagement(context, controller, {
       result,
       selType: "dismiss",
       selIndex: context.results[0].rowIndex,
-    },
-    controller
-  );
+    });
+  }
   Assert.ok(
     !UrlbarPrefs.get("suggest.weather"),
     "suggest.weather is false after blocking the result"

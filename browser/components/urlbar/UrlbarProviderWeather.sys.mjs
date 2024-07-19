@@ -78,8 +78,6 @@ class ProviderWeather extends UrlbarProvider {
    * @returns {boolean} Whether this provider should be invoked for the search.
    */
   isActive(queryContext) {
-    this.#resultFromLastQuery = null;
-
     // When Rust is enabled and keywords are not defined in Nimbus, weather
     // results are created by the quick suggest provider, not this one.
     if (
@@ -141,7 +139,6 @@ class ProviderWeather extends UrlbarProvider {
       result.payload.source = weather.suggestion.source;
       result.payload.provider = weather.suggestion.provider;
       addCallback(this, result);
-      this.#resultFromLastQuery = result;
     }
   }
 
@@ -162,58 +159,26 @@ class ProviderWeather extends UrlbarProvider {
     return lazy.QuickSuggest.weather.getViewUpdate(result);
   }
 
-  onLegacyEngagement(state, queryContext, details, controller) {
-    // Ignore engagements on other results that didn't end the session.
-    if (details.result?.providerName != this.name && details.isSessionOngoing) {
-      return;
-    }
-
-    // Impression and clicked telemetry are both recorded on engagement. We
-    // define "impression" to mean a weather result was present in the view when
-    // any result was picked.
-    if (state == "engagement" && queryContext) {
-      // Get the result that's visible in the view. `details.result` is the
-      // engaged result, if any; if it's from this provider, then that's the
-      // visible result. Otherwise fall back to #getVisibleResultFromLastQuery.
-      let { result } = details;
-      if (result?.providerName != this.name) {
-        result = this.#getVisibleResultFromLastQuery(controller.view);
-      }
-
-      if (result) {
-        this.#recordEngagementTelemetry(
-          result,
-          controller.input.isPrivate,
-          details.result == result ? details.selType : ""
-        );
-      }
-    }
+  onEngagement(queryContext, controller, details) {
+    this.#recordEngagementTelemetry(
+      details.result,
+      controller.input.isPrivate,
+      details.selType
+    );
 
     // Handle commands.
-    if (details.result?.providerName == this.name) {
-      this.#handlePossibleCommand(
-        controller.view,
-        details.result,
-        details.selType
-      );
-    }
-
-    this.#resultFromLastQuery = null;
+    this.#handlePossibleCommand(
+      controller.view,
+      details.result,
+      details.selType
+    );
   }
 
-  #getVisibleResultFromLastQuery(view) {
-    let result = this.#resultFromLastQuery;
-
-    if (
-      result?.rowIndex >= 0 &&
-      view?.visibleResults?.[result.rowIndex] == result
-    ) {
-      // The result was visible.
-      return result;
+  onImpression(state, queryContext, controller, providerVisibleResults) {
+    for (let i = 0; i < providerVisibleResults.length; i++) {
+      const { result } = providerVisibleResults[i];
+      this.#recordEngagementTelemetry(result, controller.input.isPrivate, "");
     }
-
-    // Find a visible result.
-    return view?.visibleResults?.find(r => r.providerName == this.name);
   }
 
   /**
@@ -295,9 +260,6 @@ class ProviderWeather extends UrlbarProvider {
   #handlePossibleCommand(view, result, selType) {
     lazy.QuickSuggest.weather.handleCommand(view, result, selType);
   }
-
-  // The result we added during the most recent query.
-  #resultFromLastQuery = null;
 }
 
 export var UrlbarProviderWeather = new ProviderWeather();
