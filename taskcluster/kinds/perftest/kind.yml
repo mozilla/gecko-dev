@@ -21,7 +21,6 @@ tasks-from:
     - android.yml
     - linux.yml
     - macosx.yml
-    - windows.yml
     - windows11.yml
 
 task-defaults:

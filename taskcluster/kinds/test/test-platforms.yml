@@ -166,11 +166,6 @@ windows11-32-2009-mingwclang-qr/opt:
         - mingwclang-tests-opt
 
 # win64
-windows10-64-qr/opt:
-    build-platform: win64/opt
-    test-sets:
-        - windows-talos
-
 windows11-64-qr/opt:
     build-platform: win64/opt
     test-sets:
@@ -196,12 +191,6 @@ windows11-64-2009-hw-ref/opt:
     test-sets:
         - talos-ref-hw
         - windows-ref-hw-tests
-
-windows10-64-shippable-qr/opt:
-    build-platform: win64-shippable/opt
-    test-sets:
-        - talos-profiling
-        - windows-talos
 
 windows11-64-shippable-qr/opt:
     build-platform: win64-shippable/opt
