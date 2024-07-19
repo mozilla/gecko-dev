@@ -1339,6 +1339,14 @@ class GeckoEngine(
         override var fingerprintingProtectionPrivateBrowsing: Boolean
             get() = runtime.settings.fingerprintingProtectionPrivateBrowsing
             set(value) { runtime.settings.setFingerprintingProtectionPrivateBrowsing(value) }
+
+        override var fingerprintingProtectionOverrides: String
+            get() = runtime.settings.fingerprintingProtectionOverrides
+            set(value) { runtime.settings.setFingerprintingProtectionOverrides(value) }
+
+        override var fdlibmMathEnabled: Boolean
+            get() = runtime.settings.fdlibmMathEnabled
+            set(value) { runtime.settings.setFdlibmMathEnabled(value) }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1366,6 +1374,8 @@ class GeckoEngine(
             this.globalPrivacyControlEnabled = it.globalPrivacyControlEnabled
             this.fingerprintingProtection = it.fingerprintingProtection
             this.fingerprintingProtectionPrivateBrowsing = it.fingerprintingProtectionPrivateBrowsing
+            this.fingerprintingProtectionOverrides = it.fingerprintingProtectionOverrides
+            this.fdlibmMathEnabled = it.fdlibmMathEnabled
             this.emailTrackerBlockingPrivateBrowsing = it.emailTrackerBlockingPrivateBrowsing
         }
     }
