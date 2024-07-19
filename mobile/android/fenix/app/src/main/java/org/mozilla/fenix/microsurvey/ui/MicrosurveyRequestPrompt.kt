@@ -25,7 +25,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
@@ -37,8 +39,12 @@ import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.utils.KeyboardState
 import org.mozilla.fenix.compose.utils.keyboardAsState
+import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.microsurvey.ui.ext.MicrosurveyUIData
 import org.mozilla.fenix.theme.FirefoxTheme
+
+private const val TABLET_WIDTH_FRACTION = 0.5f
+private const val NON_TABLET_WIDTH_FRACTION = 1.0f
 
 /**
  * Initial microsurvey prompt displayed to the user to request completion of feedback.
@@ -67,13 +73,22 @@ fun MicrosurveyRequestPrompt(
         enter = slideInVertically(initialOffsetY = { it }),
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
-        Column {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
+        ) {
             Divider()
 
             Column(
                 modifier = Modifier
-                    .background(color = FirefoxTheme.colors.layer1)
-                    .padding(all = 16.dp),
+                    .padding(all = 16.dp)
+                    .fillMaxWidth(
+                        if (LocalContext.current.isTablet()) {
+                            TABLET_WIDTH_FRACTION
+                        } else {
+                            NON_TABLET_WIDTH_FRACTION
+                        },
+                    ),
             ) {
                 Header(microsurvey.promptTitle) {
                     onCloseButtonClicked()
