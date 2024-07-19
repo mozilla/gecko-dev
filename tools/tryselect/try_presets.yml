@@ -16,25 +16,33 @@ android-components:
     query:
         - "'build-components"
         - "'test-components"
+        - "^source-test 'android-components"
 
 android-geckoview:
     selector: fuzzy
-    # Show chunk numbers so we can query with -1$ / -2$ etc.
-    show_chunk_numbers: true
-    # disable_target_task_filter: true
-    # Run taskgraph full so all tasks are available
     full: true
     description: >-
         Run android-geckoview builds and tests.
     query:
         # Lint
         - "^source-test-mozlint android-lints$ | eslint$ | rejected-words$ | file-perm$ | file-whitespace$"
-        # Tests
-        - "^test-android-em-7.0-x86_64-qr/debug-isolated-process-geckoview- 'test-verify | cppunittest-1proc$ | gtest-1proc$ | junit$ | junit-fis$ | junit-nofis$ | junit-nofis-ship$ | xpcshell-1$ | xpcshell-2$"
-        - "^test-android-em-7.0-x86_64-qr/debug-isolated-process-geckoview-mochitest- media-1$ | media-2$ | plain-1$ | plain-2$ | plain-3$ | plain-4$ | plain-5$ | plain-gpu$"
-        - "^test-android-em-7.0-x86_64-qr/opt-geckoview- xpcshell-1$ | xpcshell-2$ | cppunittest-1proc$ | gtest-1proc$ | junit-fis$ | junit-nofis-ship$ | junit-nofis$ | junit$ | mochitest-media$"
-        - "^test-android-em-7.0-x86_64-qr/opt-geckoview-mochitest- media$ | plain-1$ | plain-2$ | plain-3$ | plain-4$ | plain-5$ | plain-gpu$"
-        - "^test-android-em-7.0-x86_64-qr/opt-geckoview-test-verify"
+        # Miscellaneous Tests
+        - "^test-android !shippable '64 'gtest | 'cpp | junit-fis"
+        # Mochitests
+        - "^test-android !shippable !cf !gli !iso      'em 'media | 'plain"
+        - "^test-android !shippable !cf !gli !iso !swr 'hw 'media 'debug"
+        - "^test-android !shippable !cf !gli !iso !swr 'hw 'mochitest-webgl 'nofis"
+        # Reftests
+        - "^test-android !shippable !iso 'geckoview-crashtest | 'geckoview-reftest 'nofis"
+        # Web Platform Tests
+        - "^test-android !shippable !headless 'wdspec"
+        - "^test-android !shippable       !cf !iso            'web-platform-tests-crashtest 'debug"
+        - "^test-android !shippable       !cf !iso       !swr 'web-platform-tests-crashtest"
+        - "^test-android !shippable !back !cf !iso !ship !swr 'web-platform-tests-nofis"
+        - "^test-android !shippable !back !cf !iso            'web-platform-tests-reftest 'nofis 'debug"
+        - "^test-android !shippable !back !cf !iso       !swr 'web-platform-tests-reftest 'nofis"
+        # XPCShell
+        - "^test-android !shippable !iso 'xpcshell"
 
 builds:
     selector: fuzzy
