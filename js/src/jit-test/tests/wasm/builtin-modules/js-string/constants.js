@@ -1,27 +1,29 @@
 // |jit-test| skip-if: !wasmJSStringBuiltinsEnabled();
 
-function wasmEvalWithConstants(text) {
-  return wasmEvalText(text, {}, { importedStringConstants: true }).exports;
+function wasmEvalWithConstants(text, namespace) {
+  return wasmEvalText(text, {}, { importedStringConstants: namespace }).exports;
 }
 
 // Type is not anyref
 assertErrorMessage(() => wasmEvalWithConstants(`(module
   (global (import "'" "") anyref)
-)`), WebAssembly.CompileError, /type mismatch/);
+)`, "'"), WebAssembly.CompileError, /type mismatch/);
 
 // Type must be immutable (ref extern) or subtypes
 assertErrorMessage(() => wasmEvalWithConstants(`(module
   (global (import "'" "") (mut externref))
-)`), WebAssembly.CompileError, /type mismatch/);
+)`, "'"), WebAssembly.CompileError, /type mismatch/);
 assertErrorMessage(() => wasmEvalWithConstants(`(module
   (global (import "'" "") (mut (ref extern)))
-)`), WebAssembly.CompileError, /type mismatch/);
+)`, "'"), WebAssembly.CompileError, /type mismatch/);
 
-function testString(type, literal) {
+function testString(type, literal, namespace) {
+  // Temporary backwards compat for string namespace
+  let importSpecifier = namespace === true ? "'" : namespace;
   return wasmEvalWithConstants(`(module
-    (global (import "'" "${literal}") ${type})
+    (global (import "${importSpecifier}" "${literal}") ${type})
     (export "constant" (global 0))
-  )`).constant.value;
+  )`, namespace).constant.value;
 }
 
 let tests = [
@@ -29,20 +31,29 @@ let tests = [
   ['\\00', '\0'],
   '0',
   '0'.repeat(100000),
-  '😀',
+  '\uD83D\uDE00',
+];
+let namespaces = [
+  "",
+  "'",
+  "strings",
+  // Temporary backwards compat for string namespace
+  true
 ];
 
-for (let type of ['externref', '(ref extern)']) {
-  for (let test of tests) {
-    let input;
-    let expected;
-    if (Array.isArray(test)) {
-      input = test[0];
-      expected = test[1];
-    } else {
-      input = test;
-      expected = test;
+for (let namespace of namespaces) {
+  for (let type of ['externref', '(ref extern)']) {
+    for (let test of tests) {
+      let input;
+      let expected;
+      if (Array.isArray(test)) {
+        input = test[0];
+        expected = test[1];
+      } else {
+        input = test;
+        expected = test;
+      }
+      assertEq(testString(type, input, namespace), expected);
     }
-    assertEq(testString(type, input), expected);
   }
 }

@@ -113,7 +113,45 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
                         &importedStringConstants)) {
       return false;
     }
-    this->jsStringConstants = JS::ToBoolean(importedStringConstants);
+
+    if (importedStringConstants.isNullOrUndefined()) {
+      this->jsStringConstants = false;
+    } else if (importedStringConstants.isBoolean() &&
+               importedStringConstants.toBoolean()) {
+      // Temporary backwards compatibility hack to interpret 'true' as "'"
+      this->jsStringConstants = true;
+
+      UniqueChars jsStringConstantsNamespace = JS_smprintf("'");
+      if (!jsStringConstantsNamespace) {
+        return false;
+      }
+
+      this->jsStringConstantsNamespace =
+          js_new<ShareableChars>(std::move(jsStringConstantsNamespace));
+      if (!this->jsStringConstantsNamespace) {
+        return false;
+      }
+    } else {
+      this->jsStringConstants = true;
+
+      RootedString importedStringConstantsString(
+          cx, JS::ToString(cx, importedStringConstants));
+      if (!importedStringConstantsString) {
+        return false;
+      }
+
+      UniqueChars jsStringConstantsNamespace =
+          StringToNewUTF8CharsZ(cx, *importedStringConstantsString);
+      if (!jsStringConstantsNamespace) {
+        return false;
+      }
+
+      this->jsStringConstantsNamespace =
+          js_new<ShareableChars>(std::move(jsStringConstantsNamespace));
+      if (!this->jsStringConstantsNamespace) {
+        return false;
+      }
+    }
 
     // Get the `builtins` iterable
     RootedValue builtins(cx);
@@ -181,6 +219,8 @@ FeatureArgs FeatureArgs::build(JSContext* cx, const FeatureOptions& options) {
   if (features.jsStringBuiltins) {
     features.builtinModules.jsString = options.jsStringBuiltins;
     features.builtinModules.jsStringConstants = options.jsStringConstants;
+    features.builtinModules.jsStringConstantsNamespace =
+        options.jsStringConstantsNamespace;
   }
 #ifdef ENABLE_WASM_GC
   if (options.requireGC) {

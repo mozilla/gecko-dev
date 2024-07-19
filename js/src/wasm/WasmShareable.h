@@ -74,6 +74,15 @@ struct ShareableBytes : ShareableBase<ShareableBytes> {
 using MutableBytes = RefPtr<ShareableBytes>;
 using SharedBytes = RefPtr<const ShareableBytes>;
 
+struct ShareableChars : public ShareableBase<ShareableChars> {
+  UniqueChars chars;
+
+  ShareableChars() = default;
+  explicit ShareableChars(UniqueChars&& chars) : chars(std::move(chars)) {}
+};
+
+using SharedChars = RefPtr<const ShareableChars>;
+
 }  // namespace wasm
 }  // namespace js
 
