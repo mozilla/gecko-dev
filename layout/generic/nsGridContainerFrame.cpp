@@ -2118,10 +2118,7 @@ struct nsGridContainerFrame::Tracks {
     uint32_t mBaselineTrack;
     nscoord mBaseline;
     nscoord mSize;
-    // True if the baseline is not parallel to the alignment context.
-    bool mIsOrthogonal;
     GridItemInfo* mGridItem;
-
     static bool IsBaselineTrackLessThan(const ItemBaselineData& a,
                                         const ItemBaselineData& b) {
       return a.mBaselineTrack < b.mBaselineTrack;
@@ -5921,7 +5918,6 @@ void nsGridContainerFrame::Tracks::CalculateItemBaselines(
   nscoord maxDescent = 0;
   uint32_t currentTrack = kAutoLine;  // guaranteed to not match any item
   uint32_t trackStartIndex = 0;
-  bool trackHasParallelItems = false;
   for (uint32_t i = 0, len = aBaselineItems.Length(); true; ++i) {
     // Find the maximum baseline and descent in the current track.
     if (i != len) {
@@ -5929,29 +5925,15 @@ void nsGridContainerFrame::Tracks::CalculateItemBaselines(
       if (currentTrack == item.mBaselineTrack) {
         maxBaseline = std::max(maxBaseline, item.mBaseline);
         maxDescent = std::max(maxDescent, item.mSize - item.mBaseline);
-        trackHasParallelItems |= !item.mIsOrthogonal;
         continue;
       }
     }
-    // Baseline alignment does not take effect if all items in the alignment
-    // context is orthogonal to the baseline axis.
-    if (trackHasParallelItems) {
-      // Iterate the current track again and update the baseline offsets making
-      // all items baseline-aligned within this group in this track.
-      for (uint32_t j = trackStartIndex; j < i; ++j) {
-        const ItemBaselineData& item = aBaselineItems[j];
-        item.mGridItem->mBaselineOffset[mAxis] = maxBaseline - item.mBaseline;
-        MOZ_ASSERT(item.mGridItem->mBaselineOffset[mAxis] >= 0);
-      }
-    } else {
-      for (uint32_t j = trackStartIndex; j < i; ++j) {
-        const ItemBaselineData& item = aBaselineItems[j];
-        item.mGridItem->mBaselineOffset[mAxis] = 0;
-        // The item is still baseline aligned, but we remove the type so that we
-        // can still get fallback alignment.
-        item.mGridItem->mState[mAxis] &=
-            ~(ItemState::eSelfBaseline | ItemState::eContentBaseline);
-      }
+    // Iterate the current track again and update the baseline offsets making
+    // all items baseline-aligned within this group in this track.
+    for (uint32_t j = trackStartIndex; j < i; ++j) {
+      const ItemBaselineData& item = aBaselineItems[j];
+      item.mGridItem->mBaselineOffset[mAxis] = maxBaseline - item.mBaseline;
+      MOZ_ASSERT(item.mGridItem->mBaselineOffset[mAxis] >= 0);
     }
     if (i != 0) {
       // Store the size of this baseline-aligned subtree.
@@ -5972,7 +5954,6 @@ void nsGridContainerFrame::Tracks::CalculateItemBaselines(
     // Initialize data for the next track with baseline-aligned items.
     const ItemBaselineData& item = aBaselineItems[i];
     currentTrack = item.mBaselineTrack;
-    trackHasParallelItems = !item.mIsOrthogonal;
     trackStartIndex = i;
     maxBaseline = item.mBaseline;
     maxDescent = item.mSize - item.mBaseline;
@@ -5987,7 +5968,6 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
     return;
   }
 
-  const bool isInlineAxis = mAxis == LogicalAxis::Inline;  // i.e. columns
   nsTArray<ItemBaselineData> firstBaselineItems;
   nsTArray<ItemBaselineData> lastBaselineItems;
   const WritingMode containerWM = aState.mWM;
@@ -5998,6 +5978,7 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
   // baseline sharing group.
   auto containerBlockStartSide =
       containerWM.PhysicalSide(MakeLogicalSide(mAxis, LogicalEdge::Start));
+
   for (GridItemInfo& gridItem : aGridItems) {
     if (gridItem.IsSubgrid(mAxis)) {
       // A subgrid itself is never baseline-aligned.
@@ -6010,30 +5991,36 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
     const auto childWM = child->GetWritingMode();
 
     const bool isOrthogonal = containerWM.IsOrthogonalTo(childWM);
+    const bool isInlineAxis = mAxis == LogicalAxis::Inline;  // i.e. columns
+
+    // XXX update the line below to include orthogonal grid/table boxes
+    // XXX since they have baselines in both dimensions. And flexbox with
+    // XXX reversed main/cross axis?
     const bool itemHasBaselineParallelToTrack = isInlineAxis == isOrthogonal;
+    if (itemHasBaselineParallelToTrack) {
+      // [align|justify]-self:[last ]baseline.
+      auto selfAlignment =
+          isOrthogonal
+              ? child->StylePosition()->UsedJustifySelf(containerStyle)._0
+              : child->StylePosition()->UsedAlignSelf(containerStyle)._0;
+      selfAlignment &= ~StyleAlignFlags::FLAG_BITS;
+      if (selfAlignment == StyleAlignFlags::BASELINE) {
+        state |= ItemState::eFirstBaseline | ItemState::eSelfBaseline;
+        const GridArea& area = gridItem.mArea;
+        baselineTrack = isInlineAxis ? area.mCols.mStart : area.mRows.mStart;
+      } else if (selfAlignment == StyleAlignFlags::LAST_BASELINE) {
+        state |= ItemState::eLastBaseline | ItemState::eSelfBaseline;
+        const GridArea& area = gridItem.mArea;
+        baselineTrack = (isInlineAxis ? area.mCols.mEnd : area.mRows.mEnd) - 1;
+      }
 
-    // [align|justify]-self:[last ]baseline.
-    auto selfAlignment =
-        isInlineAxis
-            ? child->StylePosition()->UsedJustifySelf(containerStyle)._0
-            : child->StylePosition()->UsedAlignSelf(containerStyle)._0;
-    selfAlignment &= ~StyleAlignFlags::FLAG_BITS;
-    if (selfAlignment == StyleAlignFlags::BASELINE) {
-      state |= ItemState::eFirstBaseline | ItemState::eSelfBaseline;
-      const GridArea& area = gridItem.mArea;
-      baselineTrack = isInlineAxis ? area.mCols.mStart : area.mRows.mStart;
-    } else if (selfAlignment == StyleAlignFlags::LAST_BASELINE) {
-      state |= ItemState::eLastBaseline | ItemState::eSelfBaseline;
-      const GridArea& area = gridItem.mArea;
-      baselineTrack = (isInlineAxis ? area.mCols.mEnd : area.mRows.mEnd) - 1;
-    }
-
-    // https://drafts.csswg.org/css-align-3/#baseline-align-content
-    // Baseline content-alignment can only apply if the align-content axis is
-    // parallel with the box’s block axis; otherwise the fallback alignment is
-    // used.
-    if (!isInlineAxis) {
       // [align|justify]-content:[last ]baseline.
+      // https://drafts.csswg.org/css-align-3/#baseline-align-content
+      // "[...] and its computed 'align-self' or 'justify-self' (whichever
+      // affects its block axis) is 'stretch' or 'self-start' ('self-end').
+      // For this purpose, the 'start', 'end', 'flex-start', and 'flex-end'
+      // values of 'align-self' are treated as either 'self-start' or
+      // 'self-end', whichever they end up equivalent to.
       auto alignContent = child->StylePosition()->mAlignContent.primary;
       alignContent &= ~StyleAlignFlags::FLAG_BITS;
       if (alignContent == StyleAlignFlags::BASELINE ||
@@ -6140,10 +6127,8 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
                              ? grid->GetBBaseline(baselineAlignment)
                              : grid->GetIBaseline(baselineAlignment));
       } else {
-        if (itemHasBaselineParallelToTrack) {
-          baseline = child->GetNaturalBaselineBOffset(
-              childWM, baselineAlignment, BaselineExportContext::Other);
-        }
+        baseline = child->GetNaturalBaselineBOffset(
+            childWM, baselineAlignment, BaselineExportContext::Other);
 
         if (!baseline) {
           // If baseline alignment is specified on a grid item whose size in
@@ -6196,9 +6181,8 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
             (baselineSharingGroup == BaselineSharingGroup::First)
                 ? firstBaselineItems
                 : lastBaselineItems;
-        baselineItems.AppendElement(
-            ItemBaselineData{baselineTrack, finalBaseline, alignSize,
-                             !itemHasBaselineParallelToTrack, &gridItem});
+        baselineItems.AppendElement(ItemBaselineData{
+            baselineTrack, finalBaseline, alignSize, &gridItem});
       } else {
         state &= ~ItemState::eAllBaselineBits;
       }
@@ -6341,9 +6325,8 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselinesInMasonryAxis(
                 baseline;
           }
           alignSize = frameSize;
-          aFirstBaselineItems.AppendElement(
-              ItemBaselineData({baselineTrack, baseline, alignSize,
-                                /* isOrthogonal */ false, &gridItem}));
+          aFirstBaselineItems.AppendElement(ItemBaselineData(
+              {baselineTrack, baseline, alignSize, &gridItem}));
         } else {
           state &= ~ItemState::eAllBaselineBits;
         }
@@ -6393,8 +6376,7 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselinesInMasonryAxis(
           auto alignSize =
               frameSize + (isInlineAxis ? m.IStartEnd(wm) : m.BStartEnd(wm));
           aLastBaselineItems.AppendElement(
-              ItemBaselineData({baselineTrack, descent, alignSize,
-                                /* isOrthogonal */ false, &gridItem}));
+              ItemBaselineData({baselineTrack, descent, alignSize, &gridItem}));
         } else {
           state &= ~ItemState::eAllBaselineBits;
         }
