@@ -675,7 +675,8 @@ int32_t nsTextFrame::GetInFlowContentLength() {
           ? static_cast<FlowLengthProperty*>(
                 mContent->GetProperty(nsGkAtoms::flowlength))
           : nullptr;
-
+  MOZ_ASSERT(mContent->HasFlag(NS_HAS_FLOWLENGTH_PROPERTY) == !!flowLength,
+             "incorrect NS_HAS_FLOWLENGTH_PROPERTY flag");
   /**
    * This frame must start inside the cached flow. If the flow starts at
    * mContentOffset but this frame is empty, logically it might be before the
@@ -704,8 +705,9 @@ int32_t nsTextFrame::GetInFlowContentLength() {
             nsINode::DeleteProperty<FlowLengthProperty>))) {
       delete flowLength;
       flowLength = nullptr;
+    } else {
+      mContent->SetFlags(NS_HAS_FLOWLENGTH_PROPERTY);
     }
-    mContent->SetFlags(NS_HAS_FLOWLENGTH_PROPERTY);
   }
   if (flowLength) {
     flowLength->mStartOffset = mContentOffset;
