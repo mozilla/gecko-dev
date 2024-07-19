@@ -208,7 +208,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   LifoAlloc lifo_;
   Maybe<MacroAssemblerScope> masmScope_;
   jit::WasmMacroAssembler* masm_;
-  uint32_t debugTrapCodeOffset_;
+  uint32_t debugStubCodeOffset_;
   CallFarJumpVector callFarJumps_;
   CallSiteTargetVector callSiteTargets_;
   uint32_t lastPatchedCallSite_;

@@ -1147,7 +1147,7 @@ void ProfilingFrameIterator::initFromExitFP(const Frame* fp) {
     case CodeRange::ImportInterpExit:
     case CodeRange::BuiltinThunk:
     case CodeRange::TrapExit:
-    case CodeRange::DebugTrap:
+    case CodeRange::DebugStub:
     case CodeRange::Throw:
     case CodeRange::FarJumpIsland:
       MOZ_CRASH("Unexpected CodeRange kind");
@@ -1298,7 +1298,7 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
     case CodeRange::ImportJitExit:
     case CodeRange::ImportInterpExit:
     case CodeRange::BuiltinThunk:
-    case CodeRange::DebugTrap:
+    case CodeRange::DebugStub:
 #if defined(JS_CODEGEN_MIPS64)
       if (codeRange->isThunk()) {
         // The FarJumpIsland sequence temporary scrambles ra.
@@ -1650,7 +1650,7 @@ void ProfilingFrameIterator::operator++() {
     case CodeRange::ImportInterpExit:
     case CodeRange::BuiltinThunk:
     case CodeRange::TrapExit:
-    case CodeRange::DebugTrap:
+    case CodeRange::DebugStub:
     case CodeRange::FarJumpIsland: {
       stackAddress_ = callerFP_;
       const auto* frame = Frame::fromUntaggedWasmExitFP(callerFP_);
@@ -1892,7 +1892,7 @@ const char* ProfilingFrameIterator::label() const {
   static const char builtinNativeDescription[] =
       "fast exit trampoline to native (in wasm)";
   static const char trapDescription[] = "trap handling (in wasm)";
-  static const char debugTrapDescription[] = "debug trap handling (in wasm)";
+  static const char debugStubDescription[] = "debug trap handling (in wasm)";
 
   if (!exitReason_.isFixed()) {
     return ThunkedNativeToDescription(exitReason_.symbolic());
@@ -1909,8 +1909,8 @@ const char* ProfilingFrameIterator::label() const {
       return builtinNativeDescription;
     case ExitReason::Fixed::Trap:
       return trapDescription;
-    case ExitReason::Fixed::DebugTrap:
-      return debugTrapDescription;
+    case ExitReason::Fixed::DebugStub:
+      return debugStubDescription;
   }
 
   switch (codeRange_->kind()) {
@@ -1928,8 +1928,8 @@ const char* ProfilingFrameIterator::label() const {
       return importInterpDescription;
     case CodeRange::TrapExit:
       return trapDescription;
-    case CodeRange::DebugTrap:
-      return debugTrapDescription;
+    case CodeRange::DebugStub:
+      return debugStubDescription;
     case CodeRange::FarJumpIsland:
       return "interstitial (in wasm)";
     case CodeRange::Throw:

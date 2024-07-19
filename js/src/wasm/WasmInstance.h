@@ -94,9 +94,9 @@ class alignas(16) Instance {
   // See "Linear memory addresses and bounds checking" in WasmMemory.cpp.
   uintptr_t memory0BoundsCheckLimit_;
 
-  // Null or a pointer to a per-process builtin thunk that will invoke the Debug
+  // Null or a pointer to a per-module builtin stub that will invoke the Debug
   // Trap Handler.
-  void* debugTrapHandler_;
+  void* debugStub_;
 
   // The containing JS::Realm.
   JS::Realm* realm_;
@@ -279,8 +279,8 @@ class alignas(16) Instance {
   static constexpr size_t offsetOfMemory0BoundsCheckLimit() {
     return offsetof(Instance, memory0BoundsCheckLimit_);
   }
-  static constexpr size_t offsetOfDebugTrapHandler() {
-    return offsetof(Instance, debugTrapHandler_);
+  static constexpr size_t offsetOfDebugStub() {
+    return offsetof(Instance, debugStub_);
   }
 
   static constexpr size_t offsetOfRealm() { return offsetof(Instance, realm_); }
@@ -338,8 +338,8 @@ class alignas(16) Instance {
 #endif
 
   JSContext* cx() const { return cx_; }
-  void* debugTrapHandler() const { return debugTrapHandler_; }
-  void setDebugTrapHandler(void* newHandler) { debugTrapHandler_ = newHandler; }
+  void* debugStub() const { return debugStub_; }
+  void setDebugStub(void* newStub) { debugStub_ = newStub; }
   JS::Realm* realm() const { return realm_; }
   bool debugEnabled() const { return !!maybeDebug_; }
   DebugState& debug() { return *maybeDebug_; }

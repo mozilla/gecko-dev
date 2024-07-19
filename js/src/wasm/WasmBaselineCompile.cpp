@@ -648,11 +648,10 @@ bool BaseCompiler::endFunction() {
   }
   JitSpew(JitSpew_Codegen, "# endFunction: end of OOL code");
 
-  JitSpew(JitSpew_Codegen, "# endFunction: end of OOL code");
   if (compilerEnv_.debugEnabled()) {
-    JitSpew(JitSpew_Codegen, "# endFunction: start of debug trap stub");
-    insertBreakpointStub();
-    JitSpew(JitSpew_Codegen, "# endFunction: end of debug trap stub");
+    JitSpew(JitSpew_Codegen, "# endFunction: start of per-function debug stub");
+    insertPerFunctionDebugStub();
+    JitSpew(JitSpew_Codegen, "# endFunction: end of per-function debug stub");
   }
 
   offsets_.end = masm.currentOffset();
@@ -669,6 +668,31 @@ bool BaseCompiler::endFunction() {
 //////////////////////////////////////////////////////////////////////////////
 //
 // Debugger API.
+
+// [SMDOC] Wasm debug traps -- code details
+//
+// There are four pieces of code involved.
+//
+// (1) The "breakable point".  This is placed at every location where we might
+//     want to transfer control to the debugger, most commonly before every
+//     bytecode.  It must be as short and fast as possible.  It checks
+//     Instance::debugStub_, which is either null or a pointer to (3).  If
+//     non-null, a call to (2) is performed; when null, nothing happens.
+//
+// (2) The "per function debug stub".  There is one per function.  It consults
+//     a bit-vector attached to the Instance, to see whether breakpoints for
+//     the current function are enabled.  If not, it returns (to (1), hence
+//     having no effect).  Otherwise, it jumps (not calls) onwards to (3).
+//
+// (3) The "debug stub" -- not to be confused with the "per function debug
+//     stub".  There is one per module.  This saves all the registers and
+//     calls onwards to (4), which is in C++ land.  When that call returns,
+//     (3) itself returns, which transfers control directly back to (after)
+//     (1).
+//
+// (4) In C++ land -- WasmHandleDebugTrap, corresponding to
+//     SymbolicAddress::HandleDebugTrap.  This contains the detailed logic
+//     needed to handle the breakpoint.
 
 void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
 #ifndef RABALDR_PIN_INSTANCE
@@ -696,9 +720,9 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   // further filtering before calling the breakpoint handler.
 #if defined(JS_CODEGEN_X64)
   // REX 83 MODRM OFFS IB
-  static_assert(Instance::offsetOfDebugTrapHandler() < 128);
-  masm.cmpq(Imm32(0), Operand(Address(InstanceReg,
-                                      Instance::offsetOfDebugTrapHandler())));
+  static_assert(Instance::offsetOfDebugStub() < 128);
+  masm.cmpq(Imm32(0),
+            Operand(Address(InstanceReg, Instance::offsetOfDebugStub())));
 
   // 74 OFFS
   Label L;
@@ -706,7 +730,7 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.j(Assembler::Zero, &L);
 
   // E8 OFFS OFFS OFFS OFFS
-  masm.call(&debugTrapStub_);
+  masm.call(&perFunctionDebugStub_);
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));
 
@@ -714,9 +738,9 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   MOZ_ASSERT_IF(!masm.oom(), masm.currentOffset() == uint32_t(L.offset()));
 #elif defined(JS_CODEGEN_X86)
   // 83 MODRM OFFS IB
-  static_assert(Instance::offsetOfDebugTrapHandler() < 128);
-  masm.cmpl(Imm32(0), Operand(Address(InstanceReg,
-                                      Instance::offsetOfDebugTrapHandler())));
+  static_assert(Instance::offsetOfDebugStub() < 128);
+  masm.cmpl(Imm32(0),
+            Operand(Address(InstanceReg, Instance::offsetOfDebugStub())));
 
   // 74 OFFS
   Label L;
@@ -724,7 +748,7 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.j(Assembler::Zero, &L);
 
   // E8 OFFS OFFS OFFS OFFS
-  masm.call(&debugTrapStub_);
+  masm.call(&perFunctionDebugStub_);
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));
 
@@ -734,29 +758,27 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   ScratchPtr scratch(*this);
   ARMRegister tmp(scratch, 64);
   Label L;
-  masm.Ldr(tmp, MemOperand(Address(InstanceReg,
-                                   Instance::offsetOfDebugTrapHandler())));
+  masm.Ldr(tmp,
+           MemOperand(Address(InstanceReg, Instance::offsetOfDebugStub())));
   masm.Cbz(tmp, &L);
-  masm.Bl(&debugTrapStub_);
+  masm.Bl(&perFunctionDebugStub_);
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));
   masm.bind(&L);
 #elif defined(JS_CODEGEN_ARM)
   ScratchPtr scratch(*this);
-  masm.loadPtr(Address(InstanceReg, Instance::offsetOfDebugTrapHandler()),
-               scratch);
+  masm.loadPtr(Address(InstanceReg, Instance::offsetOfDebugStub()), scratch);
   masm.ma_orr(scratch, scratch, SetCC);
-  masm.ma_bl(&debugTrapStub_, Assembler::NonZero);
+  masm.ma_bl(&perFunctionDebugStub_, Assembler::NonZero);
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));
 #elif defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_MIPS64) || \
     defined(JS_CODEGEN_RISCV64)
   ScratchPtr scratch(*this);
   Label L;
-  masm.loadPtr(Address(InstanceReg, Instance::offsetOfDebugTrapHandler()),
-               scratch);
+  masm.loadPtr(Address(InstanceReg, Instance::offsetOfDebugStub()), scratch);
   masm.branchPtr(Assembler::Equal, scratch, ImmWord(0), &L);
-  masm.call(&debugTrapStub_);
+  masm.call(&perFunctionDebugStub_);
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));
   masm.bind(&L);
@@ -765,20 +787,20 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
 #endif
 }
 
-void BaseCompiler::insertBreakpointStub() {
-  // The debug trap stub performs out-of-line filtering before jumping to the
-  // debug trap handler if necessary.  The trap handler returns directly to
-  // the breakable point.
+void BaseCompiler::insertPerFunctionDebugStub() {
+  // The per-function debug stub performs out-of-line filtering before jumping
+  // to the per-module debug stub if necessary.  The per-module debug stub
+  // returns directly to the breakable point.
   //
   // NOTE, the link register is live here on platforms that have LR.
   //
   // The scratch register is available here (as it was at the call site).
   //
-  // It's useful for the debug trap stub to be compact, as every function gets
-  // one.
+  // It's useful for the per-function debug stub to be compact, as every
+  // function gets one.
 
   Label L;
-  masm.bind(&debugTrapStub_);
+  masm.bind(&perFunctionDebugStub_);
 
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
   {
@@ -841,9 +863,9 @@ void BaseCompiler::insertBreakpointStub() {
   MOZ_CRASH("BaseCompiler platform hook: endFunction");
 #endif
 
-  // Jump to the debug trap handler.
+  // Jump to the per-module debug stub, which calls onwards to C++ land.
   masm.bind(&L);
-  masm.jump(Address(InstanceReg, Instance::offsetOfDebugTrapHandler()));
+  masm.jump(Address(InstanceReg, Instance::offsetOfDebugStub()));
 }
 
 void BaseCompiler::saveRegisterReturnValues(const ResultType& resultType) {

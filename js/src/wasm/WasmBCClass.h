@@ -228,9 +228,9 @@ struct BaseCompiler final {
   // generation and only used by the caller.
   FuncOffsets offsets_;
 
-  // We call this address from the breakable point when the breakpoint handler
-  // is not null.
-  NonAssertingLabel debugTrapStub_;
+  // We call this address from the breakable point when the (per-module) debug
+  // stub pointer in the Instance is not null.
+  NonAssertingLabel perFunctionDebugStub_;
   uint32_t previousBreakablePoint_;
 
   // BaselineCompileFunctions() "lends" us the StkVector to use in this
@@ -947,7 +947,7 @@ struct BaseCompiler final {
   void insertBreakablePoint(CallSiteDesc::Kind kind);
 
   // Insert code at the end of a function for breakpoint filtering.
-  void insertBreakpointStub();
+  void insertPerFunctionDebugStub();
 
   // Debugger API used at the return point: shuffle register return values off
   // to memory for the debugger to see; and get them back again.

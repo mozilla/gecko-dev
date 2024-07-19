@@ -123,7 +123,7 @@ class ExitReason {
     ImportInterp,   // slow-path call into C++ Invoke()
     BuiltinNative,  // fast-path call directly into native C++ code
     Trap,           // call to trap handler
-    DebugTrap       // call to debug trap handler
+    DebugStub       // call to debug stub
   };
 
  private:

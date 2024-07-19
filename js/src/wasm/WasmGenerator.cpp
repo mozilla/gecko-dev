@@ -89,7 +89,7 @@ ModuleGenerator::ModuleGenerator(const CodeMetadata& codeMeta,
       linkData_(nullptr),
       lifo_(GENERATOR_LIFO_DEFAULT_CHUNK_SIZE),
       masm_(nullptr),
-      debugTrapCodeOffset_(),
+      debugStubCodeOffset_(0),
       lastPatchedCallSite_(0),
       startOfUnpatchedCallsites_(0),
       parallel_(false),
@@ -314,9 +314,9 @@ void ModuleGenerator::noteCodeRange(uint32_t codeRangeIndex,
       funcImports_[codeRange.funcIndex()].initInterpExitOffset(
           codeRange.begin());
       break;
-    case CodeRange::DebugTrap:
-      MOZ_ASSERT(!debugTrapCodeOffset_);
-      debugTrapCodeOffset_ = codeRange.begin();
+    case CodeRange::DebugStub:
+      MOZ_ASSERT(!debugStubCodeOffset_);
+      debugStubCodeOffset_ = codeRange.begin();
       break;
     case CodeRange::TrapExit:
       MOZ_ASSERT(!linkData_->trapOffset);
@@ -847,8 +847,8 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     }
   }
 
-  codeBlock_->debugTrapOffset = debugTrapCodeOffset_;
-  debugTrapCodeOffset_ = UINT32_MAX;
+  codeBlock_->debugStubOffset = debugStubCodeOffset_;
+  debugStubCodeOffset_ = UINT32_MAX;
 
   lastPatchedCallSite_ = 0;
   startOfUnpatchedCallsites_ = 0;

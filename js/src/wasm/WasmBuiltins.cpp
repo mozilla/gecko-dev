@@ -1622,7 +1622,7 @@ bool wasm::NeedsBuiltinThunk(SymbolicAddress sym) {
     // No thunk, because some work has to be done within the activation before
     // the activation exit: when called, arbitrary wasm registers are live and
     // must be saved, and the stack pointer may not be aligned for any ABI.
-    case SymbolicAddress::HandleDebugTrap:  // GenerateDebugTrapStub
+    case SymbolicAddress::HandleDebugTrap:  // GenerateDebugStub
 
     // No thunk, because their caller manages the activation exit explicitly
     case SymbolicAddress::CallImport_General:      // GenerateImportInterpExit

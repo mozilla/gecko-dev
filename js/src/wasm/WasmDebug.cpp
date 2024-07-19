@@ -121,7 +121,7 @@ bool DebugState::incrementStepperCount(JSContext* cx, Instance* instance,
   }
 
   enableDebuggingForFunction(instance, funcIndex);
-  enableDebugTrap(instance);
+  enableDebugTrapping(instance);
 
   return true;
 }
@@ -159,7 +159,7 @@ void DebugState::decrementStepperCount(JS::GCContext* gcx, Instance* instance,
   if (!keepDebugging && !anyEnterAndLeave) {
     disableDebuggingForFunction(instance, funcIndex);
     if (!anyStepping && !anyBreakpoints) {
-      disableDebugTrap(instance);
+      disableDebugTrapping(instance);
     }
   }
 }
@@ -192,11 +192,11 @@ void DebugState::toggleBreakpointTrap(JSRuntime* rt, Instance* instance,
 
   if (enabled) {
     enableDebuggingForFunction(instance, funcIndex);
-    enableDebugTrap(instance);
+    enableDebugTrapping(instance);
   } else if (!anyEnterAndLeave) {
     disableDebuggingForFunction(instance, funcIndex);
     if (!anyStepping && !anyBreakpoints) {
-      disableDebugTrap(instance);
+      disableDebugTrapping(instance);
     }
   }
 }
@@ -295,13 +295,13 @@ void DebugState::disableDebuggingForFunction(Instance* instance,
   instance->setDebugFilter(funcIndex, false);
 }
 
-void DebugState::enableDebugTrap(Instance* instance) {
-  instance->setDebugTrapHandler(code_->sharedStubs().segment->base() +
-                                code_->sharedStubs().debugTrapOffset);
+void DebugState::enableDebugTrapping(Instance* instance) {
+  instance->setDebugStub(code_->sharedStubs().segment->base() +
+                         code_->sharedStubs().debugStubOffset);
 }
 
-void DebugState::disableDebugTrap(Instance* instance) {
-  instance->setDebugTrapHandler(nullptr);
+void DebugState::disableDebugTrapping(Instance* instance) {
+  instance->setDebugStub(nullptr);
 }
 
 void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
@@ -324,7 +324,7 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
     for (uint32_t funcIdx = 0; funcIdx < numFuncs; funcIdx++) {
       enableDebuggingForFunction(instance, funcIdx);
     }
-    enableDebugTrap(instance);
+    enableDebugTrapping(instance);
   } else {
     MOZ_ASSERT(enterAndLeaveFrameTrapsCounter_ == 0);
     bool anyEnabled = false;
@@ -353,7 +353,7 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
       }
     }
     if (!anyEnabled) {
-      disableDebugTrap(instance);
+      disableDebugTrapping(instance);
     }
   }
 }

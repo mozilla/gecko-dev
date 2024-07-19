@@ -416,7 +416,7 @@ class CodeBlock {
   CodeRangeUnwindInfoVector codeRangeUnwindInfos;
 
   // Debug information, not serialized.
-  uint32_t debugTrapOffset;
+  uint32_t debugStubOffset;
 
   // Track whether we are registered in the process map of code blocks.
   bool unregisterOnDestroy_;
@@ -433,7 +433,7 @@ class CodeBlock {
       : code(nullptr),
         codeBlockIndex((size_t)-1),
         kind(kind),
-        debugTrapOffset(0),
+        debugStubOffset(0),
         unregisterOnDestroy_(false) {}
   ~CodeBlock();
 

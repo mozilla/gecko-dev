@@ -387,7 +387,7 @@ class CodeRange {
     ImportJitExit,     // fast-path calling from wasm into jit code
     BuiltinThunk,      // fast-path calling from wasm into a C++ native
     TrapExit,          // calls C++ to report and jumps to throw stub
-    DebugTrap,         // calls C++ to handle debug event
+    DebugStub,         // calls C++ to handle debug event
     FarJumpIsland,     // inserted to connect otherwise out-of-range insns
     Throw              // special stack-unwinding stub jumped to by other stubs
   };
@@ -450,15 +450,15 @@ class CodeRange {
   bool isImportInterpExit() const { return kind() == ImportInterpExit; }
   bool isImportJitExit() const { return kind() == ImportJitExit; }
   bool isTrapExit() const { return kind() == TrapExit; }
-  bool isDebugTrap() const { return kind() == DebugTrap; }
+  bool isDebugStub() const { return kind() == DebugStub; }
   bool isThunk() const { return kind() == FarJumpIsland; }
 
-  // Functions, import exits, trap exits and JitEntry stubs have standard
+  // Functions, import exits, debug stubs and JitEntry stubs have standard
   // callable prologues and epilogues. Asynchronous frame iteration needs to
   // know the offset of the return instruction to calculate the frame pointer.
 
   bool hasReturn() const {
-    return isFunction() || isImportExit() || isDebugTrap() || isJitEntry();
+    return isFunction() || isImportExit() || isDebugStub() || isJitEntry();
   }
   uint32_t ret() const {
     MOZ_ASSERT(hasReturn());

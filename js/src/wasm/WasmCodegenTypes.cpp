@@ -183,7 +183,7 @@ CodeRange::CodeRange(Kind kind, CallableOffsets offsets)
   PodZero(&u);
 #ifdef DEBUG
   switch (kind_) {
-    case DebugTrap:
+    case DebugStub:
     case BuiltinThunk:
       break;
     default:
