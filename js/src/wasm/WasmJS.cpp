@@ -1162,7 +1162,8 @@ bool WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-#if defined(ENABLE_WASM_JS_STRING_BUILTINS) || defined(ENABLE_WASM_TYPE_REFLECTIONS)
+#if defined(ENABLE_WASM_JS_STRING_BUILTINS) || \
+    defined(ENABLE_WASM_TYPE_REFLECTIONS)
   const CodeMetadata& codeMeta = module->codeMeta();
 #endif
 
