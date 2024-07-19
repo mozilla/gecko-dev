@@ -1239,13 +1239,18 @@ pref("accessibility.typeaheadfind.flashBar", 1);
 
 // Toggling Search bar on and off in about:preferences
 pref("browser.preferences.search", true);
-#if defined(NIGHTLY_BUILD)
+// Whether we can show the "Firefox Labs" section.
 pref("browser.preferences.experimental", true);
-#else
-pref("browser.preferences.experimental", false);
-#endif
-pref("browser.preferences.moreFromMozilla", true);
+// Whether we had to hide the "Firefox Labs" section because it would be empty.
 pref("browser.preferences.experimental.hidden", false);
+// Whether we show the "More from Mozilla" section.
+pref("browser.preferences.moreFromMozilla", true);
+
+// Used by settings to track whether the user customized advanced
+// performance settings. Not used directly elsewhere.
+// If set to false, we show advanced performance settings.
+// If reset to true **by checking the box in the settings page**,
+// we will revert those to the default settings.
 pref("browser.preferences.defaultPerformanceSettings.enabled", true);
 
 pref("browser.proton.toolbar.version", 0);
