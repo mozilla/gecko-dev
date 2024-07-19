@@ -231,6 +231,26 @@ class InterventionTest(MozbuildObject):
             "test-interventions", kwargs, {"mach": sys.stdout}
         )
         logger = mozlog.get_default_logger("test-interventions")
+
+        log_level = "INFO"
+        # It's not trivial to get a single log level out of mozlog, because we might have
+        # different levels going to different outputs. We look for the maximum (i.e. most
+        # verbose) level of any handler with an attached formatter.
+        configured_level_number = None
+        for handler in logger.handlers:
+            if hasattr(handler, "formatter") and hasattr(handler.formatter, "level"):
+                formatter_level = handler.formatter.level
+                configured_level_number = (
+                    formatter_level
+                    if configured_level_number is None
+                    else max(configured_level_number, formatter_level)
+                )
+        if configured_level_number is not None:
+            for level, number in mozlog.structuredlog.log_levels.items():
+                if number == configured_level_number:
+                    log_level = level
+                    break
+
         status_handler = mozlog.handlers.StatusHandler()
         logger.add_handler(status_handler)
 
@@ -262,6 +282,7 @@ class InterventionTest(MozbuildObject):
                     config=kwargs["config"],
                     headless=kwargs["headless"],
                     do2fa=kwargs["do2fa"],
+                    log_level=log_level,
                 )
 
         if kwargs["shims"] != "none":

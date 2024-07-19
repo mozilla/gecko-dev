@@ -32,8 +32,10 @@ class WebDriver:
         self.addon = config.getoption("addon")
         self.webdriver_binary = config.getoption("webdriver_binary")
         self.port = config.getoption("webdriver_port")
-        self.wsPort = config.getoption("webdriver_ws_port")
+        self.ws_port = config.getoption("webdriver_ws_port")
+        self.log_level = config.getoption("webdriver_log_level")
         self.headless = config.getoption("headless")
+        self.debug = config.getoption("debug")
         self.proc = None
 
     def command_line_driver(self):
@@ -53,14 +55,18 @@ class WebDriver:
 
 class FirefoxWebDriver(WebDriver):
     def command_line_driver(self):
-        return [
+        rv = [
             self.webdriver_binary,
             "--port",
             str(self.port),
             "--websocket-port",
-            str(self.wsPort),
-            "-vv",
+            str(self.ws_port),
         ]
+        if self.debug:
+            rv.append("-vv")
+        elif self.log_level == "DEBUG":
+            rv.append("-v")
+        return rv
 
     def capabilities(self, test_config):
         prefs = {}

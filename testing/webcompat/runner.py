@@ -30,6 +30,7 @@ def run(
     headless=False,
     addon=None,
     do2fa=False,
+    log_level="INFO",
 ):
     """"""
     old_environ = os.environ.copy()
@@ -64,6 +65,8 @@ def run(
                 webdriver_port,
                 "--webdriver-ws-port",
                 webdriver_ws_port,
+                "--webdriver-log-level",
+                log_level,
             ]
 
             if debug:
@@ -161,6 +164,12 @@ class WDConfig:
             action="store",
             default="9222",
             help="Port on which to run WebDriver BiDi websocket",
+        )
+        parser.addoption(
+            "--webdriver-log-level",
+            action="store",
+            default="INFO",
+            help="Log level to use for WebDriver",
         )
         parser.addoption(
             "--browser", action="store", choices=["firefox"], help="Name of the browser"
