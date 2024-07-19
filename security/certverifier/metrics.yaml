@@ -31,6 +31,58 @@ cert_verifier:
       - revoked_in_filter
       - revoked_in_stash
 
+  crlite_vs_ocsp_result:
+    type: labeled_counter
+    description: >
+      The OCSP result when CRLite claims a certificate is revoked.
+    data_sensitivity:
+      - technical
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675655
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908549
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675655
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1758827
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817102
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1846898
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1876443
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908549
+    notification_emails:
+      - jschanck@mozilla.com
+    expires: 143
+    labels:
+      - CRLiteRevOCSPFail
+      - CRLiteRevOCSPOk
+      - CRLiteRevOCSPRev
+      - CRLiteRevOCSPUnk
+      - CRLiteRevOCSPSoft
+
+  cert_revocation_mechanisms:
+    type: labeled_counter
+    description: >
+      Which revocation checking mechanisms were used in a TLS handshake?
+    data_sensitivity:
+      - technical
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1794450
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908549
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1794450
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817101
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1846897
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1876442
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908549
+    notification_emails:
+      - jschanck@mozilla.com
+    expires: never
+    labels:
+      - CRLite
+      - StapledOCSP
+      - CachedOCSP
+      - OCSP
+      - OneCRL
+      - ShortValidity
+
   cert_trust_evaluation_time:
     type: timing_distribution
     time_unit: nanosecond

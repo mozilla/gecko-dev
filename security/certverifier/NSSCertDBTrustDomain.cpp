@@ -432,8 +432,8 @@ Result NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
     if (revocationState == nsICertStorage::STATE_ENFORCE) {
       MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
               ("NSSCertDBTrustDomain: certificate is in blocklist"));
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_CERT_REVOCATION_MECHANISMS::OneCRL);
+      mozilla::glean::cert_verifier::cert_revocation_mechanisms.Get("OneCRL"_ns)
+          .Add(1);
       return Result::ERROR_REVOKED_CERTIFICATE;
     }
   }
@@ -787,8 +787,8 @@ Result NSSCertDBTrustDomain::CheckRevocation(
     }
 
     if (crliteCoversCertificate) {
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_CERT_REVOCATION_MECHANISMS::CRLite);
+      mozilla::glean::cert_verifier::cert_revocation_mechanisms.Get("CRLite"_ns)
+          .Add(1);
       // If we don't return here we will consult OCSP.
       // In Enforce CRLite mode we can return "Revoked" or "Not Revoked"
       // without consulting OCSP.
@@ -889,8 +889,9 @@ Result NSSCertDBTrustDomain::CheckRevocationByOCSP(
     stapledOCSPResponseResult = VerifyAndMaybeCacheEncodedOCSPResponse(
         certID, time, maxOCSPLifetimeInDays, *stapledOCSPResponse,
         ResponseWasStapled, expired);
-    Telemetry::AccumulateCategorical(
-        Telemetry::LABELS_CERT_REVOCATION_MECHANISMS::StapledOCSP);
+    mozilla::glean::cert_verifier::cert_revocation_mechanisms
+        .Get("StapledOCSP"_ns)
+        .Add(1);
     if (stapledOCSPResponseResult == Success) {
       // stapled OCSP response present and good
       mOCSPStaplingStatus = CertVerifier::OCSP_STAPLING_GOOD;
@@ -935,8 +936,9 @@ Result NSSCertDBTrustDomain::CheckRevocationByOCSP(
       mOCSPCache.Get(certID, mOriginAttributes, cachedResponseResult,
                      cachedResponseValidThrough);
   if (cachedResponsePresent) {
-    Telemetry::AccumulateCategorical(
-        Telemetry::LABELS_CERT_REVOCATION_MECHANISMS::CachedOCSP);
+    mozilla::glean::cert_verifier::cert_revocation_mechanisms
+        .Get("CachedOCSP"_ns)
+        .Add(1);
     if (cachedResponseResult == Success && cachedResponseValidThrough >= time) {
       MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
               ("NSSCertDBTrustDomain: cached OCSP response: good"));
@@ -986,8 +988,9 @@ Result NSSCertDBTrustDomain::CheckRevocationByOCSP(
   // fetching is disabled.
   Duration shortLifetime(mCertShortLifetimeInDays * Time::ONE_DAY_IN_SECONDS);
   if (validityDuration < shortLifetime) {
-    Telemetry::AccumulateCategorical(
-        Telemetry::LABELS_CERT_REVOCATION_MECHANISMS::ShortValidity);
+    mozilla::glean::cert_verifier::cert_revocation_mechanisms
+        .Get("ShortValidity"_ns)
+        .Add(1);
   }
   if ((mOCSPFetching == NeverFetchOCSP) || (validityDuration < shortLifetime)) {
     // We're not going to be doing any fetching, so if there was a cached
@@ -1072,8 +1075,8 @@ Result NSSCertDBTrustDomain::SynchronousCheckRevocationWithServer(
   mOCSPFetchStatus = OCSPFetchStatus::Fetched;
   rv = DoOCSPRequest(aiaLocation, mOriginAttributes, ocspRequestBytes,
                      ocspRequestLength, GetOCSPTimeout(), ocspResponse);
-  Telemetry::AccumulateCategorical(
-      Telemetry::LABELS_CERT_REVOCATION_MECHANISMS::OCSP);
+  mozilla::glean::cert_verifier::cert_revocation_mechanisms.Get("OCSP"_ns).Add(
+      1);
   if (rv == Success &&
       response.Init(ocspResponse.begin(), ocspResponse.length()) != Success) {
     rv = Result::ERROR_OCSP_MALFORMED_RESPONSE;  // too big
@@ -1091,16 +1094,12 @@ Result NSSCertDBTrustDomain::SynchronousCheckRevocationWithServer(
       return cacheRV;
     }
 
-    if (crliteCoversCertificate) {
-      if (crliteResult == Success) {
-        // CRLite says the certificate is OK, but OCSP fetching failed.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteOkOCSPFail);
-      } else {
-        // CRLite says the certificate is revoked, but OCSP fetching failed.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteRevOCSPFail);
-      }
+    if (crliteCoversCertificate &&
+        crliteResult == Result::ERROR_REVOKED_CERTIFICATE) {
+      // CRLite says the certificate is revoked, but OCSP fetching failed.
+      mozilla::glean::cert_verifier::crlite_vs_ocsp_result
+          .Get("CRLiteRevOCSPFail"_ns)
+          .Add(1);
     }
 
     return HandleOCSPFailure(cachedResponseResult, stapledOCSPResponseResult,
@@ -1115,57 +1114,30 @@ Result NSSCertDBTrustDomain::SynchronousCheckRevocationWithServer(
                                               maxOCSPLifetimeInDays, response,
                                               ResponseIsFromNetwork, expired);
 
-  // If the CRLite filter covers the certificate, compare the CRLite result
-  // with the OCSP fetching result. OCSP may have succeeded, said the
-  // certificate is revoked, said the certificate doesn't exist, or it may have
-  // failed for a reason that results in a "soft fail" (i.e. there is no
-  // indication that the certificate is either definitely revoked or definitely
-  // not revoked, so for usability, revocation checking says the certificate is
-  // valid by default).
-  if (crliteCoversCertificate) {
+  // If CRLite said that this certificate is revoked, report the OCSP
+  // status. OCSP may have succeeded, said the certificate is revoked, said the
+  // certificate doesn't exist, or it may have failed for a reason that results
+  // in a "soft fail" (i.e. there is no indication that the certificate is
+  // either definitely revoked or definitely not revoked, so for usability,
+  // revocation checking says the certificate is valid by default).
+  if (crliteCoversCertificate &&
+      crliteResult == Result::ERROR_REVOKED_CERTIFICATE) {
     if (rv == Success) {
-      if (crliteResult == Success) {
-        // CRLite and OCSP fetching agree the certificate is OK.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteOkOCSPOk);
-      } else {
-        // CRLite says the certificate is revoked, but OCSP says it is OK.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteRevOCSPOk);
-      }
+      mozilla::glean::cert_verifier::crlite_vs_ocsp_result
+          .Get("CRLiteRevOCSPOk"_ns)
+          .Add(1);
     } else if (rv == Result::ERROR_REVOKED_CERTIFICATE) {
-      if (crliteResult == Success) {
-        // CRLite says the certificate is OK, but OCSP says it is revoked.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteOkOCSPRev);
-      } else {
-        // CRLite and OCSP fetching agree the certificate is revoked.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteRevOCSPRev);
-      }
+      mozilla::glean::cert_verifier::crlite_vs_ocsp_result
+          .Get("CRLiteRevOCSPRev"_ns)
+          .Add(1);
     } else if (rv == Result::ERROR_OCSP_UNKNOWN_CERT) {
-      if (crliteResult == Success) {
-        // CRLite says the certificate is OK, but OCSP says it doesn't exist.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteOkOCSPUnk);
-      } else {
-        // CRLite says the certificate is revoked, but OCSP says it doesn't
-        // exist.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteRevOCSPUnk);
-      }
+      mozilla::glean::cert_verifier::crlite_vs_ocsp_result
+          .Get("CRLiteRevOCSPUnk"_ns)
+          .Add(1);
     } else {
-      if (crliteResult == Success) {
-        // CRLite says the certificate is OK, but OCSP encountered a soft-fail
-        // error.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteOkOCSPSoft);
-      } else {
-        // CRLite says the certificate is revoked, but OCSP encountered a
-        // soft-fail error.
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_CRLITE_VS_OCSP_RESULT::CRLiteRevOCSPSoft);
-      }
+      mozilla::glean::cert_verifier::crlite_vs_ocsp_result
+          .Get("CRLiteRevOCSPSoft"_ns)
+          .Add(1);
     }
   }
 
