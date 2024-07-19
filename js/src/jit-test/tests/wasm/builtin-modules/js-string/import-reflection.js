@@ -11,4 +11,4 @@ let imports = WebAssembly.Module.imports(module);
 
 // All imports that refer to a builtin module are suppressed from import
 // reflection.
-assertEq(imports.length, 1);
+assertEq(imports.length, 0);
