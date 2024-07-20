@@ -29,6 +29,8 @@
     window.addEventListener("pointermove", CheckDeviceId, false);
 
     promise_test(async () => {
+        if (!window.internals)
+          return;
         eventFired = 0;
         let actions = new test_driver.Actions()
           .addPointer("TestPointer", "pen")

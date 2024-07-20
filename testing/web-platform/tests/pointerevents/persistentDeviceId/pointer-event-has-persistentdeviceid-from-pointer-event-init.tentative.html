@@ -18,6 +18,8 @@
     }
 
     promise_test(async () => {
+        if (!window.internals)
+          return;
         var deviceId = PERSISTENT_ID;
         var downEvent = new PointerEvent("pointerdown",
           {pointerId: 1,
@@ -55,6 +57,8 @@
     }, 'PointerEvent.persistentDeviceId via PointerEventInit');
 
     promise_test(async () => {
+        if (!window.internals)
+          return;
         var downEventEmptyProps = new PointerEvent("pointerdown",
           {pointerId: 1,
             bubbles: true,

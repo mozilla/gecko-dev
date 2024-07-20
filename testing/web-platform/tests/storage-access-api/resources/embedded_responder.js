@@ -95,9 +95,3 @@ window.addEventListener("message", async (event) => {
     default:
   }
 });
-
-// The document that loads this script will define `should_ack_load` based on
-// the query parameters it received from the test.
-if (should_ack_load) {
-  parent.postMessage('loaded', '*');
-}
