@@ -6753,45 +6753,63 @@ void PresShell::RecordPointerLocation(WidgetGUIEvent* aEvent) {
     return;
   }
 
-  if ((aEvent->mMessage == eMouseMove &&
-       aEvent->AsMouseEvent()->mReason == WidgetMouseEvent::eReal) ||
-      aEvent->mMessage == eMouseEnterIntoWidget ||
-      aEvent->mMessage == eMouseDown || aEvent->mMessage == eMouseUp) {
-    mMouseLocation = GetEventLocation(*aEvent->AsMouseEvent());
-    mMouseEventTargetGuid = InputAPZContext::GetTargetLayerGuid();
-    mMouseLocationWasSetBySynthesizedMouseEventForTests =
-        aEvent->mFlags.mIsSynthesizedForTests;
+  switch (aEvent->mMessage) {
+    case eMouseMove:
+      if (!aEvent->AsMouseEvent()->IsReal()) {
+        break;
+      }
+      [[fallthrough]];
+    case eMouseEnterIntoWidget:
+    case eMouseDown:
+    case eMouseUp: {
+      mMouseLocation = GetEventLocation(*aEvent->AsMouseEvent());
+      mMouseEventTargetGuid = InputAPZContext::GetTargetLayerGuid();
+      mMouseLocationWasSetBySynthesizedMouseEventForTests =
+          aEvent->mFlags.mIsSynthesizedForTests;
 #ifdef DEBUG_MOUSE_LOCATION
-    if (aEvent->mMessage == eMouseEnterIntoWidget) {
-      printf("[ps=%p]got mouse enter for %p\n", this, aEvent->mWidget);
-    }
-    printf("[ps=%p]setting mouse location to (%d,%d)\n", this, mMouseLocation.x,
-           mMouseLocation.y);
+      if (aEvent->mMessage == eMouseEnterIntoWidget) {
+        printf("[ps=%p]got mouse enter for %p\n", this, aEvent->mWidget);
+      }
+      printf("[ps=%p]setting mouse location to (%d,%d)\n", this,
+             mMouseLocation.x, mMouseLocation.y);
 #endif
-    if (aEvent->mMessage == eMouseEnterIntoWidget) {
-      SynthesizeMouseMove(false);
+      if (aEvent->mMessage == eMouseEnterIntoWidget) {
+        SynthesizeMouseMove(false);
+      }
+      break;
     }
-  } else if (aEvent->mMessage == eMouseExitFromWidget) {
-    // Although we only care about the mouse moving into an area for which this
-    // pres shell doesn't receive mouse move events, we don't check which widget
-    // the mouse exit was for since this seems to vary by platform.  Hopefully
-    // this won't matter at all since we'll get the mouse move or enter after
-    // the mouse exit when the mouse moves from one of our widgets into another.
-    mMouseLocation = nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
-    mMouseEventTargetGuid = InputAPZContext::GetTargetLayerGuid();
-    mMouseLocationWasSetBySynthesizedMouseEventForTests =
-        aEvent->mFlags.mIsSynthesizedForTests;
+    case eMouseExitFromWidget: {
+      // Although we only care about the mouse moving into an area for which
+      // this pres shell doesn't receive mouse move events, we don't check which
+      // widget the mouse exit was for since this seems to vary by platform.
+      // Hopefully this won't matter at all since we'll get the mouse move or
+      // enter after the mouse exit when the mouse moves from one of our widgets
+      // into another.
+      mMouseLocation = nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+      mMouseEventTargetGuid = InputAPZContext::GetTargetLayerGuid();
+      mMouseLocationWasSetBySynthesizedMouseEventForTests =
+          aEvent->mFlags.mIsSynthesizedForTests;
 #ifdef DEBUG_MOUSE_LOCATION
-    printf("[ps=%p]got mouse exit for %p\n", this, aEvent->mWidget);
-    printf("[ps=%p]clearing mouse location\n", this);
+      printf("[ps=%p]got mouse exit for %p\n", this, aEvent->mWidget);
+      printf("[ps=%p]clearing mouse location\n", this);
 #endif
-  } else if ((aEvent->mMessage == ePointerMove &&
-              aEvent->AsMouseEvent()->mReason == WidgetMouseEvent::eReal) ||
-             aEvent->mMessage == ePointerDown ||
-             aEvent->mMessage == ePointerUp) {
-    // TODO: instead, encapsulate `mMouseLocation` and
-    // `mLastOverWindowPointerLocation` in a struct.
-    mLastOverWindowPointerLocation = GetEventLocation(*aEvent->AsMouseEvent());
+      break;
+    }
+    case ePointerMove:
+      if (!aEvent->AsMouseEvent()->IsReal()) {
+        break;
+      }
+      [[fallthrough]];
+    case ePointerDown:
+    case ePointerUp: {
+      // TODO: instead, encapsulate `mMouseLocation` and
+      // `mLastOverWindowPointerLocation` in a struct.
+      mLastOverWindowPointerLocation =
+          GetEventLocation(*aEvent->AsMouseEvent());
+      break;
+    }
+    default:
+      break;
   }
 }
 
