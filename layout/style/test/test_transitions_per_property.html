@@ -369,9 +369,7 @@ if (IsCSSPropertyPrefEnabled("layout.css.contain-intrinsic-size.enabled")) {
   supported_properties["contain-intrinsic-height"] = supported_properties["contain-intrinsic-width"];
 }
 
-if (IsCSSPropertyPrefEnabled("layout.css.content-visibility.enabled")) {
-  supported_properties["content-visibility"] = [test_content_visibility_transition];
-}
+supported_properties["content-visibility"] = [test_content_visibility_transition];
 
 if (IsCSSPropertyPrefEnabled("layout.css.zoom.enabled")) {
   Object.assign(supported_properties, {

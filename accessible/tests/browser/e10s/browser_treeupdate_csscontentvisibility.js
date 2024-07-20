@@ -49,12 +49,6 @@ const snippet = `
   </script>
   `;
 
-add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["layout.css.content-visibility.enabled", true]],
-  });
-});
-
 async function setContentVisibility(browser, value) {
   let mutationPromise = waitForEvent(EVENT_REORDER, "target");
 

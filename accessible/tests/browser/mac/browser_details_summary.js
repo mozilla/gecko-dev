@@ -30,7 +30,7 @@ addAccessibleTask(
     );
 
     let detailsChildren = details.getAttributeValue("AXChildren");
-    is(detailsChildren.length, 1, "collapsed details has only one child");
+    is(detailsChildren.length, 2, "collapsed details has two children");
 
     let summary = detailsChildren[0];
     is(
@@ -55,7 +55,7 @@ addAccessibleTask(
     is(summary.getAttributeValue("AXExpanded"), 1, "Summary is expanded");
 
     detailsChildren = details.getAttributeValue("AXChildren");
-    is(detailsChildren.length, 2, "collapsed details has only one child");
+    is(detailsChildren.length, 2, "expanded details also has two children");
 
     stateChanged = waitForStateChange("summary", STATE_EXPANDED, false);
     summary.performAction("AXPress");
@@ -64,6 +64,6 @@ addAccessibleTask(
     is(summary.getAttributeValue("AXExpanded"), 0, "Summary is collapsed 2");
 
     detailsChildren = details.getAttributeValue("AXChildren");
-    is(detailsChildren.length, 1, "collapsed details has only one child");
+    is(detailsChildren.length, 2, "collapsed details has two children");
   }
 );

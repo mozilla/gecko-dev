@@ -6,7 +6,7 @@
  * https://drafts.csswg.org/css-contain-2/#content-visibility-auto-state-changed
  */
 
-[Exposed=Window, Pref="layout.css.content-visibility.enabled"]
+[Exposed=Window]
 interface ContentVisibilityAutoStateChangeEvent : Event {
   constructor(DOMString type,
               optional ContentVisibilityAutoStateChangeEventInit eventInitDict = {});
