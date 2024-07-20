@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Test synthesized mouse move after drag and drop</title>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css">
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.waitForFocus(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["layout.reflow.synthMouseMove", true],
+    ]
+  });
+
+  const source = document.getElementById("source");
+  const target = document.getElementById("target");
+
+  for (const type of ["dragover", "dragenter"]) {
+    target.addEventListener(type, event => {
+      event.dataTransfer.dropEffect = "copy";
+      event.preventDefault();
+    });
+  }
+
+  await (async function test_basic() {
+    const promiseDrop = new Promise(resolve => {
+      target.addEventListener("drop", event => {
+        event.preventDefault();
+        target.addEventListener("mouseover", resolve, {once: true});
+      }, { once: true });
+    });
+    getSelection().selectAllChildren(source);
+    synthesizePlainDragAndDrop({
+      srcSelection: getSelection(),
+      destElement: target,
+    });
+    await promiseDrop;
+    await new Promise(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))
+    );
+    is(
+      document.querySelector("span:hover"),
+      target,
+      "test_basic: The drop target should have hover state"
+    );
+  })();
+
+  document.querySelector("style").remove();
+  SimpleTest.finish();
+});
+</script>
+<style>
+* {
+  font-size: 48px;
+}
+</style>
+</head>
+<body>
+  <div>
+    <span id="source">Drag me!</span>
+  </div>
+  <div>
+    <span id="target">Drop here!</span>
+  </div>
+</body>
+</html>

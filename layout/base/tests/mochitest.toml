@@ -2,6 +2,8 @@
 prefs = [
   "formhelper.autozoom.force-disable.test-only=true",
   "gfx.font_loader.delay=0",
+  "ui.dragThresholdX=4", # Bug 1873142
+  "ui.dragThresholdY=4", # Bug 1873142
 ]
 support-files = [
   "Ahem.ttf",
@@ -585,6 +587,9 @@ support-files = [
   "helper_synthmousemove.html",
   "file_synthmousemove.html",
 ]
+
+["test_synthmousemove_after_dnd.html"]
+skip-if = ["os == 'android'"] # Bug 1909020
 
 ["test_transformed_scrolling_repaints.html"]
 

@@ -5786,7 +5786,8 @@ void PresShell::ProcessSynthMouseMoveEvent(bool aFromScroll) {
   nsCOMPtr<nsIDragSession> dragSession =
       nsContentUtils::GetDragSession(rootView->GetWidget());
   if (dragSession) {
-    mSynthMouseMoveEvent.Forget();
+    // Don't forget it.  We need to synthesize a mouse move when the drag
+    // session ends.
     return;
   }
 
@@ -6771,11 +6772,18 @@ void PresShell::RecordPointerLocation(WidgetGUIEvent* aEvent) {
       [[fallthrough]];
     case eMouseEnterIntoWidget:
     case eMouseDown:
-    case eMouseUp: {
+    case eMouseUp:
+    case eDragEnter:
+    case eDragStart:
+    case eDragOver:
+    case eDrop: {
       mMouseLocation = GetEventLocation(*aEvent->AsMouseEvent());
       mMouseEventTargetGuid = InputAPZContext::GetTargetLayerGuid();
-      mMouseLocationWasSetBySynthesizedMouseEventForTests =
-          aEvent->mFlags.mIsSynthesizedForTests;
+      // FIXME: Don't trust the synthesized for tests flag of drag events.
+      if (aEvent->mClass != eDragEventClass) {
+        mMouseLocationWasSetBySynthesizedMouseEventForTests =
+            aEvent->mFlags.mIsSynthesizedForTests;
+      }
 #ifdef DEBUG
       if (MOZ_LOG_TEST(gLogMouseLocation, LogLevel::Info)) {
         static uint32_t sFrequentMessageCount = 0;
@@ -6799,11 +6807,18 @@ void PresShell::RecordPointerLocation(WidgetGUIEvent* aEvent) {
         }
       }
 #endif
-      if (aEvent->mMessage == eMouseEnterIntoWidget) {
+      if (aEvent->mMessage == eMouseEnterIntoWidget ||
+          aEvent->mClass == eDragEventClass) {
         SynthesizeMouseMove(false);
       }
       break;
     }
+    case eDragExit:
+      if (aEvent->mRelatedTarget) {
+        // not exit from the widget
+        break;
+      }
+      [[fallthrough]];
     case eMouseExitFromWidget: {
       // Although we only care about the mouse moving into an area for which
       // this pres shell doesn't receive mouse move events, we don't check which
@@ -8365,7 +8380,8 @@ nsresult PresShell::EventHandler::HandleEventWithTarget(
 #endif
   NS_ENSURE_STATE(!aNewEventContent ||
                   aNewEventContent->GetComposedDoc() == GetDocument());
-  if (aEvent->mClass == ePointerEventClass) {
+  if (aEvent->mClass == ePointerEventClass ||
+      aEvent->mClass == eDragEventClass) {
     mPresShell->RecordPointerLocation(aEvent->AsMouseEvent());
   }
   AutoPointerEventTargetUpdater updater(mPresShell, aEvent, aNewEventFrame,
