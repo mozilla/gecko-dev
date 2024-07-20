@@ -2199,11 +2199,13 @@ const Loader = () => {
 const InstallButton = props => {
   const [installing, setInstalling] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
   const [installComplete, setInstallComplete] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
-  let buttonLabel = installComplete ? {
-    string_id: "amo-picker-install-complete-label"
-  } : {
+  const defaultInstallLabel = {
     string_id: "amo-picker-install-button-label"
   };
+  const defaultInstallCompleteLabel = {
+    string_id: "amo-picker-install-complete-label"
+  };
+  let buttonLabel = installComplete ? props.install_complete_label || defaultInstallCompleteLabel : props.install_label || defaultInstallLabel;
   function onClick(event) {
     props.handleAction(event);
     // Replace the label with the spinner
@@ -2222,7 +2224,7 @@ const InstallButton = props => {
   }, installing ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(Loader, null) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_2__.Localized, {
     text: buttonLabel
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    id: props.name,
+    id: `install-button-${props.addonId}`,
     value: props.index,
     onClick: onClick,
     disabled: installComplete,
@@ -2266,7 +2268,9 @@ const AddonsPicker = props => {
     name,
     type,
     description,
-    icon
+    icon,
+    install_label,
+    install_complete_label
   }, index) => name ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     key: id,
     className: "addon-container"
@@ -2290,9 +2294,10 @@ const AddonsPicker = props => {
   }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(InstallButton, {
     key: id,
     addonId: id,
-    name: name,
     handleAction: handleAction,
-    index: index
+    index: index,
+    install_label: install_label,
+    install_complete_label: install_complete_label
   })) : null));
 };
 
