@@ -511,6 +511,7 @@ ${helpers.predefined_type(
     "computed::ContentVisibility::Visible",
     engines="gecko",
     spec="https://drafts.csswg.org/css-contain/#content-visibility",
+    gecko_pref="layout.css.content-visibility.enabled",
     animation_value_type="ComputedValue",
     affects="layout",
 )}

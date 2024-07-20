@@ -13261,19 +13261,21 @@ gCSSProperties["hyphenate-character"] = {
   invalid_values: ["none", "auto auto", "1400", "U+1400"],
 };
 
-gCSSProperties["content-visibility"] = {
-  domProp: "contentVisibility",
-  inherited: false,
-  type: CSS_TYPE_LONGHAND,
-  initial_values: ["visible"],
-  other_values: ["auto", "hidden"],
-  invalid_values: [
-    "invisible",
-    "partially-visible",
-    "auto auto",
-    "visible hidden",
-  ],
-};
+if (IsCSSPropertyPrefEnabled("layout.css.content-visibility.enabled")) {
+  gCSSProperties["content-visibility"] = {
+    domProp: "contentVisibility",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["visible"],
+    other_values: ["auto", "hidden"],
+    invalid_values: [
+      "invisible",
+      "partially-visible",
+      "auto auto",
+      "visible hidden",
+    ],
+  };
+}
 
 if (IsCSSPropertyPrefEnabled("layout.css.contain-intrinsic-size.enabled")) {
   gCSSProperties["contain-intrinsic-width"] = {

@@ -12152,7 +12152,8 @@ bool PresShell::ReflowForHiddenContentIfNeeded() {
 }
 
 void PresShell::UpdateHiddenContentInForcedLayout(nsIFrame* aFrame) {
-  if (!aFrame || !aFrame->IsSubtreeDirty()) {
+  if (!aFrame || !aFrame->IsSubtreeDirty() ||
+      !StaticPrefs::layout_css_content_visibility_enabled()) {
     return;
   }
 

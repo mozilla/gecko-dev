@@ -480,6 +480,7 @@ function test() {
 SimpleTest.waitForExplicitFinish();
 SpecialPowers.pushPrefEnv(
   {"set": [["dom.w3c_touch_events.legacy_apis.enabled", true],
+           ["layout.css.content-visibility.enabled", true],
            ["dom.events.textevent.enabled", true]]},
   function() {
     test();
