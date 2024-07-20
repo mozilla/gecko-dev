@@ -7398,6 +7398,7 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
   }
 
   if (isTransformed || zoomedContentRoot) {
+    MOZ_ASSERT(GetParent());
     Matrix4x4 result;
     int32_t scaleFactor =
         ((aFlags & IN_CSS_UNITS) ? AppUnitsPerCSSPixel()
@@ -7407,9 +7408,6 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
      * coordinates to our parent.
      */
     if (isTransformed) {
-      NS_ASSERTION(nsLayoutUtils::GetCrossDocParentFrameInProcess(this),
-                   "Cannot transform the viewport frame!");
-
       result = result * nsDisplayTransform::GetResultingTransformMatrix(
                             this, nsPoint(0, 0), scaleFactor,
                             nsDisplayTransform::INCLUDE_PERSPECTIVE |
@@ -7419,8 +7417,8 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
     // The offset from a zoomed content root to its parent (e.g. from
     // a canvas frame to a scroll frame) is in layout coordinates, so
     // apply it before applying any layout-to-visual transform.
-    *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrameInProcess(this);
-    nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
+    *aOutAncestor = GetParent();
+    nsPoint delta = GetPosition();
     /* Combine the raw transform with a translation to our parent. */
     result.PostTranslate(NSAppUnitsToFloatPixels(delta.x, scaleFactor),
                          NSAppUnitsToFloatPixels(delta.y, scaleFactor), 0.0f);
