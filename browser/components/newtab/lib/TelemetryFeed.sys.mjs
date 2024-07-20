@@ -746,6 +746,7 @@ export class TelemetryFeed {
             newtab_visit_id: session.session_id,
             is_sponsored: card_type === "spoc",
             position: action.data.action_position,
+            tile_id,
             ...(scheduled_corpus_item_id
               ? {
                   scheduled_corpus_item_id,
@@ -754,7 +755,6 @@ export class TelemetryFeed {
                 }
               : {
                   recommendation_id,
-                  tile_id,
                 }),
           });
           if (shim) {
@@ -785,6 +785,7 @@ export class TelemetryFeed {
         } = action.data.value ?? {};
         Glean.pocket.thumbVotingInteraction.record({
           newtab_visit_id: session.session_id,
+          tile_id,
           ...(scheduled_corpus_item_id
             ? {
                 scheduled_corpus_item_id,
@@ -793,7 +794,6 @@ export class TelemetryFeed {
               }
             : {
                 recommendation_id,
-                tile_id,
               }),
           thumbs_up,
           thumbs_down,
@@ -816,6 +816,7 @@ export class TelemetryFeed {
           newtab_visit_id: session.session_id,
           is_sponsored: card_type === "spoc",
           position: action.data.action_position,
+          tile_id,
           ...(scheduled_corpus_item_id
             ? {
                 scheduled_corpus_item_id,
@@ -824,7 +825,6 @@ export class TelemetryFeed {
               }
             : {
                 recommendation_id,
-                tile_id,
               }),
         });
         if (shim) {
@@ -1118,6 +1118,7 @@ export class TelemetryFeed {
           newtab_visit_id: session.session_id,
           is_sponsored: datum.card_type === "spoc",
           position: datum.pos,
+          tile_id: datum.id || datum.tile_id,
           ...(datum.scheduled_corpus_item_id
             ? {
                 scheduled_corpus_item_id: datum.scheduled_corpus_item_id,
@@ -1126,7 +1127,6 @@ export class TelemetryFeed {
               }
             : {
                 recommendation_id: datum.recommendation_id,
-                tile_id: datum.id || datum.tile_id,
               }),
         });
         continue;
@@ -1177,6 +1177,7 @@ export class TelemetryFeed {
         newtab_visit_id: session.session_id,
         is_sponsored: tile.type === "spoc",
         position: tile.pos,
+        tile_id: tile.id,
         ...(tile.scheduled_corpus_item_id
           ? {
               scheduled_corpus_item_id: tile.scheduled_corpus_item_id,
@@ -1185,7 +1186,6 @@ export class TelemetryFeed {
             }
           : {
               recommendation_id: tile.recommendation_id,
-              tile_id: tile.id,
             }),
       });
       if (tile.shim) {
