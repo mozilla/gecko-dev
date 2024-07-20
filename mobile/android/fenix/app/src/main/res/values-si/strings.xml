@@ -44,14 +44,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">තෝරාගත්</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">මෑතදී සුරැකි</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">සුරැකි සියළු පොත්යොමු පෙන්වන්න</string>
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">ඉවත් කරන්න</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">පොත්යොමු</string>
@@ -582,8 +574,6 @@
     <string name="preferences_account_sync_error">සමමුහූර්තය යළි ඇරඹීමට නැවත සබඳින්න</string>
     <!-- Preference for language -->
     <string name="preferences_language">භාෂාව</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">පරිවර්තනය</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">පරිවර්තන</string>
     <!-- Preference for data choices -->
@@ -673,8 +663,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">ආපසු පනින්න</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">මෑත පොත්යොමු</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">පොත්යොමු</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1448,7 +1436,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">මකන්න</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">පූර්ණ තිර ප්‍රකාරයට ඇතුල් වෙමින්</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">පූර්ණ තිර ප්‍රකාරයට ඇතුල් වෙමින්</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">ඒ.ස.නි. පිටපත් විය</string>
     <!-- Sample text for accessibility font size -->
@@ -1618,7 +1606,7 @@
     <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">පෞද්. පටිතිවලදී පමණි</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">ඇඟිලි සටහන්</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">ඇඟිලි සටහන්</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">විස්තර</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1640,9 +1628,9 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">අනිෂ්ට අත්පත් සංඛ්‍යාංක මුදල් කැණීම සඳහා ඔබගේ උපාංගයට ප්‍රවේශ වීම වළක්වයි.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">ඇඟිලි සටහන්</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">ඇඟිලි සටහන්</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">ලුහුබැඳීමේ අරමුණු සඳහා භාවිතයට ඔබගේ උපාංගය අනන්‍යව හඳුනාගත හැකි දත්ත රැස් කිරීම් නවත්වයි.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">ලුහුබැඳීමේ අරමුණු සඳහා භාවිතයට ඔබගේ උපාංගය අනන්‍යව හඳුනාගත හැකි දත්ත රැස් කිරීම් නවත්වයි.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ලුහුබැඳීමේ අන්තර්ගතය</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -2210,7 +2198,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">සමාලෝචන සෝදිසිකරු අරින්න</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">බීටා</string>
+    <string name="review_quality_check_beta_flag">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">සමාලෝචන සෝදිසිකරු අරින්න</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2325,8 +2313,6 @@
     <string name="download_languages_item_content_description_downloaded_state">මකන්න</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">බාගන්න</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">තෝරාගත්</string>
 
     <!-- Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -2368,8 +2354,6 @@
     <string name="debug_drawer_tab_tools_title">පටිති මෙවලම්</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">පටිති ගණන</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">සක්‍රිය</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_inactive">අක්‍රිය</string>
     <!-- The private tab count category in the tab count section in Tab Tools. -->
@@ -2429,4 +2413,5 @@
     <string name="debug_drawer_logins_add_login_button">මෙම වසම සඳහා ව්‍යාජ පිවිසුමක් එක් කරන්න</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">%s පරිශ්‍රීලක නාමය සහිත පිවිසුම මකන්න</string>
-</resources>
+
+    </resources>

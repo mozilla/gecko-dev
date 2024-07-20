@@ -1124,5 +1124,5 @@
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
     <string name="exit_fullscreen_with_gesture">Per uscire dalla modalità schermo intero, trascina dall’alto e usa il gesto indietro</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Per uscire dalla modalità schermo intero, trascinare dall’alto e premere indietro</string>
+    <string name="exit_fullscreen_with_back_button">Per uscire dalla modalità schermo intero, trascina dall’alto e premi indietro</string>
 </resources>

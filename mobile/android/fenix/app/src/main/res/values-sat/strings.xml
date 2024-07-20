@@ -43,15 +43,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">ᱵᱟᱪᱷᱟᱣᱮᱱᱟ</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">ᱱᱤᱛ ᱥᱟᱺᱪᱟᱣᱟᱜ</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">ᱡᱷᱚᱛᱚ ᱥᱟᱺᱪᱟᱣ ᱠᱟᱱ ᱵᱩᱠᱢᱟᱨᱠ ᱠᱚ ᱫᱮᱠᱷᱟᱣ ᱢᱮ</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">ᱚᱪᱚᱜᱽ ᱢᱮ</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">ᱵᱩᱠᱢᱟᱨᱠ ᱠᱚ</string>
@@ -118,7 +109,7 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">ᱱᱟᱣᱟ ᱱᱮᱵᱷᱤᱜᱮᱥᱚᱱ ᱥᱟᱶᱛᱮ ᱩᱥᱟᱹᱨᱟᱛᱮ ᱵᱽᱨᱟᱣᱡᱽ ᱢᱮ</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">ᱱᱚᱣᱟ ᱵᱟᱨ ᱫᱚ ᱰᱷᱮᱨ ᱵᱽᱨᱟᱣᱡᱤᱝ ᱨᱮᱭᱟᱜ ᱡᱟᱭᱜᱟ ᱞᱟᱹᱜᱤᱫ ᱞᱟᱛᱟᱨ ᱥᱮᱫ ᱥᱠᱨᱚᱞ ᱟ ᱚᱱᱟ ᱫᱚ ᱠᱷᱚᱥᱨᱚᱫᱚᱜ ᱟ ᱾</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">ᱱᱚᱣᱟ ᱵᱟᱨ ᱫᱚ ᱰᱷᱮᱨ ᱵᱽᱨᱟᱣᱡᱤᱝ ᱨᱮᱭᱟᱜ ᱡᱟᱭᱜᱟ ᱞᱟᱹᱜᱤᱫ ᱞᱟᱛᱟᱨ ᱥᱮᱫ ᱥᱠᱨᱚᱞ ᱟ ᱚᱱᱟ ᱫᱚ ᱠᱷᱚᱥᱨᱚᱫᱚᱜ ᱟ ᱾</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">ᱠᱚᱢᱨᱟ ᱵᱮᱵᱷᱟᱨ ᱫᱚᱨᱠᱟᱨ ᱾ ᱮᱸᱰᱨᱚᱭᱮᱰ ᱥᱟᱡᱟᱣ ᱛᱮ ᱪᱟᱹᱞᱟᱜ ᱢᱮ, ᱪᱷᱟᱹᱲ ᱨᱮ ᱚᱛᱟᱭ ᱢᱮ , ᱟᱨ ᱮᱞᱞᱟᱣ ᱨᱮ ᱚᱛᱟᱭ ᱢᱮ ᱾</string>
@@ -614,8 +605,6 @@
     <string name="preferences_account_sync_error">ᱥᱭᱝᱠ ᱠᱚ ᱪᱟᱹᱞᱩ ᱫᱚᱦᱚ ᱞᱟᱹᱜᱤᱫ ᱫᱩᱦᱲᱟᱹ ᱡᱩᱰᱟᱹᱣ</string>
     <!-- Preference for language -->
     <string name="preferences_language">ᱯᱟᱹᱨᱥᱤ</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">ᱛᱚᱨᱡᱚᱢᱟ</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">ᱛᱚᱨᱡᱚᱢᱟᱠᱚ</string>
     <!-- Preference for data choices -->
@@ -712,8 +701,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">ᱦᱮᱡ ᱨᱩᱣᱟᱹᱲᱚᱜ ᱢᱮ</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">ᱱᱤᱛᱚᱜᱼᱟᱜ ᱵᱩᱠᱢᱟᱨᱠ ᱠᱚ</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">ᱵᱩᱠᱢᱟᱨᱠᱠᱚ</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1521,7 +1508,7 @@
     <string name="tab_collection_dialog_positive">ᱢᱮᱴᱟᱣ ᱢᱮ</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">ᱯᱩᱨᱟᱹ ᱠᱨᱤᱱ ᱢᱳᱰ ᱵᱚᱞᱚᱱ ᱠᱟᱱᱟᱢ</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">ᱯᱩᱨᱟᱹ ᱠᱨᱤᱱ ᱢᱳᱰ ᱵᱚᱞᱚᱱ ᱠᱟᱱᱟᱢ</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL ᱱᱚᱠᱚᱞ ᱮᱱᱟ</string>
     <!-- Sample text for accessibility font size -->
@@ -1690,7 +1677,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">ᱠᱨᱭᱯᱴᱚᱢᱟᱭᱱᱟᱹᱨ ᱠᱚ</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">ᱴᱤᱯᱟᱹᱪᱷᱟᱯᱠᱚ ᱟᱜ</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">ᱴᱤᱯᱟᱹᱪᱷᱟᱯᱠᱚ ᱟᱜ</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">ᱵᱤᱵᱨᱚᱬ ᱠᱚ</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1714,9 +1701,9 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">ᱢᱟᱭᱤᱱ ᱰᱤᱡᱤᱴᱟᱞ ᱯᱩᱭᱥᱟᱹ ᱛᱮ ᱟᱢᱟᱜᱽ ᱥᱟᱫᱷᱚᱱ ᱨᱮ ᱢᱤᱞᱟᱠᱭᱩᱞᱟᱹᱥ ᱥᱠᱨᱤᱯᱼᱴ ᱠᱚ ᱟᱫᱮᱨ ᱵᱟᱹᱰ ᱜᱮᱭᱟ ᱾</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">ᱴᱤᱯᱟᱹᱪᱷᱟᱯᱠᱚ ᱟᱜ ᱠᱚ</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">ᱴᱤᱯᱟᱹᱪᱷᱟᱯᱠᱚ ᱟᱜ ᱠᱚ</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">ᱜᱷᱮᱨ ᱮᱥᱮᱫ ᱠᱟᱹᱢᱤ ᱠᱚ ᱞᱟᱹᱜᱤᱫᱽ ᱥᱟᱫᱷᱚᱱ ᱨᱮᱭᱟᱜ ᱱᱟᱶᱟ ᱰᱟᱴᱟ ᱠᱚ ᱮᱢᱟᱱ ᱡᱟᱣᱨᱟ ᱠᱚ ᱵᱚᱸᱫᱚᱭᱟ ᱾</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">ᱜᱷᱮᱨ ᱮᱥᱮᱫ ᱠᱟᱹᱢᱤ ᱠᱚ ᱞᱟᱹᱜᱤᱫᱽ ᱥᱟᱫᱷᱚᱱ ᱨᱮᱭᱟᱜ ᱱᱟᱶᱟ ᱰᱟᱴᱟ ᱠᱚ ᱮᱢᱟᱱ ᱡᱟᱣᱨᱟ ᱠᱚ ᱵᱚᱸᱫᱚᱭᱟ ᱾</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ᱯᱟᱧᱡᱟ ᱫᱟᱱᱟᱲ ᱡᱤᱱᱤᱥ</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -2396,7 +2383,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">ᱫᱩᱦᱲᱟᱹ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣᱤᱭᱟᱹ ᱠᱷᱩᱞᱟᱹᱭ ᱢᱮ</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">ᱵᱤᱴᱟ</string>
+    <string name="review_quality_check_beta_flag">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">ᱫᱩᱦᱲᱟᱹ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣᱤᱭᱟᱹ ᱠᱷᱩᱞᱟᱹᱭ ᱢᱮ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2613,11 +2600,9 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">ᱢᱮᱴᱟᱣ ᱢᱮ</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">ᱨᱮ ᱞᱟᱦᱟᱜ ᱠᱟᱱᱟ …</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">ᱨᱮ ᱞᱟᱦᱟᱜ ᱠᱟᱱᱟ …</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">ᱰᱟᱣᱱᱞᱚᱰ</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">ᱵᱟᱪᱷᱟᱣᱮᱱᱟ</string>
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">ᱯᱟᱹᱨᱥᱤ ᱞᱟᱫᱮ ᱵᱟᱭ ᱜᱟᱱ ᱞᱮᱱᱟ ᱾ ᱫᱟᱭᱟᱠᱟᱛᱮ ᱪᱟᱭᱚᱢᱛᱮ ᱪᱮᱥᱴᱟ ᱵᱤᱲᱟᱹᱣ ᱢᱮ ᱾</string>
     <!-- The title of the warning card informs the user that an error has occurred at downloading a language.
@@ -2677,8 +2662,6 @@
     <string name="debug_drawer_tab_tools_title">ᱴᱮᱵᱽ ᱦᱟᱹᱛᱤᱭᱟᱹᱨᱠᱚ</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">ᱴᱮᱵᱽ ᱦᱤᱥᱟᱹᱵᱽ</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">ᱩᱥᱨᱟᱹᱣ</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">ᱩᱥᱨᱟᱹᱣ</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2773,4 +2756,5 @@
     <string name="debug_drawer_logins_add_login_button">ᱱᱚᱶᱟ ᱰᱚᱢᱮᱱ ᱞᱟᱹᱜᱤᱫ ᱢᱤᱫᱴᱟᱝ ᱱᱚᱠᱚᱞᱤ ᱞᱚᱜᱤᱱ ᱥᱮᱞᱮᱫ ᱢᱮ</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">ᱵᱮᱵᱷᱟᱨᱤᱭᱟᱹᱧᱩᱛᱩᱢ %s ᱥᱟᱶᱛᱮ ᱵᱚᱞᱚ ᱢᱮᱴᱟᱣ ᱢᱮ</string>
-</resources>
+
+    </resources>

@@ -36,12 +36,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">ఎంచుకున్నారు</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">ఇటీవల భద్రపరచినవి</string>
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">తీసివేయి</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">ఇష్టాంశాలు</string>
@@ -117,14 +111,10 @@
     <string name="browser_menu_refresh">రీఫ్రెష్ చేయి</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">ఆపివేయి</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">పొడగింతలు</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">పొడగింతలు</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">ఖాతా సమాచారం</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">ఇక్కడ పొడగింతలేమీ లేవు</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">సహాయం</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -137,8 +127,6 @@
     <string name="browser_menu_desktop_site">డెస్క్‌టాప్ సైటు</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">ముంగిలి తెరకు చేర్చు</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen" moz:removedIn="126" tools:ignore="UnusedResources">స్థాపించు</string>
     <!-- Browser menu button that opens the find in page menu -->
     <string name="browser_menu_find_in_page">పేజీలో వెతుకు</string>
     <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
@@ -306,7 +294,7 @@
     <!-- Preference category for account information -->
     <string name="preferences_category_account">ఖాతా</string>
     <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">పనిముట్ల పట్టీ</string>
+    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">పనిముట్ల పట్టీ</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">అలంకారం</string>
     <!-- Preference for customizing the home screen -->
@@ -322,8 +310,6 @@
     <!-- Preference for language -->
     <string name="preferences_language">భాష</string>
 
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">అనువాదం</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">అనువాదాలు</string>
     <!-- Preference for data choices -->
@@ -354,18 +340,12 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">బయటి దింపుకోలు నిర్వాహకి</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons" moz:removedIn="126" tools:ignore="UnusedResources">పొడగింతలు</string>
-
     <!-- Preference for notifications -->
     <string name="preferences_notifications">గమనింపులు</string>
 
     <!-- The title of the optional permissions section from addon's permissions screen -->
     <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">ఐచ్ఛికం</string>
 
-    <!-- Add-on Preferences -->
-    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
-    <string name="preferences_customize_amo_collection" moz:removedIn="126" tools:ignore="UnusedResources">అభిమత పొడగింతల సేకరణ</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">సరే</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -375,8 +355,6 @@
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">సేకరణ యజమాని (వాడుకరి ID)</string>
 
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">ఇటీవలి ఇష్టాంశాలు</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">ఇష్టాంశాలు</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -973,15 +951,11 @@
     <string name="qr_scanner_dialog_invalid_ok">సరే</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">మీరు నిజంగానే %1$s‌ను తొలగించాలనుకుంటున్నారా?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">ఈ  ట్యాబును తొలగిస్తే మొత్తం సేకరణ పోతుంది. కొత్త సేకరణలను మీరు ఎప్పుడైనా సృష్టించుకోవచ్చు.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">%1$s‌ని తొలగించాలా?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">తొలగించు</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">నిండు తెర రీతిలోకి వెళ్తున్నారు</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">నిండు తెర రీతిలోకి వెళ్తున్నారు</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL కాపీ అయ్యింది</string>
     <!-- Sample text for accessibility font size -->
@@ -1132,7 +1106,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">క్రిప్టోమైనర్లు</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">ఫింగర్‌ప్రింటర్లు</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">ఫింగర్‌ప్రింటర్లు</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">వివరాలు</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1152,10 +1126,10 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">మీ పరికరం లోనికి దూరి డిజిటల్ కరెన్సీని తవ్వాలనుకునే హానికరమైన స్క్రిప్టులను నియంత్రిస్తుంది.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">ఫింగర్‌ప్రింటర్లు</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">ఫింగర్‌ప్రింటర్లు</string>
 
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">మీ పరికరం గురించి ప్రత్యేకంగా గుర్తించగలిగే డేటాను సేకరించకుండా అపుతుంది. ఈ డేటాను ట్రాకింగ్ ఉద్దేశాలకు వాడుకోగలరు.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">మీ పరికరం గురించి ప్రత్యేకంగా గుర్తించగలిగే డేటాను సేకరించకుండా అపుతుంది. ఈ డేటాను ట్రాకింగ్ ఉద్దేశాలకు వాడుకోగలరు.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ట్రాకింగ్ విషయం</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1504,7 +1478,7 @@
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ఇప్పుడు కాదు</string>
 
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">బీటా</string>
+    <string name="review_quality_check_beta_flag">Beta</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
     <string name="review_quality_check_highlights_show_less">కొన్నే చూపించు</string>
     <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
@@ -1536,13 +1510,9 @@
     <string name="translations_bottom_sheet_translating_in_progress_content_description">అనువాదం జరుగుతోంది</string>
     <!-- Default dropdown option when initially selecting a language from the translations dialog language selection dropdown. -->
     <string name="translations_bottom_sheet_default_dropdown_selection">ఒక భాషను ఎంచుకోండి</string>
-    <!-- Button text on the warning card when a language is not supported. The link will take the user to a page to a support page about translations. -->
-    <string name="translation_error_language_not_supported_learn_more" moz:removedIn="126" tools:ignore="UnusedResources">ఇంకా తెలుసుకోండి</string>
 
 
     <!-- Translations options dialog -->
-    <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
-    <string name="translation_option_bottom_sheet_title" moz:removedIn="126" tools:ignore="UnusedResources">అనువాద ఎంపికలు</string>
     <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
     <string name="translation_option_bottom_sheet_title_heading">అనువాద ఎంపికలు</string>
 
