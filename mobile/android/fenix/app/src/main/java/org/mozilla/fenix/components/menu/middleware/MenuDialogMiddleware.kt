@@ -25,6 +25,7 @@ import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
+import org.mozilla.fenix.components.appstate.AppAction.FindInPageAction
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
 import org.mozilla.fenix.components.menu.store.BookmarkState
 import org.mozilla.fenix.components.menu.store.MenuAction
@@ -84,6 +85,7 @@ class MenuDialogMiddleware(
             is MenuAction.AddShortcut -> addShortcut(context.store)
             is MenuAction.RemoveShortcut -> removeShortcut(context.store)
             is MenuAction.DeleteBrowsingDataAndQuit -> deleteBrowsingDataAndQuit()
+            is MenuAction.FindInPage -> launchFindInPage()
             is MenuAction.OpenInApp -> openInApp(context.store)
             is MenuAction.OpenInFirefox -> openInFirefox()
             is MenuAction.InstallAddon -> installAddon(action.addon)
@@ -290,6 +292,11 @@ class MenuDialogMiddleware(
             ),
         )
 
+        onDismiss()
+    }
+
+    private fun launchFindInPage() = scope.launch {
+        appStore.dispatch(FindInPageAction.FindInPageStarted)
         onDismiss()
     }
 
