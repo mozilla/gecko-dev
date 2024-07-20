@@ -1674,6 +1674,8 @@
 
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Баспаны жинаушылар</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Белгілі болған цифрлық саусақ іздерін жинаушылар</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Көбірек</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1700,6 +1702,8 @@
     <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Баспаны жинаушылар</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Бақылау мақсатында пайдалануға болатын құрылғыңыз туралы бірегей деректер жиналуын тоқтатады.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Бақылау мақсатында пайдалануға болатын құрылғыңыз туралы бірегей деректер жиналуын тоқтатады.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Бақылайтын құрама</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1724,6 +1728,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Белгілі бақылайтын веб-сайттарға қайта бағыттау арқылы орнатылған cookie файлдарын тазарту.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Күмәнді болған цифрлық саусақ іздерін жинаушылар</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Күмәнді болған цифрлық саусақ іздерін жинаушыларды тоқтату үшін цифрлық саусақ іздерін жинаушылардан қорғанысты іске қосады.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Белгілі болған цифрлық саусақ іздерін жинаушылар</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Төменде белгіленген кейбір трекерлер бұл бетте жартылай бұғатталмаған, себебі сіз олармен әрекеттестіңіз *.</string>
