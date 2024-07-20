@@ -39,7 +39,6 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onchange;
            attribute EventHandler onclick;
            attribute EventHandler onclose;
-           attribute EventHandler oncontentvisibilityautostatechange;
            attribute EventHandler oncontextlost;
            attribute EventHandler oncontextmenu;
            attribute EventHandler oncontextrestored;
