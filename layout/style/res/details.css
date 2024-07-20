@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 slot:not([name]) {
-  display: none;
+  display: block;
+  content-visibility: hidden;
 }
 :host([open]) slot:not([name]) {
   display: revert;
+  content-visibility: visible;
 }
 
 /* See the comment around the summary styles in html.css, these rules should
