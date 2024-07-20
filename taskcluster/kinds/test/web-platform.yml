@@ -269,10 +269,10 @@ web-platform-tests-webgpu:
     # 50% overhead, so let's aim for 15m (20m debug)
     chunks:
         by-test-platform:
-            linux2204.*/debug.*: 8
-            linux2204.*: 6
-            windows.*-64.*/debug.*: 3
-            default: 2
+            linux2204.*/debug.*: 10
+            linux2204.*: 8
+            windows.*-64.*/opt.*: 6
+            default: 5
     max-run-time:
         by-test-platform:
             .*/debug.*: 2700  # 45m
