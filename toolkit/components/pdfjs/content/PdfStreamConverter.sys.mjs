@@ -518,7 +518,12 @@ class ChromeActions {
           currentPrefs[key] = Services.prefs.getIntPref(prefName, prefValue);
           break;
         case "string":
-          currentPrefs[key] = Services.prefs.getStringPref(prefName, prefValue);
+          // The URL contains some dynamic values (%VERSION%, ...), so we need to
+          // format it.
+          currentPrefs[key] =
+            key === "altTextLearnMoreUrl"
+              ? Services.urlFormatter.formatURLPref(prefName)
+              : Services.prefs.getStringPref(prefName, prefValue);
           break;
       }
     }
