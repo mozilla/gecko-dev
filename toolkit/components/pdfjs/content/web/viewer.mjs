@@ -1163,26 +1163,27 @@ class PDFLinkService {
     if (!(typeof zoom === "object" && typeof zoom?.name === "string")) {
       return false;
     }
+    const argsLen = args.length;
     let allowNull = true;
     switch (zoom.name) {
       case "XYZ":
-        if (args.length !== 3) {
+        if (argsLen < 2 || argsLen > 3) {
           return false;
         }
         break;
       case "Fit":
       case "FitB":
-        return args.length === 0;
+        return argsLen === 0;
       case "FitH":
       case "FitBH":
       case "FitV":
       case "FitBV":
-        if (args.length > 1) {
+        if (argsLen > 1) {
           return false;
         }
         break;
       case "FitR":
-        if (args.length !== 4) {
+        if (argsLen !== 4) {
           return false;
         }
         allowNull = false;
@@ -1232,7 +1233,6 @@ const {
   noContextMenu,
   normalizeUnicode,
   OPS,
-  Outliner,
   PasswordResponses,
   PDFDataRangeTransport,
   PDFDateString,
@@ -1802,17 +1802,56 @@ class FirefoxScripting {
   }
 }
 class MLManager {
-  #enabled = new Map();
-  constructor({
-    enableAltText
-  }) {
-    this.#enabled.set("altText", enableAltText);
+  #enabled = null;
+  eventBus = null;
+  constructor(options) {
+    this.enable({
+      ...options,
+      listenToProgress: false
+    });
   }
-  isEnabledFor(name) {
-    return this.#enabled.get(name);
+  async isEnabledFor(name) {
+    return !!(await this.#enabled?.get(name));
   }
   guess(data) {
     return FirefoxCom.requestAsync("mlGuess", data);
+  }
+  enable({
+    enableAltText,
+    listenToProgress
+  }) {
+    if (enableAltText) {
+      this.#loadAltTextEngine(listenToProgress);
+    }
+  }
+  async #loadAltTextEngine(listenToProgress) {
+    if (this.#enabled?.has("altText")) {
+      return;
+    }
+    const promise = FirefoxCom.requestAsync("loadAIEngine", {
+      service: "moz-image-to-text",
+      listenToProgress
+    });
+    (this.#enabled ||= new Map()).set("altText", promise);
+    if (listenToProgress) {
+      const callback = ({
+        detail
+      }) => {
+        this.eventBus.dispatch("loadaiengineprogress", {
+          source: this,
+          detail
+        });
+        if (detail.finished) {
+          window.removeEventListener("loadAIEngineProgress", callback);
+        }
+      };
+      window.addEventListener("loadAIEngineProgress", callback);
+      promise.then(ok => {
+        if (!ok) {
+          window.removeEventListener("loadAIEngineProgress", callback);
+        }
+      });
+    }
   }
 }
 class ExternalServices extends BaseExternalServices {
@@ -8528,7 +8567,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.5.82";
+    const viewerVersion = "4.5.96";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -10702,6 +10741,7 @@ const PDFViewerApplication = {
   isViewerEmbedded: window.parent !== window,
   url: "",
   baseUrl: "",
+  mlManager: null,
   _downloadUrl: "",
   _eventBusAbortController: null,
   _windowAbortController: null,
@@ -10733,6 +10773,9 @@ const PDFViewerApplication = {
     if (AppOptions.get("pdfBugEnabled")) {
       await this._parseHashParams();
     }
+    this.mlManager = new MLManager({
+      enableAltText: AppOptions.get("enableAltText")
+    });
     this.l10n = await this.externalServices.createL10n();
     document.getElementsByTagName("html")[0].dir = this.l10n.getDirection();
     if (this.isViewerEmbedded && AppOptions.get("externalLinkTarget") === LinkTarget.NONE) {
@@ -10828,7 +10871,7 @@ const PDFViewerApplication = {
       l10n
     } = this;
     let eventBus;
-    eventBus = AppOptions.eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
+    eventBus = AppOptions.eventBus = this.mlManager.eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
     this.eventBus = eventBus;
     this.overlayManager = new OverlayManager();
     const pdfRenderingQueue = new PDFRenderingQueue();
@@ -11025,12 +11068,6 @@ const PDFViewerApplication = {
   },
   get externalServices() {
     return shadow(this, "externalServices", new ExternalServices());
-  },
-  get mlManager() {
-    const enableAltText = AppOptions.get("enableAltText");
-    return shadow(this, "mlManager", enableAltText === true ? new MLManager({
-      enableAltText
-    }) : null);
   },
   get initialized() {
     return this._initializedCapability.settled;
@@ -11896,6 +11933,9 @@ const PDFViewerApplication = {
     eventBus._on("reporttelemetry", webViewerReportTelemetry, {
       signal
     });
+    eventBus._on("setpreference", webViewerSetPreference, {
+      signal
+    });
   },
   bindWindowEvents() {
     if (this._windowAbortController) {
@@ -12754,14 +12794,20 @@ function webViewerReportTelemetry({
 }) {
   PDFViewerApplication.externalServices.reportTelemetry(details);
 }
+function webViewerSetPreference({
+  name,
+  value
+}) {
+  PDFViewerApplication.preferences.set(name, value);
+}
 
 ;// CONCATENATED MODULE: ./web/viewer.js
 
 
 
 
-const pdfjsVersion = "4.5.82";
-const pdfjsBuild = "e190cebf9";
+const pdfjsVersion = "4.5.96";
+const pdfjsBuild = "ed83d7c5e";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
