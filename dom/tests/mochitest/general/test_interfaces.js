@@ -1679,8 +1679,6 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "onclose", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "oncontentvisibilityautostatechange", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "oncontextlost", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "oncontextmenu", insecureContext: true },

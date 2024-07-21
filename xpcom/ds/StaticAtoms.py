@@ -787,7 +787,6 @@ STATIC_ATOMS = [
     Atom("onCheckKeyPressEventModel", "onCheckKeyPressEventModel"),
     Atom("onclick", "onclick"),
     Atom("onclose", "onclose"),
-    Atom("oncontentvisibilityautostatechange", "oncontentvisibilityautostatechange"),
     Atom("oncommand", "oncommand"),
     Atom("oncommandupdate", "oncommandupdate"),
     Atom("oncomplete", "oncomplete"),

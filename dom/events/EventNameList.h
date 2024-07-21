@@ -167,8 +167,6 @@ EVENT(click, ePointerClick, EventNameType_All,
           ? ePointerEventClass
           : eMouseEventClass)
 EVENT(close, eClose, EventNameType_HTMLXUL, eBasicEventClass)
-EVENT(contentvisibilityautostatechange, eContentVisibilityAutoStateChange,
-      EventNameType_All, eBasicEventClass)
 EVENT(contextmenu, eContextMenu,
       EventNameType_HTMLXUL | EventNameType_SVGGraphic,
       StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()
