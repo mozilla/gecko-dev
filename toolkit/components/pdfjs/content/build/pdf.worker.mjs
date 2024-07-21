@@ -37341,27 +37341,26 @@ function isValidExplicitDest(dest) {
   if (!(zoom instanceof Name)) {
     return false;
   }
-  const argsLen = args.length;
   let allowNull = true;
   switch (zoom.name) {
     case "XYZ":
-      if (argsLen < 2 || argsLen > 3) {
+      if (args.length !== 3) {
         return false;
       }
       break;
     case "Fit":
     case "FitB":
-      return argsLen === 0;
+      return args.length === 0;
     case "FitH":
     case "FitBH":
     case "FitV":
     case "FitBV":
-      if (argsLen > 1) {
+      if (args.length > 1) {
         return false;
       }
       break;
     case "FitR":
-      if (argsLen !== 4) {
+      if (args.length !== 4) {
         return false;
       }
       allowNull = false;
@@ -55771,7 +55770,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "4.5.96";
+    const workerVersion = "4.5.82";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -56335,8 +56334,8 @@ if (typeof window === "undefined" && !isNodeJS && typeof self !== "undefined" &&
 
 ;// CONCATENATED MODULE: ./src/pdf.worker.js
 
-const pdfjsVersion = "4.5.96";
-const pdfjsBuild = "ed83d7c5e";
+const pdfjsVersion = "4.5.82";
+const pdfjsBuild = "e190cebf9";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

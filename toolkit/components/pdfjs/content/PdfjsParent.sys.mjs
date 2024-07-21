@@ -26,7 +26,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SetClipboardSearchString: "resource://gre/modules/Finder.sys.mjs",
 });
 
-const IMAGE_TO_TEXT_TASK = "moz-image-to-text";
+ChromeUtils.defineLazyGetter(lazy, "console", () => {
+  return console.createInstance({
+    maxLogLevelPref: "browser.ml.logLevel",
+    prefix: "PDF_JS",
+  });
+});
 
 var Svc = {};
 XPCOMUtils.defineLazyServiceGetter(
@@ -82,8 +87,6 @@ export class PdfjsParent extends JSWindowActorParent {
         return this._mlGuess(aMsg);
       case "PDFJS:Parent:setPreferences":
         return this._setPreferences(aMsg);
-      case "PDFJS:Parent:loadAIEngine":
-        return this._loadAIEngine(aMsg);
     }
     return undefined;
   }
@@ -133,57 +136,32 @@ export class PdfjsParent extends JSWindowActorParent {
     lazy.PdfJsTelemetry.report(aMsg.data);
   }
 
-  async _mlGuess({ data: { service, request } }) {
-    if (service !== IMAGE_TO_TEXT_TASK) {
-      return null;
-    }
-    try {
-      const engine = await this.#createAIEngine(service, null);
-      return engine.run(request);
-    } catch (e) {
-      console.error("Failed to run AI engine", e);
-      return { error: true };
-    }
+  _initProgressBar(progressData) {
+    lazy.console.debug("progess_from_pdfjs", progressData);
   }
 
-  async _loadAIEngine({ data: { service, listenToProgress } }) {
-    if (service !== IMAGE_TO_TEXT_TASK) {
+  async _mlGuess({ data: { service, request } }) {
+    if (!lazy.createEngine) {
+      return null;
+    }
+    if (service !== "image-to-text") {
       throw new Error("Invalid service");
     }
 
-    const aggregator = listenToProgress
-      ? new lazy.MultiProgressAggregator({
-          progressCallback: ({ ok, total, totalLoaded, statusText }) => {
-            this.sendAsyncMessage("PDFJS:Child:handleEvent", {
-              type: "loadAIEngineProgress",
-              detail: {
-                service,
-                ok,
-                total,
-                totalLoaded,
-                finished: statusText === "done",
-              },
-            });
-          },
-        })
-      : null;
-    const engine = await this.#createAIEngine(
-      Cu.isInAutomation ? "moz-echo" : service,
-      aggregator
-    );
-    return !!engine;
-  }
+    let aggregator = new lazy.MultiProgressAggregator({
+      progressCallback: this._initProgressBar,
+    });
 
-  async #createAIEngine(taskName, aggregator) {
-    try {
-      return lazy.createEngine(
-        { taskName },
-        aggregator?.aggregateCallback.bind(aggregator) || null
-      );
-    } catch (e) {
-      console.error("Failed to load AI engine", e);
-      return null;
-    }
+    const callback = aggregator.aggregateCallback.bind(aggregator);
+
+    // We are using the internal task name prefixed with moz-
+    const engine = await lazy.createEngine(
+      {
+        taskName: "moz-image-to-text",
+      },
+      callback
+    );
+    return engine.run(request);
   }
 
   _saveURL(aMsg) {
