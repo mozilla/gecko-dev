@@ -46,15 +46,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Ընտրված</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">Վերջերս պահպանված</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">Ցուցադրել բոլոր էջանիշերը</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Հեռացնել</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Էջանիշեր</string>
@@ -117,7 +108,10 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Ավելի արագ զննեք նոր նավիգացիայի միջոցով</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">Այս գիծը կտրվում է, երբ դուք ոլորում եք ներքև՝ զննարկման լրացուցիչ տարածք ստանալու համար:</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Այս գիծը կտրվում է, երբ դուք ոլորում եք ներքև՝ զննարկման լրացուցիչ տարածք ստանալու համար:</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Կայքում այս գիծը կտրվում է, երբ դուք ոլորում եք ներքև՝ դիտարկման լրացուցիչ տարածք ստանալու համար:</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Անհրաժեշտ է հասանելիություն տեսախցիկին: Անցեք Android-ի կարգավորումներ, հպեք՝ Թույլտվություններ, այնուհետև՝ Թույլատրել:</string>
@@ -614,8 +608,6 @@
     <!-- Preference for language -->
     <string name="preferences_language">Լեզու</string>
 
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Թարգմանություն</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">Թարգմանություններ</string>
     <!-- Preference for data choices -->
@@ -711,8 +703,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Վերադառնալ հետ</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Վերջին Էջանիշերը</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">Էջանիշեր</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1511,7 +1501,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Ջնջել</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Մուտք լիաէկրան</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Մուտք լիաէկրան</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL-ն պատճենվել է</string>
     <!-- Sample text for accessibility font size -->
@@ -1681,7 +1671,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Գաղտնազերծիչներ</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Մատնահետքեր</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Մատնահետքեր</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Հայտնի մատնահետքեր</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Մանրամասներ</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1706,9 +1698,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Կանխում է չարամիտ սկրիպտները, որոնք մուտք են ունենում ձեր սարքին՝ թվային արժույթի հայթայթման համար:</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Մատնահետքեր</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Մատնահետքեր</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Դադարեցնում է եզակի ճանաչելի տվյալներ ձեր սարքի մասին հավաքագրվելուց, որոնք կարող են օգտագործվել հետագծման նպատակով:</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Դադարեցնում է եզակի ճանաչելի տվյալներ ձեր սարքի մասին հավաքագրվելուց, որոնք կարող են օգտագործվել հետագծման նպատակով:</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Դադարեցնում է եզակի ճանաչելի տվյալներ ձեր սարքի մասին հավաքագրվելուց, որոնք կարող են օգտագործվել հետագծման նպատակով:</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Հետագծող բովանդակություն</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1733,6 +1727,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Վերաուղղորդմամբ կայված՝ մաքրում է թխուկները հայտնի հետագծիչ կայքերից:</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Արգելափակված մատնահետքեր</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Միացնում է մատնահետքի պաշտպանությունը՝ կասկածելի մատնահետքերը դադարեցնելու համար:</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Հայտնի մատնահետքեր</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Ստորև նշված որոշ հետագծիչներ մասնակի ապակողպվել են, քանի որ դուք առնչվել եք դրանց հետ *:</string>
@@ -2384,7 +2384,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Բացել կարծիքների ստուգիչը</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Բետա</string>
+    <string name="review_quality_check_beta_flag">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Բացել կարծիքների ստուգիչը</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2595,11 +2595,15 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Ջնջել</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">Ընթացքում</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Ընթացքում</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+    <string name="download_languages_item_content_description_delete_in_progress_state">Ընթացքում</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Դադարեցնել %1$s-ի ներբեռնումը (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Ներբեռնել</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Ընտրված</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">Չստացվեց բեռնել լեզուները։ Խնդրում ենք կրկին ստուգել՝ ավելի ուշ։</string>
@@ -2626,6 +2630,14 @@
     <string name="delete_language_file_dialog_positive_button_text">Ջնջել</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Չեղարկել</string>
+
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title">Չեղարկե՞լ %1$s-ի ներբեռնումը</string>
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text">Այո</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text">Ոչ</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2659,8 +2671,6 @@
     <string name="debug_drawer_tab_tools_title">Ներդիրի գործիքներ</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">Ներդիրների քանակը</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">Ակտիվ</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">Ակտիվ</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2755,4 +2765,16 @@
     <string name="debug_drawer_logins_add_login_button">Ավելացնել կեղծ մուտք այս տիրույթի համար</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Ջնջել %s օգտանունով մուտքը</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">CFR գործիքներ</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Վերակայել CFR-ները</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Լիաէկրանից դուրս գալու համար քաշեք վերևից և օգտագործեք ետ ժեստը</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Լիաէկրանից դուրս գալու համար քաշեք վերևից և սեղմեք ետ</string>
 </resources>

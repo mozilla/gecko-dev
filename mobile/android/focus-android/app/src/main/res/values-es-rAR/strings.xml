@@ -1121,7 +1121,7 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Para salir de pantalla completa, arrastre desde arriba y use el gesto hacia atrás</string>
+    <string name="exit_fullscreen_with_gesture">Para salir de pantalla completa, arrastrá desde arriba y usá el gesto hacia atrás</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Para salir de pantalla completa, arrastra desde arriba y presiona atrás</string>
+    <string name="exit_fullscreen_with_back_button">Para salir de pantalla completa, arrastrá desde arriba y presioná atrás</string>
 </resources>

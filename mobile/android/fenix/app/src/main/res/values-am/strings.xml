@@ -45,14 +45,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">ተመርጧል</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">በቅርቡ የተቀመጠ</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">ሁሉንም የተቀመጡ እልባቶችን አሳይ</string>
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">አስወግድ</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">እልባቶች</string>
@@ -667,8 +659,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">መልሰው ይዝለሉ</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">የቅርብ ጊዜ እልባቶች</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">በቅርብ ጊዜ የተጎበኙ</string>
@@ -1432,7 +1422,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">ሰርዝ</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">ወደ ሙሉ ማያ ገጽ ሁነታ በመግባት ላይ</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">ወደ ሙሉ ማያ ገጽ ሁነታ በመግባት ላይ</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL ተቀድቷል</string>
     <!-- Sample text for accessibility font size -->
@@ -1602,7 +1592,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">ምናባዊ ገንዘብ መቆፈርያዎች</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">የአሳሽ አሻራ መከታተያዎች</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">የአሳሽ አሻራ መከታተያዎች</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">ዝርዝር ማብራሪያዎች</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1626,9 +1616,9 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">ተንኮል አዘል ስክሪፕቶች መሳሪያዎን ለዲጂታል ገንዘብ ቁፋሮ ለማዋል ፈቃድ እንዳያገኙ ይከላከላል።</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">የአሳሽ አሻራ መከታተያዎች</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">የአሳሽ አሻራ መከታተያዎች</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">ለክትትል ዓላማዎች የሚያገለግል በልዩ ሁኔታ የሚለይ ውሂብ ስለ መሳሪያዎ እንዳይሰበሰብ ያቆማል።</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">ለክትትል ዓላማዎች የሚያገለግል በልዩ ሁኔታ የሚለይ ውሂብ ስለ መሳሪያዎ እንዳይሰበሰብ ያቆማል።</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">የመከታተያ ይዘት</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -2295,7 +2285,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">የግምገማ አረጋጋጭን ይክፈቱ</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag"> ያልተጠናቀቀ ወይም Beta</string>
+    <string name="review_quality_check_beta_flag">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">የግምገማ አረጋጋጭን ይክፈቱ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2498,11 +2488,9 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">አጥፋ</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">በሂደት ላይ</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">በሂደት ላይ</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">አውርድ</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">ተመርጧል</string>
 
     <!-- Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -2550,8 +2538,6 @@
     <string name="debug_drawer_tab_tools_title">የትር መሳሪያዎች</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">የትር ብዛት</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">ንቁ</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_inactive">እንቅስቃሴ-አልባ</string>
     <!-- The private tab count category in the tab count section in Tab Tools. -->
@@ -2578,4 +2564,5 @@
     <string name="debug_drawer_logins_add_login_button">ለዚህ ጎራ የውሸት መግቢያ ያክሉ</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">በተጠቃሚ ስም %s መግባትን ሰርዝ</string>
-</resources>
+
+    </resources>

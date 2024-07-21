@@ -931,7 +931,7 @@
     <string name="open_new_tab_snackbar">Nṭew</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Askar n ugdil ačaran yermed</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Askar n ugdil ačaran yermed</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Nṭew ɣer useɣwen deg iccer amaynut</string>
@@ -1120,4 +1120,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Yettwarna uwiǧit ɣer ugdil agejdan</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">i wakken ad teffɣeḍ seg ugdil aččura, zuɣer seg usawen syen seqdec asilif n tuɣalin</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">i wakken ad teffɣeḍ seg ugdil aččura, zuɣer seg usawen syen sit ɣef uɣal</string>
 </resources>

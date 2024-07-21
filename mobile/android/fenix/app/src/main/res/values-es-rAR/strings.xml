@@ -2630,6 +2630,10 @@
     <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">En proceso</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">En proceso</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Detener la descarga de %1$s (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Descargar</string>
 
@@ -2660,6 +2664,9 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Cancelar</string>
 
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title">¿Cancelar la descarga de %1$s?</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
     <string name="cancel_download_language_file_dialog_positive_button_text">Sí</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
@@ -2800,7 +2807,7 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Para salir de pantalla completa, arrastre desde arriba y use el gesto hacia atrás</string>
+    <string name="exit_fullscreen_with_gesture">Para salir de pantalla completa, arrastrá desde arriba y usá el gesto hacia atrás</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Para salir de pantalla completa, arrastra desde arriba y presiona atrás</string>
+    <string name="exit_fullscreen_with_back_button">Para salir de pantalla completa, arrastrá desde arriba y presioná atrás</string>
 </resources>

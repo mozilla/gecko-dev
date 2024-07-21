@@ -1520,7 +1520,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">ਹਟਾਓ</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">ਪੂਰੀ ਸਕਰੀਨ ਢੰਗ ਵਿੱਚ ਜਾ ਰਿਹਾ ਹੈ</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">ਪੂਰੀ ਸਕਰੀਨ ਢੰਗ ਵਿੱਚ ਜਾ ਰਿਹਾ ਹੈ</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL ਕਾਪੀ ਕੀਤਾ</string>
 
@@ -2398,7 +2398,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">ਰੀਵਿਊ ਚੈਕਰ ਖੋਲ੍ਹੋ</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">ਬੀਟਾ</string>
+    <string name="review_quality_check_beta_flag">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">ਰੀਵਿਊ ਚੈਕਰ ਖੋਲ੍ਹੋ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2611,7 +2611,7 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">ਹਟਾਓ</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">ਜਾਰੀ ਹੈ</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">ਜਾਰੀ ਹੈ</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">ਡਾਊਨਲੋਡ</string>
 
@@ -2775,4 +2775,5 @@
     <string name="debug_drawer_cfr_tools_title">CFR ਟੂਲ</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">CFR ਮੁੜ-ਸੈੱਟ ਕਰੋ</string>
-</resources>
+
+    </resources>
