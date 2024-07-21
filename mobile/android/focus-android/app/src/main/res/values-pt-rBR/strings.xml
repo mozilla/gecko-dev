@@ -927,7 +927,7 @@
     <string name="open_new_tab_snackbar">Alternar</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Entrando no modo de tela inteira</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Entrando no modo de tela inteira</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Mudar imediatamente para link em nova aba</string>
@@ -1119,4 +1119,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widget adicionado à tela inicial</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Para sair do modo de tela inteira, arraste a partir do alto e use o gesto de voltar</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Para sair do modo de tela inteira, arraste a partir do alto e toque em voltar</string>
 </resources>
