@@ -2168,12 +2168,6 @@ struct DocumentFrameCallbacks {
   nsTArray<FrameRequest> mCallbacks;
 };
 
-static void TakeFrameRequestCallbacksFrom(
-    Document* aDocument, nsTArray<DocumentFrameCallbacks>& aTarget) {
-  aTarget.AppendElement(aDocument);
-  aDocument->TakeFrameRequestCallbacks(aTarget.LastElement().mCallbacks);
-}
-
 void nsRefreshDriver::ScheduleAutoFocusFlush(Document* aDocument) {
   MOZ_ASSERT(!mAutoFocusFlushDocuments.Contains(aDocument));
   mAutoFocusFlushDocuments.AppendElement(aDocument);
@@ -2378,110 +2372,94 @@ void nsRefreshDriver::UpdateAnimationsAndSendEvents() {
   }
 }
 
+void nsRefreshDriver::CollectFrameRequestCallbackDocs(
+    bool aTickThrottled, nsTArray<DocumentFrameCallbacks>& aCallbacks) {
+  aCallbacks.AppendElements(mFrameRequestCallbackDocs);
+  mFrameRequestCallbackDocs.Clear();
+  if (aTickThrottled) {
+    aCallbacks.AppendElements(mThrottledFrameRequestCallbackDocs);
+    mThrottledFrameRequestCallbackDocs.Clear();
+  } else {
+    // All the docs in mThrottledFrameRequestCallbackDocs that should not be
+    // throttled anymore.
+    mThrottledFrameRequestCallbackDocs.RemoveElementsBy([&](Document* aDoc) {
+      if (!aDoc->ShouldThrottleFrameRequests()) {
+        aCallbacks.AppendElement(aDoc);
+        return true;
+      }
+      return false;
+    });
+  }
+}
+
 void nsRefreshDriver::RunFrameRequestCallbacks(TimeStamp aNowTime) {
   // Grab all of our frame request callbacks up front.
-  nsTArray<DocumentFrameCallbacks> frameRequestCallbacks(
-      mFrameRequestCallbackDocs.Length() +
-      mThrottledFrameRequestCallbackDocs.Length());
-
-  // First, grab throttled frame request callbacks.
-  {
-    nsTArray<Document*> docsToRemove;
-
-    // We always tick throttled frame requests if the entire refresh driver is
-    // throttled, because in that situation throttled frame requests tick at the
-    // same frequency as non-throttled frame requests.
-    bool tickThrottledFrameRequests = mThrottled;
-
-    if (!tickThrottledFrameRequests &&
-        aNowTime >= mNextThrottledFrameRequestTick) {
+  AutoTArray<DocumentFrameCallbacks, 8> frameRequestCallbacks;
+  const bool tickThrottledFrameRequests = [&] {
+    if (mThrottled) {
+      // We always tick throttled frame requests if the entire refresh driver is
+      // throttled, because in that situation throttled frame requests tick at
+      // the same frequency as non-throttled frame requests.
+      return true;
+    }
+    if (aNowTime >= mNextThrottledFrameRequestTick) {
       mNextThrottledFrameRequestTick =
           aNowTime + mThrottledFrameRequestInterval;
-      tickThrottledFrameRequests = true;
+      return true;
     }
+    return false;
+  }();
 
-    for (Document* doc : mThrottledFrameRequestCallbackDocs) {
-      if (tickThrottledFrameRequests) {
-        // We're ticking throttled documents, so grab this document's requests.
-        // We don't bother appending to docsToRemove because we're going to
-        // clear mThrottledFrameRequestCallbackDocs anyway.
-        TakeFrameRequestCallbacksFrom(doc, frameRequestCallbacks);
-      } else if (!doc->ShouldThrottleFrameRequests()) {
-        // This document is no longer throttled, so grab its requests even
-        // though we're not ticking throttled frame requests right now. If
-        // this is the first unthrottled document with frame requests, we'll
-        // enter high precision mode the next time the callback is scheduled.
-        TakeFrameRequestCallbacksFrom(doc, frameRequestCallbacks);
-        docsToRemove.AppendElement(doc);
+  CollectFrameRequestCallbackDocs(tickThrottledFrameRequests,
+                                  frameRequestCallbacks);
+  bool empty = true;
+  for (DocumentFrameCallbacks& docCallbacks : frameRequestCallbacks) {
+    docCallbacks.mDocument->TakeFrameRequestCallbacks(docCallbacks.mCallbacks);
+    empty = empty && docCallbacks.mCallbacks.IsEmpty();
+  }
+
+  if (empty) {
+    return;
+  }
+  AUTO_PROFILER_TRACING_MARKER_DOCSHELL("Paint",
+                                        "requestAnimationFrame callbacks",
+                                        GRAPHICS, GetDocShell(mPresContext));
+  for (const DocumentFrameCallbacks& docCallbacks : frameRequestCallbacks) {
+    TimeStamp startTime = TimeStamp::Now();
+
+    nsPIDOMWindowInner* innerWindow = docCallbacks.mDocument->GetInnerWindow();
+    nsCOMPtr<nsIGlobalObject> global;
+    DOMHighResTimeStamp timeStamp = 0;
+    if (innerWindow) {
+      if (Performance* perf = innerWindow->GetPerformance()) {
+        timeStamp = perf->TimeStampToDOMHighResForRendering(aNowTime);
       }
+      global = nsGlobalWindowInner::Cast(innerWindow);
+      // else window is partially torn down already
+    }
+    for (const auto& callback : docCallbacks.mCallbacks) {
+      if (docCallbacks.mDocument->IsCanceledFrameRequestCallback(
+              callback.mHandle)) {
+        continue;
+      }
+
+      CallbackDebuggerNotificationGuard guard(
+          global, DebuggerNotificationType::RequestAnimationFrameCallback);
+
+      // MOZ_KnownLive is OK, because the stack array frameRequestCallbacks
+      // keeps callback alive and the mCallback strong reference can't be
+      // mutated by the call.
+      LogFrameRequestCallback::Run run(callback.mCallback);
+      MOZ_KnownLive(callback.mCallback)->Call(timeStamp);
     }
 
-    // Remove all the documents we're ticking from
-    // mThrottledFrameRequestCallbackDocs so they can be readded as needed.
-    if (tickThrottledFrameRequests) {
-      mThrottledFrameRequestCallbackDocs.Clear();
+    if (docCallbacks.mDocument->GetReadyStateEnum() ==
+        Document::READYSTATE_COMPLETE) {
+      glean::performance_responsiveness::req_anim_frame_callback
+          .AccumulateRawDuration(TimeStamp::Now() - startTime);
     } else {
-      // XXX(seth): We're using this approach to avoid concurrent modification
-      // of mThrottledFrameRequestCallbackDocs. docsToRemove usually has either
-      // zero elements or a very small number, so this should be OK in practice.
-      for (Document* doc : docsToRemove) {
-        mThrottledFrameRequestCallbackDocs.RemoveElement(doc);
-      }
-    }
-  }
-
-  // Now grab unthrottled frame request callbacks.
-  for (Document* doc : mFrameRequestCallbackDocs) {
-    TakeFrameRequestCallbacksFrom(doc, frameRequestCallbacks);
-  }
-
-  // Reset mFrameRequestCallbackDocs so they can be readded as needed.
-  mFrameRequestCallbackDocs.Clear();
-
-  if (!frameRequestCallbacks.IsEmpty()) {
-    AUTO_PROFILER_TRACING_MARKER_DOCSHELL("Paint",
-                                          "requestAnimationFrame callbacks",
-                                          GRAPHICS, GetDocShell(mPresContext));
-    for (const DocumentFrameCallbacks& docCallbacks : frameRequestCallbacks) {
-      TimeStamp startTime = TimeStamp::Now();
-
-      // XXXbz Bug 863140: GetInnerWindow can return the outer
-      // window in some cases.
-      nsPIDOMWindowInner* innerWindow =
-          docCallbacks.mDocument->GetInnerWindow();
-      DOMHighResTimeStamp timeStamp = 0;
-      if (innerWindow) {
-        if (Performance* perf = innerWindow->GetPerformance()) {
-          timeStamp = perf->TimeStampToDOMHighResForRendering(aNowTime);
-        }
-        // else window is partially torn down already
-      }
-      for (auto& callback : docCallbacks.mCallbacks) {
-        if (docCallbacks.mDocument->IsCanceledFrameRequestCallback(
-                callback.mHandle)) {
-          continue;
-        }
-
-        nsCOMPtr<nsIGlobalObject> global(innerWindow ? innerWindow->AsGlobal()
-                                                     : nullptr);
-        CallbackDebuggerNotificationGuard guard(
-            global, DebuggerNotificationType::RequestAnimationFrameCallback);
-
-        // MOZ_KnownLive is OK, because the stack array frameRequestCallbacks
-        // keeps callback alive and the mCallback strong reference can't be
-        // mutated by the call.
-        LogFrameRequestCallback::Run run(callback.mCallback);
-        MOZ_KnownLive(callback.mCallback)->Call(timeStamp);
-      }
-
-      if (docCallbacks.mDocument->GetReadyStateEnum() ==
-          Document::READYSTATE_COMPLETE) {
-        glean::performance_responsiveness::req_anim_frame_callback
-            .AccumulateRawDuration(TimeStamp::Now() - startTime);
-      } else {
-        glean::performance_pageload::req_anim_frame_callback
-            .AccumulateRawDuration(TimeStamp::Now() - startTime);
-      }
+      glean::performance_pageload::req_anim_frame_callback
+          .AccumulateRawDuration(TimeStamp::Now() - startTime);
     }
   }
 }

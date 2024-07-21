@@ -37,6 +37,8 @@ class nsPresContext;
 class imgIRequest;
 class nsIRunnable;
 
+struct DocumentFrameCallbacks;
+
 namespace mozilla {
 class AnimationEventDispatcher;
 class PendingFullscreenEvent;
@@ -488,6 +490,15 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void FlushAutoFocusDocuments();
   void RunFullscreenSteps();
   void UpdateAnimationsAndSendEvents();
+
+  // Appends all the documents with frame callbacks.
+  // After this, mFrameRequestCallbackDocs is guaranteed to be empty.
+  // mThrottledFrameRequestCallbackDocs is guaranteed to be empty if
+  // aTickThrottled is true, otherwise it's guaranteed not to contain documents
+  // that shouldn't be throttled anymore.
+  void CollectFrameRequestCallbackDocs(bool aTickThrottled,
+                                       nsTArray<DocumentFrameCallbacks>&);
+
   MOZ_CAN_RUN_SCRIPT
   void RunFrameRequestCallbacks(mozilla::TimeStamp aNowTime);
   void UpdateIntersectionObservations(mozilla::TimeStamp aNowTime);
