@@ -4905,13 +4905,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 600000
-   * **repository**: https://github.com/WebKit/Speedometer
-   * **repository revision**: 8d67f28d0281ac4330f283495b7f48286654ad7d
    * **subtest lower is better**: true
    * **subtest unit**: ms
    * **support class**: speedometer3.py
    * **test script**: speedometer3.js
-   * **test url**: `<http://\<host\>:\<port\>/index.html>`__
+   * **test url**: `<http://\<host\>:\<port\>/Speedometer3/index.html?raptor>`__
    * **type**: benchmark
    * **unit**: score
    * **Test Task**:

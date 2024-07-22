@@ -5,6 +5,7 @@ export default defineConfig({
     build: {
         modulePreload: { polyfill: false },
         minify: false,
+        sourcemap: true,
         rollupOptions: {
             input: {
                 index: resolve(__dirname, "index.html"),

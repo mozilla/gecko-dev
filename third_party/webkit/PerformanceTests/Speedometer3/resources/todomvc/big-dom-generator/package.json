@@ -8,7 +8,7 @@
     },
     "scripts": {
         "build": "webpack --config webpack.prod.js",
-        "postbuild": "node dist/app.bundle.js && purgecss -css dist/big-dom-generator.css --content dist/index.html --output=dist/big-dom-generator.css && rm dist/app.bundle.js && rm dist/app.bundle.js.LICENSE.txt",
+        "postbuild": "node dist/app.bundle.js && purgecss -css dist/big-dom.css --content dist/index.html --output=dist/big-dom.css && rm dist/app.bundle.js && rm dist/app.bundle.js.LICENSE.txt && node utils/createVariant.js",
         "dev": "webpack serve --open --config webpack.dev.js",
         "serve": "http-server ./dist -p 7002 -c-1 --cors"
     },

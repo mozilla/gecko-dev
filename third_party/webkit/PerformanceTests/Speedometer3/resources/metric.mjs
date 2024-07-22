@@ -10,9 +10,15 @@ export class Metric {
             throw new Error(`Invalid metric.name=${name}, expected string.`);
         this.name = name;
         this.unit = unit;
+        this.description = "";
 
         this.mean = 0.0;
-        this.geomean = 0.0;
+        // Make "geomean" non-enumerable so we don't serialize it with JSON.stringify
+        // and avoid some confusion with the top-level Geomean metric.
+        Object.defineProperty(this, "geomean", {
+            writable: true,
+            value: 0,
+        });
         this.delta = 0.0;
         this.percentDelta = 0.0;
 
@@ -21,7 +27,6 @@ export class Metric {
         this.max = 0.0;
 
         this.values = [];
-        this.children = [];
 
         // Mark properties which refer to other Metric objects as
         // non-enumerable to avoid issue with JSON.stringify due to circular
@@ -30,6 +35,10 @@ export class Metric {
             parent: {
                 writable: true,
                 value: undefined,
+            },
+            children: {
+                writable: true,
+                value: [],
             },
         });
     }

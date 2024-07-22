@@ -144,6 +144,10 @@ li + ul > li {
     margin-top: 0;
 }
 
+.compact li {
+    margin-top: 5px;
+}
+
 li + ul {
     margin-bottom: 21px;
 }
@@ -245,6 +249,23 @@ button,
     gap: 3px;
 }
 
+.developer-mode-content .settings label {
+    width: 100%;
+    display: flex;
+}
+.developer-mode-content .settings label * {
+    flex: 1;
+}
+.developer-mode-content .settings input[type="checkbox"] {
+    flex: 0;
+    margin-left: 0px;
+}
+.developer-mode-content .settings .range-label-data {
+    flex: 0;
+    min-width: 5em;
+    text-align: right;
+}
+
 .developer-mode-content li + li {
     margin-top: 0px;
 }
@@ -261,10 +282,6 @@ button,
     border-radius: 100vh;
     color: white;
     background: rgba(255, 255, 255, 0.1);
-}
-.developer-mode-content label {
-    width: 100%;
-    display: inline-block;
 }
 .developer-mode-content hr {
     width: initial;
@@ -287,7 +304,11 @@ section {
     border-radius: 20px;
 }
 
-section:target {
+section.visible,
+:root[data-visible-section="home"] #home,
+:root[data-visible-section="running"] #running,
+:root[data-visible-section="summary"] #summary,
+:root[data-visible-section="details"] #details {
     display: block;
 }
 
@@ -443,12 +464,13 @@ section#details h1 {
     margin-bottom: 10px;
 }
 
-section#about .section-content > * {
+section#about .section-content > *,
+section#instructions .section-content > * {
     width: var(--text-width);
     padding-left: calc((var(--viewport-width) - var(--text-width)) / 2);
 }
 
-section#details:target {
+:root[data-visible-section="details"] section#details {
     display: flex;
     flex-direction: column;
 }
@@ -531,7 +553,8 @@ section#details h1 {
     margin-bottom: 10px;
 }
 
-section#about h1 {
+section#about h1,
+section#instructions h1 {
     margin-top: 10px;
     margin-bottom: 0px;
     font-size: 25px;

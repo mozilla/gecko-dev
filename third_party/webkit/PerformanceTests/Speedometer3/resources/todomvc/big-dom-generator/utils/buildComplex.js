@@ -17,7 +17,7 @@ const { execSync } = require("child_process");
  * @param {string} options.targetDirectory="./dist" - The target directory.
  * @param {string} options.complexDomHtmlFile="index.html" - The name of the complex HTML file.
  * @param {string} options.todoHtmlFile="index.html" - The name of the todo HTML file.
- * @param {string[]} options.cssFilesToAddLinksFor=["big-dom-generator.css"] - An array of CSS files to add links for.
+ * @param {string[]} options.cssFilesToAddLinksFor=["big-dom.css"] - An array of CSS files to add links for.
  * @param {string} options.standaloneDirectory - The directory of the TodoMVC standalone version.
  * @param {string} options.complexDirectory - The directory of the TodoMVC complex version.
  */
@@ -35,7 +35,7 @@ function buildComplex(options) {
         targetDirectory = "./dist",
         complexDomHtmlFile = "index.html",
         todoHtmlFile = "index.html",
-        cssFilesToAddLinksFor = ["big-dom-generator.css"],
+        cssFilesToAddLinksFor = ["big-dom.css"],
     } = options;
 
     prepareComplex(options);
@@ -60,7 +60,7 @@ function buildComplex(options) {
 
     // Copy files to move
     for (let i = 0; i < filesToMove.length; i++) {
-        // Rename app.css to big-dom-generator.css so it's unique
+        // Rename app.css to big-dom.css so it's unique
         const sourcePath = path.resolve(callerDirectory, "..", filesToMove[i]);
         const fileName = path.basename(filesToMove[i]);
         const targetPath = path.join(targetDirectory, fileName);

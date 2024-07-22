@@ -8,7 +8,7 @@ const options = {
     callerDirectory: path.resolve(__dirname),
     sourceDirectory: path.join("..", "node_modules", "todomvc-vue", "dist"),
     title: "TodoMVC: Vue Complex DOM",
-    filesToMove: ["node_modules/big-dom-generator/dist/big-dom-generator.css", "node_modules/big-dom-generator/dist/logo.png"],
+    filesToMove: ["node_modules/big-dom-generator/dist/big-dom.css", "node_modules/big-dom-generator/dist/logo.png"],
     cssFilePath: path.resolve(__dirname, "..", "node_modules", "big-dom-generator", "utils", "app.css"),
     cssFolder: "css",
     cssFileNamePattern: /^app.*\.css$/,

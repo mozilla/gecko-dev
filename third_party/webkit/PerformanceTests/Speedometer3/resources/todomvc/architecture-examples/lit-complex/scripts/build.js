@@ -9,7 +9,7 @@ const options = {
     sourceDirectory: path.join("..", "node_modules", "todomvc-lit", "dist"),
     title: "TodoMVC: Lit Complex DOM",
     filesToMove: [
-        "node_modules/big-dom-generator/dist/big-dom-generator.css",
+        "node_modules/big-dom-generator/dist/big-dom-with-stacking-context-scrollable.css",
         "node_modules/big-dom-generator/dist/logo.png",
         "node_modules/big-dom-generator/utils/web-components-css/app.css",
         "node_modules/big-dom-generator/utils/web-components-css/default-variables.css",
@@ -20,6 +20,7 @@ const options = {
     scriptsToLink: ["todo-item-extra-css.js", "todo-list-extra-css.js"],
     standaloneDirectory: path.resolve(__dirname, "..", "..", "lit"),
     complexDirectory: path.resolve(__dirname, ".."),
+    cssFilesToAddLinksFor: ["big-dom-with-stacking-context-scrollable.css"],
 };
 
 buildComplex(options);

@@ -17,14 +17,15 @@
     "scripts": {
         "dev": "http-server ./ -p 7000 -c-1 --cors",
         "server": "http-server ./ -p 7000 --cors",
-        "lint:check": "eslint **/*.mjs",
-        "lint:fix": "eslint \"**/*.{js,mjs,jsx,ts}\" --fix",
+        "lint:check": "eslint **/*.{js,mjs,jsx,ts,tsx}",
+        "lint:fix": "eslint \"**/*.{js,mjs,jsx,ts,tsx}\" --fix",
         "pretty:check": "prettier --check ./",
         "pretty:fix": "prettier --write ./",
-        "format": "npm run pretty:fix ; npm run lint:fix",
-        "test:chrome": "BROWSER=chrome node tests/run.mjs",
-        "test:firefox": "BROWSER=firefox node tests/run.mjs",
-        "test:safari": "BROWSER=safari node tests/run.mjs"
+        "format": "npm run pretty:fix && npm run lint:fix",
+        "test:chrome": "node tests/run.mjs --browser chrome",
+        "test:firefox": "node tests/run.mjs --browser firefox",
+        "test:safari": "node tests/run.mjs --browser safari",
+        "test:edge": "node tests/run.mjs --browser edge"
     },
     "devDependencies": {
         "@babel/core": "^7.21.3",
@@ -45,7 +46,7 @@
         "mocha": "^10.2.0",
         "prettier": "^2.8.3",
         "selenium-webdriver": "^4.8.0",
-        "sinon": "^15.0.1",
+        "sinon": "^17.0.1",
         "typescript": "^5.0.4"
     }
 }

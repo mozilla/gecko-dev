@@ -8,7 +8,7 @@ const html = `<!DOCTYPE html>
 <html lang="en" class="spectrum spectrum--medium spectrum--light">
   <head>
     <title>Big Todo App</title>
-    <link rel="stylesheet" href="big-dom-generator.css">
+    <link rel="stylesheet" href="big-dom.css">
   </head>
   <body>
     ${renderToStaticMarkup(<App />)}

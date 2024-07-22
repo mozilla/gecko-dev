@@ -1,6 +1,3 @@
-| :warning: **Speedometer 3 is in active development and is unstable**. You can follow along with development in this repository, but see [Speedometer 2.1](https://browserbench.org/Speedometer2.1/) for the latest stable version. |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-
 # What is Speedometer?
 
 Speedometer is a benchmark for web browsers that measures Web application responsiveness

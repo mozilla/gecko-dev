@@ -53,9 +53,9 @@ export default {
     <div :class="navbarStyles.navbar">
         <input :id="navbarStyles['navbar-toggle']" type="checkbox" :checked="isOpen" @change="handleChange" />
         <label :for="navbarStyles['navbar-toggle']" :class="navbarStyles['navbar-label']">
-            <span className="visually-hidden">Navbar Toggle</span>
+            <span class="visually-hidden">Navbar Toggle</span>
             <div :class="[navbarStyles['navbar-label-icon'], 'animated-icon', 'hamburger-icon']" title="Hamburger Icon">
-                <span className="animated-icon-inner">
+                <span class="animated-icon-inner">
                     <span />
                     <span />
                     <span />

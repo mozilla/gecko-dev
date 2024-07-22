@@ -14,7 +14,6 @@
     "devDependencies": {
         "big-dom-generator": "file:../../big-dom-generator",
         "http-server": "^14.1.1",
-        "jsdom": "^22.1.0",
         "todomvc-javascript-es6-webpack": "file:../javascript-es6-webpack"
     }
 }

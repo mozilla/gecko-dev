@@ -9,7 +9,7 @@ const options = {
     sourceDirectory: path.join("..", "node_modules", "todomvc-javascript-web-components", "dist"),
     title: "TodoMVC: JavaScript Web Components Complex DOM",
     filesToMove: [
-        "node_modules/big-dom-generator/dist/big-dom-generator.css",
+        "node_modules/big-dom-generator/dist/big-dom.css",
         "node_modules/big-dom-generator/dist/logo.png",
         "node_modules/big-dom-generator/utils/web-components-css/app.css",
         "node_modules/big-dom-generator/utils/web-components-css/default-variables.css",

@@ -12,14 +12,19 @@ export function createDeveloperModeContainer() {
 
     const content = document.createElement("div");
     content.className = "developer-mode-content";
+
     content.append(createUIForSuites());
 
+    const settings = document.createElement("div");
+    settings.className = "settings";
+    settings.append(createUIForIterationCount());
+    settings.append(createUIForMeasurementMethod());
+    settings.append(createUIForWarmupSuite());
+    settings.append(createUIForWarmupBeforeSync());
+    settings.append(createUIForSyncStepDelay());
+
     content.append(document.createElement("hr"));
-    content.append(createUIForMeasurementMethod());
-    content.append(document.createElement("br"));
-    content.append(createUIForWarmupSuite());
-    content.append(document.createElement("br"));
-    content.append(createUIForIterationCount());
+    content.append(settings);
 
     content.append(document.createElement("hr"));
     content.append(createUIForRun());
@@ -29,7 +34,13 @@ export function createDeveloperModeContainer() {
     return container;
 }
 
-export function createUIForMeasurementMethod() {
+function span(text) {
+    const span = document.createElement("span");
+    span.textContent = text;
+    return span;
+}
+
+function createUIForMeasurementMethod() {
     let check = document.createElement("input");
     check.type = "checkbox";
     check.id = "measurement-method";
@@ -41,12 +52,12 @@ export function createUIForMeasurementMethod() {
     };
 
     let label = document.createElement("label");
-    label.append(check, " ", "rAF timing");
+    label.append(check, " ", span("rAF timing"));
 
     return label;
 }
 
-export function createUIForWarmupSuite() {
+function createUIForWarmupSuite() {
     let check = document.createElement("input");
     check.type = "checkbox";
     check.id = "warmup-suite";
@@ -58,39 +69,65 @@ export function createUIForWarmupSuite() {
     };
 
     let label = document.createElement("label");
-    label.append(check, " ", "warmup suite");
+    label.append(check, " ", span("Use Warmup Suite"));
 
     return label;
 }
 
-export function createUIForIterationCount() {
-    let range = document.createElement("input");
-    range.type = "range";
-    range.id = "iteration-count";
-    range.min = 1;
-    range.max = 20;
-    range.value = params.iterationCount;
-
-    let label = document.createElement("label");
-    let countLabel = document.createElement("span");
-    countLabel.textContent = params.iterationCount;
-    label.append("iterations: ", countLabel, document.createElement("br"), range);
-
-    range.oninput = () => {
-        countLabel.textContent = range.value;
-    };
-
+function createUIForIterationCount() {
+    const { range, label } = createTimeRangeUI("Iterations: ", params.iterationCount, "#", 1, 200);
     range.onchange = () => {
         params.iterationCount = parseInt(range.value);
         updateURL();
     };
-
     return label;
 }
 
+function createUIForWarmupBeforeSync() {
+    const { range, label } = createTimeRangeUI("Warmup time: ", params.warmupBeforeSync);
+    range.onchange = () => {
+        params.warmupBeforeSync = parseInt(range.value);
+        updateURL();
+    };
+    return label;
+}
 
-export function createUIForSuites() {
+function createUIForSyncStepDelay() {
+    const { range, label } = createTimeRangeUI("Sync step delay: ", params.waitBeforeSync);
+    range.onchange = () => {
+        params.waitBeforeSync = parseInt(range.value);
+        updateURL();
+    };
+    return label;
+}
+
+function createTimeRangeUI(labelText, initialValue, unit = "ms", min = 0, max = 1000) {
+    const range = document.createElement("input");
+    range.type = "range";
+    range.min = min;
+    range.max = max;
+    range.value = initialValue;
+
+    const rangeValueAndUnit = document.createElement("span");
+    rangeValueAndUnit.className = "range-label-data";
+
+    const rangeValue = document.createElement("span");
+    rangeValue.textContent = initialValue;
+    rangeValueAndUnit.append(rangeValue, " ", unit);
+
+    const label = document.createElement("label");
+    label.append(span(labelText), range, rangeValueAndUnit);
+
+    range.oninput = () => {
+        rangeValue.textContent = range.value;
+    };
+
+    return { range, label };
+}
+
+function createUIForSuites() {
     const control = document.createElement("nav");
+    control.className = "suites";
     const ol = document.createElement("ol");
     const checkboxes = [];
     const setSuiteEnabled = (suiteIndex, enabled) => {
@@ -186,14 +223,14 @@ export function createUIForSuites() {
 
 function createUIForRun() {
     let button = document.createElement("button");
-    button.textContent = `Start Test`;
+    button.textContent = "Start Test";
     button.onclick = (event) => {
         globalThis.benchmarkClient.start();
-    }
+    };
     let buttons = document.createElement("div");
     buttons.className = "button-bar";
     buttons.appendChild(button);
-    return buttons
+    return buttons;
 }
 
 function updateURL() {
@@ -236,15 +273,13 @@ function updateURL() {
     else
         url.searchParams.delete("measurementMethod");
 
-    if (params.iterationCount !== defaultParams.iterationCount)
-        url.searchParams.set("iterationCount", params.iterationCount);
-    else
-        url.searchParams.delete("iterationCount");
-
-    if (params.useWarmupSuite !== defaultParams.useWarmupSuite)
-        url.searchParams.set("useWarmupSuite", params.useWarmupSuite);
-    else
-        url.searchParams.delete("useWarmupSuite");
+    const boolParamKeys = ["iterationCount", "useWarmupSuite", "warmupBeforeSync", "waitBeforeSync"];
+    for (const paramKey of boolParamKeys) {
+        if (params[paramKey] !== defaultParams[paramKey])
+            url.searchParams.set(paramKey, params[paramKey]);
+        else
+            url.searchParams.delete(paramKey);
+    }
 
     // Only push state if changed
     url.search = decodeURIComponent(url.search);
