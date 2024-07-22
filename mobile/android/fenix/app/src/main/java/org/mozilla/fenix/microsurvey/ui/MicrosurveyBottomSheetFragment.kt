@@ -85,6 +85,7 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
                             },
                             onSubmitButtonClicked = { answer ->
                                 context.settings().shouldShowMicrosurveyPrompt = false
+                                activity.isMicrosurveyPromptDismissed.value = true
                                 microsurveyMessageController.onSurveyCompleted(it.id, answer)
                             },
                         )
