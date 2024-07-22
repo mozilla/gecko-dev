@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.components.menu
 
+import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.createTab
 import mozilla.components.service.fxa.manager.AccountState
 import mozilla.components.service.glean.private.EventMetricType
 import mozilla.components.service.glean.private.NoExtras
@@ -24,6 +26,7 @@ import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.components.menu.middleware.MenuTelemetryMiddleware
+import org.mozilla.fenix.components.menu.store.BrowserMenuState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
@@ -288,6 +291,62 @@ class MenuTelemetryMiddlewareTest {
         store.dispatch(MenuAction.CustomizeReaderView).joinBlocking()
 
         assertTelemetryRecorded(ReaderMode.appearance)
+    }
+
+    @Test
+    fun `GIVEN reader view is not active WHEN toggle reader view action is dispatched THEN record the reader mode opened telemetry`() {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        val readerState = ReaderState(
+            readerable = true,
+            active = false,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+                readerState = readerState,
+            ),
+        )
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+        )
+
+        assertNull(ReaderMode.opened.testGetValue())
+
+        store.dispatch(MenuAction.ToggleReaderView).joinBlocking()
+
+        assertTelemetryRecorded(ReaderMode.opened)
+    }
+
+    @Test
+    fun `GIVEN reader view is active WHEN toggle reader view action is dispatched THEN record the reader mode closed telemetry`() {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        val readerState = ReaderState(
+            readerable = true,
+            active = true,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+                readerState = readerState,
+            ),
+        )
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+        )
+
+        assertNull(ReaderMode.closed.testGetValue())
+
+        store.dispatch(MenuAction.ToggleReaderView).joinBlocking()
+
+        assertTelemetryRecorded(ReaderMode.closed)
     }
 
     private fun assertTelemetryRecorded(
