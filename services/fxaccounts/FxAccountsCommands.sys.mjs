@@ -21,6 +21,7 @@ import { Observers } from "resource://services-common/observers.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   BulkKeyBundle: "resource://services-sync/keys.sys.mjs",
   CryptoWrapper: "resource://services-sync/record.sys.mjs",
   PushCrypto: "resource://gre/modules/PushCrypto.sys.mjs",
@@ -611,6 +612,9 @@ export class CommandQueue {
   // The timer ID if we have one scheduled, otherwise null
   #timer = null;
 
+  // `this.#onShutdown` bound to `this`.
+  #onShutdownBound = null;
+
   // Since we only ever show one notification to the user
   // we keep track of how many tabs have actually been closed
   // and update the count, user dismissing the notification will
@@ -634,6 +638,11 @@ export class CommandQueue {
     Services.obs.addObserver(this, "weave:engine:sync:finish");
     this.#isObservingTabSyncs = true;
     log.trace("Command queue observer created");
+    this.#onShutdownBound = this.#onShutdown.bind(this);
+    lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
+      "FxAccountsCommands: flush command queue",
+      this.#onShutdownBound
+    );
   }
 
   // Used for tests - when in the browser this object lives forever.
@@ -646,6 +655,10 @@ export class CommandQueue {
       Services.obs.removeObserver(this, "weave:engine:sync:finish");
       this.#isObservingTabSyncs = false;
     }
+    lazy.AsyncShutdown.quitApplicationGranted.removeBlocker(
+      this.#onShutdownBound
+    );
+    this.#onShutdownBound = null;
   }
 
   observe(subject, topic, data) {
@@ -702,10 +715,14 @@ export class CommandQueue {
     idleService.addIdleObserver(idleObserver, this.#idleThresholdSeconds);
   }
 
-  async flushQueue() {
+  async flushQueue(isForShutdown = false) {
     // We really don't want multiple queue flushes concurrently, which is a real possibility.
+    // If we are shutting down and there's already a `flushQueue()` running, it's almost certainly
+    // not going to be `isForShutdown()`. We don't really want to wait for that to complete just
+    // to start another, so there's a risk we will fail to send commands in that scenario - but
+    // we will send them at startup time.
     if (this.#flushQueuePromise == null) {
-      this.#flushQueuePromise = this.#flushQueue();
+      this.#flushQueuePromise = this.#flushQueue(isForShutdown);
     }
     try {
       return await this.#flushQueuePromise;
@@ -714,21 +731,23 @@ export class CommandQueue {
     }
   }
 
-  async #flushQueue() {
+  async #flushQueue(isForShutdown) {
     // get all the queued items to work out what's ready to send. If a device has queued item less than
     // our pushDelay, then we don't send *any* command for that device yet, but ensure a timer is set
     // for the delay.
     let store = await lazy.getRemoteCommandStore();
     let pending = await store.getUnsentCommands();
     log.trace("flushQueue total queued items", pending.length);
+    // any timeRequested less than `sendThreshold` should be sent now (unless we are shutting down,
+    // in which case we send everything now)
     let now = this.now();
     // We want to be efficient with batching commands to send to the user
     // so we categorize things into 3 buckets:
     // mustSend - overdue and should be sent as early as we can
     // canSend - is due but not yet "overdue", should be sent if possible
     // early - can still be undone and should not be sent yet
-    const mustSendThreshold = now - this.DELAY;
-    const canSendThreshold = now - this.DELAY * 2;
+    const mustSendThreshold = isForShutdown ? Infinity : now - this.DELAY;
+    const canSendThreshold = isForShutdown ? Infinity : now - this.DELAY * 2;
     // make a map of deviceId -> device
     let recentDevices = this._fxai.device.recentDeviceList;
     if (!recentDevices.length) {
@@ -838,6 +857,11 @@ export class CommandQueue {
 
     if (nextTime == Infinity) {
       log.info("No new close-tab timer needed");
+    } else if (isForShutdown) {
+      // because we never delay sending in this case the logic above should never set `nextTime`
+      log.error(
+        "logic error in command queue manager: flush for shutdown should never set a timer"
+      );
     } else {
       let delay = nextTime - now + 10;
       log.trace(`Setting new close-tab timer for ${delay}ms`);
@@ -888,9 +912,29 @@ export class CommandQueue {
     this.#timer = setTimeout(async () => {
       // XXX - this might be racey - if a new timer fires before this promise resolves - it
       // might seem unlikely, but network is involved!
-      await this.flushQueue();
+      // flushQueue might create another timer, so we must clear our current timer first.
       this.#timer = null;
+      await this.flushQueue();
     }, timeout);
+  }
+
+  // On shutdown we want to send any pending items - ie, pretend the timer fired *now*.
+  // Sadly it's not easy for us to abort any in-flight requests, nor to limit the amount of
+  // time any new requests we create take, so we don't do this for now. This means that in
+  // the case of a super slow network or super slow FxA, we might crash at shutdown, but we
+  // can think of doing this in a followup.
+  async #onShutdown() {
+    // If there is no timer set, then there's nothing pending to do.
+    log.debug(
+      `CommandQueue shutdown is flushing the queue with a timer=${!!this
+        .#timer}`
+    );
+    if (this.#timer) {
+      // We don't want the current one to fire at the same time!
+      clearTimeout(this.#timer);
+      this.#timer = null;
+      await this.flushQueue(true);
+    }
   }
 
   // hook points for tests.

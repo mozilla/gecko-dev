@@ -195,6 +195,81 @@ add_task(async function test_closetab_send() {
   commandQueue.shutdown();
 });
 
+add_task(async function test_closetab_send() {
+  const targetDevice = { id: "dev1", name: "Device 1" };
+
+  const fxai = FxaInternalMock([targetDevice]);
+  let fxaCommands = {};
+  const closeTab = (fxaCommands.closeTab = new CloseRemoteTab(
+    fxaCommands,
+    fxai
+  ));
+  const commandQueue = (fxaCommands.commandQueue = new CommandQueue(
+    fxaCommands,
+    fxai
+  ));
+  let commandMock = sinon.mock(closeTab);
+  let queueMock = sinon.mock(commandQueue);
+
+  // freeze "now" to <= when the command was sent.
+  let now = Date.now();
+  commandQueue.now = () => now;
+
+  // Set the delay to 10ms
+  commandQueue.DELAY = 10;
+
+  // Our command will be written and have a timer set in 21ms.
+  queueMock.expects("_ensureTimer").once().withArgs(21);
+
+  // In this test we expect no commands sent but a timer instead.
+  closeTab.invoke = sinon.spy((cmd, device, payload) => {
+    Assert.equal(payload.encrypted, "encryptedpayload");
+  });
+
+  const store = await getRemoteCommandStore();
+  Assert.equal((await store.getUnsentCommands()).length, 0);
+  // queue a tab to close, recent enough that it remains queued and a new timer is set for it.
+  const command = new RemoteCommand.CloseTab(
+    "https://foo.bar/send-at-shutdown"
+  );
+  Assert.ok(
+    await store.addRemoteCommandAt(targetDevice.id, command, now),
+    "adding the remote command should work"
+  );
+
+  // We have the tab queued
+  const pending = await store.getUnsentCommands();
+  Assert.equal(pending.length, 1);
+
+  await commandQueue.flushQueue();
+  // A timer was set for it.
+  Assert.equal((await store.getUnsentCommands()).length, 1);
+
+  commandMock.verify();
+  queueMock.verify();
+
+  // now pretend we are being shutdown - we should force the send even though the time
+  // criteria has not been met.
+  commandMock = sinon.mock(closeTab);
+  queueMock = sinon.mock(commandQueue);
+  queueMock.expects("_ensureTimer").never();
+  commandMock
+    .expects("sendCloseTabsCommand")
+    .once()
+    .withArgs(targetDevice, ["https://foo.bar/send-at-shutdown"])
+    .resolves(true);
+
+  await commandQueue.flushQueue(true);
+  // No tabs waiting
+  Assert.equal((await store.getUnsentCommands()).length, 0);
+
+  commandMock.verify();
+  queueMock.verify();
+  commandMock.restore();
+  queueMock.restore();
+  commandQueue.shutdown();
+});
+
 add_task(async function test_multiple_devices() {
   const device1 = {
     id: "dev1",
