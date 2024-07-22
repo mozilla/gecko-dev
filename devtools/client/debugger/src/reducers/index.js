@@ -25,6 +25,7 @@ import eventListenerBreakpoints, {
   initialEventListenerState,
 } from "./event-listeners";
 import exceptions, { initialExceptionsState } from "./exceptions";
+import tracerFrames from "./tracer-frames";
 
 import { objectInspector } from "devtools/client/shared/components/reps/index";
 
@@ -52,6 +53,7 @@ export function initialState() {
     objectInspector: objectInspector.reducer.initialOIState(),
     eventListenerBreakpoints: initialEventListenerState(),
     exceptions: initialExceptionsState(),
+    tracerFrames: {},
   };
 }
 
@@ -73,4 +75,5 @@ export default {
   objectInspector: objectInspector.reducer.default,
   eventListenerBreakpoints,
   exceptions,
+  tracerFrames,
 };

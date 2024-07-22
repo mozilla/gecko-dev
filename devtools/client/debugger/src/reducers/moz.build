@@ -22,5 +22,6 @@ CompiledModules(
     "sources-tree.js",
     "tabs.js",
     "threads.js",
+    "tracer-frames.js",
     "ui.js",
 )

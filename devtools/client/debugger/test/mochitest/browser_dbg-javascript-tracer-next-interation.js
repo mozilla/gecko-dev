@@ -54,12 +54,7 @@ add_task(async function testTracingOnNextInteraction() {
   );
   AccessibilityUtils.resetEnv();
 
-  let topLevelThreadActorID =
-    dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
-  info("Wait for tracing to be enabled");
-  await waitForState(dbg, () => {
-    return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
-  });
+  await hasConsoleMessage(dbg, "Started tracing to Web Console");
 
   await hasConsoleMessage(dbg, "λ onmousedown");
   await hasConsoleMessage(dbg, "λ onclick");
@@ -85,14 +80,8 @@ add_task(async function testTracingOnNextInteraction() {
   await hasConsoleMessage(dbg, "λ foo");
   ok(true, "foo was traced as expected");
 
+  info("Stop tracing");
   await toggleJsTracer(dbg.toolbox);
-
-  topLevelThreadActorID =
-    dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
-  info("Wait for tracing to be disabled");
-  await waitForState(dbg, () => {
-    return !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
-  });
 
   is(
     traceButton.getAttribute("aria-pressed"),
@@ -116,16 +105,8 @@ add_task(async function testInteractionBetweenDebuggerAndConsole() {
     "data:text/html," + encodeURIComponent(`<script>${jsCode}</script>`)
   );
 
-  info("Enable the tracing via the debugger button");
+  info("Enable the tracing via the toolbox button");
   await toggleJsTracer(dbg.toolbox);
-
-  const topLevelThreadActorID =
-    dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
-  info("Wait for tracing to be enabled");
-  await waitForState(dbg, () => {
-    return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
-  });
-  await hasConsoleMessage(dbg, "Started tracing to Web Console");
 
   invokeInTab("foo");
 
@@ -136,10 +117,8 @@ add_task(async function testInteractionBetweenDebuggerAndConsole() {
   let msg = await evaluateExpressionInConsole(hud, ":trace", "console-api");
   is(msg.textContent.trim(), "Stopped tracing");
 
-  ok(
-    !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID),
-    "Tracing is also reported as disabled in the debugger"
-  );
+  const button = dbg.toolbox.doc.getElementById("command-button-jstracer");
+  await waitFor(() => !button.classList.contains("checked"));
 
   info(
     "Clear the console output from the first tracing session started from the debugger"
@@ -154,24 +133,17 @@ add_task(async function testInteractionBetweenDebuggerAndConsole() {
   msg = await evaluateExpressionInConsole(hud, ":trace", "console-api");
   is(msg.textContent.trim(), "Started tracing to Web Console");
 
-  info("Wait for tracing to be also enabled in the debugger");
-  await waitForState(dbg, () => {
-    return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
-  });
-  ok(true, "Debugger also reports the tracing in progress");
+  info("Wait for tracing to be also enabled in toolbox button");
+  await waitFor(() => button.classList.contains("checked"));
 
   invokeInTab("foo");
 
   await hasConsoleMessage(dbg, "λ foo");
 
   info("Disable the tracing via the debugger button");
+  // togglejsTracer will assert that the console logged the "stopped tracing" message
   await toggleJsTracer(dbg.toolbox);
 
-  info("Wait for tracing to be disabled per debugger button");
-  await waitForState(dbg, () => {
-    return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
-  });
-
-  info("Also wait for stop message in the console");
-  await hasConsoleMessage(dbg, "Stopped tracing");
+  info("Wait for tracing to be disabled per toolbox button");
+  await waitFor(() => !button.classList.contains("checked"));
 });

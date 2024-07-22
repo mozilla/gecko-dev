@@ -259,10 +259,13 @@ class Frame extends Component {
       return {
         ...sourceElConfig,
         onClick: e => {
+          // We always need to prevent the default behavior of <a> link
           e.preventDefault();
-          e.stopPropagation();
+          if (onClick) {
+            e.stopPropagation();
 
-          onClick(generatedLocation);
+            onClick(generatedLocation);
+          }
         },
         href: source,
         draggable: false,

@@ -70,7 +70,7 @@ add_task(async function testProjectSearchCloseOnNavigation() {
 
   // Wait for the search to be updated against the new page
   await waitForSearchResults(dbg, 5);
-  is(getExpandedResultsCount(dbg), 29);
+  is(getExpandedResultsCount(dbg), 30);
   ok(
     !refreshButton.classList.contains("highlight"),
     "Refresh button is no longer highlighted after refreshing the search"

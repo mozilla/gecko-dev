@@ -38,17 +38,35 @@ loader.lazyRequireGetter(
   true
 );
 
-// Indexes of each data type within the array describing a frame
+// Indexes of each data type within the array describing a trace
 exports.TRACER_FIELDS_INDEXES = {
   // This is shared with all the data types
   TYPE: 0,
 
+  // Frame traces are slightly special and do not share any field with the other data types
   FRAME_IMPLEMENTATION: 1,
   FRAME_NAME: 2,
   FRAME_SOURCEID: 3,
   FRAME_LINE: 4,
   FRAME_COLUMN: 5,
   FRAME_URL: 6,
+
+  // These fields are shared with all but frame data types
+  PREFIX: 1,
+  FRAME_INDEX: 2,
+  TIMESTAMP: 3,
+  DEPTH: 4,
+
+  EVENT_NAME: 5,
+
+  ENTER_ARGS: 5,
+
+  EXIT_PARENT_FRAME_ID: 5,
+  EXIT_RETURNED_VALUE: 6,
+  EXIT_WHY: 7,
+
+  DOM_MUTATION_TYPE: 5,
+  DOM_MUTATION_ELEMENT: 6,
 };
 
 const VALID_LOG_METHODS = Object.values(TRACER_LOG_METHODS);
@@ -98,6 +116,7 @@ class TracerActor extends Actor {
    *        Options used to configure JavaScriptTracer.
    *        See `JavaScriptTracer.startTracing`.
    */
+  // eslint-disable-next-line complexity
   startTracing(options = {}) {
     if (options.logMethod && !VALID_LOG_METHODS.includes(options.logMethod)) {
       throw new Error(
@@ -140,6 +159,9 @@ class TracerActor extends Actor {
         ListenerClass = StdoutTracingListener;
         break;
       case TRACER_LOG_METHODS.CONSOLE:
+      case TRACER_LOG_METHODS.DEBUGGER_SIDEBAR:
+        // Console and debugger sidebar are both using JSTRACE_STATE/JSTRACE_TRACE resources
+        // to receive tracing data.
         ListenerClass = ResourcesTracingListener;
         break;
       case TRACER_LOG_METHODS.PROFILER:
