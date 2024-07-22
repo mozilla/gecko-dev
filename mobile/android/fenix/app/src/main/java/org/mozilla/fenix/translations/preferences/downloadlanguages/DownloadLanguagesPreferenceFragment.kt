@@ -46,7 +46,7 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        showToolbar(getString(R.string.download_languages_toolbar_title_preference))
+        showToolbar(getString(R.string.download_languages_translations_toolbar_title_preference))
     }
 
     override fun onCreateView(
