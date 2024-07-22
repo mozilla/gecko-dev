@@ -162,6 +162,11 @@ data class AcornSize(
      * Placeholder for detekt.
      */
     val thumbnail = large
+
+    /**
+     * Placeholder for detekt.
+     */
+    val circularIndicatorDiameter = xSmall
 }
 
 /**

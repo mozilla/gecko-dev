@@ -9,18 +9,18 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -46,10 +46,9 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ClickableSubstringLink
+import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.ext.debouncedClickable
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.Wallpaper
@@ -78,16 +77,13 @@ fun WallpaperSettings(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
+            .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .background(color = FirefoxTheme.colors.layer1)
-            .padding(
-                end = 12.dp,
-                start = 12.dp,
-                top = 16.dp,
-            ),
+            .padding(horizontal = FirefoxTheme.space.baseContentHorizontalPadding),
     ) {
+        Spacer(modifier = Modifier.height(FirefoxTheme.space.baseContentVerticalPadding))
+
         wallpaperGroups.forEach { (collection, wallpapers) ->
             if (wallpapers.isNotEmpty()) {
                 WallpaperGroupHeading(
@@ -95,7 +91,7 @@ fun WallpaperSettings(
                     onLearnMoreClick = onLearnMoreClick,
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(FirefoxTheme.space.small))
 
                 WallpaperThumbnails(
                     wallpapers = wallpapers,
@@ -105,7 +101,7 @@ fun WallpaperSettings(
                     onSelectWallpaper = onSelectWallpaper,
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(FirefoxTheme.space.large))
             }
         }
     }
@@ -151,8 +147,6 @@ private fun WallpaperGroupHeading(
                 style = FirefoxTheme.typography.subtitle2,
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
-
             if (collection.learnMoreUrl.isNullOrEmpty()) {
                 val text = stringResource(R.string.wallpaper_artist_series_description)
                 Text(
@@ -189,8 +183,8 @@ private fun WallpaperGroupHeading(
  * @param selectedWallpaper The currently selected wallpaper.
  * @param loadWallpaperResource Callback to handle loading a wallpaper bitmap. Only optional in the default case.
  * @param onSelectWallpaper Action to take when a new wallpaper is selected.
- * @param numColumns The number of columns that will occupy the grid.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WallpaperThumbnails(
     wallpapers: List<Wallpaper>,
@@ -198,33 +192,20 @@ fun WallpaperThumbnails(
     selectedWallpaper: Wallpaper,
     loadWallpaperResource: suspend (Wallpaper) -> Bitmap?,
     onSelectWallpaper: (Wallpaper) -> Unit,
-    numColumns: Int = 3,
 ) {
-    val numRows = (wallpapers.size + numColumns - 1) / numColumns
-    for (rowIndex in 0 until numRows) {
-        Row {
-            for (columnIndex in 0 until numColumns) {
-                val itemIndex = rowIndex * numColumns + columnIndex
-                if (itemIndex < wallpapers.size) {
-                    val wallpaper = wallpapers[itemIndex]
-                    Box(
-                        modifier = Modifier
-                            .weight(1f, fill = true)
-                            .padding(4.dp),
-                    ) {
-                        WallpaperThumbnailItem(
-                            wallpaper = wallpaper,
-                            defaultWallpaper = defaultWallpaper,
-                            loadWallpaperResource = loadWallpaperResource,
-                            isSelected = selectedWallpaper.name == wallpaper.name,
-                            isLoading = wallpaper.assetsFileState == Wallpaper.ImageFileState.Downloading,
-                            onSelect = onSelectWallpaper,
-                        )
-                    }
-                } else {
-                    Spacer(Modifier.weight(1f))
-                }
-            }
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(FirefoxTheme.space.xSmall),
+        verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.xSmall),
+    ) {
+        wallpapers.forEach { wallpaper ->
+            WallpaperThumbnailItem(
+                wallpaper = wallpaper,
+                defaultWallpaper = defaultWallpaper,
+                loadWallpaperResource = loadWallpaperResource,
+                isSelected = selectedWallpaper.name == wallpaper.name,
+                isLoading = wallpaper.assetsFileState == Wallpaper.ImageFileState.Downloading,
+                onSelect = onSelectWallpaper,
+            )
         }
     }
 }
@@ -256,83 +237,120 @@ private fun WallpaperThumbnailItem(
     LaunchedEffect(LocalConfiguration.current.orientation) {
         bitmap = loadWallpaperResource(wallpaper)
     }
-    val thumbnailShape = RoundedCornerShape(8.dp)
     val border = if (isSelected) {
-        Modifier.border(
-            BorderStroke(width = 3.dp, color = FirefoxTheme.colors.borderAccent),
-            thumbnailShape,
-        )
+        BorderStroke(width = FirefoxTheme.size.border.thick, color = FirefoxTheme.colors.borderAccent)
     } else if (wallpaper.name == Wallpaper.defaultName) {
-        Modifier.border(
-            BorderStroke(width = 1.dp, color = FirefoxTheme.colors.borderPrimary),
-            thumbnailShape,
-        )
+        BorderStroke(width = FirefoxTheme.size.border.thick, color = FirefoxTheme.colors.borderPrimary)
     } else {
-        Modifier
+        null
     }
 
     // Completely avoid drawing the item if a bitmap cannot be loaded and is required
-    if (bitmap == null && wallpaper != defaultWallpaper) return
+    if (bitmap != null || wallpaper == defaultWallpaper) {
+        val description = stringResource(
+            R.string.wallpapers_item_name_content_description,
+            wallpaper.name,
+        )
 
-    val description = stringResource(
-        R.string.wallpapers_item_name_content_description,
-        wallpaper.name,
-    )
-
-    // For the default wallpaper to be accessible, we should set the content description for
-    // the Surface instead of the thumbnail image
-    val contentDescriptionModifier = if (bitmap == null) {
-        Modifier.semantics {
-            contentDescription = description
+        // For the default wallpaper to be accessible, we should set the content description for
+        // the Surface instead of the thumbnail image
+        val contentDescriptionModifier = if (bitmap == null) {
+            Modifier.semantics {
+                contentDescription = description
+            }
+        } else {
+            Modifier
         }
-    } else {
-        Modifier
-    }
 
-    Surface(
-        elevation = 4.dp,
-        shape = thumbnailShape,
-        color = FirefoxTheme.colors.layer1,
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(aspectRatio)
-            .then(border)
-            .debouncedClickable { onSelect(wallpaper) }
-            .then(contentDescriptionModifier),
-    ) {
-        bitmap?.let {
-            Image(
-                bitmap = it.asImageBitmap(),
-                contentScale = ContentScale.FillBounds,
-                contentDescription = description,
-                modifier = Modifier.fillMaxSize(),
-                alpha = if (isLoading) loadingOpacity else 1.0f,
-            )
-        }
-        if (isLoading) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(24.dp),
-            ) {
-                CircularProgressIndicator(
-                    color = FirefoxTheme.colors.borderAccent,
+        Surface(
+            modifier = Modifier
+                .width(width = FirefoxTheme.size.xxLarge)
+                .aspectRatio(aspectRatio)
+                .debouncedClickable { onSelect(wallpaper) }
+                .then(contentDescriptionModifier),
+            shape = RoundedCornerShape(size = FirefoxTheme.size.corner.large),
+            border = border,
+            elevation = FirefoxTheme.size.elevation.medium,
+        ) {
+            if (bitmap == null) {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(color = FirefoxTheme.colors.layer1),
                 )
+            } else {
+                bitmap?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentScale = ContentScale.FillBounds,
+                        contentDescription = description,
+                        modifier = Modifier.fillMaxSize(),
+                        alpha = if (isLoading) loadingOpacity else 1.0f,
+                    )
+                }
+            }
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(FirefoxTheme.size.circularIndicatorDiameter),
+                        color = FirefoxTheme.colors.borderAccent,
+                    )
+                }
             }
         }
     }
 }
 
-@Preview
+@FlexibleWindowLightDarkPreview
 @Composable
+@Suppress("MagicNumber")
 private fun WallpaperThumbnailsPreview() {
+    val downloadedCollection: List<Wallpaper> = List(size = 5) { index ->
+        Wallpaper(
+            name = "downloaded wallpaper $index",
+            textColor = 0L,
+            cardColorLight = 0L,
+            cardColorDark = 0L,
+            thumbnailFileState = Wallpaper.ImageFileState.Downloaded,
+            assetsFileState = Wallpaper.ImageFileState.Downloaded,
+            collection = Wallpaper.ClassicFirefoxCollection,
+        )
+    } + Wallpaper.Default
+    val downloadingCollection: List<Wallpaper> = List(size = 5) { index ->
+        Wallpaper(
+            name = "downloading wallpaper $index",
+            textColor = 0L,
+            cardColorLight = 0L,
+            cardColorDark = 0L,
+            thumbnailFileState = Wallpaper.ImageFileState.Downloading,
+            assetsFileState = Wallpaper.ImageFileState.Downloading,
+            collection = Wallpaper.ClassicFirefoxCollection,
+        )
+    }
+    var selectedWallpaper by remember { mutableStateOf(downloadedCollection[0]) }
+
     FirefoxTheme {
         WallpaperSettings(
             defaultWallpaper = Wallpaper.Default,
-            loadWallpaperResource = { null },
-            wallpaperGroups = mapOf(Wallpaper.DefaultCollection to listOf(Wallpaper.Default)),
-            selectedWallpaper = Wallpaper.Default,
-            onSelectWallpaper = {},
+            loadWallpaperResource = { wallpaper ->
+                if (wallpaper == Wallpaper.Default) {
+                    null
+                } else {
+                    Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+                }
+            },
+            wallpaperGroups = mapOf(
+                Wallpaper.DefaultCollection to downloadedCollection,
+                Wallpaper.ClassicFirefoxCollection to downloadingCollection,
+            ),
+            selectedWallpaper = selectedWallpaper,
+            onSelectWallpaper = { wallpaper ->
+                selectedWallpaper = wallpaper
+            },
             onLearnMoreClick = { _, _ -> },
         )
     }
