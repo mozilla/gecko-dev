@@ -919,35 +919,19 @@ abstract class AbstractFetchDownloadService : Service() {
         download: DownloadState,
         append: Boolean,
     ): DownloadState {
-        val fileName = download.fileName
-        if (append || fileName == null) {
+        if (append) {
             return download
         }
 
-        val path = Environment.getExternalStoragePublicDirectory(download.destinationDirectory)
-        var potentialFile = File(path, fileName)
-        val fileBaseName = potentialFile.nameWithoutExtension
-        val fileExtension = potentialFile.extension.let { extension ->
-            if (extension.isNotEmpty()) ".$extension" else ""
-        }
-
-        var copyVersionNumber = 1
-
-        while (potentialFile.exists() || fileNameExistsInCurrentDownloads(potentialFile.name, download, downloadJobs)) {
-            potentialFile = File(path, "$fileBaseName(${copyVersionNumber++})$fileExtension")
-        }
-
-        return download.copy(
-            fileName = potentialFile.name,
-        )
+        return download.fileName?.let {
+            download.copy(
+                fileName = DownloadUtils.uniqueFileName(
+                    Environment.getExternalStoragePublicDirectory(download.destinationDirectory),
+                    it,
+                ),
+            )
+        } ?: download
     }
-
-    private fun fileNameExistsInCurrentDownloads(
-        fileName: String,
-        download: DownloadState,
-        downloadJobs: Map<String, DownloadJobState>,
-    ): Boolean =
-        downloadJobs.values.any { it.state.id != download.id && it.state.fileName == fileName }
 
     @TargetApi(Build.VERSION_CODES.Q)
     @VisibleForTesting

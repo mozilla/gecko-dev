@@ -2252,19 +2252,6 @@ class AbstractFetchDownloadServiceTest {
             verify(service).deleteDownloadingFile(downloadState.copy(status = CANCELLED))
             assertTrue(downloadJobState.downloadDeleted)
         }
-
-    @Test
-    fun `WHEN makeUniqueFileNameIfNecessary is called THEN file name should be unique`() =
-        runTest(testsDispatcher) {
-            val downloadState = DownloadState("https://example.com/file.txt", "file.txt")
-            val previousDownloadState = DownloadState("https://example.com/file.txt", "file.txt")
-
-            service.downloadJobs[previousDownloadState.id] = DownloadJobState(job = Job(), state = previousDownloadState, status = DOWNLOADING)
-
-            val transformedDownload = service.makeUniqueFileNameIfNecessary(downloadState, false)
-
-            assertEquals("file(1).txt", transformedDownload.fileName)
-        }
 }
 
 @Implements(FileProvider::class)
