@@ -74,6 +74,7 @@ const UI_TARGET_ELEMENTS = [
   "image",
   "radio",
   "richlistitem",
+  "moz-checkbox",
 ];
 
 // The containers of interactive elements that we care about and their pretty

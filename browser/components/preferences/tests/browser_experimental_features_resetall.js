@@ -76,10 +76,30 @@ add_task(async function testResetAll() {
   // Modify the state of some of the features.
   doc.getElementById("test-featureC").click();
   doc.getElementById("test-featureD").click();
+
+  // Check the prefs changed
   ok(!Services.prefs.getBoolPref("test.featureA"), "modified state A");
   ok(Services.prefs.getBoolPref("test.featureB"), "modified state B");
   ok(Services.prefs.getBoolPref(KNOWN_PREF_1), "modified state C");
   ok(!Services.prefs.getBoolPref(KNOWN_PREF_2), "modified state D");
+
+  // Check that telemetry appeared:
+  const { TelemetryTestUtils } = ChromeUtils.importESModule(
+    "resource://testing-common/TelemetryTestUtils.sys.mjs"
+  );
+  let snapshot = TelemetryTestUtils.getProcessScalars("parent", true, true);
+  TelemetryTestUtils.assertKeyedScalar(
+    snapshot,
+    "browser.ui.interaction.preferences_paneExperimental",
+    "test-featureC",
+    1
+  );
+  TelemetryTestUtils.assertKeyedScalar(
+    snapshot,
+    "browser.ui.interaction.preferences_paneExperimental",
+    "test-featureD",
+    1
+  );
 
   // State after reset.
   let prefChangedPromise = new Promise(resolve => {
