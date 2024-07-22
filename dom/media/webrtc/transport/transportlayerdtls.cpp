@@ -930,6 +930,11 @@ void TransportLayerDtls::Handshake() {
           timer_->InitWithNamedFuncCallback(
               TimerCallback, this, timeout_ms, nsITimer::TYPE_ONE_SHOT,
               "TransportLayerDtls::TimerCallback");
+        } else {
+          MOZ_MTLOG(ML_DEBUG,
+                    LAYER_INFO << "Error getting handshake timer " << rv);
+          RecordHandshakeCompletionTelemetry("Handshake was not completed");
+          TL_SET_STATE(TS_ERROR);
         }
         break;
       default:
