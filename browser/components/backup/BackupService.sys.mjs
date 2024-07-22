@@ -1232,6 +1232,22 @@ export class BackupService extends EventTarget {
         await IOUtils.remove(compressedStagingPath);
       });
 
+      // Record the size of the complete single-file archive
+      let archiveSizeKilobytes = await BackupResource.getFileSize(
+        archiveTmpPath
+      );
+      let archiveSizeBytesNearestMebibyte = MeasurementUtils.fuzzByteSize(
+        archiveSizeKilobytes * BYTES_IN_KILOBYTE,
+        1 * BYTES_IN_MEBIBYTE
+      );
+      lazy.logConsole.debug(
+        "backup archive size in bytes: " + archiveSizeBytesNearestMebibyte
+      );
+
+      Glean.browserBackup.compressedArchiveSize.accumulate(
+        archiveSizeBytesNearestMebibyte / BYTES_IN_MEBIBYTE
+      );
+
       let archivePath = await this.finalizeSingleFileArchive(
         archiveTmpPath,
         archiveDestFolderPath,

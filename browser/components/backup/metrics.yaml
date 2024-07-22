@@ -47,6 +47,23 @@ browser.backup:
     expires: never
     telemetry_mirror: BROWSER_BACKUP_TOTAL_BACKUP_SIZE
 
+  compressed_archive_size:
+    type: memory_distribution
+    memory_unit: megabyte
+    description: >
+      The total compressed size of a single-file profile data backup archive.
+      To reduce fingerprintability, we round to the nearest 1 mebibyte.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907625
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907625
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_BACKUP_COMPRESSED_ARCHIVE_SIZE
+
   total_backup_time:
     type: timing_distribution
     time_unit: millisecond
