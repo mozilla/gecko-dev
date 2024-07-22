@@ -491,7 +491,7 @@ HTMLTooltip.prototype = {
     this.container.classList.add("tooltip-visible");
 
     // Keep a pointer on the focused element to refocus it when hiding the tooltip.
-    this._focusedElement = this.doc.activeElement;
+    this._focusedElement = anchor.ownerDocument.activeElement;
 
     if (this.doc.defaultView) {
       if (!this._pendingEventListenerPromise) {
@@ -801,7 +801,8 @@ HTMLTooltip.prototype = {
 
     this.emit("hidden");
 
-    const tooltipHasFocus = this.container.contains(this.doc.activeElement);
+    const tooltipHasFocus =
+      this.doc.hasFocus() && this.container.contains(this.doc.activeElement);
     if (tooltipHasFocus && this._focusedElement) {
       this._focusedElement.focus();
       this._focusedElement = null;

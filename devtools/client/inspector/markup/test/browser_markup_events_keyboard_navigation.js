@@ -138,6 +138,11 @@ add_task(async function () {
     () => eventTooltipBadge.getAttribute("aria-pressed") === "false"
   );
   ok(true, "The event tooltip badge is not pressed anymore");
+  is(
+    inspector.markup.doc.activeElement,
+    eventTooltipBadge,
+    "The event tooltip badge is now focused"
+  );
 
   // wait for a bit to check the split console wasn't opened
   await wait(500);
