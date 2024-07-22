@@ -232,7 +232,7 @@ class HomeScreenRobot {
             Log.i(TAG, "verifyThirdOnboardingCard: Verified that the third onboarding screen title exists")
             Log.i(TAG, "verifyThirdOnboardingCard: Trying to verify that the  third onboarding screen description exists")
             it.onNodeWithText(
-                getStringResource(R.string.juno_onboarding_sign_in_description_2),
+                getStringResource(R.string.juno_onboarding_sign_in_description_3),
             ).assertExists()
             Log.i(TAG, "verifyThirdOnboardingCard: Verified that the third onboarding screen description exists")
             Log.i(TAG, "verifyThirdOnboardingCard: Trying to verify that the first onboarding \"Sign in\" button exists")

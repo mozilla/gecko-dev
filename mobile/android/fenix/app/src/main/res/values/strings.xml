@@ -402,7 +402,10 @@
     <string name="juno_onboarding_sign_in_title_2">Stay encrypted when you hop between devices</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">When you’re signed in and synced, you’re safer. Firefox encrypts your passwords, bookmarks, and more.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">When you’re signed in and synced, you’re safer. Firefox encrypts your passwords, bookmarks, and more.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3">Firefox encrypts your passwords, bookmarks, and more when you’re synced.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Sign in</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->

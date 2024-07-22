@@ -42,7 +42,7 @@ features:
             sync-sign-in:
               card-type: sync-sign-in
               title: juno_onboarding_sign_in_title_2
-              body: juno_onboarding_sign_in_description_2
+              body: juno_onboarding_sign_in_description_3
               image-res: ic_onboarding_sync
               ordering: 20
               primary-button-label: juno_onboarding_sign_in_positive_button
