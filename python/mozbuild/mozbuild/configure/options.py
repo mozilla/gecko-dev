@@ -340,20 +340,27 @@ class Option(object):
         self.category = category or _infer_option_category(define_depth)
 
     @staticmethod
-    def split_option(option):
+    def split_option(option, values_separator=","):
         """Split a flag or variable into a prefix, a name and values
 
         Variables come in the form NAME=values (no prefix).
         Flags come in the form --name=values or --prefix-name=values
         where prefix is one of 'with', 'without', 'enable' or 'disable'.
-        The '=values' part is optional. Values are separated with commas.
+        The '=values' part is optional. Values are separated with
+        `values_separator`. If `values_separator` is None, there is at
+        most one value.
         """
         if not isinstance(option, six.string_types):
             raise InvalidOptionError("Option must be a string")
 
-        elements = option.split("=", 1)
-        name = elements[0]
-        values = tuple(elements[1].split(",")) if len(elements) == 2 else ()
+        name, eq, values = option.partition("=")
+        if eq:
+            if values_separator is None:
+                values = (values,)
+            else:
+                values = tuple(values.split(values_separator))
+        else:
+            values = ()
         if name.startswith("--"):
             name = name[2:]
             if not name.islower():
@@ -429,7 +436,10 @@ class Option(object):
                 % (option, origin, ", ".join(self.possible_origins))
             )
 
-        prefix, name, values = self.split_option(option)
+        kwargs = {}
+        if self.maxargs <= 1:
+            kwargs["values_separator"] = None
+        prefix, name, values = self.split_option(option, **kwargs)
         option = self._join_option(prefix, name)
 
         assert name in (self.name, self.env)
