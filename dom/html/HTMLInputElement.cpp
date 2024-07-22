@@ -7057,7 +7057,8 @@ void HTMLInputElement::OnValueChanged(ValueChangeKind aKind,
   if (aKind != ValueChangeKind::Internal) {
     mLastValueChangeWasInteractive = aKind == ValueChangeKind::UserInteraction;
 
-    if (State().HasState(ElementState::AUTOFILL)) {
+    if (mLastValueChangeWasInteractive &&
+        State().HasState(ElementState::AUTOFILL)) {
       RemoveStates(ElementState::AUTOFILL | ElementState::AUTOFILL_PREVIEW);
     }
   }
