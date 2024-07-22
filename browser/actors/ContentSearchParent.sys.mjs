@@ -642,6 +642,11 @@ export class ContentSearchParent extends JSWindowActorParent {
     // the meantime, then we need to update the browser.  event.detail will be
     // the docshell's new parent <xul:browser> element.
     let browser = this.browsingContext.top.embedderElement;
+    if (!browser) {
+      // The associated browser has gone away, so there's nothing more we can
+      // do here.
+      return;
+    }
     let eventItem = {
       type: "Message",
       name: msg.name,
