@@ -30,7 +30,7 @@ class KnowsCompositor;
 class PersistentBufferProvider;
 class WebRenderCanvasRendererAsync;
 
-TextureType TexTypeForWebgl(KnowsCompositor*);
+TextureType TexTypeForWebgl(KnowsCompositor*, bool aIsWebglOop);
 
 struct CanvasRendererData final {
   CanvasRendererData();
