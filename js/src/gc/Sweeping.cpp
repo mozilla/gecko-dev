@@ -2365,7 +2365,7 @@ void GCRuntime::prepareForSweepSlice(JS::GCReason reason) {
 }
 
 IncrementalProgress GCRuntime::performSweepActions(SliceBudget& budget) {
-  MOZ_ASSERT(!storeBuffer().mayHavePointersToDeadCells());
+  MOZ_ASSERT_IF(storeBuffer().isEnabled(), !storeBuffer().mayHavePointersToDeadCells());
 
   AutoMajorGCProfilerEntry s(this);
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP);
