@@ -7402,9 +7402,9 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
      * coordinates to our parent.
      */
     if (isTransformed) {
-      result = result * nsDisplayTransform::GetResultingTransformMatrix(
-                            this, nsPoint(), scaleFactor,
-                            nsDisplayTransform::INCLUDE_PERSPECTIVE);
+      result = nsDisplayTransform::GetResultingTransformMatrix(
+          this, nsPoint(), scaleFactor,
+          nsDisplayTransform::INCLUDE_PERSPECTIVE);
     }
 
     // The offset from a zoomed content root to its parent (e.g. from
