@@ -11,6 +11,11 @@ document.addEventListener(
     let mainPopupSet = document.getElementById("mainPopupSet");
     // eslint-disable-next-line complexity
     mainPopupSet.addEventListener("command", event => {
+      if (event.target.hasAttribute("popupReportIndex")) {
+        PopupBlockerObserver.showBlockedPopup(event);
+        return;
+      }
+
       switch (event.target.id) {
         // == tabContextMenu ==
         case "context_openANewTab":
@@ -185,13 +190,13 @@ document.addEventListener(
 
         // == blockedPopupOptions ==
         case "blockedPopupAllowSite":
-          gPopupBlockerObserver.toggleAllowPopupsForSite(event);
+          PopupBlockerObserver.toggleAllowPopupsForSite(event);
           break;
         case "blockedPopupEdit":
-          gPopupBlockerObserver.editPopupSettings();
+          PopupBlockerObserver.editPopupSettings(event);
           break;
         case "blockedPopupDontShowMessage":
-          gPopupBlockerObserver.dontShowMessage();
+          PopupBlockerObserver.dontShowMessage(event);
           break;
 
         // == pictureInPictureToggleContextMenu ==
@@ -320,7 +325,7 @@ document.addEventListener(
           ToolbarContextMenu.updateExtension(event.target, event);
           break;
         case "blockedPopupOptions":
-          gPopupBlockerObserver.fillPopupList(event);
+          PopupBlockerObserver.fillPopupList(event);
           break;
         case "pageActionContextMenu":
           BrowserPageActions.onContextMenuShowing(event, event.target);
@@ -362,7 +367,7 @@ document.addEventListener(
     mainPopupSet.addEventListener("popuphiding", event => {
       switch (event.target.id) {
         case "blockedPopupOptions":
-          gPopupBlockerObserver.onPopupHiding(event);
+          PopupBlockerObserver.onPopupHiding(event);
           break;
         case "tabbrowser-tab-tooltip":
           event.target.removeAttribute("position");

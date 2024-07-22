@@ -181,7 +181,9 @@ var gBrowserInit = {
   },
 
   onLoad() {
-    gBrowser.addEventListener("DOMUpdateBlockedPopups", gPopupBlockerObserver);
+    gBrowser.addEventListener("DOMUpdateBlockedPopups", e =>
+      PopupBlockerObserver.handleEvent(e)
+    );
     gBrowser.addEventListener(
       "TranslationsParent:LanguageState",
       FullPageTranslationsPanel
