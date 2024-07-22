@@ -46,15 +46,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Đã chọn</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">Đã lưu gần đây</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">Hiển thị tất cả các dấu trang đã lưu</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Xóa</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Dấu trang</string>
@@ -118,7 +109,10 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Duyệt nhanh hơn với điều hướng mới</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">Thanh này sẽ ẩn đi khi bạn cuộn xuống để có thêm không gian duyệt.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Thanh này sẽ ẩn đi khi bạn cuộn xuống để có thêm không gian duyệt.</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Trên trang web, thanh này sẽ ẩn đi khi bạn cuộn xuống để có thêm không gian duyệt.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Cần có quyền truy cập máy ảnh. Đi tới cài đặt Android, chạm vào quyền và chạm cho phép.</string>
@@ -342,7 +336,7 @@
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Cài đặt công cụ tìm kiếm</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
-    <string name="awesomebar_clipboard_title">Điền liên kết từ khay nhớ tạm</string>
+    <string name="awesomebar_clipboard_title">Điền liên kết từ bộ nhớ tạm</string>
     <!-- Button in the search suggestions onboarding that allows search suggestions in private sessions -->
     <string name="search_suggestions_onboarding_allow_button">Cho phép</string>
     <!-- Button in the search suggestions onboarding that does not allow search suggestions in private sessions -->
@@ -614,8 +608,6 @@
     <string name="preferences_account_sync_error">Kết nối lại để tiếp tục đồng bộ hóa</string>
     <!-- Preference for language -->
     <string name="preferences_language">Ngôn ngữ</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Dịch</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">Dịch</string>
     <!-- Preference for data choices -->
@@ -631,7 +623,7 @@
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Hiển thị trong phiên riêng tư</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
-    <string name="preferences_show_clipboard_suggestions">Hiển thị đề xuất khay nhớ tạm</string>
+    <string name="preferences_show_clipboard_suggestions">Hiển thị đề xuất từ bộ nhớ tạm</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
     <string name="preferences_search_browsing_history">Tìm kiếm lịch sử duyệt web</string>
     <!-- Preference title for switch preference to suggest bookmarks when searching -->
@@ -711,8 +703,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Trang đã xem gần đây</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Dấu trang gần đây</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">Dấu trang</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1508,7 +1498,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Xóa</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Đã vào chế độ toàn màn hình</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Đã vào chế độ toàn màn hình</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">Đã sao chép URL</string>
     <!-- Sample text for accessibility font size -->
@@ -1676,7 +1666,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Tiền điện tử</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Vân tay</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Vân tay</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Dấu vết đã biết</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Chi tiết</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1700,9 +1692,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Ngăn chặn các tập lệnh độc hại truy cập vào thiết bị của bạn để khai thác tiền điện tử.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Vân tay</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Vân tay</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Ngăn chặn việc thu thập dữ liệu nhận dạng duy nhất về thiết bị của bạn có thể được sử dụng cho mục đích theo dõi.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Ngăn chặn việc thu thập dữ liệu nhận dạng duy nhất về thiết bị của bạn có thể được sử dụng cho mục đích theo dõi.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Ngăn chặn việc thu thập dữ liệu nhận dạng duy nhất về thiết bị của bạn có thể được sử dụng cho mục đích theo dõi.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Trình theo dõi nội dung</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1727,6 +1721,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Xóa cookie được đặt bởi chuyển hướng đến các trang web theo dõi đã biết.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Dấu vết đáng ngờ</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Cho phép bảo vệ khỏi dấu vết để ngăn chặn những dấu vết đáng ngờ.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Dấu vết đã biết</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Một số trình theo dõi được đánh dấu bên dưới đã được bỏ chặn một phần trên trang này vì bạn đã tương tác với chúng *.</string>
@@ -1823,7 +1823,7 @@
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">Trang</string>
     <!-- The header for the username for a login -->
-    <string name="preferences_passwords_saved_logins_username">Tên đăng nhập</string>
+    <string name="preferences_passwords_saved_logins_username">Tên người dùng</string>
     <!-- The header for the password for a login -->
     <string name="preferences_passwords_saved_logins_password">Mật khẩu</string>
     <!-- Shown in snackbar to tell user that the password has been copied -->
@@ -2592,11 +2592,15 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Xóa</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">Trong tiến trình</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Trong tiến trình</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+    <string name="download_languages_item_content_description_delete_in_progress_state">Trong tiến trình</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Dừng tải xuống %1$s (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Tải xuống</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Đã chọn</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">Không thể tải ngôn ngữ. Vui lòng kiểm tra lại sau.</string>
@@ -2623,6 +2627,14 @@
     <string name="delete_language_file_dialog_positive_button_text">Xóa</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Hủy bỏ</string>
+
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title">Dừng tải xuống %1$s?</string>
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text">Đồng ý</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text">Không</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2656,8 +2668,6 @@
     <string name="debug_drawer_tab_tools_title">Công cụ thẻ</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">Số lượng thẻ</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">Hoạt động</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">Đang hoạt động</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2752,4 +2762,16 @@
     <string name="debug_drawer_logins_add_login_button">Thêm thông tin đăng nhập giả cho tên miền này</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Xóa thông tin đăng nhập với tên người dùng %s</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">Công cụ CFR</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Đặt lại CFR</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và sử dụng cử chỉ quay lại</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và nhấn quay lại</string>
 </resources>

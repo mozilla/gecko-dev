@@ -47,15 +47,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Vybráno</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">Naposledy uložené</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">Zobrazit všechny uložené záložky</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Odebrat</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Záložky</string>
@@ -122,7 +113,10 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Prohlížejte rychleji s novou navigací</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">Tato lišta se při posouvání dolů skryje a získáte tak další prostor na prohlížení.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Tato lišta se při posouvání dolů skryje a získáte tak další prostor na prohlížení.</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Na webové stránce se tato lišta při posouvání dolů skryje a získáte tak další prostor na prohlížení.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Pro tuto funkci je potřeba povolit přístup k fotoaparátu. Ten můžete povolit v nastavení oprávnění aplikací v systému Android.</string>
@@ -619,8 +613,6 @@
     <string name="preferences_account_sync_error">Pro spuštění synchronizace se znovu připojte</string>
     <!-- Preference for language -->
     <string name="preferences_language">Jazyk</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Překladač</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">Překlady</string>
     <!-- Preference for data choices -->
@@ -717,8 +709,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Návrat zpět</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Naposledy přidané</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">Záložky</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1535,7 +1525,7 @@
     <string name="tab_collection_dialog_positive">Odstranit</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Spuštěn režim celé obrazovky</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Spuštěn režim celé obrazovky</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL adresa zkopírována</string>
     <!-- Sample text for accessibility font size -->
@@ -1706,7 +1696,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Těžbu kryptoměn</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Vytváření otisku prohlížeče</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Vytváření otisku prohlížeče</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Známé vytváření otisků prohlížeče</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Podrobnosti</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1730,9 +1722,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Zabraňuje skriptům přístup k vašemu zařízení pro účel těžby digitálních měn.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Vytváření otisku prohlížeče</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Vytváření otisku prohlížeče</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Zastaví shromažďování dat o vašem zařízení, která mohou být využita k vaší identifikaci nebo vašemu sledování.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Zastaví shromažďování dat o vašem zařízení, která mohou být využita k vaší identifikaci nebo vašemu sledování.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Zastaví shromažďování dat o vašem zařízení, která mohou být využita k vaší identifikaci nebo vašemu sledování.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Sledující obsah</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1757,6 +1751,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Maže cookies nastavené během přesměrování známými sledujícími servery.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Podezřelé vytváření otisku prohlížeče</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Zapne ochranu před vytvářením otisku prohlížeče, která je podezřelá.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Známé vytváření otisků prohlížeče</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Některé níže označené sledovací prvky byly na této stránce částečně povoleny, protože jste s nimi interagovali *.</string>
@@ -2625,11 +2625,15 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Smazat</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">Probíhá</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Probíhá</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+    <string name="download_languages_item_content_description_delete_in_progress_state">Probíhá</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Ukončit stahování %1$s (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Stáhnout</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Vybráno</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">Nelze načíst jazyky. Zkuste to prosím později.</string>
@@ -2658,6 +2662,14 @@
     <string name="delete_language_file_dialog_positive_button_text">Smazat</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Zrušit</string>
+
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title">Přerušit stahování souboru %1$s?</string>
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text">Ano</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text">Ne</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2691,8 +2703,6 @@
     <string name="debug_drawer_tab_tools_title">Nástroje pro panely</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">Počet panelů</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">Aktivní</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">Aktivní</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2787,4 +2797,16 @@
     <string name="debug_drawer_logins_add_login_button">Přidat falešné přihlášení pro tuto doménu</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Odstranit přihlášení s uživatelským jménem %s</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">Nástroje CFR</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Obnovení CFR</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Pro ukončení režimu celé obrazovky přetáhněte prst shora a použijte gesto Zpět</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Pro ukončení režimu celé obrazovky přetáhněte prst seshora a stiskněte zpět</string>
 </resources>

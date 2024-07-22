@@ -1510,7 +1510,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Izbriši</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Vstop v celozaslonski način</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Vstop v celozaslonski način</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">Spletni naslov kopiran</string>
     <!-- Sample text for accessibility font size -->
@@ -2610,7 +2610,7 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Izbriši</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">V teku</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">V teku</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Prenesi</string>
 
@@ -2639,6 +2639,11 @@
     <string name="delete_language_file_dialog_positive_button_text">Izbriši</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Prekliči</string>
+
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text">Da</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text">Ne</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform

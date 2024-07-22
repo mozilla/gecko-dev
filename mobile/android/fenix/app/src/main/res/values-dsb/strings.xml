@@ -2603,6 +2603,10 @@ To buźo jano pomagaś, kwalitu pógódnośenjow pósuźiś, nic kwalitu produkt
     <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Běžy</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">Běžy</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Ześěgnjenje rěcy %1$s (%2$s) zastajiś</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Ześěgnuś</string>
 
@@ -2774,4 +2778,9 @@ To buźo jano pomagaś, kwalitu pógódnośenjow pósuźiś, nic kwalitu produkt
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">CFR slědk stajiś</string>
 
-    </resources>
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Aby połnu wobrazowku spušćił, śěgniśo wót górjejka dołoj a wužywajśo gestu slědk</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Aby połnu wobrazowku spušćił, śěgniśo wót górjejka dołoj a tłocćo Slědk</string>
+</resources>

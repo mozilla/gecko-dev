@@ -2379,6 +2379,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Issin ugar</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">S ufran “Ih, εreḍ” tqebleḍ %1$s seg %2$s akked %3$s seg %4$s.</string>
+    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
+    <string name="review_quality_check_contextual_onboarding_caption_4">S ufran “Ih, εreḍ” tqebleḍ %1$s seg %2$s akked %3$s seg %4$s.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">tasertit n tbaḍnit</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
@@ -2562,6 +2564,9 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Preference option for never translate. Radio button title text.-->
     <string name="automatic_translation_option_never_translate_title_preference">Werǧin attsuqleḍ</string>
 
+    <!-- Preference option for never translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="automatic_translation_option_never_translate_summary_preference">%1$s urǧin ad isumer asuqqel n yismal deg tutlayt-a.</string>
+
     <!-- Never translate site preference screen -->
     <!-- Title of the never translate site preference screen that will appear on the toolbar.-->
     <string name="never_translate_site_toolbar_title_preference">Ur suqqul ara ismal-a</string>
@@ -2650,6 +2655,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
     The first parameter is the size in kilobytes or megabytes of the language file.-->
     <string name="download_language_file_dialog_title">Sader deg uskar n uḥraz n yisefka (%1$s)?</string>
+    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
+    <string name="download_language_file_dialog_message_all_languages">Nessadar-d tutlayin s wudem abruyan deg tkatut tuffirt i wakken ad qqiment tsuqilin d tusligin.</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
     <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Nessadar-d tutlayin s wudem abruyan i wakken ad qqiment tsuqilin d tusligin.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->

@@ -926,7 +926,7 @@
     <string name="open_new_tab_snackbar">Chuyển</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Đã vào chế độ toàn màn hình</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Đã vào chế độ toàn màn hình</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Chuyển sang liên kết trong thẻ mới ngay lập tức</string>
@@ -1117,4 +1117,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Đã thêm widget vào màn hình chính</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và sử dụng cử chỉ quay lại</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và nhấn quay lại</string>
 </resources>

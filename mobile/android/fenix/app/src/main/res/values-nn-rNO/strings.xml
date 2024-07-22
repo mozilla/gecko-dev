@@ -1517,7 +1517,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Slett</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Startar fullskjermmodus</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Startar fullskjermmodus</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL kopiert</string>
     <!-- Sample text for accessibility font size -->
@@ -2619,7 +2619,13 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Slett</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">I framdrift</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">I framdrift</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+    <string name="download_languages_item_content_description_delete_in_progress_state">I framdrift</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Stopp nedlastinga av %1$s (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Last ned</string>
 
@@ -2649,6 +2655,11 @@
     <string name="delete_language_file_dialog_positive_button_text">Slett</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Avbryt</string>
+
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text">Ja</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text">Nei</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2783,4 +2794,5 @@
     <string name="debug_drawer_cfr_tools_title">CFR-verktøy</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Tilbakestill CFR</string>
-</resources>
+
+    </resources>
