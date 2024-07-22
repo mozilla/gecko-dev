@@ -313,6 +313,16 @@ class ChromeActions {
     }
   }
 
+  async mlDelete(data, sendResponse) {
+    const actor = getActor(this.domWindow);
+    if (!actor) {
+      sendResponse(null);
+      return;
+    }
+    const response = await actor.sendQuery("PDFJS:Parent:mlDelete", data);
+    sendResponse(response);
+  }
+
   async mlGuess(data, sendResponse) {
     const actor = getActor(this.domWindow);
     if (!actor) {

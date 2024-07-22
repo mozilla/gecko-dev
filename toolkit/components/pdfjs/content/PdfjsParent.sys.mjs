@@ -19,6 +19,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
+  IndexedDBCache: "chrome://global/content/ml/ModelHub.sys.mjs",
   MultiProgressAggregator: "chrome://global/content/ml/Utils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PdfJsTelemetry: "resource://pdf.js/PdfJsTelemetry.sys.mjs",
@@ -84,6 +85,8 @@ export class PdfjsParent extends JSWindowActorParent {
         return this._setPreferences(aMsg);
       case "PDFJS:Parent:loadAIEngine":
         return this._loadAIEngine(aMsg);
+      case "PDFJS:Parent:mlDelete":
+        return this._mlDelete(aMsg);
     }
     return undefined;
   }
@@ -172,6 +175,22 @@ export class PdfjsParent extends JSWindowActorParent {
       aggregator
     );
     return !!engine;
+  }
+
+  async _mlDelete({ data: service }) {
+    if (service !== IMAGE_TO_TEXT_TASK) {
+      return null;
+    }
+    try {
+      // TODO: Temporary workaround to delete the model from the cache.
+      //       See bug 1908941.
+      const cache = await lazy.IndexedDBCache.init();
+      await cache.deleteModel("mozilla/distilvit", "main");
+    } catch (e) {
+      console.error("Failed to delete AI model", e);
+    }
+
+    return null;
   }
 
   async #createAIEngine(taskName, aggregator) {
