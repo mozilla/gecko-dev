@@ -210,7 +210,8 @@ class nsICanvasRenderingContextInternal : public nsISupports,
   }
 
   virtual mozilla::Maybe<mozilla::layers::SurfaceDescriptor> PresentFrontBuffer(
-      mozilla::WebGLFramebufferJS* fb, const bool webvr = false) {
+      mozilla::WebGLFramebufferJS* fb, mozilla::layers::TextureType,
+      const bool webvr = false) {
     return GetFrontBuffer(fb, webvr);
   }
 

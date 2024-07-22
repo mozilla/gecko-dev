@@ -19,7 +19,6 @@
 namespace mozilla {
 namespace gl {
 
-class EglDisplay;
 class GLLibraryEGL;
 
 // -
@@ -28,7 +27,6 @@ class GLLibraryEGL;
 class SharedSurface_EGLImage final : public SharedSurface {
   mutable Mutex mMutex MOZ_UNANNOTATED;
   EGLSync mSync = 0;
-  const std::weak_ptr<EglDisplay> mEglDisplay;
 
  public:
   const EGLImage mImage;

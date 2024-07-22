@@ -171,6 +171,7 @@ void OffscreenCanvasDisplayHelper::FlushForDisplay() {
 
 bool OffscreenCanvasDisplayHelper::CommitFrameToCompositor(
     nsICanvasRenderingContextInternal* aContext,
+    layers::TextureType aTextureType,
     const Maybe<OffscreenCanvasDisplayData>& aData) {
   auto endTransaction = MakeScopeExit([&]() {
     if (auto* cm = gfx::CanvasManagerChild::Get()) {
@@ -241,7 +242,7 @@ bool OffscreenCanvasDisplayHelper::CommitFrameToCompositor(
       aContext->OnBeforePaintTransaction();
     }
 
-    desc = aContext->PresentFrontBuffer(nullptr);
+    desc = aContext->PresentFrontBuffer(nullptr, aTextureType);
     if (desc) {
       hasRemoteTextureDesc =
           desc->type() ==

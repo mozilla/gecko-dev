@@ -9,20 +9,16 @@
 #include "mozilla/gfx/Logging.h"
 #include "GLContextEGL.h"
 #include "GLLibraryEGL.h"
-#include "GLReadTexImageHelper.h"
-#include "OGLShaderConfig.h"
 
 namespace mozilla {
 namespace wr {
 
 RenderEGLImageTextureHost::RenderEGLImageTextureHost(EGLImage aImage,
                                                      EGLSync aSync,
-                                                     gfx::IntSize aSize,
-                                                     gfx::SurfaceFormat aFormat)
+                                                     gfx::IntSize aSize)
     : mImage(aImage),
       mSync(aSync),
       mSize(aSize),
-      mFormat(aFormat),
       mTextureTarget(LOCAL_GL_TEXTURE_2D),
       mTextureHandle(0) {
   MOZ_COUNT_CTOR_INHERITED(RenderEGLImageTextureHost, RenderTextureHost);
@@ -39,7 +35,8 @@ wr::WrExternalImage RenderEGLImageTextureHost::Lock(uint8_t aChannelIndex,
 
   if (mGL.get() != aGL) {
     if (mGL) {
-      // This should not happen. On android, SingletonGL is used.
+      // This should not happen. SharedSurface_EGLImage is created only in
+      // parent process.
       MOZ_ASSERT_UNREACHABLE("Unexpected GL context");
       return InvalidToWrExternalImage();
     }
@@ -50,8 +47,33 @@ wr::WrExternalImage RenderEGLImageTextureHost::Lock(uint8_t aChannelIndex,
     return InvalidToWrExternalImage();
   }
 
-  if (!WaitSync() || !CreateTextureHandle()) {
+  EGLint status = LOCAL_EGL_CONDITION_SATISFIED;
+  if (mSync) {
+    const auto& gle = gl::GLContextEGL::Cast(mGL);
+    const auto& egl = gle->mEgl;
+    MOZ_ASSERT(egl->IsExtensionSupported(gl::EGLExtension::KHR_fence_sync));
+    status = egl->fClientWaitSync(mSync, 0, LOCAL_EGL_FOREVER);
+    // We do not need to delete sync here. It is deleted by
+    // SharedSurface_EGLImage.
+    mSync = 0;
+  }
+
+  if (status != LOCAL_EGL_CONDITION_SATISFIED) {
+    MOZ_ASSERT(
+        status != 0,
+        "ClientWaitSync generated an error. Has mSync already been destroyed?");
     return InvalidToWrExternalImage();
+  }
+
+  if (!mTextureHandle) {
+    mTextureTarget = mGL->GetPreferredEGLImageTextureTarget();
+    MOZ_ASSERT(mTextureTarget == LOCAL_GL_TEXTURE_2D ||
+               mTextureTarget == LOCAL_GL_TEXTURE_EXTERNAL);
+
+    mGL->fGenTextures(1, &mTextureHandle);
+    ActivateBindAndTexParameteri(mGL, LOCAL_GL_TEXTURE0, mTextureTarget,
+                                 mTextureHandle);
+    mGL->fEGLImageTargetTexture2D(mTextureTarget, mImage);
   }
 
   const auto uvs = GetUvCoords(mSize);
@@ -61,163 +83,13 @@ wr::WrExternalImage RenderEGLImageTextureHost::Lock(uint8_t aChannelIndex,
 
 void RenderEGLImageTextureHost::Unlock() {}
 
-RefPtr<layers::TextureSource> RenderEGLImageTextureHost::CreateTextureSource(
-    layers::TextureSourceProvider* aProvider) {
-  gl::GLContext* gl = aProvider->GetGLContext();
-  if (mGL.get() != gl) {
-    if (mGL) {
-      // This should not happen. On android, SingletonGL is used.
-      MOZ_ASSERT_UNREACHABLE("Unexpected GL context");
-      return nullptr;
-    }
-    mGL = gl;
-  }
-
-  if (!WaitSync()) {
-    return nullptr;
-  }
-
-  return new layers::EGLImageTextureSource(
-      aProvider, mImage, mFormat, gl->GetPreferredEGLImageTextureTarget(),
-      LOCAL_GL_CLAMP_TO_EDGE, mSize);
-}
-
-gfx::SurfaceFormat RenderEGLImageTextureHost::GetFormat() const {
-  MOZ_ASSERT(mFormat == gfx::SurfaceFormat::R8G8B8A8 ||
-             mFormat == gfx::SurfaceFormat::R8G8B8X8);
-  // SWGL does not support RGBA/RGBX so we must provide data in BGRA/BGRX
-  // format. ReadTexImage() called by MapPlane() will ensure that data gets
-  // converted correctly.
-  if (mFormat == gfx::SurfaceFormat::R8G8B8A8) {
-    return gfx::SurfaceFormat::B8G8R8A8;
-  }
-
-  if (mFormat == gfx::SurfaceFormat::R8G8B8X8) {
-    return gfx::SurfaceFormat::B8G8R8X8;
-  }
-
-  gfxCriticalNoteOnce << "Unexpected color format of RenderEGLImageTextureHost";
-
-  return gfx::SurfaceFormat::UNKNOWN;
-}
-
-bool RenderEGLImageTextureHost::MapPlane(RenderCompositor* aCompositor,
-                                         uint8_t aChannelIndex,
-                                         PlaneInfo& aPlaneInfo) {
-  RefPtr<gfx::DataSourceSurface> readback = ReadTexImage();
-  if (!readback) {
-    return false;
-  }
-
-  gfx::DataSourceSurface::MappedSurface map;
-  if (!readback->Map(gfx::DataSourceSurface::MapType::READ, &map)) {
-    return false;
-  }
-
-  mReadback = readback;
-  aPlaneInfo.mSize = mSize;
-  aPlaneInfo.mStride = map.mStride;
-  aPlaneInfo.mData = map.mData;
-  return true;
-
-  return true;
-}
-
-void RenderEGLImageTextureHost::UnmapPlanes() {
-  if (mReadback) {
-    mReadback->Unmap();
-    mReadback = nullptr;
-  }
-}
-
-bool RenderEGLImageTextureHost::CreateTextureHandle() {
-  if (mTextureHandle) {
-    return true;
-  }
-
-  mTextureTarget = mGL->GetPreferredEGLImageTextureTarget();
-  MOZ_ASSERT(mTextureTarget == LOCAL_GL_TEXTURE_2D ||
-             mTextureTarget == LOCAL_GL_TEXTURE_EXTERNAL);
-
-  mGL->fGenTextures(1, &mTextureHandle);
-  ActivateBindAndTexParameteri(mGL, LOCAL_GL_TEXTURE0, mTextureTarget,
-                               mTextureHandle);
-  mGL->fEGLImageTargetTexture2D(mTextureTarget, mImage);
-  return true;
-}
-
 void RenderEGLImageTextureHost::DeleteTextureHandle() {
   if (mTextureHandle) {
-    if (mGL && mGL->MakeCurrent()) {
-      // XXX recycle gl texture, since SharedSurface_EGLImage and
-      // RenderEGLImageTextureHost is not recycled.
-      mGL->fDeleteTextures(1, &mTextureHandle);
-    }
+    // XXX recycle gl texture, since SharedSurface_EGLImage and
+    // RenderEGLImageTextureHost is not recycled.
+    mGL->fDeleteTextures(1, &mTextureHandle);
     mTextureHandle = 0;
   }
-}
-
-bool RenderEGLImageTextureHost::WaitSync() {
-  bool syncSucceeded = true;
-  if (mSync) {
-    const auto& gle = gl::GLContextEGL::Cast(mGL);
-    const auto& egl = gle->mEgl;
-    MOZ_ASSERT(egl->IsExtensionSupported(gl::EGLExtension::KHR_fence_sync));
-    if (egl->IsExtensionSupported(gl::EGLExtension::KHR_wait_sync)) {
-      syncSucceeded = egl->fWaitSync(mSync, 0) == LOCAL_EGL_TRUE;
-    } else {
-      syncSucceeded = egl->fClientWaitSync(mSync, 0, LOCAL_EGL_FOREVER) ==
-                      LOCAL_EGL_CONDITION_SATISFIED;
-    }
-    // We do not need to delete sync here. It is deleted by
-    // SharedSurface_EGLImage.
-    mSync = 0;
-  }
-
-  MOZ_ASSERT(
-      syncSucceeded,
-      "(Client)WaitSync generated an error. Has mSync already been destroyed?");
-  return syncSucceeded;
-}
-
-already_AddRefed<gfx::DataSourceSurface>
-RenderEGLImageTextureHost::ReadTexImage() {
-  if (!mGL) {
-    mGL = RenderThread::Get()->SingletonGL();
-    if (!mGL) {
-      return nullptr;
-    }
-  }
-
-  if (!WaitSync() || !CreateTextureHandle()) {
-    return nullptr;
-  }
-
-  // Allocate resulting image surface.
-  // Use GetFormat() rather than mFormat for the DataSourceSurface. eg BGRA
-  // rather than RGBA, as the latter is not supported by swgl.
-  // ReadTexImageHelper will take care of converting the data for us.
-  const gfx::SurfaceFormat surfFormat = GetFormat();
-  int32_t stride = mSize.width * BytesPerPixel(surfFormat);
-  RefPtr<gfx::DataSourceSurface> surf =
-      gfx::Factory::CreateDataSourceSurfaceWithStride(mSize, surfFormat,
-                                                      stride);
-  if (!surf) {
-    return nullptr;
-  }
-
-  layers::ShaderConfigOGL config =
-      layers::ShaderConfigFromTargetAndFormat(mTextureTarget, mFormat);
-  int shaderConfig = config.mFeatures;
-
-  bool ret = mGL->ReadTexImageHelper()->ReadTexImage(
-      surf, mTextureHandle, mTextureTarget, mSize, shaderConfig,
-      /* aYInvert */ false);
-  if (!ret) {
-    return nullptr;
-  }
-
-  return surf.forget();
 }
 
 }  // namespace wr

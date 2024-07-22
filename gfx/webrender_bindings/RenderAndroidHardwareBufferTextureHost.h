@@ -45,9 +45,6 @@ class RenderAndroidHardwareBufferTextureHost final
                 PlaneInfo& aPlaneInfo) override;
   void UnmapPlanes() override;
 
-  RefPtr<layers::TextureSource> CreateTextureSource(
-      layers::TextureSourceProvider* aProvider) override;
-
   layers::AndroidHardwareBuffer* GetAndroidHardwareBuffer() {
     return mAndroidHardwareBuffer;
   }

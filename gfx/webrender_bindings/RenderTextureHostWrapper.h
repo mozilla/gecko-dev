@@ -36,8 +36,6 @@ class RenderTextureHostWrapper final : public RenderTextureHostSWGL {
   void NotifyForUse() override;
   void NotifyNotUsed() override;
   bool SyncObjectNeeded() override;
-  RefPtr<layers::TextureSource> CreateTextureSource(
-      layers::TextureSourceProvider* aProvider) override;
   RenderMacIOSurfaceTextureHost* AsRenderMacIOSurfaceTextureHost() override;
   RenderDXGITextureHost* AsRenderDXGITextureHost() override;
   RenderDXGIYCbCrTextureHost* AsRenderDXGIYCbCrTextureHost() override;
@@ -45,7 +43,6 @@ class RenderTextureHostWrapper final : public RenderTextureHostSWGL {
   RenderAndroidHardwareBufferTextureHost*
   AsRenderAndroidHardwareBufferTextureHost() override;
   RenderAndroidSurfaceTextureHost* AsRenderAndroidSurfaceTextureHost() override;
-  RenderEGLImageTextureHost* AsRenderEGLImageTextureHost() override;
   RenderTextureHostSWGL* AsRenderTextureHostSWGL() override;
   void SetIsSoftwareDecodedVideo() override;
   bool IsSoftwareDecodedVideo() override;

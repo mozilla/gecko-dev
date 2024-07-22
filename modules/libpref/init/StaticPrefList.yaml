@@ -16298,11 +16298,6 @@
   value: true
   mirror: always
 
-- name: webgl.enable-egl-image
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 - name: webgl.enable-surface-texture
   type: RelaxedAtomicBool
   value: true

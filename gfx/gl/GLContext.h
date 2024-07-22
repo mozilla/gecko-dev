@@ -3578,11 +3578,9 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
 #ifdef MOZ_WIDGET_GTK
     return LOCAL_GL_TEXTURE_2D;
 #else
-    if (IsExtensionSupported(OES_EGL_image_external) &&
-        mRenderer != GLRenderer::AndroidEmulator) {
-      return LOCAL_GL_TEXTURE_EXTERNAL;
-    }
-    return LOCAL_GL_TEXTURE_2D;
+    return IsExtensionSupported(OES_EGL_image_external)
+               ? LOCAL_GL_TEXTURE_EXTERNAL
+               : LOCAL_GL_TEXTURE_2D;
 #endif
   }
 

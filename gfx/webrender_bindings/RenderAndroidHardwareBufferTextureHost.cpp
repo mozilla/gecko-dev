@@ -7,7 +7,6 @@
 #include "RenderAndroidHardwareBufferTextureHost.h"
 
 #include "mozilla/layers/AndroidHardwareBuffer.h"
-#include "mozilla/layers/TextureHostOGL.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/gfx/2D.h"
 #include "GLContextEGL.h"
@@ -243,14 +242,6 @@ void RenderAndroidHardwareBufferTextureHost::UnmapPlanes() {
     mReadback->Unmap();
     mReadback = nullptr;
   }
-}
-
-RefPtr<layers::TextureSource>
-RenderAndroidHardwareBufferTextureHost::CreateTextureSource(
-    layers::TextureSourceProvider* aProvider) {
-  return new layers::AndroidHardwareBufferTextureSource(
-      aProvider, mAndroidHardwareBuffer, mAndroidHardwareBuffer->mFormat,
-      LOCAL_GL_TEXTURE_EXTERNAL, LOCAL_GL_CLAMP_TO_EDGE, GetSize());
 }
 
 }  // namespace wr

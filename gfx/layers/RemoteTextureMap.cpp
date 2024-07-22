@@ -324,12 +324,6 @@ bool RemoteTextureMap::RecycleTexture(
   RemoteTextureRecycleBin::RecycledTextureHolder recycled{info.size,
                                                           info.format};
   if (aHolder.mResourceWrapper) {
-    // Don't attempt to recycle non-recyclable shared surfaces
-    if (aHolder.mResourceWrapper->mSharedSurface &&
-        !aHolder.mResourceWrapper->mSharedSurface->mDesc.canRecycle) {
-      return false;
-    }
-
     // Recycle shared texture
     SurfaceDescriptor desc;
     if (!aHolder.mTextureData->Serialize(desc)) {
