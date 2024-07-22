@@ -718,9 +718,9 @@ void MediaDecoder::Seek(double aTime, SeekTarget::Type aSeekType) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(!IsShutdown());
 
+  LOG("Seek, target=%f", aTime);
   MOZ_ASSERT(aTime >= 0.0, "Cannot seek to a negative value.");
 
-  LOG("Seek");
   auto time = TimeUnit::FromSeconds(aTime);
 
   mLogicalPosition = aTime;

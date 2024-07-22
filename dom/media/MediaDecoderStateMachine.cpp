@@ -2996,6 +2996,9 @@ void MediaDecoderStateMachine::DecodeMetadataState::OnMetadataRead(
   } else if (Info().mUnadjustedMetadataEndTime.isSome()) {
     const TimeUnit unadjusted = Info().mUnadjustedMetadataEndTime.ref();
     const TimeUnit adjustment = Info().mStartTime;
+    SLOG("No metadata duration, calculate one. unadjusted=%" PRId64
+         ", adjustment=%" PRId64,
+         unadjusted.ToMicroseconds(), adjustment.ToMicroseconds());
     mMaster->mInfo->mMetadataDuration.emplace(unadjusted - adjustment);
     mMaster->mDuration = Info().mMetadataDuration;
   }
@@ -3015,6 +3018,8 @@ void MediaDecoderStateMachine::DecodeMetadataState::OnMetadataRead(
   }
 
   MOZ_ASSERT(mMaster->mDuration.Ref().isSome());
+  SLOG("OnMetadataRead, duration=%" PRId64,
+       mMaster->mDuration.Ref()->ToMicroseconds());
 
   mMaster->mMetadataLoadedEvent.Notify(std::move(aMetadata.mInfo),
                                        std::move(aMetadata.mTags),
@@ -3925,12 +3930,12 @@ void MediaDecoderStateMachine::BufferedRangeUpdated() {
   // the estimated duration is larger.
   if (mDuration.Ref().isNothing() || mDuration.Ref()->IsInfinite() ||
       end > mDuration.Ref().ref()) {
-    PROFILER_MARKER_TEXT(
-        "MDSM::BufferedRangeUpdated", MEDIA_PLAYBACK, {},
-        nsPrintfCString(
-            "duration:%" PRId64 "->%" PRId64,
-            mDuration.Ref().isNothing() ? 0 : mDuration.Ref()->ToMicroseconds(),
-            end.ToMicroseconds()));
+    nsPrintfCString msg{
+        "duration:%" PRId64 "->%" PRId64,
+        mDuration.Ref().isNothing() ? 0 : mDuration.Ref()->ToMicroseconds(),
+        end.ToMicroseconds()};
+    PROFILER_MARKER_TEXT("MDSM::BufferedRangeUpdated", MEDIA_PLAYBACK, {}, msg);
+    LOG("%s", msg.get());
     mDuration = Some(end);
     DDLOG(DDLogCategory::Property, "duration_us",
           mDuration.Ref()->ToMicroseconds());

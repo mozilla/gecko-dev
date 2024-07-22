@@ -1289,8 +1289,11 @@ void MediaFormatReader::OnDemuxerInitDone(const MediaResult& aResult) {
 
   // If the duration is 0 on both audio and video, it mMetadataDuration is to be
   // Nothing(). Duration will use buffered ranges.
+  LOG("videoDuration=%" PRId64 ", audioDuration=%" PRId64,
+      videoDuration.ToMicroseconds(), audioDuration.ToMicroseconds());
   if (videoDuration.IsPositive() || audioDuration.IsPositive()) {
     auto duration = std::max(videoDuration, audioDuration);
+    LOG("Determine mMetadataDuration=%" PRId64, duration.ToMicroseconds());
     mInfo.mMetadataDuration = Some(duration);
   }
 
@@ -1345,6 +1348,7 @@ void MediaFormatReader::MaybeResolveMetadataPromise() {
 
   if (!startTime.IsInfinite()) {
     mInfo.mStartTime = startTime;  // mInfo.mStartTime is initialized to 0.
+    LOG("Set start time=%s", mInfo.mStartTime.ToString().get());
   }
 
   MetadataHolder metadata;
@@ -3275,6 +3279,8 @@ void MediaFormatReader::UpdateBuffered() {
     // IntervalSet already starts at 0 or is empty, nothing to shift.
     mBuffered = intervals;
   } else {
+    LOG("Subtract start time for buffered range, startTime=%" PRId64,
+        mInfo.mStartTime.ToMicroseconds());
     mBuffered = intervals.Shift(TimeUnit::Zero() - mInfo.mStartTime);
   }
 }
