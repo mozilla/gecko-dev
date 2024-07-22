@@ -73,3 +73,72 @@ Last, but not least, this feature can be used on try via:
 ```bash
 ./mach mochitest try fuzzy devtools/test/folder/ --env DEBUG_STEP=true
 ```
+
+Once you found a problematic line, or want to know more about what happens on a particular line of your mochitest,
+you can then use the DEBUG_TRACE_LINE env variable.
+It expect a line number of the mochitest file running and it will trace all JavaScript code ran from that line of code.
+
+```bash
+DEBUG_TRACE_LINE=42 ./mach mochitest browser_devtools_test.js
+```
+This will log something like this:
+```
+ 0:17.14 GECKO(94170)  [STEP] chrome://mochitests/content/browser/devtools/client/webconsole/test/browser/head.js
+ 0:17.14 GECKO(94170)  [STEP] ───────────────────────────────────────────────────────────────────────────────────
+ 0:17.14 GECKO(94170)  [STEP] 73:36   | async function openNewTabAndConsole↦ (url, clearJstermHistory = true, hostId) {
+ 0:17.15 GECKO(94170)  [STEP] 74:19   |   const toolbox = ↦ await openNewTabAndToolbox(url, "webconsole", hostId);
+ 0:17.15 GECKO(94170)  [STEP]
+ 0:17.15 GECKO(94170)  [STEP] chrome://mochitests/content/browser/devtools/client/shared/test/shared-head.js
+ 0:17.15 GECKO(94170)  [STEP] ──────────────────────────────────────────────────────────────────────────────
+ 0:17.15 GECKO(94170)  [STEP] 1273:36 | async function openNewTabAndToolbox↦ (url, toolId, hostType) {
+ 0:17.15 GECKO(94170)  [STEP] 1274:15 |   const tab = ↦ await addTab(url);
+ 0:17.15 GECKO(94170)  [STEP] 531:22  | async function addTab↦ (url, options = {}) {
+ 0:17.15 GECKO(94170)  [STEP] 532:3   |   ↦ info("Adding a new tab with URL: " + url);
+```
+where you can see the execution flow between function to functions being called, but also the progress within a function call.
+Similarly to DEBUG_STEP, '↦' symbols highlights the precise execution location.
+
+If this helper isn't enough. You can also spawn the tracer from any place manually from any privileged codebase, by using the following snippet:
+```js
+const { JSTracer } = ChromeUtils.importESModule(
+  "resource://devtools/server/tracer/tracer.sys.mjs",
+  { global: "contextual" }
+);
+// You have to at least pass an empty object to startTracing,
+// otherwise, all the attributes at optional.
+JSTracer.startTracing({
+  // If you want to log a custom string before each trace
+  prefix: "[my log]",
+
+  // Only if you want to restrict to a specific global,
+  // otherwise it will trace the current global automatically.
+  global: window,
+
+  // If you are about to call code from another global(s),
+  // this will trace code from all active globals in the current thread.
+  // (use only if needed)
+  traceAllGlobals: true,
+
+  // Only if you want to step within function execution (this adds lots of additional traces!)
+  traceSteps: true,
+
+  // If you want to restrict traces to one JS file
+  filterFrameSourceUrl: "foo.js",
+
+  // If you want to avoid logging nested trace above a given threshold
+  maxDepth: 10,
+
+  // If you want the tracer to automatically stop after having logged a given amount of traces
+  maxRecords: 10,
+
+  // If you want to log all DOM events fired on the traced global(s)
+  traceDOMEvents: true,
+
+  // If you want to log all DOM Mutations happening in the traced global(s)
+  traceDOMMutations: ["add", "attributes", "delete"],
+});
+
+[...run some JS code...]
+
+JSTracer.stopTracing();
+```
