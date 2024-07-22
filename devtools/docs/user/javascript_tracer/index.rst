@@ -46,6 +46,19 @@ Logging output
 
    (`:trace --logMethod console`)
 
+ * Debugger Sidebar
+
+   The JS Tracer will log all JS function calls into the Debugger panel, in the Tracer sidebar.
+   This involves a user interface dedicated to navigate through all the traces.
+   You can easily see all the DOM Events triggering JavaScript code, and browser all the stacks displayed
+   as a tree.
+
+   This UI is an under-development prototype and may change significantly or even be dropped in the future.
+
+   |image5|
+
+   (`:trace --logMethod debugger-sidebar`)
+
  * Profiler record
 
    The JS Tracer will log all JS function calls in the background. When you stop tracing,
@@ -86,6 +99,9 @@ Logging output
 .. |image4| image:: profiler-trace.png
   :class: border
   :alt: The JS Traces displayed in the Firefox Profiler UI
+.. |image5| image:: debugger-sidebar.png
+  :class: border
+  :alt: The JS Traces displayed in the Debugger sidebar
 
 Delayed start
 -------------
