@@ -282,7 +282,7 @@ skip-if = [
   "tsan", # Bug 1832135
 ]
 
-["browser_dbg-javascript-tracer-next-interation.js"]
+["browser_dbg-javascript-tracer-next-interaction.js"]
 skip-if = [
   "tsan", # Bug 1832135
 ]

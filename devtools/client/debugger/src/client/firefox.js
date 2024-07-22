@@ -92,7 +92,7 @@ export async function onConnect(_commands, _resourceCommand, _actions, store) {
 
   // Also register a toggle listener, in addition to JSTRACER_TRACE in order
   // to be able to clear the tracer data on tracing start, that, even if the
-  // tracer is waiting for next interation/load.
+  // tracer is waiting for next interaction/load.
   commands.tracerCommand.on("toggle", onTracingToggled);
 }
 
