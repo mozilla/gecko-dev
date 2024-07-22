@@ -117,3 +117,8 @@ fun RecoverableTab.toTabSessionState() = createTab(
  * Creates a list of [TabSessionState]s from a List of [RecoverableTab]s.
  */
 fun List<RecoverableTab>.toTabSessionStates() = map { it.toTabSessionState() }
+
+/**
+ * Check if this [RecoverableTab] is a content URI.
+ */
+fun RecoverableTab.isContentUri(): Boolean = this.state.url.startsWith("content://")

@@ -385,6 +385,29 @@ class TabsUseCasesTest {
     }
 
     @Test
+    fun `RestoreUseCase - filters based on content uri tabs`() = runTest {
+        val useCases = TabsUseCases(BrowserStore())
+
+        val now = System.currentTimeMillis()
+        val tabs = listOf(
+            createTab("https://mozilla.org", lastAccess = now).toRecoverableTab(),
+            createTab("content://mozilla.org", lastAccess = now).toRecoverableTab(),
+            createTab("content://getpocket.com", lastAccess = now).toRecoverableTab(),
+        )
+
+        val sessionStorage: SessionStorage = mock()
+        useCases.restore(sessionStorage, tabTimeoutInMs = DAY_IN_MS)
+
+        val predicateCaptor = argumentCaptor<(RecoverableTab) -> Boolean>()
+        verify(sessionStorage).restore(predicateCaptor.capture())
+
+        // Only the non-content uri tab should be restored
+        val restoredTabs = tabs.filter(predicateCaptor.value)
+        assertEquals(1, restoredTabs.size)
+        assertEquals(tabs.first(), restoredTabs.first())
+    }
+
+    @Test
     fun `selectOrAddTab selects already existing tab`() {
         val tab = createTab("https://mozilla.org")
         val otherTab = createTab("https://firefox.com")
