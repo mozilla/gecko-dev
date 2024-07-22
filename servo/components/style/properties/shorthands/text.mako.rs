@@ -6,23 +6,22 @@
 
 <%helpers:shorthand name="text-decoration"
                     engines="gecko servo"
-                    sub_properties="text-decoration-line
-                    ${' text-decoration-style text-decoration-color text-decoration-thickness' if engine == 'gecko' else ''}"
+                    sub_properties="text-decoration-color text-decoration-line text-decoration-style
+                    ${' text-decoration-thickness' if engine == 'gecko' else ''}"
                     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration">
+    use crate::properties::longhands::{text_decoration_color, text_decoration_line, text_decoration_style};
+
     % if engine == "gecko":
-        use crate::values::specified;
-        use crate::properties::longhands::{text_decoration_style, text_decoration_color, text_decoration_thickness};
+        use crate::properties::longhands::text_decoration_thickness;
     % endif
-    use crate::properties::longhands::text_decoration_line;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
+        let (mut line, mut style, mut color, mut any) = (None, None, None, false);
         % if engine == "gecko":
-            let (mut line, mut style, mut color, mut thickness, mut any) = (None, None, None, None, false);
-        % else:
-            let (mut line, mut any) = (None, false);
+            let mut thickness = None;
         % endif
 
         loop {
@@ -39,10 +38,10 @@
             }
 
             parse_component!(line, text_decoration_line);
+            parse_component!(style, text_decoration_style);
+            parse_component!(color, text_decoration_color);
 
             % if engine == "gecko":
-                parse_component!(style, text_decoration_style);
-                parse_component!(color, text_decoration_color);
                 parse_component!(thickness, text_decoration_thickness);
             % endif
 
@@ -55,10 +54,10 @@
 
         Ok(expanded! {
             text_decoration_line: unwrap_or_initial!(text_decoration_line, line),
+            text_decoration_style: unwrap_or_initial!(text_decoration_style, style),
+            text_decoration_color: unwrap_or_initial!(text_decoration_color, color),
 
             % if engine == "gecko":
-                text_decoration_style: unwrap_or_initial!(text_decoration_style, style),
-                text_decoration_color: unwrap_or_initial!(text_decoration_color, color),
                 text_decoration_thickness: unwrap_or_initial!(text_decoration_thickness, thickness),
             % endif
         })
@@ -68,17 +67,20 @@
         #[allow(unused)]
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             use crate::values::specified::TextDecorationLine;
+            use crate::values::specified::Color;
 
-            let (is_solid_style, is_current_color, is_auto_thickness) =
+            let (is_solid_style, is_current_color) =
             (
-            % if engine == "gecko":
                 *self.text_decoration_style == text_decoration_style::SpecifiedValue::Solid,
-                *self.text_decoration_color == specified::Color::CurrentColor,
-                self.text_decoration_thickness.is_auto()
-            % else:
-                true, true, true
-            % endif
+                *self.text_decoration_color == Color::CurrentColor,
             );
+
+            % if engine == "gecko":
+                let is_auto_thickness = self.text_decoration_thickness.is_auto();
+            % else:
+                let is_auto_thickness = true;
+            % endif
+
 
             let mut has_value = false;
             let is_none = *self.text_decoration_line == TextDecorationLine::none();
@@ -87,6 +89,7 @@
                 has_value = true;
             }
 
+            % if engine == "gecko":
             if !is_auto_thickness {
                 if has_value {
                     dest.write_char(' ')?;
@@ -94,8 +97,8 @@
                 self.text_decoration_thickness.to_css(dest)?;
                 has_value = true;
             }
+            % endif
 
-            % if engine == "gecko":
             if !is_solid_style {
                 if has_value {
                     dest.write_char(' ')?;
@@ -111,7 +114,6 @@
                 self.text_decoration_color.to_css(dest)?;
                 has_value = true;
             }
-            % endif
 
             Ok(())
         }

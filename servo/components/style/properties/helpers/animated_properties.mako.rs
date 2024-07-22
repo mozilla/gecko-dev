@@ -678,7 +678,7 @@ impl Animate for AnimatedFilter {
     ) -> Result<Self, ()> {
         use crate::values::animated::animate_multiplicative_factor;
         match (self, other) {
-            % for func in ['Blur', 'Grayscale', 'HueRotate', 'Invert', 'Sepia']:
+            % for func in ['Blur', 'DropShadow', 'Grayscale', 'HueRotate', 'Invert', 'Sepia']:
             (&Filter::${func}(ref this), &Filter::${func}(ref other)) => {
                 Ok(Filter::${func}(this.animate(other, procedure)?))
             },
@@ -688,11 +688,6 @@ impl Animate for AnimatedFilter {
                 Ok(Filter::${func}(animate_multiplicative_factor(this, other, procedure)?))
             },
             % endfor
-            % if engine == "gecko":
-            (&Filter::DropShadow(ref this), &Filter::DropShadow(ref other)) => {
-                Ok(Filter::DropShadow(this.animate(other, procedure)?))
-            },
-            % endif
             _ => Err(()),
         }
     }
@@ -702,15 +697,12 @@ impl Animate for AnimatedFilter {
 impl ToAnimatedZero for AnimatedFilter {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         match *self {
-            % for func in ['Blur', 'Grayscale', 'HueRotate', 'Invert', 'Sepia']:
+            % for func in ['Blur', 'DropShadow', 'Grayscale', 'HueRotate', 'Invert', 'Sepia']:
             Filter::${func}(ref this) => Ok(Filter::${func}(this.to_animated_zero()?)),
             % endfor
             % for func in ['Brightness', 'Contrast', 'Opacity', 'Saturate']:
             Filter::${func}(_) => Ok(Filter::${func}(1.)),
             % endfor
-            % if engine == "gecko":
-            Filter::DropShadow(ref this) => Ok(Filter::DropShadow(this.to_animated_zero()?)),
-            % endif
             _ => Err(()),
         }
     }
