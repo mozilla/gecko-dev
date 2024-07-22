@@ -375,7 +375,8 @@ TextureData* TextureData::Create(TextureForwarder* aAllocator,
   if (aAllocFlags & ALLOC_FORCE_REMOTE) {
     RefPtr<CanvasChild> canvasChild = aAllocator->GetCanvasChild();
     if (canvasChild) {
-      TextureType webglTextureType = TexTypeForWebgl(aKnowsCompositor);
+      TextureType webglTextureType =
+          TexTypeForWebgl(aKnowsCompositor, /* aIsWebglOop */ true);
       if (canvasChild->EnsureRecorder(aSize, aFormat, textureType,
                                       webglTextureType)) {
         return new RecordedTextureData(canvasChild.forget(), aSize, aFormat,

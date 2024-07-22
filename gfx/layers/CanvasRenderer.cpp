@@ -87,7 +87,8 @@ void CanvasRenderer::FireDidTransactionCallback() const {
   context->OnDidPaintTransaction();
 }
 
-TextureType TexTypeForWebgl(KnowsCompositor* const knowsCompositor) {
+TextureType TexTypeForWebgl(KnowsCompositor* const knowsCompositor,
+                            bool aIsWebglOop) {
   if (!knowsCompositor) return TextureType::Unknown;
   const auto layersBackend = knowsCompositor->GetCompositorBackendType();
 
@@ -121,6 +122,11 @@ TextureType TexTypeForWebgl(KnowsCompositor* const knowsCompositor) {
 #endif
 
   if (kIsAndroid) {
+    // EGLimages cannot be shared cross-process, so only use if webgl is
+    // out-of-process.
+    if (aIsWebglOop && StaticPrefs::webgl_enable_egl_image()) {
+      return TextureType::EGLImage;
+    }
     if (gfx::gfxVars::UseAHardwareBufferSharedSurfaceWebglOop()) {
       return TextureType::AndroidHardwareBuffer;
     }

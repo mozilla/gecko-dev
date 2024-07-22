@@ -468,7 +468,8 @@ void ClientWebGLContext::EndComposition() {
 layers::TextureType ClientWebGLContext::GetTexTypeForSwapChain() const {
   const RefPtr<layers::ImageBridgeChild> imageBridge =
       layers::ImageBridgeChild::GetSingleton();
-  return layers::TexTypeForWebgl(imageBridge);
+  return layers::TexTypeForWebgl(imageBridge,
+                                 mNotLost->outOfProcess != nullptr);
 }
 
 void ClientWebGLContext::Present(WebGLFramebufferJS* const xrFb,

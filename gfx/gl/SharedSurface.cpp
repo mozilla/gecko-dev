@@ -14,6 +14,7 @@
 #include "ScopedGLHelpers.h"
 #include "SharedSurfaceGL.h"
 #include "SharedSurfaceEGL.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/TextureClientSharedSurface.h"
@@ -125,7 +126,10 @@ UniquePtr<SurfaceFactory> SurfaceFactory::Create(
 
     case layers::TextureType::EGLImage:
 #ifdef MOZ_WIDGET_ANDROID
-      if (XRE_IsParentProcess()) {
+      // EGLImages cannot be shared cross-process, so only create them if we are
+      // in the process that will consume them.
+      if ((XRE_IsParentProcess() && !gfx::gfxVars::GPUProcessEnabled()) ||
+          XRE_IsGPUProcess()) {
         return SurfaceFactory_EGLImage::Create(gl);
       }
 #endif
