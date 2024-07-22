@@ -6492,7 +6492,7 @@ class BaseAssembler : public GenericAssembler {
       m_buffer.putByteUnchecked(opcode);
     }
 
-    AssemblerBuffer m_buffer;
+    x86_shared::AssemblerBuffer m_buffer;
   } m_formatter;
 
   bool useVEX_;
