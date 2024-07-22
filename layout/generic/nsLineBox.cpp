@@ -222,7 +222,7 @@ void nsLineBox::List(FILE* out, const char* aPrefix,
       StyleClearToString(FloatClearTypeAfter()));
 
   if (IsBlock() && !GetCarriedOutBEndMargin().IsZero()) {
-    const nscoord bm = GetCarriedOutBEndMargin().get();
+    const nscoord bm = GetCarriedOutBEndMargin().Get();
     str += nsPrintfCString("bm=%s ",
                            nsIFrame::ConvertToString(bm, aFlags).c_str());
   }
@@ -409,13 +409,13 @@ bool nsLineBox::RFindLineContaining(nsIFrame* aFrame,
   return false;
 }
 
-nsCollapsingMargin nsLineBox::GetCarriedOutBEndMargin() const {
+CollapsingMargin nsLineBox::GetCarriedOutBEndMargin() const {
   NS_ASSERTION(IsBlock(), "GetCarriedOutBEndMargin called on non-block line.");
   return (IsBlock() && mBlockData) ? mBlockData->mCarriedOutBEndMargin
-                                   : nsCollapsingMargin();
+                                   : CollapsingMargin();
 }
 
-bool nsLineBox::SetCarriedOutBEndMargin(nsCollapsingMargin aValue) {
+bool nsLineBox::SetCarriedOutBEndMargin(CollapsingMargin aValue) {
   bool changed = false;
   if (IsBlock()) {
     if (!aValue.IsZero()) {
