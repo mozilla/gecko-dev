@@ -39279,6 +39279,9 @@ Please specify the "importAttributesKeyword" generator option, whose value can b
       }
 
       if (libExports$2.isThisExpression(node)) {
+        if (expression.startsWith("[")) {
+          return `this${expression}`;
+        }
         return `this.${expression}`;
       }
 

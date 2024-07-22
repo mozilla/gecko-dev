@@ -75,6 +75,35 @@ add_task(async function () {
     { line: 84, column: 16, expression: "boom", result: `0` },
   ]);
 
+  await testPreviews(dbg, "thisProperties", [
+    { line: 96, column: 13, expression: "myProperty", result: "Object" },
+    { line: 96, column: 23, expression: "x", result: "this-myProperty-x" },
+    {
+      line: 98,
+      column: 13,
+      expression: "propertyName",
+      result: "myProperty",
+    },
+    {
+      line: 98,
+      column: 26,
+      expression: "y",
+      result: "this-myProperty-y",
+    },
+    {
+      line: 99,
+      column: 14,
+      expression: "propertyName",
+      result: "myProperty",
+    },
+    {
+      line: 99,
+      column: 28,
+      expression: "z",
+      result: "this-myProperty-z",
+    },
+  ]);
+
   await testHoveringInvalidTargetTokens(dbg);
 
   info(

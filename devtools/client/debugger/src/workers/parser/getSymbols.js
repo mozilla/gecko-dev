@@ -188,6 +188,9 @@ function getMemberSnippet(node, expression = "", optional = false) {
   }
 
   if (t.isThisExpression(node)) {
+    if (expression.startsWith("[")) {
+      return `this${expression}`;
+    }
     return `this.${expression}`;
   }
 
