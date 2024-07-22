@@ -16173,7 +16173,11 @@
 
 - name: webgl.1.request_es2
   type: RelaxedAtomicBool
+#ifdef XP_WIN
+  value: false
+#else
   value: true
+#endif
   mirror: always
 
 - name: webgl.angle.force-d3d11
