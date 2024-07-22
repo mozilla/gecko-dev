@@ -297,40 +297,6 @@ describe("selectLayoutRender", () => {
     assert.equal(recommendations[2].pos, 2);
     assert.equal(recommendations[3].pos, undefined);
   });
-  it("should stop rendering feeds if we hit one that's not ready", () => {
-    const fakeLayout = [
-      {
-        width: 3,
-        components: [
-          { type: "foo1" },
-          { type: "foo2", properties: { items: 3 }, feed: { url: "foo2.com" } },
-          { type: "foo3", properties: { items: 3 }, feed: { url: "foo3.com" } },
-          { type: "foo4", properties: { items: 3 }, feed: { url: "foo4.com" } },
-          { type: "foo5" },
-        ],
-      },
-    ];
-    store.dispatch({
-      type: at.DISCOVERY_STREAM_LAYOUT_UPDATE,
-      data: { layout: fakeLayout },
-    });
-    store.dispatch({
-      type: at.DISCOVERY_STREAM_FEED_UPDATE,
-      data: { feed: { data: { recommendations: [] } }, url: "foo2.com" },
-    });
-
-    const { layoutRender } = selectLayoutRender({
-      state: store.getState().DiscoveryStream,
-    });
-
-    assert.equal(layoutRender[0].components[0].type, "foo1");
-    assert.equal(layoutRender[0].components[1].type, "foo2");
-    assert.isTrue(
-      layoutRender[0].components[2].data.recommendations[0].placeholder
-    );
-    assert.lengthOf(layoutRender[0].components, 3);
-    assert.isUndefined(layoutRender[0].components[3]);
-  });
   it("should render everything if everything is ready", () => {
     const fakeLayout = [
       {

@@ -3,18 +3,10 @@ $col4-header-font-size: 14;
 
 .ds-onboarding-container,
 .ds-card-grid .ds-card {
-  @include dark-theme-only {
-    background: none;
-  }
-
-  background: $white;
+  background: var(--newtab-background-color-secondary);
   border-radius: 4px;
 
   &:not(.placeholder) {
-    @include dark-theme-only {
-      background: var(--newtab-background-color-secondary);
-    }
-
     border-radius: $border-radius-new;
     box-shadow: $shadow-card;
 
