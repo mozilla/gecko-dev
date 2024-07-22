@@ -314,13 +314,13 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         onTabAutoCloseBannerViewOptionsClick = {
                             navigationInteractor.onTabSettingsClicked()
                             requireContext().settings().shouldShowAutoCloseTabsBanner = false
+                            requireContext().settings().lastCfrShownTimeInMillis = System.currentTimeMillis()
                         },
                         onTabAutoCloseBannerDismiss = {
                             requireContext().settings().shouldShowAutoCloseTabsBanner = false
-                        },
-                        onTabAutoCloseBannerShown = {
                             requireContext().settings().lastCfrShownTimeInMillis = System.currentTimeMillis()
                         },
+                        onTabAutoCloseBannerShown = {},
                         onMove = tabsTrayInteractor::onTabsMove,
                         shouldShowInactiveTabsCFR = {
                             requireContext().settings().shouldShowInactiveTabsOnboardingPopup &&
@@ -331,12 +331,14 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         },
                         onInactiveTabsCFRClick = {
                             requireContext().settings().shouldShowInactiveTabsOnboardingPopup = false
+                            requireContext().settings().lastCfrShownTimeInMillis = System.currentTimeMillis()
                             navigationInteractor.onTabSettingsClicked()
                             TabsTray.inactiveTabsCfrSettings.record(NoExtras())
                             onTabsTrayDismissed()
                         },
                         onInactiveTabsCFRDismiss = {
                             requireContext().settings().shouldShowInactiveTabsOnboardingPopup = false
+                            requireContext().settings().lastCfrShownTimeInMillis = System.currentTimeMillis()
                             TabsTray.inactiveTabsCfrDismissed.record(NoExtras())
                         },
                     )
