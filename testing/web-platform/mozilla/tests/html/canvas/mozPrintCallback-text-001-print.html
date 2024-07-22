@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1908969">
+<link rel="match" href="mozPrintCallback-text-001-print-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  canvas {
+    background: yellow;
+  }
+</style>
+<canvas id="myCanvas" width="80" height="80"></canvas>
+<script>
+  myCanvas.mozPrintCallback = function (obj) {
+    let ctx = obj.context;
+    ctx.font = "60px Ahem";
+    // Draw the glyph using 'actualBoundingBoxAscent' as the y-position so that
+    // its top-edge is flush with the top of the canvas.  (This makes it easier
+    // to position the glyph consistently between this testcase and the
+    // reference case.)
+    let yPos = ctx.measureText("X").actualBoundingBoxAscent;
+    ctx.fillText("X", 0, yPos);
+    obj.done();
+  }
+</script>
