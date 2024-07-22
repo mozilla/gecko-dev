@@ -24,6 +24,7 @@ import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.databinding.FragmentHomeBinding
+import org.mozilla.fenix.ext.increaseTapAreaVertically
 import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.toolbar.ToolbarInteractor
@@ -75,6 +76,8 @@ class ToolbarView(
             )
             true
         }
+
+        binding.toolbarWrapper.increaseTapAreaVertically(TOOLBAR_WRAPPER_INCREASE_HEIGHT_DPS)
 
         updateButtonVisibility()
     }
@@ -213,5 +216,9 @@ class ToolbarView(
                 this.marginEnd = marginEnd
             }
         }
+    }
+
+    companion object {
+        const val TOOLBAR_WRAPPER_INCREASE_HEIGHT_DPS = 4
     }
 }
