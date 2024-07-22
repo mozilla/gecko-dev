@@ -3,6 +3,10 @@
 
 "use strict";
 
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
+
 /// <reference path="head.js" />
 
 requestLongerTimeout(2);
@@ -142,9 +146,14 @@ add_task(async function test_ml_engine_model_error() {
     "The error is correctly surfaced."
   );
 
+  // verify that terminating the engine eventually calls discardPort
+  let spy = sinon.spy(summarizer, "discardPort");
+
   summarizer.terminate();
 
   await cleanup();
+
+  is(spy.calledOnce, true, "The discardPort method was called once.");
 });
 
 /**

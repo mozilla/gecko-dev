@@ -29,7 +29,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
   return console.createInstance({
     maxLogLevelPref: "browser.ml.logLevel",
-    prefix: "ML",
+    prefix: "ML:EngineChild",
   });
 });
 
@@ -136,8 +136,8 @@ export class MLEngineChild extends JSWindowActorChild {
  * to it.
  */
 class EngineDispatcher {
-  /** @type {Set<MessagePort>} */
-  #ports = new Set();
+  /** @type {MessagePort | null} */
+  #port = null;
 
   /** @type {TimeoutID | null} */
   #keepAliveTimeout = null;
@@ -209,7 +209,7 @@ class EngineDispatcher {
         }
       });
 
-    this.setupMessageHandler(port);
+    this.#setupMessageHandler(port);
   }
 
   handleInitProgressStatus(port, notificationsData) {
@@ -252,12 +252,13 @@ class EngineDispatcher {
   /**
    * @param {MessagePort} port
    */
-  setupMessageHandler(port) {
+  #setupMessageHandler(port) {
+    this.#port = port;
     port.onmessage = async ({ data }) => {
       switch (data.type) {
         case "EnginePort:Discard": {
           port.close();
-          this.#ports.delete(port);
+          this.#port = null;
           break;
         }
         case "EnginePort:Terminate": {
@@ -333,11 +334,10 @@ class EngineDispatcher {
       lazy.clearTimeout(this.#keepAliveTimeout);
       this.#keepAliveTimeout = null;
     }
-    for (const port of this.#ports) {
-      port.postMessage({ type: "EnginePort:EngineTerminated" });
-      port.close();
+    if (this.#port) {
+      // This call will trigger back an EnginePort:Discard that will close the port
+      this.#port.postMessage({ type: "EnginePort:EngineTerminated" });
     }
-    this.#ports = new Set();
     this.mlEngineChild.removeEngine(this.#taskName);
     try {
       const engine = await this.#engine;

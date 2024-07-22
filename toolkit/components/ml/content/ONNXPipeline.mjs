@@ -29,7 +29,7 @@ let _logLevel = "Error";
 
 function debug(...args) {
   if (["Debug", "Trace", "All"].includes(_logLevel)) {
-    console.log("ML:", ...args); // eslint-disable-line no-console
+    console.log("ML:ONNXPipeline", ...args); // eslint-disable-line no-console
   }
 }
 
