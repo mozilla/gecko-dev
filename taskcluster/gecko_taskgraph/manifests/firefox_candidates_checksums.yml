@@ -26,6 +26,7 @@
 # `destinations`          -- final list of directories where to push the artifacts in S3
 # `pretty_name`           -- the final name the artifact will have at destination
 # `checksums_path`        -- the name to identify one artifact within the checksums file
+# `expiry`                -- setting for expiring this file (GCS custom_time). ie: 1 year
 # `not_for_platforms`     -- filtering option to avoid associating an artifact with a specific platform
 # `only_for_platforms`    -- filtering option to exclusively include the association of an artifact for a specific platform
 # `partials_only`         -- filtering option to avoid associating an artifact unless this flag is present
@@ -77,6 +78,7 @@ default: &default
     source_path_modifier: ''
     destinations:
         - ${version}-candidates/build${build_number}/beetmover-checksums/${path_platform}
+    expiry: "1 year"
 
 mapping:
     target.checksums:

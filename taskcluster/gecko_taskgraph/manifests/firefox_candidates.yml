@@ -26,6 +26,7 @@
 # `destinations`          -- final list of directories where to push the artifacts in S3
 # `pretty_name`           -- the final name the artifact will have at destination
 # `checksums_path`        -- the name to identify one artifact within the checksums file
+# `expiry`                -- setting for expiring this file (GCS custom_time). ie: 1 year
 # `not_for_platforms`     -- filtering option to avoid associating an artifact with a specific platform
 # `only_for_platforms`    -- filtering option to exclusively include the association of an artifact for a specific platform
 # `partials_only`         -- filtering option to avoid associating an artifact unless this flag is present
@@ -135,16 +136,19 @@ mapping:
         description: "Crashreporter symbols to be consumed by Socorro"
         pretty_name: firefox-${version}.crashreporter-symbols.zip
         checksums_path: ${path_platform}/${locale}/firefox-${version}.crashreporter-symbols.zip
+        expiry: "1 year"
     target.json:
         <<: *default
         description: "Various compile and moz_app flags baked together in a json file"
         pretty_name: firefox-${version}.json
         checksums_path: ${path_platform}/${locale}/firefox-${version}.json
+        expiry: "1 year"
     target.mozinfo.json:
         <<: *default
         description: "Various compile and moz_app flags baked together in a json file"
         pretty_name: firefox-${version}.mozinfo.json
         checksums_path: ${path_platform}/${locale}/firefox-${version}.mozinfo.json
+        expiry: "1 year"
     target_info.txt:
         <<: *default
         description: "File containing the buildID"
@@ -158,6 +162,7 @@ mapping:
         description: "File containing the mozharness set of scripts and configuration used by various automation tools"
         pretty_name: mozharness.zip
         checksums_path: ${path_platform}/${locale}/mozharness.zip
+        expiry: "1 year"
     target.jsshell.zip:
         <<: *default
         description: "Set of shells to allow test snippets of Javascript code without needing to reload the page"
@@ -166,6 +171,7 @@ mapping:
         checksums_path: jsshell/jsshell-${path_platform}.zip
         destinations:
             - ${version}-candidates/build${build_number}/jsshell
+        expiry: "1 year"
     target.langpack.xpi:
         <<: *default
         all_locales: true
@@ -185,6 +191,7 @@ mapping:
         checksums_path: ${path_platform}/xpi/${locale}.xpi
         destinations:
             - ${version}-candidates/build${build_number}/${path_platform}/xpi
+        expiry: "1 year"
     target.langpack.deb:
         <<: *default
         all_locales: true
@@ -202,6 +209,7 @@ mapping:
         destinations:
             - ${version}-candidates/build${build_number}/${path_platform}/deb-l10n
         update_balrog_manifest: false
+        expiry: "1 year"
     mar:
         <<: *default
         description: "Alongside `mbsdiff`, a tool used to generate partials"
@@ -218,6 +226,7 @@ mapping:
             - win64-aarch64-devedition
         destinations:
             - ${version}-candidates/build${build_number}/mar-tools
+        expiry: "1 year"
     mbsdiff:
         <<: *default
         description: "Alongside `mar`, a tool used to generate partials"
@@ -234,6 +243,7 @@ mapping:
             - win64-aarch64-devedition
         destinations:
             - ${version}-candidates/build${build_number}/mar-tools
+        expiry: "1 year"
     target.tar.bz2:
         <<: *default
         description: "Main installer for Linux platforms"
@@ -247,6 +257,7 @@ mapping:
             - linux64-devedition
         pretty_name: firefox-${version}.tar.bz2
         checksums_path: ${path_platform}/${locale}/firefox-${version}.tar.bz2
+        expiry: "1 year"
     target.tar.bz2.asc:
         <<: *default
         description: "Detached signature for the checksums file"
@@ -260,6 +271,7 @@ mapping:
             - linux64-devedition
         pretty_name: firefox-${version}.tar.bz2.asc
         checksums_path: ${path_platform}/${locale}/firefox-${version}.tar.bz2.asc
+        expiry: "1 year"
     target.pkg:
         <<: *default
         description: "Main package installer for Mac OS X platforms"
@@ -270,6 +282,7 @@ mapping:
             - macosx64-shippable
         pretty_name: Firefox ${version}.pkg
         checksums_path: ${path_platform}/${locale}/Firefox ${version}.pkg
+        expiry: "1 year"
     target.dmg:
         <<: *default
         description: "Main package disk image for Mac OS X platforms"
@@ -284,6 +297,7 @@ mapping:
             - macosx64-devedition
         pretty_name: Firefox ${version}.dmg
         checksums_path: ${path_platform}/${locale}/Firefox ${version}.dmg
+        expiry: "1 year"
     target.zip:
         <<: *default
         description: "Main package installer for Windows platforms"
@@ -299,6 +313,7 @@ mapping:
             - win64-aarch64-devedition
         pretty_name: firefox-${version}.zip
         checksums_path: ${path_platform}/${locale}/firefox-${version}.zip
+        expiry: "1 year"
     target.installer.exe:
         <<: *default
         description: "Main installer for Windows platforms"
@@ -316,6 +331,7 @@ mapping:
             - win64-aarch64-devedition
         pretty_name: Firefox Setup ${version}.exe
         checksums_path: ${path_platform}/${locale}/Firefox Setup ${version}.exe
+        expiry: "1 year"
     target.stub-installer.exe:
         <<: *default
         description: "Stub installer for Win32 platforms"
@@ -329,6 +345,7 @@ mapping:
             - win32-devedition
         pretty_name: Firefox Installer.exe
         checksums_path: ${path_platform}/${locale}/Firefox Installer.exe
+        expiry: "1 year"
     target.installer.msi:
         <<: *default
         description: "Windows installer for MSI platform"
@@ -342,6 +359,7 @@ mapping:
             - win32-devedition
         pretty_name: Firefox Setup ${version}.msi
         checksums_path: ${path_platform}/${locale}/Firefox Setup ${version}.msi
+        expiry: "1 year"
     target.installer.msix:
         <<: *default
         description: "Windows MSIX installer"
@@ -357,6 +375,7 @@ mapping:
         locale_prefix: 'multi/'
         pretty_name: Firefox Setup ${version}.msix
         checksums_path: ${path_platform}/multi/Firefox Setup ${version}.msix
+        expiry: "1 year"
     target.complete.mar:
         <<: *default
         description: "Complete MAR to serve as updates"
@@ -368,6 +387,7 @@ mapping:
         update_balrog_manifest: true
         destinations:
             - ${version}-candidates/build${build_number}/update/${path_platform}
+        expiry: "1 year"
     target.deb:
         <<: *default
         description: "Firefox as a .deb package"
@@ -381,6 +401,7 @@ mapping:
         from:
             - repackage-deb
         update_balrog_manifest: false
+        expiry: "1 year"
     ${partial}:
         <<: *default
         description: "Partials MAR files to serve as updates"
@@ -394,3 +415,4 @@ mapping:
         from_buildid: ${from_buildid}
         destinations:
             - ${version}-candidates/build${build_number}/update/${path_platform}
+        expiry: "1 year"
