@@ -2598,7 +2598,9 @@ nsresult nsHttpChannel::ContinueProcessResponse1() {
   // handle unused username and password in url (see bug 232567)
   if (httpStatus != 401 && httpStatus != 407) {
     if (!mAuthRetryPending) {
-      rv = mAuthProvider->CheckForSuperfluousAuth();
+      MOZ_DIAGNOSTIC_ASSERT(mAuthProvider);
+      rv = mAuthProvider ? mAuthProvider->CheckForSuperfluousAuth()
+                         : NS_ERROR_UNEXPECTED;
       if (NS_FAILED(rv)) {
         mStatus = rv;
         LOG(("  CheckForSuperfluousAuth failed (%08x)",
@@ -2609,7 +2611,9 @@ nsresult nsHttpChannel::ContinueProcessResponse1() {
 
     // reset the authentication's current continuation state because ourvr
     // last authentication attempt has been completed successfully
-    rv = mAuthProvider->Disconnect(NS_ERROR_ABORT);
+    MOZ_DIAGNOSTIC_ASSERT(mAuthProvider);
+    rv = mAuthProvider ? mAuthProvider->Disconnect(NS_ERROR_ABORT)
+                       : NS_ERROR_UNEXPECTED;
     if (NS_FAILED(rv)) {
       LOG(("  Disconnect failed (%08x)", static_cast<uint32_t>(rv)));
     }
@@ -2770,6 +2774,11 @@ nsresult nsHttpChannel::ContinueProcessResponse3(nsresult rv) {
         // authenticate to the proxy again, so reuse either cached credentials
         // or use default credentials for NTLM/Negotiate.  This prevents
         // considering the previously used credentials as invalid.
+        MOZ_DIAGNOSTIC_ASSERT(mAuthProvider);
+        if (!mAuthProvider) {
+          mStatus = NS_ERROR_UNEXPECTED;
+          return ProcessNormal();
+        }
         mAuthProvider->ClearProxyIdent();
       }
       if (!LoadAuthRedirectedChannel() &&
@@ -2787,9 +2796,13 @@ nsresult nsHttpChannel::ContinueProcessResponse3(nsresult rv) {
         // Do not prompt http auth - Bug 1629307
         rv = NS_ERROR_FAILURE;
       } else {
-        rv = mAuthProvider->ProcessAuthentication(
-            httpStatus, mConnectionInfo->EndToEndSSL() && mTransaction &&
-                            mTransaction->ProxyConnectFailed());
+        MOZ_DIAGNOSTIC_ASSERT(mAuthProvider);
+        rv = mAuthProvider
+                 ? mAuthProvider->ProcessAuthentication(
+                       httpStatus, mConnectionInfo->EndToEndSSL() &&
+                                       mTransaction &&
+                                       mTransaction->ProxyConnectFailed())
+                 : NS_ERROR_UNEXPECTED;
       }
       if (rv == NS_ERROR_IN_PROGRESS) {
         // authentication prompt has been invoked and result
@@ -2822,7 +2835,9 @@ nsresult nsHttpChannel::ContinueProcessResponse3(nsresult rv) {
           return ProcessFailedProxyConnect(httpStatus);
         }
         if (!mAuthRetryPending) {
-          rv = mAuthProvider->CheckForSuperfluousAuth();
+          MOZ_DIAGNOSTIC_ASSERT(mAuthProvider);
+          rv = mAuthProvider ? mAuthProvider->CheckForSuperfluousAuth()
+                             : NS_ERROR_UNEXPECTED;
           if (NS_FAILED(rv)) {
             mStatus = rv;
             LOG(("CheckForSuperfluousAuth failed [rv=%x]\n",
