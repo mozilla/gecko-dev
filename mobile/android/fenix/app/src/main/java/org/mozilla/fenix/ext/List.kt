@@ -6,7 +6,7 @@ package org.mozilla.fenix.ext
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
-import org.mozilla.fenix.library.downloads.DownloadItem
+import org.mozilla.fenix.downloads.listscreen.DownloadItem
 import java.io.File
 
 /**

@@ -10,7 +10,7 @@ import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
-import org.mozilla.fenix.library.downloads.DownloadItem
+import org.mozilla.fenix.downloads.listscreen.DownloadItem
 import java.io.File
 
 class ListTest {

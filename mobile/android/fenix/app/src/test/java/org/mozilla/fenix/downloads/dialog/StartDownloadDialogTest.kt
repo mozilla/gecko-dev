@@ -1,8 +1,4 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-package org.mozilla.fenix.downloads
+package org.mozilla.fenix.downloads.dialog
 
 import android.app.Activity
 import android.content.Context
@@ -17,9 +13,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,7 +39,10 @@ class StartDownloadDialogTest {
         }
         val dialog = TestDownloadDialog(activity)
 
-        mockkStatic("mozilla.components.support.ktx.android.view.WindowKt", "org.mozilla.fenix.ext.ContextKt") {
+        mockkStatic(
+            "mozilla.components.support.ktx.android.view.WindowKt",
+            "org.mozilla.fenix.ext.ContextKt",
+        ) {
             every { any<Context>().settings() } returns mockk(relaxed = true)
             every { any<Context>().components } returns mockk(relaxed = true)
             val fluentDialog = dialog.show(dialogContainer)
@@ -89,16 +88,22 @@ class StartDownloadDialogTest {
             it.layoutParams = CoordinatorLayout.LayoutParams(0, 0)
         }
         val dialog = TestDownloadDialog(activity)
-        mockkStatic("mozilla.components.support.ktx.android.view.WindowKt", "org.mozilla.fenix.ext.ContextKt") {
+        mockkStatic(
+            "mozilla.components.support.ktx.android.view.WindowKt",
+            "org.mozilla.fenix.ext.ContextKt",
+        ) {
             every { any<Context>().settings() } returns mockk(relaxed = true)
             every { any<Context>().components } returns mockk(relaxed = true)
             dialog.show(dialogContainer)
-            dialog.binding = StartDownloadDialogLayoutBinding
-                .inflate(LayoutInflater.from(activity), dialogContainer, true)
+            dialog.binding = StartDownloadDialogLayoutBinding.inflate(
+                LayoutInflater.from(activity),
+                dialogContainer,
+                true,
+            )
 
             dialog.dismiss()
 
-            assertNull(dialogParent.children.firstOrNull { it.id == R.id.scrim })
+            Assert.assertNull(dialogParent.children.firstOrNull { it.id == R.id.scrim })
             assertTrue(dialogParent.childCount == 1)
             assertTrue(dialogContainer.childCount == 0)
             assertFalse(dialogContainer.isVisible)
@@ -122,7 +127,10 @@ class StartDownloadDialogTest {
 
         dialog.enableSiblingsAccessibility(dialogParent)
 
-        assertEquals(listOf(otherView), dialogParent.children.filter { it.isImportantForAccessibility }.toList())
+        assertEquals(
+            listOf(otherView),
+            dialogParent.children.filter { it.isImportantForAccessibility }.toList(),
+        )
     }
 
     @Test
@@ -142,7 +150,10 @@ class StartDownloadDialogTest {
 
         dialog.disableSiblingsAccessibility(dialogParent)
 
-        assertEquals(listOf(dialogContainer), dialogParent.children.filter { it.isImportantForAccessibility }.toList())
+        assertEquals(
+            listOf(dialogContainer),
+            dialogParent.children.filter { it.isImportantForAccessibility }.toList(),
+        )
     }
 
     @Test
@@ -173,7 +184,10 @@ class StartDownloadDialogTest {
 
             every { settings.accessibilityServicesEnabled } returns true
             dialog.show(dialogContainer)
-            assertEquals(listOf(dialogContainer), dialogParent.children.filter { it.isImportantForAccessibility }.toList())
+            assertEquals(
+                listOf(dialogContainer),
+                dialogParent.children.filter { it.isImportantForAccessibility }.toList(),
+            )
         }
     }
 
@@ -199,14 +213,18 @@ class StartDownloadDialogTest {
             every { any<Context>().components } returns mockk(relaxed = true)
             val dialog = TestDownloadDialog(activity)
             dialog.show(dialogContainer)
-            dialog.binding = StartDownloadDialogLayoutBinding
-                .inflate(LayoutInflater.from(activity), dialogContainer, true)
+            dialog.binding = StartDownloadDialogLayoutBinding.inflate(
+                LayoutInflater.from(activity),
+                dialogContainer,
+                true,
+            )
 
             dialog.dismiss()
 
             assertEquals(
                 listOf(accessibleView),
-                dialogParent.children.filter { it.isVisible && it.isImportantForAccessibility }.toList(),
+                dialogParent.children.filter { it.isVisible && it.isImportantForAccessibility }
+                    .toList(),
             )
         }
     }

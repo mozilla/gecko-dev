@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.library.downloads
+package org.mozilla.fenix.downloads.listscreen
 
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.lib.state.Action
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
-import org.mozilla.fenix.library.downloads.DownloadFragmentState.Mode
+import org.mozilla.fenix.downloads.listscreen.DownloadFragmentState.Mode
 
 /**
  * Class representing a downloads entry

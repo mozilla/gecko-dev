@@ -9,4 +9,4 @@
     android:id="@+id/downloadsLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="org.mozilla.fenix.library.downloads.DownloadFragment" />
+    tools:context="org.mozilla.fenix.downloads.listscreen.DownloadFragment" />

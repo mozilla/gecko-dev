@@ -36,10 +36,10 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.downloads.DownloadService
-import org.mozilla.fenix.downloads.DynamicDownloadDialog
-import org.mozilla.fenix.downloads.FirstPartyDownloadDialog
-import org.mozilla.fenix.downloads.StartDownloadDialog
-import org.mozilla.fenix.downloads.ThirdPartyDownloadDialog
+import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
+import org.mozilla.fenix.downloads.dialog.FirstPartyDownloadDialog
+import org.mozilla.fenix.downloads.dialog.StartDownloadDialog
+import org.mozilla.fenix.downloads.dialog.ThirdPartyDownloadDialog
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.requireComponents

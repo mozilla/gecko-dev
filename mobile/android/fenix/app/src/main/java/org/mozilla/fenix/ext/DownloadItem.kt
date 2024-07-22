@@ -5,7 +5,7 @@
 package org.mozilla.fenix.ext
 
 import org.mozilla.fenix.R
-import org.mozilla.fenix.library.downloads.DownloadItem
+import org.mozilla.fenix.downloads.listscreen.DownloadItem
 
 // While this looks complex, it's actually pretty simple.
 @SuppressWarnings("ComplexMethod")
