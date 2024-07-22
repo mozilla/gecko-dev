@@ -6736,6 +6736,9 @@ bool BaseCompiler::emitTableFill() {
   if (!iter_.readTableFill(&tableIndex, &nothing, &nothing, &nothing)) {
     return false;
   }
+  if (deadCode_) {
+    return true;
+  }
 
   IndexType indexType = codeMeta_.tables[tableIndex].indexType();
 
