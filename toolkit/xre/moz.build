@@ -247,6 +247,7 @@ LOCAL_INCLUDES += [
     "/dom/commandhandler",
     "/dom/ipc",
     "/dom/webbrowserpersist",
+    "/js/xpconnect/loader",
     "/testing/gtest/mozilla",
     "/toolkit/crashreporter",
     "/xpcom/build",

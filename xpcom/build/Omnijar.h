@@ -85,7 +85,8 @@ class Omnijar {
    * - a directory path, pointing to a directory containing an "omni.jar" file,
    * - nullptr for autodetection of an "omni.jar" file.
    */
-  static void Init(nsIFile* aGrePath = nullptr, nsIFile* aAppPath = nullptr);
+  static nsresult Init(nsIFile* aGrePath = nullptr,
+                       nsIFile* aAppPath = nullptr);
 
   /**
    * Initializes the Omnijar API for a child process, given its argument
@@ -161,7 +162,7 @@ class Omnijar {
   /**
    * Used internally, respectively by Init() and CleanUp()
    */
-  static void InitOne(nsIFile* aPath, Type aType);
+  static nsresult InitOne(nsIFile* aPath, Type aType);
   static void CleanUpOne(Type aType);
 }; /* class Omnijar */
 

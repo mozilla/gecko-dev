@@ -35,21 +35,20 @@ void Omnijar::CleanUpOne(Type aType) {
   sPath[aType] = nullptr;
 }
 
-void Omnijar::InitOne(nsIFile* aPath, Type aType) {
+nsresult Omnijar::InitOne(nsIFile* aPath, Type aType) {
   nsCOMPtr<nsIFile> file;
   if (aPath) {
     file = aPath;
   } else {
     nsCOMPtr<nsIFile> dir;
-    nsDirectoryService::gService->Get(SPROP(aType), NS_GET_IID(nsIFile),
-                                      getter_AddRefs(dir));
+    MOZ_TRY(nsDirectoryService::gService->Get(SPROP(aType), NS_GET_IID(nsIFile),
+                                              getter_AddRefs(dir)));
     constexpr auto kOmnijarName = nsLiteralCString{MOZ_STRINGIFY(OMNIJAR_NAME)};
-    if (NS_FAILED(dir->Clone(getter_AddRefs(file))) ||
-        NS_FAILED(file->AppendNative(kOmnijarName))) {
-      return;
-    }
+    MOZ_TRY(dir->Clone(getter_AddRefs(file)));
+    MOZ_TRY(file->AppendNative(kOmnijarName));
   }
-  bool isFile;
+
+  bool isFile = false;
   if (NS_FAILED(file->IsFile(&isFile)) || !isFile) {
     // If we're not using an omni.jar for GRE, and we don't have an
     // omni.jar for APP, check if both directories are the same.
@@ -64,31 +63,36 @@ void Omnijar::InitOne(nsIFile* aPath, Type aType) {
         sIsUnified = true;
       }
     }
-    return;
+    return NS_OK;
   }
 
+  // If we're using omni.jar on both GRE and APP and their path
+  // is the same, we're also in the unified case.
   bool equals;
   if ((aType == APP) && (sPath[GRE]) &&
       NS_SUCCEEDED(sPath[GRE]->Equals(file, &equals)) && equals) {
     // If we're using omni.jar on both GRE and APP and their path
     // is the same, we're in the unified case.
     sIsUnified = true;
-    return;
+    return NS_OK;
   }
 
   RefPtr<nsZipArchive> zipReader = nsZipArchive::OpenArchive(file);
   if (!zipReader) {
-    return;
+    // As file has been checked to exist as file above, any error indicates
+    // that it is somehow corrupted internally.
+    return NS_ERROR_FILE_CORRUPTED;
   }
 
   RefPtr<nsZipArchive> outerReader;
   RefPtr<nsZipHandle> handle;
+  // If we find a wrapped OMNIJAR, unwrap it.
   if (NS_SUCCEEDED(nsZipHandle::Init(zipReader, MOZ_STRINGIFY(OMNIJAR_NAME),
                                      getter_AddRefs(handle)))) {
     outerReader = zipReader;
     zipReader = nsZipArchive::OpenArchive(handle);
     if (!zipReader) {
-      return;
+      return NS_ERROR_FILE_CORRUPTED;
     }
   }
 
@@ -96,12 +100,22 @@ void Omnijar::InitOne(nsIFile* aPath, Type aType) {
   sReader[aType] = zipReader;
   sOuterReader[aType] = outerReader;
   sPath[aType] = file;
+
+  return NS_OK;
 }
 
-void Omnijar::Init(nsIFile* aGrePath, nsIFile* aAppPath) {
-  InitOne(aGrePath, GRE);
-  InitOne(aAppPath, APP);
+nsresult Omnijar::Init(nsIFile* aGrePath, nsIFile* aAppPath) {
+  // Even on error we do not want to come here again.
   sInitialized = true;
+
+  // Let's always try to init both before returning any error for the benefit
+  // of callers that do not handle the error at all.
+  nsresult rvGRE = InitOne(aGrePath, GRE);
+  nsresult rvAPP = InitOne(aAppPath, APP);
+  MOZ_TRY(rvGRE);
+  MOZ_TRY(rvAPP);
+
+  return NS_OK;
 }
 
 void Omnijar::CleanUp() {

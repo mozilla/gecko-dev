@@ -40,6 +40,7 @@
 #include "mozilla/glean/GleanPings.h"
 #include "mozilla/widget/TextRecognition.h"
 #include "BaseProfiler.h"
+#include "mozJSModuleLoader.h"
 
 #include "nsAppRunner.h"
 #include "mozilla/XREAppData.h"
@@ -499,7 +500,10 @@ static MOZ_FORMAT_PRINTF(2, 3) void Output(bool isError, const char* fmt, ...) {
     MultiByteToWideChar(CP_ACP, 0, msg.get(), -1, wide_msg,
                         sizeof(wide_msg) / sizeof(wchar_t));
 
-    MessageBoxW(nullptr, wide_msg, L"XULRunner", flags);
+    wchar_t wide_caption[128];
+    MultiByteToWideChar(CP_ACP, 0, gAppData ? gAppData->name : "XULRunner", -1,
+                        wide_caption, sizeof(wide_caption) / sizeof(wchar_t));
+    MessageBoxW(nullptr, wide_msg, wide_caption, flags);
   }
 #elif defined(MOZ_WIDGET_ANDROID)
   SmprintfPointer msg = mozilla::Vsmprintf(fmt, ap);
@@ -5477,6 +5481,22 @@ nsresult XREMain::XRE_mainRun() {
     // files can't override JS engine start-up prefs.
     mDirProvider.FinishInitializingUserPrefs();
 
+    // Do a canary load of a JS based module here. This will help us detect
+    // missing resources during startup and make us react appropriate, that
+    // is inform the user before exiting with a crash.
+    {
+      mozilla::dom::AutoJSAPI jsapi;
+      MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
+      JS::Rooted<JSObject*> mod(jsapi.cx());
+      // AppConstants.sys.mjs is small, widely used and most likely will
+      // never go away.
+      rv = mozJSModuleLoader::Get()->ImportESModule(
+          jsapi.cx(), "resource://gre/modules/AppConstants.sys.mjs"_ns, &mod);
+      if (NS_FAILED(rv)) {
+        return NS_ERROR_OMNIJAR_OR_DIR_MISSING;
+      }
+    }
+
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
     // Now that we have preferences and the directory provider, we can
     // finish initializing SandboxBroker. This must happen before the GFX
@@ -5967,10 +5987,41 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   mScopedXPCOM = MakeUnique<ScopedXPCOMStartup>();
 
   rv = mScopedXPCOM->Initialize(/* aInitJSContext = */ false);
+  if (rv == NS_ERROR_OMNIJAR_CORRUPT) {
+    if (XRE_IsParentProcess()
+#ifdef MOZ_BACKGROUNDTASKS
+        && !mozilla::BackgroundTasks::IsBackgroundTaskMode()
+#endif
+    ) {
+      Output(
+          true,
+          "The installation seems to be corrupt.\nPlease check your hardware "
+          "and disk setup\nand/or re-install.\n");
+    }
+    MOZ_CRASH("NS_ERROR_OMNIJAR_CORRUPT");
+  }
   NS_ENSURE_SUCCESS(rv, 1);
 
   // run!
   rv = XRE_mainRun();
+  if (rv == NS_ERROR_OMNIJAR_OR_DIR_MISSING) {
+    if (XRE_IsParentProcess()
+#ifdef MOZ_BACKGROUNDTASKS
+        && !mozilla::BackgroundTasks::IsBackgroundTaskMode()
+#endif
+    ) {
+      Output(true,
+             "The installation seems to be incomplete.\nPlease check your "
+             "hardware and disk setup\nand/or re-install.\n");
+    }
+    if (mozilla::IsPackagedBuild()) {
+      // IsPackagedBuild just looks for omni.ja on disk. If we were able to
+      // find and open it before but not to load the expected JS module from
+      // it now, signal corruption.
+      MOZ_CRASH("NS_ERROR_OMNIJAR_CORRUPT");
+    }
+    MOZ_CRASH("NS_ERROR_OMNIJAR_OR_DIR_MISSING");
+  }
 
 #ifdef MOZ_X11
   XRE_CleanupX11ErrorHandler();
