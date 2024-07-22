@@ -159,6 +159,8 @@ class MediaDecoderStateMachine
 
   bool IsCDMProxySupported(CDMProxy* aProxy) override;
 
+  RefPtr<SetCDMPromise> SetCDMProxy(CDMProxy* aProxy) override;
+
  private:
   class StateObject;
   class DecodeMetadataState;
@@ -564,6 +566,8 @@ class MediaDecoderStateMachine
   bool mIsMediaSinkSuspended = false;
 
   Atomic<bool> mShuttingDown;
+
+  Atomic<bool> mInitialized;
 
  public:
   AbstractCanonical<PrincipalHandle>* CanonicalOutputPrincipal() {

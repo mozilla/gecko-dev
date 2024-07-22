@@ -382,7 +382,10 @@ void MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
           {*ownerData.GetCurrentInfo()->GetAsAudioInfo(), mOwner->mCrashHelper,
            CreateDecoderParams::UseNullDecoder(ownerData.mIsNullDecode),
            TrackInfo::kAudioTrack, std::move(onWaitingForKeyEvent),
-           mOwner->mMediaEngineId, mOwner->mTrackingId});
+           mOwner->mMediaEngineId, mOwner->mTrackingId,
+           mOwner->mEncryptedCustomIdent
+               ? CreateDecoderParams::EncryptedCustomIdent::True
+               : CreateDecoderParams::EncryptedCustomIdent::False});
       break;
     }
 
@@ -402,7 +405,10 @@ void MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
            OptionSet(ownerData.mHardwareDecodingDisabled
                          ? Option::HardwareDecoderNotAllowed
                          : Option::Default),
-           mOwner->mMediaEngineId, mOwner->mTrackingId});
+           mOwner->mMediaEngineId, mOwner->mTrackingId,
+           mOwner->mEncryptedCustomIdent
+               ? CreateDecoderParams::EncryptedCustomIdent::True
+               : CreateDecoderParams::EncryptedCustomIdent::False});
       break;
     }
 
@@ -895,7 +901,8 @@ MediaFormatReader::MediaFormatReader(MediaFormatReaderInit& aInit,
       mTrackingId(std::move(aInit.mTrackingId)),
       mReadMetadataStartTime(Nothing()),
       mReadMetaDataTime(TimeDuration::Zero()),
-      mTotalWaitingForVideoDataTime(TimeDuration::Zero()) {
+      mTotalWaitingForVideoDataTime(TimeDuration::Zero()),
+      mEncryptedCustomIdent(false) {
   MOZ_ASSERT(aDemuxer);
   MOZ_COUNT_CTOR(MediaFormatReader);
   DDLINKCHILD("audio decoder data", "MediaFormatReader::DecoderDataWithPromise",
@@ -3492,6 +3499,11 @@ void MediaFormatReader::OnFirstDemuxFailed(TrackInfo::TrackType aType,
   MOZ_ASSERT(decoder.mFirstDemuxedSampleTime.isNothing());
   decoder.mFirstDemuxedSampleTime.emplace(TimeUnit::FromInfinity());
   MaybeResolveMetadataPromise();
+}
+
+void MediaFormatReader::SetEncryptedCustomIdent() {
+  LOG("Set mEncryptedCustomIdent");
+  mEncryptedCustomIdent = true;
 }
 
 }  // namespace mozilla

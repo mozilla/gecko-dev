@@ -3485,7 +3485,8 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
       INIT_MIRROR(mOutputTracks, nsTArray<RefPtr<ProcessedMediaTrack>>()),
       INIT_MIRROR(mOutputPrincipal, PRINCIPAL_HANDLE_NONE),
       INIT_CANONICAL(mCanonicalOutputPrincipal, PRINCIPAL_HANDLE_NONE),
-      mShuttingDown(false) {
+      mShuttingDown(false),
+      mInitialized(false) {
   MOZ_COUNT_CTOR(MediaDecoderStateMachine);
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
 
@@ -3523,6 +3524,7 @@ void MediaDecoderStateMachine::InitializationTask(MediaDecoder* aDecoder) {
                       &MediaDecoderStateMachine::OutputPrincipalChanged);
 
   mMediaSink = CreateMediaSink();
+  mInitialized = true;
 
   MOZ_ASSERT(!mStateObj);
   auto* s = new DecodeMetadataState(this);
@@ -4887,6 +4889,14 @@ bool MediaDecoderStateMachine::IsCDMProxySupported(CDMProxy* aProxy) {
 #else
   return true;
 #endif
+}
+
+RefPtr<SetCDMPromise> MediaDecoderStateMachine::SetCDMProxy(CDMProxy* aProxy) {
+  // Playback hasn't started yet.
+  if (!mInitialized) {
+    mReader->SetEncryptedCustomIdent();
+  }
+  return MediaDecoderStateMachineBase::SetCDMProxy(aProxy);
 }
 
 }  // namespace mozilla

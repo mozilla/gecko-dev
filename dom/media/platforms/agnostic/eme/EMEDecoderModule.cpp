@@ -392,7 +392,9 @@ static already_AddRefed<MediaDataDecoderProxy> CreateDecoderWrapper(
 
 RefPtr<EMEDecoderModule::CreateDecoderPromise>
 EMEDecoderModule::AsyncCreateDecoder(const CreateDecoderParams& aParams) {
-  MOZ_ASSERT(aParams.mConfig.mCrypto.IsEncrypted());
+  MOZ_ASSERT(aParams.mConfig.mCrypto.IsEncrypted() ||
+             aParams.mEncryptedCustomIdent ==
+                 CreateDecoderParams::EncryptedCustomIdent::True);
   MOZ_ASSERT(mPDM);
 
   if (aParams.mConfig.IsVideo()) {

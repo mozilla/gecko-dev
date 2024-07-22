@@ -139,6 +139,12 @@ class MediaFormatReader final
   // Windows when the media engine playback is enabled.
   void UpdateMediaEngineId(uint64_t aMediaEngineId);
 
+  // This function will be called if the media key is set before playback
+  // starts, indicating the playback should be encrypted.
+  void SetEncryptedCustomIdent();
+
+  bool IsEncryptedCustomIdent() const { return mEncryptedCustomIdent; }
+
  protected:
   // Recomputes mBuffered.
   void UpdateBuffered();
@@ -900,6 +906,12 @@ class MediaFormatReader final
   // The total amount of time we have been waiting for the video data due to
   // lacking of data.
   TimeDuration mTotalWaitingForVideoDataTime;
+
+  // https://github.com/w3c/encrypted-media/issues/251#issuecomment-819783073
+  // Treat playback as encrypted if the media key is set before playback starts,
+  // this allows websites to start with non-encrypted stream and switch to
+  // encrypted stream later.
+  Atomic<bool> mEncryptedCustomIdent;
 };
 
 }  // namespace mozilla

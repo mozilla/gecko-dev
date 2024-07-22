@@ -209,4 +209,12 @@ RefPtr<SetCDMPromise> ReaderProxy::SetCDMProxy(CDMProxy* aProxy) {
                                        &MediaFormatReader::SetCDMProxy, aProxy);
 }
 
+void ReaderProxy::SetEncryptedCustomIdent() {
+  mReader->SetEncryptedCustomIdent();
+}
+
+bool ReaderProxy::IsEncryptedCustomIdent() const {
+  return mReader->IsEncryptedCustomIdent();
+}
+
 }  // namespace mozilla

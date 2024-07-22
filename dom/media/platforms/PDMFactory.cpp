@@ -334,7 +334,10 @@ RefPtr<PlatformDecoderModule::CreateDecoderPromise> PDMFactory::CreateDecoder(
     MOZ_ASSERT(mNullPDM);
     return CreateDecoderWithPDM(mNullPDM, aParams);
   }
-  bool isEncrypted = mEMEPDM && aParams.mConfig.mCrypto.IsEncrypted();
+  bool isEncrypted =
+      mEMEPDM && (aParams.mConfig.mCrypto.IsEncrypted() ||
+                  aParams.mEncryptedCustomIdent ==
+                      CreateDecoderParams::EncryptedCustomIdent::True);
 
   if (isEncrypted) {
     return CreateDecoderWithPDM(mEMEPDM, aParams);

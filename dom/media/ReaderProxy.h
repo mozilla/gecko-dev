@@ -89,6 +89,10 @@ class ReaderProxy {
 
   void UpdateMediaEngineId(uint64_t aMediaEngineId);
 
+  void SetEncryptedCustomIdent();
+
+  bool IsEncryptedCustomIdent() const;
+
  private:
   ~ReaderProxy();
   RefPtr<MetadataPromise> OnMetadataRead(MetadataHolder&& aMetadata);
