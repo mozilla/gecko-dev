@@ -111,10 +111,10 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Surfa snabbare med ny navigering</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Detta fält stänger undan när du rullar nedåt för extra surfutrymme.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Detta fält försvinner när du scrollar nedåt för extra surfutrymme.</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message_2">På en webbplats stoppas detta fält när du rullar nedåt för extra surfutrymme.</string>
+    <string name="navbar_cfr_message_2">På en webbplats försvinner detta fält när du scrollar nedåt för extra surfutrymme.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kameraåtkomst behövs. Gå till Android-inställningar, tryck på behörigheter och tryck på tillåt.</string>

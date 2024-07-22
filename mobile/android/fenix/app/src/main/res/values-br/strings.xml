@@ -44,14 +44,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Diuzet</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">Enrollet nevez ’zo</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">Diskouez an holl sinedoù enrollet</string>
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Dilemel</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Sinedoù</string>
@@ -113,6 +105,14 @@
     <string name="erase_action_cfr_message">Stokit amañ da gregiñ un estez prevez nevez. Dilemel a raio ho roll istor, ho toupinoù — pep tra.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Gounezit amzer gant ar merdeiñ nevez</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Mont a raio da guzhat ar varrenn-mañ pa vo dibunet ar bajenn war-zu an traoñ evit gounit muioc’h a blas.</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">War ul lec’hienn ez aio ar varrenn-mañ da guzhat pa vo  dibunet ar bajenn war-zu an traoñ evit kaout muioc’h a blas.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Ezhomm a zo haeziñ ar c’hamera. Kit e Arventennoù Android, stokit war an aotreoù ha stokit war aotren.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -152,8 +152,6 @@
 
     <!-- Shortcut action to open Passwords screen -->
     <string name="home_screen_shortcut_passwords">Gerioù-tremen</string>
-    <!-- Shortcut action to open Passwords screen -->
-    <string name="home_screen_shortcut_open_password_screen" moz:removedIn="126" tools:ignore="UnusedResources">Berradennoù klavier</string>
 
     <!-- Recent Tabs -->
     <!-- Header text for jumping back into the recent tab in the home screen -->
@@ -194,8 +192,6 @@
     <string name="browser_menu_refresh">Azbevaat</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">Paouez</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">Askouezhioù</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Askouezhioù</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -204,8 +200,6 @@
     <string name="browser_menu_discover_more_extensions">Dizoloit muioc’h a askouezhioù</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Titouroù ar gont</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">Nʼeus tamm askouezh ebet amañ</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Skoazell</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -222,8 +216,6 @@
     <string name="browser_menu_add_to_homescreen">Ouzhpennañ dʼar skramm degemer</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Ouzhpennañ d\'ar skramm degemer…</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen" moz:removedIn="126" tools:ignore="UnusedResources">Staliañ</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Adgoubredañ</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -588,7 +580,9 @@
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Kont</string>
     <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Barrenn ostilhoù</string>
+    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Barrenn ostilhoù</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">Lec’hiadur ar varrenn chomlec’h</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Neuz</string>
     <!-- Preference for customizing the home screen -->
@@ -605,8 +599,6 @@
     <string name="preferences_account_sync_error">Adkennaskit evit kendercʼhel gant ar goubredañ</string>
     <!-- Preference for language -->
     <string name="preferences_language">Yezh</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Troidigezh</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">Troidigezhioù</string>
     <!-- Preference for data choices -->
@@ -659,13 +651,8 @@
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
     <string name="quit_application">O serriñ emañ an arload evit kemer e kont ar cheñchamantoù…</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons" moz:removedIn="126" tools:ignore="UnusedResources">Askouezhioù</string>
-
     <!-- Preference for extensions -->
     <string name="preferences_extensions">Askouezhioù</string>
-    <!-- Preference for installing a local add-on -->
-    <string name="preferences_install_local_addon" moz:removedIn="126" tools:ignore="UnusedResources">Staliañ un askouezh diouzh ar restr</string>
     <!-- Preference for installing a local extension -->
     <string name="preferences_install_local_extension">Staliañ an askouezh adalek ur restr</string>
     <!-- Preference for notifications -->
@@ -684,9 +671,14 @@
     <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
     <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Aotren evit an holl lec’hiennoù</string>
 
+    <!-- The subtitle for the allow for all sites preference toggle -->
+    <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">M’ho p’eus fiziañs en askouezh-mañ e c’hallit reiñ an aotre dezhañ war an holl lec’hiennoù.</string>
+    <!-- The text shown when an extension does not require permissions -->
+    <string name="addons_does_not_require_permissions">An askouezh-mañ na c’houlenn aotre ebet.</string>
+
     <!-- Add-on Preferences -->
     <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
-    <string name="preferences_customize_amo_collection" moz:removedIn="126" tools:ignore="UnusedResources">Dastumad askouezhioù nevez</string>
+    <string name="preferences_customize_extension_collection">Dastumad askouezhioù personelaet</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">Mat eo</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -696,15 +688,14 @@
 
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">Perc’henn an dastumad (Naoudi an arveriad)</string>
-    <!-- Toast shown after confirming the custom add-on collection configuration -->
-    <string name="toast_customize_addon_collection_done" moz:removedIn="126" tools:ignore="UnusedResources">Kemmet eo bet an dastumad askouezhioù. Kuitaet e vo an arload evit arloañ ar c’hemmoù…</string>
+
+    <!-- Toast shown after confirming the custom extension collection configuration -->
+    <string name="toast_customize_extension_collection_done">Kemmet eo bet an dastumad askouezhioù. Emañ an arload o serriñ evit arloañ ar c’hemmoù…</string>
 
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Distreiñ</string>
 
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Ivinelloù nevez</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">Sinedoù</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -755,21 +746,25 @@
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">Dizoleiñ skeudennoù drekleur all</string>
 
     <!-- Add-ons general availability nimbus message-->
-    <!-- Title of the Nimbus message for add-ons general availability-->
-    <string name="addon_ga_message_title" moz:removedIn="126" tools:ignore="UnusedResources">Askouezhioù nevez zo da gaout</string>
-
-    <!-- Button text of the Nimbus message for add-ons general availability. -->
-    <string name="addon_ga_message_button" moz:removedIn="126" tools:ignore="UnusedResources">Ergerzhout an askouezhioù</string>
+    <!-- Title of the Nimbus message for extension general availability-->
+    <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Askouezhioù nevez hegerz.</string>
+    <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
+    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Dizoloit ouzhpenn 100 askouezh nevez a sikouro ac’hanoc’h d’ober ar pezh a fell deoc’h gant Firefox.</string>
+    <!-- Button text of the Nimbus message for extensions general availability. -->
+    <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Ergerzhout an askouezhioù</string>
 
     <!-- Extension process crash dialog to user -->
-    <!-- Title of a dialog shown to the user when enough errors have occurred with addons and they need to be temporarily disabled -->
-    <string name="addon_process_crash_dialog_title" moz:removedIn="126" tools:ignore="UnusedResources">Diweredekaet eo an askouezhioù evit ar mare</string>
-    <!-- This will cause the add-ons to try restarting but the dialog will reappear if it is unsuccessful again -->
-    <string name="addon_process_crash_dialog_retry_button_text" moz:removedIn="126" tools:ignore="UnusedResources">Klask adloc’hañ an askouezhioù</string>
+    <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
+    <string name="extension_process_crash_dialog_title">Diweredekaet eo an askouezhioù evit ar mare</string>
+    <!-- This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
+    The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
+    The first parameter is the application name. -->
+    <string name="extension_process_crash_dialog_message">Ur askouezh pe meur a hini a zo sac’het, ar pezh a lak ho reizhiad da vezañ distabil. %1$s en deus klasket da adloc’hañ an askouezh(ioù) hep dont a-benn.\n\nNe vo ket adloc’het an askouezhioù e-kerzh an estez-mañ.\n\nDilemel pe diweredekaat askouezhioù a c’hallfe diskoulmañ ar gudenn-mañ.</string>
     <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
     <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Klaskit adloc’hañ an askouezhioù</string>
-    <!-- The user will continue with all add-ons disabled -->
-    <string name="addon_process_crash_dialog_disable_addons_button_text" moz:removedIn="126" tools:ignore="UnusedResources">Kenderc’hel gant an askouezhioù bet diweredekaet</string>
+
+    <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
+    <string name="extension_process_crash_dialog_disable_extensions_button_text">Kenderc’hel gant an askouezhioù diweredekaet</string>
 
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->
@@ -891,9 +886,14 @@
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Dibunit da guzhat ar varrenn-ostilhoù</string>
     <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs">Riklit ar varrenn-ostilhoù war ar c’hostez evit cheñch ivinell</string>
+    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Riklit ar varrenn-ostilhoù war ar c’hostez evit cheñch ivinell</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Rikli ar ar varrenn-ostilhoù war-zu an nec’h evit digeriñ ivinelloù</string>
+
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">Dibunit da guzhat ar varrenn-chomlec’h hag ar varrenn ostilhoù</string>
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Riklit ar varrenn chomlec’h war ar c’hostez evit cheñch ivinell</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -1397,8 +1397,21 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Serriñ an ivinelloù prevez</string>
 
+    <!-- Text for option one, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Ali ebet</string>
+    <!-- Text for option two, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Displijet-tre</string>
+    <!-- Text for option three, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Displijet</string>
+    <!-- Text for option four, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Plijet</string>
+    <!-- Text for option five, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Plijet-tre</string>
+
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Serriñ an ivinelloù prevez?</string>
+
+    <string name="notification_erase_text_android_14">Stokit pe riklit ar rebuzadur-mañ evit serriñ an ivinelloù prevez.</string>
 
     <!-- Name of the marketing notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="notification_marketing_channel_name">Marketing</string>
@@ -1442,6 +1455,8 @@
     <string name="snackbar_tab_closed">Ivinell serret</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Ivinelloù serret</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Ivinelloù serret: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Sined enrollet!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -1469,14 +1484,10 @@
     <string name="qr_scanner_dialog_invalid_ok">Mat</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">Sur ocʼh e fell deocʼh dilemel %1$s?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">Dilemel an ivinell-mañ a zilamo an dastumad a-bezh. Gallout a rit krouiñ dastumadoù nevez pa fell deoc’h.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">Dilemel %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Dilemel</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Mod skramm a-bezh kroget</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Mod skramm a-bezh kroget</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL eilet</string>
     <!-- Sample text for accessibility font size -->
@@ -1636,6 +1647,8 @@
     <string name="preference_enhanced_tracking_protection_custom_cookies_4">An holl doupinoù (gallout a ra terriñ lec’hiennoù)</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
     <string name="preference_enhanced_tracking_protection_custom_cookies_5">Digenvezañ an toupinoù etre-lec’hiennoù.</string>
+    <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: &-->
+    <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">Goulenn ouzh al lec’hiennoù ne vefe ket rannet pe gwerzhet ma roadennoù</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
     <string name="preference_enhanced_tracking_protection_custom_tracking_content">Endalc’had heuliañ</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
@@ -1645,7 +1658,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Kriptogleuzerien</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Dinoerien roudoù niverel</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Dinoerien roudoù niverel</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Roudoù niverel anavezet</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Munudoù</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1669,9 +1684,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Mirout a ra skriptoù touellus da implij ho trevnad evit kleuziañ moneiz niverel.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Dinoerien roudoù niverel</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Dinoerien roudoù niverel</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Harzañ a ra roadennoù a c’hell servijout da anavezout ac’hanoc’h da vezañ implijet gant heulierien.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Harzañ a ra roadennoù a c’hell servijout da anavezout ac’hanoc’h da vezañ implijet gant heulierien.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Harzañ a ra roadennoù a c’hell servijout da anavezout ac’hanoc’h da vezañ implijet gant heulierien.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Endalc’had heuliañ</string>
 
@@ -1697,6 +1714,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Skarzhañ an toupinoù lakaet gant adheñchadurioù etrezek lec’hiennoù heuliañ anavezet</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Dastumerien roudoù suspedet</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Gweredekaat ar gwarez a-enep an dastumerien roudoù niverel.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Dastumerien roudoù niverel anavezet</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Un nebeud heulierien merket a-zindan a zo bet damzistanket war ar bajenn-mañ peogwir ho peus etrewezhiet gante *.</string>
@@ -1772,10 +1795,20 @@
 
     <!-- Preference for syncing saved passwords in Fenix -->
     <string name="preferences_passwords_sync_logins_2">Goubredañ ar gerioù-tremen</string>
+    <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
+    <string name="preferences_passwords_sync_logins_across_devices_2">Goubredañ ar gerioù-tremen etre ho trevnadoù</string>
     <!-- Preference to access list of saved passwords -->
     <string name="preferences_passwords_saved_logins_2">Gerioù-tremen enrollet</string>
+    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
+    <string name="preferences_passwords_saved_logins_description_empty_text_2">Ar gerioù-tremen a enrollit pe a c\'houbredit betek %s a vo er roll amañ. An holl c\'herioù-tremen a enrollit a vo enrineget.</string>
+    <!-- Clickable text for opening an external link for more information about Sync. -->
+    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Gouzout hiroc’h diwar-benn ar goubredañ</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Nemedennoù</string>
+    <!-- Empty description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+    <string name="preferences_passwords_exceptions_description_empty_2">%s na enrollo ket ho kerioù-tremen evit al lec’hiennoù er roll amañ.</string>
+    <!-- Description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+    <string name="preferences_passwords_exceptions_description_2">%s n’enrollo ket ar gerioù-tremen evit al lec’hiennoù-mañ.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">Dilemel an holl nemedennoù</string>
     <!-- Hint for search box in passwords list -->
@@ -2338,8 +2371,6 @@
     <string name="translation_error_could_not_load_languages_warning_text">N’haller ket kargañ ar yezhoù. Gwiriit ma’z oc’h kennasket ouzh ar genrouedad.</string>
     <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
     <string name="translation_error_language_not_supported_warning_text">Hon digarezit, n’eo ket skoret ar yezh &quot;%1$s&quot; c’hoazh.</string>
-    <!-- Button text on the warning card when a language is not supported. The link will take the user to a page to a support page about translations. -->
-    <string name="translation_error_language_not_supported_learn_more" moz:removedIn="126" tools:ignore="UnusedResources">Gouzout hiroc’h</string>
 
 
     <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
@@ -2415,16 +2446,14 @@
     <string name="download_languages_language_item_preference">%1$s (%2$s)</string>
     <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
     <string name="download_language_header_preference">Pellgargañ yezhoù</string>
-    <!-- All languages list item. When the user presses this item, they can download or delete all languages. -->
+    <!-- All languages list item. When the user presses this item, they can download all languages. -->
     <string name="download_language_all_languages_item_preference">An holl yezhoù</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Dilemel</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">War ober</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">War ober</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Pellgargañ</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state">Diuzet</string>
 
     <!-- Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -2449,8 +2478,6 @@
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">Niver a ivinelloù</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">Oberiant</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">Oberiant</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_inactive">Dizoberiant</string>
@@ -2465,10 +2492,11 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Kenderc’hel</string>
 
     <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" tools:ignore="UnusedResources">Serriñ</string>
+    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Serriñ</string>
     <!-- The survey completion confirmation text -->
     <string name="micro_survey_feedback_confirmation">Trugarez da vezañ roet hoc’h ali!</string>
 
     <!-- The title of the logins section in the Logins feature, where the parameter will be the site domain  -->
     <string name="debug_drawer_logins_current_domain_label">Domani a-vremañ: %s</string>
+
     </resources>
