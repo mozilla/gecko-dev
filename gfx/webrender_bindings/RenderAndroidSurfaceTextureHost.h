@@ -47,6 +47,9 @@ class RenderAndroidSurfaceTextureHost final : public RenderTextureHostSWGL {
                 PlaneInfo& aPlaneInfo) override;
   void UnmapPlanes() override;
 
+  RefPtr<layers::TextureSource> CreateTextureSource(
+      layers::TextureSourceProvider* aProvider) override;
+
   RenderAndroidSurfaceTextureHost* AsRenderAndroidSurfaceTextureHost()
       override {
     return this;

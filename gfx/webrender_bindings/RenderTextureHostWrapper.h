@@ -36,6 +36,8 @@ class RenderTextureHostWrapper final : public RenderTextureHostSWGL {
   void NotifyForUse() override;
   void NotifyNotUsed() override;
   bool SyncObjectNeeded() override;
+  RefPtr<layers::TextureSource> CreateTextureSource(
+      layers::TextureSourceProvider* aProvider) override;
   RenderMacIOSurfaceTextureHost* AsRenderMacIOSurfaceTextureHost() override;
   RenderDXGITextureHost* AsRenderDXGITextureHost() override;
   RenderDXGIYCbCrTextureHost* AsRenderDXGIYCbCrTextureHost() override;
