@@ -8,7 +8,7 @@
 #define MOZILLA_GFX_RENDEREGLIMAGETEXTUREHOST_H
 
 #include "mozilla/layers/TextureHostOGL.h"
-#include "RenderTextureHost.h"
+#include "RenderTextureHostSWGL.h"
 
 namespace mozilla {
 
@@ -16,28 +16,50 @@ namespace wr {
 
 // RenderEGLImageTextureHost is created only for SharedSurface_EGLImage that is
 // created in parent process.
-class RenderEGLImageTextureHost final : public RenderTextureHost {
+class RenderEGLImageTextureHost final : public RenderTextureHostSWGL {
  public:
-  RenderEGLImageTextureHost(EGLImage aImage, EGLSync aSync, gfx::IntSize aSize);
+  RenderEGLImageTextureHost(EGLImage aImage, EGLSync aSync, gfx::IntSize aSize,
+                            gfx::SurfaceFormat aFormat);
 
   wr::WrExternalImage Lock(uint8_t aChannelIndex, gl::GLContext* aGL) override;
   void Unlock() override;
   size_t Bytes() override {
-    // XXX: we don't have a format so we can't get bpp.
-    return mSize.width * mSize.height;
+    return mSize.width * mSize.height * BytesPerPixel(mFormat);
   }
+
+  RenderEGLImageTextureHost* AsRenderEGLImageTextureHost() override {
+    return this;
+  }
+
+  RefPtr<layers::TextureSource> CreateTextureSource(
+      layers::TextureSourceProvider* aProvider) override;
+
+  // RenderTextureHostSWGL
+  gfx::SurfaceFormat GetFormat() const override;
+  gfx::ColorDepth GetColorDepth() const override {
+    return gfx::ColorDepth::COLOR_8;
+  }
+  size_t GetPlaneCount() const override { return 1; };
+  bool MapPlane(RenderCompositor* aCompositor, uint8_t aChannelIndex,
+                PlaneInfo& aPlaneInfo) override;
+  void UnmapPlanes() override;
 
  private:
   virtual ~RenderEGLImageTextureHost();
+  bool CreateTextureHandle();
   void DeleteTextureHandle();
+  bool WaitSync();
+  already_AddRefed<gfx::DataSourceSurface> ReadTexImage();
 
   const EGLImage mImage;
   EGLSync mSync;
   const gfx::IntSize mSize;
+  const gfx::SurfaceFormat mFormat;
 
   RefPtr<gl::GLContext> mGL;
   GLenum mTextureTarget;
   GLuint mTextureHandle;
+  RefPtr<gfx::DataSourceSurface> mReadback;
 };
 
 }  // namespace wr

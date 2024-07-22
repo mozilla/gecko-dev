@@ -927,7 +927,9 @@ EGLImageTextureSource::EGLImageTextureSource(TextureSourceProvider* aProvider,
                                              gfx::SurfaceFormat aFormat,
                                              GLenum aTarget, GLenum aWrapMode,
                                              gfx::IntSize aSize)
-    : mImage(aImage),
+    : mGL(aProvider->GetGLContext()),
+      mCompositor(aProvider->AsCompositorOGL()),
+      mImage(aImage),
       mFormat(aFormat),
       mTextureTarget(aTarget),
       mWrapMode(aWrapMode),
@@ -989,9 +991,8 @@ EGLImageTextureHost::~EGLImageTextureHost() = default;
 gl::GLContext* EGLImageTextureHost::gl() const { return nullptr; }
 
 gfx::SurfaceFormat EGLImageTextureHost::GetFormat() const {
-  MOZ_ASSERT(mTextureSource);
-  return mTextureSource ? mTextureSource->GetFormat()
-                        : gfx::SurfaceFormat::UNKNOWN;
+  return mHasAlpha ? gfx::SurfaceFormat::R8G8B8A8
+                   : gfx::SurfaceFormat::R8G8B8X8;
 }
 
 void EGLImageTextureHost::CreateRenderTexture(
@@ -999,7 +1000,7 @@ void EGLImageTextureHost::CreateRenderTexture(
   MOZ_ASSERT(mExternalImageId.isSome());
 
   RefPtr<wr::RenderTextureHost> texture =
-      new wr::RenderEGLImageTextureHost(mImage, mSync, mSize);
+      new wr::RenderEGLImageTextureHost(mImage, mSync, mSize, GetFormat());
   wr::RenderThread::Get()->RegisterExternalImage(aExternalImageId,
                                                  texture.forget());
 }
@@ -1010,11 +1011,18 @@ void EGLImageTextureHost::PushResourceUpdates(
   auto method = aOp == TextureHost::ADD_IMAGE
                     ? &wr::TransactionBuilder::AddExternalImage
                     : &wr::TransactionBuilder::UpdateExternalImage;
-  auto imageType = wr::ExternalImageType::TextureHandle(
-      wr::ImageBufferKind::TextureExternal);
 
-  gfx::SurfaceFormat format =
-      mHasAlpha ? gfx::SurfaceFormat::R8G8B8A8 : gfx::SurfaceFormat::R8G8B8X8;
+  // Prefer TextureExternal unless the backend requires TextureRect.
+  TextureHost::NativeTexturePolicy policy =
+      TextureHost::BackendNativeTexturePolicy(aResources.GetBackendType(),
+                                              GetSize());
+  auto imageType = policy == TextureHost::NativeTexturePolicy::REQUIRE
+                       ? wr::ExternalImageType::TextureHandle(
+                             wr::ImageBufferKind::TextureRect)
+                       : wr::ExternalImageType::TextureHandle(
+                             wr::ImageBufferKind::TextureExternal);
+
+  gfx::SurfaceFormat format = GetFormat();
 
   MOZ_ASSERT(aImageKeys.length() == 1);
   // XXX Add RGBA handling. Temporary hack to avoid crash
@@ -1030,12 +1038,21 @@ void EGLImageTextureHost::PushDisplayItems(
     wr::DisplayListBuilder& aBuilder, const wr::LayoutRect& aBounds,
     const wr::LayoutRect& aClip, wr::ImageRendering aFilter,
     const Range<wr::ImageKey>& aImageKeys, PushDisplayItemFlagSet aFlags) {
+  bool preferCompositorSurface =
+      aFlags.contains(PushDisplayItemFlag::PREFER_COMPOSITOR_SURFACE);
+  bool supportsExternalCompositing =
+      SupportsExternalCompositing(aBuilder.GetBackendType());
+
   MOZ_ASSERT(aImageKeys.length() == 1);
-  aBuilder.PushImage(
-      aBounds, aClip, true, false, aFilter, aImageKeys[0],
-      !(mFlags & TextureFlags::NON_PREMULTIPLIED),
-      wr::ColorF{1.0f, 1.0f, 1.0f, 1.0f},
-      aFlags.contains(PushDisplayItemFlag::PREFER_COMPOSITOR_SURFACE));
+  aBuilder.PushImage(aBounds, aClip, true, false, aFilter, aImageKeys[0],
+                     !(mFlags & TextureFlags::NON_PREMULTIPLIED),
+                     wr::ColorF{1.0f, 1.0f, 1.0f, 1.0f},
+                     preferCompositorSurface, supportsExternalCompositing);
+}
+
+bool EGLImageTextureHost::SupportsExternalCompositing(
+    WebRenderBackend aBackend) {
+  return aBackend == WebRenderBackend::SOFTWARE;
 }
 
 //

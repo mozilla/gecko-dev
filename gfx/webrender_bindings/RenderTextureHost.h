@@ -28,6 +28,7 @@ class TextureSourceProvider;
 
 namespace wr {
 
+class RenderEGLImageTextureHost;
 class RenderAndroidHardwareBufferTextureHost;
 class RenderAndroidSurfaceTextureHost;
 class RenderCompositor;
@@ -101,6 +102,10 @@ class RenderTextureHost {
   }
 
   virtual RenderMacIOSurfaceTextureHost* AsRenderMacIOSurfaceTextureHost() {
+    return nullptr;
+  }
+
+  virtual RenderEGLImageTextureHost* AsRenderEGLImageTextureHost() {
     return nullptr;
   }
 
