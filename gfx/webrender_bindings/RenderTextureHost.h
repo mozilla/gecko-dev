@@ -21,6 +21,10 @@ namespace mozilla {
 namespace gl {
 class GLContext;
 }
+namespace layers {
+class TextureSource;
+class TextureSourceProvider;
+}  // namespace layers
 
 namespace wr {
 
@@ -60,6 +64,11 @@ class RenderTextureHost {
                                        RenderCompositor* aCompositor);
 
   virtual void UnlockSWGL() {}
+
+  virtual RefPtr<layers::TextureSource> CreateTextureSource(
+      layers::TextureSourceProvider* aProvider) {
+    return nullptr;
+  }
 
   virtual void ClearCachedResources() {}
 

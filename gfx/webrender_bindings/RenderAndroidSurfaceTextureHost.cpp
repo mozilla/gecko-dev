@@ -322,5 +322,14 @@ std::pair<gfx::Point, gfx::Point> RenderAndroidSurfaceTextureHost::GetUvCoords(
   return std::make_pair(uv0, uv1);
 }
 
+RefPtr<layers::TextureSource>
+RenderAndroidSurfaceTextureHost::CreateTextureSource(
+    layers::TextureSourceProvider* aProvider) {
+  UpdateTexImageIfNecessary();
+  return new layers::SurfaceTextureSource(
+      aProvider, mSurfTex, mFormat, LOCAL_GL_TEXTURE_EXTERNAL,
+      LOCAL_GL_CLAMP_TO_EDGE, mSize, mTransformOverride);
+}
+
 }  // namespace wr
 }  // namespace mozilla
