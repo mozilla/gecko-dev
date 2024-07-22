@@ -28,6 +28,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   getRemoteCommandStore: "resource://services-sync/TabsStore.sys.mjs",
   RemoteCommand: "resource://services-sync/TabsStore.sys.mjs",
   Utils: "resource://services-sync/util.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -571,15 +572,14 @@ export class CloseRemoteTab extends Command {
     }
   }
 
-  // Returns true if the target device is compatible with closing a tab
-  // XXX - kill this - the pref check is for local stuff, not whether the device is capable!
-  // However, this means moving the pref check into the front-end UI code, which isn't ideal.
+  // Returns true if:
+  // - The target device is compatible with closing a tab (device capability) and
+  // - The local device has the feature enabled locally
   isDeviceCompatible(device) {
-    let pref = Services.prefs.getBoolPref(
-      "identity.fxaccounts.commands.remoteTabManagement.enabled",
-      false
+    return (
+      lazy.NimbusFeatures.remoteTabManagement.getVariable("closeTabsEnabled") &&
+      super.isDeviceCompatible(device)
     );
-    return pref && super.isDeviceCompatible(device);
   }
 
   // Handle incoming remote tab payload, called by FxAccountsCommands.

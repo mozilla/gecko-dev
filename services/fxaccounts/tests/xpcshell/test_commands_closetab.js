@@ -15,6 +15,12 @@ const { getRemoteCommandStore, RemoteCommand } = ChromeUtils.importESModule(
   "resource://services-sync/TabsStore.sys.mjs"
 );
 
+ChromeUtils.defineESModuleGetters(this, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
+  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
+});
+
 class TelemetryMock {
   constructor() {
     this._events = [];
@@ -56,21 +62,37 @@ add_task(async function test_closetab_isDeviceCompatible() {
       "https://identity.mozilla.com/cmd/close-uri/v1": "payload",
     },
   };
-  // Even though the command is available, we're keeping this feature behind a feature
-  // flag for now, so it should still show up as "not available"
-  Assert.ok(!closeTab.isDeviceCompatible(device));
-
-  // Enable the feature
-  Services.prefs.setBoolPref(
-    "identity.fxaccounts.commands.remoteTabManagement.enabled",
-    true
-  );
+  // The feature should be on by default
   Assert.ok(closeTab.isDeviceCompatible(device));
 
-  // clear it for the next test
+  // Disable the feature
+  Services.prefs.setBoolPref(
+    "identity.fxaccounts.commands.remoteTabManagement.enabled",
+    false
+  );
+  Assert.ok(!closeTab.isDeviceCompatible(device));
+
+  // clear the pref to test overriding with nimbus
   Services.prefs.clearUserPref(
     "identity.fxaccounts.commands.remoteTabManagement.enabled"
   );
+  Assert.ok(closeTab.isDeviceCompatible(device));
+
+  // Verify that nimbus can remotely override the pref
+  await ExperimentManager.onStartup();
+  await ExperimentAPI.ready();
+  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "remoteTabManagement",
+    // You can add values for each variable you added to the manifest
+    value: {
+      closeTabsEnabled: false,
+    },
+  });
+
+  // Feature successfully disabled
+  Assert.ok(!closeTab.isDeviceCompatible(device));
+
+  doExperimentCleanup();
 });
 
 add_task(async function test_closetab_send() {

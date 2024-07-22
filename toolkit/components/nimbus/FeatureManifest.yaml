@@ -3346,6 +3346,20 @@ bounceTrackingProtection:
         the feature without risking data loss. Telemetry is still collected
         normally.
 
+remoteTabManagement:
+  description: >
+    Features that let users manage tabs on other devices that are
+    connected to the same Mozilla account.
+  owner: skhamis@mozilla.com
+  hasExposure: false
+  variables:
+    closeTabsEnabled:
+      description: >-
+        When true, the user can close tabs on other devices connected to
+        the same Mozilla account from the synced tabs menu.
+      type: boolean
+      fallbackPref: identity.fxaccounts.commands.remoteTabManagement.enabled
+
 crlite:
   description: Prefs that control the use of CRLite
   owner: jschanck@mozilla.com

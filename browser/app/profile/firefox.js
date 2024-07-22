@@ -2043,7 +2043,7 @@ pref("identity.fxaccounts.commands.missed.fetch_interval", 86400);
 
 // Controls whether this client can send and receive "close tab"
 // commands from other FxA clients
-pref("identity.fxaccounts.commands.remoteTabManagement.enabled", false);
+pref("identity.fxaccounts.commands.remoteTabManagement.enabled", true);
 
 // Controls whether or not the client association ping has values set on it
 // when the sync-ui-state:update notification fires.
