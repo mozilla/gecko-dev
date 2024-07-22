@@ -51,7 +51,6 @@ class OffscreenCanvasDisplayHelper final {
   void FlushForDisplay();
 
   bool CommitFrameToCompositor(nsICanvasRenderingContextInternal* aContext,
-                               layers::TextureType aTextureType,
                                const Maybe<OffscreenCanvasDisplayData>& aData);
 
   void DestroyCanvas();

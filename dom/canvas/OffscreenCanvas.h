@@ -48,15 +48,14 @@ struct OffscreenCanvasCloneData final {
   OffscreenCanvasCloneData(OffscreenCanvasDisplayHelper* aDisplay,
                            uint32_t aWidth, uint32_t aHeight,
                            layers::LayersBackend aCompositorBackend,
-                           layers::TextureType aTextureType, bool aNeutered,
-                           bool aIsWriteOnly, nsIPrincipal* aExpandedReader);
+                           bool aNeutered, bool aIsWriteOnly,
+                           nsIPrincipal* aExpandedReader);
   ~OffscreenCanvasCloneData();
 
   RefPtr<OffscreenCanvasDisplayHelper> mDisplay;
   uint32_t mWidth;
   uint32_t mHeight;
   layers::LayersBackend mCompositorBackendType;
-  layers::TextureType mTextureType;
   bool mNeutered;
   bool mIsWriteOnly;
   RefPtr<nsIPrincipal> mExpandedReader;
@@ -76,7 +75,6 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
 
   OffscreenCanvas(nsIGlobalObject* aGlobal, uint32_t aWidth, uint32_t aHeight,
                   layers::LayersBackend aCompositorBackend,
-                  layers::TextureType aTextureType,
                   already_AddRefed<OffscreenCanvasDisplayHelper> aDisplay);
 
   void Destroy();
@@ -195,7 +193,6 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
 
   layers::LayersBackend mCompositorBackendType =
       layers::LayersBackend::LAYERS_NONE;
-  layers::TextureType mTextureType = layers::TextureType::Unknown;
 
   RefPtr<OffscreenCanvasDisplayHelper> mDisplay;
   RefPtr<CancelableRunnable> mPendingCommit;

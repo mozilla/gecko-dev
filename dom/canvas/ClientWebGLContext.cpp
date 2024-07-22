@@ -587,8 +587,9 @@ Maybe<layers::SurfaceDescriptor> ClientWebGLContext::GetFrontBuffer(
 }
 
 Maybe<layers::SurfaceDescriptor> ClientWebGLContext::PresentFrontBuffer(
-    WebGLFramebufferJS* const fb, const layers::TextureType type, bool webvr) {
-  Present(fb, type, webvr);
+    WebGLFramebufferJS* const fb, bool webvr) {
+  const auto texType = GetTexTypeForSwapChain();
+  Present(fb, texType, webvr);
   return GetFrontBuffer(fb, webvr);
 }
 
