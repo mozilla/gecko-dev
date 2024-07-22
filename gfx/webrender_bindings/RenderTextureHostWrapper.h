@@ -45,6 +45,7 @@ class RenderTextureHostWrapper final : public RenderTextureHostSWGL {
   RenderAndroidHardwareBufferTextureHost*
   AsRenderAndroidHardwareBufferTextureHost() override;
   RenderAndroidSurfaceTextureHost* AsRenderAndroidSurfaceTextureHost() override;
+  RenderEGLImageTextureHost* AsRenderEGLImageTextureHost() override;
   RenderTextureHostSWGL* AsRenderTextureHostSWGL() override;
   void SetIsSoftwareDecodedVideo() override;
   bool IsSoftwareDecodedVideo() override;

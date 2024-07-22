@@ -151,6 +151,14 @@ RenderTextureHostWrapper::AsRenderAndroidSurfaceTextureHost() {
   return mTextureHost->AsRenderAndroidSurfaceTextureHost();
 }
 
+RenderEGLImageTextureHost*
+RenderTextureHostWrapper::AsRenderEGLImageTextureHost() {
+  if (!mTextureHost) {
+    return nullptr;
+  }
+  return mTextureHost->AsRenderEGLImageTextureHost();
+}
+
 RenderTextureHostSWGL* RenderTextureHostWrapper::EnsureRenderTextureHostSWGL()
     const {
   if (!mTextureHost) {

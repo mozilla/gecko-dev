@@ -643,6 +643,8 @@ class EGLImageTextureHost final : public TextureHost {
                         const Range<wr::ImageKey>& aImageKeys,
                         PushDisplayItemFlagSet aFlags) override;
 
+  bool SupportsExternalCompositing(WebRenderBackend aBackend) override;
+
  protected:
   const EGLImage mImage;
   const EGLSync mSync;
