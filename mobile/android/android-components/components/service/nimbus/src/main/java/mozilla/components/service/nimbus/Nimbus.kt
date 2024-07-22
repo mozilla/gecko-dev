@@ -13,6 +13,7 @@ import org.mozilla.experiments.nimbus.NimbusDelegate
 import org.mozilla.experiments.nimbus.NimbusDeviceInfo
 import org.mozilla.experiments.nimbus.NimbusInterface
 import org.mozilla.experiments.nimbus.NimbusServerSettings
+import org.mozilla.experiments.nimbus.internal.RecordedContext
 import org.mozilla.experiments.nimbus.Nimbus as ApplicationServicesNimbus
 
 /**
@@ -40,6 +41,7 @@ class Nimbus(
     server: NimbusServerSettings?,
     deviceInfo: NimbusDeviceInfo = NimbusDeviceInfo.default(),
     delegate: NimbusDelegate = NimbusDelegate.default(),
+    recordedContext: RecordedContext?,
     private val observable: Observable<NimbusInterface.Observer> = ObserverRegistry(),
 ) : ApplicationServicesNimbus(
     context = context,
@@ -49,6 +51,7 @@ class Nimbus(
     deviceInfo = deviceInfo,
     delegate = delegate,
     observer = Observer(observable),
+    recordedContext = recordedContext,
 ),
     NimbusApi,
     Observable<NimbusInterface.Observer> by observable {

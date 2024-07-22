@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonObject
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,6 +32,7 @@ class RecordedNimbusContextTest {
 
         val value = GleanNimbus.recordedNimbusContext.testGetValue()
 
+        assertNotNull(value)
         assertEquals(Json.decodeFromString<JsonObject>(context.toJson().toString()), value)
     }
 }
