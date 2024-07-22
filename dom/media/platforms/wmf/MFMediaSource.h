@@ -46,7 +46,8 @@ class MFMediaSource : public Microsoft::WRL::RuntimeClass<
 
   HRESULT RuntimeClassInitialize(const Maybe<AudioInfo>& aAudio,
                                  const Maybe<VideoInfo>& aVideo,
-                                 nsISerialEventTarget* aManagerThread);
+                                 nsISerialEventTarget* aManagerThread,
+                                 bool aIsEncrytpedCustomInit);
 
   // Methods for IMFMediaSource
   IFACEMETHODIMP GetCharacteristics(DWORD* aCharacteristics) override;

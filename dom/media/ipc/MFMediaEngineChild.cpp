@@ -47,7 +47,7 @@ MFMediaEngineChild::MFMediaEngineChild(MFMediaEngineWrapper* aOwner,
 }
 
 RefPtr<GenericNonExclusivePromise> MFMediaEngineChild::Init(
-    const MediaInfo& aInfo, bool aShouldPreload) {
+    const MediaInfo& aInfo, const ExternalPlaybackEngine::InitFlagSet& aFlags) {
   if (!mManagerThread) {
     return GenericNonExclusivePromise::CreateAndReject(NS_ERROR_FAILURE,
                                                        __func__);
@@ -62,7 +62,7 @@ RefPtr<GenericNonExclusivePromise> MFMediaEngineChild::Init(
       RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM)
       ->Then(
           mManagerThread, __func__,
-          [self, this, aShouldPreload, info = aInfo](bool) {
+          [self, this, flag = aFlags, info = aInfo](bool) {
             RefPtr<RemoteDecoderManagerChild> manager =
                 RemoteDecoderManagerChild::GetSingleton(
                     RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM);
@@ -79,7 +79,11 @@ RefPtr<GenericNonExclusivePromise> MFMediaEngineChild::Init(
                 info.HasAudio() ? Some(info.mAudio) : Nothing(),
                 info.HasVideo() ? Some(info.mVideo) : Nothing());
 
-            MediaEngineInfoIPDL initInfo(mediaInfo, aShouldPreload);
+            MediaEngineInfoIPDL initInfo(
+                mediaInfo,
+                flag.contains(ExternalPlaybackEngine::InitFlag::ShouldPreload),
+                flag.contains(
+                    ExternalPlaybackEngine::InitFlag::EncryptedCustomIdent));
             SendInitMediaEngine(initInfo)
                 ->Then(
                     mManagerThread, __func__,
@@ -263,9 +267,9 @@ MFMediaEngineWrapper::MFMediaEngineWrapper(ExternalEngineStateMachine* aOwner,
       mCurrentTimeInSecond(0.0) {}
 
 RefPtr<GenericNonExclusivePromise> MFMediaEngineWrapper::Init(
-    const MediaInfo& aInfo, bool aShouldPreload) {
+    const MediaInfo& aInfo, const InitFlagSet& aFlags) {
   WLOG("Init");
-  return mEngine->Init(aInfo, aShouldPreload);
+  return mEngine->Init(aInfo, aFlags);
 }
 
 MFMediaEngineWrapper::~MFMediaEngineWrapper() { mEngine->OwnerDestroyed(); }

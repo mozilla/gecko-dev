@@ -68,7 +68,7 @@ class MFMediaEngineParent final : public PMFMediaEngineParent {
   ~MFMediaEngineParent();
 
   void CreateMediaEngine();
-  HRESULT SetMediaInfo(const MediaInfoIPDL& aInfo);
+  HRESULT SetMediaInfo(const MediaInfoIPDL& aInfo, bool aIsEncrytpedCustomInit);
 
   void InitializeDXGIDeviceManager();
 

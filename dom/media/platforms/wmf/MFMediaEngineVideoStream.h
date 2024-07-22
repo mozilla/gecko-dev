@@ -27,6 +27,7 @@ class MFMediaEngineVideoStream final : public MFMediaEngineStream {
 
   static MFMediaEngineVideoStream* Create(uint64_t aStreamId,
                                           const TrackInfo& aInfo,
+                                          bool aIsEncrytpedCustomInit,
                                           MFMediaSource* aParentSource);
   nsCString GetDescriptionName() const override {
     return "media engine video stream"_ns;

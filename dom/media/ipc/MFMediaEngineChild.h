@@ -32,8 +32,9 @@ class MFMediaEngineChild final : public PMFMediaEngineChild {
   void OwnerDestroyed();
   void IPDLActorDestroyed();
 
-  RefPtr<GenericNonExclusivePromise> Init(const MediaInfo& aInfo,
-                                          bool aShouldPreload);
+  RefPtr<GenericNonExclusivePromise> Init(
+      const MediaInfo& aInfo,
+      const ExternalPlaybackEngine::InitFlagSet& aFlags);
   void Shutdown();
 
   // Methods for PMFMediaEngineChild
@@ -101,7 +102,7 @@ class MFMediaEngineWrapper final : public ExternalPlaybackEngine {
 
   // Methods for ExternalPlaybackEngine
   RefPtr<GenericNonExclusivePromise> Init(const MediaInfo& aInfo,
-                                          bool aShouldPreload) override;
+                                          const InitFlagSet& aFlags) override;
   void Play() override;
   void Pause() override;
   void Seek(const media::TimeUnit& aTargetTime) override;

@@ -40,7 +40,7 @@ MFMediaSource::~MFMediaSource() {
 
 HRESULT MFMediaSource::RuntimeClassInitialize(
     const Maybe<AudioInfo>& aAudio, const Maybe<VideoInfo>& aVideo,
-    nsISerialEventTarget* aManagerThread) {
+    nsISerialEventTarget* aManagerThread, bool aIsEncrytpedCustomInit) {
   // On manager thread.
   MutexAutoLock lock(mMutex);
 
@@ -52,8 +52,8 @@ HRESULT MFMediaSource::RuntimeClassInitialize(
   MOZ_ASSERT(mManagerThread, "manager thread shouldn't be nullptr!");
 
   if (aAudio) {
-    mAudioStream.Attach(
-        MFMediaEngineAudioStream::Create(streamId++, *aAudio, this));
+    mAudioStream.Attach(MFMediaEngineAudioStream::Create(
+        streamId++, *aAudio, aIsEncrytpedCustomInit, this));
     if (!mAudioStream) {
       NS_WARNING("Failed to create audio stream");
       return E_FAIL;
@@ -65,8 +65,8 @@ HRESULT MFMediaSource::RuntimeClassInitialize(
   }
 
   if (aVideo) {
-    mVideoStream.Attach(
-        MFMediaEngineVideoStream::Create(streamId++, *aVideo, this));
+    mVideoStream.Attach(MFMediaEngineVideoStream::Create(
+        streamId++, *aVideo, aIsEncrytpedCustomInit, this));
     if (!mVideoStream) {
       NS_WARNING("Failed to create video stream");
       return E_FAIL;
@@ -579,6 +579,7 @@ MFMediaEngineStream* MFMediaSource::GetStreamByIndentifier(
 #ifdef MOZ_WMF_CDM
 void MFMediaSource::SetCDMProxy(MFCDMProxy* aCDMProxy) {
   AssertOnManagerThread();
+  LOG("SetCDMProxy");
   mCDMProxy = aCDMProxy;
   // TODO : ask cdm proxy to refresh trusted input
 }

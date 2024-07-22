@@ -217,7 +217,14 @@ void ExternalEngineStateMachine::InitEngine() {
   if (mEngine) {
     MOZ_ASSERT(mInfo);
     auto* state = mState.AsInitEngine();
-    state->mInitPromise = mEngine->Init(*mInfo, !mMinimizePreroll);
+    ExternalPlaybackEngine::InitFlagSet flags;
+    if (mMinimizePreroll) {
+      flags += ExternalPlaybackEngine::InitFlag::ShouldPreload;
+    }
+    if (mReader->IsEncryptedCustomIdent()) {
+      flags += ExternalPlaybackEngine::InitFlag::EncryptedCustomIdent;
+    }
+    state->mInitPromise = mEngine->Init(*mInfo, flags);
     state->mInitPromise
         ->Then(OwnerThread(), __func__, this,
                &ExternalEngineStateMachine::OnEngineInitSuccess,

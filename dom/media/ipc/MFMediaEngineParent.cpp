@@ -338,12 +338,14 @@ mozilla::ipc::IPCResult MFMediaEngineParent::RecvInitMediaEngine(
     // TODO : really need this?
     Unused << mMediaEngine->SetPreload(MF_MEDIA_ENGINE_PRELOAD_AUTOMATIC);
   }
-  RETURN_PARAM_IF_FAILED(SetMediaInfo(aInfo.mediaInfo()), IPC_OK());
+  RETURN_PARAM_IF_FAILED(
+      SetMediaInfo(aInfo.mediaInfo(), aInfo.encryptedCustomIdent()), IPC_OK());
   aResolver(mMediaEngineId);
   return IPC_OK();
 }
 
-HRESULT MFMediaEngineParent::SetMediaInfo(const MediaInfoIPDL& aInfo) {
+HRESULT MFMediaEngineParent::SetMediaInfo(const MediaInfoIPDL& aInfo,
+                                          bool aIsEncrytpedCustomInit) {
   AssertOnManagerThread();
   MOZ_ASSERT(mIsCreatedMediaEngine, "Hasn't created media engine?");
   MOZ_ASSERT(!mMediaSource);
@@ -357,23 +359,23 @@ HRESULT MFMediaEngineParent::SetMediaInfo(const MediaInfoIPDL& aInfo) {
   });
 
   // Create media source and set it to the media engine.
-  NS_ENSURE_TRUE(
-      SUCCEEDED(MakeAndInitialize<MFMediaSource>(
-          &mMediaSource, aInfo.audioInfo(), aInfo.videoInfo(), mManagerThread)),
-      IPC_OK());
+  NS_ENSURE_TRUE(SUCCEEDED(MakeAndInitialize<MFMediaSource>(
+                     &mMediaSource, aInfo.audioInfo(), aInfo.videoInfo(),
+                     mManagerThread, aIsEncrytpedCustomInit)),
+                 IPC_OK());
 
   const bool isEncryted = mMediaSource->IsEncrypted();
   ENGINE_MARKER("MFMediaEngineParent,CreatedMediaSource");
   nsPrintfCString message(
       "Created the media source, audio=%s, video=%s, encrypted-audio=%s, "
-      "encrypted-video=%s, isEncrypted=%d",
+      "encrypted-video=%s, aIsEncrytpedCustomInit=%d, isEncrypted=%d",
       aInfo.audioInfo() ? aInfo.audioInfo()->mMimeType.BeginReading() : "none",
       aInfo.videoInfo() ? aInfo.videoInfo()->mMimeType.BeginReading() : "none",
       aInfo.audioInfo() && aInfo.audioInfo()->mCrypto.IsEncrypted() ? "yes"
                                                                     : "no",
       aInfo.videoInfo() && aInfo.videoInfo()->mCrypto.IsEncrypted() ? "yes"
                                                                     : "no",
-      isEncryted);
+      aIsEncrytpedCustomInit, isEncryted);
   LOG("%s", message.get());
 
   if (aInfo.videoInfo()) {

@@ -19,6 +19,7 @@ struct MediaEngineInfoIPDL
 {
   MediaInfoIPDL mediaInfo;
   bool preload;
+  bool encryptedCustomIdent;
 };
 
 struct MediaInfoIPDL

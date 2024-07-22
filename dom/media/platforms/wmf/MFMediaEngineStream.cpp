@@ -122,11 +122,13 @@ MFMediaEngineStream::~MFMediaEngineStream() {
 }
 
 HRESULT MFMediaEngineStream::RuntimeClassInitialize(
-    uint64_t aStreamId, const TrackInfo& aInfo, MFMediaSource* aParentSource) {
+    uint64_t aStreamId, const TrackInfo& aInfo, bool aIsEncrytpedCustomInit,
+    MFMediaSource* aParentSource) {
   mParentSource = aParentSource;
   mTaskQueue = aParentSource->GetTaskQueue();
   MOZ_ASSERT(mTaskQueue);
   mStreamId = aStreamId;
+  mIsEncrytpedCustomInit = aIsEncrytpedCustomInit;
 
   auto errorExit = MakeScopeExit([&] {
     SLOG("Failed to initialize media stream (id=%" PRIu64 ")", aStreamId);

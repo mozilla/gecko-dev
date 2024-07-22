@@ -340,9 +340,16 @@ class ExternalPlaybackEngine {
 
   virtual ~ExternalPlaybackEngine() = default;
 
+  enum class InitFlag {
+    None,
+    ShouldPreload,
+    EncryptedCustomIdent,
+  };
+  using InitFlagSet = EnumSet<InitFlag, uint8_t>;
+
   // Init the engine and specify the preload request.
-  virtual RefPtr<GenericNonExclusivePromise> Init(const MediaInfo& aInfo,
-                                                  bool aShouldPreload) = 0;
+  virtual RefPtr<GenericNonExclusivePromise> Init(
+      const MediaInfo& aInfo, const InitFlagSet& aFlags) = 0;
   virtual void Shutdown() = 0;
   virtual uint64_t Id() const = 0;
   virtual bool IsInited() const = 0;
