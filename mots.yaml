@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-07-17T21:03:09.494953+00:00'
+updated_at: '2024-07-22T21:00:44.234311+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -2444,6 +2444,7 @@ modules:
     meta:
       owners_emeritus:
         - Nicholas Nethercote
+        - *KrisWright
       peers_emeritus:
         - Felipe Gomes
         - Eric Rahm
@@ -2451,10 +2452,8 @@ modules:
       components:
         - 'Core::Preferences: Backend'
     owners:
-      - *KrisWright
     peers:
       - *glandium
-      - *KrisWright
     machine_name: core_preferences
 
   - name: 'Core: Private Browsing'
@@ -3162,6 +3161,7 @@ modules:
         - Doug Turner
         - Eric Rahm
         - Simon Giesecke
+        - *KrisWright
       group: dev-platform
       url: :ref:`XPCOM`
       components:
@@ -3173,7 +3173,6 @@ modules:
       - *kmag
       - *beth
       - *jstutte
-      - *KrisWright
       - *mccr8
       - *emilio
     machine_name: core_xpcom
@@ -4370,5 +4369,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 187a4e4a0c5adf8570e13897bef499cbcdb1e7a1
-  export: 6064ddc38a4879a50650a77a62d5d88fc4916b48
+  config: 72a0ef284f42f1ba77dffeef3cd092e2aa473219
+  export: aa618446a126cba681e1236599c375a5d788ac5b
