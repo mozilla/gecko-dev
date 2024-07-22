@@ -374,7 +374,7 @@ msix:
     mozinfo: "msix"
     when:
         $eval: '
-                    "windows1" in task["test-platform"]
+                    "windows11" in task["test-platform"]
                     && "-64" in task["test-platform"]
                     && (
                         "opt" in task["test-platform"]
@@ -382,6 +382,7 @@ msix:
                     ) && !(
                         "asan" in task["test-platform"]
                         || "ccov" in task["test-platform"]
+                        || "devedition" in task["test-platform"]
                     )
                 '
     replace:
