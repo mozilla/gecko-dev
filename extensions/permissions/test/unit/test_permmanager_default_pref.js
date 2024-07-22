@@ -13,6 +13,22 @@ function run_test() {
     Services.perms.UNKNOWN_ACTION
   );
 
+  // Check that invalid prefs are ignored.
+  Services.prefs.setIntPref(
+    "permissions.default.camera",
+    Services.perms.MAX_VALID_ACTION + 1
+  );
+  Assert.equal(
+    Services.perms.testPermissionFromPrincipal(principal, "camera"),
+    Services.perms.UNKNOWN_ACTION
+  );
+
+  Services.prefs.setIntPref("permissions.default.camera", -1);
+  Assert.equal(
+    Services.perms.testPermissionFromPrincipal(principal, "camera"),
+    Services.perms.UNKNOWN_ACTION
+  );
+
   // Check that the default return value changed after setting the pref.
   Services.prefs.setIntPref(
     "permissions.default.camera",

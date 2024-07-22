@@ -42,11 +42,14 @@ interface nsIPermissionManager : nsISupports
    * NOTE: UNKNOWN_ACTION (0) is reserved to represent the
    * default permission when no entry is found for a host, and
    * should not be used by consumers to indicate otherwise.
+   *
+   * MAX_VALID_ACTION is the highest value (used to validate prefs)
    */
   const uint32_t UNKNOWN_ACTION = 0;
   const uint32_t ALLOW_ACTION = 1;
   const uint32_t DENY_ACTION = 2;
   const uint32_t PROMPT_ACTION = 3;
+  const uint32_t MAX_VALID_ACTION = 3;
 
   /**
    * Predefined expiration types for permissions.  Permissions can be permanent
