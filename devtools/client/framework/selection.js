@@ -55,21 +55,21 @@ loader.lazyRequireGetter(
  *   "reparented" when the node (or one of its parents) is moved under
  *   a different node
  */
-function Selection() {
-  EventEmitter.decorate(this);
+class Selection extends EventEmitter {
+  constructor() {
+    super();
 
-  // The WalkerFront is dynamic and is always set to the selected NodeFront's WalkerFront.
-  this._walker = null;
-  // A single node front can be represented twice on the client when the node is a slotted
-  // element. It will be displayed once as a direct child of the host element, and once as
-  // a child of a slot in the "shadow DOM". The latter is called the slotted version.
-  this._isSlotted = false;
+    // The WalkerFront is dynamic and is always set to the selected NodeFront's WalkerFront.
+    this._walker = null;
+    // A single node front can be represented twice on the client when the node is a slotted
+    // element. It will be displayed once as a direct child of the host element, and once as
+    // a child of a slot in the "shadow DOM". The latter is called the slotted version.
+    this._isSlotted = false;
 
-  this._onMutations = this._onMutations.bind(this);
-  this.setNodeFront = this.setNodeFront.bind(this);
-}
+    this._onMutations = this._onMutations.bind(this);
+    this.setNodeFront = this.setNodeFront.bind(this);
+  }
 
-Selection.prototype = {
   _onMutations(mutations) {
     let attributeChange = false;
     let pseudoChange = false;
@@ -111,12 +111,12 @@ Selection.prototype = {
     if (detached) {
       this.emit("detached-front", detachedNodeParent);
     }
-  },
+  }
 
   destroy() {
     this.setWalker();
     this._nodeFront = null;
-  },
+  }
 
   /**
    * @param {WalkerFront|null} walker
@@ -130,7 +130,7 @@ Selection.prototype = {
     if (this._walker) {
       this._setWalkerFrontEventListeners(this._walker);
     }
-  },
+  }
 
   /**
    * Set event listeners on the passed walker front
@@ -139,7 +139,7 @@ Selection.prototype = {
    */
   _setWalkerFrontEventListeners(walker) {
     walker.on("mutations", this._onMutations);
-  },
+  }
 
   /**
    * Remove event listeners we previously set on walker front
@@ -148,7 +148,7 @@ Selection.prototype = {
    */
   _removeWalkerFrontEventListeners(walker) {
     walker.off("mutations", this._onMutations);
-  },
+  }
 
   /**
    * Called when a target front is destroyed.
@@ -168,7 +168,7 @@ Selection.prototype = {
       this._removeWalkerFrontEventListeners(this._walker);
       this.emit("detached-front");
     }
-  },
+  }
 
   /**
    * Update the currently selected node-front.
@@ -209,21 +209,21 @@ Selection.prototype = {
     }
 
     this.emit("new-node-front", nodeFront, this.reason);
-  },
+  }
 
   get nodeFront() {
     return this._nodeFront;
-  },
+  }
 
   isRoot() {
     return (
       this.isNode() && this.isConnected() && this._nodeFront.isDocumentElement
     );
-  },
+  }
 
   isNode() {
     return !!this._nodeFront;
-  },
+  }
 
   isConnected() {
     let node = this._nodeFront;
@@ -238,22 +238,22 @@ Selection.prototype = {
       node = node.parentOrHost();
     }
     return false;
-  },
+  }
 
   isHTMLNode() {
     const xhtmlNs = "http://www.w3.org/1999/xhtml";
     return this.isNode() && this.nodeFront.namespaceURI == xhtmlNs;
-  },
+  }
 
   isSVGNode() {
     const svgNs = "http://www.w3.org/2000/svg";
     return this.isNode() && this.nodeFront.namespaceURI == svgNs;
-  },
+  }
 
   isMathMLNode() {
     const mathmlNs = "http://www.w3.org/1998/Math/MathML";
     return this.isNode() && this.nodeFront.namespaceURI == mathmlNs;
-  },
+  }
 
   // Node type
 
@@ -261,65 +261,65 @@ Selection.prototype = {
     return (
       this.isNode() && this.nodeFront.nodeType == nodeConstants.ELEMENT_NODE
     );
-  },
+  }
 
   isPseudoElementNode() {
     return this.isNode() && this.nodeFront.isPseudoElement;
-  },
+  }
 
   isAnonymousNode() {
     return this.isNode() && this.nodeFront.isAnonymous;
-  },
+  }
 
   isAttributeNode() {
     return (
       this.isNode() && this.nodeFront.nodeType == nodeConstants.ATTRIBUTE_NODE
     );
-  },
+  }
 
   isTextNode() {
     return this.isNode() && this.nodeFront.nodeType == nodeConstants.TEXT_NODE;
-  },
+  }
 
   isCDATANode() {
     return (
       this.isNode() &&
       this.nodeFront.nodeType == nodeConstants.CDATA_SECTION_NODE
     );
-  },
+  }
 
   isEntityRefNode() {
     return (
       this.isNode() &&
       this.nodeFront.nodeType == nodeConstants.ENTITY_REFERENCE_NODE
     );
-  },
+  }
 
   isEntityNode() {
     return (
       this.isNode() && this.nodeFront.nodeType == nodeConstants.ENTITY_NODE
     );
-  },
+  }
 
   isProcessingInstructionNode() {
     return (
       this.isNode() &&
       this.nodeFront.nodeType == nodeConstants.PROCESSING_INSTRUCTION_NODE
     );
-  },
+  }
 
   isCommentNode() {
     return (
       this.isNode() &&
       this.nodeFront.nodeType == nodeConstants.PROCESSING_INSTRUCTION_NODE
     );
-  },
+  }
 
   isDocumentNode() {
     return (
       this.isNode() && this.nodeFront.nodeType == nodeConstants.DOCUMENT_NODE
     );
-  },
+  }
 
   /**
    * @returns true if the selection is the <body> HTML element.
@@ -330,7 +330,7 @@ Selection.prototype = {
       this.isConnected() &&
       this.nodeFront.nodeName === "BODY"
     );
-  },
+  }
 
   /**
    * @returns true if the selection is the <head> HTML element.
@@ -341,35 +341,35 @@ Selection.prototype = {
       this.isConnected() &&
       this.nodeFront.nodeName === "HEAD"
     );
-  },
+  }
 
   isDocumentTypeNode() {
     return (
       this.isNode() &&
       this.nodeFront.nodeType == nodeConstants.DOCUMENT_TYPE_NODE
     );
-  },
+  }
 
   isDocumentFragmentNode() {
     return (
       this.isNode() &&
       this.nodeFront.nodeType == nodeConstants.DOCUMENT_FRAGMENT_NODE
     );
-  },
+  }
 
   isNotationNode() {
     return (
       this.isNode() && this.nodeFront.nodeType == nodeConstants.NOTATION_NODE
     );
-  },
+  }
 
   isSlotted() {
     return this._isSlotted;
-  },
+  }
 
   isShadowRootNode() {
     return this.isNode() && this.nodeFront.isShadowRoot;
-  },
-};
+  }
+}
 
 module.exports = Selection;
