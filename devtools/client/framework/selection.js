@@ -59,18 +59,20 @@ class Selection extends EventEmitter {
   constructor() {
     super();
 
-    // The WalkerFront is dynamic and is always set to the selected NodeFront's WalkerFront.
-    this._walker = null;
-    // A single node front can be represented twice on the client when the node is a slotted
-    // element. It will be displayed once as a direct child of the host element, and once as
-    // a child of a slot in the "shadow DOM". The latter is called the slotted version.
-    this._isSlotted = false;
-
-    this._onMutations = this._onMutations.bind(this);
     this.setNodeFront = this.setNodeFront.bind(this);
   }
 
-  _onMutations(mutations) {
+  #nodeFront;
+
+  // The WalkerFront is dynamic and is always set to the selected NodeFront's WalkerFront.
+  #walker = null;
+
+  // A single node front can be represented twice on the client when the node is a slotted
+  // element. It will be displayed once as a direct child of the host element, and once as
+  // a child of a slot in the "shadow DOM". The latter is called the slotted version.
+  #isSlotted = false;
+
+  #onMutations = mutations => {
     let attributeChange = false;
     let pseudoChange = false;
     let detached = false;
@@ -111,24 +113,24 @@ class Selection extends EventEmitter {
     if (detached) {
       this.emit("detached-front", detachedNodeParent);
     }
-  }
+  };
 
   destroy() {
     this.setWalker();
-    this._nodeFront = null;
+    this.#nodeFront = null;
   }
 
   /**
    * @param {WalkerFront|null} walker
    */
   setWalker(walker = null) {
-    if (this._walker) {
-      this._removeWalkerFrontEventListeners(this._walker);
+    if (this.#walker) {
+      this.#removeWalkerFrontEventListeners(this.#walker);
     }
 
-    this._walker = walker;
-    if (this._walker) {
-      this._setWalkerFrontEventListeners(this._walker);
+    this.#walker = walker;
+    if (this.#walker) {
+      this.#setWalkerFrontEventListeners(this.#walker);
     }
   }
 
@@ -137,8 +139,8 @@ class Selection extends EventEmitter {
    *
    * @param {WalkerFront} walker
    */
-  _setWalkerFrontEventListeners(walker) {
-    walker.on("mutations", this._onMutations);
+  #setWalkerFrontEventListeners(walker) {
+    walker.on("mutations", this.#onMutations);
   }
 
   /**
@@ -146,8 +148,8 @@ class Selection extends EventEmitter {
    *
    * @param {WalkerFront} walker
    */
-  _removeWalkerFrontEventListeners(walker) {
-    walker.off("mutations", this._onMutations);
+  #removeWalkerFrontEventListeners(walker) {
+    walker.off("mutations", this.#onMutations);
   }
 
   /**
@@ -161,11 +163,11 @@ class Selection extends EventEmitter {
     // event so consumers can act accordingly (e.g. in the inspector, another node will be
     // selected)
     if (
-      this._walker &&
+      this.#walker &&
       !targetFront.isTopLevel &&
-      this._walker.targetFront == targetFront
+      this.#walker.targetFront == targetFront
     ) {
-      this._removeWalkerFrontEventListeners(this._walker);
+      this.#removeWalkerFrontEventListeners(this.#walker);
       this.emit("detached-front");
     }
   }
@@ -190,7 +192,7 @@ class Selection extends EventEmitter {
       nodeFront = parentNode;
     }
 
-    if (this._nodeFront == null && nodeFront == null) {
+    if (this.#nodeFront == null && nodeFront == null) {
       // Avoid to notify multiple "unselected" events with a null/undefined nodeFront
       // (e.g. once when the webpage start to navigate away from the current webpage,
       // and then again while the new page is being loaded).
@@ -199,8 +201,8 @@ class Selection extends EventEmitter {
 
     this.emit("node-front-will-unset");
 
-    this._isSlotted = isSlotted;
-    this._nodeFront = nodeFront;
+    this.#isSlotted = isSlotted;
+    this.#nodeFront = nodeFront;
 
     if (nodeFront) {
       this.setWalker(nodeFront.walkerFront);
@@ -212,27 +214,27 @@ class Selection extends EventEmitter {
   }
 
   get nodeFront() {
-    return this._nodeFront;
+    return this.#nodeFront;
   }
 
   isRoot() {
     return (
-      this.isNode() && this.isConnected() && this._nodeFront.isDocumentElement
+      this.isNode() && this.isConnected() && this.#nodeFront.isDocumentElement
     );
   }
 
   isNode() {
-    return !!this._nodeFront;
+    return !!this.#nodeFront;
   }
 
   isConnected() {
-    let node = this._nodeFront;
+    let node = this.#nodeFront;
     if (!node || node.isDestroyed()) {
       return false;
     }
 
     while (node) {
-      if (node === this._walker.rootNode) {
+      if (node === this.#walker.rootNode) {
         return true;
       }
       node = node.parentOrHost();
@@ -364,7 +366,7 @@ class Selection extends EventEmitter {
   }
 
   isSlotted() {
-    return this._isSlotted;
+    return this.#isSlotted;
   }
 
   isShadowRootNode() {
