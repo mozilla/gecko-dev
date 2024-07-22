@@ -63,8 +63,7 @@ void PeerIdentity::GetHost(const nsAString& aPeerIdentity, nsAString& aHost) {
 void PeerIdentity::GetNormalizedHost(const nsAString& aHost,
                                      nsACString& aNormalizedHost) {
   const nsCString chost = NS_ConvertUTF16toUTF8(aHost);
-  DebugOnly<nsresult> rv =
-      NS_DomainToASCIIAllowAnyGlyphfulASCII(chost, aNormalizedHost);
+  DebugOnly<nsresult> rv = NS_DomainToASCII(chost, aNormalizedHost);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "Failed to convert UTF-8 host to ASCII");
 }
