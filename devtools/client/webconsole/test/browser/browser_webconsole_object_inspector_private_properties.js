@@ -62,17 +62,7 @@ add_task(async function () {
   const [oi] = objectInspectors;
 
   info("Expanding the Object");
-  const onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  oi.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
   const oiNodes = getObjectInspectorNodes(oi);
   // The object inspector should look like this:
@@ -130,7 +120,7 @@ add_task(async function () {
   );
 
   info("Expand public property disguised as private property");
-  expandObjectInspectorNode(publicDisguisedAsPrivateNodeEl);
+  await expandObjectInspectorNode(publicDisguisedAsPrivateNodeEl);
   const publicPropChildren = await waitFor(() => {
     const children = getObjectInspectorChildrenNodes(
       publicDisguisedAsPrivateNodeEl
@@ -162,7 +152,7 @@ add_task(async function () {
   );
 
   info("Expand private property");
-  expandObjectInspectorNode(privatePropertyNodeEl);
+  await expandObjectInspectorNode(privatePropertyNodeEl);
   const privatePropChildren = await waitFor(() => {
     const children = getObjectInspectorChildrenNodes(privatePropertyNodeEl);
     if (children.length === 0) {
@@ -231,7 +221,7 @@ add_task(async function () {
   );
 
   info("Expand private property prototype");
-  expandObjectInspectorNode(privatePropertyPrototypeEl);
+  await expandObjectInspectorNode(privatePropertyPrototypeEl);
   const privatePropertyPrototypeChildren = await waitFor(() => {
     const children = getObjectInspectorChildrenNodes(
       privatePropertyPrototypeEl

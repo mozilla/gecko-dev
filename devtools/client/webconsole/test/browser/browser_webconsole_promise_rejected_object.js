@@ -101,16 +101,7 @@ add_task(async function () {
   ok(true, "The object was rendered in an ObjectInspector");
 
   info("Expanding the object");
-  const onOiExpanded = waitFor(() => {
-    return oi.querySelectorAll(".node").length === 3;
-  });
-  oi.querySelector(".theme-twisty").click();
-  await onOiExpanded;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "Object expanded"
-  );
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
   // The object inspector now looks like:
   // Object { fav: "eggplant" }

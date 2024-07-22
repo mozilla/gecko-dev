@@ -1269,13 +1269,55 @@ async function selectNodeWithPicker(toolbox, selector) {
  *
  * @param {HTMLElement} node: Object inspector node (.tree-node)
  */
-function expandObjectInspectorNode(node) {
+async function expandObjectInspectorNode(node) {
+  if (!node.classList.contains("tree-node")) {
+    ok(false, "Node should be a .tree-node");
+    return;
+  }
   const arrow = getObjectInspectorNodeArrow(node);
   if (!arrow) {
     ok(false, "Node can't be expanded");
     return;
   }
+  if (arrow.classList.contains("open")) {
+    ok(false, "Node already expanded");
+    return;
+  }
+  const isLongString = node.querySelector(".node > .objectBox-string");
+  let onMutation;
+  let textContentBeforeExpand;
+  if (!isLongString) {
+    const objectInspector = node.closest(".object-inspector");
+    onMutation = waitForNodeMutation(objectInspector, {
+      childList: true,
+    });
+  } else {
+    textContentBeforeExpand = node.textContent;
+  }
   arrow.click();
+
+  // Long strings are not going to be expanded into children element.
+  // Instead the tree node will update itself to show the long string.
+  // So that we can't wait for the childList mutation.
+  if (isLongString) {
+    // Reps will expand on click...
+    await waitFor(() => arrow.classList.contains("open"));
+    // ...but it will fetch the long string content asynchronously after having expanded the TreeNode.
+    // So also wait for the string to be updated and be longer.
+    await waitFor(
+      () => node.textContent.length > textContentBeforeExpand.length
+    );
+  } else {
+    await onMutation;
+    // Waiting for the object inspector mutation isn't enough,
+    // also wait for the children element, with higher aria-level to be added to the DOM.
+    await waitFor(() => !!getObjectInspectorChildrenNodes(node).length);
+  }
+
+  ok(
+    arrow.classList.contains("open"),
+    "The arrow of the root node of the tree is expanded after clicking on it"
+  );
 }
 
 /**
@@ -1316,7 +1358,7 @@ function getObjectInspectorNodes(oi) {
  *                              deeper than the passed node)
  */
 function getObjectInspectorChildrenNodes(node) {
-  const getLevel = n => parseInt(n.getAttribute("aria-level"), 10);
+  const getLevel = n => parseInt(n.getAttribute("aria-level") || "0", 10);
   const level = getLevel(node);
   const childLevel = level + 1;
   const children = [];

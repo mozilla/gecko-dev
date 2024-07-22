@@ -19,9 +19,7 @@ add_task(async function () {
   const node = await waitFor(() => findConsoleAPIMessage(hud, "oi-test"));
 
   info("Expand the MouseEvent object");
-  const oi = node.querySelector(".tree");
-  expandObjectInspectorNode(oi);
-  await waitFor(() => getObjectInspectorNodes(oi).length > 1);
+  await expandObjectInspectorNode(node.querySelector(".tree .tree-node"));
 
   info("Wait for a bit so any warning message could be displayed");
   await wait(1000);

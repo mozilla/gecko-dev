@@ -20,13 +20,7 @@ add_task(async function () {
   const node = await waitFor(() => findConsoleAPIMessage(hud, "oi-test"));
   const objectInspector = node.querySelector(".tree");
 
-  let onOiMutation = waitForNodeMutation(objectInspector, {
-    childList: true,
-  });
-
-  info("Expanding the object inspector");
-  objectInspector.querySelector(".theme-twisty").click();
-  await onOiMutation;
+  await expandObjectInspectorNode(objectInspector.querySelector(".tree-node"));
 
   const nodes = objectInspector.querySelectorAll(".node");
   const lastNode = nodes[nodes.length - 1];
@@ -38,7 +32,7 @@ add_task(async function () {
   ok(hasVerticalOverflow(outputContainer), "There is a vertical overflow");
   const scrollTop = outputContainer.scrollTop;
 
-  onOiMutation = waitForNodeMutation(objectInspector, {
+  const onOiMutation = waitForNodeMutation(objectInspector, {
     childList: true,
   });
 

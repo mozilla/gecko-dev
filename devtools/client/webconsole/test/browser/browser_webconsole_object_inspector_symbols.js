@@ -35,17 +35,7 @@ add_task(async function () {
   const [oi] = objectInspectors;
 
   info("Expanding the Object");
-  const onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  oi.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
   const oiNodes = oi.querySelectorAll(".node");
   // The object inspector should look like this:

@@ -68,7 +68,7 @@ add_task(async function () {
 });
 
 async function testObject(oi, { myValue, value }) {
-  expandObjectInspectorNode(oi.querySelector(".tree-node"));
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
   const prototypeNode = await waitFor(() =>
     findObjectInspectorNode(oi, "<prototype>")
   );
@@ -95,9 +95,7 @@ async function testObject(oi, { myValue, value }) {
 }
 
 async function getValueNode(prototypeNode) {
-  expandObjectInspectorNode(prototypeNode);
-
-  await waitFor(() => !!getObjectInspectorChildrenNodes(prototypeNode).length);
+  await expandObjectInspectorNode(prototypeNode);
 
   const children = getObjectInspectorChildrenNodes(prototypeNode);
   const valueNode = children.find(

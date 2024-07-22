@@ -45,16 +45,7 @@ add_task(async function () {
 
   info("Expanding the array object inspector");
   const [oi] = objectInspectors;
-  const onOiExpanded = waitFor(() => {
-    return oi.querySelectorAll(".node").length === 3;
-  });
-  oi.querySelector(".theme-twisty").click();
-  await onOiExpanded;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "Object inspector expanded"
-  );
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
   // The object inspector now looks like:
   // Object { testProp2: "testValue2" }

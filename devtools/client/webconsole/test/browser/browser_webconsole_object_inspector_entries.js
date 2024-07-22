@@ -148,48 +148,29 @@ add_task(async function () {
 
 async function testSmallMap(oi) {
   info("Expanding the Map");
-  let onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   info("Expanding the <entries> leaf of the map");
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
-  onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(entriesNode);
 
-  entriesNode.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  oiNodes = oi.querySelectorAll(".node");
+  oiNodes = oi.querySelectorAll(".tree-node");
   // There are now 6 nodes, the 4 original ones, and the 2 entries.
   is(oiNodes.length, 6, "There is the expected number of nodes in the tree");
 
   info("Expand first entry");
-  onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-  oiNodes[3].querySelector(".theme-twisty").click();
-  await onMapOiMutation;
+  await expandObjectInspectorNode(oiNodes[3]);
 
-  oiNodes = oi.querySelectorAll(".node");
+  oiNodes = oi.querySelectorAll(".tree-node");
   /*
    * ▼ Map (2)
    * |   size: 2
@@ -203,13 +184,9 @@ async function testSmallMap(oi) {
   is(oiNodes.length, 8, "There is the expected number of nodes in the tree");
 
   info("Expand <key> for first entry");
-  onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-  oiNodes[4].querySelector(".theme-twisty").click();
-  await onMapOiMutation;
+  await expandObjectInspectorNode(oiNodes[4]);
 
-  oiNodes = oi.querySelectorAll(".node");
+  oiNodes = oi.querySelectorAll(".tree-node");
   /*
    * ▼ Map (2)
    * |   size: 2
@@ -225,84 +202,50 @@ async function testSmallMap(oi) {
   is(oiNodes.length, 10, "There is the expected number of nodes in the tree");
 
   info("Expand <value> for first entry");
-  onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-  oiNodes[7].querySelector(".theme-twisty").click();
-  await onMapOiMutation;
+  await expandObjectInspectorNode(oiNodes[7]);
 
-  oiNodes = oi.querySelectorAll(".node");
+  oiNodes = oi.querySelectorAll(".tree-node");
   Assert.greater(oiNodes.length, 10, "The document node was expanded");
 }
 
 async function testMap(oi) {
   info("Expanding the Map");
-  let onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   info("Expanding the <entries> leaf of the map");
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
-  onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(entriesNode);
 
-  entriesNode.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  oiNodes = oi.querySelectorAll(".node");
+  oiNodes = oi.querySelectorAll(".tree-node");
   // There are now 24 nodes, the 4 original ones, and the 20 entries.
   is(oiNodes.length, 24, "There is the expected number of nodes in the tree");
 }
 
 async function testLargeMap(oi) {
   info("Expanding the large map");
-  let onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   info("Expanding the <entries> leaf of the map");
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
-  onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 8 nodes, the 4 original ones, and the 4 buckets.
@@ -315,46 +258,27 @@ async function testLargeMap(oi) {
 
 async function testSmallSet(oi) {
   info("Expanding the Set");
-  let onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   info("Expanding the <entries> leaf of the map");
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
-  onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(entriesNode);
 
-  entriesNode.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  oiNodes = oi.querySelectorAll(".node");
+  oiNodes = oi.querySelectorAll(".tree-node");
   // There are now 6 nodes, the 4 original ones, and the 2 entries.
   is(oiNodes.length, 6, "There is the expected number of nodes in the tree");
 
   info("Expand first entry");
-  onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-  oiNodes[3].querySelector(".theme-twisty").click();
-  await onMapOiMutation;
+  await expandObjectInspectorNode(oiNodes[3]);
 
   oiNodes = oi.querySelectorAll(".node");
   /*
@@ -372,35 +296,20 @@ async function testSmallSet(oi) {
 
 async function testSet(oi) {
   info("Expanding the Set");
-  let onSetOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onSetOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   info("Expanding the <entries> leaf of the Set");
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
-  onSetOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onSetOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 24 nodes, the 4 original ones, and the 20 entries.
@@ -409,35 +318,20 @@ async function testSet(oi) {
 
 async function testLargeSet(oi) {
   info("Expanding the large Set");
-  let onSetOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onSetOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   info("Expanding the <entries> leaf of the Set");
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
-  onSetOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onSetOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 7 nodes, the 4 original ones, and the 3 buckets.
@@ -455,36 +349,21 @@ async function testUrlSearchParams(oi) {
   );
 
   info("Expanding the URLSearchParams");
-  let onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
 
   info("Expanding the <entries> leaf of the URLSearchParams");
-  onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 14 nodes, the 4 original ones, and the 11 entries.
@@ -530,36 +409,21 @@ async function testHeaders(oi) {
   );
 
   info("Expanding the Headers");
-  let onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 3 nodes: the root, entries and the proto.
   is(oiNodes.length, 3, "There is the expected number of nodes in the tree");
 
   const entriesNode = oiNodes[1];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
 
   info("Expanding the <entries> leaf of the Headers");
-  onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 6 nodes, the 3 original ones, and the 3 entries.
@@ -582,36 +446,21 @@ async function testFormData(oi) {
   );
 
   info("Expanding the FormData");
-  let onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 3 nodes: the root, entries and the proto.
   is(oiNodes.length, 3, "There is the expected number of nodes in the tree");
 
   const entriesNode = oiNodes[1];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
 
   info("Expanding the <entries> leaf of the FormData");
-  onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 6 nodes, the 3 original ones, and the 3 entries.
@@ -643,36 +492,21 @@ async function testMidiInputs(oi, midiInputs) {
   );
 
   info("Expanding the MIDIInputMap");
-  let onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
 
   info("Expanding the <entries> leaf of the MIDIInputMap");
-  onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 5 nodes, the 4 original ones, and the entry.
@@ -693,36 +527,21 @@ async function testMidiOutputs(oi, midiOutputs) {
   );
 
   info("Expanding the MIDIOutputMap");
-  let onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
 
   info("Expanding the <entries> leaf of the MIDIOutputMap");
-  onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 7 nodes, the 4 original ones, and the 3 entries.
@@ -753,80 +572,61 @@ async function testHighlightsRegistry(oi) {
   );
 
   info("Expanding the HighlightRegistry");
-  let onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
 
   info("Expanding the <entries> leaf of the HighlightRegistry");
-  onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(entriesNode);
 
-  entriesNode.querySelector(".theme-twisty").click();
-  await onOiMutation;
-
-  oiNodes = oi.querySelectorAll(".node");
+  oiNodes = oi.querySelectorAll(".tree-node");
   // There are now 7 nodes, the 4 original ones, and the 3 entries.
   is(oiNodes.length, 7, "There is the expected number of nodes in the tree");
 
   is(
-    oiNodes[3].textContent,
+    oiNodes[3].querySelector(".node").textContent,
     `0: search → Highlight { priority: 0, type: "highlight", size: 0 }`,
     "First entry is displayed as expected"
   );
   is(
-    oiNodes[4].textContent,
+    oiNodes[4].querySelector(".node").textContent,
     `1: glow → Highlight { priority: 0, type: "highlight", size: 0 }`,
     `Second entry is displayed as expected`
   );
   is(
-    oiNodes[5].textContent,
+    oiNodes[5].querySelector(".node").textContent,
     `2: anchor → Highlight { priority: 0, type: "highlight", size: 0 }`,
     `Third entry entry is displayed as expected`
   );
 
   info("Expand last entry");
-  onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-  oiNodes[5].querySelector(".theme-twisty").click();
-  await onOiMutation;
+  await expandObjectInspectorNode(oiNodes[5]);
 
-  oiNodes = oi.querySelectorAll(".node");
+  oiNodes = oi.querySelectorAll(".tree-node");
   // There are now 9 nodes, the 7 original ones, <key> and <value>
   is(oiNodes.length, 9, "There is the expected number of nodes in the tree");
-  is(oiNodes[6].textContent, `<key>: "anchor"`, `Got expected key node`);
   is(
-    oiNodes[7].textContent,
+    oiNodes[6].querySelector(".node").textContent,
+    `<key>: "anchor"`,
+    `Got expected key node`
+  );
+  is(
+    oiNodes[7].querySelector(".node").textContent,
     `<value>: Highlight { priority: 0, type: "highlight", size: 0 }`,
     `Got expected value node`
   );
 
   info("Expand Highlight object");
-  onOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-  oiNodes[7].querySelector(".theme-twisty").click();
-  await onOiMutation;
+  await expandObjectInspectorNode(oiNodes[7]);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 13 nodes, the 9 previous ones, and all the properties of the Highlight object
@@ -847,35 +647,21 @@ async function testHighlightsRegistry(oi) {
 
 async function testCustomStateSet(oi) {
   info("Expanding the CustomStateSet");
-  let onCustomStateSetOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onCustomStateSetOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let oiNodes = oi.querySelectorAll(".node");
+  let oiNodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(oiNodes.length, 4, "There is the expected number of nodes in the tree");
 
   info("Expanding the <entries> leaf of the map");
+
   const entriesNode = oiNodes[2];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
-  onCustomStateSetOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onCustomStateSetOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   oiNodes = oi.querySelectorAll(".node");
   // There are now 6 nodes, the 4 original ones, and the 2 entries.

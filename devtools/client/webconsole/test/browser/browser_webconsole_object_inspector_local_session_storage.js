@@ -43,35 +43,20 @@ async function logMessages(hud) {
 
 async function checkValues(oi, storageType) {
   info(`Expanding the ${storageType} object`);
-  let onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
-  oi.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
-
-  ok(
-    oi.querySelector(".theme-twisty").classList.contains("open"),
-    "The arrow of the node has the expected class after clicking on it"
-  );
-
-  let nodes = oi.querySelectorAll(".node");
+  let nodes = oi.querySelectorAll(".tree-node");
   // There are 4 nodes: the root, size, entries and the proto.
   is(nodes.length, 5, "There is the expected number of nodes in the tree");
 
   info("Expanding the <entries> leaf of the map");
   const entriesNode = nodes[3];
   is(
-    entriesNode.textContent,
+    entriesNode.querySelector(".node").textContent,
     "<entries>",
     "There is the expected <entries> node"
   );
-  onMapOiMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  entriesNode.querySelector(".theme-twisty").click();
-  await onMapOiMutation;
+  await expandObjectInspectorNode(entriesNode);
 
   nodes = oi.querySelectorAll(".node");
   // There are now 7 nodes, the 5 original ones, and the 2 entries.

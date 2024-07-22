@@ -94,8 +94,7 @@ add_task(async function () {
   const node = await waitFor(() => findConsoleAPIMessage(hud, "oi-test"));
   const oi = node.querySelector(".tree");
 
-  expandObjectInspectorNode(oi);
-  await waitFor(() => getObjectInspectorNodes(oi).length > 1);
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
   await testStringGetter(oi);
   await testNumberGetter(oi);
@@ -379,8 +378,7 @@ async function testObjectGetter(oi) {
   );
   is(isObjectInspectorNodeExpandable(node), true, "The node can be expanded");
 
-  expandObjectInspectorNode(node);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(node).length);
+  await expandObjectInspectorNode(node);
   checkChildren(node, [`foo: "bar"`, `<prototype>`]);
 }
 
@@ -411,8 +409,7 @@ async function testArrayGetter(oi) {
   );
   is(isObjectInspectorNodeExpandable(node), true, "The node can be expanded");
 
-  expandObjectInspectorNode(node);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(node).length);
+  await expandObjectInspectorNode(node);
   const children = getObjectInspectorChildrenNodes(node);
 
   const firstBucket = children[0];
@@ -423,8 +420,7 @@ async function testArrayGetter(oi) {
     true,
     "The bucket can be expanded"
   );
-  expandObjectInspectorNode(firstBucket);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(firstBucket).length);
+  await expandObjectInspectorNode(firstBucket);
   checkChildren(
     firstBucket,
     Array.from({ length: 100 }, (_, i) => `${i}: ${i}`)
@@ -456,18 +452,15 @@ async function testMapGetter(oi) {
   );
   is(isObjectInspectorNodeExpandable(node), true, "The node can be expanded");
 
-  expandObjectInspectorNode(node);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(node).length);
+  await expandObjectInspectorNode(node);
   checkChildren(node, [`size`, `<entries>`, `<prototype>`]);
 
   const entriesNode = findObjectInspectorNode(oi, "<entries>");
-  expandObjectInspectorNode(entriesNode);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(entriesNode).length);
+  await expandObjectInspectorNode(entriesNode);
   checkChildren(entriesNode, [`foo → Object { bar: "baz" }`]);
 
   const entryNode = getObjectInspectorChildrenNodes(entriesNode)[0];
-  expandObjectInspectorNode(entryNode);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(entryNode).length);
+  await expandObjectInspectorNode(entryNode);
   checkChildren(entryNode, [`<key>: "foo"`, `<value>: Object { bar: "baz" }`]);
 }
 
@@ -496,18 +489,15 @@ async function testProxyGetter(oi) {
   );
   is(isObjectInspectorNodeExpandable(node), true, "The node can be expanded");
 
-  expandObjectInspectorNode(node);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(node).length);
+  await expandObjectInspectorNode(node);
   checkChildren(node, [`<target>`, `<handler>`]);
 
   const targetNode = findObjectInspectorNode(oi, "<target>");
-  expandObjectInspectorNode(targetNode);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(targetNode).length);
+  await expandObjectInspectorNode(targetNode);
   checkChildren(targetNode, [`a: 1`, `<prototype>`]);
 
   const handlerNode = findObjectInspectorNode(oi, "<handler>");
-  expandObjectInspectorNode(handlerNode);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(handlerNode).length);
+  await expandObjectInspectorNode(handlerNode);
   checkChildren(handlerNode, [`get:`, `<prototype>`]);
 }
 
@@ -536,8 +526,7 @@ async function testThrowingGetter(oi) {
   );
   is(isObjectInspectorNodeExpandable(node), true, "The node can be expanded");
 
-  expandObjectInspectorNode(node);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(node).length);
+  await expandObjectInspectorNode(node);
   checkChildren(node, [
     `columnNumber`,
     `fileName`,
@@ -571,7 +560,7 @@ async function testLongStringGetter(oi, longString) {
     "The node can be expanded"
   );
 
-  expandObjectInspectorNode(getLongStringNode());
+  await expandObjectInspectorNode(getLongStringNode());
   await waitFor(() =>
     getLongStringNode().textContent.includes(
       `myLongStringGetter: "${longString}"`

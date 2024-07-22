@@ -136,18 +136,7 @@ function testInputRelatedElementsAreNotVisibile(hud) {
 }
 
 async function testObjectInspectorPropertiesAreSet(objInspector) {
-  const onMutation = waitForNodeMutation(objInspector, {
-    childList: true,
-  });
-
-  const arrow = objInspector.querySelector(".theme-twisty");
-  arrow.click();
-  await onMutation;
-
-  ok(
-    arrow.classList.contains("open"),
-    "The arrow of the root node of the tree is expanded after clicking on it"
-  );
+  await expandObjectInspectorNode(objInspector.querySelector(".tree-node"));
 
   const nameNode = objInspector.querySelector(
     ".node:not(.lessen) .object-label"

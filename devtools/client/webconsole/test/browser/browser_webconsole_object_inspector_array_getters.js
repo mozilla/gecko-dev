@@ -36,8 +36,7 @@ add_task(async function () {
     "Elements with getter/setter should be shown correctly"
   );
 
-  expandObjectInspectorNode(oi);
-  await waitFor(() => getObjectInspectorNodes(oi).length > 1);
+  await expandObjectInspectorNode(oi.querySelector(".tree-node"));
 
   await testGetter(oi, "0");
   await testSetterOnly(oi, "1");

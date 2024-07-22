@@ -47,7 +47,7 @@ add_task(async function () {
   const [oi1, oi2, oi3] = objectInspectors;
 
   info("Expanding the first object inspector");
-  await expandObjectInspector(oi1);
+  await expandObjectInspectorNode(oi1.querySelector(".tree-node"));
 
   // The first object inspector now looks like:
   // ▼ {…}
@@ -61,7 +61,7 @@ add_task(async function () {
   ok(oi1.textContent.includes('hello: "world!"'), "Expected content");
 
   info("Expanding the second object inspector");
-  await expandObjectInspector(oi2);
+  await expandObjectInspectorNode(oi2.querySelector(".tree-node"));
 
   // The second object inspector now looks like:
   // ▼ func()
@@ -123,12 +123,3 @@ add_task(async function () {
   ok(true, "Inspector selected and new node got selected");
   is(inspectorSelectedNodeFront.id, "testEl", "The expected node was selected");
 });
-
-function expandObjectInspector(oi) {
-  const onMutation = waitForNodeMutation(oi, {
-    childList: true,
-  });
-
-  oi.querySelector(".theme-twisty").click();
-  return onMutation;
-}

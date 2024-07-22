@@ -23,18 +23,15 @@ add_task(async function () {
   const oi = node.querySelector(".tree");
   const [proxyNode] = getObjectInspectorNodes(oi);
 
-  expandObjectInspectorNode(proxyNode);
-  await waitFor(() => getObjectInspectorNodes(oi).length > 1);
+  await expandObjectInspectorNode(proxyNode);
   checkChildren(proxyNode, [`<target>`, `<handler>`]);
 
   const targetNode = findObjectInspectorNode(oi, "<target>");
-  expandObjectInspectorNode(targetNode);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(targetNode).length);
+  await expandObjectInspectorNode(targetNode);
   checkChildren(targetNode, [`<target>`, `<handler>`]);
 
   const handlerNode = findObjectInspectorNode(oi, "<handler>");
-  expandObjectInspectorNode(handlerNode);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(handlerNode).length);
+  await expandObjectInspectorNode(handlerNode);
   checkChildren(handlerNode, [`<target>`, `<handler>`]);
 });
 

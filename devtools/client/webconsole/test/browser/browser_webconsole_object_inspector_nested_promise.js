@@ -26,13 +26,11 @@ add_task(async function testExpandNestedPromise() {
   const oi = node.querySelector(".tree");
   const [promiseNode] = getObjectInspectorNodes(oi);
 
-  expandObjectInspectorNode(promiseNode);
-  await waitFor(() => getObjectInspectorNodes(oi).length > 1);
+  await expandObjectInspectorNode(promiseNode);
   checkChildren(promiseNode, [`0`, `<state>`, `<value>`, `<prototype>`]);
 
   const valueNode = findObjectInspectorNode(oi, "<value>");
-  expandObjectInspectorNode(valueNode);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(valueNode).length);
+  await expandObjectInspectorNode(valueNode);
   checkChildren(valueNode, [`1`, `<state>`, `<value>`]);
 });
 
@@ -58,18 +56,15 @@ add_task(async function testExpandCyclicPromise() {
   const oi = node.querySelector(".tree");
   const [promiseNode] = getObjectInspectorNodes(oi);
 
-  expandObjectInspectorNode(promiseNode);
-  await waitFor(() => getObjectInspectorNodes(oi).length > 1);
+  await expandObjectInspectorNode(promiseNode);
   checkChildren(promiseNode, [`foo`, `<state>`, `<value>`]);
 
   const valueNode = findObjectInspectorNode(oi, "<value>");
-  expandObjectInspectorNode(valueNode);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(valueNode).length);
+  await expandObjectInspectorNode(valueNode);
   checkChildren(valueNode, [`bar`, `<state>`, `<reason>`]);
 
   const reasonNode = findObjectInspectorNode(oi, "<reason>");
-  expandObjectInspectorNode(reasonNode);
-  await waitFor(() => !!getObjectInspectorChildrenNodes(reasonNode).length);
+  await expandObjectInspectorNode(reasonNode);
   checkChildren(reasonNode, [`foo`, `<state>`, `<value>`]);
 });
 
