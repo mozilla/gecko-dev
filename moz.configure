@@ -425,7 +425,6 @@ check_prog(
 profiling = dependable(False)
 # Same for js_standalone
 js_standalone = dependable(False)
-js_shared = dependable(False)
 moz_linker = dependable(False)
 # Same for fold_libs
 fold_libs = dependable(False)
@@ -914,9 +913,9 @@ pkg_check_modules("MOZ_ZLIB", "zlib >= 1.2.3", when="--with-system-zlib")
 set_config("MOZ_SYSTEM_ZLIB", True, when="--with-system-zlib")
 
 
-@depends(with_system_zlib_option, js_shared, moz_linker, target.os)
-def zlib_in_mozglue(system_zlib, js_shared, linker, os):
-    if not system_zlib and (js_shared or linker or os == "Android"):
+@depends(with_system_zlib_option, moz_linker, target.os)
+def zlib_in_mozglue(system_zlib, linker, os):
+    if not system_zlib and (linker or os == "Android"):
         return True
 
 
