@@ -27,7 +27,8 @@
 test(function(t) {
   const div = addDiv(t,
     { style: "width: 10px; height: 100px; " +
-             "animation: animWidth 100s scroll(), animTop 200s;" });
+             "animation: animWidth 100s, animTop 200s; " +
+             "animation-timeline: scroll(), auto;"});
 
   // Sanity check to make sure the scroll animation is there.
   addDiv(t, { class: "fill-vh" });
@@ -50,7 +51,8 @@ test(function(t) {
 test(function(t) {
   const div = addDiv(t,
     { style: "width: 10px; height: 100px; " +
-             "animation: animWidth 100s scroll(), animTop 100s;" });
+             "animation: animWidth 100s, animTop 100s; " +
+             "animation-timeline: scroll(), auto;"});
 
   // Sanity check to make sure the scroll animation is there.
   addDiv(t, { class: "fill-vh" });

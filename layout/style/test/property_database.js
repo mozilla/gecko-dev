@@ -13965,20 +13965,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
   // Basically, web-platform-tests should cover most cases, so here we only
   // put some basic test cases.
   gCSSProperties["animation"].subproperties.push("animation-timeline");
-  gCSSProperties["animation"].initial_values.push(
-    "none none 0s 0s ease normal running 1.0 auto",
-    "none none auto"
-  );
-  gCSSProperties["animation"].other_values.push(
-    "none none 0s 0s cubic-bezier(0.25, 0.1, 0.25, 1.0) normal running 1.0 auto",
-    "bounce 1s linear 2s --timeline",
-    "bounce 1s 2s linear none",
-    "bounce --timeline",
-    "2s, 1s bounce --timeline",
-    "1s bounce --timeline, 2s",
-    "1s bounce none, 2s none auto"
-  );
-
   gCSSProperties["-moz-animation"].subproperties.push("animation-timeline");
   gCSSProperties["-webkit-animation"].subproperties.push("animation-timeline");
 

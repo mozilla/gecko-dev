@@ -200,8 +200,10 @@ is(e.style.transition, "", "should not have transition shorthand (lists differen
 e.setAttribute("style", "transition: color, width; transition-delay: 0s");
 is(e.style.transition, "", "should not have transition shorthand (lists different lengths)");
 
+// FIXME: Bug 1824261. The 1st case should be non-empty if animation-timeline is
+// not reset-only.
 e.setAttribute("style", "animation-name: bounce, roll; animation-duration: 1s, 200ms; animation-timing-function: ease-in, linear; animation-delay: 0s, 1s; animation-direction: normal, reverse; animation-fill-mode: forwards, backwards; animation-iteration-count: infinite, 2; animation-play-state: paused, running; animation-timeline: auto, auto;");
-isnot(e.style.animation, "", "should have animation shorthand (lists same length)");
+is(e.style.animation, "", "should have animation shorthand (lists same length, Bug 1824261)");
 e.setAttribute("style", "animation-name: bounce, roll, left; animation-duration: 1s, 200ms; animation-timing-function: ease-in, linear; animation-delay: 0s, 1s; animation-direction: normal, reverse; animation-fill-mode: forwards, backwards; animation-iteration-count: infinite, 2; animation-play-state: paused, running; animation-timeline: auto, auto;");
 is(e.style.animation, "", "should not have animation shorthand (lists different lengths)");
 e.setAttribute("style", "animation-name: bounce; animation-duration: 1s, 200ms; animation-timing-function: ease-in, linear; animation-delay: 0s, 1s; animation-direction: normal, reverse; animation-fill-mode: forwards, backwards; animation-iteration-count: infinite, 2; animation-play-state: paused, running; animation-timeline: auto, auto;");

@@ -129,7 +129,8 @@ waitUntilApzStable().then(() => {
 // with document-timeline.
 addAsyncAnimTest(async function() {
   new_scroller();
-  new_div("animation: geometry 10s --scroll_timeline, always_fifty 1s infinite;");
+  new_div("animation: geometry 10s, always_fifty 1s infinite; " +
+          "animation-timeline: --scroll_timeline, auto");
   await waitForPaintsFlushed();
 
   // Note: width is not a OMTA property, so it must be running on the main
@@ -144,7 +145,8 @@ addAsyncAnimTest(async function() {
 // transform property with scroll-driven animations.
 addAsyncAnimTest(async function() {
   let scroller = new_scroller();
-  new_div("animation: transform_anim 1s linear --scroll_timeline;");
+  new_div("animation: transform_anim 1s linear; " +
+          "animation-timeline: --scroll_timeline;");
   await waitForPaintsFlushed();
 
   scroller.scrollTop = 50;
@@ -163,7 +165,8 @@ addAsyncAnimTest(async function() {
 // active phase to the before phase.
 addAsyncAnimTest(async function() {
   let scroller = new_scroller();
-  new_div("animation: always_fifty 5s linear 5s --scroll_timeline; " +
+  new_div("animation: always_fifty 5s linear 5s; " +
+          "animation-timeline: --scroll_timeline; " +
           "transform: translate(25px);");
   await waitForPaintsFlushed();
 
@@ -212,7 +215,8 @@ addAsyncAnimTest(async function() {
 // the active phase to the before phase.
 addAsyncAnimTest(async function() {
   let scroller = new_scroller();
-  new_div("animation: always_fifty 5s linear 5s --scroll_timeline; ");
+  new_div("animation: always_fifty 5s linear 5s; " +
+          "animation-timeline: --scroll_timeline;");
   await waitForPaintsFlushed();
 
   // NOTE: getOMTAStyle() can't detect the animation is running on the
@@ -252,7 +256,8 @@ addAsyncAnimTest(async function() {
 addAsyncAnimTest(async function() {
   let scroller = new_scroller();
   new_div("animation: transform_anim 10s linear -5s paused, " +
-          "           always_fifty 5s linear 5s --scroll_timeline;");
+          "           always_fifty 5s linear 5s; " +
+          "animation-timeline: auto, --scroll_timeline;");
   await waitForPaintsFlushed();
 
   omta_is_approx("transform", { tx: 100 }, 0.1, RunningOn.Compositor,
@@ -294,8 +299,9 @@ addAsyncAnimTest(async function() {
     "@keyframes anim { from, to { transform: translate(50px) } }" +
     "</style>" +
     "<div id='target_in_iframe' " +
-    "     style='width:50px; height:50px; background:green;" +
-    "            animation: anim 10s linear scroll(root);'>" +
+    "     style='width:50px; height:50px; background:green; " +
+    "            animation: anim 10s linear; " +
+    "            animation-timeline: scroll(root);'>" +
     "</div>" +
     "</html>";
 
