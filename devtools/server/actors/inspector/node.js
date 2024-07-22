@@ -287,6 +287,7 @@ class NodeActor extends Actor {
       characterDataOldValue: true,
       childList: true,
       subtree: true,
+      // Track addition/removal of pseudo-elements too
       chromeOnlyNodes: true,
     });
     this.mutationObserver = observer;
