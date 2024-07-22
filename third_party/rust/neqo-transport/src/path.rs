@@ -10,7 +10,7 @@ use std::{
     cell::RefCell,
     fmt::{self, Display},
     mem,
-    net::{IpAddr, SocketAddr},
+    net::SocketAddr,
     rc::Rc,
     time::{Duration, Instant},
 };
@@ -25,6 +25,7 @@ use crate::{
     ecn::{EcnCount, EcnInfo},
     frame::{FRAME_TYPE_PATH_CHALLENGE, FRAME_TYPE_PATH_RESPONSE, FRAME_TYPE_RETIRE_CONNECTION_ID},
     packet::PacketBuilder,
+    pmtud::Pmtud,
     recovery::{RecoveryToken, SentPacket},
     rtt::RttEstimate,
     sender::PacketSender,
@@ -33,14 +34,6 @@ use crate::{
     Stats,
 };
 
-/// This is the MTU that we assume when using IPv6.
-/// We use this size for Initial packets, so we don't need to worry about probing for support.
-/// If the path doesn't support this MTU, we will assume that it doesn't support QUIC.
-///
-/// This is a multiple of 16 greater than the largest possible short header (1 + 20 + 4).
-pub const PATH_MTU_V6: usize = 1337;
-/// The path MTU for IPv4 can be 20 bytes larger than for v6.
-pub const PATH_MTU_V4: usize = PATH_MTU_V6 + 20;
 /// The number of times that a path will be probed before it is considered failed.
 const MAX_PATH_PROBES: usize = 3;
 /// The maximum number of paths that `Paths` will track.
@@ -211,9 +204,8 @@ impl Paths {
     #[must_use]
     fn select_primary(&mut self, path: &PathRef) -> Option<PathRef> {
         qdebug!([path.borrow()], "set as primary path");
-        let old_path = self.primary.replace(Rc::clone(path)).map(|old| {
+        let old_path = self.primary.replace(Rc::clone(path)).inspect(|old| {
             old.borrow_mut().set_primary(false);
-            old
         });
 
         // Swap the primary path into slot 0, so that it is protected from eviction.
@@ -276,6 +268,7 @@ impl Paths {
         if primary_failed {
             self.primary = None;
             // Find a valid path to fall back to.
+            #[allow(clippy::option_if_let_else)]
             if let Some(fallback) = self
                 .paths
                 .iter()
@@ -291,6 +284,10 @@ impl Paths {
                 false
             }
         } else {
+            // See if the PMTUD raise timer wants to fire.
+            if let Some(path) = self.primary() {
+                path.borrow_mut().pmtud_mut().maybe_fire_raise_timer(now);
+            }
             true
         }
     }
@@ -437,13 +434,13 @@ impl Paths {
         self.to_retire.retain(|&seqno| seqno != acked);
     }
 
-    pub fn lost_ack_frequency(&mut self, lost: &AckRate) {
+    pub fn lost_ack_frequency(&self, lost: &AckRate) {
         if let Some(path) = self.primary() {
             path.borrow_mut().lost_ack_frequency(lost);
         }
     }
 
-    pub fn acked_ack_frequency(&mut self, acked: &AckRate) {
+    pub fn acked_ack_frequency(&self, acked: &AckRate) {
         if let Some(path) = self.primary() {
             path.borrow_mut().acked_ack_frequency(acked);
         }
@@ -494,7 +491,7 @@ enum ProbeState {
 
 impl ProbeState {
     /// Determine whether the current state requires probing.
-    fn probe_needed(&self) -> bool {
+    const fn probe_needed(&self) -> bool {
         matches!(self, Self::ProbeNeeded { .. })
     }
 }
@@ -534,8 +531,6 @@ pub struct Path {
     rtt: RttEstimate,
     /// A packet sender for the path, which includes congestion control and a pacer.
     sender: PacketSender,
-    /// The IP TTL to use for outgoing packets on this path.
-    ttl: u8,
 
     /// The number of bytes received on this path.
     /// Note that this value might saturate on a long-lived connection,
@@ -560,7 +555,7 @@ impl Path {
         qlog: NeqoQlog,
         now: Instant,
     ) -> Self {
-        let mut sender = PacketSender::new(cc, pacing, Self::mtu_by_addr(remote.ip()), now);
+        let mut sender = PacketSender::new(cc, pacing, Pmtud::new(remote.ip()), now);
         sender.set_qlog(qlog.clone());
         Self {
             local,
@@ -573,7 +568,6 @@ impl Path {
             challenge: None,
             rtt: RttEstimate::default(),
             sender,
-            ttl: 64, // This is the default TTL on many OSes.
             received_bytes: 0,
             sent_bytes: 0,
             ecn_info: EcnInfo::default(),
@@ -591,12 +585,12 @@ impl Path {
     }
 
     /// Whether this path is the primary or current path for the connection.
-    pub fn is_primary(&self) -> bool {
+    pub const fn is_primary(&self) -> bool {
         self.primary
     }
 
     /// Whether this path is a temporary one.
-    pub fn is_temporary(&self) -> bool {
+    pub const fn is_temporary(&self) -> bool {
         self.remote_cid.is_none()
     }
 
@@ -655,16 +649,14 @@ impl Path {
         }
     }
 
-    fn mtu_by_addr(addr: IpAddr) -> usize {
-        match addr {
-            IpAddr::V4(_) => PATH_MTU_V4,
-            IpAddr::V6(_) => PATH_MTU_V6,
-        }
+    /// Get the PL MTU.
+    pub fn plpmtu(&self) -> usize {
+        self.pmtud().plpmtu()
     }
 
-    /// Get the path MTU.  This is currently fixed based on IP version.
-    pub fn mtu(&self) -> usize {
-        Self::mtu_by_addr(self.remote.ip())
+    /// Get a reference to the PMTUD state.
+    pub fn pmtud(&self) -> &Pmtud {
+        self.sender.pmtud()
     }
 
     /// Get the first local connection ID.
@@ -711,21 +703,21 @@ impl Path {
         // with the current value.
         let tos = self.tos();
         self.ecn_info.on_packet_sent();
-        Datagram::new(self.local, self.remote, tos, Some(self.ttl), payload)
+        Datagram::new(self.local, self.remote, tos, payload)
     }
 
     /// Get local address as `SocketAddr`
-    pub fn local_address(&self) -> SocketAddr {
+    pub const fn local_address(&self) -> SocketAddr {
         self.local
     }
 
     /// Get remote address as `SocketAddr`
-    pub fn remote_address(&self) -> SocketAddr {
+    pub const fn remote_address(&self) -> SocketAddr {
         self.remote
     }
 
     /// Whether the path has been validated.
-    pub fn is_valid(&self) -> bool {
+    pub const fn is_valid(&self) -> bool {
         self.validated.is_some()
     }
 
@@ -772,7 +764,7 @@ impl Path {
     }
 
     /// Returns true if this path have any probing frames to send.
-    pub fn has_probe(&self) -> bool {
+    pub const fn has_probe(&self) -> bool {
         self.challenge.is_some() || self.state.probe_needed()
     }
 
@@ -786,7 +778,6 @@ impl Path {
         if builder.remaining() < 9 {
             return false;
         }
-
         // Send PATH_RESPONSE.
         let resp_sent = if let Some(challenge) = self.challenge.take() {
             qtrace!([self], "Responding to path challenge {}", hex(challenge));
@@ -855,13 +846,13 @@ impl Path {
                 self.probe();
             }
         }
-        if let ProbeState::Failed = self.state {
+        if matches!(self.state, ProbeState::Failed) {
             // Retire failed paths immediately.
             false
         } else if self.primary {
             // Keep valid primary paths otherwise.
             true
-        } else if let ProbeState::Valid = self.state {
+        } else if matches!(self.state, ProbeState::Valid) {
             // Retire validated, non-primary paths.
             // Allow more than `MAX_PATH_PROBES` times the PTO so that an old
             // path remains around until after a previous path fails.
@@ -886,7 +877,7 @@ impl Path {
     }
 
     /// Get the RTT estimator for this path.
-    pub fn rtt(&self) -> &RttEstimate {
+    pub const fn rtt(&self) -> &RttEstimate {
         &self.rtt
     }
 
@@ -895,8 +886,13 @@ impl Path {
         &mut self.rtt
     }
 
+    /// Mutably borrow the PMTUD discoverer for this path.
+    pub fn pmtud_mut(&mut self) -> &mut Pmtud {
+        self.sender.pmtud_mut()
+    }
+
     /// Read-only access to the owned sender.
-    pub fn sender(&self) -> &PacketSender {
+    pub const fn sender(&self) -> &PacketSender {
         &self.sender
     }
 
@@ -916,7 +912,7 @@ impl Path {
                     m,
                     ack_ratio,
                     self.sender.cwnd(),
-                    self.mtu(),
+                    self.plpmtu(),
                     self.rtt.estimate(),
                 )
             },
@@ -962,7 +958,7 @@ impl Path {
             );
             stats.rtt_init_guess = true;
             self.rtt.update(
-                &mut self.qlog,
+                &self.qlog,
                 now - sent.time_sent(),
                 Duration::new(0, 0),
                 false,
@@ -979,6 +975,7 @@ impl Path {
         acked_pkts: &[SentPacket],
         ack_ecn: Option<EcnCount>,
         now: Instant,
+        stats: &mut Stats,
     ) {
         debug_assert!(self.is_primary());
 
@@ -988,11 +985,12 @@ impl Path {
                 .sender
                 .on_ecn_ce_received(acked_pkts.first().expect("must be there"));
             if cwnd_reduced {
-                self.rtt.update_ack_delay(self.sender.cwnd(), self.mtu());
+                self.rtt.update_ack_delay(self.sender.cwnd(), self.plpmtu());
             }
         }
 
-        self.sender.on_packets_acked(acked_pkts, &self.rtt, now);
+        self.sender
+            .on_packets_acked(acked_pkts, &self.rtt, now, stats);
     }
 
     /// Record packets as lost with the sender.
@@ -1001,6 +999,8 @@ impl Path {
         prev_largest_acked_sent: Option<Instant>,
         space: PacketNumberSpace,
         lost_packets: &[SentPacket],
+        stats: &mut Stats,
+        now: Instant,
     ) {
         debug_assert!(self.is_primary());
         let cwnd_reduced = self.sender.on_packets_lost(
@@ -1008,9 +1008,11 @@ impl Path {
             prev_largest_acked_sent,
             self.rtt.pto(space), // Important: the base PTO, not adjusted.
             lost_packets,
+            stats,
+            now,
         );
         if cwnd_reduced {
-            self.rtt.update_ack_delay(self.sender.cwnd(), self.mtu());
+            self.rtt.update_ack_delay(self.sender.cwnd(), self.plpmtu());
         }
     }
 
@@ -1028,7 +1030,7 @@ impl Path {
                         // If we have received absolutely nothing thus far, then this endpoint
                         // is the one initiating communication on this path.  Allow enough space for
                         // probing.
-                        self.mtu() * 5
+                        self.plpmtu() * 5
                     } else {
                         limit
                     };

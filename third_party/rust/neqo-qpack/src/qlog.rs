@@ -12,11 +12,7 @@ use qlog::events::{
     EventData, RawInfo,
 };
 
-pub fn qpack_read_insert_count_increment_instruction(
-    qlog: &mut NeqoQlog,
-    increment: u64,
-    data: &[u8],
-) {
+pub fn qpack_read_insert_count_increment_instruction(qlog: &NeqoQlog, increment: u64, data: &[u8]) {
     qlog.add_event_data(|| {
         let raw = RawInfo {
             length: Some(8),

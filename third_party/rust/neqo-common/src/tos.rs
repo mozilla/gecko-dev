@@ -30,17 +30,17 @@ pub enum IpTosEcn {
 
 impl From<IpTosEcn> for u8 {
     fn from(v: IpTosEcn) -> Self {
-        v as u8
+        v as Self
     }
 }
 
 impl From<u8> for IpTosEcn {
     fn from(v: u8) -> Self {
         match v & 0b0000_0011 {
-            0b00 => IpTosEcn::NotEct,
-            0b01 => IpTosEcn::Ect1,
-            0b10 => IpTosEcn::Ect0,
-            0b11 => IpTosEcn::Ce,
+            0b00 => Self::NotEct,
+            0b01 => Self::Ect1,
+            0b10 => Self::Ect0,
+            0b11 => Self::Ce,
             _ => unreachable!(),
         }
     }
@@ -48,16 +48,16 @@ impl From<u8> for IpTosEcn {
 
 impl From<IpTos> for IpTosEcn {
     fn from(v: IpTos) -> Self {
-        IpTosEcn::from(u8::from(v))
+        Self::from(u8::from(v))
     }
 }
 
 impl IpTosEcn {
     #[must_use]
-    pub fn is_ecn_marked(&self) -> bool {
+    pub const fn is_ecn_marked(&self) -> bool {
         match self {
-            IpTosEcn::Ect0 | IpTosEcn::Ect1 | IpTosEcn::Ce => true,
-            IpTosEcn::NotEct => false,
+            Self::Ect0 | Self::Ect1 | Self::Ce => true,
+            Self::NotEct => false,
         }
     }
 }
@@ -140,36 +140,36 @@ pub enum IpTosDscp {
 
 impl From<IpTosDscp> for u8 {
     fn from(v: IpTosDscp) -> Self {
-        v as u8
+        v as Self
     }
 }
 
 impl From<u8> for IpTosDscp {
     fn from(v: u8) -> Self {
         match v & 0b1111_1100 {
-            0b0000_0000 => IpTosDscp::Cs0,
-            0b0010_0000 => IpTosDscp::Cs1,
-            0b0100_0000 => IpTosDscp::Cs2,
-            0b0110_0000 => IpTosDscp::Cs3,
-            0b1000_0000 => IpTosDscp::Cs4,
-            0b1010_0000 => IpTosDscp::Cs5,
-            0b1100_0000 => IpTosDscp::Cs6,
-            0b1110_0000 => IpTosDscp::Cs7,
-            0b0010_1000 => IpTosDscp::Af11,
-            0b0011_0000 => IpTosDscp::Af12,
-            0b0011_1000 => IpTosDscp::Af13,
-            0b0100_1000 => IpTosDscp::Af21,
-            0b0101_0000 => IpTosDscp::Af22,
-            0b0101_1000 => IpTosDscp::Af23,
-            0b0110_1000 => IpTosDscp::Af31,
-            0b0111_0000 => IpTosDscp::Af32,
-            0b0111_1000 => IpTosDscp::Af33,
-            0b1000_1000 => IpTosDscp::Af41,
-            0b1001_0000 => IpTosDscp::Af42,
-            0b1001_1000 => IpTosDscp::Af43,
-            0b1011_1000 => IpTosDscp::Ef,
-            0b1011_0000 => IpTosDscp::VoiceAdmit,
-            0b0000_0100 => IpTosDscp::Le,
+            0b0000_0000 => Self::Cs0,
+            0b0010_0000 => Self::Cs1,
+            0b0100_0000 => Self::Cs2,
+            0b0110_0000 => Self::Cs3,
+            0b1000_0000 => Self::Cs4,
+            0b1010_0000 => Self::Cs5,
+            0b1100_0000 => Self::Cs6,
+            0b1110_0000 => Self::Cs7,
+            0b0010_1000 => Self::Af11,
+            0b0011_0000 => Self::Af12,
+            0b0011_1000 => Self::Af13,
+            0b0100_1000 => Self::Af21,
+            0b0101_0000 => Self::Af22,
+            0b0101_1000 => Self::Af23,
+            0b0110_1000 => Self::Af31,
+            0b0111_0000 => Self::Af32,
+            0b0111_1000 => Self::Af33,
+            0b1000_1000 => Self::Af41,
+            0b1001_0000 => Self::Af42,
+            0b1001_1000 => Self::Af43,
+            0b1011_1000 => Self::Ef,
+            0b1011_0000 => Self::VoiceAdmit,
+            0b0000_0100 => Self::Le,
             _ => unreachable!(),
         }
     }
@@ -177,7 +177,7 @@ impl From<u8> for IpTosDscp {
 
 impl From<IpTos> for IpTosDscp {
     fn from(v: IpTos) -> Self {
-        IpTosDscp::from(u8::from(v))
+        Self::from(u8::from(v))
     }
 }
 

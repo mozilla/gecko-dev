@@ -13,8 +13,8 @@ pub struct Header {
 impl Header {
     pub fn new<N, V>(name: N, value: V) -> Self
     where
-        N: Into<String> + ?Sized,
-        V: Into<String> + ?Sized,
+        N: Into<String>,
+        V: Into<String>,
     {
         Self {
             name: name.into(),

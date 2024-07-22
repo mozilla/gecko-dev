@@ -29,12 +29,19 @@ impl WindowAdjustment for NewReno {
         curr_cwnd: usize,
         _new_acked_bytes: usize,
         _min_rtt: Duration,
+        _max_datagram_size: usize,
+
         _now: Instant,
     ) -> usize {
         curr_cwnd
     }
 
-    fn reduce_cwnd(&mut self, curr_cwnd: usize, acked_bytes: usize) -> (usize, usize) {
+    fn reduce_cwnd(
+        &mut self,
+        curr_cwnd: usize,
+        acked_bytes: usize,
+        _max_datagram_size: usize,
+    ) -> (usize, usize) {
         (curr_cwnd / 2, acked_bytes / 2)
     }
 

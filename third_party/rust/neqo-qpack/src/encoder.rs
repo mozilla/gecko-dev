@@ -31,7 +31,7 @@ enum LocalStreamState {
 }
 
 impl LocalStreamState {
-    pub fn stream_id(&self) -> Option<StreamId> {
+    pub const fn stream_id(&self) -> Option<StreamId> {
         match self {
             Self::NoStream => None,
             Self::Uninitialized(stream_id) | Self::Initialized(stream_id) => Some(*stream_id),
@@ -202,11 +202,7 @@ impl QPackEncoder {
         }
     }
 
-    fn call_instruction(
-        &mut self,
-        instruction: DecoderInstruction,
-        qlog: &mut NeqoQlog,
-    ) -> Res<()> {
+    fn call_instruction(&mut self, instruction: DecoderInstruction, qlog: &NeqoQlog) -> Res<()> {
         qdebug!([self], "call intruction {:?}", instruction);
         match instruction {
             DecoderInstruction::InsertCountIncrement { increment } => {
@@ -344,15 +340,14 @@ impl QPackEncoder {
     }
 
     fn is_stream_blocker(&self, stream_id: StreamId) -> bool {
-        if let Some(hb_list) = self.unacked_header_blocks.get(&stream_id) {
-            debug_assert!(!hb_list.is_empty());
-            match hb_list.iter().flatten().max() {
-                Some(max_ref) => *max_ref >= self.table.get_acked_inserts_cnt(),
-                None => false,
-            }
-        } else {
-            false
-        }
+        self.unacked_header_blocks
+            .get(&stream_id)
+            .map_or(false, |hb_list| {
+                debug_assert!(!hb_list.is_empty());
+                hb_list.iter().flatten().max().map_or(false, |max_ref| {
+                    *max_ref >= self.table.get_acked_inserts_cnt()
+                })
+            })
     }
 
     /// Encodes headers
@@ -373,20 +368,17 @@ impl QPackEncoder {
     ) -> HeaderEncoder {
         qdebug!([self], "encoding headers.");
 
-        let mut encoder_blocked = false;
         // Try to send capacity instructions if present.
-        if self.send_encoder_updates(conn).is_err() {
-            // This code doesn't try to deal with errors, it just tries
-            // to write to the encoder stream AND if it can't uses
-            // literal instructions.
-            // The errors can be:
-            //   1) `EncoderStreamBlocked` - this is an error that can occur.
-            //   2) `InternalError` - this is unexpected error.
-            //   3) `ClosedCriticalStream` - this is error that should close the HTTP/3 session.
-            // The last 2 errors are ignored here and will be picked up
-            // by the main loop.
-            encoder_blocked = true;
-        }
+        // This code doesn't try to deal with errors, it just tries
+        // to write to the encoder stream AND if it can't uses
+        // literal instructions.
+        // The errors can be:
+        //   1) `EncoderStreamBlocked` - this is an error that can occur.
+        //   2) `InternalError` - this is unexpected error.
+        //   3) `ClosedCriticalStream` - this is error that should close the HTTP/3 session.
+        // The last 2 errors are ignored here and will be picked up
+        // by the main loop.
+        let mut encoder_blocked = self.send_encoder_updates(conn).is_err();
 
         let mut encoded_h =
             HeaderEncoder::new(self.table.base(), self.use_huffman, self.max_entries);
@@ -496,12 +488,12 @@ impl QPackEncoder {
     }
 
     #[must_use]
-    pub fn local_stream_id(&self) -> Option<StreamId> {
+    pub const fn local_stream_id(&self) -> Option<StreamId> {
         self.local_stream.stream_id()
     }
 
     #[cfg(test)]
-    fn blocked_stream_cnt(&self) -> u16 {
+    const fn blocked_stream_cnt(&self) -> u16 {
         self.blocked_stream_cnt
     }
 }

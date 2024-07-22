@@ -15,12 +15,12 @@ use crate::{
     Error, Http3StreamType, ReceiveOutput, RecvStream, Res, Stream,
 };
 
-pub(crate) const HTTP3_UNI_STREAM_TYPE_PUSH: u64 = 0x1;
-pub(crate) const WEBTRANSPORT_UNI_STREAM: u64 = 0x54;
-pub(crate) const WEBTRANSPORT_STREAM: u64 = 0x41;
+pub const HTTP3_UNI_STREAM_TYPE_PUSH: u64 = 0x1;
+pub const WEBTRANSPORT_UNI_STREAM: u64 = 0x54;
+pub const WEBTRANSPORT_STREAM: u64 = 0x41;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum NewStreamType {
+pub enum NewStreamType {
     Control,
     Decoder,
     Encoder,
@@ -39,31 +39,23 @@ impl NewStreamType {
     ///
     /// Push streams received by the server are not allowed and this function will return
     /// `HttpStreamCreation` error.
-    fn final_stream_type(
+    const fn final_stream_type(
         stream_type: u64,
         trans_stream_type: StreamType,
         role: Role,
-    ) -> Res<Option<NewStreamType>> {
+    ) -> Res<Option<Self>> {
         match (stream_type, trans_stream_type, role) {
-            (HTTP3_UNI_STREAM_TYPE_CONTROL, StreamType::UniDi, _) => {
-                Ok(Some(NewStreamType::Control))
-            }
-            (QPACK_UNI_STREAM_TYPE_ENCODER, StreamType::UniDi, _) => {
-                Ok(Some(NewStreamType::Decoder))
-            }
-            (QPACK_UNI_STREAM_TYPE_DECODER, StreamType::UniDi, _) => {
-                Ok(Some(NewStreamType::Encoder))
-            }
+            (HTTP3_UNI_STREAM_TYPE_CONTROL, StreamType::UniDi, _) => Ok(Some(Self::Control)),
+            (QPACK_UNI_STREAM_TYPE_ENCODER, StreamType::UniDi, _) => Ok(Some(Self::Decoder)),
+            (QPACK_UNI_STREAM_TYPE_DECODER, StreamType::UniDi, _) => Ok(Some(Self::Encoder)),
             (HTTP3_UNI_STREAM_TYPE_PUSH, StreamType::UniDi, Role::Client)
             | (WEBTRANSPORT_UNI_STREAM, StreamType::UniDi, _)
             | (WEBTRANSPORT_STREAM, StreamType::BiDi, _) => Ok(None),
-            (H3_FRAME_TYPE_HEADERS, StreamType::BiDi, Role::Server) => {
-                Ok(Some(NewStreamType::Http))
-            }
+            (H3_FRAME_TYPE_HEADERS, StreamType::BiDi, Role::Server) => Ok(Some(Self::Http)),
             (_, StreamType::BiDi, Role::Server) => Err(Error::HttpFrame),
             (HTTP3_UNI_STREAM_TYPE_PUSH, StreamType::UniDi, Role::Server)
             | (_, StreamType::BiDi, Role::Client) => Err(Error::HttpStreamCreation),
-            _ => Ok(Some(NewStreamType::Unknown)),
+            _ => Ok(Some(Self::Unknown)),
         }
     }
 }
@@ -76,7 +68,7 @@ impl NewStreamType {
 ///    is identified by the type and `PushId`. After reading the type in the `ReadType` state,
 ///    `NewStreamHeadReader` changes to `ReadId` state and from there to `Done` state
 #[derive(Debug)]
-pub(crate) enum NewStreamHeadReader {
+pub enum NewStreamHeadReader {
     ReadType {
         role: Role,
         reader: IncrementalDecoderUint,
@@ -92,7 +84,7 @@ pub(crate) enum NewStreamHeadReader {
 
 impl NewStreamHeadReader {
     pub fn new(stream_id: StreamId, role: Role) -> Self {
-        NewStreamHeadReader::ReadType {
+        Self::ReadType {
             role,
             reader: IncrementalDecoderUint::default(),
             stream_id,
@@ -100,10 +92,10 @@ impl NewStreamHeadReader {
     }
 
     fn read(&mut self, conn: &mut Connection) -> Res<(Option<u64>, bool)> {
-        if let NewStreamHeadReader::ReadType {
+        if let Self::ReadType {
             reader, stream_id, ..
         }
-        | NewStreamHeadReader::ReadId {
+        | Self::ReadId {
             reader, stream_id, ..
         } = self
         {
@@ -130,7 +122,7 @@ impl NewStreamHeadReader {
             let (output, fin) = self.read(conn)?;
             let Some(output) = output else {
                 if fin {
-                    *self = NewStreamHeadReader::Done;
+                    *self = Self::Done;
                     return Err(Error::HttpStreamCreation);
                 }
                 return Ok(None);
@@ -138,7 +130,7 @@ impl NewStreamHeadReader {
 
             qtrace!("Decoded uint {}", output);
             match self {
-                NewStreamHeadReader::ReadType {
+                Self::ReadType {
                     role, stream_id, ..
                 } => {
                     // final_stream_type may return:
@@ -152,21 +144,21 @@ impl NewStreamHeadReader {
                         NewStreamType::final_stream_type(output, stream_id.stream_type(), *role);
                     match (&final_type, fin) {
                         (Err(_), _) => {
-                            *self = NewStreamHeadReader::Done;
+                            *self = Self::Done;
                             return final_type;
                         }
                         (Ok(t), true) => {
-                            *self = NewStreamHeadReader::Done;
+                            *self = Self::Done;
                             return Self::map_stream_fin(*t);
                         }
                         (Ok(Some(t)), false) => {
                             qtrace!("Decoded stream type {:?}", *t);
-                            *self = NewStreamHeadReader::Done;
+                            *self = Self::Done;
                             return final_type;
                         }
                         (Ok(None), false) => {
                             // This is a push stream and it needs more data to be decoded.
-                            *self = NewStreamHeadReader::ReadId {
+                            *self = Self::ReadId {
                                 reader: IncrementalDecoderUint::default(),
                                 stream_id: *stream_id,
                                 stream_type: output,
@@ -174,9 +166,9 @@ impl NewStreamHeadReader {
                         }
                     }
                 }
-                NewStreamHeadReader::ReadId { stream_type, .. } => {
+                Self::ReadId { stream_type, .. } => {
                     let is_push = *stream_type == HTTP3_UNI_STREAM_TYPE_PUSH;
-                    *self = NewStreamHeadReader::Done;
+                    *self = Self::Done;
                     qtrace!("New Stream stream push_id={}", output);
                     if fin {
                         return Err(Error::HttpGeneralProtocol);
@@ -187,7 +179,7 @@ impl NewStreamHeadReader {
                         Ok(Some(NewStreamType::WebTransportStream(output)))
                     };
                 }
-                NewStreamHeadReader::Done => {
+                Self::Done => {
                     unreachable!("Cannot be in state NewStreamHeadReader::Done");
                 }
             }
@@ -208,8 +200,8 @@ impl NewStreamHeadReader {
         }
     }
 
-    fn done(&self) -> bool {
-        matches!(self, NewStreamHeadReader::Done)
+    const fn done(&self) -> bool {
+        matches!(self, Self::Done)
     }
 }
 
@@ -221,7 +213,7 @@ impl Stream for NewStreamHeadReader {
 
 impl RecvStream for NewStreamHeadReader {
     fn reset(&mut self, _close_type: CloseType) -> Res<()> {
-        *self = NewStreamHeadReader::Done;
+        *self = Self::Done;
         Ok(())
     }
 

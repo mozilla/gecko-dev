@@ -42,7 +42,6 @@ fn truncate_long_packet() {
         dupe.source(),
         dupe.destination(),
         dupe.tos(),
-        dupe.ttl(),
         &dupe[..(dupe.len() - tail)],
     );
     let hs_probe = client.process(Some(&truncated), now()).dgram();
@@ -114,7 +113,6 @@ fn reorder_server_initial() {
         server_initial.source(),
         server_initial.destination(),
         server_initial.tos(),
-        server_initial.ttl(),
         packet,
     );
 
@@ -160,7 +158,6 @@ fn set_payload(server_packet: &Option<Datagram>, client_dcid: &[u8], payload: &[
         server_initial.source(),
         server_initial.destination(),
         server_initial.tos(),
-        server_initial.ttl(),
         packet,
     )
 }
@@ -262,7 +259,6 @@ fn overflow_crypto() {
             server_initial.source(),
             server_initial.destination(),
             server_initial.tos(),
-            server_initial.ttl(),
             packet,
         );
         client.process_input(&dgram, now());

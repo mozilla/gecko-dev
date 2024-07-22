@@ -18,7 +18,7 @@ use crate::{Error, RecvStream, Res};
 
 const MAX_READ_SIZE: usize = 4096;
 
-pub(crate) trait FrameDecoder<T> {
+pub trait FrameDecoder<T> {
     fn is_known_type(frame_type: u64) -> bool;
     /// # Errors
     ///
@@ -33,7 +33,7 @@ pub(crate) trait FrameDecoder<T> {
     fn decode(frame_type: u64, frame_len: u64, data: Option<&[u8]>) -> Res<Option<T>>;
 }
 
-pub(crate) trait StreamReader {
+pub trait StreamReader {
     /// # Errors
     ///
     /// An error may happen while reading a stream, e.g. early close, protocol error, etc.
@@ -42,7 +42,7 @@ pub(crate) trait StreamReader {
     fn read_data(&mut self, buf: &mut [u8]) -> Res<(usize, bool)>;
 }
 
-pub(crate) struct StreamReaderConnectionWrapper<'a> {
+pub struct StreamReaderConnectionWrapper<'a> {
     conn: &'a mut Connection,
     stream_id: StreamId,
 }
@@ -63,7 +63,7 @@ impl<'a> StreamReader for StreamReaderConnectionWrapper<'a> {
     }
 }
 
-pub(crate) struct StreamReaderRecvStreamWrapper<'a> {
+pub struct StreamReaderRecvStreamWrapper<'a> {
     recv_stream: &'a mut Box<dyn RecvStream>,
     conn: &'a mut Connection,
 }
@@ -93,7 +93,7 @@ enum FrameReaderState {
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug)]
-pub(crate) struct FrameReader {
+pub struct FrameReader {
     state: FrameReaderState,
     frame_type: u64,
     frame_len: u64,
@@ -144,7 +144,7 @@ impl FrameReader {
         }
     }
 
-    fn decoding_in_progress(&self) -> bool {
+    const fn decoding_in_progress(&self) -> bool {
         if let FrameReaderState::GetType { decoder } = &self.state {
             decoder.decoding_in_progress()
         } else {

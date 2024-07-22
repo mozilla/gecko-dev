@@ -28,7 +28,7 @@ use crate::{
     connection::tests::send_something_paced,
     frame::FRAME_TYPE_NEW_CONNECTION_ID,
     packet::PacketBuilder,
-    path::{PATH_MTU_V4, PATH_MTU_V6},
+    pmtud::Pmtud,
     tparams::{self, PreferredAddress, TransportParameter},
     CloseReason, ConnectionId, ConnectionIdDecoder, ConnectionIdGenerator, ConnectionIdRef,
     ConnectionParameters, EmptyConnectionIdGenerator, Error,
@@ -53,22 +53,16 @@ fn loopback() -> SocketAddr {
 }
 
 fn change_path(d: &Datagram, a: SocketAddr) -> Datagram {
-    Datagram::new(a, a, d.tos(), d.ttl(), &d[..])
+    Datagram::new(a, a, d.tos(), &d[..])
 }
 
-fn new_port(a: SocketAddr) -> SocketAddr {
+const fn new_port(a: SocketAddr) -> SocketAddr {
     let (port, _) = a.port().overflowing_add(410);
     SocketAddr::new(a.ip(), port)
 }
 
 fn change_source_port(d: &Datagram) -> Datagram {
-    Datagram::new(
-        new_port(d.source()),
-        d.destination(),
-        d.tos(),
-        d.ttl(),
-        &d[..],
-    )
+    Datagram::new(new_port(d.source()), d.destination(), d.tos(), &d[..])
 }
 
 /// As these tests use a new path, that path often has a non-zero RTT.
@@ -470,10 +464,7 @@ fn fast_handshake(client: &mut Connection, server: &mut Connection) -> Option<Da
 }
 
 fn preferred_address(hs_client: SocketAddr, hs_server: SocketAddr, preferred: SocketAddr) {
-    let mtu = match hs_client.ip() {
-        IpAddr::V4(_) => PATH_MTU_V4,
-        IpAddr::V6(_) => PATH_MTU_V6,
-    };
+    let mtu = Pmtud::default_plpmtu(hs_client.ip());
     let assert_orig_path = |d: &Datagram, full_mtu: bool| {
         assert_eq!(
             d.destination(),

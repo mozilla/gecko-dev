@@ -7,6 +7,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use neqo_common::event::Provider;
+use static_assertions::const_assert;
 use test_fixture::now;
 
 use super::{
@@ -14,20 +15,27 @@ use super::{
     AT_LEAST_PTO,
 };
 use crate::{
+    connection::tests::DEFAULT_ADDR,
     events::{ConnectionEvent, OutgoingDatagramOutcome},
     frame::FRAME_TYPE_DATAGRAM,
     packet::PacketBuilder,
     quic_datagrams::MAX_QUIC_DATAGRAM,
     send_stream::{RetransmissionPriority, TransmissionPriority},
-    CloseReason, Connection, ConnectionParameters, Error, StreamType, MIN_INITIAL_PACKET_SIZE,
+    CloseReason, Connection, ConnectionParameters, Error, Pmtud, StreamType,
+    MIN_INITIAL_PACKET_SIZE,
 };
 
-const DATAGRAM_LEN_MTU: u64 = 1310;
-const DATA_MTU: &[u8] = &[1; 1310];
-const DATA_BIGGER_THAN_MTU: &[u8] = &[0; 2620];
+// FIXME: The 27 here is a magic constant that the original code also (implicitly) had.
+const DATAGRAM_LEN_MTU: usize = Pmtud::default_plpmtu(DEFAULT_ADDR.ip()) - 27;
+const DATA_MTU: &[u8] = &[1; DATAGRAM_LEN_MTU];
+const DATA_BIGGER_THAN_MTU: &[u8] = &[0; 2 * DATAGRAM_LEN_MTU];
+const_assert!(DATA_BIGGER_THAN_MTU.len() > DATAGRAM_LEN_MTU);
 const DATAGRAM_LEN_SMALLER_THAN_MTU: u64 = MIN_INITIAL_PACKET_SIZE as u64;
+const_assert!(DATAGRAM_LEN_SMALLER_THAN_MTU < DATAGRAM_LEN_MTU as u64);
 const DATA_SMALLER_THAN_MTU: &[u8] = &[0; MIN_INITIAL_PACKET_SIZE];
-const DATA_SMALLER_THAN_MTU_2: &[u8] = &[0; 600];
+const_assert!(DATA_SMALLER_THAN_MTU.len() < DATAGRAM_LEN_MTU);
+const DATA_SMALLER_THAN_MTU_2: &[u8] = &[0; MIN_INITIAL_PACKET_SIZE / 2];
+const_assert!(DATA_SMALLER_THAN_MTU_2.len() < DATA_SMALLER_THAN_MTU.len());
 const OUTGOING_QUEUE: usize = 2;
 
 struct InsertDatagram<'a> {
@@ -132,15 +140,20 @@ fn connect_datagram() -> (Connection, Connection) {
 fn mtu_limit() {
     let (client, server) = connect_datagram();
 
-    assert_eq!(client.max_datagram_size(), Ok(DATAGRAM_LEN_MTU));
-    assert_eq!(server.max_datagram_size(), Ok(DATAGRAM_LEN_MTU));
+    assert_eq!(
+        client.max_datagram_size(),
+        Ok((DATAGRAM_LEN_MTU).try_into().unwrap())
+    );
+    assert_eq!(
+        server.max_datagram_size(),
+        Ok((DATAGRAM_LEN_MTU).try_into().unwrap())
+    );
 }
 
 #[test]
 fn limit_data_size() {
     let (mut client, mut server) = connect_datagram();
 
-    assert!(u64::try_from(DATA_BIGGER_THAN_MTU.len()).unwrap() > DATAGRAM_LEN_MTU);
     // Datagram can be queued because they are smaller than allowed by the peer,
     // but they cannot be sent.
     assert_eq!(server.send_datagram(DATA_BIGGER_THAN_MTU, Some(1)), Ok(()));
@@ -173,7 +186,6 @@ fn limit_data_size() {
 fn after_dgram_dropped_continue_writing_frames() {
     let (mut client, _) = connect_datagram();
 
-    assert!(u64::try_from(DATA_BIGGER_THAN_MTU.len()).unwrap() > DATAGRAM_LEN_MTU);
     // Datagram can be queued because they are smaller than allowed by the peer,
     // but they cannot be sent.
     assert_eq!(client.send_datagram(DATA_BIGGER_THAN_MTU, Some(1)), Ok(()));
@@ -377,7 +389,6 @@ fn dgram_too_big() {
     let mut server = default_server();
     connect_force_idle(&mut client, &mut server);
 
-    assert!(DATAGRAM_LEN_MTU > DATAGRAM_LEN_SMALLER_THAN_MTU);
     server.test_frame_writer = Some(Box::new(InsertDatagram { data: DATA_MTU }));
     let out = server.process_output(now()).dgram().unwrap();
     server.test_frame_writer = None;
@@ -589,7 +600,7 @@ fn datagram_fill() {
         let path = p.borrow();
         // Minimum overhead is connection ID length, 1 byte short header, 1 byte packet number,
         // 1 byte for the DATAGRAM frame type, and 16 bytes for the AEAD.
-        path.mtu() - path.remote_cid().len() - 19
+        path.plpmtu() - path.remote_cid().len() - 19
     };
     assert!(space >= 64); // Unlikely, but this test depends on the datagram being this large.
 

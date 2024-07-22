@@ -32,19 +32,19 @@ use crate::{
     tracking::{PacketNumberSpace, PacketNumberSpaceSet},
 };
 
-pub(crate) const PACKET_THRESHOLD: u64 = 3;
+pub const PACKET_THRESHOLD: u64 = 3;
 /// `ACK_ONLY_SIZE_LIMIT` is the minimum size of the congestion window.
 /// If the congestion window is this small, we will only send ACK frames.
-pub(crate) const ACK_ONLY_SIZE_LIMIT: usize = 256;
+pub const ACK_ONLY_SIZE_LIMIT: usize = 256;
 /// The maximum number of packets we send on a PTO.
 /// And the maximum number to declare lost when the PTO timer is hit.
 pub const MAX_PTO_PACKET_COUNT: usize = 2;
 /// The preferred limit on the number of packets that are tracked.
 /// If we exceed this number, we start sending `PING` frames sooner to
 /// force the peer to acknowledge some of them.
-pub(crate) const MAX_OUTSTANDING_UNACK: usize = 200;
+pub const MAX_OUTSTANDING_UNACK: usize = 200;
 /// Disable PING until this many packets are outstanding.
-pub(crate) const MIN_OUTSTANDING_UNACK: usize = 16;
+pub const MIN_OUTSTANDING_UNACK: usize = 16;
 /// The scale we use for the fast PTO feature.
 pub const FAST_PTO_SCALE: u8 = 100;
 
@@ -110,17 +110,17 @@ impl SendProfile {
         self.limit < ACK_ONLY_SIZE_LIMIT || self.pto.map_or(false, |sp| space < sp)
     }
 
-    pub fn paced(&self) -> bool {
+    pub const fn paced(&self) -> bool {
         self.paced
     }
 
-    pub fn limit(&self) -> usize {
+    pub const fn limit(&self) -> usize {
         self.limit
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct LossRecoverySpace {
+pub struct LossRecoverySpace {
     space: PacketNumberSpace,
     largest_acked: Option<PacketNumber>,
     largest_acked_sent_time: Option<Instant>,
@@ -154,7 +154,7 @@ impl LossRecoverySpace {
     }
 
     #[must_use]
-    pub fn space(&self) -> PacketNumberSpace {
+    pub const fn space(&self) -> PacketNumberSpace {
         self.space
     }
 
@@ -162,11 +162,11 @@ impl LossRecoverySpace {
     /// largest acknowledged and that isn't yet declared lost.
     /// Use the value we prepared earlier in `detect_lost_packets`.
     #[must_use]
-    pub fn loss_recovery_timer_start(&self) -> Option<Instant> {
+    pub const fn loss_recovery_timer_start(&self) -> Option<Instant> {
         self.first_ooo_time
     }
 
-    pub fn in_flight_outstanding(&self) -> bool {
+    pub const fn in_flight_outstanding(&self) -> bool {
         self.in_flight_outstanding > 0
     }
 
@@ -360,14 +360,14 @@ impl LossRecoverySpace {
 }
 
 #[derive(Debug)]
-pub(crate) struct LossRecoverySpaces {
+pub struct LossRecoverySpaces {
     /// When we have all of the loss recovery spaces, this will use a separate
     /// allocation, but this is reduced once the handshake is done.
     spaces: SmallVec<[LossRecoverySpace; 1]>,
 }
 
 impl LossRecoverySpaces {
-    fn idx(space: PacketNumberSpace) -> usize {
+    const fn idx(space: PacketNumberSpace) -> usize {
         match space {
             PacketNumberSpace::ApplicationData => 0,
             PacketNumberSpace::Handshake => 1,
@@ -468,7 +468,7 @@ impl PtoState {
         self.probe = probe;
     }
 
-    pub fn count(&self) -> usize {
+    pub const fn count(&self) -> usize {
         self.count
     }
 
@@ -490,7 +490,7 @@ impl PtoState {
 }
 
 #[derive(Debug)]
-pub(crate) struct LossRecovery {
+pub struct LossRecovery {
     /// When the handshake was confirmed, if it has been.
     confirmed_time: Option<Instant>,
     pto_state: Option<PtoState>,
@@ -569,7 +569,7 @@ impl LossRecovery {
 
     /// Record an RTT sample.
     fn rtt_sample(
-        &mut self,
+        &self,
         rtt: &mut RttEstimate,
         send_time: Instant,
         now: Instant,
@@ -577,7 +577,7 @@ impl LossRecovery {
     ) {
         let confirmed = self.confirmed_time.map_or(false, |t| t < send_time);
         if let Some(sample) = now.checked_duration_since(send_time) {
-            rtt.update(&mut self.qlog, sample, ack_delay, confirmed, now);
+            rtt.update(&self.qlog, sample, ack_delay, confirmed, now);
         }
     }
 
@@ -653,16 +653,23 @@ impl LossRecovery {
         // Tell the congestion controller about any lost packets.
         // The PTO for congestion control is the raw number, without exponential
         // backoff, so that we can determine persistent congestion.
-        primary_path
-            .borrow_mut()
-            .on_packets_lost(prev_largest_acked, pn_space, &lost);
+        primary_path.borrow_mut().on_packets_lost(
+            prev_largest_acked,
+            pn_space,
+            &lost,
+            &mut self.stats.borrow_mut(),
+            now,
+        );
 
         // This must happen after on_packets_lost. If in recovery, this could
         // take us out, and then lost packets will start a new recovery period
         // when it shouldn't.
-        primary_path
-            .borrow_mut()
-            .on_packets_acked(&acked_packets, ack_ecn, now);
+        primary_path.borrow_mut().on_packets_acked(
+            &acked_packets,
+            ack_ecn,
+            now,
+            &mut self.stats.borrow_mut(),
+        );
 
         self.pto_state = None;
 
@@ -728,7 +735,7 @@ impl LossRecovery {
 
     /// Calculate when the next timeout is likely to be.  This is the earlier of the loss timer
     /// and the PTO timer; either or both might be disabled, so this can return `None`.
-    pub fn next_timeout(&mut self, rtt: &RttEstimate) -> Option<Instant> {
+    pub fn next_timeout(&self, rtt: &RttEstimate) -> Option<Instant> {
         let loss_time = self.earliest_loss_time(rtt);
         let pto_time = self.earliest_pto(rtt);
         qtrace!(
@@ -817,7 +824,7 @@ impl LossRecovery {
             .count_pto(&mut self.stats.borrow_mut());
 
         qlog::metrics_updated(
-            &mut self.qlog,
+            &self.qlog,
             &[QlogMetric::PtoCount(
                 self.pto_state.as_ref().unwrap().count(),
             )],
@@ -880,6 +887,8 @@ impl LossRecovery {
                 space.largest_acked_sent_time,
                 space.space(),
                 &lost_packets[first..],
+                &mut self.stats.borrow_mut(),
+                now,
             );
         }
         self.stats.borrow_mut().lost += lost_packets.len();
@@ -894,7 +903,7 @@ impl LossRecovery {
     pub fn send_profile(&mut self, path: &Path, now: Instant) -> SendProfile {
         qdebug!([self], "get send profile {:?}", now);
         let sender = path.sender();
-        let mtu = path.mtu();
+        let mtu = path.plpmtu();
         if let Some(profile) = self
             .pto_state
             .as_mut()
@@ -1003,7 +1012,7 @@ mod tests {
             self.lr.timeout(&self.path, now)
         }
 
-        pub fn next_timeout(&mut self) -> Option<Instant> {
+        pub fn next_timeout(&self) -> Option<Instant> {
             self.lr.next_timeout(self.path.borrow().rtt())
         }
 

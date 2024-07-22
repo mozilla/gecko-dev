@@ -22,7 +22,7 @@ use test_fixture::*;
 
 const RESPONSE_DATA: &[u8] = &[0x61, 0x62, 0x63];
 
-fn receive_request(server: &mut Http3Server) -> Option<Http3OrWebTransportStream> {
+fn receive_request(server: &Http3Server) -> Option<Http3OrWebTransportStream> {
     while let Some(event) = server.next_event() {
         if let Http3ServerEvent::Headers {
             stream,
@@ -47,7 +47,7 @@ fn receive_request(server: &mut Http3Server) -> Option<Http3OrWebTransportStream
     None
 }
 
-fn set_response(request: &mut Http3OrWebTransportStream) {
+fn set_response(request: &Http3OrWebTransportStream) {
     request
         .send_headers(&[
             Header::new(":status", "200"),
@@ -58,9 +58,9 @@ fn set_response(request: &mut Http3OrWebTransportStream) {
     request.stream_close_send().unwrap();
 }
 
-fn process_server_events(server: &mut Http3Server) {
-    let mut request = receive_request(server).unwrap();
-    set_response(&mut request);
+fn process_server_events(server: &Http3Server) {
+    let request = receive_request(server).unwrap();
+    set_response(&request);
 }
 
 fn process_client_events(conn: &mut Http3Client) {
@@ -192,7 +192,7 @@ fn test_fetch() {
     qtrace!("-----server");
     let out = hconn_s.process(out.as_dgram_ref(), now());
     mem::drop(hconn_c.process(out.as_dgram_ref(), now()));
-    process_server_events(&mut hconn_s);
+    process_server_events(&hconn_s);
     let out = hconn_s.process(None, now());
 
     qtrace!("-----client");
@@ -221,8 +221,7 @@ fn test_103_response() {
 
     let out = hconn_s.process(out.as_dgram_ref(), now());
     mem::drop(hconn_c.process(out.as_dgram_ref(), now()));
-    let mut request = receive_request(&mut hconn_s).unwrap();
-
+    let request = receive_request(&hconn_s).unwrap();
     let info_headers = [
         Header::new(":status", "103"),
         Header::new("link", "</style.css>; rel=preload; as=style"),
@@ -240,7 +239,7 @@ fn test_103_response() {
     };
     assert!(hconn_c.events().any(info_headers_event));
 
-    set_response(&mut request);
+    set_response(&request);
     let out = hconn_s.process(None, now());
     mem::drop(hconn_c.process(out.as_dgram_ref(), now()));
     process_client_events(&mut hconn_c);
@@ -273,7 +272,7 @@ fn test_data_writable_events_low_watermark() -> Result<(), Box<dyn std::error::E
     exchange_packets(&mut hconn_c, &mut hconn_s, None);
 
     // Server receives GET and responds with headers.
-    let mut request = receive_request(&mut hconn_s).unwrap();
+    let request = receive_request(&hconn_s).unwrap();
     request.send_headers(&[Header::new(":status", "200")])?;
 
     // Sending these headers clears the server's send stream buffer and thus
@@ -348,7 +347,7 @@ fn test_data_writable_events() {
     hconn_c.stream_close_send(req).unwrap();
     exchange_packets(&mut hconn_c, &mut hconn_s, None);
 
-    let mut request = receive_request(&mut hconn_s).unwrap();
+    let request = receive_request(&hconn_s).unwrap();
 
     request
         .send_headers(&[
@@ -484,10 +483,10 @@ fn zerortt() {
         }
     }
     assert!(zerortt_state_change);
-    let mut request_stream = request_stream.unwrap();
+    let request_stream = request_stream.unwrap();
 
     // Send a response
-    set_response(&mut request_stream);
+    set_response(&request_stream);
 
     // Receive the response
     exchange_packets(&mut hconn_c, &mut hconn_s, out.dgram());

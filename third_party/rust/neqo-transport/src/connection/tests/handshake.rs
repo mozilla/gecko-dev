@@ -29,31 +29,33 @@ use super::{
     CountingConnectionIdGenerator, AT_LEAST_PTO, DEFAULT_RTT, DEFAULT_STREAM_DATA,
 };
 use crate::{
-    connection::AddressValidation,
+    connection::{
+        tests::{new_client, new_server},
+        AddressValidation,
+    },
     events::ConnectionEvent,
-    path::PATH_MTU_V6,
     server::ValidateAddress,
     tparams::{TransportParameter, MIN_ACK_DELAY},
     tracking::DEFAULT_ACK_DELAY,
-    CloseReason, ConnectionParameters, EmptyConnectionIdGenerator, Error, StreamType, Version,
+    CloseReason, ConnectionParameters, EmptyConnectionIdGenerator, Error, Pmtud, StreamType,
+    Version,
 };
 
 const ECH_CONFIG_ID: u8 = 7;
 const ECH_PUBLIC_NAME: &str = "public.example";
 
-#[test]
-fn full_handshake() {
+fn full_handshake(pmtud: bool) {
     qdebug!("---- client: generate CH");
-    let mut client = default_client();
+    let mut client = new_client(ConnectionParameters::default().pmtud(pmtud));
     let out = client.process(None, now());
     assert!(out.as_dgram_ref().is_some());
-    assert_eq!(out.as_dgram_ref().unwrap().len(), PATH_MTU_V6);
+    assert_eq!(out.as_dgram_ref().unwrap().len(), client.plpmtu());
 
     qdebug!("---- server: CH -> SH, EE, CERT, CV, FIN");
-    let mut server = default_server();
+    let mut server = new_server(ConnectionParameters::default().pmtud(pmtud));
     let out = server.process(out.as_dgram_ref(), now());
     assert!(out.as_dgram_ref().is_some());
-    assert_eq!(out.as_dgram_ref().unwrap().len(), PATH_MTU_V6);
+    assert_eq!(out.as_dgram_ref().unwrap().len(), server.plpmtu());
 
     qdebug!("---- client: cert verification");
     let out = client.process(out.as_dgram_ref(), now());
@@ -76,8 +78,24 @@ fn full_handshake() {
 
     qdebug!("---- client: ACKS -> 0");
     let out = client.process(out.as_dgram_ref(), now());
-    assert!(out.as_dgram_ref().is_none());
+    if pmtud {
+        // PMTUD causes a PING probe to be sent here
+        let pkt = out.dgram().unwrap();
+        assert!(pkt.len() > client.plpmtu());
+    } else {
+        assert!(out.as_dgram_ref().is_none());
+    }
     assert_eq!(*client.state(), State::Confirmed);
+}
+
+#[test]
+fn handshake_no_pmtud() {
+    full_handshake(false);
+}
+
+#[test]
+fn handshake_pmtud() {
+    full_handshake(true);
 }
 
 #[test]
@@ -143,7 +161,7 @@ fn dup_server_flight1() {
     let mut client = default_client();
     let out = client.process(None, now());
     assert!(out.as_dgram_ref().is_some());
-    assert_eq!(out.as_dgram_ref().unwrap().len(), PATH_MTU_V6);
+    assert_eq!(out.as_dgram_ref().unwrap().len(), client.plpmtu());
     qdebug!("Output={:0x?}", out.as_dgram_ref());
 
     qdebug!("---- server: CH -> SH, EE, CERT, CV, FIN");
@@ -267,7 +285,7 @@ fn send_05rtt() {
     let c1 = client.process(None, now()).dgram();
     assert!(c1.is_some());
     let s1 = server.process(c1.as_ref(), now()).dgram().unwrap();
-    assert_eq!(s1.len(), PATH_MTU_V6);
+    assert_eq!(s1.len(), server.plpmtu());
 
     // The server should accept writes at this point.
     let s2 = send_something(&mut server, now());
@@ -437,7 +455,7 @@ fn coalesce_05rtt() {
     let s2 = server.process(c2.as_ref(), now).dgram();
     // Even though there is a 1-RTT packet at the end of the datagram, the
     // flight should be padded to full size.
-    assert_eq!(s2.as_ref().unwrap().len(), PATH_MTU_V6);
+    assert_eq!(s2.as_ref().unwrap().len(), server.plpmtu());
 
     // The client should process the datagram.  It can't process the 1-RTT
     // packet until authentication completes though.  So it saves it.
@@ -618,7 +636,7 @@ fn corrupted_initial() {
         .find(|(_, &v)| v != 0)
         .unwrap();
     corrupted[idx] ^= 0x76;
-    let dgram = Datagram::new(d.source(), d.destination(), d.tos(), d.ttl(), corrupted);
+    let dgram = Datagram::new(d.source(), d.destination(), d.tos(), corrupted);
     server.process_input(&dgram, now());
     // The server should have received two packets,
     // the first should be dropped, the second saved.
@@ -645,7 +663,7 @@ fn verify_pkt_honors_mtu() {
     assert_eq!(client.stream_send(stream_id, &[0xbb; 2000]).unwrap(), 2000);
     let pkt0 = client.process(None, now);
     assert!(matches!(pkt0, Output::Datagram(_)));
-    assert_eq!(pkt0.as_dgram_ref().unwrap().len(), PATH_MTU_V6);
+    assert_eq!(pkt0.as_dgram_ref().unwrap().len(), client.plpmtu());
 }
 
 #[test]
@@ -714,7 +732,7 @@ fn extra_initial_invalid_cid() {
     let mut copy = hs.to_vec();
     assert_ne!(copy[5], 0); // The DCID should be non-zero length.
     copy[6] ^= 0xc4;
-    let dgram_copy = Datagram::new(hs.destination(), hs.source(), hs.tos(), hs.ttl(), copy);
+    let dgram_copy = Datagram::new(hs.destination(), hs.source(), hs.tos(), copy);
     let nothing = client.process(Some(&dgram_copy), now).dgram();
     assert!(nothing.is_none());
 }
@@ -759,15 +777,15 @@ fn anti_amplification() {
 
     // With a gigantic transport parameter, the server is unable to complete
     // the handshake within the amplification limit.
-    let very_big = TransportParameter::Bytes(vec![0; PATH_MTU_V6 * 3]);
+    let very_big = TransportParameter::Bytes(vec![0; Pmtud::default_plpmtu(DEFAULT_ADDR.ip()) * 3]);
     server.set_local_tparam(0xce16, very_big).unwrap();
 
     let c_init = client.process_output(now).dgram();
     now += DEFAULT_RTT / 2;
     let s_init1 = server.process(c_init.as_ref(), now).dgram().unwrap();
-    assert_eq!(s_init1.len(), PATH_MTU_V6);
+    assert_eq!(s_init1.len(), client.plpmtu());
     let s_init2 = server.process_output(now).dgram().unwrap();
-    assert_eq!(s_init2.len(), PATH_MTU_V6);
+    assert_eq!(s_init2.len(), server.plpmtu());
 
     // Skip the gap for pacing here.
     let s_pacing = server.process_output(now).callback();
@@ -775,7 +793,7 @@ fn anti_amplification() {
     now += s_pacing;
 
     let s_init3 = server.process_output(now).dgram().unwrap();
-    assert_eq!(s_init3.len(), PATH_MTU_V6);
+    assert_eq!(s_init3.len(), server.plpmtu());
     let cb = server.process_output(now).callback();
     assert_ne!(cb, Duration::new(0, 0));
 
@@ -790,7 +808,7 @@ fn anti_amplification() {
     // The client sends a padded datagram, with just ACK for Handshake.
     assert_eq!(client.stats().frame_tx.ack, ack_count + 1);
     assert_eq!(client.stats().frame_tx.all, frame_count + 1);
-    assert_ne!(ack.len(), PATH_MTU_V6); // Not padded (it includes Handshake).
+    assert_ne!(ack.len(), client.plpmtu()); // Not padded (it includes Handshake).
 
     now += DEFAULT_RTT / 2;
     let remainder = server.process(Some(&ack), now).dgram();
@@ -836,7 +854,6 @@ fn drop_initial_packet_from_wrong_address() {
         SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 2)), 443),
         p.destination(),
         p.tos(),
-        p.ttl(),
         &p[..],
     );
 
@@ -864,7 +881,6 @@ fn drop_handshake_packet_from_wrong_address() {
         SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 2)), 443),
         p.destination(),
         p.tos(),
-        p.ttl(),
         &p[..],
     );
 
@@ -913,7 +929,7 @@ fn ech_retry() {
 
     let mut client = default_client();
     client
-        .client_enable_ech(&damaged_ech_config(server.ech_config()))
+        .client_enable_ech(damaged_ech_config(server.ech_config()))
         .unwrap();
 
     let dgram = client.process_output(now()).dgram();
@@ -968,7 +984,7 @@ fn ech_retry_fallback_rejected() {
 
     let mut client = default_client();
     client
-        .client_enable_ech(&damaged_ech_config(server.ech_config()))
+        .client_enable_ech(damaged_ech_config(server.ech_config()))
         .unwrap();
 
     let dgram = client.process_output(now()).dgram();
@@ -1171,7 +1187,7 @@ fn emit_authentication_needed_once() {
     // packet, but be large enough that the CertificateVerify message does not
     // also fit in the same packet.  Our default test setup achieves this, but
     // changes to the setup might invalidate this test.
-    let _ = client.process(server1.as_dgram_ref(), now());
+    _ = client.process(server1.as_dgram_ref(), now());
     assert_eq!(1, authentication_needed_count(&mut client));
     assert!(client.peer_certificate().is_some());
 
@@ -1179,6 +1195,6 @@ fn emit_authentication_needed_once() {
     // `Connection::authenticated`. On receiving the second packet from the
     // server, the client must not emit a another
     // `ConnectionEvent::AuthenticationNeeded`.
-    let _ = client.process(server2.as_dgram_ref(), now());
+    _ = client.process(server2.as_dgram_ref(), now());
     assert_eq!(0, authentication_needed_count(&mut client));
 }

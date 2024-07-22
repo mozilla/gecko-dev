@@ -210,7 +210,7 @@ pub struct RandomConnectionIdGenerator {
 
 impl RandomConnectionIdGenerator {
     #[must_use]
-    pub fn new(len: usize) -> Self {
+    pub const fn new(len: usize) -> Self {
         Self { len }
     }
 }
@@ -294,7 +294,7 @@ impl ConnectionIdEntry<[u8; 16]> {
     }
 
     /// The sequence number of this entry.
-    pub fn sequence_number(&self) -> u64 {
+    pub const fn sequence_number(&self) -> u64 {
         self.seqno
     }
 
@@ -318,13 +318,13 @@ impl ConnectionIdEntry<[u8; 16]> {
 
 impl ConnectionIdEntry<()> {
     /// Create an initial entry.
-    pub fn initial_local(cid: ConnectionId) -> Self {
+    pub const fn initial_local(cid: ConnectionId) -> Self {
         Self::new(0, cid, ())
     }
 }
 
 impl<SRT: Clone + PartialEq> ConnectionIdEntry<SRT> {
-    pub fn new(seqno: u64, cid: ConnectionId, srt: SRT) -> Self {
+    pub const fn new(seqno: u64, cid: ConnectionId, srt: SRT) -> Self {
         Self { seqno, cid, srt }
     }
 
@@ -340,11 +340,11 @@ impl<SRT: Clone + PartialEq> ConnectionIdEntry<SRT> {
         self.cid = cid;
     }
 
-    pub fn connection_id(&self) -> &ConnectionId {
+    pub const fn connection_id(&self) -> &ConnectionId {
         &self.cid
     }
 
-    pub fn reset_token(&self) -> &SRT {
+    pub const fn reset_token(&self) -> &SRT {
         &self.srt
     }
 }

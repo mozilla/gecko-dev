@@ -226,14 +226,14 @@ fn test_reading_frame<T: FrameDecoder<T> + PartialEq + Debug>(
     let mut fr = FrameReaderTest::new();
 
     fr.conn_s.stream_send(fr.stream_id, buf).unwrap();
-    if let FrameReadingTestSend::DataWithFin = test_to_send {
+    if matches!(test_to_send, FrameReadingTestSend::DataWithFin) {
         fr.conn_s.stream_close_send(fr.stream_id).unwrap();
     }
 
     let out = fr.conn_s.process(None, now());
     mem::drop(fr.conn_c.process(out.as_dgram_ref(), now()));
 
-    if let FrameReadingTestSend::DataThenFin = test_to_send {
+    if matches!(test_to_send, FrameReadingTestSend::DataThenFin) {
         fr.conn_s.stream_close_send(fr.stream_id).unwrap();
         let out = fr.conn_s.process(None, now());
         mem::drop(fr.conn_c.process(out.as_dgram_ref(), now()));

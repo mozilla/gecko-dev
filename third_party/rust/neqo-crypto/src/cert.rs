@@ -60,18 +60,14 @@ fn stapled_ocsp_responses(fd: *mut PRFileDesc) -> Option<Vec<Vec<u8>>> {
 
 fn signed_cert_timestamp(fd: *mut PRFileDesc) -> Option<Vec<u8>> {
     let sct_nss = unsafe { SSL_PeerSignedCertTimestamps(fd) };
-    match NonNull::new(sct_nss as *mut SECItem) {
-        Some(sct_ptr) => {
-            if unsafe { sct_ptr.as_ref().len == 0 || sct_ptr.as_ref().data.is_null() } {
-                Some(Vec::new())
-            } else {
-                let sct_slice =
-                    unsafe { null_safe_slice(sct_ptr.as_ref().data, sct_ptr.as_ref().len) };
-                Some(sct_slice.to_owned())
-            }
+    NonNull::new(sct_nss as *mut SECItem).map(|sct_ptr| {
+        if unsafe { sct_ptr.as_ref().len == 0 || sct_ptr.as_ref().data.is_null() } {
+            Vec::new()
+        } else {
+            let sct_slice = unsafe { null_safe_slice(sct_ptr.as_ref().data, sct_ptr.as_ref().len) };
+            sct_slice.to_owned()
         }
-        None => None,
-    }
+    })
 }
 
 impl CertificateInfo {
@@ -106,11 +102,13 @@ impl<'a> Iterator for &'a mut CertificateInfo {
 }
 
 impl CertificateInfo {
-    pub fn stapled_ocsp_responses(&mut self) -> &Option<Vec<Vec<u8>>> {
+    #[must_use]
+    pub const fn stapled_ocsp_responses(&self) -> &Option<Vec<Vec<u8>>> {
         &self.stapled_ocsp_responses
     }
 
-    pub fn signed_cert_timestamp(&mut self) -> &Option<Vec<u8>> {
+    #[must_use]
+    pub const fn signed_cert_timestamp(&self) -> &Option<Vec<u8>> {
         &self.signed_cert_timestamp
     }
 }

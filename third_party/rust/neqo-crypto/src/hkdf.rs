@@ -103,10 +103,7 @@ pub fn extract(
     ikm: &SymKey,
 ) -> Res<SymKey> {
     let mut prk: *mut PK11SymKey = null_mut();
-    let salt_ptr: *mut PK11SymKey = match salt {
-        Some(s) => **s,
-        None => null_mut(),
-    };
+    let salt_ptr: *mut PK11SymKey = salt.map_or(null_mut(), |s| **s);
     unsafe { SSL_HkdfExtract(version, cipher, salt_ptr, **ikm, &mut prk) }?;
     SymKey::from_ptr(prk)
 }

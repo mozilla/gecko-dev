@@ -122,7 +122,7 @@ impl ::std::fmt::Display for EncoderInstructionReader {
 }
 
 impl EncoderInstructionReader {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             state: EncoderInstructionReaderState::ReadInstruction,
             instruction: DecodedEncoderInstruction::NoInstruction,

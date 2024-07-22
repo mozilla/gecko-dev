@@ -52,7 +52,7 @@ where
     }
 }
 
-fn alpn_from_quic_version(version: Version) -> &'static str {
+const fn alpn_from_quic_version(version: Version) -> &'static str {
     match version {
         Version::Version2 | Version::Version1 => "h3",
         Version::Draft29 => "h3-29",
@@ -68,7 +68,7 @@ fn alpn_from_quic_version(version: Version) -> &'static str {
 /// [connection.rs](https://github.com/mozilla/neqo/blob/main/neqo-http3/src/connection.rs) which
 /// implements common behavior for the client-side and the server-side. `Http3Client` structure
 /// implements the public API and set of functions that differ between the client and the server.
-
+///
 /// The API is used for:
 /// - create and close an endpoint:
 ///   - [`Http3Client::new`]
@@ -353,7 +353,7 @@ impl Http3Client {
     }
 
     #[must_use]
-    pub fn role(&self) -> Role {
+    pub const fn role(&self) -> Role {
         self.conn.role()
     }
 
@@ -973,7 +973,7 @@ impl Http3Client {
             }
             Err(e) => {
                 qinfo!([self], "Connection error: {}.", e);
-                self.close(now, e.code(), &format!("{e}"));
+                self.close(now, e.code(), format!("{e}"));
                 true
             }
             _ => false,
@@ -1262,7 +1262,7 @@ impl Http3Client {
     }
 
     #[must_use]
-    pub fn webtransport_enabled(&self) -> bool {
+    pub const fn webtransport_enabled(&self) -> bool {
         self.base_handler.webtransport_enabled()
     }
 }

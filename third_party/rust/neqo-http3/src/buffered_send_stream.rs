@@ -29,7 +29,7 @@ impl ::std::fmt::Display for BufferedStream {
 
 impl BufferedStream {
     #[must_use]
-    pub fn new(stream_id: StreamId) -> Self {
+    pub const fn new(stream_id: StreamId) -> Self {
         Self::Initialized {
             stream_id,
             buf: Vec::new(),
@@ -113,7 +113,7 @@ impl BufferedStream {
 }
 
 impl From<&BufferedStream> for Option<StreamId> {
-    fn from(stream: &BufferedStream) -> Option<StreamId> {
+    fn from(stream: &BufferedStream) -> Self {
         if let BufferedStream::Initialized { stream_id, .. } = stream {
             Some(*stream_id)
         } else {

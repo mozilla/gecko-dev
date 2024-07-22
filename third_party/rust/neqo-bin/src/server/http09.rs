@@ -10,7 +10,7 @@ use neqo_common::{event::Provider, hex, qdebug, qerror, qinfo, qwarn, Datagram};
 use neqo_crypto::{generate_ech_keys, random, AllowZeroRtt, AntiReplay};
 use neqo_http3::Error;
 use neqo_transport::{
-    server::{ActiveConnectionRef, Server, ValidateAddress},
+    server::{ConnectionRef, Server, ValidateAddress},
     ConnectionEvent, ConnectionIdGenerator, Output, State, StreamId,
 };
 use regex::Regex;
@@ -47,7 +47,7 @@ impl HttpServer {
             args.shared.quic_parameters.get(&args.shared.alpn),
         )?;
 
-        server.set_ciphers(&args.get_ciphers());
+        server.set_ciphers(args.get_ciphers());
         server.set_qlog_dir(args.shared.qlog_dir.clone());
         if args.retry {
             server.set_validation(ValidateAddress::Always);
@@ -75,12 +75,7 @@ impl HttpServer {
         })
     }
 
-    fn save_partial(
-        &mut self,
-        stream_id: StreamId,
-        partial: Vec<u8>,
-        conn: &mut ActiveConnectionRef,
-    ) {
+    fn save_partial(&mut self, stream_id: StreamId, partial: Vec<u8>, conn: &ConnectionRef) {
         let url_dbg = String::from_utf8(partial.clone())
             .unwrap_or_else(|_| format!("<invalid UTF-8: {}>", hex(&partial)));
         if partial.len() < 4096 {
@@ -92,12 +87,7 @@ impl HttpServer {
         }
     }
 
-    fn write(
-        &mut self,
-        stream_id: StreamId,
-        data: Option<Vec<u8>>,
-        conn: &mut ActiveConnectionRef,
-    ) {
+    fn write(&mut self, stream_id: StreamId, data: Option<Vec<u8>>, conn: &ConnectionRef) {
         let resp = data.unwrap_or_else(|| Vec::from(&b"404 That request was nonsense\r\n"[..]));
         if let Some(stream_state) = self.write_state.get_mut(&stream_id) {
             match stream_state.data_to_send {
@@ -120,7 +110,7 @@ impl HttpServer {
         }
     }
 
-    fn stream_readable(&mut self, stream_id: StreamId, conn: &mut ActiveConnectionRef) {
+    fn stream_readable(&mut self, stream_id: StreamId, conn: &ConnectionRef) {
         if !stream_id.is_client_initiated() || !stream_id.is_bidi() {
             qdebug!("Stream {} not client-initiated bidi, ignoring", stream_id);
             return;
@@ -176,7 +166,7 @@ impl HttpServer {
         self.write(stream_id, resp, conn);
     }
 
-    fn stream_writable(&mut self, stream_id: StreamId, conn: &mut ActiveConnectionRef) {
+    fn stream_writable(&mut self, stream_id: StreamId, conn: &ConnectionRef) {
         match self.write_state.get_mut(&stream_id) {
             None => {
                 qwarn!("Unknown stream {stream_id}, ignoring event");
@@ -190,7 +180,6 @@ impl HttpServer {
                         .unwrap();
                     qdebug!("Wrote {}", sent);
                     *offset += sent;
-                    self.server.add_to_waiting(conn);
                     if *offset == data.len() {
                         qinfo!("Sent {sent} on {stream_id}, closing");
                         conn.borrow_mut().stream_close_send(stream_id).unwrap();
@@ -210,8 +199,11 @@ impl super::HttpServer for HttpServer {
     }
 
     fn process_events(&mut self, now: Instant) {
+        // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable
+        // types.
+        #[allow(clippy::mutable_key_type)]
         let active_conns = self.server.active_connections();
-        for mut acr in active_conns {
+        for acr in active_conns {
             loop {
                 let event = match acr.borrow_mut().next_event() {
                     None => break,
@@ -223,10 +215,10 @@ impl super::HttpServer for HttpServer {
                             .insert(stream_id, HttpStreamState::default());
                     }
                     ConnectionEvent::RecvStreamReadable { stream_id } => {
-                        self.stream_readable(stream_id, &mut acr);
+                        self.stream_readable(stream_id, &acr);
                     }
                     ConnectionEvent::SendStreamWritable { stream_id } => {
-                        self.stream_writable(stream_id, &mut acr);
+                        self.stream_writable(stream_id, &acr);
                     }
                     ConnectionEvent::StateChange(State::Connected) => {
                         acr.connection()

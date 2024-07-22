@@ -108,7 +108,7 @@ impl SelfEncrypt {
         Ok(output)
     }
 
-    fn select_key(&self, kid: u8) -> Option<&SymKey> {
+    const fn select_key(&self, kid: u8) -> Option<&SymKey> {
         if kid == self.key_id {
             Some(&self.key)
         } else {

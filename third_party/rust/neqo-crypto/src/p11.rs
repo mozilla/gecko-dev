@@ -187,7 +187,7 @@ scoped_ptr!(Slot, PK11SlotInfo, PK11_FreeSlot);
 impl Slot {
     pub fn internal() -> Res<Self> {
         let p = unsafe { PK11_GetInternalSlot() };
-        Slot::from_ptr(p)
+        Self::from_ptr(p)
     }
 }
 
@@ -267,7 +267,7 @@ impl Item {
     }
 
     /// Make an empty `SECItem` for passing as a mutable `SECItem*` argument.
-    pub fn make_empty() -> SECItem {
+    pub const fn make_empty() -> SECItem {
         SECItem {
             type_: SECItemType::siBuffer,
             data: null_mut(),
@@ -328,8 +328,8 @@ impl RandomCache {
     const SIZE: usize = 256;
     const CUTOFF: usize = 32;
 
-    fn new() -> Self {
-        RandomCache {
+    const fn new() -> Self {
+        Self {
             cache: [0; Self::SIZE],
             used: Self::SIZE,
         }
@@ -361,7 +361,7 @@ impl RandomCache {
 /// When `size` is too large or NSS fails.
 #[must_use]
 pub fn random<const N: usize>() -> [u8; N] {
-    thread_local!(static CACHE: RefCell<RandomCache> = RefCell::new(RandomCache::new()));
+    thread_local!(static CACHE: RefCell<RandomCache> = const { RefCell::new(RandomCache::new()) });
 
     let buf = [0; N];
     if N <= RandomCache::CUTOFF {

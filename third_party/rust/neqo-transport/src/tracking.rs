@@ -56,6 +56,7 @@ impl From<Epoch> for PacketNumberSpace {
     }
 }
 
+#[allow(clippy::fallible_impl_from)]
 impl From<PacketType> for PacketNumberSpace {
     fn from(pt: PacketType) -> Self {
         match pt {
@@ -75,7 +76,7 @@ pub struct PacketNumberSpaceSet {
 }
 
 impl PacketNumberSpaceSet {
-    pub fn all() -> Self {
+    pub const fn all() -> Self {
         Self {
             initial: true,
             handshake: true,
@@ -159,7 +160,7 @@ pub struct PacketRange {
 
 impl PacketRange {
     /// Make a single packet range.
-    pub fn new(pn: PacketNumber) -> Self {
+    pub const fn new(pn: PacketNumber) -> Self {
         Self {
             largest: pn,
             smallest: pn,
@@ -168,17 +169,17 @@ impl PacketRange {
     }
 
     /// Get the number of acknowleged packets in the range.
-    pub fn len(&self) -> u64 {
+    pub const fn len(&self) -> u64 {
         self.largest - self.smallest + 1
     }
 
     /// Returns whether this needs to be sent.
-    pub fn ack_needed(&self) -> bool {
+    pub const fn ack_needed(&self) -> bool {
         self.ack_needed
     }
 
     /// Return whether the given number is in the range.
-    pub fn contains(&self, pn: PacketNumber) -> bool {
+    pub const fn contains(&self, pn: PacketNumber) -> bool {
         (pn >= self.smallest) && (pn <= self.largest)
     }
 
@@ -301,7 +302,7 @@ impl RecvdPackets {
     }
 
     /// Get the time at which the next ACK should be sent.
-    pub fn ack_time(&self) -> Option<Instant> {
+    pub const fn ack_time(&self) -> Option<Instant> {
         self.ack_time
     }
 
@@ -481,9 +482,7 @@ impl RecvdPackets {
         // When congestion limited, ACK-only packets are 255 bytes at most
         // (`recovery::ACK_ONLY_SIZE_LIMIT - 1`).  This results in limiting the
         // ranges to 13 here.
-        let max_ranges = if let Some(avail) = builder
-            .remaining()
-            .checked_sub(RecvdPackets::USEFUL_ACK_LEN)
+        let max_ranges = if let Some(avail) = builder.remaining().checked_sub(Self::USEFUL_ACK_LEN)
         {
             // Apply a hard maximum to keep plenty of space for other stuff.
             min(1 + (avail / 16), MAX_ACKS_PER_FRAME)

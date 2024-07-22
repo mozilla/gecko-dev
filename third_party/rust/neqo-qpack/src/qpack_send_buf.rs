@@ -10,8 +10,8 @@ use neqo_common::Encoder;
 
 use crate::{huffman::encode_huffman, prefix::Prefix};
 
-#[derive(Default, Debug, PartialEq)]
-pub(crate) struct QpackData {
+#[derive(Default, Debug, PartialEq, Eq)]
+pub struct QpackData {
     buf: Vec<u8>,
 }
 

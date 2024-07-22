@@ -13,10 +13,23 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-bin"
-version = "0.7.9"
+version = "0.8.1"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 description = "A basic QUIC HTTP/0.9 and HTTP/3 client and server."
 homepage = "https://github.com/mozilla/neqo/"
+readme = "../README.md"
+keywords = [
+    "quic",
+    "http3",
+    "neqo",
+    "mozilla",
+    "ietf",
+    "firefox",
+]
+categories = [
+    "network-programming",
+    "web-programming",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
 
@@ -77,11 +90,11 @@ path = "./../neqo-crypto"
 [dependencies.neqo-http3]
 path = "./../neqo-http3"
 
-[dependencies.neqo-qpack]
-path = "./../neqo-qpack"
-
 [dependencies.neqo-transport]
 path = "./../neqo-transport"
+
+[dependencies.neqo-udp]
+path = "./../neqo-udp"
 
 [dependencies.qlog]
 version = "0.13"
@@ -126,6 +139,17 @@ default-features = false
 
 [features]
 bench = []
+
+[lints.clippy]
+multiple_crate_versions = "allow"
+
+[lints.clippy.cargo]
+level = "warn"
+priority = -1
+
+[lints.clippy.nursery]
+level = "warn"
+priority = -1
 
 [lints.clippy.pedantic]
 level = "warn"

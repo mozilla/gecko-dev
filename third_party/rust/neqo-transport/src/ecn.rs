@@ -31,7 +31,7 @@ enum EcnValidationState {
 
 impl Default for EcnValidationState {
     fn default() -> Self {
-        EcnValidationState::Testing(0)
+        Self::Testing(0)
     }
 }
 
@@ -54,7 +54,7 @@ impl DerefMut for EcnCount {
 }
 
 impl EcnCount {
-    pub fn new(not_ect: u64, ect0: u64, ect1: u64, ce: u64) -> Self {
+    pub const fn new(not_ect: u64, ect0: u64, ect1: u64, ce: u64) -> Self {
         // Yes, the enum array order is different from the argument order.
         Self(EnumMap::from_array([not_ect, ect1, ect0, ce]))
     }
@@ -65,12 +65,12 @@ impl EcnCount {
     }
 }
 
-impl Sub<EcnCount> for EcnCount {
-    type Output = EcnCount;
+impl Sub<Self> for EcnCount {
+    type Output = Self;
 
     /// Subtract the ECN counts in `other` from `self`.
-    fn sub(self, other: EcnCount) -> EcnCount {
-        let mut diff = EcnCount::default();
+    fn sub(self, other: Self) -> Self {
+        let mut diff = Self::default();
         for (ecn, count) in &mut *diff {
             *count = self[ecn].saturating_sub(other[ecn]);
         }
@@ -103,7 +103,7 @@ impl EcnInfo {
     }
 
     /// Expose the current baseline.
-    pub fn baseline(&self) -> EcnCount {
+    pub const fn baseline(&self) -> EcnCount {
         self.baseline
     }
 
@@ -216,7 +216,7 @@ impl EcnInfo {
     }
 
     /// The ECN mark to use for packets sent on this path.
-    pub fn ecn_mark(&self) -> IpTosEcn {
+    pub const fn ecn_mark(&self) -> IpTosEcn {
         match self.state {
             EcnValidationState::Testing { .. } | EcnValidationState::Capable => IpTosEcn::Ect0,
             EcnValidationState::Failed | EcnValidationState::Unknown => IpTosEcn::NotEct,

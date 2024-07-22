@@ -33,15 +33,15 @@ impl Prefix {
         }
     }
 
-    pub fn len(self) -> u8 {
+    pub const fn len(self) -> u8 {
         self.len
     }
 
-    pub fn prefix(self) -> u8 {
+    pub const fn prefix(self) -> u8 {
         self.prefix
     }
 
-    pub fn cmp_prefix(self, b: u8) -> bool {
+    pub const fn cmp_prefix(self, b: u8) -> bool {
         (b & self.mask) == self.prefix
     }
 }

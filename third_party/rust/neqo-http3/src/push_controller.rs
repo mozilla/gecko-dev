@@ -61,7 +61,7 @@ struct ActivePushStreams {
 }
 
 impl ActivePushStreams {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             push_streams: VecDeque::new(),
             first_push_id: 0,
@@ -98,7 +98,7 @@ impl ActivePushStreams {
             None | Some(PushState::Closed) => None,
             Some(s) => {
                 let res = mem::replace(s, PushState::Closed);
-                while let Some(PushState::Closed) = self.push_streams.front() {
+                while self.push_streams.front() == Some(&PushState::Closed) {
                     self.push_streams.pop_front();
                     self.first_push_id += 1;
                 }
@@ -144,7 +144,7 @@ impl ActivePushStreams {
 /// `CANCEL_PUSH` frame. The difference is that                              `PushCanceled` will not
 /// be posted and a `CANCEL_PUSH` frame may be sent.
 #[derive(Debug)]
-pub(crate) struct PushController {
+pub struct PushController {
     max_concurent_push: u64,
     current_max_push_id: u64,
     // push_streams holds the states of push streams.
@@ -157,8 +157,8 @@ pub(crate) struct PushController {
 }
 
 impl PushController {
-    pub fn new(max_concurent_push: u64, conn_events: Http3ClientEvents) -> Self {
-        PushController {
+    pub const fn new(max_concurent_push: u64, conn_events: Http3ClientEvents) -> Self {
+        Self {
             max_concurent_push,
             current_max_push_id: 0,
             push_streams: ActivePushStreams::new(),
@@ -245,12 +245,12 @@ impl PushController {
 
         self.check_push_id(push_id)?;
 
-        match self.push_streams.get_mut(push_id) {
-            None => {
+        self.push_streams.get_mut(push_id).map_or_else(
+            || {
                 qinfo!("Push has been closed already.");
                 Ok(false)
-            }
-            Some(push_state) => match push_state {
+            },
+            |push_state| match push_state {
                 PushState::Init => {
                     *push_state = PushState::OnlyPushStream {
                         stream_id,
@@ -273,10 +273,10 @@ impl PushController {
                     Err(Error::HttpId)
                 }
             },
-        }
+        )
     }
 
-    fn check_push_id(&mut self, push_id: u64) -> Res<()> {
+    fn check_push_id(&self, push_id: u64) -> Res<()> {
         // Check if push id is greater than what we allow.
         if push_id > self.current_max_push_id {
             qerror!("Push id is greater than current_max_push_id.");
@@ -431,7 +431,7 @@ impl PushController {
         self.push_streams.clear();
     }
 
-    pub fn can_receive_push(&self) -> bool {
+    pub const fn can_receive_push(&self) -> bool {
         self.max_concurent_push > 0
     }
 
@@ -459,13 +459,13 @@ impl PushController {
 /// `PushHeaderReady` and `PushDataReadable` events or to postpone them if
 /// a `push_promise` has not been yet received for the stream.
 #[derive(Debug)]
-pub(crate) struct RecvPushEvents {
+pub struct RecvPushEvents {
     push_id: u64,
     push_handler: Rc<RefCell<PushController>>,
 }
 
 impl RecvPushEvents {
-    pub fn new(push_id: u64, push_handler: Rc<RefCell<PushController>>) -> Self {
+    pub const fn new(push_id: u64, push_handler: Rc<RefCell<PushController>>) -> Self {
         Self {
             push_id,
             push_handler,

@@ -4,6 +4,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![allow(clippy::future_not_send)]
+
 use std::{
     cell::RefCell,
     fmt::{self, Display},
@@ -29,7 +31,7 @@ use neqo_crypto::{
 use neqo_transport::{Output, RandomConnectionIdGenerator, Version};
 use tokio::time::Sleep;
 
-use crate::{udp, SharedArgs};
+use crate::SharedArgs;
 
 const ANTI_REPLAY_WINDOW: Duration = Duration::from_secs(10);
 
@@ -194,7 +196,7 @@ pub struct ServerRunner {
     now: Box<dyn Fn() -> Instant>,
     server: Box<dyn HttpServer>,
     timeout: Option<Pin<Box<Sleep>>>,
-    sockets: Vec<(SocketAddr, udp::Socket)>,
+    sockets: Vec<(SocketAddr, crate::udp::Socket)>,
 }
 
 impl ServerRunner {
@@ -202,7 +204,7 @@ impl ServerRunner {
     pub fn new(
         now: Box<dyn Fn() -> Instant>,
         server: Box<dyn HttpServer>,
-        sockets: Vec<(SocketAddr, udp::Socket)>,
+        sockets: Vec<(SocketAddr, crate::udp::Socket)>,
     ) -> Self {
         Self {
             now,
@@ -213,7 +215,7 @@ impl ServerRunner {
     }
 
     /// Tries to find a socket, but then just falls back to sending from the first.
-    fn find_socket(&mut self, addr: SocketAddr) -> &mut udp::Socket {
+    fn find_socket(&mut self, addr: SocketAddr) -> &mut crate::udp::Socket {
         let ((_host, first_socket), rest) = self.sockets.split_first_mut().unwrap();
         rest.iter_mut()
             .map(|(_host, socket)| socket)
@@ -261,7 +263,7 @@ impl ServerRunner {
         let timeout_ready = self
             .timeout
             .as_mut()
-            .map_or(Either::Right(futures::future::pending()), Either::Left)
+            .map_or_else(|| Either::Right(futures::future::pending()), Either::Left)
             .map(|()| Ok(Ready::Timeout));
         select(sockets_ready, timeout_ready).await.factor_first().0
     }
@@ -363,7 +365,7 @@ pub async fn server(mut args: Args) -> Res<()> {
     let sockets = hosts
         .into_iter()
         .map(|host| {
-            let socket = udp::Socket::bind(host)?;
+            let socket = crate::udp::Socket::bind(host)?;
             let local_addr = socket.local_addr()?;
             qinfo!("Server waiting for connection on: {local_addr:?}");
 

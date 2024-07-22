@@ -76,7 +76,7 @@ impl ::std::fmt::Display for DecoderInstructionReader {
 }
 
 impl DecoderInstructionReader {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             state: DecoderInstructionReaderState::ReadInstruction,
             instruction: DecoderInstruction::NoInstruction,

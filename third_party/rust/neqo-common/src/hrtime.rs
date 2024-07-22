@@ -22,8 +22,8 @@ use winapi::um::timeapi::{timeBeginPeriod, timeEndPeriod};
 struct Period(u8);
 
 impl Period {
-    const MAX: Period = Period(16);
-    const MIN: Period = Period(1);
+    const MAX: Self = Self(16);
+    const MIN: Self = Self(1);
 
     #[cfg(windows)]
     fn as_uint(self) -> UINT {
@@ -63,8 +63,9 @@ impl PeriodSet {
 
     fn remove(&mut self, p: Period) {
         if p != Period::MAX {
-            debug_assert_ne!(*self.idx(p), 0);
-            *self.idx(p) -= 1;
+            let p = self.idx(p);
+            debug_assert_ne!(*p, 0);
+            *p -= 1;
         }
     }
 
@@ -219,7 +220,7 @@ pub struct Handle {
 impl Handle {
     const HISTORY: usize = 8;
 
-    fn new(hrt: Rc<RefCell<Time>>, active: Period) -> Self {
+    const fn new(hrt: Rc<RefCell<Time>>, active: Period) -> Self {
         Self {
             hrt,
             active,
@@ -287,6 +288,7 @@ impl Time {
     }
 
     #[allow(clippy::unused_self)] // Only on some platforms is it unused.
+    #[allow(clippy::missing_const_for_fn)] // Only const on some platforms where the function is empty.
     fn start(&self) {
         #[cfg(target_os = "macos")]
         {
@@ -306,6 +308,7 @@ impl Time {
     }
 
     #[allow(clippy::unused_self)] // Only on some platforms is it unused.
+    #[allow(clippy::missing_const_for_fn)] // Only const on some platforms where the function is empty.
     fn stop(&self) {
         #[cfg(windows)]
         {
@@ -344,7 +347,7 @@ impl Time {
         HR_TIME.with(|r| {
             let mut b = r.borrow_mut();
             let hrt = b.upgrade().unwrap_or_else(|| {
-                let hrt = Rc::new(RefCell::new(Time::new()));
+                let hrt = Rc::new(RefCell::new(Self::new()));
                 *b = Rc::downgrade(&hrt);
                 hrt
             });

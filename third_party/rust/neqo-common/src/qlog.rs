@@ -60,7 +60,7 @@ impl NeqoQlog {
     }
 
     /// If logging enabled, closure may generate an event to be logged.
-    pub fn add_event<F>(&mut self, f: F)
+    pub fn add_event<F>(&self, f: F)
     where
         F: FnOnce() -> Option<qlog::events::Event>,
     {
@@ -73,7 +73,7 @@ impl NeqoQlog {
     }
 
     /// If logging enabled, closure may generate an event to be logged.
-    pub fn add_event_data<F>(&mut self, f: F)
+    pub fn add_event_data<F>(&self, f: F)
     where
         F: FnOnce() -> Option<qlog::events::EventData>,
     {
@@ -87,7 +87,7 @@ impl NeqoQlog {
 
     /// If logging enabled, closure is given the Qlog stream to write events and
     /// frames to.
-    pub fn add_event_with_stream<F>(&mut self, f: F)
+    pub fn add_event_with_stream<F>(&self, f: F)
     where
         F: FnOnce(&mut QlogStreamer) -> Result<(), qlog::Error>,
     {
@@ -174,7 +174,7 @@ mod test {
 
     #[test]
     fn add_event() {
-        let (mut log, contents) = test_fixture::new_neqo_qlog();
+        let (log, contents) = test_fixture::new_neqo_qlog();
         log.add_event(|| Some(Event::with_time(1.1, EV_DATA)));
         assert_eq!(
             contents.to_string(),

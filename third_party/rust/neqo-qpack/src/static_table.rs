@@ -12,15 +12,15 @@ pub struct StaticTableEntry {
 }
 
 impl StaticTableEntry {
-    pub fn name(&self) -> &[u8] {
+    pub const fn name(&self) -> &[u8] {
         self.name
     }
 
-    pub fn value(&self) -> &[u8] {
+    pub const fn value(&self) -> &[u8] {
         self.value
     }
 
-    pub fn index(&self) -> u64 {
+    pub const fn index(&self) -> u64 {
         self.index
     }
 }

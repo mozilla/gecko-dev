@@ -54,12 +54,12 @@ pub enum State {
 
 impl State {
     #[must_use]
-    pub fn connected(&self) -> bool {
+    pub const fn connected(&self) -> bool {
         matches!(self, Self::Connected | Self::Confirmed)
     }
 
     #[must_use]
-    pub fn closed(&self) -> bool {
+    pub const fn closed(&self) -> bool {
         matches!(
             self,
             Self::Closing { .. } | Self::Draining { .. } | Self::Closed(_)
@@ -67,7 +67,7 @@ impl State {
     }
 
     #[must_use]
-    pub fn error(&self) -> Option<&CloseReason> {
+    pub const fn error(&self) -> Option<&CloseReason> {
         if let Self::Closing { error, .. } | Self::Draining { error, .. } | Self::Closed(error) =
             self
         {
@@ -137,7 +137,7 @@ impl ClosingFrame {
         }
     }
 
-    pub fn path(&self) -> &PathRef {
+    pub const fn path(&self) -> &PathRef {
         &self.path
     }
 
@@ -162,7 +162,7 @@ impl ClosingFrame {
     pub const MIN_LENGTH: usize = 1 + 8 + 8 + 2 + 8;
 
     pub fn write_frame(&self, builder: &mut PacketBuilder) {
-        if builder.remaining() < ClosingFrame::MIN_LENGTH {
+        if builder.remaining() < Self::MIN_LENGTH {
             return;
         }
         match &self.error {

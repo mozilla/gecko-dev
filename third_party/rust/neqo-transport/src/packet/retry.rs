@@ -48,9 +48,6 @@ where
 
 /// Determine how large the expansion is for a given key.
 pub fn expansion(version: Version) -> usize {
-    if let Ok(ex) = use_aead(version, |aead| Ok(aead.expansion())) {
-        ex
-    } else {
-        panic!("Unable to access Retry AEAD")
-    }
+    use_aead(version, |aead| Ok(aead.expansion()))
+        .unwrap_or_else(|_| panic!("Unable to access Retry AEAD"))
 }

@@ -12,7 +12,7 @@ use neqo_transport::StreamId;
 
 use crate::{frames::reader::FrameDecoder, settings::HSettings, Error, Priority, Res};
 
-pub(crate) type HFrameType = u64;
+pub type HFrameType = u64;
 
 pub const H3_FRAME_TYPE_DATA: HFrameType = 0x0;
 pub const H3_FRAME_TYPE_HEADERS: HFrameType = 0x1;
@@ -142,7 +142,7 @@ impl HFrame {
     }
 }
 
-impl FrameDecoder<HFrame> for HFrame {
+impl FrameDecoder<Self> for HFrame {
     fn frame_type_allowed(frame_type: u64) -> Res<()> {
         if H3_RESERVED_FRAME_TYPES.contains(&frame_type) {
             return Err(Error::HttpFrameUnexpected);
@@ -150,17 +150,17 @@ impl FrameDecoder<HFrame> for HFrame {
         Ok(())
     }
 
-    fn decode(frame_type: u64, frame_len: u64, data: Option<&[u8]>) -> Res<Option<HFrame>> {
+    fn decode(frame_type: u64, frame_len: u64, data: Option<&[u8]>) -> Res<Option<Self>> {
         if frame_type == H3_FRAME_TYPE_DATA {
-            Ok(Some(HFrame::Data { len: frame_len }))
+            Ok(Some(Self::Data { len: frame_len }))
         } else if let Some(payload) = data {
             let mut dec = Decoder::from(payload);
             Ok(match frame_type {
                 H3_FRAME_TYPE_DATA => unreachable!("DATA frame has been handled already."),
-                H3_FRAME_TYPE_HEADERS => Some(HFrame::Headers {
+                H3_FRAME_TYPE_HEADERS => Some(Self::Headers {
                     header_block: dec.decode_remainder().to_vec(),
                 }),
-                H3_FRAME_TYPE_CANCEL_PUSH => Some(HFrame::CancelPush {
+                H3_FRAME_TYPE_CANCEL_PUSH => Some(Self::CancelPush {
                     push_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
                 }),
                 H3_FRAME_TYPE_SETTINGS => {
@@ -172,16 +172,16 @@ impl FrameDecoder<HFrame> for HFrame {
                             Error::HttpFrame
                         }
                     })?;
-                    Some(HFrame::Settings { settings })
+                    Some(Self::Settings { settings })
                 }
-                H3_FRAME_TYPE_PUSH_PROMISE => Some(HFrame::PushPromise {
+                H3_FRAME_TYPE_PUSH_PROMISE => Some(Self::PushPromise {
                     push_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
                     header_block: dec.decode_remainder().to_vec(),
                 }),
-                H3_FRAME_TYPE_GOAWAY => Some(HFrame::Goaway {
+                H3_FRAME_TYPE_GOAWAY => Some(Self::Goaway {
                     stream_id: StreamId::new(dec.decode_varint().ok_or(Error::HttpFrame)?),
                 }),
-                H3_FRAME_TYPE_MAX_PUSH_ID => Some(HFrame::MaxPushId {
+                H3_FRAME_TYPE_MAX_PUSH_ID => Some(Self::MaxPushId {
                     push_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
                 }),
                 H3_FRAME_TYPE_PRIORITY_UPDATE_REQUEST | H3_FRAME_TYPE_PRIORITY_UPDATE_PUSH => {
@@ -189,12 +189,12 @@ impl FrameDecoder<HFrame> for HFrame {
                     let priority = dec.decode_remainder();
                     let priority = Priority::from_bytes(priority)?;
                     if frame_type == H3_FRAME_TYPE_PRIORITY_UPDATE_REQUEST {
-                        Some(HFrame::PriorityUpdateRequest {
+                        Some(Self::PriorityUpdateRequest {
                             element_id,
                             priority,
                         })
                     } else {
-                        Some(HFrame::PriorityUpdatePush {
+                        Some(Self::PriorityUpdatePush {
                             element_id,
                             priority,
                         })

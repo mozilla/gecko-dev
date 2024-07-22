@@ -111,11 +111,11 @@ impl PreferredAddress {
     }
 
     #[must_use]
-    pub fn ipv4(&self) -> Option<SocketAddrV4> {
+    pub const fn ipv4(&self) -> Option<SocketAddrV4> {
         self.v4
     }
     #[must_use]
-    pub fn ipv6(&self) -> Option<SocketAddrV6> {
+    pub const fn ipv6(&self) -> Option<SocketAddrV6> {
         self.v6
     }
 }
@@ -516,8 +516,10 @@ impl TransportParameters {
             ) {
                 continue;
             }
-            let ok = if let Some(v_self) = self.params.get(k) {
-                match (v_self, v_rem) {
+            let ok = self
+                .params
+                .get(k)
+                .map_or(false, |v_self| match (v_self, v_rem) {
                     (TransportParameter::Integer(i_self), TransportParameter::Integer(i_rem)) => {
                         if *k == MIN_ACK_DELAY {
                             // MIN_ACK_DELAY is backwards:
@@ -535,10 +537,7 @@ impl TransportParameters {
                         TransportParameter::Versions { current: v_rem, .. },
                     ) => v_self == v_rem,
                     _ => false,
-                }
-            } else {
-                false
-            };
+                });
             if !ok {
                 return false;
             }
@@ -623,7 +622,7 @@ impl TransportParametersHandler {
 
     /// Get the version as set (or as determined by a compatible upgrade).
     #[must_use]
-    pub fn version(&self) -> Version {
+    pub const fn version(&self) -> Version {
         self.versions.initial()
     }
 

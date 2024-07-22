@@ -9,7 +9,9 @@ macro_rules! experimental_api {
     ( $n:ident ( $( $a:ident : $t:ty ),* $(,)? ) ) => {
         #[allow(non_snake_case)]
         #[allow(clippy::too_many_arguments)]
-        pub(crate) unsafe fn $n ( $( $a : $t ),* ) -> Result<(), $crate::err::Error> {
+        #[allow(clippy::missing_safety_doc)]
+        #[allow(clippy::missing_errors_doc)]
+        pub unsafe fn $n ( $( $a : $t ),* ) -> Result<(), $crate::err::Error> {
             const EXP_FUNCTION: &str = stringify!($n);
             let n = ::std::ffi::CString::new(EXP_FUNCTION)?;
             let f = $crate::ssl::SSL_GetExperimentalAPI(n.as_ptr());

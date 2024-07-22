@@ -6,4 +6,4 @@
 
 /// The minimum version of NSS that is required by this version of neqo.
 /// Note that the string may contain whitespace at the beginning and/or end.
-pub(crate) const MINIMUM_NSS_VERSION: &str = include_str!("../min_version.txt");
+pub const MINIMUM_NSS_VERSION: &str = include_str!("../min_version.txt");

@@ -13,11 +13,28 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-qpack"
-version = "0.7.9"
+version = "0.8.1"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
+description = "Neqo, the Mozilla implementation of QUIC in Rust."
 homepage = "https://github.com/mozilla/neqo/"
+readme = "../README.md"
+keywords = [
+    "quic",
+    "http3",
+    "neqo",
+    "mozilla",
+    "ietf",
+    "firefox",
+]
+categories = [
+    "network-programming",
+    "web-programming",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
+
+[package.metadata.cargo-machete]
+ignored = ["log"]
 
 [lib]
 bench = false
@@ -28,9 +45,6 @@ default-features = false
 
 [dependencies.neqo-common]
 path = "./../neqo-common"
-
-[dependencies.neqo-crypto]
-path = "./../neqo-crypto"
 
 [dependencies.neqo-transport]
 path = "./../neqo-transport"
@@ -45,6 +59,17 @@ default-features = false
 
 [dev-dependencies.test-fixture]
 path = "../test-fixture"
+
+[lints.clippy]
+multiple_crate_versions = "allow"
+
+[lints.clippy.cargo]
+level = "warn"
+priority = -1
+
+[lints.clippy.nursery]
+level = "warn"
+priority = -1
 
 [lints.clippy.pedantic]
 level = "warn"

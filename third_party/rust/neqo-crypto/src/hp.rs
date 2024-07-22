@@ -57,7 +57,7 @@ impl Debug for HpKey {
 }
 
 impl HpKey {
-    const SAMPLE_SIZE: usize = 16;
+    pub const SAMPLE_SIZE: usize = 16;
 
     /// QUIC-specific API for extracting a header-protection key.
     ///
@@ -124,14 +124,7 @@ impl HpKey {
         Ok(res)
     }
 
-    /// Get the sample size, which is also the output size.
-    #[must_use]
-    #[allow(clippy::unused_self)] // To maintain an API contract.
-    pub fn sample_size(&self) -> usize {
-        Self::SAMPLE_SIZE
-    }
-
-    fn block_size(&self) -> usize {
+    const fn block_size(&self) -> usize {
         match self {
             Self::Aes(_) => 16,
             Self::Chacha(_) => 64,
@@ -148,8 +141,9 @@ impl HpKey {
     /// # Panics
     ///
     /// When the mechanism for our key is not supported.
-    pub fn mask(&self, sample: &[u8]) -> Res<Vec<u8>> {
-        let mut output = vec![0_u8; self.block_size()];
+    /// Or when the sample provided is not at least `self.sample_size()` bytes.
+    pub fn mask(&self, sample: &[u8]) -> Res<[u8; Self::SAMPLE_SIZE]> {
+        let mut output = [0; Self::SAMPLE_SIZE];
 
         match self {
             Self::Aes(context) => {
@@ -164,7 +158,7 @@ impl HpKey {
                         c_int::try_from(Self::SAMPLE_SIZE).unwrap(),
                     )
                 })?;
-                assert_eq!(usize::try_from(output_len).unwrap(), output.len());
+                debug_assert_eq!(usize::try_from(output_len).unwrap(), output.len());
                 Ok(output)
             }
 
@@ -185,11 +179,11 @@ impl HpKey {
                         output[..].as_mut_ptr(),
                         &mut output_len,
                         c_uint::try_from(output.len())?,
-                        output[..].as_ptr(),
-                        c_uint::try_from(output.len())?,
+                        [0; Self::SAMPLE_SIZE].as_ptr(),
+                        c_uint::try_from(Self::SAMPLE_SIZE)?,
                     )
                 })?;
-                assert_eq!(usize::try_from(output_len).unwrap(), output.len());
+                debug_assert_eq!(usize::try_from(output_len).unwrap(), output.len());
                 Ok(output)
             }
         }

@@ -26,7 +26,7 @@ use crate::{
 /// `select()`, or similar) can reliably deliver; see `neqo_common::hrtime`.
 pub const GRANULARITY: Duration = Duration::from_millis(1);
 // Defined in -recovery 6.2 as 333ms but using lower value.
-pub(crate) const INITIAL_RTT: Duration = Duration::from_millis(100);
+pub const INITIAL_RTT: Duration = Duration::from_millis(100);
 
 #[derive(Debug)]
 #[allow(clippy::module_name_repetitions)]
@@ -85,7 +85,7 @@ impl RttEstimate {
 
     pub fn update(
         &mut self,
-        qlog: &mut NeqoQlog,
+        qlog: &NeqoQlog,
         mut rtt_sample: Duration,
         ack_delay: Duration,
         confirmed: bool,
@@ -138,7 +138,7 @@ impl RttEstimate {
     }
 
     /// Get the estimated value.
-    pub fn estimate(&self) -> Duration {
+    pub const fn estimate(&self) -> Duration {
         self.smoothed_rtt
     }
 
@@ -160,20 +160,20 @@ impl RttEstimate {
         max(rtt * 9 / 8, GRANULARITY)
     }
 
-    pub fn first_sample_time(&self) -> Option<Instant> {
+    pub const fn first_sample_time(&self) -> Option<Instant> {
         self.first_sample_time
     }
 
     #[cfg(test)]
-    pub fn latest(&self) -> Duration {
+    pub const fn latest(&self) -> Duration {
         self.latest_rtt
     }
 
-    pub fn rttvar(&self) -> Duration {
+    pub const fn rttvar(&self) -> Duration {
         self.rttvar
     }
 
-    pub fn minimum(&self) -> Duration {
+    pub const fn minimum(&self) -> Duration {
         self.min_rtt
     }
 

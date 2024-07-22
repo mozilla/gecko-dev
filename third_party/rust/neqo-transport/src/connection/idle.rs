@@ -32,7 +32,7 @@ pub struct IdleTimeout {
 }
 
 impl IdleTimeout {
-    pub fn new(timeout: Duration) -> Self {
+    pub const fn new(timeout: Duration) -> Self {
         Self {
             timeout,
             state: IdleTimeoutState::Init,
@@ -46,7 +46,7 @@ impl IdleTimeout {
         self.timeout = min(self.timeout, peer_timeout);
     }
 
-    fn start(&self, now: Instant) -> Instant {
+    const fn start(&self, now: Instant) -> Instant {
         match self.state {
             IdleTimeoutState::Init => now,
             IdleTimeoutState::PacketReceived(t) | IdleTimeoutState::AckElicitingPacketSent(t) => t,

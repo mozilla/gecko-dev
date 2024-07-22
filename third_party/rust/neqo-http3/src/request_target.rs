@@ -38,7 +38,7 @@ impl RequestTarget for RefRequestTarget<'_, '_, '_> {
 
 impl<'s, 'a, 'p> RefRequestTarget<'s, 'a, 'p> {
     #[must_use]
-    pub fn new(scheme: &'s str, authority: &'a str, path: &'p str) -> Self {
+    pub const fn new(scheme: &'s str, authority: &'a str, path: &'p str) -> Self {
         Self {
             scheme,
             authority,

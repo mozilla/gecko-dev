@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 rust-version = "1.76.0"
-name = "neqo-http3"
+name = "neqo-udp"
 version = "0.8.1"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 description = "Neqo, the Mozilla implementation of QUIC in Rust."
@@ -33,12 +33,11 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
 
+[package.metadata.cargo-machete]
+ignored = ["log"]
+
 [lib]
 bench = false
-
-[dependencies.enumset]
-version = "1.1"
-default-features = false
 
 [dependencies.log]
 version = "0.4"
@@ -47,35 +46,9 @@ default-features = false
 [dependencies.neqo-common]
 path = "./../neqo-common"
 
-[dependencies.neqo-crypto]
-path = "./../neqo-crypto"
-
-[dependencies.neqo-qpack]
-path = "./../neqo-qpack"
-
-[dependencies.neqo-transport]
-path = "./../neqo-transport"
-
-[dependencies.qlog]
-version = "0.13"
+[dependencies.quinn-udp]
+version = "0.5.0"
 default-features = false
-
-[dependencies.sfv]
-version = "0.9"
-default-features = false
-
-[dependencies.url]
-version = "2.5"
-default-features = false
-
-[dev-dependencies.test-fixture]
-path = "../test-fixture"
-
-[features]
-disable-encryption = [
-    "neqo-transport/disable-encryption",
-    "neqo-crypto/disable-encryption",
-]
 
 [lints.clippy]
 multiple_crate_versions = "allow"

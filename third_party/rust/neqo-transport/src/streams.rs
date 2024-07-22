@@ -486,7 +486,7 @@ impl Streams {
         }
     }
 
-    pub fn handle_data_blocked(&mut self) {
+    pub fn handle_data_blocked(&self) {
         self.receiver_fc.borrow_mut().send_flowc_update();
     }
 
@@ -559,7 +559,8 @@ impl Streams {
         self.recv.keep_alive(stream_id, keep)
     }
 
-    pub fn need_keep_alive(&mut self) -> bool {
+    #[must_use]
+    pub fn need_keep_alive(&self) -> bool {
         self.recv.need_keep_alive()
     }
 }

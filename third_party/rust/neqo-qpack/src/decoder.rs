@@ -58,12 +58,12 @@ impl QPackDecoder {
     }
 
     #[must_use]
-    fn capacity(&self) -> u64 {
+    const fn capacity(&self) -> u64 {
         self.table.capacity()
     }
 
     #[must_use]
-    pub fn get_max_table_size(&self) -> u64 {
+    pub const fn get_max_table_size(&self) -> u64 {
         self.max_table_size
     }
 
@@ -259,7 +259,7 @@ impl QPackDecoder {
     }
 
     #[must_use]
-    pub fn local_stream_id(&self) -> Option<StreamId> {
+    pub const fn local_stream_id(&self) -> Option<StreamId> {
         self.local_stream_id
     }
 

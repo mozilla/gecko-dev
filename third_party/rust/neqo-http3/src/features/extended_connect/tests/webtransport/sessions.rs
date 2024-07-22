@@ -46,11 +46,11 @@ fn wt_session_reject() {
 #[test]
 fn wt_session_close_client() {
     let mut wt = WtTest::new();
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
     wt.cancel_session_client(wt_session.stream_id());
     wt.check_session_closed_event_server(
-        &mut wt_session,
+        &wt_session,
         &SessionCloseReason::Error(Error::HttpNoError.code()),
     );
 }
@@ -58,9 +58,9 @@ fn wt_session_close_client() {
 #[test]
 fn wt_session_close_server() {
     let mut wt = WtTest::new();
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
-    wt.cancel_session_server(&mut wt_session);
+    wt.cancel_session_server(&wt_session);
     wt.check_session_closed_event_client(
         wt_session.stream_id(),
         &SessionCloseReason::Error(Error::HttpNoError.code()),
@@ -71,7 +71,7 @@ fn wt_session_close_server() {
 #[test]
 fn wt_session_close_server_close_send() {
     let mut wt = WtTest::new();
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
     wt_session.stream_close_send().unwrap();
     wt.exchange_packets();
@@ -88,7 +88,7 @@ fn wt_session_close_server_close_send() {
 #[test]
 fn wt_session_close_server_stop_sending() {
     let mut wt = WtTest::new();
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
     wt_session
         .stream_stop_sending(Error::HttpNoError.code())
@@ -104,7 +104,7 @@ fn wt_session_close_server_stop_sending() {
 #[test]
 fn wt_session_close_server_reset() {
     let mut wt = WtTest::new();
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
     wt_session
         .stream_reset_send(Error::HttpNoError.code())
@@ -146,7 +146,7 @@ fn wt_session_response_with_1xx() {
         }
     }
 
-    let mut wt_server_session = wt_server_session.unwrap();
+    let wt_server_session = wt_server_session.unwrap();
 
     // Send interim response.
     wt_server_session
@@ -221,7 +221,7 @@ fn wt_session_respone_200_with_fin() {
         }
     }
 
-    let mut wt_server_session = wt_server_session.unwrap();
+    let wt_server_session = wt_server_session.unwrap();
     wt_server_session
         .response(&WebTransportSessionAcceptAction::Accept)
         .unwrap();
@@ -254,13 +254,13 @@ fn wt_session_close_frame_client() {
     const ERROR_NUM: u32 = 23;
     const ERROR_MESSAGE: &str = "Something went wrong";
     let mut wt = WtTest::new();
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
     wt.session_close_frame_client(wt_session.stream_id(), ERROR_NUM, ERROR_MESSAGE);
     wt.exchange_packets();
 
     wt.check_session_closed_event_server(
-        &mut wt_session,
+        &wt_session,
         &SessionCloseReason::Clean {
             error: ERROR_NUM,
             message: ERROR_MESSAGE.to_string(),
@@ -273,9 +273,9 @@ fn wt_session_close_frame_server() {
     const ERROR_NUM: u32 = 23;
     const ERROR_MESSAGE: &str = "Something went wrong";
     let mut wt = WtTest::new();
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
-    WtTest::session_close_frame_server(&mut wt_session, ERROR_NUM, ERROR_MESSAGE);
+    WtTest::session_close_frame_server(&wt_session, ERROR_NUM, ERROR_MESSAGE);
     wt.exchange_packets();
 
     wt.check_session_closed_event_client(
@@ -295,7 +295,7 @@ fn wt_unknown_session_frame_client() {
     const ERROR_NUM: u32 = 23;
     const ERROR_MESSAGE: &str = "Something went wrong";
     let mut wt = WtTest::new();
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
     // Send an unknown frame.
     let mut enc = Encoder::with_capacity(UNKNOWN_FRAME_LEN + 4);
@@ -307,8 +307,8 @@ fn wt_unknown_session_frame_client() {
     wt.exchange_packets();
 
     // The session is still active
-    let mut unidi_server = WtTest::create_wt_stream_server(&mut wt_session, StreamType::UniDi);
-    wt.send_data_server(&mut unidi_server, BUF);
+    let unidi_server = WtTest::create_wt_stream_server(&wt_session, StreamType::UniDi);
+    wt.send_data_server(&unidi_server, BUF);
     wt.receive_data_client(unidi_server.stream_id(), true, BUF, false);
 
     // Now close the session.
@@ -341,7 +341,7 @@ fn wt_unknown_session_frame_client() {
 #[test]
 fn wt_close_session_frame_broken_client() {
     let mut wt = WtTest::new();
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
     // Send a incorrect CloseSession frame.
     let mut enc = Encoder::default();
@@ -363,7 +363,7 @@ fn wt_close_session_frame_broken_client() {
         &None,
     );
     wt.check_session_closed_event_server(
-        &mut wt_session,
+        &wt_session,
         &SessionCloseReason::Error(Error::HttpGeneralProtocolStream.code()),
     );
 
@@ -372,7 +372,7 @@ fn wt_close_session_frame_broken_client() {
     assert_eq!(wt_session.state(), Http3State::Connected);
 }
 
-fn receive_request(server: &mut Http3Server) -> Option<Http3OrWebTransportStream> {
+fn receive_request(server: &Http3Server) -> Option<Http3OrWebTransportStream> {
     while let Some(event) = server.next_event() {
         if let Http3ServerEvent::Headers { stream, .. } = event {
             return Some(stream);
@@ -394,7 +394,7 @@ fn wt_close_session_cannot_be_sent_at_once() {
     let server = default_http3_server(wt_default_parameters());
     let mut wt = WtTest::new_with(client, server);
 
-    let mut wt_session = wt.create_wt_session();
+    let wt_session = wt.create_wt_session();
 
     // Fill the flow control window using an unrelated http stream.
     let req_id = wt
@@ -409,7 +409,7 @@ fn wt_close_session_cannot_be_sent_at_once() {
         .unwrap();
     assert_eq!(req_id, 4);
     wt.exchange_packets();
-    let mut req = receive_request(&mut wt.server).unwrap();
+    let req = receive_request(&wt.server).unwrap();
     req.send_headers(&[
         Header::new(":status", "200"),
         Header::new("content-length", BUF.len().to_string()),
@@ -418,7 +418,7 @@ fn wt_close_session_cannot_be_sent_at_once() {
     req.send_data(BUF).unwrap();
 
     // Now close the session.
-    WtTest::session_close_frame_server(&mut wt_session, ERROR_NUM, ERROR_MESSAGE);
+    WtTest::session_close_frame_server(&wt_session, ERROR_NUM, ERROR_MESSAGE);
     // server cannot create new streams.
     assert_eq!(
         wt_session.create_stream(StreamType::UniDi),

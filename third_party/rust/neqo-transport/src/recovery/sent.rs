@@ -37,7 +37,7 @@ pub struct SentPacket {
 }
 
 impl SentPacket {
-    pub fn new(
+    pub const fn new(
         pt: PacketType,
         pn: PacketNumber,
         ecn_mark: IpTosEcn,
@@ -61,37 +61,37 @@ impl SentPacket {
     }
 
     /// The type of this packet.
-    pub fn packet_type(&self) -> PacketType {
+    pub const fn packet_type(&self) -> PacketType {
         self.pt
     }
 
     /// The number of the packet.
-    pub fn pn(&self) -> PacketNumber {
+    pub const fn pn(&self) -> PacketNumber {
         self.pn
     }
 
     /// The ECN mark of the packet.
-    pub fn ecn_mark(&self) -> IpTosEcn {
+    pub const fn ecn_mark(&self) -> IpTosEcn {
         self.ecn_mark
     }
 
     /// The time that this packet was sent.
-    pub fn time_sent(&self) -> Instant {
+    pub const fn time_sent(&self) -> Instant {
         self.time_sent
     }
 
     /// Returns `true` if the packet will elicit an ACK.
-    pub fn ack_eliciting(&self) -> bool {
+    pub const fn ack_eliciting(&self) -> bool {
         self.ack_eliciting
     }
 
     /// Returns `true` if the packet was sent on the primary path.
-    pub fn on_primary_path(&self) -> bool {
+    pub const fn on_primary_path(&self) -> bool {
         self.primary_path
     }
 
     /// The length of the packet that was sent.
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.len
     }
 
@@ -113,7 +113,7 @@ impl SentPacket {
     }
 
     /// Whether the packet has been declared lost.
-    pub fn lost(&self) -> bool {
+    pub const fn lost(&self) -> bool {
         self.time_declared_lost.is_some()
     }
 
@@ -123,12 +123,12 @@ impl SentPacket {
     /// and has not previously been declared lost.
     /// Note that this should count packets that contain only ACK and PADDING,
     /// but we don't send PADDING, so we don't track that.
-    pub fn cc_outstanding(&self) -> bool {
+    pub const fn cc_outstanding(&self) -> bool {
         self.ack_eliciting() && self.on_primary_path() && !self.lost()
     }
 
     /// Whether the packet should be tracked as in-flight.
-    pub fn cc_in_flight(&self) -> bool {
+    pub const fn cc_in_flight(&self) -> bool {
         self.ack_eliciting() && self.on_primary_path()
     }
 
@@ -150,7 +150,7 @@ impl SentPacket {
     }
 
     /// Whether the packet contents were cleared out after a PTO.
-    pub fn pto_fired(&self) -> bool {
+    pub const fn pto_fired(&self) -> bool {
         self.pto
     }
 

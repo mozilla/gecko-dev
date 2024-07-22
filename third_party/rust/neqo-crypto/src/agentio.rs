@@ -209,7 +209,7 @@ pub struct AgentIo {
 }
 
 impl AgentIo {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             input: AgentIoInput {
                 input: null(),
@@ -280,10 +280,9 @@ unsafe extern "C" fn agent_recv(
         return PR_FAILURE;
     }
     if let Ok(a) = usize::try_from(amount) {
-        match io.input.read_input(buf.cast(), a) {
-            Ok(v) => prio::PRInt32::try_from(v).unwrap_or(PR_FAILURE),
-            Err(_) => PR_FAILURE,
-        }
+        io.input.read_input(buf.cast(), a).map_or(PR_FAILURE, |v| {
+            prio::PRInt32::try_from(v).unwrap_or(PR_FAILURE)
+        })
     } else {
         PR_FAILURE
     }
@@ -295,12 +294,10 @@ unsafe extern "C" fn agent_write(
     amount: prio::PRInt32,
 ) -> PrStatus {
     let io = AgentIo::borrow(&mut fd);
-    if let Ok(a) = usize::try_from(amount) {
+    usize::try_from(amount).map_or(PR_FAILURE, |a| {
         io.save_output(buf.cast(), a);
         amount
-    } else {
-        PR_FAILURE
-    }
+    })
 }
 
 unsafe extern "C" fn agent_send(
@@ -315,12 +312,10 @@ unsafe extern "C" fn agent_send(
     if flags != 0 {
         return PR_FAILURE;
     }
-    if let Ok(a) = usize::try_from(amount) {
+    usize::try_from(amount).map_or(PR_FAILURE, |a| {
         io.save_output(buf.cast(), a);
         amount
-    } else {
-        PR_FAILURE
-    }
+    })
 }
 
 unsafe extern "C" fn agent_available(mut fd: PrFd) -> prio::PRInt32 {

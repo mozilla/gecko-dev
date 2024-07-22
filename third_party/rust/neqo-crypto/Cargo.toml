@@ -13,9 +13,23 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-crypto"
-version = "0.7.9"
+version = "0.8.1"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
+description = "Neqo, the Mozilla implementation of QUIC in Rust."
 homepage = "https://github.com/mozilla/neqo/"
+readme = "../README.md"
+keywords = [
+    "quic",
+    "http3",
+    "neqo",
+    "mozilla",
+    "ietf",
+    "firefox",
+]
+categories = [
+    "network-programming",
+    "web-programming",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
 
@@ -62,6 +76,17 @@ default-features = false
 disable-encryption = []
 disable-random = []
 gecko = ["mozbuild"]
+
+[lints.clippy]
+multiple_crate_versions = "allow"
+
+[lints.clippy.cargo]
+level = "warn"
+priority = -1
+
+[lints.clippy.nursery]
+level = "warn"
+priority = -1
 
 [lints.clippy.pedantic]
 level = "warn"

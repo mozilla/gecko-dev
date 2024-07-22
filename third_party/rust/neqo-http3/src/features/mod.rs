@@ -35,7 +35,7 @@ pub enum NegotiationState {
 
 impl NegotiationState {
     #[must_use]
-    pub fn new(enable: bool, feature_type: HSettingType) -> Self {
+    pub const fn new(enable: bool, feature_type: HSettingType) -> Self {
         if enable {
             Self::Negotiating {
                 feature_type,
@@ -81,12 +81,12 @@ impl NegotiationState {
     }
 
     #[must_use]
-    pub fn enabled(&self) -> bool {
+    pub const fn enabled(&self) -> bool {
         matches!(self, &Self::Negotiated)
     }
 
     #[must_use]
-    pub fn locally_enabled(&self) -> bool {
+    pub const fn locally_enabled(&self) -> bool {
         !matches!(self, &Self::Disabled)
     }
 }

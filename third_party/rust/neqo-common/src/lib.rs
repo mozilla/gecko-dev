@@ -90,7 +90,7 @@ pub enum Role {
 
 impl Role {
     #[must_use]
-    pub fn remote(self) -> Self {
+    pub const fn remote(self) -> Self {
         match self {
             Self::Client => Self::Server,
             Self::Server => Self::Client,

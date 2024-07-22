@@ -64,14 +64,14 @@ pub enum CloseError {
 }
 
 impl CloseError {
-    fn frame_type_bit(self) -> u64 {
+    const fn frame_type_bit(self) -> u64 {
         match self {
             Self::Transport(_) => 0,
             Self::Application(_) => 1,
         }
     }
 
-    fn from_type_bit(bit: u64, code: u64) -> Self {
+    const fn from_type_bit(bit: u64, code: u64) -> Self {
         if (bit & 0x01) == 0 {
             Self::Transport(code)
         } else {
@@ -80,7 +80,7 @@ impl CloseError {
     }
 
     #[must_use]
-    pub fn code(&self) -> u64 {
+    pub const fn code(&self) -> u64 {
         match self {
             Self::Transport(c) | Self::Application(c) => *c,
         }
@@ -206,14 +206,14 @@ pub enum Frame<'a> {
 }
 
 impl<'a> Frame<'a> {
-    fn get_stream_type_bit(stream_type: StreamType) -> u64 {
+    const fn get_stream_type_bit(stream_type: StreamType) -> u64 {
         match stream_type {
             StreamType::BiDi => 0,
             StreamType::UniDi => 1,
         }
     }
 
-    fn stream_type_from_bit(bit: u64) -> StreamType {
+    const fn stream_type_from_bit(bit: u64) -> StreamType {
         if (bit & 0x01) == 0 {
             StreamType::BiDi
         } else {
@@ -222,7 +222,7 @@ impl<'a> Frame<'a> {
     }
 
     #[must_use]
-    pub fn get_type(&self) -> FrameType {
+    pub const fn get_type(&self) -> FrameType {
         match self {
             Self::Padding { .. } => FRAME_TYPE_PADDING,
             Self::Ping => FRAME_TYPE_PING,
@@ -264,7 +264,7 @@ impl<'a> Frame<'a> {
     }
 
     #[must_use]
-    pub fn is_stream(&self) -> bool {
+    pub const fn is_stream(&self) -> bool {
         matches!(
             self,
             Self::ResetStream { .. }
@@ -280,7 +280,7 @@ impl<'a> Frame<'a> {
     }
 
     #[must_use]
-    pub fn stream_type(fin: bool, nonzero_offset: bool, fill: bool) -> u64 {
+    pub const fn stream_type(fin: bool, nonzero_offset: bool, fill: bool) -> u64 {
         let mut t = FRAME_TYPE_STREAM;
         if fin {
             t |= STREAM_FRAME_BIT_FIN;
@@ -297,7 +297,7 @@ impl<'a> Frame<'a> {
     /// If the frame causes a recipient to generate an ACK within its
     /// advertised maximum acknowledgement delay.
     #[must_use]
-    pub fn ack_eliciting(&self) -> bool {
+    pub const fn ack_eliciting(&self) -> bool {
         !matches!(
             self,
             Self::Ack { .. } | Self::Padding { .. } | Self::ConnectionClose { .. }
@@ -307,7 +307,7 @@ impl<'a> Frame<'a> {
     /// If the frame can be sent in a path probe
     /// without initiating migration to that path.
     #[must_use]
-    pub fn path_probing(&self) -> bool {
+    pub const fn path_probing(&self) -> bool {
         matches!(
             self,
             Self::Padding { .. }

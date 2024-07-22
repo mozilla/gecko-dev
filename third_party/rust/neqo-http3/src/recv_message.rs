@@ -20,7 +20,7 @@ use crate::{
 };
 
 #[allow(clippy::module_name_repetitions)]
-pub(crate) struct RecvMessageInfo {
+pub struct RecvMessageInfo {
     pub message_type: MessageType,
     pub stream_type: Http3StreamType,
     pub stream_id: StreamId,
@@ -66,7 +66,7 @@ struct PushInfo {
 }
 
 #[derive(Debug)]
-pub(crate) struct RecvMessage {
+pub struct RecvMessage {
     state: RecvMessageState,
     message_type: MessageType,
     stream_type: Http3StreamType,
@@ -363,14 +363,14 @@ impl RecvMessage {
             .recv_closed(self.get_stream_info(), CloseType::Done);
     }
 
-    fn closing(&self) -> bool {
+    const fn closing(&self) -> bool {
         matches!(
             self.state,
             RecvMessageState::ClosePending | RecvMessageState::Closed
         )
     }
 
-    fn get_stream_info(&self) -> Http3StreamInfo {
+    const fn get_stream_info(&self) -> Http3StreamInfo {
         Http3StreamInfo::new(self.stream_id, Http3StreamType::Http)
     }
 }

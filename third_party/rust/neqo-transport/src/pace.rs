@@ -60,6 +60,14 @@ impl Pacer {
         }
     }
 
+    pub const fn mtu(&self) -> usize {
+        self.p
+    }
+
+    pub fn set_mtu(&mut self, mtu: usize) {
+        self.p = mtu;
+    }
+
     /// Determine when the next packet will be available based on the provided RTT
     /// and congestion window.  This doesn't update state.
     /// This returns a time, which could be in the past (this object doesn't know what

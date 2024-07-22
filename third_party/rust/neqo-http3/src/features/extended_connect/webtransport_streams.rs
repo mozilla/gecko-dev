@@ -19,7 +19,7 @@ pub const WEBTRANSPORT_UNI_STREAM: u64 = 0x54;
 pub const WEBTRANSPORT_STREAM: u64 = 0x41;
 
 #[derive(Debug)]
-pub(crate) struct WebTransportRecvStream {
+pub struct WebTransportRecvStream {
     stream_id: StreamId,
     events: Box<dyn RecvStreamEvents>,
     session: Rc<RefCell<WebTransportSession>>,
@@ -115,7 +115,7 @@ enum WebTransportSenderStreamState {
 }
 
 #[derive(Debug)]
-pub(crate) struct WebTransportSendStream {
+pub struct WebTransportSendStream {
     stream_id: StreamId,
     state: WebTransportSenderStreamState,
     events: Box<dyn SendStreamEvents>,

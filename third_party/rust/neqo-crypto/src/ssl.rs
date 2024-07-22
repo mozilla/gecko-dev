@@ -56,7 +56,8 @@ pub enum Opt {
 impl Opt {
     // Cast is safe here because SSLOptions are within the i32 range
     #[allow(clippy::cast_possible_wrap)]
-    pub(crate) fn as_int(self) -> PRInt32 {
+    #[must_use]
+    pub const fn as_int(self) -> PRInt32 {
         let i = match self {
             Self::Locking => SSLOption::SSL_NO_LOCKS,
             Self::Tickets => SSLOption::SSL_ENABLE_SESSION_TICKETS,

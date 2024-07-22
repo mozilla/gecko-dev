@@ -33,7 +33,7 @@ use crate::{
     version::{Version, VersionConfig, WireVersion},
 };
 
-pub fn connection_tparams_set(qlog: &mut NeqoQlog, tph: &TransportParametersHandler) {
+pub fn connection_tparams_set(qlog: &NeqoQlog, tph: &TransportParametersHandler) {
     qlog.add_event_data(|| {
         let remote = tph.remote();
         #[allow(clippy::cast_possible_truncation)] // Nope.
@@ -82,15 +82,15 @@ pub fn connection_tparams_set(qlog: &mut NeqoQlog, tph: &TransportParametersHand
     });
 }
 
-pub fn server_connection_started(qlog: &mut NeqoQlog, path: &PathRef) {
+pub fn server_connection_started(qlog: &NeqoQlog, path: &PathRef) {
     connection_started(qlog, path);
 }
 
-pub fn client_connection_started(qlog: &mut NeqoQlog, path: &PathRef) {
+pub fn client_connection_started(qlog: &NeqoQlog, path: &PathRef) {
     connection_started(qlog, path);
 }
 
-fn connection_started(qlog: &mut NeqoQlog, path: &PathRef) {
+fn connection_started(qlog: &NeqoQlog, path: &PathRef) {
     qlog.add_event_data(|| {
         let p = path.deref().borrow();
         let ev_data = EventData::ConnectionStarted(ConnectionStarted {
@@ -112,7 +112,7 @@ fn connection_started(qlog: &mut NeqoQlog, path: &PathRef) {
     });
 }
 
-pub fn connection_state_updated(qlog: &mut NeqoQlog, new: &State) {
+pub fn connection_state_updated(qlog: &NeqoQlog, new: &State) {
     qlog.add_event_data(|| {
         let ev_data = EventData::ConnectionStateUpdated(ConnectionStateUpdated {
             old: None,
@@ -131,7 +131,7 @@ pub fn connection_state_updated(qlog: &mut NeqoQlog, new: &State) {
     });
 }
 
-pub fn client_version_information_initiated(qlog: &mut NeqoQlog, version_config: &VersionConfig) {
+pub fn client_version_information_initiated(qlog: &NeqoQlog, version_config: &VersionConfig) {
     qlog.add_event_data(|| {
         Some(EventData::VersionInformation(VersionInformation {
             client_versions: Some(
@@ -148,7 +148,7 @@ pub fn client_version_information_initiated(qlog: &mut NeqoQlog, version_config:
 }
 
 pub fn client_version_information_negotiated(
-    qlog: &mut NeqoQlog,
+    qlog: &NeqoQlog,
     client: &[Version],
     server: &[WireVersion],
     chosen: Version,
@@ -167,11 +167,7 @@ pub fn client_version_information_negotiated(
     });
 }
 
-pub fn server_version_information_failed(
-    qlog: &mut NeqoQlog,
-    server: &[Version],
-    client: WireVersion,
-) {
+pub fn server_version_information_failed(qlog: &NeqoQlog, server: &[Version], client: WireVersion) {
     qlog.add_event_data(|| {
         Some(EventData::VersionInformation(VersionInformation {
             client_versions: Some(vec![format!("{client:02x}")]),
@@ -186,13 +182,7 @@ pub fn server_version_information_failed(
     });
 }
 
-pub fn packet_sent(
-    qlog: &mut NeqoQlog,
-    pt: PacketType,
-    pn: PacketNumber,
-    plen: usize,
-    body: &[u8],
-) {
+pub fn packet_sent(qlog: &NeqoQlog, pt: PacketType, pn: PacketNumber, plen: usize, body: &[u8]) {
     qlog.add_event_with_stream(|stream| {
         let mut d = Decoder::from(body);
         let header = PacketHeader::with_type(pt.into(), Some(pn), None, None, None);
@@ -229,7 +219,7 @@ pub fn packet_sent(
     });
 }
 
-pub fn packet_dropped(qlog: &mut NeqoQlog, public_packet: &PublicPacket) {
+pub fn packet_dropped(qlog: &NeqoQlog, public_packet: &PublicPacket) {
     qlog.add_event_data(|| {
         let header =
             PacketHeader::with_type(public_packet.packet_type().into(), None, None, None, None);
@@ -251,7 +241,7 @@ pub fn packet_dropped(qlog: &mut NeqoQlog, public_packet: &PublicPacket) {
     });
 }
 
-pub fn packets_lost(qlog: &mut NeqoQlog, pkts: &[SentPacket]) {
+pub fn packets_lost(qlog: &NeqoQlog, pkts: &[SentPacket]) {
     qlog.add_event_with_stream(|stream| {
         for pkt in pkts {
             let header =
@@ -269,11 +259,7 @@ pub fn packets_lost(qlog: &mut NeqoQlog, pkts: &[SentPacket]) {
     });
 }
 
-pub fn packet_received(
-    qlog: &mut NeqoQlog,
-    public_packet: &PublicPacket,
-    payload: &DecryptedPacket,
-) {
+pub fn packet_received(qlog: &NeqoQlog, public_packet: &PublicPacket, payload: &DecryptedPacket) {
     qlog.add_event_with_stream(|stream| {
         let mut d = Decoder::from(&payload[..]);
 
@@ -333,7 +319,7 @@ pub enum QlogMetric {
     PacingRate(u64),
 }
 
-pub fn metrics_updated(qlog: &mut NeqoQlog, updated_metrics: &[QlogMetric]) {
+pub fn metrics_updated(qlog: &NeqoQlog, updated_metrics: &[QlogMetric]) {
     debug_assert!(!updated_metrics.is_empty());
 
     qlog.add_event_data(|| {
@@ -391,11 +377,11 @@ pub fn metrics_updated(qlog: &mut NeqoQlog, updated_metrics: &[QlogMetric]) {
 impl From<Frame<'_>> for QuicFrame {
     fn from(frame: Frame) -> Self {
         match frame {
-            Frame::Padding(len) => QuicFrame::Padding {
+            Frame::Padding(len) => Self::Padding {
                 length: None,
                 payload_length: u32::from(len),
             },
-            Frame::Ping => QuicFrame::Ping {
+            Frame::Ping => Self::Ping {
                 length: None,
                 payload_length: None,
             },
@@ -418,7 +404,7 @@ impl From<Frame<'_>> for QuicFrame {
                     )
                 });
 
-                QuicFrame::Ack {
+                Self::Ack {
                     ack_delay: Some(ack_delay as f32 / 1000.0),
                     acked_ranges,
                     ect1: ecn_count.map(|c| c[IpTosEcn::Ect1]),
@@ -432,7 +418,7 @@ impl From<Frame<'_>> for QuicFrame {
                 stream_id,
                 application_error_code,
                 final_size,
-            } => QuicFrame::ResetStream {
+            } => Self::ResetStream {
                 stream_id: stream_id.as_u64(),
                 error_code: application_error_code,
                 final_size,
@@ -442,17 +428,17 @@ impl From<Frame<'_>> for QuicFrame {
             Frame::StopSending {
                 stream_id,
                 application_error_code,
-            } => QuicFrame::StopSending {
+            } => Self::StopSending {
                 stream_id: stream_id.as_u64(),
                 error_code: application_error_code,
                 length: None,
                 payload_length: None,
             },
-            Frame::Crypto { offset, data } => QuicFrame::Crypto {
+            Frame::Crypto { offset, data } => Self::Crypto {
                 offset,
                 length: data.len() as u64,
             },
-            Frame::NewToken { token } => QuicFrame::NewToken {
+            Frame::NewToken { token } => Self::NewToken {
                 token: qlog::Token {
                     ty: Some(qlog::TokenType::Retry),
                     details: None,
@@ -469,45 +455,45 @@ impl From<Frame<'_>> for QuicFrame {
                 offset,
                 data,
                 ..
-            } => QuicFrame::Stream {
+            } => Self::Stream {
                 stream_id: stream_id.as_u64(),
                 offset,
                 length: data.len() as u64,
                 fin: Some(fin),
                 raw: None,
             },
-            Frame::MaxData { maximum_data } => QuicFrame::MaxData {
+            Frame::MaxData { maximum_data } => Self::MaxData {
                 maximum: maximum_data,
             },
             Frame::MaxStreamData {
                 stream_id,
                 maximum_stream_data,
-            } => QuicFrame::MaxStreamData {
+            } => Self::MaxStreamData {
                 stream_id: stream_id.as_u64(),
                 maximum: maximum_stream_data,
             },
             Frame::MaxStreams {
                 stream_type,
                 maximum_streams,
-            } => QuicFrame::MaxStreams {
+            } => Self::MaxStreams {
                 stream_type: match stream_type {
                     NeqoStreamType::BiDi => StreamType::Bidirectional,
                     NeqoStreamType::UniDi => StreamType::Unidirectional,
                 },
                 maximum: maximum_streams,
             },
-            Frame::DataBlocked { data_limit } => QuicFrame::DataBlocked { limit: data_limit },
+            Frame::DataBlocked { data_limit } => Self::DataBlocked { limit: data_limit },
             Frame::StreamDataBlocked {
                 stream_id,
                 stream_data_limit,
-            } => QuicFrame::StreamDataBlocked {
+            } => Self::StreamDataBlocked {
                 stream_id: stream_id.as_u64(),
                 limit: stream_data_limit,
             },
             Frame::StreamsBlocked {
                 stream_type,
                 stream_limit,
-            } => QuicFrame::StreamsBlocked {
+            } => Self::StreamsBlocked {
                 stream_type: match stream_type {
                     NeqoStreamType::BiDi => StreamType::Bidirectional,
                     NeqoStreamType::UniDi => StreamType::Unidirectional,
@@ -519,27 +505,27 @@ impl From<Frame<'_>> for QuicFrame {
                 retire_prior,
                 connection_id,
                 stateless_reset_token,
-            } => QuicFrame::NewConnectionId {
+            } => Self::NewConnectionId {
                 sequence_number: sequence_number as u32,
                 retire_prior_to: retire_prior as u32,
                 connection_id_length: Some(connection_id.len() as u8),
                 connection_id: hex(connection_id),
                 stateless_reset_token: Some(hex(stateless_reset_token)),
             },
-            Frame::RetireConnectionId { sequence_number } => QuicFrame::RetireConnectionId {
+            Frame::RetireConnectionId { sequence_number } => Self::RetireConnectionId {
                 sequence_number: sequence_number as u32,
             },
-            Frame::PathChallenge { data } => QuicFrame::PathChallenge {
+            Frame::PathChallenge { data } => Self::PathChallenge {
                 data: Some(hex(data)),
             },
-            Frame::PathResponse { data } => QuicFrame::PathResponse {
+            Frame::PathResponse { data } => Self::PathResponse {
                 data: Some(hex(data)),
             },
             Frame::ConnectionClose {
                 error_code,
                 frame_type,
                 reason_phrase,
-            } => QuicFrame::ConnectionClose {
+            } => Self::ConnectionClose {
                 error_space: match error_code {
                     CloseError::Transport(_) => Some(ErrorSpace::TransportError),
                     CloseError::Application(_) => Some(ErrorSpace::ApplicationError),
@@ -549,13 +535,13 @@ impl From<Frame<'_>> for QuicFrame {
                 reason: Some(reason_phrase),
                 trigger_frame_type: Some(frame_type),
             },
-            Frame::HandshakeDone => QuicFrame::HandshakeDone,
-            Frame::AckFrequency { .. } => QuicFrame::Unknown {
+            Frame::HandshakeDone => Self::HandshakeDone,
+            Frame::AckFrequency { .. } => Self::Unknown {
                 frame_type_value: None,
                 raw_frame_type: frame.get_type(),
                 raw: None,
             },
-            Frame::Datagram { data, .. } => QuicFrame::Datagram {
+            Frame::Datagram { data, .. } => Self::Datagram {
                 length: data.len() as u64,
                 raw: None,
             },
@@ -566,13 +552,13 @@ impl From<Frame<'_>> for QuicFrame {
 impl From<PacketType> for qlog::events::quic::PacketType {
     fn from(value: PacketType) -> Self {
         match value {
-            PacketType::Initial => qlog::events::quic::PacketType::Initial,
-            PacketType::Handshake => qlog::events::quic::PacketType::Handshake,
-            PacketType::ZeroRtt => qlog::events::quic::PacketType::ZeroRtt,
-            PacketType::Short => qlog::events::quic::PacketType::OneRtt,
-            PacketType::Retry => qlog::events::quic::PacketType::Retry,
-            PacketType::VersionNegotiation => qlog::events::quic::PacketType::VersionNegotiation,
-            PacketType::OtherVersion => qlog::events::quic::PacketType::Unknown,
+            PacketType::Initial => Self::Initial,
+            PacketType::Handshake => Self::Handshake,
+            PacketType::ZeroRtt => Self::ZeroRtt,
+            PacketType::Short => Self::OneRtt,
+            PacketType::Retry => Self::Retry,
+            PacketType::VersionNegotiation => Self::VersionNegotiation,
+            PacketType::OtherVersion => Self::Unknown,
         }
     }
 }

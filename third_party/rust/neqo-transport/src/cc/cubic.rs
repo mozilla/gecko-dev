@@ -11,7 +11,7 @@ use std::{
 
 use neqo_common::qtrace;
 
-use crate::cc::{classic_cc::WindowAdjustment, MAX_DATAGRAM_SIZE_F64};
+use crate::cc::classic_cc::WindowAdjustment;
 
 // CUBIC congestion control
 
@@ -38,7 +38,7 @@ const EXPONENTIAL_GROWTH_REDUCTION: f64 = 2.0;
 /// Convert an integer congestion window value into a floating point value.
 /// This has the effect of reducing larger values to `1<<53`.
 /// If you have a congestion window that large, something is probably wrong.
-fn convert_to_f64(v: usize) -> f64 {
+pub fn convert_to_f64(v: usize) -> f64 {
     let mut f_64 = f64::from(u32::try_from(v >> 21).unwrap_or(u32::MAX));
     f_64 *= 2_097_152.0; // f_64 <<= 21
     f_64 += f64::from(u32::try_from(v & 0x1f_ffff).unwrap());
@@ -91,17 +91,23 @@ impl Cubic {
     ///
     /// From that equation we can calculate K as:
     /// K = cubic_root((W_max - W_cubic) / C / MSS);
-    fn calc_k(&self, curr_cwnd: f64) -> f64 {
-        ((self.w_max - curr_cwnd) / CUBIC_C / MAX_DATAGRAM_SIZE_F64).cbrt()
+    fn calc_k(&self, curr_cwnd: f64, max_datagram_size: usize) -> f64 {
+        ((self.w_max - curr_cwnd) / CUBIC_C / convert_to_f64(max_datagram_size)).cbrt()
     }
 
     /// W_cubic(t) = C*(t-K)^3 + W_max (Eq. 1)
     /// t is relative to the start of the congestion avoidance phase and it is in seconds.
-    fn w_cubic(&self, t: f64) -> f64 {
-        CUBIC_C * (t - self.k).powi(3) * MAX_DATAGRAM_SIZE_F64 + self.w_max
+    fn w_cubic(&self, t: f64, max_datagram_size: usize) -> f64 {
+        (CUBIC_C * (t - self.k).powi(3)).mul_add(convert_to_f64(max_datagram_size), self.w_max)
     }
 
-    fn start_epoch(&mut self, curr_cwnd_f64: f64, new_acked_f64: f64, now: Instant) {
+    fn start_epoch(
+        &mut self,
+        curr_cwnd_f64: f64,
+        new_acked_f64: f64,
+        max_datagram_size: usize,
+        now: Instant,
+    ) {
         self.ca_epoch_start = Some(now);
         // reset tcp_acked_bytes and estimated_tcp_cwnd;
         self.tcp_acked_bytes = new_acked_f64;
@@ -111,7 +117,7 @@ impl Cubic {
             self.k = 0.0;
         } else {
             self.w_max = self.last_max_cwnd;
-            self.k = self.calc_k(curr_cwnd_f64);
+            self.k = self.calc_k(curr_cwnd_f64, max_datagram_size);
         }
         qtrace!([self], "New epoch");
     }
@@ -126,13 +132,14 @@ impl WindowAdjustment for Cubic {
         curr_cwnd: usize,
         new_acked_bytes: usize,
         min_rtt: Duration,
+        max_datagram_size: usize,
         now: Instant,
     ) -> usize {
         let curr_cwnd_f64 = convert_to_f64(curr_cwnd);
         let new_acked_f64 = convert_to_f64(new_acked_bytes);
         if self.ca_epoch_start.is_none() {
             // This is a start of a new congestion avoidance phase.
-            self.start_epoch(curr_cwnd_f64, new_acked_f64, now);
+            self.start_epoch(curr_cwnd_f64, new_acked_f64, max_datagram_size, now);
         } else {
             self.tcp_acked_bytes += new_acked_f64;
         }
@@ -149,12 +156,14 @@ impl WindowAdjustment for Cubic {
                 }
             })
             .as_secs_f64();
-        let target_cubic = self.w_cubic(time_ca);
+        let target_cubic = self.w_cubic(time_ca, max_datagram_size);
 
+        let max_datagram_size = convert_to_f64(max_datagram_size);
         let tcp_cnt = self.estimated_tcp_cwnd / CUBIC_ALPHA;
-        while self.tcp_acked_bytes > tcp_cnt {
-            self.tcp_acked_bytes -= tcp_cnt;
-            self.estimated_tcp_cwnd += MAX_DATAGRAM_SIZE_F64;
+        let incr = (self.tcp_acked_bytes / tcp_cnt).floor();
+        if incr > 0.0 {
+            self.tcp_acked_bytes -= incr * tcp_cnt;
+            self.estimated_tcp_cwnd += incr * max_datagram_size;
         }
 
         let target_cwnd = target_cubic.max(self.estimated_tcp_cwnd);
@@ -166,27 +175,32 @@ impl WindowAdjustment for Cubic {
         // If the target is not significantly higher than the congestion window, require a very
         // large amount of acknowledged data (effectively block increases).
         let mut acked_to_increase =
-            MAX_DATAGRAM_SIZE_F64 * curr_cwnd_f64 / (target_cwnd - curr_cwnd_f64).max(1.0);
+            max_datagram_size * curr_cwnd_f64 / (target_cwnd - curr_cwnd_f64).max(1.0);
 
         // Limit increase to max 1 MSS per EXPONENTIAL_GROWTH_REDUCTION ack packets.
         // This effectively limits target_cwnd to (1 + 1 / EXPONENTIAL_GROWTH_REDUCTION) cwnd.
-        acked_to_increase =
-            acked_to_increase.max(EXPONENTIAL_GROWTH_REDUCTION * MAX_DATAGRAM_SIZE_F64);
+        acked_to_increase = acked_to_increase.max(EXPONENTIAL_GROWTH_REDUCTION * max_datagram_size);
         acked_to_increase as usize
     }
 
-    fn reduce_cwnd(&mut self, curr_cwnd: usize, acked_bytes: usize) -> (usize, usize) {
+    fn reduce_cwnd(
+        &mut self,
+        curr_cwnd: usize,
+        acked_bytes: usize,
+        max_datagram_size: usize,
+    ) -> (usize, usize) {
         let curr_cwnd_f64 = convert_to_f64(curr_cwnd);
         // Fast Convergence
         // If congestion event occurs before the maximum congestion window before the last
         // congestion event, we reduce the the maximum congestion window and thereby W_max.
         // check cwnd + MAX_DATAGRAM_SIZE instead of cwnd because with cwnd in bytes, cwnd may be
         // slightly off.
-        self.last_max_cwnd = if curr_cwnd_f64 + MAX_DATAGRAM_SIZE_F64 < self.last_max_cwnd {
-            curr_cwnd_f64 * CUBIC_FAST_CONVERGENCE
-        } else {
-            curr_cwnd_f64
-        };
+        self.last_max_cwnd =
+            if curr_cwnd_f64 + convert_to_f64(max_datagram_size) < self.last_max_cwnd {
+                curr_cwnd_f64 * CUBIC_FAST_CONVERGENCE
+            } else {
+                curr_cwnd_f64
+            };
         self.ca_epoch_start = None;
         (
             curr_cwnd * CUBIC_BETA_USIZE_DIVIDEND / CUBIC_BETA_USIZE_DIVISOR,

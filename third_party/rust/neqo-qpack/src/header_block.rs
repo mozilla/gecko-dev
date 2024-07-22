@@ -25,7 +25,7 @@ use crate::{
     Error, Res,
 };
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct HeaderEncoder {
     buf: QpackData,
     base: u64,
@@ -172,7 +172,7 @@ impl Deref for HeaderEncoder {
     }
 }
 
-pub(crate) struct HeaderDecoder<'a> {
+pub struct HeaderDecoder<'a> {
     buf: ReceiverBufferWrapper<'a>,
     base: u64,
     req_insert_cnt: u64,
@@ -191,7 +191,7 @@ pub enum HeaderDecoderResult {
 }
 
 impl<'a> HeaderDecoder<'a> {
-    pub fn new(buf: &'a [u8]) -> Self {
+    pub const fn new(buf: &'a [u8]) -> Self {
         Self {
             buf: ReceiverBufferWrapper::new(buf),
             base: 0,
@@ -278,7 +278,7 @@ impl<'a> HeaderDecoder<'a> {
         Ok(HeaderDecoderResult::Headers(h))
     }
 
-    pub fn get_req_insert_cnt(&self) -> u64 {
+    pub const fn get_req_insert_cnt(&self) -> u64 {
         self.req_insert_cnt
     }
 

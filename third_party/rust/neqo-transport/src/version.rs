@@ -34,7 +34,7 @@ impl Version {
         }
     }
 
-    pub(crate) fn initial_salt(self) -> &'static [u8] {
+    pub(crate) const fn initial_salt(self) -> &'static [u8] {
         const INITIAL_SALT_V2: &[u8] = &[
             0x0d, 0xed, 0xe3, 0xde, 0xf7, 0x00, 0xa6, 0xdb, 0x81, 0x93, 0x81, 0xbe, 0x6e, 0x26,
             0x9d, 0xcb, 0xf9, 0xbd, 0x2e, 0xd9,
@@ -54,7 +54,7 @@ impl Version {
         }
     }
 
-    pub(crate) fn label_prefix(self) -> &'static str {
+    pub(crate) const fn label_prefix(self) -> &'static str {
         match self {
             Self::Version2 => "quicv2 ",
             Self::Version1 | Self::Draft29 | Self::Draft30 | Self::Draft31 | Self::Draft32 => {
@@ -63,7 +63,7 @@ impl Version {
         }
     }
 
-    pub(crate) fn retry_secret(self) -> &'static [u8] {
+    pub(crate) const fn retry_secret(self) -> &'static [u8] {
         const RETRY_SECRET_V2: &[u8] = &[
             0xc4, 0xdd, 0x24, 0x84, 0xd6, 0x81, 0xae, 0xfa, 0x4f, 0xf4, 0xd6, 0x9c, 0x2c, 0x20,
             0x29, 0x99, 0x84, 0xa7, 0x65, 0xa5, 0xd3, 0xc3, 0x19, 0x82, 0xf3, 0x8f, 0xc7, 0x41,
@@ -86,7 +86,7 @@ impl Version {
         }
     }
 
-    pub(crate) fn is_draft(self) -> bool {
+    pub(crate) const fn is_draft(self) -> bool {
         matches!(
             self,
             Self::Draft29 | Self::Draft30 | Self::Draft31 | Self::Draft32,
@@ -181,7 +181,7 @@ impl VersionConfig {
     }
 
     #[must_use]
-    pub fn initial(&self) -> Version {
+    pub const fn initial(&self) -> Version {
         self.initial
     }
 

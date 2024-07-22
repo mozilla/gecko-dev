@@ -29,13 +29,13 @@ enum SessionState {
 }
 
 impl SessionState {
-    pub fn closing_state(&self) -> bool {
+    pub const fn closing_state(&self) -> bool {
         matches!(self, Self::FinPending | Self::Done)
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct WebTransportSession {
+pub struct WebTransportSession {
     control_stream_recv: Box<dyn RecvStream>,
     control_stream_send: Box<dyn SendStream>,
     stream_event_listener: Rc<RefCell<WebTransportSessionListener>>,
@@ -295,7 +295,7 @@ impl WebTransportSession {
     }
 
     pub fn add_stream(&mut self, stream_id: StreamId) {
-        if let SessionState::Active = self.state {
+        if self.state == SessionState::Active {
             if stream_id.is_bidi() {
                 self.send_streams.insert(stream_id);
                 self.recv_streams.insert(stream_id);
@@ -324,7 +324,7 @@ impl WebTransportSession {
     }
 
     #[must_use]
-    pub fn is_active(&self) -> bool {
+    pub const fn is_active(&self) -> bool {
         matches!(self.state, SessionState::Active)
     }
 
@@ -411,7 +411,7 @@ impl WebTransportSession {
         id: impl Into<DatagramTracking>,
     ) -> Res<()> {
         qtrace!([self], "send_datagram state={:?}", self.state);
-        if let SessionState::Active = self.state {
+        if self.state == SessionState::Active {
             let mut dgram_data = Encoder::default();
             dgram_data.encode_varint(self.session_id.as_u64() / 4);
             dgram_data.encode(buf);
@@ -423,8 +423,8 @@ impl WebTransportSession {
         Ok(())
     }
 
-    pub fn datagram(&mut self, datagram: Vec<u8>) {
-        if let SessionState::Active = self.state {
+    pub fn datagram(&self, datagram: Vec<u8>) {
+        if self.state == SessionState::Active {
             self.events.new_datagram(self.session_id, datagram);
         }
     }

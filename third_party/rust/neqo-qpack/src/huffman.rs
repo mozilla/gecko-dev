@@ -17,7 +17,7 @@ struct BitReader<'a> {
 }
 
 impl<'a> BitReader<'a> {
-    pub fn new(input: &'a [u8]) -> Self {
+    pub const fn new(input: &'a [u8]) -> Self {
         BitReader {
             input,
             offset: 0,
@@ -60,7 +60,7 @@ impl<'a> BitReader<'a> {
         }
     }
 
-    pub fn has_more_data(&self) -> bool {
+    pub const fn has_more_data(&self) -> bool {
         !self.input.is_empty() && (self.offset != self.input.len() || (self.current_bit != 0))
     }
 }

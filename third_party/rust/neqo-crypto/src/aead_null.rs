@@ -18,12 +18,17 @@ pub struct AeadNull {}
 
 impl AeadNull {
     #[allow(clippy::missing_errors_doc)]
-    pub fn new(_version: Version, _cipher: Cipher, _secret: &SymKey, _prefix: &str) -> Res<Self> {
+    pub const fn new(
+        _version: Version,
+        _cipher: Cipher,
+        _secret: &SymKey,
+        _prefix: &str,
+    ) -> Res<Self> {
         Ok(Self {})
     }
 
     #[must_use]
-    pub fn expansion(&self) -> usize {
+    pub const fn expansion(&self) -> usize {
         AEAD_NULL_TAG.len()
     }
 

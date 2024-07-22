@@ -56,7 +56,7 @@ impl SavedDatagrams {
         }
     }
 
-    pub fn available(&self) -> Option<CryptoSpace> {
+    pub const fn available(&self) -> Option<CryptoSpace> {
         self.available
     }
 

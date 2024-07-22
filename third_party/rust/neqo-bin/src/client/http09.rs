@@ -106,7 +106,7 @@ impl<'a> super::Handler for Handler<'a> {
     }
 }
 
-pub(crate) fn create_client(
+pub fn create_client(
     args: &Args,
     local_addr: SocketAddr,
     remote_addr: SocketAddr,
@@ -147,11 +147,9 @@ impl TryFrom<&State> for CloseState {
 
     fn try_from(value: &State) -> Result<Self, Self::Error> {
         let (state, error) = match value {
-            State::Closing { error, .. } | State::Draining { error, .. } => {
-                (CloseState::Closing, error)
-            }
-            State::Closed(error) => (CloseState::Closed, error),
-            _ => return Ok(CloseState::NotClosing),
+            State::Closing { error, .. } | State::Draining { error, .. } => (Self::Closing, error),
+            State::Closed(error) => (Self::Closed, error),
+            _ => return Ok(Self::NotClosing),
         };
 
         if error.is_error() {

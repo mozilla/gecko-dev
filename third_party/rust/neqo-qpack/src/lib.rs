@@ -64,7 +64,7 @@ pub enum Error {
 
 impl Error {
     #[must_use]
-    pub fn code(&self) -> neqo_transport::AppError {
+    pub const fn code(&self) -> neqo_transport::AppError {
         match self {
             Self::DecompressionFailed => 0x200,
             Self::EncoderStream => 0x201,

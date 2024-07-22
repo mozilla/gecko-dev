@@ -27,7 +27,7 @@ const MAX_DATA_HEADER_SIZE_5_LIMIT: usize = MAX_DATA_HEADER_SIZE_5 + 9; // 10737
 
 /// A HTTP message, request and response, consists of headers, optional data and an optional
 /// trailer header block. This state machine does not reflect what was already sent to the
-/// transport layer but only reflect what has been supplied to the `SendMessage`.It is
+/// transport layer but only reflect what has been supplied to the `SendMessage`. It is
 /// represented by the following states:
 ///   `WaitingForHeaders` - the headers have not been supplied yet. In this state only a
 ///                         request/response header can be added. When headers are supplied
@@ -42,7 +42,6 @@ const MAX_DATA_HEADER_SIZE_5_LIMIT: usize = MAX_DATA_HEADER_SIZE_5 + 9; // 10737
 ///                   supply only a fin.
 ///   `Done` - in this state no more data or headers can be added. This state is entered when the
 ///            message is closed.
-
 #[derive(Debug, PartialEq)]
 enum MessageState {
     WaitingForHeaders,
@@ -103,7 +102,7 @@ impl MessageState {
 }
 
 #[derive(Debug)]
-pub(crate) struct SendMessage {
+pub struct SendMessage {
     state: MessageState,
     message_type: MessageType,
     stream_type: Http3StreamType,
@@ -314,7 +313,7 @@ impl SendStream for SendMessage {
 impl HttpSendStream for SendMessage {
     fn send_headers(&mut self, headers: &[Header], conn: &mut Connection) -> Res<()> {
         self.state.new_headers(headers, self.message_type)?;
-        let buf = SendMessage::encode(
+        let buf = Self::encode(
             &mut self.encoder.borrow_mut(),
             headers,
             conn,

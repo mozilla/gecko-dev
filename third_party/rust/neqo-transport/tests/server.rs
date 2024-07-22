@@ -14,7 +14,7 @@ use neqo_crypto::{
     generate_ech_keys, AllowZeroRtt, AuthenticationStatus, ZeroRttCheckResult, ZeroRttChecker,
 };
 use neqo_transport::{
-    server::{ActiveConnectionRef, Server, ValidateAddress},
+    server::{ConnectionRef, Server, ValidateAddress},
     CloseReason, Connection, ConnectionParameters, Error, Output, State, StreamType, Version,
     MIN_INITIAL_PACKET_SIZE,
 };
@@ -38,7 +38,7 @@ pub fn complete_connection(
     client: &mut Connection,
     server: &mut Server,
     mut datagram: Option<Datagram>,
-) -> ActiveConnectionRef {
+) -> ConnectionRef {
     let is_done = |c: &Connection| {
         matches!(
             c.state(),
@@ -158,18 +158,17 @@ fn duplicate_initial_new_path() {
         SocketAddr::new(initial.source().ip(), initial.source().port() ^ 23),
         initial.destination(),
         initial.tos(),
-        initial.ttl(),
         &initial[..],
     );
-
-    // The server should respond to both as these came from different addresses.
-    let dgram = server.process(Some(&other), now()).dgram();
-    assert!(dgram.is_some());
 
     let server_initial = server.process(Some(&initial), now()).dgram();
     assert!(server_initial.is_some());
 
-    assert_eq!(server.active_connections().len(), 2);
+    // The server should ignore a packet with the same destination connection ID.
+    let dgram = server.process(Some(&other), now()).dgram();
+    assert!(dgram.is_none());
+
+    assert_eq!(server.active_connections().len(), 1);
     complete_connection(&mut client, &mut server, server_initial);
 }
 
@@ -211,15 +210,14 @@ fn same_initial_after_connected() {
     let server_initial = server.process(client_initial.as_dgram_ref(), now()).dgram();
     assert!(server_initial.is_some());
     complete_connection(&mut client, &mut server, server_initial);
-    // This removes the connection from the active set until something happens to it.
-    assert_eq!(server.active_connections().len(), 0);
+    assert_eq!(server.active_connections().len(), 1);
 
     // Now make a new connection using the exact same initial as before.
     // The server should respond to an attempt to connect with the same Initial.
     let dgram = server.process(client_initial.as_dgram_ref(), now()).dgram();
     assert!(dgram.is_some());
     // The server should make a new connection object.
-    assert_eq!(server.active_connections().len(), 1);
+    assert_eq!(server.active_connections().len(), 2);
 }
 
 #[test]
@@ -260,8 +258,25 @@ fn drop_short_initial() {
     assert!(server.process(Some(&bogus), now()).dgram().is_none());
 }
 
+#[test]
+fn drop_short_header_packet_for_unknown_connection() {
+    const CID: &[u8] = &[55; 8]; // not a real connection ID
+    let mut server = default_server();
+
+    let mut header = neqo_common::Encoder::with_capacity(MIN_INITIAL_PACKET_SIZE);
+    header
+        .encode_byte(0x40) // short header
+        .encode_vec(1, CID)
+        .encode_byte(1);
+    let mut bogus_data: Vec<u8> = header.into();
+    bogus_data.resize(MIN_INITIAL_PACKET_SIZE, 66);
+
+    let bogus = datagram(bogus_data);
+    assert!(server.process(Some(&bogus), now()).dgram().is_none());
+}
+
 /// Verify that the server can read 0-RTT properly.  A more robust server would buffer
-/// 0-RTT before the handshake begins and let 0-RTT arrive for a short periiod after
+/// 0-RTT before the handshake begins and let 0-RTT arrive for a short period after
 /// the handshake completes, but ours is for testing so it only allows 0-RTT while
 /// the handshake is running.
 #[test]
@@ -274,7 +289,7 @@ fn zero_rtt() {
     let t = server.process(None, now).callback();
     now += t;
     assert_eq!(server.process(None, now), Output::None);
-    assert_eq!(server.active_connections().len(), 1);
+    assert_eq!(server.active_connections().len(), 0);
 
     let start_time = now;
     let mut client = default_client();
@@ -309,9 +324,21 @@ fn zero_rtt() {
     let shs = server.process(Some(&c1), now);
     mem::drop(server.process(Some(&c3), now));
     // The server will have received two STREAM frames now if it processed both packets.
+    // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable types.
+    #[allow(clippy::mutable_key_type)]
     let active = server.active_connections();
     assert_eq!(active.len(), 1);
-    assert_eq!(active[0].borrow().stats().frame_rx.stream, 2);
+    assert_eq!(
+        active
+            .iter()
+            .next()
+            .unwrap()
+            .borrow()
+            .stats()
+            .frame_rx
+            .stream,
+        2
+    );
 
     // Complete the handshake.  As the client was pacing 0-RTT packets, extend the time
     // a little so that the pacer doesn't prevent the Finished from being sent.
@@ -321,9 +348,21 @@ fn zero_rtt() {
 
     // The server will drop this last 0-RTT packet.
     mem::drop(server.process(Some(&c4), now));
+    // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable types.
+    #[allow(clippy::mutable_key_type)]
     let active = server.active_connections();
     assert_eq!(active.len(), 1);
-    assert_eq!(active[0].borrow().stats().frame_rx.stream, 2);
+    assert_eq!(
+        active
+            .iter()
+            .next()
+            .unwrap()
+            .borrow()
+            .stats()
+            .frame_rx
+            .stream,
+        2
+    );
 }
 
 #[test]
@@ -353,7 +392,7 @@ fn new_token_0rtt() {
     assert_eq!(*client.state(), State::Connected);
     let dgram = server.process(dgram.as_dgram_ref(), now()); // (done)
     assert!(dgram.as_dgram_ref().is_some());
-    connected_server(&mut server);
+    connected_server(&server);
     assert!(client.tls_info().unwrap().resumed());
 }
 
@@ -373,13 +412,7 @@ fn new_token_different_port() {
     // Now rewrite the source port, which should not change that the token is OK.
     let d = dgram.unwrap();
     let src = SocketAddr::new(d.source().ip(), d.source().port() + 1);
-    let dgram = Some(Datagram::new(
-        src,
-        d.destination(),
-        d.tos(),
-        d.ttl(),
-        &d[..],
-    ));
+    let dgram = Some(Datagram::new(src, d.destination(), d.tos(), &d[..]));
     let dgram = server.process(dgram.as_ref(), now()).dgram(); // Retry
     assert!(dgram.is_some());
     assertions::assert_initial(dgram.as_ref().unwrap(), false);
@@ -434,13 +467,7 @@ fn bad_client_initial() {
         &mut ciphertext,
         (header_enc.len() - 1)..header_enc.len(),
     );
-    let bad_dgram = Datagram::new(
-        dgram.source(),
-        dgram.destination(),
-        dgram.tos(),
-        dgram.ttl(),
-        ciphertext,
-    );
+    let bad_dgram = Datagram::new(dgram.source(), dgram.destination(), dgram.tos(), ciphertext);
 
     // The server should reject this.
     let response = server.process(Some(&bad_dgram), now());
@@ -522,13 +549,7 @@ fn bad_client_initial_connection_close() {
         &mut ciphertext,
         (header_enc.len() - 1)..header_enc.len(),
     );
-    let bad_dgram = Datagram::new(
-        dgram.source(),
-        dgram.destination(),
-        dgram.tos(),
-        dgram.ttl(),
-        ciphertext,
-    );
+    let bad_dgram = Datagram::new(dgram.source(), dgram.destination(), dgram.tos(), ciphertext);
 
     // The server should ignore this and go to Draining.
     let mut now = now();
@@ -551,7 +572,6 @@ fn version_negotiation_ignored() {
         dgram.source(),
         dgram.destination(),
         dgram.tos(),
-        dgram.ttl(),
         input.clone(),
     );
     let vn = server.process(Some(&damaged), now()).dgram();
@@ -649,7 +669,7 @@ fn version_negotiation_and_compatible() {
     client.process_input(&dgram.unwrap(), now());
     assert_eq!(*client.state(), State::Confirmed);
 
-    let sconn = connected_server(&mut server);
+    let sconn = connected_server(&server);
     assert_eq!(client.version(), COMPAT_VERSION);
     assert_eq!(sconn.borrow().version(), COMPAT_VERSION);
 }
@@ -673,7 +693,7 @@ fn compatible_upgrade_resumption_and_vn() {
     assert_eq!(client.version(), ORIG_VERSION);
 
     let mut server = default_server();
-    let mut server_conn = connect(&mut client, &mut server);
+    let server_conn = connect(&mut client, &mut server);
     assert_eq!(client.version(), COMPAT_VERSION);
     assert_eq!(server_conn.borrow().version(), COMPAT_VERSION);
 
@@ -844,7 +864,7 @@ fn has_active_connections() {
     assert!(!server.has_active_connections());
 
     let initial = client.process(None, now());
-    let _ = server.process(initial.as_dgram_ref(), now()).dgram();
+    _ = server.process(initial.as_dgram_ref(), now()).dgram();
 
     assert!(server.has_active_connections());
 }

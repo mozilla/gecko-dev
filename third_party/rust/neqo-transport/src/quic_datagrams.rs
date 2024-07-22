@@ -28,10 +28,7 @@ pub enum DatagramTracking {
 
 impl From<Option<u64>> for DatagramTracking {
     fn from(v: Option<u64>) -> Self {
-        match v {
-            Some(id) => Self::Id(id),
-            None => Self::None,
-        }
+        v.map_or(Self::None, Self::Id)
     }
 }
 
@@ -50,7 +47,7 @@ struct QuicDatagram {
 }
 
 impl QuicDatagram {
-    fn tracking(&self) -> &DatagramTracking {
+    const fn tracking(&self) -> &DatagramTracking {
         &self.tracking
     }
 }
@@ -93,7 +90,7 @@ impl QuicDatagrams {
         }
     }
 
-    pub fn remote_datagram_size(&self) -> u64 {
+    pub const fn remote_datagram_size(&self) -> u64 {
         self.remote_datagram_size
     }
 

@@ -113,12 +113,8 @@ impl ZeroRttChecker for PermissiveZeroRttChecker {
     }
 }
 
-fn zero_rtt_setup(
-    mode: Resumption,
-    client: &mut Client,
-    server: &mut Server,
-) -> Option<AntiReplay> {
-    if let Resumption::WithZeroRtt = mode {
+fn zero_rtt_setup(mode: Resumption, client: &Client, server: &mut Server) -> Option<AntiReplay> {
+    if matches!(mode, Resumption::WithZeroRtt) {
         client.enable_0rtt().expect("should enable 0-RTT on client");
 
         let anti_replay = anti_replay();
@@ -141,7 +137,7 @@ pub fn resumption_setup(mode: Resumption) -> (Option<AntiReplay>, ResumptionToke
 
     let mut client = Client::new("server.example", true).expect("should create client");
     let mut server = Server::new(&["key"]).expect("should create server");
-    let anti_replay = zero_rtt_setup(mode, &mut client, &mut server);
+    let anti_replay = zero_rtt_setup(mode, &client, &mut server);
 
     connect(&mut client, &mut server);
 

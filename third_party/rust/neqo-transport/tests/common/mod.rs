@@ -16,7 +16,7 @@ use neqo_crypto::{
     Aead, AllowZeroRtt, AuthenticationStatus, ResumptionToken,
 };
 use neqo_transport::{
-    server::{ActiveConnectionRef, Server, ValidateAddress},
+    server::{ConnectionRef, Server, ValidateAddress},
     Connection, ConnectionEvent, ConnectionParameters, State,
 };
 use test_fixture::{default_client, now, CountingConnectionIdGenerator};
@@ -41,19 +41,20 @@ pub fn default_server() -> Server {
 }
 
 // Check that there is at least one connection.  Returns a ref to the first confirmed connection.
-pub fn connected_server(server: &mut Server) -> ActiveConnectionRef {
+pub fn connected_server(server: &Server) -> ConnectionRef {
+    // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable types.
+    #[allow(clippy::mutable_key_type)]
     let server_connections = server.active_connections();
     // Find confirmed connections.  There should only be one.
     let mut confirmed = server_connections
         .iter()
-        .filter(|c: &&ActiveConnectionRef| *c.borrow().state() == State::Confirmed);
+        .filter(|c: &&ConnectionRef| *c.borrow().state() == State::Confirmed);
     let c = confirmed.next().expect("one confirmed");
-    assert!(confirmed.next().is_none(), "only one confirmed");
     c.clone()
 }
 
 /// Connect.  This returns a reference to the server connection.
-pub fn connect(client: &mut Connection, server: &mut Server) -> ActiveConnectionRef {
+pub fn connect(client: &mut Connection, server: &mut Server) -> ConnectionRef {
     server.set_validation(ValidateAddress::Never);
 
     assert_eq!(*client.state(), State::Init);

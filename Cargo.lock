@@ -4052,8 +4052,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-bin"
-version = "0.7.9"
-source = "git+https://github.com/mozilla/neqo?tag=v0.7.9#121fe683ae4b39a5b694f671abfd397cbd9b4322"
+version = "0.8.1"
+source = "git+https://github.com/mozilla/neqo?tag=v0.8.1#f0bffce01be53309a9cc93dc344141f57918cb3b"
 dependencies = [
  "clap",
  "clap-verbosity-flag",
@@ -4063,8 +4063,8 @@ dependencies = [
  "neqo-common",
  "neqo-crypto",
  "neqo-http3",
- "neqo-qpack",
  "neqo-transport",
+ "neqo-udp",
  "qlog",
  "quinn-udp",
  "regex",
@@ -4074,8 +4074,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-common"
-version = "0.7.9"
-source = "git+https://github.com/mozilla/neqo?tag=v0.7.9#121fe683ae4b39a5b694f671abfd397cbd9b4322"
+version = "0.8.1"
+source = "git+https://github.com/mozilla/neqo?tag=v0.8.1#f0bffce01be53309a9cc93dc344141f57918cb3b"
 dependencies = [
  "enum-map",
  "env_logger",
@@ -4087,8 +4087,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-crypto"
-version = "0.7.9"
-source = "git+https://github.com/mozilla/neqo?tag=v0.7.9#121fe683ae4b39a5b694f671abfd397cbd9b4322"
+version = "0.8.1"
+source = "git+https://github.com/mozilla/neqo?tag=v0.8.1#f0bffce01be53309a9cc93dc344141f57918cb3b"
 dependencies = [
  "bindgen 0.69.4",
  "log",
@@ -4102,8 +4102,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-http3"
-version = "0.7.9"
-source = "git+https://github.com/mozilla/neqo?tag=v0.7.9#121fe683ae4b39a5b694f671abfd397cbd9b4322"
+version = "0.8.1"
+source = "git+https://github.com/mozilla/neqo?tag=v0.8.1#f0bffce01be53309a9cc93dc344141f57918cb3b"
 dependencies = [
  "enumset",
  "log",
@@ -4113,18 +4113,16 @@ dependencies = [
  "neqo-transport",
  "qlog",
  "sfv",
- "smallvec",
  "url",
 ]
 
 [[package]]
 name = "neqo-qpack"
-version = "0.7.9"
-source = "git+https://github.com/mozilla/neqo?tag=v0.7.9#121fe683ae4b39a5b694f671abfd397cbd9b4322"
+version = "0.8.1"
+source = "git+https://github.com/mozilla/neqo?tag=v0.8.1#f0bffce01be53309a9cc93dc344141f57918cb3b"
 dependencies = [
  "log",
  "neqo-common",
- "neqo-crypto",
  "neqo-transport",
  "qlog",
  "static_assertions",
@@ -4132,8 +4130,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-transport"
-version = "0.7.9"
-source = "git+https://github.com/mozilla/neqo?tag=v0.7.9#121fe683ae4b39a5b694f671abfd397cbd9b4322"
+version = "0.8.1"
+source = "git+https://github.com/mozilla/neqo?tag=v0.8.1#f0bffce01be53309a9cc93dc344141f57918cb3b"
 dependencies = [
  "enum-map",
  "indexmap 2.2.6",
@@ -4142,6 +4140,17 @@ dependencies = [
  "neqo-crypto",
  "qlog",
  "smallvec",
+ "static_assertions",
+]
+
+[[package]]
+name = "neqo-udp"
+version = "0.8.1"
+source = "git+https://github.com/mozilla/neqo?tag=v0.8.1#f0bffce01be53309a9cc93dc344141f57918cb3b"
+dependencies = [
+ "log",
+ "neqo-common",
+ "quinn-udp",
 ]
 
 [[package]]

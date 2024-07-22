@@ -54,7 +54,7 @@ impl HttpServer {
         )
         .expect("We cannot make a server!");
 
-        server.set_ciphers(&args.get_ciphers());
+        server.set_ciphers(args.get_ciphers());
         server.set_qlog_dir(args.shared.qlog_dir.clone());
         if args.retry {
             server.set_validation(ValidateAddress::Always);
@@ -91,7 +91,7 @@ impl super::HttpServer for HttpServer {
         while let Some(event) = self.server.next_event() {
             match event {
                 Http3ServerEvent::Headers {
-                    mut stream,
+                    stream,
                     headers,
                     fin,
                 } => {
@@ -138,17 +138,17 @@ impl super::HttpServer for HttpServer {
                             Header::new("content-length", response.remaining.to_string()),
                         ])
                         .unwrap();
-                    response.send(&mut stream);
+                    response.send(&stream);
                     if response.done() {
                         stream.stream_close_send().unwrap();
                     } else {
                         self.remaining_data.insert(stream.stream_id(), response);
                     }
                 }
-                Http3ServerEvent::DataWritable { mut stream } => {
+                Http3ServerEvent::DataWritable { stream } => {
                     if self.posts.get_mut(&stream).is_none() {
                         if let Some(remaining) = self.remaining_data.get_mut(&stream.stream_id()) {
-                            remaining.send(&mut stream);
+                            remaining.send(&stream);
                             if remaining.done() {
                                 self.remaining_data.remove(&stream.stream_id());
                                 stream.stream_close_send().unwrap();
@@ -157,11 +157,7 @@ impl super::HttpServer for HttpServer {
                     }
                 }
 
-                Http3ServerEvent::Data {
-                    mut stream,
-                    data,
-                    fin,
-                } => {
+                Http3ServerEvent::Data { stream, data, fin } => {
                     if let Some(received) = self.posts.get_mut(&stream) {
                         *received += data.len();
                     }
@@ -210,7 +206,7 @@ impl From<Vec<u8>> for ResponseData {
 }
 
 impl ResponseData {
-    fn repeat(buf: &'static [u8], total: usize) -> Self {
+    const fn repeat(buf: &'static [u8], total: usize) -> Self {
         Self {
             data: Cow::Borrowed(buf),
             offset: 0,
@@ -218,7 +214,7 @@ impl ResponseData {
         }
     }
 
-    fn send(&mut self, stream: &mut Http3OrWebTransportStream) {
+    fn send(&mut self, stream: &Http3OrWebTransportStream) {
         while self.remaining > 0 {
             let end = min(self.data.len(), self.offset + self.remaining);
             let slice = &self.data[self.offset..end];
@@ -238,7 +234,7 @@ impl ResponseData {
         }
     }
 
-    fn done(&self) -> bool {
+    const fn done(&self) -> bool {
         self.remaining == 0
     }
 }

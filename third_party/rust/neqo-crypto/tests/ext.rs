@@ -43,8 +43,7 @@ struct SimpleExtensionHandler {
 }
 
 impl SimpleExtensionHandler {
-    #[allow(dead_code)]
-    pub fn negotiated(&self) -> bool {
+    pub const fn negotiated(&self) -> bool {
         self.written && self.handled
     }
 }

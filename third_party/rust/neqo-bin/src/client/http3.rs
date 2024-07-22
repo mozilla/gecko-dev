@@ -29,7 +29,7 @@ use url::Url;
 
 use super::{get_output_file, qlog_new, Args, CloseState, Res};
 
-pub(crate) struct Handler<'a> {
+pub struct Handler<'a> {
     #[allow(
         unknown_lints,
         clippy::struct_field_names,
@@ -62,7 +62,7 @@ impl<'a> Handler<'a> {
     }
 }
 
-pub(crate) fn create_client(
+pub fn create_client(
     args: &Args,
     local_addr: SocketAddr,
     remote_addr: SocketAddr,
@@ -110,13 +110,13 @@ impl TryFrom<Http3State> for CloseState {
 
     fn try_from(value: Http3State) -> Result<Self, Self::Error> {
         let (state, error) = match value {
-            Http3State::Closing(error) => (CloseState::Closing, error),
-            Http3State::Closed(error) => (CloseState::Closed, error),
-            _ => return Ok(CloseState::NotClosing),
+            Http3State::Closing(error) => (Self::Closing, error),
+            Http3State::Closed(error) => (Self::Closed, error),
+            _ => return Ok(Self::NotClosing),
         };
 
         if error.is_error() {
-            Err(error.clone())
+            Err(error)
         } else {
             Ok(state)
         }
@@ -452,7 +452,7 @@ impl<'a> UrlHandler<'a> {
         }
     }
 
-    fn done(&mut self) -> bool {
+    fn done(&self) -> bool {
         self.stream_handlers.is_empty() && self.url_queue.is_empty()
     }
 

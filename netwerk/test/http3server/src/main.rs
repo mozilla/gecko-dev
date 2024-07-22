@@ -14,7 +14,7 @@ use neqo_http3::{
     Error, Http3OrWebTransportStream, Http3Parameters, Http3Server, Http3ServerEvent,
     WebTransportRequest, WebTransportServerEvent, WebTransportSessionAcceptAction,
 };
-use neqo_transport::server::ActiveConnectionRef;
+use neqo_transport::server::ConnectionRef;
 use neqo_transport::{
     ConnectionEvent, ConnectionParameters, Output, RandomConnectionIdGenerator, StreamId,
     StreamType,
@@ -69,7 +69,7 @@ struct Http3TestServer {
     sessions_to_close: HashMap<Instant, Vec<WebTransportRequest>>,
     sessions_to_create_stream: Vec<(WebTransportRequest, StreamType, bool)>,
     webtransport_bidi_stream: HashSet<Http3OrWebTransportStream>,
-    wt_unidi_conn_to_stream: HashMap<ActiveConnectionRef, Http3OrWebTransportStream>,
+    wt_unidi_conn_to_stream: HashMap<ConnectionRef, Http3OrWebTransportStream>,
     wt_unidi_echo_back: HashMap<Http3OrWebTransportStream, Http3OrWebTransportStream>,
     received_datagram: Option<Vec<u8>>,
 }
@@ -96,7 +96,7 @@ impl Http3TestServer {
         }
     }
 
-    fn new_response(&mut self, mut stream: Http3OrWebTransportStream, mut data: Vec<u8>) {
+    fn new_response(&mut self, stream: Http3OrWebTransportStream, mut data: Vec<u8>) {
         if data.len() == 0 {
             let _ = stream.stream_close_send();
             return;
@@ -115,7 +115,7 @@ impl Http3TestServer {
         }
     }
 
-    fn handle_stream_writable(&mut self, mut stream: Http3OrWebTransportStream) {
+    fn handle_stream_writable(&mut self, stream: Http3OrWebTransportStream) {
         if let Some(data) = self.responses.get_mut(&stream) {
             match stream.send_data(&data) {
                 Ok(sent) => {
@@ -151,8 +151,8 @@ impl Http3TestServer {
             return;
         }
         let tuple = self.sessions_to_create_stream.pop().unwrap();
-        let mut session = tuple.0;
-        let mut wt_server_stream = session.create_stream(tuple.1).unwrap();
+        let session = tuple.0;
+        let wt_server_stream = session.create_stream(tuple.1).unwrap();
         if tuple.1 == StreamType::UniDi {
             if tuple.2 {
                 wt_server_stream.send_data(b"qwerty").unwrap();
@@ -207,7 +207,7 @@ impl HttpServer for Http3TestServer {
             qtrace!("Event: {:?}", event);
             match event {
                 Http3ServerEvent::Headers {
-                    mut stream,
+                    stream,
                     headers,
                     fin,
                 } => {
@@ -419,11 +419,7 @@ impl HttpServer for Http3TestServer {
                         }
                     }
                 }
-                Http3ServerEvent::Data {
-                    mut stream,
-                    data,
-                    fin,
-                } => {
+                Http3ServerEvent::Data { stream, data, fin } => {
                     // echo bidirectional input back to client
                     if self.webtransport_bidi_stream.contains(&stream) {
                         if stream.handler.borrow().state().active() {
@@ -435,7 +431,7 @@ impl HttpServer for Http3TestServer {
                     // echo unidirectional input to back to client
                     // need to close or we hang
                     if self.wt_unidi_echo_back.contains_key(&stream) {
-                        let mut echo_back = self.wt_unidi_echo_back.remove(&stream).unwrap();
+                        let echo_back = self.wt_unidi_echo_back.remove(&stream).unwrap();
                         echo_back.send_data(&data).unwrap();
                         echo_back.stream_close_send().unwrap();
                         break;
@@ -479,7 +475,7 @@ impl HttpServer for Http3TestServer {
                     );
                 }
                 Http3ServerEvent::WebTransport(WebTransportServerEvent::NewSession {
-                    mut session,
+                    session,
                     headers,
                 }) => {
                     qdebug!(
@@ -647,7 +643,7 @@ impl HttpServer for Server {
 
     fn process_events(&mut self, _now: Instant) {
         let active_conns = self.0.active_connections();
-        for mut acr in active_conns {
+        for acr in active_conns {
             loop {
                 let event = match acr.borrow_mut().next_event() {
                     None => break,
@@ -707,7 +703,7 @@ impl Http3ProxyServer {
     }
 
     #[cfg(not(target_os = "android"))]
-    fn new_response(&mut self, mut stream: Http3OrWebTransportStream, mut data: Vec<u8>) {
+    fn new_response(&mut self, stream: Http3OrWebTransportStream, mut data: Vec<u8>) {
         if data.len() == 0 {
             let _ = stream.stream_close_send();
             return;
@@ -727,7 +723,7 @@ impl Http3ProxyServer {
         }
     }
 
-    fn handle_stream_writable(&mut self, mut stream: Http3OrWebTransportStream) {
+    fn handle_stream_writable(&mut self, stream: Http3OrWebTransportStream) {
         if let Some(data) = self.responses.get_mut(&stream) {
             match stream.send_data(&data) {
                 Ok(sent) => {
@@ -780,7 +776,7 @@ impl Http3ProxyServer {
     #[cfg(not(target_os = "android"))]
     fn fetch(
         &mut self,
-        mut stream: Http3OrWebTransportStream,
+        stream: Http3OrWebTransportStream,
         request_headers: &Vec<Header>,
         request_body: Vec<u8>,
     ) {
@@ -872,7 +868,7 @@ impl Http3ProxyServer {
                 Err(TryRecvError::Disconnected) => false,
             });
         while let Some(id) = data_to_send.keys().next().cloned() {
-            let mut stream = self.stream_map.remove(&id).unwrap();
+            let stream = self.stream_map.remove(&id).unwrap();
             let (header, data) = data_to_send.remove(&id).unwrap();
             qtrace!("response headers: {:?}", header);
             match stream.send_headers(&header) {
@@ -914,7 +910,7 @@ impl HttpServer for Http3ProxyServer {
             qtrace!("Event: {:?}", event);
             match event {
                 Http3ServerEvent::Headers {
-                    mut stream,
+                    stream,
                     headers,
                     fin: _,
                 } => {

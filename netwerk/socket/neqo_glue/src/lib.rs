@@ -353,7 +353,6 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
         remote,
         conn.local_addr,
         IpTos::default(),
-        None,
         (*packet).to_vec(),
     );
     conn.conn
