@@ -856,12 +856,14 @@ nsresult HTMLEditor::FocusedElementOrDocumentBecomesNotEditable(
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "HTMLEditor::FinalizeSelection() failed");
     aHTMLEditor->mHasFocus = false;
+    aHTMLEditor->mIsInDesignMode = false;
 
     const RefPtr<Element> focusedElement =
         nsFocusManager::GetFocusedElementStatic();
     TextControlElement* const focusedTextControlElement =
         TextControlElement::FromNodeOrNull(focusedElement);
     if ((focusedElement && focusedElement->IsEditable() &&
+         focusedElement->OwnerDoc() == aHTMLEditor->GetDocument() &&
          (!focusedTextControlElement ||
           !focusedTextControlElement->IsSingleLineTextControlOrTextArea())) ||
         (!focusedElement && aDocument.IsInDesignMode())) {
