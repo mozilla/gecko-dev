@@ -489,6 +489,14 @@ typedef enum JSGCParamKey {
    */
   JSGC_SLICE_NUMBER = 54,
 
+  /**
+   * Whether the nursery is enabled.
+   *
+   * Pref: javascript.options.mem.gc_generational
+   * Default: true
+   */
+  JSGC_NURSERY_ENABLED = 55,
+
 } JSGCParamKey;
 
 /*

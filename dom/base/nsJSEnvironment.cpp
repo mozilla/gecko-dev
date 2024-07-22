@@ -1887,6 +1887,10 @@ void nsJSContext::EnsureStatics() {
                                        (void*)JSGC_INCREMENTAL_GC_ENABLED);
 
   Preferences::RegisterCallbackAndCall(SetMemoryPrefChangedCallbackBool,
+                                       "javascript.options.mem.gc_generational",
+                                       (void*)JSGC_NURSERY_ENABLED);
+
+  Preferences::RegisterCallbackAndCall(SetMemoryPrefChangedCallbackBool,
                                        "javascript.options.mem.gc_compacting",
                                        (void*)JSGC_COMPACTING_ENABLED);
 

@@ -536,6 +536,9 @@ static const bool PerZoneGCEnabled = false;
 /* JSGC_COMPACTING_ENABLED */
 static const bool CompactingEnabled = true;
 
+/* JSGC_NURSERY_ENABLED */
+static const bool NurseryEnabled = true;
+
 /* JSGC_PARALLEL_MARKING_ENABLED */
 static const bool ParallelMarkingEnabled = false;
 

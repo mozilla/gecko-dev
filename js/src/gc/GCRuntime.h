@@ -433,6 +433,7 @@ class GCRuntime {
   void setAlwaysPreserveCode() { alwaysPreserveCode = true; }
 
   void setIncrementalGCEnabled(bool enabled);
+  void setNurseryEnabled(bool enabled);
 
   bool isIncrementalGCEnabled() const { return incrementalGCEnabled; }
   bool isPerZoneGCEnabled() const { return perZoneGCEnabled; }
@@ -1295,12 +1296,20 @@ class GCRuntime {
   MainThreadData<int64_t> defaultTimeBudgetMS_;
 
   /*
-   * Whether compacting GC can is enabled globally.
+   * Whether compacting GC is enabled globally.
    *
    * JSGC_COMPACTING_ENABLED
    * pref: javascript.options.mem.gc_compacting
    */
   MainThreadData<bool> compactingEnabled;
+
+  /*
+   * Whether generational GC is enabled globally.
+   *
+   * JSGC_NURSERY_ENABLED
+   * pref: javascript.options.mem.gc_generational
+   */
+  MainThreadData<bool> nurseryEnabled;
 
   /*
    * Whether parallel marking is enabled globally.

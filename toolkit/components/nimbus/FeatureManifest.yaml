@@ -2476,6 +2476,12 @@ gc:
       setPref:
         branch: user
         pref: "javascript.options.mem.gc_compacting"
+    gc_generational:
+      description: Whether generational GC is enabled.
+      type: boolean
+      setPref:
+        branch: user
+        pref: "javascript.options.mem.gc_generational"
     gc_heap_growth_factor:
       description: Heap growth parameter for balanced heap limit calculation.
       type: int
