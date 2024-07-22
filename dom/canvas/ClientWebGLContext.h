@@ -1088,8 +1088,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   Maybe<layers::SurfaceDescriptor> GetFrontBuffer(
       WebGLFramebufferJS*, const bool webvr = false) override;
   Maybe<layers::SurfaceDescriptor> PresentFrontBuffer(
-      WebGLFramebufferJS*, layers::TextureType,
-      const bool webvr = false) override;
+      WebGLFramebufferJS*, const bool webvr = false) override;
   RefPtr<gfx::SourceSurface> GetFrontBufferSnapshot(
       bool requireAlphaPremult = true) override;
   already_AddRefed<layers::FwdTransactionTracker> UseCompositableForwarder(

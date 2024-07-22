@@ -1039,22 +1039,19 @@ OffscreenCanvas* HTMLCanvasElement::TransferControlToOffscreen(
   }
 
   LayersBackend backend = LayersBackend::LAYERS_NONE;
-  TextureType textureType = TextureType::Unknown;
   nsIWidget* docWidget = nsContentUtils::WidgetForDocument(OwnerDoc());
   if (docWidget) {
     WindowRenderer* renderer = docWidget->GetWindowRenderer();
     if (renderer) {
       backend = renderer->GetCompositorBackendType();
-      textureType = TexTypeForWebgl(renderer->AsKnowsCompositor());
     }
   }
 
   CSSIntSize sz = GetWidthHeight();
   mOffscreenDisplay =
       MakeRefPtr<OffscreenCanvasDisplayHelper>(this, sz.width, sz.height);
-  mOffscreenCanvas =
-      new OffscreenCanvas(win->AsGlobal(), sz.width, sz.height, backend,
-                          textureType, do_AddRef(mOffscreenDisplay));
+  mOffscreenCanvas = new OffscreenCanvas(win->AsGlobal(), sz.width, sz.height,
+                                         backend, do_AddRef(mOffscreenDisplay));
   if (mWriteOnly) {
     mOffscreenCanvas->SetWriteOnly(mExpandedReader);
   }
