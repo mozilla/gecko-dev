@@ -1377,6 +1377,7 @@ bool WebGLContext::PushRemoteTexture(
     case layers::SurfaceDescriptor::TSurfaceDescriptorMacIOSurface:
     case layers::SurfaceDescriptor::TSurfaceTextureDescriptor:
     case layers::SurfaceDescriptor::TSurfaceDescriptorAndroidHardwareBuffer:
+    case layers::SurfaceDescriptor::TEGLImageDescriptor:
     case layers::SurfaceDescriptor::TSurfaceDescriptorDMABuf:
       keepAlive = surf;
       break;
