@@ -93,16 +93,7 @@ fun TranslationsDialogBottomSheet(
     onFromDropdownSelected: (Language) -> Unit,
     onToDropdownSelected: (Language) -> Unit,
 ) {
-    Column(
-        modifier = Modifier.padding(16.dp),
-    ) {
-        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            BetaLabel(
-                modifier = Modifier
-                    .padding(bottom = 8.dp),
-            )
-        }
-
+    Column(modifier = Modifier.padding(16.dp)) {
         TranslationsDialogHeader(
             title = if (translationsDialogState.isTranslated && translationsDialogState.translatedPageTitle != null) {
                 translationsDialogState.translatedPageTitle
@@ -117,7 +108,6 @@ fun TranslationsDialogBottomSheet(
 
         if (showFirstTimeFlow) {
             Spacer(modifier = Modifier.height(8.dp))
-
             TranslationsDialogInfoMessage(
                 learnMoreUrl = learnMoreUrl,
                 onLearnMoreClicked = onLearnMoreClicked,
@@ -469,7 +459,32 @@ private fun TranslationsDialogHeader(
     onSettingClicked: () -> Unit,
 ) {
     Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            BetaLabel()
+        }
+        Column {
+            if (showPageSettings) {
+                IconButton(
+                    onClick = { onSettingClicked() },
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.mozac_ic_settings_24),
+                        contentDescription = stringResource(
+                            id = R.string.translation_option_bottom_sheet_title_heading,
+                        ),
+                        tint = FirefoxTheme.colors.iconPrimary,
+                    )
+                }
+            }
+        }
+    }
+    Row(
         verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 12.dp),
     ) {
         Text(
             text = title,
@@ -479,25 +494,6 @@ private fun TranslationsDialogHeader(
             color = FirefoxTheme.colors.textPrimary,
             style = FirefoxTheme.typography.headline7,
         )
-
-        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            BetaLabel()
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        if (showPageSettings) {
-            IconButton(
-                onClick = { onSettingClicked() },
-                modifier = Modifier.size(24.dp),
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.mozac_ic_settings_24),
-                    contentDescription = stringResource(id = R.string.translation_option_bottom_sheet_title_heading),
-                    tint = FirefoxTheme.colors.iconPrimary,
-                )
-            }
-        }
     }
 }
 
