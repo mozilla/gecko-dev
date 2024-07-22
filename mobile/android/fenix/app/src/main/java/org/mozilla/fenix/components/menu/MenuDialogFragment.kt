@@ -298,6 +298,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 onReaderViewMenuClick = {
                                     store.dispatch(MenuAction.ToggleReaderView)
                                 },
+                                onCustomizeReaderViewMenuClick = {
+                                    store.dispatch(MenuAction.CustomizeReaderView)
+                                },
                                 onTranslatePageMenuClick = {
                                     selectedTab?.let {
                                         store.dispatch(MenuAction.Navigate.Translate)

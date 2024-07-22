@@ -21,6 +21,7 @@ import org.mozilla.fenix.GleanMetrics.AppMenu
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.HomeMenu
 import org.mozilla.fenix.GleanMetrics.HomeScreen
+import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.components.menu.middleware.MenuTelemetryMiddleware
 import org.mozilla.fenix.components.menu.store.MenuAction
@@ -277,6 +278,16 @@ class MenuTelemetryMiddlewareTest {
         store.dispatch(MenuAction.FindInPage).joinBlocking()
 
         assertTelemetryRecorded(Events.browserMenuAction, item = "find_in_page")
+    }
+
+    @Test
+    fun `WHEN customize reader view action is dispatched THEN record the reader mode appearance telemetry`() {
+        val store = createStore()
+        assertNull(ReaderMode.appearance.testGetValue())
+
+        store.dispatch(MenuAction.CustomizeReaderView).joinBlocking()
+
+        assertTelemetryRecorded(ReaderMode.appearance)
     }
 
     private fun assertTelemetryRecorded(

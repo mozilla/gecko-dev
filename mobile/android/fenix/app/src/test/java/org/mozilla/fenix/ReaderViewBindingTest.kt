@@ -9,6 +9,7 @@ import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -16,8 +17,9 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.verify
 import org.mozilla.fenix.browser.readermode.ReaderModeController
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.ReaderViewAction
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.components.appstate.readerview.ReaderViewState
 
 @RunWith(AndroidJUnit4::class)
 class ReaderViewBindingTest {
@@ -32,7 +34,7 @@ class ReaderViewBindingTest {
     }
 
     @Test
-    fun `WHEN the reader view active state is updated to true THEN show reader view`() = runTestOnMain {
+    fun `WHEN the reader view state is active THEN show reader view`() = runTestOnMain {
         val appStore = AppStore()
         val binding = ReaderViewBinding(
             appStore = appStore,
@@ -41,20 +43,22 @@ class ReaderViewBindingTest {
 
         binding.start()
 
-        appStore.dispatch(AppAction.UpdateReaderViewState(isReaderViewActive = true))
+        appStore.dispatch(ReaderViewAction.ReaderViewStarted)
 
-        // Wait for AppAction.UpdateReaderViewState
+        // Wait for ReaderViewAction.ReaderViewStarted
+        appStore.waitUntilIdle()
+        // Wait for ReaderViewAction.Reset
         appStore.waitUntilIdle()
 
         verify(readerModeController).showReaderView()
+
+        assertEquals(ReaderViewState.None, appStore.state.readerViewState)
     }
 
     @Test
-    fun `WHEN the reader view active state is updated to false THEN hide reader view`() = runTestOnMain {
+    fun `WHEN the reader view state is dismiss THEN hide reader view`() = runTestOnMain {
         val appStore = AppStore(
-            initialState = AppState(
-                isReaderViewActive = true,
-            ),
+            initialState = AppState(),
         )
         val binding = ReaderViewBinding(
             appStore = appStore,
@@ -63,11 +67,39 @@ class ReaderViewBindingTest {
 
         binding.start()
 
-        appStore.dispatch(AppAction.UpdateReaderViewState(isReaderViewActive = false))
+        appStore.dispatch(ReaderViewAction.ReaderViewDismissed)
 
-        // Wait for AppAction.UpdateReaderViewState
+        // Wait for ReaderViewAction.ReaderViewDismissed
+        appStore.waitUntilIdle()
+        // Wait for ReaderViewAction.Reset
         appStore.waitUntilIdle()
 
         verify(readerModeController).hideReaderView()
+
+        assertEquals(ReaderViewState.None, appStore.state.readerViewState)
+    }
+
+    @Test
+    fun `WHEN the reader view state is show controls THEN show reader view customization controls`() = runTestOnMain {
+        val appStore = AppStore(
+            initialState = AppState(),
+        )
+        val binding = ReaderViewBinding(
+            appStore = appStore,
+            readerMenuController = readerModeController,
+        )
+
+        binding.start()
+
+        appStore.dispatch(ReaderViewAction.ReaderViewControlsShown)
+
+        // Wait for ReaderViewAction.ReaderViewControlsShown
+        appStore.waitUntilIdle()
+        // Wait for ReaderViewAction.Reset
+        appStore.waitUntilIdle()
+
+        verify(readerModeController).showControls()
+
+        assertEquals(ReaderViewState.None, appStore.state.readerViewState)
     }
 }

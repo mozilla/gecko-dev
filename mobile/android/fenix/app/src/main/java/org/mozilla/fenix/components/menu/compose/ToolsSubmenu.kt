@@ -32,6 +32,7 @@ internal fun ToolsSubmenu(
     translatedLanguage: String,
     onBackButtonClick: () -> Unit,
     onReaderViewMenuClick: () -> Unit,
+    onCustomizeReaderViewMenuClick: () -> Unit,
     onTranslatePageMenuClick: () -> Unit,
     onPrintMenuClick: () -> Unit,
     onShareMenuClick: () -> Unit,
@@ -47,10 +48,18 @@ internal fun ToolsSubmenu(
     ) {
         MenuGroup {
             ReaderViewMenuItem(
-                readerable = isReaderable,
+                isReaderable = isReaderable,
                 isReaderViewActive = isReaderViewActive,
                 onClick = onReaderViewMenuClick,
             )
+
+            if (isReaderViewActive) {
+                MenuItem(
+                    label = stringResource(id = R.string.browser_menu_customize_reader_view_2),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_reader_view_customize_24),
+                    onClick = onCustomizeReaderViewMenuClick,
+                )
+            }
 
             if (isTranslationSupported) {
                 Divider(color = FirefoxTheme.colors.borderSecondary)
@@ -105,17 +114,11 @@ internal fun ToolsSubmenu(
 
 @Composable
 private fun ReaderViewMenuItem(
-    readerable: Boolean,
+    isReaderable: Boolean,
     isReaderViewActive: Boolean,
     onClick: () -> Unit,
 ) {
-    if (!readerable) {
-        MenuItem(
-            label = stringResource(id = R.string.browser_menu_turn_on_reader_view),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_reader_view_24),
-            state = MenuItemState.DISABLED,
-        )
-    } else if (isReaderViewActive) {
+    if (isReaderViewActive) {
         MenuItem(
             label = stringResource(id = R.string.browser_menu_turn_off_reader_view),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_reader_view_fill_24),
@@ -126,6 +129,7 @@ private fun ReaderViewMenuItem(
         MenuItem(
             label = stringResource(id = R.string.browser_menu_turn_on_reader_view),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_reader_view_24),
+            state = if (isReaderable) MenuItemState.ENABLED else MenuItemState.DISABLED,
             onClick = onClick,
         )
     }
@@ -175,6 +179,7 @@ private fun ToolsSubmenuPreview() {
                 translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},
+                onCustomizeReaderViewMenuClick = {},
                 onTranslatePageMenuClick = {},
                 onPrintMenuClick = {},
                 onShareMenuClick = {},
@@ -201,6 +206,7 @@ private fun ToolsSubmenuPrivatePreview() {
                 translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},
+                onCustomizeReaderViewMenuClick = {},
                 onTranslatePageMenuClick = {},
                 onPrintMenuClick = {},
                 onShareMenuClick = {},

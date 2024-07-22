@@ -10,13 +10,20 @@ import kotlinx.coroutines.flow.map
 import mozilla.components.lib.state.helpers.AbstractBinding
 import org.mozilla.fenix.browser.readermode.ReaderModeController
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.components.appstate.readerview.ReaderViewState.Active
+import org.mozilla.fenix.components.appstate.readerview.ReaderViewState.Dismiss
+import org.mozilla.fenix.components.appstate.readerview.ReaderViewState.None
+import org.mozilla.fenix.components.appstate.readerview.ReaderViewState.ShowControls
 
 /**
- * A binding for observing [AppState.isReaderViewActive] in the [AppStore] and showing/hiding reader view.
+ * A binding for observing [AppState.readerViewState] in the [AppStore] and toggling the
+ * reader view feature and controls.
  *
  * @param appStore The [AppStore] used to observe [AppState.isReaderViewActive].
- * @param readerMenuController The [ReaderModeController] and toggling the reader view feature.
+ * @param readerMenuController The [ReaderModeController] that will used for toggling the reader
+ * view feature and controls.
  */
 class ReaderViewBinding(
     private val appStore: AppStore,
@@ -24,12 +31,26 @@ class ReaderViewBinding(
 ) : AbstractBinding<AppState>(appStore) {
 
     override suspend fun onState(flow: Flow<AppState>) {
-        flow.map { state -> state.isReaderViewActive }
+        flow.map { state -> state.readerViewState }
             .distinctUntilChanged()
             .collect { state ->
                 when (state) {
-                    true -> readerMenuController.showReaderView()
-                    false -> readerMenuController.hideReaderView()
+                    Active -> {
+                        readerMenuController.showReaderView()
+                        appStore.dispatch(AppAction.ReaderViewAction.Reset)
+                    }
+
+                    Dismiss -> {
+                        readerMenuController.hideReaderView()
+                        appStore.dispatch(AppAction.ReaderViewAction.Reset)
+                    }
+
+                    ShowControls -> {
+                        readerMenuController.showControls()
+                        appStore.dispatch(AppAction.ReaderViewAction.Reset)
+                    }
+
+                    None -> Unit
                 }
             }
     }

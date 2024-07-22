@@ -46,13 +46,6 @@ sealed class AppAction : Action {
     data class UpdateFirstFrameDrawn(val drawn: Boolean) : AppAction()
 
     /**
-     * Updates the [AppState.isReaderViewActive] boolean
-     *
-     * @property isReaderViewActive Whether or not reader view is active.
-     */
-    data class UpdateReaderViewState(val isReaderViewActive: Boolean) : AppAction()
-
-    /**
      * Updates whether the [SearchDialogFragment] is visible.
      */
     data class UpdateSearchDialogVisibility(val isVisible: Boolean) : AppAction()
@@ -449,5 +442,32 @@ sealed class AppAction : Action {
          * [FindInPageAction] dispatched when find in page feature is dismissed.
          */
         data object FindInPageDismissed : FindInPageAction()
+    }
+
+    /**
+     * [AppAction]s related to the reader view feature.
+     */
+    sealed class ReaderViewAction : AppAction() {
+
+        /**
+         * [ReaderViewAction] dispatched when reader view should be shown.
+         */
+        data object ReaderViewStarted : ReaderViewAction()
+
+        /**
+         * [ReaderViewAction] dispatched when reader view controls should be shown.
+         */
+        data object ReaderViewControlsShown : ReaderViewAction()
+
+        /**
+         * [ReaderViewAction] dispatched when reader view is dismissed.
+         */
+        data object ReaderViewDismissed : ReaderViewAction()
+
+        /**
+         * [ReaderViewAction] dispatched to reset the [AppState.readerViewState] to its default
+         * state.
+         */
+        data object Reset : ReaderViewAction()
     }
 }

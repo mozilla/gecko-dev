@@ -14,6 +14,7 @@ import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import org.mozilla.fenix.browser.StandardSnackbarError
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.components.appstate.readerview.ReaderViewState
 import org.mozilla.fenix.components.appstate.shopping.ShoppingState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.home.HomeFragment
@@ -34,7 +35,6 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property isForeground Whether or not the app is in the foreground.
  * @property inactiveTabsExpanded A flag to know if the Inactive Tabs section of the Tabs Tray
  * should be expanded when the tray is opened.
- * @property isReaderViewActive Whether or not reader view is active.
  * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
  * @property isSearchDialogVisible Flag indicating whether the user is interacting with the [SearchDialogFragment].
  * @property openInFirefoxRequested Flag indicating whether a custom tab should be opened in the browser.
@@ -60,6 +60,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * Also serves as an in memory cache of all stories mapped by category allowing for quick stories filtering.
  * @property wallpaperState The [WallpaperState] to display in the [HomeFragment].
  * @property standardSnackbarError A snackbar error message to display.
+ * @property readerViewState The [ReaderViewState] to display.
  * @property shoppingState Holds state for shopping feature that's required to live the lifetime of a session.
  * @property snackbarState The [SnackbarState] to display.
  * @property showFindInPage Whether or not to show the find in page feature.
@@ -69,7 +70,6 @@ import org.mozilla.fenix.wallpapers.WallpaperState
 data class AppState(
     val isForeground: Boolean = true,
     val inactiveTabsExpanded: Boolean = false,
-    val isReaderViewActive: Boolean = false,
     val firstFrameDrawn: Boolean = false,
     val isSearchDialogVisible: Boolean = false,
     val openInFirefoxRequested: Boolean = false,
@@ -92,6 +92,7 @@ data class AppState(
     val pendingDeletionHistoryItems: Set<PendingDeletionHistory> = emptySet(),
     val wallpaperState: WallpaperState = WallpaperState.default,
     val standardSnackbarError: StandardSnackbarError? = null,
+    val readerViewState: ReaderViewState = ReaderViewState.None,
     val shoppingState: ShoppingState = ShoppingState(),
     val snackbarState: SnackbarState = SnackbarState.None,
     val showFindInPage: Boolean = false,

@@ -39,6 +39,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.appstate.AppAction.FindInPageAction
+import org.mozilla.fenix.components.appstate.AppAction.ReaderViewAction
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase.AddBookmarksUseCase
 import org.mozilla.fenix.components.menu.fake.FakeBookmarksStorage
 import org.mozilla.fenix.components.menu.middleware.MenuDialogMiddleware
@@ -659,7 +660,7 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN selected tab is readerable and reader view is off WHEN toggle reader view action is dispatched THEN reader state is updated`() = runTestOnMain {
+    fun `GIVEN selected tab is readerable and reader view is off WHEN toggle reader view action is dispatched THEN reader view state is updated`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
         var dismissWasCalled = false
@@ -676,28 +677,26 @@ class MenuDialogMiddlewareTest {
             ),
         )
         val appStore = spy(AppStore())
-        val store = spy(
-            createStore(
-                appStore = appStore,
-                menuState = MenuState(
-                    browserMenuState = browserMenuState,
-                ),
-                onDismiss = { dismissWasCalled = true },
+        val store = createStore(
+            appStore = appStore,
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissWasCalled = true },
         )
 
+        // Wait for InitAction and middleware
         store.waitUntilIdle()
 
-        store.dispatch(MenuAction.ToggleReaderView).join()
+        store.dispatch(MenuAction.ToggleReaderView)
+        store.waitUntilIdle()
 
-        verify(appStore).dispatch(
-            AppAction.UpdateReaderViewState(isReaderViewActive = true),
-        )
+        verify(appStore).dispatch(ReaderViewAction.ReaderViewStarted)
         assertTrue(dismissWasCalled)
     }
 
     @Test
-    fun `GIVEN selected tab is readerable and reader view is on WHEN toggle reader view action is dispatched THEN reader state is updated`() = runTestOnMain {
+    fun `GIVEN selected tab is readerable and reader view is on WHEN toggle reader view action is dispatched THEN reader view state is updated`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
         var dismissWasCalled = false
@@ -714,28 +713,26 @@ class MenuDialogMiddlewareTest {
             ),
         )
         val appStore = spy(AppStore())
-        val store = spy(
-            createStore(
-                appStore = appStore,
-                menuState = MenuState(
-                    browserMenuState = browserMenuState,
-                ),
-                onDismiss = { dismissWasCalled = true },
+        val store = createStore(
+            appStore = appStore,
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissWasCalled = true },
         )
 
+        // Wait for InitAction and middleware
         store.waitUntilIdle()
 
-        store.dispatch(MenuAction.ToggleReaderView).join()
+        store.dispatch(MenuAction.ToggleReaderView)
+        store.waitUntilIdle()
 
-        verify(appStore).dispatch(
-            AppAction.UpdateReaderViewState(isReaderViewActive = false),
-        )
+        verify(appStore).dispatch(ReaderViewAction.ReaderViewDismissed)
         assertTrue(dismissWasCalled)
     }
 
     @Test
-    fun `GIVEN selected tab is not readerable WHEN toggle reader view action is dispatched THEN reader state is not updated`() = runTestOnMain {
+    fun `GIVEN selected tab is not readerable WHEN toggle reader view action is dispatched THEN reader view state is not updated`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
         var dismissWasCalled = false
@@ -751,24 +748,43 @@ class MenuDialogMiddlewareTest {
             ),
         )
         val appStore = spy(AppStore())
-        val store = spy(
-            createStore(
-                appStore = appStore,
-                menuState = MenuState(
-                    browserMenuState = browserMenuState,
-                ),
-                onDismiss = { dismissWasCalled = true },
+        val store = createStore(
+            appStore = appStore,
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissWasCalled = true },
         )
 
+        // Wait for InitAction and middleware
         store.waitUntilIdle()
 
-        store.dispatch(MenuAction.ToggleReaderView).join()
+        store.dispatch(MenuAction.ToggleReaderView)
+        store.waitUntilIdle()
 
-        verify(appStore, never()).dispatch(
-            AppAction.UpdateReaderViewState(isReaderViewActive = true),
-        )
+        verify(appStore, never()).dispatch(ReaderViewAction.ReaderViewStarted)
         assertFalse(dismissWasCalled)
+    }
+
+    @Test
+    fun `WHEN customize reader view action is dispatched THEN reader view action is dispatched`() = runTestOnMain {
+        var dismissWasCalled = false
+
+        val appStore = spy(AppStore())
+        val store = createStore(
+            appStore = appStore,
+            menuState = MenuState(),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        // Wait for InitAction and middleware
+        store.waitUntilIdle()
+
+        store.dispatch(MenuAction.CustomizeReaderView)
+        store.waitUntilIdle()
+
+        verify(appStore).dispatch(ReaderViewAction.ReaderViewControlsShown)
+        assertTrue(dismissWasCalled)
     }
 
     @Test

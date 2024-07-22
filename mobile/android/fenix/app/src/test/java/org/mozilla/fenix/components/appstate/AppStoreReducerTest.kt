@@ -175,22 +175,6 @@ class AppStoreReducerTest {
     }
 
     @Test
-    fun `WHEN update reader view action is dispatched THEN reader view active state is updated`() {
-        val appStore = AppStore()
-        assertFalse(appStore.state.isReaderViewActive)
-
-        appStore.dispatch(AppAction.UpdateReaderViewState(isReaderViewActive = true))
-            .joinBlocking()
-
-        assertTrue(appStore.state.isReaderViewActive)
-
-        appStore.dispatch(AppAction.UpdateReaderViewState(isReaderViewActive = false))
-            .joinBlocking()
-
-        assertFalse(appStore.state.isReaderViewActive)
-    }
-
-    @Test
     fun `WHEN delete and quit selected action is dispatched THEN snackbar state is updated`() {
         val appStore = AppStore()
 

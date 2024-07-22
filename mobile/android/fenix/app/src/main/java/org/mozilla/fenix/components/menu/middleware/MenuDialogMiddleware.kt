@@ -26,6 +26,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.appstate.AppAction.FindInPageAction
+import org.mozilla.fenix.components.appstate.AppAction.ReaderViewAction
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
 import org.mozilla.fenix.components.menu.store.BookmarkState
 import org.mozilla.fenix.components.menu.store.MenuAction
@@ -79,6 +80,8 @@ class MenuDialogMiddleware(
         next: (MenuAction) -> Unit,
         action: MenuAction,
     ) {
+        val currentState = context.state
+
         when (action) {
             is MenuAction.InitAction -> initialize(context.store)
             is MenuAction.AddBookmark -> addBookmark(context.store)
@@ -89,7 +92,8 @@ class MenuDialogMiddleware(
             is MenuAction.OpenInApp -> openInApp(context.store)
             is MenuAction.OpenInFirefox -> openInFirefox()
             is MenuAction.InstallAddon -> installAddon(action.addon)
-            is MenuAction.ToggleReaderView -> toggleReaderView(context.store)
+            is MenuAction.ToggleReaderView -> toggleReaderView(state = currentState)
+            is MenuAction.CustomizeReaderView -> customizeReaderView()
             else -> Unit
         }
 
@@ -278,20 +282,25 @@ class MenuDialogMiddleware(
     }
 
     private fun toggleReaderView(
-        store: Store<MenuState, MenuAction>,
+        state: MenuState,
     ) = scope.launch {
-        val readerState = store.state.browserMenuState?.selectedTab?.readerState ?: return@launch
+        val readerState = state.browserMenuState?.selectedTab?.readerState ?: return@launch
 
         if (!readerState.readerable) {
             return@launch
         }
 
-        appStore.dispatch(
-            AppAction.UpdateReaderViewState(
-                isReaderViewActive = !readerState.active,
-            ),
-        )
+        if (readerState.active) {
+            appStore.dispatch(ReaderViewAction.ReaderViewDismissed)
+        } else {
+            appStore.dispatch(ReaderViewAction.ReaderViewStarted)
+        }
 
+        onDismiss()
+    }
+
+    private fun customizeReaderView() = scope.launch {
+        appStore.dispatch(ReaderViewAction.ReaderViewControlsShown)
         onDismiss()
     }
 

@@ -11,6 +11,7 @@ import org.mozilla.fenix.GleanMetrics.AppMenu
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.HomeMenu
 import org.mozilla.fenix.GleanMetrics.HomeScreen
+import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.menu.store.MenuAction
@@ -165,6 +166,8 @@ class MenuTelemetryMiddleware(
                     item = "find_in_page",
                 ),
             )
+
+            MenuAction.CustomizeReaderView -> ReaderMode.appearance.record(NoExtras())
 
             MenuAction.InitAction,
             MenuAction.ToggleReaderView,
