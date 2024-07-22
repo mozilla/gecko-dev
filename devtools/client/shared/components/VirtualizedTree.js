@@ -300,10 +300,7 @@ class Tree extends Component {
   }
 
   // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    if (nextProps.autoExpandDepth != this.props.autoExpandDepth) {
-      this.setState({ seen: new Set() });
-    }
+  UNSAFE_componentWillReceiveProps() {
     this._autoExpand();
     this._updateHeight();
   }
@@ -319,10 +316,8 @@ class Tree extends Component {
     );
   }
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.shown != this.props.shown) {
-      this._scrollItemIntoView();
-    }
+  componentDidUpdate() {
+    this._scrollItemIntoView();
   }
 
   componentWillUnmount() {
@@ -503,7 +498,7 @@ class Tree extends Component {
     if (scrollTop >= elementTop + itemHeight) {
       scrollTo = elementTop;
     } else if (scrollTop + clientHeight <= elementTop) {
-      scrollTo = elementTop;
+      scrollTo = elementTop + itemHeight - clientHeight;
     }
 
     if (scrollTo != undefined) {
@@ -1023,8 +1018,7 @@ class TreeNodeClass extends Component {
         "data-depth": this.props.depth,
         style: {
           padding: 0,
-          // This helps the CSS compute a margin based on the depth.
-          "--tree-node-depth": this.props.depth,
+          margin: 0,
         },
       },
 

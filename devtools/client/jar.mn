@@ -318,7 +318,6 @@ devtools.jar:
     content/debugger/src/components/PrimaryPanes/OutlineFilter.css (debugger/src/components/PrimaryPanes/OutlineFilter.css)
     content/debugger/src/components/PrimaryPanes/ProjectSearch.css (debugger/src/components/PrimaryPanes/ProjectSearch.css)
     content/debugger/src/components/PrimaryPanes/Sources.css (debugger/src/components/PrimaryPanes/Sources.css)
-    content/debugger/src/components/PrimaryPanes/Tracer.css (debugger/src/components/PrimaryPanes/Tracer.css)
     content/debugger/src/components/SecondaryPanes/Breakpoints/Breakpoints.css (debugger/src/components/SecondaryPanes/Breakpoints/Breakpoints.css)
     content/debugger/src/components/SecondaryPanes/CommandBar.css (debugger/src/components/SecondaryPanes/CommandBar.css)
     content/debugger/src/components/SecondaryPanes/EventListeners.css (debugger/src/components/SecondaryPanes/EventListeners.css)

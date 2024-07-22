@@ -28,6 +28,13 @@ add_task(async function () {
   info("Enable the tracing");
   await toggleJsTracer(dbg.toolbox);
 
+  const topLevelThreadActorID =
+    dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
+  info("Wait for tracing to be enabled");
+  await waitForState(dbg, () => {
+    return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
+  });
+
   ok(
     dbg.toolbox.splitConsole,
     "Split console is automatically opened when tracing to the console"
@@ -127,6 +134,11 @@ add_task(async function () {
   // Test Disabling tracing
   info("Disable the tracing");
   await toggleJsTracer(dbg.toolbox);
+  info("Wait for tracing to be disabled");
+  await waitForState(dbg, () => {
+    return !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
+  });
+  await hasConsoleMessage(dbg, "Stopped tracing");
 
   invokeInTab("inline_script2");
 
@@ -145,6 +157,13 @@ add_task(async function () {
 
   info("Re-enable the tracing after navigation");
   await toggleJsTracer(dbg.toolbox);
+
+  const newTopLevelThread =
+    dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
+  info("Wait for tracing to be re-enabled");
+  await waitForState(dbg, () => {
+    return dbg.selectors.getIsThreadCurrentlyTracing(newTopLevelThread);
+  });
 
   invokeInTab("logMessage");
 
@@ -211,8 +230,12 @@ add_task(async function testPageKeyShortcut() {
 
   const dbg = await initDebuggerWithAbsoluteURL("data:text/html,key-shortcut");
 
-  const button = dbg.toolbox.doc.getElementById("command-button-jstracer");
-  ok(!button.classList.contains("checked"), "The trace button is off on start");
+  const topLevelThreadActorID =
+    dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
+  ok(
+    !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID),
+    "Tracing is disabled on debugger opening"
+  );
 
   info(
     "Focus the page in order to assert that the page keeps the focus when enabling the tracer"
@@ -239,7 +262,9 @@ add_task(async function testPageKeyShortcut() {
   });
 
   info("Wait for tracing to be enabled");
-  await waitFor(() => button.classList.contains("checked"));
+  await waitForState(dbg, () => {
+    return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
+  });
 
   is(
     Services.focus.focusedElement,
@@ -257,7 +282,9 @@ add_task(async function testPageKeyShortcut() {
   });
 
   info("Wait for tracing to be disabled");
-  await waitFor(() => !button.classList.contains("checked"));
+  await waitForState(dbg, () => {
+    return !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
+  });
 });
 
 add_task(async function testPageKeyShortcutWithoutDebugger() {

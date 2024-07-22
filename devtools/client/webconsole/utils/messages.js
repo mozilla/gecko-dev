@@ -24,13 +24,6 @@ loader.lazyRequireGetter(
   true
 );
 
-loader.lazyRequireGetter(
-  this,
-  "TRACER_LOG_METHODS",
-  "resource://devtools/shared/specs/tracer.js",
-  true
-);
-
 // URL Regex, common idioms:
 //
 // Lead-in (URL):
@@ -519,17 +512,13 @@ function transformTracerStateResource(stateResource) {
   const { targetFront, enabled, logMethod, timeStamp, reason } = stateResource;
   let message;
   if (enabled) {
-    if (logMethod == TRACER_LOG_METHODS.STDOUT) {
+    if (logMethod == "stdout") {
       message = l10n.getStr("webconsole.message.commands.startTracingToStdout");
     } else if (logMethod == "console") {
       message = l10n.getStr(
         "webconsole.message.commands.startTracingToWebConsole"
       );
-    } else if (logMethod == TRACER_LOG_METHODS.DEBUGGER_SIDEBAR) {
-      message = l10n.getStr(
-        "webconsole.message.commands.startTracingToDebuggerSidebar"
-      );
-    } else if (logMethod == TRACER_LOG_METHODS.PROFILER) {
+    } else if (logMethod == "profiler") {
       message = l10n.getStr(
         "webconsole.message.commands.startTracingToProfiler"
       );

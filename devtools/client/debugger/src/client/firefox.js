@@ -8,9 +8,6 @@ import { features } from "../utils/prefs";
 
 import { recordEvent } from "../utils/telemetry";
 import sourceQueue from "../utils/source-queue";
-const {
-  TRACER_LOG_METHODS,
-} = require("resource://devtools/shared/specs/tracer.js");
 
 let actions;
 let commands;
@@ -75,6 +72,10 @@ export async function onConnect(_commands, _resourceCommand, _actions, store) {
   await resourceCommand.watchResources([resourceCommand.TYPES.THREAD_STATE], {
     onAvailable: onThreadStateAvailable,
   });
+  await resourceCommand.watchResources([resourceCommand.TYPES.JSTRACER_STATE], {
+    onAvailable: onTracingStateAvailable,
+  });
+
   await resourceCommand.watchResources([resourceCommand.TYPES.ERROR_MESSAGE], {
     onAvailable: actions.addExceptionFromResources,
   });
@@ -83,17 +84,6 @@ export async function onConnect(_commands, _resourceCommand, _actions, store) {
     // we only care about future events for DOCUMENT_EVENT
     ignoreExistingResources: true,
   });
-  await resourceCommand.watchResources([resourceCommand.TYPES.JSTRACER_STATE], {
-    onAvailable: onTracingStateAvailable,
-  });
-  await resourceCommand.watchResources([resourceCommand.TYPES.JSTRACER_TRACE], {
-    onAvailable: actions.addTraces,
-  });
-
-  // Also register a toggle listener, in addition to JSTRACER_TRACE in order
-  // to be able to clear the tracer data on tracing start, that, even if the
-  // tracer is waiting for next interation/load.
-  commands.tracerCommand.on("toggle", onTracingToggled);
 }
 
 export function onDisconnect() {
@@ -117,13 +107,6 @@ export function onDisconnect() {
   resourceCommand.unwatchResources([resourceCommand.TYPES.DOCUMENT_EVENT], {
     onAvailable: onDocumentEventAvailable,
   });
-  resourceCommand.unwatchResources([resourceCommand.TYPES.JSTRACER_STATE], {
-    onAvailable: onTracingStateAvailable,
-  });
-  resourceCommand.unwatchResources([resourceCommand.TYPES.JSTRACER_TRACE], {
-    onAvailable: actions.addTraces,
-  });
-  commands.tracerCommand.off("toggle", onTracingToggled);
   sourceQueue.clear();
 }
 
@@ -192,27 +175,9 @@ async function onTracingStateAvailable(resources) {
     if (resource.targetFront.isDestroyed()) {
       continue;
     }
-    // Ignore if the tracer is logging to any other output
-    if (resource.logMethod != TRACER_LOG_METHODS.DEBUGGER_SIDEBAR) {
-      continue;
-    }
-    // For now, only consider the top level target
-    if (!resource.targetFront.isTopLevel) {
-      continue;
-    }
     const threadFront = await resource.targetFront.getFront("thread");
     await actions.tracingToggled(threadFront.actor, resource.enabled);
   }
-}
-
-async function onTracingToggled() {
-  const { tracerCommand } = commands;
-  if (!tracerCommand.isTracingEnabled) {
-    return;
-  }
-
-  // We only notify about global enabling of the tracer in order to clear data
-  await actions.clearTracerData();
 }
 
 function onDocumentEventAvailable(events) {

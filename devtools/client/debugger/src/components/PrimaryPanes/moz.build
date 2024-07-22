@@ -12,5 +12,4 @@ CompiledModules(
     "ProjectSearch.js",
     "SourcesTree.js",
     "SourcesTreeItem.js",
-    "Tracer.js",
 )

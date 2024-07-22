@@ -15,7 +15,6 @@ types.addDictType("tracer.start.options", {
   traceValues: "boolean",
   traceOnNextInteraction: "boolean",
   traceOnNextLoad: "boolean",
-  traceDOMMutations: "nullable:array:string",
 });
 
 const tracerSpec = generateActorSpec({
@@ -36,7 +35,6 @@ const tracerSpec = generateActorSpec({
 exports.tracerSpec = tracerSpec;
 
 const TRACER_LOG_METHODS = {
-  DEBUGGER_SIDEBAR: "debugger-sidebar",
   STDOUT: "stdout",
   CONSOLE: "console",
   PROFILER: "profiler",

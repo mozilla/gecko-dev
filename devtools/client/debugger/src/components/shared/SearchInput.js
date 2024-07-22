@@ -50,9 +50,7 @@ export class SearchInput extends Component {
     super(props);
     this.state = {
       history: [],
-      excludePatterns: this.props.showSearchModifiers
-        ? props.searchOptions.excludePatterns
-        : null,
+      excludePatterns: props.searchOptions.excludePatterns,
     };
   }
 

@@ -54,7 +54,3 @@ export function getThread(state, threadActor) {
 export function getIsThreadCurrentlyTracing(state, thread) {
   return state.threads.mutableTracingThreads.has(thread);
 }
-
-export function getIsCurrentlyTracing(state) {
-  return state.threads.mutableTracingThreads.size > 0;
-}

@@ -26,7 +26,6 @@ export * from "./sources-tree";
 export * from "./sources";
 export * from "./tabs";
 export * from "./threads";
-export * from "./tracer";
 export * from "./ui";
 export {
   getVisibleBreakpoints,

@@ -26,7 +26,6 @@ CompiledModules(
     "sources.js",
     "tabs.js",
     "threads.js",
-    "tracer.js",
     "visibleBreakpoints.js",
     "visibleColumnBreakpoints.js",
     "ui.js",

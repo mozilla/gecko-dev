@@ -18,6 +18,13 @@ add_task(async function testTracingValues() {
 
   await toggleJsTracer(dbg.toolbox);
 
+  const topLevelThreadActorID =
+    dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
+  info("Wait for tracing to be enabled");
+  await waitForState(dbg, () => {
+    return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
+  });
+
   invokeInTab("foo");
 
   await hasConsoleMessage(dbg, "λ foo()");

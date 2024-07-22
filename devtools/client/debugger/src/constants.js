@@ -12,7 +12,6 @@ export const primaryPaneTabs = {
   SOURCES: "sources",
   OUTLINE: "outline",
   PROJECT_SEARCH: "project",
-  TRACER: "tracer",
 };
 
 export const markerTypes = {

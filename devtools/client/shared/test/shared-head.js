@@ -2391,46 +2391,7 @@ async function unregisterServiceWorker(workerUrl) {
 /**
  * Toggle the JavavaScript tracer via its toolbox toolbar button.
  */
-async function toggleJsTracer(toolbox) {
-  const { isTracingEnabled } = toolbox.commands.tracerCommand;
-  const { logMethod, traceOnNextInteraction, traceOnNextLoad } =
-    toolbox.commands.tracerCommand.getTracingOptions();
+function toggleJsTracer(toolbox) {
   const toolbarButton = toolbox.doc.getElementById("command-button-jstracer");
   toolbarButton.click();
-
-  const {
-    TRACER_LOG_METHODS,
-  } = require("resource://devtools/shared/specs/tracer.js");
-  if (logMethod != TRACER_LOG_METHODS.CONSOLE) {
-    return;
-  }
-
-  // We were tracing and just requested to stop it.
-  // Wait for the stop message to appear in the console before clearing its content.
-  // This simplifies writting tests toggling the tracer ON multiple times and checking
-  // for the display of traces in the console.
-  if (isTracingEnabled) {
-    const { hud } = await toolbox.getPanel("webconsole");
-    info("Wait for tracing to be disabled");
-    await waitFor(() =>
-      [...hud.ui.outputNode.querySelectorAll(".message")].some(msg =>
-        msg.textContent.includes("Stopped tracing")
-      )
-    );
-
-    hud.ui.clearOutput();
-    await waitFor(
-      () => hud.ui.outputNode.querySelectorAll(".message").length === 0
-    );
-  } else {
-    // We are enabling the tracing to the console, and the console may not be opened just yet.
-    const { hud } = await toolbox.getPanelWhenReady("webconsole");
-    if (!traceOnNextInteraction && !traceOnNextLoad) {
-      await waitFor(() =>
-        [...hud.ui.outputNode.querySelectorAll(".message")].some(msg =>
-          msg.textContent.includes("Started tracing to Web Console")
-        )
-      );
-    }
-  }
 }

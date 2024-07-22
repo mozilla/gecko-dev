@@ -72,7 +72,6 @@ class DebuggerPanel {
   constructor(iframeWindow, toolbox, commands) {
     this.panelWin = iframeWindow;
     this.panelWin.L10N = L10N;
-    this.panelWin.sourceMapURLService = toolbox.sourceMapURLService;
 
     this.toolbox = toolbox;
     this.commands = commands;
@@ -368,17 +367,9 @@ class DebuggerPanel {
     this._actions.selectThread(threadActorID);
   }
 
-  showTracerSidebar() {
-    this._actions.setPrimaryPaneTab("tracer");
-  }
-
   destroy() {
     this.panelWin.Debugger.destroy();
     this.emit("destroyed");
-    this.panelWin.L10N = null;
-    this.panelWin.sourceMapURLService = null;
-    this.panelWin = null;
-    this.commands = null;
   }
 }
 

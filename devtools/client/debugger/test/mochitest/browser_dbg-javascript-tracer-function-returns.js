@@ -17,8 +17,14 @@ add_task(async function testTracingFunctionReturn() {
 
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-function-return");
 
-  info("Enable tracing with function returns, but without values");
   await toggleJsTracer(dbg.toolbox);
+
+  const topLevelThreadActorID =
+    dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
+  info("Wait for tracing to be enabled");
+  await waitForState(dbg, () => {
+    return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
+  });
 
   invokeInTab("foo");
   await hasConsoleMessage(dbg, "⟶ interpreter λ foo");
@@ -28,10 +34,19 @@ add_task(async function testTracingFunctionReturn() {
 
   await toggleJsTracer(dbg.toolbox);
 
+  info("Wait for tracing to be disabled");
+  await waitForState(dbg, () => {
+    return !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
+  });
+
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-log-values");
 
-  info("Re-enable with returned values");
   await toggleJsTracer(dbg.toolbox);
+
+  info("Wait for tracing to be re-enabled with logging of returned values");
+  await waitForState(dbg, () => {
+    return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
+  });
 
   invokeInTab("foo");
 
@@ -55,6 +70,9 @@ add_task(async function testTracingFunctionReturn() {
 
   info("Stop tracing");
   await toggleJsTracer(dbg.toolbox);
+  await waitForState(dbg, () => {
+    return !dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
+  });
 
   info("Toggle the two settings to the default value");
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-log-values");

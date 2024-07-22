@@ -7,30 +7,24 @@ import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 
 import actions from "../../actions/index";
 import { getSelectedPrimaryPaneTab } from "../../selectors/index";
-import { prefs, features } from "../../utils/prefs";
+import { prefs } from "../../utils/prefs";
 import { connect } from "devtools/client/shared/vendor/react-redux";
 import { primaryPaneTabs } from "../../constants";
 
 import Outline from "./Outline";
 import SourcesTree from "./SourcesTree";
 import ProjectSearch from "./ProjectSearch";
-import Tracer from "./Tracer";
-const AppErrorBoundary = require("resource://devtools/client/shared/components/AppErrorBoundary.js");
 
 const {
   TabPanel,
   Tabs,
 } = require("resource://devtools/client/shared/components/tabs/Tabs.js");
 
-// Note that the following list should follow the same order as displayed
 const tabs = [
   primaryPaneTabs.SOURCES,
   primaryPaneTabs.OUTLINE,
   primaryPaneTabs.PROJECT_SEARCH,
 ];
-if (features.javascriptTracing) {
-  tabs.push(primaryPaneTabs.TRACER);
-}
 
 class PrimaryPanes extends Component {
   constructor(props) {
@@ -118,30 +112,7 @@ class PrimaryPanes extends Component {
             title: L10N.getStr("search.header"),
           },
           React.createElement(ProjectSearch, null)
-        ),
-        features.javascriptTracing
-          ? React.createElement(
-              TabPanel,
-              {
-                id: "tracer-tab",
-                key: `tracer-tab${
-                  selectedTab === primaryPaneTabs.TRACER ? "-selected" : ""
-                }`,
-                className: "tab tracer-tab",
-                title: L10N.getStr("tracer.header"),
-              },
-              // As the tracer is an application on its own (and is prototypish)
-              // let's encapsulate it to track its own exceptions.
-              React.createElement(
-                AppErrorBoundary,
-                {
-                  componentName: "Debugger",
-                  panel: "JavaScript Tracer",
-                },
-                React.createElement(Tracer)
-              )
-            )
-          : null
+        )
       )
     );
   }
