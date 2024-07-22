@@ -1244,6 +1244,23 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1813177 - UA override for rbi.org.in
+     *
+     * The site endlessly redirects for a Firefox mobile UA string.
+     */
+    id: "bug1813177",
+    platform: "android",
+    domain: "m.rbi.org.in",
+    bug: "1813177",
+    config: {
+      matches: ["*://m.rbi.org.in/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
