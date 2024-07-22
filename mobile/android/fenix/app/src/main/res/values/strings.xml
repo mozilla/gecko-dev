@@ -242,6 +242,8 @@
     <string name="browser_menu_open_app_link">Open in app</string>
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Customize reader view</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Customize Reader View</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Add</string>
     <!-- Browser menu label for editing a bookmark -->
