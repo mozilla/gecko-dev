@@ -459,6 +459,33 @@ serp:
     send_in_pings:
       - serp-categorization
 
+  experiment_info:
+    type: object
+    description: >
+      Whether the client is enrolled in a specified experiment and if so, which
+      branch the client is assigned to. The target experiment is specified in
+      the Nimbus config by creating a "targetExperiment" key and setting its
+      value to the experiment's slug (and ensuring the featureId is "search").
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879667
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1868476
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    structure:
+      type: object
+      properties:
+        slug:
+          type: string
+        branch:
+          type: string
+    send_in_pings:
+      - serp-categorization
+
 search_with:
   reporting_url:
     type: url

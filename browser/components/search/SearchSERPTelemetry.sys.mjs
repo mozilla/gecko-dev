@@ -8,6 +8,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
@@ -2218,6 +2220,11 @@ class CategorizationRecorder {
     Services.obs.addObserver(this, "user-interaction-active");
     Services.obs.addObserver(this, "user-interaction-inactive");
     this.#init = true;
+    this.#serpCategorizationsCount = Services.prefs.getIntPref(
+      "browser.search.serpMetricsRecordedCounter",
+      0
+    );
+    Services.prefs.setIntPref("browser.search.serpMetricsRecordedCounter", 0);
     this.submitPing("startup");
     Services.obs.notifyObservers(null, "categorization-recorder-init");
   }
@@ -2226,6 +2233,11 @@ class CategorizationRecorder {
     if (this.#init) {
       Services.obs.removeObserver(this, "user-interaction-active");
       Services.obs.removeObserver(this, "user-interaction-inactive");
+      Services.prefs.setIntPref(
+        "browser.search.serpMetricsRecordedCounter",
+        this.#serpCategorizationsCount
+      );
+
       this.#resetCategorizationRecorderData();
       this.#init = false;
     }
@@ -2275,13 +2287,60 @@ class CategorizationRecorder {
       CATEGORIZATION_SETTINGS.PING_SUBMISSION_THRESHOLD
     ) {
       this.submitPing("threshold_reached");
-      this.#serpCategorizationsCount = 0;
     }
   }
 
+  /*
+   * Adds a Glean object metric to the custom SERP categorization ping if info
+   * about a single experiment has been requested via Nimbus config.
+   */
+  maybeExtractAndRecordExperimentInfo() {
+    let targetExperiment =
+      lazy.NimbusFeatures.search.getVariable("targetExperiment");
+    if (!targetExperiment) {
+      lazy.logConsole.debug("No targetExperiment found.");
+      return;
+    }
+
+    lazy.logConsole.debug("Found targetExperiment:", targetExperiment);
+
+    // Try checking if an Experiment exists, otherwise check for a Rollout.
+    let metadata =
+      lazy.ExperimentAPI.getExperimentMetaData({
+        featureId: "search",
+        slug: targetExperiment,
+      }) ??
+      lazy.ExperimentAPI.getRolloutMetaData({
+        featureId: "search",
+        slug: targetExperiment,
+      });
+    if (!metadata) {
+      lazy.logConsole.debug(
+        "No experiment or rollout found that matches targetExperiment."
+      );
+      return;
+    }
+
+    let experimentToRecord = {
+      slug: metadata.slug,
+      branch: metadata.branch?.slug,
+    };
+    lazy.logConsole.debug("Experiment data:", experimentToRecord);
+    Glean.serp.experimentInfo.set(experimentToRecord);
+  }
+
   submitPing(reason) {
+    if (!this.#serpCategorizationsCount) {
+      return;
+    }
+
+    // If experiment info has been requested via Nimbus config, we want to
+    // record it just before submitting the ping.
+    this.maybeExtractAndRecordExperimentInfo();
     lazy.logConsole.debug("Submitting SERP categorization ping:", reason);
     GleanPings.serpCategorization.submit(reason);
+
+    this.#serpCategorizationsCount = 0;
   }
 
   /**
