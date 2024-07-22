@@ -19,6 +19,7 @@
 #include "wasm/WasmFrameIter.h"
 
 #include "jit/JitFrames.h"
+#include "jit/shared/IonAssemblerBuffer.h"  // jit::BufferOffset
 #include "js/ColumnNumber.h"  // JS::WasmFunctionIndex, LimitedColumnNumberOneOrigin, JS::TaggedColumnNumberOneOrigin, JS::TaggedColumnNumberOneOrigin
 #include "vm/JitActivation.h"  // js::jit::JitActivation
 #include "vm/JSContext.h"
@@ -925,10 +926,34 @@ static void AssertNoWasmExitFPInJitExit(MacroAssembler& masm) {
 }
 
 void wasm::GenerateJitExitPrologue(MacroAssembler& masm, unsigned framePushed,
-                                   CallableOffsets* offsets) {
+                                   uint32_t fallbackOffset,
+                                   ImportOffsets* offsets) {
   masm.haltingAlign(CodeAlignment);
 
+#ifdef ENABLE_WASM_JSPI
+  {
+#  if defined(JS_CODEGEN_ARM64)
+    AutoForbidPoolsAndNops afp(&masm,
+                               /* number of instructions in scope = */ 2);
+#  endif
+    offsets->begin = masm.currentOffset();
+    Label fallback;
+    masm.bind(&fallback, BufferOffset(fallbackOffset));
+
+    const Register scratch = ABINonArgReg0;
+    masm.load32(Address(InstanceReg, Instance::offsetOfOnSuspendableStack()),
+                scratch);
+    masm.branchTest32(Assembler::NonZero, scratch, scratch, &fallback);
+  }
+
+  uint32_t entryOffset;
+  GenerateCallablePrologue(masm, &entryOffset);
+  offsets->afterFallbackCheck = entryOffset;
+#else
   GenerateCallablePrologue(masm, &offsets->begin);
+  offsets->afterFallbackCheck = offsets->begin;
+#endif  // ENABLE_WASM_JSPI
+
   AssertNoWasmExitFPInJitExit(masm);
 
   MOZ_ASSERT(masm.framePushed() == 0);
@@ -1282,6 +1307,14 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
       offsetFromEntry = offsetInCode - codeRange->funcCheckedCallEntry();
     } else {
       offsetFromEntry = offsetInCode - codeRange->funcUncheckedCallEntry();
+    }
+  } else if (codeRange->isImportJitExit()) {
+    if (offsetInCode < codeRange->importJitExitEntry()) {
+      // Anything above entry shall not change stack/frame pointer --
+      // collapse this code into single point.
+      offsetFromEntry = 0;
+    } else {
+      offsetFromEntry = offsetInCode - codeRange->importJitExitEntry();
     }
   } else {
     offsetFromEntry = offsetInCode - codeRange->begin();

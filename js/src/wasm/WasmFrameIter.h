@@ -42,6 +42,7 @@ class Instance;
 class Instance;
 
 struct CallableOffsets;
+struct ImportOffsets;
 struct FuncOffsets;
 struct Offsets;
 class Frame;
@@ -241,7 +242,7 @@ void GenerateExitEpilogue(jit::MacroAssembler& masm, unsigned framePushed,
                           ExitReason reason, CallableOffsets* offsets);
 
 void GenerateJitExitPrologue(jit::MacroAssembler& masm, unsigned framePushed,
-                             CallableOffsets* offsets);
+                             uint32_t fallbackOffset, ImportOffsets* offsets);
 void GenerateJitExitEpilogue(jit::MacroAssembler& masm, unsigned framePushed,
                              CallableOffsets* offsets);
 

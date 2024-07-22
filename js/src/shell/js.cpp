@@ -7352,8 +7352,10 @@ static void SingleStepCallback(void* arg, jit::Simulator* sim, void* pc) {
     JS::ProfilingFrameIterator::Frame frames[16];
     uint32_t nframes = i.extractStack(frames, 0, 16);
     for (uint32_t i = 0; i < nframes; i++) {
+#  ifndef ENABLE_WASM_JSPI
       // Assert endStackAddress never exceeds sp (bug 1782188).
       MOZ_ASSERT(frames[i].endStackAddress >= state.sp);
+#  endif
       if (frameNo > 0) {
         if (!stack.append(",", 1)) {
           oomUnsafe.crash("stack.append");

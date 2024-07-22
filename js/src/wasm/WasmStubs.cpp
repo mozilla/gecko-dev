@@ -2134,8 +2134,9 @@ static bool GenerateImportInterpExit(MacroAssembler& masm, const FuncImport& fi,
 // having boxed all the ABI arguments into the JIT stack frame layout.
 static bool GenerateImportJitExit(MacroAssembler& masm, const FuncImport& fi,
                                   const FuncType& funcType,
-                                  unsigned funcImportIndex, Label* throwLabel,
-                                  CallableOffsets* offsets) {
+                                  unsigned funcImportIndex,
+                                  uint32_t fallbackOffset, Label* throwLabel,
+                                  ImportOffsets* offsets) {
   AutoCreatedBy acb(masm, "GenerateImportJitExit");
 
   AssertExpectedSP(masm);
@@ -2164,7 +2165,7 @@ static bool GenerateImportJitExit(MacroAssembler& masm, const FuncImport& fi,
                             totalJitFrameBytes) -
       sizeOfRetAddrAndFP;
 
-  GenerateJitExitPrologue(masm, jitFramePushed, offsets);
+  GenerateJitExitPrologue(masm, jitFramePushed, fallbackOffset, offsets);
 
   // 1. Descriptor.
   unsigned argc = funcType.args().length();
@@ -3114,9 +3115,9 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
       continue;
     }
 
-    CallableOffsets jitOffsets;
-    if (!GenerateImportJitExit(masm, fi, funcType, funcIndex, &throwLabel,
-                               &jitOffsets)) {
+    ImportOffsets jitOffsets;
+    if (!GenerateImportJitExit(masm, fi, funcType, funcIndex,
+                               interpOffsets.begin, &throwLabel, &jitOffsets)) {
       return false;
     }
     if (!code->codeRanges.emplaceBack(CodeRange::ImportJitExit, funcIndex,

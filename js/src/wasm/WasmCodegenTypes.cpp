@@ -202,6 +202,17 @@ CodeRange::CodeRange(Kind kind, uint32_t funcIndex, CallableOffsets offsets)
   u.func.hasUnwindInfo_ = false;
 }
 
+CodeRange::CodeRange(Kind kind, uint32_t funcIndex, ImportOffsets offsets)
+    : begin_(offsets.begin), ret_(offsets.ret), end_(offsets.end), kind_(kind) {
+  MOZ_ASSERT(isImportJitExit());
+  MOZ_ASSERT(begin_ < ret_);
+  MOZ_ASSERT(ret_ < end_);
+  uint32_t entry = offsets.afterFallbackCheck;
+  MOZ_ASSERT(begin_ <= entry && entry <= ret_);
+  u.funcIndex_ = funcIndex;
+  u.jitExitEntry_ = entry - begin_;
+}
+
 CodeRange::CodeRange(uint32_t funcIndex, FuncOffsets offsets,
                      bool hasUnwindInfo)
     : begin_(offsets.begin),

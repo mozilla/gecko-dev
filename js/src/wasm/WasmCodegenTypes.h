@@ -346,6 +346,17 @@ struct CallableOffsets : Offsets {
 
 WASM_DECLARE_CACHEABLE_POD(CallableOffsets);
 
+struct ImportOffsets : CallableOffsets {
+  MOZ_IMPLICIT ImportOffsets() : afterFallbackCheck(0) {}
+
+  // The entry point after initial prologue check.
+  uint32_t afterFallbackCheck;
+
+  WASM_CHECK_CACHEABLE_POD_WITH_PARENT(CallableOffsets, afterFallbackCheck);
+};
+
+WASM_DECLARE_CACHEABLE_POD(ImportOffsets);
+
 struct FuncOffsets : CallableOffsets {
   MOZ_IMPLICIT FuncOffsets() : uncheckedCallEntry(0), tierEntry(0) {}
 
@@ -407,6 +418,7 @@ class CodeRange {
           uint16_t beginToTierEntry_;
           bool hasUnwindInfo_;
         } func;
+        uint16_t jitExitEntry_;
       };
     };
     Trap trap_;
@@ -424,6 +436,7 @@ class CodeRange {
   CodeRange(Kind kind, uint32_t funcIndex, Offsets offsets);
   CodeRange(Kind kind, CallableOffsets offsets);
   CodeRange(Kind kind, uint32_t funcIndex, CallableOffsets);
+  CodeRange(Kind kind, uint32_t funcIndex, ImportOffsets offsets);
   CodeRange(uint32_t funcIndex, FuncOffsets offsets, bool hasUnwindInfo);
 
   void offsetBy(uint32_t offset) {
@@ -509,6 +522,10 @@ class CodeRange {
   bool funcHasUnwindInfo() const {
     MOZ_ASSERT(isFunction());
     return u.func.hasUnwindInfo_;
+  }
+  uint32_t importJitExitEntry() const {
+    MOZ_ASSERT(isImportJitExit());
+    return begin_ + u.jitExitEntry_;
   }
 
   // A sorted array of CodeRanges can be looked up via BinarySearch and

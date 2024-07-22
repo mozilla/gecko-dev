@@ -315,13 +315,6 @@ bool Instance::callImport(JSContext* cx, uint32_t funcImportIndex,
     return true;
   }
 
-#ifdef ENABLE_WASM_JSPI
-  // Disable jit exit optimization when JSPI is enabled.
-  if (JSPromiseIntegrationAvailable(cx)) {
-    return true;
-  }
-#endif
-
   // The import may already have become optimized.
   void* jitExitCode =
       code().sharedStubs().segment->base() + fi.jitExitCodeOffset();
@@ -2252,6 +2245,7 @@ Instance::Instance(JSContext* cx, Handle<WasmInstanceObject*> object,
                    const SharedCode& code, SharedTableVector&& tables,
                    UniqueDebugState maybeDebug)
     : realm_(cx->realm()),
+      onSuspendableStack_(false),
       jsJitArgsRectifier_(
           cx->runtime()->jitRuntime()->getArgumentsRectifier().value),
       jsJitExceptionHandler_(
@@ -2683,12 +2677,14 @@ void Instance::setTemporaryStackLimit(JS::NativeStackLimit limit) {
   if (!isInterrupted()) {
     stackLimit_ = limit;
   }
+  onSuspendableStack_ = true;
 }
 
 void Instance::resetTemporaryStackLimit(JSContext* cx) {
   if (!isInterrupted()) {
     stackLimit_ = cx->stackLimitForJitCode(JS::StackForUntrustedScript);
   }
+  onSuspendableStack_ = false;
 }
 
 void Instance::resetHotnessCounter(uint32_t funcIndex) {

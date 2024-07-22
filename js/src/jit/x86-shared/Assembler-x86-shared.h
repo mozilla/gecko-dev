@@ -12,6 +12,7 @@
 #include <cstddef>
 
 #include "jit/shared/Assembler-shared.h"
+#include "jit/shared/IonAssemblerBuffer.h"  // jit::BufferOffset
 
 #if defined(JS_CODEGEN_X86)
 #  include "jit/x86/BaseAssembler-x86.h"
@@ -1008,6 +1009,20 @@ class AssemblerX86Shared : public AssemblerShared {
     return j;
   }
 
+  void bind(Label* label, JmpDst dst) {
+    if (label->used()) {
+      bool more;
+      JmpSrc jmp(label->offset());
+      do {
+        JmpSrc next;
+        more = masm.nextJump(jmp, &next);
+        masm.linkJump(jmp, dst);
+        jmp = next;
+      } while (more);
+    }
+    label->bind(dst.offset());
+  }
+
  public:
   void nop() {
     MOZ_ASSERT(hasCreator());
@@ -1043,21 +1058,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void cmpEAX(Label* label) { cmpSrc(label); }
-  void bind(Label* label) {
-    JmpDst dst(masm.label());
-    if (label->used()) {
-      bool more;
-      JmpSrc jmp(label->offset());
-      do {
-        JmpSrc next;
-        more = masm.nextJump(jmp, &next);
-        masm.linkJump(jmp, dst);
-        jmp = next;
-      } while (more);
-    }
-    label->bind(dst.offset());
-  }
+  void bind(Label* label) { bind(label, JmpDst(masm.label())); }
   void bind(CodeLabel* label) { label->target()->bind(currentOffset()); }
+  void bind(Label* label, BufferOffset targetOffset) {
+    bind(label, JmpDst(targetOffset.getOffset()));
+  }
   uint32_t currentOffset() { return masm.label().offset(); }
 
   // Re-routes pending jumps to a new label.
