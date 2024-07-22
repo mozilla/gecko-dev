@@ -171,7 +171,7 @@ export class RemoteSettingsServer {
 
     this.#lastModified++;
 
-    for (let [recordsKey, records] of this.#records.entries()) {
+    for (let records of this.#records.values()) {
       for (let record of records) {
         if (
           !filter ||
@@ -181,12 +181,14 @@ export class RemoteSettingsServer {
               record[filterKey] == filterValue
           )
         ) {
-          if (record.attachment) {
-            let attachmentKey = `${recordsKey}/${record.attachment.filename}`;
-            this.#attachments.delete(attachmentKey);
-          }
           record.deleted = true;
           record.last_modified = this.#lastModified;
+
+          // If the record has an attachment, leave it. Sometimes the following
+          // sequence can happen: A test requests records, we send them,
+          // something else deletes the records, and then the test requests
+          // their attachments. The JS RS client throws an error in that case
+          // since the attachment hashes don't match the hashes in the records.
         }
       }
     }
@@ -488,12 +490,6 @@ export class RemoteSettingsServer {
    */
   async #addAttachment({ bucket, collection, record }) {
     let { attachment } = record;
-    let filename = record.id;
-
-    this.#attachments.set(
-      this.#attachmentsKey(bucket, collection, filename),
-      attachment
-    );
 
     let bytes;
     if (attachment instanceof Array) {
@@ -507,6 +503,12 @@ export class RemoteSettingsServer {
     let hashBytes = new Uint8Array(hashBuffer);
     let toHex = b => b.toString(16).padStart(2, "0");
     let hash = Array.from(hashBytes, toHex).join("");
+
+    let filename = record.id;
+    this.#attachments.set(
+      this.#attachmentsKey(bucket, collection, filename),
+      attachment
+    );
 
     // Replace `record.attachment` with appropriate metadata in order to conform
     // with the remote settings API.
