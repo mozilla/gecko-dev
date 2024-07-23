@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.InitAction
+import mozilla.components.browser.state.action.LocaleAction
 import mozilla.components.browser.state.action.TranslationsAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.selector.selectedTab
@@ -55,6 +56,15 @@ class TranslationsMiddleware(
         when (action) {
             is InitAction ->
                 context.store.dispatch(TranslationsAction.InitTranslationsBrowserState)
+
+            is LocaleAction.UpdateLocaleAction -> {
+                logger.info("Detected app locale change.")
+                scope.launch {
+                    // This information is dependent on the app language
+                    requestSupportedLanguages(context, null)
+                    requestLanguageModels(context, null)
+                }
+            }
 
             is TranslationsAction.InitTranslationsBrowserState -> {
                 scope.launch {

@@ -7,6 +7,7 @@ package mozilla.components.browser.state.engine.middleware
 import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.InitAction
+import mozilla.components.browser.state.action.LocaleAction
 import mozilla.components.browser.state.action.TranslationsAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.BrowserState
@@ -48,6 +49,7 @@ import org.mockito.Mockito.atLeastOnce
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import java.util.Locale
 
 class TranslationsMiddlewareTest {
 
@@ -1137,5 +1139,42 @@ class TranslationsMiddlewareTest {
                 error = TranslationError.LanguageModelUpdateError(any()),
             ),
         )
+    }
+
+    @Test
+    fun `WHEN UpdateLocaleAction is dispatched THEN SetLanguageSettingsAction AND SetLanguageModelsAction are also dispatched`() = runTest {
+        // Send Action
+        translationsMiddleware.invoke(context = context, next = {}, action = LocaleAction.UpdateLocaleAction(locale = Locale("es")))
+        waitForIdle()
+
+        // Mock responses
+        val languageCallback = argumentCaptor<((TranslationSupport) -> Unit)>()
+        verify(engine, atLeastOnce()).getSupportedTranslationLanguages(onSuccess = languageCallback.capture(), onError = any())
+        val supportedLanguages = TranslationSupport(
+            fromLanguages = listOf(Language("en", "English")),
+            toLanguages = listOf(Language("en", "English")),
+        )
+        languageCallback.value.invoke(supportedLanguages)
+
+        val modelCallback = argumentCaptor<((List<LanguageModel>) -> Unit)>()
+        verify(engine, atLeastOnce()).getTranslationsModelDownloadStates(onSuccess = modelCallback.capture(), onError = any())
+        modelCallback.value.invoke(mockLanguageModels)
+
+        waitForIdle()
+
+        // Check expectations
+        // Verifying at least once due to this also occurring at initialization
+        verify(store, atLeastOnce()).dispatch(
+            TranslationsAction.SetSupportedLanguagesAction(
+                supportedLanguages = supportedLanguages,
+            ),
+        )
+        verify(store, atLeastOnce()).dispatch(
+            TranslationsAction.SetLanguageModelsAction(
+                languageModels = mockLanguageModels,
+            ),
+        )
+
+        waitForIdle()
     }
 }
