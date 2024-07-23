@@ -19,7 +19,7 @@ add_setup(async function () {
 
 add_task(async function test_install_duplicate_engine_startup() {
   let name = "Plain";
-  consoleAllowList.push("#loadStartupEngines failed for");
+  consoleAllowList.push("#createAndAddAddonEngine failed for");
   // Do not use SearchTestUtils.installSearchExtension, as we need to manually
   // start the search service after installing the extension.
   let extensionInfo = {
