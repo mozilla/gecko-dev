@@ -41,7 +41,6 @@ BackupFound.args = {
   backupFilePath: "/Some/User/Documents",
   backupFileToRestore: "/Some/User/Documents/Firefox Backup/backup.html",
   backupFileInfo: { date: new Date(), isEncrypted: null },
-  recoveryErrorCode: 0,
 };
 
 export const EncryptedBackupFound = Template.bind({});
@@ -49,7 +48,6 @@ EncryptedBackupFound.args = {
   backupFilePath: "/Some/User/Documents",
   backupFileToRestore: "/Some/User/Documents/Firefox Backup/backup.html",
   backupFileInfo: { date: new Date(), isEncrypted: true },
-  recoveryErrorCode: 0,
 };
 
 export const RecoveryInProgress = Template.bind({});
