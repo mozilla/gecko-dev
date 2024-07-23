@@ -175,6 +175,20 @@ class AppStoreReducerTest {
     }
 
     @Test
+    fun `WHEN bookmark deleted action is dispatched THEN snackbar state is updated`() {
+        val appStore = AppStore()
+        val bookmarkTitle = "test"
+
+        appStore.dispatch(AppAction.BookmarkAction.BookmarkDeleted(title = bookmarkTitle))
+            .joinBlocking()
+
+        assertEquals(
+            SnackbarState.BookmarkDeleted(title = bookmarkTitle),
+            appStore.state.snackbarState,
+        )
+    }
+
+    @Test
     fun `WHEN delete and quit selected action is dispatched THEN snackbar state is updated`() {
         val appStore = AppStore()
 

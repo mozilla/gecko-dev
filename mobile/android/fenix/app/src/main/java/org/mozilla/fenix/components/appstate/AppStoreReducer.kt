@@ -252,11 +252,13 @@ internal object AppStoreReducer {
             snackbarState = SnackbarState.TranslationInProgress(sessionId = action.sessionId),
         )
 
-        is AppAction.BookmarkAction.BookmarkAdded -> {
-            state.copy(
-                snackbarState = SnackbarState.BookmarkAdded(guidToEdit = action.guidToEdit),
-            )
-        }
+        is AppAction.BookmarkAction.BookmarkAdded -> state.copy(
+            snackbarState = SnackbarState.BookmarkAdded(guidToEdit = action.guidToEdit),
+        )
+
+        is AppAction.BookmarkAction.BookmarkDeleted -> state.copy(
+            snackbarState = SnackbarState.BookmarkDeleted(title = action.title),
+        )
 
         is AppAction.DeleteAndQuitStarted -> {
             state.copy(snackbarState = SnackbarState.DeletingBrowserDataInProgress)

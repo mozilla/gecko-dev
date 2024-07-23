@@ -41,6 +41,13 @@ sealed class SnackbarState {
     data class BookmarkAdded(val guidToEdit: String?) : SnackbarState()
 
     /**
+     * Display a snackbar informing of a bookmarks that has just been deleted.
+     *
+     * @property title The title of the bookmark that was deleted.
+     */
+    data class BookmarkDeleted(val title: String?) : SnackbarState()
+
+    /**
      * There is a translation in progression for the given [sessionId].
      *
      * @property sessionId The ID of the session being translated.

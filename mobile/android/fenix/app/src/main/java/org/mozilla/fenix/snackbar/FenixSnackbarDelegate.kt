@@ -58,15 +58,13 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
         duration: Int = LENGTH_ACCESSIBLE,
         action: String? = null,
         listener: ((v: View) -> Unit)? = null,
-    ) {
-        show(
-            snackBarParentView = view,
-            text = text,
-            duration = duration,
-            action = action,
-            listener = listener,
-        )
-    }
+    ) = show(
+        snackBarParentView = view,
+        text = text,
+        duration = duration,
+        action = action,
+        listener = listener,
+    )
 
     override fun show(
         snackBarParentView: View,

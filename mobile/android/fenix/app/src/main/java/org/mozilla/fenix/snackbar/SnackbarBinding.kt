@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.snackbar
 
+import android.content.Context
 import androidx.navigation.NavController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -25,6 +26,7 @@ import org.mozilla.fenix.ext.navigateWithBreadcrumb
 /**
  * A binding for observing the [SnackbarState] in the [AppStore] and displaying the snackbar.
  *
+ * @param context The Android [Context] used for system interactions and accessing resources.
  * @param browserStore The [BrowserStore] used to get the current session.
  * @param appStore The [AppStore] used to observe the [SnackbarState].
  * @param snackbarDelegate The [SnackbarDelegate] used to display a snackbar.
@@ -33,6 +35,7 @@ import org.mozilla.fenix.ext.navigateWithBreadcrumb
  * if the selected session should be used.
  */
 class SnackbarBinding(
+    private val context: Context,
     private val browserStore: BrowserStore,
     private val appStore: AppStore,
     private val snackbarDelegate: FenixSnackbarDelegate,
@@ -43,6 +46,7 @@ class SnackbarBinding(
     private val currentSession
         get() = browserStore.state.findCustomTabOrSelectedTab(customTabSessionId)
 
+    @Suppress("LongMethod")
     override suspend fun onState(flow: Flow<AppState>) {
         flow.map { state -> state.snackbarState }
             .distinctUntilChanged()
@@ -71,6 +75,15 @@ class SnackbarBinding(
                                 duration = FenixSnackbar.LENGTH_LONG,
                             )
                         }
+
+                        appStore.dispatch(SnackbarAction.SnackbarShown)
+                    }
+
+                    is SnackbarState.BookmarkDeleted -> {
+                        snackbarDelegate.show(
+                            text = context.getString(R.string.bookmark_deletion_snackbar_message, state.title),
+                            duration = FenixSnackbar.LENGTH_LONG,
+                        )
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)
                     }

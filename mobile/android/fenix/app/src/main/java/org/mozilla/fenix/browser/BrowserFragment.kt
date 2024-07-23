@@ -216,6 +216,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
 
         snackbarBinding.set(
             feature = SnackbarBinding(
+                context = context,
                 browserStore = context.components.core.store,
                 appStore = context.components.appStore,
                 snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),

@@ -385,6 +385,13 @@ sealed class AppAction : Action {
          * @property guidToEdit The guid of the newly added bookmark or null.
          */
         data class BookmarkAdded(val guidToEdit: String?) : BookmarkAction()
+
+        /**
+         * [BookmarkAction] dispatched when a bookmark is removed.
+         *
+         * @property title The title of the bookmark that was removed.
+         */
+        data class BookmarkDeleted(val title: String?) : BookmarkAction()
     }
 
     /**

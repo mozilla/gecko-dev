@@ -42,11 +42,10 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.BookmarksManagement
 import org.mozilla.fenix.NavHostActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.databinding.FragmentEditBookmarkBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.getRootView
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.placeCursorAtEnd
 import org.mozilla.fenix.ext.requireComponents
@@ -230,18 +229,12 @@ class EditBookmarkFragment : Fragment(R.layout.fragment_edit_bookmark), MenuProv
                                 .popBackStack()
 
                             bookmarkNode?.let { bookmark ->
-                                FenixSnackbar.make(
-                                    view = activity.getRootView()!!,
-                                    isDisplayedWithBrowserToolbar = args.requiresSnackbarPaddingForToolbar,
+                                requireComponents.appStore.dispatch(
+                                    BookmarkAction.BookmarkDeleted(
+                                        bookmark.url?.toShortUrl(context.components.publicSuffixList)
+                                            ?: bookmark.title,
+                                    ),
                                 )
-                                    .setText(
-                                        getString(
-                                            R.string.bookmark_deletion_snackbar_message,
-                                            bookmark.url?.toShortUrl(context.components.publicSuffixList)
-                                                ?: bookmark.title,
-                                        ),
-                                    )
-                                    .show()
                             }
                         }
                     }

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.snackbar
 
+import android.content.Context
 import androidx.navigation.NavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.BrowserState
@@ -13,10 +14,10 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertEquals
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,14 +37,9 @@ class SnackbarBindingTest {
     @get:Rule
     val coroutineRule = MainCoroutineRule()
 
-    private lateinit var snackbarDelegate: FenixSnackbarDelegate
-    private lateinit var navController: NavController
-
-    @Before
-    fun setUp() {
-        snackbarDelegate = mock()
-        navController = mock()
-    }
+    private val appStore = AppStore()
+    private val snackbarDelegate: FenixSnackbarDelegate = mock()
+    private val navController: NavController = mock()
 
     @Test
     fun `GIVEN translation is in progress for the current selected session WHEN snackbar state is updated to translation in progress THEN display the snackbar`() = runTestOnMain {
@@ -55,16 +51,9 @@ class SnackbarBindingTest {
                 selectedTabId = sessionId,
             ),
         )
-        val appStore = AppStore()
-
-        val binding = SnackbarBinding(
+        val binding = buildSnackbarBinding(
             browserStore = browserStore,
-            appStore = appStore,
-            snackbarDelegate = snackbarDelegate,
-            navController = navController,
-            customTabSessionId = null,
         )
-
         binding.start()
 
         appStore.dispatch(
@@ -94,16 +83,9 @@ class SnackbarBindingTest {
                 selectedTabId = tab1.id,
             ),
         )
-        val appStore = AppStore()
-
-        val binding = SnackbarBinding(
+        val binding = buildSnackbarBinding(
             browserStore = browserStore,
-            appStore = appStore,
-            snackbarDelegate = snackbarDelegate,
-            navController = navController,
-            customTabSessionId = null,
         )
-
         binding.start()
 
         appStore.dispatch(
@@ -123,15 +105,7 @@ class SnackbarBindingTest {
 
     @Test
     fun `WHEN the snackbar state is updated to dismiss THEN dismiss the snackbar`() = runTestOnMain {
-        val appStore = AppStore()
-        val binding = SnackbarBinding(
-            browserStore = mock(),
-            appStore = appStore,
-            snackbarDelegate = snackbarDelegate,
-            navController = navController,
-            customTabSessionId = null,
-        )
-
+        val binding = buildSnackbarBinding()
         binding.start()
 
         appStore.dispatch(SnackbarAction.SnackbarDismissed)
@@ -147,15 +121,7 @@ class SnackbarBindingTest {
 
     @Test
     fun `GIVEN bookmark is added WHEN the bookmark added state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
-        val appStore = AppStore()
-        val binding = SnackbarBinding(
-            browserStore = mock(),
-            appStore = appStore,
-            snackbarDelegate = snackbarDelegate,
-            navController = navController,
-            customTabSessionId = null,
-        )
-
+        val binding = buildSnackbarBinding()
         binding.start()
 
         appStore.dispatch(
@@ -179,15 +145,7 @@ class SnackbarBindingTest {
 
     @Test
     fun `GIVEN no bookmark is added WHEN the bookmark added state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
-        val appStore = AppStore()
-        val binding = SnackbarBinding(
-            browserStore = mock(),
-            appStore = appStore,
-            snackbarDelegate = snackbarDelegate,
-            navController = navController,
-            customTabSessionId = null,
-        )
-
+        val binding = buildSnackbarBinding()
         binding.start()
 
         appStore.dispatch(
@@ -208,15 +166,7 @@ class SnackbarBindingTest {
 
     @Test
     fun `WHEN the shortcut added state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
-        val appStore = AppStore()
-        val binding = SnackbarBinding(
-            browserStore = mock(),
-            appStore = appStore,
-            snackbarDelegate = snackbarDelegate,
-            navController = navController,
-            customTabSessionId = null,
-        )
-
+        val binding = buildSnackbarBinding()
         binding.start()
 
         appStore.dispatch(
@@ -237,15 +187,7 @@ class SnackbarBindingTest {
 
     @Test
     fun `WHEN the shortcut removed state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
-        val appStore = AppStore()
-        val binding = SnackbarBinding(
-            browserStore = mock(),
-            appStore = appStore,
-            snackbarDelegate = snackbarDelegate,
-            navController = navController,
-            customTabSessionId = null,
-        )
-
+        val binding = buildSnackbarBinding()
         binding.start()
 
         appStore.dispatch(
@@ -266,15 +208,7 @@ class SnackbarBindingTest {
 
     @Test
     fun `WHEN the delete and quit selected state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
-        val appStore = AppStore()
-        val binding = SnackbarBinding(
-            browserStore = mock(),
-            appStore = appStore,
-            snackbarDelegate = snackbarDelegate,
-            navController = navController,
-            customTabSessionId = null,
-        )
-
+        val binding = buildSnackbarBinding()
         binding.start()
 
         appStore.dispatch(
@@ -292,4 +226,20 @@ class SnackbarBindingTest {
             duration = FenixSnackbar.LENGTH_LONG,
         )
     }
+
+    private fun buildSnackbarBinding(
+        context: Context = testContext,
+        browserStore: BrowserStore = mock(),
+        appStore: AppStore = this.appStore,
+        snackbarDelegate: FenixSnackbarDelegate = this.snackbarDelegate,
+        navController: NavController = this.navController,
+        customTabSessionId: String? = null,
+    ) = SnackbarBinding(
+        context = context,
+        browserStore = browserStore,
+        appStore = appStore,
+        snackbarDelegate = snackbarDelegate,
+        navController = navController,
+        customTabSessionId = customTabSessionId,
+    )
 }
