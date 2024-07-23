@@ -156,6 +156,11 @@ WMFMediaDataDecoder::ProcessOutput(DecodedData& aResults) {
       mInputTimesSet.clear();
     }
     aResults.AppendElement(std::move(output));
+    // If zero-copy video is enabled, multiple WMFVideoMFTManager::Output()
+    // calls must be prevented within WMFMediaDataDecoder::ProcessOutput().
+    if (mMFTManager->UseZeroCopyVideoFrame()) {
+      break;
+    }
     if (mDrainStatus == DrainStatus::DRAINING) {
       break;
     }

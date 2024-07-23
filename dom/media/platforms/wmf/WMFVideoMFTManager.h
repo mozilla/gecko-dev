@@ -55,6 +55,8 @@ class WMFVideoMFTManager : public MFTManager {
                : MediaDataDecoder::ConversionRequired::kNeedNone;
   }
 
+  bool UseZeroCopyVideoFrame() const override;
+
  private:
   MediaResult ValidateVideoInfo();
 

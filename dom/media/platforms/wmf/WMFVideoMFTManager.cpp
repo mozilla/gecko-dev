@@ -1047,4 +1047,11 @@ nsCString WMFVideoMFTManager::GetCodecName() const {
   };
 }
 
+bool WMFVideoMFTManager::UseZeroCopyVideoFrame() const {
+  if (mZeroCopyNV12Texture && mDXVA2Manager->SupportsZeroCopyNV12Texture()) {
+    return true;
+  }
+  return false;
+}
+
 }  // namespace mozilla
