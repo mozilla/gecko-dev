@@ -48,7 +48,7 @@ fun BetaLabel(modifier: Modifier = Modifier) {
         elevation = 0.dp,
     ) {
         Text(
-            text = stringResource(R.string.review_quality_check_beta_flag).uppercase(),
+            text = stringResource(R.string.beta_feature),
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             color = textColor,
             style = FirefoxTheme.typography.body2,
