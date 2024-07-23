@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const buffer = new ArrayBuffer(25200)
+    const encoder = new AudioEncoder({
+      'output': async () => {},
+      'error': async () => {},
+    })
+    const data = new AudioData({
+      'format': 'u8-planar',
+      'sampleRate': 1.0993738508406654,
+      'numberOfFrames': 25,
+      'numberOfChannels': 64,
+      'timestamp': 22709.33734735237,
+      'data': buffer,
+    })
+    encoder.configure({
+      'codec': '+𯉟荤\r\f\uDC1D𝅲-\b۰󠇵-=​𝆪�',
+      'sampleRate': 98,
+      'numberOfChannels': 50,
+    })
+    encoder.encode(data)
+  })
+</script>
+
