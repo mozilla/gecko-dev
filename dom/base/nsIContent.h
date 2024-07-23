@@ -40,6 +40,7 @@ struct Focusable {
   //         > 0 can be tabbed to in the order specified by this value
   int32_t mTabIndex = -1;
   explicit operator bool() const { return mFocusable; }
+  [[nodiscard]] bool IsTabbable() const { return mFocusable && mTabIndex >= 0; }
 };
 
 // IID for the nsIContent interface

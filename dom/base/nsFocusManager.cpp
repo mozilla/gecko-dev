@@ -3515,6 +3515,27 @@ nsresult nsFocusManager::DetermineElementToMoveFocus(
           // previous element in the document. So the tabindex on elements
           // should be ignored.
           ignoreTabIndex = true;
+          // If selection starts from a focusable and tabbable element, we want
+          // to make it focused rather than next/previous one.
+          if (startContent->IsElement() && startContent->GetPrimaryFrame() &&
+              startContent->GetPrimaryFrame()->IsFocusable().IsTabbable()) {
+            startContent =
+                forward ? (startContent->GetPreviousSibling()
+                               ? startContent->GetPreviousSibling()
+                               // We don't need to get previous leaf node
+                               // because it may be too far from
+                               // startContent. We just want the previous
+                               // node immediately before startContent.
+                               : startContent->GetParent())
+                        // We want the next node immdiately after startContent.
+                        // Therefore, we don't want its first child.
+                        : startContent->GetNextNonChildNode();
+            // If we reached the root element, we should treat it as there is no
+            // selection as same as above.
+            if (startContent == rootElement) {
+              startContent = nullptr;
+            }
+          }
         }
       }
 

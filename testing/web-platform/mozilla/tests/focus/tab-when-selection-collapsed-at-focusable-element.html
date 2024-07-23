@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Testing focus when selection is collapsed at focusable element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const tab = "\uE004";
+  const shift = "\uE008";
+  const first = document.querySelector("span");
+  const second = document.querySelector("span + span");
+  const third = document.querySelector("span + span + span");
+
+  promise_test(async () => {
+    getSelection().collapse(second.parentNode, 1);
+    document.activeElement?.blur();
+    await new test_driver.Actions()
+      .keyDown(tab)
+      .keyUp(tab)
+      .send();
+    assert_equals(document.activeElement, second);
+  }, "Tab when Selection collapsed at focusable 2nd element should make it focused");
+
+  promise_test(async () => {
+    getSelection().collapse(second.parentNode, 1);
+    document.activeElement?.blur();
+    await new test_driver.Actions()
+      .keyDown(shift)
+      .keyDown(tab)
+      .keyUp(tab)
+      .keyUp(shift)
+      .send();
+    assert_equals(document.activeElement, second);
+  }, "Shift+Tab when Selection collapsed at 2nd focusable element should make it focused");
+
+  promise_test(async () => {
+    getSelection().collapse(third.parentNode, 2);
+    document.activeElement?.blur();
+    await new test_driver.Actions()
+      .keyDown(tab)
+      .keyUp(tab)
+      .send();
+    assert_equals(document.activeElement, third);
+  }, "Tab when Selection collapsed at focusable 3rd element should make it focused");
+
+  promise_test(async () => {
+    getSelection().collapse(first.parentNode, 0);
+    document.activeElement?.blur();
+    await new test_driver.Actions()
+      .keyDown(shift)
+      .keyDown(tab)
+      .keyUp(tab)
+      .keyUp(shift)
+      .send();
+    assert_equals(document.activeElement, first);
+  }, "Shift+Tab when Selection collapsed at 1st focusable element should make it focused");
+}, {once: true});
+</script>
+</head>
+<body><span id="first" tabindex="0">1</span><span id="second" tabindex="0">2</span><span id="third" tabindex="0">3</span></body>
+</html>
