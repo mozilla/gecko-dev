@@ -91,10 +91,6 @@ inline To ConvertNumber(From src) {
       return JS::ToInt32(ToFloatingPoint(src));
     } else if constexpr (std::is_same_v<uint32_t, To>) {
       return JS::ToUint32(ToFloatingPoint(src));
-    } else if constexpr (std::is_same_v<int64_t, To>) {
-      return JS::ToInt64(ToFloatingPoint(src));
-    } else if constexpr (std::is_same_v<uint64_t, To>) {
-      return JS::ToUint64(ToFloatingPoint(src));
     } else {
 #if STATIC_ASSERT_IN_UNEVALUATED_CONTEXT
       static_assert(false,
@@ -314,17 +310,32 @@ class ElementSpecific {
     return CanUseBitwiseCopy(TypeIDOfType<T>::id, sourceType);
   }
 
+  template <typename From>
+  static inline constexpr bool canCopyBitwise =
+      canUseBitwiseCopy(TypeIDOfType<From>::id);
+
   template <typename From, typename LoadOps = Ops>
-  static void store(SharedMem<T*> dest, SharedMem<void*> data, size_t count) {
+  static typename std::enable_if_t<!canCopyBitwise<From>> store(
+      SharedMem<T*> dest, SharedMem<void*> data, size_t count) {
     SharedMem<From*> src = data.cast<From*>();
     for (size_t i = 0; i < count; ++i) {
       Ops::store(dest++, ConvertNumber<T>(LoadOps::load(src++)));
     }
   }
 
-  template <typename LoadOps = Ops>
-  static void storeTo(SharedMem<T*> dest, Scalar::Type type,
-                      SharedMem<void*> data, size_t count) {
+  template <typename From, typename LoadOps = Ops>
+  static typename std::enable_if_t<canCopyBitwise<From>> store(
+      SharedMem<T*> dest, SharedMem<void*> data, size_t count) {
+    MOZ_ASSERT_UNREACHABLE("caller handles bitwise copies");
+  }
+
+  template <typename LoadOps = Ops, typename U = T>
+  static typename std::enable_if_t<!std::is_same_v<U, int64_t> &&
+                                   !std::is_same_v<U, uint64_t>>
+  storeTo(SharedMem<T*> dest, Scalar::Type type, SharedMem<void*> data,
+          size_t count) {
+    static_assert(std::is_same_v<T, U>,
+                  "template parameter U only used to disable this declaration");
     switch (type) {
       case Scalar::Int8: {
         store<int8_t, LoadOps>(dest, data, count);
@@ -351,14 +362,6 @@ class ElementSpecific {
         store<uint32_t, LoadOps>(dest, data, count);
         break;
       }
-      case Scalar::BigInt64: {
-        store<int64_t, LoadOps>(dest, data, count);
-        break;
-      }
-      case Scalar::BigUint64: {
-        store<uint64_t, LoadOps>(dest, data, count);
-        break;
-      }
       case Scalar::Float16: {
         store<float16, LoadOps>(dest, data, count);
         break;
@@ -371,9 +374,22 @@ class ElementSpecific {
         store<double, LoadOps>(dest, data, count);
         break;
       }
+      case Scalar::BigInt64:
+      case Scalar::BigUint64:
+        MOZ_FALLTHROUGH_ASSERT("unexpected int64/uint64 typed array");
       default:
         MOZ_CRASH("setFromTypedArray with a typed array with bogus type");
     }
+  }
+
+  template <typename LoadOps = Ops, typename U = T>
+  static typename std::enable_if_t<std::is_same_v<U, int64_t> ||
+                                   std::is_same_v<U, uint64_t>>
+  storeTo(SharedMem<T*> dest, Scalar::Type type, SharedMem<void*> data,
+          size_t count) {
+    static_assert(std::is_same_v<T, U>,
+                  "template parameter U only used to disable this declaration");
+    MOZ_ASSERT_UNREACHABLE("caller handles int64<>uint64 bitwise copies");
   }
 
  public:
@@ -631,33 +647,33 @@ class ElementSpecific {
   }
 
   static T infallibleValueToNative(const Value& v) {
-    if (std::is_same_v<T, int64_t>) {
+    if constexpr (std::is_same_v<T, int64_t>) {
       if (v.isBigInt()) {
         return T(BigInt::toInt64(v.toBigInt()));
       }
       return T(v.toBoolean());
-    }
-    if (std::is_same_v<T, uint64_t>) {
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
       if (v.isBigInt()) {
         return T(BigInt::toUint64(v.toBigInt()));
       }
       return T(v.toBoolean());
-    }
-    if (v.isInt32()) {
-      return T(v.toInt32());
-    }
-    if (v.isDouble()) {
-      return doubleToNative(v.toDouble());
-    }
-    if (v.isBoolean()) {
-      return T(v.toBoolean());
-    }
-    if (v.isNull()) {
-      return T(0);
-    }
+    } else {
+      if (v.isInt32()) {
+        return T(v.toInt32());
+      }
+      if (v.isDouble()) {
+        return doubleToNative(v.toDouble());
+      }
+      if (v.isBoolean()) {
+        return T(v.toBoolean());
+      }
+      if (v.isNull()) {
+        return T(0);
+      }
 
-    MOZ_ASSERT(v.isUndefined());
-    return !std::numeric_limits<T>::is_integer ? T(JS::GenericNaN()) : T(0);
+      MOZ_ASSERT(v.isUndefined());
+      return !std::numeric_limits<T>::is_integer ? T(JS::GenericNaN()) : T(0);
+    }
   }
 
   static bool valueToNative(JSContext* cx, HandleValue v, T* result) {
@@ -670,22 +686,18 @@ class ElementSpecific {
 
     if constexpr (std::is_same_v<T, int64_t>) {
       JS_TRY_VAR_OR_RETURN_FALSE(cx, *result, ToBigInt64(cx, v));
-      return true;
-    }
-
-    if constexpr (std::is_same_v<T, uint64_t>) {
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
       JS_TRY_VAR_OR_RETURN_FALSE(cx, *result, ToBigUint64(cx, v));
-      return true;
-    }
+    } else {
+      MOZ_ASSERT(v.isString() || v.isObject() || v.isSymbol() || v.isBigInt());
 
-    double d;
-    MOZ_ASSERT(v.isString() || v.isObject() || v.isSymbol() || v.isBigInt());
-    if (!(v.isString() ? StringToNumber(cx, v.toString(), &d)
-                       : ToNumber(cx, v, &d))) {
-      return false;
+      double d;
+      if (!(v.isString() ? StringToNumber(cx, v.toString(), &d)
+                         : ToNumber(cx, v, &d))) {
+        return false;
+      }
+      *result = doubleToNative(d);
     }
-
-    *result = doubleToNative(d);
     return true;
   }
 
