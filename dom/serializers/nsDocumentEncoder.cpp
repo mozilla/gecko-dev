@@ -299,8 +299,9 @@ class nsDocumentEncoder : public nsIDocumentEncoder {
           }
           return true;
         }
-        bool isVisible = frame->StyleVisibility()->IsVisible();
-        if (!isVisible && node->IsText()) {
+        if (node->IsText() &&
+            (frame->StyleVisibility()->IsVisible() ||
+             frame->IsHiddenByContentVisibilityOnAnyAncestor())) {
           return true;
         }
       }
