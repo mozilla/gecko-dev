@@ -12,6 +12,7 @@
 #include "vm/TypedArrayObject.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Compiler.h"
 #include "mozilla/FloatingPoint.h"
 
 #include <algorithm>
@@ -38,180 +39,71 @@
 
 namespace js {
 
-template <typename To, typename From>
-inline To ConvertNumber(From src);
+// Use static_assert in compilers which support CWG2518. In all other cases
+// fall back to MOZ_CRASH.
+//
+// https://cplusplus.github.io/CWG/issues/2518.html
+#if defined(__clang__) && (__clang_major__ >= 17)
+#  define STATIC_ASSERT_IN_UNEVALUATED_CONTEXT 1
+#elif MOZ_IS_GCC && MOZ_GCC_VERSION_AT_LEAST(13, 1, 0)
+#  define STATIC_ASSERT_IN_UNEVALUATED_CONTEXT 1
+#else
+#  define STATIC_ASSERT_IN_UNEVALUATED_CONTEXT 0
+#endif
 
-template <>
-inline int8_t ConvertNumber<int8_t, float16>(float16 src) {
-  return JS::ToInt8(static_cast<double>(src));
-}
+template <typename T>
+inline auto ToFloatingPoint(T value) {
+  static_assert(!std::numeric_limits<T>::is_integer);
 
-template <>
-inline uint8_t ConvertNumber<uint8_t, float16>(float16 src) {
-  return JS::ToUint8(static_cast<double>(src));
-}
-
-template <>
-inline uint8_clamped ConvertNumber<uint8_clamped, float16>(float16 src) {
-  return uint8_clamped(static_cast<double>(src));
-}
-
-template <>
-inline float16 ConvertNumber<float16, float16>(float16 src) {
-  return src;
-}
-
-template <>
-inline int16_t ConvertNumber<int16_t, float16>(float16 src) {
-  return JS::ToInt16(static_cast<double>(src));
-}
-
-template <>
-inline uint16_t ConvertNumber<uint16_t, float16>(float16 src) {
-  return JS::ToUint16(static_cast<double>(src));
-}
-
-template <>
-inline int32_t ConvertNumber<int32_t, float16>(float16 src) {
-  return JS::ToInt32(static_cast<double>(src));
-}
-
-template <>
-inline uint32_t ConvertNumber<uint32_t, float16>(float16 src) {
-  return JS::ToUint32(static_cast<double>(src));
-}
-
-template <>
-inline int64_t ConvertNumber<int64_t, float16>(float16 src) {
-  return JS::ToInt64(static_cast<double>(src));
-}
-
-template <>
-inline uint64_t ConvertNumber<uint64_t, float16>(float16 src) {
-  return JS::ToUint64(static_cast<double>(src));
-}
-
-// Float16 is a bit of a special case in that it's floating point,
-// but std::is_floating_point_v doesn't know about it.
-template <>
-inline float ConvertNumber<float, float16>(float16 src) {
-  return static_cast<float>(static_cast<double>(src));
-}
-
-template <>
-inline double ConvertNumber<double, float16>(float16 src) {
-  return static_cast<double>(src);
-}
-
-template <>
-inline int8_t ConvertNumber<int8_t, float>(float src) {
-  return JS::ToInt8(src);
-}
-
-template <>
-inline uint8_t ConvertNumber<uint8_t, float>(float src) {
-  return JS::ToUint8(src);
-}
-
-template <>
-inline uint8_clamped ConvertNumber<uint8_clamped, float>(float src) {
-  return uint8_clamped(src);
-}
-
-template <>
-inline float16 ConvertNumber<float16, float>(float src) {
-  return float16(src);
-}
-
-template <>
-inline int16_t ConvertNumber<int16_t, float>(float src) {
-  return JS::ToInt16(src);
-}
-
-template <>
-inline uint16_t ConvertNumber<uint16_t, float>(float src) {
-  return JS::ToUint16(src);
-}
-
-template <>
-inline int32_t ConvertNumber<int32_t, float>(float src) {
-  return JS::ToInt32(src);
-}
-
-template <>
-inline uint32_t ConvertNumber<uint32_t, float>(float src) {
-  return JS::ToUint32(src);
-}
-
-template <>
-inline int64_t ConvertNumber<int64_t, float>(float src) {
-  return JS::ToInt64(src);
-}
-
-template <>
-inline uint64_t ConvertNumber<uint64_t, float>(float src) {
-  return JS::ToUint64(src);
-}
-
-template <>
-inline int8_t ConvertNumber<int8_t, double>(double src) {
-  return JS::ToInt8(src);
-}
-
-template <>
-inline uint8_t ConvertNumber<uint8_t, double>(double src) {
-  return JS::ToUint8(src);
-}
-
-template <>
-inline uint8_clamped ConvertNumber<uint8_clamped, double>(double src) {
-  return uint8_clamped(src);
-}
-
-template <>
-inline float16 ConvertNumber<float16, double>(double src) {
-  return float16(src);
-}
-
-template <>
-inline int16_t ConvertNumber<int16_t, double>(double src) {
-  return JS::ToInt16(src);
-}
-
-template <>
-inline uint16_t ConvertNumber<uint16_t, double>(double src) {
-  return JS::ToUint16(src);
-}
-
-template <>
-inline int32_t ConvertNumber<int32_t, double>(double src) {
-  return JS::ToInt32(src);
-}
-
-template <>
-inline uint32_t ConvertNumber<uint32_t, double>(double src) {
-  return JS::ToUint32(src);
-}
-
-template <>
-inline int64_t ConvertNumber<int64_t, double>(double src) {
-  return JS::ToInt64(src);
-}
-
-template <>
-inline uint64_t ConvertNumber<uint64_t, double>(double src) {
-  return JS::ToUint64(src);
+  if constexpr (std::is_floating_point_v<T>) {
+    return value;
+  } else {
+    return static_cast<double>(value);
+  }
 }
 
 template <typename To, typename From>
 inline To ConvertNumber(From src) {
-  static_assert(
-      !std::is_floating_point_v<From> ||
-          (std::is_floating_point_v<From> && std::is_floating_point_v<To>),
-      "conversion from floating point to int should have been handled by "
-      "specializations above");
-  return To(src);
+  if constexpr (!std::numeric_limits<From>::is_integer) {
+    if constexpr (std::is_same_v<From, To>) {
+      return src;
+    } else if constexpr (!std::numeric_limits<To>::is_integer) {
+      return static_cast<To>(ToFloatingPoint(src));
+    } else if constexpr (std::is_same_v<int8_t, To>) {
+      return JS::ToInt8(ToFloatingPoint(src));
+    } else if constexpr (std::is_same_v<uint8_t, To>) {
+      return JS::ToUint8(ToFloatingPoint(src));
+    } else if constexpr (std::is_same_v<uint8_clamped, To>) {
+      return uint8_clamped(ToFloatingPoint(src));
+    } else if constexpr (std::is_same_v<int16_t, To>) {
+      return JS::ToInt16(ToFloatingPoint(src));
+    } else if constexpr (std::is_same_v<uint16_t, To>) {
+      return JS::ToUint16(ToFloatingPoint(src));
+    } else if constexpr (std::is_same_v<int32_t, To>) {
+      return JS::ToInt32(ToFloatingPoint(src));
+    } else if constexpr (std::is_same_v<uint32_t, To>) {
+      return JS::ToUint32(ToFloatingPoint(src));
+    } else if constexpr (std::is_same_v<int64_t, To>) {
+      return JS::ToInt64(ToFloatingPoint(src));
+    } else if constexpr (std::is_same_v<uint64_t, To>) {
+      return JS::ToUint64(ToFloatingPoint(src));
+    } else {
+#if STATIC_ASSERT_IN_UNEVALUATED_CONTEXT
+      static_assert(false,
+                    "conversion from floating point to int should have been "
+                    "handled by specializations above");
+#else
+      MOZ_CRASH(
+          "conversion from floating point to int should have been "
+          "handled by specializations above");
+#endif
+    }
+  } else {
+    return static_cast<To>(src);
+  }
 }
+
+#undef STATIC_ASSERT_IN_UNEVALUATED_CONTEXT
 
 template <typename NativeType>
 struct TypeIDOfType;
@@ -850,14 +742,8 @@ class ElementSpecific {
       if (js::SupportDifferentialTesting()) {
         d = JS::CanonicalizeNaN(d);
       }
-      return T(d);
-    } else if constexpr (std::is_same_v<T, uint8_clamped>) {
-      return T(d);
-    } else if constexpr (!std::numeric_limits<T>::is_signed) {
-      return T(JS::ToUint32(d));
-    } else {
-      return T(JS::ToInt32(d));
     }
+    return ConvertNumber<T>(d);
   }
 };
 

@@ -68,9 +68,6 @@
 
 using namespace js;
 
-using JS::CanonicalizeNaN;
-using JS::ToInt32;
-using JS::ToUint32;
 using mozilla::IsAsciiDigit;
 
 /*
@@ -1116,20 +1113,7 @@ bool TypedArrayObjectTemplate<NativeType>::convertValue(JSContext* cx,
   }
 
   // Assign based on characteristics of the destination type
-  if constexpr (!std::numeric_limits<NativeType>::is_integer) {
-    *result = NativeType(d);
-  } else if constexpr (std::is_same_v<NativeType, uint8_clamped>) {
-    // The uint8_clamped type has a special rounding converter for doubles.
-    *result = NativeType(d);
-  } else if constexpr (!std::numeric_limits<NativeType>::is_signed) {
-    static_assert(sizeof(NativeType) <= 4);
-    uint32_t n = ToUint32(d);
-    *result = NativeType(n);
-  } else {
-    static_assert(sizeof(NativeType) <= 4);
-    int32_t n = ToInt32(d);
-    *result = NativeType(n);
-  }
+  *result = ConvertNumber<NativeType>(d);
   return true;
 }
 
