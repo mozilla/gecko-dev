@@ -8,7 +8,7 @@ Mach Try Perf
 
 To make it easier for developers to find the tests they need to run we built a perf-specific try selector called ``./mach try perf``. With this tool, you no longer need to remember the obfuscated platform and test names that you need to target for your tests. Instead, the new interface shows test categories along with a simplified name of the platform that they will run on.
 
-When you trigger a try run from the perf selector, two try runs will be created. One with your changes, and one without. In your console, after you trigger the try runs, you'll find a PerfCompare link that will bring you directly to a comparison of the two pushes when they have completed.
+When you trigger a try run from the perf selector, two try runs will be created. One with your changes, and one without. The push without your changes will be done on the revision that your patches are based on (which we call the base revision). In your console, after you trigger the try runs, you'll find a PerfCompare link that will bring you directly to a comparison of the two pushes when they have completed.
 
 The tool is built to be conservative about the number of tests to run, so if you are looking for something that is not listed, it's likely hidden behind a flag found in the ``--help``. Here's a list of what you'll find there::
 
@@ -19,62 +19,72 @@ The tool is built to be conservative about the number of tests to run, so if you
     perf arguments:
       --show-all            Show all available tasks.
       --android             Show android test categories (disabled by default).
-      --chrome              Show tests available for Chrome-based browsers
-                            (disabled by default).
-      --custom-car          Show tests available for Custom Chromium-as-Release
-                            (disabled by default).
+      --chrome              Show tests available for Chrome-based browsers (disabled by
+                            default).
+      --custom-car          Show tests available for Custom Chromium-as-Release (disabled by
+                            default). Use with --android flag to select Custom CaR android
+                            tests (cstm-car-m)
       --safari              Show tests available for Safari (disabled by default).
-      --live-sites          Run tasks with live sites (if possible). You can also
-                            use the `live-sites` variant.
-      --profile             Run tasks with profiling (if possible). You can also
-                            use the `profiling` variant.
+      --safari-tp           Show tests available for Safari Technology Preview(disabled by
+                            default).
+      --live-sites          Run tasks with live sites (if possible). You can also use the
+                            `live-sites` variant.
+      --profile             Run tasks with profiling (if possible). You can also use the
+                            `profiling` variant.
       --single-run          Run tasks without a comparison
       -q QUERY, --query QUERY
-                            Query to run in either the perf-category selector, or
-                            the fuzzy selector if --show-all is provided.
+                            Query to run in either the perf-category selector, or the fuzzy
+                            selector if --show-all is provided.
       --browsertime-upload-apk BROWSERTIME_UPLOAD_APK
-                            Path to an APK to upload. Note that this will replace
-                            the APK installed in all Android Performance tests. If
-                            the Activity, Binary Path, or Intents required change
-                            at all relative to the existing GeckoView, and Fenix
-                            tasks, then you will need to make fixes in the
-                            associated taskcluster files (e.g.
-                            taskcluster/kinds/test/browsertime-mobile.yml).
-                            Alternatively, set MOZ_FIREFOX_ANDROID_APK_OUTPUT to a
-                            path to an APK, and then run the command with
-                            --browsertime-upload-apk firefox-android. This option
-                            will only copy the APK for browsertime, see
-                            --mozperftest-upload-apk to upload APKs for startup
-                            tests.
+                            Path to an APK to upload. Note that this will replace the APK
+                            installed in all Android Performance tests. If the Activity,
+                            Binary Path, or Intents required change at all relative to the
+                            existing GeckoView, and Fenix tasks, then you will need to make
+                            fixes in the associated taskcluster files (e.g.
+                            taskcluster/kinds/test/browsertime-mobile.yml). Alternatively, set
+                            MOZ_FIREFOX_ANDROID_APK_OUTPUT to a path to an APK, and then run
+                            the command with --browsertime-upload-apk firefox-android. This
+                            option will only copy the APK for browsertime, see --mozperftest-
+                            upload-apk to upload APKs for startup tests.
       --mozperftest-upload-apk MOZPERFTEST_UPLOAD_APK
-                            See --browsertime-upload-apk. This option does the
-                            same thing except it's for mozperftest tests such as
-                            the startup ones. Note that those tests only exist
-                            through --show-all, as they aren't contained in any
-                            existing categories.
-      --detect-changes      Adds a task that detects performance changes using
-                            MWU.
+                            See --browsertime-upload-apk. This option does the same thing
+                            except it's for mozperftest tests such as the startup ones. Note
+                            that those tests only exist through --show-all as they aren't
+                            contained in any existing categories.
+      --detect-changes      Adds a task that detects performance changes using MWU.
       --comparator COMPARATOR
-                            Either a path to a file to setup a custom comparison,
-                            or a builtin name. See the Firefox source docs for
-                            mach try perf for examples of how to build your own,
-                            along with the interface.
+                            Either a path to a file to setup a custom comparison, or a builtin
+                            name. See the Firefox source docs for mach try perf for examples
+                            of how to build your own, along with the interface.
       --comparator-args [ARG=VALUE [ARG=VALUE ...]]
-                            Arguments provided to the base, and new revision setup
-                            stages of the comparator.
-      --variants [ [ ...]]  Select variants to display in the selector from:
-                            fission, bytecode-cached, live-sites, profiling, swr
+                            Arguments provided to the base, and new revision setup stages of
+                            the comparator.
+      --variants [ [ ...]]  Select variants to display in the selector from: fission,
+                            bytecode-cached, live-sites, profiling, swr
       --platforms [ [ ...]]
-                            Select specific platforms to target. Android only
-                            available with --android. Available platforms:
-                            android-a51, android, windows, linux, macosx, desktop
-      --apps [ [ ...]]      Select specific applications to target from: firefox,
-                            chrome, chromium, geckoview, fenix, chrome-m, safari,
-                            custom-car
+                            Select specific platforms to target. Android only available with
+                            --android. Available platforms: android-a51, android, windows,
+                            linux, macosx, desktop
+      --apps [ [ ...]]      Select specific applications to target from: firefox, chrome,
+                            geckoview, fenix, chrome-m, safari, safari-tp, custom-car, cstm-
+                            car-m
       --clear-cache         Deletes the try_perf_revision_cache file
+      --alert ALERT         Run all tests that produced this alert summary ID based on the
+                            alert summary table in either the alerts view or the regression
+                            bug. The comparison that is produced will be based on the base
+                            revision in your local repository (i.e. the base revision your
+                            patches, if any, are based on). If only specific tests need to
+                            run, use --tests to specify them (e.g. --tests webaudio).
       --extra-args [ [ ...]]
-                            Set the extra args (e.x, --extra-args verbose post-
-                            startup-delay=1)
+                            Set the extra args (e.x, --extra-args verbose post-startup-
+                            delay=1)
+      --perfcompare-beta    Use PerfCompare Beta instead of CompareView.
+      --non-pgo             Use opt/non-pgo builds instead of shippable/pgo builds. Setting
+                            this flag will result in faster try runs.
+      --tests [TESTS [TESTS ...]], -t [TESTS [TESTS ...]]
+                            Select from all tasks that run these specific tests (e.g. amazon, or
+                            speedometer3).
+
     task configuration arguments:
       --artifact            Force artifact builds where possible.
       --no-artifact         Disable artifact builds even if being used locally.
@@ -123,13 +133,20 @@ Select the categories you'd like to run, hit enter, and wait for the tool to fin
 Running Alert Tests
 -------------------
 
-To run all the tests that triggered a given alert, use ``./mach try perf --alert <ALERT-NUMBER>``. **It's recommended to use this when working with performance alerts.** The alert number can be found in comment 0 on any alert bug `such as this one <https://bugzilla.mozilla.org/show_bug.cgi?id=1844510>`_. As seen in the image below, the alert number can be found just above the summary table.
+To run all the tests that triggered a given alert, use ``./mach try perf --alert <ALERT-NUMBER>``. **It's recommended to use this when working with performance alerts.** The alert number can be found in comment 0 on any alert bug `such as this one <https://bugzilla.mozilla.org/show_bug.cgi?id=1844510>`_. As seen in the image below, the alert number can be found just above the summary table. The comparison that is produced will be based on the base revision in your local repository (i.e. the base revision your patches, if any, are based on).
 
 .. image:: ./comment-zero-alert-number.png
    :alt: Comment 0 containing an alert number just above the table.
    :scale: 50%
    :align: center
 
+
+Running Tasks of a Specific Test
+--------------------------------
+
+Using the ``--tests`` option, you can run all tasks that run a specific test. This is based on the test name that is used in the command that runs in the task. For raptor, this is the test specified by ``--test``. For talos, it can either be a specific test in a suite like ``tp5n`` from ``xperf``, or the suite ``xperf`` can be specified. For AWSY though, there are no specific tests that can be selected so the only option to select awsy tests is to specify ``awsy`` as the test.
+
+If it's used with ``--alert <NUM>``, only the tasks that run the specific test will be run on try. If it's used with ``--show-all``, you will only see the tasks that run the specific test in the fuzzy interface. Finally, if it's used without either of those, then categories of the tests that were specified will be displayed in the fuzzy interface. For example, if ``--tests amazon`` is used, then categories like ``amazon linux firefox`` or ``amazon desktop`` will be displayed.
 
 Chrome and Android
 ------------------

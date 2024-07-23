@@ -221,7 +221,7 @@ class PerfParser(CompareParser):
                 "default": None,
                 "help": "See --browsertime-upload-apk. This option does the same "
                 "thing except it's for mozperftest tests such as the startup ones. "
-                "Note that those tests only exist through --show-all, as they "
+                "Note that those tests only exist through --show-all as they "
                 "aren't contained in any existing categories.",
             },
         ],
