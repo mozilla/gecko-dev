@@ -63,6 +63,8 @@ const PREF_COLLECTIONS_ENABLED =
   "discoverystream.sponsored-collections.enabled";
 const PREF_POCKET_BUTTON = "extensions.pocket.enabled";
 const PREF_COLLECTION_DISMISSIBLE = "discoverystream.isCollectionDismissible";
+const PREF_SELECTED_TOPICS = "discoverystream.topicSelection.selectedTopics";
+const PREF_TOPIC_SELECTION_ENABLED = "discoverystream.topicSelection.enabled";
 
 let getHardcodedLayout;
 
@@ -1400,6 +1402,16 @@ export class DiscoveryStreamFeed {
       let options = {};
       const headers = new Headers();
       if (this.isMerino) {
+        const topicSelectionEnabled =
+          this.store.getState().Prefs.values[PREF_TOPIC_SELECTION_ENABLED];
+        const topicsString =
+          this.store.getState().Prefs.values[PREF_SELECTED_TOPICS];
+        const topics = topicSelectionEnabled
+          ? topicsString
+              .split(",")
+              .map(s => s.trim())
+              .filter(item => item)
+          : [];
         headers.append("content-type", "application/json");
         options = {
           method: "POST",
@@ -1407,6 +1419,7 @@ export class DiscoveryStreamFeed {
           body: JSON.stringify({
             locale: this.locale,
             region: this.region,
+            topics,
           }),
         };
       } else if (this.isBff) {
@@ -1674,6 +1687,10 @@ export class DiscoveryStreamFeed {
     await this.cache.set("sov", {});
   }
 
+  async resetContentFeed() {
+    await this.cache.set("feeds", {});
+  }
+
   async resetAllCache() {
     await this.resetContentCache();
     // Reset in-memory caches.
@@ -1828,6 +1845,15 @@ export class DiscoveryStreamFeed {
         break;
       case PREF_COLLECTIONS_ENABLED:
         this.onCollectionsChanged();
+        break;
+      case PREF_SELECTED_TOPICS:
+        {
+          // when topics have been updated, make a new request from merino and clear impression cap
+          this.resetContentFeed();
+          this.writeDataPref(PREF_REC_IMPRESSIONS, {});
+          const url = this.generateFeedUrl();
+          this.retryFeed({ url });
+        }
         break;
       case PREF_USER_TOPSITES:
       case PREF_SYSTEM_TOPSITES:
