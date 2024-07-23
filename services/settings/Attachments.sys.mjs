@@ -124,8 +124,8 @@ export class Downloader {
     return NotFoundError;
   }
 
-  constructor(bucketName, collectionName) {
-    this.folders = ["settings", bucketName, collectionName];
+  constructor(bucketName, collectionName, ...subFolders) {
+    this.folders = ["settings", bucketName, collectionName, ...subFolders];
     this.bucketName = bucketName;
     this.collectionName = collectionName;
     this._cdnURLs = {};
