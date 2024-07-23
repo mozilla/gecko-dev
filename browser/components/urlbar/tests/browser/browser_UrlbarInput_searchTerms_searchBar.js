@@ -14,11 +14,9 @@ const SEARCH_STRING = "example_string";
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.search.widget.inNavBar", true],
-      ["browser.urlbar.showSearchTerms.featureGate", true],
-    ],
+    set: [["browser.urlbar.showSearchTerms.featureGate", true]],
   });
+  await gCUITestUtils.addSearchBar();
 
   await SearchTestUtils.installSearchExtension(
     {

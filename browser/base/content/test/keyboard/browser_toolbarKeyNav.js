@@ -9,6 +9,11 @@
  * otherwise specified.
  */
 
+const { CustomizableUITestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/CustomizableUITestUtils.sys.mjs"
+);
+let gCUITestUtils = new CustomizableUITestUtils(window);
+
 const PERMISSIONS_PAGE =
   "https://example.com/browser/browser/base/content/test/permissions/permissions.html";
 const afterUrlBarButton = "save-to-pocket-button";
@@ -619,9 +624,7 @@ add_task(async function testCharacterInPanelMultiView() {
 // Test tab stops after the search bar is added.
 add_task(async function testTabStopsAfterSearchBarAdded() {
   AddOldMenuSideButtons();
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.search.widget.inNavBar", 1]],
-  });
+  await gCUITestUtils.addSearchBar();
   await withNewBlankTab(async function () {
     startFromUrlBar();
     await expectFocusAfterKey("Tab", "searchbar", true);
@@ -631,7 +634,7 @@ add_task(async function testTabStopsAfterSearchBarAdded() {
     await expectFocusAfterKey("Shift+Tab", "searchbar", true);
     await expectFocusAfterKey("Shift+Tab", gURLBar.inputField);
   });
-  await SpecialPowers.popPrefEnv();
+  gCUITestUtils.removeSearchBar();
   RemoveOldMenuSideButtons();
 });
 

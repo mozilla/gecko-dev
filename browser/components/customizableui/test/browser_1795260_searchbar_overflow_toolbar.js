@@ -7,7 +7,6 @@ const WIDGET_ID = "search-container";
 
 registerCleanupFunction(() => {
   CustomizableUI.reset();
-  Services.prefs.clearUserPref("browser.search.widget.inNavBar");
 });
 
 add_task(async function test_syncPreferenceWithWidget() {

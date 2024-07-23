@@ -17,7 +17,6 @@ add_setup(async function () {
     set: [
       ["browser.urlbar.showSearchTerms.featureGate", true],
       ["browser.urlbar.showSearchTerms.enabled", true],
-      ["browser.search.widget.inNavBar", false],
     ],
   });
 });

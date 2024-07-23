@@ -25,13 +25,14 @@ add_setup(async function () {
     set: [
       ["browser.search.separatePrivateDefault.ui.enabled", true],
       ["browser.search.separatePrivateDefault", true],
-      ["browser.search.widget.inNavBar", true],
     ],
   });
+  await gCUITestUtils.addSearchBar();
   originalEngine = await Services.search.getDefault();
   originalPrivateEngine = await Services.search.getDefaultPrivate();
   registerCleanupFunction(async () => {
     await resetEngines();
+    gCUITestUtils.removeSearchBar();
   });
 
   await SearchTestUtils.installOpenSearchEngine({

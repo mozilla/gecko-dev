@@ -204,9 +204,7 @@ add_task(async function searchbar_context_move_to_panel_and_back() {
   // This is specifically testing the addToPanel function for the search bar, so
   // we have to move it to its correct position in the navigation toolbar first.
   // The preference will be restored when the customizations are reset later.
-  Services.prefs.setBoolPref("browser.search.widget.inNavBar", true);
-
-  let searchbar = document.getElementById("searchbar");
+  let searchbar = await gCUITestUtils.addSearchBar();
   // This fails if the screen resolution is small and the search bar overflows
   // from the nav bar.
   await gCustomizeMode.addToPanel(searchbar);

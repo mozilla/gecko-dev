@@ -1,5 +1,11 @@
 "use strict";
 
+ChromeUtils.defineESModuleGetters(this, {
+  CustomizableUITestUtils:
+    "resource://testing-common/CustomizableUITestUtils.sys.mjs",
+});
+let gCUITestUtils = new CustomizableUITestUtils(window);
+
 var gTestTab;
 var gContentAPI;
 
@@ -61,14 +67,14 @@ add_UITour_task(async function test_availableTargets_changeWidgets() {
 });
 
 add_UITour_task(async function test_availableTargets_search() {
-  Services.prefs.setBoolPref("browser.search.widget.inNavBar", true);
+  await gCUITestUtils.addSearchBar();
   try {
     let data = await getConfigurationPromise("availableTargets");
     let expecteds = getExpectedTargets();
     expecteds = ["search", "searchIcon", ...expecteds];
     ok_targets(data, expecteds);
   } finally {
-    Services.prefs.clearUserPref("browser.search.widget.inNavBar");
+    gCUITestUtils.removeSearchBar();
   }
 });
 

@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Region: "resource://gre/modules/Region.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
+  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
 });
 
 const PREF_URLBAR_BRANCH = "browser.urlbar.";
@@ -523,7 +524,6 @@ const PREF_OTHER_DEFAULTS = new Map([
   ["browser.fixup.dns_first_for_single_words", false],
   ["browser.search.suggest.enabled", true],
   ["browser.search.suggest.enabled.private", false],
-  ["browser.search.widget.inNavBar", false],
   ["keyword.enabled", true],
   ["security.insecure_connection_text.enabled", false],
   ["ui.popup.disable_autohide", false],
@@ -1689,7 +1689,7 @@ class Preferences {
     return (
       this.get("showSearchTermsFeatureGate") &&
       this.get("showSearchTerms.enabled") &&
-      !this.get("browser.search.widget.inNavBar")
+      !lazy.CustomizableUI.getPlacementOfWidget("search-container")
     );
   }
 

@@ -12,7 +12,11 @@ ChromeUtils.defineESModuleGetters(this, {
     "resource://testing-common/TelemetryArchiveTesting.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
+  CustomizableUITestUtils:
+    "resource://testing-common/CustomizableUITestUtils.sys.mjs",
 });
+
+let gCUITestUtils = new CustomizableUITestUtils(window);
 
 function test() {
   UITourTest();
@@ -476,9 +480,7 @@ var tests = [
     is(buttons.hasChildNodes(), false, "Popup should have no buttons");
 
     // Place the search bar in the navigation toolbar temporarily.
-    await SpecialPowers.pushPrefEnv({
-      set: [["browser.search.widget.inNavBar", true]],
-    });
+    await gCUITestUtils.addSearchBar();
 
     await showInfoPromise("search", "search title", "search text");
 
@@ -494,7 +496,7 @@ var tests = [
       "Popup should have correct description text"
     );
 
-    await SpecialPowers.popPrefEnv();
+    gCUITestUtils.removeSearchBar();
   }),
   function test_getConfigurationVersion(done) {
     function callback(result) {

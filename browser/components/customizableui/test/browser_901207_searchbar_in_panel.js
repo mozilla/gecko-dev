@@ -62,7 +62,7 @@ add_task(async function check_shortcut_when_in_overflow() {
   );
   ok(CustomizableUI.inDefaultState, "Should start in default state.");
 
-  Services.prefs.setBoolPref("browser.search.widget.inNavBar", true);
+  await gCUITestUtils.addSearchBar();
 
   window.resizeTo(kForceOverflowWidthPx, window.outerHeight);
   await TestUtils.waitForCondition(() => {
@@ -89,7 +89,7 @@ add_task(async function check_shortcut_when_in_overflow() {
   EventUtils.synthesizeKey("KEY_Escape");
   await hiddenPanelPromise;
 
-  Services.prefs.setBoolPref("browser.search.widget.inNavBar", false);
+  gCUITestUtils.removeSearchBar();
 
   navbar = document.getElementById(CustomizableUI.AREA_NAVBAR);
   window.resizeTo(this.originalWindowWidth, window.outerHeight);
@@ -102,7 +102,7 @@ add_task(async function check_shortcut_when_in_overflow() {
 
 // Ctrl+K should focus the search bar if it is in the navbar and not overflowing.
 add_task(async function check_shortcut_when_not_in_overflow() {
-  Services.prefs.setBoolPref("browser.search.widget.inNavBar", true);
+  await gCUITestUtils.addSearchBar();
   let placement = CustomizableUI.getPlacementOfWidget("search-container");
   is(placement.area, CustomizableUI.AREA_NAVBAR, "Should be in nav-bar");
 
@@ -112,7 +112,7 @@ add_task(async function check_shortcut_when_not_in_overflow() {
   // from the nav bar even with the original window width.
   await waitForSearchBarFocus();
 
-  Services.prefs.setBoolPref("browser.search.widget.inNavBar", false);
+  gCUITestUtils.removeSearchBar();
 });
 
 function sendWebSearchKeyCommand() {

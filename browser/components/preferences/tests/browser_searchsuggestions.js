@@ -1,7 +1,11 @@
+const { CustomizableUITestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/CustomizableUITestUtils.sys.mjs"
+);
+let gCUITestUtils = new CustomizableUITestUtils(window);
+
 const SUGGEST_PREF_NAME = "browser.search.suggest.enabled";
 const URLBAR_SUGGEST_PREF_NAME = "browser.urlbar.suggest.searches";
 const PRIVATE_PREF_NAME = "browser.search.suggest.enabled.private";
-const SEARCHBAR_PREF_NAME = "browser.search.widget.inNavBar";
 
 let initialUrlbarSuggestValue;
 let initialSuggestionsInPrivateValue;
@@ -80,7 +84,7 @@ async function toggleElement(
 // Open with suggestions enabled
 add_task(async function test_suggestions_start_enabled() {
   Services.prefs.setBoolPref(SUGGEST_PREF_NAME, true);
-  Services.prefs.setBoolPref(SEARCHBAR_PREF_NAME, true);
+  await gCUITestUtils.addSearchBar();
 
   await openPreferencesViaOpenPreferencesAPI("search", { leaveOpen: true });
 
@@ -128,7 +132,7 @@ add_task(async function test_suggestions_start_enabled() {
   Services.prefs.setBoolPref(SUGGEST_PREF_NAME, false);
   ok(!urlbarBox.checked, "Should have unchecked the urlbar box");
   ok(urlbarBox.disabled, "Should have disabled the urlbar box");
-  Services.prefs.setBoolPref(SEARCHBAR_PREF_NAME, false);
+  gCUITestUtils.removeSearchBar();
   ok(urlbarBox.hidden, "Should have hidden the urlbar box");
   ok(!privateBox.checked, "Should have unchecked the private suggestions box");
   ok(privateBox.disabled, "Should have disabled the private suggestions box");
@@ -158,7 +162,7 @@ add_task(async function test_suggestions_start_disabled() {
 
 add_task(async function test_sync_search_suggestions_prefs() {
   info("Adding the search bar to the toolbar");
-  Services.prefs.setBoolPref(SEARCHBAR_PREF_NAME, true);
+  await gCUITestUtils.addSearchBar();
   Services.prefs.setBoolPref(SUGGEST_PREF_NAME, true);
   Services.prefs.setBoolPref(URLBAR_SUGGEST_PREF_NAME, false);
   await openPreferencesViaOpenPreferencesAPI("search", { leaveOpen: true });
@@ -196,7 +200,7 @@ add_task(async function test_sync_search_suggestions_prefs() {
   );
 
   info("Removing the search bar from the toolbar");
-  Services.prefs.setBoolPref(SEARCHBAR_PREF_NAME, false);
+  gCUITestUtils.removeSearchBar();
 
   const suggestsPref = [true, false];
   const urlbarSuggestsPref = [true, false];
@@ -225,7 +229,6 @@ add_task(async function test_sync_search_suggestions_prefs() {
   }
 
   gBrowser.removeCurrentTab();
-  Services.prefs.clearUserPref(SEARCHBAR_PREF_NAME);
   Services.prefs.clearUserPref(URLBAR_SUGGEST_PREF_NAME);
   Services.prefs.clearUserPref(SUGGEST_PREF_NAME);
 });

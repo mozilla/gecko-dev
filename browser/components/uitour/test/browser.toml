@@ -82,4 +82,3 @@ tags = "os_integration"
 ["browser_openPreferences.js"]
 
 ["browser_openSearchPanel.js"]
-skip-if = ["true"] # Bug 1113038 - Intermittent "Popup was opened"

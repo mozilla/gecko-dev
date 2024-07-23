@@ -5,13 +5,6 @@ This document describes preferences affecting Firefox's Search UI code. For info
 on the toolkit search service, see the :doc:`/toolkit/search/Preferences` document.
 Preferences that are generated and updated by code won't be described here.
 
-User Exposed
-------------
-These preferences are exposed through the Firefox UI
-
-browser.search.widget.inNavBar (boolean, default: false)
-  Whether the search bar widget is displayed in the navigation bar.
-
 Hidden
 ------
 These preferences are normally hidden, and should not be used unless you really

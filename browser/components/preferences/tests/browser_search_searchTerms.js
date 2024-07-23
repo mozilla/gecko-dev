@@ -15,6 +15,11 @@ ChromeUtils.defineLazyGetter(this, "QuickSuggestTestUtils", () => {
   return module;
 });
 
+const { CustomizableUITestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/CustomizableUITestUtils.sys.mjs"
+);
+let gCUITestUtils = new CustomizableUITestUtils(window);
+
 const CHECKBOX_ID = "searchShowSearchTermCheckbox";
 const PREF_SEARCHTERMS = "browser.urlbar.showSearchTerms.enabled";
 const PREF_FEATUREGATE = "browser.urlbar.showSearchTerms.featureGate";
@@ -145,11 +150,9 @@ add_task(async function showSearchTerms_checkbox() {
 add_task(async function showSearchTerms_and_searchBar_preference_load() {
   // Enable the feature.
   await SpecialPowers.pushPrefEnv({
-    set: [
-      [PREF_FEATUREGATE, true],
-      ["browser.search.widget.inNavBar", true],
-    ],
+    set: [[PREF_FEATUREGATE, true]],
   });
+  await gCUITestUtils.addSearchBar();
 
   await openPreferencesViaOpenPreferencesAPI("search", { leaveOpen: true });
   let doc = gBrowser.selectedBrowser.contentDocument;
@@ -163,6 +166,7 @@ add_task(async function showSearchTerms_and_searchBar_preference_load() {
   // Clean-up.
   gBrowser.removeCurrentTab();
   await SpecialPowers.popPrefEnv();
+  gCUITestUtils.removeSearchBar();
 });
 
 /*
@@ -182,9 +186,7 @@ add_task(async function showSearchTerms_and_searchBar_preference_change() {
   let checkbox = doc.getElementById(CHECKBOX_ID);
   Assert.ok(!checkbox.hidden, "showSearchTerms checkbox should be shown.");
 
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.search.widget.inNavBar", true]],
-  });
+  await gCUITestUtils.addSearchBar();
   Assert.ok(
     checkbox.hidden,
     "showSearchTerms checkbox should be hidden when search bar is enabled."
@@ -192,6 +194,7 @@ add_task(async function showSearchTerms_and_searchBar_preference_change() {
 
   // Clean-up.
   await SpecialPowers.popPrefEnv();
+  gCUITestUtils.removeSearchBar();
   Assert.ok(!checkbox.hidden, "showSearchTerms checkbox should be shown.");
 
   gBrowser.removeCurrentTab();

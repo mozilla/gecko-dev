@@ -24,11 +24,11 @@ SERP
   A search engine results page.
 
 Persisted Search
-  When a user has the following preference values:
+  When a user has the following preference values (only applies
+  when the search bar isn't present in any toolbar or overflow panel):
 
     - ``browser.urlbar.showSearchTerms.enabled``: ``true``
     - ``browser.urlbar.showSearchTerms.featureGate``: ``true``
-    - ``browser.search.widget.inNavBar``: ``false``
 
   and does the following:
 
