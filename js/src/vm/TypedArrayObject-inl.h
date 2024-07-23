@@ -853,9 +853,6 @@ class ElementSpecific {
       }
       return T(d);
     }
-    if (MOZ_UNLIKELY(std::isnan(d))) {
-      return T(0);
-    }
     if (TypeIDOfType<T>::id == Scalar::Uint8Clamped) {
       return T(d);
     }
