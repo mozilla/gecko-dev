@@ -117,10 +117,9 @@ class MIRGenerator final {
     MOZ_ASSERT(compilingWasm());
     return wasmMaxStackArgBytes_;
   }
-  void initWasmMaxStackArgBytes(uint32_t n) {
+  void accumulateWasmMaxStackArgBytes(uint32_t n) {
     MOZ_ASSERT(compilingWasm());
-    MOZ_ASSERT(wasmMaxStackArgBytes_ == 0);
-    wasmMaxStackArgBytes_ = n;
+    wasmMaxStackArgBytes_ = std::max(n, wasmMaxStackArgBytes_);
   }
   uint64_t minWasmMemory0Length() const { return minWasmMemory0Length_; }
 
