@@ -1840,8 +1840,12 @@
     <string name="saved_login_reveal_password">Diskouez ar ger-tremen</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">Kuzhat ar ger-tremen</string>
+    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
+    <string name="logins_biometric_prompt_message_2">Dibrennit evit gwelet ho kerioù-tremen enrollet</string>
     <!-- Title of warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_title_2">Diogelit ho kerioù-tremen enrollet</string>
+    <!-- Message of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_message_2">Arventennit ur patrom prennañ, ur PIN pe ur ger-tremen evit gwareziñ ho titouroù kennaskañ enrollet ma vez ho trevnad gant unan bennak all.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">Diwezhatoc’h</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1857,6 +1861,9 @@
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">Arver diwezhañ</string>
 
+    <!-- Content description (not visible, for screen readers etc.) -->
+    <string name="saved_logins_menu_dropdown_chevron_icon_content_description_2">Lañser urzhiañ ar gerioù-tremen</string>
+
     <!-- Autofill -->
     <!-- Preference and title for managing the autofill settings -->
     <string name="preferences_autofill">Leuniañ ent emgefreek</string>
@@ -1866,6 +1873,8 @@
     <string name="preferences_credit_cards_2">Doareoù paeañ</string>
     <!-- Preference for saving and autofilling credit cards -->
     <string name="preferences_credit_cards_save_and_autofill_cards_2">Enrollañ ha leuniañ an doareoù paeañ</string>
+    <!-- Preference summary for saving and autofilling payment method data. Parameter will be replaced by app name. -->
+    <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s e enrineg an holl doareoù paeañ a enrollit</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">Goubredañ ar c’hartennoù kred etre ho trevnadoù</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
@@ -1882,6 +1891,9 @@
 
     <!-- Preference for saving and filling addresses -->
     <string name="preferences_addresses_save_and_autofill_addresses_2">Enrollañ ha leuniañ ar chomlec’hioù</string>
+
+    <!-- Preference summary for saving and filling address data -->
+    <string name="preferences_addresses_save_and_autofill_addresses_summary_2">Ebarzhiñ an niverennoù pellgomz hag ar chomlec’hioù postel</string>
 
     <!-- Title of the "Add card" screen -->
     <string name="credit_cards_add_card">Ouzhpennañ ur gartenn</string>
@@ -1924,6 +1936,8 @@
 
     <!-- Title of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_title_2">Diogelit ho toareoù paeañ enrollet</string>
+    <!-- Message of warning dialog if users have no device authentication set up -->
+    <string name="credit_cards_warning_dialog_message_3">Arventennit ur patrom prennañ, ur PIN pe ur ger-tremen evit gwareziñ ho toareoù paeañ enrollet ma vez ho trevnad gant unan bennak all.</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_set_up_now">Arventennañ bremañ</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -1931,6 +1945,8 @@
     <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
     <string name="credit_cards_biometric_prompt_message_pin">Dibrennit ho trevnad</string>
 
+    <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
+    <string name="credit_cards_biometric_prompt_unlock_message_2">Dibrennit evit implij an doareoù paeañ enrollet</string>
     <!-- Title of the "Add address" screen -->
     <string name="addresses_add_address">Ouzhpennañ ur chomlec’h</string>
     <!-- Title of the "Edit address" screen -->
@@ -2065,6 +2081,14 @@
     <string name="dialog_delete_positive">Dilemel</string>
     <!-- Negative action of a dialog asking to delete login -->
     <string name="dialog_delete_negative">Nullañ</string>
+    <!--  The saved password options menu description. -->
+    <string name="login_options_menu_2">Dibarzhioù ar gerioù-tremen</string>
+    <!--  The editable text field for a website address. -->
+    <string name="saved_login_hostname_description_3">Ar vaezienn destenn kemmus evit chomlec’h ar lec’hienn web.</string>
+    <!--  The editable text field for a username. -->
+    <string name="saved_login_username_description_3">Ar vaezienn destenn kemmus evit an anv arveriad.</string>
+    <!--  The editable text field for a login's password. -->
+    <string name="saved_login_password_description_2">Ar vaezienn destenn kemmus evit ar ger-tremen.</string>
     <!--  The button description to save changes to an edited password. -->
     <string name="save_changes_to_login_2">Enrollañ ar cʼhemmoù.</string>
     <!--  The page title for editing a saved password. -->
@@ -2174,6 +2198,9 @@
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
     <string name="other_default_search_engine_suggestion_header">Klask %s</string>
 
+    <!-- Default browser experiment -->
+    <!-- Default browser card title -->
+    <string name="default_browser_experiment_card_title">Cheñch ho merdeer dre ziouer</string>
     <!-- Default browser card text -->
     <string name="default_browser_experiment_card_text">Digeriñ liammoù al lec’hiennoù, posteloù ha kemennadennoù e Firefox en un doare emgefreek.</string>
 
@@ -2222,8 +2249,24 @@
     <string name="review_quality_check_grade_d_f_description">Alioù disfizius</string>
     <!-- Text for title presenting the reliability of a product's reviews. -->
     <string name="review_quality_check_grade_title">Pegen fizius eo an alioù-se?</string>
+    <!-- Title for when the rating has been updated by the review checker -->
+    <string name="review_quality_check_adjusted_rating_title">Ali reizhet</string>
+    <!-- Description for a product's adjusted star rating. The text presents that the product's reviews which were evaluated as unreliable were removed from the adjusted rating. -->
+    <string name="review_quality_check_adjusted_rating_description_2">Diazezet war alioù fizius</string>
+    <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
+    <string name="review_quality_check_highlights_title">Poentoù pouezus an alioù diwezhañ</string>
     <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
     <string name="review_quality_check_explanation_title">Penaos e termenomp perzhded an alioù</string>
+    <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_explanation_body_reliability">Ober a reomp gant teknologiezh an naouegezh alvezel savet gant %s evit Mozilla evit gwiriañ eo fizius an alioù war ar produioù. Kement-se a sikouro ac’hanoc’h da gompren gwelloc’h perzhded an alioù, met ket hini ar produioù. </string>
+    <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
+    <string name="review_quality_check_info_review_grade_header"><![CDATA[Reiñ a reomp d\'an holl alioù un <b>notenn</b> etre A ha F.]]></string>
+    <!-- Description explaining grades A and B for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_AB">Alioù fizius. Soñjal a ra deomp int skrivet gant tud gwir o dues laosket un ali onest ha fizius.</string>
+    <!-- Description explaining grade C for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_C">Soñjal a ra deomp zo ur meskaj etre alioù fizius ha disfizius.</string>
+    <!-- Description explaining grades D and F for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_DF">Alioù disfizius. Soñjal a ra deomp eo faos an alioù, pe skrivet gant tud n\'int ket neptu.</string>
     <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
     <string name="review_quality_check_info_learn_more">Gouzout muioc’h diwar-benn %s.</string>
     <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->

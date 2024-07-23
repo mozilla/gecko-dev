@@ -45,15 +45,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Tschernì</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">Memorisà dacurt</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">Mussar tut ils segnapaginas memorisads</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Allontanar</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Segnapaginas</string>
@@ -115,7 +106,10 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Navighescha pli svelt cun il nov sistem da navigaziun</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">Questa trav vegn zuppentada cun defilar e lascha uschia dapli spazi per la navigaziun.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Questa trav vegn zuppentada cun defilar e lascha uschia dapli spazi per la navigaziun.</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Sin ina website vegn questa trav zuppentada cun defilar engiu. Uschia resta dapli spazi per la navigaziun.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">L\'access a la camera è necessari. Acceda als parameters dad Android, smatga sin permissiuns e lura sin permetter.</string>
@@ -607,8 +601,6 @@
     <string name="preferences_account_sync_error">Ta reconnectescha per cuntinuar cun la sincronisaziun</string>
     <!-- Preference for language -->
     <string name="preferences_language">Lingua</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Translaziun</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">Translaziuns</string>
     <!-- Preference for data choices -->
@@ -704,8 +696,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Cuntinuar qua</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">Tschernì dacurt sco segnapagina</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">Segnapaginas</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1500,7 +1490,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Stizzar</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Midar al modus da maletg entir</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Midar al modus da maletg entir</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">Copià l\'URL</string>
 
@@ -1673,7 +1663,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Criptominiers</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Improntaders dal det</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Improntaders dal det</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Improntaders enconuschents</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Detagls</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1698,10 +1690,12 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Impedescha che scripts donnegius maldovran las resursas da tes apparat per generar daners digitals.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Improntaders dal det</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Improntaders dal det</string>
 
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Impedescha che infurmaziuns univocas vegnan rimnadas che permettan dad identifitgar tes apparat per ta fastizar.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Impedescha che infurmaziuns univocas vegnan rimnadas che permettan dad identifitgar tes apparat per ta fastizar.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Impedescha la rimnada dad infurmaziuns univocas che permettan dad identifitgar tes apparat per ta fastizar.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Cuntegn che fastizescha</string>
 
@@ -1729,6 +1723,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Stizza cookies definids cun agid da renviaments a websites enconuschentas per fastizar.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Potenzials improntaders</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Activescha la protecziun cunter improntaders per bloccar potenzials improntaders.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Improntaders enconuschents</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Tscherts fastizaders inditgads sutvart èn vegnids debloccads parzialmain sin questa pagina perquai che ti has interagì cun els *.</string>
@@ -2593,11 +2593,9 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Stizzar</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">En elavuraziun</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">En elavuraziun</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Telechargiar</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">Selecziunà</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
     <string name="download_languages_fetch_error_warning_text">Betg reussì da chargiar las linguas. Emprova pli tard anc ina giada.</string>
@@ -2657,8 +2655,6 @@
     <string name="debug_drawer_tab_tools_title">Utensils per ils tabs</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">Dumber da tabs</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">Activs</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">Activ</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2753,4 +2749,11 @@
     <string name="debug_drawer_logins_add_login_button">Agiuntar datas d’annunzia sfalsifitgadas per questa domena</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Stizzar las datas d’annunzia cun il num d’utilisader %s</string>
-</resources>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">Utensils CFR</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Reinizialisar ils CFR</string>
+
+    </resources>

@@ -139,7 +139,7 @@
     <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
     <string name="mozac_feature_addons_user_rating_count_2">Recenzii: %1$s</string>
     <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
-    <string name="mozac_feature_addons_rating_content_description_2">Evaluare: %1$,02f din 5</string>
+    <string name="mozac_feature_addons_rating_content_description_2">Evaluare: %1$.02f din 5</string>
     <!-- This is the title of page where all the add-ons are listed-->
     <string name="mozac_feature_addons_addons">Suplimente</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
