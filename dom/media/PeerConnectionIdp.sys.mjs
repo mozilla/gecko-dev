@@ -188,10 +188,7 @@ PeerConnectionIdp.prototype = {
     let idnService = Cc["@mozilla.org/network/idn-service;1"].getService(
       Ci.nsIIDNService
     );
-    if (
-      idnService.convertUTF8toACE(tail) !==
-      idnService.convertUTF8toACE(provider)
-    ) {
+    if (idnService.domainToASCII(tail) !== idnService.domainToASCII(provider)) {
       error('name "' + name + '" doesn\'t match IdP: "' + this.provider + '"');
     }
   },
