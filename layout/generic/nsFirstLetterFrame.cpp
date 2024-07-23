@@ -401,6 +401,15 @@ nsTextFrame* nsFirstLetterFrame::CreateContinuationForFramesAfter(
     for (auto* frame : list) {
       frame->SetParent(letterContinuation);
     }
+    // If the first frame of the list was not a fluid continuation, we need to
+    // insert one there to accept the overflowing text without disrupting the
+    // existing fixed continuation.
+    if (!next->HasAnyStateBits(NS_FRAME_IS_FLUID_CONTINUATION)) {
+      next = static_cast<nsTextFrame*>(
+          presShell->FrameConstructor()->CreateContinuingFrame(
+              aFrame, letterContinuation));
+      list.InsertFrame(letterContinuation, nullptr, next);
+    }
     letterContinuation->SetInitialChildList(FrameChildListID::Principal,
                                             std::move(list));
   } else {
