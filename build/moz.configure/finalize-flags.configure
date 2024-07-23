@@ -27,7 +27,8 @@ def os_ldflags(
         flags.extend(android_flags.ldflags)
     if thumb_option:
         flags.extend(thumb_option)
-    flags.extend(split(env_ldflags[0]))
+    if env_ldflags:
+        flags.extend(split(env_ldflags[0]))
     flags.extend(linker_flags.ldflags)
     if linker_ldflags:
         flags.extend(linker_ldflags)

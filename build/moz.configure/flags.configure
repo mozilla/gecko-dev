@@ -569,7 +569,8 @@ def host_cppflags(base_cppflags, host, compiler):
         flags += ["-DXP_UNIX", "-DXP_MACOSX"]
     else:
         flags += ["-DXP_UNIX"]
-    flags += split(base_cppflags[0])
+    if base_cppflags:
+        flags += split(base_cppflags[0])
     return flags
 
 
@@ -577,7 +578,8 @@ def host_cppflags(base_cppflags, host, compiler):
 @imports(_from="mozbuild.shellutil", _import="split")
 def host_cflags(base_cflags, compilation_flags):
     flags = list(compilation_flags.host_cflags)
-    flags += split(base_cflags[0])
+    if base_cflags:
+        flags += split(base_cflags[0])
     return flags
 
 
@@ -585,14 +587,17 @@ def host_cflags(base_cflags, compilation_flags):
 @imports(_from="mozbuild.shellutil", _import="split")
 def host_cxxflags(base_cxxflags, compilation_flags):
     flags = list(compilation_flags.host_cxxflags)
-    flags += split(base_cxxflags[0])
+    if base_cxxflags:
+        flags += split(base_cxxflags[0])
     return flags
 
 
 @depends("HOST_LDFLAGS", linker_flags, host_linker_ldflags, host, host_c_compiler)
 @imports(_from="mozbuild.shellutil", _import="split")
 def host_ldflags(env_ldflags, linker_flags, host_linker_ldflags, host, compiler):
-    flags = split(env_ldflags[0])
+    flags = []
+    if env_ldflags:
+        flags += split(env_ldflags[0])
     flags += host_linker_ldflags
     if host.kernel == "WINNT" and compiler.type == "clang-cl":
         if host.cpu == "x86":
@@ -606,7 +611,9 @@ def host_ldflags(env_ldflags, linker_flags, host_linker_ldflags, host, compiler)
 @depends("CPPFLAGS")
 @imports(_from="mozbuild.shellutil", _import="split")
 def os_cppflags(env_cppflags):
-    flags = split(env_cppflags[0])
+    flags = []
+    if env_cppflags:
+        flags = split(env_cppflags[0])
     return flags
 
 
@@ -619,7 +626,8 @@ def os_cflags(env_cflags, compilation_flags, android_flags, all_arm_flags):
     if all_arm_flags:
         flags.extend(all_arm_flags)
     flags.extend(compilation_flags.cflags)
-    flags.extend(split(env_cflags[0]))
+    if env_cflags:
+        flags.extend(split(env_cflags[0]))
     return flags
 
 
@@ -632,7 +640,8 @@ def os_cxxflags(env_cxxflags, compilation_flags, android_flags, all_arm_flags):
     if all_arm_flags:
         flags.extend(all_arm_flags)
     flags.extend(compilation_flags.cxxflags)
-    flags.extend(split(env_cxxflags[0]))
+    if env_cxxflags:
+        flags.extend(split(env_cxxflags[0]))
     return flags
 
 
@@ -664,7 +673,8 @@ def os_asflags(
     flags.extend(asm_flags.asflags)
     if build_project != "js" and c_compiler.type != "clang-cl":
         flags.extend(defines_cpp_flags)
-    flags.extend(split(env_asflags[0]))
+    if env_asflags:
+        flags.extend(split(env_asflags[0]))
     return flags
 
 

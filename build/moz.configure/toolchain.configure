@@ -121,7 +121,7 @@ add_old_configure_assignment("MOZ_OPTIMIZE", moz_optimize)
 add_old_configure_assignment("MOZ_CONFIGURE_OPTIMIZE_FLAGS", moz_optimize_flags)
 
 
-@depends("MOZ_OPTIMIZE_FLAGS")
+@depends_if("MOZ_OPTIMIZE_FLAGS")
 @imports(_from="mozbuild.shellutil", _import="split")
 def moz_optimize_flags(env_optimize_flags):
     return split(env_optimize_flags[0])
