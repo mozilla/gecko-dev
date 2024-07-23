@@ -107,7 +107,7 @@ class GeckoInstance(object):
         ),
         "extensions.blocklist.itemURL": "http://%(server)s/extensions-dummy/blocklistItemURL",
         "extensions.hotfix.url": "http://%(server)s/extensions-dummy/hotfixURL",
-        "extensions.systemAddon.update.url": "http://%(server)s/dummy-system-addons.xml",
+        "extensions.systemAddon.update.enabled": False,
         "extensions.update.background.url": (
             "http://%(server)s/extensions-dummy/updateBackgroundURL"
         ),
