@@ -753,14 +753,15 @@ nsIContentHandle* nsHtml5TreeBuilder::createElement(
     if (mBuilder) {
       nsHtml5TreeOperation::SetFormElement(
           static_cast<nsIContent*>(content),
-          static_cast<nsIContent*>(aFormElement));
+          static_cast<nsIContent*>(aFormElement),
+          static_cast<nsIContent*>(aIntendedParent));
     } else {
       nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement(mozilla::fallible);
       if (MOZ_UNLIKELY(!treeOp)) {
         MarkAsBrokenAndRequestSuspensionWithoutBuilder(NS_ERROR_OUT_OF_MEMORY);
         return nullptr;
       }
-      opSetFormElement operation(content, aFormElement);
+      opSetFormElement operation(content, aFormElement, aIntendedParent);
       treeOp->Init(mozilla::AsVariant(operation));
     }
   }
