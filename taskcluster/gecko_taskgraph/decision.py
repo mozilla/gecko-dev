@@ -234,7 +234,15 @@ def taskgraph_decision(options, parameters=None):
     # cache run-task, misc/fetch-content & robustcheckout.py
     scripts_root_dir = os.path.join(GECKO, "taskcluster/scripts")
     run_task_file_path = os.path.join(scripts_root_dir, "run-task")
-    fetch_content_file_path = os.path.join(scripts_root_dir, "misc/fetch-content")
+    fetch_content_file_path = os.path.join(
+        GECKO,
+        "third_party",
+        "python",
+        "taskcluster_taskgraph",
+        "taskgraph",
+        "run-task",
+        "fetch-content",
+    )
     robustcheckout_path = os.path.join(
         GECKO,
         "testing/mozharness/external_tools/robustcheckout.py",

@@ -82,8 +82,7 @@ where it fails to use new volumes for tasks.
 FETCH_CONTENT_NOT_FOUND = '''
 error: fetch-content script not found
 
-The script at `taskcluster/scripts/misc/fetch-content` could not be
-detected in the current environment.
+The `fetch-content` script could not be detected in the current environment.
 
 If this task clones gecko, make sure the GECKO_PATH environment variable
 is set to proper location. Otherwise, the script may need to be mounted
@@ -510,8 +509,8 @@ def fetch_artifacts():
 
     fetch_content = shutil.which('fetch-content')
     if not fetch_content and os.environ.get('GECKO_PATH'):
-        fetch_content = os.path.join(os.environ['GECKO_PATH'], 'taskcluster',
-                                     'scripts', 'misc', 'fetch-content')
+        fetch_content = os.path.join(os.environ['GECKO_PATH'], 'third_party', 'python', 'taskcluster_taskgraph',
+                                     'taskgraph', 'run-task', 'fetch-content')
 
     if not fetch_content or not os.path.isfile(fetch_content):
         fetch_content = os.path.join(os.path.dirname(__file__),
