@@ -106,9 +106,24 @@
         return constructor == Float32Array || constructor == Float64Array || (Float16Array && constructor == Float16Array);
     }
 
+    /**
+     * Returns `true` if `constructor` is a TypedArray constructor for shared
+     * or unshared memory, with an underlying element type of one of Uint8,
+     * Uint8Clamped, Uint16, or Uint32.
+     */
+    function isUnsignedConstructor(constructor) {
+        if (isSharedConstructor(constructor))
+            constructor = Reflect_apply(WeakMap_prototype_get, sharedConstructors, [constructor]);
+        return constructor == Uint8Array ||
+               constructor == Uint8ClampedArray ||
+               constructor == Uint16Array ||
+               constructor == Uint32Array;
+    }
+
     global.typedArrayConstructors = typedArrayConstructors;
     global.sharedTypedArrayConstructors = sharedTypedArrayConstructors;
     global.anyTypedArrayConstructors = anyTypedArrayConstructors;
     global.isSharedConstructor = isSharedConstructor;
     global.isFloatConstructor = isFloatConstructor;
+    global.isUnsignedConstructor = isUnsignedConstructor;
 })(this);

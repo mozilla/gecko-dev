@@ -4185,18 +4185,25 @@ static bool TypedArrayRadixSort(JSContext* cx, TypedArrayObject* typedArray,
   // Radix sort uses O(n) additional space, limit this space to 64 MB.
   constexpr size_t StdSortMaxCutoff = (64 * 1024 * 1024) / sizeof(T);
 
-  if (length <= StdSortMinCutoff || length >= StdSortMaxCutoff) {
-    return TypedArrayStdSort<T, Ops>(cx, typedArray, length);
-  }
-
   if constexpr (sizeof(T) == 2) {
-    // Radix sort uses O(n) additional space, so when |n| reaches 2^16, switch
-    // over to counting sort to limit the additional space needed to 2^16.
-    constexpr size_t CountingSortMaxCutoff = 65536;
+    // Radix sort uses |n * sizeof(T)| additional space, whereas counting sort
+    // uses |65536 * sizeof(size_t)| additional space. When the additional
+    // space needed for radix sort exceeds the space needed for counting sort,
+    // switch over to counting sort.
+    //
+    // It's faster to switch slightly earlier, so subtract a constant from the
+    // exact value. This constant (2048) was determined by performance testing.
+    constexpr size_t CountingSortMaxCutoff =
+        65536 * (sizeof(size_t) / sizeof(T)) - 2048;
+    static_assert(CountingSortMaxCutoff < StdSortMaxCutoff);
 
     if (length >= CountingSortMaxCutoff) {
       return TypedArrayCountingSort<T, Ops>(cx, typedArray, length);
     }
+  }
+
+  if (length <= StdSortMinCutoff || length >= StdSortMaxCutoff) {
+    return TypedArrayStdSort<T, Ops>(cx, typedArray, length);
   }
 
   using UnsignedT =
