@@ -5,9 +5,14 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/dom/Promise.h"
+#include "mozilla/dom/ScaffoldingConverter.h"
+#include "mozilla/dom/UniFFICall.h"
 #include "mozilla/dom/UniFFICallbacks.h"
+#include "mozilla/dom/UniFFIPointerType.h"
 #include "mozilla/dom/UniFFIScaffolding.h"
-#include "mozilla/dom/ScaffoldingCall.h"
+#include "mozilla/dom/UniFFIRust.h"
 
 namespace mozilla::uniffi {
 
@@ -24,71 +29,71 @@ using dom::UniFFIScaffoldingCallResult;
 
 // Define scaffolding functions from UniFFI
 extern "C" {
-  void * uniffi_relevancy_fn_clone_relevancystore(void *, RustCallStatus*);
-  void uniffi_relevancy_fn_free_relevancystore(void *, RustCallStatus*);
-  void * uniffi_relevancy_fn_constructor_relevancystore_new(RustBuffer, RustCallStatus*);
-  RustBuffer uniffi_relevancy_fn_method_relevancystore_calculate_metrics(void *, RustCallStatus*);
-  void uniffi_relevancy_fn_method_relevancystore_close(void *, RustCallStatus*);
-  RustBuffer uniffi_relevancy_fn_method_relevancystore_ingest(void *, RustBuffer, RustCallStatus*);
-  void uniffi_relevancy_fn_method_relevancystore_interrupt(void *, RustCallStatus*);
-  RustBuffer uniffi_relevancy_fn_method_relevancystore_user_interest_vector(void *, RustCallStatus*);
-  void * uniffi_remote_settings_fn_clone_remotesettings(void *, RustCallStatus*);
-  void uniffi_remote_settings_fn_free_remotesettings(void *, RustCallStatus*);
-  void * uniffi_remote_settings_fn_constructor_remotesettings_new(RustBuffer, RustCallStatus*);
-  void uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path(void *, RustBuffer, RustBuffer, RustCallStatus*);
-  RustBuffer uniffi_remote_settings_fn_method_remotesettings_get_records(void *, RustCallStatus*);
-  RustBuffer uniffi_remote_settings_fn_method_remotesettings_get_records_since(void *, uint64_t, RustCallStatus*);
-  void * uniffi_suggest_fn_clone_suggeststore(void *, RustCallStatus*);
-  void uniffi_suggest_fn_free_suggeststore(void *, RustCallStatus*);
-  void * uniffi_suggest_fn_constructor_suggeststore_new(RustBuffer, RustBuffer, RustCallStatus*);
-  void uniffi_suggest_fn_method_suggeststore_clear(void *, RustCallStatus*);
-  void uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions(void *, RustCallStatus*);
-  void uniffi_suggest_fn_method_suggeststore_dismiss_suggestion(void *, RustBuffer, RustCallStatus*);
-  RustBuffer uniffi_suggest_fn_method_suggeststore_fetch_global_config(void *, RustCallStatus*);
-  RustBuffer uniffi_suggest_fn_method_suggeststore_fetch_provider_config(void *, RustBuffer, RustCallStatus*);
-  void uniffi_suggest_fn_method_suggeststore_ingest(void *, RustBuffer, RustCallStatus*);
-  void uniffi_suggest_fn_method_suggeststore_interrupt(void *, RustBuffer, RustCallStatus*);
-  RustBuffer uniffi_suggest_fn_method_suggeststore_query(void *, RustBuffer, RustCallStatus*);
-  void * uniffi_suggest_fn_clone_suggeststorebuilder(void *, RustCallStatus*);
-  void uniffi_suggest_fn_free_suggeststorebuilder(void *, RustCallStatus*);
-  void * uniffi_suggest_fn_constructor_suggeststorebuilder_new(RustCallStatus*);
-  void * uniffi_suggest_fn_method_suggeststorebuilder_build(void *, RustCallStatus*);
-  void * uniffi_suggest_fn_method_suggeststorebuilder_cache_path(void *, RustBuffer, RustCallStatus*);
-  void * uniffi_suggest_fn_method_suggeststorebuilder_data_path(void *, RustBuffer, RustCallStatus*);
-  void * uniffi_suggest_fn_method_suggeststorebuilder_load_extension(void *, RustBuffer, RustBuffer, RustCallStatus*);
-  void * uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name(void *, RustBuffer, RustCallStatus*);
-  void * uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server(void *, RustBuffer, RustCallStatus*);
+  void* uniffi_relevancy_fn_clone_relevancystore(void*, RustCallStatus*);
+  void uniffi_relevancy_fn_free_relevancystore(void*, RustCallStatus*);
+  void* uniffi_relevancy_fn_constructor_relevancystore_new(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_relevancy_fn_method_relevancystore_calculate_metrics(void*, RustCallStatus*);
+  void uniffi_relevancy_fn_method_relevancystore_close(void*, RustCallStatus*);
+  RustBuffer uniffi_relevancy_fn_method_relevancystore_ingest(void*, RustBuffer, RustCallStatus*);
+  void uniffi_relevancy_fn_method_relevancystore_interrupt(void*, RustCallStatus*);
+  RustBuffer uniffi_relevancy_fn_method_relevancystore_user_interest_vector(void*, RustCallStatus*);
+  void* uniffi_remote_settings_fn_clone_remotesettings(void*, RustCallStatus*);
+  void uniffi_remote_settings_fn_free_remotesettings(void*, RustCallStatus*);
+  void* uniffi_remote_settings_fn_constructor_remotesettings_new(RustBuffer, RustCallStatus*);
+  void uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path(void*, RustBuffer, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_remote_settings_fn_method_remotesettings_get_records(void*, RustCallStatus*);
+  RustBuffer uniffi_remote_settings_fn_method_remotesettings_get_records_since(void*, uint64_t, RustCallStatus*);
+  void* uniffi_suggest_fn_clone_suggeststore(void*, RustCallStatus*);
+  void uniffi_suggest_fn_free_suggeststore(void*, RustCallStatus*);
+  void* uniffi_suggest_fn_constructor_suggeststore_new(RustBuffer, RustBuffer, RustCallStatus*);
+  void uniffi_suggest_fn_method_suggeststore_clear(void*, RustCallStatus*);
+  void uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions(void*, RustCallStatus*);
+  void uniffi_suggest_fn_method_suggeststore_dismiss_suggestion(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_suggest_fn_method_suggeststore_fetch_global_config(void*, RustCallStatus*);
+  RustBuffer uniffi_suggest_fn_method_suggeststore_fetch_provider_config(void*, RustBuffer, RustCallStatus*);
+  void uniffi_suggest_fn_method_suggeststore_ingest(void*, RustBuffer, RustCallStatus*);
+  void uniffi_suggest_fn_method_suggeststore_interrupt(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_suggest_fn_method_suggeststore_query(void*, RustBuffer, RustCallStatus*);
+  void* uniffi_suggest_fn_clone_suggeststorebuilder(void*, RustCallStatus*);
+  void uniffi_suggest_fn_free_suggeststorebuilder(void*, RustCallStatus*);
+  void* uniffi_suggest_fn_constructor_suggeststorebuilder_new(RustCallStatus*);
+  void* uniffi_suggest_fn_method_suggeststorebuilder_build(void*, RustCallStatus*);
+  void* uniffi_suggest_fn_method_suggeststorebuilder_cache_path(void*, RustBuffer, RustCallStatus*);
+  void* uniffi_suggest_fn_method_suggeststorebuilder_data_path(void*, RustBuffer, RustCallStatus*);
+  void* uniffi_suggest_fn_method_suggeststorebuilder_load_extension(void*, RustBuffer, RustBuffer, RustCallStatus*);
+  void* uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name(void*, RustBuffer, RustCallStatus*);
+  void* uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server(void*, RustBuffer, RustCallStatus*);
   int8_t uniffi_suggest_fn_func_raw_suggestion_url_matches(RustBuffer, RustBuffer, RustCallStatus*);
-  void * uniffi_tabs_fn_clone_remotecommandstore(void *, RustCallStatus*);
-  void uniffi_tabs_fn_free_remotecommandstore(void *, RustCallStatus*);
-  int8_t uniffi_tabs_fn_method_remotecommandstore_add_remote_command(void *, RustBuffer, RustBuffer, RustCallStatus*);
-  int8_t uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at(void *, RustBuffer, RustBuffer, int64_t, RustCallStatus*);
-  RustBuffer uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands(void *, RustCallStatus*);
-  int8_t uniffi_tabs_fn_method_remotecommandstore_remove_remote_command(void *, RustBuffer, RustBuffer, RustCallStatus*);
-  int8_t uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent(void *, RustBuffer, RustCallStatus*);
-  void * uniffi_tabs_fn_clone_tabsbridgedengine(void *, RustCallStatus*);
-  void uniffi_tabs_fn_free_tabsbridgedengine(void *, RustCallStatus*);
-  RustBuffer uniffi_tabs_fn_method_tabsbridgedengine_apply(void *, RustCallStatus*);
-  RustBuffer uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id(void *, RustBuffer, RustCallStatus*);
-  int64_t uniffi_tabs_fn_method_tabsbridgedengine_last_sync(void *, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync(void *, RustBuffer, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsbridgedengine_reset(void *, RustCallStatus*);
-  RustBuffer uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id(void *, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync(void *, int64_t, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded(void *, int64_t, RustBuffer, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsbridgedengine_store_incoming(void *, RustBuffer, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsbridgedengine_sync_finished(void *, RustCallStatus*);
-  RustBuffer uniffi_tabs_fn_method_tabsbridgedengine_sync_id(void *, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsbridgedengine_sync_started(void *, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsbridgedengine_wipe(void *, RustCallStatus*);
-  void * uniffi_tabs_fn_clone_tabsstore(void *, RustCallStatus*);
-  void uniffi_tabs_fn_free_tabsstore(void *, RustCallStatus*);
-  void * uniffi_tabs_fn_constructor_tabsstore_new(RustBuffer, RustCallStatus*);
-  void * uniffi_tabs_fn_method_tabsstore_bridged_engine(void *, RustCallStatus*);
-  RustBuffer uniffi_tabs_fn_method_tabsstore_get_all(void *, RustCallStatus*);
-  void * uniffi_tabs_fn_method_tabsstore_new_remote_command_store(void *, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsstore_register_with_sync_manager(void *, RustCallStatus*);
-  void uniffi_tabs_fn_method_tabsstore_set_local_tabs(void *, RustBuffer, RustCallStatus*);
+  void* uniffi_tabs_fn_clone_remotecommandstore(void*, RustCallStatus*);
+  void uniffi_tabs_fn_free_remotecommandstore(void*, RustCallStatus*);
+  int8_t uniffi_tabs_fn_method_remotecommandstore_add_remote_command(void*, RustBuffer, RustBuffer, RustCallStatus*);
+  int8_t uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at(void*, RustBuffer, RustBuffer, int64_t, RustCallStatus*);
+  RustBuffer uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands(void*, RustCallStatus*);
+  int8_t uniffi_tabs_fn_method_remotecommandstore_remove_remote_command(void*, RustBuffer, RustBuffer, RustCallStatus*);
+  int8_t uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent(void*, RustBuffer, RustCallStatus*);
+  void* uniffi_tabs_fn_clone_tabsbridgedengine(void*, RustCallStatus*);
+  void uniffi_tabs_fn_free_tabsbridgedengine(void*, RustCallStatus*);
+  RustBuffer uniffi_tabs_fn_method_tabsbridgedengine_apply(void*, RustCallStatus*);
+  RustBuffer uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id(void*, RustBuffer, RustCallStatus*);
+  int64_t uniffi_tabs_fn_method_tabsbridgedengine_last_sync(void*, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync(void*, RustBuffer, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsbridgedengine_reset(void*, RustCallStatus*);
+  RustBuffer uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id(void*, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync(void*, int64_t, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded(void*, int64_t, RustBuffer, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsbridgedengine_store_incoming(void*, RustBuffer, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsbridgedengine_sync_finished(void*, RustCallStatus*);
+  RustBuffer uniffi_tabs_fn_method_tabsbridgedengine_sync_id(void*, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsbridgedengine_sync_started(void*, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsbridgedengine_wipe(void*, RustCallStatus*);
+  void* uniffi_tabs_fn_clone_tabsstore(void*, RustCallStatus*);
+  void uniffi_tabs_fn_free_tabsstore(void*, RustCallStatus*);
+  void* uniffi_tabs_fn_constructor_tabsstore_new(RustBuffer, RustCallStatus*);
+  void* uniffi_tabs_fn_method_tabsstore_bridged_engine(void*, RustCallStatus*);
+  RustBuffer uniffi_tabs_fn_method_tabsstore_get_all(void*, RustCallStatus*);
+  void* uniffi_tabs_fn_method_tabsstore_new_remote_command_store(void*, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsstore_register_with_sync_manager(void*, RustCallStatus*);
+  void uniffi_tabs_fn_method_tabsstore_set_local_tabs(void*, RustBuffer, RustCallStatus*);
 }
 
 // Define pointer types
@@ -139,538 +144,2129 @@ Maybe<CallbackInterfaceInfo> UniFFIGetCallbackInterfaceInfo(uint64_t aInterfaceI
     }
 }
 
-Maybe<already_AddRefed<Promise>> UniFFICallAsync(const GlobalObject& aGlobal, uint64_t aId, const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) {
-  switch (aId) {
-    case 0: { // relevancy:uniffi_relevancy_fn_clone_relevancystore
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_relevancy_fn_clone_relevancystore, aGlobal, aArgs, "uniffi_relevancy_fn_clone_relevancystore: "_ns, aError));
-    }
-    case 1: { // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_relevancy_fn_constructor_relevancystore_new, aGlobal, aArgs, "uniffi_relevancy_fn_constructor_relevancystore_new: "_ns, aError));
-    }
-    case 2: { // relevancy:uniffi_relevancy_fn_method_relevancystore_calculate_metrics
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_relevancy_fn_method_relevancystore_calculate_metrics, aGlobal, aArgs, "uniffi_relevancy_fn_method_relevancystore_calculate_metrics: "_ns, aError));
-    }
-    case 3: { // relevancy:uniffi_relevancy_fn_method_relevancystore_close
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_relevancy_fn_method_relevancystore_close, aGlobal, aArgs, "uniffi_relevancy_fn_method_relevancystore_close: "_ns, aError));
-    }
-    case 4: { // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_relevancy_fn_method_relevancystore_ingest, aGlobal, aArgs, "uniffi_relevancy_fn_method_relevancystore_ingest: "_ns, aError));
-    }
-    case 5: { // relevancy:uniffi_relevancy_fn_method_relevancystore_interrupt
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_relevancy_fn_method_relevancystore_interrupt, aGlobal, aArgs, "uniffi_relevancy_fn_method_relevancystore_interrupt: "_ns, aError));
-    }
-    case 6: { // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_relevancy_fn_method_relevancystore_user_interest_vector, aGlobal, aArgs, "uniffi_relevancy_fn_method_relevancystore_user_interest_vector: "_ns, aError));
-    }
-    case 7: { // remote_settings:uniffi_remote_settings_fn_clone_remotesettings
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>, ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_remote_settings_fn_clone_remotesettings, aGlobal, aArgs, "uniffi_remote_settings_fn_clone_remotesettings: "_ns, aError));
-    }
-    case 8: { // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_remote_settings_fn_constructor_remotesettings_new, aGlobal, aArgs, "uniffi_remote_settings_fn_constructor_remotesettings_new: "_ns, aError));
-    }
-    case 9: { // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path, aGlobal, aArgs, "uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path: "_ns, aError));
-    }
-    case 10: { // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_remote_settings_fn_method_remotesettings_get_records, aGlobal, aArgs, "uniffi_remote_settings_fn_method_remotesettings_get_records: "_ns, aError));
-    }
-    case 11: { // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>, ScaffoldingConverter<uint64_t>>;
-      return Some(CallHandler::CallAsync(uniffi_remote_settings_fn_method_remotesettings_get_records_since, aGlobal, aArgs, "uniffi_remote_settings_fn_method_remotesettings_get_records_since: "_ns, aError));
-    }
-    case 12: { // suggest:uniffi_suggest_fn_clone_suggeststore
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_clone_suggeststore, aGlobal, aArgs, "uniffi_suggest_fn_clone_suggeststore: "_ns, aError));
-    }
-    case 13: { // suggest:uniffi_suggest_fn_constructor_suggeststore_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_constructor_suggeststore_new, aGlobal, aArgs, "uniffi_suggest_fn_constructor_suggeststore_new: "_ns, aError));
-    }
-    case 14: { // suggest:uniffi_suggest_fn_method_suggeststore_clear
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststore_clear, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststore_clear: "_ns, aError));
-    }
-    case 15: { // suggest:uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions: "_ns, aError));
-    }
-    case 16: { // suggest:uniffi_suggest_fn_method_suggeststore_dismiss_suggestion
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststore_dismiss_suggestion, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststore_dismiss_suggestion: "_ns, aError));
-    }
-    case 17: { // suggest:uniffi_suggest_fn_method_suggeststore_fetch_global_config
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststore_fetch_global_config, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststore_fetch_global_config: "_ns, aError));
-    }
-    case 18: { // suggest:uniffi_suggest_fn_method_suggeststore_fetch_provider_config
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststore_fetch_provider_config, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststore_fetch_provider_config: "_ns, aError));
-    }
-    case 19: { // suggest:uniffi_suggest_fn_method_suggeststore_ingest
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststore_ingest, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststore_ingest: "_ns, aError));
-    }
-    case 20: { // suggest:uniffi_suggest_fn_method_suggeststore_interrupt
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststore_interrupt, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststore_interrupt: "_ns, aError));
-    }
-    case 21: { // suggest:uniffi_suggest_fn_method_suggeststore_query
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststore_query, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststore_query: "_ns, aError));
-    }
-    case 22: { // suggest:uniffi_suggest_fn_clone_suggeststorebuilder
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_clone_suggeststorebuilder, aGlobal, aArgs, "uniffi_suggest_fn_clone_suggeststorebuilder: "_ns, aError));
-    }
-    case 23: { // suggest:uniffi_suggest_fn_constructor_suggeststorebuilder_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_constructor_suggeststorebuilder_new, aGlobal, aArgs, "uniffi_suggest_fn_constructor_suggeststorebuilder_new: "_ns, aError));
-    }
-    case 24: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_build
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststorebuilder_build, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststorebuilder_build: "_ns, aError));
-    }
-    case 25: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_cache_path
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststorebuilder_cache_path, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststorebuilder_cache_path: "_ns, aError));
-    }
-    case 26: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_data_path
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststorebuilder_data_path, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststorebuilder_data_path: "_ns, aError));
-    }
-    case 27: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststorebuilder_load_extension, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststorebuilder_load_extension: "_ns, aError));
-    }
-    case 28: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name: "_ns, aError));
-    }
-    case 29: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server, aGlobal, aArgs, "uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server: "_ns, aError));
-    }
-    case 30: { // suggest:uniffi_suggest_fn_func_raw_suggestion_url_matches
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_suggest_fn_func_raw_suggestion_url_matches, aGlobal, aArgs, "uniffi_suggest_fn_func_raw_suggestion_url_matches: "_ns, aError));
-    }
-    case 31: { // tabs:uniffi_tabs_fn_clone_remotecommandstore
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_clone_remotecommandstore, aGlobal, aArgs, "uniffi_tabs_fn_clone_remotecommandstore: "_ns, aError));
-    }
-    case 32: { // tabs:uniffi_tabs_fn_method_remotecommandstore_add_remote_command
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_remotecommandstore_add_remote_command, aGlobal, aArgs, "uniffi_tabs_fn_method_remotecommandstore_add_remote_command: "_ns, aError));
-    }
-    case 33: { // tabs:uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<int64_t>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at, aGlobal, aArgs, "uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at: "_ns, aError));
-    }
-    case 34: { // tabs:uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands, aGlobal, aArgs, "uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands: "_ns, aError));
-    }
-    case 35: { // tabs:uniffi_tabs_fn_method_remotecommandstore_remove_remote_command
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_remotecommandstore_remove_remote_command, aGlobal, aArgs, "uniffi_tabs_fn_method_remotecommandstore_remove_remote_command: "_ns, aError));
-    }
-    case 36: { // tabs:uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent, aGlobal, aArgs, "uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent: "_ns, aError));
-    }
-    case 37: { // tabs:uniffi_tabs_fn_clone_tabsbridgedengine
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_clone_tabsbridgedengine, aGlobal, aArgs, "uniffi_tabs_fn_clone_tabsbridgedengine: "_ns, aError));
-    }
-    case 38: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_apply
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_apply, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_apply: "_ns, aError));
-    }
-    case 39: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id: "_ns, aError));
-    }
-    case 40: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_last_sync
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int64_t>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_last_sync, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_last_sync: "_ns, aError));
-    }
-    case 41: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync: "_ns, aError));
-    }
-    case 42: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_reset
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_reset, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_reset: "_ns, aError));
-    }
-    case 43: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id: "_ns, aError));
-    }
-    case 44: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<int64_t>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync: "_ns, aError));
-    }
-    case 45: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<int64_t>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded: "_ns, aError));
-    }
-    case 46: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_store_incoming
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_store_incoming, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_store_incoming: "_ns, aError));
-    }
-    case 47: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_finished
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_sync_finished, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_sync_finished: "_ns, aError));
-    }
-    case 48: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_id
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_sync_id, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_sync_id: "_ns, aError));
-    }
-    case 49: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_started
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_sync_started, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_sync_started: "_ns, aError));
-    }
-    case 50: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_wipe
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsbridgedengine_wipe, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsbridgedengine_wipe: "_ns, aError));
-    }
-    case 51: { // tabs:uniffi_tabs_fn_clone_tabsstore
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsTabsStorePointerType>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_clone_tabsstore, aGlobal, aArgs, "uniffi_tabs_fn_clone_tabsstore: "_ns, aError));
-    }
-    case 52: { // tabs:uniffi_tabs_fn_constructor_tabsstore_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsTabsStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_constructor_tabsstore_new, aGlobal, aArgs, "uniffi_tabs_fn_constructor_tabsstore_new: "_ns, aError));
-    }
-    case 53: { // tabs:uniffi_tabs_fn_method_tabsstore_bridged_engine
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsstore_bridged_engine, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsstore_bridged_engine: "_ns, aError));
-    }
-    case 54: { // tabs:uniffi_tabs_fn_method_tabsstore_get_all
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsstore_get_all, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsstore_get_all: "_ns, aError));
-    }
-    case 55: { // tabs:uniffi_tabs_fn_method_tabsstore_new_remote_command_store
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsstore_new_remote_command_store, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsstore_new_remote_command_store: "_ns, aError));
-    }
-    case 56: { // tabs:uniffi_tabs_fn_method_tabsstore_register_with_sync_manager
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsstore_register_with_sync_manager, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsstore_register_with_sync_manager: "_ns, aError));
-    }
-    case 57: { // tabs:uniffi_tabs_fn_method_tabsstore_set_local_tabs
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      return Some(CallHandler::CallAsync(uniffi_tabs_fn_method_tabsstore_set_local_tabs, aGlobal, aArgs, "uniffi_tabs_fn_method_tabsstore_set_local_tabs: "_ns, aError));
-    }
-  }
-  return Nothing();
-}
+// Define scaffolding call classes for each combination of return/argument types
+class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnConstructorRelevancystoreNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mDbpath;
 
-bool UniFFICallSync(const GlobalObject& aGlobal, uint64_t aId, const Sequence<UniFFIScaffoldingValue>& aArgs, RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue, ErrorResult& aError) {
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mDbpath, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromRust(
+            uniffi_relevancy_fn_constructor_relevancystore_new(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mDbpath)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreCalculateMetrics : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_relevancy_fn_method_relevancystore_calculate_metrics(
+                ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreClose : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_relevancy_fn_method_relevancystore_close(
+            ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreIngest : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mTopUrls;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mTopUrls, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_relevancy_fn_method_relevancystore_ingest(
+                ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mTopUrls)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreInterrupt : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_relevancy_fn_method_relevancystore_interrupt(
+            ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreUserInterestVector : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_relevancy_fn_method_relevancystore_user_interest_vector(
+                ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnConstructorRemotesettingsNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mRemoteSettingsConfig;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mRemoteSettingsConfig, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::FromRust(
+            uniffi_remote_settings_fn_constructor_remotesettings_new(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mRemoteSettingsConfig)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsDownloadAttachmentToPath : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mAttachmentId;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mPath;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mAttachmentId, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mPath, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path(
+            ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mAttachmentId)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mPath)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsGetRecords : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_remote_settings_fn_method_remotesettings_get_records(
+                ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsGetRecordsSince : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mTimestamp;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[1], &mTimestamp, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_remote_settings_fn_method_remotesettings_get_records_since(
+                ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mTimestamp)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnConstructorSuggeststoreNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mPath;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mSettingsConfig;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mPath, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mSettingsConfig, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromRust(
+            uniffi_suggest_fn_constructor_suggeststore_new(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mPath)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mSettingsConfig)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreClear : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_suggest_fn_method_suggeststore_clear(
+            ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions(
+            ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreDismissSuggestion : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mRawSuggestionUrl;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mRawSuggestionUrl, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_suggest_fn_method_suggeststore_dismiss_suggestion(
+            ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mRawSuggestionUrl)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreFetchGlobalConfig : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_suggest_fn_method_suggeststore_fetch_global_config(
+                ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreFetchProviderConfig : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mProvider;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mProvider, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_suggest_fn_method_suggeststore_fetch_provider_config(
+                ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mProvider)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreIngest : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mConstraints;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mConstraints, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_suggest_fn_method_suggeststore_ingest(
+            ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mConstraints)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreInterrupt : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mKind;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mKind, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_suggest_fn_method_suggeststore_interrupt(
+            ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mKind)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreQuery : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mQuery;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mQuery, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_suggest_fn_method_suggeststore_query(
+                ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mQuery)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnConstructorSuggeststorebuilderNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromRust(
+            uniffi_suggest_fn_constructor_suggeststorebuilder_new(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderBuild : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromRust(
+            uniffi_suggest_fn_method_suggeststorebuilder_build(
+                ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderCachePath : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mPath;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mPath, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromRust(
+            uniffi_suggest_fn_method_suggeststorebuilder_cache_path(
+                ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mPath)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderDataPath : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mPath;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mPath, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromRust(
+            uniffi_suggest_fn_method_suggeststorebuilder_data_path(
+                ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mPath)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderLoadExtension : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLibraryName;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mEntrypoint;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mLibraryName, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mEntrypoint, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromRust(
+            uniffi_suggest_fn_method_suggeststorebuilder_load_extension(
+                ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLibraryName)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mEntrypoint)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mBucketName;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mBucketName, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromRust(
+            uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name(
+                ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mBucketName)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mServer;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mServer, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromRust(
+            uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server(
+                ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mServer)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiSuggestFnFuncRawSuggestionUrlMatches : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mRawUrl;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUrl;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mRawUrl, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mUrl, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_suggest_fn_func_raw_suggestion_url_matches(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mRawUrl)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mUrl)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mDeviceId;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mCommand;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mDeviceId, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mCommand, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_tabs_fn_method_remotecommandstore_add_remote_command(
+                ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mDeviceId)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mCommand)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mDeviceId;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mCommand;
+    typename ScaffoldingConverter<int64_t>::IntermediateType mWhen;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mDeviceId, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mCommand, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int64_t>::FromJs(aArgs[3], &mWhen, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at(
+                ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mDeviceId)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mCommand)),
+                ScaffoldingConverter<int64_t>::IntoRust(std::move(mWhen)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands(
+                ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mDeviceId;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mCommand;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mDeviceId, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mCommand, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_tabs_fn_method_remotecommandstore_remove_remote_command(
+                ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mDeviceId)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mCommand)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mCommand;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mCommand, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent(
+                ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mCommand)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineApply : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_tabs_fn_method_tabsbridgedengine_apply(
+                ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mNewSyncId;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mNewSyncId, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id(
+                ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mNewSyncId)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineLastSync : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int64_t>::FromRust(
+            uniffi_tabs_fn_method_tabsbridgedengine_last_sync(
+                ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedenginePrepareForSync : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mClientData;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mClientData, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync(
+            ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mClientData)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineReset : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsbridgedengine_reset(
+            ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineResetSyncId : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id(
+                ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetLastSync : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int64_t>::IntermediateType mLastSync;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int64_t>::FromJs(aArgs[1], &mLastSync, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync(
+            ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<int64_t>::IntoRust(std::move(mLastSync)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetUploaded : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int64_t>::IntermediateType mNewTimestamp;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUploadedIds;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int64_t>::FromJs(aArgs[1], &mNewTimestamp, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[2], &mUploadedIds, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded(
+            ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<int64_t>::IntoRust(std::move(mNewTimestamp)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mUploadedIds)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineStoreIncoming : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mIncomingEnvelopesAsJson;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mIncomingEnvelopesAsJson, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsbridgedengine_store_incoming(
+            ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mIncomingEnvelopesAsJson)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncFinished : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsbridgedengine_sync_finished(
+            ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncId : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_tabs_fn_method_tabsbridgedengine_sync_id(
+                ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncStarted : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsbridgedengine_sync_started(
+            ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineWipe : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsbridgedengine_wipe(
+            ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnConstructorTabsstoreNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mPath;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mPath, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromRust(
+            uniffi_tabs_fn_constructor_tabsstore_new(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mPath)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreBridgedEngine : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromRust(
+            uniffi_tabs_fn_method_tabsstore_bridged_engine(
+                ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreGetAll : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_tabs_fn_method_tabsstore_get_all(
+                ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreNewRemoteCommandStore : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromRust(
+            uniffi_tabs_fn_method_tabsstore_new_remote_command_store(
+                ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreRegisterWithSyncManager : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsstore_register_with_sync_manager(
+            ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreSetLocalTabs : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mRemoteTabs;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mRemoteTabs, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_tabs_fn_method_tabsstore_set_local_tabs(
+            ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mRemoteTabs)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+
+UniquePtr<UniffiHandlerBase> UniFFIGetHandler(uint64_t aId) {
   switch (aId) {
-    case 0: { // relevancy:uniffi_relevancy_fn_clone_relevancystore
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      CallHandler::CallSync(uniffi_relevancy_fn_clone_relevancystore, aGlobal, aArgs, aReturnValue, "uniffi_relevancy_fn_clone_relevancystore: "_ns, aError);
-      return true;
+    case 1: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnConstructorRelevancystoreNew>();
     }
-    case 1: { // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_relevancy_fn_constructor_relevancystore_new, aGlobal, aArgs, aReturnValue, "uniffi_relevancy_fn_constructor_relevancystore_new: "_ns, aError);
-      return true;
+    case 2: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreCalculateMetrics>();
     }
-    case 2: { // relevancy:uniffi_relevancy_fn_method_relevancystore_calculate_metrics
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      CallHandler::CallSync(uniffi_relevancy_fn_method_relevancystore_calculate_metrics, aGlobal, aArgs, aReturnValue, "uniffi_relevancy_fn_method_relevancystore_calculate_metrics: "_ns, aError);
-      return true;
+    case 3: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreClose>();
     }
-    case 3: { // relevancy:uniffi_relevancy_fn_method_relevancystore_close
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      CallHandler::CallSync(uniffi_relevancy_fn_method_relevancystore_close, aGlobal, aArgs, aReturnValue, "uniffi_relevancy_fn_method_relevancystore_close: "_ns, aError);
-      return true;
+    case 4: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreIngest>();
     }
-    case 4: { // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_relevancy_fn_method_relevancystore_ingest, aGlobal, aArgs, aReturnValue, "uniffi_relevancy_fn_method_relevancystore_ingest: "_ns, aError);
-      return true;
+    case 5: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreInterrupt>();
     }
-    case 5: { // relevancy:uniffi_relevancy_fn_method_relevancystore_interrupt
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      CallHandler::CallSync(uniffi_relevancy_fn_method_relevancystore_interrupt, aGlobal, aArgs, aReturnValue, "uniffi_relevancy_fn_method_relevancystore_interrupt: "_ns, aError);
-      return true;
+    case 6: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreUserInterestVector>();
     }
-    case 6: { // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>>;
-      CallHandler::CallSync(uniffi_relevancy_fn_method_relevancystore_user_interest_vector, aGlobal, aArgs, aReturnValue, "uniffi_relevancy_fn_method_relevancystore_user_interest_vector: "_ns, aError);
-      return true;
+    case 8: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnConstructorRemotesettingsNew>();
     }
-    case 7: { // remote_settings:uniffi_remote_settings_fn_clone_remotesettings
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>, ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>>;
-      CallHandler::CallSync(uniffi_remote_settings_fn_clone_remotesettings, aGlobal, aArgs, aReturnValue, "uniffi_remote_settings_fn_clone_remotesettings: "_ns, aError);
-      return true;
+    case 9: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsDownloadAttachmentToPath>();
     }
-    case 8: { // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_remote_settings_fn_constructor_remotesettings_new, aGlobal, aArgs, aReturnValue, "uniffi_remote_settings_fn_constructor_remotesettings_new: "_ns, aError);
-      return true;
+    case 10: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsGetRecords>();
     }
-    case 9: { // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path, aGlobal, aArgs, aReturnValue, "uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path: "_ns, aError);
-      return true;
+    case 11: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsGetRecordsSince>();
     }
-    case 10: { // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>>;
-      CallHandler::CallSync(uniffi_remote_settings_fn_method_remotesettings_get_records, aGlobal, aArgs, aReturnValue, "uniffi_remote_settings_fn_method_remotesettings_get_records: "_ns, aError);
-      return true;
+    case 13: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnConstructorSuggeststoreNew>();
     }
-    case 11: { // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>, ScaffoldingConverter<uint64_t>>;
-      CallHandler::CallSync(uniffi_remote_settings_fn_method_remotesettings_get_records_since, aGlobal, aArgs, aReturnValue, "uniffi_remote_settings_fn_method_remotesettings_get_records_since: "_ns, aError);
-      return true;
+    case 14: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreClear>();
     }
-    case 12: { // suggest:uniffi_suggest_fn_clone_suggeststore
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>>;
-      CallHandler::CallSync(uniffi_suggest_fn_clone_suggeststore, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_clone_suggeststore: "_ns, aError);
-      return true;
+    case 15: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions>();
     }
-    case 13: { // suggest:uniffi_suggest_fn_constructor_suggeststore_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_constructor_suggeststore_new, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_constructor_suggeststore_new: "_ns, aError);
-      return true;
+    case 16: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreDismissSuggestion>();
     }
-    case 14: { // suggest:uniffi_suggest_fn_method_suggeststore_clear
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststore_clear, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststore_clear: "_ns, aError);
-      return true;
+    case 17: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreFetchGlobalConfig>();
     }
-    case 15: { // suggest:uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions: "_ns, aError);
-      return true;
+    case 18: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreFetchProviderConfig>();
     }
-    case 16: { // suggest:uniffi_suggest_fn_method_suggeststore_dismiss_suggestion
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststore_dismiss_suggestion, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststore_dismiss_suggestion: "_ns, aError);
-      return true;
+    case 19: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreIngest>();
     }
-    case 17: { // suggest:uniffi_suggest_fn_method_suggeststore_fetch_global_config
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststore_fetch_global_config, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststore_fetch_global_config: "_ns, aError);
-      return true;
+    case 20: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreInterrupt>();
     }
-    case 18: { // suggest:uniffi_suggest_fn_method_suggeststore_fetch_provider_config
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststore_fetch_provider_config, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststore_fetch_provider_config: "_ns, aError);
-      return true;
+    case 21: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreQuery>();
     }
-    case 19: { // suggest:uniffi_suggest_fn_method_suggeststore_ingest
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststore_ingest, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststore_ingest: "_ns, aError);
-      return true;
+    case 23: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnConstructorSuggeststorebuilderNew>();
     }
-    case 20: { // suggest:uniffi_suggest_fn_method_suggeststore_interrupt
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststore_interrupt, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststore_interrupt: "_ns, aError);
-      return true;
+    case 24: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderBuild>();
     }
-    case 21: { // suggest:uniffi_suggest_fn_method_suggeststore_query
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststore_query, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststore_query: "_ns, aError);
-      return true;
+    case 25: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderCachePath>();
     }
-    case 22: { // suggest:uniffi_suggest_fn_clone_suggeststorebuilder
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>>;
-      CallHandler::CallSync(uniffi_suggest_fn_clone_suggeststorebuilder, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_clone_suggeststorebuilder: "_ns, aError);
-      return true;
+    case 26: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderDataPath>();
     }
-    case 23: { // suggest:uniffi_suggest_fn_constructor_suggeststorebuilder_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>>;
-      CallHandler::CallSync(uniffi_suggest_fn_constructor_suggeststorebuilder_new, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_constructor_suggeststorebuilder_new: "_ns, aError);
-      return true;
+    case 27: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderLoadExtension>();
     }
-    case 24: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_build
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststorebuilder_build, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststorebuilder_build: "_ns, aError);
-      return true;
+    case 28: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName>();
     }
-    case 25: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_cache_path
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststorebuilder_cache_path, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststorebuilder_cache_path: "_ns, aError);
-      return true;
+    case 29: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer>();
     }
-    case 26: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_data_path
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststorebuilder_data_path, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststorebuilder_data_path: "_ns, aError);
-      return true;
+    case 30: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnFuncRawSuggestionUrlMatches>();
     }
-    case 27: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststorebuilder_load_extension, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststorebuilder_load_extension: "_ns, aError);
-      return true;
+    case 32: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand>();
     }
-    case 28: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name: "_ns, aError);
-      return true;
+    case 33: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt>();
     }
-    case 29: { // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server: "_ns, aError);
-      return true;
+    case 34: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands>();
     }
-    case 30: { // suggest:uniffi_suggest_fn_func_raw_suggestion_url_matches
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_suggest_fn_func_raw_suggestion_url_matches, aGlobal, aArgs, aReturnValue, "uniffi_suggest_fn_func_raw_suggestion_url_matches: "_ns, aError);
-      return true;
+    case 35: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand>();
     }
-    case 31: { // tabs:uniffi_tabs_fn_clone_remotecommandstore
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_clone_remotecommandstore, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_clone_remotecommandstore: "_ns, aError);
-      return true;
+    case 36: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent>();
     }
-    case 32: { // tabs:uniffi_tabs_fn_method_remotecommandstore_add_remote_command
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_remotecommandstore_add_remote_command, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_remotecommandstore_add_remote_command: "_ns, aError);
-      return true;
+    case 38: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineApply>();
     }
-    case 33: { // tabs:uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<int64_t>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_remotecommandstore_add_remote_command_at: "_ns, aError);
-      return true;
+    case 39: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId>();
     }
-    case 34: { // tabs:uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_remotecommandstore_get_unsent_commands: "_ns, aError);
-      return true;
+    case 40: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineLastSync>();
     }
-    case 35: { // tabs:uniffi_tabs_fn_method_remotecommandstore_remove_remote_command
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingConverter<RustBuffer>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_remotecommandstore_remove_remote_command, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_remotecommandstore_remove_remote_command: "_ns, aError);
-      return true;
+    case 41: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedenginePrepareForSync>();
     }
-    case 36: { // tabs:uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int8_t>, ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_remotecommandstore_set_pending_command_sent: "_ns, aError);
-      return true;
+    case 42: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineReset>();
     }
-    case 37: { // tabs:uniffi_tabs_fn_clone_tabsbridgedengine
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_clone_tabsbridgedengine, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_clone_tabsbridgedengine: "_ns, aError);
-      return true;
+    case 43: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineResetSyncId>();
     }
-    case 38: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_apply
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_apply, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_apply: "_ns, aError);
-      return true;
+    case 44: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetLastSync>();
     }
-    case 39: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_ensure_current_sync_id: "_ns, aError);
-      return true;
+    case 45: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetUploaded>();
     }
-    case 40: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_last_sync
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<int64_t>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_last_sync, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_last_sync: "_ns, aError);
-      return true;
+    case 46: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineStoreIncoming>();
     }
-    case 41: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_prepare_for_sync: "_ns, aError);
-      return true;
+    case 47: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncFinished>();
     }
-    case 42: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_reset
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_reset, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_reset: "_ns, aError);
-      return true;
+    case 48: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncId>();
     }
-    case 43: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_reset_sync_id: "_ns, aError);
-      return true;
+    case 49: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncStarted>();
     }
-    case 44: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<int64_t>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_set_last_sync: "_ns, aError);
-      return true;
+    case 50: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineWipe>();
     }
-    case 45: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<int64_t>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_set_uploaded: "_ns, aError);
-      return true;
+    case 52: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnConstructorTabsstoreNew>();
     }
-    case 46: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_store_incoming
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_store_incoming, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_store_incoming: "_ns, aError);
-      return true;
+    case 53: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreBridgedEngine>();
     }
-    case 47: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_finished
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_sync_finished, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_sync_finished: "_ns, aError);
-      return true;
+    case 54: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreGetAll>();
     }
-    case 48: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_id
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_sync_id, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_sync_id: "_ns, aError);
-      return true;
+    case 55: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreNewRemoteCommandStore>();
     }
-    case 49: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_sync_started
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_sync_started, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_sync_started: "_ns, aError);
-      return true;
+    case 56: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreRegisterWithSyncManager>();
     }
-    case 50: { // tabs:uniffi_tabs_fn_method_tabsbridgedengine_wipe
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsbridgedengine_wipe, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsbridgedengine_wipe: "_ns, aError);
-      return true;
+    case 57: {
+        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreSetLocalTabs>();
     }
-    case 51: { // tabs:uniffi_tabs_fn_clone_tabsstore
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsTabsStorePointerType>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_clone_tabsstore, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_clone_tabsstore: "_ns, aError);
-      return true;
-    }
-    case 52: { // tabs:uniffi_tabs_fn_constructor_tabsstore_new
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsTabsStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_tabs_fn_constructor_tabsstore_new, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_constructor_tabsstore_new: "_ns, aError);
-      return true;
-    }
-    case 53: { // tabs:uniffi_tabs_fn_method_tabsstore_bridged_engine
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsstore_bridged_engine, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsstore_bridged_engine: "_ns, aError);
-      return true;
-    }
-    case 54: { // tabs:uniffi_tabs_fn_method_tabsstore_get_all
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<RustBuffer>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsstore_get_all, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsstore_get_all: "_ns, aError);
-      return true;
-    }
-    case 55: { // tabs:uniffi_tabs_fn_method_tabsstore_new_remote_command_store
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsstore_new_remote_command_store, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsstore_new_remote_command_store: "_ns, aError);
-      return true;
-    }
-    case 56: { // tabs:uniffi_tabs_fn_method_tabsstore_register_with_sync_manager
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsstore_register_with_sync_manager, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsstore_register_with_sync_manager: "_ns, aError);
-      return true;
-    }
-    case 57: { // tabs:uniffi_tabs_fn_method_tabsstore_set_local_tabs
-      using CallHandler = ScaffoldingCallHandler<ScaffoldingConverter<void>, ScaffoldingObjectConverter<&kTabsTabsStorePointerType>, ScaffoldingConverter<RustBuffer>>;
-      CallHandler::CallSync(uniffi_tabs_fn_method_tabsstore_set_local_tabs, aGlobal, aArgs, aReturnValue, "uniffi_tabs_fn_method_tabsstore_set_local_tabs: "_ns, aError);
-      return true;
-    }
+
+    default:
+      return nullptr;
   }
-  return false;
 }
 
 Maybe<already_AddRefed<UniFFIPointer>> UniFFIReadPointer(const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {

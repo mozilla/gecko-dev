@@ -57,8 +57,6 @@ dictionary UniFFIScaffoldingCallResult {
     // For success, this will be the return value for non-void returns
     // For error, this will be an ArrayBuffer storing the serialized error value
     UniFFIScaffoldingValue data;
-    // For internal-error, this will be a utf-8 string describing the error
-    ByteString internalErrorMessage;
 };
 
 // JS handler for calling a CallbackInterface method.
