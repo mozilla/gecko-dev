@@ -10319,8 +10319,6 @@
   value: true
 #elif defined(XP_OPENBSD)
   value: true
-#elif defined(XP_SOLARIS)
-  value: true
 #else
   value: false
 #endif
@@ -10363,8 +10361,6 @@
   value: true
 #elif defined(XP_OPENBSD)
   value: true
-#elif defined(XP_SOLARIS)
-  value: true
 #else
   value: false
 #endif
@@ -10396,8 +10392,6 @@
   value: true
 #elif defined(XP_OPENBSD)
   value: true
-#elif defined(XP_SOLARIS)
-  value: true
 #else
   value: false
 #endif
@@ -10414,8 +10408,6 @@
 #elif defined(XP_FREEBSD)
   value: true
 #elif defined(XP_OPENBSD)
-  value: true
-#elif defined(XP_SOLARIS)
   value: true
 #else
   value: false
@@ -10434,8 +10426,6 @@
   value: true
 #elif defined(XP_OPENBSD)
   value: true
-#elif defined(XP_SOLARIS)
-  value: true
 #else
   value: false
 #endif
@@ -10452,8 +10442,6 @@
 #elif defined(XP_FREEBSD)
   value: true
 #elif defined(XP_OPENBSD)
-  value: true
-#elif defined(XP_SOLARIS)
   value: true
 #else
   value: false
@@ -10483,8 +10471,6 @@
 #elif defined(XP_FREEBSD)
   value: true
 #elif defined(XP_OPENBSD)
-  value: true
-#elif defined(XP_SOLARIS)
   value: true
 #else
   value: false
