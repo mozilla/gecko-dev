@@ -454,15 +454,11 @@ void CopySamples(Span<S> aSource, Span<D> aDest, uint32_t aSourceChannelCount,
     return;
   }
   if (!IsInterleaved(aSourceFormat) && !IsInterleaved(aCopyToSpec.mFormat)) {
-    // Copying a single plane: the sample count is the same as the frame count
-    size_t samplesToCopy = aCopyToSpec.mFrameCount;
     // Planar to Planar / convert + copy from the right index in the source.
-    size_t framePerPlane = aSource.Length() / aSourceChannelCount;
-    size_t offset = aCopyToSpec.mPlaneIndex * framePerPlane;
-    MOZ_ASSERT(aDest.Length() >= aCopyToSpec.mFrameCount,
-               "Destination buffer too small");
-    MOZ_ASSERT(aSource.Length() >= offset + samplesToCopy,
-               "Source buffer too small");
+    size_t offset =
+        aCopyToSpec.mPlaneIndex * aSource.Length() / aSourceChannelCount;
+    MOZ_ASSERT(aDest.Length() >= aSource.Length() / aSourceChannelCount -
+                                     aCopyToSpec.mFrameOffset);
     for (uint32_t i = 0; i < aCopyToSpec.mFrameCount; i++) {
       aDest[i] =
           ConvertAudioSample<D>(aSource[offset + aCopyToSpec.mFrameOffset + i]);
@@ -710,12 +706,16 @@ RefPtr<mozilla::AudioData> AudioData::ToAudioData() const {
     LOGE("Overflow AudioData::ToAudioData when computing the number of frames");
     return nullptr;
   }
-  AlignedAudioBuffer buf(sampleCount.value());
-  if (!buf.Length()) {
-    LOGE("OOM when allocating storage for AudioData conversion");
+  uint32_t bytesPerSample = BytesPerSamples(mAudioSampleFormat.value());
+  CheckedInt64 storageNeeded = sampleCount.value();
+  storageNeeded *= bytesPerSample;
+  if (!storageNeeded.isValid()) {
+    LOGE("Overflow AudioData::ToAudioData when computing the number of bytes");
     return nullptr;
   }
-  Span<uint8_t> storage(reinterpret_cast<uint8_t*>(buf.Data()), buf.Size());
+  AlignedAudioBuffer buf(sampleCount.value());
+  Span<uint8_t> storage(reinterpret_cast<uint8_t*>(buf.Data()),
+                        storageNeeded.value());
 
   CopyToSpec spec(mNumberOfFrames, 0, 0, AudioSampleFormat::F32);
 
