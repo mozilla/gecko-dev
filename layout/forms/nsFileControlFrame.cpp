@@ -162,10 +162,7 @@ void nsFileControlFrame::AppendAnonymousContentTo(
 NS_QUERYFRAME_HEAD(nsFileControlFrame)
   NS_QUERYFRAME_ENTRY(nsFileControlFrame)
   NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
-  NS_QUERYFRAME_ENTRY(nsIFormControlFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsBlockFrame)
-
-void nsFileControlFrame::SetFocus(bool aOn, bool aRepaint) {}
 
 static void AppendBlobImplAsDirectory(nsTArray<OwningFileOrDirectory>& aArray,
                                       BlobImpl* aBlobImpl,
@@ -385,15 +382,11 @@ nsresult nsFileControlFrame::GetFrameName(nsAString& aResult) const {
 }
 #endif
 
-nsresult nsFileControlFrame::SetFormProperty(nsAtom* aName,
-                                             const nsAString& aValue) {
-  if (nsGkAtoms::value == aName) {
-    if (MiddleCroppingBlockFrame* f =
-            do_QueryFrame(mTextContent->GetPrimaryFrame())) {
-      f->UpdateDisplayedValueToUncroppedValue(true);
-    }
+void nsFileControlFrame::SelectedFilesUpdated() {
+  if (MiddleCroppingBlockFrame* f =
+          do_QueryFrame(mTextContent->GetPrimaryFrame())) {
+    f->UpdateDisplayedValueToUncroppedValue(true);
   }
-  return NS_OK;
 }
 
 #ifdef ACCESSIBILITY

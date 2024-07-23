@@ -8,15 +8,13 @@
 #define nsCheckboxRadioFrame_h___
 
 #include "mozilla/Attributes.h"
-#include "nsIFormControlFrame.h"
 #include "nsAtomicContainerFrame.h"
 #include "nsDisplayList.h"
 
 /**
  * nsCheckboxRadioFrame is used for radio buttons and checkboxes.
  */
-class nsCheckboxRadioFrame final : public nsAtomicContainerFrame,
-                                   public nsIFormControlFrame {
+class nsCheckboxRadioFrame final : public nsAtomicContainerFrame {
  public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsCheckboxRadioFrame)
@@ -65,13 +63,6 @@ class nsCheckboxRadioFrame final : public nsAtomicContainerFrame,
   void Reflow(nsPresContext* aCX, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;
-
-  // new behavior
-
-  void SetFocus(bool aOn = true, bool aRepaint = false) override;
-
-  // nsIFormControlFrame
-  nsresult SetFormProperty(nsAtom* aName, const nsAString& aValue) override;
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override {

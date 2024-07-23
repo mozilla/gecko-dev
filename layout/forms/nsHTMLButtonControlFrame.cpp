@@ -11,7 +11,6 @@
 #include "nsIFrameInlines.h"
 #include "nsContainerFrame.h"
 #include "nsPresContextInlines.h"
-#include "nsIFormControlFrame.h"
 #include "nsPresContext.h"
 #include "nsLayoutUtils.h"
 #include "nsGkAtoms.h"
@@ -52,7 +51,6 @@ void nsHTMLButtonControlFrame::Init(nsIContent* aContent,
 
 NS_QUERYFRAME_HEAD(nsHTMLButtonControlFrame)
   NS_QUERYFRAME_ENTRY(nsHTMLButtonControlFrame)
-  NS_QUERYFRAME_ENTRY(nsIFormControlFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 #ifdef ACCESSIBILITY
@@ -60,8 +58,6 @@ a11y::AccType nsHTMLButtonControlFrame::AccessibleType() {
   return a11y::eHTMLButtonType;
 }
 #endif
-
-void nsHTMLButtonControlFrame::SetFocus(bool aOn, bool aRepaint) {}
 
 nsresult nsHTMLButtonControlFrame::HandleEvent(nsPresContext* aPresContext,
                                                WidgetGUIEvent* aEvent,
@@ -457,15 +453,6 @@ BaselineSharingGroup nsHTMLButtonControlFrame::GetDefaultBaselineSharingGroup()
 nscoord nsHTMLButtonControlFrame::SynthesizeFallbackBaseline(
     mozilla::WritingMode aWM, BaselineSharingGroup aBaselineGroup) const {
   return Baseline::SynthesizeBOffsetFromMarginBox(this, aWM, aBaselineGroup);
-}
-
-nsresult nsHTMLButtonControlFrame::SetFormProperty(nsAtom* aName,
-                                                   const nsAString& aValue) {
-  if (nsGkAtoms::value == aName) {
-    return mContent->AsElement()->SetAttr(kNameSpaceID_None, nsGkAtoms::value,
-                                          aValue, true);
-  }
-  return NS_OK;
 }
 
 ComputedStyle* nsHTMLButtonControlFrame::GetAdditionalComputedStyle(

@@ -12,7 +12,6 @@
 #include "nsIAnonymousContentCreator.h"
 #include "mozilla/RefPtr.h"
 
-class nsITextControlFrame;
 class nsPresContext;
 
 namespace mozilla {

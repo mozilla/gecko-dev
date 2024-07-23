@@ -12,7 +12,6 @@
 #include "nsContainerFrame.h"
 #include "nsIAnonymousContentCreator.h"
 #include "nsIContent.h"
-#include "nsITextControlFrame.h"
 #include "nsIStatefulFrame.h"
 
 class nsISelectionController;
@@ -23,6 +22,7 @@ class ScrollContainerFrame;
 class TextEditor;
 class TextControlState;
 enum class PseudoStyleType : uint8_t;
+enum class SelectionDirection : uint8_t;
 namespace dom {
 class Element;
 }  // namespace dom
@@ -30,7 +30,6 @@ class Element;
 
 class nsTextControlFrame : public nsContainerFrame,
                            public nsIAnonymousContentCreator,
-                           public nsITextControlFrame,
                            public nsIStatefulFrame {
   using Element = mozilla::dom::Element;
 
@@ -110,23 +109,14 @@ class nsTextControlFrame : public nsContainerFrame,
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
-  //==== BEGIN NSIFORMCONTROLFRAME
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY void SetFocus(bool aOn, bool aRepaint) override;
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult
-  SetFormProperty(nsAtom* aName, const nsAString& aValue) override;
-
-  //==== END NSIFORMCONTROLFRAME
-
-  //==== NSITEXTCONTROLFRAME
-
   MOZ_CAN_RUN_SCRIPT_BOUNDARY already_AddRefed<mozilla::TextEditor>
-  GetTextEditor() override;
-  MOZ_CAN_RUN_SCRIPT NS_IMETHOD
-  SetSelectionRange(uint32_t aSelectionStart, uint32_t aSelectionEnd,
-                    SelectionDirection = SelectionDirection::None) override;
-  NS_IMETHOD GetOwnedSelectionController(
-      nsISelectionController** aSelCon) override;
-  nsFrameSelection* GetOwnedFrameSelection() override {
+  GetTextEditor();
+
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD SetSelectionRange(uint32_t aSelectionStart,
+                                                  uint32_t aSelectionEnd,
+                                                  mozilla::SelectionDirection);
+  NS_IMETHOD GetOwnedSelectionController(nsISelectionController** aSelCon);
+  nsFrameSelection* GetOwnedFrameSelection() {
     return ControlElement()->GetConstFrameSelection();
   }
   nsISelectionController* GetSelectionController() {
@@ -140,7 +130,7 @@ class nsTextControlFrame : public nsContainerFrame,
    * @throws NS_ERROR_NOT_INITIALIZED if mEditor has not been created
    * @throws various and sundry other things
    */
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult EnsureEditorInitialized() override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult EnsureEditorInitialized();
 
   //==== END NSITEXTCONTROLFRAME
 
@@ -168,6 +158,7 @@ class nsTextControlFrame : public nsContainerFrame,
   void ScrollSelectionIntoViewAsync(ScrollAncestors = ScrollAncestors::No);
 
  protected:
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void OnFocus();
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void HandleReadonlyOrDisabledChange();
 
   /**
@@ -216,6 +207,8 @@ class nsTextControlFrame : public nsContainerFrame,
   DEFINE_TEXTCTRL_CONST_FORWARDER(int32_t, GetRows)
 
 #undef DEFINE_TEXTCTRL_CONST_FORWARDER
+
+  MOZ_CAN_RUN_SCRIPT nsresult SelectAll();
 
  protected:
   class EditorInitializer;
@@ -281,13 +274,13 @@ class nsTextControlFrame : public nsContainerFrame,
 
  private:
   // helper methods
-  MOZ_CAN_RUN_SCRIPT nsresult SetSelectionInternal(
-      nsINode* aStartNode, uint32_t aStartOffset, nsINode* aEndNode,
-      uint32_t aEndOffset, SelectionDirection = SelectionDirection::None);
-  MOZ_CAN_RUN_SCRIPT nsresult SelectAllOrCollapseToEndOfText(bool aSelect);
-  MOZ_CAN_RUN_SCRIPT nsresult
-  SetSelectionEndPoints(uint32_t aSelStart, uint32_t aSelEnd,
-                        SelectionDirection = SelectionDirection::None);
+  MOZ_CAN_RUN_SCRIPT nsresult SetSelectionInternal(nsINode* aStartNode,
+                                                   uint32_t aStartOffset,
+                                                   nsINode* aEndNode,
+                                                   uint32_t aEndOffset,
+                                                   mozilla::SelectionDirection);
+  MOZ_CAN_RUN_SCRIPT nsresult SetSelectionEndPoints(
+      uint32_t aSelStart, uint32_t aSelEnd, mozilla::SelectionDirection);
 
   void FinishedInitializer() { RemoveProperty(TextControlInitializer()); }
 

@@ -9,10 +9,8 @@
 
 #include "mozilla/Attributes.h"
 #include "nsBlockFrame.h"
-#include "nsIFormControlFrame.h"
 #include "nsIDOMEventListener.h"
 #include "nsIAnonymousContentCreator.h"
-#include "nsCOMPtr.h"
 
 namespace mozilla::dom {
 class FileList;
@@ -21,7 +19,6 @@ class DataTransfer;
 }  // namespace mozilla::dom
 
 class nsFileControlFrame final : public nsBlockFrame,
-                                 public nsIFormControlFrame,
                                  public nsIAnonymousContentCreator {
   using Element = mozilla::dom::Element;
 
@@ -39,9 +36,7 @@ class nsFileControlFrame final : public nsBlockFrame,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;
 
-  // nsIFormControlFrame
-  nsresult SetFormProperty(nsAtom* aName, const nsAString& aValue) override;
-  void SetFocus(bool aOn, bool aRepaint) override;
+  void SelectedFilesUpdated();
 
   void Destroy(DestroyContext&) override;
 

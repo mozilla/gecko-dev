@@ -15,7 +15,6 @@
 #include "nsPresContext.h"
 #include "nsIFormControl.h"
 #include "nsIFrame.h"
-#include "nsIFormControlFrame.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/ContentEvents.h"
 #include "mozilla/FocusModel.h"
@@ -147,9 +146,7 @@ bool HTMLButtonElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
 }
 
 bool HTMLButtonElement::IsDisabledForEvents(WidgetEvent* aEvent) {
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
-  nsIFrame* formFrame = do_QueryFrame(formControlFrame);
-  return IsElementDisabledForEvents(aEvent, formFrame);
+  return IsElementDisabledForEvents(aEvent, GetPrimaryFrame());
 }
 
 void HTMLButtonElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {

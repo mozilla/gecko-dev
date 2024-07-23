@@ -59,6 +59,7 @@
 #include "nsFlexContainerFrame.h"
 #include "nsFocusManager.h"
 #include "nsFrameList.h"
+#include "nsTextControlFrame.h"
 #include "nsPlaceholderFrame.h"
 #include "nsIBaseWindow.h"
 #include "nsIContent.h"
@@ -92,7 +93,6 @@
 #include "nsFieldSetFrame.h"
 #include "nsFrameTraversal.h"
 #include "nsRange.h"
-#include "nsITextControlFrame.h"
 #include "nsNameSpaceManager.h"
 #include "nsIPercentBSizeObserver.h"
 #include "nsStyleStructInlines.h"
@@ -8036,29 +8036,24 @@ inline static bool FormControlShrinksForPercentSize(const nsIFrame* aFrame) {
     return false;
   }
 
-  LayoutFrameType fType = aFrame->Type();
-  if (fType == LayoutFrameType::Meter || fType == LayoutFrameType::Progress ||
-      fType == LayoutFrameType::Range) {
-    // progress, meter and range do have this shrinking behavior
-    // FIXME: Maybe these should be nsIFormControlFrame?
-    return true;
+  switch (aFrame->Type()) {
+    case LayoutFrameType::Meter:
+    case LayoutFrameType::Progress:
+    case LayoutFrameType::Range:
+    case LayoutFrameType::TextInput:
+    case LayoutFrameType::ColorControl:
+    case LayoutFrameType::ComboboxControl:
+    case LayoutFrameType::ListControl:
+    case LayoutFrameType::CheckboxRadio:
+    case LayoutFrameType::FileControl:
+    case LayoutFrameType::ImageControl:
+      return true;
+    default:
+      // Buttons (GfxButtonControl / HTMLButtonControl) don't have this
+      // shrinking behavior.  (Note that color inputs do, even though they
+      // inherit from button, so we can't use do_QueryFrame here.)
+      return false;
   }
-
-  if (!static_cast<nsIFormControlFrame*>(do_QueryFrame(aFrame))) {
-    // Not a form control.  This includes fieldsets, which do not
-    // shrink.
-    return false;
-  }
-
-  if (fType == LayoutFrameType::GfxButtonControl ||
-      fType == LayoutFrameType::HTMLButtonControl) {
-    // Buttons don't have this shrinking behavior.  (Note that color
-    // inputs do, even though they inherit from button, so we can't use
-    // do_QueryFrame here.)
-    return false;
-  }
-
-  return true;
 }
 
 bool nsIFrame::IsPercentageResolvedAgainstZero(
@@ -8514,8 +8509,7 @@ nsresult nsIFrame::GetSelectionController(nsPresContext* aPresContext,
 
   nsIFrame* frame = this;
   while (frame && frame->HasAnyStateBits(NS_FRAME_INDEPENDENT_SELECTION)) {
-    nsITextControlFrame* tcf = do_QueryFrame(frame);
-    if (tcf) {
+    if (nsTextControlFrame* tcf = do_QueryFrame(frame)) {
       return tcf->GetOwnedSelectionController(aSelCon);
     }
     frame = frame->GetParent();
@@ -8534,8 +8528,7 @@ already_AddRefed<nsFrameSelection> nsIFrame::GetFrameSelection() {
 const nsFrameSelection* nsIFrame::GetConstFrameSelection() const {
   nsIFrame* frame = const_cast<nsIFrame*>(this);
   while (frame && frame->HasAnyStateBits(NS_FRAME_INDEPENDENT_SELECTION)) {
-    nsITextControlFrame* tcf = do_QueryFrame(frame);
-    if (tcf) {
+    if (nsTextControlFrame* tcf = do_QueryFrame(frame)) {
       return tcf->GetOwnedFrameSelection();
     }
     frame = frame->GetParent();
@@ -8923,9 +8916,9 @@ static nsContentAndOffset FindLineBreakingFrame(nsIFrame* aFrame,
     return result;
   }
 
-  // Treat form controls as inline leaves
-  // XXX we really need a way to determine whether a frame is inline-level
-  if (static_cast<nsIFormControlFrame*>(do_QueryFrame(aFrame))) {
+  // Treat form controls and other replaced inline level elements as inline
+  // leaves.
+  if (aFrame->IsReplaced() && aFrame->IsInlineOutside()) {
     return result;
   }
 

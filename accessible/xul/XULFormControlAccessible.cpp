@@ -20,7 +20,6 @@
 #include "nsIDOMXULRadioGroupElement.h"
 #include "nsIDOMXULSelectCntrlItemEl.h"
 #include "nsIFrame.h"
-#include "nsITextControlFrame.h"
 #include "nsMenuPopupFrame.h"
 #include "nsNameSpaceManager.h"
 #include "mozilla/dom/Element.h"

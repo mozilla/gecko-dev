@@ -29,7 +29,6 @@ nsCheckboxRadioFrame::~nsCheckboxRadioFrame() = default;
 NS_IMPL_FRAMEARENA_HELPERS(nsCheckboxRadioFrame)
 
 NS_QUERYFRAME_HEAD(nsCheckboxRadioFrame)
-  NS_QUERYFRAME_ENTRY(nsIFormControlFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsAtomicContainerFrame)
 
 nscoord nsCheckboxRadioFrame::DefaultSize() {
@@ -137,8 +136,6 @@ void nsCheckboxRadioFrame::Reflow(nsPresContext* aPresContext,
   FinishAndStoreOverflow(&aDesiredSize);
 }
 
-void nsCheckboxRadioFrame::SetFocus(bool aOn, bool aRepaint) {}
-
 nsresult nsCheckboxRadioFrame::HandleEvent(nsPresContext* aPresContext,
                                            WidgetGUIEvent* aEvent,
                                            nsEventStatus* aEventStatus) {
@@ -146,10 +143,5 @@ nsresult nsCheckboxRadioFrame::HandleEvent(nsPresContext* aPresContext,
   if (IsContentDisabled()) {
     return nsIFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
   }
-  return NS_OK;
-}
-
-nsresult nsCheckboxRadioFrame::SetFormProperty(nsAtom* aName,
-                                               const nsAString& aValue) {
   return NS_OK;
 }

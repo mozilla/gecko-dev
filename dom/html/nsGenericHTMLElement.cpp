@@ -53,7 +53,6 @@
 #include "nsString.h"
 #include "nsGkAtoms.h"
 #include "nsDOMCSSDeclaration.h"
-#include "nsITextControlFrame.h"
 #include "nsIFormControl.h"
 #include "mozilla/dom/HTMLFormElement.h"
 #include "nsFocusManager.h"
@@ -1108,32 +1107,6 @@ bool nsGenericHTMLElement::IsAttributeMapped(const nsAtom* aAttribute) const {
 nsMapRuleToAttributesFunc nsGenericHTMLElement::GetAttributeMappingFunction()
     const {
   return &MapCommonAttributesInto;
-}
-
-nsIFormControlFrame* nsGenericHTMLElement::GetFormControlFrame(
-    bool aFlushFrames) {
-  auto flushType = aFlushFrames ? FlushType::Frames : FlushType::None;
-  nsIFrame* frame = GetPrimaryFrame(flushType);
-  if (!frame) {
-    return nullptr;
-  }
-
-  if (nsIFormControlFrame* f = do_QueryFrame(frame)) {
-    return f;
-  }
-
-  // If we have generated content, the primary frame will be a wrapper frame...
-  // Our real frame will be in its child list.
-  //
-  // FIXME(emilio): I don't think that's true... See bug 155957 for test-cases
-  // though, we should figure out whether this is still needed.
-  for (nsIFrame* kid : frame->PrincipalChildList()) {
-    if (nsIFormControlFrame* f = do_QueryFrame(kid)) {
-      return f;
-    }
-  }
-
-  return nullptr;
 }
 
 static const nsAttrValue::EnumTable kDivAlignTable[] = {
@@ -2635,46 +2608,6 @@ bool nsGenericHTMLFormControlElement::IsHTMLFocusable(IsFocusableFlags aFlags,
 
   *aIsFocusable = *aIsFocusable && IsFormControlDefaultFocusable(aFlags);
   return false;
-}
-
-void nsGenericHTMLFormControlElement::GetEventTargetParent(
-    EventChainPreVisitor& aVisitor) {
-  if (aVisitor.mEvent->IsTrusted() && (aVisitor.mEvent->mMessage == eFocus ||
-                                       aVisitor.mEvent->mMessage == eBlur)) {
-    // We have to handle focus/blur event to change focus states in
-    // PreHandleEvent to prevent it breaks event target chain creation.
-    aVisitor.mWantsPreHandleEvent = true;
-  }
-  nsGenericHTMLFormElement::GetEventTargetParent(aVisitor);
-}
-
-nsresult nsGenericHTMLFormControlElement::PreHandleEvent(
-    EventChainVisitor& aVisitor) {
-  if (aVisitor.mEvent->IsTrusted()) {
-    switch (aVisitor.mEvent->mMessage) {
-      case eFocus: {
-        // Check to see if focus has bubbled up from a form control's
-        // child textfield or button.  If that's the case, don't focus
-        // this parent file control -- leave focus on the child.
-        nsIFormControlFrame* formControlFrame = GetFormControlFrame(true);
-        if (formControlFrame &&
-            aVisitor.mEvent->mOriginalTarget == static_cast<nsINode*>(this)) {
-          formControlFrame->SetFocus(true, true);
-        }
-        break;
-      }
-      case eBlur: {
-        nsIFormControlFrame* formControlFrame = GetFormControlFrame(true);
-        if (formControlFrame) {
-          formControlFrame->SetFocus(false, false);
-        }
-        break;
-      }
-      default:
-        break;
-    }
-  }
-  return nsGenericHTMLFormElement::PreHandleEvent(aVisitor);
 }
 
 HTMLFieldSetElement* nsGenericHTMLFormControlElement::GetFieldSet() {

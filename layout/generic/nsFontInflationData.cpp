@@ -234,8 +234,7 @@ void nsFontInflationData::UpdateISize(const ReflowInput& aReflowInput) {
   // FIXME: Should probably only scan the text that's actually going to
   // be inflated!
 
-  nsIFormControlFrame* fcf = do_QueryFrame(aFrame);
-  if (fcf) {
+  if (aFrame->IsTextInputFrame()) {
     return aFrame;
   }
 

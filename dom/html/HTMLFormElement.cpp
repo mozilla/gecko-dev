@@ -38,7 +38,6 @@
 #include "nsFocusManager.h"
 #include "nsGkAtoms.h"
 #include "nsHTMLDocument.h"
-#include "nsIFormControlFrame.h"
 #include "nsInterfaceHashtable.h"
 #include "nsPresContext.h"
 #include "nsQueryObject.h"
