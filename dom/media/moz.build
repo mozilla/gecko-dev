@@ -297,6 +297,7 @@ UNIFIED_SOURCES += [
     "MediaPlaybackDelayPolicy.cpp",
     "MediaRecorder.cpp",
     "MediaResource.cpp",
+    "MediaResult.cpp",
     "MediaShutdownManager.cpp",
     "MediaStreamError.cpp",
     "MediaStreamTrack.cpp",
