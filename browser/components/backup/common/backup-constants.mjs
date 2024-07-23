@@ -33,7 +33,7 @@ export const ERRORS = Object.freeze({
    * Backup system tried to disable backup encryption but it was
    * already disabled
    */
-  ENCRYPTION_ALREADY_DISABLED: 10,
+  ENCRYPTION_ALREADY_DISABLED: 11,
   /** User supplied a new password that is not a valid password */
   INVALID_PASSWORD: 12,
   /**
@@ -41,4 +41,9 @@ export const ERRORS = Object.freeze({
    * or other programmer error.
    */
   INTERNAL_ERROR: 13,
+  /**
+   * A backup cannot be recovered because the backup file was created
+   * by a different application than the currently running application
+   */
+  UNSUPPORTED_APPLICATION: 14,
 });
