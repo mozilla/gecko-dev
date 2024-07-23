@@ -1056,12 +1056,13 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   // -
 
  private:
-  dom::PredefinedColorSpace mDrawingBufferColorSpace =
-      dom::PredefinedColorSpace::Srgb;
+  std::optional<dom::PredefinedColorSpace> mDrawingBufferColorSpace;
 
  public:
-  auto DrawingBufferColorSpace() const { return mDrawingBufferColorSpace; }
-
+  auto DrawingBufferColorSpace() const {
+    return mDrawingBufferColorSpace ? *mDrawingBufferColorSpace
+                                    : dom::PredefinedColorSpace::Srgb;
+  }
   void SetDrawingBufferColorSpace(dom::PredefinedColorSpace);
 
   // -

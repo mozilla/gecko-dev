@@ -52,10 +52,6 @@ dictionary WebGLContextAttributes {
     GLboolean preserveDrawingBuffer = false;
     GLboolean failIfMajorPerformanceCaveat = false;
     WebGLPowerPreference powerPreference = "default";
-
-    // We are experimenting here, though this should be close to where we end up.
-    [Pref="webgl.colorspaces.prototype"]
-    PredefinedColorSpace colorSpace; // = "srgb"; Default is gfx::ColorSpace2::UNKNOWN for now.
 };
 
 [Exposed=(Window,Worker),

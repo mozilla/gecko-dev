@@ -548,10 +548,11 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
   Maybe<layers::SurfaceDescriptor> GetFrontBuffer(WebGLFramebuffer*,
                                                   const bool webvr);
 
+  std::optional<dom::PredefinedColorSpace> mDrawingBufferColorSpace;
   std::optional<color::ColorProfileDesc> mDisplayProfile;
 
   void SetDrawingBufferColorSpace(const dom::PredefinedColorSpace val) {
-    mOptions.colorSpace = val;
+    mDrawingBufferColorSpace = val;
   }
 
   void ClearVRSwapChain();

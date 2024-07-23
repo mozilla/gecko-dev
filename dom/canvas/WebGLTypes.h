@@ -363,9 +363,7 @@ struct WebGLContextOptions final {
 
   dom::WebGLPowerPreference powerPreference =
       dom::WebGLPowerPreference::Default;
-  std::optional<dom::PredefinedColorSpace> colorSpace;
   bool shouldResistFingerprinting = true;
-
   bool enableDebugRendererInfo = false;
 
   auto MutTiedFields() {
@@ -382,9 +380,7 @@ struct WebGLContextOptions final {
       xrCompatible,
 
       powerPreference,
-      colorSpace,
       shouldResistFingerprinting,
-
       enableDebugRendererInfo);
     // clang-format on
   }
@@ -632,7 +628,7 @@ struct InitContextDesc final {
   uint32_t principalKey = 0;
   uvec2 size = {};
   WebGLContextOptions options;
-  std::array<uint8_t, 3> _padding2;
+  std::array<uint8_t, 5> _padding2;
 
   auto MutTiedFields() {
     return std::tie(isWebgl2, resistFingerprinting, _padding, principalKey,
@@ -733,7 +729,7 @@ struct InitContextResult final {
   WebGLContextOptions options;
   gl::GLVendor vendor;
   OptionalRenderableFormatBits optionalRenderableFormatBits;
-  uint8_t _padding = {};
+  std::array<uint8_t, 3> _padding = {};
   Limits limits;
   EnumMask<layers::SurfaceDescriptor::Type> uploadableSdTypes;
 
