@@ -30,16 +30,6 @@ add_task(async function testFunctionArguments() {
   );
 });
 
-add_task(async function testNumberOverflow() {
-  // MAX_SAFE_INTEGER + 1 fits in a Rust u64, but overflows a JS Number.
-  // This overflow should be caught by the C++ code.
-  await Assert.rejects(
-    Arithmetic.add(Number.MAX_SAFE_INTEGER, 1),
-    /RangeError/,
-    "add() call that overflows Number.MAX_SAFE_INTEGER"
-  );
-});
-
 add_task(async function testObjectPointers() {
   const todo = await TodoList.TodoList.init();
   const stringifier = await Rondpoint.Stringifier.init();
@@ -49,7 +39,7 @@ add_task(async function testObjectPointers() {
 
   await Assert.rejects(
     todo.getEntries(), // the pointer is incorrect, should throw
-    /Incorrect UniFFI pointer type/,
+    /Bad pointer type/,
     "getEntries() with wrong pointer type"
   );
 
