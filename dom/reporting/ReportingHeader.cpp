@@ -5,6 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/ReportingHeader.h"
+#include <limits>
 
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/JSON.h"
@@ -13,6 +14,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/SimpleGlobalObject.h"
 #include "mozilla/ipc/BackgroundUtils.h"
+#include "mozilla/net/SFVService.h"
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -166,12 +168,6 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
     return;
   }
 
-  nsAutoCString headerValue;
-  rv = aChannel->GetResponseHeader("Report-To"_ns, headerValue);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
   if (NS_WARN_IF(!ssm)) {
     return;
@@ -189,7 +185,18 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
     return;
   }
 
-  UniquePtr<Client> client = ParseHeader(aChannel, uri, headerValue);
+  // Parse Report-To and Reporting-Endpoints headers
+  UniquePtr<Client> client;
+  nsAutoCString header;
+
+  if (NS_SUCCEEDED(
+          aChannel->GetResponseHeader("Reporting-Endpoints"_ns, header))) {
+    client = ParseReportingEndpointsHeader(header, uri);
+  } else if (NS_SUCCEEDED(
+                 aChannel->GetResponseHeader("Report-To"_ns, header))) {
+    client = ParseReportToHeader(aChannel, uri, header);
+  }
+
   if (!client) {
     return;
   }
@@ -200,8 +207,114 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
   MaybeCreateCleanupTimer();
 }
 
-/* static */ UniquePtr<ReportingHeader::Client> ReportingHeader::ParseHeader(
-    nsIHttpChannel* aChannel, nsIURI* aURI, const nsACString& aHeaderValue) {
+/* static */
+UniquePtr<ReportingHeader::Client>
+ReportingHeader::ParseReportingEndpointsHeader(const nsACString& aHeaderValue,
+                                               nsIURI* aURI) {
+  nsCOMPtr<nsISFVService> sfv = mozilla::net::GetSFVService();
+
+  nsAutoCString uriSpec;
+  aURI->GetSpec(uriSpec);
+
+  nsCOMPtr<nsIURI> baseURL;
+  if (NS_FAILED(NS_NewURI(getter_AddRefs(baseURL), uriSpec))) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsISFVDictionary> parsedHeader;
+  if (NS_FAILED(
+          sfv->ParseDictionary(aHeaderValue, getter_AddRefs(parsedHeader)))) {
+    return nullptr;
+  }
+
+  nsTArray<nsCString> keys;
+  if (NS_FAILED(parsedHeader->Keys(keys))) {
+    return nullptr;
+  }
+
+  UniquePtr<Client> client = MakeUnique<Client>();
+
+  for (const auto& key : keys) {
+    // Extract an SFV data object from each dictionary entry
+    nsCOMPtr<nsISFVItemOrInnerList> iil;
+    if (NS_FAILED(parsedHeader->Get(key, getter_AddRefs(iil)))) {
+      continue;
+    }
+
+    // An item needs to be extracted from the ItemOrInnerList member-value
+    nsCOMPtr<nsISFVBareItem> value;
+    if (nsCOMPtr<nsISFVInnerList> innerList = do_QueryInterface(iil)) {
+      // Extract the first entry of each inner list, which should contain the
+      // endpoint's URL string
+      nsTArray<RefPtr<nsISFVItem>> items;
+
+      if (NS_FAILED(innerList->GetItems(items))) {
+        continue;
+      }
+
+      if (items.IsEmpty()) {
+        continue;
+      }
+
+      nsCOMPtr<nsISFVItem> firstItem(items[0]);
+
+      if (NS_FAILED(firstItem->GetValue(getter_AddRefs(value)))) {
+        continue;
+      }
+    } else if (nsCOMPtr<nsISFVItem> listItem = do_QueryInterface(iil)) {
+      if (NS_FAILED(listItem->GetValue(getter_AddRefs(value)))) {
+        continue;
+      }
+    }
+
+    // Ensure that the item's data type is a string, so the URL can be properly
+    // parsed
+    nsCOMPtr<nsISFVString> sfvString(do_QueryInterface(value));
+    if (!sfvString) {
+      continue;
+    }
+
+    nsAutoCString endpointURLString;
+    if (NS_FAILED(sfvString->GetValue(endpointURLString))) {
+      continue;
+    }
+
+    // Convert the URL string into a URI
+    nsCOMPtr<nsIURI> endpointURL;
+    nsresult rv = NS_NewURI(getter_AddRefs(endpointURL),
+                            endpointURLString.get(), baseURL);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      continue;
+    }
+
+    if (!IsSecureURI(endpointURL)) {
+      continue;
+    }
+
+    Group* group = client->mGroups.AppendElement();
+    group->mCreationTime = TimeStamp::Now();
+    group->mTTL = std::numeric_limits<int32_t>::max();
+    group->mName = NS_ConvertUTF8toUTF16(key);
+
+    // Use data extracted from dictionary entry to create an endpoint
+    Endpoint* ep = group->mEndpoints.AppendElement();
+    ep->mUrl = endpointURL;
+    ep->mEndpointName = key;
+    ep->mFailures = 0;
+    ep->mPriority = 1;
+    ep->mWeight = 1;
+  }
+
+  if (client->mGroups.IsEmpty()) {
+    return nullptr;
+  }
+
+  return client;
+}
+
+/* static */ UniquePtr<ReportingHeader::Client>
+ReportingHeader::ParseReportToHeader(nsIHttpChannel* aChannel, nsIURI* aURI,
+                                     const nsACString& aHeaderValue) {
   MOZ_ASSERT(aURI);
   // aChannel can be null in gtest
 
@@ -353,7 +466,8 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
   return client;
 }
 
-bool ReportingHeader::IsSecureURI(nsIURI* aURI) const {
+/* static */
+bool ReportingHeader::IsSecureURI(nsIURI* aURI) {
   MOZ_ASSERT(aURI);
 
   bool prioriAuthenticated = false;
