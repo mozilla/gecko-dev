@@ -28,7 +28,7 @@ class DefaultHomeScreenTest : ScreenshotTest() {
     val localeTestRule = LocaleTestRule()
 
     @get:Rule
-    var mActivityTestRule: ActivityTestRule<HomeActivity> = HomeActivityTestRule()
+    var mActivityTestRule: ActivityTestRule<HomeActivity> = HomeActivityTestRule(isNavigationBarCFREnabled = false)
 
     @Before
     fun setUp() {
