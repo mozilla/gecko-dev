@@ -1505,11 +1505,13 @@ set_config("JS_LIBRARY_NAME", js_library_name)
 add_old_configure_assignment("JS_LIBRARY_NAME", js_library_name)
 
 
-@depends(nspr_libs, instruments)
-def js_config_libs(nspr_libs, instruments):
+@depends(nspr_config.libs, nspr_pkg.libs, instruments)
+def js_config_libs(nspr_libs, nspr_pkg_libs, instruments):
     libs = []
     if nspr_libs:
         libs += nspr_libs
+    if nspr_pkg_libs:
+        libs += nspr_pkg_libs
     if instruments:
         libs += ["-framework", "CoreFoundation"]
     return libs

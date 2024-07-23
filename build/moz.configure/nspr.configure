@@ -117,12 +117,7 @@ def nspr_config(build_env, c_compiler, fold_libs):
 set_define("NO_NSPR_10_SUPPORT", True)
 
 set_config("NSPR_CFLAGS", nspr_config.cflags, when=nspr_config)
-
-
-nspr_libs = nspr_config.libs | nspr_pkg.libs | dependable([])
-
-
-set_config("NSPR_LIBS", nspr_libs)
+set_config("NSPR_LIBS", nspr_config.libs, when=nspr_config)
 
 set_config("NSPR_INCLUDE_DIR", nspr_config.include_dir, when=nspr_config)
 set_config("NSPR_LIB_DIR", nspr_config.lib_dir, when=nspr_config)
