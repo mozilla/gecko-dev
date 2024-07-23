@@ -7742,16 +7742,15 @@ template <bool ZeroFields>
 bool BaseCompiler::emitArrayAllocFixed(uint32_t typeIndex, RegRef object,
                                        uint32_t numElements,
                                        uint32_t elemSize) {
-  // The maximum number of elements for array.new_fixed enforced in validation
-  // should always prevent overflow here.
-  MOZ_ASSERT(WasmArrayObject::calcStorageBytesChecked(elemSize, numElements)
-                 .isValid());
-
   SymbolicAddressSignature fun =
       ZeroFields ? SASigArrayNew_true : SASigArrayNew_false;
 
+  // The maximum number of elements for array.new_fixed enforced in validation
+  // should always prevent overflow here.
+  static_assert(MaxArrayNewFixedElements * sizeof(wasm::LitVal) <
+                MaxArrayPayloadBytes);
   uint32_t storageBytes =
-      WasmArrayObject::calcStorageBytes(elemSize, numElements);
+      WasmArrayObject::calcStorageBytesUnchecked(elemSize, numElements);
   if (storageBytes > WasmArrayObject_MaxInlineBytes) {
     RegPtr typeDefData = loadTypeDefInstanceData(typeIndex);
     freeRef(object);
