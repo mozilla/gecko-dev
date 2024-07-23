@@ -175,6 +175,43 @@ CoderResult Magic(Coder<mode>& coder, Marker item) {
   }
 }
 
+// Coding function for a nullable pointer
+//
+// These functions will only code the inner value is not null. The
+// coding function to use for the inner value is specified by a template
+// parameter.
+
+template <CoderMode _, typename T, CodeFunc<MODE_DECODE, T> CodeT>
+CoderResult CodeNullablePtr(Coder<MODE_DECODE>& coder, T* item) {
+  // Decode 'isNonNull'
+  uint8_t isNonNull;
+  MOZ_TRY(CodePod(coder, &isNonNull));
+
+  if (isNonNull == 1) {
+    // Code the inner type
+    MOZ_TRY(CodeT(coder, item));
+  } else {
+    // Initialize to nullptr
+    *item = nullptr;
+  }
+  return Ok();
+}
+
+template <CoderMode mode, typename T, CodeFunc<mode, T> CodeT>
+CoderResult CodeNullablePtr(Coder<mode>& coder, const T* item) {
+  STATIC_ASSERT_ENCODING_OR_SIZING;
+
+  // Encode or size 'isNonNull'
+  const uint8_t isNonNull = *item != nullptr;
+  MOZ_TRY(CodePod(coder, &isNonNull));
+
+  if (isNonNull) {
+    // Encode or size the inner value
+    MOZ_TRY(CodeT(coder, item));
+  }
+  return Ok();
+}
+
 // mozilla::Maybe coding functions
 //
 // These functions will only code the inner value if Maybe.isSome(). The
@@ -1177,6 +1214,10 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // TODO (bug 1907645): We do not serialize branch hints yet.
 
   MOZ_TRY(CodePodVector(coder, &item->funcDefRanges));
+  MOZ_TRY((CodeNullablePtr<
+           mode, SharedBytes,
+           &CodeRefPtr<mode, const ShareableBytes, CodeShareableBytes>>(
+      coder, &item->bytecode)));
 
   MOZ_TRY(CodePod(coder, &item->funcDefsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->funcImportsOffsetStart));
@@ -1318,8 +1359,7 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 
   // Create and initialize the code
   MutableCode code =
-      js_new<Code>(CompileMode::Once, codeMeta, /*codeMetaForAsmJS=*/nullptr,
-                   /*maybeBytecode=*/nullptr);
+      js_new<Code>(CompileMode::Once, codeMeta, /*codeMetaForAsmJS=*/nullptr);
   if (!code || !code->initialize(std::move(funcImports), std::move(sharedStubs),
                                  std::move(sharedStubsLinkData),
                                  std::move(optimizedCode),

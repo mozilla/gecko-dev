@@ -845,10 +845,6 @@ class Code : public ShareableBase<Code> {
   // Offset of the request-tier-up stub in the `sharedStubs_` CodeBlock.
   uint32_t requestTierUpStubOffset_;
 
-  // The bytecode for a module. Only available for debuggable modules, or if
-  // doing lazy tiering.
-  const SharedBytes bytecode_;
-
   // Methods for getting complete tiers, private while we're moving to partial
   // tiering.
   Tiers completeTiers() const;
@@ -885,8 +881,7 @@ class Code : public ShareableBase<Code> {
 
  public:
   Code(CompileMode mode, const CodeMetadata& codeMeta,
-       const CodeMetadataForAsmJS* codeMetaForAsmJS,
-       const ShareableBytes* maybeBytecode);
+       const CodeMetadataForAsmJS* codeMetaForAsmJS);
 
   [[nodiscard]] bool initialize(FuncImportVector&& funcImports,
                                 UniqueCodeBlock sharedStubs,
@@ -926,7 +921,7 @@ class Code : public ShareableBase<Code> {
 
   const Bytes& bytecode() const {
     MOZ_ASSERT(codeMeta().debugEnabled || mode_ == CompileMode::LazyTiering);
-    return bytecode_->bytes;
+    return codeMeta_->bytecode->bytes;
   }
 
   const FuncImport& funcImport(uint32_t funcIndex) const {

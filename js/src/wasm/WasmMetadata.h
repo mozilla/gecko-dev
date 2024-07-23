@@ -189,6 +189,12 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // available while doing a 'tier-1' or 'once' compilation.
   FuncDefRangeVector funcDefRanges;
 
+  // The bytecode for this module. Only available for debuggable modules, or if
+  // doing lazy tiering. This is only accessible after we've decoded the whole
+  // module. This means it is not available while doing a 'tier-1' or 'once'
+  // compilation.
+  SharedBytes bytecode;
+
   // Whether this module was compiled with debugging support.
   bool debugEnabled;
   // A SHA-1 hash of the module bytecode for use in display urls. Only

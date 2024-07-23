@@ -1169,6 +1169,15 @@ SharedModule ModuleGenerator::finishModule(
   MOZ_ASSERT(funcDefRanges_.length() == codeMeta->numFuncDefs());
   codeMeta->funcDefRanges = std::move(funcDefRanges_);
 
+  // We keep the bytecode alive for debuggable modules, or if we're doing
+  // partial tiering.
+  if (compilerEnv_->debugEnabled() ||
+      compilerEnv_->mode() == CompileMode::LazyTiering) {
+    codeMeta->bytecode = &bytecode;
+  } else {
+    codeMeta->bytecode = nullptr;
+  }
+
   // Store a reference to the name section on the code metadata
   if (codeMeta_->nameCustomSectionIndex) {
     codeMeta->namePayload =
@@ -1188,12 +1197,7 @@ SharedModule ModuleGenerator::finishModule(
     memcpy(codeMeta->debugHash, hash, sizeof(ModuleHash));
   }
 
-  // We keep the bytecode alive for debuggable modules, or if we're doing
-  // partial tiering.
-  bool keepBytecode = compilerEnv_->debugEnabled() ||
-                      compilerEnv_->mode() == CompileMode::LazyTiering;
-  MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_,
-                                  keepBytecode ? &bytecode : nullptr);
+  MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_);
   if (!code || !code->initialize(
                    std::move(funcImports_), std::move(sharedStubsCodeBlock_),
                    std::move(sharedStubsLinkData_), std::move(tier1Code),
