@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "wasm-encoder"
-version = "0.210.0"
+version = "0.214.0"
 authors = ["Nick Fitzgerald <fitzgen@gmail.com>"]
 description = """
 A low-level WebAssembly encoder.
@@ -24,11 +24,14 @@ readme = "README.md"
 license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasm-encoder"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies.leb128]
 version = "0.2.4"
 
 [dependencies.wasmparser]
-version = "0.210.0"
+version = "0.214.0"
 features = ["std"]
 optional = true
 default-features = false

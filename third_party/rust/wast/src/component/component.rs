@@ -86,8 +86,7 @@ impl<'a> Component<'a> {
     /// This function can return an error for name resolution errors and other
     /// expansion-related errors.
     pub fn encode(&mut self) -> std::result::Result<Vec<u8>, crate::Error> {
-        self.resolve()?;
-        Ok(crate::component::binary::encode(self))
+        crate::core::EncodeOptions::default().encode_component(self)
     }
 
     pub(crate) fn validate(&self, parser: Parser<'_>) -> Result<()> {

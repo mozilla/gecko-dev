@@ -18,6 +18,7 @@ use crate::{encode_section, ConstExpr, Encode, RefType, Section, SectionId};
 ///     minimum: 128,
 ///     maximum: None,
 ///     table64: false,
+///     shared: false,
 /// });
 ///
 /// let mut elements = ElementSection::new();

@@ -142,6 +142,25 @@ fn smoke_test_wasm_gc() {
     }
 }
 
+#[test]
+fn smoke_test_wasm_custom_page_sizes() {
+    let mut rng = SmallRng::seed_from_u64(0);
+    let mut buf = vec![0; 2048];
+    for _ in 0..1024 {
+        rng.fill_bytes(&mut buf);
+        let mut u = Unstructured::new(&buf);
+        let config = Config {
+            custom_page_sizes_enabled: true,
+            ..Config::default()
+        };
+        if let Ok(module) = Module::new(config, &mut u) {
+            let wasm_bytes = module.to_bytes();
+            let mut validator = Validator::new_with_features(wasm_features());
+            validate(&mut validator, &wasm_bytes);
+        }
+    }
+}
+
 fn wasm_features() -> WasmFeatures {
     WasmFeatures::all()
 }

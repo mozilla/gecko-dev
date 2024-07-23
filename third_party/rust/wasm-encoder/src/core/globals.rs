@@ -98,15 +98,3 @@ impl Encode for GlobalType {
         sink.push(flag);
     }
 }
-
-#[cfg(feature = "wasmparser")]
-impl TryFrom<wasmparser::GlobalType> for GlobalType {
-    type Error = ();
-    fn try_from(global_ty: wasmparser::GlobalType) -> Result<Self, Self::Error> {
-        Ok(GlobalType {
-            val_type: global_ty.content_type.try_into()?,
-            mutable: global_ty.mutable,
-            shared: global_ty.shared,
-        })
-    }
-}

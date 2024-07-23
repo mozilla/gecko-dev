@@ -1,5 +1,6 @@
 use crate::component::*;
 use crate::core;
+use crate::core::EncodeOptions;
 use crate::token::{Id, Index, NameAnnotation, Span};
 use wasm_encoder::{
     CanonicalFunctionSection, ComponentAliasSection, ComponentDefinedTypeEncoder,
@@ -9,10 +10,10 @@ use wasm_encoder::{
     NestedComponentSection, RawSection, SectionId,
 };
 
-pub fn encode(component: &Component<'_>) -> Vec<u8> {
+pub fn encode(component: &Component<'_>, options: &EncodeOptions) -> Vec<u8> {
     match &component.kind {
         ComponentKind::Text(fields) => {
-            encode_fields(&component.id, &component.name, fields).finish()
+            encode_fields(&component.id, &component.name, fields, options).finish()
         }
         ComponentKind::Binary(bytes) => bytes.iter().flat_map(|b| b.iter().copied()).collect(),
     }
@@ -23,15 +24,16 @@ fn encode_fields(
     component_id: &Option<Id<'_>>,
     component_name: &Option<NameAnnotation<'_>>,
     fields: &[ComponentField<'_>],
+    options: &EncodeOptions,
 ) -> wasm_encoder::Component {
     let mut e = Encoder::default();
 
     for field in fields {
         match field {
-            ComponentField::CoreModule(m) => e.encode_core_module(m),
+            ComponentField::CoreModule(m) => e.encode_core_module(m, options),
             ComponentField::CoreInstance(i) => e.encode_core_instance(i),
             ComponentField::CoreType(t) => e.encode_core_type(t),
-            ComponentField::Component(c) => e.encode_component(c),
+            ComponentField::Component(c) => e.encode_component(c, options),
             ComponentField::Instance(i) => e.encode_instance(i),
             ComponentField::Alias(a) => e.encode_alias(a),
             ComponentField::Type(t) => e.encode_type(t),
@@ -55,14 +57,21 @@ fn encode_fields(
 
 fn encode_core_type(encoder: CoreTypeEncoder, ty: &CoreTypeDef) {
     match ty {
-        CoreTypeDef::Def(core::TypeDef::Func(f)) => {
-            encoder.function(
-                f.params.iter().map(|(_, _, ty)| (*ty).into()),
-                f.results.iter().copied().map(Into::into),
-            );
-        }
-        CoreTypeDef::Def(core::TypeDef::Struct(_)) | CoreTypeDef::Def(core::TypeDef::Array(_)) => {
-            todo!("encoding of GC proposal types not yet implemented")
+        CoreTypeDef::Def(def) => {
+            if def.shared {
+                todo!("encoding of shared types not yet implemented")
+            }
+            match &def.kind {
+                core::InnerTypeKind::Func(f) => {
+                    encoder.function(
+                        f.params.iter().map(|(_, _, ty)| (*ty).into()),
+                        f.results.iter().copied().map(Into::into),
+                    );
+                }
+                core::InnerTypeKind::Struct(_) | core::InnerTypeKind::Array(_) => {
+                    todo!("encoding of GC proposal types not yet implemented")
+                }
+            }
         }
         CoreTypeDef::Module(t) => {
             encoder.module(&t.into());
@@ -191,7 +200,7 @@ impl<'a> Encoder<'a> {
         })
     }
 
-    fn encode_core_module(&mut self, module: &CoreModule<'a>) {
+    fn encode_core_module(&mut self, module: &CoreModule<'a>, options: &EncodeOptions) {
         // Flush any in-progress section before encoding the module
         self.flush(None);
 
@@ -202,7 +211,7 @@ impl<'a> Encoder<'a> {
             CoreModuleKind::Import { .. } => unreachable!("should be expanded already"),
             CoreModuleKind::Inline { fields } => {
                 // TODO: replace this with a wasm-encoder based encoding (should return `wasm_encoder::Module`)
-                let data = crate::core::binary::encode(&module.id, &module.name, fields);
+                let data = crate::core::binary::encode(&module.id, &module.name, fields, options);
                 self.component.section(&RawSection {
                     id: ComponentSectionId::CoreModule.into(),
                     data: &data,
@@ -238,7 +247,7 @@ impl<'a> Encoder<'a> {
         self.flush(Some(self.core_types.id()));
     }
 
-    fn encode_component(&mut self, component: &NestedComponent<'a>) {
+    fn encode_component(&mut self, component: &NestedComponent<'a>, options: &EncodeOptions) {
         self.component_names
             .push(get_name(&component.id, &component.name));
         // Flush any in-progress section before encoding the component
@@ -252,6 +261,7 @@ impl<'a> Encoder<'a> {
                         &component.id,
                         &component.name,
                         fields,
+                        options,
                     )));
             }
         }
@@ -594,24 +604,27 @@ impl From<core::RefType<'_>> for wasm_encoder::RefType {
 
 impl From<core::HeapType<'_>> for wasm_encoder::HeapType {
     fn from(r: core::HeapType<'_>) -> Self {
+        use wasm_encoder::AbstractHeapType::*;
         match r {
-            core::HeapType::Func => Self::Func,
-            core::HeapType::Extern => Self::Extern,
-            core::HeapType::Exn | core::HeapType::NoExn => {
-                todo!("encoding of exceptions proposal types not yet implemented")
-            }
+            core::HeapType::Abstract { shared, ty } => match ty {
+                core::AbstractHeapType::Func => Self::Abstract { shared, ty: Func },
+                core::AbstractHeapType::Extern => Self::Abstract { shared, ty: Extern },
+                core::AbstractHeapType::Exn | core::AbstractHeapType::NoExn => {
+                    todo!("encoding of exceptions proposal types not yet implemented")
+                }
+                core::AbstractHeapType::Any
+                | core::AbstractHeapType::Eq
+                | core::AbstractHeapType::Struct
+                | core::AbstractHeapType::Array
+                | core::AbstractHeapType::NoFunc
+                | core::AbstractHeapType::NoExtern
+                | core::AbstractHeapType::None
+                | core::AbstractHeapType::I31 => {
+                    todo!("encoding of GC proposal types not yet implemented")
+                }
+            },
             core::HeapType::Concrete(Index::Num(i, _)) => Self::Concrete(i),
             core::HeapType::Concrete(_) => panic!("unresolved index"),
-            core::HeapType::Any
-            | core::HeapType::Eq
-            | core::HeapType::Struct
-            | core::HeapType::Array
-            | core::HeapType::NoFunc
-            | core::HeapType::NoExtern
-            | core::HeapType::None
-            | core::HeapType::I31 => {
-                todo!("encoding of GC proposal types not yet implemented")
-            }
         }
     }
 }
@@ -635,6 +648,7 @@ impl From<core::TableType<'_>> for wasm_encoder::TableType {
             minimum: ty.limits.min,
             maximum: ty.limits.max,
             table64: ty.limits.is64,
+            shared: ty.shared,
         }
     }
 }
@@ -870,12 +884,12 @@ impl From<&ModuleType<'_>> for wasm_encoder::ModuleType {
 
         for decl in &ty.decls {
             match decl {
-                ModuleTypeDecl::Type(t) => match &t.def {
-                    core::TypeDef::Func(f) => encoded.ty().function(
+                ModuleTypeDecl::Type(t) => match &t.def.kind {
+                    core::InnerTypeKind::Func(f) => encoded.ty().function(
                         f.params.iter().map(|(_, _, ty)| (*ty).into()),
                         f.results.iter().copied().map(Into::into),
                     ),
-                    core::TypeDef::Struct(_) | core::TypeDef::Array(_) => {
+                    core::InnerTypeKind::Struct(_) | core::InnerTypeKind::Array(_) => {
                         todo!("encoding of GC proposal types not yet implemented")
                     }
                 },

@@ -1,7 +1,7 @@
 //! Types and support for parsing the component model text format.
 
 mod alias;
-mod binary;
+pub(crate) mod binary;
 mod component;
 mod custom;
 mod expand;

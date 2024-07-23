@@ -166,10 +166,7 @@ impl<'a> Parse<'a> for Data<'a> {
                     // single-instruction expression.
                     let insn = parser.parse()?;
                     if parser.is_empty() {
-                        return Ok(Expression {
-                            instrs: [insn].into(),
-                            branch_hints: Vec::new(),
-                        });
+                        return Ok(Expression::one(insn));
                     }
 
                     // This is support for what is currently invalid syntax
@@ -183,13 +180,11 @@ impl<'a> Parse<'a> for Data<'a> {
                     //    (data (offset ...))
                     //
                     // but alas
-                    let expr: Expression = parser.parse()?;
+                    let mut expr: Expression = parser.parse()?;
                     let mut instrs = Vec::from(expr.instrs);
                     instrs.push(insn);
-                    Ok(Expression {
-                        instrs: instrs.into(),
-                        branch_hints: Vec::new(),
-                    })
+                    expr.instrs = instrs.into();
+                    Ok(expr)
                 }
             })?;
             DataKind::Active { memory, offset }

@@ -714,9 +714,12 @@ impl ComponentBuilder {
             });
             let ty_idx = u32::try_from(types.len()).unwrap();
             types.push(realloc_ty.clone());
-            defs.push(ModuleTypeDef::TypeDef(crate::core::CompositeType::Func(
-                realloc_ty.clone(),
-            )));
+            defs.push(ModuleTypeDef::TypeDef(
+                crate::core::CompositeType::new_func(
+                    realloc_ty.clone(),
+                    false, // TODO: handle shared
+                ),
+            ));
             defs.push(ModuleTypeDef::Export(
                 "canonical_abi_realloc".into(),
                 crate::core::EntityType::Func(ty_idx, realloc_ty),
@@ -737,9 +740,12 @@ impl ComponentBuilder {
             });
             let ty_idx = u32::try_from(types.len()).unwrap();
             types.push(free_ty.clone());
-            defs.push(ModuleTypeDef::TypeDef(crate::core::CompositeType::Func(
-                free_ty.clone(),
-            )));
+            defs.push(ModuleTypeDef::TypeDef(
+                crate::core::CompositeType::new_func(
+                    free_ty.clone(),
+                    false, // TODO: handle shared
+                ),
+            ));
             defs.push(ModuleTypeDef::Export(
                 "canonical_abi_free".into(),
                 crate::core::EntityType::Func(ty_idx, free_ty),
@@ -832,7 +838,9 @@ impl ComponentBuilder {
                         0,
                     )?;
                     types.push(ty.clone());
-                    defs.push(ModuleTypeDef::TypeDef(crate::core::CompositeType::Func(ty)));
+                    defs.push(ModuleTypeDef::TypeDef(
+                        crate::core::CompositeType::new_func(ty, false),
+                    )); // TODO: handle shared
                 }
 
                 // Alias

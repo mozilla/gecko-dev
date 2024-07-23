@@ -15,6 +15,7 @@ use crate::{encode_section, ConstExpr, Encode, RefType, Section, SectionId, ValT
 ///     minimum: 128,
 ///     maximum: None,
 ///     table64: false,
+///     shared: false,
 /// });
 ///
 /// let mut module = Module::new();
@@ -87,6 +88,10 @@ pub struct TableType {
     pub minimum: u64,
     /// Maximum size, in elements, of this table
     pub maximum: Option<u64>,
+    /// Whether this table is shared or not.
+    ///
+    /// This is included the shared-everything-threads proposal.
+    pub shared: bool,
 }
 
 impl TableType {
@@ -106,6 +111,9 @@ impl Encode for TableType {
         if self.maximum.is_some() {
             flags |= 0b001;
         }
+        if self.shared {
+            flags |= 0b010;
+        }
         if self.table64 {
             flags |= 0b100;
         }
@@ -117,18 +125,5 @@ impl Encode for TableType {
         if let Some(max) = self.maximum {
             max.encode(sink);
         }
-    }
-}
-
-#[cfg(feature = "wasmparser")]
-impl TryFrom<wasmparser::TableType> for TableType {
-    type Error = ();
-    fn try_from(table_ty: wasmparser::TableType) -> Result<Self, Self::Error> {
-        Ok(TableType {
-            element_type: table_ty.element_type.try_into()?,
-            minimum: table_ty.initial,
-            maximum: table_ty.maximum,
-            table64: table_ty.table64,
-        })
     }
 }

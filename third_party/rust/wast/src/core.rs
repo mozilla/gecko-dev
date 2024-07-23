@@ -12,6 +12,7 @@ mod table;
 mod tag;
 mod types;
 mod wast;
+pub use self::binary::{EncodeOptions, GenerateDwarf};
 pub use self::custom::*;
 pub use self::export::*;
 pub use self::expr::*;

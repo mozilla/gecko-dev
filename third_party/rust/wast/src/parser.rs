@@ -304,6 +304,7 @@ pub struct ParseBuffer<'a> {
     lexer: Lexer<'a>,
     cur: Cell<Position>,
     known_annotations: RefCell<HashMap<String, usize>>,
+    track_instr_spans: bool,
     depth: Cell<usize>,
     strings: Bump,
 }
@@ -385,7 +386,21 @@ impl ParseBuffer<'_> {
             }),
             known_annotations: Default::default(),
             strings: Default::default(),
+            track_instr_spans: false,
         })
+    }
+
+    /// Indicates whether the [`Expression::instr_spans`] field will be filled
+    /// in.
+    ///
+    /// This is useful when enabling DWARF debugging information via
+    /// [`EncodeOptions::dwarf`], for example.
+    ///
+    /// [`Expression::instr_spans`]: crate::core::Expression::instr_spans
+    /// [`EncodeOptions::dwarf`]: crate::core::EncodeOptions::dwarf
+    pub fn track_instr_spans(&mut self, track: bool) -> &mut Self {
+        self.track_instr_spans = track;
+        self
     }
 
     fn parser(&self) -> Parser<'_> {
@@ -972,6 +987,11 @@ impl<'a> Parser<'a> {
                 *slot -= 1;
             }
         }
+    }
+
+    #[cfg(feature = "wasm-module")]
+    pub(crate) fn track_instr_spans(&self) -> bool {
+        self.buf.track_instr_spans
     }
 }
 

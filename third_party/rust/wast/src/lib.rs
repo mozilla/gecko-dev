@@ -43,10 +43,15 @@
 //! don't need this (for example you're parsing your own s-expression format)
 //! then this feature can be disabled.
 //!
+//! This crate also has an off-by-default `dwarf` feature which enables using
+//! [`core::EncodeOptions::dwarf`] to embed DWARF debugging information in generated
+//! binaries.
+//!
 //! [`Parse`]: parser::Parse
 //! [`LexError`]: lexer::LexError
 
 #![deny(missing_docs, rustdoc::broken_intra_doc_links)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 /// A macro to create a custom keyword parser.
 ///

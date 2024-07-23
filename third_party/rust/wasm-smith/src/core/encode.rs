@@ -39,16 +39,7 @@ impl Module {
                 section.subtype(&wasm_encoder::SubType {
                     is_final: ty.is_final,
                     supertype_idx: ty.supertype,
-                    composite_type: match &ty.composite_type {
-                        CompositeType::Array(a) => wasm_encoder::CompositeType::Array(a.clone()),
-                        CompositeType::Func(f) => {
-                            wasm_encoder::CompositeType::Func(wasm_encoder::FuncType::new(
-                                f.params.iter().cloned(),
-                                f.results.iter().cloned(),
-                            ))
-                        }
-                        CompositeType::Struct(s) => wasm_encoder::CompositeType::Struct(s.clone()),
-                    },
+                    composite_type: (&ty.composite_type).into(),
                 });
             } else {
                 section.rec(
@@ -57,20 +48,7 @@ impl Module {
                         .map(|ty| wasm_encoder::SubType {
                             is_final: ty.is_final,
                             supertype_idx: ty.supertype,
-                            composite_type: match &ty.composite_type {
-                                CompositeType::Array(a) => {
-                                    wasm_encoder::CompositeType::Array(a.clone())
-                                }
-                                CompositeType::Func(f) => {
-                                    wasm_encoder::CompositeType::Func(wasm_encoder::FuncType::new(
-                                        f.params.iter().cloned(),
-                                        f.results.iter().cloned(),
-                                    ))
-                                }
-                                CompositeType::Struct(s) => {
-                                    wasm_encoder::CompositeType::Struct(s.clone())
-                                }
-                            },
+                            composite_type: (&ty.composite_type).into(),
                         }),
                 );
             }

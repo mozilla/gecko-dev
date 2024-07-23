@@ -68,11 +68,14 @@
 //! assert!(wasmparser::validate(&wasm_bytes).is_ok());
 //! ```
 
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![deny(missing_docs, missing_debug_implementations)]
 
 mod component;
 mod core;
 mod raw;
+#[cfg(feature = "wasmparser")]
+pub mod reencode;
 
 pub use self::component::*;
 pub use self::core::*;

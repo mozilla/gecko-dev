@@ -513,18 +513,7 @@ impl<'a> Resolver<'a> {
                 match &mut r.rep {
                     ValType::I32 | ValType::I64 | ValType::F32 | ValType::F64 | ValType::V128 => {}
                     ValType::Ref(r) => match &mut r.heap {
-                        core::HeapType::Func
-                        | core::HeapType::Extern
-                        | core::HeapType::Exn
-                        | core::HeapType::Any
-                        | core::HeapType::Eq
-                        | core::HeapType::Array
-                        | core::HeapType::I31
-                        | core::HeapType::Struct
-                        | core::HeapType::None
-                        | core::HeapType::NoFunc
-                        | core::HeapType::NoExtern
-                        | core::HeapType::NoExn => {}
+                        core::HeapType::Abstract { .. } => {}
                         core::HeapType::Concrete(id) => {
                             self.resolve_ns(id, Ns::Type)?;
                         }

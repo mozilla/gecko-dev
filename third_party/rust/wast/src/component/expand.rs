@@ -428,13 +428,13 @@ impl<'a> Expander<'a> {
         let mut i = 0;
         while i < ty.decls.len() {
             match &mut ty.decls[i] {
-                ModuleTypeDecl::Type(ty) => match &ty.def {
-                    core::TypeDef::Func(f) => {
+                ModuleTypeDecl::Type(ty) => match &ty.def.kind {
+                    core::InnerTypeKind::Func(f) => {
                         let id = gensym::fill(ty.span, &mut ty.id);
                         func_type_to_idx.insert(f.key(), Index::Id(id));
                     }
-                    core::TypeDef::Struct(_) => {}
-                    core::TypeDef::Array(_) => {}
+                    core::InnerTypeKind::Struct(_) => {}
+                    core::InnerTypeKind::Array(_) => {}
                 },
                 ModuleTypeDecl::Alias(_) => {}
                 ModuleTypeDecl::Import(ty) => {

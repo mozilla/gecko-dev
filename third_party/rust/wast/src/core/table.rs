@@ -29,7 +29,7 @@ pub enum TableKind<'a> {
         ty: TableType<'a>,
     },
 
-    /// A typical memory definition which simply says the limits of the table
+    /// A typical memory definition which simply says the limits of the table.
     Normal {
         /// Table type.
         ty: TableType<'a>,
@@ -37,12 +37,14 @@ pub enum TableKind<'a> {
         init_expr: Option<Expression<'a>>,
     },
 
-    /// The elem segments of this table, starting from 0, explicitly listed
+    /// The elem segments of this table, starting from 0, explicitly listed.
     Inline {
         /// The element type of this table.
         elem: RefType<'a>,
-        /// Whether or not this will be creating a 64-bit table
+        /// Whether or not this will be creating a 64-bit table.
         is64: bool,
+        /// Whether this table is shared or not.
+        shared: bool,
         /// The element table entries to have, and the length of this list is
         /// the limits of the table as well.
         payload: ElemPayload<'a>,
@@ -58,13 +60,19 @@ impl<'a> Parse<'a> for Table<'a> {
 
         // Afterwards figure out which style this is, either:
         //
-        //  * `elemtype (elem ...)`
-        //  * `(import "a" "b") limits`
-        //  * `limits`
+        //  * inline: `elemtype (elem ...)`
+        //  * normal: `tabletype`
+        //  * import: `(import "a" "b") tabletype`
+        //
+        // Where `tabletype := shared? index_type limits reftype`
         let mut l = parser.lookahead1();
 
+        let is_shared = l.peek::<kw::shared>()?;
         let has_index_type = l.peek::<kw::i32>()? | l.peek::<kw::i64>()?;
-        let kind = if l.peek::<RefType>()? || (has_index_type && parser.peek2::<RefType>()?) {
+        let kind = if l.peek::<RefType>()?
+            || ((is_shared || has_index_type) && parser.peek2::<RefType>()?)
+        {
+            let shared = parser.parse::<Option<kw::shared>>()?.is_some();
             let is64 = if parser.parse::<Option<kw::i32>>()?.is_some() {
                 false
             } else {
@@ -82,9 +90,10 @@ impl<'a> Parse<'a> for Table<'a> {
             TableKind::Inline {
                 elem,
                 is64,
+                shared,
                 payload,
             }
-        } else if has_index_type || l.peek::<u64>()? {
+        } else if is_shared || has_index_type || l.peek::<u64>()? {
             TableKind::Normal {
                 ty: parser.parse()?,
                 init_expr: if !parser.is_empty() {
@@ -264,10 +273,7 @@ impl<'a> ElemPayload<'a> {
             match &mut ret {
                 ElemPayload::Indices(list) => list.push(func),
                 ElemPayload::Exprs { exprs, .. } => {
-                    let expr = Expression {
-                        instrs: [Instruction::RefFunc(func)].into(),
-                        branch_hints: Vec::new(),
-                    };
+                    let expr = Expression::one(Instruction::RefFunc(func));
                     exprs.push(expr);
                 }
             }

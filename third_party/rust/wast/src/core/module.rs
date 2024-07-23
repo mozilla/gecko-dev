@@ -1,3 +1,4 @@
+use crate::core::binary::EncodeOptions;
 use crate::core::*;
 use crate::parser::{Parse, Parser, Result};
 use crate::token::{Id, Index, NameAnnotation, Span};
@@ -85,11 +86,7 @@ impl<'a> Module<'a> {
     /// This function can return an error for name resolution errors and other
     /// expansion-related errors.
     pub fn encode(&mut self) -> std::result::Result<Vec<u8>, crate::Error> {
-        self.resolve()?;
-        Ok(match &self.kind {
-            ModuleKind::Text(fields) => crate::core::binary::encode(&self.id, &self.name, fields),
-            ModuleKind::Binary(blobs) => blobs.iter().flat_map(|b| b.iter().cloned()).collect(),
-        })
+        EncodeOptions::default().encode_module(self)
     }
 
     pub(crate) fn validate(&self, parser: Parser<'_>) -> Result<()> {

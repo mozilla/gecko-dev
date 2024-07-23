@@ -14,8 +14,22 @@ use std::mem;
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct Expression<'a> {
+    /// Instructions in this expression.
     pub instrs: Box<[Instruction<'a>]>,
-    pub branch_hints: Vec<BranchHint>,
+
+    /// Branch hints, if any, found while parsing instructions.
+    pub branch_hints: Box<[BranchHint]>,
+
+    /// Optionally parsed spans of all instructions in `instrs`.
+    ///
+    /// This value is `None` as it's disabled by default. This can be enabled
+    /// through the
+    /// [`ParseBuffer::track_instr_spans`](crate::parser::ParseBuffer::track_instr_spans)
+    /// function.
+    ///
+    /// This is not tracked by default due to the memory overhead and limited
+    /// use of this field.
+    pub instr_spans: Option<Box<[Span]>>,
 }
 
 /// A `@metadata.code.branch_hint` in the code, associated with a If or BrIf
@@ -33,16 +47,26 @@ pub struct BranchHint {
 
 impl<'a> Parse<'a> for Expression<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
-        let mut exprs = ExpressionParser::default();
+        let mut exprs = ExpressionParser::new(parser);
         exprs.parse(parser)?;
         Ok(Expression {
-            instrs: exprs.instrs.into(),
-            branch_hints: exprs.branch_hints,
+            instrs: exprs.raw_instrs.into(),
+            branch_hints: exprs.branch_hints.into(),
+            instr_spans: exprs.spans.map(|s| s.into()),
         })
     }
 }
 
 impl<'a> Expression<'a> {
+    /// Creates an expression from the single `instr` specified.
+    pub fn one(instr: Instruction<'a>) -> Expression<'a> {
+        Expression {
+            instrs: [instr].into(),
+            branch_hints: Box::new([]),
+            instr_spans: None,
+        }
+    }
+
     /// Parse an expression formed from a single folded instruction.
     ///
     /// Attempts to parse an expression formed from a single folded instruction.
@@ -59,11 +83,12 @@ impl<'a> Expression<'a> {
     /// operation, so [`crate::Error`] is typically fatal and propagated all the
     /// way back to the top parse call site.
     pub fn parse_folded_instruction(parser: Parser<'a>) -> Result<Self> {
-        let mut exprs = ExpressionParser::default();
+        let mut exprs = ExpressionParser::new(parser);
         exprs.parse_folded_instruction(parser)?;
         Ok(Expression {
-            instrs: exprs.instrs.into(),
-            branch_hints: exprs.branch_hints,
+            instrs: exprs.raw_instrs.into(),
+            branch_hints: exprs.branch_hints.into(),
+            instr_spans: exprs.spans.map(|s| s.into()),
         })
     }
 }
@@ -74,11 +99,13 @@ impl<'a> Expression<'a> {
 /// call-thread-stack recursive function. Since we're parsing user input that
 /// runs the risk of blowing the call stack, so we want to be sure to use a heap
 /// stack structure wherever possible.
-#[derive(Default)]
 struct ExpressionParser<'a> {
     /// The flat list of instructions that we've parsed so far, and will
     /// eventually become the final `Expression`.
-    instrs: Vec<Instruction<'a>>,
+    ///
+    /// Appended to with `push_instr` to ensure that this is the same length of
+    /// `spans` if `spans` is used.
+    raw_instrs: Vec<Instruction<'a>>,
 
     /// Descriptor of all our nested s-expr blocks. This only happens when
     /// instructions themselves are nested.
@@ -88,19 +115,23 @@ struct ExpressionParser<'a> {
     /// Will be used later to collect the offsets in the final binary.
     /// <(index of branch instructions, BranchHintAnnotation)>
     branch_hints: Vec<BranchHint>,
+
+    /// Storage for all span information in `raw_instrs`. Optionally disabled to
+    /// reduce memory consumption of parsing expressions.
+    spans: Option<Vec<Span>>,
 }
 
 enum Paren {
     None,
     Left,
-    Right,
+    Right(Span),
 }
 
 /// A "kind" of nested block that we can be parsing inside of.
 enum Level<'a> {
     /// This is a normal `block` or `loop` or similar, where the instruction
     /// payload here is pushed when the block is exited.
-    EndWith(Instruction<'a>),
+    EndWith(Instruction<'a>, Option<Span>),
 
     /// This is a pretty special variant which means that we're parsing an `if`
     /// statement, and the state of the `if` parsing is tracked internally in
@@ -122,7 +153,7 @@ enum If<'a> {
     /// clause, if any, of the `if` instruction.
     ///
     /// This parse ends when `(then ...)` is encountered.
-    Clause(Instruction<'a>),
+    Clause(Instruction<'a>, Span),
     /// Currently parsing the `then` block, and afterwards a closing paren is
     /// required or an `(else ...)` expression.
     Then,
@@ -131,6 +162,19 @@ enum If<'a> {
 }
 
 impl<'a> ExpressionParser<'a> {
+    fn new(parser: Parser<'a>) -> ExpressionParser {
+        ExpressionParser {
+            raw_instrs: Vec::new(),
+            stack: Vec::new(),
+            branch_hints: Vec::new(),
+            spans: if parser.track_instr_spans() {
+                Some(Vec::new())
+            } else {
+                None
+            },
+        }
+    }
+
     fn parse(&mut self, parser: Parser<'a>) -> Result<()> {
         // Here we parse instructions in a loop, and we do not recursively
         // invoke this parse function to avoid blowing the stack on
@@ -153,7 +197,10 @@ impl<'a> ExpressionParser<'a> {
             match self.paren(parser)? {
                 // No parenthesis seen? Then we just parse the next instruction
                 // and move on.
-                Paren::None => self.instrs.push(parser.parse()?),
+                Paren::None => {
+                    let span = parser.cur_span();
+                    self.push_instr(parser.parse()?, span);
+                }
 
                 // If we see a left-parenthesis then things are a little
                 // special. We handle block-like instructions specially
@@ -178,6 +225,7 @@ impl<'a> ExpressionParser<'a> {
                         continue;
                     }
 
+                    let span = parser.cur_span();
                     match parser.parse()? {
                         // If block/loop show up then we just need to be sure to
                         // push an `end` instruction whenever the `)` token is
@@ -185,29 +233,30 @@ impl<'a> ExpressionParser<'a> {
                         i @ Instruction::Block(_)
                         | i @ Instruction::Loop(_)
                         | i @ Instruction::TryTable(_) => {
-                            self.instrs.push(i);
-                            self.stack.push(Level::EndWith(Instruction::End(None)));
+                            self.push_instr(i, span);
+                            self.stack
+                                .push(Level::EndWith(Instruction::End(None), None));
                         }
 
                         // Parsing an `if` instruction is super tricky, so we
                         // push an `If` scope and we let all our scope-based
                         // parsing handle the remaining items.
                         i @ Instruction::If(_) => {
-                            self.stack.push(Level::If(If::Clause(i)));
+                            self.stack.push(Level::If(If::Clause(i, span)));
                         }
 
                         // Anything else means that we're parsing a nested form
                         // such as `(i32.add ...)` which means that the
                         // instruction we parsed will be coming at the end.
-                        other => self.stack.push(Level::EndWith(other)),
+                        other => self.stack.push(Level::EndWith(other, Some(span))),
                     }
                 }
 
                 // If we registered a `)` token as being seen, then we're
                 // guaranteed there's an item in the `stack` stack for us to
                 // pop. We peel that off and take a look at what it says to do.
-                Paren::Right => match self.stack.pop().unwrap() {
-                    Level::EndWith(i) => self.instrs.push(i),
+                Paren::Right(span) => match self.stack.pop().unwrap() {
+                    Level::EndWith(i, s) => self.push_instr(i, s.unwrap_or(span)),
                     Level::IfArm => {}
                     Level::BranchHint => {}
 
@@ -215,11 +264,11 @@ impl<'a> ExpressionParser<'a> {
                     // block, then that's an error because there weren't enough
                     // items in the `if` statement. Otherwise we're just careful
                     // to terminate with an `end` instruction.
-                    Level::If(If::Clause(_)) => {
+                    Level::If(If::Clause(..)) => {
                         return Err(parser.error("previous `if` had no `then`"));
                     }
                     Level::If(_) => {
-                        self.instrs.push(Instruction::End(None));
+                        self.push_instr(Instruction::End(None), span);
                     }
                 },
             }
@@ -232,14 +281,15 @@ impl<'a> ExpressionParser<'a> {
         while !done {
             match self.paren(parser)? {
                 Paren::Left => {
-                    self.stack.push(Level::EndWith(parser.parse()?));
+                    let span = parser.cur_span();
+                    self.stack.push(Level::EndWith(parser.parse()?, Some(span)));
                 }
-                Paren::Right => {
-                    let top_instr = match self.stack.pop().unwrap() {
-                        Level::EndWith(i) => i,
+                Paren::Right(span) => {
+                    let (top_instr, span) = match self.stack.pop().unwrap() {
+                        Level::EndWith(i, s) => (i, s.unwrap_or(span)),
                         _ => panic!("unknown level type"),
                     };
-                    self.instrs.push(top_instr);
+                    self.push_instr(top_instr, span);
                     if self.stack.is_empty() {
                         done = true;
                     }
@@ -259,7 +309,7 @@ impl<'a> ExpressionParser<'a> {
                 Some(rest) => (Paren::Left, rest),
                 None if self.stack.is_empty() => (Paren::None, cursor),
                 None => match cursor.rparen()? {
-                    Some(rest) => (Paren::Right, rest),
+                    Some(rest) => (Paren::Right(cursor.cur_span()), rest),
                     None => (Paren::None, cursor),
                 },
             })
@@ -292,14 +342,15 @@ impl<'a> ExpressionParser<'a> {
             // folded instruction unless it starts with `then`, in which case
             // this transitions to the `Then` state and a new level has been
             // reached.
-            If::Clause(if_instr) => {
+            If::Clause(if_instr, if_instr_span) => {
                 if !parser.peek::<kw::then>()? {
                     return Ok(false);
                 }
                 parser.parse::<kw::then>()?;
                 let instr = mem::replace(if_instr, Instruction::End(None));
-                self.instrs.push(instr);
+                let span = *if_instr_span;
                 *i = If::Then;
+                self.push_instr(instr, span);
                 self.stack.push(Level::IfArm);
                 Ok(true)
             }
@@ -307,9 +358,9 @@ impl<'a> ExpressionParser<'a> {
             // Previously we were parsing the `(then ...)` clause so this next
             // `(` must be followed by `else`.
             If::Then => {
-                parser.parse::<kw::r#else>()?;
-                self.instrs.push(Instruction::Else(None));
+                let span = parser.parse::<kw::r#else>()?.0;
                 *i = If::Else;
+                self.push_instr(Instruction::Else(None), span);
                 self.stack.push(Level::IfArm);
                 Ok(true)
             }
@@ -332,10 +383,17 @@ impl<'a> ExpressionParser<'a> {
         };
 
         self.branch_hints.push(BranchHint {
-            instr_index: self.instrs.len(),
+            instr_index: self.raw_instrs.len(),
             value,
         });
         Ok(())
+    }
+
+    fn push_instr(&mut self, instr: Instruction<'a>, span: Span) {
+        self.raw_instrs.push(instr);
+        if let Some(spans) = &mut self.spans {
+            spans.push(span);
+        }
     }
 }
 
@@ -801,15 +859,42 @@ instructions! {
         I64AtomicRmw32CmpxchgU(MemArg<4>) : [0xfe, 0x4e] : "i64.atomic.rmw32.cmpxchg_u",
 
         // proposal: shared-everything-threads
-        GlobalAtomicGet(OrderedAccess<'a>) : [0xfe, 0x4f] : "global.atomic.get",
-        GlobalAtomicSet(OrderedAccess<'a>) : [0xfe, 0x50] : "global.atomic.set",
-        GlobalAtomicRmwAdd(OrderedAccess<'a>) : [0xfe, 0x51] : "global.atomic.rmw.add",
-        GlobalAtomicRmwSub(OrderedAccess<'a>) : [0xfe, 0x52] : "global.atomic.rmw.sub",
-        GlobalAtomicRmwAnd(OrderedAccess<'a>) : [0xfe, 0x53] : "global.atomic.rmw.and",
-        GlobalAtomicRmwOr(OrderedAccess<'a>) : [0xfe, 0x54] : "global.atomic.rmw.or",
-        GlobalAtomicRmwXor(OrderedAccess<'a>) : [0xfe, 0x55] : "global.atomic.rmw.xor",
-        GlobalAtomicRmwXchg(OrderedAccess<'a>) : [0xfe, 0x56] : "global.atomic.rmw.xchg",
-        GlobalAtomicRmwCmpxchg(OrderedAccess<'a>) : [0xfe, 0x57] : "global.atomic.rmw.cmpxchg",
+        GlobalAtomicGet(Ordered<Index<'a>>) : [0xfe, 0x4f] : "global.atomic.get",
+        GlobalAtomicSet(Ordered<Index<'a>>) : [0xfe, 0x50] : "global.atomic.set",
+        GlobalAtomicRmwAdd(Ordered<Index<'a>>) : [0xfe, 0x51] : "global.atomic.rmw.add",
+        GlobalAtomicRmwSub(Ordered<Index<'a>>) : [0xfe, 0x52] : "global.atomic.rmw.sub",
+        GlobalAtomicRmwAnd(Ordered<Index<'a>>) : [0xfe, 0x53] : "global.atomic.rmw.and",
+        GlobalAtomicRmwOr(Ordered<Index<'a>>) : [0xfe, 0x54] : "global.atomic.rmw.or",
+        GlobalAtomicRmwXor(Ordered<Index<'a>>) : [0xfe, 0x55] : "global.atomic.rmw.xor",
+        GlobalAtomicRmwXchg(Ordered<Index<'a>>) : [0xfe, 0x56] : "global.atomic.rmw.xchg",
+        GlobalAtomicRmwCmpxchg(Ordered<Index<'a>>) : [0xfe, 0x57] : "global.atomic.rmw.cmpxchg",
+        TableAtomicGet(Ordered<TableArg<'a>>) : [0xfe, 0x58] : "table.atomic.get",
+        TableAtomicSet(Ordered<TableArg<'a>>) : [0xfe, 0x59] : "table.atomic.set",
+        TableAtomicRmwXchg(Ordered<TableArg<'a>>) : [0xfe, 0x5A] : "table.atomic.rmw.xchg",
+        TableAtomicRmwCmpxchg(Ordered<TableArg<'a>>) : [0xFE, 0x5B] : "table.atomic.rmw.cmpxchg",
+        StructAtomicGet(Ordered<StructAccess<'a>>) : [0xFE, 0x5C] : "struct.atomic.get",
+        StructAtomicGetS(Ordered<StructAccess<'a>>) : [0xFE, 0x5D] : "struct.atomic.get_s",
+        StructAtomicGetU(Ordered<StructAccess<'a>>) : [0xFE, 0x5E] : "struct.atomic.get_u",
+        StructAtomicSet(Ordered<StructAccess<'a>>) : [0xFE, 0x5F] : "struct.atomic.set",
+        StructAtomicRmwAdd(Ordered<StructAccess<'a>>) : [0xFE, 0x60] : "struct.atomic.rmw.add",
+        StructAtomicRmwSub(Ordered<StructAccess<'a>>) : [0xFE, 0x61] : "struct.atomic.rmw.sub",
+        StructAtomicRmwAnd(Ordered<StructAccess<'a>>) : [0xFE, 0x62] : "struct.atomic.rmw.and",
+        StructAtomicRmwOr(Ordered<StructAccess<'a>>) : [0xFE, 0x63] : "struct.atomic.rmw.or",
+        StructAtomicRmwXor(Ordered<StructAccess<'a>>) : [0xFE, 0x64] : "struct.atomic.rmw.xor",
+        StructAtomicRmwXchg(Ordered<StructAccess<'a>>) : [0xFE, 0x65] : "struct.atomic.rmw.xchg",
+        StructAtomicRmwCmpxchg(Ordered<StructAccess<'a>>) : [0xFE, 0x66] : "struct.atomic.rmw.cmpxchg",
+        ArrayAtomicGet(Ordered<Index<'a>>) : [0xFE, 0x67] : "array.atomic.get",
+        ArrayAtomicGetS(Ordered<Index<'a>>) : [0xFE, 0x68] : "array.atomic.get_s",
+        ArrayAtomicGetU(Ordered<Index<'a>>) : [0xFE, 0x69] : "array.atomic.get_u",
+        ArrayAtomicSet(Ordered<Index<'a>>) : [0xFE, 0x6A] : "array.atomic.set",
+        ArrayAtomicRmwAdd(Ordered<Index<'a>>) : [0xFE, 0x6B] : "array.atomic.rmw.add",
+        ArrayAtomicRmwSub(Ordered<Index<'a>>) : [0xFE, 0x6C] : "array.atomic.rmw.sub",
+        ArrayAtomicRmwAnd(Ordered<Index<'a>>) : [0xFE, 0x6D] : "array.atomic.rmw.and",
+        ArrayAtomicRmwOr(Ordered<Index<'a>>) : [0xFE, 0x6E] : "array.atomic.rmw.or",
+        ArrayAtomicRmwXor(Ordered<Index<'a>>) : [0xFE, 0x6F] : "array.atomic.rmw.xor",
+        ArrayAtomicRmwXchg(Ordered<Index<'a>>) : [0xFE, 0x70] : "array.atomic.rmw.xchg",
+        ArrayAtomicRmwCmpxchg(Ordered<Index<'a>>) : [0xFE, 0x71] : "array.atomic.rmw.cmpxchg",
+        RefI31Shared : [0xFE, 0x72] : "ref.i31_shared",
 
         // proposal: simd
         //
@@ -1473,6 +1558,8 @@ pub struct TableArg<'a> {
     pub dst: Index<'a>,
 }
 
+// `TableArg` could be an unwrapped as an `Index` if not for this custom parse
+// behavior: if we cannot parse a table index, we default to table `0`.
 impl<'a> Parse<'a> for TableArg<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
         let dst = if let Some(dst) = parser.parse()? {
@@ -1773,20 +1860,27 @@ impl<'a> Parse<'a> for Ordering {
     }
 }
 
-/// Extra data associated with the `global.atomic.*` instructions.
+/// Add a memory [`Ordering`] to the argument `T` of some instruction.
+///
+/// This is helpful for many kinds of `*.atomic.*` instructions introduced by
+/// the shared-everything-threads proposal. Many of these instructions "build
+/// on" existing instructions by simply adding a memory order to them.
 #[derive(Clone, Debug)]
-pub struct OrderedAccess<'a> {
+pub struct Ordered<T> {
     /// The memory ordering for this atomic instruction.
     pub ordering: Ordering,
-    /// The index of the global to access.
-    pub index: Index<'a>,
+    /// The original argument type.
+    pub inner: T,
 }
 
-impl<'a> Parse<'a> for OrderedAccess<'a> {
+impl<'a, T> Parse<'a> for Ordered<T>
+where
+    T: Parse<'a>,
+{
     fn parse(parser: Parser<'a>) -> Result<Self> {
         let ordering = parser.parse()?;
-        let index = parser.parse()?;
-        Ok(OrderedAccess { ordering, index })
+        let inner = parser.parse()?;
+        Ok(Ordered { ordering, inner })
     }
 }
 

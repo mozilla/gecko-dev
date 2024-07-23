@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use crate::core::{CompositeInnerType, CompositeType};
+
 use super::*;
 use wasm_encoder::{ComponentExportKind, ComponentOuterAliasKind, ExportKind};
 
@@ -124,7 +126,10 @@ impl CoreType {
                 let mut enc_mod_ty = wasm_encoder::ModuleType::new();
                 for def in &mod_ty.defs {
                     match def {
-                        ModuleTypeDef::TypeDef(crate::core::CompositeType::Func(func_ty)) => {
+                        ModuleTypeDef::TypeDef(CompositeType {
+                            inner: CompositeInnerType::Func(func_ty),
+                            ..
+                        }) => {
                             enc_mod_ty.ty().function(
                                 func_ty.params.iter().copied(),
                                 func_ty.results.iter().copied(),

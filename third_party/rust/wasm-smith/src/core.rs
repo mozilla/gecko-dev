@@ -15,8 +15,8 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::str::{self, FromStr};
 use wasm_encoder::{
-    ArrayType, BlockType, ConstExpr, ExportKind, FieldType, HeapType, RefType, StorageType,
-    StructType, ValType,
+    AbstractHeapType, ArrayType, BlockType, ConstExpr, ExportKind, FieldType, HeapType, RefType,
+    StorageType, StructType, ValType,
 };
 pub(crate) use wasm_encoder::{GlobalType, MemoryType, TableType};
 
@@ -265,33 +265,62 @@ impl SubType {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum CompositeType {
-    Array(ArrayType),
-    Func(Rc<FuncType>),
-    Struct(StructType),
+pub(crate) struct CompositeType {
+    pub inner: CompositeInnerType,
+    pub shared: bool,
 }
 
 impl CompositeType {
-    fn unwrap_struct(&self) -> &StructType {
-        match self {
-            CompositeType::Struct(s) => s,
-            _ => panic!("not a struct"),
+    pub(crate) fn new_func(func: Rc<FuncType>, shared: bool) -> Self {
+        Self {
+            inner: CompositeInnerType::Func(func),
+            shared,
         }
     }
 
     fn unwrap_func(&self) -> &Rc<FuncType> {
-        match self {
-            CompositeType::Func(f) => f,
+        match &self.inner {
+            CompositeInnerType::Func(f) => f,
             _ => panic!("not a func"),
         }
     }
 
     fn unwrap_array(&self) -> &ArrayType {
-        match self {
-            CompositeType::Array(a) => a,
+        match &self.inner {
+            CompositeInnerType::Array(a) => a,
             _ => panic!("not an array"),
         }
     }
+
+    fn unwrap_struct(&self) -> &StructType {
+        match &self.inner {
+            CompositeInnerType::Struct(s) => s,
+            _ => panic!("not a struct"),
+        }
+    }
+}
+
+impl From<&CompositeType> for wasm_encoder::CompositeType {
+    fn from(ty: &CompositeType) -> Self {
+        let inner = match &ty.inner {
+            CompositeInnerType::Array(a) => wasm_encoder::CompositeInnerType::Array(a.clone()),
+            CompositeInnerType::Func(f) => wasm_encoder::CompositeInnerType::Func(
+                wasm_encoder::FuncType::new(f.params.iter().cloned(), f.results.iter().cloned()),
+            ),
+            CompositeInnerType::Struct(s) => wasm_encoder::CompositeInnerType::Struct(s.clone()),
+        };
+        wasm_encoder::CompositeType {
+            shared: ty.shared,
+            inner,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub(crate) enum CompositeInnerType {
+    Array(ArrayType),
+    Func(Rc<FuncType>),
+    Struct(StructType),
 }
 
 /// A function signature.
@@ -449,31 +478,58 @@ impl Module {
     }
 
     fn heap_type_is_sub_type(&self, a: HeapType, b: HeapType) -> bool {
+        use AbstractHeapType::*;
+        use CompositeInnerType as CT;
         use HeapType as HT;
         match (a, b) {
             (a, b) if a == b => true,
 
-            (HT::Eq | HT::I31 | HT::Struct | HT::Array | HT::None, HT::Any) => true,
-            (HT::I31 | HT::Struct | HT::Array | HT::None, HT::Eq) => true,
-            (HT::NoExtern, HT::Extern) => true,
-            (HT::NoFunc, HT::Func) => true,
-            (HT::None, HT::I31 | HT::Array | HT::Struct) => true,
-
-            (HT::Concrete(a), HT::Eq | HT::Any) => matches!(
-                self.ty(a).composite_type,
-                CompositeType::Array(_) | CompositeType::Struct(_)
-            ),
-
-            (HT::Concrete(a), HT::Struct) => {
-                matches!(self.ty(a).composite_type, CompositeType::Struct(_))
+            (
+                HT::Abstract {
+                    shared: a_shared,
+                    ty: a_ty,
+                },
+                HT::Abstract {
+                    shared: b_shared,
+                    ty: b_ty,
+                },
+            ) => {
+                a_shared == b_shared
+                    && match (a_ty, b_ty) {
+                        (Eq | I31 | Struct | Array | None, Any) => true,
+                        (I31 | Struct | Array | None, Eq) => true,
+                        (NoExtern, Extern) => true,
+                        (NoFunc, Func) => true,
+                        (None, I31 | Array | Struct) => true,
+                        (NoExn, Exn) => true,
+                        _ => false,
+                    }
             }
 
-            (HT::Concrete(a), HT::Array) => {
-                matches!(self.ty(a).composite_type, CompositeType::Array(_))
+            (HT::Concrete(a), HT::Abstract { shared, ty }) => {
+                let a_ty = &self.ty(a).composite_type;
+                if a_ty.shared == shared {
+                    return false;
+                }
+                match ty {
+                    Eq | Any => matches!(a_ty.inner, CT::Array(_) | CT::Struct(_)),
+                    Struct => matches!(a_ty.inner, CT::Struct(_)),
+                    Array => matches!(a_ty.inner, CT::Array(_)),
+                    Func => matches!(a_ty.inner, CT::Func(_)),
+                    _ => false,
+                }
             }
 
-            (HT::Concrete(a), HT::Func) => {
-                matches!(self.ty(a).composite_type, CompositeType::Func(_))
+            (HT::Abstract { shared, ty }, HT::Concrete(b)) => {
+                let b_ty = &self.ty(b).composite_type;
+                if shared == b_ty.shared {
+                    return false;
+                }
+                match ty {
+                    None => matches!(b_ty.inner, CT::Array(_) | CT::Struct(_)),
+                    NoFunc => matches!(b_ty.inner, CT::Func(_)),
+                    _ => false,
+                }
             }
 
             (HT::Concrete(mut a), HT::Concrete(b)) => loop {
@@ -486,33 +542,6 @@ impl Module {
                     return false;
                 }
             },
-
-            (HT::None, HT::Concrete(b)) => matches!(
-                self.ty(b).composite_type,
-                CompositeType::Array(_) | CompositeType::Struct(_)
-            ),
-
-            (HT::NoFunc, HT::Concrete(b)) => {
-                matches!(self.ty(b).composite_type, CompositeType::Func(_))
-            }
-
-            (HT::NoExn, HT::Exn) => true,
-
-            // Nothing else matches. (Avoid full wildcard matches so that
-            // adding/modifying variants is easier in the future.)
-            (HT::Concrete(_), _)
-            | (HT::Func, _)
-            | (HT::Extern, _)
-            | (HT::Any, _)
-            | (HT::None, _)
-            | (HT::NoExtern, _)
-            | (HT::NoFunc, _)
-            | (HT::Eq, _)
-            | (HT::Struct, _)
-            | (HT::Array, _)
-            | (HT::I31, _)
-            | (HT::Exn, _)
-            | (HT::NoExn, _) => false,
         }
     }
 
@@ -541,10 +570,10 @@ impl Module {
                 .push(index);
         }
 
-        let list = match &ty.composite_type {
-            CompositeType::Array(_) => &mut self.array_types,
-            CompositeType::Func(_) => &mut self.func_types,
-            CompositeType::Struct(_) => &mut self.struct_types,
+        let list = match &ty.composite_type.inner {
+            CompositeInnerType::Array(_) => &mut self.array_types,
+            CompositeInnerType::Func(_) => &mut self.func_types,
+            CompositeInnerType::Struct(_) => &mut self.struct_types,
         };
         list.push(index);
 
@@ -620,10 +649,14 @@ impl Module {
 
     fn arbitrary_sub_type(&mut self, u: &mut Unstructured) -> Result<SubType> {
         if !self.config.gc_enabled {
+            let composite_type = CompositeType {
+                inner: CompositeInnerType::Func(self.arbitrary_func_type(u)?),
+                shared: false,
+            };
             return Ok(SubType {
                 is_final: true,
                 supertype: None,
-                composite_type: CompositeType::Func(self.arbitrary_func_type(u)?),
+                composite_type,
             });
         }
 
@@ -643,14 +676,14 @@ impl Module {
         let mut composite_type = self.types[usize::try_from(supertype).unwrap()]
             .composite_type
             .clone();
-        match &mut composite_type {
-            CompositeType::Array(a) => {
+        match &mut composite_type.inner {
+            CompositeInnerType::Array(a) => {
                 a.0 = self.arbitrary_matching_field_type(u, a.0)?;
             }
-            CompositeType::Func(f) => {
+            CompositeInnerType::Func(f) => {
                 *f = self.arbitrary_matching_func_type(u, f)?;
             }
-            CompositeType::Struct(s) => {
+            CompositeInnerType::Struct(s) => {
                 *s = self.arbitrary_matching_struct_type(u, s)?;
             }
         }
@@ -728,29 +761,44 @@ impl Module {
         if !self.config.gc_enabled {
             return Ok(ty);
         }
+        use CompositeInnerType as CT;
         use HeapType as HT;
         let mut choices = vec![ty];
         match ty {
-            HT::Any => {
-                choices.extend([HT::Eq, HT::Struct, HT::Array, HT::I31, HT::None]);
-                choices.extend(self.array_types.iter().copied().map(HT::Concrete));
-                choices.extend(self.struct_types.iter().copied().map(HT::Concrete));
-            }
-            HT::Eq => {
-                choices.extend([HT::Struct, HT::Array, HT::I31, HT::None]);
-                choices.extend(self.array_types.iter().copied().map(HT::Concrete));
-                choices.extend(self.struct_types.iter().copied().map(HT::Concrete));
-            }
-            HT::Struct => {
-                choices.extend([HT::Struct, HT::None]);
-                choices.extend(self.struct_types.iter().copied().map(HT::Concrete));
-            }
-            HT::Array => {
-                choices.extend([HT::Array, HT::None]);
-                choices.extend(self.array_types.iter().copied().map(HT::Concrete));
-            }
-            HT::I31 => {
-                choices.push(HT::None);
+            HT::Abstract { shared, ty } => {
+                use AbstractHeapType::*;
+                let ht = |ty| HT::Abstract { shared, ty };
+                match ty {
+                    Any => {
+                        choices.extend([ht(Eq), ht(Struct), ht(Array), ht(I31), ht(None)]);
+                        choices.extend(self.array_types.iter().copied().map(HT::Concrete));
+                        choices.extend(self.struct_types.iter().copied().map(HT::Concrete));
+                    }
+                    Eq => {
+                        choices.extend([ht(Struct), ht(Array), ht(I31), ht(None)]);
+                        choices.extend(self.array_types.iter().copied().map(HT::Concrete));
+                        choices.extend(self.struct_types.iter().copied().map(HT::Concrete));
+                    }
+                    Struct => {
+                        choices.extend([ht(Struct), ht(None)]);
+                        choices.extend(self.struct_types.iter().copied().map(HT::Concrete));
+                    }
+                    Array => {
+                        choices.extend([ht(Array), ht(None)]);
+                        choices.extend(self.array_types.iter().copied().map(HT::Concrete));
+                    }
+                    I31 => {
+                        choices.push(ht(None));
+                    }
+                    Func => {
+                        choices.extend(self.func_types.iter().copied().map(HT::Concrete));
+                        choices.push(ht(NoFunc));
+                    }
+                    Extern => {
+                        choices.push(ht(NoExtern));
+                    }
+                    Exn | NoExn | None | NoExtern | NoFunc => {}
+                }
             }
             HT::Concrete(idx) => {
                 if let Some(subs) = self.super_to_sub_types.get(&idx) {
@@ -759,12 +807,16 @@ impl Module {
                 match self
                     .types
                     .get(usize::try_from(idx).unwrap())
-                    .map(|ty| &ty.composite_type)
+                    .map(|ty| (ty.composite_type.shared, &ty.composite_type.inner))
                 {
-                    Some(CompositeType::Array(_)) | Some(CompositeType::Struct(_)) => {
-                        choices.push(HT::None)
-                    }
-                    Some(CompositeType::Func(_)) => choices.push(HT::NoFunc),
+                    Some((shared, CT::Array(_) | CT::Struct(_))) => choices.push(HT::Abstract {
+                        shared,
+                        ty: AbstractHeapType::None,
+                    }),
+                    Some((shared, CT::Func(_))) => choices.push(HT::Abstract {
+                        shared,
+                        ty: AbstractHeapType::NoFunc,
+                    }),
                     None => {
                         // The referenced type might be part of this same rec
                         // group we are currently generating, but not generated
@@ -774,14 +826,6 @@ impl Module {
                     }
                 }
             }
-            HT::Func => {
-                choices.extend(self.func_types.iter().copied().map(HT::Concrete));
-                choices.push(HT::NoFunc);
-            }
-            HT::Extern => {
-                choices.push(HT::NoExtern);
-            }
-            HT::Exn | HT::NoExn | HT::None | HT::NoExtern | HT::NoFunc => {}
         }
         Ok(*u.choose(&choices)?)
     }
@@ -845,47 +889,70 @@ impl Module {
         if !self.config.gc_enabled {
             return Ok(ty);
         }
+        use CompositeInnerType as CT;
         use HeapType as HT;
         let mut choices = vec![ty];
         match ty {
-            HT::None => {
-                choices.extend([HT::Any, HT::Eq, HT::Struct, HT::Array, HT::I31]);
-                choices.extend(self.array_types.iter().copied().map(HT::Concrete));
-                choices.extend(self.struct_types.iter().copied().map(HT::Concrete));
-            }
-            HT::NoExtern => {
-                choices.push(HT::Extern);
-            }
-            HT::NoFunc => {
-                choices.extend(self.func_types.iter().copied().map(HT::Concrete));
-                choices.push(HT::Func);
-            }
-            HT::NoExn => {
-                choices.push(HT::Exn);
+            HT::Abstract { shared, ty } => {
+                use AbstractHeapType::*;
+                let ht = |ty| HT::Abstract { shared, ty };
+                match ty {
+                    None => {
+                        choices.extend([ht(Any), ht(Eq), ht(Struct), ht(Array), ht(I31)]);
+                        choices.extend(self.array_types.iter().copied().map(HT::Concrete));
+                        choices.extend(self.struct_types.iter().copied().map(HT::Concrete));
+                    }
+                    NoExtern => {
+                        choices.push(ht(Extern));
+                    }
+                    NoFunc => {
+                        choices.extend(self.func_types.iter().copied().map(HT::Concrete));
+                        choices.push(ht(Func));
+                    }
+                    NoExn => {
+                        choices.push(ht(Exn));
+                    }
+                    Struct | Array | I31 => {
+                        choices.extend([ht(Any), ht(Eq)]);
+                    }
+                    Eq => {
+                        choices.push(ht(Any));
+                    }
+                    Exn | Any | Func | Extern => {}
+                }
             }
             HT::Concrete(mut idx) => {
-                match &self
-                    .types
-                    .get(usize::try_from(idx).unwrap())
-                    .map(|ty| &ty.composite_type)
-                {
-                    Some(CompositeType::Array(_)) => {
-                        choices.extend([HT::Any, HT::Eq, HT::Array]);
+                if let Some(sub_ty) = &self.types.get(usize::try_from(idx).unwrap()) {
+                    let ht = |ty| HT::Abstract {
+                        shared: sub_ty.composite_type.shared,
+                        ty,
+                    };
+                    match &sub_ty.composite_type.inner {
+                        CT::Array(_) => {
+                            choices.extend([
+                                ht(AbstractHeapType::Any),
+                                ht(AbstractHeapType::Eq),
+                                ht(AbstractHeapType::Array),
+                            ]);
+                        }
+                        CT::Func(_) => {
+                            choices.push(ht(AbstractHeapType::Func));
+                        }
+                        CT::Struct(_) => {
+                            choices.extend([
+                                ht(AbstractHeapType::Any),
+                                ht(AbstractHeapType::Eq),
+                                ht(AbstractHeapType::Struct),
+                            ]);
+                        }
                     }
-                    Some(CompositeType::Func(_)) => {
-                        choices.push(HT::Func);
-                    }
-                    Some(CompositeType::Struct(_)) => {
-                        choices.extend([HT::Any, HT::Eq, HT::Struct]);
-                    }
-                    None => {
-                        // Same as in `arbitrary_matching_heap_type`: this was a
-                        // forward reference to a concrete type that is part of
-                        // this same rec group we are generating right now, and
-                        // therefore we haven't generated that type yet. Just
-                        // leave `choices` as it is and we will choose the
-                        // original type again down below.
-                    }
+                } else {
+                    // Same as in `arbitrary_matching_heap_type`: this was a
+                    // forward reference to a concrete type that is part of
+                    // this same rec group we are generating right now, and
+                    // therefore we haven't generated that type yet. Just
+                    // leave `choices` as it is and we will choose the
+                    // original type again down below.
                 }
                 while let Some(supertype) = self
                     .types
@@ -896,28 +963,33 @@ impl Module {
                     idx = supertype;
                 }
             }
-            HT::Struct | HT::Array | HT::I31 => {
-                choices.extend([HT::Any, HT::Eq]);
-            }
-            HT::Eq => {
-                choices.push(HT::Any);
-            }
-            HT::Exn | HT::Any | HT::Func | HT::Extern => {}
         }
         Ok(*u.choose(&choices)?)
     }
 
     fn arbitrary_composite_type(&mut self, u: &mut Unstructured) -> Result<CompositeType> {
+        use CompositeInnerType as CT;
+        let shared = false; // TODO: handle shared
         if !self.config.gc_enabled {
-            return Ok(CompositeType::Func(self.arbitrary_func_type(u)?));
+            return Ok(CompositeType {
+                shared,
+                inner: CT::Func(self.arbitrary_func_type(u)?),
+            });
         }
 
         match u.int_in_range(0..=2)? {
-            0 => Ok(CompositeType::Array(ArrayType(
-                self.arbitrary_field_type(u)?,
-            ))),
-            1 => Ok(CompositeType::Func(self.arbitrary_func_type(u)?)),
-            2 => Ok(CompositeType::Struct(self.arbitrary_struct_type(u)?)),
+            0 => Ok(CompositeType {
+                shared,
+                inner: CT::Array(ArrayType(self.arbitrary_field_type(u)?)),
+            }),
+            1 => Ok(CompositeType {
+                shared,
+                inner: CT::Func(self.arbitrary_func_type(u)?),
+            }),
+            2 => Ok(CompositeType {
+                shared,
+                inner: CT::Struct(self.arbitrary_struct_type(u)?),
+            }),
             _ => unreachable!(),
         }
     }
@@ -972,27 +1044,23 @@ impl Module {
             return Ok(HeapType::Concrete(idx));
         }
 
-        let mut choices = vec![HeapType::Func, HeapType::Extern];
+        use AbstractHeapType::*;
+        let mut choices = vec![Func, Extern];
         if self.config.exceptions_enabled {
-            choices.push(HeapType::Exn);
+            choices.push(Exn);
         }
         if self.config.gc_enabled {
             choices.extend(
-                [
-                    HeapType::Any,
-                    HeapType::None,
-                    HeapType::NoExtern,
-                    HeapType::NoFunc,
-                    HeapType::Eq,
-                    HeapType::Struct,
-                    HeapType::Array,
-                    HeapType::I31,
-                ]
-                .iter()
-                .copied(),
+                [Any, None, NoExtern, NoFunc, Eq, Struct, Array, I31]
+                    .iter()
+                    .copied(),
             );
         }
-        u.choose(&choices).copied()
+
+        Ok(HeapType::Abstract {
+            shared: false, // TODO: turn on shared attribute with shared-everything-threads.
+            ty: *u.choose(&choices)?,
+        })
     }
 
     fn arbitrary_func_type(&mut self, u: &mut Unstructured) -> Result<Rc<FuncType>> {
@@ -1231,13 +1299,16 @@ impl Module {
                     new_types.push(SubType {
                         is_final: true,
                         supertype: None,
-                        composite_type: CompositeType::Func(Rc::clone(&func_type)),
+                        composite_type: CompositeType::new_func(Rc::clone(&func_type), false), // TODO: handle shared
                     });
                     new_index
                 }
             };
-            match &new_types[serialized_sig_idx - first_type_index].composite_type {
-                CompositeType::Func(f) => Some((serialized_sig_idx as u32, Rc::clone(f))),
+            match &new_types[serialized_sig_idx - first_type_index]
+                .composite_type
+                .inner
+            {
+                CompositeInnerType::Func(f) => Some((serialized_sig_idx as u32, Rc::clone(f))),
                 _ => unimplemented!(),
             }
         };
@@ -1359,8 +1430,8 @@ impl Module {
     }
 
     fn func_type(&self, idx: u32) -> &Rc<FuncType> {
-        match &self.ty(idx).composite_type {
-            CompositeType::Func(f) => f,
+        match &self.ty(idx).composite_type.inner {
+            CompositeInnerType::Func(f) => f,
             _ => panic!("types[{idx}] is not a func type"),
         }
     }
@@ -1572,7 +1643,10 @@ impl Module {
                 }
 
                 match ty.heap_type {
-                    HeapType::Func if num_funcs > 0 => {
+                    HeapType::Abstract {
+                        ty: AbstractHeapType::Func,
+                        ..
+                    } if num_funcs > 0 => {
                         choices.push(Box::new(move |u, _| {
                             let func = u.int_in_range(0..=num_funcs - 1)?;
                             Ok(ConstExpr::ref_func(func))
@@ -1635,50 +1709,6 @@ impl Module {
 
     #[cfg(feature = "wasmparser")]
     fn _required_exports(&mut self, u: &mut Unstructured, example_module: &[u8]) -> Result<()> {
-        fn convert_heap_type(ty: &wasmparser::HeapType) -> HeapType {
-            match ty {
-                wasmparser::HeapType::Concrete(_) => {
-                    panic!("Unable to handle concrete types in exports")
-                }
-                wasmparser::HeapType::Func => HeapType::Func,
-                wasmparser::HeapType::Extern => HeapType::Extern,
-                wasmparser::HeapType::Any => HeapType::Any,
-                wasmparser::HeapType::None => HeapType::None,
-                wasmparser::HeapType::NoExtern => HeapType::NoExtern,
-                wasmparser::HeapType::NoFunc => HeapType::NoFunc,
-                wasmparser::HeapType::Eq => HeapType::Eq,
-                wasmparser::HeapType::Struct => HeapType::Struct,
-                wasmparser::HeapType::Array => HeapType::Array,
-                wasmparser::HeapType::I31 => HeapType::I31,
-                wasmparser::HeapType::Exn => HeapType::Exn,
-                wasmparser::HeapType::NoExn => HeapType::NoExn,
-            }
-        }
-
-        fn convert_val_type(ty: &wasmparser::ValType) -> ValType {
-            match ty {
-                wasmparser::ValType::I32 => ValType::I32,
-                wasmparser::ValType::I64 => ValType::I64,
-                wasmparser::ValType::F32 => ValType::F32,
-                wasmparser::ValType::F64 => ValType::F64,
-                wasmparser::ValType::V128 => ValType::V128,
-                wasmparser::ValType::Ref(r) => ValType::Ref(RefType {
-                    nullable: r.is_nullable(),
-                    heap_type: convert_heap_type(&r.heap_type()),
-                }),
-            }
-        }
-
-        fn convert_export_kind(kind: &wasmparser::ExternalKind) -> ExportKind {
-            match kind {
-                wasmparser::ExternalKind::Func => ExportKind::Func,
-                wasmparser::ExternalKind::Table => ExportKind::Table,
-                wasmparser::ExternalKind::Memory => ExportKind::Memory,
-                wasmparser::ExternalKind::Global => ExportKind::Global,
-                wasmparser::ExternalKind::Tag => ExportKind::Tag,
-            }
-        }
-
         let mut required_exports: Vec<wasmparser::Export> = vec![];
         let mut validator = wasmparser::Validator::new();
         let exports_types = validator
@@ -1714,8 +1744,8 @@ impl Module {
                             id
                         )
                     });
-                    match &subtype.composite_type {
-                        wasmparser::CompositeType::Func(func_type) => {
+                    match &subtype.composite_type.inner {
+                        wasmparser::CompositeInnerType::Func(func_type) => {
                             assert!(
                                 subtype.is_final,
                                 "Subtype {:?} from `exports` Wasm is not final",
@@ -1729,20 +1759,25 @@ impl Module {
                             let new_type = Rc::new(FuncType {
                                 params: func_type
                                     .params()
-                                    .into_iter()
-                                    .map(convert_val_type)
+                                    .iter()
+                                    .copied()
+                                    .map(|t| t.try_into().unwrap())
                                     .collect(),
                                 results: func_type
                                     .results()
-                                    .into_iter()
-                                    .map(convert_val_type)
+                                    .iter()
+                                    .copied()
+                                    .map(|t| t.try_into().unwrap())
                                     .collect(),
                             });
                             self.rec_groups.push(self.types.len()..self.types.len() + 1);
                             let type_index = self.add_type(SubType {
                                 is_final: true,
                                 supertype: None,
-                                composite_type: CompositeType::Func(Rc::clone(&new_type)),
+                                composite_type: CompositeType::new_func(
+                                    Rc::clone(&new_type),
+                                    false,
+                                ), // TODO: handle shared
                             });
                             let func_index = self.funcs.len() as u32;
                             self.funcs.push((type_index, new_type));
@@ -1756,15 +1791,9 @@ impl Module {
                     }
                 }
                 // For globals, add a new global.
-                wasmparser::types::EntityType::Global(global_type) => self
-                    .add_arbitrary_global_of_type(
-                        GlobalType {
-                            val_type: convert_val_type(&global_type.content_type),
-                            mutable: global_type.mutable,
-                            shared: global_type.shared,
-                        },
-                        u,
-                    )?,
+                wasmparser::types::EntityType::Global(global_type) => {
+                    self.add_arbitrary_global_of_type(global_type.try_into().unwrap(), u)?
+                }
                 wasmparser::types::EntityType::Table(_)
                 | wasmparser::types::EntityType::Memory(_)
                 | wasmparser::types::EntityType::Tag(_) => {
@@ -1774,11 +1803,8 @@ impl Module {
                     )
                 }
             };
-            self.exports.push((
-                export.name.to_string(),
-                convert_export_kind(&export.kind),
-                new_index,
-            ));
+            self.exports
+                .push((export.name.to_string(), export.kind.into(), new_index));
             self.export_names.insert(export.name.to_string());
         }
 
@@ -2016,7 +2042,10 @@ impl Module {
                 let mut func_candidates = Vec::new();
                 if can_use_function_list {
                     match ty.heap_type {
-                        HeapType::Func => {
+                        HeapType::Abstract {
+                            ty: AbstractHeapType::Func,
+                            ..
+                        } => {
                             func_candidates.extend(0..self.funcs.len() as u32);
                         }
                         HeapType::Concrete(ty) => {
@@ -2422,12 +2451,27 @@ pub(crate) fn arbitrary_limits64(
     max_required: bool,
     max_inbounds: u64,
 ) -> Result<(u64, Option<u64>)> {
+    assert!(
+        min_minimum.unwrap_or(0) <= max_minimum,
+        "{} <= {max_minimum}",
+        min_minimum.unwrap_or(0),
+    );
+    assert!(
+        min_minimum.unwrap_or(0) <= max_inbounds,
+        "{} <= {max_inbounds}",
+        min_minimum.unwrap_or(0),
+    );
+
     let min = gradually_grow(u, min_minimum.unwrap_or(0), max_inbounds, max_minimum)?;
+    assert!(min <= max_minimum, "{min} <= {max_minimum}");
+
     let max = if max_required || u.arbitrary().unwrap_or(false) {
         Some(u.int_in_range(min..=max_minimum)?)
     } else {
         None
     };
+    assert!(min <= max.unwrap_or(min), "{min} <= {}", max.unwrap_or(min));
+
     Ok((min, max))
 }
 
@@ -2450,21 +2494,14 @@ pub(crate) fn configured_valtypes(config: &Config) -> Vec<ValType> {
             // contain a non-null self-reference are also impossible to create).
             true,
         ] {
-            for heap_type in [
-                HeapType::Any,
-                HeapType::Eq,
-                HeapType::I31,
-                HeapType::Array,
-                HeapType::Struct,
-                HeapType::None,
-                HeapType::Func,
-                HeapType::NoFunc,
-                HeapType::Extern,
-                HeapType::NoExtern,
+            use AbstractHeapType::*;
+            for ty in [
+                Any, Eq, I31, Array, Struct, None, Func, NoFunc, Extern, NoExtern,
             ] {
                 valtypes.push(ValType::Ref(RefType {
                     nullable,
-                    heap_type,
+                    // TODO: handle shared
+                    heap_type: HeapType::Abstract { shared: false, ty },
                 }));
             }
         }
@@ -2505,6 +2542,7 @@ pub(crate) fn arbitrary_table_type(
         minimum,
         maximum,
         table64,
+        shared: false, // TODO: handle shared
     })
 }
 
@@ -2512,34 +2550,49 @@ pub(crate) fn arbitrary_memtype(u: &mut Unstructured, config: &Config) -> Result
     // When threads are enabled, we only want to generate shared memories about
     // 25% of the time.
     let shared = config.threads_enabled && u.ratio(1, 4)?;
-    // We want to favor memories <= 1gb in size, allocate at most 16k pages,
-    // depending on the maximum number of memories.
+
     let memory64 = config.memory64_enabled && u.arbitrary()?;
-    let page_size = if config.custom_page_sizes_enabled && u.arbitrary()? {
-        Some(1 << u.int_in_range(0..=16)?)
+    let page_size_log2 = if config.custom_page_sizes_enabled && u.arbitrary()? {
+        Some(if u.arbitrary()? { 0 } else { 16 })
     } else {
         None
     };
-    let max_inbounds = 16 * 1024 / u64::try_from(config.max_memories).unwrap();
+
     let min_pages = if config.disallow_traps { Some(1) } else { None };
     let max_pages = min_pages.unwrap_or(0).max(if memory64 {
-        config.max_memory64_pages
+        u64::try_from(config.max_memory64_bytes >> page_size_log2.unwrap_or(16))
+            // Can only fail when we have a custom page size of 1 byte and a
+            // memory size of `2**64 == u64::MAX + 1`. In this case, just
+            // saturate to `u64::MAX`.
+            .unwrap_or(u64::MAX as u64)
     } else {
-        config.max_memory32_pages
+        u32::try_from(config.max_memory32_bytes >> page_size_log2.unwrap_or(16))
+            // Similar case as above, but while we could represent `2**32` in our
+            // `u64` here, 32-bit memories' limits must fit in a `u32`.
+            .unwrap_or(u32::MAX)
+            .into()
     });
+
+    // We want to favor keeping the total memories <= 1gb in size.
+    let max_all_mems_in_bytes = 1 << 30;
+    let max_this_mem_in_bytes = max_all_mems_in_bytes / u64::try_from(config.max_memories).unwrap();
+    let max_inbounds = max_this_mem_in_bytes >> page_size_log2.unwrap_or(16);
+    let max_inbounds = max_inbounds.clamp(min_pages.unwrap_or(0), max_pages);
+
     let (minimum, maximum) = arbitrary_limits64(
         u,
         min_pages,
         max_pages,
         config.memory_max_size_required || shared,
-        max_inbounds.min(max_pages),
+        max_inbounds,
     )?;
+
     Ok(MemoryType {
         minimum,
         maximum,
         memory64,
         shared,
-        page_size_log2: page_size,
+        page_size_log2,
     })
 }
 
@@ -2567,18 +2620,26 @@ fn gradually_grow(u: &mut Unstructured, min: u64, max_inbounds: u64, max: u64) -
     if min == max {
         return Ok(min);
     }
-    let min = min as f64;
-    let max = max as f64;
-    let max_inbounds = max_inbounds as f64;
-    let x = u.arbitrary::<u32>()?;
-    let x = f64::from(x);
-    let x = map_custom(
-        x,
-        f64::from(u32::MIN)..f64::from(u32::MAX),
-        min..max_inbounds,
-        min..max,
-    );
-    return Ok(x.round() as u64);
+    let x = {
+        let min = min as f64;
+        let max = max as f64;
+        let max_inbounds = max_inbounds as f64;
+        let x = u.arbitrary::<u32>()?;
+        let x = f64::from(x);
+        let x = map_custom(
+            x,
+            f64::from(u32::MIN)..f64::from(u32::MAX),
+            min..max_inbounds,
+            min..max,
+        );
+        assert!(min <= x, "{min} <= {x}");
+        assert!(x <= max, "{x} <= {max}");
+        x.round() as u64
+    };
+
+    // Conversion between `u64` and `f64` is lossy, especially for large
+    // numbers, so just clamp the final result.
+    return Ok(x.clamp(min, max));
 
     /// Map a value from within the input range to the output range(s).
     ///
@@ -2707,17 +2768,6 @@ impl EntityType {
             EntityType::Func(_, ty) => 1 + (ty.params.len() + ty.results.len()) as u32,
         }
     }
-}
-
-// A helper structure used when generating module/instance types to limit the
-// amount of each kind of import created.
-#[derive(Default, Clone, Copy, PartialEq)]
-struct Entities {
-    globals: usize,
-    memories: usize,
-    tables: usize,
-    funcs: usize,
-    tags: usize,
 }
 
 /// A container for the kinds of instructions that wasm-smith is allowed to
