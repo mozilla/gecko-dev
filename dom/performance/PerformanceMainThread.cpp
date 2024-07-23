@@ -67,7 +67,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(PerformanceMainThread,
       mTiming, mNavigation, mDocEntry, mFCPTiming, mEventTimingEntries,
       mLargestContentfulPaintEntries, mFirstInputEvent, mPendingPointerDown,
       mPendingEventTimingEntries, mEventCounts)
-  tmp->mImageLCPEntryMap.Clear();
   tmp->mTextFrameUnions.Clear();
   mozilla::DropJSObjects(tmp);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -77,8 +76,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(PerformanceMainThread,
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(
       mTiming, mNavigation, mDocEntry, mFCPTiming, mEventTimingEntries,
       mLargestContentfulPaintEntries, mFirstInputEvent, mPendingPointerDown,
-      mPendingEventTimingEntries, mEventCounts, mImageLCPEntryMap,
-      mTextFrameUnions)
+      mPendingEventTimingEntries, mEventCounts, mTextFrameUnions)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -629,8 +627,7 @@ void PerformanceMainThread::ProcessElementTiming() {
   }
   const bool shouldLCPDataEmpty =
       HasDispatchedInputEvent() || HasDispatchedScrollEvent();
-  MOZ_ASSERT_IF(shouldLCPDataEmpty,
-                mTextFrameUnions.IsEmpty() && mImageLCPEntryMap.IsEmpty());
+  MOZ_ASSERT_IF(shouldLCPDataEmpty, mTextFrameUnions.IsEmpty());
 
   if (shouldLCPDataEmpty) {
     return;
@@ -665,9 +662,8 @@ void PerformanceMainThread::ProcessElementTiming() {
     MOZ_ASSERT(imagePendingRendering.mLoadTime <= rawNowTime);
     if (imgRequestProxy* requestProxy =
             imagePendingRendering.GetImgRequestProxy()) {
-      LCPHelpers::CreateLCPEntryForImage(
-          this, element, requestProxy, imagePendingRendering.mLoadTime,
-          rawNowTime, imagePendingRendering.mLCPImageEntryKey);
+      requestProxy->GetLCPTimings().Set(imagePendingRendering.mLoadTime,
+                                        rawNowTime);
     }
   }
 
@@ -692,32 +688,21 @@ void PerformanceMainThread::FinalizeLCPEntriesForText() {
   MOZ_ASSERT(GetTextFrameUnions().IsEmpty());
 }
 
-void PerformanceMainThread::StoreImageLCPEntry(
-    Element* aElement, imgRequestProxy* aImgRequestProxy,
-    LargestContentfulPaint* aEntry) {
-  mImageLCPEntryMap.InsertOrUpdate({aElement, aImgRequestProxy}, aEntry);
-}
-
-already_AddRefed<LargestContentfulPaint>
-PerformanceMainThread::GetImageLCPEntry(Element* aElement,
-                                        imgRequestProxy* aImgRequestProxy) {
-  Maybe<RefPtr<LargestContentfulPaint>> entry =
-      mImageLCPEntryMap.Extract({aElement, aImgRequestProxy});
-  if (entry.isNothing()) {
-    return nullptr;
-  }
-
+bool PerformanceMainThread::IsPendingLCPCandidate(
+    Element* aElement, imgRequestProxy* aImgRequestProxy) {
   Document* doc = aElement->GetComposedDoc();
   MOZ_ASSERT(doc, "Element should be connected when it's painted");
-
-  Maybe<LCPImageEntryKey>& contentIdentifier =
-      entry.value()->GetLCPImageEntryKey();
-  if (contentIdentifier.isSome()) {
-    doc->ContentIdentifiersForLCP().EnsureRemoved(contentIdentifier.value());
-    contentIdentifier.reset();
+  if (!aElement->HasFlag(ELEMENT_IN_CONTENT_IDENTIFIER_FOR_LCP)) {
+    MOZ_ASSERT(!doc->ContentIdentifiersForLCP().Contains(aElement));
+    return false;
   }
 
-  return entry.value().forget();
+  if (auto entry = doc->ContentIdentifiersForLCP().Lookup(aElement)) {
+    return entry.Data().Contains(aImgRequestProxy);
+  }
+
+  MOZ_ASSERT_UNREACHABLE("we should always have an entry when the flag exists");
+  return false;
 }
 
 bool PerformanceMainThread::UpdateLargestContentfulPaintSize(double aSize) {
@@ -740,7 +725,6 @@ void PerformanceMainThread::SetHasDispatchedInputEvent() {
 
 void PerformanceMainThread::ClearGeneratedTempDataForLCP() {
   mTextFrameUnions.Clear();
-  mImageLCPEntryMap.Clear();
   mImagesPendingRendering.Clear();
 
   nsIGlobalObject* ownerGlobal = GetOwnerGlobal();

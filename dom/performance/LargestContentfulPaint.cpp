@@ -56,15 +56,10 @@ static DOMHighResTimeStamp GetReducedTimePrecisionDOMHighRes(
       aPerformance->GetRTPCallerType());
 }
 
-ImagePendingRendering::ImagePendingRendering(
-    const LCPImageEntryKey& aLCPImageEntryKey, const TimeStamp& aLoadTime)
-    : mLCPImageEntryKey(aLCPImageEntryKey), mLoadTime(aLoadTime) {}
-
 LargestContentfulPaint::LargestContentfulPaint(
     PerformanceMainThread* aPerformance, const TimeStamp& aRenderTime,
     const Maybe<TimeStamp>& aLoadTime, const unsigned long aSize, nsIURI* aURI,
-    Element* aElement, const Maybe<const LCPImageEntryKey>& aLCPImageEntryKey,
-    bool aShouldExposeRenderTime)
+    Element* aElement, bool aShouldExposeRenderTime)
     : PerformanceEntry(aPerformance->GetParentObject(), u""_ns,
                        kLargestContentfulPaintName),
       mPerformance(aPerformance),
@@ -72,8 +67,7 @@ LargestContentfulPaint::LargestContentfulPaint(
       mLoadTime(aLoadTime),
       mShouldExposeRenderTime(aShouldExposeRenderTime),
       mSize(aSize),
-      mURI(aURI),
-      mLCPImageEntryKey(aLCPImageEntryKey) {
+      mURI(aURI) {
   MOZ_ASSERT(mPerformance);
   MOZ_ASSERT(aElement);
   // The element could be a pseudo-element
@@ -102,7 +96,6 @@ Element* LargestContentfulPaint::GetElement() const {
 }
 
 void LargestContentfulPaint::BufferEntryIfNeeded() {
-  MOZ_ASSERT(mLCPImageEntryKey.isNothing());
   mPerformance->BufferLargestContentfulPaintEntryIfNeeded(this);
 }
 
@@ -178,13 +171,19 @@ void LargestContentfulPaint::MaybeProcessImageForElementTiming(
         aElement, uri ? uri->GetSpecOrDefault().get() : "", performance);
   }
 
-  const LCPImageEntryKey entryKey = LCPImageEntryKey(aElement, aRequest);
-  if (!document->ContentIdentifiersForLCP().EnsureInserted(entryKey)) {
+  aElement->SetFlags(ELEMENT_IN_CONTENT_IDENTIFIER_FOR_LCP);
+
+  nsTArray<WeakPtr<PreloaderBase>>& imageRequestProxiesForElement =
+      document->ContentIdentifiersForLCP().LookupOrInsert(aElement);
+
+  if (imageRequestProxiesForElement.Contains(aRequest)) {
     LOG("  The content identifier existed for element=%p and request=%p, "
         "return.",
         aElement, aRequest);
     return;
   }
+
+  imageRequestProxiesForElement.AppendElement(aRequest);
 
 #ifdef DEBUG
   uint32_t status = imgIRequest::STATUS_NONE;
@@ -204,7 +203,7 @@ void LargestContentfulPaint::MaybeProcessImageForElementTiming(
   // new.
   LOG("  Added a pending image rendering");
   performance->AddImagesPendingRendering(
-      ImagePendingRendering{entryKey, TimeStamp::Now()});
+      ImagePendingRendering{aElement, aRequest, TimeStamp::Now()});
 }
 
 bool LCPHelpers::CanFinalizeLCPEntry(const nsIFrame* aFrame) {
@@ -224,7 +223,8 @@ bool LCPHelpers::CanFinalizeLCPEntry(const nsIFrame* aFrame) {
 void LCPHelpers::FinalizeLCPEntryForImage(
     Element* aContainingBlock, imgRequestProxy* aImgRequestProxy,
     const nsRect& aTargetRectRelativeToSelf) {
-  LOG("FinalizeLCPEntryForImage element=%p", aContainingBlock);
+  LOG("FinalizeLCPEntryForImage element=%p image=%p", aContainingBlock,
+      aImgRequestProxy);
   if (!aImgRequestProxy) {
     return;
   }
@@ -244,14 +244,41 @@ void LCPHelpers::FinalizeLCPEntryForImage(
       frame->PresContext()->GetPerformanceMainThread();
   MOZ_ASSERT(performance);
 
-  RefPtr<LargestContentfulPaint> entry =
-      performance->GetImageLCPEntry(aContainingBlock, aImgRequestProxy);
-  if (!entry) {
-    LOG("  No Image Entry");
+  if (performance->HasDispatchedInputEvent() ||
+      performance->HasDispatchedScrollEvent()) {
     return;
   }
+
+  if (!performance->IsPendingLCPCandidate(aContainingBlock, aImgRequestProxy)) {
+    return;
+  }
+
+  imgRequestProxy::LCPTimings& lcpTimings = aImgRequestProxy->GetLCPTimings();
+  if (!lcpTimings.AreSet()) {
+    return;
+  }
+
+  imgRequest* request = aImgRequestProxy->GetOwner();
+  MOZ_ASSERT(request);
+
+  nsCOMPtr<nsIURI> requestURI;
+  aImgRequestProxy->GetURI(getter_AddRefs(requestURI));
+
+  const bool taoPassed =
+      request->ShouldReportRenderTimeForLCP() || request->IsData();
+
+  RefPtr<LargestContentfulPaint> entry = new LargestContentfulPaint(
+      performance, lcpTimings.mRenderTime.ref(), lcpTimings.mLoadTime, 0,
+      requestURI, aContainingBlock, taoPassed);
+
   entry->UpdateSize(aContainingBlock, aTargetRectRelativeToSelf, performance,
                     true);
+
+  // Resets the LCPTiming so that unless this (element, image) pair goes
+  // through PerformanceMainThread::ProcessElementTiming again, they
+  // won't generate new LCP entries.
+  lcpTimings.Reset();
+
   // If area is less than or equal to document’s largest contentful paint size,
   // return.
   if (!performance->UpdateLargestContentfulPaintSize(entry->Size())) {
@@ -449,53 +476,6 @@ void LCPTextFrameHelper::MaybeUnionTextFrame(
   unionRect = unionRect.Union(aRelativeToSelfRect);
 }
 
-void LCPHelpers::CreateLCPEntryForImage(
-    PerformanceMainThread* aPerformance, Element* aElement,
-    imgRequestProxy* aRequestProxy, const TimeStamp& aLoadTime,
-    const TimeStamp& aRenderTime, const LCPImageEntryKey& aImageEntryKey) {
-  MOZ_ASSERT(StaticPrefs::dom_enable_largest_contentful_paint());
-  MOZ_ASSERT(aRequestProxy);
-  MOZ_ASSERT(aPerformance);
-  if (MOZ_UNLIKELY(MOZ_LOG_TEST(gLCPLogging, LogLevel::Debug))) {
-    nsCOMPtr<nsIURI> uri;
-    aRequestProxy->GetURI(getter_AddRefs(uri));
-    LOG("CreateLCPEntryForImage "
-        "Element=%p, aRequestProxy=%p, URI=%s loadTime=%f, "
-        "aRenderTime=%f\n",
-        aElement, aRequestProxy, uri->GetSpecOrDefault().get(),
-        GetReducedTimePrecisionDOMHighRes(aPerformance, aLoadTime),
-        GetReducedTimePrecisionDOMHighRes(aPerformance, aRenderTime));
-  }
-  if (aPerformance->HasDispatchedInputEvent() ||
-      aPerformance->HasDispatchedScrollEvent()) {
-    return;
-  }
-
-  // Let url be the empty string.
-  // If imageRequest is not null, set url to be imageRequest’s request URL.
-  nsCOMPtr<nsIURI> requestURI;
-  aRequestProxy->GetURI(getter_AddRefs(requestURI));
-
-  imgRequest* request = aRequestProxy->GetOwner();
-  // We should never get here unless request is valid.
-  MOZ_ASSERT(request);
-
-  bool taoPassed = request->ShouldReportRenderTimeForLCP() || request->IsData();
-  // https://wicg.github.io/element-timing/#report-image-element-timing
-  // For TAO failed requests, the renderTime is exposed as 0 for
-  // security reasons.
-  //
-  // At this point, we have all the information about the entry
-  // except the size.
-  RefPtr<LargestContentfulPaint> entry = new LargestContentfulPaint(
-      aPerformance, aRenderTime, Some(aLoadTime), 0, requestURI, aElement,
-      Some(aImageEntryKey), taoPassed);
-
-  LOG("  Upsert a LargestContentfulPaint entry=%p to LCPEntryMap.",
-      entry.get());
-  aPerformance->StoreImageLCPEntry(aElement, aRequestProxy, entry);
-}
-
 void LCPHelpers::FinalizeLCPEntryForText(
     PerformanceMainThread* aPerformance, const TimeStamp& aRenderTime,
     Element* aContainingBlock, const nsRect& aTargetRectRelativeToSelf,
@@ -512,9 +492,8 @@ void LCPHelpers::FinalizeLCPEntryForText(
 
   aContainingBlock->SetFlags(ELEMENT_PROCESSED_BY_LCP_FOR_TEXT);
 
-  RefPtr<LargestContentfulPaint> entry =
-      new LargestContentfulPaint(aPerformance, aRenderTime, Nothing(), 0,
-                                 nullptr, aContainingBlock, Nothing(), true);
+  RefPtr<LargestContentfulPaint> entry = new LargestContentfulPaint(
+      aPerformance, aRenderTime, Nothing(), 0, nullptr, aContainingBlock, true);
 
   entry->UpdateSize(aContainingBlock, aTargetRectRelativeToSelf, aPerformance,
                     false);

@@ -17,9 +17,6 @@ namespace mozilla::dom {
 class PerformanceNavigationTiming;
 class PerformanceEventTiming;
 
-using ImageLCPEntryMap =
-    nsTHashMap<LCPEntryHashEntry, RefPtr<LargestContentfulPaint>>;
-
 using TextFrameUnions = nsTHashMap<nsRefPtrHashKey<Element>, nsRect>;
 
 class PerformanceMainThread final : public Performance,
@@ -122,11 +119,8 @@ class PerformanceMainThread final : public Performance,
     mImagesPendingRendering.AppendElement(aImagePendingRendering);
   }
 
-  void StoreImageLCPEntry(Element* aElement, imgRequestProxy* aImgRequestProxy,
-                          LargestContentfulPaint* aEntry);
-
-  already_AddRefed<LargestContentfulPaint> GetImageLCPEntry(
-      Element* aElement, imgRequestProxy* aImgRequestProxy);
+  bool IsPendingLCPCandidate(Element* aElement,
+                             imgRequestProxy* aImgRequestProxy);
 
   bool UpdateLargestContentfulPaintSize(double aSize);
   double GetLargestContentfulPaintSize() const {
@@ -184,19 +178,6 @@ class PerformanceMainThread final : public Performance,
 
   nsTArray<ImagePendingRendering> mImagesPendingRendering;
 
-  // The key is the pair of the element initiates the image loading
-  // and the imgRequestProxy of the image, and the value is
-  // the LCP entry for this image. When the image is
-  // completely loaded, we add it to mImageLCPEntryMap.
-  // Later, when the image is painted, we get the LCP entry from it
-  // to update the size and queue the entry if needed.
-  //
-  // When the initiating element is disconnected from the document,
-  // we keep the orphan entry because if the same memory address is
-  // reused by a different LCP candidate, it'll update
-  // mImageLCPEntryMap precedes before it tries to get the LCP entry.
-  ImageLCPEntryMap mImageLCPEntryMap;
-
   // Keeps track of the rendered size of the largest contentful paint that
   // we have processed so far.
   double mLargestContentfulPaintSize = 0.0;
@@ -208,16 +189,6 @@ class PerformanceMainThread final : public Performance,
   // the value is the unioned area.
   TextFrameUnions mTextFrameUnions;
 };
-
-inline void ImplCycleCollectionTraverse(
-    nsCycleCollectionTraversalCallback& aCallback, ImageLCPEntryMap& aField,
-    const char* aName, uint32_t aFlags = 0) {
-  for (auto& entry : aField) {
-    RefPtr<LargestContentfulPaint>* lcpEntry = entry.GetModifiableData();
-    ImplCycleCollectionTraverse(aCallback, *lcpEntry, "ImageLCPEntryMap.mData",
-                                aCallback.Flags());
-  }
-}
 
 inline void ImplCycleCollectionTraverse(
     nsCycleCollectionTraversalCallback& aCallback, TextFrameUnions& aField,
