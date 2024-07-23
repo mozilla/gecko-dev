@@ -83,6 +83,14 @@ bool isValidHexDig(char16_t aHexDig) {
           (aHexDig >= 'a' && aHexDig <= 'f'));
 }
 
+bool isGroupDelim(char16_t aSymbol) {
+  return (aSymbol == '{' || aSymbol == '}' || aSymbol == ',' ||
+          aSymbol == '/' || aSymbol == ':' || aSymbol == ';' ||
+          aSymbol == '<' || aSymbol == '=' || aSymbol == '>' ||
+          aSymbol == '?' || aSymbol == '@' || aSymbol == '[' ||
+          aSymbol == '\\' || aSymbol == ']' || aSymbol == '"');
+}
+
 static bool isValidBase64Value(const char16_t* cur, const char16_t* end) {
   // Using grammar at
   // https://w3c.github.io/webappsec-csp/#grammardef-nonce-source
@@ -783,6 +791,44 @@ void nsCSPParser::reportURIList(nsCSPDirective* aDir) {
   mPolicy->addDirective(aDir);
 }
 
+void nsCSPParser::reportGroup(nsCSPDirective* aDir) {
+  CSPPARSERLOG(("nsCSPParser::reportGroup"));
+
+  if (mCurDir.Length() < 2) {
+    AutoTArray<nsString, 1> directiveName = {mCurToken};
+    logWarningErrorToConsole(nsIScriptError::warningFlag,
+                             "ignoringDirectiveWithNoValues", directiveName);
+    delete aDir;
+    return;
+  }
+
+  nsTArray<nsCSPBaseSrc*> srcs;
+  mCurToken = mCurDir[1];
+
+  CSPPARSERLOG(("nsCSPParser::reportGroup, mCurToken: %s, mCurValue: %s",
+                NS_ConvertUTF16toUTF8(mCurToken).get(),
+                NS_ConvertUTF16toUTF8(mCurValue).get()));
+
+  resetCurChar(mCurToken);
+  while (!atEnd()) {
+    if (isGroupDelim(*mCurChar) ||
+        nsContentUtils::IsHTMLWhitespace(*mCurChar)) {
+      AutoTArray<nsString, 1> params = {mCurToken};
+      logWarningErrorToConsole(nsIScriptError::warningFlag,
+                               "invalidGroupSyntax", params);
+      delete aDir;
+      return;
+    }
+    advance();
+  }
+
+  nsCSPGroup* group = new nsCSPGroup(mCurToken);
+  srcs.AppendElement(group);
+  aDir->addSrcs(srcs);
+  mPolicy->addDirective(aDir);
+  aDir = nullptr;
+};
+
 /* Helper function for parsing sandbox flags. This function solely concatenates
  * all the source list tokens (the sandbox flags) so the attribute parser
  * (nsContentUtils::ParseSandboxAttributeToFlags) can parse them.
@@ -1147,6 +1193,14 @@ void nsCSPParser::directive() {
     return;
   }
 
+  // special case handling for report-to directive (since it doesn't contain
+  // a valid source list but rather an endpoint group)
+  if (CSP_IsDirective(mCurDir[0],
+                      nsIContentSecurityPolicy::REPORT_TO_DIRECTIVE)) {
+    reportGroup(cspDir);
+    return;
+  }
+
   // special case handling for sandbox directive (since it doe4sn't contain
   // a valid source list but rather special sandbox flags)
   if (CSP_IsDirective(mCurDir[0],
@@ -1380,14 +1434,16 @@ nsCSPPolicy* nsCSPParser::parseContentSecurityPolicy(
   // Check that report-only policies define a report-uri, otherwise log warning.
   if (aReportOnly) {
     policy->setReportOnlyFlag(true);
-    if (!policy->hasDirective(nsIContentSecurityPolicy::REPORT_URI_DIRECTIVE)) {
+    if (!policy->hasDirective(nsIContentSecurityPolicy::REPORT_TO_DIRECTIVE) &&
+        !policy->hasDirective(nsIContentSecurityPolicy::REPORT_URI_DIRECTIVE)) {
       nsAutoCString prePath;
       nsresult rv = aSelfURI->GetPrePath(prePath);
       NS_ENSURE_SUCCESS(rv, policy);
       AutoTArray<nsString, 1> params;
       CopyUTF8toUTF16(prePath, *params.AppendElement());
       parser.logWarningErrorToConsole(nsIScriptError::warningFlag,
-                                      "reportURInotInReportOnlyHeader", params);
+                                      "reportURINorReportToNotInReportOnlyHeader",
+                                      params);
     }
   }
 

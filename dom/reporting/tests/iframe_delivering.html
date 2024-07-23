@@ -44,7 +44,7 @@ function runTests(extraParams = "") {
   // Check if the report has been received.
   return checkReport()
   .then(reports => {
-    is(reports.length, 3, "We have 1 report");
+    ok(reports.length >= 3, "We should have received a minimum of 3 reports");
 
     let report = reports[0];
     is(report.contentType, "application/reports+json", "Correct mime-type");

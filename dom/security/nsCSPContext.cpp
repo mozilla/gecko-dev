@@ -15,6 +15,7 @@
 #include "nsCSPContext.h"
 #include "nsCSPParser.h"
 #include "nsCSPService.h"
+#include "nsCSPUtils.h"
 #include "nsGlobalWindowOuter.h"
 #include "nsError.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
@@ -45,7 +46,9 @@
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/dom/CSPReportBinding.h"
 #include "mozilla/dom/CSPDictionariesBinding.h"
+#include "mozilla/dom/CSPViolationReportBody.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
+#include "mozilla/dom/ReportingUtils.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "nsINetworkInterceptController.h"
 #include "nsSandboxFlags.h"
@@ -1171,17 +1174,52 @@ nsresult nsCSPContext::SendReports(
   EnsureIPCPoliciesRead();
   NS_ENSURE_ARG_MAX(aViolatedPolicyIndex, mPolicies.Length() - 1);
 
-  nsTArray<nsString> reportURIs;
-  mPolicies[aViolatedPolicyIndex]->getReportURIs(reportURIs);
-  // There is nowhere to send reports to.
-  if (reportURIs.IsEmpty()) {
-    return NS_OK;
-  }
-
   if (ShouldThrottleReport(aViolationEventInit)) {
     return NS_OK;
   }
 
+  nsAutoString reportGroup;
+  mPolicies[aViolatedPolicyIndex]->getReportGroup(reportGroup);
+
+  // CSP Level 3 Reporting
+  if (!reportGroup.IsEmpty()) {
+    return SendReportsToEndpoints(reportGroup, aViolationEventInit);
+  }
+
+  nsTArray<nsString> reportURIs;
+  mPolicies[aViolatedPolicyIndex]->getReportURIs(reportURIs);
+
+  //[Deprecated] CSP Level 2 Reporting
+  if (!reportURIs.IsEmpty()) {
+    return SendReportsToURIs(reportURIs, aViolationEventInit);
+  }
+
+  return NS_OK;
+}
+
+nsresult nsCSPContext::SendReportsToEndpoints(
+    nsAutoString& reportGroup,
+    const mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit) {
+  nsCOMPtr<Document> doc = do_QueryReferent(mLoadingContext);
+  if (!doc) {
+    return NS_ERROR_FAILURE;
+  }
+  nsPIDOMWindowInner* window = doc->GetInnerWindow();
+  if (NS_WARN_IF(!window)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  RefPtr<CSPViolationReportBody> body =
+      new CSPViolationReportBody(window->AsGlobal(), aViolationEventInit);
+
+  ReportingUtils::Report(window->AsGlobal(), nsGkAtoms::cspViolation,
+                         reportGroup, aViolationEventInit.mDocumentURI, body);
+  return NS_OK;
+}
+
+nsresult nsCSPContext::SendReportsToURIs(
+    const nsTArray<nsString>& reportURIs,
+    const mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit) {
   dom::CSPReport report;
 
   // blocked-uri

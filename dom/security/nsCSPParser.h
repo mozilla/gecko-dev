@@ -11,6 +11,7 @@
 #include "nsCSPContext.h"
 #include "nsIURI.h"
 #include "PolicyTokenizer.h"
+#include "mozilla/UniquePtr.h"
 
 bool isNumberToken(char16_t aSymbol);
 bool isValidHexDig(char16_t aHexDig);
@@ -71,6 +72,7 @@ class nsCSPParser {
   void directiveValue(nsTArray<nsCSPBaseSrc*>& outSrcs);
   void referrerDirectiveValue(nsCSPDirective* aDir);
   void reportURIList(nsCSPDirective* aDir);
+  void reportGroup(nsCSPDirective* aDir);
   void sandboxFlagList(nsCSPDirective* aDir);
   void handleRequireTrustedTypesForDirective(nsCSPDirective* aDir);
   void handleTrustedTypesDirective(nsCSPDirective* aDir);

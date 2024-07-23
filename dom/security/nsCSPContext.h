@@ -100,6 +100,16 @@ class nsCSPContext : public nsIContentSecurityPolicy {
       const mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit,
       uint32_t aViolatedPolicyIndex);
 
+  nsresult SendReportsToEndpoints(
+      nsAutoString& reportGroup,
+      const mozilla::dom::SecurityPolicyViolationEventInit&
+          aViolationEventInit);
+
+  nsresult SendReportsToURIs(
+      const nsTArray<nsString>& reportURIs,
+      const mozilla::dom::SecurityPolicyViolationEventInit&
+          aViolationEventInit);
+
   nsresult FireViolationEvent(
       mozilla::dom::Element* aTriggeringElement,
       nsICSPEventListener* aCSPEventListener,

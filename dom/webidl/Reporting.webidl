@@ -70,6 +70,22 @@ interface TestingDeprecatedInterface {
   readonly attribute boolean deprecatedAttribute;
 };
 
+[Exposed=Window, Pref="dom.reporting.enabled"]
+interface CSPViolationReportBody : ReportBody {
+  [Default] object toJSON();
+  readonly attribute USVString documentURL;
+  readonly attribute USVString? referrer;
+  readonly attribute USVString? blockedURL;
+  readonly attribute DOMString effectiveDirective;
+  readonly attribute DOMString originalPolicy;
+  readonly attribute USVString? sourceFile;
+  readonly attribute DOMString? sample;
+  readonly attribute SecurityPolicyViolationEventDisposition disposition;
+  readonly attribute unsigned short statusCode;
+  readonly attribute unsigned long? lineNumber;
+  readonly attribute unsigned long? columnNumber;
+};
+
 // Used internally to process the JSON
 [GenerateInit]
 dictionary ReportingHeaderValue {
