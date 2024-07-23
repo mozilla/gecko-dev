@@ -169,7 +169,8 @@ inline gc::AllocKind WasmArrayObject::allocKindForIL(uint32_t storageBytes) {
 
 inline gc::AllocKind WasmArrayObject::allocKind() const {
   if (isDataInline()) {
-    uint32_t storageBytes = calcStorageBytes(
+    // numElements_ was validated to not overflow when constructing this object
+    uint32_t storageBytes = calcStorageBytesUnchecked(
         typeDef().arrayType().elementType_.size(), numElements_);
     return allocKindForIL(storageBytes);
   }
