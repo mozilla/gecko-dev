@@ -23,7 +23,7 @@ configurations.configureEach { config ->
     if (config.isCanBeResolved()) {
         config.resolutionStrategy { strategy ->
             dependencySubstitution {
-                configureEach { dependency ->
+                all { dependency ->
                     if (!(dependency.requested instanceof ModuleComponentSelector)) {
                         // We only care about substituting for a module, not a project.
                         return
