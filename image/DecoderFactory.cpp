@@ -320,6 +320,32 @@ already_AddRefed<Decoder> DecoderFactory::CloneAnimationDecoder(
 }
 
 /* static */
+already_AddRefed<Decoder> DecoderFactory::CloneAnonymousMetadataDecoder(
+    Decoder* aDecoder, const Maybe<DecoderFlags>& aDecoderFlags) {
+  MOZ_ASSERT(aDecoder);
+
+  DecoderType type = aDecoder->GetType();
+  RefPtr<Decoder> decoder =
+      GetDecoder(type, nullptr, /* aIsRedecode = */ false);
+  MOZ_ASSERT(decoder, "Should have a decoder now");
+
+  // Initialize the decoder.
+  decoder->SetMetadataDecode(true);
+  decoder->SetIterator(aDecoder->GetSourceBuffer()->Iterator());
+  if (aDecoderFlags) {
+    decoder->SetDecoderFlags(*aDecoderFlags);
+  } else {
+    decoder->SetDecoderFlags(aDecoder->GetDecoderFlags());
+  }
+
+  if (NS_FAILED(decoder->Init())) {
+    return nullptr;
+  }
+
+  return decoder.forget();
+}
+
+/* static */
 already_AddRefed<IDecodingTask> DecoderFactory::CreateMetadataDecoder(
     DecoderType aType, NotNull<RasterImage*> aImage, DecoderFlags aFlags,
     NotNull<SourceBuffer*> aSourceBuffer) {
