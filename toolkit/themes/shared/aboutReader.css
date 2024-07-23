@@ -76,7 +76,12 @@ body {
   /* light colours */
 }
 
+body.light {
+  color-scheme: light;
+}
+
 body.sepia {
+  color-scheme: light;
   --main-background: rgb(244, 236, 216);
   --main-foreground: rgb(91, 70, 54);
   --toolbar-border: var(--main-foreground);
@@ -85,6 +90,7 @@ body.sepia {
 }
 
 body.gray {
+  color-scheme: light;
   --main-background: var(--grey-30);
   --main-foreground: var(--light-theme-foreground);
   --toolbar-border: var(--main-foreground);
@@ -93,6 +99,7 @@ body.gray {
 
 body.dark,
 body.contrast {
+  color-scheme: dark;
   --toolbar-box-shadow: black;
   --toolbar-button-background-hover: rgb(82, 82, 94);
   --toolbar-button-background-active: rgb(91, 91, 102);
@@ -126,11 +133,14 @@ body.contrast {
   --main-background: #000000;
   --main-foreground: #fff;
   --primary-color: #D6B4FD;
+  --link-color: #8080FF;
+  --link-color-hover: #D6B4FD;
   --toolbar-border: #FFEE32;
   --icon-fill: #FFEE32;
 }
 
 body.custom {
+  color-scheme: light;
   --main-background: var(--custom-theme-background);
   --main-foreground: var(--custom-theme-foreground);
   --link-foreground: var(--custom-theme-unvisited-links);
@@ -149,8 +159,8 @@ body.hcm {
   --main-foreground: CanvasText;
   --primary-color: SelectedItem;
   --toolbar-border: CanvasText;
-   /* We need a true transparent but in HCM this would compute to an actual color,
-      so select the page's background color instead: */
+  /* We need a true transparent but in HCM this would compute to an actual color,
+     so select the page's background color instead: */
   --toolbar-transparent-border: Canvas;
   --toolbar-box-shadow: Canvas;
   --toolbar-button-background: ButtonFace;
@@ -174,6 +184,7 @@ body.hcm {
   --popup-button-foreground-hover: SelectedItem;
   --popup-button-background-active: ButtonFace;
   --popup-button-border: ButtonText;
+  --link-color-hover: SelectedItem;
   --selected-background: Canvas;
   --outline-focus-color: CanvasText;
   --font-value-background: Canvas;
@@ -712,7 +723,7 @@ body.hcm .color-scheme-buttons {
   max-height: calc(100vh - 7em);
   overflow-y: auto;
   font-size: 15px;
-  color: var(--popup-button-foreground);
+  color: var(--popup-foreground);
 }
 
 #text-size-controls {
@@ -828,9 +839,25 @@ body.hcm .color-scheme-buttons {
     fill: currentColor;
     height: var(--size-item-large);
     width: var(--size-item-large);
+    border: 1px solid transparent;
+    border-radius: var(--border-radius-small);
 
     #about-reader-advanced-layout[open] & {
       background-image: url("chrome://global/skin/icons/arrow-up.svg");
+    }
+
+    body.hcm & {
+      color: ButtonText;
+      border-color: var(--popup-button-border);
+
+      &:hover {
+        color: SelectedItem;
+        border-color: SelectedItem;
+      }
+
+      &:hover:active {
+        border-color: ButtonText;
+      }
     }
   }
 }
@@ -1007,7 +1034,7 @@ div[name="customtheme"] {
   display: block;
   background: none;
   border: none;
-  color: var(--primary-color);
+  color: var(--link-color);
   text-decoration: underline;
   font-size: 15px;
   padding-block: var(--space-small);
@@ -1015,6 +1042,14 @@ div[name="customtheme"] {
 
   &.text-layout-reset-button {
     float: inline-end;
+  }
+
+  &:hover {
+    color: var(--link-color-hover);
+
+    &:active {
+      color: var(--link-color-active);
+    }
   }
 }
 

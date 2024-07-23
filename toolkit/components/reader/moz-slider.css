@@ -21,7 +21,7 @@
 
   > .icon {
     -moz-context-properties: fill;
-    fill: var(--popup-button-foreground);
+    fill: var(--popup-foreground);
     height: 20px;
     width: 20px;
   }
