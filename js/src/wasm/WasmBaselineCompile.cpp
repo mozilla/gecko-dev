@@ -12125,11 +12125,18 @@ bool js::wasm::BaselineCompileFunctions(const CodeMetadata& codeMeta,
     FuncOffsets offsets(f.finish());
     bool hasUnwindInfo =
         unwindInfoBefore != masm.codeRangeUnwindInfos().length();
+
+    // Record this function's code range
     if (!code->codeRanges.emplaceBack(func.index, offsets, hasUnwindInfo)) {
       return false;
     }
 
-    // Record observed feature usage
+    // Record this function's specific feature usage
+    if (!code->funcs.emplaceBack(func.index, f.iter_.featureUsage())) {
+      return false;
+    }
+
+    // Accumulate observed feature usage
     code->featureUsage |= f.iter_.featureUsage();
   }
 

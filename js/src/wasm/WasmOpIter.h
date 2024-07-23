@@ -2615,6 +2615,8 @@ inline bool OpIter<Policy>::readReturnCall(uint32_t* funcIndex,
                                            ValueVector* argValues) {
   MOZ_ASSERT(Classify(op_) == OpKind::ReturnCall);
 
+  featureUsage_ |= FeatureUsage::ReturnCall;
+
   if (!readVarU32(funcIndex)) {
     return fail("unable to read call function index");
   }
@@ -2699,6 +2701,8 @@ inline bool OpIter<Policy>::readReturnCallIndirect(uint32_t* funcTypeIndex,
   MOZ_ASSERT(Classify(op_) == OpKind::ReturnCallIndirect);
   MOZ_ASSERT(funcTypeIndex != tableIndex);
 
+  featureUsage_ |= FeatureUsage::ReturnCall;
+
   if (!readVarU32(funcTypeIndex)) {
     return fail("unable to read return_call_indirect signature index");
   }
@@ -2780,6 +2784,8 @@ inline bool OpIter<Policy>::readReturnCallRef(const FuncType** funcType,
                                               Value* callee,
                                               ValueVector* argValues) {
   MOZ_ASSERT(Classify(op_) == OpKind::ReturnCallRef);
+
+  featureUsage_ |= FeatureUsage::ReturnCall;
 
   uint32_t funcTypeIndex;
   if (!readFuncTypeIndex(&funcTypeIndex)) {

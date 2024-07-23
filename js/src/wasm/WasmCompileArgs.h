@@ -173,7 +173,10 @@ struct FeatureArgs {
 enum class FeatureUsage : uint8_t {
   None = 0x0,
   LegacyExceptions = 0x1,
+  ReturnCall = 0x2,
 };
+
+using FeatureUsageVector = Vector<FeatureUsage, 0, SystemAllocPolicy>;
 
 void SetUseCountersForFeatureUsage(JSContext* cx, JSObject* object,
                                    FeatureUsage usage);

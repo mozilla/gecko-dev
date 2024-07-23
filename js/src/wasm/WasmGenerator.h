@@ -63,12 +63,23 @@ struct FuncCompileInput {
 
 using FuncCompileInputVector = Vector<FuncCompileInput, 8, SystemAllocPolicy>;
 
+struct FuncCompileOutput {
+  FuncCompileOutput(uint32_t index, FeatureUsage featureUsage)
+      : index(index), featureUsage(featureUsage) {}
+
+  uint32_t index;
+  FeatureUsage featureUsage;
+};
+
+using FuncCompileOutputVector = Vector<FuncCompileOutput, 8, SystemAllocPolicy>;
+
 // CompiledCode contains the resulting code and metadata for a set of compiled
 // input functions or stubs.
 
 struct CompiledCode {
   CompiledCode() : featureUsage(FeatureUsage::None) {}
 
+  FuncCompileOutputVector funcs;
   Bytes bytes;
   CodeRangeVector codeRanges;
   CallSiteVector callSites;
@@ -84,6 +95,7 @@ struct CompiledCode {
   [[nodiscard]] bool swap(jit::MacroAssembler& masm);
 
   void clear() {
+    funcs.clear();
     bytes.clear();
     codeRanges.clear();
     callSites.clear();
@@ -99,8 +111,8 @@ struct CompiledCode {
   }
 
   bool empty() {
-    return bytes.empty() && codeRanges.empty() && callSites.empty() &&
-           callSiteTargets.empty() && trapSites.empty() &&
+    return funcs.empty() && bytes.empty() && codeRanges.empty() &&
+           callSites.empty() && callSiteTargets.empty() && trapSites.empty() &&
            symbolicAccesses.empty() && codeLabels.empty() && tryNotes.empty() &&
            stackMaps.empty() && codeRangeUnwindInfos.empty() &&
            featureUsage == FeatureUsage::None;
@@ -196,6 +208,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
 
   // Data that is moved into the Module/Code as the result of finish()
   FuncDefRangeVector funcDefRanges_;
+  FeatureUsageVector funcDefFeatureUsages_;
   FuncImportVector funcImports_;
   UniqueLinkData sharedStubsLinkData_;
   UniqueCodeBlock sharedStubsCodeBlock_;

@@ -189,6 +189,11 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // available while doing a 'tier-1' or 'once' compilation.
   FuncDefRangeVector funcDefRanges;
 
+  // The feature usage for every function defined in this module. This is only
+  // accessible after we've decoded the code section. This means it is not
+  // available while doing a 'tier-1' or 'once' compilation.
+  FeatureUsageVector funcDefFeatureUsages;
+
   // The bytecode for this module. Only available for debuggable modules, or if
   // doing lazy tiering. This is only accessible after we've decoded the whole
   // module. This means it is not available while doing a 'tier-1' or 'once'
@@ -305,6 +310,11 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     MOZ_ASSERT(funcIndex >= numFuncImports);
     uint32_t funcDefIndex = funcIndex - numFuncImports;
     return funcDefRanges[funcDefIndex];
+  }
+  FeatureUsage funcDefFeatureUsage(uint32_t funcIndex) const {
+    MOZ_ASSERT(funcIndex >= numFuncImports);
+    uint32_t funcDefIndex = funcIndex - numFuncImports;
+    return funcDefFeatureUsages[funcDefIndex];
   }
 
   // This gets names for wasm only.

@@ -1161,7 +1161,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // NOTE: keep the field sequence here in sync with the sequence in the
   // declaration of CodeMetadata.
 
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 664);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 712);
   // Serialization doesn't handle asm.js or debug enabled modules
   MOZ_RELEASE_ASSERT(mode == MODE_SIZE || !item->isAsmJS());
 
@@ -1214,6 +1214,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // TODO (bug 1907645): We do not serialize branch hints yet.
 
   MOZ_TRY(CodePodVector(coder, &item->funcDefRanges));
+  MOZ_TRY(CodePodVector(coder, &item->funcDefFeatureUsages));
   MOZ_TRY((CodeNullablePtr<
            mode, SharedBytes,
            &CodeRefPtr<mode, const ShareableBytes, CodeShareableBytes>>(
@@ -1341,7 +1342,7 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
 
 CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
                            const wasm::CodeMetadata& codeMeta) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 768);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 760);
 
   FuncImportVector funcImports;
   MOZ_TRY(CodePodVector(coder, &funcImports));
@@ -1379,7 +1380,7 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 template <CoderMode mode>
 CoderResult CodeSharedCode(Coder<mode>& coder,
                            CoderArg<mode, wasm::SharedCode> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 768);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 760);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   // Don't encode the CodeMetadata, that is handled by wasm::Module
   MOZ_TRY(CodePodVector(coder, &(*item)->funcImports()));
