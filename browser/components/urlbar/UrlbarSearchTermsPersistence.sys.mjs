@@ -4,9 +4,17 @@
 
 const lazy = {};
 
+import { UrlbarUtils } from "resource:///modules/UrlbarUtils.sys.mjs";
+
 ChromeUtils.defineESModuleGetters(lazy, {
-  UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
 });
+
+ChromeUtils.defineLazyGetter(lazy, "logger", () =>
+  UrlbarUtils.getLogger({ prefix: "UrlbarSearchTermsPersistence" })
+);
+
+const URLBAR_PERSISTENCE_SETTINGS_KEY = "urlbar-persisted-search-terms";
 
 /**
  * Provides utilities to manage and validate search terms persistence in the URL
@@ -16,11 +24,74 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * information.
  */
 class _UrlbarSearchTermsPersistence {
+  // Whether or not this class is initialised.
+  #initialized = false;
+
   // The original provider information, mainly used for tests.
   #originalProviderInfo = [];
 
   // The current search provider info.
   #searchProviderInfo = [];
+
+  // An instance of remote settings that is used to access the provider info.
+  #urlbarSearchTermsPersistenceSettings;
+
+  // Callback used when syncing Urlbar Search Terms Persistence config settings.
+  #urlbarSearchTermsPersistenceSettingsSync;
+
+  async init() {
+    if (this.#initialized) {
+      return;
+    }
+
+    this.#urlbarSearchTermsPersistenceSettings = lazy.RemoteSettings(
+      URLBAR_PERSISTENCE_SETTINGS_KEY
+    );
+    let rawProviderInfo = [];
+    try {
+      rawProviderInfo = await this.#urlbarSearchTermsPersistenceSettings.get();
+    } catch (ex) {
+      lazy.logger.error("Could not get settings:", ex);
+    }
+
+    this.#urlbarSearchTermsPersistenceSettingsSync = event =>
+      this.#onSettingsSync(event);
+    this.#urlbarSearchTermsPersistenceSettings.on(
+      "sync",
+      this.#urlbarSearchTermsPersistenceSettingsSync
+    );
+
+    this.#originalProviderInfo = rawProviderInfo;
+    this.#setSearchProviderInfo(rawProviderInfo);
+
+    this.#initialized = true;
+  }
+
+  uninit() {
+    if (!this.#initialized) {
+      return;
+    }
+
+    try {
+      this.#urlbarSearchTermsPersistenceSettings.off(
+        "sync",
+        this.#urlbarSearchTermsPersistenceSettingsSync
+      );
+    } catch (ex) {
+      lazy.logger.error(
+        "Failed to shutdown UrlbarSearchTermsPersistence Remote Settings.",
+        ex
+      );
+    }
+    this.#urlbarSearchTermsPersistenceSettings = null;
+    this.#urlbarSearchTermsPersistenceSettingsSync = null;
+
+    this.#initialized = false;
+  }
+
+  getSearchProviderInfo() {
+    return this.#searchProviderInfo;
+  }
 
   /**
    * Test-only function, used to override the provider information, so that
@@ -107,7 +178,7 @@ class _UrlbarSearchTermsPersistence {
         Services.search.defaultEngine.searchTermFromResult(originalURI);
     }
 
-    if (!searchTerm || searchTerm.length > lazy.UrlbarUtils.MAX_TEXT_LENGTH) {
+    if (!searchTerm || searchTerm.length > UrlbarUtils.MAX_TEXT_LENGTH) {
       return "";
     }
 
@@ -143,6 +214,20 @@ class _UrlbarSearchTermsPersistence {
     } catch (e) {}
 
     return "";
+  }
+
+  async #onSettingsSync(event) {
+    let current = event.data?.current;
+    if (current) {
+      lazy.logger.debug("Update provider info due to Remote Settings sync.");
+      this.#originalProviderInfo = current;
+      this.#setSearchProviderInfo(current);
+    } else {
+      lazy.logger.debug(
+        "Ignoring Remote Settings sync data due to missing records."
+      );
+    }
+    Services.obs.notifyObservers(null, "urlbar-persisted-search-terms-synced");
   }
 
   /**

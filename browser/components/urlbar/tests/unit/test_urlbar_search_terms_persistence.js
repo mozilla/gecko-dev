@@ -54,6 +54,48 @@ const TESTS = [
     search_url_get_params: "q={searchTerms}",
     cases: [
       {
+        title: "Non-existent URI",
+        currentURI: null,
+        originalURI: null,
+        expected: "",
+      },
+      {
+        title: "Empty URI",
+        currentURI: "",
+        originalURI: "",
+        expected: "",
+      },
+      {
+        title: "Non-url",
+        currentURI: "about:blank",
+        originalURI: "about:blank",
+        expected: "",
+      },
+      {
+        title: "Non-url 1",
+        currentURI: "about:home",
+        originalURI: "about:home",
+        expected: "",
+      },
+      {
+        title: "Non-url 2",
+        currentURI: "about:newtab",
+        originalURI: "about:newtab",
+        expected: "",
+      },
+      {
+        title: "Non-url 3",
+        currentURI: "not://a/supported/protocol",
+        originalURI: "not://a/supported/protocol",
+        expected: "",
+      },
+      {
+        title: "Non-url 4",
+        currentURI: "view-source:http://www.example.com/",
+        originalURI: "view-source:http://www.example.com/",
+        expected: "",
+      },
+      {
         title: "No search parameters",
         currentURI: "https://example.com/",
         originalURI: "https://example.com/",
@@ -198,10 +240,18 @@ add_task(async function test_parsing_extracted_urls() {
 
     for (let { title, currentURI, originalURI, expected } of test.cases) {
       info(`${test.name} - ${title}`);
+
+      if (currentURI) {
+        currentURI = Services.io.newURI(currentURI);
+      }
+      if (originalURI) {
+        originalURI = Services.io.newURI(originalURI);
+      }
+
       Assert.equal(
         UrlbarSearchTermsPersistence.getSearchTermIfDefaultSerpUri(
-          Services.io.newURI(originalURI),
-          Services.io.newURI(currentURI)
+          originalURI,
+          currentURI
         ),
         expected
       );

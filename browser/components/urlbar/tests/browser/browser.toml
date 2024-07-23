@@ -42,6 +42,8 @@ support-files = ["mixed_active.html"]
 
 ["browser_UrlbarInput_searchTerms_popup.js"]
 
+["browser_UrlbarInput_searchTerms_remote_settings_sync.js"]
+
 ["browser_UrlbarInput_searchTerms_revert.js"]
 
 ["browser_UrlbarInput_searchTerms_searchBar.js"]

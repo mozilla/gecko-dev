@@ -84,10 +84,6 @@ var gExceptionPaths = [
 
   // Strip on Share parameter lists
   "chrome://global/content/antitracking/",
-
-  // Expecting to integrate the UrlbarSearchTermsPersistence component in
-  // Bug 1903633
-  "resource:///modules/UrlbarSearchTermsPersistence.sys.mjs",
 ];
 
 // These are not part of the omni.ja file, so we find them only when running
