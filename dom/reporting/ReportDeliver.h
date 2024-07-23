@@ -22,13 +22,10 @@ namespace mozilla::dom {
 
 class ReportBody;
 
-class ReportDeliver final : public nsIObserver,
-                            public nsITimerCallback,
-                            public nsINamed {
+class ReportDeliver final : public nsIObserver, public nsINamed {
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
-  NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSINAMED
 
   struct ReportData {
@@ -51,13 +48,13 @@ class ReportDeliver final : public nsIObserver,
 
   void AppendReportData(const ReportData& aReportData);
 
+  void Notify();
+
  private:
   ReportDeliver();
   ~ReportDeliver();
 
   nsTArray<ReportData> mReportQueue;
-
-  nsCOMPtr<nsITimer> mTimer;
 };
 
 }  // namespace mozilla::dom

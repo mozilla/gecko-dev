@@ -208,7 +208,7 @@ void SendReports(nsTArray<ReportDeliver::ReportData>& aReports,
   internalRequest->SetSkipServiceWorker();
   // TODO: internalRequest->SetContentPolicyType(TYPE_REPORT);
   internalRequest->SetMode(RequestMode::Cors);
-  internalRequest->SetCredentialsMode(RequestCredentials::Include);
+  internalRequest->SetCredentialsMode(RequestCredentials::Same_origin);
 
   RefPtr<Request> request =
       new Request(globalObject, std::move(internalRequest), nullptr);
@@ -325,18 +325,16 @@ void ReportDeliver::AppendReportData(const ReportData& aReportData) {
     mReportQueue.RemoveElementAt(0);
   }
 
-  if (!mTimer) {
-    uint32_t timeout = StaticPrefs::dom_reporting_delivering_timeout() * 1000;
-    nsresult rv = NS_NewTimerWithCallback(getter_AddRefs(mTimer), this, timeout,
-                                          nsITimer::TYPE_ONE_SHOT);
-    Unused << NS_WARN_IF(NS_FAILED(rv));
-  }
+  RefPtr<ReportDeliver> self{this};
+  nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction(
+      "ReportDeliver::CallNotify", [self]() { self->Notify(); });
+
+  NS_DispatchToCurrentThreadQueue(
+      runnable.forget(), StaticPrefs::dom_reporting_delivering_timeout() * 1000,
+      EventQueuePriority::Idle);
 }
 
-NS_IMETHODIMP
-ReportDeliver::Notify(nsITimer* aTimer) {
-  mTimer = nullptr;
-
+void ReportDeliver::Notify() {
   nsTArray<ReportData> reports = std::move(mReportQueue);
 
   // group reports by endpoint and nsIPrincipal
@@ -362,8 +360,6 @@ ReportDeliver::Notify(nsITimer* aTimer) {
     nsAutoCString u(url);
     SendReports(value, url, principal);
   }
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -384,11 +380,6 @@ ReportDeliver::Observe(nsISupports* aSubject, const char* aTopic,
 
   obs->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
 
-  if (mTimer) {
-    mTimer->Cancel();
-    mTimer = nullptr;
-  }
-
   gReportDeliver = nullptr;
   return NS_OK;
 }
@@ -400,7 +391,6 @@ ReportDeliver::~ReportDeliver() = default;
 NS_INTERFACE_MAP_BEGIN(ReportDeliver)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
-  NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
   NS_INTERFACE_MAP_ENTRY(nsINamed)
 NS_INTERFACE_MAP_END
 
