@@ -41,8 +41,6 @@ prefs = ["browser.search.newSearchConfig.enabled=true"]
 
 ["test_google.js"]
 
-["test_mailru.js"]
-
 ["test_qwant.js"]
 
 ["test_rakuten.js"]
@@ -72,5 +70,3 @@ support-files = [
 ["test_wikipedia.js"]
 
 ["test_yahoojp.js"]
-
-["test_yandex.js"]

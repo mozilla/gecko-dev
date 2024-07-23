@@ -21,7 +21,7 @@ add_task(async function test_validate_engines() {
   // We never deploy more than one eBay in each environment so this issue
   // won't be a problem.
   // Ignore the error and test the configs can be created to engine objects.
-  consoleAllowList.push("Could not load engine");
+  consoleAllowList.push("Could not load app provided search engine");
   config = config.map(obj => {
     if (obj.recordType == "engine") {
       return {
