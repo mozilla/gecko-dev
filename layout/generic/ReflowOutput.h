@@ -108,40 +108,47 @@ struct OverflowAreas {
   nsRect mScrollable;
 };
 
+}  // namespace mozilla
+
 /**
- * CollapsingMargin represents a vertical collapsing margin between
- * blocks as described in section 8.3.1 of CSS2.
- * <https://www.w3.org/TR/CSS22/box.html#collapsing-margins>
+ * An nsCollapsingMargin represents a vertical collapsing margin between
+ * blocks as described in section 8.3.1 of CSS2,
+ * <URL: http://www.w3.org/TR/REC-CSS2/box.html#collapsing-margins >.
  *
  * All adjacent vertical margins collapse, and the resulting margin is
  * the sum of the largest positive margin included and the smallest (most
  * negative) negative margin included.
  */
-class CollapsingMargin final {
+struct nsCollapsingMargin {
+ private:
+  nscoord mMostPos;  // the largest positive margin included
+  nscoord mMostNeg;  // the smallest negative margin included
+
  public:
-  bool operator==(const CollapsingMargin& aOther) const {
+  nsCollapsingMargin() : mMostPos(0), mMostNeg(0) {}
+
+  nsCollapsingMargin(const nsCollapsingMargin& aOther) = default;
+
+  bool operator==(const nsCollapsingMargin& aOther) const {
     return mMostPos == aOther.mMostPos && mMostNeg == aOther.mMostNeg;
   }
 
-  bool operator!=(const CollapsingMargin& aOther) const {
+  bool operator!=(const nsCollapsingMargin& aOther) const {
     return !(*this == aOther);
   }
 
+  nsCollapsingMargin& operator=(const nsCollapsingMargin& aOther) = default;
+
   void Include(nscoord aCoord) {
-    if (aCoord > mMostPos) {
+    if (aCoord > mMostPos)
       mMostPos = aCoord;
-    } else if (aCoord < mMostNeg) {
+    else if (aCoord < mMostNeg)
       mMostNeg = aCoord;
-    }
   }
 
-  void Include(const CollapsingMargin& aOther) {
-    if (aOther.mMostPos > mMostPos) {
-      mMostPos = aOther.mMostPos;
-    }
-    if (aOther.mMostNeg < mMostNeg) {
-      mMostNeg = aOther.mMostNeg;
-    }
+  void Include(const nsCollapsingMargin& aOther) {
+    if (aOther.mMostPos > mMostPos) mMostPos = aOther.mMostPos;
+    if (aOther.mMostNeg < mMostNeg) mMostNeg = aOther.mMostNeg;
   }
 
   void Zero() {
@@ -149,17 +156,12 @@ class CollapsingMargin final {
     mMostNeg = 0;
   }
 
-  bool IsZero() const { return mMostPos == 0 && mMostNeg == 0; }
+  bool IsZero() const { return (mMostPos == 0) && (mMostNeg == 0); }
 
-  nscoord Get() const { return mMostPos + mMostNeg; }
-
- private:
-  // The largest positive margin included.
-  nscoord mMostPos = 0;
-
-  // The smallest negative margin included.
-  nscoord mMostNeg = 0;
+  nscoord get() const { return mMostPos + mMostNeg; }
 };
+
+namespace mozilla {
 
 /**
  * ReflowOutput is initialized by a parent frame as a parameter passing to
@@ -236,7 +238,7 @@ class ReflowOutput {
 
   // Carried out block-end margin values. This is the collapsed
   // (generational) block-end margin value.
-  CollapsingMargin mCarriedOutBEndMargin;
+  nsCollapsingMargin mCarriedOutBEndMargin;
 
   // For frames that have content that overflow their content area
   // (HasOverflowAreas() is true) these rectangles represent the total

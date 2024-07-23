@@ -44,7 +44,7 @@ static nsIFrame* DescendIntoBlockLevelFrame(nsIFrame* aFrame) {
 }
 
 bool nsBlockReflowContext::ComputeCollapsedBStartMargin(
-    const ReflowInput& aRI, CollapsingMargin* aMargin,
+    const ReflowInput& aRI, nsCollapsingMargin* aMargin,
     nsIFrame* aClearanceFrame, bool* aMayNeedRetry, bool* aBlockIsEmpty) {
   WritingMode wm = aRI.GetWritingMode();
   WritingMode parentWM = mMetrics.GetWritingMode();
@@ -211,7 +211,7 @@ done:
 
 void nsBlockReflowContext::ReflowBlock(const LogicalRect& aSpace,
                                        bool aApplyBStartMargin,
-                                       CollapsingMargin& aPrevMargin,
+                                       nsCollapsingMargin& aPrevMargin,
                                        nscoord aClearance, nsLineBox* aLine,
                                        ReflowInput& aFrameRI,
                                        nsReflowStatus& aFrameReflowStatus,
@@ -240,12 +240,12 @@ void nsBlockReflowContext::ReflowBlock(const LogicalRect& aSpace,
     if (mWritingMode.IsOrthogonalTo(mFrame->GetWritingMode())) {
       if (NS_UNCONSTRAINEDSIZE != aFrameRI.AvailableISize()) {
         aFrameRI.SetAvailableISize(std::max(
-            0, aFrameRI.AvailableISize() - mBStartMargin.Get() - aClearance));
+            0, aFrameRI.AvailableISize() - mBStartMargin.get() - aClearance));
       }
     } else {
       if (NS_UNCONSTRAINEDSIZE != aFrameRI.AvailableBSize()) {
         aFrameRI.SetAvailableBSize(std::max(
-            0, aFrameRI.AvailableBSize() - mBStartMargin.Get() - aClearance));
+            0, aFrameRI.AvailableBSize() - mBStartMargin.get() - aClearance));
       }
     }
   } else {
@@ -266,7 +266,7 @@ void nsBlockReflowContext::ReflowBlock(const LogicalRect& aSpace,
     // reflow auto inline-start/end margins will have a zero value.
     LogicalMargin usedMargin = aFrameRI.ComputedLogicalMargin(mWritingMode);
     mICoord = mSpace.IStart(mWritingMode) + usedMargin.IStart(mWritingMode);
-    mBCoord = mSpace.BStart(mWritingMode) + mBStartMargin.Get() + aClearance;
+    mBCoord = mSpace.BStart(mWritingMode) + mBStartMargin.get() + aClearance;
 
     LogicalRect space(
         mWritingMode, mICoord, mBCoord,
@@ -344,7 +344,7 @@ void nsBlockReflowContext::ReflowBlock(const LogicalRect& aSpace,
  */
 bool nsBlockReflowContext::PlaceBlock(const ReflowInput& aReflowInput,
                                       bool aForceFit, nsLineBox* aLine,
-                                      CollapsingMargin& aBEndMarginResult,
+                                      nsCollapsingMargin& aBEndMarginResult,
                                       OverflowAreas& aOverflowAreas,
                                       const nsReflowStatus& aReflowStatus) {
   // Compute collapsed block-end margin value.
@@ -405,7 +405,7 @@ bool nsBlockReflowContext::PlaceBlock(const ReflowInput& aReflowInput,
     // because the containing block will place the next line at the
     // line's BEnd, and it must place the next line at a different
     // point from where this empty block will be.
-    backupContainingBlockAdvance = mBStartMargin.Get();
+    backupContainingBlockAdvance = mBStartMargin.get();
   }
 
   // See if the frame fit. If it's the first frame or empty then it

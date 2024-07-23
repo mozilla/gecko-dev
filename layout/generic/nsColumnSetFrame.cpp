@@ -746,7 +746,7 @@ nsColumnSetFrame::ColumnBalanceData nsColumnSetFrame::ReflowColumns(
           "childContentBEnd=%d, CarriedOutBEndMargin=%d (ignored)",
           __func__, colData.mColCount, child, ToString(aStatus).c_str(),
           kidDesiredSize.ISize(wm), kidDesiredSize.BSize(wm), childContentBEnd,
-          kidDesiredSize.mCarriedOutBEndMargin.Get());
+          kidDesiredSize.mCarriedOutBEndMargin.get());
     }
 
     contentRect.UnionRect(contentRect, child->GetRect());

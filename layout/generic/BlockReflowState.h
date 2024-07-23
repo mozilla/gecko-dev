@@ -361,7 +361,7 @@ class BlockReflowState {
   nsIFrame* mPrevChild;
 
   // The previous child frames collapsed bottom margin value.
-  CollapsingMargin mPrevBEndMargin;
+  nsCollapsingMargin mPrevBEndMargin;
 
   // The current next-in-flow for the block. When lines are pulled
   // from a next-in-flow, this is used to know which next-in-flow to

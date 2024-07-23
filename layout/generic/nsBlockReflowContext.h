@@ -33,17 +33,17 @@ class nsBlockReflowContext {
   ~nsBlockReflowContext() = default;
 
   void ReflowBlock(const mozilla::LogicalRect& aSpace, bool aApplyBStartMargin,
-                   mozilla::CollapsingMargin& aPrevMargin, nscoord aClearance,
+                   nsCollapsingMargin& aPrevMargin, nscoord aClearance,
                    nsLineBox* aLine, ReflowInput& aReflowInput,
                    nsReflowStatus& aReflowStatus, BlockReflowState& aState);
 
   bool PlaceBlock(const ReflowInput& aReflowInput, bool aForceFit,
                   nsLineBox* aLine,
-                  mozilla::CollapsingMargin& aBEndMarginResult /* out */,
+                  nsCollapsingMargin& aBEndMarginResult /* out */,
                   mozilla::OverflowAreas& aOverflowAreas,
                   const nsReflowStatus& aReflowStatus);
 
-  mozilla::CollapsingMargin& GetCarriedOutBEndMargin() {
+  nsCollapsingMargin& GetCarriedOutBEndMargin() {
     return mMetrics.mCarriedOutBEndMargin;
   }
 
@@ -69,7 +69,7 @@ class nsBlockReflowContext {
    * dirty.
    */
   bool ComputeCollapsedBStartMargin(const ReflowInput& aRI,
-                                    CollapsingMargin* aMargin,
+                                    nsCollapsingMargin* aMargin,
                                     nsIFrame* aClearanceFrame,
                                     bool* aMayNeedRetry,
                                     bool* aIsEmpty = nullptr);
@@ -85,7 +85,7 @@ class nsBlockReflowContext {
   nsSize mContainerSize;
   mozilla::WritingMode mWritingMode;
   ReflowOutput mMetrics;
-  CollapsingMargin mBStartMargin;
+  nsCollapsingMargin mBStartMargin;
 };
 
 #endif /* nsBlockReflowContext_h___ */
