@@ -956,8 +956,10 @@ abstract class BaseBrowserFragment :
                         password = password,
                     )
                 },
-                onSavedGeneratedPassword = {
-                    showSnackbarAfterUsingTheGeneratedPassword()
+                onSaveLogin = { isUpdate ->
+                    showSnackbarAfterLoginChange(
+                        isUpdate,
+                    )
                 },
                 passwordGeneratorColorsProvider = passwordGeneratorColorsProvider,
                 creditCardDelegate = object : CreditCardDelegate {
@@ -1203,12 +1205,17 @@ abstract class BaseBrowserFragment :
     }
 
     /**
-     * Show a [Snackbar] when credentials are saved using the generated password.
+     * Show a [Snackbar] when credentials are saved or updated.
      */
-    private fun showSnackbarAfterUsingTheGeneratedPassword() {
+    private fun showSnackbarAfterLoginChange(isUpdate: Boolean) {
+        val snackbarText = if (isUpdate) {
+            R.string.mozac_feature_prompt_login_snackbar_username_updated
+        } else {
+            R.string.mozac_feature_prompts_suggest_strong_password_saved_snackbar_title
+        }
         ContextMenuSnackbarDelegate().show(
             snackBarParentView = binding.dynamicSnackbarContainer,
-            text = R.string.mozac_feature_prompts_suggest_strong_password_saved_snackbar_title,
+            text = snackbarText,
             duration = Snackbar.LENGTH_LONG,
         )
     }

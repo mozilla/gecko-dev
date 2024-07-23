@@ -43,7 +43,7 @@ internal class PasswordGeneratorDialogFragment : PromptDialogFragment() {
         safeArguments.getString(URL, "")
     }
 
-    private var onSavedGeneratedPassword: () -> Unit = {}
+    private var onSavedGeneratedPassword: (Boolean) -> Unit = { _ -> }
 
     private var colorsProvider: PasswordGeneratorDialogColorsProvider =
         PasswordGeneratorDialogColors.defaultProvider()
@@ -104,7 +104,7 @@ internal class PasswordGeneratorDialogFragment : PromptDialogFragment() {
         emitGeneratedPasswordFilledFact()
         dismiss()
 
-        onSavedGeneratedPassword.invoke()
+        onSavedGeneratedPassword.invoke(false)
     }
 
     @VisibleForTesting
@@ -128,7 +128,7 @@ internal class PasswordGeneratorDialogFragment : PromptDialogFragment() {
             promptRequestUID: String,
             generatedPassword: String,
             currentUrl: String,
-            onSavedGeneratedPassword: () -> Unit,
+            onSavedGeneratedPassword: (Boolean) -> Unit,
             colorsProvider: PasswordGeneratorDialogColorsProvider,
         ) = PasswordGeneratorDialogFragment().apply {
             arguments = (arguments ?: Bundle()).apply {

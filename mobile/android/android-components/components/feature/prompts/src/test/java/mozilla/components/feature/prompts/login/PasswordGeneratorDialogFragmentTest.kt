@@ -29,7 +29,7 @@ class PasswordGeneratorDialogFragmentTest {
                 promptRequestUID = "uid",
                 generatedPassword = "StrongPassword123#",
                 currentUrl = "https://www.mozilla.org",
-                onSavedGeneratedPassword = {},
+                onSavedGeneratedPassword = { _ -> },
                 colorsProvider = mock(),
             ),
         )

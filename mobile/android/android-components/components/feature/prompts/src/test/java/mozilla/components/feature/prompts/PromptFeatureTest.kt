@@ -2641,15 +2641,16 @@ class PromptFeatureTest {
 
         val fragment = spy(
             SaveLoginDialogFragment.newInstance(
-                tabId,
-                shareRequest.uid,
-                false,
-                0,
-                LoginEntry(
+                sessionId = tabId,
+                promptRequestUID = shareRequest.uid,
+                shouldDismissOnLoad = false,
+                hint = 0,
+                entry = LoginEntry(
                     origin = "https://www.mozilla.org",
                     username = "username",
                     password = "password",
                 ),
+                onShowSnackbarAfterLoginChange = { _ -> },
             ),
         )
         feature.activePrompt = WeakReference(fragment)

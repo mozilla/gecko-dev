@@ -43,12 +43,13 @@ class SaveLoginDialogFragmentTest : TestCase() {
         val icon: Bitmap = mock()
         val fragment = spy(
             SaveLoginDialogFragment.newInstance(
-                sessionId,
-                requestUID,
-                shouldDismissOnLoad,
-                hint,
-                entry,
-                icon,
+                sessionId = sessionId,
+                promptRequestUID = requestUID,
+                shouldDismissOnLoad = shouldDismissOnLoad,
+                hint = hint,
+                entry = entry,
+                icon = icon,
+                onShowSnackbarAfterLoginChange = { _ -> },
             ),
         )
         doReturn(appCompatContext).`when`(fragment).requireContext()
@@ -89,12 +90,13 @@ class SaveLoginDialogFragmentTest : TestCase() {
         val icon: Bitmap? = null // null favicon
         val fragment = spy(
             SaveLoginDialogFragment.newInstance(
-                sessionId,
-                requestUID,
-                shouldDismissOnLoad,
-                hint,
-                entry,
-                icon,
+                sessionId = sessionId,
+                promptRequestUID = requestUID,
+                shouldDismissOnLoad = shouldDismissOnLoad,
+                hint = hint,
+                entry = entry,
+                icon = icon,
+                onShowSnackbarAfterLoginChange = { _ -> },
             ),
         )
         val defaultIconResource = iconsR.drawable.mozac_ic_globe_24
