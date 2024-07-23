@@ -454,11 +454,15 @@ void CopySamples(Span<S> aSource, Span<D> aDest, uint32_t aSourceChannelCount,
     return;
   }
   if (!IsInterleaved(aSourceFormat) && !IsInterleaved(aCopyToSpec.mFormat)) {
+    // Copying a single plane: the sample count is the same as the frame count
+    size_t samplesToCopy = aCopyToSpec.mFrameCount;
     // Planar to Planar / convert + copy from the right index in the source.
-    size_t offset =
-        aCopyToSpec.mPlaneIndex * aSource.Length() / aSourceChannelCount;
-    MOZ_ASSERT(aDest.Length() >= aSource.Length() / aSourceChannelCount -
-                                     aCopyToSpec.mFrameOffset);
+    size_t framePerPlane = aSource.Length() / aSourceChannelCount;
+    size_t offset = aCopyToSpec.mPlaneIndex * framePerPlane;
+    MOZ_ASSERT(aDest.Length() >= aCopyToSpec.mFrameCount,
+               "Destination buffer too small");
+    MOZ_ASSERT(aSource.Length() >= offset + samplesToCopy,
+               "Source buffer too small");
     for (uint32_t i = 0; i < aCopyToSpec.mFrameCount; i++) {
       aDest[i] =
           ConvertAudioSample<D>(aSource[offset + aCopyToSpec.mFrameOffset + i]);
