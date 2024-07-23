@@ -23,6 +23,7 @@ class nsSearchControlFrame final : public nsTextControlFrame {
   friend nsIFrame* NS_NewSearchControlFrame(mozilla::PresShell*,
                                             ComputedStyle*);
   nsSearchControlFrame(ComputedStyle*, nsPresContext*);
+
  public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsSearchControlFrame)
