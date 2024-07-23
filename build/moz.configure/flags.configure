@@ -697,6 +697,11 @@ add_sse2_flag_if_needed(os_cflags)
 add_sse2_flag_if_needed(os_cxxflags)
 
 
+@depends(compilation_flags, when=depends(target.os)(lambda os: os == "WASI"))
+def add_thread_model_single(compilation_flags):
+    compilation_flags.cxxflags.extend(["-mthread-model", "single"])
+
+
 # Please keep these last in this file.
 add_old_configure_assignment("CPPFLAGS", os_cppflags)
 add_old_configure_assignment("CFLAGS", os_cflags)
