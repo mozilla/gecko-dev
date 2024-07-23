@@ -8918,7 +8918,8 @@ static nsContentAndOffset FindLineBreakingFrame(nsIFrame* aFrame,
 
   // Treat form controls and other replaced inline level elements as inline
   // leaves.
-  if (aFrame->IsReplaced() && aFrame->IsInlineOutside()) {
+  if (aFrame->IsReplaced() && aFrame->IsInlineOutside() &&
+      !aFrame->IsBrFrame() && !aFrame->IsTextFrame()) {
     return result;
   }
 
