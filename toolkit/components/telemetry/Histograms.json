@@ -8889,7 +8889,7 @@
     "record_in_processes": ["main"],
     "products": ["firefox"],
     "alert_emails": ["fx-search-telemetry@mozilla.com"],
-    "expires_in_version": "131",
+    "expires_in_version": "137",
     "kind": "exponential",
     "low": 16,
     "high": 5000,
