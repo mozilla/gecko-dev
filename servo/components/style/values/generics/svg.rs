@@ -200,6 +200,7 @@ pub use self::GenericSVGStrokeDashArray as SVGStrokeDashArray;
     PartialEq,
     Parse,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
     ToCss,

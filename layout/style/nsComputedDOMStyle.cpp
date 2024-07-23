@@ -1261,9 +1261,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetTransformOrigin() {
       origin.horizontal, origin.vertical, mInnerFrame);
   SetValueToPosition(position, valueList);
   if (!origin.depth.IsZero()) {
-    auto depth = MakeRefPtr<nsROCSSPrimitiveValue>();
-    depth->SetPixels(origin.depth.ToCSSPixels());
-    valueList->AppendCSSValue(depth.forget());
+    valueList->AppendCSSValue(PixelsToCSSValue(origin.depth.ToCSSPixels()));
   }
   return valueList.forget();
 }

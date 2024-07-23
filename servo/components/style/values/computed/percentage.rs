@@ -125,7 +125,7 @@ impl ToAnimatedValue for NonNegativePercentage {
     type AnimatedValue = Percentage;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         self.0
     }
 

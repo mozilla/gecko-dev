@@ -7,6 +7,7 @@
 
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
+use crate::{One, Zero};
 
 /// A generic value for the `<ratio>` value.
 #[derive(
@@ -16,6 +17,7 @@ use style_traits::{CssWriter, ToCss};
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
     ToResolvedValue,
     ToShmem,
@@ -46,5 +48,40 @@ where
         dest.write_str(" / ")?;
         self.1.to_css(dest)?;
         Ok(())
+    }
+}
+
+impl<N> Ratio<N>
+where
+    N: Zero + One,
+{
+    /// Returns true if this is a degenerate ratio.
+    /// https://drafts.csswg.org/css-values/#degenerate-ratio
+    #[inline]
+    pub fn is_degenerate(&self) -> bool {
+        self.0.is_zero() || self.1.is_zero()
+    }
+
+    /// Returns the used value. A ratio of 0/0 behaves as the ratio 1/0.
+    /// https://drafts.csswg.org/css-values-4/#ratios
+    pub fn used_value(self) -> Self {
+        if self.0.is_zero() && self.1.is_zero() {
+            Self(One::one(), Zero::zero())
+        } else {
+            self
+        }
+    }
+}
+
+impl<N> Zero for Ratio<N>
+where
+    N: Zero + One,
+{
+    fn zero() -> Self {
+        Self(Zero::zero(), One::one())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.0.is_zero()
     }
 }

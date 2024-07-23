@@ -9,11 +9,9 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use crate::color::AbsoluteColor;
-use crate::properties::PropertyId;
-use crate::values::computed::length::LengthPercentage;
+use crate::properties::{PropertyId, ComputedValues};
 use crate::values::computed::url::ComputedUrl;
-use crate::values::computed::Angle as ComputedAngle;
-use crate::values::computed::Image;
+use crate::values::computed::{Angle, Image, Length};
 use crate::values::specified::SVGPathData;
 use crate::values::CSSFloat;
 use app_units::Au;
@@ -132,6 +130,12 @@ pub enum Procedure {
     Accumulate { count: u64 },
 }
 
+/// The context needed to provide an animated value from a computed value.
+pub struct Context<'a> {
+    /// The computed style we're taking the value from.
+    pub style: &'a ComputedValues,
+}
+
 /// Conversion between computed values and intermediate values for animations.
 ///
 /// Notably, colors are represented as four floats during animations.
@@ -142,7 +146,7 @@ pub trait ToAnimatedValue {
     type AnimatedValue;
 
     /// Converts this value to an animated value.
-    fn to_animated_value(self) -> Self::AnimatedValue;
+    fn to_animated_value(self, context: &Context) -> Self::AnimatedValue;
 
     /// Converts back an animated value into a computed value.
     fn from_animated_value(animated: Self::AnimatedValue) -> Self;
@@ -227,10 +231,17 @@ where
     }
 }
 
-impl Animate for Au {
+impl ToAnimatedValue for Au {
+    type AnimatedValue = Length;
+
     #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Au::new(self.0.animate(&other.0, procedure)?))
+    fn to_animated_value(self, context: &Context) -> Self::AnimatedValue {
+        Length::new(self.to_f32_px()).to_animated_value(context)
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        Au::from_f32_px(Length::from_animated_value(animated).px())
     }
 }
 
@@ -248,8 +259,8 @@ where
     type AnimatedValue = Option<<T as ToAnimatedValue>::AnimatedValue>;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        self.map(T::to_animated_value)
+    fn to_animated_value(self, context: &Context) -> Self::AnimatedValue {
+        self.map(|v| T::to_animated_value(v, context))
     }
 
     #[inline]
@@ -265,8 +276,8 @@ where
     type AnimatedValue = Vec<<T as ToAnimatedValue>::AnimatedValue>;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        self.into_iter().map(T::to_animated_value).collect()
+    fn to_animated_value(self, context: &Context) -> Self::AnimatedValue {
+        self.into_iter().map(|v| v.to_animated_value(context)).collect()
     }
 
     #[inline]
@@ -282,8 +293,8 @@ where
     type AnimatedValue = thin_vec::ThinVec<<T as ToAnimatedValue>::AnimatedValue>;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        self.into_iter().map(T::to_animated_value).collect()
+    fn to_animated_value(self, context: &Context) -> Self::AnimatedValue {
+        self.into_iter().map(|v| v.to_animated_value(context)).collect()
     }
 
     #[inline]
@@ -299,8 +310,8 @@ where
     type AnimatedValue = Box<<T as ToAnimatedValue>::AnimatedValue>;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        Box::new((*self).to_animated_value())
+    fn to_animated_value(self, context: &Context) -> Self::AnimatedValue {
+        Box::new((*self).to_animated_value(context))
     }
 
     #[inline]
@@ -316,10 +327,10 @@ where
     type AnimatedValue = Box<[<T as ToAnimatedValue>::AnimatedValue]>;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, context: &Context) -> Self::AnimatedValue {
         self.into_vec()
             .into_iter()
-            .map(T::to_animated_value)
+            .map(|v| v.to_animated_value(context))
             .collect::<Vec<_>>()
             .into_boxed_slice()
     }
@@ -342,8 +353,8 @@ where
     type AnimatedValue = crate::OwnedSlice<<T as ToAnimatedValue>::AnimatedValue>;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        self.into_box().to_animated_value().into()
+    fn to_animated_value(self, context: &Context) -> Self::AnimatedValue {
+        self.into_box().to_animated_value(context).into()
     }
 
     #[inline]
@@ -359,8 +370,8 @@ where
     type AnimatedValue = SmallVec<[T::AnimatedValue; 1]>;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        self.into_iter().map(T::to_animated_value).collect()
+    fn to_animated_value(self, context: &Context) -> Self::AnimatedValue {
+        self.into_iter().map(|v| v.to_animated_value(context)).collect()
     }
 
     #[inline]
@@ -375,7 +386,7 @@ macro_rules! trivial_to_animated_value {
             type AnimatedValue = Self;
 
             #[inline]
-            fn to_animated_value(self) -> Self {
+            fn to_animated_value(self, _: &Context) -> Self {
                 self
             }
 
@@ -387,13 +398,14 @@ macro_rules! trivial_to_animated_value {
     };
 }
 
-trivial_to_animated_value!(Au);
-trivial_to_animated_value!(LengthPercentage);
-trivial_to_animated_value!(ComputedAngle);
+trivial_to_animated_value!(crate::Atom);
+trivial_to_animated_value!(Angle);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
 trivial_to_animated_value!(i32);
+trivial_to_animated_value!(u32);
+trivial_to_animated_value!(usize);
 trivial_to_animated_value!(AbsoluteColor);
 trivial_to_animated_value!(crate::values::generics::color::ColorMixFlags);
 // Note: This implementation is for ToAnimatedValue of ShapeSource.

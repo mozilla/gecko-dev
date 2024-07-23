@@ -516,6 +516,7 @@ impl<A: Debug, B: Debug> Debug for Either<A, B> {
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
     ToResolvedValue,
     ToShmem,

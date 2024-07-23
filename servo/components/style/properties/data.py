@@ -349,7 +349,7 @@ class Longhand(Property):
         style_struct,
         name,
         spec=None,
-        animation_value_type=None,
+        animation_type=None,
         keyword=None,
         predefined_type=None,
         servo_pref=None,
@@ -421,17 +421,11 @@ class Longhand(Property):
 
         # This is done like this since just a plain bool argument seemed like
         # really random.
-        if animation_value_type is None:
-            raise TypeError(
-                "animation_value_type should be specified for (" + name + ")"
-            )
-        self.animation_value_type = animation_value_type
-
-        self.animatable = animation_value_type != "none"
-        self.is_animatable_with_computed_value = (
-            animation_value_type == "ComputedValue"
-            or animation_value_type == "discrete"
-        )
+        if animation_type is None:
+            animation_type = "normal"
+        assert animation_type in ["none", "normal", "discrete"]
+        self.animation_type = animation_type
+        self.animatable = animation_type != "none"
 
         # See compute_damage for the various values this can take
         self.servo_restyle_damage = servo_restyle_damage
@@ -631,7 +625,7 @@ class Longhand(Property):
     def animated_type(self):
         assert self.animatable
         computed = "<{} as ToComputedValue>::ComputedValue".format(self.base_type())
-        if self.is_animatable_with_computed_value:
+        if self.animation_type == "discrete":
             return computed
         return "<{} as ToAnimatedValue>::AnimatedValue".format(computed)
 

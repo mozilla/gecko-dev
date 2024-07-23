@@ -362,6 +362,7 @@ impl Parse for MozContextProperties {
     PartialEq,
     Serialize,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
     ToCss,

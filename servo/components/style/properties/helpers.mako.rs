@@ -76,13 +76,10 @@
 // If simple_vector_bindings is true, then we don't use the complex iterator
 // machinery and set_foo_from, and just compute the value like any other
 // longhand.
-<%def name="vector_longhand(name, animation_value_type=None,
-                            vector_animation_type=None, allow_empty=False,
-                            none_value=None,
-                            simple_vector_bindings=False,
-                            separator='Comma',
+<%def name="vector_longhand(name, vector_animation_type=None, allow_empty=False,
+                            none_value=None, simple_vector_bindings=False, separator='Comma',
                             **kwargs)">
-    <%call expr="longhand(name, animation_value_type=animation_value_type, vector=True,
+    <%call expr="longhand(name, vector=True,
                           simple_vector_bindings=simple_vector_bindings, **kwargs)">
         #[allow(unused_imports)]
         use smallvec::SmallVec;
@@ -228,10 +225,6 @@
             % endif
 
             % if vector_animation_type:
-            % if not animation_value_type:
-                Sorry, this is stupid but needed for now.
-            % endif
-
             use crate::values::animated::{Animate, ToAnimatedZero, Procedure, lists};
             use crate::values::distance::{SquaredDistance, ComputeSquaredDistance};
 
@@ -239,14 +232,13 @@
             // unused, even though it's clearly used below?
             #[allow(unused)]
             type AnimatedList = OwnedList<<single_value::T as ToAnimatedValue>::AnimatedValue>;
-
             % if is_shared_list:
             impl ToAnimatedValue for ComputedList {
                 type AnimatedValue = AnimatedList;
 
-                fn to_animated_value(self) -> Self::AnimatedValue {
+                fn to_animated_value(self, context: &crate::values::animated::Context) -> Self::AnimatedValue {
                     OwnedList(
-                        self.0.iter().map(|v| v.clone().to_animated_value()).collect()
+                        self.0.iter().map(|v| v.clone().to_animated_value(context)).collect()
                     )
                 }
 
@@ -607,7 +599,7 @@
         pub use self::computed_value::T as SpecifiedValue;
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
             pub enum T {
             % for variant in keyword.values_for(engine):
             <%

@@ -5,6 +5,7 @@
 //! Resolved values. These are almost always computed values, but in some cases
 //! there are used values.
 
+use app_units::Au;
 use crate::media_queries::Device;
 use crate::properties::ComputedValues;
 use crate::ArcSlice;
@@ -14,7 +15,7 @@ use smallvec::SmallVec;
 mod color;
 mod counters;
 
-use crate::values::computed;
+use crate::values::computed::{self, Length};
 
 /// Element-specific information needed to resolve property values.
 pub struct ResolvedElementInfo<'a> {
@@ -89,7 +90,6 @@ trivial_to_resolved_value!(crate::Atom);
 trivial_to_resolved_value!(crate::values::AtomIdent);
 trivial_to_resolved_value!(crate::custom_properties::VariableValue);
 trivial_to_resolved_value!(crate::stylesheets::UrlExtraData);
-trivial_to_resolved_value!(app_units::Au);
 trivial_to_resolved_value!(computed::url::ComputedUrl);
 #[cfg(feature = "gecko")]
 trivial_to_resolved_value!(computed::url::ComputedImageUrl);
@@ -99,6 +99,20 @@ trivial_to_resolved_value!(crate::Namespace);
 trivial_to_resolved_value!(crate::Prefix);
 trivial_to_resolved_value!(style_traits::values::specified::AllowedNumericType);
 trivial_to_resolved_value!(computed::TimingFunction);
+
+impl ToResolvedValue for Au {
+    type ResolvedValue = Length;
+
+    #[inline]
+    fn to_resolved_value(self, context: &Context) -> Self::ResolvedValue {
+        Length::new(self.to_f32_px()).to_resolved_value(context)
+    }
+
+    #[inline]
+    fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
+        Au::from_f32_px(Length::from_resolved_value(resolved).px())
+    }
+}
 
 impl<A, B> ToResolvedValue for (A, B)
 where

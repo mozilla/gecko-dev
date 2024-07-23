@@ -209,12 +209,12 @@ impl AnimationValue {
         use super::PropertyDeclarationVariantRepr;
 
         match *self {
-            <% keyfunc = lambda x: (x.base_type(), x.specified_type(), x.boxed, x.is_animatable_with_computed_value) %>
-            % for (ty, specified, boxed, computed), props in groupby(animated, key=keyfunc):
+            <% keyfunc = lambda x: (x.base_type(), x.specified_type(), x.boxed, x.animation_type != "discrete") %>
+            % for (ty, specified, boxed, to_animated), props in groupby(animated, key=keyfunc):
             <% props = list(props) %>
             ${" |\n".join("{}(ref value)".format(prop.camel_case) for prop in props)} => {
-                % if not computed:
-                let ref value = ToAnimatedValue::from_animated_value(value.clone());
+                % if to_animated:
+                let value = ToAnimatedValue::from_animated_value(value.clone());
                 % endif
                 let value = ${ty}::from_computed_value(&value);
                 % if boxed:
@@ -248,6 +248,7 @@ impl AnimationValue {
     pub fn from_declaration(
         decl: &PropertyDeclaration,
         context: &mut Context,
+        style: &ComputedValues,
         initial: &ComputedValues,
     ) -> Option<Self> {
         use super::PropertyDeclarationVariantRepr;
@@ -257,7 +258,7 @@ impl AnimationValue {
                 x.specified_type(),
                 x.animated_type(),
                 x.boxed,
-                not x.is_animatable_with_computed_value,
+                x.animation_type not in ["discrete", "none"],
                 x.style_struct.inherited,
                 x.ident in SYSTEM_FONT_LONGHANDS and engine == "gecko",
             )
@@ -284,7 +285,7 @@ impl AnimationValue {
                 let value = value.to_computed_value(context);
                 % endif
                 % if to_animated:
-                let value = value.to_animated_value();
+                let value = value.to_animated_value(&crate::values::animated::Context { style });
                 % endif
 
                 unsafe {
@@ -340,8 +341,10 @@ impl AnimationValue {
                             .clone_${prop.ident}();
                         % endif
 
-                        % if not prop.is_animatable_with_computed_value:
-                        let computed = computed.to_animated_value();
+                        % if prop.animation_type != "discrete":
+                        let computed = computed.to_animated_value(&crate::values::animated::Context {
+                            style
+                        });
                         % endif
                         AnimationValue::${prop.camel_case}(computed)
                     },
@@ -374,6 +377,7 @@ impl AnimationValue {
                 return AnimationValue::from_declaration(
                     &substituted,
                     context,
+                    style,
                     initial,
                 )
             },
@@ -412,10 +416,10 @@ impl AnimationValue {
             LonghandId::${prop.camel_case} => {
                 let computed = style.clone_${prop.ident}();
                 AnimationValue::${prop.camel_case}(
-                % if prop.is_animatable_with_computed_value:
+                % if prop.animation_type == "discrete":
                     computed
                 % else:
-                    computed.to_animated_value()
+                    computed.to_animated_value(&crate::values::animated::Context { style })
                 % endif
                 )
             }
@@ -435,13 +439,13 @@ impl AnimationValue {
             % for prop in data.longhands:
             % if prop.animatable and not prop.logical:
             AnimationValue::${prop.camel_case}(ref value) => {
-                % if not prop.is_animatable_with_computed_value:
                 let value: longhands::${prop.ident}::computed_value::T =
+                % if prop.animation_type != "discrete":
                     ToAnimatedValue::from_animated_value(value.clone());
-                    style.mutate_${prop.style_struct.name_lower}().set_${prop.ident}(value);
                 % else:
-                    style.mutate_${prop.style_struct.name_lower}().set_${prop.ident}(value.clone());
+                    value.clone();
                 % endif
+                style.mutate_${prop.style_struct.name_lower}().set_${prop.ident}(value);
             }
             % else:
             AnimationValue::${prop.camel_case}(..) => unreachable!(),
@@ -477,7 +481,7 @@ impl Animate for AnimationValue {
             }
 
             match *self {
-                <% keyfunc = lambda x: (x.animated_type(), x.animation_value_type == "discrete") %>
+                <% keyfunc = lambda x: (x.animated_type(), x.animation_type == "discrete") %>
                 % for (ty, discrete), props in groupby(animated, key=keyfunc):
                 ${" |\n".join("{}(ref this)".format(prop.camel_case) for prop in props)} => {
                     let other_repr =
@@ -514,7 +518,7 @@ impl Animate for AnimationValue {
 <%
     nondiscrete = []
     for prop in animated:
-        if prop.animation_value_type != "discrete":
+        if prop.animation_type != "discrete":
             nondiscrete.append(prop)
 %>
 
@@ -549,7 +553,7 @@ impl ToAnimatedZero for AnimationValue {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         match *self {
             % for prop in data.longhands:
-            % if prop.animatable and not prop.logical and prop.animation_value_type != "discrete":
+            % if prop.animatable and not prop.logical and prop.animation_type != "discrete":
             AnimationValue::${prop.camel_case}(ref base) => {
                 Ok(AnimationValue::${prop.camel_case}(base.to_animated_zero()?))
             },

@@ -152,7 +152,7 @@ impl ToAnimatedValue for FontWeight {
     type AnimatedValue = Number;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         self.value()
     }
 
@@ -304,8 +304,8 @@ impl ToAnimatedValue for FontSize {
     type AnimatedValue = Length;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        self.computed_size.0
+    fn to_animated_value(self, context: &crate::values::animated::Context) -> Self::AnimatedValue {
+        self.computed_size.0.to_animated_value(context)
     }
 
     #[inline]
@@ -1139,7 +1139,7 @@ impl ToAnimatedValue for FontStyle {
     type AnimatedValue = generics::FontStyle<Angle>;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         if self == Self::NORMAL {
             // This allows us to animate between normal and oblique values. Per spec,
             // https://drafts.csswg.org/css-fonts-4/#font-style-prop:
@@ -1320,7 +1320,7 @@ impl ToAnimatedValue for FontStretch {
     type AnimatedValue = Percentage;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         self.to_percentage()
     }
 

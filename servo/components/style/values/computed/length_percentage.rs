@@ -26,7 +26,7 @@
 
 use super::{Context, Length, Percentage, ToComputedValue};
 use crate::gecko_bindings::structs::GeckoFontMetrics;
-use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
+use crate::values::animated::{Animate, Context as AnimatedContext, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::calc::{CalcUnits, PositivePercentageBasis};
 use crate::values::generics::{calc, NonNegative};
@@ -165,6 +165,22 @@ impl MallocSizeOf for LengthPercentage {
     }
 }
 
+impl ToAnimatedValue for LengthPercentage {
+    type AnimatedValue = Self;
+
+    fn to_animated_value(self, context: &AnimatedContext) -> Self::AnimatedValue {
+        if context.style.effective_zoom.is_one() {
+            return self;
+        }
+        self.map_lengths(|l| l.to_animated_value(context))
+    }
+
+    #[inline]
+    fn from_animated_value(value: Self::AnimatedValue) -> Self {
+        value
+    }
+}
+
 impl ToResolvedValue for LengthPercentage {
     type ResolvedValue = Self;
 
@@ -172,10 +188,7 @@ impl ToResolvedValue for LengthPercentage {
         if context.style.effective_zoom.is_one() {
             return self;
         }
-        match self.unpack() {
-            Unpacked::Length(l) => Self::new_length(l.to_resolved_value(context)),
-            Unpacked::Percentage(..) | Unpacked::Calc(..) => self,
-        }
+        self.map_lengths(|l| l.to_resolved_value(context))
     }
 
     #[inline]
@@ -228,6 +241,20 @@ impl LengthPercentage {
                 Cow::Owned(CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(p)))
             },
             Unpacked::Calc(p) => Cow::Borrowed(&p.node),
+        }
+    }
+
+    fn map_lengths(&self, mut map_fn: impl FnMut(Length) -> Length) -> Self {
+        match self.unpack() {
+            Unpacked::Length(l) => Self::new_length(map_fn(l)),
+            Unpacked::Percentage(p) => Self::new_percent(p),
+            Unpacked::Calc(lp) => Self::new_calc_unchecked(Box::new(CalcLengthPercentage {
+                clamping_mode: lp.clamping_mode,
+                node: lp.node.map_leaves(|leaf| match *leaf {
+                    CalcLengthPercentageLeaf::Length(ref l) => CalcLengthPercentageLeaf::Length(map_fn(*l)),
+                    ref l => l.clone(),
+                }),
+            })),
         }
     }
 
@@ -1064,8 +1091,8 @@ impl ToAnimatedValue for NonNegativeLengthPercentage {
     type AnimatedValue = LengthPercentage;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        self.0
+    fn to_animated_value(self, context: &AnimatedContext) -> Self::AnimatedValue {
+        self.0.to_animated_value(context)
     }
 
     #[inline]

@@ -9,7 +9,7 @@ ${helpers.single_keyword(
     "auto fixed",
     engines="gecko servo",
     gecko_ffi_name="mLayoutStrategy",
-    animation_value_type="discrete",
+    animation_type="discrete",
     gecko_enum_prefix="StyleTableLayout",
     spec="https://drafts.csswg.org/css-tables/#propdef-table-layout",
     servo_restyle_damage="reflow",
@@ -22,7 +22,7 @@ ${helpers.predefined_type(
     "1",
     engines="gecko",
     spec="Internal-only (for `<col span>` pres attr)",
-    animation_value_type="none",
+    animation_type="none",
     enabled_in="",
     affects="layout",
 )}

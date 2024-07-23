@@ -331,7 +331,7 @@ impl ToAnimatedValue for Zoom {
     type AnimatedValue = Number;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         self.value()
     }
 

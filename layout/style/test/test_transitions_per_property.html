@@ -1157,23 +1157,23 @@ function sample_array(array, count) {
 // the properties not in our test list above (and not transition
 // properties themselves).
 for (prop in gCSSProperties) {
-  var info = gCSSProperties[prop];
+  var prop_info = gCSSProperties[prop];
   if (!(prop in supported_properties) &&
       !skipped_transitionable_properties.includes(prop) &&
-      info.type != CSS_TYPE_TRUE_SHORTHAND &&
-      info.type != CSS_TYPE_LEGACY_SHORTHAND &&
-      !("alias_for" in info) &&
+      prop_info.type != CSS_TYPE_TRUE_SHORTHAND &&
+      prop_info.type != CSS_TYPE_LEGACY_SHORTHAND &&
+      !("alias_for" in prop_info) &&
       !prop.match(/^transition-/) &&
       prop != "mask") {
 
-    if ("prerequisites" in info) {
-      var prereqs = info.prerequisites;
+    if ("prerequisites" in prop_info) {
+      var prereqs = prop_info.prerequisites;
       for (var prereq in prereqs) {
         div.style.setProperty(prereq, prereqs[prereq], "");
       }
     }
 
-    var all_values = info.initial_values.concat(info.other_values);
+    var all_values = prop_info.initial_values.concat(prop_info.other_values);
 
     if (all_values.length > 50) {
       // Since we're using an O(N^2) algorithm here, reduce the list of
@@ -1188,10 +1188,10 @@ for (prop in gCSSProperties) {
       // That said, we still try to use all of the start of the list on
       // the assumption that the more basic values are likely to be at
       // the beginning of the list.
-      all_values = [].concat(info.initial_values.slice(0,2),
-                             sample_array(info.initial_values.slice(2), 6),
-                             info.other_values.slice(0, 10),
-                             sample_array(info.other_values.slice(10), 40));
+      all_values = [].concat(prop_info.initial_values.slice(0,2),
+                             sample_array(prop_info.initial_values.slice(2), 6),
+                             prop_info.other_values.slice(0, 10),
+                             sample_array(prop_info.other_values.slice(10), 40));
     }
 
     var all_computed = [];
@@ -1218,8 +1218,8 @@ for (prop in gCSSProperties) {
 
     div.style.removeProperty("transition");
     div.style.removeProperty(prop);
-    if ("prerequisites" in info) {
-      var prereqs = info.prerequisites;
+    if ("prerequisites" in prop_info) {
+      var prereqs = prop_info.prerequisites;
       for (var prereq in prereqs) {
         div.style.removeProperty(prereq);
       }
@@ -1227,47 +1227,53 @@ for (prop in gCSSProperties) {
   }
 }
 
-// Do 4-second linear transitions with -1 second transition delay and
-// linear timing function so that we can expect the transition to be
-// one quarter of the way through the value space right after changing
-// the property.
-div.style.setProperty("transition-duration", "4s", "");
-div.style.setProperty("transition-delay", "-1s", "");
-div.style.setProperty("transition-timing-function", "linear", "");
-for (prop in supported_properties) {
-  var tinfo = supported_properties[prop];
-  var info = gCSSProperties[prop];
+for (let zoomed of [true, false]) {
+  info(`testing all supported properties (zoomed: ${zoomed})`);
+  // Do 4-second linear transitions with -1 second transition delay and
+  // linear timing function so that we can expect the transition to be
+  // one quarter of the way through the value space right after changing
+  // the property.
+  div.style.setProperty("transition-duration", "4s", "");
+  div.style.setProperty("transition-delay", "-1s", "");
+  div.style.setProperty("transition-timing-function", "linear", "");
+  div.style.setProperty("zoom", zoomed ? "2" : "1");
+  for (prop in supported_properties) {
+    info(`testing ${prop}`);
+    var tinfo = supported_properties[prop];
+    var prop_info = gCSSProperties[prop];
 
-  isnot(info.type, CSS_TYPE_TRUE_SHORTHAND,
-        prop + " must not be a shorthand");
-  if ("prerequisites" in info) {
-    var prereqs = info.prerequisites;
-    for (var prereq in prereqs) {
-      // We don't want the 19px font-size prereq of line-height, since we
-      // want to leave it 20px.
-      if (prop != "line-height" || prereq != "font-size") {
-        div.style.setProperty(prereq, prereqs[prereq], "");
+    isnot(prop_info.type, CSS_TYPE_TRUE_SHORTHAND,
+          prop + " must not be a shorthand");
+    if ("prerequisites" in prop_info) {
+      var prereqs = prop_info.prerequisites;
+      for (var prereq in prereqs) {
+        // We don't want the 19px font-size prereq of line-height, since we
+        // want to leave it 20px.
+        if (prop != "line-height" || prereq != "font-size") {
+          div.style.setProperty(prereq, prereqs[prereq], "");
+        }
+      }
+    }
+
+    for (var idx in tinfo) {
+      tinfo[idx](prop);
+    }
+
+    // Make sure to unset the property and stop transitions on it.
+    div.style.setProperty("transition-property", "none", "");
+    div.style.removeProperty(prop);
+    cs.getPropertyValue(prop);
+
+    if ("prerequisites" in prop_info) {
+      var prereqs = prop_info.prerequisites;
+      for (var prereq in prereqs) {
+        div.style.removeProperty(prereq);
       }
     }
   }
-
-  for (var idx in tinfo) {
-    tinfo[idx](prop);
-  }
-
-  // Make sure to unset the property and stop transitions on it.
-  div.style.setProperty("transition-property", "none", "");
-  div.style.removeProperty(prop);
-  cs.getPropertyValue(prop);
-
-  if ("prerequisites" in info) {
-    var prereqs = info.prerequisites;
-    for (var prereq in prereqs) {
-      div.style.removeProperty(prereq);
-    }
-  }
+  div.style.removeProperty("transition");
+  div.style.removeProperty("zoom");
 }
-div.style.removeProperty("transition");
 
 function get_distance(prop, v1, v2)
 {
@@ -2890,6 +2896,10 @@ function test_background_position_size_common(prop, doesPropTakeListValues,
 }
 
 function test_transform_transition(prop) {
+  if (div.style.zoom == "2") {
+    todo(false, "Resolved transforms don't get correctly un-zoomed in getComputedStyle, see bug 1909280");
+    return;
+  }
   is(prop, "transform", "Unexpected transform property!  Test needs to be fixed");
   var matrix_re = /^matrix\(([^,]*), ([^,]*), ([^,]*), ([^,]*), ([^,]*), ([^,]*)\)$/;
   for (let i in transformTests) {

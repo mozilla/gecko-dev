@@ -18,7 +18,6 @@
         engines="gecko servo",
         aliases=maybe_moz_logical_alias(engine, side, "-moz-margin-%s"),
         allow_quirks="No" if side[1] else "Yes",
-        animation_value_type="ComputedValue",
         logical=side[1],
         logical_group="margin",
         spec=spec,
@@ -35,7 +34,6 @@ ${helpers.predefined_type(
     parse_method="parse_non_negative",
     engines="gecko",
     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-clip-margin",
-    animation_value_type="ComputedValue",
     affects="overflow",
 )}
 
@@ -48,7 +46,6 @@ ${helpers.predefined_type(
         logical=side[1],
         logical_group="scroll-margin",
         spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-%s" % side[0],
-        animation_value_type="ComputedValue",
         affects="",
     )}
 % endfor

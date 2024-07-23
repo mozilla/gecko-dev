@@ -10,7 +10,6 @@ ${helpers.single_keyword(
     "visible hidden collapse",
     engines="gecko servo",
     gecko_ffi_name="mVisible",
-    animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-box/#propdef-visibility",
     gecko_enum_prefix="StyleVisibility",
     affects="paint",
@@ -27,7 +26,7 @@ ${helpers.single_keyword(
                          rl=horizontal-tb rl-tb=horizontal-tb \
                          tb=vertical-rl   tb-rl=vertical-rl",
     servo_pref="layout.writing-mode.enabled",
-    animation_value_type="none",
+    animation_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
     gecko_enum_prefix="StyleWritingModeProperty",
     servo_restyle_damage="rebuild_and_reflow",
@@ -38,7 +37,7 @@ ${helpers.single_keyword(
     "direction",
     "ltr rtl",
     engines="gecko servo",
-    animation_value_type="none",
+    animation_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
     gecko_enum_prefix="StyleDirection",
     servo_restyle_damage="rebuild_and_reflow",
@@ -50,7 +49,7 @@ ${helpers.single_keyword(
     "flex legacy",
     engines="gecko",
     gecko_enum_prefix="StyleMozBoxCollapse",
-    animation_value_type="none",
+    animation_type="none",
     enabled_in="chrome",
     spec="None (internal)",
     affects="layout",
@@ -62,7 +61,7 @@ ${helpers.single_keyword(
     engines="gecko",
     gecko_aliases="sideways-right=sideways",
     gecko_enum_prefix="StyleTextOrientation",
-    animation_value_type="none",
+    animation_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation",
     affects="layout",
 )}
@@ -74,7 +73,7 @@ ${helpers.predefined_type(
     engines="gecko",
     aliases="color-adjust",
     spec="https://drafts.csswg.org/css-color-adjust/#print-color-adjust",
-    animation_value_type="discrete",
+    animation_type="discrete",
     affects="paint",
 )}
 
@@ -86,7 +85,7 @@ ${helpers.predefined_type(
     "computed::ImageRendering::Auto",
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-images/#propdef-image-rendering",
-    animation_value_type="discrete",
+    animation_type="discrete",
     affects="paint",
 )}
 
@@ -95,7 +94,7 @@ ${helpers.single_keyword(
     "from-image none",
     engines="gecko",
     gecko_enum_prefix="StyleImageOrientation",
-    animation_value_type="discrete",
+    animation_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-image-orientation",
     affects="layout",
 )}

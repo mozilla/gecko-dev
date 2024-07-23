@@ -40,6 +40,7 @@ fn is_auto_zero_angle(auto: &bool, angle: &Angle) -> bool {
     MallocSizeOf,
     PartialEq,
     Serialize,
+    ToAnimatedValue,
     ToAnimatedZero,
     ToCss,
     ToResolvedValue,

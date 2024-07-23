@@ -904,7 +904,6 @@ impl<'le> GeckoElement<'le> {
         let from =
             AnimationValue::from_computed_values(property_declaration_id, before_change_style);
         let to = AnimationValue::from_computed_values(property_declaration_id, after_change_style);
-
         debug_assert!(
             to.is_some() == from.is_some() ||
                 // If the declaration contains a custom property and getComputedValue was previously

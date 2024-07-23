@@ -802,7 +802,7 @@ impl ToAnimatedValue for NonNegativeNumber {
     type AnimatedValue = CSSFloat;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         self.0
     }
 
@@ -845,7 +845,7 @@ impl ToAnimatedValue for ZeroToOneNumber {
     type AnimatedValue = CSSFloat;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         self.0
     }
 
@@ -869,7 +869,7 @@ impl ToAnimatedValue for GreaterThanOrEqualToOneNumber {
     type AnimatedValue = CSSFloat;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         self.0
     }
 
@@ -967,7 +967,7 @@ impl ToAnimatedValue for NonNegativeNumberOrPercentage {
     type AnimatedValue = NumberOrPercentage;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         self.0
     }
 
@@ -990,7 +990,7 @@ impl ToAnimatedValue for PositiveInteger {
     type AnimatedValue = CSSInteger;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
+    fn to_animated_value(self, _: &crate::values::animated::Context) -> Self::AnimatedValue {
         self.0
     }
 

@@ -1245,6 +1245,7 @@ impl Parse for LineClamp {
     Parse,
     PartialEq,
     SpecifiedValueInfo,
+    ToAnimatedValue,
     ToComputedValue,
     ToCss,
     ToResolvedValue,

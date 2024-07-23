@@ -937,10 +937,9 @@ pub unsafe extern "C" fn Servo_AnimationValue_Transform(
 
 #[no_mangle]
 pub unsafe extern "C" fn Servo_AnimationValue_OffsetPath(
-    p: &computed::motion::OffsetPath,
+    p: &computed::OffsetPath,
 ) -> Strong<AnimationValue> {
-    use style::values::animated::ToAnimatedValue;
-    Arc::new(AnimationValue::OffsetPath(p.clone().to_animated_value())).into()
+    Arc::new(AnimationValue::OffsetPath(std::mem::transmute(p.clone()))).into()
 }
 
 #[no_mangle]
@@ -6494,7 +6493,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
 
             let declarations = unsafe { &*property.mServoDeclarationBlock.mRawPtr };
             let guard = declarations.read_with(&guard);
-            let iter = guard.to_animation_value_iter(&mut context, &default_values);
+            let iter = guard.to_animation_value_iter(&mut context, style, &default_values);
 
             for value in iter {
                 maybe_append_animation_value(value.id(), Some(value.clone()));
@@ -6537,7 +6536,7 @@ pub extern "C" fn Servo_GetAnimationValues(
     let guard = global_style_data.shared_lock.read();
 
     let guard = declarations.read_with(&guard);
-    let iter = guard.to_animation_value_iter(&mut context, &default_values);
+    let iter = guard.to_animation_value_iter(&mut context, style, &default_values);
     animation_values.extend(iter.map(|v| structs::RefPtr::from_arc(Arc::new(v))));
 }
 
@@ -6588,7 +6587,7 @@ pub extern "C" fn Servo_AnimationValue_Compute(
         .next()
     {
         Some((decl, imp)) if imp == Importance::Normal => {
-            let animation = AnimationValue::from_declaration(decl, &mut context, default_values);
+            let animation = AnimationValue::from_declaration(decl, &mut context, style, default_values);
             animation.map_or(Strong::null(), |value| Arc::new(value).into())
         },
         _ => Strong::null(),

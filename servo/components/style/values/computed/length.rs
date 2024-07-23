@@ -5,7 +5,7 @@
 //! `<length>` computed values, and related ones.
 
 use super::{Context, Number, ToComputedValue};
-use crate::values::animated::ToAnimatedValue;
+use crate::values::animated::{Context as AnimatedContext, ToAnimatedValue};
 use crate::values::computed::{NonNegativeNumber, Zoom};
 use crate::values::generics::length as generics;
 use crate::values::generics::length::{
@@ -225,7 +225,6 @@ impl Size {
     PartialEq,
     PartialOrd,
     Serialize,
-    ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
     ToShmem,
@@ -242,6 +241,19 @@ impl ToResolvedValue for CSSPixelLength {
 
     #[inline]
     fn from_resolved_value(value: Self::ResolvedValue) -> Self {
+        value
+    }
+}
+
+impl ToAnimatedValue for CSSPixelLength {
+    type AnimatedValue = Self;
+
+    fn to_animated_value(self, context: &AnimatedContext) -> Self::AnimatedValue {
+        Self(context.style.effective_zoom.unzoom(self.0))
+    }
+
+    #[inline]
+    fn from_animated_value(value: Self::AnimatedValue) -> Self {
         value
     }
 }
@@ -481,8 +493,8 @@ impl ToAnimatedValue for NonNegativeLength {
     type AnimatedValue = Length;
 
     #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        self.0
+    fn to_animated_value(self, context: &AnimatedContext) -> Self::AnimatedValue {
+        self.0.to_animated_value(context)
     }
 
     #[inline]

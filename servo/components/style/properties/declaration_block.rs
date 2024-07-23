@@ -303,6 +303,7 @@ impl<'a> DoubleEndedIterator for DeclarationImportanceIterator<'a> {
 pub struct AnimationValueIterator<'a, 'cx, 'cx_a: 'cx> {
     iter: DeclarationImportanceIterator<'a>,
     context: &'cx mut Context<'cx_a>,
+    style: &'a ComputedValues,
     default_values: &'a ComputedValues,
 }
 
@@ -310,11 +311,13 @@ impl<'a, 'cx, 'cx_a: 'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
     fn new(
         declarations: &'a PropertyDeclarationBlock,
         context: &'cx mut Context<'cx_a>,
+        style: &'a ComputedValues,
         default_values: &'a ComputedValues,
     ) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator {
             iter: declarations.declaration_importance_iter(),
             context,
+            style,
             default_values,
         }
     }
@@ -332,7 +335,7 @@ impl<'a, 'cx, 'cx_a: 'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
             }
 
             let animation =
-                AnimationValue::from_declaration(decl, &mut self.context, self.default_values);
+                AnimationValue::from_declaration(decl, &mut self.context, self.style, self.default_values);
 
             if let Some(anim) = animation {
                 return Some(anim);
@@ -416,9 +419,10 @@ impl PropertyDeclarationBlock {
     pub fn to_animation_value_iter<'a, 'cx, 'cx_a: 'cx>(
         &'a self,
         context: &'cx mut Context<'cx_a>,
+        style: &'a ComputedValues,
         default_values: &'a ComputedValues,
     ) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
-        AnimationValueIterator::new(self, context, default_values)
+        AnimationValueIterator::new(self, context, style, default_values)
     }
 
     /// Returns whether this block contains any declaration with `!important`.

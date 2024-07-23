@@ -11,7 +11,6 @@ ${helpers.predefined_type(
     engines="gecko servo",
     initial_specified_value="SpecifiedValue::transparent()",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
-    animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
     allow_quirks="Yes",
     flags="CAN_ANIMATE_ON_COMPOSITOR",
@@ -26,7 +25,7 @@ ${helpers.predefined_type(
     initial_specified_value="specified::Image::None",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector="True",
-    animation_value_type="discrete",
+    animation_type="discrete",
     ignored_when_colors_disabled="True",
     affects="paint",
 )}
@@ -39,7 +38,6 @@ ${helpers.predefined_type(
         engines="gecko servo",
         initial_specified_value="SpecifiedValue::initial_specified_value()",
         spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
-        animation_value_type="ComputedValue",
         vector=True,
         vector_animation_type="repeatable_list",
         affects="paint",
@@ -52,7 +50,7 @@ ${helpers.predefined_type(
     "computed::BackgroundRepeat::repeat()",
     engines="gecko servo",
     initial_specified_value="specified::BackgroundRepeat::repeat()",
-    animation_value_type="discrete",
+    animation_type="discrete",
     vector=True,
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat",
     affects="paint",
@@ -65,7 +63,7 @@ ${helpers.single_keyword(
     vector=True,
     gecko_enum_prefix="StyleImageLayerAttachment",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
-    animation_value_type="discrete",
+    animation_type="discrete",
     affects="paint",
 )}
 
@@ -78,7 +76,7 @@ ${helpers.single_keyword(
     gecko_enum_prefix="StyleGeometryBox",
     gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
-    animation_value_type="discrete",
+    animation_type="discrete",
     affects="paint",
 )}
 
@@ -90,7 +88,7 @@ ${helpers.single_keyword(
     gecko_enum_prefix="StyleGeometryBox",
     gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
-    animation_value_type="discrete",
+    animation_type="discrete",
     affects="paint",
 )}
 
@@ -103,7 +101,6 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-size",
     vector=True,
     vector_animation_type="repeatable_list",
-    animation_value_type="BackgroundSizeList",
     extra_prefixes="webkit",
     affects="paint",
 )}
@@ -117,7 +114,7 @@ ${helpers.single_keyword(
     gecko_enum_prefix="StyleBlend",
     vector=True,
     engines="gecko",
-    animation_value_type="discrete",
+    animation_type="discrete",
     gecko_inexhaustive=True,
     spec="https://drafts.fxtf.org/compositing/#background-blend-mode",
     affects="paint",

@@ -13,7 +13,7 @@ ${helpers.predefined_type(
     initial_specified_value="specified::PageSize::auto()",
     spec="https://drafts.csswg.org/css-page-3/#page-size-prop",
     boxed=True,
-    animation_value_type="none",
+    animation_type="none",
     rule_types_allowed=PAGE_RULE,
     affects="layout",
 )}
@@ -24,7 +24,7 @@ ${helpers.predefined_type(
     "computed::PageName::auto()",
     engines="gecko",
     spec="https://drafts.csswg.org/css-page-3/#using-named-pages",
-    animation_value_type="discrete",
+    animation_type="discrete",
     affects="layout",
 )}
 
@@ -36,7 +36,7 @@ ${helpers.predefined_type(
     gecko_pref="layout.css.page-orientation.enabled",
     initial_specified_value="specified::PageOrientation::Upright",
     spec="https://drafts.csswg.org/css-page-3/#page-orientation-prop",
-    animation_value_type="none",
+    animation_type="none",
     rule_types_allowed=PAGE_RULE,
     affects="layout",
 )}

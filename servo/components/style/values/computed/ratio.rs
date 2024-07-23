@@ -8,7 +8,7 @@ use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::NonNegativeNumber;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::ratio::Ratio as GenericRatio;
-use crate::{One, Zero};
+use crate::Zero;
 use std::cmp::Ordering;
 
 /// A computed <ratio> value.
@@ -23,8 +23,17 @@ impl PartialOrd for Ratio {
     }
 }
 
+impl GenericRatio<f32> {
+    /// Returns the f32 value by dividing the first value by the second one.
+    #[inline]
+    fn to_f32(&self) -> f32 {
+        debug_assert!(!self.is_degenerate());
+        self.0 / self.1
+    }
+}
+
 /// https://drafts.csswg.org/css-values/#combine-ratio
-impl Animate for Ratio {
+impl Animate for GenericRatio<f32> {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         // If either <ratio> is degenerate, the values cannot be interpolated.
         if self.is_degenerate() || other.is_degenerate() {
@@ -55,30 +64,20 @@ impl Animate for Ratio {
         if result.is_zero() || result.is_infinite() {
             return Err(());
         }
-        Ok(Ratio::new(result, 1.0f32))
+        Ok(GenericRatio(result, 1.0))
     }
 }
 
-impl ComputeSquaredDistance for Ratio {
+impl ComputeSquaredDistance for GenericRatio<f32> {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         if self.is_degenerate() || other.is_degenerate() {
             return Err(());
         }
-        // Use the distance of their logarithm values. (This is used by testing, so don't need to
-        // care about the base. Here we use the same base as that in animate().)
+        // Use the distance of their logarithm values. (This is used by testing, so don't
+        // need to care about the base. Here we use the same base as that in animate().)
         self.to_f32()
             .ln()
             .compute_squared_distance(&other.to_f32().ln())
-    }
-}
-
-impl Zero for Ratio {
-    fn zero() -> Self {
-        Self::new(Zero::zero(), One::one())
-    }
-
-    fn is_zero(&self) -> bool {
-        self.0.is_zero()
     }
 }
 
@@ -87,29 +86,5 @@ impl Ratio {
     #[inline]
     pub fn new(a: f32, b: f32) -> Self {
         GenericRatio(a.into(), b.into())
-    }
-
-    /// Returns the used value. A ratio of 0/0 behaves as the ratio 1/0.
-    /// https://drafts.csswg.org/css-values-4/#ratios
-    pub fn used_value(self) -> Self {
-        if self.0.is_zero() && self.1.is_zero() {
-            Ratio::new(One::one(), Zero::zero())
-        } else {
-            self
-        }
-    }
-
-    /// Returns true if this is a degenerate ratio.
-    /// https://drafts.csswg.org/css-values/#degenerate-ratio
-    #[inline]
-    pub fn is_degenerate(&self) -> bool {
-        self.0.is_zero() || self.1.is_zero()
-    }
-
-    /// Returns the f32 value by dividing the first value by the second one.
-    #[inline]
-    fn to_f32(&self) -> f32 {
-        debug_assert!(!self.is_degenerate());
-        (self.0).0 / (self.1).0
     }
 }

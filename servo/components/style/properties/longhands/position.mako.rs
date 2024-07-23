@@ -13,7 +13,6 @@
         "computed::LengthPercentageOrAuto::auto()",
         engines="gecko servo",
         spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
-        animation_value_type="ComputedValue",
         allow_quirks="Yes",
         servo_restyle_damage="reflow_out_of_flow",
         logical_group="inset",
@@ -28,7 +27,6 @@
         "computed::LengthPercentageOrAuto::auto()",
         engines="gecko servo",
         spec="https://drafts.csswg.org/css-logical-props/#propdef-inset-%s" % side,
-        animation_value_type="ComputedValue",
         logical=True,
         logical_group="inset",
         affects="layout",
@@ -41,7 +39,6 @@ ${helpers.predefined_type(
     "computed::ZIndex::auto()",
     engines="gecko servo",
     spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
-    animation_value_type="ComputedValue",
     affects="paint",
 )}
 
@@ -56,7 +53,7 @@ ${helpers.single_keyword(
     servo_pref="layout.flexbox.enabled",
     spec="https://drafts.csswg.org/css-flexbox/#flex-direction-property",
     extra_prefixes="webkit",
-    animation_value_type="discrete",
+    animation_type="discrete",
     servo_restyle_damage = "reflow",
     gecko_enum_prefix = "StyleFlexDirection",
     affects="layout",
@@ -69,7 +66,7 @@ ${helpers.single_keyword(
     servo_pref="layout.flexbox.enabled",
     spec="https://drafts.csswg.org/css-flexbox/#flex-wrap-property",
     extra_prefixes="webkit",
-    animation_value_type="discrete",
+    animation_type="discrete",
     servo_restyle_damage = "reflow",
     gecko_enum_prefix = "StyleFlexWrap",
     affects="layout",
@@ -82,7 +79,7 @@ ${helpers.predefined_type(
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
     extra_prefixes="webkit",
-    animation_value_type="discrete",
+    animation_type="discrete",
     servo_restyle_damage="reflow",
     affects="layout",
 )}
@@ -94,7 +91,7 @@ ${helpers.predefined_type(
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-align/#propdef-align-content",
     extra_prefixes="webkit",
-    animation_value_type="discrete",
+    animation_type="discrete",
     servo_restyle_damage="reflow",
     affects="layout",
 )}
@@ -106,7 +103,7 @@ ${helpers.predefined_type(
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-align/#propdef-align-items",
     extra_prefixes="webkit",
-    animation_value_type="discrete",
+    animation_type="discrete",
     servo_restyle_damage="reflow",
     affects="layout",
 )}
@@ -117,7 +114,7 @@ ${helpers.predefined_type(
     "computed::JustifyItems::legacy()",
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
-    animation_value_type="discrete",
+    animation_type="discrete",
     affects="layout",
 )}
 
@@ -129,7 +126,6 @@ ${helpers.predefined_type(
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-flexbox/#flex-grow-property",
     extra_prefixes="webkit",
-    animation_value_type="NonNegativeNumber",
     servo_restyle_damage="reflow",
     affects="layout",
 )}
@@ -142,7 +138,6 @@ ${helpers.predefined_type(
     servo_pref="layout.flexbox.enabled",
     spec="https://drafts.csswg.org/css-flexbox/#flex-shrink-property",
     extra_prefixes="webkit",
-    animation_value_type="NonNegativeNumber",
     servo_restyle_damage = "reflow",
     affects="layout",
 )}
@@ -155,7 +150,7 @@ ${helpers.predefined_type(
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-align/#align-self-property",
     extra_prefixes="webkit",
-    animation_value_type="discrete",
+    animation_type="discrete",
     affects="layout",
 )}
 ${helpers.predefined_type(
@@ -164,7 +159,7 @@ ${helpers.predefined_type(
     "specified::JustifySelf(specified::SelfAlignment::auto())",
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-align/#justify-self-property",
-    animation_value_type="discrete",
+    animation_type="discrete",
     affects="layout",
 )}
 
@@ -176,7 +171,6 @@ ${helpers.predefined_type(
     engines="gecko servo",
     servo_pref="layout.flexbox.enabled",
     extra_prefixes="webkit",
-    animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-flexbox/#order-property",
     servo_restyle_damage="reflow",
     affects="layout",
@@ -190,7 +184,6 @@ ${helpers.predefined_type(
     servo_pref="layout.flexbox.enabled",
     spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
     extra_prefixes="webkit",
-    animation_value_type="FlexBasis",
     servo_restyle_damage="reflow",
     boxed=True,
     affects="layout",
@@ -212,7 +205,6 @@ ${helpers.predefined_type(
         logical_group="size",
         allow_quirks="No" if logical else "Yes",
         spec=spec % size,
-        animation_value_type="Size",
         servo_restyle_damage="reflow",
         affects="layout",
     )}
@@ -226,7 +218,6 @@ ${helpers.predefined_type(
         logical_group="min-size",
         allow_quirks="No" if logical else "Yes",
         spec=spec % size,
-        animation_value_type="Size",
         servo_restyle_damage="reflow",
         affects="layout",
     )}
@@ -239,7 +230,6 @@ ${helpers.predefined_type(
         logical_group="max-size",
         allow_quirks="No" if logical else "Yes",
         spec=spec % size,
-        animation_value_type="MaxSize",
         servo_restyle_damage="reflow",
         affects="layout",
     )}
@@ -250,7 +240,7 @@ ${helpers.predefined_type(
     "PositionAnchor",
     "computed::PositionAnchor::auto()",
     engines="gecko",
-    animation_value_type="discrete",
+    animation_type="discrete",
     gecko_pref="layout.css.anchor-positioning.enabled",
     spec="https://drafts.csswg.org/css-anchor-position-1/#propdef-position-anchor",
     affects="layout",
@@ -262,7 +252,7 @@ ${helpers.predefined_type(
     "computed::PositionVisibility::ALWAYS",
     engines="gecko",
     initial_specified_value="specified::PositionVisibility::ALWAYS",
-    animation_value_type="discrete",
+    animation_type="discrete",
     gecko_pref="layout.css.anchor-positioning.enabled",
     spec="https://drafts.csswg.org/css-anchor-position-1/#propdef-position-visibility",
     affects="layout",
@@ -274,7 +264,7 @@ ${helpers.predefined_type(
     "computed::InsetArea::none()",
     engines="gecko",
     initial_specified_value="specified::InsetArea::none()",
-    animation_value_type="discrete",
+    animation_type="discrete",
     gecko_pref="layout.css.anchor-positioning.enabled",
     spec="https://drafts.csswg.org/css-anchor-position-1/#typedef-inset-area",
     affects="layout",
@@ -286,7 +276,7 @@ ${helpers.predefined_type(
     "computed::PositionTryFallbacks::none()",
     engines="gecko",
     initial_specified_value="specified::PositionTryFallbacks::none()",
-    animation_value_type="discrete",
+    animation_type="discrete",
     gecko_pref="layout.css.anchor-positioning.enabled",
     spec="https://drafts.csswg.org/css-anchor-position-1/#position-try-fallbacks",
     affects="layout",
@@ -298,7 +288,7 @@ ${helpers.predefined_type(
     "computed::PositionTryOrder::normal()",
     engines="gecko",
     initial_specified_value="specified::PositionTryOrder::normal()",
-    animation_value_type="discrete",
+    animation_type="discrete",
     gecko_pref="layout.css.anchor-positioning.enabled",
     spec="https://drafts.csswg.org/css-anchor-position-1/#position-try-order-property",
     affects="layout",
@@ -312,7 +302,7 @@ ${helpers.single_keyword(
     spec="https://drafts.csswg.org/css-ui/#propdef-box-sizing",
     gecko_enum_prefix="StyleBoxSizing",
     custom_consts={ "content-box": "Content", "border-box": "Border" },
-    animation_value_type="discrete",
+    animation_type="discrete",
     servo_restyle_damage = "reflow",
     affects="layout",
 )}
@@ -321,7 +311,7 @@ ${helpers.single_keyword(
     "object-fit",
     "fill contain cover none scale-down",
     engines="gecko",
-    animation_value_type="discrete",
+    animation_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-object-fit",
     gecko_enum_prefix = "StyleObjectFit",
     affects="layout",
@@ -334,7 +324,6 @@ ${helpers.predefined_type(
     engines="gecko",
     boxed=True,
     spec="https://drafts.csswg.org/css-images-3/#the-object-position",
-    animation_value_type="ComputedValue",
     affects="layout",
 )}
 
@@ -346,7 +335,7 @@ ${helpers.predefined_type(
             "Default::default()",
             engines="gecko servo",
             servo_pref="layout.grid.enabled",
-            animation_value_type="discrete",
+            animation_type="discrete",
             spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-%s" % (kind, range),
             affects="layout",
         )}
@@ -358,7 +347,7 @@ ${helpers.predefined_type(
         "Default::default()",
         engines="gecko servo",
         servo_pref="layout.grid.enabled",
-        animation_value_type="discrete",
+        animation_type="discrete",
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-%ss" % kind,
         affects="layout",
     )}
@@ -370,7 +359,6 @@ ${helpers.predefined_type(
         engines="gecko servo",
         servo_pref="layout.grid.enabled",
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
-        animation_value_type="ComputedValue",
         affects="layout",
     )}
 
@@ -382,7 +370,7 @@ ${helpers.predefined_type(
     "computed::MasonryAutoFlow::initial()",
     engines="gecko",
     gecko_pref="layout.css.grid-template-masonry-value.enabled",
-    animation_value_type="discrete",
+    animation_type="discrete",
     spec="https://github.com/w3c/csswg-drafts/issues/4650",
     affects="layout",
 )}
@@ -393,7 +381,7 @@ ${helpers.predefined_type(
     "computed::GridAutoFlow::ROW",
     engines="gecko servo",
     servo_pref="layout.grid.enabled",
-    animation_value_type="discrete",
+    animation_type="discrete",
     spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow",
     affects="layout",
 )}
@@ -404,7 +392,7 @@ ${helpers.predefined_type(
     "computed::GridTemplateAreas::none()",
     engines="gecko servo",
     servo_pref="layout.grid.enabled",
-    animation_value_type="discrete",
+    animation_type="discrete",
     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas",
     affects="layout",
 )}
@@ -417,7 +405,6 @@ ${helpers.predefined_type(
     aliases="grid-column-gap",
     servo_pref="layout.flexbox.enabled",
     spec="https://drafts.csswg.org/css-align-3/#propdef-column-gap",
-    animation_value_type="NonNegativeLengthPercentageOrNormal",
     servo_restyle_damage="reflow",
     affects="layout",
 )}
@@ -431,7 +418,6 @@ ${helpers.predefined_type(
     aliases="grid-row-gap",
     servo_pref="layout.flexbox.enabled",
     spec="https://drafts.csswg.org/css-align-3/#propdef-row-gap",
-    animation_value_type="NonNegativeLengthPercentageOrNormal",
     servo_restyle_damage="reflow",
     affects="layout",
 )}
@@ -441,7 +427,6 @@ ${helpers.predefined_type(
     "AspectRatio",
     "computed::AspectRatio::auto()",
     engines="gecko servo",
-    animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-sizing-4/#aspect-ratio",
     servo_restyle_damage="reflow",
     affects="layout",
@@ -457,7 +442,6 @@ ${helpers.predefined_type(
         logical=logical,
         gecko_pref="layout.css.contain-intrinsic-size.enabled",
         spec="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override",
-        animation_value_type="NonNegativeLength",
         affects="layout",
     )}
 % endfor
