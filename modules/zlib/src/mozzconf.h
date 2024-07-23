@@ -6,12 +6,6 @@
 #ifndef MOZZCONF_H
 #define MOZZCONF_H
 
-#if defined(ZLIB_IN_MOZGLUE)
-#include "mozilla/Types.h"
-
-#define ZEXTERN MFBT_API
-#endif
-
 /* Exported Symbols */
 #define zlibVersion MOZ_Z_zlibVersion
 #define deflate MOZ_Z_deflate

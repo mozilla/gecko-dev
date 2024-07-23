@@ -10,11 +10,8 @@ EXPORTS += [
     'zlib.h',
 ]
 
-if CONFIG['ZLIB_IN_MOZGLUE']:
-    FINAL_LIBRARY = 'mozglue'
-else:
-    # The final library is in config/external/zlib
-    FINAL_LIBRARY = 'zlib'
+# The final library is in config/external/zlib
+FINAL_LIBRARY = 'zlib'
 
 # These files can't be unified because zlib's headers don't use include guards.
 SOURCES += [
