@@ -5,6 +5,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
+  AppProvidedSearchEngine:
+    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
   ExtensionTestUtils:
     "resource://testing-common/ExtensionXPCShellUtils.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
@@ -227,9 +229,7 @@ class _SearchTestUtils {
     }
 
     for (let config of engineConfigurations) {
-      let engine = await Services.search.wrappedJSObject._makeEngineFromConfig(
-        config
-      );
+      let engine = new lazy.AppProvidedSearchEngine({ config });
       engines.push(engine);
     }
     return engines;
