@@ -27,9 +27,11 @@ class FenixSnackbarBehavior<V : View>(
     @get:VisibleForTesting internal val toolbarPosition: ToolbarPosition,
 ) : CoordinatorLayout.Behavior<V>(context, null) {
 
+    // Priority list of possible anchors for the snackbar.
     private val dependenciesIds = listOf(
         R.id.startDownloadDialogContainer,
         R.id.viewDynamicDownloadDialog,
+        R.id.toolbar_navbar_container,
         R.id.toolbar,
     )
 
