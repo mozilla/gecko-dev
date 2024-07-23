@@ -129,20 +129,73 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // The compile arguments that were used for this module.
   SharedCompileArgs compileArgs;
 
-  // Module fields decoded from the module environment (or initialized while
-  // validating an asm.js module) and immutable during compilation:
-  Maybe<uint32_t> dataCount;
-  MemoryDescVector memories;
+  // The number of imported functions in the module.
+  uint32_t numFuncImports;
+  // The number of imported globals in the module.
+  uint32_t numGlobalImports;
+
+  // Info about all types in the module.
   MutableTypeContext types;
+  // Info about all functions in the module.
+  FuncDescVector funcs;
+  // Info about all tables in the module.
+  TableDescVector tables;
+  // Info about all memories in the module.
+  MemoryDescVector memories;
+  // Info about all tags in the module.
+  TagDescVector tags;
+  // Info about all globals in the module.
+  GlobalDescVector globals;
+
+  // The start function for the module, if any
+  Maybe<uint32_t> startFuncIndex;
+
+  // Info about elem segments needed only for validation and compilation.
+  // Should have the same length as ModuleMetadata::elemSegments, and each
+  // entry here should be identical the corresponding .elemType field in
+  // ModuleMetadata::elemSegments.
+  RefTypeVector elemSegmentTypes;
+
+  // The number of data segments this module will have. Pre-declared before the
+  // code section so that we can validate instructions that reference data
+  // segments.
+  Maybe<uint32_t> dataCount;
+
+  // asm.js tables are homogenous and only store functions of the same type.
+  // This maps from a function type to the table index to use for an indirect
+  // call.
+  Uint32Vector asmJSSigToTableIndex;
+
+  // Branch hints to apply to functions
   BranchHintCollection branchHints;
 
-  uint32_t numFuncImports;
-  uint32_t numGlobalImports;
-  GlobalDescVector globals;
-  TagDescVector tags;
-  TableDescVector tables;
+  // Name section information
+  Maybe<Name> moduleName;
+  NameVector funcNames;
+  // namePayload points at the name section's CustomSection::payload so that
+  // the Names (which are use payload-relative offsets) can be used
+  // independently of the Module without duplicating the name section.
+  SharedBytes namePayload;
+  Maybe<uint32_t> nameCustomSectionIndex;
 
-  // ==== Fields relating to Instance layout
+  // Bytecode ranges for custom sections.
+  CustomSectionRangeVector customSectionRanges;
+
+  // Bytecode range for the code section.
+  MaybeSectionRange codeSection;
+
+  // The ranges of every function defined in this module. This is only
+  // accessible after we've decoded the code section. This means it is not
+  // available while doing a 'tier-1' or 'once' compilation.
+  FuncDefRangeVector funcDefRanges;
+
+  // Whether this module was compiled with debugging support.
+  bool debugEnabled;
+  // A SHA-1 hash of the module bytecode for use in display urls. Only
+  // available if we're debugging.
+  ModuleHash debugHash;
+
+  // ==== Instance layout fields
   //
   // The start offset of the FuncDefInstanceData[] section of the instance
   // data. There is one entry for every function definition.
@@ -165,70 +218,21 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // The total size of the instance data.
   uint32_t instanceDataLength;
 
-  // namePayload points at the name section's CustomSection::payload so that
-  // the Names (which are use payload-relative offsets) can be used
-  // independently of the Module without duplicating the name section.  This
-  // is marked `mutable` only because CodeModule (WasmSerialize.cpp) has to
-  // update the field during deserialization, after the containing
-  // CodeMetadata has been deserialized and marked `const`.
-  mutable SharedBytes namePayload;
-  Maybe<Name> moduleName;
-  NameVector funcNames;
-
-  // ==== Misc Maybes
-  //
-  Maybe<uint32_t> startFuncIndex;
-  Maybe<uint32_t> nameCustomSectionIndex;
-
-  // Info about all functions (import and locally defined) in the module.
-  FuncDescVector funcs;
-
-  // Info about elem segments needed only for validation and compilation.
-  // Should have the same length as ModuleMetadata::elemSegments, and each
-  // entry here should be identical the corresponding .elemType field in
-  // ModuleMetadata::elemSegments.
-  RefTypeVector elemSegmentTypes;
-
-  // asm.js needs this for compilation, technically a size regression for
-  // Code/Metadata but likely not major and we don't care about asm.js enough
-  // to optimize for this.
-  Uint32Vector asmJSSigToTableIndex;
-
-  // Bytecode ranges for the code section.
-  MaybeSectionRange codeSection;
-
-  // Bytecode ranges for custom sections.  FIXME: is it feasible to move this
-  // to ModuleMetadata?
-  CustomSectionRangeVector customSectionRanges;
-
-  // The ranges of every function defined in this module. This is only
-  // accessible after we've decoded the code section. This means it is not
-  // available while doing a 'tier-1' or 'once' compilation.
-  FuncDefRangeVector funcDefRanges;
-
-  // Indicates whether the branch hint section was successfully parsed.
-  bool parsedBranchHints;
-
-  // Debug-enabled code is not serialized.
-  bool debugEnabled;
-  ModuleHash debugHash;
-
   explicit CodeMetadata(const CompileArgs* compileArgs = nullptr,
                         ModuleKind kind = ModuleKind::Wasm)
       : kind(kind),
         compileArgs(compileArgs),
         numFuncImports(0),
         numGlobalImports(0),
+        debugEnabled(false),
+        debugHash(),
         funcDefsOffsetStart(UINT32_MAX),
         funcImportsOffsetStart(UINT32_MAX),
         typeDefsOffsetStart(UINT32_MAX),
         memoriesOffsetStart(UINT32_MAX),
         tablesOffsetStart(UINT32_MAX),
         tagsOffsetStart(UINT32_MAX),
-        instanceDataLength(UINT32_MAX),
-        parsedBranchHints(false),
-        debugEnabled(false),
-        debugHash() {}
+        instanceDataLength(UINT32_MAX) {}
 
   [[nodiscard]] bool init() {
     MOZ_ASSERT(!types);
@@ -242,12 +246,42 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   [[nodiscard]] bool prepareForCompile(CompileMode mode);
   bool isPreparedForCompile() const { return instanceDataLength != UINT32_MAX; }
 
+  bool isAsmJS() const { return kind == ModuleKind::AsmJS; }
+  // A builtin module is a host constructed wasm module that exports host
+  // functionality, using special opcodes. Otherwise, it has the same rules
+  // as wasm modules and so it does not get a new ModuleKind.
+  bool isBuiltinModule() const { return features().isBuiltinModule; }
+
+#define WASM_FEATURE(NAME, SHORT_NAME, ...) \
+  bool SHORT_NAME##Enabled() const { return features().SHORT_NAME; }
+  JS_FOR_WASM_FEATURES(WASM_FEATURE)
+#undef WASM_FEATURE
+  Shareable sharedMemoryEnabled() const { return features().sharedMemory; }
+  bool simdAvailable() const { return features().simd; }
+
+  bool hugeMemoryEnabled(uint32_t memoryIndex) const {
+    return !isAsmJS() && memoryIndex < memories.length() &&
+           IsHugeMemoryEnabled(memories[memoryIndex].indexType());
+  }
+  bool usesSharedMemory(uint32_t memoryIndex) const {
+    return memoryIndex < memories.length() && memories[memoryIndex].isShared();
+  }
+
   const FeatureArgs& features() const { return compileArgs->features; }
   const ScriptedCaller& scriptedCaller() const {
     return compileArgs->scriptedCaller;
   }
   const UniqueChars& sourceMapURL() const { return compileArgs->sourceMapURL; }
 
+  size_t numTypes() const { return types->length(); }
+  size_t numFuncs() const { return funcs.length(); }
+  size_t numFuncDefs() const { return funcs.length() - numFuncImports; }
+  size_t numTables() const { return tables.length(); }
+  size_t numMemories() const { return memories.length(); }
+
+  bool funcIsImport(uint32_t funcIndex) const {
+    return funcIndex < numFuncImports;
+  }
   const TypeDef& getFuncTypeDef(uint32_t funcIndex) const {
     return types->type(funcs[funcIndex].typeIndex);
   }
@@ -267,65 +301,10 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     return funcDefRanges[funcDefIndex];
   }
 
-  size_t numTables() const { return tables.length(); }
-  size_t numTypes() const { return types->length(); }
-  size_t numFuncs() const { return funcs.length(); }
-  size_t numFuncDefs() const { return funcs.length() - numFuncImports; }
-
-  bool funcIsImport(uint32_t funcIndex) const {
-    return funcIndex < numFuncImports;
-  }
-  size_t numMemories() const { return memories.length(); }
-
-#define WASM_FEATURE(NAME, SHORT_NAME, ...) \
-  bool SHORT_NAME##Enabled() const { return features().SHORT_NAME; }
-  JS_FOR_WASM_FEATURES(WASM_FEATURE)
-#undef WASM_FEATURE
-  Shareable sharedMemoryEnabled() const { return features().sharedMemory; }
-  bool simdAvailable() const { return features().simd; }
-
-  bool isAsmJS() const { return kind == ModuleKind::AsmJS; }
-  // A builtin module is a host constructed wasm module that exports host
-  // functionality, using special opcodes. Otherwise, it has the same rules
-  // as wasm modules and so it does not get a new ModuleKind.
-  bool isBuiltinModule() const { return features().isBuiltinModule; }
-
-  bool hugeMemoryEnabled(uint32_t memoryIndex) const {
-    return !isAsmJS() && memoryIndex < memories.length() &&
-           IsHugeMemoryEnabled(memories[memoryIndex].indexType());
-  }
-  bool usesSharedMemory(uint32_t memoryIndex) const {
-    return memoryIndex < memories.length() && memories[memoryIndex].isShared();
-  }
-
-  void declareFuncExported(uint32_t funcIndex, bool eager, bool canRefFunc) {
-    FuncFlags flags = funcs[funcIndex].flags;
-
-    // Set the `Exported` flag, if not set.
-    flags = FuncFlags(uint8_t(flags) | uint8_t(FuncFlags::Exported));
-
-    // Merge in the `Eager` and `CanRefFunc` flags, if they're set. Be sure
-    // to not unset them if they've already been set.
-    if (eager) {
-      flags = FuncFlags(uint8_t(flags) | uint8_t(FuncFlags::Eager));
-    }
-    if (canRefFunc) {
-      flags = FuncFlags(uint8_t(flags) | uint8_t(FuncFlags::CanRefFunc));
-    }
-
-    funcs[funcIndex].flags = flags;
-  }
-
-  // ==== Methods relating to Instance layout
-  //
-  // Allocate space for `bytes`@`align` in the instance, updating
-  // `instanceDataLength` and returning the offset in in `assignedOffset`.
-  [[nodiscard]] bool allocateInstanceDataBytes(uint32_t bytes, uint32_t align,
-                                               uint32_t* assignedOffset);
-  // The same for an array of allocations.
-  [[nodiscard]] bool allocateInstanceDataBytesN(uint32_t bytes, uint32_t align,
-                                                uint32_t count,
-                                                uint32_t* assignedOffset);
+  // This gets names for wasm only.
+  // For asm.js, see CodeMetadataForAsmJS::getFuncNameForAsmJS.
+  bool getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
+                          UTF8Bytes* name) const;
 
   uint32_t offsetOfFuncDefInstanceData(uint32_t funcIndex) const {
     MOZ_ASSERT(funcIndex >= numFuncImports && funcIndex < numFuncs());
@@ -366,21 +345,17 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     return tagsOffsetStart + tagIndex * sizeof(TagInstanceData);
   }
 
-  bool addDefinedFunc(
-      ModuleMetadata* meta, ValTypeVector&& params, ValTypeVector&& results,
-      bool declareForRef = false,
-      Maybe<CacheableName>&& optionalExportedName = mozilla::Nothing());
-
-  bool addImportedFunc(ModuleMetadata* meta, ValTypeVector&& params,
-                       ValTypeVector&& results, CacheableName&& importModName,
-                       CacheableName&& importFieldName);
-
-  // This gets names for wasm only.
-  // For asm.js, see CodeMetadataForAsmJS::getFuncNameForAsmJS.
-  bool getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
-                          UTF8Bytes* name) const;
-
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+
+ private:
+  // Allocate space for `bytes`@`align` in the instance, updating
+  // `instanceDataLength` and returning the offset in in `assignedOffset`.
+  [[nodiscard]] bool allocateInstanceDataBytes(uint32_t bytes, uint32_t align,
+                                               uint32_t* assignedOffset);
+  // The same for an array of allocations.
+  [[nodiscard]] bool allocateInstanceDataBytesN(uint32_t bytes, uint32_t align,
+                                                uint32_t count,
+                                                uint32_t* assignedOffset);
 };
 
 using MutableCodeMetadata = RefPtr<CodeMetadata>;
@@ -429,6 +404,14 @@ struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
     codeMeta = js_new<CodeMetadata>(&compileArgs, kind);
     return !!codeMeta && codeMeta->init();
   }
+
+  bool addDefinedFunc(
+      ValTypeVector&& params, ValTypeVector&& results,
+      bool declareForRef = false,
+      Maybe<CacheableName>&& optionalExportedName = mozilla::Nothing());
+  bool addImportedFunc(ValTypeVector&& params, ValTypeVector&& results,
+                       CacheableName&& importModName,
+                       CacheableName&& importFieldName);
 
   // Generates any new metadata necessary to compile this module. This must be
   // called after the 'module environment' (everything before the code section)

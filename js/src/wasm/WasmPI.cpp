@@ -950,8 +950,8 @@ class SuspendingFunctionModuleFactory {
     }
 
     MOZ_ASSERT(codeMeta->funcs.length() == WrappedFnIndex);
-    if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsWithoutSuspender),
-                                  std::move(resultsRef))) {
+    if (!moduleMeta->addDefinedFunc(std::move(paramsWithoutSuspender),
+                                    std::move(resultsRef))) {
       return nullptr;
     }
 
@@ -961,9 +961,9 @@ class SuspendingFunctionModuleFactory {
     // We will be looking up and using the exports function by index so
     // the name doesn't matter.
     MOZ_ASSERT(codeMeta->funcs.length() == ExportedFnIndex);
-    if (!codeMeta->addDefinedFunc(
-            moduleMeta, std::move(params), std::move(results),
-            /*declareForRef = */ true, mozilla::Some(CacheableName()))) {
+    if (!moduleMeta->addDefinedFunc(std::move(params), std::move(results),
+                                    /*declareForRef = */ true,
+                                    mozilla::Some(CacheableName()))) {
       return nullptr;
     }
 
@@ -975,9 +975,9 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == TrampolineFnIndex);
-    if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsTrampoline),
-                                  std::move(resultsTrampoline),
-                                  /*declareForRef = */ true)) {
+    if (!moduleMeta->addDefinedFunc(std::move(paramsTrampoline),
+                                    std::move(resultsTrampoline),
+                                    /*declareForRef = */ true)) {
       return nullptr;
     }
 
@@ -988,10 +988,9 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == ContinueOnSuspendableFnIndex);
-    if (!codeMeta->addDefinedFunc(moduleMeta,
-                                  std::move(paramsContinueOnSuspendable),
-                                  std::move(resultsContinueOnSuspendable),
-                                  /*declareForRef = */ true)) {
+    if (!moduleMeta->addDefinedFunc(std::move(paramsContinueOnSuspendable),
+                                    std::move(resultsContinueOnSuspendable),
+                                    /*declareForRef = */ true)) {
       return nullptr;
     }
 
@@ -1423,8 +1422,8 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == WrappedFnIndex);
-    if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsForWrapper),
-                                  std::move(resultsForWrapper))) {
+    if (!moduleMeta->addDefinedFunc(std::move(paramsForWrapper),
+                                    std::move(resultsForWrapper))) {
       return nullptr;
     }
 
@@ -1434,9 +1433,9 @@ class PromisingFunctionModuleFactory {
     // We will be looking up and using the exports function by index so
     // the name doesn't matter.
     MOZ_ASSERT(codeMeta->funcs.length() == ExportedFnIndex);
-    if (!codeMeta->addDefinedFunc(
-            moduleMeta, std::move(params), std::move(results),
-            /* declareFoRef = */ true, mozilla::Some(CacheableName()))) {
+    if (!moduleMeta->addDefinedFunc(std::move(params), std::move(results),
+                                    /* declareFoRef = */ true,
+                                    mozilla::Some(CacheableName()))) {
       return nullptr;
     }
 
@@ -1448,9 +1447,9 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
     MOZ_ASSERT(codeMeta->funcs.length() == TrampolineFnIndex);
-    if (!codeMeta->addDefinedFunc(moduleMeta, std::move(paramsTrampoline),
-                                  std::move(resultsTrampoline),
-                                  /* declareFoRef = */ true)) {
+    if (!moduleMeta->addDefinedFunc(std::move(paramsTrampoline),
+                                    std::move(resultsTrampoline),
+                                    /* declareFoRef = */ true)) {
       return nullptr;
     }
 

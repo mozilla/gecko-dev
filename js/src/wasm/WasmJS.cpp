@@ -4175,8 +4175,8 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   codeMeta->numFuncImports = 1;
 
   // Add an (export (func 0))
-  codeMeta->declareFuncExported(0, /* eager */ true,
-                                /* canRefFunc */ true);
+  codeMeta->funcs[0].declareFuncExported(/* eager */ true,
+                                         /* canRefFunc */ true);
 
   // We will be looking up and using the function in the future by index so the
   // name doesn't matter.

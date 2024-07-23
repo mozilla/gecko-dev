@@ -2170,7 +2170,7 @@ static bool WasmReturnFlag(JSContext* cx, unsigned argc, Value* vp, Flag flag) {
       b = module->module().loggingDeserialized();
       break;
     case Flag::ParsedBranchHints:
-      b = module->module().codeMeta().parsedBranchHints;
+      b = !module->module().codeMeta().branchHints.failedParse();
       break;
   }
 

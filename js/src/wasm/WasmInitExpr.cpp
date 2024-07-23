@@ -519,8 +519,8 @@ bool wasm::DecodeConstantExpression(Decoder& d, CodeMetadata* codeMeta,
         if (!iter.readRefFunc(&funcIndex)) {
           return false;
         }
-        codeMeta->declareFuncExported(funcIndex, /* eager */ false,
-                                      /* canRefFunc */ true);
+        codeMeta->funcs[funcIndex].declareFuncExported(/* eager */ false,
+                                                       /* canRefFunc */ true);
         *literal = Nothing();
         break;
       }

@@ -2148,8 +2148,8 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
         continue;
       }
       uint32_t funcIndex = exp.funcIndex();
-      codeMeta_->declareFuncExported(funcIndex, /* eager */ true,
-                                     /* canRefFunc */ false);
+      codeMeta_->funcs[funcIndex].declareFuncExported(/* eager */ true,
+                                                      /* canRefFunc */ false);
     }
 
     codeMeta_->numFuncImports = funcImportMap_.count();

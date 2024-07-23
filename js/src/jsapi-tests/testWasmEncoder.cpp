@@ -57,17 +57,17 @@ BEGIN_TEST(testWasmEncodeBasic) {
   CacheableName ns;
   CacheableName impName;
   MOZ_ALWAYS_TRUE(CacheableName::fromUTF8Chars("t", &impName));
-  MOZ_ALWAYS_TRUE(codeMeta->addImportedFunc(moduleMeta, std::move(paramsImp),
-                                            std::move(resultsImp),
-                                            std::move(ns), std::move(impName)));
+  MOZ_ALWAYS_TRUE(
+      moduleMeta->addImportedFunc(std::move(paramsImp), std::move(resultsImp),
+                                  std::move(ns), std::move(impName)));
 
   ValTypeVector params, results;
   MOZ_ALWAYS_TRUE(results.emplaceBack(ValType::I32));
   CacheableName expName;
   MOZ_ALWAYS_TRUE(CacheableName::fromUTF8Chars("r", &expName));
-  MOZ_ALWAYS_TRUE(codeMeta->addDefinedFunc(moduleMeta, std::move(params),
-                                           std::move(results), true,
-                                           mozilla::Some(std::move(expName))));
+  MOZ_ALWAYS_TRUE(
+      moduleMeta->addDefinedFunc(std::move(params), std::move(results), true,
+                                 mozilla::Some(std::move(expName))));
   MOZ_ALWAYS_TRUE(moduleMeta->prepareForCompile(compilerEnv.mode()));
 
   ModuleGenerator mg(*codeMeta, compilerEnv, compilerEnv.initialState(),

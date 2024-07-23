@@ -194,8 +194,8 @@ bool CompileBuiltinModule(JSContext* cx,
       ReportOutOfMemory(cx);
       return false;
     }
-    codeMeta->declareFuncExported(funcIndex, /* eager */ true,
-                                  /* canRefFunc */ true);
+    codeMeta->funcs[funcIndex].declareFuncExported(/* eager */ true,
+                                                   /* canRefFunc */ true);
   }
 
   // Add (export "$name" (func $i)) declarations.

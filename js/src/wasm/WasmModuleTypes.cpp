@@ -49,7 +49,7 @@ bool CacheableName::fromUTF8Chars(const char* utf8Chars, CacheableName* name) {
   return true;
 }
 
-BranchHintVector BranchHintCollection::invalidVector;
+BranchHintVector BranchHintCollection::invalidVector_;
 
 JSString* CacheableName::toJSString(JSContext* cx) const {
   return NewStringCopyUTF8N(cx, JS::UTF8Chars(begin(), length()));

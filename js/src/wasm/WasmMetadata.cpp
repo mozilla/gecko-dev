@@ -15,63 +15,6 @@ using mozilla::CheckedInt;
 using namespace js;
 using namespace js::wasm;
 
-// ModuleMetadata helpers -- memory accounting.
-
-size_t ModuleMetadata::sizeOfExcludingThis(
-    mozilla::MallocSizeOf mallocSizeOf) const {
-  return imports.sizeOfExcludingThis(mallocSizeOf) +
-         exports.sizeOfExcludingThis(mallocSizeOf) +
-         elemSegments.sizeOfExcludingThis(mallocSizeOf) +
-         dataSegmentRanges.sizeOfExcludingThis(mallocSizeOf) +
-         dataSegments.sizeOfExcludingThis(mallocSizeOf) +
-         customSections.sizeOfExcludingThis(mallocSizeOf);
-}
-
-// CodeMetadata helpers -- adding functions.
-
-bool CodeMetadata::addDefinedFunc(ModuleMetadata* moduleMeta,
-                                  ValTypeVector&& params,
-                                  ValTypeVector&& results, bool declareForRef,
-                                  Maybe<CacheableName>&& optionalExportedName) {
-  uint32_t typeIndex = types->length();
-  FuncType funcType(std::move(params), std::move(results));
-  if (!types->addType(std::move(funcType))) {
-    return false;
-  }
-
-  FuncDesc funcDesc = FuncDesc(typeIndex);
-  uint32_t funcIndex = funcs.length();
-  if (!funcs.append(funcDesc)) {
-    return false;
-  }
-  if (declareForRef) {
-    declareFuncExported(funcIndex, true, true);
-  }
-  if (optionalExportedName.isSome()) {
-    if (!moduleMeta->exports.emplaceBack(std::move(optionalExportedName.ref()),
-                                         funcIndex, DefinitionKind::Function)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool CodeMetadata::addImportedFunc(ModuleMetadata* moduleMeta,
-                                   ValTypeVector&& params,
-                                   ValTypeVector&& results,
-                                   CacheableName&& importModName,
-                                   CacheableName&& importFieldName) {
-  MOZ_ASSERT(numFuncImports == funcs.length());
-  if (!addDefinedFunc(moduleMeta, std::move(params), std::move(results), false,
-                      mozilla::Nothing())) {
-    return false;
-  }
-  numFuncImports++;
-  return moduleMeta->imports.emplaceBack(std::move(importModName),
-                                         std::move(importFieldName),
-                                         DefinitionKind::Function);
-}
-
 // CodeMetadata helpers -- computing the Instance layout.
 
 bool CodeMetadata::allocateInstanceDataBytes(uint32_t bytes, uint32_t align,
@@ -260,4 +203,57 @@ size_t CodeMetadata::sizeOfExcludingThis(
          elemSegmentTypes.sizeOfExcludingThis(mallocSizeOf) +
          asmJSSigToTableIndex.sizeOfExcludingThis(mallocSizeOf) +
          customSectionRanges.sizeOfExcludingThis(mallocSizeOf);
+}
+
+// ModuleMetadata helpers -- memory accounting.
+
+size_t ModuleMetadata::sizeOfExcludingThis(
+    mozilla::MallocSizeOf mallocSizeOf) const {
+  return imports.sizeOfExcludingThis(mallocSizeOf) +
+         exports.sizeOfExcludingThis(mallocSizeOf) +
+         elemSegments.sizeOfExcludingThis(mallocSizeOf) +
+         dataSegmentRanges.sizeOfExcludingThis(mallocSizeOf) +
+         dataSegments.sizeOfExcludingThis(mallocSizeOf) +
+         customSections.sizeOfExcludingThis(mallocSizeOf);
+}
+
+bool ModuleMetadata::addDefinedFunc(
+    ValTypeVector&& params, ValTypeVector&& results, bool declareForRef,
+    Maybe<CacheableName>&& optionalExportedName) {
+  uint32_t typeIndex = codeMeta->types->length();
+  FuncType funcType(std::move(params), std::move(results));
+  if (!codeMeta->types->addType(std::move(funcType))) {
+    return false;
+  }
+
+  FuncDesc funcDesc = FuncDesc(typeIndex);
+  uint32_t funcIndex = codeMeta->funcs.length();
+  if (!codeMeta->funcs.append(funcDesc)) {
+    return false;
+  }
+  if (declareForRef) {
+    codeMeta->funcs[funcIndex].declareFuncExported(true, true);
+  }
+  if (optionalExportedName.isSome()) {
+    if (!exports.emplaceBack(std::move(optionalExportedName.ref()), funcIndex,
+                             DefinitionKind::Function)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ModuleMetadata::addImportedFunc(ValTypeVector&& params,
+                                     ValTypeVector&& results,
+                                     CacheableName&& importModName,
+                                     CacheableName&& importFieldName) {
+  MOZ_ASSERT(codeMeta->numFuncImports == codeMeta->funcs.length());
+  if (!addDefinedFunc(std::move(params), std::move(results), false,
+                      mozilla::Nothing())) {
+    return false;
+  }
+  codeMeta->numFuncImports++;
+  return imports.emplaceBack(std::move(importModName),
+                             std::move(importFieldName),
+                             DefinitionKind::Function);
 }
