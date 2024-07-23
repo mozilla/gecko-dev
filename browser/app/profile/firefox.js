@@ -1724,18 +1724,11 @@ pref("browser.newtabpage.activity-stream.weather.query", "");
 pref("browser.newtabpage.activity-stream.weather.display", "simple");
 
 // enable location search for newtab weather widget
-#ifdef NIGHTLY_BUILD
-  pref("browser.newtabpage.activity-stream.weather.locationSearchEnabled", true);
-#else
-  pref("browser.newtabpage.activity-stream.weather.locationSearchEnabled", true);
-#endif
+pref("browser.newtabpage.activity-stream.weather.locationSearchEnabled", true);
 
 // List of regions that get weather by default.
-#ifdef NIGHTLY_BUILD
-  pref("browser.newtabpage.activity-stream.discoverystream.region-weather-config", "US,CA");
-#else
-  pref("browser.newtabpage.activity-stream.discoverystream.region-weather-config", "");
-#endif
+pref("browser.newtabpage.activity-stream.discoverystream.region-weather-config", "US,CA");
+
 // List of locales that weather widget supports.
 pref("browser.newtabpage.activity-stream.discoverystream.locale-weather-config", "en-US,en-GB,en-CA");
 
