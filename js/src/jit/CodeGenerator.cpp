@@ -20163,7 +20163,7 @@ void CodeGenerator::visitWasmNewArrayObject(LWasmNewArrayObject* lir) {
     if (!storageBytes.isValid() ||
         storageBytes.value() > WasmArrayObject_MaxInlineBytes) {
       // Too much array data to store inline. Immediately perform an instance
-      // call to handle the out-of-line storage (or the trap).
+      // call to handle the out-of-line storage.
       masm.move32(Imm32(numElements), temp1);
       callWasmArrayAllocFun(lir, fun, temp1, typeDefData, output,
                             mir->bytecodeOffset());

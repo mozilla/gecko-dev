@@ -397,9 +397,7 @@ void WasmArrayObject::obj_finalize(JS::GCContext* gcx, JSObject* object) {
     // been freed.
     const TypeDef& typeDef = arrayObj.typeDef();
     MOZ_ASSERT(typeDef.isArrayType());
-    // arrayObj.numElements_ was validated to not overflow when constructing the
-    // array
-    size_t trailerSize = calcStorageBytesUnchecked(
+    size_t trailerSize = calcStorageBytes(
         typeDef.arrayType().elementType_.size(), arrayObj.numElements_);
     // Ensured by WasmArrayObject::createArrayNonEmpty.
     MOZ_RELEASE_ASSERT(trailerSize <= size_t(MaxArrayPayloadBytes));
@@ -428,9 +426,7 @@ size_t WasmArrayObject::obj_moved(JSObject* obj, JSObject* old) {
     if (!arrayObj.isDataInline()) {
       const TypeDef& typeDef = arrayObj.typeDef();
       MOZ_ASSERT(typeDef.isArrayType());
-      // arrayObj.numElements_ was validated not to overflow when constructing
-      // the array
-      size_t trailerSize = calcStorageBytesUnchecked(
+      size_t trailerSize = calcStorageBytes(
           typeDef.arrayType().elementType_.size(), arrayObj.numElements_);
       // Ensured by WasmArrayObject::createArrayOOL.
       MOZ_RELEASE_ASSERT(trailerSize <= size_t(MaxArrayPayloadBytes));
