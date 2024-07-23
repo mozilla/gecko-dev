@@ -3263,7 +3263,7 @@ bool TypedArrayObjectTemplate<float16>::getElementPure(TypedArrayObject* tarray,
    * This could be removed for platforms/compilers known to convert a 32-bit
    * non-canonical nan to a 64-bit canonical nan.
    */
-  *vp = JS::CanonicalizedDoubleValue(f16.toDouble());
+  *vp = JS::CanonicalizedDoubleValue(static_cast<double>(f16));
   return true;
 }
 

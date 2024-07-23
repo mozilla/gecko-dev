@@ -549,11 +549,7 @@ bool DataViewObject::write(JSContext* cx, Handle<DataViewObject*> obj,
 
   // See the comment in ElementSpecific::doubleToNative.
   if (js::SupportDifferentialTesting() && TypeIsFloatingPoint<NativeType>()) {
-    if constexpr (std::is_same_v<NativeType, float16>) {
-      value = JS::CanonicalizeNaN(value.toDouble());
-    } else {
-      value = JS::CanonicalizeNaN(value);
-    }
+    value = JS::CanonicalizeNaN(static_cast<double>(value));
   }
 
   // Step 6.
@@ -766,7 +762,7 @@ bool DataViewObject::getFloat16Impl(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  args.rval().setDouble(CanonicalizeNaN(val.toDouble()));
+  args.rval().setDouble(CanonicalizeNaN(static_cast<double>(val)));
   return true;
 }
 
