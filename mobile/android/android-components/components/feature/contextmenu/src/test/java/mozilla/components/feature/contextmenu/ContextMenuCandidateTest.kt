@@ -2092,4 +2092,7 @@ private class TestSnackbarDelegate : SnackbarDelegate {
         hasShownSnackbar = true
         lastActionListener = listener
     }
+
+    override fun show(snackBarParentView: View, text: String, duration: Int, action: String?, listener: ((v: View) -> Unit)?) =
+        show(snackBarParentView, 0, duration, 0, listener)
 }

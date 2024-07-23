@@ -67,11 +67,39 @@ class FenixSnackbarDelegateTest {
     }
 
     @Test
+    fun `GIVEN no listener nor action WHEN show is called with string values THEN show snackbar with no action`() {
+        delegate.show(
+            text = "Firefox",
+            duration = 0,
+            action = null,
+            listener = null,
+        )
+
+        verify { snackbar.setText("Firefox") }
+        verify(exactly = 0) { snackbar.setAction(any(), any()) }
+        verify { snackbar.show() }
+    }
+
+    @Test
     fun `GIVEN no listener WHEN show is called THEN show snackbar with no action`() {
         delegate.show(
             text = R.string.app_name,
             duration = 0,
             action = 0,
+            listener = {},
+        )
+
+        verify { snackbar.setText("Firefox") }
+        verify(exactly = 0) { snackbar.setAction(any(), any()) }
+        verify { snackbar.show() }
+    }
+
+    @Test
+    fun `GIVEN no listener WHEN show is called  with string values THEN show snackbar with no action`() {
+        delegate.show(
+            text = "Firefox",
+            duration = 0,
+            action = null,
             listener = {},
         )
 
@@ -95,12 +123,50 @@ class FenixSnackbarDelegateTest {
     }
 
     @Test
+    fun `GIVEN no action WHEN show is called with string values THEN show snackbar with no action`() {
+        delegate.show(
+            text = "Firefox",
+            duration = 0,
+            action = "action",
+            listener = null,
+        )
+
+        verify { snackbar.setText("Firefox") }
+        verify(exactly = 0) { snackbar.setAction(any(), any()) }
+        verify { snackbar.show() }
+    }
+
+    @Test
     fun `GIVEN action and listener WHEN show is called THEN show snackbar with action`() {
         val listener = mockk<(View) -> Unit>(relaxed = true)
         delegate.show(
             text = R.string.app_name,
             duration = 0,
             action = R.string.edit_2,
+            listener = listener,
+        )
+
+        verify { snackbar.setText("Firefox") }
+        verify {
+            snackbar.setAction(
+                "Edit password",
+                withArg {
+                    verify(exactly = 0) { listener(view) }
+                    it.invoke()
+                    verify { listener(view) }
+                },
+            )
+        }
+        verify { snackbar.show() }
+    }
+
+    @Test
+    fun `GIVEN action and listener WHEN show is called with string values THEN show snackbar with action`() {
+        val listener = mockk<(View) -> Unit>(relaxed = true)
+        delegate.show(
+            text = "Firefox",
+            duration = 0,
+            action = "Edit password",
             listener = listener,
         )
 

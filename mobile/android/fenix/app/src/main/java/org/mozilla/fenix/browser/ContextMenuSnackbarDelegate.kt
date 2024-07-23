@@ -21,6 +21,23 @@ class ContextMenuSnackbarDelegate : SnackbarDelegate {
         duration: Int,
         @StringRes action: Int,
         listener: ((v: View) -> Unit)?,
+    ) = show(
+        snackBarParentView,
+        text = snackBarParentView.context.getString(text),
+        duration = duration,
+        action = when (action != 0 && listener != null) {
+            true -> snackBarParentView.context.getString(action)
+            else -> null
+        },
+        listener = listener,
+    )
+
+    override fun show(
+        snackBarParentView: View,
+        text: String,
+        duration: Int,
+        action: String?,
+        listener: ((v: View) -> Unit)?,
     ) {
         val view = snackBarParentView
         val snackbar = FenixSnackbar.make(
@@ -28,10 +45,10 @@ class ContextMenuSnackbarDelegate : SnackbarDelegate {
             duration = FenixSnackbar.LENGTH_SHORT,
             isDisplayedWithBrowserToolbar = true,
         )
-            .setText(view.context.getString(text))
+            .setText(text)
 
-        if (action != 0 && listener != null) {
-            snackbar.setAction(view.context.getString(action)) { listener.invoke(view) }
+        if (action != null && listener != null) {
+            snackbar.setAction(action) { listener.invoke(view) }
         }
 
         snackbar.show()

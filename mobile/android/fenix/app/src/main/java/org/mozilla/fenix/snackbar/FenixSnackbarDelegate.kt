@@ -23,13 +23,40 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
      *
      * @param text The text to show. Can be formatted text.
      * @param duration How long to display the message.
-     * @param action String resource to display for the action.
-     * @param listener callback to be invoked when the action is clicked.
+     * @param action Optional String resource to display for the action.
+     * The [listener] must also be provided to show an action button.
+     * @param listener Optional callback to be invoked when the action is clicked.
+     * An [action] must also be provided to show an action button.
      */
     fun show(
         @StringRes text: Int,
         duration: Int = LENGTH_ACCESSIBLE,
         @StringRes action: Int = 0,
+        listener: ((v: View) -> Unit)? = null,
+    ) {
+        show(
+            snackBarParentView = view,
+            text = text,
+            duration = duration,
+            action = action,
+            listener = listener,
+        )
+    }
+
+    /**
+     * Displays a snackbar.
+     *
+     * @param text The text to show.
+     * @param duration How long to display the message.
+     * @param action Optional String to display for the action.
+     * The [listener] must also be provided to show an action button.
+     * @param listener Optional callback to be invoked when the action is clicked.
+     * An [action] must also be provided to show an action button.
+     */
+    fun show(
+        text: String,
+        duration: Int = LENGTH_ACCESSIBLE,
+        action: String? = null,
         listener: ((v: View) -> Unit)? = null,
     ) {
         show(
@@ -47,16 +74,30 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
         duration: Int,
         @StringRes action: Int,
         listener: ((v: View) -> Unit)?,
+    ) = show(
+        snackBarParentView = snackBarParentView,
+        text = snackBarParentView.context.getString(text),
+        duration = duration,
+        action = if (action == 0) null else snackBarParentView.context.getString(action),
+        listener = listener,
+    )
+
+    override fun show(
+        snackBarParentView: View,
+        text: String,
+        duration: Int,
+        action: String?,
+        listener: ((v: View) -> Unit)?,
     ) {
         val snackbar = FenixSnackbar.make(
             view = snackBarParentView,
             duration = duration,
             isDisplayedWithBrowserToolbar = true,
         )
-            .setText(snackBarParentView.context.getString(text))
+            .setText(text)
 
-        if (action != 0 && listener != null) {
-            snackbar.setAction(snackBarParentView.context.getString(action)) {
+        if (action != null && listener != null) {
+            snackbar.setAction(action) {
                 listener.invoke(
                     snackBarParentView,
                 )

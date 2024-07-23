@@ -27,6 +27,25 @@ interface SnackbarDelegate {
         action: Int = 0,
         listener: ((v: View) -> Unit)? = null,
     )
+
+    /**
+     * Displays a snackbar.
+     *
+     * @param snackBarParentView The view to find a parent from for displaying the Snackbar.
+     * @param text The text to show.
+     * @param duration How long to display the message.
+     * @param action Text of the optional action.
+     * The [listener] must also be provided to show an action button.
+     * @param listener callback to be invoked when the action is clicked.
+     * An [action] must also be provided to show an action button.
+     */
+    fun show(
+        snackBarParentView: View,
+        text: String,
+        duration: Int,
+        action: String? = null,
+        listener: ((v: View) -> Unit)? = null,
+    )
 }
 
 /**
@@ -35,9 +54,9 @@ interface SnackbarDelegate {
 class DefaultSnackbarDelegate : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
-        text: Int,
+        text: String,
         duration: Int,
-        action: Int,
+        action: String?,
         listener: ((v: View) -> Unit)?,
     ) {
         val snackbar = Snackbar.make(
@@ -46,10 +65,24 @@ class DefaultSnackbarDelegate : SnackbarDelegate {
             duration,
         )
 
-        if (action != 0 && listener != null) {
+        if (action != null && listener != null) {
             snackbar.setAction(action, listener)
         }
 
         snackbar.show()
     }
+
+    override fun show(
+        snackBarParentView: View,
+        text: Int,
+        duration: Int,
+        action: Int,
+        listener: ((v: View) -> Unit)?,
+    ) = show(
+        snackBarParentView = snackBarParentView,
+        text = snackBarParentView.context.getString(text),
+        duration = duration,
+        action = if (action == 0) null else snackBarParentView.context.getString(action),
+        listener = listener,
+    )
 }

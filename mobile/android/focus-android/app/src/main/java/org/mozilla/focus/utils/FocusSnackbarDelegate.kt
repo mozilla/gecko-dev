@@ -16,21 +16,35 @@ class FocusSnackbarDelegate(private val view: View) : SnackbarDelegate {
         duration: Int,
         @StringRes action: Int,
         listener: ((v: View) -> Unit)?,
+    ) = show(
+        snackBarParentView = snackBarParentView,
+        text = snackBarParentView.context.getString(text),
+        duration = duration,
+        action = if (action == 0) null else snackBarParentView.context.getString(action),
+        listener = listener,
+    )
+
+    override fun show(
+        snackBarParentView: View,
+        text: String,
+        duration: Int,
+        action: String?,
+        listener: ((v: View) -> Unit)?,
     ) {
-        if (listener != null && action != 0) {
+        if (listener != null && action != null) {
             FocusSnackbar.make(
                 view = view,
                 duration = FocusSnackbar.LENGTH_LONG,
             )
-                .setText(view.context.getString(text))
-                .setAction(view.context.getString(action)) { listener.invoke(view) }
+                .setText(text)
+                .setAction(action) { listener.invoke(view) }
                 .show()
         } else {
             FocusSnackbar.make(
                 view,
                 duration = FocusSnackbar.LENGTH_SHORT,
             )
-                .setText(view.context.getString(text))
+                .setText(text)
                 .show()
         }
     }
