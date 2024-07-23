@@ -3904,6 +3904,21 @@ bool js::DefineTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
   return result.succeed();
 }
 
+template <typename T>
+struct FloatingPoint {
+  using Bits = typename mozilla::FloatingPoint<T>::Bits;
+  static constexpr Bits kSignBit = mozilla::FloatingPoint<T>::kSignBit;
+  static constexpr Bits NegativeInfinity =
+      kSignBit | mozilla::FloatingPoint<T>::kExponentBits;
+};
+
+template <>
+struct FloatingPoint<js::float16> {
+  using Bits = uint16_t;
+  static constexpr Bits kSignBit = 0x8000;
+  static constexpr Bits NegativeInfinity = kSignBit | 0x7C00;
+};
+
 template <typename T, typename U>
 static constexpr typename std::enable_if_t<std::is_unsigned_v<T>, U>
 UnsignedSortValue(U val) {
@@ -3920,46 +3935,24 @@ static constexpr
 
 template <typename T, typename UnsignedT>
 static constexpr
-    typename std::enable_if_t<std::is_floating_point_v<T>, UnsignedT>
+    typename std::enable_if_t<!std::numeric_limits<T>::is_integer, UnsignedT>
     UnsignedSortValue(UnsignedT val) {
   // Flip sign bit for positive numbers; flip all bits for negative numbers,
   // except negative NaNs.
-  using FloatingPoint = mozilla::FloatingPoint<T>;
+  using FloatingPoint = ::FloatingPoint<T>;
   static_assert(std::is_same_v<typename FloatingPoint::Bits, UnsignedT>,
                 "FloatingPoint::Bits matches the unsigned int representation");
 
   // FF80'0000 is negative infinity, (FF80'0000, FFFF'FFFF] are all NaNs with
-  // the sign-bit set (and the equivalent holds for double values). So any value
-  // larger than negative infinity is a negative NaN.
-  constexpr UnsignedT NegativeInfinity =
-      FloatingPoint::kSignBit | FloatingPoint::kExponentBits;
-  if (val > NegativeInfinity) {
+  // the sign-bit set (and the equivalent holds for double and float16 values).
+  // So any value larger than negative infinity is a negative NaN.
+  if (val > FloatingPoint::NegativeInfinity) {
     return val;
   }
   if (val & FloatingPoint::kSignBit) {
     return ~val;
   }
   return val ^ FloatingPoint::kSignBit;
-}
-
-template <typename T, typename UnsignedT>
-static constexpr
-    typename std::enable_if_t<std::is_same_v<T, float16>, UnsignedT>
-    UnsignedSortValue(UnsignedT val) {
-  // Flip sign bit for positive numbers; flip all bits for negative numbers,
-  // except negative NaNs.
-
-  // FC00 is negative infinity, (FC00, FFFF] are all NaNs with
-  // the sign-bit set. So any value
-  // larger than negative infinity is a negative NaN.
-  constexpr UnsignedT NegativeInfinity = 0xFC00;
-  if (val > NegativeInfinity) {
-    return val;
-  }
-  if (val & 0x8000) {
-    return ~val;
-  }
-  return val ^ 0x8000;
 }
 
 template <typename T>
