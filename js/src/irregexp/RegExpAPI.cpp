@@ -131,7 +131,7 @@ static uint32_t ErrorNumber(RegExpError err) {
     case RegExpError::kInvalidNamedCaptureReference:
       return JSMSG_INVALID_NAMED_CAPTURE_REF;
     case RegExpError::kInvalidClassEscape:
-      return JSMSG_RANGE_WITH_CLASS_ESCAPE;
+      return JSMSG_INVALID_DECIMAL_ESCAPE;
     case RegExpError::kInvalidClassPropertyName:
       return JSMSG_INVALID_CLASS_PROPERTY_NAME;
     case RegExpError::kInvalidCharacterClass:
