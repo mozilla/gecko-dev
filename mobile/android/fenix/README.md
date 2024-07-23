@@ -233,8 +233,7 @@ Once these flags are set, your builds will include any local modifications prese
 
 See a [demo of auto-publication workflow in action](https://www.youtube.com/watch?v=qZKlBzVvQGc).
 
-In order to build successfully, you need to check out a commit in the dependency repository that has no breaking changes. The two best ways to do this are:
-- Run the `<android-components>/tools/list_compatible_dependency_versions.py` script to output a compatible commit
+In order to build successfully, you need to check out a commit in the dependency repository that has no breaking changes.
 - Check out the latest commit from main in this repository and the dependency repository. However, this may fail if there were breaking changes added recently to the dependency.
 
 If you're trying to build fenix with a local ac AND a local GV, you'll have to use another method: see [this doc](https://github.com/mozilla-mobile/fenix/blob/main/docs/substituting-local-ac-and-gv.md).
