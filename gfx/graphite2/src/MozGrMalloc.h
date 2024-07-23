@@ -12,7 +12,7 @@
 
 #include "mozilla/mozalloc.h"
 
-#if defined(XP_LINUX)
+#if defined(XP_LINUX) && !defined(ANDROID)
 
 #define malloc moz_xmalloc
 #define calloc moz_xcalloc
