@@ -7200,6 +7200,12 @@
             }
           }
 
+          // Bug 1804166: Allow new tabs to set the favicon correctly if the
+          // new tabs behavior is set to open a blank page
+          if (!isReload && !aWebProgress.isLoadingDocument) {
+            gBrowser.setDefaultIcon(this.mTab, this.mBrowser._documentURI);
+          }
+
           if (
             aRequest instanceof Ci.nsIChannel &&
             !isBlankPageURL(aRequest.originalURI.spec)
