@@ -10,6 +10,6 @@
 callback FrameRequestCallback = undefined (DOMHighResTimeStamp time);
 
 interface mixin AnimationFrameProvider {
-  [Throws] long requestAnimationFrame(FrameRequestCallback callback);
-  [Throws] undefined cancelAnimationFrame(long handle);
+  [Throws] unsigned long requestAnimationFrame(FrameRequestCallback callback);
+  [Throws] undefined cancelAnimationFrame(unsigned long handle);
 };

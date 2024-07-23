@@ -3524,7 +3524,7 @@ double nsGlobalWindowInner::GetDesktopToDeviceScale(ErrorResult& aError) {
   return presContext->DeviceContext()->GetDesktopToDeviceScale().scale;
 }
 
-int32_t nsGlobalWindowInner::RequestAnimationFrame(
+uint32_t nsGlobalWindowInner::RequestAnimationFrame(
     FrameRequestCallback& aCallback, ErrorResult& aError) {
   if (!mDoc) {
     return 0;
@@ -3537,12 +3537,12 @@ int32_t nsGlobalWindowInner::RequestAnimationFrame(
   DebuggerNotificationDispatch(this,
                                DebuggerNotificationType::RequestAnimationFrame);
 
-  int32_t handle;
+  uint32_t handle;
   aError = mDoc->ScheduleFrameRequestCallback(aCallback, &handle);
   return handle;
 }
 
-void nsGlobalWindowInner::CancelAnimationFrame(int32_t aHandle,
+void nsGlobalWindowInner::CancelAnimationFrame(uint32_t aHandle,
                                                ErrorResult& aError) {
   if (!mDoc) {
     return;

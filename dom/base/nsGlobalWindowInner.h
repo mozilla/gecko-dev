@@ -816,11 +816,11 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
                       mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t RequestAnimationFrame(mozilla::dom::FrameRequestCallback& aCallback,
-                                mozilla::ErrorResult& aError);
+  uint32_t RequestAnimationFrame(mozilla::dom::FrameRequestCallback& aCallback,
+                                 mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
-  void CancelAnimationFrame(int32_t aHandle, mozilla::ErrorResult& aError);
+  void CancelAnimationFrame(uint32_t aHandle, mozilla::ErrorResult& aError);
 
   uint32_t RequestIdleCallback(JSContext* aCx,
                                mozilla::dom::IdleRequestCallback& aCallback,

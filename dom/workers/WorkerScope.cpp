@@ -950,7 +950,7 @@ void DedicatedWorkerGlobalScope::Close() {
   mWorkerPrivate->CloseInternal();
 }
 
-int32_t DedicatedWorkerGlobalScope::RequestAnimationFrame(
+uint32_t DedicatedWorkerGlobalScope::RequestAnimationFrame(
     FrameRequestCallback& aCallback, ErrorResult& aError) {
   AssertIsOnWorkerThread();
 
@@ -986,7 +986,7 @@ int32_t DedicatedWorkerGlobalScope::RequestAnimationFrame(
     }
   }
 
-  int32_t handle = 0;
+  uint32_t handle = 0;
   aError = mFrameRequestManager.Schedule(aCallback, &handle);
   if (!aError.Failed() && mDocumentVisible) {
     mVsyncChild->TryObserve();
@@ -994,7 +994,7 @@ int32_t DedicatedWorkerGlobalScope::RequestAnimationFrame(
   return handle;
 }
 
-void DedicatedWorkerGlobalScope::CancelAnimationFrame(int32_t aHandle,
+void DedicatedWorkerGlobalScope::CancelAnimationFrame(uint32_t aHandle,
                                                       ErrorResult& aError) {
   AssertIsOnWorkerThread();
 

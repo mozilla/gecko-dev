@@ -409,11 +409,11 @@ class DedicatedWorkerGlobalScope final
   void Close();
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t RequestAnimationFrame(FrameRequestCallback& aCallback,
-                                ErrorResult& aError);
+  uint32_t RequestAnimationFrame(FrameRequestCallback& aCallback,
+                                 ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
-  void CancelAnimationFrame(int32_t aHandle, ErrorResult& aError);
+  void CancelAnimationFrame(uint32_t aHandle, ErrorResult& aError);
 
   void OnDocumentVisible(bool aVisible) override;
 

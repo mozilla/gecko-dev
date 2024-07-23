@@ -3040,15 +3040,15 @@ class Document : public nsINode,
   SVGSVGElement* GetSVGRootElement() const;
 
   nsresult ScheduleFrameRequestCallback(FrameRequestCallback& aCallback,
-                                        int32_t* aHandle);
-  void CancelFrameRequestCallback(int32_t aHandle);
+                                        uint32_t* aHandle);
+  void CancelFrameRequestCallback(uint32_t aHandle);
 
   /**
    * Returns true if the handle refers to a callback that was canceled that
    * we did not find in our list of callbacks (e.g. because it is one of those
    * in the set of callbacks currently queued to be run).
    */
-  bool IsCanceledFrameRequestCallback(int32_t aHandle) const;
+  bool IsCanceledFrameRequestCallback(uint32_t aHandle) const;
 
   /**
    * Put this document's frame request callbacks into the provided

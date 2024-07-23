@@ -15,16 +15,16 @@
 namespace mozilla::dom {
 
 struct FrameRequest {
-  FrameRequest(FrameRequestCallback& aCallback, int32_t aHandle);
+  FrameRequest(FrameRequestCallback& aCallback, uint32_t aHandle);
   ~FrameRequest();
 
   // Comparator operators to allow RemoveElementSorted with an
   // integer argument on arrays of FrameRequest
-  bool operator==(int32_t aHandle) const { return mHandle == aHandle; }
-  bool operator<(int32_t aHandle) const { return mHandle < aHandle; }
+  bool operator==(uint32_t aHandle) const { return mHandle == aHandle; }
+  bool operator<(uint32_t aHandle) const { return mHandle < aHandle; }
 
   RefPtr<FrameRequestCallback> mCallback;
-  int32_t mHandle;
+  uint32_t mHandle;
 };
 
 class FrameRequestManager {
@@ -32,12 +32,12 @@ class FrameRequestManager {
   FrameRequestManager() = default;
   ~FrameRequestManager() = default;
 
-  nsresult Schedule(FrameRequestCallback& aCallback, int32_t* aHandle);
-  bool Cancel(int32_t aHandle);
+  nsresult Schedule(FrameRequestCallback& aCallback, uint32_t* aHandle);
+  bool Cancel(uint32_t aHandle);
 
   bool IsEmpty() const { return mCallbacks.IsEmpty(); }
 
-  bool IsCanceled(int32_t aHandle) const {
+  bool IsCanceled(uint32_t aHandle) const {
     return !mCanceledCallbacks.empty() && mCanceledCallbacks.has(aHandle);
   }
 
@@ -55,12 +55,12 @@ class FrameRequestManager {
 
   // The set of frame request callbacks that were canceled but which we failed
   // to find in mFrameRequestCallbacks.
-  HashSet<int32_t> mCanceledCallbacks;
+  HashSet<uint32_t> mCanceledCallbacks;
 
   /**
    * The current frame request callback handle
    */
-  int32_t mCallbackCounter = 0;
+  uint32_t mCallbackCounter = 0;
 };
 
 inline void ImplCycleCollectionUnlink(FrameRequestManager& aField) {

@@ -9,7 +9,7 @@
 
 namespace mozilla::dom {
 
-FrameRequest::FrameRequest(FrameRequestCallback& aCallback, int32_t aHandle)
+FrameRequest::FrameRequest(FrameRequestCallback& aCallback, uint32_t aHandle)
     : mCallback(&aCallback), mHandle(aHandle) {
   LogFrameRequestCallback::LogDispatch(mCallback);
 }
@@ -17,8 +17,8 @@ FrameRequest::FrameRequest(FrameRequestCallback& aCallback, int32_t aHandle)
 FrameRequest::~FrameRequest() = default;
 
 nsresult FrameRequestManager::Schedule(FrameRequestCallback& aCallback,
-                                       int32_t* aHandle) {
-  if (mCallbackCounter == INT32_MAX) {
+                                       uint32_t* aHandle) {
+  if (mCallbackCounter == UINT32_MAX) {
     // Can't increment without overflowing; bail out
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -30,7 +30,7 @@ nsresult FrameRequestManager::Schedule(FrameRequestCallback& aCallback,
   return NS_OK;
 }
 
-bool FrameRequestManager::Cancel(int32_t aHandle) {
+bool FrameRequestManager::Cancel(uint32_t aHandle) {
   // mCallbacks is stored sorted by handle
   if (mCallbacks.RemoveElementSorted(aHandle)) {
     return true;
