@@ -488,7 +488,12 @@ export class _DSCard extends React.PureComponent {
   render() {
     if (this.props.placeholder || !this.state.isSeen) {
       return (
-        <div className="ds-card placeholder" ref={this.setPlaceholderRef} />
+        <div className="ds-card placeholder" ref={this.setPlaceholderRef}>
+          <div className="placeholder-image placeholder-fill" />
+          <div className="placeholder-label placeholder-fill" />
+          <div className="placeholder-header placeholder-fill" />
+          <div className="placeholder-description placeholder-fill" />
+        </div>
       );
     }
 
