@@ -1083,11 +1083,7 @@ class WebSocketMainThreadRunnable : public WorkerMainThreadRunnable {
     MOZ_ASSERT(mWorkerRef);
 
     // Walk up to our containing page
-    WorkerPrivate* wp = mWorkerRef->Private();
-    ;
-    while (wp->GetParent()) {
-      wp = wp->GetParent();
-    }
+    WorkerPrivate* wp = mWorkerRef->Private()->GetTopLevelWorker();
 
     nsPIDOMWindowInner* window = wp->GetWindow();
     if (window) {
@@ -2740,13 +2736,7 @@ WebSocketImpl::GetLoadGroup(nsILoadGroup** aLoadGroup) {
 
   MOZ_ASSERT(mWorkerRef);
 
-  // Walk up to our containing page
-  WorkerPrivate* wp = mWorkerRef->Private();
-  while (wp->GetParent()) {
-    wp = wp->GetParent();
-  }
-
-  nsPIDOMWindowInner* window = wp->GetWindow();
+  nsPIDOMWindowInner* window = mWorkerRef->Private()->GetAncestorWindow();
   if (!window) {
     return NS_OK;
   }

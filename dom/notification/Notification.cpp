@@ -1189,12 +1189,7 @@ WorkerNotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
   if (!strcmp("alertclickcallback", aTopic)) {
     nsPIDOMWindowInner* window = nullptr;
     if (!notification->mWorkerPrivate->IsServiceWorker()) {
-      WorkerPrivate* top = notification->mWorkerPrivate;
-      while (top->GetParent()) {
-        top = top->GetParent();
-      }
-
-      window = top->GetWindow();
+      window = notification->mWorkerPrivate->GetAncestorWindow();
       if (NS_WARN_IF(!window || !window->IsCurrentInnerWindow())) {
         // Window has been closed, this observer is not valid anymore
         return NS_ERROR_FAILURE;

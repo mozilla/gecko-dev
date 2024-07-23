@@ -1368,20 +1368,11 @@ Document* WorkerPrivate::GetDocument() const {
 
 nsPIDOMWindowInner* WorkerPrivate::GetAncestorWindow() const {
   AssertIsOnMainThread();
-  if (mLoadInfo.mWindow) {
-    return mLoadInfo.mWindow;
-  }
-  // if we don't have a document, we should query the document
-  // from the parent in case of a nested worker
-  WorkerPrivate* parent = mParent;
-  while (parent) {
-    if (parent->mLoadInfo.mWindow) {
-      return parent->mLoadInfo.mWindow;
-    }
-    parent = parent->GetParent();
-  }
-  // couldn't query a window, give up and return nullptr
-  return nullptr;
+
+  // We should query the window from the top level worker in case of a nested
+  // worker, as only the top level one can have a window.
+  WorkerPrivate* top = GetTopLevelWorker();
+  return top->GetWindow();
 }
 
 class EvictFromBFCacheRunnable final : public WorkerProxyToMainThreadRunnable {

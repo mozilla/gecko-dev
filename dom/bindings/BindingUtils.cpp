@@ -4099,13 +4099,7 @@ class DeprecationWarningRunnable final
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aWorkerPrivate);
 
-    // Walk up to our containing page
-    WorkerPrivate* wp = aWorkerPrivate;
-    while (wp->GetParent()) {
-      wp = wp->GetParent();
-    }
-
-    nsPIDOMWindowInner* window = wp->GetWindow();
+    nsPIDOMWindowInner* window = aWorkerPrivate->GetAncestorWindow();
     if (window && window->GetExtantDoc()) {
       window->GetExtantDoc()->WarnOnceAbout(mOperation);
     }

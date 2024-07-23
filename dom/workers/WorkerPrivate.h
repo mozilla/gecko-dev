@@ -719,6 +719,16 @@ class WorkerPrivate final
   // We would like to have stronger type-system annotated/enforced handling.
   WorkerPrivate* GetParent() const { return mParent; }
 
+  // Returns the top level worker. It can be the current worker if it's the top
+  // level one.
+  WorkerPrivate* GetTopLevelWorker() const {
+    WorkerPrivate const* wp = this;
+    while (wp->GetParent()) {
+      wp = wp->GetParent();
+    }
+    return const_cast<WorkerPrivate*>(wp);
+  }
+
   bool IsFrozen() const {
     AssertIsOnParentThread();
     return mParentFrozen;

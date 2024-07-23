@@ -502,10 +502,7 @@ class InitRunnable final : public WorkerMainThreadRunnable {
   bool MainThreadRun() override {
     // Get principal from worker's owner document or from worker.
     MOZ_ASSERT(mWorkerRef);
-    WorkerPrivate* wp = mWorkerRef->Private();
-    while (wp->GetParent()) {
-      wp = wp->GetParent();
-    }
+    WorkerPrivate* wp = mWorkerRef->Private()->GetTopLevelWorker();
     nsPIDOMWindowInner* window = wp->GetWindow();
     Document* doc = window ? window->GetExtantDoc() : nullptr;
     nsCOMPtr<nsIPrincipal> principal =
