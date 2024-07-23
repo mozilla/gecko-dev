@@ -117,6 +117,8 @@ interface PeerConnectionImpl  {
   attribute DOMString peerIdentity;
   readonly attribute boolean privacyRequested;
 
+  readonly attribute boolean duplicateFingerprintQuirk;
+
   readonly attribute RTCSctpTransport? sctp;
 
   /* Data channels */

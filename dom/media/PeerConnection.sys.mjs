@@ -1029,10 +1029,33 @@ export class RTCPeerConnection {
       });
   }
 
+  _maybeDuplicateFingerprints(sdp) {
+    if (this._pc.duplicateFingerprintQuirk) {
+      // hack to put a=fingerprint under all m= lines
+      const lines = sdp.split("\n");
+      const fingerprint = lines.find(line => line.startsWith("a=fingerprint"));
+      if (fingerprint) {
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].startsWith("m=")) {
+            let j = i + 1;
+            while (j < lines.length && lines[j].startsWith("c=")) {
+              j++;
+            }
+            lines.splice(j, 0, fingerprint);
+          }
+        }
+        sdp = lines.join("\n");
+      }
+    }
+    return sdp;
+  }
+
   _createOffer(options) {
     this._checkClosed();
     this._ensureTransceiversForOfferToReceive(options);
-    return this._chain(() => this._createAnOffer(options));
+    return this._chain(async () =>
+      Cu.cloneInto(await this._createAnOffer(options), this._win)
+    );
   }
 
   async _createAnOffer(options = {}) {
@@ -1057,11 +1080,12 @@ export class RTCPeerConnection {
       this._onCreateOfferFailure = reject;
       this._pc.createOffer(options);
     });
+    sdp = this._maybeDuplicateFingerprints(sdp);
     if (haveAssertion) {
       await haveAssertion;
       sdp = this._localIdp.addIdentityAttribute(sdp);
     }
-    return Cu.cloneInto({ type: "offer", sdp }, this._win);
+    return { type: "offer", sdp };
   }
 
   createAnswer(optionsOrOnSucc, onErr) {
@@ -1074,7 +1098,9 @@ export class RTCPeerConnection {
 
   _createAnswer() {
     this._checkClosed();
-    return this._chain(() => this._createAnAnswer());
+    return this._chain(async () =>
+      Cu.cloneInto(await this._createAnAnswer(), this._win)
+    );
   }
 
   async _createAnAnswer() {
@@ -1095,11 +1121,12 @@ export class RTCPeerConnection {
       this._onCreateAnswerFailure = reject;
       this._pc.createAnswer();
     });
+    sdp = this._maybeDuplicateFingerprints(sdp);
     if (haveAssertion) {
       await haveAssertion;
       sdp = this._localIdp.addIdentityAttribute(sdp);
     }
-    return Cu.cloneInto({ type: "answer", sdp }, this._win);
+    return { type: "answer", sdp };
   }
 
   async _getPermission() {
@@ -1175,9 +1202,9 @@ export class RTCPeerConnection {
       }
       if (!sdp) {
         if (type == "offer") {
-          await this._createAnOffer();
+          sdp = (await this._createAnOffer()).sdp;
         } else if (type == "answer") {
-          await this._createAnAnswer();
+          sdp = (await this._createAnAnswer()).sdp;
         }
       } else {
         this._sanityCheckSdp(sdp);

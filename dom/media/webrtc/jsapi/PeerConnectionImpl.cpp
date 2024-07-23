@@ -398,6 +398,9 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
 
       mRtxIsAllowed = !HostnameInPref(
           "media.peerconnection.video.use_rtx.blocklist", mHostname);
+      mDuplicateFingerprintQuirk = HostnameInPref(
+          "media.peerconnection.sdp.quirk.duplicate_fingerprint.allowlist",
+          mHostname);
     }
   }
 

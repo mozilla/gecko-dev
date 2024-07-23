@@ -346,6 +346,8 @@ class PeerConnectionImpl final
            PrincipalPrivacy::Private;
   }
 
+  bool DuplicateFingerprintQuirk() { return mDuplicateFingerprintQuirk; }
+
   NS_IMETHODIMP GetFingerprint(char** fingerprint);
   void GetFingerprint(nsAString& fingerprint) {
     char* tmp;
@@ -868,6 +870,8 @@ class PeerConnectionImpl final
 
   // See Bug 1642419, this can be removed when all sites are working with RTX.
   bool mRtxIsAllowed = true;
+
+  bool mDuplicateFingerprintQuirk = false;
 
   nsTArray<RefPtr<Operation>> mOperations;
   bool mChainingOperation = false;
