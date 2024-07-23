@@ -560,9 +560,26 @@ set_config("MOZ_UI_LOCALE", depends("--enable-ui-locale")(lambda x: x))
 
 # clang-plugin location
 # ==============================================================
-include(
-    "build/moz.configure/clang_plugin.configure", when="--enable-compile-environment"
-)
+
+
+@depends(host_library_name_info, build_environment, when="--enable-clang-plugin")
+def clang_plugin_path(library_name_info, build_env):
+    topobjdir = build_env.topobjdir
+    if topobjdir.endswith("/js/src"):
+        topobjdir = topobjdir[:-7]
+    return os.path.abspath(
+        os.path.join(
+            topobjdir,
+            "build",
+            "clang-plugin",
+            "%sclang-plugin%s"
+            % (library_name_info.dll.prefix, library_name_info.dll.suffix),
+        )
+    )
+
+
+set_config("CLANG_PLUGIN", clang_plugin_path)
+add_old_configure_assignment("CLANG_PLUGIN", clang_plugin_path)
 
 
 # Awk detection
