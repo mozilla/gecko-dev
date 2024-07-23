@@ -23,6 +23,10 @@ configurations.configureEach { config ->
     if (config.isCanBeResolved()) {
         config.resolutionStrategy { strategy ->
             dependencySubstitution {
+                // Linter is broken here and incorrectly suggests to replace
+                // all() with configureEach(), which doesn't exist on DependencySubstitutions.
+                // https://docs.gradle.org/current/javadoc/org/gradle/api/artifacts/DependencySubstitutions.html
+                //noinspection ConfigurationAvoidance
                 all { dependency ->
                     if (!(dependency.requested instanceof ModuleComponentSelector)) {
                         // We only care about substituting for a module, not a project.
@@ -43,4 +47,3 @@ configurations.configureEach { config ->
         }
     }
 }
-
