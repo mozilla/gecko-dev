@@ -124,7 +124,10 @@ Remote files are not downloaded automatically. In order to keep attachments in s
         toDelete.map(record => client.attachments.deleteDownloaded(record))
       );
 
-      // Download new attachments
+      // Download a bundle of all attachments if local cache is empty (see details below)
+      client.attachments.cacheAll();
+
+      // OR download new attachments individually
       const fileContents = await Promise.all(
         toDownload.map(async record => {
           const { buffer } = await client.attachments.download(record);
@@ -133,7 +136,17 @@ Remote files are not downloaded automatically. In order to keep attachments in s
       );
     });
 
-The provided helper will:
+The provided ``cacheAll`` helper will:
+  - be a no-op if the local attachment cache is not empty
+    - Use ``pruneAttachments()`` to clear or set the ``force`` parameter to true if you know you want to override this.
+  - download and extract all attachments if bundling is enabled for the collection
+  - return a nullable boolean to inform the calling function what happened
+    - ``null`` if the attachment bundle download was not attempted (ex: client is offline)
+    - ``false`` if at least one attachment failed to be extracted
+    - ``true`` if the bundle was found and extracted without error
+
+
+The provided ``download`` helper will:
   - fetch the remote binary content
   - write the file in the local IndexedDB
   - check the file size
