@@ -3,49 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
-const lazy = {};
-
-ChromeUtils.defineESModuleGetters(lazy, {
-  PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
-});
-
-ChromeUtils.defineLazyGetter(lazy, "localization", () => {
-  return new Localization(["preview/CredentialChooser.ftl"], true);
-});
-
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "IDNService",
-  "@mozilla.org/network/idn-service;1",
-  "nsIIDNService"
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "TESTING_MODE",
-  "dom.security.credentialmanagement.chooser.testing.enabled",
-  false
-);
-
-/**
- * Set an image element's src attribute to a data: url of the favicon for a
- * given origin, defaulting to the browser default favicon.
- *
- * @param {HTMLImageElement} icon The image Element that should have source be the icon result.
- * @param {string} origin The origin whose favicon should be used.
- */
-async function setIconToFavicon(icon, origin) {
-  try {
-    let iconData = await lazy.PlacesUtils.promiseFaviconData(origin);
-    icon.src = iconData.uri.spec;
-  } catch {
-    icon.src = "chrome://global/skin/icons/defaultFavicon.svg";
-  }
-}
-
 /**
  * Class implementing the nsICredentialChooserService.
  *
@@ -59,238 +16,57 @@ export class CredentialChooserService {
   QueryInterface = ChromeUtils.generateQI(["nsICredentialChooserService"]);
 
   /**
-   * @typedef {object} CredentialArgument
-   * @property {string} id - The unique identifier for the credential.
-   * @property {string} type - The type of the credential.
-   * @property {string} [origin] - The origin associated to the credential.
-   * @property {UIHints} [uiHints] - UI hints for the credential.
+   * This private member holds the set of choices made by tests via
+   * testMakeChoices. If an entry exists while running showCredentialChooser,
+   * we choose the credential with id in the map or none.
    */
-
-  /**
-   * @typedef {object} UIHints
-   * @property {string} [name] - The display name for the credential.
-   * @property {string} [iconURL] - The data URL of the icon for the credential.
-   * @property {number} [expiresAfter] - The expiration time for the UI hint.
-   */
+  #testChoiceIds = new WeakMap();
 
   /**
    * This function displays the credential chooser UI, allowing the user to make an identity choice.
    * Once the user makes a choice from the credentials provided, or dismisses the prompt, we will
    * call the callback with that credential, or null in the case of a dismiss.
    *
-   * We also support UI-less testing via choices provided by picking any credential with ID 'wpt-pick-me'
-   * if the preference 'dom.security.credentialmanagement.chooser.testing.enabled' is true.
+   * We also support UI-less testing via choices provided by testMakeChoice. If there is a choice in
+   * memory, we use that as an immediate choice of any credential with that id, or none.
    *
-   *
-   * @param {BrowsingContext} browsingContext The browsing context of the window calling the Credential Management API.
-   * @param {Array<CredentialArgument>} credentials The credentials the user should choose from.
-   * @param {nsICredentialChosenCallback} callback A callback to return the user's credential choice to.
+   * @param {BrowsingContext} browsingContext The top browsing context of the window calling the Credential Management API
+   * @param {Array<Credential>} credentials The credentials the user should choose from
+   * @param {nsICredentialChosenCallback} callback A callback to return the user's credential choice to
    * @returns {nsresult}
    */
-  async showCredentialChooser(browsingContext, credentials, callback) {
-    if (!callback) {
-      callback = { notify: () => {} };
-    }
-    if (!credentials.length) {
-      return Cr.NS_ERROR_INVALID_ARG;
-    }
-
-    if (lazy.TESTING_MODE) {
-      if (credentials.some(cred => cred.id == "wpt-pick-me")) {
-        callback.notify("wpt-pick-me");
-      } else {
+  showCredentialChooser(browsingContext, credentials, callback) {
+    let testChoice = this.#testChoiceIds.get(browsingContext);
+    if (testChoice) {
+      let credential = credentials.find(cred => cred.id == testChoice);
+      if (!credential) {
         callback.notify(null);
+      } else {
+        callback.notify(credential);
       }
       return Cr.NS_OK;
     }
 
-    let browser = browsingContext.topFrameElement;
-    if (browser?.tagName != "browser") {
-      return Cr.NS_ERROR_INVALID_ARG;
-    }
-
-    let headerTextElement = browser.ownerDocument.getElementById(
-      "credential-chooser-header-text"
-    );
-    let host = browser.ownerGlobal.gIdentityHandler.getHostForDisplay();
-    browser.ownerDocument.l10n.setAttributes(
-      headerTextElement,
-      "credential-chooser-header",
-      {
-        host,
-      }
-    );
-
-    let faviconPromises = [];
-
-    let localizationPromise = lazy.localization.formatMessages([
-      { id: "credential-chooser-sign-in-button" },
-      { id: "credential-chooser-cancel-button" },
-    ]);
-
-    let listBox = browser.ownerDocument.getElementById(
-      "credential-chooser-entry-selector-container"
-    );
-    while (listBox.firstChild) {
-      listBox.removeChild(listBox.lastChild);
-    }
-    let itemTemplate = browser.ownerDocument.getElementById(
-      "template-credential-entry-list-item"
-    );
-    for (let [index, credential] of credentials.entries()) {
-      let newItem = itemTemplate.content.firstElementChild.cloneNode(true);
-      // Add the new radio button, including pre-selection and the callback
-      let [radio] = newItem.getElementsByClassName(
-        "identity-credential-list-item-radio"
-      );
-      radio.value = index;
-      if (index == 0) {
-        radio.checked = true;
-      }
-
-      let providerURL = new URL(credential.origin);
-      let displayDomain = lazy.IDNService.convertToDisplayIDN(
-        providerURL.host,
-        {}
-      );
-
-      let [primary] = newItem.getElementsByClassName(
-        "identity-credential-list-item-label-primary"
-      );
-      let [secondary] = newItem.getElementsByClassName(
-        "identity-credential-list-item-label-secondary"
-      );
-      let [icon] = newItem.getElementsByClassName(
-        "identity-credential-list-item-icon"
-      );
-
-      if (
-        credential.uiHints &&
-        (credential.uiHints.expiresAfter == null ||
-          credential.uiHints.expiresAfter > 0)
-      ) {
-        primary.textContent = credential.uiHints.name;
-        browser.ownerDocument.l10n.setAttributes(
-          secondary,
-          "credential-chooser-host-descriptor",
-          {
-            provider: displayDomain,
-          }
-        );
-        secondary.hidden = false;
-        icon.src = credential.uiHints.iconURL;
-      } else {
-        let doneWithFavicon = setIconToFavicon(icon, credential.origin);
-        faviconPromises.push(doneWithFavicon);
-        browser.ownerDocument.l10n.setAttributes(
-          primary,
-          "credential-chooser-identity",
-          {
-            provider: displayDomain,
-          }
-        );
-      }
-
-      // Add the item to the DOM!
-      listBox.append(newItem);
-    }
-
-    // wait for the labels to be localized before showing the panel
-    let [accept, cancel] = await localizationPromise;
-    let cancelLabel = cancel.attributes.find(x => x.name == "label").value;
-    let cancelKey = cancel.attributes.find(x => x.name == "accesskey").value;
-    let acceptLabel = accept.attributes.find(x => x.name == "label").value;
-    let acceptKey = accept.attributes.find(x => x.name == "accesskey").value;
-
-    // wait for icons to be set to prevent favicon jank
-    await Promise.all(faviconPromises);
-
-    // Construct the necessary arguments for notification behavior
-    let options = {
-      hideClose: true,
-      removeOnDismissal: true,
-      eventCallback: (topic, _nextRemovalReason, _isCancel) => {
-        if (topic == "removed") {
-          callback.notify(null);
-        }
-      },
-    };
-    let mainAction = {
-      label: acceptLabel,
-      accessKey: acceptKey,
-      callback() {
-        let result = listBox.querySelector(
-          ".identity-credential-list-item-radio:checked"
-        ).value;
-        callback.notify(credentials[parseInt(result, 10)].id);
-      },
-    };
-    let secondaryActions = [
-      {
-        label: cancelLabel,
-        accessKey: cancelKey,
-        callback() {
-          callback.notify(null);
-        },
-      },
-    ];
-    browser.ownerGlobal.PopupNotifications.show(
-      browser,
-      "credential-chooser",
-      "",
-      "identity-credential-notification-icon",
-      mainAction,
-      secondaryActions,
-      options
-    );
-
-    return Cr.NS_OK;
+    // We do not have credential chooser UI yet. To be added in Bug 1892021.
+    callback.notify(null);
+    return Cr.NS_ERROR_NOT_IMPLEMENTED;
   }
 
   /**
    * Dismiss the credential chooser dialog for this browsing context's window.
    *
-   * @param {BrowsingContext} browsingContext - The top browsing context of the window calling the Credential Management API
+   * @param {BrowsingContext} _browsingContext The top browsing context of the window calling the Credential Management API
    */
-  cancelCredentialChooser(browsingContext) {
-    let browser = browsingContext.top.embedderElement;
-    if (browser?.tagName != "browser") {
-      return;
-    }
-    let notification = browser.ownerGlobal.PopupNotifications.getNotification(
-      "credential-chooser",
-      browser
-    );
-    if (notification) {
-      browser.ownerGlobal.PopupNotifications.remove(notification, true);
-    }
-  }
+  cancelCredentialChooser(_browsingContext) {}
 
   /**
-   * A service function to help any UI. Fetches and serializes images to
-   * data urls, which can be used in chrome UI.
+   * A test helper that allows us to make decisions about which credentials to use without showing any UI.
+   * This must be called before showCredentialChooser with the same browsing context.
    *
-   * @param {Window} window - Window which should perform the fetch
-   * @param {nsIURI} uri - Icon location to be fetched from
-   * @returns {Promise<string, Error>} The data URI encoded as a string representing the icon that was loaded
+   * @param {BrowsingContext} browsingContext The top browsing context of the window calling the Credential Management API
+   * @param {UTF8String} id The id to be used in place of user choice when showCredentialChooser is called
    */
-  async fetchImageToDataURI(window, uri) {
-    if (uri.protocol === "data:") {
-      return uri.href;
-    }
-    let request = new window.Request(uri.spec, { mode: "cors" });
-    request.overrideContentPolicyType(Ci.nsIContentPolicy.TYPE_IMAGE);
-    let blob;
-    let response = await window.fetch(request);
-    if (!response.ok) {
-      return Promise.reject(new Error("HTTP failure on Fetch"));
-    }
-    blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      let reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+  testMakeChoice(browsingContext, id) {
+    this.#testChoiceIds.set(browsingContext, id);
   }
 }

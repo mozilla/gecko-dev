@@ -28,10 +28,7 @@ class IdentityCredentialRequestManager final : nsISupports {
   nsresult StorePendingRequest(
       const nsCOMPtr<nsIPrincipal>& aRPPrincipal,
       const dom::IdentityCredentialRequestOptions& aRequest,
-      const RefPtr<
-          dom::IdentityCredential::GetIPCIdentityCredentialPromise::Private>&
-          aPromise,
-      const RefPtr<dom::CanonicalBrowsingContext>& aBrowsingContext);
+      uint64_t aWindowID);
 
   // If the given credential stored by the given principal would be effective
   // for a previously stored request, notify the window that stored that request
@@ -51,21 +48,15 @@ class IdentityCredentialRequestManager final : nsISupports {
   struct PendingRequestEntry {
     nsCOMPtr<nsIPrincipal> mRPPrincipal;
     dom::IdentityCredentialRequestOptions mRequestOptions;
-    RefPtr<dom::IdentityCredential::GetIPCIdentityCredentialPromise::Private>
-        mPromise;
-    RefPtr<dom::CanonicalBrowsingContext> mBrowsingContext;
+    uint64_t mWindowID;
 
     PendingRequestEntry(
         nsIPrincipal* aRPPrincipal,
         const dom::IdentityCredentialRequestOptions& aRequestOptions,
-        const RefPtr<
-            dom::IdentityCredential::GetIPCIdentityCredentialPromise::Private>&
-            aPromise,
-        const RefPtr<dom::CanonicalBrowsingContext>& aBrowsingContext)
+        uint64_t aWindowID)
         : mRPPrincipal(aRPPrincipal),
           mRequestOptions(aRequestOptions),
-          mPromise(aPromise),
-          mBrowsingContext(aBrowsingContext) {}
+          mWindowID(aWindowID) {}
   };
   nsTHashMap<PrincipalHashKey, nsTArray<PendingRequestEntry>> mPendingRequests;
 };

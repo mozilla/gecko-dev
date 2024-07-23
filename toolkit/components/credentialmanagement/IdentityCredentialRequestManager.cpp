@@ -31,11 +31,7 @@ IdentityCredentialRequestManager::GetInstance() {
 
 nsresult IdentityCredentialRequestManager::StorePendingRequest(
     const nsCOMPtr<nsIPrincipal>& aRPPrincipal,
-    const dom::IdentityCredentialRequestOptions& aRequest,
-    const RefPtr<
-        dom::IdentityCredential::GetIPCIdentityCredentialPromise::Private>&
-        aPromise,
-    const RefPtr<dom::CanonicalBrowsingContext>& aBrowsingContext) {
+    const dom::IdentityCredentialRequestOptions& aRequest, uint64_t aWindowID) {
   MOZ_ASSERT(aRPPrincipal);
 
   if (!aRequest.mProviders.WasPassed()) {
@@ -64,8 +60,7 @@ nsresult IdentityCredentialRequestManager::StorePendingRequest(
     NS_ENSURE_TRUE(idpPrincipal, NS_ERROR_FAILURE);
     nsTArray<PendingRequestEntry>& list =
         mPendingRequests.LookupOrInsert(idpPrincipal);
-    list.AppendElement(PendingRequestEntry(aRPPrincipal, aRequest, aPromise,
-                                           aBrowsingContext));
+    list.AppendElement(PendingRequestEntry(aRPPrincipal, aRequest, aWindowID));
   }
   return NS_OK;
 }
@@ -77,28 +72,26 @@ void IdentityCredentialRequestManager::NotifyOfStoredCredential(
   auto listLookup = mPendingRequests.Lookup(aIDPPrincipal);
   if (listLookup) {
     for (auto& entry : listLookup.Data()) {
-      // Make sure we are only sending updates to fully active documents
-      if (!entry.mBrowsingContext ||
-          !entry.mBrowsingContext->GetCurrentWindowContext() ||
-          entry.mBrowsingContext->GetCurrentWindowContext()->IsDiscarded() ||
-          !entry.mBrowsingContext->GetCurrentWindowContext()->IsCurrent() ||
-          !entry.mBrowsingContext->AncestorsAreCurrent() ||
-          entry.mBrowsingContext->IsInBFCache()) {
-        continue;
+      RefPtr<dom::WindowGlobalParent> notifyWindow =
+          dom::WindowGlobalParent::GetByInnerWindowId(entry.mWindowID);
+      // If the window no longer exists, we just continue.
+      if (notifyWindow) {
+        // We must (asynchronously) test if this credential should be sent down
+        // to the site.
+        dom::IdentityCredential::AllowedToCollectCredential(
+            notifyWindow->DocumentPrincipal(), notifyWindow->BrowsingContext(),
+            entry.mRequestOptions, aCredential)
+            ->Then(
+                GetCurrentSerialEventTarget(), __func__,
+                [notifyWindow, aCredential](bool effectiveCredential) {
+                  if (effectiveCredential) {
+                    // If this fails, we have no recourse, so abandon it
+                    Unused << notifyWindow->SendNotifyStoredIdentityCredential(
+                        aCredential);
+                  }
+                },
+                []() {});
       }
-      // We must (asynchronously) test if this credential should be sent down
-      // to the site.
-      dom::IdentityCredential::AllowedToCollectCredential(
-          entry.mRPPrincipal, entry.mBrowsingContext, entry.mRequestOptions,
-          aCredential)
-          ->Then(
-              GetCurrentSerialEventTarget(), __func__,
-              [aCredential, entry](bool effectiveCredential) {
-                if (effectiveCredential) {
-                  entry.mPromise->Resolve(aCredential, __func__);
-                }
-              },
-              []() {});
     }
   }
 }
