@@ -166,9 +166,6 @@ with Files("ImageBitmap*"):
 with Files("ImageCapture*"):
     BUG_COMPONENT = ("Core", "Audio/Video")
 
-with Files("ImageDecoder.webidl"):
-    BUG_COMPONENT = ("Core", "Audio/Video: Web Codecs")
-
 with Files("InputEvent.webidl"):
     BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
@@ -695,7 +692,6 @@ WEBIDL_FILES = [
     "ImageBitmapRenderingContext.webidl",
     "ImageCapture.webidl",
     "ImageData.webidl",
-    "ImageDecoder.webidl",
     "ImageDocument.webidl",
     "InputEvent.webidl",
     "IntersectionObserver.webidl",

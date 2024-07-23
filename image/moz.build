@@ -64,10 +64,7 @@ EXPORTS.mozilla.image += [
     "encoders/png/nsPNGEncoder.h",
     "ICOFileHeaders.h",
     "ImageMemoryReporter.h",
-    "ImageUtils.h",
     "Resolution.h",
-    "SourceBuffer.h",
-    "SurfaceFlags.h",
     "WebRenderImageProvider.h",
 ]
 
@@ -89,7 +86,6 @@ UNIFIED_SOURCES += [
     "ImageFactory.cpp",
     "ImageMemoryReporter.cpp",
     "ImageOps.cpp",
-    "ImageUtils.cpp",
     "ImageWrapper.cpp",
     "imgFrame.cpp",
     "imgLoader.cpp",
