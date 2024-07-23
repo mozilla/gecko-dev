@@ -39,6 +39,7 @@ import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.support.base.feature.UserInteractionHandler
+import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.ktx.kotlin.toShortUrl
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
@@ -56,6 +57,8 @@ import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.setTextColor
 import org.mozilla.fenix.library.LibraryPageFragment
+import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
+import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.utils.allowUndo
 
@@ -76,6 +79,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
 
     private var _binding: FragmentBookmarkBinding? = null
     private val binding get() = _binding!!
+    private val snackbarBinding = ViewBoundFeatureWrapper<SnackbarBinding>()
 
     override val selectedItems get() = bookmarkStore.state.mode.selectedItems
 
@@ -119,13 +123,26 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
             ),
         )
 
+        snackbarBinding.set(
+            feature = SnackbarBinding(
+                context = requireContext(),
+                browserStore = requireContext().components.core.store,
+                appStore = requireContext().components.appStore,
+                snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),
+                navController = findNavController(),
+                customTabSessionId = null,
+            ),
+            owner = this,
+            view = binding.root,
+        )
+
         return binding.root
     }
 
     private fun showSnackBarWithText(text: String) {
         view?.let {
             FenixSnackbar.make(
-                view = it,
+                view = binding.dynamicSnackbarContainer,
                 duration = FenixSnackbar.LENGTH_LONG,
                 isDisplayedWithBrowserToolbar = false,
             ).setText(text).show()
