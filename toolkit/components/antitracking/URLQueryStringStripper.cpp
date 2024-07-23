@@ -443,7 +443,8 @@ nsresult URLQueryStringStripper::StripForCopyOrShareInternal(
       rv = StripForCopyOrShareInternal(
           nestedURI, getter_AddRefs(strippedNestedURI), aStripCount, true);
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        return false;
+        params.Append(name, value);
+        return true;
       }
 
       if (!strippedNestedURI) {
@@ -454,7 +455,8 @@ nsresult URLQueryStringStripper::StripForCopyOrShareInternal(
       nsAutoCString nestedURIString;
       rv = strippedNestedURI->GetSpec(nestedURIString);
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        return false;
+        params.Append(name, value);
+        return true;
       }
 
       // Encodes URI

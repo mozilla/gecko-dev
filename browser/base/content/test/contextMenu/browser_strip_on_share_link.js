@@ -99,12 +99,27 @@ add_task(async function testQueryParamIsNotStrippedForWrongSiteSpecific() {
 
 // Ensuring clean copy works with magnet links. We don't strip anything but copying the original URI should still work.
 add_task(async function testMagneticLinks() {
-  let originalUrl = "magnet:?xt=urn:btih:somesha1hash";
+  let validUrl = "magnet:?xt=urn:btih:somesha1hash";
   let shortenedUrl = "magnet:?xt=urn:btih:somesha1hash";
   await testStripOnShare({
-    selectWholeUrl: true,
-    validUrl: originalUrl,
-    strippedUrl: shortenedUrl,
+    originalURI: validUrl,
+    strippedURI: shortenedUrl,
+    prefEnabled: true,
+    useTestList: true,
+  });
+});
+
+// Ensuring clean copy does works correctly when encountering a nested link that throws causes an error to
+// occur. In this case, a nested magnetic link was used as it causes an error to be thrown.
+add_task(async function testErrorHandlingForNestedLinks() {
+  let validUrl =
+    "https://www.example.com/?test_3=magnet%3A%3Fxt%3Durn%3Abtih%3Asomesha1hash&test_4=1234&test_2=4321";
+  let shortenedUrl =
+    "https://www.example.com/?test_3=magnet%3A%3Fxt%3Durn%3Abtih%3Asomesha1hash&test_4=1234";
+  await testStripOnShare({
+    originalURI: validUrl,
+    strippedURI: shortenedUrl,
+    prefEnabled: true,
     useTestList: true,
   });
 });
