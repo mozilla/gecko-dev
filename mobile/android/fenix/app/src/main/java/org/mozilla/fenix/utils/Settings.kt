@@ -1790,6 +1790,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates Navigation Bar's Navigation buttons CFR should be displayed to the user.
+     */
+    var shouldShowNavigationButtonsCFR by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_navigation_cfr),
+        default = true,
+    )
+
+    /**
      * Time in milliseconds when the user was first presented the review quality check feature CFR.
      */
     var reviewQualityCheckCfrDisplayTimeInMillis by longPreference(
