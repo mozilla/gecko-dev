@@ -308,7 +308,12 @@ class PerfParser(CompareParser):
             {
                 "type": str,
                 "default": None,
-                "help": "Run tests that produced this alert summary.",
+                "help": "Run all tests that produced this alert summary ID "
+                "based on the alert summary table in either the alerts view or "
+                "the regression bug. The comparison that is produced will be based on "
+                "the base revision in your local repository (i.e. the base revision "
+                "your patches, if any, are based on). If only specific tests "
+                "need to run, use --tests to specify them (e.g. --tests webaudio).",
             },
         ],
         [
@@ -338,6 +343,17 @@ class PerfParser(CompareParser):
                 "default": False,
                 "help": "Use opt/non-pgo builds instead of shippable/pgo builds. "
                 "Setting this flag will result in faster try runs.",
+            },
+        ],
+        [
+            ["--tests", "-t"],
+            {
+                "nargs": "*",
+                "type": str,
+                "default": [],
+                "dest": "tests",
+                "help": "Select from all tasks that run these specific tests "
+                "(e.g. amazon, or speedometer3).",
             },
         ],
     ]
@@ -955,6 +971,63 @@ class PerfParser(CompareParser):
 
         return categories
 
+    def _get_common_test_task_substring(tasks):
+        """Returns the longest common substring among a set of task labels"""
+
+        def __substrings(task_label):
+            return {
+                task_label[i:j]
+                for j in range(len(task_label) + 1)
+                for i in range(j + 1)
+            }
+
+        return max(set.intersection(*map(__substrings, tasks)), key=len)
+
+    def set_categories_for_test(full_task_graph_path, tests):
+        """Parses the full task-graph to find all tasks that run this test.
+
+        Returns a new category for the test to replace our existing ones.
+        """
+        print("Searching for requested tests in the generated tasks...")
+        with full_task_graph_path.open() as f:
+            full_task_graph = json.load(f)
+
+        all_tasks = set()
+        categories = {}
+        for test in tests:
+            tasks = set()
+            found_suite = ""
+
+            for task_label, task_info in full_task_graph.items():
+                cmds = task_info.get("task", {}).get("payload", {}).get("command", [])
+                for suite, suite_info in PerfParser.suites.items():
+                    if suite_info["task-specifier"] not in task_label:
+                        continue
+                    modified_task_label = PerfParser.suites[suite]["task-test-finder"](
+                        cmds, task_label, test
+                    )
+                    if modified_task_label:
+                        found_suite = suite
+                        all_tasks.add(task_label)
+                        tasks.add(modified_task_label)
+
+            if not tasks:
+                print(f"Could not find any tasks for test {test}")
+                continue
+
+            query = PerfParser._get_common_test_task_substring(tasks)
+            categories[test] = {
+                "query": {found_suite: [query]},
+                "suites": [found_suite],
+                "variant-restrictions": {},
+                "app-restrictions": {},
+                "tasks": [],
+                "description": f"Tasks that run the test {test}.",
+            }
+
+        PerfParser.categories = categories
+        return all_tasks
+
     def inject_change_detector(base_cmd, all_tasks, selected_tasks):
         query = "'perftest 'mwu 'detect"
         mwu_task = PerfParser.get_tasks(base_cmd, [], query, all_tasks)
@@ -1266,6 +1339,15 @@ class PerfParser(CompareParser):
             show_estimates=False,
             preview_script=PREVIEW_SCRIPT,
         )
+        full_task_graph = pathlib.Path(cache_dir, "full_task_graph")
+
+        if kwargs.get("tests"):
+            all_tasks = PerfParser.set_categories_for_test(
+                full_task_graph, kwargs.get("tests")
+            )
+            if not all_tasks:
+                print("Could not find any tasks for the requested tests")
+                return None
 
         # Perform the selection, then push to try and return the revisions
         queries = []

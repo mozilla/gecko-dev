@@ -3,6 +3,19 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import enum
+import functools
+import json
+import os
+import pathlib
+import re
+
+from mozbuild.base import MozbuildObject
+
+here = os.path.abspath(os.path.dirname(__file__))
+build = MozbuildObject.from_environment(cwd=here)
+
+RAPTOR_TEST_MATCHER = re.compile("-(t|test)=([\\S]*)")
+TALOS_TEST_MATCHER = re.compile("--suite=([\\S]*)")
 
 
 class ClassificationEnum(enum.Enum):
@@ -88,6 +101,115 @@ def check_for_live_sites(live_sites=False, **kwargs):
 
 def check_for_profile(profile=False, **kwargs):
     return profile
+
+
+"""
+The following methods are used to find the test name in a specific
+task so that we can provide the ability to run specific tasks that
+run a specified test.
+"""
+
+
+def raptor_test_finder(task_cmd, task_label, test):
+    """Determine if this task runs the requested test.
+
+    Goes through the task command to find the test specification, and
+    then checks if the requested test matches it. Note that the app split
+    is done because otherwise the longest common string among all found tasks
+    might be something that is common to many more tasks than what we
+    expect.
+    """
+    modified_task_label = None
+
+    for cmd in task_cmd:
+        # On windows, the cmd is a string instead of a list
+        cmd_list = cmd
+        if isinstance(cmd_list, str):
+            cmd_list = [cmd_list]
+
+        for option in cmd_list:
+            match = RAPTOR_TEST_MATCHER.search(option)
+            if not match:
+                continue
+            _, found_test = match.groups()
+            if found_test != test:
+                continue
+
+            modified_task_label = task_label
+            for app in Apps:
+                task_without_app = task_label.split(app.value)
+                if len(task_without_app) > 1:
+                    if "android" in task_label:
+                        # Some tasks don't follow the proper ordering where a test
+                        # name is specified after the app name
+                        if not task_without_app[-1] or task_without_app[-1] == "-nofis":
+                            task_without_app = task_without_app[0].split("browsertime")
+                    modified_task_label = task_without_app[-1]
+                    break
+            break
+
+    return modified_task_label
+
+
+@functools.lru_cache(maxsize=10)
+def get_talos_json():
+    with pathlib.Path(build.topsrcdir, "testing", "talos", "talos.json").open() as f:
+        talos_json = json.load(f)
+    return talos_json
+
+
+def talos_test_finder(task_cmd, task_label, test):
+    """Determine if this task runs the requested talos test.
+
+    Uses the talos.json file for the suites mapping to individual tests, but
+    it's possible to also specify suites instead of individual tests.
+    """
+    modified_task_label = None
+
+    # Talos uses suites instead of the test names in the task commands
+    # so we need to find the correct suite to look for first
+    suite_to_find = ""
+    talos_json = get_talos_json()
+    for suite, suite_info in talos_json["suites"].items():
+        if test.lower() in [t.lower() for t in suite_info["tests"]]:
+            suite_to_find = suite
+            break
+        elif suite.lower() == test.lower():
+            # A full suite might have been requested
+            suite_to_find = test
+            break
+    if not suite_to_find:
+        return modified_task_label
+
+    for cmd in task_cmd:
+        cmd_list = cmd
+        if isinstance(cmd_list, str):
+            cmd_list = [cmd_list]
+        for option in cmd_list:
+            match = TALOS_TEST_MATCHER.search(option)
+            if not match:
+                continue
+            found_suite = match.group(1)
+            if found_suite.lower() != suite_to_find.lower():
+                continue
+            modified_task_label = task_label
+            break
+
+    return modified_task_label
+
+
+def awsy_test_finder(task_cmd, task_label, test):
+    """AWSY doesn't mention it's test name anywhere, and only
+    reports the metrics without the test name that actually triggered
+    it. Also, the AWSY suite doesn't have a test specifier. Instead,
+    we will select any task that has awsy in the label if the test
+    is also named something like `awsy`.
+    """
+    if "awsy" not in test:
+        return None
+    if "awsy" not in task_label:
+        return None
+    return task_label
 
 
 class ClassificationProvider:
@@ -238,6 +360,8 @@ class ClassificationProvider:
                     Variants.PROFILING.value,
                     Variants.BYTECODE_CACHED.value,
                 ],
+                "task-specifier": "browsertime",
+                "task-test-finder": raptor_test_finder,
             },
             Suites.TALOS.value: {
                 "apps": [Apps.FIREFOX.value],
@@ -246,11 +370,15 @@ class ClassificationProvider:
                     Variants.PROFILING.value,
                     Variants.SWR.value,
                 ],
+                "task-specifier": "talos",
+                "task-test-finder": talos_test_finder,
             },
             Suites.AWSY.value: {
                 "apps": [Apps.FIREFOX.value],
                 "platforms": [Platforms.DESKTOP.value],
                 "variants": [],
+                "task-specifier": "awsy",
+                "task-test-finder": awsy_test_finder,
             },
         }
 
