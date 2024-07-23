@@ -45,6 +45,7 @@ class RemoteMediaDataDecoder final
   nsCString GetProcessName() const override;
   nsCString GetCodecName() const override;
   ConversionRequired NeedsConversion() const override;
+  bool ShouldDecoderAlwaysBeRecycled() const override;
 
  private:
   ~RemoteMediaDataDecoder();
@@ -63,6 +64,7 @@ class RemoteMediaDataDecoder final
   bool mIsHardwareAccelerated MOZ_GUARDED_BY(mMutex);
   nsCString mHardwareAcceleratedReason MOZ_GUARDED_BY(mMutex);
   ConversionRequired mConversion MOZ_GUARDED_BY(mMutex);
+  bool mShouldDecoderAlwaysBeRecycled MOZ_GUARDED_BY(mMutex);
 };
 
 }  // namespace mozilla

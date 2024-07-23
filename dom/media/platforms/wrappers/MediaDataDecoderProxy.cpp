@@ -139,6 +139,12 @@ bool MediaDataDecoderProxy::SupportDecoderRecycling() const {
   return mProxyDecoder->SupportDecoderRecycling();
 }
 
+bool MediaDataDecoderProxy::ShouldDecoderAlwaysBeRecycled() const {
+  MOZ_ASSERT(!mIsShutdown);
+
+  return mProxyDecoder->ShouldDecoderAlwaysBeRecycled();
+}
+
 MediaDataDecoder::ConversionRequired MediaDataDecoderProxy::NeedsConversion()
     const {
   MOZ_ASSERT(!mIsShutdown);

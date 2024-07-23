@@ -107,6 +107,10 @@ MFMediaEngineStreamWrapper::NeedsConversion() const {
                  : MediaDataDecoder::ConversionRequired::kNeedNone;
 }
 
+bool MFMediaEngineStreamWrapper::ShouldDecoderAlwaysBeRecycled() const {
+  return true;
+}
+
 MFMediaEngineStream::MFMediaEngineStream()
     : mIsShutdown(false),
       mIsSelected(false),

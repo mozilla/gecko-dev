@@ -90,6 +90,10 @@ bool AudioTrimmer::SupportDecoderRecycling() const {
   return mDecoder->SupportDecoderRecycling();
 }
 
+bool AudioTrimmer::ShouldDecoderAlwaysBeRecycled() const {
+  return mDecoder->ShouldDecoderAlwaysBeRecycled();
+}
+
 MediaDataDecoder::ConversionRequired AudioTrimmer::NeedsConversion() const {
   return mDecoder->NeedsConversion();
 }

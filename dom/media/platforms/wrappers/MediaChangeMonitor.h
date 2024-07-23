@@ -65,6 +65,12 @@ class MediaChangeMonitor final
     }
     return false;
   }
+  bool ShouldDecoderAlwaysBeRecycled() const override {
+    if (RefPtr<MediaDataDecoder> decoder = GetDecoderOnNonOwnerThread()) {
+      return decoder->ShouldDecoderAlwaysBeRecycled();
+    }
+    return false;
+  }
 
   ConversionRequired NeedsConversion() const override {
     if (RefPtr<MediaDataDecoder> decoder = GetDecoderOnNonOwnerThread()) {

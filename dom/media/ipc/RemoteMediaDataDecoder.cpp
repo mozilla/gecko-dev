@@ -23,7 +23,8 @@ RemoteMediaDataDecoder::RemoteMediaDataDecoder(RemoteDecoderChild* aChild)
       mProcessName("unknown"_ns),
       mCodecName("unknown"_ns),
       mIsHardwareAccelerated(false),
-      mConversion(ConversionRequired::kNeedNone) {
+      mConversion(ConversionRequired::kNeedNone),
+      mShouldDecoderAlwaysBeRecycled(false) {
   LOG("%p is created", this);
 }
 
@@ -67,6 +68,8 @@ RefPtr<MediaDataDecoder::InitPromise> RemoteMediaDataDecoder::Init() {
             mIsHardwareAccelerated =
                 mChild->IsHardwareAccelerated(mHardwareAcceleratedReason);
             mConversion = mChild->NeedsConversion();
+            mShouldDecoderAlwaysBeRecycled =
+                mChild->ShouldDecoderAlwaysBeRecycled();
             LOG("%p RemoteDecoderChild has been initialized - description: %s, "
                 "process: %s, codec: %s",
                 this, mDescription.get(), mProcessName.get(), mCodecName.get());
@@ -169,6 +172,11 @@ nsCString RemoteMediaDataDecoder::GetProcessName() const {
 nsCString RemoteMediaDataDecoder::GetCodecName() const {
   MutexAutoLock lock(mMutex);
   return mCodecName;
+}
+
+bool RemoteMediaDataDecoder::ShouldDecoderAlwaysBeRecycled() const {
+  MutexAutoLock lock(mMutex);
+  return mShouldDecoderAlwaysBeRecycled;
 }
 
 #undef LOG

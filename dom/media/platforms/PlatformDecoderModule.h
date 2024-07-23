@@ -554,6 +554,11 @@ class MediaDataDecoder : public DecoderDoctorLifeLogger<MediaDataDecoder> {
   // Currently, only Android video decoder will return true.
   virtual bool SupportDecoderRecycling() const { return false; }
 
+  // Recycling decoder is controlled by the pref and other different conditions
+  // in our media pipeloine. True if the decoder should always be reused no
+  // matter what situation is.
+  virtual bool ShouldDecoderAlwaysBeRecycled() const { return false; }
+
   enum class ConversionRequired {
     kNeedNone = 0,
     kNeedAVCC = 1,

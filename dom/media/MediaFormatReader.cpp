@@ -2113,11 +2113,15 @@ void MediaFormatReader::HandleDemuxedSamples(
           (*info)->mCrypto.mCryptoScheme ==
               decoder.GetCurrentInfo()->mCrypto.mCryptoScheme &&
           (*info)->mMimeType == decoder.GetCurrentInfo()->mMimeType;
+      LOG("%s stream id has changed from:%d to:%d, recyclable=%d, "
+          "alwaysRecyle=%d",
+          TrackTypeToStr(aTrack), decoder.mLastStreamSourceID, info->GetID(),
+          recyclable, decoder.mDecoder->ShouldDecoderAlwaysBeRecycled());
+      recyclable |= decoder.mDecoder->ShouldDecoderAlwaysBeRecycled();
       if (!recyclable && decoder.mTimeThreshold.isNothing() &&
           (decoder.mNextStreamSourceID.isNothing() ||
            decoder.mNextStreamSourceID.ref() != info->GetID())) {
-        LOG("%s stream id has changed from:%d to:%d, draining decoder.",
-            TrackTypeToStr(aTrack), decoder.mLastStreamSourceID, info->GetID());
+        LOG("draining decoder for stream id change.");
         decoder.RequestDrain();
         decoder.mNextStreamSourceID = Some(info->GetID());
         ScheduleUpdate(aTrack);

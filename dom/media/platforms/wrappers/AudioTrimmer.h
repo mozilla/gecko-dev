@@ -36,6 +36,7 @@ class AudioTrimmer final : public MediaDataDecoder {
   bool IsHardwareAccelerated(nsACString& aFailureReason) const override;
   void SetSeekThreshold(const media::TimeUnit& aTime) override;
   bool SupportDecoderRecycling() const override;
+  bool ShouldDecoderAlwaysBeRecycled() const override;
   ConversionRequired NeedsConversion() const override;
 
  private:

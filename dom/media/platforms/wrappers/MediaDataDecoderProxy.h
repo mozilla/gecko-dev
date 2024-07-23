@@ -44,6 +44,7 @@ class MediaDataDecoderProxy
   nsCString GetCodecName() const override;
   void SetSeekThreshold(const media::TimeUnit& aTime) override;
   bool SupportDecoderRecycling() const override;
+  bool ShouldDecoderAlwaysBeRecycled() const override;
   ConversionRequired NeedsConversion() const override;
 
  protected:

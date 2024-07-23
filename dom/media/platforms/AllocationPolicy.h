@@ -156,6 +156,9 @@ class AllocationWrapper final : public MediaDataDecoder {
   bool SupportDecoderRecycling() const override {
     return mDecoder->SupportDecoderRecycling();
   }
+  bool ShouldDecoderAlwaysBeRecycled() const override {
+    return mDecoder->ShouldDecoderAlwaysBeRecycled();
+  }
   RefPtr<ShutdownPromise> Shutdown() override;
   ConversionRequired NeedsConversion() const override {
     return mDecoder->NeedsConversion();

@@ -221,6 +221,7 @@ class MFMediaEngineStreamWrapper final : public MediaDataDecoder {
   nsCString GetDescriptionName() const override;
   nsCString GetCodecName() const override;
   ConversionRequired NeedsConversion() const override;
+  bool ShouldDecoderAlwaysBeRecycled() const override;
 
  private:
   ~MFMediaEngineStreamWrapper() = default;

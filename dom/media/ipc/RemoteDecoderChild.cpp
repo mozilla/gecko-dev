@@ -115,6 +115,8 @@ RefPtr<MediaDataDecoder::InitPromise> RemoteDecoderChild::Init() {
             mIsHardwareAccelerated = initResponse.hardware();
             mHardwareAcceleratedReason = initResponse.hardwareReason();
             mConversion = initResponse.conversion();
+            mShouldDecoderAlwaysBeRecycled =
+                initResponse.shouldDecoderAlwaysBeRecycled();
             // Either the promise has not yet been resolved or the handler has
             // been disconnected and we can't get here.
             mInitPromise.Resolve(initResponse.type(), __func__);
@@ -299,6 +301,11 @@ MediaDataDecoder::ConversionRequired RemoteDecoderChild::NeedsConversion()
     const {
   AssertOnManagerThread();
   return mConversion;
+}
+
+bool RemoteDecoderChild::ShouldDecoderAlwaysBeRecycled() const {
+  AssertOnManagerThread();
+  return mShouldDecoderAlwaysBeRecycled;
 }
 
 void RemoteDecoderChild::AssertOnManagerThread() const {
