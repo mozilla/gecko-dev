@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsDataChannel.h"
 #include "DataChannelParent.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/ContentParent.h"
@@ -21,15 +22,6 @@ namespace mozilla {
 namespace net {
 
 NS_IMPL_ISUPPORTS(DataChannelParent, nsIParentChannel, nsIStreamListener)
-
-bool DataChannelParent::Init(const uint64_t& aChannelId) {
-  nsCOMPtr<nsIChannel> channel;
-
-  MOZ_ALWAYS_SUCCEEDS_FUZZING(
-      NS_LinkRedirectChannels(aChannelId, this, getter_AddRefs(channel)));
-
-  return true;
-}
 
 NS_IMETHODIMP
 DataChannelParent::SetParentListener(ParentChannelListener* aListener) {
@@ -99,6 +91,40 @@ DataChannelParent::OnDataAvailable(nsIRequest* aRequest,
                                    uint64_t aOffset, uint32_t aCount) {
   // See above.
   MOZ_CRASH("Should never be called");
+}
+
+mozilla::ipc::IPCResult DataChannelParent::RecvNotifyListeners(
+    const DataChannelInfo& aDataChannelInfo) {
+  nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+  if (!obsService) {
+    return IPC_OK();
+  }
+
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  MOZ_ALWAYS_SUCCEEDS(mozilla::ipc::LoadInfoArgsToLoadInfo(
+      aDataChannelInfo.loadInfo(), NOT_REMOTE_TYPE, getter_AddRefs(loadInfo)));
+
+  // Re-create a data channel in the parent process to notify
+  // data-channel-opened observers.
+  RefPtr<nsDataChannel> channel;
+  channel = new nsDataChannel(aDataChannelInfo.uri());
+  channel->SetLoadFlags(aDataChannelInfo.loadFlags());
+  channel->SetLoadInfo(loadInfo);
+  channel->SetContentType(aDataChannelInfo.contentType());
+
+  obsService->NotifyObservers(static_cast<nsIChannel*>(channel),
+                              "data-channel-opened", nullptr);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult DataChannelParent::RecvSetChannelIdForRedirect(
+    const uint64_t& aChannelId) {
+  nsCOMPtr<nsIChannel> channel;
+
+  MOZ_ALWAYS_SUCCEEDS_FUZZING(
+      NS_LinkRedirectChannels(aChannelId, this, getter_AddRefs(channel)));
+
+  return IPC_OK();
 }
 
 }  // namespace net

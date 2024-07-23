@@ -16,22 +16,23 @@ namespace net {
 NS_IMPL_ISUPPORTS_INHERITED(DataChannelChild, nsDataChannel, nsIChildChannel)
 
 DataChannelChild::DataChannelChild(nsIURI* aURI)
-    : nsDataChannel(aURI), mIPCOpen(false) {}
+    : nsDataChannel(aURI), mIPCOpen(false) {
+  mozilla::dom::ContentChild* cc =
+      static_cast<mozilla::dom::ContentChild*>(gNeckoChild->Manager());
+
+  if (!cc->IsShuttingDown()) {
+    gNeckoChild->SendPDataChannelConstructor(this);
+
+    // IPC now has a ref to us.
+    mIPCOpen = true;
+  }
+}
 
 NS_IMETHODIMP
 DataChannelChild::ConnectParent(uint32_t aId) {
-  mozilla::dom::ContentChild* cc =
-      static_cast<mozilla::dom::ContentChild*>(gNeckoChild->Manager());
-  if (cc->IsShuttingDown()) {
-    return NS_ERROR_FAILURE;
-  }
+  MOZ_ASSERT(mIPCOpen);
 
-  if (!gNeckoChild->SendPDataChannelConstructor(this, aId)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // IPC now has a ref to us.
-  mIPCOpen = true;
+  SendSetChannelIdForRedirect(aId);
   return NS_OK;
 }
 
@@ -52,6 +53,20 @@ DataChannelChild::CompleteRedirectSetup(nsIStreamListener* aListener) {
 void DataChannelChild::ActorDestroy(ActorDestroyReason why) {
   MOZ_ASSERT(mIPCOpen);
   mIPCOpen = false;
+}
+
+nsresult DataChannelChild::NotifyListeners() {
+  MOZ_ASSERT(mIPCOpen);
+
+  uint32_t loadFlags = 0;
+  GetLoadFlags(&loadFlags);
+
+  LoadInfoArgs loadInfoArgs;
+  MOZ_ALWAYS_SUCCEEDS(
+      mozilla::ipc::LoadInfoToLoadInfoArgs(mLoadInfo, &loadInfoArgs));
+  DataChannelInfo dataChannelInfo(mURI, loadFlags, loadInfoArgs, mContentType);
+  SendNotifyListeners(dataChannelInfo);
+  return NS_OK;
 }
 
 }  // namespace net

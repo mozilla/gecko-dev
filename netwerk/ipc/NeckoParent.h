@@ -138,11 +138,10 @@ class NeckoParent : public PNeckoParent {
       const uint64_t& aInnerWindowID);
   bool DeallocPWebSocketEventListenerParent(PWebSocketEventListenerParent*);
 
-  already_AddRefed<PDataChannelParent> AllocPDataChannelParent(
-      const uint32_t& channelId);
+  already_AddRefed<PDataChannelParent> AllocPDataChannelParent();
 
   virtual mozilla::ipc::IPCResult RecvPDataChannelConstructor(
-      PDataChannelParent* aActor, const uint32_t& channelId) override;
+      PDataChannelParent* aActor) override;
 #  ifdef MOZ_WIDGET_GTK
   PGIOChannelParent* AllocPGIOChannelParent(
       PBrowserParent* aBrowser, const SerializedLoadContext& aSerialized,

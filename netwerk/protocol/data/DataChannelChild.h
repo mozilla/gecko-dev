@@ -27,6 +27,7 @@ class DataChannelChild : public nsDataChannel,
 
  protected:
   virtual void ActorDestroy(ActorDestroyReason why) override;
+  virtual nsresult NotifyListeners() override;
 
  private:
   ~DataChannelChild() = default;
