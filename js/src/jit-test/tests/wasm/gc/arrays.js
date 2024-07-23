@@ -101,7 +101,7 @@ for (let [valtype, def, nondef] of GENERAL_TESTS) {
     }
   }
 
-  for (let arrayLength = 0; arrayLength < 5; arrayLength++) {
+  for (let arrayLength = 0; arrayLength <= 25; arrayLength++) {
     checkArray(createDefault(arrayLength), arrayLength, def, nondef);
     checkArray(create(arrayLength, nondef), arrayLength, nondef, def);
   }
@@ -2061,57 +2061,6 @@ assertErrorMessage(() => wasmEvalText(`(module
     assertEq(isDefault(arr, 3), 1, `expected default value for ${type} but got filled`);
   }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-//
-// Checks for requests for oversize arrays (more than MaxArrayPayloadBytes),
-// where MaxArrayPayloadBytes == 1,987,654,321.
-
-// array.new
-assertErrorMessage(() => wasmEvalText(`(module
-    (type $a (array i32))
-    (func (export "test") (result eqref)
-        ;; request exactly 2,000,000,000 bytes
-        (array.new $a (i32.const 0xABCD1234) (i32.const 500000000))
-    )
-    (func $f
-      call 0
-      drop
-    )
-    (start $f)
-)
-`), WebAssembly.RuntimeError, /too many array elements/);
-
-// array.new_default
-assertErrorMessage(() => wasmEvalText(`(module
-    (type $a (array f64))
-    (func (export "test") (result eqref)
-        ;; request exactly 2,000,000,000 bytes
-        (array.new_default $a (i32.const 250000000))
-    )
-    (func $f
-      call 0
-      drop
-    )
-    (start $f)
-)
-`), WebAssembly.RuntimeError, /too many array elements/);
-
-// array.new_fixed
-// This is impossible to test because it would require to create, at a
-// minimum, 1,987,654,321 (MaxArrayPayloadBytes) / 16 = 124.3 million
-// values, if each value is a v128.  However, the max number of bytes per
-// function is 7,654,321 (MaxFunctionBytes).  Even if it were possible to
-// create a value using just one insn byte, there wouldn't be enough.
-
-// array.new_data
-// Similarly, impossible to test because the max data segment length is 1GB
-// (1,073,741,824 bytes) (MaxDataSegmentLengthPages * PageSize), which is less
-// than MaxArrayPayloadBytes.
-
-// array.new_element
-// Similarly, impossible to test because an element segment can contain at
-// most 10,000,000 (MaxElemSegmentLength) entries.
 
 // Test whether array data pointers are correctly tracked in stack maps.
 {
