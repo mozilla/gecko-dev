@@ -3920,15 +3920,16 @@ struct FloatingPoint<js::float16> {
 };
 
 template <typename T, typename U>
-static constexpr typename std::enable_if_t<std::is_unsigned_v<T>, U>
+static constexpr typename std::enable_if_t<
+    std::numeric_limits<T>::is_integer && !std::numeric_limits<T>::is_signed, U>
 UnsignedSortValue(U val) {
   return val;
 }
 
 template <typename T, typename U>
-static constexpr
-    typename std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>, U>
-    UnsignedSortValue(U val) {
+static constexpr typename std::enable_if_t<
+    std::numeric_limits<T>::is_integer && std::numeric_limits<T>::is_signed, U>
+UnsignedSortValue(U val) {
   // Flip sign bit.
   return val ^ static_cast<U>(std::numeric_limits<T>::min());
 }
@@ -3956,16 +3957,14 @@ static constexpr
 }
 
 template <typename T>
-static typename std::enable_if_t<std::is_integral_v<T> ||
-                                 std::is_same_v<T, uint8_clamped>>
+static typename std::enable_if_t<std::numeric_limits<T>::is_integer>
 TypedArrayStdSort(SharedMem<void*> data, size_t length) {
   T* unwrapped = data.cast<T*>().unwrapUnshared();
   std::sort(unwrapped, unwrapped + length);
 }
 
 template <typename T>
-static typename std::enable_if_t<std::is_floating_point_v<T> ||
-                                 std::is_same_v<T, float16>>
+static typename std::enable_if_t<!std::numeric_limits<T>::is_integer>
 TypedArrayStdSort(SharedMem<void*> data, size_t length) {
   // Sort on the unsigned representation for performance reasons.
   using UnsignedT =
@@ -4008,8 +4007,8 @@ TypedArrayStdSort(JSContext* cx, TypedArrayObject* typedArray, size_t length) {
 template <typename T, typename Ops>
 static bool TypedArrayCountingSort(JSContext* cx, TypedArrayObject* typedArray,
                                    size_t length) {
-  static_assert(std::is_integral_v<T> || std::is_same_v<T, uint8_clamped>,
-                "Counting sort expects integral array elements");
+  static_assert(std::numeric_limits<T>::is_integer,
+                "Counting sort expects integer array elements");
 
   // Determined by performance testing.
   if (length <= 64) {
