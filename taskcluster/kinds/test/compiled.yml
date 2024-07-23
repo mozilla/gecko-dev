@@ -91,7 +91,8 @@ jittest:
     max-run-time:
         by-test-platform:
             windows.*-ccov.*/.*: 1800
-            android-hw.*: 2400
+            android-hw.*/debug: 3600
+            android-hw.*/opt: 2400
             default: 3600
     mozharness:
         chunked:
