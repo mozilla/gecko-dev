@@ -1,0 +1,666 @@
+diff --git a/dom/ipc/ContentChild.cpp b/dom/ipc/ContentChild.cpp
+--- a/dom/ipc/ContentChild.cpp
++++ b/dom/ipc/ContentChild.cpp
+@@ -1542,18 +1542,10 @@
+     return IPC_FAIL_NO_REASON(this);
+   }
+   return IPC_OK();
+ }
+ 
+-mozilla::ipc::IPCResult ContentChild::RecvInitClipboardContentAnalysis(
+-    Endpoint<PClipboardContentAnalysisChild>&& aEndpoint) {
+-  if (!ClipboardContentAnalysisChild::Create(std::move(aEndpoint))) {
+-    return IPC_FAIL_NO_REASON(this);
+-  }
+-  return IPC_OK();
+-}
+-
+ mozilla::ipc::IPCResult ContentChild::RecvInitProfiler(
+     Endpoint<PProfilerChild>&& aEndpoint) {
+   mProfilerController = ChildProfilerController::Create(std::move(aEndpoint));
+   return IPC_OK();
+ }
+diff --git a/dom/ipc/ContentChild.h b/dom/ipc/ContentChild.h
+--- a/dom/ipc/ContentChild.h
++++ b/dom/ipc/ContentChild.h
+@@ -158,13 +158,10 @@
+       Endpoint<PGMPServiceChild>&& aGMPService);
+ 
+   mozilla::ipc::IPCResult RecvInitProfiler(
+       Endpoint<PProfilerChild>&& aEndpoint);
+ 
+-  mozilla::ipc::IPCResult RecvInitClipboardContentAnalysis(
+-      Endpoint<PClipboardContentAnalysisChild>&& aEndpoint);
+-
+   mozilla::ipc::IPCResult RecvGMPsChanged(
+       nsTArray<GMPCapabilityData>&& capabilities);
+ 
+   mozilla::ipc::IPCResult RecvInitProcessHangMonitor(
+       Endpoint<PProcessHangMonitorChild>&& aHangMonitor);
+diff --git a/dom/ipc/ContentParent.cpp b/dom/ipc/ContentParent.cpp
+--- a/dom/ipc/ContentParent.cpp
++++ b/dom/ipc/ContentParent.cpp
+@@ -1113,66 +1113,39 @@
+   }
+ 
+   return docShell;
+ }
+ 
+-mozilla::ipc::IPCResult ContentParent::RecvCreateClipboardContentAnalysis() {
+-  Endpoint<PClipboardContentAnalysisParent> parentEndpoint;
+-  Endpoint<PClipboardContentAnalysisChild> childEndpoint;
+-
++mozilla::ipc::IPCResult ContentParent::RecvCreateClipboardContentAnalysis(
++    Endpoint<PClipboardContentAnalysisParent>&& aParentEndpoint) {
+   if (mClipboardContentAnalysisCreated) {
+     return IPC_FAIL(this, "ClipboardContentAnalysisParent already created");
+   }
+-
+-  nsresult rv;
+-  rv = PClipboardContentAnalysis::CreateEndpoints(
+-      base::GetCurrentProcId(), OtherPid(), &parentEndpoint, &childEndpoint);
+-  if (NS_FAILED(rv)) {
+-    return IPC_FAIL(this, "CreateEndpoints failed");
+-  }
++  mClipboardContentAnalysisCreated = true;
+ 
+   if (!mClipboardContentAnalysisThread) {
+-    rv = NS_NewNamedThread("BkgrndClipboard",
+-                           getter_AddRefs(mClipboardContentAnalysisThread));
++    nsresult rv = NS_NewNamedThread(
++        "BkgrndClipboard", getter_AddRefs(mClipboardContentAnalysisThread));
+     if (NS_WARN_IF(NS_FAILED(rv))) {
+       return IPC_FAIL(this, "NS_NewNamedThread failed");
+     }
+   }
+ 
+-  RefPtr<ContentParent> contentParent = this;
+-  // Bind the new endpoint to the backgroundClipboardContentAnalysis thread,
+-  // then send them from the main thread.
+-  rv = NS_DispatchToThreadQueue(
++  // Bind the new endpoint to the backgroundClipboardContentAnalysis thread.
++  mClipboardContentAnalysisThread->Dispatch(
+       NS_NewRunnableFunction(
+           "Create ClipboardContentAnalysisParent",
+-          [contentParent = std::move(contentParent),
+-           parentEndpoint = std::move(parentEndpoint),
+-           childEndpoint = std::move(childEndpoint)]() mutable {
+-            RefPtr<ClipboardContentAnalysisParent> parentActor =
+-                new ClipboardContentAnalysisParent();
+-            parentEndpoint.Bind(parentActor, nullptr);
+-            DebugOnly<nsresult> rv = NS_DispatchToMainThread(
+-                NS_NewRunnableFunction(
+-                    "SendInitClipboardContentAnalysis",
+-                    [contentParent = std::move(contentParent),
+-                     childEndpoint = std::move(childEndpoint)]() mutable {
+-                      DebugOnly<bool> success =
+-                          contentParent->SendInitClipboardContentAnalysis(
+-                              std::move(childEndpoint));
+-                      MOZ_ASSERT(success,
+-                                 "SendInitClipboardContentAnalysis failed");
+-                    }),
+-                0);
+-            MOZ_ASSERT(NS_SUCCEEDED(rv),
+-                       "Failed to dispatch "
+-                       "SendInitClipboardContentAnalysis");
++          [threadsafeHandle = RefPtr{ThreadsafeHandle()},
++           parentEndpoint = std::move(aParentEndpoint)]() mutable {
++            // Use a threadsafe handle here, so that it can
++            // be used to validate that the WindowContext comes from the
++            // correct content process.
++            RefPtr<ClipboardContentAnalysisParent> actor =
++                new ClipboardContentAnalysisParent(std::move(threadsafeHandle));
++            parentEndpoint.Bind(actor);
+           }),
+-      mClipboardContentAnalysisThread, EventQueuePriority::Normal);
+-  if (NS_FAILED(rv)) {
+-    return IPC_FAIL(this, "NS_DispatchToThreadQueue failed");
+-  }
+-  mClipboardContentAnalysisCreated = true;
++      NS_DISPATCH_NORMAL);
+   return IPC_OK();
+ }
+ 
+ mozilla::ipc::IPCResult ContentParent::RecvCreateGMPService() {
+   Endpoint<PGMPServiceParent> parent;
+diff --git a/dom/ipc/ContentParent.h b/dom/ipc/ContentParent.h
+--- a/dom/ipc/ContentParent.h
++++ b/dom/ipc/ContentParent.h
+@@ -349,11 +349,12 @@
+   // the shared list has been rebuilt and must be freshly mapped by child
+   // processes; if false, existing mappings are still valid but the data has
+   // been updated and so full reflows are in order.
+   static void NotifyUpdatedFonts(bool aFullRebuild);
+ 
+-  mozilla::ipc::IPCResult RecvCreateClipboardContentAnalysis();
++  mozilla::ipc::IPCResult RecvCreateClipboardContentAnalysis(
++      Endpoint<PClipboardContentAnalysisParent>&& aParentEndpoint);
+   mozilla::ipc::IPCResult RecvCreateGMPService();
+ 
+   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(ContentParent, nsIObserver)
+ 
+   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+diff --git a/dom/ipc/PContent.ipdl b/dom/ipc/PContent.ipdl
+--- a/dom/ipc/PContent.ipdl
++++ b/dom/ipc/PContent.ipdl
+@@ -577,11 +577,10 @@
+ 
+ child:
+     async InitGMPService(Endpoint<PGMPServiceChild> service);
+     async InitProcessHangMonitor(Endpoint<PProcessHangMonitorChild> hangMonitor);
+     async InitProfiler(Endpoint<PProfilerChild> aEndpoint);
+-    async InitClipboardContentAnalysis(Endpoint<PClipboardContentAnalysisChild> aEndpoint);
+ 
+     // Give the content process its endpoints to the compositor.
+     async InitRendering(
+       Endpoint<PCompositorManagerChild> compositor,
+       Endpoint<PImageBridgeChild> imageBridge,
+@@ -1077,11 +1076,11 @@
+ 
+     async InitBackground(Endpoint<PBackgroundStarterParent> aEndpoint);
+ 
+     async CreateGMPService();
+ 
+-    async CreateClipboardContentAnalysis();
++    async CreateClipboardContentAnalysis(Endpoint<PClipboardContentAnalysisParent> aParentEndpoint);
+ 
+     async InitStreamFilter(uint64_t channelId, nsString addonId)
+         returns (Endpoint<PStreamFilterChild> aEndpoint);
+ 
+     async PRemoteSpellcheckEngine();
+diff --git a/toolkit/components/contentanalysis/ContentAnalysis.cpp b/toolkit/components/contentanalysis/ContentAnalysis.cpp
+--- a/toolkit/components/contentanalysis/ContentAnalysis.cpp
++++ b/toolkit/components/contentanalysis/ContentAnalysis.cpp
+@@ -1046,10 +1046,20 @@
+   // only gets set in the parent process.
+   *aMightBeActive = sIsEnabled;
+   return NS_OK;
+ }
+ 
++/* static */ bool ContentAnalysis::MightBeActive() {
++  nsCOMPtr<nsIContentAnalysis> contentAnalysis =
++      mozilla::components::nsIContentAnalysis::Service();
++  NS_ENSURE_TRUE(contentAnalysis, false);
++
++  bool maybeActive = false;
++  return NS_SUCCEEDED(contentAnalysis->GetMightBeActive(&maybeActive)) &&
++         maybeActive;
++}
++
+ NS_IMETHODIMP
+ ContentAnalysis::GetIsSetByEnterprisePolicy(bool* aSetByEnterprise) {
+   *aSetByEnterprise = mSetByEnterprise;
+   return NS_OK;
+ }
+diff --git a/toolkit/components/contentanalysis/ContentAnalysis.h b/toolkit/components/contentanalysis/ContentAnalysis.h
+--- a/toolkit/components/contentanalysis/ContentAnalysis.h
++++ b/toolkit/components/contentanalysis/ContentAnalysis.h
+@@ -211,10 +211,11 @@
+       MOZ_ASSERT(!mResolver, "SafeContentAnalysisResultCallback never called!");
+     }
+     mozilla::MoveOnlyFunction<void(RefPtr<nsIContentAnalysisResult>&&)>
+         mResolver;
+   };
++  static bool MightBeActive();
+   static bool CheckClipboardContentAnalysisSync(
+       nsBaseClipboard* aClipboard, mozilla::dom::WindowGlobalParent* aWindow,
+       const nsCOMPtr<nsITransferable>& trans, int32_t aClipboardType);
+   static void CheckClipboardContentAnalysis(
+       nsBaseClipboard* aClipboard, mozilla::dom::WindowGlobalParent* aWindow,
+diff --git a/widget/ClipboardContentAnalysisChild.cpp b/widget/ClipboardContentAnalysisChild.cpp
+--- a/widget/ClipboardContentAnalysisChild.cpp
++++ b/widget/ClipboardContentAnalysisChild.cpp
+@@ -3,12 +3,33 @@
+ /* This Source Code Form is subject to the terms of the Mozilla Public
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+ #include "ClipboardContentAnalysisChild.h"
++#include "MainThreadUtils.h"
++#include "mozilla/dom/ContentChild.h"
+ 
+ namespace mozilla {
+ 
+ StaticRefPtr<ClipboardContentAnalysisChild>
+     ClipboardContentAnalysisChild::sSingleton;
+ 
++/* static */ ClipboardContentAnalysisChild*
++ClipboardContentAnalysisChild::GetOrCreate() {
++  AssertIsOnMainThread();
++  MOZ_ASSERT(XRE_IsContentProcess());
++
++  if (!sSingleton) {
++    Endpoint<PClipboardContentAnalysisParent> parentEndpoint;
++    Endpoint<PClipboardContentAnalysisChild> childEndpoint;
++    MOZ_ALWAYS_SUCCEEDS(PClipboardContentAnalysis::CreateEndpoints(
++        &parentEndpoint, &childEndpoint));
++    dom::ContentChild::GetSingleton()->SendCreateClipboardContentAnalysis(
++        std::move(parentEndpoint));
++
++    sSingleton = new ClipboardContentAnalysisChild();
++    childEndpoint.Bind(sSingleton);
++  }
++  return sSingleton;
++}
++
+ }  // namespace mozilla
+diff --git a/widget/ClipboardContentAnalysisChild.h b/widget/ClipboardContentAnalysisChild.h
+--- a/widget/ClipboardContentAnalysisChild.h
++++ b/widget/ClipboardContentAnalysisChild.h
+@@ -11,20 +11,14 @@
+ 
+ namespace mozilla {
+ class ClipboardContentAnalysisChild final
+     : public PClipboardContentAnalysisChild {
+  public:
+-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ClipboardContentAnalysisChild, override)
++  NS_INLINE_DECL_REFCOUNTING(ClipboardContentAnalysisChild, override)
++
++  static ClipboardContentAnalysisChild* GetOrCreate();
+ 
+-  static bool Create(Endpoint<PClipboardContentAnalysisChild>&& aEndpoint) {
+-    MOZ_ASSERT(!sSingleton);
+-    sSingleton = new ClipboardContentAnalysisChild();
+-    DebugOnly<bool> success = aEndpoint.Bind(sSingleton);
+-    MOZ_ASSERT(success);
+-    return true;
+-  }
+-  static ClipboardContentAnalysisChild* GetSingleton() { return sSingleton; }
+   void ActorDestroy(ActorDestroyReason aReason) override final {
+     // There's only one singleton, so remove our reference to it.
+     sSingleton = nullptr;
+   }
+ 
+diff --git a/widget/ClipboardContentAnalysisParent.cpp b/widget/ClipboardContentAnalysisParent.cpp
+--- a/widget/ClipboardContentAnalysisParent.cpp
++++ b/widget/ClipboardContentAnalysisParent.cpp
+@@ -6,161 +6,158 @@
+ #include "ContentAnalysis.h"
+ #include "mozilla/ClipboardContentAnalysisParent.h"
+ #include "mozilla/dom/ContentParent.h"
+ #include "mozilla/dom/WindowGlobalParent.h"
+ #include "mozilla/Maybe.h"
++#include "mozilla/MozPromise.h"
+ #include "mozilla/Variant.h"
+-#include "mozilla/SpinEventLoopUntil.h"
+ #include "nsBaseClipboard.h"
+ #include "nsIClipboard.h"
+ #include "nsID.h"
+ #include "nsITransferable.h"
+-#include "nsWidgetsCID.h"
+ 
+ namespace mozilla {
+-static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
++namespace {
++using ClipboardResultPromise =
++    MozPromise<dom::IPCTransferableData, nsresult, true>;
++
++static RefPtr<ClipboardResultPromise> GetClipboardImpl(
++    const nsTArray<nsCString>& aTypes, int32_t aWhichClipboard,
++    uint64_t aRequestingWindowContextId,
++    dom::ThreadsafeContentParentHandle* aRequestingContentParent) {
++  AssertIsOnMainThread();
++
++  RefPtr<dom::WindowGlobalParent> window =
++      dom::WindowGlobalParent::GetByInnerWindowId(aRequestingWindowContextId);
++
++  // We expect content processes to always pass a non-null window so
++  // Content Analysis can analyze it. (if Content Analysis is
++  // active) There may be some cases when a window is closing, etc.,
++  // in which case returning no clipboard content should not be a
++  // problem.
++  if (!window) {
++    return ClipboardResultPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
++  }
++
++  if (window->IsDiscarded()) {
++    NS_WARNING(
++        "discarded window passed to RecvGetClipboard(); returning "
++        "no clipboard "
++        "content");
++    return ClipboardResultPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
++  }
++
++  if (aRequestingContentParent->ChildID() != window->ContentParentId()) {
++    NS_WARNING("incorrect content process passing window to GetClipboard");
++    return ClipboardResultPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
++  }
++
++  // Retrieve clipboard
++  nsCOMPtr<nsIClipboard> clipboard =
++      do_GetService("@mozilla.org/widget/clipboard;1");
++  if (!clipboard) {
++    return ClipboardResultPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
++  }
++
++  auto transferableToCheck =
++      dom::ContentParent::CreateClipboardTransferable(aTypes);
++  if (transferableToCheck.isErr()) {
++    return ClipboardResultPromise::CreateAndReject(
++        transferableToCheck.unwrapErr(), __func__);
++  }
++
++  // Pass nullptr for the window here because we will be doing
++  // content analysis ourselves asynchronously (so it doesn't block
++  // main thread we're running on now)
++  nsCOMPtr transferable = transferableToCheck.unwrap();
++  // Ideally we would be calling GetDataSnapshot() here to avoid blocking the
++  // main thread (and this would mean we could also pass in the window here so
++  // we wouldn't have to duplicate the Content Analysis code below). See
++  // bug 1908280.
++  nsresult rv = clipboard->GetData(transferable, aWhichClipboard, nullptr);
++  if (NS_FAILED(rv)) {
++    return ClipboardResultPromise::CreateAndReject(rv, __func__);
++  }
++
++  auto resultPromise = MakeRefPtr<ClipboardResultPromise::Private>(__func__);
++
++  auto contentAnalysisCallback =
++      mozilla::MakeRefPtr<mozilla::contentanalysis::ContentAnalysis::
++                              SafeContentAnalysisResultCallback>(
++          [transferable, resultPromise,
++           cpHandle = RefPtr{aRequestingContentParent}](
++              RefPtr<nsIContentAnalysisResult>&& aResult) {
++            // Needed to call cpHandle->GetContentParent()
++            AssertIsOnMainThread();
++
++            bool shouldAllow = aResult->GetShouldAllowContent();
++            if (!shouldAllow) {
++              resultPromise->Reject(NS_ERROR_CONTENT_BLOCKED, __func__);
++              return;
++            }
++            dom::IPCTransferableData transferableData;
++            RefPtr<dom::ContentParent> contentParent =
++                cpHandle->GetContentParent();
++            nsContentUtils::TransferableToIPCTransferableData(
++                transferable, &transferableData, true /* aInSyncMessage */,
++                contentParent);
++            resultPromise->Resolve(std::move(transferableData), __func__);
++          });
++
++  contentanalysis::ContentAnalysis::CheckClipboardContentAnalysis(
++      static_cast<nsBaseClipboard*>(clipboard.get()), window, transferable,
++      aWhichClipboard, contentAnalysisCallback);
++  return resultPromise;
++}
++}  // namespace
+ 
+ ipc::IPCResult ClipboardContentAnalysisParent::RecvGetClipboard(
+     nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,
+     const uint64_t& aRequestingWindowContextId,
+     IPCTransferableDataOrError* aTransferableDataOrError) {
+   // The whole point of having this actor is that it runs on a background thread
+   // and so waiting for the content analysis result won't cause the main thread
+   // to use SpinEventLoopUntil() which can cause a shutdownhang per bug 1901197.
+   MOZ_ASSERT(!NS_IsMainThread());
+-  RefPtr<nsIThread> actorThread = NS_GetCurrentThread();
+-  NS_ASSERTION(actorThread, "NS_GetCurrentThread() should not fail");
+-  // Ideally this would be a Maybe<Result>, but Result<> doesn't have a way to
+-  // get a reference to the IPCTransferableData inside it which makes it awkward
+-  // to use in this case.
+-  mozilla::Maybe<mozilla::Variant<IPCTransferableData, nsresult>>
+-      maybeTransferableResult;
+-  bool transferableResultSet = false;
+-
+-  NS_DispatchToMainThread(NS_NewRunnableFunction(
+-      __func__, [actorThread, aTypes = std::move(aTypes), aWhichClipboard,
+-                 aRequestingWindowContextId, &maybeTransferableResult,
+-                 &transferableResultSet]() {
+-        nsresult rv = NS_OK;
+-        // Make sure we reply to the actor thread on error.
+-        auto sendRv = MakeScopeExit([&]() {
+-          maybeTransferableResult = Some(AsVariant(rv));
+-          // Stop the actor thread's SpinEventLoopUntil().
+-          NS_DispatchToThreadQueue(
+-              NS_NewRunnableFunction(
+-                  __func__,
+-                  [&transferableResultSet]() { transferableResultSet = true; }),
+-              actorThread, EventQueuePriority::Normal);
+-        });
+-        nsCOMPtr<nsIClipboard> clipboard;
+-        RefPtr<dom::WindowGlobalParent> window =
+-            dom::WindowGlobalParent::GetByInnerWindowId(
+-                aRequestingWindowContextId);
+-        // We expect content processes to always pass a non-null window so
+-        // Content Analysis can analyze it (if Content Analysis is active).
+-        // There may be some cases when a window is closing, etc., in which case
+-        // returning no clipboard content should not be a problem.
+-        if (!window) {
+-          rv = NS_ERROR_FAILURE;
+-          return;
+-        }
+-
+-        if (window->IsDiscarded()) {
+-          NS_WARNING(
+-              "discarded window passed to RecvGetClipboard(); returning "
+-              "no clipboard "
+-              "content");
+-          rv = NS_ERROR_FAILURE;
+-          return;
+-        }
+-
+-        // Retrieve clipboard
+-        clipboard = do_GetService(kCClipboardCID, &rv);
+-        NS_ENSURE_SUCCESS_VOID(rv);
+-
+-        auto transferableToCheck =
+-            dom::ContentParent::CreateClipboardTransferable(aTypes);
+-        if (transferableToCheck.isErr()) {
+-          rv = transferableToCheck.unwrapErr();
+-          return;
+-        }
+-
+-        // Pass nullptr for the window here because we will be doing
+-        // content analysis ourselves asynchronously (so it doesn't block
+-        // main thread we're running on now)
+-        nsCOMPtr transferable = transferableToCheck.unwrap();
+-        rv = clipboard->GetData(transferable, aWhichClipboard, nullptr);
+-        NS_ENSURE_SUCCESS_VOID(rv);
+-
+-        auto contentAnalysisCallback =
+-            mozilla::MakeRefPtr<mozilla::contentanalysis::ContentAnalysis::
+-                                    SafeContentAnalysisResultCallback>(
+-                [actorThread, transferable, aRequestingWindowContextId,
+-                 &maybeTransferableResult, &transferableResultSet](
+-                    RefPtr<nsIContentAnalysisResult>&& aResult) {
+-                  // We need to set maybeTransferableResult on the main thread
+-                  // instead of the actor thread because some of the objects
+-                  // that can be inside a maybeTransferableResult are not
+-                  // thread-safe.
+-                  bool shouldAllow = aResult->GetShouldAllowContent();
+-                  if (!shouldAllow) {
+-                    maybeTransferableResult =
+-                        Some(AsVariant(NS_ERROR_CONTENT_BLOCKED));
+-                  } else {
+-                    IPCTransferableData transferableData;
+-                    RefPtr<dom::WindowGlobalParent> window =
+-                        dom::WindowGlobalParent::GetByInnerWindowId(
+-                            aRequestingWindowContextId);
+-                    if (!window && window->IsDiscarded()) {
+-                      maybeTransferableResult =
+-                          Some(AsVariant(NS_ERROR_UNEXPECTED));
+-                    } else {
+-                      maybeTransferableResult =
+-                          Some(AsVariant(IPCTransferableData()));
+-                      nsContentUtils::TransferableToIPCTransferableData(
+-                          transferable,
+-                          &(maybeTransferableResult.ref()
+-                                .as<IPCTransferableData>()),
+-                          true /* aInSyncMessage */,
+-                          window->BrowsingContext()->GetContentParent());
+-                    }
+-                  }
+-
+-                  // Stop the actor thread's SpinEventLoopUntil().
+-                  NS_DispatchToThreadQueue(
+-                      NS_NewRunnableFunction(__func__,
+-                                             [&transferableResultSet]() {
+-                                               transferableResultSet = true;
+-                                             }),
+-                      actorThread, EventQueuePriority::Normal);
+-                });
+-
+-        contentanalysis::ContentAnalysis::CheckClipboardContentAnalysis(
+-            static_cast<nsBaseClipboard*>(clipboard.get()), window,
+-            transferable, aWhichClipboard, contentAnalysisCallback);
+-
+-        sendRv.release();
+-      }));
+-
+-  mozilla::SpinEventLoopUntil(
+-      "Waiting for clipboard and content analysis"_ns,
+-      [&transferableResultSet] { return transferableResultSet; });
+-
+-  NS_ASSERTION(maybeTransferableResult.isSome(),
+-               "maybeTransferableResult should be set when "
+-               "transferableResultSet is true!");
+-  auto& transferableResult = *maybeTransferableResult;
+-  if (transferableResult.is<nsresult>()) {
+-    *aTransferableDataOrError = transferableResult.as<nsresult>();
+-    NS_WARNING(
+-        nsPrintfCString("ClipboardContentAnalysisParent::"
+-                        "RecvGetClipboard got error %x",
+-                        static_cast<int>(transferableResult.as<nsresult>()))
+-            .get());
+-  } else {
+-    *aTransferableDataOrError =
+-        std::move(transferableResult.as<IPCTransferableData>());
++
++  Monitor mon("ClipboardContentAnalysisParent::RecvGetClipboard");
++  InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
++              [&]() {
++                return GetClipboardImpl(aTypes, aWhichClipboard,
++                                        aRequestingWindowContextId,
++                                        mThreadsafeContentParentHandle);
++              })
++      ->Then(GetMainThreadSerialEventTarget(), __func__,
++             [&](ClipboardResultPromise::ResolveOrRejectValue&& aResult) {
++               AssertIsOnMainThread();
++               // Acquire the lock, pass the data back to the background
++               // thread, and notify the background thread that work is
++               // complete.
++               MonitorAutoLock lock(mon);
++               if (aResult.IsResolve()) {
++                 *aTransferableDataOrError = std::move(aResult.ResolveValue());
++               } else {
++                 *aTransferableDataOrError = aResult.RejectValue();
++               }
++               mon.Notify();
++             });
++
++  {
++    MonitorAutoLock lock(mon);
++    while (aTransferableDataOrError->type() ==
++           IPCTransferableDataOrError::T__None) {
++      mon.Wait();
++    }
++  }
++
++  if (aTransferableDataOrError->type() ==
++      IPCTransferableDataOrError::Tnsresult) {
++    NS_WARNING(nsPrintfCString(
++                   "ClipboardContentAnalysisParent::"
++                   "RecvGetClipboard got error %x",
++                   static_cast<int>(aTransferableDataOrError->get_nsresult()))
++                   .get());
+   }
+ 
+   return IPC_OK();
+ }
+ }  // namespace mozilla
+diff --git a/widget/ClipboardContentAnalysisParent.h b/widget/ClipboardContentAnalysisParent.h
+--- a/widget/ClipboardContentAnalysisParent.h
++++ b/widget/ClipboardContentAnalysisParent.h
+@@ -4,21 +4,28 @@
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+ #ifndef MOZILLA_WIDGET_CLIPBOARDCONTENTANALYSISPARENT_H_
+ #define MOZILLA_WIDGET_CLIPBOARDCONTENTANALYSISPARENT_H_
+ 
++#include "mozilla/dom/ContentParent.h"
+ #include "mozilla/PClipboardContentAnalysisParent.h"
+ 
+ namespace mozilla {
+ 
+ class ClipboardContentAnalysisParent final
+     : public PClipboardContentAnalysisParent {
+  public:
+   NS_INLINE_DECL_REFCOUNTING(ClipboardContentAnalysisParent, override)
++  explicit ClipboardContentAnalysisParent(
++      RefPtr<dom::ThreadsafeContentParentHandle>&&
++          aThreadsafeContentParentHandle)
++      : mThreadsafeContentParentHandle(
++            std::move(aThreadsafeContentParentHandle)) {}
+ 
+  private:
+   ~ClipboardContentAnalysisParent() = default;
++  RefPtr<dom::ThreadsafeContentParentHandle> mThreadsafeContentParentHandle;
+ 
+  public:
+   ipc::IPCResult RecvGetClipboard(
+       nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,
+       const uint64_t& aRequestingWindowContextId,
+diff --git a/widget/nsClipboardProxy.cpp b/widget/nsClipboardProxy.cpp
+--- a/widget/nsClipboardProxy.cpp
++++ b/widget/nsClipboardProxy.cpp
+@@ -2,10 +2,11 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+ #include "nsClipboardProxy.h"
+ 
++#include "ContentAnalysis.h"
+ #if defined(ACCESSIBILITY) && defined(XP_WIN)
+ #  include "mozilla/a11y/Compatibility.h"
+ #endif
+ #include "mozilla/ClipboardContentAnalysisChild.h"
+ #include "mozilla/ClipboardReadRequestChild.h"
+@@ -75,32 +76,26 @@
+   }
+   nsTArray<nsCString> types;
+   aTransferable->FlavorsTransferableCanImport(types);
+ 
+   IPCTransferableDataOrError transferableOrError;
+-  nsCOMPtr<nsIContentAnalysis> contentAnalysis =
+-      mozilla::components::nsIContentAnalysis::Service();
+-  Unused << NS_WARN_IF(!contentAnalysis);
+-  bool contentAnalysisMightBeActive = false;
+-  if (contentAnalysis) {
+-    contentAnalysis->GetMightBeActive(&contentAnalysisMightBeActive);
+-  }
+-  if (MOZ_UNLIKELY(contentAnalysisMightBeActive)) {
+-    if (!ClipboardContentAnalysisChild::GetSingleton()) {
+-      if (!ContentChild::GetSingleton()->SendCreateClipboardContentAnalysis()) {
+-        return NS_ERROR_FAILURE;
+-      }
+-      mozilla::SpinEventLoopUntil(
+-          "Wait for ClipboardContentAnalysisChild creation"_ns,
+-          [] { return ClipboardContentAnalysisChild::GetSingleton(); });
++  if (MOZ_UNLIKELY(contentanalysis::ContentAnalysis::MightBeActive())) {
++    RefPtr<ClipboardContentAnalysisChild> contentAnalysis =
++        ClipboardContentAnalysisChild::GetOrCreate();
++    if (!contentAnalysis) {
++      return NS_ERROR_FAILURE;
++    }
++    if (!contentAnalysis->SendGetClipboard(types, aWhichClipboard,
++                                           aWindowContext->InnerWindowId(),
++                                           &transferableOrError)) {
++      return NS_ERROR_FAILURE;
+     }
+-    ClipboardContentAnalysisChild::GetSingleton()->SendGetClipboard(
+-        types, aWhichClipboard, aWindowContext->InnerWindowId(),
+-        &transferableOrError);
+   } else {
+-    ContentChild::GetSingleton()->SendGetClipboard(
+-        types, aWhichClipboard, aWindowContext, &transferableOrError);
++    if (!ContentChild::GetSingleton()->SendGetClipboard(
++            types, aWhichClipboard, aWindowContext, &transferableOrError)) {
++      return NS_ERROR_FAILURE;
++    };
+   }
+ 
+   if (transferableOrError.type() == IPCTransferableDataOrError::Tnsresult) {
+     MOZ_ASSERT(NS_FAILED(transferableOrError.get_nsresult()));
+     return transferableOrError.get_nsresult();
+
+
