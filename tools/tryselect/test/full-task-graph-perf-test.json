@@ -1,0 +1,51 @@
+{
+  "test-platform/opt-browsertime-firefox-amazon": {
+    "task": {
+      "payload": {
+        "command": ["options -t=amazon"]
+      }
+    }
+  },
+  "test-platform-2/opt-browsertime-firefox-amazon": {
+    "task": {
+      "payload": {
+        "command": [["options", "--test=amazon"]]
+      }
+    }
+  },
+  "test-platform-2/opt-browsertime-firefox-webaudio": {
+    "task": {
+      "payload": {
+        "command": [["options", "--test=webaudio"]]
+      }
+    }
+  },
+  "test-platform-3/opt-browsertime-firefox-webaudio": {
+    "task": {
+      "payload": {
+        "command": [["options", "--test=webaudio"]]
+      }
+    }
+  },
+  "test-platform-android/opt-browsertime-speedometer-mobile-fenix-nofis": {
+    "task": {
+      "payload": {
+        "command": [["options", "--test=speedometer"]]
+      }
+    }
+  },
+  "test-platform-android/opt-talos-test-xperf": {
+    "task": {
+      "payload": {
+        "command": [["options", "--suite=xperf"]]
+      }
+    }
+  },
+  "test-platform-android/opt-awsy": {
+    "task": {
+      "payload": {
+        "command": [["options", "--tp6"]]
+      }
+    }
+  }
+}

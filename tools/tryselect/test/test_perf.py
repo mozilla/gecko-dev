@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import contextlib
 import os
 import pathlib
 import shutil
@@ -26,6 +27,9 @@ from tryselect.selectors.perfselector.classification import (
     check_for_live_sites,
     check_for_profile,
 )
+
+here = os.path.abspath(os.path.dirname(__file__))
+FTG_SAMPLE_PATH = pathlib.Path(here, "full-task-graph-perf-test.json")
 
 TASKS = [
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-motionmark-animometer",
@@ -173,6 +177,15 @@ TEST_CATEGORIES = {
         "description": "",
     },
 }
+
+
+@contextlib.contextmanager
+def category_reset():
+    try:
+        original_categories = PerfParser.categories
+        yield
+    finally:
+        PerfParser.categories = original_categories
 
 
 @pytest.mark.parametrize(
@@ -966,6 +979,39 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
                 "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n"
             ),
         ),
+        (
+            {"tests": ["amazon"]},
+            [7, 2, 2, 10, 2, 1],
+            2,
+            (
+                "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
+                "here once the tests are complete (ensure you select the right framework): "
+                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "Revision=revision&newProject=try&newRevision=revision\n"
+            ),
+        ),
+        (
+            {"tests": ["amazon"], "alert": "000"},
+            [0, 2, 2, 9, 2, 1],
+            1,
+            (
+                "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
+                "here once the tests are complete (ensure you select the right framework): "
+                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "Revision=revision&newProject=try&newRevision=revision\n"
+            ),
+        ),
+        (
+            {"tests": ["amazon"], "show_all": True},
+            [1, 2, 2, 8, 2, 1],
+            0,
+            (
+                "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
+                "here once the tests are complete (ensure you select the right framework): "
+                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "Revision=revision&newProject=try&newRevision=revision\n"
+            ),
+        ),
     ],
 )
 @pytest.mark.skipif(os.name == "nt", reason="fzf not installed on host")
@@ -984,7 +1030,57 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
         "tryselect.selectors.perf.PerfParser.save_revision_treeherder"
     ) as srt, mock.patch(
         "tryselect.selectors.perf.print",
-    ) as perf_print:
+    ) as perf_print, mock.patch(
+        "tryselect.selectors.perf.PerfParser.set_categories_for_test"
+    ) as tests_mock, mock.patch(
+        "tryselect.selectors.perf.requests"
+    ) as requests_mock:
+
+        def test_mock_func(*args, **kwargs):
+            """Used for testing any --test functionality."""
+            PerfParser.categories = {
+                "test 1": {
+                    "query": {"raptor": ["test 1"]},
+                    "suites": ["raptor"],
+                    "tasks": [],
+                    "description": "",
+                },
+                "test 2": {
+                    "query": {"raptor": ["test 2"]},
+                    "suites": ["raptor"],
+                    "tasks": [],
+                    "description": "",
+                },
+                "amazon": {
+                    "query": {"raptor": ["amazon"]},
+                    "suites": ["raptor"],
+                    "tasks": [],
+                    "description": "",
+                },
+            }
+            fzf.side_effect = [
+                ["", ["test 1 windows firefox"]],
+                ["", TASKS],
+                ["", TASKS],
+                ["", TASKS],
+                ["", TASKS],
+                ["", TASKS],
+                ["", TASKS],
+                ["", TASKS],
+                ["", TASKS],
+                ["", TASKS],
+                ["", TASKS],
+                ["", TASKS],
+            ]
+            return ["task 1", "task 2", "amazon"]
+
+        tests_mock.side_effect = test_mock_func
+
+        get_mock = mock.MagicMock()
+        get_mock.status_code.return_value = 200
+        get_mock.json.return_value = {"tasks": ["task 1", "task 2"]}
+        requests_mock.get.return_value = get_mock
+
         fzf_side_effects = [
             ["", ["Benchmarks linux"]],
             ["", TASKS],
@@ -1005,7 +1101,8 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
         fzf.side_effect = fzf_side_effects
         ccr.return_value = options.get("cached_revision", "")
 
-        run(**options)
+        with category_reset():
+            run(**options)
 
         assert fzf.call_count == call_counts[0]
         assert ptt.call_count == call_counts[1]
@@ -1471,6 +1568,45 @@ def test_preview_description(options, call_count):
 
         assert load.call_count == call_count[1]
         assert preview_print.call_count == call_count[2]
+
+
+@pytest.mark.parametrize(
+    "tests, tasks_found, categories_produced",
+    [
+        (["amazon"], 2, 1),
+        (["speedometer"], 1, 1),
+        (["webaudio", "speedometer"], 3, 2),
+        (["webaudio", "tp5n"], 3, 2),
+        (["xperf"], 1, 1),
+        (["awsy"], 1, 1),
+        (["awsy", "tp5n", "amazon"], 4, 3),
+        (["awsy", "tp5n", "xperf"], 2, 3),
+        (["non-existent"], 0, 0),
+    ],
+)
+def test_test_selection(tests, tasks_found, categories_produced):
+    with mock.patch(
+        "tryselect.selectors.perfselector.classification.pathlib"
+    ), mock.patch(
+        "tryselect.selectors.perfselector.classification.json"
+    ) as mocked_json:
+
+        def mocked_json_load(*args, **kwargs):
+            return {
+                "suites": {
+                    "xperf": {
+                        "tests": ["tp5n"],
+                    }
+                }
+            }
+
+        mocked_json.load.side_effect = mocked_json_load
+
+        with category_reset():
+            all_tasks = PerfParser.set_categories_for_test(FTG_SAMPLE_PATH, tests)
+
+            assert len(all_tasks) == tasks_found
+            assert len(PerfParser.categories) == categories_produced
 
 
 if __name__ == "__main__":
