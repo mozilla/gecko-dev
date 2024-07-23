@@ -256,6 +256,68 @@ class UnsharedOps {
 
 template <typename T, typename Ops>
 class ElementSpecific {
+  template <typename From, typename LoadOps = Ops>
+  static void store(SharedMem<T*> dest, SharedMem<void*> data, size_t count) {
+    SharedMem<From*> src = data.cast<From*>();
+    for (size_t i = 0; i < count; ++i) {
+      Ops::store(dest++, ConvertNumber<T>(LoadOps::load(src++)));
+    }
+  }
+
+  template <typename LoadOps = Ops>
+  static void storeTo(SharedMem<T*> dest, Scalar::Type type,
+                      SharedMem<void*> data, size_t count) {
+    switch (type) {
+      case Scalar::Int8: {
+        store<int8_t, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::Uint8:
+      case Scalar::Uint8Clamped: {
+        store<uint8_t, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::Int16: {
+        store<int16_t, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::Uint16: {
+        store<uint16_t, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::Int32: {
+        store<int32_t, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::Uint32: {
+        store<uint32_t, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::BigInt64: {
+        store<int64_t, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::BigUint64: {
+        store<uint64_t, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::Float16: {
+        store<float16, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::Float32: {
+        store<float, LoadOps>(dest, data, count);
+        break;
+      }
+      case Scalar::Float64: {
+        store<double, LoadOps>(dest, data, count);
+        break;
+      }
+      default:
+        MOZ_CRASH("setFromTypedArray with a typed array with bogus type");
+    }
+  }
+
  public:
   /*
    * Copy |source|'s elements into |target|, starting at |target[offset]|.
@@ -298,98 +360,13 @@ class ElementSpecific {
     // so `SharedMem::cast` will be called with properly aligned memory.
     static_assert(alignof(std::max_align_t) % sizeof(T) == 0);
 
-    SharedMem<T*> dest =
-        target->dataPointerEither().template cast<T*>() + offset;
-    size_t count = sourceLength;
+    SharedMem<T*> dest = Ops::extract(target).template cast<T*>() + offset;
+    SharedMem<void*> data = Ops::extract(source);
 
     if (source->type() == target->type()) {
-      Ops::podCopy(dest, source->dataPointerEither().template cast<T*>(),
-                   count);
-      return true;
-    }
-
-    SharedMem<void*> data = Ops::extract(source);
-    switch (source->type()) {
-      case Scalar::Int8: {
-        SharedMem<int8_t*> src = data.cast<int8_t*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::Uint8:
-      case Scalar::Uint8Clamped: {
-        SharedMem<uint8_t*> src = data.cast<uint8_t*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::Int16: {
-        SharedMem<int16_t*> src = data.cast<int16_t*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::Uint16: {
-        SharedMem<uint16_t*> src = data.cast<uint16_t*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::Int32: {
-        SharedMem<int32_t*> src = data.cast<int32_t*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::Uint32: {
-        SharedMem<uint32_t*> src = data.cast<uint32_t*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::BigInt64: {
-        SharedMem<int64_t*> src = data.cast<int64_t*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::BigUint64: {
-        SharedMem<uint64_t*> src = data.cast<uint64_t*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::Float16: {
-        SharedMem<float16*> src = data.cast<float16*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::Float32: {
-        SharedMem<float*> src = data.cast<float*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      case Scalar::Float64: {
-        SharedMem<double*> src = data.cast<double*>();
-        for (size_t i = 0; i < count; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(Ops::load(src++)));
-        }
-        break;
-      }
-      default:
-        MOZ_CRASH("setFromTypedArray with a typed array with bogus type");
+      Ops::podCopy(dest, data.template cast<T*>(), sourceLength);
+    } else {
+      storeTo(dest, source->type(), data, sourceLength);
     }
 
     return true;
@@ -419,8 +396,7 @@ class ElementSpecific {
         size_t bound = std::min<size_t>(
             source->as<NativeObject>().getDenseInitializedLength(), len);
 
-        SharedMem<T*> dest =
-            target->dataPointerEither().template cast<T*>() + offset;
+        SharedMem<T*> dest = Ops::extract(target).template cast<T*>() + offset;
 
         MOZ_ASSERT(!canConvertInfallibly(MagicValue(JS_ELEMENTS_HOLE)),
                    "the following loop must abort on holes");
@@ -467,7 +443,7 @@ class ElementSpecific {
       // Compute every iteration in case getElement/valueToNative
       // detaches the underlying array buffer or GC moves the data.
       SharedMem<T*> dest =
-          target->dataPointerEither().template cast<T*>() + offset + i;
+          Ops::extract(target).template cast<T*>() + offset + i;
       Ops::store(dest, n);
     }
 
@@ -492,7 +468,7 @@ class ElementSpecific {
     // Attempt fast-path infallible conversion of dense elements up to the
     // first potentially side-effectful conversion.
 
-    SharedMem<T*> dest = target->dataPointerEither().template cast<T*>();
+    SharedMem<T*> dest = Ops::extract(target).template cast<T*>();
 
     const Value* srcValues = source->getDenseElements();
     for (; i < len; i++) {
@@ -527,7 +503,7 @@ class ElementSpecific {
       MOZ_ASSERT(i < target->length());
 
       // Compute every iteration in case GC moves the data.
-      SharedMem<T*> newDest = target->dataPointerEither().template cast<T*>();
+      SharedMem<T*> newDest = Ops::extract(target).template cast<T*>();
       Ops::store(newDest + i, n);
     }
 
@@ -555,110 +531,27 @@ class ElementSpecific {
     MOZ_ASSERT(offset <= targetLength);
     MOZ_ASSERT(sourceLength <= targetLength - offset);
 
-    SharedMem<T*> dest =
-        target->dataPointerEither().template cast<T*>() + offset;
+    SharedMem<T*> dest = Ops::extract(target).template cast<T*>() + offset;
     size_t len = sourceLength;
 
     if (source->type() == target->type()) {
-      SharedMem<T*> src = source->dataPointerEither().template cast<T*>();
+      SharedMem<T*> src = Ops::extract(source).template cast<T*>();
       Ops::podMove(dest, src, len);
       return true;
     }
 
-    // Copy |source| in case it overlaps the target elements being set.
+    // Copy |source| because it overlaps the target elements being set.
     size_t sourceByteLen = len * source->bytesPerElement();
-    void* data = target->zone()->template pod_malloc<uint8_t>(sourceByteLen);
-    if (!data) {
+    auto temp = target->zone()->template make_pod_array<uint8_t>(sourceByteLen);
+    if (!temp) {
       return false;
     }
-    Ops::memcpy(SharedMem<void*>::unshared(data), source->dataPointerEither(),
-                sourceByteLen);
 
-    switch (source->type()) {
-      case Scalar::Int8: {
-        int8_t* src = static_cast<int8_t*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::Uint8:
-      case Scalar::Uint8Clamped: {
-        uint8_t* src = static_cast<uint8_t*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::Int16: {
-        int16_t* src = static_cast<int16_t*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::Uint16: {
-        uint16_t* src = static_cast<uint16_t*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::Int32: {
-        int32_t* src = static_cast<int32_t*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::Uint32: {
-        uint32_t* src = static_cast<uint32_t*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::BigInt64: {
-        int64_t* src = static_cast<int64_t*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::BigUint64: {
-        uint64_t* src = static_cast<uint64_t*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::Float16: {
-        float16* src = static_cast<float16*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::Float32: {
-        float* src = static_cast<float*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      case Scalar::Float64: {
-        double* src = static_cast<double*>(data);
-        for (size_t i = 0; i < len; ++i) {
-          Ops::store(dest++, ConvertNumber<T>(*src++));
-        }
-        break;
-      }
-      default:
-        MOZ_CRASH(
-            "setFromOverlappingTypedArray with a typed array with bogus type");
-    }
+    auto data = SharedMem<void*>::unshared(temp.get());
+    Ops::memcpy(data, Ops::extract(source), sourceByteLen);
 
-    js_free(data);
+    storeTo<UnsharedOps>(dest, source->type(), data, len);
+
     return true;
   }
 
