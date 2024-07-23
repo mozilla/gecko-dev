@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <zlib.h>
 #include "dlfcn.h"
 #include "APKOpen.h"
 #include <sys/time.h>
