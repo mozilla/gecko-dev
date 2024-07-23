@@ -243,4 +243,60 @@ static_assert(
 
 }  // namespace js
 
+template <>
+class std::numeric_limits<js::float16> {
+ public:
+  static constexpr bool is_specialized = true;
+  static constexpr bool is_signed = true;
+  static constexpr bool is_integer = false;
+  static constexpr bool is_exact = false;
+  static constexpr bool has_infinity = true;
+  static constexpr bool has_quiet_NaN = true;
+  static constexpr bool has_signaling_NaN = true;
+  static constexpr std::float_denorm_style has_denorm = std::denorm_present;
+  static constexpr bool has_denorm_loss = false;
+  static constexpr std::float_round_style round_style = std::round_to_nearest;
+  static constexpr bool is_iec559 = true;
+  static constexpr bool is_bounded = true;
+  static constexpr bool is_modulo = false;
+  static constexpr int digits = 11;
+  static constexpr int digits10 = 3;
+  static constexpr int max_digits10 = 5;
+  static constexpr int radix = 2;
+  static constexpr int min_exponent = -13;
+  static constexpr int min_exponent10 = -4;
+  static constexpr int max_exponent = 16;
+  static constexpr int max_exponent10 = 4;
+  static constexpr bool traps = false;
+  static constexpr bool tinyness_before = false;
+
+  static constexpr auto min() noexcept {
+    return js::float16::fromRawBits(0x400);
+  }
+  static constexpr auto lowest() noexcept {
+    return js::float16::fromRawBits(0xFBFF);
+  }
+  static constexpr auto max() noexcept {
+    return js::float16::fromRawBits(0x7BFF);
+  }
+  static constexpr auto epsilon() noexcept {
+    return js::float16::fromRawBits(0x1400);
+  }
+  static constexpr auto round_error() noexcept {
+    return js::float16::fromRawBits(0x3800);
+  }
+  static constexpr auto infinity() noexcept {
+    return js::float16::fromRawBits(0x7C00);
+  }
+  static constexpr auto quiet_NaN() noexcept {
+    return js::float16::fromRawBits(0x7E00);
+  }
+  static constexpr auto signaling_NaN() noexcept {
+    return js::float16::fromRawBits(0x7D00);
+  }
+  static constexpr auto denorm_min() noexcept {
+    return js::float16::fromRawBits(0x0001);
+  }
+};
+
 #endif  // vm_Float16_h

@@ -404,13 +404,6 @@ class TypedArrayObjectTemplate {
     return TypeIDOfType<NativeType>::protoKey;
   }
 
-  static constexpr bool ArrayTypeIsUnsigned() {
-    return TypeIsUnsigned<NativeType>();
-  }
-  static constexpr bool ArrayTypeIsFloatingPoint() {
-    return TypeIsFloatingPoint<NativeType>();
-  }
-
   static constexpr size_t BYTES_PER_ELEMENT = sizeof(NativeType);
 
   static JSObject* createPrototype(JSContext* cx, JSProtoKey key) {
@@ -1123,16 +1116,15 @@ bool TypedArrayObjectTemplate<NativeType>::convertValue(JSContext* cx,
   }
 
   // Assign based on characteristics of the destination type
-  if constexpr (ArrayTypeIsFloatingPoint()) {
+  if constexpr (!std::numeric_limits<NativeType>::is_integer) {
     *result = NativeType(d);
-  } else if constexpr (ArrayTypeIsUnsigned()) {
+  } else if constexpr (std::is_same_v<NativeType, uint8_clamped>) {
+    // The uint8_clamped type has a special rounding converter for doubles.
+    *result = NativeType(d);
+  } else if constexpr (!std::numeric_limits<NativeType>::is_signed) {
     static_assert(sizeof(NativeType) <= 4);
     uint32_t n = ToUint32(d);
     *result = NativeType(n);
-  } else if constexpr (ArrayTypeID() == Scalar::Uint8Clamped) {
-    // The uint8_clamped type has a special rounding converter
-    // for doubles.
-    *result = NativeType(d);
   } else {
     static_assert(sizeof(NativeType) <= 4);
     int32_t n = ToInt32(d);
@@ -4332,7 +4324,7 @@ static void StoreSortedElements(TypedArrayObject* tarray, Value* elements,
   SharedMem<T*> data = tarray->dataPointerEither().cast<T*>();
   for (size_t i = 0; i < len; i++) {
     T val;
-    if constexpr (TypeIsFloatingPoint<T>()) {
+    if constexpr (!std::numeric_limits<T>::is_integer) {
       val = elements[i].toDouble();
     } else if constexpr (std::is_same_v<T, int64_t>) {
       val = BigInt::toInt64(elements[i].toBigInt());

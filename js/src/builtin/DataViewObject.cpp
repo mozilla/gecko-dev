@@ -548,8 +548,10 @@ bool DataViewObject::write(JSContext* cx, Handle<DataViewObject*> obj,
   }
 
   // See the comment in ElementSpecific::doubleToNative.
-  if (js::SupportDifferentialTesting() && TypeIsFloatingPoint<NativeType>()) {
-    value = JS::CanonicalizeNaN(static_cast<double>(value));
+  if constexpr (!std::numeric_limits<NativeType>::is_integer) {
+    if (js::SupportDifferentialTesting()) {
+      value = JS::CanonicalizeNaN(static_cast<double>(value));
+    }
   }
 
   // Step 6.
