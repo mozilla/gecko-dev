@@ -317,7 +317,7 @@ double js::RoundFloat16(double d) {
   // 5. Let n64 be the result of converting n16 to IEEE 754-2019 binary64
   // format.
   // 6. Return the ECMAScript Number value corresponding to n64.
-  return static_cast<double>(f16);
+  return f16.toDouble();
 }
 
 static bool math_f16round(JSContext* cx, unsigned argc, Value* vp) {

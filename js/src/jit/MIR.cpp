@@ -4172,7 +4172,7 @@ MDefinition* MToFloat16::foldsTo(TempAllocator& alloc) {
     auto* cst = in->toConstant();
     if (cst->isTypeRepresentableAsDouble()) {
       double num = cst->numberToDouble();
-      return MConstant::NewFloat32(alloc, static_cast<float>(js::float16{num}));
+      return MConstant::NewFloat32(alloc, js::float16{num}.toFloat());
     }
   }
 

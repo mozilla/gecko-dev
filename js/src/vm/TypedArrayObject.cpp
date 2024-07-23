@@ -68,6 +68,9 @@
 
 using namespace js;
 
+using JS::CanonicalizeNaN;
+using JS::ToInt32;
+using JS::ToUint32;
 using mozilla::IsAsciiDigit;
 
 /*
@@ -399,6 +402,13 @@ class TypedArrayObjectTemplate {
   }
   static constexpr JSProtoKey protoKey() {
     return TypeIDOfType<NativeType>::protoKey;
+  }
+
+  static constexpr bool ArrayTypeIsUnsigned() {
+    return TypeIsUnsigned<NativeType>();
+  }
+  static constexpr bool ArrayTypeIsFloatingPoint() {
+    return TypeIsFloatingPoint<NativeType>();
   }
 
   static constexpr size_t BYTES_PER_ELEMENT = sizeof(NativeType);
@@ -1113,7 +1123,21 @@ bool TypedArrayObjectTemplate<NativeType>::convertValue(JSContext* cx,
   }
 
   // Assign based on characteristics of the destination type
-  *result = ConvertNumber<NativeType>(d);
+  if constexpr (ArrayTypeIsFloatingPoint()) {
+    *result = NativeType(d);
+  } else if constexpr (ArrayTypeIsUnsigned()) {
+    static_assert(sizeof(NativeType) <= 4);
+    uint32_t n = ToUint32(d);
+    *result = NativeType(n);
+  } else if constexpr (ArrayTypeID() == Scalar::Uint8Clamped) {
+    // The uint8_clamped type has a special rounding converter
+    // for doubles.
+    *result = NativeType(d);
+  } else {
+    static_assert(sizeof(NativeType) <= 4);
+    int32_t n = ToInt32(d);
+    *result = NativeType(n);
+  }
   return true;
 }
 
@@ -3239,7 +3263,7 @@ bool TypedArrayObjectTemplate<float16>::getElementPure(TypedArrayObject* tarray,
    * This could be removed for platforms/compilers known to convert a 32-bit
    * non-canonical nan to a 64-bit canonical nan.
    */
-  *vp = JS::CanonicalizedDoubleValue(static_cast<double>(f16));
+  *vp = JS::CanonicalizedDoubleValue(f16.toDouble());
   return true;
 }
 
@@ -3904,51 +3928,36 @@ bool js::DefineTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
   return result.succeed();
 }
 
-template <typename T>
-struct FloatingPoint {
-  using Bits = typename mozilla::FloatingPoint<T>::Bits;
-  static constexpr Bits kSignBit = mozilla::FloatingPoint<T>::kSignBit;
-  static constexpr Bits NegativeInfinity =
-      kSignBit | mozilla::FloatingPoint<T>::kExponentBits;
-};
-
-template <>
-struct FloatingPoint<js::float16> {
-  using Bits = uint16_t;
-  static constexpr Bits kSignBit = 0x8000;
-  static constexpr Bits PositiveInfinity = 0x7C00;
-  static constexpr Bits NegativeInfinity = kSignBit | PositiveInfinity;
-};
-
 template <typename T, typename U>
-static constexpr typename std::enable_if_t<
-    std::numeric_limits<T>::is_integer && !std::numeric_limits<T>::is_signed, U>
+static constexpr typename std::enable_if_t<std::is_unsigned_v<T>, U>
 UnsignedSortValue(U val) {
   return val;
 }
 
 template <typename T, typename U>
-static constexpr typename std::enable_if_t<
-    std::numeric_limits<T>::is_integer && std::numeric_limits<T>::is_signed, U>
-UnsignedSortValue(U val) {
+static constexpr
+    typename std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>, U>
+    UnsignedSortValue(U val) {
   // Flip sign bit.
   return val ^ static_cast<U>(std::numeric_limits<T>::min());
 }
 
 template <typename T, typename UnsignedT>
 static constexpr
-    typename std::enable_if_t<!std::numeric_limits<T>::is_integer, UnsignedT>
+    typename std::enable_if_t<std::is_floating_point_v<T>, UnsignedT>
     UnsignedSortValue(UnsignedT val) {
   // Flip sign bit for positive numbers; flip all bits for negative numbers,
   // except negative NaNs.
-  using FloatingPoint = ::FloatingPoint<T>;
+  using FloatingPoint = mozilla::FloatingPoint<T>;
   static_assert(std::is_same_v<typename FloatingPoint::Bits, UnsignedT>,
                 "FloatingPoint::Bits matches the unsigned int representation");
 
   // FF80'0000 is negative infinity, (FF80'0000, FFFF'FFFF] are all NaNs with
-  // the sign-bit set (and the equivalent holds for double and float16 values).
-  // So any value larger than negative infinity is a negative NaN.
-  if (val > FloatingPoint::NegativeInfinity) {
+  // the sign-bit set (and the equivalent holds for double values). So any value
+  // larger than negative infinity is a negative NaN.
+  constexpr UnsignedT NegativeInfinity =
+      FloatingPoint::kSignBit | FloatingPoint::kExponentBits;
+  if (val > NegativeInfinity) {
     return val;
   }
   if (val & FloatingPoint::kSignBit) {
@@ -3957,87 +3966,37 @@ static constexpr
   return val ^ FloatingPoint::kSignBit;
 }
 
-template <typename T, typename U>
+template <typename T, typename UnsignedT>
 static constexpr
-    typename std::enable_if_t<std::numeric_limits<T>::is_integer, U>
-    ToCountingSortKey(U val) {
-  return UnsignedSortValue<T, U>(val);
-}
+    typename std::enable_if_t<std::is_same_v<T, float16>, UnsignedT>
+    UnsignedSortValue(UnsignedT val) {
+  // Flip sign bit for positive numbers; flip all bits for negative numbers,
+  // except negative NaNs.
 
-template <typename T, typename U>
-static constexpr
-    typename std::enable_if_t<std::numeric_limits<T>::is_integer, U>
-    FromCountingSortKey(U val) {
-  // ToCountingSortKey for integers is a self-inverse function.
-  return ToCountingSortKey<T, U>(val);
-}
-
-/**
- * UnsignedSortValue for floating point values isn't reversible, so we use a
- * different implementation for counting sort to keep NaN payloads unmodified
- * for consistency with TypedArrayRadixSort and TypedArrayStdSort.
- *
- * Mapping overview:
- * - Largest -NaN      = FFFF -> FFFF
- * - Smallest -NaN     = FC01 -> FC01
- * - Negative infinity = FC00 -> 0000
- * - Negative zero     = 8000 -> 7C00
- * - Positive zero     = 0000 -> 7C01
- * - Positive infinity = 7C00 -> F801
- * - Smallest +NaN     = 7C01 -> F802
- * - Largest +NaN      = 7FFF -> FC00
- */
-template <typename T, typename U>
-static constexpr typename std::enable_if_t<std::is_same_v<T, js::float16>, U>
-ToCountingSortKey(U val) {
-  using FloatingPoint = ::FloatingPoint<T>;
-
-  // Any value larger than negative infinity is a negative NaN. Place those at
-  // the very end.
-  if (val > FloatingPoint::NegativeInfinity) {
+  // FC00 is negative infinity, (FC00, FFFF] are all NaNs with
+  // the sign-bit set. So any value
+  // larger than negative infinity is a negative NaN.
+  constexpr UnsignedT NegativeInfinity = 0xFC00;
+  if (val > NegativeInfinity) {
     return val;
   }
-
-  // Map negative values, starting at negative infinity which is mapped to zero.
-  if (val & FloatingPoint::kSignBit) {
-    return FloatingPoint::NegativeInfinity - val;
+  if (val & 0x8000) {
+    return ~val;
   }
-
-  // Map positive values right after the last negative value (negative zero).
-  return val + (FloatingPoint::PositiveInfinity + 1);
-}
-
-/**
- * Reverse the mapping from ToCountingSortKey.
- */
-template <typename T, typename U>
-static constexpr typename std::enable_if_t<std::is_same_v<T, js::float16>, U>
-FromCountingSortKey(U val) {
-  using FloatingPoint = ::FloatingPoint<T>;
-
-  // Negative NaN are unchanged.
-  if (val > FloatingPoint::NegativeInfinity) {
-    return val;
-  }
-
-  // Any value larger than 0x7C00 was a positive number, including positive NaN.
-  if (val > FloatingPoint::PositiveInfinity) {
-    return val - (FloatingPoint::PositiveInfinity + 1);
-  }
-
-  // Any other value was a negative number, excluding negative NaN.
-  return FloatingPoint::NegativeInfinity - val;
+  return val ^ 0x8000;
 }
 
 template <typename T>
-static typename std::enable_if_t<std::numeric_limits<T>::is_integer>
+static typename std::enable_if_t<std::is_integral_v<T> ||
+                                 std::is_same_v<T, uint8_clamped>>
 TypedArrayStdSort(SharedMem<void*> data, size_t length) {
   T* unwrapped = data.cast<T*>().unwrapUnshared();
   std::sort(unwrapped, unwrapped + length);
 }
 
 template <typename T>
-static typename std::enable_if_t<!std::numeric_limits<T>::is_integer>
+static typename std::enable_if_t<std::is_floating_point_v<T> ||
+                                 std::is_same_v<T, float16>>
 TypedArrayStdSort(SharedMem<void*> data, size_t length) {
   // Sort on the unsigned representation for performance reasons.
   using UnsignedT =
@@ -4080,6 +4039,9 @@ TypedArrayStdSort(JSContext* cx, TypedArrayObject* typedArray, size_t length) {
 template <typename T, typename Ops>
 static bool TypedArrayCountingSort(JSContext* cx, TypedArrayObject* typedArray,
                                    size_t length) {
+  static_assert(std::is_integral_v<T> || std::is_same_v<T, uint8_clamped>,
+                "Counting sort expects integral array elements");
+
   // Determined by performance testing.
   if (length <= 64) {
     return TypedArrayStdSort<T, Ops>(cx, typedArray, length);
@@ -4088,6 +4050,7 @@ static bool TypedArrayCountingSort(JSContext* cx, TypedArrayObject* typedArray,
   // Map signed values onto the unsigned range when storing in buffer.
   using UnsignedT =
       typename mozilla::UnsignedStdintTypeForSize<sizeof(T)>::Type;
+  constexpr T min = std::numeric_limits<T>::min();
 
   constexpr size_t InlineStorage = sizeof(T) == 1 ? 256 : 0;
   Vector<size_t, InlineStorage> buffer(cx);
@@ -4095,28 +4058,25 @@ static bool TypedArrayCountingSort(JSContext* cx, TypedArrayObject* typedArray,
     return false;
   }
 
-  SharedMem<UnsignedT*> data =
-      typedArray->dataPointerEither().cast<UnsignedT*>();
+  SharedMem<T*> data = typedArray->dataPointerEither().cast<T*>();
 
   // Populate the buffer.
   for (size_t i = 0; i < length; i++) {
-    UnsignedT val = ToCountingSortKey<T, UnsignedT>(Ops::load(data + i));
-    buffer[val]++;
+    T val = Ops::load(data + i);
+    buffer[UnsignedT(val - min)]++;
   }
 
   // Traverse the buffer in order and write back elements to array.
   UnsignedT val = UnsignedT(-1);  // intentional overflow on first increment
   for (size_t i = 0; i < length;) {
+    // Invariant: sum(buffer[val:]) == length-i
     size_t j;
     do {
       j = buffer[++val];
     } while (j == 0);
 
-    // Invariant: sum(buffer[val:]) == length-i
-    MOZ_ASSERT(j <= length - i);
-
     for (; j > 0; j--) {
-      Ops::store(data + i++, FromCountingSortKey<T, UnsignedT>(val));
+      Ops::store(data + i++, T(val + min));
     }
   }
 
@@ -4185,25 +4145,18 @@ static bool TypedArrayRadixSort(JSContext* cx, TypedArrayObject* typedArray,
   // Radix sort uses O(n) additional space, limit this space to 64 MB.
   constexpr size_t StdSortMaxCutoff = (64 * 1024 * 1024) / sizeof(T);
 
-  if constexpr (sizeof(T) == 2) {
-    // Radix sort uses |n * sizeof(T)| additional space, whereas counting sort
-    // uses |65536 * sizeof(size_t)| additional space. When the additional
-    // space needed for radix sort exceeds the space needed for counting sort,
-    // switch over to counting sort.
-    //
-    // It's faster to switch slightly earlier, so subtract a constant from the
-    // exact value. This constant (2048) was determined by performance testing.
-    constexpr size_t CountingSortMaxCutoff =
-        65536 * (sizeof(size_t) / sizeof(T)) - 2048;
-    static_assert(CountingSortMaxCutoff < StdSortMaxCutoff);
+  if (length <= StdSortMinCutoff || length >= StdSortMaxCutoff) {
+    return TypedArrayStdSort<T, Ops>(cx, typedArray, length);
+  }
+
+  if constexpr (sizeof(T) == 2 && !std::is_same_v<T, float16>) {
+    // Radix sort uses O(n) additional space, so when |n| reaches 2^16, switch
+    // over to counting sort to limit the additional space needed to 2^16.
+    constexpr size_t CountingSortMaxCutoff = 65536;
 
     if (length >= CountingSortMaxCutoff) {
       return TypedArrayCountingSort<T, Ops>(cx, typedArray, length);
     }
-  }
-
-  if (length <= StdSortMinCutoff || length >= StdSortMaxCutoff) {
-    return TypedArrayStdSort<T, Ops>(cx, typedArray, length);
   }
 
   using UnsignedT =
@@ -4379,7 +4332,7 @@ static void StoreSortedElements(TypedArrayObject* tarray, Value* elements,
   SharedMem<T*> data = tarray->dataPointerEither().cast<T*>();
   for (size_t i = 0; i < len; i++) {
     T val;
-    if constexpr (!std::numeric_limits<T>::is_integer) {
+    if constexpr (TypeIsFloatingPoint<T>()) {
       val = elements[i].toDouble();
     } else if constexpr (std::is_same_v<T, int64_t>) {
       val = BigInt::toInt64(elements[i].toBigInt());

@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <type_traits>
 
 namespace js {
 
@@ -180,123 +179,46 @@ inline float half2float_impl(unsigned int value) {
 }
 }  // namespace half
 
-class float16 final {
+struct float16 {
   uint16_t val;
 
- public:
-  // The default constructor can be 'constexpr' when we switch to C++20.
-  //
-  // C++17 requires explicit initialization of all members when using a
-  // 'constexpr' default constructor. That means `val` needs to be initialized
-  // through a member initializer. But adding a member initializer makes the
-  // class no longer trivial, which breaks memcpy/memset optimizations.
+  float16() = default;
+  float16(const float16& other) = default;
 
-  /* constexpr */ float16() = default;
-  constexpr float16(const float16&) = default;
+  explicit float16(float x) { *this = x; }
+  explicit float16(double x) { *this = x; }
 
-  explicit float16(float x) : val(half::float2half_impl(x)) {}
-  explicit float16(double x) : val(half::float2half_impl(x)) {}
+  explicit float16(std::int8_t x) { *this = float(x); }
+  explicit float16(std::int16_t x) { *this = float(x); }
+  explicit float16(std::int32_t x) { *this = float(x); }
+  explicit float16(std::int64_t x) { *this = double(x); }
 
-  explicit float16(std::int8_t x) : float16(float(x)) {}
-  explicit float16(std::int16_t x) : float16(float(x)) {}
-  explicit float16(std::int32_t x) : float16(float(x)) {}
-  explicit float16(std::int64_t x) : float16(double(x)) {}
+  explicit float16(std::uint8_t x) { *this = float(x); }
+  explicit float16(std::uint16_t x) { *this = float(x); }
+  explicit float16(std::uint32_t x) { *this = float(x); }
+  explicit float16(std::uint64_t x) { *this = double(x); }
 
-  explicit float16(std::uint8_t x) : float16(float(x)) {}
-  explicit float16(std::uint16_t x) : float16(float(x)) {}
-  explicit float16(std::uint32_t x) : float16(float(x)) {}
-  explicit float16(std::uint64_t x) : float16(double(x)) {}
+  explicit float16(bool x) { *this = float(x); }
 
-  explicit float16(bool x) : float16(float(x)) {}
-
-  constexpr float16& operator=(const float16&) = default;
+  float16& operator=(const float16& x) = default;
 
   float16& operator=(float x) {
-    *this = float16{x};
+    this->val = half::float2half_impl(x);
     return *this;
   }
 
   float16& operator=(double x) {
-    *this = float16{x};
+    this->val = half::float2half_impl(x);
     return *this;
   }
 
-  explicit operator float() const { return half::half2float_impl<float>(val); }
-  explicit operator double() const {
-    return half::half2float_impl<double>(val);
-  }
+  float toFloat() { return half::half2float_impl<float>(this->val); }
 
-  uint16_t toRawBits() const { return val; }
-
-  static constexpr float16 fromRawBits(uint16_t bits) {
-    float16 f16{};
-    f16.val = bits;
-    return f16;
-  }
+  double toDouble() { return half::half2float_impl<double>(this->val); }
 };
 
 static_assert(sizeof(float16) == 2, "float16 has no extra padding");
 
-static_assert(
-    std::is_trivial_v<float16>,
-    "float16 must be trivial to be eligible for memcpy/memset optimizations");
-
 }  // namespace js
-
-template <>
-class std::numeric_limits<js::float16> {
- public:
-  static constexpr bool is_specialized = true;
-  static constexpr bool is_signed = true;
-  static constexpr bool is_integer = false;
-  static constexpr bool is_exact = false;
-  static constexpr bool has_infinity = true;
-  static constexpr bool has_quiet_NaN = true;
-  static constexpr bool has_signaling_NaN = true;
-  static constexpr std::float_denorm_style has_denorm = std::denorm_present;
-  static constexpr bool has_denorm_loss = false;
-  static constexpr std::float_round_style round_style = std::round_to_nearest;
-  static constexpr bool is_iec559 = true;
-  static constexpr bool is_bounded = true;
-  static constexpr bool is_modulo = false;
-  static constexpr int digits = 11;
-  static constexpr int digits10 = 3;
-  static constexpr int max_digits10 = 5;
-  static constexpr int radix = 2;
-  static constexpr int min_exponent = -13;
-  static constexpr int min_exponent10 = -4;
-  static constexpr int max_exponent = 16;
-  static constexpr int max_exponent10 = 4;
-  static constexpr bool traps = false;
-  static constexpr bool tinyness_before = false;
-
-  static constexpr auto min() noexcept {
-    return js::float16::fromRawBits(0x400);
-  }
-  static constexpr auto lowest() noexcept {
-    return js::float16::fromRawBits(0xFBFF);
-  }
-  static constexpr auto max() noexcept {
-    return js::float16::fromRawBits(0x7BFF);
-  }
-  static constexpr auto epsilon() noexcept {
-    return js::float16::fromRawBits(0x1400);
-  }
-  static constexpr auto round_error() noexcept {
-    return js::float16::fromRawBits(0x3800);
-  }
-  static constexpr auto infinity() noexcept {
-    return js::float16::fromRawBits(0x7C00);
-  }
-  static constexpr auto quiet_NaN() noexcept {
-    return js::float16::fromRawBits(0x7E00);
-  }
-  static constexpr auto signaling_NaN() noexcept {
-    return js::float16::fromRawBits(0x7D00);
-  }
-  static constexpr auto denorm_min() noexcept {
-    return js::float16::fromRawBits(0x0001);
-  }
-};
 
 #endif  // vm_Float16_h

@@ -1215,6 +1215,47 @@ static TypedArrayObject* DangerouslyUnwrapTypedArray(JSContext* cx,
   return unwrapped;
 }
 
+// The specification requires us to perform bitwise copying when |sourceType|
+// and |targetType| are the same (ES2017, §22.2.3.24, step 15). Additionally,
+// as an optimization, we can also perform bitwise copying when |sourceType|
+// and |targetType| have compatible bit-level representations.
+static bool IsTypedArrayBitwiseSlice(Scalar::Type sourceType,
+                                     Scalar::Type targetType) {
+  switch (sourceType) {
+    case Scalar::Int8:
+      return targetType == Scalar::Int8 || targetType == Scalar::Uint8;
+
+    case Scalar::Uint8:
+    case Scalar::Uint8Clamped:
+      return targetType == Scalar::Int8 || targetType == Scalar::Uint8 ||
+             targetType == Scalar::Uint8Clamped;
+
+    case Scalar::Int16:
+    case Scalar::Uint16:
+      return targetType == Scalar::Int16 || targetType == Scalar::Uint16;
+
+    case Scalar::Int32:
+    case Scalar::Uint32:
+      return targetType == Scalar::Int32 || targetType == Scalar::Uint32;
+
+    case Scalar::Float16:
+      return targetType == Scalar::Float16;
+
+    case Scalar::Float32:
+      return targetType == Scalar::Float32;
+
+    case Scalar::Float64:
+      return targetType == Scalar::Float64;
+
+    case Scalar::BigInt64:
+    case Scalar::BigUint64:
+      return targetType == Scalar::BigInt64 || targetType == Scalar::BigUint64;
+
+    default:
+      MOZ_CRASH("IsTypedArrayBitwiseSlice with a bogus typed array type");
+  }
+}
+
 static bool intrinsic_TypedArrayBitwiseSlice(JSContext* cx, unsigned argc,
                                              Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -1250,13 +1291,9 @@ static bool intrinsic_TypedArrayBitwiseSlice(JSContext* cx, unsigned argc,
   }
   MOZ_ASSERT(!unsafeTypedArrayCrossCompartment->hasDetachedBuffer());
 
-  // The specification requires us to perform bitwise copying when |sourceType|
-  // and |targetType| are the same (ES2017, §22.2.3.24, step 15). Additionally,
-  // as an optimization, we can also perform bitwise copying when |sourceType|
-  // and |targetType| have compatible bit-level representations.
   Scalar::Type sourceType = source->type();
-  if (!CanUseBitwiseCopy(unsafeTypedArrayCrossCompartment->type(),
-                         sourceType)) {
+  if (!IsTypedArrayBitwiseSlice(sourceType,
+                                unsafeTypedArrayCrossCompartment->type())) {
     args.rval().setBoolean(false);
     return true;
   }
