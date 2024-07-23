@@ -6,6 +6,7 @@ package org.mozilla.fenix.components.menu.middleware
 
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -51,8 +52,10 @@ import org.mozilla.fenix.utils.Settings
  * in a new browser tab.
  * @param webAppUseCases [WebAppUseCases] used for adding items to the home screen.
  * @param settings Used to check [Settings] when adding items to the home screen.
+ * @param onDismiss Callback invoked to dismiss the menu dialog.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
+@Suppress("LongParameterList")
 class MenuNavigationMiddleware(
     private val navController: NavController,
     private val navHostController: NavHostController,
@@ -60,6 +63,7 @@ class MenuNavigationMiddleware(
     private val openToBrowser: (params: BrowserNavigationParams) -> Unit,
     private val webAppUseCases: WebAppUseCases,
     private val settings: Settings,
+    private val onDismiss: suspend () -> Unit,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main),
 ) : Middleware<MenuState, MenuAction> {
 
@@ -164,10 +168,14 @@ class MenuNavigationMiddleware(
                     settings.installPwaOpened = true
                     if (webAppUseCases.isInstallable()) {
                         webAppUseCases.addToHomescreen()
+                        onDismiss()
                     } else {
                         navController.nav(
                             R.id.menuDialogFragment,
                             MenuDialogFragmentDirections.actionMenuDialogFragmentToCreateShortcutFragment(),
+                            navOptions = NavOptions.Builder()
+                                .setPopUpTo(R.id.browserFragment, false)
+                                .build(),
                         )
                     }
                 }
