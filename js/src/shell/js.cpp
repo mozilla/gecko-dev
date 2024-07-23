@@ -12197,6 +12197,8 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "enable-float16array", "Enable Float16Array") ||
       !op.addBoolOption('\0', "enable-regexp-duplicate-named-groups",
                         "Enable Duplicate Named Capture Groups") ||
+      !op.addBoolOption('\0', "enable-regexp-modifiers",
+                        "Enable Pattern Modifiers") ||
       !op.addBoolOption('\0', "enable-top-level-await",
                         "Enable top-level await") ||
       !op.addBoolOption('\0', "enable-import-assertions",
@@ -12593,6 +12595,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-uint8array-base64")) {
     JS::Prefs::setAtStartup_experimental_uint8array_base64(true);
+  }
+  if (op.getBoolOption("enable-regexp-modifiers")) {
+    JS::Prefs::setAtStartup_experimental_regexp_modifiers(true);
   }
 #endif
 #ifdef ENABLE_JSON_PARSE_WITH_SOURCE
@@ -13410,6 +13415,12 @@ bool SetContextJITOptions(JSContext* cx, const OptionParser& op) {
   if (op.getBoolOption("enable-regexp-duplicate-named-groups")) {
     jit::JitOptions.js_regexp_duplicate_named_groups = true;
   }
+
+#ifdef NIGHTLY_BUILD
+  if (op.getBoolOption("enable-regexp-modifiers")) {
+    jit::JitOptions.js_regexp_modifiers = true;
+  }
+#endif
 
   return true;
 }

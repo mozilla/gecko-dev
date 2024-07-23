@@ -645,6 +645,8 @@ MSG_DEF(JSMSG_ESCAPE_AT_END_OF_REGEXP, 0, JSEXN_SYNTAXERR, "\\ at end of pattern
 MSG_DEF(JSMSG_EXEC_NOT_OBJORNULL,      0, JSEXN_TYPEERR, "RegExp exec method should return object or null")
 MSG_DEF(JSMSG_INVALID_DECIMAL_ESCAPE, 0, JSEXN_SYNTAXERR, "invalid decimal escape in regular expression")
 MSG_DEF(JSMSG_INVALID_GROUP,           0, JSEXN_SYNTAXERR, "invalid regexp group")
+MSG_DEF(JSMSG_REPEATED_FLAG,           0, JSEXN_SYNTAXERR, "repeated flag in regexp modifier")
+MSG_DEF(JSMSG_INVALID_FLAG_GROUP,      0, JSEXN_SYNTAXERR, "invalid flag group")
 MSG_DEF(JSMSG_INVALID_IDENTITY_ESCAPE, 0, JSEXN_SYNTAXERR, "invalid identity escape in regular expression")
 MSG_DEF(JSMSG_INVALID_UNICODE_ESCAPE,  0, JSEXN_SYNTAXERR, "invalid unicode escape in regular expression")
 MSG_DEF(JSMSG_MISSING_PAREN,           0, JSEXN_SYNTAXERR, "unterminated parenthetical")
