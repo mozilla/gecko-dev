@@ -543,6 +543,69 @@ add_task(async function panelSuppressionOnPanelTests() {
 });
 
 /**
+ * Ensure that the panel does not open when other panels are active or are in the process of being activated,
+ * when THP is being called for the first time (lazy-loaded)
+ */
+add_task(async function panelSuppressionOnPanelLazyLoadTests() {
+  // This needs to be done in a new window to ensure that
+  // the previewPanel is being loaded for the first time
+  let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
+  let fgTab = fgWindow.gBrowser.tabs[0];
+
+  // The `openPopup` API appears to not be working for this panel,
+  // but it can be triggered by firing a click event on the associated button.
+  const appMenuButton = fgWindow.document.getElementById("PanelUI-menu-button");
+  const appMenuPopup = fgWindow.document.getElementById("appMenu-popup");
+  appMenuButton.click();
+
+  EventUtils.synthesizeMouseAtCenter(fgTab, { type: "mouseover" }, fgWindow);
+
+  await BrowserTestUtils.waitForCondition(() => {
+    // Sometimes the tests run slower than the test browser -- it's not always possible
+    // to catch the panel in its opening state, so we have to check for both states.
+    return (
+      (appMenuPopup.getAttribute("animating") === "true" ||
+        appMenuPopup.getAttribute("panelopen") === "true") &&
+      fgWindow.gBrowser.tabContainer.previewPanel !== null
+    );
+  });
+  const previewComponent = fgWindow.gBrowser.tabContainer.previewPanel;
+
+  // We can't spy on the previewComponent and check for calls to `activate` like in other tests,
+  // since we can't guarantee that the spy will be set up before the call is made.
+  // Therefore the only realiable way to test that the popup isn't open is to reach in and check
+  // that it is in a disabled state.
+  Assert.equal(previewComponent._isDisabled(), true, "");
+
+  // Reset state: close the app menu popup and move the mouse off the tab
+  const tabs = fgWindow.document.getElementById("tabbrowser-tabs");
+  EventUtils.synthesizeMouse(
+    tabs,
+    0,
+    tabs.outerHeight + 1,
+    {
+      type: "mouseout",
+    },
+    fgWindow
+  );
+
+  const popupHidingEvent = BrowserTestUtils.waitForEvent(
+    appMenuPopup,
+    "popuphiding"
+  );
+  appMenuPopup.hidePopup();
+  await popupHidingEvent;
+
+  BrowserTestUtils.removeTab(fgTab);
+
+  // Move the mouse outside of the tab strip.
+  await BrowserTestUtils.closeWindow(fgWindow);
+  EventUtils.synthesizeMouseAtCenter(document.documentElement, {
+    type: "mouseover",
+  });
+});
+
+/**
  * preview should be hidden if it is showing when the URLBar receives input
  */
 add_task(async function urlBarInputTests() {

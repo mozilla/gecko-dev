@@ -223,7 +223,7 @@ export default class TabHoverPreviewPanel {
     // already be open on init. Therefore we need to initialize _openPopups with existing panels
     // the first time.
     const initialPopups = this._win.document.querySelectorAll(
-      "panel[panelopen=true]:not(#tab-preview-panel), menupopup[open=true]"
+      "panel[panelopen=true]:not(#tab-preview-panel), panel[animating=true]:not(#tab-preview-panel), menupopup[open=true]"
     );
     this._openPopups = new Set(initialPopups);
 
