@@ -22,7 +22,7 @@ def rebuild_cached_tasks_action(
     )
     cached_tasks = [
         label
-        for label, task in full_task_graph.tasks.items()
+        for label, task in full_task_graph.tasks.items()  # type: ignore
         if task.attributes.get("cached_task", False)
     ]
     if cached_tasks:

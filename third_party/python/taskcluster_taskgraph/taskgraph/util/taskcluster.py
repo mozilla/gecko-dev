@@ -12,7 +12,7 @@ from typing import Dict, List, Union
 
 import requests
 import taskcluster_urls as liburls
-from requests.packages.urllib3.util.retry import Retry
+from requests.packages.urllib3.util.retry import Retry  # type: ignore
 
 from taskgraph.task import Task
 from taskgraph.util import yaml
@@ -81,20 +81,25 @@ def requests_retry_session(
     status_forcelist=(500, 502, 503, 504),
     concurrency=CONCURRENCY,
     session=None,
+    allowed_methods=None,
 ):
     session = session or requests.Session()
+    kwargs = {}
+    if allowed_methods is not None:
+        kwargs["allowed_methods"] = allowed_methods
     retry = Retry(
         total=retries,
         read=retries,
         connect=retries,
         backoff_factor=backoff_factor,
         status_forcelist=status_forcelist,
+        **kwargs,
     )
 
     # Default HTTPAdapter uses 10 connections. Mount custom adapter to increase
     # that limit. Connections are established as needed, so using a large value
     # should not negatively impact performance.
-    http_adapter = requests.adapters.HTTPAdapter(
+    http_adapter = requests.adapters.HTTPAdapter(  # type: ignore
         pool_connections=concurrency,
         pool_maxsize=concurrency,
         max_retries=retry,
@@ -110,11 +115,17 @@ def get_session():
     return requests_retry_session(retries=5)
 
 
-def _do_request(url, method=None, **kwargs):
+@functools.lru_cache(maxsize=None)
+def get_retry_post_session():
+    allowed_methods = set(("POST",)) | Retry.DEFAULT_ALLOWED_METHODS
+    return requests_retry_session(retries=5, allowed_methods=allowed_methods)
+
+
+def _do_request(url, method=None, session=None, **kwargs):
     if method is None:
         method = "post" if kwargs else "get"
-
-    session = get_session()
+    if session is None:
+        session = get_session()
     if method == "get":
         kwargs["stream"] = True
 
@@ -186,7 +197,7 @@ def find_task_id(index_path, use_proxy=False):
     try:
         response = _do_request(get_index_url(index_path, use_proxy))
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
+        if e.response.status_code == 404:  # type: ignore
             raise KeyError(f"index path {index_path} not found")
         raise
     return response.json()["taskId"]
@@ -213,6 +224,7 @@ def find_task_id_batched(index_paths, use_proxy=False):
     while True:
         response = _do_request(
             endpoint,
+            session=get_retry_post_session(),
             json={
                 "indexes": index_paths,
             },
@@ -335,6 +347,7 @@ def status_task_batched(task_ids, use_proxy=False):
     while True:
         response = _do_request(
             endpoint,
+            session=get_retry_post_session(),
             json={
                 "taskIds": task_ids,
             },
@@ -372,7 +385,7 @@ def state_task(task_id, use_proxy=False):
     if testing:
         logger.info(f"Would have gotten state for {task_id}.")
     else:
-        status = status_task(task_id, use_proxy=use_proxy).get("state") or "unknown"
+        status = status_task(task_id, use_proxy=use_proxy).get("state") or "unknown"  # type: ignore
         return status
 
 

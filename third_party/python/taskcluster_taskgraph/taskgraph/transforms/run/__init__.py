@@ -14,7 +14,7 @@ import copy
 import json
 import logging
 
-from voluptuous import Any, Exclusive, Extra, Optional, Required
+from voluptuous import Exclusive, Extra, Optional, Required
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.transforms.cached_tasks import order_tasks
@@ -49,6 +49,7 @@ run_description_schema = Schema(
         # possibly modified by the run implementation.  See
         # taskcluster/taskgraph/transforms/task.py for the schema details.
         Required("description"): task_description_schema["description"],
+        Optional("priority"): task_description_schema["priority"],
         Optional("attributes"): task_description_schema["attributes"],
         Optional("task-from"): task_description_schema["task-from"],
         Optional("dependencies"): task_description_schema["dependencies"],
@@ -84,7 +85,6 @@ run_description_schema = Schema(
         },
         # A list of artifacts to install from 'fetch' tasks.
         Optional("fetches"): {
-            Any("toolchain", "fetch"): [str],
             str: [
                 str,
                 fetches_schema,
@@ -251,7 +251,15 @@ def use_fetches(config, tasks):
         for kind in sorted(fetches):
             artifacts = fetches[kind]
             if kind in ("fetch", "toolchain"):
-                for fetch_name in sorted(artifacts):
+                for artifact in sorted(artifacts):
+                    # Convert name only fetch entries to full fledged ones for
+                    # easier processing.
+                    if isinstance(artifact, str):
+                        artifact = {
+                            "artifact": artifact,
+                        }
+
+                    fetch_name = artifact["artifact"]
                     label = f"{kind}-{fetch_name}"
                     label = aliases.get(label, label)
                     if label not in artifact_names:
@@ -262,15 +270,21 @@ def use_fetches(config, tasks):
                         env.update(extra_env[label])
 
                     path = artifact_names[label]
+                    dest = artifact.get("dest", None)
+                    extract = artifact.get("extract", True)
+                    verify_hash = artifact.get("verify-hash", False)
 
                     dependencies[label] = label
-                    task_fetches.append(
-                        {
-                            "artifact": path,
-                            "task": f"<{label}>",
-                            "extract": True,
-                        }
-                    )
+                    fetch = {
+                        "artifact": path,
+                        "task": f"<{label}>",
+                        "extract": extract,
+                    }
+                    if dest is not None:
+                        fetch["dest"] = dest
+                    if verify_hash:
+                        fetch["verify-hash"] = verify_hash
+                    task_fetches.append(fetch)
             else:
                 if kind not in dependencies:
                     raise Exception(

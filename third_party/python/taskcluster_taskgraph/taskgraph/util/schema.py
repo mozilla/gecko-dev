@@ -194,7 +194,7 @@ def check_schema(schema):
                     f"Unexpected type in YAML schema: {type(k).__name__} @ {path}"
                 )
 
-        if isinstance(sch, collections.abc.Mapping):
+        if isinstance(sch, collections.abc.Mapping):  # type: ignore
             for k, v in sch.items():
                 child = f"{path}[{k!r}]"
                 check_identifier(child, k)
@@ -237,7 +237,7 @@ class Schema(voluptuous.Schema):
         return super()._compile(schema)
 
     def __getitem__(self, item):
-        return self.schema[item]
+        return self.schema[item]  # type: ignore
 
 
 OptimizationSchema = voluptuous.Any(

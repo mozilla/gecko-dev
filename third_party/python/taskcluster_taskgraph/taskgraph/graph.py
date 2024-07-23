@@ -68,7 +68,7 @@ class Graph:
             add_nodes = {(left if reverse else right) for (left, right, _) in add_edges}
             new_nodes = nodes | add_nodes
             new_edges = edges | add_edges
-        return Graph(new_nodes, new_edges)
+        return Graph(new_nodes, new_edges)  # type: ignore
 
     def _visit(self, reverse):
         queue = collections.deque(sorted(self.nodes))

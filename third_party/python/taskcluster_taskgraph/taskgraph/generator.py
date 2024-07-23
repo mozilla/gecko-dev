@@ -138,7 +138,7 @@ class TaskGraphGenerator:
         self._write_artifacts = write_artifacts
 
         # start the generator
-        self._run = self._run()
+        self._run = self._run()  # type: ignore
         self._run_results = {}
 
     @property
@@ -295,7 +295,7 @@ class TaskGraphGenerator:
         for kind in kinds.values():
             for dep in kind.config.get("kind-dependencies", []):
                 edges.add((kind.name, dep, "kind-dependency"))
-        kind_graph = Graph(set(kinds), edges)
+        kind_graph = Graph(set(kinds), edges)  # type: ignore
 
         if target_kinds:
             kind_graph = kind_graph.transitive_closure(
@@ -321,7 +321,7 @@ class TaskGraphGenerator:
                     raise Exception("duplicate tasks with label " + task.label)
                 all_tasks[task.label] = task
             logger.info(f"Generated {len(new_tasks)} tasks for kind {kind_name}")
-        full_task_set = TaskGraph(all_tasks, Graph(set(all_tasks), set()))
+        full_task_set = TaskGraph(all_tasks, Graph(set(all_tasks), set()))  # type: ignore
         yield self.verify("full_task_set", full_task_set, graph_config, parameters)
 
         logger.info("Generating full task graph")
@@ -334,7 +334,7 @@ class TaskGraphGenerator:
                     )
                 edges.add((t.label, dep, depname))
 
-        full_task_graph = TaskGraph(all_tasks, Graph(full_task_set.graph.nodes, edges))
+        full_task_graph = TaskGraph(all_tasks, Graph(full_task_set.graph.nodes, edges))  # type: ignore
         logger.info(
             "Full task graph contains %d tasks and %d dependencies"
             % (len(full_task_set.graph.nodes), len(edges))
@@ -343,13 +343,13 @@ class TaskGraphGenerator:
 
         logger.info("Generating target task set")
         target_task_set = TaskGraph(
-            dict(all_tasks), Graph(set(all_tasks.keys()), set())
+            dict(all_tasks), Graph(set(all_tasks.keys()), set())  # type: ignore
         )
         for fltr in filters:
             old_len = len(target_task_set.graph.nodes)
             target_tasks = set(fltr(target_task_set, parameters, graph_config))
             target_task_set = TaskGraph(
-                {l: all_tasks[l] for l in target_tasks}, Graph(target_tasks, set())
+                {l: all_tasks[l] for l in target_tasks}, Graph(target_tasks, set())  # type: ignore
             )
             logger.info(
                 "Filter %s pruned %d tasks (%d remain)"
@@ -363,7 +363,7 @@ class TaskGraphGenerator:
         if parameters["enable_always_target"]:
             always_target_tasks = {
                 t.label
-                for t in full_task_graph.tasks.values()
+                for t in full_task_graph.tasks.values()  # type: ignore
                 if t.attributes.get("always_target")
                 if parameters["enable_always_target"] is True
                 or t.kind in parameters["enable_always_target"]
@@ -372,12 +372,12 @@ class TaskGraphGenerator:
             always_target_tasks = set()
         logger.info(
             "Adding %d tasks with `always_target` attribute"
-            % (len(always_target_tasks) - len(always_target_tasks & target_tasks))
+            % (len(always_target_tasks) - len(always_target_tasks & target_tasks))  # type: ignore
         )
-        requested_tasks = target_tasks | always_target_tasks
+        requested_tasks = target_tasks | always_target_tasks  # type: ignore
         target_graph = full_task_graph.graph.transitive_closure(requested_tasks)
         target_task_graph = TaskGraph(
-            {l: all_tasks[l] for l in target_graph.nodes}, target_graph
+            {l: all_tasks[l] for l in target_graph.nodes}, target_graph  # type: ignore
         )
         yield self.verify(
             "target_task_graph", target_task_graph, graph_config, parameters
@@ -422,7 +422,7 @@ class TaskGraphGenerator:
     def _run_until(self, name):
         while name not in self._run_results:
             try:
-                k, v = next(self._run)
+                k, v = next(self._run)  # type: ignore
             except StopIteration:
                 raise AttributeError(f"No such run result {name}")
             self._run_results[k] = v

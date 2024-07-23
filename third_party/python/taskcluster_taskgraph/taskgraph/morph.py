@@ -52,7 +52,7 @@ def amend_taskgraph(taskgraph, label_to_taskid, to_add):
         for depname, dep in task.dependencies.items():
             new_edges.add((task.task_id, dep, depname))
 
-    taskgraph = TaskGraph(new_tasks, Graph(set(new_tasks), new_edges))
+    taskgraph = TaskGraph(new_tasks, Graph(set(new_tasks), new_edges))  # type: ignore
     return taskgraph, label_to_taskid
 
 
@@ -107,7 +107,7 @@ def derive_index_task(task, taskgraph, label_to_taskid, parameters, graph_config
         task=task_def,
         dependencies=dependencies,
     )
-    task.task_id = slugid()
+    task.task_id = slugid()  # type: ignore
     return task, taskgraph, label_to_taskid
 
 
@@ -246,7 +246,7 @@ def add_code_review_task(taskgraph, label_to_taskid, parameters, graph_config):
             task=code_review_task_def,
             dependencies=code_review_tasks,
         )
-        task.task_id = slugid()
+        task.task_id = slugid()  # type: ignore
         taskgraph, label_to_taskid = amend_taskgraph(taskgraph, label_to_taskid, [task])
         logger.info("Added code review task.")
 

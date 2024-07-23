@@ -60,7 +60,7 @@ def fetch_graph_and_labels(parameters, graph_config, task_group_id=None):
                 run_label_to_id = get_artifact(task_id, "public/label-to-taskid.json")
                 label_to_taskid.update(run_label_to_id)
             except HTTPError as e:
-                if e.response.status_code != 404:
+                if e.response.status_code != 404:  # type: ignore
                     raise
                 logger.debug(f"No label-to-taskid.json found for {task_id}: {e}")
 
@@ -79,7 +79,7 @@ def fetch_graph_and_labels(parameters, graph_config, task_group_id=None):
                 run_label_to_id = get_artifact(task_id, "public/label-to-taskid.json")
                 label_to_taskid.update(run_label_to_id)
             except HTTPError as e:
-                if e.response.status_code != 404:
+                if e.response.status_code != 404:  # type: ignore
                     raise
                 logger.debug(f"No label-to-taskid.json found for {task_id}: {e}")
 
@@ -160,7 +160,7 @@ def create_tasks(
 
     target_graph = full_task_graph.graph.transitive_closure(to_run)
     target_task_graph = TaskGraph(
-        {l: modifier(full_task_graph[l]) for l in target_graph.nodes}, target_graph
+        {l: modifier(full_task_graph[l]) for l in target_graph.nodes}, target_graph  # type: ignore
     )
     target_task_graph.for_each_task(update_parent)
     if decision_task_id and decision_task_id != os.environ.get("TASK_ID"):

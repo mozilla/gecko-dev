@@ -173,11 +173,11 @@ def load_image(url, imageName=None, imageTag=None):
         req = get_session().get(url, stream=True)
         req.raise_for_status()
 
-        with zstd.ZstdDecompressor().stream_reader(req.raw) as ifh:
+        with zstd.ZstdDecompressor().stream_reader(req.raw) as ifh:  # type: ignore
             tarin = tarfile.open(
                 mode="r|",
                 fileobj=ifh,
-                bufsize=zstd.DECOMPRESSION_RECOMMENDED_OUTPUT_SIZE,
+                bufsize=zstd.DECOMPRESSION_RECOMMENDED_OUTPUT_SIZE,  # type: ignore
             )
 
             # Stream through each member of the downloaded tar file individually.
@@ -194,8 +194,8 @@ def load_image(url, imageName=None, imageTag=None):
                 # image tags.
                 if member.name == "repositories":
                     # Read and parse repositories
-                    repos = json.loads(reader.read())
-                    reader.close()
+                    repos = json.loads(reader.read())  # type: ignore
+                    reader.close()  # type: ignore
 
                     # If there is more than one image or tag, we can't handle it
                     # here.
@@ -217,8 +217,8 @@ def load_image(url, imageName=None, imageTag=None):
                 # Then emit its content.
                 remaining = member.size
                 while remaining:
-                    length = min(remaining, zstd.DECOMPRESSION_RECOMMENDED_OUTPUT_SIZE)
-                    buf = reader.read(length)
+                    length = min(remaining, zstd.DECOMPRESSION_RECOMMENDED_OUTPUT_SIZE)  # type: ignore
+                    buf = reader.read(length)  # type: ignore
                     remaining -= len(buf)
                     yield buf
                 # Pad to fill a 512 bytes block, per tar format.
@@ -226,7 +226,7 @@ def load_image(url, imageName=None, imageTag=None):
                 if remainder:
                     yield ("\0" * (512 - remainder)).encode("utf-8")
 
-                reader.close()
+                reader.close()  # type: ignore
 
     subprocess.run(
         ["docker", "image", "load"], input=b"".join(download_and_modify_image())

@@ -39,8 +39,8 @@ class Repository(ABC):
         cmd = (self.binary,) + args
 
         try:
-            return subprocess.check_output(
-                cmd, cwd=self.path, env=self._env, encoding="utf-8", **kwargs
+            return subprocess.check_output(  # type: ignore
+                cmd, cwd=self.path, env=self._env, encoding="utf-8", **kwargs  # type: ignore
             )
         except subprocess.CalledProcessError as e:
             if e.returncode in return_codes:
@@ -48,11 +48,11 @@ class Repository(ABC):
             raise
 
     @abstractproperty
-    def tool(self) -> str:
+    def tool(self) -> str:  # type: ignore
         """Version control system being used, either 'hg' or 'git'."""
 
     @abstractproperty
-    def head_rev(self) -> str:
+    def head_rev(self) -> str:  # type: ignore
         """Hash of HEAD revision."""
 
     @abstractproperty
@@ -79,13 +79,13 @@ class Repository(ABC):
 
     def _get_most_suitable_remote(self, remote_instructions):
         remotes = self.all_remote_names
-        if len(remotes) == 1:
-            return remotes[0]
+        if len(remotes) == 1:  # type: ignore
+            return remotes[0]  # type: ignore
 
-        if self.default_remote_name in remotes:
+        if self.default_remote_name in remotes:  # type: ignore
             return self.default_remote_name
 
-        first_remote = remotes[0]
+        first_remote = remotes[0]  # type: ignore
         logger.warning(
             f"Unable to determine which remote repository to use between: {remotes}. "
             f'Arbitrarily using the first one "{first_remote}". Please set an '
@@ -177,8 +177,8 @@ class Repository(ABC):
 
 
 class HgRepository(Repository):
-    tool = "hg"
-    default_remote_name = "default"
+    tool = "hg"  # type: ignore
+    default_remote_name = "default"  # type: ignore
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -317,8 +317,8 @@ class HgRepository(Repository):
 
 
 class GitRepository(Repository):
-    tool = "git"
-    default_remote_name = "origin"
+    tool = "git"  # type: ignore
+    default_remote_name = "origin"  # type: ignore
 
     _LS_REMOTE_PATTERN = re.compile(r"ref:\s+refs/heads/(?P<branch_name>\S+)\s+HEAD")
 
@@ -389,7 +389,7 @@ class GitRepository(Repository):
     def _get_default_branch_from_remote_query(self):
         # This function requires network access to the repo
         remote_name = self.remote_name
-        output = self.run("ls-remote", "--symref", remote_name, "HEAD")
+        output = self.run("ls-remote", "--symref", remote_name, "HEAD")  # type: ignore
         matches = self._LS_REMOTE_PATTERN.search(output)
         if not matches:
             raise RuntimeError(

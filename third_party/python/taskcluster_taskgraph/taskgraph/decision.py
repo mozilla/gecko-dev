@@ -74,8 +74,28 @@ def taskgraph_decision(options, parameters=None):
      * generating a set of artifacts to memorialize the graph
      * calling TaskCluster APIs to create the graph
     """
+    level = logging.INFO
     if options.get("verbose"):
-        logging.root.setLevel(logging.DEBUG)
+        level = logging.DEBUG
+
+    logging.root.setLevel(level)
+    # Handlers must have an explicit level set for them to properly filter
+    # messages from child loggers (such as the optimization log a few lines
+    # down).
+    for h in logging.root.handlers:
+        h.setLevel(level)
+
+    if not os.path.isdir(ARTIFACTS_DIR):
+        os.mkdir(ARTIFACTS_DIR)
+
+    # optimizations are difficult to debug after the fact, so we always
+    # log them at DEBUG level, and write the log as a separate artifact
+    opt_log = logging.getLogger("optimization")
+    opt_log.setLevel(logging.DEBUG)
+    opt_handler = logging.FileHandler(ARTIFACTS_DIR / "optimizations.log", mode="w")
+    if logging.root.handlers:
+        opt_handler.setFormatter(logging.root.handlers[0].formatter)
+    opt_log.addHandler(opt_handler)
 
     parameters = parameters or (
         lambda graph_config: get_decision_parameters(graph_config, options)
@@ -359,7 +379,7 @@ def write_artifact(filename, data):
         import gzip
 
         with gzip.open(path, "wb") as f:
-            f.write(json.dumps(data))
+            f.write(json.dumps(data))  # type: ignore
     else:
         raise TypeError(f"Don't know how to write to {filename}")
 

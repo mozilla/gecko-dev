@@ -65,14 +65,14 @@ def get_worker_type(graph_config, alias, level):
         worker_config["provisioner"],
         alias,
         {"level": level},
-    ).format(
+    ).format(  # type: ignore
         **{"alias": alias, "level": level, "trust-domain": graph_config["trust-domain"]}
     )
     worker_type = evaluate_keyed_by(
         worker_config["worker-type"],
         alias,
         {"level": level},
-    ).format(
+    ).format(  # type: ignore
         **{"alias": alias, "level": level, "trust-domain": graph_config["trust-domain"]}
     )
     return provisioner, worker_type

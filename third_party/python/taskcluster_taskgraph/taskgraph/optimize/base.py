@@ -24,7 +24,7 @@ from taskgraph.util.parameterization import resolve_task_references, resolve_tim
 from taskgraph.util.python_path import import_sibling_modules
 from taskgraph.util.taskcluster import find_task_id_batched, status_task_batched
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("optimization")
 registry = {}
 
 
@@ -333,7 +333,7 @@ def replace_tasks(
         if dependents:
             now = datetime.datetime.utcnow()
             deadline = max(
-                resolve_timestamps(now, task.task["deadline"]) for task in dependents
+                resolve_timestamps(now, task.task["deadline"]) for task in dependents  # type: ignore
             )
 
         if isinstance(opt, IndexSearch):
@@ -428,7 +428,7 @@ def get_subgraph(
             decision_task_id=decision_task_id,
             dependencies=named_task_dependencies,
         )
-        deps = task.task.setdefault("dependencies", [])
+        deps = task.task.setdefault("dependencies", [])  # type: ignore
         deps.extend(sorted(named_task_dependencies.values()))
         tasks_by_taskid[task.task_id] = task
 
@@ -445,7 +445,7 @@ def get_subgraph(
         if left in tasks_by_taskid and right in tasks_by_taskid
     }
 
-    return TaskGraph(tasks_by_taskid, Graph(set(tasks_by_taskid), edges_by_taskid))
+    return TaskGraph(tasks_by_taskid, Graph(set(tasks_by_taskid), edges_by_taskid))  # type: ignore
 
 
 @register_strategy("never")

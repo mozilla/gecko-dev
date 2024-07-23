@@ -38,15 +38,15 @@ def import_sibling_modules(exceptions=None):
     frame = inspect.stack()[1]
     mod = inspect.getmodule(frame[0])
 
-    name = os.path.basename(mod.__file__)
+    name = os.path.basename(mod.__file__)  # type: ignore
     excs = {"__init__.py", name}
     if exceptions:
         excs.update(exceptions)
 
-    modpath = mod.__name__
+    modpath = mod.__name__  # type: ignore
     if not name.startswith("__init__.py"):
         modpath = modpath.rsplit(".", 1)[0]
 
-    for f in os.listdir(os.path.dirname(mod.__file__)):
+    for f in os.listdir(os.path.dirname(mod.__file__)):  # type: ignore
         if f.endswith(".py") and f not in excs:
             __import__(modpath + "." + f[:-3])

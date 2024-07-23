@@ -68,7 +68,7 @@ def fetch_builder(name, schema):
     schema = Schema({Required("type"): name}).extend(schema)
 
     def wrap(func):
-        fetch_builders[name] = FetchBuilder(schema, func)
+        fetch_builders[name] = FetchBuilder(schema, func)  # type: ignore
         return func
 
     return wrap
@@ -246,7 +246,7 @@ def create_fetch_url_task(config, name, fetch):
 
     if "gpg-signature" in fetch:
         sig_url = fetch["gpg-signature"]["sig-url"].format(url=fetch["url"])
-        key_path = os.path.join(taskgraph.GECKO, fetch["gpg-signature"]["key-path"])
+        key_path = os.path.join(taskgraph.GECKO, fetch["gpg-signature"]["key-path"])  # type: ignore
 
         with open(key_path) as fh:
             gpg_key = fh.read()

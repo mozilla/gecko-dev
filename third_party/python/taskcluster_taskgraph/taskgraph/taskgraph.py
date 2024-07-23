@@ -41,7 +41,7 @@ class TaskGraph:
 
     def __iter__(self):
         "Iterate over tasks in undefined order"
-        return iter(self.tasks.values())
+        return iter(self.tasks.values())  # type: ignore
 
     def to_json(self):
         "Return a JSON-able object representing the task graph, as documented"
@@ -68,5 +68,5 @@ class TaskGraph:
                 tasks[key].task_id = value["task_id"]
             for depname, dep in value["dependencies"].items():
                 edges.add((key, dep, depname))
-        task_graph = cls(tasks, Graph(set(tasks), edges))
+        task_graph = cls(tasks, Graph(set(tasks), edges))  # type: ignore
         return tasks, task_graph

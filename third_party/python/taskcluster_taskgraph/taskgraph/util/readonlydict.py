@@ -3,7 +3,9 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # Imported from
-# https://searchfox.org/mozilla-central/rev/c3ebaf6de2d481c262c04bb9657eaf76bf47e2ac/python/mozbuild/mozbuild/util.py#115-127
+# https://searchfox.org/mozilla-central/rev/ece43b04e7baa4680dac46a06d5ad42b27b124f4/python/mozbuild/mozbuild/util.py#102
+
+import copy
 
 
 class ReadOnlyDict(dict):
@@ -20,3 +22,20 @@ class ReadOnlyDict(dict):
 
     def update(self, *args, **kwargs):
         raise Exception("Object does not support update.")
+
+    def __copy__(self, *args, **kwargs):
+        return ReadOnlyDict(**dict.copy(self, *args, **kwargs))
+
+    def __deepcopy__(self, memo):
+        result = {}
+        for k, v in self.items():
+            result[k] = copy.deepcopy(v, memo)
+
+        return ReadOnlyDict(**result)
+
+    def __reduce__(self, *args, **kwargs):
+        """
+        Support for `pickle`.
+        """
+
+        return (self.__class__, (dict(self),))

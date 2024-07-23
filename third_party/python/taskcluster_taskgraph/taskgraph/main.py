@@ -88,10 +88,10 @@ def get_filtered_taskgraph(taskgraph, tasksregex, exclude_keys):
                     if regexprogram.match(dep):
                         filterededges.add((key, dep, depname))
 
-        taskgraph = TaskGraph(filteredtasks, Graph(set(filteredtasks), filterededges))
+        taskgraph = TaskGraph(filteredtasks, Graph(set(filteredtasks), filterededges))  # type: ignore
 
     if exclude_keys:
-        for label, task in taskgraph.tasks.items():
+        for label, task in taskgraph.tasks.items():  # type: ignore
             task = task.to_json()
             for key in exclude_keys:
                 obj = task
@@ -490,7 +490,7 @@ def show_taskgraph(options):
             base_path = os.path.join(
                 diffdir, f"{options['graph_attr']}_{base_rev_file}"
             )
-            cur_path = os.path.join(diffdir, f"{options['graph_attr']}_{cur_rev_file}")
+            cur_path = os.path.join(diffdir, f"{options['graph_attr']}_{cur_rev_file}")  # type: ignore
 
             params_name = None
             if len(parameters) > 1:
@@ -859,10 +859,10 @@ def init_taskgraph(options):
             shutil.rmtree(tg_dir)
 
     # Populate some defaults from the current repository.
-    context = {"project_name": root.name}
+    context = {"project_name": root.name, "taskgraph_version": taskgraph.__version__}
 
     try:
-        repo_url = repo.get_url(remote=repo.remote_name)
+        repo_url = repo.get_url(remote=repo.remote_name)  # type: ignore
     except RuntimeError:
         repo_url = ""
 
@@ -895,7 +895,7 @@ def init_taskgraph(options):
         directory="template",
         extra_context=context,
         no_input=options["no_input"],
-        output_dir=root.parent,
+        output_dir=root.parent,  # type: ignore
         overwrite_if_exists=True,
     )
 
