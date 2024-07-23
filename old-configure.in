@@ -56,12 +56,6 @@ case "$target" in
 *-mingw*)
     MOZ_OPTIMIZE_FLAGS="-O2"
     ;;
-
-*-netbsd*)
-    CFLAGS="$CFLAGS -Dunix"
-    CXXFLAGS="$CXXFLAGS -Dunix"
-    ;;
-
 esac
 
 if test -z "$MOZ_OPTIMIZE_FLAGS"; then

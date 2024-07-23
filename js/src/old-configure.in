@@ -68,11 +68,6 @@ case "$target" in
     MOZ_OPTIMIZE_FLAGS="-O2"
     ;;
 
-*-netbsd*)
-    CFLAGS="$CFLAGS -Dunix"
-    CXXFLAGS="$CXXFLAGS -Dunix"
-    ;;
-
 *-wasi*)
     CXXFLAGS="$CXXFLAGS -mthread-model single"
     ;;
