@@ -9,10 +9,9 @@
 
 #include <algorithm>
 #include <limits>
+#include <limits.h>
 #include <stdint.h>
 #include <type_traits>
-
-#include "vm/Float16.h"
 
 namespace js {
 
@@ -112,41 +111,46 @@ static_assert(std::is_trivial_v<uint8_clamped>,
               "uint8_clamped must be trivial to be eligible for memcpy/memset "
               "optimizations");
 
-/* Note that we can't use std::numeric_limits here due to uint8_clamped. */
-template <typename T>
-inline constexpr bool TypeIsFloatingPoint() {
-  return false;
-}
-template <>
-inline constexpr bool TypeIsFloatingPoint<float16>() {
-  return true;
-}
-template <>
-inline constexpr bool TypeIsFloatingPoint<float>() {
-  return true;
-}
-template <>
-inline constexpr bool TypeIsFloatingPoint<double>() {
-  return true;
-}
-
-template <typename T>
-inline constexpr bool TypeIsUnsigned() {
-  return false;
-}
-template <>
-inline constexpr bool TypeIsUnsigned<uint8_t>() {
-  return true;
-}
-template <>
-inline constexpr bool TypeIsUnsigned<uint16_t>() {
-  return true;
-}
-template <>
-inline constexpr bool TypeIsUnsigned<uint32_t>() {
-  return true;
-}
-
 }  // namespace js
+
+template <>
+class std::numeric_limits<js::uint8_clamped> {
+ public:
+  static constexpr bool is_specialized = true;
+  static constexpr bool is_signed = false;
+  static constexpr bool is_integer = true;
+  static constexpr bool is_exact = true;
+  static constexpr bool has_infinity = false;
+  static constexpr bool has_quiet_NaN = false;
+  static constexpr bool has_signaling_NaN = false;
+  static constexpr std::float_denorm_style has_denorm = std::denorm_absent;
+  static constexpr bool has_denorm_loss = false;
+  static constexpr std::float_round_style round_style = std::round_toward_zero;
+  static constexpr bool is_iec559 = false;
+  static constexpr bool is_bounded = true;
+  static constexpr bool is_modulo = false;
+  static constexpr int digits = CHAR_BIT;
+  static constexpr int digits10 = int(digits * /* std::log10(2) */ 0.30102999);
+  static constexpr int max_digits10 = 0;
+  static constexpr int radix = 2;
+  static constexpr int min_exponent = 0;
+  static constexpr int min_exponent10 = 0;
+  static constexpr int max_exponent = 0;
+  static constexpr int max_exponent10 = 0;
+  static constexpr bool traps = true;
+  static constexpr bool tinyness_before = false;
+
+  static constexpr auto min() noexcept { return js::uint8_clamped{0}; }
+  static constexpr auto lowest() noexcept { return min(); }
+  static constexpr auto max() noexcept { return js::uint8_clamped{255}; }
+  static constexpr auto epsilon() noexcept { return js::uint8_clamped{0}; }
+  static constexpr auto round_error() noexcept { return js::uint8_clamped{0}; }
+  static constexpr auto infinity() noexcept { return js::uint8_clamped{0}; }
+  static constexpr auto quiet_NaN() noexcept { return js::uint8_clamped{0}; }
+  static constexpr auto signaling_NaN() noexcept {
+    return js::uint8_clamped{0};
+  }
+  static constexpr auto denorm_min() noexcept { return js::uint8_clamped{0}; }
+};
 
 #endif  // vm_Uint8Clamped_h

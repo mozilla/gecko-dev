@@ -771,8 +771,7 @@ class ElementSpecific {
   }
 
   static bool canConvertInfallibly(const Value& v) {
-    if (TypeIDOfType<T>::id == Scalar::BigInt64 ||
-        TypeIDOfType<T>::id == Scalar::BigUint64) {
+    if (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t>) {
       // Numbers, Null, Undefined, and Symbols throw a TypeError. Strings may
       // OOM and Objects may have side-effects.
       return v.isBigInt() || v.isBoolean();
@@ -783,13 +782,13 @@ class ElementSpecific {
   }
 
   static T infallibleValueToNative(const Value& v) {
-    if (TypeIDOfType<T>::id == Scalar::BigInt64) {
+    if (std::is_same_v<T, int64_t>) {
       if (v.isBigInt()) {
         return T(BigInt::toInt64(v.toBigInt()));
       }
       return T(v.toBoolean());
     }
-    if (TypeIDOfType<T>::id == Scalar::BigUint64) {
+    if (std::is_same_v<T, uint64_t>) {
       if (v.isBigInt()) {
         return T(BigInt::toUint64(v.toBigInt()));
       }
@@ -809,7 +808,7 @@ class ElementSpecific {
     }
 
     MOZ_ASSERT(v.isUndefined());
-    return TypeIsFloatingPoint<T>() ? T(JS::GenericNaN()) : T(0);
+    return !std::numeric_limits<T>::is_integer ? T(JS::GenericNaN()) : T(0);
   }
 
   static bool valueToNative(JSContext* cx, HandleValue v, T* result) {
@@ -842,7 +841,7 @@ class ElementSpecific {
   }
 
   static T doubleToNative(double d) {
-    if (TypeIsFloatingPoint<T>()) {
+    if constexpr (!std::numeric_limits<T>::is_integer) {
       // The JS spec doesn't distinguish among different NaN values, and
       // it deliberately doesn't specify the bit pattern written to a
       // typed array when NaN is written into it.  This bit-pattern
@@ -852,14 +851,13 @@ class ElementSpecific {
         d = JS::CanonicalizeNaN(d);
       }
       return T(d);
-    }
-    if (TypeIDOfType<T>::id == Scalar::Uint8Clamped) {
+    } else if constexpr (std::is_same_v<T, uint8_clamped>) {
       return T(d);
-    }
-    if (TypeIsUnsigned<T>()) {
+    } else if constexpr (!std::numeric_limits<T>::is_signed) {
       return T(JS::ToUint32(d));
+    } else {
+      return T(JS::ToInt32(d));
     }
-    return T(JS::ToInt32(d));
   }
 };
 
