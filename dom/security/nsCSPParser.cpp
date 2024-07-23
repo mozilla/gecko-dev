@@ -1441,9 +1441,9 @@ nsCSPPolicy* nsCSPParser::parseContentSecurityPolicy(
       NS_ENSURE_SUCCESS(rv, policy);
       AutoTArray<nsString, 1> params;
       CopyUTF8toUTF16(prePath, *params.AppendElement());
-      parser.logWarningErrorToConsole(nsIScriptError::warningFlag,
-                                      "reportURINorReportToNotInReportOnlyHeader",
-                                      params);
+      parser.logWarningErrorToConsole(
+          nsIScriptError::warningFlag,
+          "reportURINorReportToNotInReportOnlyHeader", params);
     }
   }
 
