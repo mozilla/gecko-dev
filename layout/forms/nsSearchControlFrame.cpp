@@ -6,22 +6,11 @@
 
 #include "nsSearchControlFrame.h"
 
-#include "HTMLInputElement.h"
 #include "mozilla/PresShell.h"
 #include "nsGkAtoms.h"
-#include "nsNameSpaceManager.h"
-#include "nsStyleConsts.h"
 #include "nsContentUtils.h"
-#include "nsContentCreatorFunctions.h"
-#include "nsCSSPseudoElements.h"
-#include "nsICSSDeclaration.h"
-
-#ifdef ACCESSIBILITY
-#  include "mozilla/a11y/AccTypes.h"
-#endif
 
 using namespace mozilla;
-using namespace mozilla::dom;
 
 nsIFrame* NS_NewSearchControlFrame(PresShell* aPresShell,
                                    ComputedStyle* aStyle) {
