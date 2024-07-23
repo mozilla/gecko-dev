@@ -132,6 +132,11 @@ nsIDNService::nsIDNService() { MOZ_ASSERT(NS_IsMainThread()); }
 
 nsIDNService::~nsIDNService() = default;
 
+NS_IMETHODIMP nsIDNService::DomainToASCII(const nsACString& input,
+                                          nsACString& ace) {
+  return NS_DomainToASCII(input, ace);
+}
+
 NS_IMETHODIMP nsIDNService::ConvertUTF8toACE(const nsACString& input,
                                              nsACString& ace) {
   return NS_DomainToASCIIAllowAnyGlyphfulASCII(input, ace);
@@ -166,6 +171,12 @@ NS_IMETHODIMP nsIDNService::IsACE(const nsACString& input, bool* _retval) {
       (!input.IsEmpty() && input[0] != '.' &&
        stringContains(input, ".xn--"_ns));
   return NS_OK;
+}
+
+NS_IMETHODIMP nsIDNService::DomainToDisplay(const nsACString& input,
+                                            nsACString& _retval) {
+  nsresult rv = NS_DomainToDisplay(input, _retval);
+  return rv;
 }
 
 NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString& input,
