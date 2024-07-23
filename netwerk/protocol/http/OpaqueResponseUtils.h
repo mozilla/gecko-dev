@@ -131,7 +131,7 @@ class OpaqueResponseBlocker final : public nsIStreamListener {
                               nsILoadInfo* aLoadInfo);
 
   void ResolveAndProcessData(HttpBaseChannel* aChannel, bool aAllowed,
-                             Maybe<ipc::Shmem>& aSharedData);
+                             Maybe<mozilla::ipc::Shmem>& aSharedData);
 
   void MaybeRunOnStopRequest(HttpBaseChannel* aChannel);
 
