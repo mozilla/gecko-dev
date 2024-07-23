@@ -27,7 +27,7 @@ class NimbusTest {
 
     @Test
     fun `Nimbus disabled and enabled can have observers registered on it`() {
-        val enabled: NimbusApi = Nimbus(context, appInfo, listOf(), null, delegate = NimbusDelegate.default(), recordedContext = null)
+        val enabled: NimbusApi = Nimbus(context, appInfo, listOf(), null, delegate = NimbusDelegate.default())
         val disabled: NimbusApi = NimbusDisabled(context)
 
         val observer = object : NimbusInterface.Observer {}
