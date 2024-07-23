@@ -796,6 +796,9 @@ nsresult AntiTrackingUtils::IsThirdPartyToPartitionKeySite(
                                            _unused2)) {
     return NS_ERROR_FAILURE;
   }
+  if (host.IsEmpty()) {
+    return NS_ERROR_FAILURE;
+  }
   nsAutoString partitionKeySite = scheme + u"://"_ns + host;
   nsCOMPtr<nsIURI> partitionKeySiteURI;
   rv = NS_NewURI(getter_AddRefs(partitionKeySiteURI), partitionKeySite);
