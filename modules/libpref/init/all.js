@@ -2505,9 +2505,9 @@ pref("font.size.monospace.x-math", 13);
   pref("font.name-list.cursive.x-cyrillic", "Geneva");
   pref("font.name-list.fantasy.x-cyrillic", "Charcoal CY");
 
-  pref("font.name-list.serif.x-devanagari", "Devanagari MT");
-  pref("font.name-list.sans-serif.x-devanagari", "Devanagari Sangam MN, Devanagari MT");
-  pref("font.name-list.monospace.x-devanagari", "Menlo, Devanagari Sangam MN, Devanagari MT");
+  pref("font.name-list.serif.x-devanagari", "ITF Devanagari, Devanagari MT");
+  pref("font.name-list.sans-serif.x-devanagari", "Kohinoor Devanagari, Devanagari Sangam MN, Devanagari MT");
+  pref("font.name-list.monospace.x-devanagari", "Menlo, Kohinoor Devanagari, Devanagari Sangam MN, Devanagari MT");
 
   // Abyssinica SIL http://scripts.sil.org/AbyssinicaSIL_Download
   pref("font.name-list.serif.x-ethi", "Kefa, Abyssinica SIL");
@@ -2691,9 +2691,9 @@ pref("font.size.monospace.x-math", 13);
   pref("font.name-list.sans-serif.x-cyrillic", "Arial");
   pref("font.name-list.monospace.x-cyrillic", "Menlo");
 
-  pref("font.name-list.serif.x-devanagari", "Devanagari Sangam MN");
-  pref("font.name-list.sans-serif.x-devanagari", "Devanagari Sangam MN");
-  pref("font.name-list.monospace.x-devanagari", "Menlo, Devanagari Sangam MN");
+  pref("font.name-list.serif.x-devanagari", "Kohinoor Devanagari, Devanagari Sangam MN");
+  pref("font.name-list.sans-serif.x-devanagari", "Kohinoor Devanagari, Devanagari Sangam MN");
+  pref("font.name-list.monospace.x-devanagari", "Menlo, Kohinoor Devanagari, Devanagari Sangam MN");
 
   pref("font.name-list.serif.x-ethi", "Kefa");
   pref("font.name-list.sans-serif.x-ethi", "Kefa");
