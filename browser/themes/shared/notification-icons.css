@@ -193,7 +193,8 @@
   list-style-image: url(chrome://browser/skin/fingerprint.svg);
 }
 
-#identity-credential-notification-icon {
+#identity-credential-notification-icon,
+#credential-chooser-notification-icon {
   list-style-image: url(chrome://browser/skin/login.svg);
 }
 
