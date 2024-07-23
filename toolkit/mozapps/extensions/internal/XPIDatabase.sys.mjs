@@ -30,6 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   PermissionsUtils: "resource://gre/modules/PermissionsUtils.sys.mjs",
   QuarantinedDomains: "resource://gre/modules/ExtensionPermissions.sys.mjs",
+  ExtensionPermissions: "resource://gre/modules/ExtensionPermissions.sys.mjs",
 });
 
 // WARNING: BuiltInThemes.sys.mjs may be provided by the host application (e.g.
@@ -1436,20 +1437,26 @@ AddonWrapper = class {
   }
 
   get optionalOriginsNormalized() {
-    const { permissions } = this.userPermissions;
-    const { origins } = this.optionalPermissions;
+    const { permissions } = this.userPermissions ?? {};
 
-    const { patterns } = new MatchPatternSet(origins, {
-      restrictSchemes: !(
-        this.isPrivileged && permissions?.includes("mozillaAddons")
-      ),
+    const priv = this.isPrivileged && permissions?.includes("mozillaAddons");
+    const mps = new MatchPatternSet(this.optionalPermissions?.origins ?? [], {
+      restrictSchemes: !priv,
       ignorePath: true,
     });
 
+    let temp = [...lazy.ExtensionPermissions.tempOrigins.get(this.id)];
+    let origins = [
+      ...mps.patterns.map(matcher => matcher.pattern),
+      ...temp.filter(o =>
+        // Make sure origins are still in the current set of optional
+        // permissions, which might have changed on extension update.
+        mps.subsumes(new MatchPattern(o, { restrictSchemes: !priv }))
+      ),
+    ];
+
     // De-dup the normalized host permission patterns.
-    return patterns
-      ? [...new Set(patterns.map(matcher => matcher.pattern))]
-      : [];
+    return [...new Set(origins)];
   }
 
   isCompatibleWith(aAppVersion, aPlatformVersion) {

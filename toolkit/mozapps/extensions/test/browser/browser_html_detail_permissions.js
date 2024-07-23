@@ -193,6 +193,21 @@ async function getExtensions({ manifest_version = 2, expectGranted } = {}) {
   return extensions;
 }
 
+function waitForPermissionChange(id) {
+  return new Promise(resolve => {
+    info(`listening for change on ${id}`);
+    let listener = (type, data) => {
+      info(`change permissions ${JSON.stringify(data)}`);
+      if (data.extensionId !== id) {
+        return;
+      }
+      ExtensionPermissions.removeListener(listener);
+      resolve(data);
+    };
+    ExtensionPermissions.addListener(listener);
+  });
+}
+
 async function runTest(options) {
   let {
     extension,
@@ -273,21 +288,6 @@ async function runTest(options) {
 
   let addon = await AddonManager.getAddonByID(addonId);
   info(`addon ${addon.id} is ${addon.userDisabled ? "disabled" : "enabled"}`);
-
-  function waitForPermissionChange(id) {
-    return new Promise(resolve => {
-      info(`listening for change on ${id}`);
-      let listener = (type, data) => {
-        info(`change permissions ${JSON.stringify(data)}`);
-        if (data.extensionId !== id) {
-          return;
-        }
-        ExtensionPermissions.removeListener(listener);
-        resolve(data);
-      };
-      ExtensionPermissions.addListener(listener);
-    });
-  }
 
   // This tests the permission change and button state when the user
   // changes the state in about:addons.
@@ -694,6 +694,79 @@ add_task(async function testPermissionsViewStates() {
   );
 
   await closeView(view);
+  await extension.unload();
+});
+
+add_task(async function testTempOrigins() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.webextOptionalPermissionPrompts", false]],
+  });
+
+  const addonId = "temp@mochi.test";
+  const originA = "*://a.com/*";
+  const originB = "*://b.net/*";
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      manifest_version: 3,
+      browser_specific_settings: { gecko: { id: addonId } },
+      optional_permissions: ["<all_urls>"],
+    },
+    useAddonManager: "permanent",
+    background() {
+      browser.test.onMessage.addListener(origins => {
+        browser.test.withHandlingUserInput(() => {
+          browser.permissions.request({ origins });
+        });
+      });
+    },
+  });
+
+  async function checkExpected(origins, granted) {
+    let view = await loadInitialView("extension");
+    await runTest({
+      addonId,
+      optional_permissions: ["<all_urls>", ...origins],
+      optional_enabled: granted,
+      view,
+    });
+    await closeView(view);
+  }
+
+  await extension.startup();
+
+  info("Checking before any runtime permission requests.");
+  await checkExpected([], []);
+
+  let grantA = waitForPermissionChange(addonId);
+  extension.sendMessage([originA]);
+  let perms = await grantA;
+  Assert.deepEqual(perms.added.origins, [originA], `Granted ${originA}`);
+
+  info(`Expect ${originA} granted.`);
+  await checkExpected([originA], [originA]);
+
+  let revokeA = waitForPermissionChange(addonId);
+  ExtensionPermissions.remove(addonId, { origins: [originA], permissions: [] });
+  let perms2 = await revokeA;
+  Assert.deepEqual(perms2.removed.origins, [originA], `Revoked ${originA}`);
+
+  let grantB = waitForPermissionChange(addonId);
+  extension.sendMessage([originB]);
+  let perms3 = await grantB;
+  Assert.deepEqual(perms3.added.origins, [originB], `Granted ${originB}`);
+
+  info(`Expect ${originA} revoked and ${originB} granted.`);
+  await checkExpected([originA, originB], [originB]);
+
+  let revokeB = waitForPermissionChange(addonId);
+  ExtensionPermissions.remove(addonId, { origins: [originB], permissions: [] });
+  let perms4 = await revokeB;
+  Assert.deepEqual(perms4.removed.origins, [originB], `Revoked ${originB}`);
+
+  info(`Expect both origins revoked, but still present in the list.`);
+  await checkExpected([originA, originB], []);
+
   await extension.unload();
 });
 

@@ -1921,10 +1921,11 @@ class AddonPermissionsList extends HTMLElement {
       // If optional permissions include <all_urls>, extension can request and
       // be granted permission for individual sites not listed in the manifest.
       // Include them as well in the optional origins list.
-      optionalPerms.origins = [
-        ...optionalPerms.origins,
+      let origins = [
+        ...(this.addon.optionalOriginsNormalized ?? []),
         ...grantedPerms.origins.filter(o => !requiredPerms.origins.includes(o)),
       ];
+      optionalPerms.origins = [...new Set(origins)];
     }
 
     let permissions = Extension.formatPermissionStrings(

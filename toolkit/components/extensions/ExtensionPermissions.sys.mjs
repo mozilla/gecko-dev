@@ -6,6 +6,7 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+import { ExtensionUtils } from "resource://gre/modules/ExtensionUtils.sys.mjs";
 
 /** @type {Lazy} */
 const lazy = {};
@@ -322,6 +323,14 @@ let store = createStore();
 const extPermAccessQueues = new Map();
 
 export var ExtensionPermissions = {
+  /**
+   * A per-extension container for origins requested at runtime, not in the
+   * manifest. This is only preserved in memory for UI consistency.
+   *
+   * @type {Map<string, Set>}
+   */
+  tempOrigins: new ExtensionUtils.DefaultMap(() => new Set()),
+
   // The public ExtensionPermissions.add, get, remove, removeAll methods may
   // interact with the same underlying data source. These methods are not
   // designed with concurrent modifications in mind, and therefore we
@@ -523,11 +532,17 @@ export var ExtensionPermissions = {
           emitter.emit("remove-permissions", removed);
         }
       }
+
+      let temp = this.tempOrigins.get(extensionId);
+      for (let origin of removed.origins) {
+        temp.add(origin);
+      }
     });
   },
 
   async removeAll(extensionId) {
     return this._synchronizeExtPermAccess(extensionId, async () => {
+      this.tempOrigins.delete(extensionId);
       lazy.StartupCache.permissions.delete(extensionId);
 
       let removed = store.get(extensionId);
