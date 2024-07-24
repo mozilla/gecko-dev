@@ -128,7 +128,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                 context = requireContext(),
                 browserStore = requireContext().components.core.store,
                 appStore = requireContext().components.appStore,
-                snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),
+                snackbarDelegate = FenixSnackbarDelegate(binding.root),
                 navController = findNavController(),
                 customTabSessionId = null,
             ),
@@ -142,7 +142,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
     private fun showSnackBarWithText(text: String) {
         view?.let {
             FenixSnackbar.make(
-                view = binding.dynamicSnackbarContainer,
+                view = it,
                 duration = FenixSnackbar.LENGTH_LONG,
                 isDisplayedWithBrowserToolbar = false,
             ).setText(text).show()

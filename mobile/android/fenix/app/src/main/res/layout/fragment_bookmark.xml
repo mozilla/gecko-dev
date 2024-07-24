@@ -13,10 +13,4 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical" />
-
-    <FrameLayout
-        android:id="@+id/dynamicSnackbarContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:elevation="@dimen/browser_fragment_toolbar_elevation"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
