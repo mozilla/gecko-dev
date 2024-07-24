@@ -62,8 +62,6 @@ rtc_library("video_file_reader") {
     "../rtc_base:logging",
     "../rtc_base:refcount",
     "../rtc_base:stringutils",
-  ]
-  absl_deps = [
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
@@ -80,10 +78,7 @@ rtc_library("video_file_writer") {
     "../api/video:video_frame",
     "../api/video:video_rtp_headers",
     "../rtc_base:logging",
-  ]
-  absl_deps = [
     "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -114,9 +109,9 @@ rtc_library("video_quality_analysis") {
     "../common_video",
     "../rtc_base:checks",
     "../rtc_base:logging",
+    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/libyuv",
   ]
-  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
 
 # TODO(bugs.webrtc.org/11474): Enable this on win if needed. For now it
@@ -427,12 +422,10 @@ if (!build_with_chromium) {
         "../rtc_base/network:sent_packet",
         "../system_wrappers",
         "../test:explicit_key_value_config",
-      ]
-      absl_deps = [
         "//third_party/abseil-cpp/absl/algorithm:container",
         "//third_party/abseil-cpp/absl/base:core_headers",
         "//third_party/abseil-cpp/absl/functional:bind_front",
-        "//third_party/abseil-cpp/absl/strings",
+        "//third_party/abseil-cpp/absl/strings:string_view",
         "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
@@ -451,8 +444,9 @@ if (!build_with_chromium) {
         "//logging:rtc_event_log_parser",
         "//rtc_base:protobuf_utils",
         "//rtc_base:safe_conversions",
+        "//third_party/abseil-cpp/absl/strings",
+        "//third_party/abseil-cpp/absl/strings:string_view",
       ]
-      absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
     }
 
     rtc_library("event_log_visualizer_bindings_unittest") {

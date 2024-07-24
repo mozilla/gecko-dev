@@ -416,7 +416,7 @@ index 3ff4b58a2e..ad0f3c9396 100644
  
  bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 112980fc64..128029e9ed 100644
+index 684b076d27..4a1f13a4b9 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
@@ -1563,10 +1563,10 @@ index 0134e3ea58..86d1bdda16 100644
    std::unique_ptr<ScalableVideoController> svc_controller_;
    absl::optional<ScalabilityMode> scalability_mode_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index f6b6439bea..2e48158a78 100644
+index 3b8926d7a3..1610e9f426 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -470,6 +470,12 @@ rtc_library("logging") {
+@@ -465,6 +465,12 @@ rtc_library("logging") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  

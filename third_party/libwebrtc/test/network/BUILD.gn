@@ -85,12 +85,10 @@ rtc_library("emulated_network") {
     "../../test:scoped_key_value_config",
     "../scenario:column_printer",
     "../time_controller",
-  ]
-  absl_deps = [
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/memory",
-    "//third_party/abseil-cpp/absl/strings",
+    "//third_party/abseil-cpp/absl/strings:string_view",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
@@ -139,8 +137,6 @@ rtc_library("cross_traffic_unittest") {
     "../../rtc_base:network_constants",
     "../../rtc_base:rtc_event",
     "../time_controller",
-  ]
-  absl_deps = [
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
@@ -180,8 +176,8 @@ if (rtc_include_tests) {
       "../../api/transport:test_feedback_generator_interface",
       "../../rtc_base:checks",
       "../time_controller",
+      "//third_party/abseil-cpp/absl/memory",
     ]
-    absl_deps = [ "//third_party/abseil-cpp/absl/memory" ]
   }
 
   rtc_library("feedback_generator_unittest") {
@@ -224,8 +220,8 @@ rtc_library("simulated_network") {
     "../../rtc_base:race_checker",
     "../../rtc_base:random",
     "../../rtc_base/synchronization:mutex",
+    "//third_party/abseil-cpp/absl/types:optional",
   ]
-  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
 
 if (rtc_include_tests) {
@@ -241,7 +237,7 @@ if (rtc_include_tests) {
       "../../api/units:time_delta",
       "../../api/units:timestamp",
       "//testing/gtest",
+      "//third_party/abseil-cpp/absl/algorithm:container",
     ]
-    absl_deps = [ "//third_party/abseil-cpp/absl/algorithm:container" ]
   }
 }

@@ -13,10 +13,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4e7b3c485e549e7e3
  1 file changed, 6 insertions(+)
 
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 9a3a016718..262a56c053 100644
+index 07e362e49a..61cdf0ee2e 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1033,6 +1033,12 @@ rtc_library("threading") {
+@@ -1019,6 +1019,12 @@ rtc_library("threading") {
      "thread.cc",
      "thread.h",
    ]
@@ -26,6 +26,6 @@ index 9a3a016718..262a56c053 100644
 +      "physical_socket_server.h",
 +    ]
 +  }
-   absl_deps = [
-     "//third_party/abseil-cpp/absl/algorithm:container",
-     "//third_party/abseil-cpp/absl/base:core_headers",
+   deps = [
+     ":async_dns_resolver",
+     ":byte_order",

@@ -48,7 +48,7 @@ index 7533507619..b3474f3238 100644
      if (mips_float_abi == "hard") {
        defines += [ "MIPS_FPU_LE" ]
 diff --git a/common_audio/BUILD.gn b/common_audio/BUILD.gn
-index a45214f754..79d9321bbd 100644
+index 5b24c35646..20692e9d59 100644
 --- a/common_audio/BUILD.gn
 +++ b/common_audio/BUILD.gn
 @@ -66,7 +66,7 @@ rtc_library("common_audio") {
@@ -172,7 +172,7 @@ index ac862c65a8..e66ed2796e 100644
    } else {
      sources += [ "spl_sqrt_floor.c" ]
 diff --git a/modules/audio_processing/aec3/BUILD.gn b/modules/audio_processing/aec3/BUILD.gn
-index 3e11a245a1..c29b893b7d 100644
+index a55132fcdc..584d9676ab 100644
 --- a/modules/audio_processing/aec3/BUILD.gn
 +++ b/modules/audio_processing/aec3/BUILD.gn
 @@ -123,7 +123,7 @@ rtc_library("aec3") {
@@ -184,7 +184,7 @@ index 3e11a245a1..c29b893b7d 100644
      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
      cflags = [ "-mfpu=neon" ]
    }
-@@ -162,7 +162,7 @@ rtc_library("aec3") {
+@@ -160,7 +160,7 @@ rtc_library("aec3") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  
@@ -193,7 +193,7 @@ index 3e11a245a1..c29b893b7d 100644
      deps += [ ":aec3_avx2" ]
    }
  }
-@@ -253,7 +253,7 @@ rtc_source_set("fft_data") {
+@@ -251,7 +251,7 @@ rtc_source_set("fft_data") {
    ]
  }
  
@@ -224,7 +224,7 @@ index 80f2901049..a77f04aba5 100644
    } else {
      sources += [ "aecm_core_c.cc" ]
 diff --git a/modules/audio_processing/agc/BUILD.gn b/modules/audio_processing/agc/BUILD.gn
-index 28312826a1..836b252d81 100644
+index 1616f54581..10af426741 100644
 --- a/modules/audio_processing/agc/BUILD.gn
 +++ b/modules/audio_processing/agc/BUILD.gn
 @@ -83,7 +83,7 @@ rtc_library("legacy_agc") {
@@ -237,7 +237,7 @@ index 28312826a1..836b252d81 100644
        suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
        cflags = [ "-mfpu=neon" ]
 diff --git a/modules/audio_processing/agc2/rnn_vad/BUILD.gn b/modules/audio_processing/agc2/rnn_vad/BUILD.gn
-index 3003a585bd..d709eb3699 100644
+index 47b9466a44..f99fe509d1 100644
 --- a/modules/audio_processing/agc2/rnn_vad/BUILD.gn
 +++ b/modules/audio_processing/agc2/rnn_vad/BUILD.gn
 @@ -18,7 +18,7 @@ rtc_library("rnn_vad") {
@@ -250,7 +250,7 @@ index 3003a585bd..d709eb3699 100644
      cflags = [ "-mfpu=neon" ]
    }
 diff --git a/modules/audio_processing/ns/BUILD.gn b/modules/audio_processing/ns/BUILD.gn
-index d818e23f3c..8c2e9dba84 100644
+index 31ad61156d..6587fd14f3 100644
 --- a/modules/audio_processing/ns/BUILD.gn
 +++ b/modules/audio_processing/ns/BUILD.gn
 @@ -43,7 +43,7 @@ rtc_static_library("ns") {
@@ -263,7 +263,7 @@ index d818e23f3c..8c2e9dba84 100644
      cflags = [ "-mfpu=neon" ]
    }
 diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index 7ad562acb4..e9d15cc00c 100644
+index 27c2675910..23c66aec0a 100644
 --- a/modules/desktop_capture/BUILD.gn
 +++ b/modules/desktop_capture/BUILD.gn
 @@ -10,7 +10,7 @@ import("//build/config/linux/gtk/gtk.gni")

@@ -56,8 +56,8 @@ if (rtc_include_tests) {
       "../../../rtc_base:logging",
       "../../../test:mock_transport",
       "../../../test:test_support",
+      "//third_party/abseil-cpp/absl/functional:any_invocable",
     ]
-    absl_deps = [ "//third_party/abseil-cpp/absl/functional:any_invocable" ]
   }
 
   rtc_library("audio_ingress_unittests") {
