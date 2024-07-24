@@ -3691,6 +3691,39 @@ TEST_F(WebRtcVideoChannelTest, SetIdenticalOptionsDoesntReconfigureEncoder) {
   // Expect 1 reconfigurations at this point from the initial configuration.
   EXPECT_EQ(1, send_stream->num_encoder_reconfigurations());
 
+  webrtc::test::FrameForwarder new_frame_forwarder;
+
+  // Set the options one more time but with a new source instance, expect
+  // one additional reconfiguration.
+  EXPECT_TRUE(
+      send_channel_->SetVideoSend(last_ssrc_, &options, &new_frame_forwarder));
+  new_frame_forwarder.IncomingCapturedFrame(frame_source_.GetFrame());
+  EXPECT_EQ(2, send_stream->num_encoder_reconfigurations());
+
+  EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
+}
+
+// Test that if a new source is set, we reconfigure the encoder even if the
+// same options are used.
+TEST_F(WebRtcVideoChannelTest,
+       SetNewSourceWithIdenticalOptionsReconfiguresEncoder) {
+  VideoOptions options;
+  webrtc::test::FrameForwarder frame_forwarder;
+
+  AddSendStream();
+  cricket::VideoSenderParameters parameters;
+  parameters.codecs.push_back(GetEngineCodec("VP8"));
+  ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
+  FakeVideoSendStream* send_stream = fake_call_->GetVideoSendStreams().front();
+
+  EXPECT_TRUE(
+      send_channel_->SetVideoSend(last_ssrc_, &options, &frame_forwarder));
+  EXPECT_TRUE(
+      send_channel_->SetVideoSend(last_ssrc_, &options, &frame_forwarder));
+  frame_forwarder.IncomingCapturedFrame(frame_source_.GetFrame());
+  // Expect 1 reconfigurations at this point from the initial configuration.
+  EXPECT_EQ(1, send_stream->num_encoder_reconfigurations());
+
   // Set the options one more time and expect no additional reconfigurations.
   EXPECT_TRUE(
       send_channel_->SetVideoSend(last_ssrc_, &options, &frame_forwarder));

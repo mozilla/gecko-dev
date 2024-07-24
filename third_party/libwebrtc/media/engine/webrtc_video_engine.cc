@@ -1786,6 +1786,7 @@ bool WebRtcVideoSendChannel::WebRtcVideoSendStream::SetVideoSend(
   TRACE_EVENT0("webrtc", "WebRtcVideoSendStream::SetVideoSend");
   RTC_DCHECK_RUN_ON(&thread_checker_);
 
+  bool reconfiguration_needed = false;
   if (options) {
     VideoOptions old_options = parameters_.options;
     parameters_.options.SetAll(*options);
@@ -1801,13 +1802,21 @@ bool WebRtcVideoSendChannel::WebRtcVideoSendStream::SetVideoSend(
       old_options.is_screencast = options->is_screencast;
     }
     if (parameters_.options != old_options) {
-      ReconfigureEncoder(nullptr);
+      reconfiguration_needed = true;
     }
   }
 
   if (source_ && stream_) {
     stream_->SetSource(nullptr, webrtc::DegradationPreference::DISABLED);
+    if (source && source != source_) {
+      reconfiguration_needed = true;
+    }
   }
+
+  if (reconfiguration_needed) {
+    ReconfigureEncoder(nullptr);
+  }
+
   // Switch to the new source.
   source_ = source;
   if (source && stream_) {
