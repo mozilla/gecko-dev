@@ -65,10 +65,10 @@ index bfa463e016..44a44f5440 100644
    absl::optional<TimeDelta> AverageRtt() const;
    absl::optional<TimeDelta> LastRtt() const;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index 98c37c8d28..18508a4554 100644
+index e3b53f0ac8..0e0e7cdc14 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-@@ -500,8 +500,10 @@ void ModuleRtpRtcpImpl::GetSendStreamDataCounters(
+@@ -501,8 +501,10 @@ void ModuleRtpRtcpImpl::GetSendStreamDataCounters(
  
  // Received RTCP report.
  void ModuleRtpRtcpImpl::RemoteRTCPSenderInfo(uint32_t* packet_count,
@@ -96,10 +96,10 @@ index 28a16a0904..bbc0db8968 100644
    // A snapshot of the most recent Report Block with additional data of
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-index 1a0fa68691..e18bb67923 100644
+index 24fe2c5517..a6a2c8f7a3 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-@@ -522,8 +522,10 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
+@@ -514,8 +514,10 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
  
  // Received RTCP report.
  void ModuleRtpRtcpImpl2::RemoteRTCPSenderInfo(uint32_t* packet_count,

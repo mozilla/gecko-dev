@@ -51,21 +51,13 @@ RTCPSender::Configuration AddRtcpSendEvaluationCallback(
   return config;
 }
 
-RtpPacketHistory::PaddingMode GetPaddingMode(
-    const FieldTrialsView* field_trials) {
-  if (!field_trials ||
-      !field_trials->IsDisabled("WebRTC-PaddingMode-RecentLargePacket")) {
-    return RtpPacketHistory::PaddingMode::kRecentLargePacket;
-  }
-  return RtpPacketHistory::PaddingMode::kPriority;
-}
-
 }  // namespace
 
 ModuleRtpRtcpImpl2::RtpSenderContext::RtpSenderContext(
     TaskQueueBase& worker_queue,
     const RtpRtcpInterface::Configuration& config)
-    : packet_history(config.clock, GetPaddingMode(config.field_trials)),
+    : packet_history(config.clock,
+                     RtpPacketHistory::PaddingMode::kRecentLargePacket),
       sequencer(config.local_media_ssrc,
                 config.rtx_send_ssrc,
                 /*require_marker_before_media_padding=*/!config.audio,

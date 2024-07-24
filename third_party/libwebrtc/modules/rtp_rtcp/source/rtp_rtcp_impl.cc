@@ -44,7 +44,8 @@ constexpr TimeDelta kDefaultExpectedRetransmissionTime = TimeDelta::Millis(125);
 
 ModuleRtpRtcpImpl::RtpSenderContext::RtpSenderContext(
     const RtpRtcpInterface::Configuration& config)
-    : packet_history(config.clock, RtpPacketHistory::PaddingMode::kPriority),
+    : packet_history(config.clock,
+                     RtpPacketHistory::PaddingMode::kRecentLargePacket),
       sequencer_(config.local_media_ssrc,
                  config.rtx_send_ssrc,
                  /*require_marker_before_media_padding=*/!config.audio,
