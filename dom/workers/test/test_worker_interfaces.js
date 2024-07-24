@@ -259,6 +259,12 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ImageData", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ImageDecoder", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ImageTrack", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "ImageTrackList", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   "Lock",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "LockManager",
