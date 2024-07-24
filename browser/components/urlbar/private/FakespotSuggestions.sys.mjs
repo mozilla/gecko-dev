@@ -302,10 +302,18 @@ export class FakespotSuggestions extends BaseFeature {
   }
 
   get #minKeywordLength() {
+    // Use the pref value if it has a user value (which means the user clicked
+    // "Show less frequently") or if there's no Nimbus value. Otherwise use the
+    // Nimbus value. This lets us override the pref's default value using Nimbus
+    // if necessary.
+    let hasUserValue = Services.prefs.prefHasUserValue(
+      "browser.urlbar.fakespot.minKeywordLength"
+    );
+    let nimbusValue = lazy.UrlbarPrefs.get("fakespotMinKeywordLength");
     let minLength =
-      lazy.UrlbarPrefs.get("fakespot.minKeywordLength") ||
-      lazy.UrlbarPrefs.get("fakespotMinKeywordLength") ||
-      0;
+      hasUserValue || nimbusValue === null
+        ? lazy.UrlbarPrefs.get("fakespot.minKeywordLength")
+        : nimbusValue;
     return Math.max(minLength, 0);
   }
 
@@ -319,5 +327,9 @@ export class FakespotSuggestions extends BaseFeature {
     return KNOWN_SUGGESTION_PROVIDERS.has(provider)
       ? provider
       : UNKNOWN_SUGGESTION_PROVIDER;
+  }
+
+  get _test_minKeywordLength() {
+    return this.#minKeywordLength;
   }
 }

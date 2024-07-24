@@ -133,7 +133,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // The minimum prefix length of a Fakespot keyword the user must type to
   // trigger the suggestion. 0 means the min length should be taken from Nimbus.
-  ["fakespot.minKeywordLength", 0],
+  ["fakespot.minKeywordLength", 4],
 
   // The number of times the user has clicked the "Show less frequently" command
   // for Fakespot suggestions.
@@ -535,7 +535,7 @@ const PREF_OTHER_DEFAULTS = new Map([
 const NIMBUS_DEFAULTS = {
   addonsShowLessFrequentlyCap: 0,
   experimentType: "",
-  fakespotMinKeywordLength: 0,
+  fakespotMinKeywordLength: null,
   pocketShowLessFrequentlyCap: 0,
   pocketSuggestIndex: null,
   quickSuggestRemoteSettingsDataType: "data",
