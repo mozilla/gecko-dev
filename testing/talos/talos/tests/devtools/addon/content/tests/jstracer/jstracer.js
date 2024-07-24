@@ -12,6 +12,7 @@ const {
   runTest,
   waitForDOMElement,
   waitForDOMPredicate,
+  getBrowserWindow,
 } = require("damp-test/tests/head");
 const {
   waitForConsoleOutputChildListChange,
@@ -35,6 +36,13 @@ const TEST_URL = `data:text/html,<!DOCTYPE html><meta charset=utf8><script>
     function c() {};
   </script>`;
 
+/**
+ * This test tracks the rendering speed of all JavaScript Tracer output methods.
+ *
+ * Except for `testServerPerformance`, which tracks the raw performance of server
+ * and client codebases.
+ */
+
 module.exports = async function () {
   Services.prefs.setBoolPref(
     "devtools.debugger.features.javascript-tracing",
@@ -48,9 +56,11 @@ module.exports = async function () {
 
   await testServerPerformance(messageManager, toolbox);
 
-  await testWebConsolePerformance(messageManager, toolbox);
+  await testWebConsoleOutputPerformance(messageManager, toolbox);
 
-  await testDebuggerSidebarPerformance(messageManager, toolbox);
+  await testDebuggerSidebarOutputPerformance(messageManager, toolbox);
+
+  await testProfilerOutputPerformance(messageManager, toolbox);
 
   Services.prefs.clearUserPref(
     "devtools.debugger.javascript-tracing-log-method"
@@ -63,6 +73,7 @@ module.exports = async function () {
 };
 
 async function testServerPerformance(messageManager, toolbox) {
+  dump("Testing server+client performance\n");
   Services.prefs.setCharPref(
     "devtools.debugger.javascript-tracing-log-method",
     "console"
@@ -115,7 +126,8 @@ async function testServerPerformance(messageManager, toolbox) {
   await stopAndClearTracerData(toolbox);
 }
 
-async function testWebConsolePerformance(messageManager, toolbox) {
+async function testWebConsoleOutputPerformance(messageManager, toolbox) {
+  dump("Testing web console output performance\n");
   const { hud } = await toolbox.selectTool("webconsole");
 
   // Start tracing to the console
@@ -141,7 +153,8 @@ async function testWebConsolePerformance(messageManager, toolbox) {
   await stopAndClearTracerData(toolbox);
 }
 
-async function testDebuggerSidebarPerformance(messageManager, toolbox) {
+async function testDebuggerSidebarOutputPerformance(messageManager, toolbox) {
+  dump("Testing debugger sidebar output performance\n");
   Services.prefs.setCharPref(
     "devtools.debugger.javascript-tracing-log-method",
     "debugger-sidebar"
@@ -171,7 +184,7 @@ async function testDebuggerSidebarPerformance(messageManager, toolbox) {
     traceTree,
     ".arrow:not(.open)"
   );
-  dump(" got the arrow\n");
+  dump("Expand the trace tree\n");
   firstTraceArrow.click();
 
   // Scroll down in the tree and wait for the last expected call to "c" to be visible
@@ -193,17 +206,102 @@ async function testDebuggerSidebarPerformance(messageManager, toolbox) {
     }
     return false;
   });
-  dump(" Found the last logged tree in the tree");
+  dump(" Found the last logged tree in the tree\n");
 
   test.done();
 
   await stopAndClearTracerData(toolbox);
 }
 
+/**
+ * This test is slightly different as this output doesn't show live data.
+ * So we first record the impact of background trace recording when executing JS calls (profiler-recording-performance),
+ * and then the time it takes to collect all the traces and open the profiler frontend (profiler-collection-performance).
+ */
+async function testProfilerOutputPerformance(messageManager, toolbox) {
+  dump("Testing profiler output performance\n");
+  Services.prefs.setCharPref(
+    "devtools.debugger.javascript-tracing-log-method",
+    "profiler"
+  );
+  // Talos doesn't support the https protocol on example.com
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  const baseURI = "http://example.com";
+  Services.prefs.setCharPref(
+    "devtools.performance.recording.ui-base-url",
+    baseURI
+  );
+  const uriPath = "/tests/devtools/addon/content/pages/simple.html?";
+  Services.prefs.setCharPref(
+    "devtools.performance.recording.ui-base-url-path",
+    uriPath
+  );
+
+  // Start tracing to the profiler
+  await startTracing(toolbox);
+
+  // First record the time it takes to run the observed JS code
+  let test = runTest("jstracer.profiler-recording-performance.DAMP");
+  // Call `onclick` to trigger some JS activity in the test page
+  const onContentCodeExecuted = new Promise(done => {
+    messageManager.addMessageListener("executed", done);
+  });
+  messageManager.loadFrameScript(
+    "data:,content.wrappedJSObject.onclick();sendAsyncMessage('executed')",
+    true
+  );
+  dump("Wait for end of JS execution in the content process\n");
+  await onContentCodeExecuted;
+  dump("JS Execution ended\n");
+  test.done();
+
+  // Then the time it takes to open the record in the profiler frontend
+  // (we actually ignore the frontend, we only measure the time it takes to open the tab,
+  //  which involves collecting all profiler data)
+  test = runTest("jstracer.profiler-collection-performance.DAMP");
+  const onTabOpened = new Promise(resolve => {
+    getBrowserWindow().addEventListener(
+      "TabOpen",
+      function (event) {
+        resolve(event.target);
+      },
+      { once: true }
+    );
+  });
+  dump("Stop recording and wait for the profiler tab to be opened\n");
+  await stopAndClearTracerData(toolbox);
+  const profilerTab = await onTabOpened;
+  dump("Profiler tab opened\n");
+  test.done();
+
+  // Also close that tab to avoid polluting the following tests.
+  const { gBrowser } = getBrowserWindow();
+  const onTabClosed = new Promise(resolve => {
+    getBrowserWindow().addEventListener(
+      "TabClose",
+      function () {
+        resolve();
+      },
+      { once: true }
+    );
+  });
+  dump("Close the profiler tab\n");
+  await gBrowser.removeTab(profilerTab);
+  await onTabClosed;
+
+  Services.prefs.clearUserPref("devtools.performance.recording.ui-base-url");
+  Services.prefs.clearUserPref(
+    "devtools.performance.recording.ui-base-url-path"
+  );
+}
+
 async function startTracing(toolbox) {
   const { tracerCommand } = toolbox.commands;
+  if (tracerCommand.isTracingActive) {
+    throw new Error("Can't start as tracer is already active");
+  }
   const onTracingActive = new Promise(resolve => {
-    tracerCommand.on("toggle", function listener() {
+    tracerCommand.on("toggle", async function listener() {
       if (!tracerCommand.isTracingActive) {
         return;
       }
@@ -218,8 +316,21 @@ async function startTracing(toolbox) {
 
 async function stopAndClearTracerData(toolbox) {
   const { tracerCommand, resourceCommand } = toolbox.commands;
+  if (!tracerCommand.isTracingActive) {
+    throw new Error("Can't stop as tracer is not active");
+  }
+  const onTracingStopped = new Promise(resolve => {
+    tracerCommand.on("toggle", async function listener() {
+      if (tracerCommand.isTracingActive) {
+        return;
+      }
+      tracerCommand.off("toggle", listener);
+      resolve();
+    });
+  });
   // Stop tracing
   await tracerCommand.toggle();
+  await onTracingStopped;
 
   // Cleanup this trace before tracing another time with another UI
   await resourceCommand.clearResources([resourceCommand.TYPES.JSTRACER_TRACE]);
