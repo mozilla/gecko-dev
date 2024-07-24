@@ -98,16 +98,6 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared {
     masm.test32(reg, Imm32(0xFF));
     bailoutIf(Assembler::Zero, snapshot);
   }
-  void bailoutCvttsd2si(FloatRegister src, Register dest, LSnapshot* snapshot) {
-    Label bail;
-    masm.truncateDoubleToInt32(src, dest, &bail);
-    bailoutFrom(&bail, snapshot);
-  }
-  void bailoutCvttss2si(FloatRegister src, Register dest, LSnapshot* snapshot) {
-    Label bail;
-    masm.truncateFloat32ToInt32(src, dest, &bail);
-    bailoutFrom(&bail, snapshot);
-  }
 
   bool generateOutOfLineCode();
 

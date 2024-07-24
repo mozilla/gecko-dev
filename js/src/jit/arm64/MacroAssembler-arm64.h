@@ -1358,14 +1358,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   void rightShiftInt64x2(FloatRegister lhs, Register rhs, FloatRegister dest,
                          bool isUnsigned);
 
-  void branchNegativeZero(FloatRegister reg, Register scratch, Label* label) {
-    MOZ_CRASH("branchNegativeZero");
-  }
-  void branchNegativeZeroFloat32(FloatRegister reg, Register scratch,
-                                 Label* label) {
-    MOZ_CRASH("branchNegativeZeroFloat32");
-  }
-
   void boxDouble(FloatRegister src, const ValueOperand& dest, FloatRegister) {
     Fmov(ARMRegister(dest.valueReg(), 64), ARMFPRegister(src, 64));
   }
