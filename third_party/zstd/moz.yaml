@@ -19,7 +19,10 @@ origin:
 vendoring:
   url: https://github.com/facebook/zstd
   source-hosting: github
-  tracking: commit
+  tracking: tag
+
+  keep:
+    - preprocess_asm.py
 
   exclude:
     - ".*"
@@ -42,3 +45,11 @@ vendoring:
     - lib/
     - LICENSE
     - COPYING
+
+updatebot:
+  maintainer-bz: rjesup@jesup.org
+  maintainer-phab: "#necko-reviewers"
+  tasks:
+    - type: vendoring
+      enabled: true
+      frequency: release
