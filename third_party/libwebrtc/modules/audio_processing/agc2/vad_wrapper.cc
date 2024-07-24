@@ -104,7 +104,16 @@ float VoiceActivityDetectorWrapper::Analyze(AudioFrameView<const float> frame) {
   }
   // Resample the first channel of `frame`.
   RTC_DCHECK_EQ(frame.samples_per_channel(), frame_size_);
-  resampler_.Resample(frame.channel(0), resampled_buffer_);
+
+  // TODO: b/335805780 - channel() should return a MonoView<> which there
+  // should be a Resample() implementation for. There's no need to
+  // "deinterleave" a mono buffer, which is what Resample() currently does,
+  // so here we should be able to directly resample the channel buffer.
+  auto channel = frame.channel(0);
+  InterleavedView<const float> src(channel.data(), channel.size(), 1);
+  InterleavedView<float> dst(resampled_buffer_.data(), resampled_buffer_.size(),
+                             1);
+  resampler_.Resample(src, dst);
 
   return vad_->Analyze(resampled_buffer_);
 }

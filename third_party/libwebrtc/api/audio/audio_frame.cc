@@ -137,17 +137,17 @@ const int16_t* AudioFrame::data() const {
   return muted_ ? zeroed_data().begin() : data_;
 }
 
-rtc::ArrayView<const int16_t> AudioFrame::data_view() const {
-  const auto samples = samples_per_channel_ * num_channels_;
+InterleavedView<const int16_t> AudioFrame::data_view() const {
   // If you get a nullptr from `data_view()`, it's likely because the
-  // samples_per_channel_ and/or num_channels_ haven't been properly set.
-  // Since `data_view()` returns an rtc::ArrayView<>, we inherit the behavior
-  // in ArrayView when the view size is 0 that ArrayView<>::data() will always
-  // return nullptr. So, even when an AudioFrame is muted and we want to
-  // return `zeroed_data()`, if samples_per_channel_ or  num_channels_ is 0,
-  // the view will point to nullptr.
-  return muted_ ? zeroed_data().subview(0, samples)
-                : rtc::ArrayView<const int16_t>(&data_[0], samples);
+  // samples_per_channel_ and/or num_channels_ members haven't been properly
+  // set. Since `data_view()` returns an InterleavedView<> (which internally
+  // uses rtc::ArrayView<>), we inherit the behavior in InterleavedView when the
+  // view size is 0 that ArrayView<>::data() returns nullptr. So, even when an
+  // AudioFrame is muted and we want to return `zeroed_data()`, if
+  // samples_per_channel_ or  num_channels_ is 0, the view will point to
+  // nullptr.
+  return InterleavedView<const int16_t>(muted_ ? &zeroed_data()[0] : &data_[0],
+                                        samples_per_channel_, num_channels_);
 }
 
 int16_t* AudioFrame::mutable_data() {
@@ -161,8 +161,8 @@ int16_t* AudioFrame::mutable_data() {
   return data_;
 }
 
-rtc::ArrayView<int16_t> AudioFrame::mutable_data(size_t samples_per_channel,
-                                                 size_t num_channels) {
+InterleavedView<int16_t> AudioFrame::mutable_data(size_t samples_per_channel,
+                                                  size_t num_channels) {
   const size_t total_samples = samples_per_channel * num_channels;
   RTC_CHECK_LE(total_samples, kMaxDataSizeSamples);
   RTC_CHECK_LE(num_channels, kMaxConcurrentChannels);
@@ -183,7 +183,7 @@ rtc::ArrayView<int16_t> AudioFrame::mutable_data(size_t samples_per_channel,
   }
   samples_per_channel_ = samples_per_channel;
   num_channels_ = num_channels;
-  return rtc::ArrayView<int16_t>(&data_[0], total_samples);
+  return InterleavedView<int16_t>(&data_[0], samples_per_channel, num_channels);
 }
 
 void AudioFrame::Mute() {

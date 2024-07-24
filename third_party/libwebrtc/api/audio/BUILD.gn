@@ -29,6 +29,7 @@ rtc_library("audio_frame_api") {
   sources = [
     "audio_frame.cc",
     "audio_frame.h",
+    "audio_view.h",
     "channel_layout.cc",
     "channel_layout.h",
   ]

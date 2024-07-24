@@ -15,6 +15,7 @@
 
 #include <memory>
 
+#include "api/audio/audio_frame.h"
 #include "common_audio/include/audio_util.h"
 #include "common_audio/resampler/push_sinc_resampler.h"
 #include "rtc_base/checks.h"
@@ -73,47 +74,45 @@ int PushResampler<T>::InitializeIfNeeded(int src_sample_rate_hz,
 }
 
 template <typename T>
-int PushResampler<T>::Resample(rtc::ArrayView<const T> src,
-                               rtc::ArrayView<T> dst) {
-  // These checks used to be factored out of this template function due to
-  // Windows debug build issues with clang. http://crbug.com/615050
-  const size_t src_size_10ms = (src_sample_rate_hz_ / 100) * num_channels_;
-  const size_t dst_size_10ms = (dst_sample_rate_hz_ / 100) * num_channels_;
-  RTC_DCHECK_EQ(src.size(), src_size_10ms);
-  RTC_DCHECK_GE(dst.size(), dst_size_10ms);
+int PushResampler<T>::Resample(InterleavedView<const T> src,
+                               InterleavedView<T> dst) {
+  RTC_DCHECK_EQ(NumChannels(src), num_channels_);
+  RTC_DCHECK_EQ(NumChannels(dst), num_channels_);
+  RTC_DCHECK_EQ(SamplesPerChannel(src),
+                SampleRateToDefaultChannelSize(src_sample_rate_hz_));
+  RTC_DCHECK_EQ(SamplesPerChannel(dst),
+                SampleRateToDefaultChannelSize(dst_sample_rate_hz_));
 
   if (src_sample_rate_hz_ == dst_sample_rate_hz_) {
     // The old resampler provides this memcpy facility in the case of matching
     // sample rates, so reproduce it here for the sinc resampler.
-    memcpy(dst.data(), src.data(), src.size() * sizeof(T));
-    return static_cast<int>(src.size());
+    CopySamples(dst, src);
+    return static_cast<int>(src.data().size());
   }
-
-  const size_t src_length_mono = src.size() / num_channels_;
-  const size_t dst_capacity_mono = dst.size() / num_channels_;
 
   for (size_t ch = 0; ch < num_channels_; ++ch) {
     channel_data_array_[ch] = channel_resamplers_[ch].source.data();
   }
 
-  Deinterleave(src.data(), src_length_mono, num_channels_,
+  // TODO: b/335805780 - Deinterleave should accept InterleavedView<> as input.
+  Deinterleave(&src.data()[0], src.samples_per_channel(), src.num_channels(),
                channel_data_array_.data());
 
-  size_t dst_length_mono = 0;
-
   for (auto& resampler : channel_resamplers_) {
-    dst_length_mono = resampler.resampler->Resample(
-        resampler.source.data(), src_length_mono, resampler.destination.data(),
-        dst_capacity_mono);
+    size_t dst_length_mono = resampler.resampler->Resample(
+        resampler.source.data(), src.samples_per_channel(),
+        resampler.destination.data(), dst.samples_per_channel());
+    RTC_DCHECK_EQ(dst_length_mono, dst.samples_per_channel());
   }
 
   for (size_t ch = 0; ch < num_channels_; ++ch) {
     channel_data_array_[ch] = channel_resamplers_[ch].destination.data();
   }
 
-  Interleave(channel_data_array_.data(), dst_length_mono, num_channels_,
-             dst.data());
-  return static_cast<int>(dst_length_mono * num_channels_);
+  // TODO: b/335805780 - Interleave should accept InterleavedView<> as dst.
+  Interleave(channel_data_array_.data(), dst.samples_per_channel(),
+             num_channels_, &dst[0]);
+  return static_cast<int>(dst.size());
 }
 
 // Explictly generate required instantiations.

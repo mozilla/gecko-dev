@@ -263,8 +263,7 @@ class AudioCodingModuleTestOldApiDeathTest
 TEST_F(AudioCodingModuleTestOldApiDeathTest, FailOnZeroDesiredFrequency) {
   AudioFrame audio_frame;
   bool muted;
-  RTC_EXPECT_DEATH(acm_receiver_->GetAudio(0, &audio_frame, &muted),
-                   "dst_sample_rate_hz");
+  RTC_EXPECT_DEATH(acm_receiver_->GetAudio(0, &audio_frame, &muted), "");
 }
 #endif
 
