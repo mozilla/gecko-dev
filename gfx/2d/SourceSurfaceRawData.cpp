@@ -9,9 +9,40 @@
 #include "DataSurfaceHelpers.h"
 #include "Logging.h"
 #include "mozilla/Types.h"  // for decltype
+#include "nsIMemoryReporter.h"
 
 namespace mozilla {
 namespace gfx {
+
+class SourceSurfaceAlignedRawDataReporter final : public nsIMemoryReporter {
+  ~SourceSurfaceAlignedRawDataReporter() = default;
+
+ public:
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
+                            nsISupports* aData, bool aAnonymize) override {
+    MOZ_COLLECT_REPORT("explicit/gfx/source-surface-aligned-raw-data",
+                       KIND_HEAP, UNITS_BYTES, sTotalDataBytes,
+                       "Total memory used by source surface aligned raw data.");
+    return NS_OK;
+  }
+
+ private:
+  friend class SourceSurfaceAlignedRawData;
+
+  static Atomic<size_t> sTotalDataBytes;
+};
+
+NS_IMPL_ISUPPORTS(SourceSurfaceAlignedRawDataReporter, nsIMemoryReporter)
+
+/* static */
+Atomic<size_t> SourceSurfaceAlignedRawDataReporter::sTotalDataBytes(0);
+
+/* static */
+void SourceSurfaceAlignedRawData::RegisterMemoryReporter() {
+  RegisterStrongMemoryReporter(new SourceSurfaceAlignedRawDataReporter);
+}
 
 void SourceSurfaceRawData::InitWrappingData(
     uint8_t* aData, const IntSize& aSize, int32_t aStride,
@@ -33,6 +64,14 @@ void SourceSurfaceRawData::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
   }
 }
 
+SourceSurfaceAlignedRawData::SourceSurfaceAlignedRawData()
+    : mStride(0), mFormat(SurfaceFormat::UNKNOWN) {}
+
+SourceSurfaceAlignedRawData::~SourceSurfaceAlignedRawData() {
+  size_t bufLen = BufferSizeFromStrideAndHeight(mStride, mSize.height);
+  SourceSurfaceAlignedRawDataReporter::sTotalDataBytes -= bufLen;
+}
+
 bool SourceSurfaceAlignedRawData::Init(const IntSize& aSize,
                                        SurfaceFormat aFormat, bool aClearMem,
                                        uint8_t aClearValue, int32_t aStride) {
@@ -51,6 +90,8 @@ bool SourceSurfaceAlignedRawData::Init(const IntSize& aSize,
     mArray.Realloc(/* actually an object count */ bufLen, zeroMem);
     mSize = aSize;
 
+    SourceSurfaceAlignedRawDataReporter::sTotalDataBytes += bufLen;
+
     if (mArray && aClearMem && aClearValue) {
       memset(mArray, aClearValue, mStride * aSize.height);
     }
@@ -65,7 +106,9 @@ bool SourceSurfaceAlignedRawData::Init(const IntSize& aSize,
 void SourceSurfaceAlignedRawData::SizeOfExcludingThis(
     MallocSizeOf aMallocSizeOf, SizeOfInfo& aInfo) const {
   aInfo.AddType(SurfaceType::DATA_ALIGNED);
-  aInfo.mHeapBytes = mArray.HeapSizeOfExcludingThis(aMallocSizeOf);
+  // This memory is accounted for in aggregate by sTotalDataBytes. We return
+  // zero here to prevent double-counting.
+  aInfo.mHeapBytes = 0;
 }
 
 }  // namespace gfx

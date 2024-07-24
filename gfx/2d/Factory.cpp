@@ -252,6 +252,8 @@ void Factory::Init(const Config& aConfig) {
 #else
   NativeFontResource::RegisterMemoryReporter();
 #endif
+
+  SourceSurfaceAlignedRawData::RegisterMemoryReporter();
 }
 
 void Factory::ShutDown() {

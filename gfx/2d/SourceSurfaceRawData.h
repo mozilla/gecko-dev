@@ -98,8 +98,8 @@ class SourceSurfaceAlignedRawData : public DataSourceSurface {
  public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DataSourceSurfaceAlignedRawData,
                                           override)
-  SourceSurfaceAlignedRawData() : mStride(0), mFormat(SurfaceFormat::UNKNOWN) {}
-  ~SourceSurfaceAlignedRawData() override = default;
+  SourceSurfaceAlignedRawData();
+  virtual ~SourceSurfaceAlignedRawData() override;
 
   bool Init(const IntSize& aSize, SurfaceFormat aFormat, bool aClearMem,
             uint8_t aClearValue, int32_t aStride = 0);
@@ -121,6 +121,8 @@ class SourceSurfaceAlignedRawData : public DataSourceSurface {
   int32_t mStride;
   SurfaceFormat mFormat;
   IntSize mSize;
+
+  static void RegisterMemoryReporter();
 };
 
 }  // namespace gfx
