@@ -3903,6 +3903,13 @@
   value: false
   mirror: always
 
+# pref controls credential chooser UI for testing. When true, UI is not shown and
+# either a credential with ID `wpt-pick-me` is selected, or none.
+- name: dom.security.credentialmanagement.chooser.testing.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # pref controls `identity` credentials being exposed
 - name: dom.security.credentialmanagement.identity.enabled
   type: bool
