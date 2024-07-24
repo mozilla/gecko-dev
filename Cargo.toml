@@ -210,8 +210,6 @@ icu_capi = { path = "intl/icu_capi" }
 icu_segmenter_data = { path = "intl/icu_segmenter_data" }
 libudev-sys = { path = "dom/webauthn/libudev-sys" }
 midir = { git = "https://github.com/mozilla/midir.git", rev = "85156e360a37d851734118104619f86bd18e94c6" }
-# warp 0.3.6 + https://github.com/seanmonstar/warp/pull/1069
-warp = { git = "https://github.com/seanmonstar/warp", rev = "9d081461ae1167eb321585ce424f4fef6cf0092b" }
 # Allow webrender to have a versioned dependency on the older crate on crates.io
 # in order to build standalone.
 malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }

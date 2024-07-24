@@ -95,11 +95,6 @@ git = "https://github.com/mozilla/neqo"
 tag = "v0.8.1"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/seanmonstar/warp?rev=9d081461ae1167eb321585ce424f4fef6cf0092b"]
-git = "https://github.com/seanmonstar/warp"
-rev = "9d081461ae1167eb321585ce424f4fef6cf0092b"
-replace-with = "vendored-sources"
-
 [source."git+https://github.com/servo/unicode-bidi?rev=ca612daf1c08c53abe07327cb3e6ef6e0a760f0c"]
 git = "https://github.com/servo/unicode-bidi"
 rev = "ca612daf1c08c53abe07327cb3e6ef6e0a760f0c"

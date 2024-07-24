@@ -6513,8 +6513,9 @@ dependencies = [
 
 [[package]]
 name = "warp"
-version = "0.3.6"
-source = "git+https://github.com/seanmonstar/warp?rev=9d081461ae1167eb321585ce424f4fef6cf0092b#9d081461ae1167eb321585ce424f4fef6cf0092b"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4378d202ff965b011c64817db11d5829506d3404edeadb61f190d111da3f231c"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -6532,7 +6533,6 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "tokio",
- "tokio-stream",
  "tokio-util",
  "tower-service",
  "tracing",
