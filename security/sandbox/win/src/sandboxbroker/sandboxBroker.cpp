@@ -463,9 +463,6 @@ static void AddCachedDirRule(sandbox::TargetPolicy* aPolicy,
 // (e.g. when the launcher process is disabled), so the process should not
 // enable pre-spawn CIG.
 static const Maybe<Vector<const wchar_t*>>& GetPrespawnCigExceptionModules() {
-  // We enable pre-spawn CIG only in Nightly for now
-  // because it caused a compat issue (bug 1682304 and 1704373).
-#if defined(NIGHTLY_BUILD)
   // The shared section contains a list of dependent modules as a
   // null-delimited string.  We convert it to a string vector and
   // cache it to avoid converting the same data every time.
@@ -481,10 +478,6 @@ static const Maybe<Vector<const wchar_t*>>& GetPrespawnCigExceptionModules() {
   }();
 
   return sDependentModules;
-#else
-  static const Maybe<Vector<const wchar_t*>> sNothing = Nothing();
-  return sNothing;
-#endif
 }
 
 static sandbox::ResultCode AllowProxyLoadFromBinDir(
@@ -500,54 +493,58 @@ static sandbox::ResultCode AllowProxyLoadFromBinDir(
 
 static sandbox::ResultCode AddCigToPolicy(
     sandbox::TargetPolicy* aPolicy, bool aAlwaysProxyBinDirLoading = false) {
-  const Maybe<Vector<const wchar_t*>>& exceptionModules =
-      GetPrespawnCigExceptionModules();
-  if (exceptionModules.isNothing()) {
-    sandbox::MitigationFlags delayedMitigations =
-        aPolicy->GetDelayedProcessMitigations();
-    MOZ_ASSERT(delayedMitigations,
-               "Delayed mitigations should be set before AddCigToPolicy.");
-    MOZ_ASSERT(!(delayedMitigations & sandbox::MITIGATION_FORCE_MS_SIGNED_BINS),
-               "AddCigToPolicy should not be called twice.");
+  if (StaticPrefs::security_sandbox_cig_prespawn_enabled()) {
+    const Maybe<Vector<const wchar_t*>>& exceptionModules =
+        GetPrespawnCigExceptionModules();
+    if (exceptionModules.isSome()) {
+      sandbox::MitigationFlags mitigations = aPolicy->GetProcessMitigations();
+      MOZ_ASSERT(mitigations,
+                 "Mitigations should be set before AddCigToPolicy.");
+      MOZ_ASSERT(!(mitigations & sandbox::MITIGATION_FORCE_MS_SIGNED_BINS),
+                 "AddCigToPolicy should not be called twice.");
 
-    delayedMitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-    sandbox::ResultCode result =
-        aPolicy->SetDelayedProcessMitigations(delayedMitigations);
-    if (result != sandbox::SBOX_ALL_OK) {
-      return result;
-    }
+      mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
+      sandbox::ResultCode result = aPolicy->SetProcessMitigations(mitigations);
+      if (result != sandbox::SBOX_ALL_OK) {
+        return result;
+      }
 
-    if (aAlwaysProxyBinDirLoading) {
       result = AllowProxyLoadFromBinDir(aPolicy);
+      if (result != sandbox::SBOX_ALL_OK) {
+        return result;
+      }
+
+      for (const wchar_t* path : exceptionModules.ref()) {
+        result =
+            aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_SIGNED_BINARY,
+                             sandbox::TargetPolicy::SIGNED_ALLOW_LOAD, path);
+        if (result != sandbox::SBOX_ALL_OK) {
+          return result;
+        }
+      }
+
+      return sandbox::SBOX_ALL_OK;
     }
-    return result;
   }
 
-  sandbox::MitigationFlags mitigations = aPolicy->GetProcessMitigations();
-  MOZ_ASSERT(mitigations, "Mitigations should be set before AddCigToPolicy.");
-  MOZ_ASSERT(!(mitigations & sandbox::MITIGATION_FORCE_MS_SIGNED_BINS),
+  sandbox::MitigationFlags delayedMitigations =
+      aPolicy->GetDelayedProcessMitigations();
+  MOZ_ASSERT(delayedMitigations,
+             "Delayed mitigations should be set before AddCigToPolicy.");
+  MOZ_ASSERT(!(delayedMitigations & sandbox::MITIGATION_FORCE_MS_SIGNED_BINS),
              "AddCigToPolicy should not be called twice.");
 
-  mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-  sandbox::ResultCode result = aPolicy->SetProcessMitigations(mitigations);
+  delayedMitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
+  sandbox::ResultCode result =
+      aPolicy->SetDelayedProcessMitigations(delayedMitigations);
   if (result != sandbox::SBOX_ALL_OK) {
     return result;
   }
 
-  result = AllowProxyLoadFromBinDir(aPolicy);
-  if (result != sandbox::SBOX_ALL_OK) {
-    return result;
+  if (aAlwaysProxyBinDirLoading) {
+    result = AllowProxyLoadFromBinDir(aPolicy);
   }
-
-  for (const wchar_t* path : exceptionModules.ref()) {
-    result = aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_SIGNED_BINARY,
-                              sandbox::TargetPolicy::SIGNED_ALLOW_LOAD, path);
-    if (result != sandbox::SBOX_ALL_OK) {
-      return result;
-    }
-  }
-
-  return sandbox::SBOX_ALL_OK;
+  return result;
 }
 
 // Returns the most strict dynamic code mitigation flag that is compatible with
