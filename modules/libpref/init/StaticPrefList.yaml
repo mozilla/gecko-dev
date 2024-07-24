@@ -3282,14 +3282,18 @@
 # 0: normal, 1: always-enabled, 2: always-disabled
 - name: dom.origin-trials.private-attribution.state
   type: RelaxedAtomicInt32
+#ifdef ANDROID
+  value: 2
+#else
   value: 0
+#endif
   mirror: always
 
 # User pref to control whether Private Attribution
 # information should be collected / submitted.
 - name: dom.private-attribution.submission.enabled
   type: bool
-  value: true
+  value: @IS_NOT_ANDROID@
   mirror: always
 
 # Is support for Window.paintWorklet enabled?
