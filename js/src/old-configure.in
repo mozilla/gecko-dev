@@ -110,6 +110,14 @@ fi # COMPILE_ENVIRONMENT
 AC_SUBST_LIST(MOZ_OPTIMIZE_FLAGS)
 
 dnl ========================================================
+dnl = Enable using the clang plugin to build
+dnl ========================================================
+
+if test -n "$COMPILE_ENVIRONMENT"; then
+MOZ_CONFIG_CLANG_PLUGIN
+fi # COMPILE_ENVIRONMENT
+
+dnl ========================================================
 dnl =
 dnl = Maintainer debug option (no --enable equivalent)
 dnl =
@@ -118,6 +126,11 @@ dnl ========================================================
 AC_SUBST(MOZ_POST_PROGRAM_COMMAND)
 
 AC_SUBST(MOZ_APP_DISPLAYNAME)
+
+OS_CFLAGS="$CFLAGS"
+OS_CXXFLAGS="$CXXFLAGS"
+AC_SUBST_LIST(OS_CFLAGS)
+AC_SUBST_LIST(OS_CXXFLAGS)
 
 AC_SUBST(HOST_CC)
 AC_SUBST(HOST_CXX)

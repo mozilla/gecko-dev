@@ -7,6 +7,7 @@ builtin(include, ../../build/autoconf/hooks.m4)dnl
 builtin(include, ../../build/autoconf/config.status.m4)dnl
 builtin(include, ../../build/autoconf/toolchain.m4)dnl
 builtin(include, ../../build/autoconf/altoptions.m4)dnl
+builtin(include, ../../build/autoconf/clang-plugin.m4)dnl
 
 define([__MOZ_AC_INIT_PREPARE], defn([AC_INIT_PREPARE]))
 define([AC_INIT_PREPARE],
