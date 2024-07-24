@@ -55,8 +55,11 @@ template("webrtc_fuzzer_test") {
     ]
     additional_configs = configs
 
-    # Convert Abseil dependencies to //third_party/abseil-cpp:absl when
-    # build_with_chromium is true
+    assert(
+        !defined(absl_deps),
+        "`absl_deps` has been deprecated, add your Abseil dependencies to the `deps` variable.")
+
+    # Abseil dependencies need to be converted to //third_party/abseil-cpp:absl when build_with_chromium=true
     if (build_with_chromium) {
       absl_dependencies =
           filter_labels_include(deps, [ "//third_party/abseil-cpp/*" ])
