@@ -1081,6 +1081,13 @@ pocketNewtab:
         browser.newtabpage.activity-stream.discoverystream.pocket-feed-parameters
       description: >-
         Add parameters to Pocket feed URL.
+    merinoFeedExperiment:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.merino-feed-experiment
+      description: >-
+        Should we pass the experiment branch and slug to the Merino feed request.
     thumbsUpDown:
       type: boolean
       setPref:

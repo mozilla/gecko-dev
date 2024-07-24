@@ -1857,6 +1857,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.region-basic-config", "
 
 // Add parameters to Pocket feed URL.
 pref("browser.newtabpage.activity-stream.discoverystream.pocket-feed-parameters", "");
+pref("browser.newtabpage.activity-stream.discoverystream.merino-feed-experiment", false);
 
 // Allows Pocket story collections to be dismissed.
 pref("browser.newtabpage.activity-stream.discoverystream.isCollectionDismissible", true);
