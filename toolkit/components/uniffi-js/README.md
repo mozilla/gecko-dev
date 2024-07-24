@@ -13,8 +13,10 @@ This directory contains C++ helper code for the UniFFI Rust library
    - UniFFIScaffolding.cpp is a facade that wraps UniFFIFixtureScaffolding, and
      UniFFIGeneratedScaffolding if enabled, to implement the interface.
 
-- `ScaffoldingConverter.h` contain helper code to convert values between JS and Rust.  This is used
-    by the generated code to make scaffolding calls.
+- `ScaffoldingConverter.h`, `ScaffoldingCall.h` contain generic code to make
+  the scaffolding calls.  In general, we try to keep the logic of the calls in
+  these files and limit the generated code to routing call IDs to template
+  classes defined here.
 
 - `OwnedRustBuffer.*` implements a C++ class to help manager ownership of a RustBuffer.
 

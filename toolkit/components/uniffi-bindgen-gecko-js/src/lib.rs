@@ -82,7 +82,13 @@ fn render_cpp(
 ) -> Result<()> {
     render(
         path,
-        CPPScaffoldingTemplate::new(prefix, components, function_ids, object_ids, callback_ids),
+        CPPScaffoldingTemplate {
+            prefix,
+            components,
+            function_ids,
+            object_ids,
+            callback_ids,
+        },
     )
 }
 

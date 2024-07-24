@@ -204,8 +204,9 @@ function handleRustResult(result, liftCallback, liftErrCallback) {
             throw liftErrCallback(result.data);
 
         case "internal-error":
-            if (result.data) {
-                throw new UniFFIInternalError(FfiConverterString.lift(result.data));
+            let message = result.internalErrorMessage;
+            if (message) {
+                throw new UniFFIInternalError(message);
             } else {
                 throw new UniFFIInternalError("Unknown error");
             }

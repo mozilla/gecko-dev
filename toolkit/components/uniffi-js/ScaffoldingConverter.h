@@ -47,17 +47,15 @@ class ScaffoldingConverter {
   // us.
   //
   // If this succeeds then IntoRust is also guaranteed to succeed
-  static void FromJs(const dom::UniFFIScaffoldingValue& aValue,
-                     IntermediateType* aResult, ErrorResult& aError) {
+  static mozilla::Result<IntermediateType, nsCString> FromJs(
+      const dom::UniFFIScaffoldingValue& aValue) {
     if (!aValue.IsDouble()) {
-      aError.ThrowTypeError("Bad argument type"_ns);
-      return;
+      return Err("Bad argument type"_ns);
     }
     double value = aValue.GetAsDouble();
 
     if (std::isnan(value)) {
-      aError.ThrowUnknownError("NaN not allowed"_ns);
-      return;
+      return Err("NaN not allowed"_ns);
     }
 
     if constexpr (std::is_integral<RustType>::value) {
@@ -66,9 +64,7 @@ class ScaffoldingConverter {
       // (see Number.MAX_SAFE_INTEGER and Number.MIN_SAFE_INTEGER)
       if (value < dom::PrimitiveConversionTraits_Limits<RustType>::min() ||
           value > dom::PrimitiveConversionTraits_Limits<RustType>::max()) {
-        aError.ThrowRangeError(
-            "UniFFI return value cannot be precisely represented in JS"_ns);
-        return;
+        return Err("Out of bounds"_ns);
       }
     }
 
@@ -81,14 +77,14 @@ class ScaffoldingConverter {
     //     float doesn't have enough precision, but it doesn't seem correct
     //     to error out in that case.
 
-    IntermediateType rv = static_cast<IntermediateType>(value);
-    if constexpr (std::is_integral<IntermediateType>::value) {
+    RustType rv = static_cast<RustType>(value);
+    if constexpr (std::is_integral<RustType>::value) {
       if (rv != value) {
-        aError.ThrowTypeError("Not an integer"_ns);
-        return;
+        return Err("Not an integer"_ns);
       }
     }
-    *aResult = rv;
+
+    return rv;
   }
 
   // Convert an intermediate type to a Rust type
@@ -98,33 +94,34 @@ class ScaffoldingConverter {
 
   // Convert an Rust type to an intermediate type
   //
-  // This inputs a value since Rust types are POD types
-  static IntermediateType FromRust(RustType aValue) { return aValue; }
+  // This inputs a value since RustTypes are POD types
+  //
+  // If this succeeds then IntoJs is also guaranteed to succeed
+  static mozilla::Result<IntermediateType, nsCString> FromRust(
+      RustType aValue) {
+    if constexpr (std::is_same<RustType, int64_t>::value ||
+                  std::is_same<RustType, uint64_t>::value) {
+      // Check that the value can fit in a double (only needed for 64 bit types)
+      if (aValue < dom::PrimitiveConversionTraits_Limits<RustType>::min() ||
+          aValue > dom::PrimitiveConversionTraits_Limits<RustType>::max()) {
+        return Err("Out of bounds"_ns);
+      }
+    }
+    if constexpr (std::is_floating_point<RustType>::value) {
+      if (std::isnan(aValue)) {
+        return Err("NaN not allowed"_ns);
+      }
+    }
+    return aValue;
+  }
 
   // Convert an intermedate type to a JS type
   //
   // This inputs an r-value reference since we may want to move data out of
   // this type.
   static void IntoJs(JSContext* aContext, IntermediateType&& aValue,
-                     dom::Optional<dom::UniFFIScaffoldingValue>& aDest,
-                     ErrorResult& aError) {
-    if constexpr (std::is_same<RustType, int64_t>::value ||
-                  std::is_same<RustType, uint64_t>::value) {
-      // Check that the value can fit in a double (only needed for 64 bit types)
-      if (aValue < dom::PrimitiveConversionTraits_Limits<RustType>::min() ||
-          aValue > dom::PrimitiveConversionTraits_Limits<RustType>::max()) {
-        aError.ThrowRangeError(
-            "UniFFI return value cannot be precisely represented in JS"_ns);
-        return;
-      }
-    }
-    if constexpr (std::is_floating_point<RustType>::value) {
-      if (std::isnan(aValue)) {
-        aError.ThrowUnknownError("NaN not allowed"_ns);
-        return;
-      }
-    }
-    aDest.Construct().SetAsDouble() = aValue;
+                     dom::UniFFIScaffoldingValue& aDest) {
+    aDest.SetAsDouble() = aValue;
   }
 };
 
@@ -134,28 +131,27 @@ class ScaffoldingConverter<RustBuffer> {
   using RustType = RustBuffer;
   using IntermediateType = OwnedRustBuffer;
 
-  static void FromJs(const dom::UniFFIScaffoldingValue& aValue,
-                     OwnedRustBuffer* aResult, ErrorResult& aError) {
+  static mozilla::Result<OwnedRustBuffer, nsCString> FromJs(
+      const dom::UniFFIScaffoldingValue& aValue) {
     if (!aValue.IsArrayBuffer()) {
-      aError.ThrowTypeError("Expected ArrayBuffer argument"_ns);
-      return;
+      return Err("Bad argument type"_ns);
     }
-    *aResult = OwnedRustBuffer::FromArrayBuffer(aValue.GetAsArrayBuffer());
+
+    return OwnedRustBuffer::FromArrayBuffer(aValue.GetAsArrayBuffer());
   }
 
   static RustBuffer IntoRust(OwnedRustBuffer&& aValue) {
     return aValue.IntoRustBuffer();
   }
 
-  static OwnedRustBuffer FromRust(RustBuffer aValue) {
+  static mozilla::Result<OwnedRustBuffer, nsCString> FromRust(
+      RustBuffer aValue) {
     return OwnedRustBuffer(aValue);
   }
 
   static void IntoJs(JSContext* aContext, OwnedRustBuffer&& aValue,
-                     dom::Optional<dom::UniFFIScaffoldingValue>& aDest,
-                     ErrorResult& aError) {
-    aDest.Construct().SetAsArrayBuffer().Init(
-        aValue.IntoArrayBuffer(aContext, aError));
+                     dom::UniFFIScaffoldingValue& aDest) {
+    aDest.SetAsArrayBuffer().Init(aValue.IntoArrayBuffer(aContext));
   }
 };
 
@@ -166,28 +162,27 @@ class ScaffoldingObjectConverter {
   using RustType = void*;
   using IntermediateType = void*;
 
-  static void FromJs(const dom::UniFFIScaffoldingValue& aValue, void** aResult,
-                     ErrorResult& aError) {
+  static mozilla::Result<void*, nsCString> FromJs(
+      const dom::UniFFIScaffoldingValue& aValue) {
     if (!aValue.IsUniFFIPointer()) {
-      aError.ThrowTypeError("Expected UniFFI pointer argument"_ns);
-      return;
+      return Err("Bad argument type"_ns);
     }
     dom::UniFFIPointer& value = aValue.GetAsUniFFIPointer();
     if (!value.IsSamePtrType(PointerType)) {
-      aError.ThrowTypeError("Incorrect UniFFI pointer type"_ns);
-      return;
+      return Err("Bad pointer type"_ns);
     }
-    *aResult = value.ClonePtr();
+    return value.ClonePtr();
   }
 
   static void* IntoRust(void* aValue) { return aValue; }
 
-  static void* FromRust(void* aValue) { return aValue; }
+  static mozilla::Result<void*, nsCString> FromRust(void* aValue) {
+    return aValue;
+  }
 
   static void IntoJs(JSContext* aContext, void* aValue,
-                     dom::Optional<dom::UniFFIScaffoldingValue>& aDest,
-                     ErrorResult& aError) {
-    aDest.Construct().SetAsUniFFIPointer() =
+                     dom::UniFFIScaffoldingValue& aDest) {
+    aDest.SetAsUniFFIPointer() =
         dom::UniFFIPointer::Create(aValue, PointerType);
   }
 };

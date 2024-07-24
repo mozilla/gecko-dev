@@ -2,7 +2,6 @@
 License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::shared::{FunctionExt, ObjectExt};
 use crate::{CallbackIds, Config, FunctionIds, ObjectIds};
 use askama::Template;
 use extend::ext;
@@ -22,104 +21,19 @@ pub struct CPPScaffoldingTemplate<'a> {
     //   - Generate a different function in for handle it using the fixture UDL files
     //   - Have a hand-written stub function that always calls the first function and only calls
     //     the second function in if MOZ_UNIFFI_FIXTURES is defined.
-    prefix: &'a str,
-    components: &'a Vec<(ComponentInterface, Config)>,
-    object_ids: &'a ObjectIds<'a>,
-    callback_ids: &'a CallbackIds<'a>,
-    has_any_objects: bool,
-    /// Info for each scaffolding call.
-    scaffolding_calls: Vec<ScaffoldingCall>,
+    pub prefix: &'a str,
+    pub components: &'a Vec<(ComponentInterface, Config)>,
+    pub function_ids: &'a FunctionIds<'a>,
+    pub object_ids: &'a ObjectIds<'a>,
+    pub callback_ids: &'a CallbackIds<'a>,
 }
 
 impl<'a> CPPScaffoldingTemplate<'a> {
-    pub fn new(
-        prefix: &'a str,
-        components: &'a Vec<(ComponentInterface, Config)>,
-        function_ids: &'a FunctionIds<'a>,
-        object_ids: &'a ObjectIds<'a>,
-        callback_ids: &'a CallbackIds<'a>,
-    ) -> Self {
-        let has_any_objects = components
+    fn has_any_objects(&self) -> bool {
+        self.components
             .iter()
-            .any(|(ci, _)| ci.object_definitions().len() > 0);
-        Self {
-            prefix,
-            components,
-            object_ids,
-            callback_ids,
-            has_any_objects,
-            scaffolding_calls: Self::scaffolding_calls(prefix, components, function_ids),
-        }
+            .any(|(ci, _)| ci.object_definitions().len() > 0)
     }
-
-    fn scaffolding_calls(
-        prefix: &str,
-        components: &[(ComponentInterface, Config)],
-        function_ids: &'a FunctionIds<'a>,
-    ) -> Vec<ScaffoldingCall> {
-        let mut calls: Vec<ScaffoldingCall> = components
-            .iter()
-            .flat_map(|(ci, config)| {
-                ci.scaffolding_call_functions(config)
-                    .into_iter()
-                    .map(|(ffi_func, _)| ScaffoldingCall::new(prefix, ci, ffi_func, function_ids))
-                    .collect::<Vec<_>>()
-            })
-            .collect();
-        calls.sort_by_key(|c| c.function_id);
-        calls
-    }
-}
-
-struct ScaffoldingCall {
-    handler_class_name: String,
-    function_id: usize,
-    ffi_func_name: String,
-    return_type: Option<ScaffoldingCallReturnType>,
-    arguments: Vec<ScaffoldingCallArgument>,
-}
-
-impl ScaffoldingCall {
-    fn new(
-        prefix: &str,
-        ci: &ComponentInterface,
-        ffi_func: &FfiFunction,
-        function_ids: &FunctionIds,
-    ) -> Self {
-        let handler_class_name = format!(
-            "ScaffoldingCallHandler{prefix}{}",
-            ffi_func.name().to_upper_camel_case()
-        );
-        let arguments = ffi_func
-            .arguments()
-            .into_iter()
-            .map(|a| ScaffoldingCallArgument {
-                var_name: format!("m{}", a.name().to_upper_camel_case()),
-                scaffolding_converter: ci.scaffolding_converter(&a.type_()),
-            })
-            .collect::<Vec<_>>();
-
-        Self {
-            handler_class_name,
-            function_id: function_ids.get(ci, ffi_func),
-            ffi_func_name: ffi_func.name().to_owned(),
-            return_type: ffi_func
-                .return_type()
-                .map(|return_type| ScaffoldingCallReturnType {
-                    scaffolding_converter: ci.scaffolding_converter(&return_type),
-                }),
-            arguments,
-        }
-    }
-}
-
-struct ScaffoldingCallReturnType {
-    scaffolding_converter: String,
-}
-
-struct ScaffoldingCallArgument {
-    var_name: String,
-    scaffolding_converter: String,
 }
 
 // Define extension traits with methods used in our template code
@@ -160,30 +74,6 @@ pub impl ComponentInterface {
             .collect();
         self.iter_user_ffi_function_definitions()
             .filter(move |f| !excluded.contains(f.name()))
-            .collect()
-    }
-
-    // Generate scaffolding call functions used in the interface
-    //
-    // This is used to generate the `uniffiScaffoldingCall*` classes that implement these calls.
-    //
-    // Generates both the FfiFunction and also if the function is "JS-async", i.e. should we
-    // generate code to dispatch the call to a worker thread.
-    fn scaffolding_call_functions(&self, config: &Config) -> Vec<(&FfiFunction, bool)> {
-        self.function_definitions()
-            .into_iter()
-            .map(|f| (f.ffi_func(), f.is_js_async(config)))
-            .chain(self.object_definitions().into_iter().flat_map(|o| {
-                o.methods()
-                    .into_iter()
-                    .map(|m| (m.ffi_func(), o.is_method_async(m, config)))
-                    .chain(
-                        o.constructors()
-                            .into_iter()
-                            .map(|c| (c.ffi_func(), o.is_constructor_async(config))),
-                    )
-                    .collect::<Vec<_>>()
-            }))
             .collect()
     }
 
@@ -257,12 +147,12 @@ pub impl FfiType {
             FfiType::Float32 => "float".to_owned(),
             FfiType::Float64 => "double".to_owned(),
             FfiType::RustBuffer(_) => "RustBuffer".to_owned(),
-            FfiType::RustArcPtr(_) => "void*".to_owned(),
+            FfiType::RustArcPtr(_) => "void *".to_owned(),
             FfiType::ForeignBytes => unimplemented!("ForeignBytes not supported"),
             FfiType::Handle => "uint64_t".to_owned(),
             FfiType::RustCallStatus => "RustCallStatus".to_owned(),
             FfiType::Callback(name) | FfiType::Struct(name) => name.to_owned(),
-            FfiType::VoidPointer => "void*".to_owned(),
+            FfiType::VoidPointer => "void *".to_owned(),
             FfiType::Reference(_) => unimplemented!("References not supported"),
         }
     }
