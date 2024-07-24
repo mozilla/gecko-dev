@@ -1800,10 +1800,14 @@ inline uintptr_t MarkStack::SlotsOrElementsRange::asBits1() const {
 
 MarkStack::MarkStack() { MOZ_ASSERT(isEmpty()); }
 
-MarkStack::~MarkStack() { MOZ_ASSERT(isEmpty()); }
+MarkStack::~MarkStack() {
+  MOZ_ASSERT(isEmpty());
+  clearAndFreeStack();
+}
 
 void MarkStack::swap(MarkStack& other) {
   std::swap(stack_, other.stack_);
+  std::swap(capacity_, other.capacity_);
   std::swap(topIndex_, other.topIndex_);
 #ifdef JS_GC_ZEAL
   std::swap(maxCapacity_, other.maxCapacity_);
@@ -1859,7 +1863,7 @@ MOZ_ALWAYS_INLINE bool MarkStack::indexIsEntryBase(size_t index) const {
   // SlotsOrElementsRangeTag zero and all SlotsOrElementsKind tags non-zero.
 
   MOZ_ASSERT(index < position());
-  return (stack()[index] & TagMask) != SlotsOrElementsRangeTag;
+  return (at(index) & TagMask) != SlotsOrElementsRangeTag;
 }
 
 /* static */
@@ -1899,7 +1903,7 @@ void MarkStack::moveWork(MarkStack& dst, MarkStack& src) {
   // part of the stack, in src words if this method stole from the bottom of
   // the stack rather than the top.
 
-  mozilla::PodCopy(dst.end(), src.stack().begin() + targetPos, wordsToMove);
+  mozilla::PodCopy(dst.end(), src.stack_ + targetPos, wordsToMove);
   dst.topIndex_ += wordsToMove;
   dst.peekPtr().assertValid();
 
@@ -1913,18 +1917,17 @@ void MarkStack::moveWork(MarkStack& dst, MarkStack& src) {
 void MarkStack::clearAndResetCapacity() {
   // Fall back to the smaller initial capacity so we don't hold on to excess
   // memory between GCs.
-  stack().clear();
   topIndex_ = 0;
   (void)resetStackCapacity();
 }
 
 void MarkStack::clearAndFreeStack() {
   // Free all stack memory so we don't hold on to excess memory between GCs.
-  stack().clearAndFree();
+  js_free(stack_);
+  stack_ = nullptr;
+  capacity_ = 0;
   topIndex_ = 0;
 }
-
-inline uintptr_t* MarkStack::end() { return &stack()[topIndex_]; }
 
 template <typename T>
 inline bool MarkStack::push(T* ptr) {
@@ -1964,7 +1967,7 @@ inline void MarkStack::infalliblePush(JSObject* obj, SlotsOrElementsKind kind,
 
 inline MarkStack::TaggedPtr MarkStack::peekPtr() const {
   MOZ_ASSERT(!isEmpty());
-  return TaggedPtr::fromBits(stack()[topIndex_ - 1]);
+  return TaggedPtr::fromBits(at(topIndex_ - 1));
 }
 
 inline MarkStack::Tag MarkStack::peekTag() const {
@@ -2015,11 +2018,20 @@ bool MarkStack::resize(size_t newCapacity) {
   MOZ_ASSERT(newCapacity != 0);
   MOZ_ASSERT(newCapacity >= position());
 
-  if (!stack().resize(newCapacity)) {
+  auto poisonOnExit = mozilla::MakeScopeExit([this]() { poisonUnused(); });
+
+  if (newCapacity == capacity_) {
+    return true;
+  }
+
+  uintptr_t* newStack =
+      js_pod_realloc<uintptr_t>(stack_, capacity_, newCapacity);
+  if (!newStack) {
     return false;
   }
 
-  poisonUnused();
+  stack_ = newStack;
+  capacity_ = newCapacity;
   return true;
 }
 
@@ -2028,13 +2040,14 @@ inline void MarkStack::poisonUnused() {
                 "The mark stack poison pattern must not look like a valid "
                 "tagged pointer");
 
-  AlwaysPoison(stack().begin() + topIndex_, JS_FRESH_MARK_STACK_PATTERN,
-               stack().capacity() - topIndex_, MemCheckKind::MakeUndefined);
+  MOZ_ASSERT(topIndex_ <= capacity_);
+  AlwaysPoison(stack_ + topIndex_, JS_FRESH_MARK_STACK_PATTERN,
+               capacity_ - topIndex_, MemCheckKind::MakeUndefined);
 }
 
 size_t MarkStack::sizeOfExcludingThis(
     mozilla::MallocSizeOf mallocSizeOf) const {
-  return stack().sizeOfExcludingThis(mallocSizeOf);
+  return capacity_ * sizeof(uintptr_t);
 }
 
 MarkStackIter::MarkStackIter(MarkStack& stack)
@@ -2063,7 +2076,7 @@ inline MarkStack::Tag MarkStackIter::peekTag() const { return peekPtr().tag(); }
 
 inline MarkStack::TaggedPtr MarkStackIter::peekPtr() const {
   MOZ_ASSERT(!done());
-  return MarkStack::TaggedPtr::fromBits(stack_.stack()[pos_ - 1]);
+  return MarkStack::TaggedPtr::fromBits(stack_.at(pos_ - 1));
 }
 
 inline MarkStack::SlotsOrElementsRange MarkStackIter::slotsOrElementsRange()
@@ -2071,7 +2084,7 @@ inline MarkStack::SlotsOrElementsRange MarkStackIter::slotsOrElementsRange()
   MOZ_ASSERT(TagIsRangeTag(peekTag()));
   MOZ_ASSERT(position() >= ValueRangeWords);
 
-  uintptr_t* ptr = &stack_.stack()[pos_ - ValueRangeWords];
+  uintptr_t* ptr = stack_.ptr(pos_ - ValueRangeWords);
   return MarkStack::SlotsOrElementsRange::fromBits(ptr[0], ptr[1]);
 }
 
@@ -2079,7 +2092,7 @@ inline void MarkStackIter::setSlotsOrElementsRange(
     const MarkStack::SlotsOrElementsRange& range) {
   MOZ_ASSERT(isSlotsOrElementsRange());
 
-  uintptr_t* ptr = &stack_.stack()[pos_ - ValueRangeWords];
+  uintptr_t* ptr = stack_.ptr(pos_ - ValueRangeWords);
   ptr[0] = range.asBits0();
   ptr[1] = range.asBits1();
 }

@@ -175,17 +175,16 @@ class MarkStack {
 
   void swap(MarkStack& other);
 
-  // The unit for MarkStack::capacity() is mark stack words.
-  size_t capacity() { return stack().length(); }
+  // The unit for capacity is mark stack words.
+  size_t capacity() const { return capacity_; }
+#ifdef JS_GC_ZEAL
+  void setMaxCapacity(size_t maxCapacity);
+#endif
 
   size_t position() const { return topIndex_; }
 
   [[nodiscard]] bool init();
   [[nodiscard]] bool resetStackCapacity();
-
-#ifdef JS_GC_ZEAL
-  void setMaxCapacity(size_t maxCapacity);
-#endif
 
   template <typename T>
   [[nodiscard]] bool push(T* ptr);
@@ -216,17 +215,24 @@ class MarkStack {
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
  private:
-  using StackVector = Vector<uintptr_t, 0, SystemAllocPolicy>;
-  const StackVector& stack() const { return stack_.ref(); }
-  StackVector& stack() { return stack_.ref(); }
+  uintptr_t at(size_t index) const {
+    MOZ_ASSERT(topIndex_ <= capacity_);
+    MOZ_ASSERT(index < topIndex_);
+    return stack_[index];
+  }
+  uintptr_t* ptr(size_t index) {
+    MOZ_ASSERT(topIndex_ <= capacity_);
+    MOZ_ASSERT(index <= topIndex_);
+    return stack_ + index;
+  }
+
+  // Return a pointer to the first unused word beyond the top of the stack.
+  uintptr_t* end() { return ptr(topIndex_); }
 
   // Grow the stack, ensuring there is space to push |count| more words.
   [[nodiscard]] bool enlarge(size_t count);
 
   [[nodiscard]] bool resize(size_t newCapacity);
-
-  // Return a pointer to the first unused word beyond the top of the stack.
-  uintptr_t* end();
 
   TaggedPtr peekPtr() const;
 
@@ -234,8 +240,11 @@ class MarkStack {
 
   bool indexIsEntryBase(size_t index) const;
 
-  // Vector containing allocated stack memory. Unused beyond topIndex_.
-  MainThreadOrGCTaskData<StackVector> stack_;
+  // Area of memory containing the stack.
+  MainThreadOrGCTaskData<uintptr_t*> stack_;
+
+  // Size of the stack in words.
+  MainThreadOrGCTaskData<size_t> capacity_;
 
   // Index of the top of the stack.
   MainThreadOrGCTaskData<size_t> topIndex_;
