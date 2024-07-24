@@ -1209,6 +1209,22 @@ class WorkerPrivate final
 
   RefPtr<WorkerParentRef> GetWorkerParentRef() const;
 
+  bool MayContinueRunning() {
+    AssertIsOnWorkerThread();
+
+    WorkerStatus status;
+    {
+      MutexAutoLock lock(mMutex);
+      status = mStatus;
+    }
+
+    if (status < Canceling) {
+      return true;
+    }
+
+    return false;
+  }
+
  private:
   WorkerPrivate(
       WorkerPrivate* aParent, const nsAString& aScriptURL, bool aIsChromeWorker,
@@ -1230,22 +1246,6 @@ class WorkerPrivate final
   static AgentClusterIdAndCoop ComputeAgentClusterIdAndCoop(
       WorkerPrivate* aParent, WorkerKind aWorkerKind,
       WorkerLoadInfo* aLoadInfo);
-
-  bool MayContinueRunning() {
-    AssertIsOnWorkerThread();
-
-    WorkerStatus status;
-    {
-      MutexAutoLock lock(mMutex);
-      status = mStatus;
-    }
-
-    if (status < Canceling) {
-      return true;
-    }
-
-    return false;
-  }
 
   void CancelAllTimeouts();
 

@@ -834,6 +834,26 @@ class WorkerJSRuntime final : public mozilla::CycleCollectedJSRuntime {
     }
   }
 
+  void TraceNativeBlackRoots(JSTracer* aTracer) override {
+    if (!mWorkerPrivate || !mWorkerPrivate->MayContinueRunning()) {
+      return;
+    }
+
+    if (WorkerGlobalScope* scope = mWorkerPrivate->GlobalScope()) {
+      if (EventListenerManager* elm = scope->GetExistingListenerManager()) {
+        elm->TraceListeners(aTracer);
+      }
+    }
+
+    if (WorkerDebuggerGlobalScope* debuggerScope =
+            mWorkerPrivate->DebuggerGlobalScope()) {
+      if (EventListenerManager* elm =
+              debuggerScope->GetExistingListenerManager()) {
+        elm->TraceListeners(aTracer);
+      }
+    }
+  };
+
  private:
   WorkerPrivate* mWorkerPrivate;
 };
