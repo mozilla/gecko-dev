@@ -141,6 +141,7 @@
 #include "mozilla/dom/Location.h"
 #include "mozilla/dom/MediaDevices.h"
 #include "mozilla/dom/MediaKeys.h"
+#include "mozilla/dom/Navigation.h"
 #include "mozilla/dom/NavigatorBinding.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/PartitionedLocalStorage.h"
@@ -1407,6 +1408,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLocation)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mHistory)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNavigation)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCustomElements)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSharedWorkers)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLocalStorage)
@@ -1518,6 +1520,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mLocation)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mHistory)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mNavigation)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCustomElements)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSharedWorkers)
   if (tmp->mLocalStorage) {
@@ -2417,6 +2420,14 @@ nsHistory* nsGlobalWindowInner::GetHistory(ErrorResult& aError) {
     mHistory = new nsHistory(this);
   }
   return mHistory;
+}
+
+Navigation* nsGlobalWindowInner::Navigation() {
+  if (!mNavigation && Navigation::IsAPIEnabled(nullptr, nullptr)) {
+    mNavigation = new mozilla::dom::Navigation();
+  }
+
+  return mNavigation;
 }
 
 CustomElementRegistry* nsGlobalWindowInner::CustomElements() {

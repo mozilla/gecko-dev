@@ -72,7 +72,7 @@ class PerformanceNavigationTiming final : public PerformanceResourceTiming {
   DOMHighResTimeStamp RedirectEnd(
       nsIPrincipal& aSubjectPrincipal) const override;
 
-  NavigationType Type() const;
+  NavigationTimingType Type() const;
   uint16_t RedirectCount() const;
 
   void UpdatePropertiesFromHttpChannel(nsIHttpChannel* aHttpChannel,
