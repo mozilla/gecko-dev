@@ -58,6 +58,12 @@ class CookiesStorageActor extends BaseStorageActor {
     super.destroy();
   }
 
+  #getCookieUniqueKey(cookie) {
+    return (
+      cookie.name + SEPARATOR_GUID + cookie.host + SEPARATOR_GUID + cookie.path
+    );
+  }
+
   populateStoresForHost(host) {
     this.hostVsStores.set(host, new Map());
 
@@ -66,10 +72,7 @@ class CookiesStorageActor extends BaseStorageActor {
 
     for (const cookie of cookies) {
       if (this.isCookieAtHost(cookie, host)) {
-        const uniqueKey =
-          `${cookie.name}${SEPARATOR_GUID}${cookie.host}` +
-          `${SEPARATOR_GUID}${cookie.path}`;
-
+        const uniqueKey = this.#getCookieUniqueKey(cookie);
         this.hostVsStores.get(host).set(uniqueKey, cookie);
       }
     }
@@ -151,9 +154,7 @@ class CookiesStorageActor extends BaseStorageActor {
     }
 
     return {
-      uniqueKey:
-        `${cookie.name}${SEPARATOR_GUID}${cookie.host}` +
-        `${SEPARATOR_GUID}${cookie.path}`,
+      uniqueKey: this.#getCookieUniqueKey(cookie),
       name: cookie.name,
       host: cookie.host || "",
       path: cookie.path || "",
@@ -216,10 +217,7 @@ class CookiesStorageActor extends BaseStorageActor {
       case COOKIE_CHANGED:
         if (hosts.length) {
           for (const host of hosts) {
-            const uniqueKey =
-              `${cookie.name}${SEPARATOR_GUID}${cookie.host}` +
-              `${SEPARATOR_GUID}${cookie.path}`;
-
+            const uniqueKey = this.#getCookieUniqueKey(cookie);
             this.hostVsStores.get(host).set(uniqueKey, cookie);
             data[host] = [uniqueKey];
           }
@@ -231,10 +229,7 @@ class CookiesStorageActor extends BaseStorageActor {
       case COOKIE_DELETED:
         if (hosts.length) {
           for (const host of hosts) {
-            const uniqueKey =
-              `${cookie.name}${SEPARATOR_GUID}${cookie.host}` +
-              `${SEPARATOR_GUID}${cookie.path}`;
-
+            const uniqueKey = this.#getCookieUniqueKey(cookie);
             this.hostVsStores.get(host).delete(uniqueKey);
             data[host] = [uniqueKey];
           }
@@ -248,10 +243,7 @@ class CookiesStorageActor extends BaseStorageActor {
             const stores = [];
             // For COOKIES_BATCH_DELETED cookie is an array.
             for (const batchCookie of cookie) {
-              const uniqueKey =
-                `${batchCookie.name}${SEPARATOR_GUID}${batchCookie.host}` +
-                `${SEPARATOR_GUID}${batchCookie.path}`;
-
+              const uniqueKey = this.#getCookieUniqueKey(batchCookie);
               this.hostVsStores.get(host).delete(uniqueKey);
               stores.push(uniqueKey);
             }
