@@ -1946,17 +1946,6 @@ export class DiscoveryStreamFeed {
         // we want to be able to expire just content to trigger the earlier expire times.
         await this.resetContentCache();
         break;
-      case at.DISCOVERY_STREAM_DEV_SHOW_PLACEHOLDER: {
-        // We want to display the loading state permanently, for dev purposes.
-        // We do this by resetting everything, loading the layout, and nothing else.
-        // This essentially hangs because we never triggered the content load.
-        await this.reset();
-        this.loadLayout(
-          a => this.store.dispatch(ac.BroadcastToContent(a)),
-          false
-        );
-        break;
-      }
       case at.DISCOVERY_STREAM_CONFIG_SET_VALUE:
         // Use the original string pref to then set a value instead of
         // this.config which has some modifications

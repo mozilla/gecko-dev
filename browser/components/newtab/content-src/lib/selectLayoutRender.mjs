@@ -225,6 +225,7 @@ export const selectLayoutRender = ({ state = {}, prefs = {} }) => {
       )) {
         const spocsConfig = component.spocs;
         if (spocsConfig || component.feed) {
+          // TODO make sure this still works for different loading cases.
           if (
             (component.feed && !feeds.data[component.feed.url]) ||
             (spocsConfig &&
@@ -233,7 +234,9 @@ export const selectLayoutRender = ({ state = {}, prefs = {} }) => {
               !spocs.loaded)
           ) {
             components.push(placeholderComponent(component));
-          } else if (component.feed) {
+            return renderedLayoutArray;
+          }
+          if (component.feed) {
             components.push(handleComponentWithFeed(component));
           } else {
             components.push(handleComponent(component));
