@@ -88,7 +88,6 @@ rtc_library("goog_cc") {
     "..:network_state_predictor_api",
     "../../api/units:time_delta",
     "../../modules/congestion_controller/goog_cc",
-    "../../rtc_base:checks",
   ]
 }
 

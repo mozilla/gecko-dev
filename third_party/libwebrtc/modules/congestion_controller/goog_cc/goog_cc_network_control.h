@@ -20,8 +20,6 @@
 #include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/network_state_predictor.h"
-#include "api/rtc_event_log/rtc_event_log.h"
-#include "api/transport/field_trial_based_config.h"
 #include "api/transport/network_control.h"
 #include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
@@ -84,10 +82,8 @@ class GoogCcNetworkController : public NetworkControllerInterface {
                                     Timestamp at_time);
   void UpdateCongestionWindowSize();
   PacerConfig GetPacingRates(Timestamp at_time) const;
-  const FieldTrialBasedConfig trial_based_config_;
 
-  const FieldTrialsView* const key_value_config_;
-  RtcEventLog* const event_log_;
+  const Environment env_;
   const bool packet_feedback_only_;
   FieldTrialFlag safe_reset_on_route_change_;
   FieldTrialFlag safe_reset_acknowledged_rate_;

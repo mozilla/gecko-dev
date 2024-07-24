@@ -22,6 +22,7 @@
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/network_state_predictor.h"
 #include "api/transport/network_control.h"
@@ -93,46 +94,45 @@ BandwidthLimitedCause GetBandwidthLimitedCause(LossBasedState loss_based_state,
 
 GoogCcNetworkController::GoogCcNetworkController(NetworkControllerConfig config,
                                                  GoogCcConfig goog_cc_config)
-    : key_value_config_(config.key_value_config ? config.key_value_config
-                                                : &trial_based_config_),
-      event_log_(config.event_log),
+    : env_(config.env),
       packet_feedback_only_(goog_cc_config.feedback_only),
       safe_reset_on_route_change_("Enabled"),
       safe_reset_acknowledged_rate_("ack"),
       use_min_allocatable_as_lower_bound_(
-          !key_value_config_->IsDisabled("WebRTC-Bwe-MinAllocAsLowerBound")),
-      ignore_probes_lower_than_network_estimate_(!key_value_config_->IsDisabled(
-          "WebRTC-Bwe-IgnoreProbesLowerThanNetworkStateEstimate")),
+          !env_.field_trials().IsDisabled("WebRTC-Bwe-MinAllocAsLowerBound")),
+      ignore_probes_lower_than_network_estimate_(
+          !env_.field_trials().IsDisabled(
+              "WebRTC-Bwe-IgnoreProbesLowerThanNetworkStateEstimate")),
       limit_probes_lower_than_throughput_estimate_(
-          !key_value_config_->IsDisabled(
+          !env_.field_trials().IsDisabled(
               "WebRTC-Bwe-LimitProbesLowerThanThroughputEstimate")),
-      rate_control_settings_(*key_value_config_),
-      pace_at_max_of_bwe_and_lower_link_capacity_(key_value_config_->IsEnabled(
+      rate_control_settings_(env_.field_trials()),
+      pace_at_max_of_bwe_and_lower_link_capacity_(env_.field_trials().IsEnabled(
           "WebRTC-Bwe-PaceAtMaxOfBweAndLowerLinkCapacity")),
       limit_pacingfactor_by_upper_link_capacity_estimate_(
-          key_value_config_->IsEnabled(
+          env_.field_trials().IsEnabled(
               "WebRTC-Bwe-LimitPacingFactorByUpperLinkCapacityEstimate")),
       probe_controller_(
-          new ProbeController(key_value_config_, config.event_log)),
+          new ProbeController(&env_.field_trials(), &env_.event_log())),
       congestion_window_pushback_controller_(
           rate_control_settings_.UseCongestionWindowPushback()
               ? std::make_unique<CongestionWindowPushbackController>(
-                    *key_value_config_)
+                    env_.field_trials())
               : nullptr),
       bandwidth_estimation_(
-          std::make_unique<SendSideBandwidthEstimation>(key_value_config_,
-                                                        event_log_)),
-      alr_detector_(
-          std::make_unique<AlrDetector>(key_value_config_, config.event_log)),
-      probe_bitrate_estimator_(new ProbeBitrateEstimator(config.event_log)),
+          std::make_unique<SendSideBandwidthEstimation>(&env_.field_trials(),
+                                                        &env_.event_log())),
+      alr_detector_(std::make_unique<AlrDetector>(&env_.field_trials(),
+                                                  &env_.event_log())),
+      probe_bitrate_estimator_(new ProbeBitrateEstimator(&env_.event_log())),
       network_estimator_(std::move(goog_cc_config.network_state_estimator)),
       network_state_predictor_(
           std::move(goog_cc_config.network_state_predictor)),
-      delay_based_bwe_(new DelayBasedBwe(key_value_config_,
-                                         event_log_,
+      delay_based_bwe_(new DelayBasedBwe(&env_.field_trials(),
+                                         &env_.event_log(),
                                          network_state_predictor_.get())),
       acknowledged_bitrate_estimator_(
-          AcknowledgedBitrateEstimatorInterface::Create(key_value_config_)),
+          AcknowledgedBitrateEstimatorInterface::Create(&env_.field_trials())),
       initial_config_(config),
       last_loss_based_target_rate_(*config.constraints.starting_rate),
       last_pushback_target_rate_(last_loss_based_target_rate_),
@@ -148,7 +148,7 @@ GoogCcNetworkController::GoogCcNetworkController(NetworkControllerConfig config,
   RTC_DCHECK(config.constraints.at_time.IsFinite());
   ParseFieldTrial(
       {&safe_reset_on_route_change_, &safe_reset_acknowledged_rate_},
-      key_value_config_->Lookup("WebRTC-Bwe-SafeResetOnRouteChange"));
+      env_.field_trials().Lookup("WebRTC-Bwe-SafeResetOnRouteChange"));
   if (delay_based_bwe_)
     delay_based_bwe_->SetMinBitrate(kCongestionControllerMinBitrate);
 }
@@ -184,12 +184,12 @@ NetworkControlUpdate GoogCcNetworkController::OnNetworkRouteChange(
   }
 
   acknowledged_bitrate_estimator_ =
-      AcknowledgedBitrateEstimatorInterface::Create(key_value_config_);
-  probe_bitrate_estimator_.reset(new ProbeBitrateEstimator(event_log_));
+      AcknowledgedBitrateEstimatorInterface::Create(&env_.field_trials());
+  probe_bitrate_estimator_.reset(new ProbeBitrateEstimator(&env_.event_log()));
   if (network_estimator_)
     network_estimator_->OnRouteChange(msg);
-  delay_based_bwe_.reset(new DelayBasedBwe(key_value_config_, event_log_,
-                                           network_state_predictor_.get()));
+  delay_based_bwe_.reset(new DelayBasedBwe(
+      &env_.field_trials(), &env_.event_log(), network_state_predictor_.get()));
   bandwidth_estimation_->OnRouteChange();
   probe_controller_->Reset(msg.at_time);
   NetworkControlUpdate update;
@@ -527,7 +527,7 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(
     // changed to avoid the need for this check.
     if (estimate_ && (!prev_estimate || estimate_->last_feed_time !=
                                             prev_estimate->last_feed_time)) {
-      event_log_->Log(std::make_unique<RtcEventRemoteEstimate>(
+      env_.event_log().Log(std::make_unique<RtcEventRemoteEstimate>(
           estimate_->link_capacity_lower, estimate_->link_capacity_upper));
       probe_controller_->SetNetworkStateEstimate(*estimate_);
     }
