@@ -8,15 +8,8 @@
 #define DOM_BASE_GLOBALFREEZEOBSERVER_H_
 
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/EventTarget.h"
-#include "mozilla/RefPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsID.h"
 #include "nsIGlobalObject.h"
-#include "nsIScriptGlobalObject.h"
 #include "nsISupports.h"
-#include "nsISupportsUtils.h"
-#include "nsPIDOMWindow.h"
 
 namespace mozilla {
 

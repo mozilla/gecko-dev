@@ -8,28 +8,16 @@
 #define DOM_BASE_GLOBALTEARDOWNOBSERVER_H_
 
 #include "mozilla/Attributes.h"
-#include "mozilla/RefPtr.h"
-#include "nsID.h"
 #include "nsIGlobalObject.h"
 #include "nsIScriptGlobalObject.h"
-#include "nsISupports.h"
-#include "nsISupportsUtils.h"
-
-#define NS_GLOBALTEARDOWNOBSERVER_IID                \
-  {                                                  \
-    0xc31fddb9, 0xec49, 0x4f24, {                    \
-      0x90, 0x16, 0xb5, 0x2b, 0x26, 0x6c, 0xb6, 0x29 \
-    }                                                \
-  }
 
 namespace mozilla {
 
 class GlobalTeardownObserver
+
     : public nsISupports,
       public LinkedListElement<GlobalTeardownObserver> {
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_GLOBALTEARDOWNOBSERVER_IID)
-
   GlobalTeardownObserver();
   explicit GlobalTeardownObserver(nsIGlobalObject* aGlobalObject,
                                   bool aHasOrHasHadOwnerWindow = false);
@@ -73,9 +61,6 @@ class GlobalTeardownObserver
   // obtained in BindToOwner.
   bool mHasOrHasHadOwnerWindow = false;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(GlobalTeardownObserver,
-                              NS_GLOBALTEARDOWNOBSERVER_IID)
 
 }  // namespace mozilla
 
