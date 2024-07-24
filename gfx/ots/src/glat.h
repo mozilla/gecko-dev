@@ -161,6 +161,10 @@ class OpenTypeGLAT : public Table {
   bool Parse(const uint8_t* data, size_t length);
   bool Serialize(OTSStream* out);
 
+  virtual bool ShouldSerialize() {
+    return handler && handler->ShouldSerialize();
+  }
+
  private:
   Font* font;
   uint32_t tag;

@@ -173,7 +173,7 @@ bool OpenTypeNAME::Parse(const uint8_t* data, size_t length) {
       uint16_t tag_length = 0;
       uint16_t tag_offset = 0;
       if (!table.ReadU16(&tag_length) || !table.ReadU16(&tag_offset)) {
-        return Error("Faile to read length or offset for langTagRecord %d", i);
+        return Error("Failed to read length or offset for langTagRecord %d", i);
       }
       const unsigned tag_end = static_cast<unsigned>(string_offset) +
           tag_offset + tag_length;
@@ -293,14 +293,14 @@ bool OpenTypeNAME::Serialize(OTSStream* out) {
         !out->WriteU16(rec.name_id) ||
         !out->WriteU16(static_cast<uint16_t>(rec.text.size())) ||
         !out->WriteU16(static_cast<uint16_t>(string_data.size())) ) {
-      return Error("Faile to write nameRecord");
+      return Error("Failed to write nameRecord");
     }
     string_data.append(rec.text);
   }
 
   if (format == 1) {
     if (!out->WriteU16(lang_tag_count)) {
-      return Error("Faile to write langTagCount");
+      return Error("Failed to write langTagCount");
     }
     for (const auto& tag : this->lang_tags) {
       if (string_data.size() + tag.size() >
@@ -314,7 +314,7 @@ bool OpenTypeNAME::Serialize(OTSStream* out) {
   }
 
   if (!out->Write(string_data.data(), string_data.size())) {
-    return Error("Faile to write string data");
+    return Error("Failed to write string data");
   }
 
   return true;

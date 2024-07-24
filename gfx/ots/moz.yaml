@@ -10,8 +10,8 @@ origin:
 
   url: https://github.com/khaledhosny/ots
 
-  release: d51fceea592507b78cf6c5fd90ba9ef6b969ffd1 (2024-03-26T11:28:30Z).
-  revision: d51fceea592507b78cf6c5fd90ba9ef6b969ffd1
+  release: 27d63ae4d8988619e0a661bf40551c47da47f3fa (2024-07-22T18:00:27Z).
+  revision: 27d63ae4d8988619e0a661bf40551c47da47f3fa
 
   license: BSD-3-Clause
   license-file: LICENSE

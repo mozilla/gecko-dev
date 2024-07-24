@@ -59,6 +59,7 @@ bool OpenTypeGLAT_v1::Parse(const uint8_t* data, size_t length) {
 }
 
 bool OpenTypeGLAT_v1::Serialize(OTSStream* out) {
+  assert(ShouldSerialize());
   if (!out->WriteU32(this->version) ||
       !SerializeParts(this->entries, out)) {
     return Error("Failed to write table");
@@ -141,6 +142,7 @@ bool OpenTypeGLAT_v2::Parse(const uint8_t* data, size_t length) {
 }
 
 bool OpenTypeGLAT_v2::Serialize(OTSStream* out) {
+  assert(ShouldSerialize());
   if (!out->WriteU32(this->version) ||
       !SerializeParts(this->entries, out)) {
     return Error("Failed to write table");
@@ -264,6 +266,7 @@ bool OpenTypeGLAT_v3::Parse(const uint8_t* data, size_t length,
 }
 
 bool OpenTypeGLAT_v3::Serialize(OTSStream* out) {
+  assert(ShouldSerialize());
   if (!out->WriteU32(this->version) ||
       !out->WriteU32(this->compHead) ||
       !SerializeParts(this->entries, out)) {
