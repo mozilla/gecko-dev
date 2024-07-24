@@ -1363,9 +1363,9 @@ TEST(WebRtcVideoEngineNewVideoCodecFactoryTest, Vp8) {
   std::unique_ptr<webrtc::MockVideoBitrateAllocatorFactory>
       rate_allocator_factory =
           std::make_unique<webrtc::MockVideoBitrateAllocatorFactory>();
-  EXPECT_CALL(*rate_allocator_factory,
-              CreateVideoBitrateAllocator(Field(&webrtc::VideoCodec::codecType,
-                                                webrtc::kVideoCodecVP8)))
+  EXPECT_CALL(
+      *rate_allocator_factory,
+      Create(_, Field(&webrtc::VideoCodec::codecType, webrtc::kVideoCodecVP8)))
       .WillOnce(
           [] { return std::make_unique<webrtc::MockVideoBitrateAllocator>(); });
   webrtc::FieldTrialBasedConfig trials;

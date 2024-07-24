@@ -2697,7 +2697,8 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
               CreateBuiltinVideoBitrateAllocatorFactory()) {}
 
    private:
-    std::unique_ptr<VideoBitrateAllocator> CreateVideoBitrateAllocator(
+    std::unique_ptr<VideoBitrateAllocator> Create(
+        const Environment& env,
         const VideoCodec& codec) override {
       EXPECT_GE(codec.startBitrate, codec.minBitrate);
       EXPECT_LE(codec.startBitrate, codec.maxBitrate);
@@ -2722,7 +2723,7 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
       ++num_rate_allocator_creations_;
       create_rate_allocator_event_.Set();
 
-      return bitrate_allocator_factory_->CreateVideoBitrateAllocator(codec);
+      return bitrate_allocator_factory_->Create(env, codec);
     }
 
     int32_t InitEncode(const VideoCodec* codecSettings,

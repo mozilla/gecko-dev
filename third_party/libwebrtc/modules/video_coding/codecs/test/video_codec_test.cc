@@ -319,7 +319,7 @@ TEST_P(SpatialQualityTest, SpatialQuality) {
   VideoSourceSettings source_settings = ToSourceSettings(video_info);
 
   EncodingSettings encoding_settings = VideoCodecTester::CreateEncodingSettings(
-      codec_type, /*scalability_mode=*/"L1T1", width, height,
+      env, codec_type, /*scalability_mode=*/"L1T1", width, height,
       {DataRate::KilobitsPerSec(bitrate_kbps)},
       Frequency::Hertz(framerate_fps));
 
@@ -398,14 +398,14 @@ TEST_P(BitrateAdaptationTest, BitrateAdaptation) {
   VideoSourceSettings source_settings = ToSourceSettings(video_info);
 
   EncodingSettings encoding_settings = VideoCodecTester::CreateEncodingSettings(
-      codec_type, /*scalability_mode=*/"L1T1",
+      env, codec_type, /*scalability_mode=*/"L1T1",
       /*width=*/640, /*height=*/360,
       {DataRate::KilobitsPerSec(bitrate_kbps.first)},
       /*framerate=*/Frequency::Hertz(30));
 
   EncodingSettings encoding_settings2 =
       VideoCodecTester::CreateEncodingSettings(
-          codec_type, /*scalability_mode=*/"L1T1",
+          env, codec_type, /*scalability_mode=*/"L1T1",
           /*width=*/640, /*height=*/360,
           {DataRate::KilobitsPerSec(bitrate_kbps.second)},
           /*framerate=*/Frequency::Hertz(30));
@@ -484,14 +484,14 @@ TEST_P(FramerateAdaptationTest, FramerateAdaptation) {
   VideoSourceSettings source_settings = ToSourceSettings(video_info);
 
   EncodingSettings encoding_settings = VideoCodecTester::CreateEncodingSettings(
-      codec_type, /*scalability_mode=*/"L1T1",
+      env, codec_type, /*scalability_mode=*/"L1T1",
       /*width=*/640, /*height=*/360,
       /*bitrate=*/{DataRate::KilobitsPerSec(512)},
       Frequency::Hertz(framerate_fps.first));
 
   EncodingSettings encoding_settings2 =
       VideoCodecTester::CreateEncodingSettings(
-          codec_type, /*scalability_mode=*/"L1T1",
+          env, codec_type, /*scalability_mode=*/"L1T1",
           /*width=*/640, /*height=*/360,
           /*bitrate=*/{DataRate::KilobitsPerSec(512)},
           Frequency::Hertz(framerate_fps.second));
@@ -571,7 +571,7 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
           .value_or(absl::GetFlag(FLAGS_input_framerate_fps)));
 
   EncodingSettings encoding_settings = VideoCodecTester::CreateEncodingSettings(
-      CodecNameToCodecType(absl::GetFlag(FLAGS_encoder)),
+      env, CodecNameToCodecType(absl::GetFlag(FLAGS_encoder)),
       absl::GetFlag(FLAGS_scalability_mode),
       absl::GetFlag(FLAGS_width).value_or(absl::GetFlag(FLAGS_input_width)),
       absl::GetFlag(FLAGS_height).value_or(absl::GetFlag(FLAGS_input_height)),
