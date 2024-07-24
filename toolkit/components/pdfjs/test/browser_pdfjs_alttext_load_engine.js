@@ -10,6 +10,7 @@ const RELATIVE_DIR = "toolkit/components/pdfjs/test/";
 const TESTROOT = "https://example.com/browser/" + RELATIVE_DIR;
 const pdfUrl = TESTROOT + "file_pdfjs_test.pdf";
 const altTextPref = "pdfjs.enableAltText";
+const guessAltTextPref = "pdfjs.enableGuessAltText";
 const browserMLPref = "browser.ml.enable";
 
 async function setupRemoteClient() {
@@ -64,6 +65,7 @@ add_task(async function test() {
         set: [
           [altTextPref, true],
           [browserMLPref, true],
+          [guessAltTextPref, true],
         ],
       });
 

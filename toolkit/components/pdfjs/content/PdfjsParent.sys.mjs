@@ -53,7 +53,7 @@ let gFindTypes = [
 ];
 
 export class PdfjsParent extends JSWindowActorParent {
-  #mutablePreferences = new Set(["enableAltText"]);
+  #mutablePreferences = new Set(["enableGuessAltText"]);
 
   constructor() {
     super();

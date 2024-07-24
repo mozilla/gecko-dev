@@ -34,11 +34,11 @@ add_task(async function test() {
       await waitForPdfJS(browser, pdfUrl);
 
       const prefs = {
-        enableAltText: {
+        enableGuessAltText: {
           type: "Bool",
-          initialValue: false,
-          newValue: true,
-          expectedValue: true,
+          initialValue: true,
+          newValue: false,
+          expectedValue: false,
         },
         pdfBugEnabled: {
           type: "Bool",
