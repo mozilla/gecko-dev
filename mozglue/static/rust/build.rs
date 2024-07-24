@@ -22,7 +22,14 @@ fn main() {
     let max_alloc_error_panic_version = Version::parse("1.83.0-alpha").unwrap();
 
     if ver >= Version::parse("1.80.0-alpha").unwrap() {
+        println!("cargo::rustc-check-cfg=cfg(has_panic_hook_info)");
         println!("cargo::rustc-check-cfg=cfg(oom_with, values(\"hook\", \"alloc_error_panic\"))");
+    }
+    // As of 1.81, std::panic::PanicInfo is deprecated and replaced by
+    // std::panic::PanicHookInfo. Using the former becomes a warning in
+    // 1.82, but we can use the new type as of 1.81.
+    if ver >= Version::parse("1.81.0-beta").unwrap() {
+        println!("cargo:rustc-cfg=has_panic_hook_info");
     }
     if ver < max_oom_hook_version {
         println!("cargo:rustc-cfg=oom_with=\"hook\"");
