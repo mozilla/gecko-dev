@@ -58,6 +58,8 @@ class CookiesStorageActor extends BaseStorageActor {
     super.destroy();
   }
 
+  static UNIQUE_KEY_INDEXES = { name: 0, host: 1, path: 2 };
+
   #getCookieUniqueKey(cookie) {
     return (
       cookie.name + SEPARATOR_GUID + cookie.host + SEPARATOR_GUID + cookie.path
@@ -470,10 +472,10 @@ class CookiesStorageActor extends BaseStorageActor {
     // We use a uniqueId to emulate compound keys for cookies. We need to
     // extract the cookie name to remove the correct cookie.
     if (opts.name) {
-      const split = opts.name.split(SEPARATOR_GUID);
+      const uniqueKeyParts = opts.name.split(SEPARATOR_GUID);
 
-      opts.name = split[0];
-      opts.path = split[2];
+      opts.name = uniqueKeyParts[CookiesStorageActor.UNIQUE_KEY_INDEXES.name];
+      opts.path = uniqueKeyParts[CookiesStorageActor.UNIQUE_KEY_INDEXES.path];
     }
 
     host = trimHttpHttpsPort(host);
