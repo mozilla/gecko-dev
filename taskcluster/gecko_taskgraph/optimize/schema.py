@@ -26,6 +26,7 @@ default_optimizations = (
     # skip the task except for every Nth push
     {"skip-unless-expanded": None},
     {"skip-unless-backstop": None},
+    {"skip-unless-android-perftest-backstop": None},
     # skip this task if none of the given file patterns match
     {"skip-unless-changed": [str]},
     # skip this task if unless the change files' SCHEDULES contains any of these components

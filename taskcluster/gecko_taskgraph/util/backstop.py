@@ -11,7 +11,15 @@ from gecko_taskgraph.util.taskcluster import state_task
 
 BACKSTOP_PUSH_INTERVAL = 20
 BACKSTOP_TIME_INTERVAL = 60 * 4  # minutes
+ANDROID_PERFTEST_BACKSTOP_INDEX = (
+    "{trust-domain}.v2.{project}.latest.taskgraph.android_backstop"
+)
 BACKSTOP_INDEX = "{trust-domain}.v2.{project}.latest.taskgraph.backstop"
+
+STRATEGY_TO_INDEX_MAP = {
+    "android_perftest_backstop": ANDROID_PERFTEST_BACKSTOP_INDEX,
+    "backstop": BACKSTOP_INDEX,
+}
 
 
 def is_backstop(
@@ -20,6 +28,7 @@ def is_backstop(
     time_interval=BACKSTOP_TIME_INTERVAL,
     trust_domain="gecko",
     integration_projects=INTEGRATION_PROJECTS,
+    backstop_strategy="backstop",
 ):
     """Determines whether the given parameters represent a backstop push.
 
@@ -33,7 +42,7 @@ def is_backstop(
         bool: True if this is a backstop, otherwise False.
     """
     # In case this is being faked on try.
-    if params.get("backstop", False):
+    if params.get(backstop_strategy, False):
         return True
 
     project = params["project"]
@@ -49,7 +58,7 @@ def is_backstop(
 
     # Find the last backstop to compute push and time intervals.
     subs = {"trust-domain": trust_domain, "project": project}
-    index = BACKSTOP_INDEX.format(**subs)
+    index = STRATEGY_TO_INDEX_MAP[backstop_strategy].format(**subs)
 
     try:
         last_backstop_id = find_task_id(index)

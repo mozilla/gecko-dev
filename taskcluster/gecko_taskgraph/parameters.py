@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 gecko_parameters_schema = {
+    Required("android_perftest_backstop"): bool,
     Required("app_version"): str,
     Required("backstop"): bool,
     Required("build_number"): int,
@@ -109,6 +110,7 @@ def get_app_version(product_dir="browser"):
 
 def get_defaults(repo_root=None):
     return {
+        "android_perftest_backstop": False,
         "app_version": get_app_version(),
         "backstop": False,
         "base_repository": "https://hg.mozilla.org/mozilla-unified",

@@ -22,6 +22,11 @@ topic.
 Push Information
 ----------------
 
+``android_perftest_backstop``
+   Whether or not this push is a "backstop" push for android performance tests.
+   That is a push where all android performance tests should run to ensure
+   regressions aren't accidentally missed.
+
 ``backstop``
    Whether or not this push is a "backstop" push. That is a push where all
    builds and tests should run to ensure regressions aren't accidentally

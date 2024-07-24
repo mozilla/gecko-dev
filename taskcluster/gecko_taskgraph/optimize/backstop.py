@@ -8,6 +8,14 @@ from taskgraph.optimize.base import All, OptimizationStrategy, register_strategy
 from gecko_taskgraph.util.backstop import BACKSTOP_PUSH_INTERVAL
 
 
+@register_strategy("skip-unless-android-perftest-backstop")
+class SkipUnlessAndroidPerftestBackstop(OptimizationStrategy):
+    """Always removes tasks except on backstop pushes."""
+
+    def should_remove_task(self, task, params, _):
+        return not params["android_perftest_backstop"]
+
+
 @register_strategy("skip-unless-backstop")
 class SkipUnlessBackstop(OptimizationStrategy):
     """Always removes tasks except on backstop pushes."""
