@@ -544,6 +544,7 @@ interface mixin WebGLRenderingContextBase {
 
     /* Upon context creation, drawingBufferColorSpace and unpackColorSpace both
        default to the value "srgb". */
+    [Pref="webgl.colorspaces.prototype"]
     attribute PredefinedColorSpace drawingBufferColorSpace;
     //attribute PredefinedColorSpace unpackColorSpace;
 
