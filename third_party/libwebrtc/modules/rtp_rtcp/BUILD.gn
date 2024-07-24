@@ -270,12 +270,6 @@ rtc_library("rtp_rtcp") {
     ]
   }
 
-  if (rtc_enable_bwe_test_logging) {
-    defines = [ "BWE_TEST_LOGGING_COMPILE_TIME_ENABLE=1" ]
-  } else {
-    defines = [ "BWE_TEST_LOGGING_COMPILE_TIME_ENABLE=0" ]
-  }
-
   deps = [
     ":leb128",
     ":rtp_rtcp_format",
@@ -349,7 +343,6 @@ rtc_library("rtp_rtcp") {
     "../../rtc_base/task_utils:repeating_task",
     "../../system_wrappers",
     "../../system_wrappers:metrics",
-    "../remote_bitrate_estimator",
     "../video_coding:codec_globals_headers",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/base:core_headers",
@@ -388,7 +381,6 @@ rtc_source_set("rtp_rtcp_legacy") {
     "../../rtc_base:macromagic",
     "../../rtc_base/synchronization:mutex",
     "../../system_wrappers",
-    "../remote_bitrate_estimator",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",

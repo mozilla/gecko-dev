@@ -45,10 +45,10 @@ index a398f16d46..8136730e4c 100644
      return flexfec_ssrc_;
    }
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index c60305888b..dfdf36434a 100644
+index 6a53245c4e..cfa0c357d0 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
-@@ -157,6 +157,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
+@@ -156,6 +156,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
                      this,
                      config.frame_transformer,
                      rtp_sender_->SSRC(),
