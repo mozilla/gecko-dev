@@ -379,7 +379,10 @@ rtc_library("libaom_av1_encoder_factory") {
     "//third_party/libaom",
   ]
 
-  absl_deps = [ "//third_party/abseil-cpp/absl/algorithm:container" ]
+  absl_deps = [
+    "//third_party/abseil-cpp/absl/algorithm:container",
+    "//third_party/abseil-cpp/absl/cleanup",
+  ]
 }
 
 rtc_library("libaom_av1_encoder_factory_test") {
