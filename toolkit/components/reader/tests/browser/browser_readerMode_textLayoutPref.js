@@ -19,6 +19,10 @@ const defaultValues = {
   "text-alignment": "start",
 };
 
+/**
+ * Test that the layout and advanced layout pref selection updates
+ * the document layout correctly.
+ */
 async function testTextLayout(aPref, value, cssProp, cssValue) {
   // Enable the improved text and layout menu.
   Services.prefs.setBoolPref("reader.improved_text_menu.enabled", true);
@@ -67,6 +71,9 @@ async function testTextLayout(aPref, value, cssProp, cssValue) {
   );
 }
 
+/**
+ * Test that the reset button restores all layout options to defaults.
+ */
 async function testTextLayoutReset() {
   // Enable the improved text and layout menu.
   Services.prefs.setBoolPref("reader.improved_text_menu.enabled", true);
@@ -124,9 +131,60 @@ async function testTextLayoutReset() {
 }
 
 /**
- * Test that the layout and advanced layout pref selection updates
- * the document layout correctly.
+ * Test that the focus stays within the text and layout menu.
  */
+async function testTextLayoutFocus() {
+  // Enable the improved text and layout menu.
+  Services.prefs.setBoolPref("reader.improved_text_menu.enabled", true);
+
+  // Open a browser tab, enter reader mode, and test if the focus stays
+  // within the menu.
+  await BrowserTestUtils.withNewTab(
+    TEST_PATH + "readerModeArticle.html",
+    async function (browser) {
+      let pageShownPromise = BrowserTestUtils.waitForContentEvent(
+        browser,
+        "AboutReaderContentReady"
+      );
+
+      let readerButton = document.getElementById("reader-mode-button");
+      readerButton.click();
+      await pageShownPromise;
+
+      await SpecialPowers.spawn(browser, [], () => {
+        let doc = content.document;
+        doc.querySelector(".improved-style-button").click();
+
+        let firstFocusableElement = doc.querySelector(
+          ".text-size-minus-button"
+        );
+        let advancedHeader = doc.querySelector(".accordion-header");
+        advancedHeader.focus();
+
+        EventUtils.synthesizeKey("KEY_Tab", {}, content);
+        is(
+          doc.activeElement,
+          firstFocusableElement,
+          "Focus moves back to the first focusable button"
+        );
+
+        // Expand the advanced layout accordion.
+        advancedHeader.click();
+
+        let resetButton = doc.querySelector(".text-layout-reset-button");
+        resetButton.focus();
+
+        EventUtils.synthesizeKey("KEY_Tab", {}, content);
+        is(
+          doc.activeElement,
+          firstFocusableElement,
+          "Focus moves back to the first focusable button"
+        );
+      });
+    }
+  );
+}
+
 add_task(async function () {
   await testTextLayout("font_size", 7, "font-size", "24px");
   await testTextLayout(
@@ -142,4 +200,5 @@ add_task(async function () {
   await testTextLayout("word_spacing", 7, "word-spacing", "0.30em");
   await testTextLayout("text_alignment", "right", "text-alignment", "right");
   await testTextLayoutReset();
+  await testTextLayoutFocus();
 });

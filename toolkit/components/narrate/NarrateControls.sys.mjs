@@ -202,6 +202,7 @@ export function NarrateControls(win, languagePromise) {
     .appendChild(this.voiceSelect.element);
 
   dropdown.addEventListener("click", this, true);
+  dropdown.addEventListener("keydown", this, true);
 
   let rateRange = dropdown.querySelector(".narrate-rate > input");
   rateRange.addEventListener("change", this);
@@ -227,6 +228,11 @@ NarrateControls.prototype = {
         break;
       case "click":
         this._onButtonClick(evt);
+        break;
+      case "keydown":
+        if (evt.key === "Tab" && !evt.shiftKey) {
+          this._handleFocus(evt);
+        }
         break;
       case "voiceschanged":
         this._setupVoices();
@@ -443,5 +449,23 @@ NarrateControls.prototype = {
 
   get voice() {
     return this.voiceSelect.value;
+  },
+
+  _handleFocus(e) {
+    let classList = e.target.classList;
+    if (classList.contains("option") || classList.contains("select-toggle")) {
+      e.preventDefault();
+    } else {
+      return;
+    }
+
+    let narrateDropdown = this._doc.querySelector(".narrate-dropdown");
+    if (narrateDropdown.classList.contains("speaking")) {
+      let skipPrevious = this._doc.querySelector(".narrate-skip-previous");
+      skipPrevious.focus();
+    } else {
+      let startStop = this._doc.querySelector(".narrate-start-stop");
+      startStop.focus();
+    }
   },
 };

@@ -10,8 +10,8 @@ const TEST_PATH = getRootDirectory(gTestPath).replace(
 );
 
 /**
- * Test that the reader mode correctly calculates and displays the
- * estimated reading time for a short article
+ * Test that the reader mode menus open and close correctly on click
+ * and on keyboard input.
  */
 add_task(async function () {
   await BrowserTestUtils.withNewTab(
@@ -61,6 +61,14 @@ add_task(async function () {
 
           // now click on the button again to close it
           simulateClick(button);
+          ok(!dropdown.classList.contains("open"), "dropdown is closed");
+
+          // reopen the dropdown
+          simulateClick(button);
+          ok(dropdown.classList.contains("open"), "dropdown is open");
+
+          // use the ESC key to close it
+          EventUtils.synthesizeKey("KEY_Escape", {}, win);
           ok(!dropdown.classList.contains("open"), "dropdown is closed");
         }
 
