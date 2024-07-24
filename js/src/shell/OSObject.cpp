@@ -903,7 +903,7 @@ static bool ospath_join(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     if (IsAbsolutePath(str)) {
-      MOZ_ALWAYS_TRUE(buffer.resize(0));
+      buffer.clear();
     } else if (i != 0) {
       UniqueChars path = JS_EncodeStringToUTF8(cx, str);
       if (!path) {

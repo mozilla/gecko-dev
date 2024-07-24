@@ -13,6 +13,7 @@
 
 #include "frontend/FrontendContext.h"
 #include "js/Vector.h"
+#include "vm/Runtime.h"
 #include "vm/StringType.h"
 
 namespace js {
@@ -114,7 +115,7 @@ class StringBufferAllocPolicy {
 class StringBuffer {
  protected:
   template <typename CharT>
-  using BufferType = Vector<CharT, 64 / sizeof(CharT), StringBufferAllocPolicy>;
+  using BufferType = Vector<CharT, 80 / sizeof(CharT), StringBufferAllocPolicy>;
 
   /*
    * The Vector's buffer may be either stolen or copied, so we need to use
@@ -125,18 +126,36 @@ class StringBuffer {
 
   JSContext* maybeCx_ = nullptr;
 
-  /*
-   * If Latin1 strings are enabled, cb starts out as a Latin1CharBuffer. When
-   * a TwoByte char is appended, inflateChars() constructs a TwoByteCharBuffer
-   * and copies the Latin1 chars.
-   */
+  // cb starts out as a Latin1CharBuffer. When a TwoByte char is appended,
+  // inflateChars() constructs a TwoByteCharBuffer and copies the Latin1 chars.
+  //
+  // Note that this buffer can include extra zero bytes for the string buffer
+  // header. See numHeaderChars_ below.
   mozilla::MaybeOneOf<Latin1CharBuffer, TwoByteCharBuffer> cb;
 
-  /* Number of reserve()'d chars, see inflateChars. */
-  size_t reserved_ = 0;
+  // Number of reserve()'d chars, see inflateChars. Does not include
+  // numHeaderChars_.
+  size_t reservedExclHeader_ = 0;
+
+  // The number of '\0' characters prepended by JSStringBuilder to reserve space
+  // for the mozilla::StringBuffer header. This is always non-zero for
+  // JSStringBuilder and zero otherwise.
+  //
+  // Note that this is an implementation detail: public methods such as |begin|
+  // and |length| return the actual string contents/length without these extra
+  // characters.
+  uint8_t numHeaderChars_ = 0;
 
   StringBuffer(const StringBuffer& other) = delete;
   void operator=(const StringBuffer& other) = delete;
+
+  // Returns the number of characters to prepend to reserve enough space for the
+  // mozilla::StringBuffer header.
+  template <typename CharT>
+  static constexpr size_t numHeaderChars() {
+    static_assert(sizeof(mozilla::StringBuffer) % sizeof(CharT) == 0);
+    return sizeof(mozilla::StringBuffer) / sizeof(CharT);
+  }
 
   template <typename CharT>
   MOZ_ALWAYS_INLINE bool isCharType() const {
@@ -199,38 +218,42 @@ class StringBuffer {
     cb.construct<Latin1CharBuffer>(StringBufferAllocPolicy{fc, arenaId});
   }
 
-  void clear() {
-    if (isLatin1()) {
-      latin1Chars().clear();
-    } else {
-      twoByteChars().clear();
-    }
-  }
+  void clear() { shrinkTo(0); }
+
   [[nodiscard]] bool reserve(size_t len) {
-    if (len > reserved_) {
-      reserved_ = len;
+    auto lenWithHeader = mozilla::CheckedInt<size_t>(len) + numHeaderChars_;
+    if (MOZ_UNLIKELY(!lenWithHeader.isValid())) {
+      ReportAllocationOverflow(maybeCx_);
+      return false;
     }
-    return isLatin1() ? latin1Chars().reserve(len)
-                      : twoByteChars().reserve(len);
-  }
-  [[nodiscard]] bool resize(size_t len) {
-    return isLatin1() ? latin1Chars().resize(len) : twoByteChars().resize(len);
+    if (len > reservedExclHeader_) {
+      reservedExclHeader_ = len;
+    }
+    return isLatin1() ? latin1Chars().reserve(lenWithHeader.value())
+                      : twoByteChars().reserve(lenWithHeader.value());
   }
   [[nodiscard]] bool growByUninitialized(size_t incr) {
     return isLatin1() ? latin1Chars().growByUninitialized(incr)
                       : twoByteChars().growByUninitialized(incr);
   }
   void shrinkTo(size_t newLength) {
-    return isLatin1() ? latin1Chars().shrinkTo(newLength)
-                      : twoByteChars().shrinkTo(newLength);
+    // Note: this can't overflow because the new length must be <= the current
+    // length.
+    newLength += numHeaderChars_;
+    if (isLatin1()) {
+      latin1Chars().shrinkTo(newLength);
+    } else {
+      twoByteChars().shrinkTo(newLength);
+    }
   }
-  bool empty() const {
-    return isLatin1() ? latin1Chars().empty() : twoByteChars().empty();
-  }
+  bool empty() const { return length() == 0; }
   size_t length() const {
-    return isLatin1() ? latin1Chars().length() : twoByteChars().length();
+    size_t len = isLatin1() ? latin1Chars().length() : twoByteChars().length();
+    MOZ_ASSERT(len >= numHeaderChars_);
+    return len - numHeaderChars_;
   }
   char16_t getChar(size_t idx) const {
+    idx += numHeaderChars_;
     return isLatin1() ? latin1Chars()[idx] : twoByteChars()[idx];
   }
 
@@ -338,7 +361,8 @@ class StringBuffer {
 
   template <typename CharT>
   CharT* begin() {
-    return chars<CharT>().begin();
+    MOZ_ASSERT(chars<CharT>().length() >= numHeaderChars_);
+    return chars<CharT>().begin() + numHeaderChars_;
   }
 
   template <typename CharT>
@@ -348,7 +372,8 @@ class StringBuffer {
 
   template <typename CharT>
   const CharT* begin() const {
-    return chars<CharT>().begin();
+    MOZ_ASSERT(chars<CharT>().length() >= numHeaderChars_);
+    return chars<CharT>().begin() + numHeaderChars_;
   }
 
   template <typename CharT>
@@ -383,7 +408,11 @@ class StringBuffer {
 class JSStringBuilder : public StringBuffer {
  public:
   explicit JSStringBuilder(JSContext* cx)
-      : StringBuffer(cx, js::StringBufferArena) {}
+      : StringBuffer(cx, js::StringBufferArena) {
+    // Reserve space for the mozilla::StringBuffer header.
+    numHeaderChars_ = numHeaderChars<Latin1Char>();
+    MOZ_ALWAYS_TRUE(latin1Chars().appendN('\0', numHeaderChars_));
+  }
 
   /*
    * Creates a string from the characters in this buffer, then (regardless
