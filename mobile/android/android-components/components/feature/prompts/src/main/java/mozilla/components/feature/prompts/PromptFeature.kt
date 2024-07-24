@@ -589,64 +589,75 @@ class PromptFeature private constructor(
      *
      * @param session The session which requested the dialog.
      */
-    @Suppress("NestedBlockDepth")
     @VisibleForTesting(otherwise = PRIVATE)
     internal fun onPromptRequested(session: SessionState) {
         // Some requests are handle with intents
         session.content.promptRequests.lastOrNull()?.let { promptRequest ->
-            store.state.findTabOrCustomTabOrSelectedTab(customTabId)?.let {
-                promptRequest.executeIfWindowedPrompt { exitFullscreenUsecase(it.id) }
+            if (session.content.permissionRequestsList.isNotEmpty()) {
+                onCancel(session.id, promptRequest.uid)
+            } else {
+                processPromptRequest(promptRequest, session)
+            }
+        }
+    }
+
+    @Suppress("NestedBlockDepth")
+    private fun processPromptRequest(
+        promptRequest: PromptRequest,
+        session: SessionState,
+    ) {
+        store.state.findTabOrCustomTabOrSelectedTab(customTabId)?.let {
+            promptRequest.executeIfWindowedPrompt { exitFullscreenUsecase(it.id) }
+        }
+
+        when (promptRequest) {
+            is File -> {
+                emitPromptDisplayedFact(promptName = "FilePrompt")
+                filePicker.handleFileRequest(promptRequest)
             }
 
-            when (promptRequest) {
-                is File -> {
-                    emitPromptDisplayedFact(promptName = "FilePrompt")
-                    filePicker.handleFileRequest(promptRequest)
+            is Share -> handleShareRequest(promptRequest, session)
+            is SelectCreditCard -> {
+                emitSuccessfulCreditCardAutofillFormDetectedFact()
+                if (isCreditCardAutofillEnabled() && promptRequest.creditCards.isNotEmpty()) {
+                    creditCardPicker?.handleSelectCreditCardRequest(promptRequest)
                 }
+            }
 
-                is Share -> handleShareRequest(promptRequest, session)
-                is SelectCreditCard -> {
-                    emitSuccessfulCreditCardAutofillFormDetectedFact()
-                    if (isCreditCardAutofillEnabled() && promptRequest.creditCards.isNotEmpty()) {
-                        creditCardPicker?.handleSelectCreditCardRequest(promptRequest)
-                    }
+            is SelectLoginPrompt -> {
+                if (!isLoginAutofillEnabled()) {
+                    return
                 }
-
-                is SelectLoginPrompt -> {
-                    if (!isLoginAutofillEnabled()) {
-                        return
-                    }
-                    if (promptRequest.generatedPassword != null && isSuggestStrongPasswordEnabled) {
-                        if (shouldAutomaticallyShowSuggestedPassword.invoke()) {
-                            onFirstTimeEngagedWithSignup.invoke()
+                if (promptRequest.generatedPassword != null && isSuggestStrongPasswordEnabled) {
+                    if (shouldAutomaticallyShowSuggestedPassword.invoke()) {
+                        onFirstTimeEngagedWithSignup.invoke()
+                        handleDialogsRequest(
+                            promptRequest,
+                            session,
+                        )
+                    } else {
+                        strongPasswordPromptViewListener?.onGeneratedPasswordPromptClick = {
                             handleDialogsRequest(
                                 promptRequest,
                                 session,
                             )
-                        } else {
-                            strongPasswordPromptViewListener?.onGeneratedPasswordPromptClick = {
-                                handleDialogsRequest(
-                                    promptRequest,
-                                    session,
-                                )
-                            }
-                            strongPasswordPromptViewListener?.handleSuggestStrongPasswordRequest()
                         }
-                    } else {
-                        loginPicker?.handleSelectLoginRequest(promptRequest)
+                        strongPasswordPromptViewListener?.handleSuggestStrongPasswordRequest()
                     }
-                    emitPromptDisplayedFact(promptName = "SelectLoginPrompt")
+                } else {
+                    loginPicker?.handleSelectLoginRequest(promptRequest)
                 }
-
-                is SelectAddress -> {
-                    emitSuccessfulAddressAutofillFormDetectedFact()
-                    if (isAddressAutofillEnabled() && promptRequest.addresses.isNotEmpty()) {
-                        addressPicker?.handleSelectAddressRequest(promptRequest)
-                    }
-                }
-
-                else -> handleDialogsRequest(promptRequest, session)
+                emitPromptDisplayedFact(promptName = "SelectLoginPrompt")
             }
+
+            is SelectAddress -> {
+                emitSuccessfulAddressAutofillFormDetectedFact()
+                if (isAddressAutofillEnabled() && promptRequest.addresses.isNotEmpty()) {
+                    addressPicker?.handleSelectAddressRequest(promptRequest)
+                }
+            }
+
+            else -> handleDialogsRequest(promptRequest, session)
         }
     }
 
