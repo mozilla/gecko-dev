@@ -1317,6 +1317,12 @@ pdfjs:
       setPref:
         branch: default
         pref: pdfjs.enableHighlightEditor
+    enableAltText:
+      description: Set to true to enable alt text generation.
+      type: boolean
+      setPref:
+        branch: default
+        pref: pdfjs.enableAltText
 
 # fxms-message-* placeholder feature ids
 #
