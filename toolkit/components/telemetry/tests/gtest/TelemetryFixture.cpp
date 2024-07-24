@@ -18,8 +18,7 @@ void TelemetryTestFixture::SetUp() {
       << "SimpleGlobalObject must return a valid global object.";
 }
 
-AutoJSContextWithGlobal::AutoJSContextWithGlobal(JSObject* aGlobalObject)
-    : mCx(nullptr) {
+AutoJSContextWithGlobal::AutoJSContextWithGlobal(JSObject* aGlobalObject) {
   // The JS API must initialize correctly.
   JS::Rooted<JSObject*> globalObject(dom::RootingCx(), aGlobalObject);
   mJsAPI.emplace();

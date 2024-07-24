@@ -184,9 +184,14 @@ class UntrustedModulesFixture : public TelemetryTestFixture {
   }
 
   virtual void SetUp() override {
+    wprintf(L"UntrustedModulesFixture::Setup top\n");
     TelemetryTestFixture::SetUp();
+    wprintf(
+        L"UntrustedModulesFixture::Setup after base call, mCleanGlobal is %p\n",
+        mCleanGlobal);
     ::InitOnceExecuteOnce(&sInitLoadOnce, InitialModuleLoadOnce, nullptr,
                           nullptr);
+    wprintf(L"UntrustedModulesFixture::Setup bottom\n");
   }
 
   static const Vector<UntrustedModulesData>& GetInitLoadData() {
@@ -214,37 +219,34 @@ class UntrustedModulesFixture : public TelemetryTestFixture {
 
   template <typename DataFetcherT>
   void ValidateJSValue(const char16_t* aPattern, size_t aPatternLength,
-                       DataFetcherT&& aDataFetcher) {
-    wprintf(L"ValidateJSValue top\n");
-    AutoJSContextWithGlobal cx(mCleanGlobal);
+                       JSContext* aContext, DataFetcherT&& aDataFetcher) {
+    wprintf(L"ValidateJSValue top");
     mozilla::Telemetry::UntrustedModulesDataSerializer serializer(
-        cx.GetJSContext(), kMaxModulesArrayLen);
+        aContext, kMaxModulesArrayLen);
     wprintf(L"ValidateJSValue after create serializer\n");
     EXPECT_TRUE(!!serializer);
     aDataFetcher(serializer);
     wprintf(L"ValidateJSValue after fetch data\n");
 
-    JS::Rooted<JS::Value> jsval(cx.GetJSContext());
+    JS::Rooted<JS::Value> jsval(aContext);
     serializer.GetObject(&jsval);
     wprintf(L"ValidateJSValue after get object\n");
 
     nsAutoString json;
     EXPECT_TRUE(nsContentUtils::StringifyJSON(
-        cx.GetJSContext(), jsval, json, dom::UndefinedIsNullStringLiteral));
+        aContext, jsval, json, dom::UndefinedIsNullStringLiteral));
     wprintf(L"ValidateJSValue after StringifyJSON\n");
 
     JS::Rooted<JSObject*> re(
-        cx.GetJSContext(),
-        JS::NewUCRegExpObject(cx.GetJSContext(), aPattern, aPatternLength,
-                              JS::RegExpFlag::Global));
+        aContext, JS::NewUCRegExpObject(aContext, aPattern, aPatternLength,
+                                        JS::RegExpFlag::Global));
     wprintf(L"ValidateJSValue after create regex\n");
     EXPECT_TRUE(!!re);
 
-    JS::Rooted<JS::Value> matchResult(cx.GetJSContext(), JS::NullValue());
+    JS::Rooted<JS::Value> matchResult(aContext, JS::NullValue());
     size_t idx = 0;
-    EXPECT_TRUE(JS::ExecuteRegExpNoStatics(cx.GetJSContext(), re, json.get(),
-                                           json.Length(), &idx, true,
-                                           &matchResult));
+    EXPECT_TRUE(JS::ExecuteRegExpNoStatics(
+        aContext, re, json.get(), json.Length(), &idx, true, &matchResult));
     wprintf(L"ValidateJSValue after execute regex\n");
     // On match, with aOnlyMatch = true, ExecuteRegExpNoStatics returns boolean
     // true.  If no match, ExecuteRegExpNoStatics returns Null.
@@ -421,6 +423,8 @@ BOOL CALLBACK UntrustedModulesFixture::InitialModuleLoadOnce(PINIT_ONCE, void*,
 
 TEST_F(UntrustedModulesFixture, Serialize) {
   MOZ_SEH_TRY {
+    AutoJSContextWithGlobal cx(mCleanGlobal);
+
     wprintf(L"UntrustedModulesFixture::Serialize top\n");
     // clang-format off
     const char16_t kPattern[] = u"{\"structVersion\":1,"
@@ -458,7 +462,7 @@ TEST_F(UntrustedModulesFixture, Serialize) {
 
     wprintf(L"UntrustedModulesFixture::Serialize before ValidateJSValue\n");
     ValidateJSValue(
-        kPattern, ArrayLength(kPattern) - 1,
+        kPattern, ArrayLength(kPattern) - 1, cx.GetJSContext(),
         [&backup1,
          &backup2](Telemetry::UntrustedModulesDataSerializer& aSerializer) {
           EXPECT_NS_SUCCEEDED(aSerializer.Add(backup1));

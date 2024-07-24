@@ -34,7 +34,6 @@ class MOZ_RAII AutoJSContextWithGlobal {
 
  protected:
   mozilla::Maybe<mozilla::dom::AutoJSAPI> mJsAPI;
-  JSContext* mCx;
 };
 
 #endif  // TelemetryFixture_h_
