@@ -167,7 +167,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                     selectedTabId = requireComponents.core.store.state.selectedTabId,
                 ),
                 middlewares = listOf(
-                    TabsTrayMiddleware(),
+                    TabsTrayTelemetryMiddleware(),
                 ),
             )
         }
@@ -278,7 +278,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         onInactiveTabsHeaderClick = tabsTrayInteractor::onInactiveTabsHeaderClicked,
                         onDeleteAllInactiveTabsClick = tabsTrayInteractor::onDeleteAllInactiveTabsClicked,
                         onInactiveTabsAutoCloseDialogShown = {
-                            TabsTray.autoCloseSeen.record(NoExtras())
+                            tabsTrayStore.dispatch(TabsTrayAction.TabAutoCloseDialogShown)
                         },
                         onInactiveTabAutoCloseDialogCloseButtonClick =
                         tabsTrayInteractor::onAutoCloseDialogCloseButtonClicked,
@@ -293,7 +293,12 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         onSaveToCollectionClick = tabsTrayInteractor::onAddSelectedTabsToCollectionClicked,
                         onShareSelectedTabsClick = tabsTrayInteractor::onShareSelectedTabs,
                         onShareAllTabsClick = {
-                            TabsTray.shareAllTabs.record(NoExtras())
+                            if (tabsTrayStore.state.selectedPage == Page.NormalTabs) {
+                                tabsTrayStore.dispatch(TabsTrayAction.ShareAllNormalTabs)
+                            } else if (tabsTrayStore.state.selectedPage == Page.PrivateTabs) {
+                                tabsTrayStore.dispatch(TabsTrayAction.ShareAllPrivateTabs)
+                            }
+
                             navigationInteractor.onShareTabsOfTypeClicked(
                                 private = tabsTrayStore.state.selectedPage == Page.PrivateTabs,
                             )
@@ -302,7 +307,12 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         onRecentlyClosedClick = navigationInteractor::onOpenRecentlyClosedClicked,
                         onAccountSettingsClick = navigationInteractor::onAccountSettingsClicked,
                         onDeleteAllTabsClick = {
-                            TabsTray.closeAllTabs.record(NoExtras())
+                            if (tabsTrayStore.state.selectedPage == Page.NormalTabs) {
+                                tabsTrayStore.dispatch(TabsTrayAction.CloseAllNormalTabs)
+                            } else if (tabsTrayStore.state.selectedPage == Page.PrivateTabs) {
+                                tabsTrayStore.dispatch(TabsTrayAction.CloseAllPrivateTabs)
+                            }
+
                             navigationInteractor.onCloseAllTabsClicked(
                                 private = tabsTrayStore.state.selectedPage == Page.PrivateTabs,
                             )

@@ -6,13 +6,14 @@ package org.mozilla.fenix.tabstray
 
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Metrics
 import org.mozilla.fenix.GleanMetrics.TabsTray
 
 /**
- * [Middleware] that reacts to various [TabsTrayAction]s.
+ * Middleware that records telemetry events for the Tabs Tray feature.
  */
-class TabsTrayMiddleware : Middleware<TabsTrayState, TabsTrayAction> {
+class TabsTrayTelemetryMiddleware : Middleware<TabsTrayState, TabsTrayAction> {
 
     private var shouldReportInactiveTabMetrics: Boolean = true
 
@@ -37,6 +38,21 @@ class TabsTrayMiddleware : Middleware<TabsTrayState, TabsTrayAction> {
             }
             is TabsTrayAction.AddSelectTab -> {
                 TabsTray.enterMultiselectMode.record(TabsTray.EnterMultiselectModeExtra(true))
+            }
+            is TabsTrayAction.TabAutoCloseDialogShown -> {
+                TabsTray.autoCloseSeen.record(NoExtras())
+            }
+            is TabsTrayAction.ShareAllNormalTabs -> {
+                TabsTray.shareAllTabs.record(NoExtras())
+            }
+            is TabsTrayAction.ShareAllPrivateTabs -> {
+                TabsTray.shareAllTabs.record(NoExtras())
+            }
+            is TabsTrayAction.CloseAllNormalTabs -> {
+                TabsTray.closeAllTabs.record(NoExtras())
+            }
+            is TabsTrayAction.CloseAllPrivateTabs -> {
+                TabsTray.closeAllTabs.record(NoExtras())
             }
             else -> {
                 // no-op

@@ -169,6 +169,31 @@ sealed class TabsTrayAction : Action {
      * @property tabId The ID of the tab that is currently selected.
      */
     data class UpdateSelectedTabId(val tabId: String?) : TabsTrayAction()
+
+    /**
+     * [TabsTrayAction] fired when the tab auto close dialog is shown.
+     */
+    object TabAutoCloseDialogShown : TabsTrayAction()
+
+    /**
+     * [TabsTrayAction] fired when the user requests to share all of their normal tabs.
+     */
+    object ShareAllNormalTabs : TabsTrayAction()
+
+    /**
+     * [TabsTrayAction] fired when the user requests to share all of their private tabs.
+     */
+    object ShareAllPrivateTabs : TabsTrayAction()
+
+    /**
+     * [TabsTrayAction] fired when the user requests to close all normal tabs.
+     */
+    object CloseAllNormalTabs : TabsTrayAction()
+
+    /**
+     * [TabsTrayAction] fired when the user requests to close all private tabs.
+     */
+    object CloseAllPrivateTabs : TabsTrayAction()
 }
 
 /**
@@ -211,6 +236,11 @@ internal object TabsTrayReducer {
                 state.copy(syncedTabs = action.tabs)
             is TabsTrayAction.UpdateSelectedTabId ->
                 state.copy(selectedTabId = action.tabId)
+            is TabsTrayAction.TabAutoCloseDialogShown -> state
+            is TabsTrayAction.ShareAllNormalTabs -> state
+            is TabsTrayAction.ShareAllPrivateTabs -> state
+            is TabsTrayAction.CloseAllNormalTabs -> state
+            is TabsTrayAction.CloseAllPrivateTabs -> state
         }
     }
 }

@@ -20,19 +20,19 @@ import org.mozilla.fenix.GleanMetrics.TabsTray
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 
 @RunWith(FenixRobolectricTestRunner::class) // for gleanTestRule
-class TabsTrayMiddlewareTest {
+class TabsTrayTelemetryMiddlewareTest {
 
     private lateinit var store: TabsTrayStore
-    private lateinit var tabsTrayMiddleware: TabsTrayMiddleware
+    private lateinit var tabsTrayTelemetryMiddleware: TabsTrayTelemetryMiddleware
 
     @get:Rule
     val gleanTestRule = GleanTestRule(testContext)
 
     @Before
-    fun setUp() {
-        tabsTrayMiddleware = TabsTrayMiddleware()
+    fun setup() {
+        tabsTrayTelemetryMiddleware = TabsTrayTelemetryMiddleware()
         store = TabsTrayStore(
-            middlewares = listOf(tabsTrayMiddleware),
+            middlewares = listOf(tabsTrayTelemetryMiddleware),
             initialState = TabsTrayState(),
         )
     }
@@ -71,5 +71,55 @@ class TabsTrayMiddlewareTest {
         val snapshot = TabsTray.enterMultiselectMode.testGetValue()!!
         assertEquals(1, snapshot.size)
         assertEquals("true", snapshot.single().extra?.getValue("tab_selected"))
+    }
+
+    @Test
+    fun `WHEN the inactive tabs auto close dialog is shown THEN the metric is reported`() {
+        assertNull(TabsTray.autoCloseSeen.testGetValue())
+
+        store.dispatch(TabsTrayAction.TabAutoCloseDialogShown)
+        store.waitUntilIdle()
+
+        assertNotNull(TabsTray.autoCloseSeen.testGetValue())
+    }
+
+    @Test
+    fun `WHEN the share all normal tabs button is clicked THEN the metric is reported`() {
+        assertNull(TabsTray.shareAllTabs.testGetValue())
+
+        store.dispatch(TabsTrayAction.ShareAllNormalTabs)
+        store.waitUntilIdle()
+
+        assertNotNull(TabsTray.shareAllTabs.testGetValue())
+    }
+
+    @Test
+    fun `WHEN the share all private tabs button is clicked THEN the metric is reported`() {
+        assertNull(TabsTray.shareAllTabs.testGetValue())
+
+        store.dispatch(TabsTrayAction.ShareAllPrivateTabs)
+        store.waitUntilIdle()
+
+        assertNotNull(TabsTray.shareAllTabs.testGetValue())
+    }
+
+    @Test
+    fun `WHEN the delete all normal tabs button is clicked THEN the metric is reported`() {
+        assertNull(TabsTray.closeAllTabs.testGetValue())
+
+        store.dispatch(TabsTrayAction.CloseAllNormalTabs)
+        store.waitUntilIdle()
+
+        assertNotNull(TabsTray.closeAllTabs.testGetValue())
+    }
+
+    @Test
+    fun `WHEN the delete all private tabs button is clicked THEN the metric is reported`() {
+        assertNull(TabsTray.closeAllTabs.testGetValue())
+
+        store.dispatch(TabsTrayAction.CloseAllPrivateTabs)
+        store.waitUntilIdle()
+
+        assertNotNull(TabsTray.closeAllTabs.testGetValue())
     }
 }
