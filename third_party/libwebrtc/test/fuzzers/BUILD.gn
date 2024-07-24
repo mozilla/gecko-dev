@@ -44,7 +44,6 @@ rtc_library("fuzz_data_helper") {
 
 set_defaults("webrtc_fuzzer_test") {
   configs = rtc_add_configs
-  absl_deps = []
 }
 
 template("webrtc_fuzzer_test") {
@@ -56,17 +55,17 @@ template("webrtc_fuzzer_test") {
     ]
     additional_configs = configs
 
-    # If absl_deps is [], no action is needed. If not [], then it needs to be
-    # converted to //third_party/abseil-cpp:absl when build_with_chromium=true
-    # otherwise it just needs to be added to deps.
-    if (absl_deps != []) {
-      if (!defined(deps)) {
+    # Convert Abseil dependencies to //third_party/abseil-cpp:absl when
+    # build_with_chromium is true
+    if (build_with_chromium) {
+      absl_dependencies =
+          filter_labels_include(deps, [ "//third_party/abseil-cpp/*" ])
+      if (absl_dependencies != []) {
+        filtered_deps =
+            filter_labels_exclude(deps, [ "//third_party/abseil-cpp/*" ])
         deps = []
-      }
-      if (build_with_chromium) {
+        deps = filtered_deps
         deps += [ "//third_party/abseil-cpp:absl" ]
-      } else {
-        deps += absl_deps
       }
     }
 
