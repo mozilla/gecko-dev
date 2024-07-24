@@ -81,8 +81,6 @@ import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.concept.storage.LoginEntry
-import mozilla.components.feature.accounts.FxaCapability
-import mozilla.components.feature.accounts.FxaWebChannelFeature
 import mozilla.components.feature.app.links.AppLinksFeature
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.contextmenu.ContextMenuFeature
@@ -158,6 +156,7 @@ import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.FindInPageIntegration
 import org.mozilla.fenix.components.StoreProvider
+import org.mozilla.fenix.components.accounts.FxaWebChannelIntegration
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction
@@ -290,7 +289,7 @@ abstract class BaseBrowserFragment :
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
     private val fullScreenFeature = ViewBoundFeatureWrapper<FullScreenFeature>()
     private val swipeRefreshFeature = ViewBoundFeatureWrapper<SwipeRefreshFeature>()
-    private val webchannelIntegration = ViewBoundFeatureWrapper<FxaWebChannelFeature>()
+    private val webchannelIntegration = ViewBoundFeatureWrapper<FxaWebChannelIntegration>()
     private val sitePermissionWifiIntegration =
         ViewBoundFeatureWrapper<SitePermissionsWifiIntegration>()
     private val secureWindowFeature = ViewBoundFeatureWrapper<SecureWindowFeature>()
@@ -1153,13 +1152,13 @@ abstract class BaseBrowserFragment :
         }
 
         webchannelIntegration.set(
-            feature = FxaWebChannelFeature(
-                customTabSessionId,
-                requireComponents.core.engine,
-                requireComponents.core.store,
-                requireComponents.backgroundServices.accountManager,
-                requireComponents.backgroundServices.serverConfig,
-                setOf(FxaCapability.CHOOSE_WHAT_TO_SYNC),
+            feature = FxaWebChannelIntegration(
+                customTabSessionId = customTabSessionId,
+                runtime = requireComponents.core.engine,
+                store = requireComponents.core.store,
+                accountManager = requireComponents.backgroundServices.accountManager,
+                serverConfig = requireComponents.backgroundServices.serverConfig,
+                activityReceiver = { getActivity() },
             ),
             owner = this,
             view = view,
