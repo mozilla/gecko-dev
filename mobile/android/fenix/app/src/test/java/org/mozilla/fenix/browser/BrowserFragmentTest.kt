@@ -6,7 +6,11 @@ package org.mozilla.fenix.browser
 
 import android.content.Context
 import android.view.View
+import android.view.WindowManager
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -30,16 +34,18 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.toolbar.BrowserToolbar
+import mozilla.components.concept.engine.EngineView
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.rule.MainCoroutineRule
+import mozilla.components.ui.widgets.VerticalSwipeRefreshLayout
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.FenixApplication
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -60,6 +66,8 @@ class BrowserFragmentTest {
     private lateinit var testTab: TabSessionState
     private lateinit var browserFragment: BrowserFragment
     private lateinit var view: View
+    private lateinit var engineView: EngineView
+    private lateinit var swipeRefreshLayout: VerticalSwipeRefreshLayout
     private lateinit var homeActivity: HomeActivity
     private lateinit var fenixApplication: FenixApplication
     private lateinit var context: Context
@@ -77,35 +85,50 @@ class BrowserFragmentTest {
         every { context.application } returns fenixApplication
 
         homeActivity = mockk(relaxed = true)
+        every { homeActivity.window } returns mockk(relaxed = true)
+        every { homeActivity.window.attributes } returns mockk(relaxed = true)
+        every { homeActivity.window.decorView } returns mockk(relaxed = true)
+        every { homeActivity.getSystemService(WindowManager::class.java) } returns mockk<WindowManager>(relaxed = true)
+
         view = mockk(relaxed = true)
+        engineView = mockk(relaxed = true)
+        swipeRefreshLayout = mockk(relaxed = true)
         lifecycleOwner = MockedLifecycleOwner(Lifecycle.State.STARTED)
         navController = mockk(relaxed = true)
         onboarding = mockk(relaxed = true)
 
         browserFragment = spyk(BrowserFragment())
         every { browserFragment.view } returns view
+        every { browserFragment.getEngineView() } returns engineView
+        every { browserFragment.getSwipeRefreshLayout() } returns swipeRefreshLayout
+        every { swipeRefreshLayout.layoutParams } returns mockk<CoordinatorLayout.LayoutParams>(relaxed = true)
         every { browserFragment.isAdded } returns true
         every { browserFragment.browserToolbarView } returns mockk(relaxed = true)
         every { browserFragment.browserToolbarInteractor } returns mockk(relaxed = true)
         every { browserFragment.activity } returns homeActivity
         every { browserFragment.lifecycle } returns lifecycleOwner.lifecycle
+        every { browserFragment.binding } returns mockk(relaxed = true)
+        every { browserFragment.parentFragmentManager } returns mockk(relaxed = true)
         every { context.components.fenixOnboarding } returns onboarding
 
         every { browserFragment.requireContext() } returns context
         every { browserFragment.initializeUI(any(), any()) } returns mockk()
-        every { browserFragment.fullScreenChanged(any()) } returns Unit
         every { browserFragment.resumeDownloadDialogState(any(), any(), any(), any()) } returns Unit
 
         testTab = createTab(url = "https://mozilla.org")
         store = BrowserStore()
         every { context.components.core.store } returns store
 
-        mockkObject(FeatureFlags)
+        mockkStatic(ViewCompat::class)
+        mockkStatic(ContextCompat::class)
+        every { ViewCompat.setOnApplyWindowInsetsListener(any(), null) } returns Unit
+        every { ContextCompat.getSystemService(any(), WindowManager::class.java) } returns mockk(relaxed = true)
     }
 
     @After
     fun tearDown() {
-        unmockkObject(FeatureFlags)
+        unmockkStatic(ViewCompat::class)
+        unmockkStatic(ContextCompat::class)
     }
 
     @Test
@@ -145,7 +168,7 @@ class BrowserFragmentTest {
 
         val newSelectedTab = createTab("https://firefox.com")
         addAndSelectTab(newSelectedTab)
-        verify(exactly = 1) { toolbar.expand() }
+        verify { toolbar.expand() }
     }
 
     @Test
@@ -635,6 +658,15 @@ class BrowserFragmentTest {
         verify(exactly = 1) { browserFragment.addNavigationActions(any()) }
 
         unmockThemeManagerAndAppCompatResources()
+    }
+
+    @Test
+    fun `WHEN fullscreen state changes THEN inFullScreen is updated with the current state`() {
+        browserFragment.fullScreenChanged(false)
+        assertFalse(browserFragment.inFullScreen)
+
+        browserFragment.fullScreenChanged(true)
+        assertTrue(browserFragment.inFullScreen)
     }
 
     private fun mockThemeManagerAndAppCompatResources() {

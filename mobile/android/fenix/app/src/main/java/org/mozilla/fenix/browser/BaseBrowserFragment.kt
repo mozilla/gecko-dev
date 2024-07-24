@@ -320,6 +320,9 @@ abstract class BaseBrowserFragment :
 
     private var currentStartDownloadDialog: StartDownloadDialog? = null
 
+    @VisibleForTesting
+    internal var inFullScreen: Boolean = false
+
     private lateinit var savedLoginsLauncher: ActivityResultLauncher<Intent>
 
     // Registers a photo picker activity launcher in single-select mode.
@@ -1740,7 +1743,13 @@ abstract class BaseBrowserFragment :
                     }
                 }
             },
-        )
+        ).apply {
+            // This covers the usecase when the app goes into fullscreen mode from portrait orientation.
+            // Transition to fullscreen happens first, and orientation change follows. Microsurvey container is getting
+            // reinitialized when going into landscape mode, but it shouldn't be visible if the app is already in the
+            // fullscreen mode. It still has to be initialized to be shown after the user exits the fullscreen.
+            toolbarContainerView.isVisible = !inFullScreen
+        }
 
         bottomToolbarContainerIntegration.set(
             feature = BottomToolbarContainerIntegration(
@@ -2191,6 +2200,8 @@ abstract class BaseBrowserFragment :
     @VisibleForTesting
     internal fun fullScreenChanged(inFullScreen: Boolean) {
         val activity = activity ?: return
+
+        this.inFullScreen = inFullScreen
         if (inFullScreen) {
             // Close find in page bar if opened
             findInPageIntegration.onBackPressed()
@@ -2210,14 +2221,14 @@ abstract class BaseBrowserFragment :
                 collapse()
                 isVisible = false
             }
-            val browserEngine = binding.swipeRefresh.layoutParams as CoordinatorLayout.LayoutParams
+            val browserEngine = getSwipeRefreshLayout().layoutParams as CoordinatorLayout.LayoutParams
             browserEngine.bottomMargin = 0
             browserEngine.topMargin = 0
-            binding.swipeRefresh.translationY = 0f
+            getSwipeRefreshLayout().translationY = 0f
 
-            binding.engineView.setDynamicToolbarMaxHeight(0)
+            getEngineView().setDynamicToolbarMaxHeight(0)
             // Without this, fullscreen has a margin at the top.
-            binding.engineView.setVerticalClipping(0)
+            getEngineView().setVerticalClipping(0)
 
             MediaState.fullscreen.record(NoExtras())
         } else {
@@ -2238,7 +2249,7 @@ abstract class BaseBrowserFragment :
             }
         }
 
-        binding.swipeRefresh.isEnabled = shouldPullToRefreshBeEnabled(inFullScreen)
+        getSwipeRefreshLayout().isEnabled = shouldPullToRefreshBeEnabled(inFullScreen)
     }
 
     @CallSuper
@@ -2257,7 +2268,12 @@ abstract class BaseBrowserFragment :
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = ::reinitializeMicrosurveyPrompt,
             )
-            reinitializeEngineView()
+
+            // When fullScreenChanged triggers onUpdateToolbarForConfigurationChange, we don't adjust EngineView params.
+            // they are already handled within fullScreenChanged function.
+            if (!inFullScreen) {
+                reinitializeEngineView()
+            }
         }
 
         // If the microsurvey feature is visible, we should update it's state.
