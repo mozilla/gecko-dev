@@ -90,20 +90,12 @@ talos-damp-inspector:
     try-name: damp-inspector
     treeherder-symbol: T(damp-inspector)
     max-run-time: 5400
-    variants:
-        - webrender-sw
     run-on-projects:
-        by-variant:
-            webrender-sw:
-                by-test-platform:
-                    (linux1804|windows11|macosx1015)-64-shippable-qr.*: [trunk]
-                    default: []
-            default:
-                by-test-platform:
-                    windows.*-32-shippable.*/.*: []
-                    (linux|windows|macos)(?!.*shippable).*: []
-                    (linux|windows11-64|macos)(?!.*-qr).*: []
-                    default: [trunk]
+        by-test-platform:
+            windows.*-32-shippable.*/.*: []
+            (linux|windows|macos)(?!.*shippable).*: []
+            (linux|windows11-64|macos)(?!.*-qr).*: []
+            default: [trunk]
     mozharness:
         extra-options:
             - --suite=damp-inspector
@@ -113,20 +105,12 @@ talos-damp-webconsole:
     try-name: damp-webconsole
     treeherder-symbol: T(damp-webconsole)
     max-run-time: 5400
-    variants:
-        - webrender-sw
     run-on-projects:
-        by-variant:
-            webrender-sw:
-                by-test-platform:
-                    (linux1804|windows11|macosx1015)-64-shippable-qr.*: [trunk]
-                    default: []
-            default:
-                by-test-platform:
-                    windows.*-32-shippable.*/.*: []
-                    (linux|windows|macos)(?!.*shippable).*: []
-                    (linux|windows11-64|macos)(?!.*-qr).*: []
-                    default: [trunk]
+        by-test-platform:
+            windows.*-32-shippable.*/.*: []
+            (linux|windows|macos)(?!.*shippable).*: []
+            (linux|windows11-64|macos)(?!.*-qr).*: []
+            default: [trunk]
     mozharness:
         extra-options:
             - --suite=damp-webconsole
@@ -136,20 +120,12 @@ talos-damp-other:
     try-name: damp-other
     treeherder-symbol: T(damp-other)
     max-run-time: 5400
-    variants:
-        - webrender-sw
     run-on-projects:
-        by-variant:
-            webrender-sw:
-                by-test-platform:
-                    (linux1804|windows11|macosx1015)-64-shippable-qr.*: [trunk]
-                    default: []
-            default:
-                by-test-platform:
-                    windows.*-32-shippable.*/.*: []
-                    (linux|windows|macos)(?!.*shippable).*: []
-                    (linux|windows11-64|macos)(?!.*-qr).*: []
-                    default: [trunk]
+        by-test-platform:
+            windows.*-32-shippable.*/.*: []
+            (linux|windows|macos)(?!.*shippable).*: []
+            (linux|windows11-64|macos)(?!.*-qr).*: []
+            default: [trunk]
     mozharness:
         extra-options:
             - --suite=damp-other

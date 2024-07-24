@@ -1692,27 +1692,12 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-damp-inspector-swr**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **talos-damp-other**
         - ❌
         - ❌
         - ❌
         - ❌
-      * - **talos-damp-other-swr**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **talos-damp-webconsole**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-damp-webconsole-swr**
         - ❌
         - ❌
         - ❌
@@ -1733,27 +1718,12 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-damp-inspector-swr**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-damp-other**
         - ✅
         - ✅
         - ❌
         - ❌
-      * - **talos-damp-other-swr**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-damp-webconsole**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
-      * - **talos-damp-webconsole-swr**
         - ✅
         - ✅
         - ❌
@@ -1774,27 +1744,12 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-damp-inspector-swr**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-damp-other**
         - ✅
         - ✅
         - ❌
         - ❌
-      * - **talos-damp-other-swr**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-damp-webconsole**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
-      * - **talos-damp-webconsole-swr**
         - ✅
         - ✅
         - ❌
@@ -1815,27 +1770,12 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-damp-inspector-swr**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **talos-damp-other**
         - ❌
         - ❌
         - ❌
         - ❌
-      * - **talos-damp-other-swr**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **talos-damp-webconsole**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-damp-webconsole-swr**
         - ❌
         - ❌
         - ❌
@@ -1856,27 +1796,12 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-damp-inspector-swr**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-damp-other**
         - ✅
         - ✅
         - ❌
         - ❌
-      * - **talos-damp-other-swr**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-damp-webconsole**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
-      * - **talos-damp-webconsole-swr**
         - ✅
         - ✅
         - ❌
