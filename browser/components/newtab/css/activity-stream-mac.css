@@ -3595,21 +3595,13 @@ main section {
 }
 .ds-onboarding-container,
 .ds-card-grid .ds-card {
-  background: #FFF;
+  background: var(--newtab-background-color-secondary);
   border-radius: 4px;
-}
-[lwt-newtab-brighttext] .ds-onboarding-container,
-[lwt-newtab-brighttext] .ds-card-grid .ds-card {
-  background: none;
 }
 .ds-onboarding-container:not(.placeholder),
 .ds-card-grid .ds-card:not(.placeholder) {
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-[lwt-newtab-brighttext] .ds-onboarding-container:not(.placeholder),
-[lwt-newtab-brighttext] .ds-card-grid .ds-card:not(.placeholder) {
-  background: var(--newtab-background-color-secondary);
 }
 .ds-onboarding-container:not(.placeholder) .img-wrapper .img img,
 .ds-onboarding-container:not(.placeholder) .img-wrapper .img .placeholder-image,
@@ -4392,10 +4384,61 @@ main section {
   position: relative;
 }
 .ds-card.placeholder {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--newtab-inner-box-shadow-color);
-  border-radius: 4px;
-  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border-radius: var(--border-radius-medium);
+  position: relative;
+  overflow: hidden;
+}
+.ds-card.placeholder::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  inset-inline-start: -100%;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, var(--newtab-background-color-secondary) 50%, rgba(255, 255, 255, 0) 100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ds-card.placeholder::before {
+    animation: loading 1.5s infinite;
+  }
+}
+.ds-card.placeholder .placeholder-fill {
+  background: var(--newtab-button-active-background);
+  border-radius: var(--border-radius-small);
+}
+.ds-card.placeholder .placeholder-image {
+  width: 100%;
+  height: 140px;
+  border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
+}
+.ds-card.placeholder .placeholder-label {
+  width: 40%;
+  height: var(--size-item-small);
+  margin-bottom: var(--space-small);
+  margin-inline: var(--space-large);
+}
+.ds-card.placeholder .placeholder-header {
+  width: 80%;
+  height: 20px;
+  margin-inline: var(--space-large);
+}
+.ds-card.placeholder .placeholder-description {
+  height: 60px;
+  margin-inline: var(--space-large);
+  margin-block-end: var(--space-large);
+}
+@keyframes loading {
+  0% {
+    inset-inline-start: -100%;
+  }
+  50%, 100% {
+    inset-inline-start: 100%;
+  }
 }
 .ds-card .img-wrapper {
   width: 100%;

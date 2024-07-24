@@ -49,13 +49,19 @@ const { DiscoveryStreamFeed } = ChromeUtils.importESModule(
  * @return {Promise}
  * @resolves {undefined}
  */
-function withFullyLoadedAboutHome(taskFn) {
+async function withFullyLoadedAboutHome(taskFn) {
   const sandbox = sinon.createSandbox();
   sandbox
     .stub(DiscoveryStreamFeed.prototype, "generateFeedUrl")
     .returns(
       "https://example.com/browser/browser/components/newtab/test/browser/topstories.json"
     );
+
+  // Set "prefers-reduced-motion" media to "reduce"
+  // to avoid the loading animation from triggering bug 1742842
+  await SpecialPowers.pushPrefEnv({
+    set: [["ui.prefersReducedMotion", 1]],
+  });
 
   return BrowserTestUtils.withNewTab("about:home", async browser => {
     await SpecialPowers.spawn(browser, [], async () => {

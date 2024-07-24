@@ -122,6 +122,7 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     this.setConfigValue = this.setConfigValue.bind(this);
     this.expireCache = this.expireCache.bind(this);
     this.refreshCache = this.refreshCache.bind(this);
+    this.showPlaceholder = this.showPlaceholder.bind(this);
     this.idleDaily = this.idleDaily.bind(this);
     this.systemTick = this.systemTick.bind(this);
     this.syncRemoteSettings = this.syncRemoteSettings.bind(this);
@@ -175,6 +176,10 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
 
   expireCache() {
     this.dispatchSimpleAction(at.DISCOVERY_STREAM_DEV_EXPIRE_CACHE);
+  }
+
+  showPlaceholder() {
+    this.dispatchSimpleAction(at.DISCOVERY_STREAM_DEV_SHOW_PLACEHOLDER);
   }
 
   idleDaily() {
@@ -391,6 +396,10 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
         <br />
         <button className="button" onClick={this.syncRemoteSettings}>
           Sync Remote Settings
+        </button>
+        <br />
+        <button className="button" onClick={this.showPlaceholder}>
+          Show Placeholder Cards
         </button>
         <table>
           <tbody>
