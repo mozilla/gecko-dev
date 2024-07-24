@@ -112,7 +112,7 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">On a website, this bar tucks away as you scroll down for extra browsing space.</string>
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-    <string name="navbar_navigation_buttons_cfr_message">Tap and hold the arrows to jump between pages in this tab\'s history.</string>
+    <string name="navbar_navigation_buttons_cfr_message">Tap and hold the arrows to jump between pages in this tab’s history.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Camera access needed. Go to Android settings, tap permissions, and tap allow.</string>
