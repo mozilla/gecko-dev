@@ -386,10 +386,7 @@ int32_t ChannelSend::SendRtpAudio(AudioFrameType frameType,
   // Push data from ACM to RTP/RTCP-module to deliver audio frame for
   // packetization.
   if (!rtp_rtcp_->OnSendingRtpFrame(rtp_timestamp_without_offset,
-                                    // Leaving the time when this frame was
-                                    // received from the capture device as
-                                    // undefined for voice for now.
-                                    -1, payloadType,
+                                    absolute_capture_timestamp_ms, payloadType,
                                     /*force_sender_report=*/false)) {
     return -1;
   }
