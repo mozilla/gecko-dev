@@ -446,7 +446,7 @@ class ProgressBar {
     }
   }
   setDisableAutoFetch(delay = 5000) {
-    if (isNaN(this.#percent)) {
+    if (this.#percent === 100 || isNaN(this.#percent)) {
       return;
     }
     if (this.#disableAutoFetchTimeout) {
@@ -542,6 +542,13 @@ const OptionKind = {
   EVENT_DISPATCH: 0x10,
   PREFERENCE: 0x80
 };
+const Type = {
+  BOOLEAN: 0x01,
+  NUMBER: 0x02,
+  OBJECT: 0x04,
+  STRING: 0x08,
+  UNDEFINED: 0x10
+};
 const defaultOptions = {
   allowedGlobalEvents: {
     value: null,
@@ -591,6 +598,10 @@ const defaultOptions = {
     value: 0,
     kind: OptionKind.BROWSER + OptionKind.EVENT_DISPATCH
   },
+  altTextLearnMoreUrl: {
+    value: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/pdf-alt-text",
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
   annotationEditorMode: {
     value: 0,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
@@ -625,6 +636,10 @@ const defaultOptions = {
   },
   enableAltText: {
     value: false,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
+  enableGuessAltText: {
+    value: true,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
   enableHighlightEditor: {
@@ -779,6 +794,11 @@ const defaultOptions = {
     value: "resource://pdf.js/web/standard_fonts/",
     kind: OptionKind.API
   },
+  useSystemFonts: {
+    value: false,
+    kind: OptionKind.API,
+    type: Type.BOOLEAN + Type.UNDEFINED
+  },
   verbosity: {
     value: 1,
     kind: OptionKind.API
@@ -792,53 +812,53 @@ const defaultOptions = {
     kind: OptionKind.WORKER
   }
 };
-const userOptions = Object.create(null);
+const userOptions = new Map();
 class AppOptions {
   static eventBus;
   constructor() {
     throw new Error("Cannot initialize AppOptions.");
   }
   static get(name) {
-    return userOptions[name] ?? defaultOptions[name]?.value ?? undefined;
+    return userOptions.has(name) ? userOptions.get(name) : defaultOptions[name]?.value;
   }
   static getAll(kind = null, defaultOnly = false) {
     const options = Object.create(null);
     for (const name in defaultOptions) {
-      const defaultOption = defaultOptions[name];
-      if (kind && !(kind & defaultOption.kind)) {
+      const defaultOpt = defaultOptions[name];
+      if (kind && !(kind & defaultOpt.kind)) {
         continue;
       }
-      options[name] = defaultOnly ? defaultOption.value : userOptions[name] ?? defaultOption.value;
+      options[name] = !defaultOnly && userOptions.has(name) ? userOptions.get(name) : defaultOpt.value;
     }
     return options;
   }
   static set(name, value) {
-    userOptions[name] = value;
+    const defaultOpt = defaultOptions[name];
+    if (!defaultOpt || !(typeof value === typeof defaultOpt.value || Type[(typeof value).toUpperCase()] & defaultOpt.type)) {
+      return;
+    }
+    userOptions.set(name, value);
   }
   static setAll(options, prefs = false) {
     let events;
     for (const name in options) {
-      const userOption = options[name];
+      const defaultOpt = defaultOptions[name],
+        userOpt = options[name];
+      if (!defaultOpt || !(typeof userOpt === typeof defaultOpt.value || Type[(typeof userOpt).toUpperCase()] & defaultOpt.type)) {
+        continue;
+      }
       if (prefs) {
-        const defaultOption = defaultOptions[name];
-        if (!defaultOption) {
-          continue;
-        }
         const {
-          kind,
-          value
-        } = defaultOption;
+          kind
+        } = defaultOpt;
         if (!(kind & OptionKind.BROWSER || kind & OptionKind.PREFERENCE)) {
           continue;
         }
-        if (typeof userOption !== typeof value) {
-          continue;
-        }
         if (this.eventBus && kind & OptionKind.EVENT_DISPATCH) {
-          (events ||= new Map()).set(name, userOption);
+          (events ||= new Map()).set(name, userOpt);
         }
       }
-      userOptions[name] = userOption;
+      userOptions.set(name, userOpt);
     }
     if (events) {
       for (const [name, value] of events) {
@@ -848,9 +868,6 @@ class AppOptions {
         });
       }
     }
-  }
-  static remove(name) {
-    delete userOptions[name];
   }
 }
 
@@ -1425,6 +1442,7 @@ class BaseExternalServices {
 
 class BasePreferences {
   #defaults = Object.freeze({
+    altTextLearnMoreUrl: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/pdf-alt-text",
     annotationEditorMode: 0,
     annotationMode: 2,
     cursorToolOnLoad: 0,
@@ -1432,6 +1450,7 @@ class BasePreferences {
     defaultZoomValue: "",
     disablePageLabels: false,
     enableAltText: false,
+    enableGuessAltText: true,
     enableHighlightEditor: false,
     enableHighlightFloatingButton: false,
     enablePermissions: false,
@@ -1848,16 +1867,21 @@ class MLManager {
   async isEnabledFor(name) {
     return !!(await this.#enabled?.get(name));
   }
+  deleteModel(service) {
+    return FirefoxCom.requestAsync("mlDelete", service);
+  }
   guess(data) {
     return FirefoxCom.requestAsync("mlGuess", data);
   }
   enable({
-    enableAltText,
+    altTextLearnMoreUrl,
+    enableGuessAltText,
     listenToProgress
   }) {
-    if (enableAltText) {
+    if (enableGuessAltText) {
       this.#loadAltTextEngine(listenToProgress);
     }
+    this.altTextLearnMoreUrl = altTextLearnMoreUrl;
   }
   async #loadAltTextEngine(listenToProgress) {
     if (this.#enabled?.has("altText")) {
@@ -5995,7 +6019,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.5.96";
+    const viewerVersion = "4.5.128";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -7659,14 +7683,13 @@ const PDFViewerApplication = {
   store: null,
   downloadManager: null,
   overlayManager: null,
-  preferences: null,
+  preferences: new Preferences(),
   toolbar: null,
   secondaryToolbar: null,
   eventBus: null,
   l10n: null,
   annotationEditorParams: null,
   isInitialViewSet: false,
-  downloadComplete: false,
   isViewerEmbedded: window.parent !== window,
   url: "",
   baseUrl: "",
@@ -7702,9 +7725,12 @@ const PDFViewerApplication = {
     if (AppOptions.get("pdfBugEnabled")) {
       await this._parseHashParams();
     }
-    this.mlManager = new MLManager({
-      enableAltText: AppOptions.get("enableAltText")
-    });
+    if (AppOptions.get("enableAltText")) {
+      this.mlManager = new MLManager({
+        enableGuessAltText: AppOptions.get("enableGuessAltText"),
+        altTextLearnMoreUrl: AppOptions.get("altTextLearnMoreUrl")
+      });
+    }
     this.l10n = await this.externalServices.createL10n();
     document.getElementsByTagName("html")[0].dir = this.l10n.getDirection();
     if (this.isViewerEmbedded && AppOptions.get("externalLinkTarget") === LinkTarget.NONE) {
@@ -7800,7 +7826,10 @@ const PDFViewerApplication = {
       l10n
     } = this;
     let eventBus;
-    eventBus = AppOptions.eventBus = this.mlManager.eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
+    eventBus = AppOptions.eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
+    if (this.mlManager) {
+      this.mlManager.eventBus = eventBus;
+    }
     this.eventBus = eventBus;
     this.overlayManager = new OverlayManager();
     const pdfRenderingQueue = new PDFRenderingQueue();
@@ -7969,7 +7998,6 @@ const PDFViewerApplication = {
     }
   },
   async run(config) {
-    this.preferences = new Preferences();
     await this.initialize(config);
     const {
       appConfig,
@@ -8075,16 +8103,16 @@ const PDFViewerApplication = {
     }
     if (isDataScheme(url)) {
       this._hideViewBookmark();
+    } else {
+      AppOptions.set("docBaseUrl", this.baseUrl);
     }
     let title = getPdfFilenameFromUrl(url, "");
     if (!title) {
       try {
-        title = decodeURIComponent(getFilenameFromUrl(url)) || url;
-      } catch {
-        title = url;
-      }
+        title = decodeURIComponent(getFilenameFromUrl(url));
+      } catch {}
     }
-    this.setTitle(title);
+    this.setTitle(title || url);
   },
   setTitle(title = this._title) {
     this._title = title;
@@ -8125,7 +8153,6 @@ const PDFViewerApplication = {
     this.pdfLinkService.externalLinkEnabled = true;
     this.store = null;
     this.isInitialViewSet = false;
-    this.downloadComplete = false;
     this.url = "";
     this.baseUrl = "";
     this._downloadUrl = "";
@@ -8157,8 +8184,6 @@ const PDFViewerApplication = {
     if (args.data && isPdfFile(args.filename)) {
       this._contentDispositionFilename = args.filename;
     }
-    AppOptions.set("docBaseUrl", this.baseUrl);
-    args.useSystemFonts = false;
     const apiParams = AppOptions.getAll(OptionKind.API);
     const loadingTask = getDocument({
       ...apiParams,
@@ -8203,9 +8228,7 @@ const PDFViewerApplication = {
   async download(options = {}) {
     let data;
     try {
-      if (this.downloadComplete) {
-        data = await this.pdfDocument.getData();
-      }
+      data = await this.pdfDocument.getData();
     } catch {}
     this.downloadManager.download(data, this._downloadUrl, this._docFilename, options);
   },
@@ -8272,11 +8295,8 @@ const PDFViewerApplication = {
     return message;
   },
   progress(level) {
-    if (!this.loadingBar || this.downloadComplete) {
-      return;
-    }
     const percent = Math.round(level * 100);
-    if (percent <= this.loadingBar.percent) {
+    if (!this.loadingBar || percent <= this.loadingBar.percent) {
       return;
     }
     this.loadingBar.percent = percent;
@@ -8290,7 +8310,6 @@ const PDFViewerApplication = {
       length
     }) => {
       this._contentLength = length;
-      this.downloadComplete = true;
       this.loadingBar?.hide();
       firstPagePromise.then(() => {
         this.eventBus.dispatch("documentloaded", {
@@ -9704,8 +9723,8 @@ function webViewerSetPreference({
 
 
 
-const pdfjsVersion = "4.5.96";
-const pdfjsBuild = "ed83d7c5e";
+const pdfjsVersion = "4.5.128";
+const pdfjsBuild = "33493301b";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

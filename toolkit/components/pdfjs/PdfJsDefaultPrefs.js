@@ -17,6 +17,7 @@
 //
 // Any overrides should be placed in `PdfJsOverridePrefs.js`.
 
+pref("pdfjs.altTextLearnMoreUrl", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/pdf-alt-text");
 pref("pdfjs.annotationEditorMode", 0);
 pref("pdfjs.annotationMode", 2);
 pref("pdfjs.cursorToolOnLoad", 0);
@@ -28,6 +29,7 @@ pref("pdfjs.disablePageLabels", false);
 pref("pdfjs.disableRange", false);
 pref("pdfjs.disableStream", false);
 pref("pdfjs.enableAltText", false);
+pref("pdfjs.enableGuessAltText", true);
 pref("pdfjs.enableHWA", false);
 pref("pdfjs.enableHighlightEditor", false);
 pref("pdfjs.enableHighlightFloatingButton", false);
