@@ -20,6 +20,9 @@ const {
 const {
   TRACER_FIELDS_INDEXES,
 } = require("resource://devtools/server/actors/tracer.js");
+const {
+  CommandsFactory,
+} = require("devtools/shared/commands/commands-factory");
 
 // Implement a test page trigerring lots of function calls to "a" and "b" function
 // before calling "c" function only once.
@@ -51,10 +54,9 @@ module.exports = async function () {
   const tab = await testSetup(TEST_URL);
   const messageManager = tab.linkedBrowser.messageManager;
 
-  // Open against options to avoid noise from tools for the first server test
-  const toolbox = await openToolbox("options");
+  await testServerPerformance(tab, messageManager);
 
-  await testServerPerformance(messageManager, toolbox);
+  const toolbox = await openToolbox("webconsole");
 
   await testWebConsoleOutputPerformance(messageManager, toolbox);
 
@@ -72,13 +74,18 @@ module.exports = async function () {
   await testTeardown();
 };
 
-async function testServerPerformance(messageManager, toolbox) {
+async function testServerPerformance(tab, messageManager) {
   dump("Testing server+client performance\n");
   Services.prefs.setCharPref(
     "devtools.debugger.javascript-tracing-log-method",
     "console"
   );
-  const { resourceCommand } = toolbox.commands;
+
+  const commands = await CommandsFactory.forTab(tab);
+  await commands.targetCommand.startListening();
+  await commands.tracerCommand.initialize();
+
+  const { resourceCommand } = commands;
 
   // Observe incoming trace to know when we receive the last expected trace
   // i.e. call to "c" function
@@ -99,10 +106,7 @@ async function testServerPerformance(messageManager, toolbox) {
   });
 
   // Start listening for JS traces
-  await startTracing(toolbox);
-
-  // The toolbox code will automatically open the console, but close it to avoid rendering the traces
-  await toolbox.closeSplitConsole();
+  await startTracing(commands);
 
   let test = runTest("jstracer.server-performance.DAMP");
   // Trigger a click on the page, to trigger some JS in the test page
@@ -123,7 +127,7 @@ async function testServerPerformance(messageManager, toolbox) {
     }
   );
 
-  await stopAndClearTracerData(toolbox);
+  await stopAndClearTracerData(commands);
 }
 
 async function testWebConsoleOutputPerformance(messageManager, toolbox) {
@@ -131,7 +135,7 @@ async function testWebConsoleOutputPerformance(messageManager, toolbox) {
   const { hud } = await toolbox.selectTool("webconsole");
 
   // Start tracing to the console
-  await startTracing(toolbox);
+  await startTracing(toolbox.commands);
 
   const test = runTest("jstracer.webconsole-performance.DAMP");
   // Trigger another click on the page, to trigger some JS in the test page
@@ -150,7 +154,7 @@ async function testWebConsoleOutputPerformance(messageManager, toolbox) {
   });
   test.done();
 
-  await stopAndClearTracerData(toolbox);
+  await stopAndClearTracerData(toolbox.commands);
 }
 
 async function testDebuggerSidebarOutputPerformance(messageManager, toolbox) {
@@ -163,7 +167,7 @@ async function testDebuggerSidebarOutputPerformance(messageManager, toolbox) {
   const panel = await toolbox.selectTool("jsdebugger");
 
   // Start tracing to the debugger
-  await startTracing(toolbox);
+  await startTracing(toolbox.commands);
 
   const test = runTest("jstracer.debugger-sidebar-performance.DAMP");
   // Trigger another click on the page, to trigger some JS in the test page
@@ -210,7 +214,7 @@ async function testDebuggerSidebarOutputPerformance(messageManager, toolbox) {
 
   test.done();
 
-  await stopAndClearTracerData(toolbox);
+  await stopAndClearTracerData(toolbox.commands);
 }
 
 /**
@@ -238,7 +242,7 @@ async function testProfilerOutputPerformance(messageManager, toolbox) {
   );
 
   // Start tracing to the profiler
-  await startTracing(toolbox);
+  await startTracing(toolbox.commands);
 
   // First record the time it takes to run the observed JS code
   let test = runTest("jstracer.profiler-recording-performance.DAMP");
@@ -269,7 +273,7 @@ async function testProfilerOutputPerformance(messageManager, toolbox) {
     );
   });
   dump("Stop recording and wait for the profiler tab to be opened\n");
-  await stopAndClearTracerData(toolbox);
+  await stopAndClearTracerData(toolbox.commands);
   const profilerTab = await onTabOpened;
   dump("Profiler tab opened\n");
   test.done();
@@ -295,8 +299,8 @@ async function testProfilerOutputPerformance(messageManager, toolbox) {
   );
 }
 
-async function startTracing(toolbox) {
-  const { tracerCommand } = toolbox.commands;
+async function startTracing(commands) {
+  const { tracerCommand } = commands;
   if (tracerCommand.isTracingActive) {
     throw new Error("Can't start as tracer is already active");
   }
@@ -314,8 +318,8 @@ async function startTracing(toolbox) {
   await onTracingActive;
 }
 
-async function stopAndClearTracerData(toolbox) {
-  const { tracerCommand, resourceCommand } = toolbox.commands;
+async function stopAndClearTracerData(commands) {
+  const { tracerCommand, resourceCommand } = commands;
   if (!tracerCommand.isTracingActive) {
     throw new Error("Can't stop as tracer is not active");
   }
