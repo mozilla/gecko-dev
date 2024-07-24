@@ -103,6 +103,14 @@ JSLinearString* StringBuffer::finishStringInternal(JSContext* cx,
     return NewInlineString<CanGC>(cx, range);
   }
 
+  // Use NewStringCopyNDontDeflate if the string is short enough to fit in the
+  // Vector's inline storage, because nursery-allocating the chars helps us
+  // avoid a malloc call.
+  using Vec = std::remove_reference_t<decltype(chars<CharT>())>;
+  if (len <= Vec::InlineLength) {
+    return NewStringCopyNDontDeflate<CanGC>(cx, begin<CharT>(), len, heap);
+  }
+
   UniquePtr<CharT[], JS::FreePolicy> buf(
       ExtractWellSized<CharT>(chars<CharT>()));
 
