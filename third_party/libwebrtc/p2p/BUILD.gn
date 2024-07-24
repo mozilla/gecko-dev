@@ -736,7 +736,9 @@ rtc_library("port_interface") {
   deps = [
     ":transport_description",
     "../api:candidate",
+    "../api:field_trials_view",
     "../api:packet_socket_factory",
+    "../api/task_queue:task_queue",
     "../rtc_base:async_packet_socket",
     "../rtc_base:callback_list",
     "../rtc_base:socket_address",
