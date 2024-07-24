@@ -19,7 +19,12 @@
 // MediaResult const references is recommended.
 namespace mozilla {
 
+namespace dom {
+class Promise;
+}
+
 class CDMProxy;
+class ErrorResult;
 
 class MediaResult {
  public:
@@ -62,6 +67,9 @@ class MediaResult {
   }
 
   CDMProxy* GetCDMProxy() const { return mCDMProxy; }
+
+  void ThrowTo(ErrorResult& aRv) const;
+  void RejectTo(dom::Promise* aPromise) const;
 
  private:
   nsresult mCode;
