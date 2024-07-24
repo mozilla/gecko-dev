@@ -243,6 +243,12 @@ urlbar:
         will be able to click the "Show less frequently" command for Fakespot
         suggestions. If undefined or zero, the user will be able to click the
         command without any limit.
+    fakespotSuggestedIndex:
+      type: int
+      fallbackPref: browser.urlbar.fakespot.suggestedIndex
+      description: >-
+        The index of Fakespot results within the Firefox Suggest section. A
+        negative index is relative to the end of the section.
     mdnFeatureGate:
       type: boolean
       setPref:

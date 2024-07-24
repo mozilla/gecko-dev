@@ -134,16 +134,20 @@ export class FakespotSuggestions extends BaseFeature {
       dynamicType: "fakespot",
     };
 
-    const result = new lazy.UrlbarResult(
-      lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC,
-      lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
-      ...lazy.UrlbarResult.payloadAndSimpleHighlights(
-        queryContext.tokens,
-        payload
-      )
+    return Object.assign(
+      new lazy.UrlbarResult(
+        lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC,
+        lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
+        ...lazy.UrlbarResult.payloadAndSimpleHighlights(
+          queryContext.tokens,
+          payload
+        )
+      ),
+      {
+        isSuggestedIndexRelativeToGroup: true,
+        suggestedIndex: lazy.UrlbarPrefs.get("fakespotSuggestedIndex"),
+      }
     );
-
-    return result;
   }
 
   getViewUpdate(result) {

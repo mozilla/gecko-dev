@@ -657,6 +657,10 @@ pref("browser.urlbar.fakespot.featureGate", false);
 // the suggestion. 0 means the min length should be taken from Nimbus.
 pref("browser.urlbar.fakespot.minKeywordLength", 4);
 
+// The index of Fakespot results within the Firefox Suggest section. A negative
+// index is relative to the end of the section.
+pref("browser.urlbar.fakespot.suggestedIndex", -1);
+
 // If `browser.urlbar.fakespot.featureGate` is true, this controls whether
 // Fakespot suggestions are turned on.
 pref("browser.urlbar.suggest.fakespot", true);

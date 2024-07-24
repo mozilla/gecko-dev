@@ -139,6 +139,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // for Fakespot suggestions.
   ["fakespot.showLessFrequentlyCount", 0],
 
+  // The index of Fakespot results within the Firefox Suggest section. A
+  // negative index is relative to the end of the section.
+  ["fakespot.suggestedIndex", -1],
+
   // When true, `javascript:` URLs are not included in search results.
   ["filter.javascript", true],
 
