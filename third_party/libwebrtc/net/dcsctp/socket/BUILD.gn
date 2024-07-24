@@ -235,6 +235,7 @@ if (rtc_include_tests) {
       "../../../api:network_emulation_manager_api",
       "../../../api/task_queue",
       "../../../api/task_queue:pending_task_safety_flag",
+      "../../../api/units:data_rate",
       "../../../api/units:time_delta",
       "../../../rtc_base:checks",
       "../../../rtc_base:copy_on_write_buffer",

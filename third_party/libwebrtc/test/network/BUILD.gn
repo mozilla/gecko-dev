@@ -134,6 +134,7 @@ rtc_library("cross_traffic_unittest") {
     "../..//test/network:simulated_network",
     "../../api:network_emulation_manager_api",
     "../../api:simulated_network_api",
+    "../../api/units:data_rate",
     "../../rtc_base:logging",
     "../../rtc_base:network_constants",
     "../../rtc_base:rtc_event",

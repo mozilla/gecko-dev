@@ -24,7 +24,7 @@ constexpr char kDummyTransportName[] = "dummy";
 SimulatedNetwork::Config CreateSimulationConfig(
     NetworkSimulationConfig config) {
   SimulatedNetwork::Config sim_config;
-  sim_config.link_capacity_kbps = config.bandwidth.kbps_or(0);
+  sim_config.link_capacity = config.bandwidth;
   sim_config.loss_percent = config.loss_rate * 100;
   sim_config.queue_delay_ms = config.delay.ms();
   sim_config.delay_standard_deviation_ms = config.delay_std_dev.ms();

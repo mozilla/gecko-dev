@@ -18,6 +18,7 @@
 #include "api/test/metrics/global_metrics_logger_and_exporter.h"
 #include "api/test/metrics/metric.h"
 #include "api/test/simulated_network.h"
+#include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
 #include "api/video/encoded_image.h"
@@ -1460,7 +1461,7 @@ TEST_F(VideoSendStreamTest, PaddingIsPrimarilyRetransmissions) {
       const int kNetworkDelayMs = 50;
       BuiltInNetworkBehaviorConfig config;
       config.loss_percent = 10;
-      config.link_capacity_kbps = kCapacityKbps;
+      config.link_capacity = DataRate::KilobitsPerSec(kCapacityKbps);
       config.queue_delay_ms = kNetworkDelayMs;
       return config;
     }

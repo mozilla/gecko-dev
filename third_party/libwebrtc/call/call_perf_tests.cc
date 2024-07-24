@@ -24,6 +24,7 @@
 #include "api/test/metrics/global_metrics_logger_and_exporter.h"
 #include "api/test/metrics/metric.h"
 #include "api/test/simulated_network.h"
+#include "api/units/data_rate.h"
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
 #include "api/video/video_bitrate_allocation.h"
 #include "api/video_codecs/video_encoder.h"
@@ -958,7 +959,7 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
    protected:
     BuiltInNetworkBehaviorConfig GetFakeNetworkPipeConfig() const {
       BuiltInNetworkBehaviorConfig pipe_config;
-      pipe_config.link_capacity_kbps = test_bitrate_from_;
+      pipe_config.link_capacity = DataRate::KilobitsPerSec(test_bitrate_from_);
       return pipe_config;
     }
 
@@ -990,7 +991,7 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
                : test_bitrate >= test_bitrate_to_;
            test_bitrate += test_bitrate_step_) {
         BuiltInNetworkBehaviorConfig pipe_config;
-        pipe_config.link_capacity_kbps = test_bitrate;
+        pipe_config.link_capacity = DataRate::KilobitsPerSec(test_bitrate);
         send_simulated_network_->SetConfig(pipe_config);
         receive_simulated_network_->SetConfig(pipe_config);
 
