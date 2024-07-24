@@ -47,7 +47,8 @@ nsClipboardProxy::SetData(nsITransferable* aTransferable,
   IPCTransferable ipcTransferable;
   nsContentUtils::TransferableToIPCTransferable(aTransferable, &ipcTransferable,
                                                 false, nullptr);
-  child->SendSetClipboard(std::move(ipcTransferable), aWhichClipboard,
+  child->SendSetClipboard(std::move(ipcTransferable),
+                          nsIClipboard::ClipboardType(aWhichClipboard),
                           aWindowContext);
   return NS_OK;
 }
@@ -59,7 +60,8 @@ NS_IMETHODIMP nsClipboardProxy::AsyncSetData(
   RefPtr<ClipboardWriteRequestChild> request =
       MakeRefPtr<ClipboardWriteRequestChild>(aCallback);
   ContentChild::GetSingleton()->SendPClipboardWriteRequestConstructor(
-      request, aWhichClipboard, aSettingWindowContext);
+      request, nsIClipboard::ClipboardType(aWhichClipboard),
+      aSettingWindowContext);
   request.forget(_retval);
   return NS_OK;
 }
@@ -84,14 +86,15 @@ nsClipboardProxy::GetData(nsITransferable* aTransferable,
     if (!contentAnalysis) {
       return NS_ERROR_FAILURE;
     }
-    if (!contentAnalysis->SendGetClipboard(types, aWhichClipboard,
-                                           aWindowContext->InnerWindowId(),
-                                           &transferableOrError)) {
+    if (!contentAnalysis->SendGetClipboard(
+            types, nsIClipboard::ClipboardType(aWhichClipboard),
+            aWindowContext->InnerWindowId(), &transferableOrError)) {
       return NS_ERROR_FAILURE;
     }
   } else {
     if (!ContentChild::GetSingleton()->SendGetClipboard(
-            types, aWhichClipboard, aWindowContext, &transferableOrError)) {
+            types, nsIClipboard::ClipboardType(aWhichClipboard), aWindowContext,
+            &transferableOrError)) {
       return NS_ERROR_FAILURE;
     };
   }
@@ -243,9 +246,9 @@ NS_IMETHODIMP nsClipboardProxy::GetDataSnapshot(
   }
 
   ContentChild::GetSingleton()
-      ->SendGetClipboardDataSnapshot(aFlavorList, aWhichClipboard,
-                                     aRequestingWindowContext,
-                                     WrapNotNull(aRequestingPrincipal))
+      ->SendGetClipboardDataSnapshot(
+          aFlavorList, nsIClipboard::ClipboardType(aWhichClipboard),
+          aRequestingWindowContext, WrapNotNull(aRequestingPrincipal))
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
           /* resolve */
@@ -287,7 +290,8 @@ NS_IMETHODIMP nsClipboardProxy::GetDataSnapshotSync(
   ContentChild* contentChild = ContentChild::GetSingleton();
   ClipboardReadRequestOrError requestOrError;
   contentChild->SendGetClipboardDataSnapshotSync(
-      aFlavorList, aWhichClipboard, aRequestingWindowContext, &requestOrError);
+      aFlavorList, nsIClipboard::ClipboardType(aWhichClipboard),
+      aRequestingWindowContext, &requestOrError);
   auto result = CreateClipboardDataSnapshotProxy(std::move(requestOrError));
   if (result.isErr()) {
     return result.unwrapErr();
@@ -299,7 +303,8 @@ NS_IMETHODIMP nsClipboardProxy::GetDataSnapshotSync(
 
 NS_IMETHODIMP
 nsClipboardProxy::EmptyClipboard(int32_t aWhichClipboard) {
-  ContentChild::GetSingleton()->SendEmptyClipboard(aWhichClipboard);
+  ContentChild::GetSingleton()->SendEmptyClipboard(
+      nsIClipboard::ClipboardType(aWhichClipboard));
   return NS_OK;
 }
 
@@ -309,8 +314,8 @@ nsClipboardProxy::HasDataMatchingFlavors(const nsTArray<nsCString>& aFlavorList,
                                          bool* aHasType) {
   *aHasType = false;
 
-  ContentChild::GetSingleton()->SendClipboardHasType(aFlavorList,
-                                                     aWhichClipboard, aHasType);
+  ContentChild::GetSingleton()->SendClipboardHasType(
+      aFlavorList, nsIClipboard::ClipboardType(aWhichClipboard), aHasType);
 
   return NS_OK;
 }

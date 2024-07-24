@@ -84,6 +84,7 @@ include "mozilla/ipc/ByteBufUtils.h";
 include "mozilla/ipc/TransportSecurityInfoUtils.h";
 include "mozilla/ipc/URIUtils.h";
 include "mozilla/net/NeckoMessageUtils.h";
+include "mozilla/widget/WidgetMessageUtils.h";
 include "mozilla/PermissionDelegateIPCUtils.h";
 
 [RefCounted] using class nsIDOMGeoPosition from "nsGeoPositionIPCSerialiser.h";
@@ -163,6 +164,7 @@ using mozilla::PerfStats::MetricMask from "mozilla/PerfStats.h";
 using nsIDNSService::ResolverMode from "nsIDNSService.h";
 using mozilla::dom::UserActivation::Modifiers from "mozilla/dom/UserActivation.h";
 using mozilla::dom::PrivateAttributionImpressionType from "mozilla/dom/PrivateAttributionIPCUtils.h";
+using nsIClipboard::ClipboardType from "nsIClipboard.h";
 
 union ChromeRegistryItem
 {
@@ -1210,32 +1212,32 @@ parent:
 
     // Places the items within dataTransfer on the clipboard.
     async SetClipboard(IPCTransferable aTransferable,
-                       int32_t aWhichClipboard, MaybeDiscardedWindowContext aRequestingWindowContext);
+                       ClipboardType aWhichClipboard, MaybeDiscardedWindowContext aRequestingWindowContext);
 
     // Given a list of supported types, returns the clipboard data for the
     // first type that matches.
     // aRequestingWindowContext is the window that is requesting the clipboard,
     // which is used for content analysis.
-    sync GetClipboard(nsCString[] aTypes, int32_t aWhichClipboard,
+    sync GetClipboard(nsCString[] aTypes, ClipboardType aWhichClipboard,
                       MaybeDiscardedWindowContext aRequestingWindowContext)
         returns (IPCTransferableDataOrError transferableDataOrError);
 
     // Requests getting data from clipboard.
-    async GetClipboardDataSnapshot(nsCString[] aTypes, int32_t aWhichClipboard,
+    async GetClipboardDataSnapshot(nsCString[] aTypes, ClipboardType aWhichClipboard,
                                    MaybeDiscardedWindowContext aRequestingWindowContext,
                                    nsIPrincipal aRequestingPrincipal)
         returns (ClipboardReadRequestOrError aClipboardReadRequestOrError);
 
     // Requests getting data from clipboard.
-    sync GetClipboardDataSnapshotSync(nsCString[] aTypes, int32_t aWhichClipboard,
+    sync GetClipboardDataSnapshotSync(nsCString[] aTypes, ClipboardType aWhichClipboard,
                                       MaybeDiscardedWindowContext aRequestingWindowContext)
         returns (ClipboardReadRequestOrError aClipboardReadRequestOrError);
 
     // Clears the clipboard.
-    async EmptyClipboard(int32_t aWhichClipboard);
+    async EmptyClipboard(ClipboardType aWhichClipboard);
 
     // Returns true if data of one of the specified types is on the clipboard.
-    sync ClipboardHasType(nsCString[] aTypes, int32_t aWhichClipboard)
+    sync ClipboardHasType(nsCString[] aTypes, ClipboardType aWhichClipboard)
         returns (bool hasType);
 
     /**
@@ -1248,7 +1250,7 @@ parent:
      *         to possibly bypass Content Analysis if a set clipboard and get clipboard
      *         operation are done on the same page.
      */
-    async PClipboardWriteRequest(int32_t aClipboardType, MaybeDiscardedWindowContext aSettingWindowContext);
+    async PClipboardWriteRequest(ClipboardType aClipboardType, MaybeDiscardedWindowContext aSettingWindowContext);
 
     sync GetIconForExtension(nsCString aFileExt, uint32_t aIconSize)
         returns (uint8_t[] bits);

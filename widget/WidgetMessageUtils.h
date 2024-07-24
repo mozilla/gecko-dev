@@ -11,6 +11,7 @@
 #include "mozilla/GfxMessageUtils.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/widget/ThemeChangeKind.h"
+#include "nsIClipboard.h"
 #include "nsIWidget.h"
 #include "nsStyleConsts.h"
 
@@ -70,6 +71,12 @@ struct ParamTraits<mozilla::DimensionKind>
 
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::DimensionRequest, mDimensionKind, mX,
                                   mY, mWidth, mHeight);
+
+template <>
+struct ParamTraits<nsIClipboard::ClipboardType>
+    : public ContiguousEnumSerializerInclusive<
+          nsIClipboard::ClipboardType, nsIClipboard::kSelectionClipboard,
+          nsIClipboard::kSelectionCache> {};
 
 }  // namespace IPC
 

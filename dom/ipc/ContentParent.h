@@ -942,34 +942,39 @@ class ContentParent final : public PContentParent,
       const MaybeDiscarded<BrowsingContext>& aContext);
 
   mozilla::ipc::IPCResult RecvSetClipboard(
-      const IPCTransferable& aTransferable, const int32_t& aWhichClipboard,
+      const IPCTransferable& aTransferable,
+      const nsIClipboard::ClipboardType& aWhichClipboard,
       const MaybeDiscarded<WindowContext>& aRequestingWindowContext);
 
   mozilla::ipc::IPCResult RecvGetClipboard(
-      nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,
+      nsTArray<nsCString>&& aTypes,
+      const nsIClipboard::ClipboardType& aWhichClipboard,
       const MaybeDiscarded<WindowContext>& aRequestingWindowContext,
       IPCTransferableDataOrError* aTransferableDataOrError);
 
-  mozilla::ipc::IPCResult RecvEmptyClipboard(const int32_t& aWhichClipboard);
+  mozilla::ipc::IPCResult RecvEmptyClipboard(
+      const nsIClipboard::ClipboardType& aWhichClipboard);
 
-  mozilla::ipc::IPCResult RecvClipboardHasType(nsTArray<nsCString>&& aTypes,
-                                               const int32_t& aWhichClipboard,
-                                               bool* aHasType);
+  mozilla::ipc::IPCResult RecvClipboardHasType(
+      nsTArray<nsCString>&& aTypes,
+      const nsIClipboard::ClipboardType& aWhichClipboard, bool* aHasType);
 
   mozilla::ipc::IPCResult RecvGetClipboardDataSnapshot(
-      nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,
+      nsTArray<nsCString>&& aTypes,
+      const nsIClipboard::ClipboardType& aWhichClipboard,
       const MaybeDiscarded<WindowContext>& aRequestingWindowContext,
       mozilla::NotNull<nsIPrincipal*> aRequestingPrincipal,
       GetClipboardDataSnapshotResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvGetClipboardDataSnapshotSync(
-      nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,
+      nsTArray<nsCString>&& aTypes,
+      const nsIClipboard::ClipboardType& aWhichClipboard,
       const MaybeDiscarded<WindowContext>& aRequestingWindowContext,
       ClipboardReadRequestOrError* aRequestOrError);
 
   already_AddRefed<PClipboardWriteRequestParent>
   AllocPClipboardWriteRequestParent(
-      const int32_t& aClipboardType,
+      const nsIClipboard::ClipboardType& aClipboardType,
       const MaybeDiscarded<WindowContext>& aSettingWindowContext);
 
   mozilla::ipc::IPCResult RecvGetIconForExtension(const nsACString& aFileExt,

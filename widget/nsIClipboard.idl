@@ -99,11 +99,13 @@ interface nsIClipboardGetDataSnapshotCallback : nsISupports
 [scriptable, builtinclass, uuid(ceaa0047-647f-4b8e-ad1c-aff9fa62aa51)]
 interface nsIClipboard : nsISupports
 {
-    const long kSelectionClipboard = 0;
-    const long kGlobalClipboard = 1;
-    const long kFindClipboard = 2;
+  cenum ClipboardType : 32 {
+    kSelectionClipboard = 0,
+    kGlobalClipboard = 1,
+    kFindClipboard = 2,
     // Used to cache current selection on (nsClipboard) for macOS service menu.
-    const long kSelectionCache = 3;
+    kSelectionCache = 3,
+  };
 
 %{ C++
     static const uint32_t kClipboardTypeCount = kSelectionCache + 1;
