@@ -19,8 +19,6 @@
 #include "api/peer_connection_interface.h"
 #include "api/rtc_event_log/rtc_event_log_factory.h"
 #include "api/scoped_refptr.h"
-#include "api/task_queue/default_task_queue_factory.h"
-#include "api/transport/field_trial_based_config.h"
 #include "rtc_base/thread.h"
 
 namespace webrtc {
@@ -38,16 +36,10 @@ rtc::scoped_refptr<PeerConnectionFactoryInterface> CreatePeerConnectionFactory(
     rtc::scoped_refptr<AudioProcessing> audio_processing,
     std::unique_ptr<AudioFrameProcessor> audio_frame_processor,
     std::unique_ptr<FieldTrialsView> field_trials) {
-  if (!field_trials) {
-    field_trials = std::make_unique<webrtc::FieldTrialBasedConfig>();
-  }
-
   PeerConnectionFactoryDependencies dependencies;
   dependencies.network_thread = network_thread;
   dependencies.worker_thread = worker_thread;
   dependencies.signaling_thread = signaling_thread;
-  dependencies.task_queue_factory =
-      CreateDefaultTaskQueueFactory(field_trials.get());
   dependencies.event_log_factory = std::make_unique<RtcEventLogFactory>();
   dependencies.trials = std::move(field_trials);
 
