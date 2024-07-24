@@ -136,14 +136,15 @@ inline mozilla::ProfileBufferBlockIndex AddMarkerToBuffer(
 // return true.
 [[nodiscard]] inline bool profiler_thread_is_being_profiled_for_markers() {
   return profiler_thread_is_being_profiled(ThreadProfilingFeatures::Markers) ||
-         profiler_is_etw_collecting_markers();
+         profiler_is_etw_collecting_markers() || profiler_is_perfetto_tracing();
+  ;
 }
 
 [[nodiscard]] inline bool profiler_thread_is_being_profiled_for_markers(
     const ProfilerThreadId& aThreadId) {
   return profiler_thread_is_being_profiled(aThreadId,
                                            ThreadProfilingFeatures::Markers) ||
-         profiler_is_etw_collecting_markers();
+         profiler_is_etw_collecting_markers() || profiler_is_perfetto_tracing();
 }
 
 // Add a marker to the Gecko Profiler buffer.
@@ -167,6 +168,12 @@ mozilla::ProfileBufferBlockIndex profiler_add_marker_impl(
   ETW::EmitETWMarker(aName, aCategory, aOptions, aMarkerType,
                      aPayloadArguments...);
 #  endif
+
+#  ifdef MOZ_PERFETTO
+  EmitPerfettoTrackEvent(aName, aCategory, aOptions, aMarkerType,
+                         aPayloadArguments...);
+#  endif
+
   if (!profiler_thread_is_being_gecko_profiled_for_markers(
           aOptions.ThreadId().ThreadId())) {
     return {};

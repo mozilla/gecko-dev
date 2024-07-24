@@ -15,6 +15,7 @@
 #include <mozilla/DefineEnum.h>
 #include <mozilla/EnumSet.h>
 #include "mozilla/ProfilerUtils.h"
+#include "mozilla/Perfetto.h"
 
 #include <functional>
 
@@ -210,6 +211,7 @@ using ProfilingStateChangeCallback = std::function<void(ProfilingState)>;
 [[nodiscard]] inline bool profiler_is_active_and_unpaused() { return false; }
 [[nodiscard]] inline bool profiler_is_collecting_markers() { return false; }
 [[nodiscard]] inline bool profiler_is_etw_collecting_markers() { return false; }
+[[nodiscard]] inline bool profiler_is_perfetto_tracing() { return false; }
 [[nodiscard]] inline bool profiler_feature_active(uint32_t aFeature) {
   return false;
 }
@@ -252,6 +254,14 @@ class RacyFeatures {
 
   static void SetETWCollectionInactive() {
     sActiveAndFeatures &= ~ETWCollectionEnabled;
+  }
+
+  static void SetPerfettoTracingActive() {
+    sActiveAndFeatures |= PerfettoTracingEnabled;
+  }
+
+  static void SetPerfettoTracingInactive() {
+    sActiveAndFeatures &= ~PerfettoTracingEnabled;
   }
 
   static void SetInactive() { sActiveAndFeatures = 0; }
@@ -315,7 +325,8 @@ class RacyFeatures {
 
   [[nodiscard]] static bool IsCollectingMarkers() {
     uint32_t af = sActiveAndFeatures;  // copy it first
-    return ((af & Active) && !(af & Paused)) || (af & ETWCollectionEnabled);
+    return ((af & Active) && !(af & Paused)) || (af & ETWCollectionEnabled) ||
+           (af & PerfettoTracingEnabled);
   }
 
   [[nodiscard]] static bool IsETWCollecting() {
@@ -323,11 +334,17 @@ class RacyFeatures {
     return (af & ETWCollectionEnabled);
   }
 
+  [[nodiscard]] static bool IsPerfettoTracing() {
+    uint32_t af = sActiveAndFeatures;  // copy it first
+    return (af & PerfettoTracingEnabled);
+  }
+
  private:
   static constexpr uint32_t Active = 1u << 31;
   static constexpr uint32_t Paused = 1u << 30;
   static constexpr uint32_t SamplingPaused = 1u << 29;
   static constexpr uint32_t ETWCollectionEnabled = 1u << 28;
+  static constexpr uint32_t PerfettoTracingEnabled = 1u << 27;
 
 // Ensure Active/Paused don't overlap with any of the feature bits.
 #  define NO_OVERLAP(n_, str_, Name_, desc_)                \
@@ -383,6 +400,10 @@ class RacyFeatures {
 // Reports if our ETW tracelogger is running.
 [[nodiscard]] inline bool profiler_is_etw_collecting_markers() {
   return mozilla::profiler::detail::RacyFeatures::IsETWCollecting();
+}
+
+[[nodiscard]] inline bool profiler_is_perfetto_tracing() {
+  return mozilla::profiler::detail::RacyFeatures::IsPerfettoTracing();
 }
 
 // Is the profiler active and paused? Returns false if the profiler is inactive.
