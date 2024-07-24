@@ -1323,6 +1323,12 @@ pdfjs:
       setPref:
         branch: default
         pref: pdfjs.enableAltText
+    enableUpdatedAddImage:
+      description: Set to true to enable updated add image with alt text flow.
+      type: boolean
+      setPref:
+        branch: default
+        pref: pdfjs.enableUpdatedAddImage
 
 # fxms-message-* placeholder feature ids
 #
