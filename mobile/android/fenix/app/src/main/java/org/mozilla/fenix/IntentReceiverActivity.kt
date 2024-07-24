@@ -22,6 +22,7 @@ import org.mozilla.fenix.HomeActivity.Companion.PRIVATE_BROWSING_MODE
 import org.mozilla.fenix.components.IntentProcessorType
 import org.mozilla.fenix.components.getType
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.isIntentInternal
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.perf.MarkersActivityLifecycleCallbacks
 import org.mozilla.fenix.perf.StartupTimeline
@@ -75,8 +76,7 @@ class IntentReceiverActivity : Activity() {
         addReferrerInformation(intent)
 
         if (intent.type == INTENT_TYPE_PDF) {
-            val referrerIsFenix =
-                intent.getStringExtra(EXTRA_ACTIVITY_REFERRER_PACKAGE) == this.packageName
+            val referrerIsFenix = this.isIntentInternal()
             Events.openedExtPdf.record(Events.OpenedExtPdfExtra(referrerIsFenix))
         }
 

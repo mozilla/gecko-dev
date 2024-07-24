@@ -20,6 +20,7 @@ import androidx.navigation.NavDirections
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.feature.intent.ext.getSessionId
+import mozilla.components.support.utils.EXTRA_ACTIVITY_REFERRER_PACKAGE
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.toSafeIntent
 import org.mozilla.fenix.BrowserDirection
@@ -356,6 +357,15 @@ private fun getHomeIntentSource(intent: SafeIntent): String? {
         intent.action == Intent.ACTION_VIEW -> "LINK"
         else -> null
     }
+}
+
+/**
+ * Check if the intent is coming from within this application itself or from an external one
+ * when processed through the `InternalReceiverActivity`.
+ */
+fun Activity.isIntentInternal(): Boolean {
+    val safeIntent = SafeIntent(intent)
+    return safeIntent.getStringExtra(EXTRA_ACTIVITY_REFERRER_PACKAGE) == this.packageName
 }
 
 /**
