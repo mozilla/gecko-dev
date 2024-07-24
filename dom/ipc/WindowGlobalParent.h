@@ -318,12 +318,20 @@ class WindowGlobalParent final : public WindowContext,
 
   mozilla::ipc::IPCResult RecvReloadWithHttpsOnlyException();
 
-  mozilla::ipc::IPCResult RecvGetIdentityCredential(
+  mozilla::ipc::IPCResult RecvDiscoverIdentityCredentialFromExternalSource(
       const IdentityCredentialRequestOptions& aOptions,
-      const GetIdentityCredentialResolver& aResolver);
+      const DiscoverIdentityCredentialFromExternalSourceResolver& aResolver);
+
+  mozilla::ipc::IPCResult RecvCollectIdentityCredentialFromCredentialStore(
+      const IdentityCredentialRequestOptions& aOptions,
+      const CollectIdentityCredentialFromCredentialStoreResolver& aResolver);
   mozilla::ipc::IPCResult RecvStoreIdentityCredential(
       const IPCIdentityCredential& aCredential,
       const StoreIdentityCredentialResolver& aResolver);
+
+  mozilla::ipc::IPCResult RecvNotifyPendingIdentityCredentialDiscovery(
+      const IdentityCredentialRequestOptions& aOptions,
+      const NotifyPendingIdentityCredentialDiscoveryResolver& aResolver);
 
   mozilla::ipc::IPCResult RecvGetStorageAccessPermission(
       GetStorageAccessPermissionResolver&& aResolve);

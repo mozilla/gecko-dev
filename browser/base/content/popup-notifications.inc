@@ -177,29 +177,10 @@
         </vbox>
       </popupnotificationfooter>
     </popupnotification>
-    <popupnotification id="credential-chooser-notification" hidden="true">
-      <popupnotificationheader id="credential-chooser-header" orient="horizontal">
-        <html:div id="credential-chooser-header-container">
-          <html:span id="credential-chooser-header-text"/>
-        </html:div>
-      </popupnotificationheader>
-      <popupnotificationcontent id="credential-chooser-entry" orient="vertical">
-        <html:div id="credential-chooser-entry-selector-container"/>
-        <html:template id="template-credential-entry-list-item">
-          <html:label class="identity-credential-list-item" align="center">
-            <html:input type="radio" name="credential-entry" class="identity-credential-list-item-radio"></html:input>
-            <html:img class="identity-credential-list-item-icon"/>
-            <html:div class="identity-credential-list-item-label-stack">
-              <html:div class="identity-credential-list-item-label-primary"/>
-              <html:div class="identity-credential-list-item-label-secondary" hidden="true"/>
-            </html:div>
-          </html:label>
-        </html:template>
-      </popupnotificationcontent>
-    </popupnotification>
+
     <popupnotification id="identity-credential-notification" hidden="true">
       <popupnotificationheader id="identity-credential-header" orient="horizontal" hidden="true">
-        <html:div id="identity-credential-header-container">
+        <html:div class="identity-credential-header-container">
           <html:img class="identity-credential-header-icon"></html:img>
           <span id="identity-credential-header-text"></span>
         </html:div>
