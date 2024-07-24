@@ -391,9 +391,7 @@ RTCError CreateContentOffer(
     StreamParamsVec* current_streams,
     MediaContentDescription* offer) {
   offer->set_rtcp_mux(session_options.rtcp_mux_enabled);
-  if (offer->type() == cricket::MEDIA_TYPE_VIDEO) {
-    offer->set_rtcp_reduced_size(true);
-  }
+  offer->set_rtcp_reduced_size(true);
 
   // Build the vector of header extensions with directions for this
   // media_description's options.
@@ -1103,10 +1101,7 @@ bool CreateMediaContentAnswer(
   answer->set_rtp_header_extensions(negotiated_rtp_extensions);
 
   answer->set_rtcp_mux(session_options.rtcp_mux_enabled && offer->rtcp_mux());
-  if (answer->type() == cricket::MEDIA_TYPE_VIDEO) {
-    answer->set_rtcp_reduced_size(offer->rtcp_reduced_size());
-  }
-
+  answer->set_rtcp_reduced_size(offer->rtcp_reduced_size());
   answer->set_remote_estimate(offer->remote_estimate());
 
   AddSimulcastToMediaDescription(media_description_options, answer);

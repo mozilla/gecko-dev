@@ -163,6 +163,7 @@ class ChannelReceive : public ChannelReceiveInterface,
 
   CallReceiveStatistics GetRTCPStatistics() const override;
   void SetNACKStatus(bool enable, int maxNumberOfPackets) override;
+  void SetRtcpMode(webrtc::RtcpMode mode) override;
   void SetNonSenderRttMeasurement(bool enabled) override;
 
   AudioMixer::Source::AudioFrameInfo GetAudioFrameWithInfo(
@@ -880,6 +881,11 @@ void ChannelReceive::SetNACKStatus(bool enable, int max_packets) {
         kDefaultMaxReorderingThreshold);
     acm_receiver_.DisableNack();
   }
+}
+
+void ChannelReceive::SetRtcpMode(webrtc::RtcpMode mode) {
+  RTC_DCHECK_RUN_ON(&worker_thread_checker_);
+  rtp_rtcp_->SetRTCPStatus(mode);
 }
 
 void ChannelReceive::SetNonSenderRttMeasurement(bool enabled) {

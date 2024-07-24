@@ -16,7 +16,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b55b0368d9f21849f
  8 files changed, 34 insertions(+)
 
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index b54df14eac..3345a2440c 100644
+index 71b5f12982..7fc8beadb9 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -153,6 +153,9 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {

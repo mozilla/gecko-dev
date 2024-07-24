@@ -118,6 +118,7 @@ class AudioReceiveStreamInterface : public MediaReceiveStreamInterface {
 
       // See NackConfig for description.
       NackConfig nack;
+      RtcpMode rtcp_mode = RtcpMode::kCompound;
 
       RtcpEventObserver* rtcp_event_observer = nullptr;
     } rtp;

@@ -20,19 +20,19 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d0b311007c033e838
  11 files changed, 57 insertions(+), 10 deletions(-)
 
 diff --git a/audio/audio_receive_stream.cc b/audio/audio_receive_stream.cc
-index 415ad0640a..1e8cff5441 100644
+index 31e93b3c7d..e21feca1d6 100644
 --- a/audio/audio_receive_stream.cc
 +++ b/audio/audio_receive_stream.cc
-@@ -39,6 +39,8 @@ std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
-   ss << "{remote_ssrc: " << remote_ssrc;
-   ss << ", local_ssrc: " << local_ssrc;
-   ss << ", nack: " << nack.ToString();
+@@ -43,6 +43,8 @@ std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
+      << (rtcp_mode == RtcpMode::kCompound
+              ? "compound"
+              : (rtcp_mode == RtcpMode::kReducedSize ? "reducedSize" : "off"));
 +  ss << ", rtcp_event_observer: "
 +     << (rtcp_event_observer ? "(rtcp_event_observer)" : "nullptr");
    ss << '}';
    return ss.str();
  }
-@@ -73,7 +75,8 @@ std::unique_ptr<voe::ChannelReceiveInterface> CreateChannelReceive(
+@@ -77,7 +79,8 @@ std::unique_ptr<voe::ChannelReceiveInterface> CreateChannelReceive(
        config.jitter_buffer_fast_accelerate, config.jitter_buffer_min_delay_ms,
        config.enable_non_sender_rtt, config.decoder_factory,
        config.codec_pair_id, std::move(config.frame_decryptor),
@@ -43,7 +43,7 @@ index 415ad0640a..1e8cff5441 100644
  }  // namespace
  
 diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
-index 6f0553cb61..b2ea3cd487 100644
+index 1fa396e482..fd95b42cfa 100644
 --- a/audio/channel_receive.cc
 +++ b/audio/channel_receive.cc
 @@ -105,7 +105,8 @@ class ChannelReceive : public ChannelReceiveInterface,
@@ -56,7 +56,7 @@ index 6f0553cb61..b2ea3cd487 100644
    ~ChannelReceive() override;
  
    void SetSink(AudioSinkInterface* sink) override;
-@@ -532,7 +533,8 @@ ChannelReceive::ChannelReceive(
+@@ -533,7 +534,8 @@ ChannelReceive::ChannelReceive(
      absl::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
@@ -66,7 +66,7 @@ index 6f0553cb61..b2ea3cd487 100644
      : worker_thread_(TaskQueueBase::Current()),
        event_log_(rtc_event_log),
        rtp_receive_statistics_(ReceiveStatistics::Create(clock)),
-@@ -571,6 +573,7 @@ ChannelReceive::ChannelReceive(
+@@ -572,6 +574,7 @@ ChannelReceive::ChannelReceive(
    configuration.local_media_ssrc = local_ssrc;
    configuration.rtcp_packet_type_counter_observer = this;
    configuration.non_sender_rtt_measurement = enable_non_sender_rtt;
@@ -74,7 +74,7 @@ index 6f0553cb61..b2ea3cd487 100644
  
    if (frame_transformer)
      InitFrameTransformerDelegate(std::move(frame_transformer));
-@@ -1113,13 +1116,15 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
+@@ -1119,13 +1122,15 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
      absl::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
@@ -93,7 +93,7 @@ index 6f0553cb61..b2ea3cd487 100644
  
  }  // namespace voe
 diff --git a/audio/channel_receive.h b/audio/channel_receive.h
-index ab69103269..5713d97aaa 100644
+index 61212f60fe..96e089585f 100644
 --- a/audio/channel_receive.h
 +++ b/audio/channel_receive.h
 @@ -28,6 +28,7 @@
@@ -104,7 +104,7 @@ index ab69103269..5713d97aaa 100644
  #include "modules/rtp_rtcp/source/source_tracker.h"
  #include "system_wrappers/include/clock.h"
  
-@@ -186,7 +187,8 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
+@@ -187,7 +188,8 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
      absl::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
@@ -115,7 +115,7 @@ index ab69103269..5713d97aaa 100644
  }  // namespace voe
  }  // namespace webrtc
 diff --git a/call/audio_receive_stream.h b/call/audio_receive_stream.h
-index 4879311fdb..88b74b44ac 100644
+index 344a4b64e4..5a5a160c78 100644
 --- a/call/audio_receive_stream.h
 +++ b/call/audio_receive_stream.h
 @@ -19,6 +19,7 @@
@@ -126,10 +126,10 @@ index 4879311fdb..88b74b44ac 100644
  #include "api/crypto/crypto_options.h"
  #include "api/rtp_parameters.h"
  #include "call/receive_stream.h"
-@@ -117,6 +118,8 @@ class AudioReceiveStreamInterface : public MediaReceiveStreamInterface {
- 
+@@ -118,6 +119,8 @@ class AudioReceiveStreamInterface : public MediaReceiveStreamInterface {
        // See NackConfig for description.
        NackConfig nack;
+       RtcpMode rtcp_mode = RtcpMode::kCompound;
 +
 +      RtcpEventObserver* rtcp_event_observer = nullptr;
      } rtp;
@@ -149,7 +149,7 @@ index 8d88ce23c6..9ee9ed3e76 100644
    return ss.str();
  }
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index afcbcb0531..c190ac7bf5 100644
+index 5b793be18a..c78a398696 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -20,6 +20,7 @@

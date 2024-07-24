@@ -815,7 +815,7 @@ struct MediaChannelParameters {
 
   std::vector<Codec> codecs;
   std::vector<webrtc::RtpExtension> extensions;
-  // For a send stream this is true if we've neogtiated a send direction,
+  // For a send stream this is true if we've negotiated a send direction,
   // for a receive stream this is true if we've negotiated a receive direction.
   bool is_stream_active = true;
 
@@ -837,7 +837,10 @@ struct MediaChannelParameters {
  protected:
   virtual std::map<std::string, std::string> ToStringMap() const {
     return {{"codecs", VectorToString(codecs)},
-            {"extensions", VectorToString(extensions)}};
+            {"extensions", VectorToString(extensions)},
+            {"rtcp", "{reduced_size:" + rtc::ToString(rtcp.reduced_size) +
+                         ", remote_estimate:" +
+                         rtc::ToString(rtcp.remote_estimate) + "}"}};
   }
 };
 
@@ -914,6 +917,7 @@ class VoiceMediaReceiveChannelInterface : public MediaReceiveChannelInterface {
       std::unique_ptr<webrtc::AudioSinkInterface> sink) = 0;
   virtual bool GetStats(VoiceMediaReceiveInfo* stats, bool reset_legacy) = 0;
   virtual void SetReceiveNackEnabled(bool enabled) = 0;
+  virtual void SetRtcpMode(webrtc::RtcpMode mode) = 0;
   virtual void SetReceiveNonSenderRttEnabled(bool enabled) = 0;
 };
 
