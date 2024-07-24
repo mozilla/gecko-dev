@@ -200,6 +200,8 @@
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s ur yezmir ara ad yebded acku ur imṣaḍa ara d %2$s %3$s.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_blocklisted_1">%1$s ur yezmir ara ad yebded acku yella wugur meqqren n tɣellist akked urkad.</string>
+    <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_admin_install_only">Azegrir %1$s yegguma ad yettusbedd, acku ilaq ad t-tesbedd tuddsa yesseqdacen tisertiyin n tkebbanit, ayen yellan d awezɣi ɣef tɣerɣert-a.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">Irmed akken iwata %1$s</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->

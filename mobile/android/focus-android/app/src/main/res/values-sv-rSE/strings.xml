@@ -927,7 +927,7 @@
     <string name="open_new_tab_snackbar">Växla</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Startar fullskärmsläge</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Startar fullskärmsläge</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Växla till länk i ny flik omedelbart</string>
@@ -1118,4 +1118,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widget har lagts till på startskärmen</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">För att avsluta helskärm, dra från toppen och använd bakåtgest</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">För att avsluta helskärm, dra från toppen och tryck bakåt</string>
 </resources>

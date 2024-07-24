@@ -127,6 +127,8 @@
 
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Seqdec awal n uɛeddi iǧehden?</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description">Mmesten imiḍanen-ik s useqdec n wawal n uεeddi iǧehden, yettusefrek s wudem kan akka. Kcem s zzerb ɣer wawalen-ik n uεeddi s usekles-nsen deg umiḍan-ik.</string>
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Seqdec awal n uɛeddi</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
