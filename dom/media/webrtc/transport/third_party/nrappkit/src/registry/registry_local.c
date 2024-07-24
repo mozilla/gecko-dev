@@ -53,6 +53,7 @@
 #include <openssl/ssl.h>
 #endif
 #include <ctype.h>
+#include <stdlib.h>
 #include "registry.h"
 #include "registry_int.h"
 #include "registry_vtbl.h"
@@ -61,6 +62,10 @@
 #include "r_log.h"
 #include "r_errors.h"
 #include "r_macros.h"
+
+static int nr_reg_local_compare_string(const void *arg1, const void *arg2) {
+   return strcasecmp(*(const char **)arg1, *(const char **)arg2);
+}
 
 /* if C were an object-oriented language, nr_scalar_registry_node and
  * nr_array_registry_node would subclass nr_registry_node, but it isn't
@@ -1067,7 +1072,7 @@ nr_reg_local_get_children(NR_registry parent, NR_registry *data, size_t size, si
     }
 
     assert(sizeof(*arg.children) == sizeof(NR_registry));
-    qsort(arg.children, arg.length, sizeof(*arg.children), (void*)strcasecmp);
+    qsort(arg.children, arg.length, sizeof(*arg.children), nr_reg_local_compare_string);
 
     *length = arg.length;
 
