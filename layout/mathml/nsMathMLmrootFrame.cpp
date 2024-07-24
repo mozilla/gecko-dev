@@ -101,46 +101,30 @@ void nsMathMLmrootFrame::GetRadicalXOffsets(nscoord aIndexWidth,
                                             nscoord* aSqrOffset) {
   // The index is tucked in closer to the radical while making sure
   // that the kern does not make the index and radical collide
-  nscoord dxIndex, dxSqr;
-  nscoord xHeight = aFontMetrics->XHeight();
-  nscoord indexRadicalKern = NSToCoordRound(1.35f * xHeight);
+  nscoord dxIndex, dxSqr, radicalKernBeforeDegree, radicalKernAfterDegree;
   nscoord oneDevPixel = aFontMetrics->AppUnitsPerDevPixel();
   RefPtr<gfxFont> mathFont =
       aFontMetrics->GetThebesFontGroup()->GetFirstMathFont();
-  if (mathFont) {
-    indexRadicalKern = mathFont->MathTable()->Constant(
-        gfxMathTable::RadicalKernAfterDegree, oneDevPixel);
-    indexRadicalKern = -indexRadicalKern;
-  }
-  if (indexRadicalKern > aIndexWidth) {
-    dxIndex = indexRadicalKern - aIndexWidth;
-    dxSqr = 0;
-  } else {
-    dxIndex = 0;
-    dxSqr = aIndexWidth - indexRadicalKern;
-  }
 
   if (mathFont) {
-    // add some kern before the radical index
-    nscoord indexRadicalKernBefore = 0;
-    indexRadicalKernBefore = mathFont->MathTable()->Constant(
+    radicalKernBeforeDegree = mathFont->MathTable()->Constant(
         gfxMathTable::RadicalKernBeforeDegree, oneDevPixel);
-    dxIndex += indexRadicalKernBefore;
-    dxSqr += indexRadicalKernBefore;
+    radicalKernAfterDegree = mathFont->MathTable()->Constant(
+        gfxMathTable::RadicalKernAfterDegree, oneDevPixel);
   } else {
-    // avoid collision by leaving a minimum space between index and radical
-    nscoord minimumClearance = aSqrWidth / 2;
-    if (dxIndex + aIndexWidth + minimumClearance > dxSqr + aSqrWidth) {
-      if (aIndexWidth + minimumClearance < aSqrWidth) {
-        dxIndex = aSqrWidth - (aIndexWidth + minimumClearance);
-        dxSqr = 0;
-      } else {
-        dxIndex = 0;
-        dxSqr = (aIndexWidth + minimumClearance) - aSqrWidth;
-      }
-    }
+    nscoord em;
+    GetEmHeight(aFontMetrics, em);
+    radicalKernBeforeDegree = NSToCoordRound(5.0f * em / 18);
+    radicalKernAfterDegree = NSToCoordRound(-10.0f * em / 18);
   }
 
+  // Clamp radical kern degrees according to spec:
+  // https://w3c.github.io/mathml-core/#root-with-index
+  radicalKernBeforeDegree = std::max(0, radicalKernBeforeDegree);
+  radicalKernAfterDegree = std::max(-aIndexWidth, radicalKernAfterDegree);
+
+  dxIndex = radicalKernBeforeDegree;
+  dxSqr = radicalKernBeforeDegree + aIndexWidth + radicalKernAfterDegree;
   if (aIndexOffset) *aIndexOffset = dxIndex;
   if (aSqrOffset) *aSqrOffset = dxSqr;
 }
