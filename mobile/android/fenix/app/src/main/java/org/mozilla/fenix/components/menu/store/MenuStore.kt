@@ -40,6 +40,10 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.Navigate,
         -> state
 
+        is MenuAction.RequestDesktopSite -> state.copy(isDesktopMode = true)
+
+        is MenuAction.RequestMobileSite -> state.copy(isDesktopMode = false)
+
         is MenuAction.UpdateExtensionState -> state.copyWithExtensionMenuState {
             it.copy(
                 recommendedAddons = action.recommendedAddons,

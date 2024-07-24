@@ -243,4 +243,24 @@ class MenuStoreTest {
 
         assertEquals(initialState, store.state)
     }
+
+    @Test
+    fun `WHEN request desktop site action is dispatched THEN desktop mode state is updated`() = runTest {
+        val initialState = MenuState()
+        val store = MenuStore(initialState = initialState)
+
+        store.dispatch(MenuAction.RequestDesktopSite).join()
+
+        assertTrue(store.state.isDesktopMode)
+    }
+
+    @Test
+    fun `WHEN request mobile site action is dispatched THEN desktop mode state is updated`() = runTest {
+        val initialState = MenuState(isDesktopMode = true)
+        val store = MenuStore(initialState = initialState)
+
+        store.dispatch(MenuAction.RequestMobileSite).join()
+
+        assertFalse(store.state.isDesktopMode)
+    }
 }

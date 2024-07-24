@@ -31,6 +31,7 @@ internal const val MAIN_MENU_ROUTE = "main_menu"
  * @param account [Account] information available for a synced account.
  * @param accountState The [AccountState] of a Mozilla account.
  * @param isPrivate Whether or not the browsing mode is in private mode.
+ * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
@@ -60,6 +61,7 @@ internal fun MainMenu(
     account: Account?,
     accountState: AccountState,
     isPrivate: Boolean,
+    isDesktopMode: Boolean,
     showQuitMenu: Boolean,
     onMozillaAccountButtonClick: () -> Unit,
     onHelpButtonClick: () -> Unit,
@@ -99,6 +101,7 @@ internal fun MainMenu(
 
         ToolsAndActionsMenuGroup(
             accessPoint = accessPoint,
+            isDesktopMode = isDesktopMode,
             onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
             onFindInPageMenuClick = onFindInPageMenuClick,
             onToolsMenuClick = onToolsMenuClick,
@@ -188,6 +191,7 @@ private fun NewTabsMenuGroup(
 @Composable
 private fun ToolsAndActionsMenuGroup(
     accessPoint: MenuAccessPoint,
+    isDesktopMode: Boolean,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -197,8 +201,17 @@ private fun ToolsAndActionsMenuGroup(
     MenuGroup {
         if (accessPoint == MenuAccessPoint.Browser) {
             MenuItem(
-                label = stringResource(id = R.string.browser_menu_switch_to_desktop_site),
+                label = if (isDesktopMode) {
+                    stringResource(id = R.string.browser_menu_switch_to_mobile_site)
+                } else {
+                    stringResource(id = R.string.browser_menu_switch_to_desktop_site)
+                },
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_device_desktop_24),
+                state = if (isDesktopMode) {
+                    MenuItemState.ACTIVE
+                } else {
+                    MenuItemState.ENABLED
+                },
                 onClick = onSwitchToDesktopSiteMenuClick,
             )
 
@@ -318,6 +331,7 @@ private fun MenuDialogPreview() {
                 account = null,
                 accountState = NotAuthenticated,
                 isPrivate = false,
+                isDesktopMode = false,
                 showQuitMenu = true,
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
@@ -354,6 +368,7 @@ private fun MenuDialogPrivatePreview() {
                 account = null,
                 accountState = NotAuthenticated,
                 isPrivate = false,
+                isDesktopMode = false,
                 showQuitMenu = true,
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},

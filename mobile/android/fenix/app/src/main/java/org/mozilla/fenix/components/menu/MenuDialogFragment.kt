@@ -115,6 +115,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val appLinksUseCases = components.useCases.appLinksUseCases
                     val webAppUseCases = components.useCases.webAppUseCases
                     val printContentUseCase = components.useCases.sessionUseCases.printContent
+                    val requestDesktopSiteUseCase =
+                        components.useCases.sessionUseCases.requestDesktopSite
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
                     val isTranslationSupported = browserStore.state.translationEngine.isEngineSupported ?: false
@@ -134,19 +136,25 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 } else {
                                     null
                                 },
+                                isDesktopMode = if (args.accesspoint == MenuAccessPoint.Home) {
+                                    settings.openNextTabInDesktopMode
+                                } else {
+                                    selectedTab?.content?.desktopMode ?: false
+                                },
                             ),
                             middleware = listOf(
                                 MenuDialogMiddleware(
                                     appStore = appStore,
                                     addonManager = addonManager,
+                                    settings = settings,
                                     bookmarksStorage = bookmarksStorage,
                                     pinnedSiteStorage = pinnedSiteStorage,
+                                    appLinksUseCases = appLinksUseCases,
                                     addBookmarkUseCase = addBookmarkUseCase,
                                     addPinnedSiteUseCase = addPinnedSiteUseCase,
                                     removePinnedSitesUseCase = removePinnedSiteUseCase,
+                                    requestDesktopSiteUseCase = requestDesktopSiteUseCase,
                                     topSitesMaxLimit = topSitesMaxLimit,
-                                    appLinksUseCases = appLinksUseCases,
-                                    settings = settings,
                                     onDeleteAndQuit = {
                                         deleteAndQuit(
                                             activity = activity as HomeActivity,
@@ -195,6 +203,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val isPinned by store.observeAsState(initialValue = false) { state ->
                         state.browserMenuState != null && state.browserMenuState.isPinned
                     }
+                    val isDesktopMode by store.observeAsState(initialValue = false) { state ->
+                        state.isDesktopMode
+                    }
 
                     val isReaderViewActive by store.observeAsState(initialValue = false) { state ->
                         state.browserMenuState != null && state.browserMenuState.selectedTab.readerState.active
@@ -216,6 +227,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 account = account,
                                 accountState = accountState,
                                 isPrivate = browsingModeManager.mode.isPrivate,
+                                isDesktopMode = isDesktopMode,
                                 showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
                                 onMozillaAccountButtonClick = {
                                     store.dispatch(
@@ -237,7 +249,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 onNewPrivateTabMenuClick = {
                                     store.dispatch(MenuAction.Navigate.NewPrivateTab)
                                 },
-                                onSwitchToDesktopSiteMenuClick = {},
+                                onSwitchToDesktopSiteMenuClick = {
+                                    if (isDesktopMode) {
+                                        store.dispatch(MenuAction.RequestMobileSite)
+                                    } else {
+                                        store.dispatch(MenuAction.RequestDesktopSite)
+                                    }
+                                },
                                 onFindInPageMenuClick = {
                                     store.dispatch(MenuAction.FindInPage)
                                 },

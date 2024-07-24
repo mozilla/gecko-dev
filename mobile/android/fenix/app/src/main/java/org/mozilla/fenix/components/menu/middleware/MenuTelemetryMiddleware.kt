@@ -181,6 +181,18 @@ class MenuTelemetryMiddleware(
                 }
             }
 
+            is MenuAction.RequestDesktopSite -> Events.browserMenuAction.record(
+                Events.BrowserMenuActionExtra(
+                    item = "desktop_view_on",
+                ),
+            )
+
+            is MenuAction.RequestMobileSite -> Events.browserMenuAction.record(
+                Events.BrowserMenuActionExtra(
+                    item = "desktop_view_off",
+                ),
+            )
+
             MenuAction.InitAction,
             MenuAction.OpenInFirefox,
             is MenuAction.InstallAddon,

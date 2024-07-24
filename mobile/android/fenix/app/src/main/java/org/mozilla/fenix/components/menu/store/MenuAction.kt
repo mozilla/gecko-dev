@@ -98,6 +98,16 @@ sealed class MenuAction : Action {
     data class InstallAddon(val addon: Addon) : MenuAction()
 
     /**
+     * [MenuAction] dispatched when requesting to switch to the desktop version of the current page.
+     */
+    data object RequestDesktopSite : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when requesting to switch to the mobile version of the current page.
+     */
+    data object RequestMobileSite : MenuAction()
+
+    /**
      * [MenuAction] dispatched when a navigation event occurs for a specific destination.
      */
     sealed class Navigate : MenuAction() {

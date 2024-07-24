@@ -104,6 +104,7 @@ fun createTab(
     searchTerms: String = "",
     initialLoadFlags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
     initialAdditionalHeaders: Map<String, String>? = null,
+    desktopMode: Boolean = false,
     previewImageUrl: String? = null,
     hasFormData: Boolean = false,
 ): TabSessionState {
@@ -115,6 +116,7 @@ fun createTab(
             title = title,
             webAppManifest = webAppManifest,
             searchTerms = searchTerms,
+            desktopMode = desktopMode,
             previewImageUrl = previewImageUrl,
             hasFormData = hasFormData,
             isProductUrl = isProductUrl,

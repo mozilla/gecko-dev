@@ -13,10 +13,13 @@ import mozilla.components.lib.state.State
  *
  * @property browserMenuState The [BrowserMenuState] of the current browser session if any.
  * @property extensionMenuState The [ExtensionMenuState] to display.
+ * @property isDesktopMode Whether or not the desktop mode is enabled for the currently visited
+ * page.
  */
 data class MenuState(
     val browserMenuState: BrowserMenuState? = null,
     val extensionMenuState: ExtensionMenuState = ExtensionMenuState(),
+    val isDesktopMode: Boolean = false,
 ) : State
 
 /**

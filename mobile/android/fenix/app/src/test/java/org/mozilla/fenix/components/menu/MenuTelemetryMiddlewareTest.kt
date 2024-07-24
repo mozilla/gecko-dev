@@ -349,6 +349,26 @@ class MenuTelemetryMiddlewareTest {
         assertTelemetryRecorded(ReaderMode.closed)
     }
 
+    @Test
+    fun `WHEN requesting desktop site THEN record the desktop view ON telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.RequestDesktopSite).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "desktop_view_on")
+    }
+
+    @Test
+    fun `WHEN requesting mobile site THEN record the desktop view OFF telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.RequestMobileSite).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "desktop_view_off")
+    }
+
     private fun assertTelemetryRecorded(
         event: EventMetricType<Events.BrowserMenuActionExtra>,
         item: String,

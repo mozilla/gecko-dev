@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.menu.middleware
 
 import android.content.Intent
+import android.content.SharedPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -15,6 +16,7 @@ import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.AddonManagerException
 import mozilla.components.feature.app.links.AppLinksUseCases
+import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
@@ -39,19 +41,22 @@ import org.mozilla.fenix.utils.Settings
  *
  * @param appStore The [AppStore] used to dispatch actions to update the global state.
  * @param addonManager An instance of the [AddonManager] used to provide access to [Addon]s.
+ * @param settings An instance of [Settings] to read and write to the [SharedPreferences]
+ * properties.
  * @param bookmarksStorage An instance of the [BookmarksStorage] used
  * to query matching bookmarks.
  * @param pinnedSiteStorage An instance of the [PinnedSiteStorage] used
  * to query matching pinned shortcuts.
+ * @param appLinksUseCases The [AppLinksUseCases] for opening a site in an external app.
  * @param addBookmarkUseCase The [BookmarksUseCase.AddBookmarksUseCase] for adding the
  * selected tab as a bookmark.
  * @param addPinnedSiteUseCase The [TopSitesUseCases.AddPinnedSiteUseCase] for adding the
  * selected tab as a pinned shortcut.
  * @param removePinnedSitesUseCase The [TopSitesUseCases.RemoveTopSiteUseCase] for removing the
  * selected tab from pinned shortcuts.
+ * @param requestDesktopSiteUseCase The [SessionUseCases.RequestDesktopSiteUseCase] for toggling
+ * desktop mode for the current session.
  * @param topSitesMaxLimit The maximum number of top sites the user can have.
- * @param appLinksUseCases The [AppLinksUseCases] for opening a site in an external app.
- * @param settings Used to set value in [Settings] when a site has been opened in an external app.
  * @param onDeleteAndQuit Callback invoked to delete browsing data and quit the browser.
  * @param onDismiss Callback invoked to dismiss the menu dialog.
  * @param scope [CoroutineScope] used to launch coroutines.
@@ -60,14 +65,15 @@ import org.mozilla.fenix.utils.Settings
 class MenuDialogMiddleware(
     private val appStore: AppStore,
     private val addonManager: AddonManager,
+    private val settings: Settings,
     private val bookmarksStorage: BookmarksStorage,
     private val pinnedSiteStorage: PinnedSiteStorage,
+    private val appLinksUseCases: AppLinksUseCases,
     private val addBookmarkUseCase: BookmarksUseCase.AddBookmarksUseCase,
     private val addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase,
     private val removePinnedSitesUseCase: TopSitesUseCases.RemoveTopSiteUseCase,
+    private val requestDesktopSiteUseCase: SessionUseCases.RequestDesktopSiteUseCase,
     private val topSitesMaxLimit: Int,
-    private val appLinksUseCases: AppLinksUseCases,
-    private val settings: Settings,
     private val onDeleteAndQuit: () -> Unit,
     private val onDismiss: suspend () -> Unit,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
@@ -94,6 +100,14 @@ class MenuDialogMiddleware(
             is MenuAction.InstallAddon -> installAddon(action.addon)
             is MenuAction.ToggleReaderView -> toggleReaderView(state = currentState)
             is MenuAction.CustomizeReaderView -> customizeReaderView()
+
+            is MenuAction.RequestDesktopSite,
+            is MenuAction.RequestMobileSite,
+            -> requestSiteMode(
+                tabId = currentState.browserMenuState?.selectedTab?.id,
+                shouldRequestDesktopMode = !currentState.isDesktopMode,
+            )
+
             else -> Unit
         }
 
@@ -306,6 +320,22 @@ class MenuDialogMiddleware(
 
     private fun launchFindInPage() = scope.launch {
         appStore.dispatch(FindInPageAction.FindInPageStarted)
+        onDismiss()
+    }
+
+    private fun requestSiteMode(
+        tabId: String?,
+        shouldRequestDesktopMode: Boolean,
+    ) = scope.launch {
+        if (tabId != null) {
+            requestDesktopSiteUseCase(
+                enable = shouldRequestDesktopMode,
+                tabId = tabId,
+            )
+        } else {
+            settings.openNextTabInDesktopMode = shouldRequestDesktopMode
+        }
+
         onDismiss()
     }
 

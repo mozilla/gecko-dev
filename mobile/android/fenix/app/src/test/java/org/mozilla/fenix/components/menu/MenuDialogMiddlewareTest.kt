@@ -15,6 +15,7 @@ import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.app.links.AppLinkRedirect
 import mozilla.components.feature.app.links.AppLinksUseCases
+import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
@@ -22,6 +23,7 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import mozilla.components.support.test.whenever
@@ -32,6 +34,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
@@ -47,8 +50,10 @@ import org.mozilla.fenix.components.menu.store.BrowserMenuState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
+import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
 
+@RunWith(FenixRobolectricTestRunner::class)
 class MenuDialogMiddlewareTest {
 
     @get:Rule
@@ -66,6 +71,7 @@ class MenuDialogMiddlewareTest {
     private lateinit var addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase
     private lateinit var removePinnedSiteUseCase: TopSitesUseCases.RemoveTopSiteUseCase
     private lateinit var appLinksUseCases: AppLinksUseCases
+    private lateinit var requestDesktopSiteUseCase: SessionUseCases.RequestDesktopSiteUseCase
     private lateinit var settings: Settings
 
     companion object {
@@ -78,7 +84,9 @@ class MenuDialogMiddlewareTest {
         addPinnedSiteUseCase = mock()
         removePinnedSiteUseCase = mock()
         appLinksUseCases = mock()
-        settings = mock()
+        requestDesktopSiteUseCase = mock()
+
+        settings = Settings(testContext)
 
         runBlocking {
             whenever(pinnedSiteStorage.getPinnedSites()).thenReturn(emptyList())
@@ -88,11 +96,7 @@ class MenuDialogMiddlewareTest {
 
     @Test
     fun `GIVEN no selected tab WHEN init action is dispatched THEN browser state is not updated`() = runTestOnMain {
-        val store = createStore(
-            menuState = MenuState(
-                browserMenuState = null,
-            ),
-        )
+        val store = createStore()
 
         assertNull(store.state.browserMenuState)
 
@@ -167,9 +171,7 @@ class MenuDialogMiddlewareTest {
         val addon = Addon(id = "ext1")
         whenever(addonManager.getAddons()).thenReturn(listOf(addon))
 
-        val store = createStore(
-            menuState = MenuState(),
-        )
+        val store = createStore()
 
         assertEquals(0, store.state.extensionMenuState.recommendedAddons.size)
 
@@ -849,6 +851,97 @@ class MenuDialogMiddlewareTest {
         assertTrue(dismissWasCalled)
     }
 
+    @Test
+    fun `GIVEN menu is accessed from the browser WHEN request desktop mode action is dispatched THEN request desktop site use case is invoked`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        val selectedTab = createTab(
+            url = url,
+            title = title,
+            desktopMode = false,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = selectedTab,
+        )
+        var dismissWasCalled = false
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.RequestDesktopSite)
+        store.waitUntilIdle()
+
+        verify(requestDesktopSiteUseCase).invoke(
+            enable = eq(true),
+            tabId = eq(selectedTab.id),
+        )
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN menu is accessed from the browser and desktop mode is enabled WHEN request mobile mode action is dispatched THEN request desktop site use case is invoked`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        val isDesktopMode = true
+        val selectedTab = createTab(
+            url = url,
+            title = title,
+            desktopMode = isDesktopMode,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = selectedTab,
+        )
+        var dismissWasCalled = false
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+                isDesktopMode = isDesktopMode,
+            ),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.RequestMobileSite)
+        store.waitUntilIdle()
+
+        verify(requestDesktopSiteUseCase).invoke(
+            enable = eq(false),
+            tabId = eq(selectedTab.id),
+        )
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN menu is accessed from the home screen WHEN request desktop mode action is dispatched THEN set the next tab to be opened in desktop mode`() = runTestOnMain {
+        var dismissWasCalled = false
+        val store = createStore(
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.RequestDesktopSite)
+        store.waitUntilIdle()
+
+        assertTrue(settings.openNextTabInDesktopMode)
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN menu is accessed from the home screen and desktop mode is enabled WHEN request mobile mode action is dispatched THEN set the next tab to be opened in mobile mode`() = runTestOnMain {
+        var dismissWasCalled = false
+        val store = createStore(
+            menuState = MenuState(isDesktopMode = true),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.RequestMobileSite)
+        store.waitUntilIdle()
+
+        assertFalse(settings.openNextTabInDesktopMode)
+        assertTrue(dismissWasCalled)
+    }
+
     private fun createStore(
         appStore: AppStore = AppStore(),
         menuState: MenuState = MenuState(),
@@ -859,14 +952,15 @@ class MenuDialogMiddlewareTest {
             MenuDialogMiddleware(
                 appStore = appStore,
                 addonManager = addonManager,
+                settings = settings,
                 bookmarksStorage = bookmarksStorage,
                 pinnedSiteStorage = pinnedSiteStorage,
+                appLinksUseCases = appLinksUseCases,
                 addBookmarkUseCase = addBookmarkUseCase,
                 addPinnedSiteUseCase = addPinnedSiteUseCase,
                 removePinnedSitesUseCase = removePinnedSiteUseCase,
+                requestDesktopSiteUseCase = requestDesktopSiteUseCase,
                 topSitesMaxLimit = TOP_SITES_MAX_COUNT,
-                appLinksUseCases = appLinksUseCases,
-                settings = settings,
                 onDeleteAndQuit = onDeleteAndQuit,
                 onDismiss = onDismiss,
                 scope = scope,
