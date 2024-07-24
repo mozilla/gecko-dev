@@ -2425,6 +2425,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../rtc_base:byte_buffer",
       "../rtc_base:checks",
       "../rtc_base:copy_on_write_buffer",
+      "../rtc_base:digest",
       "../rtc_base:event_tracer",
       "../rtc_base:gunit_helpers",
       "../rtc_base:ip_address",

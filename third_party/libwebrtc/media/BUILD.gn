@@ -422,7 +422,7 @@ if (!build_with_mozilla) {
     "../rtc_base:async_packet_socket",
     "../rtc_base:byte_order",
     "../rtc_base:checks",
-    "../rtc_base:ssl",
+    "../rtc_base:digest",
     "../rtc_base/system:rtc_export",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
