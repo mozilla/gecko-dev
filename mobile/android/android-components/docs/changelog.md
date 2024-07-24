@@ -24,6 +24,9 @@ permalink: /changelog/
 * **concept-engine**
   * Added `fingerprintingProtection` and `fingerprintingProtectionPrivateBrowsing` to settings. This allows user to toggle `privacy.fingerprintingProtection` and `privacy.fingerprintingProtection.pbmode` pref. [bug #1878911](https://bugzilla.mozilla.org/show_bug.cgi?id=1878911)
 
+* **feature-accounts**
+  * Added support for logout and account deletion web channel messages that update the `FxaAccountManager` and also dismiss any UI affordance in applications.
+
 # 129.0
 
 * **browser-engine-gecko**

@@ -28,6 +28,7 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import mozilla.components.support.webextensions.WebExtensionController
 import org.json.JSONException
@@ -37,8 +38,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.clearInvocations
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
@@ -48,6 +51,9 @@ import org.robolectric.Shadows.shadowOf
 @RunWith(AndroidJUnit4::class)
 class FxaWebChannelFeatureTest {
 
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+
     @Before
     fun setup() {
         WebExtensionController.installedExtensions.clear()
@@ -56,11 +62,12 @@ class FxaWebChannelFeatureTest {
     @Test
     fun `start installs webextension`() {
         val engine: Engine = mock()
-        val store: BrowserStore = mock()
+        val store = BrowserStore()
         val accountManager: FxaAccountManager = mock()
         val serverConfig: ServerConfig = mock()
         val webchannelFeature = FxaWebChannelFeature(null, engine, store, accountManager, serverConfig)
         webchannelFeature.start()
+        shadowOf(getMainLooper()).idle()
 
         val onSuccess = argumentCaptor<((WebExtension) -> Unit)>()
         val onError = argumentCaptor<((Throwable) -> Unit)>()
@@ -75,6 +82,7 @@ class FxaWebChannelFeatureTest {
 
         // Already installed, should not try to install again.
         webchannelFeature.start()
+        shadowOf(getMainLooper()).idle()
         verify(engine, times(1)).installBuiltInWebExtension(
             eq(FxaWebChannelFeature.WEB_CHANNEL_EXTENSION_ID),
             eq(FxaWebChannelFeature.WEB_CHANNEL_EXTENSION_URL),
@@ -86,7 +94,7 @@ class FxaWebChannelFeatureTest {
     @Test
     fun `start registers the background message handler`() {
         val engine: Engine = mock()
-        val store: BrowserStore = mock()
+        val store = BrowserStore()
         val accountManager: FxaAccountManager = mock()
         val serverConfig: ServerConfig = mock()
         val controller: WebExtensionController = mock()
@@ -102,7 +110,7 @@ class FxaWebChannelFeatureTest {
     @Test
     fun `backgroundMessageHandler sends overrideFxAServer`() {
         val engine: Engine = mock()
-        val store: BrowserStore = mock()
+        val store = BrowserStore()
         val accountManager: FxaAccountManager = mock()
         val serverConfig: ServerConfig = mock()
         val controller: WebExtensionController = mock()
@@ -130,7 +138,7 @@ class FxaWebChannelFeatureTest {
     @Test
     fun `backgroundMessageHandler should not send overrideFxAServer for predefined Config`() {
         val engine: Engine = mock()
-        val store: BrowserStore = mock()
+        val store = BrowserStore()
         val accountManager: FxaAccountManager = mock()
         val serverConfig: ServerConfig = mock()
         val controller: WebExtensionController = mock()
@@ -140,6 +148,7 @@ class FxaWebChannelFeatureTest {
         webchannelFeature.extensionController = controller
 
         webchannelFeature.start()
+        shadowOf(getMainLooper()).idle()
 
         val messageHandler = argumentCaptor<MessageHandler>()
         verify(controller).registerBackgroundMessageHandler(messageHandler.capture(), any())
@@ -728,6 +737,65 @@ class FxaWebChannelFeatureTest {
     }
 
     @Test
+    fun `COMMAND_LOGOUT and COMMAND_DELETE_ACCOUNT are processed`() = runTest {
+        val engineSession: EngineSession = mock()
+        val ext: WebExtension = mock()
+        val port: Port = mock()
+        val expectedEngines: Set<SyncEngine> = setOf(SyncEngine.History)
+        val messageHandler = argumentCaptor<MessageHandler>()
+        val accountManager: FxaAccountManager = mock()
+        val webchannelFeature = prepareFeatureForTest(
+            ext,
+            port,
+            engineSession,
+            expectedEngines,
+            setOf(FxaCapability.CHOOSE_WHAT_TO_SYNC),
+            accountManager,
+        )
+        webchannelFeature.start()
+        shadowOf(getMainLooper()).idle()
+
+        verify(ext).registerContentMessageHandler(
+            eq(engineSession),
+            eq(FxaWebChannelFeature.WEB_CHANNEL_MESSAGING_ID),
+            messageHandler.capture(),
+        )
+
+        messageHandler.value.onPortConnected(port)
+
+        val jsonToWebChannelLogout = JSONObject(
+            """{
+             "message":{
+                "command": "fxaccounts:logout",
+                "messageId":123
+             }
+            }
+            """.trimIndent(),
+        )
+
+        messageHandler.value.onPortMessage(jsonToWebChannelLogout, port)
+        shadowOf(getMainLooper()).idle()
+
+        verify(accountManager).logout()
+
+        clearInvocations(accountManager)
+        val jsonToWebChannelDelete = JSONObject(
+            """{
+             "message":{
+                "command": "fxaccounts:delete_account",
+                "messageId":123
+             }
+            }
+            """.trimIndent(),
+        )
+
+        messageHandler.value.onPortMessage(jsonToWebChannelDelete, port)
+        shadowOf(getMainLooper()).idle()
+
+        verify(accountManager).logout()
+    }
+
+    @Test
     fun `COMMAND_LOGIN invalid json sends back`() = runTest {
         val accountManager: FxaAccountManager = mock() // syncConfig is null by default (is not configured)
         val engineSession: EngineSession = mock()
@@ -900,11 +968,10 @@ class FxaWebChannelFeatureTest {
             id = "test-tab",
             engineSession = engineSession,
         )
-        val store = spy(
+        val store =
             BrowserStore(
                 initialState = BrowserState(tabs = listOf(tab), selectedTabId = tab.id),
-            ),
-        )
+            )
 
         whenever(accountManager.supportedSyncEngines()).thenReturn(expectedEngines)
         whenever(port.engineSession).thenReturn(engineSession)
