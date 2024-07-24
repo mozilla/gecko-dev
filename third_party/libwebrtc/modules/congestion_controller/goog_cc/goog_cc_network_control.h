@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "absl/types/optional.h"
-#include "api/field_trials_view.h"
+#include "api/environment/environment.h"
 #include "api/network_state_predictor.h"
 #include "api/transport/network_control.h"
 #include "api/transport/network_types.h"
@@ -30,6 +30,7 @@
 #include "modules/congestion_controller/goog_cc/alr_detector.h"
 #include "modules/congestion_controller/goog_cc/congestion_window_pushback_controller.h"
 #include "modules/congestion_controller/goog_cc/delay_based_bwe.h"
+#include "modules/congestion_controller/goog_cc/loss_based_bwe_v2.h"
 #include "modules/congestion_controller/goog_cc/probe_bitrate_estimator.h"
 #include "modules/congestion_controller/goog_cc/probe_controller.h"
 #include "modules/congestion_controller/goog_cc/send_side_bandwidth_estimation.h"

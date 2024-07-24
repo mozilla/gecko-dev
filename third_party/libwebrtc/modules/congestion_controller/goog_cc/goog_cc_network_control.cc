@@ -19,12 +19,11 @@
 #include <utility>
 #include <vector>
 
-#include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
-#include "api/network_state_predictor.h"
+#include "api/transport/bandwidth_usage.h"
 #include "api/transport/network_control.h"
 #include "api/transport/network_types.h"
 #include "api/units/data_rate.h"

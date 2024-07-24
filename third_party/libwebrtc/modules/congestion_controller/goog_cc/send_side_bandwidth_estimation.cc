@@ -11,6 +11,7 @@
 #include "modules/congestion_controller/goog_cc/send_side_bandwidth_estimation.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <limits>
@@ -18,7 +19,6 @@
 #include <string>
 #include <utility>
 
-#include "absl/strings/match.h"
 #include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/rtc_event_log/rtc_event_log.h"
