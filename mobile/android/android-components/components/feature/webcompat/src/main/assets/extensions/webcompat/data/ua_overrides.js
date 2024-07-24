@@ -1279,6 +1279,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1902474 - UA override for lg.jio.com
+     * Webcompat issue #124681 - https://webcompat.com/issues/124681
+     *
+     * Site incorrectly blocks Firefox on Android. A desktop UA works.
+     */
+    id: "bug1902474",
+    platform: "android",
+    domain: "lg.jio.com",
+    bug: "1902474",
+    config: {
+      matches: ["*://lg.jio.com/*"],
+      uaTransformer: originalUA => {
+        return originalUA.replace(/ (Mobile|Tablet);/, "");
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
