@@ -51,7 +51,7 @@ void ReceiveSideCongestionController::PickEstimator(
           << "WrappingBitrateEstimator: Switching to absolute send time RBE.";
       using_absolute_send_time_ = true;
       rbe_ = std::make_unique<RemoteBitrateEstimatorAbsSendTime>(
-          &remb_throttler_, &clock_);
+          env_, &remb_throttler_);
     }
     packets_since_absolute_send_time_ = 0;
   } else {
@@ -64,7 +64,7 @@ void ReceiveSideCongestionController::PickEstimator(
                "time offset RBE.";
         using_absolute_send_time_ = false;
         rbe_ = std::make_unique<RemoteBitrateEstimatorSingleStream>(
-            &remb_throttler_, &clock_);
+            env_, &remb_throttler_);
       }
     }
   }
@@ -75,26 +75,13 @@ ReceiveSideCongestionController::ReceiveSideCongestionController(
     RemoteEstimatorProxy::TransportFeedbackSender feedback_sender,
     RembThrottler::RembSender remb_sender,
     absl::Nullable<NetworkStateEstimator*> network_state_estimator)
-    : clock_(env.clock()),
-      remb_throttler_(std::move(remb_sender), &clock_),
+    : env_(env),
+      remb_throttler_(std::move(remb_sender), &env_.clock()),
       remote_estimator_proxy_(std::move(feedback_sender),
                               network_state_estimator),
-      rbe_(
-          std::make_unique<RemoteBitrateEstimatorSingleStream>(&remb_throttler_,
-                                                               &clock_)),
-      using_absolute_send_time_(false),
-      packets_since_absolute_send_time_(0) {}
-
-ReceiveSideCongestionController::ReceiveSideCongestionController(
-    Clock* clock,
-    RemoteEstimatorProxy::TransportFeedbackSender feedback_sender,
-    RembThrottler::RembSender remb_sender,
-    NetworkStateEstimator* network_state_estimator)
-    : clock_(*clock),
-      remb_throttler_(std::move(remb_sender), clock),
-      remote_estimator_proxy_(std::move(feedback_sender),
-                              network_state_estimator),
-      rbe_(new RemoteBitrateEstimatorSingleStream(&remb_throttler_, clock)),
+      rbe_(std::make_unique<RemoteBitrateEstimatorSingleStream>(
+          env_,
+          &remb_throttler_)),
       using_absolute_send_time_(false),
       packets_since_absolute_send_time_(0) {}
 
@@ -125,7 +112,7 @@ void ReceiveSideCongestionController::OnBitrateChanged(int bitrate_bps) {
 }
 
 TimeDelta ReceiveSideCongestionController::MaybeProcess() {
-  Timestamp now = clock_.CurrentTime();
+  Timestamp now = env_.clock().CurrentTime();
   mutex_.Lock();
   TimeDelta time_until_rbe = rbe_->Process();
   mutex_.Unlock();

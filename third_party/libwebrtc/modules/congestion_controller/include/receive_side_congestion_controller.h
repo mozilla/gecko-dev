@@ -42,12 +42,6 @@ class ReceiveSideCongestionController : public CallStatsObserver {
       RembThrottler::RembSender remb_sender,
       absl::Nullable<NetworkStateEstimator*> network_state_estimator);
 
-  [[deprecated]] ReceiveSideCongestionController(
-      Clock* clock,
-      RemoteEstimatorProxy::TransportFeedbackSender feedback_sender,
-      RembThrottler::RembSender remb_sender,
-      NetworkStateEstimator* network_state_estimator);
-
   ~ReceiveSideCongestionController() override = default;
 
   void OnReceivedPacket(const RtpPacketReceived& packet, MediaType media_type);
@@ -80,7 +74,7 @@ class ReceiveSideCongestionController : public CallStatsObserver {
   void PickEstimator(bool has_absolute_send_time)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Clock& clock_;
+  const Environment env_;
   RembThrottler remb_throttler_;
   RemoteEstimatorProxy remote_estimator_proxy_;
 

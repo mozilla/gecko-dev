@@ -36,7 +36,7 @@ rtc_library("remote_bitrate_estimator") {
     "../../api:field_trials_view",
     "../../api:network_state_predictor_api",
     "../../api:rtp_headers",
-    "../../api/transport:field_trial_based_config",
+    "../../api/environment",
     "../../api/transport:network_control",
     "../../api/units:data_rate",
     "../../api/units:data_size",
@@ -55,10 +55,10 @@ rtc_library("remote_bitrate_estimator") {
     "../../rtc_base/experiments:field_trial_parser",
     "../../rtc_base/synchronization:mutex",
     "../../system_wrappers",
-    "../../system_wrappers:field_trial",
     "../../system_wrappers:metrics",
   ]
   absl_deps = [
+    "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
@@ -120,6 +120,7 @@ if (rtc_include_tests) {
     deps = [
       ":remote_bitrate_estimator",
       "..:module_api_public",
+      "../../api/environment:environment_factory",
       "../../api/transport:mock_network_control",
       "../../api/transport:network_control",
       "../../api/units:data_rate",
