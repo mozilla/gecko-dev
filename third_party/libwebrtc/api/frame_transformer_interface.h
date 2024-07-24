@@ -24,6 +24,18 @@ namespace webrtc {
 // Owns the frame payload data.
 class TransformableFrameInterface {
  public:
+  // Only a known list of internal implementations of transformable frames are
+  // permitted to allow internal downcasting. This is enforced via the
+  // internally-constructable Passkey.
+  // TODO: bugs.webrtc.org/339815768 - Remove this passkey once the
+  // downcasts are removed.
+  class Passkey;
+  RTC_EXPORT explicit TransformableFrameInterface(Passkey);
+
+  TransformableFrameInterface(TransformableFrameInterface&&) = default;
+  TransformableFrameInterface& operator=(TransformableFrameInterface&&) =
+      default;
+
   virtual ~TransformableFrameInterface() = default;
 
   // Returns the frame payload data. The data is valid until the next non-const
@@ -58,6 +70,7 @@ class TransformableFrameInterface {
 
 class TransformableVideoFrameInterface : public TransformableFrameInterface {
  public:
+  RTC_EXPORT explicit TransformableVideoFrameInterface(Passkey passkey);
   virtual ~TransformableVideoFrameInterface() = default;
   virtual bool IsKeyFrame() const = 0;
   virtual const std::string& GetRid() const = 0;
@@ -70,6 +83,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
 // Extends the TransformableFrameInterface to expose audio-specific information.
 class TransformableAudioFrameInterface : public TransformableFrameInterface {
  public:
+  RTC_EXPORT explicit TransformableAudioFrameInterface(Passkey passkey);
   virtual ~TransformableAudioFrameInterface() = default;
 
   virtual rtc::ArrayView<const uint32_t> GetContributingSources() const = 0;
@@ -136,6 +150,27 @@ class FrameTransformerHost {
   // TODO: bugs.webrtc.org/15929 - To be added:
   // virtual AddIncomingMediaType(RtpCodec codec) = 0;
   // virtual AddOutgoingMediaType(RtpCodec codec) = 0;
+};
+
+//------------------------------------------------------------------------------
+// Implementation details follow
+//------------------------------------------------------------------------------
+class TransformableFrameInterface::Passkey {
+ public:
+  ~Passkey() = default;
+
+ private:
+  // Explicit list of allowed internal implmentations of
+  // TransformableFrameInterface.
+  friend class TransformableOutgoingAudioFrame;
+  friend class TransformableIncomingAudioFrame;
+  friend class TransformableVideoSenderFrame;
+  friend class TransformableVideoReceiverFrame;
+
+  friend class MockTransformableFrame;
+  friend class MockTransformableAudioFrame;
+  friend class MockTransformableVideoFrame;
+  Passkey() = default;
 };
 
 }  // namespace webrtc

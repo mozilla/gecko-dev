@@ -421,7 +421,10 @@ if (!build_with_mozilla) {
 
 rtc_source_set("frame_transformer_interface") {
   visibility = [ "*" ]
-  sources = [ "frame_transformer_interface.h" ]
+  sources = [
+    "frame_transformer_interface.cc",
+    "frame_transformer_interface.h",
+  ]
   deps = [
     ":make_ref_counted",
     ":ref_count",
