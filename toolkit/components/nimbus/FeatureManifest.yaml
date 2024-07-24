@@ -1181,6 +1181,12 @@ shellService:
     disablePin:
       type: boolean
       description: Disable pin to taskbar feature
+    disableStartMenuPin:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.shell.disableStartMenuPin
+      description: Disable pin to start menu feature
     setDefaultBrowserUserChoice:
       type: boolean
       setPref:

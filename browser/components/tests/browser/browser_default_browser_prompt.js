@@ -81,7 +81,7 @@ add_task(async function stop_asking() {
 });
 
 add_task(async function primary_default() {
-  const mock = mockShell({ isPinned: true });
+  const mock = mockShell({ isPinned: true, isPinnedToStartMenu: true });
   const histogram = getHistogram();
 
   await showAndWaitForModal(win => {
@@ -95,6 +95,11 @@ add_task(async function primary_default() {
   );
   Assert.equal(
     mock.pinCurrentAppToTaskbarAsync.callCount,
+    0,
+    "Primary button doesn't pin if already pinned"
+  );
+  Assert.equal(
+    mock.pinCurrentAppToStartMenuAsync.callCount,
     0,
     "Primary button doesn't pin if already pinned"
   );
@@ -120,6 +125,13 @@ add_task(async function primary_pin() {
       1,
       "Primary button also pins"
     );
+    if (Services.sysinfo.getProperty("hasWinPackageId")) {
+      Assert.equal(
+        mock.pinCurrentAppToStartMenuAsync.callCount,
+        1,
+        "Primary button also pins to Windows start menu on MSIX"
+      );
+    }
   }
   AssertHistogram(histogram, "accept");
 });

@@ -40,6 +40,9 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
   return new ConsoleAPI(consoleOptions);
 });
 
+const MSIX_PREVIOUSLY_PINNED_PREF =
+  "browser.startMenu.msixPinnedWhenLastChecked";
+
 /**
  * Internal functionality to save and restore the docShell.allow* properties.
  */
@@ -471,6 +474,85 @@ let ShellServiceInternal = {
       } catch (ex) {
         console.error(ex);
       }
+    }
+  },
+
+  /**
+   * On MSIX builds, pins Firefox to the Windows Start Menu
+   *
+   * On non-MSIX builds, this function is a no-op and always returns false.
+   *
+   * @returns {boolean} true if we successfully pin and false otherwise.
+   */
+  async pinToStartMenu() {
+    if (await this.doesAppNeedStartMenuPin()) {
+      try {
+        let pinSuccess = await this.shellService.pinCurrentAppToStartMenuAsync(
+          false
+        );
+        Services.prefs.setBoolPref(MSIX_PREVIOUSLY_PINNED_PREF, pinSuccess);
+        return pinSuccess;
+      } catch (err) {
+        lazy.log.warn("Error thrown during pinCurrentAppToStartMenuAsync", err);
+        Services.prefs.setBoolPref(MSIX_PREVIOUSLY_PINNED_PREF, false);
+      }
+    }
+    return false;
+  },
+
+  /**
+   * On MSIX builds, checks if Firefox app can be and is not
+   * pinned to the Windows Start Menu.
+   *
+   * On non-MSIX builds, this function is a no-op and always returns false.
+   *
+   * @returns {boolean} true if this is an MSIX install and we are not yet
+   *                    pinned to the Start Menu.
+   *
+   * @throws if not called from main process.
+   */
+  async doesAppNeedStartMenuPin() {
+    if (
+      Services.appinfo.processType !== Services.appinfo.PROCESS_TYPE_DEFAULT
+    ) {
+      throw new Components.Exception(
+        "Can't determine pinned from child process",
+        Cr.NS_ERROR_NOT_AVAILABLE
+      );
+    }
+    if (
+      Services.prefs.getBoolPref("browser.shell.disableStartMenuPin", false)
+    ) {
+      return false;
+    }
+    try {
+      return (
+        AppConstants.platform === "win" &&
+        Services.sysinfo.getProperty("hasWinPackageId") &&
+        !(await this.shellService.isCurrentAppPinnedToStartMenuAsync())
+      );
+    } catch (ex) {}
+    return false;
+  },
+
+  /**
+   * On MSIX builds, checks if Firefox is no longer pinned to
+   * the Windows Start Menu when it previously was and records
+   * a Glean event if so.
+   *
+   * On non-MSIX builds, this function is a no-op.
+   */
+  async recordWasPreviouslyPinnedToStartMenu() {
+    if (!Services.sysinfo.getProperty("hasWinPackageId")) {
+      return;
+    }
+    let isPinned = await this.shellService.isCurrentAppPinnedToStartMenuAsync();
+    if (
+      !isPinned &&
+      Services.prefs.getBoolPref(MSIX_PREVIOUSLY_PINNED_PREF, false)
+    ) {
+      Services.prefs.setBoolPref(MSIX_PREVIOUSLY_PINNED_PREF, isPinned);
+      Glean.startMenu.manuallyUnpinnedSinceLastLaunch.record();
     }
   },
 

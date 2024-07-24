@@ -46,6 +46,9 @@ support-files = [
 ["browser_sma_pin_private_firefox.js"]
 skip-if = ["os != 'win'"]
 
+["browser_sma_pin_start_menu.js"]
+run-if = ["(os == 'win' && msix)"]
+
 ["browser_sma_set_prefs.js"]
 
 ["browser_sma_show_firefox_accounts.js"]

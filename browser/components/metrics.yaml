@@ -78,3 +78,23 @@ background_update:
       - background-update
       - metrics
     lifetime: application
+
+start_menu:
+  manually_unpinned_since_last_launch:
+    type: event
+    description: >
+      Records whether Firefox has been unpinned from the Windows start menu
+      since last launch. This will only be recorded on MSIX due to the
+      underlying API only being available for packaged applications.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1900035
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1900035
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
+    send_in_pings:
+      - events
+    lifetime: ping

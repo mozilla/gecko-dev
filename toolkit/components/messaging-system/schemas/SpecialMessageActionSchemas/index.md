@@ -209,6 +209,12 @@ Action for pinning Firefox to the user's taskbar.
 
 * args: (none)
 
+### `PIN_FIREFOX_TO_START_MENU`
+
+Action for pinning Firefox to the user's Windows Start Menu in Windows MSIX builds only.
+
+- args: (none)
+
 ### `SET_DEFAULT_BROWSER`
 
 Action for setting the default browser to Firefox on the user's system.

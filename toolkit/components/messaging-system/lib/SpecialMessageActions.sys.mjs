@@ -89,6 +89,13 @@ export const SpecialMessageActions = {
   },
 
   /**
+   * Pin current application to Windows start menu.
+   */
+  pinToStartMenu(window) {
+    return window.getShellService().pinToStartMenu();
+  },
+
+  /**
    *  Set browser as the operating system default browser.
    *
    *  @param {Window} window Reference to a window object
@@ -433,6 +440,9 @@ export const SpecialMessageActions = {
         break;
       case "PIN_FIREFOX_TO_TASKBAR":
         await this.pinFirefoxToTaskbar(window, action.data?.privatePin);
+        break;
+      case "PIN_FIREFOX_TO_START_MENU":
+        await this.pinToStartMenu(window);
         break;
       case "PIN_AND_DEFAULT":
         // We must explicitly await pinning to the taskbar before

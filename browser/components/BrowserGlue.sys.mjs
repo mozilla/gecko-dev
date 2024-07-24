@@ -2797,6 +2797,27 @@ BrowserGlue.prototype = {
         },
       },
 
+      // Kick off an idle task that will silently pin Firefox to the start menu on
+      // first run when using MSIX on a new profile.
+      // If not first run, check if Firefox is no longer pinned to the Start Menu
+      // when it previously was and send telemetry.
+      {
+        name: "maybePinToStartMenuFirstRun",
+        condition:
+          AppConstants.platform === "win" &&
+          Services.sysinfo.getProperty("hasWinPackageId"),
+        task: async () => {
+          if (
+            lazy.BrowserHandler.firstRunProfile &&
+            (await lazy.ShellService.doesAppNeedStartMenuPin())
+          ) {
+            await lazy.ShellService.pinToStartMenu();
+            return;
+          }
+          await lazy.ShellService.recordWasPreviouslyPinnedToStartMenu();
+        },
+      },
+
       // Ensure a Private Browsing Shortcut exists. This is needed in case
       // a user tries to use Windows functionality to pin our Private Browsing
       // mode icon to the Taskbar (eg: the "Pin to Taskbar" context menu item).
@@ -5867,6 +5888,11 @@ export var DefaultBrowserCheck = {
         await shellService.pinToTaskbar();
       } catch (e) {
         this.log.error("Failed to pin to taskbar", e);
+      }
+      try {
+        await shellService.pinToStartMenu();
+      } catch (e) {
+        this.log.error("Failed to pin to Start Menu", e);
       }
       try {
         await shellService.setAsDefault();

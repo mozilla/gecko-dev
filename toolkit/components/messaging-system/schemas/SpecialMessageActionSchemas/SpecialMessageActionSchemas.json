@@ -360,6 +360,18 @@
           "properties": {
             "type": {
               "type": "string",
+              "enum": ["PIN_FIREFOX_TO_START_MENU"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Pin the app to Windows Start Menu"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "enum": ["SET_DEFAULT_BROWSER"]
             }
           },

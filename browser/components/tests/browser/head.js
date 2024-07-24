@@ -37,10 +37,12 @@ function mockShell(overrides = {}) {
   }
 
   const sharedPinStub = sinon.stub().resolves(undefined);
+  const startMenuPinStub = sinon.stub().resolves(true);
   let mock = {
     canPin: false,
     isDefault: false,
     isPinned: false,
+    isPinnedToStartMenu: false,
 
     async checkPinCurrentAppToTaskbarAsync() {
       if (!this.canPin) {
@@ -52,6 +54,9 @@ function mockShell(overrides = {}) {
     },
     isCurrentAppPinnedToTaskbarAsync() {
       return Promise.resolve(this.isPinned);
+    },
+    isCurrentAppPinnedToStartMenuAsync() {
+      return Promise.resolve(this.isPinnedToStartMenu);
     },
     isDefaultBrowser() {
       return this.isDefault;
@@ -69,6 +74,7 @@ function mockShell(overrides = {}) {
 
     ensureAppIsPinnedToDock: sharedPinStub,
     pinCurrentAppToTaskbarAsync: sharedPinStub,
+    pinCurrentAppToStartMenuAsync: startMenuPinStub,
     setAsDefault: sinon.stub(),
     ...overrides,
   };
