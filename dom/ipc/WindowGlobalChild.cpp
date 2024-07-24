@@ -568,11 +568,23 @@ IPCResult WindowGlobalChild::RecvNotifyPermissionChange(const nsCString& aType,
   return IPC_OK();
 }
 
-IPCResult WindowGlobalChild::RecvNotifyStoredIdentityCredential(
-    const IPCIdentityCredential& aCredential) {
-  RefPtr<IdentityCredential> credential =
-      new IdentityCredential(this->GetWindowGlobal(), aCredential);
-  this->GetWindowGlobal()->MaybeResolvePendingCredentialPromise(credential);
+IPCResult WindowGlobalChild::RecvNavigateForIdentityCredentialDiscovery(
+    const nsString& aURI, const IdentityLoginTargetType& aType) {
+  AutoJSAPI jsapi;
+  if (!jsapi.Init(GetWindowGlobal())) {
+    return IPC_OK();
+  }
+  MOZ_ASSERT(WindowContext()->TopWindowContext());
+  nsGlobalWindowOuter* outer = nsGlobalWindowOuter::GetOuterWindowWithId(
+      WindowContext()->TopWindowContext()->OuterWindowId());
+  bool popup = aType == IdentityLoginTargetType::Popup;
+  RefPtr<dom::BrowsingContext> newBC;
+  if (popup) {
+    Unused << outer->OpenJS(aURI, u"_blank"_ns, u"popup"_ns,
+                            getter_AddRefs(newBC));
+    return IPC_OK();
+  }
+  Unused << outer->OpenJS(aURI, u"_top"_ns, u""_ns, getter_AddRefs(newBC));
   return IPC_OK();
 }
 
