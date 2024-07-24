@@ -1310,6 +1310,16 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     fun incrementNumTimesPrivateModeOpened() = numTimesPrivateModeOpened.increment()
 
+    /**
+     * Updates the number of times that private mode has been opened.
+     *
+     * @param newVal The new value to set [numTimesPrivateModeOpened] to.
+     */
+    @VisibleForTesting
+    internal fun setNumTimesPrivateModeOpened(newVal: Int) {
+        numTimesPrivateModeOpened.value = newVal
+    }
+
     var showedPrivateModeContextualFeatureRecommender by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_showed_private_mode_cfr),
         default = false,

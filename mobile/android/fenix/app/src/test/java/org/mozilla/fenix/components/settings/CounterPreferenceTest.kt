@@ -34,6 +34,16 @@ class CounterPreferenceTest {
     }
 
     @Test
+    fun `update value after set`() {
+        val holder = CounterHolder()
+
+        assertEquals(0, holder.property.value)
+        holder.property.value = 10
+
+        verify { editor.putInt("key", 10) }
+    }
+
+    @Test
     fun `update value after increment`() {
         val holder = CounterHolder()
 

@@ -13,7 +13,11 @@ class CounterPreference(
     private val maxCount: Int,
 ) {
 
-    val value get() = holder.preferences.getInt(key, 0)
+    var value
+        get() = holder.preferences.getInt(key, 0)
+        set(value) = holder.preferences.edit {
+            putInt(key, value)
+        }
 
     fun underMaxCount() = value < maxCount
 
