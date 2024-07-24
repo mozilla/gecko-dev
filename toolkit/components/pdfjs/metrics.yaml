@@ -332,3 +332,415 @@ pdfjs.editing.highlight:
       notification_emails:
         - pdfjs-team@mozilla.com
       expires: never
+pdfjs.image.alt_text:
+    callout_displayed:
+      type: event
+      description: >
+        Recorded when the callout describing automatic alt text generation is displayed.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+
+    callout_dismissed:
+      type: event
+      description: >
+        Recorded when the callout describing automatic alt text generation is dismissed.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+
+    info:
+      type: event
+      description: >
+        Recorded on the alt text modal when the user clicks on "i" to learn about alt text or "Learn More" to learn about AI generation.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        topic:
+          type: string
+          description: alt_text, ai_generation.
+
+    settings_displayed:
+      type: event
+      description: >
+        Recorded when alt text settings dialog is displayed to a user.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+
+    settings_ai_generation_check:
+      type: event
+      description: >
+        Recorded when the user interacts with the alt text setting to create alt text with AI.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        status:
+          type: boolean
+          description: >
+            true (resp. false) if the user enables (resp. disables) the AI generation.
+
+    settings_edit_alt_text_check:
+      type: event
+      description: >
+        Recorded when the user interacts with the alt text modal setting to edit alt text on this pdf.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        status:
+          type: boolean
+          description: >
+            true if the user edits the generated text.
+
+    save:
+      type: event
+      description: >
+        Recorded when the user clicks Save on the alt text modal.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        alt_text_type:
+          type: string
+          description: present, empty.
+        flow:
+          type: string
+          description: image_add, alt_text_edit.
+
+    dismiss:
+      type: event
+      description: >
+        Recorded when the user clicks Not now or Cancel on the alt text modal.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        alt_text_type:
+          type: string
+          description: present, empty.
+        flow:
+          type: string
+          description: image_add, alt_text_edit.
+
+    model_download_start:
+      type: event
+      description: >
+        Recorded when download starts for the alt text generation model.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+
+    model_download_complete:
+      type: event
+      description: >
+        Recorded when download completes for the alt text generation model.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+
+    model_download_error:
+      type: event
+      description: >
+        Recorded when an error occurs during the download for the alt text generation model.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        error:
+          type: string
+          description: Error message.
+
+    model_deleted:
+      type: event
+      description: >
+        Recorded when the user clicks to delete the model from the alt text settings.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+
+    model_result:
+      type: event
+      description: >
+        Records how long it takes to generate the alt text and what is the length of the result.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        time:
+          type: quantity
+          description: >
+            time in ms to generate result.
+        length:
+          type: quantity
+          description: >
+            number of characters of generated text.
+
+    user_edit:
+      type: event
+      description: >
+        Recorded once the alt text is confirmed, when the user makes changes to the alt text generated. By comparing the initially generated text with the final version, quantifies how many words were changed.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        total_words:
+          type: quantity
+          description: >
+            total number of words in the generated text.
+        words_removed:
+          type: quantity
+          description: >
+            number of words removed.
+        words_added:
+          type: quantity
+          description: >
+            number of words added.
+
+    image_status_label_displayed:
+      type: event
+      description: >
+        Recorded when the alt text status button on an image is shown .
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        label:
+          type: string
+          description: added, review, missing.
+
+
+    image_status_label_clicked:
+      type: event
+      description: >
+        Recorded when the user clicks on the alt text status button.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        label:
+          type: string
+          description: added, review, missing.
+pdfjs.image:
+    icon_click:
+      type: event
+      description: >
+        Recorded when the image toolbar icon is clicked.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+
+    add_image_click:
+      type: event
+      description: >
+        Recorded when the Add Image label is clicked.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+
+    image_selected:
+      type: event
+      description: >
+        Recorded when the user selects an image file from their computer.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        alt_text_modal:
+          type: boolean
+          description: >
+            Indicates if the alt text modal was displayed and the user clicked save, or if it was skipped and the image was added directly after selection.
+
+    image_added:
+      type: event
+      description: >
+        Recorded once the image is added to the pdf.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        alt_text_modal:
+          type: boolean
+          description: present, empty, skipped.
+        alt_text_type:
+          type: string
+          description: >
+            Indicates if the alt text modal was displayed and the user clicked save, or if it was skipped and the image was added directly after selection.
+
+    alt_text_edit:
+      type: labeled_boolean
+      description: >
+        Stores alt text modal settings for the user.
+      labels:
+        - ask_to_edit
+        - ai_generation
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+
+    added:
+      type: labeled_counter
+      description: >
+        Number of images added with/without alt text.
+      labels:
+        - with_alt_text
+        - without_alt_text
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1909325#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
