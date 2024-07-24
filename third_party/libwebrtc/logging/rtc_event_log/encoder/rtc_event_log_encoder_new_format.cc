@@ -15,7 +15,7 @@
 #include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
-#include "api/network_state_predictor.h"
+#include "api/transport/bandwidth_usage.h"
 #include "logging/rtc_event_log/dependency_descriptor_encoder_decoder.h"
 #include "logging/rtc_event_log/encoder/blob_encoding.h"
 #include "logging/rtc_event_log/encoder/delta_encoding.h"

@@ -16,9 +16,9 @@
 
 #include "absl/types/optional.h"
 #include "api/array_view.h"
-#include "api/network_state_predictor.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
+#include "api/transport/bandwidth_usage.h"
 #include "api/transport/network_types.h"
 #include "logging/rtc_event_log/events/rtc_event_alr_state.h"
 #include "logging/rtc_event_log/events/rtc_event_audio_network_adaptation.h"

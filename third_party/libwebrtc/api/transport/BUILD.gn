@@ -20,6 +20,11 @@ rtc_library("bitrate_settings") {
   ]
 }
 
+rtc_source_set("bandwidth_usage") {
+  visibility = [ "*" ]
+  sources = [ "bandwidth_usage.h" ]
+}
+
 rtc_library("bandwidth_estimation_settings") {
   visibility = [ "*" ]
   sources = [ "bandwidth_estimation_settings.h" ]

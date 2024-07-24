@@ -930,6 +930,7 @@ rtc_source_set("fec_controller_api") {
 rtc_source_set("network_state_predictor_api") {
   visibility = [ "*" ]
   sources = [ "network_state_predictor.h" ]
+  deps = [ "transport:bandwidth_usage" ]
 }
 
 rtc_source_set("array_view") {

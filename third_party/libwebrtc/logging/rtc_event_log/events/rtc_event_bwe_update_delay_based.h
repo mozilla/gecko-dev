@@ -19,8 +19,8 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "api/network_state_predictor.h"
 #include "api/rtc_event_log/rtc_event.h"
+#include "api/transport/bandwidth_usage.h"
 #include "api/units/timestamp.h"
 #include "logging/rtc_event_log/events/rtc_event_definition.h"
 

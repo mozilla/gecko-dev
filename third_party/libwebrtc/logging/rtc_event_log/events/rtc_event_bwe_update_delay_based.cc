@@ -11,7 +11,7 @@
 #include "logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.h"
 
 #include "absl/memory/memory.h"
-#include "api/network_state_predictor.h"
+#include "api/transport/bandwidth_usage.h"
 
 namespace webrtc {
 

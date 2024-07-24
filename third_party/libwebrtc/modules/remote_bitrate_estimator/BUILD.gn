@@ -35,9 +35,9 @@ rtc_library("remote_bitrate_estimator") {
 
   deps = [
     "../../api:field_trials_view",
-    "../../api:network_state_predictor_api",
     "../../api:rtp_headers",
     "../../api/environment",
+    "../../api/transport:bandwidth_usage",
     "../../api/transport:network_control",
     "../../api/units:data_rate",
     "../../api/units:data_size",
