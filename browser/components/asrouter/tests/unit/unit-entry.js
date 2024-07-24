@@ -396,6 +396,11 @@ const TEST_GLOBAL = {
     REGION_TOPIC: "browser-region-updated",
   },
   Services: {
+    sysinfo: {
+      getProperty() {
+        return false;
+      },
+    },
     dirsvc: {
       get: () => ({ parent: { parent: { path: "appPath" } } }),
     },

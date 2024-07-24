@@ -201,6 +201,9 @@ mr2022-onboarding-pin-primary-button-label = { PLATFORM() ->
    *[other] Pin { -brand-short-name } to taskbar
 }
 
+# Primary button string used on welcome page for when Firefox is not pinned on MSIX
+mr2022-onboarding-pin-primary-button-label-msix = Pin { -brand-short-name } to taskbar and start menu
+
 ## MR2022 Existing User Pin Firefox Screen Strings
 
 # Title used on multistage onboarding page for existing users when Firefox is not pinned
