@@ -616,8 +616,7 @@ exports.ToolboxButtons = [
       osString == "Darwin" ? "Cmd+Shift+5" : "Ctrl+Shift+5"
     ),
     isToolSupported: toolbox =>
-      (toolbox.commands.descriptorFront.isLocalTab ||
-        toolbox.isBrowserToolbox) &&
+      toolbox.commands.descriptorFront.isLocalTab &&
       Services.prefs.getBoolPref(
         "devtools.debugger.features.javascript-tracing",
         false

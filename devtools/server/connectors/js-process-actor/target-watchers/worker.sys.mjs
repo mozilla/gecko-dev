@@ -59,14 +59,10 @@ export class WorkerTargetWatcherClass {
     }
 
     const promises = [];
-    const { sessionData } = watcherDataObject;
     for (const {
       dbg,
       workerThreadServerForwardingPrefix,
     } of watcherDataObject.workers) {
-      if (!this.shouldHandleWorker(sessionData, dbg, this.#workerTargetType)) {
-        continue;
-      }
       promises.push(
         addOrSetSessionDataEntryInWorkerTarget({
           dbg,
@@ -283,12 +279,8 @@ export class WorkerTargetWatcherClass {
   }
 
   destroyTargetsForWatcher(watcherDataObject) {
-    const { sessionData } = watcherDataObject;
     // Notify to all worker threads to destroy their target actor running in them
-    for (const { dbg, transport } of watcherDataObject.workers) {
-      if (!this.shouldHandleWorker(sessionData, dbg, this.#workerTargetType)) {
-        continue;
-      }
+    for (const { transport } of watcherDataObject.workers) {
       // The transport may not be set if the worker is still being connected to from createWorkerTargetActor.
       if (transport) {
         // Clean the DevToolsTransport created in the main thread to bridge RDP to the worker thread.
