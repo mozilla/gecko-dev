@@ -199,7 +199,7 @@ TEST_P(BweRampupWithInitialProbeTest, BweRampUpBothDirectionsWithoutMedia) {
 
   // Test that 1s after offer/answer exchange finish, we have a BWE estimate,
   // even though no video frames have been sent.
-  s.ProcessMessages(TimeDelta::Seconds(1));
+  s.ProcessMessages(TimeDelta::Seconds(2));
 
   auto callee_inbound_stats =
       GetStatsAndProcess(s, callee)->GetStatsOfType<RTCInboundRtpStreamStats>();

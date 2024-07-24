@@ -214,7 +214,10 @@ struct PacerConfig {
 struct ProbeClusterConfig {
   Timestamp at_time = Timestamp::PlusInfinity();
   DataRate target_data_rate = DataRate::Zero();
+  // Duration of a probe.
   TimeDelta target_duration = TimeDelta::Zero();
+  // Delta time between sent bursts of packets during probe.
+  TimeDelta min_probe_delta = TimeDelta::Millis(2);
   int32_t target_probe_count = 0;
   int32_t id = 0;
 };
