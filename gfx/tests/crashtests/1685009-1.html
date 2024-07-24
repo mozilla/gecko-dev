@@ -1,12 +1,16 @@
 <script>
-window.requestIdleCallback(() => {
-  window.close();
-})
-window.onload = () => {
-  a.value = "J."
-  b.submit()
-  window.requestAnimationFrame(() => { a.setRangeText("foo") })
+if (location.search == "?x=") {
+  setTimeout(() => { window.close(); }, 1000);
+} else {
+  window.requestIdleCallback(() => {
+    window.close();
+  })
+  window.onload = () => {
+    a.value = "J."
+    b.submit()
+    window.requestAnimationFrame(() => { a.setRangeText("foo") })
+  }
 }
 </script>
 <textarea id="a" style="max-width: 0"></textarea>
-<form id="b" target="a">
+<form id="b" target="a"><input name="x" type="hidden">
