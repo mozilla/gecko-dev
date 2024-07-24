@@ -39,12 +39,13 @@
 #include "rtc_base/experiments/rate_control_settings.h"
 #include "rtc_base/logging.h"
 
+namespace webrtc {
 namespace {
 
 // Max qp for lowest spatial resolution when doing simulcast.
 const unsigned int kLowestResMaxQp = 45;
 
-uint32_t SumStreamMaxBitrate(int streams, const webrtc::VideoCodec& codec) {
+uint32_t SumStreamMaxBitrate(int streams, const VideoCodec& codec) {
   uint32_t bitrate_sum = 0;
   for (int i = 0; i < streams; ++i) {
     bitrate_sum += codec.simulcastStream[i].maxBitrate;
@@ -52,7 +53,7 @@ uint32_t SumStreamMaxBitrate(int streams, const webrtc::VideoCodec& codec) {
   return bitrate_sum;
 }
 
-int CountAllStreams(const webrtc::VideoCodec& codec) {
+int CountAllStreams(const VideoCodec& codec) {
   int total_streams_count =
       codec.numberOfSimulcastStreams < 1 ? 1 : codec.numberOfSimulcastStreams;
   uint32_t simulcast_max_bitrate =
@@ -63,7 +64,7 @@ int CountAllStreams(const webrtc::VideoCodec& codec) {
   return total_streams_count;
 }
 
-int CountActiveStreams(const webrtc::VideoCodec& codec) {
+int CountActiveStreams(const VideoCodec& codec) {
   if (codec.numberOfSimulcastStreams < 1) {
     return 1;
   }
@@ -77,7 +78,7 @@ int CountActiveStreams(const webrtc::VideoCodec& codec) {
   return active_streams_count;
 }
 
-int VerifyCodec(const webrtc::VideoCodec* codec_settings) {
+int VerifyCodec(const VideoCodec* codec_settings) {
   if (codec_settings == nullptr) {
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
@@ -100,14 +101,13 @@ int VerifyCodec(const webrtc::VideoCodec* codec_settings) {
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
-bool StreamQualityCompare(const webrtc::SimulcastStream& a,
-                          const webrtc::SimulcastStream& b) {
+bool StreamQualityCompare(const SimulcastStream& a, const SimulcastStream& b) {
   return std::tie(a.height, a.width, a.maxBitrate, a.maxFramerate) <
          std::tie(b.height, b.width, b.maxBitrate, b.maxFramerate);
 }
 
 void GetLowestAndHighestQualityStreamIndixes(
-    rtc::ArrayView<webrtc::SimulcastStream> streams,
+    rtc::ArrayView<const SimulcastStream> streams,
     int* lowest_quality_stream_idx,
     int* highest_quality_stream_idx) {
   const auto lowest_highest_quality_streams =
@@ -118,14 +118,13 @@ void GetLowestAndHighestQualityStreamIndixes(
       std::distance(streams.begin(), lowest_highest_quality_streams.second);
 }
 
-std::vector<uint32_t> GetStreamStartBitratesKbps(
-    const webrtc::VideoCodec& codec) {
+std::vector<uint32_t> GetStreamStartBitratesKbps(const Environment& env,
+                                                 const VideoCodec& codec) {
   std::vector<uint32_t> start_bitrates;
-  std::unique_ptr<webrtc::VideoBitrateAllocator> rate_allocator =
-      std::make_unique<webrtc::SimulcastRateAllocator>(codec);
-  webrtc::VideoBitrateAllocation allocation =
-      rate_allocator->Allocate(webrtc::VideoBitrateAllocationParameters(
-          codec.startBitrate * 1000, codec.maxFramerate));
+  VideoBitrateAllocation allocation =
+      SimulcastRateAllocator(env, codec)
+          .Allocate(VideoBitrateAllocationParameters(codec.startBitrate * 1000,
+                                                     codec.maxFramerate));
 
   int total_streams_count = CountAllStreams(codec);
   for (int i = 0; i < total_streams_count; ++i) {
@@ -136,8 +135,6 @@ std::vector<uint32_t> GetStreamStartBitratesKbps(
 }
 
 }  // namespace
-
-namespace webrtc {
 
 SimulcastEncoderAdapter::EncoderContext::EncoderContext(
     std::unique_ptr<VideoEncoder> encoder,
@@ -377,7 +374,7 @@ int SimulcastEncoderAdapter::InitEncode(
 
   // Multi-encoder simulcast or singlecast (deactivated layers).
   std::vector<uint32_t> stream_start_bitrate_kbps =
-      GetStreamStartBitratesKbps(codec_);
+      GetStreamStartBitratesKbps(env_, codec_);
 
   for (int stream_idx = 0; stream_idx < total_streams_count_; ++stream_idx) {
     if (!is_legacy_singlecast && !codec_.simulcastStream[stream_idx].active) {

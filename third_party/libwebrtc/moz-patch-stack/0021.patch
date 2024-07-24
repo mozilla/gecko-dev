@@ -23,7 +23,7 @@ index 9a7a6f1498..86ec13fc1f 100644
  #else
  constexpr bool kIsArm = false;
 diff --git a/modules/video_coding/codecs/vp8/libvpx_vp8_encoder.cc b/modules/video_coding/codecs/vp8/libvpx_vp8_encoder.cc
-index a5036cf52d..4075dad5e3 100644
+index 6dcdbfd2c8..5efbf88065 100644
 --- a/modules/video_coding/codecs/vp8/libvpx_vp8_encoder.cc
 +++ b/modules/video_coding/codecs/vp8/libvpx_vp8_encoder.cc
 @@ -745,7 +745,7 @@ int LibvpxVp8Encoder::InitEncode(const VideoCodec* inst,

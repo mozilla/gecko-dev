@@ -16,7 +16,6 @@
 #include "api/environment/environment.h"
 #include "api/video/video_bitrate_allocator.h"
 #include "api/video_codecs/video_codec.h"
-#include "rtc_base/checks.h"
 
 namespace webrtc {
 
@@ -29,15 +28,7 @@ class VideoBitrateAllocatorFactory {
   // Creates a VideoBitrateAllocator for a specific video codec.
   virtual std::unique_ptr<VideoBitrateAllocator> Create(
       const Environment& env,
-      const VideoCodec& codec) {
-    return CreateVideoBitrateAllocator(codec);
-  }
-  virtual std::unique_ptr<VideoBitrateAllocator> CreateVideoBitrateAllocator(
-      const VideoCodec& codec) {
-    // Newer code shouldn't call this function,
-    // Older code should implement it in derived classes.
-    RTC_CHECK_NOTREACHED();
-  }
+      const VideoCodec& codec) = 0;
 };
 
 }  // namespace webrtc

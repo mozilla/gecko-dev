@@ -4781,7 +4781,7 @@ TEST_F(VideoStreamEncoderTest, ReportsVideoBitrateAllocation) {
 
   const int kDefaultFps = 30;
   const VideoBitrateAllocation expected_bitrate =
-      SimulcastRateAllocator(fake_encoder_.config())
+      SimulcastRateAllocator(env_, fake_encoder_.config())
           .Allocate(VideoBitrateAllocationParameters(kLowTargetBitrate.bps(),
                                                      kDefaultFps));
 

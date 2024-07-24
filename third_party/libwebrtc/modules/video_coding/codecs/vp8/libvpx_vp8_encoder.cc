@@ -678,7 +678,7 @@ int LibvpxVp8Encoder::InitEncode(const VideoCodec* inst,
   // Note the order we use is different from webm, we have lowest resolution
   // at position 0 and they have highest resolution at position 0.
   const size_t stream_idx_cfg_0 = encoders_.size() - 1;
-  SimulcastRateAllocator init_allocator(codec_);
+  SimulcastRateAllocator init_allocator(env_, codec_);
   VideoBitrateAllocation allocation =
       init_allocator.Allocate(VideoBitrateAllocationParameters(
           inst->startBitrate * 1000, inst->maxFramerate));

@@ -420,9 +420,9 @@ rtc_library("video_coding_utility") {
     ":video_codec_interface",
     "../../api:array_view",
     "../../api:field_trials_view",
-    "../../api:field_trials_view",
     "../../api:scoped_refptr",
     "../../api:sequence_checker",
+    "../../api/environment",
     "../../api/units:time_delta",
     "../../api/video:encoded_frame",
     "../../api/video:encoded_image",
@@ -453,7 +453,6 @@ rtc_library("video_coding_utility") {
     "../../rtc_base/system:file_wrapper",
     "../../rtc_base/system:no_unique_address",
     "../../rtc_base/task_utils:repeating_task",
-    "../../system_wrappers:field_trial",
     "../rtp_rtcp:rtp_rtcp_format",
     "svc:scalability_mode_util",
   ]
