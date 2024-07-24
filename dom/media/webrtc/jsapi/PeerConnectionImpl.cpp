@@ -735,10 +735,6 @@ class ConfigureCodec {
             // hardware.
             videoCodec.mEnabled = false;
           }
-
-          if (mHardwareH264Enabled) {
-            videoCodec.mStronglyPreferred = true;
-          }
         } else if (videoCodec.mName == "red") {
           videoCodec.mEnabled = mRedUlpfecEnabled;
         } else if (videoCodec.mName == "ulpfec") {
