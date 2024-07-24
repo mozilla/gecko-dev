@@ -235,10 +235,10 @@
     }
 
     get isRTLScrollbox() {
-      if (this.getAttribute("orient") != "vertical") {
+      if (this.getAttribute("orient") == "vertical") {
         return false;
       }
-      if (!this._isRTLScrollbox) {
+      if (!("_isRTLScrollbox" in this)) {
         this._isRTLScrollbox =
           document.defaultView.getComputedStyle(this.scrollbox).direction ==
           "rtl";
