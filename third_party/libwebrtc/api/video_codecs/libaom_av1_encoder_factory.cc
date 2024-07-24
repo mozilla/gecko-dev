@@ -270,8 +270,8 @@ bool ValidateEncodeParams(
     const VideoEncoderInterface::FrameEncodeSettings& settings =
         frame_settings[i];
 
-    if (!settings.result_callback) {
-      RTC_LOG(LS_ERROR) << "No result callback function provided.";
+    if (!settings.frame_output) {
+      RTC_LOG(LS_ERROR) << "No frame output provided.";
       return false;
     }
 
@@ -618,10 +618,10 @@ aom_svc_params_t GetSvcParams(
 
 void DoErrorCallback(std::vector<FrameEncodeSettings>& frame_settings) {
   for (FrameEncodeSettings& settings : frame_settings) {
-    if (settings.result_callback) {
-      std::move(settings.result_callback)({});
+    if (settings.frame_output) {
+      settings.frame_output->EncodeComplete({});
       // To avoid invoking any callback more than once.
-      settings.result_callback = {};
+      settings.frame_output = nullptr;
     }
   }
 }
@@ -769,6 +769,7 @@ void LibaomAv1Encoder::Encode(
 
     EncodedData result;
     aom_codec_iter_t iter = nullptr;
+    bool bitstream_produced = false;
     while (const aom_codec_cx_pkt_t* pkt =
                aom_codec_get_cx_data(&ctx_, &iter)) {
       if (pkt->kind == AOM_CODEC_CX_FRAME_PKT && pkt->data.frame.sz > 0) {
@@ -777,20 +778,27 @@ void LibaomAv1Encoder::Encode(
         result.frame_type = pkt->data.frame.flags & AOM_EFLAG_FORCE_KF
                                 ? FrameType::kKeyframe
                                 : FrameType::kDeltaFrame;
-        result.bitstream_data = EncodedImageBuffer::Create(
-            static_cast<uint8_t*>(pkt->data.frame.buf), pkt->data.frame.sz);
+        rtc::ArrayView<uint8_t> output_buffer =
+            settings.frame_output->GetBitstreamOutputBuffer(
+                DataSize::Bytes(pkt->data.frame.sz));
+        if (output_buffer.size() != pkt->data.frame.sz) {
+          DoErrorCallback(frame_settings);
+          return;
+        }
+        memcpy(output_buffer.data(), pkt->data.frame.buf, pkt->data.frame.sz);
+        bitstream_produced = true;
         break;
       }
     }
 
-    if (result.bitstream_data == nullptr) {
+    if (!bitstream_produced) {
       DoErrorCallback(frame_settings);
       return;
     } else {
-      RTC_CHECK(settings.result_callback);
-      std::move(settings.result_callback)(result);
+      RTC_CHECK(settings.frame_output);
+      settings.frame_output->EncodeComplete(result);
       // To avoid invoking any callback more than once.
-      settings.result_callback = {};
+      settings.frame_output = nullptr;
     }
   }
 }

@@ -289,6 +289,7 @@ rtc_source_set("video_encoder_interface") {
   deps = [
     ":video_encoding_general",
     "../../api/units:data_rate",
+    "../../api/units:data_size",
     "../../api/units:time_delta",
     "../../api/units:timestamp",
     "../../api/video:encoded_image",
