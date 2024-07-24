@@ -20,12 +20,9 @@ if CONFIG["MOZ_ANDROID_FAT_AAR_ARCHITECTURES"]:
 else:
     DEFINES["target"] = CONFIG["target"]
 
-DEFINES["CFLAGS"] = " ".join(CONFIG["OS_CFLAGS"])
+DEFINES["CFLAGS"] = " ".join(CONFIG["OS_CFLAGS"] or [])
 
-rustflags = CONFIG["RUSTFLAGS"]
-if not rustflags:
-    rustflags = []
-DEFINES["RUSTFLAGS"] = " ".join(rustflags)
+DEFINES["RUSTFLAGS"] = " ".join(CONFIG["RUSTFLAGS"] or [])
 
 cxx_flags = []
 for var in ("OS_CPPFLAGS", "OS_CXXFLAGS", "DEBUG", "OPTIMIZE", "FRAMEPTR"):
