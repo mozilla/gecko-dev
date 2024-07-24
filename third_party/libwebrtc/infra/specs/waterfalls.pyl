@@ -470,13 +470,6 @@
         },
       },
       'linux_libfuzzer_rel': {},
-      'linux_memcheck': {
-        'os_type': 'linux',
-        'mixins': ['linux-jammy', 'x86-64', 'resultdb-json-format'],
-        'test_suites': {
-          'isolated_scripts': 'linux_tests',
-        },
-      },
       'linux_more_configs': {
         'os_type': 'linux',
         'mixins': ['linux-jammy', 'x86-64', 'resultdb-json-format'],
