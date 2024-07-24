@@ -92,8 +92,6 @@ class DtlsTestClient : public sigslot::has_slots<> {
     fake_ice_transport_->SetAsync(true);
     fake_ice_transport_->SetAsyncDelay(async_delay_ms);
     fake_ice_transport_->SetIceRole(role);
-    fake_ice_transport_->SetIceTiebreaker((role == ICEROLE_CONTROLLING) ? 1
-                                                                        : 2);
     // Hook the raw packets so that we can verify they are encrypted.
     fake_ice_transport_->RegisterReceivedPacketCallback(
         this, [&](rtc::PacketTransportInternal* transport,
