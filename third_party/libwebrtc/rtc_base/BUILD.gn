@@ -1311,7 +1311,6 @@ if (!build_with_mozilla) {
     ":buffer",
     ":byte_buffer",
     ":checks",
-    ":crypt_string",
     ":logging",
     ":stringutils",
     ":zero_memory",
@@ -1637,13 +1636,6 @@ if (!build_with_mozilla) {
     deps += [ ":win32" ]
   }
 }
-}
-
-rtc_library("crypt_string") {
-  sources = [
-    "crypt_string.cc",
-    "crypt_string.h",
-  ]
 }
 
 rtc_source_set("gtest_prod") {
