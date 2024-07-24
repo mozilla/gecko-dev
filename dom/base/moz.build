@@ -257,7 +257,6 @@ EXPORTS.mozilla.dom += [
     "PostMessageEvent.h",
     "ProcessMessageManager.h",
     "RadioGroupContainer.h",
-    "RequestCallbackManager.h",
     "ResizeObserver.h",
     "ResponsiveImageSelector.h",
     "SameProcessMessageQueue.h",
@@ -289,7 +288,6 @@ EXPORTS.mozilla.dom += [
     "UnbindContext.h",
     "UseCounterMetrics.h",
     "UserActivation.h",
-    "VideoFrameProvider.h",
     "ViewportMetaData.h",
     "VisualViewport.h",
     "WindowFeatures.h",
@@ -321,6 +319,7 @@ if CONFIG["COMPILE_ENVIRONMENT"]:
 UNIFIED_SOURCES += [
     "!UseCounterMetrics.cpp",
     "AbstractRange.cpp",
+    "AnimationFrameProvider.cpp",
     "AnonymousContent.cpp",
     "Attr.cpp",
     "AttrArray.cpp",

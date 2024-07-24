@@ -7164,12 +7164,6 @@ void Document::MaybeScheduleFrameRequestCallbacks() {
   rd->EnsureFrameRequestCallbacksHappen();
 }
 
-void Document::TakeVideoFrameRequestCallbacks(
-    nsTArray<RefPtr<HTMLVideoElement>>& aVideoCallbacks) {
-  MOZ_ASSERT(aVideoCallbacks.IsEmpty());
-  mFrameRequestManager.Take(aVideoCallbacks);
-}
-
 void Document::TakeFrameRequestCallbacks(nsTArray<FrameRequest>& aCallbacks) {
   MOZ_ASSERT(aCallbacks.IsEmpty());
   mFrameRequestManager.Take(aCallbacks);
@@ -13701,18 +13695,6 @@ void Document::CancelFrameRequestCallback(uint32_t aHandle) {
 
 bool Document::IsCanceledFrameRequestCallback(uint32_t aHandle) const {
   return mFrameRequestManager.IsCanceled(aHandle);
-}
-
-void Document::ScheduleVideoFrameCallbacks(HTMLVideoElement* aElement) {
-  const bool wasEmpty = mFrameRequestManager.IsEmpty();
-  mFrameRequestManager.Schedule(aElement);
-  if (wasEmpty) {
-    MaybeScheduleFrameRequestCallbacks();
-  }
-}
-
-void Document::CancelVideoFrameCallbacks(HTMLVideoElement* aElement) {
-  mFrameRequestManager.Cancel(aElement);
 }
 
 nsresult Document::GetStateObject(JS::MutableHandle<JS::Value> aState) {
