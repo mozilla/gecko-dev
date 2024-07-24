@@ -1,1335 +1,1696 @@
-From: Byron Campen <docfaraday@gmail.com>
-Date: Wed, 24 Jul 2024 13:45:52 -0500
-Subject: (tmp-cherry-pick) Revert "Replace usage of link_capacity_kbps with
- DataRate link_capacity" (ff2dd50fd8)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Dan Minor <dminor@mozilla.com>
+Date: Mon, 22 Jan 2018 13:31:00 -0500
+Subject: Bug 1376873 - Rollup of local modifications; r=ng
 
-This reverts commit 6186c0226e41dabbfc5cc8527e6b350b62f39f02.
+MozReview-Commit-ID: 2euYzBEvuNb
 
-Reason for revert: Breaks downstream project.
+Differential Revision: https://phabricator.services.mozilla.com/D7425
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/28b57e3ba51de982a4663801a3935580114b5477
 
-Original change's description:
-> Replace usage of link_capacity_kbps with DataRate link_capacity
->
-> Replace usage of BuiltInNetworkBehaviorConfig.link_capacity_kbps in tests with  DataRate link_capacity.
->
-> Bug: webrtc:14525
-> Change-Id: Id1c1b8d20eb2be5e9d1461704bb7c37c61c491f0
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/350300
-> Reviewed-by: Erik Språng <sprang@webrtc.org>
-> Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-> Commit-Queue: Per Kjellander <perkj@webrtc.org>
-> Reviewed-by: Björn Terelius <terelius@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42306}
+Bug 1376873 - Rollup conflict fixes for audio/video code; r=pehrsons
 
-Bug: webrtc:14525
-Change-Id: I09ede3e89d065061cb4133bff96dbf242ff70832
-No-Presubmit: true
-No-Tree-Checks: true
-No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/350621
-Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Owners-Override: Mirko Bonadei <mbonadei@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42309}
+MozReview-Commit-ID: 1T8mgqdkzq3
+
+Differential Revision: https://phabricator.services.mozilla.com/D7427
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/93eec571640ee0810da8475ee37e417b88045574
+
+Bug 1376873 - Rollup conflict fixes for rtp_rtcp module; r=ng
+
+MozReview-Commit-ID: D09534DOVLj
+
+Differential Revision: https://phabricator.services.mozilla.com/D7428
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/50f89f4e45b0af87fd6aa45aed60f02f3e69b951
+
+Bug 1497552 - Remove support for 44100 Hz in dtmf_tone_generator; r=padenot
+
+Assertions in NetEqImpl::SetSampleRateAndChannels prevent us from requesting
+tones at 44100 Hz, so this code can be safely removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D12982
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8ea04ec01e9905d4714aa01ade891d552c56a3a6
+
+Bug 1497577 - Remove code to detect zero size windows; r=ng
+
+This code was added by Bug 1196542 to fix a permanently failing test on our
+Windows test machines. After this landed, upstream added a check for empty
+windows in window_captuer_win.cc, so this should no longer be a problem on
+Windows. As far as I know, this was never a problem on the other platforms,
+so this code can be safely removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13448
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/647ade4da0fba74a268aab079677cb47f20f036e
+
+Bug 1509994 - Move video_engine from webrtc to systemservices; r=pehrsons
+
+Historically this code was part of webrtc.org but has since been removed
+from upstream. Rather than maintaining it as a local diff against upstream,
+we should just move it to where it is used.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13092
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0fd399c6caabff60ac0fe53b920b7d26a9806750
+
+Bug 1497606 - Remove disable_composition_ in screen_capturer_win_gdi; r=ng
+
+This removes disable_composition_ and instead uses the value of
+composition_func_ to determine whether or not composition is
+disabled. This is what is done by upstream webrtc.org.
+
+We call options.set_disable_effects(false) in desktop_capture_impl.cc.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13839
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b3f5cca4be44c01024b1ef7b5d4951c7297a112a
+
+Bug 1497974 - Remove local changes to jitter_buffer.cc; r=pehrsons
+
+These modifications are made to code which we do not use and so
+can be removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13989
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2fb1dd0d8344ef24e2e0fca94725bbfaf59aa257
+
+Bug 1512459 - Remove webrtc sndio audio device; r=padenot
+
+This code is unused and can be removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13929
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fa0a179388e96b1a47eeef2fda9676812c244d3b
+
+Bug 1497650 - Remove 100 bytes added to CalcBufferSize in vp8_impl.cc; r=ng
+
+In Bug 919979 we added 100 bytes to the size returned by CalcBufferSize
+to work around an error with the calculated buffer size with small
+resolutions. I verified that this extra buffer is no longer required with
+a modified mochitest. Given the age of the bug this was working around,
+I don't think a permanent test is required to prevent regressions from
+upstream.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14076
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b20329b1ec0565b3b94db73e13a9c49e43c418c3
+
+Bug 1368816 - Enable VideoCaptureExternalTest Rotation gtest; r=ng
+
+This test started failing after the 57 update and started passing
+again after the 64 update, so we might as well enable it.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13803
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/65a44b43b7b69c066abcb864076003252abc475e
+
+Bug 1497573 - Remove DesktopCapturer::Stop; r=ng
+
+Differential Revision: https://phabricator.services.mozilla.com/D14066
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0d9c607f26195b7f63cca847224bcd137f73720d
+
+Bug 1497619 - Restore thread check in process_thread_impl.cc; r=ng
+
+Not not really needed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14097
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/923373fdf5e50d44c895141dc1db74709d6610fe
+
+Bug 1497992 - Remove VideoReceiver::Reset; r=pehrsons
+
+This ends up calling VCMReceiver::Reset() which resets the
+state of the VCMJitterBuffer. We no longer use VCMJitterBuffer,
+which is the old jitter buffer implementation, so this code
+no longer has any effect and can be removed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14185
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/9e526b3093ee60791cf9c436ea06b6665eb5ef74
+
+Bug 1497610 - Remove IsNewerOrSameTimestamp; r=bwc
+
+The affected functions are only used by VCMJitterBuffer, which is the older
+jitter buffer that is no longer in use. We can safely remove these
+modifications.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14485
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/5ed0ed11b23d82ee026244a9a48e522fe38335e2
+
+Bug 1498253 - Remove mozAvSyncDelay and mozJitterBufferDelay; r=ng
+
+The value for mozAvSyncDelay has been broken since the branch 57 update
+(Bug 1341285). We added SetCurrentSyncOffset() but never called it from
+anywhere.
+
+In the future we should be getting stats from AudioReceiveStream rather than
+modifying the channel code, the delay_estimate_ms field provides almost the
+same information.
+
+Since we're attempting to get rid of moz prefixed stats, it makes sense to just
+remove this code rather than fix it. The associated telemetry code has been
+broken since Bug 1341285 as well so I think it is safe to remove.
+
+Differential Revision: https://phabricator.services.mozilla.com/D14462
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/80e86c169d202e724cda74bbd9535b2d5236305b
+
+Bug 1498205 - Move PlatformUIThread from rtc_base to video_engine; r=pehrsons
+
+PlatformUIThread is only used by the video_engine code, so it makes sense to
+move it there rather than maintain it as a diff against upstream webrtc.org.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13531
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/65bf3e37a4409f3ca0350366d7be19368adfa21b
+
+Bug 1497602 - Enable DirectX screen capturer on Windows; r=pehrsons
+
+This enables support for the DirectX screen capturer. We use the default
+DesktopCaptureOptions which do not set the option to use the DirectX screen
+capturer so this change will have no effect with the current code.
+
+For what it's worth, I tested enabling the DirectX option and it worked fine on my
+system, but I don't see any reason to not follow the defaults provided by
+webrtc.org in this case.
+
+Differential Revision: https://phabricator.services.mozilla.com/D13303
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/eb07312cfbe868780ebed84fc83e5a5470e81fb4
+
+Bug 1439997 - Remove old mac video capture code; r=jib
+
+This code is no longer used and has been removed upstream. We can remove
+it as well.
+
+Differential Revision: https://phabricator.services.mozilla.com/D15196
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e79251fa381cfc9f3425f6a746ac8d8c22046d6b
+
+Bug 1376873 - Updates to Android video capture; r=pehrsons
+
+Differential Revision: https://phabricator.services.mozilla.com/D7452
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1e6d72de0587d24c20fefc142591d8b47c363f89
+
+Bug 1578073 - Move android video capture code to dom/media/systemservices; r=jib
+
+Although originally part of webrtc.org, this code has subsequently been
+removed by upstream. Moving it to under dom/media should make it clearer that
+this is code that we are maintaining and simplify future upstream merges.
+
+Differential Revision: https://phabricator.services.mozilla.com/D61850
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/46c21affcbc14da30abb03b10573076aee6341c0
+
+Bug 1652552 - Remove remaining application capture code; r=jib
+
+Differential Revision: https://phabricator.services.mozilla.com/D83491
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/26eee332d844bd3f9479d1db92d2f000255664c1
+
+Bug 1846358 - revert mozilla-specific b2g related change in generic_decoder.cc kDecoderFrameMemoryLength. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D184983
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/478632b0cc4982639276a4a817165ac49ca8fb6e
+
+Bug 1846875 - remove redundant divide by zero protection in libwebrtc's merge.cc r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185236
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a777f43c4d9cabe80f2fc3aea6bf95c7e3e9c4c1
+
+Bug 1846590 - move SetCaptureAndroidVM declaration from libwebrtc video_capture.h to our VideoEngine.cpp r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185076
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0b9ef0f6bf04851bcc8bbe9beb88362eb1659a50
+
+Bug 1847466 - remove work-around for missing v4l2_capability::bus_info in v412loopback driver. r=jesup,pehrsons,webrtc-reviewers
+
+Added in Bug 861280, but should no longer be necessary after fixes in upstream
+v4l2loopback commits (fc4c173, fe03e4f, c3b1eaa).
+https://github.com/umlaeute/v4l2loopback/commit/fc4c173
+https://github.com/umlaeute/v4l2loopback/commit/fe03e4f
+https://github.com/umlaeute/v4l2loopback/commit/c3b1eaa
+
+Differential Revision: https://phabricator.services.mozilla.com/D185518
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d054dde5c370feb3ee9c9f9159b512333b3554ac
+
+Bug 1846636 - restore ScreenCapturerWinMagnifier destructor to upstream version. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185109
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b50be8861ca0a4f9e6777e9333a9e483bdb57bf9
+
+Bug 1376873 - Fix up logging in WebrtcLog.cpp; r=ng
+
+The webrtc::Trace code is removed by this update. We already had support for
+LOG (now RTC_LOG) in WebrtcLog.cpp. This removes the trace code from
+WebRtcLog.cpp and moves the aec logging code from webrtc::Trace to
+rtc::LogMessage.
+
+This also disables logging to stderr in rtc_base/logging.cc. We could disable
+it using the API, but that happens through peerconnection resulting in some
+logging occuring during getusermedia.
+
+The aec logs were testing with --disable-e10s. Rather than trying to
+work around sandboxing, I think it makes more sense to fix Bug 1404982 and
+store the logs in memory for retrieval from about:webrtc.
+
+Differential Revision: https://phabricator.services.mozilla.com/D7429
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e84c60e2c9373f4d2dc24e769375a92c17c2a0ad
+
+Bug 1847818 - restore aec logging from about:webrtc. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185709
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a67a9e51d8b8597caa1511e2f3b7795e92b07068
+
+Bug 1535584 - Restore UpdateCodecFrameSize to vp9_impl.cc; r=bwc
+
+Differential Revision: https://phabricator.services.mozilla.com/D23713
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0898f9cfe09273e1d86c38abdd576cdf273009f0
+
+Bug 1846850 - remove mozilla-added IsGUIThread asserts from libwebrtc. r=ng,webrtc-reviewers
+
+These were added in Bug 1060738 but no longer seem to add value based
+on crash stats.
+
+Differential Revision: https://phabricator.services.mozilla.com/D185222
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/5e6f94c1b7c4491bdab454e24dfdb93eb75f80ca
+
+Bug 1846858 - revert changes to libwebrtc's deprecated/session_info.cc since we don't build it. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185224
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4836114af07e38525d319b0a2f59f2fd618b7a3b
+
+Bug 1847257 - revert an unneccesary change in libwebrtc's window_capturer_x11.cc r=karlt,webrtc-reviewers
+
+This small change we've been carrying to when ProcessPendingXEvents is called
+in WindowCapturerLinux::Capture should not be necessary.
+
+Differential Revision: https://phabricator.services.mozilla.com/D185449
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/9633cb1dde33ecbab435012c4ae1456a4ae79a42
+
+Bug 1847984 - remove mozilla-specific null FILE* checks in apm_data_dumper.h r=ng,webrtc-reviewers
+
+Since upstream commit 4bc60452f7 ApmDataDumper::GetRawFile does a release
+assert if FILE* is null so our mozilla-specific mods to check for valid
+FILE pointers are no longer needed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D185838
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/53ecaeda76c3613b90d3a1c3348f0d903a054821
+
+Bug 1848045 - removing mozilla output directory handling code from apm_data_dumper. r=ng,webrtc-reviewers
+
+Upstream added the capability to set the output directory in commit 4bc60452f7 so
+we can revert to using upstream's version instead of ours.
+
+Differential Revision: https://phabricator.services.mozilla.com/D185863
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/48217906ac982e129b5eedf07e90904396c31ed4
+
+Bug 1847833 - remove aec log output size limiting code from libwebrtc's apm_data_dumper. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185930
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7622e6dddeec583e5839b5432d436d85c356f6c3
+
+Bug 1847833 - aec_debug_size_, aec_debug_size(), set_aec_debug_size(uint32_t size) are no longer used. r=ng,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D185931
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/525d71640bb7be400040131a5b1a16652c881a0f
+
+Bug 1850146 - remove unnecessary libwebrtc changes in jvm_android.cc. r?dbaker!
+
+After landing Bug 1826428 to remove jvm_android.cc from the build and
+giving time for that to simmer for a while with no known effects, we
+can remove our modifications.
+
+Differential Revision: https://phabricator.services.mozilla.com/D186855
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb169f19efba72a91be19f613
 ---
- call/BUILD.gn                                 |  1 -
- call/call_perf_tests.cc                       |  5 +-
- call/fake_network_pipe_unittest.cc            | 48 ++++++------
- call/rampup_tests.cc                          |  7 +-
- net/dcsctp/socket/BUILD.gn                    |  1 -
- .../socket/dcsctp_socket_network_test.cc      |  6 +-
- pc/scenario_tests/goog_cc_test.cc             |  3 +-
- test/network/BUILD.gn                         |  1 -
- test/network/cross_traffic_unittest.cc        |  3 +-
- test/network/feedback_generator.cc            |  2 +-
- test/network/simulated_network_unittest.cc    | 73 +++++++------------
- ...d_network_quality_metrics_reporter_test.cc | 10 +--
- test/scenario/network_node.cc                 |  2 +-
- video/BUILD.gn                                |  4 -
- .../extended_reports_tests.cc                 |  5 +-
- video/full_stack_tests.cc                     | 51 +++++++------
- video/pc_full_stack_tests.cc                  | 52 ++++++-------
- video/screenshare_loopback.cc                 |  4 +-
- video/sv_loopback.cc                          |  3 +-
- video/video_loopback.cc                       |  3 +-
- video/video_send_stream_tests.cc              |  3 +-
- 21 files changed, 125 insertions(+), 162 deletions(-)
+ api/rtp_headers.cc                            |   3 +-
+ api/rtp_headers.h                             |  17 +-
+ api/rtp_parameters.cc                         |   3 +-
+ call/BUILD.gn                                 |   4 +-
+ call/video_receive_stream.h                   |   2 +
+ modules/audio_coding/acm2/acm_receiver.h      |  12 +-
+ modules/audio_coding/neteq/dtmf_buffer.cc     |   6 +-
+ modules/desktop_capture/desktop_capturer.h    |   1 +
+ .../desktop_capture/fake_desktop_capturer.cc  |   4 +-
+ .../linux/x11/mouse_cursor_monitor_x11.cc     |   4 +-
+ .../linux/x11/screen_capturer_x11.cc          |   2 +-
+ .../linux/x11/window_capturer_x11.cc          |   9 +
+ .../linux/x11/window_capturer_x11.h           |   4 +
+ .../desktop_capture/linux/x11/x_error_trap.cc |  68 ++++---
+ .../desktop_capture/linux/x11/x_error_trap.h  |  29 ++-
+ .../win/screen_capture_utils.cc               |   2 +-
+ modules/rtp_rtcp/source/rtcp_sender.cc        |   2 +-
+ .../rtp_rtcp/source/rtp_header_extensions.cc  |  39 ++++
+ .../rtp_rtcp/source/rtp_header_extensions.h   |  15 ++
+ modules/rtp_rtcp/source/rtp_packet.cc         |   4 +
+ .../rtp_rtcp/source/rtp_packet_unittest.cc    |  30 +++
+ modules/rtp_rtcp/source/rtp_rtcp_config.h     |   4 +
+ modules/rtp_rtcp/source/rtp_sender.cc         |   4 +
+ modules/video_capture/device_info_impl.cc     |   2 +-
+ modules/video_capture/device_info_impl.h      |   1 +
+ .../video_capture/linux/device_info_v4l2.cc   | 179 +++++++++++++++++-
+ .../video_capture/linux/device_info_v4l2.h    |  18 +-
+ modules/video_capture/video_capture.h         |  41 +++-
+ .../video_capture/video_capture_factory.cc    |   8 -
+ modules/video_capture/video_capture_impl.cc   |  34 +++-
+ modules/video_capture/video_capture_impl.h    |   6 +-
+ .../codecs/vp9/libvpx_vp9_encoder.cc          |  52 +++++
+ .../codecs/vp9/libvpx_vp9_encoder.h           |   4 +
+ rtc_base/BUILD.gn                             |   6 +
+ rtc_base/logging.cc                           |  21 +-
+ rtc_base/logging.h                            |   9 +
+ test/fuzzers/rtp_packet_fuzzer.cc             |   5 +
+ test/vcm_capturer.cc                          |   2 +-
+ webrtc.gni                                    |   2 +-
+ 39 files changed, 573 insertions(+), 85 deletions(-)
 
+diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
+index 8813e0f4c2..b5e08cea2c 100644
+--- a/api/rtp_headers.cc
++++ b/api/rtp_headers.cc
+@@ -31,7 +31,8 @@ RTPHeaderExtension::RTPHeaderExtension()
+       videoRotation(kVideoRotation_0),
+       hasVideoContentType(false),
+       videoContentType(VideoContentType::UNSPECIFIED),
+-      has_video_timing(false) {}
++      has_video_timing(false),
++      csrcAudioLevels() {}
+ 
+ RTPHeaderExtension::RTPHeaderExtension(const RTPHeaderExtension& other) =
+     default;
+diff --git a/api/rtp_headers.h b/api/rtp_headers.h
+index 7ededb94fc..bf1660d934 100644
+--- a/api/rtp_headers.h
++++ b/api/rtp_headers.h
+@@ -112,6 +112,19 @@ inline bool operator!=(const AbsoluteCaptureTime& lhs,
+   return !(lhs == rhs);
+ }
+ 
++enum { kRtpCsrcSize = 15 };  // RFC 3550 page 13
++
++// Audio level of CSRCs See:
++// https://tools.ietf.org/html/rfc6465
++struct CsrcAudioLevelList {
++  CsrcAudioLevelList() : numAudioLevels(0) { }
++  CsrcAudioLevelList(const CsrcAudioLevelList&) = default;
++  CsrcAudioLevelList& operator=(const CsrcAudioLevelList&) = default;
++  uint8_t numAudioLevels;
++  // arrOfAudioLevels has the same ordering as RTPHeader.arrOfCSRCs
++  uint8_t arrOfAudioLevels[kRtpCsrcSize];
++};
++
+ struct RTPHeaderExtension {
+   RTPHeaderExtension();
+   RTPHeaderExtension(const RTPHeaderExtension& other);
+@@ -170,12 +183,12 @@ struct RTPHeaderExtension {
+ 
+   absl::optional<ColorSpace> color_space;
+ 
++  CsrcAudioLevelList csrcAudioLevels;
++
+  private:
+   absl::optional<AudioLevel> audio_level_;
+ };
+ 
+-enum { kRtpCsrcSize = 15 };  // RFC 3550 page 13
+-
+ struct RTC_EXPORT RTPHeader {
+   RTPHeader();
+   RTPHeader(const RTPHeader& other);
+diff --git a/api/rtp_parameters.cc b/api/rtp_parameters.cc
+index 3ff4b58a2e..ad0f3c9396 100644
+--- a/api/rtp_parameters.cc
++++ b/api/rtp_parameters.cc
+@@ -160,7 +160,8 @@ bool RtpExtension::IsSupportedForAudio(absl::string_view uri) {
+          uri == webrtc::RtpExtension::kTransportSequenceNumberV2Uri ||
+          uri == webrtc::RtpExtension::kMidUri ||
+          uri == webrtc::RtpExtension::kRidUri ||
+-         uri == webrtc::RtpExtension::kRepairedRidUri;
++         uri == webrtc::RtpExtension::kRepairedRidUri ||
++         uri == webrtc::RtpExtension::kCsrcAudioLevelsUri;
+ }
+ 
+ bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 112980fc64..8d5c3ef05f 100644
+index 8d5c3ef05f..a934b36da4 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
-@@ -556,7 +556,6 @@ if (rtc_include_tests) {
-         "../api/task_queue:pending_task_safety_flag",
-         "../api/test/metrics:global_metrics_logger_and_exporter",
-         "../api/test/metrics:metric",
--        "../api/units:data_rate",
-         "../api/video:builtin_video_bitrate_allocator_factory",
-         "../api/video:video_bitrate_allocation",
-         "../api/video_codecs:video_codecs_api",
-diff --git a/call/call_perf_tests.cc b/call/call_perf_tests.cc
-index 15aaaa44aa..e1d0d4c57e 100644
---- a/call/call_perf_tests.cc
-+++ b/call/call_perf_tests.cc
-@@ -24,7 +24,6 @@
- #include "api/test/metrics/global_metrics_logger_and_exporter.h"
- #include "api/test/metrics/metric.h"
- #include "api/test/simulated_network.h"
--#include "api/units/data_rate.h"
- #include "api/video/builtin_video_bitrate_allocator_factory.h"
- #include "api/video/video_bitrate_allocation.h"
- #include "api/video_codecs/video_encoder.h"
-@@ -959,7 +958,7 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
-    protected:
-     BuiltInNetworkBehaviorConfig GetFakeNetworkPipeConfig() const {
-       BuiltInNetworkBehaviorConfig pipe_config;
--      pipe_config.link_capacity = DataRate::KilobitsPerSec(test_bitrate_from_);
-+      pipe_config.link_capacity_kbps = test_bitrate_from_;
-       return pipe_config;
-     }
+@@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
+   sources = [
+     "audio_receive_stream.cc",
+     "audio_receive_stream.h",
++    "audio_send_stream.cc",
+     "audio_send_stream.h",
+     "audio_state.cc",
+     "audio_state.h",
+@@ -32,9 +33,6 @@ rtc_library("call_interfaces") {
+     "syncable.cc",
+     "syncable.h",
+   ]
+-  if (!build_with_mozilla) {
+-    sources += [ "audio_send_stream.cc" ]
+-  }
  
-@@ -991,7 +990,7 @@ void CallPerfTest::TestMinAudioVideoBitrate(int test_bitrate_from,
-                : test_bitrate >= test_bitrate_to_;
-            test_bitrate += test_bitrate_step_) {
-         BuiltInNetworkBehaviorConfig pipe_config;
--        pipe_config.link_capacity = DataRate::KilobitsPerSec(test_bitrate);
-+        pipe_config.link_capacity_kbps = test_bitrate;
-         send_simulated_network_->SetConfig(pipe_config);
-         receive_simulated_network_->SetConfig(pipe_config);
+   deps = [
+     ":audio_sender_interface",
+diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
+index 20e9245584..b54df14eac 100644
+--- a/call/video_receive_stream.h
++++ b/call/video_receive_stream.h
+@@ -216,6 +216,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+       // disabled.
+       KeyFrameReqMethod keyframe_method = KeyFrameReqMethod::kPliRtcp;
  
-diff --git a/call/fake_network_pipe_unittest.cc b/call/fake_network_pipe_unittest.cc
-index 66e43f69b7..800d5a8cbe 100644
---- a/call/fake_network_pipe_unittest.cc
-+++ b/call/fake_network_pipe_unittest.cc
-@@ -13,7 +13,6 @@
- #include <memory>
++      bool tmmbr = false;
++
+       // See LntfConfig for description.
+       LntfConfig lntf;
+ 
+diff --git a/modules/audio_coding/acm2/acm_receiver.h b/modules/audio_coding/acm2/acm_receiver.h
+index 6393a866f6..b942f635e7 100644
+--- a/modules/audio_coding/acm2/acm_receiver.h
++++ b/modules/audio_coding/acm2/acm_receiver.h
+@@ -18,6 +18,7 @@
+ #include <string>
  #include <utility>
+ #include <vector>
++#include <atomic>
  
--#include "api/units/data_rate.h"
- #include "api/units/time_delta.h"
- #include "api/units/timestamp.h"
- #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
-@@ -76,8 +75,8 @@ class FakeNetworkPipeTest : public ::testing::Test {
-     }
-   }
- 
--  int PacketTimeMs(DataRate capacity, int packet_size) const {
--    return 8 * packet_size / capacity.kbps();
-+  int PacketTimeMs(int capacity_kbps, int packet_size) const {
-+    return 8 * packet_size / capacity_kbps;
-   }
- 
-   SimulatedClock fake_clock_;
-@@ -87,7 +86,7 @@ class FakeNetworkPipeTest : public ::testing::Test {
- TEST_F(FakeNetworkPipeTest, CapacityTest) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 20;
--  config.link_capacity = DataRate::KilobitsPerSec(80);
-+  config.link_capacity_kbps = 80;
-   MockReceiver receiver;
-   auto simulated_network = std::make_unique<SimulatedNetwork>(config);
-   std::unique_ptr<FakeNetworkPipe> pipe(new FakeNetworkPipe(
-@@ -100,7 +99,8 @@ TEST_F(FakeNetworkPipeTest, CapacityTest) {
-   SendPackets(pipe.get(), kNumPackets, kPacketSize);
- 
-   // Time to get one packet through the link.
--  const int kPacketTimeMs = PacketTimeMs(config.link_capacity, kPacketSize);
-+  const int kPacketTimeMs =
-+      PacketTimeMs(config.link_capacity_kbps, kPacketSize);
- 
-   // Time haven't increased yet, so we souldn't get any packets.
-   EXPECT_CALL(receiver, DeliverRtpPacket).Times(0);
-@@ -127,7 +127,7 @@ TEST_F(FakeNetworkPipeTest, ExtraDelayTest) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 20;
-   config.queue_delay_ms = 100;
--  config.link_capacity = DataRate::KilobitsPerSec(80);
-+  config.link_capacity_kbps = 80;
-   MockReceiver receiver;
-   auto simulated_network = std::make_unique<SimulatedNetwork>(config);
-   std::unique_ptr<FakeNetworkPipe> pipe(new FakeNetworkPipe(
-@@ -138,7 +138,8 @@ TEST_F(FakeNetworkPipeTest, ExtraDelayTest) {
-   SendPackets(pipe.get(), kNumPackets, kPacketSize);
- 
-   // Time to get one packet through the link.
--  const int kPacketTimeMs = PacketTimeMs(config.link_capacity, kPacketSize);
-+  const int kPacketTimeMs =
-+      PacketTimeMs(config.link_capacity_kbps, kPacketSize);
- 
-   // Increase more than kPacketTimeMs, but not more than the extra delay.
-   fake_clock_.AdvanceTimeMilliseconds(kPacketTimeMs);
-@@ -161,14 +162,15 @@ TEST_F(FakeNetworkPipeTest, ExtraDelayTest) {
- TEST_F(FakeNetworkPipeTest, QueueLengthTest) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 2;
--  config.link_capacity = DataRate::KilobitsPerSec(80);
-+  config.link_capacity_kbps = 80;
-   MockReceiver receiver;
-   auto simulated_network = std::make_unique<SimulatedNetwork>(config);
-   std::unique_ptr<FakeNetworkPipe> pipe(new FakeNetworkPipe(
-       &fake_clock_, std::move(simulated_network), &receiver));
- 
-   const int kPacketSize = 1000;
--  const int kPacketTimeMs = PacketTimeMs(config.link_capacity, kPacketSize);
-+  const int kPacketTimeMs =
-+      PacketTimeMs(config.link_capacity_kbps, kPacketSize);
- 
-   // Send three packets and verify only 2 are delivered.
-   SendPackets(pipe.get(), 3, kPacketSize);
-@@ -185,14 +187,15 @@ TEST_F(FakeNetworkPipeTest, StatisticsTest) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 2;
-   config.queue_delay_ms = 20;
--  config.link_capacity = DataRate::KilobitsPerSec(80);
-+  config.link_capacity_kbps = 80;
-   MockReceiver receiver;
-   auto simulated_network = std::make_unique<SimulatedNetwork>(config);
-   std::unique_ptr<FakeNetworkPipe> pipe(new FakeNetworkPipe(
-       &fake_clock_, std::move(simulated_network), &receiver));
- 
-   const int kPacketSize = 1000;
--  const int kPacketTimeMs = PacketTimeMs(config.link_capacity, kPacketSize);
-+  const int kPacketTimeMs =
-+      PacketTimeMs(config.link_capacity_kbps, kPacketSize);
- 
-   // Send three packets and verify only 2 are delivered.
-   SendPackets(pipe.get(), 3, kPacketSize);
-@@ -215,7 +218,7 @@ TEST_F(FakeNetworkPipeTest, StatisticsTest) {
- TEST_F(FakeNetworkPipeTest, ChangingCapacityWithEmptyPipeTest) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 20;
--  config.link_capacity = DataRate::KilobitsPerSec(80);
-+  config.link_capacity_kbps = 80;
-   MockReceiver receiver;
-   std::unique_ptr<SimulatedNetwork> network(new SimulatedNetwork(config));
-   SimulatedNetwork* simulated_network = network.get();
-@@ -229,7 +232,7 @@ TEST_F(FakeNetworkPipeTest, ChangingCapacityWithEmptyPipeTest) {
-   SendPackets(pipe.get(), kNumPackets, kPacketSize);
- 
-   // Time to get one packet through the link.
--  int packet_time_ms = PacketTimeMs(config.link_capacity, kPacketSize);
-+  int packet_time_ms = PacketTimeMs(config.link_capacity_kbps, kPacketSize);
- 
-   // Time hasn't increased yet, so we souldn't get any packets.
-   EXPECT_CALL(receiver, DeliverRtpPacket).Times(0);
-@@ -243,7 +246,7 @@ TEST_F(FakeNetworkPipeTest, ChangingCapacityWithEmptyPipeTest) {
-   }
- 
-   // Change the capacity.
--  config.link_capacity = config.link_capacity / 2;  // Reduce to 50%.
-+  config.link_capacity_kbps /= 2;  // Reduce to 50%.
-   simulated_network->SetConfig(config);
- 
-   // Add another 10 packets of 1000 bytes, = 80 kb, and verify it takes two
-@@ -251,7 +254,7 @@ TEST_F(FakeNetworkPipeTest, ChangingCapacityWithEmptyPipeTest) {
-   SendPackets(pipe.get(), kNumPackets, kPacketSize);
- 
-   // Time to get one packet through the link.
--  packet_time_ms = PacketTimeMs(config.link_capacity, kPacketSize);
-+  packet_time_ms = PacketTimeMs(config.link_capacity_kbps, kPacketSize);
- 
-   // Time hasn't increased yet, so we souldn't get any packets.
-   EXPECT_CALL(receiver, DeliverRtpPacket).Times(0);
-@@ -277,7 +280,7 @@ TEST_F(FakeNetworkPipeTest, ChangingCapacityWithEmptyPipeTest) {
- TEST_F(FakeNetworkPipeTest, ChangingCapacityWithPacketsInPipeTest) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 20;
--  config.link_capacity = DataRate::KilobitsPerSec(80);
-+  config.link_capacity_kbps = 80;
-   MockReceiver receiver;
-   std::unique_ptr<SimulatedNetwork> network(new SimulatedNetwork(config));
-   SimulatedNetwork* simulated_network = network.get();
-@@ -294,7 +297,7 @@ TEST_F(FakeNetworkPipeTest, ChangingCapacityWithPacketsInPipeTest) {
-   pipe->Process();
- 
-   // Advance time in steps to release half of the packets one at a time.
--  int step_ms = PacketTimeMs(config.link_capacity, kPacketSize);
-+  int step_ms = PacketTimeMs(config.link_capacity_kbps, kPacketSize);
-   for (int i = 0; i < kNumPackets / 2; ++i) {
-     fake_clock_.AdvanceTimeMilliseconds(step_ms);
-     EXPECT_CALL(receiver, DeliverRtpPacket).Times(1);
-@@ -302,11 +305,11 @@ TEST_F(FakeNetworkPipeTest, ChangingCapacityWithPacketsInPipeTest) {
-   }
- 
-   // Change the capacity.
--  config.link_capacity = 2 * config.link_capacity;
-+  config.link_capacity_kbps *= 2;  // Double the capacity.
-   simulated_network->SetConfig(config);
- 
-   // Advance time in steps to release remaining packets one at a time.
--  step_ms = PacketTimeMs(config.link_capacity, kPacketSize);
-+  step_ms = PacketTimeMs(config.link_capacity_kbps, kPacketSize);
-   for (int i = 0; i < kNumPackets / 2; ++i) {
-     fake_clock_.AdvanceTimeMilliseconds(step_ms);
-     EXPECT_CALL(receiver, DeliverRtpPacket).Times(1);
-@@ -325,7 +328,7 @@ TEST_F(FakeNetworkPipeTest, ChangingCapacityWithPacketsInPipeTest) {
- TEST_F(FakeNetworkPipeTest, DisallowReorderingThenAllowReordering) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 1000;
--  config.link_capacity = DataRate::KilobitsPerSec(80);
-+  config.link_capacity_kbps = 800;
-   config.queue_delay_ms = 100;
-   config.delay_standard_deviation_ms = 10;
-   ReorderTestReceiver receiver;
-@@ -412,14 +415,15 @@ TEST_F(FakeNetworkPipeTest, BurstLoss) {
- 
- TEST_F(FakeNetworkPipeTest, SetReceiver) {
-   BuiltInNetworkBehaviorConfig config;
--  config.link_capacity = DataRate::KilobitsPerSec(800);
-+  config.link_capacity_kbps = 800;
-   MockReceiver receiver;
-   auto simulated_network = std::make_unique<SimulatedNetwork>(config);
-   std::unique_ptr<FakeNetworkPipe> pipe(new FakeNetworkPipe(
-       &fake_clock_, std::move(simulated_network), &receiver));
- 
-   const int kPacketSize = 1000;
--  const int kPacketTimeMs = PacketTimeMs(config.link_capacity, kPacketSize);
-+  const int kPacketTimeMs =
-+      PacketTimeMs(config.link_capacity_kbps, kPacketSize);
-   SendPackets(pipe.get(), 1, kPacketSize);
-   fake_clock_.AdvanceTimeMilliseconds(kPacketTimeMs);
-   EXPECT_CALL(receiver, DeliverRtpPacket).Times(1);
-diff --git a/call/rampup_tests.cc b/call/rampup_tests.cc
-index 103e998079..d93065fe12 100644
---- a/call/rampup_tests.cc
-+++ b/call/rampup_tests.cc
-@@ -19,7 +19,6 @@
- #include "api/task_queue/task_queue_base.h"
- #include "api/test/metrics/global_metrics_logger_and_exporter.h"
- #include "api/test/metrics/metric.h"
--#include "api/units/data_rate.h"
- #include "call/fake_network_pipe.h"
- #include "rtc_base/checks.h"
- #include "rtc_base/logging.h"
-@@ -411,8 +410,7 @@ RampUpDownUpTester::RampUpDownUpTester(size_t num_video_streams,
-       interval_start_ms_(clock_->TimeInMilliseconds()),
-       sent_bytes_(0),
-       loss_rates_(loss_rates) {
--  forward_transport_config_.link_capacity =
--      DataRate::KilobitsPerSec(link_rates_[test_state_]);
-+  forward_transport_config_.link_capacity_kbps = link_rates_[test_state_];
-   forward_transport_config_.queue_delay_ms = 100;
-   forward_transport_config_.loss_percent = loss_rates_[test_state_];
- }
-@@ -551,8 +549,7 @@ void RampUpDownUpTester::EvolveTestState(int bitrate_bps, bool suspended) {
-     case kTransitionToNextState:
-       if (!ExpectingFec() || GetFecBytes() > 0) {
-         test_state_ = next_state_;
--        forward_transport_config_.link_capacity =
--            DataRate::KilobitsPerSec(link_rates_[test_state_]);
-+        forward_transport_config_.link_capacity_kbps = link_rates_[test_state_];
-         // No loss while ramping up and down as it may affect the BWE
-         // negatively, making the test flaky.
-         forward_transport_config_.loss_percent = 0;
-diff --git a/net/dcsctp/socket/BUILD.gn b/net/dcsctp/socket/BUILD.gn
-index f002df151b..7af8063e91 100644
---- a/net/dcsctp/socket/BUILD.gn
-+++ b/net/dcsctp/socket/BUILD.gn
-@@ -235,7 +235,6 @@ if (rtc_include_tests) {
-       "../../../api:network_emulation_manager_api",
-       "../../../api/task_queue",
-       "../../../api/task_queue:pending_task_safety_flag",
--      "../../../api/units:data_rate",
-       "../../../api/units:time_delta",
-       "../../../rtc_base:checks",
-       "../../../rtc_base:copy_on_write_buffer",
-diff --git a/net/dcsctp/socket/dcsctp_socket_network_test.cc b/net/dcsctp/socket/dcsctp_socket_network_test.cc
-index 0f41efbcff..801d471365 100644
---- a/net/dcsctp/socket/dcsctp_socket_network_test.cc
-+++ b/net/dcsctp/socket/dcsctp_socket_network_test.cc
-@@ -22,7 +22,6 @@
- #include "api/task_queue/task_queue_base.h"
- #include "api/test/create_network_emulation_manager.h"
- #include "api/test/network_emulation_manager.h"
--#include "api/units/data_rate.h"
- #include "api/units/time_delta.h"
- #include "net/dcsctp/public/dcsctp_options.h"
- #include "net/dcsctp/public/dcsctp_socket.h"
-@@ -55,7 +54,6 @@ using ::testing::AllOf;
- using ::testing::Ge;
- using ::testing::Le;
- using ::testing::SizeIs;
--using ::webrtc::DataRate;
- using ::webrtc::TimeDelta;
- using ::webrtc::Timestamp;
- 
-@@ -408,7 +406,7 @@ TEST_F(DcSctpSocketNetworkTest, CanSendLargeMessage) {
- TEST_F(DcSctpSocketNetworkTest, CanSendMessagesReliablyWithLowBandwidth) {
-   webrtc::BuiltInNetworkBehaviorConfig pipe_config;
-   pipe_config.queue_delay_ms = 30;
--  pipe_config.link_capacity = DataRate::KilobitsPerSec(1000);
-+  pipe_config.link_capacity_kbps = 1000;
-   MakeNetwork(pipe_config);
- 
-   SctpActor sender("A", emulated_socket_a_, options_);
-@@ -437,7 +435,7 @@ TEST_F(DcSctpSocketNetworkTest,
-        DCSCTP_NDEBUG_TEST(CanSendMessagesReliablyWithMediumBandwidth)) {
-   webrtc::BuiltInNetworkBehaviorConfig pipe_config;
-   pipe_config.queue_delay_ms = 30;
--  pipe_config.link_capacity = DataRate::KilobitsPerSec(18000);
-+  pipe_config.link_capacity_kbps = 18000;
-   MakeNetwork(pipe_config);
- 
-   SctpActor sender("A", emulated_socket_a_, options_);
-diff --git a/pc/scenario_tests/goog_cc_test.cc b/pc/scenario_tests/goog_cc_test.cc
-index ebe1047812..ea96408ac7 100644
---- a/pc/scenario_tests/goog_cc_test.cc
-+++ b/pc/scenario_tests/goog_cc_test.cc
-@@ -10,7 +10,6 @@
- 
- #include "api/stats/rtc_stats_collector_callback.h"
- #include "api/stats/rtcstats_objects.h"
--#include "api/units/data_rate.h"
- #include "pc/test/mock_peer_connection_observers.h"
- #include "test/field_trial.h"
- #include "test/gtest.h"
-@@ -43,7 +42,7 @@ TEST(GoogCcPeerScenarioTest, MAYBE_NoBweChangeFromVideoUnmute) {
-   auto* callee = s.CreateClient(PeerScenarioClient::Config());
- 
-   BuiltInNetworkBehaviorConfig net_conf;
--  net_conf.link_capacity = DataRate::KilobitsPerSec(350);
-+  net_conf.link_capacity_kbps = 350;
-   net_conf.queue_delay_ms = 50;
-   auto send_node = s.net()->CreateEmulatedNode(net_conf);
-   auto ret_node = s.net()->CreateEmulatedNode(net_conf);
-diff --git a/test/network/BUILD.gn b/test/network/BUILD.gn
-index aa22c4758b..94d57e101c 100644
---- a/test/network/BUILD.gn
-+++ b/test/network/BUILD.gn
-@@ -134,7 +134,6 @@ rtc_library("cross_traffic_unittest") {
-     "../..//test/network:simulated_network",
-     "../../api:network_emulation_manager_api",
-     "../../api:simulated_network_api",
--    "../../api/units:data_rate",
-     "../../rtc_base:logging",
-     "../../rtc_base:network_constants",
-     "../../rtc_base:rtc_event",
-diff --git a/test/network/cross_traffic_unittest.cc b/test/network/cross_traffic_unittest.cc
-index 5382f66389..ff1c1e176e 100644
---- a/test/network/cross_traffic_unittest.cc
-+++ b/test/network/cross_traffic_unittest.cc
-@@ -19,7 +19,6 @@
  #include "absl/types/optional.h"
- #include "api/test/network_emulation_manager.h"
- #include "api/test/simulated_network.h"
--#include "api/units/data_rate.h"
- #include "rtc_base/event.h"
- #include "rtc_base/logging.h"
- #include "rtc_base/network_constants.h"
-@@ -130,7 +129,7 @@ TEST(TcpMessageRouteTest, DeliveredOnLossyNetwork) {
-   BuiltInNetworkBehaviorConfig send;
-   // 800 kbps means that the 100 kB message would be delivered in ca 1 second
-   // under ideal conditions and no overhead.
--  send.link_capacity = DataRate::KilobitsPerSec(100 * 8);
-+  send.link_capacity_kbps = 100 * 8;
-   send.loss_percent = 50;
-   send.queue_delay_ms = 100;
-   send.delay_standard_deviation_ms = 20;
-diff --git a/test/network/feedback_generator.cc b/test/network/feedback_generator.cc
-index 08da56aac9..9df6e24a4c 100644
---- a/test/network/feedback_generator.cc
-+++ b/test/network/feedback_generator.cc
-@@ -63,7 +63,7 @@ void FeedbackGeneratorImpl::SetReturnConfig(
+ #include "api/array_view.h"
+@@ -232,12 +233,15 @@ class AcmReceiver {
+ 
+   mutable Mutex mutex_;
+   absl::optional<DecoderInfo> last_decoder_ RTC_GUARDED_BY(mutex_);
+-  ACMResampler resampler_ RTC_GUARDED_BY(mutex_);
+-  std::unique_ptr<int16_t[]> last_audio_buffer_ RTC_GUARDED_BY(mutex_);
+-  CallStatistics call_stats_ RTC_GUARDED_BY(mutex_);
++  ACMResampler resampler_;
++
++  // After construction, this is only ever touched on the thread that calls
++  // AcmReceiver::GetAudio, and only modified in this method.
++  std::unique_ptr<int16_t[]> last_audio_buffer_;
++  CallStatistics call_stats_;
+   const std::unique_ptr<NetEq> neteq_;  // NetEq is thread-safe; no lock needed.
+   Clock& clock_;
+-  bool resampled_last_output_frame_ RTC_GUARDED_BY(mutex_);
++  std::atomic<bool> resampled_last_output_frame_;
+ };
+ 
+ }  // namespace acm2
+diff --git a/modules/audio_coding/neteq/dtmf_buffer.cc b/modules/audio_coding/neteq/dtmf_buffer.cc
+index 9f78aca6e2..115bfcf97b 100644
+--- a/modules/audio_coding/neteq/dtmf_buffer.cc
++++ b/modules/audio_coding/neteq/dtmf_buffer.cc
+@@ -193,7 +193,11 @@ bool DtmfBuffer::Empty() const {
  }
  
- void FeedbackGeneratorImpl::SetSendLinkCapacity(DataRate capacity) {
--  conf_.send_link.link_capacity = capacity;
-+  conf_.send_link.link_capacity_kbps = capacity.kbps<int>();
-   send_link_->SetConfig(conf_.send_link);
- }
- 
-diff --git a/test/network/simulated_network_unittest.cc b/test/network/simulated_network_unittest.cc
-index 536c1e227c..fa04e8a2da 100644
---- a/test/network/simulated_network_unittest.cc
-+++ b/test/network/simulated_network_unittest.cc
-@@ -52,8 +52,7 @@ TEST(SimulatedNetworkTest, EnqueueFirstPacketOnNetworkWithInfiniteCapacity) {
- TEST(SimulatedNetworkTest, EnqueueFirstPacketOnNetworkWithLimitedCapacity) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-   // should be ready to exit the network in 1 second.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(PacketWithSize(125)));
- 
-   EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Seconds(1).us());
-@@ -63,8 +62,7 @@ TEST(SimulatedNetworkTest,
-      EnqueuePacketsButNextDeliveryIsBasedOnFirstEnqueuedPacket) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-   // should be ready to exit the network in 1 second.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(
-       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1)));
-   EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Seconds(1).us());
-@@ -85,8 +83,7 @@ TEST(SimulatedNetworkTest,
- 
- TEST(SimulatedNetworkTest, EnqueueFailsWhenQueueLengthIsReached) {
-   SimulatedNetwork network =
--      SimulatedNetwork({.queue_length_packets = 1,
--                        .link_capacity = DataRate::KilobitsPerSec(1)});
-+      SimulatedNetwork({.queue_length_packets = 1, .link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(
-       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1)));
- 
-@@ -113,8 +110,8 @@ TEST(SimulatedNetworkTest, PacketOverhead) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-   // should be ready to exit the network in 1 second, but since there is an
-   // overhead per packet of 125 bytes, it will exit the network after 2 seconds.
--  SimulatedNetwork network = SimulatedNetwork(
--      {.link_capacity = DataRate::KilobitsPerSec(1), .packet_overhead = 125});
-+  SimulatedNetwork network =
-+      SimulatedNetwork({.link_capacity_kbps = 1, .packet_overhead = 125});
-   ASSERT_TRUE(network.EnqueuePacket(PacketWithSize(125)));
- 
-   EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Seconds(2).us());
-@@ -124,8 +121,7 @@ TEST(SimulatedNetworkTest,
-      DequeueDeliverablePacketsLeavesPacketsInCapacityLink) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-   // should be ready to exit the network in 1 second.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(
-       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1)));
-   // Enqueue another packet of 125 bytes (this one should exit after 2 seconds).
-@@ -155,8 +151,7 @@ TEST(SimulatedNetworkTest,
-      DequeueDeliverablePacketsAppliesConfigChangesToCapacityLink) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-   // should be ready to exit the network in 1 second.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   const PacketInFlightInfo packet_1 =
-       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1);
-   ASSERT_TRUE(network.EnqueuePacket(packet_1));
-@@ -175,7 +170,7 @@ TEST(SimulatedNetworkTest,
- 
-   // Since the link capacity changes from 1 kbps to 10 kbps, packets will take
-   // 100 ms each to leave the network.
--  network.SetConfig({.link_capacity = DataRate::KilobitsPerSec(10)});
-+  network.SetConfig({.link_capacity_kbps = 10});
- 
-   // The next delivery time doesn't change (it will be updated, if needed at
-   // DequeueDeliverablePackets time).
-@@ -207,8 +202,7 @@ TEST(SimulatedNetworkTest,
-      SetConfigUpdateNextDeliveryTimeIfLinkCapacityChange) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps capacity
-   // should be ready to exit the network in 1 second.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   MockFunction<void()> delivery_time_changed_callback;
-   network.RegisterDeliveryTimeChangedCallback(
-       delivery_time_changed_callback.AsStdFunction());
-@@ -223,7 +217,7 @@ TEST(SimulatedNetworkTest,
-   EXPECT_CALL(delivery_time_changed_callback, Call).WillOnce([&]() {
-     EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Millis(500 + 50).us());
-   });
--  network.SetConfig({.link_capacity = DataRate::KilobitsPerSec(10)},
-+  network.SetConfig({.link_capacity_kbps = 10},
-                     /*config_update_time*/ Timestamp::Millis(500));
- }
- 
-@@ -274,8 +268,7 @@ TEST(SimulatedNetworkTest, SetConfigUpdateQueueDelayAfterDelivery) {
-   // A packet of 125 bytes that gets enqueued on a network with 1000 kbps
-   // capacity should be ready to exit the narrow section in 1 ms.
-   SimulatedNetwork network =
--      SimulatedNetwork({.queue_delay_ms = 1000,
--                        .link_capacity = DataRate::KilobitsPerSec(1000)});
-+      SimulatedNetwork({.queue_delay_ms = 1000, .link_capacity_kbps = 1000});
-   MockFunction<void()> delivery_time_changed_callback;
-   network.RegisterDeliveryTimeChangedCallback(
-       delivery_time_changed_callback.AsStdFunction());
-@@ -292,9 +285,8 @@ TEST(SimulatedNetworkTest, SetConfigUpdateQueueDelayAfterDelivery) {
-   EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Millis(1000 + 1).us());
- 
-   // Changing the queue time does not change the next delivery time.
--  network.SetConfig(
--      {.queue_delay_ms = 1, .link_capacity = DataRate::KilobitsPerSec(100)},
--      /*config_update_time*/ Timestamp::Millis(500));
-+  network.SetConfig({.queue_delay_ms = 1, .link_capacity_kbps = 100},
-+                    /*config_update_time*/ Timestamp::Millis(500));
-   EXPECT_EQ(network.NextDeliveryTimeUs(), TimeDelta::Millis(1000 + 1).us());
- 
-   // A new packet require NextDeliveryTimeUs to change since the capacity
-@@ -318,8 +310,7 @@ TEST(SimulatedNetworkTest, SetConfigUpdateQueueDelayAfterDelivery) {
- TEST(SimulatedNetworkTest, NetworkEmptyAfterLastPacketDequeued) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps
-   // capacity should be ready to exit the network in 1 second.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(PacketWithSize(125)));
- 
-   // Collecting all the delivered packets ...
-@@ -335,8 +326,7 @@ TEST(SimulatedNetworkTest, NetworkEmptyAfterLastPacketDequeued) {
- TEST(SimulatedNetworkTest, DequeueDeliverablePacketsOnLateCall) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps
-   // capacity should be ready to exit the network in 1 second.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(
-       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1)));
- 
-@@ -359,8 +349,7 @@ TEST(SimulatedNetworkTest,
-      DequeueDeliverablePacketsOnEarlyCallReturnsNoPackets) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps
-   // capacity should be ready to exit the network in 1 second.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(PacketWithSize(125)));
- 
-   // Collecting delivered packets after 0.5 seconds will result in the
-@@ -377,8 +366,8 @@ TEST(SimulatedNetworkTest,
- TEST(SimulatedNetworkTest, QueueDelayMsWithoutStandardDeviation) {
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps
-   // capacity should be ready to exit the network in 1 second.
--  SimulatedNetwork network = SimulatedNetwork(
--      {.queue_delay_ms = 100, .link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network =
-+      SimulatedNetwork({.queue_delay_ms = 100, .link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(PacketWithSize(125)));
-   // The next delivery time is still 1 second even if there are 100 ms of
-   // extra delay but this will be applied at DequeueDeliverablePackets time.
-@@ -405,7 +394,7 @@ TEST(SimulatedNetworkTest,
-   SimulatedNetwork network =
-       SimulatedNetwork({.queue_delay_ms = 100,
-                         .delay_standard_deviation_ms = 90,
--                        .link_capacity = DataRate::KilobitsPerSec(1),
-+                        .link_capacity_kbps = 1,
-                         .allow_reordering = false});
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps
-   // capacity should be ready to exit the network in 1 second.
-@@ -443,7 +432,7 @@ TEST(SimulatedNetworkTest, QueueDelayMsWithStandardDeviationAndReorderAllowed) {
-   SimulatedNetwork network =
-       SimulatedNetwork({.queue_delay_ms = 100,
-                         .delay_standard_deviation_ms = 90,
--                        .link_capacity = DataRate::KilobitsPerSec(1),
-+                        .link_capacity_kbps = 1,
-                         .allow_reordering = true},
-                        /*random_seed=*/1);
-   // A packet of 125 bytes that gets enqueued on a network with 1 kbps
-@@ -505,12 +494,10 @@ TEST(SimulatedNetworkTest, PacketLoss) {
- }
- 
- TEST(SimulatedNetworkTest, NextDeliveryTimeSetAfterLostPackets) {
--  // On a network with 50% probablility of packet loss ...
--  SimulatedNetwork network =
--      SimulatedNetwork({.queue_delay_ms = 10,
--                        .link_capacity = DataRate::KilobitsPerSec(1000),
--                        .loss_percent = 50},
--                       /*random_seed =*/1);
-+  // On a network with 50% probability of packet loss ...
-+  SimulatedNetwork network = SimulatedNetwork(
-+      {.queue_delay_ms = 10, .link_capacity_kbps = 1000, .loss_percent = 50},
-+      /*random_seed =*/1);
-   // Enqueueing 8 packets at the same time. It should take 1ms to pass through
-   // the capacity limited section per packet, it total adding 8ms delay to the
-   // last packet. Since queue delay is 10ms, multiple packets will be in the
-@@ -582,8 +569,7 @@ TEST(SimulatedNetworkTest, PauseTransmissionUntil) {
-   // 3 packets of 125 bytes that gets enqueued on a network with 1 kbps
-   // capacity should be ready to exit the network after 1, 2 and 3 seconds
-   // respectively.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(
-       PacketInFlightInfo(/*size=*/125, /*send_time_us=*/0, /*packet_id=*/1)));
-   ASSERT_TRUE(network.EnqueuePacket(
-@@ -620,8 +606,7 @@ TEST(SimulatedNetworkTest, PauseTransmissionUntil) {
- }
- 
- TEST(SimulatedNetworkTest, CongestedNetworkRespectsLinkCapacity) {
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   for (size_t i = 0; i < 1'000; ++i) {
-     ASSERT_TRUE(network.EnqueuePacket(PacketInFlightInfo(
-         /*size=*/125, /*send_time_us=*/0, /*packet_id=*/i)));
-@@ -648,8 +633,7 @@ TEST(SimulatedNetworkTest, EnqueuePacketWithSubSecondNonMonotonicBehaviour) {
-   // non monothonic behaviour when running on different cores. This test
-   // checks that when a non monotonic packet enqueue, the network continues to
-   // work and the out of order packet is sent anyway.
--  SimulatedNetwork network =
--      SimulatedNetwork({.link_capacity = DataRate::KilobitsPerSec(1)});
-+  SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
-   ASSERT_TRUE(network.EnqueuePacket(PacketInFlightInfo(
-       /*size=*/125, /*send_time_us=*/TimeDelta::Seconds(1).us(),
-       /*packet_id=*/0)));
-@@ -674,8 +658,7 @@ TEST(SimulatedNetworkTest, EnqueuePacketWithSubSecondNonMonotonicBehaviour) {
- // TODO(bugs.webrtc.org/14525): Re-enable when the DCHECK will be uncommented
- // and the non-monotonic events on real time clock tests is solved/understood.
- // TEST(SimulatedNetworkDeathTest, EnqueuePacketExpectMonotonicSendTime) {
--//   SimulatedNetwork network = SimulatedNetwork({.link_capacity =
--//   DataRate::KilobitsPerSec(1)});
-+//   SimulatedNetwork network = SimulatedNetwork({.link_capacity_kbps = 1});
- //   ASSERT_TRUE(network.EnqueuePacket(PacketInFlightInfo(
- //       /*size=*/125, /*send_time_us=*/2'000'000, /*packet_id=*/0)));
- //   EXPECT_DEATH_IF_SUPPORTED(network.EnqueuePacket(PacketInFlightInfo(
-diff --git a/test/pc/e2e/stats_based_network_quality_metrics_reporter_test.cc b/test/pc/e2e/stats_based_network_quality_metrics_reporter_test.cc
-index a4ed112963..6401902fb3 100644
---- a/test/pc/e2e/stats_based_network_quality_metrics_reporter_test.cc
-+++ b/test/pc/e2e/stats_based_network_quality_metrics_reporter_test.cc
-@@ -92,13 +92,11 @@ TEST(StatsBasedNetworkQualityMetricsReporterTest, DebugStatsAreCollected) {
-   EmulatedEndpoint* bob_endpoint =
-       network_emulation->CreateEndpoint(EmulatedEndpointConfig());
- 
--  EmulatedNetworkNode* alice_link =
--      network_emulation->CreateEmulatedNode(BuiltInNetworkBehaviorConfig{
--          .link_capacity = DataRate::KilobitsPerSec(500)});
-+  EmulatedNetworkNode* alice_link = network_emulation->CreateEmulatedNode(
-+      BuiltInNetworkBehaviorConfig{.link_capacity_kbps = 500});
-   network_emulation->CreateRoute(alice_endpoint, {alice_link}, bob_endpoint);
--  EmulatedNetworkNode* bob_link =
--      network_emulation->CreateEmulatedNode(BuiltInNetworkBehaviorConfig{
--          .link_capacity = DataRate::KilobitsPerSec(500)});
-+  EmulatedNetworkNode* bob_link = network_emulation->CreateEmulatedNode(
-+      BuiltInNetworkBehaviorConfig{.link_capacity_kbps = 500});
-   network_emulation->CreateRoute(bob_endpoint, {bob_link}, alice_endpoint);
- 
-   EmulatedNetworkManagerInterface* alice_network =
-diff --git a/test/scenario/network_node.cc b/test/scenario/network_node.cc
-index edc573d95f..6265454263 100644
---- a/test/scenario/network_node.cc
-+++ b/test/scenario/network_node.cc
-@@ -24,7 +24,7 @@ constexpr char kDummyTransportName[] = "dummy";
- SimulatedNetwork::Config CreateSimulationConfig(
-     NetworkSimulationConfig config) {
-   SimulatedNetwork::Config sim_config;
--  sim_config.link_capacity = config.bandwidth;
-+  sim_config.link_capacity_kbps = config.bandwidth.kbps_or(0);
-   sim_config.loss_percent = config.loss_rate * 100;
-   sim_config.queue_delay_ms = config.delay.ms();
-   sim_config.delay_standard_deviation_ms = config.delay_std_dev.ms();
-diff --git a/video/BUILD.gn b/video/BUILD.gn
-index 0e2abe7693..3e423b61be 100644
---- a/video/BUILD.gn
-+++ b/video/BUILD.gn
-@@ -598,7 +598,6 @@ if (rtc_include_tests) {
-         "../api:simulated_network_api",
-         "../api:test_dependency_factory",
-         "../api:video_quality_test_fixture_api",
--        "../api/units:data_rate",
-         "../api/video_codecs:video_codecs_api",
-         "../modules/pacing",
-         "../modules/video_coding:webrtc_vp9",
-@@ -659,7 +658,6 @@ if (rtc_include_tests) {
-         "../api:simulated_network_api",
-         "../api:video_quality_test_fixture_api",
-         "../api/transport:bitrate_settings",
--        "../api/units:data_rate",
-         "../api/video_codecs:video_codecs_api",
-         "../rtc_base:checks",
-         "../rtc_base:logging",
-@@ -705,7 +703,6 @@ if (rtc_include_tests) {
-         "../api:simulated_network_api",
-         "../api:video_quality_test_fixture_api",
-         "../api/transport:bitrate_settings",
--        "../api/units:data_rate",
-         "../api/video_codecs:video_codecs_api",
-         "../rtc_base:checks",
-         "../rtc_base:logging",
-@@ -733,7 +730,6 @@ if (rtc_include_tests) {
-         "../api:simulated_network_api",
-         "../api:video_quality_test_fixture_api",
-         "../api/transport:bitrate_settings",
--        "../api/units:data_rate",
-         "../api/video_codecs:video_codecs_api",
-         "../rtc_base:checks",
-         "../rtc_base:logging",
-diff --git a/video/end_to_end_tests/extended_reports_tests.cc b/video/end_to_end_tests/extended_reports_tests.cc
-index 21562da3e8..ae29b9c836 100644
---- a/video/end_to_end_tests/extended_reports_tests.cc
-+++ b/video/end_to_end_tests/extended_reports_tests.cc
-@@ -20,7 +20,6 @@
- #include "api/rtp_headers.h"
- #include "api/task_queue/task_queue_base.h"
- #include "api/test/simulated_network.h"
--#include "api/units/data_rate.h"
- #include "api/video_codecs/sdp_video_format.h"
- #include "call/call.h"
- #include "call/fake_network_pipe.h"
-@@ -77,7 +76,7 @@ class RtcpXrObserver : public test::EndToEndTest {
-         sent_zero_rtcp_target_bitrate_(false),
-         sent_rtcp_dlrr_(0),
-         send_simulated_network_(nullptr) {
--    forward_transport_config_.link_capacity = DataRate::KilobitsPerSec(500);
-+    forward_transport_config_.link_capacity_kbps = 500;
-     forward_transport_config_.queue_delay_ms = 0;
-     forward_transport_config_.loss_percent = 0;
+ int DtmfBuffer::SetSampleRate(int fs_hz) {
+-  if (fs_hz != 8000 && fs_hz != 16000 && fs_hz != 32000 && fs_hz != 48000) {
++  if (fs_hz != 8000 &&
++      fs_hz != 16000 &&
++      fs_hz != 32000 &&
++      fs_hz != 44100 &&
++      fs_hz != 48000) {
+     return kInvalidSampleRate;
    }
-@@ -110,7 +109,7 @@ class RtcpXrObserver : public test::EndToEndTest {
-         enable_zero_target_bitrate_) {
-       // Reduce bandwidth restriction to disable second stream after it was
-       // enabled for some time.
--      forward_transport_config_.link_capacity = DataRate::KilobitsPerSec(200);
-+      forward_transport_config_.link_capacity_kbps = 200;
-       send_simulated_network_->SetConfig(forward_transport_config_);
+   max_extrapolation_samples_ = 7 * fs_hz / 100;
+diff --git a/modules/desktop_capture/desktop_capturer.h b/modules/desktop_capture/desktop_capturer.h
+index 9c7ecc78f4..2c9c419bcd 100644
+--- a/modules/desktop_capture/desktop_capturer.h
++++ b/modules/desktop_capture/desktop_capturer.h
+@@ -82,6 +82,7 @@ class RTC_EXPORT DesktopCapturer {
+   struct Source {
+     // The unique id to represent a Source of current DesktopCapturer.
+     SourceId id;
++    pid_t pid;
+ 
+     // Title of the window or screen in UTF-8 encoding, maybe empty. This field
+     // should not be used to identify a source.
+diff --git a/modules/desktop_capture/fake_desktop_capturer.cc b/modules/desktop_capture/fake_desktop_capturer.cc
+index f9d9dbd2c4..67149bfcb9 100644
+--- a/modules/desktop_capture/fake_desktop_capturer.cc
++++ b/modules/desktop_capture/fake_desktop_capturer.cc
+@@ -72,8 +72,8 @@ void FakeDesktopCapturer::SetSharedMemoryFactory(
+ }
+ 
+ bool FakeDesktopCapturer::GetSourceList(DesktopCapturer::SourceList* sources) {
+-  sources->push_back({kWindowId, "A-Fake-DesktopCapturer-Window"});
+-  sources->push_back({kScreenId});
++  sources->push_back({kWindowId, 1, "A-Fake-DesktopCapturer-Window"});
++  sources->push_back({kScreenId, 1});
+   return true;
+ }
+ 
+diff --git a/modules/desktop_capture/linux/x11/mouse_cursor_monitor_x11.cc b/modules/desktop_capture/linux/x11/mouse_cursor_monitor_x11.cc
+index d9c7635c1d..d4b85af6bd 100644
+--- a/modules/desktop_capture/linux/x11/mouse_cursor_monitor_x11.cc
++++ b/modules/desktop_capture/linux/x11/mouse_cursor_monitor_x11.cc
+@@ -38,6 +38,7 @@ namespace {
+ // searches up the list of the windows to find the root child that corresponds
+ // to `window`.
+ Window GetTopLevelWindow(Display* display, Window window) {
++  webrtc::XErrorTrap error_trap(display);
+   while (true) {
+     // If the window is in WithdrawnState then look at all of its children.
+     ::Window root, parent;
+@@ -104,7 +105,7 @@ MouseCursorMonitorX11::~MouseCursorMonitorX11() {
+ }
+ 
+ void MouseCursorMonitorX11::Init(Callback* callback, Mode mode) {
+-  // Init can be called only once per instance of MouseCursorMonitor.
++  // Init can be called only if not started
+   RTC_DCHECK(!callback_);
+   RTC_DCHECK(callback);
+ 
+@@ -116,6 +117,7 @@ void MouseCursorMonitorX11::Init(Callback* callback, Mode mode) {
+ 
+   if (have_xfixes_) {
+     // Register for changes to the cursor shape.
++    XErrorTrap error_trap(display());
+     XFixesSelectCursorInput(display(), window_, XFixesDisplayCursorNotifyMask);
+     x_display_->AddEventHandler(xfixes_event_base_ + XFixesCursorNotify, this);
+ 
+diff --git a/modules/desktop_capture/linux/x11/screen_capturer_x11.cc b/modules/desktop_capture/linux/x11/screen_capturer_x11.cc
+index d5dcd7af86..fa6334e8ba 100644
+--- a/modules/desktop_capture/linux/x11/screen_capturer_x11.cc
++++ b/modules/desktop_capture/linux/x11/screen_capturer_x11.cc
+@@ -302,7 +302,7 @@ bool ScreenCapturerX11::GetSourceList(SourceList* sources) {
+     char* monitor_title = XGetAtomName(display(), m.name);
+ 
+     // Note name is an X11 Atom used to id the monitor.
+-    sources->push_back({static_cast<SourceId>(m.name), monitor_title});
++    sources->push_back({static_cast<SourceId>(m.name), 0, monitor_title});
+     XFree(monitor_title);
+   }
+ 
+diff --git a/modules/desktop_capture/linux/x11/window_capturer_x11.cc b/modules/desktop_capture/linux/x11/window_capturer_x11.cc
+index b55f7e8fa9..2b1392ced0 100644
+--- a/modules/desktop_capture/linux/x11/window_capturer_x11.cc
++++ b/modules/desktop_capture/linux/x11/window_capturer_x11.cc
+@@ -57,6 +57,7 @@ bool WindowCapturerX11::GetSourceList(SourceList* sources) {
+   return GetWindowList(&atom_cache_, [this, sources](::Window window) {
+     Source w;
+     w.id = window;
++    w.pid = (pid_t)GetWindowProcessID(window);
+     if (this->GetWindowTitle(window, &w.title)) {
+       sources->push_back(w);
+     }
+@@ -237,6 +238,14 @@ bool WindowCapturerX11::GetWindowTitle(::Window window, std::string* title) {
+   return result;
+ }
+ 
++int WindowCapturerX11::GetWindowProcessID(::Window window) {
++  // Get _NET_WM_PID property of the window.
++  Atom process_atom = XInternAtom(display(), "_NET_WM_PID", True);
++  XWindowProperty<uint32_t> process_id(display(), window, process_atom);
++
++  return process_id.is_valid() ? *process_id.data() : 0;
++}
++
+ // static
+ std::unique_ptr<DesktopCapturer> WindowCapturerX11::CreateRawWindowCapturer(
+     const DesktopCaptureOptions& options) {
+diff --git a/modules/desktop_capture/linux/x11/window_capturer_x11.h b/modules/desktop_capture/linux/x11/window_capturer_x11.h
+index ac591c272e..cfd29eca66 100644
+--- a/modules/desktop_capture/linux/x11/window_capturer_x11.h
++++ b/modules/desktop_capture/linux/x11/window_capturer_x11.h
+@@ -22,6 +22,7 @@
+ #include "modules/desktop_capture/desktop_capturer.h"
+ #include "modules/desktop_capture/desktop_geometry.h"
+ #include "modules/desktop_capture/linux/x11/shared_x_display.h"
++#include "modules/desktop_capture/linux/x11/x_window_property.h"
+ #include "modules/desktop_capture/linux/x11/window_finder_x11.h"
+ #include "modules/desktop_capture/linux/x11/x_atom_cache.h"
+ #include "modules/desktop_capture/linux/x11/x_server_pixel_buffer.h"
+@@ -57,6 +58,9 @@ class WindowCapturerX11 : public DesktopCapturer,
+   // Returns window title for the specified X `window`.
+   bool GetWindowTitle(::Window window, std::string* title);
+ 
++  // Returns the id of the owning process.
++  int GetWindowProcessID(::Window window);
++
+   Callback* callback_ = nullptr;
+ 
+   rtc::scoped_refptr<SharedXDisplay> x_display_;
+diff --git a/modules/desktop_capture/linux/x11/x_error_trap.cc b/modules/desktop_capture/linux/x11/x_error_trap.cc
+index 24c2065111..3314dd286c 100644
+--- a/modules/desktop_capture/linux/x11/x_error_trap.cc
++++ b/modules/desktop_capture/linux/x11/x_error_trap.cc
+@@ -12,48 +12,58 @@
+ 
+ #include <stddef.h>
+ 
+-#include <atomic>
++#include <limits>
+ 
+ #include "rtc_base/checks.h"
+ 
+-namespace webrtc {
+-
+-namespace {
+-
+-static int g_last_xserver_error_code = 0;
+-static std::atomic<Display*> g_display_for_error_handler = nullptr;
+ 
+-Mutex* AcquireMutex() {
+-  static Mutex* mutex = new Mutex();
+-  return mutex;
+-}
++namespace webrtc {
+ 
+-int XServerErrorHandler(Display* display, XErrorEvent* error_event) {
+-  RTC_DCHECK_EQ(display, g_display_for_error_handler.load());
+-  g_last_xserver_error_code = error_event->error_code;
+-  return 0;
++Bool XErrorTrap::XServerErrorHandler(Display* display, xReply* rep,
++                                     char* /* buf */, int /* len */,
++                                     XPointer data) {
++  XErrorTrap* self = reinterpret_cast<XErrorTrap*>(data);
++  if (rep->generic.type != X_Error ||
++      // Overflow-safe last_request_read <= last_ignored_request_ for skipping
++      // async replies from requests before XErrorTrap was created.
++      self->last_ignored_request_ - display->last_request_read <
++      std::numeric_limits<unsigned long>::max() >> 1)
++    return False;
++  self->last_xserver_error_code_ = rep->error.errorCode;
++  return True;
+ }
+ 
+-}  // namespace
+-
+-XErrorTrap::XErrorTrap(Display* display) : mutex_lock_(AcquireMutex()) {
+-  // We don't expect this class to be used in a nested fashion so therefore
+-  // g_display_for_error_handler should never be valid here.
+-  RTC_DCHECK(!g_display_for_error_handler.load());
+-  RTC_DCHECK(display);
+-  g_display_for_error_handler.store(display);
+-  g_last_xserver_error_code = 0;
+-  original_error_handler_ = XSetErrorHandler(&XServerErrorHandler);
++XErrorTrap::XErrorTrap(Display* display)
++    : display_(display),
++      last_xserver_error_code_(0),
++      enabled_(true) {
++  // Use async_handlers instead of XSetErrorHandler().  async_handlers can
++  // remain in place and then be safely removed at the right time even if a
++  // handler change happens concurrently on another thread.  async_handlers
++  // are processed first and so can prevent errors reaching the global
++  // XSetErrorHandler handler.  They also will not see errors from or affect
++  // handling of errors on other Displays, which may be processed on other
++  // threads.
++  LockDisplay(display);
++  async_handler_.next = display->async_handlers;
++  async_handler_.handler = XServerErrorHandler;
++  async_handler_.data = reinterpret_cast<XPointer>(this);
++  display->async_handlers = &async_handler_;
++  last_ignored_request_ = display->request;
++  UnlockDisplay(display);
+ }
+ 
+ int XErrorTrap::GetLastErrorAndDisable() {
+-  g_display_for_error_handler.store(nullptr);
+-  XSetErrorHandler(original_error_handler_);
+-  return g_last_xserver_error_code;
++  assert(enabled_);
++  enabled_ = false;
++  LockDisplay(display_);
++  DeqAsyncHandler(display_, &async_handler_);
++  UnlockDisplay(display_);
++  return last_xserver_error_code_;
+ }
+ 
+ XErrorTrap::~XErrorTrap() {
+-  if (g_display_for_error_handler.load() != nullptr)
++  if (enabled_)
+     GetLastErrorAndDisable();
+ }
+ 
+diff --git a/modules/desktop_capture/linux/x11/x_error_trap.h b/modules/desktop_capture/linux/x11/x_error_trap.h
+index 1f21ab969c..df7e86bf03 100644
+--- a/modules/desktop_capture/linux/x11/x_error_trap.h
++++ b/modules/desktop_capture/linux/x11/x_error_trap.h
+@@ -11,30 +11,39 @@
+ #ifndef MODULES_DESKTOP_CAPTURE_LINUX_X11_X_ERROR_TRAP_H_
+ #define MODULES_DESKTOP_CAPTURE_LINUX_X11_X_ERROR_TRAP_H_
+ 
+-#include <X11/Xlib.h>
+-
+-#include "rtc_base/synchronization/mutex.h"
++#include <X11/Xlibint.h>
++#undef max // Xlibint.h defines this and it breaks std::max
++#undef min // Xlibint.h defines this and it breaks std::min
+ 
+ namespace webrtc {
+ 
+-// Helper class that registers an X Window error handler. Caller can use
++// Helper class that registers X Window error handler. Caller can use
+ // GetLastErrorAndDisable() to get the last error that was caught, if any.
++// An XErrorTrap may be constructed on any thread, but errors are collected
++// from all threads and so |display| should be used only on one thread.
++// Other Displays are unaffected.
+ class XErrorTrap {
+  public:
+   explicit XErrorTrap(Display* display);
++  ~XErrorTrap();
+ 
+   XErrorTrap(const XErrorTrap&) = delete;
+   XErrorTrap& operator=(const XErrorTrap&) = delete;
+ 
+-  ~XErrorTrap();
+-
+-  // Returns the last error if one was caught, otherwise 0. Also unregisters the
+-  // error handler and replaces it with `original_error_handler_`.
++  // Returns last error and removes unregisters the error handler.
++  // Must not be called more than once.
+   int GetLastErrorAndDisable();
+ 
+  private:
+-  MutexLock mutex_lock_;
+-  XErrorHandler original_error_handler_ = nullptr;
++  static Bool XServerErrorHandler(Display* display, xReply* rep,
++                                  char* /* buf */, int /* len */,
++                                  XPointer data);
++
++  _XAsyncHandler async_handler_;
++  Display* display_;
++  unsigned long last_ignored_request_;
++  int last_xserver_error_code_;
++  bool enabled_;
+ };
+ 
+ }  // namespace webrtc
+diff --git a/modules/desktop_capture/win/screen_capture_utils.cc b/modules/desktop_capture/win/screen_capture_utils.cc
+index 3745e9cba5..f68cfb94c1 100644
+--- a/modules/desktop_capture/win/screen_capture_utils.cc
++++ b/modules/desktop_capture/win/screen_capture_utils.cc
+@@ -52,7 +52,7 @@ bool GetScreenList(DesktopCapturer::SourceList* screens,
+       continue;
      }
  
-diff --git a/video/full_stack_tests.cc b/video/full_stack_tests.cc
-index b533c7b608..892359fde0 100644
---- a/video/full_stack_tests.cc
-+++ b/video/full_stack_tests.cc
-@@ -18,7 +18,6 @@
- #include "api/test/simulated_network.h"
- #include "api/test/test_dependency_factory.h"
- #include "api/test/video_quality_test_fixture.h"
--#include "api/units/data_rate.h"
- #include "api/video_codecs/sdp_video_format.h"
- #include "api/video_codecs/video_codec.h"
- #include "api/video_codecs/vp9_profile.h"
-@@ -216,7 +215,7 @@ TEST(FullStackTest, Foreman_Cif_Link_150kbps_Net_Delay_0_0_Plr_0) {
-       false, false,  true,    ClipNameToClipPath("foreman_cif")};
-   foreman_cif.analyzer = {"foreman_cif_link_150kbps_net_delay_0_0_plr_0", 0.0,
-                           0.0, kFullStackTestDurationSecs};
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(150);
-+  foreman_cif.config->link_capacity_kbps = 150;
-   fixture->RunWithAnalyzer(foreman_cif);
+-    screens->push_back({device_index, std::string()});
++    screens->push_back({device_index, 0, std::string()});
+     if (device_names) {
+       device_names->push_back(rtc::ToUtf8(device.DeviceName));
+     }
+diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
+index de68885519..099b0be1a3 100644
+--- a/modules/rtp_rtcp/source/rtcp_sender.cc
++++ b/modules/rtp_rtcp/source/rtcp_sender.cc
+@@ -200,7 +200,7 @@ void RTCPSender::SetRTCPStatus(RtcpMode new_method) {
+     next_time_to_send_rtcp_ = absl::nullopt;
+   } else if (method_ == RtcpMode::kOff) {
+     // When switching on, reschedule the next packet
+-    SetNextRtcpSendEvaluationDuration(report_interval_ / 2);
++    SetNextRtcpSendEvaluationDuration(RTCP_INTERVAL_RAPID_SYNC_MS / 2);
+   }
+   method_ = new_method;
+ }
+diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.cc b/modules/rtp_rtcp/source/rtp_header_extensions.cc
+index 43770a728a..bcdc9a036b 100644
+--- a/modules/rtp_rtcp/source/rtp_header_extensions.cc
++++ b/modules/rtp_rtcp/source/rtp_header_extensions.cc
+@@ -423,6 +423,45 @@ bool PlayoutDelayLimits::Write(rtc::ArrayView<uint8_t> data,
+   return true;
  }
  
-@@ -235,7 +234,7 @@ TEST(FullStackTest,
-   foreman_cif.analyzer = {
-       "foreman_cif_link_150kbps_delay100ms_30pkts_queue_overshoot30", 0.0, 0.0,
-       kFullStackTestDurationSecs};
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(150);
-+  foreman_cif.config->link_capacity_kbps = 150;
-   foreman_cif.config->queue_length_packets = 30;
-   foreman_cif.config->queue_delay_ms = 100;
-   fixture->RunWithAnalyzer(foreman_cif);
-@@ -257,7 +256,7 @@ TEST(FullStackTest, Foreman_Cif_Link_250kbps_Delay100ms_10pkts_Loss1) {
-       0,     {},     1.30};
-   foreman_cif.analyzer = {"foreman_cif_link_250kbps_delay100ms_10pkts_loss1",
-                           0.0, 0.0, kFullStackTestDurationSecs};
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(250);
-+  foreman_cif.config->link_capacity_kbps = 250;
-   foreman_cif.config->queue_length_packets = 10;
-   foreman_cif.config->queue_delay_ms = 100;
-   foreman_cif.config->loss_percent = 1;
-@@ -328,7 +327,7 @@ TEST(FullStackTest, Foreman_Cif_500kbps_Delay_50_0_Plr_3_Flexfec) {
-   foreman_cif.analyzer = {"foreman_cif_500kbps_delay_50_0_plr_3_flexfec", 0.0,
-                           0.0, kFullStackTestDurationSecs};
-   foreman_cif.config->loss_percent = 3;
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  foreman_cif.config->link_capacity_kbps = 500;
-   foreman_cif.config->queue_delay_ms = 50;
-   fixture->RunWithAnalyzer(foreman_cif);
++// CSRCAudioLevel
++//  Sample Audio Level Encoding Using the One-Byte Header Format
++//  Note that the range of len is 1 to 15 which is encoded as 0 to 14
++//  0                   1                   2                   3
++//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
++// |  ID   | len=2 |0|   level 1   |0|   level 2   |0|   level 3   |
++// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
++
++
++constexpr RTPExtensionType CsrcAudioLevel::kId;
++constexpr const char* CsrcAudioLevel::kUri;
++
++bool CsrcAudioLevel::Parse(rtc::ArrayView<const uint8_t> data,
++                           CsrcAudioLevelList* csrcAudioLevels) {
++  if (data.size() < 1 || data.size() > kRtpCsrcSize)
++    return false;
++  csrcAudioLevels->numAudioLevels = data.size();
++  for(uint8_t i = 0; i < csrcAudioLevels->numAudioLevels; i++) {
++    // Ensure range is 0 to 127 inclusive
++    csrcAudioLevels->arrOfAudioLevels[i] = 0x7f & data[i];
++  }
++  return true;
++}
++
++size_t CsrcAudioLevel::ValueSize(const CsrcAudioLevelList& csrcAudioLevels) {
++  return csrcAudioLevels.numAudioLevels;
++}
++
++bool CsrcAudioLevel::Write(rtc::ArrayView<uint8_t> data,
++                           const CsrcAudioLevelList& csrcAudioLevels) {
++  RTC_DCHECK_GE(csrcAudioLevels.numAudioLevels, 0);
++  for(uint8_t i = 0; i < csrcAudioLevels.numAudioLevels; i++) {
++    data[i] = csrcAudioLevels.arrOfAudioLevels[i] & 0x7f;
++  }
++  // This extension if used must have at least one audio level
++  return csrcAudioLevels.numAudioLevels;
++}
++
+ // Video Content Type.
+ //
+ // E.g. default video or screenshare.
+diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
+index 02a1543e00..05e771a56d 100644
+--- a/modules/rtp_rtcp/source/rtp_header_extensions.h
++++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
+@@ -308,6 +308,21 @@ class ColorSpaceExtension {
+   static size_t WriteLuminance(uint8_t* data, float f, int denominator);
+ };
+ 
++class CsrcAudioLevel {
++ public:
++  static constexpr RTPExtensionType kId = kRtpExtensionCsrcAudioLevel;
++  static constexpr absl::string_view Uri() {
++    return RtpExtension::kCsrcAudioLevelsUri;
++  }
++  static constexpr const char* kUri =
++      "urn:ietf:params:rtp-hdrext:csrc-audio-level";
++
++  static bool Parse(rtc::ArrayView<const uint8_t> data,
++                    CsrcAudioLevelList* csrcAudioLevels);
++  static size_t ValueSize(const CsrcAudioLevelList& csrcAudioLevels);
++  static bool Write(rtc::ArrayView<uint8_t> data, const CsrcAudioLevelList& csrcAudioLevels);
++};
++
+ // Base extension class for RTP header extensions which are strings.
+ // Subclasses must defined kId and kUri static constexpr members.
+ class BaseRtpStringExtension {
+diff --git a/modules/rtp_rtcp/source/rtp_packet.cc b/modules/rtp_rtcp/source/rtp_packet.cc
+index 2a95a3a816..b152cdbd9e 100644
+--- a/modules/rtp_rtcp/source/rtp_packet.cc
++++ b/modules/rtp_rtcp/source/rtp_packet.cc
+@@ -205,6 +205,10 @@ void RtpPacket::ZeroMutableExtensions() {
+         // Non-mutable extension. Don't change it.
+         break;
+       }
++      case RTPExtensionType::kRtpExtensionCsrcAudioLevel: {
++        // TODO: This is a Mozilla addition, we need to add a handler for this.
++        RTC_CHECK(false);
++      }
+     }
+   }
  }
-@@ -345,7 +344,7 @@ TEST(FullStackTest, Foreman_Cif_500kbps_Delay_50_0_Plr_3_Ulpfec) {
-   foreman_cif.analyzer = {"foreman_cif_500kbps_delay_50_0_plr_3_ulpfec", 0.0,
-                           0.0, kFullStackTestDurationSecs};
-   foreman_cif.config->loss_percent = 3;
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  foreman_cif.config->link_capacity_kbps = 500;
-   foreman_cif.config->queue_delay_ms = 50;
-   fixture->RunWithAnalyzer(foreman_cif);
- }
-@@ -467,7 +466,7 @@ TEST(FullStackTest, Foreman_Cif_500kbps) {
-                           kFullStackTestDurationSecs};
-   foreman_cif.config->queue_length_packets = 0;
-   foreman_cif.config->queue_delay_ms = 0;
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  foreman_cif.config->link_capacity_kbps = 500;
-   fixture->RunWithAnalyzer(foreman_cif);
+diff --git a/modules/rtp_rtcp/source/rtp_packet_unittest.cc b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
+index ccdb5f8a75..da4abe0131 100644
+--- a/modules/rtp_rtcp/source/rtp_packet_unittest.cc
++++ b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
+@@ -123,6 +123,18 @@ constexpr uint8_t kPacketWithMid[] = {
+     0xbe, 0xde, 0x00, 0x01,
+     0xb2, 'm', 'i', 'd'};
+ 
++constexpr uint8_t kCsrcAudioLevelExtensionId = 0xc;
++constexpr uint8_t kCsrcAudioLevelsSize = 4;
++constexpr uint8_t kCsrcAudioLevels[] = {0x7f, 0x00, 0x10, 0x08};
++constexpr uint8_t kPacketWithCsrcAudioLevels[] = {
++    0x90, kPayloadType, kSeqNumFirstByte, kSeqNumSecondByte,
++    0x65, 0x43, 0x12, 0x78,
++    0x12, 0x34, 0x56, 0x78,
++    0xbe, 0xde, 0x00, 0x02,
++    (kCsrcAudioLevelExtensionId << 4) | (kCsrcAudioLevelsSize - 1),
++          0x7f, 0x00, 0x10,
++    0x08, 0x00, 0x00, 0x00};
++
+ constexpr uint32_t kCsrcs[] = {0x34567890, 0x32435465};
+ constexpr uint8_t kPayload[] = {'p', 'a', 'y', 'l', 'o', 'a', 'd'};
+ constexpr uint8_t kPacketPaddingSize = 8;
+@@ -402,6 +414,24 @@ TEST(RtpPacketTest, FailsToSetUnregisteredExtension) {
+   EXPECT_EQ(packet.GetExtension<TransportSequenceNumber>(), absl::nullopt);
  }
  
-@@ -484,7 +483,7 @@ TEST(FullStackTest, Foreman_Cif_500kbps_32pkts_Queue) {
-                           kFullStackTestDurationSecs};
-   foreman_cif.config->queue_length_packets = 32;
-   foreman_cif.config->queue_delay_ms = 0;
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  foreman_cif.config->link_capacity_kbps = 500;
-   fixture->RunWithAnalyzer(foreman_cif);
- }
++TEST(RtpPacketTest, CreateWithDynamicSizedExtensionCsrcAudioLevel) {
++  RtpPacketToSend::ExtensionManager extensions;
++  extensions.Register<CsrcAudioLevel>(kCsrcAudioLevelExtensionId);
++  RtpPacketToSend packet(&extensions);
++  packet.SetPayloadType(kPayloadType);
++  packet.SetSequenceNumber(kSeqNum);
++  packet.SetTimestamp(kTimestamp);
++  packet.SetSsrc(kSsrc);
++  CsrcAudioLevelList levels;
++  levels.numAudioLevels = kCsrcAudioLevelsSize;
++  for (uint8_t i = 0; i < kCsrcAudioLevelsSize; i++) {
++    levels.arrOfAudioLevels[i] = kCsrcAudioLevels[i];
++  }
++  packet.SetExtension<CsrcAudioLevel>(levels);
++  EXPECT_THAT(kPacketWithCsrcAudioLevels,
++    ElementsAreArray(packet.data(), packet.size()));
++}
++
+ TEST(RtpPacketTest, SetReservedExtensionsAfterPayload) {
+   const size_t kPayloadSize = 4;
+   RtpPacketToSend::ExtensionManager extensions;
+diff --git a/modules/rtp_rtcp/source/rtp_rtcp_config.h b/modules/rtp_rtcp/source/rtp_rtcp_config.h
+index 0b87d6d065..d69ae9420b 100644
+--- a/modules/rtp_rtcp/source/rtp_rtcp_config.h
++++ b/modules/rtp_rtcp/source/rtp_rtcp_config.h
+@@ -11,11 +11,15 @@
+ #ifndef MODULES_RTP_RTCP_SOURCE_RTP_RTCP_CONFIG_H_
+ #define MODULES_RTP_RTCP_SOURCE_RTP_RTCP_CONFIG_H_
  
-@@ -501,7 +500,7 @@ TEST(FullStackTest, Foreman_Cif_500kbps_100ms) {
-                           kFullStackTestDurationSecs};
-   foreman_cif.config->queue_length_packets = 0;
-   foreman_cif.config->queue_delay_ms = 100;
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  foreman_cif.config->link_capacity_kbps = 500;
-   fixture->RunWithAnalyzer(foreman_cif);
- }
++#include "api/units/time_delta.h"
++
+ // Configuration file for RTP utilities (RTPSender, RTPReceiver ...)
+ namespace webrtc {
+ constexpr int kDefaultMaxReorderingThreshold = 50;  // In sequence numbers.
+ constexpr int kRtcpMaxNackFields = 253;
  
-@@ -520,7 +519,7 @@ TEST(GenericDescriptorTest,
-       kFullStackTestDurationSecs};
-   foreman_cif.config->queue_length_packets = 32;
-   foreman_cif.config->queue_delay_ms = 100;
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  foreman_cif.config->link_capacity_kbps = 500;
-   foreman_cif.call.generic_descriptor = true;
-   fixture->RunWithAnalyzer(foreman_cif);
- }
-@@ -538,7 +537,7 @@ TEST(FullStackTest, Foreman_Cif_500kbps_100ms_32pkts_Queue_Recv_Bwe) {
-                           0.0, 0.0, kFullStackTestDurationSecs};
-   foreman_cif.config->queue_length_packets = 32;
-   foreman_cif.config->queue_delay_ms = 100;
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  foreman_cif.config->link_capacity_kbps = 500;
-   fixture->RunWithAnalyzer(foreman_cif);
- }
++constexpr TimeDelta RTCP_INTERVAL_RAPID_SYNC_MS =
++    TimeDelta::Millis(100); // RFX 6051
+ constexpr int RTCP_MAX_REPORT_BLOCKS = 31;  // RFC 3550 page 37
+ }  // namespace webrtc
  
-@@ -555,7 +554,7 @@ TEST(FullStackTest, Foreman_Cif_1000kbps_100ms_32pkts_Queue) {
-                           kFullStackTestDurationSecs};
-   foreman_cif.config->queue_length_packets = 32;
-   foreman_cif.config->queue_delay_ms = 100;
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(1000);
-+  foreman_cif.config->link_capacity_kbps = 1000;
-   fixture->RunWithAnalyzer(foreman_cif);
+diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
+index 1c2d746ac2..bf1ebfb412 100644
+--- a/modules/rtp_rtcp/source/rtp_sender.cc
++++ b/modules/rtp_rtcp/source/rtp_sender.cc
+@@ -128,6 +128,10 @@ bool IsNonVolatile(RTPExtensionType type) {
+     case kRtpExtensionNumberOfExtensions:
+       RTC_DCHECK_NOTREACHED();
+       return false;
++    case kRtpExtensionCsrcAudioLevel:
++      // TODO: Mozilla implement for CsrcAudioLevel
++      RTC_CHECK(false);
++      return false;
+   }
+   RTC_CHECK_NOTREACHED();
  }
+diff --git a/modules/video_capture/device_info_impl.cc b/modules/video_capture/device_info_impl.cc
+index ff32a78580..7cccdb51a7 100644
+--- a/modules/video_capture/device_info_impl.cc
++++ b/modules/video_capture/device_info_impl.cc
+@@ -65,7 +65,7 @@ int32_t DeviceInfoImpl::GetCapability(const char* deviceUniqueIdUTF8,
  
-@@ -577,7 +576,7 @@ TEST(FullStackTest, Conference_Motion_Hd_2000kbps_100ms_32pkts_Queue) {
-                              0.0, 0.0, kFullStackTestDurationSecs};
-   conf_motion_hd.config->queue_length_packets = 32;
-   conf_motion_hd.config->queue_delay_ms = 100;
--  conf_motion_hd.config->link_capacity = DataRate::KilobitsPerSec(2000);
-+  conf_motion_hd.config->link_capacity_kbps = 2000;
-   fixture->RunWithAnalyzer(conf_motion_hd);
- }
+   // Make sure the number is valid
+   if (deviceCapabilityNumber >= (unsigned int)_captureCapabilities.size()) {
+-    RTC_LOG(LS_ERROR) << "Invalid deviceCapabilityNumber "
++    RTC_LOG(LS_ERROR) << deviceUniqueIdUTF8 << " Invalid deviceCapabilityNumber "
+                       << deviceCapabilityNumber << ">= number of capabilities ("
+                       << _captureCapabilities.size() << ").";
+     return -1;
+diff --git a/modules/video_capture/device_info_impl.h b/modules/video_capture/device_info_impl.h
+index 546265049c..8acbef6d69 100644
+--- a/modules/video_capture/device_info_impl.h
++++ b/modules/video_capture/device_info_impl.h
+@@ -42,6 +42,7 @@ class DeviceInfoImpl : public VideoCaptureModule::DeviceInfo {
+   /* Initialize this object*/
  
-@@ -601,7 +600,7 @@ TEST(GenericDescriptorTest,
-   conf_motion_hd.config->queue_length_packets = 50;
-   conf_motion_hd.config->loss_percent = 3;
-   conf_motion_hd.config->queue_delay_ms = 100;
--  conf_motion_hd.config->link_capacity = DataRate::KilobitsPerSec(2000);
-+  conf_motion_hd.config->link_capacity_kbps = 2000;
-   conf_motion_hd.call.generic_descriptor = true;
-   fixture->RunWithAnalyzer(conf_motion_hd);
- }
-@@ -624,7 +623,7 @@ TEST(FullStackTest, Conference_Motion_Hd_3tl_Moderate_Limits) {
-   conf_motion_hd.config->queue_length_packets = 50;
-   conf_motion_hd.config->loss_percent = 3;
-   conf_motion_hd.config->queue_delay_ms = 100;
--  conf_motion_hd.config->link_capacity = DataRate::KilobitsPerSec(2000);
-+  conf_motion_hd.config->link_capacity_kbps = 2000;
-   fixture->RunWithAnalyzer(conf_motion_hd);
- }
- 
-@@ -646,7 +645,7 @@ TEST(FullStackTest, Conference_Motion_Hd_4tl_Moderate_Limits) {
-   conf_motion_hd.config->queue_length_packets = 50;
-   conf_motion_hd.config->loss_percent = 3;
-   conf_motion_hd.config->queue_delay_ms = 100;
--  conf_motion_hd.config->link_capacity = DataRate::KilobitsPerSec(2000);
-+  conf_motion_hd.config->link_capacity_kbps = 2000;
-   fixture->RunWithAnalyzer(conf_motion_hd);
- }
- 
-@@ -667,7 +666,7 @@ TEST(FullStackTest, Foreman_Cif_30kbps_AV1) {
-                           .clip_path = ClipNameToClipPath("foreman_cif")};
-   foreman_cif.analyzer = {.test_label = "foreman_cif_30kbps_AV1",
-                           .test_durations_secs = kFullStackTestDurationSecs};
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(30);
-+  foreman_cif.config->link_capacity_kbps = 30;
-   foreman_cif.call.generic_descriptor = true;
-   fixture->RunWithAnalyzer(foreman_cif);
- }
-@@ -693,7 +692,7 @@ TEST(FullStackTest, Conference_Motion_Hd_3tl_AV1) {
-   conf_motion_hd.config->queue_length_packets = 50;
-   conf_motion_hd.config->loss_percent = 3;
-   conf_motion_hd.config->queue_delay_ms = 100;
--  conf_motion_hd.config->link_capacity = DataRate::KilobitsPerSec(1000);
-+  conf_motion_hd.config->link_capacity_kbps = 1000;
-   conf_motion_hd.call.generic_descriptor = true;
-   fixture->RunWithAnalyzer(conf_motion_hd);
- }
-@@ -717,7 +716,7 @@ TEST(FullStackTest, Conference_Motion_Hd_2000kbps_100ms_32pkts_Queue_Vp9) {
-       kFullStackTestDurationSecs};
-   conf_motion_hd.config->queue_length_packets = 32;
-   conf_motion_hd.config->queue_delay_ms = 100;
--  conf_motion_hd.config->link_capacity = DataRate::KilobitsPerSec(2000);
-+  conf_motion_hd.config->link_capacity_kbps = 2000;
-   fixture->RunWithAnalyzer(conf_motion_hd);
- }
+   virtual int32_t Init() = 0;
++  int32_t Refresh() override { return 0; }
+   /*
+    * Fills the member variable _captureCapabilities with capabilities for the
+    * given device name.
+diff --git a/modules/video_capture/linux/device_info_v4l2.cc b/modules/video_capture/linux/device_info_v4l2.cc
+index a472e41a41..7397a10625 100644
+--- a/modules/video_capture/linux/device_info_v4l2.cc
++++ b/modules/video_capture/linux/device_info_v4l2.cc
+@@ -45,15 +45,187 @@
+ #define V4L2_PIX_FMT_RGBA32 v4l2_fourcc('A', 'B', '2', '4')
  #endif
-@@ -792,7 +791,7 @@ TEST(GenericDescriptorTest, Screenshare_Slides_Lossy_Net_Generic_Descriptor) {
-                           0.0, 0.0, kFullStackTestDurationSecs};
-   screenshare.config->loss_percent = 5;
-   screenshare.config->queue_delay_ms = 200;
--  screenshare.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  screenshare.config->link_capacity_kbps = 500;
-   screenshare.call.generic_descriptor = true;
-   fixture->RunWithAnalyzer(screenshare);
- }
-@@ -809,7 +808,7 @@ TEST(FullStackTest, Screenshare_Slides_Very_Lossy) {
-                           kFullStackTestDurationSecs};
-   screenshare.config->loss_percent = 10;
-   screenshare.config->queue_delay_ms = 200;
--  screenshare.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  screenshare.config->link_capacity_kbps = 500;
-   fixture->RunWithAnalyzer(screenshare);
+ 
++#ifdef WEBRTC_LINUX
++#define EVENT_SIZE  ( sizeof (struct inotify_event) )
++#define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
++#endif
++
+ namespace webrtc {
+ namespace videocapturemodule {
+-DeviceInfoV4l2::DeviceInfoV4l2() : DeviceInfoImpl() {}
++#ifdef WEBRTC_LINUX
++void DeviceInfoV4l2::HandleEvent(inotify_event* event, int fd)
++{
++    if (event->mask & IN_CREATE) {
++        if (fd == _fd_v4l || fd == _fd_snd) {
++            DeviceChange();
++        } else if ((event->mask & IN_ISDIR) && (fd == _fd_dev)) {
++            if (_wd_v4l < 0) {
++                // Sometimes inotify_add_watch failed if we call it immediately after receiving this event
++                // Adding 5ms delay to let file system settle down
++                usleep(5*1000);
++                _wd_v4l = inotify_add_watch(_fd_v4l, "/dev/v4l/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
++                if (_wd_v4l >= 0) {
++                    DeviceChange();
++                }
++            }
++            if (_wd_snd < 0) {
++                usleep(5*1000);
++                _wd_snd = inotify_add_watch(_fd_snd, "/dev/snd/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
++                if (_wd_snd >= 0) {
++                    DeviceChange();
++                }
++            }
++        }
++    } else if (event->mask & IN_DELETE) {
++        if (fd == _fd_v4l || fd == _fd_snd) {
++            DeviceChange();
++        }
++    } else if (event->mask & IN_DELETE_SELF) {
++        if (fd == _fd_v4l) {
++            inotify_rm_watch(_fd_v4l, _wd_v4l);
++            _wd_v4l = -1;
++        } else if (fd == _fd_snd) {
++            inotify_rm_watch(_fd_snd, _wd_snd);
++            _wd_snd = -1;
++        } else {
++            assert(false);
++        }
++    }
++}
++
++int DeviceInfoV4l2::EventCheck(int fd)
++{
++    struct timeval timeout;
++    fd_set rfds;
++
++    timeout.tv_sec = 0;
++    timeout.tv_usec = 100000;
++
++    FD_ZERO(&rfds);
++    FD_SET(fd, &rfds);
++
++    return select(fd+1, &rfds, NULL, NULL, &timeout);
++}
++
++int DeviceInfoV4l2::HandleEvents(int fd)
++{
++    char buffer[BUF_LEN];
++
++    ssize_t r = read(fd, buffer, BUF_LEN);
++
++    if (r <= 0) {
++        return r;
++    }
++
++    ssize_t buffer_i = 0;
++    inotify_event* pevent;
++    size_t eventSize;
++    int count = 0;
++
++    while (buffer_i < r)
++    {
++        pevent = (inotify_event *) (&buffer[buffer_i]);
++        eventSize = sizeof(inotify_event) + pevent->len;
++        char event[sizeof(inotify_event) + FILENAME_MAX + 1] // null-terminated
++            __attribute__ ((aligned(__alignof__(struct inotify_event))));
++
++        memcpy(event, pevent, eventSize);
++
++        HandleEvent((inotify_event*)(event), fd);
++
++        buffer_i += eventSize;
++        count++;
++    }
++
++    return count;
++}
++
++int DeviceInfoV4l2::ProcessInotifyEvents()
++{
++    while (!_isShutdown) {
++        if (EventCheck(_fd_dev) > 0) {
++            if (HandleEvents(_fd_dev) < 0) {
++                break;
++            }
++        }
++        if (EventCheck(_fd_v4l) > 0) {
++            if (HandleEvents(_fd_v4l) < 0) {
++                break;
++            }
++        }
++        if (EventCheck(_fd_snd) > 0) {
++            if (HandleEvents(_fd_snd) < 0) {
++                break;
++            }
++        }
++    }
++    return 0;
++}
++
++void DeviceInfoV4l2::InotifyEventThread(void* obj)
++{
++    static_cast<DeviceInfoLinux*> (obj)->InotifyProcess();
++}
++
++void DeviceInfoV4l2::InotifyProcess()
++{
++    _fd_v4l = inotify_init();
++    _fd_snd = inotify_init();
++    _fd_dev = inotify_init();
++    if (_fd_v4l >= 0 && _fd_snd >= 0 && _fd_dev >= 0) {
++        _wd_v4l = inotify_add_watch(_fd_v4l, "/dev/v4l/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
++        _wd_snd = inotify_add_watch(_fd_snd, "/dev/snd/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
++        _wd_dev = inotify_add_watch(_fd_dev, "/dev/", IN_CREATE);
++        ProcessInotifyEvents();
++
++        if (_wd_v4l >= 0) {
++          inotify_rm_watch(_fd_v4l, _wd_v4l);
++        }
++
++        if (_wd_snd >= 0) {
++          inotify_rm_watch(_fd_snd, _wd_snd);
++        }
++
++        if (_wd_dev >= 0) {
++          inotify_rm_watch(_fd_dev, _wd_dev);
++        }
++
++        close(_fd_v4l);
++        close(_fd_snd);
++        close(_fd_dev);
++    }
++}
++#endif
++
++DeviceInfoV4l2::DeviceInfoV4l2() : DeviceInfoImpl()
++#ifdef WEBRTC_LINUX
++    , _inotifyEventThread(new rtc::PlatformThread(
++                            InotifyEventThread, this, "InotifyEventThread"))
++    , _isShutdown(false)
++#endif
++{
++#ifdef WEBRTC_LINUX
++    if (_inotifyEventThread)
++    {
++        _inotifyEventThread->Start();
++    }
++}
++#endif
+ 
+ int32_t DeviceInfoV4l2::Init() {
+   return 0;
  }
  
-@@ -824,7 +823,7 @@ TEST(FullStackTest, Screenshare_Slides_Lossy_Limited) {
-   screenshare.analyzer = {"screenshare_slides_lossy_limited", 0.0, 0.0,
-                           kFullStackTestDurationSecs};
-   screenshare.config->loss_percent = 5;
--  screenshare.config->link_capacity = DataRate::KilobitsPerSec(200);
-+  screenshare.config->link_capacity_kbps = 200;
-   screenshare.config->queue_length_packets = 30;
+-DeviceInfoV4l2::~DeviceInfoV4l2() {}
++DeviceInfoV4l2::~DeviceInfoV4l2() {
++#ifdef WEBRTC_LINUX
++    _isShutdown = true;
++
++    if (_inotifyEventThread) {
++        _inotifyEventThread->Stop();
++        _inotifyEventThread = nullptr;
++    }
++#endif
++}
  
-   fixture->RunWithAnalyzer(screenshare);
-@@ -841,7 +840,7 @@ TEST(FullStackTest, Screenshare_Slides_Moderately_Restricted) {
-   screenshare.analyzer = {"screenshare_slides_moderately_restricted", 0.0, 0.0,
-                           kFullStackTestDurationSecs};
-   screenshare.config->loss_percent = 1;
--  screenshare.config->link_capacity = DataRate::KilobitsPerSec(1200);
-+  screenshare.config->link_capacity_kbps = 1200;
-   screenshare.config->queue_length_packets = 30;
+ uint32_t DeviceInfoV4l2::NumberOfDevices() {
+   uint32_t count = 0;
+@@ -86,7 +258,8 @@ int32_t DeviceInfoV4l2::GetDeviceName(uint32_t deviceNumber,
+                                       char* deviceUniqueIdUTF8,
+                                       uint32_t deviceUniqueIdUTF8Length,
+                                       char* /*productUniqueIdUTF8*/,
+-                                      uint32_t /*productUniqueIdUTF8Length*/) {
++                                      uint32_t /*productUniqueIdUTF8Length*/,
++                                      pid_t* /*pid*/) {
+   // Travel through /dev/video [0-63]
+   uint32_t count = 0;
+   char device[20];
+diff --git a/modules/video_capture/linux/device_info_v4l2.h b/modules/video_capture/linux/device_info_v4l2.h
+index fb95a6020d..95432a509d 100644
+--- a/modules/video_capture/linux/device_info_v4l2.h
++++ b/modules/video_capture/linux/device_info_v4l2.h
+@@ -15,6 +15,9 @@
  
-   fixture->RunWithAnalyzer(screenshare);
-@@ -954,7 +953,7 @@ TEST(FullStackTest, Vp9ksvc_3sl_Low_Bw_Limited) {
-                         "WebRTC-Vp9ExternalRefCtrl/Enabled/"));
-   auto fixture = CreateVideoQualityTestFixture();
-   ParamsWithLogging simulcast;
--  simulcast.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  simulcast.config->link_capacity_kbps = 500;
-   simulcast.call.send_side_bwe = true;
-   simulcast.video[0] = SvcVp9Video();
-   simulcast.analyzer = {"vp9ksvc_3sl_low_bw_limited", 0.0, 0.0,
-@@ -977,7 +976,7 @@ TEST(FullStackTest, Vp9ksvc_3sl_Medium_Network_Restricted) {
-   simulcast.ss[0] = {
-       std::vector<VideoStream>(),  0,    3, -1, InterLayerPredMode::kOnKeyPic,
-       std::vector<SpatialLayer>(), false};
--  simulcast.config->link_capacity = DataRate::KilobitsPerSec(1000);
-+  simulcast.config->link_capacity_kbps = 1000;
-   simulcast.config->queue_delay_ms = 100;
-   fixture->RunWithAnalyzer(simulcast);
- }
-@@ -995,7 +994,7 @@ TEST(FullStackTest, Vp9ksvc_3sl_Medium_Network_Restricted_Trusted_Rate) {
-   simulcast.ss[0] = {
-       std::vector<VideoStream>(),  0,    3, -1, InterLayerPredMode::kOnKeyPic,
-       std::vector<SpatialLayer>(), false};
--  simulcast.config->link_capacity = DataRate::KilobitsPerSec(1000);
-+  simulcast.config->link_capacity_kbps = 1000;
-   simulcast.config->queue_delay_ms = 100;
-   fixture->RunWithAnalyzer(simulcast);
- }
-diff --git a/video/pc_full_stack_tests.cc b/video/pc_full_stack_tests.cc
-index f1d6494670..000316b45b 100644
---- a/video/pc_full_stack_tests.cc
-+++ b/video/pc_full_stack_tests.cc
-@@ -289,7 +289,7 @@ TEST(PCFullStackTest, Pc_Foreman_Cif_Link_150kbps_Net_Delay_0_0_Plr_0) {
-   std::unique_ptr<NetworkEmulationManager> network_emulation_manager =
-       CreateNetworkEmulationManager();
-   BuiltInNetworkBehaviorConfig config;
--  config.link_capacity = DataRate::KilobitsPerSec(150);
-+  config.link_capacity_kbps = 150;
-   auto fixture = CreateTestFixture(
-       "pc_foreman_cif_link_150kbps_net_delay_0_0_plr_0",
-       *network_emulation_manager->time_controller(),
-@@ -309,7 +309,7 @@ TEST(PCFullStackTest, Pc_Foreman_Cif_Link_130kbps_Delay100ms_Loss1_Ulpfec) {
-   std::unique_ptr<NetworkEmulationManager> network_emulation_manager =
-       CreateNetworkEmulationManager();
-   BuiltInNetworkBehaviorConfig config;
--  config.link_capacity = DataRate::KilobitsPerSec(130);
-+  config.link_capacity_kbps = 130;
-   config.queue_delay_ms = 100;
-   config.loss_percent = 1;
-   auto fixture = CreateTestFixture(
-@@ -332,7 +332,7 @@ TEST(PCFullStackTest, Pc_Foreman_Cif_Link_50kbps_Delay100ms_Loss1_Ulpfec) {
-   std::unique_ptr<NetworkEmulationManager> network_emulation_manager =
-       CreateNetworkEmulationManager();
-   BuiltInNetworkBehaviorConfig config;
--  config.link_capacity = DataRate::KilobitsPerSec(50);
-+  config.link_capacity_kbps = 50;
-   config.queue_delay_ms = 100;
-   config.loss_percent = 1;
-   auto fixture = CreateTestFixture(
-@@ -357,7 +357,7 @@ TEST(PCFullStackTest,
-   std::unique_ptr<NetworkEmulationManager> network_emulation_manager =
-       CreateNetworkEmulationManager();
-   BuiltInNetworkBehaviorConfig config;
--  config.link_capacity = DataRate::KilobitsPerSec(150);
-+  config.link_capacity_kbps = 150;
-   config.queue_length_packets = 30;
-   config.queue_delay_ms = 100;
-   auto fixture = CreateTestFixture(
-@@ -384,7 +384,7 @@ TEST(PCFullStackTest, Pc_Foreman_Cif_Link_250kbps_Delay100ms_10pkts_Loss1) {
-   std::unique_ptr<NetworkEmulationManager> network_emulation_manager =
-       CreateNetworkEmulationManager();
-   BuiltInNetworkBehaviorConfig config;
--  config.link_capacity = DataRate::KilobitsPerSec(250);
-+  config.link_capacity_kbps = 250;
-   config.queue_length_packets = 10;
-   config.queue_delay_ms = 100;
-   config.loss_percent = 1;
-@@ -478,7 +478,7 @@ TEST(PCFullStackTest, Pc_Foreman_Cif_500kbps_Delay_50_0_Plr_3_Flexfec) {
-       CreateNetworkEmulationManager();
-   BuiltInNetworkBehaviorConfig config;
-   config.loss_percent = 3;
--  config.link_capacity = DataRate::KilobitsPerSec(500);
-+  config.link_capacity_kbps = 500;
-   config.queue_delay_ms = 50;
-   auto fixture = CreateTestFixture(
-       "pc_foreman_cif_500kbps_delay_50_0_plr_3_flexfec",
-@@ -503,7 +503,7 @@ TEST(PCFullStackTest, Pc_Foreman_Cif_500kbps_Delay_50_0_Plr_3_Ulpfec) {
-       CreateNetworkEmulationManager();
-   BuiltInNetworkBehaviorConfig config;
-   config.loss_percent = 3;
--  config.link_capacity = DataRate::KilobitsPerSec(500);
-+  config.link_capacity_kbps = 500;
-   config.queue_delay_ms = 50;
-   auto fixture = CreateTestFixture(
-       "pc_foreman_cif_500kbps_delay_50_0_plr_3_ulpfec",
-@@ -687,7 +687,7 @@ TEST(PCFullStackTest, Pc_Foreman_Cif_500kbps) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 0;
-   config.queue_delay_ms = 0;
--  config.link_capacity = DataRate::KilobitsPerSec(500);
-+  config.link_capacity_kbps = 500;
-   auto fixture = CreateTestFixture(
-       "pc_foreman_cif_500kbps", *network_emulation_manager->time_controller(),
-       network_emulation_manager->CreateEndpointPairWithTwoWayRoutes(config),
-@@ -708,7 +708,7 @@ TEST_P(ParameterizedPCFullStackTest, Pc_Foreman_Cif_500kbps_32pkts_Queue) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 32;
-   config.queue_delay_ms = 0;
--  config.link_capacity = DataRate::KilobitsPerSec(500);
-+  config.link_capacity_kbps = 500;
-   auto fixture = CreateTestFixture(
-       "pc_foreman_cif_500kbps_32pkts_queue" + GetParam().test_case_name_postfix,
-       *network_emulation_manager->time_controller(),
-@@ -737,7 +737,7 @@ TEST(PCFullStackTest, Pc_Foreman_Cif_500kbps_100ms) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 0;
-   config.queue_delay_ms = 100;
--  config.link_capacity = DataRate::KilobitsPerSec(500);
-+  config.link_capacity_kbps = 500;
-   auto fixture = CreateTestFixture(
-       "pc_foreman_cif_500kbps_100ms",
-       *network_emulation_manager->time_controller(),
-@@ -760,7 +760,7 @@ TEST(PCGenericDescriptorTest,
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 32;
-   config.queue_delay_ms = 100;
--  config.link_capacity = DataRate::KilobitsPerSec(500);
-+  config.link_capacity_kbps = 500;
-   auto fixture = CreateTestFixture(
-       "pc_foreman_cif_500kbps_100ms_32pkts_queue_generic_descriptor",
-       *network_emulation_manager->time_controller(),
-@@ -792,7 +792,7 @@ TEST(PCFullStackTest, ForemanCif500kbps100msLimitedQueueRecvBwe) {
-                           0.0, 0.0, kTestDurationSec};
-   foreman_cif.config->queue_length_packets = 32;
-   foreman_cif.config->queue_delay_ms = 100;
--  foreman_cif.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  foreman_cif.config->link_capacity_kbps = 500;
-   fixture->RunWithAnalyzer(foreman_cif);
- }
- */
-@@ -803,7 +803,7 @@ TEST(PCFullStackTest, Pc_Foreman_Cif_1000kbps_100ms_32pkts_Queue) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 32;
-   config.queue_delay_ms = 100;
--  config.link_capacity = DataRate::KilobitsPerSec(1000);
-+  config.link_capacity_kbps = 1000;
-   auto fixture = CreateTestFixture(
-       "pc_foreman_cif_1000kbps_100ms_32pkts_queue",
-       *network_emulation_manager->time_controller(),
-@@ -826,7 +826,7 @@ TEST(PCFullStackTest, Pc_Conference_Motion_Hd_2000kbps_100ms_32pkts_Queue) {
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 32;
-   config.queue_delay_ms = 100;
--  config.link_capacity = DataRate::KilobitsPerSec(2000);
-+  config.link_capacity_kbps = 2000;
-   auto fixture = CreateTestFixture(
-       "pc_conference_motion_hd_2000kbps_100ms_32pkts_queue",
-       *network_emulation_manager->time_controller(),
-@@ -863,7 +863,7 @@ TEST(PCGenericDescriptorTest, ConferenceMotionHd2TLModerateLimits) {
-   conf_motion_hd.config->queue_length_packets = 50;
-   conf_motion_hd.config->loss_percent = 3;
-   conf_motion_hd.config->queue_delay_ms = 100;
--  conf_motion_hd.config->link_capacity = DataRate::KilobitsPerSec(2000);
-+  conf_motion_hd.config->link_capacity_kbps = 2000;
-   conf_motion_hd.call.generic_descriptor = GenericDescriptorEnabled();
-   fixture->RunWithAnalyzer(conf_motion_hd);
- }
-@@ -887,7 +887,7 @@ TEST(PCFullStackTest, ConferenceMotionHd3TLModerateLimits) {
-   conf_motion_hd.config->queue_length_packets = 50;
-   conf_motion_hd.config->loss_percent = 3;
-   conf_motion_hd.config->queue_delay_ms = 100;
--  conf_motion_hd.config->link_capacity = DataRate::KilobitsPerSec(2000);
-+  conf_motion_hd.config->link_capacity_kbps = 2000;
-   fixture->RunWithAnalyzer(conf_motion_hd);
+ #include "modules/video_capture/device_info_impl.h"
+ 
++#include "rtc_base/platform_thread.h"
++#include <sys/inotify.h>
++
+ namespace webrtc {
+ namespace videocapturemodule {
+ class DeviceInfoV4l2 : public DeviceInfoImpl {
+@@ -28,7 +31,8 @@ class DeviceInfoV4l2 : public DeviceInfoImpl {
+                         char* deviceUniqueIdUTF8,
+                         uint32_t deviceUniqueIdUTF8Length,
+                         char* productUniqueIdUTF8 = 0,
+-                        uint32_t productUniqueIdUTF8Length = 0) override;
++                        uint32_t productUniqueIdUTF8Length = 0,
++                        pid_t* pid=0) override;
+   /*
+    * Fills the membervariable _captureCapabilities with capabilites for the
+    * given device name.
+@@ -45,6 +49,18 @@ class DeviceInfoV4l2 : public DeviceInfoImpl {
+ 
+  private:
+   bool IsDeviceNameMatches(const char* name, const char* deviceUniqueIdUTF8);
++
++#ifdef WEBRTC_LINUX
++  void HandleEvent(inotify_event* event, int fd);
++  int EventCheck(int fd);
++  int HandleEvents(int fd);
++  int ProcessInotifyEvents();
++  std::unique_ptr<rtc::PlatformThread> _inotifyEventThread;
++  static void InotifyEventThread(void*);
++  void InotifyProcess();
++  int _fd_v4l, _fd_dev, _wd_v4l, _wd_dev; /* accessed on InotifyEventThread thread */
++  std::atomic<bool> _isShutdown;
++#endif
+ };
+ }  // namespace videocapturemodule
+ }  // namespace webrtc
+diff --git a/modules/video_capture/video_capture.h b/modules/video_capture/video_capture.h
+index 48920b27c0..f31b239c71 100644
+--- a/modules/video_capture/video_capture.h
++++ b/modules/video_capture/video_capture.h
+@@ -15,15 +15,44 @@
+ #include "api/video/video_sink_interface.h"
+ #include "modules/video_capture/raw_video_sink_interface.h"
+ #include "modules/video_capture/video_capture_defines.h"
++#include <set>
++
++#if defined(ANDROID)
++#include <jni.h>
++#endif
+ 
+ namespace webrtc {
+ 
++class VideoInputFeedBack
++{
++public:
++    virtual void OnDeviceChange() = 0;
++protected:
++    virtual ~VideoInputFeedBack(){}
++};
++
+ class VideoCaptureModule : public RefCountInterface {
+  public:
+   // Interface for receiving information about available camera devices.
+   class DeviceInfo {
+    public:
+     virtual uint32_t NumberOfDevices() = 0;
++    virtual int32_t Refresh() = 0;
++    virtual void DeviceChange() {
++      for (auto inputCallBack : _inputCallBacks) {
++        inputCallBack->OnDeviceChange();
++      }
++    }
++    virtual void RegisterVideoInputFeedBack(VideoInputFeedBack* callBack) {
++      _inputCallBacks.insert(callBack);
++    }
++
++    virtual void DeRegisterVideoInputFeedBack(VideoInputFeedBack* callBack) {
++      auto it = _inputCallBacks.find(callBack);
++      if (it != _inputCallBacks.end()) {
++        _inputCallBacks.erase(it);
++      }
++    }
+ 
+     // Returns the available capture devices.
+     // deviceNumber   - Index of capture device.
+@@ -38,7 +67,8 @@ class VideoCaptureModule : public RefCountInterface {
+                                   char* deviceUniqueIdUTF8,
+                                   uint32_t deviceUniqueIdUTF8Length,
+                                   char* productUniqueIdUTF8 = 0,
+-                                  uint32_t productUniqueIdUTF8Length = 0) = 0;
++                                  uint32_t productUniqueIdUTF8Length = 0,
++                                  pid_t* pid = 0) = 0;
+ 
+     // Returns the number of capabilities this device.
+     virtual int32_t NumberOfCapabilities(const char* deviceUniqueIdUTF8) = 0;
+@@ -70,6 +100,8 @@ class VideoCaptureModule : public RefCountInterface {
+         uint32_t positionY) = 0;
+ 
+     virtual ~DeviceInfo() {}
++   private:
++    std::set<VideoInputFeedBack*> _inputCallBacks;
+   };
+ 
+   //   Register capture data callback
+@@ -79,11 +111,16 @@ class VideoCaptureModule : public RefCountInterface {
+       RawVideoSinkInterface* dataCallback) = 0;
+ 
+   //  Remove capture data callback
+-  virtual void DeRegisterCaptureDataCallback() = 0;
++  virtual void DeRegisterCaptureDataCallback(
++      rtc::VideoSinkInterface<VideoFrame> *dataCallback) = 0;
+ 
+   // Start capture device
+   virtual int32_t StartCapture(const VideoCaptureCapability& capability) = 0;
+ 
++  virtual int32_t StopCaptureIfAllClientsClose() = 0;
++
++  virtual bool FocusOnSelectedSource() { return false; }
++
+   virtual int32_t StopCapture() = 0;
+ 
+   // Returns the name of the device used by this module.
+diff --git a/modules/video_capture/video_capture_factory.cc b/modules/video_capture/video_capture_factory.cc
+index 563ef5abd2..e085ac2df8 100644
+--- a/modules/video_capture/video_capture_factory.cc
++++ b/modules/video_capture/video_capture_factory.cc
+@@ -16,11 +16,7 @@ namespace webrtc {
+ 
+ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureFactory::Create(
+     const char* deviceUniqueIdUTF8) {
+-#if defined(WEBRTC_ANDROID) || defined(WEBRTC_MAC)
+-  return nullptr;
+-#else
+   return videocapturemodule::VideoCaptureImpl::Create(deviceUniqueIdUTF8);
+-#endif
  }
  
-@@ -910,7 +910,7 @@ TEST(PCFullStackTest, ConferenceMotionHd4TLModerateLimits) {
-   conf_motion_hd.config->queue_length_packets = 50;
-   conf_motion_hd.config->loss_percent = 3;
-   conf_motion_hd.config->queue_delay_ms = 100;
--  conf_motion_hd.config->link_capacity = DataRate::KilobitsPerSec(2000);
-+  conf_motion_hd.config->link_capacity_kbps = 2000;
-   fixture->RunWithAnalyzer(conf_motion_hd);
+ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureFactory::Create(
+@@ -37,11 +33,7 @@ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureFactory::Create(
  }
  
-@@ -924,7 +924,7 @@ TEST_P(ParameterizedPCFullStackTest,
-   BuiltInNetworkBehaviorConfig config;
-   config.queue_length_packets = 32;
-   config.queue_delay_ms = 100;
--  config.link_capacity = DataRate::KilobitsPerSec(2000);
-+  config.link_capacity_kbps = 2000;
-   auto fixture = CreateTestFixture(
-       "pc_conference_motion_hd_2000kbps_100ms_32pkts_queue_vp9" +
-           GetParam().test_case_name_postfix,
-@@ -1119,7 +1119,7 @@ TEST(PCGenericDescriptorTest, Screenshare_Slides_Lossy_Net_Generic_Descriptor) {
-                           0.0, 0.0, kTestDurationSec};
-   screenshare.config->loss_percent = 5;
-   screenshare.config->queue_delay_ms = 200;
--  screenshare.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  screenshare.config->link_capacity_kbps = 500;
-   screenshare.call.generic_descriptor = true;
-   fixture->RunWithAnalyzer(screenshare);
- }
-@@ -1137,7 +1137,7 @@ TEST(PCFullStackTest, ScreenshareSlidesVP8_2TL_VeryLossyNet) {
-                           kTestDurationSec};
-   screenshare.config->loss_percent = 10;
-   screenshare.config->queue_delay_ms = 200;
--  screenshare.config->link_capacity = DataRate::KilobitsPerSec(500);
-+  screenshare.config->link_capacity_kbps = 500;
-   fixture->RunWithAnalyzer(screenshare);
+ VideoCaptureModule::DeviceInfo* VideoCaptureFactory::CreateDeviceInfo() {
+-#if defined(WEBRTC_ANDROID) || defined(WEBRTC_MAC)
+-  return nullptr;
+-#else
+   return videocapturemodule::VideoCaptureImpl::CreateDeviceInfo();
+-#endif
  }
  
-@@ -1153,7 +1153,7 @@ TEST(PCFullStackTest, ScreenshareSlidesVP8_2TL_LossyNetRestrictedQueue) {
-   screenshare.analyzer = {"screenshare_slides_lossy_limited", 0.0, 0.0,
-                           kTestDurationSec};
-   screenshare.config->loss_percent = 5;
--  screenshare.config->link_capacity = DataRate::KilobitsPerSec(200);
-+  screenshare.config->link_capacity_kbps = 200;
-   screenshare.config->queue_length_packets = 30;
+ VideoCaptureModule::DeviceInfo* VideoCaptureFactory::CreateDeviceInfo(
+diff --git a/modules/video_capture/video_capture_impl.cc b/modules/video_capture/video_capture_impl.cc
+index 5588fae161..51282183f5 100644
+--- a/modules/video_capture/video_capture_impl.cc
++++ b/modules/video_capture/video_capture_impl.cc
+@@ -77,7 +77,6 @@ VideoCaptureImpl::VideoCaptureImpl()
+       _requestedCapability(),
+       _lastProcessTimeNanos(rtc::TimeNanos()),
+       _lastFrameRateCallbackTimeNanos(rtc::TimeNanos()),
+-      _dataCallBack(NULL),
+       _rawDataCallBack(NULL),
+       _lastProcessFrameTimeNanos(rtc::TimeNanos()),
+       _rotateFrame(kVideoRotation_0),
+@@ -91,7 +90,6 @@ VideoCaptureImpl::VideoCaptureImpl()
  
-   fixture->RunWithAnalyzer(screenshare);
-@@ -1171,7 +1171,7 @@ TEST(PCFullStackTest, ScreenshareSlidesVP8_2TL_ModeratelyRestricted) {
-   screenshare.analyzer = {"screenshare_slides_moderately_restricted", 0.0, 0.0,
-                           kTestDurationSec};
-   screenshare.config->loss_percent = 1;
--  screenshare.config->link_capacity = DataRate::KilobitsPerSec(1200);
-+  screenshare.config->link_capacity_kbps = 1200;
-   screenshare.config->queue_length_packets = 30;
- 
-   fixture->RunWithAnalyzer(screenshare);
-@@ -1397,7 +1397,7 @@ TEST(PCFullStackTest, VP9KSVC_3SL_Medium_Network_Restricted) {
-   simulcast.ss[0] = {
-       std::vector<VideoStream>(),  0,    3, -1, InterLayerPredMode::kOnKeyPic,
-       std::vector<SpatialLayer>(), false};
--  simulcast.config->link_capacity = DataRate::KilobitsPerSec(1000);
-+  simulcast.config->link_capacity_kbps = 1000;
-   simulcast.config->queue_delay_ms = 100;
-   fixture->RunWithAnalyzer(simulcast);
+ VideoCaptureImpl::~VideoCaptureImpl() {
+   RTC_DCHECK_RUN_ON(&api_checker_);
+-  DeRegisterCaptureDataCallback();
+   if (_deviceUniqueId)
+     delete[] _deviceUniqueId;
  }
-@@ -1416,7 +1416,7 @@ TEST(PCFullStackTest, VP9KSVC_3SL_Medium_Network_Restricted_Trusted_Rate) {
-   simulcast.ss[0] = {
-       std::vector<VideoStream>(),  0,    3, -1, InterLayerPredMode::kOnKeyPic,
-       std::vector<SpatialLayer>(), false};
--  simulcast.config->link_capacity = DataRate::KilobitsPerSec(1000);
-+  simulcast.config->link_capacity_kbps = 1000;
-   simulcast.config->queue_delay_ms = 100;
-   fixture->RunWithAnalyzer(simulcast);
+@@ -100,28 +98,41 @@ void VideoCaptureImpl::RegisterCaptureDataCallback(
+     rtc::VideoSinkInterface<VideoFrame>* dataCallBack) {
+   MutexLock lock(&api_lock_);
+   RTC_DCHECK(!_rawDataCallBack);
+-  _dataCallBack = dataCallBack;
++  _dataCallBacks.insert(dataCallBack);
  }
-@@ -1695,7 +1695,7 @@ TEST_P(PCDualStreamsTest,
-                            std::to_string(first_stream);
-   dual_streams.analyzer = {test_label, 0.0, 0.0, kTestDurationSec};
-   dual_streams.config->loss_percent = 1;
--  dual_streams.config->link_capacity = DataRate::KilobitsPerSec(7500);
-+  dual_streams.config->link_capacity_kbps = 7500;
-   dual_streams.config->queue_length_packets = 30;
-   dual_streams.config->queue_delay_ms = 100;
  
-@@ -1733,7 +1733,7 @@ TEST_P(PCDualStreamsTest, Conference_Restricted) {
-                            std::to_string(first_stream);
-   dual_streams.analyzer = {test_label, 0.0, 0.0, kTestDurationSec};
-   dual_streams.config->loss_percent = 1;
--  dual_streams.config->link_capacity = DataRate::KilobitsPerSec(5000);
-+  dual_streams.config->link_capacity_kbps = 5000;
-   dual_streams.config->queue_length_packets = 30;
-   dual_streams.config->queue_delay_ms = 100;
+ void VideoCaptureImpl::RegisterCaptureDataCallback(
+     RawVideoSinkInterface* dataCallBack) {
+   MutexLock lock(&api_lock_);
+-  RTC_DCHECK(!_dataCallBack);
++  RTC_DCHECK(_dataCallBacks.empty());
+   _rawDataCallBack = dataCallBack;
+ }
  
-diff --git a/video/screenshare_loopback.cc b/video/screenshare_loopback.cc
-index 9cbe5012dc..607a5d54f4 100644
---- a/video/screenshare_loopback.cc
-+++ b/video/screenshare_loopback.cc
-@@ -20,7 +20,6 @@
- #include "api/test/simulated_network.h"
- #include "api/test/video_quality_test_fixture.h"
- #include "api/transport/bitrate_settings.h"
--#include "api/units/data_rate.h"
- #include "api/video_codecs/video_codec.h"
+-void VideoCaptureImpl::DeRegisterCaptureDataCallback() {
++void VideoCaptureImpl::DeRegisterCaptureDataCallback(
++    rtc::VideoSinkInterface<VideoFrame>* dataCallBack) {
+   MutexLock lock(&api_lock_);
+-  _dataCallBack = NULL;
++  auto it = _dataCallBacks.find(dataCallBack);
++  if (it != _dataCallBacks.end()) {
++    _dataCallBacks.erase(it);
++  }
+   _rawDataCallBack = NULL;
+ }
++
++int32_t VideoCaptureImpl::StopCaptureIfAllClientsClose() {
++  if (_dataCallBacks.empty()) {
++    return StopCapture();
++  } else {
++    return 0;
++  }
++}
++
+ int32_t VideoCaptureImpl::DeliverCapturedFrame(VideoFrame& captureFrame) {
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
+ 
+   UpdateFrameCount();  // frame count used for local frame rate callback.
+ 
+-  if (_dataCallBack) {
+-    _dataCallBack->OnFrame(captureFrame);
++  for (auto dataCallBack : _dataCallBacks) {
++    dataCallBack->OnFrame(captureFrame);
+   }
+ 
+   return 0;
+@@ -229,6 +240,13 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+           .build();
+   captureFrame.set_ntp_time_ms(captureTime);
+ 
++  // This is one ugly hack to let CamerasParent know what rotation
++  // the frame was captured at. Note that this goes against the intended
++  // meaning of rotation of the frame (how to rotate it before rendering).
++  // We do this so CamerasChild can scale to the proper dimensions
++  // later on in the pipe.
++  captureFrame.set_rotation(_rotateFrame);
++
+   DeliverCapturedFrame(captureFrame);
+ 
+   return 0;
+diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
+index 5ec1fd4a83..e46e050609 100644
+--- a/modules/video_capture/video_capture_impl.h
++++ b/modules/video_capture/video_capture_impl.h
+@@ -64,8 +64,10 @@ class RTC_EXPORT VideoCaptureImpl : public VideoCaptureModule {
+       rtc::VideoSinkInterface<VideoFrame>* dataCallback) override;
+   virtual void RegisterCaptureDataCallback(
+       RawVideoSinkInterface* dataCallback) override;
+-  void DeRegisterCaptureDataCallback() override;
++  void DeRegisterCaptureDataCallback(
++      rtc::VideoSinkInterface<VideoFrame>* dataCallback) override;
+ 
++  int32_t StopCaptureIfAllClientsClose() override;
+   int32_t SetCaptureRotation(VideoRotation rotation) override;
+   bool SetApplyRotation(bool enable) override;
+   bool GetApplyRotation() override;
+@@ -115,7 +117,7 @@ class RTC_EXPORT VideoCaptureImpl : public VideoCaptureModule {
+   // last time the frame rate callback function was called.
+   int64_t _lastFrameRateCallbackTimeNanos RTC_GUARDED_BY(capture_checker_);
+ 
+-  rtc::VideoSinkInterface<VideoFrame>* _dataCallBack RTC_GUARDED_BY(api_lock_);
++  std::set<rtc::VideoSinkInterface<VideoFrame>*> _dataCallBacks RTC_GUARDED_BY(api_lock_);
+   RawVideoSinkInterface* _rawDataCallBack RTC_GUARDED_BY(api_lock_);
+ 
+   int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+index 21d46023f6..9c84b7768d 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+@@ -255,6 +255,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
+       first_frame_in_picture_(true),
+       ss_info_needed_(false),
+       force_all_active_layers_(false),
++      num_cores_(0),
+       is_flexible_mode_(false),
+       variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
+       quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
+@@ -528,6 +529,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
+ 
+   force_key_frame_ = true;
+   pics_since_key_ = 0;
++  num_cores_ = settings.number_of_cores;
+ 
+   scalability_mode_ = inst->GetScalabilityMode();
+   if (scalability_mode_.has_value()) {
+@@ -1098,6 +1100,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+     config_changed_ = false;
+   }
+ 
++  if (input_image.width() != codec_.width ||
++      input_image.height() != codec_.height) {
++    int ret = UpdateCodecFrameSize(input_image);
++    if (ret < 0) {
++      return ret;
++    }
++  }
++
+   RTC_DCHECK_EQ(input_image.width(), raw_->d_w);
+   RTC_DCHECK_EQ(input_image.height(), raw_->d_h);
+ 
+@@ -1220,6 +1230,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+   return WEBRTC_VIDEO_CODEC_OK;
+ }
+ 
++int LibvpxVp9Encoder::UpdateCodecFrameSize(
++    const VideoFrame& input_image) {
++  RTC_LOG(LS_INFO) << "Reconfiging VP from " <<
++          codec_.width << "x" << codec_.height << " to " <<
++          input_image.width() << "x" << input_image.height();
++  // Preserve latest bitrate/framerate setting
++  // TODO: Mozilla - see below, we need to save more state here.
++  //uint32_t old_bitrate_kbit = config_->rc_target_bitrate;
++  //uint32_t old_framerate = codec_.maxFramerate;
++
++  codec_.width = input_image.width();
++  codec_.height = input_image.height();
++
++  vpx_img_free(raw_);
++  raw_ = vpx_img_wrap(NULL, VPX_IMG_FMT_I420, codec_.width, codec_.height,
++                      1, NULL);
++  // Update encoder context for new frame size.
++  config_->g_w = codec_.width;
++  config_->g_h = codec_.height;
++
++  // Determine number of threads based on the image size and #cores.
++  config_->g_threads = NumberOfThreads(codec_.width, codec_.height,
++                                       num_cores_);
++
++  // NOTE: We would like to do this the same way vp8 does it
++  // (with vpx_codec_enc_config_set()), but that causes asserts
++  // in AQ 3 (cyclic); and in AQ 0 it works, but on a resize to smaller
++  // than 1/2 x 1/2 original it asserts in convolve().  Given these
++  // bugs in trying to do it the "right" way, we basically re-do
++  // the initialization.
++  vpx_codec_destroy(encoder_); // clean up old state
++  int result = InitAndSetControlSettings(&codec_);
++  if (result == WEBRTC_VIDEO_CODEC_OK) {
++    // TODO: Mozilla rates have become much more complicated, we need to store
++    // more state or find another way of doing this.
++    //return SetRates(old_bitrate_kbit, old_framerate);
++    RTC_CHECK(false);
++    return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
++  }
++  return result;
++}
++
+ bool LibvpxVp9Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
+                                              absl::optional<int>* spatial_idx,
+                                              absl::optional<int>* temporal_idx,
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
+index 0134e3ea58..86d1bdda16 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
+@@ -68,6 +68,9 @@ class LibvpxVp9Encoder : public VideoEncoder {
+   // Call encoder initialize function and set control settings.
+   int InitAndSetControlSettings(const VideoCodec* inst);
+ 
++  // Update frame size for codec.
++  int UpdateCodecFrameSize(const VideoFrame& input_image);
++
+   bool PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
+                              absl::optional<int>* spatial_idx,
+                              absl::optional<int>* temporal_idx,
+@@ -150,6 +153,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
+   VideoBitrateAllocation current_bitrate_allocation_;
+   bool ss_info_needed_;
+   bool force_all_active_layers_;
++  uint8_t num_cores_;
+ 
+   std::unique_ptr<ScalableVideoController> svc_controller_;
+   absl::optional<ScalabilityMode> scalability_mode_;
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 74881be990..0f8f40801a 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -470,6 +470,12 @@ rtc_library("logging") {
+     "//third_party/abseil-cpp/absl/types:optional",
+   ]
+ 
++  # Added to allow including apm_data_dumper.h in rtc_base/logging.cc
++  # for Mozilla controlling aec logging from about:webrtc.
++  if (build_with_mozilla) {
++    configs += [ "../modules/audio_processing:apm_debug_dump" ]
++  }
++
+   if (build_with_chromium) {
+     # Dependency on chromium's logging (in //base).
+     deps += [ "//base" ]
+diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
+index 61a3c667ba..ad2303735e 100644
+--- a/rtc_base/logging.cc
++++ b/rtc_base/logging.cc
+@@ -44,6 +44,7 @@ static const int kMaxLogLineSize = 1024 - 60;
+ #include "absl/base/attributes.h"
+ #include "absl/strings/string_view.h"
+ #include "api/units/timestamp.h"
++#include "modules/audio_processing/logging/apm_data_dumper.h"
  #include "rtc_base/checks.h"
- #include "rtc_base/logging.h"
-@@ -314,8 +313,7 @@ std::vector<std::string> Slides() {
- void Loopback() {
-   BuiltInNetworkBehaviorConfig pipe_config;
-   pipe_config.loss_percent = LossPercent();
--  pipe_config.link_capacity =
--      webrtc::DataRate::KilobitsPerSec(LinkCapacityKbps());
-+  pipe_config.link_capacity_kbps = LinkCapacityKbps();
-   pipe_config.queue_length_packets = QueueSize();
-   pipe_config.queue_delay_ms = AvgPropagationDelayMs();
-   pipe_config.delay_standard_deviation_ms = StdPropagationDelayMs();
-diff --git a/video/sv_loopback.cc b/video/sv_loopback.cc
-index 67b27e865c..b0a90a017d 100644
---- a/video/sv_loopback.cc
-+++ b/video/sv_loopback.cc
-@@ -20,7 +20,6 @@
- #include "api/test/simulated_network.h"
- #include "api/test/video_quality_test_fixture.h"
- #include "api/transport/bitrate_settings.h"
--#include "api/units/data_rate.h"
- #include "api/video_codecs/video_codec.h"
- #include "rtc_base/checks.h"
- #include "rtc_base/logging.h"
-@@ -585,7 +584,7 @@ void Loopback() {
-   BuiltInNetworkBehaviorConfig pipe_config;
-   pipe_config.loss_percent = LossPercent();
-   pipe_config.avg_burst_loss_length = AvgBurstLossLength();
--  pipe_config.link_capacity = DataRate::KilobitsPerSec(LinkCapacityKbps());
-+  pipe_config.link_capacity_kbps = LinkCapacityKbps();
-   pipe_config.queue_length_packets = QueueSize();
-   pipe_config.queue_delay_ms = AvgPropagationDelayMs();
-   pipe_config.delay_standard_deviation_ms = StdPropagationDelayMs();
-diff --git a/video/video_loopback.cc b/video/video_loopback.cc
-index 973ffe60c8..50c6f2b992 100644
---- a/video/video_loopback.cc
-+++ b/video/video_loopback.cc
-@@ -21,7 +21,6 @@
- #include "api/test/simulated_network.h"
- #include "api/test/video_quality_test_fixture.h"
- #include "api/transport/bitrate_settings.h"
--#include "api/units/data_rate.h"
- #include "api/video_codecs/video_codec.h"
- #include "rtc_base/checks.h"
- #include "rtc_base/logging.h"
-@@ -358,7 +357,7 @@ void Loopback() {
-   BuiltInNetworkBehaviorConfig pipe_config;
-   pipe_config.loss_percent = LossPercent();
-   pipe_config.avg_burst_loss_length = AvgBurstLossLength();
--  pipe_config.link_capacity = DataRate::KilobitsPerSec(LinkCapacityKbps());
-+  pipe_config.link_capacity_kbps = LinkCapacityKbps();
-   pipe_config.queue_length_packets = QueueSize();
-   pipe_config.queue_delay_ms = AvgPropagationDelayMs();
-   pipe_config.delay_standard_deviation_ms = StdPropagationDelayMs();
-diff --git a/video/video_send_stream_tests.cc b/video/video_send_stream_tests.cc
-index 82373548bc..21698ce4fd 100644
---- a/video/video_send_stream_tests.cc
-+++ b/video/video_send_stream_tests.cc
-@@ -18,7 +18,6 @@
- #include "api/test/metrics/global_metrics_logger_and_exporter.h"
- #include "api/test/metrics/metric.h"
- #include "api/test/simulated_network.h"
--#include "api/units/data_rate.h"
- #include "api/units/time_delta.h"
- #include "api/video/builtin_video_bitrate_allocator_factory.h"
- #include "api/video/encoded_image.h"
-@@ -1461,7 +1460,7 @@ TEST_F(VideoSendStreamTest, PaddingIsPrimarilyRetransmissions) {
-       const int kNetworkDelayMs = 50;
-       BuiltInNetworkBehaviorConfig config;
-       config.loss_percent = 10;
--      config.link_capacity = DataRate::KilobitsPerSec(kCapacityKbps);
-+      config.link_capacity_kbps = kCapacityKbps;
-       config.queue_delay_ms = kNetworkDelayMs;
-       return config;
+ #include "rtc_base/platform_thread_types.h"
+ #include "rtc_base/string_encode.h"
+@@ -54,6 +55,24 @@ static const int kMaxLogLineSize = 1024 - 60;
+ #include "rtc_base/time_utils.h"
+ 
+ namespace rtc {
++
++bool LogMessage::aec_debug_ = false;
++std::string LogMessage::aec_filename_base_;
++
++void LogMessage::set_aec_debug(bool enable) {
++  aec_debug_ = enable;
++  webrtc::ApmDataDumper::SetActivated(aec_debug_);
++}
++
++std::string LogMessage::aec_debug_filename() {
++  return aec_filename_base_;
++}
++
++void LogMessage::set_aec_debug_filename(const char* filename) {
++  aec_filename_base_ = filename;
++  webrtc::ApmDataDumper::SetOutputDirectory(aec_filename_base_);
++}
++
+ namespace {
+ 
+ // By default, release builds don't log, debug builds at info level
+@@ -114,7 +133,7 @@ std::string LogLineRef::DefaultLogLine() const {
+ // LogMessage
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-bool LogMessage::log_to_stderr_ = true;
++bool LogMessage::log_to_stderr_ = false;
+ 
+ // The list of logging streams currently configured.
+ // Note: we explicitly do not clean this up, because of the uncertain ordering
+diff --git a/rtc_base/logging.h b/rtc_base/logging.h
+index b171cfe11e..df7f173f58 100644
+--- a/rtc_base/logging.h
++++ b/rtc_base/logging.h
+@@ -581,6 +581,12 @@ class LogMessage {
+   }
+ #endif  // RTC_LOG_ENABLED()
+ 
++  // Enable dumping of AEC inputs and outputs.  Can be changed in mid-call
++  static void set_aec_debug(bool enable);
++  static bool aec_debug() { return aec_debug_; }
++  static std::string aec_debug_filename();
++  static void set_aec_debug_filename(const char* filename);
++
+  private:
+   friend class LogMessageForTesting;
+ 
+@@ -636,6 +642,9 @@ class LogMessage {
+ 
+   // The stringbuilder that buffers the formatted message before output
+   rtc::StringBuilder print_stream_;
++
++  static bool aec_debug_;
++  static std::string aec_filename_base_;
+ };
+ 
+ //////////////////////////////////////////////////////////////////////
+diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
+index be4e9a3e85..23a1828915 100644
+--- a/test/fuzzers/rtp_packet_fuzzer.cc
++++ b/test/fuzzers/rtp_packet_fuzzer.cc
+@@ -164,6 +164,11 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
+         // This extension requires state to read and so complicated that
+         // deserves own fuzzer.
+         break;
++      case kRtpExtensionCsrcAudioLevel: {
++        CsrcAudioLevelList levels;
++        packet.GetExtension<CsrcAudioLevel>(&levels);
++        break;
++      }
      }
+   }
+ 
+diff --git a/test/vcm_capturer.cc b/test/vcm_capturer.cc
+index 0a9226ef6f..620c1c02f3 100644
+--- a/test/vcm_capturer.cc
++++ b/test/vcm_capturer.cc
+@@ -83,7 +83,7 @@ void VcmCapturer::Destroy() {
+     return;
+ 
+   vcm_->StopCapture();
+-  vcm_->DeRegisterCaptureDataCallback();
++  vcm_->DeRegisterCaptureDataCallback(this);
+   // Release reference to VCM.
+   vcm_ = nullptr;
+ }
+diff --git a/webrtc.gni b/webrtc.gni
+index 2077c0e9a8..c9f75e2cde 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -130,7 +130,7 @@ declare_args() {
+ 
+   # Selects whether debug dumps for the audio processing module
+   # should be generated.
+-  apm_debug_dump = false
++  apm_debug_dump = build_with_mozilla
+ 
+   # Selects whether the audio processing module should be excluded.
+   rtc_exclude_audio_processing_module = false
