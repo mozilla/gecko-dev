@@ -2331,7 +2331,7 @@ void nsTreeSanitizer::LogMessage(const char* aMessage, Document* aDoc,
                                  Element* aElement, nsAtom* aAttr) {
   if (mLogRemovals) {
     nsAutoString msg;
-    msg.Assign(NS_ConvertASCIItoUTF16(aMessage));
+    msg.AssignASCII(aMessage);
     if (aElement) {
       msg.Append(u" Element: "_ns + aElement->LocalName() + u"."_ns);
     }
