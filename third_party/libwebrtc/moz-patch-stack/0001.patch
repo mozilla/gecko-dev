@@ -1563,7 +1563,7 @@ index 0134e3ea58..86d1bdda16 100644
    std::unique_ptr<ScalableVideoController> svc_controller_;
    absl::optional<ScalabilityMode> scalability_mode_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 57aea4eebf..aa2ff4abf4 100644
+index edf48eebc7..b41e98dada 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -470,6 +470,12 @@ rtc_library("logging") {
