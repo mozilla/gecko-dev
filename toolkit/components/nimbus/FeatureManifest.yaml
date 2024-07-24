@@ -1329,6 +1329,12 @@ pdfjs:
       setPref:
         branch: default
         pref: pdfjs.enableUpdatedAddImage
+    browserMlEnable:
+      description: Set to true to enable local inference engine
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.ml.enable
 
 # fxms-message-* placeholder feature ids
 #
