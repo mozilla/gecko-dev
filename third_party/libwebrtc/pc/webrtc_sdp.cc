@@ -3699,6 +3699,27 @@ bool ParseFmtpParam(absl::string_view line,
   return true;
 }
 
+bool ParseFmtpParameterSet(absl::string_view line_params,
+                           webrtc::CodecParameterMap& codec_params,
+                           SdpParseError* error) {
+  // Parse out format specific parameters.
+  for (absl::string_view param :
+       rtc::split(line_params, kSdpDelimiterSemicolonChar)) {
+    std::string name;
+    std::string value;
+    if (!ParseFmtpParam(absl::StripAsciiWhitespace(param), &name, &value,
+                        error)) {
+      return false;
+    }
+    if (codec_params.find(name) != codec_params.end()) {
+      RTC_LOG(LS_INFO) << "Overwriting duplicate fmtp parameter with key \""
+                       << name << "\".";
+    }
+    codec_params[name] = value;
+  }
+  return true;
+}
+
 bool ParseFmtpAttributes(absl::string_view line,
                          const cricket::MediaType media_type,
                          MediaContentDescription* media_desc,
@@ -3736,19 +3757,8 @@ bool ParseFmtpAttributes(absl::string_view line,
 
   // Parse out format specific parameters.
   webrtc::CodecParameterMap codec_params;
-  for (absl::string_view param :
-       rtc::split(line_params, kSdpDelimiterSemicolonChar)) {
-    std::string name;
-    std::string value;
-    if (!ParseFmtpParam(absl::StripAsciiWhitespace(param), &name, &value,
-                        error)) {
-      return false;
-    }
-    if (codec_params.find(name) != codec_params.end()) {
-      RTC_LOG(LS_INFO) << "Overwriting duplicate fmtp parameter with key \""
-                       << name << "\".";
-    }
-    codec_params[name] = value;
+  if (!ParseFmtpParameterSet(line_params, codec_params, error)) {
+    return false;
   }
 
   if (media_type == cricket::MEDIA_TYPE_AUDIO ||
