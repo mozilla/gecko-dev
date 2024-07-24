@@ -19,8 +19,6 @@ var doubletap_prefs = [
 var subtests = [
   // tests that scrolling doesn't cause extra SchedulePaint calls
   {"file": "helper_bug1669625.html", "dp_suppression": false},
-  {"file": "helper_touch_drag_root_scrollbar.html", "prefs": [["apz.allow_zooming", true]]},
-  {"file": "helper_touch_drag_root_scrollbar.html", "prefs": [["apz.allow_zooming", false]]},
   {"file": "helper_overscroll_in_apz_test_data.html", "prefs": [
     ["apz.overscroll.enabled", true],
     ["apz.overscroll.test_async_scroll_offset.enabled", true],
@@ -50,6 +48,15 @@ var subtests = [
   // with fission x-origin tests. So you can add tests here or in
   // test_group_touchevents-4.html until they start timing out.
 ];
+
+// The following tests intermittently fail on Linux.
+// See bug 1909710 for re-enabling these subtests.
+if (getPlatform() != "linux") {
+  subtests.push(...[
+    {"file": "helper_touch_drag_root_scrollbar.html", "prefs": [["apz.allow_zooming", true]]},
+    {"file": "helper_touch_drag_root_scrollbar.html", "prefs": [["apz.allow_zooming", false]]},
+  ]);
+}
 
 if (isApzEnabled()) {
   ok(window.TouchEvent, "Check if TouchEvent is supported (it should be, the test harness forces it on everywhere)");
