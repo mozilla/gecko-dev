@@ -1261,6 +1261,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1903970 - UA override for unimedlitoral.com.br
+     * Webcompat issue #138342 - https://webcompat.com/issues/138342
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "bug1903970",
+    platform: "all",
+    domain: "www.unimedlitoral.com.br",
+    bug: "1903970",
+    config: {
+      matches: ["*://www.unimedlitoral.com.br/agendaonline/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
