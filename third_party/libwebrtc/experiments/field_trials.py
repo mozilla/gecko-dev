@@ -478,9 +478,6 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     FieldTrial('WebRTC-AudioDevicePlayoutBufferSizeFactor',
                42221006,
                date(2024, 4, 1)),
-    FieldTrial('WebRTC-AutomaticAnimationDetectionScreenshare',
-               42221141,
-               date(2024, 4, 1)),
     FieldTrial('WebRTC-BindUsingInterfaceName',
                42220770,
                date(2024, 4, 1)),
@@ -875,7 +872,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
 ])  # yapf: disable
 
 POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
-    'b0b0cce63bfdf327229b569576a07b716db186b7'
+    'd6beac9eb318c70cd1695598b3d3c069cd17b42f'
 
 REGISTERED_FIELD_TRIALS: FrozenSet[FieldTrial] = ACTIVE_FIELD_TRIALS.union(
     POLICY_EXEMPT_FIELD_TRIALS)

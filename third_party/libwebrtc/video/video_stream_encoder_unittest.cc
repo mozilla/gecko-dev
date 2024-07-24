@@ -8015,65 +8015,6 @@ TEST_F(VideoStreamEncoderTest,
   video_stream_encoder_->Stop();
 }
 
-TEST_F(VideoStreamEncoderTest, AutomaticAnimationDetection) {
-  test::ScopedKeyValueConfig field_trials(
-      field_trials_,
-      "WebRTC-AutomaticAnimationDetectionScreenshare/"
-      "enabled:true,min_fps:20,min_duration_ms:1000,min_area_ratio:0.8/");
-  const int kFramerateFps = 30;
-  const int kWidth = 1920;
-  const int kHeight = 1080;
-  const int kNumFrames = 2 * kFramerateFps;  // >1 seconds of frames.
-  ASSERT_EQ(video_encoder_config_.simulcast_layers.size(), 1u);
-  // Works on screenshare mode.
-  ResetEncoder("VP8", 1, 1, 1, /*screenshare*/ true,
-               /*max_frame_rate=*/kFramerateFps);
-  // We rely on the automatic resolution adaptation, but we handle framerate
-  // adaptation manually by mocking the stats proxy.
-  video_source_.set_adaptation_enabled(true);
-
-  // BALANCED degradation preference is required for this feature.
-  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
-  video_stream_encoder_->SetSource(&video_source_,
-                                   webrtc::DegradationPreference::BALANCED);
-  EXPECT_THAT(video_source_.sink_wants(), WantsFps(Eq(kFramerateFps)));
-
-  VideoFrame frame = CreateFrame(1, kWidth, kHeight);
-  frame.set_update_rect(VideoFrame::UpdateRect{0, 0, kWidth, kHeight});
-
-  // Pass enough frames with the full update to trigger animation detection.
-  for (int i = 0; i < kNumFrames; ++i) {
-    int64_t timestamp_ms = CurrentTimeMs();
-    frame.set_ntp_time_ms(timestamp_ms);
-    frame.set_timestamp_us(timestamp_ms * 1000);
-    video_source_.IncomingCapturedFrame(frame);
-    WaitForEncodedFrame(timestamp_ms);
-  }
-
-  // Resolution should be limited.
-  rtc::VideoSinkWants expected;
-  expected.max_framerate_fps = kFramerateFps;
-  expected.max_pixel_count = 1280 * 720 + 1;
-  EXPECT_THAT(video_source_.sink_wants(), FpsEqResolutionLt(expected));
-
-  // Pass one frame with no known update.
-  //  Resolution cap should be removed immediately.
-  int64_t timestamp_ms = CurrentTimeMs();
-  frame.set_ntp_time_ms(timestamp_ms);
-  frame.set_timestamp_us(timestamp_ms * 1000);
-  frame.clear_update_rect();
-
-  video_source_.IncomingCapturedFrame(frame);
-  WaitForEncodedFrame(timestamp_ms);
-
-  // Resolution should be unlimited now.
-  EXPECT_THAT(video_source_.sink_wants(),
-              FpsMatchesResolutionMax(Eq(kFramerateFps)));
-
-  video_stream_encoder_->Stop();
-}
-
 TEST_F(VideoStreamEncoderTest, ConfiguresVp9SvcAtOddResolutions) {
   const int kWidth = 720;  // 540p adapted down.
   const int kHeight = 405;
