@@ -269,6 +269,9 @@ void nsGIFDecoder2::EndImageFrame() {
   if (WantsFrameCount()) {
     mGIFStruct.pixels_remaining = 0;
     mGIFStruct.images_decoded++;
+    mGIFStruct.delay_time = 0;
+    mColormap = nullptr;
+    mColormapSize = 0;
     mCurrentFrameIndex = -1;
 
     // Keep updating the count every time we find a frame.
