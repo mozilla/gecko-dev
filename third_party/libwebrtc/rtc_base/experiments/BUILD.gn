@@ -134,10 +134,8 @@ rtc_library("rate_control_settings") {
     "..:logging",
     "..:safe_conversions",
     "../../api:field_trials_view",
-    "../../api/transport:field_trial_based_config",
     "../../api/units:data_size",
     "../../api/video_codecs:video_codecs_api",
-    "../../system_wrappers:field_trial",
     "../../video/config:encoder_config",
   ]
   absl_deps = [

@@ -58,12 +58,6 @@ float SimulcastRateAllocator::GetTemporalRateAllocation(
   return kLayerRateAllocation[num_layers - 1][temporal_id];
 }
 
-SimulcastRateAllocator::SimulcastRateAllocator(const VideoCodec& codec)
-    : codec_(codec),
-      stable_rate_settings_(StableTargetRateExperiment::ParseFromFieldTrials()),
-      rate_control_settings_(RateControlSettings::ParseFromFieldTrials()),
-      legacy_conference_mode_(false) {}
-
 SimulcastRateAllocator::SimulcastRateAllocator(const Environment& env,
                                                const VideoCodec& codec)
     : codec_(codec),

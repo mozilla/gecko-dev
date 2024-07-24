@@ -27,7 +27,6 @@ namespace webrtc {
 
 class SimulcastRateAllocator : public VideoBitrateAllocator {
  public:
-  [[deprecated]] explicit SimulcastRateAllocator(const VideoCodec& codec);
   SimulcastRateAllocator(const Environment& env, const VideoCodec& codec);
   ~SimulcastRateAllocator() override;
 
