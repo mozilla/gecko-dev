@@ -6718,7 +6718,7 @@ WebGLTransformFeedbackJS::WebGLTransformFeedbackJS(
 
 WebGLVertexArrayJS::WebGLVertexArrayJS(const ClientWebGLContext* const webgl)
     : webgl::ObjectJS(webgl),
-      mAttribBuffers(webgl ? webgl->Limits().maxVertexAttribs : 0) {}
+      mAttribBuffers(Context() ? Context()->Limits().maxVertexAttribs : 0) {}
 
 // -
 
