@@ -967,7 +967,7 @@ user activity where the first entry is the total urls visited for that day.
 
 ### `doesAppNeedPin`
 
-Checks if Firefox app can be and isn't pinned to OS taskbar/dock.
+Checks if Firefox app can be and isn't pinned to OS taskbar/dock or Windows start menu in MSIX builds.
 
 ### `doesAppNeedPrivatePin`
 

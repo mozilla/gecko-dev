@@ -310,6 +310,12 @@ export const QueryCache = {
       FRECENT_SITES_UPDATE_INTERVAL,
       ShellService
     ),
+    doesAppNeedStartMenuPin: new CachedTargetingGetter(
+      "doesAppNeedStartMenuPin",
+      null,
+      FRECENT_SITES_UPDATE_INTERVAL,
+      ShellService
+    ),
     isDefaultBrowser: new CachedTargetingGetter(
       "isDefaultBrowser",
       null,
@@ -832,7 +838,12 @@ const TargetingGetters = {
   },
 
   get doesAppNeedPin() {
-    return QueryCache.getters.doesAppNeedPin.get();
+    return (async () => {
+      return (
+        (await QueryCache.getters.doesAppNeedPin.get()) ||
+        (await QueryCache.getters.doesAppNeedStartMenuPin.get())
+      );
+    })();
   },
 
   get doesAppNeedPrivatePin() {

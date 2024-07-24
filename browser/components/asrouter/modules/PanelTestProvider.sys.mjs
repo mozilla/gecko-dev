@@ -115,8 +115,18 @@ const MESSAGES = () => [
                 string_id: "mr2022-onboarding-pin-primary-button-label",
               },
               action: {
+                type: "MULTI_ACTION",
                 navigate: true,
-                type: "PIN_FIREFOX_TO_TASKBAR",
+                data: {
+                  actions: [
+                    {
+                      type: "PIN_FIREFOX_TO_TASKBAR",
+                    },
+                    {
+                      type: "PIN_FIREFOX_TO_START_MENU",
+                    },
+                  ],
+                },
               },
             },
             secondary_button: {
@@ -383,6 +393,9 @@ const MESSAGES = () => [
               },
               {
                 type: "PIN_FIREFOX_TO_TASKBAR",
+              },
+              {
+                type: "PIN_FIREFOX_TO_START_MENU",
               },
               {
                 type: "BLOCK_MESSAGE",

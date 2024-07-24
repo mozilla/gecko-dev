@@ -113,7 +113,17 @@ const MR_ABOUT_WELCOME_DEFAULT = {
                 string_id: "mr2022-onboarding-pin-primary-button-label",
               },
               action: {
-                type: "PIN_FIREFOX_TO_TASKBAR",
+                type: "MULTI_ACTION",
+                data: {
+                  actions: [
+                    {
+                      type: "PIN_FIREFOX_TO_TASKBAR",
+                    },
+                    {
+                      type: "PIN_FIREFOX_TO_START_MENU",
+                    },
+                  ],
+                },
               },
             },
             {
@@ -345,7 +355,17 @@ const MR_ABOUT_WELCOME_DEFAULT = {
                 string_id: "mr2022-onboarding-pin-primary-button-label",
               },
               action: {
-                type: "PIN_FIREFOX_TO_TASKBAR",
+                type: "MULTI_ACTION",
+                data: {
+                  actions: [
+                    {
+                      type: "PIN_FIREFOX_TO_TASKBAR",
+                    },
+                    {
+                      type: "PIN_FIREFOX_TO_START_MENU",
+                    },
+                  ],
+                },
               },
             },
             {

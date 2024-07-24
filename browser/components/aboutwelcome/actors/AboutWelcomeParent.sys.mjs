@@ -109,8 +109,11 @@ export class AboutWelcomeParent extends JSWindowActorParent {
 
   // Static methods that calls into ShellService to check
   // if Firefox is pinned or already default
-  static doesAppNeedPin() {
-    return lazy.ShellService.doesAppNeedPin();
+  static async doesAppNeedPin() {
+    return (
+      (await lazy.ShellService.doesAppNeedPin()) ||
+      (await lazy.ShellService.doesAppNeedStartMenuPin())
+    );
   }
 
   static isDefaultBrowser() {
