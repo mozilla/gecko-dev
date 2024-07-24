@@ -1368,13 +1368,14 @@ TEST_F(SdpOfferAnswerTest, ReducedSizeNotNegotiated) {
   auto audio_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
   auto video_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
 
-  EXPECT_TRUE(caller->CreateOfferAndSetAsLocal());
+  auto offer = caller->CreateOfferAndSetAsLocal();
+  ASSERT_NE(offer, nullptr);
   std::string sdp;
-  caller->pc()->local_description()->ToString(&sdp);
+  offer->ToString(&sdp);
   // Remove rtcp-rsize attribute.
-  auto offer = CreateSessionDescription(
+  auto modified_offer = CreateSessionDescription(
       SdpType::kOffer, absl::StrReplaceAll(sdp, {{"a=rtcp-rsize\r\n", ""}}));
-  EXPECT_TRUE(callee->SetRemoteDescription(std::move(offer)));
+  EXPECT_TRUE(callee->SetRemoteDescription(std::move(modified_offer)));
   auto answer = callee->CreateAnswerAndSetAsLocal();
   EXPECT_TRUE(caller->SetRemoteDescription(std::move(answer)));
 
