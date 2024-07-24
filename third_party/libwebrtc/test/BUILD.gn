@@ -620,7 +620,7 @@ if (rtc_include_tests) {
         "../rtc_base:checks",
         "../rtc_base:event_tracer",
         "../rtc_base:logging",
-        "../rtc_base:ssl",
+        "../rtc_base:ssl_adapter",
         "../rtc_base:threading",
         "../system_wrappers:field_trial",
         "../system_wrappers:metrics",

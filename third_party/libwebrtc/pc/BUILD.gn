@@ -136,7 +136,7 @@ rtc_source_set("dtls_srtp_transport") {
     "../rtc_base:buffer",
     "../rtc_base:checks",
     "../rtc_base:logging",
-    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
@@ -161,7 +161,7 @@ rtc_source_set("dtls_transport") {
     "../rtc_base:checks",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
-    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:threading",
     "../rtc_base/synchronization:mutex",
   ]
@@ -238,6 +238,7 @@ rtc_source_set("jsep_transport") {
     "../rtc_base:logging",
     "../rtc_base:macromagic",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stringutils",
     "../rtc_base:threading",
   ]
@@ -323,6 +324,7 @@ rtc_source_set("jsep_transport_controller") {
     "../rtc_base:logging",
     "../rtc_base:macromagic",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:threading",
     "../rtc_base/third_party/sigslot",
   ]
@@ -516,7 +518,7 @@ rtc_source_set("rtp_transport_internal") {
     "../p2p:rtc_p2p",
     "../rtc_base:callback_list",
     "../rtc_base:network_route",
-    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
   ]
 }
 
@@ -564,7 +566,7 @@ rtc_source_set("sctp_utils") {
     "../rtc_base:byte_buffer",
     "../rtc_base:copy_on_write_buffer",
     "../rtc_base:logging",
-    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
@@ -585,7 +587,7 @@ rtc_source_set("srtp_session") {
     "../rtc_base:checks",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
-    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stringutils",
     "../rtc_base:timeutils",
     "../rtc_base/synchronization:mutex",
@@ -623,7 +625,7 @@ rtc_source_set("srtp_transport") {
     "../rtc_base:logging",
     "../rtc_base:network_route",
     "../rtc_base:safe_conversions",
-    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:zero_memory",
     "../rtc_base/third_party/base64",
   ]
@@ -647,7 +649,7 @@ rtc_source_set("transport_stats") {
     "../p2p:ice_transport_internal",
     "../p2p:port",
     "../p2p:rtc_p2p",
-    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
   ]
 }
 
@@ -768,7 +770,7 @@ rtc_library("sctp_data_channel") {
     "../rtc_base:copy_on_write_buffer",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
-    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:threading",
     "../rtc_base:weak_ptr",
     "../rtc_base/containers:flat_set",
@@ -848,7 +850,7 @@ rtc_source_set("data_channel_controller") {
     "../rtc_base:copy_on_write_buffer",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
-    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:threading",
     "../rtc_base:weak_ptr",
   ]
@@ -936,6 +938,7 @@ rtc_source_set("rtc_stats_collector") {
     "../rtc_base:rtc_event",
     "../rtc_base:socket_address",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stringutils",
     "../rtc_base:threading",
     "../rtc_base:timeutils",
@@ -1034,6 +1037,7 @@ rtc_source_set("sdp_offer_answer") {
     "../rtc_base:macromagic",
     "../rtc_base:rtc_operations_chain",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stringutils",
     "../rtc_base:threading",
     "../rtc_base:unique_id_generator",
@@ -1155,6 +1159,7 @@ rtc_source_set("peer_connection") {
     "../rtc_base:network_constants",
     "../rtc_base:socket_address",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stringutils",
     "../rtc_base:threading",
     "../rtc_base:unique_id_generator",
@@ -1247,6 +1252,7 @@ rtc_source_set("legacy_stats_collector") {
     "../rtc_base:network_constants",
     "../rtc_base:socket_address",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stringutils",
     "../rtc_base:threading",
     "../rtc_base:timeutils",
@@ -1358,6 +1364,7 @@ rtc_source_set("webrtc_session_description_factory") {
     "../rtc_base:logging",
     "../rtc_base:rtc_certificate_generator",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stringutils",
     "../rtc_base:unique_id_generator",
     "../rtc_base:weak_ptr",
@@ -2098,6 +2105,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../rtc_base:rtc_base_tests_utils",
       "../rtc_base:socket_address",
       "../rtc_base:ssl",
+      "../rtc_base:ssl_adapter",
       "../rtc_base:stringutils",
       "../rtc_base:task_queue_for_test",
       "../rtc_base:threading",
@@ -2442,6 +2450,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../rtc_base:rtc_json",
       "../rtc_base:socket_address",
       "../rtc_base:ssl",
+      "../rtc_base:ssl_adapter",
       "../rtc_base:stringutils",
       "../rtc_base:task_queue_for_test",
       "../rtc_base:threading",
@@ -2539,7 +2548,7 @@ if (rtc_include_tests && !build_with_chromium) {
         "test/android_test_initializer.h",
       ]
       deps = [
-        "../rtc_base:ssl",
+        "../rtc_base:ssl_adapter",
         "../sdk/android:internal_jni",
         "../sdk/android:libjingle_peerconnection_jni",
         "//modules/utility:utility",
@@ -2653,6 +2662,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../rtc_base:safe_conversions",
       "../rtc_base:socket_address",
       "../rtc_base:ssl",
+      "../rtc_base:ssl_adapter",
       "../rtc_base:task_queue_for_test",
       "../rtc_base:threading",
       "../rtc_base:timeutils",

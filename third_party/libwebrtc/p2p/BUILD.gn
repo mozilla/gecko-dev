@@ -137,6 +137,7 @@ rtc_library("rtc_p2p") {
     "../rtc_base:socket_factory",
     "../rtc_base:socket_server",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stream",
     "../rtc_base:stringutils",
     "../rtc_base:threading",
@@ -250,6 +251,7 @@ rtc_library("basic_packet_socket_factory") {
     "../rtc_base:socket_address",
     "../rtc_base:socket_factory",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base/system:rtc_export",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/memory" ]
@@ -420,6 +422,7 @@ rtc_library("dtls_transport") {
     "../rtc_base:logging",
     "../rtc_base:socket_address",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stream",
     "../rtc_base:stringutils",
     "../rtc_base:threading",
@@ -454,6 +457,7 @@ rtc_library("dtls_transport_internal") {
     "../api/crypto:options",
     "../rtc_base:callback_list",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
   ]
   absl_deps = [
     "//third_party/abseil-cpp/absl/base:core_headers",
@@ -1095,6 +1099,7 @@ if (rtc_include_tests) {
       "../rtc_base:socket_address",
       "../rtc_base:socket_server",
       "../rtc_base:ssl",
+      "../rtc_base:ssl_adapter",
       "../rtc_base:threading",
       "../rtc_base:timeutils",
       "../rtc_base/network:received_packet",
@@ -1201,6 +1206,7 @@ if (rtc_include_tests) {
       "../rtc_base:socket_address",
       "../rtc_base:socket_address_pair",
       "../rtc_base:ssl",
+      "../rtc_base:ssl_adapter",
       "../rtc_base:stringutils",
       "../rtc_base:testclient",
       "../rtc_base:threading",
@@ -1251,6 +1257,7 @@ rtc_library("p2p_server_utils") {
     "../rtc_base:socket_adapters",
     "../rtc_base:socket_address",
     "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
     "../rtc_base:stringutils",
     "../rtc_base/network:received_packet",
     "../rtc_base/third_party/sigslot",
@@ -1305,7 +1312,7 @@ if (rtc_include_tests) {
       "../rtc_base:gunit_helpers",
       "../rtc_base:ip_address",
       "../rtc_base:rtc_base_tests_utils",
-      "../rtc_base:ssl",
+      "../rtc_base:ssl_adapter",
       "../test:test_support",
       "//testing/gtest",
     ]

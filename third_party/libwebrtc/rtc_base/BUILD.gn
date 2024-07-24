@@ -1658,6 +1658,11 @@ if (!build_with_mozilla) {
 }
 }
 
+rtc_library("ssl_adapter") {
+  visibility = [ "*" ]
+  public_deps += [ ":ssl" ]  # no-presubmit-check TODO(webrtc:8603)
+}
+
 rtc_source_set("gtest_prod") {
   sources = [ "gtest_prod_util.h" ]
 }
@@ -2157,6 +2162,7 @@ if (rtc_include_tests) {
         ":socket_factory",
         ":socket_server",
         ":ssl",
+        ":ssl_adapter",
         ":ssl_header",
         ":stream",
         ":stringutils",
