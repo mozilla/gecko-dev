@@ -1139,6 +1139,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1898952",
+    platform: "desktop",
+    domain: "digits.t-mobile.com",
+    bug: "1898952",
+    contentScripts: {
+      matches: ["*://digits.t-mobile.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1898952-digits.t-mobile.com.js",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;

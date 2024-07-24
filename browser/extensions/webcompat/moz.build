@@ -109,6 +109,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1889326-office365-email-handling-prompt-autohide.js",
     "injections/js/bug1896383-error-capturestacktrace-shim.js",
     "injections/js/bug1897120-turnjs-zoom-fix.js",
+    "injections/js/bug1898952-digits.t-mobile.com.js",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["shims"] += [
