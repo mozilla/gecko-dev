@@ -12,7 +12,6 @@
 #define MODULES_CONGESTION_CONTROLLER_INCLUDE_RECEIVE_SIDE_CONGESTION_CONTROLLER_H_
 
 #include <memory>
-#include <vector>
 
 #include "absl/base/nullability.h"
 #include "api/environment/environment.h"
@@ -20,8 +19,7 @@
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "modules/congestion_controller/remb_throttler.h"
-#include "modules/pacing/packet_router.h"
-#include "modules/remote_bitrate_estimator/remote_estimator_proxy.h"
+#include "modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread_annotations.h"
@@ -38,7 +36,7 @@ class ReceiveSideCongestionController : public CallStatsObserver {
  public:
   ReceiveSideCongestionController(
       const Environment& env,
-      RemoteEstimatorProxy::TransportFeedbackSender feedback_sender,
+      TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
       RembThrottler::RembSender remb_sender,
       absl::Nullable<NetworkStateEstimator*> network_state_estimator);
 
@@ -76,7 +74,8 @@ class ReceiveSideCongestionController : public CallStatsObserver {
 
   const Environment env_;
   RembThrottler remb_throttler_;
-  RemoteEstimatorProxy remote_estimator_proxy_;
+  TransportSequenceNumberFeedbackGenenerator
+      transport_sequence_number_feedback_generator_;
 
   mutable Mutex mutex_;
   std::unique_ptr<RemoteBitrateEstimator> rbe_ RTC_GUARDED_BY(mutex_);

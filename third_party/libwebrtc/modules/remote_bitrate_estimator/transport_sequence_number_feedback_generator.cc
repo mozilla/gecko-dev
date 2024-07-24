@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "modules/remote_bitrate_estimator/remote_estimator_proxy.h"
+#include "modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -51,9 +51,10 @@ TimeDelta GetAbsoluteSendTimeDelta(uint32_t new_sendtime,
 }
 }  // namespace
 
-RemoteEstimatorProxy::RemoteEstimatorProxy(
-    TransportFeedbackSender feedback_sender,
-    NetworkStateEstimator* network_state_estimator)
+TransportSequenceNumberFeedbackGenenerator::
+    TransportSequenceNumberFeedbackGenenerator(
+        RtcpSender feedback_sender,
+        NetworkStateEstimator* network_state_estimator)
     : feedback_sender_(std::move(feedback_sender)),
       last_process_time_(Timestamp::MinusInfinity()),
       network_state_estimator_(network_state_estimator),
@@ -70,10 +71,12 @@ RemoteEstimatorProxy::RemoteEstimatorProxy(
       << kMaxInterval;
 }
 
-RemoteEstimatorProxy::~RemoteEstimatorProxy() {}
+TransportSequenceNumberFeedbackGenenerator::
+    ~TransportSequenceNumberFeedbackGenenerator() {}
 
-void RemoteEstimatorProxy::MaybeCullOldPackets(int64_t sequence_number,
-                                               Timestamp arrival_time) {
+void TransportSequenceNumberFeedbackGenenerator::MaybeCullOldPackets(
+    int64_t sequence_number,
+    Timestamp arrival_time) {
   if (periodic_window_start_seq_ >=
           packet_arrival_times_.end_sequence_number() &&
       arrival_time - Timestamp::Zero() >= kBackWindow) {
@@ -83,7 +86,8 @@ void RemoteEstimatorProxy::MaybeCullOldPackets(int64_t sequence_number,
   }
 }
 
-void RemoteEstimatorProxy::IncomingPacket(const RtpPacketReceived& packet) {
+void TransportSequenceNumberFeedbackGenenerator::OnReceivedPacket(
+    const RtpPacketReceived& packet) {
   if (packet.arrival_time().IsInfinite()) {
     RTC_LOG(LS_WARNING) << "Arrival time not set.";
     return;
@@ -157,7 +161,7 @@ void RemoteEstimatorProxy::IncomingPacket(const RtpPacketReceived& packet) {
   }
 }
 
-TimeDelta RemoteEstimatorProxy::Process(Timestamp now) {
+TimeDelta TransportSequenceNumberFeedbackGenenerator::Process(Timestamp now) {
   MutexLock lock(&lock_);
   if (!send_periodic_feedback_) {
     // If TransportSequenceNumberV2 has been received in one packet,
@@ -174,7 +178,8 @@ TimeDelta RemoteEstimatorProxy::Process(Timestamp now) {
   return next_process_time - now;
 }
 
-void RemoteEstimatorProxy::OnBitrateChanged(int bitrate_bps) {
+void TransportSequenceNumberFeedbackGenenerator::OnSendBandwidthEstimateChanged(
+    DataRate estimate) {
   // TwccReportSize = Ipv4(20B) + UDP(8B) + SRTP(10B) +
   // AverageTwccReport(30B)
   // TwccReport size at 50ms interval is 24 byte.
@@ -184,7 +189,7 @@ void RemoteEstimatorProxy::OnBitrateChanged(int bitrate_bps) {
   constexpr DataRate kMinTwccRate = kTwccReportSize / kMaxInterval;
 
   // Let TWCC reports occupy 5% of total bandwidth.
-  DataRate twcc_bitrate = DataRate::BitsPerSec(0.05 * bitrate_bps);
+  DataRate twcc_bitrate = 0.05 * estimate;
 
   // Check upper send_interval bound by checking bitrate to avoid overflow when
   // dividing by small bitrate, in particular avoid dividing by zero bitrate.
@@ -197,12 +202,13 @@ void RemoteEstimatorProxy::OnBitrateChanged(int bitrate_bps) {
   send_interval_ = send_interval;
 }
 
-void RemoteEstimatorProxy::SetTransportOverhead(DataSize overhead_per_packet) {
+void TransportSequenceNumberFeedbackGenenerator::SetTransportOverhead(
+    DataSize overhead_per_packet) {
   MutexLock lock(&lock_);
   packet_overhead_ = overhead_per_packet;
 }
 
-void RemoteEstimatorProxy::SendPeriodicFeedbacks() {
+void TransportSequenceNumberFeedbackGenenerator::SendPeriodicFeedbacks() {
   // `periodic_window_start_seq_` is the first sequence number to include in
   // the current feedback packet. Some older may still be in the map, in case
   // a reordering happens and we need to retransmit them.
@@ -246,7 +252,7 @@ void RemoteEstimatorProxy::SendPeriodicFeedbacks() {
   }
 }
 
-void RemoteEstimatorProxy::SendFeedbackOnRequest(
+void TransportSequenceNumberFeedbackGenenerator::SendFeedbackOnRequest(
     int64_t sequence_number,
     const FeedbackRequest& feedback_request) {
   if (feedback_request.sequence_count == 0) {
@@ -276,7 +282,7 @@ void RemoteEstimatorProxy::SendFeedbackOnRequest(
 }
 
 std::unique_ptr<rtcp::TransportFeedback>
-RemoteEstimatorProxy::MaybeBuildFeedbackPacket(
+TransportSequenceNumberFeedbackGenenerator::MaybeBuildFeedbackPacket(
     bool include_timestamps,
     int64_t begin_sequence_number_inclusive,
     int64_t end_sequence_number_exclusive,

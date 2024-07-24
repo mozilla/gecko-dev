@@ -27,9 +27,10 @@ rtc_library("remote_bitrate_estimator") {
     "remote_bitrate_estimator_abs_send_time.h",
     "remote_bitrate_estimator_single_stream.cc",
     "remote_bitrate_estimator_single_stream.h",
-    "remote_estimator_proxy.cc",
-    "remote_estimator_proxy.h",
+    "rtp_transport_feedback_generator.h",
     "test/bwe_test_logging.h",
+    "transport_sequence_number_feedback_generator.cc",
+    "transport_sequence_number_feedback_generator.h",
   ]
 
   deps = [
@@ -115,7 +116,7 @@ if (rtc_include_tests) {
       "remote_bitrate_estimator_single_stream_unittest.cc",
       "remote_bitrate_estimator_unittest_helper.cc",
       "remote_bitrate_estimator_unittest_helper.h",
-      "remote_estimator_proxy_unittest.cc",
+      "transport_sequence_number_feedback_generator_unittest.cc",
     ]
     deps = [
       ":remote_bitrate_estimator",

@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_ESTIMATOR_PROXY_H_
-#define MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_ESTIMATOR_PROXY_H_
+#ifndef MODULES_REMOTE_BITRATE_ESTIMATOR_TRANSPORT_SEQUENCE_NUMBER_FEEDBACK_GENERATOR_H_
+#define MODULES_REMOTE_BITRATE_ESTIMATOR_TRANSPORT_SEQUENCE_NUMBER_FEEDBACK_GENERATOR_H_
 
 #include <deque>
 #include <functional>
@@ -20,10 +20,12 @@
 #include "api/field_trials_view.h"
 #include "api/rtp_headers.h"
 #include "api/transport/network_control.h"
+#include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/remote_bitrate_estimator/packet_arrival_map.h"
+#include "modules/remote_bitrate_estimator/rtp_transport_feedback_generator.h"
 #include "modules/rtp_rtcp/source/rtcp_packet.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
@@ -32,27 +34,31 @@
 
 namespace webrtc {
 
-// Class used when send-side BWE is enabled: This proxy is instantiated on the
-// receive side. It buffers a number of receive timestamps and then sends
-// transport feedback messages back too the send side.
-class RemoteEstimatorProxy {
+// Class used when send-side BWE is enabled.
+// The class is responsible for generating RTCP feedback packets based on
+// incoming media packets. Incoming packets must have a transport sequence
+// number, Ie. either the extension
+// http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01 or
+// http://www.webrtc.org/experiments/rtp-hdrext/transport-wide-cc-02 must be
+// used.
+class TransportSequenceNumberFeedbackGenenerator
+    : public RtpTransportFeedbackGenerator {
  public:
   // Used for sending transport feedback messages when send side
   // BWE is used.
-  using TransportFeedbackSender = std::function<void(
+  using RtcpSender = std::function<void(
       std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets)>;
-  RemoteEstimatorProxy(TransportFeedbackSender feedback_sender,
-                       NetworkStateEstimator* network_state_estimator);
-  ~RemoteEstimatorProxy();
+  TransportSequenceNumberFeedbackGenenerator(
+      RtcpSender feedback_sender,
+      NetworkStateEstimator* network_state_estimator);
+  ~TransportSequenceNumberFeedbackGenenerator();
 
-  void IncomingPacket(const RtpPacketReceived& packet);
+  void OnReceivedPacket(const RtpPacketReceived& packet) override;
+  void OnSendBandwidthEstimateChanged(DataRate estimate) override;
 
-  // Sends periodic feedback if it is time to send it.
-  // Returns time until next call to Process should be made.
-  TimeDelta Process(Timestamp now);
+  TimeDelta Process(Timestamp now) override;
 
-  void OnBitrateChanged(int bitrate);
-  void SetTransportOverhead(DataSize overhead_per_packet);
+  void SetTransportOverhead(DataSize overhead_per_packet) override;
 
  private:
   void MaybeCullOldPackets(int64_t sequence_number, Timestamp arrival_time)
@@ -62,12 +68,12 @@ class RemoteEstimatorProxy {
                              const FeedbackRequest& feedback_request)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(&lock_);
 
-  // Returns a Transport Feedback packet with information about as many packets
-  // that has been received between [`begin_sequence_number_incl`,
+  // Returns a Transport Feedback packet with information about as many
+  // packets that has been received between [`begin_sequence_number_incl`,
   // `end_sequence_number_excl`) that can fit in it. If `is_periodic_update`,
   // this represents sending a periodic feedback message, which will make it
-  // update the `periodic_window_start_seq_` variable with the first packet that
-  // was not included in the feedback packet, so that the next update can
+  // update the `periodic_window_start_seq_` variable with the first packet
+  // that was not included in the feedback packet, so that the next update can
   // continue from that sequence number.
   //
   // If no incoming packets were added, nullptr is returned.
@@ -80,7 +86,7 @@ class RemoteEstimatorProxy {
       int64_t end_sequence_number_exclusive,
       bool is_periodic_update) RTC_EXCLUSIVE_LOCKS_REQUIRED(&lock_);
 
-  const TransportFeedbackSender feedback_sender_;
+  const RtcpSender feedback_sender_;
   Timestamp last_process_time_;
 
   Mutex lock_;
@@ -110,4 +116,4 @@ class RemoteEstimatorProxy {
 
 }  // namespace webrtc
 
-#endif  //  MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_ESTIMATOR_PROXY_H_
+#endif  // MODULES_REMOTE_BITRATE_ESTIMATOR_TRANSPORT_SEQUENCE_NUMBER_FEEDBACK_GENERATOR_H_

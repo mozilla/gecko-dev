@@ -8,15 +8,15 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "modules/remote_bitrate_estimator/remote_estimator_proxy.h"
+#include "modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator.h"
 
 #include <cstdint>
 #include <memory>
 #include <utility>
 
 #include "absl/types/optional.h"
-#include "api/transport/network_types.h"
 #include "api/transport/test/mock_network_control.h"
+#include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -76,11 +76,12 @@ std::vector<Timestamp> Timestamps(
   return timestamps;
 }
 
-class RemoteEstimatorProxyTest : public ::testing::Test {
+class TransportSequenceNumberFeedbackGeneneratorTest : public ::testing::Test {
  public:
-  RemoteEstimatorProxyTest()
+  TransportSequenceNumberFeedbackGeneneratorTest()
       : clock_(0),
-        proxy_(feedback_sender_.AsStdFunction(), &network_state_estimator_) {}
+        feedback_generator_(feedback_sender_.AsStdFunction(),
+                            &network_state_estimator_) {}
 
  protected:
   void IncomingPacket(uint16_t seq,
@@ -95,7 +96,7 @@ class RemoteEstimatorProxyTest : public ::testing::Test {
     if (abs_send_time) {
       packet.SetExtension<AbsoluteSendTime>(*abs_send_time);
     }
-    proxy_.IncomingPacket(packet);
+    feedback_generator_.OnReceivedPacket(packet);
   }
 
   void IncomingPacketV2(
@@ -108,22 +109,23 @@ class RemoteEstimatorProxyTest : public ::testing::Test {
     packet.SetSsrc(kMediaSsrc);
     packet.SetExtension<webrtc::TransportSequenceNumberV2>(seq,
                                                            feedback_request);
-    proxy_.IncomingPacket(packet);
+    feedback_generator_.OnReceivedPacket(packet);
   }
 
   void Process() {
     clock_.AdvanceTime(kDefaultSendInterval);
-    proxy_.Process(clock_.CurrentTime());
+    feedback_generator_.Process(clock_.CurrentTime());
   }
 
   SimulatedClock clock_;
   MockFunction<void(std::vector<std::unique_ptr<rtcp::RtcpPacket>>)>
       feedback_sender_;
   ::testing::NiceMock<MockNetworkStateEstimator> network_state_estimator_;
-  RemoteEstimatorProxy proxy_;
+  TransportSequenceNumberFeedbackGenenerator feedback_generator_;
 };
 
-TEST_F(RemoteEstimatorProxyTest, SendsSinglePacketFeedback) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       SendsSinglePacketFeedback) {
   IncomingPacket(kBaseSeq, kBaseTime);
 
   EXPECT_CALL(feedback_sender_, Call)
@@ -143,7 +145,7 @@ TEST_F(RemoteEstimatorProxyTest, SendsSinglePacketFeedback) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, DuplicatedPackets) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest, DuplicatedPackets) {
   IncomingPacket(kBaseSeq, kBaseTime);
   IncomingPacket(kBaseSeq, kBaseTime + TimeDelta::Seconds(1));
 
@@ -165,7 +167,8 @@ TEST_F(RemoteEstimatorProxyTest, DuplicatedPackets) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, FeedbackWithMissingStart) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       FeedbackWithMissingStart) {
   // First feedback.
   IncomingPacket(kBaseSeq, kBaseTime);
   IncomingPacket(kBaseSeq + 1, kBaseTime + TimeDelta::Seconds(1));
@@ -193,7 +196,8 @@ TEST_F(RemoteEstimatorProxyTest, FeedbackWithMissingStart) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, SendsFeedbackWithVaryingDeltas) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       SendsFeedbackWithVaryingDeltas) {
   IncomingPacket(kBaseSeq, kBaseTime);
   IncomingPacket(kBaseSeq + 1, kBaseTime + kMaxSmallDelta);
   IncomingPacket(kBaseSeq + 2,
@@ -219,7 +223,8 @@ TEST_F(RemoteEstimatorProxyTest, SendsFeedbackWithVaryingDeltas) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, SendsFragmentedFeedback) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       SendsFragmentedFeedback) {
   static constexpr TimeDelta kTooLargeDelta =
       rtcp::TransportFeedback::kDeltaTick * (1 << 16);
 
@@ -256,7 +261,8 @@ TEST_F(RemoteEstimatorProxyTest, SendsFragmentedFeedback) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, HandlesReorderingAndWrap) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       HandlesReorderingAndWrap) {
   const TimeDelta kDelta = TimeDelta::Seconds(1);
   const uint16_t kLargeSeq = 62762;
   IncomingPacket(kBaseSeq, kBaseTime);
@@ -278,7 +284,8 @@ TEST_F(RemoteEstimatorProxyTest, HandlesReorderingAndWrap) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, HandlesMalformedSequenceNumbers) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       HandlesMalformedSequenceNumbers) {
   // This test generates incoming packets with large jumps in sequence numbers.
   // When unwrapped, the sequeunce numbers of these 30 incoming packets, will
   // span a range of roughly 650k packets. Test that we only send feedback for
@@ -308,7 +315,8 @@ TEST_F(RemoteEstimatorProxyTest, HandlesMalformedSequenceNumbers) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, HandlesBackwardsWrappingSequenceNumbers) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       HandlesBackwardsWrappingSequenceNumbers) {
   // This test is like HandlesMalformedSequenceNumbers but for negative wrap
   // arounds. Test that we only send feedback for the packets with highest
   // sequence numbers.  Test for regression found in chromium:949020.
@@ -337,7 +345,8 @@ TEST_F(RemoteEstimatorProxyTest, HandlesBackwardsWrappingSequenceNumbers) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, ResendsTimestampsOnReordering) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       ResendsTimestampsOnReordering) {
   IncomingPacket(kBaseSeq, kBaseTime);
   IncomingPacket(kBaseSeq + 2, kBaseTime + TimeDelta::Millis(2));
 
@@ -380,7 +389,8 @@ TEST_F(RemoteEstimatorProxyTest, ResendsTimestampsOnReordering) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, RemovesTimestampsOutOfScope) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       RemovesTimestampsOutOfScope) {
   const Timestamp kTimeoutTime = kBaseTime + kBackWindow;
 
   IncomingPacket(kBaseSeq + 2, kBaseTime);
@@ -438,42 +448,57 @@ TEST_F(RemoteEstimatorProxyTest, RemovesTimestampsOutOfScope) {
   Process();
 }
 
-TEST_F(RemoteEstimatorProxyTest, TimeUntilNextProcessIsDefaultOnUnkownBitrate) {
-  EXPECT_EQ(proxy_.Process(clock_.CurrentTime()), kDefaultSendInterval);
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       TimeUntilNextProcessIsDefaultOnUnkownBitrate) {
+  EXPECT_EQ(feedback_generator_.Process(clock_.CurrentTime()),
+            kDefaultSendInterval);
 }
 
-TEST_F(RemoteEstimatorProxyTest, TimeUntilNextProcessIsMinIntervalOn300kbps) {
-  proxy_.OnBitrateChanged(300'000);
-  EXPECT_EQ(proxy_.Process(clock_.CurrentTime()), kMinSendInterval);
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       TimeUntilNextProcessIsMinIntervalOn300kbps) {
+  feedback_generator_.OnSendBandwidthEstimateChanged(
+      DataRate::BitsPerSec(300'000));
+  EXPECT_EQ(feedback_generator_.Process(clock_.CurrentTime()),
+            kMinSendInterval);
 }
 
-TEST_F(RemoteEstimatorProxyTest, TimeUntilNextProcessIsMaxIntervalOn0kbps) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       TimeUntilNextProcessIsMaxIntervalOn0kbps) {
   // TimeUntilNextProcess should be limited by `kMaxSendIntervalMs` when
   // bitrate is small. We choose 0 bps as a special case, which also tests
   // erroneous behaviors like division-by-zero.
-  proxy_.OnBitrateChanged(0);
-  EXPECT_EQ(proxy_.Process(clock_.CurrentTime()), kMaxSendInterval);
+  feedback_generator_.OnSendBandwidthEstimateChanged(DataRate::Zero());
+  EXPECT_EQ(feedback_generator_.Process(clock_.CurrentTime()),
+            kMaxSendInterval);
 }
 
-TEST_F(RemoteEstimatorProxyTest, TimeUntilNextProcessIsMaxIntervalOn20kbps) {
-  proxy_.OnBitrateChanged(20'000);
-  EXPECT_EQ(proxy_.Process(clock_.CurrentTime()), kMaxSendInterval);
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       TimeUntilNextProcessIsMaxIntervalOn20kbps) {
+  feedback_generator_.OnSendBandwidthEstimateChanged(
+      DataRate::BitsPerSec(20'000));
+  EXPECT_EQ(feedback_generator_.Process(clock_.CurrentTime()),
+            kMaxSendInterval);
 }
 
-TEST_F(RemoteEstimatorProxyTest, TwccReportsUse5PercentOfAvailableBandwidth) {
-  proxy_.OnBitrateChanged(80'000);
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       TwccReportsUse5PercentOfAvailableBandwidth) {
+  feedback_generator_.OnSendBandwidthEstimateChanged(
+      DataRate::BitsPerSec(80'000));
   // 80kbps * 0.05 = TwccReportSize(68B * 8b/B) * 1000ms / SendInterval(136ms)
-  EXPECT_EQ(proxy_.Process(clock_.CurrentTime()), TimeDelta::Millis(136));
+  EXPECT_EQ(feedback_generator_.Process(clock_.CurrentTime()),
+            TimeDelta::Millis(136));
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // Tests for the extended protocol where the feedback is explicitly requested
 // by the sender.
 //////////////////////////////////////////////////////////////////////////////
-typedef RemoteEstimatorProxyTest RemoteEstimatorProxyOnRequestTest;
+typedef TransportSequenceNumberFeedbackGeneneratorTest
+    RemoteEstimatorProxyOnRequestTest;
 TEST_F(RemoteEstimatorProxyOnRequestTest, DisablesPeriodicProcess) {
   IncomingPacketV2(kBaseSeq, kBaseTime);
-  EXPECT_EQ(proxy_.Process(clock_.CurrentTime()), TimeDelta::PlusInfinity());
+  EXPECT_EQ(feedback_generator_.Process(clock_.CurrentTime()),
+            TimeDelta::PlusInfinity());
 }
 
 TEST_F(RemoteEstimatorProxyOnRequestTest, ProcessDoesNotSendFeedback) {
@@ -571,9 +596,10 @@ TEST_F(RemoteEstimatorProxyOnRequestTest,
                    kFivePacketsFeedbackRequest);
 }
 
-TEST_F(RemoteEstimatorProxyTest, ReportsIncomingPacketToNetworkStateEstimator) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       ReportsIncomingPacketToNetworkStateEstimator) {
   const DataSize kPacketOverhead = DataSize::Bytes(38);
-  proxy_.SetTransportOverhead(kPacketOverhead);
+  feedback_generator_.SetTransportOverhead(kPacketOverhead);
 
   EXPECT_CALL(network_state_estimator_, OnReceivedPacket)
       .WillOnce([&](const PacketResult& packet) {
@@ -585,7 +611,8 @@ TEST_F(RemoteEstimatorProxyTest, ReportsIncomingPacketToNetworkStateEstimator) {
   IncomingPacket(kBaseSeq, kBaseTime, AbsoluteSendTime::To24Bits(kBaseTime));
 }
 
-TEST_F(RemoteEstimatorProxyTest, IncomingPacketHandlesWrapInAbsSendTime) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       IncomingPacketHandlesWrapInAbsSendTime) {
   // abs send time use 24bit precision.
   const uint32_t kFirstAbsSendTime =
       AbsoluteSendTime::To24Bits(Timestamp::Millis((1 << 24) - 30));
@@ -612,7 +639,8 @@ TEST_F(RemoteEstimatorProxyTest, IncomingPacketHandlesWrapInAbsSendTime) {
                  kSecondAbsSendTime);
 }
 
-TEST_F(RemoteEstimatorProxyTest, IncomingPacketHandlesReorderedPackets) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       IncomingPacketHandlesReorderedPackets) {
   const uint32_t kFirstAbsSendTime =
       AbsoluteSendTime::To24Bits(Timestamp::Millis((1 << 12)));
   Timestamp first_send_timestamp = Timestamp::Zero();
@@ -635,7 +663,7 @@ TEST_F(RemoteEstimatorProxyTest, IncomingPacketHandlesReorderedPackets) {
                  kSecondAbsSendTime);
 }
 
-TEST_F(RemoteEstimatorProxyTest,
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
        IncomingPacketResetSendTimeToArrivalTimeAfterLargeArrivaltimeDelta) {
   const uint32_t kFirstAbsSendTime =
       AbsoluteSendTime::To24Bits(Timestamp::Millis((1 << 12)));
@@ -656,7 +684,8 @@ TEST_F(RemoteEstimatorProxyTest,
                  kFirstAbsSendTime + 123);
 }
 
-TEST_F(RemoteEstimatorProxyTest, SendTransportFeedbackAndNetworkStateUpdate) {
+TEST_F(TransportSequenceNumberFeedbackGeneneratorTest,
+       SendTransportFeedbackAndNetworkStateUpdate) {
   IncomingPacket(kBaseSeq, kBaseTime,
                  AbsoluteSendTime::To24Bits(kBaseTime - TimeDelta::Millis(1)));
 

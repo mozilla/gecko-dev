@@ -72,13 +72,13 @@ void ReceiveSideCongestionController::PickEstimator(
 
 ReceiveSideCongestionController::ReceiveSideCongestionController(
     const Environment& env,
-    RemoteEstimatorProxy::TransportFeedbackSender feedback_sender,
+    TransportSequenceNumberFeedbackGenenerator::RtcpSender feedback_sender,
     RembThrottler::RembSender remb_sender,
     absl::Nullable<NetworkStateEstimator*> network_state_estimator)
     : env_(env),
       remb_throttler_(std::move(remb_sender), &env_.clock()),
-      remote_estimator_proxy_(std::move(feedback_sender),
-                              network_state_estimator),
+      transport_sequence_number_feedback_generator_(std::move(feedback_sender),
+                                                    network_state_estimator),
       rbe_(std::make_unique<RemoteBitrateEstimatorSingleStream>(
           env_,
           &remb_throttler_)),
@@ -98,7 +98,7 @@ void ReceiveSideCongestionController::OnReceivedPacket(
 
   if (has_transport_sequence_number) {
     // Send-side BWE.
-    remote_estimator_proxy_.IncomingPacket(packet);
+    transport_sequence_number_feedback_generator_.OnReceivedPacket(packet);
   } else {
     // Receive-side BWE.
     MutexLock lock(&mutex_);
@@ -108,7 +108,8 @@ void ReceiveSideCongestionController::OnReceivedPacket(
 }
 
 void ReceiveSideCongestionController::OnBitrateChanged(int bitrate_bps) {
-  remote_estimator_proxy_.OnBitrateChanged(bitrate_bps);
+  transport_sequence_number_feedback_generator_.OnSendBandwidthEstimateChanged(
+      DataRate::BitsPerSec(bitrate_bps));
 }
 
 TimeDelta ReceiveSideCongestionController::MaybeProcess() {
@@ -116,7 +117,8 @@ TimeDelta ReceiveSideCongestionController::MaybeProcess() {
   mutex_.Lock();
   TimeDelta time_until_rbe = rbe_->Process();
   mutex_.Unlock();
-  TimeDelta time_until_rep = remote_estimator_proxy_.Process(now);
+  TimeDelta time_until_rep =
+      transport_sequence_number_feedback_generator_.Process(now);
   TimeDelta time_until = std::min(time_until_rbe, time_until_rep);
   return std::max(time_until, TimeDelta::Zero());
 }
@@ -128,7 +130,8 @@ void ReceiveSideCongestionController::SetMaxDesiredReceiveBitrate(
 
 void ReceiveSideCongestionController::SetTransportOverhead(
     DataSize overhead_per_packet) {
-  remote_estimator_proxy_.SetTransportOverhead(overhead_per_packet);
+  transport_sequence_number_feedback_generator_.SetTransportOverhead(
+      overhead_per_packet);
 }
 
 }  // namespace webrtc
