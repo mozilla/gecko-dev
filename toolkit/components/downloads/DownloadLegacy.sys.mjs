@@ -166,17 +166,17 @@ DownloadLegacyTransfer.prototype = {
   onLocationChange() {},
 
   // nsIWebProgressListener
-  onStatusChange: function DLT_onStatusChange(aWebProgress, aRequest, aStatus) {
+  onStatusChange(webProgress, request, status, message) {
     // The status change may optionally be received in addition to the state
     // change, but if no network request actually started, it is possible that
     // we only receive a status change with an error status code.
-    if (!Components.isSuccessCode(aStatus)) {
+    if (!Components.isSuccessCode(status)) {
       this._componentFailed = true;
 
       // Wait for the associated Download object to be available.
       this._promiseDownload
         .then(download => {
-          download.saver.onTransferFinished(aStatus);
+          download.saver.onTransferFinished(status, message);
         })
         .catch(console.error);
     }

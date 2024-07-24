@@ -91,6 +91,14 @@ function continueResponses() {
 }
 
 /**
+ * Fails this response and allows the future interruptible requests to complete.
+ */
+function failResponses() {
+  info("Interruptible response is failed and next ones allowed to continue.");
+  _gDeferResponses.reject();
+}
+
+/**
  * Creates a download, which could be interrupted in the middle of it's progress.
  */
 function promiseInterruptibleDownload(extension = ".txt") {
@@ -332,11 +340,18 @@ function startServer() {
 
       // Wait on the current deferred object, then finish the request.
       _gDeferResponses.promise
-        .then(function RIH_onSuccess() {
-          aResponse.write(TEST_DATA_SHORT);
-          aResponse.finish();
-          info("Interruptible request finished.");
-        })
+        .then(
+          () => {
+            aResponse.write(TEST_DATA_SHORT);
+            aResponse.finish();
+            info("Interruptible request finished.");
+          },
+          () => {
+            // Don't send data, so that it looks truncated.
+            aResponse.finish();
+            info("Interruptible request failed.");
+          }
+        )
         .catch(console.error);
     }
   );

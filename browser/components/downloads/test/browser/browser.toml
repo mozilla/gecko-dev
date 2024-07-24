@@ -7,6 +7,8 @@ support-files = ["head.js"]
 
 ["browser_confirm_unblock_download.js"]
 
+["browser_download_failed_msg.js"]
+
 ["browser_download_is_clickable.js"]
 
 ["browser_download_opens_on_click.js"]

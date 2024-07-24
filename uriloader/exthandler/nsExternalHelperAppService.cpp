@@ -1685,9 +1685,18 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest* request) {
     mCanceled = true;
     request->Cancel(transferError);
 
-    nsAutoString path;
-    if (mTempFile) mTempFile->GetPath(path);
+    auto res = GetInitialDownloadDirectory(true);
+    if (res.isErr()) {
+      // Just send the file name as we can't get a download path.
+      // TODO: evaluate adding a more specific error here.
+      SendStatusChange(kWriteError, transferError, request, mSuggestedFileName);
+      return res.unwrapErr();
+    }
 
+    nsCOMPtr<nsIFile> pseudoFile = res.unwrap();
+    MOZ_ALWAYS_SUCCEEDS(pseudoFile->Append(mSuggestedFileName));
+    nsAutoString path;
+    MOZ_ALWAYS_SUCCEEDS(pseudoFile->GetPath(path));
     SendStatusChange(kWriteError, transferError, request, path);
 
     return NS_OK;

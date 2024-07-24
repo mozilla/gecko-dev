@@ -569,6 +569,7 @@ DownloadsViewUI.DownloadElementShell.prototype = {
     } else {
       this._downloadDetailsHover.removeAttribute("data-l10n-id");
       this._downloadDetailsHover.setAttribute("value", hoverStatus);
+      this._downloadDetailsHover.setAttribute("tooltiptext", hoverStatus);
     }
   },
 
@@ -807,7 +808,10 @@ DownloadsViewUI.DownloadElementShell.prototype = {
           this.showStatusWithDetails(this.rawBlockedTitleAndDetails[0], hover);
         } else {
           // This download failed without being blocked, and can be restarted.
-          this.showStatusWithDetails(lazy.DownloadsCommon.strings.stateFailed);
+          this.showStatusWithDetails(
+            lazy.DownloadsCommon.strings.stateFailed,
+            this.download.error.localizedReason
+          );
           this.showButton("retry");
         }
       } else if (this.download.canceled) {
