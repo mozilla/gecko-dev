@@ -7990,7 +7990,7 @@ static GdkCursor* get_gtk_cursor_legacy(nsCursor aCursor) {
       }
       break;
     case eCursor_all_scroll:
-      gdkcursor = gdk_cursor_new_for_display(defaultDisplay, GDK_FLEUR);
+      gdkcursor = gdk_cursor_new_from_name(defaultDisplay, "all-scroll");
       break;
     case eCursor_nesw_resize:
       gdkcursor = gdk_cursor_new_from_name(defaultDisplay, "size_bdiag");
@@ -8151,7 +8151,7 @@ static GdkCursor* get_gtk_cursor_from_name(nsCursor aCursor) {
       }
       break;
     case eCursor_all_scroll:
-      gdkcursor = gdk_cursor_new_from_name(defaultDisplay, "move");
+      gdkcursor = gdk_cursor_new_from_name(defaultDisplay, "all-scroll");
       break;
     case eCursor_nesw_resize:
       gdkcursor = gdk_cursor_new_from_name(defaultDisplay, "nesw-resize");
