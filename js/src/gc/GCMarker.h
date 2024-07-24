@@ -124,12 +124,14 @@ class MarkStack {
 
     Cell* ptr() const;
 
+    explicit TaggedPtr(uintptr_t bits);
+
    public:
-    TaggedPtr() = default;
     TaggedPtr(Tag tag, Cell* ptr);
+    static TaggedPtr fromBits(uintptr_t bits);
+
     uintptr_t asBits() const;
     Tag tag() const;
-    uintptr_t tagUnchecked() const;
     template <typename T>
     T* as() const;
 
@@ -139,9 +141,23 @@ class MarkStack {
     void assertValid() const;
   };
 
-  struct SlotsOrElementsRange {
+  class SlotsOrElementsRange {
+    uintptr_t startAndKind_;
+    TaggedPtr ptr_;
+
+    static constexpr size_t StartShift = 2;
+    static constexpr size_t KindMask = (1 << StartShift) - 1;
+
+    SlotsOrElementsRange(uintptr_t startAndKind, uintptr_t ptr);
+
+   public:
     SlotsOrElementsRange(SlotsOrElementsKind kind, JSObject* obj, size_t start);
+    static SlotsOrElementsRange fromBits(uintptr_t startAndKind, uintptr_t ptr);
+
     void assertValid() const;
+
+    uintptr_t asBits0() const;
+    uintptr_t asBits1() const;
 
     SlotsOrElementsKind kind() const;
     size_t start() const;
@@ -149,13 +165,6 @@ class MarkStack {
 
     void setStart(size_t newStart);
     void setEmpty();
-
-   private:
-    static constexpr size_t StartShift = 2;
-    static constexpr size_t KindMask = (1 << StartShift) - 1;
-
-    uintptr_t startAndKind_;
-    TaggedPtr ptr_;
   };
 
   MarkStack();
@@ -207,18 +216,20 @@ class MarkStack {
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
  private:
-  using StackVector = Vector<TaggedPtr, 0, SystemAllocPolicy>;
+  using StackVector = Vector<uintptr_t, 0, SystemAllocPolicy>;
   const StackVector& stack() const { return stack_.ref(); }
   StackVector& stack() { return stack_.ref(); }
 
-  /* Grow the stack, ensuring there is space for at least count elements. */
+  // Grow the stack, ensuring there is space to push |count| more words.
   [[nodiscard]] bool enlarge(size_t count);
 
   [[nodiscard]] bool resize(size_t newCapacity);
 
-  TaggedPtr* topPtr();
+  // Return a pointer to the first unused word beyond the top of the stack.
+  uintptr_t* end();
 
-  const TaggedPtr& peekPtr() const;
+  TaggedPtr peekPtr() const;
+
   [[nodiscard]] bool pushTaggedPtr(Tag tag, Cell* ptr);
 
   bool indexIsEntryBase(size_t index) const;
@@ -260,7 +271,8 @@ class MOZ_STACK_CLASS MarkStackIter {
 
   MarkStack::Tag peekTag() const;
   bool isSlotsOrElementsRange() const;
-  MarkStack::SlotsOrElementsRange& slotsOrElementsRange();
+  MarkStack::SlotsOrElementsRange slotsOrElementsRange() const;
+  void setSlotsOrElementsRange(const MarkStack::SlotsOrElementsRange& range);
 
  private:
   size_t position() const;

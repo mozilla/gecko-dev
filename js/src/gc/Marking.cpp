@@ -1410,19 +1410,21 @@ static inline size_t NumUsedDynamicSlots(NativeObject* obj) {
 void GCMarker::updateRangesAtStartOfSlice() {
   for (MarkStackIter iter(stack); !iter.done(); iter.next()) {
     if (iter.isSlotsOrElementsRange()) {
-      MarkStack::SlotsOrElementsRange& range = iter.slotsOrElementsRange();
+      MarkStack::SlotsOrElementsRange range = iter.slotsOrElementsRange();
       JSObject* obj = range.ptr().asRangeObject();
       if (!obj->is<NativeObject>()) {
         // The object owning the range was swapped with a non-native object by
         // the mutator. The barriers at the end of JSObject::swap ensure that
         // everything gets marked so there's nothing to do here.
         range.setEmpty();
+        iter.setSlotsOrElementsRange(range);
       } else if (range.kind() == SlotsOrElementsKind::Elements) {
         NativeObject* obj = &range.ptr().asRangeObject()->as<NativeObject>();
         size_t index = range.start();
         size_t numShifted = obj->getElementsHeader()->numShiftedElements();
         index -= std::min(numShifted, index);
         range.setStart(index);
+        iter.setSlotsOrElementsRange(range);
       }
     }
   }
@@ -1436,11 +1438,12 @@ void GCMarker::updateRangesAtStartOfSlice() {
 void GCMarker::updateRangesAtEndOfSlice() {
   for (MarkStackIter iter(stack); !iter.done(); iter.next()) {
     if (iter.isSlotsOrElementsRange()) {
-      MarkStack::SlotsOrElementsRange& range = iter.slotsOrElementsRange();
+      MarkStack::SlotsOrElementsRange range = iter.slotsOrElementsRange();
       if (range.kind() == SlotsOrElementsKind::Elements) {
         NativeObject* obj = &range.ptr().asRangeObject()->as<NativeObject>();
         size_t numShifted = obj->getElementsHeader()->numShiftedElements();
         range.setStart(range.start() + numShifted);
+        iter.setSlotsOrElementsRange(range);
       }
     }
   }
@@ -1688,11 +1691,16 @@ inline MarkStack::TaggedPtr::TaggedPtr(Tag tag, Cell* ptr)
   assertValid();
 }
 
-inline uintptr_t MarkStack::TaggedPtr::asBits() const { return bits; }
-
-inline uintptr_t MarkStack::TaggedPtr::tagUnchecked() const {
-  return bits & TagMask;
+/* static */
+inline MarkStack::TaggedPtr MarkStack::TaggedPtr::fromBits(uintptr_t bits) {
+  return TaggedPtr(bits);
 }
+
+inline MarkStack::TaggedPtr::TaggedPtr(uintptr_t bits) : bits(bits) {
+  assertValid();
+}
+
+inline uintptr_t MarkStack::TaggedPtr::asBits() const { return bits; }
 
 inline MarkStack::Tag MarkStack::TaggedPtr::tag() const {
   auto tag = Tag(bits & TagMask);
@@ -1737,6 +1745,19 @@ inline MarkStack::SlotsOrElementsRange::SlotsOrElementsRange(
   MOZ_ASSERT(start() == startArg);
 }
 
+/* static */
+inline MarkStack::SlotsOrElementsRange
+MarkStack::SlotsOrElementsRange::fromBits(uintptr_t startAndKind,
+                                          uintptr_t ptr) {
+  return SlotsOrElementsRange(startAndKind, ptr);
+}
+
+inline MarkStack::SlotsOrElementsRange::SlotsOrElementsRange(
+    uintptr_t startAndKind, uintptr_t ptr)
+    : startAndKind_(startAndKind), ptr_(TaggedPtr::fromBits(ptr)) {
+  assertValid();
+}
+
 inline void MarkStack::SlotsOrElementsRange::assertValid() const {
   ptr_.assertValid();
   MOZ_ASSERT(TagIsRangeTag(ptr_.tag()));
@@ -1760,13 +1781,21 @@ inline void MarkStack::SlotsOrElementsRange::setEmpty() {
   // but doesn't involve accessing this range, which is now invalid. This
   // replaces the two-word range with two single-word entries for the owning
   // object.
-  TaggedPtr entry = TaggedPtr(ObjectTag, ptr().asRangeObject());
+  TaggedPtr entry(ObjectTag, ptr().asRangeObject());
   ptr_ = entry;
   startAndKind_ = entry.asBits();
 }
 
 inline MarkStack::TaggedPtr MarkStack::SlotsOrElementsRange::ptr() const {
   return ptr_;
+}
+
+inline uintptr_t MarkStack::SlotsOrElementsRange::asBits0() const {
+  return startAndKind_;
+}
+
+inline uintptr_t MarkStack::SlotsOrElementsRange::asBits1() const {
+  return ptr_.asBits();
 }
 
 MarkStack::MarkStack() { MOZ_ASSERT(isEmpty()); }
@@ -1830,7 +1859,7 @@ MOZ_ALWAYS_INLINE bool MarkStack::indexIsEntryBase(size_t index) const {
   // SlotsOrElementsRangeTag zero and all SlotsOrElementsKind tags non-zero.
 
   MOZ_ASSERT(index < position());
-  return stack()[index].tagUnchecked() != SlotsOrElementsRangeTag;
+  return (stack()[index] & TagMask) != SlotsOrElementsRangeTag;
 }
 
 /* static */
@@ -1870,7 +1899,7 @@ void MarkStack::moveWork(MarkStack& dst, MarkStack& src) {
   // part of the stack, in src words if this method stole from the bottom of
   // the stack rather than the top.
 
-  mozilla::PodCopy(dst.topPtr(), src.stack().begin() + targetPos, wordsToMove);
+  mozilla::PodCopy(dst.end(), src.stack().begin() + targetPos, wordsToMove);
   dst.topIndex_ += wordsToMove;
   dst.peekPtr().assertValid();
 
@@ -1895,7 +1924,7 @@ void MarkStack::clearAndFreeStack() {
   topIndex_ = 0;
 }
 
-inline MarkStack::TaggedPtr* MarkStack::topPtr() { return &stack()[topIndex_]; }
+inline uintptr_t* MarkStack::end() { return &stack()[topIndex_]; }
 
 template <typename T>
 inline bool MarkStack::push(T* ptr) {
@@ -1916,9 +1945,9 @@ inline bool MarkStack::push(const TaggedPtr& ptr) {
 }
 
 inline void MarkStack::infalliblePush(const TaggedPtr& ptr) {
-  *topPtr() = ptr;
+  MOZ_ASSERT(position() + 1 <= capacity());
+  *end() = ptr.asBits();
   topIndex_++;
-  MOZ_ASSERT(position() <= capacity());
 }
 
 inline void MarkStack::infalliblePush(JSObject* obj, SlotsOrElementsKind kind,
@@ -1927,14 +1956,15 @@ inline void MarkStack::infalliblePush(JSObject* obj, SlotsOrElementsKind kind,
 
   SlotsOrElementsRange array(kind, obj, start);
   array.assertValid();
-  *reinterpret_cast<SlotsOrElementsRange*>(topPtr()) = array;
+  end()[0] = array.asBits0();
+  end()[1] = array.asBits1();
   topIndex_ += ValueRangeWords;
   MOZ_ASSERT(TagIsRangeTag(peekTag()));
 }
 
-inline const MarkStack::TaggedPtr& MarkStack::peekPtr() const {
+inline MarkStack::TaggedPtr MarkStack::peekPtr() const {
   MOZ_ASSERT(!isEmpty());
-  return stack()[topIndex_ - 1];
+  return TaggedPtr::fromBits(stack()[topIndex_ - 1]);
 }
 
 inline MarkStack::Tag MarkStack::peekTag() const {
@@ -1947,7 +1977,7 @@ inline MarkStack::TaggedPtr MarkStack::popPtr() {
   MOZ_ASSERT(!TagIsRangeTag(peekTag()));
   peekPtr().assertValid();
   topIndex_--;
-  return *topPtr();
+  return TaggedPtr::fromBits(*end());
 }
 
 inline MarkStack::SlotsOrElementsRange MarkStack::popSlotsOrElementsRange() {
@@ -1956,9 +1986,7 @@ inline MarkStack::SlotsOrElementsRange MarkStack::popSlotsOrElementsRange() {
   MOZ_ASSERT(position() >= ValueRangeWords);
 
   topIndex_ -= ValueRangeWords;
-  const auto& array = *reinterpret_cast<SlotsOrElementsRange*>(topPtr());
-  array.assertValid();
-  return array;
+  return SlotsOrElementsRange::fromBits(end()[0], end()[1]);
 }
 
 inline bool MarkStack::ensureSpace(size_t count) {
@@ -2035,17 +2063,25 @@ inline MarkStack::Tag MarkStackIter::peekTag() const { return peekPtr().tag(); }
 
 inline MarkStack::TaggedPtr MarkStackIter::peekPtr() const {
   MOZ_ASSERT(!done());
-  return stack_.stack()[pos_ - 1];
+  return MarkStack::TaggedPtr::fromBits(stack_.stack()[pos_ - 1]);
 }
 
-inline MarkStack::SlotsOrElementsRange& MarkStackIter::slotsOrElementsRange() {
+inline MarkStack::SlotsOrElementsRange MarkStackIter::slotsOrElementsRange()
+    const {
   MOZ_ASSERT(TagIsRangeTag(peekTag()));
   MOZ_ASSERT(position() >= ValueRangeWords);
 
-  MarkStack::TaggedPtr* ptr = &stack_.stack()[pos_ - ValueRangeWords];
-  auto& range = *reinterpret_cast<MarkStack::SlotsOrElementsRange*>(ptr);
-  range.assertValid();
-  return range;
+  uintptr_t* ptr = &stack_.stack()[pos_ - ValueRangeWords];
+  return MarkStack::SlotsOrElementsRange::fromBits(ptr[0], ptr[1]);
+}
+
+inline void MarkStackIter::setSlotsOrElementsRange(
+    const MarkStack::SlotsOrElementsRange& range) {
+  MOZ_ASSERT(isSlotsOrElementsRange());
+
+  uintptr_t* ptr = &stack_.stack()[pos_ - ValueRangeWords];
+  ptr[0] = range.asBits0();
+  ptr[1] = range.asBits1();
 }
 
 /*** GCMarker ***************************************************************/
