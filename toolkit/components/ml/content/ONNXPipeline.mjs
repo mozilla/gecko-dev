@@ -189,7 +189,8 @@ export class Pipeline {
     transformers.env.remotePathTemplate = config.modelHubUrlTemplate;
     transformers.env.useCustomCache = true;
     transformers.env.customCache = this.#modelCache;
-    transformers.env.localModelPath = "/";
+    // using `NO_LOCAL` so when the custom cache is used, we don't try to fetch it (see MLEngineWorker.match)
+    transformers.env.localModelPath = "NO_LOCAL";
 
     // ONNX runtime - we set up the wasm runtime we got from RS for the ONNX backend to pick
     debug("Setting up ONNX backend");

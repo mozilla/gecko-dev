@@ -37,6 +37,11 @@ class MLEngineWorker {
    * @returns {Promise<Response|null>} A promise that resolves with a Response object containing the model file or null if not found.
    */
   async match(key) {
+    // if the key starts with NO_LOCAL, we return null immediately to tell transformers.js
+    // we don't server local files, and it will do a second call with the full URL:w
+    if (key.startsWith("NO_LOCAL")) {
+      return null;
+    }
     let res = await this.getModelFile(key);
     if (res.fail) {
       return null;
