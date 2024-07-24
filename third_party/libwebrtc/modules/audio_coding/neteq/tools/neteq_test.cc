@@ -307,6 +307,7 @@ NetEqTest::DecoderMap NetEqTest::StandardDecoderMap() {
 #endif
 #ifdef WEBRTC_CODEC_OPUS
                        {111, SdpAudioFormat("opus", 48000, 2)},
+                       {63, SdpAudioFormat("red", 48000, 2)},
 #endif
                        {93, SdpAudioFormat("l16", 8000, 1)},
                        {94, SdpAudioFormat("l16", 16000, 1)},
