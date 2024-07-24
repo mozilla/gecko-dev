@@ -206,7 +206,7 @@ index f090f16120..7533507619 100644
      } else {
        deps += [
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index d366f3d760..7b8a9de5cc 100644
+index 3587367cce..0d718e449b 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -40,6 +40,9 @@ rtc_source_set("enable_media") {
@@ -1317,7 +1317,7 @@ index 0e2abe7693..64e47406a0 100644
      "../api/adaptation:resource_adaptation_api",
      "../api/environment",
 diff --git a/webrtc.gni b/webrtc.gni
-index c9f75e2cde..076a93bb83 100644
+index fc4580f941..9780c2ae53 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -35,6 +35,11 @@ if (is_mac) {
@@ -1417,7 +1417,7 @@ index c9f75e2cde..076a93bb83 100644
  # Make it possible to provide custom locations for some libraries (move these
  # up into declare_args should we need to actually use them for the GN build).
  rtc_libvpx_dir = "//third_party/libvpx"
-@@ -1188,7 +1198,7 @@ if (is_mac || is_ios) {
+@@ -1213,7 +1223,7 @@ if (is_mac || is_ios) {
    }
  }
  

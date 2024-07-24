@@ -423,6 +423,7 @@ set_defaults("rtc_test") {
   configs = rtc_add_configs
   public_deps = rtc_common_public_deps  # no-presubmit-check TODO(webrtc:8603)
   suppressed_configs = []
+  absl_deps = []
 }
 
 set_defaults("rtc_library") {
@@ -574,14 +575,20 @@ template("rtc_test") {
     # If absl_deps is [], no action is needed. If not [], then it needs to be
     # converted to //third_party/abseil-cpp:absl when build_with_chromium=true
     # otherwise it just needs to be added to deps.
-    if (defined(absl_deps) && absl_deps != []) {
+    if (absl_deps != []) {
       if (!defined(deps)) {
         deps = []
       }
-      if (build_with_chromium) {
+      deps += absl_deps
+    }
+
+    if (build_with_chromium && defined(deps)) {
+      absl_dependencies = filter_labels_include(deps, ["//third_party/abseil-cpp/*"])
+      if (absl_dependencies != []) {
+        filtered_deps = filter_labels_exclude(deps, ["//third_party/abseil-cpp/*"])
+        deps = []
+        deps = filtered_deps
         deps += [ "//third_party/abseil-cpp:absl" ]
-      } else {
-        deps += absl_deps
       }
     }
 
@@ -692,10 +699,16 @@ template("rtc_source_set") {
       if (!defined(deps)) {
         deps = []
       }
-      if (build_with_chromium) {
+      deps += absl_deps
+    }
+
+    if (build_with_chromium && defined(deps)) {
+      absl_dependencies = filter_labels_include(deps, ["//third_party/abseil-cpp/*"])
+      if (absl_dependencies != []) {
+        filtered_deps = filter_labels_exclude(deps, ["//third_party/abseil-cpp/*"])
+        deps = []
+        deps = filtered_deps
         deps += [ "//third_party/abseil-cpp:absl" ]
-      } else {
-        deps += absl_deps
       }
     }
   }
@@ -781,10 +794,16 @@ template("rtc_static_library") {
       if (!defined(deps)) {
         deps = []
       }
-      if (build_with_chromium) {
+      deps += absl_deps
+    }
+
+    if (build_with_chromium && defined(deps)) {
+      absl_dependencies = filter_labels_include(deps, ["//third_party/abseil-cpp/*"])
+      if (absl_dependencies != []) {
+        filtered_deps = filter_labels_exclude(deps, ["//third_party/abseil-cpp/*"])
+        deps = []
+        deps = filtered_deps
         deps += [ "//third_party/abseil-cpp:absl" ]
-      } else {
-        deps += absl_deps
       }
     }
   }
@@ -920,10 +939,16 @@ template("rtc_library") {
       if (!defined(deps)) {
         deps = []
       }
-      if (build_with_chromium) {
+      deps += absl_deps
+    }
+
+    if (build_with_chromium && defined(deps)) {
+      absl_dependencies = filter_labels_include(deps, ["//third_party/abseil-cpp/*"])
+      if (absl_dependencies != []) {
+        filtered_deps = filter_labels_exclude(deps, ["//third_party/abseil-cpp/*"])
+        deps = []
+        deps = filtered_deps
         deps += [ "//third_party/abseil-cpp:absl" ]
-      } else {
-        deps += absl_deps
       }
     }
   }

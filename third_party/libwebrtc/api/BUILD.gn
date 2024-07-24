@@ -118,8 +118,8 @@ rtc_library("rtp_headers") {
     ":array_view",
     "units:timestamp",
     "video:video_rtp_headers",
+    "//third_party/abseil-cpp/absl/types:optional",
   ]
-  absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
 
 rtc_library("rtp_packet_info") {
