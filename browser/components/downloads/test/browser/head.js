@@ -181,6 +181,20 @@ function promisePanelOpened() {
   });
 }
 
+function promiseDownloadFinished(list) {
+  return new Promise(resolve => {
+    list.addView({
+      onDownloadChanged(download) {
+        download.launchWhenSucceeded = false;
+        if (download.succeeded || download.error) {
+          list.removeView(this);
+          resolve(download);
+        }
+      },
+    });
+  });
+}
+
 async function task_resetState() {
   // Remove all downloads.
   let publicList = await Downloads.getList(Downloads.PUBLIC);

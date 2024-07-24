@@ -42,6 +42,9 @@ skip-if = ["os == 'win'"] # Due to chmod the test only makes sense on Unix-like.
 
 ["browser_downloads_context_menu_selection.js"]
 
+["browser_downloads_jsonview.js"]
+support-files = ["cookies-json.sjs"]
+
 ["browser_downloads_keynav.js"]
 
 ["browser_downloads_panel_block.js"]

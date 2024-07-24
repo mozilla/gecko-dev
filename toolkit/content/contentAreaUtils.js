@@ -121,6 +121,19 @@ function saveBrowser(aBrowser, aSkipPrompt, aBrowsingContext = null) {
         throw new Error("Must have an nsIWebBrowserPersistDocument!");
       }
 
+      // If we are downloading a document that is saving as a URL, we should use
+      // a principal constructed from the document URL. This is important for
+      // documents whose URL is different that their principal, e.g files in the
+      // JSON viewer.
+      let principal = null;
+      if (document.principal?.spec == "resource://devtools/client/jsonview/") {
+        let ssm = Services.scriptSecurityManager;
+        principal = ssm.createContentPrincipal(
+          makeURI(document.documentURI),
+          document.principal.originAttributes
+        );
+      }
+
       internalSave(
         document.documentURI,
         null, // originalURL
@@ -135,7 +148,9 @@ function saveBrowser(aBrowser, aSkipPrompt, aBrowsingContext = null) {
         document.cookieJarSettings,
         document,
         aSkipPrompt,
-        document.cacheKey
+        document.cacheKey,
+        undefined,
+        principal
       );
     },
     onError(status) {
