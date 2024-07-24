@@ -178,6 +178,11 @@ class FrameEncoderSettingsBuilder {
     return *this;
   }
 
+  FrameEncoderSettingsBuilder& Effort(int effort_level) {
+    frame_encode_settings_.effort_level = effort_level;
+    return *this;
+  }
+
   operator VideoEncoderInterface::FrameEncodeSettings&&() {
     return std::move(frame_encode_settings_);
   }
@@ -661,10 +666,9 @@ TEST(LibaomAv1Encoder, HigherEffortLevelYieldsHigherQualityFrames) {
   for (int i = effort_range.first; i <= effort_range.second; ++i) {
     auto enc = LibaomAv1EncoderFactory().CreateEncoder(kCbrEncoderSettings, {});
     EncodeResults res;
-    enc->Encode(
-        frame_in,
-        {.presentation_timestamp = Timestamp::Millis(0), .effort_level = i},
-        ToVec({Fb().Rate(kCbr).Res(640, 360).Upd(0).Key().Cb(res.Cb())}));
+    enc->Encode(frame_in, {.presentation_timestamp = Timestamp::Millis(0)},
+                ToVec({Fb().Rate(kCbr).Res(640, 360).Upd(0).Key().Effort(i).Cb(
+                    res.Cb())}));
     double psnr = Psnr(frame_in, dec.Decode(*res.FrameAt(0)));
     EXPECT_THAT(psnr, Gt(psnr_last));
     psnr_last = psnr;

@@ -40,7 +40,6 @@ class VideoEncoderInterface {
   struct TemporalUnitSettings {
     VideoCodecMode content_hint = VideoCodecMode::kRealtimeVideo;
     Timestamp presentation_timestamp;
-    int effort_level = 0;
   };
 
   // Results from calling Encode. Called once for each configured frame.
@@ -72,6 +71,7 @@ class VideoEncoderInterface {
     Resolution resolution;
     std::vector<int> reference_buffers;
     absl::optional<int> update_buffer;
+    int effort_level = 0;
 
     EncodeResultCallback result_callback;
   };

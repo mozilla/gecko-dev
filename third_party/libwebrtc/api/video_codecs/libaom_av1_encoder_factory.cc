@@ -97,7 +97,7 @@ class LibaomAv1Encoder : public VideoEncoderInterface {
   aom_codec_enc_cfg_t cfg_;
 
   absl::optional<VideoCodecMode> current_content_type_;
-  absl::optional<int> current_effort_level_;
+  std::array<absl::optional<int>, kMaxSpatialLayersWtf> current_effort_level_;
   int max_number_of_threads_;
   std::array<absl::optional<Resolution>, 8> last_resolution_in_buffer_;
 };
@@ -266,19 +266,18 @@ bool ValidateEncodeParams(
     return low <= val && val < high;
   };
 
-  if (!in_range(kMinEffortLevel, kMaxEffortLevel + 1,
-                tu_settings.effort_level)) {
-    RTC_LOG(LS_ERROR) << "Unsupported effort level "
-                      << tu_settings.effort_level;
-    return false;
-  }
-
   for (size_t i = 0; i < frame_settings.size(); ++i) {
     const VideoEncoderInterface::FrameEncodeSettings& settings =
         frame_settings[i];
 
     if (!settings.result_callback) {
       RTC_LOG(LS_ERROR) << "No result callback function provided.";
+      return false;
+    }
+
+    if (!in_range(kMinEffortLevel, kMaxEffortLevel + 1,
+                  settings.effort_level)) {
+      RTC_LOG(LS_ERROR) << "Unsupported effort level " << settings.effort_level;
       return false;
     }
 
@@ -637,14 +636,6 @@ void LibaomAv1Encoder::Encode(
     return;
   }
 
-  if (tu_settings.effort_level != current_effort_level_) {
-    // For RTC we use speed level 6 to 10, with 8 being the default. Note that
-    // low effort means higher speed.
-    SET_OR_DO_ERROR_CALLBACK_AND_RETURN(AOME_SET_CPUUSED,
-                                        8 - tu_settings.effort_level);
-    current_effort_level_ = tu_settings.effort_level;
-  }
-
   if (current_content_type_ != tu_settings.content_hint) {
     if (tu_settings.content_hint == VideoCodecMode::kScreensharing) {
       // TD: Set speed 11?
@@ -737,6 +728,14 @@ void LibaomAv1Encoder::Encode(
       } else {
         // TD: What should duration be when Cqp is used?
         duration = TimeDelta::Millis(1);
+      }
+
+      if (settings.effort_level != current_effort_level_[settings.spatial_id]) {
+        // For RTC we use speed level 6 to 10, with 8 being the default. Note
+        // that low effort means higher speed.
+        SET_OR_DO_ERROR_CALLBACK_AND_RETURN(AOME_SET_CPUUSED,
+                                            8 - settings.effort_level);
+        current_effort_level_[settings.spatial_id] = settings.effort_level;
       }
     }
 
