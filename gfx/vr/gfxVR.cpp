@@ -60,11 +60,10 @@ void VRHMDSensorState::CalcViewMatrices(
   gfx::Matrix4x4 matView =
       matHead * aHeadToEyeTransforms[VRDisplayState::Eye_Left];
   matView.Normalize();
-  memcpy(leftViewMatrix.data(), matView.components, sizeof(matView.components));
+  memcpy(leftViewMatrix, matView.components, sizeof(matView.components));
   matView = matHead * aHeadToEyeTransforms[VRDisplayState::Eye_Right];
   matView.Normalize();
-  memcpy(rightViewMatrix.data(), matView.components,
-         sizeof(matView.components));
+  memcpy(rightViewMatrix, matView.components, sizeof(matView.components));
 }
 
 const IntSize VRDisplayInfo::SuggestedEyeResolution() const {
@@ -86,7 +85,7 @@ const Matrix4x4 VRDisplayInfo::GetSittingToStandingTransform() const {
   Matrix4x4 m;
   // If we could replace Matrix4x4 with a pod type, we could
   // use it directly from the VRDisplayInfo struct.
-  memcpy(m.components, mDisplayState.sittingToStandingTransform.data(),
+  memcpy(m.components, mDisplayState.sittingToStandingTransform,
          sizeof(float) * 16);
   return m;
 }

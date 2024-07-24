@@ -7,13 +7,12 @@
 #ifndef GFX_VR_DISPLAY_CLIENT_H
 #define GFX_VR_DISPLAY_CLIENT_H
 
-#include "gfxVR.h"
+#include "nsCOMPtr.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/VRDisplayBinding.h"
-#include "nsCOMPtr.h"
 
-#include <array>
+#include "gfxVR.h"
 
 namespace mozilla {
 namespace dom {
@@ -80,8 +79,7 @@ class VRDisplayClient {
   // Difference between mDisplayInfo.mControllerState and
   // mLastEventControllerState determines what gamepad events to fire when
   // updated.
-  std::array<VRControllerState, kVRControllerMaxCount>
-      mLastEventControllerState;
+  VRControllerState mLastEventControllerState[kVRControllerMaxCount];
 
   /**
    * mSessions is cleared in VRDisplayClient::SessionEnded.

@@ -175,7 +175,9 @@ void VRDisplayClient::FireEvents() {
 
 void VRDisplayClient::GamepadMappingForWebVR(
     VRControllerState& aControllerState) {
-  auto triggerValue = aControllerState.triggerValue;
+  float triggerValue[kVRControllerMaxButtons];
+  memcpy(triggerValue, aControllerState.triggerValue,
+         sizeof(aControllerState.triggerValue));
   const uint64_t buttonPressed = aControllerState.buttonPressed;
   const uint64_t buttonTouched = aControllerState.buttonTouched;
 
@@ -479,7 +481,7 @@ void VRDisplayClient::FireGamepadEvents() {
     // axis count. So, we need to check if they are more than zero.
     if ((lastState.controllerName[0] == '\0' || !existing) &&
         (state.numButtons > 0 || state.numAxes > 0)) {
-      dom::GamepadAdded info(NS_ConvertUTF8toUTF16(state.controllerName.data()),
+      dom::GamepadAdded info(NS_ConvertUTF8toUTF16(state.controllerName),
                              dom::GamepadMappingType::_empty, state.hand,
                              mDisplayInfo.mDisplayID, state.numButtons,
                              state.numAxes, state.numHaptics, 0, 0);
@@ -576,7 +578,10 @@ void VRDisplayClient::FireGamepadEvents() {
     }
   }
 
-  mLastEventControllerState = mDisplayInfo.mControllerState;
+  // Note that VRControllerState is asserted to be a POD type and memcpy is
+  // safe.
+  memcpy(mLastEventControllerState, mDisplayInfo.mControllerState,
+         sizeof(VRControllerState) * kVRControllerMaxCount);
 }
 
 const VRHMDSensorState& VRDisplayClient::GetSensorState() const {
