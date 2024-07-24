@@ -173,6 +173,7 @@ export var AboutReader = function (
   );
 
   doc.addEventListener("mousedown", this);
+  doc.addEventListener("keydown", this);
   doc.addEventListener("click", this);
   doc.addEventListener("touchstart", this);
 
@@ -248,6 +249,7 @@ export var AboutReader = function (
       "custom-colors-reset-button",
       this._resetCustomColors.bind(this)
     );
+    this._handleThemeFocus();
   } else {
     this._setupSegmentedButton(
       "color-scheme-buttons",
@@ -451,6 +453,8 @@ export var AboutReader = function (
       "text-layout-reset-button",
       this._resetTextLayout.bind(this)
     );
+
+    this._handleTextLayoutFocus();
   } else {
     this._setupSegmentedButton(
       "font-type-buttons",
@@ -619,6 +623,11 @@ AboutReader.prototype = {
           // the dropdown will get toggled with the 'click' event.
           !target.classList.contains("dropdown-toggle")
         ) {
+          this._closeDropdowns();
+        }
+        break;
+      case "keydown":
+        if (aEvent.keyCode == 27) {
           this._closeDropdowns();
         }
         break;
@@ -1209,6 +1218,28 @@ AboutReader.prototype = {
     this._setTextAlignment(initial.textAlignment);
   },
 
+  _handleTextLayoutFocus() {
+    // Retain focus inside the menu panel.
+    let doc = this._doc;
+    let accordion = doc.querySelector("#about-reader-advanced-layout");
+    let advancedHeader = doc.querySelector(".accordion-header");
+    let textResetButton = doc.querySelector(".text-layout-reset-button");
+    let textFirstFocusable = doc.querySelector(".text-size-minus-button");
+
+    textResetButton.addEventListener("keydown", e => {
+      if (e.key === "Tab" && !e.shiftKey) {
+        e.preventDefault();
+        textFirstFocusable.focus();
+      }
+    });
+    advancedHeader.addEventListener("keydown", e => {
+      if (!accordion.hasAttribute("open") && e.key === "Tab" && !e.shiftKey) {
+        e.preventDefault();
+        textFirstFocusable.focus();
+      }
+    });
+  },
+
   _setColorScheme(newColorScheme) {
     // There's nothing to change if the new color scheme is the same as our current scheme.
     if (this._colorScheme === newColorScheme) {
@@ -1765,6 +1796,32 @@ AboutReader.prototype = {
 
       let defaultColor = DEFAULT_COLORS[property];
       input.setAttribute("color", defaultColor);
+    });
+  },
+
+  _handleThemeFocus() {
+    // Retain focus inside the menu panel.
+    let doc = this._doc;
+    let themeButtons = doc.querySelector(".colors-menu-color-scheme-buttons");
+    let defaultThemeFirstFocusable = doc.querySelector(
+      "#tabs-deck-button-fxtheme"
+    );
+    let themeResetButton = doc.querySelector(".custom-colors-reset-button");
+    let customThemeFirstFocusable = doc.querySelector(
+      "#tabs-deck-button-customtheme"
+    );
+
+    themeButtons.addEventListener("keydown", e => {
+      if (e.key === "Tab" && !e.shiftKey) {
+        e.preventDefault();
+        defaultThemeFirstFocusable.focus();
+      }
+    });
+    themeResetButton.addEventListener("keydown", e => {
+      if (e.key === "Tab" && !e.shiftKey) {
+        e.preventDefault();
+        customThemeFirstFocusable.focus();
+      }
     });
   },
 
