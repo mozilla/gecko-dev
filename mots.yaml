@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-07-22T21:00:44.234311+00:00'
+updated_at: '2024-07-23T21:58:20.688453+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -1491,12 +1491,14 @@ modules:
       owners_emeritus:
         - Aaron Klotz
         - *toshi
+      peers_emeritus:
+        - *molly
       components:
         - Core::DLL Services
     owners:
       - *handyman
     peers:
-      - *molly
+      - *gstoll
     machine_name: core_dll_services
 
   - name: 'Core: docshell'
@@ -4369,5 +4371,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 72a0ef284f42f1ba77dffeef3cd092e2aa473219
-  export: aa618446a126cba681e1236599c375a5d788ac5b
+  config: 2ad8582c39af4d47fcd7c7be987e8cd5a514aba9
+  export: 66a6ee3b820843d5fc8e78e50d0a545233a4f876
