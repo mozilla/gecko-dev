@@ -418,7 +418,7 @@ VideoSendStreamImpl::VideoSendStreamImpl(
                     metronome,
                     config_.encoder_selector)),
       encoder_feedback_(
-          &env_.clock(),
+          env_,
           SupportsPerLayerPictureLossIndication(
               encoder_config.video_format.parameters),
           config_.rtp.ssrcs,

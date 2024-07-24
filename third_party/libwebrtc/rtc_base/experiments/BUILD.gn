@@ -152,7 +152,6 @@ rtc_library("keyframe_interval_settings_experiment") {
   deps = [
     ":field_trial_parser",
     "../../api:field_trials_view",
-    "../../api/transport:field_trial_based_config",
   ]
   absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
