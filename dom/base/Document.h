@@ -2728,17 +2728,17 @@ class Document : public nsINode,
     return !EventHandlingSuppressed() && mScriptGlobalObject;
   }
 
-  bool WouldScheduleFrameRequestCallbacks() const {
-    // If this function changes to depend on some other variable, make sure to
-    // call UpdateFrameRequestCallbackSchedulingState() calls to the places
-    // where that variable can change.
+  void MaybeScheduleFrameRequestCallbacks();
+  bool ShouldFireFrameRequestCallbacks() const {
+    // If this condition changes make sure to call
+    // MaybeScheduleFrameRequestCallbacks at the right places.
     return mPresShell && IsEventHandlingEnabled();
   }
 
   void DecreaseEventSuppression() {
     MOZ_ASSERT(mEventsSuppressed);
     --mEventsSuppressed;
-    UpdateFrameRequestCallbackSchedulingState();
+    MaybeScheduleFrameRequestCallbacks();
   }
 
   /**
@@ -3056,6 +3056,11 @@ class Document : public nsINode,
    * list, and forget about them.
    */
   void TakeFrameRequestCallbacks(nsTArray<FrameRequest>& aCallbacks);
+
+  /** Whether we have any scheduled frame request */
+  bool HasFrameRequestCallbacks() const {
+    return !mFrameRequestManager.IsEmpty();
+  }
 
   /**
    * @return true if this document's frame request callbacks should be
@@ -4433,14 +4438,6 @@ class Document : public nsINode,
 
   nsCString GetContentTypeInternal() const { return mContentType; }
 
-  // Update our frame request callback scheduling state, if needed.  This will
-  // schedule or unschedule them, if necessary, and update
-  // mFrameRequestCallbacksScheduled.  aOldShell should only be passed when
-  // mPresShell is becoming null; in that case it will be used to get hold of
-  // the relevant refresh driver.
-  void UpdateFrameRequestCallbackSchedulingState(
-      PresShell* aOldPresShell = nullptr);
-
   // Helper for GetScrollingElement/IsScrollingElement.
   bool IsPotentiallyScrollable(HTMLBodyElement* aBody);
 
@@ -4726,11 +4723,6 @@ class Document : public nsINode,
   // True if we have fired the DOMContentLoaded event, or don't plan to fire one
   // (e.g. we're not being parsed at all).
   bool mDidFireDOMContentLoaded : 1;
-
-  // True if we have frame request callbacks scheduled with the refresh driver.
-  // This should generally be updated only via
-  // UpdateFrameRequestCallbackSchedulingState.
-  bool mFrameRequestCallbacksScheduled : 1;
 
   bool mIsTopLevelContentDocument : 1;
 

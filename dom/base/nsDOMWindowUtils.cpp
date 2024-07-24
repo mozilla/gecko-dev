@@ -4793,7 +4793,7 @@ nsDOMWindowUtils::GetEffectivelyThrottlesFrameRequests(bool* aResult) {
   if (!doc) {
     return NS_ERROR_FAILURE;
   }
-  *aResult = !doc->WouldScheduleFrameRequestCallbacks() ||
+  *aResult = !doc->ShouldFireFrameRequestCallbacks() ||
              doc->ShouldThrottleFrameRequests();
   return NS_OK;
 }

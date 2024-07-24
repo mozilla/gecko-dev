@@ -1365,6 +1365,7 @@ nsRefreshDriver::nsRefreshDriver(nsPresContext* aPresContext)
       mNotifyDOMContentFlushed(false),
       mNeedToUpdateIntersectionObservations(false),
       mNeedToUpdateResizeObservers(false),
+      mNeedToRunFrameRequestCallbacks(false),
       mNeedToUpdateAnimations(false),
       mMightNeedMediaQueryListenerUpdate(false),
       mNeedToUpdateContentRelevancy(false),
@@ -1900,8 +1901,6 @@ uint32_t nsRefreshDriver::ObserverCount() const {
   sum += mResizeEventFlushObservers.Length();
   sum += mStyleFlushObservers.Length();
   sum += mPendingFullscreenEvents.Length();
-  sum += mFrameRequestCallbackDocs.Length();
-  sum += mThrottledFrameRequestCallbackDocs.Length();
   sum += mViewManagerFlushIsPending;
   sum += mEarlyRunners.Length();
   sum += mAutoFocusFlushDocuments.Length();
@@ -1923,8 +1922,6 @@ bool nsRefreshDriver::HasObservers() const {
          !mAnimationEventFlushObservers.IsEmpty() ||
          !mResizeEventFlushObservers.IsEmpty() ||
          !mPendingFullscreenEvents.IsEmpty() ||
-         !mFrameRequestCallbackDocs.IsEmpty() ||
-         !mThrottledFrameRequestCallbackDocs.IsEmpty() ||
          !mAutoFocusFlushDocuments.IsEmpty() || !mEarlyRunners.IsEmpty();
 }
 
@@ -1954,14 +1951,6 @@ void nsRefreshDriver::AppendObserverDescriptionsToString(
   if (!mPendingFullscreenEvents.IsEmpty()) {
     aStr.AppendPrintf("%zux Pending fullscreen event, ",
                       mPendingFullscreenEvents.Length());
-  }
-  if (!mFrameRequestCallbackDocs.IsEmpty()) {
-    aStr.AppendPrintf("%zux Frame request callback doc, ",
-                      mFrameRequestCallbackDocs.Length());
-  }
-  if (!mThrottledFrameRequestCallbackDocs.IsEmpty()) {
-    aStr.AppendPrintf("%zux Throttled frame request callback doc, ",
-                      mThrottledFrameRequestCallbackDocs.Length());
   }
   if (!mAutoFocusFlushDocuments.IsEmpty()) {
     aStr.AppendPrintf("%zux AutoFocus flush doc, ",
@@ -2006,6 +1995,9 @@ auto nsRefreshDriver::GetReasonsToTick() const -> TickReasons {
   }
   if (mNeedToUpdateContentRelevancy) {
     reasons |= TickReasons::eNeedsToUpdateContentRelevancy;
+  }
+  if (mNeedToRunFrameRequestCallbacks) {
+    reasons |= TickReasons::eNeedsToRunFrameRequestCallbacks;
   }
   if (!mVisualViewportResizeEvents.IsEmpty()) {
     reasons |= TickReasons::eHasVisualViewportResizeEvents;
@@ -2052,6 +2044,9 @@ void nsRefreshDriver::AppendTickReasonsToString(TickReasons aReasons,
   }
   if (aReasons & TickReasons::eNeedsToUpdateContentRelevancy) {
     aStr.AppendLiteral(" NeedsToUpdateContentRelevancy");
+  }
+  if (aReasons & TickReasons::eNeedsToRunFrameRequestCallbacks) {
+    aStr.AppendLiteral(" NeedsToRunFrameRequestCallbacks");
   }
   if (aReasons & TickReasons::eHasVisualViewportResizeEvents) {
     aStr.AppendLiteral(" HasVisualViewportResizeEvents");
@@ -2160,13 +2155,6 @@ void nsRefreshDriver::DoTick() {
     Tick(VsyncId(), TimeStamp::Now());
   }
 }
-
-struct DocumentFrameCallbacks {
-  explicit DocumentFrameCallbacks(Document* aDocument) : mDocument(aDocument) {}
-
-  RefPtr<Document> mDocument;
-  nsTArray<FrameRequest> mCallbacks;
-};
 
 void nsRefreshDriver::ScheduleAutoFocusFlush(Document* aDocument) {
   MOZ_ASSERT(!mAutoFocusFlushDocuments.Contains(aDocument));
@@ -2372,29 +2360,11 @@ void nsRefreshDriver::UpdateAnimationsAndSendEvents() {
   }
 }
 
-void nsRefreshDriver::CollectFrameRequestCallbackDocs(
-    bool aTickThrottled, nsTArray<DocumentFrameCallbacks>& aCallbacks) {
-  aCallbacks.AppendElements(mFrameRequestCallbackDocs);
-  mFrameRequestCallbackDocs.Clear();
-  if (aTickThrottled) {
-    aCallbacks.AppendElements(mThrottledFrameRequestCallbackDocs);
-    mThrottledFrameRequestCallbackDocs.Clear();
-  } else {
-    // All the docs in mThrottledFrameRequestCallbackDocs that should not be
-    // throttled anymore.
-    mThrottledFrameRequestCallbackDocs.RemoveElementsBy([&](Document* aDoc) {
-      if (!aDoc->ShouldThrottleFrameRequests()) {
-        aCallbacks.AppendElement(aDoc);
-        return true;
-      }
-      return false;
-    });
-  }
-}
-
 void nsRefreshDriver::RunFrameRequestCallbacks(TimeStamp aNowTime) {
-  // Grab all of our frame request callbacks up front.
-  AutoTArray<DocumentFrameCallbacks, 8> frameRequestCallbacks;
+  if (!mNeedToRunFrameRequestCallbacks) {
+    return;
+  }
+  mNeedToRunFrameRequestCallbacks = false;
   const bool tickThrottledFrameRequests = [&] {
     if (mThrottled) {
       // We always tick throttled frame requests if the entire refresh driver is
@@ -2410,36 +2380,52 @@ void nsRefreshDriver::RunFrameRequestCallbacks(TimeStamp aNowTime) {
     return false;
   }();
 
-  CollectFrameRequestCallbackDocs(tickThrottledFrameRequests,
-                                  frameRequestCallbacks);
-  bool empty = true;
-  for (DocumentFrameCallbacks& docCallbacks : frameRequestCallbacks) {
-    docCallbacks.mDocument->TakeFrameRequestCallbacks(docCallbacks.mCallbacks);
-    empty = empty && docCallbacks.mCallbacks.IsEmpty();
-  }
-
-  if (empty) {
+  if (NS_WARN_IF(!mPresContext)) {
     return;
   }
-  AUTO_PROFILER_TRACING_MARKER_DOCSHELL("Paint",
-                                        "requestAnimationFrame callbacks",
-                                        GRAPHICS, GetDocShell(mPresContext));
-  for (const DocumentFrameCallbacks& docCallbacks : frameRequestCallbacks) {
-    TimeStamp startTime = TimeStamp::Now();
+  // Grab all of our frame request callbacks up front.
+  AutoTArray<RefPtr<Document>, 8> docs;
+  auto ShouldCollect = [](const Document* aDoc) {
+    return aDoc->HasFrameRequestCallbacks() &&
+           aDoc->ShouldFireFrameRequestCallbacks();
+  };
+  if (ShouldCollect(mPresContext->Document())) {
+    docs.AppendElement(mPresContext->Document());
+  }
+  mPresContext->Document()->CollectDescendantDocuments(docs, ShouldCollect);
 
-    nsPIDOMWindowInner* innerWindow = docCallbacks.mDocument->GetInnerWindow();
+  for (Document* doc : docs) {
+    if (!tickThrottledFrameRequests && doc->ShouldThrottleFrameRequests()) {
+      // Skip throttled docs if it's not time to un-throttle them yet.
+      // FIXME(emilio): It's a bit subtle to just set this to true here, but
+      // matches pre-existing behavior for throttled docs. It seems at least we
+      // should EnsureTimerStarted too? But that kinda defeats the throttling, a
+      // little bit? For now, preserve behavior.
+      mNeedToRunFrameRequestCallbacks = true;
+      continue;
+    }
+
+    AutoTArray<FrameRequest, 8> callbacks;
+    doc->TakeFrameRequestCallbacks(callbacks);
+    if (NS_WARN_IF(callbacks.IsEmpty())) {
+      continue;
+    }
+    AUTO_PROFILER_TRACING_MARKER_INNERWINDOWID(
+        "Paint", "requestAnimationFrame callbacks", GRAPHICS,
+        doc->InnerWindowID());
+    TimeStamp startTime = TimeStamp::Now();
     nsCOMPtr<nsIGlobalObject> global;
     DOMHighResTimeStamp timeStamp = 0;
-    if (innerWindow) {
+    if (nsPIDOMWindowInner* innerWindow = doc->GetInnerWindow()) {
       if (Performance* perf = innerWindow->GetPerformance()) {
         timeStamp = perf->TimeStampToDOMHighResForRendering(aNowTime);
       }
       global = nsGlobalWindowInner::Cast(innerWindow);
       // else window is partially torn down already
     }
-    for (const auto& callback : docCallbacks.mCallbacks) {
-      if (docCallbacks.mDocument->IsCanceledFrameRequestCallback(
-              callback.mHandle)) {
+
+    for (const auto& callback : callbacks) {
+      if (doc->IsCanceledFrameRequestCallback(callback.mHandle)) {
         continue;
       }
 
@@ -2453,8 +2439,7 @@ void nsRefreshDriver::RunFrameRequestCallbacks(TimeStamp aNowTime) {
       MOZ_KnownLive(callback.mCallback)->Call(timeStamp);
     }
 
-    if (docCallbacks.mDocument->GetReadyStateEnum() ==
-        Document::READYSTATE_COMPLETE) {
+    if (doc->GetReadyStateEnum() == Document::READYSTATE_COMPLETE) {
       glean::performance_responsiveness::req_anim_frame_callback
           .AccumulateRawDuration(TimeStamp::Now() - startTime);
     } else {
@@ -3125,29 +3110,6 @@ void nsRefreshDriver::ScheduleViewManagerFlush() {
   }
   mHasScheduleFlush = true;
   EnsureTimerStarted(eNeverAdjustTimer);
-}
-
-void nsRefreshDriver::ScheduleFrameRequestCallbacks(Document* aDocument) {
-  NS_ASSERTION(mFrameRequestCallbackDocs.IndexOf(aDocument) ==
-                       mFrameRequestCallbackDocs.NoIndex &&
-                   mThrottledFrameRequestCallbackDocs.IndexOf(aDocument) ==
-                       mThrottledFrameRequestCallbackDocs.NoIndex,
-               "Don't schedule the same document multiple times");
-  if (aDocument->ShouldThrottleFrameRequests()) {
-    mThrottledFrameRequestCallbackDocs.AppendElement(aDocument);
-  } else {
-    mFrameRequestCallbackDocs.AppendElement(aDocument);
-  }
-
-  // make sure that the timer is running
-  EnsureTimerStarted();
-}
-
-void nsRefreshDriver::RevokeFrameRequestCallbacks(Document* aDocument) {
-  mFrameRequestCallbackDocs.RemoveElement(aDocument);
-  mThrottledFrameRequestCallbackDocs.RemoveElement(aDocument);
-  // No need to worry about restarting our timer in slack mode if it's already
-  // running; that will happen automatically when it fires.
 }
 
 void nsRefreshDriver::ScheduleFullscreenEvent(

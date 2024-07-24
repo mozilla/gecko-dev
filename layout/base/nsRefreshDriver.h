@@ -212,16 +212,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void ClearHasScheduleFlush() { mHasScheduleFlush = false; }
 
   /**
-   * Add a document for which we have FrameRequestCallbacks
-   */
-  void ScheduleFrameRequestCallbacks(Document* aDocument);
-
-  /**
-   * Remove a document for which we have FrameRequestCallbacks
-   */
-  void RevokeFrameRequestCallbacks(Document* aDocument);
-
-  /**
    * Queue a new fullscreen event to be dispatched in next tick before
    * the style flush
    */
@@ -408,6 +398,11 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     mNeedToUpdateIntersectionObservations = true;
   }
 
+  void EnsureFrameRequestCallbacksHappen() {
+    EnsureTimerStarted();
+    mNeedToRunFrameRequestCallbacks = true;
+  }
+
   void EnsureResizeObserverUpdateHappens() {
     EnsureTimerStarted();
     mNeedToUpdateResizeObservers = true;
@@ -448,6 +443,7 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     eNeedsToNotifyResizeObservers = 1 << 8,
     eRootNeedsMoreTicksForUserInput = 1 << 9,
     eNeedsToUpdateAnimations = 1 << 10,
+    eNeedsToRunFrameRequestCallbacks = 1 << 11,
   };
 
   void AddForceNotifyContentfulPaintPresContext(nsPresContext* aPresContext);
@@ -490,14 +486,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void FlushAutoFocusDocuments();
   void RunFullscreenSteps();
   void UpdateAnimationsAndSendEvents();
-
-  // Appends all the documents with frame callbacks.
-  // After this, mFrameRequestCallbackDocs is guaranteed to be empty.
-  // mThrottledFrameRequestCallbackDocs is guaranteed to be empty if
-  // aTickThrottled is true, otherwise it's guaranteed not to contain documents
-  // that shouldn't be throttled anymore.
-  void CollectFrameRequestCallbackDocs(bool aTickThrottled,
-                                       nsTArray<DocumentFrameCallbacks>&);
 
   MOZ_CAN_RUN_SCRIPT
   void RunFrameRequestCallbacks(mozilla::TimeStamp aNowTime);
@@ -559,10 +547,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   static double GetThrottledTimerInterval();
 
   static mozilla::TimeDuration GetMinRecomputeVisibilityInterval();
-
-  bool HaveFrameRequestCallbacks() const {
-    return mFrameRequestCallbackDocs.Length() != 0;
-  }
 
   void FinishedWaitingForTransaction();
 
@@ -654,6 +638,9 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   // all our documents.
   bool mNeedToUpdateResizeObservers : 1;
 
+  // True if we may need to run any frame callback.
+  bool mNeedToRunFrameRequestCallbacks : 1;
+
   // True if we need to update animations.
   bool mNeedToUpdateAnimations : 1;
 
@@ -703,9 +690,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   AutoTArray<mozilla::PresShell*, 16> mResizeEventFlushObservers;
   AutoTArray<mozilla::PresShell*, 16> mDelayedResizeEventFlushObservers;
   AutoTArray<mozilla::PresShell*, 16> mStyleFlushObservers;
-  // nsTArray on purpose, because we want to be able to swap.
-  nsTArray<Document*> mFrameRequestCallbackDocs;
-  nsTArray<Document*> mThrottledFrameRequestCallbackDocs;
   nsTArray<RefPtr<Document>> mAutoFocusFlushDocuments;
   nsTObserverArray<nsAPostRefreshObserver*> mPostRefreshObservers;
   nsTArray<mozilla::UniquePtr<mozilla::PendingFullscreenEvent>>
