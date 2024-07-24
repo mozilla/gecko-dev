@@ -161,7 +161,7 @@ IS_TRUSTED_TYPE_IMPL(HTML);
 IS_TRUSTED_TYPE_IMPL(Script);
 IS_TRUSTED_TYPE_IMPL(ScriptURL);
 
-UniquePtr<TrustedHTML> TrustedTypePolicyFactory::EmptyHTML() {
+already_AddRefed<TrustedHTML> TrustedTypePolicyFactory::EmptyHTML() {
   // Preserving the wrapper ensures:
   // ```
   //  const e = trustedTypes.emptyHTML;
@@ -172,14 +172,14 @@ UniquePtr<TrustedHTML> TrustedTypePolicyFactory::EmptyHTML() {
   // multiple emptyHML objects. Both, the JS- and the C++-objects.
   dom::PreserveWrapper(this);
 
-  return MakeUnique<TrustedHTML>(EmptyString());
+  return MakeRefPtr<TrustedHTML>(EmptyString()).forget();
 }
 
-UniquePtr<TrustedScript> TrustedTypePolicyFactory::EmptyScript() {
+already_AddRefed<TrustedScript> TrustedTypePolicyFactory::EmptyScript() {
   // See the explanation in `EmptyHTML()`.
   dom::PreserveWrapper(this);
 
-  return MakeUnique<TrustedScript>(EmptyString());
+  return MakeRefPtr<TrustedScript>(EmptyString()).forget();
 }
 
 }  // namespace mozilla::dom

@@ -12,8 +12,8 @@
 #include "mozilla/dom/TrustedHTML.h"
 #include "mozilla/dom/TrustedScript.h"
 #include "mozilla/dom/TrustedScriptURL.h"
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/UniquePtr.h"
 #include "nsIGlobalObject.h"
 #include "nsISupportsImpl.h"
 #include "nsStringFwd.h"
@@ -64,10 +64,10 @@ class TrustedTypePolicyFactory : public nsWrapperCache {
                    const JS::Handle<JS::Value>& aValue) const;
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-emptyhtml
-  UniquePtr<TrustedHTML> EmptyHTML();
+  already_AddRefed<TrustedHTML> EmptyHTML();
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-emptyscript
-  UniquePtr<TrustedScript> EmptyScript();
+  already_AddRefed<TrustedScript> EmptyScript();
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-getattributetype
   void GetAttributeType(const nsAString& aTagName, const nsAString& aAttribute,

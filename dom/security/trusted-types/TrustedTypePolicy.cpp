@@ -35,7 +35,7 @@ void TrustedTypePolicy::GetName(DOMString& aResult) const {
 }
 
 #define IMPL_CREATE_TRUSTED_TYPE(_trustedTypeSuffix)                         \
-  UniquePtr<Trusted##_trustedTypeSuffix>                                     \
+  already_AddRefed<Trusted##_trustedTypeSuffix>                              \
       TrustedTypePolicy::Create##_trustedTypeSuffix(                         \
           JSContext* aJSContext, const nsAString& aInput,                    \
           const Sequence<JS::Value>& aArguments, ErrorResult& aErrorResult)  \
@@ -55,7 +55,7 @@ IMPL_CREATE_TRUSTED_TYPE(Script)
 IMPL_CREATE_TRUSTED_TYPE(ScriptURL)
 
 template <typename T, typename CallbackObject>
-UniquePtr<T> TrustedTypePolicy::CreateTrustedType(
+already_AddRefed<T> TrustedTypePolicy::CreateTrustedType(
     const RefPtr<CallbackObject>& aCallbackObject, const nsAString& aValue,
     const Sequence<JS::Value>& aArguments, ErrorResult& aErrorResult) const {
   nsString policyValue;
@@ -70,12 +70,12 @@ UniquePtr<T> TrustedTypePolicy::CreateTrustedType(
     policyValue = EmptyString();
   }
 
-  UniquePtr<T> trustedObject = MakeUnique<T>(std::move(policyValue));
+  RefPtr<T> trustedObject = MakeRefPtr<T>(std::move(policyValue));
 
   // TODO: add special handling for `TrustedScript` when default policy support
   // is added.
 
-  return trustedObject;
+  return trustedObject.forget();
 }
 
 template <typename CallbackObject>

@@ -9,9 +9,9 @@
 
 #include "js/TypeDecls.h"
 #include "js/Value.h"
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/UniquePtr.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/TrustedHTML.h"
 #include "mozilla/dom/TrustedScript.h"
@@ -51,17 +51,17 @@ class TrustedTypePolicy : public nsWrapperCache {
   void GetName(DOMString& aResult) const;
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicy-createhtml
-  MOZ_CAN_RUN_SCRIPT UniquePtr<TrustedHTML> CreateHTML(
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<TrustedHTML> CreateHTML(
       JSContext* aJSContext, const nsAString& aInput,
       const Sequence<JS::Value>& aArguments, ErrorResult& aErrorResult) const;
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicy-createscript
-  MOZ_CAN_RUN_SCRIPT UniquePtr<TrustedScript> CreateScript(
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<TrustedScript> CreateScript(
       JSContext* aJSContext, const nsAString& aInput,
       const Sequence<JS::Value>& aArguments, ErrorResult& aErrorResult) const;
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicy-createscripturl
-  MOZ_CAN_RUN_SCRIPT UniquePtr<TrustedScriptURL> CreateScriptURL(
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<TrustedScriptURL> CreateScriptURL(
       JSContext* aJSContext, const nsAString& aInput,
       const Sequence<JS::Value>& aArguments, ErrorResult& aErrorResult) const;
 
@@ -71,7 +71,7 @@ class TrustedTypePolicy : public nsWrapperCache {
 
   // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-create-a-trusted-type
   template <typename T, typename CallbackObject>
-  MOZ_CAN_RUN_SCRIPT UniquePtr<T> CreateTrustedType(
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<T> CreateTrustedType(
       const RefPtr<CallbackObject>& aCallbackObject, const nsAString& aValue,
       const Sequence<JS::Value>& aArguments, ErrorResult& aErrorResult) const;
 
