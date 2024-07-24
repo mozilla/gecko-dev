@@ -810,11 +810,13 @@ std::map<std::string, std::string> LibaomAv1EncoderFactory::CodecSpecifics()
   return {};
 }
 
+// clang-format off
+// The formater and cpplint have conflicting ideas.
 VideoEncoderFactoryInterface::Capabilities
 LibaomAv1EncoderFactory::GetEncoderCapabilities() const {
   return {
-      .prediction_constraints =
-          {.num_buffers = kNumBuffers,
+      .prediction_constraints = {
+           .num_buffers = kNumBuffers,
            .max_references = kMaxReferences,
            .max_temporal_layers = kMaxTemporalLayers,
            .buffer_space_type = VideoEncoderFactoryInterface::Capabilities::
@@ -834,14 +836,16 @@ LibaomAv1EncoderFactory::GetEncoderCapabilities() const {
           },
       .encoding_formats = {{.sub_sampling = EncodingFormat::k420,
                             .bit_depth = 8}},
-      .rate_control =
-          {.qp_range = {0, kMaxQp},
+      .rate_control = {
+           .qp_range = {0, kMaxQp},
            .rc_modes = {VideoEncoderFactoryInterface::RateControlMode::kCbr,
                         VideoEncoderFactoryInterface::RateControlMode::kCqp}},
-      .performance = {.min_max_effort_level = {kMinEffortLevel,
+      .performance = {.encode_on_calling_thread = true,
+                      .min_max_effort_level = {kMinEffortLevel,
                                                kMaxEffortLevel}},
   };
 }
+// clang-format on
 
 std::unique_ptr<VideoEncoderInterface> LibaomAv1EncoderFactory::CreateEncoder(
     const StaticEncoderSettings& settings,
