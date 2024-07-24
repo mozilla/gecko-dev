@@ -252,15 +252,14 @@ std::unique_ptr<VideoCodecStats> RunEncodeDecodeTest(
 
 std::unique_ptr<VideoCodecStats> RunEncodeTest(
     const Environment& env,
-    std::string codec_type,
-    std::string codec_impl,
+    std::string encoder_impl,
     const VideoSourceSettings& source_settings,
     const std::map<uint32_t, EncodingSettings>& encoding_settings) {
   const SdpVideoFormat& sdp_video_format =
       encoding_settings.begin()->second.sdp_video_format;
 
   std::unique_ptr<VideoEncoderFactory> encoder_factory =
-      CreateEncoderFactory(codec_impl);
+      CreateEncoderFactory(encoder_impl);
   if (!encoder_factory
            ->QueryCodecSupport(sdp_video_format,
                                /*scalability_mode=*/absl::nullopt)
@@ -273,7 +272,7 @@ std::unique_ptr<VideoCodecStats> RunEncodeTest(
   std::string output_path = TestOutputPath();
   VideoCodecTester::EncoderSettings encoder_settings;
   encoder_settings.pacing_settings.mode =
-      codec_impl == "builtin" ? PacingMode::kNoPacing : PacingMode::kRealTime;
+      encoder_impl == "builtin" ? PacingMode::kNoPacing : PacingMode::kRealTime;
   if (absl::GetFlag(FLAGS_dump_encoder_input)) {
     encoder_settings.encoder_input_base_path = output_path + "_enc_input";
   }
@@ -421,8 +420,8 @@ TEST_P(BitrateAdaptationTest, BitrateAdaptation) {
 
   frame_settings.merge(frame_settings2);
 
-  std::unique_ptr<VideoCodecStats> stats = RunEncodeTest(
-      env, codec_type, codec_impl, source_settings, frame_settings);
+  std::unique_ptr<VideoCodecStats> stats =
+      RunEncodeTest(env, codec_impl, source_settings, frame_settings);
 
   VideoCodecStats::Stream stream;
   if (stats != nullptr) {
@@ -510,8 +509,8 @@ TEST_P(FramerateAdaptationTest, FramerateAdaptation) {
 
   frame_settings.merge(frame_settings2);
 
-  std::unique_ptr<VideoCodecStats> stats = RunEncodeTest(
-      env, codec_type, codec_impl, source_settings, frame_settings);
+  std::unique_ptr<VideoCodecStats> stats =
+      RunEncodeTest(env, codec_impl, source_settings, frame_settings);
 
   VideoCodecStats::Stream stream;
   if (stats != nullptr) {
@@ -588,13 +587,20 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
     timestamp_rtp += k90kHz / framerate;
   }
 
-  // TODO(webrtc:14852): Pass encoder and decoder names directly, and update
-  // logged test name (implies lossing history in the chromeperf dashboard).
-  // Sync with changes in Stream::LogMetrics (see TODOs there).
-  std::unique_ptr<VideoCodecStats> stats = RunEncodeDecodeTest(
-      env, CodecNameToCodecImpl(absl::GetFlag(FLAGS_encoder)),
-      CodecNameToCodecImpl(absl::GetFlag(FLAGS_decoder)), source_settings,
-      frame_settings);
+  std::unique_ptr<VideoCodecStats> stats;
+  std::string decoder = absl::GetFlag(FLAGS_decoder);
+  if (decoder == "null") {
+    stats =
+        RunEncodeTest(env, CodecNameToCodecImpl(absl::GetFlag(FLAGS_encoder)),
+                      source_settings, frame_settings);
+  } else {
+    // TODO(webrtc:14852): Pass encoder and decoder names directly, and update
+    // logged test name (implies lossing history in the chromeperf dashboard).
+    // Sync with changes in Stream::LogMetrics (see TODOs there).
+    stats = RunEncodeDecodeTest(
+        env, CodecNameToCodecImpl(absl::GetFlag(FLAGS_encoder)),
+        CodecNameToCodecImpl(decoder), source_settings, frame_settings);
+  }
   ASSERT_NE(nullptr, stats);
 
   // Log unsliced metrics.
