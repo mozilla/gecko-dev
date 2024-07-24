@@ -52,6 +52,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "mozilla/dom/HTMLVideoElement.h"
 #include "nsIXULRuntime.h"
 #include "jsapi.h"
 #include "nsContentUtils.h"
@@ -2360,7 +2361,7 @@ void nsRefreshDriver::UpdateAnimationsAndSendEvents() {
   }
 }
 
-void nsRefreshDriver::RunFrameRequestCallbacks(TimeStamp aNowTime) {
+void nsRefreshDriver::RunVideoAndFrameRequestCallbacks(TimeStamp aNowTime) {
   if (!mNeedToRunFrameRequestCallbacks) {
     return;
   }
@@ -2383,17 +2384,19 @@ void nsRefreshDriver::RunFrameRequestCallbacks(TimeStamp aNowTime) {
   if (NS_WARN_IF(!mPresContext)) {
     return;
   }
-  // Grab all of our frame request callbacks up front.
+  // Grab all of our documents that can fire frame request callbacks up front.
   AutoTArray<RefPtr<Document>, 8> docs;
   auto ShouldCollect = [](const Document* aDoc) {
-    return aDoc->HasFrameRequestCallbacks() &&
-           aDoc->ShouldFireFrameRequestCallbacks();
+    return aDoc->ShouldFireFrameRequestCallbacks();
   };
   if (ShouldCollect(mPresContext->Document())) {
     docs.AppendElement(mPresContext->Document());
   }
   mPresContext->Document()->CollectDescendantDocuments(docs, ShouldCollect);
 
+  // First check for and run video frame callbacks. These can trigger new frame
+  // request callbacks that we need to handle in the following pass.
+  Maybe<TimeStamp> nextTickHint;
   for (Document* doc : docs) {
     if (!tickThrottledFrameRequests && doc->ShouldThrottleFrameRequests()) {
       // Skip throttled docs if it's not time to un-throttle them yet.
@@ -2404,10 +2407,75 @@ void nsRefreshDriver::RunFrameRequestCallbacks(TimeStamp aNowTime) {
       mNeedToRunFrameRequestCallbacks = true;
       continue;
     }
+    nsTArray<RefPtr<HTMLVideoElement>> videoElms;
+    doc->TakeVideoFrameRequestCallbacks(videoElms);
+    if (videoElms.IsEmpty()) {
+      continue;
+    }
+    if (!nextTickHint) {
+      nextTickHint = GetNextTickHint();
+    }
+    AUTO_PROFILER_TRACING_MARKER_INNERWINDOWID(
+        "Paint", "requestVideoFrame callbacks", GRAPHICS, doc->InnerWindowID());
+    DOMHighResTimeStamp timeStamp = 0;
+    DOMHighResTimeStamp nextTickTimeStamp = 0;
+    if (nsPIDOMWindowInner* innerWindow = doc->GetInnerWindow()) {
+      if (Performance* perf = innerWindow->GetPerformance()) {
+        timeStamp = perf->TimeStampToDOMHighResForRendering(aNowTime);
+        nextTickTimeStamp =
+            nextTickHint
+                ? perf->TimeStampToDOMHighResForRendering(*nextTickHint)
+                : timeStamp;
+      }
+      // else window is partially torn down already
+    }
+    for (const auto& videoElm : videoElms) {
+      nsTArray<VideoFrameRequest> callbacks;
+      VideoFrameCallbackMetadata metadata;
 
+      // Presentation time is our best estimate of when the video frame was
+      // submitted for compositing. Given that we decode frames in advance,
+      // this can be most closely estimated as the vsync time (aNowTime), as
+      // that is when the compositor samples the ImageHost to get the next
+      // frame to present.
+      metadata.mPresentationTime = timeStamp;
+
+      // Expected display time is our best estimate of when the video frame we
+      // are submitting for compositing this cycle is shown to the user's eye.
+      // This will generally be when the next vsync triggers, assuming we do
+      // not fall behind on compositing.
+      metadata.mExpectedDisplayTime = nextTickTimeStamp;
+
+      // TakeVideoFrameRequestCallbacks is responsible for populating the rest
+      // of the metadata fields. If it is not ready, or there has been no
+      // change, it will not populate metadata nor yield any callbacks.
+      videoElm->TakeVideoFrameRequestCallbacks(aNowTime, nextTickHint, metadata,
+                                               callbacks);
+
+      for (auto& callback : callbacks) {
+        if (videoElm->IsVideoFrameCallbackCancelled(callback.mHandle)) {
+          continue;
+        }
+
+        // MOZ_KnownLive is OK, because the stack array frameRequestCallbacks
+        // keeps callback alive and the mCallback strong reference can't be
+        // mutated by the call.
+        LogVideoFrameRequestCallback::Run run(callback.mCallback);
+        MOZ_KnownLive(callback.mCallback)->Call(timeStamp, metadata);
+      }
+    }
+  }
+
+  // Next check for and run frame request callbacks.
+  for (Document* doc : docs) {
+    if (!tickThrottledFrameRequests && doc->ShouldThrottleFrameRequests()) {
+      // Skip throttled docs if it's not time to un-throttle them yet.
+      MOZ_ASSERT(mNeedToRunFrameRequestCallbacks);
+      continue;
+    }
     AutoTArray<FrameRequest, 8> callbacks;
     doc->TakeFrameRequestCallbacks(callbacks);
-    if (NS_WARN_IF(callbacks.IsEmpty())) {
+    if (callbacks.IsEmpty()) {
       continue;
     }
     AUTO_PROFILER_TRACING_MARKER_INNERWINDOWID(
@@ -2666,8 +2734,9 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
   // Step 12. For each doc of docs, run the fullscreen steps for doc.
   RunFullscreenSteps();
 
-  // Step 14. For each doc of docs, run the animation frame callbacks for doc.
-  RunFrameRequestCallbacks(aNowTime);
+  // Step 14. For each doc of docs, run the video frame callbacks and animation
+  // frame callbacks for doc.
+  RunVideoAndFrameRequestCallbacks(aNowTime);
   MaybeIncreaseMeasuredTicksSinceLoading();
 
   // Step 17. For each doc of docs, if the focused area of doc is not a

@@ -1816,6 +1816,7 @@ class Task;  // TaskController
 class PresShell;
 namespace dom {
 class FrameRequestCallback;
+class VideoFrameRequestCallback;
 }  // namespace dom
 
 // Specialized methods must be explicitly predeclared.
@@ -1838,6 +1839,8 @@ typedef LogTaskBase<nsTimerImpl> LogTimerEvent;
 typedef LogTaskBase<Task> LogTask;
 typedef LogTaskBase<PresShell> LogPresShellObserver;
 typedef LogTaskBase<dom::FrameRequestCallback> LogFrameRequestCallback;
+typedef LogTaskBase<dom::VideoFrameRequestCallback>
+    LogVideoFrameRequestCallback;
 // If you add new types don't forget to add:
 // `template class LogTaskBase<YourType>;` to nsThreadUtils.cpp
 
