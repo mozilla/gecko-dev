@@ -3232,9 +3232,9 @@ option(
     help="Enable building with the Clang plugin (gecko specific static analyzers)",
 )
 
-add_old_configure_assignment(
-    "ENABLE_CLANG_PLUGIN", depends_if("--enable-clang-plugin")(lambda _: True)
-)
+
+set_config("ENABLE_CLANG_PLUGIN", True, when="--enable-clang-plugin")
+set_define("MOZ_CLANG_PLUGIN", True, when="--enable-clang-plugin")
 
 
 @depends(host_c_compiler, c_compiler, when="--enable-clang-plugin")
@@ -3308,34 +3308,6 @@ add_old_configure_assignment("LLVM_OBJDUMP", llvm_objdump)
 # Force clang-cl compiler to treat input as C++
 # ==============================================================
 add_flag("-TP", cxx_compiler, when=target_is_windows & ~building_with_gnu_compatible_cc)
-
-option(
-    "--enable-clang-plugin-alpha",
-    env="ENABLE_CLANG_PLUGIN_ALPHA",
-    help="Enable static analysis with clang-plugin alpha checks.",
-)
-
-
-@depends("--enable-clang-plugin", "--enable-clang-plugin-alpha")
-def check_clang_plugin_alpha(enable_clang_plugin, enable_clang_plugin_alpha):
-    if enable_clang_plugin_alpha:
-        if enable_clang_plugin:
-            return True
-        die("Cannot enable clang-plugin alpha checkers without --enable-clang-plugin.")
-
-
-add_old_configure_assignment("ENABLE_CLANG_PLUGIN_ALPHA", check_clang_plugin_alpha)
-set_define("MOZ_CLANG_PLUGIN_ALPHA", check_clang_plugin_alpha)
-
-option(
-    "--enable-mozsearch-plugin",
-    env="ENABLE_MOZSEARCH_PLUGIN",
-    help="Enable building with the mozsearch indexer plugin",
-)
-
-add_old_configure_assignment(
-    "ENABLE_MOZSEARCH_PLUGIN", depends_if("--enable-mozsearch-plugin")(lambda _: True)
-)
 
 # Use the old libstdc++ ABI
 # ==============================================================
