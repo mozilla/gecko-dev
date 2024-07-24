@@ -224,8 +224,4 @@ double CreateRandomDouble() {
                              std::numeric_limits<double>::epsilon());
 }
 
-double GetNextMovingAverage(double prev_average, double cur, double ratio) {
-  return (ratio * prev_average + cur) / (ratio + 1);
-}
-
 }  // namespace rtc
