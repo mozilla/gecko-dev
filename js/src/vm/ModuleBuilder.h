@@ -44,7 +44,13 @@ class MOZ_STACK_CLASS ModuleBuilder {
   bool processExport(frontend::ParseNode* exportNode);
   bool processExportFrom(frontend::BinaryNode* exportNode);
 
-  bool hasExportedName(frontend::TaggedParserAtomIndex name) const;
+  enum class NoteExportedNameResult {
+    OutOfMemory,
+    Success,
+    AlreadyDeclared,
+  };
+
+  NoteExportedNameResult noteExportedName(frontend::TaggedParserAtomIndex name);
 
   bool buildTables(frontend::StencilModuleMetadata& metadata);
 

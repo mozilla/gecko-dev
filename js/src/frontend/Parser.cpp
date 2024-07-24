@@ -5412,8 +5412,13 @@ GeneralParser<ParseHandler, Unit>::importDeclarationOrImportExpr(
 template <typename Unit>
 bool Parser<FullParseHandler, Unit>::checkExportedName(
     TaggedParserAtomIndex exportName) {
-  if (!pc_->sc()->asModuleContext()->builder.hasExportedName(exportName)) {
-    return true;
+  switch (pc_->sc()->asModuleContext()->builder.noteExportedName(exportName)) {
+    case ModuleBuilder::NoteExportedNameResult::Success:
+      return true;
+    case ModuleBuilder::NoteExportedNameResult::OutOfMemory:
+      return false;
+    case ModuleBuilder::NoteExportedNameResult::AlreadyDeclared:
+      break;
   }
 
   UniqueChars str = this->parserAtoms().toPrintableString(exportName);

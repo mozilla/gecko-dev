@@ -2096,13 +2096,13 @@ bool ModuleBuilder::processExportFrom(frontend::BinaryNode* exportNode) {
     eitherParser_.computeLineAndColumn(spec->pn_pos.begin, &line, &column);
 
     StencilModuleEntry entry;
-    TaggedParserAtomIndex exportName;
     if (spec->isKind(ParseNodeKind::ExportSpec)) {
       auto* importNameNode = &spec->as<BinaryNode>().left()->as<NameNode>();
       auto* exportNameNode = &spec->as<BinaryNode>().right()->as<NameNode>();
 
       auto importName = importNameNode->atom();
-      exportName = exportNameNode->atom();
+      auto exportName = exportNameNode->atom();
+      MOZ_ASSERT(exportNames_.has(exportName));
 
       markUsedByStencil(importName);
       markUsedByStencil(exportName);
@@ -2112,7 +2112,8 @@ bool ModuleBuilder::processExportFrom(frontend::BinaryNode* exportNode) {
     } else if (spec->isKind(ParseNodeKind::ExportNamespaceSpec)) {
       auto* exportNameNode = &spec->as<UnaryNode>().kid()->as<NameNode>();
 
-      exportName = exportNameNode->atom();
+      auto exportName = exportNameNode->atom();
+      MOZ_ASSERT(exportNames_.has(exportName));
 
       markUsedByStencil(exportName);
       entry = StencilModuleEntry::exportNamespaceFromEntry(
@@ -2126,9 +2127,6 @@ bool ModuleBuilder::processExportFrom(frontend::BinaryNode* exportNode) {
     }
 
     if (!exportEntries_.append(entry)) {
-      return false;
-    }
-    if (exportName && !exportNames_.put(exportName)) {
       return false;
     }
   }
@@ -2147,15 +2145,24 @@ frontend::StencilModuleEntry* ModuleBuilder::importEntryFor(
   return &ptr->value();
 }
 
-bool ModuleBuilder::hasExportedName(
-    frontend::TaggedParserAtomIndex name) const {
+ModuleBuilder::NoteExportedNameResult ModuleBuilder::noteExportedName(
+    frontend::TaggedParserAtomIndex name) {
   MOZ_ASSERT(name);
-  return exportNames_.has(name);
+  auto addPtr = exportNames_.lookupForAdd(name);
+  if (addPtr) {
+    return NoteExportedNameResult::AlreadyDeclared;
+  }
+  if (!exportNames_.add(addPtr, name)) {
+    return NoteExportedNameResult::OutOfMemory;
+  }
+  return NoteExportedNameResult::Success;
 }
 
 bool ModuleBuilder::appendExportEntry(
     frontend::TaggedParserAtomIndex exportName,
     frontend::TaggedParserAtomIndex localName, frontend::ParseNode* node) {
+  MOZ_ASSERT(exportNames_.has(exportName));
+
   uint32_t line = 0;
   JS::LimitedColumnNumberOneOrigin column;
   if (node) {
@@ -2166,15 +2173,7 @@ bool ModuleBuilder::appendExportEntry(
   markUsedByStencil(exportName);
   auto entry = frontend::StencilModuleEntry::exportAsEntry(
       localName, exportName, line, JS::ColumnNumberOneOrigin(column));
-  if (!exportEntries_.append(entry)) {
-    return false;
-  }
-
-  if (!exportNames_.put(exportName)) {
-    return false;
-  }
-
-  return true;
+  return exportEntries_.append(entry);
 }
 
 frontend::MaybeModuleRequestIndex ModuleBuilder::appendModuleRequest(
