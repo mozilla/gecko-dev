@@ -1470,6 +1470,8 @@
     <string name="snackbar_tab_closed">Варақа пӯшида шуд</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Варақаҳо пӯшида шуданд</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Шумораи варақаҳои пӯшида: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Хатбаракҳо нигоҳ дошта шуданд!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -1674,6 +1676,8 @@
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Криптомайнерҳо</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Хонандаи нақши ангушт</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Хонандаи нақши ангуштони маълум</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Тафсилот</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1700,6 +1704,8 @@
     <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Хонандаи нақши ангушт</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Ҷамъкунии маълумоти нодири муайяншавандаеро дар бораи дастгоҳи шумо, ки метавонад бо мақсадҳои пайгирӣ истифода шавад, манъ мекунад.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Ҷамъкунии маълумоти нодири муайяншавандаеро дар бораи дастгоҳи шумо, ки метавонад бо мақсадҳои пайгирӣ истифода шавад, манъ мекунад.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Муҳтавои пайгирикунанда</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1725,6 +1731,10 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Кукиҳоеро, ки тавассути восоити интиқолдиҳӣ ба сомонаҳои пайгирикунандаи маъруф насб шудаанд, тоза мекунад.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Хонандаи нақши ангуштони номаълум</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Хонандаи нақши ангуштони маълум</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Баъзеи васоити пайгирии дар зер зикршуда дар ин саҳифа кушода шудаанд, зеро ки шумо аз онҳо истифода кардед*.</string>

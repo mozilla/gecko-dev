@@ -2656,6 +2656,9 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Avbryt</string>
 
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title">Avbryte nedlastinga av %1$s?</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
     <string name="cancel_download_language_file_dialog_positive_button_text">Ja</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
