@@ -142,6 +142,10 @@ class TextureHostWrapperD3D11 : public TextureHost {
 
   TextureHostWrapperD3D11* AsTextureHostWrapperD3D11() override { return this; }
 
+  DXGITextureHostD3D11* AsDXGITextureHostD3D11() override {
+    return mTextureHostD3D11;
+  }
+
   void PostTask();
 
   bool UpdateTextureData();

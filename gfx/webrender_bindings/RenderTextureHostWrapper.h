@@ -49,6 +49,11 @@ class RenderTextureHostWrapper final : public RenderTextureHostSWGL {
   RenderTextureHostSWGL* AsRenderTextureHostSWGL() override;
   void SetIsSoftwareDecodedVideo() override;
   bool IsSoftwareDecodedVideo() override;
+  RefPtr<RenderTextureHostUsageInfo> GetOrMergeUsageInfo(
+      const MutexAutoLock& aProofOfMapLock,
+      RefPtr<RenderTextureHostUsageInfo> aUsageInfo) override;
+  RefPtr<RenderTextureHostUsageInfo> GetTextureHostUsageInfo(
+      const MutexAutoLock& aProofOfMapLock) override;
 
   // RenderTextureHostSWGL
   size_t GetPlaneCount() const override;

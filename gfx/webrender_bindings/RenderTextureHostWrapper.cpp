@@ -181,6 +181,25 @@ bool RenderTextureHostWrapper::IsSoftwareDecodedVideo() {
   return mTextureHost->IsSoftwareDecodedVideo();
 }
 
+RefPtr<RenderTextureHostUsageInfo>
+RenderTextureHostWrapper::GetOrMergeUsageInfo(
+    const MutexAutoLock& aProofOfMapLock,
+    RefPtr<RenderTextureHostUsageInfo> aUsageInfo) {
+  if (!mTextureHost) {
+    return nullptr;
+  }
+  return mTextureHost->GetOrMergeUsageInfo(aProofOfMapLock, aUsageInfo);
+}
+
+RefPtr<RenderTextureHostUsageInfo>
+RenderTextureHostWrapper::GetTextureHostUsageInfo(
+    const MutexAutoLock& aProofOfMapLock) {
+  if (!mTextureHost) {
+    return nullptr;
+  }
+  return mTextureHost->GetTextureHostUsageInfo(aProofOfMapLock);
+}
+
 size_t RenderTextureHostWrapper::GetPlaneCount() const {
   if (RenderTextureHostSWGL* swglHost = EnsureRenderTextureHostSWGL()) {
     return swglHost->GetPlaneCount();

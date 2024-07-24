@@ -23,6 +23,7 @@ namespace mozilla {
 
 namespace wr {
 class DisplayListBuilder;
+class RenderTextureHostUsageInfo;
 class WebRenderAPI;
 class WebRenderPipelineInfo;
 }  // namespace wr
@@ -196,7 +197,8 @@ class AsyncImagePipelineManager final {
 
   struct AsyncImagePipeline {
     AsyncImagePipeline(wr::PipelineId aPipelineId,
-                       layers::WebRenderBackend aBackend);
+                       layers::WebRenderBackend aBackend,
+                       WebRenderImageHost* aImageHost);
     void Update(const LayoutDeviceRect& aScBounds, wr::WrRotation aRotation,
                 const wr::ImageRendering& aFilter,
                 const wr::MixBlendMode& aMixBlendMode) {
@@ -216,10 +218,11 @@ class AsyncImagePipelineManager final {
     wr::WrRotation mRotation;
     wr::ImageRendering mFilter;
     wr::MixBlendMode mMixBlendMode;
-    RefPtr<WebRenderImageHost> mImageHost;
+    const RefPtr<WebRenderImageHost> mImageHost;
     CompositableTextureHostRef mCurrentTexture;
     nsTArray<wr::ImageKey> mKeys;
     wr::DisplayListBuilder mDLBuilder;
+    bool mVideoOverlayDisabled = false;
   };
 
   void ApplyAsyncImageForPipeline(const wr::Epoch& aEpoch,

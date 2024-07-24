@@ -670,6 +670,9 @@ class TextureHost : public AtomicRefCountedWithFinalize<TextureHost> {
     // Passed in the RenderCompositor supports BufferTextureHosts
     // being used directly as external compositor surfaces.
     SUPPORTS_EXTERNAL_BUFFER_TEXTURES,
+
+    // Passed if the caller wants to disable external compositing of TextureHost
+    EXTERNAL_COMPOSITING_DISABLED,
   };
   using PushDisplayItemFlagSet = EnumSet<PushDisplayItemFlag>;
 

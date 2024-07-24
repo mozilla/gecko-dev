@@ -63,6 +63,7 @@ class DCSurface;
 class DCSurfaceVideo;
 class DCSurfaceHandle;
 class RenderTextureHost;
+class RenderTextureHostUsageInfo;
 class RenderDcompSurfaceTextureHost;
 
 struct GpuOverlayInfo {
@@ -394,6 +395,8 @@ class DCSurfaceVideo : public DCSurface {
 
   DCSurfaceVideo* AsDCSurfaceVideo() override { return this; }
 
+  void DisableVideoOverlay();
+
  protected:
   virtual ~DCSurfaceVideo();
 
@@ -414,6 +417,7 @@ class DCSurfaceVideo : public DCSurface {
   bool mFailedYuvSwapChain = false;
   RefPtr<RenderTextureHost> mRenderTextureHost;
   RefPtr<RenderTextureHost> mPrevTexture;
+  RefPtr<RenderTextureHostUsageInfo> mRenderTextureHostUsageInfo;
   int mSlowPresentCount = 0;
   bool mFirstPresent = true;
   const UINT mSwapChainBufferCount;

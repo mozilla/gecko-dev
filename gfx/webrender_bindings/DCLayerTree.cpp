@@ -674,15 +674,24 @@ void DCLayerTree::CompositorEndFrame() {
     return;
   }
 
+  for (auto it = mDCSurfaces.begin(); it != mDCSurfaces.end(); it++) {
+    auto* surfaceVideo = it->second->AsDCSurfaceVideo();
+    if (surfaceVideo) {
+      surfaceVideo->DisableVideoOverlay();
+    }
+  }
+
   if (mUsedOverlayTypesInFrame & DCompOverlayTypes::SOFTWARE_DECODED_VIDEO) {
     gfxCriticalNoteOnce << "Sw video swapchain present is slow";
-    RenderThread::Get()->NotifyWebRenderError(
-        wr::WebRenderError::VIDEO_SW_OVERLAY);
+
+    nsPrintfCString marker("Sw video swapchain present is slow");
+    PROFILER_MARKER_TEXT("DisableOverlay", GRAPHICS, {}, marker);
   }
   if (mUsedOverlayTypesInFrame & DCompOverlayTypes::HARDWARE_DECODED_VIDEO) {
     gfxCriticalNoteOnce << "Hw video swapchain present is slow";
-    RenderThread::Get()->NotifyWebRenderError(
-        wr::WebRenderError::VIDEO_HW_OVERLAY);
+
+    nsPrintfCString marker("Hw video swapchain present is slow");
+    PROFILER_MARKER_TEXT("DisableOverlay", GRAPHICS, {}, marker);
   }
 }
 
@@ -1353,9 +1362,13 @@ bool IsYUVSwapChainFormat(DXGI_FORMAT aFormat) {
 }
 
 void DCSurfaceVideo::AttachExternalImage(wr::ExternalImageId aExternalImage) {
-  RenderTextureHost* texture =
-      RenderThread::Get()->GetRenderTexture(aExternalImage);
+  auto [texture, usageInfo] =
+      RenderThread::Get()->GetRenderTextureAndUsageInfo(aExternalImage);
   MOZ_RELEASE_ASSERT(texture);
+
+  if (usageInfo) {
+    mRenderTextureHostUsageInfo = usageInfo;
+  }
 
   if (mPrevTexture == texture) {
     return;
@@ -1618,13 +1631,22 @@ void DCSurfaceVideo::PresentVideo() {
 
   if (overlayType == DCompOverlayTypes::SOFTWARE_DECODED_VIDEO) {
     gfxCriticalNoteOnce << "Sw video swapchain present is slow";
-    RenderThread::Get()->NotifyWebRenderError(
-        wr::WebRenderError::VIDEO_SW_OVERLAY);
+
+    nsPrintfCString marker("Sw video swapchain present is slow");
+    PROFILER_MARKER_TEXT("DisableOverlay", GRAPHICS, {}, marker);
   } else {
     gfxCriticalNoteOnce << "Hw video swapchain present is slow";
-    RenderThread::Get()->NotifyWebRenderError(
-        wr::WebRenderError::VIDEO_HW_OVERLAY);
+
+    nsPrintfCString marker("Hw video swapchain present is slow");
+    PROFILER_MARKER_TEXT("DisableOverlay", GRAPHICS, {}, marker);
   }
+}
+
+void DCSurfaceVideo::DisableVideoOverlay() {
+  if (!mRenderTextureHostUsageInfo) {
+    return;
+  }
+  mRenderTextureHostUsageInfo->DisableVideoOverlay();
 }
 
 DXGI_FORMAT DCSurfaceVideo::GetSwapChainFormat(bool aUseVpAutoHDR) {

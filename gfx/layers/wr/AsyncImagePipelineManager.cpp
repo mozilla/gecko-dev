@@ -18,6 +18,7 @@
 #include "mozilla/layers/SharedSurfacesParent.h"
 #include "mozilla/layers/WebRenderImageHost.h"
 #include "mozilla/layers/WebRenderTextureHost.h"
+#include "mozilla/webrender/RenderTextureHost.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/webrender/WebRenderAPI.h"
 #include "mozilla/webrender/WebRenderTypes.h"
@@ -35,13 +36,15 @@ AsyncImagePipelineManager::ForwardingExternalImage::~ForwardingExternalImage() {
 }
 
 AsyncImagePipelineManager::AsyncImagePipeline::AsyncImagePipeline(
-    wr::PipelineId aPipelineId, layers::WebRenderBackend aBackend)
+    wr::PipelineId aPipelineId, layers::WebRenderBackend aBackend,
+    WebRenderImageHost* aImageHost)
     : mInitialised(false),
       mIsChanged(false),
       mUseExternalImage(false),
       mRotation(wr::WrRotation::Degree0),
       mFilter(wr::ImageRendering::Auto),
       mMixBlendMode(wr::MixBlendMode::Normal),
+      mImageHost(aImageHost),
       mDLBuilder(aPipelineId, aBackend) {}
 
 AsyncImagePipelineManager::AsyncImagePipelineManager(
@@ -168,9 +171,8 @@ void AsyncImagePipelineManager::AddAsyncImagePipeline(
   uint64_t id = wr::AsUint64(aPipelineId);
 
   MOZ_ASSERT(!mAsyncImagePipelines.Contains(id));
-  auto holder =
-      MakeUnique<AsyncImagePipeline>(aPipelineId, mApi->GetBackendType());
-  holder->mImageHost = aImageHost;
+  auto holder = MakeUnique<AsyncImagePipeline>(
+      aPipelineId, mApi->GetBackendType(), aImageHost);
   mAsyncImagePipelines.InsertOrUpdate(id, std::move(holder));
   AddPipeline(aPipelineId, /* aWrBridge */ nullptr);
 }
@@ -264,6 +266,23 @@ Maybe<TextureHost::ResourceUpdateOp> AsyncImagePipelineManager::UpdateImageKeys(
   // If we already had a texture and the format hasn't changed, better to reuse
   // the image keys than create new ones.
   auto backend = aSceneBuilderTxn.GetBackendType();
+
+  bool videoOverlayDisabled = false;
+  RefPtr<wr::RenderTextureHostUsageInfo> usageInfo;
+  // video overlay of DXGITextureHostD3D11 may be disabled dynamically
+  const bool checkVideoOverlayDisabled = !!aTexture->AsDXGITextureHostD3D11();
+  if (checkVideoOverlayDisabled) {
+    auto externalImageKey = wrTexture->GetExternalImageKey();
+    usageInfo = wr::RenderThread::Get()->GetOrMergeUsageInfo(
+        externalImageKey,
+        aPipeline->mImageHost->GetRenderTextureHostUsageInfo());
+    if (usageInfo) {
+      videoOverlayDisabled = usageInfo->VideoOverlayDisabled();
+      aPipeline->mImageHost->SetRenderTextureHostUsageInfo(usageInfo);
+    }
+  }
+  MOZ_ASSERT_IF(aPipeline->mVideoOverlayDisabled, videoOverlayDisabled);
+
   bool canUpdate =
       !!previousTexture &&
       previousTexture->GetTextureHostType() == aTexture->GetTextureHostType() &&
@@ -273,7 +292,13 @@ Maybe<TextureHost::ResourceUpdateOp> AsyncImagePipelineManager::UpdateImageKeys(
       previousTexture->NeedsYFlip() == aTexture->NeedsYFlip() &&
       previousTexture->SupportsExternalCompositing(backend) ==
           aTexture->SupportsExternalCompositing(backend) &&
-      aPipeline->mKeys.Length() == numKeys;
+      aPipeline->mKeys.Length() == numKeys &&
+      aPipeline->mVideoOverlayDisabled == videoOverlayDisabled;
+
+  if (videoOverlayDisabled) {
+    MOZ_ASSERT(usageInfo);
+    aPipeline->mVideoOverlayDisabled = true;
+  }
 
   if (!canUpdate) {
     for (auto key : aPipeline->mKeys) {
@@ -462,6 +487,12 @@ void AsyncImagePipelineManager::ApplyAsyncImageForPipeline(
       Range<wr::ImageKey> range_keys(&keys[0], keys.Length());
       TextureHost::PushDisplayItemFlagSet flags;
       flags += TextureHost::PushDisplayItemFlag::PREFER_COMPOSITOR_SURFACE;
+      if (aPipeline->mVideoOverlayDisabled &&
+          aPipeline->mDLBuilder.GetBackendType() !=
+              WebRenderBackend::SOFTWARE) {
+        flags +=
+            TextureHost::PushDisplayItemFlag::EXTERNAL_COMPOSITING_DISABLED;
+      }
       if (mApi->SupportsExternalBufferTextures()) {
         flags +=
             TextureHost::PushDisplayItemFlag::SUPPORTS_EXTERNAL_BUFFER_TEXTURES;

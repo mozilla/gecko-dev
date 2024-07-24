@@ -1163,6 +1163,22 @@ void RenderThread::HandleRenderTextureOps() {
   }
 }
 
+RefPtr<RenderTextureHostUsageInfo> RenderThread::GetOrMergeUsageInfo(
+    const wr::ExternalImageId& aExternalImageId,
+    RefPtr<RenderTextureHostUsageInfo> aUsageInfo) {
+  MutexAutoLock lock(mRenderTextureMapLock);
+  if (mHasShutdown) {
+    return nullptr;
+  }
+  auto it = mRenderTextures.find(aExternalImageId);
+  if (it == mRenderTextures.end()) {
+    return nullptr;
+  }
+
+  auto& texture = it->second;
+  return texture->GetOrMergeUsageInfo(lock, aUsageInfo);
+}
+
 void RenderThread::UnregisterExternalImageDuringShutdown(
     const wr::ExternalImageId& aExternalImageId) {
   MOZ_ASSERT(IsInRenderThread());
@@ -1191,6 +1207,18 @@ RenderTextureHost* RenderThread::GetRenderTexture(
     return nullptr;
   }
   return it->second;
+}
+
+std::tuple<RenderTextureHost*, RefPtr<RenderTextureHostUsageInfo>>
+RenderThread::GetRenderTextureAndUsageInfo(
+    const wr::ExternalImageId& aExternalImageId) {
+  MutexAutoLock lock(mRenderTextureMapLock);
+  auto it = mRenderTextures.find(aExternalImageId);
+  MOZ_ASSERT(it != mRenderTextures.end());
+  if (it == mRenderTextures.end()) {
+    return {};
+  }
+  return {it->second, it->second->GetTextureHostUsageInfo(lock)};
 }
 
 void RenderThread::InitDeviceTask() {

@@ -45,6 +45,7 @@ typedef MozPromise<MemoryReport, bool, true> MemoryReportPromise;
 
 class RendererOGL;
 class RenderTextureHost;
+class RenderTextureHostUsageInfo;
 class RenderThread;
 
 /// A rayon thread pool that is shared by all WebRender instances within a
@@ -231,6 +232,11 @@ class RenderThread final {
 
   void HandleRenderTextureOps();
 
+  /// Can be called from any thread.
+  RefPtr<RenderTextureHostUsageInfo> GetOrMergeUsageInfo(
+      const wr::ExternalImageId& aExternalImageId,
+      RefPtr<RenderTextureHostUsageInfo> aUsageInfo);
+
   /// Can only be called from the render thread.
   void UnregisterExternalImageDuringShutdown(
       const wr::ExternalImageId& aExternalImageId);
@@ -238,6 +244,10 @@ class RenderThread final {
   /// Can only be called from the render thread.
   RenderTextureHost* GetRenderTexture(
       const wr::ExternalImageId& aExternalImageId);
+
+  /// Can only be called from the render thread.
+  std::tuple<RenderTextureHost*, RefPtr<RenderTextureHostUsageInfo>>
+  GetRenderTextureAndUsageInfo(const wr::ExternalImageId& aExternalImageId);
 
   /// Can be called from any thread.
   bool IsDestroyed(wr::WindowId aWindowId);

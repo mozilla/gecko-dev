@@ -67,6 +67,8 @@ class GPUVideoTextureHost : public TextureHost {
 
   BufferTextureHost* AsBufferTextureHost() override;
 
+  DXGITextureHostD3D11* AsDXGITextureHostD3D11() override;
+
   bool IsWrappingSurfaceTextureHost() override;
 
   TextureHostType GetTextureHostType() override;
