@@ -96,6 +96,8 @@ BEGIN_TEST(testDeduplication_ASSC) {
   JS::AutoStableStringChars stable(cx);
   CHECK(stable.init(cx, depdep));
 
+  CHECK(stable.latin1Range().length() == 80);
+
   const JS::Latin1Char* chars = stable.latin1Chars();
   CHECK(memcmp(chars, text + 20, 80 * sizeof(JS::Latin1Char)) == 0);
 
@@ -126,6 +128,14 @@ BEGIN_TEST(testDeduplication_ASSC) {
   // fixed in bug 1900142
   // CHECK(SameChars(cx, depdep2, original, 20) ||
   //       SameChars(cx, depdep2, str, 20));
+
+  // Make sure AutoStableStringChars uses the correct length when strings are
+  // tenured.
+  JS::AutoStableStringChars stable2(cx);
+  CHECK(stable2.init(cx, depdep));
+  // This should get the length from the dependent string, not the string that
+  // owns its data.
+  CHECK(stable2.latin1Range().length() == 80);
 
   return true;
 }
