@@ -335,8 +335,11 @@ export class UrlbarInput {
   saveSelectionStateForBrowser(browser) {
     let state = this.getBrowserState(browser);
     state.selection = {
-      start: this.selectionStart,
-      end: this.selectionEnd,
+      // When the value is empty, we're either on a blank page, or the whole
+      // text has been edited away. In the latter case we'll restore value to
+      // the current URI, and we want to fully select it.
+      start: this.value ? this.selectionStart : 0,
+      end: this.value ? this.selectionEnd : Number.MAX_SAFE_INTEGER,
       // When restoring a URI from an empty value, we don't want to untrim it.
       shouldUntrim: this.value && !this._protocolIsTrimmed,
     };
@@ -350,7 +353,11 @@ export class UrlbarInput {
       if (state.selection.shouldUntrim) {
         this.#maybeUntrimUrl();
       }
-      this.setSelectionRange(state.selection.start, state.selection.end);
+      this.setSelectionRange(
+        state.selection.start,
+        // When selecting all the end value may be larger than the actual value.
+        Math.min(state.selection.end, this.value.length)
+      );
     }
   }
 
