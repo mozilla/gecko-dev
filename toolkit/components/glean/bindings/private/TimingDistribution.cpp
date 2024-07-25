@@ -12,6 +12,7 @@
 #include "mozilla/dom/GleanMetricsBinding.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/glean/bindings/HistogramGIFFTMap.h"
+#include "mozilla/glean/bindings/ScalarGIFFTMap.h"
 #include "mozilla/glean/fog_ffi_generated.h"
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
