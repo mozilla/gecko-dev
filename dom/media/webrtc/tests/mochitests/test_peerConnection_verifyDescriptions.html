@@ -97,28 +97,27 @@
 
           // with implicit offer and answer
           await pc1.setLocalDescription();
-          is(pc1.pendingLocalDescription, pc1.localDescription);
-          is(fingerprints(pc1.localDescription), 3, "implicit pc1 fingerprints");
+          is(fingerprints(pc1.localDescription), 3, "implicit pc1 local fingerprints");
+          is(fingerprints(pc1.pendingLocalDescription), 3, "implicit pc1 pending fingerprints");
           await pc2.setRemoteDescription(pc1.localDescription);
           await pc2.setLocalDescription();
-          is(pc2.currentLocalDescription, pc2.localDescription);
-          is(fingerprints(pc2.localDescription), 3, "implicit pc2 fingerprints");
+          is(fingerprints(pc2.localDescription), 3, "implicit pc2 local fingerprints");
+          is(fingerprints(pc2.currentLocalDescription), 3, "implicit pc2 current fingerprints");
           await pc1.setRemoteDescription(pc2.localDescription);
 
           // with explicit offer and answer
           const offer = await pc1.createOffer();
           is(fingerprints(offer), 3, "offer fingerprints");
           await pc1.setLocalDescription(offer);
-          is(pc1.pendingLocalDescription, pc1.localDescription);
-          is(fingerprints(pc1.localDescription), 3, "explicit pc1 fingerprints");
+          is(fingerprints(pc1.localDescription), 3, "explicit pc1 local fingerprints");
+          is(fingerprints(pc1.pendingLocalDescription), 3, "explicit pc1 pending fingerprints");
           await pc2.setRemoteDescription(pc1.localDescription);
           const answer = pc2.createAnswer();
           is(fingerprints(offer), 3, "answer fingerprints");
           await pc2.setLocalDescription(answer);
-          is(pc2.currentLocalDescription, pc2.localDescription);
-          is(fingerprints(pc2.localDescription), 3, "explicit pc2 fingerprints");
+          is(fingerprints(pc2.localDescription), 3, "explicit pc2 fingerprints A");
+          is(fingerprints(pc2.currentLocalDescription), 3, "explicit pc2 fingerprints B");
           await pc1.setRemoteDescription(pc2.localDescription);
-
         }
       );
     }
