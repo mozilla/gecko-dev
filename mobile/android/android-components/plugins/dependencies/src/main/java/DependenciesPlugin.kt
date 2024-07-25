@@ -71,7 +71,7 @@ object Versions {
         const val recyclerview = "1.3.2"
         const val room = "2.6.1"
         const val savedstate = "1.2.1"
-        const val paging = "3.3.0"
+        const val paging = "3.3.1"
         const val palette = "1.0.0"
         const val preferences = "1.2.1"
         const val lifecycle = "2.7.0"
