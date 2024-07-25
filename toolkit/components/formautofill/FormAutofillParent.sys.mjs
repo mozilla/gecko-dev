@@ -798,11 +798,18 @@ export class FormAutofillParent extends JSWindowActorParent {
 
     const ids = section.fieldDetails.map(detail => detail.elementId);
 
-    if (profile) {
-      this.sendAsyncMessage("FormAutofill:PreviewFields", { ids, profile });
-    } else {
-      this.sendAsyncMessage("FormAutofill:ClearPreviewedFields", { ids });
+    try {
+      if (profile) {
+        await this.sendQuery("FormAutofill:PreviewFields", { ids, profile });
+      } else {
+        await this.sendQuery("FormAutofill:ClearPreviewedFields", { ids });
+      }
+    } catch (e) {
+      console.error("There was an error previewing: ", e.message);
     }
+
+    // For testing only
+    Services.obs.notifyObservers(null, "formautofill-preview-complete");
     return true;
   }
 

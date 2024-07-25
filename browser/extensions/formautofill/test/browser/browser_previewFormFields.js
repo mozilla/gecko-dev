@@ -138,27 +138,15 @@ add_task(async function test_preview_form_fields() {
     const TEST_URL =
       "https://example.org/document-builder.sjs?html=" + TEST.document;
     await BrowserTestUtils.withNewTab(TEST_URL, async browser => {
+      const previewCompeletePromise = TestUtils.topicObserved(
+        "formautofill-preview-complete"
+      );
       await openPopupOn(browser, `#${TEST.focusedInputId}`);
       await BrowserTestUtils.synthesizeKey("VK_DOWN", {}, browser);
+      await previewCompeletePromise;
 
       // Check preview state & value
       await SpecialPowers.spawn(browser, [TEST], async obj => {
-        // Ensure the child process has enough time to show the preview
-        const focusedElement = content.document.getElementById(
-          obj.focusedInputId
-        );
-
-        await ContentTaskUtils.waitForCondition(() => {
-          const id = obj.focusedInputId;
-          let [expectedState, expectedValue] = obj.expectedResultState[id];
-          if (expectedState == "preview") {
-            expectedValue ||= obj.profileData[id];
-          } else {
-            expectedValue = "";
-          }
-          return focusedElement.previewValue == expectedValue;
-        });
-
         for (const [id, expected] of Object.entries(obj.expectedResultState)) {
           info(`Checking element ${id} state`);
 
