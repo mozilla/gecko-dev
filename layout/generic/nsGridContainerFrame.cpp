@@ -816,7 +816,9 @@ struct nsGridContainerFrame::GridItemInfo {
   // container it is in.
   bool IsBSizeDependentOnContainerSize(WritingMode aContainerWM) const {
     const auto IsDependentOnContainerSize = [](const auto& size) -> bool {
-      return size.HasPercent() || size.IsMozAvailable();
+      // XXXdholbert The BehavesLikeStretchOnInlineAxis usage seems like
+      // maybe it should be considering block-axis instead?
+      return size.HasPercent() || size.BehavesLikeStretchOnInlineAxis();
     };
 
     const nsStylePosition* stylePos = mFrame->StylePosition();
