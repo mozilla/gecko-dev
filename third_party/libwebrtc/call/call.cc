@@ -1359,6 +1359,11 @@ void Call::DeliverRtpPacket(
     return;
   }
 
+  const TimeDelta nw_to_deliver_delay =
+      env_.clock().CurrentTime() - packet.arrival_time();
+  RTC_HISTOGRAM_COUNTS_100000("WebRTC.TimeFromNetworkToDeliverRtpPacketUs",
+                              nw_to_deliver_delay.us());
+
   RtpStreamReceiverController& receiver_controller =
       media_type == MediaType::AUDIO ? audio_receiver_controller_
                                      : video_receiver_controller_;
