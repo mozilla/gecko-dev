@@ -1,0 +1,13 @@
+diff --git a/math_private.h b/math_private.h
+index b588a59..dad6b01 100644
+--- a/math_private.h
++++ b/math_private.h
+@@ -678,6 +678,8 @@ irintl(long double x)
+ #ifdef DEBUG
+ #if defined(__amd64__) || defined(__i386__)
+ #define	breakpoint()	asm("int $3")
++#elif defined(__wasi__)
++#define breakpoint()    __builtin_trap()
+ #else
+ #include <signal.h>
+
