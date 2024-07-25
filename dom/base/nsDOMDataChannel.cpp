@@ -305,7 +305,7 @@ nsresult nsDOMDataChannel::DoOnMessageAvailable(const nsACString& aData,
     } else if (mBinaryType == DC_BINARY_TYPE_ARRAYBUFFER) {
       ErrorResult error;
       JS::Rooted<JSObject*> arrayBuf(cx, ArrayBuffer::Create(cx, aData, error));
-      RETURN_NSRESULT_ON_FAILURE(error);
+      ENSURE_SUCCESS(error, error.StealNSResult());
       jsData.setObject(*arrayBuf);
     } else {
       MOZ_CRASH("Unknown binary type!");

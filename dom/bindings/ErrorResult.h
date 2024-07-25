@@ -931,16 +931,30 @@ class MOZ_TEMPORARY_CLASS IgnoreErrors {
  ** Macros for checking results
  ******************************************************************************/
 
-#define RETURN_NSRESULT_ON_FAILURE(res)                                        \
-  do {                                                                         \
-    (res).WouldReportJSException();                                            \
-    if ((res).Failed()) {                                                      \
-      NS_WARNING(nsPrintfCString(                                              \
-                     "RETURN_NSRESULT_ON_FAILURE(%s) failed with result 0x%X", \
-                     #res, (res).ErrorCodeAsInt())                             \
-                     .get());                                                  \
-      return (res).StealNSResult();                                            \
-    }                                                                          \
+#define ENSURE_SUCCESS(res, ret)                \
+  do {                                          \
+    if (res.Failed()) {                         \
+      nsCString msg;                            \
+      msg.AppendPrintf(                         \
+          "ENSURE_SUCCESS(%s, %s) failed with " \
+          "result 0x%X",                        \
+          #res, #ret, res.ErrorCodeAsInt());    \
+      NS_WARNING(msg.get());                    \
+      return ret;                               \
+    }                                           \
+  } while (0)
+
+#define ENSURE_SUCCESS_VOID(res)                 \
+  do {                                           \
+    if (res.Failed()) {                          \
+      nsCString msg;                             \
+      msg.AppendPrintf(                          \
+          "ENSURE_SUCCESS_VOID(%s) failed with " \
+          "result 0x%X",                         \
+          #res, res.ErrorCodeAsInt());           \
+      NS_WARNING(msg.get());                     \
+      return;                                    \
+    }                                            \
   } while (0)
 
 }  // namespace mozilla

@@ -44,7 +44,7 @@ SDBResult::GetAsArrayBuffer(JSContext* aCx,
                             JS::MutableHandle<JS::Value> _retval) {
   ErrorResult rv;
   JS::Rooted<JSObject*> arrayBuffer(aCx, ArrayBuffer::Create(aCx, mData, rv));
-  RETURN_NSRESULT_ON_FAILURE(rv);
+  ENSURE_SUCCESS(rv, rv.StealNSResult());
 
   _retval.setObject(*arrayBuffer);
   return NS_OK;

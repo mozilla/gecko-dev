@@ -800,7 +800,6 @@ struct TypedArray : public TypedArray_base<ArrayT> {
   }
   static inline ArrayT CreateCommon(JSContext* cx, size_t length,
                                     ErrorResult& error) {
-    error.MightThrowJSException();
     ArrayT array = CreateCommon(cx, length);
     if (array) {
       return array;
@@ -880,25 +879,23 @@ using ArrayBuffer = TypedArray<JS::ArrayBuffer>;
 //       things that understand TypedArray, as with ToJSValue.
 template <typename TypedArrayType>
 class MOZ_STACK_CLASS TypedArrayCreator {
-  using ValuesType = typename TypedArrayType::element_type;
-  using ArrayType = nsTArray<ValuesType>;
+  typedef nsTArray<typename TypedArrayType::element_type> ArrayType;
 
  public:
-  explicit TypedArrayCreator(const ArrayType& aArray) : mValues(aArray) {}
-  explicit TypedArrayCreator(const nsCString& aString) : mValues(aString) {}
+  explicit TypedArrayCreator(const ArrayType& aArray) : mArray(aArray) {}
 
   // NOTE: this leaves any exceptions on the JSContext, and the caller is
   //       required to deal with them.
   JSObject* Create(JSContext* aCx) const {
-    auto array = TypedArrayType::CreateCommon(aCx, mValues.Length());
+    auto array = TypedArrayType::CreateCommon(aCx, mArray.Length());
     if (array) {
-      TypedArrayType::CopyFrom(aCx, mValues, array);
+      TypedArrayType::CopyFrom(aCx, mArray, array);
     }
     return array.asObject();
   }
 
  private:
-  Span<const ValuesType> mValues;
+  const ArrayType& mArray;
 };
 
 namespace binding_detail {

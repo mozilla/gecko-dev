@@ -88,9 +88,7 @@ void HTMLOptionsCollection::IndexedSetter(uint32_t aIndex,
     // Fill our array with blank options up to (but not including, since we're
     // about to change it) aIndex, for compat with other browsers.
     SetLength(aIndex, aError);
-    if (NS_WARN_IF(aError.Failed())) {
-      return;
-    }
+    ENSURE_SUCCESS_VOID(aError);
   }
 
   NS_ASSERTION(aIndex <= mElements.Length(), "SetLength lied");

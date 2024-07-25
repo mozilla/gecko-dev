@@ -201,9 +201,11 @@ void StreamFilter::FireDataEvent(const nsTArray<uint8_t>& aData) {
   init.mBubbles = false;
   init.mCancelable = false;
 
-  // TODO: There is no way to recover from this. This chunk of data is lost.
-  auto* buffer = ArrayBuffer::Create(cx, aData, IgnoreErrors());
-  if (!buffer) {
+  ErrorResult error;
+  auto buffer = ArrayBuffer::Create(cx, aData, error);
+  if (error.Failed()) {
+    // TODO: There is no way to recover from this. This chunk of data is lost.
+    error.SuppressException();
     FireErrorEvent(u"Out of memory"_ns);
     return;
   }

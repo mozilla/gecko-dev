@@ -1488,7 +1488,7 @@ nsresult mozInlineSpellChecker::SpellCheckerSlice::Execute() {
         mSpellCheckSelection.GetRangesForInterval(
             *beginNode, AssertedCast<uint32_t>(beginOffset), *endNode,
             AssertedCast<uint32_t>(endOffset), true, ranges, erv);
-        RETURN_NSRESULT_ON_FAILURE(erv);
+        ENSURE_SUCCESS(erv, erv.StealNSResult());
         oldRangesToRemove.AppendElements(std::move(ranges));
       }
     }
