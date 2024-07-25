@@ -415,9 +415,6 @@ nscoord nsColumnSetFrame::GetMinISize(gfxContext* aRenderingContext) {
   nscoord iSize = 0;
 
   if (mFrames.FirstChild()) {
-    // We want to ignore this in the case that we're size contained
-    // because our children should not contribute to our
-    // intrinsic size.
     iSize = mFrames.FirstChild()->GetMinISize(aRenderingContext);
   }
   const nsStyleColumn* colStyle = StyleColumn();
@@ -455,9 +452,6 @@ nscoord nsColumnSetFrame::GetPrefISize(gfxContext* aRenderingContext) {
     colISize =
         ColumnUtils::ClampUsedColumnWidth(colStyle->mColumnWidth.AsLength());
   } else if (mFrames.FirstChild()) {
-    // We want to ignore this in the case that we're size contained
-    // because our children should not contribute to our
-    // intrinsic size.
     colISize = mFrames.FirstChild()->GetPrefISize(aRenderingContext);
   } else {
     colISize = 0;
