@@ -2633,16 +2633,16 @@ class nsIFrame : public nsQueryFrame {
     bool mSkipWhitespace = true;
 
     // Floats encountered in the lines.
-    class FloatInfo {
+    class FloatInfo final {
      public:
-      FloatInfo(const nsIFrame* aFrame, nscoord aWidth)
-          : mFrame(aFrame), mWidth(aWidth) {}
+      FloatInfo(const nsIFrame* aFrame, nscoord aISize)
+          : mFrame(aFrame), mISize(aISize) {}
       const nsIFrame* Frame() const { return mFrame; }
-      nscoord Width() const { return mWidth; }
+      nscoord ISize() const { return mISize; }
 
      private:
       const nsIFrame* mFrame;
-      nscoord mWidth;
+      nscoord mISize;
     };
 
     nsTArray<FloatInfo> mFloats;
