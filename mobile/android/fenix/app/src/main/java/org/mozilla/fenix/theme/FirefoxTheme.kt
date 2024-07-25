@@ -76,12 +76,14 @@ fun FirefoxTheme(
         Theme.Private -> privateColorPalette
     }
 
-    ProvideAcornLayout(size = size, windowSize = windowSize) {
-        ProvideFirefoxColors(colors) {
-            MaterialTheme(
-                content = content,
-            )
-        }
+    ProvideAcornTokens(
+        size = size,
+        windowSize = windowSize,
+        colors = colors,
+    ) {
+        MaterialTheme(
+            content = content,
+        )
     }
 }
 
@@ -911,42 +913,36 @@ class FirefoxColors(
     )
 }
 
+/**
+ * This function is used to set the current value of [localWindowSize],
+ * [localSpace], [localSize], and [localFirefoxColors].
+ */
 @Composable
-fun ProvideFirefoxColors(
+fun ProvideAcornTokens(
+    size: AcornSize,
+    windowSize: AcornWindowSize,
     colors: FirefoxColors,
     content: @Composable () -> Unit,
 ) {
+    val space = AcornSpace.fromWindowSize(windowSize = windowSize)
     val colorPalette = remember {
         // Explicitly creating a new object here so we don't mutate the initial [colors]
         // provided, and overwrite the values set in it.
         colors.copy()
     }
     colorPalette.update(colors)
-    CompositionLocalProvider(localFirefoxColors provides colorPalette, content = content)
-}
-
-private val localFirefoxColors = staticCompositionLocalOf<FirefoxColors> {
-    error("No FirefoxColors provided")
-}
-
-/**
- * This function is used to set the current value of [localWindowSize],
- * [localSpace], and [localSize].
- */
-@Composable
-fun ProvideAcornLayout(
-    size: AcornSize,
-    windowSize: AcornWindowSize,
-    content: @Composable () -> Unit,
-) {
-    val space = AcornSpace.fromWindowSize(windowSize = windowSize)
 
     CompositionLocalProvider(
         localWindowSize provides windowSize,
         localSpace provides space,
         localSize provides size,
+        localFirefoxColors provides colorPalette,
         content = content,
     )
+}
+
+private val localFirefoxColors = staticCompositionLocalOf<FirefoxColors> {
+    error("No FirefoxColors provided")
 }
 
 private val localWindowSize = staticCompositionLocalOf<AcornWindowSize> {
