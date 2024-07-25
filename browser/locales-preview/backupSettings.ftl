@@ -127,6 +127,21 @@ enable-backup-encryption-confirm-button = Save
 
 change-backup-encryption-header = Change backup password
 
+## These strings are displayed in a tooltip showing what requirements are met while creating a password.
+
+password-rules-header = Password requirements
+password-rules-length-description = At least 8 characters
+password-rules-email-description = Not your email address
+password-rules-common-description = Not a commonly used password
+password-rules-disclaimer = Stay safe — don’t reuse passwords. See more tips to <a data-l10n-name="password-support-link">create strong passwords</a>.
+
+## These strings are only used for assistive technologies, like screen readers, in the password requirements tooltip.
+
+password-rules-a11y-success =
+    .alt = Success
+password-rules-a11y-warning =
+    .alt = Warning
+
 ## These strings are displayed in a modal when users want to disable encryption for an existing backup.
 
 disable-backup-encryption-header = Remove password protection

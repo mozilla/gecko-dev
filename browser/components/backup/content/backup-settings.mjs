@@ -76,6 +76,7 @@ export default class BackupSettings extends MozLitElement {
       scheduledBackupsEnabled: false,
       lastBackupDate: null,
       lastBackupFileName: "",
+      supportBaseLink: "",
     };
     this.recoveryInProgress = false;
     this.recoveryErrorCode = 0;
@@ -352,9 +353,13 @@ export default class BackupSettings extends MozLitElement {
   }
 
   enableBackupEncryptionDialogTemplate() {
-    return html`<dialog id="enable-backup-encryption-dialog">
+    return html`<dialog
+      id="enable-backup-encryption-dialog"
+      class="backup-dialog"
+    >
       <enable-backup-encryption
         type=${this._enableEncryptionTypeAttr}
+        .supportBaseLink=${this.backupServiceState.supportBaseLink}
       ></enable-backup-encryption>
     </dialog>`;
   }

@@ -610,6 +610,7 @@ export class BackupService extends EventTarget {
     /** @type {number?} Number of seconds since UNIX epoch */
     lastBackupDate: null,
     lastBackupFileName: "",
+    supportBaseLink: Services.urlFormatter.formatURLPref("app.support.baseURL"),
   };
 
   /**

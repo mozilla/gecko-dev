@@ -25,3 +25,7 @@ browser.jar:
 * content/browser/backup/archive.template.html                   (content/archive.template.html)
   content/browser/backup/archive.css                             (content/archive.css)
 * content/browser/backup/archive.js                              (content/archive.js)
+  content/browser/backup/password-rules-tooltip.css              (content/password-rules-tooltip.css)
+  content/browser/backup/password-rules-tooltip.mjs              (content/password-rules-tooltip.mjs)
+  content/browser/backup/password-validation-inputs.css          (content/password-validation-inputs.css)
+  content/browser/backup/password-validation-inputs.mjs          (content/password-validation-inputs.mjs)

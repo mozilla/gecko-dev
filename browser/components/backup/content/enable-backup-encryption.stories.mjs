@@ -22,7 +22,7 @@ export default {
 };
 
 const Template = ({ type }) => html`
-  <moz-card style="width: 23.94rem;">
+  <moz-card style="width: 23.94rem; position: relative;">
     <enable-backup-encryption type=${type}></enable-backup-encryption>
   </moz-card>
 `;

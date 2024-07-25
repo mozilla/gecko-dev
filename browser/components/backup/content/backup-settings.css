@@ -10,6 +10,10 @@
   flex: 1;
 }
 
+.backup-dialog {
+  overflow: visible;
+}
+
 #turn-on-scheduled-backups-dialog {
   width: 27.8rem;
 }
