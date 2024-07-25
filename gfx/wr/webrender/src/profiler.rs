@@ -99,6 +99,9 @@ static PROFILER_PRESETS: &'static[(&'static str, &'static str)] = &[
     (&"Render reasons", &"Reason scene, Reason animated property, Reason resource update, Reason async image, Reason clear resources, Reason APZ, Reason resize, Reason widget, Reason cache flush, Reason snapshot, Reason resource hook, Reason config change, Reason content sync, Reason flush, On vsync, Reason testing, Reason other"),
 
     (&"Slow frame breakdown", &"Total slow frames CPU, Total slow frames GPU, Slow: frame build, Slow: upload, Slow: render, Slow: draw calls, Slow: targets, Slow: blobs, Slow: after scene, Slow scroll frames"),
+
+    (&"Compositor", &"Compositor surface underlays,Compositor surface overlays,Compositor surface blits"),
+    (&"Video", &"FPS,_,#Rendered picture tiles,_,Compositor"),
 ];
 
 fn find_preset(name: &str) -> Option<&'static str> {
@@ -279,7 +282,11 @@ pub const GPU_CACHE_PREPARE_TIME: usize = 135;
 pub const FRAME_SEND_TIME: usize = 136;
 pub const UPDATE_DOCUMENT_TIME: usize = 137;
 
-pub const NUM_PROFILER_EVENTS: usize = 138;
+pub const COMPOSITOR_SURFACE_UNDERLAYS: usize = 138;
+pub const COMPOSITOR_SURFACE_OVERLAYS: usize = 139;
+pub const COMPOSITOR_SURFACE_BLITS: usize = 140;
+
+pub const NUM_PROFILER_EVENTS: usize = 141;
 
 pub struct Profiler {
     counters: Vec<Counter>,
@@ -496,6 +503,10 @@ impl Profiler {
             float("GPU cache preapre", "ms", GPU_CACHE_PREPARE_TIME, Expected::none()),
             float("Frame send", "ms", FRAME_SEND_TIME, Expected::none()),
             float("Update document", "ms", UPDATE_DOCUMENT_TIME, Expected::none()),
+
+            int("Compositor surface underlays", "", COMPOSITOR_SURFACE_UNDERLAYS, Expected::none()),
+            int("Compositor surface overlays", "", COMPOSITOR_SURFACE_OVERLAYS, Expected::none()),
+            int("Compositor surface blits", "", COMPOSITOR_SURFACE_BLITS, Expected::none()),
         ];
 
         let mut counters = Vec::with_capacity(profile_counters.len());

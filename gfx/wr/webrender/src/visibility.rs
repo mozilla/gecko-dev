@@ -12,6 +12,7 @@ use api::units::*;
 use std::{usize};
 use crate::clip::ClipStore;
 use crate::composite::CompositeState;
+use crate::profiler::TransactionProfile;
 use crate::spatial_tree::{SpatialTree, SpatialNodeIndex};
 use crate::clip::{ClipChainInstance, ClipTree};
 use crate::frame_builder::FrameBuilderConfig;
@@ -149,6 +150,7 @@ pub fn update_prim_visibility(
     frame_context: &FrameVisibilityContext,
     frame_state: &mut FrameVisibilityState,
     tile_cache: &mut TileCacheInstance,
+    profile: &mut TransactionProfile,
  ) {
     let pic = &store.pictures[pic_index.0];
 
@@ -257,6 +259,7 @@ pub fn update_prim_visibility(
                     frame_context,
                     frame_state,
                     tile_cache,
+                    profile,
                 );
 
                 if is_passthrough {
@@ -327,6 +330,7 @@ pub fn update_prim_visibility(
                 &mut frame_state.scratch.primitive,
                 is_root_tile_cache,
                 surfaces,
+                profile,
             );
         }
     }
