@@ -189,6 +189,23 @@ TEST(TimeUnit, Comparisons)
   EXPECT_LT(o, n);
   EXPECT_GE(n, o);
   EXPECT_GT(n, o);
+  // Comparison of very big numbers with different bases
+  TimeUnit p(12312312312312312, 100000000);
+  TimeUnit q(123123123123123119, 1000000000);
+  TimeUnit r(123123123123123120, 1000000000);
+  TimeUnit s(123123123123123121, 1000000000);
+  EXPECT_LE(q, p);
+  EXPECT_LT(q, p);
+  EXPECT_NE(q, p);
+  EXPECT_EQ(p, r);
+  EXPECT_GE(s, p);
+  EXPECT_GT(s, p);
+  EXPECT_NE(s, p);
+  // Comparison of different very big numbers.  There is intentionally only
+  // one factor of 3 in numerator or denominator to reproduce bug 1909614.
+  TimeUnit t = TimeUnit(123123123123124, 100000000 * 3);
+  TimeUnit u = TimeUnit(123123123123124 * 3, 100000000);
+  EXPECT_NE(t, u);
 
   // Values taken from a real website (this is about 53 years, Date.now() in
   // 2023).

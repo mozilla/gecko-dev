@@ -82,6 +82,8 @@ class TimeUnit final {
   constexpr TimeUnit(CheckedInt64 aTicks, int64_t aBase)
       : mTicks(aTicks), mBase(aBase) {
     MOZ_RELEASE_ASSERT(mBase > 0);
+    // aBase is often from a uint32_t and assumed less than 2^32.
+    MOZ_DIAGNOSTIC_ASSERT(mBase <= UINT32_MAX);
   }
 
   explicit constexpr TimeUnit(CheckedInt64 aTicks)

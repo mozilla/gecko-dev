@@ -27,6 +27,46 @@ class TimeIntervals;
 
 namespace mozilla {
 
+namespace {
+struct Int96 {
+  bool operator==(const Int96& aOther) const {
+    return high == aOther.high && low == aOther.low;
+  }
+  bool operator>=(const Int96& aOther) const {
+    if (high == aOther.high) {
+      return low >= aOther.low;
+    }
+    return high > aOther.high;
+  }
+  bool operator<=(const Int96& aOther) const {
+    if (high == aOther.high) {
+      return low <= aOther.low;
+    }
+    return high < aOther.high;
+  }
+
+  const int64_t high;
+  const uint32_t low;
+};
+}  // anonymous namespace
+
+static Int96 MultS64xU32(const CheckedInt64& a, int64_t b) {
+  MOZ_ASSERT(b >= 0);
+  MOZ_ASSERT(b <= UINT32_MAX);
+  // Right shift of negative signed integers is implementation-defined until
+  // C++20, but the C++20 two's complement behavior, used by all compilers
+  // even prior to C++20, is assumed here.
+  // (Left shift of negative signed integers would be undefined until C++20).
+  int64_t high = (a.value() >> 32) * b;
+  uint64_t low = a.value() & 0xFFFFFFFF;
+  low *= b;
+  // Move overflow from low multiplication to high.
+  // This will not overflow because we have divided by 2^32 and multiplied
+  // by b, which is less than 2^32.
+  high += AssertedCast<int64_t>(low >> 32);
+  return Int96{high, AssertedCast<uint32_t>(low & 0xFFFFFFFF)};
+};
+
 namespace media {
 
 TimeUnit TimeUnit::FromSeconds(double aValue, int64_t aBase) {
@@ -163,27 +203,9 @@ bool TimeUnit::operator==(const TimeUnit& aOther) const {
       (IsNegInf() && !aOther.IsNegInf())) {
     return false;
   }
-  CheckedInt<int64_t> lhs = mTicks * aOther.mBase;
-  CheckedInt<int64_t> rhs = aOther.mTicks * mBase;
-  if (lhs.isValid() && rhs.isValid()) {
-    return lhs == rhs;
-  }
-  // Reduce the fractions and try again
-  const TimeUnit a = Reduced();
-  const TimeUnit b = aOther.Reduced();
-  lhs = a.mTicks * b.mBase;
-  rhs = b.mTicks * a.mBase;
-
-  if (lhs.isValid() && rhs.isValid()) {
-    return lhs.value() == rhs.value();
-  }
-  // last ditch, convert the reduced fractions to doubles
-  double lhsFloating =
-      static_cast<double>(a.mTicks.value()) * static_cast<double>(a.mBase);
-  double rhsFloating =
-      static_cast<double>(b.mTicks.value()) * static_cast<double>(b.mBase);
-
-  return lhsFloating == rhsFloating;
+  Int96 lhs = MultS64xU32(mTicks, aOther.mBase);
+  Int96 rhs = MultS64xU32(aOther.mTicks, mBase);
+  return lhs == rhs;
 }
 bool TimeUnit::operator!=(const TimeUnit& aOther) const {
   MOZ_ASSERT(IsValid() && aOther.IsValid());
@@ -202,22 +224,9 @@ bool TimeUnit::operator>=(const TimeUnit& aOther) const {
       (!IsNegInf() && aOther.IsNegInf())) {
     return true;
   }
-  CheckedInt<int64_t> lhs = mTicks * aOther.mBase;
-  CheckedInt<int64_t> rhs = aOther.mTicks * mBase;
-  if (lhs.isValid() && rhs.isValid()) {
-    return lhs.value() >= rhs.value();
-  }
-  // Reduce the fractions and try again
-  const TimeUnit a = Reduced();
-  const TimeUnit b = aOther.Reduced();
-  lhs = a.mTicks * b.mBase;
-  rhs = b.mTicks * a.mBase;
-
-  if (lhs.isValid() && rhs.isValid()) {
-    return lhs.value() >= rhs.value();
-  }
-  // last ditch, convert the reduced fractions to doubles
-  return ToSeconds() >= aOther.ToSeconds();
+  Int96 lhs = MultS64xU32(mTicks, aOther.mBase);
+  Int96 rhs = MultS64xU32(aOther.mTicks, mBase);
+  return lhs >= rhs;
 }
 bool TimeUnit::operator>(const TimeUnit& aOther) const {
   return !(*this <= aOther);
@@ -235,21 +244,9 @@ bool TimeUnit::operator<=(const TimeUnit& aOther) const {
       (!IsNegInf() && aOther.IsNegInf())) {
     return false;
   }
-  CheckedInt<int64_t> lhs = mTicks * aOther.mBase;
-  CheckedInt<int64_t> rhs = aOther.mTicks * mBase;
-  if (lhs.isValid() && rhs.isValid()) {
-    return lhs.value() <= rhs.value();
-  }
-  // Reduce the fractions and try again
-  const TimeUnit a = Reduced();
-  const TimeUnit b = aOther.Reduced();
-  lhs = a.mTicks * b.mBase;
-  rhs = b.mTicks * a.mBase;
-  if (lhs.isValid() && rhs.isValid()) {
-    return lhs.value() <= rhs.value();
-  }
-  // last ditch, convert the reduced fractions to doubles
-  return ToSeconds() <= aOther.ToSeconds();
+  Int96 lhs = MultS64xU32(mTicks, aOther.mBase);
+  Int96 rhs = MultS64xU32(aOther.mTicks, mBase);
+  return lhs <= rhs;
 }
 bool TimeUnit::operator<(const TimeUnit& aOther) const {
   return !(*this >= aOther);
