@@ -11,8 +11,12 @@ import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
 import android.widget.TimePicker
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
@@ -456,6 +460,16 @@ class BrowserRobot {
         }
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    fun clickSuggestedLogin(composeTestRule: ComposeTestRule, userName: String) {
+        Log.i(TAG, "clickSuggestedLogin: Waiting for the suggested user name: $userName to exist")
+        composeTestRule.waitUntilAtLeastOneExists(hasText(userName))
+        Log.i(TAG, "clickSuggestedLogin: Waited for the suggested user name: $userName to exist")
+        Log.i(TAG, "clickSuggestedLogin: Trying to click $userName login suggestion")
+        composeTestRule.onNodeWithText(userName).performClick()
+        Log.i(TAG, "clickSuggestedLogin: Clicked $userName login suggestion")
+    }
+
     fun setTextForApartmentTextBox(apartment: String) {
         Log.i(TAG, "setTextForApartmentTextBox: Trying to set the text for the apartment text box to: $apartment")
         itemWithResId("apartment").setText(apartment)
@@ -567,14 +581,17 @@ class BrowserRobot {
         }
     }
 
-    fun verifySuggestedUserName(userName: String) {
-        Log.i(TAG, "verifySuggestedUserName: Waiting for $waitingTime ms for suggested logins fragment to exist")
-        itemWithResId("$packageName:id/mozac_feature_login_multiselect_expand").waitForExists(waitingTime)
-        Log.i(TAG, "verifySuggestedUserName: Waited for $waitingTime ms for suggested logins fragment to exist")
-        assertUIObjectExists(itemContainingText(userName))
+    @OptIn(ExperimentalTestApi::class)
+    fun verifySuggestedUserName(composeTestRule: ComposeTestRule, userName: String) {
+        Log.i(TAG, "verifySuggestedUserName: Waiting for the suggested user name: $userName to exist")
+        composeTestRule.waitUntilAtLeastOneExists(hasText(userName))
+        Log.i(TAG, "verifySuggestedUserName: Waited for the suggested user name: $userName to exist")
+        Log.i(TAG, "verifySuggestedUserName: Trying to assert that user name: $userName exists")
+        composeTestRule.onNodeWithText(userName).assertExists()
+        Log.i(TAG, "verifySuggestedUserName: Asserted that user name: $userName exists")
     }
 
-    fun verifyPrefilledLoginCredentials(userName: String, password: String, credentialsArePrefilled: Boolean) {
+    fun verifyPrefilledLoginCredentials(composeTestRule: ComposeTestRule, userName: String, password: String, credentialsArePrefilled: Boolean) {
         // Sometimes the assertion of the pre-filled logins fails so we are re-trying after refreshing the page
         for (i in 1..RETRY_COUNT) {
             try {
@@ -595,7 +612,7 @@ class BrowserRobot {
                     }.refreshPage {
                         clearTextFieldItem(itemWithResId("username"))
                         clickSuggestedLoginsButton()
-                        verifySuggestedUserName(userName)
+                        verifySuggestedUserName(composeTestRule, userName)
                         clickPageObject(itemWithResIdAndText("$packageName:id/username", userName))
                         clickPageObject(itemWithResId("togglePassword"))
                     }

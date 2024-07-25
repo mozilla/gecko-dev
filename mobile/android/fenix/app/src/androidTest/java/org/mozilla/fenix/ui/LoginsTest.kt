@@ -13,16 +13,13 @@ import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
-import org.mozilla.fenix.helpers.MatcherHelper
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
-import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.TestHelper.restartApp
 import org.mozilla.fenix.helpers.TestHelper.scrollToElementByText
 import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
@@ -266,16 +263,11 @@ class LoginsTest : TestSetup() {
             clickPageObject(itemWithText("Save"))
             clearTextFieldItem(itemWithResId("username"))
             clickSuggestedLoginsButton()
-            verifySuggestedUserName(firstUser)
-            verifySuggestedUserName(secondUser)
-            clickPageObject(
-                itemWithResIdAndText(
-                    "$packageName:id/username",
-                    firstUser,
-                ),
-            )
+            verifySuggestedUserName(activityTestRule, firstUser)
+            verifySuggestedUserName(activityTestRule, secondUser)
+            clickSuggestedLogin(activityTestRule, firstUser)
             clickPageObject(itemWithResId("togglePassword"))
-            verifyPrefilledLoginCredentials(firstUser, firstPass, true)
+            verifyPrefilledLoginCredentials(activityTestRule, firstUser, firstPass, true)
         }
     }
 
@@ -342,7 +334,7 @@ class LoginsTest : TestSetup() {
         }.refreshPage {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             clickPageObject(itemWithResId("togglePassword"))
-            verifyPrefilledLoginCredentials("android", "fenix", true)
+            verifyPrefilledLoginCredentials(activityTestRule, "android", "fenix", true)
         }
     }
 
@@ -517,7 +509,7 @@ class LoginsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(loginPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
             clickPageObject(itemWithResId("togglePassword"))
-            verifyPrefilledLoginCredentials("mozilla", "firefox", true)
+            verifyPrefilledLoginCredentials(activityTestRule, "mozilla", "firefox", true)
         }.openTabDrawer(activityTestRule) {
             closeTab()
         }
@@ -536,7 +528,7 @@ class LoginsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(loginPage.toUri()) {
-            verifyPrefilledLoginCredentials("mozilla", "firefox", false)
+            verifyPrefilledLoginCredentials(activityTestRule, "mozilla", "firefox", false)
         }
     }
 
@@ -787,12 +779,12 @@ class LoginsTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(loginPage.toUri()) {
-            clickPageObject(MatcherHelper.itemWithResId("username"))
+            clickPageObject(itemWithResId("username"))
             clickSuggestedLoginsButton()
-            verifySuggestedUserName("mozilla")
-            clickPageObject(itemWithResIdAndText("$packageName:id/username", "mozilla"))
+            verifySuggestedUserName(activityTestRule, "mozilla")
+            clickSuggestedLogin(activityTestRule, "mozilla")
             clickPageObject(itemWithResId("togglePassword"))
-            verifyPrefilledLoginCredentials("mozilla", "firefox", true)
+            verifyPrefilledLoginCredentials(activityTestRule, "mozilla", "firefox", true)
         }
     }
 
