@@ -20,6 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.InfoCard
+import org.mozilla.fenix.compose.InfoCardButtonText
+import org.mozilla.fenix.compose.InfoType
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.shopping.store.ReviewQualityCheckState
 import org.mozilla.fenix.shopping.store.ReviewQualityCheckState.OptedIn.ProductReviewState
@@ -67,13 +70,13 @@ fun ProductAnalysisError(
         val (
             @StringRes titleResourceId: Int,
             @StringRes descriptionResourceId: Int,
-            type: ReviewQualityCheckInfoType,
+            type: InfoType,
         ) = when (error) {
             ProductReviewState.Error.GenericError -> {
                 Triple(
                     R.string.review_quality_check_generic_error_title,
                     R.string.review_quality_check_generic_error_body,
-                    ReviewQualityCheckInfoType.Info,
+                    InfoType.Info,
                 )
             }
 
@@ -81,7 +84,7 @@ fun ProductAnalysisError(
                 Triple(
                     R.string.review_quality_check_no_connection_title,
                     R.string.review_quality_check_no_connection_body,
-                    ReviewQualityCheckInfoType.Warning,
+                    InfoType.Warning,
                 )
             }
 
@@ -89,7 +92,7 @@ fun ProductAnalysisError(
                 Triple(
                     R.string.review_quality_check_not_analyzable_info_title,
                     R.string.review_quality_check_not_analyzable_info_body,
-                    ReviewQualityCheckInfoType.Info,
+                    InfoType.Info,
                 )
             }
 
@@ -97,7 +100,7 @@ fun ProductAnalysisError(
                 Triple(
                     R.string.review_quality_check_no_reviews_warning_title,
                     R.string.review_quality_check_no_reviews_warning_body,
-                    ReviewQualityCheckInfoType.Info,
+                    InfoType.Info,
                 )
             }
 
@@ -105,7 +108,7 @@ fun ProductAnalysisError(
                 Triple(
                     R.string.review_quality_check_product_availability_warning_title,
                     R.string.review_quality_check_product_availability_warning_body,
-                    ReviewQualityCheckInfoType.Info,
+                    InfoType.Info,
                 )
             }
 
@@ -113,7 +116,7 @@ fun ProductAnalysisError(
                 Triple(
                     R.string.review_quality_check_analysis_requested_other_user_info_title,
                     R.string.review_quality_check_analysis_requested_other_user_info_body,
-                    ReviewQualityCheckInfoType.Info,
+                    InfoType.Info,
                 )
             }
 
@@ -121,13 +124,13 @@ fun ProductAnalysisError(
                 Triple(
                     R.string.review_quality_check_analysis_requested_info_title,
                     R.string.review_quality_check_analysis_requested_info_body,
-                    ReviewQualityCheckInfoType.Info,
+                    InfoType.Info,
                 )
             }
         }
 
         if (error == ProductReviewState.Error.ProductNotAvailable) {
-            ReviewQualityCheckInfoCard(
+            InfoCard(
                 title = stringResource(id = titleResourceId),
                 description = stringResource(id = descriptionResourceId),
                 type = type,
@@ -138,7 +141,7 @@ fun ProductAnalysisError(
                 ),
             )
         } else {
-            ReviewQualityCheckInfoCard(
+            InfoCard(
                 title = stringResource(id = titleResourceId),
                 description = stringResource(id = descriptionResourceId),
                 type = type,

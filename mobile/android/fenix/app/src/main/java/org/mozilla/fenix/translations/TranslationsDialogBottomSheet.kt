@@ -52,14 +52,14 @@ import mozilla.components.concept.engine.translate.TranslationError
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.BetaLabel
 import org.mozilla.fenix.compose.ContextualMenu
+import org.mozilla.fenix.compose.InfoCard
+import org.mozilla.fenix.compose.InfoType
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.button.TextButton
-import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoCard
-import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoType
 import org.mozilla.fenix.theme.FirefoxTheme
 import java.util.Locale
 
@@ -508,18 +508,18 @@ private fun TranslationErrorWarning(
 
     when (translationError) {
         is TranslationError.CouldNotTranslateError -> {
-            ReviewQualityCheckInfoCard(
+            InfoCard(
                 description = stringResource(id = R.string.translation_error_could_not_translate_warning_text),
-                type = ReviewQualityCheckInfoType.Error,
+                type = InfoType.Error,
                 verticalRowAlignment = Alignment.CenterVertically,
                 modifier = modifier,
             )
         }
 
         is TranslationError.CouldNotLoadLanguagesError -> {
-            ReviewQualityCheckInfoCard(
+            InfoCard(
                 description = stringResource(id = R.string.translation_error_could_not_load_languages_warning_text),
-                type = ReviewQualityCheckInfoType.Error,
+                type = InfoType.Error,
                 verticalRowAlignment = Alignment.CenterVertically,
                 modifier = modifier,
             )
@@ -527,12 +527,12 @@ private fun TranslationErrorWarning(
 
         is TranslationError.LanguageNotSupportedError -> {
             documentLangDisplayName?.let {
-                ReviewQualityCheckInfoCard(
+                InfoCard(
                     description = stringResource(
                         id = R.string.translation_error_language_not_supported_warning_text,
                         it,
                     ),
-                    type = ReviewQualityCheckInfoType.Info,
+                    type = InfoType.Info,
                     verticalRowAlignment = Alignment.CenterVertically,
                     modifier = modifier,
                 )

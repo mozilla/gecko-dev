@@ -23,11 +23,11 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.concept.engine.translate.TranslationError
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
+import org.mozilla.fenix.compose.InfoCard
+import org.mozilla.fenix.compose.InfoType
 import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.TextListItem
-import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoCard
-import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoType
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -160,9 +160,9 @@ private fun TranslationPageSettingsErrorWarning() {
         .defaultMinSize(minHeight = 56.dp)
         .wrapContentHeight()
 
-    ReviewQualityCheckInfoCard(
+    InfoCard(
         description = stringResource(id = R.string.translation_option_bottom_sheet_error_warning_text),
-        type = ReviewQualityCheckInfoType.Warning,
+        type = InfoType.Warning,
         verticalRowAlignment = Alignment.CenterVertically,
         modifier = modifier,
     )

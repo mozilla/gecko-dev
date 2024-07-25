@@ -52,6 +52,10 @@ import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.Image
+import org.mozilla.fenix.compose.InfoCard
+import org.mozilla.fenix.compose.InfoCardButtonText
+import org.mozilla.fenix.compose.InfoCardContainer
+import org.mozilla.fenix.compose.InfoType
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.SecondaryButton
 import org.mozilla.fenix.compose.ext.onShown
@@ -189,9 +193,9 @@ fun ProductAnalysis(
 private fun ReanalyzeCard(
     onReanalyzeClick: () -> Unit,
 ) {
-    ReviewQualityCheckInfoCard(
+    InfoCard(
         title = stringResource(R.string.review_quality_check_outdated_analysis_warning_title),
-        type = ReviewQualityCheckInfoType.AnalysisUpdate,
+        type = InfoType.InfoPlain,
         modifier = Modifier.fillMaxWidth(),
         buttonText = InfoCardButtonText(
             text = stringResource(R.string.review_quality_check_outdated_analysis_warning_action),
@@ -229,7 +233,7 @@ private fun ReviewGradeCard(
     reviewGrade: ReviewQualityCheckState.Grade,
     modifier: Modifier = Modifier,
 ) {
-    ReviewQualityCheckCard(modifier = modifier.semantics(mergeDescendants = true) { heading() }) {
+    InfoCardContainer(modifier = modifier.semantics(mergeDescendants = true) { heading() }) {
         Text(
             text = stringResource(R.string.review_quality_check_grade_title),
             color = FirefoxTheme.colors.textPrimary,
@@ -248,7 +252,7 @@ private fun AdjustedProductRatingCard(
     rating: Float,
     modifier: Modifier = Modifier,
 ) {
-    ReviewQualityCheckCard(modifier = modifier.semantics(mergeDescendants = true) { heading() }) {
+    InfoCardContainer(modifier = modifier.semantics(mergeDescendants = true) { heading() }) {
         FlowRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
@@ -285,7 +289,7 @@ private fun HighlightsCard(
     onHighlightsExpandToggleClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ReviewQualityCheckCard(modifier = modifier) {
+    InfoCardContainer(modifier = modifier) {
         val highlightsToDisplay = remember(isExpanded, highlightsInfo.highlights) {
             if (isExpanded) {
                 highlightsInfo.highlights
@@ -512,7 +516,7 @@ private fun ProductRecommendation(
     val interactionSource = remember { MutableInteractionSource() }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        ReviewQualityCheckCard(
+        InfoCardContainer(
             modifier = Modifier
                 .fillMaxWidth()
                 .onShown(

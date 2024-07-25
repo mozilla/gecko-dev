@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.shopping.ui
+package org.mozilla.fenix.compose
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,20 +31,17 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.LinkText
-import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
-import org.mozilla.fenix.compose.parseHtml
 import org.mozilla.fenix.shopping.ui.ext.headingResource
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
- * Review Quality Check Info Card UI.
+ * Card for presenting informational messages or errors.
  *
  * @param modifier Modifier to be applied to the card.
  * @param title The primary text of the info message.
- * @param type The [ReviewQualityCheckInfoType] of message to display.
+ * @param type The [InfoType] of message to display.
  * @param verticalRowAlignment An optional adjustment of how the row of text aligns.
  * @param description The optional secondary piece of text.
  * @param footer An optional piece of text with a clickable link.
@@ -52,16 +49,16 @@ import org.mozilla.fenix.theme.FirefoxTheme
  */
 @Suppress("LongMethod")
 @Composable
-fun ReviewQualityCheckInfoCard(
+fun InfoCard(
     modifier: Modifier = Modifier,
     title: String? = null,
-    type: ReviewQualityCheckInfoType,
+    type: InfoType,
     verticalRowAlignment: Alignment.Vertical = Alignment.Top,
     description: String? = null,
     footer: Pair<String, LinkTextState>? = null,
     buttonText: InfoCardButtonText? = null,
 ) {
-    ReviewQualityCheckCard(
+    InfoCardContainer(
         modifier = modifier,
         backgroundColor = type.cardBackgroundColor,
         contentPadding = PaddingValues(
@@ -76,20 +73,20 @@ fun ReviewQualityCheckInfoCard(
             verticalAlignment = verticalRowAlignment,
         ) {
             when (type) {
-                ReviewQualityCheckInfoType.Warning -> {
+                InfoType.Warning -> {
                     InfoCardIcon(iconId = R.drawable.mozac_ic_warning_fill_24)
                 }
 
-                ReviewQualityCheckInfoType.Confirmation -> {
+                InfoType.Confirmation -> {
                     InfoCardIcon(iconId = R.drawable.mozac_ic_checkmark_24)
                 }
 
-                ReviewQualityCheckInfoType.Error -> {
+                InfoType.Error -> {
                     InfoCardIcon(iconId = R.drawable.mozac_ic_critical_fill_24)
                 }
 
-                ReviewQualityCheckInfoType.Info,
-                ReviewQualityCheckInfoType.AnalysisUpdate,
+                InfoType.Info,
+                InfoType.InfoPlain,
                 -> {
                     InfoCardIcon(iconId = R.drawable.mozac_ic_information_fill_24)
                 }
@@ -165,15 +162,33 @@ private fun InfoCardIcon(
 }
 
 /**
- * The possible types of a [ReviewQualityCheckInfoCard].
+ * The possible types of a [InfoCard].
  */
-enum class ReviewQualityCheckInfoType {
-
+enum class InfoType {
+    /**
+     * Stylizes the card to indicate a non-permanent or minor issue has occurred.
+     */
     Warning,
+
+    /**
+     * Stylizes the card to indicate an action occurred successfully or to confirm an action.
+     */
     Confirmation,
+
+    /**
+     * Stylizes the card to indicate a serious error has occurred.
+     */
     Error,
+
+    /**
+     * Stylizes the card for informative messages in colorful tones.
+     */
     Info,
-    AnalysisUpdate,
+
+    /**
+     * Stylizes the card for informative messages in muted tones.
+     */
+    InfoPlain,
     ;
 
     val cardBackgroundColor: Color
@@ -183,7 +198,7 @@ enum class ReviewQualityCheckInfoType {
             Confirmation -> FirefoxTheme.colors.layerSuccess
             Error -> FirefoxTheme.colors.layerCritical
             Info -> FirefoxTheme.colors.layerInformation
-            AnalysisUpdate -> Color.Transparent
+            InfoPlain -> Color.Transparent
         }
 
     val buttonBackgroundColor: Color
@@ -193,20 +208,20 @@ enum class ReviewQualityCheckInfoType {
             Confirmation -> FirefoxTheme.colors.actionSuccess
             Error -> FirefoxTheme.colors.actionCritical
             Info -> FirefoxTheme.colors.actionInformation
-            AnalysisUpdate -> FirefoxTheme.colors.actionSecondary
+            InfoPlain -> FirefoxTheme.colors.actionSecondary
         }
 
     val buttonTextColor: Color
         @Composable
         get() = when {
             this == Info && !isSystemInDarkTheme() -> FirefoxTheme.colors.textOnColorPrimary
-            this == AnalysisUpdate -> FirefoxTheme.colors.textActionSecondary
+            this == InfoPlain -> FirefoxTheme.colors.textActionSecondary
             else -> FirefoxTheme.colors.textPrimary
         }
 }
 
 /**
- * Model for the optional button in a [ReviewQualityCheckInfoCard].
+ * Model for the optional button in a [InfoCard].
  *
  * @property text The text to show in the button.
  * @property onClick The callback to invoke when the button is clicked.
@@ -216,15 +231,15 @@ data class InfoCardButtonText(
     val onClick: () -> Unit,
 )
 
-private class PreviewModelParameterProvider : PreviewParameterProvider<ReviewQualityCheckInfoType> {
+private class PreviewModelParameterProvider : PreviewParameterProvider<InfoType> {
 
-    override val values = enumValues<ReviewQualityCheckInfoType>().asSequence()
+    override val values = enumValues<InfoType>().asSequence()
 }
 
 @LightDarkPreview
 @Composable
 private fun InfoCardPreview(
-    @PreviewParameter(PreviewModelParameterProvider::class) type: ReviewQualityCheckInfoType,
+    @PreviewParameter(PreviewModelParameterProvider::class) type: InfoType,
 ) {
     FirefoxTheme {
         Box(
@@ -232,7 +247,7 @@ private fun InfoCardPreview(
                 .background(color = FirefoxTheme.colors.layer1)
                 .padding(16.dp),
         ) {
-            ReviewQualityCheckInfoCard(
+            InfoCard(
                 title = "Title text",
                 type = type,
                 modifier = Modifier.fillMaxWidth(),

@@ -25,10 +25,10 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.InfoCard
+import org.mozilla.fenix.compose.InfoType
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.TextListItem
-import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoCard
-import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoType
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -107,9 +107,9 @@ private fun NeverTranslateSitesErrorWarning() {
         .defaultMinSize(minHeight = 56.dp)
         .wrapContentHeight()
 
-    ReviewQualityCheckInfoCard(
+    InfoCard(
         description = stringResource(id = R.string.never_translate_site_error_warning_text),
-        type = ReviewQualityCheckInfoType.Warning,
+        type = InfoType.Warning,
         verticalRowAlignment = Alignment.CenterVertically,
         modifier = modifier,
     )

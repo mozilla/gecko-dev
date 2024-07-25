@@ -47,11 +47,11 @@ import mozilla.components.concept.engine.translate.TranslationError
 import mozilla.components.feature.downloads.toMegabyteOrKilobyteString
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
+import org.mozilla.fenix.compose.InfoCard
+import org.mozilla.fenix.compose.InfoType
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
-import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoCard
-import org.mozilla.fenix.shopping.ui.ReviewQualityCheckInfoType
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.translations.DownloadIconIndicator
 import org.mozilla.fenix.translations.DownloadInProgressIndicator
@@ -256,9 +256,9 @@ private fun DownloadLanguagesErrorWarning(title: String) {
         .defaultMinSize(minHeight = 56.dp)
         .wrapContentHeight()
 
-    ReviewQualityCheckInfoCard(
+    InfoCard(
         description = title,
-        type = ReviewQualityCheckInfoType.Warning,
+        type = InfoType.Warning,
         verticalRowAlignment = Alignment.CenterVertically,
         modifier = modifier,
     )

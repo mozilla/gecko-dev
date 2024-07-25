@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.shopping.ui
+package org.mozilla.fenix.compose
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
@@ -45,7 +45,7 @@ private val defaultCardElevation = 5.dp
 private val defaultCardContentPadding = 16.dp
 
 /**
- * A card container for review quality check UI that can be expanded and collapsed.
+ * A card container for informative or error messages that can be expanded and collapsed.
  *
  * @param title The title of the card.
  * @param isExpanded Whether or not the card is expanded.
@@ -54,14 +54,14 @@ private val defaultCardContentPadding = 16.dp
  * @param content The content of the card.
  */
 @Composable
-fun ReviewQualityCheckExpandableCard(
+fun ExpandableInfoCardContainer(
     title: String,
     isExpanded: Boolean,
     modifier: Modifier = Modifier,
     onExpandToggleClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    ReviewQualityCheckCard(
+    InfoCardContainer(
         modifier = modifier,
         contentPadding = PaddingValues(0.dp),
     ) {
@@ -124,7 +124,7 @@ fun ReviewQualityCheckExpandableCard(
 }
 
 /**
- * A card container for review quality check UI.
+ * A card container for informative or error messages.
  *
  * @param modifier Modifier to be applied to the card.
  * @param backgroundColor The background color of the card.
@@ -133,7 +133,7 @@ fun ReviewQualityCheckExpandableCard(
  * @param content The content of the card.
  */
 @Composable
-fun ReviewQualityCheckCard(
+fun InfoCardContainer(
     modifier: Modifier,
     backgroundColor: Color = FirefoxTheme.colors.layer2,
     elevation: Dp = defaultCardElevation,
@@ -156,16 +156,16 @@ fun ReviewQualityCheckCard(
 
 @LightDarkPreview
 @Composable
-private fun ReviewQualityCheckCardPreview() {
+private fun InfoCardContainerPreview() {
     FirefoxTheme {
         Column(modifier = Modifier.padding(16.dp)) {
             var isExpanded by remember { mutableStateOf(true) }
 
-            ReviewQualityCheckCard(
+            InfoCardContainer(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = "Review Quality Check Card Content",
+                    text = "Info Check Card Content",
                     color = FirefoxTheme.colors.textPrimary,
                     style = FirefoxTheme.typography.headline8,
                 )
@@ -173,8 +173,8 @@ private fun ReviewQualityCheckCardPreview() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            ReviewQualityCheckExpandableCard(
-                title = "Review Quality Check Expandable Card",
+            ExpandableInfoCardContainer(
+                title = "Info Expandable Card",
                 modifier = Modifier.fillMaxWidth(),
                 isExpanded = isExpanded,
                 onExpandToggleClick = { isExpanded = !isExpanded },

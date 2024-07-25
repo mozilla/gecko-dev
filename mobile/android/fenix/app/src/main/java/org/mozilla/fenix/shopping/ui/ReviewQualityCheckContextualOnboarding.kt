@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.InfoCardContainer
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
@@ -67,7 +68,7 @@ fun ReviewQualityCheckContextualOnboarding(
     val titleContentDescription =
         headingResource(R.string.review_quality_check_contextual_onboarding_title)
 
-    ReviewQualityCheckCard(modifier = Modifier.fillMaxWidth()) {
+    InfoCardContainer(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = stringResource(R.string.review_quality_check_contextual_onboarding_title),
             color = FirefoxTheme.colors.textPrimary,

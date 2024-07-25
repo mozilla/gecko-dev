@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.InfoCardContainer
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.shopping.store.ReviewQualityCheckState
 import org.mozilla.fenix.shopping.store.ReviewQualityCheckState.OptedIn.ProductReviewState.NoAnalysisPresent
@@ -107,7 +108,7 @@ private fun ReviewQualityNoAnalysisCard(
     noAnalysisPresent: NoAnalysisPresent,
     onAnalyzeClick: () -> Unit,
 ) {
-    ReviewQualityCheckCard(
+    InfoCardContainer(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Image(

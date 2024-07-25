@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.ExpandableInfoCardContainer
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
@@ -51,7 +52,7 @@ fun ReviewQualityInfoCard(
     onExpandToggleClick: () -> Unit,
     onLearnMoreClick: () -> Unit,
 ) {
-    ReviewQualityCheckExpandableCard(
+    ExpandableInfoCardContainer(
         title = stringResource(id = R.string.review_quality_check_explanation_title),
         modifier = modifier,
         isExpanded = isExpanded,
