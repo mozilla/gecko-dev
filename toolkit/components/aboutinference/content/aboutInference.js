@@ -134,8 +134,8 @@ async function displayInfo() {
   // Use DocumentFragment to avoid reflows
   let fragment = document.createDocumentFragment();
 
-  for (const entry of models) {
-    let files = await cache.listFiles(entry.name, entry.revision);
+  for (const { name: model, revision } of models) {
+    let files = await cache.listFiles({ model, revision });
 
     // Create a new table for the current model
     let table = document.createElement("table");
@@ -143,11 +143,11 @@ async function displayInfo() {
     // caption block
     let caption = document.createElement("caption");
     let modelInfo = document.createElement("div");
-    modelInfo.textContent = `${entry.name} (${entry.revision})`;
+    modelInfo.textContent = `${model} (${revision})`;
     let deleteButton = document.createElement("button");
     document.l10n.setAttributes(deleteButton, "about-inference-delete-button");
     deleteButton.onclick = async () => {
-      await cache.deleteModel(entry.name, entry.revision);
+      await cache.deleteModels({ model, revision });
       modelFilesDiv.removeChild(table); // Remove the table from the DOM
     };
 

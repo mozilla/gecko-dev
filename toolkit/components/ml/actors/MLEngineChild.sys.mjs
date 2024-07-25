@@ -357,13 +357,14 @@ let modelHub = null; // This will hold the ModelHub instance to reuse it.
  * only once and reused for subsequent calls to optimize performance.
  *
  * @param {object} config
+ * @param {string} config.taskName - name of the inference task.
  * @param {string} config.url - The URL of the model file to fetch. Can be a path relative to
  * the model hub root or an absolute URL.
  * @param {?function(ProgressAndStatusCallbackParams):void} config.progressCallback The callback to call for notifying about download progress status.
  * @returns {Promise} A promise that resolves to a Meta object containing the URL, response headers,
  * and data as an ArrayBuffer. The data is marked for transfer to avoid cloning.
  */
-async function getModelFile({ url, progressCallback }) {
+async function getModelFile({ taskName, url, progressCallback }) {
   // Create the model hub instance if needed
   if (!modelHub) {
     lazy.console.debug("Creating model hub instance");
@@ -386,6 +387,7 @@ async function getModelFile({ url, progressCallback }) {
   const parsedUrl = modelHub.parseUrl(url);
 
   let [data, headers] = await modelHub.getModelFileAsArrayBuffer({
+    taskName,
     ...parsedUrl,
     progressCallback,
   });

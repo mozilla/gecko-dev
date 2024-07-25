@@ -185,7 +185,10 @@ export class PdfjsParent extends JSWindowActorParent {
       // TODO: Temporary workaround to delete the model from the cache.
       //       See bug 1908941.
       const cache = await lazy.IndexedDBCache.init();
-      await cache.deleteModel("mozilla/distilvit", "main");
+      await cache.deleteModels({
+        model: "mozilla/distilvit",
+        revision: "main",
+      });
     } catch (e) {
       console.error("Failed to delete AI model", e);
     }

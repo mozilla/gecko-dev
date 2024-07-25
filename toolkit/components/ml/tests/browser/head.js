@@ -109,7 +109,7 @@ async function createMLWasmRemoteClient(autoDownloadFromRemoteSettings) {
  *
  * @returns {RemoteSettings}
  */
-async function createOptionsRemoteClient() {
+async function createOptionsRemoteClient(record = null) {
   const { RemoteSettings } = ChromeUtils.importESModule(
     "resource://services-settings/remote-settings.sys.mjs"
   );
@@ -118,16 +118,19 @@ async function createOptionsRemoteClient() {
     `${mockedCollectionName}-${_remoteSettingsMockId++}`
   );
 
-  const record = {
-    taskName: "echo",
-    modelId: "mozilla/distilvit",
-    processorId: "mozilla/distilvit",
-    tokenizerId: "mozilla/distilvit",
-    modelRevision: "main",
-    processorRevision: "main",
-    tokenizerRevision: "main",
-    id: "74a71cfd-1734-44e6-85c0-69cf3e874138",
-  };
+  if (!record) {
+    record = {
+      taskName: "echo",
+      modelId: "mozilla/distilvit",
+      processorId: "mozilla/distilvit",
+      tokenizerId: "mozilla/distilvit",
+      modelRevision: "main",
+      processorRevision: "main",
+      tokenizerRevision: "main",
+      id: "74a71cfd-1734-44e6-85c0-69cf3e874138",
+    };
+  }
+
   await client.db.clear();
   await client.db.importChanges({}, Date.now(), [record]);
   return client;

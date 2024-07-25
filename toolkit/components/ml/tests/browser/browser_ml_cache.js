@@ -18,18 +18,21 @@ const FAKE_MODEL_ARGS = {
   model: "acme/bert",
   revision: "main",
   file: "config.json",
+  taskName: "task_model",
 };
 
 const FAKE_RELEASED_MODEL_ARGS = {
   model: "acme/bert",
   revision: "v0.1",
   file: "config.json",
+  taskName: "task_released",
 };
 
 const FAKE_ONNX_MODEL_ARGS = {
   model: "acme/bert",
   revision: "main",
   file: "onnx/config.json",
+  taskName: "task_onnx",
 };
 
 const badHubs = [
@@ -303,6 +306,7 @@ add_task(async function test_getting_file_from_url_cache_with_callback() {
             model: currentData?.metadata?.model,
             file: currentData?.metadata?.file,
             revision: currentData?.metadata?.revision,
+            taskName: currentData?.metadata?.taskName,
           },
           {
             type: ProgressType.DOWNLOAD,
@@ -323,6 +327,7 @@ add_task(async function test_getting_file_from_url_cache_with_callback() {
             model: currentData?.metadata?.model,
             file: currentData?.metadata?.file,
             revision: currentData?.metadata?.revision,
+            taskName: currentData?.metadata?.taskName,
           },
           {
             type: ProgressType.DOWNLOAD,
@@ -349,6 +354,7 @@ add_task(async function test_getting_file_from_url_cache_with_callback() {
       model: currentData?.metadata?.model,
       file: currentData?.metadata?.file,
       revision: currentData?.metadata?.revision,
+      taskName: currentData?.metadata?.taskName,
     },
     {
       type: ProgressType.DOWNLOAD,
@@ -389,6 +395,7 @@ add_task(async function test_getting_file_from_url_cache_with_callback() {
             model: currentData?.metadata?.model,
             file: currentData?.metadata?.file,
             revision: currentData?.metadata?.revision,
+            taskName: currentData?.metadata?.taskName,
           },
           {
             type: ProgressType.LOAD_FROM_CACHE,
@@ -416,6 +423,7 @@ add_task(async function test_getting_file_from_url_cache_with_callback() {
       model: currentData?.metadata?.model,
       file: currentData?.metadata?.file,
       revision: currentData?.metadata?.revision,
+      taskName: currentData?.metadata?.taskName,
     },
     {
       type: ProgressType.LOAD_FROM_CACHE,
@@ -539,18 +547,34 @@ add_task(async function test_PutAndCheckExists() {
   const cache = await initializeCache();
   const testData = createBlob();
   const key = "file.txt";
-  await cache.put("org/model", "v1", "file.txt", testData, {
-    ETag: "ETAG123",
+  await cache.put({
+    taskName: "task",
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+    data: testData,
+    headers: {
+      ETag: "ETAG123",
+    },
   });
 
   // Checking if the file exists
-  let exists = await cache.fileExists("org/model", "v1", key);
+  let exists = await cache.fileExists({
+    model: "org/model",
+    revision: "v1",
+    file: key,
+  });
   Assert.ok(exists, "The file should exist in the cache.");
 
   // Removing all files from the model
-  await cache.deleteModel("org/model", "v1");
+  await cache.deleteModels({ model: "org/model", revision: "v1" });
 
-  exists = await cache.fileExists("org/model", "v1", key);
+  exists = await cache.fileExists({
+    taskName: "task",
+    model: "org/model",
+    revision: "v1",
+    file: key,
+  });
   Assert.ok(!exists, "The file should be gone from the cache.");
 
   await deleteCache(cache);
@@ -562,15 +586,22 @@ add_task(async function test_PutAndCheckExists() {
 add_task(async function test_PutAndGet() {
   const cache = await initializeCache();
   const testData = createBlob();
-  await cache.put("org/model", "v1", "file.txt", testData, {
-    ETag: "ETAG123",
+  await cache.put({
+    taskName: "task",
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+    data: testData,
+    headers: {
+      ETag: "ETAG123",
+    },
   });
 
-  const [retrievedData, headers] = await cache.getFile(
-    "org/model",
-    "v1",
-    "file.txt"
-  );
+  const [retrievedData, headers] = await cache.getFile({
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+  });
   Assert.deepEqual(
     retrievedData,
     testData,
@@ -597,9 +628,20 @@ add_task(async function test_GetHeaders() {
     extra: "extra",
   };
 
-  await cache.put("org/model", "v1", "file.txt", testData, headers);
+  await cache.put({
+    taskName: "task",
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+    data: testData,
+    headers,
+  });
 
-  const storedHeaders = await cache.getHeaders("org/model", "v1", "file.txt");
+  const storedHeaders = await cache.getHeaders({
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+  });
 
   // The `extra` field should be removed from the stored headers because
   // it's not part of the allowed keys.
@@ -622,32 +664,126 @@ add_task(async function test_GetHeaders() {
  */
 add_task(async function test_ListModels() {
   const cache = await initializeCache();
-  await cache.put("org1/modelA", "v1", "file1.txt", createBlob(), null);
-  await cache.put("org2/modelB", "v2", "file2.txt", createBlob(), null);
+
+  await Promise.all([
+    cache.put({
+      taskName: "task1",
+      model: "org1/modelA",
+      revision: "v1",
+      file: "file1.txt",
+      data: createBlob(),
+      headers: null,
+    }),
+    cache.put({
+      taskName: "task2",
+      model: "org2/modelB",
+      revision: "v2",
+      file: "file2.txt",
+      data: createBlob(),
+      headers: null,
+    }),
+  ]);
 
   const models = await cache.listModels();
-  const wanted = [
+  const expected = [
     { name: "org1/modelA", revision: "v1" },
     { name: "org2/modelB", revision: "v2" },
   ];
-  Assert.deepEqual(models, wanted, "All models should be listed");
+  Assert.deepEqual(models, expected, "All models should be listed");
   await deleteCache(cache);
 });
 
 /**
  * Test deleting a model and its data from the cache.
  */
-add_task(async function test_DeleteModel() {
+add_task(async function test_DeleteModels() {
   const cache = await initializeCache();
-  await cache.put("org/model", "v1", "file.txt", createBlob(), null);
-  await cache.deleteModel("org/model", "v1");
+  await cache.put({
+    taskName: "task",
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+    data: createBlob(),
+    headers: null,
+  });
+  await cache.deleteModels({ model: "org/model", revision: "v1" });
 
-  const dataAfterDelete = await cache.getFile("org/model", "v1", "file.txt");
+  const dataAfterDelete = await cache.getFile({
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+  });
   Assert.equal(
     dataAfterDelete,
     null,
     "The data for the deleted model should not exist."
   );
+  await deleteCache(cache);
+});
+
+/**
+ * Test deleting a model and its data from the cache using a task name.
+ */
+add_task(async function test_DeleteModelsUsingTaskName() {
+  const cache = await initializeCache();
+  const model = "mozilla/distilvit";
+  const revision = "main";
+  const taskName = "echo";
+
+  await cache.put({
+    taskName,
+    model,
+    revision,
+    file: "file.txt",
+    data: createBlob(),
+    headers: null,
+  });
+
+  await cache.deleteModels({ taskName });
+
+  // Model should be gone.
+  const models = await cache.listModels();
+  const expected = [];
+  Assert.deepEqual(models, expected, "All models should be deleted.");
+
+  const dataAfterDelete = await cache.getFile({
+    model,
+    revision,
+    file: "file.txt",
+  });
+  Assert.equal(
+    dataAfterDelete,
+    null,
+    "The data for the deleted model should not exist."
+  );
+  await deleteCache(cache);
+});
+
+/**
+ * Test deleting a model and its data from the cache using a non-existing task name.
+ */
+add_task(async function test_DeleteModelsUsingNonExistingTaskName() {
+  const cache = await initializeCache();
+  const model = "mozilla/distilvit";
+  const revision = "main";
+  const taskName = "echo";
+
+  await cache.put({
+    taskName,
+    model,
+    revision,
+    file: "file.txt",
+    data: createBlob(),
+    headers: null,
+  });
+
+  await cache.deleteModels({ taskName: "non-existing-task" });
+
+  // Model should still be there.
+  const models = await cache.listModels();
+  const expected = [{ name: model, revision }];
+  Assert.deepEqual(models, expected, "All models should be listed");
+
   await deleteCache(cache);
 });
 
@@ -659,12 +795,37 @@ add_task(async function test_listFiles() {
   const headers = { "Content-Length": "12345", ETag: "XYZ" };
   const blob = createBlob();
 
-  await cache.put("org/model", "v1", "file.txt", blob, null);
-  await cache.put("org/model", "v1", "file2.txt", blob, null);
-  await cache.put("org/model", "v1", "sub/file3.txt", createBlob(32), headers);
+  await Promise.all([
+    cache.put({
+      taskName: "task1",
+      model: "org/model",
+      revision: "v1",
+      file: "file.txt",
+      data: blob,
+      headers: null,
+    }),
 
-  const files = await cache.listFiles("org/model", "v1");
-  const wanted = [
+    cache.put({
+      taskName: "task1",
+      model: "org/model",
+      revision: "v1",
+      file: "file2.txt",
+      data: blob,
+      headers: null,
+    }),
+
+    cache.put({
+      taskName: "task2",
+      model: "org/model",
+      revision: "v1",
+      file: "sub/file3.txt",
+      data: createBlob(32),
+      headers,
+    }),
+  ]);
+
+  const files = await cache.listFiles({ model: "org/model", revision: "v1" });
+  const expected = [
     {
       path: "file.txt",
       headers: {
@@ -692,6 +853,128 @@ add_task(async function test_listFiles() {
     },
   ];
 
-  Assert.deepEqual(files, wanted);
+  Assert.deepEqual(files, expected);
+  await deleteCache(cache);
+});
+
+/**
+ * Test listing files using a task name
+ */
+add_task(async function test_listFilesUsingTaskName() {
+  const cache = await initializeCache();
+
+  const model = "mozilla/distilvit";
+  const revision = "main";
+  const taskName = "echo";
+
+  const headers = { "Content-Length": "12345", ETag: "XYZ" };
+  const blob = createBlob();
+
+  await Promise.all([
+    cache.put({
+      taskName,
+      model,
+      revision,
+      file: "file.txt",
+      data: blob,
+      headers: null,
+    }),
+    cache.put({
+      taskName,
+      model,
+      revision,
+      file: "file2.txt",
+      data: blob,
+      headers: null,
+    }),
+
+    cache.put({
+      taskName,
+      model,
+      revision,
+      file: "sub/file3.txt",
+      data: createBlob(32),
+      headers,
+    }),
+  ]);
+
+  const files = await cache.listFiles({ taskName });
+  const expected = [
+    {
+      path: "file.txt",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        fileSize: 8,
+        ETag: "NO_ETAG",
+      },
+    },
+    {
+      path: "file2.txt",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        fileSize: 8,
+        ETag: "NO_ETAG",
+      },
+    },
+    {
+      path: "sub/file3.txt",
+      headers: {
+        "Content-Length": "12345",
+        "Content-Type": "application/octet-stream",
+        fileSize: 32,
+        ETag: "XYZ",
+      },
+    },
+  ];
+
+  Assert.deepEqual(files, expected);
+
+  await deleteCache(cache);
+});
+
+/**
+ * Test listing files using a non existing task name
+ */
+add_task(async function test_listFilesUsingNonExistingTaskName() {
+  const cache = await initializeCache();
+
+  const model = "mozilla/distilvit";
+  const revision = "main";
+  const taskName = "echo";
+
+  const headers = { "Content-Length": "12345", ETag: "XYZ" };
+  const blob = createBlob();
+
+  await Promise.all([
+    cache.put({
+      taskName,
+      model,
+      revision,
+      file: "file.txt",
+      data: blob,
+      headers: null,
+    }),
+    cache.put({
+      taskName,
+      model,
+      revision,
+      file: "file2.txt",
+      data: blob,
+      headers: null,
+    }),
+    cache.put({
+      taskName,
+      model,
+      revision,
+      file: "sub/file3.txt",
+      data: createBlob(32),
+      headers,
+    }),
+  ]);
+
+  const files = await cache.listFiles({ taskName: "non-existing-task" });
+
+  Assert.deepEqual(files, []);
+
   await deleteCache(cache);
 });
