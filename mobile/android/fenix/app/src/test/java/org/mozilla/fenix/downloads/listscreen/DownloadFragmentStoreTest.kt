@@ -4,13 +4,20 @@
 
 package org.mozilla.fenix.downloads.listscreen
 
-import kotlinx.coroutines.test.runTest
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 
+@RunWith(AndroidJUnit4::class)
 class DownloadFragmentStoreTest {
+    @get:Rule
+    val coroutineTestRule = MainCoroutineRule()
+
     private val downloadItem = DownloadItem(
         id = "0",
         url = "url",
@@ -31,21 +38,21 @@ class DownloadFragmentStoreTest {
     )
 
     @Test
-    fun exitEditMode() = runTest {
+    fun exitEditMode() {
         val initialState = oneItemEditState()
         val store = DownloadFragmentStore(initialState)
 
-        store.dispatch(DownloadFragmentAction.ExitEditMode).join()
+        store.dispatch(DownloadFragmentAction.ExitEditMode)
         assertNotSame(initialState, store.state)
         assertEquals(store.state.mode, DownloadFragmentState.Mode.Normal)
     }
 
     @Test
-    fun itemAddedForRemoval() = runTest {
+    fun itemAddedForRemoval() {
         val initialState = emptyDefaultState()
         val store = DownloadFragmentStore(initialState)
 
-        store.dispatch(DownloadFragmentAction.AddItemForRemoval(newDownloadItem)).join()
+        store.dispatch(DownloadFragmentAction.AddItemForRemoval(newDownloadItem))
         assertNotSame(initialState, store.state)
         assertEquals(
             store.state.mode,
@@ -54,7 +61,7 @@ class DownloadFragmentStoreTest {
     }
 
     @Test
-    fun allItemsAddedForRemoval() = runTest {
+    fun allItemsAddedForRemoval() {
         val initialState = DownloadFragmentState(
             items = listOf(downloadItem, newDownloadItem),
             mode = DownloadFragmentState.Mode.Normal,
@@ -63,7 +70,7 @@ class DownloadFragmentStoreTest {
         )
         val store = DownloadFragmentStore(initialState)
 
-        store.dispatch(DownloadFragmentAction.AddAllItemsForRemoval).join()
+        store.dispatch(DownloadFragmentAction.AddAllItemsForRemoval)
 
         val expected = DownloadFragmentState(
             items = listOf(downloadItem, newDownloadItem),
@@ -76,11 +83,11 @@ class DownloadFragmentStoreTest {
     }
 
     @Test
-    fun removeItemForRemoval() = runTest {
+    fun removeItemForRemoval() {
         val initialState = twoItemEditState()
         val store = DownloadFragmentStore(initialState)
 
-        store.dispatch(DownloadFragmentAction.RemoveItemForRemoval(newDownloadItem)).join()
+        store.dispatch(DownloadFragmentAction.RemoveItemForRemoval(newDownloadItem))
         assertNotSame(initialState, store.state)
         assertEquals(store.state.mode, DownloadFragmentState.Mode.Editing(setOf(downloadItem)))
     }
