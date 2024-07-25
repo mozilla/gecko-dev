@@ -14,15 +14,18 @@
 #include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/Version.h"
+#include "clang/Format/Format.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Lex/Lexer.h"
 #include "clang/Lex/PPCallbacks.h"
 #include "clang/Lex/Preprocessor.h"
+#include "clang/Lex/TokenConcatenation.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -188,6 +191,24 @@ struct FileInfo {
   bool Generated;
 };
 
+struct MacroExpansionState {
+  Token MacroNameToken;
+  const MacroInfo *MacroInfo = nullptr;
+  std::vector<std::string> Dependencies; // other macro symbols this expansions depends on
+  std::string Expansion;
+  std::map<SourceLocation, unsigned> TokenLocations;
+  SourceRange Range;
+  Token PrevPrevTok;
+  Token PrevTok;
+};
+
+struct ExpandedMacro {
+  std::string Symbol;
+  std::string Key; // "{Symbol}(,{Dependencies})..."
+  std::string Expansion;
+  std::map<SourceLocation, unsigned> TokenLocations;
+};
+
 class IndexConsumer;
 
 class PreprocessorHook : public PPCallbacks {
@@ -249,6 +270,12 @@ private:
   ASTContext *AstContext;
   std::unique_ptr<clangd::HeuristicResolver> Resolver;
 
+  // Used during a macro expansion to build the expanded string
+  TokenConcatenation ConcatInfo;
+  std::optional<MacroExpansionState> MacroExpansionState;
+  // Keeps track of the positions of tokens inside each expanded macro
+  std::map<SourceLocation, ExpandedMacro> MacroMaps;
+
   typedef RecursiveASTVisitor<IndexConsumer> Super;
 
   // Tracks the set of declarations that the current expression/statement is
@@ -298,6 +325,11 @@ private:
   // Helpers for processing declarations
   // Should we ignore this location?
   bool isInterestingLocation(SourceLocation Loc) {
+    if (SM.isMacroBodyExpansion(Loc)) {
+      Loc = SM.getFileLoc(Loc);
+    }
+
+    normalizeLocation(&Loc);
     if (Loc.isInvalid()) {
       return false;
     }
@@ -644,9 +676,12 @@ private:
 public:
   IndexConsumer(CompilerInstance &CI)
       : CI(CI), SM(CI.getSourceManager()), LO(CI.getLangOpts()), CurMangleContext(nullptr),
-        AstContext(nullptr), CurDeclContext(nullptr), TemplateStack(nullptr) {
+        AstContext(nullptr), ConcatInfo(CI.getPreprocessor()), CurDeclContext(nullptr),
+        TemplateStack(nullptr) {
     CI.getPreprocessor().addPPCallbacks(
         make_unique<PreprocessorHook>(this));
+    CI.getPreprocessor().setTokenWatcher(
+        [this](const auto &token) { onTokenLexed(token); });
   }
 
   virtual DiagnosticConsumer *clone(DiagnosticsEngine &Diags) const {
@@ -1107,21 +1142,7 @@ public:
     LocRangeEndValid = 1 << 2
   };
 
-  void emitStructuredInfo(SourceLocation Loc, const RecordDecl *decl) {
-    std::string json_str;
-    llvm::raw_string_ostream ros(json_str);
-    llvm::json::OStream J(ros);
-    // Start the top-level object.
-    J.objectBegin();
-
-    unsigned StartOffset = SM.getFileOffset(Loc);
-    unsigned EndOffset =
-        StartOffset + Lexer::MeasureTokenLength(Loc, SM, CI.getLangOpts());
-    J.attribute("loc", locationToString(Loc, EndOffset - StartOffset));
-    J.attribute("structured", 1);
-    J.attribute("pretty", getQualifiedName(decl));
-    J.attribute("sym", getMangledName(CurMangleContext, decl));
-
+  void emitStructuredRecordInfo(llvm::json::OStream &J, SourceLocation Loc, const RecordDecl *decl) {
     J.attribute("kind", TypeWithKeyword::getTagTypeKindName(decl->getTagKind()));
 
     const ASTContext &C = *AstContext;
@@ -1227,11 +1248,12 @@ public:
     for (RecordDecl::field_iterator It = decl->field_begin(),
           End = decl->field_end(); It != End; ++It, ++iField) {
       const FieldDecl &Field = **It;
+      auto sourceRange = SM.getExpansionRange(Field.getSourceRange()).getAsRange();
       uint64_t localOffsetBits = Layout.getFieldOffset(iField);
       CharUnits localOffsetBytes = C.toCharUnitsFromBits(localOffsetBits);
 
       J.objectBegin();
-      J.attribute("lineRange", pathAndLineRangeToString(structFileID, Field.getSourceRange()));
+      J.attribute("lineRange", pathAndLineRangeToString(structFileID, sourceRange));
       J.attribute("pretty", getQualifiedName(&Field));
       J.attribute("sym", getMangledName(CurMangleContext, &Field));
 
@@ -1284,31 +1306,18 @@ public:
     }
     J.arrayEnd();
     J.attributeEnd();
-
-    // End the top-level object.
-    J.objectEnd();
-
-    FileInfo *F = getFileInfo(Loc);
-    // we want a newline.
-    ros << '\n';
-    F->Output.push_back(std::move(ros.str()));
   }
 
-  void emitStructuredInfo(SourceLocation Loc, const FunctionDecl *decl) {
-    std::string json_str;
-    llvm::raw_string_ostream ros(json_str);
-    llvm::json::OStream J(ros);
-    // Start the top-level object.
-    J.objectBegin();
+  void emitStructuredEnumInfo(llvm::json::OStream &J, const EnumDecl *ED) {
+    J.attribute("kind", "enum");
+  }
 
-    unsigned StartOffset = SM.getFileOffset(Loc);
-    unsigned EndOffset =
-        StartOffset + Lexer::MeasureTokenLength(Loc, SM, CI.getLangOpts());
-    J.attribute("loc", locationToString(Loc, EndOffset - StartOffset));
-    J.attribute("structured", 1);
-    J.attribute("pretty", getQualifiedName(decl));
-    J.attribute("sym", getMangledName(CurMangleContext, decl));
+  void emitStructuredEnumConstantInfo(llvm::json::OStream &J,
+                                      const EnumConstantDecl *ECD) {
+    J.attribute("kind", "enumConstant");
+  }
 
+  void emitStructuredFunctionInfo(llvm::json::OStream &J, const FunctionDecl *decl) {
     emitBindingAttributes(J, *decl);
 
     J.attributeBegin("args");
@@ -1341,7 +1350,6 @@ public:
 
     J.arrayEnd();
     J.attributeEnd();
-
 
     auto cxxDecl = dyn_cast<CXXMethodDecl>(decl);
 
@@ -1405,14 +1413,6 @@ public:
     }
     J.arrayEnd();
     J.attributeEnd();
-
-    // End the top-level object.
-    J.objectEnd();
-
-    FileInfo *F = getFileInfo(Loc);
-    // we want a newline.
-    ros << '\n';
-    F->Output.push_back(std::move(ros.str()));
   }
 
   /**
@@ -1425,62 +1425,26 @@ public:
    * both at cross-reference time and web-server lookup time.  This is also
    * called out in `analysis.md`.
    */
-  void emitStructuredInfo(SourceLocation Loc, const FieldDecl *decl) {
+  void emitStructuredFieldInfo(llvm::json::OStream &J, const FieldDecl *decl) {
+    J.attribute("kind", "field");
+
     // XXX the call to decl::getParent will assert below for ObjCIvarDecl
     // instances because their DecContext is not a RecordDecl.  So just bail
     // for now.
     // TODO: better support ObjC.
-    if (const ObjCIvarDecl *D2 = dyn_cast<ObjCIvarDecl>(decl)) {
-      return;
+    if (!dyn_cast<ObjCIvarDecl>(decl)) {
+      if (auto parentDecl = decl->getParent()) {
+        J.attribute("parentsym", getMangledName(CurMangleContext, parentDecl));
+      }
     }
-
-    std::string json_str;
-    llvm::raw_string_ostream ros(json_str);
-    llvm::json::OStream J(ros);
-    // Start the top-level object.
-    J.objectBegin();
-
-    unsigned StartOffset = SM.getFileOffset(Loc);
-    unsigned EndOffset =
-        StartOffset + Lexer::MeasureTokenLength(Loc, SM, CI.getLangOpts());
-    J.attribute("loc", locationToString(Loc, EndOffset - StartOffset));
-    J.attribute("structured", 1);
-    J.attribute("pretty", getQualifiedName(decl));
-    J.attribute("sym", getMangledName(CurMangleContext, decl));
-    J.attribute("kind", "field");
-
-    if (auto parentDecl = decl->getParent()) {
-      J.attribute("parentsym", getMangledName(CurMangleContext, parentDecl));
-    }
-
-    // End the top-level object.
-    J.objectEnd();
-
-    FileInfo *F = getFileInfo(Loc);
-    // we want a newline.
-    ros << '\n';
-    F->Output.push_back(std::move(ros.str()));
   }
 
   /**
    * Emit structured info for a variable if it is a static class member.
    */
-  void emitStructuredInfo(SourceLocation Loc, const VarDecl *decl) {
+  void emitStructuredVarInfo(llvm::json::OStream &J, const VarDecl *decl) {
     const auto *parentDecl = dyn_cast_or_null<RecordDecl>(decl->getDeclContext());
 
-    std::string json_str;
-    llvm::raw_string_ostream ros(json_str);
-    llvm::json::OStream J(ros);
-    // Start the top-level object.
-    J.objectBegin();
-
-    unsigned StartOffset = SM.getFileOffset(Loc);
-    unsigned EndOffset =
-        StartOffset + Lexer::MeasureTokenLength(Loc, SM, CI.getLangOpts());
-    J.attribute("loc", locationToString(Loc, EndOffset - StartOffset));
-    J.attribute("structured", 1);
-    J.attribute("pretty", getQualifiedName(decl));
-    J.attribute("sym", getMangledName(CurMangleContext, decl));
     J.attribute("kind", "field");
 
     if (parentDecl) {
@@ -1488,6 +1452,36 @@ public:
     }
 
     emitBindingAttributes(J, *decl);
+  }
+
+  void emitStructuredInfo(SourceLocation Loc, const NamedDecl *decl) {
+    std::string json_str;
+    llvm::raw_string_ostream ros(json_str);
+    llvm::json::OStream J(ros);
+    // Start the top-level object.
+    J.objectBegin();
+
+    unsigned StartOffset = SM.getFileOffset(Loc);
+    unsigned EndOffset =
+        StartOffset + Lexer::MeasureTokenLength(Loc, SM, CI.getLangOpts());
+    J.attribute("loc", locationToString(Loc, EndOffset - StartOffset));
+    J.attribute("structured", 1);
+    J.attribute("pretty", getQualifiedName(decl));
+    J.attribute("sym", getMangledName(CurMangleContext, decl));
+
+    if (const RecordDecl *RD = dyn_cast<RecordDecl>(decl)) {
+      emitStructuredRecordInfo(J, Loc, RD);
+    } else if (const EnumDecl *ED = dyn_cast<EnumDecl>(decl)) {
+      emitStructuredEnumInfo(J, ED);
+    } else if (const EnumConstantDecl *ECD = dyn_cast<EnumConstantDecl>(decl)) {
+      emitStructuredEnumConstantInfo(J, ECD);
+    } else if (const FunctionDecl *FD = dyn_cast<FunctionDecl>(decl)) {
+      emitStructuredFunctionInfo(J, FD);
+    } else if (const FieldDecl *FD = dyn_cast<FieldDecl>(decl)) {
+      emitStructuredFieldInfo(J, FD);
+    } else if (const VarDecl *VD = dyn_cast<VarDecl>(decl)) {
+      emitStructuredVarInfo(J, VD);
+    }
 
     // End the top-level object.
     J.objectEnd();
@@ -1521,30 +1515,43 @@ public:
                        SourceRange NestingRange = SourceRange(),
                        std::vector<SourceRange> *ArgRanges = nullptr) {
     SourceLocation Loc = LocRange.getBegin();
-    if (!shouldVisit(Loc)) {
+
+    // Also visit the spelling site.
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
+    if (SpellingLoc != Loc) {
+      visitIdentifier(Kind, SyntaxKind, QualName, SpellingLoc, Symbol, MaybeType, TokenContext, Flags, PeekRange, NestingRange, ArgRanges);
+    }
+
+    SourceLocation ExpansionLoc = SM.getExpansionLoc(Loc);
+    normalizeLocation(&ExpansionLoc);
+
+    if (!shouldVisit(ExpansionLoc)) {
       return;
     }
 
+    if (ExpansionLoc != Loc)
+      Flags = Flags & ~LocRangeEndValid;
+
     // Find the file positions corresponding to the token.
-    unsigned StartOffset = SM.getFileOffset(Loc);
+    unsigned StartOffset = SM.getFileOffset(ExpansionLoc);
     unsigned EndOffset = (Flags & LocRangeEndValid)
         ? SM.getFileOffset(LocRange.getEnd())
-        : StartOffset + Lexer::MeasureTokenLength(Loc, SM, CI.getLangOpts());
+        : StartOffset + Lexer::MeasureTokenLength(ExpansionLoc, SM, CI.getLangOpts());
 
-    std::string LocStr = locationToString(Loc, EndOffset - StartOffset);
-    std::string RangeStr = locationToString(Loc, EndOffset - StartOffset);
+    std::string LocStr = locationToString(ExpansionLoc, EndOffset - StartOffset);
+    std::string RangeStr = locationToString(ExpansionLoc, EndOffset - StartOffset);
     std::string PeekRangeStr;
 
     if (!(Flags & NotIdentifierToken)) {
       // Get the token's characters so we can make sure it's a valid token.
-      const char *StartChars = SM.getCharacterData(Loc);
+      const char *StartChars = SM.getCharacterData(ExpansionLoc);
       std::string Text(StartChars, EndOffset - StartOffset);
       if (!isValidIdentifier(Text)) {
         return;
       }
     }
 
-    FileInfo *F = getFileInfo(Loc);
+    FileInfo *F = getFileInfo(ExpansionLoc);
 
     if (!(Flags & NoCrossref)) {
       std::string json_str;
@@ -1664,6 +1671,39 @@ public:
 
       J.arrayEnd();
       J.attributeEnd();
+    }
+
+    const auto macro = MacroMaps.find(ExpansionLoc);
+    if (macro != MacroMaps.end()) {
+      const auto &macroInfo = macro->second;
+      if (macroInfo.Symbol == Symbol) {
+        J.attributeBegin("expandsTo");
+        J.objectBegin();
+        J.attributeBegin(macroInfo.Key);
+        J.objectBegin();
+        J.attribute("", macroInfo.Expansion); // "" is the platform key, populated by the merge step
+        J.objectEnd();
+        J.attributeEnd();
+        J.objectEnd();
+        J.attributeEnd();
+      } else {
+        const auto it = macroInfo.TokenLocations.find(Loc);
+        if (it != macroInfo.TokenLocations.end()) {
+          J.attributeBegin("inExpansionAt");
+          J.objectBegin();
+          J.attributeBegin(macroInfo.Key);
+          J.objectBegin();
+          J.attributeBegin(""); // "" is the platform key, populated by the merge step
+          J.arrayBegin();
+          J.value(it->second);
+          J.arrayEnd();
+          J.attributeEnd();
+          J.objectEnd();
+          J.attributeEnd();
+          J.objectEnd();
+          J.attributeEnd();
+        }
+      }
     }
 
     // End the top-level object.
@@ -1810,18 +1850,15 @@ public:
 
   bool VisitNamedDecl(NamedDecl *D) {
     SourceLocation Loc = D->getLocation();
-
-    // If the token is from a macro expansion and the expansion location
-    // is interesting, use that instead as it tends to be more useful.
-    SourceLocation expandedLoc = Loc;
-    if (SM.isMacroBodyExpansion(Loc)) {
-      Loc = SM.getFileLoc(Loc);
-    }
-
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return true;
     }
+
+    SourceLocation ExpansionLoc = Loc;
+    if (SM.isMacroBodyExpansion(Loc)) {
+      ExpansionLoc = SM.getFileLoc(Loc);
+    }
+    normalizeLocation(&ExpansionLoc);
 
     if (isa<ParmVarDecl>(D) && !D->getDeclName().getAsIdentifierInfo()) {
       // Unnamed parameter in function proto.
@@ -1878,7 +1915,7 @@ public:
     } else if (TypedefNameDecl *D2 = dyn_cast<TypedefNameDecl>(D)) {
       Kind = "alias";
       PrettyKind = "type";
-      PeekRange = SourceRange(Loc, Loc);
+      PeekRange = SourceRange(ExpansionLoc, ExpansionLoc);
       qtype = D2->getUnderlyingType();
     } else if (VarDecl *D2 = dyn_cast<VarDecl>(D)) {
       if (D2->isLocalVarDeclOrParm()) {
@@ -1892,12 +1929,12 @@ public:
     } else if (isa<NamespaceDecl>(D) || isa<NamespaceAliasDecl>(D)) {
       Kind = "def";
       PrettyKind = "namespace";
-      PeekRange = SourceRange(Loc, Loc);
+      PeekRange = SourceRange(ExpansionLoc, ExpansionLoc);
       NamespaceDecl *D2 = dyn_cast<NamespaceDecl>(D);
       if (D2) {
         // There's no exposure of the left brace so we have to find it.
         NestingRange = SourceRange(
-          findLeftBraceFromLoc(D2->isAnonymousNamespace() ? D2->getBeginLoc() : Loc),
+          findLeftBraceFromLoc(D2->isAnonymousNamespace() ? D2->getBeginLoc() : ExpansionLoc),
           D2->getRBraceLoc());
       }
     } else if (isa<FieldDecl>(D)) {
@@ -1923,11 +1960,9 @@ public:
 
     // In the case of destructors, Loc might point to the ~ character. In that
     // case we want to skip to the name of the class. However, Loc might also
-    // point to other places that generate destructors, such as the use site of
-    // a macro that expands to generate a destructor, or a lambda (apparently
+    // point to other places that generate destructors, such as a lambda (apparently
     // clang 8 creates a destructor declaration for at least some lambdas). In
-    // the former case we'll use the macro use site as the location, and in the
-    // latter we'll just drop the declaration.
+    // that case we'll just drop the declaration.
     if (isa<CXXDestructorDecl>(D)) {
       PrettyKind = "destructor";
       const char *P = SM.getCharacterData(Loc);
@@ -1943,13 +1978,7 @@ public:
 
         Loc = Loc.getLocWithOffset(Skipped);
       } else {
-        // See if the destructor is coming from a macro expansion
-        P = SM.getCharacterData(expandedLoc);
-        if (*P != '~') {
-          // It's not
-          return true;
-        }
-        // It is, so just use Loc as-is
+        return true;
       }
     }
 
@@ -1971,7 +2000,18 @@ public:
           findBindingToJavaClass(*AstContext, *D3);
           findBoundAsJavaClasses(*AstContext, *D3);
         }
-        emitStructuredInfo(Loc, D2);
+        emitStructuredInfo(ExpansionLoc, D2);
+      }
+    }
+    if (EnumDecl *D2 = dyn_cast<EnumDecl>(D)) {
+      if (D2->isThisDeclarationADefinition() && !D2->isDependentType() &&
+          !TemplateStack) {
+        emitStructuredInfo(ExpansionLoc, D2);
+      }
+    }
+    if (EnumConstantDecl *D2 = dyn_cast<EnumConstantDecl>(D)) {
+      if (!D2->isTemplated() && !TemplateStack) {
+        emitStructuredInfo(ExpansionLoc, D2);
       }
     }
     if (FunctionDecl *D2 = dyn_cast<FunctionDecl>(D)) {
@@ -1987,13 +2027,13 @@ public:
         } else {
           findBindingToJavaFunction(*AstContext, *D2);
         }
-        emitStructuredInfo(Loc, D2);
+        emitStructuredInfo(ExpansionLoc, D2);
       }
     }
     if (FieldDecl *D2 = dyn_cast<FieldDecl>(D)) {
       if (!D2->isTemplated() &&
           !TemplateStack) {
-        emitStructuredInfo(Loc, D2);
+        emitStructuredInfo(ExpansionLoc, D2);
       }
     }
     if (VarDecl *D2 = dyn_cast<VarDecl>(D)) {
@@ -2001,7 +2041,7 @@ public:
           !TemplateStack &&
           isa<CXXRecordDecl>(D2->getDeclContext())) {
         findBindingToJavaConstant(*AstContext, *D2);
-        emitStructuredInfo(Loc, D2);
+        emitStructuredInfo(ExpansionLoc, D2);
       }
     }
 
@@ -2010,10 +2050,11 @@ public:
 
   bool VisitCXXConstructExpr(CXXConstructExpr *E) {
     SourceLocation Loc = E->getBeginLoc();
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return true;
     }
+
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
 
     FunctionDecl *Ctor = E->getConstructor();
     if (Ctor->isTemplateInstantiation()) {
@@ -2024,7 +2065,7 @@ public:
     // FIXME: Need to do something different for list initialization.
 
     visitIdentifier("use", "constructor", getQualifiedName(Ctor), Loc, Mangled,
-                    QualType(), getContext(Loc));
+                    QualType(), getContext(SpellingLoc));
 
     return true;
   }
@@ -2064,11 +2105,11 @@ public:
       return true;
     }
 
-    normalizeLocation(&Loc);
-
     if (!isInterestingLocation(Loc)) {
       return true;
     }
+
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
 
     std::vector<SourceRange> argRanges;
     for (auto argExpr : E->arguments()) {
@@ -2076,7 +2117,7 @@ public:
     }
 
     visitIdentifier("use", "function", getQualifiedName(NamedCallee), Loc, Mangled,
-                    E->getCallReturnType(*AstContext), getContext(Loc), Flags,
+                    E->getCallReturnType(*AstContext), getContext(SpellingLoc), Flags,
                     SourceRange(), SourceRange(), &argRanges);
 
     return true;
@@ -2084,64 +2125,68 @@ public:
 
   bool VisitTagTypeLoc(TagTypeLoc L) {
     SourceLocation Loc = L.getBeginLoc();
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return true;
     }
 
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
+
     TagDecl *Decl = L.getDecl();
     std::string Mangled = getMangledName(CurMangleContext, Decl);
     visitIdentifier("use", "type", getQualifiedName(Decl), Loc, Mangled,
-                    L.getType(), getContext(Loc));
+                    L.getType(), getContext(SpellingLoc));
     return true;
   }
 
   bool VisitTypedefTypeLoc(TypedefTypeLoc L) {
     SourceLocation Loc = L.getBeginLoc();
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return true;
     }
 
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
+
     NamedDecl *Decl = L.getTypedefNameDecl();
     std::string Mangled = getMangledName(CurMangleContext, Decl);
     visitIdentifier("use", "type", getQualifiedName(Decl), Loc, Mangled,
-                    L.getType(), getContext(Loc));
+                    L.getType(), getContext(SpellingLoc));
     return true;
   }
 
   bool VisitInjectedClassNameTypeLoc(InjectedClassNameTypeLoc L) {
     SourceLocation Loc = L.getBeginLoc();
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return true;
     }
 
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
+
     NamedDecl *Decl = L.getDecl();
     std::string Mangled = getMangledName(CurMangleContext, Decl);
     visitIdentifier("use", "type", getQualifiedName(Decl), Loc, Mangled,
-                    L.getType(), getContext(Loc));
+                    L.getType(), getContext(SpellingLoc));
     return true;
   }
 
   bool VisitTemplateSpecializationTypeLoc(TemplateSpecializationTypeLoc L) {
     SourceLocation Loc = L.getBeginLoc();
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return true;
     }
+
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
 
     TemplateDecl *Td = L.getTypePtr()->getTemplateName().getAsTemplateDecl();
     if (ClassTemplateDecl *D = dyn_cast<ClassTemplateDecl>(Td)) {
       NamedDecl *Decl = D->getTemplatedDecl();
       std::string Mangled = getMangledName(CurMangleContext, Decl);
       visitIdentifier("use", "type", getQualifiedName(Decl), Loc, Mangled,
-                      QualType(), getContext(Loc));
+                      QualType(), getContext(SpellingLoc));
     } else if (TypeAliasTemplateDecl *D = dyn_cast<TypeAliasTemplateDecl>(Td)) {
       NamedDecl *Decl = D->getTemplatedDecl();
       std::string Mangled = getMangledName(CurMangleContext, Decl);
       visitIdentifier("use", "type", getQualifiedName(Decl), Loc, Mangled,
-                      QualType(), getContext(Loc));
+                      QualType(), getContext(SpellingLoc));
     }
 
     return true;
@@ -2149,7 +2194,6 @@ public:
 
   bool VisitDependentNameTypeLoc(DependentNameTypeLoc L) {
     SourceLocation Loc = L.getNameLoc();
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return true;
     }
@@ -2163,14 +2207,15 @@ public:
 
   bool VisitDeclRefExpr(DeclRefExpr *E) {
     SourceLocation Loc = E->getExprLoc();
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return true;
     }
 
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
+
     if (E->hasQualifier()) {
       Loc = E->getNameInfo().getLoc();
-      normalizeLocation(&Loc);
+      SpellingLoc = SM.getSpellingLoc(Loc);
     }
 
     NamedDecl *Decl = E->getDecl();
@@ -2181,7 +2226,7 @@ public:
       }
       std::string Mangled = getMangledName(CurMangleContext, Decl);
       visitIdentifier("use", "variable", getQualifiedName(Decl), Loc, Mangled,
-                      D2->getType(), getContext(Loc), Flags);
+                      D2->getType(), getContext(SpellingLoc), Flags);
     } else if (isa<FunctionDecl>(Decl)) {
       const FunctionDecl *F = dyn_cast<FunctionDecl>(Decl);
       if (F->isTemplateInstantiation()) {
@@ -2190,11 +2235,11 @@ public:
 
       std::string Mangled = getMangledName(CurMangleContext, Decl);
       visitIdentifier("use", "function", getQualifiedName(Decl), Loc, Mangled,
-                      E->getType(), getContext(Loc));
+                      E->getType(), getContext(SpellingLoc));
     } else if (isa<EnumConstantDecl>(Decl)) {
       std::string Mangled = getMangledName(CurMangleContext, Decl);
       visitIdentifier("use", "enum", getQualifiedName(Decl), Loc, Mangled,
-                      E->getType(), getContext(Loc));
+                      E->getType(), getContext(SpellingLoc));
     }
 
     return true;
@@ -2213,7 +2258,6 @@ public:
       }
 
       SourceLocation Loc = Ci->getMemberLocation();
-      normalizeLocation(&Loc);
       if (!isInterestingLocation(Loc)) {
         continue;
       }
@@ -2229,16 +2273,17 @@ public:
 
   bool VisitMemberExpr(MemberExpr *E) {
     SourceLocation Loc = E->getExprLoc();
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return true;
     }
+
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
 
     ValueDecl *Decl = E->getMemberDecl();
     if (FieldDecl *Field = dyn_cast<FieldDecl>(Decl)) {
       std::string Mangled = getMangledName(CurMangleContext, Field);
       visitIdentifier("use", "field", getQualifiedName(Field), Loc, Mangled,
-                      Field->getType(), getContext(Loc));
+                      Field->getType(), getContext(SpellingLoc));
     }
     return true;
   }
@@ -2254,6 +2299,8 @@ public:
   // with an identical string representation (which is a good reason to have
   // this helper, as it ensures identical representations).
   void visitHeuristicResult(SourceLocation Loc, const NamedDecl *ND) {
+    SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
+
     if (const UsingShadowDecl *USD = dyn_cast<UsingShadowDecl>(ND)) {
       ND = USD->getTargetDecl();
     }
@@ -2278,7 +2325,7 @@ public:
     if (SyntaxKind) {
       std::string Mangled = getMangledName(CurMangleContext, ND);
       visitIdentifier("use", SyntaxKind, getQualifiedName(ND), Loc, Mangled,
-                      MaybeType, getContext(Loc));
+                      MaybeType, getContext(SpellingLoc));
     }
   }
 
@@ -2384,6 +2431,20 @@ public:
     std::string symbol =
         std::string("FILE_") + mangleFile(includedFile, type);
 
+    // Support the #include MACRO use-case
+    // When parsing #include MACRO:
+    // - the filename is never passed to onTokenLexed
+    // - inclusionDirective is called before endMacroExpansion (which is only called when the following token is parsed)
+    // So add the filename here and call endMacroExpansion immediately.
+    // This ensures the macro has a correct expansion and it has been added to MacroMaps so the referenced filename knows to populate inExpansionAt.
+    if (MacroExpansionState) {
+      MacroExpansionState->TokenLocations[FileNameRange.getBegin()] = MacroExpansionState->Expansion.length();
+      MacroExpansionState->Expansion += '"';
+      MacroExpansionState->Expansion += includedFile;
+      MacroExpansionState->Expansion += '"';
+      endMacroExpansion();
+    }
+
     visitIdentifier("use", "file", includedFile, FileNameRange, symbol,
                     QualType(), Context(),
                     NotIdentifierToken | LocRangeEndValid);
@@ -2415,7 +2476,6 @@ public:
       return;
     }
     SourceLocation Loc = Tok.getLocation();
-    normalizeLocation(&Loc);
     if (!isInterestingLocation(Loc)) {
       return;
     }
@@ -2427,6 +2487,127 @@ public:
           mangleLocation(Macro->getDefinitionLoc(), std::string(Ident->getName()));
       visitIdentifier("use", "macro", Ident->getName(), Loc, Mangled);
     }
+  }
+
+  void beginMacroExpansion(const Token &Tok, const MacroInfo *Macro, SourceRange Range) {
+    if (!Macro)
+      return;
+
+    if (Macro->isBuiltinMacro())
+      return;
+
+    if (!Tok.getIdentifierInfo())
+      return;
+
+    auto location = Tok.getLocation();
+    normalizeLocation(&location);
+    if (!isInterestingLocation(location))
+      return;
+
+    if (MacroExpansionState) {
+      const auto InMacroArgs = MacroExpansionState->Range.fullyContains(SM.getExpansionRange(Range).getAsRange());
+      const auto InMacroBody = SM.getExpansionLoc(Tok.getLocation()) == SM.getExpansionLoc(MacroExpansionState->MacroNameToken.getLocation());
+      if (InMacroArgs || InMacroBody) {
+        if (MacroExpansionState->MacroInfo->getDefinitionLoc() != Macro->getDefinitionLoc()) {
+          IdentifierInfo *DependencyIdent = Tok.getIdentifierInfo();
+          std::string DependencySymbol = std::string("M_") + mangleLocation(Macro->getDefinitionLoc(), std::string(DependencyIdent->getName()));
+
+          MacroExpansionState->Dependencies.push_back(DependencySymbol);
+        }
+
+        macroUsed(Tok, Macro);
+        return;
+      }
+
+      endMacroExpansion();
+    }
+
+    MacroExpansionState = ::MacroExpansionState{
+      .MacroNameToken = Tok,
+      .MacroInfo = Macro,
+      .Expansion = {},
+      .TokenLocations = {},
+      .Range = Range,
+      .PrevPrevTok = {},
+      .PrevTok = {},
+    };
+  }
+
+  void endMacroExpansion() {
+    const auto replacements = clang::format::reformat(
+      clang::format::getMozillaStyle(),
+      MacroExpansionState->Expansion,
+      {tooling::Range(0, MacroExpansionState->Expansion.length())}
+    );
+    auto formatted = clang::tooling::applyAllReplacements(MacroExpansionState->Expansion, replacements);
+    if (formatted) {
+      for (auto &[k, v] : MacroExpansionState->TokenLocations) {
+        v = replacements.getShiftedCodePosition(v);
+      }
+      MacroExpansionState->Expansion = std::move(formatted.get());
+    }
+
+    IdentifierInfo *Ident = MacroExpansionState->MacroNameToken.getIdentifierInfo();
+    std::string Symbol =
+        std::string("M_") +
+        mangleLocation(MacroExpansionState->MacroInfo->getDefinitionLoc(), std::string(Ident->getName()));
+
+    const auto dependenciesBegin = MacroExpansionState->Dependencies.begin();
+    const auto dependenciesEnd = MacroExpansionState->Dependencies.end();
+    std::sort(dependenciesBegin, dependenciesEnd);
+    MacroExpansionState->Dependencies.erase(std::unique(dependenciesBegin, dependenciesEnd), dependenciesEnd);
+
+    auto Key = Symbol;
+    for (const auto &Dependency : MacroExpansionState->Dependencies) {
+      Key.push_back(',');
+      Key += Dependency;
+    }
+
+    MacroMaps.emplace(std::pair{
+      MacroExpansionState->MacroNameToken.getLocation(),
+      ExpandedMacro{
+        std::move(Symbol),
+        std::move(Key),
+        std::move(MacroExpansionState->Expansion),
+        std::move(MacroExpansionState->TokenLocations),
+      },
+    });
+
+    MacroExpansionState.reset();
+
+    macroUsed(MacroExpansionState->MacroNameToken, MacroExpansionState->MacroInfo);
+  }
+
+  void onTokenLexed(const Token &Tok) {
+    if (!MacroExpansionState)
+      return;
+
+    // check if we exited the macro expansion
+    SourceLocation SLoc = Tok.getLocation();
+    if (!SLoc.isMacroID()) {
+      endMacroExpansion();
+      return;
+    }
+
+    if (ConcatInfo.AvoidConcat(MacroExpansionState->PrevPrevTok, MacroExpansionState->PrevTok, Tok)) {
+      MacroExpansionState->Expansion += ' ';
+    }
+
+    if (Tok.isAnnotation()) {
+      const auto Range = SM.getImmediateExpansionRange(Tok.getLocation());
+      const char *Start = SM.getCharacterData(Range.getBegin());
+      const char *End = SM.getCharacterData(Range.getEnd()) + 1;
+      MacroExpansionState->Expansion += StringRef(Start, End - Start);
+    } else {
+      const auto spelling = CI.getPreprocessor().getSpelling(Tok);
+      if (Tok.isAnyIdentifier()) {
+        MacroExpansionState->TokenLocations[SLoc] = MacroExpansionState->Expansion.length();
+      }
+      MacroExpansionState->Expansion += spelling;
+    }
+
+    MacroExpansionState->PrevPrevTok = MacroExpansionState->PrevTok;
+    MacroExpansionState->PrevTok = Tok;
   }
 };
 
@@ -2485,7 +2666,7 @@ void PreprocessorHook::MacroDefined(const Token &Tok,
 
 void PreprocessorHook::MacroExpands(const Token &Tok, const MacroDefinition &Md,
                                     SourceRange Range, const MacroArgs *Ma) {
-  Indexer->macroUsed(Tok, Md.getMacroInfo());
+  Indexer->beginMacroExpansion(Tok, Md.getMacroInfo(), Range);
 }
 
 void PreprocessorHook::MacroUndefined(const Token &Tok,
