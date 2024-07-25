@@ -3018,13 +3018,13 @@ void DataChannelConnection::CloseAll() {
   }
 
   // Clean up any pending opens for channels
-  for (const auto& channel : mPending) {
+  std::set<RefPtr<DataChannel>> temp(std::move(mPending));
+  for (const auto& channel : temp) {
     DC_DEBUG(("closing pending channel %p, stream %u", channel.get(),
               channel->mStream));
     MutexAutoUnlock lock(mLock);
     channel->Close();  // also releases the ref on each iteration
   }
-  mPending.clear();
   // It's more efficient to let the Resets queue in shutdown and then
   // SendOutgoingStreamReset() here.
   SendOutgoingStreamReset();
