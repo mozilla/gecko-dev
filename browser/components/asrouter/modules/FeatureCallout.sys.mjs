@@ -1319,6 +1319,7 @@ export class FeatureCallout {
     this._windowFuncs = {
       AWGetFeatureConfig: () => this.config,
       AWGetSelectedTheme: getActionHandler("GET_SELECTED_THEME"),
+      AWGetInstalledAddons: getActionHandler("GET_INSTALLED_ADDONS"),
       // Do not send telemetry if message config sets metrics as 'block'.
       AWSendEventTelemetry,
       AWSendToDeviceEmailsSupported: getActionHandler(

@@ -205,6 +205,14 @@ export const MultiStageAboutWelcome = props => {
     setScreens(languageFilteredScreens);
   }, [languageFilteredScreens]);
 
+  const [installedAddons, setInstalledAddons] = useState(null);
+  useEffect(() => {
+    (async () => {
+      let addons = await window.AWGetInstalledAddons();
+      setInstalledAddons(addons);
+    })();
+  }, [index]);
+
   return (
     <React.Fragment>
       <div
@@ -263,6 +271,8 @@ export const MultiStageAboutWelcome = props => {
               forceHideStepsIndicator={screen.force_hide_steps_indicator}
               ariaRole={props.ariaRole}
               aboveButtonStepsIndicator={screen.above_button_steps_indicator}
+              installedAddons={installedAddons}
+              setInstalledAddons={setInstalledAddons}
             />
           ) : null;
         })}
@@ -556,6 +566,7 @@ export class WelcomeScreen extends React.PureComponent {
         order={this.props.order}
         previousOrder={this.props.previousOrder}
         activeTheme={this.props.activeTheme}
+        installedAddons={this.props.installedAddons}
         screenMultiSelects={this.props.screenMultiSelects}
         setScreenMultiSelects={this.props.setScreenMultiSelects}
         activeMultiSelect={this.props.activeMultiSelect}

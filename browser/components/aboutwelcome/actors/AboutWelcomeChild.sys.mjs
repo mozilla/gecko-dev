@@ -102,6 +102,10 @@ export class AboutWelcomeChild extends JSWindowActorChild {
       defineAs: "AWFinish",
     });
 
+    Cu.exportFunction(this.AWGetInstalledAddons.bind(this), window, {
+      defineAs: "AWGetInstalledAddons",
+    });
+
     Cu.exportFunction(this.AWEnsureAddonInstalled.bind(this), window, {
       defineAs: "AWEnsureAddonInstalled",
     });
@@ -296,6 +300,12 @@ export class AboutWelcomeChild extends JSWindowActorChild {
   AWEnsureAddonInstalled(addonId) {
     return this.wrapPromise(
       this.sendQuery("AWPage:ENSURE_ADDON_INSTALLED", addonId)
+    );
+  }
+
+  AWGetInstalledAddons() {
+    return this.wrapPromise(
+      this.sendQueryAndCloneForContent("AWPage:GET_INSTALLED_ADDONS")
     );
   }
 

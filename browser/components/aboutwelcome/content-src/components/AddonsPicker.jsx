@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AboutWelcomeUtils } from "../lib/aboutwelcome-utils.mjs";
 import { Localized } from "./MSLocalized";
 
@@ -17,6 +17,8 @@ export const Loader = () => {
 };
 
 export const InstallButton = props => {
+  // determine if the addon is already installed so the state is
+  // consistent on refresh or navigation
   const [installing, setInstalling] = useState(false);
   const [installComplete, setInstallComplete] = useState(false);
 
@@ -24,6 +26,11 @@ export const InstallButton = props => {
   const defaultInstallCompleteLabel = {
     string_id: "amo-picker-install-complete-label",
   };
+
+  useEffect(() => {
+    setInstallComplete(props.installedAddons?.includes(props.addonId));
+  }, [props.addonId, props.installedAddons]);
+
   let buttonLabel = installComplete
     ? props.install_complete_label || defaultInstallCompleteLabel
     : props.install_label || defaultInstallLabel;
@@ -63,7 +70,7 @@ export const InstallButton = props => {
 };
 
 export const AddonsPicker = props => {
-  const { content } = props;
+  const { content, installedAddons } = props;
 
   if (!content) {
     return null;
@@ -124,6 +131,7 @@ export const AddonsPicker = props => {
                 addonId={id}
                 handleAction={handleAction}
                 index={index}
+                installedAddons={installedAddons}
                 install_label={install_label}
                 install_complete_label={install_complete_label}
               />

@@ -75,9 +75,28 @@ add_task(async function test_aboutwelcome_addonspicker() {
             {
               id: "addon-two-id",
               name: "Tree-Style Tabs",
+              install_label: { string_id: "btn-2-install" },
+              install_complete_label: {
+                string_id: "btn-2-install-complete",
+              },
               icon: "",
               type: "extension",
               description: "Show tabs like a tree.",
+              source_id: "ADD_EXTENSION_BUTTON",
+              action: {
+                type: "INSTALL_ADDON_FROM_URL",
+                data: {
+                  url: "https://test.xpi",
+                  telemetrySource: "aboutwelcome-addon",
+                },
+              },
+            },
+            {
+              id: "addon-three-id",
+              name: "Pre-installed Addon",
+              icon: "",
+              type: "extension",
+              description: "This addon has already been installed.",
               source_id: "ADD_EXTENSION_BUTTON",
               action: {
                 type: "INSTALL_ADDON_FROM_URL",
@@ -120,6 +139,21 @@ add_task(async function test_aboutwelcome_addonspicker() {
         },
       },
     },
+    {
+      id: "AW_STEP_2",
+      content: {
+        title: "Step 4",
+        primary_button: {
+          label: "Next",
+          action: {
+            navigate: true,
+          },
+        },
+        secondary_button: {
+          label: "link",
+        },
+      },
+    },
   ];
 
   await setAboutWelcomeMultiStage(JSON.stringify(TEST_ADDON_CONTENT)); // NB: calls SpecialPowers.pushPrefEnv
@@ -142,6 +176,9 @@ add_task(async function test_aboutwelcome_addonspicker() {
   messageStub
     .withArgs("AWPage:ENSURE_ADDON_INSTALLED", "addon-two-id")
     .resolves("install failed");
+  messageStub
+    .withArgs("AWPage:GET_INSTALLED_ADDONS")
+    .resolves(["addon-three-id"]);
 
   // execution
   await test_screen_content(
@@ -217,6 +254,28 @@ add_task(async function test_aboutwelcome_addonspicker() {
     ["button[data-l10n-id='btn-1-install']"]
   );
 
+  // Navigate to the next screen to test state on forward/back navigation
+  await clickVisibleButton(browser, "button[value='secondary_button']");
+  // Update the message stub to reflect the addon install
+  messageStub
+    .withArgs("AWPage:GET_INSTALLED_ADDONS")
+    .resolves(["addon-one-id", "addon-three-id"]);
+
+  await TestUtils.waitForCondition(() => browser.canGoBack);
+  browser.goBack();
+
+  await test_screen_content(
+    browser,
+    "renders the install complete label if addon is already installed",
+    //Expected selectors
+    [
+      "button[data-l10n-id='btn-1-install-complete']",
+      "button[data-l10n-id='amo-picker-install-complete-label']",
+    ],
+    //Unexpected selectors:
+    ["button[data-l10n-id='btn-2-install-complete']"]
+  );
+
   await clickVisibleButton(browser, ".addon-container button[value='1']"); //click the second install button
 
   calls = messageStub.getCalls();
@@ -236,10 +295,10 @@ add_task(async function test_aboutwelcome_addonspicker() {
     browser,
     "renders the install label if addon is not added successfully",
     //Expected selectors
-    ["button[data-l10n-id='amo-picker-install-button-label']"],
+    ["button[data-l10n-id='btn-2-install']"],
 
     //Unexpected selectors:
-    ["button[data-l10n-id='amo-picker-install-complete-label']"]
+    ["button[data-l10n-id='btn-2-install-complete']"]
   );
 
   // cleanup

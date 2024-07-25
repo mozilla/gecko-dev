@@ -45,6 +45,7 @@ export const MultiStageProtonScreen = props => {
       id={props.id}
       order={props.order}
       activeTheme={props.activeTheme}
+      installedAddons={props.installedAddons}
       screenMultiSelects={props.screenMultiSelects}
       setScreenMultiSelects={props.setScreenMultiSelects}
       activeMultiSelect={props.activeMultiSelect}
@@ -278,6 +279,7 @@ export class ProtonScreen extends React.PureComponent {
         content.tiles.data ? (
           <AddonsPicker
             content={content}
+            installedAddons={this.props.installedAddons}
             message_id={this.props.messageId}
             handleAction={this.props.handleAction}
           />

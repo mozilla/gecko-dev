@@ -28,6 +28,7 @@ describe("MultiStageAboutWelcome module", () => {
     globals = new GlobalOverrider();
     globals.set({
       AWGetSelectedTheme: () => Promise.resolve("automatic"),
+      AWGetInstalledAddons: () => Promise.resolve(["test-addon-id"]),
       AWSendEventTelemetry: () => {},
       AWWaitForMigrationClose: () => Promise.resolve(),
       AWSelectTheme: () => Promise.resolve(),
@@ -62,6 +63,22 @@ describe("MultiStageAboutWelcome module", () => {
       assert.strictEqual(
         welcomeScreenWrapper.prop("initialTheme"),
         "automatic"
+      );
+    });
+
+    it("should fetch a list of installed Addons", async () => {
+      let wrapper = mount(<MultiStageAboutWelcome {...DEFAULT_PROPS} />);
+      // Spin the event loop to allow the useEffect hooks to execute,
+      // any promises to resolve, and re-rendering to happen after the
+      // promises have updated the state/props
+      await new Promise(resolve => setTimeout(resolve, 0));
+      // sync up enzyme's representation with the real DOM
+      wrapper.update();
+
+      let welcomeScreenWrapper = wrapper.find(WelcomeScreen);
+      assert.strictEqual(
+        welcomeScreenWrapper.prop("installedAddons")[0],
+        "test-addon-id"
       );
     });
 

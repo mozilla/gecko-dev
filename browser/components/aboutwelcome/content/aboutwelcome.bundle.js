@@ -350,6 +350,13 @@ const MultiStageAboutWelcome = props => {
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
     setScreens(languageFilteredScreens);
   }, [languageFilteredScreens]);
+  const [installedAddons, setInstalledAddons] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    (async () => {
+      let addons = await window.AWGetInstalledAddons();
+      setInstalledAddons(addons);
+    })();
+  }, [index]);
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: `outer-wrapper onboardingContainer proton transition-${transition}`,
     style: props.backdrop ? {
@@ -395,7 +402,9 @@ const MultiStageAboutWelcome = props => {
       langPackInstallPhase: langPackInstallPhase,
       forceHideStepsIndicator: screen.force_hide_steps_indicator,
       ariaRole: props.ariaRole,
-      aboveButtonStepsIndicator: screen.above_button_steps_indicator
+      aboveButtonStepsIndicator: screen.above_button_steps_indicator,
+      installedAddons: installedAddons,
+      setInstalledAddons: setInstalledAddons
     }) : null;
   })));
 };
@@ -643,6 +652,7 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
       order: this.props.order,
       previousOrder: this.props.previousOrder,
       activeTheme: this.props.activeTheme,
+      installedAddons: this.props.installedAddons,
       screenMultiSelects: this.props.screenMultiSelects,
       setScreenMultiSelects: this.props.setScreenMultiSelects,
       activeMultiSelect: this.props.activeMultiSelect,
@@ -847,6 +857,7 @@ const MultiStageProtonScreen = props => {
     id: props.id,
     order: props.order,
     activeTheme: props.activeTheme,
+    installedAddons: props.installedAddons,
     screenMultiSelects: props.screenMultiSelects,
     setScreenMultiSelects: props.setScreenMultiSelects,
     activeMultiSelect: props.activeMultiSelect,
@@ -1031,6 +1042,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
     } = this.props;
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, content.tiles && content.tiles.type === "addons-picker" && content.tiles.data ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_AddonsPicker__WEBPACK_IMPORTED_MODULE_13__.AddonsPicker, {
       content: content,
+      installedAddons: this.props.installedAddons,
       message_id: this.props.messageId,
       handleAction: this.props.handleAction
     }) : null, content.tiles && content.tiles.type === "theme" && content.tiles.data ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_Themes__WEBPACK_IMPORTED_MODULE_5__.Themes, {
@@ -2197,6 +2209,8 @@ const Loader = () => {
   })));
 };
 const InstallButton = props => {
+  // determine if the addon is already installed so the state is
+  // consistent on refresh or navigation
   const [installing, setInstalling] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
   const [installComplete, setInstallComplete] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
   const defaultInstallLabel = {
@@ -2205,6 +2219,9 @@ const InstallButton = props => {
   const defaultInstallCompleteLabel = {
     string_id: "amo-picker-install-complete-label"
   };
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    setInstallComplete(props.installedAddons?.includes(props.addonId));
+  }, [props.addonId, props.installedAddons]);
   let buttonLabel = installComplete ? props.install_complete_label || defaultInstallCompleteLabel : props.install_label || defaultInstallLabel;
   function onClick(event) {
     props.handleAction(event);
@@ -2233,7 +2250,8 @@ const InstallButton = props => {
 };
 const AddonsPicker = props => {
   const {
-    content
+    content,
+    installedAddons
   } = props;
   if (!content) {
     return null;
@@ -2296,6 +2314,7 @@ const AddonsPicker = props => {
     addonId: id,
     handleAction: handleAction,
     index: index,
+    installedAddons: installedAddons,
     install_label: install_label,
     install_complete_label: install_complete_label
   })) : null));
