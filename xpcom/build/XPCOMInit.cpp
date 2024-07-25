@@ -30,6 +30,8 @@
 #include "nsXPCOMCIDInternal.h"
 
 #include "mozilla/dom/JSExecutionManager.h"
+#include "mozilla/dom/SharedScriptCache.h"
+#include "mozilla/SharedStyleSheetCache.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 
@@ -750,6 +752,9 @@ nsresult ShutdownXPCOM(nsIServiceManager* aServMgr) {
   }
 
   mozilla::ScriptPreloader::DeleteCacheDataSingleton();
+
+  mozilla::dom::SharedScriptCache::DeleteSingleton();
+  mozilla::SharedStyleSheetCache::DeleteSingleton();
 
   // Release shared memory which might be borrowed by the JS engine.
   xpc::SelfHostedShmem::Shutdown();

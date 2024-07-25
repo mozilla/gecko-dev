@@ -212,8 +212,8 @@ void SharedStyleSheetCache::Clear(nsIPrincipal* aForPrincipal,
     }
   }
 
-  if (sInstance) {
-    sInstance->ClearInProcess(aForPrincipal, aBaseDomain);
+  if (sSingleton) {
+    sSingleton->ClearInProcess(aForPrincipal, aBaseDomain);
   }
 }
 

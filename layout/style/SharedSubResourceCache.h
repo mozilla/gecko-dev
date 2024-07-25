@@ -35,6 +35,7 @@
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/dom/Document.h"
 #include "nsContentUtils.h"
+#include "mozilla/StaticPtr.h"
 
 namespace mozilla {
 
@@ -91,20 +92,21 @@ class SharedSubResourceCache {
   SharedSubResourceCache(SharedSubResourceCache&&) = delete;
   SharedSubResourceCache() = default;
 
-  static already_AddRefed<Derived> Get() {
+  static Derived* Get() {
     static_assert(
         std::is_base_of_v<SharedSubResourceCacheLoadingValueBase<LoadingValue>,
                           LoadingValue>);
 
-    if (sInstance) {
-      return do_AddRef(sInstance);
+    if (sSingleton) {
+      return sSingleton.get();
     }
-    MOZ_DIAGNOSTIC_ASSERT(!sInstance);
-    RefPtr<Derived> cache = new Derived();
-    cache->Init();
-    sInstance = cache.get();
-    return cache.forget();
+    MOZ_DIAGNOSTIC_ASSERT(!sSingleton);
+    sSingleton = new Derived();
+    sSingleton->Init();
+    return sSingleton.get();
   }
+
+  static void DeleteSingleton() { sSingleton = nullptr; }
 
  public:
   struct Result {
@@ -159,11 +161,6 @@ class SharedSubResourceCache {
  protected:
   void CancelPendingLoadsForLoader(Loader&);
 
-  ~SharedSubResourceCache() {
-    MOZ_DIAGNOSTIC_ASSERT(sInstance == this);
-    sInstance = nullptr;
-  }
-
   struct CompleteSubResource {
     RefPtr<Value> mResource;
     uint32_t mExpirationTime = 0;
@@ -188,7 +185,9 @@ class SharedSubResourceCache {
   nsTHashMap<PrincipalHashKey, uint32_t> mLoaderPrincipalRefCnt;
 
  protected:
-  inline static Derived* sInstance;
+  // Lazily created in the first Get() call.
+  // The singleton should be deleted by DeleteSingleton() during shutdown.
+  inline static StaticRefPtr<Derived> sSingleton;
 };
 
 template <typename Traits, typename Derived>
