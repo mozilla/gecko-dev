@@ -25,6 +25,7 @@ import { Async } from "resource://services-common/async.sys.mjs";
 import {
   DEVICE_TYPE_DESKTOP,
   DEVICE_TYPE_MOBILE,
+  DEVICE_TYPE_TABLET,
   SINGLE_USER_THRESHOLD,
   SYNC_API_VERSION,
 } from "resource://services-sync/constants.sys.mjs";
@@ -169,8 +170,11 @@ ClientEngine.prototype = {
 
   // Aggregate some stats on the composition of clients on this account
   get stats() {
+    const ALL_MOBILE_TYPES = [DEVICE_TYPE_MOBILE, DEVICE_TYPE_TABLET];
     let stats = {
-      hasMobile: this.localType == DEVICE_TYPE_MOBILE,
+      // Currently this should never be true as this code only runs on Desktop, but
+      // it doesn't cause harm.
+      hasMobile: ALL_MOBILE_TYPES.includes(this.localType),
       names: [this.localName],
       numClients: 1,
     };
@@ -178,7 +182,7 @@ ClientEngine.prototype = {
     for (let id in this._store._remoteClients) {
       let { name, type, stale } = this._store._remoteClients[id];
       if (!stale) {
-        stats.hasMobile = stats.hasMobile || type == DEVICE_TYPE_MOBILE;
+        stats.hasMobile = stats.hasMobile || ALL_MOBILE_TYPES.includes(type);
         stats.names.push(name);
         stats.numClients++;
       }
@@ -206,6 +210,10 @@ ClientEngine.prototype = {
         continue; // pretend "stale" records don't exist.
       }
       let type = record.type;
+      // "tablet" and "mobile" are combined.
+      if (type == DEVICE_TYPE_TABLET) {
+        type = DEVICE_TYPE_MOBILE;
+      }
       if (!counts.has(type)) {
         counts.set(type, 0);
       }
@@ -656,6 +664,7 @@ ClientEngine.prototype = {
           prefName += "desktop";
           break;
         case DEVICE_TYPE_MOBILE:
+        case DEVICE_TYPE_TABLET:
           hid = "WEAVE_DEVICE_COUNT_MOBILE";
           prefName += "mobile";
           break;

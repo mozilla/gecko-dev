@@ -700,6 +700,20 @@ add_task(async function test_filter_duplicate_names() {
     now - 10
   );
 
+  // synced recently, but not as recent as the phone.
+  let tabletID = Utils.makeGUID();
+  user.collection("clients").insertRecord(
+    {
+      id: tabletID,
+      name: "My Tablet",
+      type: "tablet",
+      commands: [],
+      version: "48",
+      protocols: ["1.5"],
+    },
+    now - 100
+  );
+
   // Dupe of our client, synced more than 1 week ago.
   let dupeID = Utils.makeGUID();
   user.collection("clients").insertRecord(
@@ -739,14 +753,14 @@ add_task(async function test_filter_duplicate_names() {
     ok(!engine.isFirstSync);
     deepEqual(
       user.collection("clients").keys().sort(),
-      [recentID, dupeID, oldID, engine.localID].sort(),
+      [recentID, tabletID, dupeID, oldID, engine.localID].sort(),
       "Our record should be uploaded on first sync"
     );
 
     let ids = await store.getAllIDs();
     deepEqual(
       Object.keys(ids).sort(),
-      [recentID, dupeID, oldID, engine.localID].sort(),
+      [recentID, tabletID, dupeID, oldID, engine.localID].sort(),
       "Duplicate ID should remain in getAllIDs"
     );
     ok(
@@ -760,20 +774,20 @@ add_task(async function test_filter_duplicate_names() {
 
     // dupe desktop should not appear in .deviceTypes.
     equal(engine.deviceTypes.get("desktop"), 2);
-    equal(engine.deviceTypes.get("mobile"), 1);
+    equal(engine.deviceTypes.get("mobile"), 2);
 
     // dupe desktop should not appear in stats
     deepEqual(engine.stats, {
       hasMobile: 1,
-      names: [engine.localName, "My Phone", "My old desktop"],
-      numClients: 3,
+      names: [engine.localName, "My Phone", "My Tablet", "My old desktop"],
+      numClients: 4,
     });
 
     ok(engine.remoteClientExists(oldID), "non-dupe ID should exist.");
     ok(!engine.remoteClientExists(dupeID), "dupe ID should not exist");
     equal(
       engine.remoteClients.length,
-      2,
+      3,
       "dupe should not be in remoteClients"
     );
 
@@ -786,7 +800,7 @@ add_task(async function test_filter_duplicate_names() {
 
     await syncClientsEngine(server);
     equal(counts.applied, 0); // We didn't report applying any records.
-    equal(counts.reconciled, 4); // We reported reconcilliation for all records
+    equal(counts.reconciled, 5); // We reported reconcilliation for all records
     equal(counts.succeeded, 0);
     equal(counts.failed, 0);
     equal(counts.newFailed, 0);
@@ -836,7 +850,7 @@ add_task(async function test_filter_duplicate_names() {
     ids = await store.getAllIDs();
     deepEqual(
       Object.keys(ids).sort(),
-      [recentID, oldID, dupeID, engine.localID].sort(),
+      [recentID, tabletID, oldID, dupeID, engine.localID].sort(),
       "Stale client synced, so it should no longer be marked as a dupe"
     );
 
@@ -851,8 +865,14 @@ add_task(async function test_filter_duplicate_names() {
     // Recently synced dupe desktop should now appear in stats
     deepEqual(engine.stats, {
       hasMobile: 1,
-      names: [engine.localName, "My Phone", engine.localName, "My old desktop"],
-      numClients: 4,
+      names: [
+        engine.localName,
+        "My Phone",
+        "My Tablet",
+        engine.localName,
+        "My old desktop",
+      ],
+      numClients: 5,
     });
 
     ok(
@@ -861,7 +881,7 @@ add_task(async function test_filter_duplicate_names() {
     );
     equal(
       engine.remoteClients.length,
-      3,
+      4,
       "recently synced dupe should now be in remoteClients"
     );
   } finally {

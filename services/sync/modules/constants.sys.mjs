@@ -129,5 +129,6 @@ export const kFirefoxShuttingDown = "Firefox is about to shut down";
 
 export const DEVICE_TYPE_DESKTOP = "desktop";
 export const DEVICE_TYPE_MOBILE = "mobile";
+export const DEVICE_TYPE_TABLET = "tablet";
 
 export const SQLITE_MAX_VARIABLE_NUMBER = 999;
