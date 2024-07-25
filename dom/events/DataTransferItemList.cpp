@@ -123,7 +123,9 @@ void DataTransferItemList::Clear(nsIPrincipal& aSubjectPrincipal,
     // We always remove the last item first, to avoid moving items around in
     // memory as much
     Remove(Length() - 1, aSubjectPrincipal, aRv);
-    ENSURE_SUCCESS_VOID(aRv);
+    if (NS_WARN_IF(aRv.Failed())) {
+      return;
+    }
   }
 
   MOZ_ASSERT(Length() == 0);

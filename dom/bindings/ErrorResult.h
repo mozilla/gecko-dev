@@ -944,19 +944,6 @@ class MOZ_TEMPORARY_CLASS IgnoreErrors {
     }                                           \
   } while (0)
 
-#define ENSURE_SUCCESS_VOID(res)                 \
-  do {                                           \
-    if (res.Failed()) {                          \
-      nsCString msg;                             \
-      msg.AppendPrintf(                          \
-          "ENSURE_SUCCESS_VOID(%s) failed with " \
-          "result 0x%X",                         \
-          #res, res.ErrorCodeAsInt());           \
-      NS_WARNING(msg.get());                     \
-      return;                                    \
-    }                                            \
-  } while (0)
-
 }  // namespace mozilla
 
 #endif /* mozilla_ErrorResult_h */
