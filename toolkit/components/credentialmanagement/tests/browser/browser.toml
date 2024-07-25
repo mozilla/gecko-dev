@@ -3,7 +3,6 @@ head = "head.js"
 prefs = [
   "dom.security.credentialmanagement.identity.enabled=true",
   "dom.security.credentialmanagement.identity.heavyweight.enabled=true",
-  "dom.security.credentialmanagement.identity.lightweight.enabled=true",
   "dom.security.credentialmanagement.identity.ignore_well_known=true",
   "privacy.antitracking.enableWebcompat=false",
 ] # disables opener heuristic
@@ -12,8 +11,6 @@ scheme = "https"
 support-files = ["custom.svg"]
 
 ["browser_account_dialog.js"]
-
-["browser_credential_chooser.js"]
 
 ["browser_policy_dialog.js"]
 
