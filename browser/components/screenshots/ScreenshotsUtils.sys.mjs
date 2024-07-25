@@ -541,10 +541,10 @@ export var ScreenshotsUtils = {
 
     let isElementFirst = !!target.nextElementSibling;
 
-    if (isElementFirst && event.shiftKey) {
-      event.preventDefault();
-      this.moveFocusToContent(browser, "backward");
-    } else if (!isElementFirst && !event.shiftKey) {
+    if (
+      (isElementFirst && event.shiftKey) ||
+      (!isElementFirst && !event.shiftKey)
+    ) {
       event.preventDefault();
       this.moveFocusToContent(browser);
     }
@@ -563,11 +563,8 @@ export var ScreenshotsUtils = {
     }
   },
 
-  moveFocusToContent(browser, direction = "forward") {
-    this.getActor(browser).sendAsyncMessage(
-      "Screenshots:MoveFocusToContent",
-      direction
-    );
+  moveFocusToContent(browser) {
+    this.getActor(browser).sendAsyncMessage("Screenshots:MoveFocusToContent");
   },
 
   clearContentFocus(browser) {

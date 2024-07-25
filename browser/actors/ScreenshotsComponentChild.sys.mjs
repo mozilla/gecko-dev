@@ -76,7 +76,7 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
       case "Screenshots:AddEventListeners":
         return this.addEventListeners();
       case "Screenshots:MoveFocusToContent":
-        return this.focusOverlay(message.data);
+        return this.focusOverlay();
       case "Screenshots:ClearFocus":
         Services.focus.clearFocus(this.contentWindow);
         return null;
@@ -212,9 +212,9 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
     return methodsUsed;
   }
 
-  focusOverlay(direction) {
+  focusOverlay() {
     this.contentWindow.focus();
-    this.#overlay.focus(direction);
+    this.#overlay.focus();
   }
 
   /**

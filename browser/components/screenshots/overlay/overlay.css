@@ -154,8 +154,10 @@
   content: url("chrome://browser/skin/downloads/downloads.svg");
 }
 
-#face-container {
+.face-container {
   position: relative;
+  width: 64px;
+  height: 64px;
 
   @media (forced-colors) {
     display: none;
@@ -163,8 +165,9 @@
 }
 
 .face {
-  width: 64px;
-  height: 64px;
+  width: 62px;
+  height: 62px;
+  display: block;
   background-image: url("chrome://browser/content/screenshots/icon-welcome-face-without-eyes.svg");
 }
 

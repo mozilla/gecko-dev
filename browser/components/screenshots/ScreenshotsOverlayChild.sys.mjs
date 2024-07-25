@@ -90,7 +90,6 @@ export class ScreenshotsOverlay {
       instructions,
       downloadAttributes,
       copyAttributes,
-      previewFaceAriaLabel,
     ] = lazy.overlayLocalization.formatMessagesSync([
       { id: "screenshots-cancel-button" },
       { id: "screenshots-component-cancel-button" },
@@ -103,7 +102,6 @@ export class ScreenshotsOverlay {
         id: "screenshots-component-copy-button-2",
         args: { shortcut: copyShorcut },
       },
-      { id: "screenshots-overlay-preview-face-label" },
     ]);
 
     return `
@@ -111,7 +109,7 @@ export class ScreenshotsOverlay {
         <link rel="stylesheet" href="chrome://browser/content/screenshots/overlay/overlay.css" />
         <div id="screenshots-component">
           <div id="preview-container" hidden>
-            <div id="face-container" tabindex="0" role="button" aria-label="${previewFaceAriaLabel.attributes[0].value}">
+            <div class="face-container">
               <div class="eye left"><div id="left-eye" class="eyeball"></div></div>
               <div class="eye right"><div id="right-eye" class="eyeball"></div></div>
               <div class="face"></div>
@@ -257,7 +255,6 @@ export class ScreenshotsOverlay {
     this.downloadButton = this.getElementById("download");
 
     this.previewContainer = this.getElementById("preview-container");
-    this.previewFace = this.getElementById("face-container");
     this.hoverElementContainer = this.getElementById("hover-highlight");
     this.selectionContainer = this.getElementById("selection-container");
     this.buttonsContainer = this.getElementById("buttons-container");
@@ -308,12 +305,8 @@ export class ScreenshotsOverlay {
     };
   }
 
-  focus(direction) {
-    if (direction === "backward") {
-      this.previewCancelButton.focus({ focusVisible: true });
-    } else {
-      this.previewFace.focus({ focusVisible: true });
-    }
+  focus() {
+    this.previewCancelButton.focus({ focusVisible: true });
   }
 
   /**
@@ -609,18 +602,7 @@ export class ScreenshotsOverlay {
           return;
         }
 
-        // If the preview face is focused, create a region from the preview
-        // face and move focus to the bottom right mover for adjustments
-        if (Services.focus.focusedElement === this.previewFace) {
-          let rect = this.previewFace.getBoundingClientRect();
-          this.hoverElementRegion.dimensions = rect;
-          this.draggingReadyStart();
-          this.draggingReadyDragEnd({ doNotMoveFocus: true });
-          this.bottomRightMover.focus({ focusVisible: true });
-          return;
-        }
-
-        if (Services.appinfo.isWayland) {
+        if (event.originalTarget === this.previewCancelButton) {
           return;
         }
 
@@ -1053,22 +1035,14 @@ export class ScreenshotsOverlay {
   maybeLockFocus(event) {
     switch (this.#state) {
       case STATES.CROSSHAIRS:
-        if (event.originalTarget === this.previewCancelButton) {
-          if (event.shiftKey) {
-            this.previewFace.focus({ focusVisible: true });
-          } else {
-            this.#dispatchEvent("Screenshots:FocusPanel", {
-              direction: "forward",
-            });
-          }
-        } else if (event.originalTarget === this.previewFace) {
-          if (event.shiftKey) {
-            this.#dispatchEvent("Screenshots:FocusPanel", {
-              direction: "backward",
-            });
-          } else {
-            this.previewCancelButton.focus({ focusVisible: true });
-          }
+        if (event.shiftKey) {
+          this.#dispatchEvent("Screenshots:FocusPanel", {
+            direction: "backward",
+          });
+        } else {
+          this.#dispatchEvent("Screenshots:FocusPanel", {
+            direction: "forward",
+          });
         }
         break;
       case STATES.SELECTED:
@@ -1110,8 +1084,6 @@ export class ScreenshotsOverlay {
    * explicitly handle keydown events on buttons here.
    *
    * @param {KeyEvent} event The keydown event
-   *
-   * @returns {Boolean} True if the event was handled here, otherwise false.
    */
   handleKeyDownOnButton(event) {
     switch (event.originalTarget) {
@@ -1257,11 +1229,8 @@ export class ScreenshotsOverlay {
   /**
    * Hide the preview and hover element containers.
    * Draw the selection and buttons containers.
-   *
-   * @param {object} [options={}] (optional)
-   * @param {boolean} doNotMoveFocus True if focus should not be moved to an action button
    */
-  selectedStart(options = {}) {
+  selectedStart(options) {
     this.selectionRegion.sortCoords();
     this.hidePreviewContainer();
     this.hideHoverElementContainer();
@@ -1492,13 +1461,11 @@ export class ScreenshotsOverlay {
    * If there is a valid element region, update and draw the selection
    * container and set the state to selected.
    * Otherwise set the state to crosshairs.
-   *
-   * @param {Object} options (optional) Options for passing to setState method
    */
-  draggingReadyDragEnd(options = {}) {
+  draggingReadyDragEnd() {
     if (this.hoverElementRegion.isRegionValid) {
       this.selectionRegion.dimensions = this.hoverElementRegion.dimensions;
-      this.#setState(STATES.SELECTED, options);
+      this.#setState(STATES.SELECTED);
       this.#dispatchEvent("Screenshots:RecordEvent", {
         eventName: "selected",
         reason: "element",
