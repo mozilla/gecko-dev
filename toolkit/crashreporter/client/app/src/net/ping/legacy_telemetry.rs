@@ -43,7 +43,6 @@ pub enum Ping<'a> {
         #[serde(with = "time_format")]
         creation_date: time::OffsetDateTime,
         client_id: &'a str,
-        group_id: &'a str,
         #[serde(skip_serializing_if = "serde_json::Value::is_null")]
         environment: serde_json::Value,
         payload: Payload<'a>,
@@ -141,9 +140,6 @@ impl<'a> Ping<'a> {
             client_id: extra["TelemetryClientId"]
                 .as_str()
                 .context("missing TelemetryClientId")?,
-            group_id: extra["TelemetryProfileGroupId"]
-                .as_str()
-                .context("missing TelemetryProfileGroupId")?,
             environment,
             payload: Payload {
                 session_id: extra["TelemetrySessionId"]

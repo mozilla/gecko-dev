@@ -12,7 +12,6 @@ were loaded into Firefox processes.
       "type": "third-party-modules",
       ... common ping data
       "clientId": <UUID>,
-      "profileGroupId": <UUID>,
       "environment": { ... },
       "payload": {
         "structVersion": 1,
@@ -117,7 +116,7 @@ omitted from the ping when it is identical to ``resolvedDllName``.
 
 Notes
 ~~~~~
-* The client id and profile group id are submitted with this ping.
+* The client id is submitted with this ping.
 * The :doc:`Telemetry Environment <../data/environment>` is submitted in this ping.
 * String fields within ``payload`` are limited in length to 260 characters.
 * This ping is sent once daily.

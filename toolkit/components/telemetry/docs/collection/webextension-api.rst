@@ -55,7 +55,7 @@ Submits a custom ping to the Telemetry backend. See :ref:`submitting-customping`
 * ``message`` - *(object)* The data payload for the ping.
 * ``options`` - *(optional, object)* Options object.
 
-  * ``addClientId`` - *(optional, boolean)* True if the ping should contain the client id and profile group id. Defaults to ``false``.
+  * ``addClientId`` - *(optional, boolean)* True if the ping should contain the client id. Defaults to ``false``.
   * ``addEnvironment`` - *(optional, boolean)* True if the ping should contain the environment data. Defaults to ``false``.
   * ``overrideEnvironment`` - *(optional, object)* Set to override the environment data. Default: not set.
   * ``usePingSender`` - *(optional, boolean)* If true, send the ping using the PingSender. Defaults to ``false``.

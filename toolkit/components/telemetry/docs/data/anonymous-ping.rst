@@ -6,7 +6,7 @@
 
     This ping is no longer sent by Firefox or Fennec.
 
-This ping is only for product survey purpose and will not track/associate client ID or profile group ID. It's used
+This ping is only for product survey purpose and will not track/associate client ID. It's used
 to evaluate custom tab usage and see which app is using our custom tab.
 
 Submission interval & triggers
@@ -14,7 +14,7 @@ Since this ping is used to measure the feature usage, it should be sent each tim
 
 Dataset:
 Only opt-in users will send out this ping.
-Since all other pings will collect client ID and profile group ID. We need this custom ping to not do that.
+Since all other pings will collect client ID. We need this custom ping to not do that.
 
 Size and volume:
 The size of submitted payload is small. And this custom ping should be deprecated after it's released for 6 months.
@@ -65,4 +65,4 @@ Version history
 
 Notes
 ~~~~~
-There's no option in this custom ping since we don't collect clientId, profileGroupId nor environment data.
+There's no option in this custom ping since we don't collect clientId nor environment data.

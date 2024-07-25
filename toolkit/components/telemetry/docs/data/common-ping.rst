@@ -8,10 +8,9 @@ It contains basic information shared between different ping types, which enables
 It also contains optional further information:
 
 * the :doc:`environment data <../data/environment>`, which contains important info to correlate the measurements against
-* the ``clientId``, a UUID identifying a profile and allowing profile-oriented correlation of data
-* the ``profileGroupId``, a UUID identifying the profile's group on a single device and allowing user-oriented correlation of data
+* the ``clientId``, a UUID identifying a profile and allowing user-oriented correlation of data
 
-*Note:* These are not submitted with all ping types due to privacy concerns. This and the data it that can be correlated against is inspected under the `data collection policy <https://wiki.mozilla.org/Firefox/Data_Collection>`_.
+*Note:* Both are not submitted with all ping types due to privacy concerns. This and the data it that can be correlated against is inspected under the `data collection policy <https://wiki.mozilla.org/Firefox/Data_Collection>`_.
 
 Finally, the structure also contains the `payload`, which is the specific data submitted for the respective *ping type*.
 
@@ -38,7 +37,6 @@ Structure:
       },
 
       clientId: <UUID>, // optional
-      profileGroupId: <UUID>, // optional
       environment: { ... }, // optional, not all pings contain the environment
       payload: { ... }, // the actual payload data for this ping type
     }

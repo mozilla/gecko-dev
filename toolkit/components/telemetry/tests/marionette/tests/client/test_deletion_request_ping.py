@@ -16,19 +16,14 @@ class TestDeletionRequestPing(TelemetryTestCase):
     def test_deletion_request_ping_across_sessions(self):
         """Test the "deletion-request" ping behaviour across sessions."""
 
-        ping = self.wait_for_ping(self.install_addon, ANY_PING)
-
         # Get the client_id.
-        client_id = ping["clientId"]
+        client_id = self.wait_for_ping(self.install_addon, ANY_PING)["clientId"]
         self.assertIsValidUUID(client_id)
-        profile_group_id = ping["profileGroupId"]
-        self.assertIsValidUUID(profile_group_id)
 
         # Trigger an "deletion-request" ping.
         ping = self.wait_for_ping(self.disable_telemetry, DELETION_REQUEST_PING)
 
         self.assertIn("clientId", ping)
-        self.assertIn("profileGroupId", ping)
         self.assertIn("payload", ping)
         self.assertNotIn("environment", ping["payload"])
 
@@ -75,7 +70,6 @@ class TestDeletionRequestPing(TelemetryTestCase):
         self.assertIn("clientId", main_ping)
         self.assertIsValidUUID(main_ping["clientId"])
         self.assertNotEqual(main_ping["clientId"], client_id)
-        self.assertEqual(main_ping["profileGroupId"], profile_group_id)
 
         # Ensure we note in the ping that the user opted in.
         parent_scalars = main_ping["payload"]["processes"]["parent"]["scalars"]

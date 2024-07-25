@@ -213,19 +213,6 @@ class TelemetryTestCase(WindowManagerMixin, MarionetteTestCase):
             )
 
     @property
-    def profile_group_id(self):
-        """Return the profile group ID of the current client."""
-        with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
-            return self.marionette.execute_script(
-                """\
-                const { ClientID } = ChromeUtils.importESModule(
-                  "resource://gre/modules/ClientID.sys.mjs"
-                );
-                return ClientID.getCachedProfileGroupID();
-                """
-            )
-
-    @property
     def subsession_id(self):
         """Return the ID of the current subsession."""
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):

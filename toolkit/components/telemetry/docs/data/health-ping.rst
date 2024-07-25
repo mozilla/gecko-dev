@@ -7,7 +7,7 @@ The ping is submitted at most once per hour. On shutdown an additional ping is s
 to avoid losing collected data.
 
 This ping is intended to be really small.
-The client id and profile group id are submitted with this ping.
+The client id is submitted with this ping.
 
 .. code-block:: js
 
@@ -16,7 +16,6 @@ The client id and profile group id are submitted with this ping.
       ... common ping data
       "clientId": <UUID>, // client id, e.g.
                             // "c641eacf-c30c-4171-b403-f077724e848a"
-      "profileGroupId": <UUID>,
       "payload": {
         "os": {
             "name": <string>, // OS name

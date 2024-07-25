@@ -288,7 +288,6 @@ var Impl = {
   // Undefined if this is not the first run, or the previous build ID is unknown.
   _previousBuildID: undefined,
   _clientID: null,
-  _profileGroupID: null,
   // A task performing delayed initialization
   _delayedInitTask: null,
   // The deferred promise resolved when the initialization task completes.
@@ -408,7 +407,6 @@ var Impl = {
 
     if (aOptions.addClientId || aOptions.overrideClientId) {
       pingData.clientId = aOptions.overrideClientId || this._clientID;
-      pingData.profileGroupId = this._profileGroupID;
     }
 
     if (aOptions.addEnvironment) {
@@ -466,20 +464,14 @@ var Impl = {
     // Make sure to have a clientId if we need one. This cover the case of submitting
     // a ping early during startup, before Telemetry is initialized, if no client id was
     // cached.
-    if (
-      aOptions.addClientId &&
-      (!this._profileGroupID || (!this._clientID && !aOptions.overrideClientId))
-    ) {
-      this._log.trace(
-        "_submitPingLogic - Waiting on client id or profile group id"
-      );
+    if (!this._clientID && aOptions.addClientId && !aOptions.overrideClientId) {
+      this._log.trace("_submitPingLogic - Waiting on client id");
       Services.telemetry
         .getHistogramById("TELEMETRY_PING_SUBMISSION_WAITING_CLIENTID")
         .add();
       // We can safely call |getClientID| here and during initialization: we would still
       // spawn and return one single loading task.
       this._clientID = await lazy.ClientID.getClientID();
-      this._profileGroupID = await lazy.ClientID.getProfileGroupID();
     }
 
     let pingData = this.assemblePing(aType, aPayload, aOptions);
@@ -808,7 +800,6 @@ var Impl = {
     // We try to cache it in prefs to avoid this, even though this may
     // lead to some stale client ids.
     this._clientID = lazy.ClientID.getCachedClientID();
-    this._profileGroupID = lazy.ClientID.getCachedProfileGroupID();
 
     // Init the update ping telemetry as early as possible. This won't have
     // an impact on startup.
@@ -827,7 +818,6 @@ var Impl = {
 
           // Load the ClientID.
           this._clientID = await lazy.ClientID.getClientID();
-          this._profileGroupID = await lazy.ClientID.getProfileGroupID();
 
           // Fix-up a canary client ID if detected.
           const uploadEnabled = Services.prefs.getBoolPref(
@@ -1220,7 +1210,6 @@ var Impl = {
 
   async reset() {
     this._clientID = null;
-    this._profileGroupID = null;
     this._fnSyncPingShutdown = null;
     this._detachObservers();
 

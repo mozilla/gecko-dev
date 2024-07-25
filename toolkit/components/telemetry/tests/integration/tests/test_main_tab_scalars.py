@@ -21,7 +21,6 @@ def test_main_tab_scalars(browser, helpers):
 
     assert "main" == ping["type"]
     assert browser.get_client_id() == ping["clientId"]
-    assert browser.get_profile_group_id() == ping["profileGroupId"]
 
     scalars = ping["payload"]["processes"]["parent"]["scalars"]
 

@@ -19,7 +19,6 @@ Structure:
       type: "new-profile",
       ... common ping data
       clientId: <UUID>,
-      profileGroupId: <UUID>,
       environment: { ... },
       payload: {
         reason: "startup", // or "shutdown"
