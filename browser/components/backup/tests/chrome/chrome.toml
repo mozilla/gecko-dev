@@ -2,6 +2,7 @@
 prefs = [
     "browser.backup.scheduled.enabled=false",
 ]
+support-files = ["head.js"]
 skip-if = ["os == 'android'"]
 
 ["test_backup_settings.html"]
@@ -9,6 +10,8 @@ skip-if = ["os == 'android'"]
 ["test_disable_backup_encryption.html"]
 
 ["test_enable_backup_encryption.html"]
+
+["test_password_validation_inputs.html"]
 
 ["test_restore_from_backup.html"]
 

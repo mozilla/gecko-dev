@@ -208,23 +208,17 @@ add_task(async function test_turn_on_scheduled_backups_encryption() {
     passwordsCheckbox.click();
     await turnOnScheduledBackups.updateComplete;
 
-    Assert.ok(
-      turnOnScheduledBackups.passwordOptionsExpandedEl,
-      "Passwords expanded options should be found"
+    let passwordOptionsExpanded =
+      turnOnScheduledBackups.passwordOptionsExpandedEl;
+    Assert.ok(passwordOptionsExpanded, "Password inputs should be found");
+
+    let validityPromise = createMockValidityPassEventPromise(
+      turnOnScheduledBackups,
+      passwordOptionsExpanded,
+      "ValidPasswordsDetected"
     );
 
-    let newPasswordInput = turnOnScheduledBackups.inputNewPasswordEl;
-    let repeatPasswordInput = turnOnScheduledBackups.inputRepeatPasswordEl;
-
-    // Pretend we're entering a password in the new password field
-    let newPassPromise = createMockPassInputEventPromise(
-      newPasswordInput,
-      MOCK_PASSWORD
-    );
-    await newPassPromise;
-
-    // Pretend we're entering a password in the repeat field
-    // Before matching passwords, verify confirm button
+    // Verify confirm button
     let confirmButton = turnOnScheduledBackups.confirmButtonEl;
     Assert.ok(confirmButton, "Confirm button should be found");
     Assert.ok(confirmButton.disabled, "Confirm button should be disabled");
@@ -235,12 +229,7 @@ add_task(async function test_turn_on_scheduled_backups_encryption() {
       () => !confirmButton.disabled
     );
 
-    // Passwords match
-    let matchPassPromise = createMockPassInputEventPromise(
-      repeatPasswordInput,
-      MOCK_PASSWORD
-    );
-    await matchPassPromise;
+    await validityPromise;
     await confirmButtonPromise;
 
     let promise = BrowserTestUtils.waitForEvent(
@@ -254,8 +243,8 @@ add_task(async function test_turn_on_scheduled_backups_encryption() {
     await settings.updateComplete;
 
     Assert.ok(
-      encryptionStub.calledOnce,
-      "BackupService was called to enable encryption"
+      encryptionStub.calledOnceWith(MOCK_PASSWORD),
+      "BackupService was called to enable encryption and received the expected argument"
     );
 
     sandbox.restore();
@@ -298,23 +287,21 @@ add_task(async function test_turn_on_scheduled_backups_encryption_error() {
     passwordsCheckbox.click();
     await turnOnScheduledBackups.updateComplete;
 
+    let passwordOptionsExpanded =
+      turnOnScheduledBackups.passwordOptionsExpandedEl;
+
     Assert.ok(
-      turnOnScheduledBackups.passwordOptionsExpandedEl,
+      passwordOptionsExpanded,
       "Passwords expanded options should be found"
     );
 
-    let newPasswordInput = turnOnScheduledBackups.inputNewPasswordEl;
-    let repeatPasswordInput = turnOnScheduledBackups.inputRepeatPasswordEl;
-
-    // Pretend we're entering a password in the new password field
-    let newPassPromise = createMockPassInputEventPromise(
-      newPasswordInput,
-      MOCK_PASSWORD
+    let validityPromise = createMockValidityPassEventPromise(
+      turnOnScheduledBackups,
+      passwordOptionsExpanded,
+      "ValidPasswordsDetected"
     );
-    await newPassPromise;
 
-    // Pretend we're entering a password in the repeat field
-    // Before matching passwords, verify confirm button
+    // Verify confirm button
     let confirmButton = turnOnScheduledBackups.confirmButtonEl;
     Assert.ok(confirmButton, "Confirm button should be found");
     Assert.ok(confirmButton.disabled, "Confirm button should be disabled");
@@ -325,12 +312,7 @@ add_task(async function test_turn_on_scheduled_backups_encryption_error() {
       () => !confirmButton.disabled
     );
 
-    // Passwords match
-    let matchPassPromise = createMockPassInputEventPromise(
-      repeatPasswordInput,
-      MOCK_PASSWORD
-    );
-    await matchPassPromise;
+    await validityPromise;
     await confirmButtonPromise;
 
     let promise = BrowserTestUtils.waitForEvent(
@@ -358,5 +340,6 @@ add_task(async function test_turn_on_scheduled_backups_encryption_error() {
     );
 
     sandbox.restore();
+    Services.prefs.clearUserPref(SCHEDULED_BACKUPS_ENABLED_PREF);
   });
 });

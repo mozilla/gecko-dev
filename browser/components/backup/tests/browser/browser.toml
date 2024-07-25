@@ -8,6 +8,8 @@ support-files = [
   "head.js",
 ]
 
+["browser_password_validation_inputs.js"]
+
 ["browser_settings.js"]
 
 ["browser_settings_enable_backup_encryption.js"]

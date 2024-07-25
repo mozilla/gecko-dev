@@ -56,29 +56,25 @@ add_task(async function test_enable_backup_encryption_checkbox_confirm() {
       enableBackupEncryption,
       "enable-backup-encryption should be found"
     );
-
-    let newPasswordInput = enableBackupEncryption.inputNewPasswordEl;
-    let repeatPasswordInput = enableBackupEncryption.inputRepeatPasswordEl;
-
-    // Pretend we're entering a password in the new password field
-    let newPassPromise = createMockPassInputEventPromise(
-      newPasswordInput,
-      MOCK_PASSWORD
+    Assert.equal(
+      enableBackupEncryption.type,
+      "set-password",
+      "enable-backup-encryption type should be set-password"
     );
-    await newPassPromise;
 
-    // Pretend we're entering a password in the repeat field
-    // Before matching passwords, verify confirm button
+    let passwordInputs = enableBackupEncryption.passwordInputsEl;
+    Assert.ok(passwordInputs, "password-validation-inputs should be found");
+
     let confirmButton = enableBackupEncryption.confirmButtonEl;
     Assert.ok(confirmButton, "Confirm button should be found");
     Assert.ok(confirmButton.disabled, "Confirm button should be disabled");
 
-    // Passwords match
-    let matchPassPromise = createMockPassInputEventPromise(
-      repeatPasswordInput,
-      MOCK_PASSWORD
+    // Pretend we have a valid password
+    let validPromise = createMockValidityPassEventPromise(
+      enableBackupEncryption,
+      passwordInputs,
+      "ValidPasswordsDetected"
     );
-    await matchPassPromise;
 
     let confirmButtonPromise = BrowserTestUtils.waitForMutationCondition(
       confirmButton,
@@ -86,6 +82,7 @@ add_task(async function test_enable_backup_encryption_checkbox_confirm() {
       () => !confirmButton.disabled
     );
 
+    await validPromise;
     await confirmButtonPromise;
     ok(!confirmButton.disabled, "Confirm button should no longer be disabled");
 
@@ -152,30 +149,25 @@ add_task(
         enableBackupEncryption,
         "enable-backup-encryption should be found"
       );
-
-      let newPasswordInput = enableBackupEncryption.inputNewPasswordEl;
-      let repeatPasswordInput = enableBackupEncryption.inputRepeatPasswordEl;
-      const changedPassword = "changedPassword";
-
-      // Pretend we're entering a password in the new password field
-      let newPassPromise = createMockPassInputEventPromise(
-        newPasswordInput,
-        changedPassword
+      Assert.equal(
+        enableBackupEncryption.type,
+        "change-password",
+        "enable-backup-encryption type should be change-password"
       );
-      await newPassPromise;
 
-      // Pretend we're entering a password in the repeat field
-      // Before matching passwords, verify confirm button
+      let passwordInputs = enableBackupEncryption.passwordInputsEl;
+      Assert.ok(passwordInputs, "password-validation-inputs should be found");
+
       let confirmButton = enableBackupEncryption.confirmButtonEl;
       Assert.ok(confirmButton, "Confirm button should be found");
       Assert.ok(confirmButton.disabled, "Confirm button should be disabled");
 
-      // Passwords match
-      let matchPassPromise = createMockPassInputEventPromise(
-        repeatPasswordInput,
-        changedPassword
+      // Pretend we have a valid password
+      let validPromise = createMockValidityPassEventPromise(
+        enableBackupEncryption,
+        passwordInputs,
+        "ValidPasswordsDetected"
       );
-      await matchPassPromise;
 
       let confirmButtonPromise = BrowserTestUtils.waitForMutationCondition(
         confirmButton,
@@ -183,6 +175,7 @@ add_task(
         () => !confirmButton.disabled
       );
 
+      await validPromise;
       await confirmButtonPromise;
       ok(
         !confirmButton.disabled,
@@ -201,7 +194,7 @@ add_task(
         "BackupService was called to disable encryption first before registering the changed password"
       );
       Assert.ok(
-        enableEncryptionStub.calledOnceWith(changedPassword),
+        enableEncryptionStub.calledOnceWith(MOCK_PASSWORD),
         "BackupService was called to re-run encryption with changed password"
       );
 
