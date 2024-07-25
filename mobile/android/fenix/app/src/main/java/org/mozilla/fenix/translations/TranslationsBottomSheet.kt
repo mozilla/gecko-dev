@@ -5,13 +5,6 @@
 package org.mozilla.fenix.translations
 
 import android.content.Context
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandIn
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,9 +20,6 @@ import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.TranslationError
@@ -64,78 +54,6 @@ internal fun TranslationDialogBottomSheet(
 
             content()
         }
-    }
-}
-
-@Composable
-internal fun TranslationsAnimation(
-    translationsVisibility: Boolean,
-    density: Density,
-    translationsOptionsHeightDp: Dp,
-    content: @Composable AnimatedVisibilityScope.() -> Unit,
-) {
-    AnimatedVisibility(
-        visible = translationsVisibility,
-        enter = expandIn(
-            animationSpec = tween(
-                easing = FastOutSlowInEasing,
-            ),
-            initialSize = {
-                with(density) {
-                    IntSize(
-                        0,
-                        translationsOptionsHeightDp.roundToPx(),
-                    )
-                }
-            },
-        ) + fadeIn(
-            animationSpec = tween(
-                easing = FastOutSlowInEasing,
-            ),
-        ) + slideInHorizontally(
-            animationSpec = tween(
-                easing = FastOutSlowInEasing,
-            ),
-        ),
-    ) {
-        content()
-    }
-}
-
-@Composable
-internal fun TranslationsOptionsAnimation(
-    translationsVisibility: Boolean,
-    density: Density,
-    translationsHeightDp: Dp,
-    translationsWidthDp: Dp,
-    content: @Composable AnimatedVisibilityScope.() -> Unit,
-) {
-    AnimatedVisibility(
-        visible = translationsVisibility,
-        enter = expandIn(
-            animationSpec = tween(
-                easing = FastOutSlowInEasing,
-            ),
-            initialSize = {
-                with(density) {
-                    IntSize(
-                        0,
-                        translationsHeightDp.roundToPx(),
-                    )
-                }
-            },
-        ) + fadeIn(
-            animationSpec = tween(
-                easing = FastOutSlowInEasing,
-            ),
-        ) + slideInHorizontally(
-            initialOffsetX = { with(density) { translationsWidthDp.roundToPx() } },
-            animationSpec = tween(
-                easing = FastOutSlowInEasing,
-            ),
-        ),
-    ) {
-        content()
     }
 }
 

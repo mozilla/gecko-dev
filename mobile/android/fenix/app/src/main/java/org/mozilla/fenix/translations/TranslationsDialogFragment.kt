@@ -11,6 +11,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -153,16 +155,13 @@ class TranslationsDialogFragment : BottomSheetDialogFragment() {
                 var revertAlwaysTranslateLanguageCheckBox by remember {
                     mutableStateOf(false)
                 }
-
                 TranslationDialogBottomSheet(
                     onRequestDismiss = { behavior?.state = BottomSheetBehavior.STATE_HIDDEN },
                 ) {
                     TranslationsAnimation(
-                        translationsVisibility = translationsVisibility,
-                        density = density,
-                        translationsOptionsHeightDp = translationsOptionsHeightDp,
-                    ) {
-                        if (translationsVisibility) {
+                        showMainSheet = translationsVisibility,
+                    ) { showMainPage ->
+                        if (showMainPage) {
                             Column(
                                 modifier = Modifier.onGloballyPositioned { coordinates ->
                                     translationsHeightDp = with(density) {
@@ -179,7 +178,11 @@ class TranslationsDialogFragment : BottomSheetDialogFragment() {
                                         showPageSettings = FxNimbus.features.translations.value().pageSettingsEnabled,
                                         translationsDialogState = it,
                                         onSettingClicked = {
-                                            Translations.action.record(Translations.ActionExtra("page_settings"))
+                                            Translations.action.record(
+                                                Translations.ActionExtra(
+                                                    "page_settings",
+                                                ),
+                                            )
                                             translationsVisibility = false
                                         },
                                         onShowDownloadLanguageFileDialog = {
@@ -188,16 +191,7 @@ class TranslationsDialogFragment : BottomSheetDialogFragment() {
                                     )
                                 }
                             }
-                        }
-                    }
-
-                    TranslationsOptionsAnimation(
-                        translationsVisibility = !translationsVisibility,
-                        density = density,
-                        translationsHeightDp = translationsHeightDp,
-                        translationsWidthDp = translationsWidthDp,
-                    ) {
-                        if (!translationsVisibility) {
+                        } else {
                             Column(
                                 modifier = Modifier.onGloballyPositioned { coordinates ->
                                     translationsOptionsHeightDp = with(density) {
