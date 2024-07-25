@@ -65,6 +65,7 @@ import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.TestHelper.waitForObjects
+import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
@@ -543,6 +544,8 @@ class BrowserRobot {
         mDevice.waitForWindowUpdate(packageName, waitingTime)
         Log.i(TAG, "fillAndSaveCreditCard: Waited for $waitingTime ms for $packageName window to be updated")
     }
+
+    fun clickNegativeSaveCreditCardPromptButton() = onView(withId(R.id.save_cancel)).inRoot(isDialog()).click()
 
     fun verifyUpdateOrSaveCreditCardPromptExists(exists: Boolean) =
         assertUIObjectExists(
