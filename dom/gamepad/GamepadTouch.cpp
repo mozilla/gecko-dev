@@ -53,7 +53,6 @@ void GamepadTouch::GetSurfaceDimensions(JSContext* aCx,
   }
 
   if (!mSurfaceDimensions) {
-    aRv.NoteJSContextException(aCx);
     return;
   }
 
