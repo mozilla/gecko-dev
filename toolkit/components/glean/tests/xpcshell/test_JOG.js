@@ -762,3 +762,37 @@ add_task(async function test_jog_text_works() {
 
   Assert.equal(kValue, Glean.testOnlyJog.aText.testGetValue());
 });
+
+add_task(async function test_jog_custom_distribution_works() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_custom_distribution",
+    "jog_cat",
+    "jog_labeled_custom_dist",
+    ["test-only"],
+    `"ping"`,
+    false,
+    JSON.stringify({
+      range_min: 1,
+      range_max: 2147483646,
+      bucket_count: 10,
+      histogram_type: "linear",
+    })
+  );
+  Glean.jogCat.jogLabeledCustomDist.label_1.accumulateSamples([7, 268435458]);
+
+  let data = Glean.jogCat.jogLabeledCustomDist.label_1.testGetValue();
+  Assert.equal(7 + 268435458, data.sum, "Sum's correct");
+  for (let [bucket, count] of Object.entries(data.values)) {
+    Assert.ok(
+      count == 0 || (count == 1 && (bucket == 1 || bucket == 268435456)),
+      `Only two buckets have a sample ${bucket} ${count}`
+    );
+  }
+
+  // Negative values will not be recorded, instead an error is recorded.
+  Glean.jogCat.jogLabeledCustomDist.label_1.accumulateSamples([-7]);
+  Assert.throws(
+    () => Glean.jogCat.jogLabeledCustomDist.label_1.testGetValue(),
+    /DataError/
+  );
+});

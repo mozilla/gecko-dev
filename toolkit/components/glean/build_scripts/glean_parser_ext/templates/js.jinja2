@@ -79,8 +79,7 @@ already_AddRefed<GleanMetric> NewSubMetricFromIds(uint32_t aParentTypeId,
                                            nsISupports* aParent) {
   switch (aParentTypeId) {
     {% for (type_name, subtype_name), (type_id, original_type) in metric_type_ids.items() %}
-    {# TODO: Remove the subtype inclusion clause when we suport the rest of labeled_* #}
-    {% if subtype_name|length > 0 and original_type in ['labeled_boolean', 'labeled_counter', 'labeled_string'] %}
+    {% if subtype_name|length > 0 %}
     case {{ type_id }}: { /* {{ original_type }} */
       auto id = impl::fog_{{original_type}}_get(aParentMetricId, &aLabel);
       *aSubmetricId = id;

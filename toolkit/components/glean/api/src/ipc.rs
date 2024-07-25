@@ -25,6 +25,7 @@ type EventRecord = (u64, HashMap<String, String>);
 pub struct IPCPayload {
     pub counters: HashMap<MetricId, i32>,
     pub custom_samples: HashMap<MetricId, Vec<i64>>,
+    pub labeled_custom_samples: HashMap<MetricId, HashMap<String, Vec<i64>>>,
     pub denominators: HashMap<MetricId, i32>,
     pub events: HashMap<MetricId, Vec<EventRecord>>,
     pub labeled_counters: HashMap<MetricId, HashMap<String, i32>>,
@@ -248,6 +249,23 @@ pub fn replay_from_buf(buf: &[u8]) -> Result<(), ()> {
             }
         } else if let Some(metric) = __glean_metric_maps::CUSTOM_DISTRIBUTION_MAP.get(&id) {
             metric.accumulate_samples_signed(samples);
+        }
+    }
+    for (id, labeled_custom_samples) in ipc_payload.labeled_custom_samples.into_iter() {
+        if id.0 & (1 << crate::factory::DYNAMIC_METRIC_BIT) > 0 {
+            let map = crate::factory::__jog_metric_maps::LABELED_CUSTOM_DISTRIBUTION_MAP
+                .read()
+                .expect("Read lock for dynamic labeled custom distribution map was poisoned");
+            if let Some(metric) = map.get(&id) {
+                for (label, samples) in labeled_custom_samples.into_iter() {
+                    metric.get(&label).accumulate_samples_signed(samples);
+                }
+            }
+        } else {
+            for (label, samples) in labeled_custom_samples.into_iter() {
+                __glean_metric_maps::labeled_custom_distribution_get(id.0, &label)
+                    .accumulate_samples_signed(samples);
+            }
         }
     }
     for (id, value) in ipc_payload.denominators.into_iter() {

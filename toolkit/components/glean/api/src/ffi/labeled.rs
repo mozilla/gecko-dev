@@ -61,6 +61,29 @@ pub extern "C" fn fog_labeled_counter_enum_get(id: u32, label: u16) -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn fog_labeled_custom_distribution_get(id: u32, label: &nsACString) -> u32 {
+    labeled_submetric_get!(
+        id,
+        label,
+        LABELED_CUSTOM_DISTRIBUTION_MAP,
+        labeled_custom_distribution_get,
+        CUSTOM_DISTRIBUTION_MAP,
+        LabeledCustomDistributionMetric
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn fog_labeled_custom_distribution_enum_get(id: u32, label: u16) -> u32 {
+    labeled_submetric_enum_get!(
+        id,
+        label,
+        labeled_custom_distribution_enum_get,
+        CUSTOM_DISTRIBUTION_MAP,
+        LabeledCustomDistributionMetric
+    )
+}
+
+#[no_mangle]
 pub extern "C" fn fog_labeled_string_get(id: u32, label: &nsACString) -> u32 {
     labeled_submetric_get!(
         id,

@@ -23,6 +23,9 @@ macro_rules! with_metric {
     (COUNTER_MAP, $id:ident, $m:ident, $f:expr) => {
         maybe_labeled_with_metric!(COUNTER_MAP, $id, $m, $f)
     };
+    (CUSTOM_DISTRIBUTION_MAP, $id:ident, $m:ident, $f:expr) => {
+        maybe_labeled_with_metric!(CUSTOM_DISTRIBUTION_MAP, $id, $m, $f)
+    };
     (STRING_MAP, $id:ident, $m:ident, $f:expr) => {
         maybe_labeled_with_metric!(STRING_MAP, $id, $m, $f)
     };

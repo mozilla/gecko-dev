@@ -5,8 +5,8 @@
 use inherent::inherent;
 
 use super::{
-    ErrorType, LabeledBooleanMetric, LabeledCounterMetric, LabeledMetricData, LabeledStringMetric,
-    MetricId,
+    ErrorType, LabeledBooleanMetric, LabeledCounterMetric, LabeledCustomDistributionMetric,
+    LabeledMetricData, LabeledStringMetric, MetricId,
 };
 use crate::ipc::need_ipc;
 use std::borrow::Cow;
@@ -17,9 +17,10 @@ use std::marker::PhantomData;
 /// We wrap it in a private module that is inaccessible outside of this module.
 mod private {
     use super::{
-        need_ipc, LabeledBooleanMetric, LabeledCounterMetric, LabeledStringMetric, MetricId,
+        need_ipc, LabeledBooleanMetric, LabeledCounterMetric, LabeledCustomDistributionMetric,
+        LabeledStringMetric, MetricId,
     };
-    use crate::private::CounterMetric;
+    use crate::private::{CounterMetric, CustomDistributionMetric};
     use std::sync::Arc;
 
     /// The sealed trait.
@@ -74,6 +75,26 @@ mod private {
                 }
             } else {
                 LabeledCounterMetric::Parent(CounterMetric::Parent { id, inner: metric })
+            }
+        }
+    }
+
+    // `LabeledMetric<LabeledCustomDistributionMetric>` is possible.
+    //
+    // See [Labeled Custom Distributions](https://mozilla.github.io/glean/book/user/metrics/labeled_custom_distributions.html).
+    impl Sealed for LabeledCustomDistributionMetric {
+        type GleanMetric = glean::private::CustomDistributionMetric;
+        fn from_glean_metric(id: MetricId, metric: Arc<Self::GleanMetric>, label: &str) -> Self {
+            if need_ipc() {
+                LabeledCustomDistributionMetric::Child {
+                    id,
+                    label: label.to_string(),
+                }
+            } else {
+                LabeledCustomDistributionMetric::Parent(CustomDistributionMetric::Parent {
+                    id,
+                    inner: metric,
+                })
             }
         }
     }

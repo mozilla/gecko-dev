@@ -105,6 +105,11 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
 
   Glean.testOnlyIpc.irate.addToNumerator(IRATE_NUMERATOR);
   Glean.testOnlyIpc.irate.addToDenominator(IRATE_DENOMINATOR);
+
+  Glean.testOnly.mabelsCustomLabelLengths.weird_jars.accumulateSamples(
+    CUSTOM_SAMPLES
+  );
+
   Telemetry.canRecordBase = oldCanRecordBase;
 });
 
@@ -308,5 +313,33 @@ add_task(
 
     // uuid
     // Doesn't work over IPC
+
+    // labeled_custom_distribution
+    const labeledCustomData =
+      Glean.testOnly.mabelsCustomLabelLengths.weird_jars.testGetValue();
+    Assert.equal(customSampleSum, labeledCustomData.sum, "Sum's correct");
+    for (let [bucket, count] of Object.entries(labeledCustomData.values)) {
+      Assert.ok(
+        count == 0 || (count == CUSTOM_SAMPLES.length && bucket == 1), // both values in the low bucket
+        `Only two buckets have a sample ${bucket} ${count}`
+      );
+    }
+    const keyedHistSnapshot = Telemetry.getSnapshotForKeyedHistograms(
+      "main",
+      false,
+      false
+    );
+    const keyedHistData = keyedHistSnapshot.content.TELEMETRY_TEST_KEYED_LINEAR;
+    Assert.ok("weird_jars" in keyedHistData, "Key's present");
+    Assert.equal(
+      customSampleSum,
+      keyedHistData.weird_jars.sum,
+      "Sum in histogram's correct"
+    );
+    Assert.equal(
+      2,
+      keyedHistData.weird_jars.values["1"],
+      "Two samples in the first bucket"
+    );
   }
 );

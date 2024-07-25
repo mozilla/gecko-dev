@@ -75,6 +75,8 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
 
   Glean.testOnlyIpc.irate.addToNumerator(44);
   Glean.testOnlyIpc.irate.addToDenominator(14);
+
+  Glean.testOnly.mabelsCustomLabelLengths.serif.accumulateSamples([5, 6]);
 });
 
 add_task(
@@ -150,5 +152,9 @@ add_task(
       { numerator: 44, denominator: 14 },
       Glean.testOnlyIpc.irate.testGetValue()
     );
+
+    const serifData =
+      Glean.testOnly.mabelsCustomLabelLengths.serif.testGetValue();
+    Assert.equal(5 + 6, serifData.sum, "Sum's correct");
   }
 );

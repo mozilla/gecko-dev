@@ -523,3 +523,35 @@ add_task(function test_gifft_url_cropped() {
     scalarValue("telemetry.test.mirror_for_url")
   );
 });
+
+add_task(function test_gifft_labeled_custom_dist() {
+  Glean.testOnly.mabelsCustomLabelLengths.rubbermaid.accumulateSamples([
+    7, 268435458,
+  ]);
+
+  let data = Glean.testOnly.mabelsCustomLabelLengths.rubbermaid.testGetValue();
+  Assert.equal(7 + 268435458, data.sum, "Sum's correct");
+  for (let [bucket, count] of Object.entries(data.values)) {
+    Assert.ok(
+      count == 0 || (count == 1 && (bucket == 1 || bucket == 268435456)),
+      `Only two buckets have a sample ${bucket} ${count}`
+    );
+  }
+
+  data = Telemetry.getKeyedHistogramById(
+    "TELEMETRY_TEST_KEYED_LINEAR"
+  ).snapshot();
+  Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_LINEAR").clear();
+  Assert.ok("rubbermaid" in data, "Mirror has key");
+  Assert.equal(
+    7 + 268435458,
+    data.rubbermaid.sum,
+    "Sum in histogram is correct"
+  );
+  Assert.equal(1, data.rubbermaid.values["1"], "One sample in the low bucket");
+  Assert.equal(
+    1,
+    data.rubbermaid.values["250000"],
+    "One sample in the high bucket"
+  );
+});

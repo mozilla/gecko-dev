@@ -36,7 +36,12 @@ class ParserError(Exception):
 
 GIFFT_TYPES = {
     "Event": ["event"],
-    "Histogram": ["timing_distribution", "memory_distribution", "custom_distribution"],
+    "Histogram": [
+        "timing_distribution",
+        "labeled_custom_distribution",
+        "memory_distribution",
+        "custom_distribution",
+    ],
     "Scalar": [
         "boolean",
         "labeled_boolean",

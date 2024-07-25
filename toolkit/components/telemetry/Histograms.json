@@ -9786,7 +9786,7 @@
     "high": 250000,
     "n_buckets": 10,
     "keyed": true,
-    "bug_numbers": [1347216],
+    "bug_numbers": [1347216, 1907945],
     "description": "a testing histogram; not meant to be touched"
   },
   "TELEMETRY_TEST_KEYED_CATEGORICAL": {

@@ -119,6 +119,20 @@ const METRICS = [
     JSON.stringify({ ordered_labels: ["label_1", "label_2"] }),
   ],
   ["rate", "jog_ipc", "jog_rate", ["test-only"], `"ping"`, false],
+  [
+    "labeled_custom_distribution",
+    "jog_ipc",
+    "jog_labeled_custom_dist",
+    ["test-only"],
+    `"ping"`,
+    false,
+    JSON.stringify({
+      range_min: 1,
+      range_max: 2147483646,
+      bucket_count: 10,
+      histogram_type: "linear",
+    }),
+  ],
 ];
 
 add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
@@ -168,6 +182,8 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
 
   Glean.jogIpc.jogRate.addToNumerator(44);
   Glean.jogIpc.jogRate.addToDenominator(14);
+
+  Glean.jogIpc.jogLabeledCustomDist.label_1.accumulateSamples([3, 4]);
 });
 
 add_task(
@@ -259,5 +275,15 @@ add_task(
       { numerator: 44, denominator: 14 },
       Glean.jogIpc.jogRate.testGetValue()
     );
+
+    const labeledCustomData =
+      Glean.jogIpc.jogLabeledCustomDist.label_1.testGetValue();
+    Assert.equal(3 + 4, labeledCustomData.sum, "Sum's correct");
+    for (let [bucket, count] of Object.entries(labeledCustomData.values)) {
+      Assert.ok(
+        count == 0 || (count == 2 && bucket == 1), // both values in the low bucket
+        `Only two buckets have a sample ${bucket} ${count}`
+      );
+    }
   }
 );

@@ -17,6 +17,7 @@
 
 namespace mozilla::Telemetry {
 enum class ScalarID : uint32_t;
+enum HistogramID : uint32_t;
 }  // namespace mozilla::Telemetry
 
 namespace mozilla::glean {
@@ -44,6 +45,15 @@ typedef StaticDataMutex<UniquePtr<SubmetricToLabeledMirrorMapType>>
     SubmetricToMirrorMutex;
 
 Maybe<SubmetricToMirrorMutex::AutoLock> GetLabeledMirrorLock();
+
+typedef nsTHashMap<SubmetricIdHashKey,
+                   std::tuple<Telemetry::HistogramID, nsCString>>
+    SubmetricToLabeledDistributionMirrorMapType;
+typedef StaticDataMutex<UniquePtr<SubmetricToLabeledDistributionMirrorMapType>>
+    SubmetricToDistributionMirrorMutex;
+
+Maybe<SubmetricToDistributionMirrorMutex::AutoLock>
+GetLabeledDistributionMirrorLock();
 
 }  // namespace mozilla::glean
 

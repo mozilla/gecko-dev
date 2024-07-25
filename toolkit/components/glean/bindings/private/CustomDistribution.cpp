@@ -29,6 +29,16 @@ void CustomDistributionMetric::AccumulateSamples(
     for (auto sample : aSamples) {
       Telemetry::Accumulate(id, sample);
     }
+  } else if (IsSubmetricId(mId)) {
+    GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
+      auto tuple = lock.ref()->MaybeGet(mId);
+      if (tuple) {
+        for (auto sample : aSamples) {
+          Telemetry::Accumulate(std::get<0>(tuple.ref()),
+                                std::get<1>(tuple.ref()), sample);
+        }
+      }
+    });
   }
   fog_custom_distribution_accumulate_samples(mId, &aSamples);
 }
@@ -38,6 +48,14 @@ void CustomDistributionMetric::AccumulateSingleSample(uint64_t aSample) const {
   if (hgramId) {
     auto id = hgramId.extract();
     Telemetry::Accumulate(id, aSample);
+  } else if (IsSubmetricId(mId)) {
+    GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
+      auto tuple = lock.ref()->MaybeGet(mId);
+      if (tuple) {
+        Telemetry::Accumulate(std::get<0>(tuple.ref()),
+                              std::get<1>(tuple.ref()), aSample);
+      }
+    });
   }
   fog_custom_distribution_accumulate_single_sample(mId, aSample);
 }
@@ -52,6 +70,16 @@ void CustomDistributionMetric::AccumulateSamplesSigned(
     for (auto sample : aSamples) {
       Telemetry::Accumulate(id, sample);
     }
+  } else if (IsSubmetricId(mId)) {
+    GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
+      auto tuple = lock.ref()->MaybeGet(mId);
+      if (tuple) {
+        for (auto sample : aSamples) {
+          Telemetry::Accumulate(std::get<0>(tuple.ref()),
+                                std::get<1>(tuple.ref()), sample);
+        }
+      }
+    });
   }
   fog_custom_distribution_accumulate_samples_signed(mId, &aSamples);
 }
@@ -62,6 +90,14 @@ void CustomDistributionMetric::AccumulateSingleSampleSigned(
   if (hgramId) {
     auto id = hgramId.extract();
     Telemetry::Accumulate(id, aSample);
+  } else if (IsSubmetricId(mId)) {
+    GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
+      auto tuple = lock.ref()->MaybeGet(mId);
+      if (tuple) {
+        Telemetry::Accumulate(std::get<0>(tuple.ref()),
+                              std::get<1>(tuple.ref()), aSample);
+      }
+    });
   }
   fog_custom_distribution_accumulate_single_sample_signed(mId, aSample);
 }

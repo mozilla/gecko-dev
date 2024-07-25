@@ -13,6 +13,15 @@ Jinja2 template is not. Please file bugs! #}
 /// It is responsible for being able to build metrics and pings described at runtime.
 /// It is generated to keep it in sync with how the runtime definitions are defined.
 
+{% macro common_metric_data(metric_type) %}
+CommonMetricData {
+    {% for arg_name in common_metric_data_args if arg_name in metric_type.args %}
+    {{ arg_name }},
+    {% endfor %}
+    ..Default::default()
+}
+{%- endmacro -%}
+
 use std::borrow::Cow;
 use std::sync::atomic::{AtomicU32, Ordering};
 use crate::private::{
@@ -115,13 +124,23 @@ map of argument name to argument type. I may regret this if I need it again. #}
             {% if metric_type_name == "object" %}{# TODO(bug 1883857): Add JOG support #}
             return Err(Box::new(MetricTypeNotFoundError(metric_type.to_string())));
             {% else %}
-            let metric = {{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}new{% endif %}(metric_id.into(), {{ "LabeledMetricData::Common { cmd: " if metric_type_name.startswith("labeled_") else "" }}CommonMetricData {
-                {% for arg_name in common_metric_data_args if arg_name in metric_type.args %}
-                {{ arg_name }},
-                {% endfor %}
-                ..Default::default()
-            }{{ "}" if metric_type_name.startswith('labeled_') else "" }}
-            {%- for arg_name in metric_type.args if arg_name not in common_metric_data_args -%}
+            let meta ={{" "}}
+                {%- if metric_type_name == "labeled_custom_distribution" -%}
+                LabeledMetricData::CustomDistribution {
+                    cmd: {{ common_metric_data(metric_type)|indent(20) }}
+                    {%- for arg_name in metric_type.args if arg_name not in common_metric_data_args -%}
+                        , {{ arg_name }}: {{ arg_name }}.unwrap()
+                    {%- endfor -%}
+                };
+                {%- elif metric_type_name.startswith('labeled_') -%}
+                LabeledMetricData::Common {
+                    cmd: {{ common_metric_data(metric_type)|indent(16) }}
+                };
+                {%- else -%}
+                {{ common_metric_data(metric_type)|indent(12) }};
+                {% endif %}
+            let metric = {{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}new{% endif %}(metric_id.into(), meta
+            {%- for arg_name in metric_type.args if not metric_type_name.startswith('labeled_') and arg_name not in common_metric_data_args -%}
                 , {{ arg_name }}.unwrap()
             {%- endfor -%}
             {%- if metric_type_name.startswith('labeled_') -%}

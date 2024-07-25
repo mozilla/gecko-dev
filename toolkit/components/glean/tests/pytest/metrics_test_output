@@ -26,14 +26,16 @@ pub mod test {
     /// A multi-line
     /// description
     pub static boolean_metric: Lazy<BooleanMetric> = Lazy::new(|| {
-        BooleanMetric::new(1.into(), CommonMetricData {
-            name: "boolean_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "boolean_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Application,
+                disabled: false,
+                ..Default::default()
+            };
+        BooleanMetric::new(1.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -42,14 +44,16 @@ pub mod test {
     /// A multi-line
     /// description
     pub static counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
-        CounterMetric::new(2.into(), CommonMetricData {
-            name: "counter_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "counter_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Application,
+                disabled: false,
+                ..Default::default()
+            };
+        CounterMetric::new(2.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -58,14 +62,16 @@ pub mod test {
     /// A multi-line
     /// description
     pub static custom_distribution_metric: Lazy<CustomDistributionMetric> = Lazy::new(|| {
-        CustomDistributionMetric::new(3.into(), CommonMetricData {
-            name: "custom_distribution_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        }, 0, 100, 100, HistogramType::Linear)
+        let meta =
+            CommonMetricData {
+                name: "custom_distribution_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        CustomDistributionMetric::new(3.into(), meta, 0, 100, 100, HistogramType::Linear)
     });
 
     #[allow(non_upper_case_globals)]
@@ -74,14 +80,18 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_boolean_metric: Lazy<LabeledMetric<LabeledBooleanMetric, super::DynamicLabel>> = Lazy::new(|| {
-        LabeledMetric::new(4.into(), LabeledMetricData::Common { cmd: CommonMetricData {
-            name: "labeled_boolean_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        }}, None)
+        let meta =
+            LabeledMetricData::Common {
+                cmd: CommonMetricData {
+                    name: "labeled_boolean_metric".into(),
+                    category: "test".into(),
+                    send_in_pings: vec!["metrics".into()],
+                    lifetime: Lifetime::Application,
+                    disabled: false,
+                    ..Default::default()
+                },
+            };
+        LabeledMetric::new(4.into(), meta, None)
     });
 
     #[repr(u16)]
@@ -138,14 +148,18 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_boolean_metric_labels: Lazy<LabeledMetric<LabeledBooleanMetric, LabeledBooleanMetricLabelsLabel>> = Lazy::new(|| {
-        LabeledMetric::new(5.into(), LabeledMetricData::Common { cmd: CommonMetricData {
-            name: "labeled_boolean_metric_labels".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        }}, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
+        let meta =
+            LabeledMetricData::Common {
+                cmd: CommonMetricData {
+                    name: "labeled_boolean_metric_labels".into(),
+                    category: "test".into(),
+                    send_in_pings: vec!["metrics".into()],
+                    lifetime: Lifetime::Application,
+                    disabled: false,
+                    ..Default::default()
+                },
+            };
+        LabeledMetric::new(5.into(), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -154,14 +168,18 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_counter_metric: Lazy<LabeledMetric<LabeledCounterMetric, super::DynamicLabel>> = Lazy::new(|| {
-        LabeledMetric::new(6.into(), LabeledMetricData::Common { cmd: CommonMetricData {
-            name: "labeled_counter_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        }}, None)
+        let meta =
+            LabeledMetricData::Common {
+                cmd: CommonMetricData {
+                    name: "labeled_counter_metric".into(),
+                    category: "test".into(),
+                    send_in_pings: vec!["metrics".into()],
+                    lifetime: Lifetime::Application,
+                    disabled: false,
+                    ..Default::default()
+                },
+            };
+        LabeledMetric::new(6.into(), meta, None)
     });
 
     #[repr(u16)]
@@ -194,14 +212,18 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_counter_metric_labels: Lazy<LabeledMetric<LabeledCounterMetric, LabeledCounterMetricLabelsLabel>> = Lazy::new(|| {
-        LabeledMetric::new(7.into(), LabeledMetricData::Common { cmd: CommonMetricData {
-            name: "labeled_counter_metric_labels".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        }}, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        let meta =
+            LabeledMetricData::Common {
+                cmd: CommonMetricData {
+                    name: "labeled_counter_metric_labels".into(),
+                    category: "test".into(),
+                    send_in_pings: vec!["metrics".into()],
+                    lifetime: Lifetime::Application,
+                    disabled: false,
+                    ..Default::default()
+                },
+            };
+        LabeledMetric::new(7.into(), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -210,14 +232,18 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_string_metric: Lazy<LabeledMetric<LabeledStringMetric, super::DynamicLabel>> = Lazy::new(|| {
-        LabeledMetric::new(8.into(), LabeledMetricData::Common { cmd: CommonMetricData {
-            name: "labeled_string_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        }}, None)
+        let meta =
+            LabeledMetricData::Common {
+                cmd: CommonMetricData {
+                    name: "labeled_string_metric".into(),
+                    category: "test".into(),
+                    send_in_pings: vec!["metrics".into()],
+                    lifetime: Lifetime::Application,
+                    disabled: false,
+                    ..Default::default()
+                },
+            };
+        LabeledMetric::new(8.into(), meta, None)
     });
 
     #[repr(u16)]
@@ -250,14 +276,18 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_string_metric_labels: Lazy<LabeledMetric<LabeledStringMetric, LabeledStringMetricLabelsLabel>> = Lazy::new(|| {
-        LabeledMetric::new(9.into(), LabeledMetricData::Common { cmd: CommonMetricData {
-            name: "labeled_string_metric_labels".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        }}, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        let meta =
+            LabeledMetricData::Common {
+                cmd: CommonMetricData {
+                    name: "labeled_string_metric_labels".into(),
+                    category: "test".into(),
+                    send_in_pings: vec!["metrics".into()],
+                    lifetime: Lifetime::Application,
+                    disabled: false,
+                    ..Default::default()
+                },
+            };
+        LabeledMetric::new(9.into(), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -266,14 +296,16 @@ pub mod test {
     /// A multi-line
     /// description
     pub static memory_distribution_metric: Lazy<MemoryDistributionMetric> = Lazy::new(|| {
-        MemoryDistributionMetric::new(10.into(), CommonMetricData {
-            name: "memory_distribution_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        }, MemoryUnit::Kilobyte)
+        let meta =
+            CommonMetricData {
+                name: "memory_distribution_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        MemoryDistributionMetric::new(10.into(), meta, MemoryUnit::Kilobyte)
     });
 
     #[allow(non_upper_case_globals)]
@@ -282,14 +314,16 @@ pub mod test {
     /// A multi-line
     /// description
     pub static string_list_metric: Lazy<StringListMetric> = Lazy::new(|| {
-        StringListMetric::new(11.into(), CommonMetricData {
-            name: "string_list_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "string_list_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Application,
+                disabled: false,
+                ..Default::default()
+            };
+        StringListMetric::new(11.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -298,14 +332,16 @@ pub mod test {
     /// A multi-line
     /// description
     pub static string_metric: Lazy<StringMetric> = Lazy::new(|| {
-        StringMetric::new(12.into(), CommonMetricData {
-            name: "string_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "string_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Application,
+                disabled: false,
+                ..Default::default()
+            };
+        StringMetric::new(12.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -314,14 +350,16 @@ pub mod test {
     /// A multi-line
     /// description
     pub static text_metric: Lazy<TextMetric> = Lazy::new(|| {
-        TextMetric::new(13.into(), CommonMetricData {
-            name: "text_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "text_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Application,
+                disabled: false,
+                ..Default::default()
+            };
+        TextMetric::new(13.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -330,14 +368,16 @@ pub mod test {
     /// A multi-line
     /// description
     pub static timespan_metric: Lazy<TimespanMetric> = Lazy::new(|| {
-        TimespanMetric::new(14.into(), CommonMetricData {
-            name: "timespan_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        }, TimeUnit::Millisecond)
+        let meta =
+            CommonMetricData {
+                name: "timespan_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Application,
+                disabled: false,
+                ..Default::default()
+            };
+        TimespanMetric::new(14.into(), meta, TimeUnit::Millisecond)
     });
 
     #[allow(non_upper_case_globals)]
@@ -346,14 +386,16 @@ pub mod test {
     /// A multi-line
     /// description
     pub static timing_distribution_metric: Lazy<TimingDistributionMetric> = Lazy::new(|| {
-        TimingDistributionMetric::new(15.into(), CommonMetricData {
-            name: "timing_distribution_metric".into(),
-            category: "test".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        }, TimeUnit::Nanosecond)
+        let meta =
+            CommonMetricData {
+                name: "timing_distribution_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        TimingDistributionMetric::new(15.into(), meta, TimeUnit::Nanosecond)
     });
 
 }
@@ -387,14 +429,16 @@ pub mod test_nested {
     ///
     /// An example object
     pub static an_object: Lazy<ObjectMetric<AnObjectObject>> = Lazy::new(|| {
-        ObjectMetric::new(16.into(), CommonMetricData {
-            name: "an_object".into(),
-            category: "test.nested".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "an_object".into(),
+                category: "test.nested".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        ObjectMetric::new(16.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -403,14 +447,16 @@ pub mod test_nested {
     /// A multi-line
     /// description
     pub static datetime_metric: Lazy<DatetimeMetric> = Lazy::new(|| {
-        DatetimeMetric::new(17.into(), CommonMetricData {
-            name: "datetime_metric".into(),
-            category: "test.nested".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        }, TimeUnit::Millisecond)
+        let meta =
+            CommonMetricData {
+                name: "datetime_metric".into(),
+                category: "test.nested".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Application,
+                disabled: false,
+                ..Default::default()
+            };
+        DatetimeMetric::new(17.into(), meta, TimeUnit::Millisecond)
     });
 
     #[allow(non_upper_case_globals)]
@@ -419,14 +465,16 @@ pub mod test_nested {
     /// A multi-line
     /// description
     pub static event_metric: Lazy<EventMetric<NoExtraKeys>> = Lazy::new(|| {
-        EventMetric::new(18.into(), CommonMetricData {
-            name: "event_metric".into(),
-            category: "test.nested".into(),
-            send_in_pings: vec!["events".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "event_metric".into(),
+                category: "test.nested".into(),
+                send_in_pings: vec!["events".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        EventMetric::new(18.into(), meta)
     });
 
     #[derive(Default, Debug, Clone, Hash, Eq, PartialEq)]
@@ -451,14 +499,16 @@ pub mod test_nested {
     /// A multi-line
     /// description
     pub static event_metric_with_extra: Lazy<EventMetric<EventMetricWithExtraExtra>> = Lazy::new(|| {
-        EventMetric::new(19.into(), CommonMetricData {
-            name: "event_metric_with_extra".into(),
-            category: "test.nested".into(),
-            send_in_pings: vec!["events".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "event_metric_with_extra".into(),
+                category: "test.nested".into(),
+                send_in_pings: vec!["events".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        EventMetric::new(19.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -467,14 +517,16 @@ pub mod test_nested {
     /// A multi-line
     /// description
     pub static external_denominator: Lazy<DenominatorMetric> = Lazy::new(|| {
-        DenominatorMetric::new(20.into(), CommonMetricData {
-            name: "external_denominator".into(),
-            category: "test.nested".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        }, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}])
+        let meta =
+            CommonMetricData {
+                name: "external_denominator".into(),
+                category: "test.nested".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        DenominatorMetric::new(20.into(), meta, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}])
     });
 
     #[allow(non_upper_case_globals)]
@@ -497,14 +549,16 @@ pub mod test_nested {
     /// A multi-line
     /// description
     pub static quantity_metric: Lazy<QuantityMetric> = Lazy::new(|| {
-        QuantityMetric::new(22.into(), CommonMetricData {
-            name: "quantity_metric".into(),
-            category: "test.nested".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "quantity_metric".into(),
+                category: "test.nested".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        QuantityMetric::new(22.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -513,14 +567,16 @@ pub mod test_nested {
     /// A multi-line
     /// description
     pub static rate_metric: Lazy<RateMetric> = Lazy::new(|| {
-        RateMetric::new(23.into(), CommonMetricData {
-            name: "rate_metric".into(),
-            category: "test.nested".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "rate_metric".into(),
+                category: "test.nested".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        RateMetric::new(23.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -529,14 +585,16 @@ pub mod test_nested {
     /// A multi-line
     /// description
     pub static rate_with_external_denominator: Lazy<NumeratorMetric> = Lazy::new(|| {
-        NumeratorMetric::new(24.into(), CommonMetricData {
-            name: "rate_with_external_denominator".into(),
-            category: "test.nested".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Ping,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "rate_with_external_denominator".into(),
+                category: "test.nested".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        NumeratorMetric::new(24.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -545,14 +603,16 @@ pub mod test_nested {
     /// A multi-line
     /// description
     pub static uuid_metric: Lazy<UuidMetric> = Lazy::new(|| {
-        UuidMetric::new(25.into(), CommonMetricData {
-            name: "uuid_metric".into(),
-            category: "test.nested".into(),
-            send_in_pings: vec!["metrics".into()],
-            lifetime: Lifetime::Application,
-            disabled: false,
-            ..Default::default()
-        })
+        let meta =
+            CommonMetricData {
+                name: "uuid_metric".into(),
+                category: "test.nested".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Application,
+                disabled: false,
+                ..Default::default()
+            };
+        UuidMetric::new(25.into(), meta)
     });
 
 }
@@ -1003,6 +1063,9 @@ pub(crate) mod __glean_metric_maps {
             RwLock::new(HashMap::new())
         );
         pub static COUNTER_MAP: Lazy<RwLock<HashMap<MetricId, LabeledCounterMetric>>> = Lazy::new(||
+            RwLock::new(HashMap::new())
+        );
+        pub static CUSTOM_DISTRIBUTION_MAP: Lazy<RwLock<HashMap<MetricId, LabeledCustomDistributionMetric>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
         pub static STRING_MAP: Lazy<RwLock<HashMap<MetricId, LabeledStringMetric>>> = Lazy::new(||

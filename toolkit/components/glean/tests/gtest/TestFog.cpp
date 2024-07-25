@@ -488,6 +488,30 @@ TEST_F(FOGFixture, TestCppTextWorks) {
                    .get());
 }
 
+TEST_F(FOGFixture, TestLabeledCustomDistributionWorks) {
+  ASSERT_EQ(mozilla::Nothing(),
+            test_only::mabels_custom_label_lengths.Get("officeSupplies"_ns)
+                .TestGetValue()
+                .unwrap());
+  test_only::mabels_custom_label_lengths.Get("officeSupplies"_ns)
+      .AccumulateSamples({7, 268435458});
+
+  DistributionData data =
+      test_only::mabels_custom_label_lengths.Get("officeSupplies"_ns)
+          .TestGetValue()
+          .unwrap()
+          .ref();
+  ASSERT_EQ(data.sum, 7UL + 268435458);
+  ASSERT_EQ(data.count, 2UL);
+  for (const auto& entry : data.values) {
+    const uint64_t bucket = entry.GetKey();
+    const uint64_t count = entry.GetData();
+    ASSERT_TRUE(count == 0 ||
+                (count == 1 && (bucket == 1 || bucket == 268435456)))
+    << "Only two occupied buckets";
+  }
+}
+
 extern "C" void Rust_TestRustInGTest();
 TEST_F(FOGFixture, TestRustInGTest) { Rust_TestRustInGTest(); }
 

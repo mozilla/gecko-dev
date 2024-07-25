@@ -109,6 +109,15 @@ impl Into<&'static str> for {{ obj.name|Camelize }}Label {
 }
 {%- endmacro -%}
 
+{% macro common_metric_data(obj) %}
+CommonMetricData {
+    {% for arg_name in common_metric_data_args if obj[arg_name] is defined %}
+    {{ arg_name }}: {{ obj[arg_name]|rust }},
+    {% endfor %}
+    ..Default::default()
+}
+{%- endmacro -%}
+
 pub enum DynamicLabel { }
 
 {% for category_name, objs in all_objs.items() %}
@@ -149,13 +158,23 @@ pub mod {{ category_name|snake_case }} {
     });
     {% else %}
     pub static {{ obj.name|snake_case }}: Lazy<{{ obj|type_name }}> = Lazy::new(|| {
-        {{ obj|ctor }}({{obj|metric_id}}.into(), {{ "LabeledMetricData::Common { cmd: " if obj.labeled else "" }}CommonMetricData {
-            {% for arg_name in common_metric_data_args if obj[arg_name] is defined %}
-            {{ arg_name }}: {{ obj[arg_name]|rust }},
-            {% endfor %}
-            ..Default::default()
-        }{{ "}" if obj.labeled else "" }}
-        {%- for arg_name in extra_args if obj[arg_name] is defined and arg_name not in common_metric_data_args and arg_name != 'allowed_extra_keys' -%}
+        let meta =
+            {% if obj.type == "labeled_custom_distribution" %}
+            LabeledMetricData::CustomDistribution {
+                cmd: {{ common_metric_data(obj)|indent(16) }}
+                {%- for arg_name in extra_args if obj[arg_name] is defined and arg_name not in common_metric_data_args and arg_name != 'allowed_extra_keys' -%}
+                    , {{ arg_name }}: {{ obj[arg_name]|rust }}
+                {%- endfor -%}
+            };
+            {% elif obj.labeled %}
+            LabeledMetricData::Common {
+                cmd: {{ common_metric_data(obj)|indent(16) }},
+            };
+            {% else %}
+            {{ common_metric_data(obj)|indent(12) }};
+            {% endif %}
+        {{ obj|ctor }}({{obj|metric_id}}.into(), meta
+        {%- for arg_name in extra_args if not obj.labeled and obj[arg_name] is defined and arg_name not in common_metric_data_args and arg_name != 'allowed_extra_keys' -%}
             , {{ obj[arg_name]|rust }}
         {%- endfor -%}
         {{ ", " if obj.labeled else ")\n" }}
@@ -454,7 +473,7 @@ pub(crate) mod __glean_metric_maps {
         );
 
 {% for typ, metrics in metric_by_type.items() %}
-{% if typ.0 in ('BOOLEAN_MAP', 'COUNTER_MAP', 'STRING_MAP') %}
+{% if typ.0 in ('BOOLEAN_MAP', 'COUNTER_MAP', 'CUSTOM_DISTRIBUTION_MAP', 'STRING_MAP') %}
         pub static {{typ.0}}: Lazy<RwLock<HashMap<MetricId, Labeled{{typ.1}}>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );

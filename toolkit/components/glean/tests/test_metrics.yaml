@@ -311,6 +311,27 @@ test_only:
     send_in_pings:
       - test-ping
 
+  mabels_custom_label_lengths:
+    type: labeled_custom_distribution
+    range_min: 1
+    range_max: 2147483646
+    bucket_count: 10
+    histogram_type: linear
+    description: |
+      Mabel wants to track the length of their new label maker's labels.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907945
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907945
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - glean-team@mozilla.com
+    send_in_pings:
+      - test-ping
+    telemetry_mirror: TELEMETRY_TEST_KEYED_LINEAR
+
   mirror_time:
     type: timespan
     time_unit: nanosecond

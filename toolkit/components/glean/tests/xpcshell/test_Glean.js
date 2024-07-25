@@ -666,3 +666,35 @@ add_task(
     Assert.equal(null, Glean.testOnly.badCode.testGetValue("ride-along-ping"));
   }
 );
+
+add_task(async function test_fog_labeled_custom_distribution_works() {
+  Assert.equal(
+    undefined,
+    Glean.testOnly.mabelsCustomLabelLengths.monospace.testGetValue(),
+    "New labels with no values should return undefined"
+  );
+  Glean.testOnly.mabelsCustomLabelLengths.monospace.accumulateSamples([1, 42]);
+  Glean.testOnly.mabelsCustomLabelLengths.sanserif.accumulateSingleSample(13);
+  let monospace =
+    Glean.testOnly.mabelsCustomLabelLengths.monospace.testGetValue();
+  Assert.equal(2, monospace.count);
+  Assert.equal(43, monospace.sum);
+  Assert.deepEqual({ 0: 0, 1: 2, 268435456: 0 }, monospace.values);
+  let sanserif =
+    Glean.testOnly.mabelsCustomLabelLengths.sanserif.testGetValue();
+  Assert.equal(1, sanserif.count);
+  Assert.equal(13, sanserif.sum);
+  Assert.deepEqual({ 0: 0, 1: 1, 268435456: 0 }, sanserif.values);
+  // What about invalid/__other__?
+  Assert.equal(
+    undefined,
+    Glean.testOnly.mabelsCustomLabelLengths.__other__.testGetValue()
+  );
+  Glean.testOnly.mabelsCustomLabelLengths[
+    "1".repeat(72)
+  ].accumulateSingleSample(3);
+  Assert.throws(
+    () => Glean.testOnly.mabelsCustomLabelLengths.__other__.testGetValue(),
+    /DataError/
+  );
+});
