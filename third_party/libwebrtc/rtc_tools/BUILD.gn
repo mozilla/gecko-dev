@@ -353,6 +353,7 @@ if (!build_with_chromium) {
       ]
       deps = [
         ":chart_proto",
+        "../api:candidate",
         "../api:dtls_transport_interface",
         "../api:function_view",
         "../api:make_ref_counted",
@@ -442,6 +443,7 @@ if (!build_with_chromium) {
         "//rtc_base/system:file_wrapper",
         "//test:fileutils",
         "//test:test_support",
+        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
   }
@@ -488,9 +490,11 @@ if (rtc_include_tests) {
           "rtc_event_log_visualizer/main.cc",
         ]
         deps = [
+          ":chart_proto",
           ":event_log_visualizer_utils",
           "../api/neteq:neteq_api",
           "../api/rtc_event_log",
+          "../api/units:time_delta",
           "../logging:rtc_event_log_parser",
           "../modules/audio_coding:neteq",
           "../modules/rtp_rtcp:rtp_rtcp_format",
@@ -504,6 +508,7 @@ if (rtc_include_tests) {
           "//third_party/abseil-cpp/absl/flags:parse",
           "//third_party/abseil-cpp/absl/flags:usage",
           "//third_party/abseil-cpp/absl/strings",
+          "//third_party/abseil-cpp/absl/types:optional",
         ]
       }
 

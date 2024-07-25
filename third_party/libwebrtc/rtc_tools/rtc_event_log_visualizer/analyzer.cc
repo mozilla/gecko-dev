@@ -27,6 +27,7 @@
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "api/candidate.h"
 #include "api/dtls_transport_interface.h"
 #include "api/environment/environment_factory.h"
 #include "api/function_view.h"
