@@ -20,6 +20,8 @@ const LOGLEVEL_PREF = "browser.policies.loglevel";
 const CRLITE_FILTERS_ENABLED_PREF =
   "security.remote_settings.crlite_filters.enabled";
 
+const CRLITE_FILTER_CHANNEL_PREF = "security.pki.crlite_channel";
+
 const lazy = {};
 
 ChromeUtils.defineLazyGetter(lazy, "gTextDecoder", () => new TextDecoder());
@@ -515,6 +517,27 @@ class CRLiteFilters {
       this.onObservePollEnd.bind(this),
       "remote-settings:changes-poll-end"
     );
+    Services.prefs.addObserver(CRLITE_FILTER_CHANNEL_PREF, this);
+  }
+
+  async observe(subject, topic, prefName) {
+    if (topic == "nsPref:changed" && prefName == CRLITE_FILTER_CHANNEL_PREF) {
+      // When the user changes from channel A to channel B, mark the records
+      // for channel A (and all other channels) with loaded_into_cert_storage =
+      // false. If we don't do this, then the user will fail to reinstall the
+      // channel A artifacts if they switch back to channel A.
+      let records = await this.client.db.list();
+      let newChannel = Services.prefs.getStringPref(
+        CRLITE_FILTER_CHANNEL_PREF,
+        "none"
+      );
+      let toReset = records.filter(record => record.channel != newChannel);
+      await this.client.db.importChanges(
+        undefined, // do not touch metadata.
+        undefined, // do not touch collection timestamp.
+        toReset.map(r => ({ ...r, loaded_into_cert_storage: false }))
+      );
+    }
   }
 
   async cleanAttachmentCache() {
@@ -549,7 +572,7 @@ class CRLiteFilters {
     }
   }
 
-  async getRecords() {
+  async getFilteredRecords() {
     let records = await this.client.db.list();
     records = await this.client._filterEntries(records);
     return records;
@@ -570,7 +593,7 @@ class CRLiteFilters {
       Ci.nsICertStorage.DATA_TYPE_CRLITE_FILTER_FULL
     );
     if (!hasPriorFilter) {
-      let current = await this.getRecords();
+      let current = await this.getFilteredRecords();
       let toReset = current.filter(
         record => !record.incremental && record.loaded_into_cert_storage
       );
@@ -584,7 +607,7 @@ class CRLiteFilters {
       Ci.nsICertStorage.DATA_TYPE_CRLITE_FILTER_INCREMENTAL
     );
     if (!hasPriorStash) {
-      let current = await this.getRecords();
+      let current = await this.getFilteredRecords();
       let toReset = current.filter(
         record => record.incremental && record.loaded_into_cert_storage
       );
@@ -595,7 +618,7 @@ class CRLiteFilters {
       );
     }
 
-    let current = await this.getRecords();
+    let current = await this.getFilteredRecords();
     let fullFilters = current.filter(filter => !filter.incremental);
     if (fullFilters.length < 1) {
       lazy.log.debug("no full CRLite filters to download?");
