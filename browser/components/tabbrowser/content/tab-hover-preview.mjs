@@ -92,7 +92,7 @@ export default class TabHoverPreviewPanel {
 
     this._win.PageThumbs.captureToCanvas(tab.linkedBrowser, thumbnailCanvas, {
       fullViewport: true,
-      targetWidth: 280,
+      targetWidth: 280 * this._win.devicePixelRatio,
       preserveAspectRatio: true,
     })
       .then(() => {
