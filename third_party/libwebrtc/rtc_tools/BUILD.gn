@@ -515,7 +515,11 @@ if (rtc_include_tests) {
           "rtc_event_log_to_text/main.cc",
         ]
         deps = [
+          "../api:candidate",
+          "../api:rtp_parameters",
           "../api/rtc_event_log",
+          "../api/transport:bandwidth_usage",
+          "../api/video:video_frame",
           "../logging:ice_log",
           "../logging:rtc_event_audio",
           "../logging:rtc_event_begin_end",
