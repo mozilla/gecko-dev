@@ -6285,11 +6285,10 @@ var gCSSProperties = {
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
-      // these two keywords are the aliases of above first two.
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(2px)",
       "calc(50%)",
       "calc(3*25px)",
@@ -6731,11 +6730,10 @@ var gCSSProperties = {
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
-      // these two keywords are the aliases of above first two.
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(2px)",
       "calc(-2px)",
       "calc(0px)",
@@ -6760,17 +6758,13 @@ var gCSSProperties = {
       "30px",
       "50%",
       "0",
-      // these four keywords compute to the initial value only when the
-      // writing mode is vertical, and we're testing with a horizontal
-      // writing mode
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
-      // these two keywords are the aliases of above first two.
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(2px)",
       "calc(-2px)",
       "calc(0px)",
@@ -6797,11 +6791,10 @@ var gCSSProperties = {
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
-      // these two keywords are the aliases of above first two.
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(-1%)",
       "calc(2px)",
       "calc(50%)",
@@ -6824,17 +6817,13 @@ var gCSSProperties = {
     other_values: [
       "30px",
       "50%",
-      // these four keywords compute to the initial value only when the
-      // writing mode is vertical, and we're testing with a horizontal
-      // writing mode
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
-      // these two keywords are the aliases of above first two.
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(-1%)",
       "calc(2px)",
       "calc(50%)",
@@ -8821,16 +8810,12 @@ var gCSSProperties = {
       "15px",
       "3em",
       "15%",
-      // these three keywords compute to the initial value only when the
-      // writing mode is vertical, and we're testing with a horizontal
-      // writing mode
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      // these two keywords are the aliases of above first two.
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
       // whether -moz-available computes to the initial value depends on
       // the container size, and for the container size we're testing
       // with, it does
@@ -10454,14 +10439,13 @@ var gCSSProperties = {
       "15px",
       "3em",
       "15%",
-      // These keywords are treated as initial value.
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(2px)",
       "calc(50%)",
       "calc(3*25px)",
@@ -10805,16 +10789,12 @@ var gCSSProperties = {
       "15px",
       "3em",
       "15%",
-      // these three keywords compute to the initial value only when the
-      // writing mode is vertical, and we're testing with a horizontal
-      // writing mode
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      // these two keywords are the aliases of above first two.
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
       // whether -moz-available computes to the initial value depends on
       // the container size, and for the container size we're testing
       // with, it does
@@ -10958,14 +10938,13 @@ var gCSSProperties = {
     other_values: [
       "30px",
       "50%",
-      // These keywords are treated as initial value.
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(2px)",
       "calc(50%)",
       "calc(3*25px)",
@@ -10988,17 +10967,13 @@ var gCSSProperties = {
     other_values: [
       "30px",
       "50%",
-      // these four keywords compute to the initial value only when the
-      // writing mode is vertical, and we're testing with a horizontal
-      // writing mode
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
-      // these two keywords are the aliases of above first two.
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(2px)",
       "calc(50%)",
       "calc(3*25px)",
@@ -11021,14 +10996,13 @@ var gCSSProperties = {
     other_values: [
       "30px",
       "50%",
-      // These keywords are treated as initial value.
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(-1%)",
       "calc(2px)",
       "calc(50%)",
@@ -11052,17 +11026,13 @@ var gCSSProperties = {
     other_values: [
       "30px",
       "50%",
-      // these four keywords compute to the initial value only when the
-      // writing mode is vertical, and we're testing with a horizontal
-      // writing mode
       "max-content",
       "min-content",
       "fit-content",
-      "-moz-fit-content",
-      "-moz-available",
-      // these two keywords are the aliases of above first two.
       "-moz-max-content",
       "-moz-min-content",
+      "-moz-fit-content",
+      "-moz-available",
       "calc(-1%)",
       "calc(2px)",
       "calc(50%)",
