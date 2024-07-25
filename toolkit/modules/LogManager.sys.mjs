@@ -384,12 +384,7 @@ export class LogManager {
         filename,
         this._log
       );
-      // It's not completely clear to markh why we only do log cleanups
-      // for errors, but for now the Sync semantics have been copied...
-      // (one theory is that only cleaning up on error makes it less
-      // likely old error logs would be removed, but that's not true if
-      // there are occasional errors - let's address this later!)
-      if (reason == this.ERROR_LOG_WRITTEN && !this._cleaningUpFileLogs) {
+      if (!this._cleaningUpFileLogs) {
         this._log.trace("Running cleanup.");
         try {
           await this.cleanupLogs();
