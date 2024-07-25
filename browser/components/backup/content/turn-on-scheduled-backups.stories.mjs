@@ -17,7 +17,7 @@ export default {
 };
 
 const Template = ({ defaultPath, _newPath, defaultLabel, _newLabel }) => html`
-  <moz-card style="width: 27.8rem;">
+  <moz-card style="width: 27.8rem; position: relative;">
     <turn-on-scheduled-backups
       defaultPath=${defaultPath}
       _newPath=${ifDefined(_newPath)}

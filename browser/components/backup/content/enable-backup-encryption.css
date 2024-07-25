@@ -11,12 +11,6 @@
     "content"
     "button-group";
   grid-template-rows: auto auto auto;
-
-  & fieldset {
-    border: none;
-    margin: 0;
-    padding: 0;
-  }
 }
 
 #backup-enable-encryption-header {

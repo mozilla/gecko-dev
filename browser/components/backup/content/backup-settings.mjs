@@ -271,11 +271,15 @@ export default class BackupSettings extends MozLitElement {
 
   turnOnScheduledBackupsDialogTemplate() {
     let { fileName, path, iconURL } = this.backupServiceState.defaultParent;
-    return html`<dialog id="turn-on-scheduled-backups-dialog">
+    return html`<dialog
+      id="turn-on-scheduled-backups-dialog"
+      class="backup-dialog"
+    >
       <turn-on-scheduled-backups
         defaultlabel=${fileName}
         defaultpath=${path}
         defaulticonurl=${iconURL}
+        .supportBaseLink=${this.backupServiceState.supportBaseLink}
       ></turn-on-scheduled-backups>
     </dialog>`;
   }

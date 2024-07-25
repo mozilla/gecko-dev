@@ -5,6 +5,9 @@
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/backup/password-validation-inputs.mjs";
+
 /**
  * The widget for showing available options when users want to turn on
  * scheduled backups.
@@ -19,8 +22,10 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     _newIconURL: { type: String },
     _newLabel: { type: String },
     _newPath: { type: String },
-    showPasswordOptions: { type: Boolean, reflect: true },
-    passwordsMatch: { type: Boolean, reflect: true },
+    _showPasswordOptions: { type: Boolean, reflect: true, state: true },
+    _passwordsMatch: { type: Boolean, state: true },
+    _inputPassValue: { type: String, state: true },
+    supportBaseLink: { type: String },
   };
 
   static get queries() {
@@ -32,8 +37,6 @@ export default class TurnOnScheduledBackups extends MozLitElement {
       filePathInputDefaultEl: "#backup-location-filepicker-input-default",
       passwordOptionsCheckboxEl: "#sensitive-data-checkbox-input",
       passwordOptionsExpandedEl: "#passwords",
-      inputNewPasswordEl: "#new-password-input",
-      inputRepeatPasswordEl: "#repeat-password-input",
     };
   }
 
@@ -45,8 +48,8 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     this._newIconURL = "";
     this._newLabel = "";
     this._newPath = "";
-    this.showPasswordOptions = false;
-    this.passwordsMatch = false;
+    this._showPasswordOptions = false;
+    this._passwordsMatch = false;
   }
 
   /**
@@ -60,6 +63,8 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     );
 
     this.addEventListener("BackupUI:SelectNewFilepickerPath", this);
+    this.addEventListener("ValidPasswordsDetected", this);
+    this.addEventListener("InvalidPasswordsDetected", this);
   }
 
   handleEvent(event) {
@@ -68,6 +73,13 @@ export default class TurnOnScheduledBackups extends MozLitElement {
       this._newPath = path;
       this._newLabel = filename;
       this._newIconURL = iconURL;
+    } else if (event.type == "ValidPasswordsDetected") {
+      let { password } = event.detail;
+      this._passwordsMatch = true;
+      this._inputPassValue = password;
+    } else if (event.type == "InvalidPasswordsDetected") {
+      this._passwordsMatch = false;
+      this._inputPassValue = "";
     }
   }
 
@@ -93,16 +105,12 @@ export default class TurnOnScheduledBackups extends MozLitElement {
   }
 
   handleConfirm() {
-    /**
-     * TODO:
-     * Before confirmation, verify passwords match and FxA format rules (bug 1896772).
-     */
     let detail = {
       parentDirPath: this._newPath || this.defaultPath,
     };
 
-    if (this.showPasswordOptions && this.passwordsMatch) {
-      detail.password = this.inputNewPasswordEl.value;
+    if (this._showPasswordOptions && this._passwordsMatch) {
+      detail.password = this._inputPassValue;
     }
 
     this.dispatchEvent(
@@ -116,35 +124,24 @@ export default class TurnOnScheduledBackups extends MozLitElement {
   }
 
   handleTogglePasswordOptions() {
-    this.showPasswordOptions = this.passwordOptionsCheckboxEl?.checked;
-    this.passwordsMatch = false;
-  }
-
-  handleChangeNewPassword() {
-    this.updatePasswordValidity();
-  }
-
-  handleChangeRepeatPassword() {
-    this.updatePasswordValidity();
-  }
-
-  updatePasswordValidity() {
-    let isNewPasswordInputValid = this.inputNewPasswordEl?.checkValidity();
-    let isRepeatPasswordInputValid =
-      this.inputRepeatPasswordEl?.checkValidity();
-    this.passwordsMatch =
-      isNewPasswordInputValid &&
-      isRepeatPasswordInputValid &&
-      this.inputNewPasswordEl.value == this.inputRepeatPasswordEl.value;
+    this._showPasswordOptions = this.passwordOptionsCheckboxEl?.checked;
+    this._passwordsMatch = false;
   }
 
   resetChanges() {
     this._newPath = "";
     this._newIconURL = "";
     this._newLabel = "";
-    this.showPasswordOptions = false;
+    this._showPasswordOptions = false;
     this.passwordOptionsCheckboxEl.checked = false;
-    this.passwordsMatch = false;
+    this._passwordsMatch = false;
+    this._inputPassValue = "";
+
+    if (this.passwordOptionsExpandedEl) {
+      this.passwordOptionsExpandedEl.dispatchEvent(
+        new CustomEvent("resetInputs", { bubbles: true, composed: true })
+      );
+    }
   }
 
   defaultFilePathInputTemplate() {
@@ -186,7 +183,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
   allOptionsTemplate() {
     return html`
       <fieldset id="all-controls">
-        <fieldset id="backup-location-controls">
+        <div id="backup-location-controls">
           <label
             id="backup-location-label"
             for="backup-location-filepicker-input"
@@ -203,7 +200,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
               aria-controls="backup-location-filepicker-input"
             ></moz-button>
           </div>
-        </fieldset>
+        </div>
 
         <fieldset id="sensitive-data-controls">
           <div id="sensitive-data-checkbox">
@@ -211,11 +208,11 @@ export default class TurnOnScheduledBackups extends MozLitElement {
               id="sensitive-data-checkbox-label"
               for="sensitive-data-checkbox-input"
               aria-controls="passwords"
-              aria-expanded=${this.showPasswordOptions}
+              aria-expanded=${this._showPasswordOptions}
             >
               <input
                 id="sensitive-data-checkbox-input"
-                value=${this.showPasswordOptions}
+                value=${this._showPasswordOptions}
                 @click=${this.handleTogglePasswordOptions}
                 type="checkbox"
               />
@@ -230,25 +227,19 @@ export default class TurnOnScheduledBackups extends MozLitElement {
             ></span>
           </div>
 
-          ${this.showPasswordOptions ? this.passwordOptionsTemplate() : null}
+          ${this._showPasswordOptions ? this.passwordsTemplate() : null}
         </fieldset>
       </fieldset>
     `;
   }
 
-  passwordOptionsTemplate() {
+  passwordsTemplate() {
     return html`
-    <fieldset id="passwords">
-      <label id="new-password-label" for="new-password-input">
-        <span id="new-password-span" data-l10n-id="turn-on-scheduled-backups-encryption-create-password-label"></span>
-        <input type="password" id="new-password-input" required @input=${this.handleChangeNewPassword}/>
-    </label>
-      <label id="repeat-password-label" for="repeat-password-input">
-        <span id="repeat-password-span" data-l10n-id="turn-on-scheduled-backups-encryption-repeat-password-label"></span>
-        <input type="password" id="repeat-password-input" required @input=${this.handleChangeRepeatPassword}/>
-      </label>
-    </fieldset>
-  </fieldset>`;
+      <password-validation-inputs
+        id="passwords"
+        .supportBaseLink=${this.supportBaseLink}
+      ></password-validation-inputs>
+    `;
   }
 
   contentTemplate() {
@@ -292,7 +283,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
             @click=${this.handleConfirm}
             type="primary"
             data-l10n-id="turn-on-scheduled-backups-confirm-button"
-            ?disabled=${this.showPasswordOptions && !this.passwordsMatch}
+            ?disabled=${this._showPasswordOptions && !this._passwordsMatch}
           ></moz-button>
         </moz-button-group>
       </form>
