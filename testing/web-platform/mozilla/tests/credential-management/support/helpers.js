@@ -15,7 +15,3 @@ async function clearCredential(origin, id) {
   await deletePromise;
   win.close();
 }
-
-const ccs = SpecialPowers.Cc[
-  "@mozilla.org/browser/credentialchooserservice;1"
-].getService(SpecialPowers.Ci.nsICredentialChooserService);

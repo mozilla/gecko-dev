@@ -12,7 +12,7 @@
 
 promise_test(async t => {
   let initData = {
-    id : "id1",
+    id : "wpt-pick-me",
     token: "token1",
   };
 
@@ -21,14 +21,14 @@ promise_test(async t => {
   });
   assert_not_equals(result1, undefined, "A credential is returned from the CredentialContainer.");
   assert_equals(result1.type, "identity", "The credential is an IdentityCredential");
-  assert_equals(result1.id, "id1", "The identity matches the argument");
+  assert_equals(result1.id, "wpt-pick-me", "The identity matches the argument");
   assert_equals(result1.token, "token1", "The token matches the argument");
 
 
   let result2 = new IdentityCredential(initData);
   assert_not_equals(result2, undefined, "A credential is returned from new.");
   assert_equals(result2.type, "identity", "The credential is an IdentityCredential");
-  assert_equals(result2.id, "id1", "The identity matches the argument");
+  assert_equals(result2.id, "wpt-pick-me", "The identity matches the argument");
   assert_equals(result2.token, "token1", "The token matches the argument");
 }, "Basic valid credential creation");
 
@@ -48,7 +48,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   let initData = {
-    id : "id1"
+    id : "wpt-pick-me"
   };
 
   let result1 = await navigator.credentials.create({
@@ -61,28 +61,26 @@ promise_test(async t => {
   let result3 = await navigator.credentials.store(result1);
   assert_equals(result3, undefined, "The result of a duplicate store should be a promise that resolves to undefined.")
 
-  await clearCredential(window.origin, "id1");
+  await clearCredential(window.origin, "wpt-pick-me");
 }, "Basic identity credential store suceeds");
 
 
 promise_test(async t => {
   let initData = {
-    id : "id1",
+    id : "wpt-pick-me",
   };
 
   let result1 = await navigator.credentials.create({
     identity : initData,
   });
   await navigator.credentials.store(result1);
-
-  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, "id1");
   let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
   assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
   let result2 = await promise2;
   assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the RP is not on the allowlist.");
 
   let initDataWithOrigin = {
-    id : "id1",
+    id : "wpt-pick-me",
     effectiveOrigins : [window.origin],
   };
 
@@ -91,12 +89,11 @@ promise_test(async t => {
   });
   await navigator.credentials.store(credential);
 
-  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, "id1");
   let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
   let credentialGotten = await getCredentialPromise;
   assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
   assert_equals(credentialGotten.type, "identity", "The credential is an IdentityCredential");
-  assert_equals(credentialGotten.id, "id1", "The identity matches the argument");
+  assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
 
 
   let promise3 = navigator.credentials.get({identity: {providers: []}});
@@ -110,13 +107,13 @@ promise_test(async t => {
   let result4 = await promise4;
   assert_equals(result4, null, "A credential is not returned from the CredentialContainer when a provider with no credentials is given.");
 
-  await clearCredential(window.origin, "id1");
+  await clearCredential(window.origin, "wpt-pick-me");
 }, "Basic same-origin identity credential collect suceeds");
 
 promise_test(async t => {
 
   let initDataWithOrigin = {
-    id : "id1",
+    id : "wpt-pick-me",
     effectiveQueryURL : `https://{{hosts[][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/cors.py`,
   };
 
@@ -131,20 +128,19 @@ promise_test(async t => {
   assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the effectiveQueryURL is not provided.");
 
 
-  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, "id1");
   let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin, effectiveQueryURL: `https://{{hosts[][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/cors.py`}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   let credentialGotten = await getCredentialPromise;
   assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
   assert_equals(credentialGotten.type, "identity", "The credential is an IdentityCredential");
-  assert_equals(credentialGotten.id, "id1", "The identity matches the argument");
+  assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
 
-  await clearCredential(window.origin, "id1");
+  await clearCredential(window.origin, "wpt-pick-me");
 }, "Basic same-origin identity credential collect with effectiveQueryURL suceeds");
 
 promise_test(async t => {
   let initDataWithOrigin = {
-    id : "id1",
+    id : "wpt-pick-me",
     effectiveOrigins : [window.origin],
   };
 
@@ -153,21 +149,20 @@ promise_test(async t => {
   });
   await navigator.credentials.store(credential);
 
-  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, "id1");
   let promise2 = navigator.credentials.get({identity: {providers: [{loginURL: "https://{{hosts[][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider.sub.html"}]}});
   assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
   let result2 = await promise2;
   assert_not_equals(result2, undefined, "A credential is returned from the CredentialContainer.");
   assert_equals(result2.type, "identity", "The credential is an IdentityCredential");
-  assert_equals(result2.id, "id1", "The identity matches the argument");
+  assert_equals(result2.id, "wpt-pick-me", "The identity matches the argument");
 
-  await clearCredential(window.origin, "id1");
+  await clearCredential(window.origin, "wpt-pick-me");
 }, "Basic same-origin identity credential collect with origin inferred from loginURL succeeds");
 
 
 promise_test(async t => {
   let initDataWithOrigin = {
-    id : "id1",
+    id : "wpt-pick-me",
     effectiveQueryURL : `https://{{hosts[][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/no-cors.py`,
   };
 
@@ -186,13 +181,15 @@ promise_test(async t => {
   let credentialGotten = await getCredentialPromise;
   assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
   assert_equals(credentialGotten.type, "identity", "The credential is an IdentityCredential");
-  assert_equals(credentialGotten.id, "id1", "The identity matches the argument");
+  assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
 
-  await clearCredential(window.origin, "id1");
+  await clearCredential(window.origin, "wpt-pick-me");
 }, "Basic same-origin identity credential collect with effectiveQueryURL and no ACAO works because CORS is not needed");
 
 
 promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
   let createdPromise = new Promise((resolve) => {
     window.addEventListener(
       "message",
@@ -205,49 +202,133 @@ promise_test(async t => {
       }
     );
   });
-  let win = window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider.sub.html`);
+  let win = window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?postMessage&id=wpt-pick-me`);
 
   await createdPromise;
   win.close();
 
-  let getCredentialPromise, credentialGotten;
-
-  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, "no-options");
   getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   credentialGotten = await getCredentialPromise;
   assert_equals(credentialGotten, null, "A optionless credential is not returned from the CredentialContainer.");
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
 
-  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, "allow-alt");
+}, "Cross-origin identity credential collection is correctly filtered when there is no effective argument");
+
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  let createdPromise = new Promise((resolve) => {
+    window.addEventListener(
+      "message",
+      (event) => {
+        if (event.origin == `https://{{hosts[alt][]}}:{{ports[https][0]}}`) {
+          if (event.data == "created") {
+            resolve();
+          }
+        }
+      }
+    );
+  });
+  let win = window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?postMessage&id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[alt][]}}:{{ports[https][0]}}/")}`);
+
+  await createdPromise;
+  win.close();
+
   getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   credentialGotten = await getCredentialPromise;
-  assert_equals(credentialGotten, null, "A allow-alt credential is not returned from the CredentialContainer.");
+  assert_equals(credentialGotten, null, "An innefective credential is not returned from the CredentialContainer.");
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
 
-  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, "allow-primary");
+}, "Cross-origin identity credential collection is correctly filtered when the effective origin is not the relying party");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+
+  let createdPromise = new Promise((resolve) => {
+    window.addEventListener(
+      "message",
+      (event) => {
+        if (event.origin == `https://{{hosts[alt][]}}:{{ports[https][0]}}`) {
+          if (event.data == "created") {
+            resolve();
+          }
+        }
+      }
+    );
+  });
+  let win = window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?postMessage&id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}`);
+
+  await createdPromise;
+  win.close();
+
   getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   credentialGotten = await getCredentialPromise;
-  assert_not_equals(credentialGotten, null, "A allow-primary credential is returned from the CredentialContainer.");
+  assert_not_equals(credentialGotten, null, "An effective credential is returned from the CredentialContainer.");
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
 
-  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, "allow-cors-failure");
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}", effectiveQueryURL: "https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/no-cors.py"}]}});
+}, "Cross-origin identity credential collection is correctly returned when the effective origin is the relying party");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+
+  let createdPromise = new Promise((resolve) => {
+    window.addEventListener(
+      "message",
+      (event) => {
+        if (event.origin == `https://{{hosts[alt][]}}:{{ports[https][0]}}`) {
+          if (event.data == "created") {
+            resolve();
+          }
+        }
+      }
+    );
+  });
+  let win = window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?postMessage&id=wpt-pick-me&url=no-cors`);
+
+  await createdPromise;
+  win.close();
+
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   credentialGotten = await getCredentialPromise;
-  assert_equals(credentialGotten, null, "A allow-cors-failure credential is not returned from the CredentialContainer.");
+  assert_equals(credentialGotten, null, "An innefective credential is not returned from the CredentialContainer.");
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
 
-  await ccs.testMakeChoice(SpecialPowers.wrap(window).browsingContext, "allow-cors-success");
+}, "Cross-origin identity credential collection is correctly filtered when the endpoint doesn't have CORS");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+
+  let createdPromise = new Promise((resolve) => {
+    window.addEventListener(
+      "message",
+      (event) => {
+        if (event.origin == `https://{{hosts[alt][]}}:{{ports[https][0]}}`) {
+          if (event.data == "created") {
+            resolve();
+          }
+        }
+      }
+    );
+  });
+  let win = window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/identity.provider-discovery.sub.html?postMessage&id=wpt-pick-me&url=cors`);
+
+  await createdPromise;
+  win.close();
+
   getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}", effectiveQueryURL: "https://{{hosts[alt][]}}:{{ports[https][0]}}/_mozilla/credential-management/support/cors.py"}]}});
   assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
   credentialGotten = await getCredentialPromise;
-  assert_not_equals(credentialGotten, null, "A allow-cors-success credential is returned from the CredentialContainer.");
+  assert_not_equals(credentialGotten, null, "An effective credential is returned from the CredentialContainer.");
+  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
 
-  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "no-options");
-  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "allow-alt");
-  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "allow-primary");
-  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "allow-cors-failure");
-  await clearCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "allow-cors-success");
-
-}, "Cross-origin identity credential collection is correctly filtered by arguments");
+}, "Cross-origin identity credential collection is correctly returned when the endpoint returns success");
 
 </script>
