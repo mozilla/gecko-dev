@@ -505,6 +505,26 @@ serp:
     send_in_pings:
       - serp-categorization
 
+  categorization_no_map_found:
+    type: counter
+    description: >
+      A count incremented upon a SERP categorization event being recorded
+      without a corresponding impression event being recorded. This metric
+      effectively counts missing impressions due to issues with the
+      domain-to-categories map.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1900094
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214868
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    send_in_pings:
+      - serp-categorization
+
 search_with:
   reporting_url:
     type: url

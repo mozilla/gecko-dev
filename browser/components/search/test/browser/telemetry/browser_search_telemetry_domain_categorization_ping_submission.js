@@ -11,6 +11,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   CATEGORIZATION_SETTINGS: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  DomainToCategoriesStore: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   SERPCategorizationRecorder: "resource:///modules/SearchSERPTelemetry.sys.mjs",
@@ -299,4 +300,37 @@ add_task(async function test_no_observers_added_if_pref_is_off() {
 
   await SpecialPowers.popPrefEnv();
   await waitForDomainToCategoriesInit();
+});
+
+add_task(async function test_count_incremented_if_store_is_not_created() {
+  resetTelemetry();
+
+  // Clear the existing domain-to-categories map.
+  await SearchSERPDomainToCategoriesMap.uninit({ deleteMap: true });
+
+  let sandbox = sinon.createSandbox();
+  sandbox
+    .stub(DomainToCategoriesStore.prototype, "insertFileContents")
+    .throws(new Error());
+  // Initializing should fail and cause the component to un-initialize.
+  let promise = waitForDomainToCategoriesUninit();
+  await SearchSERPDomainToCategoriesMap.init();
+  await promise;
+  info("Store for the domain-to-categories map not created successfully.");
+
+  let url = getSERPUrl("searchTelemetryDomainCategorizationReporting.html");
+  info("Load a SERP with organic and sponsored results.");
+  promise = waitForPageWithCategorizedDomains();
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
+  await promise;
+
+  Assert.equal(
+    Glean.serp.categorizationNoMapFound.testGetValue(),
+    1,
+    "Counter should be incremented when there is an issue creating the store for the domain-to-categories map."
+  );
+
+  sandbox.restore();
+  await SearchSERPDomainToCategoriesMap.init();
+  await BrowserTestUtils.removeTab(tab);
 });

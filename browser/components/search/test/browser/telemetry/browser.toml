@@ -40,6 +40,9 @@ support-files = ["searchTelemetryAd_searchbox_with_content.html", "serp.css"]
 ["browser_search_telemetry_categorization_experiment_info.js"]
 support-files = ["searchTelemetryDomainCategorizationReporting.html"]
 
+["browser_search_telemetry_categorization_missing_impression.js"]
+support-files = ["searchTelemetryDomainExtraction.html"]
+
 ["browser_search_telemetry_categorization_timing.js"]
 
 ["browser_search_telemetry_content.js"]

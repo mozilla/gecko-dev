@@ -1953,6 +1953,7 @@ class SERPCategorizer {
     // downloading the data), we shouldn't report telemetry.
     // Thus, there is no point attempting to categorize the SERP.
     if (SearchSERPDomainToCategoriesMap.empty) {
+      SERPCategorizationRecorder.recordMissingImpressionTelemetry();
       return null;
     }
     let resultsToReport = {};
@@ -2281,16 +2282,23 @@ class CategorizationRecorder {
     );
     Glean.serp.categorization.record(resultToReport);
 
-    this.#serpCategorizationsCount++;
-    if (
-      this.#serpCategorizationsCount >=
-      CATEGORIZATION_SETTINGS.PING_SUBMISSION_THRESHOLD
-    ) {
-      this.submitPing("threshold_reached");
-    }
+    this.#incrementCategorizationsCount();
   }
 
-  /*
+  /**
+   * Helper function for recording Glean telemetry when issues with the
+   * domain-to-categories map cause the categorization and impression not to be
+   * recorded.
+   */
+  recordMissingImpressionTelemetry() {
+    lazy.logConsole.debug(
+      "Recording a missing impression due to an issue with the domain-to-categories map."
+    );
+    Glean.serp.categorizationNoMapFound.add();
+    this.#incrementCategorizationsCount();
+  }
+
+  /**
    * Adds a Glean object metric to the custom SERP categorization ping if info
    * about a single experiment has been requested via Nimbus config.
    */
@@ -2351,6 +2359,17 @@ class CategorizationRecorder {
   testReset() {
     if (Cu.isInAutomation) {
       this.#resetCategorizationRecorderData();
+    }
+  }
+
+  #incrementCategorizationsCount() {
+    this.#serpCategorizationsCount++;
+
+    if (
+      this.#serpCategorizationsCount >=
+      CATEGORIZATION_SETTINGS.PING_SUBMISSION_THRESHOLD
+    ) {
+      this.submitPing("threshold_reached");
     }
   }
 
