@@ -24,8 +24,6 @@
 
 namespace mozilla::dom {
 
-using mozilla::CredentialChosenCallback;
-
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(CredentialsContainer, mParent, mManager)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(CredentialsContainer)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(CredentialsContainer)
@@ -232,50 +230,8 @@ already_AddRefed<Promise> CredentialsContainer::Get(
         self);
 
     IdentityCredentialRequestOptions options(aOptions.mIdentity.Value());
-
-    if (StaticPrefs::
-            dom_security_credentialmanagement_identity_lightweight_enabled()) {
-      IdentityCredential::CollectFromCredentialStore(
-          mParent, aOptions, IsSameOriginWithAncestors(mParent))
-          ->Then(
-              GetCurrentSerialEventTarget(), __func__,
-              [self, promise, options = std::move(options)](
-                  const nsTArray<RefPtr<IdentityCredential>>& credentials) {
-                if (credentials.Length() == 0) {
-                  IdentityCredential::DiscoverFromExternalSource(
-                      self->mParent, options,
-                      IsSameOriginWithAncestors(self->mParent), promise);
-                } else {
-                  nsresult rv;
-                  nsCOMPtr<nsICredentialChooserService> ccService =
-                      mozilla::components::CredentialChooserService::Service(
-                          &rv);
-                  if (NS_WARN_IF(!ccService)) {
-                    promise->MaybeReject(rv);
-                    return;
-                  }
-                  RefPtr<CredentialChosenCallback> callback =
-                      new CredentialChosenCallback(promise);
-                  nsTArray<RefPtr<Credential>> argumentCredential;
-                  for (const RefPtr<IdentityCredential>& cred : credentials) {
-                    argumentCredential.AppendElement(cred);
-                  }
-                  rv = ccService->ShowCredentialChooser(
-                      self->mParent->GetBrowsingContext()->Top(),
-                      argumentCredential, callback);
-                  if (NS_FAILED(rv)) {
-                    promise->MaybeReject(rv);
-                    return;
-                  }
-                }
-              },
-              [self, promise](nsresult rv) { promise->MaybeReject(rv); });
-
-      return promise.forget();
-    }
-
-    IdentityCredential::DiscoverFromExternalSource(
-        mParent, options, IsSameOriginWithAncestors(mParent), promise);
+    IdentityCredential::GetCredential(
+        mParent, aOptions, IsSameOriginWithAncestors(mParent), promise);
     return promise.forget();
   }
 

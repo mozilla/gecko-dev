@@ -1440,32 +1440,18 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvReloadWithHttpsOnlyException() {
   return IPC_OK();
 }
 
-IPCResult WindowGlobalParent::RecvDiscoverIdentityCredentialFromExternalSource(
+IPCResult WindowGlobalParent::RecvGetIdentityCredential(
     const IdentityCredentialRequestOptions& aOptions,
-    const DiscoverIdentityCredentialFromExternalSourceResolver& aResolver) {
-  IdentityCredential::DiscoverFromExternalSourceInMainProcess(
+    const GetIdentityCredentialResolver& aResolver) {
+  IdentityCredential::GetCredentialInMainProcess(
       DocumentPrincipal(), this->BrowsingContext(), aOptions)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [aResolver](const IPCIdentityCredential& aResult) {
-            return aResolver(Some(aResult));
-          },
-          [aResolver](nsresult aErr) { aResolver(Nothing()); });
-  return IPC_OK();
-}
-
-IPCResult WindowGlobalParent::RecvCollectIdentityCredentialFromCredentialStore(
-    const IdentityCredentialRequestOptions& aOptions,
-    const CollectIdentityCredentialFromCredentialStoreResolver& aResolver) {
-  IdentityCredential::CollectFromCredentialStoreInMainProcess(
-      DocumentPrincipal(), BrowsingContext(), aOptions)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aResolver](const nsTArray<IPCIdentityCredential>& aResult) {
-            aResolver(aResult);
+            return aResolver({Some(aResult), NS_OK});
           },
           [aResolver](nsresult aErr) {
-            aResolver(nsTArray<IPCIdentityCredential>());
+            aResolver({Maybe<IPCIdentityCredential>(Nothing()), aErr});
           });
   return IPC_OK();
 }
@@ -1478,22 +1464,6 @@ IPCResult WindowGlobalParent::RecvStoreIdentityCredential(
           GetCurrentSerialEventTarget(), __func__,
           [aResolver](const bool& aResult) { aResolver(NS_OK); },
           [aResolver](nsresult aErr) { aResolver(aErr); });
-  return IPC_OK();
-}
-
-IPCResult WindowGlobalParent::RecvNotifyPendingIdentityCredentialDiscovery(
-    const IdentityCredentialRequestOptions& aOptions,
-    const NotifyPendingIdentityCredentialDiscoveryResolver& aResolver) {
-  IdentityCredentialRequestManager* icrm =
-      IdentityCredentialRequestManager::GetInstance();
-  if (!icrm) {
-    aResolver(NS_ERROR_NOT_AVAILABLE);
-    return IPC_OK();
-  }
-  nsresult rv =
-      icrm->StorePendingRequest(this->TopWindowContext()->DocumentPrincipal(),
-                                aOptions, this->InnerWindowId());
-  aResolver(rv);
   return IPC_OK();
 }
 

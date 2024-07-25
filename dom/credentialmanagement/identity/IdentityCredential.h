@@ -10,6 +10,7 @@
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/Credential.h"
 #include "mozilla/dom/IPCIdentityCredential.h"
+#include "nsICredentialChosenCallback.h"
 #include "mozilla/IdentityCredentialStorageService.h"
 #include "mozilla/MozPromise.h"
 
@@ -97,9 +98,19 @@ class IdentityCredential final : public Credential {
   // Get the Origin of this credential's identity provider
   void GetOrigin(nsACString& aOrigin, ErrorResult& aError) const;
 
-  static RefPtr<GetIdentityCredentialsPromise> CollectFromCredentialStore(
-      nsPIDOMWindowInner* aParent, const CredentialRequestOptions& aOptions,
-      bool aSameOriginWithAncestors);
+  static nsresult ShowCredentialChooser(
+      const RefPtr<CanonicalBrowsingContext>& aContext,
+      const nsTArray<IPCIdentityCredential>& aCredentials,
+      const RefPtr<nsICredentialChosenCallback>& aCallback);
+
+  static void GetCredential(nsPIDOMWindowInner* aParent,
+                            const CredentialRequestOptions& aOptions,
+                            bool aSameOriginWithAncestors,
+                            const RefPtr<Promise>& aPromise);
+
+  static RefPtr<GetIPCIdentityCredentialPromise> GetCredentialInMainProcess(
+      nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
+      const IdentityCredentialRequestOptions& aOptions);
 
   static RefPtr<GenericPromise> AllowedToCollectCredential(
       nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
@@ -122,14 +133,6 @@ class IdentityCredential final : public Credential {
       nsPIDOMWindowInner* aParent, const CredentialCreationOptions& aOptions,
       bool aSameOriginWithAncestors);
 
-  // This is the main static function called when a credential needs to be
-  // fetched from the IDP. Called in the content process.
-  // This is mostly a passthrough to `DiscoverFromExternalSourceInMainProcess`.
-  static void DiscoverFromExternalSource(
-      nsPIDOMWindowInner* aParent,
-      const IdentityCredentialRequestOptions& aOptions,
-      bool aSameOriginWithAncestors, const RefPtr<Promise>& aPromise);
-
   // Start the FedCM flow. This will start the timeout timer, fire initial
   // network requests, prompt the user, and call into CreateCredential.
   //
@@ -146,6 +149,11 @@ class IdentityCredential final : public Credential {
   //    other static methods here.
   static RefPtr<GetIPCIdentityCredentialPromise>
   DiscoverFromExternalSourceInMainProcess(
+      nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
+      const IdentityCredentialRequestOptions& aOptions);
+
+  static RefPtr<GetIPCIdentityCredentialPromise>
+  DiscoverLightweightFromExternalSourceInMainProcess(
       nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
       const IdentityCredentialRequestOptions& aOptions);
 
