@@ -981,12 +981,12 @@ void nsTextControlFrame::HandleReadonlyOrDisabledChange() {
     return;
   }
   if (el->IsDisabledOrReadOnly()) {
-    if (nsContentUtils::IsFocusedContent(el)) {
+    if (nsFocusManager::GetFocusedElementStatic() == el) {
       selCon->SetCaretEnabled(false);
     }
     editor->AddFlags(nsIEditor::eEditorReadonlyMask);
   } else {
-    if (nsContentUtils::IsFocusedContent(el)) {
+    if (nsFocusManager::GetFocusedElementStatic() == el) {
       selCon->SetCaretEnabled(true);
     }
     editor->RemoveFlags(nsIEditor::eEditorReadonlyMask);

@@ -2550,14 +2550,6 @@ class nsContentUtils {
       const nsIContent* aContent);
 
   /**
-   * Determine whether a content node is focused or not,
-   *
-   * @param aContent the content node to check
-   * @return true if the content node is focused, false otherwise.
-   */
-  static bool IsFocusedContent(const nsIContent* aContent);
-
-  /**
    * Returns true if calling execCommand with 'cut' or 'copy' arguments is
    * allowed for the given subject principal. These are only allowed if the user
    * initiated them (like with a mouse-click or key press).

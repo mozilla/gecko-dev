@@ -9208,11 +9208,7 @@ bool PresShell::EventHandler::AdjustContextMenuKeyEvent(
   // If we're here because of the key-equiv for showing context menus, we
   // have to reset the event target to the currently focused element. Get it
   // from the focus controller.
-  RefPtr<Element> currentFocus;
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm) {
-    currentFocus = fm->GetFocusedElement();
-  }
+  RefPtr<Element> currentFocus = nsFocusManager::GetFocusedElementStatic();
 
   // Reset event coordinates relative to focused frame in view
   if (currentFocus) {

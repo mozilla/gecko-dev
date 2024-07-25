@@ -3078,12 +3078,7 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
     return NS_OK;
   }
 
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (!fm) {
-    return NS_OK;
-  }
-
-  RefPtr<Element> element = fm->GetFocusedElement();
+  const RefPtr<Element> element = nsFocusManager::GetFocusedElementStatic();
   if (!element) {
     return NS_OK;
   }

@@ -3969,14 +3969,14 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
                 wheelEvent->mDeltaY != 0 &&
                 wheelEvent->mDeltaMode != WheelEvent_Binding::DOM_DELTA_PIXEL) {
               if (mType == FormControlType::InputNumber) {
-                if (nsContentUtils::IsFocusedContent(this)) {
+                if (nsFocusManager::GetFocusedElementStatic() == this) {
                   StepNumberControlForUserEvent(wheelEvent->mDeltaY > 0 ? -1
                                                                         : 1);
                   FireChangeEventIfNeeded();
                   aVisitor.mEvent->PreventDefault();
                 }
               } else if (mType == FormControlType::InputRange &&
-                         nsContentUtils::IsFocusedContent(this) &&
+                         nsFocusManager::GetFocusedElementStatic() == this &&
                          GetMinimum() < GetMaximum()) {
                 Decimal value = GetValueAsDecimal();
                 Decimal step = GetStep();

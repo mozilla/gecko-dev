@@ -1877,15 +1877,12 @@ bool RemoteAccessible::HasPrimaryAction() const {
 
 void RemoteAccessible::TakeFocus() const {
   Unused << mDoc->SendTakeFocus(mID);
-  if (nsFocusManager* fm = nsFocusManager::GetFocusManager()) {
-    auto* bp = static_cast<dom::BrowserParent*>(mDoc->Manager());
-    MOZ_ASSERT(bp);
-    dom::Element* owner = bp->GetOwnerElement();
-    if (fm->GetFocusedElement() == owner) {
-      // This remote document tree is already focused. We don't need to do
-      // anything else.
-      return;
-    }
+  auto* bp = static_cast<dom::BrowserParent*>(mDoc->Manager());
+  MOZ_ASSERT(bp);
+  if (nsFocusManager::GetFocusedElementStatic() == bp->GetOwnerElement()) {
+    // This remote document tree is already focused. We don't need to do
+    // anything else.
+    return;
   }
   // Otherwise, we need to focus the <browser> or <iframe> element embedding the
   // remote document in the parent process. If `this` is in an OOP iframe, we

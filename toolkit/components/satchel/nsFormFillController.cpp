@@ -249,17 +249,13 @@ nsFormFillController::MarkAsAutoCompletableField(HTMLInputElement* aInput) {
 
   aInput->EnablePreview();
 
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm) {
-    nsCOMPtr<nsIContent> focusedContent = fm->GetFocusedElement();
-    if (focusedContent == aInput) {
-      if (!mFocusedInput) {
-        MaybeStartControllingInput(aInput);
-      } else {
-        // See `MarkAsLoginManagerField` for why this is needed.
-        nsCOMPtr<nsIAutoCompleteController> controller = mController;
-        controller->ResetInternalState();
-      }
+  if (nsFocusManager::GetFocusedElementStatic() == aInput) {
+    if (!mFocusedInput) {
+      MaybeStartControllingInput(aInput);
+    } else {
+      // See `MarkAsLoginManagerField` for why this is needed.
+      nsCOMPtr<nsIAutoCompleteController> controller = mController;
+      controller->ResetInternalState();
     }
   }
 

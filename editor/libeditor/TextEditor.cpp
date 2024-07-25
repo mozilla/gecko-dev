@@ -772,15 +772,10 @@ nsresult TextEditor::OnFocus(const nsINode& aOriginalEventTargetNode) {
 
 nsresult TextEditor::OnBlur(const EventTarget* aEventTarget) {
   // check if something else is focused. If another element is focused, then
-  // we should not change the selection.
-  nsFocusManager* focusManager = nsFocusManager::GetFocusManager();
-  if (MOZ_UNLIKELY(!focusManager)) {
-    return NS_OK;
-  }
-
-  // If another element already has focus, we should not maintain the selection
-  // because we may not have the rights doing it.
-  if (focusManager->GetFocusedElement()) {
+  // we should not change the selection.  If another element already has focus,
+  // we should not maintain the selection because we may not have the rights
+  // doing it.
+  if (nsFocusManager::GetFocusedElementStatic()) {
     return NS_OK;
   }
 

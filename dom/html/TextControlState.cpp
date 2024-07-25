@@ -15,6 +15,7 @@
 #include "nsCOMPtr.h"
 #include "nsView.h"
 #include "nsCaret.h"
+#include "nsFocusManager.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsTextControlFrame.h"
 #include "nsIControllers.h"
@@ -858,7 +859,7 @@ void TextInputListener::OnSelectionChange(Selection& aSelection,
   mSelectionWasCollapsed = collapsed;
 
   if (!weakFrame.IsAlive() || !mFrame ||
-      !nsContentUtils::IsFocusedContent(mFrame->GetContent())) {
+      nsFocusManager::GetFocusedElementStatic() != mFrame->GetContent()) {
     return;
   }
 

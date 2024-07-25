@@ -5841,12 +5841,7 @@ Element* EditorBase::GetFocusedElement() const {
     return nullptr;
   }
 
-  nsFocusManager* focusManager = nsFocusManager::GetFocusManager();
-  if (NS_WARN_IF(!focusManager)) {
-    return nullptr;
-  }
-
-  Element* focusedElement = focusManager->GetFocusedElement();
+  Element* const focusedElement = nsFocusManager::GetFocusedElementStatic();
   MOZ_ASSERT((focusedElement == eventTarget) ==
              SameCOMIdentity(focusedElement, eventTarget));
 
@@ -5956,11 +5951,6 @@ bool EditorBase::CanKeepHandlingFocusEvent(
     return false;
   }
 
-  nsFocusManager* focusManager = nsFocusManager::GetFocusManager();
-  if (MOZ_UNLIKELY(!focusManager)) {
-    return false;
-  }
-
   // If the event target is document mode, we only need to handle the focus
   // event when the document is still in designMode.  Otherwise, the
   // mode has been disabled by somebody while we're handling the focus event.
@@ -5972,7 +5962,9 @@ bool EditorBase::CanKeepHandlingFocusEvent(
   // If nobody has focus, the focus event target has been blurred by somebody
   // else.  So the editor shouldn't initialize itself to start to handle
   // anything.
-  if (!focusManager->GetFocusedElement()) {
+  const Element* const focusedElement =
+      nsFocusManager::GetFocusedElementStatic();
+  if (!focusedElement) {
     return false;
   }
 
@@ -5992,7 +5984,7 @@ bool EditorBase::CanKeepHandlingFocusEvent(
       aOriginalEventTargetNode.AsContent()
           ->FindFirstNonChromeOnlyAccessContent();
   const nsIContent* exposedFocusedContent =
-      focusManager->GetFocusedElement()->FindFirstNonChromeOnlyAccessContent();
+      focusedElement->FindFirstNonChromeOnlyAccessContent();
   return exposedTargetContent && exposedFocusedContent &&
          exposedTargetContent == exposedFocusedContent;
 }

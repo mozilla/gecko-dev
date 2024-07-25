@@ -6894,12 +6894,7 @@ NS_IMETHODIMP HTMLEditor::SetWrapWidth(int32_t aWrapColumn) {
 }
 
 Element* HTMLEditor::GetFocusedElement() const {
-  nsFocusManager* focusManager = nsFocusManager::GetFocusManager();
-  if (NS_WARN_IF(!focusManager)) {
-    return nullptr;
-  }
-
-  Element* const focusedElement = focusManager->GetFocusedElement();
+  Element* const focusedElement = nsFocusManager::GetFocusedElementStatic();
 
   Document* document = GetDocument();
   if (NS_WARN_IF(!document)) {
@@ -7183,14 +7178,12 @@ nsINode* HTMLEditor::GetFocusedNode() const {
     return nullptr;
   }
 
-  // focusedElement might be non-null even focusManager->GetFocusedElement()
-  // is null.  That's the designMode case, and in that case our
-  // FocusedContent() returns the root element, but we want to return
-  // the document.
+  // focusedElement might be non-null even
+  // nsFocusManager::GetFocusedElementStatic() returns null.  That's the
+  // designMode case, and in that case our GetFocusedElement() returns the root
+  // element, but we want to return the document.
 
-  nsFocusManager* focusManager = nsFocusManager::GetFocusManager();
-  NS_ASSERTION(focusManager, "Focus manager is null");
-  if ((focusedElement = focusManager->GetFocusedElement())) {
+  if ((focusedElement = nsFocusManager::GetFocusedElementStatic())) {
     return focusedElement;
   }
 
