@@ -744,6 +744,7 @@ export class SelectParent extends JSWindowActorParent {
     let menulist = document.createXULElement("menulist");
     menulist.setAttribute("id", "ContentSelectDropdown");
     menulist.setAttribute("popuponly", "true");
+    menulist.setAttribute("tabspecific", "true");
     menulist.setAttribute("hidden", "true");
 
     let popup = menulist.appendChild(document.createXULElement("menupopup"));
