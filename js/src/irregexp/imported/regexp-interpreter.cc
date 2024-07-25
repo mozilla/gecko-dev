@@ -126,7 +126,7 @@ class BacktrackStack {
     return (static_cast<int>(data_.size()) <= kMaxSize);
   }
   int peek() const {
-    DCHECK(!data_.empty());
+    SBXCHECK(!data_.empty());
     return data_.back();
   }
   int pop() {
@@ -137,7 +137,7 @@ class BacktrackStack {
 
   // The 'sp' is the index of the first empty element in the stack.
   int sp() const { return static_cast<int>(data_.size()); }
-  void set_sp(int new_sp) {
+  void set_sp(uint32_t new_sp) {
     DCHECK_LE(new_sp, sp());
     data_.resize_no_init(new_sp);
   }
@@ -228,8 +228,8 @@ IrregexpInterpreter::Result MaybeThrowStackOverflow(
 
 template <typename Char>
 void UpdateCodeAndSubjectReferences(
-    Isolate* isolate, Handle<ByteArray> code_array,
-    Handle<String> subject_string, Tagged<ByteArray>* code_array_out,
+    Isolate* isolate, DirectHandle<ByteArray> code_array,
+    DirectHandle<String> subject_string, Tagged<ByteArray>* code_array_out,
     const uint8_t** code_base_out, const uint8_t** pc_out,
     Tagged<String>* subject_string_out,
     base::Vector<const Char>* subject_string_vector_out) {
@@ -1062,7 +1062,7 @@ IrregexpInterpreter::Result IrregexpInterpreter::Match(
   if (v8_flags.regexp_tier_up) regexp->TierUpTick();
 
   bool is_one_byte = String::IsOneByteRepresentationUnderneath(subject_string);
-  Tagged<ByteArray> code_array = ByteArray::cast(regexp->bytecode(is_one_byte));
+  Tagged<ByteArray> code_array = Cast<ByteArray>(regexp->bytecode(is_one_byte));
   int total_register_count = regexp->max_register_count();
 
   return MatchInternal(isolate, code_array, subject_string, output_registers,
@@ -1131,8 +1131,8 @@ IrregexpInterpreter::Result IrregexpInterpreter::MatchForCallFromJs(
   DisallowHandleAllocation no_handles;
   DisallowHandleDereference no_deref;
 
-  Tagged<String> subject_string = String::cast(Tagged<Object>(subject));
-  Tagged<JSRegExp> regexp_obj = JSRegExp::cast(Tagged<Object>(regexp));
+  Tagged<String> subject_string = Cast<String>(Tagged<Object>(subject));
+  Tagged<JSRegExp> regexp_obj = Cast<JSRegExp>(Tagged<Object>(regexp));
 
   if (regexp_obj->MarkedForTierUp()) {
     // Returning RETRY will re-enter through runtime, where actual recompilation
@@ -1147,8 +1147,9 @@ IrregexpInterpreter::Result IrregexpInterpreter::MatchForCallFromJs(
 #endif  // !COMPILING_IRREGEXP_FOR_EXTERNAL_EMBEDDER
 
 IrregexpInterpreter::Result IrregexpInterpreter::MatchForCallFromRuntime(
-    Isolate* isolate, Handle<JSRegExp> regexp, Handle<String> subject_string,
-    int* output_registers, int output_register_count, int start_position) {
+    Isolate* isolate, DirectHandle<JSRegExp> regexp,
+    DirectHandle<String> subject_string, int* output_registers,
+    int output_register_count, int start_position) {
   return Match(isolate, *regexp, *subject_string, output_registers,
                output_register_count, start_position,
                RegExp::CallOrigin::kFromRuntime);
