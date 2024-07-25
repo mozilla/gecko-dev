@@ -368,50 +368,48 @@ IdentityCredentialStorageService::LoadLightweightMemoryTableFromDisk() {
 
   bool hasResult;
   while (NS_SUCCEEDED(readStmt->ExecuteStep(&hasResult)) && hasResult) {
-    int64_t modificationTime, userDataExpireTime;
-    nsCString idpOrigin, credentialId, idpBaseDomain, name, iconDataURL,
-        originAllowlist, dynamicAllowEndpoint;
+    nsCOMPtr<nsIVariant> modificationTime, userDataExpireTime, idpOrigin,
+        credentialId, idpBaseDomain, name, iconDataURL, originAllowlist,
+        dynamicAllowEndpoint;
 
     // Read values from disk query
-    rv = readStmt->GetUTF8String(0, idpOrigin);
+    rv = readStmt->GetVariant(0, getter_AddRefs(idpOrigin));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = readStmt->GetUTF8String(1, credentialId);
+    rv = readStmt->GetVariant(1, getter_AddRefs(credentialId));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = readStmt->GetUTF8String(2, name);
+    rv = readStmt->GetVariant(2, getter_AddRefs(name));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = readStmt->GetUTF8String(3, iconDataURL);
+    rv = readStmt->GetVariant(3, getter_AddRefs(iconDataURL));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = readStmt->GetUTF8String(4, originAllowlist);
+    rv = readStmt->GetVariant(4, getter_AddRefs(originAllowlist));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = readStmt->GetUTF8String(5, dynamicAllowEndpoint);
+    rv = readStmt->GetVariant(5, getter_AddRefs(dynamicAllowEndpoint));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = readStmt->GetInt64(6, &userDataExpireTime);
+    rv = readStmt->GetVariant(6, getter_AddRefs(userDataExpireTime));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = readStmt->GetInt64(7, &modificationTime);
+    rv = readStmt->GetVariant(7, getter_AddRefs(modificationTime));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = readStmt->GetUTF8String(8, idpBaseDomain);
+    rv = readStmt->GetVariant(8, getter_AddRefs(idpBaseDomain));
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Write values to memory database
-    rv = writeStmt->BindUTF8StringByName("idpOrigin"_ns, idpOrigin);
+    rv = writeStmt->BindByName("idpOrigin"_ns, idpOrigin);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = writeStmt->BindUTF8StringByName("credentialId"_ns, credentialId);
+    rv = writeStmt->BindByName("credentialId"_ns, credentialId);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = writeStmt->BindUTF8StringByName("name"_ns, name);
+    rv = writeStmt->BindByName("name"_ns, name);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = writeStmt->BindUTF8StringByName("iconDataURL"_ns, iconDataURL);
+    rv = writeStmt->BindByName("iconDataURL"_ns, iconDataURL);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = writeStmt->BindUTF8StringByName("originAllowlist"_ns, originAllowlist);
+    rv = writeStmt->BindByName("originAllowlist"_ns, originAllowlist);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = writeStmt->BindUTF8StringByName("dynamicAllowEndpoint"_ns,
-                                         dynamicAllowEndpoint);
+    rv = writeStmt->BindByName("dynamicAllowEndpoint"_ns, dynamicAllowEndpoint);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv =
-        writeStmt->BindInt64ByName("userDataExpireTime"_ns, userDataExpireTime);
+    rv = writeStmt->BindByName("userDataExpireTime"_ns, userDataExpireTime);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = writeStmt->BindInt64ByName("modificationTime"_ns, modificationTime);
+    rv = writeStmt->BindByName("modificationTime"_ns, modificationTime);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = writeStmt->BindUTF8StringByName("idpBaseDomain"_ns, idpBaseDomain);
+    rv = writeStmt->BindByName("idpBaseDomain"_ns, idpBaseDomain);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = writeStmt->Execute();
     NS_ENSURE_SUCCESS(rv, rv);
@@ -994,20 +992,20 @@ NS_IMETHODIMP IdentityCredentialStorageService::
           resultDynamicAllowEndpoint;
       nsTArray<nsCString> allowListArray;
       Maybe<int64_t> resultUserDataExpireTime;
-      if (!name.IsVoid()) {
+      if (!name.IsVoid() && name.Length()) {
         resultName = Some(NS_ConvertUTF16toUTF8(name));
       }
-      if (!iconDataURL.IsVoid()) {
+      if (!iconDataURL.IsVoid() && iconDataURL.Length()) {
         resultIconDataURL = Some(NS_ConvertUTF16toUTF8(iconDataURL));
       }
       for (const auto& origin : originAllowList.Split('|')) {
         allowListArray.AppendElement(NS_ConvertUTF16toUTF8(origin));
       }
-      if (!dynamicAllowEndpoint.IsVoid()) {
+      if (!dynamicAllowEndpoint.IsVoid() && dynamicAllowEndpoint.Length()) {
         resultDynamicAllowEndpoint =
             Some(NS_ConvertUTF16toUTF8(dynamicAllowEndpoint));
       }
-      if (!stmt->IsNull(3) && userDataExpireTime >= 0) {
+      if (!stmt->IsNull(3) && userDataExpireTime > 0) {
         resultUserDataExpireTime = Some(userDataExpireTime);
       }
       dom::IPCIdentityCredential result(
