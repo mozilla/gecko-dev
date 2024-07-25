@@ -30,6 +30,8 @@ XPCSHELL_TESTS_MANIFESTS += [
     "tests/xpcshell/xpcshell.toml",
 ]
 
+MOCHITEST_MANIFESTS += ["tests/mochitest/mochitest.toml"]
+
 EXTRA_JS_MODULES += [
     "PrivateAttributionService.sys.mjs",
 ]

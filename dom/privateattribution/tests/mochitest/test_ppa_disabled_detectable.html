@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>PPA Throws for Invalid Source or Target Domains</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
+</head>
+
+<body>
+<script>
+  add_task(async function testSaveImpressionThrowsWithInvalidTarget() {
+    try {
+      navigator.privateAttribution.saveImpression({
+        type: "view",
+        index: 6,
+        ad: "ad_id",
+        target: "~"
+      });
+      ok(false, "saveImpression did not throw");
+    } catch(e) {
+      ok(true, "saveImpression throws:" + e);
+    }
+  });
+
+  add_task(async function testMeasureConversionThrowsWithInvalidSource() {
+    try {
+      navigator.privateAttribution.measureConversion({
+        task: "task_id",
+        histogramSize: 5,
+        lookbackDays: 30,
+        impression: "view",
+        ads: ["ad_id"],
+        sources: ["~"]
+      })
+      ok(false, "measureConversion did not throw");
+    } catch(e) {
+      ok(true, "measureConversion throws:" + e);
+    }
+  });
+</script>
+</body>
+
+</html>

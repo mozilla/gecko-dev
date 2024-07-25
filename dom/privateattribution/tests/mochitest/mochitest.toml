@@ -1,0 +1,10 @@
+[DEFAULT]
+prefs = [
+    "dom.origin-trials.enabled=true",
+    "dom.origin-trials.private-attribution.state=1",
+    "dom.private-attribution.submission.enabled=false",
+    "datareporting.healthreport.uploadEnabled=false",
+]
+scheme = "https"
+
+["test_ppa_disabled_detectable.html"]

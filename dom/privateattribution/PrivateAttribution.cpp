@@ -65,16 +65,16 @@ bool PrivateAttribution::GetSourceHostIfNonPrivate(nsACString& aSourceHost,
 
 void PrivateAttribution::SaveImpression(
     const PrivateAttributionImpressionOptions& aOptions, ErrorResult& aRv) {
-  if (!ShouldRecord()) {
-    return;
-  }
-
   nsAutoCString source;
   if (!GetSourceHostIfNonPrivate(source, aRv)) {
     return;
   }
 
   if (!ValidateHost(aOptions.mTarget, aRv)) {
+    return;
+  }
+
+  if (!ShouldRecord()) {
     return;
   }
 
@@ -99,10 +99,6 @@ void PrivateAttribution::SaveImpression(
 
 void PrivateAttribution::MeasureConversion(
     const PrivateAttributionConversionOptions& aOptions, ErrorResult& aRv) {
-  if (!ShouldRecord()) {
-    return;
-  }
-
   nsAutoCString source;
   if (!GetSourceHostIfNonPrivate(source, aRv)) {
     return;
@@ -112,6 +108,11 @@ void PrivateAttribution::MeasureConversion(
       return;
     }
   }
+
+  if (!ShouldRecord()) {
+    return;
+  }
+
   if (XRE_IsParentProcess()) {
     nsCOMPtr<nsIPrivateAttributionService> pa =
         components::PrivateAttribution::Service();
