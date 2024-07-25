@@ -6,7 +6,8 @@ use inherent::inherent;
 
 use super::{
     ErrorType, LabeledBooleanMetric, LabeledCounterMetric, LabeledCustomDistributionMetric,
-    LabeledMemoryDistributionMetric, LabeledMetricData, LabeledStringMetric, MetricId,
+    LabeledMemoryDistributionMetric, LabeledMetricData, LabeledStringMetric,
+    LabeledTimingDistributionMetric, MetricId,
 };
 use crate::ipc::need_ipc;
 use std::borrow::Cow;
@@ -18,9 +19,13 @@ use std::marker::PhantomData;
 mod private {
     use super::{
         need_ipc, LabeledBooleanMetric, LabeledCounterMetric, LabeledCustomDistributionMetric,
-        LabeledMemoryDistributionMetric, LabeledStringMetric, MetricId,
+        LabeledMemoryDistributionMetric, LabeledStringMetric, LabeledTimingDistributionMetric,
+        MetricId,
     };
-    use crate::private::{CounterMetric, CustomDistributionMetric, MemoryDistributionMetric};
+    use crate::private::labeled_timing_distribution::LabeledTimingDistributionMetricKind;
+    use crate::private::{
+        CounterMetric, CustomDistributionMetric, MemoryDistributionMetric, TimingDistributionMetric,
+    };
     use std::sync::Arc;
 
     /// The sealed trait.
@@ -115,6 +120,30 @@ mod private {
                     id,
                     inner: metric,
                 })
+            }
+        }
+    }
+
+    // `LabeledMetric<LabeledTimingDistributionMetric>` is possible.
+    //
+    // See [Labeled Timing Distributions](https://mozilla.github.io/glean/book/user/metrics/labeled_timing_distributions.html).
+    impl Sealed for LabeledTimingDistributionMetric {
+        type GleanMetric = glean::private::TimingDistributionMetric;
+        fn from_glean_metric(id: MetricId, metric: Arc<Self::GleanMetric>, label: &str) -> Self {
+            if need_ipc() {
+                LabeledTimingDistributionMetric {
+                    inner: Arc::new(TimingDistributionMetric::new_child(id)),
+                    id,
+                    label: label.to_string(),
+                    kind: LabeledTimingDistributionMetricKind::Child,
+                }
+            } else {
+                LabeledTimingDistributionMetric {
+                    inner: Arc::new(TimingDistributionMetric::Parent { id, inner: metric }),
+                    id,
+                    label: label.to_string(),
+                    kind: LabeledTimingDistributionMetricKind::Parent,
+                }
             }
         }
     }

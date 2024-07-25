@@ -714,3 +714,38 @@ add_task(async function test_fog_labeled_memory_distribution_works() {
     );
   }
 });
+
+add_task(async function test_labeled_timing_distribution_works() {
+  let t1 = Glean.testOnly.whereHasTheTimeGone.west.start();
+  let t2 = Glean.testOnly.whereHasTheTimeGone.west.start();
+
+  await sleep(5);
+
+  let t3 = Glean.testOnly.whereHasTheTimeGone.west.start();
+  Glean.testOnly.whereHasTheTimeGone.west.cancel(t1);
+
+  await sleep(5);
+
+  Glean.testOnly.whereHasTheTimeGone.west.stopAndAccumulate(t2); // 10ms
+  Glean.testOnly.whereHasTheTimeGone.west.stopAndAccumulate(t3); // 5ms
+
+  let data = Glean.testOnly.whereHasTheTimeGone.west.testGetValue();
+
+  // Cancelled timers should not be counted.
+  Assert.equal(2, data.count, "Count of entries is correct");
+
+  const NANOS_IN_MILLIS = 1e6;
+  // bug 1701949 - Sleep gets close, but sometimes doesn't wait long enough.
+  const EPSILON = 40000;
+
+  // Variance in timing makes getting the sum impossible to know.
+  Assert.greater(data.sum, 15 * NANOS_IN_MILLIS - EPSILON);
+
+  // No guarantees from timers means no guarantees on buckets.
+  // But we can guarantee it's only two samples.
+  Assert.equal(
+    2,
+    Object.entries(data.values).reduce((acc, [, count]) => acc + count, 0),
+    "Only two buckets with samples"
+  );
+});

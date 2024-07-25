@@ -128,3 +128,26 @@ pub extern "C" fn fog_labeled_string_enum_get(id: u32, label: u16) -> u32 {
         LabeledStringMetric
     )
 }
+
+#[no_mangle]
+pub extern "C" fn fog_labeled_timing_distribution_get(id: u32, label: &nsACString) -> u32 {
+    labeled_submetric_get!(
+        id,
+        label,
+        LABELED_TIMING_DISTRIBUTION_MAP,
+        labeled_timing_distribution_get,
+        TIMING_DISTRIBUTION_MAP,
+        LabeledTimingDistributionMetric
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn fog_labeled_timing_distribution_enum_get(id: u32, label: u16) -> u32 {
+    labeled_submetric_enum_get!(
+        id,
+        label,
+        labeled_timing_distribution_enum_get,
+        TIMING_DISTRIBUTION_MAP,
+        LabeledTimingDistributionMetric
+    )
+}

@@ -35,6 +35,7 @@ pub struct IPCPayload {
     pub rates: HashMap<MetricId, (i32, i32)>,
     pub string_lists: HashMap<MetricId, Vec<String>>,
     pub timing_samples: HashMap<MetricId, Vec<u64>>,
+    pub labeled_timing_samples: HashMap<MetricId, HashMap<String, Vec<u64>>>,
 }
 
 /// Global singleton: pending IPC payload.
@@ -392,6 +393,23 @@ pub fn replay_from_buf(buf: &[u8]) -> Result<(), ()> {
             }
         } else if let Some(metric) = __glean_metric_maps::TIMING_DISTRIBUTION_MAP.get(&id) {
             metric.accumulate_raw_samples_nanos(samples);
+        }
+    }
+    for (id, labeled_timing_samples) in ipc_payload.labeled_timing_samples.into_iter() {
+        if id.0 & (1 << crate::factory::DYNAMIC_METRIC_BIT) > 0 {
+            let map = crate::factory::__jog_metric_maps::LABELED_TIMING_DISTRIBUTION_MAP
+                .read()
+                .expect("Read lock for dynamic labeled timing distribution map was poisoned");
+            if let Some(metric) = map.get(&id) {
+                for (label, samples) in labeled_timing_samples.into_iter() {
+                    metric.get(&label).accumulate_raw_samples_nanos(samples);
+                }
+            }
+        } else {
+            for (label, samples) in labeled_timing_samples.into_iter() {
+                __glean_metric_maps::labeled_timing_distribution_get(id.0, &label)
+                    .accumulate_raw_samples_nanos(samples);
+            }
         }
     }
     Ok(())

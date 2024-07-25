@@ -142,6 +142,15 @@ const METRICS = [
     false,
     JSON.stringify({ memory_unit: "megabyte" }),
   ],
+  [
+    "labeled_timing_distribution",
+    "jog_ipc",
+    "jog_labeled_timing_dist",
+    ["test-only"],
+    `"ping"`,
+    false,
+    JSON.stringify({ time_unit: "nanosecond" }),
+  ],
 ];
 
 add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
@@ -197,6 +206,19 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
   for (let memory of MEMORIES) {
     Glean.jogIpc.jogLabeledMemoryDist.label_1.accumulate(memory);
   }
+
+  let l1 = Glean.jogIpc.jogLabeledTimingDist.label1.start();
+  let l2 = Glean.jogIpc.jogLabeledTimingDist.label1.start();
+
+  await sleep(5);
+
+  let l3 = Glean.jogIpc.jogLabeledTimingDist.label1.start();
+  Glean.jogIpc.jogLabeledTimingDist.label1.cancel(l1);
+
+  await sleep(5);
+
+  Glean.jogIpc.jogLabeledTimingDist.label1.stopAndAccumulate(l2); // 10ms
+  Glean.jogIpc.jogLabeledTimingDist.label1.stopAndAccumulate(l3); // 5ms
 });
 
 add_task(
@@ -312,5 +334,18 @@ add_task(
       }
       Assert.ok(count == 1 && MEMORY_BUCKETS.includes(bucket));
     }
+
+    const labeledTimes =
+      Glean.jogIpc.jogLabeledTimingDist.label1.testGetValue();
+    Assert.greater(labeledTimes.sum, 15 * NANOS_IN_MILLIS - EPSILON);
+    // We can't guarantee any specific time values (thank you clocks),
+    // but we can assert there are only two samples.
+    Assert.equal(
+      2,
+      Object.entries(labeledTimes.values).reduce(
+        (acc, [, count]) => acc + count,
+        0
+      )
+    );
   }
 );

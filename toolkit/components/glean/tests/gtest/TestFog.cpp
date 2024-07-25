@@ -533,6 +533,44 @@ TEST_F(FOGFixture, TestLabeledMemoryDistWorks) {
   }
 }
 
+TEST_F(FOGFixture, TestLabeledTimingDistWorks) {
+  auto id1 = test_only::where_has_the_time_gone.Get("UTC"_ns).Start();
+  auto id2 = test_only::where_has_the_time_gone.Get("UTC"_ns).Start();
+  PR_Sleep(PR_MillisecondsToInterval(5));
+  auto id3 = test_only::where_has_the_time_gone.Get("UTC"_ns).Start();
+  test_only::where_has_the_time_gone.Get("UTC"_ns).Cancel(std::move(id1));
+  PR_Sleep(PR_MillisecondsToInterval(5));
+  test_only::where_has_the_time_gone.Get("UTC"_ns).StopAndAccumulate(
+      std::move(id2));
+  test_only::where_has_the_time_gone.Get("UTC"_ns).StopAndAccumulate(
+      std::move(id3));
+
+  DistributionData data = test_only::where_has_the_time_gone.Get("UTC"_ns)
+                              .TestGetValue()
+                              .unwrap()
+                              .ref();
+
+  // Cancelled timers should not increase count.
+  ASSERT_EQ(data.count, 2UL);
+
+  const uint64_t NANOS_IN_MILLIS = 1e6;
+
+  // bug 1701847 - Sleeps don't necessarily round up as you'd expect.
+  // Give ourselves a 200000ns (0.2ms) window to be off on fast machines.
+  const uint64_t EPSILON = 200000;
+
+  // We don't know exactly how long those sleeps took, only that it was at
+  // least 15ms total.
+  ASSERT_GT(data.sum, (uint64_t)(15 * NANOS_IN_MILLIS) - EPSILON);
+
+  // We also can't guarantee the buckets, but we can guarantee two samples.
+  uint64_t sampleCount = 0;
+  for (const auto& value : data.values.Values()) {
+    sampleCount += value;
+  }
+  ASSERT_EQ(sampleCount, (uint64_t)2);
+}
+
 extern "C" void Rust_TestRustInGTest();
 TEST_F(FOGFixture, TestRustInGTest) { Rust_TestRustInGTest(); }
 

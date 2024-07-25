@@ -32,6 +32,9 @@ macro_rules! with_metric {
     (STRING_MAP, $id:ident, $m:ident, $f:expr) => {
         maybe_labeled_with_metric!(STRING_MAP, $id, $m, $f)
     };
+    (TIMING_DISTRIBUTION_MAP, $id:ident, $m:ident, $f:expr) => {
+        maybe_labeled_with_metric!(TIMING_DISTRIBUTION_MAP, $id, $m, $f)
+    };
     ($map:ident, $id:ident, $m:ident, $f:expr) => {
         just_with_metric!($map, $id, $m, $f)
     };

@@ -139,6 +139,13 @@ map of argument name to argument type. I may regret this if I need it again. #}
                         , {{ "unit" if arg_name == "memory_unit" else arg_name }}: {{ arg_name }}.unwrap()
                     {%- endfor -%}
                 };
+                {%- elif metric_type_name == "labeled_timing_distribution" -%}
+                LabeledMetricData::TimingDistribution {
+                    cmd: {{ common_metric_data(metric_type)|indent(20) }}
+                    {%- for arg_name in metric_type.args if arg_name not in common_metric_data_args -%}
+                        , {{ "unit" if arg_name == "time_unit" else arg_name }}: {{ arg_name }}.unwrap()
+                    {%- endfor -%}
+                };
                 {%- elif metric_type_name.startswith('labeled_') -%}
                 LabeledMetricData::Common {
                     cmd: {{ common_metric_data(metric_type)|indent(16) }}

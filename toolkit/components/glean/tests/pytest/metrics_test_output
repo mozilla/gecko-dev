@@ -1074,6 +1074,9 @@ pub(crate) mod __glean_metric_maps {
         pub static STRING_MAP: Lazy<RwLock<HashMap<MetricId, LabeledStringMetric>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
+        pub static TIMING_DISTRIBUTION_MAP: Lazy<RwLock<HashMap<MetricId, LabeledTimingDistributionMetric>>> = Lazy::new(||
+            RwLock::new(HashMap::new())
+        );
     }
 }
 

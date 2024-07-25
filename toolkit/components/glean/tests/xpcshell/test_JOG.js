@@ -820,3 +820,43 @@ add_task(async function test_jog_labeled_memory_distribution_works() {
     );
   }
 });
+
+add_task(async function test_jog_labeled_timing_distribution_works() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_timing_distribution",
+    "jog_cat",
+    "jog_labeled_timing_dist",
+    ["test-only"],
+    `"ping"`,
+    false,
+    JSON.stringify({ time_unit: "microsecond" })
+  );
+  let t1 = Glean.jogCat.jogLabeledTimingDist.label1.start();
+  let t2 = Glean.jogCat.jogLabeledTimingDist.label1.start();
+
+  await sleep(5);
+
+  let t3 = Glean.jogCat.jogLabeledTimingDist.label1.start();
+  Glean.jogCat.jogLabeledTimingDist.label1.cancel(t1);
+
+  await sleep(5);
+
+  Glean.jogCat.jogLabeledTimingDist.label1.stopAndAccumulate(t2); // 10ms
+  Glean.jogCat.jogLabeledTimingDist.label1.stopAndAccumulate(t3); // 5ms
+
+  let data = Glean.jogCat.jogLabeledTimingDist.label1.testGetValue();
+  const NANOS_IN_MILLIS = 1e6;
+  // bug 1701949 - Sleep gets close, but sometimes doesn't wait long enough.
+  const EPSILON = 40000;
+
+  // Variance in timing makes getting the sum impossible to know.
+  Assert.greater(data.sum, 15 * NANOS_IN_MILLIS - EPSILON);
+
+  // No guarantees from timers means no guarantees on buckets.
+  // But we can guarantee it's only two samples.
+  Assert.equal(
+    2,
+    Object.entries(data.values).reduce((acc, [, count]) => acc + count, 0),
+    "Only two buckets with samples"
+  );
+});
