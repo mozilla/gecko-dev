@@ -417,7 +417,7 @@ class CreditCardAutofillTest : TestSetup() {
                 MockCreditCard1.MOCK_NAME_ON_CARD,
                 MockCreditCard1.MOCK_EXPIRATION_MONTH_AND_YEAR,
             )
-            clickPageObject(itemWithResId("$packageName:id/save_cancel"))
+            clickNegativeSaveCreditCardPromptButton()
             verifyUpdateOrSaveCreditCardPromptExists(exists = false)
         }.openThreeDotMenu {
         }.openSettings {
@@ -490,7 +490,7 @@ class CreditCardAutofillTest : TestSetup() {
             verifyAutofilledCreditCard(MockCreditCard2.MOCK_CREDIT_CARD_NUMBER)
             changeCreditCardExpiryDate(MockCreditCard1.MOCK_EXPIRATION_MONTH_AND_YEAR)
             clickCreditCardFormSubmitButton()
-            clickPageObject(itemWithResId("$packageName:id/save_cancel"))
+            clickNegativeSaveCreditCardPromptButton()
             verifyUpdateOrSaveCreditCardPromptExists(false)
         }.openThreeDotMenu {
         }.openSettings {

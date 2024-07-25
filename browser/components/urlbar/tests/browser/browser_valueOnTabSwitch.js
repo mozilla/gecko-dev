@@ -74,11 +74,28 @@ add_task(async function () {
       testPartialURL,
       "gURLBar.value should be testPartialURL after switching back to partialURLTab"
     );
+    Assert.equal(
+      gURLBar.selectionStart,
+      gURLBar.value.length,
+      "Selection starts at value length"
+    );
+    Assert.equal(
+      gURLBar.selectionEnd,
+      gURLBar.value.length,
+      "No text selected"
+    );
+
     await BrowserTestUtils.switchTab(gBrowser, deletedURLTab);
     is(
       gURLBar.value,
       testURL,
       "gURLBar.value should be testURL after switching back to deletedURLTab"
+    );
+    Assert.equal(gURLBar.selectionStart, 0, "Selection starts from 0");
+    Assert.equal(
+      gURLBar.selectionEnd,
+      gURLBar.value.length,
+      "All text selected"
     );
 
     await BrowserTestUtils.switchTab(gBrowser, fullURLTab);
@@ -86,6 +103,12 @@ add_task(async function () {
       gURLBar.value,
       testURL,
       "gURLBar.value should be testURL after switching back to fullURLTab"
+    );
+    Assert.equal(gURLBar.selectionStart, 0, "Selection starts from 0");
+    Assert.equal(
+      gURLBar.selectionEnd,
+      gURLBar.value.length,
+      "All text selected"
     );
   }
 

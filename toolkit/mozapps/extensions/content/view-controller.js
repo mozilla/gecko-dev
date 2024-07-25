@@ -177,11 +177,18 @@ var gViewController = {
       // Most content has been rendered at this point. The only exception are
       // recommendations in the discovery pane and extension/theme list, because
       // they rely on remote data. If loaded before, then these may be rendered
-      // within one tick, so wait a frame before restoring scroll offsets.
+      // within one tick, so wait a full frame before restoring scroll offsets.
       await new Promise(resolve => {
         window.requestAnimationFrame(() => {
-          // Double requestAnimationFrame in case we reflow.
-          window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(async () => {
+            // Ensure all our content is translated.
+            if (document.hasPendingL10nMutations) {
+              await new Promise(r => {
+                document.addEventListener("L10nMutationsFinished", r, {
+                  once: true,
+                });
+              });
+            }
             ScrollOffsets.restore();
             resolve();
           });

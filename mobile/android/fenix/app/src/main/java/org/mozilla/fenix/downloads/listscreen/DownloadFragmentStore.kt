@@ -9,6 +9,7 @@ import mozilla.components.lib.state.Action
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
+import mozilla.components.lib.state.UiStore
 import org.mozilla.fenix.downloads.listscreen.DownloadFragmentState.Mode
 
 /**
@@ -37,7 +38,7 @@ data class DownloadItem(
 class DownloadFragmentStore(
     initialState: DownloadFragmentState,
     middleware: List<Middleware<DownloadFragmentState, DownloadFragmentAction>> = emptyList(),
-) : Store<DownloadFragmentState, DownloadFragmentAction>(
+) : UiStore<DownloadFragmentState, DownloadFragmentAction>(
     initialState = initialState,
     reducer = ::downloadStateReducer,
     middleware = middleware,

@@ -2,6 +2,7 @@
 prefs = [
   "dom.origin-trials.enabled=true",
   "dom.origin-trials.test-key.enabled=true",
+  "dom.origin-trials.private-attribution.state=0",
   "browser.tabs.remote.coep.credentialless=false",
 ]
 support-files = [

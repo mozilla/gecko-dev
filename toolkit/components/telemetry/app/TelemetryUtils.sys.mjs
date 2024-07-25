@@ -104,14 +104,6 @@ export var TelemetryUtils = {
   },
 
   /**
-   * Returns the state of the Telemetry enabled preference, making sure
-   * it correctly evaluates to a boolean type.
-   */
-  get isTelemetryEnabled() {
-    return TelemetryControllerBase.isTelemetryEnabled;
-  },
-
-  /**
    * Turn a millisecond timestamp into a day timestamp.
    *
    * @param aMsec A number of milliseconds since Unix epoch.
