@@ -903,6 +903,43 @@ networking:
     expires: never
     telemetry_mirror: HTTP_UPLOAD_THROUGHPUT_MBPS_HTTP_3_100
 
+  cache_metadata_first_read_time: &cache_metadata_first_read_time
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Time spent to read the first part of the metadata from the cache entry file.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908994
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908994
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_CACHE_METADATA_FIRST_READ_TIME_MS
+
+  cache_metadata_second_read_time:
+    <<: *cache_metadata_first_read_time
+    description: >
+      Time spent to read the missing part of the metadata from the cache entry file.
+    telemetry_mirror: NETWORK_CACHE_METADATA_SECOND_READ_TIME_MS
+
+  cache_metadata_size:
+    type: memory_distribution
+    memory_unit: byte
+    description:
+      Size of the metadata in bytes parsed from the disk.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1133739
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1495336
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908994
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908994
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+
   residual_cache_folder_count:
     type: counter
     description: >
