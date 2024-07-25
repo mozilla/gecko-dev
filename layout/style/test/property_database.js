@@ -8816,10 +8816,7 @@ var gCSSProperties = {
       "-moz-max-content",
       "-moz-min-content",
       "-moz-fit-content",
-      // whether -moz-available computes to the initial value depends on
-      // the container size, and for the container size we're testing
-      // with, it does
-      // "-moz-available",
+      "-moz-available",
       "3e1px",
       "3e+1px",
       "3e0px",
@@ -10795,10 +10792,7 @@ var gCSSProperties = {
       "-moz-max-content",
       "-moz-min-content",
       "-moz-fit-content",
-      // whether -moz-available computes to the initial value depends on
-      // the container size, and for the container size we're testing
-      // with, it does
-      // "-moz-available",
+      "-moz-available",
       "calc(2px)",
       "calc(50%)",
       "calc(3*25px)",
