@@ -77,7 +77,7 @@ object Versions {
         const val lifecycle = "2.7.0"
         const val media = "1.7.0"
         const val navigation = "2.7.7"
-        const val transition = "1.5.0"
+        const val transition = "1.5.1"
         const val tracing = "1.2.0"
         const val work = "2.9.0"
         const val arch = "2.2.0"
