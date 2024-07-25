@@ -52,7 +52,10 @@ pub use self::datetime::DatetimeMetric;
 pub use self::denominator::DenominatorMetric;
 pub use self::event::EventMetric;
 pub(crate) use self::experiment::ExperimentMetric;
-pub use self::labeled::{LabeledBoolean, LabeledCounter, LabeledMetric, LabeledString};
+pub use self::labeled::{
+    LabeledBoolean, LabeledCounter, LabeledCustomDistribution, LabeledMemoryDistribution,
+    LabeledMetric, LabeledString, LabeledTimingDistribution,
+};
 pub use self::memory_distribution::MemoryDistributionMetric;
 pub use self::memory_unit::MemoryUnit;
 pub use self::numerator::NumeratorMetric;

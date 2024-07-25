@@ -202,7 +202,7 @@ fn start_scheduler(
             let mut now = now;
             loop {
                 let dur = when.until(now);
-                log::info!("Scheduling for {:?} after {}, reason {:?}", dur, now, when);
+                log::info!("Scheduling for {} after {:?}, reason {:?}", now, dur, when);
                 let mut timed_out = false;
                 {
                     match condvar.wait_timeout_while(cancelled_lock.lock().unwrap(), dur, |cancelled| !*cancelled) {

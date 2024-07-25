@@ -13,7 +13,7 @@ use crate::util::truncate_string_at_boundary_with_error;
 use crate::CommonMetricData;
 use crate::Glean;
 
-const MAX_LENGTH_VALUE: usize = 100;
+const MAX_LENGTH_VALUE: usize = 255;
 
 /// A string metric.
 ///
@@ -166,7 +166,7 @@ mod test {
             dynamic_label: None,
         });
 
-        let sample_string = "0123456789".repeat(11);
+        let sample_string = "0123456789".repeat(26);
         metric.set_sync(&glean, sample_string.clone());
 
         let truncated = truncate_string_at_boundary(sample_string, MAX_LENGTH_VALUE);

@@ -4,7 +4,7 @@
 
 use std::borrow::Cow;
 
-use super::{metrics::*, CommonMetricData, Lifetime};
+use super::{metrics::*, CommonMetricData, LabeledMetricData, Lifetime};
 
 #[derive(Debug)]
 pub struct CoreMetrics {
@@ -82,13 +82,15 @@ impl AdditionalMetrics {
             }),
 
             pings_submitted: LabeledMetric::<CounterMetric>::new(
-                CommonMetricData {
-                    name: "pings_submitted".into(),
-                    category: "glean.validation".into(),
-                    send_in_pings: vec!["metrics".into(), "baseline".into()],
-                    lifetime: Lifetime::Ping,
-                    disabled: false,
-                    dynamic_label: None,
+                LabeledMetricData::Common {
+                    cmd: CommonMetricData {
+                        name: "pings_submitted".into(),
+                        category: "glean.validation".into(),
+                        send_in_pings: vec!["metrics".into(), "baseline".into()],
+                        lifetime: Lifetime::Ping,
+                        disabled: false,
+                        dynamic_label: None,
+                    },
                 },
                 None,
             ),
@@ -154,13 +156,15 @@ impl UploadMetrics {
     pub fn new() -> UploadMetrics {
         UploadMetrics {
             ping_upload_failure: LabeledMetric::<CounterMetric>::new(
-                CommonMetricData {
-                    name: "ping_upload_failure".into(),
-                    category: "glean.upload".into(),
-                    send_in_pings: vec!["metrics".into()],
-                    lifetime: Lifetime::Ping,
-                    disabled: false,
-                    dynamic_label: None,
+                LabeledMetricData::Common {
+                    cmd: CommonMetricData {
+                        name: "ping_upload_failure".into(),
+                        category: "glean.upload".into(),
+                        send_in_pings: vec!["metrics".into()],
+                        lifetime: Lifetime::Ping,
+                        disabled: false,
+                        dynamic_label: None,
+                    },
                 },
                 Some(vec![
                     Cow::from("status_code_4xx"),
@@ -264,6 +268,9 @@ pub struct DatabaseMetrics {
 
     /// RKV's load result, indicating success or relaying the detected error.
     pub rkv_load_error: StringMetric,
+
+    /// The time it takes for a write-commit for the Glean database.
+    pub write_time: TimingDistributionMetric,
 }
 
 impl DatabaseMetrics {
@@ -289,6 +296,18 @@ impl DatabaseMetrics {
                 disabled: false,
                 dynamic_label: None,
             }),
+
+            write_time: TimingDistributionMetric::new(
+                CommonMetricData {
+                    name: "write_time".into(),
+                    category: "glean.database".into(),
+                    send_in_pings: vec!["metrics".into()],
+                    lifetime: Lifetime::Ping,
+                    disabled: false,
+                    dynamic_label: None,
+                },
+                TimeUnit::Microsecond,
+            ),
         }
     }
 }

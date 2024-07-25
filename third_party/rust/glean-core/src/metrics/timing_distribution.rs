@@ -85,6 +85,28 @@ impl MetricType for TimingDistributionMetric {
     fn meta(&self) -> &CommonMetricDataInternal {
         &self.meta
     }
+
+    fn with_name(&self, name: String) -> Self {
+        let mut meta = (*self.meta).clone();
+        meta.inner.name = name;
+        Self {
+            meta: Arc::new(meta),
+            time_unit: self.time_unit,
+            next_id: Arc::new(AtomicUsize::new(1)),
+            start_times: Arc::new(Mutex::new(Default::default())),
+        }
+    }
+
+    fn with_dynamic_label(&self, label: String) -> Self {
+        let mut meta = (*self.meta).clone();
+        meta.inner.dynamic_label = Some(label);
+        Self {
+            meta: Arc::new(meta),
+            time_unit: self.time_unit,
+            next_id: Arc::new(AtomicUsize::new(1)),
+            start_times: Arc::new(Mutex::new(Default::default())),
+        }
+    }
 }
 
 // IMPORTANT:

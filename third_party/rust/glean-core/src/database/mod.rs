@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::cell::RefCell;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::fs;
@@ -31,6 +32,19 @@ macro_rules! unwrap_or {
             }
         }
     };
+}
+
+macro_rules! measure_commit {
+    ($this:ident, $expr:expr) => {{
+        let now = ::std::time::Instant::now();
+        let res = $expr;
+        let elapsed = now.elapsed();
+        if let Ok(elapsed) = elapsed.as_micros().try_into() {
+            let mut samples = $this.write_timings.borrow_mut();
+            samples.push(elapsed);
+        }
+        res
+    }};
 }
 
 /// cbindgen:ignore
@@ -206,6 +220,10 @@ pub struct Database {
 
     /// RKV load state
     rkv_load_state: RkvLoadState,
+
+    /// Times an Rkv write-commit took.
+    /// Re-applied as samples in a timing distribution later.
+    pub(crate) write_timings: RefCell<Vec<i64>>,
 }
 
 impl std::fmt::Debug for Database {
@@ -274,6 +292,10 @@ impl Database {
             None
         };
 
+        // We are gonna write, so we allocate some capacity upfront.
+        // The value was chosen at random.
+        let write_timings = RefCell::new(Vec::with_capacity(64));
+
         let db = Self {
             rkv,
             user_store,
@@ -284,6 +306,7 @@ impl Database {
             ping_lifetime_count: AtomicUsize::new(0),
             file_size,
             rkv_load_state,
+            write_timings,
         };
 
         db.load_ping_lifetime_data();
@@ -560,7 +583,7 @@ impl Database {
         let mut writer = self.rkv.write()?;
         self.get_store(lifetime)
             .put(&mut writer, final_key, &value)?;
-        writer.commit()?;
+        measure_commit!(self, writer.commit())?;
         Ok(())
     }
 
@@ -656,7 +679,7 @@ impl Database {
             bincode::serialize(&new_value).expect("IMPOSSIBLE: Serializing metric failed");
         let value = rkv::Value::Blob(&encoded);
         store.put(&mut writer, final_key, &value)?;
-        writer.commit()?;
+        measure_commit!(self, writer.commit())?;
         Ok(())
     }
 
@@ -705,7 +728,7 @@ impl Database {
                 }
             }
 
-            writer.commit()?;
+            measure_commit!(self, writer.commit())?;
             Ok(res?)
         })
     }
@@ -756,7 +779,7 @@ impl Database {
                 }
                 return Err(e.into());
             }
-            writer.commit()?;
+            measure_commit!(self, writer.commit())?;
             Ok(())
         })
     }
@@ -771,7 +794,7 @@ impl Database {
     pub fn clear_lifetime(&self, lifetime: Lifetime) {
         let res = self.write_with_store(lifetime, |mut writer, store| {
             store.clear(&mut writer)?;
-            writer.commit()?;
+            measure_commit!(self, writer.commit())?;
             Ok(())
         });
 
@@ -840,7 +863,7 @@ impl Database {
                     // to ping_lifetime_data.
                     store.put(&mut writer, key, &rkv::Value::Blob(&encoded))?;
                 }
-                writer.commit()?;
+                measure_commit!(self, writer.commit())?;
                 Ok(())
             })?;
         }

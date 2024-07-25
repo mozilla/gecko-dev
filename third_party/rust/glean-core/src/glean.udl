@@ -389,8 +389,16 @@ interface StringMetric {
     i32 test_get_num_recorded_errors(ErrorType error);
 };
 
+[Enum]
+interface LabeledMetricData {
+    Common(CommonMetricData cmd);
+    CustomDistribution(CommonMetricData cmd, i64 range_min, i64 range_max, i64 bucket_count, HistogramType histogram_type);
+    MemoryDistribution(CommonMetricData cmd, MemoryUnit unit);
+    TimingDistribution(CommonMetricData cmd, TimeUnit unit);
+};
+
 interface LabeledCounter {
-    constructor(CommonMetricData meta, sequence<CowString>? labels);
+    constructor(LabeledMetricData meta, sequence<CowString>? labels);
 
     CounterMetric get(string label);
 
@@ -398,7 +406,7 @@ interface LabeledCounter {
 };
 
 interface LabeledBoolean {
-    constructor(CommonMetricData meta, sequence<CowString>? labels);
+    constructor(LabeledMetricData meta, sequence<CowString>? labels);
 
     BooleanMetric get(string label);
 
@@ -406,7 +414,7 @@ interface LabeledBoolean {
 };
 
 interface LabeledString {
-    constructor(CommonMetricData meta, sequence<CowString>? labels);
+    constructor(LabeledMetricData meta, sequence<CowString>? labels);
 
     StringMetric get(string label);
 

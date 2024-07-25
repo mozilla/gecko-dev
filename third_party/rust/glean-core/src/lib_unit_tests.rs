@@ -864,11 +864,13 @@ fn test_set_remote_metric_configuration() {
         ..Default::default()
     });
     let another_metric = LabeledString::new(
-        CommonMetricData {
-            category: "category".to_string(),
-            name: "labeled_string_metric".to_string(),
-            send_in_pings: vec!["baseline".to_string()],
-            ..Default::default()
+        LabeledMetricData::Common {
+            cmd: CommonMetricData {
+                category: "category".to_string(),
+                name: "labeled_string_metric".to_string(),
+                send_in_pings: vec!["baseline".to_string()],
+                ..Default::default()
+            },
         },
         Some(vec!["label1".into()]),
     );

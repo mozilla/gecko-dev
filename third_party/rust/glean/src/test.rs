@@ -1443,9 +1443,6 @@ fn pings_ride_along_builtin_pings() {
         }
     }
 
-    let _ride_along_ping =
-        private::PingType::new("ride-along", true, true, true, true, true, vec![], vec![]);
-
     // Create a custom configuration to use a fake uploader.
     let dir = tempfile::tempdir().unwrap();
     let tmpname = dir.path().to_path_buf();
@@ -1459,6 +1456,10 @@ fn pings_ride_along_builtin_pings() {
         .build();
 
     let _t = new_glean(Some(cfg), true);
+
+    let reasons = vec!["active".to_string()];
+    let _ride_along_ping =
+        private::PingType::new("ride-along", true, true, true, true, true, vec![], reasons);
 
     // Simulate becoming active.
     handle_client_active();

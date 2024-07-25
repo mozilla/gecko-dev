@@ -8,7 +8,7 @@ members = [
 ]
 
 [workspace.dependencies]
-glean = "=60.3.0"
+glean = "=60.4.0"
 
 [profile.release]
 debug = true
