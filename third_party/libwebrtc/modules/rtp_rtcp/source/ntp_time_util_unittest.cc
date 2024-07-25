@@ -7,17 +7,16 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "modules/rtp_rtcp/source/time_util.h"
-
 #include <cstdint>
 #include <limits>
 
 #include "api/units/time_delta.h"
+#include "modules/rtp_rtcp/source/ntp_time_util.h"
 #include "test/gtest.h"
 
 namespace webrtc {
 
-TEST(TimeUtilTest, CompactNtp) {
+TEST(NtpTimeUtilTest, CompactNtp) {
   const uint32_t kNtpSec = 0x12345678;
   const uint32_t kNtpFrac = 0x23456789;
   const NtpTime kNtp(kNtpSec, kNtpFrac);
@@ -25,7 +24,7 @@ TEST(TimeUtilTest, CompactNtp) {
   EXPECT_EQ(kNtpMid, CompactNtp(kNtp));
 }
 
-TEST(TimeUtilTest, CompactNtpRttToTimeDelta) {
+TEST(NtpTimeUtilTest, CompactNtpRttToTimeDelta) {
   const NtpTime ntp1(0x12345, 0x23456);
   const NtpTime ntp2(0x12654, 0x64335);
   int64_t ms_diff = ntp2.ToMs() - ntp1.ToMs();
@@ -34,7 +33,7 @@ TEST(TimeUtilTest, CompactNtpRttToTimeDelta) {
   EXPECT_NEAR(CompactNtpRttToTimeDelta(ntp_diff).ms(), ms_diff, 1);
 }
 
-TEST(TimeUtilTest, CompactNtpRttToTimeDeltaWithWrap) {
+TEST(NtpTimeUtilTest, CompactNtpRttToTimeDeltaWithWrap) {
   const NtpTime ntp1(0x1ffff, 0x23456);
   const NtpTime ntp2(0x20000, 0x64335);
   int64_t ms_diff = ntp2.ToMs() - ntp1.ToMs();
@@ -48,7 +47,7 @@ TEST(TimeUtilTest, CompactNtpRttToTimeDeltaWithWrap) {
   EXPECT_NEAR(CompactNtpRttToTimeDelta(ntp_diff).ms(), ms_diff, 1);
 }
 
-TEST(TimeUtilTest, CompactNtpRttToTimeDeltaLarge) {
+TEST(NtpTimeUtilTest, CompactNtpRttToTimeDeltaLarge) {
   const NtpTime ntp1(0x10000, 0x00006);
   const NtpTime ntp2(0x17fff, 0xffff5);
   int64_t ms_diff = ntp2.ToMs() - ntp1.ToMs();
@@ -58,7 +57,7 @@ TEST(TimeUtilTest, CompactNtpRttToTimeDeltaLarge) {
   EXPECT_NEAR(CompactNtpRttToTimeDelta(ntp_diff).ms(), ms_diff, 1);
 }
 
-TEST(TimeUtilTest, CompactNtpRttToTimeDeltaNegative) {
+TEST(NtpTimeUtilTest, CompactNtpRttToTimeDeltaNegative) {
   const NtpTime ntp1(0x20000, 0x23456);
   const NtpTime ntp2(0x1ffff, 0x64335);
   int64_t ms_diff = ntp2.ToMs() - ntp1.ToMs();
@@ -68,7 +67,7 @@ TEST(TimeUtilTest, CompactNtpRttToTimeDeltaNegative) {
   EXPECT_EQ(CompactNtpRttToTimeDelta(ntp_diff), TimeDelta::Millis(1));
 }
 
-TEST(TimeUtilTest, SaturatedToCompactNtp) {
+TEST(NtpTimeUtilTest, SaturatedToCompactNtp) {
   // Converts negative to zero.
   EXPECT_EQ(SaturatedToCompactNtp(TimeDelta::Micros(-1)), 0u);
   EXPECT_EQ(SaturatedToCompactNtp(TimeDelta::Zero()), 0u);
@@ -99,7 +98,7 @@ TEST(TimeUtilTest, SaturatedToCompactNtp) {
       5'515, 16);
 }
 
-TEST(TimeUtilTest, ToNtpUnits) {
+TEST(NtpTimeUtilTest, ToNtpUnits) {
   EXPECT_EQ(ToNtpUnits(TimeDelta::Zero()), 0);
   EXPECT_EQ(ToNtpUnits(TimeDelta::Seconds(1)), int64_t{1} << 32);
   EXPECT_EQ(ToNtpUnits(TimeDelta::Seconds(-1)), -(int64_t{1} << 32));

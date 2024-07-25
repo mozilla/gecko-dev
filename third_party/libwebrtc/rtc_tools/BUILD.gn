@@ -393,6 +393,7 @@ if (!build_with_chromium) {
         "../modules/pacing",
         "../modules/remote_bitrate_estimator",
         "../modules/rtp_rtcp",
+        "../modules/rtp_rtcp:ntp_time_util",
         "../modules/rtp_rtcp:rtp_rtcp_format",
         "../rtc_base:checks",
         "../rtc_base:logging",

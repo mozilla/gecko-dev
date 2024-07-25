@@ -30,7 +30,7 @@ index 71b5f12982..7fc8beadb9 100644
      // single 'timing frame'.
      absl::optional<webrtc::TimingFrameInfo> timing_frame_info;
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index 9df495576a..4b46b20c5c 100644
+index 983545a0df..cd96235ce2 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
 @@ -368,6 +368,13 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {
@@ -63,7 +63,7 @@ index 6bfd1e15dc..bfa463e016 100644
    absl::optional<TimeDelta> LastRtt() const;
  
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index 182f284062..e3b53f0ac8 100644
+index eb4665bed2..a66cc1befd 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 @@ -500,6 +500,11 @@ void ModuleRtpRtcpImpl::GetSendStreamDataCounters(
@@ -93,7 +93,7 @@ index 143b5f10cc..28a16a0904 100644
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
    // Within this list, the `ReportBlockData::source_ssrc()`, which is the SSRC
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-index 19de899d85..24fe2c5517 100644
+index 03dab0220d..4e4cab72bd 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 @@ -513,6 +513,11 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(

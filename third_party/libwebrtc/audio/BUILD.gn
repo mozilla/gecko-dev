@@ -236,6 +236,7 @@ if (rtc_include_tests) {
       "../logging:mocks",
       "../modules/audio_device:mock_audio_device",
       "../modules/rtp_rtcp",
+      "../modules/rtp_rtcp:ntp_time_util",
       "../modules/rtp_rtcp:rtp_rtcp_format",
       "../rtc_base:logging",
       "../rtc_base:threading",

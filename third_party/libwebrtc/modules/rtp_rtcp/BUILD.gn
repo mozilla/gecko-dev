@@ -233,7 +233,6 @@ rtc_library("rtp_rtcp") {
     "source/rtp_video_stream_receiver_frame_transformer_delegate.h",
     "source/source_tracker.cc",
     "source/source_tracker.h",
-    "source/time_util.cc",
     "source/time_util.h",
     "source/tmmbr_help.cc",
     "source/tmmbr_help.h",
@@ -272,6 +271,7 @@ rtc_library("rtp_rtcp") {
 
   deps = [
     ":leb128",
+    ":ntp_time_util",
     ":rtp_rtcp_format",
     ":rtp_video_header",
     "..:module_api_public",
@@ -364,6 +364,7 @@ rtc_source_set("rtp_rtcp_legacy") {
     "source/rtp_rtcp_impl.h",
   ]
   deps = [
+    ":ntp_time_util",
     ":rtp_rtcp",
     ":rtp_rtcp_format",
     "..:module_fec_api",
@@ -388,6 +389,22 @@ rtc_source_set("rtp_rtcp_legacy") {
   ]
 }
 
+rtc_library("ntp_time_util") {
+  visibility = [ "*" ]
+  sources = [
+    "source/ntp_time_util.cc",
+    "source/ntp_time_util.h",
+  ]
+  deps = [
+    "../../api/units:time_delta",
+    "../../rtc_base:checks",
+    "../../rtc_base:divide_round",
+    "../../rtc_base:safe_conversions",
+    "../../rtc_base:timeutils",
+    "../../system_wrappers",
+  ]
+}
+
 rtc_library("rtcp_transceiver") {
   visibility = [ "*" ]
   public = [
@@ -401,6 +418,7 @@ rtc_library("rtcp_transceiver") {
     "source/rtcp_transceiver_impl.cc",
   ]
   deps = [
+    ":ntp_time_util",
     ":rtp_rtcp",
     ":rtp_rtcp_format",
     "../../api:array_view",
@@ -552,6 +570,7 @@ if (rtc_include_tests) {
       "source/flexfec_sender_unittest.cc",
       "source/leb128_unittest.cc",
       "source/nack_rtx_unittest.cc",
+      "source/ntp_time_util_unittest.cc",
       "source/packet_loss_stats_unittest.cc",
       "source/packet_sequencer_unittest.cc",
       "source/receive_statistics_unittest.cc",
@@ -613,7 +632,6 @@ if (rtc_include_tests) {
       "source/rtp_video_layers_allocation_extension_unittest.cc",
       "source/rtp_video_stream_receiver_frame_transformer_delegate_unittest.cc",
       "source/source_tracker_unittest.cc",
-      "source/time_util_unittest.cc",
       "source/ulpfec_generator_unittest.cc",
       "source/ulpfec_header_reader_writer_unittest.cc",
       "source/ulpfec_receiver_unittest.cc",
@@ -636,6 +654,7 @@ if (rtc_include_tests) {
       ":frame_transformer_factory_unittest",
       ":leb128",
       ":mock_rtp_rtcp",
+      ":ntp_time_util",
       ":rtcp_transceiver",
       ":rtp_packetizer_av1_test_helper",
       ":rtp_rtcp",

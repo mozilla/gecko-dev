@@ -31,7 +31,7 @@ index 7e0258ae77..5dcc055ec9 100644
      rtp_module.SetSendingMediaStatus(sending);
      if (sending) {
 diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index 099b0be1a3..971f49b949 100644
+index cd516d3d6f..1cd3edc31c 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender.cc
 @@ -212,8 +212,23 @@ bool RTCPSender::Sending() const {
@@ -81,7 +81,7 @@ index 002a5f86f1..1dcb628722 100644
  
  TEST_F(RtcpSenderTest, SendFir) {
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index 79dda2fb0d..b3c67084a8 100644
+index 278d88154d..579bfcd2e9 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 @@ -297,6 +297,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
