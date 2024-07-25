@@ -2444,8 +2444,11 @@ class Document : public nsINode,
 
   LinkedList<MediaQueryList>& MediaQueryLists() { return mDOMMediaQueryLists; }
 
-  nsTHashMap<const Element*, nsTArray<WeakPtr<PreloaderBase>>>&
-  ContentIdentifiersForLCP() {
+  using ContentIdentifiersForLCPType =
+      nsTHashMap<NoMemMoveKey<nsPtrHashKey<const Element>>,
+                 AutoTArray<WeakPtr<PreloaderBase>, 1>>;
+
+  ContentIdentifiersForLCPType& ContentIdentifiersForLCP() {
     return mContentIdentifiersForLCP;
   }
 
@@ -5100,11 +5103,7 @@ class Document : public nsINode,
   // A hashmap to keep track of which {element, imgRequestProxy}
   // combination has been processed to avoid considering the same
   // element twice for LargestContentfulPaint.
-  //
-  // We really would like at least a 1-element AutoTArray here, but we can't
-  // because of bug 1909538.
-  nsTHashMap<const Element*, nsTArray<WeakPtr<PreloaderBase>>>
-      mContentIdentifiersForLCP;
+  ContentIdentifiersForLCPType mContentIdentifiersForLCP;
 
   // Array of observers
   nsTObserverArray<nsIDocumentObserver*> mObservers;

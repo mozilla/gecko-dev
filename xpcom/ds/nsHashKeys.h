@@ -609,4 +609,15 @@ class nsGenericHashKey : public PLDHashEntryHdr {
   T mKey;
 };
 
+// If you have a key that can be memmoved, but a value that can't, you
+// can use this class to force ALLOW_MEMMOVE to be false. Ideally, nsTHashMap
+// would somehow consider both key and value, but until then, there is this
+// workaround.
+template <class Key>
+class NoMemMoveKey : public Key {
+ public:
+  explicit NoMemMoveKey(typename Key::KeyTypePointer aKey) : Key(aKey) {}
+  enum { ALLOW_MEMMOVE = false };
+};
+
 #endif  // nsTHashKeys_h__
