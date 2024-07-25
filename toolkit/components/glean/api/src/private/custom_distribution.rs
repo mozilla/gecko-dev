@@ -27,35 +27,23 @@ pub enum CustomDistributionMetric {
 pub struct CustomDistributionMetricIpc(MetricId);
 
 impl CustomDistributionMetric {
-    /// Create a new timing distribution metric.
+    /// Create a new custom distribution metric.
     pub fn new(
         id: MetricId,
         meta: CommonMetricData,
-        range_min: u64,
-        range_max: u64,
-        bucket_count: u64,
+        range_min: i64,
+        range_max: i64,
+        bucket_count: i64,
         histogram_type: HistogramType,
     ) -> Self {
         if need_ipc() {
             CustomDistributionMetric::Child(CustomDistributionMetricIpc(id))
         } else {
-            debug_assert!(
-                range_min <= i64::MAX as u64,
-                "sensible limits enforced by glean_parser"
-            );
-            debug_assert!(
-                range_max <= i64::MAX as u64,
-                "sensible limits enforced by glean_parser"
-            );
-            debug_assert!(
-                bucket_count <= i64::MAX as u64,
-                "sensible limits enforced by glean_parser"
-            );
             let inner = glean::private::CustomDistributionMetric::new(
                 meta,
-                range_min as i64,
-                range_max as i64,
-                bucket_count as i64,
+                range_min,
+                range_max,
+                bucket_count,
                 histogram_type,
             );
             CustomDistributionMetric::Parent { id, inner }

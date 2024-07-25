@@ -19,9 +19,9 @@ struct ExtraMetricArgs {
     time_unit: Option<TimeUnit>,
     memory_unit: Option<MemoryUnit>,
     allowed_extra_keys: Option<Vec<String>>,
-    range_min: Option<u64>,
-    range_max: Option<u64>,
-    bucket_count: Option<u64>,
+    range_min: Option<i64>,
+    range_max: Option<i64>,
+    bucket_count: Option<i64>,
     histogram_type: Option<HistogramType>,
     numerators: Option<Vec<CommonMetricData>>,
     ordered_labels: Option<Vec<Cow<'static, str>>>,
@@ -165,6 +165,7 @@ pub extern "C" fn jog_test_register_ping(
     .expect("Creation or registration of ping failed.") // permitted to panic in test-only method.
 }
 
+#[allow(clippy::too_many_arguments)]
 fn create_and_register_ping(
     ping_name: String,
     include_client_id: bool,

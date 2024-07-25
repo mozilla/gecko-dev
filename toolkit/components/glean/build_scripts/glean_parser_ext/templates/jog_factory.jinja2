@@ -100,9 +100,9 @@ map of argument name to argument type. I may regret this if I need it again. #}
     memory_unit: Option<MemoryUnit>,
     allowed_extra_keys: Option<Vec<String>>,
 {# Skipping reason_codes since that's a ping thing. #}
-    range_min: Option<u64>,
-    range_max: Option<u64>,
-    bucket_count: Option<u64>,
+    range_min: Option<i64>,
+    range_max: Option<i64>,
+    bucket_count: Option<i64>,
     histogram_type: Option<HistogramType>,
     numerators: Option<Vec<CommonMetricData>>,
 {# And, don't forget the list of acceptable labels for a labeled metric. #}
