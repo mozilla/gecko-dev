@@ -8,14 +8,12 @@ add_setup(async function setup() {
 });
 
 add_task(async function basic() {
-  let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
-
   info("Open the urlbar and searchmode switcher popup");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "",
   });
-  await UrlbarTestUtils.openSearchModeSwitcher(window);
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
   Assert.ok(
     !BrowserTestUtils.isVisible(gURLBar.view.panel),
     "The UrlbarView is not visible"
@@ -32,7 +30,7 @@ add_task(async function basic() {
     source: 3,
   });
 
-  info("Press the close button and exit search mode");
+  info("Press the close button and escape search mode");
   window.document.querySelector("#searchmode-switcher-close").click();
   await UrlbarTestUtils.assertSearchMode(window, null);
 });
@@ -53,14 +51,13 @@ add_task(async function new_window() {
   });
 
   let newWin = await BrowserTestUtils.openNewBrowserWindow();
-  let popup = UrlbarTestUtils.searchModeSwitcherPopup(newWin);
 
   info("Open the urlbar and searchmode switcher popup");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: newWin,
     value: "",
   });
-  await UrlbarTestUtils.openSearchModeSwitcher(newWin);
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(newWin);
 
   info("Open popup and check list of engines is redrawn");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(newWin);
@@ -74,4 +71,36 @@ add_task(async function new_window() {
 
   await Services.search.restoreDefaultEngines();
   await BrowserTestUtils.closeWindow(newWin);
+});
+
+add_task(async function detect_searchmode_changes() {
+  info("Open the urlbar and searchmode switcher popup");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "",
+  });
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
+
+  info("Press on the bing menu button and enter search mode");
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  popup.querySelector("toolbarbutton[label=Bing]").click();
+  await popupHidden;
+
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "Bing",
+    entry: "other",
+    source: 3,
+  });
+
+  info("Press the close button and escape search mode");
+  EventUtils.synthesizeKey("KEY_Escape");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await UrlbarTestUtils.assertSearchMode(window, null);
+
+  await BrowserTestUtils.waitForCondition(() => {
+    return (
+      window.document.querySelector("#searchmode-switcher-title").textContent ==
+      ""
+    );
+  }, "The searchMode name has been removed when we exit search mode");
 });

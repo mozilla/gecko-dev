@@ -1383,7 +1383,8 @@ export var UrlbarTestUtils = {
     this.Assert.ok(lazy.BrowserTestUtils.isVisible(button));
     await this.EventUtils.promiseElementReadyForUserInput(button, win);
     this.EventUtils.synthesizeMouseAtCenter(button, {}, win);
-    return promiseMenuOpen;
+    await promiseMenuOpen;
+    return popup;
   },
 
   searchModeSwitcherPopupClosed(win) {

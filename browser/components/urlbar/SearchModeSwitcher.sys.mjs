@@ -69,13 +69,11 @@ export class SearchModeSwitcher {
       this.#engineListNeedsRebuild = false;
     }
     if (anchor.getAttribute("open") != "true") {
-      this.#input.inputField.addEventListener("searchmodechanged", this);
       this.#input.view.hideTemporarily();
 
       this.#getPopup().addEventListener(
         "popuphidden",
         () => {
-          this.#input.inputField.removeEventListener("searchmodechanged", this);
           anchor.removeAttribute("open");
           this.#input.view.restoreVisibility();
         },
@@ -100,6 +98,12 @@ export class SearchModeSwitcher {
     event.stopPropagation();
     event.preventDefault();
     this.#input.searchMode = null;
+  }
+
+  /**
+   * Called when the value of the searchMode attribute on UrlbarInput is changed.
+   */
+  onSearchModeChanged() {
     this.#updateSearchIcon();
   }
 
@@ -107,10 +111,6 @@ export class SearchModeSwitcher {
     let action = event.currentTarget.dataset.action ?? event.type;
 
     switch (action) {
-      case "searchmodechanged": {
-        this.#updateSearchIcon();
-        break;
-      }
       case "openpopup": {
         this.openPanel(event);
         break;
