@@ -9,6 +9,7 @@ import {
   repeat,
 } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
+import { navigateToLink } from "chrome://browser/content/firefoxview/helpers.mjs";
 
 /**
  * An empty state card to be used throughout Firefox View
@@ -22,6 +23,7 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
  * @property {object} descriptionLink - (Optional) An object describing the l10n name and url needed within a description label
  * @property {string} mainImageUrl - (Optional) The chrome:// url for the main image of the empty/error state
  * @property {string} errorGrayscale - (Optional) The image should be shown in gray scale
+ * @property {boolean} openLinkInParentWindow - (Optional) The link, when clicked, should be opened programatically in the parent window.
  */
 class FxviewEmptyState extends MozLitElement {
   constructor() {
@@ -41,6 +43,7 @@ class FxviewEmptyState extends MozLitElement {
     desciptionLink: { type: Object },
     mainImageUrl: { type: String },
     errorGrayscale: { type: Boolean },
+    openLinkInParentWindow: { type: Boolean },
   };
 
   static queries = {
@@ -107,6 +110,10 @@ class FxviewEmptyState extends MozLitElement {
                      secondary: index !== 0,
                    })}
                    data-l10n-id="${descLabel}"
+                   @click=${this.openLinkInParentWindow &&
+                   this.linkActionHandler}
+                   @keydown=${this.openLinkInParentWindow &&
+                   this.linkActionHandler}
                  >
                    ${this.linkTemplate(this.descriptionLink)}
                  </p>`
@@ -117,6 +124,17 @@ class FxviewEmptyState extends MozLitElement {
          </div>
        </card-container>
      `;
+  }
+
+  linkActionHandler(e) {
+    const shouldNavigate =
+      (e.type == "click" && !e.altKey) ||
+      (e.type == "keydown" && e.code == "Enter") ||
+      (e.type == "keydown" && e.code == "Space");
+    if (shouldNavigate && e.target.href) {
+      navigateToLink(e, e.target.href);
+      e.preventDefault();
+    }
   }
 }
 customElements.define("fxview-empty-state", FxviewEmptyState);

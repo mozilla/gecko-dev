@@ -16,11 +16,13 @@ export class SidebarPage extends MozLitElement {
   connectedCallback() {
     super.connectedCallback();
     this.ownerGlobal.addEventListener("beforeunload", this.clearDocument);
+    this.ownerGlobal.addEventListener("unload", this.clearDocument);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.ownerGlobal.removeEventListener("beforeunload", this.clearDocument);
+    this.ownerGlobal.removeEventListener("unload", this.clearDocument);
   }
 
   /**

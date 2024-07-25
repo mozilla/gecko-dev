@@ -1,0 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+ /* TODO: (Bug 1908692) Should be using design tokens. */
+sidebar-tab-row {
+  &:hover {
+    background-color: color-mix(in srgb, currentColor 14%, transparent);
+  }
+
+  &:active {
+    background-color: color-mix(in srgb, currentColor 21%, transparent);
+  }
+}

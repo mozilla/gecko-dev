@@ -1,0 +1,128 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+import {
+  classMap,
+  html,
+  ifDefined,
+} from "chrome://global/content/vendor/lit.all.mjs";
+
+import {
+  FxviewTabListBase,
+  FxviewTabRowBase,
+} from "chrome://browser/content/firefoxview/fxview-tab-list.mjs";
+
+export class SidebarTabList extends FxviewTabListBase {
+  constructor() {
+    super();
+    // Panel is open, assume we always want to react to updates.
+    this.updatesPaused = false;
+  }
+
+  static queries = {
+    ...FxviewTabListBase.queries,
+    rowEls: {
+      all: "sidebar-tab-row",
+    },
+  };
+
+  /**
+   * Only handle vertical navigation in sidebar.
+   *
+   * @param {KeyboardEvent} e
+   */
+  handleFocusElementInRow(e) {
+    if (e.code == "ArrowUp" || e.code == "ArrowDown") {
+      super.handleFocusElementInRow(e);
+    }
+  }
+
+  itemTemplate = (tabItem, i) => {
+    return html`
+      <sidebar-tab-row
+        ?active=${i == this.activeIndex}
+        .closedId=${ifDefined(tabItem.closedId || tabItem.closedId)}
+        compact
+        .currentActiveElementId=${this.currentActiveElementId}
+        .favicon=${tabItem.icon}
+        .hasPopup=${this.hasPopup}
+        .primaryL10nArgs=${ifDefined(tabItem.primaryL10nArgs)}
+        .primaryL10nId=${tabItem.primaryL10nId}
+        role="listitem"
+        .searchQuery=${ifDefined(this.searchQuery)}
+        .secondaryActionClass=${this.secondaryActionClass}
+        .secondaryL10nArgs=${ifDefined(tabItem.secondaryL10nArgs)}
+        .secondaryL10nId=${tabItem.secondaryL10nId}
+        .sourceClosedId=${ifDefined(tabItem.sourceClosedId)}
+        .sourceWindowId=${ifDefined(tabItem.sourceWindowId)}
+        .tabElement=${ifDefined(tabItem.tabElement)}
+        tabindex="0"
+        .title=${tabItem.title}
+        .url=${tabItem.url}
+        @keydown=${e => e.currentTarget.primaryActionHandler(e)}
+      ></sidebar-tab-row>
+    `;
+  };
+
+  stylesheets() {
+    return [
+      super.stylesheets(),
+      html`<link
+        rel="stylesheet"
+        href="chrome://browser/content/sidebar/sidebar-tab-list.css"
+      />`,
+    ];
+  }
+}
+customElements.define("sidebar-tab-list", SidebarTabList);
+
+export class SidebarTabRow extends FxviewTabRowBase {
+  /**
+   * Fallback to the native implementation in sidebar. We want to focus the
+   * entire row instead of delegating it to link or hover buttons.
+   */
+  focus() {
+    HTMLElement.prototype.focus.call(this);
+  }
+
+  secondaryButtonTemplate() {
+    return html`<moz-button
+      aria-haspopup=${ifDefined(this.hasPopup)}
+      class=${classMap({
+        "fxview-tab-row-button": true,
+        [this.secondaryActionClass]: this.secondaryActionClass,
+      })}
+      data-l10n-args=${ifDefined(this.secondaryL10nArgs)}
+      data-l10n-id=${this.secondaryL10nId}
+      id="fxview-tab-row-secondary-button"
+      type="icon ghost"
+      @click=${this.secondaryActionHandler}
+    ></moz-button>`;
+  }
+
+  render() {
+    return html`
+      ${this.stylesheets()}
+      <link
+        rel="stylesheet"
+        href="chrome://browser/content/sidebar/sidebar-tab-row.css"
+      />
+      <a
+        class="fxview-tab-row-main"
+        data-l10n-args=${ifDefined(this.primaryL10nArgs)}
+        data-l10n-id=${ifDefined(this.primaryL10nId)}
+        href=${ifDefined(this.url)}
+        id="fxview-tab-row-main"
+        tabindex="-1"
+        title=${!this.primaryL10nId ? this.url : null}
+        @click=${this.primaryActionHandler}
+        @keydown=${this.primaryActionHandler}
+      >
+        ${this.faviconTemplate()} ${this.titleTemplate()}
+      </a>
+      ${this.secondaryButtonTemplate()}
+    `;
+  }
+}
+customElements.define("sidebar-tab-row", SidebarTabRow);

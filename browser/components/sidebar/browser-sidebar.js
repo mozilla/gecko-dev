@@ -326,6 +326,12 @@ var SidebarController = {
       this._observer.disconnect();
       this._observer = null;
     }
+
+    if (this.revampComponentsLoaded) {
+      // Explicitly disconnect the `sidebar-main` element so that listeners
+      // setup by reactive controllers will also be removed.
+      this.sidebarMain.remove();
+    }
   },
 
   /**

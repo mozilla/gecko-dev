@@ -3,6 +3,10 @@
 
 "use strict";
 
+const { PlacesTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PlacesTestUtils.sys.mjs"
+);
+
 const URLs = [
   "http://mochi.test:8888/browser/",
   "https://www.example.com/",
@@ -38,14 +42,34 @@ registerCleanupFunction(async () => {
   await BrowserTestUtils.closeWindow(win);
 });
 
-add_task(async function test_history_cards_created() {
+async function showHistorySidebar() {
   const { SidebarController } = win;
-  await SidebarController.show("viewHistorySidebar");
-  const document = SidebarController.browser.contentDocument;
-  const component = document.querySelector("sidebar-history");
+  if (SidebarController.currentID !== "viewHistorySidebar") {
+    await SidebarController.show("viewHistorySidebar");
+  }
+  const { contentDocument, contentWindow } = SidebarController.browser;
+  const component = contentDocument.querySelector("sidebar-history");
   await component.updateComplete;
-  const { lists } = component;
+  return { component, contentWindow };
+}
 
+async function waitForPageLoadTask(pageLoadTask, expectedUrl) {
+  const promiseTabOpen = BrowserTestUtils.waitForEvent(
+    win.gBrowser.tabContainer,
+    "TabOpen"
+  );
+  await pageLoadTask();
+  await promiseTabOpen;
+  await TestUtils.waitForCondition(
+    () => win.gBrowser.currentURI.spec === expectedUrl,
+    `Navigated to ${expectedUrl}.`
+  );
+}
+
+add_task(async function test_history_cards_created() {
+  const {
+    component: { lists },
+  } = await showHistorySidebar();
   Assert.equal(lists.length, dates.length, "There is a card for each day.");
   for (const list of lists) {
     Assert.equal(
@@ -54,17 +78,10 @@ add_task(async function test_history_cards_created() {
       "Card shows the correct number of visits."
     );
   }
-
-  SidebarController.hide();
 });
 
 add_task(async function test_history_search() {
-  const { SidebarController } = win;
-  await SidebarController.show("viewHistorySidebar");
-  const { contentDocument: document, contentWindow } =
-    SidebarController.browser;
-  const component = document.querySelector("sidebar-history");
-  await component.updateComplete;
+  const { component, contentWindow } = await showHistorySidebar();
   const { searchTextbox } = component;
 
   info("Input a search query.");
@@ -92,5 +109,92 @@ add_task(async function test_history_search() {
     return tabList?.emptyState;
   }, "There are no matching search results.");
 
-  SidebarController.hide();
+  info("Clear the search query.");
+  EventUtils.synthesizeMouseAtCenter(
+    searchTextbox.clearButton,
+    {},
+    contentWindow
+  );
+  await TestUtils.waitForCondition(
+    () => !component.lists[0].emptyState,
+    "The original cards are restored."
+  );
+});
+
+add_task(async function test_history_keyboard_navigation() {
+  const {
+    component: { cards, lists },
+    contentWindow,
+  } = await showHistorySidebar();
+
+  // TODO: (Bug 1908742) Cards should be expanded already, this shouldn't be necessary.
+  await TestUtils.waitForTick();
+  for (const card of cards) {
+    card.toggleDetails(true);
+    await card.updateComplete;
+  }
+  const rows = await TestUtils.waitForCondition(
+    () => lists[0].rowEls.length === URLs.length && lists[0].rowEls,
+    "History rows are shown."
+  );
+  rows[0].focus();
+
+  info("Focus the next row.");
+  let focused = BrowserTestUtils.waitForEvent(rows[1], "focus", contentWindow);
+  EventUtils.synthesizeKey("KEY_ArrowDown", {}, contentWindow);
+  await focused;
+
+  info("Focus the previous row.");
+  focused = BrowserTestUtils.waitForEvent(rows[0], "focus", contentWindow);
+  EventUtils.synthesizeKey("KEY_ArrowUp", {}, contentWindow);
+  await focused;
+
+  info("Open the focused link.");
+  await waitForPageLoadTask(
+    () => EventUtils.synthesizeKey("KEY_Enter", {}, contentWindow),
+    URLs[0]
+  );
+});
+
+add_task(async function test_history_hover_buttons() {
+  const {
+    component: { cards, lists },
+    contentWindow,
+  } = await showHistorySidebar();
+
+  // TODO: (Bug 1908742) Cards should be expanded already, this shouldn't be necessary.
+  await TestUtils.waitForTick();
+  for (const card of cards) {
+    card.toggleDetails(true);
+    await card.updateComplete;
+  }
+  const rows = await TestUtils.waitForCondition(
+    () => lists[0].rowEls.length === URLs.length && lists[0].rowEls,
+    "History rows are shown."
+  );
+
+  info("Open the first link.");
+  await waitForPageLoadTask(
+    () => EventUtils.synthesizeMouseAtCenter(rows[0].mainEl, {}, contentWindow),
+    URLs[0]
+  );
+
+  info("Remove the first entry.");
+  const promiseRemoved = PlacesTestUtils.waitForNotification("page-removed");
+  EventUtils.synthesizeMouseAtCenter(
+    rows[0].secondaryButtonEl,
+    {},
+    contentWindow
+  );
+  await promiseRemoved;
+});
+
+add_task(async function test_history_empty_state() {
+  const { component } = await showHistorySidebar();
+  info("Clear all history.");
+  await PlacesUtils.history.clear();
+  const emptyState = await TestUtils.waitForCondition(
+    () => component.emptyState
+  );
+  ok(BrowserTestUtils.isVisible(emptyState), "Empty state is displayed.");
 });

@@ -17,15 +17,15 @@ const NEVER_REMEMBER_HISTORY_PREF = "browser.privatebrowsing.autostart";
 
 export class SidebarHistory extends SidebarPage {
   static queries = {
-    lists: { all: "fxview-tab-list" },
+    cards: { all: "moz-card" },
+    emptyState: "fxview-empty-state",
+    lists: { all: "sidebar-tab-list" },
     searchTextbox: "fxview-search-textbox",
   };
 
   constructor() {
     super();
     this._started = false;
-    // Setting maxTabsLength to -1 for no max
-    this.maxTabsLength = -1;
   }
 
   controller = new lazy.HistoryController(this, {
@@ -41,7 +41,8 @@ export class SidebarHistory extends SidebarPage {
     navigateToLink(e);
   }
 
-  deleteFromHistory() {
+  onSecondaryAction(e) {
+    this.triggerNode = e.detail.item;
     this.controller.deleteFromHistory();
   }
 
@@ -66,17 +67,7 @@ export class SidebarHistory extends SidebarPage {
         data-l10n-id=${historyItem.l10nId}
         data-l10n-args=${dateArg}
       >
-        <div>
-          <fxview-tab-list
-            compactRows
-            class="with-context-menu"
-            maxTabsLength=${this.maxTabsLength}
-            .tabItems=${this.getTabItems(historyItem.items)}
-            @fxview-tab-list-primary-action=${this.onPrimaryAction}
-            .updatesPaused=${false}
-          >
-          </fxview-tab-list>
-        </div>
+        <div>${this.#tabListTemplate(this.getTabItems(historyItem.items))}</div>
       </moz-card>`;
     });
   }
@@ -113,8 +104,9 @@ export class SidebarHistory extends SidebarPage {
         .descriptionLabels=${descriptionLabels}
         .descriptionLink=${descriptionLink}
         class="empty-state history"
-        ?isSelectedTab=${this.selectedTab}
+        isSelectedTab
         mainImageUrl="chrome://browser/content/firefoxview/history-empty.svg"
+        openLinkInParentWindow
       >
       </fxview-empty-state>
     `;
@@ -140,17 +132,24 @@ export class SidebarHistory extends SidebarPage {
               })}"
             ></h3>`
         )}
-        <fxview-tab-list
-          compactRows
-          maxTabsLength="-1"
-          .searchQuery=${this.controller.searchQuery}
-          .tabItems=${this.getTabItems(this.controller.searchResults)}
-          @fxview-tab-list-primary-action=${this.onPrimaryAction}
-          .updatesPaused=${false}
-        >
-        </fxview-tab-list>
+        ${this.#tabListTemplate(
+          this.getTabItems(this.controller.searchResults),
+          this.controller.searchQuery
+        )}
       </div>
     </moz-card>`;
+  }
+
+  #tabListTemplate(tabItems, searchQuery) {
+    return html`<sidebar-tab-list
+      maxTabsLength="-1"
+      .searchQuery=${searchQuery}
+      secondaryActionClass="dismiss-button"
+      .tabItems=${tabItems}
+      @fxview-tab-list-primary-action=${this.onPrimaryAction}
+      @fxview-tab-list-secondary-action=${this.onSecondaryAction}
+    >
+    </sidebar-tab-list>`;
   }
 
   onSearchQuery(e) {
@@ -160,7 +159,7 @@ export class SidebarHistory extends SidebarPage {
   getTabItems(items) {
     return items.map(item => ({
       ...item,
-      secondaryL10nId: null,
+      secondaryL10nId: "sidebar-history-delete",
       secondaryL10nArgs: null,
     }));
   }
