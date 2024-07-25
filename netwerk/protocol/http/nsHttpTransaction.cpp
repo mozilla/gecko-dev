@@ -1363,6 +1363,12 @@ static void MaybeRemoveSSLToken(nsITransportSecurityInfo* aSecurityInfo) {
        static_cast<uint32_t>(rv)));
 }
 
+const int64_t TELEMETRY_REQUEST_SIZE_10M = (int64_t)10 * (int64_t)(1 << 20);
+const int64_t TELEMETRY_REQUEST_SIZE_50M =
+    (int64_t)5 * TELEMETRY_REQUEST_SIZE_10M;
+const int64_t TELEMETRY_REQUEST_SIZE_100M =
+    (int64_t)10 * TELEMETRY_REQUEST_SIZE_10M;
+
 void nsHttpTransaction::Close(nsresult reason) {
   LOG(("nsHttpTransaction::Close [this=%p reason=%" PRIx32 "]\n", this,
        static_cast<uint32_t>(reason)));
@@ -1677,9 +1683,7 @@ void nsHttpTransaction::Close(nsresult reason) {
     }
 
     // Accumulate download throughput telemetry
-    const int64_t TELEMETRY_DOWNLOAD_SIZE_GREATER_THAN_10MB =
-        (int64_t)10 * (int64_t)(1 << 20);
-    if ((mContentRead > TELEMETRY_DOWNLOAD_SIZE_GREATER_THAN_10MB) &&
+    if ((mContentRead > TELEMETRY_REQUEST_SIZE_10M) &&
         !timings.requestStart.IsNull() && !timings.responseEnd.IsNull()) {
       TimeDuration elapsed = timings.responseEnd - timings.requestStart;
       double megabits = static_cast<double>(mContentRead) * 8.0 / 1000000.0;
@@ -1698,6 +1702,16 @@ void nsHttpTransaction::Close(nsresult reason) {
         case HttpVersion::v3_0:
           glean::networking::http_3_download_throughput.AccumulateSingleSample(
               mpbs);
+          if (mContentRead <= TELEMETRY_REQUEST_SIZE_50M) {
+            glean::networking::http_3_download_throughput_10_50
+                .AccumulateSingleSample(mpbs);
+          } else if (mContentRead <= TELEMETRY_REQUEST_SIZE_100M) {
+            glean::networking::http_3_download_throughput_50_100
+                .AccumulateSingleSample(mpbs);
+          } else {
+            glean::networking::http_3_download_throughput_100
+                .AccumulateSingleSample(mpbs);
+          }
           break;
         default:
           break;
@@ -3558,10 +3572,6 @@ nsHttpTransaction::GetName(nsACString& aName) {
 }
 
 bool nsHttpTransaction::GetSupportsHTTP3() { return mSupportsHTTP3; }
-
-const int64_t TELEMETRY_REQUEST_SIZE_10M = (int64_t)10 * (int64_t)(1 << 20);
-const int64_t TELEMETRY_REQUEST_SIZE_50M = (int64_t)50 * (int64_t)(1 << 20);
-const int64_t TELEMETRY_REQUEST_SIZE_100M = (int64_t)100 * (int64_t)(1 << 20);
 
 void nsHttpTransaction::CollectTelemetryForUploads() {
   if ((mRequestSize < TELEMETRY_REQUEST_SIZE_10M) ||
