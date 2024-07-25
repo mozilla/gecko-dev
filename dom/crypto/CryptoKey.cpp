@@ -212,7 +212,7 @@ void CryptoKey::GetAlgorithm(JSContext* cx,
     case KeyAlgorithmProxy::EC:
       converted = ToJSValue(cx, mAlgorithm.mEc, &val);
       break;
-    case KeyAlgorithmProxy::ED:
+    case KeyAlgorithmProxy::OKP:
       converted = ToJSValue(cx, mAlgorithm.mEd, &val);
       break;
   }
@@ -447,7 +447,8 @@ uint32_t CryptoKey::GetAllowedUsagesForAlgorithm(const nsString& aAlgorithm) {
     allowedUsages = SIGN | VERIFY;
   } else if (aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_ECDH) ||
              aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_HKDF) ||
-             aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_PBKDF2)) {
+             aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_PBKDF2) ||
+             aAlgorithm.EqualsASCII(WEBCRYPTO_ALG_X25519)) {
     allowedUsages = DERIVEBITS | DERIVEKEY;
   }
   return allowedUsages;
@@ -768,7 +769,8 @@ UniqueSECKEYPrivateKey CryptoKey::PrivateKeyFromJwk(const JsonWebKey& aJwk) {
       return nullptr;
     }
 
-    if (!namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
+    if (!namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519) &&
+        !namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_CURVE25519)) {
       return nullptr;
     }
 
@@ -793,7 +795,15 @@ UniqueSECKEYPrivateKey CryptoKey::PrivateKeyFromJwk(const JsonWebKey& aJwk) {
     }
 
     // Populate template from parameters
-    CK_KEY_TYPE ecValue = CKK_EC_EDWARDS;
+    CK_KEY_TYPE ecValue;
+    if (namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
+      ecValue = CKK_EC_EDWARDS;
+    } else if (namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_CURVE25519)) {
+      ecValue = CKK_EC_MONTGOMERY;
+    } else {
+      return nullptr;
+    }
+
     CK_ATTRIBUTE keyTemplate[9] = {
         {CKA_CLASS, &privateKeyValue, sizeof(privateKeyValue)},
         {CKA_KEY_TYPE, &ecValue, sizeof(ecValue)},
@@ -835,8 +845,8 @@ bool ReadAndEncodeAttribute(SECKEYPrivateKey* aKey,
   return true;
 }
 
-bool EDKeyToJwk(const SECItem* aEcParams, const SECItem* aPublicValue,
-                JsonWebKey& aRetVal) {
+bool OKPKeyToJwk(const SECItem* aEcParams, const SECItem* aPublicValue,
+                 JsonWebKey& aRetVal) {
   aRetVal.mX.Construct();
 
   SECOidTag tag;
@@ -850,6 +860,11 @@ bool EDKeyToJwk(const SECItem* aEcParams, const SECItem* aPublicValue,
       flen = 32;
       aRetVal.mCrv.Construct(
           NS_LITERAL_STRING_FROM_CSTRING(WEBCRYPTO_NAMED_CURVE_ED25519));
+      break;
+    case SEC_OID_X25519:
+      flen = 32;
+      aRetVal.mCrv.Construct(
+          NS_LITERAL_STRING_FROM_CSTRING(WEBCRYPTO_NAMED_CURVE_CURVE25519));
       break;
     default:
       return false;
@@ -961,7 +976,9 @@ nsresult CryptoKey::PrivateKeyToJwk(SECKEYPrivateKey* aPrivKey,
       aRetVal.mKty = NS_LITERAL_STRING_FROM_CSTRING(JWK_TYPE_RSA);
       return NS_OK;
     }
-    case edKey: {
+
+    case edKey:
+    case ecMontKey: {
       // Read EC params.
       ScopedAutoSECItem params;
       SECStatus rv = PK11_ReadRawAttribute(PK11_TypePrivKey, aPrivKey,
@@ -979,7 +996,7 @@ nsresult CryptoKey::PrivateKeyToJwk(SECKEYPrivateKey* aPrivKey,
         return NS_ERROR_DOM_OPERATION_ERR;
       }
 
-      if (!EDKeyToJwk(&params, &ecPoint, aRetVal)) {
+      if (!OKPKeyToJwk(&params, &ecPoint, aRetVal)) {
         return NS_ERROR_DOM_OPERATION_ERR;
       }
 
@@ -1034,7 +1051,8 @@ KeyType KeyTypeFromCurveName(const nsAString& aNamedCurve) {
       aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P384) ||
       aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P521)) {
     t = ecKey;
-  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
+  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519) ||
+             aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_CURVE25519)) {
     t = edKey;
   }
   return t;
@@ -1186,7 +1204,8 @@ UniqueSECKEYPublicKey CryptoKey::PublicKeyFromJwk(const JsonWebKey& aJwk) {
       return nullptr;
     }
 
-    if (!namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
+    if (!namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519) &&
+        !namedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_CURVE25519)) {
       return nullptr;
     }
 
@@ -1215,17 +1234,19 @@ nsresult CryptoKey::PublicKeyToJwk(SECKEYPublicKey* aPubKey,
       return NS_OK;
     }
     case edKey:
-      if (!EDKeyToJwk(&aPubKey->u.ec.DEREncodedParams,
-                      &aPubKey->u.ec.publicValue, aRetVal)) {
+    case ecMontKey:
+      if (!OKPKeyToJwk(&aPubKey->u.ec.DEREncodedParams,
+                       &aPubKey->u.ec.publicValue, aRetVal)) {
         return NS_ERROR_DOM_OPERATION_ERR;
       }
       return NS_OK;
-    case ecKey:
+    case ecKey: {
       if (!ECKeyToJwk(PK11_TypePubKey, aPubKey, &aPubKey->u.ec.DEREncodedParams,
                       &aPubKey->u.ec.publicValue, aRetVal)) {
         return NS_ERROR_DOM_OPERATION_ERR;
       }
       return NS_OK;
+    }
     default:
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
@@ -1276,7 +1297,7 @@ nsresult CryptoKey::PublicECKeyToRaw(SECKEYPublicKey* aPubKey,
   return NS_OK;
 }
 
-UniqueSECKEYPublicKey CryptoKey::PublicEDKeyFromRaw(
+UniqueSECKEYPublicKey CryptoKey::PublicOKPKeyFromRaw(
     CryptoBuffer& aKeyData, const nsString& aNamedCurve) {
   UniquePLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
   if (!arena) {
@@ -1291,6 +1312,8 @@ UniqueSECKEYPublicKey CryptoKey::PublicEDKeyFromRaw(
   uint32_t flen;
   if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
     flen = 32;  // bytes
+  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_CURVE25519)) {
+    flen = 32;
   } else {
     return nullptr;
   }

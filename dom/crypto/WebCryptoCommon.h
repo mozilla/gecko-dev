@@ -50,6 +50,7 @@ struct JSStructuredCloneWriter;
 #define WEBCRYPTO_ALG_ECDH "ECDH"
 #define WEBCRYPTO_ALG_ECDSA "ECDSA"
 #define WEBCRYPTO_ALG_ED25519 "Ed25519"
+#define WEBCRYPTO_ALG_X25519 "X25519"
 
 // WebCrypto key formats
 #define WEBCRYPTO_KEY_FORMAT_RAW "raw"
@@ -77,6 +78,7 @@ struct JSStructuredCloneWriter;
 #define WEBCRYPTO_NAMED_CURVE_P384 "P-384"
 #define WEBCRYPTO_NAMED_CURVE_P521 "P-521"
 #define WEBCRYPTO_NAMED_CURVE_ED25519 "Ed25519"
+#define WEBCRYPTO_NAMED_CURVE_CURVE25519 "X25519"
 
 // JWK key types
 #define JWK_TYPE_SYMMETRIC "oct"
@@ -240,6 +242,8 @@ inline bool NormalizeToken(const nsString& aName, nsString& aDest) {
     aDest.AssignLiteral(WEBCRYPTO_ALG_ECDSA);
   } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_ED25519)) {
     aDest.AssignLiteral(WEBCRYPTO_ALG_ED25519);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_X25519)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_X25519);
     // Named curve values
   } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_NAMED_CURVE_P256)) {
     aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P256);
@@ -249,6 +253,8 @@ inline bool NormalizeToken(const nsString& aName, nsString& aDest) {
     aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P521);
   } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_NAMED_CURVE_ED25519)) {
     aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_ED25519);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_NAMED_CURVE_CURVE25519)) {
+    aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_CURVE25519);
 
   } else {
     return false;
@@ -310,6 +316,8 @@ inline SECItem* CreateECParamsForCurve(const nsAString& aNamedCurve,
     curveOIDTag = SEC_OID_SECG_EC_SECP521R1;
   } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
     curveOIDTag = SEC_OID_ED25519_PUBLIC_KEY;
+  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_CURVE25519)) {
+    curveOIDTag = SEC_OID_X25519;
   } else {
     return nullptr;
   }

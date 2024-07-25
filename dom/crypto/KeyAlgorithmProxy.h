@@ -55,7 +55,7 @@ struct RsaHashedKeyAlgorithmStorage {
 // This class encapuslates a KeyAlgorithm object, and adds several
 // methods that make WebCrypto operations simpler.
 struct KeyAlgorithmProxy {
-  enum KeyAlgorithmType { AES, HMAC, RSA, EC, KDF, ED };
+  enum KeyAlgorithmType { AES, HMAC, RSA, EC, KDF, OKP };
   KeyAlgorithmType mType;
 
   // Plain is always populated with the algorithm name
@@ -123,8 +123,8 @@ struct KeyAlgorithmProxy {
     mEc.mNamedCurve = aNamedCurve;
   }
 
-  void MakeEd(const nsString& aName) {
-    mType = ED;
+  void MakeOKP(const nsString& aName) {
+    mType = OKP;
     mName = aName;
     mEd.mName = aName;
   }

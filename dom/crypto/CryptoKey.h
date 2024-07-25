@@ -172,8 +172,8 @@ class CryptoKey final : public nsISupports, public nsWrapperCache {
   static nsresult PublicECKeyToRaw(SECKEYPublicKey* aPubKey,
                                    CryptoBuffer& aRetVal);
 
-  static UniqueSECKEYPublicKey PublicEDKeyFromRaw(CryptoBuffer& aKeyData,
-                                                  const nsString& aNamedCurve);
+  static UniqueSECKEYPublicKey PublicOKPKeyFromRaw(CryptoBuffer& aKeyData,
+                                                   const nsString& aNamedCurve);
 
   static bool PublicKeyValid(SECKEYPublicKey* aPubKey);
 
