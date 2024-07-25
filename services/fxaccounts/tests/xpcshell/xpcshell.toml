@@ -21,6 +21,7 @@ support-files = [
 ["test_commands.js"]
 
 ["test_commands_closetab.js"]
+skip-if = ["appname == 'thunderbird'"]
 
 ["test_credentials.js"]
 
