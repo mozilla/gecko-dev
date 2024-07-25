@@ -1547,28 +1547,18 @@ if (!build_with_mozilla) {
   sources = [
     "helpers.cc",
     "helpers.h",
-    "openssl_adapter.cc",
-    "openssl_adapter.h",
     "openssl_key_pair.cc",
     "openssl_key_pair.h",
-    "openssl_session_cache.cc",
-    "openssl_session_cache.h",
-    "openssl_stream_adapter.cc",
-    "openssl_stream_adapter.h",
     "openssl_utility.cc",
     "openssl_utility.h",
     "rtc_certificate.cc",
     "rtc_certificate.h",
-    "ssl_adapter.cc",
-    "ssl_adapter.h",
     "ssl_certificate.cc",
     "ssl_certificate.h",
     "ssl_fingerprint.cc",
     "ssl_fingerprint.h",
     "ssl_identity.cc",
     "ssl_identity.h",
-    "ssl_stream_adapter.cc",
-    "ssl_stream_adapter.h",
   ]
 
   deps = [
@@ -1641,7 +1631,53 @@ if (!build_with_mozilla) {
 
 rtc_library("ssl_adapter") {
   visibility = [ "*" ]
-  public_deps += [ ":ssl" ]  # no-presubmit-check TODO(webrtc:8603)
+  sources = [
+    "openssl_adapter.cc",
+    "openssl_adapter.h",
+    "openssl_session_cache.cc",
+    "openssl_session_cache.h",
+    "openssl_stream_adapter.cc",
+    "openssl_stream_adapter.h",
+    "ssl_adapter.cc",
+    "ssl_adapter.h",
+    "ssl_stream_adapter.cc",
+    "ssl_stream_adapter.h",
+  ]
+
+  deps = [
+    ":async_socket",
+    ":buffer",
+    ":checks",
+    ":digest",
+    ":logging",
+    ":safe_conversions",
+    ":socket",
+    ":socket_address",
+    ":ssl",
+    ":ssl_header",
+    ":stream",
+    ":stringutils",
+    ":threading",
+    ":timeutils",
+    "../api:array_view",
+    "../api/task_queue:pending_task_safety_flag",
+    "../api/units:time_delta",
+    "../system_wrappers:field_trial",
+    "system:rtc_export",
+    "task_utils:repeating_task",
+    "third_party/sigslot",
+    "//third_party/abseil-cpp/absl/functional:any_invocable",
+    "//third_party/abseil-cpp/absl/memory",
+    "//third_party/abseil-cpp/absl/strings",
+    "//third_party/abseil-cpp/absl/types:optional",
+  ]
+
+  # If we are building the SSL library ourselves, we know it's BoringSSL.
+  if (rtc_build_ssl) {
+    deps += [ "//third_party/boringssl" ]
+  } else {
+    configs += [ ":external_ssl_library" ]
+  }
 }
 
 rtc_source_set("gtest_prod") {
