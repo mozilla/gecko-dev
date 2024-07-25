@@ -250,21 +250,35 @@ If your new metric type is Labeled, you have more work to do.
 I'm assuming you've already implemented the non-labeled sub metric type following the steps above.
 Now you must add "Labeledness" to it.
 
-There are four pieces to this:
+There are five pieces to this:
+
+#### Rust
+
+- If your new labeled metric type supports IPC, you will need to build a type called `LabeledXMetric`
+  in a file called `labeled_x.rs` (e.g. {searchfox}`toolkit/components/glean/api/src/private/labeled_counter.rs`)
+  that stores the submetric's label between calls so it can supply it to the IPC payload.
+- If your new labeled metric type does not support IPC, you will still need a `LabeledXMetric`
+  type, but this one can be a re-export of the unlabeled type by putting
+  `pub use self::x::XMetric as LabeledXMetric;` in
+  {searchfox}`toolkit/components/glean/api/src/private/mod.rs` (e.g. `LabeledBooleanMetric`).
 
 #### FFI
 
 - To add the writeable storage Rust will use to store the dynamically-generated sub metric instances,
   add your sub metric type's map as a list item in the `submetric_maps` `mod` of
-  [`rust.jinja2`](https://hg.mozilla.org/mozilla-central/file/tip/toolkit/components/glean/build_scripts/glean_parser_ext/templates/rust.jinja2).
+  {searchfox}`toolkit/components/glean/build_scripts/glean_parser_ext/templates/rust.jinja2`.
 - Following the pattern of the others, add a `fog_{your labeled metric name here}_get()` FFI API to
   `api/src/ffi/mod.rs`.
   This is what C++ and JS will use to allocate and retrieve sub metric instances by id.
+- Finally, augment the `with_metric!` macro to recognize that your type is sometimes labeled by using the
+  `maybe_labeled_with_metric!` submacro in
+  {searchfox}`toolkit/components/glean/api/src/ffi/macros.rs`.
 
 #### C++
 
-- Following the pattern of the others, add a template specialiation for `Labeled<YourSubMetric>::Get` to
-  [`bindings/private/Labeled.cpp`](https://hg.mozilla.org/mozilla-central/file/tip/toolkit/components/glean/bindings/private/Labeled.cpp).
+- Following the pattern of the others, add a template specialization for both
+  `Labeled<YourSubMetric, E>::{EnumGet|Get}` and `Labeled<YourSubMetric, DynamicLabel>` to
+  {searchfox}`toolkit/components/glean/bindings/private/Labeled.h`.
   This will ensure C++ consumers can fetch or create sub metric instances.
 
 #### JS
