@@ -879,23 +879,25 @@ using ArrayBuffer = TypedArray<JS::ArrayBuffer>;
 //       things that understand TypedArray, as with ToJSValue.
 template <typename TypedArrayType>
 class MOZ_STACK_CLASS TypedArrayCreator {
-  typedef nsTArray<typename TypedArrayType::element_type> ArrayType;
+  using ValuesType = typename TypedArrayType::element_type;
+  using ArrayType = nsTArray<ValuesType>;
 
  public:
-  explicit TypedArrayCreator(const ArrayType& aArray) : mArray(aArray) {}
+  explicit TypedArrayCreator(const ArrayType& aArray) : mValues(aArray) {}
+  explicit TypedArrayCreator(const nsCString& aString) : mValues(aString) {}
 
   // NOTE: this leaves any exceptions on the JSContext, and the caller is
   //       required to deal with them.
   JSObject* Create(JSContext* aCx) const {
-    auto array = TypedArrayType::CreateCommon(aCx, mArray.Length());
+    auto array = TypedArrayType::CreateCommon(aCx, mValues.Length());
     if (array) {
-      TypedArrayType::CopyFrom(aCx, mArray, array);
+      TypedArrayType::CopyFrom(aCx, mValues, array);
     }
     return array.asObject();
   }
 
  private:
-  const ArrayType& mArray;
+  Span<const ValuesType> mValues;
 };
 
 namespace binding_detail {

@@ -189,6 +189,12 @@ class Promise : public SupportsWeakPtr {
                                             // specializations in the .cpp for
                                             // the T values we support.
 
+  // If the JSContext has a pending exception then this will reject the promise
+  // with that exception and clear it from the JSContext.
+  void MaybeRejectWithExceptionFromContext(JSContext* aCx) {
+    HandleException(aCx);
+  }
+
   // Mark a settled promise as already handled so that rejections will not
   // be reported as unhandled.
   bool SetSettledPromiseIsHandled();
