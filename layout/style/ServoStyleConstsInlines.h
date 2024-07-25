@@ -828,14 +828,14 @@ inline bool StyleFlexBasis::IsAuto() const {
   return IsSize() && AsSize().IsAuto();
 }
 
-#define IMPL_BEHAVES_LIKE_SIZE_METHODS(ty_, isInitialValMethod_) \
-  template <>                                                    \
-  inline bool ty_::BehavesLikeStretchOnInlineAxis() const {      \
-    return IsStretch() || IsMozAvailable();                      \
-  }                                                              \
-  template <>                                                    \
-  inline bool ty_::BehavesLikeInitialValueOnBlockAxis() const {  \
-    return isInitialValMethod_() || !IsLengthPercentage();       \
+#define IMPL_BEHAVES_LIKE_SIZE_METHODS(ty_, isInitialValMethod_)       \
+  template <>                                                          \
+  inline bool ty_::BehavesLikeStretchOnInlineAxis() const {            \
+    return IsStretch() || IsMozAvailable() || IsWebkitFillAvailable(); \
+  }                                                                    \
+  template <>                                                          \
+  inline bool ty_::BehavesLikeInitialValueOnBlockAxis() const {        \
+    return isInitialValMethod_() || !IsLengthPercentage();             \
   }
 
 IMPL_BEHAVES_LIKE_SIZE_METHODS(StyleSize, IsAuto)

@@ -139,6 +139,7 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
         prefCoord = minCoord;
         break;
       case StyleSize::Tag::MozAvailable:
+      case StyleSize::Tag::WebkitFillAvailable:
       case StyleSize::Tag::Stretch:
       case StyleSize::Tag::FitContent:
       case StyleSize::Tag::FitContentFunction:

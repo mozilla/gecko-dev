@@ -1954,6 +1954,8 @@ macro_rules! parse_size_non_length {
                 #[cfg(feature = "gecko")]
                 "-moz-available" => $size::MozAvailable,
                 #[cfg(feature = "gecko")]
+                "-webkit-fill-available" if is_webkit_fill_available_keyword_enabled() => $size::WebkitFillAvailable,
+                #[cfg(feature = "gecko")]
                 "stretch" if is_stretch_enabled() => $size::Stretch,
                 $auto_or_none => $size::$auto_or_none_ident,
             })
@@ -1964,6 +1966,10 @@ macro_rules! parse_size_non_length {
     }};
 }
 
+#[cfg(feature = "gecko")]
+fn is_webkit_fill_available_keyword_enabled() -> bool {
+    static_prefs::pref!("layout.css.webkit-fill-available.enabled")
+}
 #[cfg(feature = "gecko")]
 fn is_stretch_enabled() -> bool {
     static_prefs::pref!("layout.css.stretch-size-keyword.enabled")
