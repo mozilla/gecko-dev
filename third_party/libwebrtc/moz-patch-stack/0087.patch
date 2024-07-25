@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/158a888cad8869a2f
  1 file changed, 8 insertions(+), 1 deletion(-)
 
 diff --git a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-index 4e042ef79e..ae834f7714 100644
+index 15f9b1e55f..3171c7cf33 100644
 --- a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
 +++ b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
 @@ -27,6 +27,13 @@
@@ -27,7 +27,7 @@ index 4e042ef79e..ae834f7714 100644
  namespace webrtc {
  
  const int kBytesPerPixel = 4;
-@@ -266,7 +273,7 @@ void SharedScreenCastStreamPrivate::OnStreamParamChanged(
+@@ -269,7 +276,7 @@ void SharedScreenCastStreamPrivate::OnStreamParamChanged(
    that->modifier_ =
        has_modifier ? that->spa_video_format_.modifier : DRM_FORMAT_MOD_INVALID;
    std::vector<const spa_pod*> params;
