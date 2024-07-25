@@ -17,6 +17,7 @@
   preview/onboarding.ftl                           (../components/aboutwelcome/content/onboarding.ftl)
   preview/genai.ftl                                (../locales-preview/genai.ftl)
   preview/translations.ftl                         (../locales-preview/translations.ftl)
+  preview/credentialChooser.ftl                    (../../toolkit/components/credentialmanagement/credentialChooser.ftl)
   browser                                          (%browser/**/*.ftl)
   preview/profiles.ftl                             (../components/profiles/content/profiles.ftl)
   preview/backupSettings.ftl                       (../locales-preview/backupSettings.ftl)
