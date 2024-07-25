@@ -503,7 +503,7 @@ private fun TranslationErrorWarning(
     documentLangDisplayName: String? = null,
 ) {
     val modifier = Modifier
-        .padding(top = 8.dp)
+        .padding(top = 12.dp)
         .fillMaxWidth()
 
     when (translationError) {
