@@ -27,19 +27,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
-import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.utils.KeyboardState
 import org.mozilla.fenix.compose.utils.keyboardAsState
-import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.microsurvey.ui.ext.MicrosurveyUIData
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -83,7 +80,7 @@ fun MicrosurveyRequestPrompt(
                 modifier = Modifier
                     .padding(all = 16.dp)
                     .fillMaxWidth(
-                        if (LocalContext.current.isTablet()) {
+                        if (FirefoxTheme.windowSize.isNotSmall()) {
                             TABLET_WIDTH_FRACTION
                         } else {
                             NON_TABLET_WIDTH_FRACTION
@@ -141,8 +138,7 @@ private fun Header(
     }
 }
 
-@PreviewScreenSizes
-@LightDarkPreview
+@FlexibleWindowLightDarkPreview
 @Composable
 private fun MicrosurveyRequestPromptPreview() {
     FirefoxTheme {
