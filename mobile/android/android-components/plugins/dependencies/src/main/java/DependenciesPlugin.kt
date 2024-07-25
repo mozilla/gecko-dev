@@ -55,7 +55,7 @@ object Versions {
 
     object AndroidX {
         const val activityCompose = "1.7.2"
-        const val annotation = "1.8.0"
+        const val annotation = "1.8.1"
         const val appcompat = "1.7.0"
         const val autofill = "1.1.0"
         const val browser = "1.8.0"
