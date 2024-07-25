@@ -78,13 +78,6 @@ export var AppConstants = Object.freeze({
   false,
 #endif
 
-  MOZ_SERVICES_HEALTHREPORT:
-#ifdef MOZ_SERVICES_HEALTHREPORT
-  true,
-#else
-  false,
-#endif
-
   MOZ_DATA_REPORTING:
 #ifdef MOZ_DATA_REPORTING
   true,
@@ -106,22 +99,8 @@ export var AppConstants = Object.freeze({
   false,
 #endif
 
-  MOZ_TELEMETRY_ON_BY_DEFAULT:
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-  true,
-#else
-  false,
-#endif
-
   MOZ_UPDATER:
 #ifdef MOZ_UPDATER
-  true,
-#else
-  false,
-#endif
-
-  MOZ_SWITCHBOARD:
-#ifdef MOZ_SWITCHBOARD
   true,
 #else
   false,
@@ -358,7 +337,6 @@ export var AppConstants = Object.freeze({
   MOZ_MACBUNDLE_NAME: "@MOZ_MACBUNDLE_NAME@",
   MOZ_UPDATE_CHANNEL: "@MOZ_UPDATE_CHANNEL@",
   MOZ_WIDGET_TOOLKIT: "@MOZ_WIDGET_TOOLKIT@",
-  ANDROID_PACKAGE_NAME: "@ANDROID_PACKAGE_NAME@",
 
   DEBUG_JS_MODULES: "@DEBUG_JS_MODULES@",
 
