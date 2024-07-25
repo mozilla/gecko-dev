@@ -826,6 +826,7 @@ export var TelemetrySendImpl = {
         const crs = cr.getService(Ci.nsICrashReporter);
 
         let clientId = ClientID.getCachedClientID();
+        let profileGroupId = ClientID.getCachedProfileGroupID();
         let server =
           this._server ||
           Services.prefs.getStringPref(
@@ -839,9 +840,11 @@ export var TelemetrySendImpl = {
         ) {
           // If we cannot send pings then clear the crash annotations
           crs.removeCrashReportAnnotation("TelemetryClientId");
+          crs.removeCrashReportAnnotation("TelemetryProfileGroupId");
           crs.removeCrashReportAnnotation("TelemetryServerURL");
         } else {
           crs.annotateCrashReport("TelemetryClientId", clientId);
+          crs.annotateCrashReport("TelemetryProfileGroupId", profileGroupId);
           crs.annotateCrashReport("TelemetryServerURL", server);
         }
       }

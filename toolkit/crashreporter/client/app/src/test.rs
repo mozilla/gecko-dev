@@ -94,6 +94,7 @@ const MOCK_MINIDUMP_EXTRA: &str = r#"{
                             "ServerURL": "https://reports.example.com",
                             "TelemetryServerURL": "https://telemetry.example.com",
                             "TelemetryClientId": "telemetry_client",
+                            "TelemetryProfileGroupId": "telemetry_profile_group",
                             "TelemetrySessionId": "telemetry_session",
                             "SomeNestedJson": { "foo": "bar" },
                             "URL": "https://url.example.com"
@@ -338,6 +339,7 @@ impl AssertFiles {
                 "version": 4,
                 "creationDate": MOCK_CURRENT_TIME,
                 "clientId": "telemetry_client",
+                "profileGroupId": "telemetry_profile_group",
                 "payload": {
                     "sessionId": "telemetry_session",
                     "version": 1,
@@ -526,6 +528,7 @@ fn no_restart_with_windows_error_reporting() {
                             "ServerURL": "https://reports.example.com",
                             "TelemetryServerURL": "https://telemetry.example.com",
                             "TelemetryClientId": "telemetry_client",
+                            "TelemetryProfileGroupId": "telemetry_profile_group",
                             "TelemetrySessionId": "telemetry_session",
                             "SomeNestedJson": { "foo": "bar" },
                             "URL": "https://url.example.com",

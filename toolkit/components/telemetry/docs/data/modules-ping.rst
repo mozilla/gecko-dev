@@ -4,7 +4,7 @@
 
 This ping is sent once a week and includes the modules loaded in the Firefox process.
 
-The client ID and environment are submitted with this ping.
+The client ID, profile group ID and environment are submitted with this ping.
 
 Structure:
 
@@ -14,6 +14,7 @@ Structure:
       type: "modules",
       ... common ping data
       clientId: <UUID>,
+      profileGroupId: <UUID>,
       environment: { ... },
       payload: {
         version: 1,

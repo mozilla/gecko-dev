@@ -3050,6 +3050,11 @@ static void SubmitDowngradeTelemetry(const nsCString& aLastVersion,
   rv = prefBranch->GetCharPref("toolkit.telemetry.cachedClientID", clientId);
   NS_ENSURE_SUCCESS_VOID(rv);
 
+  nsCString profileGroupId;
+  rv = prefBranch->GetCharPref("toolkit.telemetry.cachedProfileGroupID",
+                               profileGroupId);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
   rv = prefSvc->GetDefaultBranch(nullptr, getter_AddRefs(prefBranch));
   NS_ENSURE_SUCCESS_VOID(rv);
 
@@ -3132,6 +3137,7 @@ static void SubmitDowngradeTelemetry(const nsCString& aLastVersion,
     w.StringProperty("creationDate", MakeStringSpan(date));
     w.IntProperty("version", TELEMETRY_PING_FORMAT_VERSION);
     w.StringProperty("clientId", clientId);
+    w.StringProperty("profileGroupId", profileGroupId);
     w.StartObjectProperty("application");
     {
       w.StringProperty("architecture", arch);

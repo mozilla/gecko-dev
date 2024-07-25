@@ -560,6 +560,7 @@ add_task(async function test_clientId() {
   // should get a valid client id.
   await TelemetryController.testReset();
   const clientId = await ClientID.getClientID();
+  const profileGroupId = await ClientID.getProfileGroupID();
 
   let id = await TelemetryController.submitExternalPing(
     "test-type",
@@ -575,6 +576,16 @@ add_task(async function test_clientId() {
     ping.clientId,
     clientId,
     "Ping client id should match the global client id."
+  );
+  Assert.ok("profileGroupId" in ping, "Ping should have a profile group id.");
+  Assert.ok(
+    UUID_REGEX.test(ping.profileGroupId),
+    "Profile group id is in UUID format."
+  );
+  Assert.equal(
+    ping.profileGroupId,
+    profileGroupId,
+    "Ping profile group id should match the global profile group id."
   );
 
   // We should have cached the client id now. Lets confirm that by

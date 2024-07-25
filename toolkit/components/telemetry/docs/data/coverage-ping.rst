@@ -5,7 +5,7 @@
 This ping is not enabled by default. When enabled, a ping is generated a total of once per profile, as a diagnostic tool
 to determine whether Telemetry is working for users.
 
-This ping contains no client id and no environment data.
+This ping contains no client id, profile group id, and no environment data.
 
 You can find more background information in `this blog post <https://blog.mozilla.org/data/2018/08/20/effectively-measuring-search-in-firefox/>`_.
 

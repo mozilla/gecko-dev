@@ -15,7 +15,7 @@ For more information about the default browser agent itself, see :doc:`its docum
 Structure
 =========
 
-Since this ping is sent from an external binary, it's structured as its own ping document type and not in the standard Firefox telemetry format. It's also missing lots of data that would normally be present; for instance, there is no ``clientId``, because the agent does not load any profile and so has no way to find any, and no environment block because the agent doesn't contain the telemetry library code to build it.
+Since this ping is sent from an external binary, it's structured as its own ping document type and not in the standard Firefox telemetry format. It's also missing lots of data that would normally be present; for instance, there is no ``clientId`` or ``profileGroupId``, because the agent does not load any profile and so has no way to find any, and no environment block because the agent doesn't contain the telemetry library code to build it.
 
 Here's the format of the ping data, with example values for each property:
 

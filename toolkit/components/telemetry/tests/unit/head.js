@@ -201,6 +201,11 @@ function decodeRequestPayload(request) {
       payload.clientId,
       `Known clientId shouldn't appear in a "${payload.type}" ping on the server.`
     );
+
+    Assert.ok(
+      "profileGroupId" in payload,
+      "Pings with a clientId must also contain a profileGroupId"
+    );
   }
 
   return payload;

@@ -24,7 +24,7 @@ at the time of the crash will be recorded and ``hasCrashEnvironment`` will be tr
 If Firefox crashed before the environment was recorded, ``hasCrashEnvironment`` will
 be false and the recorded environment will be the environment at time of submission.
 
-The client ID is submitted with this ping.
+The client ID and profile group ID are submitted with this ping.
 
 The metadata field holds a subset of the crash annotations, all field values
 are stored as strings but some may be interpreted either as numbers or
@@ -40,6 +40,7 @@ Structure:
       type: "crash",
       ... common ping data
       clientId: <UUID>,
+      profileGroupId: <UUID>,
       environment: { ... },
       payload: {
         crashDate: "YYYY-MM-DD",
