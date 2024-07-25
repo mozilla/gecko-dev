@@ -831,7 +831,7 @@ inline bool StyleFlexBasis::IsAuto() const {
 #define IMPL_BEHAVES_LIKE_SIZE_METHODS(ty_, isInitialValMethod_) \
   template <>                                                    \
   inline bool ty_::BehavesLikeStretchOnInlineAxis() const {      \
-    return IsMozAvailable();                                     \
+    return IsStretch() || IsMozAvailable();                      \
   }                                                              \
   template <>                                                    \
   inline bool ty_::BehavesLikeInitialValueOnBlockAxis() const {  \

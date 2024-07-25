@@ -1953,6 +1953,8 @@ macro_rules! parse_size_non_length {
                 "fit-content" | "-moz-fit-content" => $size::FitContent,
                 #[cfg(feature = "gecko")]
                 "-moz-available" => $size::MozAvailable,
+                #[cfg(feature = "gecko")]
+                "stretch" if is_stretch_enabled() => $size::Stretch,
                 $auto_or_none => $size::$auto_or_none_ident,
             })
         });
@@ -1960,6 +1962,11 @@ macro_rules! parse_size_non_length {
             return size;
         }
     }};
+}
+
+#[cfg(feature = "gecko")]
+fn is_stretch_enabled() -> bool {
+    static_prefs::pref!("layout.css.stretch-size-keyword.enabled")
 }
 
 #[cfg(feature = "gecko")]

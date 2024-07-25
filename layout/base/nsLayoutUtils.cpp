@@ -4358,7 +4358,8 @@ static Maybe<nscoord> GetIntrinsicSize(nsIFrame::ExtremumLength aLength,
                                        Maybe<nscoord> aISizeFromAspectRatio,
                                        nsIFrame::SizeProperty aProperty,
                                        nscoord aContentBoxToBoxSizingDiff) {
-  if (aLength == nsIFrame::ExtremumLength::MozAvailable) {
+  if (aLength == nsIFrame::ExtremumLength::MozAvailable ||
+      aLength == nsIFrame::ExtremumLength::Stretch) {
     return Nothing();
   }
 

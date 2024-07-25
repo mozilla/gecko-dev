@@ -2113,6 +2113,8 @@ static void SetValueToExtremumLength(nsROCSSPrimitiveValue* aValue,
       return aValue->SetString("min-content");
     case nsIFrame::ExtremumLength::MozAvailable:
       return aValue->SetString("-moz-available");
+    case nsIFrame::ExtremumLength::Stretch:
+      return aValue->SetString("stretch");
     case nsIFrame::ExtremumLength::FitContent:
       return aValue->SetString("fit-content");
     case nsIFrame::ExtremumLength::FitContentFunction:

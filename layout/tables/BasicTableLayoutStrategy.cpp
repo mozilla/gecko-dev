@@ -139,6 +139,7 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
         prefCoord = minCoord;
         break;
       case StyleSize::Tag::MozAvailable:
+      case StyleSize::Tag::Stretch:
       case StyleSize::Tag::FitContent:
       case StyleSize::Tag::FitContentFunction:
         // TODO: Bug 1708310: Make sure fit-content() work properly in table.

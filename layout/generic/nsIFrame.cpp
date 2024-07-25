@@ -6757,7 +6757,8 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
   // resolve the sizes with intrinsic keywords.
   // https://github.com/w3c/csswg-drafts/issues/5032
   Maybe<nscoord> iSizeFromAspectRatio = [&]() -> Maybe<nscoord> {
-    if (aSize == ExtremumLength::MozAvailable) {
+    if (aSize == ExtremumLength::MozAvailable ||
+        aSize == ExtremumLength::Stretch) {
       return Nothing();
     }
     if (!aAspectRatio) {
@@ -6813,6 +6814,7 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
       return {result};
     }
     case ExtremumLength::MozAvailable:
+    case ExtremumLength::Stretch:
       return {GetAvailableISize()};
   }
   MOZ_ASSERT_UNREACHABLE("Unknown extremum length?");

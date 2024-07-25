@@ -74,9 +74,9 @@ function xfail_value(property, value, is_initial, has_frame) {
 
 var gSwapInitialWhenHaveFrame = {
   // For the inline axis ('width' by default): when there's a frame,
-  // '-moz-available' works out to the same as 'auto', given the prerequisites
-  // of only 'display: block'.
-  "width": [ "-moz-available" ],
+  // 'stretch' and its prefixed aliases work out to the same as 'auto',
+  // given the prerequisites of only 'display: block'.
+  "width": [ "-moz-available", "stretch" ],
 
   // For the block axis ('height' by default): when there's a frame, these
   // keywords work out to the same as the initial value, i.e. `auto`, given
@@ -84,7 +84,7 @@ var gSwapInitialWhenHaveFrame = {
   "height": [ "-moz-max-content", "-moz-min-content", "-moz-fit-content",
               "-moz-available", "max-content", "min-content", "fit-content",
               "fit-content(100px)", "fit-content(10%)",
-              "fit-content(calc(3*25px + 50%))" ],
+              "fit-content(calc(3*25px + 50%))", "stretch" ],
 };
 // Use the same lists for logical versions of width/height properties:
 gSwapInitialWhenHaveFrame["inline-size"] = gSwapInitialWhenHaveFrame.width;

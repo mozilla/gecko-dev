@@ -9729,6 +9729,16 @@
   value: true
   mirror: always
 
+# Is the CSS 'stretch' keyword enabled, for size-valued properties like 'width'
+# and 'height'? (Note: this is unrelated to the 'stretch' value for the
+# various alignment properties like 'align-self'; this pref has has
+# no influence on the 'stretch' keyword for those alignment properties.)
+- name: layout.css.stretch-size-keyword.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
 # Is support for -webkit-line-clamp on regular blocks enabled?
 - name: layout.css.webkit-line-clamp.block.enabled
   type: bool

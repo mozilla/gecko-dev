@@ -341,6 +341,7 @@ static bool DependsOnIntrinsicSize(const SizeOrMaxSize& aMinOrMaxSize) {
     case nsIFrame::ExtremumLength::FitContentFunction:
       return true;
     case nsIFrame::ExtremumLength::MozAvailable:
+    case nsIFrame::ExtremumLength::Stretch:
       return false;
   }
   MOZ_ASSERT_UNREACHABLE("Unknown sizing keyword?");

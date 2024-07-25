@@ -160,6 +160,8 @@ pub enum GenericSize<LengthPercent> {
     #[animation(error)]
     MozAvailable,
     #[animation(error)]
+    Stretch,
+    #[animation(error)]
     #[css(function = "fit-content")]
     FitContentFunction(LengthPercent),
 }
@@ -210,6 +212,8 @@ pub enum GenericMaxSize<LengthPercent> {
     FitContent,
     #[animation(error)]
     MozAvailable,
+    #[animation(error)]
+    Stretch,
     #[animation(error)]
     #[css(function = "fit-content")]
     FitContentFunction(LengthPercent),
