@@ -2631,7 +2631,7 @@ nsDOMWindowUtils::GetVisitedDependentComputedStyle(
   {
     ErrorResult rv;
     decl = innerWindow->GetComputedStyle(*aElement, aPseudoElement, rv);
-    ENSURE_SUCCESS(rv, rv.StealNSResult());
+    RETURN_NSRESULT_ON_FAILURE(rv);
   }
 
   nsAutoCString result;

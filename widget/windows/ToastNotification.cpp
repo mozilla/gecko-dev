@@ -727,7 +727,7 @@ ToastNotification::HandleWindowsTag(const nsAString& aWindowsTag,
   ErrorResult rv;
   RefPtr<dom::Promise> promise =
       dom::Promise::Create(xpc::CurrentNativeGlobal(aCx), rv);
-  ENSURE_SUCCESS(rv, rv.StealNSResult());
+  RETURN_NSRESULT_ON_FAILURE(rv);
 
   this->VerifyTagPresentOrFallback(aWindowsTag)
       ->Then(

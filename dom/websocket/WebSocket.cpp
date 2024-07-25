@@ -2047,7 +2047,7 @@ nsresult WebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
 
       ErrorResult rv;
       JS::Rooted<JSObject*> arrayBuf(cx, ArrayBuffer::Create(cx, aData, rv));
-      ENSURE_SUCCESS(rv, rv.StealNSResult());
+      RETURN_NSRESULT_ON_FAILURE(rv);
       jsData.setObject(*arrayBuf);
     } else {
       MOZ_CRASH("Unknown binary type!");

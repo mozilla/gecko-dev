@@ -699,7 +699,10 @@ bool HTMLTextAreaElement::RestoreState(PresState* aState) {
   if (state.type() == PresContentData::TTextContentData) {
     ErrorResult rv;
     SetValue(state.get_TextContentData().value(), rv);
-    ENSURE_SUCCESS(rv, false);
+    if (NS_WARN_IF(rv.Failed())) {
+      rv.SuppressException();
+      return false;
+    }
     if (state.get_TextContentData().lastValueChangeWasInteractive()) {
       SetLastValueChangeWasInteractive(true);
     }
