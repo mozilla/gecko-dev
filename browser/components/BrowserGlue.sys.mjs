@@ -103,7 +103,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.sys.mjs",
   TabUnloader: "resource:///modules/TabUnloader.sys.mjs",
-  TelemetryUtils: "resource://gre/modules/TelemetryUtils.sys.mjs",
   UIState: "resource://services-sync/UIState.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarSearchTermsPersistence:
@@ -2637,7 +2636,12 @@ BrowserGlue.prototype = {
 
       {
         name: "PlacesDBUtils.telemetry",
-        condition: lazy.TelemetryUtils.isTelemetryEnabled,
+        condition:
+          AppConstants.MOZ_TELEMETRY_REPORTING &&
+          Services.prefs.getBoolPref(
+            "datareporting.healthreport.uploadEnabled",
+            false
+          ),
         task: () => {
           lazy.PlacesDBUtils.telemetry().catch(console.error);
         },

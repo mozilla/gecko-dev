@@ -29,6 +29,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 const Utils = TelemetryUtils;
+const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
 
 const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "TelemetrySend::";
@@ -1590,7 +1591,7 @@ export var TelemetrySendImpl = {
     }
 
     // Without unified Telemetry, the Telemetry enabled pref controls ping sending.
-    return Utils.isTelemetryEnabled;
+    return Services.prefs.getBoolPref(PREF_TELEMETRY_ENABLED, false) === true;
   },
 
   /**
