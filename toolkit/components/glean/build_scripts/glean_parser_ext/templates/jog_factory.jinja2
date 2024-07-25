@@ -17,6 +17,7 @@ use std::borrow::Cow;
 use std::sync::atomic::{AtomicU32, Ordering};
 use crate::private::{
     CommonMetricData,
+    LabeledMetricData,
     Lifetime,
     MemoryUnit,
     TimeUnit,
@@ -114,12 +115,12 @@ map of argument name to argument type. I may regret this if I need it again. #}
             {% if metric_type_name == "object" %}{# TODO(bug 1883857): Add JOG support #}
             return Err(Box::new(MetricTypeNotFoundError(metric_type.to_string())));
             {% else %}
-            let metric = {{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}new{% endif %}(metric_id.into(), CommonMetricData {
+            let metric = {{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}new{% endif %}(metric_id.into(), {{ "LabeledMetricData::Common { cmd: " if metric_type_name.startswith("labeled_") else "" }}CommonMetricData {
                 {% for arg_name in common_metric_data_args if arg_name in metric_type.args %}
                 {{ arg_name }},
                 {% endfor %}
                 ..Default::default()
-            }
+            }{{ "}" if metric_type_name.startswith('labeled_') else "" }}
             {%- for arg_name in metric_type.args if arg_name not in common_metric_data_args -%}
                 , {{ arg_name }}.unwrap()
             {%- endfor -%}

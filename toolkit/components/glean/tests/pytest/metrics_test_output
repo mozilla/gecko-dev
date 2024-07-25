@@ -74,14 +74,14 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_boolean_metric: Lazy<LabeledMetric<LabeledBooleanMetric, super::DynamicLabel>> = Lazy::new(|| {
-        LabeledMetric::new(4.into(), CommonMetricData {
+        LabeledMetric::new(4.into(), LabeledMetricData::Common { cmd: CommonMetricData {
             name: "labeled_boolean_metric".into(),
             category: "test".into(),
             send_in_pings: vec!["metrics".into()],
             lifetime: Lifetime::Application,
             disabled: false,
             ..Default::default()
-        }, None)
+        }}, None)
     });
 
     #[repr(u16)]
@@ -138,14 +138,14 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_boolean_metric_labels: Lazy<LabeledMetric<LabeledBooleanMetric, LabeledBooleanMetricLabelsLabel>> = Lazy::new(|| {
-        LabeledMetric::new(5.into(), CommonMetricData {
+        LabeledMetric::new(5.into(), LabeledMetricData::Common { cmd: CommonMetricData {
             name: "labeled_boolean_metric_labels".into(),
             category: "test".into(),
             send_in_pings: vec!["metrics".into()],
             lifetime: Lifetime::Application,
             disabled: false,
             ..Default::default()
-        }, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
+        }}, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -154,14 +154,14 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_counter_metric: Lazy<LabeledMetric<LabeledCounterMetric, super::DynamicLabel>> = Lazy::new(|| {
-        LabeledMetric::new(6.into(), CommonMetricData {
+        LabeledMetric::new(6.into(), LabeledMetricData::Common { cmd: CommonMetricData {
             name: "labeled_counter_metric".into(),
             category: "test".into(),
             send_in_pings: vec!["metrics".into()],
             lifetime: Lifetime::Application,
             disabled: false,
             ..Default::default()
-        }, None)
+        }}, None)
     });
 
     #[repr(u16)]
@@ -194,14 +194,14 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_counter_metric_labels: Lazy<LabeledMetric<LabeledCounterMetric, LabeledCounterMetricLabelsLabel>> = Lazy::new(|| {
-        LabeledMetric::new(7.into(), CommonMetricData {
+        LabeledMetric::new(7.into(), LabeledMetricData::Common { cmd: CommonMetricData {
             name: "labeled_counter_metric_labels".into(),
             category: "test".into(),
             send_in_pings: vec!["metrics".into()],
             lifetime: Lifetime::Application,
             disabled: false,
             ..Default::default()
-        }, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        }}, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -210,14 +210,14 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_string_metric: Lazy<LabeledMetric<LabeledStringMetric, super::DynamicLabel>> = Lazy::new(|| {
-        LabeledMetric::new(8.into(), CommonMetricData {
+        LabeledMetric::new(8.into(), LabeledMetricData::Common { cmd: CommonMetricData {
             name: "labeled_string_metric".into(),
             category: "test".into(),
             send_in_pings: vec!["metrics".into()],
             lifetime: Lifetime::Application,
             disabled: false,
             ..Default::default()
-        }, None)
+        }}, None)
     });
 
     #[repr(u16)]
@@ -250,14 +250,14 @@ pub mod test {
     /// A multi-line
     /// description
     pub static labeled_string_metric_labels: Lazy<LabeledMetric<LabeledStringMetric, LabeledStringMetricLabelsLabel>> = Lazy::new(|| {
-        LabeledMetric::new(9.into(), CommonMetricData {
+        LabeledMetric::new(9.into(), LabeledMetricData::Common { cmd: CommonMetricData {
             name: "labeled_string_metric_labels".into(),
             category: "test".into(),
             send_in_pings: vec!["metrics".into()],
             lifetime: Lifetime::Application,
             disabled: false,
             ..Default::default()
-        }, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        }}, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]

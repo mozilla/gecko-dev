@@ -149,12 +149,12 @@ pub mod {{ category_name|snake_case }} {
     });
     {% else %}
     pub static {{ obj.name|snake_case }}: Lazy<{{ obj|type_name }}> = Lazy::new(|| {
-        {{ obj|ctor }}({{obj|metric_id}}.into(), CommonMetricData {
+        {{ obj|ctor }}({{obj|metric_id}}.into(), {{ "LabeledMetricData::Common { cmd: " if obj.labeled else "" }}CommonMetricData {
             {% for arg_name in common_metric_data_args if obj[arg_name] is defined %}
             {{ arg_name }}: {{ obj[arg_name]|rust }},
             {% endfor %}
             ..Default::default()
-        }
+        }{{ "}" if obj.labeled else "" }}
         {%- for arg_name in extra_args if obj[arg_name] is defined and arg_name not in common_metric_data_args and arg_name != 'allowed_extra_keys' -%}
             , {{ obj[arg_name]|rust }}
         {%- endfor -%}

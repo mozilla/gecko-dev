@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 // That way a user only needs to depend on this crate, not on glean (and there can't be a
 // version mismatch).
 pub use glean::{
-    traits, CommonMetricData, DistributionData, ErrorType, Lifetime, MemoryUnit, RecordedEvent,
-    TimeUnit, TimerId,
+    traits, CommonMetricData, DistributionData, ErrorType, LabeledMetricData, Lifetime, MemoryUnit,
+    RecordedEvent, TimeUnit, TimerId,
 };
 
 mod boolean;
