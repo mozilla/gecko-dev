@@ -56,15 +56,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">سئچیلدی</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">سون ساخلانان‌لار</string>
-
-
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">بوتون ساخلانمیش بوکمارک‌لاری گؤستر</string>
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">قالدیر</string>
 
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
@@ -136,7 +127,10 @@
     <string name="navbar_cfr_title">یئنی گزینمه ایله داها یئیین مرور ائله‌یین</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message">داها آرتیق مرور فضاسی اوچون آشاغی اسکرول ائتدیگینیز زامان بو بار اوزاقلاشیر.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">داها آرتیق مرور فضاسی اوچون آشاغی اسکرول ائتدیگینیز زامان بو بار اوزاقلاشیر.</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">سایتدا، داها چوخ مرور فضاسی اوچون آشاغیا حرکت ائتدیگینیز زمان، بو بار گیزله‌نیر.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">کامئرا ال چاتماسی لازیم.اندروید تنظیم‌لرینه گئدین، ایجازه‌لره توخونون و ایجازه وئرین.</string>
@@ -652,8 +646,6 @@
     <string name="preferences_account_sync_error">دؤنگلی ایدامه وئرمک اوچون یئنی‌دن باغلانین.</string>
     <!-- Preference for language -->
     <string name="preferences_language">دیل</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">ترجومه</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">ترجومه‌لر</string>
     <!-- Preference for data choices -->
@@ -751,8 +743,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">قاباقکی تاغ‌لارا قاییت</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">سوْن بوکمارک‌لار</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">بوکمارک‌لار</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -1586,7 +1576,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">سیل</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">بوتون اکران حالتینه گئچیلیر</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">بوتون اکران حالتینه گئچیلیر</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">اینترنت آدرسی کوْپی اوْلدو</string>
     <!-- Sample text for accessibility font size -->
@@ -1773,7 +1763,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">کریپتو معدنچی</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">بارماق ایزی یئغانلار</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">بارماق ایزی یئغانلار</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">تانینمیش بارماق ایزلری</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">آیرینتی‌لار</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1801,10 +1793,12 @@
     <string name="etp_cryptominers_description">ضررلی اسکریپت‌لرین دیجیتال ارز الده ائتمک اوچون جهانیزا گیرمه‌سی‌نین قاباغینیْ آلیر.</string>
 
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">بارماق ایزی‌لری</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">بارماق ایزی‌لری</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">جهانیز حاقیندا ایزله‌مه هدفی ایله استفاده ائدیله بیله‌جک بنزرسیز اوْلاراق تانیلابیلیر دیتالارین یئغماسینیْ دایاندیریر.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">جهانیز حاقیندا ایزله‌مه هدفی ایله استفاده ائدیله بیله‌جک بنزرسیز اوْلاراق تانیلابیلیر دیتالارین یئغماسینیْ دایاندیریر.</string>
 
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">جهانیز حاقیندا ایزله‌مه هدفی ایله استفاده ائدیله بیله‌جک بنزرسیز اوْلاراق تانیلابیلیر دیتالارین یئغماسینیْ دایاندیریر.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ایزله‌مه محتواسی</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1815,6 +1809,8 @@
     <!-- Enhanced Tracking Protection message that protection is currently off for this site -->
     <string name="etp_panel_off">بو سایت اوچون قوْرومالار باغلیدیر</string>
 
+    <!-- Header for exceptions list for which sites enhanced tracking protection is always off -->
+    <string name="enhanced_tracking_protection_exceptions">بو سایتلار اوچون گلیشمیش ایزله‌مه قورماسی باغلیدیر</string>
     <!-- Content description (not visible, for screen readers etc.): Navigate
     back from ETP details (Ex: Tracking content) -->
     <string name="etp_back_button_content_description">دالیا گئت</string>
@@ -1825,6 +1821,20 @@
     <string name="open_source_licenses_title">%s | OSS کتابخانالاری</string>
     <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_title">ریدایرکت ‌ایزله‌ییجی‌لری</string>
+
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">تانینمیش بارماق ایزلری</string>
+    <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
+    <string name="preference_etp_smartblock_learn_more">آرتیق بیلین</string>
+
+    <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
+    <string name="about_crashes">سینماق‌لار</string>
+    <!-- About page link text to open privacy notice link -->
+    <string name="about_privacy_notice">گیزلیلیک بیلدیریمی</string>
+
+    <!-- Browser long press popup menu -->
+    <!-- Copy the current url -->
+    <string name="browser_toolbar_long_press_popup_copy">کپی</string>
 
     <!-- Translations feature-->
 
