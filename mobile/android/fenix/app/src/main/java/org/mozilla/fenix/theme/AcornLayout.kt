@@ -280,6 +280,14 @@ enum class AcornWindowSize(
     ),
     ;
 
+    /**
+     * Helper function to determine when to make UI differences for layouts in
+     * window sizes other than [AcornWindowSize.Small].
+     *
+     * @return Whether this instance of [AcornWindowSize] is not [Small].
+     */
+    fun isNotSmall() = this != Small
+
     companion object {
         /**
          * Returns the [AcornWindowSize] that corresponds to the current window width.
