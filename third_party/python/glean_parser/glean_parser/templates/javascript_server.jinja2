@@ -11,8 +11,13 @@ Jinja2 template is not. Please file bugs! #}
 // @types/uuid and mozlog types definitions are required in devDependencies
 // for the latter see https://github.com/mozilla/fxa/blob/85bda71cda376c417b8c850ba82aa14252208c3c/types/mozlog/index.d.ts
 {% endif %}
+{% if module_spec == "commonjs" %}
+const uuidv4 = require('uuid').v4;
+const mozlog = require('mozlog');
+{% else %}
 import { v4 as uuidv4 } from 'uuid';
 import mozlog{% if lang == "typescript" %}, { Logger }{% endif %} from 'mozlog';
+{% endif %}
 
 const GLEAN_EVENT_MOZLOG_TYPE = 'glean-server-event';
 {% if lang == "typescript" %}
@@ -262,7 +267,11 @@ class {{ ping|event_class_name(metrics_by_type) }} {
  * @param {Object} logger_options - The logger options.
  * @returns {EventsServerEventLogger} An instance of EventsServerEventLogger.
  */
+{% if module_spec == "commonjs" %}
+module.exports.{{ ping|factory_method(metrics_by_type) }} = function ({
+{% else %}
 export const {{ ping|factory_method(metrics_by_type) }} = function ({
+{% endif %}
   applicationId,
   appDisplayVersion,
   channel,

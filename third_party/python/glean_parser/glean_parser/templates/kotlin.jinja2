@@ -68,7 +68,7 @@ data class {{ obj.name|Camelize }}{{ suffix }}(
 
 {%- macro generate_structure(name, struct) %}
 {%- if struct.type == "array" -%}
-    @Serializable
+    @Serializable(with = {{name}}.Serializer::class)
     data class {{ name }}(var items: MutableList<{{ name }}Item> = mutableListOf()) : ObjectSerialize {
         fun add(elem: {{ name }}Item) = items.add(elem)
 
@@ -85,6 +85,20 @@ data class {{ obj.name|Camelize }}{{ suffix }}(
         override fun intoSerializedObject(): String {
             return Json.encodeToString(items)
         }
+
+        internal object Serializer : KSerializer<{{name}}> {
+            @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+            override val descriptor = listSerialDescriptor<String>()
+
+            override fun deserialize(decoder: Decoder): {{ name }} {
+                val list = decoder.decodeSerializableValue(ListSerializer(serializer<{{name}}Item>()))
+                return {{name}}(items = list.toMutableList())
+            }
+
+            override fun serialize(encoder: Encoder, value: {{name}}) {
+                encoder.encodeSerializableValue(ListSerializer(serializer<{{name}}Item>()), value.items)
+            }
+        }
     }
 
     {{ generate_structure(name ~ "Item", struct["items"]) }}
@@ -93,10 +107,10 @@ data class {{ obj.name|Camelize }}{{ suffix }}(
     @Serializable
     data class {{ name }}(
         {% for itemname, val in struct.properties.items() %}
-          {% if val.type == "object" %}
+          {% if val.type == "array" %}
+          var {{itemname|camelize}}: {{ name ~ itemname|Camelize }} = {{ name ~ itemname|Camelize }}(),
+          {% elif val.type == "object" %}
           var {{itemname|camelize}}: {{ name ~ "Item" ~ itemname|Camelize ~ "Object" }}? = null,
-          {% elif val.type == "array" %}
-          var {{itemname|camelize}}: {{ name ~ "Item" ~ itemname|Camelize }} = {{ name ~ "Item" ~ itemname|Camelize }}(),
           {% else %}
           var {{itemname|camelize}}: {{val.type|structure_type_name}}? = null,
           {% endif %}
@@ -109,7 +123,7 @@ data class {{ obj.name|Camelize }}{{ suffix }}(
 
     {% for itemname, val in struct.properties.items() %}
         {% if val.type == "array" %}
-        {% set nested_name = name ~ "Item" ~ itemname|Camelize %}
+        {% set nested_name = name ~ itemname|Camelize %}
         {{ generate_structure(nested_name, val) }}
         {% elif val.type == "object" %}
         {% set nested_name = name ~ "Item" ~ itemname|Camelize ~ "Object" %}
@@ -119,6 +133,24 @@ data class {{ obj.name|Camelize }}{{ suffix }}(
 
 {% endif %}
 
+{% endmacro %}
+
+{%- macro generate_structure_typealias(name, struct) %}
+{%- if struct.type == "array" -%}
+    {{ generate_structure_typealias(name ~ "Item", struct["items"]) }}
+{%- elif struct.type == "object" -%}
+    {% for itemname, val in struct.properties.items() %}
+        {% if val.type == "array" %}
+        {% set nested_name = name ~ itemname|Camelize %}
+        {{ generate_structure_typealias(nested_name, val) }}
+        {% elif val.type == "object" %}
+        {% set nested_name = name ~ "Item" ~ itemname|Camelize ~ "Object" %}
+        {{ generate_structure_typealias(nested_name, val) }}
+        {% endif %}
+    {% endfor %}
+{%- else -%}
+    typealias {{ name }} = {{ struct.type|structure_type_name }}
+{% endif %}
 {% endmacro %}
 
 /* ktlint-disable no-blank-line-before-rbrace */
@@ -142,11 +174,24 @@ import {{ glean_namespace }}.private.{{ obj_type }} // ktlint-disable import-ord
 import {{ glean_namespace }}.private.LabeledMetricType // ktlint-disable import-ordering
 {% endif %}
 {% if has_object_metrics %}
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.descriptors.listSerialDescriptor
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 {% endif %}
 
+{# HACK HACK HACK -- typealiases MUST BE top-level #}
+{% for obj in objs.values() %}
+{% if obj|attr("_generate_structure") %}
+{{ generate_structure_typealias(obj.name|Camelize ~ "Object", obj._generate_structure) }}
+{%- endif %}
+{% endfor %}
+{# HACK end #}
 internal object {{ category_name|Camelize }} {
 {% for obj in objs.values() %}
     {% if obj.type == "ping" %}

@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: glean_parser
-Version: 14.1.2
+Version: 14.3.0
 Summary: Parser tools for Mozilla's Glean telemetry
 Home-page: https://github.com/mozilla/glean_parser
 Author: The Glean Team
@@ -78,6 +78,20 @@ $ glean_parser check < ping.json
 # Changelog
 
 ## Unreleased
+
+## 14.3.0
+
+- Add the `module_spec` option to the javascript_server outputter ([#726](https://github.com/mozilla/glean_parser/pull/726))
+- BUGFIX: Fix the Rust codegen for changes to how `labeled_*` metrics are constructed ([bug 1909244](https://bugzilla.mozilla.org/show_bug.cgi?id=1909244))
+- Generate a serializer for array wrappers ([bug 1908157](https://bugzilla.mozilla.org/show_bug.cgi?id=1908157))
+
+## 14.2.0
+
+- New Metric Types: `labeled_{custom|memory|timing}_distribution` ([bug 1657947](https://bugzilla.mozilla.org/show_bug.cgi?id=1657947))
+
+## 14.1.3
+
+- Fix Kotlin/Swift code generation for object metrics, now generating top-level typealiases where needed ([#722](https://github.com/mozilla/glean_parser/pull/722))
 
 ## 14.1.2
 

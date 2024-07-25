@@ -53,10 +53,10 @@ struct {{ obj.name|Camelize }}{{ suffix }}: EventExtras {
 {%- elif struct.type == "object" -%}
     struct {{ name }}: Codable, Equatable, ObjectSerialize {
         {% for itemname, val in struct.properties.items() %}
-          {% if val.type == "object" %}
+          {% if val.type == "array" %}
+          var {{itemname|camelize|variable_name}}: {{ name ~ itemname|Camelize }} = []
+          {% elif val.type == "object" %}
           var {{itemname|camelize|variable_name}}: {{ name ~ "Item" ~ itemname|Camelize ~ "Object" }}?
-          {% elif val.type == "array" %}
-          var {{itemname|camelize|variable_name}}: {{ name ~ "Item" ~ itemname|Camelize }}
           {% else %}
           var {{itemname|camelize|variable_name}}: {{val.type|structure_type_name}}?
           {% endif %}
@@ -72,7 +72,7 @@ struct {{ obj.name|Camelize }}{{ suffix }}: EventExtras {
 
     {% for itemname, val in struct.properties.items() %}
         {% if val.type == "array" %}
-        {% set nested_name = name ~ "Item" ~ itemname|Camelize %}
+        {% set nested_name = name ~ itemname|Camelize %}
         {{ generate_structure(nested_name, val) }}
         {% elif val.type == "object" %}
         {% set nested_name = name ~ "Item" ~ itemname|Camelize ~ "Object" %}
@@ -80,7 +80,11 @@ struct {{ obj.name|Camelize }}{{ suffix }}: EventExtras {
         {% endif %}
     {% endfor %}
 
-{%- endif -%}
+{%- else -%}
+
+    typealias {{ name }} = {{ struct.type|structure_type_name }}
+
+{% endif -%}
 
 {% endmacro %}
 

@@ -20,12 +20,12 @@ Jinja2 template is not. Please file bugs! #}
     #[serde(deny_unknown_fields)]
     pub struct {{ name }} {
         {% for itemname, val in struct.properties.items() %}
-          {% if val.type == "object" %}
+          {% if val.type == "array" %}
+          #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::new")]
+          pub {{itemname|snake_case}}: {{ name ~ itemname|Camelize }},
+          {% elif val.type == "object" %}
           #[serde(skip_serializing_if = "Option::is_none")]
           pub {{itemname|snake_case}}: Option<{{ name ~ "Item" ~ itemname|Camelize ~ "Object" }}>,
-          {% elif val.type == "array" %}
-          #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::new")]
-          pub {{itemname|snake_case}}: {{ name ~ "Item" ~ itemname|Camelize }},
           {% else %}
           #[serde(skip_serializing_if = "Option::is_none")]
           pub {{itemname|snake_case}}: Option<{{val.type|structure_type_name}}>,
@@ -35,7 +35,7 @@ Jinja2 template is not. Please file bugs! #}
 
     {% for itemname, val in struct.properties.items() %}
         {% if val.type == "array" %}
-        {% set nested_name = name ~ "Item" ~ itemname|Camelize %}
+        {% set nested_name = name ~ itemname|Camelize %}
         {{ generate_structure(nested_name, val) }}
         {% elif val.type == "object" %}
         {% set nested_name = name ~ "Item" ~ itemname|Camelize ~ "Object" %}
@@ -80,6 +80,16 @@ impl ExtraKeys for {{ obj.name|Camelize }}{{ suffix }} {
     }
 }
 {% endmacro %}
+{% macro common_metric_data(obj) %}
+CommonMetricData {
+    category: {{ obj.category|rust }},
+    name: {{ obj.name|rust }},
+    send_in_pings: {{ obj.send_in_pings|rust }},
+    lifetime: {{ obj.lifetime|rust }},
+    disabled: {{ obj.is_disabled()|rust }},
+    ..Default::default()
+}
+{% endmacro %}
 {% for category in categories %}
 {% if category.contains_pings %}
 {% for obj in category.objs.values() %}
@@ -92,7 +102,7 @@ pub static {{ obj.name|snake_case }}: ::glean::private::__export::Lazy<::glean::
 {% else %}
 pub mod {{ category.name|snake_case }} {
     #[allow(unused_imports)] // HistogramType might be unusued, let's avoid warnings
-    use glean::{private::*, traits::ExtraKeys, traits::NoExtraKeys, CommonMetricData, HistogramType, Lifetime, TimeUnit, MemoryUnit};
+    use glean::{private::*, traits::ExtraKeys, traits::NoExtraKeys, CommonMetricData, HistogramType, LabeledMetricData, Lifetime, TimeUnit, MemoryUnit};
     {% for obj in category.objs.values() %}
 
     {% if obj|attr("_generate_structure") %}
@@ -107,15 +117,37 @@ pub mod {{ category.name|snake_case }} {
     ///
     /// {{ obj.description|wordwrap() | replace('\n', '\n    /// ') }}
     pub static {{ obj.name|snake_case }}: ::glean::private::__export::Lazy<{{ obj|type_name }}> = ::glean::private::__export::Lazy::new(|| {
-        {{ obj|ctor }}(CommonMetricData {
-            category: {{ obj.category|rust }},
-            name: {{ obj.name|rust }},
-            send_in_pings: {{ obj.send_in_pings|rust }},
-            lifetime: {{ obj.lifetime|rust }},
-            disabled: {{ obj.is_disabled()|rust }},
-            ..Default::default()
-        }
-        {%- for arg_name in extra_metric_args if obj[arg_name] is defined and arg_name != 'allowed_extra_keys' -%}
+        let meta =
+            {% if obj.type == "labeled_custom_distribution" %}
+            LabeledMetricData::CustomDistribution {
+                cmd: {{ common_metric_data(obj)|indent(16) }}
+                {%- for arg_name in extra_metric_args if obj[arg_name] is defined and arg_name != 'allowed_extra_keys' -%}
+                    , {{ arg_name }}: {{ obj[arg_name]|rust }}
+                {%- endfor -%}
+            };
+            {% elif obj.type == "labeled_memory_distribution" %}
+            LabeledMetricData::MemoryDistribution {
+                cmd: {{ common_metric_data(obj)|indent(16) }}
+                {%- for arg_name in extra_metric_args if obj[arg_name] is defined and arg_name != 'allowed_extra_keys' -%}
+                    , {{ "unit" if arg_name == "memory_unit" else arg_name }}: {{ obj[arg_name]|rust }}
+                {%- endfor -%}
+            };
+            {% elif obj.type == "labeled_timing_distribution" %}
+            LabeledMetricData::TimingDistribution {
+                cmd: {{ common_metric_data(obj)|indent(16) }}
+                {%- for arg_name in extra_metric_args if obj[arg_name] is defined and arg_name != 'allowed_extra_keys' -%}
+                    , {{ "unit" if arg_name == "time_unit" else arg_name }}: {{ obj[arg_name]|rust }}
+                {%- endfor -%}
+            };
+            {% elif obj.labeled %}
+            LabeledMetricData::Common {
+                cmd: {{common_metric_data(obj)|indent(16) }},
+            };
+            {% else %}
+            {{ common_metric_data(obj)|indent(12) }};
+            {% endif %}
+        {{ obj|ctor }}(meta
+        {%- for arg_name in extra_metric_args if not obj.labeled and obj[arg_name] is defined and arg_name != 'allowed_extra_keys' -%}
             , {{ obj[arg_name]|rust }}
         {%- endfor -%}
         {{ ", " if obj.labeled else ")\n" }}
