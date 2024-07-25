@@ -65,6 +65,7 @@ const ANOTHER_LABEL_COUNT = 5;
 const INVALID_COUNTERS = 7;
 const IRATE_NUMERATOR = 44;
 const IRATE_DENOMINATOR = 14;
+const LABELED_MEMORY_BUCKETS = ["13509772", "32131834"];
 
 add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
   let oldCanRecordBase = Telemetry.canRecordBase;
@@ -109,6 +110,10 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
   Glean.testOnly.mabelsCustomLabelLengths.weird_jars.accumulateSamples(
     CUSTOM_SAMPLES
   );
+
+  for (let memory of MEMORIES) {
+    Glean.testOnly.whatDoYouRemember.breakfast.accumulate(memory);
+  }
 
   Telemetry.canRecordBase = oldCanRecordBase;
 });
@@ -340,6 +345,35 @@ add_task(
       2,
       keyedHistData.weird_jars.values["1"],
       "Two samples in the first bucket"
+    );
+
+    // labeled_memory_distribution
+    const labeledMemoryData =
+      Glean.testOnly.whatDoYouRemember.breakfast.testGetValue();
+    const labeledMemorySum = MEMORIES.reduce((acc, a) => acc + a, 0);
+    // The sum's in bytes, but the metric's in MB
+    Assert.equal(labeledMemorySum * 1024 * 1024, labeledMemoryData.sum);
+    info(JSON.stringify(labeledMemoryData.values));
+    for (let [bucket, count] of Object.entries(labeledMemoryData.values)) {
+      // We could assert instead, but let's skip to save the logspam.
+      if (count == 0) {
+        continue;
+      }
+      Assert.ok(count == 1 && LABELED_MEMORY_BUCKETS.includes(bucket));
+    }
+
+    const labeledMemoryHist =
+      keyedHistSnapshot.content.TELEMETRY_TEST_MIRROR_FOR_LABELED_MEMORY;
+    Assert.ok("breakfast" in labeledMemoryHist, "Has key");
+    Assert.equal(
+      memorySum,
+      labeledMemoryHist.breakfast.sum,
+      "Histogram's in `memory_unit` units"
+    );
+    Assert.equal(
+      2,
+      labeledMemoryHist.breakfast.values["1"],
+      "Samples are in the right bucket"
     );
   }
 );

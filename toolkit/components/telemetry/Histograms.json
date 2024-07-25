@@ -10156,6 +10156,20 @@
     "description": "a testing histogram; not meant to be touched",
     "record_into_store": ["main", "sync"]
   },
+  "TELEMETRY_TEST_MIRROR_FOR_LABELED_MEMORY": {
+    "record_in_processes": ["all"],
+    "products": ["firefox", "thunderbird"],
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["telemetry-client-dev@mozilla.com"],
+    "expires_in_version": "never",
+    "kind": "linear",
+    "keyed": true,
+    "low": 1,
+    "high": 2147483646,
+    "n_buckets": 10,
+    "bug_numbers": [1498164],
+    "description": "a testing histogram; not meant to be touched"
+  },
   "STARTUP_CRASH_DETECTED": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "thunderbird"],

@@ -332,6 +332,25 @@ test_only:
       - test-ping
     telemetry_mirror: TELEMETRY_TEST_KEYED_LINEAR
 
+  what_do_you_remember:
+    type: labeled_memory_distribution
+    memory_unit: megabyte
+    description: |
+      What do they say is the second thing to go?
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907945
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907945
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - glean-team@mozilla.com
+    send_in_pings:
+      - test-ping
+    telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_LABELED_MEMORY
+
   mirror_time:
     type: timespan
     time_unit: nanosecond

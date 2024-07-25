@@ -166,6 +166,13 @@ pub mod {{ category_name|snake_case }} {
                     , {{ arg_name }}: {{ obj[arg_name]|rust }}
                 {%- endfor -%}
             };
+            {% elif obj.type == "labeled_memory_distribution" %}
+            LabeledMetricData::MemoryDistribution {
+                cmd: {{ common_metric_data(obj)|indent(16) }}
+                {%- for arg_name in extra_args if obj[arg_name] is defined and arg_name not in common_metric_data_args and arg_name != 'allowed_extra_keys' -%}
+                    , {{ "unit" if arg_name == "memory_unit" else arg_name }}: {{ obj[arg_name]|rust }}
+                {%- endfor -%}
+            };
             {% elif obj.labeled %}
             LabeledMetricData::Common {
                 cmd: {{ common_metric_data(obj)|indent(16) }},
@@ -473,7 +480,7 @@ pub(crate) mod __glean_metric_maps {
         );
 
 {% for typ, metrics in metric_by_type.items() %}
-{% if typ.0 in ('BOOLEAN_MAP', 'COUNTER_MAP', 'CUSTOM_DISTRIBUTION_MAP', 'STRING_MAP') %}
+{% if typ.0 in ('BOOLEAN_MAP', 'COUNTER_MAP', 'CUSTOM_DISTRIBUTION_MAP', 'MEMORY_DISTRIBUTION_MAP', 'STRING_MAP') %}
         pub static {{typ.0}}: Lazy<RwLock<HashMap<MetricId, Labeled{{typ.1}}>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );

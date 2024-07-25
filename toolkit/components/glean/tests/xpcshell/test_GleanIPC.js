@@ -77,6 +77,10 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
   Glean.testOnlyIpc.irate.addToDenominator(14);
 
   Glean.testOnly.mabelsCustomLabelLengths.serif.accumulateSamples([5, 6]);
+
+  for (let memory of MEMORIES) {
+    Glean.testOnly.whatDoYouRemember.trivia.accumulate(memory);
+  }
 });
 
 add_task(
@@ -156,5 +160,18 @@ add_task(
     const serifData =
       Glean.testOnly.mabelsCustomLabelLengths.serif.testGetValue();
     Assert.equal(5 + 6, serifData.sum, "Sum's correct");
+
+    const labeledData = Glean.testOnly.whatDoYouRemember.trivia.testGetValue();
+    Assert.equal(
+      MEMORIES.reduce((a, b) => a + b, 0) * 1024 * 1024,
+      labeledData.sum
+    );
+    for (let [bucket, count] of Object.entries(labeledData.values)) {
+      // We could assert instead, but let's skip to save the logspam.
+      if (count == 0) {
+        continue;
+      }
+      Assert.ok(count == 1 && MEMORY_BUCKETS.includes(bucket));
+    }
   }
 );

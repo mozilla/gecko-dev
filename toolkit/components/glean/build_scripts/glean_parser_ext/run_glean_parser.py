@@ -40,6 +40,7 @@ GIFFT_TYPES = {
         "timing_distribution",
         "labeled_custom_distribution",
         "memory_distribution",
+        "labeled_memory_distribution",
         "custom_distribution",
     ],
     "Scalar": [

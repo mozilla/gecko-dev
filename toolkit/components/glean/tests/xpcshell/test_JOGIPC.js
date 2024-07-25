@@ -133,6 +133,15 @@ const METRICS = [
       histogram_type: "linear",
     }),
   ],
+  [
+    "labeled_memory_distribution",
+    "jog_ipc",
+    "jog_labeled_memory_dist",
+    ["test-only"],
+    `"ping"`,
+    false,
+    JSON.stringify({ memory_unit: "megabyte" }),
+  ],
 ];
 
 add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
@@ -184,6 +193,10 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
   Glean.jogIpc.jogRate.addToDenominator(14);
 
   Glean.jogIpc.jogLabeledCustomDist.label_1.accumulateSamples([3, 4]);
+
+  for (let memory of MEMORIES) {
+    Glean.jogIpc.jogLabeledMemoryDist.label_1.accumulate(memory);
+  }
 });
 
 add_task(
@@ -284,6 +297,20 @@ add_task(
         count == 0 || (count == 2 && bucket == 1), // both values in the low bucket
         `Only two buckets have a sample ${bucket} ${count}`
       );
+    }
+
+    const labeledMemoryData =
+      Glean.jogIpc.jogLabeledMemoryDist.label_1.testGetValue();
+    Assert.equal(
+      MEMORIES.reduce((a, b) => a + b, 0) * 1024 * 1024,
+      labeledMemoryData.sum
+    );
+    for (let [bucket, count] of Object.entries(labeledMemoryData.values)) {
+      // We could assert instead, but let's skip to save the logspam.
+      if (count == 0) {
+        continue;
+      }
+      Assert.ok(count == 1 && MEMORY_BUCKETS.includes(bucket));
     }
   }
 );

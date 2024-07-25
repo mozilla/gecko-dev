@@ -30,6 +30,7 @@ pub struct IPCPayload {
     pub events: HashMap<MetricId, Vec<EventRecord>>,
     pub labeled_counters: HashMap<MetricId, HashMap<String, i32>>,
     pub memory_samples: HashMap<MetricId, Vec<u64>>,
+    pub labeled_memory_samples: HashMap<MetricId, HashMap<String, Vec<u64>>>,
     pub numerators: HashMap<MetricId, i32>,
     pub rates: HashMap<MetricId, (i32, i32)>,
     pub string_lists: HashMap<MetricId, Vec<String>>,
@@ -324,6 +325,23 @@ pub fn replay_from_buf(buf: &[u8]) -> Result<(), ()> {
             samples
                 .into_iter()
                 .for_each(|sample| metric.accumulate(sample));
+        }
+    }
+    for (id, labeled_memory_samples) in ipc_payload.labeled_memory_samples.into_iter() {
+        if id.0 & (1 << crate::factory::DYNAMIC_METRIC_BIT) > 0 {
+            let map = crate::factory::__jog_metric_maps::LABELED_MEMORY_DISTRIBUTION_MAP
+                .read()
+                .expect("Read lock for dynamic labeled memory distribution map was poisoned");
+            if let Some(metric) = map.get(&id) {
+                for (label, samples) in labeled_memory_samples.into_iter() {
+                    metric.get(&label).accumulate_samples(samples);
+                }
+            }
+        } else {
+            for (label, samples) in labeled_memory_samples.into_iter() {
+                __glean_metric_maps::labeled_memory_distribution_get(id.0, &label)
+                    .accumulate_samples(samples);
+            }
         }
     }
     for (id, value) in ipc_payload.numerators.into_iter() {

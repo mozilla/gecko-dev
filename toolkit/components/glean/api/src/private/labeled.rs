@@ -6,7 +6,7 @@ use inherent::inherent;
 
 use super::{
     ErrorType, LabeledBooleanMetric, LabeledCounterMetric, LabeledCustomDistributionMetric,
-    LabeledMetricData, LabeledStringMetric, MetricId,
+    LabeledMemoryDistributionMetric, LabeledMetricData, LabeledStringMetric, MetricId,
 };
 use crate::ipc::need_ipc;
 use std::borrow::Cow;
@@ -18,9 +18,9 @@ use std::marker::PhantomData;
 mod private {
     use super::{
         need_ipc, LabeledBooleanMetric, LabeledCounterMetric, LabeledCustomDistributionMetric,
-        LabeledStringMetric, MetricId,
+        LabeledMemoryDistributionMetric, LabeledStringMetric, MetricId,
     };
-    use crate::private::{CounterMetric, CustomDistributionMetric};
+    use crate::private::{CounterMetric, CustomDistributionMetric, MemoryDistributionMetric};
     use std::sync::Arc;
 
     /// The sealed trait.
@@ -92,6 +92,26 @@ mod private {
                 }
             } else {
                 LabeledCustomDistributionMetric::Parent(CustomDistributionMetric::Parent {
+                    id,
+                    inner: metric,
+                })
+            }
+        }
+    }
+
+    // `LabeledMetric<LabeledMemoryDistributionMetric>` is possible.
+    //
+    // See [Labeled Memory Distributions](https://mozilla.github.io/glean/book/user/metrics/labeled_memory_distributions.html).
+    impl Sealed for LabeledMemoryDistributionMetric {
+        type GleanMetric = glean::private::MemoryDistributionMetric;
+        fn from_glean_metric(id: MetricId, metric: Arc<Self::GleanMetric>, label: &str) -> Self {
+            if need_ipc() {
+                LabeledMemoryDistributionMetric::Child {
+                    id,
+                    label: label.to_string(),
+                }
+            } else {
+                LabeledMemoryDistributionMetric::Parent(MemoryDistributionMetric::Parent {
                     id,
                     inner: metric,
                 })

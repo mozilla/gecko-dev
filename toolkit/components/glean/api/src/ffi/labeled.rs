@@ -84,6 +84,29 @@ pub extern "C" fn fog_labeled_custom_distribution_enum_get(id: u32, label: u16) 
 }
 
 #[no_mangle]
+pub extern "C" fn fog_labeled_memory_distribution_get(id: u32, label: &nsACString) -> u32 {
+    labeled_submetric_get!(
+        id,
+        label,
+        LABELED_MEMORY_DISTRIBUTION_MAP,
+        labeled_memory_distribution_get,
+        MEMORY_DISTRIBUTION_MAP,
+        LabeledMemoryDistributionMetric
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn fog_labeled_memory_distribution_enum_get(id: u32, label: u16) -> u32 {
+    labeled_submetric_enum_get!(
+        id,
+        label,
+        labeled_memory_distribution_enum_get,
+        MEMORY_DISTRIBUTION_MAP,
+        LabeledMemoryDistributionMetric
+    )
+}
+
+#[no_mangle]
 pub extern "C" fn fog_labeled_string_get(id: u32, label: &nsACString) -> u32 {
     labeled_submetric_get!(
         id,

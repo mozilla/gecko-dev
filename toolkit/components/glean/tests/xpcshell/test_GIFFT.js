@@ -555,3 +555,28 @@ add_task(function test_gifft_labeled_custom_dist() {
     "One sample in the high bucket"
   );
 });
+
+add_task(function test_gifft_labeled_memory_dist() {
+  Glean.testOnly.whatDoYouRemember.childhood.accumulate(7);
+  Glean.testOnly.whatDoYouRemember.childhood.accumulate(17);
+
+  let data = Glean.testOnly.whatDoYouRemember.childhood.testGetValue();
+  // `data.sum` is in bytes, but the metric is in MB.
+  Assert.equal(24 * 1024 * 1024, data.sum, "Sum's correct");
+  for (let [bucket, count] of Object.entries(data.values)) {
+    Assert.ok(
+      count == 0 || (count == 1 && (bucket == 7053950 || bucket == 17520006)),
+      `Only two buckets have a sample ${bucket} ${count}`
+    );
+  }
+
+  data = Telemetry.getKeyedHistogramById(
+    "TELEMETRY_TEST_MIRROR_FOR_LABELED_MEMORY"
+  ).snapshot();
+  Telemetry.getKeyedHistogramById(
+    "TELEMETRY_TEST_MIRROR_FOR_LABELED_MEMORY"
+  ).clear();
+  Assert.ok("childhood" in data, "Key's present");
+  Assert.equal(24, data.childhood.sum, "Histogram's in `memory_unit` units");
+  Assert.equal(2, data.childhood.values["1"], "Both samples in a low bucket");
+});

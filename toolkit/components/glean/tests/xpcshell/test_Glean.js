@@ -698,3 +698,19 @@ add_task(async function test_fog_labeled_custom_distribution_works() {
     /DataError/
   );
 });
+
+add_task(async function test_fog_labeled_memory_distribution_works() {
+  Glean.testOnly.whatDoYouRemember.twenty_years_ago.accumulate(7);
+  Glean.testOnly.whatDoYouRemember.twenty_years_ago.accumulate(17);
+
+  let data = Glean.testOnly.whatDoYouRemember.twenty_years_ago.testGetValue();
+  Assert.equal(2, data.count, "Count of entries is correct");
+  // `data.sum` is in bytes, but the metric is in MB.
+  Assert.equal(24 * 1024 * 1024, data.sum, "Sum's correct");
+  for (let [bucket, count] of Object.entries(data.values)) {
+    Assert.ok(
+      count == 0 || (count == 1 && (bucket == 17520006 || bucket == 7053950)),
+      "Only two buckets have a sample"
+    );
+  }
+});

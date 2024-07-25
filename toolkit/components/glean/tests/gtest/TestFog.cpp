@@ -512,6 +512,27 @@ TEST_F(FOGFixture, TestLabeledCustomDistributionWorks) {
   }
 }
 
+TEST_F(FOGFixture, TestLabeledMemoryDistWorks) {
+  test_only::what_do_you_remember.Get("bittersweet"_ns).Accumulate(7);
+  test_only::what_do_you_remember.Get("bittersweet"_ns).Accumulate(17);
+
+  DistributionData data = test_only::what_do_you_remember.Get("bittersweet"_ns)
+                              .TestGetValue()
+                              .unwrap()
+                              .ref();
+  // Sum is in bytes, test_only::what_do_you_remember is in megabytes. So
+  // multiplication ahoy!
+  ASSERT_EQ(data.sum, 24UL * 1024 * 1024);
+  ASSERT_EQ(data.count, 2UL);
+  for (const auto& entry : data.values) {
+    const uint64_t bucket = entry.GetKey();
+    const uint64_t count = entry.GetData();
+    ASSERT_TRUE(count == 0 ||
+                (count == 1 && (bucket == 17520006 || bucket == 7053950)))
+    << "Only two occupied buckets";
+  }
+}
+
 extern "C" void Rust_TestRustInGTest();
 TEST_F(FOGFixture, TestRustInGTest) { Rust_TestRustInGTest(); }
 
