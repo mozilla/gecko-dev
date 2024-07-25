@@ -72,7 +72,7 @@ export class DebugLine extends PureComponent {
       editor.setLineContentMarker({
         id: markerTypes.DEBUG_LINE_MARKER,
         lineClassName: lineClass,
-        lines: [editorLocation.line],
+        lines: [{ line: editorLocation.line }],
       });
       editor.setPositionContentMarker({
         id: markerTypes.DEBUG_POSITION_MARKER,

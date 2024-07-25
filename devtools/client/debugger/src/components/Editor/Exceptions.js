@@ -69,7 +69,7 @@ class Exceptions extends Component {
     editor.setLineContentMarker({
       id: markerTypes.LINE_EXCEPTION_MARKER,
       lineClassName: "line-exception",
-      lines: exceptions.map(e => e.lineNumber),
+      lines: exceptions.map(e => ({ line: e.lineNumber })),
     });
 
     editor.setPositionContentMarker({

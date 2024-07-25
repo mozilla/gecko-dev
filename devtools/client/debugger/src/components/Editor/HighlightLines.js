@@ -75,8 +75,8 @@ class HighlightLines extends Component {
       if (editor) {
         editor.scrollTo(range.start, 0);
         const lines = [];
-        for (let i = range.start; i <= range.end; i++) {
-          lines.push(i);
+        for (let line = range.start; line <= range.end; line++) {
+          lines.push({ line });
         }
         editor.setLineContentMarker({
           id: markerTypes.MULTI_HIGHLIGHT_LINE_MARKER,

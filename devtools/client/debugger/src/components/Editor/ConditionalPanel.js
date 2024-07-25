@@ -131,7 +131,7 @@ export class ConditionalPanel extends PureComponent {
     const line = toEditorLine(location.source.id, location.line || 0);
     editor.setLineContentMarker({
       id: markerTypes.CONDITIONAL_BP_MARKER,
-      lines: [line],
+      lines: [{ line }],
       renderAsBlock: true,
       createLineElementNode: () => {
         // Create a Codemirror 5 editor for the breakpoint panel

@@ -365,8 +365,8 @@ class Editor extends PureComponent {
 
         const lines = [];
         for (const range of blackboxedRanges[selectedSource.url]) {
-          for (let i = range.start.line; i <= range.end.line; i++) {
-            lines.push(i);
+          for (let line = range.start.line; line <= range.end.line; line++) {
+            lines.push({ line });
           }
         }
 

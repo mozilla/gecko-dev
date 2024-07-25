@@ -139,7 +139,7 @@ export class HighlightLine extends Component {
       editor.setLineContentMarker({
         id: markerTypes.HIGHLIGHT_LINE_MARKER,
         lineClassName: "highlight-line",
-        lines: [selectedLocation.line],
+        lines: [{ line: selectedLocation.line }],
       });
     } else {
       const doc = getDocument(sourceId);

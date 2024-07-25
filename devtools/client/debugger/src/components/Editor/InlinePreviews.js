@@ -76,9 +76,13 @@ class InlinePreviews extends Component {
       lines: Object.keys(previews).map(line => {
         // CM6 line is 1-based unlike CM5 which is 0-based.
         // The preview keys line numbers as strings so cast to number to avoid string concatenation
-        return Number(line) + 1;
+        line = Number(line);
+        return {
+          line: line + 1,
+          value: previews[line],
+        };
       }),
-      createLineElementNode: line => {
+      createLineElementNode: (line, value) => {
         const widgetNode = document.createElement("div");
         widgetNode.className = "inline-preview";
 
@@ -86,7 +90,7 @@ class InlinePreviews extends Component {
           React.createElement(
             React.Fragment,
             null,
-            previews[line - 1].map(preview =>
+            value.map(preview =>
               React.createElement(InlinePreview, {
                 line,
                 key: `${line}-${preview.name}`,
