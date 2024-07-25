@@ -806,6 +806,8 @@ IMPL_LENGTHPERCENTAGE_FORWARDS(LengthPercentageOrAuto)
 IMPL_LENGTHPERCENTAGE_FORWARDS(StyleSize)
 IMPL_LENGTHPERCENTAGE_FORWARDS(StyleMaxSize)
 
+#undef IMPL_LENGTHPERCENTAGE_FORWARDS
+
 template <>
 inline bool LengthOrAuto::IsLength() const {
   return IsLengthPercentage();
@@ -826,15 +828,16 @@ inline bool StyleFlexBasis::IsAuto() const {
   return IsSize() && AsSize().IsAuto();
 }
 
-template <>
-inline bool StyleSize::BehavesLikeInitialValueOnBlockAxis() const {
-  return IsAuto() || !IsLengthPercentage();
-}
+#define IMPL_BEHAVES_LIKE_SIZE_METHODS(ty_, isInitialValMethod_) \
+  template <>                                                    \
+  inline bool ty_::BehavesLikeInitialValueOnBlockAxis() const {  \
+    return isInitialValMethod_() || !IsLengthPercentage();       \
+  }
 
-template <>
-inline bool StyleMaxSize::BehavesLikeInitialValueOnBlockAxis() const {
-  return IsNone() || !IsLengthPercentage();
-}
+IMPL_BEHAVES_LIKE_SIZE_METHODS(StyleSize, IsAuto)
+IMPL_BEHAVES_LIKE_SIZE_METHODS(StyleMaxSize, IsNone)
+
+#undef IMPL_BEHAVES_LIKE_SIZE_METHODS
 
 template <>
 inline bool StyleBackgroundSize::IsInitialValue() const {
