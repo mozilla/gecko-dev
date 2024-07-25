@@ -12,6 +12,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -610,5 +612,20 @@ object AppAndSystemHelper {
             itemWithResIdContainingText("android:id/button2", "Cancel").click()
             Log.i(TAG, "dismissSetAsDefaulltBrowserOnboardingDialog: Clicked the \"Cancel\" dialog button.")
         }
+    }
+
+    fun isNetworkConnected(): Boolean {
+        val connectivityManager =
+            appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        val network = connectivityManager.activeNetwork
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
+        val isConnected =
+            networkCapabilities != null &&
+                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+
+        Log.i(TAG, "isNetworkConnected: Checking if network is connected: $isConnected")
+        return isConnected
     }
 }
