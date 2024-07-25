@@ -150,6 +150,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Passwort aktualisiert</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Benutzername aktualisiert</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Daten erneut an diese Website senden?</string>
     <string name="mozac_feature_prompt_repost_message">Durch das Aktualisieren dieser Seite können die letzten Aktionen doppelt ausgeführt werden, z.&amp;thinsp;B. das Senden einer Zahlung oder das zweimalige Posten eines Kommentars.</string>

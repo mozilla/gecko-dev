@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Parola güncellendi</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Kullanıcı adı güncellendi</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Veriler siteye yeniden gönderilsin mi?</string>
     <string name="mozac_feature_prompt_repost_message">Bu sayfayı tazelemek, son yaptığınız eylemleri (örn. ödeme yapma veya yorum gönderme) tekrarlayabilir.</string>

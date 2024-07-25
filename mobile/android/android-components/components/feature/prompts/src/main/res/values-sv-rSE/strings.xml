@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Lösenord uppdaterat</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Användarnamnet uppdaterat</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Skicka data igen till den här webbplatsen?</string>
     <string name="mozac_feature_prompt_repost_message">Uppdatering av den här sidan kan duplicera senaste åtgärder, till exempel att skicka en betalning eller lägga upp en kommentar två gånger.</string>
