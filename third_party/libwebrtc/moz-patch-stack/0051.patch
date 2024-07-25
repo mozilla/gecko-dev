@@ -11,7 +11,6 @@ don't introduce unaudited use of it.
 Differential Revision: https://phabricator.services.mozilla.com/D127714
 Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0744d68b8c944e69945de4ac5c4ca71332e78ad8
 ---
- audio/channel_send.cc                       | 2 +-
  call/degraded_call.cc                       | 2 ++
  modules/audio_coding/acm2/acm_receiver.cc   | 2 +-
  modules/rtp_rtcp/include/flexfec_receiver.h | 2 ++
@@ -19,21 +18,8 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0744d68b8c944e699
  rtc_base/task_utils/repeating_task.h        | 4 ++--
  system_wrappers/include/clock.h             | 2 +-
  system_wrappers/source/clock.cc             | 2 +-
- 8 files changed, 12 insertions(+), 6 deletions(-)
+ 7 files changed, 11 insertions(+), 5 deletions(-)
 
-diff --git a/audio/channel_send.cc b/audio/channel_send.cc
-index 19e28d0ee9..eedc5dbe5d 100644
---- a/audio/channel_send.cc
-+++ b/audio/channel_send.cc
-@@ -449,7 +449,7 @@ ChannelSend::ChannelSend(
-   configuration.report_block_data_observer = this;
-   configuration.network_link_rtcp_observer =
-       transport_controller->GetRtcpObserver();
--  configuration.clock = (clock ? clock : Clock::GetRealTimeClock());
-+  configuration.clock = clock;
-   configuration.audio = true;
-   configuration.outgoing_transport = rtp_transport;
- 
 diff --git a/call/degraded_call.cc b/call/degraded_call.cc
 index a511eda7bd..75a4a1cac0 100644
 --- a/call/degraded_call.cc
