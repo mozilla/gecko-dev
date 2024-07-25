@@ -137,16 +137,22 @@ fun DownloadLanguagesPreference(
             color = FirefoxTheme.colors.layer1,
         ),
     ) {
-        DownloadLanguagesHeaderPreference(
-            learnMoreUrl = learnMoreUrl,
-            onLearnMoreClicked = onLearnMoreClicked,
-        )
-
-        if (downloadLanguagesError != null) {
-            DownloadLanguagesErrorWarning(stringResource(id = R.string.download_languages_fetch_error_warning_text))
-        }
-
         LazyColumn {
+            item {
+                DownloadLanguagesHeaderPreference(
+                    learnMoreUrl = learnMoreUrl,
+                    onLearnMoreClicked = onLearnMoreClicked,
+                )
+            }
+
+            if (downloadLanguagesError != null) {
+                item {
+                    DownloadLanguagesErrorWarning(
+                        stringResource(id = R.string.download_languages_fetch_error_warning_text),
+                    )
+                }
+            }
+
             if (
                 allLanguagesItemDownloaded != null ||
                 pivotLanguage?.languageModel?.status == ModelState.DOWNLOADED ||

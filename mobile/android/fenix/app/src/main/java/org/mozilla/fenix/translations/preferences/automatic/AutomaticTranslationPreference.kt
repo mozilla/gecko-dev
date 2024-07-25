@@ -47,23 +47,26 @@ fun AutomaticTranslationPreference(
                 color = FirefoxTheme.colors.layer1,
             ),
     ) {
-        TextListItem(
-            label = stringResource(R.string.automatic_translation_header_preference),
-            modifier = Modifier
-                .padding(
-                    start = 56.dp,
-                )
-                .semantics { heading() }
-                .defaultMinSize(minHeight = 76.dp)
-                .wrapContentHeight(),
-            maxLabelLines = Int.MAX_VALUE,
-        )
-
-        if (hasLanguageError) {
-            CouldNotLoadLanguagesErrorWarning()
-        }
-
         LazyColumn {
+            item {
+                TextListItem(
+                    label = stringResource(R.string.automatic_translation_header_preference),
+                    modifier = Modifier
+                        .padding(
+                            start = 56.dp,
+                        )
+                        .semantics { heading() }
+                        .defaultMinSize(minHeight = 76.dp)
+                        .wrapContentHeight(),
+                    maxLabelLines = Int.MAX_VALUE,
+                )
+            }
+            if (hasLanguageError) {
+                item {
+                    CouldNotLoadLanguagesErrorWarning()
+                }
+            }
+
             items(automaticTranslationListPreferences) { item: AutomaticTranslationItemPreference ->
                 var description: String? = null
                 if (

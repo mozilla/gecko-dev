@@ -50,24 +50,28 @@ fun NeverTranslateSitesPreference(
                 color = FirefoxTheme.colors.layer1,
             ),
     ) {
-        TextListItem(
-            label = stringResource(R.string.never_translate_site_header_preference),
-            modifier = Modifier
-                .padding(
-                    start = 56.dp,
+        LazyColumn {
+            item {
+                TextListItem(
+                    label = stringResource(R.string.never_translate_site_header_preference),
+                    modifier = Modifier
+                        .padding(
+                            start = 56.dp,
+                        )
+                        .semantics { heading() }
+                        .defaultMinSize(minHeight = 76.dp)
+                        .wrapContentHeight(),
+                    maxLabelLines = Int.MAX_VALUE,
                 )
-                .semantics { heading() }
-                .defaultMinSize(minHeight = 76.dp)
-                .wrapContentHeight(),
-            maxLabelLines = Int.MAX_VALUE,
-        )
+            }
 
-        if (hasNeverTranslateSitesError) {
-            NeverTranslateSitesErrorWarning()
-        }
+            if (hasNeverTranslateSitesError) {
+                item {
+                    NeverTranslateSitesErrorWarning()
+                }
+            }
 
-        neverTranslateSitesListPreferences?.let {
-            LazyColumn {
+            neverTranslateSitesListPreferences?.let {
                 items(neverTranslateSitesListPreferences) { item: String ->
                     val itemContentDescription = stringResource(
                         id = R.string.never_translate_site_item_list_content_description_preference,
