@@ -1831,10 +1831,6 @@ ICInterpretOps(BaselineFrame* frame, VMFrameManager& frameMgr, State& state,
       }
       Value* args = reinterpret_cast<Value*>(sp);
 
-      TRACE_PRINTF("pushing callee: %p\n", callee);
-      PUSHNATIVE(
-          StackValNative(CalleeToToken(callee, /* isConstructing = */ false)));
-
       if (isNative) {
         PUSHNATIVE(StackValNative(argc));
         PUSHNATIVE(StackValNative(
@@ -1864,6 +1860,10 @@ ICInterpretOps(BaselineFrame* frame, VMFrameManager& frameMgr, State& state,
         }
         icregs.icResult = args[0].asRawBits();
       } else {
+        TRACE_PRINTF("pushing callee: %p\n", callee);
+        PUSHNATIVE(StackValNative(
+            CalleeToToken(callee, /* isConstructing = */ false)));
+
         PUSHNATIVE(StackValNative(
             MakeFrameDescriptorForJitCall(FrameType::BaselineStub, argc)));
 
