@@ -15,7 +15,7 @@ const TEST_URI = `
     color: blue;
     scrollbar-width: thin;
     user-modify: read-only;
-    hyphenate-limit-chars: auto;
+    object-view-box: inset(0% 19% -33% 57%);
     overflow-clip-box: padding-box;
   }
   div {
@@ -45,12 +45,11 @@ const TEST_DATA_SELECTED = [
   },
   {
     type: COMPATIBILITY_ISSUE_TYPE.CSS_PROPERTY,
-    property: "hyphenate-limit-chars",
+    property: "object-view-box",
     // No MDN url but a spec one
-    specUrl:
-      "https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-chars",
+    specUrl: "https://drafts.csswg.org/css-images-5/#propdef-object-view-box",
     deprecated: false,
-    experimental: false,
+    experimental: true,
   },
   // TODO: Re-enable it when we have another property with no MDN url nor spec url Bug 1840910
   /*{
