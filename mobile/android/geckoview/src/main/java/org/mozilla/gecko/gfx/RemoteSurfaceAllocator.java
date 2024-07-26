@@ -6,6 +6,7 @@
 package org.mozilla.gecko.gfx;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import org.mozilla.gecko.GeckoThread;
 
 public final class RemoteSurfaceAllocator extends ISurfaceAllocator.Stub {
   private static final String LOGTAG = "RemoteSurfaceAllocator";
@@ -24,7 +25,7 @@ public final class RemoteSurfaceAllocator extends ISurfaceAllocator.Stub {
    *     0 for the parent process instance.
    */
   public static synchronized RemoteSurfaceAllocator getInstance(final int allocatorId) {
-    if (mInstance == null) {
+    if (mInstance == null && GeckoThread.isStateAtLeast(GeckoThread.State.JNI_READY)) {
       mInstance = new RemoteSurfaceAllocator(allocatorId);
     }
     return mInstance;
