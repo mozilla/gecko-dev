@@ -601,18 +601,11 @@ void nsCanvasFrame::PaintFocus(DrawTarget* aDrawTarget, nsPoint aPt) {
                              text->mColor.ToColor());
 }
 
-/* virtual */
-nscoord nsCanvasFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsCanvasFrame::IntrinsicISize(gfxContext* aContext,
+                                      IntrinsicISizeType aType) {
   return mFrames.IsEmpty()
              ? 0
-             : mFrames.FirstChild()->GetMinISize(aRenderingContext);
-}
-
-/* virtual */
-nscoord nsCanvasFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return mFrames.IsEmpty()
-             ? 0
-             : mFrames.FirstChild()->GetPrefISize(aRenderingContext);
+             : mFrames.FirstChild()->IntrinsicISize(aContext, aType);
 }
 
 void nsCanvasFrame::Reflow(nsPresContext* aPresContext,

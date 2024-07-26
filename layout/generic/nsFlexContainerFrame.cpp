@@ -6413,8 +6413,8 @@ void nsFlexContainerFrame::ReflowPlaceholders(
   }
 }
 
-nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
-                                             IntrinsicISizeType aType) {
+nscoord nsFlexContainerFrame::ComputeIntrinsicISize(gfxContext* aContext,
+                                                    IntrinsicISizeType aType) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
@@ -6452,8 +6452,8 @@ nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
       continue;
     }
 
-    nscoord childISize = nsLayoutUtils::IntrinsicForContainer(
-        aRenderingContext, childFrame, aType);
+    nscoord childISize =
+        nsLayoutUtils::IntrinsicForContainer(aContext, childFrame, aType);
 
     // * For a row-oriented single-line flex container, the intrinsic
     // {min/pref}-isize is the sum of its items' {min/pref}-isizes and
@@ -6478,24 +6478,15 @@ nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
   return containerISize;
 }
 
-/* virtual */
-nscoord nsFlexContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
-  if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mCachedMinISize =
-        IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
+nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aContext,
+                                             IntrinsicISizeType aType) {
+  nscoord& cachedISize = aType == IntrinsicISizeType::MinISize
+                             ? mCachedMinISize
+                             : mCachedPrefISize;
+  if (cachedISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
+    cachedISize = ComputeIntrinsicISize(aContext, aType);
   }
-
-  return mCachedMinISize;
-}
-
-/* virtual */
-nscoord nsFlexContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mCachedPrefISize =
-        IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
-  }
-
-  return mCachedPrefISize;
+  return cachedISize;
 }
 
 int32_t nsFlexContainerFrame::GetNumLines() const {

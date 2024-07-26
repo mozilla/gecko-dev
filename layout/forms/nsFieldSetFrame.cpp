@@ -321,7 +321,7 @@ ImgDrawResult nsFieldSetFrame::PaintBorder(nsDisplayListBuilder* aBuilder,
   return result;
 }
 
-nscoord nsFieldSetFrame::IntrinsicISize(gfxContext* aRenderingContext,
+nscoord nsFieldSetFrame::IntrinsicISize(gfxContext* aContext,
                                         IntrinsicISizeType aType) {
   // Both inner and legend are children, and if the fieldset is
   // size-contained they should not contribute to the intrinsic size.
@@ -331,8 +331,7 @@ nscoord nsFieldSetFrame::IntrinsicISize(gfxContext* aRenderingContext,
 
   nscoord legendWidth = 0;
   if (nsIFrame* legend = GetLegend()) {
-    legendWidth =
-        nsLayoutUtils::IntrinsicForContainer(aRenderingContext, legend, aType);
+    legendWidth = nsLayoutUtils::IntrinsicForContainer(aContext, legend, aType);
   }
 
   nscoord contentWidth = 0;
@@ -341,18 +340,10 @@ nscoord nsFieldSetFrame::IntrinsicISize(gfxContext* aRenderingContext,
     // outer instead, and the padding computed for the inner is wrong
     // for percentage padding.
     contentWidth = nsLayoutUtils::IntrinsicForContainer(
-        aRenderingContext, inner, aType, nsLayoutUtils::IGNORE_PADDING);
+        aContext, inner, aType, nsLayoutUtils::IGNORE_PADDING);
   }
 
   return std::max(legendWidth, contentWidth);
-}
-
-nscoord nsFieldSetFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
-}
-
-nscoord nsFieldSetFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
 }
 
 /* virtual */

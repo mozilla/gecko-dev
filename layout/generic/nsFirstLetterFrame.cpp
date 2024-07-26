@@ -123,17 +123,6 @@ void nsFirstLetterFrame::AddInlinePrefISize(
 }
 
 // Needed for floating first-letter frames.
-/* virtual */
-nscoord nsFirstLetterFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
-}
-
-// Needed for floating first-letter frames.
-/* virtual */
-nscoord nsFirstLetterFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
-}
-
 nscoord nsFirstLetterFrame::IntrinsicISize(gfxContext* aContext,
                                            IntrinsicISizeType aType) {
   return IntrinsicISizeFromInline(aContext, aType);

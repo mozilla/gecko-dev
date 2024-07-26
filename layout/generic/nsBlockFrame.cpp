@@ -807,29 +807,39 @@ bool nsBlockFrame::TextIndentAppliesTo(const LineIterator& aLine) const {
   return isFirstLineOrAfterHardBreak != textIndent.hanging;
 }
 
-/* virtual */
-nscoord nsBlockFrame::GetMinISize(gfxContext* aRenderingContext) {
-  nsIFrame* firstInFlow = FirstContinuation();
-  if (firstInFlow != this) {
-    return firstInFlow->GetMinISize(aRenderingContext);
+nscoord nsBlockFrame::IntrinsicISize(gfxContext* aContext,
+                                     IntrinsicISizeType aType) {
+  nsIFrame* firstCont = FirstContinuation();
+  if (firstCont != this) {
+    return firstCont->IntrinsicISize(aContext, aType);
   }
 
   CheckIntrinsicCacheAgainstShrinkWrapState();
 
-  if (mCachedMinISize != NS_INTRINSIC_ISIZE_UNKNOWN) {
+  if (aType == IntrinsicISizeType::MinISize) {
+    if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
+      mCachedMinISize = MinISize(aContext);
+    }
     return mCachedMinISize;
   }
 
+  if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
+    mCachedPrefISize = PrefISize(aContext);
+  }
+  return mCachedPrefISize;
+}
+
+/* virtual */
+nscoord nsBlockFrame::MinISize(gfxContext* aContext) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
-    mCachedMinISize = *containISize;
-    return mCachedMinISize;
+    return *containISize;
   }
 
 #ifdef DEBUG
   if (gNoisyIntrinsic) {
     IndentBy(stdout, gNoiseIndent);
     ListTag(stdout);
-    printf(": GetMinISize\n");
+    printf(": MinISize\n");
   }
   AutoNoisyIndenter indenter(gNoisyIntrinsic);
 #endif
@@ -862,7 +872,7 @@ nscoord nsBlockFrame::GetMinISize(gfxContext* aRenderingContext) {
       if (line->IsBlock()) {
         data.ForceBreak();
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aRenderingContext, line->mFirstChild, IntrinsicISizeType::MinISize);
+            aContext, line->mFirstChild, IntrinsicISizeType::MinISize);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -873,7 +883,7 @@ nscoord nsBlockFrame::GetMinISize(gfxContext* aRenderingContext) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          kid->AddInlineMinISize(aRenderingContext, &data);
+          kid->AddInlineMinISize(aContext, &data);
           if (whiteSpaceCanWrap && data.mTrailingWhitespace) {
             data.OptionallyBreak();
           }
@@ -889,34 +899,20 @@ nscoord nsBlockFrame::GetMinISize(gfxContext* aRenderingContext) {
     }
   }
   data.ForceBreak();
-
-  mCachedMinISize = data.mPrevLines;
-  return mCachedMinISize;
+  return data.mPrevLines;
 }
 
 /* virtual */
-nscoord nsBlockFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  nsIFrame* firstInFlow = FirstContinuation();
-  if (firstInFlow != this) {
-    return firstInFlow->GetPrefISize(aRenderingContext);
-  }
-
-  CheckIntrinsicCacheAgainstShrinkWrapState();
-
-  if (mCachedPrefISize != NS_INTRINSIC_ISIZE_UNKNOWN) {
-    return mCachedPrefISize;
-  }
-
+nscoord nsBlockFrame::PrefISize(gfxContext* aContext) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
-    mCachedPrefISize = *containISize;
-    return mCachedPrefISize;
+    return *containISize;
   }
 
 #ifdef DEBUG
   if (gNoisyIntrinsic) {
     IndentBy(stdout, gNoiseIndent);
     ListTag(stdout);
-    printf(": GetPrefISize\n");
+    printf(": PrefISize\n");
   }
   AutoNoisyIndenter indenter(gNoisyIntrinsic);
 #endif
@@ -953,8 +949,7 @@ nscoord nsBlockFrame::GetPrefISize(gfxContext* aRenderingContext) {
         }
         data.ForceBreak(clearType);
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aRenderingContext, line->mFirstChild,
-            IntrinsicISizeType::PrefISize);
+            aContext, line->mFirstChild, IntrinsicISizeType::PrefISize);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -970,7 +965,7 @@ nscoord nsBlockFrame::GetPrefISize(gfxContext* aRenderingContext) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          kid->AddInlinePrefISize(aRenderingContext, &data);
+          kid->AddInlinePrefISize(aContext, &data);
         }
       }
 #ifdef DEBUG
@@ -983,9 +978,7 @@ nscoord nsBlockFrame::GetPrefISize(gfxContext* aRenderingContext) {
     }
   }
   data.ForceBreak();
-
-  mCachedPrefISize = data.mPrevLines;
-  return mCachedPrefISize;
+  return data.mPrevLines;
 }
 
 nsRect nsBlockFrame::ComputeTightBounds(DrawTarget* aDrawTarget) const {

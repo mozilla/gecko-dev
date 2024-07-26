@@ -170,7 +170,7 @@ nscoord nsComboboxControlFrame::GetLongestOptionISize(
   return maxOptionSize;
 }
 
-nscoord nsComboboxControlFrame::IntrinsicISize(gfxContext* aRenderingContext,
+nscoord nsComboboxControlFrame::IntrinsicISize(gfxContext* aContext,
                                                IntrinsicISizeType aType) {
   Maybe<nscoord> containISize = ContainIntrinsicISize(NS_UNCONSTRAINEDSIZE);
   if (containISize && *containISize != NS_UNCONSTRAINEDSIZE) {
@@ -179,20 +179,12 @@ nscoord nsComboboxControlFrame::IntrinsicISize(gfxContext* aRenderingContext,
 
   nscoord displayISize = 0;
   if (!containISize && !StyleContent()->mContent.IsNone()) {
-    displayISize += GetLongestOptionISize(aRenderingContext);
+    displayISize += GetLongestOptionISize(aContext);
   }
 
   // Add room for the dropmarker button (if there is one).
   displayISize += DropDownButtonISize();
   return displayISize;
-}
-
-nscoord nsComboboxControlFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
-}
-
-nscoord nsComboboxControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
 }
 
 dom::HTMLSelectElement& nsComboboxControlFrame::Select() const {

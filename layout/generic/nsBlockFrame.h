@@ -273,9 +273,13 @@ class nsBlockFrame : public nsContainerFrame {
                                     BaselineSharingGroup aBaselineGroup,
                                     BaselineExportContext aExportContext) const;
 
+  // MinISize() and PrefISize() are helpers to implement IntrinsicISize().
+  nscoord MinISize(gfxContext* aContext);
+  nscoord PrefISize(gfxContext* aContext);
+
  public:
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord IntrinsicISize(gfxContext* aContext,
+                         mozilla::IntrinsicISizeType aType) override;
 
   nsRect ComputeTightBounds(DrawTarget* aDrawTarget) const override;
 

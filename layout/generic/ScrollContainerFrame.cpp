@@ -1271,27 +1271,19 @@ static bool IsMarqueeScrollbox(const nsIFrame& aScrollFrame) {
   return HTMLMarqueeElement::FromNodeOrNull(aScrollFrame.GetContent());
 }
 
-/* virtual */
-nscoord ScrollContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord ScrollContainerFrame::IntrinsicISize(gfxContext* aContext,
+                                             IntrinsicISizeType aType) {
   nscoord result = [&] {
     if (const Maybe<nscoord> containISize = ContainIntrinsicISize()) {
       return *containISize;
     }
-    if (MOZ_UNLIKELY(IsMarqueeScrollbox(*this))) {
+    if (aType == IntrinsicISizeType::MinISize &&
+        MOZ_UNLIKELY(IsMarqueeScrollbox(*this))) {
       return 0;
     }
-    return mScrolledFrame->GetMinISize(aRenderingContext);
+    return mScrolledFrame->IntrinsicISize(aContext, aType);
   }();
 
-  return result + IntrinsicScrollbarGutterSizeAtInlineEdges();
-}
-
-/* virtual */
-nscoord ScrollContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  const Maybe<nscoord> containISize = ContainIntrinsicISize();
-  nscoord result = containISize
-                       ? *containISize
-                       : mScrolledFrame->GetPrefISize(aRenderingContext);
   return NSCoordSaturatingAdd(result,
                               IntrinsicScrollbarGutterSizeAtInlineEdges());
 }

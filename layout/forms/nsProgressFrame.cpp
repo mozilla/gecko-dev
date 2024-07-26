@@ -207,16 +207,13 @@ nsresult nsProgressFrame::AttributeChanged(int32_t aNameSpaceID,
   return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
-nscoord nsProgressFrame::GetMinISize(gfxContext* aRenderingContext) {
-  nscoord minISize = OneEmInAppUnits();
+nscoord nsProgressFrame::IntrinsicISize(gfxContext* aContext,
+                                        IntrinsicISizeType aType) {
+  nscoord iSize = OneEmInAppUnits();
   if (ResolvedOrientationIsVertical() == GetWritingMode().IsVertical()) {
-    minISize *= 10;
+    iSize *= 10;
   }
-  return minISize;
-}
-
-nscoord nsProgressFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return GetMinISize(aRenderingContext);
+  return iSize;
 }
 
 bool nsProgressFrame::ShouldUseNativeStyle() const {

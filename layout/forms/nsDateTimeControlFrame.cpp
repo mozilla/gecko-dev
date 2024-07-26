@@ -34,22 +34,11 @@ nsDateTimeControlFrame::nsDateTimeControlFrame(ComputedStyle* aStyle,
                                                nsPresContext* aPresContext)
     : nsContainerFrame(aStyle, aPresContext, kClassID) {}
 
-nscoord nsDateTimeControlFrame::GetMinISize(gfxContext* aRenderingContext) {
-  nsIFrame* kid = mFrames.FirstChild();
-  if (!kid) {
-    return 0;
-  }
-  return nsLayoutUtils::IntrinsicForContainer(aRenderingContext, kid,
-                                              IntrinsicISizeType::MinISize);
-}
-
-nscoord nsDateTimeControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  nsIFrame* kid = mFrames.FirstChild();
-  if (!kid) {
-    return 0;
-  }
-  return nsLayoutUtils::IntrinsicForContainer(aRenderingContext, kid,
-                                              IntrinsicISizeType::PrefISize);
+nscoord nsDateTimeControlFrame::IntrinsicISize(gfxContext* aContext,
+                                               IntrinsicISizeType aType) {
+  return mFrames.IsEmpty() ? 0
+                           : nsLayoutUtils::IntrinsicForContainer(
+                                 aContext, mFrames.FirstChild(), aType);
 }
 
 Maybe<nscoord> nsDateTimeControlFrame::GetNaturalBaselineBOffset(

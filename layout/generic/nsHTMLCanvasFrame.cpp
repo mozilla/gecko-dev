@@ -365,7 +365,8 @@ CSSIntSize nsHTMLCanvasFrame::GetCanvasSize() const {
   return size;
 }
 
-nscoord nsHTMLCanvasFrame::IntrinsicISize(gfxContext* aRenderingContext) {
+nscoord nsHTMLCanvasFrame::IntrinsicISize(gfxContext* aContext,
+                                          IntrinsicISizeType aType) {
   // XXX The caller doesn't account for constraints of the height,
   // min-height, and max-height properties.
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
@@ -374,16 +375,6 @@ nscoord nsHTMLCanvasFrame::IntrinsicISize(gfxContext* aRenderingContext) {
   bool vertical = GetWritingMode().IsVertical();
   return nsPresContext::CSSPixelsToAppUnits(vertical ? GetCanvasSize().height
                                                      : GetCanvasSize().width);
-}
-
-/* virtual */
-nscoord nsHTMLCanvasFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext);
-}
-
-/* virtual */
-nscoord nsHTMLCanvasFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext);
 }
 
 /* virtual */

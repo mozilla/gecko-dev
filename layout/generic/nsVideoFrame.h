@@ -58,8 +58,10 @@ class nsVideoFrame : public nsContainerFrame,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
       mozilla::ComputeSizeFlags aFlags) final;
-  nscoord GetMinISize(gfxContext* aRenderingContext) final;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) final;
+
+  nscoord IntrinsicISize(gfxContext* aContext,
+                         mozilla::IntrinsicISizeType aType) final;
+
   void Destroy(DestroyContext&) final;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,

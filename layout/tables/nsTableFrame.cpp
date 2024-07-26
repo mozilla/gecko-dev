@@ -1345,22 +1345,17 @@ void nsTableFrame::MarkIntrinsicISizesDirty() {
   nsContainerFrame::MarkIntrinsicISizesDirty();
 }
 
-/* virtual */
-nscoord nsTableFrame::GetMinISize(gfxContext* aRenderingContext) {
-  if (NeedToCalcBCBorders()) CalcBCBorders();
+nscoord nsTableFrame::IntrinsicISize(gfxContext* aContext,
+                                     IntrinsicISizeType aType) {
+  if (NeedToCalcBCBorders()) {
+    CalcBCBorders();
+  }
 
-  ReflowColGroups(aRenderingContext);
+  ReflowColGroups(aContext);
 
-  return LayoutStrategy()->GetMinISize(aRenderingContext);
-}
-
-/* virtual */
-nscoord nsTableFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  if (NeedToCalcBCBorders()) CalcBCBorders();
-
-  ReflowColGroups(aRenderingContext);
-
-  return LayoutStrategy()->GetPrefISize(aRenderingContext, false);
+  return aType == IntrinsicISizeType::MinISize
+             ? LayoutStrategy()->GetMinISize(aContext)
+             : LayoutStrategy()->GetPrefISize(aContext, false);
 }
 
 /* virtual */ nsIFrame::IntrinsicSizeOffsetData

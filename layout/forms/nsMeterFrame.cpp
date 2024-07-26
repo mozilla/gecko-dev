@@ -178,17 +178,14 @@ nsresult nsMeterFrame::AttributeChanged(int32_t aNameSpaceID,
   return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
-nscoord nsMeterFrame::GetMinISize(gfxContext* aRenderingContext) {
-  nscoord minISize = OneEmInAppUnits();
+nscoord nsMeterFrame::IntrinsicISize(gfxContext* aContext,
+                                     IntrinsicISizeType aType) {
+  nscoord iSize = OneEmInAppUnits();
   if (ResolvedOrientationIsVertical() == GetWritingMode().IsVertical()) {
     // The orientation is inline
-    minISize *= 5;
+    iSize *= 5;
   }
-  return minISize;
-}
-
-nscoord nsMeterFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return GetMinISize(aRenderingContext);
+  return iSize;
 }
 
 bool nsMeterFrame::ShouldUseNativeStyle() const {

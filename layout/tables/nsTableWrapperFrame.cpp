@@ -238,33 +238,18 @@ ComputedStyle* nsTableWrapperFrame::GetParentComputedStyle(
   return (*aProviderFrame = InnerTableFrame())->Style();
 }
 
-/* virtual */
-nscoord nsTableWrapperFrame::GetMinISize(gfxContext* aRenderingContext) {
-  nscoord iSize = nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, InnerTableFrame(), IntrinsicISizeType::MinISize);
+nscoord nsTableWrapperFrame::IntrinsicISize(gfxContext* aContext,
+                                            IntrinsicISizeType aType) {
+  nscoord iSize =
+      nsLayoutUtils::IntrinsicForContainer(aContext, InnerTableFrame(), aType);
   if (mCaptionFrames.NotEmpty()) {
-    nscoord capISize = nsLayoutUtils::IntrinsicForContainer(
-        aRenderingContext, mCaptionFrames.FirstChild(),
-        IntrinsicISizeType::MinISize);
-    if (capISize > iSize) {
-      iSize = capISize;
-    }
+    // The table wrapper's intrinsic inline size should be as least as large as
+    // caption's min inline size.
+    const nscoord capMinISize = nsLayoutUtils::IntrinsicForContainer(
+        aContext, mCaptionFrames.FirstChild(), IntrinsicISizeType::MinISize);
+    iSize = std::max(iSize, capMinISize);
   }
   return iSize;
-}
-
-/* virtual */
-nscoord nsTableWrapperFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  nscoord maxISize = nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, InnerTableFrame(), IntrinsicISizeType::PrefISize);
-  if (mCaptionFrames.NotEmpty()) {
-    // Don't let the caption's pref isize expand the table's pref isize.
-    const nscoord capMinISize = nsLayoutUtils::IntrinsicForContainer(
-        aRenderingContext, mCaptionFrames.FirstChild(),
-        IntrinsicISizeType::MinISize);
-    maxISize = std::max(maxISize, capMinISize);
-  }
-  return maxISize;
 }
 
 LogicalSize nsTableWrapperFrame::InnerTableShrinkWrapSize(

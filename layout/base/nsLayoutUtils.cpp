@@ -4818,9 +4818,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      result = aType == IntrinsicISizeType::MinISize
-                   ? aFrame->GetMinISize(aRenderingContext)
-                   : aFrame->GetPrefISize(aRenderingContext);
+      result = aFrame->IntrinsicISize(aRenderingContext, aType);
     }
 #ifdef DEBUG_INTRINSIC_WIDTH
     --gNoiseIndent;

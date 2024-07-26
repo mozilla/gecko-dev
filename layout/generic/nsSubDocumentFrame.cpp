@@ -553,17 +553,13 @@ nsresult nsSubDocumentFrame::GetFrameName(nsAString& aResult) const {
 }
 #endif
 
-/* virtual */
-nscoord nsSubDocumentFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return GetIntrinsicISize();
-}
-
-/* virtual */
-nscoord nsSubDocumentFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  // If the subdocument is an SVG document, then in theory we want to return
-  // the same thing that SVGOuterSVGFrame::GetPrefISize does.  That method
-  // has some special handling of percentage values to avoid unhelpful zero
-  // sizing in the presence of orthogonal writing modes.  We don't bother
+nscoord nsSubDocumentFrame::IntrinsicISize(gfxContext* aContext,
+                                           IntrinsicISizeType aType) {
+  // Note: when computing max-content inline size (i.e. when aType is
+  // IntrinsicISizeType::PrefISize), if the subdocument is an SVG document, then
+  // in theory we want to return the same value that SVGOuterSVGFrame does. That
+  // method has some special handling of percentage values to avoid unhelpful
+  // zero sizing in the presence of orthogonal writing modes. We don't bother
   // with that for SVG documents in <embed> and <object>, since that special
   // handling doesn't look up across document boundaries anyway.
   return GetIntrinsicISize();

@@ -118,8 +118,10 @@ class nsGridContainerFrame final : public nsContainerFrame,
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) override;
   void DidSetComputedStyle(ComputedStyle* aOldStyle) override;
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+
+  nscoord IntrinsicISize(gfxContext* aContext,
+                         mozilla::IntrinsicISizeType aType) override;
+
   void MarkIntrinsicISizesDirty() override;
 
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
@@ -369,10 +371,10 @@ class nsGridContainerFrame final : public nsContainerFrame,
                          ReflowOutput& aDesiredSize, nsReflowStatus& aStatus);
 
   /**
-   * Helper for GetMinISize / GetPrefISize.
+   * Helper to implement IntrinsicISize().
    */
-  nscoord IntrinsicISize(gfxContext* aRenderingContext,
-                         mozilla::IntrinsicISizeType aConstraint);
+  nscoord ComputeIntrinsicISize(gfxContext* aContext,
+                                mozilla::IntrinsicISizeType aType);
 
   nscoord GetBBaseline(BaselineSharingGroup aBaselineGroup) const {
     return mBaseline[mozilla::LogicalAxis::Block][aBaselineGroup];
@@ -533,7 +535,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
                                      ImplicitNamedAreas*& aAreas);
 
   /**
-   * Cached values to optimize GetMinISize/GetPrefISize.
+   * Cached values to optimize IntrinsicISize().
    */
   nscoord mCachedMinISize;
   nscoord mCachedPrefISize;

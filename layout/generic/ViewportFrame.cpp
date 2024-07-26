@@ -269,18 +269,11 @@ void ViewportFrame::RemoveFrame(DestroyContext& aContext, ChildListID aListID,
 }
 #endif
 
-/* virtual */
-nscoord ViewportFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord ViewportFrame::IntrinsicISize(gfxContext* aContext,
+                                      IntrinsicISizeType aType) {
   return mFrames.IsEmpty()
              ? 0
-             : mFrames.FirstChild()->GetMinISize(aRenderingContext);
-}
-
-/* virtual */
-nscoord ViewportFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return mFrames.IsEmpty()
-             ? 0
-             : mFrames.FirstChild()->GetPrefISize(aRenderingContext);
+             : mFrames.FirstChild()->IntrinsicISize(aContext, aType);
 }
 
 nsPoint ViewportFrame::AdjustReflowInputForScrollbars(

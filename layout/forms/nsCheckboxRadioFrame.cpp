@@ -45,13 +45,8 @@ void nsCheckboxRadioFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 }
 
-/* virtual */
-nscoord nsCheckboxRadioFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return StyleDisplay()->HasAppearance() ? DefaultSize() : 0;
-}
-
-/* virtual */
-nscoord nsCheckboxRadioFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsCheckboxRadioFrame::IntrinsicISize(gfxContext* aContext,
+                                             IntrinsicISizeType aType) {
   return StyleDisplay()->HasAppearance() ? DefaultSize() : 0;
 }
 

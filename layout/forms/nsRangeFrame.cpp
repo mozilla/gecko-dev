@@ -624,19 +624,18 @@ nscoord nsRangeFrame::AutoCrossSize() {
                   NSToCoordRound(OneEmInAppUnits() * CROSS_AXIS_EM_SIZE));
 }
 
-nscoord nsRangeFrame::GetMinISize(gfxContext* aRenderingContext) {
-  const auto* pos = StylePosition();
-  auto wm = GetWritingMode();
-  if (pos->ISize(wm).HasPercent()) {
-    // https://drafts.csswg.org/css-sizing-3/#percentage-sizing
-    // https://drafts.csswg.org/css-sizing-3/#min-content-zero
-    return nsLayoutUtils::ResolveToLength<true>(
-        pos->ISize(wm).AsLengthPercentage(), nscoord(0));
+nscoord nsRangeFrame::IntrinsicISize(gfxContext* aContext,
+                                     IntrinsicISizeType aType) {
+  if (aType == IntrinsicISizeType::MinISize) {
+    const auto* pos = StylePosition();
+    auto wm = GetWritingMode();
+    if (pos->ISize(wm).HasPercent()) {
+      // https://drafts.csswg.org/css-sizing-3/#percentage-sizing
+      // https://drafts.csswg.org/css-sizing-3/#min-content-zero
+      return nsLayoutUtils::ResolveToLength<true>(
+          pos->ISize(wm).AsLengthPercentage(), nscoord(0));
+    }
   }
-  return GetPrefISize(aRenderingContext);
-}
-
-nscoord nsRangeFrame::GetPrefISize(gfxContext* aRenderingContext) {
   if (IsInlineOriented()) {
     return OneEmInAppUnits() * MAIN_AXIS_EM_SIZE;
   }

@@ -22,13 +22,8 @@ void nsLeafFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 }
 
-/* virtual */
-nscoord nsLeafFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
-}
-
-/* virtual */
-nscoord nsLeafFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsLeafFrame::IntrinsicISize(gfxContext* aContext,
+                                    IntrinsicISizeType aType) {
   return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
 }
 

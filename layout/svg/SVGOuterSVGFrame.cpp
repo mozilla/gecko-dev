@@ -121,18 +121,14 @@ NS_QUERYFRAME_TAIL_INHERITING(SVGDisplayContainerFrame)
 
 //----------------------------------------------------------------------
 // nsIFrame methods
-//----------------------------------------------------------------------
-// reflowing
 
-/* virtual */
-nscoord SVGOuterSVGFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
-}
+nscoord SVGOuterSVGFrame::IntrinsicISize(gfxContext* aContext,
+                                         IntrinsicISizeType aType) {
+  if (aType == IntrinsicISizeType::MinISize) {
+    return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
+  }
 
-/* virtual */
-nscoord SVGOuterSVGFrame::GetPrefISize(gfxContext* aRenderingContext) {
   nscoord result;
-
   SVGSVGElement* svg = static_cast<SVGSVGElement*>(GetContent());
   WritingMode wm = GetWritingMode();
   const SVGAnimatedLength& isize =

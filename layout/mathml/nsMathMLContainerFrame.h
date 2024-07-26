@@ -72,12 +72,8 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
   void RemoveFrame(DestroyContext&, ChildListID aListID,
                    nsIFrame* aOldFrame) override;
 
-  /**
-   * Both GetMinISize and GetPrefISize use the intrinsic width metrics
-   * returned by GetIntrinsicMetrics, including ink overflow.
-   */
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord IntrinsicISize(gfxContext* aContext,
+                         mozilla::IntrinsicISizeType aType) override;
 
   /**
    * Return the intrinsic horizontal metrics of the frame's content area.

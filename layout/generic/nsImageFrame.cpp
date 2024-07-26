@@ -1467,14 +1467,8 @@ nscoord nsImageFrame::GetContinuationOffset() const {
   return offset;
 }
 
-nscoord nsImageFrame::GetMinISize(gfxContext* aRenderingContext) {
-  // XXX The caller doesn't account for constraints of the block-size,
-  // min-block-size, and max-block-size properties.
-  EnsureIntrinsicSizeAndRatio();
-  return mIntrinsicSize.ISize(GetWritingMode()).valueOr(0);
-}
-
-nscoord nsImageFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsImageFrame::IntrinsicISize(gfxContext* aContext,
+                                     IntrinsicISizeType aType) {
   // XXX The caller doesn't account for constraints of the block-size,
   // min-block-size, and max-block-size properties.
   EnsureIntrinsicSizeAndRatio();

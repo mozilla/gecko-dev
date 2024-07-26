@@ -24,11 +24,8 @@ class nsLeafFrame : public nsIFrame {
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
-  /**
-   * Both GetMinISize and GetPrefISize will return our intrinsic inline size.
-   */
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord IntrinsicISize(gfxContext* aContext,
+                         mozilla::IntrinsicISizeType aType) override;
 
   /**
    * Our auto size is just the intrinsic size.
