@@ -151,8 +151,17 @@ void ColumnSetWrapperFrame::MarkIntrinsicISizesDirty() {
 
 nscoord ColumnSetWrapperFrame::IntrinsicISize(gfxContext* aContext,
                                               IntrinsicISizeType aType) {
-  return aType == IntrinsicISizeType::MinISize ? MinISize(aContext)
-                                               : PrefISize(aContext);
+  if (aType == IntrinsicISizeType::MinISize) {
+    if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
+      mCachedMinISize = MinISize(aContext);
+    }
+    return mCachedMinISize;
+  }
+
+  if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
+    mCachedPrefISize = PrefISize(aContext);
+  }
+  return mCachedPrefISize;
 }
 
 nscoord ColumnSetWrapperFrame::MinISize(gfxContext* aContext) {
