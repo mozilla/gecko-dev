@@ -22,7 +22,6 @@ class PushSincResampler;
 
 // Wraps PushSincResampler to provide stereo support.
 // Note: This implementation assumes 10ms buffer sizes throughout.
-// TODO(ajm): add support for an arbitrary number of channels.
 template <typename T>
 class PushResampler {
  public:
@@ -40,22 +39,12 @@ class PushResampler {
   int Resample(InterleavedView<const T> src, InterleavedView<T> dst);
 
  private:
-  int src_sample_rate_hz_;
-  int dst_sample_rate_hz_;
-  size_t num_channels_;
-  // Vector that is needed to provide the proper inputs and outputs to the
-  // interleave/de-interleave methods used in Resample. This needs to be
-  // heap-allocated on the state to support an arbitrary number of channels
-  // without doing run-time heap-allocations in the Resample method.
-  std::vector<T*> channel_data_array_;
+  std::unique_ptr<T[]> source_;
+  std::unique_ptr<T[]> destination_;
+  DeinterleavedView<T> source_view_;
+  DeinterleavedView<T> destination_view_;
 
-  struct ChannelResampler {
-    std::unique_ptr<PushSincResampler> resampler;
-    std::vector<T> source;
-    std::vector<T> destination;
-  };
-
-  std::vector<ChannelResampler> channel_resamplers_;
+  std::vector<std::unique_ptr<PushSincResampler>> resamplers_;
 };
 }  // namespace webrtc
 

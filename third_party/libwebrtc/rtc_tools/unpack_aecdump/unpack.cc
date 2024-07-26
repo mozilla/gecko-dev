@@ -25,6 +25,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "api/function_view.h"
+#include "common_audio/channel_buffer.h"
 #include "common_audio/include/audio_util.h"
 #include "common_audio/wav_file.h"
 #include "modules/audio_processing/test/protobuf_utils.h"
