@@ -95,10 +95,8 @@ void CongestionControlFeedbackGenerator::SetTransportOverhead(
 
 void CongestionControlFeedbackGenerator::SendFeedback(Timestamp now) {
   absl::c_sort(packets_, [](const PacketInfo& a, const PacketInfo& b) {
-    if (a.ssrc == b.ssrc) {
-      return a.unwrapped_sequence_number < b.unwrapped_sequence_number;
-    }
-    return a.ssrc < b.ssrc;
+    return std::tie(a.ssrc, a.unwrapped_sequence_number, a.arrival_time) <
+           std::tie(b.ssrc, b.unwrapped_sequence_number, b.arrival_time);
   });
   uint32_t compact_ntp =
       CompactNtp(env_.clock().ConvertTimestampToNtpTime(now));

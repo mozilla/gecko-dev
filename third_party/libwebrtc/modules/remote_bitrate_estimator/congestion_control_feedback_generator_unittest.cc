@@ -301,8 +301,7 @@ TEST(CongestionControlFeedbackGeneratorTest,
   generator.Process(clock.CurrentTime());
 }
 
-// TODO: bugs.webrtc.org/42225697 - Figure out why this test is flaky.
-TEST(DISABLED_CongestionControlFeedbackGeneratorTest,
+TEST(CongestionControlFeedbackGeneratorTest,
      ReportsFirstReceivedPacketArrivalTimeButEcnFromCePacketIfDuplicate) {
   MockFunction<void(std::vector<std::unique_ptr<rtcp::RtcpPacket>>)>
       rtcp_sender;
