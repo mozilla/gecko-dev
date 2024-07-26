@@ -9,4 +9,5 @@ prefs = [
 ["browser_chat_request.js"]
 ["browser_chat_sidebar.js"]
 ["browser_chat_telemetry.js"]
+["browser_genai_actors.js"]
 ["browser_genai_init.js"]
