@@ -181,6 +181,68 @@ describe("<DSCard>", () => {
     assert.lengthOf(stpButton, 1);
   });
 
+  describe("doesLinkTopicMatchSelectedTopic", () => {
+    it("should return 'not-set' when selectedTopics is not set", () => {
+      wrapper.setProps({
+        id: "fooidx",
+        pos: 1,
+        type: "foo",
+        topic: "bar",
+        selectedTopics: "",
+        availableTopics: "foo, bar, baz, qux",
+      });
+      const matchesSelectedTopic = wrapper
+        .instance()
+        .doesLinkTopicMatchSelectedTopic();
+      assert.equal(matchesSelectedTopic, "not-set");
+    });
+
+    it("should return 'topic-not-selectable' when topic is not in availableTopics", () => {
+      wrapper.setProps({
+        id: "fooidx",
+        pos: 1,
+        type: "foo",
+        topic: "qux",
+        selectedTopics: "foo, bar, baz",
+        availableTopics: "foo, bar, baz",
+      });
+      const matchesSelectedTopic = wrapper
+        .instance()
+        .doesLinkTopicMatchSelectedTopic();
+      assert.equal(matchesSelectedTopic, "topic-not-selectable");
+    });
+
+    it("should return 'true' when topic is in selectedTopics", () => {
+      wrapper.setProps({
+        id: "fooidx",
+        pos: 1,
+        type: "foo",
+        topic: "qux",
+        selectedTopics: "foo, bar, baz, qux",
+        availableTopics: "foo, bar, baz, qux",
+      });
+      const matchesSelectedTopic = wrapper
+        .instance()
+        .doesLinkTopicMatchSelectedTopic();
+      assert.equal(matchesSelectedTopic, "true");
+    });
+
+    it("should return 'false' when topic is NOT in selectedTopics", () => {
+      wrapper.setProps({
+        id: "fooidx",
+        pos: 1,
+        type: "foo",
+        topic: "qux",
+        selectedTopics: "foo, bar, baz",
+        availableTopics: "foo, bar, baz, qux",
+      });
+      const matchesSelectedTopic = wrapper
+        .instance()
+        .doesLinkTopicMatchSelectedTopic();
+      assert.equal(matchesSelectedTopic, "false");
+    });
+  });
+
   describe("onLinkClick", () => {
     let fakeWindow;
 
@@ -198,6 +260,10 @@ describe("<DSCard>", () => {
 
     it("should call dispatch with the correct events", () => {
       wrapper.setProps({ id: "fooidx", pos: 1, type: "foo" });
+
+      sandbox
+        .stub(wrapper.instance(), "doesLinkTopicMatchSelectedTopic")
+        .returns(undefined);
 
       wrapper.instance().onLinkClick();
 
@@ -217,6 +283,8 @@ describe("<DSCard>", () => {
             scheduled_corpus_item_id: undefined,
             recommended_at: undefined,
             received_rank: undefined,
+            topic: undefined,
+            matches_selected_topic: undefined,
           },
         })
       );
@@ -231,6 +299,7 @@ describe("<DSCard>", () => {
               pos: 1,
               type: "organic",
               recommendation_id: undefined,
+              topic: undefined,
             },
           ],
           window_inner_width: 1000,
@@ -241,7 +310,9 @@ describe("<DSCard>", () => {
 
     it("should set the right card_type on spocs", () => {
       wrapper.setProps({ id: "fooidx", pos: 1, type: "foo", flightId: 12345 });
-
+      sandbox
+        .stub(wrapper.instance(), "doesLinkTopicMatchSelectedTopic")
+        .returns(undefined);
       wrapper.instance().onLinkClick();
 
       assert.calledTwice(dispatch);
@@ -260,6 +331,8 @@ describe("<DSCard>", () => {
             scheduled_corpus_item_id: undefined,
             recommended_at: undefined,
             received_rank: undefined,
+            topic: undefined,
+            matches_selected_topic: undefined,
           },
         })
       );
@@ -274,6 +347,7 @@ describe("<DSCard>", () => {
               pos: 1,
               type: "spoc",
               recommendation_id: undefined,
+              topic: undefined,
             },
           ],
           window_inner_width: 1000,
@@ -292,6 +366,9 @@ describe("<DSCard>", () => {
         },
       });
 
+      sandbox
+        .stub(wrapper.instance(), "doesLinkTopicMatchSelectedTopic")
+        .returns(undefined);
       wrapper.instance().onLinkClick();
 
       assert.calledTwice(dispatch);
@@ -311,6 +388,8 @@ describe("<DSCard>", () => {
             scheduled_corpus_item_id: undefined,
             recommended_at: undefined,
             received_rank: undefined,
+            topic: undefined,
+            matches_selected_topic: undefined,
           },
         })
       );
@@ -326,6 +405,7 @@ describe("<DSCard>", () => {
               shim: "click shim",
               type: "organic",
               recommendation_id: undefined,
+              topic: undefined,
             },
           ],
           window_inner_width: 1000,
@@ -429,6 +509,11 @@ describe("<DSCard>", () => {
         type: "foo",
         fetchTimestamp: undefined,
       });
+
+      sandbox
+        .stub(wrapper.instance(), "doesLinkTopicMatchSelectedTopic")
+        .returns(undefined);
+
       wrapper.instance().onSaveClick();
 
       assert.calledThrice(dispatch);
@@ -454,6 +539,8 @@ describe("<DSCard>", () => {
             scheduled_corpus_item_id: undefined,
             recommended_at: undefined,
             received_rank: undefined,
+            topic: undefined,
+            matches_selected_topic: undefined,
           },
         })
       );
@@ -467,6 +554,7 @@ describe("<DSCard>", () => {
               id: "fooidx",
               pos: 1,
               recommendation_id: undefined,
+              topic: undefined,
             },
           ],
         })
@@ -527,8 +615,6 @@ describe("<DSCard>", () => {
       assert.calledThrice(dispatch);
 
       let [action] = dispatch.firstCall.args;
-
-      console.log(action);
 
       assert.equal(action.type, "TELEMETRY_IMPRESSION_STATS");
       assert.equal(action.data.source, "FOO");

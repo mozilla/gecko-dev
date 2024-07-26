@@ -15,6 +15,8 @@ const PREF_ONBOARDING_EXPERIENCE_DISMISSED =
   "discoverystream.onboardingExperience.dismissed";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
+const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
+const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const INTERSECTION_RATIO = 0.5;
 const VISIBLE = "visible";
 const VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -337,6 +339,8 @@ export class _CardGrid extends React.PureComponent {
       prefs[PREF_ONBOARDING_EXPERIENCE_DISMISSED];
     const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
     const showTopics = prefs[PREF_TOPICS_ENABLED];
+    const selectedTopics = prefs[PREF_TOPICS_SELECTED];
+    const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
 
     const recs = this.props.data.recommendations.slice(0, items);
     const cards = [];
@@ -360,6 +364,8 @@ export class _CardGrid extends React.PureComponent {
             title={rec.title}
             topic={rec.topic}
             showTopics={showTopics}
+            selectedTopics={selectedTopics}
+            availableTopics={availableTopics}
             excerpt={rec.excerpt}
             url={rec.url}
             id={rec.id}

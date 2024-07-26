@@ -101,6 +101,7 @@ export class ImpressionStats extends React.PureComponent {
             scheduled_corpus_item_id: link.scheduled_corpus_item_id,
             recommended_at: link.recommended_at,
             received_rank: link.received_rank,
+            topic: link.topic,
           })),
           firstVisibleTimestamp: this.props.firstVisibleTimestamp,
         })

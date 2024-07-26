@@ -115,6 +115,7 @@ const NEWTAB_PING_PREFS = {
   showSponsored: Glean.pocket.sponsoredStoriesEnabled,
   topSitesRows: Glean.topsites.rows,
   showWeather: Glean.newtab.weatherEnabled,
+  "discoverystream.topicSelection.selectedTopics": Glean.newtab.selectedTopics,
 };
 const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
 
@@ -727,6 +728,7 @@ export class TelemetryFeed {
           scheduled_corpus_item_id,
           received_rank,
           recommended_at,
+          matches_selected_topic,
         } = action.data.value ?? {};
         if (
           action.data.source === "POPULAR_TOPICS" ||
@@ -745,6 +747,8 @@ export class TelemetryFeed {
           Glean.pocket.click.record({
             newtab_visit_id: session.session_id,
             is_sponsored: card_type === "spoc",
+            matches_selected_topic,
+            topic,
             position: action.data.action_position,
             tile_id,
             ...(scheduled_corpus_item_id
@@ -782,6 +786,7 @@ export class TelemetryFeed {
           recommended_at,
           thumbs_up,
           thumbs_down,
+          topic,
         } = action.data.value ?? {};
         Glean.pocket.thumbVotingInteraction.record({
           newtab_visit_id: session.session_id,
@@ -797,6 +802,7 @@ export class TelemetryFeed {
               }),
           thumbs_up,
           thumbs_down,
+          topic,
         });
         break;
       }
@@ -811,10 +817,14 @@ export class TelemetryFeed {
           scheduled_corpus_item_id,
           received_rank,
           recommended_at,
+          topic,
+          matches_selected_topic,
         } = action.data.value ?? {};
         Glean.pocket.save.record({
           newtab_visit_id: session.session_id,
           is_sponsored: card_type === "spoc",
+          topic,
+          matches_selected_topic,
           position: action.data.action_position,
           tile_id,
           ...(scheduled_corpus_item_id
@@ -986,6 +996,11 @@ export class TelemetryFeed {
       case at.WEATHER_LOCATION_DATA_UPDATE:
         this.handleWeatherUserEvent(action);
         break;
+      case at.TOPIC_SELECTION_USER_OPEN:
+      case at.TOPIC_SELECTION_USER_DISMISS:
+      case at.TOPIC_SELECTION_USER_SAVE:
+        this.handleTopicSelectionUserEvent(action);
+        break;
       // The remaining action types come from ASRouter, which doesn't use
       // Actions from Actions.mjs, but uses these other custom strings.
       case msg.TOOLBAR_BADGE_TELEMETRY:
@@ -1008,17 +1023,40 @@ export class TelemetryFeed {
     }
   }
 
+  handleTopicSelectionUserEvent(action) {
+    const session = this.sessions.get(au.getPortIdOfSender(action));
+    if (session) {
+      switch (action.type) {
+        case "TOPIC_SELECTION_USER_OPEN":
+          Glean.newtab.topicSelectionOpen.record({
+            newtab_visit_id: session.session_id,
+          });
+          break;
+        case "TOPIC_SELECTION_USER_DISMISS":
+          Glean.newtab.topicSelectionDismiss.record({
+            newtab_visit_id: session.session_id,
+          });
+          break;
+        case "TOPIC_SELECTION_USER_SAVE":
+          Glean.newtab.topicSelectionTopicsSaved.record({
+            newtab_visit_id: session.session_id,
+            topics: action.data.topics,
+            previous_topics: action.data.previous_topics,
+            first_save: action.data.first_save,
+          });
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
   handleSetPref(action) {
-    const prefName = action.data.name;
-
-    // TODO: Migrate this event to handleWeatherUserEvent()
-    if (prefName === "weather.display") {
-      const session = this.sessions.get(au.getPortIdOfSender(action));
-
+    const session = this.sessions.get(au.getPortIdOfSender(action));
+    if (action.data.name === "weather.display") {
       if (!session) {
         return;
       }
-
       Glean.newtab.weatherChangeDisplay.record({
         newtab_visit_id: session.session_id,
         weather_display_mode: action.data.value,
@@ -1178,6 +1216,7 @@ export class TelemetryFeed {
         is_sponsored: tile.type === "spoc",
         position: tile.pos,
         tile_id: tile.id,
+        topic: tile.topic,
         ...(tile.scheduled_corpus_item_id
           ? {
               scheduled_corpus_item_id: tile.scheduled_corpus_item_id,

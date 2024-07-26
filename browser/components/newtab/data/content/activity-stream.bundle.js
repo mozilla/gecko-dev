@@ -218,6 +218,9 @@ for (const type of [
   "TELEMETRY_IMPRESSION_STATS",
   "TELEMETRY_USER_EVENT",
   "TOPIC_SELECTION_SPOTLIGHT_TOGGLE",
+  "TOPIC_SELECTION_USER_DISMISS",
+  "TOPIC_SELECTION_USER_OPEN",
+  "TOPIC_SELECTION_USER_SAVE",
   "TOP_SITES_CANCEL_EDIT",
   "TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL",
   "TOP_SITES_EDIT",
@@ -2199,7 +2202,8 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
           fetchTimestamp: link.fetchTimestamp,
           scheduled_corpus_item_id: link.scheduled_corpus_item_id,
           recommended_at: link.recommended_at,
-          received_rank: link.received_rank
+          received_rank: link.received_rank,
+          topic: link.topic
         })),
         firstVisibleTimestamp: this.props.firstVisibleTimestamp
       }));
@@ -2874,6 +2878,7 @@ class _DSCard extends (external_React_default()).PureComponent {
   constructor(props) {
     super(props);
     this.onLinkClick = this.onLinkClick.bind(this);
+    this.doesLinkTopicMatchSelectedTopic = this.doesLinkTopicMatchSelectedTopic.bind(this);
     this.onSaveClick = this.onSaveClick.bind(this);
     this.onMenuUpdate = this.onMenuUpdate.bind(this);
     this.onMenuShow = this.onMenuShow.bind(this);
@@ -2919,7 +2924,23 @@ class _DSCard extends (external_React_default()).PureComponent {
       height: 101
     }];
   }
+  doesLinkTopicMatchSelectedTopic() {
+    // Edge case for clicking on a card when topic selections have not be set
+    if (this.props.selectedTopics === "") {
+      return "not-set";
+    }
+
+    // Edge case the topic of the card is not one of the available topics
+    if (!this.props.availableTopics.includes(this.props.topic)) {
+      return "topic-not-selectable";
+    }
+    if (this.props.selectedTopics.includes(this.props.topic)) {
+      return "true";
+    }
+    return "false";
+  }
   onLinkClick() {
+    const matchesSelectedTopic = this.doesLinkTopicMatchSelectedTopic();
     if (this.props.dispatch) {
       this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: "CLICK",
@@ -2936,7 +2957,9 @@ class _DSCard extends (external_React_default()).PureComponent {
           firstVisibleTimestamp: this.props.firstVisibleTimestamp,
           scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
           recommended_at: this.props.recommended_at,
-          received_rank: this.props.received_rank
+          received_rank: this.props.received_rank,
+          topic: this.props.topic,
+          matches_selected_topic: matchesSelectedTopic
         }
       }));
       this.props.dispatch(actionCreators.ImpressionStats({
@@ -2951,12 +2974,14 @@ class _DSCard extends (external_React_default()).PureComponent {
             shim: this.props.shim.click
           } : {}),
           type: this.props.flightId ? "spoc" : "organic",
-          recommendation_id: this.props.recommendation_id
+          recommendation_id: this.props.recommendation_id,
+          topic: this.props.topic
         }]
       }));
     }
   }
   onSaveClick() {
+    const matchesSelectedTopic = this.doesLinkTopicMatchSelectedTopic();
     if (this.props.dispatch) {
       this.props.dispatch(actionCreators.AlsoToMain({
         type: actionTypes.SAVE_TO_POCKET,
@@ -2982,7 +3007,9 @@ class _DSCard extends (external_React_default()).PureComponent {
           firstVisibleTimestamp: this.props.firstVisibleTimestamp,
           scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
           recommended_at: this.props.recommended_at,
-          received_rank: this.props.received_rank
+          received_rank: this.props.received_rank,
+          topic: this.props.topic,
+          matches_selected_topic: matchesSelectedTopic
         }
       }));
       this.props.dispatch(actionCreators.ImpressionStats({
@@ -2994,7 +3021,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           ...(this.props.shim && this.props.shim.save ? {
             shim: this.props.shim.save
           } : {}),
-          recommendation_id: this.props.recommendation_id
+          recommendation_id: this.props.recommendation_id,
+          topic: this.props.topic
         }]
       }));
     }
@@ -3022,7 +3050,8 @@ class _DSCard extends (external_React_default()).PureComponent {
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
         thumbs_up: true,
-        thumbs_down: false
+        thumbs_down: false,
+        topic: this.props.topic
       }
     }));
 
@@ -3086,7 +3115,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           recommended_at: this.props.recommended_at,
           received_rank: this.props.received_rank,
           thumbs_up: false,
-          thumbs_down: true
+          thumbs_down: true,
+          topic: this.props.topic
         }
       }));
 
@@ -3259,7 +3289,8 @@ class _DSCard extends (external_React_default()).PureComponent {
         fetchTimestamp: this.props.fetchTimestamp,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
-        received_rank: this.props.received_rank
+        received_rank: this.props.received_rank,
+        topic: this.props.topic
       }],
       dispatch: this.props.dispatch,
       source: this.props.type,
@@ -3597,6 +3628,8 @@ const TopicsWidget = (0,external_ReactRedux_namespaceObject.connect)(state => ({
 const PREF_ONBOARDING_EXPERIENCE_DISMISSED = "discoverystream.onboardingExperience.dismissed";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
+const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
+const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
 const CardGrid_VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -3871,6 +3904,8 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const isOnboardingExperienceDismissed = prefs[PREF_ONBOARDING_EXPERIENCE_DISMISSED];
     const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
     const showTopics = prefs[PREF_TOPICS_ENABLED];
+    const selectedTopics = prefs[PREF_TOPICS_SELECTED];
+    const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
     const recs = this.props.data.recommendations.slice(0, items);
     const cards = [];
     let essentialReadsCards = [];
@@ -3890,6 +3925,8 @@ class _CardGrid extends (external_React_default()).PureComponent {
         title: rec.title,
         topic: rec.topic,
         showTopics: showTopics,
+        selectedTopics: selectedTopics,
+        availableTopics: availableTopics,
         excerpt: rec.excerpt,
         url: rec.url,
         id: rec.id,
@@ -4306,6 +4343,9 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
     });
   }
   handleTopicSelectionButtonClick() {
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.TOPIC_SELECTION_USER_OPEN
+    }));
     this.props.dispatch(actionCreators.AlsoToMain({
       type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE
     }));
@@ -10607,12 +10647,25 @@ function TopicSelection() {
   const checkboxWrapperRef = (0,external_React_namespaceObject.useRef)(null);
   const topics = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.topics"]).split(", ");
   const selectedTopics = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.selectedTopics"]);
+  const topicsHaveBeenPreviouslySet = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.hasBeenUpdatedPreviously"]);
+  function isFirstSave() {
+    // Only return true if the user has not previous set prefs
+    // and the selected topics pref is empty
+    if (selectedTopics === "" && !topicsHaveBeenPreviouslySet) {
+      dispatch(actionCreators.SetPref("discoverystream.topicSelection.hasBeenUpdatedPreviously", true));
+      return true;
+    }
+    return false;
+  }
   const suggestedTopics = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.suggestedTopics"]).split(", ");
 
   // TODO: only show suggested topics during the first run
   // if selectedTopics is empty - default to using the suggestedTopics as a starting value
   const [topicsToSelect, setTopicsToSelect] = (0,external_React_namespaceObject.useState)(selectedTopics ? selectedTopics.split(", ") : suggestedTopics);
   function handleModalClose() {
+    dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.TOPIC_SELECTION_USER_DISMISS
+    }));
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE
     }));
@@ -10675,8 +10728,19 @@ function TopicSelection() {
     }
   }
   function handleSubmit() {
-    dispatch(actionCreators.SetPref("discoverystream.topicSelection.selectedTopics", topicsToSelect.join(", ")));
-    handleModalClose();
+    const topicsString = topicsToSelect.join(", ");
+    dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.TOPIC_SELECTION_USER_SAVE,
+      data: {
+        topics: topicsString,
+        previous_topics: selectedTopics,
+        first_save: isFirstSave()
+      }
+    }));
+    dispatch(actionCreators.SetPref("discoverystream.topicSelection.selectedTopics", topicsString));
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE
+    }));
   }
   return /*#__PURE__*/external_React_default().createElement(ModalOverlayWrapper, {
     onClose: handleModalClose,

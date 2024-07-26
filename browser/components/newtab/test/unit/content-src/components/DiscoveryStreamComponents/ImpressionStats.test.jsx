@@ -145,6 +145,7 @@ describe("<ImpressionStats>", () => {
         scheduled_corpus_item_id: undefined,
         recommended_at: undefined,
         received_rank: undefined,
+        topic: undefined,
       },
       {
         id: 2,
@@ -155,6 +156,7 @@ describe("<ImpressionStats>", () => {
         scheduled_corpus_item_id: undefined,
         recommended_at: undefined,
         received_rank: undefined,
+        topic: undefined,
       },
       {
         id: 3,
@@ -165,6 +167,7 @@ describe("<ImpressionStats>", () => {
         scheduled_corpus_item_id: undefined,
         recommended_at: undefined,
         received_rank: undefined,
+        topic: undefined,
       },
     ]);
     assert.equal(
@@ -254,6 +257,7 @@ describe("<ImpressionStats>", () => {
         recommended_at: undefined,
         received_rank: undefined,
         fetchTimestamp: TEST_FETCH_TIMESTAMP,
+        topic: undefined,
       },
       {
         id: 2,
@@ -264,6 +268,7 @@ describe("<ImpressionStats>", () => {
         recommended_at: undefined,
         received_rank: undefined,
         fetchTimestamp: TEST_FETCH_TIMESTAMP,
+        topic: undefined,
       },
       {
         id: 3,
@@ -274,6 +279,7 @@ describe("<ImpressionStats>", () => {
         recommended_at: undefined,
         received_rank: undefined,
         fetchTimestamp: TEST_FETCH_TIMESTAMP,
+        topic: undefined,
       },
     ]);
     assert.equal(

@@ -556,6 +556,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.topicSelection.hasBeenUpdatedPreviously",
+    {
+      title: "Returns true only if the user has previously selected topics",
+      value: false,
+    },
+  ],
+  [
     "discoverystream.topicLabels.enabled",
     {
       title: "Enables topic labels for discovery stream",

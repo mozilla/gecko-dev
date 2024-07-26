@@ -47,6 +47,29 @@ function TopicSelection() {
   const selectedTopics = useSelector(
     state => state.Prefs.values["discoverystream.topicSelection.selectedTopics"]
   );
+  const topicsHaveBeenPreviouslySet = useSelector(
+    state =>
+      state.Prefs.values[
+        "discoverystream.topicSelection.hasBeenUpdatedPreviously"
+      ]
+  );
+
+  function isFirstSave() {
+    // Only return true if the user has not previous set prefs
+    // and the selected topics pref is empty
+    if (selectedTopics === "" && !topicsHaveBeenPreviouslySet) {
+      dispatch(
+        ac.SetPref(
+          "discoverystream.topicSelection.hasBeenUpdatedPreviously",
+          true
+        )
+      );
+      return true;
+    }
+
+    return false;
+  }
+
   const suggestedTopics = useSelector(
     state =>
       state.Prefs.values["discoverystream.topicSelection.suggestedTopics"]
@@ -59,6 +82,7 @@ function TopicSelection() {
   );
 
   function handleModalClose() {
+    dispatch(ac.OnlyToMain({ type: at.TOPIC_SELECTION_USER_DISMISS }));
     dispatch(ac.AlsoToMain({ type: at.TOPIC_SELECTION_SPOTLIGHT_TOGGLE }));
   }
 
@@ -139,13 +163,22 @@ function TopicSelection() {
   }
 
   function handleSubmit() {
+    const topicsString = topicsToSelect.join(", ");
     dispatch(
-      ac.SetPref(
-        "discoverystream.topicSelection.selectedTopics",
-        topicsToSelect.join(", ")
-      )
+      ac.OnlyToMain({
+        type: at.TOPIC_SELECTION_USER_SAVE,
+        data: {
+          topics: topicsString,
+          previous_topics: selectedTopics,
+          first_save: isFirstSave(),
+        },
+      })
     );
-    handleModalClose();
+
+    dispatch(
+      ac.SetPref("discoverystream.topicSelection.selectedTopics", topicsString)
+    );
+    dispatch(ac.AlsoToMain({ type: at.TOPIC_SELECTION_SPOTLIGHT_TOGGLE }));
   }
 
   return (

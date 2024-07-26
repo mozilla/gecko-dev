@@ -50,6 +50,7 @@ export class _CollapsibleSection extends React.PureComponent {
   }
 
   handleTopicSelectionButtonClick() {
+    this.props.dispatch(ac.OnlyToMain({ type: at.TOPIC_SELECTION_USER_OPEN }));
     this.props.dispatch(
       ac.AlsoToMain({ type: at.TOPIC_SELECTION_SPOTLIGHT_TOGGLE })
     );
