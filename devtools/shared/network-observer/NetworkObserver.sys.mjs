@@ -350,6 +350,10 @@ export class NetworkObserver {
       // callbacks on the network event owner.
       const httpActivity = this.#createOrGetActivityObject(channel);
       this.#createNetworkEvent(httpActivity);
+
+      // Handle overrides in http-on-before-connect because we need to redirect
+      // the request to the override before reaching the server.
+      this.#checkForContentOverride(channel);
     }
   );
 
@@ -462,8 +466,6 @@ export class NetworkObserver {
           ? "blockedOrFailed:" + channel.loadInfo.requestBlockingReason
           : channel.responseStatus
       );
-
-      this.#checkForContentOverride(channel);
 
       channel.QueryInterface(Ci.nsIHttpChannelInternal);
 
