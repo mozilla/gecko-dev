@@ -77,7 +77,7 @@ test_registration.html
 ::
 
  --perfherder
- --perfherder-metrics name:Registration,unit:ms,shouldAlert:True, name:Activation,unit:ms,shouldAlert:True, name:Unregistration,unit:ms,shouldAlert:True
+ --perfherder-metrics name:Registration,unit:ms,shouldAlert:True, name:Registration Internals,unit:ms,shouldAlert:True, name:Activation,unit:ms,shouldAlert:True, name:Unregistration,unit:ms,shouldAlert:True
  --verbose
  --manifest perftest.toml
  --manifest-flavor plain

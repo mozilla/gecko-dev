@@ -10,5 +10,8 @@ support-files = [
 ]
 
 ["test_caching.html"]
+
 ["test_fetch.html"]
+
 ["test_registration.html"]
+skip-if = ["tsan"] # 1885378

@@ -41,6 +41,28 @@ There's currently a `bug <https://bugzilla.mozilla.org/show_bug.cgi?id=1872613>`
 which will likely cause the command to fail.  Running it a second time should
 succeed.
 
+Profiler Markers
+================
+
+Profiler markers can be used to collect timing data.  Markers of known name can be inspected from the perftest.  AUTO_PROFILER_MARKER_TEXT must be used, as we need both the start-time and end-time of the marker.  For example:
+
+.. code-block:: cpp
+
+ AUTO_PROFILER_MARKER_TEXT("interesting thing #1", DOM, {}, ""_ns);
+ AUTO_PROFILER_MARKER_TEXT("interesting thing #2", DOM, {}, ""_ns);
+
+can be inspected from the perftest:
+
+.. code-block:: js
+
+ await startProfiler();
+ interestingThings();
+ let pdata = await stopProfiler();
+ let duration_ms = inspectProfile(pdata, [
+     "interesting thing #1",
+     "interesting thing #2"
+ ]);
+
 Staging tests in try jobs
 =========================
 
@@ -66,5 +88,5 @@ These symbol names are defined in the .yml files under taskcluster/kinds/perftes
 
 Contacts
 ========
-| `Joshua Marshall <https://people.mozilla.org/p/jmarshall>`_   (DOM LWS)
+| DOM LWS
 | `Gregory Mierzwinski <https://people.mozilla.org/p/sparky>`_  (Performance Tools)
