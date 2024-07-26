@@ -3694,6 +3694,13 @@ void MacroAssemblerARMCompat::ceilf(FloatRegister input, Register output,
   bind(&fin);
 }
 
+void MacroAssemblerARMCompat::mov(CodeLabel* label, Register dest) {
+  BufferOffset bo =
+      ma_movPatchable(ImmPtr(/* placeholder */ nullptr), dest, Always);
+  label->patchAt()->bind(bo.getOffset());
+  label->setLinkMode(CodeLabel::MoveImmediate);
+}
+
 CodeOffset MacroAssemblerARMCompat::toggledJump(Label* label) {
   // Emit a B that can be toggled to a CMP. See ToggleToJmp(), ToggleToCmp().
   BufferOffset b = ma_b(label, Always);

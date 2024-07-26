@@ -36,7 +36,7 @@
 
 #if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || \
     defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_LOONG64) || \
-    defined(JS_CODEGEN_RISCV64)
+    defined(JS_CODEGEN_RISCV64) || defined(JS_CODEGEN_ARM)
 // JS_CODELABEL_LINKMODE gives labels additional metadata
 // describing how Bind() should patch them.
 #  define JS_CODELABEL_LINKMODE

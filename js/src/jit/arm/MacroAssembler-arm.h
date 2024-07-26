@@ -637,6 +637,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
   void mov(ImmPtr imm, Register dest) {
     mov(ImmWord(uintptr_t(imm.value)), dest);
   }
+  void mov(CodeLabel* label, Register dest);
 
   void branch(JitCode* c) {
     BufferOffset bo = m_buffer.nextOffset();

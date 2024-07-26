@@ -747,9 +747,21 @@ void Assembler::writeCodePointer(CodeLabel* label) {
 }
 
 void Assembler::Bind(uint8_t* rawCode, const CodeLabel& label) {
+  auto mode = label.linkMode();
   size_t offset = label.patchAt().offset();
   size_t target = label.target().offset();
-  *reinterpret_cast<const void**>(rawCode + offset) = rawCode + target;
+
+  if (mode == CodeLabel::MoveImmediate) {
+    uint32_t imm = uint32_t(rawCode + target);
+    Instruction* inst = (Instruction*)(rawCode + offset);
+    if (HasMOVWT()) {
+      Assembler::PatchMovwt(inst, imm);
+    } else {
+      Assembler::WritePoolEntry(inst, Always, imm);
+    }
+  } else {
+    *reinterpret_cast<const void**>(rawCode + offset) = rawCode + target;
+  }
 }
 
 Assembler::Condition Assembler::InvertCondition(Condition cond) {
@@ -1331,6 +1343,23 @@ BufferOffset Assembler::as_movt(Register dest, Imm16 imm, Condition c) {
 void Assembler::as_movt_patch(Register dest, Imm16 imm, Condition c,
                               Instruction* pos) {
   WriteInstStatic(EncodeMovT(dest, imm, c), (uint32_t*)pos);
+}
+
+void Assembler::PatchMovwt(Instruction* addr, uint32_t imm) {
+  InstructionIterator iter(addr);
+  Instruction* movw = iter.cur();
+  MOZ_ASSERT(movw->is<InstMovW>());
+  Instruction* movt = iter.next();
+  MOZ_ASSERT(movt->is<InstMovT>());
+
+  Register dest = toRD(*movw);
+  Condition c = movw->extractCond();
+  MOZ_ASSERT(toRD(*movt) == dest && movt->extractCond() == c);
+
+  Assembler::WriteInstStatic(EncodeMovW(dest, Imm16(imm & 0xffff), c),
+                             (uint32_t*)movw);
+  Assembler::WriteInstStatic(EncodeMovT(dest, Imm16(imm >> 16 & 0xffff), c),
+                             (uint32_t*)movt);
 }
 
 static const int mull_tag = 0x90;

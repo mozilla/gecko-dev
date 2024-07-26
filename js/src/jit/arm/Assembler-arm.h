@@ -1678,12 +1678,14 @@ class Assembler : public AssemblerShared {
   // Label operations.
   bool nextLink(BufferOffset b, BufferOffset* next);
   void bind(Label* label, BufferOffset boff = BufferOffset());
+  void bind(CodeLabel* label) { label->target()->bind(currentOffset()); }
   uint32_t currentOffset() { return nextOffset().getOffset(); }
   void retarget(Label* label, Label* target);
   // I'm going to pretend this doesn't exist for now.
   void retarget(Label* label, void* target, RelocationKind reloc);
 
   static void Bind(uint8_t* rawCode, const CodeLabel& label);
+  static void PatchMovwt(Instruction* addr, uint32_t imm);
 
   void as_bkpt();
   BufferOffset as_illegal_trap();
