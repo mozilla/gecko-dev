@@ -129,14 +129,17 @@ let SyncedTabsInternal = {
     return tabs;
   },
 
+  // Filter out any tabs with duplicate URLs preserving
+  // the duplicate with the most recent lastUsed value
   _filterRecentTabsDupes(tabs) {
-    // Filter out any tabs with duplicate URLs preserving
-    // the duplicate with the most recent lastUsed value
-    return tabs.filter(tab => {
-      return !tabs.some(t => {
-        return t.url === tab.url && tab.lastUsed < t.lastUsed;
-      });
-    });
+    const tabMap = new Map();
+    for (const tab of tabs) {
+      const existingTab = tabMap.get(tab.url);
+      if (!existingTab || tab.lastUsed > existingTab.lastUsed) {
+        tabMap.set(tab.url, tab);
+      }
+    }
+    return Array.from(tabMap.values());
   },
 
   async getTabClients(filter) {
@@ -199,6 +202,10 @@ let SyncedTabsInternal = {
         }
         clientRepr.tabs.push(tabRepr);
       }
+
+      // Filter out duplicate tabs based on URL
+      clientRepr.tabs = this._filterRecentTabsDupes(clientRepr.tabs);
+
       // We return all clients, even those without tabs - the consumer should
       // filter it if they care.
       ntabs += clientRepr.tabs.length;

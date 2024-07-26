@@ -637,13 +637,17 @@ add_task(async function search_synced_tabs_recent_browsing() {
       type: "client",
       name: "My desktop",
       clientType: "desktop",
-      tabs: Array(NUMBER_OF_TABS).fill({
-        type: "tab",
-        title: "Internet for people, not profits - Mozilla",
-        url: "https://www.mozilla.org/",
-        icon: "https://www.mozilla.org/media/img/favicons/mozilla/favicon.d25d81d39065.ico",
-        client: 1,
-      }),
+      tabs: Array(NUMBER_OF_TABS)
+        .fill()
+        .map((_, i) => {
+          return {
+            type: "tab",
+            title: "Internet for people, not profits - Mozilla",
+            url: `https://www.mozilla.org/${i}`,
+            icon: "https://www.mozilla.org/media/img/favicons/mozilla/favicon.d25d81d39065.ico",
+            client: 1,
+          };
+        }),
     },
     {
       id: 2,
