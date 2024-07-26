@@ -1248,22 +1248,36 @@ interface nsIDOMWindowUtils : nsISupports {
   [implicit_jscontext] string getClassName(in jsval aObject);
 
   /**
+   * If sendContentCommanedEvent()'s aAdditionalFlags argument has no
+   * CONTENT_COMMAND_FLAG_PREVENT_SET_SELECTION, after executing replaceText,
+   * selection is next of replaced text. If set this with aReplaceSrcString,
+   * we keeps selection position if selection isn't into replaced text.
+   */
+  const unsigned long CONTENT_COMMAND_FLAG_PREVENT_SET_SELECTION = 0x0002;
+
+  /**
    * Generate a content command event.
    *
    * Cannot be accessed from unprivileged context (not content-accessible)
    * Will throw a DOM security error if called without chrome privileges.
    *
    * @param aType Type of command content event to send.  Can be one of "cut",
-   *        "copy", "paste", "delete", "undo", "redo", "insertText" or
-   *        "pasteTransferable".
+   *        "copy", "paste", "delete", "undo", "redo", "insertText",
+   *        "pasteTransferable", or "replaceText"
    * @param aTransferable an instance of nsITransferable when aType is
    *        "pasteTransferable"
    * @param aString The string to be inserted into focused editor when aType is
-   *        "insertText"
+   *        "insertText" or "replaceText"
+   * @Param aOffset The relative to start of selection
+   * @param aReplaceSrcString the source string of replaceText. If not matched, do nothing.
+   * @param aAdditionalFlags See the description of CONTENT_COMMAND_FLAG_*.
    */
   void sendContentCommandEvent(in AString aType,
                                [optional] in nsITransferable aTransferable,
-                               [optional] in AString aString);
+                               [optional] in AString aString,
+                               [optional] in uint32_t aOffset,
+                               [optional] in AString aReplaceSrcString,
+                               [optional] in unsigned long aAdditionalFlags);
 
   /**
    * If sendQueryContentEvent()'s aAdditionalFlags argument is

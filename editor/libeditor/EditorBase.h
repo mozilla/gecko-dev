@@ -703,6 +703,11 @@ class EditorBase : public nsIEditor,
     Yes,
   };
 
+  enum class PreventSetSelection {
+    No,
+    Yes,
+  };
+
   /**
    * Replace text in aReplaceRange or all text in this editor with aString and
    * treat the change as inserting the string.
@@ -715,6 +720,10 @@ class EditorBase : public nsIEditor,
    * @param aAllowBeforeInputEventCancelable
    *                            Whether `beforeinput` event which will be
    *                            dispatched for this can be cancelable or not.
+   * @param aPreventSetSelection
+   *                            Whether setting selection after replacing text.
+   *                            If No, selection is the tail of replaced text.
+   *                            If Yes, selection isn't changed.
    * @param aPrincipal          Set subject principal if it may be called by
    *                            JS.  If set to nullptr, will be treated as
    *                            called by system.
@@ -722,6 +731,7 @@ class EditorBase : public nsIEditor,
   MOZ_CAN_RUN_SCRIPT nsresult ReplaceTextAsAction(
       const nsAString& aString, nsRange* aReplaceRange,
       AllowBeforeInputEventCancelable aAllowBeforeInputEventCancelable,
+      PreventSetSelection aPreventSetSelection = PreventSetSelection::No,
       nsIPrincipal* aPrincipal = nullptr);
 
   /**
@@ -1396,7 +1406,7 @@ class EditorBase : public nsIEditor,
     // the DOM tree.  In such case, we need to handle edit action separately.
     AutoEditActionDataSetter* mParentData;
 
-    // Cached selection for HTMLEditor::AutoSelectionRestorer.
+    // Cached selection for AutoSelectionRestorer.
     SelectionState mSavedSelection;
 
     // Utility class object for maintaining preserved ranges.
@@ -1600,15 +1610,13 @@ class EditorBase : public nsIEditor,
 
   /**
    * SavedSelection() returns reference to saved selection which are
-   * stored by HTMLEditor::AutoSelectionRestorer.
+   * stored by AutoSelectionRestorer.
    */
   SelectionState& SavedSelectionRef() {
-    MOZ_ASSERT(IsHTMLEditor());
     MOZ_ASSERT(IsEditActionDataAvailable());
     return mEditActionData->SavedSelectionRef();
   }
   const SelectionState& SavedSelectionRef() const {
-    MOZ_ASSERT(IsHTMLEditor());
     MOZ_ASSERT(IsEditActionDataAvailable());
     return mEditActionData->SavedSelectionRef();
   }
@@ -2167,6 +2175,15 @@ class EditorBase : public nsIEditor,
    */
   enum class SafeToInsertData : bool { No, Yes };
   SafeToInsertData IsSafeToInsertData(nsIPrincipal* aSourcePrincipal) const;
+
+  /**
+   * Routines for managing the preservation of selection across
+   * various editor actions.
+   */
+  bool ArePreservingSelection() const;
+  void PreserveSelectionAcrossActions();
+  MOZ_CAN_RUN_SCRIPT nsresult RestorePreservedSelection();
+  void StopPreservingSelection();
 
  protected:  // Called by helper classes.
   /**
@@ -2954,8 +2971,9 @@ class EditorBase : public nsIEditor,
   friend class AlignStateAtSelection;  // AutoEditActionDataSetter,
                                        // ToGenericNSResult
   friend class AutoRangeArray;  // IsSEditActionDataAvailable, SelectionRef
-  friend class CaretPoint;      // AllowsTransactionsToChangeSelection,
-                                // CollapseSelectionTo
+  friend class AutoSelectionRestorer;   // RangeUpdaterRef, SavedSelectionRef
+  friend class CaretPoint;              // AllowsTransactionsToChangeSelection,
+                                        // CollapseSelectionTo
   friend class CompositionTransaction;  // CollapseSelectionTo, DoDeleteText,
                                         // DoInsertText, DoReplaceText,
                                         // HideCaret, RangeupdaterRef

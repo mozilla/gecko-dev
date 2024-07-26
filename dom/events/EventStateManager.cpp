@@ -1292,6 +1292,9 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     case eContentCommandInsertText:
       DoContentCommandInsertTextEvent(aEvent->AsContentCommandEvent());
       break;
+    case eContentCommandReplaceText:
+      DoContentCommandReplaceTextEvent(aEvent->AsContentCommandEvent());
+      break;
     case eContentCommandScroll:
       DoContentCommandScrollEvent(aEvent->AsContentCommandEvent());
       break;
@@ -6844,6 +6847,85 @@ nsresult EventStateManager::DoContentCommandInsertTextEvent(
   nsresult rv = activeEditor->InsertTextAsAction(aEvent->mString.ref());
   aEvent->mIsEnabled = rv != NS_SUCCESS_DOM_NO_OPERATION;
   aEvent->mSucceeded = NS_SUCCEEDED(rv);
+  return NS_OK;
+}
+
+nsresult EventStateManager::DoContentCommandReplaceTextEvent(
+    WidgetContentCommandEvent* aEvent) {
+  MOZ_ASSERT(aEvent);
+  MOZ_ASSERT(aEvent->mMessage == eContentCommandReplaceText);
+  MOZ_DIAGNOSTIC_ASSERT(aEvent->mString.isSome());
+  MOZ_DIAGNOSTIC_ASSERT(!aEvent->mString.ref().IsEmpty());
+
+  aEvent->mIsEnabled = false;
+  aEvent->mSucceeded = false;
+
+  NS_ENSURE_TRUE(mPresContext, NS_ERROR_NOT_AVAILABLE);
+
+  if (XRE_IsParentProcess()) {
+    // Handle it in focused content process if there is.
+    if (BrowserParent* remote = BrowserParent::GetFocused()) {
+      Unused << remote->SendReplaceText(
+          aEvent->mSelection.mReplaceSrcString, aEvent->mString.ref(),
+          aEvent->mSelection.mOffset, aEvent->mSelection.mPreventSetSelection);
+      aEvent->mIsEnabled = true;  // XXX it can be a lie...
+      aEvent->mSucceeded = true;
+      return NS_OK;
+    }
+  }
+
+  // If there is no active editor in this process, we should treat the command
+  // is disabled.
+  RefPtr<EditorBase> activeEditor =
+      nsContentUtils::GetActiveEditor(mPresContext);
+  if (NS_WARN_IF(!activeEditor)) {
+    aEvent->mSucceeded = true;
+    return NS_OK;
+  }
+
+  RefPtr<TextComposition> composition =
+      IMEStateManager::GetTextCompositionFor(mPresContext);
+  if (NS_WARN_IF(composition)) {
+    // We don't support replace text action during composition.
+    aEvent->mSucceeded = true;
+    return NS_OK;
+  }
+
+  ContentEventHandler handler(mPresContext);
+  RefPtr<nsRange> range = handler.GetRangeFromFlatTextOffset(
+      aEvent, aEvent->mSelection.mOffset,
+      aEvent->mSelection.mReplaceSrcString.Length());
+  if (NS_WARN_IF(!range)) {
+    aEvent->mSucceeded = false;
+    return NS_OK;
+  }
+
+  // If original replacement text isn't matched with selection text, throws
+  // error.
+  nsAutoString targetStr;
+  nsresult rv = handler.GenerateFlatTextContent(range, targetStr);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aEvent->mSucceeded = false;
+    return NS_OK;
+  }
+  if (!aEvent->mSelection.mReplaceSrcString.Equals(targetStr)) {
+    aEvent->mSucceeded = false;
+    return NS_OK;
+  }
+
+  rv = activeEditor->ReplaceTextAsAction(
+      aEvent->mString.ref(), range,
+      TextEditor::AllowBeforeInputEventCancelable::Yes,
+      aEvent->mSelection.mPreventSetSelection
+          ? EditorBase::PreventSetSelection::Yes
+          : EditorBase::PreventSetSelection::No);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aEvent->mSucceeded = false;
+    return NS_OK;
+  }
+
+  aEvent->mIsEnabled = rv != NS_SUCCESS_DOM_NO_OPERATION;
+  aEvent->mSucceeded = true;
   return NS_OK;
 }
 

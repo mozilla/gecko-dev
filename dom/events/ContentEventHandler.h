@@ -365,6 +365,14 @@ class MOZ_STACK_CLASS ContentEventHandler {
 
   static uint32_t GetNativeTextLength(const nsAString& aText);
 
+  // Get the range between start offset and end offset
+  MOZ_CAN_RUN_SCRIPT
+  already_AddRefed<nsRange> GetRangeFromFlatTextOffset(
+      WidgetContentCommandEvent* aEvent, uint32_t aOffset, uint32_t aLength);
+
+  // Get the contents of aRange as plain text.
+  nsresult GenerateFlatTextContent(const nsRange* aRange, nsString& aString);
+
  protected:
   // Get the text length of aTextNode.
   static uint32_t GetTextLength(const dom::Text& aTextNode,

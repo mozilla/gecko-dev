@@ -86,6 +86,7 @@ class SelectionState;              // mozilla/SelectionState.h
 class TextEditor;                  // mozilla/TextEditor.h
 
 class AutoRangeArray;                   // AutoRangeArray.h
+class AutoSelectionRestorer;            // AutoSelectionRestorer.h
 class AutoSelectionRangeArray;          // EditorUtils.h
 class CaretPoint;                       // EditorUtils.h
 class ChangeAttributeTransaction;       // ChangeAttributeTransaction.h

@@ -9,6 +9,7 @@
 #include <string.h>  // for strcmp
 
 #include "AutoRangeArray.h"  // for AutoRangeArray
+#include "AutoSelectionRestorer.h"
 #include "ChangeAttributeTransaction.h"
 #include "CompositionTransaction.h"
 #include "DeleteContentTransactionBase.h"
@@ -58,6 +59,7 @@
 #include "mozilla/Preferences.h"            // for Preferences
 #include "mozilla/PresShell.h"              // for PresShell
 #include "mozilla/RangeBoundary.h"       // for RawRangeBoundary, RangeBoundary
+#include "mozilla/ScopeExit.h"           // for MakeScopeExit
 #include "mozilla/Services.h"            // for GetObserverService
 #include "mozilla/StaticPrefs_bidi.h"    // for StaticPrefs::bidi_*
 #include "mozilla/StaticPrefs_dom.h"     // for StaticPrefs::dom_*
@@ -5370,7 +5372,7 @@ nsresult EditorBase::OnInputText(const nsAString& aStringToInsert) {
 nsresult EditorBase::ReplaceTextAsAction(
     const nsAString& aString, nsRange* aReplaceRange,
     AllowBeforeInputEventCancelable aAllowBeforeInputEventCancelable,
-    nsIPrincipal* aPrincipal) {
+    PreventSetSelection aPreventSetSelection, nsIPrincipal* aPrincipal) {
   MOZ_ASSERT(aString.FindChar(nsCRT::CR) == kNotFound);
   MOZ_ASSERT_IF(!aReplaceRange, IsTextEditor());
 
@@ -5458,9 +5460,25 @@ nsresult EditorBase::ReplaceTextAsAction(
   // shouldn't receive such selectionchange before the first mutation.
   AutoUpdateViewBatch preventSelectionChangeEvent(*this, __FUNCTION__);
 
+  ErrorResult error;
+
+  AutoSelectionRestorer restorer(
+      aPreventSetSelection == PreventSetSelection::Yes ? this : nullptr);
+
+  auto raii = MakeScopeExit([&] {
+    if (aPreventSetSelection == PreventSetSelection::Yes) {
+      if (error.Failed()) {
+        restorer.Abort();
+        return;
+      }
+      if (NS_FAILED(rv)) {
+        restorer.Abort();
+      }
+    }
+  });
+
   // Select the range but as far as possible, we should not create new range
   // even if it's part of special Selection.
-  ErrorResult error;
   SelectionRef().RemoveAllRanges(error);
   if (error.Failed()) {
     NS_WARNING("Selection::RemoveAllRanges() failed");
@@ -5476,6 +5494,7 @@ nsresult EditorBase::ReplaceTextAsAction(
   rv = ReplaceSelectionAsSubAction(aString);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::ReplaceSelectionAsSubAction() failed");
+
   return EditorBase::ToGenericNSResult(rv);
 }
 
@@ -7108,6 +7127,41 @@ nsISelectionController* EditorBase::GetSelectionController() const {
     return nullptr;
   }
   return mDocument->GetPresShell();
+}
+
+bool EditorBase::ArePreservingSelection() const {
+  return IsEditActionDataAvailable() && SavedSelectionRef().RangeCount();
+}
+
+void EditorBase::PreserveSelectionAcrossActions() {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  SavedSelectionRef().SaveSelection(SelectionRef());
+  RangeUpdaterRef().RegisterSelectionState(SavedSelectionRef());
+}
+
+nsresult EditorBase::RestorePreservedSelection() {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  if (!SavedSelectionRef().RangeCount()) {
+    // XXX Returning error when it does not store is odd because no selection
+    //     ranges is not illegal case in general.
+    return NS_ERROR_FAILURE;
+  }
+  DebugOnly<nsresult> rvIgnored =
+      SavedSelectionRef().RestoreSelection(SelectionRef());
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rvIgnored),
+      "SelectionState::RestoreSelection() failed, but ignored");
+  StopPreservingSelection();
+  return NS_OK;
+}
+
+void EditorBase::StopPreservingSelection() {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  RangeUpdaterRef().DropSelectionState(SavedSelectionRef());
+  SavedSelectionRef().RemoveAllRanges();
 }
 
 }  // namespace mozilla

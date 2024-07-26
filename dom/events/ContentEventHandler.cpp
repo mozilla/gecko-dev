@@ -12,6 +12,7 @@
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/MiscEvents.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/RangeUtils.h"
@@ -23,6 +24,7 @@
 #include "mozilla/dom/HTMLBRElement.h"
 #include "mozilla/dom/HTMLUnknownElement.h"
 #include "mozilla/dom/Selection.h"
+#include "mozilla/dom/StaticRange.h"
 #include "mozilla/dom/Text.h"
 #include "nsCaret.h"
 #include "nsCOMPtr.h"
@@ -857,6 +859,20 @@ nsresult ContentEventHandler::GenerateFlatTextContent(
   return GenerateFlatTextContent(rawRange, aString, aLineBreakType);
 }
 
+nsresult ContentEventHandler::GenerateFlatTextContent(const nsRange* aRange,
+                                                      nsString& aString) {
+  MOZ_ASSERT(aString.IsEmpty());
+
+  if (NS_WARN_IF(!aRange)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  UnsafeSimpleRange rawRange;
+  rawRange.SetStartAndEnd(aRange);
+
+  return GenerateFlatTextContent(rawRange, aString, LINE_BREAK_TYPE_NATIVE);
+}
+
 template <typename NodeType, typename RangeBoundaryType>
 nsresult ContentEventHandler::GenerateFlatTextContent(
     const SimpleRangeBase<NodeType, RangeBoundaryType>& aSimpleRange,
@@ -1156,6 +1172,27 @@ nsresult ContentEventHandler::ExpandToClusterBoundary(
     *aXPOffset += aForward ? 1 : -1;
   }
   return NS_OK;
+}
+
+already_AddRefed<nsRange> ContentEventHandler::GetRangeFromFlatTextOffset(
+    WidgetContentCommandEvent* aEvent, uint32_t aOffset, uint32_t aLength) {
+  nsresult rv = InitCommon(aEvent->mMessage);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return nullptr;
+  }
+
+  Result<DOMRangeAndAdjustedOffsetInFlattenedText, nsresult> result =
+      ConvertFlatTextOffsetToDOMRange(aOffset, aLength, LINE_BREAK_TYPE_NATIVE,
+                                      false);
+  if (NS_WARN_IF(result.isErr())) {
+    return nullptr;
+  }
+
+  DOMRangeAndAdjustedOffsetInFlattenedText domRangeAndAdjustOffset =
+      result.unwrap();
+
+  return nsRange::Create(domRangeAndAdjustOffset.mRange.Start(),
+                         domRangeAndAdjustOffset.mRange.End(), IgnoreErrors());
 }
 
 template <typename RangeType, typename TextNodeType>

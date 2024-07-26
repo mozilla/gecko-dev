@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1149826
+-->
+<html>
+<head>
+<title>Test for replaceText</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1149826">Mozilla Bug 1149826</a><br>
+<input type="text"><br>
+<textarea></textarea>
+<div contenteditable></div>
+
+<script>
+const gDOMWindowUtils = _getDOMWindowUtils(window);
+const Ci = SpecialPowers.Ci;
+const IS_WIN = navigator.platform.indexOf("Win") == 0;
+
+async function testReplaceText(INPUT_TESTS, TEXTAREA_TESTS, CONTENTEDITABLE_TESTS, aPreventSetSelection) {
+  await SimpleTest.promiseFocus();
+
+  const flags = aPreventSetSelection ?
+    Ci.nsIDOMWindowUtils.CONTENT_COMMAND_FLAG_PREVENT_SET_SELECTION :
+    0;
+
+  const input = document.querySelector("input");
+  input.focus();
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+  info("for <input>");
+
+  for (const TEST of INPUT_TESTS) {
+    input.value = TEST.before.value;
+    input.selectionStart = TEST.before.start;
+    input.selectionEnd = TEST.before.end;
+    await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+    input.addEventListener("beforeinput", e => {
+      is(e.inputType, "insertReplacementText",
+         "inputType in input must be insertReplacementText by replaceText");
+      is(input.selectionStart, TEST.before.start,
+         "Before inputReplacementText, start offset is valid");
+      is(input.selectionEnd, TEST.before.end,
+         "Before inputReplacementText, end offset is valid");
+    }, { once: true } );
+
+    const promiseAfterOnInput =
+      new Promise(resolve => input.addEventListener("input", e => {
+        is(e.inputType, "insertReplacementText",
+           "inputType must be insertReplacementText by replaceText");
+        resolve();
+      }, { once: true } ));
+    gDOMWindowUtils.sendContentCommandEvent(
+      "replaceText",
+      null,
+      TEST.replace.value,
+      TEST.replace.start,
+      TEST.replace.src,
+      flags
+    );
+    await promiseAfterOnInput
+
+    is(input.value, TEST.after.value,
+       "replaceText in input replaces inner text");
+    is(input.selectionStart, TEST.after.start,
+       "replaceText in input sets expected selection start");
+    is(input.selectionEnd, TEST.after.end,
+       "replaceText in input sets expected selection end");
+  }
+
+  const textarea = document.querySelector("textarea");
+  textarea.focus();
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+  info("for <textarea>");
+
+  for (const TEST of TEXTAREA_TESTS) {
+    textarea.value = TEST.before.value;
+    textarea.selectionStart = TEST.before.start;
+    textarea.selectionEnd = TEST.before.end;
+
+    textarea.addEventListener("beforeinput", e => {
+      is(e.inputType, "insertReplacementText",
+         "inputType must be insertReplacementText by replaceText");
+      is(textarea.selectionStart, TEST.before.start,
+         "Before inputReplacementText, start offset is valid");
+      is(textarea.selectionEnd, TEST.before.end,
+         "Before inputReplacementText, end offset is valid");
+    }, { once: true } );
+
+    const promiseAfterOnTextarea =
+      new Promise(resolve => textarea.addEventListener("input", e => {
+        is(e.inputType, "insertReplacementText",
+           "inputType must be insertReplacementText by replaceText");
+        resolve();
+      }, { once: true } ));
+    gDOMWindowUtils.sendContentCommandEvent(
+      "replaceText",
+      null,
+      TEST.replace.value,
+      TEST.replace.start,
+      TEST.replace.src,
+      flags
+    );
+    await promiseAfterOnTextarea
+
+    is(textarea.value, TEST.after.value,
+      "replaceText in textarea replaces inner text");
+    is(textarea.selectionStart, TEST.after.start,
+       "replaceText in textarea sets expected selection start");
+    is(textarea.selectionEnd, TEST.after.end,
+       "replaceText in textarea sets expected selection end");
+  }
+
+  const editingHost = document.querySelector("div[contenteditable]");
+  editingHost.focus();
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+  info("for contenteditable");
+
+  for (const TEST of CONTENTEDITABLE_TESTS) {
+    editingHost.innerHTML = TEST.before.value;
+    window.getSelection().setBaseAndExtent(
+        // eslint-disable-next-line no-eval
+        eval(TEST.before.focusNode),
+        TEST.before.focusOffset,
+        // eslint-disable-next-line no-eval
+        eval(TEST.before.focusNode),
+        TEST.before.focusOffset
+    );
+
+    editingHost.addEventListener("beforeinput", e => {
+      const selection = window.getSelection();
+      is(e.inputType, "insertReplacementText",
+         "inputType must be insertReplacementText by replaceText");
+      // eslint-disable-next-line no-eval
+      is(selection.focusNode, eval(TEST.before.focusNode),
+         "Before inputReplacementText, focus node is valid");
+      is(selection.focusOffset, TEST.before.focusOffset,
+         "Before inputReplacementText, focus offset is valid");
+    }, { once: true } );
+
+    const promiseAfterEditingHost =
+      new Promise(resolve => editingHost.addEventListener("input", e => {
+        is(e.inputType, "insertReplacementText",
+           "inputType must be insertReplacementText by replaceText");
+        resolve();
+      }, { once: true } ));
+    gDOMWindowUtils.sendContentCommandEvent(
+      "replaceText",
+      null,
+      TEST.replace.value,
+      TEST.replace.start,
+      TEST.replace.src,
+      flags
+    );
+    await promiseAfterEditingHost
+
+    is(editingHost.textContent, TEST.after.value,
+       "replaceText in contenteditable replaces inner text");
+    const selection = window.getSelection();
+    // eslint-disable-next-line no-eval
+    is(selection.focusNode, eval(TEST.after.focusNode),
+       "replaceText in contenteditable sets expected focusNode");
+    is(selection.focusOffset, TEST.after.focusOffset,
+       "replaceText in contenteditable sets expected focusOffset");
+  }
+}
+
+add_task(async function testReplaceTextWithoutPreventSetSelection() {
+  const INPUT_TESTS = [
+  { before: {
+      value: "foo", start: 3, end: 3
+    },
+    replace: {
+      src: "o", value: "bar", start: 1
+    },
+    after: {
+      value: "fbaro", start: 4, end: 4
+    }
+  },
+  { before: {
+      value: "foo ", start: 4, end: 4
+    },
+    replace: {
+      src: "oo", value: "bar", start: 1
+    },
+    after: {
+      value: "fbar ", start: 4, end: 4
+    }
+  }];
+
+  const TEXTAREA_TESTS = [
+  { before: {
+      value: "foo", start: 3, end: 3
+    },
+    replace: {
+      src: "o", value: "bar", start: 1
+    },
+    after: {
+      value: "fbaro", start: 4, end: 4
+    }
+  },
+  { before: {
+      value: "foo ", start: 4, end: 4
+    },
+    replace: {
+      src: "oo", value: "bar", start: 1
+    },
+    after: {
+      value: "fbar ", start: 4, end: 4
+    }
+  }];
+
+  const CONTENTEDITABLE_TESTS = [
+  { before: {
+      value: "foo", focusNode: "editingHost.firstChild", focusOffset: 3
+    },
+    replace: {
+      src: "o", value: "bar", start: 1
+    },
+    after: {
+      value: "fbaro", focusNode: "editingHost.firstChild", focusOffset: 4, isCollapsed: true
+    },
+  },
+  { before: {
+      value: "foo foo", focusNode: "editingHost.firstChild", focusOffset: 4
+    },
+    replace: {
+      src: "oo", value: "bar", start: 1
+    },
+    after: {
+      value: "fbar foo", focusNode: "editingHost.firstChild", focusOffset: 4, isCollapsed: true
+    },
+  }];
+
+  await testReplaceText(INPUT_TESTS, TEXTAREA_TESTS, CONTENTEDITABLE_TESTS, false);
+});
+
+add_task(async function testReplaceTextWithPreventSetSelection() {
+  const INPUT_TESTS = [
+  { before: {
+      value: "foo", start: 3, end: 3
+    },
+    replace: {
+      src: "o", value: "bar", start: 1
+    },
+    after: {
+      value: "fbaro", start: 5, end: 5
+    }
+  },
+  { before: {
+      value: "foo ", start: 4, end: 4
+    },
+    replace: {
+      src: "oo", value: "bar", start: 1
+    },
+    after: {
+      value: "fbar ", start: 5, end: 5
+    }
+  }];
+
+  const TEXTAREA_TESTS = [
+  { before: {
+      value: "foo", start: 3, end: 3
+    },
+    replace: {
+      src: "o", value: "bar", start: 1
+    },
+    after: {
+      value: "fbaro", start: 5, end: 5
+    }
+  },
+  { before: {
+      value: "foo ", start: 4, end: 4
+    },
+    replace: {
+      src: "oo", value: "bar", start: 1
+    },
+    after: {
+      value: "fbar ", start: 5, end: 5
+    }
+  }];
+
+  const CONTENTEDITABLE_TESTS = [
+  { before: {
+      value: "foo", focusNode: "editingHost.firstChild", focusOffset: 3
+    },
+    replace: {
+      src: "o", value: "bar", start: 1
+    },
+    after: {
+      value: "fbaro", focusNode: "editingHost.firstChild", focusOffset: 5, isCollapsed: true
+    },
+  },
+  { before: {
+      value: "foo foo", focusNode: "editingHost.firstChild", focusOffset: 4
+    },
+    replace: {
+      src: "oo", value: "bar", start: 1
+    },
+    after: {
+      value: "fbar foo", focusNode: "editingHost.firstChild", focusOffset: 5, isCollapsed: true
+    },
+  }];
+
+  await testReplaceText(INPUT_TESTS, TEXTAREA_TESTS, CONTENTEDITABLE_TESTS, true);
+});
+
+add_task(async function testReplaceTextWithCompositionText() {
+  await SimpleTest.promiseFocus();
+
+  // Don't replace text during composition
+  const input = document.querySelector("input");
+  input.value = "";
+  input.focus();
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+  let promise =
+    new Promise(resolve => input.addEventListener("compositionupdate", resolve, { once: true }));
+  synthesizeCompositionChange(
+    { "composition":
+      { "string": "foo",
+        "clauses":
+        [
+          { "length": 3, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+        ]
+      },
+    });
+  await promise;
+
+  input.addEventListener("input", e => {
+    isnot(e.inputType, "insertReplacementText",
+          "Don't fire insertReplacementText input event by replaceText");
+  }, { once: true } );
+  gDOMWindowUtils.sendContentCommandEvent("replaceText", null, "bar", 1, "o");
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+  promise = new Promise(resolve => input.addEventListener("compositionend", resolve, { once: true }));
+  synthesizeComposition({type: "compositioncommitasis", key: {key: "KEY_Enter"}});
+  await promise;
+
+  is(input.value, "foo",
+     "replaceText doesn't replace inner text when having composition");
+  is(input.selectionStart, 3, "replaceText sets caret position to next of replaced text");
+  is(input.selectionStart, input.selectionEnd, "replaceText sets that selection is collapsed");
+});
+
+add_task(async function testReplaceTextBeforeCallingPreventDefault() {
+  await SimpleTest.promiseFocus();
+
+  // Call preventDefault on beforeinput
+  const input = document.querySelector("input");
+  input.value = "foo";
+  input.focus();
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+  input.selectionStart = 1
+  input.selectionEnd = 2;
+
+  const promise = new Promise(resolve => input.addEventListener("beforeinput", e => {
+    e.preventDefault();
+    resolve();
+  }, { once: true }));
+  gDOMWindowUtils.sendContentCommandEvent("replaceText", null, "bar", 1, "o");
+  await promise;
+
+  is(input.value, "foo",
+     "replaceText doesn't replace inner text of <input> since preventDefault is called");
+  is(input.selectionStart, 1, "selectionStart isn't changed since preventDefault is called");
+  is(input.selectionEnd, 2, "selectionEnd isn't changed since preventDefault is called");
+});
+
+add_task(async function testReplaceTextWithoutMatch() {
+  await SimpleTest.promiseFocus();
+
+  const input = document.querySelector("input");
+  input.value = "foo";
+  input.focus();
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+  input.selectionStart = 1
+  input.selectionEnd = 2;
+
+  gDOMWindowUtils.sendContentCommandEvent("replaceText", null, "bar", 1, "a");
+  await new Promise(resolve => SimpleTest.executeSoon(resolve));
+
+  is(input.value, "foo",
+     "replaceText doesn't replace inner text of <input> due to not matched");
+  is(input.selectionStart, 1, "selectionStart isn't changed due to failed");
+  is(input.selectionEnd, 2, "selectionEnd isn't changed due to failed");
+});
+</script>
+</body>
+</html>

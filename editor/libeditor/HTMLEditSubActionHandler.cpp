@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "AutoRangeArray.h"
+#include "AutoSelectionRestorer.h"
 #include "CSSEditUtils.h"
 #include "EditAction.h"
 #include "EditorDOMPoint.h"
@@ -568,7 +569,7 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
         // mutation by themselves.  However, we want to keep selection as-is.
         // Therefore, we should restore `Selection` after replacing
         // white-spaces.
-        AutoSelectionRestorer restoreSelection(*this);
+        AutoSelectionRestorer restoreSelection(this);
         // TODO: Temporarily, WhiteSpaceVisibilityKeeper replaces ASCII
         //       white-spaces with NPSPs and then, we'll replace them with ASCII
         //       white-spaces here.  We should avoid this overwriting things as
@@ -4565,7 +4566,7 @@ nsresult HTMLEditor::RemoveListAtSelectionAsSubAction(
     }
   }
 
-  AutoSelectionRestorer restoreSelectionLater(*this);
+  AutoSelectionRestorer restoreSelectionLater(this);
 
   AutoTArray<OwningNonNull<nsIContent>, 64> arrayOfContents;
   {
@@ -6044,7 +6045,7 @@ Result<SplitRangeOffFromNodeResult, nsresult>
 HTMLEditor::HandleOutdentAtSelectionInternal(const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
-  AutoSelectionRestorer restoreSelectionLater(*this);
+  AutoSelectionRestorer restoreSelectionLater(this);
 
   bool useCSS = IsCSSEnabled();
 
@@ -11533,7 +11534,7 @@ nsresult HTMLEditor::MoveSelectedContentsToDivElementToMakeItAbsolutePosition(
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(aTargetElement);
 
-  AutoSelectionRestorer restoreSelectionLater(*this);
+  AutoSelectionRestorer restoreSelectionLater(this);
 
   EditorDOMPoint pointToPutCaret;
 
@@ -12005,7 +12006,7 @@ HTMLEditor::SetSelectionToStaticAsSubAction() {
   }
 
   {
-    AutoSelectionRestorer restoreSelectionLater(*this);
+    AutoSelectionRestorer restoreSelectionLater(this);
 
     nsresult rv = SetPositionToAbsoluteOrStatic(*element, false);
     if (NS_WARN_IF(Destroyed())) {
@@ -12101,7 +12102,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AddZIndexAsSubAction(
   }
 
   {
-    AutoSelectionRestorer restoreSelectionLater(*this);
+    AutoSelectionRestorer restoreSelectionLater(this);
 
     // MOZ_KnownLive(*absolutelyPositionedStyledElement): It's
     // absolutelyPositionedElement whose type is RefPtr.

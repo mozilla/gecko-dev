@@ -1219,6 +1219,8 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
   nsresult DoContentCommandEvent(WidgetContentCommandEvent* aEvent);
   MOZ_CAN_RUN_SCRIPT
   nsresult DoContentCommandInsertTextEvent(WidgetContentCommandEvent* aEvent);
+  MOZ_CAN_RUN_SCRIPT
+  nsresult DoContentCommandReplaceTextEvent(WidgetContentCommandEvent* aEvent);
   nsresult DoContentCommandScrollEvent(WidgetContentCommandEvent* aEvent);
 
   dom::BrowserParent* GetCrossProcessTarget();

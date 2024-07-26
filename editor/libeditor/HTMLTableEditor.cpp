@@ -8,6 +8,7 @@
 #include "HTMLEditor.h"
 #include "HTMLEditorInlines.h"
 
+#include "AutoSelectionRestorer.h"
 #include "EditAction.h"
 #include "EditorDOMPoint.h"
 #include "EditorUtils.h"
@@ -2913,7 +2914,7 @@ NS_IMETHODIMP HTMLEditor::SwitchTableCellHeaderType(Element* aSourceCell,
   // Save current selection to restore when done.
   // This is needed so ReplaceContainerAndCloneAttributesWithTransaction()
   // can monitor selection when replacing nodes.
-  AutoSelectionRestorer restoreSelectionLater(*this);
+  AutoSelectionRestorer restoreSelectionLater(this);
 
   // Set to the opposite of current type
   nsAtom* newCellName =
@@ -3636,7 +3637,7 @@ nsresult HTMLEditor::NormalizeTableInternal(Element& aTableOrElementInTable) {
   TableSize tableSize = tableSizeOrError.unwrap();
 
   // Save current selection
-  AutoSelectionRestorer restoreSelectionLater(*this);
+  AutoSelectionRestorer restoreSelectionLater(this);
 
   AutoPlaceholderBatch treateAsOneTransaction(
       *this, ScrollSelectionIntoView::Yes, __FUNCTION__);

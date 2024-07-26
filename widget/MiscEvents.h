@@ -49,7 +49,7 @@ class WidgetContentCommandEvent : public WidgetGUIEvent {
     return nullptr;
   }
 
-  // eContentCommandInsertText
+  // eContentCommandInsertText and eContentCommandReplaceText
   mozilla::Maybe<nsString> mString;  // [in]
 
   // eContentCommandPasteTransferable
@@ -68,6 +68,16 @@ class WidgetContentCommandEvent : public WidgetGUIEvent {
     bool mIsHorizontal;  // [in]
   } mScroll;
 
+  // eContentCommandReplaceText
+  struct Selection {
+    // Replacement source string. If not matched, failed
+    nsString mReplaceSrcString;  // [in]
+    // Start offset of selection
+    uint32_t mOffset = 0;  // [in]
+    // false if selection is end of replaced string
+    bool mPreventSetSelection = false;  // [in]
+  } mSelection;
+
   bool mOnlyEnabledCheck;  // [in]
 
   bool mSucceeded;  // [out]
@@ -79,6 +89,7 @@ class WidgetContentCommandEvent : public WidgetGUIEvent {
 
     mString = aEvent.mString;
     mScroll = aEvent.mScroll;
+    mSelection = aEvent.mSelection;
     mOnlyEnabledCheck = aEvent.mOnlyEnabledCheck;
     mSucceeded = aEvent.mSucceeded;
     mIsEnabled = aEvent.mIsEnabled;

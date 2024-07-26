@@ -2809,8 +2809,7 @@ bool TextControlState::SetValueWithTextEditor(
         aHandlingSetValue.GetSettingValue(), nullptr,
         StaticPrefs::dom_input_event_allow_to_cancel_set_user_input()
             ? TextEditor::AllowBeforeInputEventCancelable::Yes
-            : TextEditor::AllowBeforeInputEventCancelable::No,
-        nullptr);
+            : TextEditor::AllowBeforeInputEventCancelable::No);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "EditorBase::ReplaceTextAsAction() failed");
     return rv != NS_ERROR_OUT_OF_MEMORY;

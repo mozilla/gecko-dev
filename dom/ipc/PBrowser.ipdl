@@ -854,6 +854,18 @@ child:
     async NormalPriorityInsertText(nsString aStringToInsert);
 
     /**
+     * Dispatch eContentCommandReplaceText event in the remote process.
+     */
+    [Priority=input] async ReplaceText(nsString aReplacementString,
+                                       nsString aStringToInsert,
+                                       uint32_t aOffset,
+				       bool aPreventSetSelection);
+    async NormalPriorityReplaceText(nsString aReplacementString,
+                                    nsString aStringToInsert,
+                                    uint32_t aOffset,
+				    bool aPreventSetSelection);
+
+    /**
      * Call PasteTransferable via a controller on the content process
      * to handle the command content event, "pasteTransferable".
      */

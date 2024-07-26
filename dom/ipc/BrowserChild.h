@@ -405,6 +405,15 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvNormalPriorityInsertText(
       const nsAString& aStringToInsert);
 
+  mozilla::ipc::IPCResult RecvReplaceText(const nsString& aReplaceSrcString,
+                                          const nsString& aStringToInsert,
+                                          uint32_t aOffset,
+                                          bool aPreventSetSelection);
+
+  mozilla::ipc::IPCResult RecvNormalPriorityReplaceText(
+      const nsString& aReplaceSrcString, const nsString& aStringToInsert,
+      uint32_t aOffset, bool aPreventSetSelection);
+
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvPasteTransferable(
       const IPCTransferable& aTransferable);
