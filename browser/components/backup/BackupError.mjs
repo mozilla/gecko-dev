@@ -18,7 +18,7 @@ export class BackupError extends Error {
    * @param {string} message
    *   Error message
    * @param {number} cause
-   *   Error cause code @see BackupConstants.ERRORS
+   *   Error cause code from backup-constants.mjs:ERRORS
    */
   constructor(message, cause) {
     super(message, { cause });
@@ -30,7 +30,7 @@ export class BackupError extends Error {
    * @property {string} message
    *   Error message
    * @property {number} cause
-   *   Error cause code @see BackupConstants.ERRORS
+   *   Error cause code from backup-constants.mjs:ERRORS
    * @property {string} stack
    *   Stack trace of the error
    */

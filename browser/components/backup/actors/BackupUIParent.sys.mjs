@@ -6,7 +6,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BackupService: "resource:///modules/backup/BackupService.sys.mjs",
-  ERRORS: "resource:///modules/backup/BackupConstants.mjs",
+  ERRORS: "chrome://browser/content/backup/backup-constants.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logConsole", function () {

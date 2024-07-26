@@ -10,7 +10,7 @@ import { PromiseWorker } from "resource://gre/modules/workers/PromiseWorker.mjs"
 import { ArchiveUtils } from "resource:///modules/backup/ArchiveUtils.sys.mjs";
 import { ArchiveEncryptor } from "resource:///modules/backup/ArchiveEncryption.sys.mjs";
 import { BackupError } from "resource:///modules/backup/BackupError.mjs";
-import { ERRORS } from "resource:///modules/backup/BackupConstants.mjs";
+import { ERRORS } from "chrome://browser/content/backup/backup-constants.mjs";
 
 /**
  * An ArchiveWorker is a PromiseWorker that tries to do most of the heavy

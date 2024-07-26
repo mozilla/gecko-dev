@@ -12,7 +12,8 @@ import {
   BYTES_IN_MEGABYTE,
   BYTES_IN_MEBIBYTE,
 } from "resource:///modules/backup/MeasurementUtils.sys.mjs";
-import { ERRORS } from "resource:///modules/backup/BackupConstants.mjs";
+
+import { ERRORS } from "chrome://browser/content/backup/backup-constants.mjs";
 import { BackupError } from "resource:///modules/backup/BackupError.mjs";
 
 const BACKUP_DIR_PREF_NAME = "browser.backup.location";
@@ -2517,7 +2518,7 @@ export class BackupService extends EventTarget {
       if (meta.appName != AppConstants.MOZ_APP_NAME) {
         throw new BackupError(
           `Cannot recover a backup from ${meta.appName} in ${AppConstants.MOZ_APP_NAME}`,
-          ERRORS.UNSUPPORTED_BACKUP_VERSION
+          ERRORS.UNSUPPORTED_APPLICATION
         );
       }
 

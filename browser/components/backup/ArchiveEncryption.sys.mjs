@@ -16,7 +16,7 @@ ChromeUtils.defineESModuleGetters(
   lazy,
   {
     BackupError: "resource:///modules/backup/BackupError.mjs",
-    ERRORS: "resource:///modules/backup/BackupConstants.mjs",
+    ERRORS: "chrome://browser/content/backup/backup-constants.mjs",
   },
   { global: "contextual" }
 );

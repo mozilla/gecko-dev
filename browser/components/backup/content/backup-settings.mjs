@@ -313,7 +313,7 @@ export default class BackupSettings extends MozLitElement {
       ? "settings-data-backup-scheduled-backups-on-restore-choose"
       : "settings-data-backup-scheduled-backups-off-restore-choose";
 
-    return html`<section id="restore-from-backup"">
+    return html`<section id="restore-from-backup">
       ${this.restoreFromBackupDialogTemplate()}
       <div class="backups-control">
         <span

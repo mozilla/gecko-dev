@@ -112,6 +112,50 @@ restore-from-backup-cancel-button = Cancel
 restore-from-backup-confirm-button = Restore and restart
 restore-from-backup-restoring-button = Restoring…
 
+## These strings are displayed in a small error message bar in the settings
+## menu if there was an error when trying to restore a backed up profile
+
+# User is not authorized to restore a particular backup file, usually because
+# the backup file is encrypted and the user provided a recovery password that
+# was different than the password the user configured for their backup file
+restore-from-backup-error-incorrect-password =
+    .heading = Unauthorized
+    .message = The password you entered was incorrect. Please try again.
+
+# The backup file (or specific data files within the backup file) could not be
+# loaded and parsed correctly, most likely due to data corruption of the
+# backup file itself
+restore-from-backup-error-corrupt-file =
+    .heading = This file isn’t working
+    .message = There was a problem with your backup file. Choose a different file and try again.
+
+# The backup file cannot be restored. The currently running application may
+# be too old and may not support features in the backed up profile.
+# Alternatively, the backup file may be too old and some of the feature in
+# the backed up profile may no longer be supported.
+restore-from-backup-error-unsupported-version =
+    .heading = This file isn’t working
+    .message = The file you chose isn’t compatible with this version of { -brand-short-name }. Choose a different file and try again.
+
+# The backup file cannot be restored. The currently running application is not
+# the same application that created the backup file (e.g. Firefox cannot
+# restore a Thunderbird profile backup).
+restore-from-backup-error-unsupported-application =
+    .heading = This file isn’t working
+    .message = The file you chose was not created by { -brand-short-name }. Choose a different file and try again.
+
+# Recovery from backup did not succeed. Potential causes could be file system
+# errors, internal code errors, decryption errors, etc.
+restore-from-backup-error-recovery-failed =
+    .heading = { -brand-short-name } couldn’t restore
+    .message = Restart { -brand-short-name } and try restoring your backup again.
+
+# There was some error in the backup service but we don't have a more specific
+# idea of what went wrong
+restore-from-backup-error-went-wrong =
+    .heading = Something went wrong
+    .message = There was a problem restoring { -brand-short-name }. Please try again or restart { -brand-short-name }.
+
 ## These strings are displayed in a modal when users want to enable encryption or change the password for an existing backup.
 
 enable-backup-encryption-header = Back up your sensitive data

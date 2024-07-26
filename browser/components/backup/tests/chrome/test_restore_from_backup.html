@@ -124,6 +124,22 @@
       ok(restoreFromBackup.passwordInput, "Password input should be present");
     });
 
+    /**
+     * Tests that an error message is displayed if there is an error restoring from backup.
+     */
+     add_task(async function test_error_condition() {
+      let restoreFromBackup = document.getElementById("test-restore-from-backup");
+
+      is(restoreFromBackup.recoveryErrorCode, undefined, "Recovery error code should be undefined");
+      ok(!restoreFromBackup.errorMessageEl, "No error message should be displayed");
+
+      restoreFromBackup.recoveryErrorCode = 1;
+
+      await restoreFromBackup.updateComplete;
+
+      is(restoreFromBackup.recoveryErrorCode, 1, "Recovery error code should be set");
+      ok(restoreFromBackup.errorMessageEl, "Error message should be displayed");
+    });
 
   </script>
 </head>

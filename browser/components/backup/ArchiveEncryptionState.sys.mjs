@@ -17,7 +17,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ArchiveUtils: "resource:///modules/backup/ArchiveUtils.sys.mjs",
   OSKeyStore: "resource://gre/modules/OSKeyStore.sys.mjs",
   BackupError: "resource:///modules/backup/BackupError.mjs",
-  ERRORS: "resource:///modules/backup/BackupConstants.mjs",
+  ERRORS: "chrome://browser/content/backup/backup-constants.mjs",
 });
 
 /**
