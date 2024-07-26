@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script id="worker1" type="javascript/worker">
+  self.onmessage = async function (e) {
+    e.data[0].copyTo(new ArrayBuffer(153), {
+      'planeIndex': 7,
+      'frameCount': 16,
+      'format': 's32-planar',
+    })
+  }
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const array = new Uint8ClampedArray(28372)
+    const data = new AudioData({
+      'format': 'u8-planar',
+      'sampleRate': 1.3596219549808164,
+      'numberOfFrames': 234,
+      'numberOfChannels': 101,
+      'timestamp': 65535.46879946203,
+      'data': array,
+    })
+    const blob = new Blob([document.querySelector('#worker1').textContent], { type: 'text/javascript' })
+    new Worker(window.URL.createObjectURL(blob)).postMessage([data], [data])
+  })
+</script>
