@@ -16177,6 +16177,18 @@
   value: false
   mirror: always
 
+#ifdef XP_MACOSX
+# This will automatically enable text substitution for editable elements in HTML.
+# This value is like layout.spellCheckDefault.
+# 0 ... Disabled
+# 1 ... textarea, contenteditable and design mode
+# 2 ... text, textarea, contenteditable and design mode
+- name: ui.autocorrectDefault
+  type: uint32_t
+  value: 1
+  mirror: always
+#endif
+
 #---------------------------------------------------------------------------
 # Prefs starting with "urlclassifier."
 #---------------------------------------------------------------------------
@@ -17170,6 +17182,33 @@
   value: false
 #endif
   mirror: always
+
+#ifdef XP_MACOSX
+# The folllowing widget.macos.automatic.* prefs are whether Gecko turns on
+# text replacement features.
+- name: widget.macos.automatic.text_replacement
+  type: bool
+  value: false
+  mirror: always
+
+# Whether the smart dash feature is enabled
+- name: widget.macos.automatic.dash_substitution
+  type: bool
+  value: false
+  mirror: always
+
+# Whether the smart quote feature is enabled
+- name: widget.macos.automatic.quote_substitution
+  type: bool
+  value: false
+  mirror: always
+
+# fetching length when processing text substitution.
+- name: widget.macos.automatic.text_substitution_fetch_length
+  type: uint32_t
+  value: 20
+  mirror: always
+#endif
 
 # Whether to render in to a child SurfaceControl rather than directly into the SurfaceView
 - name: widget.android.use-surfacecontrol
