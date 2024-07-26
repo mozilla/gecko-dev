@@ -47,6 +47,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MozPromise.h"
+#include "mozilla/Perfetto.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsXPCOM.h"
@@ -790,6 +791,21 @@ static void* AsyncSignalControlThreadEntry(void* aArg) {
 // - mProcessStartTime, because it's immutable;
 class CorePS {
  private:
+#ifdef MOZ_PERFETTO
+  class PerfettoObserver : public perfetto::TrackEventSessionObserver {
+   public:
+    PerfettoObserver() { perfetto::TrackEvent::AddSessionObserver(this); }
+    ~PerfettoObserver() { perfetto::TrackEvent::RemoveSessionObserver(this); }
+
+    void OnStart(const perfetto::DataSourceBase::StartArgs&) override {
+      mozilla::profiler::detail::RacyFeatures::SetPerfettoTracingActive();
+    }
+    void OnStop(const perfetto::DataSourceBase::StopArgs&) override {
+      mozilla::profiler::detail::RacyFeatures::SetPerfettoTracingInactive();
+    }
+  } perfettoObserver;
+#endif
+
   CorePS()
       : mProcessStartTime(TimeStamp::ProcessCreation()),
         mMaybeBandwidthCounter(nullptr)
@@ -5773,6 +5789,7 @@ void profiler_init(void* aStackTop) {
 
   VTUNE_INIT();
   ETW::Init();
+  InitPerfetto();
 
   MOZ_RELEASE_ASSERT(!CorePS::Exists());
 

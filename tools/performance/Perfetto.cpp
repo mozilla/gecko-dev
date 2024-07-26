@@ -7,6 +7,18 @@
 #include "mozilla/Perfetto.h"
 #include <stdlib.h>
 
+const char* ProfilerCategoryNames[] = {
+#define CATEGORY_JSON_BEGIN_CATEGORY(name, labelAsString, color) #name,
+#define CATEGORY_JSON_SUBCATEGORY(supercategory, name, labelAsString)
+#define CATEGORY_JSON_END_CATEGORY
+    MOZ_PROFILING_CATEGORY_LIST(CATEGORY_JSON_BEGIN_CATEGORY,
+                                CATEGORY_JSON_SUBCATEGORY,
+                                CATEGORY_JSON_END_CATEGORY)
+#undef CATEGORY_JSON_BEGIN_CATEGORY
+#undef CATEGORY_JSON_SUBCATEGORY
+#undef CATEGORY_JSON_END_CATEGORY
+};
+
 PERFETTO_TRACK_EVENT_STATIC_STORAGE();
 
 void InitPerfetto() {

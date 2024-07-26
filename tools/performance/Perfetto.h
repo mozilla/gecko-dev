@@ -8,8 +8,12 @@
 #define mozilla_Perfetto_h
 
 #ifdef MOZ_PERFETTO
-#  include "perfetto/perfetto.h"
+#  include "mozilla/BaseProfilerMarkers.h"
+#  include "mozilla/Span.h"
 #  include "mozilla/TimeStamp.h"
+#  include "nsString.h"
+#  include "nsPrintfCString.h"
+#  include "perfetto/perfetto.h"
 
 // Initialization is called when a content process is created.
 // This can be called multiple times.
@@ -83,6 +87,7 @@ extern void InitPerfetto();
 #  define PERFETTO_TRACE_EVENT(...) TRACE_EVENT(__VA_ARGS__)
 #  define PERFETTO_TRACE_EVENT_BEGIN(...) TRACE_EVENT_BEGIN(__VA_ARGS__)
 #  define PERFETTO_TRACE_EVENT_END(...) TRACE_EVENT_END(__VA_ARGS__)
+#  define PERFETTO_TRACE_EVENT_INSTANT(...) TRACE_EVENT_INSTANT(__VA_ARGS__)
 
 namespace perfetto {
 // Specialize custom timestamps for mozilla::TimeStamp.
@@ -101,6 +106,306 @@ struct TraceTimestampTraits<mozilla::TimeStamp> {
 PERFETTO_DEFINE_CATEGORIES(perfetto::Category("task"),
                            perfetto::Category("usertiming"));
 
+template <typename T, typename = void>
+struct MarkerHasPayloadFields : std::false_type {};
+template <typename T>
+struct MarkerHasPayloadFields<T, std::void_t<decltype(T::PayloadFields)>>
+    : std::true_type {};
+
+using MS = mozilla::MarkerSchema;
+
+// Primary template.  Assert if a payload type has not been specialized so we
+// don't miss payload information.
+template <typename T, typename Enable = void>
+struct AddDebugAnnotationImpl {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const T& aValue) {
+    static_assert(false,
+                  "Unsupported payload type for perfetto debug annotations.");
+  }
+};
+
+// Do nothing for these types.
+template <>
+struct AddDebugAnnotationImpl<mozilla::Nothing> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const mozilla::Nothing& aValue) {}
+};
+
+template <>
+struct AddDebugAnnotationImpl<std::nullptr_t> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const std::nullptr_t& aValue) {}
+};
+
+// Specialize mozilla::Maybe<>
+template <typename T>
+struct AddDebugAnnotationImpl<mozilla::Maybe<T>> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const mozilla::Maybe<T>& aValue) {
+    if (aValue.isNothing()) {
+      return;
+    }
+    AddDebugAnnotationImpl<T>::call(ctx, aKey, *aValue);
+  }
+};
+
+// Specialize integral types.
+template <typename T>
+struct AddDebugAnnotationImpl<T, std::enable_if_t<std::is_integral_v<T>>> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const T& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+
+    if constexpr (std::is_same_v<T, bool>) {
+      arg->set_bool_value(static_cast<uint64_t>(aValue));
+    } else if constexpr (std::is_signed_v<T>) {
+      arg->set_int_value(static_cast<uint64_t>(aValue));
+    } else {
+      static_assert(std::is_unsigned_v<T>);
+      arg->set_uint_value(static_cast<uint64_t>(aValue));
+    }
+  }
+};
+
+// Specialize time durations.
+template <>
+struct AddDebugAnnotationImpl<
+    mozilla::BaseTimeDuration<mozilla::TimeDurationValueCalculator>> {
+  static void call(
+      perfetto::EventContext& ctx, const char* const aKey,
+      const mozilla::BaseTimeDuration<mozilla::TimeDurationValueCalculator>&
+          aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_uint_value(static_cast<uint64_t>(aValue.ToMilliseconds()));
+  }
+};
+
+// Specialize the various string representations.
+template <>
+struct AddDebugAnnotationImpl<mozilla::ProfilerString8View> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const mozilla::ProfilerString8View& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue.StringView().data());
+  }
+};
+
+template <size_t N>
+struct AddDebugAnnotationImpl<nsAutoCStringN<N>> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsAutoCStringN<N>& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue.get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<nsCString> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsCString& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue.get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<nsAutoCString> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsAutoCString& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue.get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<nsTLiteralString<char>> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsTLiteralString<char>& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue.get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<nsPrintfCString> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsPrintfCString& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue.get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<nsTDependentString<char>> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsTDependentString<char>& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue.get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<nsACString> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsACString& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(nsAutoCString(aValue).get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<std::string> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const std::string& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue);
+  }
+};
+
+template <size_t N>
+struct AddDebugAnnotationImpl<char[N]> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const char* aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue);
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<mozilla::ProfilerString16View> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const mozilla::ProfilerString16View& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(NS_ConvertUTF16toUTF8(aValue).get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<nsAString> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsAString& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(NS_ConvertUTF16toUTF8(aValue).get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<const nsAString&> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsAString& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(NS_ConvertUTF16toUTF8(aValue).get());
+  }
+};
+
+template <>
+struct AddDebugAnnotationImpl<nsString> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const nsString& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(NS_ConvertUTF16toUTF8(aValue).get());
+  }
+};
+
+// Main helper call that dispatches to proper specialization.
+template <typename T>
+void AddDebugAnnotation(perfetto::EventContext& ctx, const char* const aKey,
+                        const T& aValue) {
+  AddDebugAnnotationImpl<T>::call(ctx, aKey, aValue);
+}
+
+extern const char* ProfilerCategoryNames[];
+
+// Main entry point from the gecko profiler for each marker.
+template <typename MarkerType, typename... PayloadArguments>
+void EmitPerfettoTrackEvent(const mozilla::ProfilerString8View& aName,
+                            const mozilla::MarkerCategory& aCategory,
+                            const mozilla::MarkerOptions& aOptions,
+                            MarkerType aMarkerType,
+                            const PayloadArguments&... aPayloadArguments) {
+  mozilla::TimeStamp startTime, endTime;
+  mozilla::MarkerTiming::Phase phase;
+
+  if (aOptions.IsTimingUnspecified()) {
+    startTime = mozilla::TimeStamp::Now();
+    phase = mozilla::MarkerTiming::Phase::Instant;
+  } else {
+    startTime = aOptions.Timing().StartTime();
+    endTime = aOptions.Timing().EndTime();
+    phase = aOptions.Timing().MarkerPhase();
+  }
+
+  const char* nameStr = aName.StringView().data();
+  if (!nameStr) {
+    return;
+  }
+
+  // Create a dynamic category for the marker.
+  const char* categoryName =
+      ProfilerCategoryNames[static_cast<uint32_t>(aCategory.GetCategory())];
+  perfetto::DynamicCategory category{categoryName};
+  perfetto::DynamicString name{nameStr};
+
+  // If the Marker has payload fields, we can annotate them in the perfetto
+  // track event. Otherwise, we define an empty lambda which does nothing.
+  std::function<void(perfetto::EventContext)> annotateTrackEvent =
+      [&](perfetto::EventContext ctx) {};
+  if constexpr (MarkerHasPayloadFields<MarkerType>::value) {
+    annotateTrackEvent = [&](perfetto::EventContext ctx) {
+      size_t i = 0;
+      auto processArgument = [&](const auto& payloadArg) {
+        AddDebugAnnotation(ctx, MarkerType::PayloadFields[i++].Key, payloadArg);
+      };
+      (processArgument(aPayloadArguments), ...);
+    };
+  }
+
+  // Create a unique id for each marker so it has it's own track.
+  mozilla::HashNumber hash =
+      mozilla::HashStringKnownLength(nameStr, aName.StringView().length());
+
+  switch (phase) {
+    case mozilla::MarkerTiming::Phase::Interval: {
+      hash = mozilla::AddToHash(
+          hash, startTime.RawClockMonotonicNanosecondsSinceBoot());
+      hash = mozilla::AddToHash(
+          hash, endTime.RawClockMonotonicNanosecondsSinceBoot());
+      perfetto::Track track(hash);
+
+      PERFETTO_TRACE_EVENT_BEGIN(category, name, track, startTime);
+      PERFETTO_TRACE_EVENT_END(category, track, endTime, annotateTrackEvent);
+    } break;
+    case mozilla::MarkerTiming::Phase::Instant: {
+      PERFETTO_TRACE_EVENT_INSTANT(category, name, startTime);
+    } break;
+    case mozilla::MarkerTiming::Phase::IntervalStart: {
+      PERFETTO_TRACE_EVENT_BEGIN(category, name, perfetto::Track(hash),
+                                 startTime);
+    } break;
+    case mozilla::MarkerTiming::Phase::IntervalEnd: {
+      PERFETTO_TRACE_EVENT_END(category, perfetto::Track(hash), endTime,
+                               annotateTrackEvent);
+    } break;
+  }
+}
+
 #else  // !defined(MOZ_PERFETTO)
 #  define PERFETTO_TRACE_EVENT(...) \
     do {                            \
@@ -110,6 +415,9 @@ PERFETTO_DEFINE_CATEGORIES(perfetto::Category("task"),
     } while (0)
 #  define PERFETTO_TRACE_EVENT_END(...) \
     do {                                \
+    } while (0)
+#  define PERFETTO_TRACE_EVENT_INSTANT(...) \
+    do {                                    \
     } while (0)
 inline void InitPerfetto() {}
 #endif  // MOZ_PERFETTO
