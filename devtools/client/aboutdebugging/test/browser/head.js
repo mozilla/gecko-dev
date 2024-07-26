@@ -102,8 +102,12 @@ async function openAboutDevtoolsToolbox(
     shouldWaitToolboxReady ? onToolboxReady : Promise.resolve(),
   ]);
 
-  // WebExtension open a toolbox in a dedicated window
-  if (isWebExtension) {
+  const { runtimes } = win.AboutDebugging.store.getState();
+  const isOnThisFirefox = runtimes.selectedRuntimeId === "this-firefox";
+  const isLocalWebExtension = isWebExtension && isOnThisFirefox;
+
+  // Local WebExtension toolboxes open in a dedicated window
+  if (isLocalWebExtension) {
     const toolbox = await onToolboxReady;
     // For some reason the test helpers prevents the toolbox from being automatically focused on opening,
     // whereas it is IRL.
@@ -134,6 +138,7 @@ async function openAboutDevtoolsToolbox(
   const devtoolsTab = tab.nextElementSibling;
   await waitUntil(() => gBrowser.selectedTab === devtoolsTab);
   const devtoolsBrowser = gBrowser.selectedBrowser;
+  info("Wait for about:devtools-toolbox tab to have the expected URL");
   await waitUntil(() =>
     devtoolsBrowser.contentWindow.location.href.startsWith(
       "about:devtools-toolbox?"
@@ -164,7 +169,11 @@ async function closeAboutDevtoolsToolbox(
   const devtoolsBrowser = devtoolsTab.linkedBrowser;
   const devtoolsWindow = devtoolsBrowser.contentWindow;
   const toolbox = getToolbox(devtoolsWindow);
-  await toolbox.commands.client.waitForRequestsToSettle();
+
+  info("Wait for requests to settle");
+  await toolbox.commands.client.waitForRequestsToSettle({
+    ignoreOrphanedFronts: true,
+  });
 
   info("Close about:devtools-toolbox page");
   const onToolboxDestroyed = gDevTools.once("toolbox-destroyed");
@@ -524,3 +533,41 @@ function createAddonData({
     debuggable: true,
   };
 }
+
+async function connectToLocalFirefox({ runtimeId, runtimeName, deviceName }) {
+  // This is a client to the current Firefox.
+  const clientWrapper = await createLocalClientWrapper();
+
+  // enable USB devices mocks
+  const mocks = new Mocks();
+  const usbClient = mocks.createUSBRuntime(runtimeId, {
+    deviceName,
+    name: runtimeName,
+    clientWrapper,
+  });
+
+  // Wrap a disconnect helper for convenience for the caller.
+  const disconnect = doc =>
+    disconnectFromLocalFirefox({
+      doc,
+      runtimeId,
+      deviceName,
+      mocks,
+    });
+
+  return { disconnect, mocks, usbClient };
+}
+/* exported connectToLocalFirefox */
+
+async function disconnectFromLocalFirefox({
+  doc,
+  mocks,
+  runtimeId,
+  deviceName,
+}) {
+  info("Remove USB runtime");
+  mocks.removeUSBRuntime(runtimeId);
+  mocks.emitUSBUpdate();
+  await waitUntilUsbDeviceIsUnplugged(deviceName, doc);
+}
+/* exported disconnectFromLocalFirefox */
