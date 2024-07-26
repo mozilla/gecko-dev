@@ -19,6 +19,7 @@
 #include "wasm/WasmPI.h"
 
 #include "builtin/Promise.h"
+#include "jit/arm/Simulator-arm.h"
 #include "jit/MIRGenerator.h"
 #include "js/CallAndConstruct.h"
 #include "vm/Iteration.h"
@@ -99,6 +100,22 @@ void SuspenderObjectData::switchSimulatorToSuspendable() {
   sim->set_xreg(Registers::sp, (int64_t)suspendableSP_,
                 vixl::Debugger::LogRegWrites, vixl::Reg31IsStackPointer);
   sim->set_xreg(Registers::fp, (int64_t)suspendableFP_);
+}
+#  endif
+
+#  ifdef JS_SIMULATOR_ARM
+void SuspenderObjectData::switchSimulatorToMain() {
+  suspendableSP_ = (void*)Simulator::Current()->get_register(Simulator::sp);
+  suspendableFP_ = (void*)Simulator::Current()->get_register(Simulator::fp);
+  Simulator::Current()->set_register(Simulator::sp, (int)mainSP_);
+  Simulator::Current()->set_register(Simulator::fp, (int)mainFP_);
+}
+
+void SuspenderObjectData::switchSimulatorToSuspendable() {
+  mainSP_ = (void*)Simulator::Current()->get_register(Simulator::sp);
+  mainFP_ = (void*)Simulator::Current()->get_register(Simulator::fp);
+  Simulator::Current()->set_register(Simulator::sp, (int)suspendableSP_);
+  Simulator::Current()->set_register(Simulator::fp, (int)suspendableFP_);
 }
 #  endif
 
@@ -422,7 +439,7 @@ bool CallImportOnMainThread(JSContext* cx, Instance* instance,
   suspender->setSuspended(cx);
 
 #  ifdef JS_SIMULATOR
-#    ifdef JS_SIMULATOR_ARM64
+#    if defined(JS_SIMULATOR_ARM64) || defined(JS_SIMULATOR_ARM)
   // The simulator is using its own stack, however switching is needed for
   // virtual registers.
   stacks->switchSimulatorToMain();
@@ -593,11 +610,43 @@ bool CallImportOnMainThread(JSContext* cx, Instance* instance,
           : CALLER_SAVED_REGS)
   INLINED_ASM(12, 16, 20, 24);
 
+#  elif defined(__arm__)
+#    define INLINED_ASM(MAIN_FP, MAIN_SP, SUSPENDABLE_FP, SUSPENDABLE_SP) \
+      CHECK_OFFSETS(MAIN_FP, MAIN_SP, SUSPENDABLE_FP, SUSPENDABLE_SP);    \
+      asm("\n   mov     r0, %1"                                           \
+          "\n   mov     r1, sp"                                           \
+          "\n   str     r11, [r0, #" #SUSPENDABLE_FP "]"                  \
+          "\n   str     r1, [r0, #" #SUSPENDABLE_SP "]"                   \
+                                                                          \
+          "\n   ldr     r11, [r0, #" #MAIN_FP "]"                         \
+          "\n   ldr     r1, [r0, #" #MAIN_SP "]"                          \
+          "\n   mov     sp, r1"                                           \
+                                                                          \
+          "\n   str     r0, [sp, #-8]! "                                  \
+                                                                          \
+          "\n   mov     r0, %3"                                           \
+          "\n   blx     %2"                                               \
+                                                                          \
+          "\n   ldr     r2, [sp], #8 "                                    \
+                                                                          \
+          "\n   mov     r1, sp"                                           \
+          "\n   str     r11, [r2, #" #MAIN_FP "]"                         \
+          "\n   str     r1, [r2, #" #MAIN_SP "]"                          \
+                                                                          \
+          "\n   ldr     r11, [r2, #" #SUSPENDABLE_FP "]"                  \
+          "\n   ldr     r1, [r2, #" #SUSPENDABLE_SP "]"                   \
+          "\n   mov     sp, r1"                                           \
+          "\n   mov     %0, r0"                                           \
+          : "=r"(res)                                                     \
+          : "r"(stacks), "r"(CallImportData::Call), "r"(&data)            \
+          : "r0", "r1", "r2")
+  INLINED_ASM(12, 16, 20, 24);
+
 #  else
   MOZ_CRASH("Not supported for this platform");
 #  endif
   // clang-format on
-#  endif
+#  endif  // JS_SIMULATOR
 
   bool ok = res;
   suspender->setActive(cx);

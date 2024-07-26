@@ -2218,11 +2218,11 @@ void Assembler::bind(Label* label, BufferOffset boff) {
     return;
   }
 
+  BufferOffset dest = boff.assigned() ? boff : nextOffset();
   if (label->used()) {
     bool more;
     // If our caller didn't give us an explicit target to bind to then we
     // want to bind to the location of the next instruction.
-    BufferOffset dest = boff.assigned() ? boff : nextOffset();
     BufferOffset b(label);
     do {
       BufferOffset next;
@@ -2242,7 +2242,7 @@ void Assembler::bind(Label* label, BufferOffset boff) {
       b = next;
     } while (more);
   }
-  label->bind(nextOffset().getOffset());
+  label->bind(dest.getOffset());
   MOZ_ASSERT(!oom());
 }
 

@@ -9512,6 +9512,8 @@ void CodeGenerator::visitWasmStackSwitchToSuspendable(
   const Register ScratchReg1 = ABINonArgReg3;
 #  elif defined(JS_CODEGEN_X64)
   const Register ScratchReg1 = ScratchReg;
+#  elif defined(JS_CODEGEN_ARM)
+  const Register ScratchReg1 = ABINonArgReturnVolatileReg;
 #  else
 #    error "NYI: scratch register"
 #  endif
@@ -9600,8 +9602,8 @@ void CodeGenerator::visitWasmStackSwitchToSuspendable(
   // WASM_FUNC_UNCHECKED_ENTRY_SLOT extended slot.
   size_t uncheckedEntrySlotOffset = FunctionExtended::offsetOfExtendedSlot(
       FunctionExtended::WASM_FUNC_UNCHECKED_ENTRY_SLOT);
-  masm.loadPtr(Address(FnReg, uncheckedEntrySlotOffset), ScratchReg1);
-  masm.jump(ScratchReg1);
+  masm.loadPtr(Address(FnReg, uncheckedEntrySlotOffset), ScratchReg2);
+  masm.jump(ScratchReg2);
 
   // About to use valid FramePointer -- restore framePushed.
   masm.setFramePushed(framePushed);
@@ -9652,6 +9654,8 @@ void CodeGenerator::visitWasmStackSwitchToMain(LWasmStackSwitchToMain* lir) {
   const Register ScratchReg1 = ABINonArgReg3;
 #  elif defined(JS_CODEGEN_X64)
   const Register ScratchReg1 = ScratchReg;
+#  elif defined(JS_CODEGEN_ARM)
+  const Register ScratchReg1 = ABINonArgReturnVolatileReg;
 #  else
 #    error "NYI: scratch register"
 #  endif
@@ -9769,8 +9773,8 @@ void CodeGenerator::visitWasmStackSwitchToMain(LWasmStackSwitchToMain* lir) {
   // WASM_FUNC_UNCHECKED_ENTRY_SLOT extended slot.
   size_t uncheckedEntrySlotOffset = FunctionExtended::offsetOfExtendedSlot(
       FunctionExtended::WASM_FUNC_UNCHECKED_ENTRY_SLOT);
-  masm.loadPtr(Address(FnReg, uncheckedEntrySlotOffset), ScratchReg1);
-  masm.jump(ScratchReg1);
+  masm.loadPtr(Address(FnReg, uncheckedEntrySlotOffset), ScratchReg2);
+  masm.jump(ScratchReg2);
 
   // About to use valid FramePointer -- restore framePushed.
   masm.setFramePushed(framePushed);
@@ -9820,6 +9824,8 @@ void CodeGenerator::visitWasmStackContinueOnSuspendable(
   const Register ScratchReg1 = ABINonArgReg2;
 #  elif defined(JS_CODEGEN_X64)
   const Register ScratchReg1 = ScratchReg;
+#  elif defined(JS_CODEGEN_ARM)
+  const Register ScratchReg1 = ABINonArgReturnVolatileReg;
 #  else
 #    error "NYI: scratch register"
 #  endif
@@ -9854,8 +9860,8 @@ void CodeGenerator::visitWasmStackContinueOnSuspendable(
                 Address(ScratchReg1, wasm::Frame::callerFPOffset()));
 
   // Adjust exit frame RA.
-
   masm.mov(&returnCallsite, ScratchReg2);
+
   masm.storePtr(ScratchReg2,
                 Address(ScratchReg1, wasm::Frame::returnAddressOffset()));
   // Adjust exit frame caller instance slot.

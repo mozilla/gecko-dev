@@ -81,11 +81,12 @@
 
   const stacks = disableSingleStepProfiling();
   WasmHelpers.assertEqImpreciseStacks(stacks,
-    ["", ">", "2,>", "<,2,>", "2,>", "<,2,>", "#ref.func function,2,>",
-        "<,2,>", "2,>", "<,2,>", "#update suspender state util,2,>",
-        "<,2,>", "2,>", "3,2,>", "4,3,2,>", "<,4,3,2,>", "4,3,2,>", "3,2,>",
-        "<,3,2,>", "SetPromisingPromiseResults,3,2,>", "<,3,2,>", "3,2,>", "2,>",
-        "<,2,>", "#update suspender state util,2,>", "<,2,>", "2,>", ">", ""]
+    ["", ">", "1,>", "<,1,>", "CreateSuspender,1,>", "<,1,>", "1,>", "<,1,>",
+     "CreatePromisingPromise,1,>", "<,1,>", "1,>", "<,1,>", "#ref.func function,1,>",
+     "<,1,>", "1,>", "<,1,>", "#update suspender state util,1,>", "<,1,>", "1,>",
+     "2,1,>", "4,2,1,>", "<,4,2,1,>", "4,2,1,>", "2,1,>", "<,2,1,>",
+     "SetPromisingPromiseResults,2,1,>", "<,2,1,>", "2,1,>", "1,>", "<,1,>",
+     "#update suspender state util,1,>", "<,1,>", "1,>", ">", ""]
   );
 
   disableGeckoProfiling();
