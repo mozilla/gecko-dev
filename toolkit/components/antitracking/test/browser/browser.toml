@@ -236,6 +236,8 @@ support-files = [
 skip-if = ["os == 'mac' && verify"] # Bug 1721210
 support-files = ["file_ws_handshake_delay_wsh.py"]
 
+["browser_storageAccessAutograntFromFedCM.js"]
+
 ["browser_storageAccessAutograntRequiresUserInteraction.js"]
 
 ["browser_storageAccessDeniedGivesNoUserInteraction.js"]

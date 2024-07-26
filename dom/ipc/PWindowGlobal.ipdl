@@ -214,7 +214,7 @@ parent:
       returns (nsresult rv);
   async PreventSilentAccess() returns (nsresult rv);
 
-  async GetStorageAccessPermission() returns(uint32_t permission_action);
+  async GetStorageAccessPermission(bool aIncludeIdentityCredential) returns(uint32_t permission_action);
 
 
   async SetCookies(nsCString baseDomain,

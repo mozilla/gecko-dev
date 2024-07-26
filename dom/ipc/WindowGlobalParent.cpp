@@ -1488,6 +1488,7 @@ IPCResult WindowGlobalParent::RecvPreventSilentAccess(
 }
 
 IPCResult WindowGlobalParent::RecvGetStorageAccessPermission(
+    bool aIncludeIdentityCredential,
     GetStorageAccessPermissionResolver&& aResolve) {
   WindowGlobalParent* top = TopWindowContext();
   if (!top) {
@@ -1501,6 +1502,24 @@ IPCResult WindowGlobalParent::RecvGetStorageAccessPermission(
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aResolve(nsIPermissionManager::UNKNOWN_ACTION);
     return IPC_OK();
+  }
+  if (result == nsIPermissionManager::ALLOW_ACTION) {
+    aResolve(nsIPermissionManager::ALLOW_ACTION);
+    return IPC_OK();
+  }
+
+  if (aIncludeIdentityCredential) {
+    bool canCollect;
+    rv = IdentityCredential::CanSilentlyCollect(topPrincipal, principal,
+                                                &canCollect);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aResolve(nsIPermissionManager::UNKNOWN_ACTION);
+      return IPC_OK();
+    }
+    if (canCollect) {
+      aResolve(nsIPermissionManager::ALLOW_ACTION);
+      return IPC_OK();
+    }
   }
 
   aResolve(result);

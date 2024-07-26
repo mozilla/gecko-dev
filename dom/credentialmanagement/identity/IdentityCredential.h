@@ -113,6 +113,10 @@ class IdentityCredential final : public Credential {
       const IdentityCredentialRequestOptions& aOptions,
       const CredentialMediationRequirement& aMediationRequirement);
 
+  static nsresult CanSilentlyCollect(nsIPrincipal* aPrincipal,
+                                     nsIPrincipal* aIDPPrincipal,
+                                     bool* aResult);
+
   static RefPtr<GenericPromise> AllowedToCollectCredential(
       nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
       const IdentityCredentialRequestOptions& aOptions,

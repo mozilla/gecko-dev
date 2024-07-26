@@ -41,7 +41,7 @@ StorageAccessPermissionStatus::UpdateState() {
   }
 
   RefPtr<StorageAccessPermissionStatus> self(this);
-  return wgc->SendGetStorageAccessPermission()->Then(
+  return wgc->SendGetStorageAccessPermission(false)->Then(
       GetMainThreadSerialEventTarget(), __func__,
       [self](uint32_t aAction) {
         if (aAction == nsIPermissionManager::ALLOW_ACTION) {

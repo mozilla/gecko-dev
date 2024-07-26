@@ -329,6 +329,7 @@ class WindowGlobalParent final : public WindowContext,
       const PreventSilentAccessResolver& aResolver);
 
   mozilla::ipc::IPCResult RecvGetStorageAccessPermission(
+      bool aIncludeIdentityCredential,
       GetStorageAccessPermissionResolver&& aResolve);
 
   mozilla::ipc::IPCResult RecvSetCookies(

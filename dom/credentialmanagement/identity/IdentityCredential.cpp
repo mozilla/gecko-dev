@@ -228,12 +228,13 @@ void IdentityCredential::GetCredential(nsPIDOMWindowInner* aParent,
           });
 }
 
-nsresult CanSilentlyCollect(nsIPrincipal* aPrincipal,
-                            const IPCIdentityCredential& aCredential,
-                            bool* aResult) {
+nsresult IdentityCredential::CanSilentlyCollect(nsIPrincipal* aPrincipal,
+                                                nsIPrincipal* aIDPPrincipal,
+                                                bool* aResult) {
+  NS_ENSURE_ARG_POINTER(aPrincipal);
+  NS_ENSURE_ARG_POINTER(aIDPPrincipal);
   nsCString origin;
-  MOZ_ASSERT(aCredential.identityProvider());
-  nsresult rv = aCredential.identityProvider()->GetOrigin(origin);
+  nsresult rv = aIDPPrincipal->GetOrigin(origin);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t permit = nsIPermissionManager::UNKNOWN_ACTION;
@@ -287,8 +288,8 @@ IdentityCredential::GetCredentialInMainProcess(
                 const IPCIdentityCredential& silentCandidate =
                     aResult.ElementAt(0);
                 bool permitted;
-                nsresult rv =
-                    CanSilentlyCollect(principal, silentCandidate, &permitted);
+                nsresult rv = CanSilentlyCollect(
+                    principal, silentCandidate.identityProvider(), &permitted);
                 if (NS_SUCCEEDED(rv) && permitted) {
                   result->Resolve(silentCandidate, __func__);
                   return;
