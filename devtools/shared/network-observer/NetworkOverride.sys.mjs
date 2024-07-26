@@ -63,6 +63,13 @@ function overrideChannelWithFilePath(channel, path) {
     replacedHttpResponse.setResponseHeader("Content-Type", mimeType, false);
   }
 
+  // Allow all cross origin requests for overrides.
+  replacedHttpResponse.setResponseHeader(
+    "Access-Control-Allow-Origin",
+    "*",
+    false
+  );
+
   channel
     .QueryInterface(Ci.nsIHttpChannelInternal)
     .setResponseOverride(replacedHttpResponse);

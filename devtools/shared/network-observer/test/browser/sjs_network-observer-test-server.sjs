@@ -32,6 +32,13 @@ function handleRequest(request, response) {
     response.setHeader("Expires", Date(Date.now() + cacheExpire * 1000), false);
   }
 
+  const allowCORS = params.some(s => s.startsWith("cors"));
+  function setCORSHeader() {
+    if (allowCORS) {
+      response.setHeader("Access-Control-Allow-Origin", "*", false);
+    }
+  }
+
   let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
   timer.initWithCallback(
@@ -75,6 +82,7 @@ function handleRequest(request, response) {
           response.setStatusLine(request.httpVersion, status, "OK");
           response.setHeader("Content-Type", "text/html; charset=utf-8", false);
           setCacheHeaders();
+          setCORSHeader();
           response.write(content || "<p>Hello HTML!</p>");
           response.finish();
           break;
@@ -87,6 +95,7 @@ function handleRequest(request, response) {
             false
           );
           setCacheHeaders();
+          setCORSHeader();
           response.write("<p>Hello XHTML!</p>");
           response.finish();
           break;
@@ -96,6 +105,7 @@ function handleRequest(request, response) {
           response.setStatusLine(request.httpVersion, status, "OK");
           response.setHeader("Content-Type", "text/html; charset=utf-8", false);
           setCacheHeaders();
+          setCORSHeader();
           response.write("<p>" + str + "</p>");
           response.finish();
           break;
@@ -104,6 +114,7 @@ function handleRequest(request, response) {
           response.setStatusLine(request.httpVersion, status, "OK");
           response.setHeader("Content-Type", "text/css; charset=utf-8", false);
           setCacheHeaders();
+          setCORSHeader();
           response.write("body:pre { content: 'Hello CSS!' }");
           response.finish();
           break;
@@ -116,6 +127,7 @@ function handleRequest(request, response) {
             false
           );
           setCacheHeaders();
+          setCORSHeader();
           response.write("function() { return 'Hello JS!'; }");
           response.finish();
           break;
@@ -128,6 +140,7 @@ function handleRequest(request, response) {
             false
           );
           setCacheHeaders();
+          setCORSHeader();
           response.write('{ "greeting": "Hello JSON!" }');
           response.finish();
           break;
@@ -137,6 +150,7 @@ function handleRequest(request, response) {
           response.setStatusLine(request.httpVersion, status, "OK");
           response.setHeader("Content-Type", "font/woff", false);
           setCacheHeaders();
+          setCORSHeader();
           response.finish();
           break;
         }
@@ -144,6 +158,7 @@ function handleRequest(request, response) {
           response.setStatusLine(request.httpVersion, status, "OK");
           response.setHeader("Content-Type", "image/png", false);
           setCacheHeaders();
+          setCORSHeader();
           response.finish();
           break;
         }
@@ -151,6 +166,7 @@ function handleRequest(request, response) {
           response.setStatusLine(request.httpVersion, status, "OK");
           response.setHeader("Content-Type", "application/ogg", false);
           setCacheHeaders();
+          setCORSHeader();
           response.finish();
           break;
         }
@@ -158,6 +174,7 @@ function handleRequest(request, response) {
           response.setStatusLine(request.httpVersion, status, "OK");
           response.setHeader("Content-Type", "audio/ogg", false);
           setCacheHeaders();
+          setCORSHeader();
           response.finish();
           break;
         }
@@ -165,6 +182,7 @@ function handleRequest(request, response) {
           response.setStatusLine(request.httpVersion, status, "OK");
           response.setHeader("Content-Type", "video/webm", false);
           setCacheHeaders();
+          setCORSHeader();
           response.finish();
           break;
         }
@@ -177,6 +195,7 @@ function handleRequest(request, response) {
           response.setHeader("Connection", "upgrade", false);
           response.setHeader("Upgrade", "websocket", false);
           setCacheHeaders();
+          setCORSHeader();
           response.finish();
           break;
         }
@@ -184,6 +203,7 @@ function handleRequest(request, response) {
           response.setStatusLine(request.httpVersion, 404, "Not Found");
           response.setHeader("Content-Type", "text/html; charset=utf-8", false);
           setCacheHeaders();
+          setCORSHeader();
           response.write("<blink>Not Found</blink>");
           response.finish();
           break;

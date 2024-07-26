@@ -2,11 +2,12 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
-
+requestLongerTimeout(3);
 const TEST_URL = URL_ROOT + "doc_network-observer.html";
 const TEST_URL_CSP = URL_ROOT + "override_script_src_self.html";
 const REQUEST_URL =
-  URL_ROOT + `sjs_network-observer-test-server.sjs?sts=200&fmt=html`;
+  URL_ROOT + `sjs_network-observer-test-server.sjs?sts=200&fmt=js`;
+const CORS_REQUEST_URL = REQUEST_URL.replace("example.com", "plop.example.com");
 const CSP_SCRIPT_TO_OVERRIDE = URL_ROOT + "csp_script_to_override.js";
 const GZIPPED_REQUEST_URL = URL_ROOT + `gzipped.sjs`;
 const OVERRIDE_FILENAME = "override.js";
@@ -17,7 +18,8 @@ add_task(async function testLocalOverride() {
 
   let eventsCount = 0;
   const networkObserver = new NetworkObserver({
-    ignoreChannelFunction: channel => channel.URI.spec !== REQUEST_URL,
+    ignoreChannelFunction: channel =>
+      ![REQUEST_URL, CORS_REQUEST_URL].includes(channel.URI.spec),
     onNetworkEvent: event => {
       info("received a network event");
       eventsCount++;
@@ -57,7 +59,7 @@ add_task(async function testLocalOverride() {
     gBrowser.selectedBrowser,
     [REQUEST_URL],
     async _url => {
-      const script = await content.document.createElement("script");
+      const script = content.document.createElement("script");
       const onLoad = new Promise(resolve =>
         script.addEventListener("load", resolve, { once: true })
       );
@@ -68,6 +70,31 @@ add_task(async function testLocalOverride() {
         content.document.title,
         "Override script loaded",
         "The <script> tag content has been overriden and correctly evaluated"
+      );
+    }
+  );
+
+  info(`Assert that JS scripts with crossorigin="anonymous" can be overriden`);
+  networkObserver.override(CORS_REQUEST_URL, overrideFile.path);
+
+  await SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [CORS_REQUEST_URL],
+    async _url => {
+      content.document.title = "title before crossorigin=anonymous evaluation";
+      const script = content.document.createElement("script");
+      script.setAttribute("crossorigin", "anonymous");
+      script.crossOrigin = "anonymous";
+      const onLoad = new Promise(resolve =>
+        script.addEventListener("load", resolve, { once: true })
+      );
+      script.src = _url;
+      content.document.body.appendChild(script);
+      await onLoad;
+      is(
+        content.document.title,
+        "Override script loaded",
+        `The <script crossorigin="anonymous"> tag content has been overriden and correctly evaluated`
       );
     }
   );
@@ -158,7 +185,7 @@ add_task(async function testLocalOverrideGzipped() {
     gBrowser.selectedBrowser,
     [GZIPPED_REQUEST_URL],
     async _url => {
-      const script = await content.document.createElement("script");
+      const script = content.document.createElement("script");
       const onLoad = new Promise(resolve =>
         script.addEventListener("load", resolve, { once: true })
       );
@@ -220,7 +247,7 @@ add_task(async function testLocalOverrideCSP() {
   );
 
   await SpecialPowers.spawn(browser, [url], async _url => {
-    const script = await content.document.createElement("script");
+    const script = content.document.createElement("script");
     const onLoad = new Promise(resolve =>
       script.addEventListener("load", resolve, { once: true })
     );

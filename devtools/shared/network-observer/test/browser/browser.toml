@@ -6,6 +6,7 @@ support-files = [
   "csp_script_to_override.js",
   "doc_network-observer-missing-service-worker.html",
   "doc_network-observer.html",
+  "doc_network-observer.html^headers^",
   "gzipped.sjs",
   "override.html",
   "override.js",
