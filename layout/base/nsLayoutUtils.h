@@ -1484,10 +1484,11 @@ class nsLayoutUtils {
   /**
    * Calls IntrinsicForAxis with aFrame's parent's inline physical axis.
    */
-  static nscoord IntrinsicForContainer(gfxContext* aRenderingContext,
-                                       nsIFrame* aFrame,
-                                       mozilla::IntrinsicISizeType aType,
-                                       uint32_t aFlags = 0);
+  static nscoord IntrinsicForContainer(
+      gfxContext* aRenderingContext, nsIFrame* aFrame,
+      mozilla::IntrinsicISizeType aType,
+      const mozilla::Maybe<LogicalSize>& aPercentageBasis = mozilla::Nothing(),
+      uint32_t aFlags = 0);
 
   /**
    * Get the definite size contribution of aFrame for the given physical axis.

@@ -596,8 +596,9 @@ ScrollContainerFrame* nsTableCellFrame::GetScrollTargetFrame() const {
 
 nscoord nsTableCellFrame::IntrinsicISize(gfxContext* aContext,
                                          IntrinsicISizeType aType) {
-  return nsLayoutUtils::IntrinsicForContainer(
-      aContext, mFrames.FirstChild(), aType, nsLayoutUtils::IGNORE_PADDING);
+  return nsLayoutUtils::IntrinsicForContainer(aContext, mFrames.FirstChild(),
+                                              aType, Nothing(),
+                                              nsLayoutUtils::IGNORE_PADDING);
 }
 
 /* virtual */ nsIFrame::IntrinsicSizeOffsetData
