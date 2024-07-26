@@ -155,7 +155,7 @@ nsresult HttpConnectionUDP::Init(nsHttpConnectionInfo* info,
   mPeerAddr = new nsNetAddr(&peerAddr);
   mHttp3Session = new Http3Session();
   rv = mHttp3Session->Init(mConnInfo, mSelfAddr, mPeerAddr, this, providerFlags,
-                           callbacks);
+                           callbacks, mSocket);
   if (NS_FAILED(rv)) {
     LOG(
         ("HttpConnectionUDP::Init mHttp3Session->Init failed "

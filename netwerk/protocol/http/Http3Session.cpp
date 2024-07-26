@@ -92,7 +92,8 @@ static nsresult RawBytesToNetAddr(uint16_t aFamily, const uint8_t* aRemoteAddr,
 nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
                             nsINetAddr* aSelfAddr, nsINetAddr* aPeerAddr,
                             HttpConnectionUDP* udpConn, uint32_t aProviderFlags,
-                            nsIInterfaceRequestor* callbacks) {
+                            nsIInterfaceRequestor* callbacks,
+                            nsIUDPSocket* socket) {
   LOG3(("Http3Session::Init %p", this));
 
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
@@ -134,16 +135,34 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
       StaticPrefs::network_webtransport_datagrams_enabled()
           ? StaticPrefs::network_webtransport_datagram_size()
           : 0;
-  nsresult rv = NeqoHttp3Conn::Init(
-      mConnInfo->GetOrigin(), mConnInfo->GetNPNToken(), selfAddr, peerAddr,
-      gHttpHandler->DefaultQpackTableSize(),
-      gHttpHandler->DefaultHttp3MaxBlockedStreams(),
-      StaticPrefs::network_http_http3_max_data(),
-      StaticPrefs::network_http_http3_max_stream_data(),
-      StaticPrefs::network_http_http3_version_negotiation_enabled(),
-      mConnInfo->GetWebTransport(), gHttpHandler->Http3QlogDir(), datagramSize,
-      StaticPrefs::network_http_http3_max_accumlated_time_ms(), aProviderFlags,
-      getter_AddRefs(mHttp3Connection));
+
+  mUseNSPRForIO = StaticPrefs::network_http_http3_use_nspr_for_io();
+
+  nsresult rv;
+  if (mUseNSPRForIO) {
+    rv = NeqoHttp3Conn::InitUseNSPRForIO(
+        mConnInfo->GetOrigin(), mConnInfo->GetNPNToken(), selfAddr, peerAddr,
+        gHttpHandler->DefaultQpackTableSize(),
+        gHttpHandler->DefaultHttp3MaxBlockedStreams(),
+        StaticPrefs::network_http_http3_max_data(),
+        StaticPrefs::network_http_http3_max_stream_data(),
+        StaticPrefs::network_http_http3_version_negotiation_enabled(),
+        mConnInfo->GetWebTransport(), gHttpHandler->Http3QlogDir(),
+        datagramSize, StaticPrefs::network_http_http3_max_accumlated_time_ms(),
+        aProviderFlags, getter_AddRefs(mHttp3Connection));
+  } else {
+    rv = NeqoHttp3Conn::Init(
+        mConnInfo->GetOrigin(), mConnInfo->GetNPNToken(), selfAddr, peerAddr,
+        gHttpHandler->DefaultQpackTableSize(),
+        gHttpHandler->DefaultHttp3MaxBlockedStreams(),
+        StaticPrefs::network_http_http3_max_data(),
+        StaticPrefs::network_http_http3_max_stream_data(),
+        StaticPrefs::network_http_http3_version_negotiation_enabled(),
+        mConnInfo->GetWebTransport(), gHttpHandler->Http3QlogDir(),
+        datagramSize, StaticPrefs::network_http_http3_max_accumlated_time_ms(),
+        aProviderFlags, socket->GetFileDescriptor(),
+        getter_AddRefs(mHttp3Connection));
+  }
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -381,35 +400,51 @@ Http3Session::~Http3Session() {
 // It will not return an error if socket error is
 // NS_BASE_STREAM_WOULD_BLOCK.
 // A caller of this function will close the Http3 connection
-// in case of a error.
-// The only callers is:
-//   HttpConnectionUDP::RecvData ->
-//   Http3Session::RecvData
-void Http3Session::ProcessInput(nsIUDPSocket* socket) {
+// in case of an error.
+// The only callers is Http3Session::RecvData.
+nsresult Http3Session::ProcessInput(nsIUDPSocket* socket) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   MOZ_ASSERT(mUdpConn);
 
   LOG(("Http3Session::ProcessInput writer=%p [this=%p state=%d]",
        mUdpConn.get(), this, mState));
 
-  while (true) {
-    nsTArray<uint8_t> data;
-    NetAddr addr{};
-    // RecvWithAddr actually does not return an error.
-    nsresult rv = socket->RecvWithAddr(&addr, data);
-    MOZ_ALWAYS_SUCCEEDS(rv);
-    if (NS_FAILED(rv) || data.IsEmpty()) {
-      break;
-    }
-    rv = mHttp3Connection->ProcessInput(addr, data);
-    MOZ_ALWAYS_SUCCEEDS(rv);
-    if (NS_FAILED(rv)) {
-      break;
+  if (mUseNSPRForIO) {
+    while (true) {
+      nsTArray<uint8_t> data;
+      NetAddr addr{};
+      // RecvWithAddr actually does not return an error.
+      nsresult rv = socket->RecvWithAddr(&addr, data);
+      MOZ_ALWAYS_SUCCEEDS(rv);
+      if (NS_FAILED(rv) || data.IsEmpty()) {
+        break;
+      }
+      rv = mHttp3Connection->ProcessInputUseNSPRForIO(addr, data);
+      MOZ_ALWAYS_SUCCEEDS(rv);
+      if (NS_FAILED(rv)) {
+        break;
+      }
+
+      LOG(("Http3Session::ProcessInput received=%zu", data.Length()));
+      mTotalBytesRead += static_cast<int64_t>(data.Length());
     }
 
-    LOG(("Http3Session::ProcessInput received=%zu", data.Length()));
-    mTotalBytesRead += data.Length();
+    return NS_OK;
   }
+
+  // Not using NSPR.
+
+  auto rv = mHttp3Connection->ProcessInput();
+  // Note: WOULD_BLOCK is handled in neqo_glue.
+  if (NS_FAILED(rv.result)) {
+    mSocketError = rv.result;
+    // If there was an error return from here. We do not need to set a timer,
+    // because we will close the connection.
+    return rv.result;
+  }
+  mTotalBytesRead += rv.bytes_read;
+
+  return NS_OK;
 }
 
 nsresult Http3Session::ProcessTransactionRead(uint64_t stream_id) {
@@ -901,46 +936,69 @@ nsresult Http3Session::ProcessOutput(nsIUDPSocket* socket) {
   LOG(("Http3Session::ProcessOutput reader=%p, [this=%p]", mUdpConn.get(),
        this));
 
-  mSocket = socket;
-  nsresult rv = mHttp3Connection->ProcessOutputAndSend(
-      this,
-      [](void* aContext, uint16_t aFamily, const uint8_t* aAddr, uint16_t aPort,
-         const uint8_t* aData, uint32_t aLength) {
-        Http3Session* self = (Http3Session*)aContext;
+  if (mUseNSPRForIO) {
+    mSocket = socket;
+    nsresult rv = mHttp3Connection->ProcessOutputAndSendUseNSPRForIO(
+        this,
+        [](void* aContext, uint16_t aFamily, const uint8_t* aAddr,
+           uint16_t aPort, const uint8_t* aData, uint32_t aLength) {
+          Http3Session* self = (Http3Session*)aContext;
 
-        uint32_t written = 0;
-        NetAddr addr;
-        if (NS_FAILED(RawBytesToNetAddr(aFamily, aAddr, aPort, &addr))) {
+          uint32_t written = 0;
+          NetAddr addr;
+          if (NS_FAILED(RawBytesToNetAddr(aFamily, aAddr, aPort, &addr))) {
+            return NS_OK;
+          }
+
+          LOG3(
+              ("Http3Session::ProcessOutput sending packet with %u bytes to %s "
+               "port=%d [this=%p].",
+               aLength, addr.ToString().get(), aPort, self));
+
+          nsresult rv =
+              self->mSocket->SendWithAddress(&addr, aData, aLength, &written);
+
+          LOG(("Http3Session::ProcessOutput sending packet rv=%d osError=%d",
+               static_cast<int32_t>(rv), NS_FAILED(rv) ? PR_GetOSError() : 0));
+          if (NS_FAILED(rv) && (rv != NS_BASE_STREAM_WOULD_BLOCK)) {
+            self->mSocketError = rv;
+            // If there was an error that is not NS_BASE_STREAM_WOULD_BLOCK
+            // return from here. We do not need to set a timer, because we
+            // will close the connection.
+            return rv;
+          }
+          self->mTotalBytesWritten += aLength;
+          self->mLastWriteTime = PR_IntervalNow();
           return NS_OK;
-        }
+        },
+        [](void* aContext, uint64_t timeout) {
+          Http3Session* self = (Http3Session*)aContext;
+          self->SetupTimer(timeout);
+        });
+    mSocket = nullptr;
+    return rv;
+  }
 
-        LOG3(
-            ("Http3Session::ProcessOutput sending packet with %u bytes to %s "
-             "port=%d [this=%p].",
-             aLength, addr.ToString().get(), aPort, self));
+  // Not using NSPR.
 
-        nsresult rv =
-            self->mSocket->SendWithAddress(&addr, aData, aLength, &written);
-
-        LOG(("Http3Session::ProcessOutput sending packet rv=%d osError=%d",
-             static_cast<int32_t>(rv), NS_FAILED(rv) ? PR_GetOSError() : 0));
-        if (NS_FAILED(rv) && (rv != NS_BASE_STREAM_WOULD_BLOCK)) {
-          self->mSocketError = rv;
-          // If there was an error that is not NS_BASE_STREAM_WOULD_BLOCK
-          // return from here. We do not need to set a timer, because we
-          // will close the connection.
-          return rv;
-        }
-        self->mTotalBytesWritten += aLength;
-        self->mLastWriteTime = PR_IntervalNow();
-        return NS_OK;
-      },
-      [](void* aContext, uint64_t timeout) {
+  auto rv = mHttp3Connection->ProcessOutputAndSend(
+      this, [](void* aContext, uint64_t timeout) {
         Http3Session* self = (Http3Session*)aContext;
         self->SetupTimer(timeout);
       });
-  mSocket = nullptr;
-  return rv;
+  // Note: WOULD_BLOCK is handled in neqo_glue.
+  if (NS_FAILED(rv.result)) {
+    mSocketError = rv.result;
+    // If there was an error return from here. We do not need to set a timer,
+    // because we will close the connection.
+    return rv.result;
+  }
+  if (rv.bytes_written != 0) {
+    mTotalBytesWritten += rv.bytes_written;
+    mLastWriteTime = PR_IntervalNow();
+  }
+
+  return NS_OK;
 }
 
 // This is only called when timer expires.
@@ -1622,7 +1680,10 @@ nsresult Http3Session::RecvData(nsIUDPSocket* socket) {
     return rv;
   }
 
-  ProcessInput(socket);
+  rv = ProcessInput(socket);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   rv = ProcessEvents();
   if (NS_FAILED(rv)) {

@@ -37,6 +37,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[cfg(all(feature = "direct-log", not(feature = "tracing")))]
+use log::warn;
+#[cfg(feature = "tracing")]
 use tracing::warn;
 
 #[cfg(any(unix, windows))]
@@ -84,6 +87,9 @@ pub struct RecvMeta {
     /// The Explicit Congestion Notification bits for the datagram(s) in the buffer
     pub ecn: Option<EcnCodepoint>,
     /// The destination IP address which was encoded in this datagram
+    ///
+    /// Populated on platforms: Windows, Linux, Android, FreeBSD, OpenBSD, NetBSD, macOS,
+    /// and iOS.
     pub dst_ip: Option<IpAddr>,
 }
 
@@ -123,6 +129,7 @@ const IO_ERROR_LOG_INTERVAL: Duration = std::time::Duration::from_secs(60);
 ///
 /// Logging will only be performed if at least [`IO_ERROR_LOG_INTERVAL`]
 /// has elapsed since the last error was logged.
+#[cfg(any(feature = "tracing", feature = "direct-log"))]
 fn log_sendmsg_error(
     last_send_error: &Mutex<Instant>,
     err: impl core::fmt::Debug,
@@ -138,10 +145,14 @@ fn log_sendmsg_error(
     }
 }
 
+// No-op
+#[cfg(not(any(feature = "tracing", feature = "direct-log")))]
+fn log_sendmsg_error(_: &Mutex<Instant>, _: impl core::fmt::Debug, _: &Transmit) {}
+
 /// A borrowed UDP socket
 ///
-/// On Unix, constructible via `From<T: AsRawFd>`. On Windows, constructible via `From<T:
-/// AsRawSocket>`.
+/// On Unix, constructible via `From<T: AsFd>`. On Windows, constructible via `From<T:
+/// AsSocket>`.
 // Wrapper around socket2 to avoid making it a public dependency and incurring stability risk
 pub struct UdpSockRef<'a>(socket2::SockRef<'a>);
 

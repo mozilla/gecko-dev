@@ -21,6 +21,7 @@
 #include "nsIOService.h"
 #include "prnetdb.h"
 #include "prio.h"
+#include "private/pprio.h"
 #include "nsNetAddr.h"
 #include "nsNetSegmentUtils.h"
 #include "nsServiceManagerUtils.h"
@@ -1192,6 +1193,10 @@ nsUDPSocket::SendWithAddress(const NetAddr* aAddr, const uint8_t* aData,
     *_retval = aLength;
   }
   return NS_OK;
+}
+
+int64_t nsUDPSocket::GetFileDescriptor() {
+  return PR_FileDesc2NativeHandle(mFD);
 }
 
 NS_IMETHODIMP

@@ -53,7 +53,7 @@ It calls NeqoHttp3Conn::GetEvent which maps to Http3Client::next_event.
 The events and their handling will be explained below.
 
 **ProcessOutput**
-The function is called when necko has performed some action on neqo, e.g. new HTTP transaction is added, certificate verification is done, etc., or when the timer expires. In both cases, necko wants to check if neqo has data to send or change its state. This function calls NeqoHttp3Conn::ProcessOutput that maps to Http3Client::process_output. NeqoHttp3Conn::ProcessOutput may return a packet that is sent on the socket or a callback timeout. In the Http3Session::ProcessOutput function, NeqoHttp3Conn::ProcessOutput is called repeatedly and packets are sent until a callback timer is returned or a fatal error happens.
+The function is called when necko has performed some action on neqo, e.g. new HTTP transaction is added, certificate verification is done, etc., or when the timer expires. In both cases, necko wants to check if neqo has data to send or change its state. This function calls NeqoHttp3Conn::ProcessOutput that maps to Http3Client::process_output. In the Http3Session::ProcessOutput function, NeqoHttp3Conn::ProcessOutput is called repeatedly, which sents packets from neqo to the socket until neqo returns a callback timer, signals being idle, or returns a fatal error.
 
 **Http3Session::RecvData** performs the following steps:
 - ProcessSlowConsumers - explained below.

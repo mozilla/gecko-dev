@@ -255,6 +255,15 @@ interface nsIUDPSocket : nsISupports
                                        [const, optional] in NetAddrPtr iface);
 
     /**
+    * getFileDescriptor
+    *
+    * Get the file descriptor of the socket.
+    *
+    * @return The file descriptor.
+    */
+    [noscript, notxpcom] int64_t getFileDescriptor();
+
+    /**
      * multicastLoopback
      *
      * Whether multicast datagrams sent via this socket should be looped back to

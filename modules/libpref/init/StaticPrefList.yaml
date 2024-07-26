@@ -13506,6 +13506,12 @@
   value: 1048576
   mirror: always
 
+# Use NSPR for HTTP3 UDP IO
+- name: network.http.http3.use_nspr_for_io
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 - name: network.http.http3.enable_qlog
   type: RelaxedAtomicBool
   value: false
@@ -13569,12 +13575,14 @@
   value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
-# This is for testing purpose. When true, nsUDPSocket::SendWithAddress will
-# return NS_ERROR_CONNECTION_REFUSED for address "::1".
+# This is for testing purpose. When true, nsUDPSocket::SendWithAddress and
+# neqo_http3conn_process_output_and_send will return NS_ERROR_CONNECTION_REFUSED
+# for address "::1".
 - name: network.http.http3.block_loopback_ipv6_addr
   type: RelaxedAtomicBool
   value: false
   mirror: always
+  rust: true
 
 # The congestion control algorithm with which to configure neqo.
 # 0 => NewReno

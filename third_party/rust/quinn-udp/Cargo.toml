@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.66"
 name = "quinn-udp"
-version = "0.5.0"
+version = "0.5.4"
 description = "UDP sockets with ECN information for the QUIC transport protocol"
 keywords = ["quic"]
 categories = [
@@ -29,21 +29,37 @@ all-features = true
 [dependencies.libc]
 version = "0.2.113"
 
+[dependencies.log]
+version = "0.4"
+optional = true
+
 [dependencies.socket2]
 version = "0.5"
 
 [dependencies.tracing]
 version = "0.1.10"
+features = ["std"]
+optional = true
+default-features = false
+
+[dev-dependencies.criterion]
+version = "0.5"
 
 [features]
-default = ["log"]
+default = [
+    "tracing",
+    "log",
+]
+direct-log = ["dep:log"]
 log = ["tracing/log"]
 
+[target."cfg(any(target_os = \"linux\", target_os = \"windows\"))"]
+
 [target."cfg(windows)".dependencies.once_cell]
-version = "1.19.0"
+version = "1.19"
 
 [target."cfg(windows)".dependencies.windows-sys]
-version = "0.52.0"
+version = "0.52"
 features = [
     "Win32_Foundation",
     "Win32_System_IO",

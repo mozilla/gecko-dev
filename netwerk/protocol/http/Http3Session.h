@@ -130,7 +130,8 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   Http3Session();
   nsresult Init(const nsHttpConnectionInfo* aConnInfo, nsINetAddr* selfAddr,
                 nsINetAddr* peerAddr, HttpConnectionUDP* udpConn,
-                uint32_t aProviderFlags, nsIInterfaceRequestor* callbacks);
+                uint32_t aProviderFlags, nsIInterfaceRequestor* callbacks,
+                nsIUDPSocket* socket);
 
   bool IsConnected() const { return mState == CONNECTED; }
   bool CanSendData() const {
@@ -229,7 +230,7 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
                           bool justKidding);
 
   nsresult ProcessOutput(nsIUDPSocket* socket);
-  void ProcessInput(nsIUDPSocket* socket);
+  nsresult ProcessInput(nsIUDPSocket* socket);
   nsresult ProcessEvents();
 
   nsresult ProcessTransactionRead(uint64_t stream_id);
@@ -309,6 +310,9 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
 
   // True if the mTimer is inited and waiting for firing.
   bool mTimerActive{false};
+
+  // True if this http3 session uses NSPR for UDP IO.
+  bool mUseNSPRForIO{true};
 
   RefPtr<HttpConnectionUDP> mUdpConn;
 
