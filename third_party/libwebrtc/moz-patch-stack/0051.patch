@@ -41,10 +41,10 @@ index a511eda7bd..75a4a1cac0 100644
  DegradedCall::~DegradedCall() {
    RTC_DCHECK_RUN_ON(call_->worker_thread());
 diff --git a/modules/audio_coding/acm2/acm_receiver.cc b/modules/audio_coding/acm2/acm_receiver.cc
-index ab113586cb..1889742399 100644
+index c0ac681ca9..6c7c59134e 100644
 --- a/modules/audio_coding/acm2/acm_receiver.cc
 +++ b/modules/audio_coding/acm2/acm_receiver.cc
-@@ -50,7 +50,7 @@ std::unique_ptr<NetEq> CreateNetEq(
+@@ -51,7 +51,7 @@ std::unique_ptr<NetEq> CreateNetEq(
  
  AcmReceiver::Config::Config(
      rtc::scoped_refptr<AudioDecoderFactory> decoder_factory)

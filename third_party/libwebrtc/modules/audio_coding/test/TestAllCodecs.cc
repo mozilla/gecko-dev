@@ -84,7 +84,8 @@ int32_t TestPack::SendData(AudioFrameType frame_type,
   memcpy(payload_data_, payload_data, payload_size);
 
   status = receiver_acm_->InsertPacket(
-      rtp_header, rtc::ArrayView<const uint8_t>(payload_data_, payload_size));
+      rtp_header, rtc::ArrayView<const uint8_t>(payload_data_, payload_size),
+      /*receive_time=*/Timestamp::MinusInfinity());
 
   payload_size_ = payload_size;
   timestamp_diff_ = timestamp - last_in_timestamp_;

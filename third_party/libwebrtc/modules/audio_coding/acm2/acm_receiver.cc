@@ -20,6 +20,7 @@
 #include "api/audio/audio_frame.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/neteq/neteq.h"
+#include "api/units/timestamp.h"
 #include "modules/audio_coding/acm2/acm_resampler.h"
 #include "modules/audio_coding/acm2/call_statistics.h"
 #include "modules/audio_coding/neteq/default_neteq_factory.h"
@@ -102,7 +103,8 @@ int AcmReceiver::last_output_sample_rate_hz() const {
 }
 
 int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
-                              rtc::ArrayView<const uint8_t> incoming_payload) {
+                              rtc::ArrayView<const uint8_t> incoming_payload,
+                              Timestamp receive_time) {
   if (incoming_payload.empty()) {
     neteq_->InsertEmptyPacket(rtp_header);
     return 0;
@@ -137,7 +139,7 @@ int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
     }
   }  // `mutex_` is released.
 
-  if (neteq_->InsertPacket(rtp_header, incoming_payload) < 0) {
+  if (neteq_->InsertPacket(rtp_header, incoming_payload, receive_time) < 0) {
     RTC_LOG(LS_ERROR) << "AcmReceiver::InsertPacket "
                       << static_cast<int>(rtp_header.payloadType)
                       << " Failed to insert packet";

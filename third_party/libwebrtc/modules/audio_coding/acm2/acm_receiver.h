@@ -29,6 +29,7 @@
 #include "api/audio_codecs/audio_format.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_factory.h"
+#include "api/units/timestamp.h"
 #include "modules/audio_coding/acm2/acm_resampler.h"
 #include "modules/audio_coding/acm2/call_statistics.h"
 #include "modules/audio_coding/include/audio_coding_module_typedefs.h"
@@ -71,13 +72,15 @@ class AcmReceiver {
   //                            information about payload type, sequence number,
   //                            timestamp, SSRC and marker bit.
   //   - incoming_payload     : Incoming audio payload.
-  //   - length_payload       : Length of incoming audio payload in bytes.
+  //   - receive_time         : Timestamp when the packet has been seen on the
+  //                            network card.
   //
   // Return value             : 0 if OK.
   //                           <0 if NetEq returned an error.
   //
   int InsertPacket(const RTPHeader& rtp_header,
-                   rtc::ArrayView<const uint8_t> incoming_payload);
+                   rtc::ArrayView<const uint8_t> incoming_payload,
+                   Timestamp receive_time = Timestamp::MinusInfinity());
 
   //
   // Asks NetEq for 10 milliseconds of decoded audio.

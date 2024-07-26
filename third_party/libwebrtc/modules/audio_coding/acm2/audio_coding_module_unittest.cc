@@ -25,6 +25,7 @@
 #include "api/audio_codecs/opus/audio_decoder_opus.h"
 #include "api/audio_codecs/opus/audio_encoder_multi_channel_opus.h"
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
+#include "api/units/timestamp.h"
 #include "modules/audio_coding/acm2/acm_receive_test.h"
 #include "modules/audio_coding/acm2/acm_send_test.h"
 #include "modules/audio_coding/codecs/cng/audio_encoder_cng.h"
@@ -209,9 +210,10 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
 
   virtual void InsertPacket() {
     const uint8_t kPayload[kPayloadSizeBytes] = {0};
-    ASSERT_EQ(0, acm_receiver_->InsertPacket(rtp_header_,
-                                             rtc::ArrayView<const uint8_t>(
-                                                 kPayload, kPayloadSizeBytes)));
+    ASSERT_EQ(0, acm_receiver_->InsertPacket(
+                     rtp_header_,
+                     rtc::ArrayView<const uint8_t>(kPayload, kPayloadSizeBytes),
+                     /*receive_time=*/Timestamp::MinusInfinity()));
     rtp_utility_->Forward(&rtp_header_);
   }
 

@@ -760,10 +760,10 @@ index 1c08382969..ff69ea62dc 100644
  using webrtc::FrameDecryptorInterface;
  using webrtc::FrameEncryptorInterface;
 diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
-index 0ae4e34afb..b4ce91c5cf 100644
+index 655a9347fe..2ba849ff68 100644
 --- a/modules/audio_coding/BUILD.gn
 +++ b/modules/audio_coding/BUILD.gn
-@@ -545,7 +545,7 @@ rtc_library("webrtc_opus_wrapper") {
+@@ -546,7 +546,7 @@ rtc_library("webrtc_opus_wrapper") {
      deps += [ rtc_opus_dir ]
      public_configs = [ "//third_party/opus:opus_config" ]
    } else if (build_with_mozilla) {
