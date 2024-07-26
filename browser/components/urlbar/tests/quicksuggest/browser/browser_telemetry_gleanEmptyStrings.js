@@ -37,7 +37,7 @@ add_setup(async function () {
 });
 
 // sponsored
-add_task(async function sponsored() {
+add_tasks_with_rust(async function sponsored() {
   let match_type = "firefox-suggest";
   let source = "merino";
 
@@ -67,7 +67,7 @@ add_task(async function sponsored() {
           source,
           match_type,
           position,
-          suggested_index: -1,
+          suggested_index: 0,
           suggested_index_relative_to_group: true,
           improve_suggest_experience_checked,
           is_clicked: false,
@@ -100,7 +100,7 @@ add_task(async function sponsored() {
             source,
             match_type,
             position,
-            suggested_index: -1,
+            suggested_index: 0,
             suggested_index_relative_to_group: true,
             improve_suggest_experience_checked,
             is_clicked: true,
@@ -115,7 +115,7 @@ add_task(async function sponsored() {
             source,
             match_type,
             position,
-            suggested_index: -1,
+            suggested_index: 0,
             suggested_index_relative_to_group: true,
             improve_suggest_experience_checked,
             block_id: MERINO_RESULT.block_id,
@@ -150,7 +150,7 @@ add_task(async function sponsored() {
               source,
               match_type,
               position,
-              suggested_index: -1,
+              suggested_index: 0,
               suggested_index_relative_to_group: true,
               improve_suggest_experience_checked,
               is_clicked: false,
@@ -165,7 +165,7 @@ add_task(async function sponsored() {
               source,
               match_type,
               position,
-              suggested_index: -1,
+              suggested_index: 0,
               suggested_index_relative_to_group: true,
               improve_suggest_experience_checked,
               block_id: MERINO_RESULT.block_id,
@@ -176,17 +176,16 @@ add_task(async function sponsored() {
           },
         ],
       },
-      // help
+      // manage
       {
-        command: "help",
+        command: "manage",
         scalars: {
           [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-          [TELEMETRY_SCALARS.HELP_SPONSORED]: position,
         },
         event: {
           category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
           method: "engagement",
-          object: "help",
+          object: "other",
           extra: {
             suggestion_type,
             match_type,
@@ -200,7 +199,7 @@ add_task(async function sponsored() {
               source,
               match_type,
               position,
-              suggested_index: -1,
+              suggested_index: 0,
               suggested_index_relative_to_group: true,
               improve_suggest_experience_checked,
               is_clicked: false,

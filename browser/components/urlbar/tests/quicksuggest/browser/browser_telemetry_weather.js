@@ -19,6 +19,9 @@ const position = index + 1;
 const { TELEMETRY_SCALARS: WEATHER_SCALARS } = UrlbarProviderWeather;
 const { WEATHER_SUGGESTION: suggestion, WEATHER_RS_DATA } = MerinoTestUtils;
 
+// Trying to avoid timeouts in TV mode.
+requestLongerTimeout(3);
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -37,14 +40,16 @@ add_setup(async function () {
     ],
   });
   await MerinoTestUtils.initWeather();
-  await updateTopSitesAndAwaitChanged();
 });
 
-add_task(async function () {
+add_tasks_with_rust(async function () {
+  let rustEnabled = UrlbarPrefs.get("quicksuggest.rustEnabled");
   await doTelemetryTest({
     index,
     suggestion,
-    providerName: UrlbarProviderWeather.name,
+    providerName: rustEnabled
+      ? UrlbarProviderQuickSuggest.name
+      : UrlbarProviderWeather.name,
     showSuggestion: async () => {
       await UrlbarTestUtils.promiseAutocompleteResultPopup({
         window,
@@ -59,19 +64,20 @@ add_task(async function () {
       if (!UrlbarPrefs.get("suggest.weather")) {
         await UrlbarTestUtils.promisePopupClose(window);
         gURLBar.handleRevert();
-        let fetchPromise = QuickSuggest.weather.waitForFetches();
         UrlbarPrefs.clear("suggest.weather");
-        await fetchPromise;
 
         // Wait for keywords to be re-synced from remote settings.
         await QuickSuggestTestUtils.forceSync();
+        await QuickSuggest.weather.fetchPromise;
       }
     },
     // impression-only
     impressionOnly: {
-      scalars: {
-        [WEATHER_SCALARS.IMPRESSION]: position,
-      },
+      scalars: rustEnabled
+        ? {}
+        : {
+            [WEATHER_SCALARS.IMPRESSION]: position,
+          },
       event: {
         category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
         method: "engagement",
@@ -85,10 +91,12 @@ add_task(async function () {
     },
     // click
     click: {
-      scalars: {
-        [WEATHER_SCALARS.IMPRESSION]: position,
-        [WEATHER_SCALARS.CLICK]: position,
-      },
+      scalars: rustEnabled
+        ? {}
+        : {
+            [WEATHER_SCALARS.IMPRESSION]: position,
+            [WEATHER_SCALARS.CLICK]: position,
+          },
       event: {
         category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
         method: "engagement",
@@ -107,9 +115,11 @@ add_task(async function () {
           "[data-l10n-id=firefox-suggest-command-dont-show-this]",
           "not_relevant",
         ],
-        scalars: {
-          [WEATHER_SCALARS.IMPRESSION]: position,
-        },
+        scalars: rustEnabled
+          ? {}
+          : {
+              [WEATHER_SCALARS.IMPRESSION]: position,
+            },
         event: {
           category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
           method: "engagement",
@@ -124,17 +134,3 @@ add_task(async function () {
     ],
   });
 });
-
-async function updateTopSitesAndAwaitChanged() {
-  let url = "http://mochi.test:8888/topsite";
-  for (let i = 0; i < 5; i++) {
-    await PlacesTestUtils.addVisits(url);
-  }
-
-  info("Updating top sites and awaiting newtab-top-sites-changed");
-  let changedPromise = TestUtils.topicObserved("newtab-top-sites-changed").then(
-    () => info("Observed newtab-top-sites-changed")
-  );
-  await updateTopSites(sites => sites?.length);
-  await changedPromise;
-}

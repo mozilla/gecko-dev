@@ -25,13 +25,16 @@ const match_type = "firefox-suggest";
 const index = 1;
 const position = index + 1;
 
+// Trying to avoid timeouts in TV mode.
+requestLongerTimeout(3);
+
 add_setup(async function () {
   await setUpTelemetryTest({
     merinoSuggestions: [MERINO_SUGGESTION],
   });
 });
 
-add_task(async function () {
+add_tasks_with_rust(async function () {
   await doTelemetryTest({
     index,
     suggestion: MERINO_SUGGESTION,

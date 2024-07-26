@@ -160,13 +160,9 @@ class ProviderWeather extends UrlbarProvider {
   }
 
   onEngagement(queryContext, controller, details) {
-    this.#recordEngagementTelemetry(
-      details.result,
-      controller.input.isPrivate,
-      details.selType
-    );
+    this.#sessionResult = details.result;
+    this.#engagementSelType = details.selType;
 
-    // Handle commands.
     this.#handlePossibleCommand(
       controller.view,
       details.result,
@@ -175,10 +171,20 @@ class ProviderWeather extends UrlbarProvider {
   }
 
   onImpression(state, queryContext, controller, providerVisibleResults) {
-    for (let i = 0; i < providerVisibleResults.length; i++) {
-      const { result } = providerVisibleResults[i];
-      this.#recordEngagementTelemetry(result, controller.input.isPrivate, "");
+    this.#sessionResult = providerVisibleResults[0].result;
+  }
+
+  onSearchSessionEnd(queryContext, _controller) {
+    if (this.#sessionResult) {
+      this.#recordEngagementTelemetry(
+        this.#sessionResult,
+        queryContext.isPrivate,
+        this.#engagementSelType
+      );
     }
+
+    this.#sessionResult = null;
+    this.#engagementSelType = null;
   }
 
   /**
@@ -260,6 +266,9 @@ class ProviderWeather extends UrlbarProvider {
   #handlePossibleCommand(view, result, selType) {
     lazy.QuickSuggest.weather.handleCommand(view, result, selType);
   }
+
+  #sessionResult;
+  #engagementSelType;
 }
 
 export var UrlbarProviderWeather = new ProviderWeather();
