@@ -787,7 +787,6 @@ impl FontInstanceMap {
                   render_mode: instance.render_mode,
                   flags: instance.flags,
                   synthetic_italics: instance.synthetic_italics,
-                  _padding: 0,
                 }),
                 platform_options: instance.platform_options,
                 variations: instance.variations.clone(),
