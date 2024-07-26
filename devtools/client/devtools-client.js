@@ -669,18 +669,10 @@ DevToolsClient.prototype = {
    *
    * This is a fairly heavy weight process, so it's only meant to be used in tests.
    *
-   * @param {object=} options
-   * @param {boolean=} options.ignoreOrphanedFronts
-   *        Allow to ignore fronts which can no longer be retrieved via
-   *        getFrontByID, as their requests can never be completed now.
-   *        Ideally we should rather investigate and address those cases, but
-   *        since this is a test helper, allow to bypass them here. Defaults to
-   *        false.
-   *
    * @return Promise
    *         Resolved when all requests have settled.
    */
-  waitForRequestsToSettle({ ignoreOrphanedFronts = false } = {}) {
+  waitForRequestsToSettle() {
     let requests = [];
 
     // Gather all pending and active requests in this client
@@ -700,12 +692,6 @@ DevToolsClient.prototype = {
     // For each front, wait for its requests to settle
     for (const front of fronts) {
       if (front.hasRequests()) {
-        if (ignoreOrphanedFronts && !this.getFrontByID(front.actorID)) {
-          // If a front was stuck during its destroy but the pool managing it
-          // has been already removed, ignore its pending requests, they can
-          // never resolve.
-          continue;
-        }
         requests.push(front.waitForRequestsToSettle());
       }
     }

@@ -681,7 +681,7 @@ BrowserAddonList.prototype.getList = async function () {
   const addons = await lazy.AddonManager.getAllAddons();
   for (const addon of addons) {
     let actor = this._actorByAddonId.get(addon.id);
-    if (!actor || actor.isDestroyed()) {
+    if (!actor) {
       actor = new WebExtensionDescriptorActor(this._connection, addon);
       this._actorByAddonId.set(addon.id, actor);
     }

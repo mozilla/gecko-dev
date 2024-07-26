@@ -24,11 +24,7 @@ const RUNTIME_NAME = "Lorem ipsum";
  * Test opening and closing the profiler dialog.
  */
 add_task(async function test_opening_profiler_dialog() {
-  const { disconnect, mocks } = await connectToLocalFirefox({
-    runtimeId: RUNTIME_ID,
-    runtimeName: RUNTIME_NAME,
-    deviceName: DEVICE_NAME,
-  });
+  const { mocks } = await connectToLocalFirefox();
   const { document, tab, window } = await openAboutDebugging();
 
   mocks.emitUSBUpdate();
@@ -68,16 +64,12 @@ add_task(async function test_opening_profiler_dialog() {
   await selectRuntime(DEVICE_NAME, RUNTIME_NAME, document);
   assertDialogHidden(document);
 
-  await disconnect(document);
+  await disconnectFromLocalFirefox({ mocks, doc: document });
   await removeTab(tab);
 });
 
 add_task(async function test_set_profiler_settings() {
-  const { disconnect, mocks } = await connectToLocalFirefox({
-    runtimeId: RUNTIME_ID,
-    runtimeName: RUNTIME_NAME,
-    deviceName: DEVICE_NAME,
-  });
+  const { mocks } = await connectToLocalFirefox();
   const { document, tab } = await openAboutDebugging();
 
   mocks.emitUSBUpdate();
@@ -116,9 +108,31 @@ add_task(async function test_set_profiler_settings() {
     "The preset has been changed in the devtools panel UI as well."
   );
 
-  await disconnect(document);
+  await disconnectFromLocalFirefox({ mocks, doc: document });
   await removeTab(tab);
 });
+
+async function connectToLocalFirefox() {
+  // This is a client to the current Firefox.
+  const clientWrapper = await createLocalClientWrapper();
+
+  // enable USB devices mocks
+  const mocks = new Mocks();
+  const usbClient = mocks.createUSBRuntime(RUNTIME_ID, {
+    deviceName: DEVICE_NAME,
+    name: RUNTIME_NAME,
+    clientWrapper,
+  });
+
+  return { mocks, usbClient };
+}
+
+async function disconnectFromLocalFirefox({ doc, mocks }) {
+  info("Remove USB runtime");
+  mocks.removeUSBRuntime(RUNTIME_ID);
+  mocks.emitUSBUpdate();
+  await waitUntilUsbDeviceIsUnplugged(DEVICE_NAME, doc);
+}
 
 function assertDialogVisible(doc) {
   ok(doc.querySelector(".qa-profiler-dialog"), "Dialog is displayed");
