@@ -680,7 +680,8 @@ var FullPageTranslationsPanel = new (class {
     const shouldDisable =
       !docLangTag ||
       !isDocLangTagSupported ||
-      docLangTag === new Intl.Locale(Services.locale.appLocaleAsBCP47).language;
+      docLangTag ===
+        (await TranslationsParent.getTopPreferredSupportedToLang());
 
     for (const menuitem of alwaysOfferTranslationsMenuItems) {
       menuitem.setAttribute(
