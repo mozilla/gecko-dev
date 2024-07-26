@@ -99,7 +99,7 @@ import:
               NOTIFICATION:
                 priority: 50
                 max-display-count: 1
-              MICRO_SURVEY:
+              MICROSURVEY:
                 priority: 50
                 max-display-count: 5
             $$surfaces:

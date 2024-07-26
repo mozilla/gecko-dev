@@ -63,7 +63,7 @@ import:
                 surface: microsurvey
                 trigger-if-all:
                   - RECENTLY_PRINTED
-                style: MICRO_SURVEY
+                style: MICROSURVEY
                 microsurvey-config:
                   utm-content: "homepage"
                   icon: ic_print
@@ -91,7 +91,7 @@ import:
                 surface: microsurvey
                 trigger-if-all:
                   - RECENTLY_PRINTED
-                style: MICRO_SURVEY
+                style: MICROSURVEY
                 microsurvey-config:
                   utm-content: "homepage"
                   icon: ic_print
