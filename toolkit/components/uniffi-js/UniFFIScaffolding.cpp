@@ -9,8 +9,10 @@
 #include "nsString.h"
 #include "nsPrintfCString.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/dom/UniFFIScaffolding.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/dom/UniFFICall.h"
 #include "mozilla/dom/UniFFICallbacks.h"
+#include "mozilla/dom/UniFFIScaffolding.h"
 
 // This file implements the UniFFI WebIDL interface by leveraging the generate
 // code in UniFFIScaffolding.cpp and UniFFIFixtureScaffolding.cpp.  It's main
@@ -26,17 +28,11 @@ using mozilla::dom::UniFFICallbackHandler;
 using mozilla::dom::UniFFIPointer;
 using mozilla::dom::UniFFIScaffoldingCallResult;
 using mozilla::dom::UniFFIScaffoldingValue;
+using mozilla::uniffi::UniffiHandlerBase;
 
 namespace mozilla::uniffi {
-
 // Prototypes for the generated functions
-Maybe<already_AddRefed<Promise>> UniFFICallAsync(
-    const GlobalObject& aGlobal, uint64_t aId,
-    const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aError);
-bool UniFFICallSync(const GlobalObject& aGlobal, uint64_t aId,
-                    const Sequence<UniFFIScaffoldingValue>& aArgs,
-                    RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
-                    ErrorResult& aError);
+UniquePtr<UniffiHandlerBase> UniFFIGetHandler(uint64_t aId);
 Maybe<already_AddRefed<UniFFIPointer>> UniFFIReadPointer(
     const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff,
     long aPosition, ErrorResult& aError);
@@ -46,14 +42,7 @@ bool UniFFIWritePointer(const GlobalObject& aGlobal, uint64_t aId,
                         ErrorResult& aError);
 
 #ifdef MOZ_UNIFFI_FIXTURES
-Maybe<already_AddRefed<Promise>> UniFFIFixturesCallAsync(
-    const GlobalObject& aGlobal, uint64_t aId,
-    const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aError);
-bool UniFFIFixturesCallSync(
-    const GlobalObject& aGlobal, uint64_t aId,
-    const Sequence<UniFFIScaffoldingValue>& aArgs,
-    RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
-    ErrorResult& aError);
+UniquePtr<UniffiHandlerBase> UniFFIFixturesGetHandler(uint64_t aId);
 Maybe<already_AddRefed<UniFFIPointer>> UniFFIFixturesReadPointer(
     const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff,
     long aPosition, ErrorResult& aError);
@@ -62,6 +51,19 @@ bool UniFFIFixturesWritePointer(const GlobalObject& aGlobal, uint64_t aId,
                                 const ArrayBuffer& aArrayBuff, long aPosition,
                                 ErrorResult& aError);
 #endif
+
+// Helper function to access both `UniFFIGetHandler` and
+// `UniFFIFixturesGetHandler` if supported.
+static UniquePtr<UniffiHandlerBase> GetHandlerHelper(uint64_t aId) {
+  UniquePtr<UniffiHandlerBase> handler = uniffi::UniFFIGetHandler(aId);
+#ifdef MOZ_UNIFFI_FIXTURES
+  if (!handler) {
+    handler = uniffi::UniFFIFixturesGetHandler(aId);
+  }
+#endif
+  return handler;
+}
+
 }  // namespace mozilla::uniffi
 
 namespace mozilla::dom {
@@ -71,18 +73,10 @@ namespace mozilla::dom {
 already_AddRefed<Promise> UniFFIScaffolding::CallAsync(
     const GlobalObject& aGlobal, uint64_t aId,
     const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) {
-  Maybe<already_AddRefed<Promise>> firstTry =
-      uniffi::UniFFICallAsync(aGlobal, aId, aArgs, aError);
-  if (firstTry.isSome()) {
-    return firstTry.extract();
+  if (UniquePtr<UniffiHandlerBase> handler = uniffi::GetHandlerHelper(aId)) {
+    return UniffiHandlerBase::CallAsync(std::move(handler), aGlobal, aArgs,
+                                        aError);
   }
-#ifdef MOZ_UNIFFI_FIXTURES
-  Maybe<already_AddRefed<Promise>> secondTry =
-      uniffi::UniFFIFixturesCallAsync(aGlobal, aId, aArgs, aError);
-  if (secondTry.isSome()) {
-    return secondTry.extract();
-  }
-#endif
 
   aError.ThrowUnknownError(
       nsPrintfCString("Unknown function id: %" PRIu64, aId));
@@ -94,15 +88,10 @@ void UniFFIScaffolding::CallSync(
     const Sequence<UniFFIScaffoldingValue>& aArgs,
     RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
     ErrorResult& aError) {
-  if (uniffi::UniFFICallSync(aGlobal, aId, aArgs, aReturnValue, aError)) {
-    return;
+  if (UniquePtr<UniffiHandlerBase> handler = uniffi::GetHandlerHelper(aId)) {
+    return UniffiHandlerBase::CallSync(std::move(handler), aGlobal, aArgs,
+                                       aReturnValue, aError);
   }
-#ifdef MOZ_UNIFFI_FIXTURES
-  if (uniffi::UniFFIFixturesCallSync(aGlobal, aId, aArgs, aReturnValue,
-                                     aError)) {
-    return;
-  }
-#endif
 
   aError.ThrowUnknownError(
       nsPrintfCString("Unknown function id: %" PRIu64, aId));
