@@ -37,9 +37,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -329,14 +329,9 @@ fun RadioButtonListItem(
     ListItem(
         label = label,
         modifier = modifier
-            .clearAndSetSemantics {
+            .semantics(mergeDescendants = true) {
                 this.selected = selected
                 role = Role.RadioButton
-                contentDescription = if (description != null) {
-                    "$label.$description"
-                } else {
-                    label
-                }
             },
         maxLabelLines = maxLabelLines,
         description = description,
