@@ -266,6 +266,8 @@ skip-if = ["os == 'win' && !debug"] # Bug 1449754
 
 ["browser_inspector_highlighter-selector_02.js"]
 
+["browser_inspector_highlighter-viewport-size.js"]
+
 ["browser_inspector_highlighter-zoom.js"]
 
 ["browser_inspector_iframe-navigation.js"]

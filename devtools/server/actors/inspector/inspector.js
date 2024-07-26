@@ -116,6 +116,10 @@ class InspectorActor extends Actor {
     this.destroyEyeDropper = this.destroyEyeDropper.bind(this);
   }
 
+  highlightersState = {
+    fadingViewportSizeHiglighter: null,
+  };
+
   destroy() {
     super.destroy();
     this.destroyEyeDropper();

@@ -695,6 +695,8 @@ class WindowGlobalTargetActor extends BaseTargetActor {
         watchpoints: true,
         // Supports back and forward navigation
         navigation: true,
+        // @backward-compat { version 130 } Support for VIEWPORT_SIZE_ON_RESIZE highlighter
+        viewportSizeOnResizeHighlighter: true,
       },
     };
 

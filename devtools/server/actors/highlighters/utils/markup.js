@@ -114,7 +114,7 @@ ClassList.prototype = {
  * @return {Boolean}
  */
 function isXUL(window) {
-  return window.document.documentElement.namespaceURI === XUL_NS;
+  return window.document.documentElement?.namespaceURI === XUL_NS;
 }
 exports.isXUL = isXUL;
 
@@ -200,10 +200,9 @@ CanvasFrameAnonymousContentHelper.prototype = {
     // otherwise, wait for the window-ready event to fire.
     const doc = this.highlighterEnv.document;
     if (
-      doc.documentElement &&
-      (!this.waitForDocumentToLoad ||
-        isDocumentReady(doc) ||
-        doc.readyState !== "uninitialized")
+      !this.waitForDocumentToLoad ||
+      isDocumentReady(doc) ||
+      doc.readyState !== "uninitialized"
     ) {
       this._insert();
     }

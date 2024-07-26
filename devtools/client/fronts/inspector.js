@@ -19,6 +19,11 @@ loader.lazyRequireGetter(
   "resource://devtools/client/shared/screenshot.js",
   true
 );
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  TYPES: "resource://devtools/shared/highlighters.mjs",
+});
 
 const TELEMETRY_EYEDROPPER_OPENED = "DEVTOOLS_EYEDROPPER_OPENED_COUNT";
 const TELEMETRY_EYEDROPPER_OPENED_MENU =
@@ -69,10 +74,17 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
       return null;
     }
 
-    this.initialized = await Promise.all([
-      this._getWalker(),
-      this._getPageStyle(),
-    ]);
+    const promises = [this._getWalker(), this._getPageStyle()];
+    if (
+      this.targetFront.commands.descriptorFront.isTabDescriptor &&
+      // @backward-compat { version 130 } Support for VIEWPORT_SIZE_ON_RESIZE highlighter,
+      // can be removed once release is 130.
+      this.targetFront.targetForm?.traits?.viewportSizeOnResizeHighlighter
+    ) {
+      promises.push(this._enableViewportSizeOnResizeHighlighter());
+    }
+
+    this.initialized = await Promise.all(promises);
 
     return this.initialized;
   }
@@ -97,6 +109,13 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
 
   async _getPageStyle() {
     this.pageStyle = await super.getPageStyle();
+  }
+
+  async _enableViewportSizeOnResizeHighlighter() {
+    const highlighter = await this.getOrCreateHighlighterByType(
+      lazy.TYPES.VIEWPORT_SIZE_ON_RESIZE
+    );
+    await highlighter.show(this);
   }
 
   async getCompatibilityFront() {

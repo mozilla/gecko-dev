@@ -357,6 +357,8 @@ const HIGHLIGHTERS = {
   [TYPES.SHAPES]: "devtools/server/actors/highlighters/shapes",
   [TYPES.TABBING_ORDER]: "devtools/server/actors/highlighters/tabbing-order",
   [TYPES.VIEWPORT_SIZE]: "devtools/server/actors/highlighters/viewport-size",
+  [TYPES.VIEWPORT_SIZE_ON_RESIZE]:
+    "devtools/server/actors/highlighters/viewport-size-on-resize",
 };
 for (const [typeName, modulePath] of Object.entries(HIGHLIGHTERS)) {
   registerHighlighter(typeName, modulePath);

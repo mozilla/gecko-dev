@@ -417,15 +417,23 @@
   text-anchor: end;
 }
 
-.viewport-size-highlighter-viewport-infobar-container {
+:is(
+  .viewport-size-highlighter-viewport-infobar-container,
+  .viewport-size-on-resize-highlighter-viewport-infobar-container
+) {
   shape-rendering: crispEdges;
   background-color: rgba(255, 255, 255, 0.7);
   font: var(--highlighter-font-family);
+  font-variant-numeric: tabular-nums;
   position: fixed;
   top: 30px;
   right: 0px;
   font-size: 12px;
   padding: 4px;
+}
+
+.viewport-size-on-resize-highlighter-viewport-infobar-container {
+  top: 0;
 }
 
 /* Measuring Tool Highlighter */
