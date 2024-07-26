@@ -88,6 +88,10 @@ export class NetworkRequest {
     return this.#alreadyCompleted;
   }
 
+  get channel() {
+    return this.#channel;
+  }
+
   get contextId() {
     return this.#contextId;
   }
@@ -102,6 +106,10 @@ export class NetworkRequest {
     // request interception. Need to find another way to retrieve the
     // information dynamically.
     return this.#rawHeaders.length;
+  }
+
+  get isHttpChannel() {
+    return this.#channel instanceof Ci.nsIHttpChannel;
   }
 
   get method() {

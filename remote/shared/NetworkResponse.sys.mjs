@@ -18,6 +18,7 @@ export class NetworkResponse {
   #decodedBodySize;
   #encodedBodySize;
   #fromCache;
+  #fromServiceWorker;
   #isDataURL;
   #headersTransmittedSize;
   #status;
@@ -32,13 +33,16 @@ export class NetworkResponse {
    * @param {object} params
    * @param {boolean} params.fromCache
    *     Whether the response was read from the cache or not.
+   * @param {boolean} params.fromServiceWorker
+   *     Whether the response is coming from a service worker or not.
    * @param {string=} params.rawHeaders
    *     The response's raw (ie potentially compressed) headers
    */
   constructor(channel, params) {
     this.#channel = channel;
-    const { fromCache, rawHeaders = "" } = params;
+    const { fromCache, fromServiceWorker, rawHeaders = "" } = params;
     this.#fromCache = fromCache;
+    this.#fromServiceWorker = fromServiceWorker;
     this.#isDataURL = this.#channel instanceof Ci.nsIDataChannel;
     this.#wrappedChannel = ChannelWrapper.get(channel);
 
@@ -76,6 +80,10 @@ export class NetworkResponse {
     return this.#fromCache;
   }
 
+  get fromServiceWorker() {
+    return this.#fromServiceWorker;
+  }
+
   get protocol() {
     return lazy.NetworkUtils.getProtocol(this.#channel);
   }
@@ -94,12 +102,6 @@ export class NetworkResponse {
 
   get totalTransmittedSize() {
     return this.#totalTransmittedSize;
-  }
-
-  addResponseContent(responseContent) {
-    this.#decodedBodySize = responseContent.decodedBodySize;
-    this.#encodedBodySize = responseContent.bodySize;
-    this.#totalTransmittedSize = responseContent.transferredSize;
   }
 
   getComputedMimeType() {
@@ -143,5 +145,27 @@ export class NetworkResponse {
     }
 
     return headers;
+  }
+
+  /**
+   * Set the various response sizes for this response. Depending on how the
+   * completion was monitored (DevTools NetworkResponseListener or ChannelWrapper
+   * event), sizes need to be retrieved differently.
+   * There this is a simple setter and the actual logic to retrieve sizes is in
+   * NetworkEventRecord.
+   *
+   * @param {object} sizes
+   * @param {number} sizes.decodedBodySize
+   *     The decoded body size.
+   * @param {number} sizes.encodedBodySize
+   *     The encoded body size.
+   * @param {number} sizes.totalTransmittedSize
+   *     The total transmitted size.
+   */
+  setResponseSizes(sizes) {
+    const { decodedBodySize, encodedBodySize, totalTransmittedSize } = sizes;
+    this.#decodedBodySize = decodedBodySize;
+    this.#encodedBodySize = encodedBodySize;
+    this.#totalTransmittedSize = totalTransmittedSize;
   }
 }

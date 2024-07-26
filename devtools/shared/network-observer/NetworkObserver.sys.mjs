@@ -501,6 +501,7 @@ export class NetworkObserver {
         httpActivity.owner.addResponseStart({
           channel: httpActivity.channel,
           fromCache: httpActivity.fromCache || httpActivity.fromServiceWorker,
+          fromServiceWorker: httpActivity.fromServiceWorker,
           rawHeaders: httpActivity.responseRawHeaders,
           proxyResponseRawHeaders: httpActivity.proxyResponseRawHeaders,
         });

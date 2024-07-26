@@ -8,7 +8,11 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
+  BeforeStopRequestListener:
+    "chrome://remote/content/shared/listeners/BeforeStopRequestListener.sys.mjs",
   CacheBehavior: "chrome://remote/content/shared/NetworkCacheManager.sys.mjs",
+  NetworkDecodedBodySizeMap:
+    "chrome://remote/content/shared/NetworkDecodedBodySizeMap.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
   matchURLPattern:
@@ -295,7 +299,9 @@ const SameSite = {
 /* eslint-enable jsdoc/valid-types */
 
 class NetworkModule extends Module {
+  #beforeStopRequestListener;
   #blockedRequests;
+  #decodedBodySizeMap;
   #interceptMap;
   #networkListener;
   #subscribedEvents;
@@ -312,14 +318,23 @@ class NetworkModule extends Module {
     // Set of event names which have active subscriptions
     this.#subscribedEvents = new Set();
 
+    this.#decodedBodySizeMap = new lazy.NetworkDecodedBodySizeMap();
+
     this.#networkListener = new lazy.NetworkListener(
-      this.messageHandler.navigationManager
+      this.messageHandler.navigationManager,
+      this.#decodedBodySizeMap
     );
     this.#networkListener.on("auth-required", this.#onAuthRequired);
     this.#networkListener.on("before-request-sent", this.#onBeforeRequestSent);
     this.#networkListener.on("fetch-error", this.#onFetchError);
     this.#networkListener.on("response-completed", this.#onResponseEvent);
     this.#networkListener.on("response-started", this.#onResponseEvent);
+
+    this.#beforeStopRequestListener = new lazy.BeforeStopRequestListener();
+    this.#beforeStopRequestListener.on(
+      "beforeStopRequest",
+      this.#onBeforeStopRequest
+    );
   }
 
   destroy() {
@@ -330,6 +345,15 @@ class NetworkModule extends Module {
     this.#networkListener.off("response-started", this.#onResponseEvent);
     this.#networkListener.destroy();
 
+    this.#beforeStopRequestListener.off(
+      "beforeStopRequest",
+      this.#onBeforeStopRequest
+    );
+    this.#beforeStopRequestListener.destroy();
+
+    this.#decodedBodySizeMap.destroy();
+
+    this.#decodedBodySizeMap = null;
     this.#blockedRequests = null;
     this.#interceptMap = null;
     this.#subscribedEvents = null;
@@ -1694,6 +1718,13 @@ class NetworkModule extends Module {
     }
   };
 
+  #onBeforeStopRequest = (event, data) => {
+    this.#decodedBodySizeMap.setDecodedBodySize(
+      data.channel.channelId,
+      data.decodedBodySize
+    );
+  };
+
   #onFetchError = (name, data) => {
     const { request } = data;
 
@@ -1749,7 +1780,7 @@ class NetworkModule extends Module {
     );
   };
 
-  #onResponseEvent = (name, data) => {
+  #onResponseEvent = async (name, data) => {
     const { request, response } = data;
 
     const browsingContext = lazy.TabManager.getBrowsingContextById(
@@ -1941,6 +1972,7 @@ class NetworkModule extends Module {
   #startListening(event) {
     if (this.#subscribedEvents.size == 0) {
       this.#networkListener.startListening();
+      this.#beforeStopRequestListener.startListening();
     }
     this.#subscribedEvents.add(event);
   }
@@ -1949,6 +1981,7 @@ class NetworkModule extends Module {
     this.#subscribedEvents.delete(event);
     if (this.#subscribedEvents.size == 0) {
       this.#networkListener.stopListening();
+      this.#beforeStopRequestListener.stopListening();
     }
   }
 
@@ -1991,6 +2024,11 @@ class NetworkModule extends Module {
         this.#subscribeEvent(value);
       }
     }
+  }
+
+  _setDecodedBodySize(params) {
+    const { channelId, decodedBodySize } = params;
+    this.#decodedBodySizeMap.setDecodedBodySize(channelId, decodedBodySize);
   }
 
   static get supportedEvents() {
