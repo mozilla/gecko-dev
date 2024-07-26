@@ -6,7 +6,29 @@
 # in the file PATENTS.  All contributing project authors may
 # be found in the AUTHORS file in the root of the source tree.
 
+import("//third_party/protobuf/proto_library.gni")
 import("../../../webrtc.gni")
+
+if (rtc_enable_protobuf) {
+  proto_library("network_config_schedule_proto") {
+    visibility = [ "*" ]
+    sources = [ "network_config_schedule.proto" ]
+    proto_out_dir = "api/test/network_emulation/"
+  }
+
+  rtc_source_set("schedulable_network_node_builder") {
+    visibility = [ "*" ]
+    sources = [
+      "schedulable_network_node_builder.cc",
+      "schedulable_network_node_builder.h",
+    ]
+    deps = [
+      ":network_config_schedule_proto",
+      "../..:network_emulation_manager_api",
+      "../../../test/network:schedulable_network_behavior",
+    ]
+  }
+}
 
 rtc_library("network_emulation") {
   visibility = [ "*" ]
