@@ -457,6 +457,11 @@ export class BaseContent extends React.PureComponent {
         !noSectionsEnabled &&
         "fixed-search",
       prefs.showSearch && noSectionsEnabled && "only-search",
+      prefs["feeds.topsites"] &&
+        !pocketEnabled &&
+        !prefs.showSearch &&
+        "only-topsites",
+      noSectionsEnabled && "no-sections",
       prefs["logowordmark.alwaysVisible"] && "visible-logo",
       hasThumbsUpDownLayout && "thumbs-ui-compact",
     ]

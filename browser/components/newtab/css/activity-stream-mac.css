@@ -548,6 +548,13 @@ main section {
   font-size: 14px;
   color: var(--newtab-contextual-text-primary-color);
 }
+@media (min-width: 866px) {
+  .no-search .no-sections .wallpaper-attribution, .only-search .wallpaper-attribution, .only-topsites .wallpaper-attribution {
+    position: fixed;
+    inset-block-end: var(--space-large);
+    inset-inline-start: 0;
+  }
+}
 .lightWallpaper .wallpaper-attribution {
   color-scheme: light;
 }
@@ -2203,11 +2210,11 @@ main section {
   }
 }
 
-.has-weather.has-search .outer-wrapper {
+.has-weather.has-search .outer-wrapper:not(.only-search) {
   padding-top: 0;
 }
 @media (min-width: 610px) {
-  .has-weather.has-search .outer-wrapper {
+  .has-weather.has-search .outer-wrapper:not(.only-search) {
     padding-top: 30px;
   }
 }

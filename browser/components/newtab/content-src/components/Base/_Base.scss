@@ -137,6 +137,19 @@ main {
   font-size: 14px;
   color: var(--newtab-contextual-text-primary-color);
 
+  // Bug 1902063 - Edge case where user has single element
+  // on vertical center of HNT page. If so, display the
+  // attribution at the bottom corner of the screen
+  .no-search .no-sections &,
+  .only-search  &,
+  .only-topsites  & {
+    @media (min-width: $break-point-large) {
+      position: fixed;
+      inset-block-end: var(--space-large);
+      inset-inline-start: 0;
+    }
+  }
+
   // Contrast fix for users who have wallpapers set
   @include wallpaper-contrast-fix;
 

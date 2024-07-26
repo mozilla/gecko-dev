@@ -53,7 +53,7 @@
 
 // Edge case: users with weather enabled/search enabled
 .has-weather.has-search {
-  .outer-wrapper {
+  .outer-wrapper:not(.only-search) {
     padding-top: 0;
 
     @media (min-width: $break-point-medium) {
