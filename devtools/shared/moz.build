@@ -60,6 +60,7 @@ DevToolsModules(
     "extend.js",
     "flags.js",
     "generate-uuid.js",
+    "highlighters.mjs",
     "indentation.js",
     "indexed-db.js",
     "l10n.js",

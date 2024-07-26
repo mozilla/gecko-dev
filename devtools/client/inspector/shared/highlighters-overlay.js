@@ -14,6 +14,10 @@ const {
   VIEW_NODE_SHAPE_POINT_TYPE,
 } = require("resource://devtools/client/inspector/shared/node-types.js");
 
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+
 loader.lazyRequireGetter(
   this,
   "parseURL",
@@ -52,16 +56,6 @@ loader.lazyGetter(this, "HighlightersBundle", () => {
 
 const DEFAULT_HIGHLIGHTER_COLOR = "#9400FF";
 const SUBGRID_PARENT_ALPHA = 0.5;
-
-const TYPES = {
-  BOXMODEL: "BoxModelHighlighter",
-  FLEXBOX: "FlexboxHighlighter",
-  GEOMETRY: "GeometryEditorHighlighter",
-  GRID: "CssGridHighlighter",
-  SHAPES: "ShapesHighlighter",
-  SELECTOR: "SelectorHighlighter",
-  TRANSFORM: "CssTransformHighlighter",
-};
 
 /**
  * While refactoring to an abstracted way to show and hide highlighters,
