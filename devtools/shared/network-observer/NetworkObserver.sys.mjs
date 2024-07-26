@@ -95,9 +95,6 @@ const HTTP_DOWNLOAD_ACTIVITIES = [
  *
  * @constructor
  * @param {Object} options
- * @param {boolean} options.earlyEvents
- *        Create network events before the transaction is committed and sent to
- *        the server.
  * @param {Function(nsIChannel): boolean} options.ignoreChannelFunction
  *        This function will be called for every detected channel to decide if it
  *        should be monitored or not.
@@ -139,20 +136,6 @@ export class NetworkObserver {
    * @type {boolean}
    */
   #authPromptListenerEnabled = false;
-  /**
-   * Whether network events should be created before being sent to the server or
-   * not. This is currently opt-in because it relies on an observer notification
-   * which is emitted too early (http-on-before-connect). Due to this, the event
-   * is initially missing some headers added only when the necko transaction is
-   * created.
-   * It also changes the order in which we detect flight and preflight CORS
-   * requests. When using early events, the order corresponds to the order in
-   * which the channels are created (first the flight request, then the
-   * preflight). When using the activity observer, the order corresponds to the
-   * order in which the requests are sent to the server (first preflight, then
-   * flight).
-   */
-  #createEarlyEvents = false;
   /**
    * See constructor argument of the same name.
    *
@@ -211,7 +194,7 @@ export class NetworkObserver {
   #throttler = null;
 
   constructor(options = {}) {
-    const { earlyEvents, ignoreChannelFunction, onNetworkEvent } = options;
+    const { ignoreChannelFunction, onNetworkEvent } = options;
     if (typeof ignoreChannelFunction !== "function") {
       throw new Error(
         `Expected "ignoreChannelFunction" to be a function, got ${ignoreChannelFunction} (${typeof ignoreChannelFunction})`
@@ -224,7 +207,6 @@ export class NetworkObserver {
       );
     }
 
-    this.#createEarlyEvents = earlyEvents;
     this.#ignoreChannelFunction = ignoreChannelFunction;
     this.#onNetworkEvent = onNetworkEvent;
 
@@ -253,13 +235,10 @@ export class NetworkObserver {
         this.#dataChannelExaminer,
         "data-channel-opened"
       );
-
-      if (this.#createEarlyEvents) {
-        Services.obs.addObserver(
-          this.#httpBeforeConnect,
-          "http-on-before-connect"
-        );
-      }
+      Services.obs.addObserver(
+        this.#httpBeforeConnect,
+        "http-on-before-connect"
+      );
 
       Services.obs.addObserver(this.#httpStopRequest, "http-on-stop-request");
     } else {
@@ -531,9 +510,6 @@ export class NetworkObserver {
       this.#createNetworkEvent(httpActivity);
     }
 
-    // However if we already created an event because the NetworkObserver
-    // is using early events, simply forward the cache details to the
-    // event owner.
     httpActivity.owner.addCacheDetails({
       fromCache: httpActivity.fromCache,
       fromServiceWorker: httpActivity.fromServiceWorker,
@@ -910,12 +886,11 @@ export class NetworkObserver {
       };
     }
 
-    // TODO: In theory httpActivity.owner is missing only if #createEarlyEvents
-    // is false. However, there is a scenario in DevTools where this can still
-    // happen.
-    // If NetworkObserver clear() is called after the event was detected, the
-    // activity will be deletedld again have an ownerless notification here.
-    // Should be addressed in Bug 1756770.
+    // TODO: In theory httpActivity.owner should not be missing here because
+    // the network event should have been created in http-on-before-connect.
+    // However, there is a scenario in DevTools where this can still happen:
+    // if NetworkObserver clear() is called after the event was detected, the
+    // activity will be deleted again have an ownerless notification here.
     if (!httpActivity.owner) {
       // If we are not creating events using the early platform notification
       // this should be the first time we are notified about this channel.
@@ -1607,17 +1582,14 @@ export class NetworkObserver {
         this.#dataChannelExaminer,
         "data-channel-opened"
       );
-
       Services.obs.removeObserver(
         this.#httpStopRequest,
         "http-on-stop-request"
       );
-      if (this.#createEarlyEvents) {
-        Services.obs.removeObserver(
-          this.#httpBeforeConnect,
-          "http-on-before-connect"
-        );
-      }
+      Services.obs.removeObserver(
+        this.#httpBeforeConnect,
+        "http-on-before-connect"
+      );
     } else {
       Services.obs.removeObserver(
         this.#httpFailedOpening,

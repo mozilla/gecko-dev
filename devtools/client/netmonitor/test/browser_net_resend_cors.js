@@ -42,12 +42,9 @@ add_task(async function () {
   // Check the requests that were sent
   let sortedRequests = getSortedRequests(store.getState());
 
-  // If the NetworkObserver is configured to use early events, we should detect
-  // the flight request (POST) before the preflight request (OPTIONS).
-  // Bug 1901504 will remove the earlyEvents=false option.
-  // Note that this test is still intermittently detecting the preflight request
-  // before the flight request, event with early events enabled, so we should
-  // keep the logic here to assign optRequest and postRequest accordingly.
+  // TODO: This test is intermittently detecting the preflight request before
+  // the actual request, so we implement a logic to assign optRequest and
+  // postRequest accordingly.
   let optRequest, postRequest;
   if (sortedRequests[0].method === "POST") {
     optRequest = sortedRequests[1];
@@ -92,13 +89,9 @@ add_task(async function () {
   sortedRequests = getSortedRequests(store.getState());
   is(sortedRequests.length, 4, "There are 4 requests in total");
 
-  // If the NetworkObserver is configured to use early events, we should detect
-  // the flight request (POST) before the preflight request (OPTIONS).
-  // Bug 1901504 will remove the earlyEvents=false option.
-  // Note that this test is still intermittently detecting the preflight request
-  // before the flight request, event with early events enabled, so we should
-  // keep the logic here to assign resentOptRequest and resentPostRequest
-  // accordingly.
+  // TODO: This test is intermittently detecting the preflight request before
+  // the actual request, so we implement a logic to assign optRequest and
+  // postRequest accordingly.
   let resentOptRequest, resentPostRequest;
   if (sortedRequests[2].method === "POST") {
     resentOptRequest = sortedRequests[3];
