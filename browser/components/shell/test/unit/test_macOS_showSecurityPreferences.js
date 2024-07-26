@@ -5,10 +5,20 @@
  * Test the macOS ShowSecurityPreferences shell service method.
  */
 
+"use strict";
+
+// eslint-disable-next-line mozilla/no-redeclare-with-import-autofix
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
+
 function killSystemPreferences() {
   let killallFile = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
   killallFile.initWithPath("/usr/bin/killall");
   let sysPrefsArg = ["System Preferences"];
+  if (AppConstants.isPlatformAndVersionAtLeast("macosx", 22)) {
+    sysPrefsArg = ["System Settings"];
+  }
   let process = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess);
   process.init(killallFile);
   process.run(true, sysPrefsArg, 1);
