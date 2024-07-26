@@ -940,6 +940,68 @@ void BaseCompiler::restoreRegisterReturnValues(const ResultType& resultType) {
 // stub routine for the whole module, whereas for debugging, there are
 // per-function stub routines as well as a whole-module stub routine involved.
 
+class OutOfLineRequestTierUp : public OutOfLineCode {
+  Register instance_;  // points at the instance at entry; must remain unchanged
+  RegI32 scratch_;     // dead at entry; can be used as scratch if needed
+  size_t lastOpcodeOffset_;  // a bytecode offset
+
+ public:
+  OutOfLineRequestTierUp(Register instance, RegI32 scratch,
+                         size_t lastOpcodeOffset)
+      : instance_(instance),
+        scratch_(scratch),
+        lastOpcodeOffset_(lastOpcodeOffset) {}
+  virtual void generate(MacroAssembler* masm) override {
+    // Generate:
+    //
+    // [optionally, if `instance_` != InstanceReg: swap(instance_, InstanceReg)]
+    // call * $offsetOfRequestTierUpStub(InstanceReg)
+    // [optionally, if `instance_` != InstanceReg: swap(instance_, InstanceReg)]
+    // goto rejoin
+    //
+    // This is the unlikely path, where we call the (per-module)
+    // request-tier-up stub.  The stub wants the instance pointer to be in the
+    // official InstanceReg at this point, but InstanceReg itself might hold
+    // arbitrary other live data.  Hence, if necessary, swap `instance_` and
+    // InstanceReg before the call and swap them back after it.
+#ifndef RABALDR_PIN_INSTANCE
+    if (Register(instance_) != InstanceReg) {
+#  ifdef JS_CODEGEN_X86
+      // On x86_32 this is easy.
+      masm->xchgl(instance_, InstanceReg);
+#  elif JS_CODEGEN_ARM
+      // Use `scratch_` to do the swap, since it's now dead, but still reserved.
+      masm->mov(instance_, scratch_);  // note, destination is second arg
+      masm->mov(InstanceReg, instance_);
+      masm->mov(scratch_, InstanceReg);
+#  else
+      MOZ_CRASH("BaseCompiler::OutOfLineRequestTierUp #1");
+#  endif
+    }
+#endif
+    // Call the stub
+    masm->call(Address(InstanceReg, Instance::offsetOfRequestTierUpStub()));
+    masm->append(CallSiteDesc(lastOpcodeOffset_, CallSiteDesc::RequestTierUp),
+                 CodeOffset(masm->currentOffset()));
+    // And swap again, if we swapped above.
+#ifndef RABALDR_PIN_INSTANCE
+    if (Register(instance_) != InstanceReg) {
+#  ifdef JS_CODEGEN_X86
+      masm->xchgl(instance_, InstanceReg);
+#  elif JS_CODEGEN_ARM
+      masm->mov(instance_, scratch_);
+      masm->mov(InstanceReg, instance_);
+      masm->mov(scratch_, InstanceReg);
+#  else
+      MOZ_CRASH("BaseCompiler::OutOfLineRequestTierUp #2");
+#  endif
+    }
+#endif
+
+    masm->jump(rejoin());
+  }
+};
+
 bool BaseCompiler::addHotnessCheck() {
   if (compilerEnv_.mode() != CompileMode::LazyTiering) {
     return true;
@@ -948,17 +1010,15 @@ bool BaseCompiler::addHotnessCheck() {
   // Here's an example of what we'll create.  The path that almost always
   // happens, where the counter doesn't go negative, has just one branch.
   //
-  // movl       0x160(%r14), %eax
-  // subl       $1, %eax
-  // jns        counterNonNegative // almost always taken
-  //
-  // call       *0x158(%r14) // RequestTierUpStub
-  // jmp        after
-  //
-  // counterNonNegative:
-  // movl       %eax, 0x160(%r14)
-  //
-  // after:
+  //   movl       0x160(%r14), %eax
+  //   subl       $1, %eax
+  //   js         oolCode // almost never taken
+  //   movl       %eax, 0x160(%r14)
+  // rejoin:
+  // ----------------
+  // oolCode: // we get here when the counter is negative, viz, almost never
+  //   call       *0x158(%r14) // RequestTierUpStub
+  //   jmp        rejoin
 
   AutoCreatedBy acb(masm, "BC::addHotnessCheck");
 
@@ -970,65 +1030,26 @@ bool BaseCompiler::addHotnessCheck() {
   fr.loadInstancePtr(instance);
 #endif
 
-  Label counterNotNegative;
-  Label after;
-
   Address addressOfCounter = Address(
       instance, wasm::Instance::offsetInData(
                     codeMeta_.offsetOfFuncDefInstanceData(func_.index)));
 
   RegI32 counter = needI32();
+
+  OutOfLineCode* ool = addOutOfLineCode(new (alloc_) OutOfLineRequestTierUp(
+      instance, counter, iter_.lastOpcodeOffset()));
+  if (!ool) {
+    return false;
+  }
+
   masm.load32(addressOfCounter, counter);
-  masm.branchSub32(Assembler::NotSigned,  // almost always taken
-                   Imm32(1), counter, &counterNotNegative);
-
-  // This is the unlikely path, where we call the (per-module) request-tier-up
-  // stub.  The stub wants the instance pointer to be in the official
-  // InstanceReg at this point, but InstanceReg itself might hold arbitrary
-  // other live data.  Hence, if necessary, swap `instance` and InstanceReg
-  // before the call and swap them back later.
-#ifndef RABALDR_PIN_INSTANCE
-  if (Register(instance) != InstanceReg) {
-#  ifdef JS_CODEGEN_X86
-    // On x86_32 this is easy.
-    masm.xchgl(instance, InstanceReg);
-#  elif JS_CODEGEN_ARM
-    // Use `counter` to do the swap, since it's now dead, but still reserved.
-    masm.mov(instance, counter);  // note, destination is second arg
-    masm.mov(InstanceReg, instance);
-    masm.mov(counter, InstanceReg);
-#  else
-    MOZ_CRASH("BaseCompiler::addHotnessCheck #1");
-#  endif
-  }
-#endif
-  // Call the stub
-  masm.call(Address(InstanceReg, Instance::offsetOfRequestTierUpStub()));
-  masm.append(
-      CallSiteDesc(iter_.lastOpcodeOffset(), CallSiteDesc::RequestTierUp),
-      CodeOffset(masm.currentOffset()));
-  // And swap again, if we swapped above.
-#ifndef RABALDR_PIN_INSTANCE
-  if (Register(instance) != InstanceReg) {
-#  ifdef JS_CODEGEN_X86
-    masm.xchgl(instance, InstanceReg);
-#  elif JS_CODEGEN_ARM
-    masm.mov(instance, counter);
-    masm.mov(InstanceReg, instance);
-    masm.mov(counter, InstanceReg);
-#  else
-    MOZ_CRASH("BaseCompiler::addHotnessCheck #2");
-#  endif
-  }
-#endif
-  masm.jump(&after);
-
-  masm.bind(&counterNotNegative);
+  masm.branchSub32(Assembler::Signed,  // almost never taken
+                   Imm32(1), counter, ool->entry());
   masm.store32(counter, addressOfCounter);
 
-  masm.bind(&after);
-  freeI32(counter);
+  masm.bind(ool->rejoin());
 
+  freeI32(counter);
   return true;
 }
 
