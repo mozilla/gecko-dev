@@ -12,20 +12,20 @@
 #include "mozilla/SVGTextFrame.h"
 
 #include "LayoutLogging.h"
+#include "nsBidiPresUtils.h"
 #include "nsBlockFrame.h"
-#include "nsFontMetrics.h"
-#include "nsStyleConsts.h"
 #include "nsContainerFrame.h"
 #include "nsFloatManager.h"
-#include "nsPresContext.h"
+#include "nsFontMetrics.h"
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
 #include "nsLayoutUtils.h"
-#include "nsTextFrame.h"
-#include "nsStyleStructInlines.h"
-#include "nsBidiPresUtils.h"
+#include "nsPresContext.h"
 #include "nsRubyFrame.h"
 #include "nsRubyTextFrame.h"
+#include "nsStyleConsts.h"
+#include "nsStyleStructInlines.h"
+#include "nsTextFrame.h"
 #include "RubyUtils.h"
 #include <algorithm>
 
@@ -91,26 +91,13 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   }
 }
 
-nsLineLayout::~nsLineLayout() {
-  MOZ_COUNT_DTOR(nsLineLayout);
-
-  NS_ASSERTION(nullptr == mRootSpan, "bad line-layout user");
-}
-
-// Find out if the frame has a non-null prev-in-flow, i.e., whether it
-// is a continuation.
-inline bool HasPrevInFlow(nsIFrame* aFrame) {
-  nsIFrame* prevInFlow = aFrame->GetPrevInFlow();
-  return prevInFlow != nullptr;
-}
-
 void nsLineLayout::BeginLineReflow(nscoord aICoord, nscoord aBCoord,
                                    nscoord aISize, nscoord aBSize,
                                    bool aImpactedByFloats, bool aIsTopOfPage,
                                    WritingMode aWritingMode,
                                    const nsSize& aContainerSize,
                                    nscoord aInset) {
-  NS_ASSERTION(nullptr == mRootSpan, "bad linelayout user");
+  MOZ_ASSERT(nullptr == mRootSpan, "bad linelayout user");
   LAYOUT_WARN_IF_FALSE(aISize != NS_UNCONSTRAINEDSIZE,
                        "have unconstrained width; this should only result from "
                        "very large sizes, not attempts at intrinsic width "
@@ -457,38 +444,33 @@ void nsLineLayout::AttachFrameToBaseLineLayout(PerFrameData* aFrame) {
 }
 
 int32_t nsLineLayout::GetCurrentSpanCount() const {
-  NS_ASSERTION(mCurrentSpan == mRootSpan, "bad linelayout user");
+  MOZ_ASSERT(mCurrentSpan == mRootSpan, "bad linelayout user");
   int32_t count = 0;
-  PerFrameData* pfd = mRootSpan->mFirstFrame;
-  while (nullptr != pfd) {
+  for (const auto* pfd = mRootSpan->mFirstFrame; pfd; pfd = pfd->mNext) {
     count++;
-    pfd = pfd->mNext;
   }
   return count;
 }
 
 void nsLineLayout::SplitLineTo(int32_t aNewCount) {
-  NS_ASSERTION(mCurrentSpan == mRootSpan, "bad linelayout user");
+  MOZ_ASSERT(mCurrentSpan == mRootSpan, "bad linelayout user");
 
 #ifdef REALLY_NOISY_PUSHING
   printf("SplitLineTo %d (current count=%d); before:\n", aNewCount,
          GetCurrentSpanCount());
   DumpPerSpanData(mRootSpan, 1);
 #endif
-  PerSpanData* psd = mRootSpan;
-  PerFrameData* pfd = psd->mFirstFrame;
-  while (nullptr != pfd) {
+  for (auto* pfd = mRootSpan->mFirstFrame; pfd; pfd = pfd->mNext) {
     if (--aNewCount == 0) {
       // Truncate list at pfd (we keep pfd, but anything following is freed)
       PerFrameData* next = pfd->mNext;
       pfd->mNext = nullptr;
-      psd->mLastFrame = pfd;
+      mRootSpan->mLastFrame = pfd;
 
       // Now unlink all of the frames following pfd
       UnlinkFrame(next);
       break;
     }
-    pfd = pfd->mNext;
   }
 #ifdef NOISY_PUSHING
   printf("SplitLineTo %d (current count=%d); after:\n", aNewCount,
@@ -583,14 +565,11 @@ void nsLineLayout::FreeSpan(PerSpanData* psd) {
 #endif
 }
 
-bool nsLineLayout::IsZeroBSize() {
-  PerSpanData* psd = mCurrentSpan;
-  PerFrameData* pfd = psd->mFirstFrame;
-  while (nullptr != pfd) {
-    if (0 != pfd->mBounds.BSize(psd->mWritingMode)) {
+bool nsLineLayout::IsZeroBSize() const {
+  for (const auto* pfd = mCurrentSpan->mFirstFrame; pfd; pfd = pfd->mNext) {
+    if (0 != pfd->mBounds.BSize(mCurrentSpan->mWritingMode)) {
       return false;
     }
-    pfd = pfd->mNext;
   }
   return true;
 }
@@ -641,15 +620,6 @@ nsLineLayout::PerFrameData* nsLineLayout::NewPerFrameData(nsIFrame* aFrame) {
   return pfd;
 }
 
-bool nsLineLayout::LineIsBreakable() const {
-  // XXX mTotalPlacedFrames should go away and we should just use
-  // mLineIsEmpty here instead
-  if ((0 != mTotalPlacedFrames) || mImpactedByFloats) {
-    return true;
-  }
-  return false;
-}
-
 // Checks all four sides for percentage units.  This means it should
 // only be used for things (margin, padding) where percentages on top
 // and bottom depend on the *width* just like percentages on left and
@@ -660,7 +630,7 @@ static bool HasPercentageUnitSide(const StyleRect<T>& aSides) {
 }
 
 static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
-  NS_ASSERTION(aFrame, "null frame is not allowed");
+  MOZ_ASSERT(aFrame, "null frame is not allowed");
 
   LayoutFrameType fType = aFrame->Type();
   if (fType == LayoutFrameType::Text) {
@@ -1118,9 +1088,8 @@ void nsLineLayout::AllowForStartMargin(PerFrameData* pfd,
 }
 
 nscoord nsLineLayout::GetCurrentFrameInlineDistanceFromBlock() {
-  PerSpanData* psd;
   nscoord x = 0;
-  for (psd = mCurrentSpan; psd; psd = psd->mParent) {
+  for (const auto* psd = mCurrentSpan; psd; psd = psd->mParent) {
     x += psd->mICoord;
   }
   return x;
@@ -1394,8 +1363,8 @@ void nsLineLayout::PlaceFrame(PerFrameData* pfd, ReflowOutput& aMetrics) {
 
 void nsLineLayout::AddMarkerFrame(nsIFrame* aFrame,
                                   const ReflowOutput& aMetrics) {
-  NS_ASSERTION(mCurrentSpan == mRootSpan, "bad linelayout user");
-  NS_ASSERTION(mGotLineBox, "must have line box");
+  MOZ_ASSERT(mCurrentSpan == mRootSpan, "bad linelayout user");
+  MOZ_ASSERT(mGotLineBox, "must have line box");
 
   nsBlockFrame* blockFrame = do_QueryFrame(LineContainerFrame());
   MOZ_ASSERT(blockFrame, "must be for block");
@@ -1437,6 +1406,7 @@ void nsLineLayout::RemoveMarkerFrame(nsIFrame* aFrame) {
   psd->mFirstFrame = pfd->mNext;
   FreeFrame(pfd);
 }
+
 #ifdef DEBUG
 void nsLineLayout::DumpPerSpanData(PerSpanData* psd, int32_t aIndent) {
   nsIFrame::IndentBy(stdout, aIndent);
@@ -1536,12 +1506,7 @@ void nsLineLayout::VerticalAlignLine() {
   // Now that the line-height is computed, we need to know where the
   // baseline is in the line. Position baseline so that mMinBCoord is just
   // inside the start of the line box.
-  nscoord baselineBCoord;
-  if (psd->mMinBCoord < 0) {
-    baselineBCoord = mBStartEdge - psd->mMinBCoord;
-  } else {
-    baselineBCoord = mBStartEdge;
-  }
+  nscoord baselineBCoord = mBStartEdge - std::min(0, psd->mMinBCoord);
 
   // It's also possible that the line block-size isn't tall enough because
   // of "top" and "bottom" aligned elements that were not accounted for in
@@ -1562,9 +1527,7 @@ void nsLineLayout::VerticalAlignLine() {
     baselineBCoord += extra;
     lineBSize = mMaxEndBoxBSize;
   }
-  if (lineBSize < mMaxStartBoxBSize) {
-    lineBSize = mMaxStartBoxBSize;
-  }
+  lineBSize = std::max(lineBSize, mMaxStartBoxBSize);
 #ifdef NOISY_BLOCKDIR_ALIGN
   printf("  [line]==> lineBSize=%d baselineBCoord=%d\n", lineBSize,
          baselineBCoord);
@@ -2318,8 +2281,8 @@ void nsLineLayout::VerticalAlignFrames(PerSpanData* psd) {
           }
         }
 
-        if (blockStart < minBCoord) minBCoord = blockStart;
-        if (blockEnd > maxBCoord) maxBCoord = blockEnd;
+        minBCoord = std::min(blockStart, minBCoord);
+        maxBCoord = std::max(blockEnd, maxBCoord);
 
 #ifdef NOISY_BLOCKDIR_ALIGN
         printf(" new values: %d,%d\n", minBCoord, maxBCoord);
@@ -2388,11 +2351,7 @@ void nsLineLayout::VerticalAlignFrames(PerSpanData* psd) {
         distribute -= ascentSpace;
         minBCoord -= ascentSpace;
         nscoord descentSpace = std::max(goodMaxBCoord - maxBCoord, 0);
-        if (distribute > descentSpace) {
-          maxBCoord += descentSpace;
-        } else {
-          maxBCoord += distribute;
-        }
+        maxBCoord += std::min(descentSpace, distribute);
       } else {
         minBCoord -= distribute;
       }
@@ -2405,11 +2364,7 @@ void nsLineLayout::VerticalAlignFrames(PerSpanData* psd) {
         distribute -= descentSpace;
         maxBCoord += descentSpace;
         nscoord ascentSpace = std::max(minBCoord - goodMinBCoord, 0);
-        if (distribute > ascentSpace) {
-          minBCoord -= ascentSpace;
-        } else {
-          minBCoord -= distribute;
-        }
+        minBCoord -= std::min(ascentSpace, distribute);
       } else {
         maxBCoord += distribute;
       }
@@ -2472,12 +2427,8 @@ void nsLineLayout::VerticalAlignFrames(PerSpanData* psd) {
       minBCoord, maxBCoord, maxBCoord - minBCoord, maxStartBoxBSize,
       maxEndBoxBSize);
 #endif
-  if (maxStartBoxBSize > mMaxStartBoxBSize) {
-    mMaxStartBoxBSize = maxStartBoxBSize;
-  }
-  if (maxEndBoxBSize > mMaxEndBoxBSize) {
-    mMaxEndBoxBSize = maxEndBoxBSize;
-  }
+  mMaxStartBoxBSize = std::max(mMaxStartBoxBSize, maxStartBoxBSize);
+  mMaxEndBoxBSize = std::max(mMaxEndBoxBSize, maxEndBoxBSize);
 }
 
 static void SlideSpanFrameRect(nsIFrame* aFrame, nscoord aDeltaWidth) {
@@ -2627,9 +2578,8 @@ bool nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
 }
 
 bool nsLineLayout::TrimTrailingWhiteSpace() {
-  PerSpanData* psd = mRootSpan;
   nscoord deltaISize;
-  TrimTrailingWhiteSpaceIn(psd, &deltaISize);
+  TrimTrailingWhiteSpaceIn(mRootSpan, &deltaISize);
   return 0 != deltaISize;
 }
 
@@ -2840,8 +2790,7 @@ void nsLineLayout::AdvanceAnnotationInlineBounds(PerFrameData* aPFD,
 void nsLineLayout::ApplyLineJustificationToAnnotations(PerFrameData* aPFD,
                                                        nscoord aDeltaICoord,
                                                        nscoord aDeltaISize) {
-  PerFrameData* pfd = aPFD->mNextAnnotation;
-  while (pfd) {
+  for (auto* pfd = aPFD->mNextAnnotation; pfd; pfd = pfd->mNextAnnotation) {
     nsSize containerSize = pfd->mFrame->GetParent()->GetSize();
     AdvanceAnnotationInlineBounds(pfd, containerSize, aDeltaICoord,
                                   aDeltaISize);
@@ -2853,14 +2802,11 @@ void nsLineLayout::ApplyLineJustificationToAnnotations(PerFrameData* aPFD,
     // 2. there are not enough ruby bases to be paired with annotations.
     // In these cases, their size should not be affected, but we still
     // need to move them so that they won't overlap other frames.
-    PerFrameData* sibling = pfd->mNext;
-    while (sibling && !sibling->mIsLinkedToBase) {
+    for (auto* sibling = pfd->mNext; sibling && !sibling->mIsLinkedToBase;
+         sibling = sibling->mNext) {
       AdvanceAnnotationInlineBounds(sibling, containerSize,
                                     aDeltaICoord + aDeltaISize, 0);
-      sibling = sibling->mNext;
     }
-
-    pfd = pfd->mNextAnnotation;
   }
 }
 
@@ -2869,8 +2815,7 @@ nscoord nsLineLayout::ApplyFrameJustification(
   NS_ASSERTION(aPSD, "null arg");
 
   nscoord deltaICoord = 0;
-  for (PerFrameData* pfd = aPSD->mFirstFrame; pfd != nullptr;
-       pfd = pfd->mNext) {
+  for (PerFrameData* pfd = aPSD->mFirstFrame; pfd; pfd = pfd->mNext) {
     nscoord dw = 0;
     WritingMode lineWM = mRootSpan->mWritingMode;
     const auto& assign = pfd->mJustificationAssignment;
@@ -3390,11 +3335,12 @@ void nsLineLayout::RelativePositionFrames(PerSpanData* psd,
     // We must position the view correctly before positioning its
     // descendants so that widgets are positioned properly (since only
     // some views have widgets).
-    if (frame->HasView())
+    if (frame->HasView()) {
       nsContainerFrame::SyncFrameViewAfterReflow(
           mPresContext, frame, frame->GetView(),
           pfd->mOverflowAreas.InkOverflow(),
           nsIFrame::ReflowChildFlags::NoSizeView);
+    }
 
     // Note: the combined area of a child is in its coordinate
     // system. We adjust the childs combined area into our coordinate

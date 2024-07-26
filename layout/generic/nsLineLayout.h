@@ -34,7 +34,11 @@ class nsLineLayout {
                const ReflowInput& aLineContainerRI,
                const nsLineList::iterator* aLine,
                nsLineLayout* aBaseLineLayout);
-  ~nsLineLayout();
+
+  ~nsLineLayout() {
+    MOZ_COUNT_DTOR(nsLineLayout);
+    MOZ_ASSERT(!mRootSpan, "bad line-layout user");
+  }
 
   void Init(BlockReflowState* aState, nscoord aMinLineBSize,
             int32_t aLineNumber) {
@@ -92,7 +96,7 @@ class nsLineLayout {
 
   void SplitLineTo(int32_t aNewCount);
 
-  bool IsZeroBSize();
+  bool IsZeroBSize() const;
 
   // Reflows the frame and returns the reflow status. aPushedFrame is true
   // if the frame is pushed to the next line because it doesn't fit.
@@ -143,10 +147,13 @@ class nsLineLayout {
    */
   bool LineAtStart() const { return mLineAtStart; }
 
-  bool LineIsBreakable() const;
+  bool LineIsBreakable() const {
+    // XXX mTotalPlacedFrames should go away and we should just use
+    // mLineIsEmpty here instead
+    return mTotalPlacedFrames || mImpactedByFloats;
+  }
 
   bool GetLineEndsInBR() const { return mLineEndsInBR; }
-
   void SetLineEndsInBR(bool aOn) { mLineEndsInBR = aOn; }
 
   //----------------------------------------
@@ -170,21 +177,18 @@ class nsLineLayout {
   //----------------------------------------
 
   bool GetFirstLetterStyleOK() const { return mFirstLetterStyleOK; }
-
   void SetFirstLetterStyleOK(bool aSetting) { mFirstLetterStyleOK = aSetting; }
 
   bool GetInFirstLetter() const { return mInFirstLetter; }
-
   void SetInFirstLetter(bool aSetting) { mInFirstLetter = aSetting; }
 
   bool GetInFirstLine() const { return mInFirstLine; }
-
   void SetInFirstLine(bool aSetting) { mInFirstLine = aSetting; }
 
   // Calling this during block reflow ensures that the next line of inlines
   // will be marked dirty, if there is one.
   void SetDirtyNextLine() { mDirtyNextLine = true; }
-  bool GetDirtyNextLine() { return mDirtyNextLine; }
+  bool GetDirtyNextLine() const { return mDirtyNextLine; }
 
   //----------------------------------------
 
