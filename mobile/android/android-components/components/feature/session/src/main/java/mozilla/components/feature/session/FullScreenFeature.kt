@@ -29,6 +29,12 @@ open class FullScreenFeature(
     private var observation: Observation = createDefaultObservation()
 
     /**
+     * Returns true if the app is in fullscreen mode.
+     */
+    val isFullScreen: Boolean
+        get() = observation.inFullScreen
+
+    /**
      * Starts the feature and a observer to listen for fullscreen changes.
      */
     override fun start() {

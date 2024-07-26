@@ -1739,7 +1739,14 @@ abstract class BaseBrowserFragment :
                     }
                 }
             },
-        )
+        ).apply {
+            // This covers the usecase when the app goes into fullscreen mode from portrait orientation.
+            // Transition to fullscreen happens first, and orientation change follows. Microsurvey container is getting
+            // reinitialized when going into landscape mode, but it shouldn't be visible if the app is already in the
+            // fullscreen mode. It still has to be initialized to be shown after the user exits the fullscreen.
+            val isFullscreen = fullScreenFeature.get()?.isFullScreen == true
+            toolbarContainerView.isVisible = !isFullscreen
+        }
 
         bottomToolbarContainerIntegration.set(
             feature = BottomToolbarContainerIntegration(
@@ -2287,11 +2294,15 @@ abstract class BaseBrowserFragment :
     }
 
     private fun reinitializeEngineView() {
+        val isFullscreen = fullScreenFeature.get()?.isFullScreen == true
+        val topToolbarHeight = requireContext().settings().getTopToolbarHeight(
+            includeTabStrip = customTabSessionId == null && requireContext().isTabStripEnabled(),
+        )
+        val bottomToolbarHeight = requireContext().settings().getBottomToolbarHeight(requireContext())
+
         initializeEngineView(
-            topToolbarHeight = requireContext().settings().getTopToolbarHeight(
-                includeTabStrip = customTabSessionId == null && requireContext().isTabStripEnabled(),
-            ),
-            bottomToolbarHeight = requireContext().settings().getBottomToolbarHeight(requireContext()),
+            topToolbarHeight = if (isFullscreen) 0 else topToolbarHeight,
+            bottomToolbarHeight = if (isFullscreen) 0 else bottomToolbarHeight,
         )
     }
 
