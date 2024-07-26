@@ -1967,12 +1967,11 @@ class BrowsingContextModule extends Module {
   };
 
   #onNavigationFailed = async (eventName, data) => {
-    const { navigableId, navigationId, url } = data;
-    const context = this.#getBrowsingContext(navigableId);
+    const { navigableId, navigationId, url, contextId } = data;
 
     if (this.#subscribedEvents.has("browsingContext.navigationFailed")) {
       const contextInfo = {
-        contextId: context.id,
+        contextId,
         type: lazy.WindowGlobalMessageHandler.type,
       };
 
