@@ -21,6 +21,7 @@
 #include "libavutil/error.h"
 #include "libavutil/pixfmt.h"
 #include "libyuv.h"
+#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageUtils.h"
 #include "mozilla/dom/VideoFrameBinding.h"
@@ -322,8 +323,10 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
   mCodecContext->width = static_cast<int>(mConfig.mSize.width);
   mCodecContext->height = static_cast<int>(mConfig.mSize.height);
   // Reasonnable default for the quantization range.
-  mCodecContext->qmin = 10;
-  mCodecContext->qmax = 56;
+  mCodecContext->qmin =
+      static_cast<int>(StaticPrefs::media_ffmpeg_encoder_quantizer_min());
+  mCodecContext->qmax =
+      static_cast<int>(StaticPrefs::media_ffmpeg_encoder_quantizer_max());
   if (mConfig.mUsage == Usage::Realtime) {
     mCodecContext->thread_count = 1;
   } else {
@@ -484,13 +487,14 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
     return rv;
   }
 
-  FFMPEGV_LOG("%s has been initialized with format: %s, bitrate: %" PRIi64
-              ", width: %d, height: %d, time_base: %d/%d%s",
-              codec->name, ffmpeg::GetPixelFormatString(mCodecContext->pix_fmt),
-              static_cast<int64_t>(mCodecContext->bit_rate),
-              mCodecContext->width, mCodecContext->height,
-              mCodecContext->time_base.num, mCodecContext->time_base.den,
-              h264Log.IsEmpty() ? "" : h264Log.get());
+  FFMPEGV_LOG(
+      "%s has been initialized with format: %s, bitrate: %" PRIi64
+      ", width: %d, height: %d, quantizer: [%d, %d], time_base: %d/%d%s",
+      codec->name, ffmpeg::GetPixelFormatString(mCodecContext->pix_fmt),
+      static_cast<int64_t>(mCodecContext->bit_rate), mCodecContext->width,
+      mCodecContext->height, mCodecContext->qmin, mCodecContext->qmax,
+      mCodecContext->time_base.num, mCodecContext->time_base.den,
+      h264Log.IsEmpty() ? "" : h264Log.get());
 
   return NS_OK;
 }
