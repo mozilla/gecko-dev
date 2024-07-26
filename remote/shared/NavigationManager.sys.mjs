@@ -7,12 +7,8 @@ import { EventEmitter } from "resource://gre/modules/EventEmitter.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  BrowsingContextListener:
-    "chrome://remote/content/shared/listeners/BrowsingContextListener.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
-  PromptListener:
-    "chrome://remote/content/shared/listeners/PromptListener.sys.mjs",
   registerNavigationListenerActor:
     "chrome://remote/content/shared/js-window-actors/NavigationListenerActor.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
@@ -68,11 +64,9 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
  * @class NavigationRegistry
  */
 class NavigationRegistry extends EventEmitter {
-  #contextListener;
   #managers;
   #navigations;
-  #preRegisteredNavigationIds;
-  #promptListener;
+  #navigationIds;
 
   constructor() {
     super();
@@ -80,19 +74,12 @@ class NavigationRegistry extends EventEmitter {
     // Set of NavigationManager instances currently used.
     this.#managers = new Set();
 
-    // Maps navigable id to NavigationInfo.
-    this.#navigations = new Map();
+    // Maps navigable to NavigationInfo.
+    this.#navigations = new WeakMap();
 
     // Maps navigable id to navigation id. Only used to pre-register navigation
     // ids before the actual event is detected.
-    this.#preRegisteredNavigationIds = new Map();
-
-    this.#contextListener = new lazy.BrowsingContextListener();
-    this.#contextListener.on("discarded", this.#onContextDiscarded);
-
-    this.#promptListener = new lazy.PromptListener();
-    this.#promptListener.on("closed", this.#onPromptClosed);
-    this.#promptListener.on("opened", this.#onPromptOpened);
+    this.#navigationIds = new Map();
   }
 
   /**
@@ -110,12 +97,12 @@ class NavigationRegistry extends EventEmitter {
       return null;
     }
 
-    const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
-    if (!this.#navigations.has(navigableId)) {
+    const navigable = lazy.TabManager.getNavigableForBrowsingContext(context);
+    if (!this.#navigations.has(navigable)) {
       return null;
     }
 
-    return this.#navigations.get(navigableId);
+    return this.#navigations.get(navigable);
   }
 
   /**
@@ -126,8 +113,6 @@ class NavigationRegistry extends EventEmitter {
   startMonitoring(listener) {
     if (this.#managers.size == 0) {
       lazy.registerNavigationListenerActor();
-      this.#contextListener.startListening();
-      this.#promptListener.startListening();
     }
 
     this.#managers.add(listener);
@@ -144,11 +129,9 @@ class NavigationRegistry extends EventEmitter {
 
     this.#managers.delete(listener);
     if (this.#managers.size == 0) {
-      this.#contextListener.stopListening();
-      this.#promptListener.stopListening();
       lazy.unregisterNavigationListenerActor();
       // Clear the map.
-      this.#navigations = new Map();
+      this.#navigations = new WeakMap();
     }
   }
 
@@ -172,11 +155,12 @@ class NavigationRegistry extends EventEmitter {
     const { contextDetails, url } = data;
 
     const context = this.#getContextFromContextDetails(contextDetails);
+    const navigable = lazy.TabManager.getNavigableForBrowsingContext(context);
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
     const navigation = { finished: true, navigationId, url };
-    this.#navigations.set(navigableId, navigation);
+    this.#navigations.set(navigable, navigation);
 
     // Hash change navigations are immediately done, fire a single event.
     this.emit("fragment-navigated", { navigationId, navigableId, url });
@@ -203,69 +187,16 @@ class NavigationRegistry extends EventEmitter {
     const { contextDetails, url } = data;
 
     const context = this.#getContextFromContextDetails(contextDetails);
+    const navigable = lazy.TabManager.getNavigableForBrowsingContext(context);
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
     const navigation = { finished: true, navigationId, url };
-    this.#navigations.set(navigableId, navigation);
+    this.#navigations.set(navigable, navigation);
 
     // Same document navigations are immediately done, fire a single event.
 
     this.emit("same-document-changed", { navigationId, navigableId, url });
-
-    return navigation;
-  }
-
-  /**
-   * Called when a navigation-failed event is recorded from the
-   * NavigationListener actors.
-   *
-   * This entry point is only intended to be called from
-   * NavigationListenerParent, to avoid setting up observers or listeners,
-   * which are unnecessary since NavigationManager has to be a singleton.
-   *
-   * @param {object} data
-   * @param {BrowsingContextDetails} data.contextDetails
-   *     The details about the browsing context for this navigation.
-   * @param {string} data.url
-   *     The URL as string for the navigation.
-   * @returns {NavigationInfo}
-   *     The created navigation or the ongoing navigation, if applicable.
-   */
-  notifyNavigationFailed(data) {
-    const { contextDetails, url } = data;
-
-    const context = this.#getContextFromContextDetails(contextDetails);
-    const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
-
-    const navigation = this.#navigations.get(navigableId);
-
-    if (!navigation) {
-      lazy.logger.trace(
-        lazy.truncate`[${navigableId}] No navigation found to fail for url: ${url}`
-      );
-      return null;
-    }
-
-    if (navigation.finished) {
-      lazy.logger.trace(
-        `[${navigableId}] Navigation already marked as finished, navigationId: ${navigation.navigationId}`
-      );
-      return navigation;
-    }
-
-    lazy.logger.trace(
-      lazy.truncate`[${navigableId}] Navigation failed for url: ${url} (${navigation.navigationId})`
-    );
-
-    navigation.finished = true;
-
-    this.emit("navigation-failed", {
-      contextId: context.id,
-      navigationId: navigation.navigationId,
-      navigableId,
-      url,
-    });
 
     return navigation;
   }
@@ -290,36 +221,23 @@ class NavigationRegistry extends EventEmitter {
     const { contextDetails, url } = data;
 
     const context = this.#getContextFromContextDetails(contextDetails);
+    const navigable = lazy.TabManager.getNavigableForBrowsingContext(context);
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
 
-    let navigation = this.#navigations.get(navigableId);
+    let navigation = this.#navigations.get(navigable);
     if (navigation && !navigation.finished) {
-      if (navigation.url === url) {
-        // If we are already monitoring a navigation for this navigable and the same url,
-        // for which we did not receive a navigation-stopped event, this navigation
-        // is already tracked and we don't want to create another id & event.
-        lazy.logger.trace(
-          `[${navigableId}] Skipping already tracked navigation, navigationId: ${navigation.navigationId}`
-        );
-        return navigation;
-      }
-
+      // If we are already monitoring a navigation for this navigable, for which
+      // we did not receive a navigation-stopped event, this navigation
+      // is already tracked and we don't want to create another id & event.
       lazy.logger.trace(
-        `[${navigableId}] We're going to fail the navigation for url: ${navigation.url} (${navigation.navigationId}), ` +
-          "since it was interrupted by a new navigation."
+        `[${navigableId}] Skipping already tracked navigation, navigationId: ${navigation.navigationId}`
       );
-
-      // If there is already a navigation in progress but with a different url,
-      // it means that this navigation was interrupted by a new navigation.
-      // Note: ideally we should monitor this using NS_BINDING_ABORTED,
-      // but due to intermittent issues, when monitoring this in content processes,
-      // we can't reliable use it.
-      notifyNavigationFailed({ contextDetails, url: navigation.url });
+      return navigation;
     }
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
     navigation = { finished: false, navigationId, url };
-    this.#navigations.set(navigableId, navigation);
+    this.#navigations.set(navigable, navigation);
 
     lazy.logger.trace(
       lazy.truncate`[${navigableId}] Navigation started for url: ${url} (${navigationId})`
@@ -346,9 +264,10 @@ class NavigationRegistry extends EventEmitter {
     const { contextDetails, url } = data;
 
     const context = this.#getContextFromContextDetails(contextDetails);
+    const navigable = lazy.TabManager.getNavigableForBrowsingContext(context);
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
 
-    const navigation = this.#navigations.get(navigableId);
+    const navigation = this.#navigations.get(navigable);
     if (!navigation) {
       lazy.logger.trace(
         lazy.truncate`[${navigableId}] No navigation found to stop for url: ${url}`
@@ -394,7 +313,7 @@ class NavigationRegistry extends EventEmitter {
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
 
     const navigationId = lazy.generateUUID();
-    this.#preRegisteredNavigationIds.set(navigableId, navigationId);
+    this.#navigationIds.set(navigableId, navigationId);
 
     return navigationId;
   }
@@ -411,89 +330,14 @@ class NavigationRegistry extends EventEmitter {
 
   #getOrCreateNavigationId(navigableId) {
     let navigationId;
-    if (this.#preRegisteredNavigationIds.has(navigableId)) {
-      navigationId = this.#preRegisteredNavigationIds.get(
-        navigableId,
-        navigationId
-      );
-      this.#preRegisteredNavigationIds.delete(navigableId);
+    if (this.#navigationIds.has(navigableId)) {
+      navigationId = this.#navigationIds.get(navigableId, navigationId);
+      this.#navigationIds.delete(navigableId);
     } else {
       navigationId = lazy.generateUUID();
     }
     return navigationId;
   }
-
-  #onContextDiscarded = async (eventName, data = {}) => {
-    const { browsingContext, why } = data;
-
-    // Filter out top-level browsing contexts that are destroyed because of a
-    // cross-group navigation.
-    if (why === "replace") {
-      return;
-    }
-
-    // TODO: Bug 1852941. We should also filter out events which are emitted
-    // for DevTools frames.
-
-    // Filter out notifications for chrome context until support gets
-    // added (bug 1722679).
-    if (!browsingContext.webProgress) {
-      return;
-    }
-
-    const navigableId =
-      lazy.TabManager.getIdForBrowsingContext(browsingContext);
-    const navigation = this.#navigations.get(navigableId);
-
-    // No need to fail navigation, if there is no navigation in progress.
-    if (!navigation) {
-      return;
-    }
-
-    notifyNavigationFailed({
-      contextDetails: {
-        context: browsingContext,
-      },
-      url: navigation.url,
-    });
-
-    // If the navigable is discarded, we can safely clean up the navigation info.
-    this.#navigations.delete(navigableId);
-  };
-
-  #onPromptClosed = (eventName, data) => {
-    const { contentBrowser, detail } = data;
-    const { accepted, promptType } = detail;
-
-    // Send navigation failed event if beforeunload prompt was rejected.
-    if (promptType === "beforeunload" && accepted === false) {
-      const browsingContext = contentBrowser.browsingContext;
-
-      notifyNavigationFailed({
-        contextDetails: {
-          context: browsingContext,
-        },
-        // Bug 1908952. Add support for the "url" field.
-      });
-    }
-  };
-
-  #onPromptOpened = (eventName, data) => {
-    const { contentBrowser, prompt } = data;
-    const { promptType } = prompt;
-
-    // We should start the navigation when beforeunload prompt is open.
-    if (promptType === "beforeunload") {
-      const browsingContext = contentBrowser.browsingContext;
-
-      notifyNavigationStarted({
-        contextDetails: {
-          context: browsingContext,
-        },
-        // Bug 1908952. Add support for the "url" field.
-      });
-    }
-  };
 }
 
 // Create a private NavigationRegistry singleton.
@@ -519,17 +363,6 @@ export function notifyFragmentNavigated(data) {
  */
 export function notifySameDocumentChanged(data) {
   return navigationRegistry.notifySameDocumentChanged(data);
-}
-
-/**
- * See NavigationRegistry.notifyNavigationFailed.
- *
- * This entry point is only intended to be called from NavigationListenerParent,
- * to avoid setting up observers or listeners, which are unnecessary since
- * NavigationRegistry has to be a singleton.
- */
-export function notifyNavigationFailed(data) {
-  return navigationRegistry.notifyNavigationFailed(data);
 }
 
 /**
@@ -603,7 +436,6 @@ export class NavigationManager extends EventEmitter {
     this.#monitoring = true;
     navigationRegistry.startMonitoring(this);
     navigationRegistry.on("fragment-navigated", this.#onNavigationEvent);
-    navigationRegistry.on("navigation-failed", this.#onNavigationEvent);
     navigationRegistry.on("navigation-started", this.#onNavigationEvent);
     navigationRegistry.on("navigation-stopped", this.#onNavigationEvent);
     navigationRegistry.on("same-document-changed", this.#onNavigationEvent);
@@ -617,7 +449,6 @@ export class NavigationManager extends EventEmitter {
     this.#monitoring = false;
     navigationRegistry.stopMonitoring(this);
     navigationRegistry.off("fragment-navigated", this.#onNavigationEvent);
-    navigationRegistry.off("navigation-failed", this.#onNavigationEvent);
     navigationRegistry.off("navigation-started", this.#onNavigationEvent);
     navigationRegistry.off("navigation-stopped", this.#onNavigationEvent);
     navigationRegistry.off("same-document-changed", this.#onNavigationEvent);

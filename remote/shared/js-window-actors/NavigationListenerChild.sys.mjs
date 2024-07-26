@@ -99,20 +99,6 @@ export class NavigationListenerChild extends JSWindowActorChild {
     return null;
   }
 
-  #isContentBlocked = status => {
-    const blockedReason = ChromeUtils.getXPCOMErrorName(status);
-    return [
-      // If content is blocked with e.g. CSP meta tag.
-      "NS_ERROR_CONTENT_BLOCKED",
-      // If a resource load was blocked because of the CSP header.
-      "NS_ERROR_CSP_FRAME_ANCESTOR_VIOLATION",
-      // If a resource load was blocked because of the Cross-Origin-Embedder-Policy header.
-      "NS_ERROR_DOM_COEP_FAILED",
-      // If a resource load was blocked because of the X-Frame-Options header.
-      "NS_ERROR_XFO_VIOLATION",
-    ].includes(blockedReason);
-  };
-
   #onLocationChange = (progress, request, location, stateFlags) => {
     if (stateFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) {
       const context = progress.browsingContext;
@@ -179,21 +165,15 @@ export class NavigationListenerChild extends JSWindowActorChild {
 
         return;
       }
-      if (isStop) {
-        if (this.#isContentBlocked(status)) {
-          this.sendAsyncMessage("NavigationListenerChild:navigationFailed", {
-            contextDetails: this.#getBrowsingContextDetails(context),
-            url: targetURI?.spec,
-          });
-        } else if (!isBindingAborted) {
-          // Skip NS_BINDING_ABORTED state changes as this can happen during a
-          // browsing context + process change and we should get the real stop state
-          // change from the correct process later.
-          this.sendAsyncMessage("NavigationListenerChild:navigationStopped", {
-            contextDetails: this.#getBrowsingContextDetails(context),
-            url: targetURI?.spec,
-          });
-        }
+
+      if (isStop && !isBindingAborted) {
+        // Skip NS_BINDING_ABORTED state changes as this can happen during a
+        // browsing context + process change and we should get the real stop state
+        // change from the correct process later.
+        this.sendAsyncMessage("NavigationListenerChild:navigationStopped", {
+          contextDetails: this.#getBrowsingContextDetails(context),
+          url: targetURI?.spec,
+        });
       }
     } catch (e) {
       if (e.name === "InvalidStateError") {
