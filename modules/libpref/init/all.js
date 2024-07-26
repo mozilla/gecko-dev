@@ -1601,6 +1601,7 @@ pref("intl.hyphenation-alias.af-*", "af");
 pref("intl.hyphenation-alias.bg-*", "bg");
 pref("intl.hyphenation-alias.bn-*", "bn");
 pref("intl.hyphenation-alias.ca-*", "ca");
+pref("intl.hyphenation-alias.cs-*", "cs");
 pref("intl.hyphenation-alias.cy-*", "cy");
 pref("intl.hyphenation-alias.da-*", "da");
 pref("intl.hyphenation-alias.eo-*", "eo");
@@ -1641,6 +1642,10 @@ pref("intl.hyphenation-alias.as", "bn");
 pref("intl.hyphenation-alias.as-*", "bn");
 pref("intl.hyphenation-alias.mr", "hi");
 pref("intl.hyphenation-alias.mr-*", "hi");
+
+// Czech patterns are also used for Slovak
+pref("intl.hyphenation-alias.sk", "cs");
+pref("intl.hyphenation-alias.sk-*", "cs");
 
 // use reformed (1996) German patterns by default unless specifically tagged as de-1901
 // (these prefs may soon be obsoleted by better BCP47-based tag matching, but for now...)
