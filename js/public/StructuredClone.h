@@ -10,6 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/BufferList.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/StringBuffer.h"
 
 #include <stdint.h>
 #include <utility>
@@ -468,6 +469,10 @@ class MOZ_NON_MEMMOVABLE JS_PUBLIC_API JSStructuredCloneData {
   OwnTransferablePolicy ownTransferables_ =
       OwnTransferablePolicy::NoTransferables;
   js::SharedArrayRawBufferRefs refsHeld_;
+
+  using StringBuffers =
+      js::Vector<RefPtr<mozilla::StringBuffer>, 4, js::SystemAllocPolicy>;
+  StringBuffers stringBufferRefsHeld_;
 
   friend struct JSStructuredCloneWriter;
   friend class JS_PUBLIC_API JSAutoStructuredCloneBuffer;
