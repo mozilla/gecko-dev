@@ -139,42 +139,6 @@ Port::Port(const PortParametersRef& args,
                    << network_cost_;
 }
 
-Port::Port(TaskQueueBase* thread,
-           webrtc::IceCandidateType type,
-           rtc::PacketSocketFactory* factory,
-           const rtc::Network* network,
-           absl::string_view username_fragment,
-           absl::string_view password,
-           const webrtc::FieldTrialsView* field_trials)
-    : Port({.network_thread = thread,
-            .socket_factory = factory,
-            .network = network,
-            .ice_username_fragment = username_fragment,
-            .ice_password = password,
-            .field_trials = field_trials},
-           type) {}
-
-Port::Port(TaskQueueBase* thread,
-           webrtc::IceCandidateType type,
-           rtc::PacketSocketFactory* factory,
-           const rtc::Network* network,
-           uint16_t min_port,
-           uint16_t max_port,
-           absl::string_view username_fragment,
-           absl::string_view password,
-           const webrtc::FieldTrialsView* field_trials,
-           bool shared_socket /*= false*/)
-    : Port({.network_thread = thread,
-            .socket_factory = factory,
-            .network = network,
-            .ice_username_fragment = username_fragment,
-            .ice_password = password,
-            .field_trials = field_trials},
-           type,
-           min_port,
-           max_port,
-           shared_socket) {}
-
 Port::~Port() {
   RTC_DCHECK_RUN_ON(thread_);
   DestroyAllConnections();

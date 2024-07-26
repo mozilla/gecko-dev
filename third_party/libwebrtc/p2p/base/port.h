@@ -190,25 +190,6 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
        uint16_t min_port,
        uint16_t max_port,
        bool shared_socket = false);
-  [[deprecated("Pass arguments using PortParametersRef")]] Port(
-      webrtc::TaskQueueBase* thread,
-      webrtc::IceCandidateType type,
-      rtc::PacketSocketFactory* factory,
-      const rtc::Network* network,
-      absl::string_view username_fragment,
-      absl::string_view password,
-      const webrtc::FieldTrialsView* field_trials = nullptr);
-  [[deprecated("Pass arguments using PortParametersRef")]] Port(
-      webrtc::TaskQueueBase* thread,
-      webrtc::IceCandidateType type,
-      rtc::PacketSocketFactory* factory,
-      const rtc::Network* network,
-      uint16_t min_port,
-      uint16_t max_port,
-      absl::string_view username_fragment,
-      absl::string_view password,
-      const webrtc::FieldTrialsView* field_trials = nullptr,
-      bool shared_socket = false);
 
  public:
   ~Port() override;
