@@ -17,6 +17,8 @@ class ServiceWorkerTargetWatcherClass extends WorkerTargetWatcherClass {
   constructor() {
     super("service_worker");
   }
+  // replicate WorkerTargetWatcherClass private attribute
+  #workerTargetType = "service_worker";
 
   /**
    * Called whenever the debugged browser element navigates to a new page
@@ -34,9 +36,9 @@ class ServiceWorkerTargetWatcherClass extends WorkerTargetWatcherClass {
     // Note that we may be navigating to the same host name and the target will already exist.
     const promises = [];
     for (const dbg of lazy.wdm.getWorkerDebuggerEnumerator()) {
-      const alreadyCreated = watcherDataObject.workers.some(
-        info => info.dbg === dbg
-      );
+      const alreadyCreated = watcherDataObject.workers[
+        this.#workerTargetType
+      ].some(info => info.dbg === dbg);
       if (
         this.shouldHandleWorker(sessionData, dbg, "service_worker") &&
         !alreadyCreated
