@@ -68,17 +68,17 @@ import:
                   utm-content: "homepage"
                   icon: ic_print
                   answers:
-                    - text: likert_scale_option_1
+                    - text: likert_scale_option_very_satisfied
                       ordering: 0
-                    - text: likert_scale_option_2
+                    - text: likert_scale_option_satisfied
                       ordering: 1
-                    - text: likert_scale_option_3
+                    - text: likert_scale_option_neutral
                       ordering: 2
-                    - text: likert_scale_option_4
+                    - text: likert_scale_option_dissatisfied
                       ordering: 3
-                    - text: likert_scale_option_5
+                    - text: likert_scale_option_very_dissatisfied
                       ordering: 4
-                    - text: likert_scale_option_6
+                    - text: likert_scale_option_i_dont_use_it
                       ordering: 5
 
         # This message displays as a microsurvey prompt after the users tap on the `Print` menu.
@@ -96,15 +96,15 @@ import:
                   utm-content: "homepage"
                   icon: ic_print
                   answers:
-                    - text: likert_scale_option_1
+                    - text: likert_scale_option_very_satisfied
                       ordering: 0
-                    - text: likert_scale_option_2
+                    - text: likert_scale_option_satisfied
                       ordering: 1
-                    - text: likert_scale_option_3
+                    - text: likert_scale_option_neutral
                       ordering: 2
-                    - text: likert_scale_option_4
+                    - text: likert_scale_option_dissatisfied
                       ordering: 3
-                    - text: likert_scale_option_5
+                    - text: likert_scale_option_very_dissatisfied
                       ordering: 4
-                    - text: likert_scale_option_6
+                    - text: likert_scale_option_i_dont_use_it
                       ordering: 5

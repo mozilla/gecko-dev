@@ -131,12 +131,12 @@ private fun MicrosurveyBottomSheetPreview() {
             onCloseButtonClicked = {},
             onSubmitButtonClicked = {},
             answers = listOf(
-                stringResource(id = R.string.likert_scale_option_1),
-                stringResource(id = R.string.likert_scale_option_2),
-                stringResource(id = R.string.likert_scale_option_3),
-                stringResource(id = R.string.likert_scale_option_4),
-                stringResource(id = R.string.likert_scale_option_5),
-                stringResource(id = R.string.likert_scale_option_6),
+                stringResource(id = R.string.likert_scale_option_very_satisfied),
+                stringResource(id = R.string.likert_scale_option_satisfied),
+                stringResource(id = R.string.likert_scale_option_neutral),
+                stringResource(id = R.string.likert_scale_option_dissatisfied),
+                stringResource(id = R.string.likert_scale_option_very_dissatisfied),
+                stringResource(id = R.string.likert_scale_option_i_dont_use_it),
             ),
         )
     }
