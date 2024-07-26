@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Contraseña actualizada</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Nombre de usuario actualizado</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">¿Reenviar datos a este sitio?</string>
     <string name="mozac_feature_prompt_repost_message">Recargar esta página podría duplicar acciones recientes, como enviar un pago o publicar un comentario dos veces.</string>

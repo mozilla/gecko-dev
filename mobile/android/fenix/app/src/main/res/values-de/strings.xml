@@ -117,6 +117,9 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Auf einer Website wird diese Leiste beim Bildlauf nach unten weggeklappt, um zusätzliche Fläche im Surfen zu erhalten.</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Tippen und halten Sie die Pfeile, um zwischen den Seiten in der Chronik dieses Tabs zu wechseln.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kamerazugriff erforderlich. Öffnen Sie die Android-Einstellungen, tippen Sie auf Berechtigungen und tippen Sie auf Erlauben.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -256,6 +259,8 @@
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Leseansicht anpassen</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Leseansicht anpassen</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Hinzufügen</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -284,6 +289,8 @@
 
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Zur Website für Desktop-Browser wechseln</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Zur Website für Mobilgeräte wechseln</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Werkzeuge</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -431,7 +438,10 @@
     <string name="juno_onboarding_sign_in_title_2">Verschlüsseln Sie Ihre Daten, wenn Sie geräteübergreifend arbeiten</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Wenn Sie angemeldet sind und Ihre Daten synchronisieren, sind Sie sicherer. Firefox verschlüsselt Ihre Passwörter, Lesezeichen und mehr.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Wenn Sie angemeldet sind und Ihre Daten synchronisieren, sind Sie sicherer. Firefox verschlüsselt Ihre Passwörter, Lesezeichen und mehr.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3">Firefox verschlüsselt Ihre Passwörter, Lesezeichen und mehr, wenn Sie synchronisiert sind.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Anmelden</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -2419,7 +2429,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Review Checker öffnen</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Review Checker öffnen</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2609,7 +2619,9 @@
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">Sprachen herunterladen</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Sprachen herunterladen</string>
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Sprachen herunterladen</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="download_languages_header_preference">Laden Sie vollständige Sprachen herunter, um schnellere Übersetzungen zu erhalten und offline zu übersetzen. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
@@ -2775,11 +2787,13 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ich verwende sie nicht</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Wie zufrieden sind Sie mit Ihrer Firefox-Startseite?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Wie zufrieden sind Sie mit Ihrer Firefox-Startseite?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Helfen Sie, das Drucken in Firefox zu verbessern. Das dauert nur einen Moment.</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Wie zufrieden sind Sie mit dem Drucken in Firefox?</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Wie zufrieden sind Sie mit Ihrer Firefox-Startseite?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Firefox-Logo</string>
@@ -2813,4 +2827,8 @@
     <string name="exit_fullscreen_with_gesture">Um den Vollbildmodus zu beenden, ziehen Sie von oben und verwenden Sie die Zurück-Geste</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
     <string name="exit_fullscreen_with_back_button">Um den Vollbildmodus zu beenden, ziehen Sie von oben und drücken Sie auf „Zurück“</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
 </resources>

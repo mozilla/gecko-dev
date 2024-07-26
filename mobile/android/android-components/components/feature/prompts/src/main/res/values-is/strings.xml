@@ -140,6 +140,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Lykilorð uppfært</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Notandanafn uppfært</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Senda gögn til baka á þetta vefsvæði?</string>
     <string name="mozac_feature_prompt_repost_message">Ef þú endurlest þessa síðu gæti það endurtekið nýlegar aðgerðir, eins og að senda greiðslu eða setja inn athugasemd tvisvar.</string>
