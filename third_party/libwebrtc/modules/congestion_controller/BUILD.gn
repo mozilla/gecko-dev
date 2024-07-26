@@ -29,6 +29,7 @@ rtc_library("congestion_controller") {
     "../../rtc_base/synchronization:mutex",
     "../pacing",
     "../remote_bitrate_estimator",
+    "../remote_bitrate_estimator:transport_sequence_number_feedback_generator",
     "../rtp_rtcp:rtp_rtcp_format",
     "//third_party/abseil-cpp/absl/base:nullability",
   ]
