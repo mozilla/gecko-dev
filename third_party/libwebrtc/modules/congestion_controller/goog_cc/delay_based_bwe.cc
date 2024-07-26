@@ -31,7 +31,6 @@
 #include "modules/congestion_controller/goog_cc/inter_arrival_delta.h"
 #include "modules/congestion_controller/goog_cc/trendline_estimator.h"
 #include "modules/remote_bitrate_estimator/include/bwe_defines.h"
-#include "modules/remote_bitrate_estimator/test/bwe_test_logging.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/struct_parameters_parser.h"
 #include "rtc_base/logging.h"
@@ -252,8 +251,6 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(
   if ((result.updated && prev_bitrate_ != result.target_bitrate) ||
       detector_state != prev_state_) {
     DataRate bitrate = result.updated ? result.target_bitrate : prev_bitrate_;
-
-    BWE_TEST_LOGGING_PLOT(1, "target_bitrate_bps", at_time.ms(), bitrate.bps());
 
     if (event_log_) {
       event_log_->Log(std::make_unique<RtcEventBweUpdateDelayBased>(

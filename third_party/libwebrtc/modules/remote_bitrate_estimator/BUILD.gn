@@ -28,7 +28,6 @@ rtc_library("remote_bitrate_estimator") {
     "remote_bitrate_estimator_single_stream.cc",
     "remote_bitrate_estimator_single_stream.h",
     "rtp_transport_feedback_generator.h",
-    "test/bwe_test_logging.h",
     "transport_sequence_number_feedback_generator.cc",
     "transport_sequence_number_feedback_generator.h",
   ]
@@ -61,14 +60,6 @@ rtc_library("remote_bitrate_estimator") {
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
-
-  if (rtc_enable_bwe_test_logging) {
-    defines = [ "BWE_TEST_LOGGING_COMPILE_TIME_ENABLE=1" ]
-    sources += [ "test/bwe_test_logging.cc" ]
-    deps += [ "../../rtc_base:platform_thread" ]
-  } else {
-    defines = [ "BWE_TEST_LOGGING_COMPILE_TIME_ENABLE=0" ]
-  }
 }
 
 if (!build_with_chromium) {

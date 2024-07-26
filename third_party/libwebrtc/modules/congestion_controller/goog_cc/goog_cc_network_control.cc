@@ -40,7 +40,6 @@
 #include "modules/congestion_controller/goog_cc/probe_controller.h"
 #include "modules/congestion_controller/goog_cc/send_side_bandwidth_estimation.h"
 #include "modules/remote_bitrate_estimator/include/bwe_defines.h"
-#include "modules/remote_bitrate_estimator/test/bwe_test_logging.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/experiments/rate_control_settings.h"
@@ -259,8 +258,6 @@ NetworkControlUpdate GoogCcNetworkController::OnRemoteBitrateReport(
   }
   bandwidth_estimation_->UpdateReceiverEstimate(msg.receive_time,
                                                 msg.bandwidth);
-  BWE_TEST_LOGGING_PLOT(1, "REMB_kbps", msg.receive_time.ms(),
-                        msg.bandwidth.bps() / 1000);
   return NetworkControlUpdate();
 }
 
@@ -639,12 +636,6 @@ void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(
   DataRate loss_based_target_rate = bandwidth_estimation_->target_rate();
   LossBasedState loss_based_state = bandwidth_estimation_->loss_based_state();
   DataRate pushback_target_rate = loss_based_target_rate;
-
-  BWE_TEST_LOGGING_PLOT(1, "fraction_loss_%", at_time.ms(),
-                        (fraction_loss * 100) / 256);
-  BWE_TEST_LOGGING_PLOT(1, "rtt_ms", at_time.ms(), round_trip_time.ms());
-  BWE_TEST_LOGGING_PLOT(1, "Target_bitrate_kbps", at_time.ms(),
-                        loss_based_target_rate.kbps());
 
   double cwnd_reduce_ratio = 0.0;
   if (congestion_window_pushback_controller_) {
