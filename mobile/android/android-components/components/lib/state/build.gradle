@@ -43,8 +43,9 @@ tasks.withType(KotlinCompile).configureEach {
 dependencies {
     implementation platform(ComponentsDependencies.androidx_compose_bom)
     implementation ComponentsDependencies.kotlin_coroutines
+    implementation ComponentsDependencies.androidx_compose_runtime_saveable
     implementation ComponentsDependencies.androidx_fragment
-    implementation ComponentsDependencies.androidx_compose_ui
+    implementation ComponentsDependencies.androidx_lifecycle_compose
     implementation ComponentsDependencies.androidx_lifecycle_process
 
     implementation project(':support-base')
