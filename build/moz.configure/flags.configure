@@ -523,6 +523,19 @@ def moz_program_ldflags(building_with_gnu_compatible_cc, target):
 set_config("MOZ_PROGRAM_LDFLAGS", moz_program_ldflags)
 
 
+@depends(host, when=depends(c_compiler)(lambda c: c.type == "clang-cl"))
+def moz_debug_ldflags(host):
+    flags = ["-DEBUG"]
+    if host.kernel != "WINNT":
+        # %_PDB% is a special signal to emit only the PDB basename. This
+        # avoids problems in Windows tools that don't like forward-slashes.
+        flags.append("-PDBALTPATH:%_PDB%")
+    return flags
+
+
+set_config("MOZ_DEBUG_LDFLAGS", moz_debug_ldflags)
+
+
 # Objective-C/ Objective-C++ flags.
 # ---------------------------------
 @depends(compilation_flags, toolkit)
