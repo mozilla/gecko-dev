@@ -338,7 +338,6 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/244125
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1862911")
     @Test
     fun restartDownloadFromAppNotificationAfterConnectionIsInterruptedTest() {
         downloadFile = "3GB.zip"

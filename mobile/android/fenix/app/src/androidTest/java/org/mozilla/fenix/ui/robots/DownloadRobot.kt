@@ -37,6 +37,7 @@ import org.mozilla.fenix.downloads.listscreen.DownloadsListTestTag
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.getPermissionAllowID
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_APPS_PHOTOS
+import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityComposeTestRule
@@ -88,23 +89,35 @@ class DownloadRobot {
             itemWithResId("$packageName:id/download_dialog_filename"),
         )
 
-    fun verifyDownloadFailedPrompt(fileName: String) =
-        assertUIObjectExists(
-            itemWithResId("$packageName:id/download_dialog_icon"),
-            itemWithResIdContainingText(
-                "$packageName:id/download_dialog_title",
-                getStringResource(R.string.mozac_feature_downloads_failed_notification_text2),
-            ),
-            itemWithResIdContainingText(
-                "$packageName:id/download_dialog_filename",
-                fileName,
-            ),
-            itemWithResIdContainingText(
-                "$packageName:id/download_dialog_action_button",
-                getStringResource(R.string.mozac_feature_downloads_button_try_again),
-            ),
-            waitingTime = waitingTimeLong,
-        )
+    fun verifyDownloadFailedPrompt(fileName: String) {
+        for (i in 1..RETRY_COUNT) {
+            Log.i(TAG, "verifyDownloadFailedPrompt: Started try #$i")
+            try {
+                assertUIObjectExists(
+                    itemWithResId("$packageName:id/download_dialog_icon"),
+                    itemWithResIdContainingText(
+                        "$packageName:id/download_dialog_title",
+                        getStringResource(R.string.mozac_feature_downloads_failed_notification_text2),
+                    ),
+                    itemWithResIdContainingText(
+                        "$packageName:id/download_dialog_filename",
+                        fileName,
+                    ),
+                    itemWithResIdContainingText(
+                        "$packageName:id/download_dialog_action_button",
+                        getStringResource(R.string.mozac_feature_downloads_button_try_again),
+                    ),
+                )
+
+                break
+            } catch (e: AssertionError) {
+                Log.i(TAG, "verifyDownloadFailedPrompt: AssertionError caught, executing fallback methods")
+                if (i == RETRY_COUNT) {
+                    throw e
+                }
+            }
+        }
+    }
 
     fun clickTryAgainButton() {
         Log.i(TAG, "clickTryAgainButton: Trying to click the \"TRY AGAIN\" in app prompt button")
