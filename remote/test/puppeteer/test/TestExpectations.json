@@ -2411,8 +2411,7 @@
     "testIdPattern": "[network.spec] network Network Events Page.Events.RequestServedFromCache for script",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["FAIL", "PASS"],
-    "comment": "The cached responseCompleted event might be received only after reload() resolves. Bug 1907589"
+    "expectations": ["PASS"]
   },
   {
     "testIdPattern": "[network.spec] network Network Events Page.Events.RequestServedFromCache for stylesheet",
@@ -2607,8 +2606,7 @@
     "testIdPattern": "[network.spec] network Response.fromCache should work for script",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["FAIL", "PASS"],
-    "comment": "The cached responseCompleted event might be received only after reload() resolves. Bug 1907589"
+    "expectations": ["PASS"]
   },
   {
     "testIdPattern": "[network.spec] network Response.fromCache should work for stylesheet",
@@ -3115,8 +3113,7 @@
     "testIdPattern": "[requestinterception-experimental.spec] cooperative request interception Page.setRequestInterception should cache script if cache enabled",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["FAIL", "PASS"],
-    "comment": "The cached responseCompleted event might be received only after reload() resolves. Bug 1907589"
+    "expectations": ["PASS"]
   },
   {
     "testIdPattern": "[requestinterception-experimental.spec] cooperative request interception Page.setRequestInterception should cache stylesheet if cache enabled",
@@ -3143,8 +3140,7 @@
     "testIdPattern": "[requestinterception-experimental.spec] cooperative request interception Page.setRequestInterception should work with missing stylesheets",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["FAIL", "PASS"],
-    "comment": "On Firefox, the responseCompleted event for the missing stylesheet might not be received when the navigation ends"
+    "expectations": ["PASS"]
   },
   {
     "testIdPattern": "[requestinterception-experimental.spec] cooperative request interception Request.continue should redirect in a way non-observable to page",
@@ -3198,8 +3194,7 @@
     "testIdPattern": "[requestinterception.spec] request interception Page.setRequestInterception should cache script if cache enabled",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["FAIL", "PASS"],
-    "comment": "The cached responseCompleted event might be received only after reload() resolves. Bug 1907589"
+    "expectations": ["PASS"]
   },
   {
     "testIdPattern": "[requestinterception.spec] request interception Page.setRequestInterception should cache stylesheet if cache enabled",
@@ -3240,8 +3235,7 @@
     "testIdPattern": "[requestinterception.spec] request interception Page.setRequestInterception should work with missing stylesheets",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["FAIL", "PASS"],
-    "comment": "On Firefox, the responseCompleted event for the missing stylesheet might not be received when the navigation ends"
+    "expectations": ["PASS"]
   },
   {
     "testIdPattern": "[requestinterception.spec] request interception Request.continue should redirect in a way non-observable to page",
