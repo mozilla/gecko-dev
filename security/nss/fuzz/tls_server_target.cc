@@ -17,14 +17,14 @@
 #include "tls_server_config.h"
 #include "tls_socket.h"
 
-#ifdef IS_DTLS
+#ifdef IS_DTLS_FUZZ
 __attribute__((constructor)) static void set_is_dtls() {
   TlsMutators::SetIsDTLS();
 }
 #endif
 
 PRFileDesc* ImportFD(PRFileDesc* model, PRFileDesc* fd) {
-#ifdef IS_DTLS
+#ifdef IS_DTLS_FUZZ
   return DTLS_ImportFD(model, fd);
 #else
   return SSL_ImportFD(model, fd);
@@ -67,7 +67,7 @@ static void SetSocketOptions(PRFileDesc* fd,
                      config->RequireSafeNegotiation());
   assert(rv == SECSuccess);
 
-#ifndef IS_DTLS
+#ifndef IS_DTLS_FUZZ
   rv =
       SSL_OptionSet(fd, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_UNRESTRICTED);
   assert(rv == SECSuccess);

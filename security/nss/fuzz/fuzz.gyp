@@ -7,7 +7,7 @@
   ],
   'target_defaults': {
     'variables': {
-      'debug_optimization_level': '2',
+      'debug_optimization_level': '3',
     },
     'cflags_cc': [
         '-Wno-vla-extension',
@@ -318,7 +318,7 @@
         'tls_client_target.cc',
       ],
       'defines': [
-        'IS_DTLS'
+        'IS_DTLS_FUZZ'
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
@@ -335,7 +335,7 @@
         'tls_server_target.cc',
       ],
       'defines': [
-        'IS_DTLS'
+        'IS_DTLS_FUZZ'
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',

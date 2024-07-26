@@ -688,11 +688,9 @@ seckey_ExtractPublicKey(const CERTSubjectPublicKeyInfo *spki)
                  * The other options are not supported. */
                 if (tag == SEC_OID_X25519) {
                     pubk->keyType = ecMontKey;
-                } else if (tag == SEC_OID_ED25519_PUBLIC_KEY) {
-                    pubk->keyType = edKey;
                 } else {
-                    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-                    break;
+                    /* tag == SEC_OID_ED25519_PUBLIC_KEY */
+                    pubk->keyType = edKey;
                 }
 
                 pubk->u.ec.size = 0;

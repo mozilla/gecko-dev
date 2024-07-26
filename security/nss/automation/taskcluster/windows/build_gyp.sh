@@ -31,11 +31,12 @@ export PATH="${PATH}:${PWD}/ninja/bin:${PWD}/gyp/test-env/Scripts"
 # Clone NSPR.
 hg_clone https://hg.mozilla.org/projects/nspr nspr default
 
-if [[ -f nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
-  pushd nspr
+pushd nspr
+hg revert --all
+if [[ -f ../nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
   cat ../nss/nspr.patch | patch -p1
-  popd
 fi
+popd
 
 # Build with gyp.
 ./nss/build.sh -g -v --enable-libpkix -Denable_draft_hpke=1 "$@"

@@ -5,8 +5,13 @@
 #ifndef tls_client_config_h__
 #define tls_client_config_h__
 
-#include <stdint.h>
 #include <cstddef>
+#include <cstdint>
+
+#include "sslt.h"
+
+#define SSL_VERSION_RANGE_MIN_VALID 0x0301
+#define SSL_VERSION_RANGE_MAX_VALID 0x0304
 
 class ClientConfig {
  public:
@@ -20,9 +25,19 @@ class ClientConfig {
   bool EnableCbcRandomIv();
   bool RequireSafeNegotiation();
   bool EnableCache();
+  bool EnableGrease();
+  bool EnableCHExtensionPermutation();
+  bool SetCertificateCompressionAlgorithm();
+  bool SetClientEchConfigs();
+  bool SetVersionRange();
+  bool AddExternalPsk();
+  bool EnablePostHandshakeAuth();
+
+  const SSLVersionRange& VersionRange();
 
  private:
-  uint64_t config_;
+  uint32_t config_;
+  SSLVersionRange ssl_version_range_;
 };
 
 #endif  // tls_client_config_h__

@@ -6,11 +6,12 @@ source $(dirname "$0")/tools.sh
 if [ ! -d "nspr" ]; then
     hg_clone https://hg.mozilla.org/projects/nspr ./nspr default
 
-    if [[ -f nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
-      pushd nspr
+    pushd nspr
+    hg revert --all
+    if [[ -f ../nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
       cat ../nss/nspr.patch | patch -p1
-      popd
     fi
+    popd
 fi
 
 # Build.

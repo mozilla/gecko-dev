@@ -78,7 +78,6 @@
         '<(DEPTH)/lib/pki/pki.gyp:nsspki',
         '<(DEPTH)/lib/dev/dev.gyp:nssdev',
         '<(DEPTH)/lib/base/base.gyp:nssb',
-        '<(DEPTH)/lib/zlib/zlib.gyp:nss_zlib',
         '<(DEPTH)/cpputil/cpputil.gyp:cpputil',
         '<(DEPTH)/lib/libpkix/libpkix.gyp:libpkix',
       ],
