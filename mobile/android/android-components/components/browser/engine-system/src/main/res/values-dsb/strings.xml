@@ -3,8 +3,8 @@
     <!-- Text for the title of an alert dialog displayed by a web page. %1$s will be replaced with the URL of the current page (displaying the dialog). -->
     <string name="mozac_browser_engine_system_alert_title">Bok na %1$s groni:</string>
     <!-- Text for the message of an auth dialog displayed by a web page.
-    %1$s will be replaced by the realm, %2$s will be replaced with the URL of the current page (displaying the dialog). -->
-    <string name="mozac_browser_engine_system_auth_message">%2$s pomina wužywarske mě a gronidło. Sedło groni: &quot;%1$s&quot;</string>
+    %1$s will be replaced by the hostname or a description of the protected area/site, %2$s will be replaced with the URL of the current page (displaying the dialog). -->
+    <string name="mozac_browser_engine_system_auth_message">%2$s pomina wužywaŕske mě a gronidło. Sedło groni: &quot;%1$s&quot;</string>
     <!-- Text for the message of an auth dialog displayed by a web page. %1$s will be replaced with the URL of the current page (displaying the dialog). -->
-    <string name="mozac_browser_engine_system_auth_no_realm_message">%1$s pomina wašo wužywarske mě a gronidło.</string>
+    <string name="mozac_browser_engine_system_auth_no_realm_message">%1$s pomina wašo wužywaŕske mě a gronidło.</string>
 </resources>

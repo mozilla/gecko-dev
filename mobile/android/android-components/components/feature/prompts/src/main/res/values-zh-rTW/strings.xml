@@ -150,6 +150,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">已更新密碼</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">已更新使用者名稱</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">要重新發送資料到這個網站嗎？</string>
     <string name="mozac_feature_prompt_repost_message">重新整理頁面可能會再次執行最近的操作，例如重複付款或張貼留言。</string>

@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">비밀번호 업데이트됨</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">사용자 이름 업데이트됨</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">이 사이트로 데이터를 다시 보내시겠습니까?</string>
     <string name="mozac_feature_prompt_repost_message">이 페이지를 새로 고침하면 결제를 두 번 보내거나 댓글을 두 번 게시하는 등 최근 작업이 중복될 수 있습니다.</string>

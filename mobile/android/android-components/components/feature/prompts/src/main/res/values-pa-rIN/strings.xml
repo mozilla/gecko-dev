@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">ਪਾਸਵਰਡ ਅੱਪਡੇਟ ਕੀਤਾ ਗਿਆ</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">ਵਰਤੋਂਕਾਰ-ਨਾਂ ਨੂੰ ਅੱਪਡੇਟ ਕੀਤਾ</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">ਇਸ ਸਾਈਟ ਲਈ ਡਾਟਾ ਮੁੜ-ਭੇਜਣਾ ਹੈ?</string>
     <string name="mozac_feature_prompt_repost_message">ਇਸ ਸਫ਼ੇ ਨੂੰ ਮੁੜ-ਤਾਜ਼ਾ ਕਰਨ ਨਾਲ ਤਾਜ਼ਾ ਕਾਰਵਾਈਆਂ ਨੂੰ ਦੁਹਰਾਇਆ ਜਾਵੇਗਾ 

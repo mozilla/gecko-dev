@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Пароль жаңартылды</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Пайдаланушы аты жаңартылды</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Осы сайтқа деректерді қайта жіберу керек пе?</string>
     <string name="mozac_feature_prompt_repost_message">Бұл парақты жаңарту төлемдерді жіберу немесе пікірді екі рет жіберу сияқты соңғы әрекеттерді қайталауы мүмкін.</string>

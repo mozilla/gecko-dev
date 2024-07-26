@@ -106,12 +106,12 @@
 
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_title">Navega máis rápido coa nova navegación</string>
+    <string name="navbar_cfr_title">Navegar máis rápido coa nova navegación</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Esta barra escóndese mentres te desprazas cara abaixo para obter máis espazo de navegación.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Esta barra escóndese mentres se despraza cara abaixo para obter máis espazo de navegación.</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message_2">Nun sitio web, esta barra escóndese mentres te desprazas cara abaixo para obter máis espazo de navegación.</string>
+    <string name="navbar_cfr_message_2">Nun sitio web, esta barra escóndese mentres se despraza cara abaixo para obter máis espazo de navegación.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Necesítase acceso á cámara. Vai á configuración de Android, toque nos permisos e toque en permitir.</string>
@@ -195,7 +195,7 @@
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Xestionar as extensións</string>
     <!-- Browser menu button that opens AMO in a tab -->
-    <string name="browser_menu_discover_more_extensions">Descubre máis extensións</string>
+    <string name="browser_menu_discover_more_extensions">Descubrir máis extensións</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Información da conta</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -256,14 +256,14 @@
     <string name="browser_menu_customize_home_1">Personalizar a páxina de inicio</string>
 
     <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
-    <string name="browser_menu_sign_in">Identificarse</string>
+    <string name="browser_menu_sign_in">Acceder</string>
     <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-    <string name="browser_menu_sign_in_caption">Sincroniza contrasinais, pestanas e moito máis</string>
+    <string name="browser_menu_sign_in_caption">Sincronizar contrasinais, pestanas e moito máis</string>
 
     <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
-    <string name="browser_menu_sign_back_in_to_sync">Volve iniciar sesión para sincronizar</string>
+    <string name="browser_menu_sign_back_in_to_sync">Volver a acceder para sincronizar</string>
     <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
-    <string name="browser_menu_syncing_paused_caption">Detívose a sincronización</string>
+    <string name="browser_menu_syncing_paused_caption">Sincronización detida</string>
     <!-- Browser menu label that creates a private tab -->
     <string name="browser_menu_new_private_tab">Nova lapela privada</string>
     <!-- Browser menu label that navigates to the Password screen -->
@@ -274,7 +274,7 @@
     <string name="browser_menu_new_in_firefox">Novo en %1$s</string>
 
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-    <string name="browser_menu_switch_to_desktop_site">Cambia ao sitio de escritorio</string>
+    <string name="browser_menu_switch_to_desktop_site">Cambiar ao sitio de escritorio</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Ferramentas</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -288,14 +288,14 @@
     <!-- Browser menu label that the saves the currently visited page as a PDF -->
     <string name="browser_menu_save_as_pdf">Gardar como PDF…</string>
     <!-- Browser menu label for turning ON reader view of the current visited page -->
-    <string name="browser_menu_turn_on_reader_view">Activa a vista de lector</string>
+    <string name="browser_menu_turn_on_reader_view">Activar a vista de lector</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">Desactiva a vista de lector</string>
+    <string name="browser_menu_turn_off_reader_view">Desactivar a vista de lector</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Traducir a páxina…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
-    <string name="browser_menu_translated_to">Traducido a %1$s</string>
+    <string name="browser_menu_translated_to">Traducida a %1$s</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Imprimir…</string>
 
@@ -657,7 +657,7 @@
     <!-- Preference for extensions -->
     <string name="preferences_extensions">Extensións</string>
     <!-- Preference for installing a local extension -->
-    <string name="preferences_install_local_extension">Instala a extensión desde o ficheiro</string>
+    <string name="preferences_install_local_extension">Instalar a extensión desde o ficheiro</string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">Notificacións</string>
 
@@ -674,7 +674,7 @@
     <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
     <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Permitir para todos os sitios</string>
     <!-- The subtitle for the allow for all sites preference toggle -->
-    <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Se confías nesta extensión, podes darlle permiso en todos os sitios web.</string>
+    <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Se confía nesta extensión, pode darlle permiso en todos os sitios web.</string>
 
     <!-- The text shown when an extension does not require permissions -->
     <string name="addons_does_not_require_permissions">Esta extensión non require ningún permiso.</string>
@@ -752,7 +752,7 @@
     <string name="addon_ga_message_body" tools:ignore="UnusedResources">Consulte máis de 100 extensións novas que lle permiten personalizar Firefox.</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
-    <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Explora extensións</string>
+    <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Explorar extensións</string>
 
     <!-- Extension process crash dialog to user -->
     <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
@@ -760,9 +760,9 @@
     <!-- This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     The first parameter is the application name. -->
-    <string name="extension_process_crash_dialog_message">Unha ou máis extensións deixaron de funcionar, facendo que o teu sistema sexa inestable. %1$s tentou reiniciar as extensións sen éxito.\n\nAs extensións non se reiniciarán durante a sesión actual.\n\nA eliminación ou a desactivación de extensións pode solucionar este problema.</string>
+    <string name="extension_process_crash_dialog_message">Unha ou máis extensións deixaron de funcionar, facendo que o seu sistema sexa inestable. %1$s tentou reiniciar as extensións sen éxito.\n\nAs extensións non se reiniciarán durante a sesión actual.\n\nA eliminación ou a desactivación de extensións pode solucionar este problema.</string>
     <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
-    <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Proba a reiniciar as extensións</string>
+    <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Probe a reiniciar as extensións</string>
 
     <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
     <string name="extension_process_crash_dialog_disable_extensions_button_text">Continuar coas extensións desactivadas</string>
@@ -826,7 +826,7 @@
     %1$s is a placeholder for the app name; %2$d is the number of tabs closed.  -->
     <string name="fxa_tabs_closed_notification_title">%1$s pestanas pechadas: %2$d</string>
     <!-- The body for a "closed synced tabs" notification. -->
-    <string name="fxa_tabs_closed_text">Ver pestanas pechadas recentemente</string>
+    <string name="fxa_tabs_closed_text">Ver as pestanas pechadas recentemente</string>
 
     <!-- Advanced Preferences -->
     <!-- Preference for tracking protection exceptions -->
@@ -894,7 +894,7 @@
     <!-- Preference for using the dynamic toolbars -->
     <string name="preference_gestures_dynamic_toolbar_2">Desprácese para ocultar a barra de enderezos e a barra de ferramentas</string>
     <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Pasa a barra de enderezos cara a lado para cambiar de pestana</string>
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Desprace a barra de enderezos cara o lado para cambiar de pestana</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -1664,7 +1664,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Identificadores de pegada dixital</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Impresoras dixitais coñecidas</string>
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Identificadores de pegada dixital coñecidas</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Detalles</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1692,7 +1692,7 @@
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Evita que se recompilen datos de identificación única no dispositivo que se poden usar con fins de rastrexo.</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_known_fingerprinters_description">Evita que se recompilen datos de identificación única no dispositivo que se poden usar con fins de rastrexo.</string>
+    <string name="etp_known_fingerprinters_description">Evita que se recompilen datos de identificación únicos sobre o seu dispositivo que poden usarse con fins de rastrexo.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Rastrexo de contido</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1717,11 +1717,9 @@
     <string name="etp_redirect_trackers_description">Limpa as cookies establecidas por redireccións a sitios web de seguimento coñecidos.</string>
 
     <!-- Preference for fingerprinting protection for the custom protection settings -->
-    <string name="etp_suspected_fingerprinters_title">Sospeitas de impresións dixitais</string>
-    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
-    <string name="etp_suspected_fingerprinters_description">Activa a protección das impresións dixitais para deter as impresións dixitais sospeitosas.</string>
+    <string name="etp_suspected_fingerprinters_title">Sospeitas de identificador de pegadas dixitais</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_known_fingerprinters_title">Impresoras dixitais coñecidas</string>
+    <string name="etp_known_fingerprinters_title">Identificador de pegada dixital coñecido</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Algúns rastrexadores marcados a continuación desbloqueáronse parcialmente nesta páxina porque vostede ten interactuado con eles *.</string>
@@ -2435,7 +2433,7 @@
     <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
     <string name="translations_bottom_sheet_translate_to">Traducir a</string>
     <!-- Label for the dropdown to select which language to translate from on the translations dialog when the page language is not supported. This selection is to allow the user to select another language, in case we automatically detected the page language incorrectly. -->
-    <string name="translations_bottom_sheet_translate_from_unsupported_language">Proba outro idioma de orixe</string>
+    <string name="translations_bottom_sheet_translate_from_unsupported_language">Probar outro idioma de orixe</string>
     <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
     <string name="translations_bottom_sheet_negative_button">Agora non</string>
     <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
@@ -2495,7 +2493,7 @@
     <string name="translation_option_bottom_sheet_close_content_description">Pechar a folla de traducións</string>
 
     <!-- The title of the warning card informs the user that an error has occurred at page settings. -->
-    <string name="translation_option_bottom_sheet_error_warning_text">Algunhas opcións de configuración non están dispoñibles temporalmente.</string>
+    <string name="translation_option_bottom_sheet_error_warning_text">Algúns axustes non están dispoñibles temporalmente.</string>
 
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
@@ -2521,7 +2519,7 @@
     <string name="automatic_translation_header_preference">Seleccionar un idioma para xestionar as preferencias de «traducir sempre» e «nunca traducir».</string>
 
     <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
-    <string name="automatic_translation_error_warning_text">Non se puideron cargar os idiomas. Volve a comprobar máis tarde.</string>
+    <string name="automatic_translation_error_warning_text">Non se puideron cargar os idiomas. Volva a comprobalo máis tarde.</string>
 
     <!-- Automatic translation options preference screen -->
     <!-- Preference option for offering to translate. Radio button title text.-->
@@ -2547,7 +2545,7 @@
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_item_list_content_description_preference">Retirar %1$s</string>
     <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
-    <string name="never_translate_site_error_warning_text">Non se puideron cargar os sitios. Volve a comprobar máis tarde.</string>
+    <string name="never_translate_site_error_warning_text">Non se puideron cargar os sitios. Volva a comprobalo máis tarde.</string>
     <!-- The Delete site dialogue title will appear when the user clicks on a list item.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_dialog_title_preference">Eliminar %1$s?</string>
@@ -2591,13 +2589,13 @@
     <string name="download_languages_item_content_description_not_downloaded_state">Descargar</string>
 
     <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
-    <string name="download_languages_fetch_error_warning_text">Non se puideron cargar os idiomas. Volve a comprobar máis tarde.</string>
+    <string name="download_languages_fetch_error_warning_text">Non se puideron cargar os idiomas. Volva a comprobalo máis tarde.</string>
     <!-- The title of the warning card informs the user that an error has occurred at downloading a language.
       The first parameter is the language name, for example, "Spanish". -->
-    <string name="download_languages_error_warning_text"><![CDATA[Non se puido descargar <b>%1$s</b>. Téntao de novo.]]></string>
+    <string name="download_languages_error_warning_text"><![CDATA[Non se puido descargar <b>%1$s</b>. Ténteo de novo.]]></string>
     <!-- The title of the warning card informs the user that an error has occurred at deleting a language.
           The first parameter is the language name, for example, "Spanish". -->
-    <string name="download_languages_delete_error_warning_text"><![CDATA[Non se puido eliminar <b>%1$s</b>. Téntao de novo.]]></string>
+    <string name="download_languages_delete_error_warning_text"><![CDATA[Non se puido eliminar <b>%1$s</b>. Ténteo de novo.]]></string>
 
     <!-- Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -2649,7 +2647,7 @@
     <string name="debug_drawer_back_button_content_description">Retroceder no historial</string>
 
     <!-- Content description (not visible, for screen readers etc.): Open debug drawer. -->
-    <string name="debug_drawer_fab_content_description">Abre o caixón de depuración</string>
+    <string name="debug_drawer_fab_content_description">Abrir o panel de depuración</string>
 
     <!-- Debug drawer tabs tools -->
     <!-- The title of the Tab Tools feature in the Debug Drawer. -->
@@ -2671,9 +2669,9 @@
     <!-- The error message of the text field in the tab creation tool when the text field is empty -->
     <string name="debug_drawer_tab_tools_tab_quantity_empty_error">O campo de texto está baleiro</string>
     <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
-    <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Introduce só números enteiros positivos</string>
+    <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Introduza só números enteiros positivos</string>
     <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
-    <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Introduce un número maior que cero</string>
+    <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Introduza un número maior que cero</string>
     <!-- The error message of the text field in the tab creation tool when the text field is a
         quantity greater than the max tabs. The first parameter is the maximum number of tabs
         that can be generated in one operation.-->
@@ -2695,7 +2693,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Continuar</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Completa esta enquisa</string>
+    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Complete esta enquisa</string>
     <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Complete a enquisa</string>
     <!-- The privacy notice link -->
@@ -2709,7 +2707,7 @@
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Enquisa completada</string>
     <!-- The survey completion confirmation text -->
-    <string name="micro_survey_feedback_confirmation">Grazas pola súa opinión</string>
+    <string name="micro_survey_feedback_confirmation">Grazas pola súa opinión!</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_1" tools:ignore="UnusedResources">Moi satisfeito</string>
     <!-- Option for likert scale -->
@@ -2735,9 +2733,9 @@
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Icona da función de enquisa</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Enquisa aberta</string>
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Abrir a enquisa</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
-    <string name="microsurvey_close_handle_content_description">Pecha enquisa</string>
+    <string name="microsurvey_close_handle_content_description">Pechar enquisa</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
     <string name="microsurvey_close_button_content_description">Pechar</string>
 

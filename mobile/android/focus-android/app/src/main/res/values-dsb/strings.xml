@@ -643,7 +643,7 @@
     <string name="your_rights_content5"><![CDATA[%1$s teke blokěrowańske lisćiny póbitowane wót Disconnect, Inc. ako separatne a njewótwisne źěła pód licencu <a href="%2$s">General Public Licence v3</a> wužywa, kótarež su <a href="%3$s">how</a> k dispoziciji.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
-    <string name="gv_prompt_username_hint">Wužywarske mě</string>
+    <string name="gv_prompt_username_hint">Wužywaŕske mě</string>
     <string name="gv_prompt_password_hint">Gronidło</string>
     <string name="gv_prompt_clear">Wuprozniś</string>
 
