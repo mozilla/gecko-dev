@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-#
 #  Copyright 2011 Sybren A. Stüvel <sybren@stuvel.eu>
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
 #  Unless required by applicable law or agreed to in writing, software
 #  distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,21 +12,22 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-'''Functions for generating random numbers.'''
+"""Functions for generating random numbers."""
 
 # Source inspired by code by Yesudeep Mangalapilly <yesudeep@gmail.com>
 
 import os
+import struct
 
 from rsa import common, transform
-from rsa._compat import byte
 
-def read_random_bits(nbits):
-    '''Reads 'nbits' random bits.
+
+def read_random_bits(nbits: int) -> bytes:
+    """Reads 'nbits' random bits.
 
     If nbits isn't a whole number of bytes, an extra byte will be appended with
     only the lower bits set.
-    '''
+    """
 
     nbytes, rbits = divmod(nbits, 8)
 
@@ -38,15 +37,14 @@ def read_random_bits(nbits):
     # Add the remaining random bits
     if rbits > 0:
         randomvalue = ord(os.urandom(1))
-        randomvalue >>= (8 - rbits)
-        randomdata = byte(randomvalue) + randomdata
+        randomvalue >>= 8 - rbits
+        randomdata = struct.pack("B", randomvalue) + randomdata
 
     return randomdata
 
 
-def read_random_int(nbits):
-    '''Reads a random integer of approximately nbits bits.
-    '''
+def read_random_int(nbits: int) -> int:
+    """Reads a random integer of approximately nbits bits."""
 
     randomdata = read_random_bits(nbits)
     value = transform.bytes2int(randomdata)
@@ -57,13 +55,27 @@ def read_random_int(nbits):
 
     return value
 
-def randint(maxvalue):
-    '''Returns a random integer x with 1 <= x <= maxvalue
-    
+
+def read_random_odd_int(nbits: int) -> int:
+    """Reads a random odd integer of approximately nbits bits.
+
+    >>> read_random_odd_int(512) & 1
+    1
+    """
+
+    value = read_random_int(nbits)
+
+    # Make sure it's odd
+    return value | 1
+
+
+def randint(maxvalue: int) -> int:
+    """Returns a random integer x with 1 <= x <= maxvalue
+
     May take a very long time in specific situations. If maxvalue needs N bits
     to store, the closer maxvalue is to (2 ** N) - 1, the faster this function
     is.
-    '''
+    """
 
     bit_size = common.bit_size(maxvalue)
 
@@ -73,7 +85,7 @@ def randint(maxvalue):
         if value <= maxvalue:
             break
 
-        if tries and tries % 10 == 0:
+        if tries % 10 == 0 and tries:
             # After a lot of tries to get the right number of bits but still
             # smaller than maxvalue, decrease the number of bits by 1. That'll
             # dramatically increase the chances to get a large enough number.
@@ -81,5 +93,3 @@ def randint(maxvalue):
         tries += 1
 
     return value
-
-

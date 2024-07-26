@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-#
 #  Copyright 2011 Sybren A. Stüvel <sybren@stuvel.eu>
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
 #  Unless required by applicable law or agreed to in writing, software
 #  distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,41 +12,34 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-'''Functions that load and write PEM-encoded files.'''
+"""Functions that load and write PEM-encoded files."""
 
 import base64
-from rsa._compat import b, is_bytes
+import typing
 
-def _markers(pem_marker):
-    '''
-    Returns the start and end PEM markers
-    '''
+# Should either be ASCII strings or bytes.
+FlexiText = typing.Union[str, bytes]
 
-    if is_bytes(pem_marker):
-        pem_marker = pem_marker.decode('utf-8')
 
-    return (b('-----BEGIN %s-----' % pem_marker),
-            b('-----END %s-----' % pem_marker))
+def _markers(pem_marker: FlexiText) -> typing.Tuple[bytes, bytes]:
+    """
+    Returns the start and end PEM markers, as bytes.
+    """
 
-def load_pem(contents, pem_marker):
-    '''Loads a PEM file.
+    if not isinstance(pem_marker, bytes):
+        pem_marker = pem_marker.encode("ascii")
 
-    @param contents: the contents of the file to interpret
-    @param pem_marker: the marker of the PEM content, such as 'RSA PRIVATE KEY'
-        when your file has '-----BEGIN RSA PRIVATE KEY-----' and
-        '-----END RSA PRIVATE KEY-----' markers.
+    return (
+        b"-----BEGIN " + pem_marker + b"-----",
+        b"-----END " + pem_marker + b"-----",
+    )
 
-    @return the base64-decoded content between the start and end markers.
 
-    @raise ValueError: when the content is invalid, for example when the start
-        marker cannot be found.
+def _pem_lines(contents: bytes, pem_start: bytes, pem_end: bytes) -> typing.Iterator[bytes]:
+    """Generator over PEM lines between pem_start and pem_end."""
 
-    '''
-
-    (pem_start, pem_end) = _markers(pem_marker)
-
-    pem_lines = []
     in_pem_part = False
+    seen_pem_start = False
 
     for line in contents.splitlines():
         line = line.strip()
@@ -60,9 +51,10 @@ def load_pem(contents, pem_marker):
         # Handle start marker
         if line == pem_start:
             if in_pem_part:
-                raise ValueError('Seen start marker "%s" twice' % pem_start)
+                raise ValueError('Seen start marker "%r" twice' % pem_start)
 
             in_pem_part = True
+            seen_pem_start = True
             continue
 
         # Skip stuff before first marker
@@ -75,46 +67,68 @@ def load_pem(contents, pem_marker):
             break
 
         # Load fields
-        if b(':') in line:
+        if b":" in line:
             continue
 
-        pem_lines.append(line)
+        yield line
 
     # Do some sanity checks
-    if not pem_lines:
-        raise ValueError('No PEM start marker "%s" found' % pem_start)
+    if not seen_pem_start:
+        raise ValueError('No PEM start marker "%r" found' % pem_start)
 
     if in_pem_part:
-        raise ValueError('No PEM end marker "%s" found' % pem_end)
-
-    # Base64-decode the contents
-    pem = b('').join(pem_lines)
-    return base64.decodestring(pem)
+        raise ValueError('No PEM end marker "%r" found' % pem_end)
 
 
-def save_pem(contents, pem_marker):
-    '''Saves a PEM file.
+def load_pem(contents: FlexiText, pem_marker: FlexiText) -> bytes:
+    """Loads a PEM file.
 
-    @param contents: the contents to encode in PEM format
-    @param pem_marker: the marker of the PEM content, such as 'RSA PRIVATE KEY'
+    :param contents: the contents of the file to interpret
+    :param pem_marker: the marker of the PEM content, such as 'RSA PRIVATE KEY'
         when your file has '-----BEGIN RSA PRIVATE KEY-----' and
         '-----END RSA PRIVATE KEY-----' markers.
 
-    @return the base64-encoded content between the start and end markers.
+    :return: the base64-decoded content between the start and end markers.
 
-    '''
+    @raise ValueError: when the content is invalid, for example when the start
+        marker cannot be found.
+
+    """
+
+    # We want bytes, not text. If it's text, it can be converted to ASCII bytes.
+    if not isinstance(contents, bytes):
+        contents = contents.encode("ascii")
+
+    (pem_start, pem_end) = _markers(pem_marker)
+    pem_lines = [line for line in _pem_lines(contents, pem_start, pem_end)]
+
+    # Base64-decode the contents
+    pem = b"".join(pem_lines)
+    return base64.standard_b64decode(pem)
+
+
+def save_pem(contents: bytes, pem_marker: FlexiText) -> bytes:
+    """Saves a PEM file.
+
+    :param contents: the contents to encode in PEM format
+    :param pem_marker: the marker of the PEM content, such as 'RSA PRIVATE KEY'
+        when your file has '-----BEGIN RSA PRIVATE KEY-----' and
+        '-----END RSA PRIVATE KEY-----' markers.
+
+    :return: the base64-encoded content between the start and end markers, as bytes.
+
+    """
 
     (pem_start, pem_end) = _markers(pem_marker)
 
-    b64 = base64.encodestring(contents).replace(b('\n'), b(''))
+    b64 = base64.standard_b64encode(contents).replace(b"\n", b"")
     pem_lines = [pem_start]
-    
+
     for block_start in range(0, len(b64), 64):
-        block = b64[block_start:block_start + 64]
+        block = b64[block_start : block_start + 64]
         pem_lines.append(block)
 
     pem_lines.append(pem_end)
-    pem_lines.append(b(''))
+    pem_lines.append(b"")
 
-    return b('\n').join(pem_lines)
-    
+    return b"\n".join(pem_lines)
