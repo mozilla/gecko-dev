@@ -1,8 +1,12 @@
-. "$topsrcdir/build/unix/mozconfig.afl"
-
 # We still need to build with debug symbols
 ac_add_options --disable-debug
 ac_add_options --enable-optimize="-O2 -gline-tables-only"
+
+export CC="$MOZ_FETCHES_DIR/afl-instrumentation/bin/afl-clang-fast"
+export CXX="$MOZ_FETCHES_DIR/afl-instrumentation/bin/afl-clang-fast++"
+
+export HOST_CC="$MOZ_FETCHES_DIR/clang/bin/clang"
+export HOST_CXX="$MOZ_FETCHES_DIR/clang/bin/clang++"
 
 #add-on signing is checked but not enforced
 MOZ_REQUIRE_SIGNING=

@@ -1,3 +1,0 @@
-. "$topsrcdir/browser/config/mozconfigs/linux64/debug-fuzzing"
-. "$topsrcdir/build/unix/mozconfig.afl"
-. "$topsrcdir/build/mozconfig.common.override"
