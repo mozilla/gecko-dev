@@ -54,6 +54,11 @@ int PushResampler<T>::InitializeIfNeeded(int src_sample_rate_hz,
   dst_sample_rate_hz_ = dst_sample_rate_hz;
   num_channels_ = num_channels;
 
+  // TODO: b/335805780 - Change this to use a single buffer for source and
+  // destination and initialize each ChannelResampler() with a pointer to
+  // channels in each deinterleaved buffer. That way, DeinterleavedView can be
+  // used for the two buffers.
+
   const size_t src_size_10ms_mono =
       static_cast<size_t>(src_sample_rate_hz / 100);
   const size_t dst_size_10ms_mono =
@@ -109,9 +114,9 @@ int PushResampler<T>::Resample(InterleavedView<const T> src,
     channel_data_array_[ch] = channel_resamplers_[ch].destination.data();
   }
 
-  // TODO: b/335805780 - Interleave should accept InterleavedView<> as dst.
+  // TODO: b/335805780 - Interleave should accept DeInterleavedView<> as src.
   Interleave(channel_data_array_.data(), dst.samples_per_channel(),
-             num_channels_, &dst[0]);
+             num_channels_, dst);
   return static_cast<int>(dst.size());
 }
 
