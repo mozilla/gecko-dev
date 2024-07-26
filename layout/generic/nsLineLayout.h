@@ -368,10 +368,6 @@ class nsLineLayout {
   nsIFrame* mLastOptionalBreakFrame = nullptr;
   nsIFrame* mForceBreakFrame = nullptr;
 
-  // XXX remove this when landing bug 154892 (splitting absolute positioned
-  // frames)
-  friend class nsInlineFrame;
-
   // XXX Take care that nsRubyBaseContainer would give nullptr to this
   //     member. It should not be a problem currently, since the only
   //     code use it is handling float, which does not affect ruby.
@@ -384,11 +380,7 @@ class nsLineLayout {
   // state is the state needed to post-process the line after reflow
   // has completed (block-direction alignment, inline-direction alignment,
   // justification and relative positioning).
-
   struct PerSpanData;
-  struct PerFrameData;
-  friend struct PerSpanData;
-  friend struct PerFrameData;
   struct PerFrameData {
     // link to next/prev frame in same span
     PerFrameData* mNext;

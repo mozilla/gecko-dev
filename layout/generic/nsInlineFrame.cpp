@@ -449,7 +449,7 @@ void nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   bool inFirstLine = aReflowInput.mLineLayout->GetInFirstLine();
   RestyleManager* restyleManager = aPresContext->RestyleManager();
   WritingMode frameWM = aReflowInput.GetWritingMode();
-  WritingMode lineWM = aReflowInput.mLineLayout->mRootSpan->mWritingMode;
+  WritingMode lineWM = aReflowInput.mLineLayout->GetWritingMode();
   LogicalMargin framePadding =
       aReflowInput.ComputedLogicalBorderPadding(frameWM);
   nscoord startEdge = 0;
