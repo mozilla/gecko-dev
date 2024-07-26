@@ -188,8 +188,6 @@ class nsLineLayout {
 
   //----------------------------------------
 
-  nsPresContext* mPresContext;
-
   /**
    * Record where an optional break could have been placed. During line reflow,
    * frames containing optional break points (e.g., whitespace in text frames)
@@ -341,9 +339,11 @@ class nsLineLayout {
  protected:
   // This state is constant for a given block frame doing line layout
 
+  nsPresContext* const mPresContext;
+
   // A non-owning pointer, which points to the object owned by
   // nsAutoFloatManager::mNew.
-  nsFloatManager* mFloatManager;
+  nsFloatManager* const mFloatManager;
 
   const nsStyleText* mStyleText;  // for the block
   const ReflowInput& mLineContainerRI;
