@@ -1712,11 +1712,12 @@ function handleUpdateFailure(update) {
       update.statusText =
         lazy.gUpdateBundle.GetStringFromName("elevationFailure");
     } else {
+      const nextState = getBestPendingState();
       LOG(
-        "handleUpdateFailure - Failure because elevation was cancelled. " +
-          "again by setting status to pending."
+        `handleUpdateFailure - Failure because elevation was cancelled. ` +
+          `Setting status to ${nextState}.`
       );
-      writeStatusFile(getReadyUpdateDir(), (update.state = STATE_PENDING));
+      writeStatusFile(getReadyUpdateDir(), (update.state = nextState));
     }
     transitionState(Ci.nsIApplicationUpdateService.STATE_PENDING);
     return true;
