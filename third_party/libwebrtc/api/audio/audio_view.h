@@ -248,6 +248,22 @@ void CopySamples(D& destination, const S& source) {
          source.size() * sizeof(typename S::value_type));
 }
 
+// Sets all the samples in a view to 0. This template function is a simple
+// wrapper around `memset()` but adds the benefit of automatically calculating
+// the byte size from the number of samples and sample type.
+template <typename T>
+void ClearSamples(T& view) {
+  memset(&view[0], 0, view.size() * sizeof(typename T::value_type));
+}
+
+// Same as `ClearSamples()` above but allows for clearing only the first
+// `sample_count` number of samples.
+template <typename T>
+void ClearSamples(T& view, size_t sample_count) {
+  RTC_DCHECK_LE(sample_count, view.size());
+  memset(&view[0], 0, sample_count * sizeof(typename T::value_type));
+}
+
 }  // namespace webrtc
 
 #endif  // API_AUDIO_AUDIO_VIEW_H_

@@ -78,9 +78,9 @@ void AudioFrame::UpdateFrame(uint32_t timestamp,
   }
 
   const size_t length = samples_per_channel * num_channels;
-  RTC_CHECK_LE(length, kMaxDataSizeSamples);
+  RTC_CHECK_LE(length, data_.size());
   if (data != nullptr) {
-    memcpy(data_, data, sizeof(int16_t) * length);
+    memcpy(data_.data(), data, sizeof(int16_t) * length);
     muted_ = false;
   } else {
     muted_ = true;
@@ -98,7 +98,7 @@ void AudioFrame::CopyFrom(const AudioFrame& src) {
     // copying over new values. If we don't, msan might complain in some tests.
     // Consider locking down construction, avoiding the default constructor and
     // prefering construction that initializes all state.
-    memset(data_, 0, kMaxDataSizeBytes);
+    ClearSamples(data_);
   }
 
   timestamp_ = src.timestamp_;
@@ -115,7 +115,7 @@ void AudioFrame::CopyFrom(const AudioFrame& src) {
   absolute_capture_timestamp_ms_ = src.absolute_capture_timestamp_ms();
 
   auto data = src.data_view();
-  RTC_CHECK_LE(data.size(), kMaxDataSizeSamples);
+  RTC_CHECK_LE(data.size(), data_.size());
   if (!muted_ && !data.empty()) {
     memcpy(&data_[0], &data[0], sizeof(int16_t) * data.size());
   }
@@ -134,7 +134,7 @@ int64_t AudioFrame::ElapsedProfileTimeMs() const {
 }
 
 const int16_t* AudioFrame::data() const {
-  return muted_ ? zeroed_data().begin() : data_;
+  return muted_ ? zeroed_data().begin() : data_.data();
 }
 
 InterleavedView<const int16_t> AudioFrame::data_view() const {
@@ -155,16 +155,16 @@ int16_t* AudioFrame::mutable_data() {
   // Consider instead if we should rather zero the buffer when `muted_` is set
   // to `true`.
   if (muted_) {
-    memset(data_, 0, kMaxDataSizeBytes);
+    ClearSamples(data_);
     muted_ = false;
   }
-  return data_;
+  return &data_[0];
 }
 
 InterleavedView<int16_t> AudioFrame::mutable_data(size_t samples_per_channel,
                                                   size_t num_channels) {
   const size_t total_samples = samples_per_channel * num_channels;
-  RTC_CHECK_LE(total_samples, kMaxDataSizeSamples);
+  RTC_CHECK_LE(total_samples, data_.size());
   RTC_CHECK_LE(num_channels, kMaxConcurrentChannels);
   // Sanity check for valid argument values during development.
   // If `samples_per_channel` is < `num_channels` but larger than 0,
@@ -178,7 +178,7 @@ InterleavedView<int16_t> AudioFrame::mutable_data(size_t samples_per_channel,
   // Consider instead if we should rather zero the whole buffer when `muted_` is
   // set to `true`.
   if (muted_) {
-    memset(data_, 0, total_samples * sizeof(int16_t));
+    ClearSamples(data_, total_samples);
     muted_ = false;
   }
   samples_per_channel_ = samples_per_channel;
@@ -206,7 +206,7 @@ void AudioFrame::SetLayoutAndNumChannels(ChannelLayout layout,
     RTC_DCHECK_EQ(expected_num_channels, num_channels_);
   }
 #endif
-  RTC_CHECK_LE(samples_per_channel_ * num_channels_, kMaxDataSizeSamples);
+  RTC_CHECK_LE(samples_per_channel_ * num_channels_, data_.size());
 }
 
 void AudioFrame::SetSampleRateAndChannelSize(int sample_rate) {

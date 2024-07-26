@@ -312,7 +312,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  api/rtp_parameters.cc                         |   3 +-
  call/BUILD.gn                                 |   4 +-
  call/video_receive_stream.h                   |   2 +
- modules/audio_coding/acm2/acm_receiver.h      |  12 +-
+ modules/audio_coding/acm2/acm_receiver.h      |   1 +
  modules/audio_coding/neteq/dtmf_buffer.cc     |   6 +-
  modules/desktop_capture/desktop_capturer.h    |   1 +
  .../desktop_capture/fake_desktop_capturer.cc  |   4 +-
@@ -346,7 +346,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  test/fuzzers/rtp_packet_fuzzer.cc             |   5 +
  test/vcm_capturer.cc                          |   2 +-
  webrtc.gni                                    |   2 +-
- 39 files changed, 573 insertions(+), 85 deletions(-)
+ 39 files changed, 566 insertions(+), 81 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
 index 8813e0f4c2..b5e08cea2c 100644
@@ -451,10 +451,10 @@ index 59ffd39548..71b5f12982 100644
        LntfConfig lntf;
  
 diff --git a/modules/audio_coding/acm2/acm_receiver.h b/modules/audio_coding/acm2/acm_receiver.h
-index 6393a866f6..b942f635e7 100644
+index 21bee16d6a..35dd2483c3 100644
 --- a/modules/audio_coding/acm2/acm_receiver.h
 +++ b/modules/audio_coding/acm2/acm_receiver.h
-@@ -18,6 +18,7 @@
+@@ -19,6 +19,7 @@
  #include <string>
  #include <utility>
  #include <vector>
@@ -462,26 +462,6 @@ index 6393a866f6..b942f635e7 100644
  
  #include "absl/types/optional.h"
  #include "api/array_view.h"
-@@ -232,12 +233,15 @@ class AcmReceiver {
- 
-   mutable Mutex mutex_;
-   absl::optional<DecoderInfo> last_decoder_ RTC_GUARDED_BY(mutex_);
--  ACMResampler resampler_ RTC_GUARDED_BY(mutex_);
--  std::unique_ptr<int16_t[]> last_audio_buffer_ RTC_GUARDED_BY(mutex_);
--  CallStatistics call_stats_ RTC_GUARDED_BY(mutex_);
-+  ACMResampler resampler_;
-+
-+  // After construction, this is only ever touched on the thread that calls
-+  // AcmReceiver::GetAudio, and only modified in this method.
-+  std::unique_ptr<int16_t[]> last_audio_buffer_;
-+  CallStatistics call_stats_;
-   const std::unique_ptr<NetEq> neteq_;  // NetEq is thread-safe; no lock needed.
-   Clock& clock_;
--  bool resampled_last_output_frame_ RTC_GUARDED_BY(mutex_);
-+  std::atomic<bool> resampled_last_output_frame_;
- };
- 
- }  // namespace acm2
 diff --git a/modules/audio_coding/neteq/dtmf_buffer.cc b/modules/audio_coding/neteq/dtmf_buffer.cc
 index 9f78aca6e2..115bfcf97b 100644
 --- a/modules/audio_coding/neteq/dtmf_buffer.cc

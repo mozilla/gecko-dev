@@ -10,6 +10,8 @@
 
 #include "api/audio/audio_view.h"
 
+#include <array>
+
 #include "test/gtest.h"
 
 namespace webrtc {
@@ -153,6 +155,36 @@ TEST(AudioViewTest, CopySamples) {
   CopySamples(destination, source);
   for (size_t i = 0; i < kArraySize; ++i) {
     ASSERT_EQ(dest_arr[i], source_arr[i]) << "i == " << i;
+  }
+}
+
+TEST(AudioViewTest, ClearSamples) {
+  std::array<int16_t, 100u> samples = {};
+  FillBuffer(rtc::ArrayView<int16_t>(samples));
+  ASSERT_NE(samples[0], 0);
+  ClearSamples(samples);
+  for (const auto s : samples) {
+    ASSERT_EQ(s, 0);
+  }
+
+  std::array<float, 100u> samples_f = {};
+  FillBuffer(rtc::ArrayView<float>(samples_f));
+  ASSERT_NE(samples_f[0], 0.0);
+  ClearSamples(samples_f);
+  for (const auto s : samples_f) {
+    ASSERT_EQ(s, 0.0);
+  }
+
+  // Clear only half of the buffer
+  FillBuffer(rtc::ArrayView<int16_t>(samples));
+  const auto half_way = samples.size() / 2;
+  ClearSamples(samples, half_way);
+  for (size_t i = 0u; i < samples.size(); ++i) {
+    if (i < half_way) {
+      ASSERT_EQ(samples[i], 0);
+    } else {
+      ASSERT_NE(samples[i], 0);
+    }
   }
 }
 }  // namespace webrtc

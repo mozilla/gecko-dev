@@ -14,6 +14,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <array>
+
 #include "api/array_view.h"
 #include "api/audio/audio_view.h"
 #include "api/audio/channel_layout.h"
@@ -146,7 +148,7 @@ class AudioFrame {
   // Frame is muted by default.
   bool muted() const;
 
-  size_t max_16bit_samples() const { return kMaxDataSizeSamples; }
+  size_t max_16bit_samples() const { return data_.size(); }
   size_t samples_per_channel() const { return samples_per_channel_; }
   size_t num_channels() const { return num_channels_; }
 
@@ -211,7 +213,7 @@ class AudioFrame {
   // buffer per translation unit is to wrap a static in an inline function.
   static rtc::ArrayView<const int16_t> zeroed_data();
 
-  int16_t data_[kMaxDataSizeSamples];
+  std::array<int16_t, kMaxDataSizeSamples> data_;
   bool muted_ = true;
   ChannelLayout channel_layout_ = CHANNEL_LAYOUT_NONE;
 

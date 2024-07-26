@@ -56,15 +56,13 @@ AcmReceiver::Config::Config(const Config&) = default;
 AcmReceiver::Config::~Config() = default;
 
 AcmReceiver::AcmReceiver(const Config& config)
-    : last_audio_buffer_(new int16_t[AudioFrame::kMaxDataSizeSamples]),
-      neteq_(CreateNetEq(config.neteq_factory,
+    : neteq_(CreateNetEq(config.neteq_factory,
                          config.neteq_config,
                          &config.clock,
                          config.decoder_factory)),
       clock_(config.clock),
       resampled_last_output_frame_(true) {
-  memset(last_audio_buffer_.get(), 0,
-         sizeof(int16_t) * AudioFrame::kMaxDataSizeSamples);
+  ClearSamples(last_audio_buffer_);
 }
 
 AcmReceiver::~AcmReceiver() = default;
@@ -170,7 +168,7 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
     // Prime the resampler with the last frame.
     int16_t temp_output[AudioFrame::kMaxDataSizeSamples];
     int samples_per_channel_int = resampler_.Resample10Msec(
-        last_audio_buffer_.get(), current_sample_rate_hz, desired_freq_hz,
+        last_audio_buffer_.data(), current_sample_rate_hz, desired_freq_hz,
         audio_frame->num_channels_, AudioFrame::kMaxDataSizeSamples,
         temp_output);
     if (samples_per_channel_int < 0) {
@@ -206,7 +204,8 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
   }
 
   // Store current audio in `last_audio_buffer_` for next time.
-  memcpy(last_audio_buffer_.get(), audio_frame->data(),
+  // TODO: b/335805780 - Use CopySamples().
+  memcpy(last_audio_buffer_.data(), audio_frame->data(),
          sizeof(int16_t) * audio_frame->samples_per_channel_ *
              audio_frame->num_channels_);
 
