@@ -15,11 +15,31 @@ export class GenAIChild extends JSWindowActorChild {
   }
 
   handleEvent(event) {
+    const sendHide = () => this.sendQuery("GenAI:HideShortcuts", event.type);
     switch (event.type) {
       case "mousemove":
+        // Track the pointer's screen position to avoid container positioning
+        this.lastX = event.screenX;
+        this.lastY = event.screenY;
+        break;
       case "resize":
       case "scroll":
-      case "selectionchange":
+        // Hide if selection might have shifted away from shortcuts
+        sendHide();
+        break;
+      case "selectionchange": {
+        const selection = this.contentWindow.getSelection().toString().trim();
+        if (!selection) {
+          sendHide();
+          break;
+        }
+        this.sendQuery("GenAI:SelectionChange", {
+          x: this.lastX ?? 0,
+          y: this.lastY ?? 0,
+          selection,
+        });
+        break;
+      }
     }
   }
 }

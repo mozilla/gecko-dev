@@ -1957,6 +1957,7 @@ pref("browser.ml.chat.prompts.1", '{"label":"Simplify Language","value":"Please 
 pref("browser.ml.chat.prompts.2", '{"label":"Quiz Me","value":"Please quiz me on this selection. Ask me a variety of types of questions, for example multiple choice, true or false, and short answer. Wait for my response before moving on to the next question.","id":"quiz","targeting":"!provider|regExpMatch(\'gemini\')"}');
 pref("browser.ml.chat.provider", "");
 pref("browser.ml.chat.shortcuts", false);
+pref("browser.ml.chat.shortcuts.custom", false);
 pref("browser.ml.chat.sidebar", true);
 
 pref("security.protectionspopup.recordEventTelemetry", true);

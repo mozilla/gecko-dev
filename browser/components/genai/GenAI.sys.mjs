@@ -9,6 +9,8 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ASRouterTargeting: "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -37,6 +39,22 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "browser.ml.chat.provider",
   null,
   (_pref, _old, val) => onChatProviderChange(val)
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "chatShortcuts",
+  "browser.ml.chat.shortcuts"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "chatShortcutsCustom",
+  "browser.ml.chat.shortcuts.custom"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "chatShortcutsDebounce",
+  "browser.ml.chat.shortcutsDebounce",
+  200
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -167,7 +185,147 @@ export const GenAI = {
   },
 
   /**
-   * Build prompts menu to ask chat for context menu or popup.
+   * Add chat items to menu or popup.
+   *
+   * @param {MozBrowser} browser providing context
+   * @param {string} selection text
+   * @param {Function} itemAdder creates and returns the item
+   * @param {Function} cleanup optional on item activation
+   * @returns {object} context used for selecting prompts
+   */
+  async addAskChatItems(browser, selection, itemAdder, cleanup) {
+    // Prepare context used for both targeting and handling prompts
+    const window = browser.ownerGlobal;
+    const tab = window.gBrowser.getTabForBrowser(browser);
+    const uri = browser.currentURI;
+    const context = {
+      provider: lazy.chatProvider,
+      selection,
+      tabTitle: (tab._labelIsContentTitle && tab.label) || "",
+      url: uri.asciiHost + uri.filePath,
+      window,
+    };
+
+    // Add items that pass along context for handling
+    (await this.getContextualPrompts(context)).forEach(promptObj =>
+      itemAdder(promptObj).addEventListener("command", () => {
+        this.handleAskChat(promptObj, context);
+        cleanup?.();
+      })
+    );
+    return context;
+  },
+
+  /**
+   * Handle messages from content to show or hide shortcuts.
+   *
+   * @param {string} name of message
+   * @param {object} data for the message
+   * @param {MozBrowser} browser that provided the message
+   */
+  handleShortcutsMessage(name, data, browser) {
+    if (!lazy.chatEnabled || !lazy.chatShortcuts || lazy.chatProvider == "") {
+      return;
+    }
+    const stack = browser.closest(".browserStack");
+    if (!stack) {
+      return;
+    }
+
+    let shortcuts = stack.querySelector(".content-shortcuts");
+    const window = browser.ownerGlobal;
+    const { document } = window;
+    const popup = document.getElementById("ask-chat-shortcuts");
+    const hide = () => {
+      if (shortcuts) {
+        shortcuts.removeAttribute("shown");
+      }
+      popup.hidePopup();
+    };
+
+    switch (name) {
+      case "GenAI:HideShortcuts":
+        hide();
+        break;
+      case "GenAI:SelectionChange":
+        // Add shortcuts to the current tab's brower stack if it doesn't exist
+        if (!shortcuts) {
+          shortcuts = stack.appendChild(document.createElement("div"));
+          shortcuts.className = "content-shortcuts";
+
+          // Detect hover to build and open the popup
+          shortcuts.addEventListener("mouseover", async () => {
+            if (!shortcuts.hasAttribute("active")) {
+              shortcuts.toggleAttribute("active");
+              const vbox = popup.querySelector("vbox");
+              vbox.innerHTML = "";
+              const context = await this.addAskChatItems(
+                browser,
+                shortcuts.selection,
+                promptObj => {
+                  const button = vbox.appendChild(
+                    document.createXULElement("toolbarbutton")
+                  );
+                  button.className = "subviewbutton";
+                  button.textContent = promptObj.label;
+                  return button;
+                },
+                hide
+              );
+
+              // Add custom input box if configured
+              if (lazy.chatShortcutsCustom) {
+                vbox.appendChild(document.createXULElement("toolbarseparator"));
+                const input = vbox.appendChild(document.createElement("input"));
+                input.placeholder = `Ask ${
+                  this.chatProviders.get(lazy.chatProvider)?.name ??
+                  "AI chatbot"
+                }…`;
+                input.style.margin = "var(--arrowpanel-menuitem-margin)";
+                input.addEventListener("mouseover", () => input.focus());
+                input.addEventListener("change", () => {
+                  this.handleAskChat({ value: input.value }, context);
+                  hide();
+                });
+              }
+
+              popup.openPopup(shortcuts);
+              popup.addEventListener(
+                "popuphidden",
+                () => shortcuts.removeAttribute("active"),
+                { once: true }
+              );
+            }
+          });
+        }
+
+        // Immediately hide shortcuts and debounce multiple selection changes
+        hide();
+        if (shortcuts.timeout) {
+          lazy.clearTimeout(shortcuts.timeout);
+        }
+        shortcuts.timeout = lazy.setTimeout(() => {
+          // Save the latest selection so it can be used by the popup
+          shortcuts.selection = data.selection;
+          shortcuts.toggleAttribute("shown");
+
+          // Position the shortcuts relative to the browser's top-left corner
+          const rect = browser.getBoundingClientRect();
+          shortcuts.style.setProperty(
+            "--shortcuts-x",
+            data.x - window.screenX - rect.x + "px"
+          );
+          shortcuts.style.setProperty(
+            "--shortcuts-y",
+            data.y - window.screenY - rect.y + "px"
+          );
+        }, lazy.chatShortcutsDebounce);
+        break;
+    }
+  },
+
+  /**
+   * Build prompts menu to ask chat for context menu.
    *
    * @param {MozMenu} menu element to update
    * @param {nsContextMenu} nsContextMenu helpers for context menu
@@ -181,24 +339,10 @@ export const GenAI = {
       this.chatProviders.get(lazy.chatProvider)?.name ?? "AI Chatbot"
     }`;
     menu.menupopup?.remove();
-
-    // Prepare context used for both targeting and handling prompts
-    const window = menu.ownerGlobal;
-    const tab = window.gBrowser.getTabForBrowser(nsContextMenu.browser);
-    const context = {
-      provider: lazy.chatProvider,
-      selection: nsContextMenu.selectionInfo.fullText ?? "",
-      tabTitle: (tab._labelIsContentTitle && tab.label) || "",
-      window,
-    };
-
-    // Add menu items that pass along context for handling
-    (await this.getContextualPrompts(context)).forEach(promptObj =>
-      menu
-        .appendItem(promptObj.label, promptObj.value)
-        .addEventListener("command", () =>
-          this.handleAskChat(promptObj, context)
-        )
+    await this.addAskChatItems(
+      nsContextMenu.browser,
+      nsContextMenu.selectionInfo.fullText ?? "",
+      promptObj => menu.appendItem(promptObj.label)
     );
     nsContextMenu.showItem(menu, menu.itemCount > 0);
   },
