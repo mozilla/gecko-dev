@@ -1587,14 +1587,6 @@ class nsLayoutUtils {
       nscoord minWidth, nscoord minHeight, nscoord maxWidth, nscoord maxHeight,
       nscoord tentWidth, nscoord tentHeight);
 
-  // Implement nsIFrame::GetPrefISize in terms of nsIFrame::AddInlinePrefISize
-  static nscoord PrefISizeFromInline(nsIFrame* aFrame,
-                                     gfxContext* aRenderingContext);
-
-  // Implement nsIFrame::GetMinISize in terms of nsIFrame::AddInlineMinISize
-  static nscoord MinISizeFromInline(nsIFrame* aFrame,
-                                    gfxContext* aRenderingContext);
-
   // Get a suitable foreground color for painting aColor for aFrame.
   static nscolor DarkenColorIfNeeded(nsIFrame* aFrame, nscolor aColor);
 

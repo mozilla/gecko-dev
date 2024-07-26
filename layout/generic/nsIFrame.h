@@ -2879,6 +2879,14 @@ class nsIFrame : public nsQueryFrame {
   nscoord ShrinkISizeToFit(gfxContext* aRenderingContext, nscoord aISizeInCB,
                            mozilla::ComputeSizeFlags aFlags);
 
+  /**
+   * A helper for derived classes to implement min-content & max-content
+   * intrinsic inline size in terms of AddInlineMinISize() and
+   * AddInlinePrefISize().
+   */
+  nscoord IntrinsicISizeFromInline(gfxContext* aContext,
+                                   mozilla::IntrinsicISizeType aType);
+
  public:
   /**
    * Compute a tight bounding rectangle for the frame. This is a rectangle

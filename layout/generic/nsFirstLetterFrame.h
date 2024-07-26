@@ -37,6 +37,10 @@ class nsFirstLetterFrame : public nsContainerFrame {
 
   nscoord GetMinISize(gfxContext* aRenderingContext) final;
   nscoord GetPrefISize(gfxContext* aRenderingContext) final;
+
+  nscoord IntrinsicISize(gfxContext* aContext,
+                         mozilla::IntrinsicISizeType aType);
+
   void AddInlineMinISize(gfxContext* aRenderingContext,
                          InlineMinISizeData* aData) final;
   void AddInlinePrefISize(gfxContext* aRenderingContext,

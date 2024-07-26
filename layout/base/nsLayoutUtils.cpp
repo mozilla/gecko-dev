@@ -5288,30 +5288,6 @@ nsSize nsLayoutUtils::ComputeAutoSizeWithIntrinsicDimensions(
   return nsSize(width, height);
 }
 
-/* static */
-nscoord nsLayoutUtils::MinISizeFromInline(nsIFrame* aFrame,
-                                          gfxContext* aRenderingContext) {
-  NS_ASSERTION(!aFrame->IsContainerForFontSizeInflation(),
-               "should not be container for font size inflation");
-
-  nsIFrame::InlineMinISizeData data;
-  aFrame->AddInlineMinISize(aRenderingContext, &data);
-  data.ForceBreak();
-  return data.mPrevLines;
-}
-
-/* static */
-nscoord nsLayoutUtils::PrefISizeFromInline(nsIFrame* aFrame,
-                                           gfxContext* aRenderingContext) {
-  NS_ASSERTION(!aFrame->IsContainerForFontSizeInflation(),
-               "should not be container for font size inflation");
-
-  nsIFrame::InlinePrefISizeData data;
-  aFrame->AddInlinePrefISize(aRenderingContext, &data);
-  data.ForceBreak();
-  return data.mPrevLines;
-}
-
 static nscolor DarkenColor(nscolor aColor) {
   uint16_t hue, sat, value;
   uint8_t alpha;

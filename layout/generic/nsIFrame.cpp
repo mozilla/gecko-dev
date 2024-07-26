@@ -6727,6 +6727,24 @@ nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
   return result;
 }
 
+nscoord nsIFrame::IntrinsicISizeFromInline(gfxContext* aContext,
+                                           IntrinsicISizeType aType) {
+  MOZ_ASSERT(!IsContainerForFontSizeInflation(),
+             "Should not be a container for font size inflation!");
+
+  if (aType == IntrinsicISizeType::MinISize) {
+    InlineMinISizeData data;
+    AddInlineMinISize(aContext, &data);
+    data.ForceBreak();
+    return data.mPrevLines;
+  }
+
+  InlinePrefISizeData data;
+  AddInlinePrefISize(aContext, &data);
+  data.ForceBreak();
+  return data.mPrevLines;
+}
+
 nscoord nsIFrame::ComputeISizeValueFromAspectRatio(
     WritingMode aWM, const LogicalSize& aCBSize,
     const LogicalSize& aContentEdgeToBoxSizing, const LengthPercentage& aBSize,
