@@ -1619,7 +1619,18 @@ nsresult nsFrameSelection::ScrollSelectionIntoView(SelectionType aSelectionType,
 
   if (!mDomSelections[index]) return NS_ERROR_NULL_POINTER;
 
-  ScrollAxis verticalScroll = ScrollAxis();
+  const auto vScroll = [&]() -> WhereToScroll {
+    if (aFlags & nsISelectionController::SCROLL_VERTICAL_START) {
+      return WhereToScroll::Start;
+    }
+    if (aFlags & nsISelectionController::SCROLL_VERTICAL_END) {
+      return WhereToScroll::End;
+    }
+    if (aFlags & nsISelectionController::SCROLL_VERTICAL_CENTER) {
+      return WhereToScroll::Center;
+    }
+    return WhereToScroll::Nearest;
+  }();
   int32_t flags = Selection::SCROLL_DO_FLUSH;
   if (aFlags & nsISelectionController::SCROLL_SYNCHRONOUS) {
     flags |= Selection::SCROLL_SYNCHRONOUS;
@@ -1629,10 +1640,6 @@ nsresult nsFrameSelection::ScrollSelectionIntoView(SelectionType aSelectionType,
   if (aFlags & nsISelectionController::SCROLL_OVERFLOW_HIDDEN) {
     flags |= Selection::SCROLL_OVERFLOW_HIDDEN;
   }
-  if (aFlags & nsISelectionController::SCROLL_CENTER_VERTICALLY) {
-    verticalScroll =
-        ScrollAxis(WhereToScroll::Center, WhenToScroll::IfNotFullyVisible);
-  }
   if (aFlags & nsISelectionController::SCROLL_FOR_CARET_MOVE) {
     flags |= Selection::SCROLL_FOR_CARET_MOVE;
   }
@@ -1640,7 +1647,7 @@ nsresult nsFrameSelection::ScrollSelectionIntoView(SelectionType aSelectionType,
   // After ScrollSelectionIntoView(), the pending notifications might be
   // flushed and PresShell/PresContext/Frames may be dead. See bug 418470.
   RefPtr<Selection> sel = mDomSelections[index];
-  return sel->ScrollIntoView(aRegion, verticalScroll, ScrollAxis(), flags);
+  return sel->ScrollIntoView(aRegion, ScrollAxis(vScroll), ScrollAxis(), flags);
 }
 
 nsresult nsFrameSelection::RepaintSelection(SelectionType aSelectionType) {

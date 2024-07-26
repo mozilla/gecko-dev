@@ -2,8 +2,9 @@
 <meta charset="utf-8">
 <title>Bug NNN</title>
 <script src="/tests/SimpleTest/SimpleTest.js"></script>
-<link rel="stylesheet" href="/tests/SimpleTest/test.css" />
-<style type="text/css">
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css">
+<style>
   @font-face {
     font-family: Ahem;
     src: url("Ahem.ttf");
@@ -24,13 +25,18 @@
 <br></pre>
 <script>
   getSelection().collapse(target.childNodes[0], 9);
-
   SimpleTest.waitForExplicitFinish();
   SimpleTest.waitForFocus(() => {
-    const sel = SpecialPowers.wrap(getSelection());
-    sel.scrollIntoView(0, true, 100, 0);
-    is(target.scrollTop, target.scrollTopMax);
+    target.focus();
+    is(document.activeElement, target, "Should be focused");
+    is(target.scrollTop, 0, "Should be scrolled to the top");
 
+    let editor = SpecialPowers.wrap(window).docShell.editor;
+    let controller = editor.selectionController;
+    let nsISelectionController = SpecialPowers.Ci.nsISelectionController;
+    controller.scrollSelectionIntoView(nsISelectionController.SELECTION_NORMAL, nsISelectionController.SELECTION_ANCHOR_REGION, nsISelectionController.SCROLL_SYNCHRONOUS);
+
+    is(target.scrollTop, target.scrollTopMax, "Should be scrolled to the bottom");
     SimpleTest.finish();
   });
 </script>

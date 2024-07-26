@@ -104,11 +104,16 @@ interface nsISelectionController : nsISelectionDisplay
    [noscript,nostdcall,notxpcom]
    void selectionWillLoseFocus();
 
-   const short SCROLL_SYNCHRONOUS = 1<<1;
-   const short SCROLL_FIRST_ANCESTOR_ONLY = 1<<2;
-   const short SCROLL_CENTER_VERTICALLY = 1<<4;
-   const short SCROLL_OVERFLOW_HIDDEN = 1<<5;
-   const short SCROLL_FOR_CARET_MOVE = 1<<6;
+   const short SCROLL_SYNCHRONOUS = 1 << 1;
+   const short SCROLL_FIRST_ANCESTOR_ONLY = 1 << 2;
+   const short SCROLL_OVERFLOW_HIDDEN = 1 << 3;
+   const short SCROLL_FOR_CARET_MOVE = 1 << 4;
+
+   // No flag scrolls to nearest.
+   const short SCROLL_VERTICAL_NEAREST = 0;
+   const short SCROLL_VERTICAL_START = 1 << 5;
+   const short SCROLL_VERTICAL_CENTER = 1 << 6;
+   const short SCROLL_VERTICAL_END = 1 << 7;
 
    /**
    * ScrollSelectionIntoView scrolls a region of the selection,

@@ -10,75 +10,90 @@
 <pre id="test">
 <script class="testbody" type="text/javascript">
 
-var ANCHOR = 0;
-var FOCUS = 1;
 var win;
+const nsISelectionController = SpecialPowers.Ci.nsISelectionController;
 
-function testCollapsed(id, vPercent, startAt, expected) {
-  var selection = SpecialPowers.wrap(win.getSelection());
+function controllerForWindow(aWin) {
+  return SpecialPowers.wrap(aWin)
+    .docShell
+    .QueryInterface(SpecialPowers.Ci.nsIInterfaceRequestor)
+    .getInterface(SpecialPowers.Ci.nsISelectionDisplay)
+    .QueryInterface(SpecialPowers.Ci.nsISelectionController);
+}
 
+function testCollapsed(id, flags, startAt, expected) {
   var c = win.document.getElementById("c" + id);
   var target = win.document.getElementById("target" + id);
+  var controller;
   if (target.contentDocument) {
-    selection = SpecialPowers.wrap(target.contentWindow.getSelection());
+    controller = controllerForWindow(target.contentWindow);
     target = target.contentDocument.getElementById("target" + id);
+  } else {
+    controller = controllerForWindow(win);
   }
+  var selection = controller.getSelection(nsISelectionController.SELECTION_NORMAL);
   selection.collapse(target.parentNode, 0);
   c.scrollTop = startAt;
-  selection.scrollIntoView(FOCUS, true, vPercent, 0);
+  try {
+    controller.scrollSelectionIntoView(
+      nsISelectionController.SELECTION_NORMAL,
+      nsISelectionController.SELECTION_FOCUS_REGION,
+      nsISelectionController.SCROLL_SYNCHRONOUS | flags
+    );
+  } catch (e) {}
   is(c.scrollTop, expected, "Scrolling " + target.id +
-     " into view with vPercent " + vPercent + ", starting at " + startAt);
+     " into view with flags " + flags + ", starting at " + startAt);
 }
 
 function doTest() {
   // Test scrolling an element smaller than the scrollport
-  testCollapsed("1", 0, 0, 400);
-  testCollapsed("1", 100, 0, 220);
-  testCollapsed("1", -1, 0, 220);
-  testCollapsed("1", 0, 500, 400);
-  testCollapsed("1", 100, 500, 220);
-  testCollapsed("1", -1, 500, 400);
+  testCollapsed("1", nsISelectionController.SCROLL_VERTICAL_START, 0, 400);
+  testCollapsed("1", nsISelectionController.SCROLL_VERTICAL_END, 0, 220);
+  testCollapsed("1", nsISelectionController.SCROLL_VERTICAL_NEAREST, 0, 220);
+  testCollapsed("1", nsISelectionController.SCROLL_VERTICAL_START, 500, 400);
+  testCollapsed("1", nsISelectionController.SCROLL_VERTICAL_END, 500, 220);
+  testCollapsed("1", nsISelectionController.SCROLL_VERTICAL_NEAREST, 500, 400);
 
   // overflow:hidden elements should not be scrolled by selection
   // scrolling-into-view
-  testCollapsed("2", 0, 0, 0);
-  testCollapsed("2", 100, 0, 0);
-  testCollapsed("2", -1, 0, 0);
-  testCollapsed("2", 0, 500, 500);
-  testCollapsed("2", 100, 500, 500);
-  testCollapsed("2", -1, 500, 500);
+  testCollapsed("2", nsISelectionController.SCROLL_VERTICAL_START, 0, 0);
+  testCollapsed("2", nsISelectionController.SCROLL_VERTICAL_END, 0, 0);
+  testCollapsed("2", nsISelectionController.SCROLL_VERTICAL_NEAREST, 0, 0);
+  testCollapsed("2", nsISelectionController.SCROLL_VERTICAL_START, 500, 500);
+  testCollapsed("2", nsISelectionController.SCROLL_VERTICAL_END, 500, 500);
+  testCollapsed("2", nsISelectionController.SCROLL_VERTICAL_NEAREST, 500, 500);
 
   // Test scrolling an element larger than the scrollport
-  testCollapsed("3", 0, 0, 400);
-  testCollapsed("3", 100, 0, 500);
-  testCollapsed("3", -1, 0, 400);
-  testCollapsed("3", 0, 1000, 400);
-  testCollapsed("3", 100, 1000, 500);
+  testCollapsed("3", nsISelectionController.SCROLL_VERTICAL_START, 0, 400);
+  testCollapsed("3", nsISelectionController.SCROLL_VERTICAL_END, 0, 500);
+  testCollapsed("3", nsISelectionController.SCROLL_VERTICAL_NEAREST, 0, 400);
+  testCollapsed("3", nsISelectionController.SCROLL_VERTICAL_START, 1000, 400);
+  testCollapsed("3", nsISelectionController.SCROLL_VERTICAL_END, 1000, 500);
   // If the element can't be completely visible, show as much as possible,
   // and don't hide anything which was initially visible.
-  testCollapsed("3", -1, 1000, 500);
+  testCollapsed("3", nsISelectionController.SCROLL_VERTICAL_NEAREST, 1000, 500);
 
   // Test scrolling an element larger than the scrollport
-  testCollapsed("4", 0, 0, 400);
-  testCollapsed("4", 100, 0, 500);
-  testCollapsed("4", -1, 0, 400);
-  testCollapsed("4", 0, 1000, 400);
-  testCollapsed("4", 100, 1000, 500);
+  testCollapsed("4", nsISelectionController.SCROLL_VERTICAL_START, 0, 400);
+  testCollapsed("4", nsISelectionController.SCROLL_VERTICAL_END, 0, 500);
+  testCollapsed("4", nsISelectionController.SCROLL_VERTICAL_NEAREST, 0, 400);
+  testCollapsed("4", nsISelectionController.SCROLL_VERTICAL_START, 1000, 400);
+  testCollapsed("4", nsISelectionController.SCROLL_VERTICAL_END, 1000, 500);
   // If the element can't be completely visible, show as much as possible,
   // and don't hide anything which was initially visible.
-  testCollapsed("4", -1, 1000, 500);
+  testCollapsed("4", nsISelectionController.SCROLL_VERTICAL_NEAREST, 1000, 500);
 
   // Test that scrolling a translated element into view takes
   // account of the transform.
-  testCollapsed("5", 0, 0, 400);
+  testCollapsed("5", nsISelectionController.SCROLL_VERTICAL_START, 0, 400);
 
   // Test that scrolling a scaled element into view takes
   // account of the transform.
-  testCollapsed("6", 0, 0, 150);
+  testCollapsed("6", nsISelectionController.SCROLL_VERTICAL_START, 0, 150);
 
   // Test that scrolling an element with a translated, scrolling container
   // into view takes account of the transform.
-  testCollapsed("7", 0, 0, 400);
+  testCollapsed("7", nsISelectionController.SCROLL_VERTICAL_START, 0, 400);
 
   win.close();
   SimpleTest.finish();

@@ -230,7 +230,7 @@ export class FindContent {
             controller.scrollSelectionIntoView(
               controller.SELECTION_FIND,
               controller.SELECTION_ON,
-              controller.SCROLL_CENTER_VERTICALLY
+              controller.SCROLL_VERTICAL_CENTER
             );
           }
         } else {

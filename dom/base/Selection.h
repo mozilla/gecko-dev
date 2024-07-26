@@ -556,10 +556,6 @@ class Selection final : public nsSupportsWeakReference,
                             nsTArray<RefPtr<nsRange>>& aReturn,
                             ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT void ScrollIntoView(int16_t aRegion, bool aIsSynchronous,
-                                         int16_t aVPercent, int16_t aHPercent,
-                                         ErrorResult& aRv);
-
   void SetColors(const nsAString& aForeColor, const nsAString& aBackColor,
                  const nsAString& aAltForeColor, const nsAString& aAltBackColor,
                  ErrorResult& aRv);
