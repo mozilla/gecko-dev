@@ -196,7 +196,8 @@ this.webRequest = class extends ExtensionAPIPersistent {
           this
         ),
         onCompleted: makeWebRequestEventAPI(context, "onCompleted", this),
-        getSecurityInfo: function (requestId, options = {}) {
+        getSecurityInfo: (requestId, options) => {
+          options ??= {};
           return WebRequest.getSecurityInfo({
             id: requestId,
             policy: context.extension.policy,

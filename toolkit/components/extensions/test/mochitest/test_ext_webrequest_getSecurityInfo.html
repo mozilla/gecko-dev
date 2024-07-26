@@ -27,8 +27,7 @@ add_task(async function test_getSecurityInfo() {
       let tab;
       browser.webRequest.onHeadersReceived.addListener(async details => {
         const securityInfo = await browser.webRequest.getSecurityInfo(
-          details.requestId,
-          {}
+          details.requestId
         );
 
         // Some properties have dynamic values so let's take them out of the
