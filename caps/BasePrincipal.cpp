@@ -1183,6 +1183,12 @@ BasePrincipal::GetPrivateBrowsingId(uint32_t* aPrivateBrowsingId) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+BasePrincipal::GetIsInPrivateBrowsing(bool* aIsInPrivateBrowsing) {
+  *aIsInPrivateBrowsing = mOriginAttributes.IsPrivateBrowsing();
+  return NS_OK;
+}
+
 nsresult BasePrincipal::GetAddonPolicy(
     extensions::WebExtensionPolicy** aResult) {
   AssertIsOnMainThread();

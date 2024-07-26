@@ -588,6 +588,14 @@ interface nsIPrincipal : nsISupports
     [infallible] readonly attribute unsigned long privateBrowsingId;
 
     /**
+     * Retuns true if it is in private browsing based on privateBrowsingId
+     * being non-zero.
+     *
+     * May be called from any thread.
+     */
+    [infallible] readonly attribute boolean isInPrivateBrowsing;
+
+    /**
      * Returns true iff this is a null principal (corresponding to an
      * unknown, hence assumed minimally privileged, security context).
      *

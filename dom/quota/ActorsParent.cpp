@@ -6168,7 +6168,7 @@ Result<PrincipalMetadata, nsresult> QuotaManager::GetInfoFromPrincipal(
 
   principalMetadata.mStorageOrigin = principalMetadata.mOrigin;
 
-  principalMetadata.mIsPrivate = aPrincipal->GetPrivateBrowsingId() != 0;
+  principalMetadata.mIsPrivate = aPrincipal->GetIsInPrivateBrowsing();
 
   return principalMetadata;
 }

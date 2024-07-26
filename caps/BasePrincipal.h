@@ -165,6 +165,7 @@ class BasePrincipal : public nsJSPrincipals {
   NS_IMETHOD GetIsOnion(bool* aIsOnion) override;
   NS_IMETHOD GetUserContextId(uint32_t* aUserContextId) final;
   NS_IMETHOD GetPrivateBrowsingId(uint32_t* aPrivateBrowsingId) final;
+  NS_IMETHOD GetIsInPrivateBrowsing(bool* aIsInPrivateBrowsing) final;
   NS_IMETHOD GetSiteOrigin(nsACString& aSiteOrigin) final;
   NS_IMETHOD GetSiteOriginNoSuffix(nsACString& aSiteOrigin) override;
   NS_IMETHOD IsThirdPartyURI(nsIURI* uri, bool* aRes) override;

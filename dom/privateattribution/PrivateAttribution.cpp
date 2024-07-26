@@ -48,10 +48,7 @@ bool PrivateAttribution::GetSourceHostIfNonPrivate(nsACString& aSourceHost,
     aRv.ThrowInvalidStateError("Couldn't get source host");
     return false;
   }
-  if (prin->GetPrivateBrowsingId() > 0) {
-    return false;  // Do not throw.
-  }
-  return true;
+  return !prin->GetIsInPrivateBrowsing();
 }
 
 [[nodiscard]] static bool ValidateHost(const nsACString& aHost,

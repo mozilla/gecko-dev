@@ -689,7 +689,7 @@ RefPtr<IDBOpenDBRequest> IDBFactory::OpenInternal(
     }
     MOZ_ASSERT(aCallerType == CallerType::System);
     MOZ_DIAGNOSTIC_ASSERT(mPrivateBrowsingMode ==
-                          (aPrincipal->GetPrivateBrowsingId() > 0));
+                          aPrincipal->GetIsInPrivateBrowsing());
 
     if (NS_WARN_IF(
             NS_FAILED(PrincipalToPrincipalInfo(aPrincipal, &principalInfo)))) {

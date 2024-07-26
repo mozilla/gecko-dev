@@ -5154,7 +5154,7 @@ nsresult HTMLMediaElement::InitializeDecoderForChannel(
   }
 
   reportCanPlay(true);
-  bool isPrivateBrowsing = NodePrincipal()->GetPrivateBrowsingId() > 0;
+  bool isPrivateBrowsing = NodePrincipal()->GetIsInPrivateBrowsing();
   return SetupDecoder(decoder.get(), aChannel, isPrivateBrowsing, aListener);
 }
 

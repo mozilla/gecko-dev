@@ -36,7 +36,7 @@ static bool IsServiceWorkersTestingEnabledInWindow(JSObject* const aGlobal) {
 static bool IsInPrivateBrowsing(JSContext* const aCx) {
   if (const nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(aCx)) {
     if (const nsCOMPtr<nsIPrincipal> principal = global->PrincipalOrNull()) {
-      return principal->GetPrivateBrowsingId() > 0;
+      return principal->GetIsInPrivateBrowsing();
     }
   }
   return false;

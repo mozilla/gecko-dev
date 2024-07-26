@@ -97,7 +97,7 @@ bool WorkerNavigator::GlobalPrivacyControl() const {
     JSObject* jso = GetWrapper();
     if (const nsCOMPtr<nsIGlobalObject> global = xpc::NativeGlobal(jso)) {
       if (const nsCOMPtr<nsIPrincipal> principal = global->PrincipalOrNull()) {
-        gpcStatus = principal->GetPrivateBrowsingId() > 0 &&
+        gpcStatus = principal->GetIsInPrivateBrowsing() &&
                     StaticPrefs::privacy_globalprivacycontrol_pbmode_enabled();
       }
     }

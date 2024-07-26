@@ -520,7 +520,7 @@ void MediaKeySystemAccessManager::RequestMediaKeySystemAccess(
 
   bool isPrivateBrowsing =
       mWindow->GetExtantDoc() &&
-      mWindow->GetExtantDoc()->NodePrincipal()->GetPrivateBrowsingId() > 0;
+      mWindow->GetExtantDoc()->NodePrincipal()->GetIsInPrivateBrowsing();
   //   2. Let implementation be the implementation of keySystem.
   //   3. For each value in supportedConfigurations:
   //     1. Let candidate configuration be the value.

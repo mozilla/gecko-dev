@@ -122,7 +122,7 @@ void FontFaceSetWorkerImpl::InitializeOnMainThread() {
 
   // Same for the "private browsing" flag.
   if (defaultPrincipal) {
-    mPrivateBrowsing = defaultPrincipal->GetPrivateBrowsingId() > 0;
+    mPrivateBrowsing = defaultPrincipal->GetIsInPrivateBrowsing();
   }
 
   mStandardFontLoadPrincipal =

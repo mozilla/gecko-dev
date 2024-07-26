@@ -491,7 +491,7 @@ NotificationPermissionRequest::Run() {
   bool blocked = false;
   if (isSystem) {
     mPermission = NotificationPermission::Granted;
-  } else if (mPrincipal->GetPrivateBrowsingId() != 0 &&
+  } else if (mPrincipal->GetIsInPrivateBrowsing() &&
              !StaticPrefs::dom_webnotifications_privateBrowsing_enabled()) {
     mPermission = NotificationPermission::Denied;
     blocked = true;
@@ -1263,7 +1263,7 @@ ServiceWorkerNotificationObserver::Observe(nsISupports* aSubject,
 
     // Remove closed or dismissed persistent notifications.
     nsCOMPtr<nsINotificationStorage> notificationStorage =
-        GetNotificationStorage(mPrincipal->GetPrivateBrowsingId() != 0);
+        GetNotificationStorage(mPrincipal->GetIsInPrivateBrowsing());
     if (notificationStorage) {
       notificationStorage->Delete(origin, mID);
     }
@@ -1557,7 +1557,7 @@ NotificationPermission Notification::GetPermissionInternal(
     return NotificationPermission::Denied;
   }
 
-  if (principal->GetPrivateBrowsingId() != 0 &&
+  if (principal->GetIsInPrivateBrowsing() &&
       !StaticPrefs::dom_webnotifications_privateBrowsing_enabled()) {
     return NotificationPermission::Denied;
   }
@@ -1810,7 +1810,7 @@ class WorkerGetRunnable final : public Runnable {
     }
 
     auto* principal = mPromiseProxy->GetWorkerPrivate()->GetPrincipal();
-    auto isPrivate = principal->GetPrivateBrowsingId() != 0;
+    auto isPrivate = principal->GetIsInPrivateBrowsing();
 
     nsCOMPtr<nsINotificationStorageCallback> callback =
         new WorkerGetCallback(mPromiseProxy, mScope);
