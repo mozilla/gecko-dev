@@ -2635,29 +2635,17 @@
     <!-- The survey completion confirmation text -->
     <string name="micro_survey_feedback_confirmation">Thanks for your feedback!</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_1" tools:ignore="UnusedResources" moz:removedIn="133">Very Satisfied</string>
+    <string name="likert_scale_option_1" tools:ignore="UnusedResources">Very Satisfied</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_2" tools:ignore="UnusedResources" moz:removedIn="133">Satisfied</string>
+    <string name="likert_scale_option_2" tools:ignore="UnusedResources">Satisfied</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_3" tools:ignore="UnusedResources" moz:removedIn="133">Neutral</string>
+    <string name="likert_scale_option_3" tools:ignore="UnusedResources">Neutral</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_4" tools:ignore="UnusedResources" moz:removedIn="133">Dissatisfied</string>
+    <string name="likert_scale_option_4" tools:ignore="UnusedResources">Dissatisfied</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_5" tools:ignore="UnusedResources" moz:removedIn="133">Very Dissatisfied</string>
+    <string name="likert_scale_option_5" tools:ignore="UnusedResources">Very Dissatisfied</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_6" tools:ignore="UnusedResources" moz:removedIn="133">I don’t use it</string>
-    <!-- Option for likert scale -->
-    <string name="likert_scale_option_very_satisfied" tools:ignore="UnusedResources">Very satisfied</string>
-    <!-- Option for likert scale -->
-    <string name="likert_scale_option_satisfied" tools:ignore="UnusedResources">Satisfied</string>
-    <!-- Option for likert scale -->
-    <string name="likert_scale_option_neutral" tools:ignore="UnusedResources">Neutral</string>
-    <!-- Option for likert scale -->
-    <string name="likert_scale_option_dissatisfied" tools:ignore="UnusedResources">Dissatisfied</string>
-    <!-- Option for likert scale -->
-    <string name="likert_scale_option_very_dissatisfied" tools:ignore="UnusedResources">Very dissatisfied</string>
-    <!-- Option for likert scale -->
-    <string name="likert_scale_option_i_dont_use_it" tools:ignore="UnusedResources">I don’t use it</string>
+    <string name="likert_scale_option_6" tools:ignore="UnusedResources">I don’t use it</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">How satisfied are you with your Firefox homepage?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
