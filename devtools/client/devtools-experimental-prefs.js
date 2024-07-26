@@ -28,6 +28,10 @@ const PREFERENCES = [
     "Enable bfcache navigation in parent process (requires Fission and involve " +
       "more top level target switching",
   ],
+  [
+    "devtools.debugger.features.javascript-tracing",
+    "Enable the JavaScript tracer. (You need to restart Firefox / the Browser Toolbox to apply this setting)",
+  ],
 ];
 
 /**
