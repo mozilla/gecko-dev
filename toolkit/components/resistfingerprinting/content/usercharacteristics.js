@@ -729,38 +729,17 @@ async function populateMediaCapabilities() {
   // We also don't make an extra check for media-source as both file and media-source end up calling the same code path except for
   // some prefs that block some mime types but we collect them.
   // Encoding: It isn't dependant on hardware, so we just skip it, but collect media.encoder.webm.enabled pref.
-  const mimeTypes = {
-    audio: [
-      // WEBM
-      "audio/webm; codecs=vorbis",
-      "audio/webm; codecs=opus",
-      // MP4
-      "audio/mp4; codecs=mp4a.40.2",
-      "audio/mp4; codecs=mp3",
-      "audio/mp4; codecs=opus",
-      "audio/mp4; codecs=flac",
-    ],
-    video: [
-      // WEBM
-      "video/webm; codecs=vp9",
-      "video/webm; codecs=vp8",
-      "video/webm; codecs=av1",
-      // MP4
-      "video/mp4; codecs=vp9",
-      "video/mp4; codecs=vp8",
-      "video/mp4; codecs=hev1.1.6.L123.B0",
-      "video/mp4; codecs=avc1.64001F",
-    ],
-  };
-
-  const audioConfig = {
-    type: "file",
-    audio: {
-      channels: 2,
-      bitrate: 64000,
-      samplerate: 44000,
-    },
-  };
+  const mimeTypes = [
+    // WEBM
+    "video/webm; codecs=vp9",
+    "video/webm; codecs=vp8",
+    "video/webm; codecs=av1",
+    // MP4
+    "video/mp4; codecs=vp9",
+    "video/mp4; codecs=vp8",
+    "video/mp4; codecs=hev1.1.0.L30.b0",
+    "video/mp4; codecs=avc1.42000A",
+  ];
 
   const videoConfig = {
     type: "file",
@@ -772,36 +751,63 @@ async function populateMediaCapabilities() {
     },
   };
 
-  async function getCapabilities() {
-    // Firefox reports all supported audio codecs as smooth and power efficient
-    // so we just check supported codecs for audio
-    const capabilities = {
-      unsupported: [],
-      videos: {},
-    };
+  // Generates a list of h264 codecs, then checks if they are supported.
+  // Returns the highest supported level for each profile.
+  async function h264CodecsSupported() {
+    // Generate hex values for x.0, x.1, x.2 for x in [4, 6]
+    const levels = [...Array(3).keys()]
+      .map(i => [
+        ((i + 4) * 10).toString(16),
+        ((i + 4) * 10 + 1).toString(16),
+        ((i + 4) * 10 + 2).toString(16),
+      ])
+      .flat();
 
-    for (const audioMime of mimeTypes.audio) {
-      audioConfig.audio.contentType = audioMime;
-      const capability = await navigator.mediaCapabilities.decodingInfo(
-        audioConfig
-      );
-      if (!capability.supported) {
-        capabilities.unsupported.push(audioMime);
+    // Contains profiles without levels. They will be added
+    // later in the loop.
+    const profiles = ["avc1.4200", "avc1.4d00", "avc1.6e00", "avc1.7a00"];
+
+    const supportLevels = {};
+    for (const profile of profiles) {
+      for (const level of levels) {
+        const mimeType = `video/mp4; codecs=${profile}${level}`;
+        videoConfig.video.contentType = mimeType;
+        const capability = await navigator.mediaCapabilities.decodingInfo(
+          videoConfig
+        );
+
+        if (capability.supported) {
+          supportLevels[profile] = level;
+        }
       }
     }
 
-    for (const videoMime of mimeTypes.video) {
-      videoConfig.video.contentType = videoMime;
+    return supportLevels;
+  }
+
+  async function getCapabilities() {
+    const capabilities = {
+      unsupported: [],
+      notSmooth: [],
+      notPowerEfficient: [],
+      h264: await h264CodecsSupported(),
+    };
+
+    for (const mime of mimeTypes) {
+      videoConfig.video.contentType = mime;
       const capability = await navigator.mediaCapabilities.decodingInfo(
         videoConfig
       );
+      const shortMime = mime.split("=")[1];
       if (!capability.supported) {
-        capabilities.unsupported.push(videoMime);
+        capabilities.unsupported.push(shortMime);
       } else {
-        capabilities.videos[videoMime] = {
-          smooth: capability.smooth,
-          powerEfficient: capability.powerEfficient,
-        };
+        if (!capability.smooth) {
+          capabilities.notSmooth.push(shortMime);
+        }
+        if (!capability.powerEfficient) {
+          capabilities.notPowerEfficient.push(shortMime);
+        }
       }
     }
 
