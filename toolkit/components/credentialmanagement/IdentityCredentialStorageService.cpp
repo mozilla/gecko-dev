@@ -180,19 +180,19 @@ nsresult IdentityCredentialStorageService::Init() {
                                nsresult rv = self->GetDiskDatabaseConnection();
                                if (NS_WARN_IF(NS_FAILED(rv))) {
                                  self->mErrored.Flip();
-                                 self->mMonitor.Notify();
+                                 self->mMonitor.NotifyAll();
                                  return;
                                }
 
                                rv = self->LoadMemoryTableFromDisk();
                                if (NS_WARN_IF(NS_FAILED(rv))) {
                                  self->mErrored.Flip();
-                                 self->mMonitor.Notify();
+                                 self->mMonitor.NotifyAll();
                                  return;
                                }
 
                                self->mInitialized.Flip();
-                               self->mMonitor.Notify();
+                               self->mMonitor.NotifyAll();
                              }),
       NS_DISPATCH_EVENT_MAY_BLOCK);
 
