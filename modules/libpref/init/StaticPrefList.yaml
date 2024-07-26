@@ -10665,16 +10665,21 @@
 #endif
     mirror: always
 
+# A high quantizer value allows the encoder to use higher compression, but
+# resulting in lower quality for parts of the video. Using a lower value
+# restricts excessive compression, improving video quality but potentially
+# increasing file size. The quantizer's value range is controlled by the min
+# and max values below. The lower the value is, the finer the quantizer will be
 # Set AVCodecContext's qmin value to ffmpeg encoder
 -   name: media.ffmpeg.encoder.quantizer-min
     type: RelaxedAtomicInt32
-    value: 10
+    value: 3 # Borrowed from VLC
     mirror: always
 
 # Set AVCodecContext's qmax value to ffmpeg encoder
 -   name: media.ffmpeg.encoder.quantizer-max
     type: RelaxedAtomicInt32
-    value: 56
+    value: 30 # An empirical value for better quality of the video output
     mirror: always
 
 # Allow using openh264 decoding with ffmpeg
