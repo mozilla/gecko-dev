@@ -6,26 +6,24 @@
 
 #include "FFmpegVideoEncoder.h"
 
-#include <algorithm>
-
 #include <aom/aomcx.h>
 
 #include "BufferReader.h"
 #include "EncoderConfig.h"
 #include "FFmpegLog.h"
-#include "FFmpegRuntimeLinker.h"
 #include "FFmpegUtils.h"
 #include "H264.h"
 #include "ImageContainer.h"
-#include "ImageConversion.h"
 #include "libavutil/error.h"
 #include "libavutil/pixfmt.h"
-#include "libyuv.h"
-#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageUtils.h"
 #include "mozilla/dom/VideoFrameBinding.h"
 #include "nsPrintfCString.h"
+#include "ImageConversion.h"
+#include "libyuv.h"
+#include "FFmpegRuntimeLinker.h"
+#include <algorithm>
 
 // The ffmpeg namespace is introduced to avoid the PixelFormat's name conflicts
 // with MediaDataEncoder::PixelFormat in MediaDataEncoder class scope.
@@ -323,10 +321,8 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
   mCodecContext->width = static_cast<int>(mConfig.mSize.width);
   mCodecContext->height = static_cast<int>(mConfig.mSize.height);
   // Reasonnable default for the quantization range.
-  mCodecContext->qmin =
-      static_cast<int>(StaticPrefs::media_ffmpeg_encoder_quantizer_min());
-  mCodecContext->qmax =
-      static_cast<int>(StaticPrefs::media_ffmpeg_encoder_quantizer_max());
+  mCodecContext->qmin = 10;
+  mCodecContext->qmax = 56;
   if (mConfig.mUsage == Usage::Realtime) {
     mCodecContext->thread_count = 1;
   } else {
@@ -487,14 +483,13 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
     return rv;
   }
 
-  FFMPEGV_LOG(
-      "%s has been initialized with format: %s, bitrate: %" PRIi64
-      ", width: %d, height: %d, quantizer: [%d, %d], time_base: %d/%d%s",
-      codec->name, ffmpeg::GetPixelFormatString(mCodecContext->pix_fmt),
-      static_cast<int64_t>(mCodecContext->bit_rate), mCodecContext->width,
-      mCodecContext->height, mCodecContext->qmin, mCodecContext->qmax,
-      mCodecContext->time_base.num, mCodecContext->time_base.den,
-      h264Log.IsEmpty() ? "" : h264Log.get());
+  FFMPEGV_LOG("%s has been initialized with format: %s, bitrate: %" PRIi64
+              ", width: %d, height: %d, time_base: %d/%d%s",
+              codec->name, ffmpeg::GetPixelFormatString(mCodecContext->pix_fmt),
+              static_cast<int64_t>(mCodecContext->bit_rate),
+              mCodecContext->width, mCodecContext->height,
+              mCodecContext->time_base.num, mCodecContext->time_base.den,
+              h264Log.IsEmpty() ? "" : h264Log.get());
 
   return NS_OK;
 }
