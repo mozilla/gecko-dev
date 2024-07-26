@@ -369,22 +369,25 @@ class JavaScriptTracer {
       signal: this.abortController.signal,
       capture: true,
     };
+    // When used for the parent process target, `tracedGlobal` is browser.xhtml's window, which doesn't have a chromeEventHandler.
+    const eventHandler =
+      this.tracedGlobal.docShell.chromeEventHandler || this.tracedGlobal;
     if (this.traceDOMMutations.includes(DOM_MUTATIONS.ADD)) {
-      this.tracedGlobal.docShell.chromeEventHandler.addEventListener(
+      eventHandler.addEventListener(
         "devtoolschildinserted",
         this.#onDOMMutation,
         eventOptions
       );
     }
     if (this.traceDOMMutations.includes(DOM_MUTATIONS.ATTRIBUTES)) {
-      this.tracedGlobal.docShell.chromeEventHandler.addEventListener(
+      eventHandler.addEventListener(
         "devtoolsattrmodified",
         this.#onDOMMutation,
         eventOptions
       );
     }
     if (this.traceDOMMutations.includes(DOM_MUTATIONS.REMOVE)) {
-      this.tracedGlobal.docShell.chromeEventHandler.addEventListener(
+      eventHandler.addEventListener(
         "devtoolschildremoved",
         this.#onDOMMutation,
         eventOptions
