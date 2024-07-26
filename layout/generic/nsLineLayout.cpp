@@ -54,16 +54,6 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
       mFloatManager(aFloatManager),
       mLineContainerRI(aLineContainerRI),
       mBaseLineLayout(aBaseLineLayout),
-      mLastOptionalBreakFrame(nullptr),
-      mForceBreakFrame(nullptr),
-      mLastOptionalBreakPriority(gfxBreakPriority::eNoBreak),
-      mLastOptionalBreakFrameOffset(-1),
-      mForceBreakFrameOffset(-1),
-      mMinLineBSize(0),
-      mTextIndent(0),
-      mMaxStartBoxBSize(0),
-      mMaxEndBoxBSize(0),
-      mFinalLineBSize(0),
       mFirstLetterStyleOK(false),
       mIsTopOfPage(false),
       mImpactedByFloats(false),
@@ -79,15 +69,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
       mLineAtStart(false),
       mHasRuby(false),
       mSuppressLineWrap(LineContainerFrame()->IsInSVGTextSubtree()),
-      mUsedOverflowWrap(false)
-#ifdef DEBUG
-      ,
-      mSpansAllocated(0),
-      mSpansFreed(0),
-      mFramesAllocated(0),
-      mFramesFreed(0)
-#endif
-{
+      mUsedOverflowWrap(false) {
   NS_ASSERTION(aFloatManager || LineContainerFrame()->IsLetterFrame(),
                "float manager should be present");
   MOZ_ASSERT(
@@ -100,23 +82,8 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   mStyleText = blockFrame ? blockFrame->StyleTextForLineLayout()
                           : LineContainerFrame()->StyleText();
 
-  mLineNumber = 0;
-  mTotalPlacedFrames = 0;
-  mBStartEdge = 0;
-  mTrimmableISize = 0;
-
   mInflationMinFontSize =
       nsLayoutUtils::InflationMinFontSizeFor(LineContainerFrame());
-
-  // Instead of always pre-initializing the free-lists for frames and
-  // spans, we do it on demand so that situations that only use a few
-  // frames and spans won't waste a lot of time in unneeded
-  // initialization.
-  mFrameFreeList = nullptr;
-  mSpanFreeList = nullptr;
-
-  mCurrentSpan = mRootSpan = nullptr;
-  mSpanDepth = 0;
 
   if (aLine) {
     mGotLineBox = true;
