@@ -3,11 +3,13 @@ tags = "devtools"
 subsuite = "devtools"
 support-files = [
   "head.js",
+  "csp_script_to_override.js",
   "doc_network-observer-missing-service-worker.html",
   "doc_network-observer.html",
   "gzipped.sjs",
   "override.html",
   "override.js",
+  "override_script_src_self.html",
   "serviceworker.js",
   "sjs_network-auth-listener-test-server.sjs",
   "sjs_network-observer-test-server.sjs",
