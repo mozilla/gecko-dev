@@ -3,11 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 export const TYPES = {
+  ACCESSIBLE: "AccessibleHighlighter",
   BOXMODEL: "BoxModelHighlighter",
+  EYEDROPPER: "EyeDropper",
   FLEXBOX: "FlexboxHighlighter",
+  FONTS: "FontsHighlighter",
   GEOMETRY: "GeometryEditorHighlighter",
   GRID: "CssGridHighlighter",
+  MEASURING: "MeasuringToolHighlighter",
+  PAUSED_DEBUGGER: "PausedDebuggerOverlay",
+  RULERS: "RulersHighlighter",
   SHAPES: "ShapesHighlighter",
   SELECTOR: "SelectorHighlighter",
+  TABBING_ORDER: "TabbingOrderHighlighter",
   TRANSFORM: "CssTransformHighlighter",
+  VIEWPORT_SIZE: "ViewportSizeHighlighter",
 };

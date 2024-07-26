@@ -6,6 +6,10 @@
 
 const { Actor } = require("devtools/shared/protocol");
 const { customHighlighterSpec } = require("devtools/shared/specs/highlighters");
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs",
+  { global: "contextual" }
+);
 
 const EventEmitter = require("devtools/shared/event-emitter");
 
@@ -337,43 +341,23 @@ exports.HighlighterEnvironment = HighlighterEnvironment;
 // readable. Otherwise, linting rules force some array defs to span 4
 // lines instead, which is much harder to parse.
 const HIGHLIGHTERS = {
-  accessible: "devtools/server/actors/highlighters/accessible",
-  boxModel: "devtools/server/actors/highlighters/box-model",
-  cssGrid: "devtools/server/actors/highlighters/css-grid",
-  cssTransform: "devtools/server/actors/highlighters/css-transform",
-  eyeDropper: "devtools/server/actors/highlighters/eye-dropper",
-  flexbox: "devtools/server/actors/highlighters/flexbox",
-  fonts: "devtools/server/actors/highlighters/fonts",
-  geometryEditor: "devtools/server/actors/highlighters/geometry-editor",
-  measuringTool: "devtools/server/actors/highlighters/measuring-tool",
-  pausedDebugger: "devtools/server/actors/highlighters/paused-debugger",
-  rulers: "devtools/server/actors/highlighters/rulers",
-  selector: "devtools/server/actors/highlighters/selector",
-  shapes: "devtools/server/actors/highlighters/shapes",
-  tabbingOrder: "devtools/server/actors/highlighters/tabbing-order",
-  viewportSize: "devtools/server/actors/highlighters/viewport-size",
+  [TYPES.ACCESSIBLE]: "devtools/server/actors/highlighters/accessible",
+  [TYPES.BOXMODEL]: "devtools/server/actors/highlighters/box-model",
+  [TYPES.GRID]: "devtools/server/actors/highlighters/css-grid",
+  [TYPES.TRANSFORM]: "devtools/server/actors/highlighters/css-transform",
+  [TYPES.EYEDROPPER]: "devtools/server/actors/highlighters/eye-dropper",
+  [TYPES.FLEXBOX]: "devtools/server/actors/highlighters/flexbox",
+  [TYPES.FONTS]: "devtools/server/actors/highlighters/fonts",
+  [TYPES.GEOMETRY]: "devtools/server/actors/highlighters/geometry-editor",
+  [TYPES.MEASURING]: "devtools/server/actors/highlighters/measuring-tool",
+  [TYPES.PAUSED_DEBUGGER]:
+    "devtools/server/actors/highlighters/paused-debugger",
+  [TYPES.RULERS]: "devtools/server/actors/highlighters/rulers",
+  [TYPES.SELECTOR]: "devtools/server/actors/highlighters/selector",
+  [TYPES.SHAPES]: "devtools/server/actors/highlighters/shapes",
+  [TYPES.TABBING_ORDER]: "devtools/server/actors/highlighters/tabbing-order",
+  [TYPES.VIEWPORT_SIZE]: "devtools/server/actors/highlighters/viewport-size",
 };
-
-// Each array in this array is called as register(arr[0], arr[1]).
-const registerCalls = [
-  ["AccessibleHighlighter", HIGHLIGHTERS.accessible],
-  ["BoxModelHighlighter", HIGHLIGHTERS.boxModel],
-  ["CssGridHighlighter", HIGHLIGHTERS.cssGrid],
-  ["CssTransformHighlighter", HIGHLIGHTERS.cssTransform],
-  ["EyeDropper", HIGHLIGHTERS.eyeDropper],
-  ["FlexboxHighlighter", HIGHLIGHTERS.flexbox],
-  ["FontsHighlighter", HIGHLIGHTERS.fonts],
-  ["GeometryEditorHighlighter", HIGHLIGHTERS.geometryEditor],
-  ["MeasuringToolHighlighter", HIGHLIGHTERS.measuringTool],
-  ["PausedDebuggerOverlay", HIGHLIGHTERS.pausedDebugger],
-  ["RulersHighlighter", HIGHLIGHTERS.rulers],
-  ["SelectorHighlighter", HIGHLIGHTERS.selector],
-  ["ShapesHighlighter", HIGHLIGHTERS.shapes],
-  ["TabbingOrderHighlighter", HIGHLIGHTERS.tabbingOrder],
-  ["ViewportSizeHighlighter", HIGHLIGHTERS.viewportSize],
-];
-
-// Register each highlighter above.
-registerCalls.forEach(arr => {
-  registerHighlighter(arr[0], arr[1]);
-});
+for (const [typeName, modulePath] of Object.entries(HIGHLIGHTERS)) {
+  registerHighlighter(typeName, modulePath);
+}
