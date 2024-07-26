@@ -279,13 +279,27 @@ class NavigationRegistry extends EventEmitter {
 
     let navigation = this.#navigations.get(navigable);
     if (navigation && !navigation.finished) {
-      // If we are already monitoring a navigation for this navigable, for which
-      // we did not receive a navigation-stopped event, this navigation
-      // is already tracked and we don't want to create another id & event.
+      if (navigation.url === url) {
+        // If we are already monitoring a navigation for this navigable and the same url,
+        // for which we did not receive a navigation-stopped event, this navigation
+        // is already tracked and we don't want to create another id & event.
+        lazy.logger.trace(
+          `[${navigableId}] Skipping already tracked navigation, navigationId: ${navigation.navigationId}`
+        );
+        return navigation;
+      }
+
       lazy.logger.trace(
-        `[${navigableId}] Skipping already tracked navigation, navigationId: ${navigation.navigationId}`
+        `[${navigableId}] We're going to fail the navigation for url: ${navigation.url} (${navigation.navigationId}), ` +
+          "since it was interrupted by a new navigation."
       );
-      return navigation;
+
+      // If there is already a navigation in progress but with a different url,
+      // it means that this navigation was interrupted by a new navigation.
+      // Note: ideally we should monitor this using NS_BINDING_ABORTED,
+      // but due to intermittent issues, when monitoring this in content processes,
+      // we can't reliable use it.
+      notifyNavigationFailed({ contextDetails, url: navigation.url });
     }
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
