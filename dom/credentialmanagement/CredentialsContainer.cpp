@@ -343,7 +343,12 @@ already_AddRefed<Promise> CredentialsContainer::PreventSilentAccess(
     return nullptr;
   }
 
-  promise->MaybeResolveWithUndefined();
+  RefPtr<WindowGlobalChild> wgc = mParent->GetWindowGlobalChild();
+  MOZ_ASSERT(wgc);
+
+  wgc->SendPreventSilentAccess()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [promise] { promise->MaybeResolveWithUndefined(); });
   return promise.forget();
 }
 

@@ -331,4 +331,73 @@ promise_test(async t => {
 
 }, "Cross-origin identity credential collection is correctly returned when the endpoint returns success");
 
+
+promise_test(async t => {
+  let initData = {
+    id : "wpt-pick-me",
+  };
+
+  let result1 = await navigator.credentials.create({
+    identity : initData,
+  });
+  await navigator.credentials.store(result1);
+  let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
+  let result2 = await promise2;
+  assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the RP is not on the allowlist.");
+
+  let initDataWithOrigin = {
+    id : "wpt-pick-me",
+    effectiveOrigins : [window.origin],
+  };
+
+  let credential = await navigator.credentials.create({
+    identity : initDataWithOrigin,
+  });
+  await navigator.credentials.store(credential);
+
+  // Collect a credential so we can use silent access
+  let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  let credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(credentialGotten.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
+
+  let initDataWithOriginDelete = {
+    id : "wpt-pick-me",
+    effectiveOrigins : [],
+  };
+
+  let credentialDelete = await navigator.credentials.create({
+    identity : initDataWithOriginDelete,
+  });
+  await navigator.credentials.store(credentialDelete);
+
+  let initDataWithOriginNew = {
+    id : "other",
+    effectiveOrigins : [window.origin],
+  };
+
+  let credentialNew = await navigator.credentials.create({
+    identity : initDataWithOriginNew,
+  });
+  await navigator.credentials.store(credentialNew);
+
+  // Collect the other credential. Because it is not wpt-pick-me, it must have bypassed the credential chooser.
+  let getCredentialPromise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  let credentialGotten2 = await getCredentialPromise2;
+  assert_not_equals(credentialGotten2, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(credentialGotten2.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(credentialGotten2.id, "other", "The identity matches the argument");
+
+  await navigator.credentials.preventSilentAccess();
+
+  let getCredentialPromise3 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  let credentialGotten3 = await getCredentialPromise3;
+  assert_equals(credentialGotten3, null, "A null object is returned from the CredentialContainer.");
+
+  await clearCredential(window.origin, "wpt-pick-me");
+  await clearCredential(window.origin, "other");
+}, "Credentials can be collected silently, but preventSilentAccess is respected");
+
 </script>

@@ -96,7 +96,22 @@ export class CredentialChooserService {
     }
 
     if (lazy.TESTING_MODE) {
-      if (credentials.some(cred => cred.id == "wpt-pick-me")) {
+      let match = credentials.find(cred => cred.id == "wpt-pick-me");
+      if (match) {
+        if (browsingContext.currentWindowGlobal?.documentPrincipal) {
+          Services.perms.addFromPrincipal(
+            browsingContext.currentWindowGlobal.documentPrincipal,
+            "credential-allow-silent-access^" + match.origin,
+            Ci.nsIPermissionManager.ALLOW_ACTION,
+            Ci.nsIPermissionManager.EXPIRE_SESSION
+          );
+          Services.perms.addFromPrincipal(
+            browsingContext.currentWindowGlobal.documentPrincipal,
+            "credential-allow-silent-access",
+            Ci.nsIPermissionManager.ALLOW_ACTION,
+            Ci.nsIPermissionManager.EXPIRE_SESSION
+          );
+        }
         callback.notify("wpt-pick-me");
       } else {
         callback.notify(null);
@@ -222,6 +237,21 @@ export class CredentialChooserService {
         let result = listBox.querySelector(
           ".identity-credential-list-item-radio:checked"
         ).value;
+        if (browsingContext.currentWindowGlobal?.documentPrincipal) {
+          Services.perms.addFromPrincipal(
+            browsingContext.currentWindowGlobal.documentPrincipal,
+            "credential-allow-silent-access^" +
+              credentials[parseInt(result)].origin,
+            Ci.nsIPermissionManager.ALLOW_ACTION,
+            Ci.nsIPermissionManager.EXPIRE_SESSION
+          );
+          Services.perms.addFromPrincipal(
+            browsingContext.currentWindowGlobal.documentPrincipal,
+            "credential-allow-silent-access",
+            Ci.nsIPermissionManager.ALLOW_ACTION,
+            Ci.nsIPermissionManager.EXPIRE_SESSION
+          );
+        }
         callback.notify(credentials[parseInt(result, 10)].id);
       },
     };

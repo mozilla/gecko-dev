@@ -1442,9 +1442,11 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvReloadWithHttpsOnlyException() {
 
 IPCResult WindowGlobalParent::RecvGetIdentityCredential(
     const IdentityCredentialRequestOptions& aOptions,
+    const CredentialMediationRequirement& aMediationRequirement,
     const GetIdentityCredentialResolver& aResolver) {
   IdentityCredential::GetCredentialInMainProcess(
-      DocumentPrincipal(), this->BrowsingContext(), aOptions)
+      DocumentPrincipal(), this->BrowsingContext(), aOptions,
+      aMediationRequirement)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [aResolver](const IPCIdentityCredential& aResult) {
@@ -1464,6 +1466,24 @@ IPCResult WindowGlobalParent::RecvStoreIdentityCredential(
           GetCurrentSerialEventTarget(), __func__,
           [aResolver](const bool& aResult) { aResolver(NS_OK); },
           [aResolver](nsresult aErr) { aResolver(aErr); });
+  return IPC_OK();
+}
+
+IPCResult WindowGlobalParent::RecvPreventSilentAccess(
+    const PreventSilentAccessResolver& aResolver) {
+  nsIPrincipal* principal = DocumentPrincipal();
+  if (principal) {
+    nsCOMPtr<nsIPermissionManager> permissionManager =
+        components::PermissionManager::Service();
+    if (permissionManager) {
+      permissionManager->RemoveFromPrincipal(
+          principal, "credential-allow-silent-access"_ns);
+      aResolver(NS_OK);
+      return IPC_OK();
+    }
+  }
+
+  aResolver(NS_ERROR_NOT_AVAILABLE);
   return IPC_OK();
 }
 

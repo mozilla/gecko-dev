@@ -24,6 +24,7 @@
 #include "nsIGlobalObject.h"
 #include "nsIIdentityCredentialPromptService.h"
 #include "nsIIdentityCredentialStorageService.h"
+#include "nsIPermissionManager.h"
 #include "nsITimer.h"
 #include "nsIXPConnect.h"
 #include "nsNetUtil.h"
@@ -198,7 +199,8 @@ void IdentityCredential::GetCredential(nsPIDOMWindowInner* aParent,
   RefPtr<WindowGlobalChild> wgc = aParent->GetWindowGlobalChild();
   MOZ_ASSERT(wgc);
   RefPtr<nsPIDOMWindowInner> parent(aParent);
-  wgc->SendGetIdentityCredential(aOptions.mIdentity.Value())
+  wgc->SendGetIdentityCredential(aOptions.mIdentity.Value(),
+                                 aOptions.mMediation)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [aPromise,
@@ -226,11 +228,41 @@ void IdentityCredential::GetCredential(nsPIDOMWindowInner* aParent,
           });
 }
 
+nsresult CanSilentlyCollect(nsIPrincipal* aPrincipal,
+                            const IPCIdentityCredential& aCredential,
+                            bool* aResult) {
+  nsCString origin;
+  MOZ_ASSERT(aCredential.identityProvider());
+  nsresult rv = aCredential.identityProvider()->GetOrigin(origin);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  uint32_t permit = nsIPermissionManager::UNKNOWN_ACTION;
+  nsCOMPtr<nsIPermissionManager> permissionManager =
+      components::PermissionManager::Service();
+  if (!permissionManager) {
+    return NS_ERROR_SERVICE_NOT_AVAILABLE;
+  }
+
+  rv = permissionManager->TestPermissionFromPrincipal(
+      aPrincipal, "credential-allow-silent-access^"_ns + origin, &permit);
+  NS_ENSURE_SUCCESS(rv, rv);
+  *aResult = (permit == nsIPermissionManager::ALLOW_ACTION);
+  if (!*aResult) {
+    return NS_OK;
+  }
+  rv = permissionManager->TestPermissionFromPrincipal(
+      aPrincipal, "credential-allow-silent-access"_ns, &permit);
+  NS_ENSURE_SUCCESS(rv, rv);
+  *aResult = permit == nsIPermissionManager::ALLOW_ACTION;
+  return NS_OK;
+}
+
 // static
 RefPtr<IdentityCredential::GetIPCIdentityCredentialPromise>
 IdentityCredential::GetCredentialInMainProcess(
     nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
-    const IdentityCredentialRequestOptions& aOptions) {
+    const IdentityCredentialRequestOptions& aOptions,
+    const CredentialMediationRequirement& aMediationRequirement) {
   RefPtr<nsIPrincipal> principal = aPrincipal;
   RefPtr<CanonicalBrowsingContext> cbc = aBrowsingContext;
   RefPtr<IdentityCredential::GetIPCIdentityCredentialPromise::Private> result =
@@ -243,8 +275,34 @@ IdentityCredential::GetCredentialInMainProcess(
                                             aOptions)
         ->Then(
             GetCurrentSerialEventTarget(), __func__,
-            [aOptions, cbc, principal,
+            [aOptions, aMediationRequirement, cbc, principal,
              result](const nsTArray<IPCIdentityCredential>& aResult) {
+              // If collected one credential and the request permit it,
+              // see if we can silently resolve
+              if (aResult.Length() == 1 &&
+                  (aMediationRequirement !=
+                       CredentialMediationRequirement::Required &&
+                   aMediationRequirement !=
+                       CredentialMediationRequirement::Conditional)) {
+                const IPCIdentityCredential& silentCandidate =
+                    aResult.ElementAt(0);
+                bool permitted;
+                nsresult rv =
+                    CanSilentlyCollect(principal, silentCandidate, &permitted);
+                if (NS_SUCCEEDED(rv) && permitted) {
+                  result->Resolve(silentCandidate, __func__);
+                  return;
+                }
+              }
+
+              // The only way to get a credential from here is not silent,
+              // so we must bail out here.
+              if (aMediationRequirement ==
+                  CredentialMediationRequirement::Silent) {
+                result->Reject(NS_OK, __func__);
+                return;
+              }
+
               // If we have no collectable credentials, discover a remote
               // credential
               if (aResult.Length() == 0) {
@@ -861,13 +919,6 @@ IdentityCredential::DiscoverFromExternalSourceInMainProcess(
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aBrowsingContext);
 
-  // Make sure we have providers.
-  if (!aOptions.mProviders.WasPassed() ||
-      aOptions.mProviders.Value().Length() < 1) {
-    return IdentityCredential::GetIPCIdentityCredentialPromise::CreateAndReject(
-        NS_ERROR_DOM_NOT_ALLOWED_ERR, __func__);
-  }
-
   // Figure out what type of discovery we must do.
   RequestType requestType = DetermineRequestDiscoveryType(aOptions);
 
@@ -877,6 +928,19 @@ IdentityCredential::DiscoverFromExternalSourceInMainProcess(
       requestType == LIGHTWEIGHT) {
     return DiscoverLightweightFromExternalSourceInMainProcess(
         aPrincipal, aBrowsingContext, aOptions);
+  }
+
+  // If we are not meant to discover anything, bail out with NS_OK.
+  if (requestType == NONE) {
+    return IdentityCredential::GetIPCIdentityCredentialPromise::CreateAndReject(
+        NS_OK, __func__);
+  }
+
+  // Make sure we have providers.
+  if (!aOptions.mProviders.WasPassed() ||
+      aOptions.mProviders.Value().Length() < 1) {
+    return IdentityCredential::GetIPCIdentityCredentialPromise::CreateAndReject(
+        NS_ERROR_DOM_NOT_ALLOWED_ERR, __func__);
   }
 
   // The only other type of discovery is heavyweight. Make sure we can do that

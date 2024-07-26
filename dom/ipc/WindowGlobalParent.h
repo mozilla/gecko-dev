@@ -320,10 +320,13 @@ class WindowGlobalParent final : public WindowContext,
 
   mozilla::ipc::IPCResult RecvGetIdentityCredential(
       const IdentityCredentialRequestOptions& aOptions,
+      const CredentialMediationRequirement& aMediationRequirement,
       const GetIdentityCredentialResolver& aResolver);
   mozilla::ipc::IPCResult RecvStoreIdentityCredential(
       const IPCIdentityCredential& aCredential,
       const StoreIdentityCredentialResolver& aResolver);
+  mozilla::ipc::IPCResult RecvPreventSilentAccess(
+      const PreventSilentAccessResolver& aResolver);
 
   mozilla::ipc::IPCResult RecvGetStorageAccessPermission(
       GetStorageAccessPermissionResolver&& aResolve);
