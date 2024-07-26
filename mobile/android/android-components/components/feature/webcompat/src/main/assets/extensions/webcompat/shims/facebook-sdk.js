@@ -29,10 +29,11 @@ if (!window.FB) {
   const originalUrl = (() => {
     const src = document.currentScript?.src;
     try {
-      const { hostname, path, href } = new URL(src);
+      const { protocol, hostname, pathname, href } = new URL(src);
       if (
+        (protocol === "http:" || protocol === "https:") &&
         hostname === "connect.facebook.net" &&
-        (path.endsWith("/sdk.js") || path.endsWith("/all.js"))
+        (pathname.endsWith("/sdk.js") || pathname.endsWith("/all.js"))
       ) {
         return href;
       }

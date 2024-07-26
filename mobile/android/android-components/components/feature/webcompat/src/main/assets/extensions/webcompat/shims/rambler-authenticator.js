@@ -8,10 +8,11 @@ if (!window.ramblerIdHelper) {
   const originalScript = (() => {
     const src = document.currentScript?.src;
     try {
-      const { hostname, path, href } = new URL(src);
+      const { protocol, hostname, pathname, href } = new URL(src);
       if (
+        (protocol === "http:" || protocol === "https:") &&
         hostname === "id.rambler.ru" &&
-        path == "rambler-id-helper/auth_events.js"
+        pathname === "rambler-id-helper/auth_events.js"
       ) {
         return href;
       }

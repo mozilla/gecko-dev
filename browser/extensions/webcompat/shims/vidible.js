@@ -18,11 +18,12 @@ if (!window.vidible?.version) {
   const originalScript = (() => {
     const src = document.currentScript?.src;
     try {
-      const { hostname, path, href } = new URL(src);
+      const { protocol, hostname, pathname, href } = new URL(src);
       if (
-        path.endsWith("/vidible-min.js") &&
+        (protocol === "http:" || protocol === "https:") &&
+        pathname.endsWith("/vidible-min.js") &&
         (hostname.endsWith(".vidible.tv") ||
-          hostname == "vdb-cdn-files.s3.amazonaws.com")
+          hostname === "vdb-cdn-files.s3.amazonaws.com")
       ) {
         return href;
       }
