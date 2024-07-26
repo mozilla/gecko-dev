@@ -508,13 +508,11 @@ void GatherCertificateTransparencyTelemetry(
   // Report CT Policy compliance by CA.
   switch (info.policyCompliance) {
     case ct::CTPolicyCompliance::Compliant:
-      AccumulateTelemetryForRootCA(
-          Telemetry::SSL_CT_POLICY_COMPLIANT_CONNECTIONS_BY_CA, rootCert);
       break;
     case ct::CTPolicyCompliance::NotEnoughScts:
     case ct::CTPolicyCompliance::NotDiverseScts:
       AccumulateTelemetryForRootCA(
-          Telemetry::SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA, rootCert);
+          Telemetry::SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2, rootCert);
       break;
     case ct::CTPolicyCompliance::Unknown:
     default:
@@ -548,7 +546,7 @@ static void CollectCertTelemetry(
   }
 
   if (aPinningTelemetryInfo.accumulateForRoot) {
-    Telemetry::Accumulate(Telemetry::CERT_PINNING_FAILURES_BY_CA,
+    Telemetry::Accumulate(Telemetry::CERT_PINNING_FAILURES_BY_CA_2,
                           aPinningTelemetryInfo.rootBucket);
   }
 
@@ -561,7 +559,7 @@ static void CollectCertTelemetry(
 
   if (aCertVerificationResult == Success && aBuiltCertChain.Length() > 0) {
     const nsTArray<uint8_t>& rootCert = aBuiltCertChain.LastElement();
-    AccumulateTelemetryForRootCA(Telemetry::CERT_VALIDATION_SUCCESS_BY_CA,
+    AccumulateTelemetryForRootCA(Telemetry::CERT_VALIDATION_SUCCESS_BY_CA_2,
                                  rootCert);
     GatherCertificateTransparencyTelemetry(rootCert, aEVStatus == EVStatus::EV,
                                            aCertificateTransparencyInfo);
