@@ -1,14 +1,15 @@
-use crate::crypto::COSEAlgorithm;
+use super::commands::get_assertion::HmacSecretExtension;
+use crate::crypto::{COSEAlgorithm, CryptoError, PinUvAuthToken, SharedSecret};
 use crate::{errors::AuthenticatorError, AuthenticatorTransports, KeyHandle};
 use base64::Engine;
 use serde::de::MapAccess;
 use serde::{
     de::{Error as SerdeError, Unexpected, Visitor},
-    ser::SerializeMap,
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_bytes::{ByteBuf, Bytes};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::convert::{Into, TryFrom};
 use std::fmt;
 
@@ -60,13 +61,7 @@ impl RelyingParty {
     }
 
     pub fn hash(&self) -> RpIdHash {
-        let mut hasher = Sha256::new();
-        hasher.update(&self.id);
-
-        let mut output = [0u8; 32];
-        output.copy_from_slice(hasher.finalize().as_slice());
-
-        RpIdHash(output)
+        RpIdHash(Sha256::digest(&self.id).into())
     }
 }
 
@@ -98,10 +93,11 @@ impl Serialize for PublicKeyCredentialParameters {
     where
         S: Serializer,
     {
-        let mut map = serializer.serialize_map(Some(2))?;
-        map.serialize_entry("alg", &self.alg)?;
-        map.serialize_entry("type", "public-key")?;
-        map.end()
+        serialize_map!(
+            serializer,
+            "alg" => &self.alg,
+            "type" => "public-key",
+        )
     }
 }
 
@@ -203,15 +199,16 @@ impl Serialize for PublicKeyCredentialDescriptor {
     where
         S: Serializer,
     {
-        // TODO(MS): Transports is OPTIONAL, but some older tokens don't understand it
-        //           and return a CBOR-Parsing error. It is only a hint for the token,
-        //           so we'll leave it out for the moment
-        let mut map = serializer.serialize_map(Some(2))?;
-        // let mut map = serializer.serialize_map(Some(3))?;
-        map.serialize_entry("id", Bytes::new(&self.id))?;
-        map.serialize_entry("type", "public-key")?;
-        // map.serialize_entry("transports", &self.transports)?;
-        map.end()
+        serialize_map!(
+            serializer,
+            "id" => Bytes::new(&self.id),
+            "type" => "public-key",
+
+            // TODO(MS): Transports is OPTIONAL, but some older tokens don't understand it
+            //           and return a CBOR-Parsing error. It is only a hint for the token,
+            //           so we'll leave it out for the moment
+            // "transports" => &self.transports,
+        )
     }
 }
 
@@ -364,7 +361,9 @@ pub struct AuthenticationExtensionsClientInputs {
     pub credential_protection_policy: Option<CredentialProtectionPolicy>,
     pub enforce_credential_protection_policy: Option<bool>,
     pub hmac_create_secret: Option<bool>,
+    pub hmac_get_secret: Option<HMACGetSecretInput>,
     pub min_pin_length: Option<bool>,
+    pub prf: Option<AuthenticationExtensionsPRFInputs>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -372,11 +371,130 @@ pub struct CredentialProperties {
     pub rk: bool,
 }
 
+/// Salt inputs for the `hmac-secret` extension.
+/// https://fidoalliance.org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-20210615.html#dictdef-hmacgetsecretinput
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct HMACGetSecretInput {
+    pub salt1: [u8; 32],
+    pub salt2: Option<[u8; 32]>,
+}
+
+/// Decrypted HMAC outputs from the `hmac-secret` extension.
+/// https://fidoalliance.org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-20210615.html#dictdef-hmacgetsecretoutput
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct HMACGetSecretOutput {
+    pub output1: [u8; 32],
+    pub output2: Option<[u8; 32]>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AuthenticationExtensionsPRFInputs {
+    pub eval: Option<AuthenticationExtensionsPRFValues>,
+    pub eval_by_credential: Option<HashMap<Vec<u8>, AuthenticationExtensionsPRFValues>>,
+}
+
+impl AuthenticationExtensionsPRFInputs {
+    /// Select an `eval` or `evalByCredential` entry and calculate hmac-secret salt inputs from those inputs.
+    ///
+    /// Returns [None] if the `eval` input was not given and no credential in `allow_credentials` matched any `evalByCredential` entry.
+    /// Otherwise returns the initialized [HmacSecretExtension] and, if an `evalByCredential` entry was used to compute the salt inputs,
+    /// the [PublicKeyCredentialDescriptor] matching that `evalByCredential` entry.
+    /// If present, `allowCredentials` SHOULD be set to contain only that [PublicKeyCredentialDescriptor] value.
+    pub fn calculate<'allow_cred>(
+        &self,
+        secret: &SharedSecret,
+        allow_credentials: &'allow_cred [PublicKeyCredentialDescriptor],
+        puat: Option<&PinUvAuthToken>,
+    ) -> Result<
+        Option<(
+            HmacSecretExtension,
+            Option<&'allow_cred PublicKeyCredentialDescriptor>,
+        )>,
+        CryptoError,
+    > {
+        if let Some((selected_credential, ev)) = self.select_eval(allow_credentials) {
+            let mut hmac_secret = HmacSecretExtension::new(
+                Self::eval_to_salt(&ev.first).to_vec(),
+                ev.second
+                    .as_ref()
+                    .map(|second| Self::eval_to_salt(second).to_vec()),
+            );
+            hmac_secret.calculate(secret, puat)?;
+            Ok(Some((hmac_secret, selected_credential)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Select an `evalByCredential` entry matching any element of `allow_credentials`,
+    /// or otherwise fall back to `eval`, if present, if no match is found.
+    fn select_eval<'allow_cred>(
+        &self,
+        allow_credentials: &'allow_cred [PublicKeyCredentialDescriptor],
+    ) -> Option<(
+        Option<&'allow_cred PublicKeyCredentialDescriptor>,
+        &AuthenticationExtensionsPRFValues,
+    )> {
+        self.select_credential(allow_credentials)
+            .map(|(cred, ev)| (Some(cred), ev))
+            .or(self.eval.as_ref().map(|eval| (None, eval)))
+    }
+
+    /// Select an `evalByCredential` entry matching any element of `allow_credentials`.
+    fn select_credential<'allow_cred>(
+        &self,
+        allow_credentials: &'allow_cred [PublicKeyCredentialDescriptor],
+    ) -> Option<(
+        &'allow_cred PublicKeyCredentialDescriptor,
+        &AuthenticationExtensionsPRFValues,
+    )> {
+        self.eval_by_credential
+            .as_ref()
+            .and_then(|eval_by_credential| {
+                allow_credentials
+                    .iter()
+                    .find_map(|pkcd| eval_by_credential.get(&pkcd.id).map(|eval| (pkcd, eval)))
+            })
+    }
+
+    /// Convert a PRF eval input to an hmac-secret salt input.
+    fn eval_to_salt(eval: &[u8]) -> [u8; 32] {
+        Sha256::new_with_prefix(b"WebAuthn PRF")
+            .chain_update([0x00].iter())
+            .chain_update(eval.iter())
+            .finalize()
+            .into()
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct AuthenticationExtensionsPRFValues {
+    pub first: Vec<u8>,
+    pub second: Option<Vec<u8>>,
+}
+
+impl From<HMACGetSecretOutput> for AuthenticationExtensionsPRFValues {
+    fn from(hmac_output: HMACGetSecretOutput) -> Self {
+        Self {
+            first: hmac_output.output1.to_vec(),
+            second: hmac_output.output2.map(|o2| o2.to_vec()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct AuthenticationExtensionsPRFOutputs {
+    pub enabled: Option<bool>,
+    pub results: Option<AuthenticationExtensionsPRFValues>,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct AuthenticationExtensionsClientOutputs {
     pub app_id: Option<bool>,
     pub cred_props: Option<CredentialProperties>,
     pub hmac_create_secret: Option<bool>,
+    pub hmac_get_secret: Option<HMACGetSecretOutput>,
+    pub prf: Option<AuthenticationExtensionsPRFOutputs>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

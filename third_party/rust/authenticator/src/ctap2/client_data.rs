@@ -2,7 +2,6 @@ use super::commands::CommandError;
 use crate::transport::errors::HIDError;
 use base64::Engine;
 use serde::de::{self, Deserializer, Error as SerdeError, MapAccess, Visitor};
-use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json as json;
 use sha2::{Digest, Sha256};
@@ -46,20 +45,24 @@ impl Serialize for TokenBinding {
     where
         S: Serializer,
     {
-        let mut map = serializer.serialize_map(Some(2))?;
         match *self {
             TokenBinding::Supported => {
-                map.serialize_entry(&"status", &"supported")?;
+                serialize_map!(
+                    serializer,
+                    &"status" => &"supported",
+                )
             }
             TokenBinding::Present(ref v) => {
-                map.serialize_entry(&"status", "present")?;
-                // Verify here, that `v` is valid base64 encoded?
-                // base64::decode_config(&v, base64::URL_SAFE_NO_PAD);
-                // For now: Let the token do that.
-                map.serialize_entry(&"id", &v)?;
+                serialize_map!(
+                    serializer,
+                    &"status" => "present",
+                    // Verify here, that `v` is valid base64 encoded?
+                    // base64::decode_config(&v, base64::URL_SAFE_NO_PAD);
+                    // For now: Let the token do that.
+                    &"id" => &v,
+                )
             }
         }
-        map.end()
     }
 }
 

@@ -15,9 +15,9 @@ use crate::ctap2::attestation::{
 use crate::ctap2::client_data::ClientDataHash;
 use crate::ctap2::server::{
     AuthenticationExtensionsClientInputs, AuthenticationExtensionsClientOutputs,
-    AuthenticatorAttachment, CredentialProtectionPolicy, PublicKeyCredentialDescriptor,
-    PublicKeyCredentialParameters, PublicKeyCredentialUserEntity, RelyingParty, RpIdHash,
-    UserVerificationRequirement,
+    AuthenticationExtensionsPRFOutputs, AuthenticatorAttachment, CredentialProtectionPolicy,
+    PublicKeyCredentialDescriptor, PublicKeyCredentialParameters, PublicKeyCredentialUserEntity,
+    RelyingParty, RpIdHash, UserVerificationRequirement,
 };
 use crate::ctap2::utils::{read_byte, serde_parse_err};
 use crate::errors::AuthenticatorError;
@@ -26,7 +26,6 @@ use crate::transport::{FidoDevice, VirtualFidoDevice};
 use crate::u2ftypes::CTAP1RequestAPDU;
 use serde::{
     de::{Error as DesError, MapAccess, Unexpected, Visitor},
-    ser::SerializeMap,
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_cbor::{self, de::from_slice, ser, Value};
@@ -240,9 +239,27 @@ pub struct MakeCredentialsExtensions {
     #[serde(rename = "credProtect", skip_serializing_if = "Option::is_none")]
     pub cred_protect: Option<CredentialProtectionPolicy>,
     #[serde(rename = "hmac-secret", skip_serializing_if = "Option::is_none")]
-    pub hmac_secret: Option<bool>,
+    pub hmac_secret: Option<HmacCreateSecretOrPrf>,
     #[serde(rename = "minPinLength", skip_serializing_if = "Option::is_none")]
     pub min_pin_length: Option<bool>,
+}
+
+#[derive(Debug, Clone)]
+pub enum HmacCreateSecretOrPrf {
+    HmacCreateSecret(bool),
+    Prf,
+}
+
+impl Serialize for HmacCreateSecretOrPrf {
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::HmacCreateSecret(hmac_secret) => s.serialize_bool(*hmac_secret),
+            Self::Prf => s.serialize_bool(true),
+        }
+    }
 }
 
 impl MakeCredentialsExtensions {
@@ -256,7 +273,13 @@ impl From<AuthenticationExtensionsClientInputs> for MakeCredentialsExtensions {
         Self {
             cred_props: input.cred_props,
             cred_protect: input.credential_protection_policy,
-            hmac_secret: input.hmac_create_secret,
+            hmac_secret: match (input.hmac_create_secret, input.prf) {
+                (None, None) => None,
+                (_, Some(_)) => Some(HmacCreateSecretOrPrf::Prf),
+                (Some(hmac_secret), _) => {
+                    Some(HmacCreateSecretOrPrf::HmacCreateSecret(hmac_secret))
+                }
+            },
             min_pin_length: input.min_pin_length,
         }
     }
@@ -343,12 +366,48 @@ impl MakeCredentials {
         // 2. hmac-secret
         //      The extension returns a flag in the authenticator data which we need to mirror as a
         //      client output.
-        if self.extensions.hmac_secret == Some(true) {
-            if let Some(HmacSecretResponse::Confirmed(flag)) =
-                result.att_obj.auth_data.extensions.hmac_secret
-            {
-                result.extensions.hmac_create_secret = Some(flag);
+        // 3. prf
+        //      hmac-secret returns a flag in the authenticator data
+        //      which we need to mirror as a PRF "enabled" client output.
+        //      If a future version of hmac-secret permits calculating secrets in makeCredential,
+        //      we also need to decrypt and output them as client outputs.
+        match self.extensions.hmac_secret {
+            Some(HmacCreateSecretOrPrf::HmacCreateSecret(true)) => {
+                result.extensions.hmac_create_secret =
+                    Some(match result.att_obj.auth_data.extensions.hmac_secret {
+                        Some(HmacSecretResponse::Confirmed(flag)) => flag,
+                        Some(HmacSecretResponse::Secret(_)) => true,
+                        None => false,
+                    });
             }
+            Some(HmacCreateSecretOrPrf::Prf) => {
+                result.extensions.prf =
+                    Some(match &result.att_obj.auth_data.extensions.hmac_secret {
+                        None => AuthenticationExtensionsPRFOutputs {
+                            enabled: Some(false),
+                            results: None,
+                        },
+                        Some(HmacSecretResponse::Confirmed(flag)) => {
+                            AuthenticationExtensionsPRFOutputs {
+                                enabled: Some(*flag),
+                                results: None,
+                            }
+                        }
+                        Some(hmac_response @ HmacSecretResponse::Secret(_)) => {
+                            AuthenticationExtensionsPRFOutputs {
+                                enabled: Some(true),
+                                results: dev
+                                    .get_shared_secret()
+                                    .and_then(|shared_secret| {
+                                        hmac_response.decrypt_secrets(shared_secret)
+                                    })
+                                    .and_then(Result::ok)
+                                    .map(|outputs| outputs.into()),
+                            }
+                        }
+                    })
+            }
+            None | Some(HmacCreateSecretOrPrf::HmacCreateSecret(false)) => {}
         }
     }
 }
@@ -417,47 +476,19 @@ impl Serialize for MakeCredentials {
         S: Serializer,
     {
         debug!("Serialize MakeCredentials");
-        // Need to define how many elements are going to be in the map
-        // beforehand
-        let mut map_len = 4;
-        if !self.exclude_list.is_empty() {
-            map_len += 1;
-        }
-        if self.extensions.has_content() {
-            map_len += 1;
-        }
-        if self.options.has_some() {
-            map_len += 1;
-        }
-        if self.pin_uv_auth_param.is_some() {
-            map_len += 2;
-        }
-        if self.enterprise_attestation.is_some() {
-            map_len += 1;
-        }
-
-        let mut map = serializer.serialize_map(Some(map_len))?;
-        map.serialize_entry(&0x01, &self.client_data_hash)?;
-        map.serialize_entry(&0x02, &self.rp)?;
-        map.serialize_entry(&0x03, &self.user)?;
-        map.serialize_entry(&0x04, &self.pub_cred_params)?;
-        if !self.exclude_list.is_empty() {
-            map.serialize_entry(&0x05, &self.exclude_list)?;
-        }
-        if self.extensions.has_content() {
-            map.serialize_entry(&0x06, &self.extensions)?;
-        }
-        if self.options.has_some() {
-            map.serialize_entry(&0x07, &self.options)?;
-        }
-        if let Some(pin_uv_auth_param) = &self.pin_uv_auth_param {
-            map.serialize_entry(&0x08, &pin_uv_auth_param)?;
-            map.serialize_entry(&0x09, &pin_uv_auth_param.pin_protocol.id())?;
-        }
-        if let Some(enterprise_attestation) = self.enterprise_attestation {
-            map.serialize_entry(&0x0a, &enterprise_attestation)?;
-        }
-        map.end()
+        serialize_map_optional!(
+            serializer,
+            &0x01 => Some(&self.client_data_hash),
+            &0x02 => Some(&self.rp),
+            &0x03 => Some(&self.user),
+            &0x04 => Some(&self.pub_cred_params),
+            &0x05 => (!self.exclude_list.is_empty()).then_some(&self.exclude_list),
+            &0x06 => self.extensions.has_content().then_some(&self.extensions),
+            &0x07 => self.options.has_some().then_some(&self.options),
+            &0x08 => &self.pin_uv_auth_param,
+            &0x09 => self.pin_uv_auth_param.as_ref().map(|p| p.pin_protocol.id()),
+            &0x0a => &self.enterprise_attestation,
+        )
     }
 }
 
@@ -596,8 +627,12 @@ pub(crate) fn dummy_make_credentials_cmd() -> MakeCredentials {
 
 #[cfg(test)]
 pub mod test {
+    use std::convert::TryFrom;
+
     use super::{MakeCredentials, MakeCredentialsOptions, MakeCredentialsResult};
-    use crate::crypto::{COSEAlgorithm, COSEEC2Key, COSEKey, COSEKeyType, Curve};
+    use crate::crypto::{
+        COSEAlgorithm, COSEEC2Key, COSEKey, COSEKeyType, Curve, PinUvAuthParam, PinUvAuthProtocol,
+    };
     use crate::ctap2::attestation::test::create_attestation_obj;
     use crate::ctap2::attestation::{
         AAGuid, AttestationCertificate, AttestationObject, AttestationStatement,
@@ -605,15 +640,19 @@ pub mod test {
         AuthenticatorDataFlags, Signature,
     };
     use crate::ctap2::client_data::{Challenge, CollectedClientData, TokenBinding, WebauthnType};
+    use crate::ctap2::commands::make_credentials::{
+        HmacCreateSecretOrPrf, MakeCredentialsExtensions,
+    };
     use crate::ctap2::commands::{RequestCtap1, RequestCtap2};
-    use crate::ctap2::server::RpIdHash;
     use crate::ctap2::server::{
         AuthenticatorAttachment, PublicKeyCredentialParameters, PublicKeyCredentialUserEntity,
-        RelyingParty,
+        RelyingParty, Transport,
     };
+    use crate::ctap2::server::{PublicKeyCredentialDescriptor, RpIdHash};
     use crate::transport::device_selector::Device;
     use crate::transport::hid::HIDDevice;
     use crate::transport::{FidoDevice, FidoProtocol};
+    use crate::AuthenticatorInfo;
     use base64::Engine;
 
     #[test]
@@ -672,6 +711,92 @@ pub mod test {
         };
 
         assert_eq!(make_cred_result, expected);
+    }
+
+    #[test]
+    fn test_serialize_make_credentials_ctap2_all() {
+        let req = MakeCredentials {
+            client_data_hash: CollectedClientData {
+                webauthn_type: WebauthnType::Create,
+                challenge: Challenge::from(vec![0x00, 0x01, 0x02, 0x03]),
+                origin: String::from("example.com"),
+                cross_origin: true,
+                token_binding: Some(TokenBinding::Present(String::from("AAECAw"))),
+            }
+            .hash()
+            .expect("failed to serialize client data"),
+            rp: RelyingParty {
+                id: String::from("example.com"),
+                name: Some(String::from("Acme")),
+            },
+            user: Some(PublicKeyCredentialUserEntity {
+                id: base64::engine::general_purpose::URL_SAFE
+                    .decode("MIIBkzCCATigAwIBAjCCAZMwggE4oAMCAQIwggGTMII=")
+                    .unwrap(),
+                name: Some(String::from("johnpsmith@example.com")),
+                display_name: Some(String::from("John P. Smith")),
+            }),
+            pub_cred_params: vec![
+                PublicKeyCredentialParameters {
+                    alg: COSEAlgorithm::ES256,
+                },
+                PublicKeyCredentialParameters {
+                    alg: COSEAlgorithm::RS256,
+                },
+            ],
+            exclude_list: vec![PublicKeyCredentialDescriptor {
+                id: vec![4, 5, 6, 7],
+                transports: vec![Transport::USB, Transport::NFC],
+            }],
+            extensions: MakeCredentialsExtensions {
+                cred_props: Some(true),
+                cred_protect: Some(
+                    crate::ctap2::server::CredentialProtectionPolicy::UserVerificationRequired,
+                ),
+                hmac_secret: Some(HmacCreateSecretOrPrf::HmacCreateSecret(true)),
+                min_pin_length: Some(true),
+            },
+            options: MakeCredentialsOptions {
+                resident_key: Some(true),
+                user_verification: Some(true),
+            },
+            pin_uv_auth_param: Some({
+                let mut p = PinUvAuthParam::create_empty();
+                p.pin_protocol = PinUvAuthProtocol::try_from(&AuthenticatorInfo {
+                    pin_protocols: Some(vec![2]),
+                    ..Default::default()
+                })
+                .expect("Failed to create PIN protocol");
+                p
+            }),
+            enterprise_attestation: Some(7),
+        };
+
+        let req_serialized = req
+            .wire_format()
+            .expect("Failed to serialize MakeCredentials request");
+        assert_eq!(
+            req_serialized,
+            [
+                // Value copied from test failure output as regression test snapshot
+                170, 1, 88, 32, 122, 146, 22, 162, 76, 198, 134, 9, 213, 180, 166, 87, 146, 132,
+                116, 119, 180, 172, 60, 27, 146, 142, 207, 8, 158, 125, 4, 28, 226, 254, 21, 122,
+                2, 162, 98, 105, 100, 107, 101, 120, 97, 109, 112, 108, 101, 46, 99, 111, 109, 100,
+                110, 97, 109, 101, 100, 65, 99, 109, 101, 3, 163, 98, 105, 100, 88, 32, 48, 130, 1,
+                147, 48, 130, 1, 56, 160, 3, 2, 1, 2, 48, 130, 1, 147, 48, 130, 1, 56, 160, 3, 2,
+                1, 2, 48, 130, 1, 147, 48, 130, 100, 110, 97, 109, 101, 118, 106, 111, 104, 110,
+                112, 115, 109, 105, 116, 104, 64, 101, 120, 97, 109, 112, 108, 101, 46, 99, 111,
+                109, 107, 100, 105, 115, 112, 108, 97, 121, 78, 97, 109, 101, 109, 74, 111, 104,
+                110, 32, 80, 46, 32, 83, 109, 105, 116, 104, 4, 130, 162, 99, 97, 108, 103, 38,
+                100, 116, 121, 112, 101, 106, 112, 117, 98, 108, 105, 99, 45, 107, 101, 121, 162,
+                99, 97, 108, 103, 57, 1, 0, 100, 116, 121, 112, 101, 106, 112, 117, 98, 108, 105,
+                99, 45, 107, 101, 121, 5, 129, 162, 98, 105, 100, 68, 4, 5, 6, 7, 100, 116, 121,
+                112, 101, 106, 112, 117, 98, 108, 105, 99, 45, 107, 101, 121, 6, 163, 107, 99, 114,
+                101, 100, 80, 114, 111, 116, 101, 99, 116, 3, 107, 104, 109, 97, 99, 45, 115, 101,
+                99, 114, 101, 116, 245, 108, 109, 105, 110, 80, 105, 110, 76, 101, 110, 103, 116,
+                104, 245, 7, 162, 98, 114, 107, 245, 98, 117, 118, 245, 8, 64, 9, 2, 10, 7
+            ]
+        );
     }
 
     #[test]

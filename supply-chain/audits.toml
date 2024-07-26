@@ -797,6 +797,11 @@ criteria = "safe-to-deploy"
 version = "0.4.0-alpha.13"
 notes = "Maintained by the CryptoEng team at Mozilla."
 
+[[audits.authenticator]]
+who = "John M. Schanck <jschanck@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.4.0-alpha.24 -> 0.4.0"
+
 [[audits.autocfg]]
 who = "Josh Stone <jistone@redhat.com>"
 criteria = "safe-to-deploy"

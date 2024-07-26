@@ -9,7 +9,6 @@ use crate::transport::errors::HIDError;
 use crate::transport::{FidoDevice, VirtualFidoDevice};
 use serde::{
     de::{Error as SerdeError, IgnoredAny, MapAccess, Visitor},
-    ser::SerializeMap,
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_bytes::{ByteBuf, Bytes};
@@ -86,57 +85,18 @@ impl Serialize for ClientPIN {
     where
         S: Serializer,
     {
-        // Need to define how many elements are going to be in the map
-        // beforehand
-        let mut map_len = 1;
-        if self.pin_protocol.is_some() {
-            map_len += 1;
-        }
-        if self.key_agreement.is_some() {
-            map_len += 1;
-        }
-        if self.pin_auth.is_some() {
-            map_len += 1;
-        }
-        if self.new_pin_enc.is_some() {
-            map_len += 1;
-        }
-        if self.pin_hash_enc.is_some() {
-            map_len += 1;
-        }
-        if self.permissions.is_some() {
-            map_len += 1;
-        }
-        if self.rp_id.is_some() {
-            map_len += 1;
-        }
-
-        let mut map = serializer.serialize_map(Some(map_len))?;
-        if let Some(ref pin_protocol) = self.pin_protocol {
-            map.serialize_entry(&1, &pin_protocol.id())?;
-        }
         let command: u8 = self.subcommand as u8;
-        map.serialize_entry(&2, &command)?;
-        if let Some(ref key_agreement) = self.key_agreement {
-            map.serialize_entry(&3, key_agreement)?;
-        }
-        if let Some(ref pin_auth) = self.pin_auth {
-            map.serialize_entry(&4, Bytes::new(pin_auth))?;
-        }
-        if let Some(ref new_pin_enc) = self.new_pin_enc {
-            map.serialize_entry(&5, Bytes::new(new_pin_enc))?;
-        }
-        if let Some(ref pin_hash_enc) = self.pin_hash_enc {
-            map.serialize_entry(&6, Bytes::new(pin_hash_enc))?;
-        }
-        if let Some(ref permissions) = self.permissions {
-            map.serialize_entry(&9, permissions)?;
-        }
-        if let Some(ref rp_id) = self.rp_id {
-            map.serialize_entry(&0x0A, rp_id)?;
-        }
-
-        map.end()
+        serialize_map_optional!(
+            serializer,
+            &1 => self.pin_protocol.as_ref().map(|p| p.id()),
+            &2 => Some(&command),
+            &3 => &self.key_agreement,
+            &4 => self.pin_auth.as_ref().map(|pin_auth| Bytes::new(pin_auth.as_ref())),
+            &5 => self.new_pin_enc.as_ref().map(|new_pin_enc| Bytes::new(new_pin_enc.as_ref())),
+            &6 => self.pin_hash_enc.as_ref().map(|pin_hash_enc| Bytes::new(pin_hash_enc.as_ref())),
+            &9 => self.permissions,
+            &0x0A => &self.rp_id,
+        )
     }
 }
 
@@ -634,14 +594,7 @@ impl Pin {
     }
 
     pub fn for_pin_token(&self) -> Vec<u8> {
-        let mut hasher = Sha256::new();
-        hasher.update(self.0.as_bytes());
-
-        let mut output = [0u8; 16];
-        let len = output.len();
-        output.copy_from_slice(&hasher.finalize().as_slice()[..len]);
-
-        output.to_vec()
+        Sha256::digest(self.as_bytes())[..16].into()
     }
 
     pub fn padded(&self) -> Vec<u8> {
@@ -713,8 +666,14 @@ impl From<CryptoError> for PinError {
 
 #[cfg(test)]
 mod test {
+    use std::convert::TryFrom;
+
     use super::ClientPinResponse;
-    use crate::crypto::{COSEAlgorithm, COSEEC2Key, COSEKey, COSEKeyType, Curve};
+    use crate::{
+        crypto::{COSEAlgorithm, COSEEC2Key, COSEKey, COSEKeyType, Curve, PinUvAuthProtocol},
+        ctap2::commands::client_pin::{ClientPIN, PINSubcommand, PinUvAuthTokenPermission},
+        AuthenticatorInfo,
+    };
     use serde_cbor::de::from_slice;
 
     #[test]
@@ -847,5 +806,42 @@ mod test {
         let result: ClientPinResponse =
             from_slice(&reference).expect("could not deserialize reference");
         assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_serialize_client_pin() {
+        let client_pin = ClientPIN {
+            pin_protocol: Some(
+                PinUvAuthProtocol::try_from(&AuthenticatorInfo {
+                    pin_protocols: Some(vec![2]),
+                    ..Default::default()
+                })
+                .expect("Failed to create PIN protocol"),
+            ),
+            subcommand: PINSubcommand::GetPinRetries,
+            key_agreement: Some(COSEKey {
+                alg: COSEAlgorithm::ECDH_ES_HKDF256,
+                key: COSEKeyType::EC2(COSEEC2Key {
+                    curve: Curve::SECP256R1,
+                    x: vec![],
+                    y: vec![],
+                }),
+            }),
+            pin_auth: Some(vec![1, 2, 3, 4]),
+            new_pin_enc: Some(vec![5, 6, 7, 8]),
+            pin_hash_enc: Some(vec![9, 10, 11, 12]),
+            permissions: Some(PinUvAuthTokenPermission::CredentialManagement.bits()),
+            rp_id: Some("example.org".to_string()),
+        };
+        let serialized = serde_cbor::ser::to_vec(&client_pin).expect("Failed to serialize to CBOR");
+        assert_eq!(
+            serialized,
+            [
+                // Value copied from test failure output as regression test snapshot
+                168, 1, 2, 2, 1, 3, 165, 1, 2, 3, 56, 24, 32, 1, 33, 64, 34, 64, 4, 68, 1, 2, 3, 4,
+                5, 68, 5, 6, 7, 8, 6, 68, 9, 10, 11, 12, 9, 4, 10, 107, 101, 120, 97, 109, 112,
+                108, 101, 46, 111, 114, 103
+            ]
+        );
     }
 }

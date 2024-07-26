@@ -11,7 +11,6 @@ use crate::{
 };
 use serde::{
     de::{Error as SerdeError, IgnoredAny, MapAccess, Visitor},
-    ser::SerializeMap,
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_bytes::ByteBuf;
@@ -36,28 +35,12 @@ impl Serialize for CredManagementParams {
     where
         S: Serializer,
     {
-        let mut map_len = 0;
-        if self.rp_id_hash.is_some() {
-            map_len += 1;
-        }
-        if self.credential_id.is_some() {
-            map_len += 1;
-        }
-        if self.user.is_some() {
-            map_len += 1;
-        }
-
-        let mut map = serializer.serialize_map(Some(map_len))?;
-        if let Some(rp_id_hash) = &self.rp_id_hash {
-            map.serialize_entry(&0x01, &ByteBuf::from(rp_id_hash.as_ref()))?;
-        }
-        if let Some(credential_id) = &self.credential_id {
-            map.serialize_entry(&0x02, credential_id)?;
-        }
-        if let Some(user) = &self.user {
-            map.serialize_entry(&0x03, user)?;
-        }
-        map.end()
+        serialize_map_optional!(
+            serializer,
+            &0x01 => self.rp_id_hash.as_ref().map(|r| ByteBuf::from(r.as_ref())),
+            &0x02 => &self.credential_id,
+            &0x03 => &self.user,
+        )
     }
 }
 
@@ -118,30 +101,14 @@ impl Serialize for CredentialManagement {
     where
         S: Serializer,
     {
-        // Need to define how many elements are going to be in the map
-        // beforehand
-        let mut map_len = 1;
         let (id, params) = self.subcommand.to_id_and_param();
-        if params.has_some() {
-            map_len += 1;
-        }
-        if self.pin_uv_auth_param.is_some() {
-            map_len += 2;
-        }
-
-        let mut map = serializer.serialize_map(Some(map_len))?;
-
-        map.serialize_entry(&0x01, &id)?;
-        if params.has_some() {
-            map.serialize_entry(&0x02, &params)?;
-        }
-
-        if let Some(ref pin_uv_auth_param) = self.pin_uv_auth_param {
-            map.serialize_entry(&0x03, &pin_uv_auth_param.pin_protocol.id())?;
-            map.serialize_entry(&0x04, pin_uv_auth_param)?;
-        }
-
-        map.end()
+        serialize_map_optional!(
+            serializer,
+            &0x01 => Some(&id),
+            &0x02 => params.has_some().then_some(&params),
+            &0x03 => self.pin_uv_auth_param.as_ref().map(|p| p.pin_protocol.id()),
+            &0x04 => &self.pin_uv_auth_param,
+        )
     }
 }
 
@@ -453,5 +420,44 @@ impl PinUvAuthCommand for CredentialManagement {
 
     fn get_pin_uv_auth_param(&self) -> Option<&PinUvAuthParam> {
         self.pin_uv_auth_param.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::ctap2::server::{
+        PublicKeyCredentialDescriptor, PublicKeyCredentialUserEntity, RelyingParty, Transport,
+    };
+
+    use super::CredManagementParams;
+
+    #[test]
+    fn test_serialize_cred_management_params() {
+        let cred_management_params = CredManagementParams {
+            rp_id_hash: Some(RelyingParty::from("example.org").hash()),
+            credential_id: Some(PublicKeyCredentialDescriptor {
+                id: vec![1, 2, 3, 4],
+                transports: vec![Transport::USB, Transport::NFC],
+            }),
+            user: Some(PublicKeyCredentialUserEntity {
+                id: vec![5, 6, 7, 8],
+                name: Some("testuser".to_string()),
+                display_name: Some("Test User".to_string()),
+            }),
+        };
+        let serialized =
+            serde_cbor::ser::to_vec(&cred_management_params).expect("Failed to serialize to CBOR");
+        assert_eq!(
+            serialized,
+            [
+                // Value copied from test failure output as regression test snapshot
+                163, 1, 88, 32, 191, 171, 195, 116, 50, 149, 139, 6, 51, 96, 211, 173, 100, 97, 201,
+                196, 115, 90, 231, 248, 237, 212, 101, 146, 165, 224, 240, 20, 82, 178, 228, 181,
+                2, 162, 98, 105, 100, 68, 1, 2, 3, 4, 100, 116, 121, 112, 101, 106, 112, 117, 98,
+                108, 105, 99, 45, 107, 101, 121, 3, 163, 98, 105, 100, 68, 5, 6, 7, 8, 100, 110,
+                97, 109, 101, 104, 116, 101, 115, 116, 117, 115, 101, 114, 107, 100, 105, 115, 112,
+                108, 97, 121, 78, 97, 109, 101, 105, 84, 101, 115, 116, 32, 85, 115, 101, 114
+            ]
+        );
     }
 }

@@ -7,7 +7,6 @@ use crate::{
 };
 use serde::{
     de::{Error as SerdeError, IgnoredAny, MapAccess, Visitor},
-    ser::SerializeMap,
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_bytes::ByteBuf;
@@ -96,28 +95,12 @@ impl Serialize for BioEnrollmentParams {
     where
         S: Serializer,
     {
-        let mut map_len = 0;
-        if self.template_id.is_some() {
-            map_len += 1;
-        }
-        if self.template_friendly_name.is_some() {
-            map_len += 1;
-        }
-        if self.timeout_milliseconds.is_some() {
-            map_len += 1;
-        }
-
-        let mut map = serializer.serialize_map(Some(map_len))?;
-        if let Some(template_id) = &self.template_id {
-            map.serialize_entry(&0x01, &ByteBuf::from(template_id.as_slice()))?;
-        }
-        if let Some(template_friendly_name) = &self.template_friendly_name {
-            map.serialize_entry(&0x02, template_friendly_name)?;
-        }
-        if let Some(timeout_milliseconds) = &self.timeout_milliseconds {
-            map.serialize_entry(&0x03, timeout_milliseconds)?;
-        }
-        map.end()
+        serialize_map_optional!(
+            serializer,
+            &0x01 => self.template_id.as_deref().map(ByteBuf::from),
+            &0x02 => &self.template_friendly_name,
+            &0x03 => self.timeout_milliseconds,
+        )
     }
 }
 
@@ -188,31 +171,15 @@ impl Serialize for BioEnrollment {
     where
         S: Serializer,
     {
-        // Need to define how many elements are going to be in the map
-        // beforehand
-        let mut map_len = 2;
         let (id, params) = self.subcommand.to_id_and_param();
-        if params.has_some() {
-            map_len += 1;
-        }
-        if self.pin_uv_auth_param.is_some() {
-            map_len += 2;
-        }
-
-        let mut map = serializer.serialize_map(Some(map_len))?;
-
-        map.serialize_entry(&0x01, &self.modality)?; // Per spec currently always Fingerprint
-        map.serialize_entry(&0x02, &id)?;
-        if params.has_some() {
-            map.serialize_entry(&0x03, &params)?;
-        }
-
-        if let Some(ref pin_uv_auth_param) = self.pin_uv_auth_param {
-            map.serialize_entry(&0x04, &pin_uv_auth_param.pin_protocol.id())?;
-            map.serialize_entry(&0x05, pin_uv_auth_param)?;
-        }
-
-        map.end()
+        serialize_map_optional!(
+            serializer,
+            &0x01 => Some(&self.modality), // Per spec currently always Fingerprint
+            &0x02 => Some(&id),
+            &0x03 => params.has_some().then_some(&params),
+            &0x04 => self.pin_uv_auth_param.as_ref().map(|p| p.pin_protocol.id()),
+            &0x05 => &self.pin_uv_auth_param,
+        )
     }
 }
 
@@ -657,4 +624,56 @@ pub enum BioEnrollmentResult {
     AddSuccess(AuthenticatorInfo),
     FingerprintSensorInfo(FingerprintSensorInfo),
     SampleStatus(LastEnrollmentSampleStatus, u64),
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{crypto::PinUvAuthParam, ctap2::commands::client_pin::PinUvAuthTokenPermission};
+
+    use super::{BioEnrollment, BioEnrollmentCommand, BioEnrollmentModality, BioEnrollmentParams};
+
+    #[test]
+    fn test_serialize_bio_enrollment_params() {
+        let bio_enrollment_params = BioEnrollmentParams {
+            template_id: Some(vec![1, 2, 3, 4]),
+            template_friendly_name: Some("thumb".to_string()),
+            timeout_milliseconds: Some(1337),
+        };
+        let serialized =
+            serde_cbor::ser::to_vec(&bio_enrollment_params).expect("Failed to serialize to CBOR");
+        assert_eq!(
+            serialized,
+            [
+                // Value copied from test failure output as regression test snapshot
+                163, 1, 68, 1, 2, 3, 4, 2, 101, 116, 104, 117, 109, 98, 3, 25, 5, 57
+            ]
+        );
+    }
+
+    #[test]
+    fn test_serialize_bio_enrollment() {
+        let bio_enrollment_params = BioEnrollment {
+            modality: BioEnrollmentModality::Other(42),
+            subcommand: BioEnrollmentCommand::SetFriendlyName((
+                vec![1, 2, 3, 4],
+                "thumb".to_string(),
+            )),
+            pin_uv_auth_param: Some(PinUvAuthParam::create_test(
+                2,
+                vec![1, 2, 3, 4],
+                PinUvAuthTokenPermission::CredentialManagement,
+            )),
+            use_legacy_preview: true,
+        };
+        let serialized =
+            serde_cbor::ser::to_vec(&bio_enrollment_params).expect("Failed to serialize to CBOR");
+        assert_eq!(
+            serialized,
+            [
+                // Value copied from test failure output as regression test snapshot
+                165, 1, 24, 42, 2, 5, 3, 162, 1, 68, 1, 2, 3, 4, 2, 101, 116, 104, 117, 109, 98, 4,
+                2, 5, 68, 1, 2, 3, 4
+            ]
+        );
+    }
 }

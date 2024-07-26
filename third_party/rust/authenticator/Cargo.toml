@@ -12,11 +12,14 @@
 [package]
 edition = "2018"
 name = "authenticator"
-version = "0.4.0-alpha.24"
+version = "0.4.0"
 authors = [
+    "Dana Keeler <dkeeler@mozilla.com>",
     "J.C. Jones <jc@mozilla.com>",
-    "Tim Taubert <ttaubert@mozilla.com>",
+    "John Schanck <jschanck@mozilla.com>",
     "Kyle Machulis <kyle@nonpolynomial.com>",
+    "Martin Sirringhaus <martin.sirringhaus@suse.com",
+    "Tim Taubert <ttaubert@mozilla.com>",
 ]
 description = "Library for interacting with CTAP1/2 security keys for Web Authentication. Used by Firefox."
 readme = "README.md"

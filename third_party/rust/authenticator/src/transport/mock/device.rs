@@ -32,6 +32,7 @@ pub struct Device {
     skip_serialization: bool,
     pub upcoming_requests: VecDeque<Vec<u8>>,
     pub upcoming_responses: VecDeque<Result<Box<dyn Any>, HIDError>>,
+    pub shared_secret: Option<SharedSecret>,
 }
 
 impl Device {
@@ -91,6 +92,7 @@ impl Device {
             skip_serialization: true,
             upcoming_requests: VecDeque::new(),
             upcoming_responses: VecDeque::new(),
+            shared_secret: None,
         })
     }
 }
@@ -171,6 +173,7 @@ impl HIDDevice for Device {
             skip_serialization: false,
             upcoming_requests: VecDeque::new(),
             upcoming_responses: VecDeque::new(),
+            shared_secret: None,
         })
     }
 
@@ -303,11 +306,11 @@ impl FidoDevice for Device {
     }
 
     fn get_shared_secret(&self) -> std::option::Option<&SharedSecret> {
-        None
+        self.shared_secret.as_ref()
     }
 
-    fn set_shared_secret(&mut self, _: SharedSecret) {
-        // Nothing
+    fn set_shared_secret(&mut self, shared_secret: SharedSecret) {
+        self.shared_secret = Some(shared_secret);
     }
 
     fn get_authenticator_info(&self) -> Option<&AuthenticatorInfo> {

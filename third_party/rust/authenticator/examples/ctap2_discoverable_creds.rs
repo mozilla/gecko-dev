@@ -74,9 +74,7 @@ fn register_user(manager: &mut AuthenticatorService, username: &str, timeout_ms:
         username,
         r#""}"#
     );
-    let mut challenge = Sha256::new();
-    challenge.update(challenge_str.as_bytes());
-    let chall_bytes = challenge.finalize().into();
+    let chall_bytes = Sha256::digest(challenge_str.as_bytes()).into();
 
     let (status_tx, status_rx) = channel::<StatusUpdate>();
     thread::spawn(move || loop {
@@ -331,9 +329,7 @@ fn main() {
         }
     });
 
-    let mut challenge = Sha256::new();
-    challenge.update(challenge_str.as_bytes());
-    let chall_bytes = challenge.finalize().into();
+    let chall_bytes = Sha256::digest(challenge_str.as_bytes()).into();
     let ctap_args = SignArgs {
         client_data_hash: chall_bytes,
         origin,

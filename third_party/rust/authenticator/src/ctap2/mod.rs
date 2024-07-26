@@ -616,18 +616,6 @@ pub fn sign<Dev: FidoDevice>(
             ),
             callback
         );
-        // Third, use the shared secret in the extensions, if requested
-        if let Some(extension) = get_assertion.extensions.hmac_secret.as_mut() {
-            if let Some(secret) = dev.get_shared_secret() {
-                match extension.calculate(secret) {
-                    Ok(x) => x,
-                    Err(e) => {
-                        callback.call(Err(e));
-                        return false;
-                    }
-                }
-            }
-        }
 
         // Do "pre-flight": Filter the allow-list
         let original_allow_list_was_empty = get_assertion.allow_list.is_empty();
@@ -671,6 +659,17 @@ pub fn sign<Dev: FidoDevice>(
             .into()));
             return false;
         }
+
+        // Use the shared secret in the extensions, if requested
+        get_assertion = match get_assertion.process_hmac_secret_and_prf_extension(
+            dev.get_shared_secret().map(|s| (s, &pin_uv_auth_result)),
+        ) {
+            Ok(value) => value,
+            Err(e) => {
+                callback.call(Err(e));
+                return false;
+            }
+        };
 
         debug!("------------------------------------------------------------------");
         debug!("{get_assertion:?} using {pin_uv_auth_result:?}");

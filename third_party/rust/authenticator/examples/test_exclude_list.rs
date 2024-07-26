@@ -72,9 +72,7 @@ fn main() {
         r#"{"challenge": "1vQ9mxionq0ngCnjD-wTsv1zUSrGRtFqG2xP09SbZ70","#,
         r#" "version": "U2F_V2", "appId": "http://example.com"}"#
     );
-    let mut challenge = Sha256::new();
-    challenge.update(challenge_str.as_bytes());
-    let chall_bytes = challenge.finalize().into();
+    let chall_bytes = Sha256::digest(challenge_str.as_bytes()).into();
 
     let (status_tx, status_rx) = channel::<StatusUpdate>();
     thread::spawn(move || loop {

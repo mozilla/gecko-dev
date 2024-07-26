@@ -1,6 +1,6 @@
 use super::utils::{from_slice_stream, read_be_u16, read_be_u32, read_byte};
-use crate::crypto::COSEAlgorithm;
-use crate::ctap2::server::{CredentialProtectionPolicy, RpIdHash};
+use crate::crypto::{COSEAlgorithm, CryptoError, SharedSecret};
+use crate::ctap2::server::{CredentialProtectionPolicy, HMACGetSecretOutput, RpIdHash};
 use crate::ctap2::utils::serde_parse_err;
 use crate::{crypto::COSEKey, errors::AuthenticatorError};
 use base64::Engine;
@@ -10,6 +10,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 use serde_cbor;
+use std::convert::TryInto;
 use std::fmt;
 use std::io::{Cursor, Read};
 
@@ -21,6 +22,50 @@ pub enum HmacSecretResponse {
     /// This is returned by GetAssertion:
     /// AES256-CBC(shared_secret, HMAC-SHA265(CredRandom, salt1) || HMAC-SHA265(CredRandom, salt2))
     Secret(Vec<u8>),
+}
+
+impl HmacSecretResponse {
+    /// Return the decrypted HMAC outputs, if this is an instance of [HmacSecretResponse::Secret].
+    pub fn decrypt_secrets(
+        &self,
+        shared_secret: &SharedSecret,
+    ) -> Option<Result<HMACGetSecretOutput, CryptoError>> {
+        if let HmacSecretResponse::Secret(hmac_outputs) = self {
+            Some(Self::decrypt_secrets_internal(shared_secret, hmac_outputs))
+        } else {
+            None
+        }
+    }
+
+    fn decrypt_secrets_internal(
+        shared_secret: &SharedSecret,
+        hmac_outputs: &[u8],
+    ) -> Result<HMACGetSecretOutput, CryptoError> {
+        let output_secrets = shared_secret.decrypt(hmac_outputs)?;
+        match if output_secrets.len() < 32 {
+            Err(CryptoError::WrongSaltLength)
+        } else {
+            let (output1, output2) = output_secrets.split_at(32);
+            Ok(HMACGetSecretOutput {
+                output1: output1
+                    .try_into()
+                    .map_err(|_| CryptoError::WrongSaltLength)?,
+                output2: (!output2.is_empty())
+                    .then(|| output2.try_into().map_err(|_| CryptoError::WrongSaltLength))
+                    .transpose()?,
+            })
+        } {
+            err @ Err(CryptoError::WrongSaltLength) => {
+                // TODO: Use Result::inspect_err when stable
+                debug!(
+                    "Bad hmac-secret output length: {} bytes (expected exactly 32 or 64)",
+                    output_secrets.len()
+                );
+                err
+            }
+            other => other,
+        }
+    }
 }
 
 impl Serialize for HmacSecretResponse {
@@ -376,6 +421,40 @@ pub enum AttestationStatement {
     Tpm(serde_cbor::Value),
 }
 
+impl AttestationStatement {
+    /// The [attestation statement format identifier][att-fmt-id].
+    ///
+    /// [att-fmt-id]: https://w3c.github.io/webauthn/#attestation-statement-format-identifier
+    pub fn id(&self) -> &str {
+        match self {
+            Self::None => "none",
+            Self::Packed(..) => "packed",
+            Self::FidoU2F(..) => "fido-u2f",
+            Self::AndroidKey(..) => "android-key",
+            Self::AndroidSafetyNet(..) => "android-safetynet",
+            Self::Apple(..) => "apple",
+            Self::Tpm(..) => "tpm",
+        }
+    }
+}
+
+impl Serialize for AttestationStatement {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::None => serializer.serialize_map(Some(0))?.end(),
+            Self::Packed(ref v) => serializer.serialize_some(v),
+            Self::FidoU2F(ref v) => serializer.serialize_some(v),
+            Self::AndroidKey(ref v) => serializer.serialize_some(v),
+            Self::AndroidSafetyNet(ref v) => serializer.serialize_some(v),
+            Self::Apple(ref v) => serializer.serialize_some(v),
+            Self::Tpm(ref v) => serializer.serialize_some(v),
+        }
+    }
+}
+
 // AttestationStatement::None is serialized as the empty map. We need to enforce
 // the emptyness condition manually while deserializing.
 fn deserialize_none_att_stmt<'de, D>(deserializer: D) -> Result<(), D::Error>
@@ -435,10 +514,10 @@ where
 //                     sig: bytes
 //                 }
 pub struct AttestationStatementFidoU2F {
+    pub sig: Signature, // (1) "sig"
     /// Certificate chain in x509 format
     #[serde(rename = "x5c")]
-    pub attestation_cert: Vec<AttestationCertificate>, // (1) "x5c"
-    pub sig: Signature, // (2) "sig"
+    pub attestation_cert: Vec<AttestationCertificate>, // (2) "x5c"
 }
 
 impl AttestationStatementFidoU2F {
@@ -498,45 +577,15 @@ impl Serialize for AttestationObject {
     where
         S: Serializer,
     {
-        let map_len = 3;
-        let mut map = serializer.serialize_map(Some(map_len))?;
-
-        // CTAP2 canonical CBOR order for these entries is ("fmt", "attStmt", "authData")
-        // as strings are sorted by length and then lexically.
-        // see https://www.w3.org/TR/webauthn-2/#attestation-object
-        match self.att_stmt {
-            AttestationStatement::None => {
-                map.serialize_entry(&"fmt", &"none")?; // (1) "fmt"
-                let v = std::collections::BTreeMap::<(), ()>::new();
-                map.serialize_entry(&"attStmt", &v)?; // (2) "attStmt"
-            }
-            AttestationStatement::Packed(ref v) => {
-                map.serialize_entry(&"fmt", &"packed")?; // (1) "fmt"
-                map.serialize_entry(&"attStmt", v)?; // (2) "attStmt"
-            }
-            AttestationStatement::FidoU2F(ref v) => {
-                map.serialize_entry(&"fmt", &"fido-u2f")?; // (1) "fmt"
-                map.serialize_entry(&"attStmt", v)?; // (2) "attStmt"
-            }
-            AttestationStatement::AndroidKey(ref v) => {
-                map.serialize_entry(&"fmt", &"android-key")?; // (1) "fmt"
-                map.serialize_entry(&"attStmt", v)?; // (2) "attStmt"
-            }
-            AttestationStatement::AndroidSafetyNet(ref v) => {
-                map.serialize_entry(&"fmt", &"android-safetynet")?; // (1) "fmt"
-                map.serialize_entry(&"attStmt", v)?; // (2) "attStmt"
-            }
-            AttestationStatement::Apple(ref v) => {
-                map.serialize_entry(&"fmt", &"apple")?; // (1) "fmt"
-                map.serialize_entry(&"attStmt", v)?; // (2) "attStmt"
-            }
-            AttestationStatement::Tpm(ref v) => {
-                map.serialize_entry(&"fmt", &"tpm")?; // (1) "fmt"
-                map.serialize_entry(&"attStmt", v)?; // (2) "attStmt"
-            }
-        }
-        map.serialize_entry(&"authData", &self.auth_data)?; // (3) "authData"
-        map.end()
+        serialize_map!(
+            serializer,
+            // CTAP2 canonical CBOR order for these entries is ("fmt", "attStmt", "authData")
+            // as strings are sorted by length and then lexically.
+            // see https://www.w3.org/TR/webauthn-2/#attestation-object
+            &"fmt" => self.att_stmt.id(),
+            &"attStmt" => &self.att_stmt,
+            &"authData" => &self.auth_data,
+        )
     }
 }
 
@@ -1124,6 +1173,555 @@ pub mod test {
                 AuthenticatorDataFlags::from_bits(x),
                 Some(AuthenticatorDataFlags::from_bits_truncate(x))
             );
+        }
+    }
+
+    #[test]
+    fn serialize_att_obj_none() -> Result<(), serde_cbor::Error> {
+        let att_stmt = AttestationStatement::None;
+        // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({}))}]")
+        assert_eq!(serde_cbor::ser::to_vec(&att_stmt)?, [0xa0]);
+
+        let att_obj = AttestationObject {
+            auth_data: serde_cbor::de::from_slice(&SAMPLE_AUTH_DATA_MAKE_CREDENTIAL)?,
+            att_stmt,
+        };
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_obj)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"fmt": "none", "attStmt": {}, "authData": SAMPLE_AUTH_DATA_MAKE_CREDENTIAL[2:] }))}]")
+            [
+                0xa3, 0x63, 0x66, 0x6d, 0x74, 0x64, 0x6e, 0x6f, 0x6e, 0x65, 0x67, 0x61, 0x74, 0x74,
+                0x53, 0x74, 0x6d, 0x74, 0xa0, 0x68, 0x61, 0x75, 0x74, 0x68, 0x44, 0x61, 0x74, 0x61,
+                0x58, 0xa2, 0xc2, 0x89, 0xc5, 0xca, 0x9b, 0x04, 0x60, 0xf9, 0x34, 0x6a, 0xb4, 0xe4,
+                0x2d, 0x84, 0x27, 0x43, 0x40, 0x4d, 0x31, 0xf4, 0x84, 0x68, 0x25, 0xa6, 0xd0, 0x65,
+                0xbe, 0x59, 0x7a, 0x87, 0x05, 0x1d, 0xc1, 0x00, 0x00, 0x00, 0x0b, 0xf8, 0xa0, 0x11,
+                0xf3, 0x8c, 0x0a, 0x4d, 0x15, 0x80, 0x06, 0x17, 0x11, 0x1f, 0x9e, 0xdc, 0x7d, 0x00,
+                0x10, 0x89, 0x59, 0xce, 0xad, 0x5b, 0x5c, 0x48, 0x16, 0x4e, 0x8a, 0xbc, 0xd6, 0xd9,
+                0x43, 0x5c, 0x6f, 0xa5, 0x01, 0x02, 0x03, 0x26, 0x20, 0x01, 0x21, 0x58, 0x20, 0xa5,
+                0xfd, 0x5c, 0xe1, 0xb1, 0xc4, 0x58, 0xc5, 0x30, 0xa5, 0x4f, 0xa6, 0x1b, 0x31, 0xbf,
+                0x6b, 0x04, 0xbe, 0x8b, 0x97, 0xaf, 0xde, 0x54, 0xdd, 0x8c, 0xbb, 0x69, 0x27, 0x5a,
+                0x8a, 0x1b, 0xe1, 0x22, 0x58, 0x20, 0xfa, 0x3a, 0x32, 0x31, 0xdd, 0x9d, 0xee, 0xd9,
+                0xd1, 0x89, 0x7b, 0xe5, 0xa6, 0x22, 0x8c, 0x59, 0x50, 0x1e, 0x4b, 0xcd, 0x12, 0x97,
+                0x5d, 0x3d, 0xff, 0x73, 0x0f, 0x01, 0x27, 0x8e, 0xa6, 0x1c, 0xa1, 0x6b, 0x68, 0x6d,
+                0x61, 0x63, 0x2d, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0xf5
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn serialize_att_obj_packed() -> Result<(), serde_cbor::Error> {
+        let att_stmt = AttestationStatement::Packed(AttestationStatementPacked {
+            alg: COSEAlgorithm::ES256,
+            sig: Signature(vec![1, 2, 3, 4]),
+            attestation_cert: vec![
+                AttestationCertificate(vec![5, 6, 7, 8]),
+                AttestationCertificate(vec![9, 10, 11, 12]),
+            ],
+        });
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_stmt)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"alg":-7, "sig":bytes([1, 2, 3, 4]), "x5c": [bytes([5, 6, 7, 8]), bytes([9, 10, 11, 12])] }))}]")
+            [
+                0xa3, 0x63, 0x61, 0x6c, 0x67, 0x26, 0x63, 0x73, 0x69, 0x67, 0x44, 0x01, 0x02, 0x03,
+                0x04, 0x63, 0x78, 0x35, 0x63, 0x82, 0x44, 0x05, 0x06, 0x07, 0x08, 0x44, 0x09, 0x0a,
+                0x0b, 0x0c
+            ]
+        );
+
+        let att_obj = AttestationObject {
+            auth_data: serde_cbor::de::from_slice(&SAMPLE_AUTH_DATA_MAKE_CREDENTIAL)?,
+            att_stmt,
+        };
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_obj)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"fmt": "packed", "attStmt": {"alg":-7, "sig":bytes([1, 2, 3, 4]), "x5c": [bytes([5, 6, 7, 8]), bytes([9, 10, 11, 12])] }, "authData": SAMPLE_AUTH_DATA_MAKE_CREDENTIAL[2:] }))}]")
+            [
+                0xa3, 0x63, 0x66, 0x6d, 0x74, 0x66, 0x70, 0x61, 0x63, 0x6b, 0x65, 0x64, 0x67, 0x61,
+                0x74, 0x74, 0x53, 0x74, 0x6d, 0x74, 0xa3, 0x63, 0x61, 0x6c, 0x67, 0x26, 0x63, 0x73,
+                0x69, 0x67, 0x44, 0x01, 0x02, 0x03, 0x04, 0x63, 0x78, 0x35, 0x63, 0x82, 0x44, 0x05,
+                0x06, 0x07, 0x08, 0x44, 0x09, 0x0a, 0x0b, 0x0c, 0x68, 0x61, 0x75, 0x74, 0x68, 0x44,
+                0x61, 0x74, 0x61, 0x58, 0xa2, 0xc2, 0x89, 0xc5, 0xca, 0x9b, 0x04, 0x60, 0xf9, 0x34,
+                0x6a, 0xb4, 0xe4, 0x2d, 0x84, 0x27, 0x43, 0x40, 0x4d, 0x31, 0xf4, 0x84, 0x68, 0x25,
+                0xa6, 0xd0, 0x65, 0xbe, 0x59, 0x7a, 0x87, 0x05, 0x1d, 0xc1, 0x00, 0x00, 0x00, 0x0b,
+                0xf8, 0xa0, 0x11, 0xf3, 0x8c, 0x0a, 0x4d, 0x15, 0x80, 0x06, 0x17, 0x11, 0x1f, 0x9e,
+                0xdc, 0x7d, 0x00, 0x10, 0x89, 0x59, 0xce, 0xad, 0x5b, 0x5c, 0x48, 0x16, 0x4e, 0x8a,
+                0xbc, 0xd6, 0xd9, 0x43, 0x5c, 0x6f, 0xa5, 0x01, 0x02, 0x03, 0x26, 0x20, 0x01, 0x21,
+                0x58, 0x20, 0xa5, 0xfd, 0x5c, 0xe1, 0xb1, 0xc4, 0x58, 0xc5, 0x30, 0xa5, 0x4f, 0xa6,
+                0x1b, 0x31, 0xbf, 0x6b, 0x04, 0xbe, 0x8b, 0x97, 0xaf, 0xde, 0x54, 0xdd, 0x8c, 0xbb,
+                0x69, 0x27, 0x5a, 0x8a, 0x1b, 0xe1, 0x22, 0x58, 0x20, 0xfa, 0x3a, 0x32, 0x31, 0xdd,
+                0x9d, 0xee, 0xd9, 0xd1, 0x89, 0x7b, 0xe5, 0xa6, 0x22, 0x8c, 0x59, 0x50, 0x1e, 0x4b,
+                0xcd, 0x12, 0x97, 0x5d, 0x3d, 0xff, 0x73, 0x0f, 0x01, 0x27, 0x8e, 0xa6, 0x1c, 0xa1,
+                0x6b, 0x68, 0x6d, 0x61, 0x63, 0x2d, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0xf5
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn serialize_att_obj_fido_u2f() -> Result<(), serde_cbor::Error> {
+        let att_stmt = AttestationStatement::FidoU2F(AttestationStatementFidoU2F {
+            sig: Signature(vec![1, 2, 3, 4]),
+            attestation_cert: vec![
+                AttestationCertificate(vec![5, 6, 7, 8]),
+                AttestationCertificate(vec![9, 10, 11, 12]),
+            ],
+        });
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_stmt)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"x5c": [bytes([5, 6, 7, 8]), bytes([9, 10, 11, 12])], "sig": bytes([1, 2, 3, 4]) }))}]")
+            [
+                0xa2, 0x63, 0x73, 0x69, 0x67, 0x44, 0x01, 0x02, 0x03, 0x04, 0x63, 0x78, 0x35, 0x63,
+                0x82, 0x44, 0x05, 0x06, 0x07, 0x08, 0x44, 0x09, 0x0a, 0x0b, 0x0c
+            ]
+        );
+
+        let att_obj = AttestationObject {
+            auth_data: serde_cbor::de::from_slice(&SAMPLE_AUTH_DATA_MAKE_CREDENTIAL)?,
+            att_stmt,
+        };
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_obj)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"fmt": "fido-u2f", "attStmt": {"x5c": [bytes([5, 6, 7, 8]), bytes([9, 10, 11, 12])], "sig": bytes([1, 2, 3, 4]) }, "authData": SAMPLE_AUTH_DATA_MAKE_CREDENTIAL[2:] }))}]")
+            [
+                0xa3, 0x63, 0x66, 0x6d, 0x74, 0x68, 0x66, 0x69, 0x64, 0x6f, 0x2d, 0x75, 0x32, 0x66,
+                0x67, 0x61, 0x74, 0x74, 0x53, 0x74, 0x6d, 0x74, 0xa2, 0x63, 0x73, 0x69, 0x67, 0x44,
+                0x01, 0x02, 0x03, 0x04, 0x63, 0x78, 0x35, 0x63, 0x82, 0x44, 0x05, 0x06, 0x07, 0x08,
+                0x44, 0x09, 0x0a, 0x0b, 0x0c, 0x68, 0x61, 0x75, 0x74, 0x68, 0x44, 0x61, 0x74, 0x61,
+                0x58, 0xa2, 0xc2, 0x89, 0xc5, 0xca, 0x9b, 0x04, 0x60, 0xf9, 0x34, 0x6a, 0xb4, 0xe4,
+                0x2d, 0x84, 0x27, 0x43, 0x40, 0x4d, 0x31, 0xf4, 0x84, 0x68, 0x25, 0xa6, 0xd0, 0x65,
+                0xbe, 0x59, 0x7a, 0x87, 0x05, 0x1d, 0xc1, 0x00, 0x00, 0x00, 0x0b, 0xf8, 0xa0, 0x11,
+                0xf3, 0x8c, 0x0a, 0x4d, 0x15, 0x80, 0x06, 0x17, 0x11, 0x1f, 0x9e, 0xdc, 0x7d, 0x00,
+                0x10, 0x89, 0x59, 0xce, 0xad, 0x5b, 0x5c, 0x48, 0x16, 0x4e, 0x8a, 0xbc, 0xd6, 0xd9,
+                0x43, 0x5c, 0x6f, 0xa5, 0x01, 0x02, 0x03, 0x26, 0x20, 0x01, 0x21, 0x58, 0x20, 0xa5,
+                0xfd, 0x5c, 0xe1, 0xb1, 0xc4, 0x58, 0xc5, 0x30, 0xa5, 0x4f, 0xa6, 0x1b, 0x31, 0xbf,
+                0x6b, 0x04, 0xbe, 0x8b, 0x97, 0xaf, 0xde, 0x54, 0xdd, 0x8c, 0xbb, 0x69, 0x27, 0x5a,
+                0x8a, 0x1b, 0xe1, 0x22, 0x58, 0x20, 0xfa, 0x3a, 0x32, 0x31, 0xdd, 0x9d, 0xee, 0xd9,
+                0xd1, 0x89, 0x7b, 0xe5, 0xa6, 0x22, 0x8c, 0x59, 0x50, 0x1e, 0x4b, 0xcd, 0x12, 0x97,
+                0x5d, 0x3d, 0xff, 0x73, 0x0f, 0x01, 0x27, 0x8e, 0xa6, 0x1c, 0xa1, 0x6b, 0x68, 0x6d,
+                0x61, 0x63, 0x2d, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0xf5
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn serialize_att_obj_android_key() -> Result<(), serde_cbor::Error> {
+        let att_stmt = AttestationStatement::AndroidKey(serde_cbor::Value::Map(
+            vec![
+                ("alg".to_string().into(), serde_cbor::Value::Integer(-7)),
+                (
+                    "sig".to_string().into(),
+                    serde_cbor::Value::Bytes(vec![1, 2, 3, 4]),
+                ),
+                (
+                    "x5c".to_string().into(),
+                    serde_cbor::Value::Array(vec![
+                        serde_cbor::Value::Bytes(vec![5, 6, 7, 8]),
+                        serde_cbor::Value::Bytes(vec![9, 10, 11, 12]),
+                    ]),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        ));
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_stmt)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"alg": -7, "sig": bytes([1, 2, 3, 4]), "x5c": [bytes([5, 6, 7, 8]), bytes([9, 10, 11, 12])] }))}]")
+            [
+                0xa3, 0x63, 0x61, 0x6c, 0x67, 0x26, 0x63, 0x73, 0x69, 0x67, 0x44, 0x01, 0x02, 0x03,
+                0x04, 0x63, 0x78, 0x35, 0x63, 0x82, 0x44, 0x05, 0x06, 0x07, 0x08, 0x44, 0x09, 0x0a,
+                0x0b, 0x0c
+            ]
+        );
+
+        let att_obj = AttestationObject {
+            auth_data: serde_cbor::de::from_slice(&SAMPLE_AUTH_DATA_MAKE_CREDENTIAL)?,
+            att_stmt,
+        };
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_obj)?,
+            // Python: fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({ "fmt": "android-key", "attStmt": {"alg": -7, "sig": bytes([1, 2, 3, 4]), "x5c": [bytes([5, 6, 7, 8]), bytes([9, 10, 11, 12])] }, "authData": SAMPLE_AUTH_DATA_MAKE_CREDENTIAL[2:] }))}]")
+            [
+                0xa3, 0x63, 0x66, 0x6d, 0x74, 0x6b, 0x61, 0x6e, 0x64, 0x72, 0x6f, 0x69, 0x64, 0x2d,
+                0x6b, 0x65, 0x79, 0x67, 0x61, 0x74, 0x74, 0x53, 0x74, 0x6d, 0x74, 0xa3, 0x63, 0x61,
+                0x6c, 0x67, 0x26, 0x63, 0x73, 0x69, 0x67, 0x44, 0x01, 0x02, 0x03, 0x04, 0x63, 0x78,
+                0x35, 0x63, 0x82, 0x44, 0x05, 0x06, 0x07, 0x08, 0x44, 0x09, 0x0a, 0x0b, 0x0c, 0x68,
+                0x61, 0x75, 0x74, 0x68, 0x44, 0x61, 0x74, 0x61, 0x58, 0xa2, 0xc2, 0x89, 0xc5, 0xca,
+                0x9b, 0x04, 0x60, 0xf9, 0x34, 0x6a, 0xb4, 0xe4, 0x2d, 0x84, 0x27, 0x43, 0x40, 0x4d,
+                0x31, 0xf4, 0x84, 0x68, 0x25, 0xa6, 0xd0, 0x65, 0xbe, 0x59, 0x7a, 0x87, 0x05, 0x1d,
+                0xc1, 0x00, 0x00, 0x00, 0x0b, 0xf8, 0xa0, 0x11, 0xf3, 0x8c, 0x0a, 0x4d, 0x15, 0x80,
+                0x06, 0x17, 0x11, 0x1f, 0x9e, 0xdc, 0x7d, 0x00, 0x10, 0x89, 0x59, 0xce, 0xad, 0x5b,
+                0x5c, 0x48, 0x16, 0x4e, 0x8a, 0xbc, 0xd6, 0xd9, 0x43, 0x5c, 0x6f, 0xa5, 0x01, 0x02,
+                0x03, 0x26, 0x20, 0x01, 0x21, 0x58, 0x20, 0xa5, 0xfd, 0x5c, 0xe1, 0xb1, 0xc4, 0x58,
+                0xc5, 0x30, 0xa5, 0x4f, 0xa6, 0x1b, 0x31, 0xbf, 0x6b, 0x04, 0xbe, 0x8b, 0x97, 0xaf,
+                0xde, 0x54, 0xdd, 0x8c, 0xbb, 0x69, 0x27, 0x5a, 0x8a, 0x1b, 0xe1, 0x22, 0x58, 0x20,
+                0xfa, 0x3a, 0x32, 0x31, 0xdd, 0x9d, 0xee, 0xd9, 0xd1, 0x89, 0x7b, 0xe5, 0xa6, 0x22,
+                0x8c, 0x59, 0x50, 0x1e, 0x4b, 0xcd, 0x12, 0x97, 0x5d, 0x3d, 0xff, 0x73, 0x0f, 0x01,
+                0x27, 0x8e, 0xa6, 0x1c, 0xa1, 0x6b, 0x68, 0x6d, 0x61, 0x63, 0x2d, 0x73, 0x65, 0x63,
+                0x72, 0x65, 0x74, 0xf5
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn serialize_att_obj_android_safetynet() -> Result<(), serde_cbor::Error> {
+        let att_stmt = AttestationStatement::AndroidSafetyNet(serde_cbor::Value::Map(
+            vec![
+                (
+                    "ver".to_string().into(),
+                    "Kom ihåg att du aldrig får snyta dig i mattan!"
+                        .to_string()
+                        .into(),
+                ),
+                (
+                    "response".to_string().into(),
+                    serde_cbor::Value::Bytes(vec![1, 2, 3, 4]),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        ));
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_stmt)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"ver": "Kom ihåg att du aldrig får snyta dig i mattan!", "response": bytes([1, 2, 3, 4]) }))}]")
+            [
+                0xa2, 0x63, 0x76, 0x65, 0x72, 0x78, 0x30, 0x4b, 0x6f, 0x6d, 0x20, 0x69, 0x68, 0xc3,
+                0xa5, 0x67, 0x20, 0x61, 0x74, 0x74, 0x20, 0x64, 0x75, 0x20, 0x61, 0x6c, 0x64, 0x72,
+                0x69, 0x67, 0x20, 0x66, 0xc3, 0xa5, 0x72, 0x20, 0x73, 0x6e, 0x79, 0x74, 0x61, 0x20,
+                0x64, 0x69, 0x67, 0x20, 0x69, 0x20, 0x6d, 0x61, 0x74, 0x74, 0x61, 0x6e, 0x21, 0x68,
+                0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x01, 0x02, 0x03, 0x04
+            ]
+        );
+
+        let att_obj = AttestationObject {
+            auth_data: serde_cbor::de::from_slice(&SAMPLE_AUTH_DATA_MAKE_CREDENTIAL)?,
+            att_stmt,
+        };
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_obj)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({ "fmt": "android-safetynet", "attStmt": {"ver": "Kom ihåg att du aldrig får snyta dig i mattan!", "response": bytes([1, 2, 3, 4]) }, "authData": SAMPLE_AUTH_DATA_MAKE_CREDENTIAL[2:] }))}]")
+            [
+                0xa3, 0x63, 0x66, 0x6d, 0x74, 0x71, 0x61, 0x6e, 0x64, 0x72, 0x6f, 0x69, 0x64, 0x2d,
+                0x73, 0x61, 0x66, 0x65, 0x74, 0x79, 0x6e, 0x65, 0x74, 0x67, 0x61, 0x74, 0x74, 0x53,
+                0x74, 0x6d, 0x74, 0xa2, 0x63, 0x76, 0x65, 0x72, 0x78, 0x30, 0x4b, 0x6f, 0x6d, 0x20,
+                0x69, 0x68, 0xc3, 0xa5, 0x67, 0x20, 0x61, 0x74, 0x74, 0x20, 0x64, 0x75, 0x20, 0x61,
+                0x6c, 0x64, 0x72, 0x69, 0x67, 0x20, 0x66, 0xc3, 0xa5, 0x72, 0x20, 0x73, 0x6e, 0x79,
+                0x74, 0x61, 0x20, 0x64, 0x69, 0x67, 0x20, 0x69, 0x20, 0x6d, 0x61, 0x74, 0x74, 0x61,
+                0x6e, 0x21, 0x68, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x01, 0x02,
+                0x03, 0x04, 0x68, 0x61, 0x75, 0x74, 0x68, 0x44, 0x61, 0x74, 0x61, 0x58, 0xa2, 0xc2,
+                0x89, 0xc5, 0xca, 0x9b, 0x04, 0x60, 0xf9, 0x34, 0x6a, 0xb4, 0xe4, 0x2d, 0x84, 0x27,
+                0x43, 0x40, 0x4d, 0x31, 0xf4, 0x84, 0x68, 0x25, 0xa6, 0xd0, 0x65, 0xbe, 0x59, 0x7a,
+                0x87, 0x05, 0x1d, 0xc1, 0x00, 0x00, 0x00, 0x0b, 0xf8, 0xa0, 0x11, 0xf3, 0x8c, 0x0a,
+                0x4d, 0x15, 0x80, 0x06, 0x17, 0x11, 0x1f, 0x9e, 0xdc, 0x7d, 0x00, 0x10, 0x89, 0x59,
+                0xce, 0xad, 0x5b, 0x5c, 0x48, 0x16, 0x4e, 0x8a, 0xbc, 0xd6, 0xd9, 0x43, 0x5c, 0x6f,
+                0xa5, 0x01, 0x02, 0x03, 0x26, 0x20, 0x01, 0x21, 0x58, 0x20, 0xa5, 0xfd, 0x5c, 0xe1,
+                0xb1, 0xc4, 0x58, 0xc5, 0x30, 0xa5, 0x4f, 0xa6, 0x1b, 0x31, 0xbf, 0x6b, 0x04, 0xbe,
+                0x8b, 0x97, 0xaf, 0xde, 0x54, 0xdd, 0x8c, 0xbb, 0x69, 0x27, 0x5a, 0x8a, 0x1b, 0xe1,
+                0x22, 0x58, 0x20, 0xfa, 0x3a, 0x32, 0x31, 0xdd, 0x9d, 0xee, 0xd9, 0xd1, 0x89, 0x7b,
+                0xe5, 0xa6, 0x22, 0x8c, 0x59, 0x50, 0x1e, 0x4b, 0xcd, 0x12, 0x97, 0x5d, 0x3d, 0xff,
+                0x73, 0x0f, 0x01, 0x27, 0x8e, 0xa6, 0x1c, 0xa1, 0x6b, 0x68, 0x6d, 0x61, 0x63, 0x2d,
+                0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0xf5
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn serialize_att_obj_apple() -> Result<(), serde_cbor::Error> {
+        let att_stmt = AttestationStatement::Apple(serde_cbor::Value::Map(
+            vec![(
+                "x5c".to_string().into(),
+                serde_cbor::Value::Array(vec![
+                    serde_cbor::Value::Bytes(vec![1, 2, 3, 4]),
+                    serde_cbor::Value::Bytes(vec![5, 6, 7, 8]),
+                ]),
+            )]
+            .into_iter()
+            .collect(),
+        ));
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_stmt)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"x5c": [bytes([1, 2, 3, 4]), bytes([5, 6, 7, 8])] }))}]")
+            [
+                0xa1, 0x63, 0x78, 0x35, 0x63, 0x82, 0x44, 0x01, 0x02, 0x03, 0x04, 0x44, 0x05, 0x06,
+                0x07, 0x08
+            ]
+        );
+
+        let att_obj = AttestationObject {
+            auth_data: serde_cbor::de::from_slice(&SAMPLE_AUTH_DATA_MAKE_CREDENTIAL)?,
+            att_stmt,
+        };
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_obj)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"fmt": "apple", "attStmt": {"x5c": [bytes([1, 2, 3, 4]), bytes([5, 6, 7, 8])] }, "authData": SAMPLE_AUTH_DATA_MAKE_CREDENTIAL[2:] }))}]")
+            [
+                0xa3, 0x63, 0x66, 0x6d, 0x74, 0x65, 0x61, 0x70, 0x70, 0x6c, 0x65, 0x67, 0x61, 0x74,
+                0x74, 0x53, 0x74, 0x6d, 0x74, 0xa1, 0x63, 0x78, 0x35, 0x63, 0x82, 0x44, 0x01, 0x02,
+                0x03, 0x04, 0x44, 0x05, 0x06, 0x07, 0x08, 0x68, 0x61, 0x75, 0x74, 0x68, 0x44, 0x61,
+                0x74, 0x61, 0x58, 0xa2, 0xc2, 0x89, 0xc5, 0xca, 0x9b, 0x04, 0x60, 0xf9, 0x34, 0x6a,
+                0xb4, 0xe4, 0x2d, 0x84, 0x27, 0x43, 0x40, 0x4d, 0x31, 0xf4, 0x84, 0x68, 0x25, 0xa6,
+                0xd0, 0x65, 0xbe, 0x59, 0x7a, 0x87, 0x05, 0x1d, 0xc1, 0x00, 0x00, 0x00, 0x0b, 0xf8,
+                0xa0, 0x11, 0xf3, 0x8c, 0x0a, 0x4d, 0x15, 0x80, 0x06, 0x17, 0x11, 0x1f, 0x9e, 0xdc,
+                0x7d, 0x00, 0x10, 0x89, 0x59, 0xce, 0xad, 0x5b, 0x5c, 0x48, 0x16, 0x4e, 0x8a, 0xbc,
+                0xd6, 0xd9, 0x43, 0x5c, 0x6f, 0xa5, 0x01, 0x02, 0x03, 0x26, 0x20, 0x01, 0x21, 0x58,
+                0x20, 0xa5, 0xfd, 0x5c, 0xe1, 0xb1, 0xc4, 0x58, 0xc5, 0x30, 0xa5, 0x4f, 0xa6, 0x1b,
+                0x31, 0xbf, 0x6b, 0x04, 0xbe, 0x8b, 0x97, 0xaf, 0xde, 0x54, 0xdd, 0x8c, 0xbb, 0x69,
+                0x27, 0x5a, 0x8a, 0x1b, 0xe1, 0x22, 0x58, 0x20, 0xfa, 0x3a, 0x32, 0x31, 0xdd, 0x9d,
+                0xee, 0xd9, 0xd1, 0x89, 0x7b, 0xe5, 0xa6, 0x22, 0x8c, 0x59, 0x50, 0x1e, 0x4b, 0xcd,
+                0x12, 0x97, 0x5d, 0x3d, 0xff, 0x73, 0x0f, 0x01, 0x27, 0x8e, 0xa6, 0x1c, 0xa1, 0x6b,
+                0x68, 0x6d, 0x61, 0x63, 0x2d, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0xf5
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn serialize_att_obj_tpm() -> Result<(), serde_cbor::Error> {
+        let att_stmt = AttestationStatement::Tpm(serde_cbor::Value::Map(
+            vec![
+                ("ver".to_string().into(), "2.0".to_string().into()),
+                ("alg".to_string().into(), (-7).into()),
+                (
+                    "x5c".to_string().into(),
+                    serde_cbor::Value::Array(vec![
+                        serde_cbor::Value::Bytes(vec![1, 2, 3, 4]),
+                        serde_cbor::Value::Bytes(vec![5, 6, 7, 8]),
+                    ]),
+                ),
+                (
+                    "sig".to_string().into(),
+                    serde_cbor::Value::Bytes(vec![9, 10, 11, 12]),
+                ),
+                (
+                    "certInfo".to_string().into(),
+                    serde_cbor::Value::Bytes(vec![13, 14, 15, 16]),
+                ),
+                (
+                    "pubArea".to_string().into(),
+                    serde_cbor::Value::Bytes(vec![17, 18, 19, 20]),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        ));
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_stmt)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"ver": "2.0", "alg": -7, "x5c": [bytes([1, 2, 3, 4]), bytes([5, 6, 7, 8])], "sig": bytes([9, 10, 11, 12]), "certInfo": bytes([13, 14, 15, 16]), "pubArea": bytes([17, 18, 19, 20]) }))}]")
+            [
+                0xa6, 0x63, 0x61, 0x6c, 0x67, 0x26, 0x63, 0x73, 0x69, 0x67, 0x44, 0x09, 0x0a, 0x0b,
+                0x0c, 0x63, 0x76, 0x65, 0x72, 0x63, 0x32, 0x2e, 0x30, 0x63, 0x78, 0x35, 0x63, 0x82,
+                0x44, 0x01, 0x02, 0x03, 0x04, 0x44, 0x05, 0x06, 0x07, 0x08, 0x67, 0x70, 0x75, 0x62,
+                0x41, 0x72, 0x65, 0x61, 0x44, 0x11, 0x12, 0x13, 0x14, 0x68, 0x63, 0x65, 0x72, 0x74,
+                0x49, 0x6e, 0x66, 0x6f, 0x44, 0x0d, 0x0e, 0x0f, 0x10
+            ]
+        );
+
+        let att_obj = AttestationObject {
+            auth_data: serde_cbor::de::from_slice(&SAMPLE_AUTH_DATA_MAKE_CREDENTIAL)?,
+            att_stmt,
+        };
+        assert_eq!(
+            serde_cbor::ser::to_vec(&att_obj)?,
+            // Python: from fido2.cbor import encode; print(f"[{", ".join(f'0x{b:02x}' for b in encode({"fmt": "tpm", "attStmt": {"ver": "2.0", "alg": -7, "x5c": [bytes([1, 2, 3, 4]), bytes([5, 6, 7, 8])], "sig": bytes([9, 10, 11, 12]), "certInfo": bytes([13, 14, 15, 16]), "pubArea": bytes([17, 18, 19, 20]) }, "authData": SAMPLE_AUTH_DATA_MAKE_CREDENTIAL[2:] }))}]")
+            [
+                0xa3, 0x63, 0x66, 0x6d, 0x74, 0x63, 0x74, 0x70, 0x6d, 0x67, 0x61, 0x74, 0x74, 0x53,
+                0x74, 0x6d, 0x74, 0xa6, 0x63, 0x61, 0x6c, 0x67, 0x26, 0x63, 0x73, 0x69, 0x67, 0x44,
+                0x09, 0x0a, 0x0b, 0x0c, 0x63, 0x76, 0x65, 0x72, 0x63, 0x32, 0x2e, 0x30, 0x63, 0x78,
+                0x35, 0x63, 0x82, 0x44, 0x01, 0x02, 0x03, 0x04, 0x44, 0x05, 0x06, 0x07, 0x08, 0x67,
+                0x70, 0x75, 0x62, 0x41, 0x72, 0x65, 0x61, 0x44, 0x11, 0x12, 0x13, 0x14, 0x68, 0x63,
+                0x65, 0x72, 0x74, 0x49, 0x6e, 0x66, 0x6f, 0x44, 0x0d, 0x0e, 0x0f, 0x10, 0x68, 0x61,
+                0x75, 0x74, 0x68, 0x44, 0x61, 0x74, 0x61, 0x58, 0xa2, 0xc2, 0x89, 0xc5, 0xca, 0x9b,
+                0x04, 0x60, 0xf9, 0x34, 0x6a, 0xb4, 0xe4, 0x2d, 0x84, 0x27, 0x43, 0x40, 0x4d, 0x31,
+                0xf4, 0x84, 0x68, 0x25, 0xa6, 0xd0, 0x65, 0xbe, 0x59, 0x7a, 0x87, 0x05, 0x1d, 0xc1,
+                0x00, 0x00, 0x00, 0x0b, 0xf8, 0xa0, 0x11, 0xf3, 0x8c, 0x0a, 0x4d, 0x15, 0x80, 0x06,
+                0x17, 0x11, 0x1f, 0x9e, 0xdc, 0x7d, 0x00, 0x10, 0x89, 0x59, 0xce, 0xad, 0x5b, 0x5c,
+                0x48, 0x16, 0x4e, 0x8a, 0xbc, 0xd6, 0xd9, 0x43, 0x5c, 0x6f, 0xa5, 0x01, 0x02, 0x03,
+                0x26, 0x20, 0x01, 0x21, 0x58, 0x20, 0xa5, 0xfd, 0x5c, 0xe1, 0xb1, 0xc4, 0x58, 0xc5,
+                0x30, 0xa5, 0x4f, 0xa6, 0x1b, 0x31, 0xbf, 0x6b, 0x04, 0xbe, 0x8b, 0x97, 0xaf, 0xde,
+                0x54, 0xdd, 0x8c, 0xbb, 0x69, 0x27, 0x5a, 0x8a, 0x1b, 0xe1, 0x22, 0x58, 0x20, 0xfa,
+                0x3a, 0x32, 0x31, 0xdd, 0x9d, 0xee, 0xd9, 0xd1, 0x89, 0x7b, 0xe5, 0xa6, 0x22, 0x8c,
+                0x59, 0x50, 0x1e, 0x4b, 0xcd, 0x12, 0x97, 0x5d, 0x3d, 0xff, 0x73, 0x0f, 0x01, 0x27,
+                0x8e, 0xa6, 0x1c, 0xa1, 0x6b, 0x68, 0x6d, 0x61, 0x63, 0x2d, 0x73, 0x65, 0x63, 0x72,
+                0x65, 0x74, 0xf5
+            ]
+        );
+
+        Ok(())
+    }
+
+    mod hmac_secret {
+        use std::convert::TryFrom;
+
+        use crate::{
+            crypto::{
+                COSEAlgorithm, COSEEC2Key, COSEKey, COSEKeyType, Curve, PinUvAuthProtocol,
+                SharedSecret,
+            },
+            ctap2::{attestation::HmacSecretResponse, commands::CommandError},
+            AuthenticatorInfo,
+        };
+
+        fn make_test_secret(pin_protocol: u64) -> Result<SharedSecret, CommandError> {
+            let fake_unused_key = COSEKey {
+                alg: COSEAlgorithm::ECDH_ES_HKDF256,
+                key: COSEKeyType::EC2(COSEEC2Key {
+                    curve: Curve::SECP256R1,
+                    x: vec![],
+                    y: vec![],
+                }),
+            };
+
+            let pin_protocol = PinUvAuthProtocol::try_from(&AuthenticatorInfo {
+                pin_protocols: Some(vec![pin_protocol]),
+                ..Default::default()
+            })?;
+
+            let key = {
+                let aes_key = 0..32;
+                let hmac_key = 32..64;
+                match pin_protocol.id() {
+                    1 => aes_key.collect(),
+                    2 => hmac_key.chain(aes_key).collect(),
+                    _ => unimplemented!(),
+                }
+            };
+
+            Ok(SharedSecret::new_test(
+                pin_protocol,
+                key,
+                fake_unused_key.clone(),
+                fake_unused_key,
+            ))
+        }
+
+        #[test]
+        fn decrypt_confirmed_returns_none() -> Result<(), CommandError> {
+            let shared_secret = make_test_secret(2)?;
+            for flag in [true, false] {
+                let resp = HmacSecretResponse::Confirmed(flag);
+                let hmac_output = resp.decrypt_secrets(&shared_secret);
+                assert_eq!(hmac_output, None, "Failed for confirmed flag: {:?}", flag);
+            }
+            Ok(())
+        }
+
+        #[cfg(not(feature = "crypto_dummy"))]
+        mod requires_crypto {
+            use super::*;
+
+            use crate::{
+                crypto::CryptoError,
+                ctap2::{attestation::HmacSecretResponse, commands::CommandError},
+            };
+
+            const PIN_PROTOCOL_2_IV: [u8; 16] = [0; 16]; // PIN protocol 1 uses a hard-coded all-zero IV
+
+            /// Generated using AES key 0..32 and ciphertext 0..64:
+            /// ```
+            /// #!/usr/bin/env python3
+            /// from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+            ///
+            /// key = bytes(range(32))
+            /// iv = bytes([0] * 16)
+            /// ciphertext = bytes(range(64))
+            ///
+            /// cipher = Cipher(algorithms.AES256(key), modes.CBC(iv))
+            /// decryptor = cipher.decryptor()
+            /// outputs = list(decryptor.update(ciphertext) + decryptor.finalize())
+            /// EXPECTED_OUTPUT1 = outputs[0:32]
+            /// EXPECTED_OUTPUT2 = outputs[32:64]
+            /// print(EXPECTED_OUTPUT1)
+            /// print(EXPECTED_OUTPUT2)
+            /// ```
+            /// Note: Using WebCrypto to generate these is impractical since they MUST NOT be padded, but WebCrypto inserts PKCS#7 padding.
+            const EXPECTED_OUTPUT1: [u8; 32] = [
+                145, 61, 188, 229, 73, 58, 253, 192, 87, 114, 133, 138, 173, 74, 68, 50, 105, 3,
+                44, 7, 205, 92, 54, 139, 137, 207, 7, 105, 89, 85, 211, 130,
+            ];
+
+            /// See [EXPECTED_OUTPUT1] for generation instructions
+            const EXPECTED_OUTPUT2: Option<[u8; 32]> = Some([
+                155, 19, 88, 255, 192, 226, 50, 42, 243, 22, 42, 12, 146, 77, 108, 29, 71, 72, 149,
+                153, 183, 65, 182, 149, 71, 202, 57, 123, 239, 79, 94, 230,
+            ]);
+
+            #[test]
+            fn decrypt_one_secret_pin_protocol_1() -> Result<(), CommandError> {
+                const CT_LEN: u8 = 32;
+                let shared_secret = make_test_secret(1)?;
+                let resp = HmacSecretResponse::Secret((0..CT_LEN).collect());
+                let hmac_output = resp.decrypt_secrets(&shared_secret).unwrap()?;
+                assert_eq!(hmac_output.output1, EXPECTED_OUTPUT1, "Incorrect output1");
+                assert_eq!(hmac_output.output2, None, "Incorrect output2");
+                Ok(())
+            }
+
+            #[test]
+            fn decrypt_two_secrets_pin_protocol_1() -> Result<(), CommandError> {
+                const CT_LEN: u8 = 32 * 2;
+                let shared_secret = make_test_secret(1)?;
+                let resp = HmacSecretResponse::Secret((0..CT_LEN).collect());
+                let hmac_output = resp.decrypt_secrets(&shared_secret).unwrap()?;
+                assert_eq!(hmac_output.output1, EXPECTED_OUTPUT1, "Incorrect output1");
+                assert_eq!(hmac_output.output2, EXPECTED_OUTPUT2, "Incorrect output2");
+                Ok(())
+            }
+
+            #[test]
+            fn decrypt_one_secret_pin_protocol_2() -> Result<(), CommandError> {
+                const CT_LEN: u8 = 32;
+                let shared_secret = make_test_secret(2)?;
+                let resp = HmacSecretResponse::Secret(
+                    PIN_PROTOCOL_2_IV.iter().copied().chain(0..CT_LEN).collect(),
+                );
+                let hmac_output = resp.decrypt_secrets(&shared_secret).unwrap()?;
+                assert_eq!(hmac_output.output1, EXPECTED_OUTPUT1, "Incorrect output1");
+                assert_eq!(hmac_output.output2, None, "Incorrect output2");
+                Ok(())
+            }
+
+            #[test]
+            fn decrypt_two_secrets_pin_protocol_2() -> Result<(), CommandError> {
+                const CT_LEN: u8 = 32 * 2;
+                let shared_secret = make_test_secret(2)?;
+                let resp = HmacSecretResponse::Secret(
+                    PIN_PROTOCOL_2_IV.iter().copied().chain(0..CT_LEN).collect(),
+                );
+                let hmac_output = resp.decrypt_secrets(&shared_secret).unwrap()?;
+                assert_eq!(hmac_output.output1, EXPECTED_OUTPUT1, "Incorrect output1");
+                assert_eq!(hmac_output.output2, EXPECTED_OUTPUT2, "Incorrect output2");
+                Ok(())
+            }
+
+            #[test]
+            fn decrypt_wrong_length_pin_protocol_2() -> Result<(), CommandError> {
+                // hmac-secret output can only be multiples of 32 bytes since it operates on whole AES cipher blocks
+                let shared_secret = make_test_secret(2)?;
+                {
+                    // Empty cleartext
+                    let resp = HmacSecretResponse::Secret(PIN_PROTOCOL_2_IV.to_vec());
+                    let hmac_output = resp.decrypt_secrets(&shared_secret).unwrap();
+                    assert_eq!(hmac_output, Err(CryptoError::WrongSaltLength));
+                }
+                {
+                    // Too long cleartext
+                    let resp = HmacSecretResponse::Secret(
+                        PIN_PROTOCOL_2_IV.iter().copied().chain(0..96).collect(),
+                    );
+                    let hmac_output = resp.decrypt_secrets(&shared_secret).unwrap();
+                    assert_eq!(hmac_output, Err(CryptoError::WrongSaltLength));
+                }
+                Ok(())
+            }
         }
     }
 }
