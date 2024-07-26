@@ -8,7 +8,10 @@ const TEST_URL = "data:text/html;charset=utf-8,measuring tool test";
 
 const PREFIX = "measuring-tool-";
 const HANDLER_PREFIX = "handler-";
-const HIGHLIGHTER_TYPE = "MeasuringToolHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.MEASURING;
 
 const X = 32;
 const Y = 20;

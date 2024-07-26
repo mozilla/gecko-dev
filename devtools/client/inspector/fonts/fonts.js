@@ -50,6 +50,9 @@ const {
 const {
   updatePreviewText,
 } = require("resource://devtools/client/inspector/fonts/actions/font-options.js");
+const { TYPES: HIGHLIGHTER_TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
 
 const FONT_PROPERTIES = [
   "font-family",
@@ -895,7 +898,7 @@ class FontInspector {
       try {
         this.fontsHighlighter =
           await this.inspector.inspectorFront.getHighlighterByType(
-            "FontsHighlighter"
+            HIGHLIGHTER_TYPES.FONTS
           );
       } catch (e) {
         // the FontsHighlighter won't be available when debugging a XUL document.

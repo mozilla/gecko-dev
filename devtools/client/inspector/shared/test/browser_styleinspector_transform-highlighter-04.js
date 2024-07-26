@@ -24,7 +24,10 @@ const TEST_URI = `
   <div class="test"></div>
 `;
 
-const TYPE = "CssTransformHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const TYPE = TYPES.TRANSFORM;
 
 add_task(async function () {
   await addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));

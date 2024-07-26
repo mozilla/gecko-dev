@@ -11,7 +11,10 @@
 
 const TEST_URL = URL_ROOT + "doc_inspector_highlighter-geometry_01.html";
 const ID = "geometry-editor-";
-const HIGHLIGHTER_TYPE = "GeometryEditorHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.GEOMETRY;
 const PROPS = ["left", "right", "top", "bottom"];
 
 add_task(async function () {

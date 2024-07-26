@@ -7,7 +7,10 @@
 // It should move around when the eyedropper is close to the edges of the viewport so as
 // to always stay visible.
 
-const HIGHLIGHTER_TYPE = "EyeDropper";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.EYEDROPPER;
 const ID = "eye-dropper-";
 
 const HTML = `

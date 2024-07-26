@@ -9,6 +9,10 @@
 
 const TEST_URL = "data:text/html;charset=utf-8,custom highlighters";
 
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+
 add_task(async function () {
   const { inspector } = await openInspectorForURL(TEST_URL);
 
@@ -18,20 +22,16 @@ add_task(async function () {
 });
 
 async function manyInstancesOfCustomHighlighters({ inspectorFront }) {
-  const h1 = await inspectorFront.getHighlighterByType("BoxModelHighlighter");
-  const h2 = await inspectorFront.getHighlighterByType("BoxModelHighlighter");
+  const h1 = await inspectorFront.getHighlighterByType(TYPES.BOXMODEL);
+  const h2 = await inspectorFront.getHighlighterByType(TYPES.BOXMODEL);
   Assert.notStrictEqual(
     h1,
     h2,
     "getHighlighterByType returns new instances every time (1)"
   );
 
-  const h3 = await inspectorFront.getHighlighterByType(
-    "CssTransformHighlighter"
-  );
-  const h4 = await inspectorFront.getHighlighterByType(
-    "CssTransformHighlighter"
-  );
+  const h3 = await inspectorFront.getHighlighterByType(TYPES.TRANSFORM);
+  const h4 = await inspectorFront.getHighlighterByType(TYPES.TRANSFORM);
   Assert.notStrictEqual(
     h3,
     h4,
@@ -53,10 +53,8 @@ async function manyInstancesOfCustomHighlighters({ inspectorFront }) {
 }
 
 async function showHideMethodsAreAvailable({ inspectorFront }) {
-  const h1 = await inspectorFront.getHighlighterByType("BoxModelHighlighter");
-  const h2 = await inspectorFront.getHighlighterByType(
-    "CssTransformHighlighter"
-  );
+  const h1 = await inspectorFront.getHighlighterByType(TYPES.BOXMODEL);
+  const h2 = await inspectorFront.getHighlighterByType(TYPES.TRANSFORM);
 
   ok("show" in h1, "Show method is present on the front API");
   ok("show" in h2, "Show method is present on the front API");

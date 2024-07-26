@@ -21,13 +21,17 @@ const RULERS_MAX_Y_AXIS = 15000;
 // currently the unit is in pixel.
 const RULERS_TEXT_STEP = 100;
 
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+
 add_task(async function () {
   const { inspector, highlighterTestFront } = await openInspectorForURL(
     TEST_URL
   );
   const front = inspector.inspectorFront;
 
-  const highlighter = await front.getHighlighterByType("RulersHighlighter");
+  const highlighter = await front.getHighlighterByType(TYPES.RULERS);
 
   await isHiddenByDefault(highlighter, inspector, highlighterTestFront);
   await isVisibleAfterShow(highlighter, inspector, highlighterTestFront);

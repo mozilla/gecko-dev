@@ -20,15 +20,17 @@ transform highlighter applies those values correctly to the SVG elements
 
 const TEST_URL = URL_ROOT + "doc_inspector_highlighter_csstransform.html";
 
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+
 add_task(async function () {
   const { inspector, highlighterTestFront } = await openInspectorForURL(
     TEST_URL
   );
   const front = inspector.inspectorFront;
 
-  const highlighter = await front.getHighlighterByType(
-    "CssTransformHighlighter"
-  );
+  const highlighter = await front.getHighlighterByType(TYPES.TRANSFORM);
 
   const nodeFront = await getNodeFront("#test-node", inspector);
 

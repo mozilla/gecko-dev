@@ -13,13 +13,17 @@ const TEST_URL =
 
 const ID = "rulers-highlighter-";
 
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+
 add_task(async function () {
   const { inspector, highlighterTestFront } = await openInspectorForURL(
     TEST_URL
   );
   const front = inspector.inspectorFront;
 
-  const highlighter = await front.getHighlighterByType("RulersHighlighter");
+  const highlighter = await front.getHighlighterByType(TYPES.RULERS);
 
   // the rulers doesn't need any node, but as highligher it seems mandatory
   // ones, so the body is given

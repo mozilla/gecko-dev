@@ -64,6 +64,15 @@ loader.lazyRequireGetter(
   true
 );
 
+const lazy = {};
+ChromeUtils.defineESModuleGetters(
+  lazy,
+  {
+    TYPES: "resource://devtools/shared/highlighters.mjs",
+  },
+  { global: "contextual" }
+);
+
 const kStateHover = 0x00000004; // ElementState::HOVER
 
 const {
@@ -256,7 +265,7 @@ class AccessibleWalkerActor extends Actor {
     if (!this._highlighter) {
       this._highlighter = new CustomHighlighterActor(
         this,
-        "AccessibleHighlighter"
+        lazy.TYPES.ACCESSIBLE
       );
 
       this.manage(this._highlighter);
@@ -270,7 +279,7 @@ class AccessibleWalkerActor extends Actor {
     if (!this._tabbingOrderHighlighter) {
       this._tabbingOrderHighlighter = new CustomHighlighterActor(
         this,
-        "TabbingOrderHighlighter"
+        lazy.TYPES.TABBING_ORDER
       );
 
       this.manage(this._tabbingOrderHighlighter);

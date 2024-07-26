@@ -7,7 +7,10 @@
 // Test the creation of the CSS shapes highlighter.
 
 const TEST_URL = URL_ROOT + "doc_inspector_highlighter_cssshapes.html";
-const HIGHLIGHTER_TYPE = "ShapesHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.SHAPES;
 const SHAPE_IDS = ["polygon", "ellipse", "rect"];
 const SHAPE_TYPES = [
   {

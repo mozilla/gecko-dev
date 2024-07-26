@@ -1285,7 +1285,7 @@ class HighlightersOverlay {
    */
   async showGeometryEditor(node) {
     const highlighter = await this._getHighlighterTypeForNode(
-      "GeometryEditorHighlighter",
+      TYPES.GEOMETRY,
       node
     );
     if (!highlighter) {
@@ -1311,7 +1311,7 @@ class HighlightersOverlay {
 
     const highlighter =
       this.geometryEditorHighlighterShown.inspectorFront.getKnownHighlighter(
-        "GeometryEditorHighlighter"
+        TYPES.GEOMETRY
       );
 
     if (!highlighter) {
@@ -1429,7 +1429,7 @@ class HighlightersOverlay {
     switch (type) {
       case "shapesEditor":
         const highlighter = await this._getHighlighterTypeForNode(
-          "ShapesHighlighter",
+          TYPES.SHAPES,
           node
         );
         if (!highlighter) {
@@ -1726,7 +1726,7 @@ class HighlightersOverlay {
       this._isRuleViewTransform(nodeInfo) ||
       this._isComputedViewTransform(nodeInfo)
     ) {
-      type = "CssTransformHighlighter";
+      type = TYPES.TRANSFORM;
     }
 
     if (type) {

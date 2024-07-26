@@ -12,6 +12,9 @@ const TEST_URL =
   "width: 20px; height: 50px'></div>";
 
 const ID = "viewport-size-highlighter-";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
 
 var { Toolbox } = require("resource://devtools/client/framework/toolbox.js");
 
@@ -21,9 +24,7 @@ add_task(async function () {
   );
   const front = inspector.inspectorFront;
 
-  const highlighter = await front.getHighlighterByType(
-    "ViewportSizeHighlighter"
-  );
+  const highlighter = await front.getHighlighterByType(TYPES.VIEWPORT_SIZE);
 
   await isVisibleAfterShow(highlighter, inspector, highlighterTestFront);
   await hasRightLabelsContent(highlighter, highlighterTestFront);

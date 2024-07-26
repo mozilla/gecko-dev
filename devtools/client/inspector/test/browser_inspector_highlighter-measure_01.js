@@ -14,7 +14,10 @@ const TEST_URL = `data:text/html;charset=utf-8,
                     </div>`;
 
 const PREFIX = "measuring-tool-";
-const HIGHLIGHTER_TYPE = "MeasuringToolHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.MEASURING;
 
 const X = 32;
 const Y = 20;

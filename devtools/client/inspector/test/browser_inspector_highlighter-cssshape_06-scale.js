@@ -7,7 +7,10 @@
 // Test that shapes are updated correctly on mouse events in transform mode.
 
 const TEST_URL = URL_ROOT + "doc_inspector_highlighter_cssshapes.html";
-const HIGHLIGHTER_TYPE = "ShapesHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.SHAPES;
 const SHAPE_SELECTORS = ["#polygon-transform", "#circle", "#ellipse", "#inset"];
 
 add_task(async function () {

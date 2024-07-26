@@ -88,6 +88,7 @@ loader.lazyRequireGetter(
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
+  TYPES: "resource://devtools/shared/highlighters.mjs",
 });
 loader.lazyRequireGetter(this, "flags", "resource://devtools/shared/flags.js");
 loader.lazyRequireGetter(
@@ -2336,8 +2337,8 @@ Toolbox.prototype = {
     // on will-navigate, otherwise we hold on to the stale highlighter
     const hasHighlighters =
       inspectorFront &&
-      (inspectorFront.hasHighlighter("RulersHighlighter") ||
-        inspectorFront.hasHighlighter("MeasuringToolHighlighter"));
+      (inspectorFront.hasHighlighter(lazy.TYPES.RULERS) ||
+        inspectorFront.hasHighlighter(lazy.TYPES.MEASURING));
     if (hasHighlighters) {
       inspectorFront.destroyHighlighters();
       this.component.setToolboxButtons(this.toolbarButtons);

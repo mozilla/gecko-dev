@@ -37,7 +37,10 @@ const TEST_URL = `data:text/html;charset=utf-8,
                     height:3em;'>relative</div>`;
 
 const ID = "geometry-editor-";
-const HIGHLIGHTER_TYPE = "GeometryEditorHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.GEOMETRY;
 
 const POSITIONED_ELEMENT_TESTS = [
   {

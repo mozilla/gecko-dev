@@ -40,6 +40,10 @@ const TEST_DATA = [
 
 requestLongerTimeout(5);
 
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+
 add_task(async function () {
   const { inspector } = await openInspectorForURL(TEST_URL);
 
@@ -61,7 +65,7 @@ add_task(async function () {
 
     const inspectorFront = await contextNode.targetFront.getFront("inspector");
     const highlighter = await inspectorFront.getHighlighterByType(
-      "SelectorHighlighter"
+      TYPES.SELECTOR
     );
     const highlighterTestFront = await getHighlighterTestFront(
       inspector.toolbox,

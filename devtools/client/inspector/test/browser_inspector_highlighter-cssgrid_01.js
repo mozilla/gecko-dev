@@ -36,7 +36,10 @@ const TEST_URL = `
   </div>
 `;
 
-const HIGHLIGHTER_TYPE = "CssGridHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.GRID;
 
 add_task(async function () {
   const { inspector, highlighterTestFront } = await openInspectorForURL(

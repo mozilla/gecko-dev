@@ -117,6 +117,10 @@ loader.lazyRequireGetter(
   "resource://devtools/client/framework/menu-item.js"
 );
 
+const { TYPES: HIGHLIGHTER_TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+
 const { LocalizationHelper } = require("resource://devtools/shared/l10n.js");
 const L10N = new LocalizationHelper(
   "devtools/client/locales/startup.properties"
@@ -605,10 +609,10 @@ exports.ToolboxButtons = [
     },
   },
   createHighlightButton(
-    ["RulersHighlighter", "ViewportSizeHighlighter"],
+    [HIGHLIGHTER_TYPES.RULERS, HIGHLIGHTER_TYPES.VIEWPORT_SIZE],
     "rulers"
   ),
-  createHighlightButton(["MeasuringToolHighlighter"], "measure"),
+  createHighlightButton([HIGHLIGHTER_TYPES.MEASURING], "measure"),
   {
     id: "command-button-jstracer",
     description: l10n(

@@ -20,7 +20,10 @@ const TEST_URL = `data:text/html;charset=utf-8,
                     width:5em;
                     height:50%;'></div>`;
 
-const HIGHLIGHTER_TYPE = "GeometryEditorHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.GEOMETRY;
 
 const ID = "geometry-editor-";
 const SIDES = ["left", "right", "top", "bottom"];

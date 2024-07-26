@@ -5,7 +5,10 @@
 
 // Test that the eyedropper can copy colors to the clipboard
 
-const HIGHLIGHTER_TYPE = "EyeDropper";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.EYEDROPPER;
 const ID = "eye-dropper-";
 const TEST_URI =
   "data:text/html;charset=utf-8,<style>html{background:red}</style>";

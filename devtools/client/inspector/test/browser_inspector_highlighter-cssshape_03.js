@@ -8,7 +8,10 @@
 // in different zoom levels and with different geometry-box.
 
 const TEST_URL = URL_ROOT + "doc_inspector_highlighter_cssshapes.html";
-const HIGHLIGHTER_TYPE = "ShapesHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.SHAPES;
 const TEST_LEVELS = [0.5, 1, 2];
 
 add_task(async function () {

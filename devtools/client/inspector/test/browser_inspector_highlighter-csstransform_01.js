@@ -19,15 +19,17 @@ const TEST_URL = `
  </span>
 `;
 
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+
 add_task(async function () {
   const { inspector, highlighterTestFront } = await openInspectorForURL(
     "data:text/html;charset=utf-8," + encodeURI(TEST_URL)
   );
   const front = inspector.inspectorFront;
 
-  const highlighter = await front.getHighlighterByType(
-    "CssTransformHighlighter"
-  );
+  const highlighter = await front.getHighlighterByType(TYPES.TRANSFORM);
 
   await isHiddenByDefault(highlighterTestFront, highlighter);
   await has2PolygonsAnd4Lines(highlighterTestFront, highlighter);

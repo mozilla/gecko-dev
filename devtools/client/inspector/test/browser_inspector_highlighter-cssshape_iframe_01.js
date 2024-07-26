@@ -7,7 +7,10 @@
 // Test that shapes in iframes are updated correctly on mouse events.
 
 const TEST_URL = URL_ROOT + "doc_inspector_highlighter_cssshapes_iframe.html";
-const HIGHLIGHTER_TYPE = "ShapesHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.SHAPES;
 
 add_task(async function () {
   const env = await openInspectorForURL(TEST_URL);

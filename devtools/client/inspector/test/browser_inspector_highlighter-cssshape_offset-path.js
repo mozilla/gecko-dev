@@ -35,7 +35,10 @@ const TEST_URL = `data:text/html,<meta charset=utf8>${encodeURIComponent(`
     <span id=abs class=target></span>
   </div>`)}`;
 
-const HIGHLIGHTER_TYPE = "ShapesHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.SHAPES;
 
 add_task(async function () {
   const env = await openInspectorForURL(TEST_URL);

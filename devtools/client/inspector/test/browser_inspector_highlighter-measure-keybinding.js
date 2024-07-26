@@ -11,7 +11,10 @@ const TEST_URL = "data:text/html;charset=utf-8,measuring tool test";
 const PREFIX = "measuring-tool-";
 const HANDLER_PREFIX = "handler-";
 const HIGHLIGHTED_HANDLER_CLASSNAME = "highlight";
-const HIGHLIGHTER_TYPE = "MeasuringToolHighlighter";
+const { TYPES } = ChromeUtils.importESModule(
+  "resource://devtools/shared/highlighters.mjs"
+);
+const HIGHLIGHTER_TYPE = TYPES.MEASURING;
 
 const SMALL_DELTA = 1;
 const LARGE_DELTA = 10;
