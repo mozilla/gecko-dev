@@ -789,7 +789,7 @@ class Editor extends EventEmitter {
       if (marker.shouldMarkAllLines) {
         decorationLines = [];
         for (let i = vStartLine.number; i < vEndLine.number; i++) {
-          decorationLines.push(i);
+          decorationLines.push({ line: i });
         }
       } else {
         decorationLines = marker.lines;
