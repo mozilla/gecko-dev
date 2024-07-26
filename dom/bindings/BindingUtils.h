@@ -3369,14 +3369,6 @@ class StringIdChars {
 already_AddRefed<Promise> CreateRejectedPromiseFromThrownException(
     JSContext* aCx, ErrorResult& aError);
 
-template <auto ConstructorEnabled>
-inline bool ShouldExpose(JSContext* aCx, JS::Handle<JSObject*> aGlobal,
-                         DefineInterfaceProperty aDefine) {
-  return aDefine == DefineInterfaceProperty::Always ||
-         (aDefine == DefineInterfaceProperty::CheckExposure &&
-          ConstructorEnabled(aCx, aGlobal));
-}
-
 }  // namespace binding_detail
 
 }  // namespace dom
