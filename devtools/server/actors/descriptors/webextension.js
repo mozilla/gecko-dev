@@ -59,12 +59,7 @@ const BGSCRIPT_STATUSES = {
  * uninstalled completely) and connects to the child extension process using a `browser`
  * element provided by the extension internals (it is not related to any single extension,
  * but it will be created automatically to the currently selected "WebExtensions OOP mode"
- * and it persist across the extension reloads.
- *
- * The descriptor will also be persisted when the target actor is destroyed, so
- * that we can reuse the same descriptor for several remote debugging toolboxes
- * from about:debugging.
- *
+ * and it persist across the extension reloads (it is destroyed once the actor exits).
  * WebExtensionDescriptorActor is a child of RootActor, it can be retrieved via
  * RootActor.listAddons request.
  *
@@ -80,9 +75,8 @@ class WebExtensionDescriptorActor extends Actor {
     this.addonId = addon.id;
     this._childFormPromise = null;
 
-    this.destroy = this.destroy.bind(this);
     this._onChildExit = this._onChildExit.bind(this);
-
+    this.destroy = this.destroy.bind(this);
     lazy.AddonManager.addAddonListener(this);
   }
 
@@ -168,17 +162,12 @@ class WebExtensionDescriptorActor extends Actor {
       return this._form;
     }
 
-    if (!this._browser) {
-      // The extension process browser will only be released on destroy and can
-      // be reused for subsequent targets.
-      this._browser =
-        await lazy.ExtensionParent.DebugUtils.getExtensionProcessBrowser(this);
-    }
+    this._browser =
+      await lazy.ExtensionParent.DebugUtils.getExtensionProcessBrowser(this);
 
     const policy = lazy.ExtensionParent.WebExtensionPolicy.getByID(
       this.addonId
     );
-
     this._form = await connectToFrame(this.conn, this._browser, this.destroy, {
       addonId: this.addonId,
       addonBrowsingContextGroupId: policy.browsingContextGroupId,
@@ -198,9 +187,10 @@ class WebExtensionDescriptorActor extends Actor {
       );
     }
 
-    this._mm.addMessageListener("debug:webext_child_exit", this._onChildExit);
-
     this._childActorID = this._form.actor;
+
+    // Exit the proxy child actor if the child actor has been destroyed.
+    this._mm.addMessageListener("debug:webext_child_exit", this._onChildExit);
 
     return this._form;
   }
@@ -296,10 +286,7 @@ class WebExtensionDescriptorActor extends Actor {
       return;
     }
 
-    // Cleanup internal variables so that a new target will be recreated upon
-    // calling getTarget/getWatcher again.
-    delete this._form;
-    delete this._childActorID;
+    this.destroy();
   }
 
   // AddonManagerListener callbacks.
