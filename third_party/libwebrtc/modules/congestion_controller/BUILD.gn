@@ -19,9 +19,11 @@ rtc_library("congestion_controller") {
 
   deps = [
     "../../api:rtp_parameters",
+    "../../api:sequence_checker",
     "../../api/environment",
     "../../api/transport:network_control",
     "../../api/units:data_rate",
+    "../../api/units:data_size",
     "../../api/units:time_delta",
     "../../api/units:timestamp",
     "../../rtc_base:logging",
@@ -29,6 +31,7 @@ rtc_library("congestion_controller") {
     "../../rtc_base/synchronization:mutex",
     "../pacing",
     "../remote_bitrate_estimator",
+    "../remote_bitrate_estimator:congestion_control_feedback_generator",
     "../remote_bitrate_estimator:transport_sequence_number_feedback_generator",
     "../rtp_rtcp:rtp_rtcp_format",
     "//third_party/abseil-cpp/absl/base:nullability",
@@ -45,6 +48,7 @@ if (rtc_include_tests && !build_with_chromium) {
     ]
     deps = [
       ":congestion_controller",
+      "../../api:rtp_parameters",
       "../../api/environment:environment_factory",
       "../../api/test/network_emulation",
       "../../api/test/network_emulation:create_cross_traffic",
@@ -53,6 +57,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../../api/units:time_delta",
       "../../api/units:timestamp",
       "../../system_wrappers",
+      "../../test:explicit_key_value_config",
       "../../test:test_support",
       "../../test/scenario",
       "../pacing",

@@ -15,10 +15,12 @@
 
 #include "absl/base/nullability.h"
 #include "api/environment/environment.h"
+#include "api/sequence_checker.h"
 #include "api/transport/network_control.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "modules/congestion_controller/remb_throttler.h"
+#include "modules/remote_bitrate_estimator/congestion_control_feedback_generator.h"
 #include "modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/synchronization/mutex.h"
@@ -41,6 +43,8 @@ class ReceiveSideCongestionController : public CallStatsObserver {
       absl::Nullable<NetworkStateEstimator*> network_state_estimator);
 
   ~ReceiveSideCongestionController() override = default;
+
+  void EnablSendCongestionControlFeedbackAccordingToRfc8888();
 
   void OnReceivedPacket(const RtpPacketReceived& packet, MediaType media_type);
 
@@ -74,8 +78,18 @@ class ReceiveSideCongestionController : public CallStatsObserver {
 
   const Environment env_;
   RembThrottler remb_throttler_;
+
+  // TODO: bugs.webrtc.org/42224904 - Use sequence checker for all usage of
+  // ReceiveSideCongestionController. At the time of
+  // writing OnReceivedPacket and MaybeProcess can unfortunately be called on an
+  // arbitrary thread by external projects.
+  SequenceChecker sequence_checker_;
+
+  bool send_rfc8888_congestion_feedback_ = false;
   TransportSequenceNumberFeedbackGenenerator
       transport_sequence_number_feedback_generator_;
+  CongestionControlFeedbackGenerator congestion_control_feedback_generator_
+      RTC_GUARDED_BY(sequence_checker_);
 
   mutable Mutex mutex_;
   std::unique_ptr<RemoteBitrateEstimator> rbe_ RTC_GUARDED_BY(mutex_);

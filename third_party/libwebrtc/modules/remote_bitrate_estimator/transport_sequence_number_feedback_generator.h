@@ -44,12 +44,8 @@ namespace webrtc {
 class TransportSequenceNumberFeedbackGenenerator
     : public RtpTransportFeedbackGenerator {
  public:
-  // Used for sending transport feedback messages when send side
-  // BWE is used.
-  using RtcpSender = std::function<void(
-      std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets)>;
   TransportSequenceNumberFeedbackGenenerator(
-      RtcpSender feedback_sender,
+      RtpTransportFeedbackGenerator::RtcpSender feedback_sender,
       NetworkStateEstimator* network_state_estimator);
   ~TransportSequenceNumberFeedbackGenenerator();
 

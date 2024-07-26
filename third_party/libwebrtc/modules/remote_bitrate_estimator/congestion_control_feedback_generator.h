@@ -44,10 +44,9 @@ namespace webrtc {
 class CongestionControlFeedbackGenerator
     : public RtpTransportFeedbackGenerator {
  public:
-  using RtcpSender = std::function<void(
-      std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets)>;
-  CongestionControlFeedbackGenerator(const Environment& env,
-                                     RtcpSender feedback_sender);
+  CongestionControlFeedbackGenerator(
+      const Environment& env,
+      RtpTransportFeedbackGenerator::RtcpSender feedback_sender);
   ~CongestionControlFeedbackGenerator() = default;
 
   void OnReceivedPacket(const RtpPacketReceived& packet) override;
