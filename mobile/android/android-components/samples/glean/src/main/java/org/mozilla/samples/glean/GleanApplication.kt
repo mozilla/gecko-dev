@@ -91,6 +91,7 @@ class GleanApplication : Application() {
             context = this,
             appInfo = appInfo,
             server = NimbusServerSettings(url),
+            recordedContext = null,
         ).also { nimbus ->
             if (isFirstRun) {
                 // This file is bundled with the app, but derived from the server at build time.

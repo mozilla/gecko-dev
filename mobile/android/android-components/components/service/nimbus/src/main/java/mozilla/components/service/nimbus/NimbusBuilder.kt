@@ -40,6 +40,7 @@ class NimbusBuilder(context: Context) : AbstractNimbusBuilder<NimbusApi>(context
         server = serverSettings,
         deviceInfo = createDeviceInfo(),
         delegate = createDelegate(),
+        recordedContext = recordedContext,
     ).apply {
         this.register(createObserver())
     }
