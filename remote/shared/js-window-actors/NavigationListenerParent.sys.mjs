@@ -10,6 +10,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
   notifySameDocumentChanged:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
+  notifyNavigationFailed:
+    "chrome://remote/content/shared/NavigationManager.sys.mjs",
   notifyNavigationStarted:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
   notifyNavigationStopped:
@@ -35,6 +37,10 @@ export class NavigationListenerParent extends JSWindowActorParent {
         }
         case "NavigationListenerChild:sameDocumentChanged": {
           lazy.notifySameDocumentChanged(payload);
+          break;
+        }
+        case "NavigationListenerChild:navigationFailed": {
+          lazy.notifyNavigationFailed(payload);
           break;
         }
         case "NavigationListenerChild:navigationStarted": {
