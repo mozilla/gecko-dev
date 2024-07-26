@@ -10,6 +10,8 @@ ChromeUtils.defineESModuleGetters(
     NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
     NetworkHelper:
       "resource://devtools/shared/network-observer/NetworkHelper.sys.mjs",
+    NetworkTimings:
+      "resource://devtools/shared/network-observer/NetworkObserver.sys.mjs",
     NetworkUtils:
       "resource://devtools/shared/network-observer/NetworkUtils.sys.mjs",
     getResponseCacheObject:
@@ -541,6 +543,23 @@ export class NetworkResponseListener {
         this.#httpActivity.channel,
         this.#httpActivity.fromCache
       );
+
+    if (this.#httpActivity.isOverridden) {
+      // For overridden scripts, we will not get the usual start notification
+      // for the request, so we add event timings and response start here.
+      const timings = lazy.NetworkTimings.extractHarTimings(this.#httpActivity);
+      this.#httpActivity.owner.addEventTimings(
+        timings.total,
+        timings.timings,
+        timings.offsets
+      );
+
+      this.#httpActivity.owner.addResponseStart({
+        channel: this.#httpActivity.channel,
+        fromCache: this.#httpActivity.fromCache,
+        rawHeaders: "",
+      });
+    }
 
     this.#httpActivity.owner.addResponseContent(response, {
       discardResponseBody: this.#httpActivity.discardResponseBody,

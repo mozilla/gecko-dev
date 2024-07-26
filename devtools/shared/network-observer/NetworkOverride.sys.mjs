@@ -50,19 +50,22 @@ function overrideChannelWithFilePath(channel, path) {
     mimeType = lazy.mimeService.getTypeFromURI(channel.URI);
   } catch (e) {}
 
-  // Redirect to a data: URI as we can't redirect to file:// URI
-  // without many security issues. We are leveraging the `allowInsecureRedirectToDataURI`
-  // attribute used by WebExtension.
+  // Create a new response.
+  const replacedHttpResponse = Cc[
+    "@mozilla.org/network/replaced-http-response;1"
+  ].createInstance(Ci.nsIReplacedHttpResponse);
+
+  replacedHttpResponse.responseStatus = 200;
+  replacedHttpResponse.responseStatusText = "OK";
   const file = lazy.FileUtils.File(path);
-  const data = readFile(file);
-  const redirectURI = Services.io.newURI(
-    `data:${mimeType};base64,${btoa(data)}`
-  );
+  replacedHttpResponse.responseBody = readFile(file);
+  if (mimeType) {
+    replacedHttpResponse.setResponseHeader("Content-Type", mimeType, false);
+  }
 
-  channel.redirectTo(redirectURI);
-
-  // Prevents having CORS exception and various issues because of redirecting to data: URI.
-  channel.loadInfo.allowInsecureRedirectToDataURI = true;
+  channel
+    .QueryInterface(Ci.nsIHttpChannelInternal)
+    .setResponseOverride(replacedHttpResponse);
 }
 
 export const NetworkOverride = {

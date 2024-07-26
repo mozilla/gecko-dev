@@ -101,9 +101,7 @@ add_task(async function testHtmlFileOverride() {
         "<html><head></head><body>Overriden!\n</body></html>",
         "The content of the HTML has been overriden"
       );
-      // For now, all overriden request have their location changed to an internal data: URI
-      // Bug xxx aims at keeping the original URI.
-      todo_is(
+      is(
         content.location.href,
         pageUrl,
         "The location of the page is still the original one"

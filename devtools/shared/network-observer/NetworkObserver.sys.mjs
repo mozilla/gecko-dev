@@ -353,7 +353,7 @@ export class NetworkObserver {
 
       // Handle overrides in http-on-before-connect because we need to redirect
       // the request to the override before reaching the server.
-      this.#checkForContentOverride(channel);
+      this.#checkForContentOverride(httpActivity);
     }
   );
 
@@ -409,7 +409,8 @@ export class NetworkObserver {
    * Check if the current channel has its content being overriden
    * by the content of some local file.
    */
-  #checkForContentOverride(channel) {
+  #checkForContentOverride(httpActivity) {
+    const channel = httpActivity.channel;
     const overridePath = this.#overrides.get(channel.URI.spec);
     if (!overridePath) {
       return false;
@@ -418,6 +419,11 @@ export class NetworkObserver {
     dump(" Override " + channel.URI.spec + " to " + overridePath + "\n");
     try {
       lazy.NetworkOverride.overrideChannelWithFilePath(channel, overridePath);
+      // Handle the activity as being from the cache to avoid looking up
+      // typical information from the http channel, which would error for
+      // overridden channels.
+      httpActivity.fromCache = true;
+      httpActivity.isOverridden = true;
     } catch (e) {
       dump("Exception while trying to override request content: " + e + "\n");
     }
