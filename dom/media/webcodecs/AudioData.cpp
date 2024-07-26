@@ -706,16 +706,12 @@ RefPtr<mozilla::AudioData> AudioData::ToAudioData() const {
     LOGE("Overflow AudioData::ToAudioData when computing the number of frames");
     return nullptr;
   }
-  uint32_t bytesPerSample = BytesPerSamples(mAudioSampleFormat.value());
-  CheckedInt64 storageNeeded = sampleCount.value();
-  storageNeeded *= bytesPerSample;
-  if (!storageNeeded.isValid()) {
-    LOGE("Overflow AudioData::ToAudioData when computing the number of bytes");
+  AlignedAudioBuffer buf(sampleCount.value());
+  if (!buf.Length()) {
+    LOGE("OOM when allocating storage for AudioData conversion");
     return nullptr;
   }
-  AlignedAudioBuffer buf(sampleCount.value());
-  Span<uint8_t> storage(reinterpret_cast<uint8_t*>(buf.Data()),
-                        storageNeeded.value());
+  Span<uint8_t> storage(reinterpret_cast<uint8_t*>(buf.Data()), buf.Size());
 
   CopyToSpec spec(mNumberOfFrames, 0, 0, AudioSampleFormat::F32);
 

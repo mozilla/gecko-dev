@@ -10,3 +10,4 @@ skip-if(Android) pref(dom.media.webcodecs.enabled,true) load 1902555.html
 skip-if(Android) pref(dom.media.webcodecs.enabled,true) load 1905399.html
 skip-if(Android) pref(dom.media.webcodecs.enabled,true) load 1907438.html
 skip-if(Android) pref(dom.media.webcodecs.enabled,true) load 1907121.html
+skip-if(Android) pref(dom.media.webcodecs.enabled,true) load 1908232.html
