@@ -1465,6 +1465,7 @@ export class DiscoveryStreamFeed {
       }
 
       const feedResponse = await this.fetchFromEndpoint(feedUrl, options);
+
       if (feedResponse) {
         const { settings = {} } = feedResponse;
         let { recommendations } = feedResponse;
@@ -1878,13 +1879,17 @@ export class DiscoveryStreamFeed {
         this.onCollectionsChanged();
         break;
       case PREF_SELECTED_TOPICS:
-        {
-          // when topics have been updated, make a new request from merino and clear impression cap
-          this.resetContentFeed();
-          this.writeDataPref(PREF_REC_IMPRESSIONS, {});
-          const url = this.generateFeedUrl();
-          this.retryFeed({ url });
-        }
+        this.store.dispatch(
+          ac.BroadcastToContent({ type: at.DISCOVERY_STREAM_LAYOUT_RESET })
+        );
+        this.loadLayout(
+          a => this.store.dispatch(ac.BroadcastToContent(a)),
+          false
+        );
+        // when topics have been updated, make a new request from merino and clear impression cap
+        this.writeDataPref(PREF_REC_IMPRESSIONS, {});
+        await this.resetContentFeed();
+        this.refreshAll({ updateOpenTabs: true });
         break;
       case PREF_USER_TOPSITES:
       case PREF_SYSTEM_TOPSITES:
