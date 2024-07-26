@@ -1342,8 +1342,10 @@ struct CCIntervalMarker : public mozilla::BaseMarkerType<CCIntervalMarker> {
       void* aContext, bool aIsStart,
       const mozilla::ProfilerString8View& aReason,
       uint32_t aForgetSkippableBeforeCC, uint32_t aSuspectedAtCCStart,
-      uint32_t aRemovedPurples, const mozilla::CycleCollectorResults& aResults,
-      const mozilla::TimeDuration& aMaxSliceTime) {
+      uint32_t aRemovedPurples, bool aForcedGC, bool aMergedZones,
+      bool aAnyManual, uint32_t aVisitedRefCounted, uint32_t aVisitedGCed,
+      uint32_t aFreedRefCounted, uint32_t aFreedGCed, uint32_t aFreedJSZones,
+      uint32_t aNumSlices, const mozilla::TimeDuration& aMaxSliceTime) {
     uint32_t none = 0;
     if (aIsStart) {
       ETW::OutputMarkerSchema(aContext, CCIntervalMarker{}, aReason,
@@ -1354,11 +1356,9 @@ struct CCIntervalMarker : public mozilla::BaseMarkerType<CCIntervalMarker> {
     } else {
       ETW::OutputMarkerSchema(
           aContext, CCIntervalMarker{}, mozilla::ProfilerStringView(""),
-          aMaxSliceTime, none, aResults.mNumSlices, aResults.mAnyManual,
-          aResults.mForcedGC, aResults.mMergedZones, none,
-          aResults.mVisitedRefCounted, aResults.mVisitedGCed,
-          aResults.mFreedRefCounted, aResults.mFreedGCed,
-          aResults.mFreedJSZones, none);
+          aMaxSliceTime, none, aNumSlices, aAnyManual, aForcedGC, aMergedZones,
+          none, aVisitedRefCounted, aVisitedGCed, aFreedRefCounted, aFreedGCed,
+          aFreedJSZones, none);
     }
   }
 
@@ -1366,8 +1366,10 @@ struct CCIntervalMarker : public mozilla::BaseMarkerType<CCIntervalMarker> {
       mozilla::baseprofiler::SpliceableJSONWriter& aWriter, bool aIsStart,
       const mozilla::ProfilerString8View& aReason,
       uint32_t aForgetSkippableBeforeCC, uint32_t aSuspectedAtCCStart,
-      uint32_t aRemovedPurples, const mozilla::CycleCollectorResults& aResults,
-      mozilla::TimeDuration aMaxSliceTime) {
+      uint32_t aRemovedPurples, bool aForcedGC, bool aMergedZones,
+      bool aAnyManual, uint32_t aVisitedRefCounted, uint32_t aVisitedGCed,
+      uint32_t aFreedRefCounted, uint32_t aFreedGCed, uint32_t aFreedJSZones,
+      uint32_t aNumSlices, mozilla::TimeDuration aMaxSliceTime) {
     if (aIsStart) {
       aWriter.StringProperty("mReason", aReason);
       aWriter.IntProperty("mSuspected", aSuspectedAtCCStart);
@@ -1376,16 +1378,16 @@ struct CCIntervalMarker : public mozilla::BaseMarkerType<CCIntervalMarker> {
     } else {
       aWriter.TimeDoubleMsProperty("mMaxSliceTime",
                                    aMaxSliceTime.ToMilliseconds());
-      aWriter.IntProperty("mSlices", aResults.mNumSlices);
+      aWriter.IntProperty("mSlices", aNumSlices);
 
-      aWriter.BoolProperty("mAnyManual", aResults.mAnyManual);
-      aWriter.BoolProperty("mForcedGC", aResults.mForcedGC);
-      aWriter.BoolProperty("mMergedZones", aResults.mMergedZones);
-      aWriter.IntProperty("mVisitedRefCounted", aResults.mVisitedRefCounted);
-      aWriter.IntProperty("mVisitedGCed", aResults.mVisitedGCed);
-      aWriter.IntProperty("mFreedRefCounted", aResults.mFreedRefCounted);
-      aWriter.IntProperty("mFreedGCed", aResults.mFreedGCed);
-      aWriter.IntProperty("mFreedJSZones", aResults.mFreedJSZones);
+      aWriter.BoolProperty("mAnyManual", aAnyManual);
+      aWriter.BoolProperty("mForcedGC", aForcedGC);
+      aWriter.BoolProperty("mMergedZones", aMergedZones);
+      aWriter.IntProperty("mVisitedRefCounted", aVisitedRefCounted);
+      aWriter.IntProperty("mVisitedGCed", aVisitedGCed);
+      aWriter.IntProperty("mFreedRefCounted", aFreedRefCounted);
+      aWriter.IntProperty("mFreedGCed", aFreedGCed);
+      aWriter.IntProperty("mFreedJSZones", aFreedJSZones);
     }
   }
 };
@@ -3529,9 +3531,13 @@ void nsCycleCollector::CleanupAfterCollection() {
   CC_TELEMETRY(_COLLECTED, mWhiteNodeCount);
   timeLog.Checkpoint("CleanupAfterCollection::telemetry");
 
-  PROFILER_MARKER("CC", GCCC, MarkerOptions(MarkerTiming::IntervalEnd(endTime)),
-                  CCIntervalMarker, /* aIsStart */ false, nullptr, 0, 0, 0,
-                  mResults, sCollectorData.get()->mStats->mMaxSliceTime);
+  PROFILER_MARKER(
+      "CC", GCCC, MarkerOptions(MarkerTiming::IntervalEnd(endTime)),
+      CCIntervalMarker, /* aIsStart */ false, nullptr, 0, 0, 0,
+      mResults.mForcedGC, mResults.mMergedZones, mResults.mAnyManual,
+      mResults.mVisitedRefCounted, mResults.mVisitedGCed,
+      mResults.mFreedRefCounted, mResults.mFreedGCed, mResults.mFreedJSZones,
+      mResults.mNumSlices, sCollectorData.get()->mStats->mMaxSliceTime);
 
   if (mCCJSRuntime) {
     mCCJSRuntime->FinalizeDeferredThings(
@@ -3787,7 +3793,11 @@ void nsCycleCollector::BeginCollection(
       /* aIsStart */ true,
       ProfilerString8View::WrapNullTerminatedString(CCReasonToString(aReason)),
       stats->mForgetSkippableBeforeCC, stats->mSuspected,
-      stats->mRemovedPurples, ignoredResults, TimeDuration());
+      stats->mRemovedPurples, ignoredResults.mForcedGC,
+      ignoredResults.mMergedZones, ignoredResults.mAnyManual,
+      ignoredResults.mVisitedRefCounted, ignoredResults.mVisitedGCed,
+      ignoredResults.mFreedRefCounted, ignoredResults.mFreedGCed,
+      ignoredResults.mFreedJSZones, ignoredResults.mNumSlices, TimeDuration());
 
   // BeginCycleCollectionCallback() might have started an IGC, and we need
   // to finish it before we run FixGrayBits.
