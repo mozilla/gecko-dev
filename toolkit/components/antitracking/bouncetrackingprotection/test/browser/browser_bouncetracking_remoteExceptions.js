@@ -150,6 +150,11 @@ add_task(async function test_remote_exceptions_and_purge() {
 // Unit test for syncing the remote settings list between BTPRemoteExceptionList
 // and BounceTrackingProtection.
 add_task(async function test_remote_exception_updates() {
+  // Run an empty purge to ensure the list has been initialized. The remote
+  // exception list is lazily constructed the first time a purge runs. It's
+  // guaranteed to be initialized after the purge method resolves.
+  await bounceTrackingProtection.testRunPurgeBounceTrackers();
+
   info("Create foo.com, bar.com");
   let entryTrackerA = await db.create({ siteHost: "foo.com" });
   let entryTrackerB = await db.create({ siteHost: "bar.com" });

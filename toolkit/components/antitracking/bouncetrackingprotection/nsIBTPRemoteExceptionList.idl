@@ -13,13 +13,12 @@
 interface nsIBTPRemoteExceptionList : nsISupports {
     /**
      * Initialize the service and import exceptions.
+     * Resolves once the initial set of exceptions has been imported.
      */
-    void init(in nsIBounceTrackingProtection aProtection);
+    Promise init(in nsIBounceTrackingProtection aProtection);
 
     /**
      * Shutdown the service.
-     * TODO: Currently unused. Bug 1894040 will add code in
-     * BounceTrackingProtection.cpp that calls this.
      */
     void shutdown();
 };

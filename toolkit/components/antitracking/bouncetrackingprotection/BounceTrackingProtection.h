@@ -95,6 +95,9 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
   // In-memory copy of the remote settings exception list.
   nsTHashSet<nsCStringHashKey> mRemoteSiteHostExceptions;
 
+  // Lazily initializes the remote exception list.
+  RefPtr<GenericPromise> EnsureRemoteExceptionListService();
+
   // Clear state for classified bounce trackers. To be called on an interval.
   using PurgeBounceTrackersMozPromise =
       MozPromise<nsTArray<nsCString>, nsresult, true>;
