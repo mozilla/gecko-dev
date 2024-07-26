@@ -83,11 +83,6 @@ android {
     project.configureProductFlavors.delegate = it
     project.configureProductFlavors()
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
     lintOptions {
         abortOnError false
     }
@@ -189,7 +184,6 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
 
     kotlinOptions {
         allWarningsAsErrors = true
-        jvmTarget = JavaVersion.VERSION_17
     }
 
     doFirst {

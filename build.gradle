@@ -478,16 +478,14 @@ subprojects { project ->
                 ktlint('0.49.1')
             }
         }
-    } else {
-        afterEvaluate {
-            // Set the source and target compatibility for non-GeckoView projects only.
-            if (it.hasProperty('android')) {
-                android {
-                    compileOptions {
-                        sourceCompatibility JavaVersion.VERSION_17
-                        targetCompatibility JavaVersion.VERSION_17
-                    }
-                }
+    }
+
+    afterEvaluate {
+        // Our vendored copy of exoplayer2 hits build failures when targeting Java 17.
+        // Given our intent to remove it in the near future, just leave it alone here.
+        if (it.hasProperty('android') && projectName != 'exoplayer2') {
+            kotlin {
+                jvmToolchain(config.jvmTargetCompatibility)
             }
         }
     }
