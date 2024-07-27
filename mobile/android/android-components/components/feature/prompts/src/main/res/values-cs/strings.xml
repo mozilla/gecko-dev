@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Heslo změněno</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Uživatelské jméno aktualizováno</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Chcete znovu odeslat data tomuto serveru?</string>
     <string name="mozac_feature_prompt_repost_message">Opětovné načtení této stránky může zopakovat vaši nedávnou akci, například druhé odeslání stejné platby nebo komentáře.</string>

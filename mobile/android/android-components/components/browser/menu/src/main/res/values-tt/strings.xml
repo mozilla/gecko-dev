@@ -4,8 +4,8 @@
     <string name="mozac_browser_menu_button">Меню</string>
     <!-- Content description (not visible, for screen readers etc.): Indicates the overflow menu has a highlight -->
     <string name="mozac_browser_menu_highlighted">Аерылган</string>
-    <!-- Label for add-ons submenu section -->
-    <string name="mozac_browser_menu_addons">Кушымчалар</string>
-    <!-- Label for add-ons sub menu item for add-ons manager -->
-    <string name="mozac_browser_menu_addons_manager">Кушымчалар менеджеры</string>
+    <!-- Label for extensions submenu section -->
+    <string name="mozac_browser_menu_extensions">Киңәйтүләр</string>
+    <!-- Content description for the action bar "up" button -->
+    <string name="action_bar_up_description">Югарыга</string>
     </resources>

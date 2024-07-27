@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Գաղտնաբառը թարմացվել է</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Օգտվողի անունը պատճենվել է</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Կրկին ուղարկել տվյալները այս կայքի համար:</string>
     <string name="mozac_feature_prompt_repost_message">Տվյալ էջի թարմացումը կարող է կրկնօրինակել վերջին գործողությունները, ինչպես օրինակ՝ վճարումը կամ մեկնաբանության կրկնակի հրապարակումը:</string>

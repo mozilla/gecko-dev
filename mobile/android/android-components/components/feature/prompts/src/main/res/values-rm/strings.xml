@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Actualisà il pled-clav</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Actualisà il num d’utilisader</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Anc ina giada trametter las datas a questa website?</string>
     <string name="mozac_feature_prompt_repost_message">Cun actualisar questa pagina vegnan eventualmain duplitgadas acziuns recentas (sco far in pajament u publitgar duas giadas in commentari).</string>

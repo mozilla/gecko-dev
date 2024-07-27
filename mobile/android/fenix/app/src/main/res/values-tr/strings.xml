@@ -115,6 +115,9 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Web sayfalarını aşağı kaydırdığınızda bu çubuk gizlenerek daha fazla gezinti alanı sağlar.</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Bu sekmenin geçmişindeki sayfalar arasında dolaşmak için oklara dokunup basılı tutun.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kamera erişimi gerekiyor. Android ayarlarına gidin, izinlere girin ve izin verin.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -253,6 +256,8 @@
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Okuyucuyu özelleştir</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Okuyucu görünümünü özelleştir</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Ekle</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -281,6 +286,8 @@
 
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Masaüstü sitesine geç</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Mobil siteye geç</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Araçlar</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -428,7 +435,10 @@
     <string name="juno_onboarding_sign_in_title_2">Cihazlarınız arasında güvenle geçiş yapın</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Giriş yapıp eşitlemeyi tamamladığınızda daha güvende olursunuz. Firefox, parolalarınızı, yer imlerinizi ve diğer verilerinizi şifreler.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Giriş yapıp eşitlemeyi tamamladığınızda daha güvende olursunuz. Firefox, parolalarınızı, yer imlerinizi ve diğer verilerinizi şifreler.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3">Firefox, eşitleme yaptığınızda parolalarınızı, yer imlerinizi ve diğer verilerinizi şifreler.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Giriş yap</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -2393,7 +2403,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Değerlendirme kontrolcüsünü aç</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
 
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Değerlendirme kontrolcüsünü aç</string>
@@ -2591,7 +2601,9 @@
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">Dilleri indir</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Dilleri indir</string>
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Dilleri indir</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="download_languages_header_preference">Daha hızlı çeviriler ve çevrimdışı çeviri için dillerin tamamını indirebilirsiniz. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
@@ -2757,11 +2769,13 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Kullanmıyorum</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Firefox giriş sayfanızdan ne kadar memnunsunuz?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Firefox giriş sayfanızdan ne kadar memnunsunuz?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Firefox’un yazdırma özelliğini iyileştirmemize yardım edin. Yalnızca birkaç saniyenizi alacağız</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Firefox’ta yazdırma işleminden ne kadar memnunsunuz?</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Firefox giriş sayfanızdan ne kadar memnunsunuz?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Firefox logosu</string>
@@ -2795,4 +2809,8 @@
     <string name="exit_fullscreen_with_gesture">Tam ekrandan çıkmak için ekranı yukarıdan çekip geri dönme hareketini kullanın</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
     <string name="exit_fullscreen_with_back_button">Tam ekrandan çıkmak için ekranı yukarıdan çekip geri düğmesine basın</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
 </resources>

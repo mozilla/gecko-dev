@@ -261,7 +261,7 @@
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Anpassa läsvyn</string>
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
-    <string name="browser_menu_customize_reader_view_2">Anpassa läsarvyn</string>
+    <string name="browser_menu_customize_reader_view_2">Anpassa läsvyn</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Lägg till</string>
     <!-- Browser menu label for editing a bookmark -->

@@ -272,7 +272,7 @@
     <string name="preference_autocomplete_add_example">Esempiu : esempiu.com</string>
 
     <!-- Confirmation "snackbar" shown after a new custom autocomplete URL has been added. -->
-    <string name="preference_autocomplete_add_confirmation">Novu indirizzu persunalizatu aghjuntu.</string>
+    <string name="preference_autocomplete_add_confirmation">L’indirizzu web persunalizatu novu hè aghjuntu.</string>
 
     <!-- Menu item to remove existing autocomplete URLs. -->
     <string name="preference_autocomplete_menu_remove">Caccià</string>
@@ -397,7 +397,7 @@
     <!-- Example of search engine url -->
     <string name="search_add_manually_example">Esempiu : example.com/search/?q=%s</string>
 
-    <string name="search_add_confirmation">Novu mutore di ricerca aghjuntu.</string>
+    <string name="search_add_confirmation">U mutore di ricerca novu hè aghjuntu.</string>
 
     <string name="search_add_error_empty_name">Stampittà u nome di u mutore di ricerca</string>
     <string name="search_add_error_duplicate_name">Un mutore di ricerca di u listessu nome hè dighjà installatu.</string>
@@ -861,7 +861,7 @@
 
     <!-- Button for the fingerprint authentication dialog box that is shown to the user when sharing a link to the app
     while the user has biometric authentication enabled. When pressed, the user's previous session is cleared, and the shared link is opened. -->
-    <string name="biometric_auth_open_link_new_session">Apre u liame in una nova sessione</string>
+    <string name="biometric_auth_open_link_new_session">Apre u liame in una sessione nova</string>
 
     <!-- Description for the fingerprint authentication image. Used for accessibility purposes. -->
     <string name="biometric_auth_image_description">Icona d’impronta digitale</string>
@@ -917,7 +917,7 @@
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user. -->
-    <string name="tip_open_in_new_tab">Apre un liame in una nova unghjetta\n
+    <string name="tip_open_in_new_tab">Apre un liame in un’unghjetta nova\n
     Effettuate una longa incalcata nant’à un liame in una pagina
     </string>
 
@@ -925,7 +925,7 @@
     <string name="tip_disable_tips2">Disattivà e minichichje nant’à u screnu d’avviu</string>
 
     <!-- Label for the snackbar when a user opens a new tab -->
-    <string name="new_tab_opened_snackbar">Nova unghjetta aperta</string>
+    <string name="new_tab_opened_snackbar">Unghjetta nova aperta</string>
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Affissà</string>
@@ -934,7 +934,7 @@
     <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Modu di screnu sanu attivatu</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
-    <string name="preference_open_new_tab">Affissà subitu ogni liame apertu in una nova unghjetta</string>
+    <string name="preference_open_new_tab">Affissà subitu ogni liame apertu in un’unghjetta nova</string>
 
     <!-- Preference title for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
     <string name="preference_safe_browsing_title">Bluccà i siti chì puderianu esse periculosi o ingannatori</string>
