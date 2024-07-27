@@ -2517,17 +2517,6 @@ void gfxPlatform::InitAcceleration() {
                       "FEATURE_REMOTE_CANVAS_NO_GPU_PROCESS"_ns);
     }
 
-#if defined(XP_WIN) && defined(NIGHTLY_BUILD)
-    // If D2D is explicitly disabled on Windows, then don't use remote canvas.
-    // This prevents it from interfering with Accelerated Canvas2D.
-    if (StaticPrefs::gfx_direct2d_disabled_AtStartup() &&
-        !StaticPrefs::gfx_direct2d_force_enabled_AtStartup()) {
-      gfxConfig::ForceDisable(Feature::REMOTE_CANVAS, FeatureStatus::Blocked,
-                              "Disabled without Directed2D",
-                              "FEATURE_REMOTE_CANVAS_NO_DIRECT2D"_ns);
-    }
-#endif
-
 #ifndef XP_WIN
     gfxConfig::ForceDisable(Feature::REMOTE_CANVAS, FeatureStatus::Blocked,
                             "Platform not supported",
@@ -3336,9 +3325,10 @@ static void AcceleratedCanvas2DPrefChangeCallback(const char*, void*) {
     feature.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
   }
 
-  if (gfxVars::RemoteCanvasEnabled()) {
-    feature.ForceDisable(FeatureStatus::Failed, "Disabled by Remote Canvas",
-                         "FEATURE_FAILURE_DISABLED_BY_REMOTE_CANVAS"_ns);
+  if (StaticPrefs::gfx_canvas_remote_worker_threads_AtStartup() != 0) {
+    feature.ForceDisable(FeatureStatus::Failed,
+                         "Disabled with non-zero canvas worker threads",
+                         "FEATURE_FAILURE_DISABLE_BY_CANVAS_WORKER_THREADS"_ns);
   }
 
   gfxVars::SetUseAcceleratedCanvas2D(feature.IsEnabled());

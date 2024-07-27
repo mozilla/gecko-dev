@@ -5,9 +5,9 @@ random == bug-364968.html bug-364968-ref.html
 == mozsetimageelement-02.html about:blank
 == image-outside-document-invalidate.html about:blank
 == canvas-outside-document-invalidate-01.html about:blank
-fails-if(!winWidget) fails-if(winWidget&&(swgl||!d2d)) == canvas-outside-document-invalidate-02.html about:blank # See bug 666800
+fails-if(!winWidget) fails-if(swgl&&winWidget) == canvas-outside-document-invalidate-02.html about:blank # See bug 666800
 #fails with Skia due to Skia bug http://code.google.com/p/skia/issues/detail?id=568
-fuzzy-if(winWidget,47-132,47-54) == element-paint-simple.html element-paint-simple-ref.html
+fuzzy-if(winWidget,47-129,47-54) == element-paint-simple.html element-paint-simple-ref.html
 == element-paint-repeated.html element-paint-repeated-ref.html
 == element-paint-recursion.html element-paint-recursion-ref.html
 == element-paint-continuation.html element-paint-continuation-ref.html
