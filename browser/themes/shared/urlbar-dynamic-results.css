@@ -485,8 +485,8 @@
   margin-block: 0.18em;
 }
 
-.urlbarView-row[selected] > .urlbarView-row-inner > .urlbarView-dynamic-fakespot-body > .urlbarView-dynamic-fakespot-description > .urlbarView-dynamic-fakespot-rating-five-stars {
-  --icon-color: var(--urlbarView-highlight-color);
+.urlbarView-dynamic-fakespot-rating-five-stars {
+  --icon-color: currentColor;
 }
 
 .urlbarView-dynamic-fakespot-rating-and-total-reviews {
