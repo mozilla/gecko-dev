@@ -53,8 +53,13 @@ void CanvasRenderThread::Start() {
   sCanvasRenderThreadEverStarted = true;
 #endif
 
+  // If remote canvas is disabled, then ignore the worker threads setting so as
+  // not to interfere with Accelerated Canvas2D.
   int32_t threadPref =
-      StaticPrefs::gfx_canvas_remote_worker_threads_AtStartup();
+      gfxVars::RemoteCanvasEnabled()
+          ? StaticPrefs::gfx_canvas_remote_worker_threads_AtStartup()
+          : 0;
+
   uint32_t threadLimit;
   if (threadPref < 0) {
     // Given that the canvas workers are receiving instructions from
