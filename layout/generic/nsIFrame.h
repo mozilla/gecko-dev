@@ -3647,16 +3647,6 @@ class nsIFrame : public nsQueryFrame {
   virtual void InvalidateFrameForRemoval() {}
 
   /**
-   * When HasUserData(frame->LayerIsPrerenderedDataKey()), then the
-   * entire overflow area of this frame has been rendered in its
-   * layer(s).
-   */
-  static void* LayerIsPrerenderedDataKey() {
-    return &sLayerIsPrerenderedDataKey;
-  }
-  static uint8_t sLayerIsPrerenderedDataKey;
-
-  /**
    * Checks if a frame has had InvalidateFrame() called on it since the
    * last paint.
    *

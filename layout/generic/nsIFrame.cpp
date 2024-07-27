@@ -7705,9 +7705,6 @@ void nsIFrame::InvalidateFrameWithRect(const nsRect& aRect,
   *rect = rect->Union(aRect);
 }
 
-/*static*/
-uint8_t nsIFrame::sLayerIsPrerenderedDataKey;
-
 bool nsIFrame::IsInvalid(nsRect& aRect) {
   if (!HasAnyStateBits(NS_FRAME_NEEDS_PAINT)) {
     return false;
