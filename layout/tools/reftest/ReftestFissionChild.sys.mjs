@@ -298,7 +298,7 @@ export class ReftestFissionChild extends JSWindowActorChild {
           if (this.manager.isProcessRoot) {
             var anyPendingPaintsGeneratedInDescendants = false;
 
-            if (needsAnimationFrame) {
+            if (this.contentWindow && needsAnimationFrame) {
               await new Promise(resolve =>
                 this.contentWindow.requestAnimationFrame(resolve)
               );
