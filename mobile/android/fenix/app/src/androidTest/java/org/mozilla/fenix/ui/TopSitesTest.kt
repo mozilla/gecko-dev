@@ -118,7 +118,37 @@ class TopSitesTest : TestSetup() {
 
     // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1110321
     @Test
-    fun renameATopSiteTest() {
+    fun editTopSiteTest() {
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
+        val genericWebPage = getGenericAsset(mockWebServer, 2)
+        val newPageTitle = generateRandomString(5)
+
+        homeScreen {
+            verifyExistingTopSitesList()
+        }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+            waitForPageToLoad()
+        }.openThreeDotMenu {
+            expandMenuFully()
+            verifyAddToShortcutsButton(shouldExist = true)
+        }.addToFirefoxHome {
+            verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
+        }.goToHomescreen {
+            verifyExistingTopSitesList()
+            verifyExistingTopSitesTabs(defaultWebPage.title)
+        }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
+            verifyTopSiteContextMenuItems()
+        }.editTopSite(newPageTitle, genericWebPage.url.toString()) {
+            verifyExistingTopSitesList()
+            verifyExistingTopSitesTabs(newPageTitle)
+        }.openTopSiteTabWithTitle(title = newPageTitle) {
+            verifyUrl(genericWebPage.url.toString())
+        }
+    }
+
+    @Test
+    fun editTopSiteTestWithInvalidURL() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
         val newPageTitle = generateRandomString(5)
 
@@ -138,9 +168,8 @@ class TopSitesTest : TestSetup() {
             verifyExistingTopSitesTabs(defaultWebPage.title)
         }.openContextMenuOnTopSitesWithTitle(defaultWebPage.title) {
             verifyTopSiteContextMenuItems()
-        }.renameTopSite(newPageTitle) {
-            verifyExistingTopSitesList()
-            verifyExistingTopSitesTabs(newPageTitle)
+        }.editTopSite(newPageTitle, "gl") {
+            verifyTopSiteContextMenuUrlErrorMessage()
         }
     }
 

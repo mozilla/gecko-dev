@@ -62,7 +62,7 @@ class TopSiteItemViewHolder(
                     is TopSiteItemMenu.Item.OpenInPrivateTab -> interactor.onOpenInPrivateTabClicked(
                         topSite,
                     )
-                    is TopSiteItemMenu.Item.RenameTopSite -> interactor.onRenameTopSiteClicked(
+                    is TopSiteItemMenu.Item.EditTopSite -> interactor.onEditTopSiteClicked(
                         topSite,
                     )
                     is TopSiteItemMenu.Item.RemoveTopSite -> {

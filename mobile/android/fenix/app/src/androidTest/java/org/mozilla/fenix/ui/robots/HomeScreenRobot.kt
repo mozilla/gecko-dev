@@ -44,6 +44,7 @@ import androidx.test.uiautomator.UiScrollable
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import androidx.test.uiautomator.Until.findObject
+import com.google.android.material.textfield.TextInputEditText
 import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.CoreMatchers.instanceOf
@@ -409,6 +410,9 @@ class HomeScreenRobot {
             findObject(By.text("Remove")),
             waitingTime,
         )
+    }
+    fun verifyTopSiteContextMenuUrlErrorMessage() {
+        assertUIObjectExists(itemContainingText(getStringResource(R.string.top_sites_edit_dialog_url_error)))
     }
 
     fun verifyJumpBackInSectionIsDisplayed() {
@@ -828,19 +832,27 @@ class HomeScreenRobot {
             return BrowserRobot.Transition()
         }
 
-        fun renameTopSite(title: String, interact: HomeScreenRobot.() -> Unit): Transition {
-            Log.i(TAG, "renameTopSite: Trying to click context menu \"Rename\" button")
-            onView(withText("Rename"))
+        fun editTopSite(
+            title: String,
+            url: String,
+            interact: HomeScreenRobot.() -> Unit,
+        ): Transition {
+            Log.i(TAG, "editTopSite: Trying to click context menu \"Edit\" button")
+            onView(withText("Edit"))
                 .check((matches(withEffectiveVisibility(Visibility.VISIBLE))))
                 .perform(click())
-            Log.i(TAG, "renameTopSite: Clicked context menu \"Rename\" button")
-            Log.i(TAG, "renameTopSite: Trying to set top site title to: $title")
+            Log.i(TAG, "editTopSite: Clicked context menu \"Edit\" button")
+            Log.i(TAG, "editTopSite: Trying to set top site title to: $title")
             onView(Matchers.allOf(withId(R.id.top_site_title), instanceOf(EditText::class.java)))
                 .perform(ViewActions.replaceText(title))
-            Log.i(TAG, "renameTopSite: Set top site title to: $title")
-            Log.i(TAG, "renameTopSite: Trying to click \"Ok\" rename top site dialog button")
+            Log.i(TAG, "editTopSite: Set top site title to: $title")
+            Log.i(TAG, "editTopSite: Trying to set top site URL to: $url")
+            onView(Matchers.allOf(withId(R.id.top_site_url), instanceOf(TextInputEditText::class.java)))
+                .perform(ViewActions.replaceText(url))
+            Log.i(TAG, "editTopSite: Set top site title to: $title")
+            Log.i(TAG, "editTopSite: Trying to click \"Save\" edit top site dialog button")
             onView(withId(android.R.id.button1)).perform((click()))
-            Log.i(TAG, "renameTopSite: Clicked \"Ok\" rename top site dialog button")
+            Log.i(TAG, "editTopSite: Clicked \"Save\" edit top site dialog button")
 
             HomeScreenRobot().interact()
             return Transition()

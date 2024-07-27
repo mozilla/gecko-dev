@@ -17,7 +17,9 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityComposeTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
@@ -65,7 +67,7 @@ class ComposeTopSitesRobot(private val composeTestRule: HomeActivityComposeTestR
     fun verifyTopSiteContextMenuItems() {
         verifyTopSiteContextMenuOpenInPrivateTabButton()
         verifyTopSiteContextMenuRemoveButton()
-        verifyTopSiteContextMenuRenameButton()
+        verifyTopSiteContextMenuEditButton()
     }
 
     fun verifyTopSiteContextMenuOpenInPrivateTabButton() {
@@ -74,16 +76,22 @@ class ComposeTopSitesRobot(private val composeTestRule: HomeActivityComposeTestR
         Log.i(TAG, "verifyTopSiteContextMenuOpenInPrivateTabButton: Verified that the \"Open in private tab\" menu button exists")
     }
 
-    fun verifyTopSiteContextMenuRenameButton() {
-        Log.i(TAG, "verifyTopSiteContextMenuRenameButton: Trying to verify that the \"Rename\" menu button exists")
-        composeTestRule.contextMenuItemRename().assertExists()
-        Log.i(TAG, "verifyTopSiteContextMenuRenameButton: Verified that the \"Rename\" menu button exists")
+    fun verifyTopSiteContextMenuEditButton() {
+        Log.i(TAG, "verifyTopSiteContextMenuEditButton: Trying to verify that the \"Edit\" menu button exists")
+        composeTestRule.contextMenuItemEdit().assertExists()
+        Log.i(TAG, "verifyTopSiteContextMenuEditButton: Verified that the \"Edit\" menu button exists")
     }
 
     fun verifyTopSiteContextMenuRemoveButton() {
         Log.i(TAG, "verifyTopSiteContextMenuRemoveButton: Trying to verify that the \"Remove\" menu button exists")
         composeTestRule.contextMenuItemRemove().assertExists()
         Log.i(TAG, "verifyTopSiteContextMenuRemoveButton: Verified that the \"Remove\" menu button exists")
+    }
+
+    fun verifyTopSiteContextMenuUrlErrorMessage() {
+        Log.i(TAG, "verifyTopSiteContextMenuUrlMessage: Waiting for $waitingTime ms for \"Enter a valid URL\" error message to exist")
+        itemContainingText(getStringResource(R.string.top_sites_edit_dialog_url_error)).waitForExists(waitingTime)
+        Log.i(TAG, "verifyTopSiteContextMenuUrlMessage: Waited for $waitingTime ms for \"Enter a valid URL\" error message to exist")
     }
 
     class Transition(private val composeTestRule: HomeActivityComposeTestRule) {
@@ -130,25 +138,35 @@ class ComposeTopSitesRobot(private val composeTestRule: HomeActivityComposeTestR
             return Transition(composeTestRule)
         }
 
-        fun renameTopSite(
+        fun editTopSite(
             title: String,
+            url: String,
             interact: ComposeTopSitesRobot.() -> Unit,
         ): Transition {
-            Log.i(TAG, "renameTopSite: Trying to click the \"Rename\" menu button")
-            composeTestRule.contextMenuItemRename().performClick()
-            Log.i(TAG, "renameTopSite: Clicked the \"Rename\" menu button")
+            Log.i(TAG, "editTopSite: Trying to click the \"Edit\" menu button")
+            composeTestRule.contextMenuItemEdit().performClick()
+            Log.i(TAG, "editTopSite: Clicked the \"Edit\" menu button")
             itemWithResId("$packageName:id/top_site_title")
                 .also {
-                    Log.i(TAG, "renameTopSite: Waiting for $waitingTimeShort ms for top site rename text box to exist")
+                    Log.i(TAG, "editTopSite: Waiting for $waitingTimeShort ms for top site name text box to exist")
                     it.waitForExists(waitingTimeShort)
-                    Log.i(TAG, "renameTopSite: Waited for $waitingTimeShort ms for top site rename text box to exist")
-                    Log.i(TAG, "renameTopSite: Trying to set top site rename text box text to: $title")
+                    Log.i(TAG, "editTopSite: Waited for $waitingTimeShort ms for top site name text box to exist")
+                    Log.i(TAG, "editTopSite: Trying to set top site name text box text to: $title")
                     it.setText(title)
-                    Log.i(TAG, "renameTopSite: Top site rename text box text was set to: $title")
+                    Log.i(TAG, "editTopSite: Top site name text box text was set to: $title")
                 }
-            Log.i(TAG, "renameTopSite: Trying to click the \"Ok\" dialog button")
-            itemWithResIdContainingText("android:id/button1", "OK").click()
-            Log.i(TAG, "renameTopSite: Clicked the \"Ok\" dialog button")
+            itemWithResId("$packageName:id/top_site_url")
+                .also {
+                    Log.i(TAG, "editTopSite: Waiting for $waitingTimeShort ms for top site url text box to exist")
+                    it.waitForExists(waitingTimeShort)
+                    Log.i(TAG, "editTopSite: Waited for $waitingTimeShort ms for top site url text box to exist")
+                    Log.i(TAG, "editTopSite: Trying to set top site url text box text to: $url")
+                    it.setText(url)
+                    Log.i(TAG, "editTopSite: Top site url text box text was set to: $url")
+                }
+            Log.i(TAG, "editTopSite: Trying to click the \"Save\" dialog button")
+            itemWithResIdContainingText("android:id/button1", "Save").click()
+            Log.i(TAG, "editTopSite: Clicked the \"Save\" dialog button")
 
             ComposeTopSitesRobot(composeTestRule).interact()
             return Transition(composeTestRule)
@@ -184,9 +202,9 @@ private fun ComposeTestRule.contextMenuItemOpenInPrivateTab() =
     onAllNodesWithTag(TopSitesTestTag.openInPrivateTab).onFirst()
 
 /**
- * Obtains the option to rename the top site
+ * Obtains the option to edit the top site
  */
-private fun ComposeTestRule.contextMenuItemRename() = onAllNodesWithTag(TopSitesTestTag.rename).onFirst()
+private fun ComposeTestRule.contextMenuItemEdit() = onAllNodesWithTag(TopSitesTestTag.edit).onFirst()
 
 /**
  * Obtains the option to remove the top site

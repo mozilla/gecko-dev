@@ -79,7 +79,7 @@ private const val TOP_SITES_FAVICON_SIZE = 36
  * @param onTopSiteLongClick Invoked when the user long clicks on a top site.
  * @param onOpenInPrivateTabClicked Invoked when the user clicks on the "Open in private tab"
  * menu item.
- * @param onRenameTopSiteClicked Invoked when the user clicks on the "Rename" menu item.
+ * @param onEditTopSiteClicked Invoked when the user clicks on the "Edit" menu item.
  * @param onRemoveTopSiteClicked Invoked when the user clicks on the "Remove" menu item.
  * @param onSettingsClicked Invoked when the user clicks on the "Settings" menu item.
  * @param onSponsorPrivacyClicked Invoked when the user clicks on the "Our sponsors & your privacy"
@@ -95,7 +95,7 @@ fun TopSites(
     onTopSiteClick: (TopSite) -> Unit,
     onTopSiteLongClick: (TopSite) -> Unit,
     onOpenInPrivateTabClicked: (topSite: TopSite) -> Unit,
-    onRenameTopSiteClicked: (topSite: TopSite) -> Unit,
+    onEditTopSiteClicked: (topSite: TopSite) -> Unit,
     onRemoveTopSiteClicked: (topSite: TopSite) -> Unit,
     onSettingsClicked: () -> Unit,
     onSponsorPrivacyClicked: () -> Unit,
@@ -141,7 +141,7 @@ fun TopSites(
                                     menuItems = getMenuItems(
                                         topSite = topSite,
                                         onOpenInPrivateTabClicked = onOpenInPrivateTabClicked,
-                                        onRenameTopSiteClicked = onRenameTopSiteClicked,
+                                        onEditTopSiteClicked = onEditTopSiteClicked,
                                         onRemoveTopSiteClicked = onRemoveTopSiteClicked,
                                         onSettingsClicked = onSettingsClicked,
                                         onSponsorPrivacyClicked = onSponsorPrivacyClicked,
@@ -404,7 +404,7 @@ private fun TopSiteFavicon(url: String, imageUrl: String? = null) {
 private fun getMenuItems(
     topSite: TopSite,
     onOpenInPrivateTabClicked: (topSite: TopSite) -> Unit,
-    onRenameTopSiteClicked: (topSite: TopSite) -> Unit,
+    onEditTopSiteClicked: (topSite: TopSite) -> Unit,
     onRemoveTopSiteClicked: (topSite: TopSite) -> Unit,
     onSettingsClicked: () -> Unit,
     onSponsorPrivacyClicked: () -> Unit,
@@ -424,9 +424,9 @@ private fun getMenuItems(
     if (isPinnedSite) {
         result.add(
             MenuItem(
-                title = stringResource(id = R.string.rename_top_site),
-                testTag = TopSitesTestTag.rename,
-                onClick = { onRenameTopSiteClicked(topSite) },
+                title = stringResource(id = R.string.top_sites_edit_top_site),
+                testTag = TopSitesTestTag.edit,
+                onClick = { onEditTopSiteClicked(topSite) },
             ),
         )
     }
@@ -547,7 +547,7 @@ private fun TopSitesPreview() {
                 onTopSiteClick = {},
                 onTopSiteLongClick = {},
                 onOpenInPrivateTabClicked = {},
-                onRenameTopSiteClicked = {},
+                onEditTopSiteClicked = {},
                 onRemoveTopSiteClicked = {},
                 onSettingsClicked = {},
                 onSponsorPrivacyClicked = {},

@@ -13,6 +13,6 @@ internal object TopSitesTestTag {
     // Contextual/DropDown menu
     const val topSiteContextualMenu = "$topSites.top_site_contextual_menu"
     const val openInPrivateTab = "$topSiteContextualMenu.open_in_private_tab"
-    const val rename = "$topSiteContextualMenu.rename"
+    const val edit = "$topSiteContextualMenu.edit"
     const val remove = "$topSiteContextualMenu.remove"
 }

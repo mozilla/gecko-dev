@@ -47,7 +47,7 @@ class TopSitesViewHolder(
                 },
                 onTopSiteLongClick = interactor::onTopSiteLongClicked,
                 onOpenInPrivateTabClicked = interactor::onOpenInPrivateTabClicked,
-                onRenameTopSiteClicked = interactor::onRenameTopSiteClicked,
+                onEditTopSiteClicked = interactor::onEditTopSiteClicked,
                 onRemoveTopSiteClicked = interactor::onRemoveTopSiteClicked,
                 onSettingsClicked = interactor::onSettingsClicked,
                 onSponsorPrivacyClicked = interactor::onSponsorPrivacyClicked,

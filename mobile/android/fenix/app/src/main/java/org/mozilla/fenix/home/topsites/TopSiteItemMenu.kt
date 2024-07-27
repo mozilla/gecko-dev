@@ -24,7 +24,12 @@ class TopSiteItemMenu(
 ) {
     sealed class Item {
         object OpenInPrivateTab : Item()
-        object RenameTopSite : Item()
+
+        /**
+         * Edit top site menu item.
+         */
+        object EditTopSite : Item()
+
         object RemoveTopSite : Item()
         object Settings : Item()
         object SponsorPrivacy : Item()
@@ -44,9 +49,9 @@ class TopSiteItemMenu(
             },
             if (isPinnedSite) {
                 SimpleBrowserMenuItem(
-                    context.getString(R.string.rename_top_site),
+                    context.getString(R.string.top_sites_edit_top_site),
                 ) {
-                    onItemTapped.invoke(Item.RenameTopSite)
+                    onItemTapped.invoke(Item.EditTopSite)
                 }
             } else {
                 null

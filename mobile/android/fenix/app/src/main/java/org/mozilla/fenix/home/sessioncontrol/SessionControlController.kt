@@ -5,11 +5,15 @@
 package org.mozilla.fenix.home.sessioncontrol
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.widget.EditText
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
+import androidx.core.widget.addTextChangedListener
 import androidx.navigation.NavController
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,7 +31,10 @@ import mozilla.components.feature.tab.collections.ext.invoke
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.service.nimbus.messaging.Message
+import mozilla.components.support.ktx.android.content.getColorFromAttr
 import mozilla.components.support.ktx.android.view.showKeyboard
+import mozilla.components.support.ktx.kotlin.isUrl
+import mozilla.components.support.ktx.kotlin.toNormalizedUrl
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
@@ -50,7 +57,6 @@ import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
-import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.HomeFragmentDirections
 import org.mozilla.fenix.messaging.MessageController
@@ -103,9 +109,9 @@ interface SessionControlController {
     fun handleOpenInPrivateTabClicked(topSite: TopSite)
 
     /**
-     * @see [TopSiteInteractor.onRenameTopSiteClicked]
+     * @see [TopSiteInteractor.onEditTopSiteClicked]
      */
-    fun handleRenameTopSiteClicked(topSite: TopSite)
+    fun handleEditTopSiteClicked(topSite: TopSite)
 
     /**
      * @see [TopSiteInteractor.onRemoveTopSiteClicked]
@@ -294,35 +300,61 @@ class DefaultSessionControlController(
     }
 
     @SuppressLint("InflateParams")
-    override fun handleRenameTopSiteClicked(topSite: TopSite) {
+    override fun handleEditTopSiteClicked(topSite: TopSite) {
         activity.let {
             val customLayout =
-                LayoutInflater.from(it).inflate(R.layout.top_sites_rename_dialog, null)
-            val topSiteLabelEditText: EditText =
-                customLayout.findViewById(R.id.top_site_title)
-            topSiteLabelEditText.setText(topSite.title)
+                LayoutInflater.from(it).inflate(R.layout.top_sites_edit_dialog, null)
+            val titleEditText = customLayout.findViewById<EditText>(R.id.top_site_title)
+            val urlEditText = customLayout.findViewById<TextInputEditText>(R.id.top_site_url)
+            val urlLayout = customLayout.findViewById<TextInputLayout>(R.id.top_site_url_layout)
+
+            titleEditText.setText(topSite.title)
+            urlEditText.setText(topSite.url)
 
             AlertDialog.Builder(it).apply {
-                setTitle(R.string.rename_top_site)
+                setTitle(R.string.top_sites_edit_dialog_title)
                 setView(customLayout)
-                setPositiveButton(R.string.top_sites_rename_dialog_ok) { dialog, _ ->
-                    viewLifecycleScope.launch(Dispatchers.IO) {
-                        with(activity.components.useCases.topSitesUseCase) {
-                            updateTopSites(
-                                topSite,
-                                topSiteLabelEditText.text.toString(),
-                                topSite.url,
-                            )
-                        }
-                    }
-                    dialog.dismiss()
-                }
+                setPositiveButton(R.string.top_sites_edit_dialog_save) { _, _ -> }
                 setNegativeButton(R.string.top_sites_rename_dialog_cancel) { dialog, _ ->
                     dialog.cancel()
                 }
-            }.show().withCenterAlignedButtons().also {
-                topSiteLabelEditText.setSelection(0, topSiteLabelEditText.text.length)
-                topSiteLabelEditText.showKeyboard()
+            }.show().withCenterAlignedButtons().also { dialog ->
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val urlText = urlEditText.text.toString()
+
+                    if (urlText.isUrl()) {
+                        viewLifecycleScope.launch(Dispatchers.IO) {
+                            with(activity.components.useCases.topSitesUseCase) {
+                                updateTopSites(
+                                    topSite = topSite,
+                                    title = titleEditText.text.toString(),
+                                    url = urlText.toNormalizedUrl(),
+                                )
+                            }
+                        }
+                        dialog.dismiss()
+                    } else {
+                        val criticalColor = ColorStateList.valueOf(
+                            activity.getColorFromAttr(R.attr.textCritical),
+                        )
+                        urlLayout.setErrorIconTintList(criticalColor)
+                        urlLayout.setErrorTextColor(criticalColor)
+                        urlLayout.boxStrokeErrorColor = criticalColor
+
+                        urlLayout.error =
+                            activity.resources.getString(R.string.top_sites_edit_dialog_url_error)
+
+                        urlLayout.setErrorIconDrawable(R.drawable.mozac_ic_warning_fill_24)
+                    }
+                }
+
+                urlEditText.addTextChangedListener {
+                    urlLayout.error = null
+                    urlLayout.errorIconDrawable = null
+                }
+
+                titleEditText.setSelection(0, titleEditText.text.length)
+                titleEditText.showKeyboard()
             }
         }
     }
