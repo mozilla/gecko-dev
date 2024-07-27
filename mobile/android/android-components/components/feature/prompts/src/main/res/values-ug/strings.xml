@@ -142,6 +142,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">ئىم يېڭىلاندى</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">ئىشلەتكۈچى ئاتى يېڭىلاندى</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">بۇ بېكەتكە سانلىق مەلۇماتنى قايتا يوللامدۇ؟</string>
     <string name="mozac_feature_prompt_repost_message">بۇ بەت يېڭىلانسا چىقىم قىلىش ياكى ئىنكاسنى ئىككى قېتىم يوللاشقا ئوخشاش يېقىنقى مەشغۇلاتلارنى كۆپەيتىدۇ.</string>

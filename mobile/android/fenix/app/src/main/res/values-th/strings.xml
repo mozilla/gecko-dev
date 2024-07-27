@@ -45,15 +45,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">เลือกแล้ว</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">บันทึกไว้ล่าสุด</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">แสดงที่คั่นหน้าทั้งหมดที่บันทึกไว้</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">เอาออก</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">ที่คั่นหน้า</string>
@@ -112,6 +103,15 @@
     <string name="erase_action_cfr_message">แตะที่นี่เพื่อเริ่มเปิดวาระส่วนตัวใหม่ โดยจะลบประวัติ คุกกี้ และทุกๆ อย่างของคุณเมื่อเสร็จแล้ว</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">เรียกดูเร็วขึ้นด้วยการนำทางแบบใหม่</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">แถบนี้จะซ่อนตัวเมื่อคุณเลื่อนหน้าจอลง เพื่อเพิ่มเนื้อที่สำหรับการเรียกดูเว็บ</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">เมื่อเข้าเว็บไซต์ แถบนี้จะซ่อนตัวเมื่อคุณเลื่อนหน้าจอลง เพื่อเพิ่มเนื้อที่สำหรับการเรียกดูเว็บ</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">จำเป็นต้องมีการเข้าถึงกล้อง ไปที่การตั้งค่า Android แตะสิทธิอนุญาต แล้วแตะอนุญาต</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -151,8 +151,6 @@
 
     <!-- Shortcut action to open Passwords screen -->
     <string name="home_screen_shortcut_passwords">รหัสผ่าน</string>
-    <!-- Shortcut action to open Passwords screen -->
-    <string name="home_screen_shortcut_open_password_screen" moz:removedIn="126" tools:ignore="UnusedResources">ทางลัดรหัสผ่าน</string>
 
     <!-- Recent Tabs -->
     <!-- Header text for jumping back into the recent tab in the home screen -->
@@ -194,8 +192,6 @@
     <string name="browser_menu_refresh">เรียกใหม่</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">หยุด</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">ส่วนเสริม</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">ส่วนขยาย</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -204,8 +200,6 @@
     <string name="browser_menu_discover_more_extensions">ค้นพบส่วนขยายเพิ่มเติม</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">ข้อมูลบัญชี</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">ไม่มีส่วนเสริมที่นี่</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">ช่วยเหลือ</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -222,8 +216,6 @@
     <string name="browser_menu_add_to_homescreen">เพิ่มไปยังหน้าจอหลัก</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">เพิ่มไปยังหน้าจอหลัก…</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen" moz:removedIn="126" tools:ignore="UnusedResources">ติดตั้ง</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">ซิงค์ใหม่</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -596,7 +588,9 @@
     <!-- Preference category for account information -->
     <string name="preferences_category_account">บัญชี</string>
     <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">แถบเครื่องมือ</string>
+    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">แถบเครื่องมือ</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">ตำแหน่งของแถบที่อยู่</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">ชุดตกแต่ง</string>
     <!-- Preference for customizing the home screen -->
@@ -613,8 +607,6 @@
     <string name="preferences_account_sync_error">เชื่อมต่ออีกครั้งเพื่อทำการซิงค์ต่อ</string>
     <!-- Preference for language -->
     <string name="preferences_language">ภาษา</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">การแปล</string>
     <!-- Preference for translations -->
     <string name="preferences_translations">การแปล</string>
     <!-- Preference for data choices -->
@@ -667,13 +659,8 @@
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
     <string name="quit_application">กำลังปิดแอปพลิเคชันเพื่อนำการเปลี่ยนแปลงไปใช้…</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons" moz:removedIn="126" tools:ignore="UnusedResources">ส่วนเสริม</string>
-
     <!-- Preference for extensions -->
     <string name="preferences_extensions">ส่วนขยาย</string>
-    <!-- Preference for installing a local add-on -->
-    <string name="preferences_install_local_addon" moz:removedIn="126" tools:ignore="UnusedResources">ติดตั้งส่วนเสริมจากไฟล์</string>
     <!-- Preference for installing a local extension -->
     <string name="preferences_install_local_extension">ติดตั้งส่วนขยายจากไฟล์</string>
     <!-- Preference for notifications -->
@@ -698,8 +685,6 @@
 
     <!-- Add-on Preferences -->
     <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
-    <string name="preferences_customize_amo_collection" moz:removedIn="126" tools:ignore="UnusedResources">ชุดสะสมส่วนเสริมที่กำหนดเอง</string>
-    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
     <string name="preferences_customize_extension_collection">ชุดสะสมส่วนขยายกำหนดเอง</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">ตกลง</string>
@@ -709,8 +694,6 @@
     <string name="customize_addon_collection_hint">ชื่อชุดสะสม</string>
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">เจ้าของชุดสะสม (ไอดีผู้ใช้)</string>
-    <!-- Toast shown after confirming the custom add-on collection configuration -->
-    <string name="toast_customize_addon_collection_done" moz:removedIn="126" tools:ignore="UnusedResources">ชุดสะสมส่วนเสริมได้ถูกแก้ไขแล้ว ออกจากแอปพลิเคชันเพื่อใช้การเปลี่ยนแปลง…</string>
 
     <!-- Toast shown after confirming the custom extension collection configuration -->
     <string name="toast_customize_extension_collection_done">ชุดสะสมส่วนขยายได้ถูกแก้ไขแล้ว ออกจากแอปพลิเคชันเพื่อใช้การเปลี่ยนแปลง…</string>
@@ -718,8 +701,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">กลับเข้าไป</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">ที่คั่นหน้าล่าสุด</string>
     <!-- Title for the customize home screen section with bookmarks. -->
     <string name="customize_toggle_bookmarks">ที่คั่นหน้า</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
@@ -772,36 +753,23 @@
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">สำรวจวอลล์เปเปอร์เพิ่มเติม</string>
 
     <!-- Add-ons general availability nimbus message-->
-    <!-- Title of the Nimbus message for add-ons general availability-->
-    <string name="addon_ga_message_title" moz:removedIn="126" tools:ignore="UnusedResources">ส่วนเสริมใหม่ที่ใช้งานได้ในขณะนี้</string>
-
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">มีส่วนขยายใหม่ใช้งานได้ในขณะนี้</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
     <string name="addon_ga_message_body" tools:ignore="UnusedResources">ลองดูส่วนขยายใหม่กว่า 100 รายการที่ให้คุณสร้าง Firefox ในแบบของคุณเอง</string>
-    <!-- Button text of the Nimbus message for add-ons general availability. -->
-    <string name="addon_ga_message_button" moz:removedIn="126" tools:ignore="UnusedResources">สำรวจส่วนเสริม</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">สำรวจส่วนขยาย</string>
 
     <!-- Extension process crash dialog to user -->
-    <!-- Title of a dialog shown to the user when enough errors have occurred with addons and they need to be temporarily disabled -->
-    <string name="addon_process_crash_dialog_title" moz:removedIn="126" tools:ignore="UnusedResources">ส่วนเสริมถูกปิดใช้งานชั่วคราว</string>
     <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
     <string name="extension_process_crash_dialog_title">ส่วนขยายถูกปิดใช้งานชั่วคราว</string>
-    <!-- The first parameter is the application name. This is a message shown to the user when too many errors have occurred with the addons process and they have been disabled. The user can decide if they would like to continue trying to start add-ons or if they'd rather continue without them. -->
-    <string name="addon_process_crash_dialog_message" moz:removedIn="126" tools:ignore="UnusedResources">มีส่วนเสริมอย่างน้อยหนึ่งตัวหยุดทำงาน ทำให้ระบบของคุณไม่เสถียร %1$s ลองเริ่มการทำงานของส่วนเสริมใหม่ไม่สำเร็จ\n\nส่วนเสริมจะไม่เริ่มทำงานใหม่ในระหว่างวาระปัจจุบันของคุณ\n\nการลบหรือปิดใช้งานส่วนเสริมอาจแก้ปัญหานี้ได้</string>
     <!-- This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     The first parameter is the application name. -->
     <string name="extension_process_crash_dialog_message">มีส่วนขยายอย่างน้อยหนึ่งตัวหยุดทำงาน ทำให้ระบบของคุณไม่เสถียร %1$s ลองเริ่มการทำงานของส่วนขยายใหม่ไม่สำเร็จ\n\nส่วนขยายจะไม่เริ่มทำงานใหม่ในระหว่างวาระปัจจุบันของคุณ\n\nการลบหรือปิดใช้งานส่วนขยายอาจแก้ปัญหานี้ได้</string>
-    <!-- This will cause the add-ons to try restarting but the dialog will reappear if it is unsuccessful again -->
-    <string name="addon_process_crash_dialog_retry_button_text" moz:removedIn="126" tools:ignore="UnusedResources">ลองเริ่มการทำงานของส่วนเสริมใหม่</string>
     <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
     <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">ลองเริ่มส่วนขยายใหม่</string>
-    <!-- The user will continue with all add-ons disabled -->
-    <string name="addon_process_crash_dialog_disable_addons_button_text" moz:removedIn="126" tools:ignore="UnusedResources">ไปต่อโดยปิดใช้งานส่วนเสริม</string>
 
     <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
     <string name="extension_process_crash_dialog_disable_extensions_button_text">ใช้งานต่อโดยไม่เปิดใช้ส่วนขยาย</string>
@@ -925,9 +893,14 @@
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">เลื่อนเพื่อซ่อนแถบเครื่องมือ</string>
     <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs">ปัดแถบเครื่องมือไปด้านข้างเพื่อสลับแท็บ</string>
+    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">ปัดแถบเครื่องมือไปด้านข้างเพื่อสลับแท็บ</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">ปัดแถบเครื่องมือไปด้านบนเพื่อเปิดแท็บ</string>
+
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">เลื่อนเพื่อซ่อนแถบที่อยู่และแถบเครื่องมือ</string>
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">ปัดแถบที่อยู่ไปด้านข้างเพื่อสลับแท็บ</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -1436,6 +1409,17 @@
     <string name="notification_pbm_delete_text_2">ปิดแท็บส่วนตัว</string>
 
 
+    <!-- Text for option one, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">เฉยๆ</string>
+    <!-- Text for option two, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">ไม่พอใจมาก</string>
+    <!-- Text for option three, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">ไม่พอใจ</string>
+    <!-- Text for option four, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">พึงพอใจ</string>
+    <!-- Text for option five, shown in microsurvey.-->
+    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">พึงพอใจมาก</string>
+
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">ปิดแท็บส่วนตัว?</string>
 
@@ -1484,6 +1468,8 @@
     <string name="snackbar_tab_closed">ปิดแท็บแล้ว</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">ปิดแท็บแล้ว</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">จำนวนแท็บที่ปิด: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">บันทึกที่คั่นหน้าแล้ว!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -1514,7 +1500,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">ลบ</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">เข้าสู่โหมดเต็มหน้าจอ</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">เข้าสู่โหมดเต็มหน้าจอ</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">คัดลอก URL แล้ว</string>
     <!-- Sample text for accessibility font size -->
@@ -1686,7 +1672,9 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">ตัวขุดเหรียญดิจิทัล</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">ลายนิ้วมือดิจิทัล</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">ลายนิ้วมือดิจิทัล</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">ลายนิ้วมือดิจิทัลที่รู้จัก</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">รายละเอียด</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1710,9 +1698,11 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">ป้องกันไม่ให้สคริปต์ที่เป็นอันตรายเข้าถึงอุปกรณ์ของคุณเพื่อขุดเหรียญสกุลเงินดิจิทัล</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">ลายนิ้วมือดิจิทัล</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">ลายนิ้วมือดิจิทัล</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">หยุดไม่ให้รวบรวมข้อมูลเกี่ยวกับอุปกรณ์ของคุณที่ระบุตัวตนได้ที่ไม่ซ้ำกันที่สามารถใช้เพื่อวัตถุประสงค์ในการติดตาม</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">หยุดไม่ให้รวบรวมข้อมูลเกี่ยวกับอุปกรณ์ของคุณที่ระบุตัวตนได้ที่ไม่ซ้ำกันที่สามารถใช้เพื่อวัตถุประสงค์ในการติดตาม</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">หยุดไม่ให้รวบรวมข้อมูลเกี่ยวกับอุปกรณ์ของคุณที่ระบุตัวตนได้ที่ไม่ซ้ำกันที่สามารถใช้เพื่อวัตถุประสงค์ในการติดตาม</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">ตัวติดตามเนื้อหา</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1738,6 +1728,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">ล้างคุกกี้ที่ตั้งโดยการเปลี่ยนเส้นทางไปยังเว็บไซต์ติดตามที่รู้จัก</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">ลายนิ้วมือดิจิทัลที่ต้องสงสัย</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">เปิดใช้การป้องกันลายนิ้วมือดิจิทัลเพื่อหยุดลายนิ้วมือดิจิทัลที่ต้องสงสัย</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">ลายนิ้วมือดิจิทัลที่รู้จัก</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">ตัวติดตามบางตัวที่ถูกทำเครื่องหมายไว้ด้านล่างนี้ได้ถูกเลิกปิดกั้นบนหน้านี้เนื่องจากคุณมีการโต้ตอบกับตัวติดตามเหล่านั้น *</string>
@@ -2487,8 +2483,6 @@
     <string name="translation_error_could_not_load_languages_warning_text">ไม่สามารถโหลดภาษาได้ โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของคุณแล้วลองอีกครั้ง</string>
     <!-- The title of the warning card informs the user that a language is not supported. The first parameter is the name of the language that is not supported. -->
     <string name="translation_error_language_not_supported_warning_text">ขออภัย เรายังไม่รองรับภาษา%1$s</string>
-    <!-- Button text on the warning card when a language is not supported. The link will take the user to a page to a support page about translations. -->
-    <string name="translation_error_language_not_supported_learn_more" moz:removedIn="126" tools:ignore="UnusedResources">เรียนรู้เพิ่มเติม</string>
 
     <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
     <string name="translation_in_progress_snackbar">กำลังแปล…</string>
@@ -2501,8 +2495,6 @@
 
 
     <!-- Translations options dialog -->
-    <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
-    <string name="translation_option_bottom_sheet_title" moz:removedIn="126" tools:ignore="UnusedResources">ตัวเลือกการแปล</string>
     <!-- Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on. -->
     <string name="translation_option_bottom_sheet_title_heading">ตัวเลือกการแปล</string>
     <!-- Toggle switch label that allows a user to set the setting if they would like the browser to always offer or suggest translations when available. -->
@@ -2605,14 +2597,30 @@
     <string name="download_language_header_preference">ดาวน์โหลดภาษา</string>
     <!-- All languages list item. When the user presses this item, they can download all languages. -->
     <string name="download_language_all_languages_item_preference">ภาษาทั้งหมด</string>
+    <!-- All languages list item. When the user presses this item, they can delete all languages that were downloaded. -->
+    <string name="download_language_all_languages_item_preference_to_delete">ลบภาษาทั้งหมด</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">ลบ</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state">ดำเนินการอยู่</string>
+    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">ดำเนินการอยู่</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+    <string name="download_languages_item_content_description_delete_in_progress_state">ดำเนินการอยู่</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">หยุดดาวน์โหลดภาษา %1$s (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">ดาวน์โหลด</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item that is selected. -->
-    <string name="download_languages_item_content_description_selected_state" moz:removedIn="127" tools:ignore="UnusedResources">เลือกแล้ว</string>
+
+    <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
+    <string name="download_languages_fetch_error_warning_text">ไม่สามารถโหลดภาษาได้ โปรดกลับมาตรวจสอบอีกครั้งในภายหลัง</string>
+
+    <!-- The title of the warning card informs the user that an error has occurred at downloading a language.
+      The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_error_warning_text"><![CDATA[ไม่สามารถดาวน์โหลดภาษา <b>%1$s</b> ได้ โปรดลองอีกครั้ง]]></string>
+    <!-- The title of the warning card informs the user that an error has occurred at deleting a language.
+          The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_delete_error_warning_text"><![CDATA[ไม่สามารถลบภาษา <b>%1$s</b> ได้ โปรดลองอีกครั้ง]]></string>
 
     <!-- Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -2631,6 +2639,14 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">ยกเลิก</string>
 
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title">ยกเลิกการดาวน์โหลดภาษา %1$s หรือไม่?</string>
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text">ใช่</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text">ไม่</string>
+
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
     a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
@@ -2639,7 +2655,7 @@
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">เราดาวน์โหลดภาษาบางส่วนลงในแคชของคุณเพื่อให้การแปลเป็นส่วนตัว</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache">เราดาวน์โหลดภาษาบางส่วนเพื่อให้การแปลเป็นส่วนตัว</string>
+    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">เราดาวน์โหลดภาษาบางส่วนเพื่อให้การแปลเป็นส่วนตัว</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">ดาวน์โหลดในโหมดประหยัดข้อมูลเสมอ</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2663,8 +2679,6 @@
     <string name="debug_drawer_tab_tools_title">เครื่องมือแท็บ</string>
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">จำนวนแท็บ</string>
-    <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_normal" moz:removedIn="127" tools:ignore="UnusedResources">ใช้งานอยู่</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_active">ทำงานอยู่</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
@@ -2696,16 +2710,27 @@
 
     <!-- Micro survey -->
 
+    <!-- Microsurvey -->
+    <!-- Prompt view -->
+    <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
+    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">ช่วยเราทำให้ Firefox ดีขึ้น โดยสละเวลาเพียงนาทีเดียว</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">ดำเนินการต่อ</string>
+    <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header">ทำแบบสำรวจนี้ให้เสร็จสมบูรณ์</string>
+    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">ทำแบบสำรวจนี้ให้เสร็จสมบูรณ์</string>
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header_2">โปรดทำแบบสำรวจให้เสร็จสมบูรณ์</string>
     <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice">ประกาศความเป็นส่วนตัว</string>
+    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">ประกาศความเป็นส่วนตัว</string>
+    <!-- The privacy notice link -->
+    <string name="micro_survey_privacy_notice_2">ประกาศความเป็นส่วนตัว</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">ส่ง</string>
     <!-- The close button label text -->
     <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">ปิด</string>
+    <!-- The survey completion header -->
+    <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">แบบสำรวจเสร็จสมบูรณ์</string>
     <!-- The survey completion confirmation text -->
     <string name="micro_survey_feedback_confirmation">ขอบคุณสำหรับข้อคิดเห็นของคุณ!</string>
     <!-- Option for likert scale -->
@@ -2719,13 +2744,25 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_5" tools:ignore="UnusedResources">ไม่พอใจมาก</string>
 
-    <!-- Microsurvey accessibility -->
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_6" tools:ignore="UnusedResources">ฉันไม่ได้ใช้มัน</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">คุณพึงพอใจกับหน้าแรกของ Firefox มากน้อยเพียงใด?</string>
+    <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">ช่วยเราทำให้ระบบการพิมพ์ใน Firefox ดีขึ้น โดยสละเวลาเพียงนาทีเดียว</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">คุณพึงพอใจกับระบบการพิมพ์ใน Firefox มากน้อยเพียงใด?</string>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">โลโก้ Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">ไอคอนคุณลักษณะแบบสำรวจ</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources">เปิดแบบสำรวจ</string>
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">เปิดแบบสำรวจ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
-    <string name="microsurvey_close_handle_content_description" tools:ignore="UnusedResources">ปิดแบบสำรวจ</string>
+    <string name="microsurvey_close_handle_content_description">ปิดแบบสำรวจ</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
-    <string name="microsurvey_close_button_content_description" tools:ignore="UnusedResources">ปิด</string>
+    <string name="microsurvey_close_button_content_description">ปิด</string>
 
     <!-- Debug drawer logins -->
     <!-- The title of the Logins feature in the Debug Drawer. -->
@@ -2736,4 +2773,10 @@
     <string name="debug_drawer_logins_add_login_button">เพิ่มข้อมูลเข้าสู่ระบบปลอมสำหรับโดเมนนี้</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">ลบข้อมูลเข้าสู่ระบบที่มีชื่อผู้ใช้ %s</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">หากต้องการออกจากการแสดงเต็มจอ ให้ลากจากด้านบนแล้วใช้ท่าทางย้อนกลับ</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">หากต้องการออกจากการแสดงเต็มจอ ให้ลากจากด้านบนแล้วกดย้อนกลับ</string>
 </resources>

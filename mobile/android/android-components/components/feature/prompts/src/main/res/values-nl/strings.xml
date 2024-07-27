@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Wachtwoord bijgewerkt</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Gebruikersnaam bijgewerkt</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Gegevens opnieuw naar deze website verzenden?</string>
     <string name="mozac_feature_prompt_repost_message">Het opnieuw laden van deze pagina kan recente acties dupliceren, zoals het verzenden van een betaling of het tweemaal plaatsen van een bericht.</string>

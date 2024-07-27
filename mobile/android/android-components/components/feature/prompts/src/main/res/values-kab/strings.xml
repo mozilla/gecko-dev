@@ -139,6 +139,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Awal uffir yettuleqqem</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Isem n useqdac yettwaleqqem</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Ales tuzna n yisefka ɣer usmel-a?</string>
     <string name="mozac_feature_prompt_repost_message">Asmiren n usebter-a yezmer ad d-yerr tigawin n melmi kan, am tuzna n lexlaṣ neɣ asuffeɣ n uwennit snat tikkal.</string>

@@ -139,6 +139,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Contrasigno actualisate</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Nomine de usator actualisate</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Reinviar le datos a iste sito?</string>
     <string name="mozac_feature_prompt_repost_message">Actualisar iste pagina pote duplicar activitates recente, tal como inviar un pagamento o un commento duo vices.</string>
