@@ -6,24 +6,25 @@
 
 #include "FFmpegVideoEncoder.h"
 
+#include <algorithm>
+
 #include <aom/aomcx.h>
 
 #include "BufferReader.h"
 #include "EncoderConfig.h"
 #include "FFmpegLog.h"
+#include "FFmpegRuntimeLinker.h"
 #include "FFmpegUtils.h"
 #include "H264.h"
 #include "ImageContainer.h"
+#include "ImageConversion.h"
 #include "libavutil/error.h"
 #include "libavutil/pixfmt.h"
+#include "libyuv.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageUtils.h"
 #include "mozilla/dom/VideoFrameBinding.h"
 #include "nsPrintfCString.h"
-#include "ImageConversion.h"
-#include "libyuv.h"
-#include "FFmpegRuntimeLinker.h"
-#include <algorithm>
 
 // The ffmpeg namespace is introduced to avoid the PixelFormat's name conflicts
 // with MediaDataEncoder::PixelFormat in MediaDataEncoder class scope.
