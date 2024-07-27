@@ -1426,7 +1426,10 @@ var gSync = {
 
   async openFxAEmailFirstPageFromFxaMenu(sourceElement, extraParams = {}) {
     this.emitFxaToolbarTelemetry("login", sourceElement);
-    this.openFxAEmailFirstPage("fxa_toolbar_button", extraParams);
+    this.openFxAEmailFirstPage(
+      this._getEntryPointForElement(sourceElement),
+      extraParams
+    );
   },
 
   async openFxAManagePage(entryPoint) {
