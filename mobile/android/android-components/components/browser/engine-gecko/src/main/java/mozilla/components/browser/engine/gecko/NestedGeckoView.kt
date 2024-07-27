@@ -39,6 +39,17 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
 
     private var gestureCanReachParent = true
 
+    /**
+     * Represents the initial scroll.
+     */
+    enum class InitialScrollDirection {
+        NOT_YET,
+        DOWN,
+        UP,
+    }
+
+    private var initialScrollDirection = InitialScrollDirection.NOT_YET
+
     private var initialDownY: Float = 0f
 
     @VisibleForTesting
@@ -84,24 +95,15 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
                     nestedOffsetY += scrollOffset[1]
                 }
 
-                // If this event is the first touch move event, there are two possible cases
-                // where we still need to wait for the response for this first touch move event.
-                // a) we haven't yet received the response from GeckoView because of active touch
-                //    event listeners etc.
-                // b) we have received the response for the touch down event that GeckoView
-                //    consumed the event
-                // In the case of a) it's possible a touch move event listener does preventDefault()
-                // for this touch move event, then any subsequent touch events need to be directly
-                // routed to GeckoView rather than being intercepted.
-                // In the case of b) if GeckoView consumed this touch move event to scroll down the
-                // web content, any touch event interception should not be allowed since, for example
-                // SwipeRefreshLayout is supposed to trigger a refresh after the user started scroll
-                // down if the user restored the scroll position at the top.
-                val hasDragGestureStarted = event.y != initialDownY
-                if (gestureCanReachParent && hasDragGestureStarted) {
-                    updateInputResult(event)
-                    event.recycle()
-                    return true
+                if (initialScrollDirection == InitialScrollDirection.NOT_YET) {
+                    if (event.y > initialDownY) {
+                        initialScrollDirection = InitialScrollDirection.UP
+                    } else if (event.y < initialDownY) {
+                        initialScrollDirection = InitialScrollDirection.DOWN
+                    } else {
+                        // We may want to disallow pull-to-refresh in the case of
+                        // scrolling left or right initially?
+                    }
                 }
             }
 
@@ -110,6 +112,7 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
                 parent?.requestDisallowInterceptTouchEvent(true)
                 updateInputResult(event)
 
+                initialScrollDirection = InitialScrollDirection.NOT_YET
                 nestedOffsetY = 0
                 lastY = eventY
                 initialDownY = event.y
@@ -156,7 +159,6 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
     @VisibleForTesting
     internal fun updateInputResult(event: MotionEvent) {
         val eventAction = event.actionMasked
-        val eventY = event.y
         superOnTouchEventForDetailResult(event)
             .accept {
                 // Since the response from APZ is async, we could theoretically have a response
@@ -172,34 +174,31 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
                     it?.overscrollDirections(),
                 )
 
-                when (eventAction) {
-                    MotionEvent.ACTION_DOWN -> {
-                        // Gesture can reach the parent only if the content is already at the top
-                        gestureCanReachParent = inputResultDetail.canOverscrollTop()
+                if (eventAction == MotionEvent.ACTION_DOWN) {
+                    // Gesture can reach the parent only if the content is already at the top
+                    gestureCanReachParent = inputResultDetail.canOverscrollTop()
 
-                        if (gestureCanReachParent && inputResultDetail.isTouchUnhandled()) {
-                            // If the event wasn't used in GeckoView, allow touch event interception.
-                            parent?.requestDisallowInterceptTouchEvent(false)
-                        }
-                    }
-
-                    MotionEvent.ACTION_MOVE -> {
-                        if (initialDownY < eventY) {
-                            // In the case of scroll upwards gestures, allow touch event interception
-                            // only if the event wasn't consumed by the web site. I.e. even if
-                            // the event was consumed by the browser to scroll up the content.
-                            if (!inputResultDetail.isTouchHandledByWebsite()) {
+                    when (initialScrollDirection) {
+                        InitialScrollDirection.NOT_YET -> {
+                            // If the event wasn't used in GeckoView, allow touch event interceptiona.
+                            if (gestureCanReachParent && inputResultDetail.isTouchUnhandled()) {
                                 parent?.requestDisallowInterceptTouchEvent(false)
                             }
-                        } else if (initialDownY > eventY) {
-                            // Once after the content started scroll down, touch event interception
-                            // is never allowed.
+                        }
+
+                        InitialScrollDirection.UP -> {
+                            // If we received the InputResultDetail from Gecko after we've sent the
+                            // first touch move event to Gecko, that means there's at least a touch
+                            // event listener whether to prevent the event or not, or CSS touch-action
+                            // properties in the contents, thus if the result isn't
+                            // `INPUT_HANDLED_CONTENT`, we can allow pull-to-refresh.
+                            if (gestureCanReachParent && !inputResultDetail.isTouchHandledByWebsite()) {
+                                parent?.requestDisallowInterceptTouchEvent(false)
+                            }
+                        }
+
+                        InitialScrollDirection.DOWN -> {
                             parent?.requestDisallowInterceptTouchEvent(true)
-                            gestureCanReachParent = false
-                        } else {
-                            // Normally ACTION_MOVE should happen with moving the event position,
-                            // but if it happened allow touch event interception just in case.
-                            parent?.requestDisallowInterceptTouchEvent(false)
                         }
                     }
                 }
