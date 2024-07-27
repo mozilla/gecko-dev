@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu
 
+import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -154,6 +155,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     addPinnedSiteUseCase = addPinnedSiteUseCase,
                                     removePinnedSitesUseCase = removePinnedSiteUseCase,
                                     requestDesktopSiteUseCase = requestDesktopSiteUseCase,
+                                    alertDialogBuilder = AlertDialog.Builder(context),
                                     topSitesMaxLimit = topSitesMaxLimit,
                                     onDeleteAndQuit = {
                                         deleteAndQuit(
