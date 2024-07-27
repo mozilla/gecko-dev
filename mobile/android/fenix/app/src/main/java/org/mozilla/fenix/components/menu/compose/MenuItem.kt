@@ -20,6 +20,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.IconListItem
+import org.mozilla.fenix.compose.list.TextListItem
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private val MENU_ITEM_HEIGHT_WITHOUT_DESC = 52.dp
@@ -79,6 +80,32 @@ internal fun MenuItem(
         afterIconDescription = afterIconDescription,
         afterIconTint = iconTint,
         onAfterIconClick = onAfterIconClick,
+    )
+}
+
+/**
+ * An [IconListItem] wrapper for menu items in a [MenuGroup] with an optional icon at the end.
+ *
+ * @param label The label in the menu item.
+ * @param description An optional description text below the label.
+ * @param onClick Invoked when the user clicks on the item.
+ */
+@Composable
+internal fun MenuTextItem(
+    label: String,
+    description: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    TextListItem(
+        label = label,
+        maxLabelLines = 2,
+        description = description,
+        minHeight = if (description != null) {
+            MENU_ITEM_HEIGHT_WITH_DESC
+        } else {
+            MENU_ITEM_HEIGHT_WITHOUT_DESC
+        },
+        onClick = onClick,
     )
 }
 

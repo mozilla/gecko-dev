@@ -6,6 +6,8 @@ package org.mozilla.fenix.components.menu
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.app.PendingIntent
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.core.net.toUri
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -24,6 +27,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.concept.engine.translate.TranslationSupport
 import mozilla.components.concept.engine.translate.findLanguage
@@ -169,6 +173,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                             this@MenuDialogFragment.dismiss()
                                         }
                                     },
+                                    onSendPendingIntentWithUrl = ::sendPendingIntentWithUrl,
                                     scope = coroutineScope,
                                 ),
                                 MenuNavigationMiddleware(
@@ -406,7 +411,20 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         }
 
                         composable(route = CUSTOM_TAB_MENU_ROUTE) {
+                            val customTab = args.customTabSessionId?.let {
+                                browserStore.state.findCustomTab(it)
+                            }
+
                             CustomTabMenu(
+                                customTabMenuItems = customTab?.config?.menuItems,
+                                onCustomMenuItemClick = { intent: PendingIntent ->
+                                    store.dispatch(
+                                        MenuAction.CustomMenuItemAction(
+                                            intent = intent,
+                                            url = customTab?.content?.url,
+                                        ),
+                                    )
+                                },
                                 onSwitchToDesktopSiteMenuClick = {},
                                 onFindInPageMenuClick = {
                                     store.dispatch(MenuAction.FindInPage)
@@ -435,6 +453,16 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                 searchTermOrURL = url,
                 newTab = true,
                 from = BrowserDirection.FromMenuDialogFragment,
+            )
+        }
+    }
+
+    private fun sendPendingIntentWithUrl(intent: PendingIntent, url: String?) = runIfFragmentIsAttached {
+        url?.let { url ->
+            intent.send(
+                requireContext(),
+                0,
+                Intent(null, url.toUri()),
             )
         }
     }

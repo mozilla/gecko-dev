@@ -1557,12 +1557,22 @@
         <argument
             android:name="accesspoint"
             app:argType="org.mozilla.fenix.components.menu.MenuAccessPoint" />
+        <argument
+            android:name="customTabSessionId"
+            android:defaultValue="@null"
+            app:nullable="true"
+            app:argType="string" />
         <dialog
             android:id="@+id/menuDialogFragment"
             android:name="org.mozilla.fenix.components.menu.MenuDialogFragment">
             <argument
                 android:name="accesspoint"
                 app:argType="org.mozilla.fenix.components.menu.MenuAccessPoint" />
+            <argument
+                android:name="customTabSessionId"
+                android:defaultValue="@null"
+                app:nullable="true"
+                app:argType="string" />
             <action
                 android:id="@+id/action_menuDialogFragment_to_translationsDialogFragment"
                 app:destination="@id/translationsDialogFragment" />

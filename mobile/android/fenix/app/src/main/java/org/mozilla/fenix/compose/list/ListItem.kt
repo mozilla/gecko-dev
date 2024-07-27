@@ -68,6 +68,7 @@ private val TOAST_LENGTH = Toast.LENGTH_SHORT
  * @param maxLabelLines An optional maximum number of lines for the label text to span.
  * @param description An optional description text below the label.
  * @param maxDescriptionLines An optional maximum number of lines for the description text to span.
+ * @param minHeight An optional minimum height for the list item.
  * @param onClick Called when the user clicks on the item.
  * @param iconPainter [Painter] used to display an icon after the list item.
  * @param iconDescription Content description of the icon.
@@ -82,6 +83,7 @@ fun TextListItem(
     maxLabelLines: Int = 1,
     description: String? = null,
     maxDescriptionLines: Int = 1,
+    minHeight: Dp = LIST_ITEM_HEIGHT,
     onClick: (() -> Unit)? = null,
     iconPainter: Painter? = null,
     iconDescription: String? = null,
@@ -94,6 +96,7 @@ fun TextListItem(
         modifier = modifier,
         description = description,
         maxDescriptionLines = maxDescriptionLines,
+        minHeight = minHeight,
         onClick = onClick,
     ) {
         if (iconPainter != null && onIconClick != null) {

@@ -196,6 +196,7 @@ class MenuTelemetryMiddleware(
             MenuAction.InitAction,
             MenuAction.OpenInFirefox,
             is MenuAction.InstallAddon,
+            is MenuAction.CustomMenuItemAction,
             is MenuAction.Navigate.AddonDetails,
             MenuAction.Navigate.Back,
             MenuAction.Navigate.DiscoverMoreExtensions,

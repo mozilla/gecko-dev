@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu.compose
 
+import android.app.PendingIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -11,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import mozilla.components.browser.state.state.CustomTabMenuItem
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
@@ -22,6 +24,8 @@ internal const val CUSTOM_TAB_MENU_ROUTE = "custom_tab_menu"
 /**
  * Wrapper column containing the main menu items.
  *
+ * @param customTabMenuItems Additional [CustomTabMenuItem]s to be displayed to the custom tab menu.
+ * @param onCustomMenuItemClick Invoked when the user clicks on [CustomTabMenuItem]s.
  * @param onSwitchToDesktopSiteMenuClick Invoked when the user clicks on the switch to desktop site
  * menu toggle.
  * @param onFindInPageMenuClick Invoked when the user clicks on the find in page menu item.
@@ -30,6 +34,8 @@ internal const val CUSTOM_TAB_MENU_ROUTE = "custom_tab_menu"
 @Suppress("LongParameterList")
 @Composable
 internal fun CustomTabMenu(
+    customTabMenuItems: List<CustomTabMenuItem>?,
+    onCustomMenuItemClick: (PendingIntent) -> Unit,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onOpenInFirefoxMenuClick: () -> Unit,
@@ -63,6 +69,21 @@ internal fun CustomTabMenu(
                 onClick = onOpenInFirefoxMenuClick,
             )
         }
+
+        if (!customTabMenuItems.isNullOrEmpty()) {
+            MenuGroup {
+                customTabMenuItems.forEachIndexed { index, customTabMenuItem ->
+                    if (index > 0) {
+                        Divider(color = FirefoxTheme.colors.borderSecondary)
+                    }
+
+                    MenuTextItem(
+                        label = customTabMenuItem.name,
+                        onClick = { onCustomMenuItemClick(customTabMenuItem.pendingIntent) },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -75,6 +96,8 @@ private fun CustomTabMenuPreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             CustomTabMenu(
+                customTabMenuItems = null,
+                onCustomMenuItemClick = { _: PendingIntent -> },
                 onSwitchToDesktopSiteMenuClick = {},
                 onFindInPageMenuClick = {},
                 onOpenInFirefoxMenuClick = {},
@@ -92,6 +115,8 @@ private fun CustomTabMenuPrivatePreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             CustomTabMenu(
+                customTabMenuItems = null,
+                onCustomMenuItemClick = { _: PendingIntent -> },
                 onSwitchToDesktopSiteMenuClick = {},
                 onFindInPageMenuClick = {},
                 onOpenInFirefoxMenuClick = {},

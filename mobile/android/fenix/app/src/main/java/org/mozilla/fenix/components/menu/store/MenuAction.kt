@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu.store
 
+import android.app.PendingIntent
 import mozilla.components.feature.addons.Addon
 import mozilla.components.lib.state.Action
 import mozilla.components.service.fxa.manager.AccountState
@@ -96,6 +97,17 @@ sealed class MenuAction : Action {
      * @property addon The [Addon] to install.
      */
     data class InstallAddon(val addon: Addon) : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when a custom item is tapped in the custom tab menu.
+     *
+     * @property intent The [PendingIntent] from the custom menu item.
+     * @property url The [String] URL of the current custom tab.
+     */
+    data class CustomMenuItemAction(
+        val intent: PendingIntent,
+        val url: String?,
+    ) : MenuAction()
 
     /**
      * [MenuAction] dispatched when requesting to switch to the desktop version of the current page.

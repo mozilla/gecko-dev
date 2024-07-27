@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.menu.middleware
 
 import android.app.AlertDialog
+import android.app.PendingIntent
 import android.content.Intent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +64,8 @@ import org.mozilla.fenix.utils.Settings
  * @param topSitesMaxLimit The maximum number of top sites the user can have.
  * @param onDeleteAndQuit Callback invoked to delete browsing data and quit the browser.
  * @param onDismiss Callback invoked to dismiss the menu dialog.
+ * @param onSendPendingIntentWithUrl Callback invoked to send the pending intent of a custom menu item
+ * with the url of the custom tab.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
 @Suppress("LongParameterList")
@@ -81,6 +84,7 @@ class MenuDialogMiddleware(
     private val topSitesMaxLimit: Int,
     private val onDeleteAndQuit: () -> Unit,
     private val onDismiss: suspend () -> Unit,
+    private val onSendPendingIntentWithUrl: (intent: PendingIntent, url: String?) -> Unit,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : Middleware<MenuState, MenuAction> {
 
@@ -103,6 +107,7 @@ class MenuDialogMiddleware(
             is MenuAction.OpenInApp -> openInApp(context.store)
             is MenuAction.OpenInFirefox -> openInFirefox()
             is MenuAction.InstallAddon -> installAddon(action.addon)
+            is MenuAction.CustomMenuItemAction -> customMenuItemAction(action.intent, action.url)
             is MenuAction.ToggleReaderView -> toggleReaderView(state = currentState)
             is MenuAction.CustomizeReaderView -> customizeReaderView()
 
@@ -352,6 +357,14 @@ class MenuDialogMiddleware(
             settings.openNextTabInDesktopMode = shouldRequestDesktopMode
         }
 
+        onDismiss()
+    }
+
+    private fun customMenuItemAction(
+        intent: PendingIntent,
+        url: String?,
+    ) = scope.launch {
+        onSendPendingIntentWithUrl(intent, url)
         onDismiss()
     }
 

@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.menu
 
 import android.app.AlertDialog
+import android.app.PendingIntent
 import android.content.Intent
 import kotlinx.coroutines.runBlocking
 import mozilla.appservices.places.BookmarkRoot
@@ -824,7 +825,6 @@ class MenuDialogMiddlewareTest {
         verify(appStore).dispatch(
             AppAction.OpenInFirefoxStarted,
         )
-
         assertTrue(dismissedWasCalled)
     }
 
@@ -857,6 +857,41 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(appStore).dispatch(FindInPageAction.FindInPageStarted)
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `WHEN custom menu item action is dispatched THEN pending intent is sent with url`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val mockIntent: PendingIntent = mock()
+        var dismissWasCalled = false
+        var sentIntent: PendingIntent? = null
+        var sentUrl: String? = null
+
+        val store = spy(
+            createStore(
+                onDismiss = { dismissWasCalled = true },
+                onSendPendingIntentWithUrl = { _, _ ->
+                    sentIntent = mockIntent
+                    sentUrl = url
+                },
+            ),
+        )
+        store.waitUntilIdle()
+
+        assertNull(sentIntent)
+        assertNull(sentUrl)
+
+        store.dispatch(
+            MenuAction.CustomMenuItemAction(
+                intent = mockIntent,
+                url = url,
+            ),
+        )
+        store.waitUntilIdle()
+
+        assertEquals(sentIntent, mockIntent)
+        assertEquals(sentUrl, url)
         assertTrue(dismissWasCalled)
     }
 
@@ -955,6 +990,7 @@ class MenuDialogMiddlewareTest {
         appStore: AppStore = AppStore(),
         menuState: MenuState = MenuState(),
         onDismiss: suspend () -> Unit = {},
+        onSendPendingIntentWithUrl: (intent: PendingIntent, url: String?) -> Unit = { _: PendingIntent, _: String? -> },
     ) = MenuStore(
         initialState = menuState,
         middleware = listOf(
@@ -973,6 +1009,7 @@ class MenuDialogMiddlewareTest {
                 topSitesMaxLimit = TOP_SITES_MAX_COUNT,
                 onDeleteAndQuit = onDeleteAndQuit,
                 onDismiss = onDismiss,
+                onSendPendingIntentWithUrl = onSendPendingIntentWithUrl,
                 scope = scope,
             ),
         ),

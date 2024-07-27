@@ -35,6 +35,7 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.OpenInApp,
         is MenuAction.OpenInFirefox,
         is MenuAction.InstallAddon,
+        is MenuAction.CustomMenuItemAction,
         is MenuAction.ToggleReaderView,
         is MenuAction.CustomizeReaderView,
         is MenuAction.Navigate,

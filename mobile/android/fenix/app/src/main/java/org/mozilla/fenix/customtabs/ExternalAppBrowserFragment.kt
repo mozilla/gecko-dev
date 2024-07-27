@@ -126,6 +126,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                                     R.id.externalAppBrowserFragment,
                                     ExternalAppBrowserFragmentDirections.actionGlobalMenuDialogFragment(
                                         accesspoint = MenuAccessPoint.External,
+                                        customTabSessionId = customTabSessionId,
                                     ),
                                 )
                             },
