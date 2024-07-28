@@ -947,22 +947,30 @@ pocketNewtab:
         browser.newtabpage.activity-stream.discoverystream.spocs.personalized
       description: >-
         Enables Pocket sponsored content personalization.
-    topicSelectionEnabled:
-      type: boolean
-      fallbackPref: >-
-        browser.newtabpage.activity-stream.discoverystream.topicSelection.enabled
-      description: >-
-        Enables topic selection for discovery stream.
+    regionTopicsConfig:
+      description: A comma-separated list of regions that get topics selection by default.
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config
+    localeTopicsConfig:
+      description: A comma-separated list of locales that get topics selection by default.
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.locale-topics-config
     availableTopics:
       type: string
-      fallbackPref: >-
-        browser.newtabpage.activity-stream.discoverystream.topicSelection.topics
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.topics
       description: >-
         List of available topics to select for topic selection
     suggestedTopics:
       type: string
-      fallbackPref: >-
-        browser.newtabpage.activity-stream.discoverystream.topicSelection.suggestedTopics
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.suggestedTopics
       description: >-
         List of pre-selected topics to display on first run of topic selection modal
     spocsCacheTimeout:

@@ -1870,8 +1870,10 @@ pref("browser.newtabpage.activity-stream.discoverystream.recs.personalized", fal
 // System pref to allow Pocket sponsored content personalization to be turned on/off.
 pref("browser.newtabpage.activity-stream.discoverystream.spocs.personalized", true);
 
-// System pref to enable topic selection for Pocket feed
-pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.enabled", false);
+// List of regions that get topics selection by default.
+pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config", "");
+// List of locales that get topics selection by default.
+pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.locale-topics-config", "en-US, en-GB, en-CA");
 // System pref to enable topic labels on Pocket cards
 pref("browser.newtabpage.activity-stream.discoverystream.topicLabels.enabled", false);
 

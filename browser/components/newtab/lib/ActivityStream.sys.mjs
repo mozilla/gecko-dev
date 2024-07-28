@@ -47,6 +47,10 @@ import {
   actionTypes as at,
 } from "resource://activity-stream/common/Actions.mjs";
 
+const REGION_TOPICS_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config";
+const LOCALE_TOPICS_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.topicSelection.locale-topics-config";
 const REGION_BASIC_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.region-basic-config";
 
@@ -72,6 +76,22 @@ function showWeather({ geo, locale }) {
     .map(s => s.trim())
     .filter(item => item);
   return weatherGeo.includes(geo) && weatherLocale.includes(locale);
+}
+
+function showTopicsSelection({ geo, locale }) {
+  const topicsGeoString =
+    Services.prefs.getStringPref(REGION_TOPICS_CONFIG) || "";
+  const topicsLocaleString =
+    Services.prefs.getStringPref(LOCALE_TOPICS_CONFIG) || "";
+  const topicsGeo = topicsGeoString
+    .split(",")
+    .map(s => s.trim())
+    .filter(item => item);
+  const topicsLocale = topicsLocaleString
+    .split(",")
+    .map(s => s.trim())
+    .filter(item => item);
+  return topicsGeo.includes(geo) && topicsLocale.includes(locale);
 }
 
 // Configure default Activity Stream prefs with a plain `value` or a `getValue`
@@ -530,7 +550,8 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.topicSelection.enabled",
     {
       title: "Enables topic selection for discovery stream",
-      value: false,
+      // pref is dynamic
+      getValue: showTopicsSelection,
     },
   ],
   [
