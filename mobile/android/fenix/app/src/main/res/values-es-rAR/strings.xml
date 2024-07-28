@@ -117,7 +117,7 @@
     <string name="navbar_cfr_message_2">En un sitio web, esta barra se oculta a medida que te desplazás hacia abajo para tener más espacio de navegación.</string>
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-    <string name="navbar_navigation_buttons_cfr_message">Toca y mantén presionadas las flechas para saltar entre páginas en el historial de esta pestaña.</string>
+    <string name="navbar_navigation_buttons_cfr_message">Tocá y mantené presionadas las flechas para saltar entre páginas en el historial de esta pestaña.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Se necesita acceso a la cámara. Andá a la configuración de Android, pulsá permisos y permitir.</string>

@@ -137,6 +137,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Ниҳонвожа аз нав нигоҳ дошта шуд</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Номи корбар нав карда шуд</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Маълумотро ба ин сомона аз нав мефиристонед?</string>
     <string name="mozac_feature_prompt_repost_message">Амали навсозии ин саҳифа метавонад амалҳои охиринро такрор намояд, масалан, амали пардохт ё интишори шарҳ метавонад дубора иҷро карда шавад.</string>

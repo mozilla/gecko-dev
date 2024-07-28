@@ -620,7 +620,7 @@
     <string name="your_rights_content5"><![CDATA[ඩිස්කනෙක්ට් සමාගම වෙතින් සපයන ලද අවහිර ලේඛනයක් ද %1$s භාවිතා කරයි. එය <a href="%2$s">ජීඑන්යූ සාමාන්‍ය පොදු බලපත්‍රය අනු. 3</a> යටතේ ස්වාධීන ව්‍යාපෘතියකි, සහ <a href="%3$s">මෙහි</a> තිබේ.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
-    <string name="gv_prompt_username_hint">පරිශීලක නාමය</string>
+    <string name="gv_prompt_username_hint">පරිශ්‍රීලක නාමය</string>
     <string name="gv_prompt_password_hint">මුරපදය</string>
     <string name="gv_prompt_clear">මකන්න</string>
 
@@ -912,7 +912,7 @@
     <string name="open_new_tab_snackbar">මාරු වන්න</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">පූර්ණ තිර ප්‍රකාරයට ඇතුල් වෙමින්</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">පූර්ණ තිර ප්‍රකාරයට ඇතුල් වෙමින්</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">වහාම නව පටිත්තක සබැඳියට මාරු වන්න</string>
@@ -1075,4 +1075,9 @@
 
     !-- This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
     of the app (e.g. &quot;Focus&quot;) --&gt;
-    </resources>
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු අභිනය භාවිතා කරන්න</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු බොත්තම ඔබන්න</string>
+</resources>
