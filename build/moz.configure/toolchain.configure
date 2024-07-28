@@ -3874,6 +3874,26 @@ set_config(
     ),
 )
 
+set_config(
+    "SVE2_FLAGS",
+    ["-march=armv9-a+sve2"],
+    try_compile(
+        check_msg="for ARM SVE2 target feature",
+        flags=["-march=armv9-a+sve2"],
+        when=is_aarch64_target,
+    ),
+)
+
+set_config(
+    "DOTPROD_FLAGS",
+    ["-march=armv8.2-a+dotprod"],
+    try_compile(
+        check_msg="for ARM dotprod target feature",
+        flags=["-march=armv8.2-a+dotprod"],
+                when=is_aarch64_target,
+    ),
+)
+
 # dtrace support
 ##
 option("--enable-dtrace", help="Build with dtrace support")

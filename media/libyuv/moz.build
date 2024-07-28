@@ -9,6 +9,9 @@ with Files("**"):
 
 include('/build/gyp.mozbuild')
 
+gyp_vars['moz_have_arm_sve2'] = 1 if CONFIG['SVE2_FLAGS'] else 0
+gyp_vars['moz_have_arm_i8mm_and_dot_prod'] = 1 if CONFIG['NEON_I8MM_FLAGS'] and CONFIG['DOTPROD_FLAGS'] else 0
+
 # Set gyp vars that libyuv needs when building under various analysis tools.
 gyp_vars_copy = gyp_vars.copy()
 if CONFIG['MOZ_VALGRIND']:
