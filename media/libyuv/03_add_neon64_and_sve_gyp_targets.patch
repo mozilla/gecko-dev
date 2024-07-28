@@ -1,0 +1,177 @@
+diff --git a/libyuv.gyp b/libyuv.gyp
+--- a/libyuv.gyp
++++ b/libyuv.gyp
+@@ -71,9 +71,7 @@
+             # '-mthumb',  # arm32 not thumb
+           ],
+           'cflags_mozilla!': [
+-            '-mfpu=vfp',
+-            '-mfpu=vfpv3',
+-            '-mfpu=vfpv3-d16',
++            '<@(moz_neon_cflags_block_list)',
+           ],
+           'conditions': [
+             # Disable LTO in libyuv_neon target due to gcc 4.9 compiler bug.
+@@ -162,12 +160,95 @@
+               '-Wl,--dynamic-linker,/system/bin/linker',
+             ],
+           }],
++          ['target_arch == "armv7" or target_arch == "arm64" and moz_have_arm_i8mm_and_dot_prod == 1 and build_with_mozilla == 1', {
++            'dependencies': [
++                 ':libyuv_neon',
++            ],
++          }],
++          ['target_arch == "arm64" and moz_have_arm_sve2 == 1 and build_with_mozilla == 1', {
++            'dependencies': [
++                 ':libyuv_sve',
++            ],
++            'defines' :[
++              'LIBYUV_SVE',
++            ]
++          }],
++          ['target_arch == "arm64" and moz_have_arm_sve2 == 1 and build_with_mozilla == 1', {
++            'dependencies': [
++                 ':libyuv_sve',
++            ],
++            'defines' :[
++              'LIBYUV_SVE',
++            ]
++          }],
+         ], #conditions
+       },
+       'sources': [
+         '<@(libyuv_sources)',
+       ],
+     },
++    {
++      'target_name': 'libyuv_neon',
++      'type': 'static_library',
++      'variables': {
++        'optimize': 'max',  # enable O2 and ltcg.
++      },
++      'conditions': [
++        ['target_arch == "arm64" and moz_have_arm_i8mm_and_dot_prod == 1 and build_with_mozilla == 1', {
++          'cflags_mozilla': [
++            '-march=armv8.2-a+dotprod+i8mm',
++          ],
++        }],
++        ['build_neon != 0', {
++          'cflags_mozilla!': [
++            '<@(moz_neon_cflags_block_list)',
++          ],
++          'sources': [
++            '<@(libyuv_neon_sources)',
++          ],
++        }],
++     ], #conditions
++      'include_dirs': [
++        'include',
++        '.',
++      ],
++      'direct_dependent_settings': {
++        'include_dirs': [
++          'include',
++          '.',
++        ], #conditions
++      },
++    },
++    {
++      'target_name': 'libyuv_sve',
++      'type': 'static_library',
++      'variables': {
++        'optimize': 'max',  # enable O2 and ltcg.
++      },
++      'conditions': [
++        ['target_arch == "arm64" and moz_have_arm_sve2 == 1 and build_with_mozilla == 1', {
++          'cflags_mozilla!': [
++            '<@(moz_neon_cflags_block_list)',
++          ],
++          'cflags_mozilla': [
++            '-march=armv9-a+dotprod+sve2+i8mm',
++          ],
++          'sources': [
++            '<@(libyuv_sve_sources)',
++          ],
++        }],
++     ], #conditions
++      'include_dirs': [
++        'include',
++        '.',
++      ],
++      'direct_dependent_settings': {
++        'include_dirs': [
++          'include',
++          '.',
++        ], #conditions
++      },
++    },
+   ], # targets.
+ }
+ 
+diff --git a/libyuv.gypi b/libyuv.gypi
+--- a/libyuv.gypi
++++ b/libyuv.gypi
+@@ -8,6 +8,29 @@
+ 
+ {
+   'variables': {
++    'moz_have_arm_sve2%': '<(moz_have_arm_sve2)',
++    'moz_have_arm_i8mm_and_dot_prod%': '<(moz_have_arm_i8mm_and_dot_prod)',
++    'moz_neon_cflags_block_list': [
++            '-mfpu=vfp',
++            '-mfpu=vfpv3',
++            '-mfpu=vfpv3-d16',
++    ],
++    # Needs to be reflected in upstream gyp file.
++    'libyuv_sve_sources': [
++      # sources.
++      'source/row_sve.cc',
++    ],
++    'libyuv_neon_sources': [
++      # ARM Source Files
++      "source/compare_neon.cc",
++      "source/compare_neon64.cc",
++      "source/rotate_neon.cc",
++      "source/rotate_neon64.cc",
++      "source/row_neon.cc",
++      "source/row_neon64.cc",
++      "source/scale_neon.cc",
++      "source/scale_neon64.cc",
++    ],
+     'libyuv_sources': [
+       # includes.
+       'include/libyuv.h',
+@@ -38,8 +61,6 @@
+       'source/compare_common.cc',
+       'source/compare_gcc.cc',
+       'source/compare_msa.cc',
+-      'source/compare_neon.cc',
+-      'source/compare_neon64.cc',
+       'source/compare_win.cc',
+       'source/convert.cc',
+       'source/convert_argb.cc',
+@@ -58,15 +79,11 @@
+       'source/rotate_common.cc',
+       'source/rotate_gcc.cc',
+       'source/rotate_msa.cc',
+-      'source/rotate_neon.cc',
+-      'source/rotate_neon64.cc',
+       'source/rotate_win.cc',
+       'source/row_any.cc',
+       'source/row_common.cc',
+       'source/row_gcc.cc',
+       'source/row_msa.cc',
+-      'source/row_neon.cc',
+-      'source/row_neon64.cc',
+       'source/row_win.cc',
+       'source/scale.cc',
+       'source/scale_any.cc',
+@@ -74,8 +91,6 @@
+       'source/scale_common.cc',
+       'source/scale_gcc.cc',
+       'source/scale_msa.cc',
+-      'source/scale_neon.cc',
+-      'source/scale_neon64.cc',
+       'source/scale_rgb.cc',
+       'source/scale_uv.cc',
+       'source/scale_win.cc',
