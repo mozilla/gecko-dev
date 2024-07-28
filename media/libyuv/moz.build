@@ -30,6 +30,7 @@ libyuv_non_unified_sources = [
     'libyuv/source/row_common.cc',
     'libyuv/source/scale.cc',
     'libyuv/source/scale_common.cc',
+    'libyuv/source/scale_uv.cc',
 ]
 
 GYP_DIRS += ['libyuv']
