@@ -48,7 +48,6 @@ extern "C" {
                                    defined(__i386__) || defined(_M_IX86))
 #define LIBYUV_ARGBTOUV_PAVGB 1
 #define LIBYUV_RGBTOU_TRUNCATE 1
-#define LIBYUV_ATTENUATE_DUP 1
 #endif
 #if defined(LIBYUV_BIT_EXACT)
 #define LIBYUV_UNATTENUATE_DUP 1
@@ -282,6 +281,54 @@ void AR30ToAB30Row_C(const uint8_t* src_ar30, uint8_t* dst_ab30, int width) {
   }
 }
 
+void ARGBToABGRRow_C(const uint8_t* src_argb, uint8_t* dst_abgr, int width) {
+  int x;
+  for (x = 0; x < width; ++x) {
+    uint8_t b = src_argb[0];
+    uint8_t g = src_argb[1];
+    uint8_t r = src_argb[2];
+    uint8_t a = src_argb[3];
+    dst_abgr[0] = r;
+    dst_abgr[1] = g;
+    dst_abgr[2] = b;
+    dst_abgr[3] = a;
+    dst_abgr += 4;
+    src_argb += 4;
+  }
+}
+
+void ARGBToBGRARow_C(const uint8_t* src_argb, uint8_t* dst_bgra, int width) {
+  int x;
+  for (x = 0; x < width; ++x) {
+    uint8_t b = src_argb[0];
+    uint8_t g = src_argb[1];
+    uint8_t r = src_argb[2];
+    uint8_t a = src_argb[3];
+    dst_bgra[0] = a;
+    dst_bgra[1] = r;
+    dst_bgra[2] = g;
+    dst_bgra[3] = b;
+    dst_bgra += 4;
+    src_argb += 4;
+  }
+}
+
+void ARGBToRGBARow_C(const uint8_t* src_argb, uint8_t* dst_rgba, int width) {
+  int x;
+  for (x = 0; x < width; ++x) {
+    uint8_t b = src_argb[0];
+    uint8_t g = src_argb[1];
+    uint8_t r = src_argb[2];
+    uint8_t a = src_argb[3];
+    dst_rgba[0] = a;
+    dst_rgba[1] = b;
+    dst_rgba[2] = g;
+    dst_rgba[3] = r;
+    dst_rgba += 4;
+    src_argb += 4;
+  }
+}
+
 void ARGBToRGB24Row_C(const uint8_t* src_argb, uint8_t* dst_rgb, int width) {
   int x;
   for (x = 0; x < width; ++x) {
@@ -307,6 +354,22 @@ void ARGBToRAWRow_C(const uint8_t* src_argb, uint8_t* dst_rgb, int width) {
     dst_rgb[2] = b;
     dst_rgb += 3;
     src_argb += 4;
+  }
+}
+
+void RGBAToARGBRow_C(const uint8_t* src_rgba, uint8_t* dst_argb, int width) {
+  int x;
+  for (x = 0; x < width; ++x) {
+    uint8_t a = src_rgba[0];
+    uint8_t b = src_rgba[1];
+    uint8_t g = src_rgba[2];
+    uint8_t r = src_rgba[3];
+    dst_argb[0] = b;
+    dst_argb[1] = g;
+    dst_argb[2] = r;
+    dst_argb[3] = a;
+    dst_argb += 4;
+    src_rgba += 4;
   }
 }
 
@@ -342,7 +405,7 @@ void ARGBToRGB565Row_C(const uint8_t* src_argb, uint8_t* dst_rgb, int width) {
 // or the upper byte for big endian.
 void ARGBToRGB565DitherRow_C(const uint8_t* src_argb,
                              uint8_t* dst_rgb,
-                             const uint32_t dither4,
+                             uint32_t dither4,
                              int width) {
   int x;
   for (x = 0; x < width - 1; x += 2) {
@@ -429,12 +492,12 @@ void ARGBToARGB4444Row_C(const uint8_t* src_argb, uint8_t* dst_rgb, int width) {
 void ABGRToAR30Row_C(const uint8_t* src_abgr, uint8_t* dst_ar30, int width) {
   int x;
   for (x = 0; x < width; ++x) {
-    uint32_t b0 = (src_abgr[0] >> 6) | ((uint32_t)(src_abgr[0]) << 2);
+    uint32_t r0 = (src_abgr[0] >> 6) | ((uint32_t)(src_abgr[0]) << 2);
     uint32_t g0 = (src_abgr[1] >> 6) | ((uint32_t)(src_abgr[1]) << 2);
-    uint32_t r0 = (src_abgr[2] >> 6) | ((uint32_t)(src_abgr[2]) << 2);
+    uint32_t b0 = (src_abgr[2] >> 6) | ((uint32_t)(src_abgr[2]) << 2);
     uint32_t a0 = (src_abgr[3] >> 6);
     *(uint32_t*)(dst_ar30) =
-        STATIC_CAST(uint32_t, r0 | (g0 << 10) | (b0 << 20) | (a0 << 30));
+        STATIC_CAST(uint32_t, b0 | (g0 << 10) | (r0 << 20) | (a0 << 30));
     dst_ar30 += 4;
     src_abgr += 4;
   }
@@ -515,6 +578,22 @@ void AB64ToARGBRow_C(const uint16_t* src_ab64, uint8_t* dst_argb, int width) {
     dst_argb[3] = a;
     dst_argb += 4;
     src_ab64 += 4;
+  }
+}
+
+void AR64ToAB64Row_C(const uint16_t* src_ar64, uint16_t* dst_ab64, int width) {
+  int x;
+  for (x = 0; x < width; ++x) {
+    uint16_t b = src_ar64[0];
+    uint16_t g = src_ar64[1];
+    uint16_t r = src_ar64[2];
+    uint16_t a = src_ar64[3];
+    dst_ab64[0] = r;
+    dst_ab64[1] = g;
+    dst_ab64[2] = b;
+    dst_ab64[3] = a;
+    dst_ab64 += 4;
+    src_ar64 += 4;
   }
 }
 
@@ -1484,7 +1563,7 @@ void J400ToARGBRow_C(const uint8_t* src_y, uint8_t* dst_argb, int width) {
 
 // clang-format off
 
-#if defined(__aarch64__) || defined(__arm__)
+#if defined(__aarch64__) || defined(__arm__) || defined(__riscv)
 // Bias values include subtract 128 from U and V, bias from Y and rounding.
 // For B and R bias is negative. For G bias is positive.
 #define YUVCONSTANTSBODY(YG, YB, UB, UG, VG, VR)                             \
@@ -1680,7 +1759,7 @@ MAKEYUVCONSTANTS(V2020, YG, YB, UB, UG, VG, VR)
 
 #undef MAKEYUVCONSTANTS
 
-#if defined(__aarch64__) || defined(__arm__)
+#if defined(__aarch64__) || defined(__arm__) || defined(__riscv)
 #define LOAD_YUV_CONSTANTS                 \
   int ub = yuvconstants->kUVCoeff[0];      \
   int vr = yuvconstants->kUVCoeff[1];      \
@@ -1868,7 +1947,7 @@ static __inline void YPixel(uint8_t y,
                             uint8_t* g,
                             uint8_t* r,
                             const struct YuvConstants* yuvconstants) {
-#if defined(__aarch64__) || defined(__arm__)
+#if defined(__aarch64__) || defined(__arm__) || defined(__riscv)
   int yg = yuvconstants->kRGBCoeffBias[0];
   int ygb = yuvconstants->kRGBCoeffBias[4];
 #else
@@ -1876,9 +1955,10 @@ static __inline void YPixel(uint8_t y,
   int yg = yuvconstants->kYToRgb[0];
 #endif
   uint32_t y1 = (uint32_t)(y * 0x0101 * yg) >> 16;
-  *b = STATIC_CAST(uint8_t, Clamp(((int32_t)(y1) + ygb) >> 6));
-  *g = STATIC_CAST(uint8_t, Clamp(((int32_t)(y1) + ygb) >> 6));
-  *r = STATIC_CAST(uint8_t, Clamp(((int32_t)(y1) + ygb) >> 6));
+  uint8_t b8 = STATIC_CAST(uint8_t, Clamp(((int32_t)(y1) + ygb) >> 6));
+  *b = b8;
+  *g = b8;
+  *r = b8;
 }
 
 void I444ToARGBRow_C(const uint8_t* src_y,
@@ -2868,24 +2948,21 @@ void DetileToYUY2_C(const uint8_t* src_y,
 // Unpack MT2T into tiled P010 64 pixels at a time. MT2T's bitstream is encoded
 // in 80 byte blocks representing 64 pixels each. The first 16 bytes of the
 // block contain all of the lower 2 bits of each pixel packed together, and the
-// next 64 bytes represent all the upper 8 bits of the pixel.
+// next 64 bytes represent all the upper 8 bits of the pixel. The lower bits are
+// packed into 1x4 blocks, whereas the upper bits are packed in normal raster
+// order.
 void UnpackMT2T_C(const uint8_t* src, uint16_t* dst, size_t size) {
   for (size_t i = 0; i < size; i += 80) {
     const uint8_t* src_lower_bits = src;
     const uint8_t* src_upper_bits = src + 16;
 
-    for (int j = 0; j < 16; j++) {
-      uint8_t lower_bits = src_lower_bits[j];
-      *dst++ = (lower_bits & 0x03) << 6 | (uint16_t)src_upper_bits[j * 4] << 8 |
-               (uint16_t)src_upper_bits[j * 4] >> 2;
-      *dst++ = (lower_bits & 0x0C) << 4 |
-               (uint16_t)src_upper_bits[j * 4 + 1] << 8 |
-               (uint16_t)src_upper_bits[j * 4 + 1] >> 2;
-      *dst++ = (lower_bits & 0x30) << 2 |
-               (uint16_t)src_upper_bits[j * 4 + 2] << 8 |
-               (uint16_t)src_upper_bits[j * 4 + 2] >> 2;
-      *dst++ = (lower_bits & 0xC0) | (uint16_t)src_upper_bits[j * 4 + 3] << 8 |
-               (uint16_t)src_upper_bits[j * 4 + 3] >> 2;
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 16; k++) {
+        *dst++ = ((src_lower_bits[k] >> (j * 2)) & 0x3) << 6 |
+                 (uint16_t)*src_upper_bits << 8 |
+                 (uint16_t)*src_upper_bits >> 2;
+        src_upper_bits++;
+      }
     }
 
     src += 80;
@@ -3372,12 +3449,7 @@ void BlendPlaneRow_C(const uint8_t* src0,
 }
 #undef UBLEND
 
-#if LIBYUV_ATTENUATE_DUP
-// This code mimics the SSSE3 version for better testability.
-#define ATTENUATE(f, a) (a | (a << 8)) * (f | (f << 8)) >> 24
-#else
-#define ATTENUATE(f, a) (f * a + 128) >> 8
-#endif
+#define ATTENUATE(f, a) (f * a + 255) >> 8
 
 // Multiply source RGB by alpha and store to destination.
 void ARGBAttenuateRow_C(const uint8_t* src_argb, uint8_t* dst_argb, int width) {

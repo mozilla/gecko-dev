@@ -1280,18 +1280,13 @@ void ScaleUVRowDown2_C(const uint8_t* src_uv,
                        ptrdiff_t src_stride,
                        uint8_t* dst_uv,
                        int dst_width) {
-  const uint16_t* src = (const uint16_t*)(src_uv);
-  uint16_t* dst = (uint16_t*)(dst_uv);
   int x;
   (void)src_stride;
-  for (x = 0; x < dst_width - 1; x += 2) {
-    dst[0] = src[1];
-    dst[1] = src[3];
-    src += 2;
-    dst += 2;
-  }
-  if (dst_width & 1) {
-    dst[0] = src[1];
+  for (x = 0; x < dst_width; ++x) {
+    dst_uv[0] = src_uv[2];  // Store the 2nd UV
+    dst_uv[1] = src_uv[3];
+    src_uv += 4;
+    dst_uv += 2;
   }
 }
 
@@ -1683,6 +1678,12 @@ void ScalePlaneVertical(int src_height,
     }
   }
 #endif
+#if defined(HAS_INTERPOLATEROW_RVV)
+  if (TestCpuFlag(kCpuHasRVV)) {
+    InterpolateRow = InterpolateRow_RVV;
+  }
+#endif
+
   for (j = 0; j < dst_height; ++j) {
     int yi;
     int yf;
@@ -1962,35 +1963,6 @@ void ScaleSlope(int src_width,
   }
 }
 #undef CENTERSTART
-
-// Read 8x2 upsample with filtering and write 16x1.
-// actually reads an extra pixel, so 9x2.
-void ScaleRowUp2_16_C(const uint16_t* src_ptr,
-                      ptrdiff_t src_stride,
-                      uint16_t* dst,
-                      int dst_width) {
-  const uint16_t* src2 = src_ptr + src_stride;
-
-  int x;
-  for (x = 0; x < dst_width - 1; x += 2) {
-    uint16_t p0 = src_ptr[0];
-    uint16_t p1 = src_ptr[1];
-    uint16_t p2 = src2[0];
-    uint16_t p3 = src2[1];
-    dst[0] = (p0 * 9 + p1 * 3 + p2 * 3 + p3 + 8) >> 4;
-    dst[1] = (p0 * 3 + p1 * 9 + p2 + p3 * 3 + 8) >> 4;
-    ++src_ptr;
-    ++src2;
-    dst += 2;
-  }
-  if (dst_width & 1) {
-    uint16_t p0 = src_ptr[0];
-    uint16_t p1 = src_ptr[1];
-    uint16_t p2 = src2[0];
-    uint16_t p3 = src2[1];
-    dst[0] = (p0 * 9 + p1 * 3 + p2 * 3 + p3 + 8) >> 4;
-  }
-}
 
 #ifdef __cplusplus
 }  // extern "C"

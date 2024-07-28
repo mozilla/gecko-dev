@@ -54,8 +54,8 @@ int main(int argc, const char* argv[]) {
     printf("  9  BT.2020     KR = 0.2627; KB = 0.0593\n");
     return -1;
   }
-  float kr = atof(argv[1]);
-  float kb = atof(argv[2]);
+  float kr = (float)atof(argv[1]);
+  float kb = (float)atof(argv[2]);
   float kg = 1 - kr - kb;
 
   float vr = 2 * (1 - kr);

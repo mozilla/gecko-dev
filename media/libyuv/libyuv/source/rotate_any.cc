@@ -32,6 +32,9 @@ extern "C" {
 #ifdef HAS_TRANSPOSEWX8_NEON
 TANY(TransposeWx8_Any_NEON, TransposeWx8_NEON, 7)
 #endif
+#ifdef HAS_TRANSPOSEWX16_NEON
+TANY(TransposeWx16_Any_NEON, TransposeWx16_NEON, 15)
+#endif
 #ifdef HAS_TRANSPOSEWX8_SSSE3
 TANY(TransposeWx8_Any_SSSE3, TransposeWx8_SSSE3, 7)
 #endif
