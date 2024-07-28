@@ -3890,7 +3890,7 @@ set_config(
     try_compile(
         check_msg="for ARM dotprod target feature",
         flags=["-march=armv8.2-a+dotprod"],
-                when=is_aarch64_target,
+        when=is_aarch64_target,
     ),
 )
 
