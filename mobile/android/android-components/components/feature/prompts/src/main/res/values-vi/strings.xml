@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Đã cập nhật mật khẩu</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Đã cập nhật tên người dùng</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Gửi lại dữ liệu cho trang web này?</string>
     <string name="mozac_feature_prompt_repost_message">Việc làm mới trang này có thể trùng lặp với các hành động gần đây, chẳng hạn như gửi thanh toán hoặc đăng nhận xét hai lần.</string>

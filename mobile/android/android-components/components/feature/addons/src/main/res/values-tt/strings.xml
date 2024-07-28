@@ -22,6 +22,8 @@
      then we will show another collapsed entry saying "Access your data on 2 other domains". This entry it's for the plural case, when the add-on is accessing more than one extra domain.
      %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission. -->
     <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Башка %1$d домендагы мәгълүматыгызга ирешү</string>
+    <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
+    <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d - %3$d эченнән</string>
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Браузер табларына ирешү</string>
     <!-- Description for unlimited_storage permission. -->
@@ -72,8 +74,8 @@
     <string name="mozac_feature_addons_permissions_devtools_description">Ачык таблардагы мәгълүматыгызга ирешү өчен җитештерүче коралларын киңәйтү</string>
     <!-- The version on of add-on. -->
     <string name="mozac_feature_addons_version">Версия</string>
-    <!-- The authors of an add-on. -->
-    <string name="mozac_feature_addons_authors">Авторлар</string>
+    <!-- The author of an add-on. -->
+    <string name="mozac_feature_addons_author">Автор</string>
     <!-- The last date that the add-on was updated. -->
     <string name="mozac_feature_addons_last_updated">Соңгы яңартылу</string>
     <!-- The developer website (Homepage) of the add-on. -->
@@ -86,16 +88,14 @@
     <string name="mozac_feature_addons_settings">Көйләүләр</string>
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_settings_on">Кабынган</string>
-    <!-- Indicates the add-on is disabled. -->
-    <string name="mozac_feature_addons_settings_off">Сүнгән</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
     <string name="mozac_feature_addons_settings_allow_in_private_browsing">Хосусый гизү режимында рөхсәт итү</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
     <string name="mozac_feature_addons_settings_run_in_private_browsing">Хосусый гизү режимында эшләтү</string>
+    <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
+    <string name="mozac_feature_addons_not_allowed_in_private_browsing">Хосусый гизү тәрәзәләрендә рөхсәт ителми</string>
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_enabled">Кабызылган</string>
-    <!-- Indicates the add-on is disabled. -->
-    <string name="mozac_feature_addons_disabled">Cүндерелгән</string>
     <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the installed section. -->
     <string name="mozac_feature_addons_installed_section">Урнаштырылган</string>
     <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the recommended section. -->
@@ -110,24 +110,34 @@
     <string name="mozac_feature_addons_details">Нечкәлекләр</string>
     <!-- Displays a page with all the permissions of an add-on. -->
     <string name="mozac_feature_addons_permissions">Рөхсәтләр</string>
-    <!-- This is button that remove (uninstall an add-on). -->
+    <!-- This is a button to remove (i.e. uninstall) an add-on. -->
     <string name="mozac_feature_addons_remove">Бетерү</string>
+    <!-- This is a button to report an add-on. -->
+    <string name="mozac_feature_addons_report">Шикаять итү</string>
     <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_permissions_dialog_title">%1$s өстәлсенме?</string>
+    <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s өстәмә рөхсәтләр сорый.</string>
     <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
     <string name="mozac_feature_addons_permissions_dialog_subtitle">Түбәндәге гамәлләргә рөхсәт сорый:</string>
+    <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
+    <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Аның таләпләре:</string>
     <!-- This is a button to add (install) an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_add">Өстәү</string>
+    <!-- This is a button to allow the optional permissions requested by an add-on . -->
+    <string name="mozac_feature_addons_permissions_dialog_allow">Рөхсәт итү</string>
+    <!-- This is a button to deny the optional permissions requested by an add-on . -->
+    <string name="mozac_feature_addons_permissions_dialog_deny">Кире кагу</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Баш тарту</string>
-    <!-- Accessibility content description to install add-on button. -->
-    <string name="mozac_feature_addons_install_addon_content_description">Кушымчаны урнаштыру</string>
+    <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_install_addon_content_description_2">%1$s кушымчасын урнаштыру</string>
     <!-- This is the label of a button to cancel an ongoing add-on installation. -->
     <string name="mozac_feature_addons_install_addon_dialog_cancel">Баш тарту</string>
     <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
     <string name="mozac_feature_addons_user_rating_count_2">Фикерләр: %1$s</string>
-    <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars and / separator and 5 the maximum number of stars e.g (2/5, 4.5/5 or 5/5)  . -->
-    <string name="mozac_feature_addons_rating_content_description">%1$.02f/5</string>
+    <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
+    <string name="mozac_feature_addons_rating_content_description_2">Рейтинг: 5-тән %1$.02f</string>
     <!-- This is the title of page where all the add-ons are listed-->
     <string name="mozac_feature_addons_addons">Кушымчалар</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
@@ -142,28 +152,32 @@
     <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d яңа рөхсәтләр таләп ителә</string>
     <!-- The content of the notification displayed when an add-on needs a new permission-->
     <string name="mozac_feature_addons_updater_notification_content_singular">Яңа рөхсәт кирәк</string>
-    <!-- Name of the "notification channel" used for displaying a notification for updating an add-on. See https://developer.android.com/training/notify-user/channels -->
-    <string name="mozac_feature_addons_updater_notification_channel">Кушымча яңартулары</string>
     <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
-    <string name="mozac_feature_addons_supported_checker_notification_channel">Кулланырга мөмкин кушымчаларны тикшерү коралы</string>
+    <string name="mozac_feature_addons_supported_checker_notification_channel" tools:ignore="UnusedResources">Кулланырга мөмкин кушымчаларны тикшерү коралы</string>
     <!-- The tile of the notification, this will be shown to the user when one newly supported add-on is available.-->
-    <string name="mozac_feature_addons_supported_checker_notification_title">Яңа кушымча бар</string>
+    <string name="mozac_feature_addons_supported_checker_notification_title" tools:ignore="UnusedResources">Яңа кушымча бар</string>
     <!-- The tile of the notification, this will be shown to the user when more than one newly supported add-ons are available.-->
-    <string name="mozac_feature_addons_supported_checker_notification_title_plural">Яңа кушымчалар бар</string>
+    <string name="mozac_feature_addons_supported_checker_notification_title_plural" tools:ignore="UnusedResources">Яңа кушымчалар бар</string>
     <!-- The content of the notification, this will be shown to the user when one newly supported add-on is available. %1$s is the add-on name and %2$s is the app name (in most cases Firefox). -->
     <string name="mozac_feature_addons_supported_checker_notification_content_one">%2$s программасына %1$s кушымчасын өстәү</string>
     <!-- The content of the notification, this will be shown to the user when two newly supported add-ons are available. %1$s is the first add-on name. %2$s is the second add-on name. %3$s is the app name (in most cases Firefox). -->
     <string name="mozac_feature_addons_supported_checker_notification_content_two">%3$s программасына %1$s һәм %2$s кушымчаларын өстәү</string>
     <!-- The content of the notification, this will be shown to the user when more than two newly supported add-ons are available. %1$s is the app name (in most cases Firefox). -->
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Аларны %1$s программасына өстәү</string>
-    <!-- This is the caption for the add-on installation progress overlay -->
-    <string name="mozac_add_on_install_progress_caption">Кушымчаны йөкләп алу һәм тикшерү…</string>
-    <!-- Error shown when something unexpected happened while trying to get the add-on list from the server -->
-    <string name="mozac_feature_addons_failed_to_query_add_ons">Кушымчаларны сорап алып булмады!</string>
+    <!-- This is the caption for the extension installation progress overlay -->
+    <string name="mozac_extension_install_progress_caption">Киңәйтүне иңдерү һәм тикшерү…</string>
+    <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
+    <string name="mozac_feature_addons_failed_to_query_extensions">Киңәйтүләрне сорап алып булмады!</string>
+    <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
+    <string name="mozac_feature_addons_failed_to_translate">%1$s локале өчен дә, төп саналган %2$s теле өчен дә тәрҗемә табылмады</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s уңышлы урнаштырылды</string>
     <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">%1$s кушымчасын урнаштырып булмады</string>
+    <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+    <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s кушымчасын урнаштырып булмый, чөнки ул %2$s %3$s версиясе белән ярашмый.</string>
+    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_blocklisted_1">%1$s кушымчасын урнаштырып булмады, чөнки аның тотрыклылык яки хәвефсезлек проблемаларын китереп чыгару рискы зур.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s уңышлы кабызылды</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -182,10 +196,10 @@
     <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">%1$s кушымчасын бетереп булмады</string>
     <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
     <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">Бу кушымча %1$s программасының искерәк версиясеннән алынды</string>
-    <!-- Text shown in not yet supported add-ons section in AddonsManagerAdapter. -->
-    <string name="mozac_feature_addons_unsupported_caption">1 кушымча</string>
-    <!-- Text shown in not yet supported add-ons section in AddonsManagerAdapter - plural. %1$s is the number of unsupported add-ons -->
-    <string name="mozac_feature_addons_unsupported_caption_plural">%1$s кушымчалар</string>
+    <!-- Text shown in not yet supported add-ons section. -->
+    <string name="mozac_feature_addons_unsupported_caption_2">1 киңәйтү</string>
+    <!-- Text shown in not yet supported add-ons section - plural. %1$s is the number of unsupported extensions. -->
+    <string name="mozac_feature_addons_unsupported_caption_plural_2">%1$s киңәйтү</string>
     <!-- Text link to a sumo page for learning more about unsupported add-ons. -->
     <string name="mozac_feature_addons_unsupported_learn_more">Күбрәк белү</string>
     <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated. -->
@@ -202,8 +216,12 @@
     <string name="mozac_feature_addons_updater_dialog_status">Статус:</string>
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_installed_dialog_title">%2$s прораммасына %1$s кушымчасы өстәлде</string>
-    <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_installed_dialog_description">Менюда ачу</string>
+    <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_installed_dialog_description_2">%2$s менюсыннан %1$s кушымчасына керегез.</string>
     <!-- Confirmation button text for the dialog when add-on installation is completed. -->
-    <string name="mozac_feature_addons_installed_dialog_okay_button">Яхшы, аңладым</string>
+    <string name="mozac_feature_addons_installed_dialog_okay_button_2">ОК</string>
+    <!-- "Learn more" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_learn_more">Күбрәк белү</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted">%1$s хәвефсезлек яки тотрыклылык проблемалары аркасында сүндерелгән.</string>
     </resources>
