@@ -54,6 +54,11 @@ const LOCALE_TOPICS_CONFIG =
 const REGION_BASIC_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.region-basic-config";
 
+const REGION_THUMBS_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.region-thumbs-config";
+const LOCALE_THUMBS_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.locale-thumbs-config";
+
 // Determine if spocs should be shown for a geo/locale
 function showSpocs({ geo }) {
   const spocsGeoString =
@@ -92,6 +97,22 @@ function showTopicsSelection({ geo, locale }) {
     .map(s => s.trim())
     .filter(item => item);
   return topicsGeo.includes(geo) && topicsLocale.includes(locale);
+}
+
+function showThumbsUpDown({ geo, locale }) {
+  const thumbsUpDownGeoString =
+    Services.prefs.getStringPref(REGION_THUMBS_CONFIG) || "";
+  const thumbsUpDownLocaleString =
+    Services.prefs.getStringPref(LOCALE_THUMBS_CONFIG) || "";
+  const thumbsUpDownGeo = thumbsUpDownGeoString
+    .split(",")
+    .map(s => s.trim())
+    .filter(item => item);
+  const thumbsUpDownLocale = thumbsUpDownLocaleString
+    .split(",")
+    .map(s => s.trim())
+    .filter(item => item);
+  return thumbsUpDownGeo.includes(geo) && thumbsUpDownLocale.includes(locale);
 }
 
 // Configure default Activity Stream prefs with a plain `value` or a `getValue`
@@ -489,7 +510,8 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.thumbsUpDown.enabled",
     {
       title: "Allow users to give thumbs up/down on recommended stories",
-      value: false,
+      // pref is dynamic
+      getValue: showThumbsUpDown,
     },
   ],
   [

@@ -440,6 +440,7 @@ export class BaseContent extends React.PureComponent {
 
     const hasThumbsUpDownLayout =
       prefs["discoverystream.thumbsUpDown.searchTopsitesCompact"];
+    const hasThumbsUpDown = prefs["discoverystream.thumbsUpDown.enabled"];
 
     const featureClassName = [
       weatherEnabled && mayHaveWeather && "has-weather", // Show is weather is enabled/visible
@@ -463,7 +464,7 @@ export class BaseContent extends React.PureComponent {
         "only-topsites",
       noSectionsEnabled && "no-sections",
       prefs["logowordmark.alwaysVisible"] && "visible-logo",
-      hasThumbsUpDownLayout && "thumbs-ui-compact",
+      hasThumbsUpDownLayout && hasThumbsUpDown && "thumbs-ui-compact",
     ]
       .filter(v => v)
       .join(" ");

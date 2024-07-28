@@ -1102,6 +1102,19 @@ pocketNewtab:
         branch: user
         pref: browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.enabled
       description: Display thumbs up and down buttons on recommended stories
+    regionThumbsUpDownConfig:
+      description: A comma-separated list of regions that get thumbs up and down buttons by default.
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.region-thumbs-config
+      description: Display thumbs up and down buttons on recommended stories
+    localeThumbsUpDownConfig:
+      description: A comma-separated list of locales that get thumbs up and down buttons by default.
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.locale-thumbs-config
     thumbsUpDownCompactLayout:
       type: boolean
       setPref:
