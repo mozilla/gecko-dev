@@ -502,6 +502,8 @@ class MOZ_STACK_CLASS WebRenderScrollDataWrapper final {
     return 0;
   }
 
+  bool IsFirstPaint() const { return mData ? mData->IsFirstPaint() : false; }
+
  private:
   bool AtBottomLayer() const { return mMetadataIndex == 0; }
 

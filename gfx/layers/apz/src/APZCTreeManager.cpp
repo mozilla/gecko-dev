@@ -83,11 +83,10 @@ typedef mozilla::gfx::Matrix4x4 Matrix4x4;
 typedef CompositorBridgeParent::LayerTreeState LayerTreeState;
 
 struct APZCTreeManager::TreeBuildingState {
-  TreeBuildingState(LayersId aRootLayersId, bool aIsFirstPaint,
-                    LayersId aOriginatingLayersId, APZTestData* aTestData,
-                    uint32_t aPaintSequence, bool aIsTestLoggingEnabled)
-      : mIsFirstPaint(aIsFirstPaint),
-        mOriginatingLayersId(aOriginatingLayersId),
+  TreeBuildingState(LayersId aRootLayersId, LayersId aOriginatingLayersId,
+                    APZTestData* aTestData, uint32_t aPaintSequence,
+                    bool aIsTestLoggingEnabled)
+      : mOriginatingLayersId(aOriginatingLayersId),
         mPaintLogger(aTestData, aPaintSequence, aIsTestLoggingEnabled) {
     CompositorBridgeParent::CallWithIndirectShadowTree(
         aRootLayersId, [this](LayerTreeState& aState) -> void {
@@ -100,7 +99,6 @@ struct APZCTreeManager::TreeBuildingState {
 
   // State that doesn't change as we recurse in the tree building
   RefPtr<CompositorController> mCompositorController;
-  const bool mIsFirstPaint;
   const LayersId mOriginatingLayersId;
   const APZPaintLogHelper mPaintLogger;
 
@@ -425,7 +423,6 @@ void APZCTreeManager::SetBrowserGestureResponse(
 
 APZCTreeManager::OriginatingLayersIdUpdated
 APZCTreeManager::UpdateHitTestingTree(const WebRenderScrollDataWrapper& aRoot,
-                                      bool aIsFirstPaint,
                                       LayersId aOriginatingLayersId,
                                       uint32_t aPaintSequenceNumber) {
   AssertOnUpdaterThread();
@@ -445,8 +442,8 @@ APZCTreeManager::UpdateHitTestingTree(const WebRenderScrollDataWrapper& aRoot,
     testData->StartNewPaint(aPaintSequenceNumber);
   }
 
-  TreeBuildingState state(mRootLayersId, aIsFirstPaint, aOriginatingLayersId,
-                          testData, aPaintSequenceNumber, testLoggingEnabled);
+  TreeBuildingState state(mRootLayersId, aOriginatingLayersId, testData,
+                          aPaintSequenceNumber, testLoggingEnabled);
 
   // We do this business with collecting the entire tree into an array because
   // otherwise it's very hard to determine which APZC instances need to be
@@ -1312,7 +1309,7 @@ HitTestingTreeNode* APZCTreeManager::PrepareNodeForLayer(
                apzc.get(), aLayer.GetLayer(), uint64_t(aLayersId),
                aMetrics.GetScrollId());
 
-    apzc->NotifyLayersUpdated(aLayer.Metadata(), aState.mIsFirstPaint,
+    apzc->NotifyLayersUpdated(aLayer.Metadata(), aLayer.IsFirstPaint(),
                               aLayersId == aState.mOriginatingLayersId);
 
     // Since this is the first time we are encountering an APZC with this guid,

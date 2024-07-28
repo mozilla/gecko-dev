@@ -87,7 +87,7 @@ class APZCOverscrollTester : public APZCBasicTester {
 
     registration = MakeUnique<ScopedLayerTreeRegistration>(guid.mLayersId, mcc);
     tm->UpdateHitTestingTree(WebRenderScrollDataWrapper(*updater, &scrollData),
-                             false, guid.mLayersId, 0);
+                             guid.mLayersId, 0);
     return guid;
   }
 };

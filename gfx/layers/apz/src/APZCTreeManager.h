@@ -178,13 +178,7 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
    *
    * @param aRoot The root of the (full) layer tree
    * @param aOriginatingLayersId The layers id of the subtree that triggered
-   *                             this repaint, and to which aIsFirstPaint
-   *                             applies.
-   * @param aIsFirstPaint True if the transaction that this is called in
-   *                      response to included a first-paint. If this is true,
-   *                      the part of the tree that is affected by the
-   *                      first-paint flag is indicated by the
-   *                      aOriginatingLayersId parameter.
+   *                             this repaint.
    * @param aPaintSequenceNumber The sequence number of the paint that triggered
    *                             this layer update. Note that every child
    *                             process' layer subtree has its own sequence
@@ -194,8 +188,8 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
    */
   enum class OriginatingLayersIdUpdated : bool { No, Yes };
   OriginatingLayersIdUpdated UpdateHitTestingTree(
-      const WebRenderScrollDataWrapper& aRoot, bool aIsFirstPaint,
-      LayersId aOriginatingLayersId, uint32_t aPaintSequenceNumber);
+      const WebRenderScrollDataWrapper& aRoot, LayersId aOriginatingLayersId,
+      uint32_t aPaintSequenceNumber);
 
   /**
    * Called from the sampler thread. This function populates the provided
