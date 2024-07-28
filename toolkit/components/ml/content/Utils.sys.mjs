@@ -387,6 +387,31 @@ export class MultiProgressAggregator {
   }
 }
 
+/**
+ * Converts a model and its headers to a Response object.
+ *
+ * @param {ArrayBuffer} modelFile
+ * @param {object|null} headers
+ * @returns {Response} The generated Response instance
+ */
+export function modelToResponse(modelFile, headers) {
+  let responseHeaders = {};
+
+  if (headers) {
+    // Headers are converted to strings, as the cache may hold int keys like fileSize
+    for (let key in headers) {
+      if (headers[key] != null) {
+        responseHeaders[key] = headers[key].toString();
+      }
+    }
+  }
+
+  return new Response(modelFile, {
+    status: 200,
+    headers: responseHeaders,
+  });
+}
+
 // Create a "namespace" to make it easier to import multiple names.
 export var Progress = Progress || {};
 Progress.ProgressAndStatusCallbackParams = ProgressAndStatusCallbackParams;

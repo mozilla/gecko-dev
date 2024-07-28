@@ -41,14 +41,21 @@ function debug(...args) {
  * @param {object} _model - The model used for inference.
  * @param {object} _tokenizer - The tokenizer used for decoding.
  * @param {object} _processor - The processor used for preparing  data.
+ * @param {object} config - The config
  * @returns {Promise<object>} The result object containing the processed text.
  */
-async function echo(request, _model, _tokenizer, _processor) {
+async function echo(request, _model, _tokenizer, _processor, config) {
+  let result = {};
+  for (let key in config) {
+    result[key] = String(config[key]);
+  }
+  result.echo = request.data;
+
   return {
     metrics: {
       tokenizingTime: 0,
     },
-    output: request.data,
+    output: result,
   };
 }
 
@@ -65,9 +72,10 @@ async function echo(request, _model, _tokenizer, _processor) {
  * @param {object} model - The model used for inference.
  * @param {object} tokenizer - The tokenizer used for decoding.
  * @param {object} processor - The processor used for preparing image data.
+ * @param {object} _config - The config
  * @returns {Promise<object>} The result object containing the processed text.
  */
-async function imageToText(request, model, tokenizer, processor) {
+async function imageToText(request, model, tokenizer, processor, _config) {
   let result = {
     metrics: {
       inferenceTime: 0,
@@ -160,10 +168,9 @@ export class Pipeline {
   #processor = null;
   #pipelineFunction = null;
   #genericPipelineFunction = null;
-  #taskName = null;
   #initTime = 0;
   #isReady = false;
-  #modelId = null;
+  #config = null;
 
   /**
    * Creates an instance of a Pipeline.
@@ -193,13 +200,22 @@ export class Pipeline {
     transformers.env.localModelPath = "NO_LOCAL";
 
     // ONNX runtime - we set up the wasm runtime we got from RS for the ONNX backend to pick
-    debug("Setting up ONNX backend");
+    debug("Setting up ONNX backend for runtime", config.runtimeFilename);
     transformers.env.backends.onnx.wasm.wasmPaths = {};
     transformers.env.backends.onnx.wasm.wasmPaths[config.runtimeFilename] =
       lazy.arrayBufferToBlobURL(config.runtime);
+    debug("Transformers.js env", transformers.env);
 
     if (config.pipelineFunction) {
       debug("Using internal inference function");
+
+      // use the model revision of the tokenizer or processor don't have one
+      if (!config.tokenizerRevision) {
+        config.tokenizerRevision = config.modelRevision;
+      }
+      if (!config.processorRevision) {
+        config.processorRevision = config.modelRevision;
+      }
 
       this.#pipelineFunction = config.pipelineFunction;
 
@@ -207,14 +223,17 @@ export class Pipeline {
         debug(
           `Loading model ${config.modelId} with class ${config.modelClass}`
         );
-        this.#model = config.modelClass.from_pretrained(config.modelId);
+        this.#model = config.modelClass.from_pretrained(config.modelId, {
+          revision: config.modelRevision,
+        });
       }
       if (config.tokenizerClass && config.tokenizerId) {
         debug(
           `Loading tokenizer ${config.tokenizerId} with class ${config.tokenizerClass}`
         );
         this.#tokenizer = config.tokenizerClass.from_pretrained(
-          config.tokenizerId
+          config.tokenizerId,
+          { revision: config.tokenizerRevision }
         );
       }
       if (config.processorClass && config.processorId) {
@@ -222,7 +241,8 @@ export class Pipeline {
           `Loading processor ${config.processorId} with class ${config.processorClass}`
         );
         this.#processor = config.processorClass.from_pretrained(
-          config.processorId
+          config.processorId,
+          { revision: config.processorRevision }
         );
       }
     } else {
@@ -233,9 +253,8 @@ export class Pipeline {
         { revision: config.modelRevision }
       );
     }
-    this.#taskName = config.taskName;
-    this.#modelId = config.modelId;
     this.#initTime = Date.now() - start;
+    this.#config = config;
     debug("Pipeline initialized, took ", this.#initTime);
   }
 
@@ -272,7 +291,6 @@ export class Pipeline {
 
     // Overriding the defaults with the options
     options.applyToConfig(config);
-
     return new Pipeline(modelCache, config);
   }
 
@@ -288,7 +306,7 @@ export class Pipeline {
    * @returns {Promise<object>} The result object from the pipeline execution.
    */
   async run(request) {
-    debug("Running task: ", this.#taskName);
+    debug("Running task: ", this.#config.taskName);
     // Calling all promises to ensure they are resolved before running the first pipeline
     if (!this.#isReady) {
       let start = Date.now();
@@ -299,7 +317,7 @@ export class Pipeline {
       try {
         if (this.#genericPipelineFunction) {
           debug("Initializing pipeline");
-          if (this.#modelId != "test-echo") {
+          if (this.#config.modelId != "test-echo") {
             this.#genericPipelineFunction = await this.#genericPipelineFunction;
           }
         } else {
@@ -325,7 +343,7 @@ export class Pipeline {
     let result;
 
     if (this.#genericPipelineFunction) {
-      if (this.#modelId === "test-echo") {
+      if (this.#config.modelId === "test-echo") {
         result = { output: request.args };
       } else {
         result = await this.#genericPipelineFunction(
@@ -342,7 +360,8 @@ export class Pipeline {
         request,
         this.#model,
         this.#tokenizer,
-        this.#processor
+        this.#processor,
+        this.#config
       );
       result.metrics.initTime = this.#initTime;
     }

@@ -33,7 +33,7 @@ async function runInferenceProcess(remoteClients) {
   const inferencePromise = engine.run({ data: "This gets echoed." });
   await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
   Assert.equal(
-    (await inferencePromise).output,
+    (await inferencePromise).output.echo,
     "This gets echoed.",
     "The text get echoed exercising the whole flow."
   );
