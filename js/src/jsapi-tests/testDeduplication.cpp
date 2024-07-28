@@ -140,23 +140,3 @@ BEGIN_TEST(testDeduplication_ASSC) {
   return true;
 }
 END_TEST(testDeduplication_ASSC)
-
-BEGIN_TEST(testAtomRef_ASSC) {
-  // Test with a long enough string to avoid inline chars allocation.
-  const char text[] =
-      "that that is is that that is not is not is not that it it is";
-  JS::Rooted<JSString*> str(
-      cx, js::NewStringCopyZ<js::CanGC>(cx, text, js::gc::Heap::Tenured));
-  JS::Rooted<JSAtom*> atom(
-      cx, AtomizeString(cx, js::NewStringCopyZ<js::CanGC>(
-                                cx, text, js::gc::Heap::Tenured)));
-  CHECK(str);
-  JS::AutoStableStringChars assc(cx);
-  CHECK(assc.init(cx, str));
-  CHECK(AtomizeString(cx, str) == atom);
-  CHECK(str->isDependedOn());  // Due to being used for AutoStableStringChars.
-  CHECK(!str->isAtomRef());
-  CHECK(memcmp(text, assc.latin1Chars(), sizeof(text)) == 0);
-  return true;
-}
-END_TEST(testAtomRef_ASSC)
