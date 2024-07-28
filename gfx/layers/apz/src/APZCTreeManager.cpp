@@ -158,8 +158,7 @@ struct APZCTreeManager::TreeBuildingState {
   // apply them to descendant layers.
   std::stack<EventRegionsOverride> mOverrideFlags;
 
-  // Wether the APZC correspoinding to the originating LayersId was updated.
-  bool mOriginatingLayersIdUpdated = false;
+  std::vector<LayersId> mUpdatedLayersIds;
 };
 
 class APZCTreeManager::CheckerboardFlushObserver : public nsIObserver {
@@ -421,10 +420,9 @@ void APZCTreeManager::SetBrowserGestureResponse(
   mInputQueue->SetBrowserGestureResponse(aInputBlockId, aResponse);
 }
 
-APZCTreeManager::OriginatingLayersIdUpdated
-APZCTreeManager::UpdateHitTestingTree(const WebRenderScrollDataWrapper& aRoot,
-                                      LayersId aOriginatingLayersId,
-                                      uint32_t aPaintSequenceNumber) {
+std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
+    const WebRenderScrollDataWrapper& aRoot, LayersId aOriginatingLayersId,
+    uint32_t aPaintSequenceNumber) {
   AssertOnUpdaterThread();
 
   RecursiveMutexAutoLock lock(mTreeLock);
@@ -729,7 +727,7 @@ APZCTreeManager::UpdateHitTestingTree(const WebRenderScrollDataWrapper& aRoot,
   }
   SendSubtreeTransformsToChromeMainThread(nullptr);
 
-  return OriginatingLayersIdUpdated{state.mOriginatingLayersIdUpdated};
+  return std::move(state.mUpdatedLayersIds);
 }
 
 void APZCTreeManager::UpdateFocusState(LayersId aRootLayerTreeId,
@@ -1231,9 +1229,7 @@ HitTestingTreeNode* APZCTreeManager::PrepareNodeForLayer(
       "Found APZC %p for layer %p with identifiers %" PRIx64 " %" PRId64 "\n",
       apzc.get(), aLayer.GetLayer(), uint64_t(guid.mLayersId), guid.mScrollId);
 
-  if (aLayersId == aState.mOriginatingLayersId) {
-    aState.mOriginatingLayersIdUpdated = true;
-  }
+  aState.mUpdatedLayersIds.push_back(aLayersId);
 
   // If we haven't encountered a layer already with the same metrics, then we
   // need to do the full reuse-or-make-an-APZC algorithm, which is contained

@@ -280,7 +280,9 @@ class WebRenderScrollData {
   // that we can handle all scroll position updates in the proper order.
   void PrependUpdates(const WebRenderScrollData& aPreviousData);
 
-  void SetWasUpdateSkipped() { mWasUpdateSkipped = true; }
+  void SetWasUpdateSkipped(bool aWasUpdateSkipped) {
+    mWasUpdateSkipped = aWasUpdateSkipped;
+  }
   bool GetWasUpdateSkipped() const { return mWasUpdateSkipped; }
 
   friend struct IPC::ParamTraits<WebRenderScrollData>;

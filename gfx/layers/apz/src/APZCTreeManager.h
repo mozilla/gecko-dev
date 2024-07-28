@@ -183,11 +183,9 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
    *                             this layer update. Note that every child
    *                             process' layer subtree has its own sequence
    *                             numbers.
-   * @return OriginatingLayersIdUpdated whether the given
-   * |aOriginatingLayersId|'s data was processed.
+   * @return a vector of LayersId processed in UpdateHitTestingTree.
    */
-  enum class OriginatingLayersIdUpdated : bool { No, Yes };
-  OriginatingLayersIdUpdated UpdateHitTestingTree(
+  std::vector<LayersId> UpdateHitTestingTree(
       const WebRenderScrollDataWrapper& aRoot, LayersId aOriginatingLayersId,
       uint32_t aPaintSequenceNumber);
 

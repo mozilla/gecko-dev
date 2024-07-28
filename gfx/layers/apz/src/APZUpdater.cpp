@@ -214,11 +214,24 @@ void APZUpdater::UpdateScrollDataAndTreeState(
             if (root == self->mScrollData.end()) {
               return;
             }
-            if ((self->mApz->UpdateHitTestingTree(
-                     WebRenderScrollDataWrapper(*self, &(root->second)),
-                     aOriginatingLayersId, paintSequenceNumber) ==
-                 APZCTreeManager::OriginatingLayersIdUpdated::No) &&
-                isFirstPaint) {
+
+            auto updatedIds = self->mApz->UpdateHitTestingTree(
+                WebRenderScrollDataWrapper(*self, &(root->second)),
+                aOriginatingLayersId, paintSequenceNumber);
+            bool originatingLayersIdWasSkipped = true;
+            for (auto id : updatedIds) {
+              if (id == aOriginatingLayersId) {
+                originatingLayersIdWasSkipped = false;
+              }
+
+              // Reset `mWasUpdateSkipped` flag forcibly here even if the
+              // `aOriginatingLayersId` is different from the layersId for the
+              // data, otherwise the skipped scroll position updates will be
+              // re-processed again.
+              self->mScrollData[id].SetWasUpdateSkipped(false);
+            }
+
+            if (isFirstPaint && originatingLayersIdWasSkipped) {
               // If the given |aOriginatingLayersId| data wasn't used for
               // updating, it's likly that the parent process hasn't yet
               // received the LayersId as "ReferentId", thus we need to process
@@ -227,7 +240,7 @@ void APZUpdater::UpdateScrollDataAndTreeState(
               // NOTE: We restrict the above previous scroll data prepending to
               // the first paint case, otherwise the cumulative scroll data may
               // be exploded if we have never received the "ReferenceId".
-              self->mScrollData[aOriginatingLayersId].SetWasUpdateSkipped();
+              self->mScrollData[aOriginatingLayersId].SetWasUpdateSkipped(true);
             }
           }));
 }
