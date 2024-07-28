@@ -10,7 +10,6 @@ ChromeUtils.defineESModuleGetters(
     PromiseWorker: "resource://gre/modules/workers/PromiseWorker.mjs",
     Pipeline: "chrome://global/content/ml/ONNXPipeline.mjs",
     PipelineOptions: "chrome://global/content/ml/EngineProcess.sys.mjs",
-    modelToResponse: "chrome://global/content/ml/Utils.sys.mjs",
   },
   { global: "current" }
 );
@@ -26,8 +25,7 @@ class MLEngineWorker {
     this.#connectToPromiseWorker();
   }
 
-  /**
-   * Implements the `match` function from the Cache API for Transformers.js custom cache.
+  /**  Implements the `match` function from the Cache API for Transformers.js custom cache.
    *
    * See https://developer.mozilla.org/en-US/docs/Web/API/Cache
    *
@@ -48,9 +46,14 @@ class MLEngineWorker {
     if (res.fail) {
       return null;
     }
-
+    let headers = res.ok[1];
+    let modelFile = res.ok[2];
     // Transformers.js expects a response object, so we wrap the array buffer
-    return lazy.modelToResponse(res.ok[2], res.ok[1]);
+    const response = new Response(modelFile, {
+      status: 200,
+      headers,
+    });
+    return response;
   }
 
   async getModelFile(...args) {

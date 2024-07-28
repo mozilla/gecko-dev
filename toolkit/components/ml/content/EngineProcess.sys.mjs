@@ -143,9 +143,11 @@ export class PipelineOptions {
       "runtimeFilename",
     ];
 
-    allowedKeys.forEach(key => {
-      if (options[key]) {
-        this[key] = options[key];
+    Object.keys(options).forEach(key => {
+      if (allowedKeys.includes(key)) {
+        this[key] = options[key]; // Use bracket notation to access setter
+      } else {
+        throw new Error(`Invalid option: ${key}`);
       }
     });
   }

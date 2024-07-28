@@ -69,7 +69,7 @@ add_task(async function test_ml_engine_basics() {
   await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
 
   Assert.equal(
-    (await inferencePromise).output.echo,
+    (await inferencePromise).output,
     "This gets echoed.",
     "The text get echoed exercising the whole flow."
   );
@@ -170,7 +170,7 @@ add_task(async function test_ml_engine_destruction() {
   await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
 
   Assert.equal(
-    (await inferencePromise).output.echo,
+    (await inferencePromise).output,
     "This gets echoed.",
     "The text get echoed exercising the whole flow."
   );
@@ -275,46 +275,6 @@ add_task(async function test_ml_generic_pipeline() {
     (await inferencePromise).output,
     "This gets echoed.",
     "The text get echoed exercising the whole flow."
-  );
-
-  ok(
-    !EngineProcess.areAllEnginesTerminated(),
-    "The engine process is still active."
-  );
-
-  await EngineProcess.destroyMLEngine();
-
-  await cleanup();
-});
-
-add_task(async function test_ml_engine_override_options() {
-  const { cleanup, remoteClients } = await setup();
-
-  info("Get the engine");
-  const engineInstance = await createEngine({
-    taskName: "moz-echo",
-    modelRevision: "v1",
-  });
-
-  info("Check the inference process is running");
-  Assert.equal(await checkForRemoteType("inference"), true);
-
-  info("Run the inference");
-  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
-
-  info("Wait for the pending downloads.");
-  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
-
-  Assert.equal(
-    (await inferencePromise).output.echo,
-    "This gets echoed.",
-    "The text get echoed exercising the whole flow."
-  );
-
-  Assert.equal(
-    (await inferencePromise).output.modelRevision,
-    "v1",
-    "The config options goes through and overrides."
   );
 
   ok(

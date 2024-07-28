@@ -167,17 +167,15 @@ class EngineDispatcher {
   async initializeInferenceEngine(pipelineOptions, notificationsCallback) {
     // Create the inference engine given the wasm runtime and the options.
     const wasm = await this.mlEngineChild.getWasmArrayBuffer();
-    let remoteSettingsOptions = await this.mlEngineChild.getInferenceOptions(
+    const inferenceOptions = await this.mlEngineChild.getInferenceOptions(
       this.#taskName
     );
-    // Merge the RemoteSettings inference options with the pipeline options provided.
-    let mergedOptions = new lazy.PipelineOptions(remoteSettingsOptions);
-    mergedOptions.updateOptions(pipelineOptions);
-    lazy.console.debug("Inference engine options:", mergedOptions);
+    lazy.console.debug("Inference engine options:", inferenceOptions);
+    pipelineOptions.updateOptions(inferenceOptions);
 
     return InferenceEngine.create({
       wasm,
-      pipelineOptions: mergedOptions,
+      pipelineOptions,
       notificationsCallback,
     });
   }
