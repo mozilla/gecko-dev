@@ -34,23 +34,23 @@ origin:
   license-file: LICENSE
 
 updatebot:
-    maintainer-phab: ng
-    maintainer-bz: na-g@nostrum.com
-    tasks:
-      - type: vendoring
-        enabled: true
-        frequency: release
+  maintainer-phab: ng
+  maintainer-bz: na-g@nostrum.com
+  tasks:
+    - type: vendoring
+      enabled: true
+      frequency: release
 
 vendoring:
   url: https://chromium.googlesource.com/libyuv/libyuv/
   source-hosting: googlesource
   vendor-directory: media/libyuv/libyuv/
-  skip-vendoring-steps: ['update-moz-build']
+  skip-vendoring-steps: ["update-moz-build"]
 
   exclude:
     - ".*"
 
   patches:
-    - fix_build_errors.patch
-    - make_mjpeg_printfs_optional.patch
-    - update_gyp.patch
+    - 00_fix_build_errors.patch
+    - 01_make_mjpeg_printfs_optional.patch
+    - 02_update_gyp.patch
