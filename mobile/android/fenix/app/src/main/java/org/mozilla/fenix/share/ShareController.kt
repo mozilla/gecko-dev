@@ -188,7 +188,6 @@ class DefaultShareController(
     override fun handleSignIn() {
         SyncAccount.signInToSendTab.record(NoExtras())
         val directions = ShareFragmentDirections.actionGlobalTurnOnSync(
-            padSnackbar = true,
             entrypoint = fxaEntrypoint as FenixFxAEntryPoint,
         )
         navController.nav(R.id.shareFragment, directions)

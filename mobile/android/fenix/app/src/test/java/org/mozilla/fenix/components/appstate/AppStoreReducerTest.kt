@@ -227,4 +227,18 @@ class AppStoreReducerTest {
 
         assertFalse(appStore.state.openInFirefoxRequested)
     }
+
+    @Test
+    fun `WHEN UserAccountAuthenticated action is dispatched THEN snackbar state is updated`() {
+        val appStore = AppStore()
+
+        appStore.dispatch(
+            AppAction.UserAccountAuthenticated,
+        ).joinBlocking()
+
+        assertEquals(
+            SnackbarState.UserAccountAuthenticated,
+            appStore.state.snackbarState,
+        )
+    }
 }

@@ -144,6 +144,15 @@ class SnackbarBinding(
                         appStore.dispatch(SnackbarAction.SnackbarShown)
                     }
 
+                    is SnackbarState.UserAccountAuthenticated -> {
+                        snackbarDelegate.show(
+                            text = R.string.sync_syncing_in_progress,
+                            duration = FenixSnackbar.LENGTH_SHORT,
+                        )
+
+                        appStore.dispatch(SnackbarAction.SnackbarShown)
+                    }
+
                     is SnackbarState.ShareToAppFailed -> {
                         snackbarDelegate.show(
                             text = R.string.share_error_snackbar,

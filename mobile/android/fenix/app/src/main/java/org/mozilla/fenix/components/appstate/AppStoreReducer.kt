@@ -273,6 +273,10 @@ internal object AppStoreReducer {
             state.copy(openInFirefoxRequested = false)
         }
 
+        is AppAction.UserAccountAuthenticated -> state.copy(
+            snackbarState = SnackbarState.UserAccountAuthenticated,
+        )
+
         is AppAction.ShareAction -> ShareActionReducer.reduce(state, action)
         is AppAction.FindInPageAction -> FindInPageStateReducer.reduce(state, action)
         is AppAction.ReaderViewAction -> ReaderViewStateReducer.reduce(state, action)

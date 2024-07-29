@@ -57,6 +57,11 @@ sealed class SnackbarState {
     data class TranslationInProgress(val sessionId: String?) : SnackbarState()
 
     /**
+     * Display a snackbar when the user's account is authenticated.
+     */
+    data object UserAccountAuthenticated : SnackbarState()
+
+    /**
      * Display a snackbar when sharing to another application failed.
      */
     data object ShareToAppFailed : SnackbarState()

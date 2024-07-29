@@ -215,6 +215,24 @@ class SnackbarBindingTest {
     }
 
     @Test
+    fun `WHEN the user has successfully signed in THEN display the appropriate snackbar`() = runTestOnMain {
+        val binding = buildSnackbarBinding()
+        binding.start()
+
+        appStore.dispatch(
+            AppAction.UserAccountAuthenticated,
+        )
+        waitForStoreToSettle()
+
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+        verify(snackbarDelegate).show(
+            text = R.string.sync_syncing_in_progress,
+            duration = FenixSnackbar.LENGTH_SHORT,
+        )
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+    }
+
+    @Test
     fun `WHEN share to app failed THEN display a snackbar`() {
         val binding = buildSnackbarBinding()
         binding.start()

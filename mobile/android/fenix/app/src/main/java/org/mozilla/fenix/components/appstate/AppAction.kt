@@ -139,6 +139,11 @@ sealed class AppAction : Action {
     object RemoveCollectionsPlaceholder : AppAction()
 
     /**
+     * Action dispatched when the user has authenticated with their account.
+     */
+    data object UserAccountAuthenticated : AppAction()
+
+    /**
      * Updates the [RecentSyncedTabState] with the given [state].
      */
     data class RecentSyncedTabStateChange(val state: RecentSyncedTabState) : AppAction()
