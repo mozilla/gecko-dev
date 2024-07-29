@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.67"
 name = "zerovec"
-version = "0.10.2"
+version = "0.10.4"
 authors = ["The ICU4X Project Developers"]
 include = [
     "data/**/*",
@@ -101,6 +101,7 @@ default-features = false
 [dependencies.twox-hash]
 version = "1.4.2"
 optional = true
+default-features = false
 
 [dependencies.yoke]
 version = ">=0.6.0, <0.8.0"
