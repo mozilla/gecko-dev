@@ -286,7 +286,7 @@ export class Tracer extends Component {
         // we may need to remove children that are outside of the viewport.
         if (endIndex != -1) {
           return traceChildren[traceIndex].filter(index => {
-            return index <= endIndex;
+            return index < endIndex;
           });
         }
         return traceChildren[traceIndex];
