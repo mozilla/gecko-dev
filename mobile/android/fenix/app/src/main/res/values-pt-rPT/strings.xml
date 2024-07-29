@@ -109,15 +109,15 @@
 
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_title">Navegue mais rápido com a nova navegação</string>
+    <string name="navbar_cfr_title">Navegue mais rapidamente com a nova navegação</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Esta barra é ocultada à medida que desce para ganhar espaço de navegação extra.</string>
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Esta barra é ocultada à medida que desliza para baixo para espaço extra de navegação.</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message_2">Num site, esta barra é ocultada à medida que desliza para baixo para ganhar espaço de navegação extra.</string>
+    <string name="navbar_cfr_message_2">Num site, esta barra é ocultada à medida que desliza para baixo para espaço extra de navegação.</string>
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-    <string name="navbar_navigation_buttons_cfr_message">Toque e mantenha pressionado as setas para alternar entre as páginas no histórico deste separador.</string>
+    <string name="navbar_navigation_buttons_cfr_message">Toque e mantenha pressionadas as setas para alternar entre as páginas no histórico deste separador.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">É necessário acesso à câmara. Aceda às definições do Android, toque em permissões e toque em permitir.</string>
@@ -1747,7 +1747,7 @@
     <!-- Preference for fingerprinting protection for the custom protection settings -->
     <string name="etp_suspected_fingerprinters_title">Identificadores suspeitos</string>
     <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
-    <string name="etp_suspected_fingerprinters_description">Ativa a proteção por identificação para parar identificadores suspeitos.</string>
+    <string name="etp_suspected_fingerprinters_description">Ative a proteção contra a identificação para bloquear potenciais rastreadores.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_title">Identificadores conhecidos</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
@@ -2796,7 +2796,7 @@
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Ferramentas CRF</string>
     <!-- The title of the reset CFR section in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_reset_cfr_title">Repor CRFs</string>
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Redefinir CRF</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->

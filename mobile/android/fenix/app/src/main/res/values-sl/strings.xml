@@ -113,6 +113,9 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Ta vrstica se umakne, ko se pomaknete navzdol, da napravi prostor za brskanje.</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Tapnite in pridržite puščici za preskakovanje med stranmi v zgodovini tega zavihka.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Potreben je dostop do kamere. Odprite nastavitve sistema Android in v dovoljenjih tapnite Dovoli.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -250,6 +253,8 @@
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Prilagodi bralni pogled</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Prilagodi bralni pogled</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Dodaj</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -277,6 +282,8 @@
     <string name="browser_menu_new_in_firefox">Novo v %1$su</string>
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Preklop na stran za računalnike</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Preklopi na mobilno stran</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Orodja</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -423,7 +430,7 @@
     <string name="juno_onboarding_sign_in_title_2">Ostanite šifrirani pri skakanju z naprave na napravo</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Prijavljeni in sinhronizirani ste varnejši. Firefox šifrira vaša gesla, zaznamke in ostale podatke.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Prijavljeni in sinhronizirani ste varnejši. Firefox šifrira vaša gesla, zaznamke in ostale podatke.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Prijava</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -2398,7 +2405,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Odpri pregledovalnik mnenj</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Odpri pregledovalnik mnenj</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2590,7 +2597,9 @@
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">Prenesi jezike</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Prenesi jezike</string>
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Prenesi jezike</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="download_languages_header_preference">Prenesite celotne jezike za hitrejše prevajanje in za prevajanje brez povezave. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
@@ -2613,6 +2622,12 @@
     <string name="download_languages_item_content_description_downloaded_state">Izbriši</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
     <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">V teku</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+    <string name="download_languages_item_content_description_delete_in_progress_state">V teku</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Ustavi prenos jezika %1$s (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Prenesi</string>
 
@@ -2642,6 +2657,9 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Prekliči</string>
 
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title">Prekličem prenos jezika %1$s?</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
     <string name="cancel_download_language_file_dialog_positive_button_text">Da</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
@@ -2748,11 +2766,13 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ne uporabljam ga</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Kako zadovoljni ste s Firefoxovo domačo stranjo?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Kako zadovoljni ste s Firefoxovo domačo stranjo?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Pomagajte izboljšati tiskanje v Firefoxu. Vzelo vam bo samo sekundo</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Kako zadovoljni ste s tiskanjem v Firefoxu?</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Kako zadovoljni ste s Firefoxovo domačo stranjo?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Logotip Firefoxa</string>
@@ -2776,4 +2796,7 @@
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Ponastavi CFR-je</string>
 
-    </resources>
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
+</resources>

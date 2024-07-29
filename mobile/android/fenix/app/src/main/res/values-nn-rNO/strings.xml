@@ -117,6 +117,12 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Denne linja gøymer seg når du blar nedover for å gi ekstra visingsplass.</string>
 
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">På ein nettstad forsvinn dette feltet når du skrollar ned for ekstra nettlesarplass.</string>
+
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Trykk og hald ned pilene for å hoppe mellom sider i historikken til denne fana.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kameratilgang er nødvendig. Gå til Android-innstillingar, trykk på løyve, og trykk på tillat.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -255,6 +261,8 @@
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Tilpass lesevising</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Tilpass lesevising</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Legg til</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -282,6 +290,8 @@
     <string name="browser_menu_new_in_firefox">Nytt i %1$s</string>
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Byt til datamaskinversjon</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Byt til mobilutgåva</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Verktøy</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -428,7 +438,10 @@
     <string name="juno_onboarding_sign_in_title_2">Krypter dataa dine når du arbeider på tvers av einingar</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Når du er innlogga og synkronisert, er du tryggare. Firefox krypterer passorda, bokmerka med meir.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Når du er innlogga og synkronisert, er du tryggare. Firefox krypterer passorda, bokmerka med meir.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3">Firefox krypterer passorda dine, bokmerka, og meir, når du er synkronisert.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Logg inn</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -1746,6 +1759,8 @@
 
     <!-- Preference for fingerprinting protection for the custom protection settings -->
     <string name="etp_suspected_fingerprinters_title">Mistenkte nettlesaravtrykk</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Aktiverer vern mot fingeravtrykk for å stoppe mistenkte fingeravtrykksporarar.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_title">Kjende fineravtrykk-sporarar</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
@@ -2408,7 +2423,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Opne vurderingskontrolløren</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Opne vurderingskontrolløren</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2603,7 +2618,9 @@
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">Last ned språk</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Last ned språk</string>
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Last ned språk</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="download_languages_header_preference">Last ned komplette språk for raskare omsetjingar, og for å omsetje fråkopla. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
@@ -2771,11 +2788,13 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Eg brukar henne ikkje</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Kor nøgd er du med startsida til Firefox?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Kor nøgd er du med startsida til Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Bidra til å gjere utskrifter i Firefox betre. Det tek berre eit sekund</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Kor fornøgd er du med utskrifter i Firefox?</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Kor fornøgd er du med startsida til Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Firefox-logo</string>
@@ -2804,4 +2823,13 @@
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Tilbakestill CFR</string>
 
-    </resources>
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">For å avslute fullskjerm, drag frå toppen, og så til venstre</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">For å avslute fullskjerm, drag frå toppen, og trykk tilbake</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
+</resources>

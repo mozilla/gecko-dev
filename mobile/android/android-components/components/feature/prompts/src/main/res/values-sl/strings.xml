@@ -138,6 +138,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Geslo posodobljeno</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Uporabniško ime posodobljeno</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Ponovno pošlji podatke spletnemu mestu?</string>
     <string name="mozac_feature_prompt_repost_message">Osvežitev te strani lahko podvoji nedavna dejanja, kot je pošiljanje plačila ali objava komentarja.</string>

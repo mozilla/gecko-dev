@@ -931,7 +931,7 @@
     <string name="open_new_tab_snackbar">Byt</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Startar fullskjermmodus</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Startar fullskjermmodus</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Byt til lenke i ny fane med ein gong</string>
@@ -1124,4 +1124,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widget lagt til på startskjermen</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">For å avslute fullskjerm, drag frå toppen, og så til venstre</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">For å avslute fullskjerm, drag frå toppen, og trykk tilbake</string>
 </resources>

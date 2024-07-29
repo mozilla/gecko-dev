@@ -140,6 +140,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">ᱫᱟᱱᱟᱝ ᱥᱟᱵᱟᱫ ᱦᱟᱹᱞᱤᱭᱟᱹᱠ ᱮᱱᱟ</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">ᱵᱮᱵᱷᱟᱹᱨᱤᱭᱟᱹ ᱧᱩᱛᱩᱢ ᱦᱟᱹᱞᱤᱭᱟᱹᱠ ᱟᱠᱟᱱᱟ</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">ᱱᱚᱶᱟ ᱥᱟᱭᱤᱴ ᱞᱟᱹᱜᱤᱫ ᱰᱟᱴᱟ ᱫᱩᱦᱲᱟᱹ ᱵᱷᱮᱡᱟᱭ ᱟᱢ‌ ᱥᱮ?</string>
     <string name="mozac_feature_prompt_repost_message">ᱥᱟᱦᱴᱟ ᱨᱤᱯᱷᱨᱮᱥ ᱞᱮᱠᱷᱟᱱ ᱱᱤᱛᱚᱜᱟᱜ ᱠᱟᱹᱢᱤ ᱠᱚ ᱰᱩᱯᱞᱤᱠᱮᱴ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱭ, ᱡᱮᱢᱚᱱ ᱯᱩᱭᱥᱟᱹ ᱵᱷᱮᱡᱟ ᱠᱚ ᱟᱨ ᱵᱟᱝ ᱠᱚᱢᱮᱴ ᱠᱚ ᱵᱟᱨ ᱡᱮᱠᱷᱟ ᱵᱷᱮᱡᱟ ᱠᱚ ᱾</string>
