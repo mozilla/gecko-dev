@@ -2647,7 +2647,7 @@
     <!-- The survey completion confirmation text -->
     <string name="micro_survey_feedback_confirmation">Thanks for your feedback!</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_1" tools:ignore="UnusedResources">Very Satisfied</string>
+    <string name="likert_scale_option_1" tools:ignore="UnusedResources">Very satisfied</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_2" tools:ignore="UnusedResources">Satisfied</string>
     <!-- Option for likert scale -->
@@ -2655,7 +2655,7 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_4" tools:ignore="UnusedResources">Dissatisfied</string>
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_5" tools:ignore="UnusedResources">Very Dissatisfied</string>
+    <string name="likert_scale_option_5" tools:ignore="UnusedResources">Very dissatisfied</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">I don’t use it</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
