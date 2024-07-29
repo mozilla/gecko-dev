@@ -220,7 +220,6 @@ class DownloadFragment : Fragment(), UserInteractionHandler, MenuProvider {
                 FenixSnackbar.make(
                     view = rootView,
                     duration = Snackbar.LENGTH_SHORT,
-                    isDisplayedWithBrowserToolbar = true,
                 ).setText(
                     DynamicDownloadDialog.getCannotOpenFileErrorMessage(
                         it,

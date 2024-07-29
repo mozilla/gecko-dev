@@ -144,7 +144,6 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
             FenixSnackbar.make(
                 view = it,
                 duration = FenixSnackbar.LENGTH_LONG,
-                isDisplayedWithBrowserToolbar = false,
             ).setText(text).show()
         }
     }

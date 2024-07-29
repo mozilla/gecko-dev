@@ -42,7 +42,6 @@ fun Context.getUndoDelay(): Long {
  * @param operation A suspend block to execute if user doesn't cancel via the displayed [FenixSnackbar].
  * @param anchorView A [View] to which [FenixSnackbar] should be anchored.
  * @param elevation The elevation of the [FenixSnackbar].
- * @param paddedForBottomToolbar Whether or not [FenixSnackbar] is displayed with the bottom toolbar.
  */
 fun CoroutineScope.allowUndo(
     view: View,
@@ -52,7 +51,6 @@ fun CoroutineScope.allowUndo(
     operation: suspend (context: Context) -> Unit,
     anchorView: View? = null,
     elevation: Float? = null,
-    paddedForBottomToolbar: Boolean = false,
 ) {
     // By using an AtomicBoolean, we achieve memory effects of reading and
     // writing a volatile variable.
@@ -64,7 +62,6 @@ fun CoroutineScope.allowUndo(
             .make(
                 view = view,
                 duration = FenixSnackbar.LENGTH_INDEFINITE,
-                isDisplayedWithBrowserToolbar = paddedForBottomToolbar,
             )
             .setText(message)
             .setAnchorView(anchorView)

@@ -105,7 +105,6 @@ class WallpaperSettingsFragment : Fragment() {
             Wallpaper.ImageFileState.Downloaded -> {
                 FenixSnackbar.make(
                     view = view,
-                    isDisplayedWithBrowserToolbar = false,
                 )
                     .setText(view.context.getString(R.string.wallpaper_updated_snackbar_message))
                     .setAction(requireContext().getString(R.string.wallpaper_updated_snackbar_action)) {
@@ -125,7 +124,6 @@ class WallpaperSettingsFragment : Fragment() {
             Wallpaper.ImageFileState.Error -> {
                 FenixSnackbar.make(
                     view = view,
-                    isDisplayedWithBrowserToolbar = false,
                 )
                     .setText(view.context.getString(R.string.wallpaper_download_error_snackbar_message))
                     .setAction(view.context.getString(R.string.wallpaper_download_error_snackbar_action)) {

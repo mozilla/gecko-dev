@@ -200,7 +200,6 @@ class LoginDetailFragment : SecureFragment(R.layout.fragment_login_detail), Menu
             FenixSnackbar.make(
                 view,
                 duration = Snackbar.LENGTH_SHORT,
-                isDisplayedWithBrowserToolbar = false,
             ).setText(copiedItem).show()
         }
     }

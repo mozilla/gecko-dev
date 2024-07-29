@@ -59,7 +59,6 @@ class InstrumentedHomeFragmentTest {
                     operation = any(),
                     anchorView = any(),
                     elevation = any(),
-                    paddedForBottomToolbar = any(),
                 )
             } just Runs
             val homeBinding = FragmentHomeBinding.inflate(LayoutInflater.from(testContext))
@@ -76,7 +75,6 @@ class InstrumentedHomeFragmentTest {
                     operation = any(),
                     anchorView = any(),
                     elevation = TOAST_ELEVATION,
-                    paddedForBottomToolbar = false,
                 )
             }
         } finally {

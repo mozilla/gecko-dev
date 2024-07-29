@@ -98,7 +98,7 @@ class TabsTrayFragmentTest {
             every { any<LifecycleOwner>().lifecycleScope } returns lifecycleScope
             fabButtonBinding.newTabButton.isVisible = true
             every { fragment.context } returns testContext // needed for getString()
-            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any(), any()) } just Runs
+            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any()) } just Runs
             every { fragment.requireView() } returns view
             every { testContext.settings().enableTabsTrayToCompose } returns false
 
@@ -113,7 +113,6 @@ class TabsTrayFragmentTest {
                     operation = any(),
                     anchorView = fabButtonBinding.newTabButton,
                     elevation = TabsTrayFragment.ELEVATION,
-                    paddedForBottomToolbar = false,
                 )
             }
         } finally {
@@ -130,7 +129,7 @@ class TabsTrayFragmentTest {
             val lifecycleScope: LifecycleCoroutineScope = mockk(relaxed = true)
             every { any<LifecycleOwner>().lifecycleScope } returns lifecycleScope
             every { fragment.context } returns testContext // needed for getString()
-            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any(), any()) } just Runs
+            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any()) } just Runs
             every { fragment.requireView() } returns view
             every { testContext.settings().enableTabsTrayToCompose } returns false
 
@@ -145,7 +144,6 @@ class TabsTrayFragmentTest {
                     operation = any(),
                     anchorView = null,
                     elevation = TabsTrayFragment.ELEVATION,
-                    paddedForBottomToolbar = false,
                 )
             }
         } finally {
@@ -163,7 +161,7 @@ class TabsTrayFragmentTest {
             every { any<LifecycleOwner>().lifecycleScope } returns lifecycleScope
             fabButtonBinding.newTabButton.isVisible = true
             every { fragment.context } returns testContext // needed for getString()
-            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any(), any()) } just Runs
+            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any()) } just Runs
             every { fragment.requireView() } returns view
             every { testContext.settings().enableTabsTrayToCompose } returns false
 
@@ -178,7 +176,6 @@ class TabsTrayFragmentTest {
                     operation = any(),
                     anchorView = fabButtonBinding.newTabButton,
                     elevation = TabsTrayFragment.ELEVATION,
-                    paddedForBottomToolbar = false,
                 )
             }
         } finally {
@@ -195,7 +192,7 @@ class TabsTrayFragmentTest {
             val lifecycleScope: LifecycleCoroutineScope = mockk(relaxed = true)
             every { any<LifecycleOwner>().lifecycleScope } returns lifecycleScope
             every { fragment.context } returns testContext // needed for getString()
-            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any(), any()) } just Runs
+            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any()) } just Runs
             every { fragment.requireView() } returns view
             every { testContext.settings().enableTabsTrayToCompose } returns false
 
@@ -210,7 +207,6 @@ class TabsTrayFragmentTest {
                     operation = any(),
                     anchorView = null,
                     elevation = TabsTrayFragment.ELEVATION,
-                    paddedForBottomToolbar = false,
                 )
             }
         } finally {
@@ -227,7 +223,7 @@ class TabsTrayFragmentTest {
             val lifecycleScope: LifecycleCoroutineScope = mockk(relaxed = true)
             every { any<LifecycleOwner>().lifecycleScope } returns lifecycleScope
             every { fragment.context } returns testContext // needed for getString()
-            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any(), any()) } just Runs
+            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any()) } just Runs
             every { fragment.requireView() } returns view
             every { testContext.settings().enableTabsTrayToCompose } returns false
 
@@ -242,7 +238,6 @@ class TabsTrayFragmentTest {
                     operation = any(),
                     anchorView = null,
                     elevation = TabsTrayFragment.ELEVATION,
-                    paddedForBottomToolbar = false,
                 )
             }
         } finally {
@@ -259,7 +254,7 @@ class TabsTrayFragmentTest {
             val lifecycleScope: LifecycleCoroutineScope = mockk(relaxed = true)
             every { any<LifecycleOwner>().lifecycleScope } returns lifecycleScope
             every { fragment.context } returns testContext // needed for getString()
-            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any(), any()) } just Runs
+            every { any<CoroutineScope>().allowUndo(any(), any(), any(), any(), any(), any(), any()) } just Runs
             every { fragment.requireView() } returns view
             every { testContext.settings().enableTabsTrayToCompose } returns false
 
@@ -275,7 +270,6 @@ class TabsTrayFragmentTest {
                     operation = any(),
                     anchorView = null,
                     elevation = TabsTrayFragment.ELEVATION,
-                    paddedForBottomToolbar = false,
                 )
             }
         } finally {

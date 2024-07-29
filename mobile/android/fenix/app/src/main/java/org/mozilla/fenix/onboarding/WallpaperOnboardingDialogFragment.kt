@@ -143,7 +143,6 @@ class WallpaperOnboardingDialogFragment : BottomSheetDialogFragment() {
             Wallpaper.ImageFileState.Error -> {
                 FenixSnackbar.make(
                     view = view,
-                    isDisplayedWithBrowserToolbar = false,
                 )
                     .setText(view.context.getString(R.string.wallpaper_download_error_snackbar_message))
                     .setAction(view.context.getString(R.string.wallpaper_download_error_snackbar_action)) {

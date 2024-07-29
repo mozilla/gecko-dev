@@ -65,7 +65,6 @@ import org.mozilla.fenix.tabstray.browser.TabSorter
 import org.mozilla.fenix.tabstray.ext.anchorWithAction
 import org.mozilla.fenix.tabstray.ext.bookmarkMessage
 import org.mozilla.fenix.tabstray.ext.collectionMessage
-import org.mozilla.fenix.tabstray.ext.make
 import org.mozilla.fenix.tabstray.ext.showWithTheme
 import org.mozilla.fenix.tabstray.syncedtabs.SyncedTabsIntegration
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -877,7 +876,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         val snackbar = FenixSnackbar.make(
             view = tabsTrayComposeBinding.root,
             duration = FenixSnackbar.LENGTH_SHORT,
-            isDisplayedWithBrowserToolbar = true,
         ).setText(text)
         snackbar.view.elevation = ELEVATION
         snackbar.show()

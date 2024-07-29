@@ -90,7 +90,6 @@ class InactiveTabViewHolder(
         val snackbar = FenixSnackbar.make(
             view = composeView,
             duration = FenixSnackbar.LENGTH_SHORT,
-            isDisplayedWithBrowserToolbar = true,
         ).setText(text)
         snackbar.view.elevation = TabsTrayFragment.ELEVATION
         snackbar.show()

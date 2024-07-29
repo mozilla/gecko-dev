@@ -12,9 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.appcompat.widget.ContentFrameLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.view.updatePadding
 import androidx.core.widget.TextViewCompat
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.ContentViewCallback
@@ -121,12 +119,10 @@ class FenixSnackbar private constructor(
          * Suppressing ComplexCondition. Yes it's unfortunately complex but that's the nature
          * of the snackbar handling by Android. It will be simpler once dynamic toolbar is always on.
          */
-        @Suppress("ComplexCondition", "RestrictedApi")
         fun make(
             view: View,
             duration: Int = LENGTH_LONG,
             isError: Boolean = false,
-            isDisplayedWithBrowserToolbar: Boolean,
         ): FenixSnackbar {
             val parent = findSuitableParent(view) ?: run {
                 throw IllegalArgumentException(
@@ -145,29 +141,9 @@ class FenixSnackbar private constructor(
                 }
 
             val callback = FenixSnackbarCallback(binding.root)
-            val shouldUseBottomToolbar = view.context.settings().shouldUseBottomToolbar
-            val toolbarHeight = view.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
-            val dynamicToolbarEnabled = view.context.settings().isDynamicToolbarEnabled
 
             return FenixSnackbar(parent, binding, callback, isError).also {
                 it.duration = durationOrAccessibleDuration
-
-                it.view.updatePadding(
-                    bottom = if (
-                        isDisplayedWithBrowserToolbar &&
-                        shouldUseBottomToolbar &&
-                        // If the view passed in is a ContentFrameLayout, it does not matter
-                        // if the user has a dynamicBottomToolbar or not, as the Android system
-                        // can't intelligently position the snackbar on the upper most view.
-                        // Ideally we should not pass ContentFrameLayout in, but it's the only
-                        // way to display snackbars through a fragment transition.
-                        (view is ContentFrameLayout || !dynamicToolbarEnabled)
-                    ) {
-                        toolbarHeight
-                    } else {
-                        0
-                    },
-                )
 
                 if (parent.id == R.id.dynamicSnackbarContainer) {
                     (parent.layoutParams as? CoordinatorLayout.LayoutParams)?.apply {

@@ -39,7 +39,7 @@ class ContextMenuSnackbarDelegateTest {
 
         delegate = ContextMenuSnackbarDelegate()
         every {
-            FenixSnackbar.make(view, LENGTH_SHORT, isDisplayedWithBrowserToolbar = true)
+            FenixSnackbar.make(view, LENGTH_SHORT)
         } returns snackbar
         every { snackbar.setText(any()) } returns snackbar
         every { snackbar.setAction(any(), any()) } returns snackbar

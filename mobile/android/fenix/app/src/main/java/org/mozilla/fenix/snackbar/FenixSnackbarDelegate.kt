@@ -90,7 +90,6 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
         val snackbar = FenixSnackbar.make(
             view = snackBarParentView,
             duration = duration,
-            isDisplayedWithBrowserToolbar = true,
         )
             .setText(text)
 

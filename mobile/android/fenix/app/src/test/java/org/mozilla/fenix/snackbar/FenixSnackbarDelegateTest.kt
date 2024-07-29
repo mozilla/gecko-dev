@@ -39,7 +39,7 @@ class FenixSnackbarDelegateTest {
 
         delegate = FenixSnackbarDelegate(view)
         every {
-            FenixSnackbar.make(view, any(), isDisplayedWithBrowserToolbar = true)
+            FenixSnackbar.make(view, any())
         } returns snackbar
         every { snackbar.setText(any()) } returns snackbar
         every { snackbar.setAction(any(), any()) } returns snackbar

@@ -52,7 +52,7 @@ class StandardSnackbarErrorBindingTest {
         every { AppCompatResources.getDrawable(any(), any()) } returns mockk(relaxed = true)
 
         snackbar = mockk(relaxed = true)
-        every { FenixSnackbar.make(any(), any(), any(), any()) } returns snackbar
+        every { FenixSnackbar.make(any(), any(), any()) } returns snackbar
         rootView = mockk<ViewGroup>(relaxed = true)
         activity = mockk(relaxed = true) {
             every { findViewById<View>(android.R.id.content) } returns rootView

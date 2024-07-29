@@ -317,7 +317,6 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
                 FenixSnackbar.make(
                     view = requireView(),
                     duration = Snackbar.LENGTH_SHORT,
-                    isDisplayedWithBrowserToolbar = true,
                 ).setText(DynamicDownloadDialog.getCannotOpenFileErrorMessage(requireContext(), downloadState))
                     .show()
             }

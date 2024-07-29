@@ -43,7 +43,6 @@ class ContextMenuSnackbarDelegate : SnackbarDelegate {
         val snackbar = FenixSnackbar.make(
             view = view,
             duration = FenixSnackbar.LENGTH_SHORT,
-            isDisplayedWithBrowserToolbar = true,
         )
             .setText(text)
 

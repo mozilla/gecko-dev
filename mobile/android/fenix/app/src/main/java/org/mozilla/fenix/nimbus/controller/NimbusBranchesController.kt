@@ -52,7 +52,6 @@ class NimbusBranchesController(
                 FenixSnackbar.make(
                     view = v,
                     FenixSnackbar.LENGTH_LONG,
-                    isDisplayedWithBrowserToolbar = false,
                 )
                     .setText(snackbarText)
                     .setAction(buttonText) {

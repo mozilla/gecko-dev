@@ -224,7 +224,6 @@ class HomeFragment : Fragment() {
                 FenixSnackbar.make(
                     view = binding.dynamicSnackbarContainer,
                     duration = Snackbar.LENGTH_LONG,
-                    isDisplayedWithBrowserToolbar = false,
                 )
                     .setText(it.context.getString(message))
                     .show()
@@ -1209,7 +1208,6 @@ class HomeFragment : Fragment() {
                                 FenixSnackbar.make(
                                     view = binding.dynamicSnackbarContainer,
                                     duration = Snackbar.LENGTH_SHORT,
-                                    isDisplayedWithBrowserToolbar = false,
                                 )
                                     .setText(it.context.getString(R.string.onboarding_firefox_account_sync_is_on))
                                     .show()
@@ -1419,7 +1417,6 @@ class HomeFragment : Fragment() {
             FenixSnackbar.make(
                 view = binding.dynamicSnackbarContainer,
                 duration = Snackbar.LENGTH_LONG,
-                isDisplayedWithBrowserToolbar = false,
             )
                 .setText(string)
                 .show()

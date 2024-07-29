@@ -137,7 +137,7 @@ class DefaultBrowserToolbarMenuControllerTest {
         every { deleteAndQuit(any(), any(), any()) } just Runs
 
         mockkObject(FenixSnackbar.Companion)
-        every { FenixSnackbar.make(any(), any(), any(), any()) } returns snackbar
+        every { FenixSnackbar.make(any(), any(), any()) } returns snackbar
 
         every { activity.components.useCases.sessionUseCases } returns sessionUseCases
         every { activity.components.useCases.customTabsUseCases } returns customTabUseCases

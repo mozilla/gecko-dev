@@ -408,7 +408,6 @@ class AccountSettingsFragment : PreferenceFragmentCompat() {
                 FenixSnackbar.make(
                     view = requireView(),
                     duration = FenixSnackbar.LENGTH_LONG,
-                    isDisplayedWithBrowserToolbar = false,
                 )
                     .setText(getString(R.string.empty_device_name_error))
                     .show()

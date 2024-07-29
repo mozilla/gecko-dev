@@ -183,7 +183,6 @@ class SaveSearchEngineFragment : Fragment(R.layout.fragment_save_search_engine) 
                     FenixSnackbar.make(
                         view = it,
                         duration = FenixSnackbar.LENGTH_SHORT,
-                        isDisplayedWithBrowserToolbar = false,
                     )
                         .setText(successMessage)
                         .show()

@@ -56,7 +56,7 @@ class NimbusBranchesControllerTest {
         }
 
         mockkObject(FenixSnackbar)
-        every { FenixSnackbar.make(any(), any(), any(), any()) } returns snackbar
+        every { FenixSnackbar.make(any(), any(), any()) } returns snackbar
 
         every { activity.settings() } returns settings
 

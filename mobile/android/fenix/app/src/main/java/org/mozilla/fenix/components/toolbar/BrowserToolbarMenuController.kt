@@ -298,7 +298,6 @@ class DefaultBrowserToolbarMenuController(
                         FenixSnackbar.make(
                             view = snackbarParent,
                             duration = Snackbar.LENGTH_SHORT,
-                            isDisplayedWithBrowserToolbar = true,
                         )
                             .setText(
                                 context.getString(R.string.snackbar_added_to_shortcuts),
@@ -415,7 +414,6 @@ class DefaultBrowserToolbarMenuController(
                     FenixSnackbar.make(
                         view = snackbarParent,
                         duration = Snackbar.LENGTH_SHORT,
-                        isDisplayedWithBrowserToolbar = true,
                     )
                         .setText(
                             snackbarParent.context.getString(R.string.snackbar_top_site_removed),

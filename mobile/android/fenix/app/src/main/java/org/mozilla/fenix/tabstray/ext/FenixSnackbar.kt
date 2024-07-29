@@ -59,6 +59,5 @@ internal inline fun FenixSnackbar.anchorWithAction(
 
 internal fun FenixSnackbar.Companion.make(view: View) = make(
     duration = LENGTH_LONG,
-    isDisplayedWithBrowserToolbar = true,
     view = view,
 )
