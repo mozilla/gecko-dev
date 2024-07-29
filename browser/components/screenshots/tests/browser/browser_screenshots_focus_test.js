@@ -438,6 +438,26 @@ add_task(async function testFocusedIsLocked() {
 
       EventUtils.synthesizeKey("KEY_Tab");
 
+      // Focus should still be in the content document
+      await BrowserTestUtils.waitForCondition(() => {
+        return (
+          firstButton.getRootNode().activeElement !== firstButton &&
+          lastButton.getRootNode().activeElement !== lastButton
+        );
+      }, "The first and last buttons do not have focus");
+      Assert.notEqual(
+        Services.focus.focusedElement,
+        firstButton,
+        "The first button does not have focus"
+      );
+      Assert.notEqual(
+        Services.focus.focusedElement,
+        lastButton,
+        "The last button does not have focus"
+      );
+
+      EventUtils.synthesizeKey("KEY_Tab");
+
       info(
         `Actual focused id: ${Services.focus.focusedElement.id}. Expected focused id: ${firstButton.id}`
       );
