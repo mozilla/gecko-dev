@@ -24,5 +24,6 @@
   "security.webauthn.show_ms_settings_link",
   "toolkit.startup.last_success",
   "toolkit.telemetry.cachedClientID",
+  "toolkit.telemetry.cachedProfileGroupID",
   "ui.osk.debug.keyboardDisplayReason"
 ]
