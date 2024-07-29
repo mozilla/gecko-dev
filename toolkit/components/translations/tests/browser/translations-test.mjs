@@ -84,12 +84,6 @@ export function getSelectors() {
     getURLHyperlink() {
       return content.document.getElementById("url-hyperlink");
     },
-    getTextCleaningWhitespace() {
-      return content.document.getElementById("clean-whitespace");
-    },
-    getTextCleaningSoftHyphens() {
-      return content.document.getElementById("clean-soft-hyphens");
-    },
   };
 }
 

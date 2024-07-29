@@ -136,21 +136,15 @@ function handleMessages(engine) {
             await discardPromise;
           }
           try {
-            const { whitespaceBefore, whitespaceAfter, cleanedSourceText } =
-              cleanText(sourceText);
-
             // Add a translation to the work queue, and when it returns, post the message
             // back. The translation may never return if the translations are discarded
             // before it have time to be run. In this case this await is just never
             // resolved, and the postMessage is never run.
-            let targetText = await engine.translate(
-              cleanedSourceText,
+            const targetText = await engine.translate(
+              sourceText,
               isHTML,
               innerWindowId
             );
-
-            // Ensure the whitespace is retained.
-            targetText = whitespaceBefore + targetText + whitespaceAfter;
 
             // This logging level can be very verbose and slow, so only do it under the
             // "Trace" level, which is the most verbose. Set the logging level to "Info" to avoid
@@ -327,6 +321,7 @@ class Engine {
   #syncTranslate(sourceText, isHTML, innerWindowId) {
     const startTime = performance.now();
     let response;
+    sourceText = sourceText.trim();
     const { messages, options } = BergamotUtils.getTranslationArgs(
       this.bergamot,
       sourceText,
@@ -563,15 +558,33 @@ class BergamotUtils {
   }
 
   /**
+   * Do any cleaning steps for the text that are required before sending it into
+   * the translation engine.
+   *
+   * @param {string} sourceText
+   * @returns {string}
+   */
+  static cleanText(sourceText) {
+    // Whitespace at the beginning or end can confuse translations.
+    sourceText = sourceText.trim();
+
+    // Remove any soft hyphens, as they will break tokenization.
+    sourceText = sourceText.replaceAll("\u00AD", "");
+
+    return sourceText;
+  }
+
+  /**
    * JS objects need to be translated into wasm objects to configure the translation engine.
    *
    * @param {Bergamot} bergamot
-   * @param {string} sourceText
+   * @param {string[]} sourceText
    * @returns {{ messages: Bergamot["VectorString"], options: Bergamot["VectorResponseOptions"] }}
    */
   static getTranslationArgs(bergamot, sourceText, isHTML) {
     const messages = new bergamot.VectorString();
     const options = new bergamot.VectorResponseOptions();
+    sourceText = BergamotUtils.cleanText(sourceText);
 
     // Empty paragraphs break the translation.
     if (sourceText) {
@@ -735,35 +748,4 @@ class WorkQueue {
     await new Promise(resolve => setTimeout(resolve, 0));
     this.#isWorkCancelled = false;
   }
-}
-
-/**
- * This regex matches the whitespace before and after a text, so that it is preserved.
- */
-const whitespaceRegex = /^(\s*)(.*?)(\s*)$/;
-//                        (^^^)     (^^^) Match the whitespace at the beginning and end.
-//                             (^^^)      Match the text.
-
-/**
- * Do any cleaning steps for the text that are required before sending it into
- * the translation engine.
- *
- * @param {string} sourceText
- * @returns {{ whitespaceBefore: string, whitespaceAfter: string, cleanedSourceText: string }}
- */
-function cleanText(sourceText) {
-  // Whitespace at the beginning or end can confuse translations, but can affect the
-  // presentation of the final result.
-  const result = whitespaceRegex.exec(sourceText);
-  if (!result) {
-    throw new Error("The whitespace regex should always return a result.");
-  }
-  const whitespaceBefore = result[1];
-  const whitespaceAfter = result[3];
-  let cleanedSourceText = result[2];
-
-  // Remove any soft hyphens, as they will break tokenization.
-  cleanedSourceText = cleanedSourceText.replaceAll("\u00AD", "");
-
-  return { whitespaceBefore, whitespaceAfter, cleanedSourceText };
 }
