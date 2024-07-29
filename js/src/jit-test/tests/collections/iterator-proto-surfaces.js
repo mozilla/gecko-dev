@@ -21,15 +21,13 @@ function test(constructor) {
     // %IteratorPrototype%
     var proto2 = Object.getPrototypeOf(proto1);
     assertEq(Object.getPrototypeOf(proto2), Object.prototype);
-    assertEq(Object.prototype.toString.call(proto2), "[object Iterator]");
+    assertEq(Object.prototype.toString.call(proto2), "[object Object]");
 
-    var expectedKeys = ["map", "filter", "take", "drop", "flatMap", "reduce", "toArray",
-                        "forEach", "some", "every", "find", "constructor",
-                        Symbol.iterator, Symbol.toStringTag];
     if (getBuildConfiguration("explicit-resource-management")) {
-      expectedKeys.splice(expectedKeys.length - 1, 0, Symbol.dispose);
+      assertDeepEq(Reflect.ownKeys(proto2), [Symbol.iterator, Symbol.dispose]);
+    } else {
+      assertDeepEq(Reflect.ownKeys(proto2), [Symbol.iterator]);
     }
-    assertDeepEq(Reflect.ownKeys(proto2), expectedKeys);
     assertEq(proto2[Symbol.iterator](), proto2);
 
     // Check there's a single %IteratorPrototype% object.

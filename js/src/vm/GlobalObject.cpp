@@ -109,7 +109,11 @@ JS_PUBLIC_API const JSClass* js::ProtoKeyToClass(JSProtoKey key) {
 }
 
 static bool IsIteratorHelpersEnabled() {
+#ifdef NIGHTLY_BUILD
   return JS::Prefs::experimental_iterator_helpers();
+#else
+  return false;
+#endif
 }
 
 static bool IsAsyncIteratorHelpersEnabled() {
