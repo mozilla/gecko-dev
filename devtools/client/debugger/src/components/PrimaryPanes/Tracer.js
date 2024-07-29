@@ -483,6 +483,9 @@ export class Tracer extends Component {
     // Normalize the computed indexes.
     // start can't be lower than zero
     startIndex = Math.max(0, startIndex);
+    // start can't be greater than the trace count
+    startIndex = Math.min(startIndex, this.props.traceCount - 1);
+
     if (endIndex != -1) {
       // end can't be lower than start + 1
       endIndex = Math.max(startIndex + 1, endIndex);
