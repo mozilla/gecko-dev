@@ -12,6 +12,7 @@
   const TAB_PREVIEW_PREF = "browser.tabs.hoverPreview.enabled";
 
   class MozTabbrowserTabs extends MozElements.TabsBase {
+    static observedAttributes = ["orient"];
     constructor() {
       super();
 
@@ -141,6 +142,19 @@
       );
       this.tooltip = "tabbrowser-tab-tooltip";
       this._previewPanel = null;
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+      if (name != "orient") {
+        return;
+      }
+
+      if (oldValue == "vertical" && newValue == "horizontal") {
+        this._resetVerticalPinnedTabs();
+      }
+      this._positionPinnedTabs();
+
+      super.attributeChangedCallback(name, oldValue, newValue);
     }
 
     on_TabSelect() {
@@ -1130,14 +1144,24 @@
       if (this._allTabs) {
         return this._allTabs;
       }
+      let verticalPinnedTabsContainer = document.getElementById(
+        "vertical-pinned-tabs-container"
+      );
       let children = Array.from(this.arrowScrollbox.children);
+      // remove arrowScrollbox periphery element
       children.pop();
-      this._allTabs = children;
-      return children;
+
+      let allChildren = [...verticalPinnedTabsContainer.children, ...children];
+      this._allTabs = allChildren;
+      return allChildren;
     }
 
     get previewPanel() {
       return this._previewPanel;
+    }
+
+    get verticalMode() {
+      return this.getAttribute("orient") == "vertical";
     }
 
     _getVisibleTabs() {
@@ -1173,7 +1197,8 @@
         // We have a container for non-tab elements at the end of the scrollbox.
         node = arrowScrollbox.lastChild;
       }
-      return arrowScrollbox.insertBefore(tab, node);
+
+      return node.before(tab);
     }
 
     set _tabMinWidth(val) {
@@ -1494,18 +1519,57 @@
       this._handleTabSelect(true);
     }
 
+    _updateVerticalPinnedTabs() {
+      // Move pinned tabs to another container when the tabstrip is toggled to vertical
+      // and when session restore code calls _positionPinnedTabs; update styling whenever
+      // the number of pinned tabs changes.
+      let verticalTabsContainer = document.getElementById(
+        "vertical-pinned-tabs-container"
+      );
+      let newTabButton = document.getElementById("newtab-button-container");
+      let numPinned = gBrowser._numPinnedTabs;
+
+      if (gBrowser._numPinnedTabs !== verticalTabsContainer.children.length) {
+        let tabs = this._getVisibleTabs();
+        for (let i = 0; i < numPinned; i++) {
+          tabs[i].style.marginInlineStart = "";
+          verticalTabsContainer.appendChild(tabs[i]);
+        }
+      }
+
+      newTabButton.toggleAttribute("showborder", gBrowser._numPinnedTabs !== 0);
+      this.style.removeProperty("--tab-overflow-pinned-tabs-width");
+    }
+
+    _resetVerticalPinnedTabs() {
+      let verticalTabsContainer = document.getElementById(
+        "vertical-pinned-tabs-container"
+      );
+
+      if (!verticalTabsContainer.children.length) {
+        return;
+      }
+      for (const child of Array.from(
+        verticalTabsContainer.children
+      ).reverse()) {
+        this.arrowScrollbox.prepend(child);
+      }
+    }
+
     _positionPinnedTabs() {
       let tabs = this._getVisibleTabs();
       let numPinned = gBrowser._numPinnedTabs;
-      let doPosition =
+      let absPositionHorizontalTabs =
         this.hasAttribute("overflow") &&
         tabs.length > numPinned &&
         numPinned > 0;
 
       this.toggleAttribute("haspinnedtabs", !!numPinned);
-      this.toggleAttribute("positionpinnedtabs", doPosition);
+      this.toggleAttribute("positionpinnedtabs", absPositionHorizontalTabs);
 
-      if (doPosition) {
+      if (this.verticalMode) {
+        this._updateVerticalPinnedTabs();
+      } else if (absPositionHorizontalTabs) {
         let layoutData = this._pinnedTabsLayoutCache;
         let uiDensity = document.documentElement.getAttribute("uidensity");
         if (!layoutData || layoutData.uiDensity != uiDensity) {

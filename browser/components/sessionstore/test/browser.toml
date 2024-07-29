@@ -245,6 +245,8 @@ skip-if = ["true"] #Bug 1455602
 
 ["browser_restore_tabless_window.js"]
 
+["browser_restore_verticalPinnedTabs.js"]
+
 ["browser_restored_window_features.js"]
 
 ["browser_revive_crashed_bg_tabs.js"]

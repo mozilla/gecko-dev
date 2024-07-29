@@ -12,12 +12,13 @@
   &[uidensity=touch] {
     --tab-min-height: 41px;
   }
-
+  --collapsed-tab-width: 40px;
   --inline-tab-padding: 8px;
   --tab-border-radius: 4px;
   --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
   --tab-loading-fill: #0A84FF;
+  --tab-hover-background-color: color-mix(in srgb, currentColor 11%, transparent);
   --tab-selected-textcolor: var(--toolbar-color);
   --tab-selected-bgcolor: var(--toolbar-bgcolor);
   --tab-selected-color-scheme: var(--toolbar-color-scheme);
@@ -579,7 +580,7 @@
 /* Selected tab and tab hover */
 
 .tabbrowser-tab:hover > .tab-stack > .tab-background:not([selected], [multiselected]) {
-  background-color: color-mix(in srgb, currentColor 11%, transparent);
+  background-color: var(--tab-hover-background-color);
   outline-color: var(--tab-hover-outline-color);
 }
 
@@ -639,14 +640,8 @@
   }
 }
 
-#tabbrowser-tabs[haspinnedtabs]:not([positionpinnedtabs]) > #tabbrowser-arrowscrollbox {
-  /* Add a gap between the last pinned tab and the first visible tab */
-  &:not([orient="vertical"]) > .tabbrowser-tab:nth-child(1 of :not([pinned], [hidden])) {
-    margin-inline-start: 12px;
-  }
-  &[orient="vertical"] > .tabbrowser-tab:nth-child(1 of :not([pinned], [hidden])) {
-    margin-block-start: 12px;
-  }
+#tabbrowser-tabs[haspinnedtabs]:not([positionpinnedtabs]):not([orient="vertical"]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab:nth-child(1 of :not([pinned], [hidden])) {
+  margin-inline-start: 12px;
 }
 
 .tab-label[attention]:not([selected]) {
@@ -746,6 +741,7 @@
   &::part(scrollbox) {
     scrollbar-width: thin;
     overflow-y: auto;
+    padding-inline-end: 0;
   }
 
   &[overflowing="true"]:not([scrolledtoend="true"]) {
@@ -757,24 +753,115 @@
   border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent);
 }
 
-#vertical-tabs {
-  overflow-y: hidden;
-  display: none;
+#vertical-tabs-newtab-button {
+  display: flex;
+  height: var(--tab-min-height);
+  border-radius: var(--border-radius-medium);
+  padding: 0 var(--space-small);
 
-  &[activated] {
-    display: flex;
+  &:hover {
+    background-color: var(--tab-hover-background-color);
+  }
+
+  > .toolbarbutton-text {
+    text-align: start;
+    padding-inline-start: var(--space-small);
   }
 }
 
 sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
-  /* TODO look into handlings this by setting --tab-min-width in tabs.js in bug 1899336. */
   min-width: inherit;
-  width: inherit;
+  width: var(--collapsed-tab-width);
 }
 
-sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tab-close-button,
-sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tab-close-button:not([selected]) {
+#newtab-button-container {
   display: none;
+}
+
+#vertical-tabs {
+  overflow: hidden;
+  display: none;
+
+  &[visible] {
+    display: flex;
+    /* make the scrollbars hug the side of the container */
+    margin-inline-end: -2px;
+  }
+}
+
+#vertical-pinned-tabs-container {
+  display: none;
+
+  .tab-label-container {
+    display: none;
+  }
+  .tab-background {
+    border-radius: var(--border-radius-medium);
+
+    &:not([selected], [multiselected]) {
+      background-color: color-mix(in srgb, currentColor 7%, transparent);
+    }
+  }
+}
+
+#tabbrowser-tabs[orient="vertical"] {
+  overflow: hidden;
+  display: grid;
+  align-content: flex-start;
+  grid-gap: var(--space-small);
+
+  .tab-close-button {
+    display: none;
+  }
+  .tab-content {
+    align-content: center;
+  }
+  .tab-background {
+    border-radius: var(--border-radius-medium);
+  }
+  #newtab-button-container {
+    display: flex;
+    border-top: 0;
+    margin-inline-end: var(--space-medium);
+    font-size: var(--urlbarView-small-font-size);
+    flex-direction: column;
+    padding-top: var(--space-small);
+
+    &[showborder] {
+      border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    }
+
+    sidebar-main:not([expanded]) & {
+      .toolbarbutton-text {
+        display: none;
+      }
+    }
+  }
+  #vertical-pinned-tabs-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--collapsed-tab-width), auto));
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    /* Fit slightly more than 5 tabs + padding before overflowing */
+    max-height: 244px;
+    column-gap: 4px;
+    padding-inline-end: var(--space-medium);
+  }
+}
+
+sidebar-main[expanded] #tabbrowser-tabs[orient="vertical"] #newtab-button-container {
+  border-top: 0;
+}
+
+sidebar-main:not([expanded]) {
+  .tab-label-container {
+    display: none;
+  }
+}
+
+sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] > #tabbrowser-arrowscrollbox > .tabbrowser-tab:is(:hover, [selected]) .tab-close-button {
+  display: flex;
 }
 
 /* Tab drag and drop */
@@ -844,11 +931,13 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 /* New tab button */
 
 #tabs-newtab-button,
+#vertical-tabs-newtab-button,
 #TabsToolbar #new-tab-button {
   list-style-image: url(chrome://global/skin/icons/plus.svg);
 }
 
 #tabbrowser-tabs[hasadjacentnewtabbutton]:not([overflow]) ~ #new-tab-button,
+#tabbrowser-tabs[orient="vertical"] > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
 #tabbrowser-tabs[overflow] > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
 #tabbrowser-tabs:not([hasadjacentnewtabbutton]) > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
 #TabsToolbar[customizing] #tabs-newtab-button {

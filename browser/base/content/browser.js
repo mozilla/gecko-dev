@@ -5002,6 +5002,7 @@ const nodeToTooltipMap = {
   "appMenu-zoomReduce-button2": "zoomReduce-button.tooltip",
   "reader-mode-button": "reader-mode-button.tooltip",
   "reader-mode-button-icon": "reader-mode-button.tooltip",
+  "vertical-tabs-newtab-button": "newTabButton.tooltip",
 };
 const nodeToShortcutMap = {
   "bookmarks-menu-button": "manBookmarkKb",
@@ -5021,6 +5022,7 @@ const nodeToShortcutMap = {
   "appMenu-zoomReduce-button2": "key_fullZoomReduce",
   "reader-mode-button": "key_toggleReaderMode",
   "reader-mode-button-icon": "key_toggleReaderMode",
+  "vertical-tabs-newtab-button": "key_newNavigatorTab",
 };
 
 const gDynamicTooltipCache = new Map();

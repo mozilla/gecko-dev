@@ -246,7 +246,11 @@ var SidebarController = {
     this._switcherPanel = document.getElementById("sidebarMenu-popup");
     this._switcherTarget = document.getElementById("sidebar-switcher-target");
     this._switcherArrow = document.getElementById("sidebar-switcher-arrow");
+    let newTabButton = document.getElementById("vertical-tabs-newtab-button");
 
+    newTabButton.addEventListener("command", event => {
+      BrowserCommands.openTab({ event });
+    });
     if (
       Services.prefs.getBoolPref(
         "browser.tabs.allow_transparent_browser",
@@ -1198,12 +1202,10 @@ var SidebarController = {
     if (this.sidebarVerticalTabsEnabled) {
       arrowScrollbox.setAttribute("orient", "vertical");
       tabStrip.setAttribute("orient", "vertical");
-      tabStrip.removeAttribute("overflow");
-      tabStrip._positionPinnedTabs();
       verticalTabs.append(tabStrip);
     } else {
       arrowScrollbox.setAttribute("orient", "horizontal");
-      tabStrip.removeAttribute("orient");
+      tabStrip.setAttribute("orient", "horizontal");
 
       // make sure we put the tabstrip back in its original position in the TabsToolbar
       if (tabstripPlacement < tabsToolbarWidgets.length) {
@@ -1219,7 +1221,7 @@ var SidebarController = {
           .append(tabStrip);
       }
     }
-    verticalTabs.toggleAttribute("activated", this.sidebarVerticalTabsEnabled);
+    verticalTabs.toggleAttribute("visible", this.sidebarVerticalTabsEnabled);
   },
 };
 

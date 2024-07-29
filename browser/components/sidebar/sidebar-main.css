@@ -4,13 +4,14 @@
 
 .wrapper {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto min-content min-content;
   box-sizing: border-box;
   height: 100%;
   min-width: 50px;
-  padding-inline-start: var(--space-medium);
+  padding: var(--space-small);
+  padding-inline-end: 0;
   border-inline-end: 1px solid var(--chrome-content-separator-color);
-  background-color: var(--sidebar-background-color);
+  background-color: var(--toolbar-bgcolor);
   color: var(--sidebar-text-color);
   :host([positionend]) & {
     border-inline-start: 1px solid var(--chrome-content-separator-color);
@@ -21,8 +22,8 @@
 .actions-list {
   display: flex;
   flex-direction: column;
-  justify-content: end;
-  gap: var(--space-xsmall);
+  justify-content: center;
+  padding-inline-start: var(--space-xsmall);
 }
 
 .expanded-button {
@@ -33,4 +34,12 @@
     font-weight: var(--font-weight);
     justify-content: flex-start;
   }
+}
+
+.tools-and-extensions {
+  align-self: start;
+}
+
+.bottom-actions {
+  align-self: end;
 }
