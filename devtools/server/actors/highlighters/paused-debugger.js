@@ -15,13 +15,6 @@ loader.lazyGetter(this, "PausedReasonsBundle", () => {
   );
 });
 
-loader.lazyRequireGetter(
-  this,
-  "DEBUGGER_PAUSED_REASONS_L10N_MAPPING",
-  "resource://devtools/shared/constants.js",
-  true
-);
-
 /**
  * The PausedDebuggerOverlay is a class that displays a semi-transparent mask on top of
  * the whole page and a toolbar at the top of the page.
@@ -82,6 +75,7 @@ class PausedDebuggerOverlay {
         id: "reason",
         class: "reason",
       },
+      text: PausedReasonsBundle.formatValueSync("whypaused-other"),
       prefix,
     });
 
@@ -227,11 +221,6 @@ class PausedDebuggerOverlay {
 
     // Set the text to appear in the toolbar.
     const toolbar = this.getElement("toolbar");
-    this.getElement("reason").setTextContent(
-      PausedReasonsBundle.formatValueSync(
-        DEBUGGER_PAUSED_REASONS_L10N_MAPPING[reason]
-      )
-    );
     toolbar.removeAttribute("hidden");
 
     // When the debugger pauses execution in a page, events will not be delivered

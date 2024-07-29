@@ -80,6 +80,7 @@ whypaused-assert = Paused on assertion
 # currently paused on a debugger statement
 whypaused-debug-command = Paused on debugged function
 
-# The text that is displayed in a info block explaining how the debugger is
-# currently paused on an event listener breakpoint set
+# The text that is displayed in a info block saying that the debugger is currently paused
+# without other precision. This is also used in the overlay we show in the page when
+# the page is paused.
 whypaused-other = Debugger paused

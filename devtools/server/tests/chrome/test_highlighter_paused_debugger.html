@@ -60,7 +60,7 @@ window.onload = async function() {
   ok(isOverlayShown(), "The overlay is shown");
   is(
     getReason(),
-    "Paused on breakpoint",
+    "Debugger paused",
     "The reason displayed in the toolbar is correct"
   );
 
@@ -68,7 +68,7 @@ window.onload = async function() {
   didShow = highlighter.show("debuggerStatement");
   ok(didShow, "Calling show returned true too");
   ok(!isHidden("root"), "The highlighter is still shown");
-  is(getReason(), "Paused on debugger statement",
+  is(getReason(), "Debugger paused",
      "The reason displayed in the toolbar is correct again");
   ok(isOverlayShown(), "The overlay is still shown too");
 
