@@ -245,7 +245,6 @@ export var RemoteSecuritySettings = {
     this.IntermediatePreloadsClient = new IntermediatePreloads();
 
     this.CRLiteFiltersClient = new CRLiteFilters();
-    this.CRLiteFiltersClient.cleanAttachmentCache();
 
     return this;
   },
@@ -537,38 +536,6 @@ class CRLiteFilters {
         undefined, // do not touch collection timestamp.
         toReset.map(r => ({ ...r, loaded_into_cert_storage: false }))
       );
-    }
-  }
-
-  async cleanAttachmentCache() {
-    // Bug 1795710 - misuse of Remote Settings `downloadToDisk` caused us to
-    // keep filters and stashes on disk indefinitely. We're no longer caching
-    // these downloads, so if there are any filters still in the cache they can
-    // be removed.
-    let cachePath = PathUtils.join(
-      PathUtils.localProfileDir,
-      ...this.client.attachments.folders
-    );
-
-    try {
-      let needCleanup = await IOUtils.exists(cachePath);
-      if (needCleanup) {
-        let cacheFiles = await IOUtils.getChildren(cachePath);
-        let staleFilters = cacheFiles.filter(
-          path => path.endsWith("filter") || path.endsWith("filter.stash")
-        );
-        if (cacheFiles.length == staleFilters.length) {
-          // Expected case. No files other than filters, we can remove the
-          // entire directory
-          await IOUtils.remove(cachePath, { recursive: true });
-        } else {
-          for (let filter of staleFilters) {
-            await IOUtils.remove(filter);
-          }
-        }
-      }
-    } catch (e) {
-      lazy.log.error("Could not clean cert-revocations attachment cache", e);
     }
   }
 
