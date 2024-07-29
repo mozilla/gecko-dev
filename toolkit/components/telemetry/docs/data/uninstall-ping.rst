@@ -2,7 +2,7 @@
 "uninstall" ping
 ================
 
-This opt-out ping is sent from the Windows uninstaller when the uninstall finishes. Notably it includes ``clientId`` and the :doc:`Telemetry Environment <environment>`. It follows the :doc:`common ping format <common-ping>`.
+This opt-out ping is sent from the Windows uninstaller when the uninstall finishes. Notably it includes ``clientId``, ``profileGroupId`` and the :doc:`Telemetry Environment <environment>`. It follows the :doc:`common ping format <common-ping>`.
 
 Structure:
 
@@ -12,6 +12,7 @@ Structure:
       type: "uninstall",
       ... common ping data
       clientId: <UUID>,
+      profileGroupId: <UUID>,
       environment: { ... },
       payload: {
         otherInstalls: <integer>, // Optional, number of other installs on the system, max 11.

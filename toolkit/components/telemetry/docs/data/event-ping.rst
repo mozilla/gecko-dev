@@ -4,7 +4,7 @@
 
 This ping transmits :ref:`Telemetry Event <eventtelemetry>` records.
 
-The client id is submitted with this ping.
+The client id and profile group id are submitted with this ping.
 The :doc:`Telemetry Environment <../data/environment>` is submitted in this ping.
 
 .. code-block:: js
@@ -13,6 +13,7 @@ The :doc:`Telemetry Environment <../data/environment>` is submitted in this ping
       "type": "event",
       ... common ping data
       "clientId": <UUID>,
+      "profileGroupId": <UUID>,
       "environment": { ... },
       "payload": {
         "reason": {periodic, max, shutdown}, // Why the ping was submitted

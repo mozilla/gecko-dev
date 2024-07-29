@@ -13,7 +13,7 @@ The ping will also report the "surveyId", "surveyVersion" and "testing"
 Heartbeat survey parameters (if they are present in the survey config).
 These "meta fields" will be repeated verbatim in the payload section.
 
-The environment block and client ID are submitted with this ping.
+The environment block, client ID and profile group ID are submitted with this ping.
 
 Structure:
 
@@ -23,6 +23,7 @@ Structure:
       type: "heartbeat",
       version: 4,
       clientId: <UUID>,
+      profileGroupId: <UUID>,
       environment: { /* ... */ }
       // ... common ping data
       payload: {

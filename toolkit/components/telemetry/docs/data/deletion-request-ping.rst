@@ -6,7 +6,7 @@ This ping is submitted when a user opts out of sending technical and interaction
 ``datareporting.healthreport.uploadEnabled``
 :doc:`preference <../internals/preferences>` is set to ``false``.)
 
-This ping contains the client id.
+This ping contains the client id and profile group id.
 This ping does not contain any environment data.
 
 This ping is intended to communicate to the Data Pipeline that the user wishes
@@ -23,7 +23,7 @@ Structure:
     {
       version: 4,
       type: "deletion-request",
-      ... common ping data (including clientId)
+      ... common ping data (including clientId and profileGroupId)
       payload: {
         scalars: {
           <process-type>: { // like "parent" or "content"

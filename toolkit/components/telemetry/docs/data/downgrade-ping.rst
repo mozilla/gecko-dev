@@ -8,8 +8,8 @@ with a newer version of the application.
 This ping is submitted directly through the ```pingsender```. The common ping
 data relates to the profile and application that the user attempted to use.
 
-The client ID is submitted with this ping. No environment block is included with
-this ping.
+The client ID and profile group ID are submitted with this ping. No environment block is
+included with this ping.
 
 Structure:
 
@@ -19,6 +19,7 @@ Structure:
       type: "downgrade",
       ... common ping data
       clientId: <UUID>,
+      profileGroupId: <UUID>,
       payload: {
         lastVersion: "", // The last version of the application that ran this profile
         hasSync: <bool>, // Whether the profile is signed in to sync

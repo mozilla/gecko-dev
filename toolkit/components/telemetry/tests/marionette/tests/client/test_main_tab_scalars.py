@@ -46,6 +46,7 @@ class TestMainTabScalars(TelemetryTestCase):
 
         self.assertEqual(ping["type"], "main")
         self.assertEqual(ping["clientId"], self.client_id)
+        self.assertEqual(ping["profileGroupId"], self.profile_group_id)
 
         scalars = ping["payload"]["processes"]["parent"]["scalars"]
 

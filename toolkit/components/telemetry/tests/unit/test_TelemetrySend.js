@@ -9,6 +9,9 @@
 const { TelemetryController } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryController.sys.mjs"
 );
+const { ClientID } = ChromeUtils.importESModule(
+  "resource://gre/modules/ClientID.sys.mjs"
+);
 const { MockRegistrar } = ChromeUtils.importESModule(
   "resource://testing-common/MockRegistrar.sys.mjs"
 );
@@ -1030,13 +1033,19 @@ add_task(async function test_pref_observer() {
   }
   Services.prefs.setBoolPref(TelemetryUtils.Preferences.FhrUploadEnabled, true);
 
-  function waitAnnotateCrashReport(expectedValue, trigger) {
+  function waitAnnotateCrashReport(expectedAnyValue, trigger) {
     return new Promise(function (resolve, reject) {
-      let keys = new Set(["TelemetryClientId", "TelemetryServerURL"]);
+      let keys = new Map([
+        ["TelemetryClientId", ClientID.getCachedClientID()],
+        ["TelemetryProfileGroupId", ClientID.getCachedProfileGroupID()],
+        ["TelemetryServerURL", "http://localhost:" + PingServer.port],
+      ]);
 
       let crs = {
         QueryInterface: ChromeUtils.generateQI(["nsICrashReporter"]),
         annotateCrashReport(key, value) {
+          let expectedValue = expectedAnyValue ? keys.get(key) : "";
+
           if (!keys.delete(key)) {
             MockRegistrar.unregister(gMockCrs);
             reject(
@@ -1044,9 +1053,13 @@ add_task(async function test_pref_observer() {
             );
           }
 
-          if (expectedValue && value == "") {
+          if (value != expectedValue) {
             MockRegistrar.unregister(gMockCrs);
-            reject(Error("Crash report annotation without expected value."));
+            reject(
+              Error(
+                `Expected ${key} annotation to be ${expectedValue} but was ${value}.`
+              )
+            );
           }
 
           if (keys.size == 0) {

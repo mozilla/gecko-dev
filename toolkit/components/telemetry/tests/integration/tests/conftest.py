@@ -136,6 +136,18 @@ class Browser(object):
             """
             )
 
+    def get_profile_group_id(self):
+        """Return the group ID of the current client."""
+        with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
+            return self.marionette.execute_script(
+                """\
+                const { ClientID } = ChromeUtils.importESModule(
+                  "resource://gre/modules/ClientID.sys.mjs"
+                );
+                return ClientID.getCachedProfileGroupID();
+            """
+            )
+
     def get_default_search_engine(self):
         """Retrieve the identifier of the default search engine.
 

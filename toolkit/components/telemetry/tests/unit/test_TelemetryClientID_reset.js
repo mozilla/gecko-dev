@@ -64,8 +64,10 @@ add_task(async function test_clientid_reset_after_reenabling() {
   let ping = await PingServer.promiseNextPing();
   Assert.equal(ping.type, TEST_PING_TYPE, "The ping must be a test ping");
   Assert.ok("clientId" in ping);
+  Assert.ok("profileGroupId" in ping);
 
   let firstClientId = ping.clientId;
+  let firstProfileGroupId = ping.profileGroupId;
   Assert.notEqual(
     TelemetryUtils.knownClientID,
     firstClientId,
@@ -85,8 +87,15 @@ add_task(async function test_clientid_reset_after_reenabling() {
     "The ping must be a deletion-request ping"
   );
   Assert.equal(ping.clientId, firstClientId);
+  Assert.equal(ping.profileGroupId, firstProfileGroupId);
   let clientId = await ClientID.getClientID();
   Assert.equal(TelemetryUtils.knownClientID, clientId);
+  let profileGroupId = await ClientID.getProfileGroupID();
+  Assert.equal(
+    firstProfileGroupId,
+    profileGroupId,
+    "The profile group ID should not have been reset."
+  );
 
   // Now shutdown the instance
   await TelemetryController.testShutdown();
@@ -108,6 +117,12 @@ add_task(async function test_clientid_reset_after_reenabling() {
     firstClientId,
     newClientId,
     "Client ID should be newly generated"
+  );
+  let newProfileGroupId = await ClientID.getProfileGroupID();
+  Assert.equal(
+    firstProfileGroupId,
+    newProfileGroupId,
+    "The profile group ID should not have been reset."
   );
 });
 
@@ -131,8 +146,10 @@ add_task(async function test_clientid_canary_after_disabling() {
   let ping = await PingServer.promiseNextPing();
   Assert.equal(ping.type, TEST_PING_TYPE, "The ping must be a test ping");
   Assert.ok("clientId" in ping);
+  Assert.ok("profileGroupId" in ping);
 
   let firstClientId = ping.clientId;
+  let firstProfileGroupId = ping.profileGroupId;
   Assert.notEqual(
     TelemetryUtils.knownClientID,
     firstClientId,
@@ -152,8 +169,15 @@ add_task(async function test_clientid_canary_after_disabling() {
     "The ping must be a deletion-request ping"
   );
   Assert.equal(ping.clientId, firstClientId);
+  Assert.equal(ping.profileGroupId, firstProfileGroupId);
   let clientId = await ClientID.getClientID();
   Assert.equal(TelemetryUtils.knownClientID, clientId);
+  let profileGroupId = await ClientID.getProfileGroupID();
+  Assert.equal(
+    firstProfileGroupId,
+    profileGroupId,
+    "Profile group ID should not have been reset"
+  );
 
   Services.prefs.setBoolPref(TelemetryUtils.Preferences.FhrUploadEnabled, true);
   await sendPing();
@@ -163,6 +187,11 @@ add_task(async function test_clientid_canary_after_disabling() {
     firstClientId,
     ping.clientId,
     "Client ID should be newly generated"
+  );
+  Assert.equal(
+    firstProfileGroupId,
+    ping.profileGroupId,
+    "Profile group ID should not have been reset"
   );
 
   // Now shutdown the instance
@@ -183,6 +212,12 @@ add_task(async function test_clientid_canary_after_disabling() {
     TelemetryUtils.knownClientID,
     newClientId,
     "Client ID should be a canary when upload disabled"
+  );
+  let newProfileGroupId = await ClientID.getProfileGroupID();
+  Assert.equal(
+    firstProfileGroupId,
+    newProfileGroupId,
+    "Profile group ID should not have been reset"
   );
 });
 

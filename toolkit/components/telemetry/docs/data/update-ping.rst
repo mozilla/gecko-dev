@@ -12,6 +12,7 @@ Structure:
       type: "update",
       ... common ping data
       clientId: <UUID>,
+      profileGroupId: <UUID>,
       environment: { ... },
       payload: {
         reason: <string>, // "ready", "success"

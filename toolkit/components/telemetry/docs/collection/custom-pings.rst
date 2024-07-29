@@ -13,7 +13,7 @@ Custom pings can be submitted from JavaScript using:
 - ``type`` - a ``string`` that is the type of the ping, limited to ``/^[a-z0-9][a-z0-9-]+[a-z0-9]$/i``.
 - ``payload`` - the actual payload data for the ping, has to be a JSON style object.
 - ``options`` - optional, an object containing additional options:
-   - ``addClientId``- whether to add the client id to the ping, defaults to ``false``
+   - ``addClientId``- whether to add the client id and profile group id to the ping, defaults to ``false``
    - ``addEnvironment`` - whether to add the environment data to the ping, defaults to ``false``
    - ``overrideEnvironment`` - a JSON style object that overrides the environment data
 
