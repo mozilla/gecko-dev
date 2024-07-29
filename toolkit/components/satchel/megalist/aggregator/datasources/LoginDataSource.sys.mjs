@@ -37,6 +37,7 @@ const ALERT_VALUES = {
  * similar lines will differ in values only.
  */
 export class LoginDataSource extends DataSourceBase {
+  doneReloadDataSource;
   #originPrototype;
   #usernamePrototype;
   #passwordPrototype;
@@ -550,9 +551,11 @@ export class LoginDataSource extends DataSourceBase {
    * removes lines for the removed logins.
    */
   async #reloadDataSource() {
+    this.doneReloadDataSource = false;
     this.#enabled = Services.prefs.getBoolPref("signon.rememberSignons");
     if (!this.#enabled) {
       this.#reloadEmptyDataSource();
+      this.doneReloadDataSource = true;
       return;
     }
 
@@ -611,6 +614,7 @@ export class LoginDataSource extends DataSourceBase {
     });
     this.#header.value.alerts = alertsAcc;
     this.afterReloadingDataSource();
+    this.doneReloadDataSource = true;
   }
 
   #reloadEmptyDataSource() {

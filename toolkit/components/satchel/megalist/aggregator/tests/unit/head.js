@@ -16,6 +16,10 @@ const { LoginTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/LoginTestUtils.sys.mjs"
 );
 
+const { TestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
+);
+
 const testData = LoginTestUtils.testData;
 
 function mockReloadData(dataSource, lines, linePrototype) {
