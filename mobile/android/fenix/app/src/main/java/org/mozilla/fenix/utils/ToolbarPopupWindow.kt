@@ -6,9 +6,11 @@ package org.mozilla.fenix.utils
 
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import androidx.annotation.VisibleForTesting
@@ -31,14 +33,25 @@ import java.lang.ref.WeakReference
  * As such it is important that we do not read it prematurely and only when the user trigger a paste action.
  */
 object ToolbarPopupWindow {
+    /**
+     * Show a contextual menu with text/URL related options.
+     *
+     * @param toolbarLayout Toolbar layout to anchor the popup window to.
+     * @param snackbarParent Parent view to in which to show a snackbar.
+     * @param customTabId ID of the custom tab, if this will be shown for a custom tab.
+     * @param handlePasteAndGo Callback to handle the paste and go action.
+     * @param handlePaste Callback to handle the paste action.
+     * @param copyVisible Whether the copy option should be visible.
+     */
     fun show(
-        view: WeakReference<View>,
+        toolbarLayout: WeakReference<View>,
+        snackbarParent: WeakReference<ViewGroup>,
         customTabId: String? = null,
         handlePasteAndGo: (String) -> Unit,
         handlePaste: (String) -> Unit,
         copyVisible: Boolean = true,
     ) {
-        val context = view.get()?.context ?: return
+        val context = toolbarLayout.get()?.context ?: return
         val isCustomTabSession = customTabId != null
         val clipboard = context.components.clipboardHandler
 
@@ -73,14 +86,19 @@ object ToolbarPopupWindow {
                     customTabId,
                 )
 
-                view.get()?.let { toolbarView ->
-                    FenixSnackbar.make(
-                        view = toolbarView,
-                        duration = Snackbar.LENGTH_SHORT,
-                        isDisplayedWithBrowserToolbar = true,
-                    )
-                        .setText(context.getString(R.string.browser_toolbar_url_copied_to_clipboard_snackbar))
-                        .show()
+                // Android 13+ shows by default a popup for copied text.
+                // Avoid overlapping popups informing the user when the URL is copied to the clipboard.
+                // and only show our snackbar when Android will not show an indication by default.                 *
+                // See https://developer.android.com/develop/ui/views/touch-and-input/copy-paste#duplicate-notifications).
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+                    snackbarParent.get()?.let { snackbarParent ->
+                        FenixSnackbar.make(
+                            view = snackbarParent,
+                            duration = Snackbar.LENGTH_SHORT,
+                        )
+                            .setText(context.getString(R.string.browser_toolbar_url_copied_to_clipboard_snackbar))
+                            .show()
+                    }
                 }
                 Events.copyUrlTapped.record(NoExtras())
             }
@@ -104,7 +122,7 @@ object ToolbarPopupWindow {
             }
         }
 
-        view.get()?.let {
+        toolbarLayout.get()?.let {
             popupWindow.showAsDropDown(
                 it,
                 context.resources.getDimensionPixelSize(R.dimen.context_menu_x_offset),

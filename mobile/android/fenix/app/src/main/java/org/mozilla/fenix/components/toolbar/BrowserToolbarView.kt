@@ -44,6 +44,7 @@ import mozilla.components.ui.widgets.behavior.ViewPosition as MozacToolbarPositi
 class BrowserToolbarView(
     private val context: Context,
     container: ViewGroup,
+    private val snackbarParent: ViewGroup,
     private val settings: Settings,
     private val interactor: BrowserToolbarInteractor,
     private val customTabSession: CustomTabSessionState?,
@@ -91,6 +92,7 @@ class BrowserToolbarView(
         view.display.setOnUrlLongClickListener {
             ToolbarPopupWindow.show(
                 WeakReference(view),
+                WeakReference(snackbarParent),
                 customTabSession?.id,
                 interactor::onBrowserToolbarPasteAndGo,
                 interactor::onBrowserToolbarPaste,

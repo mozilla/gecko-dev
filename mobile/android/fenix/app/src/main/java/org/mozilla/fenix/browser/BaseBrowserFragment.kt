@@ -541,6 +541,7 @@ abstract class BaseBrowserFragment :
         _browserToolbarView = BrowserToolbarView(
             context = context,
             container = binding.browserLayout,
+            snackbarParent = binding.dynamicSnackbarContainer,
             settings = context.settings(),
             interactor = browserToolbarInteractor,
             customTabSession = customTabSessionId?.let { store.state.findCustomTab(it) },

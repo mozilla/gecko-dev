@@ -70,6 +70,7 @@ class ToolbarView(
         binding.toolbarWrapper.setOnLongClickListener {
             ToolbarPopupWindow.show(
                 WeakReference(it),
+                WeakReference(binding.dynamicSnackbarContainer),
                 handlePasteAndGo = interactor::onPasteAndGo,
                 handlePaste = interactor::onPaste,
                 copyVisible = false,
