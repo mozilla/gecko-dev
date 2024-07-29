@@ -142,6 +142,14 @@ extern JS_PUBLIC_API JS::Realm* EnterRealm(JSContext* cx, JSObject* target);
 
 extern JS_PUBLIC_API void LeaveRealm(JSContext* cx, JS::Realm* oldRealm);
 
+/**
+ * Reset the seed for Math.random() within the current realm.
+ *
+ * Enables embedders to reset the seed at controlled points, e.g. after
+ * resuming execution from an instance snapshot of SpiderMonkey's VM.
+ */
+extern JS_PUBLIC_API void ResetRealmMathRandomSeed(JSContext* cx);
+
 }  // namespace JS
 
 /*

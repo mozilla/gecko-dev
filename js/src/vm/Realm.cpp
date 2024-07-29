@@ -6,6 +6,7 @@
 
 #include "js/shadow/Realm.h"  // JS::shadow::Realm
 #include "vm/Realm-inl.h"
+#include "jsmath.h"
 
 #include "mozilla/MemoryReporting.h"
 
@@ -763,4 +764,12 @@ JS_PUBLIC_API Realm* JS::GetFunctionRealm(JSContext* cx, HandleObject objArg) {
     // Step 5.
     return cx->realm();
   }
+}
+
+JS_PUBLIC_API void JS::ResetRealmMathRandomSeed(JSContext* cx) {
+  MOZ_ASSERT(cx->realm());
+  auto rng = cx->realm()->getOrCreateRandomNumberGenerator();
+  mozilla::Array<uint64_t, 2> seed;
+  GenerateXorShift128PlusSeed(seed);
+  rng.setState(seed[0], seed[1]);
 }
