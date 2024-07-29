@@ -678,6 +678,9 @@ export const storybookTables = {
   "icon-size": [
     { value: "var(--size-item-small)", name: "--icon-size-default" },
   ],
+  "input-space": [
+    { value: "var(--space-xsmall)", name: "--input-space-block" },
+  ],
   link: [
     {
       value: {
@@ -1122,6 +1125,7 @@ export const variableLookupTable = {
   },
   "icon-size-default": "var(--size-item-small)",
   "input-text-min-height": "var(--button-min-height)",
+  "input-space-block": "var(--space-xsmall)",
   "link-color": {
     prefersContrast: "LinkText",
     brand: { default: "var(--color-accent-primary)" },

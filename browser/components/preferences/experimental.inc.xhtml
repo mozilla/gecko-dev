@@ -34,9 +34,13 @@
 
 <html:template id="template-genai-chat">
     <html:div>
-        <label class="indent"
+        <label id="genai-chat-label"
+               class="indent"
                control="genai-chat-provider"
                data-l10n-id="genai-settings-chat-choose"/>
+        <description class="featureGateDescription indent tip-caption"
+            data-l10n-id="genai-settings-chat-links"
+            id="genai-chat-links"/>
         <menulist aria-describedby="genai-chat-links"
                   class="indent"
                   id="genai-chat-provider"
@@ -46,8 +50,5 @@
                           value=""/>
             </menupopup>
         </menulist>
-        <description class="featureGateDescription indent tip-caption"
-                    data-l10n-id="genai-settings-chat-links"
-                    id="genai-chat-links"/>
     </html:div>
 </html:template>

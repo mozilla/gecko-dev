@@ -1214,6 +1214,12 @@ richlistitem .text-link:hover {
   white-space: pre-wrap;
 }
 
+#genai-chat-label,
+#genai-chat-provider,
+#genai-chat-links {
+  margin-block: 0 var(--input-space-block);
+}
+
 #genai-chat-provider {
   width: min-content;
   min-width: 20em;

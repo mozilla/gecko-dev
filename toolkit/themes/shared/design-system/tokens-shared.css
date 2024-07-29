@@ -148,6 +148,9 @@
     /** Input - Text **/
     --input-text-min-height: var(--button-min-height);
 
+    /** Input - Space **/
+    --input-space-block: var(--space-xsmall);
+
     /** Link **/
     /**
      * Not using --force-outline-offset for links because that's intended for
