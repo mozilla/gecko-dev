@@ -1521,8 +1521,8 @@ TEST_F(TurnPortTest, TestChannelBindGetErrorResponse) {
   // TODO(deadbeef): SetEntryChannelId should not be a public method.
   // Instead we should set an option on the fake TURN server to force it to
   // send a channel bind errors.
-  ASSERT_TRUE(
-      turn_port_->SetEntryChannelId(udp_port_->Candidates()[0].address(), -1));
+  ASSERT_TRUE(turn_port_->SetEntryChannelId(
+      udp_port_->Candidates()[0].address(), /*channel_id=*/1));
 
   std::string data = "ABC";
   conn1->Send(data.data(), data.length(), options);
