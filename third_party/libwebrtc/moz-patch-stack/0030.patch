@@ -206,7 +206,7 @@ index 7328df134a..c8bda37ad6 100644
      } else {
        deps += [
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index b0f95ebcf8..e208ac4831 100644
+index 283d105163..89faaaa63f 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -40,6 +40,9 @@ rtc_source_set("enable_media") {
@@ -450,7 +450,7 @@ index bb30cf6908..7f0ab8faf0 100644
  rtc_library("default_task_queue_factory") {
    visibility = [ "*" ]
 diff --git a/api/transport/BUILD.gn b/api/transport/BUILD.gn
-index 8a64411ad1..c27dae5d81 100644
+index 87585782fd..3d47482354 100644
 --- a/api/transport/BUILD.gn
 +++ b/api/transport/BUILD.gn
 @@ -103,6 +103,7 @@ rtc_source_set("sctp_transport_factory_interface") {
@@ -1050,7 +1050,7 @@ index 59df8fe4f3..cea43c5c2e 100644
          "/config/external/nspr",
          "/nsprpub/lib/ds",
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index ad98f6e3ce..ede4ee6c53 100644
+index 811256a88b..9af3d47dd9 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -334,6 +334,7 @@ rtc_library("sample_counter") {
@@ -1197,15 +1197,15 @@ index ad98f6e3ce..ede4ee6c53 100644
  
  rtc_source_set("ssl_header") {
    visibility = [ "*" ]
-@@ -1510,6 +1532,7 @@ rtc_source_set("digest") {
+@@ -1532,6 +1554,7 @@ rtc_library("crypto_random") {
  }
  
  rtc_library("ssl") {
 +if (!build_with_mozilla) {
    visibility = [ "*" ]
    sources = [
-     "helpers.cc",
-@@ -1594,6 +1617,7 @@ rtc_library("ssl") {
+     "helpers.h",
+@@ -1616,6 +1639,7 @@ rtc_library("ssl") {
      deps += [ ":win32" ]
    }
  }
@@ -1213,7 +1213,7 @@ index ad98f6e3ce..ede4ee6c53 100644
  
  rtc_library("ssl_adapter") {
    visibility = [ "*" ]
-@@ -2200,7 +2224,7 @@ if (rtc_include_tests) {
+@@ -2224,7 +2248,7 @@ if (rtc_include_tests) {
    }
  }
  
@@ -1236,7 +1236,7 @@ index eef2754883..90f746e594 100644
      deps += [
        "..:logging",
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index 0ba8e1fc67..4eb297b6d1 100644
+index dd003f0e40..57b1c2be44 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -231,6 +231,7 @@ rtc_library("audio_test_common") {

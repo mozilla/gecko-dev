@@ -8,13 +8,14 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "rtc_base/helpers.h"
+#include "rtc_base/crypto_random.h"
 
 #include <openssl/rand.h>
 
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <utility>
 
 #include "absl/strings/string_view.h"
 #include "rtc_base/checks.h"

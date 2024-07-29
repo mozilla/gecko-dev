@@ -1448,7 +1448,7 @@ if (!build_with_mozilla) {
     "unique_id_generator.h",
   ]
   deps = [
-    ":ssl",
+    ":crypto_random",
     ":stringutils",
     "../api:array_view",
     "../api:sequence_checker",
@@ -1541,11 +1541,32 @@ rtc_source_set("digest") {
   }
 }
 
+rtc_library("crypto_random") {
+  visibility = [ "*" ]
+  sources = [
+    "crypto_random.cc",
+    "crypto_random.h",
+  ]
+  deps = [
+    ":checks",
+    ":logging",
+    "synchronization:mutex",
+    "system:rtc_export",
+    "//third_party/abseil-cpp/absl/strings:string_view",
+  ]
+
+  # If we are building the SSL library ourselves, we know it's BoringSSL.
+  if (rtc_build_ssl) {
+    deps += [ "//third_party/boringssl" ]
+  } else {
+    configs += [ ":external_ssl_library" ]
+  }
+}
+
 rtc_library("ssl") {
 if (!build_with_mozilla) {
   visibility = [ "*" ]
   sources = [
-    "helpers.cc",
     "helpers.h",
     "openssl_key_pair.cc",
     "openssl_key_pair.h",
@@ -1566,6 +1587,7 @@ if (!build_with_mozilla) {
     ":buffer",
     ":checks",
     ":copy_on_write_buffer",
+    ":crypto_random",
     ":digest",
     ":logging",
     ":macromagic",
@@ -1980,6 +2002,7 @@ if (rtc_include_tests) {
         ":checks",
         ":copy_on_write_buffer",
         ":criticalsection",
+        ":crypto_random",
         ":divide_round",
         ":event_tracer",
         ":frequency_tracker",
@@ -2124,9 +2147,9 @@ if (rtc_include_tests) {
 
       sources = [
         "crc32_unittest.cc",
+        "crypto_random_unittest.cc",
         "data_rate_limiter_unittest.cc",
         "fake_clock_unittest.cc",
-        "helpers_unittest.cc",
         "ip_address_unittest.cc",
         "memory_usage_unittest.cc",
         "message_digest_unittest.cc",
@@ -2149,6 +2172,7 @@ if (rtc_include_tests) {
         ":buffer_queue",
         ":checks",
         ":crc32",
+        ":crypto_random",
         ":data_rate_limiter",
         ":digest",
         ":gunit_helpers",
