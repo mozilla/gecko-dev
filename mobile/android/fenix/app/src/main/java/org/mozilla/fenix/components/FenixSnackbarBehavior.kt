@@ -32,6 +32,7 @@ class FenixSnackbarBehavior<V : View>(
         R.id.startDownloadDialogContainer,
         R.id.viewDynamicDownloadDialog,
         R.id.toolbar_navbar_container,
+        R.id.toolbarLayout, // old homescreen address bar is still used in tests
         R.id.toolbar,
     )
 
