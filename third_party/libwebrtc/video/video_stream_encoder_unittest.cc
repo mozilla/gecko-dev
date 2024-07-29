@@ -152,7 +152,7 @@ class TestBuffer : public webrtc::I420Buffer {
       : I420Buffer(width, height), event_(event) {}
 
  private:
-  friend class rtc::RefCountedObject<TestBuffer>;
+  friend class RefCountedObject<TestBuffer>;
   ~TestBuffer() override {
     if (event_)
       event_->Set();
@@ -184,7 +184,7 @@ class FakeNativeBuffer : public webrtc::VideoFrameBuffer {
   }
 
  private:
-  friend class rtc::RefCountedObject<FakeNativeBuffer>;
+  friend class RefCountedObject<FakeNativeBuffer>;
   ~FakeNativeBuffer() override {
     if (event_)
       event_->Set();
@@ -216,7 +216,7 @@ class FakeNV12NativeBuffer : public webrtc::VideoFrameBuffer {
   const NV12BufferInterface* GetNV12() const { return nv12_buffer_.get(); }
 
  private:
-  friend class rtc::RefCountedObject<FakeNV12NativeBuffer>;
+  friend class RefCountedObject<FakeNV12NativeBuffer>;
   ~FakeNV12NativeBuffer() override {
     if (event_)
       event_->Set();

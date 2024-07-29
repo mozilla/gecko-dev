@@ -35,7 +35,7 @@ namespace webrtc {
 // Abstract interface for buffer storage. Intended to support buffers owned by
 // external encoders with special release requirements, e.g, java encoders with
 // releaseOutputBuffer.
-class EncodedImageBufferInterface : public rtc::RefCountInterface {
+class EncodedImageBufferInterface : public RefCountInterface {
  public:
   virtual const uint8_t* data() const = 0;
   // TODO(bugs.webrtc.org/9378): Make interface essentially read-only, delete

@@ -23,7 +23,7 @@
 namespace webrtc {
 
 // A factory that creates AudioEncoders.
-class AudioEncoderFactory : public rtc::RefCountInterface {
+class AudioEncoderFactory : public RefCountInterface {
  public:
   // Returns a prioritized list of audio codecs, to use for signaling etc.
   virtual std::vector<AudioCodecSpec> GetSupportedEncoders() = 0;
