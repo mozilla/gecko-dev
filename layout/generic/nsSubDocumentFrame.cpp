@@ -562,7 +562,7 @@ nscoord nsSubDocumentFrame::IntrinsicISize(gfxContext* aContext,
   // zero sizing in the presence of orthogonal writing modes. We don't bother
   // with that for SVG documents in <embed> and <object>, since that special
   // handling doesn't look up across document boundaries anyway.
-  return GetIntrinsicISize();
+  return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
 }
 
 /* virtual */
@@ -621,23 +621,6 @@ AspectRatio nsSubDocumentFrame::GetIntrinsicRatio() const {
   // intrinsic ratio. For example `<iframe style="width: 100px">` should not
   // shrink in the vertical axis to preserve the 300x150 ratio.
   return nsAtomicContainerFrame::GetIntrinsicRatio();
-}
-
-/* virtual */
-LogicalSize nsSubDocumentFrame::ComputeAutoSize(
-    gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
-    nscoord aAvailableISize, const LogicalSize& aMargin,
-    const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
-  if (!IsInline()) {
-    return nsIFrame::ComputeAutoSize(aRenderingContext, aWM, aCBSize,
-                                     aAvailableISize, aMargin, aBorderPadding,
-                                     aSizeOverrides, aFlags);
-  }
-
-  const WritingMode wm = GetWritingMode();
-  LogicalSize result(wm, GetIntrinsicISize(), GetIntrinsicBSize());
-  return result.ConvertTo(aWM, wm);
 }
 
 /* virtual */
