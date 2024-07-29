@@ -359,13 +359,22 @@ const originControlsInContextMenu = async options => {
     useAddonManager: "permanent",
   });
 
+  // MV3 with two separate "http://*/*" and "https://*/*" host_permissions
+  // (used to cover Bug 1856383 with explicit test assertions).
+  let ext8 = await makeExtension({
+    id: "ext8@test",
+    host_permissions: ["http://*/*", "https://*/*"],
+    granted: ["http://*/*", "https://*/*"],
+    useAddonManager: "permanent",
+  });
+
   // Add an extension always visible in the extensions panel.
   let ext_last = await makeExtension({
     id: "ext_last@test",
     default_area: "menupanel",
   });
 
-  let extensions = [ext1, ext2, ext3, ext4, ext5, ext6, ext7, ext_last];
+  let extensions = [ext1, ext2, ext3, ext4, ext5, ext6, ext7, ext8, ext_last];
 
   let unifiedButton;
   if (options.contextMenuId === "unified-extensions-context-menu") {
@@ -376,6 +385,7 @@ const originControlsInContextMenu = async options => {
     moveWidget(ext5, false);
     moveWidget(ext6, false);
     moveWidget(ext7, false);
+    moveWidget(ext8, false);
     unifiedButton = document.querySelector("#unified-extensions-button");
   } else {
     // TestVerify runs this again in the same Firefox instance, so move the
@@ -388,6 +398,7 @@ const originControlsInContextMenu = async options => {
     moveWidget(ext5, true);
     moveWidget(ext6, true);
     moveWidget(ext7, true);
+    moveWidget(ext8, true);
   }
 
   const NO_ACCESS = { id: "origin-controls-no-access", args: null };
@@ -514,6 +525,17 @@ const originControlsInContextMenu = async options => {
     // MV3 with "*://example.com/*" in optional_permissions not already granted.
     await testOriginControls(ext7, options, { items: [NO_ACCESS] });
 
+    // MV3 with two separate "http://*/*" and "https://*/*" host_permissions
+    // already granted.
+    // The two permissions combined are expected to be showing the ALL_SITES
+    // message as with a single "<all_urls>" or "*://*/*" host permission
+    // (Bug 1856383).
+    await testOriginControls(ext8, options, {
+      items: [ACCESS_OPTIONS, ALL_SITES],
+      selected: 1,
+      attention: false,
+    });
+
     if (unifiedButton) {
       ok(
         unifiedButton.hasAttribute("attention"),
@@ -540,6 +562,7 @@ const originControlsInContextMenu = async options => {
   QuarantinedDomains.setUserAllowedAddonIdPref(ext4.id, false);
   QuarantinedDomains.setUserAllowedAddonIdPref(ext5.id, false);
   QuarantinedDomains.setUserAllowedAddonIdPref(ext6.id, false);
+  QuarantinedDomains.setUserAllowedAddonIdPref(ext8.id, false);
 
   await BrowserTestUtils.withNewTab("http://mochi.test:8888/", async () => {
     const ALWAYS_ON = {
@@ -626,6 +649,20 @@ const originControlsInContextMenu = async options => {
     await testOriginControls(ext7, options, {
       items: [NO_ACCESS],
       attention: false,
+    });
+
+    await testOriginControls(ext8, options, {
+      items: [QUARANTINED, ALLOW_QUARANTINED],
+      attention: true,
+      quarantined: true,
+      click: 1,
+      allowQuarantine: true,
+    });
+    await testOriginControls(ext8, options, {
+      items: [ACCESS_OPTIONS, ALL_SITES],
+      selected: 1,
+      attention: false,
+      quarantined: false,
     });
 
     if (unifiedButton) {

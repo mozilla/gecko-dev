@@ -592,8 +592,6 @@ export var ExtensionPermissions = {
 };
 
 export var OriginControls = {
-  allDomains: new MatchPattern("*://*/*"),
-
   /**
    * @typedef {object} NativeTab
    * @property {MozBrowserElement} linkedBrowser
@@ -687,7 +685,7 @@ export var OriginControls = {
 
     if (
       quarantined ||
-      !this.allDomains.matches(uri) ||
+      (uri.scheme !== "https" && uri.scheme !== "http") ||
       WebExtensionPolicy.isRestrictedURI(uri) ||
       (!couldRequest && !hasAccess && !activeTab)
     ) {
@@ -697,7 +695,7 @@ export var OriginControls = {
     if (!couldRequest && !hasAccess && activeTab) {
       return { whenClicked: true, temporaryAccess };
     }
-    if (policy.allowedOrigins.subsumes(this.allDomains)) {
+    if (policy.allowedOrigins.matchesAllWebUrls) {
       return { allDomains: true, hasAccess };
     }
 
