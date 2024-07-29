@@ -182,7 +182,7 @@ fun FaviconListItem(
                         modifier = Modifier
                             .padding(vertical = 12.dp)
                             .fillMaxHeight()
-                            .width(2.dp),
+                            .width(1.dp),
                         color = FirefoxTheme.colors.borderSecondary,
                     )
 
@@ -275,7 +275,7 @@ fun IconListItem(
                         modifier = Modifier
                             .padding(vertical = 12.dp)
                             .fillMaxHeight()
-                            .width(2.dp),
+                            .width(1.dp),
                         color = FirefoxTheme.colors.borderSecondary,
                     )
 
