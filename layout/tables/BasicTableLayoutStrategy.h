@@ -31,8 +31,8 @@ class BasicTableLayoutStrategy : public nsITableLayoutStrategy {
 
  private:
   // NOTE: Using prefix "BTLS" to avoid overlapping names with
-  // the values of nsLayoutUtils::IntrinsicISizeType
-  enum BtlsISizeType { BTLS_MIN_ISIZE, BTLS_PREF_ISIZE, BTLS_FINAL_ISIZE };
+  // the values of mozilla::IntrinsicISizeType.
+  enum class BtlsISizeType : uint8_t { MinISize, PrefISize, FinalISize };
 
   // Compute intrinsic isize member variables on the columns.
   void ComputeColumnIntrinsicISizes(gfxContext* aRenderingContext);

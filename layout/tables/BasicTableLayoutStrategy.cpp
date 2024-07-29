@@ -338,9 +338,10 @@ void BasicTableLayoutStrategy::ComputeColumnIntrinsicISizes(
       if (info.prefPercent > 0.0f) {
         DistributePctISizeToColumns(info.prefPercent, col, colSpan);
       }
-      DistributeISizeToColumns(info.minCoord, col, colSpan, BTLS_MIN_ISIZE,
-                               info.hasSpecifiedISize);
-      DistributeISizeToColumns(info.prefCoord, col, colSpan, BTLS_PREF_ISIZE,
+      DistributeISizeToColumns(info.minCoord, col, colSpan,
+                               BtlsISizeType::MinISize, info.hasSpecifiedISize);
+      DistributeISizeToColumns(info.prefCoord, col, colSpan,
+                               BtlsISizeType::PrefISize,
                                info.hasSpecifiedISize);
     } while ((item = item->next));
 
@@ -502,7 +503,8 @@ void BasicTableLayoutStrategy::ComputeColumnISizes(
   int32_t colCount = cellMap->GetColCount();
   if (colCount <= 0) return;  // nothing to do
 
-  DistributeISizeToColumns(iSize, 0, colCount, BTLS_FINAL_ISIZE, false);
+  DistributeISizeToColumns(iSize, 0, colCount, BtlsISizeType::FinalISize,
+                           false);
 
 #ifdef DEBUG_TABLE_STRATEGY
   printf("ComputeColumnISizes final\n");
@@ -600,7 +602,7 @@ void BasicTableLayoutStrategy::DistributeISizeToColumns(
     nscoord aISize, int32_t aFirstCol, int32_t aColCount,
     BtlsISizeType aISizeType, bool aSpanHasSpecifiedISize) {
   NS_ASSERTION(
-      aISizeType != BTLS_FINAL_ISIZE ||
+      aISizeType != BtlsISizeType::FinalISize ||
           (aFirstCol == 0 &&
            aColCount == mTableFrame->GetCellMap()->GetColCount()),
       "Computing final column isizes, but didn't get full column range");
@@ -615,7 +617,7 @@ void BasicTableLayoutStrategy::DistributeISizeToColumns(
       subtract += mTableFrame->GetColSpacing(col - 1);
     }
   }
-  if (aISizeType == BTLS_FINAL_ISIZE) {
+  if (aISizeType == BtlsISizeType::FinalISize) {
     // If we're computing final col-isize, then aISize initially includes
     // border spacing on the table's far istart + far iend edge, too.  Need
     // to subtract those out, too.
@@ -748,13 +750,14 @@ void BasicTableLayoutStrategy::DistributeISizeToColumns(
     float f;
   } basis;  // the sum of the statistic over columns to divide it
   if (aISize < guess_pref) {
-    if (aISizeType != BTLS_FINAL_ISIZE && aISize <= guess_min) {
+    if (aISizeType != BtlsISizeType::FinalISize && aISize <= guess_min) {
       // Return early -- we don't have any extra space to distribute.
       return;
     }
-    NS_ASSERTION(!(aISizeType == BTLS_FINAL_ISIZE && aISize < guess_min),
-                 "Table inline-size is less than the "
-                 "sum of its columns' min inline-sizes");
+    NS_ASSERTION(
+        !(aISizeType == BtlsISizeType::FinalISize && aISize < guess_min),
+        "Table inline-size is less than the sum of its columns' min "
+        "inline-sizes");
     if (aISize < guess_min_pct) {
       l2t = FLEX_PCT_SMALL;
       space = aISize - guess_min;
@@ -962,20 +965,20 @@ void BasicTableLayoutStrategy::DistributeISizeToColumns(
 
     // Apply the new isize
     switch (aISizeType) {
-      case BTLS_MIN_ISIZE: {
+      case BtlsISizeType::MinISize: {
         // Note: AddSpanCoords requires both a min and pref isize.
         // For the pref isize, we'll just pass in our computed
         // min isize, because the real pref isize will be at least
         // as big
         colFrame->AddSpanCoords(col_iSize, col_iSize, aSpanHasSpecifiedISize);
       } break;
-      case BTLS_PREF_ISIZE: {
+      case BtlsISizeType::PrefISize: {
         // Note: AddSpanCoords requires both a min and pref isize.
         // For the min isize, we'll just pass in 0, because
         // the real min isize will be at least 0
         colFrame->AddSpanCoords(0, col_iSize, aSpanHasSpecifiedISize);
       } break;
-      case BTLS_FINAL_ISIZE: {
+      case BtlsISizeType::FinalISize: {
         nscoord old_final = colFrame->GetFinalISize();
         colFrame->SetFinalISize(col_iSize);
 
