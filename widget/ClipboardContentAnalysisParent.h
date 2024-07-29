@@ -8,6 +8,7 @@
 
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/PClipboardContentAnalysisParent.h"
+#include "nsIClipboard.h"
 
 namespace mozilla {
 
@@ -27,7 +28,8 @@ class ClipboardContentAnalysisParent final
 
  public:
   ipc::IPCResult RecvGetClipboard(
-      nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,
+      nsTArray<nsCString>&& aTypes,
+      const nsIClipboard::ClipboardType& aWhichClipboard,
       const uint64_t& aRequestingWindowContextId,
       IPCTransferableDataOrError* aTransferableDataOrError);
 };

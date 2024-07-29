@@ -72,14 +72,15 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
 
   // Implement the native clipboard behavior.
   NS_IMETHOD SetNativeClipboardData(nsITransferable* aTransferable,
-                                    int32_t aWhichClipboard) override;
+                                    ClipboardType aWhichClipboard) override;
   NS_IMETHOD GetNativeClipboardData(nsITransferable* aTransferable,
-                                    int32_t aWhichClipboard) override;
-  nsresult EmptyNativeClipboardData(int32_t aWhichClipboard) override;
+                                    ClipboardType aWhichClipboard) override;
+  nsresult EmptyNativeClipboardData(ClipboardType aWhichClipboard) override;
   mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
-      int32_t aWhichClipboard) override;
+      ClipboardType aWhichClipboard) override;
   mozilla::Result<bool, nsresult> HasNativeClipboardDataMatchingFlavors(
-      const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard) override;
+      const nsTArray<nsCString>& aFlavorList,
+      ClipboardType aWhichClipboard) override;
 
   static bool IsInternetShortcut(const nsAString& inFileName);
   static bool FindURLFromLocalFile(IDataObject* inDataObject, UINT inIndex,

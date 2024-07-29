@@ -12,6 +12,7 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/MaybeDiscarded.h"
 #include "mozilla/dom/Promise.h"
+#include "nsIClipboard.h"
 #include "nsIContentAnalysis.h"
 #include "nsProxyRelease.h"
 #include "nsString.h"
@@ -216,10 +217,12 @@ class ContentAnalysis final : public nsIContentAnalysis {
   static bool MightBeActive();
   static bool CheckClipboardContentAnalysisSync(
       nsBaseClipboard* aClipboard, mozilla::dom::WindowGlobalParent* aWindow,
-      const nsCOMPtr<nsITransferable>& trans, int32_t aClipboardType);
+      const nsCOMPtr<nsITransferable>& trans,
+      nsIClipboard::ClipboardType aClipboardType);
   static void CheckClipboardContentAnalysis(
       nsBaseClipboard* aClipboard, mozilla::dom::WindowGlobalParent* aWindow,
-      nsITransferable* aTransferable, int32_t aClipboardType,
+      nsITransferable* aTransferable,
+      nsIClipboard::ClipboardType aClipboardType,
       SafeContentAnalysisResultCallback* aResolver);
 
  private:

@@ -24,7 +24,7 @@ HeadlessClipboard::HeadlessClipboard()
 
 NS_IMETHODIMP
 HeadlessClipboard::SetNativeClipboardData(nsITransferable* aTransferable,
-                                          int32_t aWhichClipboard) {
+                                          ClipboardType aWhichClipboard) {
   MOZ_DIAGNOSTIC_ASSERT(aTransferable);
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
@@ -68,7 +68,7 @@ HeadlessClipboard::SetNativeClipboardData(nsITransferable* aTransferable,
 
 NS_IMETHODIMP
 HeadlessClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
-                                          int32_t aWhichClipboard) {
+                                          ClipboardType aWhichClipboard) {
   MOZ_DIAGNOSTIC_ASSERT(aTransferable);
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
@@ -113,7 +113,8 @@ HeadlessClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
   return NS_OK;
 }
 
-nsresult HeadlessClipboard::EmptyNativeClipboardData(int32_t aWhichClipboard) {
+nsresult HeadlessClipboard::EmptyNativeClipboardData(
+    ClipboardType aWhichClipboard) {
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
   auto& clipboard = mClipboards[aWhichClipboard];
@@ -123,7 +124,8 @@ nsresult HeadlessClipboard::EmptyNativeClipboardData(int32_t aWhichClipboard) {
 }
 
 mozilla::Result<int32_t, nsresult>
-HeadlessClipboard::GetNativeClipboardSequenceNumber(int32_t aWhichClipboard) {
+HeadlessClipboard::GetNativeClipboardSequenceNumber(
+    ClipboardType aWhichClipboard) {
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
   auto& clipboard = mClipboards[aWhichClipboard];
@@ -134,7 +136,7 @@ HeadlessClipboard::GetNativeClipboardSequenceNumber(int32_t aWhichClipboard) {
 
 mozilla::Result<bool, nsresult>
 HeadlessClipboard::HasNativeClipboardDataMatchingFlavors(
-    const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard) {
+    const nsTArray<nsCString>& aFlavorList, ClipboardType aWhichClipboard) {
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
 

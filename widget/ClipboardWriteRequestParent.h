@@ -27,7 +27,7 @@ class ClipboardWriteRequestParent final
 
   explicit ClipboardWriteRequestParent(ContentParent* aManager);
 
-  nsresult Init(const int32_t& aClipboardType,
+  nsresult Init(const nsIClipboard::ClipboardType aClipboardType,
                 mozilla::dom::WindowContext* aSettingWindowContext);
 
   IPCResult RecvSetData(const IPCTransferable& aTransferable);

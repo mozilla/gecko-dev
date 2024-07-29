@@ -38,9 +38,9 @@ AsyncGtkClipboardRequest::AsyncGtkClipboardRequest(ClipboardDataType aDataType,
 void AsyncGtkClipboardRequest::OnDataReceived(GtkClipboard* clipboard,
                                               GtkSelectionData* selection_data,
                                               gpointer data) {
-  int whichClipboard = GetGeckoClipboardType(clipboard);
+  auto whichClipboard = GetGeckoClipboardType(clipboard);
   MOZ_CLIPBOARD_LOG("OnDataReceived(%s) callback\n",
-                    whichClipboard == nsClipboard::kSelectionClipboard
+                    whichClipboard == Some(nsClipboard::kSelectionClipboard)
                         ? "primary"
                         : "clipboard");
   static_cast<Request*>(data)->Complete(selection_data);
@@ -49,9 +49,9 @@ void AsyncGtkClipboardRequest::OnDataReceived(GtkClipboard* clipboard,
 void AsyncGtkClipboardRequest::OnTextReceived(GtkClipboard* clipboard,
                                               const gchar* text,
                                               gpointer data) {
-  int whichClipboard = GetGeckoClipboardType(clipboard);
+  auto whichClipboard = GetGeckoClipboardType(clipboard);
   MOZ_CLIPBOARD_LOG("OnTextReceived(%s) callback\n",
-                    whichClipboard == nsClipboard::kSelectionClipboard
+                    whichClipboard == Some(nsClipboard::kSelectionClipboard)
                         ? "primary"
                         : "clipboard");
   static_cast<Request*>(data)->Complete(text);

@@ -1911,7 +1911,7 @@ ClipboardContentAnalysisResult CheckClipboardContentAnalysisAsFile(
 
 void ContentAnalysis::CheckClipboardContentAnalysis(
     nsBaseClipboard* aClipboard, mozilla::dom::WindowGlobalParent* aWindow,
-    nsITransferable* aTransferable, int32_t aClipboardType,
+    nsITransferable* aTransferable, nsIClipboard::ClipboardType aClipboardType,
     SafeContentAnalysisResultCallback* aResolver) {
   using namespace mozilla::contentanalysis;
 
@@ -2012,7 +2012,8 @@ void ContentAnalysis::CheckClipboardContentAnalysis(
 
 bool ContentAnalysis::CheckClipboardContentAnalysisSync(
     nsBaseClipboard* aClipboard, mozilla::dom::WindowGlobalParent* aWindow,
-    const nsCOMPtr<nsITransferable>& trans, int32_t aClipboardType) {
+    const nsCOMPtr<nsITransferable>& trans,
+    nsIClipboard::ClipboardType aClipboardType) {
   bool requestDone = false;
   RefPtr<nsIContentAnalysisResult> result;
   auto callback = mozilla::MakeRefPtr<SafeContentAnalysisResultCallback>(

@@ -125,7 +125,7 @@ interface nsIClipboard : nsISupports
     */
 
     void setData (in nsITransferable aTransferable, in nsIClipboardOwner anOwner,
-                  in long aWhichClipboard, [optional] in WindowContext aSettingWindowContext);
+                  in nsIClipboard_ClipboardType aWhichClipboard, [optional] in WindowContext aSettingWindowContext);
 
     /**
      * Requests setting data to the native clipboard. The actual set occurs
@@ -145,7 +145,7 @@ interface nsIClipboard : nsISupports
      *         The write request object. The actual write will occur when the
      *         data is provided by calling nsIAsyncSetClipboardData::setData().
      */
-    nsIAsyncSetClipboardData asyncSetData(in long aWhichClipboard,
+    nsIAsyncSetClipboardData asyncSetData(in nsIClipboard_ClipboardType aWhichClipboard,
                                           [optional] in WindowContext aSettingWindowContext,
                                           [optional] in nsIAsyncClipboardRequestCallback aCallback);
 
@@ -165,7 +165,7 @@ interface nsIClipboard : nsISupports
     * @result NS_OK if no errors
     */
 
-    void getData ( in nsITransferable aTransferable, in long aWhichClipboard, [optional] in WindowContext aRequestingWindowContext) ;
+    void getData ( in nsITransferable aTransferable, in nsIClipboard_ClipboardType aWhichClipboard, [optional] in WindowContext aRequestingWindowContext) ;
 
     /**
      * Requests getting data asynchronously from the native clipboard. This does
@@ -184,7 +184,7 @@ interface nsIClipboard : nsISupports
      * @result NS_OK if no errors
      */
     void getDataSnapshot(in Array<ACString> aFlavorList,
-                         in long aWhichClipboard,
+                         in nsIClipboard_ClipboardType aWhichClipboard,
                          in WindowContext aRequestingWindowContext,
                          in nsIPrincipal aRequestingPrincipal,
                          in nsIClipboardGetDataSnapshotCallback aCallback);
@@ -211,7 +211,7 @@ interface nsIClipboard : nsISupports
      * @throws if the request can not be made.
      */
     nsIClipboardDataSnapshot getDataSnapshotSync(in Array<ACString> aFlavorList,
-                                                 in long aWhichClipboard,
+                                                 in nsIClipboard_ClipboardType aWhichClipboard,
                                                  [optional] in WindowContext aRequestingWindowContext);
 
    /**
@@ -222,7 +222,7 @@ interface nsIClipboard : nsISupports
     * @result NS_OK if successful.
     */
 
-    void emptyClipboard ( in long aWhichClipboard ) ;
+    void emptyClipboard ( in nsIClipboard_ClipboardType aWhichClipboard ) ;
 
    /**
     * This provides a way to give correct UI feedback about, for instance, a paste
@@ -236,7 +236,7 @@ interface nsIClipboard : nsISupports
     * @result NS_OK if successful.
     */
     boolean hasDataMatchingFlavors ( in Array<ACString> aFlavorList,
-                                     in long aWhichClipboard ) ;
+                                     in nsIClipboard_ClipboardType aWhichClipboard ) ;
 
     /**
      * Allows clients to determine if the implementation supports the concept of a
@@ -247,5 +247,5 @@ interface nsIClipboard : nsISupports
      * @result  NS_OK if successful.
      */
     [infallible]
-    boolean isClipboardTypeSupported(in long aWhichClipboard);
+    boolean isClipboardTypeSupported(in nsIClipboard_ClipboardType aWhichClipboard);
 };

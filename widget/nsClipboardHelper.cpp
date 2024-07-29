@@ -37,7 +37,7 @@ nsClipboardHelper::~nsClipboardHelper() {
 
 NS_IMETHODIMP
 nsClipboardHelper::CopyStringToClipboard(
-    const nsAString& aString, int32_t aClipboardID,
+    const nsAString& aString, nsIClipboard::ClipboardType aClipboardID,
     mozilla::dom::WindowContext* aSettingWindowContext,
     SensitiveData aSensitive) {
   nsresult rv;

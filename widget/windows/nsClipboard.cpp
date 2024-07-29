@@ -474,7 +474,7 @@ static void RepeatedlyTryOleSetClipboard(IDataObject* aDataObj) {
 
 //-------------------------------------------------------------------------
 NS_IMETHODIMP nsClipboard::SetNativeClipboardData(
-    nsITransferable* aTransferable, int32_t aWhichClipboard) {
+    nsITransferable* aTransferable, ClipboardType aWhichClipboard) {
   MOZ_CLIPBOARD_LOG("%s", __FUNCTION__);
 
   if (aWhichClipboard != kGlobalClipboard) {
@@ -1307,7 +1307,7 @@ bool nsClipboard ::IsInternetShortcut(const nsAString& inFileName) {
 //-------------------------------------------------------------------------
 NS_IMETHODIMP
 nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
-                                    int32_t aWhichClipboard) {
+                                    ClipboardType aWhichClipboard) {
   MOZ_DIAGNOSTIC_ASSERT(aTransferable);
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
@@ -1344,7 +1344,7 @@ nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
   return res;
 }
 
-nsresult nsClipboard::EmptyNativeClipboardData(int32_t aWhichClipboard) {
+nsresult nsClipboard::EmptyNativeClipboardData(ClipboardType aWhichClipboard) {
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
   // Some programs such as ZoneAlarm monitor clipboard usage and then open the
@@ -1357,7 +1357,7 @@ nsresult nsClipboard::EmptyNativeClipboardData(int32_t aWhichClipboard) {
 }
 
 mozilla::Result<int32_t, nsresult>
-nsClipboard::GetNativeClipboardSequenceNumber(int32_t aWhichClipboard) {
+nsClipboard::GetNativeClipboardSequenceNumber(ClipboardType aWhichClipboard) {
   MOZ_DIAGNOSTIC_ASSERT(kGlobalClipboard == aWhichClipboard);
   return (int32_t)::GetClipboardSequenceNumber();
 }
@@ -1365,7 +1365,7 @@ nsClipboard::GetNativeClipboardSequenceNumber(int32_t aWhichClipboard) {
 //-------------------------------------------------------------------------
 mozilla::Result<bool, nsresult>
 nsClipboard::HasNativeClipboardDataMatchingFlavors(
-    const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard) {
+    const nsTArray<nsCString>& aFlavorList, ClipboardType aWhichClipboard) {
   MOZ_DIAGNOSTIC_ASSERT(
       nsIClipboard::IsClipboardTypeSupported(aWhichClipboard));
   for (const auto& flavor : aFlavorList) {

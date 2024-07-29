@@ -36,7 +36,7 @@ interface nsIClipboardHelper : nsISupports
    * @param aSensitive, optional flag to indicate that data is sensitive, like a password.
    *        That will exclude data from Cloud Clipboard/Clipboard History on Windows.
    */
-  void copyStringToClipboard(in AString aString, in long aClipboardID,
+  void copyStringToClipboard(in AString aString, in nsIClipboard_ClipboardType aClipboardID,
                              [optional] in WindowContext aSettingWindowContext,
                              [optional, default(NotSensitive)] in nsIClipboardHelper_SensitiveData aSensitive);
 

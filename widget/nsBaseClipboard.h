@@ -45,33 +45,34 @@ class nsBaseClipboard : public nsIClipboard {
   // nsIClipboard
   NS_IMETHOD SetData(
       nsITransferable* aTransferable, nsIClipboardOwner* aOwner,
-      int32_t aWhichClipboard,
+      ClipboardType aWhichClipboard,
       mozilla::dom::WindowContext* aWindowContext) override final;
-  NS_IMETHOD AsyncSetData(int32_t aWhichClipboard,
+  NS_IMETHOD AsyncSetData(ClipboardType aWhichClipboard,
                           mozilla::dom::WindowContext* aSettingWindowContext,
                           nsIAsyncClipboardRequestCallback* aCallback,
                           nsIAsyncSetClipboardData** _retval) override final;
   NS_IMETHOD GetData(
-      nsITransferable* aTransferable, int32_t aWhichClipboard,
+      nsITransferable* aTransferable, ClipboardType aWhichClipboard,
       mozilla::dom::WindowContext* aWindowContext) override final;
   NS_IMETHOD GetDataSnapshot(
-      const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
+      const nsTArray<nsCString>& aFlavorList, ClipboardType aWhichClipboard,
       mozilla::dom::WindowContext* aRequestingWindowContext,
       nsIPrincipal* aRequestingPrincipal,
       nsIClipboardGetDataSnapshotCallback* aCallback) override final;
   NS_IMETHOD GetDataSnapshotSync(
-      const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
+      const nsTArray<nsCString>& aFlavorList, ClipboardType aWhichClipboard,
       mozilla::dom::WindowContext* aRequestingWindowContext,
       nsIClipboardDataSnapshot** _retval) override final;
-  NS_IMETHOD EmptyClipboard(int32_t aWhichClipboard) override final;
+  NS_IMETHOD EmptyClipboard(ClipboardType aWhichClipboard) override final;
   NS_IMETHOD HasDataMatchingFlavors(const nsTArray<nsCString>& aFlavorList,
-                                    int32_t aWhichClipboard,
+                                    ClipboardType aWhichClipboard,
                                     bool* aOutResult) override final;
-  NS_IMETHOD IsClipboardTypeSupported(int32_t aWhichClipboard,
+  NS_IMETHOD IsClipboardTypeSupported(ClipboardType aWhichClipboard,
                                       bool* aRetval) override final;
 
   void GetDataSnapshotInternal(
-      const nsTArray<nsCString>& aFlavorList, int32_t aClipboardType,
+      const nsTArray<nsCString>& aFlavorList,
+      nsIClipboard::ClipboardType aClipboardType,
       mozilla::dom::WindowContext* aRequestingWindowContext,
       nsIClipboardGetDataSnapshotCallback* aCallback);
 
@@ -80,39 +81,41 @@ class nsBaseClipboard : public nsIClipboard {
       mozilla::Result<nsTArray<nsCString>, nsresult>)>;
 
   mozilla::Maybe<uint64_t> GetClipboardCacheInnerWindowId(
-      int32_t aClipboardType);
+      ClipboardType aClipboardType);
 
  protected:
   virtual ~nsBaseClipboard();
 
   // Implement the native clipboard behavior.
   NS_IMETHOD SetNativeClipboardData(nsITransferable* aTransferable,
-                                    int32_t aWhichClipboard) = 0;
+                                    ClipboardType aWhichClipboard) = 0;
   NS_IMETHOD GetNativeClipboardData(nsITransferable* aTransferable,
-                                    int32_t aWhichClipboard) = 0;
+                                    ClipboardType aWhichClipboard) = 0;
   virtual void AsyncGetNativeClipboardData(nsITransferable* aTransferable,
-                                           int32_t aWhichClipboard,
+                                           ClipboardType aWhichClipboard,
                                            GetDataCallback&& aCallback);
-  virtual nsresult EmptyNativeClipboardData(int32_t aWhichClipboard) = 0;
+  virtual nsresult EmptyNativeClipboardData(ClipboardType aWhichClipboard) = 0;
   virtual mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
-      int32_t aWhichClipboard) = 0;
+      ClipboardType aWhichClipboard) = 0;
   virtual mozilla::Result<bool, nsresult> HasNativeClipboardDataMatchingFlavors(
-      const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard) = 0;
+      const nsTArray<nsCString>& aFlavorList,
+      ClipboardType aWhichClipboard) = 0;
   virtual void AsyncHasNativeClipboardDataMatchingFlavors(
-      const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
+      const nsTArray<nsCString>& aFlavorList, ClipboardType aWhichClipboard,
       HasMatchingFlavorsCallback&& aCallback);
 
-  void ClearClipboardCache(int32_t aClipboardType);
+  void ClearClipboardCache(ClipboardType aClipboardType);
 
  private:
-  void RejectPendingAsyncSetDataRequestIfAny(int32_t aClipboardType);
+  void RejectPendingAsyncSetDataRequestIfAny(ClipboardType aClipboardType);
 
   class AsyncSetClipboardData final : public nsIAsyncSetClipboardData {
    public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIASYNCSETCLIPBOARDDATA
 
-    AsyncSetClipboardData(int32_t aClipboardType, nsBaseClipboard* aClipboard,
+    AsyncSetClipboardData(nsIClipboard::ClipboardType aClipboardType,
+                          nsBaseClipboard* aClipboard,
                           mozilla::dom::WindowContext* aRequestingWindowContext,
                           nsIAsyncClipboardRequestCallback* aCallback);
 
@@ -126,7 +129,7 @@ class nsBaseClipboard : public nsIClipboard {
     void MaybeNotifyCallback(nsresult aResult);
 
     // The clipboard type defined in nsIClipboard.
-    int32_t mClipboardType;
+    nsIClipboard::ClipboardType mClipboardType;
     // It is safe to use a raw pointer as it will be nullified (by calling
     // NotifyCallback()) once nsBaseClipboard stops tracking us. This is
     // also used to indicate whether this request is valid.
@@ -140,7 +143,7 @@ class nsBaseClipboard : public nsIClipboard {
   class ClipboardDataSnapshot final : public nsIClipboardDataSnapshot {
    public:
     ClipboardDataSnapshot(
-        int32_t aClipboardType, int32_t aSequenceNumber,
+        nsIClipboard::ClipboardType aClipboardType, int32_t aSequenceNumber,
         nsTArray<nsCString>&& aFlavors, bool aFromCache,
         nsBaseClipboard* aClipboard,
         mozilla::dom::WindowContext* aRequestingWindowContext);
@@ -153,7 +156,7 @@ class nsBaseClipboard : public nsIClipboard {
     bool IsValid();
 
     // The clipboard type defined in nsIClipboard.
-    const int32_t mClipboardType;
+    const nsIClipboard::ClipboardType mClipboardType;
     // The sequence number associated with the clipboard content for this
     // request. If it doesn't match with the current sequence number in system
     // clipboard, this request targets stale data and is deemed invalid.
@@ -204,19 +207,20 @@ class nsBaseClipboard : public nsIClipboard {
   };
 
   void MaybeRetryGetAvailableFlavors(
-      const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
+      const nsTArray<nsCString>& aFlavorList,
+      nsIClipboard::ClipboardType aWhichClipboard,
       nsIClipboardGetDataSnapshotCallback* aCallback, int32_t aRetryCount,
       mozilla::dom::WindowContext* aRequestingWindowContext);
 
   // Return clipboard cache if the cached data is valid, otherwise clear the
   // cached data and returns null.
-  ClipboardCache* GetClipboardCacheIfValid(int32_t aClipboardType);
+  ClipboardCache* GetClipboardCacheIfValid(ClipboardType aClipboardType);
 
   mozilla::Result<nsTArray<nsCString>, nsresult> GetFlavorsFromClipboardCache(
-      int32_t aClipboardType);
+      ClipboardType aClipboardType);
   nsresult GetDataFromClipboardCache(nsITransferable* aTransferable,
-                                     int32_t aClipboardType);
-  void RequestUserConfirmation(int32_t aClipboardType,
+                                     ClipboardType aClipboardType);
+  void RequestUserConfirmation(ClipboardType aClipboardType,
                                const nsTArray<nsCString>& aFlavorList,
                                mozilla::dom::WindowContext* aWindowContext,
                                nsIPrincipal* aRequestingPrincipal,
@@ -224,7 +228,7 @@ class nsBaseClipboard : public nsIClipboard {
 
   already_AddRefed<nsIClipboardDataSnapshot>
   MaybeCreateGetRequestFromClipboardCache(
-      const nsTArray<nsCString>& aFlavorList, int32_t aClipboardType,
+      const nsTArray<nsCString>& aFlavorList, ClipboardType aClipboardType,
       mozilla::dom::WindowContext* aRequestingWindowContext);
 
   // Track the pending request for each clipboard type separately. And only need

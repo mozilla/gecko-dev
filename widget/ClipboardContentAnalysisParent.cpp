@@ -21,7 +21,8 @@ using ClipboardResultPromise =
     MozPromise<dom::IPCTransferableData, nsresult, true>;
 
 static RefPtr<ClipboardResultPromise> GetClipboardImpl(
-    const nsTArray<nsCString>& aTypes, int32_t aWhichClipboard,
+    const nsTArray<nsCString>& aTypes,
+    nsIClipboard::ClipboardType aWhichClipboard,
     uint64_t aRequestingWindowContextId,
     dom::ThreadsafeContentParentHandle* aRequestingContentParent) {
   AssertIsOnMainThread();
@@ -111,7 +112,8 @@ static RefPtr<ClipboardResultPromise> GetClipboardImpl(
 }  // namespace
 
 ipc::IPCResult ClipboardContentAnalysisParent::RecvGetClipboard(
-    nsTArray<nsCString>&& aTypes, const int32_t& aWhichClipboard,
+    nsTArray<nsCString>&& aTypes,
+    const nsIClipboard::ClipboardType& aWhichClipboard,
     const uint64_t& aRequestingWindowContextId,
     IPCTransferableDataOrError* aTransferableDataOrError) {
   // The whole point of having this actor is that it runs on a background thread

@@ -60,7 +60,8 @@ static NSData* GetDataFromPasteboard(NSPasteboard* aPasteboard,
   return data;
 }
 
-static NSPasteboard* GetPasteboard(int32_t aWhichClipboard) {
+static NSPasteboard* GetPasteboard(
+    nsIClipboard::ClipboardType aWhichClipboard) {
   switch (aWhichClipboard) {
     case nsIClipboard::kGlobalClipboard:
       return [NSPasteboard generalPasteboard];
@@ -82,7 +83,7 @@ void nsClipboard::ClearSelectionCache() { SetSelectionCache(nullptr); }
 
 NS_IMETHODIMP
 nsClipboard::SetNativeClipboardData(nsITransferable* aTransferable,
-                                    int32_t aWhichClipboard) {
+                                    ClipboardType aWhichClipboard) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   MOZ_ASSERT(aTransferable);
@@ -359,7 +360,7 @@ nsresult nsClipboard::TransferableFromPasteboard(
 
 NS_IMETHODIMP
 nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
-                                    int32_t aWhichClipboard) {
+                                    ClipboardType aWhichClipboard) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   MOZ_DIAGNOSTIC_ASSERT(aTransferable);
@@ -407,7 +408,7 @@ nsClipboard::GetNativeClipboardData(nsITransferable* aTransferable,
 // returns true if we have *any* of the passed in flavors available for pasting
 mozilla::Result<bool, nsresult>
 nsClipboard::HasNativeClipboardDataMatchingFlavors(
-    const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard) {
+    const nsTArray<nsCString>& aFlavorList, ClipboardType aWhichClipboard) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   MOZ_DIAGNOSTIC_ASSERT(
@@ -832,7 +833,7 @@ NSString* nsClipboard::WrapHtmlForSystemPasteboard(NSString* aString) {
   return wrapped;
 }
 
-nsresult nsClipboard::EmptyNativeClipboardData(int32_t aWhichClipboard) {
+nsresult nsClipboard::EmptyNativeClipboardData(ClipboardType aWhichClipboard) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   MOZ_DIAGNOSTIC_ASSERT(
@@ -853,7 +854,7 @@ nsresult nsClipboard::EmptyNativeClipboardData(int32_t aWhichClipboard) {
 }
 
 mozilla::Result<int32_t, nsresult>
-nsClipboard::GetNativeClipboardSequenceNumber(int32_t aWhichClipboard) {
+nsClipboard::GetNativeClipboardSequenceNumber(ClipboardType aWhichClipboard) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   MOZ_DIAGNOSTIC_ASSERT(

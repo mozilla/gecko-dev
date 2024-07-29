@@ -28,7 +28,7 @@ ClipboardWriteRequestParent::ClipboardWriteRequestParent(
 ClipboardWriteRequestParent::~ClipboardWriteRequestParent() = default;
 
 nsresult ClipboardWriteRequestParent::Init(
-    const int32_t& aClipboardType,
+    const nsIClipboard::ClipboardType aClipboardType,
     mozilla::dom::WindowContext* aSettingWindowContext) {
   nsCOMPtr<nsIClipboard> clipboard(do_GetService(kCClipboardCID));
   if (!clipboard) {
