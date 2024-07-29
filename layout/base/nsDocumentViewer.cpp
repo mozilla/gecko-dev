@@ -78,6 +78,7 @@
 #include "nsCopySupport.h"
 #include "nsXULPopupManager.h"
 
+#include "nsIClipboard.h"
 #include "nsIClipboardHelper.h"
 
 #include "nsPIDOMWindow.h"
@@ -2418,7 +2419,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP nsDocumentViewer::SelectAll() {
 
 NS_IMETHODIMP nsDocumentViewer::CopySelection() {
   RefPtr<PresShell> presShell = mPresShell;
-  nsCopySupport::FireClipboardEvent(eCopy, nsIClipboard::kGlobalClipboard,
+  nsCopySupport::FireClipboardEvent(eCopy, Some(nsIClipboard::kGlobalClipboard),
                                     presShell, nullptr);
   return NS_OK;
 }

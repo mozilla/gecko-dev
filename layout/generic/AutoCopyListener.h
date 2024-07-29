@@ -43,10 +43,12 @@ class AutoCopyListener final {
  private:
 #ifdef XP_MACOSX
   // On macOS, cache the current selection to send to service menu of macOS.
-  static const int16_t sClipboardID = nsIClipboard::kSelectionCache;
+  static const nsIClipboard::ClipboardType sClipboardID =
+      nsIClipboard::kSelectionCache;
 #else
   // Make the normal Selection notifies auto-copy listener of its changes.
-  static const int16_t sClipboardID = nsIClipboard::kSelectionClipboard;
+  static const nsIClipboard::ClipboardType sClipboardID =
+      nsIClipboard::kSelectionClipboard;
 #endif
 };
 

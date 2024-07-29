@@ -37,7 +37,6 @@ class nsDocumentFragment;
 class nsFrameSelection;
 class nsHTMLDocument;
 class nsITransferable;
-class nsIClipboard;
 class nsRange;
 class nsStaticAtom;
 class nsStyledElement;
@@ -171,7 +170,7 @@ class HTMLEditor final : public EditorBase,
 
   bool IsEmpty() const final;
 
-  bool CanPaste(int32_t aClipboardType) const final;
+  bool CanPaste(nsIClipboard::ClipboardType aClipboardType) const final;
   using EditorBase::CanPaste;
 
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD DeleteNode(nsINode* aNode,
@@ -246,9 +245,10 @@ class HTMLEditor final : public EditorBase,
    *                            JS.  If set to nullptr, will be treated as
    *                            called by system.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult PasteNoFormattingAsAction(
-      int32_t aClipboardType, DispatchPasteEvent aDispatchPasteEvent,
-      nsIPrincipal* aPrincipal = nullptr);
+  MOZ_CAN_RUN_SCRIPT nsresult
+  PasteNoFormattingAsAction(nsIClipboard::ClipboardType aClipboardType,
+                            DispatchPasteEvent aDispatchPasteEvent,
+                            nsIPrincipal* aPrincipal = nullptr);
 
   bool CanPasteTransferable(nsITransferable* aTransferable) final;
 
@@ -3123,10 +3123,12 @@ class HTMLEditor final : public EditorBase,
    */
   Result<RefPtr<Element>, nsresult> GetFirstSelectedCellElementInTable() const;
 
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult HandlePaste(
-      AutoEditActionDataSetter& aEditActionData, int32_t aClipboardType) final;
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult HandlePasteAsQuotation(
-      AutoEditActionDataSetter& aEditActionData, int32_t aClipboardType) final;
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  HandlePaste(AutoEditActionDataSetter& aEditActionData,
+              nsIClipboard::ClipboardType aClipboardType) final;
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  HandlePasteAsQuotation(AutoEditActionDataSetter& aEditActionData,
+                         nsIClipboard::ClipboardType aClipboardType) final;
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   HandlePasteTransferable(AutoEditActionDataSetter& aEditActionData,
                           nsITransferable& aTransferable) final;
@@ -3139,7 +3141,8 @@ class HTMLEditor final : public EditorBase,
    * @param aClipboardType      nsIClipboard::kGlobalClipboard or
    *                            nsIClipboard::kSelectionClipboard.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult PasteInternal(int32_t aClipboardType);
+  MOZ_CAN_RUN_SCRIPT nsresult
+  PasteInternal(nsIClipboard::ClipboardType aClipboardType);
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   InsertWithQuotationsAsSubAction(const nsAString& aQuotedText) final;
@@ -3713,7 +3716,8 @@ class HTMLEditor final : public EditorBase,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult SetSelectionAtDocumentStart();
 
   // Methods for handling plaintext quotations
-  MOZ_CAN_RUN_SCRIPT nsresult PasteAsPlaintextQuotation(int32_t aSelectionType);
+  MOZ_CAN_RUN_SCRIPT nsresult
+  PasteAsPlaintextQuotation(nsIClipboard::ClipboardType aSelectionType);
 
   /**
    * Insert a string as quoted text, replacing the selected text (if any).

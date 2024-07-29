@@ -1585,8 +1585,9 @@ bool EditorBase::CheckForClipboardCommandListener(
 }
 
 Result<EditorBase::ClipboardEventResult, nsresult>
-EditorBase::DispatchClipboardEventAndUpdateClipboard(EventMessage aEventMessage,
-                                                     int32_t aClipboardType) {
+EditorBase::DispatchClipboardEventAndUpdateClipboard(
+    EventMessage aEventMessage,
+    Maybe<nsIClipboard::ClipboardType> aClipboardType) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   const bool isPasting =
@@ -1667,7 +1668,7 @@ nsresult EditorBase::CutAsAction(nsIPrincipal* aPrincipal) {
 
     Result<ClipboardEventResult, nsresult> ret =
         DispatchClipboardEventAndUpdateClipboard(
-            eCut, nsIClipboard::kGlobalClipboard);
+            eCut, Some(nsIClipboard::kGlobalClipboard));
     if (MOZ_UNLIKELY(ret.isErr())) {
       NS_WARNING(
           "EditorBase::DispatchClipboardEventAndUpdateClipboard(eCut, "
@@ -1756,8 +1757,8 @@ NS_IMETHODIMP EditorBase::Copy() {
   }
 
   Result<ClipboardEventResult, nsresult> ret =
-      DispatchClipboardEventAndUpdateClipboard(eCopy,
-                                               nsIClipboard::kGlobalClipboard);
+      DispatchClipboardEventAndUpdateClipboard(
+          eCopy, Some(nsIClipboard::kGlobalClipboard));
   if (MOZ_UNLIKELY(ret.isErr())) {
     NS_WARNING(
         "EditorBase::DispatchClipboardEventAndUpdateClipboard(eCopy, "
@@ -1798,7 +1799,10 @@ bool EditorBase::IsCopyCommandEnabled() const {
   return CheckForClipboardCommandListener(nsGkAtoms::oncopy, eCopy);
 }
 
-NS_IMETHODIMP EditorBase::Paste(int32_t aClipboardType) {
+NS_IMETHODIMP EditorBase::Paste(nsIClipboard::ClipboardType aClipboardType) {
+  if (uint32_t(aClipboardType) >= nsIClipboard::kClipboardTypeCount) {
+    return NS_ERROR_INVALID_ARG;
+  }
   const nsresult rv = PasteAsAction(aClipboardType, DispatchPasteEvent::Yes);
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rv),
@@ -1806,7 +1810,7 @@ NS_IMETHODIMP EditorBase::Paste(int32_t aClipboardType) {
   return rv;
 }
 
-nsresult EditorBase::PasteAsAction(int32_t aClipboardType,
+nsresult EditorBase::PasteAsAction(nsIClipboard::ClipboardType aClipboardType,
                                    DispatchPasteEvent aDispatchPasteEvent,
                                    nsIPrincipal* aPrincipal /* = nullptr */) {
   if (IsHTMLEditor() && IsReadonly()) {
@@ -1827,7 +1831,7 @@ nsresult EditorBase::PasteAsAction(int32_t aClipboardType,
     const RefPtr<Element> focusedElement = focusManager->GetFocusedElement();
 
     Result<ClipboardEventResult, nsresult> ret =
-        DispatchClipboardEventAndUpdateClipboard(ePaste, aClipboardType);
+        DispatchClipboardEventAndUpdateClipboard(ePaste, Some(aClipboardType));
     if (MOZ_UNLIKELY(ret.isErr())) {
       NS_WARNING(
           "EditorBase::DispatchClipboardEventAndUpdateClipboard(ePaste) "
@@ -1879,7 +1883,8 @@ nsresult EditorBase::PasteAsAction(int32_t aClipboardType,
 }
 
 nsresult EditorBase::PasteAsQuotationAsAction(
-    int32_t aClipboardType, DispatchPasteEvent aDispatchPasteEvent,
+    nsIClipboard::ClipboardType aClipboardType,
+    DispatchPasteEvent aDispatchPasteEvent,
     nsIPrincipal* aPrincipal /* = nullptr */) {
   MOZ_ASSERT(aClipboardType == nsIClipboard::kGlobalClipboard ||
              aClipboardType == nsIClipboard::kSelectionClipboard);
@@ -1902,7 +1907,7 @@ nsresult EditorBase::PasteAsQuotationAsAction(
     const RefPtr<Element> focusedElement = focusManager->GetFocusedElement();
 
     Result<ClipboardEventResult, nsresult> ret =
-        DispatchClipboardEventAndUpdateClipboard(ePaste, aClipboardType);
+        DispatchClipboardEventAndUpdateClipboard(ePaste, Some(aClipboardType));
     if (MOZ_UNLIKELY(ret.isErr())) {
       NS_WARNING(
           "EditorBase::DispatchClipboardEventAndUpdateClipboard(ePaste) "
@@ -1976,12 +1981,13 @@ nsresult EditorBase::PasteTransferableAsAction(
     }
     const RefPtr<Element> focusedElement = focusManager->GetFocusedElement();
 
-    // Use an invalid value for the clipboard type as data comes from
+    // Use a nothing value for the clipboard type as data comes from
     // aTransferable and we don't currently implement a way to put that in the
     // data transfer in TextEditor yet.
     Result<ClipboardEventResult, nsresult> ret =
         DispatchClipboardEventAndUpdateClipboard(
-            ePaste, IsTextEditor() ? -1 : nsIClipboard::kGlobalClipboard);
+            ePaste,
+            IsTextEditor() ? Nothing() : Some(nsIClipboard::kGlobalClipboard));
     if (MOZ_UNLIKELY(ret.isErr())) {
       NS_WARNING(
           "EditorBase::DispatchClipboardEventAndUpdateClipboard(ePaste) "
@@ -2119,7 +2125,11 @@ NS_IMETHODIMP EditorBase::PasteTransferable(nsITransferable* aTransferable) {
   return rv;
 }
 
-NS_IMETHODIMP EditorBase::CanPaste(int32_t aClipboardType, bool* aCanPaste) {
+NS_IMETHODIMP EditorBase::CanPaste(nsIClipboard::ClipboardType aClipboardType,
+                                   bool* aCanPaste) {
+  if (uint32_t(aClipboardType) >= nsIClipboard::kClipboardTypeCount) {
+    return NS_ERROR_INVALID_ARG;
+  }
   if (NS_WARN_IF(!aCanPaste)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -6568,7 +6578,8 @@ void EditorBase::AutoEditActionDataSetter::InitializeDataTransfer(
 }
 
 void EditorBase::AutoEditActionDataSetter::InitializeDataTransferWithClipboard(
-    SettingDataTransfer aSettingDataTransfer, int32_t aClipboardType) {
+    SettingDataTransfer aSettingDataTransfer,
+    nsIClipboard::ClipboardType aClipboardType) {
   MOZ_ASSERT(!HasTriedToDispatchBeforeInputEvent(),
              "It's too late to set dataTransfer since this may have already "
              "dispatched a beforeinput event");

@@ -46,7 +46,6 @@
 #include "nsError.h"
 #include "nsFocusManager.h"
 #include "nsGkAtoms.h"
-#include "nsIClipboard.h"
 #include "nsIContent.h"
 #include "nsINode.h"
 #include "nsIPrincipal.h"
@@ -565,7 +564,8 @@ bool TextEditor::IsCopyToClipboardAllowedInternal() const {
 }
 
 nsresult TextEditor::HandlePasteAsQuotation(
-    AutoEditActionDataSetter& aEditActionData, int32_t aClipboardType) {
+    AutoEditActionDataSetter& aEditActionData,
+    nsIClipboard::ClipboardType aClipboardType) {
   MOZ_ASSERT(aClipboardType == nsIClipboard::kGlobalClipboard ||
              aClipboardType == nsIClipboard::kSelectionClipboard);
   if (NS_WARN_IF(!GetDocument())) {

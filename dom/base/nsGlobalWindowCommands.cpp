@@ -577,8 +577,8 @@ nsresult nsClipboardCommand::DoCommand(const char* aCommandName,
 
   bool actionTaken = false;
   nsCopySupport::FireClipboardEvent(eventMessage,
-                                    nsIClipboard::kGlobalClipboard, presShell,
-                                    nullptr, &actionTaken);
+                                    Some(nsIClipboard::kGlobalClipboard),
+                                    presShell, nullptr, &actionTaken);
 
   return actionTaken ? NS_OK : NS_SUCCESS_DOM_NO_OPERATION;
 }

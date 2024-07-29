@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsISupports.idl"
+#include "nsIClipboard.idl"
 #include "domstubs.idl"
 
 %{C++
@@ -377,7 +378,7 @@ interface nsIEditor  : nsISupports
     * the selected text (if any)
     */
   [can_run_script]
-  void paste(in long aClipboardType);
+  void paste(in nsIClipboard_ClipboardType aClipboardType);
 
   /** Paste the text in |aTransferable| at the cursor position, replacing the
     * selected text (if any).
@@ -388,7 +389,7 @@ interface nsIEditor  : nsISupports
   /** Can we paste? True if the doc is modifiable, and we have
     * pasteable data in the clipboard.
     */
-  boolean canPaste(in long aClipboardType);
+  boolean canPaste(in nsIClipboard_ClipboardType aClipboardType);
 
   /* ------------ Selection methods -------------- */
 

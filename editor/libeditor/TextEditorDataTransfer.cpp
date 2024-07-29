@@ -161,7 +161,7 @@ nsresult TextEditor::InsertDroppedDataTransferAsAction(
 }
 
 nsresult TextEditor::HandlePaste(AutoEditActionDataSetter& aEditActionData,
-                                 int32_t aClipboardType) {
+                                 nsIClipboard::ClipboardType aClipboardType) {
   if (NS_WARN_IF(!GetDocument())) {
     return NS_OK;
   }
@@ -229,7 +229,7 @@ nsresult TextEditor::HandlePasteTransferable(
   return rv;
 }
 
-bool TextEditor::CanPaste(int32_t aClipboardType) const {
+bool TextEditor::CanPaste(nsIClipboard::ClipboardType aClipboardType) const {
   if (AreClipboardCommandsUnconditionallyEnabled()) {
     return true;
   }

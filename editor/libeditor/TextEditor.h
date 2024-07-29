@@ -13,6 +13,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIClipboard.h"
 #include "nsINamed.h"
 #include "nsISupportsImpl.h"
 #include "nsITimer.h"
@@ -134,7 +135,7 @@ class TextEditor final : public EditorBase,
   // Overrides of EditorBase
   bool IsEmpty() const final;
 
-  bool CanPaste(int32_t aClipboardType) const final;
+  bool CanPaste(nsIClipboard::ClipboardType aClipboardType) const final;
 
   bool CanPasteTransferable(nsITransferable* aTransferable) final;
 
@@ -565,10 +566,12 @@ class TextEditor final : public EditorBase,
    */
   MOZ_CAN_RUN_SCRIPT nsresult SelectEntireDocument() final;
 
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult HandlePaste(
-      AutoEditActionDataSetter& aEditActionData, int32_t aClipboardType) final;
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult HandlePasteAsQuotation(
-      AutoEditActionDataSetter& aEditActionData, int32_t aClipboardType) final;
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  HandlePaste(AutoEditActionDataSetter& aEditActionData,
+              nsIClipboard::ClipboardType aClipboardType) final;
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  HandlePasteAsQuotation(AutoEditActionDataSetter& aEditActionData,
+                         nsIClipboard::ClipboardType aClipboardType) final;
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   HandlePasteTransferable(AutoEditActionDataSetter& aEditActionData,
                           nsITransferable& aTransferable) final;

@@ -323,7 +323,7 @@ static nsresult CreateTransferable(
 
 static nsresult PutToClipboard(
     const EncodedDocumentWithContext& aEncodedDocumentWithContext,
-    int16_t aClipboardID, Document& aDocument) {
+    nsIClipboard::ClipboardType aClipboardID, Document& aDocument) {
   nsresult rv;
   nsCOMPtr<nsIClipboard> clipboard = do_GetService(kCClipboardCID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -341,7 +341,7 @@ static nsresult PutToClipboard(
 }
 
 nsresult nsCopySupport::EncodeDocumentWithContextAndPutToClipboard(
-    Selection* aSel, Document* aDoc, int16_t aClipboardID,
+    Selection* aSel, Document* aDoc, nsIClipboard::ClipboardType aClipboardID,
     bool aWithRubyAnnotation) {
   NS_ENSURE_TRUE(aDoc, NS_ERROR_NULL_POINTER);
 
@@ -728,13 +728,13 @@ static Element* GetElementOrNearestFlattenedTreeParentElement(nsINode* aNode) {
  */
 class MOZ_RAII AutoHandlingPasteEvent final {
  public:
-  explicit AutoHandlingPasteEvent(nsGlobalWindowInner* aWindow,
-                                  DataTransfer* aDataTransfer,
-                                  const EventMessage& aEventMessage,
-                                  const int32_t& aClipboardType) {
+  explicit AutoHandlingPasteEvent(
+      nsGlobalWindowInner* aWindow, DataTransfer* aDataTransfer,
+      const EventMessage& aEventMessage,
+      const mozilla::Maybe<nsIClipboard::ClipboardType> aClipboardType) {
     MOZ_ASSERT(aDataTransfer);
     if (aWindow && aEventMessage == ePaste &&
-        aClipboardType == nsIClipboard::kGlobalClipboard) {
+        aClipboardType == Some(nsIClipboard::kGlobalClipboard)) {
       aWindow->SetCurrentPasteDataTransfer(aDataTransfer);
       mInnerWindow = aWindow;
     }
@@ -750,11 +750,10 @@ class MOZ_RAII AutoHandlingPasteEvent final {
   RefPtr<nsGlobalWindowInner> mInnerWindow;
 };
 
-bool nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
-                                       int32_t aClipboardType,
-                                       PresShell* aPresShell,
-                                       Selection* aSelection,
-                                       bool* aActionTaken) {
+bool nsCopySupport::FireClipboardEvent(
+    EventMessage aEventMessage,
+    mozilla::Maybe<nsIClipboard::ClipboardType> aClipboardType,
+    PresShell* aPresShell, Selection* aSelection, bool* aActionTaken) {
   if (aActionTaken) {
     *aActionTaken = false;
   }
@@ -767,6 +766,8 @@ bool nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
   NS_ASSERTION(originalEventMessage == eCut || originalEventMessage == eCopy ||
                    originalEventMessage == ePaste,
                "Invalid clipboard event type");
+
+  MOZ_ASSERT_IF(originalEventMessage != ePaste, aClipboardType.isSome());
 
   RefPtr<PresShell> presShell = aPresShell;
   if (!presShell) {
@@ -819,9 +820,12 @@ bool nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
   bool doDefault = true;
   RefPtr<DataTransfer> clipboardData;
   if (chromeShell || StaticPrefs::dom_event_clipboardevents_enabled()) {
+    int32_t badClipboardType =
+        aClipboardType.isSome() ? int32_t(*aClipboardType) : -1;
+
     clipboardData =
         new DataTransfer(doc->GetScopeObject(), aEventMessage,
-                         originalEventMessage == ePaste, aClipboardType);
+                         originalEventMessage == ePaste, badClipboardType);
 
     nsEventStatus status = nsEventStatus_eIgnore;
     InternalClipboardEvent evt(true, originalEventMessage);
@@ -916,7 +920,7 @@ bool nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
       // expose the full functionality in browser. See bug 1130891.
       bool withRubyAnnotation = IsSelectionInsideRuby(sel);
       nsresult rv = EncodeDocumentWithContextAndPutToClipboard(
-          sel, doc, aClipboardType, withRubyAnnotation);
+          sel, doc, *aClipboardType, withRubyAnnotation);
       if (NS_FAILED(rv)) {
         return false;
       }
@@ -941,7 +945,7 @@ bool nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
       if (aPresShell && aPresShell->GetDocument()) {
         settingWindowContext = aPresShell->GetDocument()->GetWindowContext();
       }
-      nsresult rv = clipboard->SetData(transferable, nullptr, aClipboardType,
+      nsresult rv = clipboard->SetData(transferable, nullptr, *aClipboardType,
                                        settingWindowContext);
       if (NS_FAILED(rv)) {
         return false;
