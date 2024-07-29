@@ -219,17 +219,23 @@ export class SidebarCustomize extends SidebarPage {
           <moz-radio
             class="position-setting"
             id="position-left"
-            value=${true}
-            ?checked=${this.getWindow().SidebarController._positionStart}
+            value=${!this.getWindow().RTL_UI}
+            ?checked=${
+              this.getWindow().RTL_UI
+                ? !this.getWindow().SidebarController._positionStart
+                : this.getWindow().SidebarController._positionStart
+            }
             iconsrc="chrome://browser/content/sidebar/sidebar-collapsed.svg"
             data-l10n-id="sidebar-position-left"
           ></moz-radio>
           <moz-radio
             class="position-setting"
             id="position-right"
-            value=${false}
+            value=${this.getWindow().RTL_UI}
             ?checked=${
-              this.getWindow().SidebarController._positionStart === false
+              this.getWindow().RTL_UI
+                ? this.getWindow().SidebarController._positionStart
+                : !this.getWindow().SidebarController._positionStart
             }
             iconsrc="chrome://browser/skin/sidebars.svg"
             data-l10n-id="sidebar-position-right"
