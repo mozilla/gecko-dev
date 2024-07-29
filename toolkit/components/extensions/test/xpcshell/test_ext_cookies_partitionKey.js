@@ -265,6 +265,13 @@ add_task(async function setup() {
     "network.cookie.sameSite.noneRequiresSecure",
     false
   );
+  // Disable 3pc blocking since this requires this test to work with CHIPS and
+  // therefore Secure cookies, but xpcshell tests do not support https server.
+  // See Bug 1907296.
+  Services.prefs.setBoolPref(
+    "network.cookie.cookieBehavior.optInPartitioning",
+    false
+  );
 });
 
 add_task(async function test_no_partitioning() {
