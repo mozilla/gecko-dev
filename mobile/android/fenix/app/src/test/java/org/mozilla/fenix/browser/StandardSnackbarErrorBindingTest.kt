@@ -16,7 +16,6 @@ import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import io.mockk.verify
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -35,11 +34,11 @@ import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 @RunWith(FenixRobolectricTestRunner::class)
 class StandardSnackbarErrorBindingTest {
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
 
     private lateinit var activity: Activity
+    private lateinit var snackbarContainer: ViewGroup
     private lateinit var snackbar: FenixSnackbar
     private lateinit var rootView: View
 
@@ -51,6 +50,7 @@ class StandardSnackbarErrorBindingTest {
         mockkStatic(AppCompatResources::class)
         every { AppCompatResources.getDrawable(any(), any()) } returns mockk(relaxed = true)
 
+        snackbarContainer = mockk()
         snackbar = mockk(relaxed = true)
         every { FenixSnackbar.make(any(), any(), any()) } returns snackbar
         rootView = mockk<ViewGroup>(relaxed = true)
@@ -70,6 +70,7 @@ class StandardSnackbarErrorBindingTest {
         val appStore = AppStore()
         val standardSnackbarError = StandardSnackbarErrorBinding(
             activity,
+            snackbarContainer,
             appStore,
         )
 
@@ -113,6 +114,7 @@ class StandardSnackbarErrorBindingTest {
         val appStore = AppStore()
         val standardSnackbarError = StandardSnackbarErrorBinding(
             activity,
+            snackbarContainer,
             appStore,
         )
 

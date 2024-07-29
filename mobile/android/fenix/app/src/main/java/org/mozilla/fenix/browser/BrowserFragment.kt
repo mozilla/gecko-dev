@@ -209,6 +209,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         standardSnackbarErrorBinding.set(
             feature = StandardSnackbarErrorBinding(
                 requireActivity(),
+                binding.dynamicSnackbarContainer,
                 requireActivity().components.appStore,
             ),
             owner = viewLifecycleOwner,

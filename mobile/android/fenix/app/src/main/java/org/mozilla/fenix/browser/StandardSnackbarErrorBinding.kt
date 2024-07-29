@@ -5,10 +5,10 @@
 package org.mozilla.fenix.browser
 
 import android.app.Activity
+import android.view.ViewGroup
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -19,14 +19,17 @@ import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.getRootView
 
 /**
- * A binding that shows standard snackbar error.
+ * A binding that shows standard snackbar errors.
+ *
+ * @param activity [Activity] used for system interactions and accessing resources.
+ * @param snackbarParent [ViewGroup] in which to find a suitable parent for displaying the snackbar.
+ * @param appStore The [AppStore] containing information about when to show a snackbar styled for errors.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class StandardSnackbarErrorBinding(
     private val activity: Activity,
+    private val snackbarParent: ViewGroup,
     appStore: AppStore,
 ) : AbstractBinding<AppState>(appStore) {
 
@@ -35,11 +38,10 @@ class StandardSnackbarErrorBinding(
             .distinctUntilChanged()
             .collect {
                 it?.let { standardSnackbarError ->
-                    activity.getRootView()?.let { view ->
+                    snackbarParent.let { view ->
                         val snackBar = FenixSnackbar.make(
                             view = view,
                             duration = Snackbar.LENGTH_INDEFINITE,
-                            isDisplayedWithBrowserToolbar = true,
                         )
                         snackBar.setText(
                             standardSnackbarError.message,
