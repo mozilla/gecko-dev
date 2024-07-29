@@ -110,15 +110,7 @@ window.addEventListener("message", function(e) {
 });
 
 function post(e, res) {
-  // For test_CrossSiteXHR.html https based default and xorigin test runs
-  if (self.location.protocol == "https:") {
-    testOrigin = (self.location.origin ) == "https://example.com" ? "https://example.org" : "https://example.com";
-  }
-  // For test_CrossSiteXHR_origin.html and test_CrossSiteXHR_cache.html http based test runs
-  else {
-    testOrigin = "http://mochi.test:8888";
-  }
-  e.source.postMessage(JSON.stringify(res), testOrigin);
+  e.source.postMessage(JSON.stringify(res), "http://mochi.test:8888");
 }
 
 </script>
