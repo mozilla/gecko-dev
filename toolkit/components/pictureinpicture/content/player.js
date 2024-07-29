@@ -56,8 +56,8 @@ const BOTTOM_RIGHT_QUADRANT = 4;
  *    A reference to the video element that a Picture-in-Picture window
  *    is being created for
  */
-function setupPlayer(id, wgp, videoRef) {
-  Player.init(id, wgp, videoRef);
+function setupPlayer(id, wgp, videoRef, autoFocus) {
+  Player.init(id, wgp, videoRef, autoFocus);
 }
 
 /**
@@ -119,6 +119,10 @@ function setTimestamp(timeString) {
 
 function setVolume(volume) {
   Player.setVolume(volume);
+}
+
+function closeFromForeground() {
+  Player.closeFromForeground();
 }
 
 /**
@@ -185,10 +189,12 @@ let Player = {
    * @param {WindowGlobalParent} wgp
    *   The WindowGlobalParent that is hosting the originating video.
    * @param {ContentDOMReference} videoRef
-   *    A reference to the video element that a Picture-in-Picture window
-   *    is being created for
+   *   A reference to the video element that a Picture-in-Picture window
+   *   is being created for
+   * @param {boolean} autoFocus
+   *   Autofocus the PiP window
    */
-  init(id, wgp, videoRef) {
+  init(id, wgp, videoRef, autoFocus) {
     this.id = id;
 
     // State for whether or not we are adjusting the time via the scrubber
@@ -322,9 +328,11 @@ let Player = {
     // alwaysontop windows are not focused by default, so we have to do it
     // ourselves. We use requestAnimationFrame since we have to wait until the
     // window is visible before it can focus.
-    window.requestAnimationFrame(() => {
-      window.focus();
-    });
+    if (autoFocus) {
+      window.requestAnimationFrame(() => {
+        window.focus();
+      });
+    }
 
     let fontSize = Services.prefs.getCharPref(
       TEXT_TRACK_FONT_SIZE_PREF,
@@ -762,6 +770,13 @@ let Player = {
       reason: "pip-closed",
     });
     this.closePipWindow({ reason: "closeButton" });
+  },
+
+  closeFromForeground() {
+    PictureInPicture.closeSinglePipWindow({
+      reason: "foregrounded",
+      actorRef: this.actor,
+    });
   },
 
   fullscreenModeToggle() {

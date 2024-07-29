@@ -50,6 +50,8 @@ prefs = [
 
 ["browser_audioScrubber.js"]
 
+["browser_autotoggle.js"]
+
 ["browser_backgroundTab.js"]
 
 ["browser_cannotTriggerFromContent.js"]

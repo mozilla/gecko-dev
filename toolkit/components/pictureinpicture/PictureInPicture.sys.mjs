@@ -64,6 +64,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "media.videocontrols.picture-in-picture.respect-disablePictureInPicture",
   true
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "PIP_WHEN_SWITCHING_TABS",
+  "media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled",
+  true
+);
 
 /**
  * Tracks the number of currently open player windows for Telemetry tracking
@@ -115,6 +121,36 @@ export class PictureInPictureToggleParent extends JSWindowActorParent {
       case "PictureInPicture:SetHasUsed": {
         let { hasUsed } = aMessage.data;
         PictureInPicture.setHasUsed(hasUsed);
+        break;
+      }
+      case "PictureInPicture:VideoTabHidden": {
+        if (!lazy.PIP_ENABLED || !lazy.PIP_WHEN_SWITCHING_TABS) {
+          break;
+        }
+        // If the tab is still selected, then we can ignore this event
+        if (browser.ownerGlobal.gBrowser.selectedBrowser == browser) {
+          break;
+        }
+        let actor = browsingContext.currentWindowGlobal.getActor(
+          "PictureInPictureLauncher"
+        );
+        actor.sendAsyncMessage("PictureInPicture:AutoToggle");
+        break;
+      }
+      case "PictureInPicture:VideoTabShown": {
+        if (!lazy.PIP_ENABLED || !lazy.PIP_WHEN_SWITCHING_TABS) {
+          break;
+        }
+        if (browser.ownerGlobal.gBrowser.selectedBrowser != browser) {
+          break;
+        }
+        for (let win of Services.wm.getEnumerator(WINDOW_TYPE)) {
+          let originatingBrowser = PictureInPicture.weakWinToBrowser.get(win);
+          if (browser == originatingBrowser) {
+            win.closeFromForeground();
+            break;
+          }
+        }
         break;
       }
     }
@@ -847,7 +883,7 @@ export var PictureInPicture = {
     tab.addEventListener("TabSwapPictureInPicture", this);
 
     let pipId = gNextWindowID.toString();
-    win.setupPlayer(pipId, wgp, videoData.videoRef);
+    win.setupPlayer(pipId, wgp, videoData.videoRef, videoData.autoFocus);
     gNextWindowID++;
 
     this.weakWinToBrowser.set(win, browser);

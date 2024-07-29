@@ -153,6 +153,10 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
         this.keyToggle();
         break;
       }
+      case "PictureInPicture:AutoToggle": {
+        this.autoToggle();
+        break;
+      }
     }
   }
 
@@ -166,12 +170,13 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
    * @param {HTMLVideoElement} pipObject.video
    * @param {String} pipObject.reason What toggled PiP, e.g. "shortcut"
    * @param {Object} pipObject.eventExtraKeys Extra telemetry keys to record
+   * @param {boolean} autoFocus Autofocus the PiP window (default: true)
    *
    * @return {Promise}
    * @resolves {undefined} Once the new Picture-in-Picture window
    * has been requested.
    */
-  async togglePictureInPicture(pipObject) {
+  async togglePictureInPicture(pipObject, autoFocus = true) {
     let { video, reason, eventExtraKeys = {} } = pipObject;
     if (video.isCloningElementVisually) {
       // The only way we could have entered here for the same video is if
@@ -228,6 +233,7 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
       scrubberPosition,
       timestamp,
       volume: PictureInPictureChild.videoWrapper.getVolume(video),
+      autoFocus,
     });
 
     Services.telemetry.recordEvent(
@@ -245,28 +251,53 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
   }
 
   /**
-   * The keyboard was used to attempt to open Picture-in-Picture. If a video is focused,
-   * select that video. Otherwise find the first playing video, or if none, the largest
-   * dimension video. We suspect this heuristic will handle most cases, though we
-   * might refine this later on. Note that we assume that this method will only be
-   * called for the focused document.
+   * The keyboard was used to attempt to open Picture-in-Picture.
+   * Note that we assume that this method will only be called for the focused
+   * document.
    */
   keyToggle() {
     let doc = this.document;
     if (doc) {
-      let video = doc.activeElement;
-      if (!HTMLVideoElement.isInstance(video)) {
-        let listOfVideos = [...doc.querySelectorAll("video")].filter(
-          video => !isNaN(video.duration)
-        );
-        // Get the first non-paused video, otherwise the longest video. This
-        // fallback is designed to skip over "preview"-style videos on sidebars.
-        video =
-          listOfVideos.filter(v => !v.paused)[0] ||
-          listOfVideos.sort((a, b) => b.duration - a.duration)[0];
-      }
+      let video = this.findVideoToPiP(doc);
       if (video) {
         this.togglePictureInPicture({ video, reason: "shortcut" });
+      }
+    }
+  }
+
+  /**
+   * If a video is focused, select that video. Otherwise find the first playing
+   * video, or if none, the largest dimension video. We suspect this heuristic
+   * will handle most cases, though we might refine this later on.
+   *
+   * @param {HTMLDocument} doc The HTML document to search for a video element in.
+   * @returns {HTMLVideoElement} The selected HTML video element to enter PiP mode.
+   */
+  findVideoToPiP(doc) {
+    let video = doc.activeElement;
+    if (!HTMLVideoElement.isInstance(video)) {
+      let listOfVideos = [...doc.querySelectorAll("video")].filter(
+        video => !isNaN(video.duration)
+      );
+      // Get the first non-paused video, otherwise the longest video. This
+      // fallback is designed to skip over "preview"-style videos on sidebars.
+      video =
+        listOfVideos.filter(v => !v.paused)[0] ||
+        listOfVideos.sort((a, b) => b.duration - a.duration)[0];
+    }
+    return video;
+  }
+
+  /**
+   * Automatically toggle Picture-in-Picture if a video tab has been
+   * backgrounded.
+   */
+  autoToggle() {
+    let doc = this.document;
+    if (doc) {
+      let video = this.findVideoToPiP(doc);
+      if (video && PictureInPictureChild.videoIsPlaying(video)) {
+        this.togglePictureInPicture({ video, reason: "autoToggle" }, false);
       }
     }
   }
@@ -443,6 +474,7 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
         // might change for a document via the history API, so we remember
         // the last checked documentURI to determine if we need to check again.
         checkedPolicyDocumentURI: null,
+        isUnloaded: false,
       };
       this.weakDocStates.set(this.document, state);
     }
@@ -561,6 +593,10 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
       }
       case "pagehide": {
         this.onPageHide(event);
+        break;
+      }
+      case "visibilitychange": {
+        this.onVisibilityChange(event);
         break;
       }
       case "durationchange":
@@ -903,6 +939,10 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
     this.contentWindow.addEventListener("pagehide", this, {
       mozSystemGroup: true,
     });
+    lazy.logConsole.debug("Adding visibilitychange event handler");
+    this.contentWindow.addEventListener("visibilitychange", this, {
+      mozSystemGroup: true,
+    });
     this.addMouseButtonListeners();
     state.isTrackingVideos = true;
   }
@@ -933,6 +973,10 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
       this.contentWindow.removeEventListener("pagehide", this, {
         mozSystemGroup: true,
       });
+      lazy.logConsole.debug("Removing visibilitychange event handler");
+      this.contentWindow.removeEventListener("visibilitychange", this, {
+        mozSystemGroup: true,
+      });
     }
     this.removeMouseButtonListeners();
     let oldOverVideo = this.getWeakOverVideo();
@@ -950,6 +994,7 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
    */
   onPageShow() {
     let state = this.docState;
+    state.isUnloaded = false;
     if (state.isTrackingVideos) {
       this.addMouseButtonListeners();
     }
@@ -963,8 +1008,23 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
    */
   onPageHide() {
     let state = this.docState;
+    state.isUnloaded = true;
     if (state.isTrackingVideos) {
       this.removeMouseButtonListeners();
+    }
+  }
+
+  onVisibilityChange() {
+    // Ignore if the document was unloaded or unloading
+    let state = this.docState;
+    if (state.isUnloaded) {
+      return;
+    }
+
+    if (this.document.visibilityState == "hidden") {
+      this.sendAsyncMessage("PictureInPicture:VideoTabHidden");
+    } else if (this.document.visibilityState == "visible") {
+      this.sendAsyncMessage("PictureInPicture:VideoTabShown");
     }
   }
 
