@@ -3,7 +3,7 @@
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
-from pathlib import PurePath
+from pathlib import Path, PurePath
 
 import sphinx
 import sphinx.ext.apidoc
@@ -32,7 +32,7 @@ def read_build_config(docdir):
     trees = {}
     python_package_dirs = set()
 
-    is_main = docdir == MAIN_DOC_PATH
+    is_main = Path(docdir) == MAIN_DOC_PATH
     relevant_mozbuild_path = None if is_main else docdir
 
     # Reading the Sphinx variables doesn't require a full build context.
@@ -50,11 +50,12 @@ def read_build_config(docdir):
             # If we're building a subtree, only process that specific subtree.
             # topsrcdir always uses POSIX-style path, normalize it for proper comparison.
             absdir = os.path.normpath(os.path.join(build.topsrcdir, reldir, value))
-            if not is_main and absdir not in (docdir, MAIN_DOC_PATH):
+            if not is_main and absdir not in (Path(docdir), MAIN_DOC_PATH):
                 # allow subpaths of absdir (i.e. docdir = <absdir>/sub/path/)
-                if docdir.startswith(absdir):
-                    key = os.path.join(key, docdir.split(f"{key}/")[-1])
-                else:
+                try:
+                    relative_docdir = docdir.relative_to(absdir)
+                    key = os.path.join(key, os.fspath(relative_docdir))
+                except ValueError:
                     continue
 
             assert key
@@ -180,7 +181,7 @@ class _SphinxManager(object):
         # During livereload, we don't correctly rebuild the full document
         # tree (Bug 1557020). The page is no longer referenced within the index
         # tree, thus we shall check categorisation only if complete tree is being rebuilt.
-        if app.srcdir == self.topsrcdir:
+        if Path(app.srcdir) == Path(self.topsrcdir):
             indexes = set(
                 [
                     os.path.normpath(os.path.join(p, "index"))
