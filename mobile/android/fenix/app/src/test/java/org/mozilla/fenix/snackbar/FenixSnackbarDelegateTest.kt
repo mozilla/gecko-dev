@@ -211,4 +211,30 @@ class FenixSnackbarDelegateTest {
 
         verify(exactly = 0) { snackbar.dismiss() }
     }
+
+    @Test
+    fun `GIVEN a snackbar requested for an error WHEN showing it THEN set the appropriate UI`() {
+        delegate.show(
+            text = R.string.app_name,
+            duration = 0,
+            action = R.string.edit_2,
+            listener = null,
+            isError = true,
+        )
+
+        verify { snackbar.setAppropriateBackground(true) }
+    }
+
+    @Test
+    fun `GIVEN a normal snackbar requested WHEN showing it THEN set the appropriate UI`() {
+        delegate.show(
+            text = R.string.app_name,
+            duration = 0,
+            action = R.string.edit_2,
+            listener = null,
+            isError = false,
+        )
+
+        verify { snackbar.setAppropriateBackground(false) }
+    }
 }

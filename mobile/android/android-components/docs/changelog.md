@@ -7,6 +7,7 @@ permalink: /changelog/
 # 130.0 (In Development)
 
 * **ui-widgets**
+  * ⚠️ **Breaking change**: `SnackbarDelegate` now supports passing whether the snackbar should be shown/styled for an error. [Bug 1906657](https://bugzilla.mozilla.org/show_bug.cgi?id=1906657)
   * ⚠️ **Breaking change**: `SnackbarDelegate` has a new method that allows passing in Strings for the snackbar text and action, not just string resource ids. [Bug 1892762](https://bugzilla.mozilla.org/show_bug.cgi?id=1892762).
   * `DefaultSnackbarDelegate` will allow passing in Strings for the snackbar text and action beside string resource ids. [Bug 1892762](https://bugzilla.mozilla.org/show_bug.cgi?id=1892762).
 

@@ -17,6 +17,7 @@ interface SnackbarDelegate {
      * @param snackBarParentView The view to find a parent from for displaying the Snackbar.
      * @param text The text to show. Can be formatted text.
      * @param duration How long to display the message.
+     * @param isError Whether the snackbar should be styled as an error.
      * @param action String resource to display for the action.
      * @param listener callback to be invoked when the action is clicked.
      */
@@ -24,6 +25,7 @@ interface SnackbarDelegate {
         snackBarParentView: View,
         text: Int,
         duration: Int,
+        isError: Boolean = false,
         action: Int = 0,
         listener: ((v: View) -> Unit)? = null,
     )
@@ -34,6 +36,7 @@ interface SnackbarDelegate {
      * @param snackBarParentView The view to find a parent from for displaying the Snackbar.
      * @param text The text to show.
      * @param duration How long to display the message.
+     * @param isError Whether the snackbar should be styled as an error.
      * @param action Text of the optional action.
      * The [listener] must also be provided to show an action button.
      * @param listener callback to be invoked when the action is clicked.
@@ -43,6 +46,7 @@ interface SnackbarDelegate {
         snackBarParentView: View,
         text: String,
         duration: Int,
+        isError: Boolean = false,
         action: String? = null,
         listener: ((v: View) -> Unit)? = null,
     )
@@ -56,6 +60,7 @@ class DefaultSnackbarDelegate : SnackbarDelegate {
         snackBarParentView: View,
         text: String,
         duration: Int,
+        isError: Boolean,
         action: String?,
         listener: ((v: View) -> Unit)?,
     ) {
@@ -66,7 +71,7 @@ class DefaultSnackbarDelegate : SnackbarDelegate {
         )
 
         if (action != null && listener != null) {
-            snackbar.setAction(action, listener)
+            snackbar.setAction(action) { view -> listener.invoke(view) }
         }
 
         snackbar.show()
@@ -76,12 +81,14 @@ class DefaultSnackbarDelegate : SnackbarDelegate {
         snackBarParentView: View,
         text: Int,
         duration: Int,
+        isError: Boolean,
         action: Int,
         listener: ((v: View) -> Unit)?,
     ) = show(
         snackBarParentView = snackBarParentView,
         text = snackBarParentView.context.getString(text),
         duration = duration,
+        isError = isError,
         action = if (action == 0) null else snackBarParentView.context.getString(action),
         listener = listener,
     )

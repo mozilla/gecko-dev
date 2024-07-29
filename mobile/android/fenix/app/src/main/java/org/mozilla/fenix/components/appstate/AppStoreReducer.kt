@@ -22,6 +22,7 @@ import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGroup
 import org.mozilla.fenix.messaging.state.MessagingReducer
+import org.mozilla.fenix.share.ShareActionReducer
 
 /**
  * Reducer for [AppStore].
@@ -272,6 +273,7 @@ internal object AppStoreReducer {
             state.copy(openInFirefoxRequested = false)
         }
 
+        is AppAction.ShareAction -> ShareActionReducer.reduce(state, action)
         is AppAction.FindInPageAction -> FindInPageStateReducer.reduce(state, action)
         is AppAction.ReaderViewAction -> ReaderViewStateReducer.reduce(state, action)
         is AppAction.ShortcutAction -> ShortcutStateReducer.reduce(state, action)

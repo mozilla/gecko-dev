@@ -25,6 +25,7 @@ import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.concept.toolbar.Toolbar
+import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.readerview.ReaderViewFeature
@@ -221,6 +222,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 appStore = context.components.appStore,
                 snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),
                 navController = findNavController(),
+                sendTabUseCases = SendTabUseCases(requireComponents.backgroundServices.accountManager),
                 customTabSessionId = customTabSessionId,
             ),
             owner = this,

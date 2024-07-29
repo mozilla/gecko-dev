@@ -76,6 +76,7 @@ import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.OAuthAccount
+import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesConfig
@@ -412,6 +413,7 @@ class HomeFragment : Fragment() {
                 appStore = requireContext().components.appStore,
                 snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),
                 navController = findNavController(),
+                sendTabUseCases = SendTabUseCases(requireComponents.backgroundServices.accountManager),
                 customTabSessionId = null,
             ),
             owner = this,

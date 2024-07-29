@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.components.appstate.snackbar
 
+import mozilla.components.concept.sync.TabData
+
 /**
  * The state of the snackbar to display.
  */
@@ -53,4 +55,36 @@ sealed class SnackbarState {
      * @property sessionId The ID of the session being translated.
      */
     data class TranslationInProgress(val sessionId: String?) : SnackbarState()
+
+    /**
+     * Display a snackbar when sharing to another application failed.
+     */
+    data object ShareToAppFailed : SnackbarState()
+
+    /**
+     * Display a snackbar when sharing tabs was successful.
+     *
+     * @property destination List of device IDs with which tabs were shared.
+     * @property tabs List of tabs that were shared.
+     */
+    data class SharedTabsSuccessfully(
+        val destination: List<String>,
+        val tabs: List<TabData>,
+    ) : SnackbarState()
+
+    /**
+     * Display a snackbar when sharing to another application failed.
+     *
+     * @property destination List of device IDs with which tabs were tried to be shared.
+     * @property tabs List of tabs that were tried to be shared.
+     */
+    data class ShareTabsFailed(
+        val destination: List<String>,
+        val tabs: List<TabData>,
+    ) : SnackbarState()
+
+    /**
+     * Display a snackbar when copying a link to the clipboard.
+     */
+    data object CopyLinkToClipboard : SnackbarState()
 }

@@ -173,10 +173,10 @@ data class ContextMenuCandidate(
                 )
 
                 snackbarDelegate.show(
-                    snackBarParentView,
-                    R.string.mozac_feature_contextmenu_snackbar_new_private_tab_opened,
-                    Snackbar.LENGTH_LONG,
-                    R.string.mozac_feature_contextmenu_snackbar_action_switch,
+                    snackBarParentView = snackBarParentView,
+                    text = R.string.mozac_feature_contextmenu_snackbar_new_private_tab_opened,
+                    duration = Snackbar.LENGTH_LONG,
+                    action = R.string.mozac_feature_contextmenu_snackbar_action_switch,
                 ) {
                     tabsUseCases.selectTab(tab)
                 }

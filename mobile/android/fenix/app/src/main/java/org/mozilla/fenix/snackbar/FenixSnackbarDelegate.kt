@@ -23,6 +23,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
      *
      * @param text The text to show. Can be formatted text.
      * @param duration How long to display the message.
+     * @param isError Whether the snackbar should be styled as an error.
      * @param action Optional String resource to display for the action.
      * The [listener] must also be provided to show an action button.
      * @param listener Optional callback to be invoked when the action is clicked.
@@ -31,6 +32,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
     fun show(
         @StringRes text: Int,
         duration: Int = LENGTH_ACCESSIBLE,
+        isError: Boolean = false,
         @StringRes action: Int = 0,
         listener: ((v: View) -> Unit)? = null,
     ) {
@@ -38,6 +40,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
             snackBarParentView = view,
             text = text,
             duration = duration,
+            isError = isError,
             action = action,
             listener = listener,
         )
@@ -48,6 +51,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
      *
      * @param text The text to show.
      * @param duration How long to display the message.
+     * @param isError Whether the snackbar should be styled as an error.
      * @param action Optional String to display for the action.
      * The [listener] must also be provided to show an action button.
      * @param listener Optional callback to be invoked when the action is clicked.
@@ -56,12 +60,14 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
     fun show(
         text: String,
         duration: Int = LENGTH_ACCESSIBLE,
+        isError: Boolean = false,
         action: String? = null,
         listener: ((v: View) -> Unit)? = null,
     ) = show(
         snackBarParentView = view,
         text = text,
         duration = duration,
+        isError = isError,
         action = action,
         listener = listener,
     )
@@ -70,12 +76,14 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
         snackBarParentView: View,
         @StringRes text: Int,
         duration: Int,
+        isError: Boolean,
         @StringRes action: Int,
         listener: ((v: View) -> Unit)?,
     ) = show(
         snackBarParentView = snackBarParentView,
         text = snackBarParentView.context.getString(text),
         duration = duration,
+        isError = isError,
         action = if (action == 0) null else snackBarParentView.context.getString(action),
         listener = listener,
     )
@@ -84,14 +92,17 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
         snackBarParentView: View,
         text: String,
         duration: Int,
+        isError: Boolean,
         action: String?,
         listener: ((v: View) -> Unit)?,
     ) {
         val snackbar = FenixSnackbar.make(
             view = snackBarParentView,
             duration = duration,
-        )
-            .setText(text)
+        ).apply {
+            setText(text)
+            setAppropriateBackground(isError)
+        }
 
         if (action != null && listener != null) {
             snackbar.setAction(action) {

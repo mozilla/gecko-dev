@@ -14,6 +14,7 @@ class FocusSnackbarDelegate(private val view: View) : SnackbarDelegate {
         snackBarParentView: View,
         @StringRes text: Int,
         duration: Int,
+        isError: Boolean,
         @StringRes action: Int,
         listener: ((v: View) -> Unit)?,
     ) = show(
@@ -28,6 +29,7 @@ class FocusSnackbarDelegate(private val view: View) : SnackbarDelegate {
         snackBarParentView: View,
         text: String,
         duration: Int,
+        isError: Boolean,
         action: String?,
         listener: ((v: View) -> Unit)?,
     ) {

@@ -24,10 +24,8 @@ import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.share.RecentAppsStorage
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.databinding.FragmentShareBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.getRootView
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -84,12 +82,9 @@ class ShareFragment : AppCompatDialogFragment() {
         shareInteractor = ShareInteractor(
             DefaultShareController(
                 context = requireContext(),
+                appStore = requireComponents.appStore,
                 shareSubject = args.shareSubject,
                 shareData = shareData,
-                snackbar = FenixSnackbar.make(
-                    view = requireActivity().getRootView()!!,
-                    isDisplayedWithBrowserToolbar = true,
-                ),
                 navController = findNavController(),
                 sendTabUseCases = SendTabUseCases(accountManager),
                 saveToPdfUseCase = requireComponents.useCases.sessionUseCases.saveToPdf,

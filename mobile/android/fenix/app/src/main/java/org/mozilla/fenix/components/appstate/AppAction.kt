@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.appstate
 
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.concept.sync.TabData
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.lib.crash.Crash.NativeCodeCrash
@@ -407,6 +408,43 @@ sealed class AppAction : Action {
          * [ShortcutAction] dispatched when a shortcut is removed.
          */
         data object ShortcutRemoved : ShortcutAction()
+    }
+
+    /**
+     * [AppAction]s related to the share feature.
+     */
+    sealed class ShareAction : AppAction() {
+        /**
+         * [ShareAction] dispatched when sharing to an application failed.
+         */
+        data object ShareToAppFailed : ShareAction()
+
+        /**
+         * [ShareAction] dispatched when sharing tabs to other connected devices was successful.
+         *
+         * @property destination List of device IDs with which tabs were shared.
+         * @property tabs List of tabs that were shared.
+         */
+        data class SharedTabsSuccessfully(
+            val destination: List<String>,
+            val tabs: List<TabData>,
+        ) : ShareAction()
+
+        /**
+         * [ShareAction] dispatched when sharing tabs to other connected devices failed.
+         *
+         * @property destination List of device IDs with which tabs were tried to be shared.
+         * @property tabs List of tabs that were tried to be shared.
+         */
+        data class ShareTabsFailed(
+            val destination: List<String>,
+            val tabs: List<TabData>,
+        ) : ShareAction()
+
+        /**
+         * [ShareAction] dispatched when a link is copied to the clipboard.
+         */
+        data object CopyLinkToClipboard : ShareAction()
     }
 
     /**
