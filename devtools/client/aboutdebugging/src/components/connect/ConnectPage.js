@@ -180,6 +180,10 @@ class ConnectPage extends PureComponent {
               },
               {
                 localizationId:
+                  "about-debugging-setup-usb-step-enable-file-transfer",
+              },
+              {
+                localizationId:
                   "about-debugging-setup-usb-step-enable-debug-firefox2",
               },
               {

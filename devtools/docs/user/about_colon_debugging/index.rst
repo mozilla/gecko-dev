@@ -42,9 +42,24 @@ Firefox supports debugging over USB with Android devices, using the about:debugg
 
 Before you connect:
 
+0. Ensure clicking once on "Enable USB Devices" in about:debugging homepage.
+
+.. image:: about_debugging_home.png
+  :class: border
+
 1. Enable Developer settings on your Android device.
-2. Enable USB debugging in the Android Developer settings.
+   Press 7 times on "Build Number" from your "About your phone" in the device settings app.
+2. Enable "USB debugging" in the Android Developer settings.
+   `Detailed guide for 1. and 2. <https://developer.android.com/studio/debug/dev-options>`_
+
+.. image:: android_usb_debugging.png
+  :class: border
+
 3. Enable **Remote Debugging via USB** in the Advanced Settings in Firefox on the Android device.
+
+.. image:: android_firefox_debugging_option.png
+  :class: border
+
 4. Connect the Android device to your computer using a USB cable.
    If a USB cable is not available, :ref:`connect to Android over Wi-Fi <about-colon-debugging-connecting-to-android-over-wi-fi>`.
 

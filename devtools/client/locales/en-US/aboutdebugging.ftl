@@ -140,6 +140,9 @@ about-debugging-setup-usb-step-enable-dev-menu2 = Enable Developer menu on your 
 about-debugging-setup-usb-step-enable-debug2 = Enable USB Debugging in the Android Developer Menu.
 
 # USB section step by step guide
+about-debugging-setup-usb-step-enable-file-transfer = Enable file transfer and ensure that your device is not in charging-only mode.
+
+# USB section step by step guide
 about-debugging-setup-usb-step-enable-debug-firefox2 = Enable USB Debugging in Firefox on the Android device.
 
 # USB section step by step guide
