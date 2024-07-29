@@ -667,7 +667,7 @@ again:
 static JitFrameLayout* GetLastProfilingFrame(ResumeFromException* rfe) {
   switch (rfe->kind) {
     case ExceptionResumeKind::EntryFrame:
-    case ExceptionResumeKind::Wasm:
+    case ExceptionResumeKind::WasmInterpEntry:
     case ExceptionResumeKind::WasmCatch:
       return nullptr;
 
@@ -851,13 +851,13 @@ void HandleException(ResumeFromException* rfe) {
         iter.asJSJit().fp() + CommonFrameLayout::offsetOfReturnAddress();
   } else {
     MOZ_ASSERT(iter.isWasm());
-    // In case of no handler, exit wasm via ret().
-    // FailInstanceReg signals to the interpreter entry stub to do a failure
-    // return.
-    rfe->kind = ExceptionResumeKind::Wasm;
+    // In case of no handler, exit wasm via ret(). The exception handling
+    // trampoline will return InterpFailInstanceReg in InstanceReg to signal
+    // to the interpreter entry stub to do a failure return.
+    rfe->kind = ExceptionResumeKind::WasmInterpEntry;
     rfe->framePointer = (uint8_t*)iter.asWasm().unwoundCallerFP();
     rfe->stackPointer = (uint8_t*)iter.asWasm().unwoundAddressOfReturnAddress();
-    rfe->instance = (wasm::Instance*)wasm::FailInstanceReg;
+    rfe->instance = nullptr;
     rfe->target = nullptr;
   }
 }

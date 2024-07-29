@@ -760,10 +760,10 @@ static bool GenerateInterpEntry(MacroAssembler& masm, const FuncExport& fe,
   CallFuncExport(masm, fe, funcPtr);
   masm.assertStackAlignment(WasmStackAlignment);
 
-  // Set the return value based on whether InstanceReg is the FailInstanceReg
-  // magic value (set by the throw stub).
+  // Set the return value based on whether InstanceReg is the
+  // InterpFailInstanceReg magic value (set by the exception handler).
   Label success, join;
-  masm.branchPtr(Assembler::NotEqual, InstanceReg, Imm32(FailInstanceReg),
+  masm.branchPtr(Assembler::NotEqual, InstanceReg, Imm32(InterpFailInstanceReg),
                  &success);
   masm.move32(Imm32(false), scratch);
   masm.jump(&join);
@@ -1198,13 +1198,6 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
   CallFuncExport(masm, fe, funcPtr);
   masm.assertStackAlignment(WasmStackAlignment);
 
-  // If InstanceReg is equal to the FailInstanceReg magic value (set by the
-  // throw stub), then report the exception to the JIT caller by jumping into
-  // the exception stub.
-  Label exception;
-  masm.branchPtr(Assembler::Equal, InstanceReg, Imm32(FailInstanceReg),
-                 &exception);
-
   // Pop arguments.
   masm.freeStackTo(frameSize - frameSizeExclFP);
 
@@ -1212,6 +1205,7 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
             fe.funcIndex());
 
   // Store the return value in the JSReturnOperand.
+  Label exception;
   const ValTypeVector& results = funcType.results();
   if (results.length() == 0) {
     GenPrintf(DebugChannel::Function, masm, "void");
@@ -1278,7 +1272,8 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
   MOZ_ASSERT(masm.framePushed() == 0);
 
   // Generate an OOL call to the C++ conversion path.
-  if (funcType.args().length()) {
+  bool hasFallThroughForException = false;
+  if (oolCall.used()) {
     masm.bind(&oolCall);
     masm.setFramePushed(frameSize);
 
@@ -1323,13 +1318,16 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
     // No widening is required, as the return value is used as a bool.
     masm.branchTest32(Assembler::NonZero, ReturnReg, ReturnReg,
                       &rejoinBeforeCall);
+    hasFallThroughForException = true;
   }
 
   // Prepare to throw: reload InstanceReg from the frame.
   masm.bind(&exception);
   masm.setFramePushed(frameSize);
-  masm.freeStackTo(frameSize);
-  GenerateJitEntryThrow(masm, frameSize);
+  if (exception.used() || hasFallThroughForException) {
+    masm.freeStackTo(frameSize);
+    GenerateJitEntryThrow(masm, frameSize);
+  }
 
   return FinishOffsets(masm, offsets);
 }
@@ -1506,9 +1504,6 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
 #endif
   masm.freeStackTo(fakeFramePushed);
   masm.assertStackAlignment(WasmStackAlignment);
-
-  masm.branchPtr(Assembler::Equal, InstanceReg, Imm32(wasm::FailInstanceReg),
-                 masm.exceptionLabel());
 
   // Store the return value in the appropriate place.
   GenPrintf(DebugChannel::Function, masm, "wasm-function[%d]; returns ",

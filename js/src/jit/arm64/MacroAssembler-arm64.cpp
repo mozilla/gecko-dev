@@ -212,7 +212,7 @@ void MacroAssemblerCompat::handleFailureWithHandlerTail(
   Label returnBaseline;
   Label returnIon;
   Label bailout;
-  Label wasm;
+  Label wasmInterpEntry;
   Label wasmCatch;
 
   // Check the `asMasm` calls above didn't mess with the StackPointer identity.
@@ -232,8 +232,9 @@ void MacroAssemblerCompat::handleFailureWithHandlerTail(
                     Imm32(ExceptionResumeKind::ForcedReturnIon), &returnIon);
   asMasm().branch32(Assembler::Equal, r0, Imm32(ExceptionResumeKind::Bailout),
                     &bailout);
-  asMasm().branch32(Assembler::Equal, r0, Imm32(ExceptionResumeKind::Wasm),
-                    &wasm);
+  asMasm().branch32(Assembler::Equal, r0,
+                    Imm32(ExceptionResumeKind::WasmInterpEntry),
+                    &wasmInterpEntry);
   asMasm().branch32(Assembler::Equal, r0, Imm32(ExceptionResumeKind::WasmCatch),
                     &wasmCatch);
 
@@ -368,17 +369,16 @@ void MacroAssemblerCompat::handleFailureWithHandlerTail(
   Mov(x0, 1);
   jump(bailoutTail);
 
-  // If we are throwing and the innermost frame was a wasm frame, reset SP and
-  // FP; SP is pointing to the unwound return address to the wasm entry, so
-  // we can just ret().
-  bind(&wasm);
+  // Reset SP and FP; SP is pointing to the unwound return address to the wasm
+  // interpreter entry, so we can just ret().
+  bind(&wasmInterpEntry);
   Ldr(x29, MemOperand(PseudoStackPointer64,
                       ResumeFromException::offsetOfFramePointer()));
   Ldr(PseudoStackPointer64,
       MemOperand(PseudoStackPointer64,
                  ResumeFromException::offsetOfStackPointer()));
   syncStackPtr();
-  Mov(x23, int64_t(wasm::FailInstanceReg));
+  Mov(x23, int64_t(wasm::InterpFailInstanceReg));
   ret();
 
   // Found a wasm catch handler, restore state and jump to it.

@@ -6128,8 +6128,10 @@ error:
       case ExceptionResumeKind::Bailout:
         MOZ_CRASH(
             "Unexpected Bailout exception-resume kind in Portable Baseline");
-      case ExceptionResumeKind::Wasm:
-        MOZ_CRASH("Unexpected Wasm exception-resume kind in Portable Baseline");
+      case ExceptionResumeKind::WasmInterpEntry:
+        MOZ_CRASH(
+            "Unexpected WasmInterpEntry exception-resume kind in Portable "
+            "Baseline");
       case ExceptionResumeKind::WasmCatch:
         MOZ_CRASH(
             "Unexpected WasmCatch exception-resume kind in Portable "

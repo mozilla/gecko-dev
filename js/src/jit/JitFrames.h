@@ -113,9 +113,8 @@ enum class ExceptionResumeKind : int32_t {
   // Jump to the bailout tail stub.
   Bailout,
 
-  // The innermost frame was a wasm frame.
-  // Return to the wasm entry frame.
-  Wasm,
+  // Return to the wasm interpreter entry frame.
+  WasmInterpEntry,
 
   // The exception was caught by a wasm catch handler.
   // Restore state and jump to it.
