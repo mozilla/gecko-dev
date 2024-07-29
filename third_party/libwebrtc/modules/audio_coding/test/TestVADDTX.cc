@@ -177,7 +177,10 @@ void TestVadDtx::Run(absl::string_view in_filename,
 TestWebRtcVadDtx::TestWebRtcVadDtx() : output_file_num_(0) {}
 
 void TestWebRtcVadDtx::Perform() {
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove iLBC.
+#if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
   RunTestCases({"ILBC", 8000, 1});
+#endif
   RunTestCases({"opus", 48000, 2});
 }
 

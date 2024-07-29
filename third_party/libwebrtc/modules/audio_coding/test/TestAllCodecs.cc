@@ -152,6 +152,9 @@ void TestAllCodecs::Perform() {
 
   // All codecs are tested for all allowed sampling frequencies, rates and
   // packet sizes.
+
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.
+#if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
   test_count_++;
   OpenOutFile(test_count_);
   char codec_g722[] = "G722";
@@ -168,6 +171,9 @@ void TestAllCodecs::Perform() {
   RegisterSendCodec(codec_g722, 16000, 64000, 960, 0);
   Run(channel_a_to_b_);
   outfile_b_.Close();
+#endif
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove iLBC.
+#if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
 #ifdef WEBRTC_CODEC_ILBC
   test_count_++;
   OpenOutFile(test_count_);
@@ -181,6 +187,7 @@ void TestAllCodecs::Perform() {
   RegisterSendCodec(codec_ilbc, 8000, 15200, 320, 0);
   Run(channel_a_to_b_);
   outfile_b_.Close();
+#endif
 #endif
   test_count_++;
   OpenOutFile(test_count_);

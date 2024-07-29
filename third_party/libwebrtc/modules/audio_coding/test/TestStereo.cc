@@ -170,6 +170,8 @@ void TestStereo::Perform() {
   audio_channels = 2;
   codec_channels = 2;
 
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.
+#if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
   // All codecs are tested for all allowed sampling frequencies, rates and
   // packet sizes.
   channel_a2b_->set_codec_mode(kStereo);
@@ -189,6 +191,7 @@ void TestStereo::Perform() {
   RegisterSendCodec('A', codec_g722, 16000, 64000, 960, codec_channels);
   Run(channel_a2b_, audio_channels, codec_channels);
   out_file_.Close();
+#endif
 
   channel_a2b_->set_codec_mode(kStereo);
   test_cntr_++;
@@ -294,12 +297,15 @@ void TestStereo::Perform() {
   audio_channels = 1;
   codec_channels = 2;
 
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.
+#if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
   test_cntr_++;
   channel_a2b_->set_codec_mode(kStereo);
   OpenOutFile(test_cntr_);
   RegisterSendCodec('A', codec_g722, 16000, 64000, 160, codec_channels);
   Run(channel_a2b_, audio_channels, codec_channels);
   out_file_.Close();
+#endif
 
   test_cntr_++;
   channel_a2b_->set_codec_mode(kStereo);
@@ -350,12 +356,15 @@ void TestStereo::Perform() {
   codec_channels = 1;
   channel_a2b_->set_codec_mode(kMono);
 
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.
+#if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
   // Run stereo audio and mono codec.
   test_cntr_++;
   OpenOutFile(test_cntr_);
   RegisterSendCodec('A', codec_g722, 16000, 64000, 160, codec_channels);
   Run(channel_a2b_, audio_channels, codec_channels);
   out_file_.Close();
+#endif
 
   test_cntr_++;
   OpenOutFile(test_cntr_);

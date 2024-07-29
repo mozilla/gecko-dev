@@ -77,6 +77,8 @@ void TestRedFec::Perform() {
   Run();
   _outFileB.Close();
 
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.
+#if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
   // Switch to a 16 kHz codec; RED should be switched off.
   RegisterSendCodec(_acmA, {"G722", 8000, 1}, Vad::kVadAggressive, false);
 
@@ -96,6 +98,7 @@ void TestRedFec::Perform() {
   OpenOutFile(_testCntr);
   Run();
   _outFileB.Close();
+#endif
 
   RegisterSendCodec(_acmA, {"opus", 48000, 2}, absl::nullopt, false);
 
