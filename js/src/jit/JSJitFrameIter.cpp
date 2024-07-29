@@ -39,14 +39,18 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation)
 }
 
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
-                               FrameType frameType, uint8_t* fp)
+                               FrameType frameType, uint8_t* fp, bool unwinding)
     : current_(fp), type_(frameType), activation_(activation) {
   // This constructor is only used when resuming iteration after iterating Wasm
   // frames in the same JitActivation so ignore activation_->bailoutData().
   //
   // Note: FrameType::JSJitToWasm is used for JIT => Wasm calls through the Wasm
   // JIT entry trampoline. FrameType::Exit is used for direct Ion => Wasm calls.
-  MOZ_ASSERT(fp > activation->jsOrWasmExitFP());
+  if (unwinding) {
+    MOZ_ASSERT(fp == activation->jsExitFP());
+  } else {
+    MOZ_ASSERT(fp > activation->jsOrWasmExitFP());
+  }
   MOZ_ASSERT(type_ == FrameType::JSJitToWasm || type_ == FrameType::Exit);
   MOZ_ASSERT(!TlsContext.get()->inUnsafeCallWithABI);
 }

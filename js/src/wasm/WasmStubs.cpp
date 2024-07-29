@@ -2727,14 +2727,10 @@ void wasm::GenerateJumpToCatchHandler(MacroAssembler& masm, Register rfe,
   masm.jump(scratch1);
 }
 
-// Generate a stub that restores the stack pointer to what it was on entry to
-// the wasm activation, sets the return register to 'false' and then executes a
-// return which will return from this wasm activation to the caller. This stub
-// should only be called after the caller has reported an error.
+// Generate a stub that calls the C++ exception handler.
 static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
                               Offsets* offsets) {
   Register scratch1 = ABINonArgReturnReg0;
-  Register scratch2 = ABINonArgReturnReg1;
 
   AssertExpectedSP(masm);
   masm.haltingAlign(CodeAlignment);
@@ -2774,46 +2770,23 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
   i++;
   MOZ_ASSERT(i.done());
 
-  // WasmHandleThrow unwinds JitActivation::wasmExitFP() and returns the
-  // address of the return address on the stack this stub should return to.
-  // Set the FramePointer to a magic value to indicate a return by throw.
+  // WasmHandleThrow unwinds JitActivation::wasmExitFP() and initializes the
+  // ResumeFromException struct we allocated on the stack.
   //
-  // If there is a Wasm catch handler present, it will instead return the
-  // address of the handler to jump to and the FP/SP values to restore.
+  // It returns the address of the JIT's exception handler trampoline that we
+  // should jump to. This trampoline will return to the interpreter entry or
+  // jump to a catch handler.
   masm.call(SymbolicAddress::HandleThrow);
 
-  Label resumeCatch, leaveWasm;
+  // Ensure the ResumeFromException struct is on top of the stack.
+  masm.freeStack(frameSize);
 
-  masm.load32(Address(ReturnReg, offsetof(jit::ResumeFromException, kind)),
-              scratch1);
-
-  masm.branch32(Assembler::Equal, scratch1,
-                Imm32(jit::ExceptionResumeKind::WasmCatch), &resumeCatch);
-  masm.branch32(Assembler::Equal, scratch1,
-                Imm32(jit::ExceptionResumeKind::Wasm), &leaveWasm);
-
-  masm.breakpoint();
-
-  // The case where a Wasm catch handler was found while unwinding the stack.
-  masm.bind(&resumeCatch);
-  GenerateJumpToCatchHandler(masm, ReturnReg, scratch1, scratch2);
-
-  // No catch handler was found, so we will just return out.
-  masm.bind(&leaveWasm);
-  masm.loadPtr(Address(ReturnReg, ResumeFromException::offsetOfFramePointer()),
-               FramePointer);
-  masm.loadPtr(Address(ReturnReg, ResumeFromException::offsetOfInstance()),
-               InstanceReg);
-  masm.loadPtr(Address(ReturnReg, ResumeFromException::offsetOfStackPointer()),
-               scratch1);
-  masm.moveToStackPtr(scratch1);
+  // Jump to the "return value check" code of the JIT's exception handler
+  // trampoline. On ARM64 ensure PSP matches SP.
 #ifdef JS_CODEGEN_ARM64
-  masm.loadPtr(Address(scratch1, 0), lr);
-  masm.addToStackPtr(Imm32(8));
-  masm.abiret();
-#else
-  masm.ret();
+  masm.Mov(PseudoStackPointer64, sp);
 #endif
+  masm.jump(ReturnReg);
 
   return FinishOffsets(masm, offsets);
 }

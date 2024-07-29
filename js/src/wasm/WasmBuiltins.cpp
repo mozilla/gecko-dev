@@ -27,6 +27,7 @@
 
 #include "jit/AtomicOperations.h"
 #include "jit/InlinableNatives.h"
+#include "jit/JitRuntime.h"
 #include "jit/MacroAssembler.h"
 #include "jit/ProcessExecutableMemory.h"
 #include "jit/Simulator.h"
@@ -712,10 +713,15 @@ static void WasmHandleRequestTierUp(Instance* instance) {
 // This function will look for try-catch handlers and, if not trapping or
 // throwing an uncatchable exception, will write the handler info in |*rfe|.
 //
-// If no try-catch handler is found, initialize |*rfe| for a return to the entry
-// frame that called into Wasm.
-void wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
-                       jit::ResumeFromException* rfe) {
+// If no try-catch handler is found, return to the caller to continue unwinding
+// JS JIT frames.
+void wasm::HandleExceptionWasm(JSContext* cx, JitFrameIter& iter,
+                               jit::ResumeFromException* rfe) {
+  MOZ_ASSERT(iter.isWasm());
+  MOZ_ASSERT(CallingActivation(cx) == iter.activation());
+  MOZ_ASSERT(cx->activation()->asJit()->hasWasmExitFP());
+  MOZ_ASSERT(rfe->kind == ExceptionResumeKind::EntryFrame);
+
   // WasmFrameIter iterates down wasm frames in the activation starting at
   // JitActivation::wasmExitFP(). Calling WasmFrameIter::startUnwinding pops
   // JitActivation::wasmExitFP() once each time WasmFrameIter is incremented,
@@ -724,7 +730,6 @@ void wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
   // we just called onLeaveFrame (which would lead to the frame being re-added
   // to the map of live frames, right as it becomes trash).
 
-  MOZ_ASSERT(CallingActivation(cx) == iter.activation());
 #ifdef DEBUG
   auto onExit = mozilla::MakeScopeExit([cx] {
     MOZ_ASSERT(!cx->activation()->asJit()->isWasmTrapping(),
@@ -735,31 +740,22 @@ void wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
 #endif
 
   MOZ_ASSERT(!iter.done());
-  iter.setUnwind(WasmFrameIter::Unwind::True);
-
-  // Live wasm code on the stack is kept alive (in TraceJitActivation) by
-  // marking the instance of every wasm::Frame found by WasmFrameIter.
-  // However, as explained above, we're popping frames while iterating which
-  // means that a GC during this loop could collect the code of frames whose
-  // code is still on the stack. This is actually mostly fine: as soon as we
-  // return to the throw stub, the entire stack will be popped as a whole,
-  // returning to the C++ caller. However, we must keep the throw stub alive
-  // itself which is owned by the innermost instance.
-  Rooted<WasmInstanceObject*> keepAlive(cx, iter.instance()->object());
+  iter.asWasm().setUnwind(WasmFrameIter::Unwind::True);
 
   JitActivation* activation = CallingActivation(cx);
   Rooted<WasmExceptionObject*> wasmExn(cx,
                                        GetOrWrapWasmException(activation, cx));
 
-  for (; !iter.done(); ++iter) {
+  for (; !iter.done() && iter.isWasm(); ++iter) {
     // Wasm code can enter same-compartment realms, so reset cx->realm to
     // this frame's realm.
-    cx->setRealmForJitExceptionHandler(iter.instance()->realm());
+    WasmFrameIter& wasmFrame = iter.asWasm();
+    cx->setRealmForJitExceptionHandler(wasmFrame.instance()->realm());
 
     // Only look for an exception handler if there's a catchable exception.
     if (wasmExn) {
-      const wasm::Code& code = iter.instance()->code();
-      const uint8_t* pc = iter.resumePCinCurrentFrame();
+      const wasm::Code& code = wasmFrame.instance()->code();
+      const uint8_t* pc = wasmFrame.resumePCinCurrentFrame();
       const wasm::CodeBlock* codeBlock = nullptr;
       const wasm::TryNote* tryNote =
           FindNonDelegateTryNote(code, pc, &codeBlock);
@@ -775,12 +771,11 @@ void wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
 #endif
 
         cx->clearPendingException();
-        MOZ_ASSERT(iter.instance() == iter.instance());
-        iter.instance()->setPendingException(wasmExn);
+        wasmFrame.instance()->setPendingException(wasmExn);
 
         rfe->kind = ExceptionResumeKind::WasmCatch;
-        rfe->framePointer = (uint8_t*)iter.frame();
-        rfe->instance = iter.instance();
+        rfe->framePointer = (uint8_t*)wasmFrame.frame();
+        rfe->instance = wasmFrame.instance();
 
         rfe->stackPointer =
             (uint8_t*)(rfe->framePointer - tryNote->landingPadFramePushed());
@@ -796,11 +791,11 @@ void wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
       }
     }
 
-    if (!iter.debugEnabled()) {
+    if (!wasmFrame.debugEnabled()) {
       continue;
     }
 
-    DebugFrame* frame = iter.debugFrame();
+    DebugFrame* frame = wasmFrame.debugFrame();
     frame->clearReturnJSValue();
 
     // Assume ResumeMode::Terminate if no exception is pending --
@@ -842,24 +837,14 @@ void wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
                        .isWrappedJSValue());
   }
 #endif
-
-  // In case of no handler, exit wasm via ret().
-  // FailInstanceReg signals to wasm stub to do a failure return.
-  rfe->kind = ExceptionResumeKind::Wasm;
-  rfe->framePointer = (uint8_t*)iter.unwoundCallerFP();
-  rfe->stackPointer = (uint8_t*)iter.unwoundAddressOfReturnAddress();
-  rfe->instance = (Instance*)FailInstanceReg;
-  rfe->target = nullptr;
 }
 
 static void* WasmHandleThrow(jit::ResumeFromException* rfe) {
-  JSContext* cx = TlsContext.get();  // Cold code
-  JitActivation* activation = CallingActivation(cx);
-  WasmFrameIter iter(activation);
-  // We can ignore the return result here because the throw stub code
-  // can just check the resume kind to see if a handler was found or not.
-  HandleThrow(cx, iter, rfe);
-  return rfe;
+  jit::HandleException(rfe);
+  // Return a pointer to the exception handler trampoline code to jump to from
+  // the throw stub.
+  JSContext* cx = TlsContext.get();
+  return cx->runtime()->jitRuntime()->getExceptionTailReturnValueCheck().value;
 }
 
 // Has the same return-value convention as HandleTrap().

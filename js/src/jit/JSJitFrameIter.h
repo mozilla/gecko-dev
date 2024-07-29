@@ -134,7 +134,7 @@ class JSJitFrameIter {
   // A constructor specialized for jit->wasm frames, which starts at a
   // specific FP.
   JSJitFrameIter(const JitActivation* activation, FrameType frameType,
-                 uint8_t* fp);
+                 uint8_t* fp, bool unwinding);
 
   void setResumePCInCurrentFrame(uint8_t* newAddr) {
     resumePCinCurrentFrame_ = newAddr;

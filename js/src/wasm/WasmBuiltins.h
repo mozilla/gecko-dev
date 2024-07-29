@@ -24,6 +24,7 @@
 #include "wasm/WasmBuiltinModuleGenerated.h"
 
 namespace js {
+class JitFrameIter;
 namespace jit {
 class AutoMarkJitCodeWritableForThread;
 struct ResumeFromException;
@@ -317,8 +318,8 @@ bool EnsureBuiltinThunksInitialized();
 bool EnsureBuiltinThunksInitialized(
     jit::AutoMarkJitCodeWritableForThread& writable);
 
-void HandleThrow(JSContext* cx, WasmFrameIter& iter,
-                 jit::ResumeFromException* rfe);
+void HandleExceptionWasm(JSContext* cx, JitFrameIter& iter,
+                         jit::ResumeFromException* rfe);
 
 void* SymbolicAddressTarget(SymbolicAddress sym);
 

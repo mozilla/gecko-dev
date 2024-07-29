@@ -209,7 +209,8 @@ void JitFrameIter::settle() {
     }
 
     iter_.destroy();
-    iter_.construct<jit::JSJitFrameIter>(act_, prevFrameType, prevFP);
+    iter_.construct<jit::JSJitFrameIter>(act_, prevFrameType, prevFP,
+                                         mustUnwindActivation_);
     MOZ_ASSERT(!asJSJit().done());
     return;
   }

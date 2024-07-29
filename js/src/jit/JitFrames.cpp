@@ -688,12 +688,6 @@ static JitFrameLayout* GetLastProfilingFrame(ResumeFromException* rfe) {
   return nullptr;
 }
 
-static void HandleExceptionWasm(JSContext* cx, wasm::WasmFrameIter* iter,
-                                ResumeFromException* rfe) {
-  MOZ_ASSERT(cx->activation()->asJit()->hasWasmExitFP());
-  wasm::HandleThrow(cx, *iter, rfe);
-}
-
 void HandleException(ResumeFromException* rfe) {
   JSContext* cx = TlsContext.get();
 
@@ -737,20 +731,34 @@ void HandleException(ResumeFromException* rfe) {
 
   JitFrameIter iter(cx->activation()->asJit(),
                     /* mustUnwindActivation = */ true);
+
+  // Live wasm code on the stack is kept alive (in TraceJitActivation) by
+  // marking the instance of every wasm::Frame found by WasmFrameIter.
+  // However, we're going to pop frames while iterating which means that a GC
+  // during this loop could collect the code of frames whose code is still on
+  // the stack.
+  //
+  // This is actually mostly fine: after we return to the Wasm throw stub, we'll
+  // jump to the JIT's exception handling trampoline. However, we must keep the
+  // throw stub alive itself which is owned by the innermost instance.
+  Rooted<WasmInstanceObject*> keepAlive(cx);
+  if (iter.isWasm()) {
+    keepAlive = iter.asWasm().instance()->object();
+  }
+
   CommonFrameLayout* prevJitFrame = nullptr;
   while (!iter.done()) {
     if (iter.isWasm()) {
       prevJitFrame = nullptr;
-      HandleExceptionWasm(cx, &iter.asWasm(), rfe);
+      wasm::HandleExceptionWasm(cx, iter, rfe);
       if (rfe->kind == ExceptionResumeKind::WasmCatch) {
         // Jump to a Wasm try-catch handler.
-        MOZ_ASSERT(!iter.done());
-      } else {
-        // Return to the Wasm entry frame.
-        MOZ_ASSERT(rfe->kind == ExceptionResumeKind::Wasm);
-        MOZ_ASSERT(iter.done());
+        return;
       }
-      return;
+      // We either reached a JS JIT frame or we stopped at the activation's Wasm
+      // interpreter entry frame.
+      MOZ_ASSERT(iter.isJSJit() || (iter.isWasm() && iter.done()));
+      continue;
     }
 
     JSJitFrameIter& frame = iter.asJSJit();
@@ -835,12 +843,22 @@ void HandleException(ResumeFromException* rfe) {
     ++iter;
   }
 
-  // Wasm sets its own value of SP in HandleExceptionWasm.
+  // Return to C++ code by returning to the activation's JS or Wasm entry frame.
   if (iter.isJSJit()) {
     MOZ_ASSERT(rfe->kind == ExceptionResumeKind::EntryFrame);
     rfe->framePointer = iter.asJSJit().current()->callerFramePtr();
     rfe->stackPointer =
         iter.asJSJit().fp() + CommonFrameLayout::offsetOfReturnAddress();
+  } else {
+    MOZ_ASSERT(iter.isWasm());
+    // In case of no handler, exit wasm via ret().
+    // FailInstanceReg signals to the interpreter entry stub to do a failure
+    // return.
+    rfe->kind = ExceptionResumeKind::Wasm;
+    rfe->framePointer = (uint8_t*)iter.asWasm().unwoundCallerFP();
+    rfe->stackPointer = (uint8_t*)iter.asWasm().unwoundAddressOfReturnAddress();
+    rfe->instance = (wasm::Instance*)wasm::FailInstanceReg;
+    rfe->target = nullptr;
   }
 }
 
