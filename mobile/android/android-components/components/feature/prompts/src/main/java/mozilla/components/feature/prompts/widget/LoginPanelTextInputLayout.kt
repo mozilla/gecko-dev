@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.withStyledAttributes
 import com.google.android.material.textfield.TextInputLayout
 import mozilla.components.feature.prompts.R
+import mozilla.components.support.ktx.android.content.getColorFromAttr
 
 internal class LoginPanelTextInputLayout(
     context: Context,
@@ -32,10 +33,7 @@ internal class LoginPanelTextInputLayout(
         ) {
 
             defaultHintTextColor = ColorStateList.valueOf(
-                ContextCompat.getColor(
-                    context,
-                    R.color.mozacBoxStrokeColor,
-                ),
+                context.getColorFromAttr(android.R.attr.textColorPrimary),
             )
 
             getColorOrNull(R.styleable.LoginPanelTextInputLayout_mozacInputLayoutErrorTextColor)?.let { color ->
