@@ -69,6 +69,8 @@ class Repackage(BaseScript):
             "sfx-stub": config.get("sfx-stub"),
             "installer-tag": config["installer-tag"],
             "stub-installer-tag": config["stub-installer-tag"],
+            "deb-templates": config["deb-templates"],
+            "deb-l10n-templates": config["deb-l10n-templates"],
             "wsx-stub": config["wsx-stub"],
         }
         subst.update(dirs)
