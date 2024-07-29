@@ -136,6 +136,7 @@ class JitRuntime {
 
   // Shared exception-handler tail.
   WriteOnceData<uint32_t> exceptionTailOffset_{0};
+  WriteOnceData<uint32_t> exceptionTailReturnValueCheckOffset_{0};
 
   // Shared profiler exit frame tail.
   WriteOnceData<uint32_t> profilerExitFrameTailOffset_{0};
@@ -366,6 +367,9 @@ class JitRuntime {
 
   TrampolinePtr getExceptionTail() const {
     return trampolineCode(exceptionTailOffset_);
+  }
+  TrampolinePtr getExceptionTailReturnValueCheck() const {
+    return trampolineCode(exceptionTailReturnValueCheckOffset_);
   }
 
   TrampolinePtr getProfilerExitFrameTail() const {

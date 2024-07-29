@@ -1862,7 +1862,8 @@ void MacroAssemblerRiscv64Compat::popValue(ValueOperand val) {
 void MacroAssemblerRiscv64Compat::breakpoint(uint32_t value) { break_(value); }
 
 void MacroAssemblerRiscv64Compat::handleFailureWithHandlerTail(
-    Label* profilerExitTail, Label* bailoutTail) {
+    Label* profilerExitTail, Label* bailoutTail,
+    uint32_t* returnValueCheckOffset) {
   // Reserve space for exception information.
   int size = (sizeof(ResumeFromException) + ABIStackAlignment) &
              ~(ABIStackAlignment - 1);
@@ -1875,6 +1876,8 @@ void MacroAssemblerRiscv64Compat::handleFailureWithHandlerTail(
   asMasm().passABIArg(a0);
   asMasm().callWithABI<Fn, HandleException>(
       ABIType::General, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+
+  *returnValueCheckOffset = asMasm().currentOffset();
 
   Label entryFrame;
   Label catch_;
