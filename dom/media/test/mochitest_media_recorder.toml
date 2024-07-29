@@ -729,6 +729,7 @@ skip-if = ["os == 'android'"] # android(bug 1232305)
 skip-if = [
   "os == 'win' && os_version == '10.2009'", # Bug 1453375
   "os == 'android'", # Bug 1694645
+  "os == 'mac' && os_version == '14.40'",  # Bug 1909908
 ]
 
 ["test_mediarecorder_record_4ch_audiocontext.html"]
