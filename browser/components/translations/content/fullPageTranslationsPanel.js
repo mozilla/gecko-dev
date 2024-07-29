@@ -262,6 +262,7 @@ var FullPageTranslationsPanel = new (class {
       wrapper.replaceWith(wrapper.content);
 
       panel.addEventListener("command", this);
+      panel.addEventListener("click", this);
 
       const settingsButton = document.getElementById(
         "translations-panel-settings"
@@ -1414,6 +1415,17 @@ var FullPageTranslationsPanel = new (class {
           case "full-page-translations-panel-change-source-language":
             this.onChangeSourceLanguage(event);
             break;
+        }
+        break;
+      }
+      case "click": {
+        switch (event.target.id) {
+          case "full-page-translations-panel-intro-learn-more-link":
+          case "full-page-translations-panel-unsupported-learn-more-link":
+            FullPageTranslationsPanel.onLearnMoreLink();
+            break;
+          default:
+            this.handlePanelButtonEvent(event);
         }
         break;
       }
