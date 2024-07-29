@@ -1003,8 +1003,7 @@ class ContentParent final : public PContentParent,
       nsIURI* uri, nsIPrincipal* triggeringPrincipal,
       nsIPrincipal* redirectPrincipal,
       const MaybeDiscarded<BrowsingContext>& aContext,
-      bool aWasExternallyTriggered, bool aHasValidUserGestureActivation,
-      bool aNewWindowTarget);
+      bool aWasExternallyTriggered, bool aHasValidUserGestureActivation);
   mozilla::ipc::IPCResult RecvExtProtocolChannelConnectParent(
       const uint64_t& registrarId);
 

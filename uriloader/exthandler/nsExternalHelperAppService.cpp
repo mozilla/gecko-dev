@@ -1017,14 +1017,13 @@ nsExternalHelperAppService::LoadURI(nsIURI* aURI,
                                     nsIPrincipal* aRedirectPrincipal,
                                     BrowsingContext* aBrowsingContext,
                                     bool aTriggeredExternally,
-                                    bool aHasValidUserGestureActivation,
-                                    bool aNewWindowTarget) {
+                                    bool aHasValidUserGestureActivation) {
   NS_ENSURE_ARG_POINTER(aURI);
 
   if (XRE_IsContentProcess()) {
     mozilla::dom::ContentChild::GetSingleton()->SendLoadURIExternal(
         aURI, aTriggeringPrincipal, aRedirectPrincipal, aBrowsingContext,
-        aTriggeredExternally, aHasValidUserGestureActivation, aNewWindowTarget);
+        aTriggeredExternally, aHasValidUserGestureActivation);
     return NS_OK;
   }
 
@@ -1101,11 +1100,12 @@ nsExternalHelperAppService::LoadURI(nsIURI* aURI,
     WindowGlobalParent* wgp = bc->Canonical()->GetCurrentWindowGlobal();
     bool foundAccessibleFrame = false;
 
-    // Don't block the load if it is the first load in a new window (e.g. due to
-    // a call to window.open, or a target=_blank link click).
-    if (aNewWindowTarget) {
-      MOZ_ASSERT(bc->IsTop());
-      foundAccessibleFrame = true;
+    // Also allow this load if the target is a toplevel BC and contains a
+    // non-web-controlled about:blank document
+    if (bc->IsTop() && !bc->GetTopLevelCreatedByWebContent() && wgp) {
+      RefPtr<nsIURI> uri = wgp->GetDocumentURI();
+      foundAccessibleFrame =
+          uri && uri->GetSpecOrDefault().EqualsLiteral("about:blank");
     }
 
     while (!foundAccessibleFrame) {
