@@ -88,7 +88,11 @@ var gSearchPane = {
     suggestsPref.on("change", updateSuggestionCheckboxes);
     urlbarSuggestsPref.on("change", updateSuggestionCheckboxes);
     let customizableUIListener = {
-      onWidgetAfterDOMChange: updateSuggestionCheckboxes,
+      onWidgetAfterDOMChange: node => {
+        if (node.id == "search-container") {
+          updateSuggestionCheckboxes();
+        }
+      },
     };
     lazy.CustomizableUI.addListener(customizableUIListener);
     window.addEventListener("unload", () => {
@@ -162,32 +166,29 @@ var gSearchPane = {
 
   _initShowSearchTermsCheckbox() {
     let checkbox = document.getElementById("searchShowSearchTermCheckbox");
-
-    // Add Nimbus event to show/hide checkbox.
-    let onNimbus = () => {
-      checkbox.hidden = !UrlbarPrefs.get("showSearchTermsFeatureGate");
-    };
-    NimbusFeatures.urlbar.onUpdate(onNimbus);
-
     let updateCheckboxHidden = () => {
       checkbox.hidden =
         !UrlbarPrefs.get("showSearchTermsFeatureGate") ||
         !!lazy.CustomizableUI.getPlacementOfWidget("search-container");
     };
 
-    // Add observer of CustomizableUI as showSearchTerms
-    // can't be shown/hidden while Search Bar is enabled.
+    // Add observer of CustomizableUI as showSearchTerms checkbox
+    // should be hidden while Search Bar is enabled.
     let customizableUIListener = {
-      onWidgetAfterDOMChange: updateCheckboxHidden,
+      onWidgetAfterDOMChange: node => {
+        if (node.id == "search-container") {
+          updateCheckboxHidden();
+        }
+      },
     };
     lazy.CustomizableUI.addListener(customizableUIListener);
+    NimbusFeatures.urlbar.onUpdate(updateCheckboxHidden);
 
     // Fire once to initialize.
-    onNimbus();
     updateCheckboxHidden();
 
     window.addEventListener("unload", () => {
-      NimbusFeatures.urlbar.offUpdate(onNimbus);
+      NimbusFeatures.urlbar.offUpdate(updateCheckboxHidden);
       lazy.CustomizableUI.removeListener(customizableUIListener);
     });
   },

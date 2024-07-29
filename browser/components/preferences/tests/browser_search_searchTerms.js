@@ -193,7 +193,6 @@ add_task(async function showSearchTerms_and_searchBar_preference_change() {
   );
 
   // Clean-up.
-  await SpecialPowers.popPrefEnv();
   gCUITestUtils.removeSearchBar();
   Assert.ok(!checkbox.hidden, "showSearchTerms checkbox should be shown.");
 
