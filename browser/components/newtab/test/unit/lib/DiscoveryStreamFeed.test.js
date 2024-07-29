@@ -86,6 +86,7 @@ describe("DiscoveryStreamFeed", () => {
           "discoverystream.spocs.personalized": true,
           "discoverystream.recs.personalized": true,
           "system.showSponsored": false,
+          "discoverystream.spocs.startupCache.enabled": true,
         },
       },
     });
@@ -613,7 +614,11 @@ describe("DiscoveryStreamFeed", () => {
     let fakeDiscoveryStream;
     beforeEach(() => {
       fakeDiscoveryStream = {
-        Prefs: {},
+        Prefs: {
+          values: {
+            "discoverystream.spocs.startupCache.enabled": true,
+          },
+        },
         DiscoveryStream: {
           layout: [
             { components: [{ feed: { url: "foo.com" } }] },
@@ -2755,9 +2760,7 @@ describe("DiscoveryStreamFeed", () => {
       feed.store.getState = () => ({
         Prefs: {
           values: {
-            pocketConfig: {
-              spocsCacheTimeout: 1,
-            },
+            "discoverystream.spocs.cacheTimeout": 1,
           },
         },
       });
@@ -2769,9 +2772,7 @@ describe("DiscoveryStreamFeed", () => {
       feed.store.getState = () => ({
         Prefs: {
           values: {
-            pocketConfig: {
-              spocsCacheTimeout: 31,
-            },
+            "discoverystream.spocs.cacheTimeout": 31,
           },
         },
       });
@@ -2782,9 +2783,7 @@ describe("DiscoveryStreamFeed", () => {
       feed.store.getState = () => ({
         Prefs: {
           values: {
-            pocketConfig: {
-              spocsCacheTimeout: 20,
-            },
+            "discoverystream.spocs.cacheTimeout": 20,
           },
         },
       });
@@ -2819,26 +2818,6 @@ describe("DiscoveryStreamFeed", () => {
     it("should return true for spocs on startup for content over 1 week", () => {
       const spocs = { lastUpdated: Date.now() };
       clock.tick(ONE_WEEK + 1);
-      const result = feed.isExpired({
-        cachedData: { spocs },
-        key: "spocs",
-        isStartup: true,
-      });
-
-      assert.isTrue(result);
-    });
-    it("should return true for spocs on startup for thirty minutes with modified spocsStartupCacheTimeout", () => {
-      feed.store.getState = () => ({
-        Prefs: {
-          values: {
-            pocketConfig: {
-              spocsStartupCacheTimeout: 30,
-            },
-          },
-        },
-      });
-      const spocs = { lastUpdated: Date.now() };
-      clock.tick(THIRTY_MINUTES + 1);
       const result = feed.isExpired({
         cachedData: { spocs },
         key: "spocs",

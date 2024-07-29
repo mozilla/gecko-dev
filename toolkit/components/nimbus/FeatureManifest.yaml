@@ -723,6 +723,26 @@ newtab:
       type: boolean
       description: Allow Contile to use additonal sponsored top sites
 
+newtabSpocsCache:
+  description: The about:newtab sponsored content cache.
+  owner: sdowne@getpocket.com
+  hasExposure: false
+  variables:
+    spocsCacheTimeout:
+      type: int
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.spocs.cacheTimeout
+      description: >-
+        Set sponsored content cache timeout in minutes.
+    spocsStartupCache:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.spocs.startupCache.enabled
+      description: >-
+        Controls if spocs should be included in startup cache.
+
 pocketNewtab:
   description: The Pocket section in newtab
   owner: sdowne@getpocket.com
@@ -973,18 +993,6 @@ pocketNewtab:
         pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.suggestedTopics
       description: >-
         List of pre-selected topics to display on first run of topic selection modal
-    spocsCacheTimeout:
-      type: int
-      fallbackPref: >-
-        browser.newtabpage.activity-stream.discoverystream.spocs.cacheTimeout
-      description: >-
-        Set sponsored content cache timeout in minutes.
-    spocsStartupCacheTimeout:
-      type: int
-      fallbackPref: >-
-        browser.newtabpage.activity-stream.discoverystream.spocs.startupCacheTimeout
-      description: >-
-        Set sponsored content startup cache timeout in minutes.
     discoveryStreamConfig:
       description: A JSON blob of discovery stream configuration.
       type: string

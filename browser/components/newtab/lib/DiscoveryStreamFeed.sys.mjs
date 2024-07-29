@@ -67,6 +67,9 @@ const PREF_POCKET_BUTTON = "extensions.pocket.enabled";
 const PREF_COLLECTION_DISMISSIBLE = "discoverystream.isCollectionDismissible";
 const PREF_SELECTED_TOPICS = "discoverystream.topicSelection.selectedTopics";
 const PREF_TOPIC_SELECTION_ENABLED = "discoverystream.topicSelection.enabled";
+const PREF_SPOCS_CACHE_TIMEOUT = "discoverystream.spocs.cacheTimeout";
+const PREF_SPOCS_STARTUP_CACHE_ENABLED =
+  "discoverystream.spocs.startupCache.enabled";
 
 let getHardcodedLayout;
 
@@ -415,8 +418,8 @@ export class DiscoveryStreamFeed {
   }
 
   setupSpocsCacheUpdateTime() {
-    const nimbusConfig = this.store.getState().Prefs.values?.pocketConfig || {};
-    const { spocsCacheTimeout } = nimbusConfig;
+    const spocsCacheTimeout =
+      this.store.getState().Prefs.values[PREF_SPOCS_CACHE_TIMEOUT];
     const MAX_TIMEOUT = 30;
     const MIN_TIMEOUT = 5;
     // We do a bit of min max checking the the configured value is between
@@ -443,47 +446,25 @@ export class DiscoveryStreamFeed {
    */
   isExpired({ cachedData, key, url, isStartup }) {
     const { spocs, feeds } = cachedData;
-
+    const updateTimePerComponent = {
+      spocs: this.spocsCacheUpdateTime,
+      feed: COMPONENT_FEEDS_UPDATE_TIME,
+    };
+    const EXPIRATION_TIME = isStartup
+      ? STARTUP_CACHE_EXPIRE_TIME
+      : updateTimePerComponent[key];
     switch (key) {
-      case "spocs": {
-        const nimbusConfig =
-          this.store.getState().Prefs.values?.pocketConfig || {};
-        const { spocsStartupCacheTimeout } = nimbusConfig;
-        // Min and max times are 7 days and whatever the spoc cache time is.
-        // We don't want our startup spoc cache to be faster than the regular spoc cache.
-        const MAX_TIMEOUT = STARTUP_CACHE_EXPIRE_TIME;
-        const MIN_TIMEOUT = this.spocsCacheUpdateTime;
-        let expirationTime = isStartup
-          ? STARTUP_CACHE_EXPIRE_TIME
-          : this.spocsCacheUpdateTime;
-        if (isStartup && spocsStartupCacheTimeout) {
-          // This value is in minutes, but we want ms.
-          const spocsStartupCacheTimeoutMs =
-            spocsStartupCacheTimeout * 60 * 1000;
-          if (
-            spocsStartupCacheTimeoutMs <= MAX_TIMEOUT &&
-            spocsStartupCacheTimeoutMs >= MIN_TIMEOUT
-          ) {
-            expirationTime = spocsStartupCacheTimeoutMs;
-          }
-        }
-        // isExpired returns true if cache has expired or is missing.
-        return !spocs || !(Date.now() - spocs.lastUpdated < expirationTime);
-      }
-      case "feed": {
-        const expirationTime = isStartup
-          ? STARTUP_CACHE_EXPIRE_TIME
-          : COMPONENT_FEEDS_UPDATE_TIME;
+      case "spocs":
+        return !spocs || !(Date.now() - spocs.lastUpdated < EXPIRATION_TIME);
+      case "feed":
         return (
           !feeds ||
           !feeds[url] ||
-          !(Date.now() - feeds[url].lastUpdated < expirationTime)
+          !(Date.now() - feeds[url].lastUpdated < EXPIRATION_TIME)
         );
-      }
-      default: {
+      default:
         // istanbul ignore next
         throw new Error(`${key} is not a valid key`);
-      }
     }
   }
 
@@ -1640,11 +1621,17 @@ export class DiscoveryStreamFeed {
 
     this.loadLayout(dispatch, isStartup);
     if (this.showStories || this.showTopsites) {
+      const spocsStartupCacheEnabled =
+        this.store.getState().Prefs.values[PREF_SPOCS_STARTUP_CACHE_ENABLED];
       const promises = [];
+
       // We could potentially have either or both sponsored topsites or stories.
       // We only make one fetch, and control which to request when we fetch.
       // So for now we only care if we need to make this request at all.
-      const spocsPromise = this.loadSpocs(dispatch, isStartup).catch(error =>
+      const spocsPromise = this.loadSpocs(
+        dispatch,
+        spocsStartupCacheEnabled
+      ).catch(error =>
         console.error("Error trying to load spocs feeds:", error)
       );
       promises.push(spocsPromise);

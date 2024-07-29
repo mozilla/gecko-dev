@@ -143,6 +143,12 @@ function App(prevState = INITIAL_STATE.App, action) {
       return Object.assign({}, prevState, action.data || {}, {
         isForStartupCache: false,
       });
+    case at.DISCOVERY_STREAM_SPOCS_UPDATE:
+      // Toggle `isForStartupCache` when receiving the `DISCOVERY_STREAM_SPOCS_UPDATE_STARTUPCACHE` action
+      // so that spoc cards can be rendered as usual.
+      return Object.assign({}, prevState, action.data || {}, {
+        isForStartupCache: false,
+      });
     case at.SHOW_PERSONALIZE:
       return Object.assign({}, prevState, {
         customizeMenuVisible: true,

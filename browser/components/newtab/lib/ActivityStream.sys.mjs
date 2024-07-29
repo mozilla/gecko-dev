@@ -619,6 +619,19 @@ export const PREFS_CONFIG = new Map([
       value: true,
     },
   ],
+  [
+    "discoverystream.spocs.cacheTimeout",
+    {
+      title: "Set sponsored content cache timeout in minutes.",
+    },
+  ],
+  [
+    "discoverystream.spocs.startupCache.enabled",
+    {
+      title: "Controls if spocs should be included in startup cache.",
+      value: true,
+    },
+  ],
 ]);
 
 // Array of each feed's FEEDS_CONFIG factory and values to add to PREFS_CONFIG
