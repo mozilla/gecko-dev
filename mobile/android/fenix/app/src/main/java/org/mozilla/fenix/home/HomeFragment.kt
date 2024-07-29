@@ -113,7 +113,6 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerIntegration
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
 import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
-import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.HomeNavBar
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.components.toolbar.navbar.updateNavBarForConfigurationChange
@@ -187,12 +186,6 @@ class HomeFragment : Fragment() {
 
     private val homeViewModel: HomeScreenViewModel by activityViewModels()
 
-    private val snackbarAnchorView: View?
-        get() = when (requireContext().settings().toolbarPosition) {
-            ToolbarPosition.BOTTOM -> binding.toolbarLayout
-            ToolbarPosition.TOP -> null
-        }
-
     private var _bottomToolbarContainerView: BottomToolbarContainerView? = null
     private val bottomToolbarContainerView: BottomToolbarContainerView
         get() = _bottomToolbarContainerView!!
@@ -229,12 +222,11 @@ class HomeFragment : Fragment() {
                 }
 
                 FenixSnackbar.make(
-                    view = it,
+                    view = binding.dynamicSnackbarContainer,
                     duration = Snackbar.LENGTH_LONG,
                     isDisplayedWithBrowserToolbar = false,
                 )
                     .setText(it.context.getString(message))
-                    .setAnchorView(snackbarAnchorView)
                     .show()
             }
         }
@@ -892,7 +884,7 @@ class HomeFragment : Fragment() {
     @VisibleForTesting
     internal fun showUndoSnackbarForTopSite(topSite: TopSite) {
         lifecycleScope.allowUndo(
-            view = requireView(),
+            view = binding.dynamicSnackbarContainer,
             message = getString(R.string.snackbar_top_site_removed),
             undoActionTitle = getString(R.string.snackbar_deleted_undo),
             onCancel = {
@@ -902,9 +894,7 @@ class HomeFragment : Fragment() {
                 )
             },
             operation = { },
-            anchorView = snackbarAnchorView,
             elevation = TOAST_ELEVATION,
-            paddedForBottomToolbar = true,
         )
     }
 
@@ -1149,14 +1139,13 @@ class HomeFragment : Fragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.allowUndo(
-            requireView(),
+            binding.dynamicSnackbarContainer,
             snackbarMessage,
             requireContext().getString(R.string.snackbar_deleted_undo),
             {
                 requireComponents.useCases.tabsUseCases.undo.invoke()
             },
             operation = { },
-            anchorView = snackbarAnchorView,
         )
     }
 
@@ -1168,7 +1157,7 @@ class HomeFragment : Fragment() {
 
     private fun showUndoSnackbar(message: String) {
         viewLifecycleOwner.lifecycleScope.allowUndo(
-            requireView(),
+            binding.dynamicSnackbarContainer,
             message,
             requireContext().getString(R.string.snackbar_deleted_undo),
             {
@@ -1178,7 +1167,6 @@ class HomeFragment : Fragment() {
                 )
             },
             operation = { },
-            anchorView = snackbarAnchorView,
         )
     }
 
@@ -1219,12 +1207,11 @@ class HomeFragment : Fragment() {
                         if (authType != AuthType.Existing) {
                             view?.let {
                                 FenixSnackbar.make(
-                                    view = it,
+                                    view = binding.dynamicSnackbarContainer,
                                     duration = Snackbar.LENGTH_SHORT,
                                     isDisplayedWithBrowserToolbar = false,
                                 )
                                     .setText(it.context.getString(R.string.onboarding_firefox_account_sync_is_on))
-                                    .setAnchorView(binding.toolbarLayout)
                                     .show()
                             }
                         }
@@ -1255,7 +1242,7 @@ class HomeFragment : Fragment() {
         val snackbarMessage = getString(R.string.snackbar_collection_deleted)
 
         lifecycleScope.allowUndo(
-            requireView(),
+            binding.dynamicSnackbarContainer,
             snackbarMessage,
             getString(R.string.snackbar_deleted_undo),
             {
@@ -1263,7 +1250,6 @@ class HomeFragment : Fragment() {
             },
             operation = { },
             elevation = TOAST_ELEVATION,
-            anchorView = snackbarAnchorView,
         )
 
         lifecycleScope.launch(IO) {
@@ -1431,12 +1417,11 @@ class HomeFragment : Fragment() {
         view?.let { view ->
             val string = view.context.getString(R.string.snackbar_collection_renamed)
             FenixSnackbar.make(
-                view = view,
+                view = binding.dynamicSnackbarContainer,
                 duration = Snackbar.LENGTH_LONG,
                 isDisplayedWithBrowserToolbar = false,
             )
                 .setText(string)
-                .setAnchorView(snackbarAnchorView)
                 .show()
         }
     }
@@ -1487,7 +1472,7 @@ class HomeFragment : Fragment() {
                         with(binding.wallpaperImageView) {
                             isVisible = false
                             showSnackBar(
-                                view = this,
+                                view = binding.dynamicSnackbarContainer,
                                 text = resources.getString(R.string.wallpaper_select_error_snackbar_message),
                             )
                         }
