@@ -261,6 +261,8 @@ var FullPageTranslationsPanel = new (class {
       const panel = wrapper.content.firstElementChild;
       wrapper.replaceWith(wrapper.content);
 
+      panel.addEventListener("command", this);
+
       const settingsButton = document.getElementById(
         "translations-panel-settings"
       );
@@ -1388,6 +1390,33 @@ var FullPageTranslationsPanel = new (class {
    */
   handleEvent = event => {
     switch (event.type) {
+      case "command": {
+        switch (event.target.id) {
+          case "translations-panel-settings":
+            this.openSettingsPopup(event.target);
+            break;
+          case "full-page-translations-panel-from":
+            this.onChangeFromLanguage(event);
+            break;
+          case "full-page-translations-panel-to":
+            this.onChangeToLanguage(event);
+            break;
+          case "full-page-translations-panel-restore-button":
+            this.onRestore(event);
+            break;
+          case "full-page-translations-panel-cancel":
+          case "full-page-translations-panel-dismiss-error":
+            this.onCancel(event);
+            break;
+          case "full-page-translations-panel-translate":
+            this.onTranslate(event);
+            break;
+          case "full-page-translations-panel-change-source-language":
+            this.onChangeSourceLanguage(event);
+            break;
+        }
+        break;
+      }
       case "TranslationsParent:OfferTranslation": {
         if (Services.wm.getMostRecentBrowserWindow()?.gBrowser === gBrowser) {
           this.open(event, /* reportAsAutoShow */ true);

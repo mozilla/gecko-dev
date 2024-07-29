@@ -1367,7 +1367,7 @@ class FullPageTranslationsTestUtils {
     logAction(langTag);
     const { fromMenuList } = FullPageTranslationsPanel.elements;
     fromMenuList.value = langTag;
-    fromMenuList.dispatchEvent(new Event("command"));
+    fromMenuList.dispatchEvent(new Event("command", { bubbles: true }));
   }
 
   /**
@@ -1379,7 +1379,7 @@ class FullPageTranslationsTestUtils {
     logAction(langTag);
     const { toMenuList } = FullPageTranslationsPanel.elements;
     toMenuList.value = langTag;
-    toMenuList.dispatchEvent(new Event("command"));
+    toMenuList.dispatchEvent(new Event("command", { bubbles: true }));
   }
 
   /**
@@ -2597,7 +2597,7 @@ class SelectTranslationsTestUtils {
 
       menuList.focus();
       menuList.value = langTag;
-      menuList.dispatchEvent(new Event("command"));
+      menuList.dispatchEvent(new Event("command", { bubbles: true }));
       await menuListUpdated;
     }
 
