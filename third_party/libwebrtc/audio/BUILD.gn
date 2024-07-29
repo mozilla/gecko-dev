@@ -161,12 +161,16 @@ if (rtc_include_tests) {
       ":audio",
       ":audio_end_to_end_test",
       ":channel_receive_unittest",
+      "../api:array_view",
+      "../api:frame_transformer_interface",
       "../api:libjingle_peerconnection_api",
+      "../api:make_ref_counted",
       "../api:mock_audio_mixer",
       "../api:mock_frame_decryptor",
       "../api:mock_frame_encryptor",
       "../api:mock_frame_transformer",
       "../api:mock_transformable_audio_frame",
+      "../api:rtp_headers",
       "../api:scoped_refptr",
       "../api/audio:audio_frame_api",
       "../api/audio:audio_processing_statistics",
@@ -189,6 +193,7 @@ if (rtc_include_tests) {
       "../call:rtp_sender",
       "../common_audio",
       "../logging:mocks",
+      "../modules/audio_coding:audio_coding_module_typedefs",
       "../modules/audio_device:audio_device_impl",  # For TestAudioDeviceModule
       "../modules/audio_device:mock_audio_device",
       "../modules/audio_mixer:audio_mixer_impl",
@@ -220,6 +225,7 @@ if (rtc_include_tests) {
       "utility:utility_tests",
       "//testing/gtest",
       "//third_party/abseil-cpp/absl/memory",
+      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 

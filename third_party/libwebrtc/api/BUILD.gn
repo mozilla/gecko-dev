@@ -422,11 +422,16 @@ rtc_source_set("frame_transformer_interface") {
     "frame_transformer_interface.h",
   ]
   deps = [
+    ":array_view",
     ":make_ref_counted",
     ":ref_count",
     ":scoped_refptr",
+    "../rtc_base:refcount",
+    "../rtc_base/system:rtc_export",
+    "units:timestamp",
     "video:encoded_frame",
     "video:video_frame_metadata",
+    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

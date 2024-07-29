@@ -308,6 +308,7 @@ rtc_library("rtp_rtcp") {
     "../../api/video:video_frame_type",
     "../../api/video:video_layers_allocation",
     "../../api/video:video_rtp_headers",
+    "../../api/video_codecs:video_codecs_api",
     "../../call:rtp_interfaces",
     "../../call:video_stream_api",
     "../../common_video",

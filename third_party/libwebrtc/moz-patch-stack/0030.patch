@@ -206,7 +206,7 @@ index 7328df134a..c8bda37ad6 100644
      } else {
        deps += [
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index f25db96db8..fcbe110864 100644
+index b0f95ebcf8..e208ac4831 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -40,6 +40,9 @@ rtc_source_set("enable_media") {
@@ -298,7 +298,7 @@ index f25db96db8..fcbe110864 100644
  
  rtc_source_set("frame_transformer_interface") {
    visibility = [ "*" ]
-@@ -555,6 +584,7 @@ rtc_source_set("peer_network_dependencies") {
+@@ -560,6 +589,7 @@ rtc_source_set("peer_network_dependencies") {
  }
  
  rtc_source_set("peer_connection_quality_test_fixture_api") {
@@ -306,7 +306,7 @@ index f25db96db8..fcbe110864 100644
    visibility = [ "*" ]
    testonly = true
    sources = [ "test/peerconnection_quality_test_fixture.h" ]
-@@ -601,6 +631,7 @@ rtc_source_set("peer_connection_quality_test_fixture_api") {
+@@ -606,6 +636,7 @@ rtc_source_set("peer_connection_quality_test_fixture_api") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -314,7 +314,7 @@ index f25db96db8..fcbe110864 100644
  
  rtc_source_set("frame_generator_api") {
    visibility = [ "*" ]
-@@ -724,6 +755,7 @@ rtc_library("create_frame_generator") {
+@@ -729,6 +760,7 @@ rtc_library("create_frame_generator") {
    ]
  }
  
@@ -322,7 +322,7 @@ index f25db96db8..fcbe110864 100644
  rtc_library("create_peer_connection_quality_test_frame_generator") {
    visibility = [ "*" ]
    testonly = true
-@@ -740,6 +772,7 @@ rtc_library("create_peer_connection_quality_test_frame_generator") {
+@@ -745,6 +777,7 @@ rtc_library("create_peer_connection_quality_test_frame_generator") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -330,7 +330,7 @@ index f25db96db8..fcbe110864 100644
  
  rtc_source_set("libjingle_logging_api") {
    visibility = [ "*" ]
-@@ -919,6 +952,7 @@ rtc_source_set("refcountedbase") {
+@@ -924,6 +957,7 @@ rtc_source_set("refcountedbase") {
    ]
  }
  
@@ -338,7 +338,7 @@ index f25db96db8..fcbe110864 100644
  rtc_library("ice_transport_factory") {
    visibility = [ "*" ]
    sources = [
-@@ -942,6 +976,7 @@ rtc_library("ice_transport_factory") {
+@@ -947,6 +981,7 @@ rtc_library("ice_transport_factory") {
      "rtc_event_log:rtc_event_log",
    ]
  }
@@ -581,7 +581,7 @@ index 0000000000..f6ff7f218f
 +  #endif
 +#endif
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 6244b6b4f0..be548f4260 100644
+index 8b5fd93338..868f662df9 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -77,7 +77,7 @@ rtc_library("rtc_media_base") {
@@ -641,7 +641,7 @@ index 6244b6b4f0..be548f4260 100644
  
  rtc_source_set("media_channel") {
    sources = [ "base/media_channel.h" ]
-@@ -372,6 +389,7 @@ rtc_library("codec") {
+@@ -373,6 +390,7 @@ rtc_library("codec") {
  }
  
  rtc_library("rtp_utils") {
@@ -649,7 +649,7 @@ index 6244b6b4f0..be548f4260 100644
    sources = [
      "base/rtp_utils.cc",
      "base/rtp_utils.h",
-@@ -388,8 +406,10 @@ rtc_library("rtp_utils") {
+@@ -389,8 +407,10 @@ rtc_library("rtp_utils") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -660,7 +660,7 @@ index 6244b6b4f0..be548f4260 100644
    sources = [
      "base/stream_params.cc",
      "base/stream_params.h",
-@@ -402,6 +422,7 @@ rtc_library("stream_params") {
+@@ -403,6 +423,7 @@ rtc_library("stream_params") {
      "//third_party/abseil-cpp/absl/algorithm:container",
    ]
  }
@@ -668,7 +668,7 @@ index 6244b6b4f0..be548f4260 100644
  
  rtc_library("media_constants") {
    sources = [
-@@ -412,6 +433,7 @@ rtc_library("media_constants") {
+@@ -413,6 +434,7 @@ rtc_library("media_constants") {
  }
  
  rtc_library("turn_utils") {
@@ -676,7 +676,7 @@ index 6244b6b4f0..be548f4260 100644
    sources = [
      "base/turn_utils.cc",
      "base/turn_utils.h",
-@@ -422,14 +444,17 @@ rtc_library("turn_utils") {
+@@ -423,14 +445,17 @@ rtc_library("turn_utils") {
      "../rtc_base/system:rtc_export",
    ]
  }
@@ -694,7 +694,7 @@ index 6244b6b4f0..be548f4260 100644
  
  rtc_library("rtc_simulcast_encoder_adapter") {
    visibility = [ "*" ]
-@@ -504,6 +529,11 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -505,6 +530,11 @@ rtc_library("rtc_internal_video_codecs") {
      "//third_party/abseil-cpp/absl/strings",
      "//third_party/abseil-cpp/absl/types:optional",
    ]
@@ -706,7 +706,7 @@ index 6244b6b4f0..be548f4260 100644
  
    if (enable_libaom) {
      defines += [ "RTC_USE_LIBAOM_AV1_ENCODER" ]
-@@ -523,6 +553,13 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -524,6 +554,13 @@ rtc_library("rtc_internal_video_codecs") {
      "engine/internal_encoder_factory.cc",
      "engine/internal_encoder_factory.h",
    ]

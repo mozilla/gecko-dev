@@ -380,6 +380,7 @@ rtc_library("codec") {
     ":media_constants",
     "../api:rtp_parameters",
     "../api/audio_codecs:audio_codecs_api",
+    "../api/video_codecs:scalability_mode",
     "../api/video_codecs:video_codecs_api",
     "../rtc_base:checks",
     "../rtc_base:logging",
