@@ -138,4 +138,64 @@
     <string name="review_quality_check_retailer_name_amazon">Amazon</string>
     <string name="review_quality_check_retailer_name_bestbuy">Best Buy</string>
     <string name="review_quality_check_retailer_name_walmart">Walmart</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The description of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_description">Toggle off a CFR to reset it. Toggle on a CFR to mark it as shown.</string>
+    <!-- The title of the homepage CFRs section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_cfr_title">Homepage CFRs</string>
+    <!-- The title of the tabs tray CFRs section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_tabs_tray_cfr_title">Tabs Tray CFRs</string>
+    <!-- The title of the toolbar CFRs section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_toolbar_cfr_title">Toolbar CFRs</string>
+    <!-- The title of the other CFRs section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_other_cfr_title">Other CFRs</string>
+    <!-- The private mode CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_private_mode_title">Add Private Tab to Home</string>
+    <!-- The private mode CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_private_mode_description">Displayed when the user enters PBM the first time AND the Focus browser is installed, OR after entering PBM three times AND the Focus browser is not installed. This will only be shown if a CFR has not been shown in at least 3 days.</string>
+    <!-- The homepage intro CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_intro_title">Homepage Intro</string>
+    <!-- The homepage intro CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_intro_description">Displayed the first time the \"Jump back in\" section appears, which happens when the user visits another site and returns to the homepage. Note that this will not be shown if the Homepage Sync CFR has been shown or if the Homepage Navigation Toolbar CFR has not been shown yet.</string>
+    <!-- The homepage nav toolbar CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_title">Homepage Navigation Toolbar</string>
+    <!-- The homepage nav toolbar CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_description">Displayed when the user is on the homepage and sees the new navigation bar for the first time. Note that this CFR must be displayed in order for the Homepage Intro or the Homepage Sync CFR to be shown.</string>
+    <!-- The homepage sync CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_sync_title">Homepage Sync</string>
+    <!-- The homepage sync CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_homepage_sync_description">Displayed the first time visiting the homepage after signing-in and the Homepage Navigation Toolbar CFR has been shown. Note that if this CFR is shown, then the Homepage Intro CFR will be disabled.</string>
+    <!-- The wallpaper selector CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_wallpaper_selector_title">Wallpaper Selector</string>
+    <!-- The wallpaper selector CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_wallpaper_selector_description">Displayed when the user navigates to the homepage in normal browsing mode and the Homepage Navigation Toolbar CFR has been shown. Also, note that all wallpapers must have been downloaded and the user has not clicked on a different wallpaper in the wallpaper screen in the settings.</string>
+    <!-- The inactive tabs CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_inactive_tabs_title">Inactive Tabs</string>
+    <!-- The inactive tabs CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_inactive_tabs_description">Displayed the first time the user gets an inactive tab and a CFR has not been shown in at least 3 days.</string>
+    <!-- The tab auto close banner title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_tab_auto_close_title">Tab Auto Close</string>
+    <!-- The tab auto close banner description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_tab_auto_close_description">Displayed the first time the user has at least 6 normal tabs or 6 private tabs open at once and a CFR has not been shown in at least 3 days.</string>
+    <!-- The cookie banner blocker CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_cookie_banner_blocker_title">Cookie Banner Blocker</string>
+    <!-- The cookie banner blocker CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_cookie_banner_blocker_description">Displayed the first time the user navigates to a webpage in PBM.</string>
+    <!-- The cookie banners private mode banner title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_cookie_banners_private_mode_title">Cookie Banners Private Mode</string>
+    <!-- The cookie banners private mode banner description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_cookie_banners_private_mode_description">Displayed the first time user clicks on search bar in PBM.</string>
+    <!-- The navigation buttons CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_navigation_buttons_title">Navigation Buttons</string>
+    <!-- The navigation buttons CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_navigation_buttons_description">Displayed the first time the user double taps on the forward or backward navigation buttons within 5 seconds.</string>
+    <!-- The total cookie protection CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_tcp_title">Total Cookie Protection</string>
+    <!-- The total cookie protection CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_tcp_description">Displayed the first time the user has at least 5 normal tabs open at once.</string>
+    <!-- The open in app CFR title in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_open_in_app_title">Open in App</string>
+    <!-- The open in app CFR description in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_open_in_app_description">Displayed when the user has the \"Open links in apps\" setting set to \"Never\", and it is the user\'s first time visiting a website that can be opened in an installed native app.</string>
 </resources>
