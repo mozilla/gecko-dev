@@ -3693,7 +3693,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
     }
 
     nsDisplayTransform* transformItem = MakeDisplayItem<nsDisplayTransform>(
-        aBuilder, this, &resultList, visibleRect, prerenderInfo.mDecision);
+        aBuilder, this, &resultList, visibleRect, prerenderInfo.mDecision,
+        usingBackdropFilter);
     if (transformItem) {
       resultList.AppendToTop(transformItem);
       createdContainer = true;
