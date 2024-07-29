@@ -149,26 +149,9 @@ void Interleave(const DeinterleavedView<const T>& deinterleaved,
   }
 }
 
-// TODO: b/335805780 - Accept DeInterleavedView and MonoView.
-// Possibly just delete this method if it isn't used.
-template <typename T, typename Intermediate>
-void DownmixToMono(const T* const* input_channels,
-                   size_t num_frames,
-                   int num_channels,
-                   T* out) {
-  for (size_t i = 0; i < num_frames; ++i) {
-    Intermediate value = input_channels[0][i];
-    for (int j = 1; j < num_channels; ++j) {
-      value += input_channels[j][i];
-    }
-    out[i] = value / num_channels;
-  }
-}
-
 // Downmixes an interleaved multichannel signal to a single channel by averaging
 // all channels.
 // TODO: b/335805780 - Accept InterleavedView and DeinterleavedView.
-// Possibly just delete this method if it isn't used.
 template <typename T, typename Intermediate>
 void DownmixInterleavedToMonoImpl(const T* interleaved,
                                   size_t num_frames,

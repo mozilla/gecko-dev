@@ -201,57 +201,5 @@ TEST(AudioUtilTest, DownmixInterleavedToMono) {
   }
 }
 
-TEST(AudioUtilTest, DownmixToMonoTest) {
-  {
-    const size_t kNumFrames = 4;
-    const int kNumChannels = 1;
-    const float input_data[kNumChannels][kNumFrames] = {{1.f, 2.f, -1.f, -3.f}};
-    const float* input[kNumChannels];
-    for (int i = 0; i < kNumChannels; ++i) {
-      input[i] = input_data[i];
-    }
-
-    float downmixed[kNumFrames];
-
-    DownmixToMono<float, float>(input, kNumFrames, kNumChannels, downmixed);
-
-    EXPECT_THAT(downmixed, ElementsAreArray(input_data[0]));
-  }
-  {
-    const size_t kNumFrames = 3;
-    const int kNumChannels = 2;
-    const float input_data[kNumChannels][kNumFrames] = {{1.f, 2.f, -1.f},
-                                                        {3.f, 0.f, 1.f}};
-    const float* input[kNumChannels];
-    for (int i = 0; i < kNumChannels; ++i) {
-      input[i] = input_data[i];
-    }
-
-    float downmixed[kNumFrames];
-    const float expected[kNumFrames] = {2.f, 1.f, 0.f};
-
-    DownmixToMono<float, float>(input, kNumFrames, kNumChannels, downmixed);
-
-    EXPECT_THAT(downmixed, ElementsAreArray(expected));
-  }
-  {
-    const size_t kNumFrames = 3;
-    const int kNumChannels = 3;
-    const int16_t input_data[kNumChannels][kNumFrames] = {
-        {30000, -5, -30000}, {30000, -10, -30999}, {24001, -20, -30000}};
-    const int16_t* input[kNumChannels];
-    for (int i = 0; i < kNumChannels; ++i) {
-      input[i] = input_data[i];
-    }
-
-    int16_t downmixed[kNumFrames];
-    const int16_t expected[kNumFrames] = {28000, -11, -30333};
-
-    DownmixToMono<int16_t, int32_t>(input, kNumFrames, kNumChannels, downmixed);
-
-    EXPECT_THAT(downmixed, ElementsAreArray(expected));
-  }
-}
-
 }  // namespace
 }  // namespace webrtc

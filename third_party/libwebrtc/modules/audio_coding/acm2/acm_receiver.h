@@ -169,11 +169,6 @@ class AcmReceiver {
   //
   void FlushBuffers();
 
-  //
-  // Remove all registered codecs.
-  //
-  void RemoveAllCodecs();
-
   // Returns the RTP timestamp for the last sample delivered by GetAudio().
   // The return value will be empty if no valid timestamp is available.
   absl::optional<uint32_t> GetPlayoutTimestamp();
