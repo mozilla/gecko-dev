@@ -9,6 +9,7 @@ base64 = "0.21.0"
 byteorder = "1.2.7"
 crossbeam-utils = "0.8"
 cstr = "0.2"
+firefox-on-glean = { path = "../../../../toolkit/components/glean/api" }
 log = "0.4"
 moz_task = { path = "../../../../xpcom/rust/moz_task" }
 nserror = { path = "../../../../xpcom/rust/nserror" }
@@ -20,5 +21,5 @@ storage_variant = { path = "../../../../storage/variant" }
 tempfile = "3"
 thin-vec = { version = "0.2.1", features = ["gecko-ffi"] }
 time = "0.1"
-xpcom = { path = "../../../../xpcom/rust/xpcom" }
 wr_malloc_size_of = { path = "../../../../gfx/wr/wr_malloc_size_of" }
+xpcom = { path = "../../../../xpcom/rust/xpcom" }

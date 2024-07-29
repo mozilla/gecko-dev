@@ -9,6 +9,22 @@ $schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
 $tags:
   - 'Core :: Security: PSM'
 
+cert_storage:
+  memory:
+    type: memory_distribution
+    memory_unit: byte
+    description: >
+      Heap memory used by cert_storage.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1910500
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1910500
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - jschanck@mozilla.com
+    expires: 142
+
 data_storage:
   alternate_services:
     type: quantity

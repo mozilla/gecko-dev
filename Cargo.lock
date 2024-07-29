@@ -702,6 +702,7 @@ dependencies = [
  "byteorder",
  "crossbeam-utils",
  "cstr",
+ "firefox-on-glean",
  "log",
  "moz_task",
  "nserror",

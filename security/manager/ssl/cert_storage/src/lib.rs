@@ -7,6 +7,7 @@ extern crate byteorder;
 extern crate crossbeam_utils;
 #[macro_use]
 extern crate cstr;
+extern crate firefox_on_glean;
 #[macro_use]
 extern crate log;
 extern crate moz_task;
@@ -530,6 +531,7 @@ impl SecurityState {
 
         self.note_crlite_update_time()?;
         self.load_crlite_filter()?;
+        self.note_memory_usage();
         Ok(())
     }
 
@@ -646,6 +648,7 @@ impl SecurityState {
         let crlite_stash = self.crlite_stash.get_or_insert(HashMap::new());
         load_crlite_stash_from_reader_into_map(&mut stash.as_slice(), crlite_stash)?;
         self.note_crlite_update_time()?;
+        self.note_memory_usage();
         Ok(())
     }
 
@@ -862,6 +865,13 @@ impl SecurityState {
             }
         }
         Ok(())
+    }
+
+    fn note_memory_usage(&self) -> usize {
+        let mut ops = MallocSizeOfOps::new(cert_storage_malloc_size_of, None);
+        let size = self.size_of(&mut ops);
+        firefox_on_glean::metrics::cert_storage::memory.accumulate(size as u64);
+        size
     }
 }
 
@@ -1786,8 +1796,7 @@ impl MemoryReporter {
         _anonymize: bool,
     ) -> nserror::nsresult {
         let ss = try_ns!(self.security_state.read());
-        let mut ops = MallocSizeOfOps::new(cert_storage_malloc_size_of, None);
-        let size = ss.size_of(&mut ops);
+        let size = ss.note_memory_usage();
         let callback = match RefPtr::from_raw(callback) {
             Some(ptr) => ptr,
             None => return NS_ERROR_UNEXPECTED,
