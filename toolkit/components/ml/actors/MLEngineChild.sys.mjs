@@ -420,9 +420,12 @@ class InferenceEngine {
       "chrome://global/content/ml/MLEngine.worker.mjs",
       { type: "module" },
       {
-        getModelFile: async url => {
-          return getModelFile({ url, progressCallback: notificationsCallback });
-        },
+        getModelFile: async url =>
+          getModelFile({
+            url,
+            progressCallback: notificationsCallback,
+            taskName: pipelineOptions.taskName,
+          }),
       }
     );
 

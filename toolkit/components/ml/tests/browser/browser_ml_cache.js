@@ -978,3 +978,249 @@ add_task(async function test_listFilesUsingNonExistingTaskName() {
 
   await deleteCache(cache);
 });
+
+/**
+ * Test the ability to add a database from a non-existing database.
+ */
+add_task(async function test_initDbFromNonExisting() {
+  const randomSuffix = Math.floor(Math.random() * 10000);
+  const cache = await IndexedDBCache.init(`modelFiles-${randomSuffix}`);
+
+  Assert.notEqual(cache, null);
+
+  await deleteCache(cache);
+});
+
+/**
+ * Test that we can upgrade even if the existing database is missing some stores or indices.
+ */
+add_task(async function test_initDbFromExistingEmpty() {
+  const randomSuffix = Math.floor(Math.random() * 10000);
+  const dbName = `modelFiles-${randomSuffix}`;
+
+  const dbVersion = 1;
+
+  const newVersion = dbVersion + 1;
+
+  async function openDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(dbName, dbVersion);
+      request.onerror = event => reject(event.target.error);
+      request.onsuccess = event => resolve(event.target.result);
+    });
+  }
+
+  const db = await openDB();
+  db.close();
+
+  const cache = await IndexedDBCache.init(dbName, newVersion);
+
+  Assert.notEqual(cache, null);
+  Assert.equal(cache.db.version, newVersion);
+
+  const model = "mozilla/distilvit";
+  const revision = "main";
+  const taskName = "echo";
+
+  const blob = createBlob();
+
+  await cache.put({
+    taskName,
+    model,
+    revision,
+    file: "file.txt",
+    data: blob,
+    headers: null,
+  });
+
+  const expected = [
+    {
+      path: "file.txt",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        fileSize: 8,
+        ETag: "NO_ETAG",
+      },
+    },
+  ];
+
+  // Ensure every table & indices is on so that we can list files
+  const files = await cache.listFiles({ taskName });
+  Assert.deepEqual(files, expected);
+
+  await deleteCache(cache);
+});
+
+/**
+ * Test that upgrading from version 1 to version 2 results in existing data being deleted.
+ */
+add_task(async function test_initDbFromExistingNoChange() {
+  const randomSuffix = Math.floor(Math.random() * 10000);
+  const dbName = `modelFiles-${randomSuffix}`;
+
+  // Create version 1
+  let cache = await IndexedDBCache.init(dbName, 1);
+
+  Assert.notEqual(cache, null);
+  Assert.equal(cache.db.version, 1);
+
+  const model = "mozilla/distilvit";
+  const revision = "main";
+  const taskName = "echo";
+
+  const blob = createBlob();
+
+  await cache.put({
+    taskName,
+    model,
+    revision,
+    file: "file.txt",
+    data: blob,
+    headers: null,
+  });
+
+  cache.db.close();
+
+  // Create version 2
+  cache = await IndexedDBCache.init(dbName, 2);
+
+  Assert.notEqual(cache, null);
+  Assert.equal(cache.db.version, 2);
+
+  // Ensure tables are all empty.
+  const files = await cache.listFiles({ taskName });
+
+  Assert.deepEqual(files, []);
+
+  await deleteCache(cache);
+});
+
+/**
+ * Test that upgrading the indices of an existing database does not lead to data deletion.
+ */
+add_task(async function test_initDbFromExistingIndexChanges() {
+  const randomSuffix = Math.floor(Math.random() * 10000);
+  const dbName = `modelFiles-${randomSuffix}`;
+
+  const dbVersion = 2;
+  const model = "mozilla/distilvit";
+  const revision = "main";
+  const taskName = "echo";
+
+  const blob = createBlob();
+  // Create version 2
+  let cache = await IndexedDBCache.init(dbName, dbVersion);
+
+  Assert.notEqual(cache, null);
+  Assert.equal(cache.db.version, 2);
+  await cache.put({
+    taskName,
+    model,
+    revision,
+    file: "file.txt",
+    data: blob,
+    headers: null,
+  });
+
+  cache.db.close();
+
+  // Delete all indices
+  async function openDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(dbName, dbVersion + 1);
+      request.onerror = event => reject(event.target.error);
+      request.onsuccess = event => resolve(event.target.result);
+      request.onupgradeneeded = event => {
+        const db = event.target.result;
+
+        for (const storeName of db.objectStoreNames) {
+          const store = request.transaction.objectStore(storeName);
+
+          for (const indexName of store.indexNames) {
+            store.deleteIndex(indexName);
+          }
+        }
+      };
+    });
+  }
+
+  const db = await openDB();
+  db.close();
+
+  // Create version 4
+  cache = await IndexedDBCache.init(dbName, dbVersion + 2);
+
+  Assert.notEqual(cache, null);
+  Assert.equal(cache.db.version, 4);
+
+  const expected = [
+    {
+      path: "file.txt",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        fileSize: 8,
+        ETag: "NO_ETAG",
+      },
+    },
+  ];
+
+  // Ensure every table & indices is on so that we can list files
+  const files = await cache.listFiles({ taskName });
+  Assert.deepEqual(files, expected);
+
+  await deleteCache(cache);
+});
+
+/**
+ * Test that upgrading an existing cache from another source is possible.
+ */
+add_task(async function test_initDbFromExistingElseWhereStoreChanges() {
+  const randomSuffix = Math.floor(Math.random() * 10000);
+  const dbName = `modelFiles-${randomSuffix}`;
+
+  const dbVersion = 2;
+  const model = "mozilla/distilvit";
+  const revision = "main";
+  const taskName = "echo";
+
+  const blob = createBlob();
+  // Create version 2
+  const cache1 = await IndexedDBCache.init(dbName, dbVersion);
+
+  Assert.notEqual(cache1, null);
+  Assert.equal(cache1.db.version, 2);
+
+  // Cache1 is not closed by design of this test
+
+  // Create version 3
+  const cache2 = await IndexedDBCache.init(dbName, dbVersion + 1);
+
+  Assert.notEqual(cache2, null);
+  Assert.equal(cache2.db.version, 3);
+
+  await cache2.put({
+    taskName,
+    model,
+    revision,
+    file: "file.txt",
+    data: blob,
+    headers: null,
+  });
+
+  const expected = [
+    {
+      path: "file.txt",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        fileSize: 8,
+        ETag: "NO_ETAG",
+      },
+    },
+  ];
+
+  // Ensure every table & indices is on so that we can list files
+  const files = await cache2.listFiles({ taskName });
+  Assert.deepEqual(files, expected);
+
+  await deleteCache(cache2);
+});

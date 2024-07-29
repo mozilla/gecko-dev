@@ -10,6 +10,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
 });
@@ -169,7 +170,7 @@ export class IndexedDBCache {
    * @param {string} dbName - The name of the database file.
    * @param {number} version - The version number of the database.
    */
-  constructor(dbName = "modelFiles", version = 1) {
+  constructor(dbName = "modelFiles", version = 2) {
     this.dbName = dbName;
     this.dbVersion = version;
     this.fileStoreName = "files";
@@ -181,10 +182,10 @@ export class IndexedDBCache {
    * Static method to create and initialize an instance of IndexedDBCache.
    *
    * @param {string} [dbName="modelFiles"] - The name of the database.
-   * @param {number} [version=1] - The version number of the database.
+   * @param {number} [version=2] - The version number of the database.
    * @returns {Promise<IndexedDBCache>} An initialized instance of IndexedDBCache.
    */
-  static async init(dbName = "modelFiles", version = 1) {
+  static async init(dbName = "modelFiles", version = 2) {
     const cacheInstance = new IndexedDBCache(dbName, version);
     cacheInstance.db = await cacheInstance.#openDB();
     const storedSize = (
@@ -210,6 +211,39 @@ export class IndexedDBCache {
     }
   }
 
+  #migrateStore(db, oldVersion) {
+    const newVersion = db.version;
+    // Delete all existing data when migrating from 1 to 2
+    if (oldVersion == 1 && newVersion == 2) {
+      // Version 1 may contains task depe
+      for (const name of [
+        this.fileStoreName,
+        this.headersStoreName,
+        this.taskStoreName,
+      ]) {
+        if (db.objectStoreNames.contains(name)) {
+          db.deleteObjectStore(name);
+        }
+      }
+    }
+  }
+
+  #createOrMigrateIndices({ store, name, keyPath }) {
+    if (store.indexNames.contains(name)) {
+      if (!lazy.ObjectUtils.deepEqual(store.index(name).keyPath, keyPath)) {
+        lazy.console.debug(
+          `Deleting and recreating index ${name} on store ${store.name}`
+        );
+        store.deleteIndex(name);
+        store.createIndex(name, keyPath);
+      }
+    } else {
+      // index does not exist, so create
+      lazy.console.debug(`Creating index ${name} on store ${store.name}`);
+      store.createIndex(name, keyPath);
+    }
+  }
+
   /**
    * Opens or creates the IndexedDB database.
    *
@@ -219,9 +253,28 @@ export class IndexedDBCache {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
       request.onerror = event => reject(event.target.error);
-      request.onsuccess = event => resolve(event.target.result);
+      request.onsuccess = event => {
+        const db = event.target.result;
+        // This is called when a version upgrade event is sent from elsewhere
+        // for example from another tab/window from the same computer.
+        db.onversionchange = _onVersionChangeevent => {
+          lazy.console.debug(
+            "The version of this database is changing. Closing."
+          );
+          // Closing allow the change from elsewhere to go through and invalidate
+          // this version.
+          db.close();
+        };
+        return resolve(event.target.result);
+      };
+      // If you make any change to onupgradeneeded, then you must change
+      // the version of the database, otherwise, the changes would not apply.
       request.onupgradeneeded = event => {
         const db = event.target.result;
+
+        // Migrating is required anytime the keyPath for an existing store changes
+        this.#migrateStore(db, event.oldVersion);
+
         if (!db.objectStoreNames.contains(this.fileStoreName)) {
           db.createObjectStore(this.fileStoreName, { keyPath: "id" });
         }
@@ -235,16 +288,11 @@ export class IndexedDBCache {
           this.headersStoreName
         );
 
-        if (
-          !headerStore.indexNames.contains(
-            this.#indices.modelRevisionIndex.name
-          )
-        ) {
-          headerStore.createIndex(
-            this.#indices.modelRevisionIndex.name,
-            this.#indices.modelRevisionIndex.keyPath
-          );
-        }
+        this.#createOrMigrateIndices({
+          store: headerStore,
+          name: this.#indices.modelRevisionIndex.name,
+          keyPath: this.#indices.modelRevisionIndex.keyPath,
+        });
 
         if (!db.objectStoreNames.contains(this.taskStoreName)) {
           db.createObjectStore(this.taskStoreName, {
@@ -253,11 +301,8 @@ export class IndexedDBCache {
         }
 
         const taskStore = request.transaction.objectStore(this.taskStoreName);
-
         for (const { name, keyPath } of Object.values(this.#indices)) {
-          if (!taskStore.indexNames.contains(name)) {
-            taskStore.createIndex(name, keyPath);
-          }
+          this.#createOrMigrateIndices({ store: taskStore, name, keyPath });
         }
       };
     });
