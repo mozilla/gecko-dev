@@ -223,7 +223,7 @@ class SnackbarBindingTest {
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
         verify(snackbarDelegate).show(
             text = R.string.deleting_browsing_data_in_progress,
-            duration = FenixSnackbar.LENGTH_LONG,
+            duration = FenixSnackbar.LENGTH_INDEFINITE,
         )
     }
 

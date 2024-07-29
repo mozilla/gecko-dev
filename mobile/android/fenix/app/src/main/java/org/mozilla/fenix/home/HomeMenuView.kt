@@ -24,7 +24,6 @@ import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.accounts.AccountState
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.menu.MenuAccessPoint
@@ -217,16 +216,9 @@ class HomeMenuView(
                 )
             }
             HomeMenu.Item.Quit -> {
-                // We need to show the snackbar while the browsing data is deleting (if "Delete
-                // browsing data on quit" is activated). After the deletion is over, the snackbar
-                // is dismissed.
                 deleteAndQuit(
                     activity = homeActivity,
-                    coroutineScope = lifecycleOwner.lifecycleScope,
-                    snackbar = FenixSnackbar.make(
-                        view = view,
-                        isDisplayedWithBrowserToolbar = false,
-                    ),
+                    coroutineScope = homeActivity.lifecycleScope,
                 )
             }
             HomeMenu.Item.ReconnectSync -> {

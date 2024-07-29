@@ -5,12 +5,11 @@
 package org.mozilla.fenix.components.toolbar
 
 import android.content.Intent
-import android.view.ViewGroup
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -43,12 +42,12 @@ import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.readermode.ReaderModeController
 import org.mozilla.fenix.collections.SaveCollectionStep
-import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.accounts.AccountState
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
+import org.mozilla.fenix.components.appstate.AppAction.ShortcutAction
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.getRootView
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.ext.openSetDefaultBrowserOption
@@ -67,6 +66,7 @@ interface BrowserToolbarMenuController {
 class DefaultBrowserToolbarMenuController(
     private val fragment: Fragment,
     private val store: BrowserStore,
+    private val appStore: AppStore,
     private val activity: HomeActivity,
     private val navController: NavController,
     private val settings: Settings,
@@ -74,7 +74,6 @@ class DefaultBrowserToolbarMenuController(
     private val sessionFeature: ViewBoundFeatureWrapper<SessionFeature>,
     private val findInPageLauncher: () -> Unit,
     private val browserAnimator: BrowserAnimator,
-    private val snackbarParent: ViewGroup,
     private val customTabSessionId: String?,
     private val openInFenixIntent: Intent,
     private val bookmarkTapped: (String, String) -> Unit,
@@ -157,19 +156,7 @@ class DefaultBrowserToolbarMenuController(
                 }
             }
             is ToolbarMenu.Item.Quit -> {
-                // We need to show the snackbar while the browsing data is deleting (if "Delete
-                // browsing data on quit" is activated). After the deletion is over, the snackbar
-                // is dismissed.
-                val snackbar: FenixSnackbar? = activity.getRootView()?.let { v ->
-                    FenixSnackbar.make(
-                        view = v,
-                        duration = Snackbar.LENGTH_LONG,
-                        isDisplayedWithBrowserToolbar = true,
-                    )
-                        .setText(v.context.getString(R.string.deleting_browsing_data_in_progress))
-                }
-
-                deleteAndQuit(activity, scope, snackbar)
+                deleteAndQuit(activity, activity.lifecycleScope)
             }
             is ToolbarMenu.Item.CustomizeReaderView -> {
                 readerModeController.showControls()
@@ -273,12 +260,11 @@ class DefaultBrowserToolbarMenuController(
             }
             is ToolbarMenu.Item.AddToTopSites -> {
                 scope.launch {
-                    val context = snackbarParent.context
                     val numPinnedSites = topSitesStorage.cachedTopSites
                         .filter { it is TopSite.Default || it is TopSite.Pinned }.size
 
                     if (numPinnedSites >= settings.topSitesMaxLimit) {
-                        AlertDialog.Builder(snackbarParent.context).apply {
+                        AlertDialog.Builder(fragment.requireContext()).apply {
                             setTitle(R.string.shortcut_max_limit_title)
                             setMessage(R.string.shortcut_max_limit_content)
                             setPositiveButton(R.string.top_sites_max_limit_confirmation_button) { dialog, _ ->
@@ -295,14 +281,7 @@ class DefaultBrowserToolbarMenuController(
                             }
                         }.join()
 
-                        FenixSnackbar.make(
-                            view = snackbarParent,
-                            duration = Snackbar.LENGTH_SHORT,
-                        )
-                            .setText(
-                                context.getString(R.string.snackbar_added_to_shortcuts),
-                            )
-                            .show()
+                        appStore.dispatch(ShortcutAction.ShortcutAdded)
                     }
                 }
             }
@@ -411,14 +390,7 @@ class DefaultBrowserToolbarMenuController(
                         }.join()
                     }
 
-                    FenixSnackbar.make(
-                        view = snackbarParent,
-                        duration = Snackbar.LENGTH_SHORT,
-                    )
-                        .setText(
-                            snackbarParent.context.getString(R.string.snackbar_top_site_removed),
-                        )
-                        .show()
+                    appStore.dispatch(ShortcutAction.ShortcutRemoved)
                 }
             }
 

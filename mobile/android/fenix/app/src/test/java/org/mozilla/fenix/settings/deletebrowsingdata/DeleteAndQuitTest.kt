@@ -24,8 +24,9 @@ import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.HomeActivity
-import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.PermissionStorage
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.settings.deletebrowsingdata.DeleteBrowsingDataOnQuitType.CACHE
 import org.mozilla.fenix.settings.deletebrowsingdata.DeleteBrowsingDataOnQuitType.COOKIES
@@ -42,6 +43,7 @@ class DeleteAndQuitTest {
     val coroutinesTestRule = MainCoroutineRule()
 
     private val activity: HomeActivity = mockk(relaxed = true)
+    private val appStore: AppStore = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
     private val tabUseCases: TabsUseCases = mockk(relaxed = true)
     private val historyStorage: PlacesHistoryStorage = mockk(relaxed = true)
@@ -49,11 +51,11 @@ class DeleteAndQuitTest {
     private val iconsStorage: BrowserIcons = mockk()
     private val engine: Engine = mockk(relaxed = true)
     private val removeAllTabsUseCases: TabsUseCases.RemoveAllTabsUseCase = mockk(relaxed = true)
-    private val snackbar = mockk<FenixSnackbar>(relaxed = true)
     private val downloadsUseCases: RemoveAllDownloadsUseCase = mockk(relaxed = true)
 
     @Before
     fun setUp() {
+        every { activity.components.appStore } returns appStore
         every { activity.components.core.historyStorage } returns historyStorage
         every { activity.components.core.permissionStorage } returns permissionStorage
         every { activity.components.useCases.tabsUseCases } returns tabUseCases
@@ -70,12 +72,12 @@ class DeleteAndQuitTest {
         // When
         every { settings.getDeleteDataOnQuit(TABS) } returns true
 
-        deleteAndQuit(activity, this, snackbar)
+        deleteAndQuit(activity, this)
 
         advanceUntilIdle()
 
         verifyOrder {
-            snackbar.show()
+            appStore.dispatch(AppAction.DeleteAndQuitStarted)
             removeAllTabsUseCases.invoke(false)
             activity.finishAndRemoveTask()
         }
@@ -109,12 +111,12 @@ class DeleteAndQuitTest {
         every { settings.getDeleteDataOnQuit(PERMISSIONS) } returns true
         every { settings.getDeleteDataOnQuit(DOWNLOADS) } returns true
 
-        deleteAndQuit(activity, this, snackbar)
+        deleteAndQuit(activity, this)
 
         advanceUntilIdle()
 
         coVerify(exactly = 1) {
-            snackbar.show()
+            appStore.dispatch(AppAction.DeleteAndQuitStarted)
 
             // Delete tabs
             removeAllTabsUseCases.invoke(false)

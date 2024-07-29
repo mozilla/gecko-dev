@@ -163,6 +163,8 @@ import org.mozilla.fenix.perf.StartupTimeline
 import org.mozilla.fenix.search.SearchDialogFragment
 import org.mozilla.fenix.search.toolbar.DefaultSearchSelectorController
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
+import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
+import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.TabsTrayAccessPoint
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -183,6 +185,7 @@ class HomeFragment : Fragment() {
     @Suppress("VariableNaming")
     internal var _binding: FragmentHomeBinding? = null
     internal val binding get() = _binding!!
+    private val snackbarBinding = ViewBoundFeatureWrapper<SnackbarBinding>()
 
     private val homeViewModel: HomeScreenViewModel by activityViewModels()
 
@@ -401,6 +404,19 @@ class HomeFragment : Fragment() {
                 view = binding.root,
             )
         }
+
+        snackbarBinding.set(
+            feature = SnackbarBinding(
+                context = requireContext(),
+                browserStore = requireContext().components.core.store,
+                appStore = requireContext().components.appStore,
+                snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),
+                navController = findNavController(),
+                customTabSessionId = null,
+            ),
+            owner = this,
+            view = binding.root,
+        )
 
         _sessionControlInteractor = SessionControlInteractor(
             controller = DefaultSessionControlController(

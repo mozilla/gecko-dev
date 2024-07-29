@@ -277,7 +277,6 @@ class MenuDialogMiddleware(
     }
 
     private fun deleteBrowsingDataAndQuit() = scope.launch {
-        appStore.dispatch(AppAction.DeleteAndQuitStarted)
         onDeleteAndQuit()
         onDismiss()
     }

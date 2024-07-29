@@ -18,6 +18,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.net.toUri
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -164,8 +166,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     onDeleteAndQuit = {
                                         deleteAndQuit(
                                             activity = activity as HomeActivity,
-                                            coroutineScope = coroutineScope,
-                                            snackbar = null,
+                                            // This menu's coroutineScope would cancel all in progress operations
+                                            // when the dialog is closed.
+                                            // Need to use a scope that will ensure the background operation
+                                            // will continue even if the dialog is closed.
+                                            coroutineScope = (activity as LifecycleOwner).lifecycleScope,
                                         )
                                     },
                                     onDismiss = {
