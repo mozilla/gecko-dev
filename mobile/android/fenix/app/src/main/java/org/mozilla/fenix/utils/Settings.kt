@@ -1936,9 +1936,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the menu redesign is enabled.
      */
-    var enableMenuRedesign by booleanPreference(
+    var enableMenuRedesign by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_menu_redesign),
-        default = FeatureFlags.menuRedesignEnabled,
+        default = { FxNimbus.features.menuRedesign.value().enabled },
+        featureFlag = true,
     )
 
     /**

@@ -84,11 +84,6 @@ object FeatureFlags {
     val navigationToolbarEnabled = Config.channel.isNightlyOrDebug
 
     /**
-     * Enables the menu redesign.
-     */
-    const val menuRedesignEnabled = false
-
-    /**
      * Enables the Compose Homepage.
      */
     const val composeHomepage = false
