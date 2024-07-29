@@ -129,16 +129,16 @@ deps = {
   'src/third_party/libunwind/src':
     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git@0906c4a31502cc7a46b5cf1794e21664ffa23be1',
 
-  'src/third_party/test_fonts': {
+  'src/third_party/test_fonts/test_fonts': {
       'dep_type': 'gcs',
       'condition': 'non_git_source',
       'bucket': 'chromium-fonts',
       'objects': [
           {
-              'object_name': '336e775eec536b2d785cc80eff6ac39051931286',
-              'sha256sum': 'a2ca2962daf482a8f943163541e1c73ba4b2694fabcd2510981f2db4eda493c8',
-              'size_bytes': 32624734,
-              'generation': 1647440500943755,
+              'object_name': 'f26f29c9d3bfae588207bbc9762de8d142e58935c62a86f67332819b15203b35',
+              'sha256sum': 'f26f29c9d3bfae588207bbc9762de8d142e58935c62a86f67332819b15203b35',
+              'size_bytes': 32750602,
+              'generation': 1717109450425063,
           },
       ],
   },
@@ -2525,6 +2525,18 @@ hooks = [
                'reproxy.cfg.template',
                '--quiet',
                ],
+  },
+
+  {
+    # Ensure we remove any file from disk that is no longer needed (e.g. after
+    # hooks to native GCS deps migration).
+    'name': 'remove_stale_files',
+    'pattern': '.',
+    'action': [
+        'python3',
+        'src/tools/remove_stale_files.py',
+        'src/third_party/test_fonts/test_fonts.tar.gz', # Remove after 20240901
+    ],
   },
 ]
 
