@@ -63,22 +63,17 @@ class EventMetric {
       // twice the required allocation. We could be smarter and reuse the data.
       // But this is GIFFT-only allocation, so wait to be told it's a problem.
       Maybe<CopyableTArray<Telemetry::EventExtraEntry>> telExtras;
-      Maybe<nsCString> telValue;
       if (aExtras) {
         CopyableTArray<Telemetry::EventExtraEntry> extras;
         auto serializedExtras = aExtras->ToFfiExtra();
         auto keys = std::move(std::get<0>(serializedExtras));
         auto values = std::move(std::get<1>(serializedExtras));
         for (size_t i = 0; i < keys.Length(); i++) {
-          if (keys[i].EqualsLiteral("value")) {
-            telValue = Some(values[i]);
-            continue;
-          }
           extras.EmplaceBack(Telemetry::EventExtraEntry{keys[i], values[i]});
         }
         telExtras = Some(extras);
       }
-      Telemetry::RecordEvent(id.extract(), telValue, telExtras);
+      Telemetry::RecordEvent(id.extract(), Nothing(), telExtras);
     }
     if (aExtras) {
       auto extra = aExtras->ToFfiExtra();
