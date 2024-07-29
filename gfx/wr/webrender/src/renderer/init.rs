@@ -111,6 +111,10 @@ pub trait AsyncPropertySampler {
     fn deregister(&self);
 }
 
+pub trait RenderBackendHooks {
+    fn init_thread(&self);
+}
+
 pub struct WebRenderOptions {
     pub resource_override_path: Option<PathBuf>,
     /// Whether to use shaders that have been optimized at build time.
@@ -140,6 +144,7 @@ pub struct WebRenderOptions {
     pub debug_flags: DebugFlags,
     pub renderer_id: Option<u64>,
     pub scene_builder_hooks: Option<Box<dyn SceneBuilderHooks + Send>>,
+    pub render_backend_hooks: Option<Box<dyn RenderBackendHooks + Send>>,
     pub sampler: Option<Box<dyn AsyncPropertySampler + Send>>,
     pub support_low_priority_transactions: bool,
     pub namespace_alloc_by_client: bool,
@@ -238,6 +243,7 @@ impl Default for WebRenderOptions {
             renderer_id: None,
             cached_programs: None,
             scene_builder_hooks: None,
+            render_backend_hooks: None,
             sampler: None,
             support_low_priority_transactions: false,
             namespace_alloc_by_client: false,
@@ -644,10 +650,15 @@ pub fn create_webrender_instance(
         TextureFilter::Nearest
     };
 
+    let render_backend_hooks = options.render_backend_hooks.take();
+
     let rb_scene_tx = scene_tx.clone();
     let rb_fonts = fonts.clone();
     let enable_multithreading = options.enable_multithreading;
     thread::Builder::new().name(rb_thread_name.clone()).spawn(move || {
+        if let Some(hooks) = render_backend_hooks {
+            hooks.init_thread();
+        }
         register_thread_with_profiler(rb_thread_name.clone());
         profiler::register_thread(&rb_thread_name);
 

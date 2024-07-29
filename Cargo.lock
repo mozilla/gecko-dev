@@ -6745,6 +6745,7 @@ dependencies = [
  "objc",
  "rayon",
  "remove_dir_all",
+ "static_prefs",
  "swgl",
  "thin-vec",
  "tracy-rs",

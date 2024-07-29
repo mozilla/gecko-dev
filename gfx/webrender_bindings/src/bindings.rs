@@ -41,7 +41,7 @@ use webrender::{
     MappableCompositor, MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor,
     PipelineInfo, ProfilerHooks, RecordedFrameHandle, Renderer, RendererStats, SWGLCompositeSurfaceInfo,
     SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig, UploadMethod, WebRenderOptions,
-    WindowVisibility, ONE_TIME_USAGE_HINT,
+    WindowVisibility, RenderBackendHooks, ONE_TIME_USAGE_HINT,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -1009,7 +1009,12 @@ impl APZCallbacks {
 
 impl SceneBuilderHooks for APZCallbacks {
     fn register(&self) {
-        unsafe { apz_register_updater(self.window_id) }
+        unsafe {
+            if static_prefs::pref!("gfx.webrender.scene-builder-thread-local-arena") {
+                wr_register_thread_local_arena();
+            }
+            apz_register_updater(self.window_id);
+        }
     }
 
     fn pre_scene_build(&self) {
@@ -1050,6 +1055,16 @@ impl SceneBuilderHooks for APZCallbacks {
 
     fn deregister(&self) {
         unsafe { apz_deregister_updater(self.window_id) }
+    }
+}
+
+struct RenderBackendCallbacks;
+
+impl RenderBackendHooks for RenderBackendCallbacks {
+    fn init_thread(&self) {
+        if static_prefs::pref!("gfx.webrender.frame-builder-thread-local-arena") {
+            unsafe { wr_register_thread_local_arena() };
+        }
     }
 }
 
@@ -1118,12 +1133,14 @@ pub extern "C" fn wr_thread_pool_new(low_priority: bool) -> *mut WrThreadPool {
 
     let priority_tag = if low_priority { "LP" } else { "" };
 
+    let use_thread_local_arena = static_prefs::pref!("gfx.webrender.worker-thread-local-arena");
+
     let worker = rayon::ThreadPoolBuilder::new()
         .thread_name(move |idx| format!("WRWorker{}#{}", priority_tag, idx))
         .num_threads(num_threads)
         .start_handler(move |idx| {
-            unsafe {
-                wr_register_thread_local_arena();
+            if use_thread_local_arena {
+                unsafe { wr_register_thread_local_arena(); }
             }
             let name = format!("WRWorker{}#{}", priority_tag, idx);
             register_thread_with_profiler(name.clone());
@@ -1733,6 +1750,7 @@ pub extern "C" fn wr_window_new(
         renderer_id: Some(window_id.0),
         upload_method,
         scene_builder_hooks: Some(Box::new(APZCallbacks::new(window_id))),
+        render_backend_hooks: Some(Box::new(RenderBackendCallbacks)),
         sampler: Some(Box::new(SamplerCallback::new(window_id))),
         max_internal_texture_size: Some(8192), // We want to tile if larger than this
         clear_color: color,
