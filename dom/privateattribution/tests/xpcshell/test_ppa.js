@@ -690,6 +690,12 @@ add_task(async function testTelemetry() {
     targetHost
   );
 
+  Assert.equal(
+    Glean.privateAttribution.saveImpression.last_view.testGetValue() ?? 0,
+    saveImpressionSuccessCount + 1,
+    "Successful saveImpression call for type==view"
+  );
+
   await privateAttribution.onAttributionEvent(
     sourceHost,
     "click",
@@ -719,6 +725,11 @@ add_task(async function testTelemetry() {
     [sourceHost]
   );
 
+  Assert.equal(
+    Glean.privateAttribution.measureConversion.last_view.testGetValue() ?? 0,
+    measureConversionSuccessCount + 1,
+    "Successful measureConversion call for type==view"
+  );
   Assert.equal(
     Glean.privateAttribution.measureConversion.success.testGetValue() ?? 0,
     measureConversionSuccessCount + 1,

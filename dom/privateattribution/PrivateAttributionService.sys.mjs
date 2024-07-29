@@ -81,7 +81,8 @@ export class PrivateAttributionService {
       impression.index = index;
       impression.lastImpression = now;
       impression[prop] = now;
-      Glean.privateAttribution.saveImpression[prop].add(1);
+      const _prop = this.camelToSnake(prop);
+      Glean.privateAttribution.saveImpression[_prop].add(1);
 
       await this.updateImpression(impressionStore, ad, impression);
       Glean.privateAttribution.saveImpression.success.add(1);
@@ -152,7 +153,8 @@ export class PrivateAttributionService {
 
     // Set attribution model properties
     const prop = this.getModelProp(model);
-    Glean.privateAttribution.measureConversion[prop].add(1);
+    const _prop = this.camelToSnake(prop);
+    Glean.privateAttribution.measureConversion[_prop].add(1);
 
     // Find the most relevant impression
     const lookbackWindow = now - days * DAY_IN_MILLI;
@@ -286,6 +288,13 @@ export class PrivateAttributionService {
         AppConstants.MOZ_TELEMETRY_REPORTING &&
         lazy.gIsPPAEnabled)
     );
+  }
+
+  camelToSnake(camelStr) {
+    const snakeStr = camelStr.replace(/([A-Z])/g, function (match) {
+      return "_" + match.toLowerCase();
+    });
+    return snakeStr;
   }
 
   QueryInterface = ChromeUtils.generateQI([Ci.nsIPrivateAttributionService]);
