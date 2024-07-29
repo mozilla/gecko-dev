@@ -307,6 +307,7 @@ Submitter.prototype = {
     const strippedAnnotations = [
       "StackTraces",
       "TelemetryClientId",
+      "TelemetryProfileGroupId",
       "TelemetrySessionId",
       "TelemetryServerURL",
     ];

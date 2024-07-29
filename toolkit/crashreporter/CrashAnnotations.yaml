@@ -861,6 +861,11 @@ TelemetryClientId:
     Telemetry client ID.
   type: string
 
+TelemetryProfileGroupId:
+  description: >
+    Telemetry profile group ID.
+  type: string
+
 TelemetryEnvironment:
   description: >
     The telemetry environment in JSON format.

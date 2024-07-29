@@ -92,6 +92,10 @@ add_task(async function run_test() {
         "The TelemetryClientId field is omitted by default"
       );
       Assert.ok(
+        !("TelemetryProfileGroupId" in extra),
+        "The TelemetryProfileGroupId field is omitted by default"
+      );
+      Assert.ok(
         !("TelemetryServerURL" in extra),
         "The TelemetryServerURL field is omitted by default"
       );
@@ -119,6 +123,10 @@ add_task(async function run_test() {
         "toolkit.telemetry.cachedClientID",
         "f3582dee-22b9-4d73-96d1-79ef5bf2fc24"
       );
+      Services.prefs.setCharPref(
+        "toolkit.telemetry.cachedProfileGroupID",
+        "6b63fbca-5f99-4a37-b55f-d4e4a2d3ca51"
+      );
 
       // TelemetrySession setup will trigger the session annotation
       let { TelemetryController } = ChromeUtils.importESModule(
@@ -139,6 +147,15 @@ add_task(async function run_test() {
         extra.TelemetryClientId,
         "f3582dee-22b9-4d73-96d1-79ef5bf2fc24",
         "The TelemetryClientId matches the expected value"
+      );
+      Assert.ok(
+        "TelemetryProfileGroupId" in extra,
+        "The TelemetryProfileGroupId field is present when the FHR is on"
+      );
+      Assert.equal(
+        extra.TelemetryProfileGroupId,
+        "6b63fbca-5f99-4a37-b55f-d4e4a2d3ca51",
+        "The TelemetryProfileGroupId matches the expected value"
       );
       Assert.ok(
         "TelemetryServerURL" in extra,
@@ -180,6 +197,10 @@ add_task(async function run_test() {
         "The TelemetryClientId field is omitted when FHR upload is disabled"
       );
       Assert.ok(
+        !("TelemetryProfileGroupId" in extra),
+        "The TelemetryProfileGroupId field is omitted when FHR upload is disabled"
+      );
+      Assert.ok(
         !("TelemetryServerURL" in extra),
         "The TelemetryServerURL field is omitted when FHR upload is disabled"
       );
@@ -213,6 +234,10 @@ add_task(async function run_test() {
       Assert.ok(
         !("TelemetryClientId" in extra),
         "The TelemetryClientId field is omitted when FHR upload is disabled"
+      );
+      Assert.ok(
+        !("TelemetryProfileGroupId" in extra),
+        "The TelemetryProfileGroupId field is omitted when FHR upload is disabled"
       );
       Assert.ok(
         !("TelemetryServerURL" in extra),

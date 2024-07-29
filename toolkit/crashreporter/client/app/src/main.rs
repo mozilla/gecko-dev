@@ -129,6 +129,7 @@ fn main() {
                             "ServerURL": "https://reports.example",
                             "TelemetryServerURL": "https://telemetry.example",
                             "TelemetryClientId": "telemetry_client",
+                            "TelemetryProfileGroupId": "telemetry_profile_group",
                             "TelemetrySessionId": "telemetry_session",
                             "URL": "https://url.example"
                         }"#;
