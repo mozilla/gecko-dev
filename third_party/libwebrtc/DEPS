@@ -50,6 +50,9 @@ vars = {
   # ninja CIPD package version
   # https://chrome-infra-packages.appspot.com/p/infra/3pp/tools/ninja
   'ninja_version': 'version:2@1.11.1.chromium.6',
+
+  # condition to allowlist deps for non-git-source processing.
+  'non_git_source': 'True',
 }
 
 deps = {
