@@ -71,6 +71,8 @@ skip-if = ["debug"] # Bug 1444565, Bug 1457887
 
 ["browser_e10s_switchbrowser.js"]
 
+["browser_exclude_fxview_hidden_tabs.js"]
+
 ["browser_file_to_http_named_popup.js"]
 
 ["browser_file_to_http_script_closable.js"]

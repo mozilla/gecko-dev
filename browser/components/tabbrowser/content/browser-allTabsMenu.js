@@ -36,6 +36,17 @@ var gTabsPanel = {
     this._initializedElements = true;
   },
 
+  hasHiddenTabsExcludingFxView() {
+    const hiddenTabCount = gBrowser.tabs.length - gBrowser.visibleTabs.length;
+
+    // If there's only 1 hidden tab, check if it's Firefox View to exclude it.
+    // See Bug 1880138.
+    if (hiddenTabCount == 1) {
+      return !FirefoxViewHandler.tab?.hidden;
+    }
+    return hiddenTabCount > 0;
+  },
+
   init() {
     if (this._initialized) {
       return;
@@ -68,7 +79,7 @@ var gTabsPanel = {
       document.getElementById("allTabsMenu-containerTabsButton").hidden =
         !containersEnabled;
 
-      let hasHiddenTabs = gBrowser.visibleTabs.length < gBrowser.tabs.length;
+      const hasHiddenTabs = this.hasHiddenTabsExcludingFxView();
       document.getElementById("allTabsMenu-hiddenTabsButton").hidden =
         !hasHiddenTabs;
       document.getElementById("allTabsMenu-hiddenTabsSeparator").hidden =
@@ -154,7 +165,7 @@ var gTabsPanel = {
 
     this.hiddenTabsPopup = new TabsPanel({
       view: this.hiddenTabsView,
-      filterFn: tab => tab.hidden,
+      filterFn: tab => tab.hidden && tab != FirefoxViewHandler.tab,
     });
 
     this._initialized = true;
