@@ -816,19 +816,15 @@ LogicalSize nsContainerFrame::ComputeAutoSize(
     const mozilla::LogicalSize& aBorderPadding,
     const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) {
   LogicalSize result(aWM, 0xdeadbeef, NS_UNCONSTRAINEDSIZE);
-  nscoord availBased =
-      aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
   if (aFlags.contains(ComputeSizeFlag::ShrinkWrap)) {
-    // Only bother computing our 'auto' ISize if the result will be used.
-    const auto& styleISize = aSizeOverrides.mStyleISize
-                                 ? *aSizeOverrides.mStyleISize
-                                 : StylePosition()->ISize(aWM);
-    if (styleISize.IsAuto()) {
-      result.ISize(aWM) =
-          ShrinkISizeToFit(aRenderingContext, availBased, aFlags);
-    }
+    // Delegate to nsIFrame::ComputeAutoSize() for computing the shrink-wrapping
+    // size.
+    result = nsIFrame::ComputeAutoSize(aRenderingContext, aWM, aCBSize,
+                                       aAvailableISize, aMargin, aBorderPadding,
+                                       aSizeOverrides, aFlags);
   } else {
-    result.ISize(aWM) = availBased;
+    result.ISize(aWM) =
+        aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
   }
 
   if (IsTableCaption()) {
