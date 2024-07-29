@@ -594,7 +594,8 @@ class PromptFeature private constructor(
         // Some requests are handle with intents
         session.content.promptRequests.lastOrNull()?.let { promptRequest ->
             if (session.content.permissionRequestsList.isNotEmpty()) {
-                onCancel(session.id, promptRequest.uid)
+                val value: Any? = if (promptRequest is Popup) false else null
+                onCancel(session.id, promptRequest.uid, value)
             } else {
                 processPromptRequest(promptRequest, session)
             }
