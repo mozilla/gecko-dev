@@ -12,6 +12,7 @@ import { SelectableProfile } from "./SelectableProfile.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  CryptoUtils: "resource://services-crypto/utils.sys.mjs",
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
 });
 
@@ -22,12 +23,7 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsIToolkitProfileService"
 );
 
-function getProfileGroupsDir() {
-  return PathUtils.join(
-    Services.dirsvc.get("UAppData", Ci.nsIFile).path,
-    "Profile Groups"
-  );
-}
+const PROFILES_CRYPTO_SALT_LENGTH_BYTES = 8;
 
 /**
  * The service that manages selectable profiles
@@ -38,8 +34,15 @@ export class SelectableProfileService {
   #initialized = false;
   #groupToolkitProfile = null;
 
+  static get PROFILE_GROUPS_DIR() {
+    return PathUtils.join(
+      Services.dirsvc.get("UAppData", Ci.nsIFile).path,
+      "Profile Groups"
+    );
+  }
+
   async createProfilesStorePath() {
-    await IOUtils.makeDirectory(getProfileGroupsDir());
+    await IOUtils.makeDirectory(SelectableProfileService.PROFILE_GROUPS_DIR);
 
     const storageID = Services.uuid
       .generateUUID()
@@ -55,7 +58,7 @@ export class SelectableProfileService {
     }
 
     return PathUtils.join(
-      getProfileGroupsDir(),
+      SelectableProfileService.PROFILE_GROUPS_DIR,
       `${this.#groupToolkitProfile.storeID}.sqlite`
     );
   }
@@ -236,6 +239,40 @@ export class SelectableProfileService {
   // SelectableProfile lifecycle
 
   /**
+   * Create the profile directory for new profile. The profile name is combined
+   * with a salt string to ensure the directory is unique. The format of the
+   * directory is salt + "." + profileName. (Ex. c7IZaLu7.testProfile)
+   *
+   * @param {string} aProfileName The name of the profile to be created
+   * @returns {string} The directory name for the given profile name
+   */
+  async createProfileDirs(aProfileName) {
+    const salt = btoa(
+      lazy.CryptoUtils.generateRandomBytesLegacy(
+        PROFILES_CRYPTO_SALT_LENGTH_BYTES
+      )
+    ).slice(0, 8);
+    const profileDir = `${salt}.${aProfileName}`;
+
+    // Handle errors in bug 1909919
+    await Promise.all([
+      IOUtils.makeDirectory(
+        PathUtils.join(
+          Services.dirsvc.get("DefProfRt", Ci.nsIFile).path,
+          profileDir
+        )
+      ),
+      IOUtils.makeDirectory(
+        PathUtils.join(
+          Services.dirsvc.get("DefProfLRt", Ci.nsIFile).path,
+          profileDir
+        )
+      ),
+    ]);
+    return profileDir;
+  }
+
+  /**
    * Create an empty SelectableProfile and add it to the group DB.
    * This is an unmanaged profile from the nsToolkitProfile perspective.
    *
@@ -243,6 +280,8 @@ export class SelectableProfileService {
    *                 themeFg, and themeBg for creating a new profile.
    */
   async createProfile(profile) {
+    let profileDir = await this.createProfileDirs(profile.name);
+    profile.path = profileDir;
     await this.#connection.execute(
       `INSERT INTO Profiles VALUES (NULL, :path, :name, :avatar, :themeL10nId, :themeFg, :themeBg);`,
       profile
@@ -251,15 +290,48 @@ export class SelectableProfileService {
   }
 
   /**
+   * Remove the profile directories.
+   *
+   * @param {string} profileDir Directory name of profile to be removed.
+   */
+  async removeProfileDirs(profileDir) {
+    // Handle errors in bug 1909919
+    await Promise.all([
+      IOUtils.remove(
+        PathUtils.join(
+          Services.dirsvc.get("DefProfRt", Ci.nsIFile).path,
+          profileDir
+        ),
+        {
+          recursive: true,
+        }
+      ),
+      IOUtils.remove(
+        PathUtils.join(
+          Services.dirsvc.get("DefProfLRt", Ci.nsIFile).path,
+          profileDir
+        ),
+        {
+          recursive: true,
+        }
+      ),
+    ]);
+  }
+
+  /**
    * Delete a SelectableProfile from the group DB.
    * If it was the last profile in the group, also call deleteProfileGroup().
    *
    * @param {SelectableProfile} aSelectableProfile The SelectableProfile to be deleted
+   * @param {boolean} removeFiles True if the profile directory should be removed
    */
-  async deleteProfile(aSelectableProfile) {
+  async deleteProfile(aSelectableProfile, removeFiles) {
     await this.#connection.execute("DELETE FROM Profiles WHERE id = :id;", {
       id: aSelectableProfile.id,
     });
+    if (removeFiles) {
+      await this.removeProfileDirs(aSelectableProfile.path);
+    }
   }
 
   /**

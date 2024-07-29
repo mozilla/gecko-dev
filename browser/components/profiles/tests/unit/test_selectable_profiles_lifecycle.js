@@ -32,12 +32,30 @@ add_task(
 
     let createdProfile = await sps.createProfile({
       name: "testProfile",
-      path: "/testPath/testProfile",
       avatar: "avatar",
       themeL10nId: "theme-id",
       themeFg: "redFG",
       themeBg: "blueBG",
     });
+
+    const profilePath = PathUtils.join(
+      Services.dirsvc.get("DefProfRt", Ci.nsIFile).path,
+      createdProfile.path
+    );
+    let profileDirExists = await IOUtils.exists(profilePath);
+    const profileLocalPath = PathUtils.join(
+      Services.dirsvc.get("DefProfLRt", Ci.nsIFile).path,
+      createdProfile.path
+    );
+    let profileLocalDirExists = await IOUtils.exists(profileLocalPath);
+    Assert.ok(
+      profileDirExists && profileLocalDirExists,
+      `Profile dir was successfully created at ${profilePath}`
+    );
+    Assert.ok(
+      profileLocalDirExists,
+      `Profile local dir was successfully created at ${profileLocalPath}`
+    );
 
     profiles = await sps.getProfiles();
 
@@ -73,7 +91,25 @@ add_task(
       "We got the correct profile name: updatedTestProfile"
     );
 
-    await sps.deleteProfile(selectableProfile);
+    await sps.deleteProfile(selectableProfile, true);
+
+    profileDirExists = await IOUtils.exists(
+      PathUtils.join(
+        Services.dirsvc.get("DefProfRt", Ci.nsIFile).path,
+        createdProfile.path
+      )
+    );
+    profileLocalDirExists = await IOUtils.exists(
+      PathUtils.join(
+        Services.dirsvc.get("DefProfLRt", Ci.nsIFile).path,
+        createdProfile.path
+      )
+    );
+    Assert.ok(!profileDirExists, "Profile dir was successfully removed");
+    Assert.ok(
+      !profileLocalDirExists,
+      "Profile local dir was successfully removed"
+    );
 
     profiles = await sps.getProfiles();
 
