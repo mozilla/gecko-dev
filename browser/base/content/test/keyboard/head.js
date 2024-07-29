@@ -49,13 +49,27 @@ async function expectFocusAfterKey(
       friendlyExpected = "Web document";
     }
   }
-  info("Listening on item " + (expected.id || expected.className));
+  info(
+    "Listening on item " + friendlyExpected ||
+      expected.id ||
+      expected.className ||
+      expected.tagName
+  );
   let focused = BrowserTestUtils.waitForEvent(expected, "focus", aAncestorOk);
   EventUtils.synthesizeKey(key, { shiftKey: shift }, aWindow);
   let receivedEvent = await focused;
+  let friendlyReceived;
+  if (receivedEvent.target == aWindow.gURLBar.inputField) {
+    friendlyReceived = "URL bar input";
+  } else if (receivedEvent.target == aWindow.gBrowser.selectedBrowser) {
+    friendlyReceived = "Web document";
+  }
   info(
     "Got focus on item: " +
-      (receivedEvent.target?.id || receivedEvent.target?.className)
+      (friendlyReceived ||
+        receivedEvent.target?.id ||
+        receivedEvent.target?.className ||
+        receivedEvent.target?.tagName)
   );
   ok(true, friendlyExpected + " focused after " + aKey + " pressed");
 }
