@@ -163,21 +163,15 @@ bool IsCodecValidForLowerRange(const Codec& codec) {
   return false;
 }
 
-// This function will assign dynamic payload types (in the range [96, 127]
-// and then [35, 63]) to the input codecs, and also add ULPFEC, RED, FlexFEC,
-// and associated RTX codecs for recognized codecs (VP8, VP9, H264, and RED).
-// It will also add default feedback params to the codecs.
+// Get the default set of supported codecs.
 // is_decoder_factory is needed to keep track of the implict assumption that any
 // H264 decoder also supports constrained base line profile.
 // Also, is_decoder_factory is used to decide whether FlexFEC video format
 // should be advertised as supported.
-// TODO(kron): Perhaps it is better to move the implicit knowledge to the place
-// where codecs are negotiated.
 template <class T>
-std::vector<Codec> GetPayloadTypesAndDefaultCodecs(
+std::vector<webrtc::SdpVideoFormat> GetDefaultSupportedFormats(
     const T* factory,
     bool is_decoder_factory,
-    bool include_rtx,
     const webrtc::FieldTrialsView& trials) {
   if (!factory) {
     return {};
@@ -190,11 +184,10 @@ std::vector<Codec> GetPayloadTypesAndDefaultCodecs(
   }
 
   if (supported_formats.empty())
-    return std::vector<Codec>();
+    return supported_formats;
 
   supported_formats.push_back(webrtc::SdpVideoFormat(kRedCodecName));
   supported_formats.push_back(webrtc::SdpVideoFormat(kUlpfecCodecName));
-
   // flexfec-03 is always supported as receive codec and as send codec
   // only if WebRTC-FlexFEC-03-Advertised is enabled
   if (is_decoder_factory || IsEnabled(trials, "WebRTC-FlexFEC-03-Advertised")) {
@@ -206,7 +199,17 @@ std::vector<Codec> GetPayloadTypesAndDefaultCodecs(
     flexfec_format.parameters = {{kFlexfecFmtpRepairWindow, "10000000"}};
     supported_formats.push_back(flexfec_format);
   }
+  return supported_formats;
+}
 
+// This function will assign dynamic payload types (in the range [96, 127]
+// and then [35, 63]) to the input codecs, and also add ULPFEC, RED, FlexFEC,
+// and associated RTX codecs for recognized codecs (VP8, VP9, H264, and RED).
+// It will also add default feedback params to the codecs.
+std::vector<Codec> AssignPayloadTypesAndAddRtx(
+    const std::vector<webrtc::SdpVideoFormat>& supported_formats,
+    bool include_rtx,
+    const webrtc::FieldTrialsView& trials) {
   // Due to interoperability issues with old Chrome/WebRTC versions that
   // ignore the [35, 63] range prefer the lower range for new codecs.
   static const int kFirstDynamicPayloadTypeLowerRange = 35;
@@ -268,6 +271,20 @@ std::vector<Codec> GetPayloadTypesAndDefaultCodecs(
     }
   }
   return output_codecs;
+}
+
+// TODO(kron): Perhaps it is better to move the implicit knowledge to the place
+// where codecs are negotiated.
+template <class T>
+std::vector<Codec> GetPayloadTypesAndDefaultCodecs(
+    const T* factory,
+    bool is_decoder_factory,
+    bool include_rtx,
+    const webrtc::FieldTrialsView& trials) {
+  auto supported_formats =
+      GetDefaultSupportedFormats(factory, is_decoder_factory, trials);
+
+  return AssignPayloadTypesAndAddRtx(supported_formats, include_rtx, trials);
 }
 
 static std::string CodecVectorToString(const std::vector<Codec>& codecs) {
