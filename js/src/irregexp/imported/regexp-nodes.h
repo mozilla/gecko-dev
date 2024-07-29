@@ -203,7 +203,7 @@ class RegExpNode : public ZoneObject {
   // If we know that the input is one-byte then there are some nodes that can
   // never match.  This method returns a node that can be substituted for
   // itself, or nullptr if the node can never match.
-  virtual RegExpNode* FilterOneByte(int depth, RegExpCompiler* compiler) {
+  virtual RegExpNode* FilterOneByte(int depth, RegExpFlags flags) {
     return this;
   }
   // Helper for FilterOneByte.
@@ -294,7 +294,7 @@ class SeqRegExpNode : public RegExpNode {
       : RegExpNode(on_success->zone()), on_success_(on_success) {}
   RegExpNode* on_success() { return on_success_; }
   void set_on_success(RegExpNode* node) { on_success_ = node; }
-  RegExpNode* FilterOneByte(int depth, RegExpCompiler* compiler) override;
+  RegExpNode* FilterOneByte(int depth, RegExpFlags flags) override;
   void FillInBMInfo(Isolate* isolate, int offset, int budget,
                     BoyerMooreLookahead* bm, bool not_at_start) override {
     on_success_->FillInBMInfo(isolate, offset, budget - 1, bm, not_at_start);
@@ -302,7 +302,7 @@ class SeqRegExpNode : public RegExpNode {
   }
 
  protected:
-  RegExpNode* FilterSuccessor(int depth, RegExpCompiler* compiler);
+  RegExpNode* FilterSuccessor(int depth, RegExpFlags flags);
 
  private:
   RegExpNode* on_success_;
@@ -441,17 +441,20 @@ class TextNode : public SeqRegExpNode {
   void FillInBMInfo(Isolate* isolate, int offset, int budget,
                     BoyerMooreLookahead* bm, bool not_at_start) override;
   void CalculateOffsets();
-  RegExpNode* FilterOneByte(int depth, RegExpCompiler* compiler) override;
+  RegExpNode* FilterOneByte(int depth, RegExpFlags flags) override;
   int Length();
 
  private:
   enum TextEmitPassType {
-    NON_LATIN1_MATCH,            // Check for characters that can never match.
+    NON_LATIN1_MATCH,            // Check for characters that can't match.
     SIMPLE_CHARACTER_MATCH,      // Case-dependent single character check.
     NON_LETTER_CHARACTER_MATCH,  // Check characters that have no case equivs.
     CASE_CHARACTER_MATCH,        // Case-independent single character check.
     CHARACTER_CLASS_MATCH        // Character class.
   };
+  static bool SkipPass(TextEmitPassType pass, bool ignore_case);
+  static const int kFirstRealPass = SIMPLE_CHARACTER_MATCH;
+  static const int kLastPass = CHARACTER_CLASS_MATCH;
   void TextEmitPass(RegExpCompiler* compiler, TextEmitPassType pass,
                     bool preloaded, Trace* trace, bool first_element_checked,
                     int* checked_up_to);
@@ -629,7 +632,7 @@ class ChoiceNode : public RegExpNode {
   virtual bool try_to_emit_quick_check_for_alternative(bool is_first) {
     return true;
   }
-  RegExpNode* FilterOneByte(int depth, RegExpCompiler* compiler) override;
+  RegExpNode* FilterOneByte(int depth, RegExpFlags flags) override;
   virtual bool read_backward() { return false; }
 
  protected:
@@ -701,7 +704,7 @@ class NegativeLookaroundChoiceNode : public ChoiceNode {
     return !is_first;
   }
   void Accept(NodeVisitor* visitor) override;
-  RegExpNode* FilterOneByte(int depth, RegExpCompiler* compiler) override;
+  RegExpNode* FilterOneByte(int depth, RegExpFlags flags) override;
 };
 
 class LoopChoiceNode : public ChoiceNode {
@@ -734,7 +737,7 @@ class LoopChoiceNode : public ChoiceNode {
   int min_loop_iterations() const { return min_loop_iterations_; }
   bool read_backward() override { return read_backward_; }
   void Accept(NodeVisitor* visitor) override;
-  RegExpNode* FilterOneByte(int depth, RegExpCompiler* compiler) override;
+  RegExpNode* FilterOneByte(int depth, RegExpFlags flags) override;
 
  private:
   // AddAlternative is made private for loop nodes because alternatives

@@ -206,7 +206,7 @@ class BoyerMooreLookahead : public ZoneObject {
   ZoneList<BoyerMoorePositionInfo*>* bitmaps_;
 
   int GetSkipTable(int min_lookahead, int max_lookahead,
-                   DirectHandle<ByteArray> boolean_skip_table);
+                   Handle<ByteArray> boolean_skip_table);
   bool FindWorthwhileInterval(int* from, int* to);
   int FindBestInterval(int max_number_of_chars, int old_biggest_points,
                        int* from, int* to);

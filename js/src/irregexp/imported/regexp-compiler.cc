@@ -751,30 +751,12 @@ bool ContainsOnlyUtf16CodeUnits(unibrow::uchar* chars, int length) {
 #endif  // DEBUG
 
 // Returns the number of characters in the equivalence class, omitting those
-// that cannot occur in the source string because it is Latin1.  This is called
-// both for unicode modes /ui and /vi, and also for legacy case independent
-// mode /i.  In the case of Unicode modes we handled surrogate pair expansions
-// earlier so at this point it's all about single-code-unit expansions.
+// that cannot occur in the source string because it is Latin1.
 int GetCaseIndependentLetters(Isolate* isolate, base::uc16 character,
-                              RegExpCompiler* compiler, unibrow::uchar* letters,
+                              bool one_byte_subject, unibrow::uchar* letters,
                               int letter_length) {
-  bool one_byte_subject = compiler->one_byte();
-  bool unicode = IsEitherUnicode(compiler->flags());
-  static const base::uc16 kMaxAscii = 0x7f;
-  if (!unicode && character <= kMaxAscii) {
-    // Fast case for common characters.
-    base::uc16 upper = character & ~0x20;
-    if ('A' <= upper && upper <= 'Z') {
-      letters[0] = upper;
-      letters[1] = upper | 0x20;
-      return 2;
-    }
-    letters[0] = character;
-    return 1;
-  }
 #ifdef V8_INTL_SUPPORT
-
-  if (!unicode && RegExpCaseFolding::IgnoreSet().contains(character)) {
+  if (RegExpCaseFolding::IgnoreSet().contains(character)) {
     letters[0] = character;
     DCHECK(ContainsOnlyUtf16CodeUnits(letters, 1));
     return 1;
@@ -784,11 +766,10 @@ int GetCaseIndependentLetters(Isolate* isolate, base::uc16 character,
 
   icu::UnicodeSet set;
   set.add(character);
-  set = set.closeOver(unicode ? USET_SIMPLE_CASE_INSENSITIVE
-                              : USET_CASE_INSENSITIVE);
+  set = set.closeOver(USET_CASE_INSENSITIVE);
 
   UChar32 canon = 0;
-  if (in_special_add_set && !unicode) {
+  if (in_special_add_set) {
     canon = RegExpCaseFolding::Canonicalize(character);
   }
 
@@ -799,9 +780,8 @@ int GetCaseIndependentLetters(Isolate* isolate, base::uc16 character,
     UChar32 end = set.getRangeEnd(i);
     CHECK(end - start + items <= letter_length);
     for (UChar32 cu = start; cu <= end; cu++) {
-      if (one_byte_subject && cu > String::kMaxOneByteCharCode) continue;
-      if (!unicode && in_special_add_set &&
-          RegExpCaseFolding::Canonicalize(cu) != canon) {
+      if (one_byte_subject && cu > String::kMaxOneByteCharCode) break;
+      if (in_special_add_set && RegExpCaseFolding::Canonicalize(cu) != canon) {
         continue;
       }
       letters[items++] = static_cast<unibrow::uchar>(cu);
@@ -855,7 +835,7 @@ inline bool EmitAtomNonLetter(Isolate* isolate, RegExpCompiler* compiler,
   RegExpMacroAssembler* macro_assembler = compiler->macro_assembler();
   bool one_byte = compiler->one_byte();
   unibrow::uchar chars[4];
-  int length = GetCaseIndependentLetters(isolate, c, compiler, chars, 4);
+  int length = GetCaseIndependentLetters(isolate, c, one_byte, chars, 4);
   if (length < 1) {
     // This can't match.  Must be an one-byte subject and a non-one-byte
     // character.  We do not need to do anything since the one-byte pass
@@ -865,7 +845,7 @@ inline bool EmitAtomNonLetter(Isolate* isolate, RegExpCompiler* compiler,
   bool checked = false;
   // We handle the length > 1 case in a later pass.
   if (length == 1) {
-    if (one_byte && chars[0] > String::kMaxOneByteCharCodeU) {
+    if (one_byte && c > String::kMaxOneByteCharCodeU) {
       // Can't match - see above.
       return false;  // Bounds not checked.
     }
@@ -873,7 +853,7 @@ inline bool EmitAtomNonLetter(Isolate* isolate, RegExpCompiler* compiler,
       macro_assembler->LoadCurrentCharacter(cp_offset, on_failure, check);
       checked = check;
     }
-    macro_assembler->CheckNotCharacter(chars[0], on_failure);
+    macro_assembler->CheckNotCharacter(c, on_failure);
   }
   return checked;
 }
@@ -915,7 +895,7 @@ inline bool EmitAtomLetter(Isolate* isolate, RegExpCompiler* compiler,
   RegExpMacroAssembler* macro_assembler = compiler->macro_assembler();
   bool one_byte = compiler->one_byte();
   unibrow::uchar chars[4];
-  int length = GetCaseIndependentLetters(isolate, c, compiler, chars, 4);
+  int length = GetCaseIndependentLetters(isolate, c, one_byte, chars, 4);
   if (length <= 1) return false;
   // We may not need to check against the end of the input string
   // if this character lies before a character that matched.
@@ -1638,8 +1618,8 @@ void TextNode::GetQuickCheckDetails(QuickCheckDetails* details,
         base::uc16 c = quarks[i];
         if (IsIgnoreCase(compiler->flags())) {
           unibrow::uchar chars[4];
-          int length =
-              GetCaseIndependentLetters(isolate, c, compiler, chars, 4);
+          int length = GetCaseIndependentLetters(
+              isolate, c, compiler->one_byte(), chars, 4);
           if (length == 0) {
             // This can happen because all case variants are non-Latin1, but we
             // know the input is Latin1.
@@ -1868,17 +1848,16 @@ class IterationDecrementer {
   LoopChoiceNode* node_;
 };
 
-RegExpNode* SeqRegExpNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
+RegExpNode* SeqRegExpNode::FilterOneByte(int depth, RegExpFlags flags) {
   if (info()->replacement_calculated) return replacement();
   if (depth < 0) return this;
   DCHECK(!info()->visited);
   VisitMarker marker(info());
-  return FilterSuccessor(depth - 1, compiler);
+  return FilterSuccessor(depth - 1, flags);
 }
 
-RegExpNode* SeqRegExpNode::FilterSuccessor(int depth,
-                                           RegExpCompiler* compiler) {
-  RegExpNode* next = on_success_->FilterOneByte(depth - 1, compiler);
+RegExpNode* SeqRegExpNode::FilterSuccessor(int depth, RegExpFlags flags) {
+  RegExpNode* next = on_success_->FilterOneByte(depth - 1, flags);
   if (next == nullptr) return set_replacement(nullptr);
   on_success_ = next;
   return set_replacement(this);
@@ -1903,8 +1882,7 @@ bool RangesContainLatin1Equivalents(ZoneList<CharacterRange>* ranges) {
 
 }  // namespace
 
-RegExpNode* TextNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
-  RegExpFlags flags = compiler->flags();
+RegExpNode* TextNode::FilterOneByte(int depth, RegExpFlags flags) {
   if (info()->replacement_calculated) return replacement();
   if (depth < 0) return this;
   DCHECK(!info()->visited);
@@ -1916,56 +1894,46 @@ RegExpNode* TextNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
       base::Vector<const base::uc16> quarks = elm.atom()->data();
       for (int j = 0; j < quarks.length(); j++) {
         base::uc16 c = quarks[j];
-        if (!IsIgnoreCase(flags)) {
-          if (c > String::kMaxOneByteCharCode) return set_replacement(nullptr);
-        } else {
-          unibrow::uchar chars[4];
-          int length = GetCaseIndependentLetters(compiler->isolate(), c,
-                                                 compiler, chars, 4);
-          if (length == 0 || chars[0] > String::kMaxOneByteCharCode) {
-            return set_replacement(nullptr);
-          }
+        if (IsIgnoreCase(flags)) {
+          c = unibrow::Latin1::TryConvertToLatin1(c);
         }
+        if (c > unibrow::Latin1::kMaxChar) return set_replacement(nullptr);
+        // Replace quark in case we converted to Latin-1.
+        base::uc16* writable_quarks = const_cast<base::uc16*>(quarks.begin());
+        writable_quarks[j] = c;
       }
     } else {
-      // A character class can also be impossible to match in one-byte mode.
       DCHECK(elm.text_type() == TextElement::CLASS_RANGES);
       RegExpClassRanges* cr = elm.class_ranges();
       ZoneList<CharacterRange>* ranges = cr->ranges(zone());
       CharacterRange::Canonicalize(ranges);
       // Now they are in order so we only need to look at the first.
-      // If we are in non-Unicode case independent mode then we need
-      // to be a bit careful here, because the character classes have
-      // not been case-desugared yet, but there are characters and ranges
-      // that can become Latin-1 when case is considered.
       int range_count = ranges->length();
       if (cr->is_negated()) {
         if (range_count != 0 && ranges->at(0).from() == 0 &&
             ranges->at(0).to() >= String::kMaxOneByteCharCode) {
-          bool case_complications = !IsEitherUnicode(flags) &&
-                                    IsIgnoreCase(flags) &&
-                                    RangesContainLatin1Equivalents(ranges);
-          if (!case_complications) {
-            return set_replacement(nullptr);
+          // This will be handled in a later filter.
+          if (IsIgnoreCase(flags) && RangesContainLatin1Equivalents(ranges)) {
+            continue;
           }
+          return set_replacement(nullptr);
         }
       } else {
         if (range_count == 0 ||
             ranges->at(0).from() > String::kMaxOneByteCharCode) {
-          bool case_complications = !IsEitherUnicode(flags) &&
-                                    IsIgnoreCase(flags) &&
-                                    RangesContainLatin1Equivalents(ranges);
-          if (!case_complications) {
-            return set_replacement(nullptr);
+          // This will be handled in a later filter.
+          if (IsIgnoreCase(flags) && RangesContainLatin1Equivalents(ranges)) {
+            continue;
           }
+          return set_replacement(nullptr);
         }
       }
     }
   }
-  return FilterSuccessor(depth - 1, compiler);
+  return FilterSuccessor(depth - 1, flags);
 }
 
-RegExpNode* LoopChoiceNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
+RegExpNode* LoopChoiceNode::FilterOneByte(int depth, RegExpFlags flags) {
   if (info()->replacement_calculated) return replacement();
   if (depth < 0) return this;
   if (info()->visited) return this;
@@ -1973,16 +1941,16 @@ RegExpNode* LoopChoiceNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
     VisitMarker marker(info());
 
     RegExpNode* continue_replacement =
-        continue_node_->FilterOneByte(depth - 1, compiler);
+        continue_node_->FilterOneByte(depth - 1, flags);
     // If we can't continue after the loop then there is no sense in doing the
     // loop.
     if (continue_replacement == nullptr) return set_replacement(nullptr);
   }
 
-  return ChoiceNode::FilterOneByte(depth - 1, compiler);
+  return ChoiceNode::FilterOneByte(depth - 1, flags);
 }
 
-RegExpNode* ChoiceNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
+RegExpNode* ChoiceNode::FilterOneByte(int depth, RegExpFlags flags) {
   if (info()->replacement_calculated) return replacement();
   if (depth < 0) return this;
   if (info()->visited) return this;
@@ -2003,7 +1971,7 @@ RegExpNode* ChoiceNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
   for (int i = 0; i < choice_count; i++) {
     GuardedAlternative alternative = alternatives_->at(i);
     RegExpNode* replacement =
-        alternative.node()->FilterOneByte(depth - 1, compiler);
+        alternative.node()->FilterOneByte(depth - 1, flags);
     DCHECK(replacement != this);  // No missing EMPTY_MATCH_CHECK.
     if (replacement != nullptr) {
       alternatives_->at(i).set_node(replacement);
@@ -2023,7 +1991,7 @@ RegExpNode* ChoiceNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
       zone()->New<ZoneList<GuardedAlternative>>(surviving, zone());
   for (int i = 0; i < choice_count; i++) {
     RegExpNode* replacement =
-        alternatives_->at(i).node()->FilterOneByte(depth - 1, compiler);
+        alternatives_->at(i).node()->FilterOneByte(depth - 1, flags);
     if (replacement != nullptr) {
       alternatives_->at(i).set_node(replacement);
       new_alternatives->Add(alternatives_->at(i), zone());
@@ -2033,8 +2001,8 @@ RegExpNode* ChoiceNode::FilterOneByte(int depth, RegExpCompiler* compiler) {
   return this;
 }
 
-RegExpNode* NegativeLookaroundChoiceNode::FilterOneByte(
-    int depth, RegExpCompiler* compiler) {
+RegExpNode* NegativeLookaroundChoiceNode::FilterOneByte(int depth,
+                                                        RegExpFlags flags) {
   if (info()->replacement_calculated) return replacement();
   if (depth < 0) return this;
   if (info()->visited) return this;
@@ -2042,12 +2010,12 @@ RegExpNode* NegativeLookaroundChoiceNode::FilterOneByte(
   // Alternative 0 is the negative lookahead, alternative 1 is what comes
   // afterwards.
   RegExpNode* node = continue_node();
-  RegExpNode* replacement = node->FilterOneByte(depth - 1, compiler);
+  RegExpNode* replacement = node->FilterOneByte(depth - 1, flags);
   if (replacement == nullptr) return set_replacement(nullptr);
   alternatives_->at(kContinueIndex).set_node(replacement);
 
   RegExpNode* neg_node = lookaround_node();
-  RegExpNode* neg_replacement = neg_node->FilterOneByte(depth - 1, compiler);
+  RegExpNode* neg_replacement = neg_node->FilterOneByte(depth - 1, flags);
   // If the negative lookahead is always going to fail then
   // we don't need to check it.
   if (neg_replacement == nullptr) return set_replacement(replacement);
@@ -2392,38 +2360,29 @@ void TextNode::TextEmitPass(RegExpCompiler* compiler, TextEmitPassType pass,
     TextElement elm = elements()->at(i);
     int cp_offset = trace->cp_offset() + elm.cp_offset() + backward_offset;
     if (elm.text_type() == TextElement::ATOM) {
+      if (SkipPass(pass, IsIgnoreCase(compiler->flags()))) continue;
       base::Vector<const base::uc16> quarks = elm.atom()->data();
       for (int j = preloaded ? 0 : quarks.length() - 1; j >= 0; j--) {
         if (first_element_checked && i == 0 && j == 0) continue;
         if (DeterminedAlready(quick_check, elm.cp_offset() + j)) continue;
         base::uc16 quark = quarks[j];
+        if (IsIgnoreCase(compiler->flags())) {
+          // Everywhere else we assume that a non-Latin-1 character cannot match
+          // a Latin-1 character. Avoid the cases where this is assumption is
+          // invalid by using the Latin1 equivalent instead.
+          quark = unibrow::Latin1::TryConvertToLatin1(quark);
+        }
         bool needs_bounds_check =
             *checked_up_to < cp_offset + j || read_backward();
         bool bounds_checked = false;
         switch (pass) {
-          case NON_LATIN1_MATCH: {
-            DCHECK(one_byte);  // This pass is only done in one-byte mode.
-            if (IsIgnoreCase(compiler->flags())) {
-              // We are compiling for a one-byte subject, case independent mode.
-              // We have to check whether any of the case alternatives are in
-              // the one-byte range.
-              unibrow::uchar chars[4];
-              // Only returns characters that are in the one-byte range.
-              int length =
-                  GetCaseIndependentLetters(isolate, quark, compiler, chars, 4);
-              if (length == 0) {
-                assembler->GoTo(backtrack);
-                return;
-              }
-            } else {
-              // Case-dependent mode.
-              if (quark > String::kMaxOneByteCharCode) {
-                assembler->GoTo(backtrack);
-                return;
-              }
+          case NON_LATIN1_MATCH:
+            DCHECK(one_byte);
+            if (quark > String::kMaxOneByteCharCode) {
+              assembler->GoTo(backtrack);
+              return;
             }
             break;
-          }
           case NON_LETTER_CHARACTER_MATCH:
             bounds_checked =
                 EmitAtomNonLetter(isolate, compiler, quark, backtrack,
@@ -2465,6 +2424,14 @@ int TextNode::Length() {
   return elm.cp_offset() + elm.length();
 }
 
+bool TextNode::SkipPass(TextEmitPassType pass, bool ignore_case) {
+  if (ignore_case) {
+    return pass == SIMPLE_CHARACTER_MATCH;
+  } else {
+    return pass == NON_LETTER_CHARACTER_MATCH || pass == CASE_CHARACTER_MATCH;
+  }
+}
+
 TextNode* TextNode::CreateForCharacterRanges(Zone* zone,
                                              ZoneList<CharacterRange>* ranges,
                                              bool read_backward,
@@ -2479,18 +2446,11 @@ TextNode* TextNode::CreateForCharacterRanges(Zone* zone,
 TextNode* TextNode::CreateForSurrogatePair(
     Zone* zone, CharacterRange lead, ZoneList<CharacterRange>* trail_ranges,
     bool read_backward, RegExpNode* on_success) {
+  ZoneList<CharacterRange>* lead_ranges = CharacterRange::List(zone, lead);
   ZoneList<TextElement>* elms = zone->New<ZoneList<TextElement>>(2, zone);
-  if (lead.from() == lead.to()) {
-    ZoneList<base::uc16> lead_surrogate(1, zone);
-    lead_surrogate.Add(lead.from(), zone);
-    RegExpAtom* atom = zone->New<RegExpAtom>(lead_surrogate.ToConstVector());
-    elms->Add(TextElement::Atom(atom), zone);
-  } else {
-    ZoneList<CharacterRange>* lead_ranges = CharacterRange::List(zone, lead);
-    elms->Add(TextElement::ClassRanges(
-                  zone->New<RegExpClassRanges>(zone, lead_ranges)),
-              zone);
-  }
+  elms->Add(
+      TextElement::ClassRanges(zone->New<RegExpClassRanges>(zone, lead_ranges)),
+      zone);
   elms->Add(TextElement::ClassRanges(
                 zone->New<RegExpClassRanges>(zone, trail_ranges)),
             zone);
@@ -2537,22 +2497,18 @@ void TextNode::Emit(RegExpCompiler* compiler, Trace* trace) {
   bound_checked_to += trace->bound_checked_up_to();
 
   // If a character is preloaded into the current character register then
-  // check that first to save reloading it.
-  for (int twice = 0; twice < 2; twice++) {
-    bool is_preloaded_pass = twice == 0;
-    if (is_preloaded_pass && trace->characters_preloaded() != 1) continue;
-    if (IsIgnoreCase(compiler->flags())) {
-      TextEmitPass(compiler, NON_LETTER_CHARACTER_MATCH, is_preloaded_pass,
-                   trace, first_elt_done, &bound_checked_to);
-      TextEmitPass(compiler, CASE_CHARACTER_MATCH, is_preloaded_pass, trace,
-                   first_elt_done, &bound_checked_to);
-    } else {
-      TextEmitPass(compiler, SIMPLE_CHARACTER_MATCH, is_preloaded_pass, trace,
-                   first_elt_done, &bound_checked_to);
+  // check that now.
+  if (trace->characters_preloaded() == 1) {
+    for (int pass = kFirstRealPass; pass <= kLastPass; pass++) {
+      TextEmitPass(compiler, static_cast<TextEmitPassType>(pass), true, trace,
+                   false, &bound_checked_to);
     }
-    TextEmitPass(compiler, CHARACTER_CLASS_MATCH, is_preloaded_pass, trace,
-                 first_elt_done, &bound_checked_to);
     first_elt_done = true;
+  }
+
+  for (int pass = kFirstRealPass; pass <= kLastPass; pass++) {
+    TextEmitPass(compiler, static_cast<TextEmitPassType>(pass), false, trace,
+                 first_elt_done, &bound_checked_to);
   }
 
   Trace successor_trace(*trace);
@@ -2588,8 +2544,6 @@ void TextNode::MakeCaseIndependent(Isolate* isolate, bool is_one_byte,
                                    RegExpFlags flags) {
   if (!IsIgnoreCase(flags)) return;
 #ifdef V8_INTL_SUPPORT
-  // This is done in an earlier step when generating the nodes from the AST
-  // because we may have to split up into separate nodes.
   if (NeedsUnicodeCaseEquivalents(flags)) return;
 #endif
 
@@ -2929,9 +2883,8 @@ int BoyerMooreLookahead::FindBestInterval(int max_number_of_chars,
 // max_lookahead (inclusive) measured from the current position.  If the
 // character at max_lookahead offset is not one of these characters, then we
 // can safely skip forwards by the number of characters in the range.
-int BoyerMooreLookahead::GetSkipTable(
-    int min_lookahead, int max_lookahead,
-    DirectHandle<ByteArray> boolean_skip_table) {
+int BoyerMooreLookahead::GetSkipTable(int min_lookahead, int max_lookahead,
+                                      Handle<ByteArray> boolean_skip_table) {
   const int kSkipArrayEntry = 0;
   const int kDontSkipArrayEntry = 1;
 
@@ -3166,6 +3119,11 @@ void ChoiceNode::Emit(RegExpCompiler* compiler, Trace* trace) {
     trace = EmitGreedyLoop(compiler, trace, &alt_gens, &preload,
                            &greedy_loop_state, text_length);
   } else {
+    // TODO(erikcorry): Delete this.  We don't need this label, but it makes us
+    // match the traces produced pre-cleanup.
+    Label second_choice;
+    compiler->macro_assembler()->Bind(&second_choice);
+
     preload.eats_at_least_ = EmitOptimizedUnanchoredSearch(compiler, trace);
 
     EmitChoices(compiler, &alt_gens, 0, trace, &preload);
@@ -3914,8 +3872,9 @@ void TextNode::FillInBMInfo(Isolate* isolate, int initial_offset, int budget,
         base::uc16 character = atom->data()[j];
         if (IsIgnoreCase(bm->compiler()->flags())) {
           unibrow::uchar chars[4];
-          int length = GetCaseIndependentLetters(isolate, character,
-                                                 bm->compiler(), chars, 4);
+          int length = GetCaseIndependentLetters(
+              isolate, character, bm->max_char() == String::kMaxOneByteCharCode,
+              chars, 4);
           for (int k = 0; k < length; k++) {
             bm->Set(offset, chars[k]);
           }
@@ -4003,11 +3962,11 @@ RegExpNode* RegExpCompiler::PreprocessRegExp(RegExpCompileData* data,
     }
   }
   if (is_one_byte) {
-    node = node->FilterOneByte(RegExpCompiler::kMaxRecursion, this);
+    node = node->FilterOneByte(RegExpCompiler::kMaxRecursion, flags());
     // Do it again to propagate the new nodes to places where they were not
     // put because they had not been calculated yet.
     if (node != nullptr) {
-      node = node->FilterOneByte(RegExpCompiler::kMaxRecursion, this);
+      node = node->FilterOneByte(RegExpCompiler::kMaxRecursion, flags());
     }
   } else if (IsEitherUnicode(flags()) &&
              (IsGlobal(flags()) || IsSticky(flags()))) {
