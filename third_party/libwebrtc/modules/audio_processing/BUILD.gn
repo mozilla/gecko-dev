@@ -269,7 +269,7 @@ rtc_library("audio_processing_statistics") {
 
 rtc_source_set("audio_frame_view") {
   sources = [ "include/audio_frame_view.h" ]
-  deps = [ "../../api:array_view" ]
+  deps = [ "../../api/audio:audio_frame_api" ]
 }
 
 if (rtc_enable_protobuf) {

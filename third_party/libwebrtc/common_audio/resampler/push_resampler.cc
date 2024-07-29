@@ -95,6 +95,20 @@ int PushResampler<T>::Resample(InterleavedView<const T> src,
   return static_cast<int>(dst.size());
 }
 
+template <typename T>
+int PushResampler<T>::Resample(MonoView<const T> src, MonoView<T> dst) {
+  RTC_DCHECK_EQ(resamplers_.size(), 1);
+  RTC_DCHECK_EQ(SamplesPerChannel(src), SamplesPerChannel(source_view_));
+  RTC_DCHECK_EQ(SamplesPerChannel(dst), SamplesPerChannel(destination_view_));
+
+  if (SamplesPerChannel(src) == SamplesPerChannel(dst)) {
+    CopySamples(dst, src);
+    return static_cast<int>(src.size());
+  }
+
+  return resamplers_[0]->Resample(src, dst);
+}
+
 // Explictly generate required instantiations.
 template class PushResampler<int16_t>;
 template class PushResampler<float>;

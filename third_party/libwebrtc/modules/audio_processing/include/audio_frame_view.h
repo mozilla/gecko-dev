@@ -11,7 +11,7 @@
 #ifndef MODULES_AUDIO_PROCESSING_INCLUDE_AUDIO_FRAME_VIEW_H_
 #define MODULES_AUDIO_PROCESSING_INCLUDE_AUDIO_FRAME_VIEW_H_
 
-#include "api/array_view.h"
+#include "api/audio/audio_view.h"
 
 namespace webrtc {
 
@@ -44,16 +44,16 @@ class AudioFrameView {
 
   int samples_per_channel() const { return channel_size_; }
 
-  rtc::ArrayView<T> channel(int idx) {
+  MonoView<T> channel(int idx) {
     RTC_DCHECK_LE(0, idx);
     RTC_DCHECK_LE(idx, num_channels_);
-    return rtc::ArrayView<T>(audio_samples_[idx], channel_size_);
+    return MonoView<T>(audio_samples_[idx], channel_size_);
   }
 
-  rtc::ArrayView<const T> channel(int idx) const {
+  MonoView<const T> channel(int idx) const {
     RTC_DCHECK_LE(0, idx);
     RTC_DCHECK_LE(idx, num_channels_);
-    return rtc::ArrayView<const T>(audio_samples_[idx], channel_size_);
+    return MonoView<const T>(audio_samples_[idx], channel_size_);
   }
 
   T* const* data() { return audio_samples_; }

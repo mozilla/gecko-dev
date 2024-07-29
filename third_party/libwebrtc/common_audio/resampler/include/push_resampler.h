@@ -37,8 +37,12 @@ class PushResampler {
   // Returns the total number of samples provided in destination (e.g. 32 kHz,
   // 2 channel audio gives 640 samples).
   int Resample(InterleavedView<const T> src, InterleavedView<T> dst);
+  // For when a deinterleaved/mono channel already exists and we can skip the
+  // deinterleaved operation.
+  int Resample(MonoView<const T> src, MonoView<T> dst);
 
  private:
+  // Buffers used for when a deinterleaving step is necessary.
   std::unique_ptr<T[]> source_;
   std::unique_ptr<T[]> destination_;
   DeinterleavedView<T> source_view_;

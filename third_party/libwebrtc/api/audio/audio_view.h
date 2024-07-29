@@ -243,7 +243,7 @@ void CopySamples(D& destination, const S& source) {
   //               "Incompatible view types");
   RTC_DCHECK_EQ(NumChannels(destination), NumChannels(source));
   RTC_DCHECK_EQ(SamplesPerChannel(destination), SamplesPerChannel(source));
-  RTC_DCHECK_GE(destination.data().size(), source.data().size());
+  RTC_DCHECK_GE(destination.size(), source.size());
   memcpy(&destination[0], &source[0],
          source.size() * sizeof(typename S::value_type));
 }
