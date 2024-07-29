@@ -1210,6 +1210,15 @@ class PromptFeature private constructor(
                     result = true
                 }
             }
+
+            strongPasswordPromptViewListener?.let { strongPasswordPromptViewListener ->
+                if (suggestStrongPasswordDelegate.strongPasswordPromptViewListenerView?.isVisible() == true) {
+                    strongPasswordPromptViewListener.dismissCurrentSuggestStrongPassword(
+                        selectLoginPrompt,
+                    )
+                    result = true
+                }
+            }
         }
 
         (activePromptRequest as? SelectCreditCard)?.let { selectCreditCardPrompt ->

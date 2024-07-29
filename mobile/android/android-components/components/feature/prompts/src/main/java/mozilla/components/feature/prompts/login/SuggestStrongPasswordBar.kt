@@ -37,4 +37,8 @@ class SuggestStrongPasswordBar @JvmOverloads constructor(
     override fun hidePrompt() {
         isVisible = false
     }
+
+    override fun isVisible(): Boolean {
+        return isVisible
+    }
 }

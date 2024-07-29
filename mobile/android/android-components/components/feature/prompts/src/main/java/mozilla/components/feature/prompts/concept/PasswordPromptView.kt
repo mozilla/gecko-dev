@@ -22,6 +22,11 @@ interface PasswordPromptView {
     fun hidePrompt()
 
     /**
+     * Returns true if the prompt is visible and false otherwise.
+     */
+    fun isVisible(): Boolean
+
+    /**
      * Interface to allow a class to listen to generated strong password event events.
      */
     interface Listener {
