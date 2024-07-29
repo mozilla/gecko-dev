@@ -398,7 +398,7 @@
     <string name="juno_onboarding_sign_in_title_2">ඔබ උපාංග අතර පනින විට සංකේතිතව සිටින්න</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">ඔබ ඇතුළු වී සමමුහූර්ත කළ විට, ඔබ ආරක්‍ෂිතයි. ෆයර්ෆොක්ස් ඔබගේ මුරපද, පොත්යොමු සහ වෙනත් දෑ සංකේතනය කරයි.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">ඔබ ඇතුළු වී සමමුහූර්ත කළ විට, ඔබ ආරක්‍ෂිතයි. ෆයර්ෆොක්ස් ඔබගේ මුරපද, පොත්යොමු සහ වෙනත් දෑ සංකේතනය කරයි.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">පිවිසෙන්න</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -658,7 +658,7 @@
     <!-- Hint displayed on input field for custom collection name -->
     <string name="customize_addon_collection_hint">එකතුවෙහි නම</string>
     <!-- Hint displayed on input field for custom collection user ID-->
-    <string name="customize_addon_collection_user_hint">එකතුවේ හිමිකරු (පරිශීලක හැඳු.)</string>
+    <string name="customize_addon_collection_user_hint">එකතුවේ හිමිකරු (පරිශ්‍රීලක හැඳු.)</string>
 
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
@@ -1390,7 +1390,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">කෙටි සමීක්‍ෂණයෙන් ෆයර්ෆොක්ස් දියුණු කිරීමට උදවු කරන්න.</string>
+    <string name="nimbus_survey_message_text">කෙටි සමීක්‍ෂණයෙන් ෆයර්ෆොක්ස් දියුණු කිරීමට උදව් කරන්න.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">සමීක්‍ෂණය ගන්න</string>
     <!-- Preference for not taking the short survey. -->
@@ -1717,11 +1717,11 @@
     <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
     <string name="preferences_passwords_autofill2">%1$s හි ඉබේ පිරවීම</string>
     <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
-    <string name="preferences_passwords_autofill_description">%1$s භාවිත කරන අතරතුර අඩවිවල පරිශීලක නාම සහ මුරපද පුරවා සුරකින්න.</string>
+    <string name="preferences_passwords_autofill_description">%1$s භාවිත කරන අතරතුර අඩවි වල පරිශ්‍රීලක නාම සහ මුරපද පුරවා සුරකින්න.</string>
     <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill">වෙනත් යෙදුම්වල ස්වයං පිරවීම</string>
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
-    <string name="preferences_android_autofill_description">ඔබගේ උපාංගයේ වෙනත් යෙදුම්වල පරිශීලක නාම සහ මුරපද පුරවන්න.</string>
+    <string name="preferences_android_autofill_description">ඔබගේ උපාංගයේ වෙනත් යෙදුම් වල පරිශ්‍රීලක නාම සහ මුරපද පුරවන්න.</string>
 
     <!-- Preference option for adding a password -->
     <string name="preferences_logins_add_login_2">මුරපදය එක් කරන්න</string>
@@ -1743,7 +1743,7 @@
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">අඩවිය</string>
     <!-- The header for the username for a login -->
-    <string name="preferences_passwords_saved_logins_username">පරිශීලක නාමය</string>
+    <string name="preferences_passwords_saved_logins_username">පරිශ්‍රීලක නාමය</string>
     <!-- The header for the password for a login -->
     <string name="preferences_passwords_saved_logins_password">මුරපදය</string>
     <!-- Shown in snackbar to tell user that the password has been copied -->
@@ -2004,7 +2004,7 @@
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
     <string name="voice_search_explainer">දැන් කතා කරන්න</string>
     <!--  The error message in edit login view when a duplicate username exists. -->
-    <string name="saved_login_duplicate">පරිශීලක නාමය සහිත පිවිසීමක් දැනටමත් පවතී</string>
+    <string name="saved_login_duplicate">පරිශ්‍රීලක නාමය සහිත පිවිසීමක් දැනටමත් පවතී</string>
     <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
     <string name="add_login_hostname_hint_text">https://www.example.com</string>
 
@@ -2198,7 +2198,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">සමාලෝචන සෝදිසිකරු අරින්න</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">සමාලෝචන සෝදිසිකරු අරින්න</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2294,7 +2294,7 @@
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">භාෂා බාගන්න</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">භාෂා බාගන්න</string>
     <!-- Clickable text from the screen header that links to a website. -->
     <string name="download_languages_header_learn_more_preference">තව දැනගන්න</string>
     <!-- The subhead of the download language preference screen will appear above the pivot language. -->
@@ -2414,4 +2414,19 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">%s පරිශ්‍රීලක නාමය සහිත පිවිසුම මකන්න</string>
 
-    </resources>
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">CFR මෙවලම්</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">CFR යළි සකසන්න</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු අභිනය භාවිතා කරන්න</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු බොත්තම ඔබන්න</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">බීටා</string>
+</resources>

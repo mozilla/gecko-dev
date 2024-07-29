@@ -414,7 +414,7 @@
     <string name="juno_onboarding_sign_in_title_2">Заставайцеся зашыфраванымі падчас пераходу паміж прыладамі</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Калі вы ўвайшлі ў сістэму і правялі сінхранізацыю, вы ў большай бяспецы. Firefox шыфруе вашыя паролі, закладкі і многае іншае.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Калі вы ўвайшлі ў сістэму і правялі сінхранізацыю, вы ў большай бяспецы. Firefox шыфруе вашыя паролі, закладкі і многае іншае.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Увайсці</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -1676,6 +1676,8 @@
     <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Збіральнікі лічбавых адбіткаў</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Спыняе збор унікальнай ідэнтыфікацыйнай інфармацыі пра вашу прыладу, якая можа быць выкарыстана для сачэння.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Спыняе збор унікальнай ідэнтыфікацыйнай інфармацыі пра вашу прыладу, якая можа быць выкарыстана для сачэння.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Змест з элементамі сачэння</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -2360,7 +2362,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Адкрыць сродак праверкі водгукаў</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Адкрыць сродак праверкі водгукаў</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2484,6 +2486,9 @@
     <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. The first parameter is the name of the application, for example, "Fenix". -->
     <string name="translation_option_bottom_sheet_about_translations">Пра пераклады ў %1$s</string>
 
+    <!-- Content description (not visible, for screen readers etc.) for closing the translations bottom sheet. -->
+    <string name="translation_option_bottom_sheet_close_content_description">Закрыць аркуш перакладаў</string>
+
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
     <string name="translation_settings_toolbar_title">Пераклады</string>
@@ -2528,7 +2533,9 @@
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">Сцягнуць мовы</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Сцягнуць мовы</string>
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Сцягнуць мовы</string>
     <!-- Clickable text from the screen header that links to a website. -->
     <string name="download_languages_header_learn_more_preference">Падрабязней</string>
     <!-- The subhead of the download language preference screen will appear above the pivot language. -->
@@ -2549,6 +2556,12 @@
     <string name="download_languages_item_content_description_downloaded_state">Выдаліць</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
     <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">У працэсе</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+    <string name="download_languages_item_content_description_delete_in_progress_state">У працэсе</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Спыніць сцягванне %1$s (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Сцягнуць</string>
 
@@ -2564,6 +2577,14 @@
     <string name="delete_language_file_dialog_positive_button_text">Выдаліць</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Скасаваць</string>
+
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title">Скасаваць сцягванне %1$s?</string>
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text">Так</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text">Не</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2615,12 +2636,21 @@
 
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Працягнуць</string>
+    <!-- Survey view -->
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Запоўніць гэтае апытанне</string>
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header_2">Калі ласка, запоўніце апытанне</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Паведамленне аб прыватнасці</string>
+    <!-- The privacy notice link -->
+    <string name="micro_survey_privacy_notice_2">Паведамленне аб прыватнасці</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Падаць</string>
     <!-- The close button label text -->
     <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Закрыць</string>
+    <!-- The survey completion header -->
+    <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Апытанне завершана</string>
     <!-- The survey completion confirmation text -->
     <string name="micro_survey_feedback_confirmation">Дзякуй за ваш водгук!</string>
     <!-- Option for likert scale -->
@@ -2634,6 +2664,15 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_5" tools:ignore="UnusedResources">Вельмі незадаволены</string>
 
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_6" tools:ignore="UnusedResources">Я ёй не карыстаюся</string>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Лагатып Firefox</string>
+    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
+    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Адкрыць апытанне</string>
+    <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
+    <string name="microsurvey_close_handle_content_description">Закрыць апытанне</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
     <string name="microsurvey_close_button_content_description">Закрыць</string>
 
@@ -2645,4 +2684,13 @@
     <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
     <string name="debug_drawer_logins_add_login_button">Дадаць несапраўдны лагін для гэтага дамена</string>
 
-    </resources>
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і выкарыстайце жэст &quot;Назад&quot;.</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і націсніце назад</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
+</resources>

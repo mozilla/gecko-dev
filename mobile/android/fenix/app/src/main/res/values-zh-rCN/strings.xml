@@ -120,6 +120,9 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">导航栏会在向下滚动网页时收起，留出更多浏览空间。</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">按住箭头可在此标签页的历史页面间跳转。</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">需要访问相机。请前往 Android 设置，点按“权限”，然后点按“允许”。</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

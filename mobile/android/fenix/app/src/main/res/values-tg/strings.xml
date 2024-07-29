@@ -422,7 +422,7 @@
     <string name="juno_onboarding_sign_in_title_2">Ҳангоми гузариш байни дастгоҳҳо интиқолро рамзгузорӣ намоед</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Вақте ки шумо ба низом ворид шуда, ҳамоҳанг месозед, шумо бехатартар мешавед. «Firefox» ниҳонвожаҳо, хатбаракҳо ва чизҳои дигари шуморо рамзгузорӣ мекунад.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Вақте ки шумо ба низом ворид шуда, ҳамоҳанг месозед, шумо бехатартар мешавед. «Firefox» ниҳонвожаҳо, хатбаракҳо ва чизҳои дигари шуморо рамзгузорӣ мекунад.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Ворид шудан</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -2386,7 +2386,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Кушодани абзори тафтиши тақризҳо</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Кушодани абзори тафтиши тақризҳо</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2580,7 +2580,9 @@
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">Боргирӣ кардани забонҳо</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Боргирӣ кардани забонҳо</string>
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Боргирӣ кардани забонҳо</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="download_languages_header_preference">Барои тарҷумаҳои зудтар ва тарҷумаи офлайн забонҳои мукаммалро боргирӣ намоед. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
@@ -2766,4 +2768,8 @@
     <string name="exit_fullscreen_with_gesture">Барои баромадан аз экрани пурра, аз боло кашед ва ишораи бозгаштро истифода баред</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
     <string name="exit_fullscreen_with_back_button">Барои баромадан аз экрани пурра, аз боло кашед ва тугмаи бозгаштро пахш кунед</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
 </resources>
