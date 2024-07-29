@@ -32,6 +32,7 @@ internal const val MAIN_MENU_ROUTE = "main_menu"
  * @param accountState The [AccountState] of a Mozilla account.
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
+ * @param isTranslationSupported Whether or not translation is supported.
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
@@ -62,6 +63,7 @@ internal fun MainMenu(
     accountState: AccountState,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
+    isTranslationSupported: Boolean,
     showQuitMenu: Boolean,
     onMozillaAccountButtonClick: () -> Unit,
     onHelpButtonClick: () -> Unit,
@@ -102,6 +104,7 @@ internal fun MainMenu(
         ToolsAndActionsMenuGroup(
             accessPoint = accessPoint,
             isDesktopMode = isDesktopMode,
+            isTranslationSupported = isTranslationSupported,
             onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
             onFindInPageMenuClick = onFindInPageMenuClick,
             onToolsMenuClick = onToolsMenuClick,
@@ -188,10 +191,12 @@ private fun NewTabsMenuGroup(
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun ToolsAndActionsMenuGroup(
     accessPoint: MenuAccessPoint,
     isDesktopMode: Boolean,
+    isTranslationSupported: Boolean,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -228,6 +233,13 @@ private fun ToolsAndActionsMenuGroup(
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_tools),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
+                description = stringResource(
+                    id = if (isTranslationSupported) {
+                        R.string.browser_menu_tools_description_with_translate
+                    } else {
+                        R.string.browser_menu_tools_description
+                    },
+                ),
                 onClick = onToolsMenuClick,
                 afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
             )
@@ -237,6 +249,7 @@ private fun ToolsAndActionsMenuGroup(
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_save),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_save_24),
+                description = stringResource(id = R.string.browser_menu_save_description),
                 onClick = onSaveMenuClick,
                 afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
             )
@@ -332,6 +345,7 @@ private fun MenuDialogPreview() {
                 accountState = NotAuthenticated,
                 isPrivate = false,
                 isDesktopMode = false,
+                isTranslationSupported = true,
                 showQuitMenu = true,
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
@@ -369,6 +383,7 @@ private fun MenuDialogPrivatePreview() {
                 accountState = NotAuthenticated,
                 isPrivate = false,
                 isDesktopMode = false,
+                isTranslationSupported = true,
                 showQuitMenu = true,
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},

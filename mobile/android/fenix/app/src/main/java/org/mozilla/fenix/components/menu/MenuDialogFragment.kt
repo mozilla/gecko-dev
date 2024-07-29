@@ -126,7 +126,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         components.useCases.sessionUseCases.requestDesktopSite
                     val saveToPdfUseCase = components.useCases.sessionUseCases.saveToPdf
                     val selectedTab = browserStore.state.selectedTab
-                    val isTranslationSupported = browserStore.state.translationEngine.isEngineSupported ?: false
+                    val isTranslationEngineSupported =
+                        browserStore.state.translationEngine.isEngineSupported ?: false
+                    val isTranslationSupported =
+                        isTranslationEngineSupported &&
+                            FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled
                     val isReaderable = selectedTab?.readerState?.readerable ?: false
                     val settings = components.settings
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
@@ -240,6 +244,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 accountState = accountState,
                                 isPrivate = browsingModeManager.mode.isPrivate,
                                 isDesktopMode = isDesktopMode,
+                                isTranslationSupported = isTranslationSupported,
                                 showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
                                 onMozillaAccountButtonClick = {
                                     store.dispatch(
@@ -317,8 +322,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,
                                 externalAppName = appLinksRedirect?.appName ?: "",
                                 isTranslated = selectedTab?.translationsState?.isTranslated ?: false,
-                                isTranslationSupported = isTranslationSupported &&
-                                    FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled,
+                                isTranslationSupported = isTranslationSupported,
                                 translatedLanguage = if (translateLanguageCode != null && supportedLanguages != null) {
                                     TranslationSupport(
                                         fromLanguages = supportedLanguages.fromLanguages,
