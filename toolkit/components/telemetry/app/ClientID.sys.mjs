@@ -292,6 +292,9 @@ var ClientIDImpl = {
   async getProfileGroupID() {
     if (!this._profileGroupID) {
       let { profileGroupID } = await this._loadDataReportingState();
+      if (AppConstants.platform != "android") {
+        Glean.legacyTelemetry.profileGroupId.set(profileGroupID);
+      }
       return profileGroupID;
     }
 
@@ -517,6 +520,9 @@ var ClientIDImpl = {
     }
 
     this._profileGroupID = id;
+    if (AppConstants.platform != "android") {
+      Glean.legacyTelemetry.profileGroupId.set(id);
+    }
 
     Services.prefs.setStringPref(
       PREF_CACHED_PROFILEGROUPID,

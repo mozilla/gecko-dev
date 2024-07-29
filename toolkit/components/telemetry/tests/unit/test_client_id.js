@@ -136,6 +136,12 @@ add_task(async function test_profile_group_id() {
   let profileGroupID = await ClientID.getProfileGroupID();
   Assert.equal(typeof profileGroupID, "string");
   Assert.ok(uuidRegex.test(profileGroupID));
+  if (AppConstants.platform != "android") {
+    Assert.equal(
+      profileGroupID,
+      Glean.legacyTelemetry.profileGroupId.testGetValue()
+    );
+  }
 
   // We should be guarded against invalid DRS json.
   await ClientID._reset();
@@ -146,6 +152,12 @@ add_task(async function test_profile_group_id() {
   profileGroupID = await ClientID.getProfileGroupID();
   Assert.equal(typeof profileGroupID, "string");
   Assert.ok(uuidRegex.test(profileGroupID));
+  if (AppConstants.platform != "android") {
+    Assert.equal(
+      profileGroupID,
+      Glean.legacyTelemetry.profileGroupId.testGetValue()
+    );
+  }
 
   // If the DRS data is broken, we should end up with the cached ID.
   let oldGroupID = profileGroupID;
@@ -154,6 +166,12 @@ add_task(async function test_profile_group_id() {
     await IOUtils.writeJSON(drsPath, { clientID: invalidID });
     profileGroupID = await ClientID.getProfileGroupID();
     Assert.equal(profileGroupID, oldGroupID);
+    if (AppConstants.platform != "android") {
+      Assert.equal(
+        profileGroupID,
+        Glean.legacyTelemetry.profileGroupId.testGetValue()
+      );
+    }
   }
 
   // Test that valid DRS actually works.
@@ -169,6 +187,10 @@ add_task(async function test_profile_group_id() {
   let clientID = await ClientID.getClientID();
   Assert.equal(clientID, validClientID);
   if (AppConstants.platform != "android") {
+    Assert.equal(
+      profileGroupID,
+      Glean.legacyTelemetry.profileGroupId.testGetValue()
+    );
     Assert.equal(clientID, Glean.legacyTelemetry.clientId.testGetValue());
   }
 
@@ -180,6 +202,10 @@ add_task(async function test_profile_group_id() {
   profileGroupID = await ClientID.getProfileGroupID();
   Assert.equal(profileGroupID, validProfileGroupID);
   if (AppConstants.platform != "android") {
+    Assert.equal(
+      profileGroupID,
+      Glean.legacyTelemetry.profileGroupId.testGetValue()
+    );
     Assert.equal(clientID, Glean.legacyTelemetry.clientId.testGetValue());
   }
 
@@ -188,6 +214,12 @@ add_task(async function test_profile_group_id() {
   Services.prefs.clearUserPref(PREF_CACHED_PROFILEGROUPID);
   profileGroupID = await ClientID.getProfileGroupID();
   Assert.equal(profileGroupID, validProfileGroupID);
+  if (AppConstants.platform != "android") {
+    Assert.equal(
+      profileGroupID,
+      Glean.legacyTelemetry.profileGroupId.testGetValue()
+    );
+  }
 
   // Assure that cached IDs are being checked for validity.
   for (let [invalidID, prefFunc] of invalidIDs) {
@@ -237,6 +269,12 @@ add_task(async function test_set_profile_group_id() {
     profileGroupID,
     "Group ID should not have changed."
   );
+  if (AppConstants.platform != "android") {
+    Assert.equal(
+      profileGroupID,
+      Glean.legacyTelemetry.profileGroupId.testGetValue()
+    );
+  }
 
   let validProfileGroupID = "5afebd62-a33c-416c-b519-5c60fb988e8e";
   await ClientID.setProfileGroupID(validProfileGroupID);
@@ -256,6 +294,12 @@ add_task(async function test_set_profile_group_id() {
     clientID,
     "Client ID should not have changed."
   );
+  if (AppConstants.platform != "android") {
+    Assert.equal(
+      validProfileGroupID,
+      Glean.legacyTelemetry.profileGroupId.testGetValue()
+    );
+  }
 
   // New profile group ID should be stored in the cache.
   await ClientID._reset();
@@ -289,6 +333,12 @@ add_task(async function test_set_profile_group_id() {
     clientID,
     "Client ID should not have changed."
   );
+  if (AppConstants.platform != "android") {
+    Assert.equal(
+      validProfileGroupID,
+      Glean.legacyTelemetry.profileGroupId.testGetValue()
+    );
+  }
 
   // And recoverable from the cache
   await ClientID._reset();
@@ -309,6 +359,12 @@ add_task(async function test_set_profile_group_id() {
     clientID,
     "Client ID should not have changed."
   );
+  if (AppConstants.platform != "android") {
+    Assert.equal(
+      validProfileGroupID,
+      Glean.legacyTelemetry.profileGroupId.testGetValue()
+    );
+  }
 });
 
 add_task(async function test_setCanaryClientID() {

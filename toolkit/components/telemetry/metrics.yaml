@@ -37,8 +37,31 @@ legacy.telemetry:
     expires: never
     no_lint:
       - BASELINE_PING
-    send_in_pings:
+    send_in_pings: &client_id_pings
       - 'metrics'
       - 'events'
       - 'newtab'
       - 'baseline'
+
+  profile_group_id:
+    type: uuid
+    lifetime: application
+    description: |
+      The profile_group_id according to Telemetry.
+      Might not always have a value due to being too early for it to have
+      loaded.
+      Does not need to be sent in the Glean "deletion-request" ping.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901263
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901263
+    data_sensitivity:
+      - technical
+      - highly_sensitive
+    notification_emails:
+      - dtownsend@mozilla.com
+      - glean-team@mozilla.com
+    expires: never
+    no_lint:
+      - BASELINE_PING
+    send_in_pings: *client_id_pings
