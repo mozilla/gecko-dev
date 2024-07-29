@@ -597,7 +597,10 @@ export class _DSCard extends React.PureComponent {
         ref={this.setContextMenuButtonHostRef}
       >
         {this.props.showTopics && this.props.topic && (
-          <span className="ds-card-topic">{this.props.topic}</span>
+          <span
+            className="ds-card-topic"
+            data-l10n-id={`newtab-topic-label-${this.props.topic}`}
+          />
         )}
         <div className="img-wrapper">
           <DSImage

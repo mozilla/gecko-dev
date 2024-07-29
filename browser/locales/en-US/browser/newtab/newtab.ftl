@@ -388,3 +388,27 @@ newtab-weather-menu-hide-weather = Hide weather on New Tab
 newtab-weather-menu-learn-more = Learn more
 # This message is shown if user is working offline
 newtab-weather-error-not-available = Weather data is not available right now.
+
+## Topic Labels
+
+newtab-topic-label-business = Business
+newtab-topic-label-career = Career
+newtab-topic-label-education = Education
+newtab-topic-label-arts = Entertainment
+newtab-topic-label-food = Food
+newtab-topic-label-health = Health
+newtab-topic-label-hobbies = Gaming
+# ”Money” = “Personal Finance”, refers to articles and stories that help readers better manage
+# and understand their personal finances – from saving money to buying a home. See the
+# “Curated by our editors“ section at the top of https://getpocket.com/explore/personal-finance for more context
+newtab-topic-label-finance = Money
+newtab-topic-label-society-parenting = Parenting
+newtab-topic-label-government = Politics
+newtab-topic-label-education-science = Science
+# ”Life Hacks” = “Self Improvement”, refers to articles and stories aimed at helping readers improve various
+# aspects of their lives – from mental health to  productivity. See the “Curated by our editors“ section
+# at the top of https://getpocket.com/explore/self-improvement for more context.
+newtab-topic-label-society = Life Hacks
+newtab-topic-label-sports = Sports
+newtab-topic-label-tech = Tech
+newtab-topic-label-travel = Travel
