@@ -6404,8 +6404,8 @@ nsresult nsContentUtils::SetDataTransferInEvent(WidgetDragEvent* aDragEvent) {
     // means, for instance calling the drag service directly, or a drag
     // from another application. In either case, a new dataTransfer should
     // be created that reflects the data.
-    initialDataTransfer =
-        new DataTransfer(aDragEvent->mTarget, aDragEvent->mMessage, true, -1);
+    initialDataTransfer = new DataTransfer(
+        aDragEvent->mTarget, aDragEvent->mMessage, true, Nothing());
 
     // now set it in the drag session so we don't need to create it again
     dragSession->SetDataTransfer(initialDataTransfer);

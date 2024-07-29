@@ -3920,7 +3920,7 @@ void BrowserParent::GetIPCTransferableData(
   if (!transfer) {
     // Pass eDrop to get DataTransfer with external
     // drag formats cached.
-    transfer = new DataTransfer(nullptr, eDrop, true, -1);
+    transfer = new DataTransfer(nullptr, eDrop, true, Nothing());
     aSession->SetDataTransfer(transfer);
   }
   // Note, even though this fills the DataTransfer object with

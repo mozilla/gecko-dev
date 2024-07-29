@@ -820,12 +820,9 @@ bool nsCopySupport::FireClipboardEvent(
   bool doDefault = true;
   RefPtr<DataTransfer> clipboardData;
   if (chromeShell || StaticPrefs::dom_event_clipboardevents_enabled()) {
-    int32_t badClipboardType =
-        aClipboardType.isSome() ? int32_t(*aClipboardType) : -1;
-
     clipboardData =
         new DataTransfer(doc->GetScopeObject(), aEventMessage,
-                         originalEventMessage == ePaste, badClipboardType);
+                         originalEventMessage == ePaste, aClipboardType);
 
     nsEventStatus status = nsEventStatus_eIgnore;
     InternalClipboardEvent evt(true, originalEventMessage);

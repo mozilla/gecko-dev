@@ -46,7 +46,7 @@ already_AddRefed<ClipboardEvent> ClipboardEvent::Constructor(
       // Always create a clipboardData for the copy event. If this is changed to
       // support other types of events, make sure that read/write privileges are
       // checked properly within DataTransfer.
-      clipboardData = new DataTransfer(ToSupports(e), eCopy, false, -1);
+      clipboardData = new DataTransfer(ToSupports(e), eCopy, false, Nothing());
       clipboardData->SetData(aParam.mDataType, aParam.mData,
                              *aGlobal.GetSubjectPrincipal(), aRv);
       NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
@@ -66,11 +66,11 @@ DataTransfer* ClipboardEvent::GetClipboardData() {
   if (!event->mClipboardData) {
     if (mEventIsInternal) {
       event->mClipboardData =
-          new DataTransfer(ToSupports(this), eCopy, false, -1);
+          new DataTransfer(ToSupports(this), eCopy, false, Nothing());
     } else {
       event->mClipboardData = new DataTransfer(
           ToSupports(this), event->mMessage, event->mMessage == ePaste,
-          nsIClipboard::kGlobalClipboard);
+          Some(nsIClipboard::kGlobalClipboard));
     }
   }
 

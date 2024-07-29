@@ -2591,7 +2591,8 @@ void EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
   if (!window) return;
 
   RefPtr<DataTransfer> dataTransfer =
-      new DataTransfer(window, eDragStart, false, -1);
+      new DataTransfer(window, eDragStart, /* aIsExternal */ false,
+                       /* aClipboardType */ Nothing());
   auto protectDataTransfer = MakeScopeExit([&] {
     if (dataTransfer) {
       dataTransfer->Disconnect();

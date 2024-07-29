@@ -6595,7 +6595,7 @@ void EditorBase::AutoEditActionDataSetter::InitializeDataTransferWithClipboard(
                        aSettingDataTransfer == SettingDataTransfer::eWithFormat
                            ? ePaste
                            : ePasteNoFormatting,
-                       true /* is external */, aClipboardType);
+                       true /* is external */, Some(aClipboardType));
 }
 
 void EditorBase::AutoEditActionDataSetter::AppendTargetRange(

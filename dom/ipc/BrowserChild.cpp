@@ -1949,7 +1949,7 @@ static already_AddRefed<DataTransfer> ConvertToDataTransfer(
   }
   // Add the entries from the IPC to the new DataTransfer
   RefPtr<DataTransfer> dataTransfer =
-      new DataTransfer(nullptr, aMessage, false, -1);
+      new DataTransfer(nullptr, aMessage, false, Nothing());
   for (uint32_t i = 0; i < aTransferables.Length(); ++i) {
     auto& items = aTransferables[i].items();
     for (uint32_t j = 0; j < items.Length(); ++j) {

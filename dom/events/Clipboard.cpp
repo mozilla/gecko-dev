@@ -748,7 +748,7 @@ already_AddRefed<Promise> Clipboard::Write(
         RefPtr<DataTransfer> dataTransfer =
             new DataTransfer(ToSupports(owner), eCopy,
                              /* is external */ true,
-                             /* clipboard type */ -1);
+                             /* clipboard type */ Nothing());
 
         for (const auto& entry : aEntries) {
           nsresult rv = dataTransfer->SetDataWithPrincipal(

@@ -168,9 +168,13 @@ void DataTransferItem::FillInExternalData() {
     if (mDataTransfer->GetEventMessage() == ePaste) {
       MOZ_ASSERT(mIndex == 0, "index in clipboard must be 0");
 
+      if (mDataTransfer->ClipboardType().isNothing()) {
+        return;
+      }
+
       nsCOMPtr<nsIClipboard> clipboard =
           do_GetService("@mozilla.org/widget/clipboard;1");
-      if (!clipboard || mDataTransfer->ClipboardType() < 0) {
+      if (!clipboard) {
         return;
       }
 
@@ -181,7 +185,7 @@ void DataTransferItem::FillInExternalData() {
         windowContext = innerWindow ? innerWindow->GetWindowContext() : nullptr;
       }
       MOZ_ASSERT(windowContext);
-      nsresult rv = clipboard->GetData(trans, mDataTransfer->ClipboardType(),
+      nsresult rv = clipboard->GetData(trans, *mDataTransfer->ClipboardType(),
                                        windowContext);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         if (rv == NS_ERROR_CONTENT_BLOCKED) {

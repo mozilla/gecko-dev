@@ -7,13 +7,14 @@
 #ifndef mozilla_dom_DataTransfer_h
 #define mozilla_dom_DataTransfer_h
 
+#include "nsCycleCollectionParticipant.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "nsIVariant.h"
-#include "nsIPrincipal.h"
+#include "nsIClipboard.h"
 #include "nsIDragService.h"
+#include "nsIPrincipal.h"
 #include "nsITransferable.h"
-#include "nsCycleCollectionParticipant.h"
+#include "nsIVariant.h"
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
@@ -83,7 +84,8 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   DataTransfer(nsISupports* aParent, EventMessage aEventMessage,
                const uint32_t aEffectAllowed, bool aCursorState,
                bool aIsExternal, bool aUserCancelled,
-               bool aIsCrossDomainSubFrameDrop, int32_t aClipboardType,
+               bool aIsCrossDomainSubFrameDrop,
+               mozilla::Maybe<nsIClipboard::ClipboardType> aClipboardType,
                DataTransferItemList* aItems, Element* aDragImage,
                uint32_t aDragImageX, uint32_t aDragImageY,
                bool aShowFailAnimation);
@@ -100,11 +102,12 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   // The case of a drag will occur when an external drag occurs, that is, a
   // drag where the source is another application, or a drag is started by
   // calling the drag service directly. For clipboard operations,
-  // aClipboardType indicates which clipboard to use, from nsIClipboard, or -1
-  // for non-clipboard operations, or if access to the system clipboard should
-  // not be allowed.
+  // aClipboardType indicates which clipboard to use, from nsIClipboard, or
+  // Nothing for non-clipboard operations, or if access to the system clipboard
+  // should not be allowed.
   DataTransfer(nsISupports* aParent, EventMessage aEventMessage,
-               bool aIsExternal, int32_t aClipboardType);
+               bool aIsExternal,
+               mozilla::Maybe<nsIClipboard::ClipboardType> aClipboardType);
   DataTransfer(nsISupports* aParent, EventMessage aEventMessage,
                nsITransferable* aTransferable);
   DataTransfer(nsISupports* aParent, EventMessage aEventMessage,
@@ -300,7 +303,9 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   bool IsProtected() const { return mMode == Mode::Protected; }
 
   nsITransferable* GetTransferable() const { return mTransferable; }
-  int32_t ClipboardType() const { return mClipboardType; }
+  mozilla::Maybe<nsIClipboard::ClipboardType> ClipboardType() const {
+    return mClipboardType;
+  }
   EventMessage GetEventMessage() const { return mEventMessage; }
   bool IsCrossDomainSubFrameDrop() const { return mIsCrossDomainSubFrameDrop; }
 
@@ -514,7 +519,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
 
   // Indicates which clipboard type to use for clipboard operations. Ignored for
   // drag and drop.
-  int32_t mClipboardType;
+  mozilla::Maybe<nsIClipboard::ClipboardType> mClipboardType;
 
   // The nsIClipboardDataSnapshot that is used for getting clipboard formats.
   // XXXedgar we should get the actual data from this in the future, see bug
