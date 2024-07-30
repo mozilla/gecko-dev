@@ -105,11 +105,11 @@ case `uname -s` in
         ${work_dir}/python/bin/python3 -m pip install certifi==2024.2.2
         ;;
     Linux)
-        cp /usr/lib/x86_64-linux-gnu/libffi.so.* ${work_dir}/python/lib/
-        cp /usr/lib/x86_64-linux-gnu/libssl.so.* ${work_dir}/python/lib/
-        cp /usr/lib/x86_64-linux-gnu/libcrypto.so.* ${work_dir}/python/lib/
-        cp /lib/x86_64-linux-gnu/libncursesw.so.* ${work_dir}/python/lib/
-        cp /lib/x86_64-linux-gnu/libtinfo.so.* ${work_dir}/python/lib/
+        cp /usr/lib/$(uname -m)-linux-gnu/libffi.so.* ${work_dir}/python/lib/
+        cp /usr/lib/$(uname -m)-linux-gnu/libssl.so.* ${work_dir}/python/lib/
+        cp /usr/lib/$(uname -m)-linux-gnu/libcrypto.so.* ${work_dir}/python/lib/
+        cp /lib/$(uname -m)-linux-gnu/libncursesw.so.* ${work_dir}/python/lib/
+        cp /lib/$(uname -m)-linux-gnu/libtinfo.so.* ${work_dir}/python/lib/
         ;;
 esac
 
