@@ -508,6 +508,22 @@ features:
         type: Boolean
         default: false
 
+  microsurveys:
+    description: Feature for microsurveys.
+    variables:
+      enabled:
+        description: >
+          When the feature is enabled then microsurveys can be used.
+        type: Boolean
+        default: false
+    defaults:
+      - channel: developer
+        value:
+          enabled: true
+      - channel: nightly
+        value:
+          enabled: true
+
 types:
   objects: {}
 

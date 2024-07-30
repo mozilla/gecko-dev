@@ -2155,8 +2155,8 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * Indicates if the microsurvey feature is enabled.
      */
     var microsurveyFeatureEnabled by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_microsurvey_feature_enabled),
-        default = false,
+        key = appContext.getPreferenceKey(R.string.pref_key_microsurvey_feature_enabled),
+        default = FxNimbus.features.microsurveys.value().enabled,
     )
 
     /**
