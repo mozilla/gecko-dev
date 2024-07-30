@@ -26,7 +26,7 @@
 
 SimpleTest.waitForExplicitFinish();
 
-const CROSS_ORIGIN = "https://example.com/";
+const CROSS_ORIGIN = "http://example.com/";
 const PATH = "tests/dom/security/test/general/file_same_site_cookies_cross_origin_context.sjs";
 
 let curTest = 0;
@@ -85,9 +85,6 @@ SpecialPowers.pushPrefEnv({
   "set": [
     // Bug 1617611: Fix all the tests broken by "cookies SameSite=lax by default"
     ["network.cookie.sameSite.laxByDefault", false],
-    // Bug 1873984: Fix tests broken when 3pc blocking by default
-    ["network.cookie.cookieBehavior.optInPartitioning", true],
-    ["network.cookie.CHIPS.enabled", true],
   ]
 }, setCookieAndInitTest);
 

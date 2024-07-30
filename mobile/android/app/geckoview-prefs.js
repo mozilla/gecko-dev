@@ -344,6 +344,9 @@ pref("media.video-queue.send-to-compositor-size", 1);
 // Increase necko buffer sizes for Android (bug 560591)
 pref("network.buffer.cache.size",  16384);
 
+// CookieBehavior setting for private browsing (bug 1695050)
+pref("network.cookie.cookieBehavior.pbmode", 4);
+
 // Set HPACK receive buffer size appropriately for Android (bug 1296280)
 pref("network.http.http2.default-hpack-buffer", 4096);
 
