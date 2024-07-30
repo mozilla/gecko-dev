@@ -49,7 +49,7 @@ experimental-features-ime-search-description = An IME (Input Method Editor) is a
 # Auto Picture-in-Picture
 experimental-features-auto-pip =
     .label = Picture-in-Picture: auto-open on tab switch
-experimental-features-auto-pip-description = Enable Picture-in-Picture on active videos when switching tabs
+experimental-features-auto-pip-description = Enable picture-in-picture on active videos when switching tabs
 
 
 experimental-features-group-browsing =
