@@ -23,10 +23,6 @@ def test(mod, path, entity=None):
             "chrome/global/intl.css",
         ):
             return "error"
-        if re.match(r"crashreporter/[^/]*.ftl", path):
-            # error on crashreporter/*.ftl
-            return "error"
-
         if re.match(r"toolkit/about/[^/]*About.ftl", path):
             # error on toolkit/about/*About.ftl
             return "error"

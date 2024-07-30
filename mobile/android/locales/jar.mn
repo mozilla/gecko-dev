@@ -38,8 +38,6 @@ relativesrcdir dom/locales:
 #if AB_CD != EN_US
 [localization] @AB_CD@.jar:
 relativesrcdir toolkit/locales:
-#about:crashes
-  crashreporter                                    (%crashreporter/**/*.ftl)
 #about:about
   toolkit/about                                    (%toolkit/about/*About.ftl)
 #about:mozilla
