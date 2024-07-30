@@ -168,3 +168,20 @@ ub22-mercurial:
             sed -i -e "s/__VERSION__/$(awk -F\" '$2 {print $2}' mercurial/__version__.py)-1.ub22moz1/" \
                          -e "s/__DATE__/$(date --rfc-2822)/" \
                          -e "s/__CODENAME__/jammy/" debian/changelog
+
+ub22-arm64-mercurial:
+    worker-type: b-linux-gcp-aarch64
+    description: "Modern Mercurial for Ubuntu jammy on ARM64"
+    treeherder:
+        symbol: Ub22a64(hg)
+    run:
+        tarball:
+            url: https://www.mercurial-scm.org/release/mercurial-6.4.3.tar.gz
+            sha256: a77fb62d325934a83a00b2fc6db109f44c67b86768fc40490366f513640c7f64
+        dist: jammy
+        arch: arm64
+        pre-build-command: >-
+            cp -r contrib/packaging/debian debian &&
+            sed -i -e "s/__VERSION__/$(awk -F\" '$2 {print $2}' mercurial/__version__.py)-1.ub22moz1/" \
+                         -e "s/__DATE__/$(date --rfc-2822)/" \
+                         -e "s/__CODENAME__/jammy/" debian/changelog
