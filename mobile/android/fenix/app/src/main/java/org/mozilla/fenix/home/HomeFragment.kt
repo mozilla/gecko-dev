@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -159,6 +160,7 @@ import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
 import org.mozilla.fenix.microsurvey.ui.ext.MicrosurveyUIData
 import org.mozilla.fenix.microsurvey.ui.ext.toMicrosurveyUIData
 import org.mozilla.fenix.nimbus.FxNimbus
+import org.mozilla.fenix.onboarding.HomeScreenPopupManager
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
 import org.mozilla.fenix.perf.StartupTimeline
 import org.mozilla.fenix.search.SearchDialogFragment
@@ -264,6 +266,7 @@ class HomeFragment : Fragment() {
     private val searchSelectorBinding = ViewBoundFeatureWrapper<SearchSelectorBinding>()
     private val searchSelectorMenuBinding = ViewBoundFeatureWrapper<SearchSelectorMenuBinding>()
     private val bottomToolbarContainerIntegration = ViewBoundFeatureWrapper<BottomToolbarContainerIntegration>()
+    private val homeScreenPopupManager = ViewBoundFeatureWrapper<HomeScreenPopupManager>()
 
     private lateinit var savedLoginsLauncher: ActivityResultLauncher<Intent>
 
@@ -650,8 +653,11 @@ class HomeFragment : Fragment() {
                             Divider()
                         }
 
+                        val showCFR =
+                            homeScreenPopupManager.get()?.navBarCFRVisibility?.collectAsState()?.value ?: false
+
                         CFRPopupLayout(
-                            showCFR = context.settings().shouldShowNavigationBarCFR,
+                            showCFR = showCFR,
                             properties = CFRPopupProperties(
                                 popupBodyColors = listOf(
                                     FirefoxTheme.colors.layerGradientEnd.toArgb(),
@@ -665,7 +671,7 @@ class HomeFragment : Fragment() {
                             onCFRShown = { NavigationBar.navigationBarCfrShown.record(NoExtras()) },
                             onDismiss = {
                                 NavigationBar.navigationBarCfrDismissed.record(NoExtras())
-                                context.settings().shouldShowNavigationBarCFR = false
+                                homeScreenPopupManager.get()?.setNavbarCFRShown(true)
                             },
                             title = {
                                 FirefoxTheme {
@@ -702,6 +708,7 @@ class HomeFragment : Fragment() {
                                     },
                                     iconColor = when (activity.browsingModeManager.mode.isPrivate) {
                                         true -> getColor(context, R.color.fx_mobile_private_icon_color_primary)
+
                                         else -> null
                                     },
                                 ).also {
@@ -972,6 +979,15 @@ class HomeFragment : Fragment() {
 
         observeSearchEngineNameChanges()
         observeWallpaperUpdates()
+
+        homeScreenPopupManager.set(
+            feature = HomeScreenPopupManager(
+                appStore = requireComponents.appStore,
+                settings = requireContext().settings(),
+            ),
+            owner = viewLifecycleOwner,
+            view = binding.root,
+        )
 
         val shouldAddNavigationBar = requireContext().shouldAddNavigationBar()
         if (shouldAddNavigationBar) {
