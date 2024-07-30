@@ -62,8 +62,6 @@ skip-if = ["os == 'android'"]
 
 ["test_select_profilemanager.js"]
 
-["test_showselector.js"]
-
 ["test_single_profile_selected.js"]
 skip-if = ["devedition"]
 
@@ -89,10 +87,6 @@ skip-if = ["appname == 'thunderbird'"]
 ["test_startswithlast.js"]
 
 ["test_steal_inuse.js"]
-
-["test_storeid.js"]
-
-["test_update_paths.js"]
 
 ["test_update_selected_dedicated.js"]
 

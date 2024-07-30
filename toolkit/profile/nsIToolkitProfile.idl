@@ -50,10 +50,9 @@ interface nsIProfileLock : nsISupports
 interface nsIToolkitProfile : nsISupports
 {
     /**
-     * The location of the profile directory. This may not match the current
-     * profile directory if this is the current profile.
+     * The location of the profile directory.
      */
-    attribute nsIFile rootDir;
+    readonly attribute nsIFile rootDir;
 
     /**
      * The location of the profile local directory, which may be the same as
@@ -65,19 +64,6 @@ interface nsIToolkitProfile : nsISupports
      * The name of the profile.
      */
     attribute AUTF8String name;
-
-    /**
-     * Identifier for the profile group datastore.
-     */
-    attribute AUTF8String storeID;
-
-    /**
-     * Whether to show the selectable profile selector window at startup for
-     * the profile group associated to the nsIToolkitProfile instance.
-     *
-     * @throws NS_ERROR_FAILURE on set if storeID is null.
-     */
-    attribute boolean showProfileSelector;
 
     /**
      * Removes the profile from the registry of profiles.
