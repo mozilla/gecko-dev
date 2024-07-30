@@ -27,6 +27,8 @@
 #include "vm/JSContext.h"
 #include "vm/StringType.h"
 
+#include "vm/NativeObject-inl.h"
+
 using namespace js;
 using namespace js::shell;
 
@@ -147,7 +149,10 @@ bool ModuleLoader::registerTestModule(JSContext* cx, HandleObject moduleRequest,
     return false;
   }
 
-  return addModuleToRegistry(cx, path, module);
+  JS::ModuleType moduleType =
+      moduleRequest->as<ModuleRequestObject>().moduleType();
+
+  return addModuleToRegistry(cx, moduleType, path, module);
 }
 
 void ModuleLoader::clearModules(JSContext* cx) {
@@ -431,8 +436,13 @@ JSObject* ModuleLoader::loadAndParse(JSContext* cx, HandleString pathArg,
     return nullptr;
   }
 
+  JS::ModuleType moduleType = JS::ModuleType::JavaScript;
+  if (moduleRequestArg) {
+    moduleType = moduleRequestArg->as<ModuleRequestObject>().moduleType();
+  }
+
   RootedObject module(cx);
-  if (!lookupModuleInRegistry(cx, path, &module)) {
+  if (!lookupModuleInRegistry(cx, moduleType, path, &module)) {
     return nullptr;
   }
 
@@ -463,13 +473,6 @@ JSObject* ModuleLoader::loadAndParse(JSContext* cx, HandleString pathArg,
     return nullptr;
   }
 
-  JS::ModuleType moduleType = JS::ModuleType::JavaScript;
-  if (moduleRequestArg) {
-    Rooted<ModuleRequestObject*> moduleRequest(
-        cx, &moduleRequestArg->as<ModuleRequestObject>());
-    moduleType = moduleRequest->moduleType();
-  }
-
   switch (moduleType) {
     case JS::ModuleType::Unknown:
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
@@ -496,18 +499,20 @@ JSObject* ModuleLoader::loadAndParse(JSContext* cx, HandleString pathArg,
       break;
   }
 
-  if (!addModuleToRegistry(cx, path, module)) {
+  if (!addModuleToRegistry(cx, moduleType, path, module)) {
     return nullptr;
   }
 
   return module;
 }
 
-bool ModuleLoader::lookupModuleInRegistry(JSContext* cx, HandleString path,
+bool ModuleLoader::lookupModuleInRegistry(JSContext* cx,
+                                          JS::ModuleType moduleType,
+                                          HandleString path,
                                           MutableHandleObject moduleOut) {
   moduleOut.set(nullptr);
 
-  RootedObject registry(cx, getOrCreateModuleRegistry(cx));
+  RootedObject registry(cx, getOrCreateModuleRegistry(cx, moduleType));
   if (!registry) {
     return false;
   }
@@ -525,9 +530,9 @@ bool ModuleLoader::lookupModuleInRegistry(JSContext* cx, HandleString path,
   return true;
 }
 
-bool ModuleLoader::addModuleToRegistry(JSContext* cx, HandleString path,
-                                       HandleObject module) {
-  RootedObject registry(cx, getOrCreateModuleRegistry(cx));
+bool ModuleLoader::addModuleToRegistry(JSContext* cx, JS::ModuleType moduleType,
+                                       HandleString path, HandleObject module) {
+  RootedObject registry(cx, getOrCreateModuleRegistry(cx, moduleType));
   if (!registry) {
     return false;
   }
@@ -537,20 +542,46 @@ bool ModuleLoader::addModuleToRegistry(JSContext* cx, HandleString path,
   return JS::MapSet(cx, registry, pathValue, moduleValue);
 }
 
-JSObject* ModuleLoader::getOrCreateModuleRegistry(JSContext* cx) {
+static ArrayObject* GetOrCreateRootRegistry(JSContext* cx) {
   Handle<GlobalObject*> global = cx->global();
   RootedValue value(cx, global->getReservedSlot(GlobalAppSlotModuleRegistry));
   if (!value.isUndefined()) {
-    return &value.toObject();
+    return &value.toObject().as<ArrayObject>();
   }
 
-  JSObject* registry = JS::NewMapObject(cx);
+  uint32_t numberOfModuleTypes = uint32_t(JS::ModuleType::Limit) + 1;
+
+  Rooted<ArrayObject*> registry(
+      cx, NewDenseFullyAllocatedArray(cx, numberOfModuleTypes, TenuredObject));
   if (!registry) {
     return nullptr;
   }
+  registry->ensureDenseInitializedLength(0, numberOfModuleTypes);
+
+  Rooted<JSObject*> innerRegistry(cx);
+  for (size_t i = 0; i < numberOfModuleTypes; ++i) {
+    innerRegistry = JS::NewMapObject(cx);
+    if (!innerRegistry) {
+      return nullptr;
+    }
+    registry->initDenseElement(i, ObjectValue(*innerRegistry));
+  }
 
   global->setReservedSlot(GlobalAppSlotModuleRegistry, ObjectValue(*registry));
+
   return registry;
+}
+
+JSObject* ModuleLoader::getOrCreateModuleRegistry(JSContext* cx,
+                                                  JS::ModuleType moduleType) {
+  Rooted<ArrayObject*> rootRegistry(cx, GetOrCreateRootRegistry(cx));
+  if (!rootRegistry) {
+    return nullptr;
+  }
+
+  uint32_t index = uint32_t(moduleType);
+  MOZ_ASSERT(rootRegistry->containsDenseElement(index));
+  return &rootRegistry->getDenseElement(index).toObject();
 }
 
 bool ModuleLoader::getScriptPath(JSContext* cx, HandleValue privateValue,

@@ -61,10 +61,10 @@ class ModuleLoader {
                         MutableHandleValue rval);
   JSObject* loadAndParse(JSContext* cx, HandleString path,
                          HandleObject moduleRequestArg);
-  bool lookupModuleInRegistry(JSContext* cx, HandleString path,
-                              MutableHandleObject moduleOut);
-  bool addModuleToRegistry(JSContext* cx, HandleString path,
-                           HandleObject module);
+  bool lookupModuleInRegistry(JSContext* cx, JS::ModuleType moduleType,
+                              HandleString path, MutableHandleObject moduleOut);
+  bool addModuleToRegistry(JSContext* cx, JS::ModuleType moduleType,
+                           HandleString path, HandleObject module);
   JSLinearString* resolve(JSContext* cx, HandleObject moduleRequestArg,
                           HandleValue referencingInfo);
   JSLinearString* resolve(JSContext* cx, HandleString specifier,
@@ -72,7 +72,7 @@ class ModuleLoader {
   bool getScriptPath(JSContext* cx, HandleValue privateValue,
                      MutableHandle<JSLinearString*> pathOut);
   JSLinearString* normalizePath(JSContext* cx, Handle<JSLinearString*> path);
-  JSObject* getOrCreateModuleRegistry(JSContext* cx);
+  JSObject* getOrCreateModuleRegistry(JSContext* cx, JS::ModuleType moduleType);
   JSString* fetchSource(JSContext* cx, Handle<JSLinearString*> path);
 
   // The following are used for pinned atoms which do not need rooting.
