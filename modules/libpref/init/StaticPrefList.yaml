@@ -13653,13 +13653,6 @@
   mirror: always
   rust: true
 
-# Whether to enable Packetization Layer Path MTU Discovery.
-- name: network.http.http3.pmtud
-  type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
-  mirror: always
-  rust: true
-
 # When true, a http request will be upgraded to https when HTTPS RR is
 # available.
 - name: network.dns.upgrade_with_https_rr
