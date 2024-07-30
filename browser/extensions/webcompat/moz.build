@@ -75,6 +75,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1884842-foodora.cz-height-fix.css",
     "injections/css/bug1895994-softtrans.ro-unlock-scrolling.css",
     "injections/css/bug1896571-gracobaby.ca-unlock-scrolling.css",
+    "injections/css/bug1905278-personalizedplates.revenue.tn.gov-pointer-events.css",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
@@ -110,6 +111,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1896383-error-capturestacktrace-shim.js",
     "injections/js/bug1897120-turnjs-zoom-fix.js",
     "injections/js/bug1898952-digits.t-mobile.com.js",
+    "injections/js/bug1899937-plus.nhk.jp-request-picture-in-picture.js",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["shims"] += [

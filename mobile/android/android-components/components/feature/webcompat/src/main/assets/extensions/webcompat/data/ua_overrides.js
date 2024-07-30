@@ -1297,6 +1297,41 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1909448 - UA override for fire.honeywell.com
+     *
+     * Site doesn't load on Firefox, but works fine with a UA spoof.
+     */
+    id: "bug1909448",
+    platform: "all",
+    domain: "fire.honeywell.com",
+    bug: "1909448",
+    config: {
+      matches: ["*://fire.honeywell.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
+  {
+    /*
+     * Bug 1899937 - UA override for plus.nhk.jp
+     * Webcompat issue #103463 - https://webcompat.com/issues/103463
+     *
+     * Site blocks Firefox, so a UA spoof and an intervention is needed.
+     */
+    id: "bug1899937-ua",
+    platform: "all",
+    domain: "plus.nhk.jp",
+    bug: "1899937",
+    config: {
+      matches: ["*://plus.nhk.jp/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;

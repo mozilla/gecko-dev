@@ -1161,6 +1161,34 @@ const AVAILABLE_INJECTIONS = [
       allFrames: true,
     },
   },
+  {
+    id: "bug1899937",
+    platform: "all",
+    domain: "plus.nhk.jp",
+    bug: "1899937",
+    contentScripts: {
+      matches: ["*://plus.nhk.jp/*"],
+      js: [
+        {
+          file: "injections/js/bug1899937-plus.nhk.jp-request-picture-in-picture.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1905278",
+    platform: "all",
+    domain: "personalizedplates.revenue.tn.gov",
+    bug: "1905278",
+    contentScripts: {
+      matches: ["*://personalizedplates.revenue.tn.gov/*"],
+      css: [
+        {
+          file: "injections/css/bug1905278-personalizedplates.revenue.tn.gov-pointer-events.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
