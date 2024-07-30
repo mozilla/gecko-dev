@@ -108,26 +108,31 @@ impl Drop for AndroidHandler {
             Err(e) => error!("Failed deleting test root folder: {}", e),
         }
 
+        debug!(
+            "Stop forwarding Marionette port ({} -> {})",
+            &self.marionette_host_port, &self.marionette_target_port
+        );
         match self
             .process
             .device
             .kill_forward_port(self.marionette_host_port)
         {
-            Ok(_) => debug!(
-                "Marionette port forward ({} -> {}) stopped",
-                &self.marionette_host_port, &self.marionette_target_port
-            ),
+            Ok(_) => {}
             Err(e) => error!(
-                "Marionette port forward ({} -> {}) failed to stop: {}",
+                "Failed to stop forwarding Marionette port ({} -> {}): {}",
                 &self.marionette_host_port, &self.marionette_target_port, e
             ),
         }
 
         if let Some(port) = self.websocket_port {
+            debug!(
+                "Stop forwarding WebSocket port ({} -> {})",
+                &self.marionette_host_port, &self.marionette_target_port
+            );
             match self.process.device.kill_forward_port(port) {
-                Ok(_) => debug!("WebSocket port forward ({0} -> {0}) stopped", &port),
+                Ok(_) => {}
                 Err(e) => error!(
-                    "WebSocket port forward ({0} -> {0}) failed to stop: {1}",
+                    "Failed to stop forwarding WebSocket port ({0} -> {0}): {1}",
                     &port, e
                 ),
             }
@@ -156,16 +161,16 @@ impl AndroidHandler {
         let mut device = host.device_or_default(options.device_serial.as_ref(), options.storage)?;
 
         // Set up port forwarding for Marionette.
-        device.forward_port(marionette_host_port, MARIONETTE_TARGET_PORT)?;
         debug!(
-            "Marionette port forward ({} -> {}) started",
+            "Start forwarding Marionette port ({} -> {})",
             marionette_host_port, MARIONETTE_TARGET_PORT
         );
+        device.forward_port(marionette_host_port, MARIONETTE_TARGET_PORT)?;
 
         if let Some(port) = websocket_port {
             // Set up port forwarding for WebSocket connections (WebDriver BiDi, and CDP).
+            debug!("Start forwarding WebSocket port ({} -> {})", port, port);
             device.forward_port(port, port)?;
-            debug!("WebSocket port forward ({} -> {}) started", port, port);
         }
 
         let test_root = match device.storage {
