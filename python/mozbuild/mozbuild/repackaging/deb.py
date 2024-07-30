@@ -121,7 +121,6 @@ def repackage_deb(
             fluent_localization,
             fluent_resource_loader,
         )
-        _mv_manpage_files(source_dir, build_variables)
         _inject_deb_prefs_file(source_dir, app_name, template_dir)
         _generate_deb_archive(
             source_dir,
@@ -294,10 +293,8 @@ def _get_build_variables(
         "DEB_DISPLAY_NAME": application_ini_data["display_name"],
         "DEB_PKG_VERSION": application_ini_data["deb_pkg_version"],
         "DEB_CHANGELOG_DATE": format_datetime(application_ini_data["timestamp"]),
-        "DEB_MANPAGE_DATE": application_ini_data["timestamp"].strftime("%B %d, %Y"),
         "DEB_ARCH_NAME": _DEB_ARCH[arch],
         "DEB_DEPENDS": depends,
-        "DISPLAY_NAME": application_ini_data["display_name"],
     }
 
 
@@ -372,17 +369,6 @@ def _inject_deb_prefs_file(source_dir, app_name, template_dir):
     src = mozpath.join(template_dir, "package-prefs.js")
     dst = mozpath.join(source_dir, app_name.lower(), "defaults/pref")
     shutil.copy(src, dst)
-
-
-def _mv_manpage_files(source_dir, build_variables):
-    src = mozpath.join(source_dir, "debian", "manpage.1")
-    dst = mozpath.join(source_dir, "debian", f"{build_variables['DEB_PKG_NAME']}.1")
-    shutil.move(src, dst)
-    src = mozpath.join(source_dir, "debian", "manpages")
-    dst = mozpath.join(
-        source_dir, "debian", f"{build_variables['DEB_PKG_NAME']}.manpages"
-    )
-    shutil.move(src, dst)
 
 
 def _inject_deb_desktop_entry_file(
