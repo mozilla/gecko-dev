@@ -56,7 +56,7 @@ Result<ResultConnection, QMResult> GetStorageConnection(
     const int64_t aDirectoryLockId);
 
 class FileSystemDataManager
-    : public SupportsCheckedUnsafePtr<CheckIf<DiagnosticAssertEnabled>> {
+    : public SupportsCheckedUnsafePtr<CheckIf<ReleaseAssertEnabled>> {
  public:
   enum struct State : uint8_t { Initial = 0, Opening, Open, Closing, Closed };
 
