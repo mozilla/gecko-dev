@@ -467,9 +467,7 @@ JSObject* ModuleLoader::loadAndParse(JSContext* cx, HandleString pathArg,
   if (moduleRequestArg) {
     Rooted<ModuleRequestObject*> moduleRequest(
         cx, &moduleRequestArg->as<ModuleRequestObject>());
-    if (!ModuleRequestObject::getModuleType(cx, moduleRequest, moduleType)) {
-      return nullptr;
-    }
+    moduleType = moduleRequest->moduleType();
   }
 
   switch (moduleType) {

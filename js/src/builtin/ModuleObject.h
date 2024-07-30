@@ -67,20 +67,29 @@ using ImportAttributeVector = GCVector<ImportAttribute, 0, SystemAllocPolicy>;
 
 class ModuleRequestObject : public NativeObject {
  public:
-  enum { SpecifierSlot = 0, AttributesSlot, SlotCount };
+  enum {
+    SpecifierSlot = 0,
+    FirstUnsupportedAttributeKeySlot,
+    ModuleTypeSlot,
+    SlotCount
+  };
 
   static const JSClass class_;
   static bool isInstance(HandleValue value);
   [[nodiscard]] static ModuleRequestObject* create(
       JSContext* cx, Handle<JSAtom*> specifier,
-      MutableHandle<UniquePtr<ImportAttributeVector>> maybeAttributes);
+      Handle<ImportAttributeVector> maybeAttributes);
 
   JSAtom* specifier() const;
-  mozilla::Span<const ImportAttribute> attributes() const;
-  bool hasAttributes() const;
-  static bool getModuleType(JSContext* cx,
-                            const Handle<ModuleRequestObject*> moduleRequest,
-                            JS::ModuleType& moduleType);
+  JS::ModuleType moduleType() const;
+
+  // We process import attributes earlier in the process, but according to the
+  // spec, we should error during module evaluation if we encounter an
+  // unsupported attribute. We want to generate a nice error message, so we need
+  // to keep track of the first unsupported key we encounter.
+  void setFirstUnsupportedAttributeKey(Handle<JSAtom*> key);
+  bool hasFirstUnsupportedAttributeKey() const;
+  JSAtom* getFirstUnsupportedAttributeKey() const;
 };
 
 using ModuleRequestVector =

@@ -196,32 +196,17 @@ void ImportAttribute::trace(JSTracer* trc) {
 DEFINE_ATOM_OR_NULL_ACCESSOR_METHOD(ModuleRequestObject, specifier,
                                     SpecifierSlot)
 
-Span<const ImportAttribute> ModuleRequestObject::attributes() const {
-  Value value = getReservedSlot(AttributesSlot);
-  if (value.isNullOrUndefined()) {
-    return Span<const ImportAttribute>();
-  }
-  void* ptr = value.toPrivate();
-  MOZ_ASSERT(ptr);
-  auto* vector = static_cast<ImportAttributeVector*>(ptr);
-  return *vector;
+JS::ModuleType ModuleRequestObject::moduleType() const {
+  Value v = getReservedSlot(ModuleTypeSlot);
+  int32_t i = v.toInt32();
+  MOZ_ASSERT(i >= 0 && i <= int32_t(JS::ModuleType::Limit));
+  return static_cast<JS::ModuleType>(i);
 }
 
-bool ModuleRequestObject::hasAttributes() const {
-  return !getReservedSlot(ModuleRequestObject::AttributesSlot)
-              .isNullOrUndefined();
-}
-
-/* static */
-bool ModuleRequestObject::getModuleType(
-    JSContext* cx, const Handle<ModuleRequestObject*> moduleRequest,
-    JS::ModuleType& moduleType) {
-  if (!moduleRequest->hasAttributes()) {
-    moduleType = JS::ModuleType::JavaScript;
-    return true;
-  }
-
-  for (const ImportAttribute& importAttribute : moduleRequest->attributes()) {
+static bool GetModuleType(JSContext* cx,
+                          Handle<ImportAttributeVector> maybeAttributes,
+                          JS::ModuleType& moduleType) {
+  for (const ImportAttribute& importAttribute : maybeAttributes) {
     if (importAttribute.key() == cx->names().type) {
       int32_t isJsonString;
       if (!js::CompareStrings(cx, cx->names().json, importAttribute.value(),
@@ -251,21 +236,39 @@ bool ModuleRequestObject::isInstance(HandleValue value) {
 /* static */
 ModuleRequestObject* ModuleRequestObject::create(
     JSContext* cx, Handle<JSAtom*> specifier,
-    MutableHandle<UniquePtr<ImportAttributeVector>> maybeAttributes) {
+    Handle<ImportAttributeVector> maybeAttributes) {
   ModuleRequestObject* self =
       NewObjectWithGivenProto<ModuleRequestObject>(cx, nullptr);
   if (!self) {
     return nullptr;
   }
 
-  self->initReservedSlot(SpecifierSlot, StringOrNullValue(specifier));
-
-  if (maybeAttributes) {
-    InitReservedSlot(self, AttributesSlot, maybeAttributes.get().release(),
-                     MemoryUse::ModuleImportAttributes);
+  JS::ModuleType moduleType = JS::ModuleType::JavaScript;
+  if (!GetModuleType(cx, maybeAttributes, moduleType)) {
+    return nullptr;
   }
 
+  self->initReservedSlot(SpecifierSlot, StringOrNullValue(specifier));
+
+  static_assert(size_t(JS::ModuleType::Limit) <= INT32_MAX);
+  self->initReservedSlot(ModuleTypeSlot, Int32Value(int32_t(moduleType)));
+
   return self;
+}
+
+void ModuleRequestObject::setFirstUnsupportedAttributeKey(Handle<JSAtom*> key) {
+  initReservedSlot(FirstUnsupportedAttributeKeySlot, StringOrNullValue(key));
+}
+
+bool ModuleRequestObject::hasFirstUnsupportedAttributeKey() const {
+  return !getReservedSlot(FirstUnsupportedAttributeKeySlot).isNullOrUndefined();
+}
+
+JSAtom* ModuleRequestObject::getFirstUnsupportedAttributeKey() const {
+  MOZ_ASSERT(hasFirstUnsupportedAttributeKey());
+  return &getReservedSlot(FirstUnsupportedAttributeKeySlot)
+              .toString()
+              ->asAtom();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1599,15 +1602,9 @@ ModuleRequestObject* frontend::StencilModuleMetadata::createModuleRequestObject(
     const StencilModuleRequest& request) const {
   uint32_t numberOfAttributes = request.attributes.length();
 
-  Rooted<UniquePtr<ImportAttributeVector>> attributes(cx);
+  Rooted<ImportAttributeVector> attributes(cx);
   if (numberOfAttributes > 0) {
-    attributes = cx->make_unique<ImportAttributeVector>();
-    if (!attributes) {
-      ReportOutOfMemory(cx);
-      return nullptr;
-    }
-
-    if (!attributes->reserve(numberOfAttributes)) {
+    if (!attributes.reserve(numberOfAttributes)) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
@@ -1618,7 +1615,8 @@ ModuleRequestObject* frontend::StencilModuleMetadata::createModuleRequestObject(
       attributeKey = atomCache.getExistingAtomAt(cx, request.attributes[j].key);
       attributeValue =
           atomCache.getExistingAtomAt(cx, request.attributes[j].value);
-      attributes->infallibleEmplaceBack(attributeKey, attributeValue);
+
+      attributes.infallibleEmplaceBack(attributeKey, attributeValue);
     }
   }
 
@@ -1626,7 +1624,18 @@ ModuleRequestObject* frontend::StencilModuleMetadata::createModuleRequestObject(
                             atomCache.getExistingAtomAt(cx, request.specifier));
   MOZ_ASSERT(specifier);
 
-  return ModuleRequestObject::create(cx, specifier, &attributes);
+  Rooted<ModuleRequestObject*> moduleRequestObject(
+      cx, ModuleRequestObject::create(cx, specifier, attributes));
+
+  if (request.firstUnsupportedAttributeKey) {
+    Rooted<JSAtom*> unsupportedAttributeKey(
+        cx,
+        atomCache.getExistingAtomAt(cx, request.firstUnsupportedAttributeKey));
+    moduleRequestObject->setFirstUnsupportedAttributeKey(
+        unsupportedAttributeKey);
+  }
+
+  return moduleRequestObject;
 }
 
 bool frontend::StencilModuleMetadata::createImportEntries(
@@ -1802,15 +1811,26 @@ bool ModuleBuilder::processAttributes(frontend::StencilModuleRequest& request,
     MOZ_ASSERT(attribute->isKind(ParseNodeKind::ImportAttribute));
 
     auto key = attribute->left()->as<NameNode>().atom();
-    auto value = attribute->right()->as<NameNode>().atom();
-
     markUsedByStencil(key);
-    markUsedByStencil(value);
 
-    StencilModuleImportAttribute attributeStencil(key, value);
-    if (!request.attributes.append(attributeStencil)) {
-      js::ReportOutOfMemory(fc_);
-      return false;
+    // Note: This should be driven by a host hook
+    // (HostGetSupportedImportAttributes), however the infrastructure of said
+    // host hook is deeply unclear, and so right now embedders will not have
+    // the ability to alter or extend the set of supported attributes.
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1840723.
+    if (key == TaggedParserAtomIndex::WellKnown::type()) {
+      auto value = attribute->right()->as<NameNode>().atom();
+      markUsedByStencil(value);
+
+      StencilModuleImportAttribute attributeStencil(key, value);
+      if (!request.attributes.append(attributeStencil)) {
+        js::ReportOutOfMemory(fc_);
+        return false;
+      }
+    } else {
+      if (!request.firstUnsupportedAttributeKey) {
+        request.firstUnsupportedAttributeKey = key;
+      }
     }
   }
 
@@ -2474,32 +2494,16 @@ JSObject* js::StartDynamicModuleImport(JSContext* cx, HandleScript script,
     return promise;
   }
 
-  Rooted<ImportAttributeVector> tempAttributes(cx);
-  if (!EvaluateDynamicImportOptions(cx, optionsArg, &tempAttributes)) {
+  Rooted<ImportAttributeVector> attributes(cx);
+  if (!EvaluateDynamicImportOptions(cx, optionsArg, &attributes)) {
     if (!RejectPromiseWithPendingError(cx, promise)) {
       return nullptr;
     }
     return promise;
   }
 
-  Rooted<UniquePtr<ImportAttributeVector>> attributes(cx);
-  if (!tempAttributes.empty()) {
-    attributes = cx->make_unique<ImportAttributeVector>();
-    if (!attributes) {
-      return nullptr;
-    }
-    if (!attributes->reserve(tempAttributes.length())) {
-      ReportOutOfMemory(cx);
-      return nullptr;
-    }
-    if (!attributes->appendAll(tempAttributes)) {
-      ReportOutOfMemory(cx);
-      return nullptr;
-    }
-  }
-
   RootedObject moduleRequest(
-      cx, ModuleRequestObject::create(cx, specifierAtom, &attributes));
+      cx, ModuleRequestObject::create(cx, specifierAtom, attributes));
   if (!moduleRequest) {
     if (!RejectPromiseWithPendingError(cx, promise)) {
       return nullptr;
@@ -2677,9 +2681,9 @@ static bool OnResolvedDynamicModule(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   Rooted<PromiseObject*> promise(cx, TargetFromHandler<PromiseObject>(args));
-  Rooted<UniquePtr<ImportAttributeVector>> attributes(cx);
+  Rooted<ImportAttributeVector> attributes(cx);
   RootedObject moduleRequest(
-      cx, ModuleRequestObject::create(cx, specifier, &attributes));
+      cx, ModuleRequestObject::create(cx, specifier, attributes));
   if (!moduleRequest) {
     return RejectPromiseWithPendingError(cx, promise);
   }

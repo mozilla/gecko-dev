@@ -5476,9 +5476,9 @@ static bool RegisterModule(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  Rooted<UniquePtr<ImportAttributeVector>> attributes(cx);
+  Rooted<ImportAttributeVector> attributes(cx);
   RootedObject moduleRequest(
-      cx, ModuleRequestObject::create(cx, specifier, &attributes));
+      cx, ModuleRequestObject::create(cx, specifier, attributes));
   if (!moduleRequest) {
     return false;
   }

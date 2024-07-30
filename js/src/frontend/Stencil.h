@@ -516,6 +516,7 @@ class StencilModuleImportAttribute {
 class StencilModuleRequest {
  public:
   TaggedParserAtomIndex specifier;
+  TaggedParserAtomIndex firstUnsupportedAttributeKey;
 
   using ImportAttributeVector =
       Vector<StencilModuleImportAttribute, 0, js::SystemAllocPolicy>;
@@ -530,7 +531,8 @@ class StencilModuleRequest {
   }
 
   StencilModuleRequest(const StencilModuleRequest& other)
-      : specifier(other.specifier) {
+      : specifier(other.specifier),
+        firstUnsupportedAttributeKey(other.firstUnsupportedAttributeKey) {
     AutoEnterOOMUnsafeRegion oomUnsafe;
     if (!attributes.appendAll(other.attributes)) {
       oomUnsafe.crash("StencilModuleRequest::StencilModuleRequest");
@@ -538,16 +540,20 @@ class StencilModuleRequest {
   }
 
   StencilModuleRequest(StencilModuleRequest&& other) noexcept
-      : specifier(other.specifier), attributes(std::move(other.attributes)) {}
+      : specifier(other.specifier),
+        firstUnsupportedAttributeKey(other.firstUnsupportedAttributeKey),
+        attributes(std::move(other.attributes)) {}
 
   StencilModuleRequest& operator=(StencilModuleRequest& other) {
     specifier = other.specifier;
+    firstUnsupportedAttributeKey = other.firstUnsupportedAttributeKey;
     attributes = std::move(other.attributes);
     return *this;
   }
 
   StencilModuleRequest& operator=(StencilModuleRequest&& other) noexcept {
     specifier = other.specifier;
+    firstUnsupportedAttributeKey = other.firstUnsupportedAttributeKey;
     attributes = std::move(other.attributes);
     return *this;
   }

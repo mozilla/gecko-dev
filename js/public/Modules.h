@@ -36,7 +36,13 @@ union Utf8Unit;
 
 namespace JS {
 
-enum class ModuleType : uint32_t { Unknown = 0, JavaScript, JSON };
+enum class ModuleType : uint32_t {
+  Unknown = 0,
+  JavaScript,
+  JSON,
+
+  Limit = JSON,
+};
 
 /**
  * The HostResolveImportedModule hook.

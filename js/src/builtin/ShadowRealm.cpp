@@ -444,9 +444,9 @@ static JSObject* ShadowRealmImportValue(JSContext* cx,
       return promise;
     }
 
-    Rooted<UniquePtr<ImportAttributeVector>> attributes(cx);
+    Rooted<ImportAttributeVector> attributes(cx);
     Rooted<JSObject*> moduleRequest(
-        cx, ModuleRequestObject::create(cx, specifierAtom, &attributes));
+        cx, ModuleRequestObject::create(cx, specifierAtom, attributes));
     if (!moduleRequest) {
       if (!RejectPromiseWithPendingError(cx, promise)) {
         return nullptr;
