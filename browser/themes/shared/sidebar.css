@@ -24,6 +24,12 @@
   :root[lwt-sidebar="dark"] & {
     color-scheme: dark;
   }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.revamp") {
+    min-width: 200px;
+    width: 400px;
+  }
 }
 
 #sidebar-header {
@@ -42,10 +48,10 @@
   flex: 1;
 }
 
-@media not (-moz-platform: linux) {
-  /* We don't let the splitter overlap the sidebar on Linux since the sidebar's
-  scrollbar is too narrow on Linux. */
-  .sidebar-splitter {
+.sidebar-splitter {
+  @media not (-moz-platform: linux) {
+    /* We don't let the splitter overlap the sidebar on Linux since the sidebar's
+    scrollbar is too narrow on Linux. */
     appearance: none;
     border: 0 solid;
     border-inline-end-width: 1px;
@@ -56,11 +62,20 @@
     background-color: transparent;
     margin-inline-start: -4px;
     position: relative;
+
+    #sidebar-box[positionend] + & {
+      border-inline-width: 1px 0;
+      margin-inline: 0 -4px;
+    }
   }
 
-  #sidebar-box[positionend] + .sidebar-splitter {
-    border-inline-width: 1px 0;
-    margin-inline: 0 -4px;
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.revamp") {
+    transition: background-color .5s ease-in-out;
+
+    &:hover {
+      background-color: var(--focus-outline-color);
+    }
   }
 }
 
