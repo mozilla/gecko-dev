@@ -368,10 +368,12 @@ public class ContentBlocking {
     /* package */ final Pref<Boolean> mSbPhishing =
         new Pref<Boolean>("browser.safebrowsing.phishing.enabled", true);
     /* package */ final Pref<Integer> mCookieBehavior =
-        new Pref<Integer>("network.cookie.cookieBehavior", CookieBehavior.ACCEPT_NON_TRACKERS);
+        new Pref<Integer>(
+            "network.cookie.cookieBehavior", CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS);
     /* package */ final Pref<Integer> mCookieBehaviorPrivateMode =
         new Pref<Integer>(
-            "network.cookie.cookieBehavior.pbmode", CookieBehavior.ACCEPT_NON_TRACKERS);
+            "network.cookie.cookieBehavior.pbmode",
+            CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS);
     /* package */ final Pref<Boolean> mCookiePurging =
         new Pref<Boolean>("privacy.purge_trackers.enabled", false);
 
@@ -1581,9 +1583,12 @@ public class ContentBlocking {
 
   @Retention(RetentionPolicy.SOURCE)
   @IntDef({
-    CookieBehavior.ACCEPT_ALL, CookieBehavior.ACCEPT_FIRST_PARTY,
-    CookieBehavior.ACCEPT_NONE, CookieBehavior.ACCEPT_VISITED,
-    CookieBehavior.ACCEPT_NON_TRACKERS
+    CookieBehavior.ACCEPT_ALL,
+    CookieBehavior.ACCEPT_FIRST_PARTY,
+    CookieBehavior.ACCEPT_NONE,
+    CookieBehavior.ACCEPT_VISITED,
+    CookieBehavior.ACCEPT_NON_TRACKERS,
+    CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS
   })
   public @interface CBCookieBehavior {}
 
