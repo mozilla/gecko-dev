@@ -162,6 +162,7 @@ def mock_mozinfo():
             "canvas": False,
             "webgpu": False,
             "webcodecs": False,
+            "eme": False,
             "privatebrowsing": False,
             "tag": tag,
         }

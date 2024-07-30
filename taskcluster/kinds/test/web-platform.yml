@@ -184,6 +184,27 @@ web-platform-tests-webcodecs:
             - --default-exclude
             - --tag=webcodecs
 
+web-platform-tests-eme:
+    description: "Web platform EME test run"
+    suite: web-platform-tests
+    treeherder-symbol: W(eme)
+    virtualization: virtual
+    tier: default
+    chunks: 1
+    max-run-time: 1800
+    variants: []
+    run-on-projects:
+        by-test-platform:
+            android.*: []
+            .*wayland.*: []
+            default: built-projects
+    mozharness:
+        chunked: true
+        extra-options:
+            - --test-type=testharness
+            - --default-exclude
+            - --tag=eme
+
 web-platform-tests-reftest:
     description: "Web platform reftest run"
     schedules-component: web-platform-tests-reftest

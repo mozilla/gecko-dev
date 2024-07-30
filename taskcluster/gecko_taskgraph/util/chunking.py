@@ -32,6 +32,7 @@ WPT_SUBSUITES = {
     "webgpu": ["_mozilla/webgpu"],
     "privatebrowsing": ["/service-workers/cache-storage"],
     "webcodecs": ["webcodecs"],
+    "eme": ["encrypted-media"],
 }
 
 
