@@ -6,7 +6,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1067345
 <head>
   <title>Test for Bug 1067345</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <link rel="stylesheet" href="/tests/SimpleTest/test.css">
 </head>
 <body>
   <script>
@@ -15,7 +15,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1067345
 
     SimpleTest.waitForExplicitFinish();
 
-    var testDPIs = [ "1.0", "0.5", "2.0", "1.5" ];
+    var testDPIs = ["1.0", "0.5", "2.0", "1.5"];
     var iframe = document.createElement("iframe");
 
     // These accessed by child frame
@@ -23,13 +23,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1067345
 
     document.body.appendChild(iframe);
 
-    SpecialPowers.pushPrefEnv({"set": [ [ "dom.image.srcset.enabled", true ],
-                                        [ "dom.image.picture.enabled", true ]] },
-                              function() {
-      // Reset the sjs helper so repeat runs work
-      resetRequests();
-      setTimeout(nextTest, 0);
-    });
+    // Reset the sjs helper so repeat runs work
+    resetRequests();
+    setTimeout(nextTest, 0);
 
     function resetRequests() {
       // Ask the SJS to reset requests
@@ -57,32 +53,29 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1067345
 
     function nextTest() {
       // Re-run test for each DPI level
-      if (testDPIs.length) {
-        currentDPI = testDPIs.pop();
-        info("Starting test for DPI: " + currentDPI);
-        // To avoid spurious image loads being reported when the resolution changes,
-        // load an intermediate iframe.
-        iframe.src = "about:blank";
-        iframe.addEventListener("load", function() {
-          SpecialPowers.pushPrefEnv({"set": [ [ "layout.css.devPixelsPerPx", currentDPI ]] },
-                                    function() {
-            // Make sure we trigger a layout flush so that the frame is sized
-            // appropriately after the DPI changes.
-            iframe.getBoundingClientRect();
-            // Clear image cache for next run (we don't try to validate cached items
-            // in preload).
-            SpecialPowers.Cc["@mozilla.org/image/tools;1"]
-                         .getService(SpecialPowers.Ci.imgITools)
-                         .getImgCacheForDocument(iframe.contentDocument)
-                         .clearCache(false);
-            iframe.src = "./file_img_picture_preload.html?" + currentDPI;
-          });
-        }, {once: true});
-      } else {
+      if (!testDPIs.length) {
         SimpleTest.finish();
+        return;
       }
+      currentDPI = testDPIs.pop();
+      info("Starting test for DPI: " + currentDPI);
+      // To avoid spurious image loads being reported when the resolution changes,
+      // load an intermediate iframe.
+      iframe.src = "about:blank";
+      iframe.addEventListener("load", async function() {
+        await SpecialPowers.pushPrefEnv({"set": [ [ "layout.css.devPixelsPerPx", currentDPI ]] });
+        // Make sure we trigger a layout flush so that the frame is sized
+        // appropriately after the DPI changes.
+        iframe.getBoundingClientRect();
+        // Clear image cache for next run (we don't try to validate cached items
+        // in preload).
+        SpecialPowers.Cc["@mozilla.org/image/tools;1"]
+                     .getService(SpecialPowers.Ci.imgITools)
+                     .getImgCacheForDocument(iframe.contentDocument)
+                     .clearCache(false);
+        iframe.src = "./file_img_picture_preload.html?" + currentDPI;
+      }, {once: true});
     }
   </script>
-
 </body>
 </html>

@@ -11,7 +11,7 @@
   <title>Test for Bug 1067345</title>
 </head>
 <body onload="afterLoad();">
-  <script type="text/javascript">
+  <script>
     var is = window.parent.is;
     var ok = window.parent.ok;
     var SimpleTest = window.parent.SimpleTest;
@@ -121,7 +121,7 @@
        srcset="./file_img_picture_preload.sjs?img11:source1 10w, ./file_img_picture_preload.sjs?img11:source2 20w"
        src="./file_img_picture_preload.sjs?img11:source3">
 
-  <script type="text/javascript">
+  <script>
     function afterLoad() {
       // All images should have picked a source of the format
       // imgName:sourceName, ensure we have one source per image and
