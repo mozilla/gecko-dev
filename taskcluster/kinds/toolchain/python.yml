@@ -27,6 +27,32 @@ linux64-python-3.8:
     worker:
         docker-image: {in-tree: ubuntu1804-build-python}
 
+linux64-aarch64-python-3.8:
+    description: "cpython 3.8.10 AArch64/ARM64"
+    worker-type: b-linux-gcp-aarch64
+    treeherder:
+        symbol: TLA64(python)
+    run:
+        toolchain-alias: linux64-aarch64-python
+        toolchain-artifact: public/build/python.tar.zst
+    fetches:
+        fetch:
+            - cpython-3.8.10
+    worker:
+        docker-image: {in-tree: ubuntu2204-arm64-build-python}
+
+linux64-aarch64-python-3.11:
+    worker-type: b-linux-gcp-aarch64
+    treeherder:
+        symbol: TLA64(python3.11)
+    run:
+        toolchain-artifact: public/build/python.tar.zst
+    fetches:
+        fetch:
+            - cpython-3.11.7
+    worker:
+        docker-image: {in-tree: ubuntu2204-arm64-build-python}
+
 win64-python-3.8:
     description: "cpython 3.8.10"
     treeherder:
