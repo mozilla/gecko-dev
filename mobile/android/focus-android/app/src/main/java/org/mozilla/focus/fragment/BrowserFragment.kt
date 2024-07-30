@@ -61,7 +61,6 @@ import mozilla.components.feature.top.sites.TopSitesConfig
 import mozilla.components.feature.top.sites.TopSitesFeature
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.state.ext.flowScoped
-import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.ktx.android.view.exitImmersiveMode
@@ -69,6 +68,7 @@ import mozilla.components.support.locale.ActivityContextWrapper
 import mozilla.components.support.utils.Browsers
 import mozilla.components.support.utils.StatusBarUtils
 import mozilla.components.support.utils.ext.requestInPlacePermissions
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.Browser
 import org.mozilla.focus.GleanMetrics.CookieBanner
 import org.mozilla.focus.GleanMetrics.Downloads

@@ -6,7 +6,7 @@ package org.mozilla.fenix.ext
 
 import android.content.Context
 import androidx.preference.PreferenceManager
-import mozilla.components.service.glean.config.Configuration
+import mozilla.telemetry.glean.config.Configuration
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.R
 

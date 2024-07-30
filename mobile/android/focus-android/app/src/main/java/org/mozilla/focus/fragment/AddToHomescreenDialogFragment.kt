@@ -19,7 +19,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.DialogFragment
 import androidx.preference.PreferenceManager
 import mozilla.components.browser.icons.IconRequest
-import mozilla.components.service.glean.private.NoExtras
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.AddToHomeScreen
 import org.mozilla.focus.R
 import org.mozilla.focus.ext.components

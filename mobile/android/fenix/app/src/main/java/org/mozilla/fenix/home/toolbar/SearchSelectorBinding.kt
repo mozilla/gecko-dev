@@ -15,8 +15,8 @@ import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.menu.Orientation
 import mozilla.components.lib.state.helpers.AbstractBinding
-import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.ktx.android.content.getColorFromAttr
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.UnifiedSearch
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.FragmentHomeBinding

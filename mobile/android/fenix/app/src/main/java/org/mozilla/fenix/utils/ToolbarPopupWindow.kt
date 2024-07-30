@@ -19,8 +19,8 @@ import com.google.android.material.snackbar.Snackbar
 import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.FenixSnackbar

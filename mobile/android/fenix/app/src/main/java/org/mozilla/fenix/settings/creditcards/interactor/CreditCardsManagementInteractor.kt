@@ -5,7 +5,7 @@
 package org.mozilla.fenix.settings.creditcards.interactor
 
 import mozilla.components.concept.storage.CreditCard
-import mozilla.components.service.glean.private.NoExtras
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.CreditCards
 import org.mozilla.fenix.settings.creditcards.controller.CreditCardsManagementController
 

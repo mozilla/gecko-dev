@@ -20,14 +20,14 @@ import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.service.CrashReporterService
 import mozilla.components.lib.crash.service.GleanCrashReporterService
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
-import mozilla.components.service.glean.BuildInfo
-import mozilla.components.service.glean.Glean
-import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.net.ConceptFetchHttpUploader
 import mozilla.components.support.base.android.NotificationsDelegate
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.utils.PendingIntentUtils
+import mozilla.telemetry.glean.BuildInfo
+import mozilla.telemetry.glean.config.Configuration
+import mozilla.telemetry.glean.Glean
 import java.util.Calendar
 import java.util.TimeZone
 import java.util.UUID
