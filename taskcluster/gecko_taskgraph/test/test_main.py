@@ -2,9 +2,9 @@
 # http://creativecommons.org/publicdomain/zero/1.0/
 
 import pytest
+import taskgraph
 from mozunit import main as mozunit_main
 
-import gecko_taskgraph
 from gecko_taskgraph.main import main as taskgraph_main
 
 
@@ -18,7 +18,7 @@ def run_main(maketgg, monkeypatch):
             return tgg
 
         monkeypatch.setattr(
-            gecko_taskgraph.main,
+            taskgraph.main,
             "get_taskgraph_generator",
             fake_get_taskgraph_generator,
         )

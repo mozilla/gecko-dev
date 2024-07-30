@@ -7,59 +7,27 @@ import atexit
 import json
 import logging
 import os
-import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import traceback
-from collections import namedtuple
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, List
 
 import appdirs
 import yaml
+from taskgraph.main import (
+    FORMAT_METHODS,
+    argument,
+    command,
+    commands,
+    dump_output,
+    generate_taskgraph,
+)
 
 from gecko_taskgraph import GECKO
 from gecko_taskgraph.files_changed import get_locally_changed_files
-
-Command = namedtuple("Command", ["func", "args", "kwargs", "defaults"])
-commands = {}
-
-
-def command(*args, **kwargs):
-    defaults = kwargs.pop("defaults", {})
-
-    def decorator(func):
-        commands[args[0]] = Command(func, args, kwargs, defaults)
-        return func
-
-    return decorator
-
-
-def argument(*args, **kwargs):
-    def decorator(func):
-        if not hasattr(func, "args"):
-            func.args = []
-        func.args.append((args, kwargs))
-        return func
-
-    return decorator
-
-
-def format_taskgraph_labels(taskgraph):
-    return "\n".join(
-        sorted(
-            taskgraph.tasks[index].label for index in taskgraph.graph.visit_postorder()
-        )
-    )
-
-
-def format_taskgraph_json(taskgraph):
-    return json.dumps(
-        taskgraph.to_json(), sort_keys=True, indent=2, separators=(",", ": ")
-    )
 
 
 def format_taskgraph_yaml(taskgraph):
@@ -77,159 +45,7 @@ def format_taskgraph_yaml(taskgraph):
     return yaml.dump(taskgraph.to_json(), Dumper=TGDumper, default_flow_style=False)
 
 
-def get_filtered_taskgraph(taskgraph, tasksregex, exclude_keys):
-    """
-    Filter all the tasks on basis of a regular expression
-    and returns a new TaskGraph object
-    """
-    from taskgraph.graph import Graph
-    from taskgraph.task import Task
-    from taskgraph.taskgraph import TaskGraph
-
-    if tasksregex:
-        named_links_dict = taskgraph.graph.named_links_dict()
-        filteredtasks = {}
-        filterededges = set()
-        regexprogram = re.compile(tasksregex)
-
-        for key in taskgraph.graph.visit_postorder():
-            task = taskgraph.tasks[key]
-            if regexprogram.match(task.label):
-                filteredtasks[key] = task
-                for depname, dep in named_links_dict[key].items():
-                    if regexprogram.match(dep):
-                        filterededges.add((key, dep, depname))
-
-        taskgraph = TaskGraph(filteredtasks, Graph(set(filteredtasks), filterededges))
-
-    if exclude_keys:
-        for label, task in taskgraph.tasks.items():
-            task_dict = task.to_json()
-            for key in exclude_keys:
-                obj = task_dict
-                attrs = key.split(".")
-                while obj and attrs[0] in obj:
-                    if len(attrs) == 1:
-                        del obj[attrs[0]]
-                        break
-                    obj = obj[attrs[0]]
-                    attrs = attrs[1:]
-            taskgraph.tasks[label] = Task.from_json(task_dict)
-
-    return taskgraph
-
-
-FORMAT_METHODS = {
-    "labels": format_taskgraph_labels,
-    "json": format_taskgraph_json,
-    "yaml": format_taskgraph_yaml,
-}
-
-
-def get_taskgraph_generator(root, parameters):
-    """Helper function to make testing a little easier."""
-    from taskgraph.generator import TaskGraphGenerator
-
-    return TaskGraphGenerator(root_dir=root, parameters=parameters)
-
-
-def format_taskgraph(options, parameters, overrides, logfile=None):
-    import taskgraph
-    from taskgraph.parameters import parameters_loader
-
-    if logfile:
-        handler = logging.FileHandler(logfile, mode="w")
-        if logging.root.handlers:
-            oldhandler = logging.root.handlers[-1]
-            logging.root.removeHandler(oldhandler)
-            handler.setFormatter(oldhandler.formatter)
-        logging.root.addHandler(handler)
-
-    if options["fast"]:
-        taskgraph.fast = True
-
-    if isinstance(parameters, str):
-        parameters = parameters_loader(
-            parameters,
-            overrides=overrides,
-            strict=False,
-        )
-
-    tgg = get_taskgraph_generator(options.get("root"), parameters)
-
-    tg = getattr(tgg, options["graph_attr"])
-    tg = get_filtered_taskgraph(tg, options["tasks_regex"], options["exclude_keys"])
-    format_method = FORMAT_METHODS[options["format"] or "labels"]
-    return format_method(tg)
-
-
-def dump_output(out, path=None, params_spec=None):
-    from taskgraph.parameters import Parameters
-
-    params_name = Parameters.format_spec(params_spec)
-    fh = None
-    if path:
-        # Substitute params name into file path if necessary
-        if params_spec and "{params}" not in path:
-            name, ext = os.path.splitext(path)
-            name += "_{params}"
-            path = name + ext
-
-        path = path.format(params=params_name)
-        fh = open(path, "w")
-    else:
-        print(
-            "Dumping result with parameters from {}:".format(params_name),
-            file=sys.stderr,
-        )
-    print(out + "\n", file=fh)
-
-
-def generate_taskgraph(options, parameters, overrides, logdir):
-    from taskgraph.parameters import Parameters
-
-    def logfile(spec):
-        """Determine logfile given a parameters specification."""
-        if logdir is None:
-            return None
-        return os.path.join(
-            logdir,
-            "{}_{}.log".format(options["graph_attr"], Parameters.format_spec(spec)),
-        )
-
-    # Don't bother using futures if there's only one parameter. This can make
-    # tracebacks a little more readable and avoids additional process overhead.
-    if len(parameters) == 1:
-        spec = parameters[0]
-        out = format_taskgraph(options, spec, overrides, logfile(spec))
-        dump_output(out, options["output_file"])
-        return
-
-    futures = {}
-    with ProcessPoolExecutor(max_workers=options["max_workers"]) as executor:
-        for spec in parameters:
-            f = executor.submit(
-                format_taskgraph, options, spec, overrides, logfile(spec)
-            )
-            futures[f] = spec
-
-    for future in as_completed(futures):
-        output_file = options["output_file"]
-        spec = futures[future]
-        e = future.exception()
-        if e:
-            out = "".join(traceback.format_exception(type(e), e, e.__traceback__))
-            if options["diff"]:
-                # Dump to console so we don't accidentally diff the tracebacks.
-                output_file = None
-        else:
-            out = future.result()
-
-        dump_output(
-            out,
-            path=output_file,
-            params_spec=spec if len(parameters) > 1 else None,
-        )
+FORMAT_METHODS["yaml"] = format_taskgraph_yaml
 
 
 @command(
