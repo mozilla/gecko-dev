@@ -134,7 +134,11 @@ add_task(async function test_manage_preferences_navigation() {
   let manageSettings =
     customizeComponent.shadowRoot.getElementById("manage-settings");
 
-  EventUtils.synthesizeMouseAtCenter(manageSettings, {}, contentWindow);
+  EventUtils.synthesizeMouseAtCenter(
+    manageSettings.querySelector("a"),
+    {},
+    contentWindow
+  );
   await BrowserTestUtils.waitForCondition(
     () =>
       win.gBrowser.selectedTab.linkedBrowser.currentURI.spec ==
