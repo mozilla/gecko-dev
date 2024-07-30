@@ -4869,9 +4869,7 @@ void GCRuntime::startBackgroundFreeAfterMinorGC() {
         &lifoBlocksToFreeAfterFullMinorGC.ref());
   }
 
-  if (lifoBlocksToFree.ref().isEmpty() &&
-      buffersToFreeAfterMinorGC.ref().empty() &&
-      stringBuffersToReleaseAfterMinorGC.ref().empty()) {
+  if (!hasBuffersForBackgroundFree()) {
     return;
   }
 

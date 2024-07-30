@@ -444,9 +444,7 @@ void GCRuntime::waitBackgroundSweepEnd() {
 void GCRuntime::startBackgroundFree() {
   AutoLockHelperThreadState lock;
 
-  if (lifoBlocksToFree.ref().isEmpty() &&
-      buffersToFreeAfterMinorGC.ref().empty() &&
-      stringBuffersToReleaseAfterMinorGC.ref().empty()) {
+  if (!hasBuffersForBackgroundFree()) {
     return;
   }
 
@@ -488,9 +486,7 @@ void GCRuntime::freeFromBackgroundThread(AutoLockHelperThreadState& lock) {
     for (auto* buffer : stringBuffers) {
       buffer->Release();
     }
-  } while (!lifoBlocksToFree.ref().isEmpty() ||
-           !buffersToFreeAfterMinorGC.ref().empty() ||
-           !stringBuffersToReleaseAfterMinorGC.ref().empty());
+  } while (hasBuffersForBackgroundFree());
 }
 
 void GCRuntime::waitBackgroundFreeEnd() { freeTask.join(); }
