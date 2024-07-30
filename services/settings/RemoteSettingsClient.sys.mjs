@@ -238,6 +238,7 @@ class AttachmentDownloader extends Downloader {
       // If the file failed to be downloaded, report it as such in Telemetry.
       await lazy.UptakeTelemetry.report(TELEMETRY_COMPONENT, status, {
         source: this._client.identifier,
+        errorName: err.name,
       });
       throw err;
     }
