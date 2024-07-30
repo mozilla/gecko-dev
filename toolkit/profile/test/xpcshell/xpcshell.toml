@@ -88,6 +88,8 @@ skip-if = ["appname == 'thunderbird'"]
 
 ["test_steal_inuse.js"]
 
+["test_update_paths.js"]
+
 ["test_update_selected_dedicated.js"]
 
 ["test_update_unknown_dedicated.js"]

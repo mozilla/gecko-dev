@@ -92,6 +92,8 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   void GetProfileByDir(nsIFile* aRootDir, nsIFile* aLocalDir,
                        nsIToolkitProfile** aResult);
 
+  nsresult GetProfileDescriptor(nsIFile* aRootDir, nsACString& aDescriptor,
+                                bool* aIsRelative);
   nsresult GetProfileDescriptor(nsIToolkitProfile* aProfile,
                                 nsACString& aDescriptor, bool* aIsRelative);
   bool IsProfileForCurrentInstall(nsIToolkitProfile* aProfile);
