@@ -1875,7 +1875,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.region-t
 // List of locales that get topics selection by default.
 pref("browser.newtabpage.activity-stream.discoverystream.topicSelection.locale-topics-config", "en-US, en-GB, en-CA");
 // System pref to enable topic labels on Pocket cards
-pref("browser.newtabpage.activity-stream.discoverystream.topicLabels.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.topicLabels.enabled", true);
 
 // Flip this once the user has dismissed the Pocket onboarding experience,
 pref("browser.newtabpage.activity-stream.discoverystream.onboardingExperience.dismissed", false);

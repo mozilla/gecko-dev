@@ -639,7 +639,7 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.topicLabels.enabled",
     {
       title: "Enables topic labels for discovery stream",
-      value: false,
+      value: true,
     },
   ],
   [
