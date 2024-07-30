@@ -70,7 +70,7 @@ class CloseTabsCommandSenderTest {
         whenever(state.otherDevices).thenReturn(listOf(device123))
         whenever(constellation.sendCommandToDevice(eq("123"), any())).thenReturn(true)
 
-        assertEquals(RemoteTabsCommandQueue.SendResult.Ok, sender.send("123", DeviceCommandOutgoing.CloseTab(urls = listOf("http://example.com"))))
+        assertEquals(RemoteTabsCommandQueue.SendCloseTabsResult.Ok, sender.send("123", DeviceCommandOutgoing.CloseTab(urls = listOf("http://example.com"))))
     }
 
     @Test
@@ -78,14 +78,14 @@ class CloseTabsCommandSenderTest {
         whenever(state.otherDevices).thenReturn(listOf(device123))
         whenever(constellation.sendCommandToDevice(eq("123"), any())).thenReturn(false)
 
-        assertEquals(RemoteTabsCommandQueue.SendResult.Error, sender.send("123", DeviceCommandOutgoing.CloseTab(urls = listOf("http://example.com"))))
+        assertEquals(RemoteTabsCommandQueue.SendCloseTabsResult.Error, sender.send("123", DeviceCommandOutgoing.CloseTab(urls = listOf("http://example.com"))))
     }
 
     @Test
     fun `GIVEN a device without the close tabs capability WHEN sending the command to the device THEN the result is a failure`() = runTestOnMain {
         whenever(state.otherDevices).thenReturn(listOf(device1234))
 
-        assertEquals(RemoteTabsCommandQueue.SendResult.NoDevice, sender.send("1234", DeviceCommandOutgoing.CloseTab(urls = listOf("http://example.com"))))
+        assertEquals(RemoteTabsCommandQueue.SendCloseTabsResult.NoDevice, sender.send("1234", DeviceCommandOutgoing.CloseTab(urls = listOf("http://example.com"))))
 
         verify(constellation, never()).sendCommandToDevice(any(), any())
     }
@@ -94,7 +94,7 @@ class CloseTabsCommandSenderTest {
     fun `GIVEN the user is not signed in WHEN sending the command to the device THEN the result is a failure`() = runTestOnMain {
         whenever(accountManager.authenticatedAccount()).thenReturn(null)
 
-        assertEquals(RemoteTabsCommandQueue.SendResult.NoAccount, sender.send("123", DeviceCommandOutgoing.CloseTab(urls = listOf("http://example.com"))))
+        assertEquals(RemoteTabsCommandQueue.SendCloseTabsResult.NoAccount, sender.send("123", DeviceCommandOutgoing.CloseTab(urls = listOf("http://example.com"))))
 
         verify(account, never()).deviceConstellation()
         verify(constellation, never()).sendCommandToDevice(any(), any())

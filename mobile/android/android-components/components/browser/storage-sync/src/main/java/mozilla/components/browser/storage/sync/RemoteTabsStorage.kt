@@ -11,6 +11,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.withContext
+import mozilla.appservices.remotetabs.PendingCommand
 import mozilla.appservices.remotetabs.RemoteCommand
 import mozilla.appservices.remotetabs.RemoteTab
 import mozilla.components.concept.base.crash.CrashReporting
@@ -112,7 +113,7 @@ open class RemoteTabsStorage(
  */
 class RemoteTabsCommandQueue(
     internal val storage: RemoteTabsStorage,
-    internal val closeTabsCommandSender: CommandSender<DeviceCommandOutgoing.CloseTab>,
+    internal val closeTabsCommandSender: CommandSender<DeviceCommandOutgoing.CloseTab, SendCloseTabsResult>,
 ) : DeviceCommandQueue<DeviceCommandQueue.Type.RemoteTabs>,
     Observable<DeviceCommandQueue.Observer> by ObserverRegistry() {
 
@@ -155,35 +156,79 @@ class RemoteTabsCommandQueue(
 
     override suspend fun flush(): DeviceCommandQueue.FlushResult = withContext(scope.coroutineContext) {
         api.getUnsentCommands()
-            .mapNotNull { pendingCommand ->
-                when (val providerCommand = pendingCommand.command) {
-                    is RemoteCommand.CloseTab -> async {
-                        val command =
-                            DeviceCommandOutgoing.CloseTab(listOf(providerCommand.url))
-                        when (closeTabsCommandSender.send(pendingCommand.deviceId, command)) {
-                            is SendResult.Ok -> {
-                                api.setPendingCommandSent(pendingCommand)
+            .groupBy {
+                when (it.command) {
+                    is RemoteCommand.CloseTab -> PendingCommandGroup.Key.CloseTab(it.deviceId)
+                    // Add `is ... ->` branches for future pending commands here...
+                }.asAnyKey
+            }
+            .map { (key, pendingCommands) ->
+                when (key) {
+                    is PendingCommandGroup.Key.CloseTab -> {
+                        // We want to limit the number of outgoing commands that we send to FxA,
+                        // because (1) the FxA server imposes a request rate limit, and
+                        // (2) we don't want to inundate target devices with notifications.
+                        // Grouping all `appservices.remotetabs.RemoteCommand.CloseTab` pending
+                        // commands into one `concept.sync.DeviceCommandOutgoing.CloseTab`
+                        // outgoing command lets us reduce the number of outgoing commands we send.
+                        PendingCommandGroup(
+                            deviceId = key.deviceId,
+                            command = DeviceCommandOutgoing.CloseTab(
+                                pendingCommands.map {
+                                    val providerCommand = it.command as RemoteCommand.CloseTab
+                                    providerCommand.url
+                                },
+                            ),
+                            pendingCommands = pendingCommands,
+                        )
+                    }
+                    // Add `is ... ->` branches for future pending command grouping keys here...
+                }.asAnyGroup
+            }
+            .mapNotNull { group ->
+                when (group.command) {
+                    is DeviceCommandOutgoing.CloseTab -> async {
+                        when (val result = closeTabsCommandSender.send(group.deviceId, group.command)) {
+                            is SendCloseTabsResult.Ok -> {
+                                for (pendingCommand in group.pendingCommands) {
+                                    api.setPendingCommandSent(pendingCommand)
+                                }
                                 DeviceCommandQueue.FlushResult.ok()
+                            }
+                            is SendCloseTabsResult.RetryFor -> {
+                                val urlsToRetry = result.urls.toSet()
+                                for (pendingCommand in group.pendingCommands) {
+                                    val providerCommand = pendingCommand.command as RemoteCommand.CloseTab
+                                    val wasPendingCommandSent = !urlsToRetry.contains(providerCommand.url)
+                                    if (wasPendingCommandSent) {
+                                        api.setPendingCommandSent(pendingCommand)
+                                    }
+                                }
+                                DeviceCommandQueue.FlushResult.retry()
                             }
                             // If the user isn't signed in, or the
                             // target device isn't there, retrying without
                             // user intervention won't help. Keep the pending
                             // command in the queue, but return `Ok` so that
                             // the flush isn't rescheduled.
-                            is SendResult.NoAccount -> DeviceCommandQueue.FlushResult.ok()
-                            is SendResult.NoDevice -> DeviceCommandQueue.FlushResult.ok()
-                            is SendResult.Error -> DeviceCommandQueue.FlushResult.retry()
+                            is SendCloseTabsResult.NoAccount -> DeviceCommandQueue.FlushResult.ok()
+                            is SendCloseTabsResult.NoDevice -> DeviceCommandQueue.FlushResult.ok()
+                            is SendCloseTabsResult.Error -> DeviceCommandQueue.FlushResult.retry()
                         }
                     }
-                    else -> null
+                    // Add `is ... ->` branches for future outgoing commands here...
+                    else -> {
+                        // Ignore any other outgoing commands that we don't support.
+                        null
+                    }
                 }
             }
             .awaitAll()
             .fold(DeviceCommandQueue.FlushResult.ok(), DeviceCommandQueue.FlushResult::and)
     }
 
-    /** Sends a queued command of type [T] to another device. */
-    fun interface CommandSender<T> {
+    /** Sends a [DeviceCommandOutgoing] to another device. */
+    fun interface CommandSender<in T : DeviceCommandOutgoing, out U> {
         /**
          * Sends the command.
          *
@@ -191,28 +236,53 @@ class RemoteTabsCommandQueue(
          * @param command The command to send.
          * @return The result of sending the command to the target device.
          */
-        suspend fun send(deviceId: String, command: T): SendResult
+        suspend fun send(deviceId: String, command: T): U
     }
 
-    /** The result of sending a queued command. */
-    sealed interface SendResult {
-        /** The queued command was successfully sent. */
-        data object Ok : SendResult
+    /** The result of sending a [DeviceCommandOutgoing.CloseTab]. */
+    sealed interface SendCloseTabsResult {
+        /** The command was successfully sent. */
+        data object Ok : SendCloseTabsResult
 
         /**
-         * The queued command couldn't be sent because the user
-         * isn't authenticated.
+         * The command was partially sent, and the [urls] that weren't sent
+         * should be resent in a new command.
          */
-        data object NoAccount : SendResult
+        data class RetryFor(val urls: List<String>) : SendCloseTabsResult
+
+        /** The command couldn't be sent because the user isn't authenticated. */
+        data object NoAccount : SendCloseTabsResult
 
         /**
-         * The queued command couldn't be sent because the target device is
+         * The command couldn't be sent because the target device is
          * unavailable, or doesn't support the command.
          */
-        data object NoDevice : SendResult
+        data object NoDevice : SendCloseTabsResult
 
-        /** The queued command couldn't be sent for any other reason. */
-        data object Error : SendResult
+        /** The command couldn't be sent for any other reason. */
+        data object Error : SendCloseTabsResult
+    }
+
+    /**
+     * Groups one or more [PendingCommand]s into a single
+     * [DeviceCommandOutgoing].
+     */
+    internal data class PendingCommandGroup<T : DeviceCommandOutgoing>(
+        val deviceId: String,
+        val command: T,
+        val pendingCommands: List<PendingCommand>,
+    ) {
+        /** Returns this group as a type-erased [PendingCommandGroup]. */
+        val asAnyGroup: PendingCommandGroup<*> = this
+
+        sealed interface Key {
+            data class CloseTab(val deviceId: String) : Key
+            // Add data classes for future pending command grouping keys here...
+
+            /** Returns this grouping key as a type-erased [Key]. */
+            val asAnyKey: Key
+                get() = this
+        }
     }
 }
 

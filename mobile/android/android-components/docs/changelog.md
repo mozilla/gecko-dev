@@ -31,6 +31,14 @@ permalink: /changelog/
 * **support-test**
   * ⚠️ **Breaking change**: `expectException` now takes the expected exception class as a type parameter, instead of an argument, and returns the caught exception ([Bug 1908065](https://bugzilla.mozilla.org/show_bug.cgi?id=1908065)).
 
+* **browser-storage-sync**
+  * ⚠️ **Breaking change**: The type parameters of `RemoteTabsCommandQueue.CommandSender` are now `<T, U>`, where `T : DeviceCommandOutgoing`, and `U` is the result of sending the command ([Bug 1908065](https://bugzilla.mozilla.org/show_bug.cgi?id=1908065)).
+  * ⚠️ **Breaking change**: `RemoteTabsCommandQueue.SendResult` has been renamed to `SendCloseTabsResult`, and has a new `RetryFor` variant ([Bug 1908065](https://bugzilla.mozilla.org/show_bug.cgi?id=1908065)).
+
+* **service-firefox-accounts**
+  * 🆕 `SendCommandException` is now a sealed class, with `TabsNotClosed` and `Other` variants ([Bug 1908065](https://bugzilla.mozilla.org/show_bug.cgi?id=1908065)).
+  * ⚠️ **Breaking change**: `FxaDeviceConstellation.sendCommandToDevice()` now throws an instance of `SendCommandException.TabsNotClosed` if some URLs in a `DeviceCommandOutgoing.CloseTab` couldn't be sent in the command ([Bug 1908065](https://bugzilla.mozilla.org/show_bug.cgi?id=1908065)).
+
 # 129.0
 
 * **browser-engine-gecko**

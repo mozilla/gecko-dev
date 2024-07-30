@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.plus
+import mozilla.appservices.fxaclient.CloseTabsResult
 import mozilla.appservices.fxaclient.FxaException
 import mozilla.appservices.fxaclient.IncomingDeviceCommand
 import mozilla.appservices.fxaclient.SendTabPayload
@@ -30,6 +31,7 @@ import mozilla.components.concept.sync.DeviceType
 import mozilla.components.concept.sync.TabData
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
+import mozilla.components.support.test.expectException
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -44,6 +46,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.atLeast
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
@@ -224,7 +227,7 @@ class FxaDeviceConstellationTest {
     @Test
     fun `send command to device will report exceptions`() = runTestOnMain {
         val exception = FxaException.Other("")
-        val exceptionCaptor = argumentCaptor<SendCommandException>()
+        val exceptionCaptor = argumentCaptor<SendCommandException.Other>()
         doAnswer { throw exception }.`when`(account).sendSingleTab(any(), any(), any())
 
         val success = constellation.sendCommandToDevice(
@@ -250,6 +253,23 @@ class FxaDeviceConstellationTest {
         assertFalse(success)
         verify(constellation.crashReporter!!, never()).submitCaughtException(any())
         Unit
+    }
+
+    @Test
+    fun `send command to device will propagate close tabs-specific exceptions`() = runTestOnMain {
+        `when`(account.gatherTelemetry()).thenReturn("{}")
+        `when`(account.closeTabs(any(), any())).thenReturn(CloseTabsResult.TabsNotClosed(listOf("https://example.com")))
+
+        val exception = expectException<SendCommandException.TabsNotClosed> {
+            constellation.sendCommandToDevice(
+                "targetID",
+                DeviceCommandOutgoing.CloseTab(listOf("https://example.com", "https://mozilla.org")),
+            )
+        }
+        assertEquals(listOf("https://example.com"), exception.urls)
+        val exceptionCaptor = argumentCaptor<Throwable>()
+        verify(constellation.crashReporter!!, atLeast(0)).submitCaughtException(exceptionCaptor.capture())
+        assertFalse(exceptionCaptor.allValues.any { it is SendCommandException.TabsNotClosed })
     }
 
     @Test

@@ -110,7 +110,7 @@ class CloseTabsCommandReceiverTest {
     }
 
     @Test
-    fun `GIVEN a command to close duplicate URLs that are open in normal tabs WHEN the command is received THEN the number of tabs closed matches the number of URLs AND the observer is notified`() {
+    fun `GIVEN a command to close duplicate URLs that are open in normal tabs WHEN the command is received THEN all duplicate tabs are closed AND the observer is notified`() {
         val browserStore = BrowserStore(
             initialState = BrowserState(
                 tabs = listOf(
@@ -143,11 +143,13 @@ class CloseTabsCommandReceiverTest {
 
         browserStore.waitUntilIdle()
 
-        assertEquals(listOf("2", "5", "6"), browserStore.state.tabs.map { it.id })
+        assertEquals(listOf("6"), browserStore.state.tabs.map { it.id })
         verify(observer).onTabsClosed(
             eq(
                 listOf(
                     "https://mozilla.org",
+                    "https://mozilla.org",
+                    "https://getfirefox.com",
                     "https://getfirefox.com",
                     "https://getfirefox.com",
                     "https://example.org",

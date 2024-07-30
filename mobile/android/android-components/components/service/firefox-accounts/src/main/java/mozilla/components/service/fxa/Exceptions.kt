@@ -4,6 +4,9 @@
 
 package mozilla.components.service.fxa
 
+import mozilla.components.concept.base.crash.CrashReporting
+import mozilla.components.concept.sync.DeviceCommandOutgoing
+
 /**
  * High-level exception class for the exceptions thrown in the Rust library.
  */
@@ -96,10 +99,27 @@ sealed class AccountManagerException(message: String) : Exception(message) {
     )
 }
 
-/**
- * FxaException wrapper easily identifying it as the result of a failed operation of sending tabs.
- */
-class SendCommandException(fxaException: FxaException) : Exception(fxaException)
+/** A recoverable error encountered when sending a command to another device. */
+sealed class SendCommandException : Exception {
+    constructor(message: String) : super(message)
+    constructor(cause: Throwable) : super(cause)
+
+    /**
+     * An exception thrown when one or more
+     * [DeviceCommandOutgoing.CloseTab.urls] couldn't be sent.
+     *
+     * The caller should back off and retry sending the [urls] in
+     * a new [DeviceCommandOutgoing.CloseTab] command.
+     */
+    class TabsNotClosed(val urls: List<String>) :
+        SendCommandException("Couldn't send all URLs in close tabs command")
+
+    /**
+     * An exception used for [CrashReporting] when a command couldn't be sent
+     * for any other reason.
+     */
+    class Other(cause: Throwable) : SendCommandException(cause)
+}
 
 /**
  * Thrown if we saw a keyed access token without a key (e.g. obtained for SCOPE_SYNC).

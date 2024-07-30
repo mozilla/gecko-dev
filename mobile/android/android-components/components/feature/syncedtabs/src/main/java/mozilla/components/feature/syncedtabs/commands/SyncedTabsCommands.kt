@@ -9,6 +9,7 @@ import mozilla.components.browser.storage.sync.RemoteTabsStorage
 import mozilla.components.concept.sync.DeviceCapability
 import mozilla.components.concept.sync.DeviceCommandOutgoing
 import mozilla.components.concept.sync.DeviceCommandQueue
+import mozilla.components.service.fxa.SendCommandException
 import mozilla.components.service.fxa.manager.FxaAccountManager
 
 /**
@@ -28,26 +29,30 @@ class SyncedTabsCommands(
 
 internal class CloseTabsCommandSender(
     val accountManager: FxaAccountManager,
-) : RemoteTabsCommandQueue.CommandSender<DeviceCommandOutgoing.CloseTab> {
+) : RemoteTabsCommandQueue.CommandSender<DeviceCommandOutgoing.CloseTab, RemoteTabsCommandQueue.SendCloseTabsResult> {
     override suspend fun send(
         deviceId: String,
         command: DeviceCommandOutgoing.CloseTab,
-    ): RemoteTabsCommandQueue.SendResult {
+    ): RemoteTabsCommandQueue.SendCloseTabsResult {
         val constellation = accountManager
             .authenticatedAccount()
             ?.deviceConstellation()
-            ?: return RemoteTabsCommandQueue.SendResult.NoAccount
+            ?: return RemoteTabsCommandQueue.SendCloseTabsResult.NoAccount
 
         val targetDevice = constellation.state()?.let { state ->
             state.otherDevices.firstOrNull {
                 it.id == deviceId && it.capabilities.contains(DeviceCapability.CLOSE_TABS)
             }
-        } ?: return RemoteTabsCommandQueue.SendResult.NoDevice
+        } ?: return RemoteTabsCommandQueue.SendCloseTabsResult.NoDevice
 
-        return if (constellation.sendCommandToDevice(targetDevice.id, command)) {
-            RemoteTabsCommandQueue.SendResult.Ok
-        } else {
-            RemoteTabsCommandQueue.SendResult.Error
+        return try {
+            if (constellation.sendCommandToDevice(targetDevice.id, command)) {
+                RemoteTabsCommandQueue.SendCloseTabsResult.Ok
+            } else {
+                RemoteTabsCommandQueue.SendCloseTabsResult.Error
+            }
+        } catch (e: SendCommandException.TabsNotClosed) {
+            RemoteTabsCommandQueue.SendCloseTabsResult.RetryFor(e.urls)
         }
     }
 }

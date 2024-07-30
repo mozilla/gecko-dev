@@ -31,6 +31,8 @@ import mozilla.components.service.fxa.manager.AppServicesStateMachineChecker
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import kotlin.Result
+import mozilla.appservices.fxaclient.CloseTabsResult as RustCloseTabsResult
 
 internal sealed class FxaDeviceConstellationException(message: String? = null) : Exception(message) {
     /**
@@ -182,39 +184,39 @@ class FxaDeviceConstellation(
         targetDeviceId: String,
         outgoingCommand: DeviceCommandOutgoing,
     ) = withContext(scope.coroutineContext) {
-        val result = handleFxaExceptions(logger, "sending device command", { error -> error }) {
-            when (outgoingCommand) {
+        val result = handleFxaExceptions(logger, "sending device command", { Result.failure(it) }) {
+            val result = when (outgoingCommand) {
                 is DeviceCommandOutgoing.SendTab -> {
                     account.sendSingleTab(targetDeviceId, outgoingCommand.title, outgoingCommand.url)
-                    val errors: List<Throwable> = SyncTelemetry.processFxaTelemetry(account.gatherTelemetry())
-                    for (error in errors) {
-                        crashReporter?.submitCaughtException(error)
-                    }
+                    Result.success(true)
                 }
                 is DeviceCommandOutgoing.CloseTab -> {
-                    account.closeTabs(targetDeviceId, outgoingCommand.urls)
+                    when (val closeTabsResult = account.closeTabs(targetDeviceId, outgoingCommand.urls)) {
+                        is RustCloseTabsResult.Ok -> Result.success(true)
+                        is RustCloseTabsResult.TabsNotClosed ->
+                            Result.failure(SendCommandException.TabsNotClosed(closeTabsResult.urls))
+                    }
                 }
-                else -> logger.debug("Skipped sending unsupported command type: $outgoingCommand")
             }
-            null
+            val errors: List<Throwable> = SyncTelemetry.processFxaTelemetry(account.gatherTelemetry())
+            for (error in errors) {
+                crashReporter?.submitCaughtException(error)
+            }
+            result
         }
-
-        if (result != null) {
-            when (result) {
+        result.onFailure {
+            when (it) {
+                is SendCommandException.TabsNotClosed -> throw it
                 // Don't submit network exceptions to our crash reporter. They're just noise.
                 is FxaException.Network -> {
                     logger.warn("Failed to 'sendCommandToDevice' due to a network exception")
                 }
                 else -> {
-                    logger.warn("Failed to 'sendCommandToDevice'", result)
-                    crashReporter?.submitCaughtException(SendCommandException(result))
+                    logger.warn("Failed to 'sendCommandToDevice'", it)
+                    crashReporter?.submitCaughtException(SendCommandException.Other(it))
                 }
             }
-
-            false
-        } else {
-            true
-        }
+        }.getOrDefault(false)
     }
 
     // Poll for missed commands. Commands are the only event-type that can be
