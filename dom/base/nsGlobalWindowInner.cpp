@@ -1131,7 +1131,6 @@ void nsGlobalWindowInner::FreeInnerObjects() {
   // Make sure that this is called before we null out the document and
   // other members that the window destroyed observers could
   // re-create.
-  NotifyDOMWindowDestroyed(this);
   if (auto* reporter = nsWindowMemoryReporter::Get()) {
     reporter->ObserveDOMWindowDetached(this);
   }
@@ -4051,44 +4050,10 @@ bool nsGlobalWindowInner::IsInModalState() {
   FORWARD_TO_OUTER(IsInModalState, (), false);
 }
 
-// static
-void nsGlobalWindowInner::NotifyDOMWindowDestroyed(
-    nsGlobalWindowInner* aWindow) {
-  nsCOMPtr<nsIObserverService> observerService = services::GetObserverService();
-  if (observerService) {
-    observerService->NotifyObservers(ToSupports(aWindow),
-                                     DOM_WINDOW_DESTROYED_TOPIC, nullptr);
-  }
-}
-
 void nsGlobalWindowInner::NotifyWindowIDDestroyed(const char* aTopic) {
   nsCOMPtr<nsIRunnable> runnable =
       new WindowDestroyedEvent(this, mWindowID, aTopic);
   Dispatch(runnable.forget());
-}
-
-// static
-void nsGlobalWindowInner::NotifyDOMWindowFrozen(nsGlobalWindowInner* aWindow) {
-  if (aWindow) {
-    nsCOMPtr<nsIObserverService> observerService =
-        services::GetObserverService();
-    if (observerService) {
-      observerService->NotifyObservers(ToSupports(aWindow),
-                                       DOM_WINDOW_FROZEN_TOPIC, nullptr);
-    }
-  }
-}
-
-// static
-void nsGlobalWindowInner::NotifyDOMWindowThawed(nsGlobalWindowInner* aWindow) {
-  if (aWindow) {
-    nsCOMPtr<nsIObserverService> observerService =
-        services::GetObserverService();
-    if (observerService) {
-      observerService->NotifyObservers(ToSupports(aWindow),
-                                       DOM_WINDOW_THAWED_TOPIC, nullptr);
-    }
-  }
 }
 
 Element* nsGlobalWindowInner::GetFrameElement(nsIPrincipal& aSubjectPrincipal,
@@ -5672,7 +5637,6 @@ void nsGlobalWindowInner::FreezeInternal(bool aIncludeSubWindows) {
     mClientSource->Freeze();
   }
 
-  NotifyDOMWindowFrozen(this);
   NotifyGlobalFrozen();
 }
 
@@ -5711,7 +5675,6 @@ void nsGlobalWindowInner::ThawInternal(bool aIncludeSubWindows) {
     pinnedWorker->Thaw();
   }
 
-  NotifyDOMWindowThawed(this);
   NotifyGlobalThawed();
 }
 

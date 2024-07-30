@@ -1130,11 +1130,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   RefPtr<mozilla::GenericPromise> StorageAccessPermissionChanged(bool aGranted);
 
  protected:
-  static void NotifyDOMWindowDestroyed(nsGlobalWindowInner* aWindow);
   void NotifyWindowIDDestroyed(const char* aTopic);
-
-  static void NotifyDOMWindowFrozen(nsGlobalWindowInner* aWindow);
-  static void NotifyDOMWindowThawed(nsGlobalWindowInner* aWindow);
 
   virtual void UpdateParentTarget() override;
 
