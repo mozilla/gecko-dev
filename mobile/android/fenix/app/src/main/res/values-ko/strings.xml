@@ -1118,7 +1118,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">모음집 이름</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">이름 변경</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">이름 변경</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">삭제</string>
 
@@ -2235,8 +2235,10 @@
 
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">바로 가기 이름</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">바로 가기 URL</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">확인</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">확인</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">취소</string>
 
@@ -2246,6 +2248,17 @@
     <string name="top_sites_menu_sponsor_privacy">스폰서 및 개인 정보 보호</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">스폰서</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">편집</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">바로 가기 편집</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">저장</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">올바른 URL을 입력하세요</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->

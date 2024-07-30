@@ -1099,7 +1099,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Enw’r casgliad</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Ailenwi</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Ailenwi</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Tynnu</string>
 
@@ -2178,8 +2178,10 @@
     <string name="top_sites_rename_dialog_title">Enw</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Enw llwybr byr</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">URL llwybr byr</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">Iawn</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">Iawn</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Diddymu</string>
 
@@ -2189,6 +2191,17 @@
     <string name="top_sites_menu_sponsor_privacy">Ein noddwyr a’ch preifatrwydd chi</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">Noddwyd</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">Golygu</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">Golygu llwybr byr</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">Cadw</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">Rhowch URL dilys</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->

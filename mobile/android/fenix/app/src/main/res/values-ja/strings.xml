@@ -117,6 +117,9 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">ウェブサイトで下にスクロールすると、このバーが隠れて閲覧スペースを広くします。</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">矢印を長押しすると、このタブの履歴内のページへ移動できます。</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">カメラへのアクセスが必要です。Android の設定から、権限をタップし、許可をタップしてください。</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1108,7 +1111,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">コレクション名</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">タイトル変更</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">タイトル変更</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">削除</string>
 
@@ -2203,8 +2206,10 @@
     <string name="top_sites_rename_dialog_title">タイトル</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">ショートカット名</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">ショートカット URL</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">OK</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">キャンセル</string>
 
@@ -2214,6 +2219,17 @@
     <string name="top_sites_menu_sponsor_privacy">私たちのスポンサーとあなたのプライバシー</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">広告</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">編集</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">ショートカットを編集</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">保存</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">正しい URL を入力してください</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
