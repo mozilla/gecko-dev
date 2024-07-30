@@ -1704,6 +1704,13 @@ void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
   *u32 = targetOffset - farJump.offset();
 }
 
+void MacroAssembler::patchFarJump(uint8_t* farJump, uint8_t* target) {
+  uint32_t* u32 = reinterpret_cast<uint32_t*>(farJump);
+  MOZ_ASSERT(*u32 == UINT32_MAX);
+
+  *u32 = (intptr_t)target - (intptr_t)farJump;
+}
+
 CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
   movePtr(target, CallReg);
   return call(CallReg);
