@@ -262,34 +262,27 @@ impl TextDirective {
 /// Parses a fragment directive into a list of `TextDirective` objects and removes
 /// the fragment directive from the input url.
 ///
-/// If the hash does not contain a fragment directive, `url` is not modified
+/// If the hash does not contain a fragment directive, `hash` is not modified
 /// and this function returns `None`.
-/// Otherwise, the fragment directive is removed from `url` and parsed.
+/// Otherwise, the fragment directive is removed from `hash` and parsed.
 /// The function returns a tuple of three elements:
-///   - The input url without the fragment directive. Trailing `#`s are removed as well.
+///   - The input url hash without the fragment directive. Trailing `#`s are removed as well.
 ///   - The unparsed fragment directive.
 ///   - All parsed valid text directives. Invalid text directives are silently ignored.
 pub fn parse_fragment_directive_and_remove_it_from_hash(
-    url: &str,
+    hash: &str,
 ) -> Option<(&str, &str, Vec<TextDirective>)> {
     // The Fragment Directive is preceded by a `:~:`,
     // which is only allowed to appear in the hash once.
-    // However (even if unlikely), it might appear outside of the hash,
-    // so this code only considers it when it is after the #.
-    let maybe_first_hash_pos = url.find("#");
-    // If there is no # in url, it is considered to be only the hash (and not a full url).
-    let first_hash_pos = maybe_first_hash_pos.unwrap_or_default();
-    let mut fragment_directive_iter = url[first_hash_pos..].split(":~:");
-    let url_with_stripped_fragment_directive =
-        &url[..first_hash_pos + fragment_directive_iter.next().unwrap_or_default().len()];
+    let mut fragment_directive_iter = hash.split(":~:");
+    let hash_without_fragment_directive =
+        &hash[..fragment_directive_iter.next().unwrap_or_default().len()];
 
     if let Some(fragment_directive) = fragment_directive_iter.next() {
         if fragment_directive_iter.next().is_some() {
             // There are multiple occurrences of `:~:`, which is not allowed.
             return Some((
-                url_with_stripped_fragment_directive
-                    .strip_suffix("#")
-                    .unwrap_or(url_with_stripped_fragment_directive),
+                hash_without_fragment_directive,
                 fragment_directive,
                 vec![],
             ));
@@ -306,9 +299,7 @@ pub fn parse_fragment_directive_and_remove_it_from_hash(
             .collect();
 
         return Some((
-            url_with_stripped_fragment_directive
-                .strip_suffix("#")
-                .unwrap_or(url_with_stripped_fragment_directive),
+            hash_without_fragment_directive,
             fragment_directive,
             text_directives,
         ));

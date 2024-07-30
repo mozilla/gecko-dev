@@ -15,39 +15,49 @@ mod test {
         // U+2705 WHITE HEAVY CHECK MARK - UTF-8 percent encoding: %E2%9C%85
         let checkmark = String::from_utf8(vec![0xE2, 0x9C, 0x85]).unwrap();
         let test_cases = vec![
-            ("#:~:text=start", (None, Some("start"), None, None)),
+            (":~:text=start", (None, Some("start"), None, None)),
             (
-                "#:~:text=start,end",
+                ":~:text=start,end",
                 (None, Some("start"), Some("end"), None),
             ),
             (
-                "#:~:text=prefix-,start",
+                ":~:text=prefix-,start",
                 (Some("prefix"), Some("start"), None, None),
             ),
             (
-                "#:~:text=prefix-,start,end",
+                ":~:text=prefix-,start,end",
                 (Some("prefix"), Some("start"), Some("end"), None),
             ),
             (
-                "#:~:text=prefix-,start,end,-suffix",
+                ":~:text=prefix-,start,end,-suffix",
                 (Some("prefix"), Some("start"), Some("end"), Some("suffix")),
             ),
             (
-                "#:~:text=start,-suffix",
+                ":~:text=start,-suffix",
                 (None, Some("start"), None, Some("suffix")),
             ),
             (
-                "#:~:text=start,end,-suffix",
+                ":~:text=start,end,-suffix",
                 (None, Some("start"), Some("end"), Some("suffix")),
             ),
-            ("#:~:text=text=", (None, Some("text="), None, None)),
-            ("#:~:text=%25", (None, Some("%"), None, None)),
-            ("#:~:text=%", (None, Some("%"), None, None)),
-            ("#:~:text=%%", (None, Some("%%"), None, None)),
-            ("#:~:text=%25%25F", (None, Some("%%F"), None, None)),
+            (":~:text=text=", (None, Some("text="), None, None)),
+            (":~:text=%25", (None, Some("%"), None, None)),
+            (":~:text=%", (None, Some("%"), None, None)),
+            (":~:text=%%", (None, Some("%%"), None, None)),
+            (":~:text=%25%25F", (None, Some("%%F"), None, None)),
             (
-                "#:~:text=%E2%9C%85",
+                ":~:text=%E2%9C%85",
                 (None, Some(checkmark.as_str()), None, None),
+            ),
+            (":~:text=#", (None, Some("#"), None, None)),
+            (":~:text=:", (None, Some(":"), None, None)),
+            (
+                ":~:text=prefix--,start",
+                (Some("prefix-"), Some("start"), None, None),
+            ),
+            (
+                ":~:text=p-refix-,start",
+                (Some("p-refix"), Some("start"), None, None),
             ),
         ];
         for (url, (prefix, start, end, suffix)) in test_cases {
@@ -56,7 +66,7 @@ mod test {
                     .expect("The parser must find a result.");
             assert_eq!(
                 fragment_directive,
-                &url[4..],
+                &url[3..],
                 "The extracted fragment directive string
                 should be unsanitized and therefore match the input string."
             );
@@ -141,39 +151,11 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_parse_full_url() {
-        for (url, stripped_url_ref) in [
-            ("https://example.com#:~:text=foo", "https://example.com"),
-            (
-                "https://example.com/some/page.html?query=answer#:~:text=foo",
-                "https://example.com/some/page.html?query=answer",
-            ),
-            (
-                "https://example.com/some/page.html?query=answer#fragment:~:text=foo",
-                "https://example.com/some/page.html?query=answer#fragment",
-            ),
-            (
-                "http://example.com/page.html?query=irrelevant:~:#bar:~:text=foo",
-                "http://example.com/page.html?query=irrelevant:~:#bar",
-            ),
-        ] {
-            let (stripped_url, fragment_directive, _) =
-                parse_fragment_directive_and_remove_it_from_hash(&url)
-                    .expect("The parser must find a result");
-            assert_eq!(
-                stripped_url, stripped_url_ref,
-                "The stripped url is not correct."
-            );
-            assert_eq!(fragment_directive, "text=foo");
-        }
-    }
-
     /// This test verifies that a text fragment is parsed correctly if it is preceded
     /// or followed by a fragment (i.e. `#foo:~:text=bar`).
     #[test]
     fn test_parse_text_fragment_after_fragments() {
-        let url = "#foo:~:text=start";
+        let url = "foo:~:text=start";
         let (stripped_url, fragment_directive, result) =
             parse_fragment_directive_and_remove_it_from_hash(&url)
                 .expect("The parser must find a result.");
@@ -183,7 +165,7 @@ mod test {
             "There must be exactly one parsed text fragment."
         );
         assert_eq!(
-            stripped_url, "#foo",
+            stripped_url, "foo",
             "The fragment directive was not removed correctly."
         );
         assert_eq!(
@@ -207,7 +189,7 @@ mod test {
     /// Ensure that multiple text fragments are parsed correctly.
     #[test]
     fn test_parse_multiple_text_fragments() {
-        let url = "#:~:text=prefix-,start,-suffix&text=foo&text=bar,-suffix";
+        let url = ":~:text=prefix-,start,-suffix&text=foo&text=bar,-suffix";
         let (_, _, text_directives) = parse_fragment_directive_and_remove_it_from_hash(&url)
             .expect("The parser must find a result.");
         assert_eq!(
@@ -298,16 +280,16 @@ mod test {
     #[test]
     fn test_parse_multiple_text_directives_with_unknown_directive_in_between() {
         for url in [
-            "#:~:foo&text=start1&text=start2",
-            "#:~:text=start1&foo&text=start2",
-            "#:~:text=start1&text=start2&foo",
+            ":~:foo&text=start1&text=start2",
+            ":~:text=start1&foo&text=start2",
+            ":~:text=start1&text=start2&foo",
         ] {
             let (_, fragment_directive, text_directives) =
                 parse_fragment_directive_and_remove_it_from_hash(&url)
                     .expect("The parser must find a result.");
             assert_eq!(
                 fragment_directive,
-                &url[4..],
+                &url[3..],
                 "The extracted fragment directive string is unsanitized
                 and should contain the unknown directive."
             );
@@ -344,7 +326,7 @@ mod test {
     #[test]
     fn test_parse_invalid_or_unknown_fragment_directive() {
         // there is no fragment directive here, hence the original url should not be updated.
-        for url in ["#foo", "#foo:", "text=prefix-,start"] {
+        for url in ["foo", "foo:", "text=prefix-,start"] {
             let text_directives = parse_fragment_directive_and_remove_it_from_hash(&url);
             assert!(
                 text_directives.is_none(),
@@ -354,9 +336,9 @@ mod test {
         }
         // there is an (invalid) fragment directive present. It needs to be removed from the url.
         for (url, url_without_fragment_directive_ref) in [
-            ("#foo:~:", "#foo"),
-            ("#foo:~:bar", "#foo"),
-            ("#:~:text=foo-,bar,-baz:~:text=foo", ""),
+            ("foo:~:", "foo"),
+            ("foo:~:bar", "foo"),
+            (":~:text=foo-,bar,-baz:~:text=foo", ""),
         ] {
             let (url_without_fragment_directive, _, _) =
                 parse_fragment_directive_and_remove_it_from_hash(&url)
@@ -377,17 +359,19 @@ mod test {
     #[test]
     fn test_parse_invalid_text_fragments() {
         for url in [
-            "#:~:text=start,start,start",
-            "#:~:text=prefix-,prefix-",
-            "#:~:text=prefix-,-suffix",
-            "#:~:text=prefix-,start,start,start",
-            "#:~:text=prefix-,start,start,start,-suffix",
-            "#:~:text=start,start,start,-suffix",
-            "#:~:text=prefix-,start,end,-suffix,foo",
-            "#:~:text=foo,prefix-,start",
-            "#:~:text=prefix-,,start,",
-            "#:~:text=,prefix,start",
-            "#:~:text=",
+            ":~:text=start,start,start",
+            ":~:text=prefix-,prefix-",
+            ":~:text=prefix-,-suffix",
+            ":~:text=prefix-,start,start,start",
+            ":~:text=prefix-,start,start,start,-suffix",
+            ":~:text=start,start,start,-suffix",
+            ":~:text=prefix-,start,end,-suffix,foo",
+            ":~:text=foo,prefix-,start",
+            ":~:text=prefix-,,start,",
+            ":~:text=,prefix,start",
+            ":~:text=",
+            ":~:text=&",
+            ":~:text=,",
         ] {
             let (url_without_fragment_directive, _, _) =
                 parse_fragment_directive_and_remove_it_from_hash(&url).expect("");
@@ -410,15 +394,15 @@ mod test {
     #[test]
     fn test_valid_and_invalid_text_directives() {
         for url in [
-            "#:~:text=start&text=,foo,",
-            "#:~:text=foo,foo,foo&text=start",
+            ":~:text=start&text=,foo,",
+            ":~:text=foo,foo,foo&text=start",
         ] {
             let (_, fragment_directive, text_directives) =
                 parse_fragment_directive_and_remove_it_from_hash(&url)
                     .expect("The parser must find a result.");
             assert_eq!(
                 fragment_directive,
-                &url[4..],
+                &url[3..],
                 "The extracted fragment directive string is unsanitized
                 and should contain invalid text directives."
             );
@@ -445,13 +429,13 @@ mod test {
     /// for identifying text fragments, i.e. `#`, `, `, `&`, `:`, `~` and `-`.
     #[test]
     fn test_parse_percent_encoding_tokens() {
-        let url = "#:~:text=prefix%26-,start%20and%2C,end%23,-%26suffix%2D";
+        let url = ":~:text=prefix%26-,start%20and%2C,end%23,-%26suffix%2D";
         let (_, fragment_directive, text_directives) =
             parse_fragment_directive_and_remove_it_from_hash(&url)
                 .expect("The parser must find a result.");
         assert_eq!(
             fragment_directive,
-            &url[4..],
+            &url[3..],
             "The extracted fragment directive string is unsanitized
                 and should contain the original and percent-decoded string."
         );

@@ -97,7 +97,7 @@ bool FragmentDirective::ParseAndRemoveFragmentDirectiveFromFragmentString(
     DBG("Found a fragment directive '%s', which was removed from the fragment. "
         "New fragment is '%s'.",
         fragmentDirective.fragment_directive.Data(),
-        fragmentDirective.url_without_fragment_directive.Data());
+        fragmentDirective.hash_without_fragment_directive.Data());
     if (ShouldLog()) {
       if (fragmentDirective.text_directives.IsEmpty()) {
         DBG("Found no valid text directives in fragment directive '%s'.",
@@ -113,7 +113,7 @@ bool FragmentDirective::ParseAndRemoveFragmentDirectiveFromFragmentString(
         }
       }
     }
-    aFragment = fragmentDirective.url_without_fragment_directive;
+    aFragment = fragmentDirective.hash_without_fragment_directive;
     if (aTextDirectives) {
       aTextDirectives->SwapElements(fragmentDirective.text_directives);
     }
