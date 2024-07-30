@@ -445,7 +445,8 @@ void GCRuntime::startBackgroundFree() {
   AutoLockHelperThreadState lock;
 
   if (lifoBlocksToFree.ref().isEmpty() &&
-      buffersToFreeAfterMinorGC.ref().empty()) {
+      buffersToFreeAfterMinorGC.ref().empty() &&
+      stringBuffersToReleaseAfterMinorGC.ref().empty()) {
     return;
   }
 
@@ -469,6 +470,9 @@ void GCRuntime::freeFromBackgroundThread(AutoLockHelperThreadState& lock) {
     Nursery::BufferSet buffers;
     std::swap(buffers, buffersToFreeAfterMinorGC.ref());
 
+    Nursery::StringBufferVector stringBuffers;
+    std::swap(stringBuffers, stringBuffersToReleaseAfterMinorGC.ref());
+
     AutoUnlockHelperThreadState unlock(lock);
 
     lifoBlocks.freeAll();
@@ -480,8 +484,13 @@ void GCRuntime::freeFromBackgroundThread(AutoLockHelperThreadState& lock) {
       // are assumed to be short lived.
       gcx->freeUntracked(r.front());
     }
+
+    for (auto* buffer : stringBuffers) {
+      buffer->Release();
+    }
   } while (!lifoBlocksToFree.ref().isEmpty() ||
-           !buffersToFreeAfterMinorGC.ref().empty());
+           !buffersToFreeAfterMinorGC.ref().empty() ||
+           !stringBuffersToReleaseAfterMinorGC.ref().empty());
 }
 
 void GCRuntime::waitBackgroundFreeEnd() { freeTask.join(); }

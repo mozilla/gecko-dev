@@ -730,9 +730,14 @@ class Nursery {
   // string and the StringBuffer to simplify interaction with AtomRefs and
   // string deduplication.
   using StringAndBuffer = std::pair<JSLinearString*, mozilla::StringBuffer*>;
-  using StringBufferVector =
+  using StringAndBufferVector =
       JS::GCVector<StringAndBuffer, 8, SystemAllocPolicy>;
-  StringBufferVector stringBuffers_;
+  StringAndBufferVector stringBuffers_;
+
+  // List of StringBuffers to release off-thread.
+  using StringBufferVector =
+      Vector<mozilla::StringBuffer*, 8, SystemAllocPolicy>;
+  StringBufferVector stringBuffersToReleaseAfterMinorGC_;
 
   UniquePtr<NurseryDecommitTask> decommitTask;
 
