@@ -10,7 +10,7 @@ function isOpaqueResponse(response) {
 
 function testModeSameOrigin() {
   // Fetch spec Section 4, step 4, "request's mode is same-origin".
-  var req = new Request("http://example.com", { mode: "same-origin" });
+  var req = new Request("https://example.net", { mode: "same-origin" });
   return fetch(req).then(
     function (res) {
       ok(
@@ -83,7 +83,7 @@ var corsServerPath =
 function testModeNoCors() {
   // Fetch spec, section 4, step 4, response tainting should be set opaque, so
   // that fetching leads to an opaque filtered response in step 8.
-  var r = new Request("http://example.com" + corsServerPath + "status=200", {
+  var r = new Request("https://example.net" + corsServerPath + "status=200", {
     mode: "no-cors",
   });
   return fetch(r).then(
@@ -105,7 +105,7 @@ function testSameOriginCredentials() {
     {
       // Initialize by setting a cookie.
       pass: 1,
-      setCookie: cookieStr,
+      setCookie: cookieStr + "; Partitioned; Secure; SameSite=None",
       withCred: "same-origin",
     },
     {
@@ -757,8 +757,13 @@ function testModeCors() {
     },
   ];
 
-  var baseURL = "http://example.org" + corsServerPath;
-  var origin = "http://mochi.test:8888";
+  var origin = self.location.origin;
+  var baseURL =
+    origin == "https://example.com"
+      ? "https://example.org"
+      : "https://example.com";
+  baseURL += corsServerPath;
+
   var fetches = [];
   for (test of tests) {
     var req = {
@@ -937,7 +942,8 @@ function testModeCors() {
 }
 
 function testCrossOriginCredentials() {
-  var origin = "http://mochi.test:8888";
+  var origin = self.location.origin;
+
   var tests = [
     { pass: 1, method: "GET", withCred: "include", allowCred: 1 },
     { pass: 0, method: "GET", withCred: "include", allowCred: 0 },
@@ -946,7 +952,7 @@ function testCrossOriginCredentials() {
     {
       pass: 1,
       method: "GET",
-      setCookie: "a=1",
+      setCookie: "a=1; Partitioned; Secure; SameSite=None",
       withCred: "include",
       allowCred: 1,
     },
@@ -962,7 +968,7 @@ function testCrossOriginCredentials() {
     {
       pass: 1,
       method: "GET",
-      setCookie: "a=2",
+      setCookie: "a=2; Partitioned; Secure; SameSite=None",
       withCred: "omit",
       allowCred: 1,
     },
@@ -976,7 +982,7 @@ function testCrossOriginCredentials() {
     {
       pass: 1,
       method: "GET",
-      setCookie: "a=2",
+      setCookie: "a=2; Partitioned; Secure; SameSite=None",
       withCred: "include",
       allowCred: 1,
     },
@@ -1010,12 +1016,15 @@ function testCrossOriginCredentials() {
       // Initialize by setting a cookies for same- and cross- origins.
       pass: 1,
       hops: [
-        { server: origin, setCookie: escape("a=1") },
         {
-          server: "http://example.com",
+          server: origin,
+          setCookie: escape("a=1; Partitioned; Secure; SameSite=None"),
+        },
+        {
+          server: "https://example.net",
           allowOrigin: origin,
           allowCred: 1,
-          setCookie: escape("a=2"),
+          setCookie: escape("a=2; Partitioned; Secure; SameSite=None"),
         },
       ],
       withCred: "include",
@@ -1026,7 +1035,7 @@ function testCrossOriginCredentials() {
       hops: [
         { server: origin, cookie: escape("a=1") },
         { server: origin, cookie: escape("a=1") },
-        { server: "http://example.com", allowOrigin: origin, noCookie: 1 },
+        { server: "https://example.net", allowOrigin: origin, noCookie: 1 },
       ],
       withCred: "same-origin",
     },
@@ -1037,7 +1046,7 @@ function testCrossOriginCredentials() {
         { server: origin, cookie: escape("a=1") },
         { server: origin, cookie: escape("a=1") },
         {
-          server: "http://example.com",
+          server: "https://example.net",
           allowOrigin: origin,
           allowCred: 1,
           cookie: escape("a=2"),
@@ -1051,7 +1060,7 @@ function testCrossOriginCredentials() {
       hops: [
         { server: origin, cookie: escape("a=1") },
         { server: origin, cookie: escape("a=1") },
-        { server: "http://example.com", allowOrigin: "*", noCookie: 1 },
+        { server: "https://example.net", allowOrigin: "*", noCookie: 1 },
       ],
       withCred: "same-origin",
     },
@@ -1062,7 +1071,7 @@ function testCrossOriginCredentials() {
         { server: origin, cookie: escape("a=1") },
         { server: origin, cookie: escape("a=1") },
         {
-          server: "http://example.com",
+          server: "https://example.net",
           allowOrigin: "*",
           allowCred: 1,
           cookie: escape("a=2"),
@@ -1078,7 +1087,7 @@ function testCrossOriginCredentials() {
         { server: origin, cookie: escape("a=1") },
         { server: origin, cookie: escape("a=1") },
         {
-          server: "http://example.com",
+          server: "https://example.net",
           allowOrigin: origin,
           cookie: escape("a=2"),
         },
@@ -1091,14 +1100,18 @@ function testCrossOriginCredentials() {
       hops: [
         { server: origin, noCookie: 1 },
         { server: origin, noCookie: 1 },
-        { server: "http://example.com", allowOrigin: origin, noCookie: 1 },
+        { server: "https://example.net", allowOrigin: origin, noCookie: 1 },
       ],
       withCred: "omit",
     },
   ];
 
-  var baseURL = "http://example.org" + corsServerPath;
-  var origin = "http://mochi.test:8888";
+  // Xorigin with https has .org origin, default .com
+  var baseURL =
+    origin == "https://example.com"
+      ? "https://example.org"
+      : "https://example.com";
+  baseURL += corsServerPath;
 
   var finalPromiseResolve, finalPromiseReject;
   var finalPromise = new Promise(function (res, rej) {
@@ -1203,7 +1216,7 @@ function testModeNoCorsCredentials() {
     {
       // Initialize by setting a cookie.
       pass: 1,
-      setCookie: cookieStr,
+      setCookie: cookieStr + "; Partitioned; Secure; SameSite=None",
       withCred: "include",
     },
     {
@@ -1249,7 +1262,7 @@ function testModeNoCorsCredentials() {
 
   function makeRequest(test) {
     req = {
-      url: "http://example.org" + corsServerPath + "a+b",
+      url: "https://example.net" + corsServerPath + "a+b",
       withCred: test.withCred,
     };
 
@@ -1333,118 +1346,125 @@ function testModeNoCorsCredentials() {
 }
 
 function testCORSRedirects() {
-  var origin = "http://mochi.test:8888";
+  var origin = self.location.origin;
+
+  var host = self.location.hostname;
+  var protocol = self.location.protocol;
+  var originSubSub1 = protocol + "//sub1.test1." + host;
+  var originSubSub2 = protocol + "//sub2.test2." + host;
+  var originSub = protocol + "//test3." + host;
+
+  var foreignHost = host === "example.com" ? "example.org" : "example.com";
+  var foreignSub1 = protocol + "//test1." + foreignHost;
+  var foreignSub2 = protocol + "//test2." + foreignHost;
 
   var tests = [
     {
       pass: 1,
       method: "GET",
-      hops: [{ server: "http://example.com", allowOrigin: origin }],
+      hops: [{ server: "https://example.net", allowOrigin: origin }],
     },
     {
       pass: 0,
       method: "GET",
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://mochi.test:8888", allowOrigin: origin },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: origin, allowOrigin: origin },
       ],
     },
     {
       pass: 1,
       method: "GET",
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://mochi.test:8888", allowOrigin: "*" },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: origin, allowOrigin: "*" },
       ],
     },
     {
       pass: 0,
       method: "GET",
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://mochi.test:8888" },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: origin },
       ],
     },
     {
       pass: 1,
       method: "GET",
       hops: [
-        { server: "http://mochi.test:8888" },
-        { server: "http://mochi.test:8888" },
-        { server: "http://example.com", allowOrigin: origin },
+        { server: origin },
+        { server: origin },
+        { server: "https://example.net", allowOrigin: origin },
       ],
     },
     {
       pass: 0,
       method: "GET",
       hops: [
-        { server: "http://mochi.test:8888" },
-        { server: "http://mochi.test:8888" },
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://mochi.test:8888" },
+        { server: origin },
+        { server: origin },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: origin },
       ],
     },
     {
       pass: 0,
       method: "GET",
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://test2.mochi.test:8888", allowOrigin: origin },
-        {
-          server: "http://sub2.xn--lt-uia.mochi.test:8888",
-          allowOrigin: origin,
-        },
-        { server: "http://sub1.test1.mochi.test:8888", allowOrigin: origin },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: originSub, allowOrigin: origin },
+        { server: originSubSub1, allowOrigin: origin },
+        { server: originSubSub2, allowOrigin: origin },
       ],
     },
     {
       pass: 0,
       method: "GET",
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://test2.mochi.test:8888", allowOrigin: origin },
-        { server: "http://sub2.xn--lt-uia.mochi.test:8888", allowOrigin: "*" },
-        { server: "http://sub1.test1.mochi.test:8888", allowOrigin: "*" },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: originSub, allowOrigin: origin },
+        { server: originSubSub1, allowOrigin: "*" },
+        { server: originSubSub2, allowOrigin: "*" },
       ],
     },
     {
       pass: 1,
       method: "GET",
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://test2.mochi.test:8888", allowOrigin: "*" },
-        { server: "http://sub2.xn--lt-uia.mochi.test:8888", allowOrigin: "*" },
-        { server: "http://sub1.test1.mochi.test:8888", allowOrigin: "*" },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: originSub, allowOrigin: "*" },
+        { server: originSubSub1, allowOrigin: "*" },
+        { server: originSubSub2, allowOrigin: "*" },
       ],
     },
     {
       pass: 0,
       method: "GET",
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://test2.mochi.test:8888", allowOrigin: origin },
-        { server: "http://sub2.xn--lt-uia.mochi.test:8888", allowOrigin: "x" },
-        { server: "http://sub1.test1.mochi.test:8888", allowOrigin: origin },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: originSub, allowOrigin: origin },
+        { server: originSubSub1, allowOrigin: "x" },
+        { server: originSubSub2, allowOrigin: origin },
       ],
     },
     {
       pass: 0,
       method: "GET",
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://test2.mochi.test:8888", allowOrigin: origin },
-        { server: "http://sub2.xn--lt-uia.mochi.test:8888", allowOrigin: "*" },
-        { server: "http://sub1.test1.mochi.test:8888", allowOrigin: origin },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: originSub, allowOrigin: origin },
+        { server: originSubSub1, allowOrigin: "*" },
+        { server: originSubSub2, allowOrigin: origin },
       ],
     },
     {
       pass: 0,
       method: "GET",
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://test2.mochi.test:8888", allowOrigin: origin },
-        { server: "http://sub2.xn--lt-uia.mochi.test:8888", allowOrigin: "*" },
-        { server: "http://sub1.test1.mochi.test:8888" },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: originSub, allowOrigin: origin },
+        { server: originSubSub1, allowOrigin: "*" },
+        { server: originSubSub2 },
       ],
     },
     {
@@ -1453,8 +1473,8 @@ function testCORSRedirects() {
       body: "hi there",
       headers: { "Content-Type": "text/plain" },
       hops: [
-        { server: "http://mochi.test:8888" },
-        { server: "http://example.com", allowOrigin: origin },
+        { server: origin },
+        { server: "https://example.net", allowOrigin: origin },
       ],
     },
     {
@@ -1463,9 +1483,9 @@ function testCORSRedirects() {
       body: "hi there",
       headers: { "Content-Type": "text/plain", "my-header": "myValue" },
       hops: [
-        { server: "http://mochi.test:8888" },
+        { server: origin },
         {
-          server: "http://example.com",
+          server: "https://example.net",
           allowOrigin: origin,
           allowHeaders: "my-header",
         },
@@ -1477,9 +1497,9 @@ function testCORSRedirects() {
       body: "hi there",
       headers: { "Content-Type": "text/plain", "my-header": "myValue" },
       hops: [
-        { server: "http://mochi.test:8888" },
+        { server: origin },
         {
-          server: "http://example.com",
+          server: "https://example.net",
           allowOrigin: origin,
           allowHeaders: "my-header",
           noAllowPreflight: 1,
@@ -1492,14 +1512,14 @@ function testCORSRedirects() {
       body: "hi there",
       headers: { "Content-Type": "text/plain", "my-header": "myValue" },
       hops: [
-        { server: "http://mochi.test:8888" },
+        { server: origin },
         {
-          server: "http://test1.example.com",
+          server: foreignSub1,
           allowOrigin: origin,
           allowHeaders: "my-header",
         },
         {
-          server: "http://test2.example.com",
+          server: foreignSub2,
           allowOrigin: origin,
           allowHeaders: "my-header",
         },
@@ -1509,9 +1529,9 @@ function testCORSRedirects() {
       pass: 1,
       method: "DELETE",
       hops: [
-        { server: "http://mochi.test:8888" },
+        { server: origin },
         {
-          server: "http://example.com",
+          server: "https://example.net",
           allowOrigin: origin,
           allowMethods: "DELETE",
         },
@@ -1521,9 +1541,9 @@ function testCORSRedirects() {
       pass: 0,
       method: "DELETE",
       hops: [
-        { server: "http://mochi.test:8888" },
+        { server: origin },
         {
-          server: "http://example.com",
+          server: "https://example.net",
           allowOrigin: origin,
           allowMethods: "DELETE",
           noAllowPreflight: 1,
@@ -1534,14 +1554,14 @@ function testCORSRedirects() {
       pass: 0,
       method: "DELETE",
       hops: [
-        { server: "http://mochi.test:8888" },
+        { server: origin },
         {
-          server: "http://test1.example.com",
+          server: foreignSub1,
           allowOrigin: origin,
           allowMethods: "DELETE",
         },
         {
-          server: "http://test2.example.com",
+          server: foreignSub2,
           allowOrigin: origin,
           allowMethods: "DELETE",
         },
@@ -1553,8 +1573,8 @@ function testCORSRedirects() {
       body: "hi there",
       headers: { "Content-Type": "text/plain", "my-header": "myValue" },
       hops: [
-        { server: "http://example.com", allowOrigin: origin },
-        { server: "http://sub1.test1.mochi.test:8888", allowOrigin: origin },
+        { server: "https://example.net", allowOrigin: origin },
+        { server: originSubSub1, allowOrigin: origin },
       ],
     },
     {
@@ -1562,12 +1582,12 @@ function testCORSRedirects() {
       method: "DELETE",
       hops: [
         {
-          server: "http://example.com",
+          server: "https://example.net",
           allowOrigin: origin,
           allowMethods: "DELETE",
         },
         {
-          server: "http://sub1.test1.mochi.test:8888",
+          server: originSubSub1,
           allowOrigin: origin,
           allowMethods: "DELETE",
         },
@@ -1579,9 +1599,9 @@ function testCORSRedirects() {
       body: "hi there",
       headers: { "Content-Type": "text/plain", "my-header": "myValue" },
       hops: [
-        { server: "http://example.com" },
+        { server: "https://example.net" },
         {
-          server: "http://sub1.test1.mochi.test:8888",
+          server: originSubSub1,
           allowOrigin: origin,
           allowHeaders: "my-header",
         },
@@ -1593,8 +1613,8 @@ function testCORSRedirects() {
       body: "hi there",
       headers: { "Content-Type": "text/plain" },
       hops: [
-        { server: "http://mochi.test:8888" },
-        { server: "http://example.com", allowOrigin: origin },
+        { server: origin },
+        { server: "https://example.net", allowOrigin: origin },
       ],
     },
     {
@@ -1604,12 +1624,12 @@ function testCORSRedirects() {
       headers: { "Content-Type": "text/plain", "my-header": "myValue" },
       hops: [
         {
-          server: "http://example.com",
+          server: "https://example.net",
           allowOrigin: origin,
           allowHeaders: "my-header",
         },
         {
-          server: "http://mochi.test:8888",
+          server: origin,
           allowOrigin: origin,
           allowHeaders: "my-header",
         },
@@ -1708,28 +1728,28 @@ function testCORSRedirects() {
 }
 
 function testNoCORSRedirects() {
-  var origin = "http://mochi.test:8888";
+  var origin = self.location.origin;
 
   var tests = [
-    { pass: 1, method: "GET", hops: [{ server: "http://example.com" }] },
+    { pass: 1, method: "GET", hops: [{ server: "https://example.net" }] },
     {
       pass: 1,
       method: "GET",
-      hops: [{ server: origin }, { server: "http://example.com" }],
+      hops: [{ server: origin }, { server: "https://example.net" }],
     },
     {
       pass: 1,
       method: "GET",
       // Must use a simple header due to no-cors header restrictions.
       headers: { "accept-language": "en-us" },
-      hops: [{ server: origin }, { server: "http://example.com" }],
+      hops: [{ server: origin }, { server: "https://example.net" }],
     },
     {
       pass: 1,
       method: "GET",
       hops: [
         { server: origin },
-        { server: "http://example.com" },
+        { server: "https://example.net" },
         { server: origin },
       ],
     },
@@ -1737,12 +1757,12 @@ function testNoCORSRedirects() {
       pass: 1,
       method: "POST",
       body: "upload body here",
-      hops: [{ server: origin }, { server: "http://example.com" }],
+      hops: [{ server: origin }, { server: "https://example.net" }],
     },
     {
       pass: 0,
       method: "DELETE",
-      hops: [{ server: origin }, { server: "http://example.com" }],
+      hops: [{ server: origin }, { server: "https://example.net" }],
     },
   ];
 
