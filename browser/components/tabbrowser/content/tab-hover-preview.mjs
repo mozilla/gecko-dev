@@ -24,6 +24,18 @@ export default class TabHoverPreviewPanel {
     this._tab = null;
     this._thumbnailElement = null;
 
+    // Observe changes to this tab's DOM, and
+    // update the preview if the tab title changes
+    this._tabObserver = new this._win.MutationObserver(
+      (mutationList, _observer) => {
+        for (const mutation of mutationList) {
+          if (mutation.attributeName === "label") {
+            this._updatePreview();
+          }
+        }
+      }
+    );
+
     this._setExternalPopupListeners();
 
     XPCOMUtils.defineLazyPreferenceGetter(
@@ -114,6 +126,9 @@ export default class TabHoverPreviewPanel {
     }
 
     this._tab = tab;
+    this._tabObserver.observe(this._tab, {
+      attributes: true,
+    });
 
     // Calling `moveToAnchor` in advance of the call to `openPopup` ensures
     // that race conditions can be avoided in cases where the user hovers
@@ -147,6 +162,7 @@ export default class TabHoverPreviewPanel {
       return;
     }
     this._tab = null;
+    this._tabObserver.disconnect();
     this._thumbnailElement = null;
     this._panel.removeEventListener("popupshowing", this);
     this._win.removeEventListener("TabSelect", this);
