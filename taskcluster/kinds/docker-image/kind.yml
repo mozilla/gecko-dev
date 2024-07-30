@@ -84,6 +84,11 @@ tasks:
         args:
             BASE_IMAGE: ubuntu:jammy
         arch: arm64
+    ubuntu2204-arm64-packages:
+        symbol: I(ub22-a64-pkg)
+        definition: debian-packages
+        parent: ubuntu2204-arm64-raw
+        arch: arm64
     ubuntu2004-packages:
         symbol: I(ub20-pkg)
         definition: debian-packages
