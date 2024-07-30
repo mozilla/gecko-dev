@@ -355,6 +355,13 @@ add_task(async function test_update_defined_command() {
 });
 
 add_task(async function updateSidebarCommand() {
+  // This test doesn't work with the new sidebar because it relies on the
+  // switcher, which is no longer a thing in the new sidebar.
+  if (Services.prefs.getBoolPref("sidebar.revamp", false)) {
+    info("skipping test because sidebar.revamp is set");
+    return;
+  }
+
   let extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "temporary",
     manifest: {

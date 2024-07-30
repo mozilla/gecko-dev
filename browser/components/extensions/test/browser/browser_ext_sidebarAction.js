@@ -246,6 +246,13 @@ add_task(async function sidebar_isOpen() {
 });
 
 add_task(async function testShortcuts() {
+  // This test covers the access key expected to be set on the switcher panel
+  // element for the extension, which is not part of the new sidebar design.
+  if (Services.prefs.getBoolPref("sidebar.revamp", false)) {
+    info("skipping test because sidebar.revamp is set");
+    return;
+  }
+
   function verifyShortcut(id, commandKey, win = window) {
     const doc = win.document;
     // We're just testing the command key since the modifiers have different
@@ -349,6 +356,13 @@ add_task(async function testShortcuts() {
 });
 
 add_task(async function sidebar_switcher_panel_icon_update() {
+  // This test doesn't work with the new sidebar because it relies on the
+  // switcher, which is no longer a thing in the new sidebar.
+  if (Services.prefs.getBoolPref("sidebar.revamp", false)) {
+    info("skipping test because sidebar.revamp is set");
+    return;
+  }
+
   info("Load extension");
   const extension = ExtensionTestUtils.loadExtension(getExtData());
   await extension.startup();
@@ -386,6 +400,13 @@ add_task(async function sidebar_switcher_panel_icon_update() {
 });
 
 add_task(async function sidebar_switcher_panel_hidpi_icon() {
+  // This test doesn't work with the new sidebar because it relies on the
+  // switcher, which is no longer a thing in the new sidebar.
+  if (Services.prefs.getBoolPref("sidebar.revamp", false)) {
+    info("skipping test because sidebar.revamp is set");
+    return;
+  }
+
   await SpecialPowers.pushPrefEnv({
     set: [["layout.css.devPixelsPerPx", 2]],
   });
@@ -414,6 +435,13 @@ add_task(async function sidebar_switcher_panel_hidpi_icon() {
 });
 
 add_task(async function sidebar_switcher_label_bug1905771_regression_test() {
+  // This test covers a regression specific to the current sidebar design and
+  // doesn't need to be covered with the new sidebar design.
+  if (Services.prefs.getBoolPref("sidebar.revamp", false)) {
+    info("skipping test because sidebar.revamp is set");
+    return;
+  }
+
   let extData = getExtData({
     name: "Test Extension",
     browser_specific_settings: { gecko: { id: "@sidebar" } },
