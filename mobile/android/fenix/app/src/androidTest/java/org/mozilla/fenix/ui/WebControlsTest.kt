@@ -38,7 +38,7 @@ class WebControlsTest : TestSetup() {
         isTCPCFREnabled = false,
     )
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2316067
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2316067
     @Test
     fun verifyCalendarFormInteractionsTest() {
         val currentDate = LocalDate.now()
@@ -65,7 +65,7 @@ class WebControlsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2316069
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2316069
     @Test
     fun verifyClockFormInteractionsTest() {
         val htmlControlsPage = getHTMLControlsFormAsset(mockWebServer)
@@ -88,7 +88,7 @@ class WebControlsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2316068
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2316068
     @Test
     fun verifyColorPickerInteractionsTest() {
         val htmlControlsPage = getHTMLControlsFormAsset(mockWebServer)
@@ -108,7 +108,7 @@ class WebControlsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2316070
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2316070
     @Test
     fun verifyDropdownMenuInteractionsTest() {
         val htmlControlsPage = getHTMLControlsFormAsset(mockWebServer)
@@ -122,7 +122,7 @@ class WebControlsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2316071
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2316071
     @Test
     fun verifyEmailLinkTest() {
         val externalLinksPage = TestAssetHelper.getExternalLinksAsset(mockWebServer)
@@ -135,7 +135,7 @@ class WebControlsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/834205
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/834205
     @Test
     fun verifyTelephoneLinkTest() {
         val externalLinksPage = TestAssetHelper.getExternalLinksAsset(mockWebServer)

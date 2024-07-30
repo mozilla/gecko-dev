@@ -64,7 +64,7 @@ class SitePermissionsTest : TestSetup() {
     @get: Rule
     val retryTestRule = RetryTestRule(3)
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334295
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334295
     @SmokeTest
     @Test
     fun audioVideoPermissionWithoutRememberingTheDecisionTest() {
@@ -83,7 +83,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334294
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334294
     @Test
     fun blockAudioVideoPermissionRememberingTheDecisionTest() {
         assumeTrue(cameraManager.cameraIdList.isNotEmpty())
@@ -106,7 +106,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/251388
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/251388
     @Test
     fun allowAudioVideoPermissionRememberingTheDecisionTest() {
         assumeTrue(cameraManager.cameraIdList.isNotEmpty())
@@ -129,7 +129,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334189
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334189
     @Test
     fun microphonePermissionWithoutRememberingTheDecisionTest() {
         assumeTrue(micManager.microphones.isNotEmpty())
@@ -147,7 +147,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334190
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334190
     @Test
     fun blockMicrophonePermissionRememberingTheDecisionTest() {
         assumeTrue(micManager.microphones.isNotEmpty())
@@ -169,7 +169,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/251387
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/251387
     @Test
     fun allowMicrophonePermissionRememberingTheDecisionTest() {
         assumeTrue(micManager.microphones.isNotEmpty())
@@ -191,7 +191,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334076
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334076
     @Test
     fun cameraPermissionWithoutRememberingDecisionTest() {
         assumeTrue(cameraManager.cameraIdList.isNotEmpty())
@@ -209,7 +209,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334077
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334077
     @Test
     fun blockCameraPermissionRememberingTheDecisionTest() {
         assumeTrue(cameraManager.cameraIdList.isNotEmpty())
@@ -231,7 +231,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/251386
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/251386
     @Test
     fun allowCameraPermissionRememberingTheDecisionTest() {
         assumeTrue(cameraManager.cameraIdList.isNotEmpty())
@@ -253,7 +253,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334074
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334074
     @SmokeTest
     @Test
     fun blockNotificationsPermissionTest() {
@@ -271,7 +271,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/251380
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/251380
     @Test
     fun allowNotificationsPermissionTest() {
         navigationToolbar {
@@ -283,7 +283,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/251385
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/251385
     @SmokeTest
     @Test
     fun allowLocationPermissionsTest() {
@@ -299,7 +299,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334075
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334075
     @Test
     fun blockLocationPermissionsTest() {
         navigationToolbar {
@@ -311,7 +311,7 @@ class SitePermissionsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2121537
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2121537
     @SmokeTest
     @Test
     fun fileUploadPermissionTest() {

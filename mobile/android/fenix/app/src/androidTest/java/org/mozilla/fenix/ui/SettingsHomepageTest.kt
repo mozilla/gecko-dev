@@ -32,7 +32,7 @@ class SettingsHomepageTest : TestSetup() {
     @JvmField
     val retryTestRule = RetryTestRule(3)
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1564843
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1564843
     @Test
     fun verifyHomepageSettingsTest() {
         homeScreen {
@@ -43,7 +43,7 @@ class SettingsHomepageTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1564859
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1564859
     @Test
     fun verifyShortcutOptionTest() {
         // en-US defaults
@@ -75,7 +75,7 @@ class SettingsHomepageTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1565003
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1565003
     @Test
     fun verifyRecentlyVisitedOptionTest() {
         activityIntentTestRule.applySettingsExceptions {
@@ -95,7 +95,7 @@ class SettingsHomepageTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1564999
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1564999
     @SmokeTest
     @Test
     fun jumpBackInOptionTest() {
@@ -113,7 +113,7 @@ class SettingsHomepageTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1565000
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1565000
     @SmokeTest
     @Test
     fun recentBookmarksOptionTest() {
@@ -133,7 +133,7 @@ class SettingsHomepageTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1569831
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1569831
     @SmokeTest
     @Test
     fun verifyOpeningScreenOptionsTest() {
@@ -171,7 +171,7 @@ class SettingsHomepageTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1569843
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1569843
     @Test
     fun verifyOpeningScreenAfterLaunchingExternalLinkTest() {
         val genericPage = getGenericAsset(mockWebServer, 1)
@@ -197,7 +197,7 @@ class SettingsHomepageTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1676359
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1676359
     @Ignore("Intermittent test: https://github.com/mozilla-mobile/fenix/issues/26559")
     @Test
     fun verifyWallpaperChangeTest() {

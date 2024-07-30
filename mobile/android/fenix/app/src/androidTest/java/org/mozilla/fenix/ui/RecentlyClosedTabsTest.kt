@@ -31,7 +31,7 @@ class RecentlyClosedTabsTest : TestSetup() {
         HomeActivityIntentTestRule.withDefaultSettingsOverrides(),
     ) { it.activity }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1065414
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1065414
     // Verifies that a recently closed item is properly opened
     @SmokeTest
     @Test
@@ -62,7 +62,7 @@ class RecentlyClosedTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2195812
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2195812
     // Verifies that tapping the "x" button removes a recently closed item from the list
     @SmokeTest
     @Test
@@ -91,7 +91,7 @@ class RecentlyClosedTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1605515
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1605515
     @Test
     fun openMultipleRecentlyClosedTabsTest() {
         val firstPage = getGenericAsset(mockWebServer, 1)
@@ -126,7 +126,7 @@ class RecentlyClosedTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2198690
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2198690
     @Test
     fun openRecentlyClosedTabsInPrivateBrowsingTest() {
         val firstPage = getGenericAsset(mockWebServer, 1)
@@ -161,7 +161,7 @@ class RecentlyClosedTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1605514
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1605514
     @Test
     fun shareMultipleRecentlyClosedTabsTest() {
         val firstPage = getGenericAsset(mockWebServer, 1)
@@ -191,7 +191,7 @@ class RecentlyClosedTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1065438
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1065438
     @Test
     fun closedPrivateTabsAreNotSavedInRecentlyClosedTabsTest() {
         val firstPage = getGenericAsset(mockWebServer, 1)
@@ -215,7 +215,7 @@ class RecentlyClosedTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1065439
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1065439
     @Test
     fun deletingBrowserHistoryClearsRecentlyClosedTabsListTest() {
         val firstPage = getGenericAsset(mockWebServer, 1)

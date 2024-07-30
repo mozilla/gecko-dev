@@ -35,7 +35,7 @@ class SettingsCustomizeTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/344212
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/344212
     @Test
     fun changeThemeOfTheAppTest() {
         // Goes through the settings and changes the default search engine, then verifies it changes.
@@ -51,7 +51,7 @@ class SettingsCustomizeTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/466571
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/466571
     @Test
     fun setToolbarPositionTest() {
         homeScreen {
@@ -76,7 +76,7 @@ class SettingsCustomizeTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1058682
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1058682
     @Test
     fun turnOffSwipeToSwitchTabsPreferenceTest() {
         val firstWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -103,7 +103,7 @@ class SettingsCustomizeTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1992289
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1992289
     @Test
     fun pullToRefreshPreferenceTest() {
         homeScreen {

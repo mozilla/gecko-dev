@@ -44,7 +44,7 @@ class ReaderViewTest : TestSetup() {
      *   - Show the toggle button in the navigation bar
      *
      */
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/250592
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/250592
     @Test
     fun verifyReaderModePageDetectionTest() {
         val readerViewPage =
@@ -73,7 +73,7 @@ class ReaderViewTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/250585
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/250585
     @SmokeTest
     @Test
     fun verifyReaderModeControlsTest() {

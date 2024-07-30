@@ -56,7 +56,7 @@ class TabbedBrowsingTest : TestSetup() {
     @JvmField
     val retryTestRule = RetryTestRule(3)
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903599
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903599
     @Test
     fun closeAllTabsTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -88,7 +88,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2349580
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2349580
     @Test
     fun closingTabsTest() {
         val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -106,7 +106,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903604
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903604
     @Test
     fun swipeToCloseTabsTest() {
         val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -134,7 +134,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903591
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903591
     @Test
     fun closingPrivateTabsTest() {
         val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -153,7 +153,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903606
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903606
     @SmokeTest
     @Test
     fun tabMediaControlButtonTest() {
@@ -173,7 +173,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903592
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903592
     @SmokeTest
     @Test
     fun verifyCloseAllPrivateTabsNotificationTest() {
@@ -194,7 +194,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903602
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903602
     @Test
     fun verifyTabTrayNotShowingStateHalfExpanded() {
         homeScreen {
@@ -218,7 +218,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903600
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903600
     @Test
     fun verifyEmptyTabTray() {
         homeScreen {
@@ -235,7 +235,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903585
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903585
     @Test
     fun verifyEmptyPrivateTabsTrayTest() {
         homeScreen {
@@ -253,7 +253,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903601
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903601
     @Test
     fun verifyTabsTrayWithOpenTabTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -277,7 +277,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903587
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903587
     @SmokeTest
     @Test
     fun verifyPrivateTabsTrayWithOpenTabTest() {
@@ -302,7 +302,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/927314
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/927314
     @Test
     fun tabsCounterShortcutMenuCloseTabTest() {
         val firstWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -327,7 +327,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2343663
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2343663
     @Test
     fun tabsCounterShortcutMenuNewPrivateTabTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -343,7 +343,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2343662
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2343662
     @Test
     fun tabsCounterShortcutMenuNewTabTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -359,7 +359,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/927315
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/927315
     @Test
     fun privateTabsCounterShortcutMenuCloseTabTest() {
         val firstWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -390,7 +390,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2344199
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2344199
     @Test
     fun privateTabsCounterShortcutMenuNewPrivateTabTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -409,7 +409,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2344198
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2344198
     @Test
     fun privateTabsCounterShortcutMenuNewTabTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -428,7 +428,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1046683
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1046683
     @Test
     fun verifySyncedTabsWhenUserIsNotSignedInTest() {
         navigationToolbar {
@@ -442,7 +442,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/903598
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903598
     @SmokeTest
     @Test
     fun shareTabsFromTabsTrayTest() {
@@ -476,7 +476,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/526244
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/526244
     @Test
     fun privateModeStaysAsDefaultAfterRestartTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -497,7 +497,7 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2228470
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2228470
     @SmokeTest
     @Test
     fun privateTabsDoNotPersistAfterClosingAppTest() {

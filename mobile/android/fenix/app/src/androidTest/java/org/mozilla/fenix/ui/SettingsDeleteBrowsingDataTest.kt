@@ -40,7 +40,7 @@ class SettingsDeleteBrowsingDataTest : TestSetup() {
             ),
         ) { it.activity }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/937561
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/937561
     @Test
     fun deleteBrowsingDataOptionStatesTest() {
         homeScreen {
@@ -99,7 +99,7 @@ class SettingsDeleteBrowsingDataTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/517811
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/517811
     @Test
     fun deleteOpenTabsBrowsingDataWithNoOpenTabsTest() {
         homeScreen {
@@ -117,7 +117,7 @@ class SettingsDeleteBrowsingDataTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/353531
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/353531
     @SmokeTest
     @Test
     fun deleteOpenTabsBrowsingDataTest() {
@@ -150,7 +150,7 @@ class SettingsDeleteBrowsingDataTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/378864
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/378864
     @SmokeTest
     @Test
     fun deleteBrowsingHistoryTest() {
@@ -181,7 +181,7 @@ class SettingsDeleteBrowsingDataTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/416041
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/416041
     @SmokeTest
     @Test
     fun deleteCookiesAndSiteDataTest() {
@@ -224,7 +224,7 @@ class SettingsDeleteBrowsingDataTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/416042
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/416042
     @SmokeTest
     @Test
     fun deleteCachedFilesTest() {

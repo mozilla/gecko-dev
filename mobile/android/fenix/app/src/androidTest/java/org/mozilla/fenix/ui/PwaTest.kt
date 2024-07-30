@@ -30,7 +30,7 @@ class PwaTest : TestSetup() {
     @get:Rule
     val activityTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides()
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/845695
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/845695
     @Test
     fun externalLinkPWATest() {
         val externalLinkURL = "https://mozilla-mobile.github.io/testapp/downloads"
@@ -50,7 +50,7 @@ class PwaTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/845694
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/845694
     @Test
     fun appLikeExperiencePWATest() {
         navigationToolbar {
@@ -68,7 +68,7 @@ class PwaTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/834200
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/834200
     @SmokeTest
     @Test
     fun installPWAFromTheMainMenuTest() {
