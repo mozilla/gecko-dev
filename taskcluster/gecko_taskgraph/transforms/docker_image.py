@@ -55,6 +55,7 @@ docker_image_schema = Schema(
         Optional("definition"): str,
         # List of package tasks this docker image depends on.
         Optional("packages"): [str],
+        Optional("arch"): str,
         Optional(
             "index",
             description="information for indexing this build so its artifacts can be discovered",
@@ -123,6 +124,11 @@ def fill_template(config, tasks):
         # burn more CPU once to reduce image size.
         zstd_level = "3" if int(config.params["level"]) == 1 else "10"
 
+        if task.get("arch", "") == "arm64":
+            worker_type = "images-gcp-aarch64"
+        else:
+            worker_type = "images-gcp"
+
         # include some information that is useful in reconstructing this task
         # from JSON
         taskdesc = {
@@ -142,7 +148,7 @@ def fill_template(config, tasks):
                 "tier": 1,
             },
             "run-on-projects": [],
-            "worker-type": "images-gcp",
+            "worker-type": worker_type,
             "worker": {
                 "implementation": "docker-worker",
                 "os": "linux",
@@ -182,9 +188,13 @@ def fill_template(config, tasks):
             worker["docker-image"] = IMAGE_BUILDER_IMAGE
             digest_data.append(f"image-builder-image:{IMAGE_BUILDER_IMAGE}")
         else:
-            worker["docker-image"] = {"in-tree": "image_builder"}
+            if task.get("arch", "") == "arm64":
+                image_builder = "image_builder_arm64"
+            else:
+                image_builder = "image_builder"
+            worker["docker-image"] = {"in-tree": image_builder}
             deps = taskdesc.setdefault("dependencies", {})
-            deps["docker-image"] = f"{config.kind}-image_builder"
+            deps["docker-image"] = f"{config.kind}-{image_builder}"
 
         if packages:
             deps = taskdesc.setdefault("dependencies", {})
