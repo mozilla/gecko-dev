@@ -250,82 +250,47 @@ class StoreOptimizedEncodingRunnable final : public Runnable {
   };
 };
 
-class WindowStreamOwner final : public nsIObserver,
-                                public nsSupportsWeakReference {
+class WindowStreamOwner final : public GlobalTeardownObserver {
+ private:
   // Read from any thread but only set/cleared on the main thread. The lifecycle
   // of WindowStreamOwner prevents concurrent read/clear.
   nsCOMPtr<nsIAsyncInputStream> mStream;
 
-  nsCOMPtr<nsIGlobalObject> mGlobal;
-
-  ~WindowStreamOwner() {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-    if (obs) {
-      obs->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
-    }
-  }
+  ~WindowStreamOwner() { MOZ_ASSERT(NS_IsMainThread()); }
 
  public:
   NS_DECL_ISUPPORTS
 
   WindowStreamOwner(nsIAsyncInputStream* aStream, nsIGlobalObject* aGlobal)
-      : mStream(aStream), mGlobal(aGlobal) {
-    MOZ_DIAGNOSTIC_ASSERT(mGlobal);
+      : GlobalTeardownObserver(aGlobal), mStream(aStream) {
+    MOZ_DIAGNOSTIC_ASSERT(aGlobal);
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  static already_AddRefed<WindowStreamOwner> Create(
-      nsIAsyncInputStream* aStream, nsIGlobalObject* aGlobal) {
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (NS_WARN_IF(!os)) {
-      return nullptr;
-    }
+  // GlobalTeardownObserver:
 
-    RefPtr<WindowStreamOwner> self = new WindowStreamOwner(aStream, aGlobal);
-
-    // Holds nsIWeakReference to self.
-    nsresult rv = os->AddObserver(self, DOM_WINDOW_DESTROYED_TOPIC, true);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return nullptr;
-    }
-
-    return self.forget();
-  }
-
-  // nsIObserver:
-
-  NS_IMETHOD
-  Observe(nsISupports* aSubject, const char* aTopic,
-          const char16_t* aData) override {
+  void DisconnectFromOwner() override {
     MOZ_ASSERT(NS_IsMainThread());
-    MOZ_DIAGNOSTIC_ASSERT(strcmp(aTopic, DOM_WINDOW_DESTROYED_TOPIC) == 0);
 
     if (!mStream) {
-      return NS_OK;
-    }
-
-    nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(mGlobal);
-    if (!SameCOMIdentity(aSubject, window)) {
-      return NS_OK;
+      return;
     }
 
     // mStream->Close() will call JSStreamConsumer::OnInputStreamReady which may
-    // then destory itself, dropping the last reference to 'this'.
-    RefPtr<WindowStreamOwner> keepAlive(this);
+    // then destory itself, but GTO should be strongly grabbing us right as it's
+    // calling DisconnectFromOwner.
 
     mStream->Close();
     mStream = nullptr;
-    mGlobal = nullptr;
-    return NS_OK;
+
+    GlobalTeardownObserver::DisconnectFromOwner();
   }
 };
 
-NS_IMPL_ISUPPORTS(WindowStreamOwner, nsIObserver, nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS0(WindowStreamOwner)
 
 inline nsISupports* ToSupports(WindowStreamOwner* aObj) {
-  return static_cast<nsIObserver*>(aObj);
+  return static_cast<GlobalTeardownObserver*>(aObj);
 }
 
 class WorkerStreamOwner final {
@@ -552,7 +517,7 @@ class JSStreamConsumer final : public nsIInputStreamCallback,
                                       std::move(aCache), aOptimizedEncoding);
     } else {
       RefPtr<WindowStreamOwner> owner =
-          WindowStreamOwner::Create(asyncStream, aGlobal);
+          new WindowStreamOwner(asyncStream, aGlobal);
       if (!owner) {
         return false;
       }
