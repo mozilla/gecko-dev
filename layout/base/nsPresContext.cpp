@@ -477,11 +477,6 @@ void nsPresContext::AppUnitsPerDevPixelChanged() {
 
   FlushFontCache();
 
-  MediaFeatureValuesChanged(
-      {RestyleHint::RecascadeSubtree(), NS_STYLE_HINT_REFLOW,
-       MediaFeatureChangeReason::ResolutionChange},
-      MediaFeatureChangePropagation::JustThisDocument);
-
   mCurAppUnitsPerDevPixel = mDeviceContext->AppUnitsPerDevPixel();
 
 #ifdef ACCESSIBILITY
@@ -515,6 +510,11 @@ void nsPresContext::AppUnitsPerDevPixelChanged() {
       }
     }
   }
+
+  MediaFeatureValuesChanged(
+      {RestyleHint::RecascadeSubtree(), NS_STYLE_HINT_REFLOW,
+       MediaFeatureChangeReason::ResolutionChange},
+      MediaFeatureChangePropagation::JustThisDocument);
 
   // We would also have to look at all of our child subdocuments but the
   // InvalidatePaintedLayers call above calls InvalidateFrameSubtree which
