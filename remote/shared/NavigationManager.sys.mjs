@@ -11,6 +11,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/listeners/BrowsingContextListener.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
+  PromptListener:
+    "chrome://remote/content/shared/listeners/PromptListener.sys.mjs",
   registerNavigationListenerActor:
     "chrome://remote/content/shared/js-window-actors/NavigationListenerActor.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
@@ -70,6 +72,7 @@ class NavigationRegistry extends EventEmitter {
   #managers;
   #navigations;
   #preRegisteredNavigationIds;
+  #promptListener;
 
   constructor() {
     super();
@@ -86,6 +89,10 @@ class NavigationRegistry extends EventEmitter {
 
     this.#contextListener = new lazy.BrowsingContextListener();
     this.#contextListener.on("discarded", this.#onContextDiscarded);
+
+    this.#promptListener = new lazy.PromptListener();
+    this.#promptListener.on("closed", this.#onPromptClosed);
+    this.#promptListener.on("opened", this.#onPromptOpened);
   }
 
   /**
@@ -120,6 +127,7 @@ class NavigationRegistry extends EventEmitter {
     if (this.#managers.size == 0) {
       lazy.registerNavigationListenerActor();
       this.#contextListener.startListening();
+      this.#promptListener.startListening();
     }
 
     this.#managers.add(listener);
@@ -137,6 +145,7 @@ class NavigationRegistry extends EventEmitter {
     this.#managers.delete(listener);
     if (this.#managers.size == 0) {
       this.#contextListener.stopListening();
+      this.#promptListener.stopListening();
       lazy.unregisterNavigationListenerActor();
       // Clear the map.
       this.#navigations = new Map();
@@ -450,6 +459,40 @@ class NavigationRegistry extends EventEmitter {
 
     // If the navigable is discarded, we can safely clean up the navigation info.
     this.#navigations.delete(navigableId);
+  };
+
+  #onPromptClosed = (eventName, data) => {
+    const { contentBrowser, detail } = data;
+    const { accepted, promptType } = detail;
+
+    // Send navigation failed event if beforeunload prompt was rejected.
+    if (promptType === "beforeunload" && accepted === false) {
+      const browsingContext = contentBrowser.browsingContext;
+
+      notifyNavigationFailed({
+        contextDetails: {
+          context: browsingContext,
+        },
+        // Bug 1908952. Add support for the "url" field.
+      });
+    }
+  };
+
+  #onPromptOpened = (eventName, data) => {
+    const { contentBrowser, prompt } = data;
+    const { promptType } = prompt;
+
+    // We should start the navigation when beforeunload prompt is open.
+    if (promptType === "beforeunload") {
+      const browsingContext = contentBrowser.browsingContext;
+
+      notifyNavigationStarted({
+        contextDetails: {
+          context: browsingContext,
+        },
+        // Bug 1908952. Add support for the "url" field.
+      });
+    }
   };
 }
 
