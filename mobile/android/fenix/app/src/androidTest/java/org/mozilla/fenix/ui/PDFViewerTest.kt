@@ -29,7 +29,7 @@ class PDFViewerTest : TestSetup() {
     @get:Rule
     val activityTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides()
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2048140
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2048140
     @SmokeTest
     @Test
     fun verifyPDFFileIsOpenedInTheSameTabTest() {
@@ -44,7 +44,7 @@ class PDFViewerTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2145448
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2145448
     // Download PDF file using the download toolbar button
     @Test
     fun verifyPDFViewerDownloadButtonTest() {
@@ -61,7 +61,7 @@ class PDFViewerTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2283305
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2283305
     @Test
     fun pdfFindInPageTest() {
         val genericURL = getGenericAsset(mockWebServer, 3)
@@ -93,7 +93,7 @@ class PDFViewerTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2284297
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2284297
     @Test
     fun addPDFToHomeScreenTest() {
         navigationToolbar {

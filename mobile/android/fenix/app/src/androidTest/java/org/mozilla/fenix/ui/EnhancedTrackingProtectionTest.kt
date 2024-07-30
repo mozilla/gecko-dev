@@ -46,7 +46,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
             HomeActivityIntentTestRule.withDefaultSettingsOverrides(),
         ) { it.activity }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/416046
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/416046
     @Test
     fun testETPSettingsItemsAndSubMenus() {
         homeScreen {
@@ -83,7 +83,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1514599
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1514599
     @Test
     fun verifyETPStateIsReflectedInTPSheetTest() {
         val genericPage = getGenericAsset(mockWebServer, 1)
@@ -118,7 +118,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/339712
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/339712
     // Tests adding ETP exceptions to websites and keeping that preference after restart
     @SmokeTest
     @Test
@@ -150,7 +150,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/339714
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/339714
     @Test
     fun enablingETPOnAWebsiteRemovesItFromTheExceptionListTest() {
         val trackingPage = getEnhancedTrackingProtectionAsset(mockWebServer)
@@ -184,7 +184,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/339713
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/339713
     // Tests removing TP exceptions individually or all at once
     @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1865781")
     @Test
@@ -223,7 +223,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/417444
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/417444
     @Test
     fun verifyTrackersBlockedWithStandardTPTest() {
         val genericPage = getGenericAsset(mockWebServer, 1)
@@ -263,7 +263,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }.closeEnhancedTrackingProtectionSheet {}
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/417441
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/417441
     @Test
     fun verifyTrackersBlockedWithStrictTPTest() {
         appContext.settings().setStrictETP()
@@ -308,7 +308,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/561637
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/561637
     @SmokeTest
     @Test
     fun verifyTrackersBlockedWithCustomTPTest() {
@@ -349,7 +349,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/562710
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/562710
     // Tests the trackers blocked with the following Custom TP set up:
     // - Cookies set to "All cookies"
     // - Tracking content option OFF
@@ -393,7 +393,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/562709
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/562709
     @Test
     fun verifyTrackersBlockedWithCustomTPOptionsDisabledTest() {
         val genericWebPage = getGenericAsset(mockWebServer, 1)
@@ -427,7 +427,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2106997
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2106997
     @Test
     fun verifyTrackingContentBlockedOnlyInPrivateTabsTest() {
         val genericWebPage = getGenericAsset(mockWebServer, 1)
@@ -478,7 +478,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2285368
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2285368
     @SmokeTest
     @Test
     fun blockCookiesStorageAccessTest() {
@@ -501,7 +501,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2285369
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2285369
     @SmokeTest
     @Test
     fun allowCookiesStorageAccessTest() {

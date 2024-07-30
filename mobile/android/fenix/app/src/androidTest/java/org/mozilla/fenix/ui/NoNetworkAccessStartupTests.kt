@@ -28,7 +28,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
     // Test running on beta/release builds in CI:
     // caution when making changes to it, so they don't block the builds
     // Based on STR from https://github.com/mozilla-mobile/fenix/issues/16886
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2240542
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2240542
     @Test
     fun noNetworkConnectionStartupTest() {
         setNetworkEnabled(false)
@@ -41,7 +41,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
     }
 
     // Based on STR from https://github.com/mozilla-mobile/fenix/issues/16886
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2240722
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2240722
     @Test
     fun networkInterruptedFromBrowserToHomeTest() {
         val url = "example.com"
@@ -59,7 +59,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2240723
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2240723
     @Test
     fun testPageReloadAfterNetworkInterrupted() {
         val url = "example.com"
@@ -76,7 +76,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
         }.refreshPage { }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2240721
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2240721
     @SmokeTest
     @Test
     fun testSignInPageWithNoNetworkConnection() {

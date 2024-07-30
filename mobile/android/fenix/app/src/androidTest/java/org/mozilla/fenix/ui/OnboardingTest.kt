@@ -20,7 +20,7 @@ class OnboardingTest : TestSetup() {
             HomeActivityIntentTestRule.withDefaultSettingsOverrides(launchActivity = false),
         ) { it.activity }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2122321
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2122321
     @Test
     fun verifyFirstOnboardingCardItemsTest() {
         // Run UI test only on devices with Android version lower than 10
@@ -34,7 +34,7 @@ class OnboardingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2122334
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2122334
     @SmokeTest
     @Test
     fun verifyFirstOnboardingCardItemsFunctionalityTest() {
@@ -55,7 +55,7 @@ class OnboardingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2122343
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2122343
     @Test
     fun verifySecondOnboardingCardItemsTest() {
         runWithLauncherIntent(activityTestRule) {
@@ -71,7 +71,7 @@ class OnboardingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2122344
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2122344
     @SmokeTest
     @Test
     fun verifyThirdOnboardingCardSignInFunctionalityTest() {

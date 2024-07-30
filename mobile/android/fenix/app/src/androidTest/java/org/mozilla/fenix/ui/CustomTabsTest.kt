@@ -52,7 +52,7 @@ class CustomTabsTest : TestSetup() {
         false,
     )
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/249659
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/249659
     @SmokeTest
     @Test
     fun verifyLoginSaveInCustomTabTest() {
@@ -86,7 +86,7 @@ class CustomTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334762
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334762
     @Test
     fun copyCustomTabToolbarUrlTest() {
         val customTabPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -116,7 +116,7 @@ class CustomTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2334761
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334761
     @SmokeTest
     @Test
     fun verifyDownloadInACustomTabTest() {
@@ -146,7 +146,7 @@ class CustomTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/249644
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/249644
     // Verifies the main menu of a custom tab with a custom menu item
     @SmokeTest
     @Test
@@ -174,7 +174,7 @@ class CustomTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/249645
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/249645
     // The test opens a link in a custom tab then sends it to the browser
     @SmokeTest
     @Test
@@ -195,7 +195,7 @@ class CustomTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2239548
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2239548
     @Test
     fun shareCustomTabUsingToolbarButtonTest() {
         val customTabPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -212,7 +212,7 @@ class CustomTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/249643
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/249643
     @Test
     fun verifyCustomTabViewItemsTest() {
         val customTabPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -239,7 +239,7 @@ class CustomTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2239544
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2239544
     @Test
     fun verifyPDFViewerInACustomTabTest() {
         val customTabPage = TestAssetHelper.getGenericAsset(mockWebServer, 3)
@@ -269,7 +269,7 @@ class CustomTabsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2239117
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2239117
     @Test
     fun verifyCustomTabETPSheetAndToggleTest() {
         val customTabPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)

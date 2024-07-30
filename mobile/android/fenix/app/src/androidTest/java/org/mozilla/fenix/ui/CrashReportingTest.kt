@@ -33,7 +33,7 @@ class CrashReportingTest : TestSetup() {
         ),
     ) { it.activity }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/308906
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/308906
     @Test
     fun closeTabFromCrashedTabReporterTest() {
         homeScreen {
@@ -45,7 +45,7 @@ class CrashReportingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2336134
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2336134
     @Test
     fun restoreTabFromTabCrashedReporterTest() {
         val website = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -61,7 +61,7 @@ class CrashReportingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1681928
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1681928
     @SmokeTest
     @Test
     fun useAppWhileTabIsCrashedTest() {

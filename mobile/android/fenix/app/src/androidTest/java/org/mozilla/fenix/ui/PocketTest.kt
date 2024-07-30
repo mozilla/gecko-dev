@@ -42,7 +42,7 @@ class PocketTest : TestSetup() {
         }.goBack {}
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2252509
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252509
     @Test
     fun verifyPocketSectionTest() {
         runWithCondition(isNetworkConnected()) {
@@ -66,7 +66,7 @@ class PocketTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2252513
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252513
     @Test
     fun openPocketStoryItemTest() {
         runWithCondition(isNetworkConnected()) {
@@ -80,7 +80,7 @@ class PocketTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2252514
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252514
     @Test
     fun pocketDiscoverMoreButtonTest() {
         runWithCondition(isNetworkConnected()) {
@@ -93,7 +93,7 @@ class PocketTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2252515
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252515
     @Test
     fun selectPocketStoriesByTopicTest() {
         runWithCondition(isNetworkConnected()) {
@@ -105,7 +105,7 @@ class PocketTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2252516
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252516
     @Test
     fun pocketLearnMoreButtonTest() {
         runWithCondition(isNetworkConnected()) {

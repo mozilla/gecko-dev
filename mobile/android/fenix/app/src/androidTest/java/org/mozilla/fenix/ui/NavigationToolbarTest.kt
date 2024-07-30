@@ -36,7 +36,7 @@ class NavigationToolbarTest : TestSetup() {
             HomeActivityTestRule.withDefaultSettingsOverrides(),
         ) { it.activity }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/987326
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/987326
     // Swipes the nav bar left/right to switch between tabs
     @SmokeTest
     @Test
@@ -56,7 +56,7 @@ class NavigationToolbarTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/987327
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/987327
     // Because it requires changing system prefs, this test will run only on Debug builds
     @Test
     fun swipeToSwitchTabInRTLTest() {
@@ -78,7 +78,7 @@ class NavigationToolbarTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2265279
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2265279
     @SmokeTest
     @Test
     fun verifySecurePageSecuritySubMenuTest() {
@@ -95,7 +95,7 @@ class NavigationToolbarTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2265280
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2265280
     @SmokeTest
     @Test
     fun verifyInsecurePageSecuritySubMenuTest() {
@@ -111,7 +111,7 @@ class NavigationToolbarTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1661318
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1661318
     @SmokeTest
     @Test
     fun verifyClearCookiesFromQuickSettingsTest() {
@@ -126,7 +126,7 @@ class NavigationToolbarTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1360555
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1360555
     @SmokeTest
     @Test
     fun goToHomeScreenTest() {
@@ -140,7 +140,7 @@ class NavigationToolbarTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2256552
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2256552
     @SmokeTest
     @Test
     fun goToHomeScreenInPrivateModeTest() {

@@ -38,7 +38,7 @@ class MainMenuTest : TestSetup() {
     @get:Rule
     val composeTestRule = AndroidComposeTestRule(activityTestRule) { it.activity }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/233849
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/233849
     @Test
     fun verifyTabMainMenuItemsTest() {
         FxNimbus.features.translations.withInitializer { _, _ ->
@@ -58,7 +58,7 @@ class MainMenuTest : TestSetup() {
     }
 
     // Verifies the list of items in the homescreen's 3 dot main menu
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/233848
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/233848
     @SmokeTest
     @Test
     fun homeMainMenuItemsTest() {
@@ -103,7 +103,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2284134
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2284134
     @Test
     fun openNewTabTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -120,7 +120,7 @@ class MainMenuTest : TestSetup() {
 
     // Device or AVD requires a Google Services Android OS installation with Play Store installed
     // Verifies the Open in app button when an app is installed
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/387756
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/387756
     @SmokeTest
     @Test
     fun openInAppFunctionalityTest() {
@@ -135,7 +135,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2284323
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2284323
     @Test
     fun openSyncAndSaveDataTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -149,7 +149,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/243840
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/243840
     @Test
     fun findInPageTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 3)
@@ -185,7 +185,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2283303
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2283303
     @Test
     fun switchDesktopSiteModeOnOffTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -202,7 +202,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1314137
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1314137
     @Test
     fun setDesktopSiteBeforePageLoadTest() {
         val webPage = TestAssetHelper.getGenericAsset(mockWebServer, 4)
@@ -230,7 +230,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2283302
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2283302
     @Test
     fun reportSiteIssueTest() {
         runWithCondition(
@@ -249,7 +249,7 @@ class MainMenuTest : TestSetup() {
     }
 
     // Verifies the Add to home screen option in a tab's 3 dot menu
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/410724
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/410724
     @SmokeTest
     @Test
     fun addPageShortcutToHomeScreenTest() {
@@ -279,7 +279,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/329893
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/329893
     @SmokeTest
     @Test
     fun mainMenuShareButtonTest() {
@@ -293,7 +293,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/233604
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/233604
     @Test
     fun navigateBackAndForwardTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -315,7 +315,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2195819
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2195819
     @SmokeTest
     @Test
     fun refreshPageButtonTest() {
@@ -331,7 +331,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2265657
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2265657
     @Test
     fun forceRefreshPageTest() {
         val refreshWebPage = TestAssetHelper.getRefreshAsset(mockWebServer)
@@ -346,7 +346,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2282411
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2282411
     @Test
     fun printWebPageFromMainMenuTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -360,7 +360,7 @@ class MainMenuTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2282408
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2282408
     @Test
     fun printWebPageFromShareMenuTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)

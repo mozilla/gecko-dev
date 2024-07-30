@@ -50,7 +50,7 @@ class DownloadFileTypesTest(fileName: String) : TestSetup() {
         )
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/251028
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/251028
     @SmokeTest
     @Test
     fun allFilesAppearInDownloadsMenuTest() {

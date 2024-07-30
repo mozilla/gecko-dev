@@ -100,7 +100,7 @@ class FirefoxSuggestTest : TestSetup() {
 
     private val nonSponsoredKeyWord = nonSponsoredKeyWords.keys.random()
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2348361
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2348361
     // Known bug that might affect this UI test: https://bugzilla.mozilla.org/show_bug.cgi?id=1813587
     @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1898416")
     @SmokeTest
@@ -123,7 +123,7 @@ class FirefoxSuggestTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2348362
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2348362
     // Known bug that might affect this UI test: https://bugzilla.mozilla.org/show_bug.cgi?id=1813587
     @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1898457")
     @Test
@@ -145,7 +145,7 @@ class FirefoxSuggestTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2348363
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2348363
     // Known bug that might affect this UI test: https://bugzilla.mozilla.org/show_bug.cgi?id=1813587
     @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1879011")
     @Test
@@ -170,7 +170,7 @@ class FirefoxSuggestTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2348369
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2348369
     // Known bug that might affect this UI test: https://bugzilla.mozilla.org/show_bug.cgi?id=1813587
     @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1898435")
     @Test
@@ -195,7 +195,7 @@ class FirefoxSuggestTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2348374
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2348374
     // Known bug that might affect this UI test: https://bugzilla.mozilla.org/show_bug.cgi?id=1813587
     @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1882035")
     @SmokeTest
@@ -223,7 +223,7 @@ class FirefoxSuggestTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2348375
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2348375
     // Known bug that might affect this UI test: https://bugzilla.mozilla.org/show_bug.cgi?id=1813587
     @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1882035")
     @Test
@@ -244,7 +244,7 @@ class FirefoxSuggestTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2348376
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2348376
     // Known bug that might affect this UI test: https://bugzilla.mozilla.org/show_bug.cgi?id=1813587
     @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1882035")
     @Test

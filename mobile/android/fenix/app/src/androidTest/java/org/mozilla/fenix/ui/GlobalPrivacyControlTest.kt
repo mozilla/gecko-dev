@@ -35,7 +35,7 @@ class GlobalPrivacyControlTest : TestSetup() {
         gpcPage = getGPCTestAsset(mockWebServer)
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2429327
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2429327
     @Test
     fun testGPCinNormalBrowsing() {
         navigationToolbar {
@@ -54,7 +54,7 @@ class GlobalPrivacyControlTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2429364
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2429364
     @Test
     fun testGPCinPrivateBrowsing() {
         homeScreen { }.togglePrivateBrowsingMode()

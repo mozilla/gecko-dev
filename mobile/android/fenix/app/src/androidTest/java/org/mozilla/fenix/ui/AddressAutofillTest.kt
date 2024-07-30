@@ -49,7 +49,7 @@ class AddressAutofillTest : TestSetup() {
     @get:Rule
     val activityIntentTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides()
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836845
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836845
     @SmokeTest
     @Test
     fun verifyAddressAutofillTest() {
@@ -87,7 +87,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836856
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836856
     @SmokeTest
     @Test
     fun deleteSavedAddressTest() {
@@ -115,7 +115,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836840
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836840
     @Test
     fun verifyAddAddressViewTest() {
         homeScreen {
@@ -129,7 +129,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836841
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836841
     @Test
     fun verifyEditAddressViewTest() {
         autofillScreen {
@@ -152,7 +152,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836839
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836839
     @Test
     fun verifyAddressAutofillToggleTest() {
         val addressFormPage =
@@ -196,7 +196,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836847
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836847
     @Test
     fun verifyManageAddressesPromptOptionTest() {
         val addressFormPage =
@@ -231,7 +231,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836849
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836849
     @Test
     fun verifyMultipleAddressesSelectionTest() {
         val addressFormPage =
@@ -293,7 +293,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836850
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836850
     @Test
     fun verifySavedAddressCanBeEditedTest() {
         autofillScreen {
@@ -327,7 +327,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836848
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836848
     @Test
     fun verifyStateFieldUpdatesInAccordanceWithCountryFieldTest() {
         homeScreen {
@@ -344,7 +344,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836858
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836858
     @Test
     fun verifyFormFieldCanBeFilledManuallyTest() {
         val addressFormPage =
@@ -384,7 +384,7 @@ class AddressAutofillTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1836838
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836838
     @Test
     fun verifyAutofillAddressSectionTest() {
         autofillScreen {

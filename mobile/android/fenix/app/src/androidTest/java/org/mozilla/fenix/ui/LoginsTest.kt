@@ -55,7 +55,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2092713
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2092713
     // Tests the Passwords menu items and default values
     @Test
     fun loginsAndPasswordsSettingsItemsTest() {
@@ -71,7 +71,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/517816
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/517816
     // Tests only for initial state without signing in.
     // For tests after signing in, see SyncIntegration test suite
     @Test
@@ -91,7 +91,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2092925
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2092925
     @Test
     fun verifySyncLoginsOptionsTest() {
         homeScreen {
@@ -106,7 +106,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/523839
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/523839
     @Test
     fun saveLoginFromPromptTest() {
         val saveLoginTest =
@@ -143,7 +143,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/960412
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/960412
     @Test
     fun openLoginWebsiteInBrowserTest() {
         val loginPage = "https://mozilla-mobile.github.io/testapp/loginForm"
@@ -171,7 +171,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/517817
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/517817
     @Test
     fun neverSaveLoginFromPromptTest() {
         val saveLoginTest = TestAssetHelper.getSaveLoginAsset(mockWebServer)
@@ -199,7 +199,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1508171
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1508171
     @SmokeTest
     @Test
     fun verifyUpdatedLoginIsSavedTest() {
@@ -235,7 +235,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1049971
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1049971
     @SmokeTest
     @Test
     fun verifyMultipleLoginsSelectionsTest() {
@@ -271,7 +271,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/875849
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/875849
     @Test
     fun verifyEditLoginsViewTest() {
         val loginPage = "https://mozilla-mobile.github.io/testapp/loginForm"
@@ -300,7 +300,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/875851
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/875851
     @Test
     fun verifyEditedLoginsAreSavedTest() {
         val loginPage = "https://mozilla-mobile.github.io/testapp/v2.0/loginForm.html"
@@ -338,7 +338,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2266452
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2266452
     @Test
     fun verifyLoginWithNoUserNameCanNotBeSavedTest() {
         val loginPage = "https://mozilla-mobile.github.io/testapp/loginForm"
@@ -368,7 +368,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2266453
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2266453
     @Test
     fun verifyLoginWithoutPasswordCanNotBeSavedTest() {
         val loginPage = "https://mozilla-mobile.github.io/testapp/loginForm"
@@ -399,7 +399,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/876531
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/876531
     @Test
     fun verifyEditModeDismissalDoesNotSaveLoginCredentialsTest() {
         val loginPage = "https://mozilla-mobile.github.io/testapp/loginForm"
@@ -430,7 +430,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/876532
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/876532
     @Test
     fun verifyDeleteLoginButtonTest() {
         val loginPage = TestAssetHelper.getSaveLoginAsset(mockWebServer)
@@ -461,7 +461,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/517818
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/517818
     @SmokeTest
     @Test
     fun verifyNeverSaveLoginOptionTest() {
@@ -485,7 +485,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/517819
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/517819
     @Test
     fun verifyAutofillToggleTest() {
         val loginPage = "https://mozilla-mobile.github.io/testapp/v2.0/loginForm.html"
@@ -532,7 +532,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/593768
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/593768
     @Test
     fun doNotSaveOptionWillNotUpdateALoginTest() {
         val loginPage = "https://mozilla-mobile.github.io/testapp/v2.0/loginForm.html"
@@ -567,7 +567,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2090455
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2090455
     @Test
     fun searchLoginsByUsernameTest() {
         val firstLoginPage = TestAssetHelper.getSaveLoginAsset(mockWebServer)
@@ -612,7 +612,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/608834
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/608834
     @Test
     fun searchLoginsByUrlTest() {
         val firstLoginPage = TestAssetHelper.getSaveLoginAsset(mockWebServer)
@@ -657,7 +657,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2266441
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2266441
     @Test
     fun verifyLastUsedLoginSortingOptionTest() {
         val firstLoginPage = TestAssetHelper.getSaveLoginAsset(mockWebServer)
@@ -704,7 +704,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2266442
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2266442
     @Test
     fun verifyAlphabeticalLoginSortingOptionTest() {
         val firstLoginPage = TestAssetHelper.getSaveLoginAsset(mockWebServer)
@@ -749,7 +749,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/1518435
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1518435
     @Test
     fun verifyAddLoginManuallyTest() {
         val loginPage = "https://mozilla-mobile.github.io/testapp/v2.0/loginForm.html"
@@ -788,7 +788,7 @@ class LoginsTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://testrail.stage.mozaws.net/index.php?/cases/view/2068215
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2068215
     @Test
     fun verifyCopyLoginCredentialsToClipboardTest() {
         val firstLoginPage = TestAssetHelper.getSaveLoginAsset(mockWebServer)
