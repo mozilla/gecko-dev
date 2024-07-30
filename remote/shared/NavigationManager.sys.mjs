@@ -202,6 +202,59 @@ class NavigationRegistry extends EventEmitter {
   }
 
   /**
+   * Called when a navigation-failed event is recorded from the
+   * NavigationListener actors.
+   *
+   * This entry point is only intended to be called from
+   * NavigationListenerParent, to avoid setting up observers or listeners,
+   * which are unnecessary since NavigationManager has to be a singleton.
+   *
+   * @param {object} data
+   * @param {BrowsingContextDetails} data.contextDetails
+   *     The details about the browsing context for this navigation.
+   * @param {string} data.url
+   *     The URL as string for the navigation.
+   * @returns {NavigationInfo}
+   *     The created navigation or the ongoing navigation, if applicable.
+   */
+  notifyNavigationFailed(data) {
+    const { contextDetails, url } = data;
+
+    const context = this.#getContextFromContextDetails(contextDetails);
+    const navigable = lazy.TabManager.getNavigableForBrowsingContext(context);
+    const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
+
+    const navigation = this.#navigations.get(navigable);
+    if (!navigation) {
+      lazy.logger.trace(
+        lazy.truncate`[${navigableId}] No navigation found to fail for url: ${url}`
+      );
+      return null;
+    }
+
+    if (navigation.finished) {
+      lazy.logger.trace(
+        `[${navigableId}] Navigation already marked as finished, navigationId: ${navigation.navigationId}`
+      );
+      return navigation;
+    }
+
+    lazy.logger.trace(
+      lazy.truncate`[${navigableId}] Navigation failed for url: ${url} (${navigation.navigationId})`
+    );
+
+    navigation.finished = true;
+
+    this.emit("navigation-failed", {
+      navigationId: navigation.navigationId,
+      navigableId,
+      url,
+    });
+
+    return navigation;
+  }
+
+  /**
    * Called when a navigation-started event is recorded from the
    * NavigationListener actors.
    *
@@ -366,6 +419,17 @@ export function notifySameDocumentChanged(data) {
 }
 
 /**
+ * See NavigationRegistry.notifyNavigationFailed.
+ *
+ * This entry point is only intended to be called from NavigationListenerParent,
+ * to avoid setting up observers or listeners, which are unnecessary since
+ * NavigationRegistry has to be a singleton.
+ */
+export function notifyNavigationFailed(data) {
+  return navigationRegistry.notifyNavigationFailed(data);
+}
+
+/**
  * See NavigationRegistry.notifyNavigationStarted.
  *
  * This entry point is only intended to be called from NavigationListenerParent,
@@ -436,6 +500,7 @@ export class NavigationManager extends EventEmitter {
     this.#monitoring = true;
     navigationRegistry.startMonitoring(this);
     navigationRegistry.on("fragment-navigated", this.#onNavigationEvent);
+    navigationRegistry.on("navigation-failed", this.#onNavigationEvent);
     navigationRegistry.on("navigation-started", this.#onNavigationEvent);
     navigationRegistry.on("navigation-stopped", this.#onNavigationEvent);
     navigationRegistry.on("same-document-changed", this.#onNavigationEvent);
@@ -449,6 +514,7 @@ export class NavigationManager extends EventEmitter {
     this.#monitoring = false;
     navigationRegistry.stopMonitoring(this);
     navigationRegistry.off("fragment-navigated", this.#onNavigationEvent);
+    navigationRegistry.off("navigation-failed", this.#onNavigationEvent);
     navigationRegistry.off("navigation-started", this.#onNavigationEvent);
     navigationRegistry.off("navigation-stopped", this.#onNavigationEvent);
     navigationRegistry.off("same-document-changed", this.#onNavigationEvent);

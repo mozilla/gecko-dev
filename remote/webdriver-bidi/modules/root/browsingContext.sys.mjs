@@ -184,6 +184,7 @@ class BrowsingContextModule extends Module {
       "fragment-navigated",
       this.#onFragmentNavigated
     );
+    this.#navigationListener.on("navigation-failed", this.#onNavigationFailed);
     this.#navigationListener.on(
       "navigation-started",
       this.#onNavigationStarted
@@ -1965,6 +1966,29 @@ class BrowsingContextModule extends Module {
     }
   };
 
+  #onNavigationFailed = async (eventName, data) => {
+    const { navigableId, navigationId, url } = data;
+    const context = this.#getBrowsingContext(navigableId);
+
+    if (this.#subscribedEvents.has("browsingContext.navigationFailed")) {
+      const contextInfo = {
+        contextId: context.id,
+        type: lazy.WindowGlobalMessageHandler.type,
+      };
+
+      this.emitEvent(
+        "browsingContext.navigationFailed",
+        {
+          context: navigableId,
+          navigation: navigationId,
+          timestamp: Date.now(),
+          url,
+        },
+        contextInfo
+      );
+    }
+  };
+
   #onNavigationStarted = async (eventName, data) => {
     const { navigableId, navigationId, url } = data;
     const context = this.#getBrowsingContext(navigableId);
@@ -2014,6 +2038,7 @@ class BrowsingContextModule extends Module {
 
     const hasNavigationEvent =
       this.#subscribedEvents.has("browsingContext.fragmentNavigated") ||
+      this.#subscribedEvents.has("browsingContext.navigationFailed") ||
       this.#subscribedEvents.has("browsingContext.navigationStarted");
 
     if (!hasNavigationEvent) {
@@ -2042,6 +2067,7 @@ class BrowsingContextModule extends Module {
         break;
       }
       case "browsingContext.fragmentNavigated":
+      case "browsingContext.navigationFailed":
       case "browsingContext.navigationStarted": {
         this.#navigationListener.startListening();
         this.#subscribedEvents.add(event);
@@ -2064,6 +2090,7 @@ class BrowsingContextModule extends Module {
         break;
       }
       case "browsingContext.fragmentNavigated":
+      case "browsingContext.navigationFailed":
       case "browsingContext.navigationStarted": {
         this.#stopListeningToNavigationEvent(event);
         break;
@@ -2127,6 +2154,7 @@ class BrowsingContextModule extends Module {
       "browsingContext.domContentLoaded",
       "browsingContext.fragmentNavigated",
       "browsingContext.load",
+      "browsingContext.navigationFailed",
       "browsingContext.navigationStarted",
       "browsingContext.userPromptClosed",
       "browsingContext.userPromptOpened",

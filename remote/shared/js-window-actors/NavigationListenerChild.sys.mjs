@@ -172,6 +172,7 @@ export class NavigationListenerChild extends JSWindowActorChild {
         // change from the correct process later.
         this.sendAsyncMessage("NavigationListenerChild:navigationStopped", {
           contextDetails: this.#getBrowsingContextDetails(context),
+          status,
           url: targetURI?.spec,
         });
       }
