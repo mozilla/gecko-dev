@@ -19,6 +19,7 @@
 #include "nsString.h"
 #include "nsCRT.h"
 #include "nsGenericHTMLElement.h"
+#include "nsGlobalWindowInner.h"
 
 #include "nsIFrame.h"
 #include "mozilla/dom/Document.h"
@@ -56,9 +57,8 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(nsTypeAheadFind)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsTypeAheadFind)
 
 NS_IMPL_CYCLE_COLLECTION_WEAK(nsTypeAheadFind, mFoundLink, mFoundEditable,
-                              mCurrentWindow, mStartFindRange, mSearchRange,
-                              mStartPointRange, mEndPointRange, mFind,
-                              mFoundRange)
+                              mStartFindRange, mSearchRange, mStartPointRange,
+                              mEndPointRange, mFind, mFoundRange)
 
 #define NS_FIND_CONTRACTID "@mozilla.org/embedcomp/rangefind;1"
 
@@ -102,11 +102,6 @@ nsresult nsTypeAheadFind::Init(nsIDocShell* aDocShell) {
 
     // ----------- Get initial preferences ----------
     PrefsReset();
-
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (os) {
-      os->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC, true);
-    }
   }
 
   return NS_OK;
@@ -206,14 +201,22 @@ void nsTypeAheadFind::ReleaseStrongMemberVariables() {
   mSearchRange = nullptr;
   mEndPointRange = nullptr;
 
-  mFoundLink = nullptr;
-  mFoundEditable = nullptr;
-  mFoundRange = nullptr;
-  mCurrentWindow = nullptr;
+  ReleaseFoundResultsAndDisconnect();
 
   mSelectionController = nullptr;
 
   mFind = nullptr;
+}
+
+void nsTypeAheadFind::ReleaseFoundResultsAndDisconnect() {
+  mFoundLink = nullptr;
+  mFoundEditable = nullptr;
+  mFoundRange = nullptr;
+  GlobalTeardownObserver::DisconnectFromOwner();
+}
+
+void nsTypeAheadFind::SetCurrentWindow(nsPIDOMWindowInner* aWindow) {
+  BindToOwner(aWindow->AsGlobal());
 }
 
 NS_IMETHODIMP
@@ -253,12 +256,13 @@ nsTypeAheadFind::Observe(nsISupports* aSubject, const char* aTopic,
   if (!nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     return PrefsReset();
   }
-  if (!nsCRT::strcmp(aTopic, DOM_WINDOW_DESTROYED_TOPIC) &&
-      SameCOMIdentity(aSubject, mCurrentWindow)) {
-    ReleaseStrongMemberVariables();
-  }
 
   return NS_OK;
+}
+
+void nsTypeAheadFind::DisconnectFromOwner() {
+  // (This ultimately calls GlobalTeardownObserver::DisconnectFromOwner)
+  ReleaseStrongMemberVariables();
 }
 
 void nsTypeAheadFind::SaveFind() {
@@ -297,10 +301,7 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
                                     bool aDontIterateFrames,
                                     uint16_t* aResult) {
   *aResult = FIND_NOTFOUND;
-  mFoundLink = nullptr;
-  mFoundEditable = nullptr;
-  mFoundRange = nullptr;
-  mCurrentWindow = nullptr;
+  ReleaseFoundResultsAndDisconnect();
   RefPtr<Document> startingDocument = GetDocument();
   NS_ENSURE_TRUE(startingDocument, NS_ERROR_FAILURE);
 
@@ -569,7 +570,7 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
                 nsISelectionController::SCROLL_SYNCHRONOUS);
       }
 
-      mCurrentWindow = window;
+      SetCurrentWindow(window);
       *aResult = hasWrapped ? FIND_WRAPPED : FIND_FOUND;
       return NS_OK;
     }
@@ -669,7 +670,7 @@ nsTypeAheadFind::GetFoundEditable(Element** aFoundEditable) {
 NS_IMETHODIMP
 nsTypeAheadFind::GetCurrentWindow(mozIDOMWindow** aCurrentWindow) {
   NS_ENSURE_ARG_POINTER(aCurrentWindow);
-  *aCurrentWindow = mCurrentWindow;
+  *aCurrentWindow = GetOwnerWindow();
   NS_IF_ADDREF(*aCurrentWindow);
   return NS_OK;
 }

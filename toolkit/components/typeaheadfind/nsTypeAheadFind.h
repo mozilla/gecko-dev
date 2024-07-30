@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/GlobalTeardownObserver.h"
 #include "mozilla/WeakPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCycleCollectionParticipant.h"
@@ -31,7 +32,8 @@ class Selection;
 
 class nsTypeAheadFind : public nsITypeAheadFind,
                         public nsIObserver,
-                        public nsSupportsWeakReference {
+                        public nsSupportsWeakReference,
+                        public mozilla::GlobalTeardownObserver {
  public:
   nsTypeAheadFind();
 
@@ -79,7 +81,10 @@ class nsTypeAheadFind : public nsITypeAheadFind,
   // Get the document we should search on.
   already_AddRefed<mozilla::dom::Document> GetDocument();
 
+  void DisconnectFromOwner() override;
   void ReleaseStrongMemberVariables();
+  void ReleaseFoundResultsAndDisconnect();
+  void SetCurrentWindow(nsPIDOMWindowInner* aWindow);
 
   // Current find state
   nsString mTypeAheadBuffer;
@@ -95,7 +100,6 @@ class nsTypeAheadFind : public nsITypeAheadFind,
   nsCOMPtr<mozilla::dom::Element>
       mFoundEditable;           // Most recent elem found, if editable
   RefPtr<nsRange> mFoundRange;  // Most recent range found
-  nsCOMPtr<nsPIDOMWindowInner> mCurrentWindow;
   // mLastFindLength is the character length of the last find string.  It is
   // used for disabling the "not found" sound when using backspace or delete
   uint32_t mLastFindLength;
