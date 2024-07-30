@@ -19,16 +19,10 @@ add_task(async function() {
   SpecialPowers.wrap(document).notifyUserGestureActivation();
   let button = document.querySelector("button");
 
-  const ClickEventConstructor = SpecialPowers.getBoolPref(
-    "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-  )
-    ? PointerEvent
-    : MouseEvent;
-
   const promise = new Promise(resolve => {
     button.addEventListener("click", () => {
       document.querySelector("a").dispatchEvent(
-        new ClickEventConstructor("click", {
+        new PointerEvent("click", {
           bubbles: true,
           cancelable: true,
           view: window,
@@ -43,7 +37,7 @@ add_task(async function() {
     });
   });
 
-  button.dispatchEvent(new ClickEventConstructor("click", {
+  button.dispatchEvent(new PointerEvent("click", {
     bubbles: true,
     cancelable: true,
     view: window,

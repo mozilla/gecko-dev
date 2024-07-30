@@ -162,12 +162,7 @@ export function openContextMenu(aMessage, aBrowser, aActor) {
   // We don't have access to the original event here, as that happened in
   // another process. Therefore we synthesize a new MouseEvent to propagate the
   // inputSource to the subsequently triggered popupshowing event.
-  const ContextMenuEventConstructor = Services.prefs.getBoolPref(
-    "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-  )
-    ? PointerEvent
-    : MouseEvent;
-  let newEvent = new ContextMenuEventConstructor("contextmenu", {
+  let newEvent = new PointerEvent("contextmenu", {
     bubbles: true,
     cancelable: true,
     screenX: context.screenXDevPx / win.devicePixelRatio,

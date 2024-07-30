@@ -2205,13 +2205,8 @@ async function clickAtPos(dbg, pos) {
   info(
     `Clicking on token ${tokenEl.innerText} in line ${tokenEl.parentNode.innerText}`
   );
-  const ClickEventConstructor = Services.prefs.getBoolPref(
-    "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-  )
-    ? PointerEvent
-    : MouseEvent;
   tokenEl.dispatchEvent(
-    new ClickEventConstructor("click", {
+    new PointerEvent("click", {
       bubbles: true,
       cancelable: true,
       view: dbg.win,

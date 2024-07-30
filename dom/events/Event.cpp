@@ -481,8 +481,7 @@ void Event::SetEventType(const nsAString& aEventTypeArg) {
   mEvent->mSpecifiedEventTypeString.Truncate();
   if (mIsMainThreadEvent) {
     EventClassID classID = mEvent->mClass;
-    if (classID == eMouseEventClass &&
-        StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
+    if (classID == eMouseEventClass) {
       // Some pointer event types were changed from MouseEvent.  For backward
       // compatibility, we need to handle untrusted events of them created with
       // MouseEvent instance in some places.

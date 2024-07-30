@@ -3339,16 +3339,7 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
     if (!mGeckoChild) return nil;
   }
 
-  Maybe<WidgetPointerEvent> pointerEvent;
-  Maybe<WidgetMouseEvent> mouseEvent;
-  if (StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
-    pointerEvent.emplace(true, eContextMenu, mGeckoChild);
-  } else {
-    mouseEvent.emplace(true, eContextMenu, mGeckoChild,
-                       WidgetMouseEvent::eReal);
-  }
-  WidgetMouseEvent& geckoEvent =
-      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
+  WidgetPointerEvent geckoEvent(true, eContextMenu, mGeckoChild);
   [self convertCocoaMouseEvent:theEvent toGeckoEvent:&geckoEvent];
   if (StaticPrefs::dom_event_treat_ctrl_click_as_right_click_disabled() &&
       [theEvent type] == NSEventTypeLeftMouseDown) {

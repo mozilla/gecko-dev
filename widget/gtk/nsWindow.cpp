@@ -4638,15 +4638,7 @@ void nsWindow::DispatchContextMenuEventFromMouseEvent(
     uint16_t domButton, GdkEventButton* aEvent,
     const LayoutDeviceIntPoint& aRefPoint) {
   if (domButton == MouseButton::eSecondary && MOZ_LIKELY(!mIsDestroyed)) {
-    Maybe<WidgetPointerEvent> pointerEvent;
-    Maybe<WidgetMouseEvent> mouseEvent;
-    if (StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
-      pointerEvent.emplace(true, eContextMenu, this);
-    } else {
-      mouseEvent.emplace(true, eContextMenu, this, WidgetMouseEvent::eReal);
-    }
-    WidgetMouseEvent& contextMenuEvent =
-        pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
+    WidgetPointerEvent contextMenuEvent(true, eContextMenu, this);
     InitButtonEvent(contextMenuEvent, aEvent, aRefPoint);
     contextMenuEvent.mPressure = mLastMotionPressure;
     DispatchInputEvent(&contextMenuEvent);

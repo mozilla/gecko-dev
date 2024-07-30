@@ -293,20 +293,8 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
     relatedTarget: aEvent.relatedTarget || null,
   };
 
-  const clickAsPointer = (function () {
-    // Services.prefs or SpecialPowers should available.
-    try {
-      return Services.prefs.getBoolPref(
-        "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-      );
-    } catch (e) {}
-    return SpecialPowers.getBoolPref(
-      "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-    );
-  })();
-
   let event =
-    clickAsPointer && (aEvent.type == "click" || aEvent.type == "contextmenu")
+    aEvent.type == "click" || aEvent.type == "contextmenu"
       ? new aWindow.PointerEvent(aEvent.type, dict)
       : new aWindow.MouseEvent(aEvent.type, dict);
 

@@ -73,22 +73,18 @@ bool IsPointerEventMessage(EventMessage aMessage) {
     case ePointerLeave:
     case ePointerGotCapture:
     case ePointerLostCapture:
-      return true;
     case ePointerClick:
     case ePointerAuxClick:
     case eContextMenu:
-      return StaticPrefs::
-          dom_w3c_pointer_events_dispatch_click_as_pointer_event();
+      return true;
     default:
       return false;
   }
 }
 
 bool IsPointerEventMessageOriginallyMouseEventMessage(EventMessage aMessage) {
-  return StaticPrefs::
-             dom_w3c_pointer_events_dispatch_click_as_pointer_event() &&
-         (aMessage == ePointerClick || aMessage == ePointerAuxClick ||
-          aMessage == eContextMenu);
+  return aMessage == ePointerClick || aMessage == ePointerAuxClick ||
+         aMessage == eContextMenu;
 }
 
 bool IsForbiddenDispatchingToNonElementContent(EventMessage aMessage) {

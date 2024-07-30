@@ -256,12 +256,7 @@ class TouchSimulator {
 
   sendContextMenu({ target, clientX, clientY, screenX, screenY }) {
     const view = target.ownerGlobal;
-    const ContextMenuEventConstructor = Services.prefs.getBoolPref(
-      "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-    )
-      ? view.PointerEvent
-      : view.MouseEvent;
-    const evt = new ContextMenuEventConstructor("contextmenu", {
+    const evt = new view.PointerEvent("contextmenu", {
       bubbles: true,
       cancelable: true,
       view,

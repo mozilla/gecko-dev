@@ -2364,17 +2364,8 @@ nsresult Element::DispatchClickEvent(nsPresContext* aPresContext,
   MOZ_ASSERT(aSourceEvent, "Must have source event");
   MOZ_ASSERT(aStatus, "Null out param?");
 
-  Maybe<WidgetPointerEvent> pointerEvent;
-  Maybe<WidgetMouseEvent> mouseEvent;
-  if (StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
-    pointerEvent.emplace(aSourceEvent->IsTrusted(), ePointerClick,
-                         aSourceEvent->mWidget);
-  } else {
-    mouseEvent.emplace(aSourceEvent->IsTrusted(), ePointerClick,
-                       aSourceEvent->mWidget, WidgetMouseEvent::eReal);
-  }
-  WidgetMouseEvent& event =
-      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
+  WidgetPointerEvent event(aSourceEvent->IsTrusted(), ePointerClick,
+                           aSourceEvent->mWidget);
   event.mRefPoint = aSourceEvent->mRefPoint;
   uint32_t clickCount = 1;
   float pressure = 0;

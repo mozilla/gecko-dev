@@ -991,18 +991,7 @@ void nsXULElement::ClickWithInputSource(uint16_t aInputSource,
       // This helps to avoid commands being dispatched from
       // XULButtonElement::PostHandleEventForMenu.
       eventUp.mFlags.mMultipleActionsPrevented = true;
-      Maybe<WidgetPointerEvent> pointerClickEvent;
-      Maybe<WidgetMouseEvent> mouseClickEvent;
-      if (StaticPrefs::
-              dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
-        pointerClickEvent.emplace(aIsTrustedEvent, ePointerClick, nullptr);
-      } else {
-        mouseClickEvent.emplace(aIsTrustedEvent, ePointerClick, nullptr,
-                                WidgetMouseEvent::eReal);
-      }
-      WidgetMouseEvent& eventClick = pointerClickEvent.isSome()
-                                         ? pointerClickEvent.ref()
-                                         : mouseClickEvent.ref();
+      WidgetPointerEvent eventClick(aIsTrustedEvent, ePointerClick, nullptr);
       eventDown.mInputSource = eventUp.mInputSource = eventClick.mInputSource =
           aInputSource;
       switch (aInputSource) {

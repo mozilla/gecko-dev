@@ -7964,11 +7964,8 @@ bool PresShell::EventHandler::MaybeDiscardOrDelayMouseEvent(
   if (aGUIEvent->mMessage == eMouseDown) {
     ps->mNoDelayedMouseEvents = true;
   } else if (!ps->mNoDelayedMouseEvents) {
-    if ((aGUIEvent->mMessage == eMouseUp ||
-         aGUIEvent->mMessage == eMouseExitFromWidget ||
-         (aGUIEvent->mMessage == eContextMenu &&
-          !StaticPrefs::
-              dom_w3c_pointer_events_dispatch_click_as_pointer_event()))) {
+    if (aGUIEvent->mMessage == eMouseUp ||
+        aGUIEvent->mMessage == eMouseExitFromWidget) {
       UniquePtr<DelayedMouseEvent> delayedMouseEvent =
           MakeUnique<DelayedMouseEvent>(aGUIEvent->AsMouseEvent());
       ps->mDelayedEvents.AppendElement(std::move(delayedMouseEvent));

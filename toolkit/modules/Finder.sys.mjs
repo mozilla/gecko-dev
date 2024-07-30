@@ -526,13 +526,8 @@ Finder.prototype = {
       case aEvent.DOM_VK_RETURN:
         if (this._fastFind.foundLink) {
           let view = this._fastFind.foundLink.ownerGlobal;
-          const ClickEventConstructor = Services.prefs.getBoolPref(
-            "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-          )
-            ? view.PointerEvent
-            : view.MouseEvent;
           this._fastFind.foundLink.dispatchEvent(
-            new ClickEventConstructor("click", {
+            new view.PointerEvent("click", {
               view,
               cancelable: true,
               bubbles: true,

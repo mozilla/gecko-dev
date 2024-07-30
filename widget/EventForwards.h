@@ -79,9 +79,7 @@ const char* ToChar(EventMessage aEventMessage);
 /**
  * Return true if aMessage should be dispatched as a WidgetPointerEvent and
  * the message was dispatched as a WidgetMouseEvent.  So, this returns true
- * if the event message is ePointerClick, ePointerAuxClick or eContextMenu
- * if and only if the message should be dispatched with WidgetPointerEvent
- * (depending on `dispatch_click_as_pointer_event` pref).
+ * if the event message is ePointerClick, ePointerAuxClick or eContextMenu.
  */
 [[nodiscard]] bool IsPointerEventMessageOriginallyMouseEventMessage(
     EventMessage aMessage);

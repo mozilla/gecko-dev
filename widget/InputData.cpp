@@ -335,9 +335,7 @@ bool MouseInput::TransformToLocal(
 }
 
 bool MouseInput::IsPointerEventType() const {
-  return StaticPrefs::
-             dom_w3c_pointer_events_dispatch_click_as_pointer_event() &&
-         mType == MOUSE_CONTEXTMENU;
+  return mType == MOUSE_CONTEXTMENU;
 }
 
 template <class WidgetMouseOrPointerEvent>

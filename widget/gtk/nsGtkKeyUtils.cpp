@@ -1434,18 +1434,8 @@ bool KeymapWrapper::MaybeDispatchContextMenuEvent(nsWindow* aWindow,
     return false;
   }
 
-  Maybe<WidgetPointerEvent> pointerEvent;
-  Maybe<WidgetMouseEvent> mouseEvent;
-  if (StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
-    pointerEvent.emplace(true, eContextMenu, aWindow,
-                         WidgetMouseEvent::eContextMenuKey);
-  } else {
-    mouseEvent.emplace(true, eContextMenu, aWindow, WidgetMouseEvent::eReal,
-                       WidgetMouseEvent::eContextMenuKey);
-  }
-  WidgetMouseEvent& contextMenuEvent =
-      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
-
+  WidgetPointerEvent contextMenuEvent(true, eContextMenu, aWindow,
+                                      WidgetMouseEvent::eContextMenuKey);
   contextMenuEvent.mRefPoint = LayoutDeviceIntPoint(0, 0);
   contextMenuEvent.AssignEventTime(aWindow->GetWidgetEventTime(aEvent->time));
   contextMenuEvent.mClickCount = 1;

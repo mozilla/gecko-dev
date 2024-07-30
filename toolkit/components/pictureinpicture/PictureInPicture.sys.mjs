@@ -1464,12 +1464,7 @@ export var PictureInPicture = {
 
     // We synthesize a new MouseEvent to propagate the inputSource to the
     // subsequently triggered popupshowing event.
-    const ContextMenuEventConstructor = Services.prefs.getBoolPref(
-      "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-    )
-      ? PointerEvent
-      : MouseEvent;
-    let newEvent = new ContextMenuEventConstructor("contextmenu", {
+    let newEvent = new PointerEvent("contextmenu", {
       bubbles: true,
       cancelable: true,
       screenX: data.screenXDevPx / window.devicePixelRatio,

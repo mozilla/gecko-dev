@@ -275,13 +275,6 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
                 abuse = PopupBlocker::openControlled;
               }
               break;
-            case ePointerClick:
-              // TODO: Delete this case when we remove the
-              // dom.w3c_pointer_events.dispatch_click_as_pointer_event pref.
-              if (PopupAllowedForEvent("click")) {
-                abuse = PopupBlocker::openAllowed;
-              }
-              break;
             case eMouseDoubleClick:
               if (PopupAllowedForEvent("dblclick")) {
                 abuse = PopupBlocker::openControlled;
@@ -290,24 +283,6 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
             default:
               break;
           }
-        } else if (aEvent->mMessage == ePointerAuxClick) {
-          // TODO: Delete this else-if block when we remove the
-          // dom.w3c_pointer_events.dispatch_click_as_pointer_event pref.
-          if (PopupAllowedForEvent("auxclick")) {
-            abuse = PopupBlocker::openControlled;
-          }
-        }
-
-        // TODO: Delete this switch when we remove the
-        // dom.w3c_pointer_events.dispatch_click_as_pointer_event pref.
-        switch (aEvent->mMessage) {
-          case eContextMenu:
-            if (PopupAllowedForEvent("contextmenu")) {
-              abuse = PopupBlocker::openControlled;
-            }
-            break;
-          default:
-            break;
         }
       }
       break;

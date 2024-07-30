@@ -405,13 +405,8 @@ ToolbarKeyboardNavigator = {
     if (!usesClickInsteadOfCommand) {
       return;
     }
-    const ClickEventConstructor = Services.prefs.getBoolPref(
-      "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-    )
-      ? PointerEvent
-      : MouseEvent;
     focus.dispatchEvent(
-      new ClickEventConstructor("click", {
+      new PointerEvent("click", {
         bubbles: true,
         ctrlKey: aEvent.ctrlKey,
         altKey: aEvent.altKey,
