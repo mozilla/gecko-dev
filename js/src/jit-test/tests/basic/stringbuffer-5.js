@@ -63,6 +63,7 @@ test();
 
 // Trigger GC. This should drop all references except for the JS strings.
 gc();
+finishBackgroundFree();
 checkRefCount(strLatin1, 1);
 checkRefCount(strTwoByte, 1);
 

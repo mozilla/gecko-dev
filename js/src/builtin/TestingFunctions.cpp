@@ -880,6 +880,13 @@ static bool GCParameter(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+static bool FinishBackgroundFree(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  cx->runtime()->gc.waitBackgroundFreeEnd();
+  args.rval().setUndefined();
+  return true;
+}
+
 static bool RelazifyFunctions(JSContext* cx, unsigned argc, Value* vp) {
   // Relazifying functions on GC is usually only done for compartments that are
   // not active. To aid fuzzing, this testing function allows us to relazify
@@ -9461,6 +9468,10 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
     JS_FN_HELP("gcparam", GCParameter, 2, 0,
 "gcparam(name [, value])",
 "  Wrapper for JS_[GS]etGCParameter. The name is one of:" GC_PARAMETER_ARGS_LIST),
+
+    JS_FN_HELP("finishBackgroundFree", FinishBackgroundFree, 0, 0,
+"finishBackgroundFree()",
+"  Wait for the GC's background free task to finish.\n"),
 
     JS_FN_HELP("hasDisassembler", HasDisassembler, 0, 0,
 "hasDisassembler()",

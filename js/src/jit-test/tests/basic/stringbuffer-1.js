@@ -28,6 +28,7 @@ function testAtomRef(tenured) {
     }
     minorgc();
     minorgc();
+    finishBackgroundFree();
     // If s2 is now an AtomRef string, then only s holds a reference to
     // the buffer.
     if (representation(s2).flags.includes("ATOM_REF_BIT")) {
@@ -48,6 +49,7 @@ function testDeduplication(tenured) {
     }
     assertEq(representation(s).bufferRefCount, 101);
     gc()
+    finishBackgroundFree();
     assertEq(representation(s).bufferRefCount, tenured ? 101 : 1);
     return arr;
 }
