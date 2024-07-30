@@ -17,6 +17,7 @@ RUN apt-get install build-essential \
                     libncursesw5-dev \
                     libsqlite3-dev \
                     libssl-dev \
-                    libbz2-dev
+                    libbz2-dev \
+                    zlib1g-dev
 
 CMD ["/bin/bash", "--login"]
