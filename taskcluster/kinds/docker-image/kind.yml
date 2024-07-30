@@ -66,6 +66,12 @@ tasks:
     ubuntu1804-build-python:
         symbol: I(ub18-build-python)
         parent: ubuntu1804-base
+        definition: build-python
+    ubuntu2204-arm64-build-python:
+        symbol: I(ub22-a64-build-python)
+        parent: ubuntu2204-arm64-base
+        definition: build-python
+        arch: arm64
     # Neither the ubuntu1804-*raw nor the ubuntu1804-*packages images can have
     # packages dependencies.
     ubuntu2004-raw:
