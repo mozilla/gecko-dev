@@ -1629,6 +1629,8 @@ void DCSurfaceVideo::PresentVideo() {
     return;
   }
 
+  DisableVideoOverlay();
+
   if (overlayType == DCompOverlayTypes::SOFTWARE_DECODED_VIDEO) {
     gfxCriticalNoteOnce << "Sw video swapchain present is slow";
 
