@@ -13549,7 +13549,7 @@
 # Use NSPR for HTTP3 UDP IO
 - name: network.http.http3.use_nspr_for_io
   type: RelaxedAtomicBool
-  value: @IS_NOT_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 - name: network.http.http3.enable_qlog
