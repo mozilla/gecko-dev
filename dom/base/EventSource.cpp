@@ -10,6 +10,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/GlobalFreezeObserver.h"
 #include "mozilla/dom/EventSource.h"
 #include "mozilla/dom/EventSourceBinding.h"
 #include "mozilla/dom/MessageEvent.h"
@@ -39,7 +40,6 @@
 #include "nsContentPolicyUtils.h"
 #include "nsIStringBundle.h"
 #include "nsIConsoleService.h"
-#include "nsIObserverService.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsJSUtils.h"
 #include "nsIThreadRetargetableRequest.h"
@@ -72,17 +72,16 @@ static LazyLogModule gEventSourceLog("EventSource");
 #define MAX_RECONNECTION_TIME_VALUE \
   PR_IntervalToMilliseconds(DELAY_INTERVAL_LIMIT)
 
-class EventSourceImpl final : public nsIObserver,
-                              public nsIChannelEventSink,
+class EventSourceImpl final : public nsIChannelEventSink,
                               public nsIInterfaceRequestor,
-                              public nsSupportsWeakReference,
                               public nsISerialEventTarget,
                               public nsITimerCallback,
                               public nsINamed,
-                              public nsIThreadRetargetableStreamListener {
+                              public nsIThreadRetargetableStreamListener,
+                              public GlobalTeardownObserver,
+                              public GlobalFreezeObserver {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSIOBSERVER
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSICHANNELEVENTSINK
@@ -99,7 +98,8 @@ class EventSourceImpl final : public nsIObserver,
 
   void Close();
 
-  void Init(nsIPrincipal* aPrincipal, const nsAString& aURL, ErrorResult& aRv);
+  void Init(nsIGlobalObject* aWindowGlobal, nsIPrincipal* aPrincipal,
+            const nsAString& aURL, ErrorResult& aRv);
 
   nsresult GetBaseURI(nsIURI** aBaseURI);
 
@@ -116,6 +116,19 @@ class EventSourceImpl final : public nsIObserver,
   void ReestablishConnection();
   void DispatchFailConnection();
   void FailConnection();
+
+  void DisconnectFromOwner() override {
+    Close();
+    GlobalTeardownObserver::DisconnectFromOwner();
+  }
+  void FrozenCallback(nsIGlobalObject* aOwner) override {
+    DebugOnly<nsresult> rv = Freeze();
+    MOZ_ASSERT(NS_SUCCEEDED(rv), "Freeze() failed");
+  }
+  void ThawedCallback(nsIGlobalObject* aOwner) override {
+    DebugOnly<nsresult> rv = Thaw();
+    MOZ_ASSERT(NS_SUCCEEDED(rv), "Thaw() failed");
+  }
 
   nsresult Thaw();
   nsresult Freeze();
@@ -137,7 +150,7 @@ class EventSourceImpl final : public nsIObserver,
   nsresult CheckHealthOfRequestCallback(nsIRequest* aRequestCallback);
   nsresult OnRedirectVerifyCallback(nsresult result);
   nsresult ParseURL(const nsAString& aURL);
-  nsresult AddWindowObservers();
+  nsresult AddGlobalObservers(nsIGlobalObject* aGlobal);
   void RemoveWindowObservers();
 
   void CloseInternal();
@@ -361,9 +374,8 @@ class EventSourceImpl final : public nsIObserver,
   }
 };
 
-NS_IMPL_ISUPPORTS(EventSourceImpl, nsIObserver, nsIStreamListener,
-                  nsIRequestObserver, nsIChannelEventSink,
-                  nsIInterfaceRequestor, nsISupportsWeakReference,
+NS_IMPL_ISUPPORTS(EventSourceImpl, nsIStreamListener, nsIRequestObserver,
+                  nsIChannelEventSink, nsIInterfaceRequestor,
                   nsISerialEventTarget, nsIEventTarget,
                   nsIThreadRetargetableStreamListener, nsITimerCallback,
                   nsINamed)
@@ -512,7 +524,7 @@ class InitRunnable final : public WorkerMainThreadRunnable {
       return true;
     }
     ErrorResult rv;
-    mESImpl->Init(principal, mURL, rv);
+    mESImpl->Init(nullptr, principal, mURL, rv);
     mRv = rv.StealNSResult();
 
     // We want to ensure that EventSourceImpl's lifecycle
@@ -599,19 +611,14 @@ nsresult EventSourceImpl::ParseURL(const nsAString& aURL) {
   return NS_OK;
 }
 
-nsresult EventSourceImpl::AddWindowObservers() {
+nsresult EventSourceImpl::AddGlobalObservers(nsIGlobalObject* aGlobal) {
   AssertIsOnMainThread();
   MOZ_ASSERT(mIsMainThread);
   MOZ_ASSERT(!mIsShutDown);
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  NS_ENSURE_STATE(os);
 
-  nsresult rv = os->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC, true);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = os->AddObserver(this, DOM_WINDOW_FROZEN_TOPIC, true);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = os->AddObserver(this, DOM_WINDOW_THAWED_TOPIC, true);
-  NS_ENSURE_SUCCESS(rv, rv);
+  GlobalTeardownObserver::BindToOwner(aGlobal);
+  GlobalFreezeObserver::BindToOwner(aGlobal);
+
   return NS_OK;
 }
 
@@ -619,17 +626,16 @@ void EventSourceImpl::RemoveWindowObservers() {
   AssertIsOnMainThread();
   MOZ_ASSERT(mIsMainThread);
   MOZ_ASSERT(IsClosed());
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (os) {
-    os->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
-    os->RemoveObserver(this, DOM_WINDOW_FROZEN_TOPIC);
-    os->RemoveObserver(this, DOM_WINDOW_THAWED_TOPIC);
-  }
+  GlobalTeardownObserver::DisconnectFromOwner();
+  DisconnectFreezeObserver();
 }
 
-void EventSourceImpl::Init(nsIPrincipal* aPrincipal, const nsAString& aURL,
+void EventSourceImpl::Init(nsIGlobalObject* aWindowGlobal,
+                           nsIPrincipal* aPrincipal, const nsAString& aURL,
                            ErrorResult& aRv) {
   AssertIsOnMainThread();
+  // aWindowGlobal should only exist for main-thread EventSource
+  MOZ_ASSERT_IF(aWindowGlobal, mIsMainThread);
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(ReadyState() == CONNECTING);
   mPrincipal = aPrincipal;
@@ -645,8 +651,14 @@ void EventSourceImpl::Init(nsIPrincipal* aPrincipal, const nsAString& aURL,
   }
 
   if (mIsMainThread) {
-    // we observe when the window freezes and thaws
-    aRv = AddWindowObservers();
+    // We observe when the window freezes and thaws.
+    //
+    // This will store raw pointer of us in GTO, which sounds scary as the
+    // object can be accessed cross thread. But it should be safe as GTO and
+    // EventSourceImpl lifetime should be managed in the same main thread.
+    //
+    // XXX(krosylight): But what about workers? See bug 1910585.
+    aRv = AddGlobalObservers(aWindowGlobal);
     if (NS_WARN_IF(aRv.Failed())) {
       return;
     }
@@ -657,42 +669,6 @@ void EventSourceImpl::Init(nsIPrincipal* aPrincipal, const nsAString& aURL,
                           DEFAULT_RECONNECTION_TIME_VALUE);
 
   mUnicodeDecoder = UTF_8_ENCODING->NewDecoderWithBOMRemoval();
-}
-
-//-----------------------------------------------------------------------------
-// EventSourceImpl::nsIObserver
-//-----------------------------------------------------------------------------
-
-NS_IMETHODIMP
-EventSourceImpl::Observe(nsISupports* aSubject, const char* aTopic,
-                         const char16_t* aData) {
-  AssertIsOnMainThread();
-  if (IsClosed()) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aSubject);
-  MOZ_ASSERT(mIsMainThread);
-  {
-    auto lock = mSharedData.Lock();
-    if (!lock->mEventSource->GetOwnerWindow() ||
-        window != lock->mEventSource->GetOwnerWindow()) {
-      return NS_OK;
-    }
-  }
-
-  DebugOnly<nsresult> rv;
-  if (strcmp(aTopic, DOM_WINDOW_FROZEN_TOPIC) == 0) {
-    rv = Freeze();
-    MOZ_ASSERT(NS_SUCCEEDED(rv), "Freeze() failed");
-  } else if (strcmp(aTopic, DOM_WINDOW_THAWED_TOPIC) == 0) {
-    rv = Thaw();
-    MOZ_ASSERT(NS_SUCCEEDED(rv), "Thaw() failed");
-  } else if (strcmp(aTopic, DOM_WINDOW_DESTROYED_TOPIC) == 0) {
-    Close();
-  }
-
-  return NS_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -2032,7 +2008,7 @@ already_AddRefed<EventSource> EventSource::Constructor(
       aRv.Throw(NS_ERROR_FAILURE);
       return nullptr;
     }
-    eventSource->mESImpl->Init(principal, aURL, aRv);
+    eventSource->mESImpl->Init(global, principal, aURL, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }
