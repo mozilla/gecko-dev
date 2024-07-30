@@ -92,7 +92,7 @@ class SettingsTest {
 
     private fun expectUnsupportedSettingException(vararg blocks: () -> Unit) {
         blocks.forEach { block ->
-            expectException(UnsupportedSettingException::class, block)
+            expectException<UnsupportedSettingException>(block)
         }
     }
 

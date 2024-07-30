@@ -124,23 +124,23 @@ class HeadersTest {
 
     @Test
     fun `Throws if header name is empty`() {
-        expectException(IllegalArgumentException::class) {
+        expectException<IllegalArgumentException> {
             MutableHeaders(
                 "" to "Mozilla/5.0",
             )
         }
 
-        expectException(IllegalArgumentException::class) {
+        expectException<IllegalArgumentException> {
             MutableHeaders()
                 .append("", "Mozilla/5.0")
         }
 
-        expectException(IllegalArgumentException::class) {
+        expectException<IllegalArgumentException> {
             MutableHeaders()
                 .set("", "Mozilla/5.0")
         }
 
-        expectException(IllegalArgumentException::class) {
+        expectException<IllegalArgumentException> {
             Header("", "Mozilla/5.0")
         }
     }

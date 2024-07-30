@@ -709,7 +709,7 @@ class CrashReporterTest {
 
     @Test
     fun `Internal reference is set after calling install`() {
-        expectException(IllegalStateException::class) {
+        expectException<IllegalStateException> {
             CrashReporter.requireInstance
         }
 
@@ -719,7 +719,7 @@ class CrashReporterTest {
             notificationsDelegate = mock(),
         )
 
-        expectException(IllegalStateException::class) {
+        expectException<IllegalStateException> {
             CrashReporter.requireInstance
         }
 

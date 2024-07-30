@@ -1857,15 +1857,15 @@ class GeckoEngineSessionTest {
             geckoSessionProvider = geckoSessionProvider,
         ).settings
 
-        expectException(UnsupportedSettingException::class) {
+        expectException<UnsupportedSettingException> {
             settings.javascriptEnabled = true
         }
 
-        expectException(UnsupportedSettingException::class) {
+        expectException<UnsupportedSettingException> {
             settings.domStorageEnabled = false
         }
 
-        expectException(UnsupportedSettingException::class) {
+        expectException<UnsupportedSettingException> {
             settings.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
         }
     }

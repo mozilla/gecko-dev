@@ -4,19 +4,16 @@
 
 package mozilla.components.support.test
 
-import org.junit.Assert.fail
-import kotlin.reflect.KClass
-
 /**
- * Expect [block] to throw an exception. Otherwise fail the test (junit).
+ * Expects [block] to throw an exception of type [T], and returns the exception.
  */
-inline fun <reified T : Throwable> expectException(clazz: KClass<T>, block: () -> Unit) {
+inline fun <reified T : Throwable> expectException(block: () -> Unit): T =
     try {
         block()
-        fail("Expected exception to be thrown: $clazz")
+        throw AssertionError("Expected exception to be thrown: ${T::class}")
     } catch (e: Throwable) {
         if (e !is T) {
             throw e
         }
+        e
     }
-}

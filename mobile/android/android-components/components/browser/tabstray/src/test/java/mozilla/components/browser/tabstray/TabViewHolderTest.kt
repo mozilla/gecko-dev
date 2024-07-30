@@ -28,7 +28,7 @@ class TabViewHolderTest : TestCase() {
             ) { /* noop */ }
         }
 
-        expectException(UnsupportedOperationException::class) {
+        expectException<UnsupportedOperationException> {
             simpleTabViewHolder.updateSelectedTabIndicator(true)
         }
     }

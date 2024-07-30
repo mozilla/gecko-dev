@@ -28,6 +28,9 @@ permalink: /changelog/
 * **feature-accounts**
   * Added support for logout and account deletion web channel messages that update the `FxaAccountManager` and also dismiss any UI affordance in applications.
 
+* **support-test**
+  * ⚠️ **Breaking change**: `expectException` now takes the expected exception class as a type parameter, instead of an argument, and returns the caught exception ([Bug 1908065](https://bugzilla.mozilla.org/show_bug.cgi?id=1908065)).
+
 # 129.0
 
 * **browser-engine-gecko**
