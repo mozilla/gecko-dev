@@ -61,9 +61,8 @@ skip-if(winWidget&&swgl) fuzzy(0-1,0-7200) == ../reftest_video.html?src=color_qu
 == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.pc.gbrp.av1.mp4 ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.pc.gbrp.av1.webm
 
 # Our h264.mp4 doesn't handle gbrp, but *also* doesn't error properly.
-# Skip timeout test on Linux as it works here
-skip-if(gtkWidget) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.gbrp.h264.mp4 ../reftest_video.html?src=timeout
-skip-if(gtkWidget) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.pc.gbrp.h264.mp4 ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.gbrp.h264.mp4
+== ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.gbrp.h264.mp4 ../reftest_video.html?src=timeout
+== ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.pc.gbrp.h264.mp4 ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.gbrp.h264.mp4
 
 fuzzy(0-1,0-3600) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.pc.gbrp.vp9.webm ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.gbrp.vp9.webm
 == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.gbrp.vp9.mp4 ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.gbrp.vp9.webm
