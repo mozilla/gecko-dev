@@ -619,7 +619,7 @@ browsing-search-on-start-typing =
     .accesskey = x
 
 browsing-picture-in-picture-toggle-enabled =
-    .label = Enable picture-in-picture video controls
+    .label = Enable Picture-in-Picture video controls
     .accesskey = E
 
 browsing-picture-in-picture-learn-more = Learn more
