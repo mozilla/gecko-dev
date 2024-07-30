@@ -39,6 +39,13 @@
     }
 
     init() {
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "_verticalTabs",
+        "sidebar.verticalTabs",
+        false
+      );
+
       this.startupTime = Services.startup.getStartupInfo().start.getTime();
       this.arrowScrollbox = this.querySelector("arrowscrollbox");
       this.arrowScrollbox.addEventListener("wheel", this, true);
@@ -571,21 +578,26 @@
       // positioned relative to the corner of the new window created upon
       // dragend such that the mouse appears to have the same position
       // relative to the corner of the dragged tab.
-      let clientPos = ele => {
+      function clientPos(ele, isVerticalTabs) {
         const rect = ele.getBoundingClientRect();
-        return this.verticalMode ? rect.top : rect.left;
-      };
+        if (isVerticalTabs) {
+          return rect.top;
+        }
+        return rect.left;
+      }
 
-      let tabOffset = clientPos(tab) - clientPos(this);
+      let tabOffset =
+        clientPos(tab, this._verticalTabs) -
+        clientPos(this, this._verticalTabs);
 
       tab._dragData = {
-        offsetX: this.verticalMode
+        offsetX: this._verticalTabs
           ? event.screenX - window.screenX
           : event.screenX - window.screenX - tabOffset,
-        offsetY: this.verticalMode
+        offsetY: this._verticalTabs
           ? event.screenY - window.screenY - tabOffset
           : event.screenY - window.screenY,
-        scrollPos: this.verticalMode
+        scrollPos: this._verticalTabs
           ? this.arrowScrollbox.scrollbox.scrollTop
           : this.arrowScrollbox.scrollbox.scrollLeft,
         screenX: event.screenX,
@@ -634,7 +646,7 @@
         }
         if (pixelsToScroll) {
           arrowScrollbox.scrollByPixels(
-            (RTL_UI && !this.verticalMode ? -1 : 1) * pixelsToScroll,
+            (RTL_UI && !this._verticalTabs ? -1 : 1) * pixelsToScroll,
             true
           );
         }
@@ -682,18 +694,18 @@
         // if we are scrolling, put the drop indicator at the edge
         // so that it doesn't jump while scrolling
         let scrollRect = arrowScrollbox.scrollClientRect;
-        let minMargin = this.verticalMode
+        let minMargin = this._verticalTabs
           ? scrollRect.top - rect.top
           : scrollRect.left - rect.left;
-        let maxMargin = this.verticalMode
+        let maxMargin = this._verticalTabs
           ? Math.min(minMargin + scrollRect.height, scrollRect.bottom)
           : Math.min(minMargin + scrollRect.width, scrollRect.right);
-        if (RTL_UI && !this.verticalMode) {
+        if (RTL_UI && !this._verticalTabs) {
           [minMargin, maxMargin] = [
             this.clientWidth - maxMargin,
             this.clientWidth - minMargin,
           ];
-        } else if (this.verticalMode) {
+        } else if (this._verticalTabs) {
           [minMargin, maxMargin] = [
             this.clientHeight - maxMargin,
             this.clientHeight - minMargin,
@@ -705,7 +717,7 @@
         let children = this.allTabs;
         if (newIndex == children.length) {
           let tabRect = this._getVisibleTabs().at(-1).getBoundingClientRect();
-          if (this.verticalMode) {
+          if (this._verticalTabs) {
             newMargin = tabRect.bottom - rect.top;
           } else if (RTL_UI) {
             newMargin = rect.right - tabRect.left;
@@ -714,7 +726,7 @@
           }
         } else {
           let tabRect = children[newIndex].getBoundingClientRect();
-          if (this.verticalMode) {
+          if (this._verticalTabs) {
             newMargin = rect.top - tabRect.bottom;
           } else if (RTL_UI) {
             newMargin = rect.right - tabRect.right;
@@ -725,11 +737,11 @@
       }
 
       ind.hidden = false;
-      newMargin += this.verticalMode ? ind.clientHeight : ind.clientWidth / 2;
-      if (RTL_UI && !this.verticalMode) {
+      newMargin += this._verticalTabs ? ind.clientHeight : ind.clientWidth / 2;
+      if (RTL_UI && !this._verticalTabs) {
         newMargin *= -1;
       }
-      ind.style.transform = this.verticalMode
+      ind.style.transform = this._verticalTabs
         ? "translateY(" + Math.round(newMargin) + "px)"
         : "translateX(" + Math.round(newMargin) + "px)";
     }
@@ -794,7 +806,7 @@
         if (oldTranslate && oldTranslate != newTranslate && !gReduceMotion) {
           for (let tab of movingTabs) {
             tab.toggleAttribute("tabdrop-samewindow", true);
-            tab.style.transform = this.verticalMode
+            tab.style.transform = this._verticalTabs
               ? "translateY(" + newTranslate + "px)"
               : "translateX(" + newTranslate + "px)";
             let postTransitionCleanup = () => {
@@ -962,7 +974,7 @@
       }
 
       // Disable detach within the browser toolbox
-      let [tabAxisPos, tabAxisStart, tabAxisEnd] = this.verticalMode
+      let [tabAxisPos, tabAxisStart, tabAxisEnd] = this._verticalTabs
         ? [event.screenY, window.screenY, window.screenY + window.outerHeight]
         : [event.screenX, window.screenX, window.screenX + window.outerWidth];
 
@@ -972,9 +984,9 @@
         let rect = window.windowUtils.getBoundsWithoutFlushing(
           this.arrowScrollbox
         );
-        let crossAxisPos = this.verticalMode ? event.screenX : event.screenY;
+        let crossAxisPos = this._verticalTabs ? event.screenX : event.screenY;
         let crossAxisStart, crossAxisEnd;
-        if (this.verticalMode) {
+        if (this._verticalTabs) {
           if (RTL_UI) {
             crossAxisStart = window.screenX + rect.right - 1.5 * rect.width;
             crossAxisEnd = window.screenX;
@@ -1618,12 +1630,12 @@
       }
 
       if (!("animLastScreenPos" in draggedTab._dragData)) {
-        draggedTab._dragData.animLastScreenPos = this.verticalMode
+        draggedTab._dragData.animLastScreenPos = this._verticalTabs
           ? draggedTab._dragData.screenY
           : draggedTab._dragData.screenX;
       }
 
-      let screen = this.verticalMode ? event.screenY : event.screenX;
+      let screen = this._verticalTabs ? event.screenY : event.screenX;
       if (screen == draggedTab._dragData.animLastScreenPos) {
         return;
       }
@@ -1635,7 +1647,7 @@
         pinned ? numPinned : undefined
       );
 
-      if (RTL_UI && !this.verticalMode) {
+      if (RTL_UI && !this._verticalTabs) {
         tabs.reverse();
         // Copy moving tabs array to avoid infinite reversing.
         movingTabs = [...movingTabs].reverse();
@@ -1644,10 +1656,10 @@
       let directionMove = screen > draggedTab._dragData.animLastScreenPos;
       draggedTab._dragData.animLastScreenPos = screen;
 
-      let screenAxis = this.verticalMode ? "screenY" : "screenX";
-      let size = this.verticalMode ? "height" : "width";
-      let translateAxis = this.verticalMode ? "translateY" : "translateX";
-      let scrollDirection = this.verticalMode ? "scrollTop" : "scrollLeft";
+      let screenAxis = this._verticalTabs ? "screenY" : "screenX";
+      let size = this._verticalTabs ? "height" : "width";
+      let translateAxis = this._verticalTabs ? "translateY" : "translateX";
+      let scrollDirection = this._verticalTabs ? "scrollTop" : "scrollLeft";
 
       let tabSize = draggedTab.getBoundingClientRect()[size];
       let shiftSize = tabSize * movingTabs.length;
@@ -1706,7 +1718,9 @@
         if (tabs[mid] == draggedTab && ++mid > high) {
           break;
         }
-        screen = tabs[mid][screenAxis] + getTabShift(tabs[mid], oldIndex);
+        screen =
+          tabs[mid][screenAxis] +
+          getTabShift(tabs[mid], oldIndex, this._verticalTabs);
 
         if (screen > tabCenter) {
           high = mid - 1;
@@ -1732,26 +1746,26 @@
       // would currently be dropped.
       for (let tab of tabs) {
         if (tab != draggedTab) {
-          let shift = getTabShift(tab, newIndex);
+          let shift = getTabShift(tab, newIndex, this._verticalTabs);
           tab.style.transform = shift ? `${translateAxis}(${shift}px)` : "";
         }
       }
 
-      let getTabShift = (tab, dropIndex) => {
+      function getTabShift(tab, dropIndex, isVerticalTabs) {
         if (tab._tPos < draggedTab._tPos && tab._tPos >= dropIndex) {
-          if (this.verticalMode) {
+          if (isVerticalTabs) {
             return shiftSize;
           }
           return RTL_UI ? -shiftSize : shiftSize;
         }
         if (tab._tPos > draggedTab._tPos && tab._tPos < dropIndex) {
-          if (this.verticalMode) {
+          if (isVerticalTabs) {
             return -shiftSize;
           }
           return RTL_UI ? shiftSize : -shiftSize;
         }
         return 0;
-      };
+      }
     }
 
     _finishAnimateTabMove() {
@@ -1791,7 +1805,7 @@
 
         if (animate) {
           movingTab.groupingTabsData = {};
-          addAnimationData(movingTab, insertAtPos, true);
+          addAnimationData(movingTab, insertAtPos, true, this._verticalTabs);
         } else {
           gBrowser.moveTabTo(movingTab, insertAtPos);
         }
@@ -1811,7 +1825,7 @@
 
         if (animate) {
           movingTab.groupingTabsData = {};
-          addAnimationData(movingTab, insertAtPos, false);
+          addAnimationData(movingTab, insertAtPos, false, this._verticalTabs);
         } else {
           gBrowser.moveTabTo(movingTab, insertAtPos);
         }
@@ -1822,10 +1836,10 @@
       for (let t of this._getVisibleTabs()) {
         if (t.groupingTabsData && t.groupingTabsData.translatePos) {
           let translatePos =
-            (RTL_UI && !this.verticalMode ? -1 : 1) *
+            (RTL_UI && !this._verticalTabs ? -1 : 1) *
             t.groupingTabsData.translatePos;
           t.style.transform = `translate${
-            this.verticalMode ? "Y" : "X"
+            this._verticalTabs ? "Y" : "X"
           }(${translatePos}px)`;
         }
       }
@@ -1838,11 +1852,12 @@
         return Math.max(index, gBrowser._numPinnedTabs);
       }
 
-      let addAnimationData = (
+      function addAnimationData(
         movingTab,
         movingTabNewIndex,
-        isBeforeSelectedTab = true
-      ) => {
+        isBeforeSelectedTab = true,
+        isVerticalTabs = false
+      ) {
         let movingTabOldIndex = movingTab._tPos;
 
         if (movingTabOldIndex == movingTabNewIndex) {
@@ -1853,7 +1868,7 @@
 
         let movingTabSize =
           movingTab.getBoundingClientRect()[
-            this.verticalMode ? "height" : "width"
+            isVerticalTabs ? "height" : "width"
           ];
         let shift = (movingTabNewIndex - movingTabOldIndex) * movingTabSize;
 
@@ -1919,7 +1934,7 @@
 
           middleTab.toggleAttribute("tab-grouping", true);
         }
-      };
+      }
     }
 
     _finishGroupSelectedTabs(tab) {
@@ -2097,7 +2112,7 @@
           event.screenX > tab.screenX + width * 0.75 ||
           ((event.screenY < tab.screenY + height * 0.25 ||
             event.screenY > tab.screenY + height * 0.75) &&
-            this.verticalMode)
+            this._verticalTabs)
         ) {
           return null;
         }
@@ -2111,7 +2126,7 @@
         return this.allTabs.length;
       }
       let isBeforeMiddle;
-      if (this.verticalMode) {
+      if (this._verticalTabs) {
         let middle = tab.screenY + tab.getBoundingClientRect().height / 2;
         isBeforeMiddle = event.screenY < middle;
       } else {
