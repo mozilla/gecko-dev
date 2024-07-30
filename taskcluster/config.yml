@@ -202,6 +202,7 @@ treeherder:
         'TA': 'Toolchain builds for Android'
         'TL': 'Toolchain builds for Linux 64-bits'
         'TL32': 'Toolchain builds for Linux 32-bits'
+        'TLA64': 'Toolchain builds for Linux AArch64'
         'TM': 'Toolchain builds for OSX'
         'TMW': 'Toolchain builds for Windows MinGW'
         'TW32': 'Toolchain builds for Windows 32-bits'
