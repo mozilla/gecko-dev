@@ -710,7 +710,8 @@ dependencies {
     implementation FenixDependencies.adjust
     implementation FenixDependencies.installreferrer // Required by Adjust
 
-    implementation FenixDependencies.google_ads_id // Required for the Google Advertising ID
+    // Required for the Google Advertising ID
+    implementation ComponentsDependencies.play_services_ads_id
 
     // Required for in-app reviews
     implementation ComponentsDependencies.play_review

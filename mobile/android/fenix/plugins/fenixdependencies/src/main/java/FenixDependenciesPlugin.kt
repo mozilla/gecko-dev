@@ -31,8 +31,6 @@ object FenixVersions {
     const val junit = "5.10.2"
     const val mockk = "1.13.12"
 
-    const val google_ads_id_version = "16.0.0"
-
     // keep in sync with the versions used in AS.
     const val protobuf = "3.21.10"
     const val protobuf_plugin = "0.9.4"
@@ -63,8 +61,6 @@ object FenixDependencies {
     const val mockk_android = "io.mockk:mockk-android:${FenixVersions.mockk}"
     const val falcon = "com.jraska:falcon:${FenixVersions.falcon}"
     const val fastlane = "tools.fastlane:screengrab:${FenixVersions.fastlane}"
-
-    const val google_ads_id = "com.google.android.gms:play-services-ads-identifier:${FenixVersions.google_ads_id_version}"
 
     const val junitApi = "org.junit.jupiter:junit-jupiter-api:${FenixVersions.junit}"
     const val junitParams = "org.junit.jupiter:junit-jupiter-params:${FenixVersions.junit}"
