@@ -18,9 +18,9 @@ import mozilla.components.concept.engine.webextension.DisabledFlags
 import mozilla.components.concept.engine.webextension.Metadata
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.feature.addons.migration.DefaultSupportedAddonsChecker
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.BrowsersCache
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

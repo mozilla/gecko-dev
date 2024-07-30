@@ -44,8 +44,8 @@ import mozilla.components.compose.cfr.CFRPopup.PopupAlignment.INDICATOR_CENTERED
 import mozilla.components.compose.cfr.CFRPopupProperties
 import mozilla.components.concept.engine.EngineSession.CookieBannerHandlingStatus
 import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.CookieBanners
 import org.mozilla.fenix.GleanMetrics.Shopping
 import org.mozilla.fenix.GleanMetrics.TrackingProtection

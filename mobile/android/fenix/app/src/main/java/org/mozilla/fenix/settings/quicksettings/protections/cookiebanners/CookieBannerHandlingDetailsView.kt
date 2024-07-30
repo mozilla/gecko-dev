@@ -14,8 +14,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.ktx.kotlin.toShortUrl
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.CookieBanners
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.ComponentCookieBannerDetailsPanelBinding

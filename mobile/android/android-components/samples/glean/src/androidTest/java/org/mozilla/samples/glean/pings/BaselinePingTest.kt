@@ -9,7 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
-import mozilla.telemetry.glean.testing.GleanTestLocalServer
+import mozilla.components.service.glean.testing.GleanTestLocalServer
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer

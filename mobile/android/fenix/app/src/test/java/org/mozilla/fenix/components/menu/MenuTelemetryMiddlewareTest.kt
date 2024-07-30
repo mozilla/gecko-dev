@@ -7,12 +7,12 @@ package org.mozilla.fenix.components.menu
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.service.fxa.manager.AccountState
+import mozilla.components.service.glean.private.EventMetricType
+import mozilla.components.service.glean.private.NoExtras
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.telemetry.glean.internal.CounterMetric
-import mozilla.telemetry.glean.private.EventMetricType
-import mozilla.telemetry.glean.private.NoExtras
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

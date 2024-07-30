@@ -25,10 +25,10 @@ import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.concept.engine.permission.SitePermissions.Status.NO_DECISION
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

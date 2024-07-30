@@ -35,10 +35,10 @@ import mozilla.components.service.fxa.store.SyncAction
 import mozilla.components.service.fxa.store.SyncStatus
 import mozilla.components.service.fxa.store.SyncStore
 import mozilla.components.service.fxa.sync.SyncReason
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.telemetry.glean.internal.ErrorType
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

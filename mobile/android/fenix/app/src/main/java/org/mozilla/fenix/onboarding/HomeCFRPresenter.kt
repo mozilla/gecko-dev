@@ -17,7 +17,7 @@ import androidx.core.content.ContextCompat.getColor
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.compose.cfr.CFRPopup
 import mozilla.components.compose.cfr.CFRPopupProperties
-import mozilla.telemetry.glean.private.NoExtras
+import mozilla.components.service.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Onboarding
 import org.mozilla.fenix.GleanMetrics.RecentTabs
 import org.mozilla.fenix.R

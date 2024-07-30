@@ -32,8 +32,8 @@ import mozilla.components.concept.sync.TabData
 import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.share.RecentAppsStorage
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.ktx.kotlin.isExtensionUrl
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.SyncAccount
 import org.mozilla.fenix.R

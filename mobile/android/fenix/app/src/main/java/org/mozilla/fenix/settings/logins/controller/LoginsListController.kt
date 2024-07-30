@@ -5,7 +5,7 @@
 package org.mozilla.fenix.settings.logins.controller
 
 import androidx.navigation.NavController
-import mozilla.telemetry.glean.private.NoExtras
+import mozilla.components.service.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.Logins
 import org.mozilla.fenix.settings.SupportUtils

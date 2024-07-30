@@ -46,12 +46,12 @@ import mozilla.components.feature.top.sites.DefaultTopSitesStorage
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

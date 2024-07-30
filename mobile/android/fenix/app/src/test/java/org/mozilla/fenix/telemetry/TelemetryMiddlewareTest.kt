@@ -24,12 +24,12 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.translate.TranslationError
 import mozilla.components.concept.engine.translate.TranslationOperation
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.base.android.Clock
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.telemetry.glean.internal.TimerId
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

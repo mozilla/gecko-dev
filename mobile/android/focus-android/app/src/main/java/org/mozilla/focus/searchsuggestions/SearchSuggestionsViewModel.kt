@@ -10,7 +10,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.feature.search.ext.canProvideSearchSuggestions
-import mozilla.telemetry.glean.private.NoExtras
+import mozilla.components.service.glean.private.NoExtras
 import org.mozilla.focus.FocusApplication
 import org.mozilla.focus.GleanMetrics.SearchSuggestions
 

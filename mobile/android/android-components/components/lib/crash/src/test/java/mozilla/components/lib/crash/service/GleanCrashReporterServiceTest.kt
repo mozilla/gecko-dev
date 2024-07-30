@@ -9,8 +9,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.GleanMetrics.CrashMetrics
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.whenever
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

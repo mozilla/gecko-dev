@@ -14,7 +14,7 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
-import mozilla.telemetry.glean.private.NoExtras
+import mozilla.components.service.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.CookieBanner
 import org.mozilla.focus.cookiebanner.CookieBannerOption
 import org.mozilla.focus.ext.components

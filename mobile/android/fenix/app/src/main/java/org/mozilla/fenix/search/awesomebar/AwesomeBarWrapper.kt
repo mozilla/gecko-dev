@@ -15,8 +15,8 @@ import mozilla.components.compose.browser.awesomebar.AwesomeBar
 import mozilla.components.compose.browser.awesomebar.AwesomeBarDefaults
 import mozilla.components.compose.browser.awesomebar.AwesomeBarOrientation
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.ktx.android.view.hideKeyboard
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.BookmarksManagement
 import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.ext.components

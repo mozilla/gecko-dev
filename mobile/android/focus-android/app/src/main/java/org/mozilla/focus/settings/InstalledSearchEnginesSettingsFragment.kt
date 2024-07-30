@@ -14,7 +14,7 @@ import mozilla.components.browser.state.state.availableSearchEngines
 import mozilla.components.browser.state.state.searchEngines
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.search.SearchUseCases
-import mozilla.telemetry.glean.private.NoExtras
+import mozilla.components.service.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.SearchEngines
 import org.mozilla.focus.R
 import org.mozilla.focus.ext.requireComponents

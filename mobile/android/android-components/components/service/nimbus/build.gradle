@@ -59,7 +59,7 @@ dependencies {
     api (ComponentsDependencies.mozilla_appservices_nimbus) {
         // Use our own version of the Glean dependency,
         // which might be different from the version declared by A-S.
-        exclude group: 'org.mozilla.telemetry', module: 'glean'
+        exclude group: 'org.mozilla.components', module: 'service-glean'
     }
 
     implementation ComponentsDependencies.androidx_core_ktx
@@ -79,7 +79,7 @@ dependencies {
 
     // We only compile against GeckoView and Glean. It's up to the app to add those dependencies if it wants to
     // send crash reports to Socorro (GV).
-    compileOnly ComponentsDependencies.mozilla_glean
+    compileOnly project(":service-glean")
 
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_forUnitTests
     testImplementation ComponentsDependencies.androidx_test_core
@@ -90,7 +90,7 @@ dependencies {
     testImplementation ComponentsDependencies.mozilla_glean_forUnitTests
     testImplementation ComponentsDependencies.androidx_work_testing
     testImplementation project(':support-test')
-    testImplementation ComponentsDependencies.mozilla_glean
+    testImplementation project(":service-glean")
 }
 
 apply from: '../../../android-lint.gradle'
@@ -119,5 +119,4 @@ nimbus {
             ? gradle.getProperty('localProperties.autoPublish.application-services.dir') : null
 }
 
-ext.gleanNamespace = "mozilla.telemetry.glean"
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"

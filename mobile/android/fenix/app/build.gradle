@@ -521,7 +521,6 @@ android.applicationVariants.configureEach { variant ->
 }
 
 // Generate Kotlin code for the Fenix Glean metrics.
-ext.gleanNamespace = "mozilla.telemetry.glean"
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 apply plugin: "org.mozilla.appservices.nimbus-gradle-plugin"
 
@@ -644,7 +643,6 @@ dependencies {
     implementation project(':service-sync-logins')
     implementation project(':service-firefox-accounts')
     implementation project(':service-glean')
-    implementation ComponentsDependencies.mozilla_glean
     implementation project(':service-location')
     implementation project(':service-nimbus')
 

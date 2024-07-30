@@ -12,8 +12,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.verify
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

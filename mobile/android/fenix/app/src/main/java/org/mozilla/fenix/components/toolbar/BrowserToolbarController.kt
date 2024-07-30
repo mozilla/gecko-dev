@@ -16,9 +16,9 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.ktx.kotlin.isUrl
 import mozilla.components.ui.tabcounter.TabCounterMenu
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.ReaderMode

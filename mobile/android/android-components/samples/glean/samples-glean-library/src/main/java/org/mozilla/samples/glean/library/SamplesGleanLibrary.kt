@@ -4,8 +4,8 @@
 
 package org.mozilla.samples.glean.library
 
+import mozilla.components.service.glean.Glean
 import mozilla.samples.glean.library.GleanMetrics.SampleMetrics
-import mozilla.telemetry.glean.Glean
 
 /**
  * These are just simple functions to test calling the Glean API

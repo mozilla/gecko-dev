@@ -29,7 +29,7 @@ dependencies {
     api (ComponentsDependencies.mozilla_appservices_places) {
         // Use our own version of the Glean dependency,
         // which might be different from the version declared by A-S.
-        exclude group: 'org.mozilla.telemetry', module: 'glean'
+        exclude group: 'org.mozilla.components', module: 'service-glean'
     }
 
     api ComponentsDependencies.mozilla_appservices_tabs

@@ -16,10 +16,10 @@ import android.os.IBinder
 import android.os.RemoteException
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.ThreadUtils
 import mozilla.components.support.utils.ext.stopForegroundCompat
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.Notifications
 import org.mozilla.focus.GleanMetrics.RecentApps
 import org.mozilla.focus.R

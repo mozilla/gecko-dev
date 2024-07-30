@@ -10,7 +10,7 @@ import android.os.Bundle
 import androidx.preference.Preference
 import androidx.preference.SwitchPreferenceCompat
 import mozilla.components.lib.auth.canUseBiometricFeature
-import mozilla.telemetry.glean.private.NoExtras
+import mozilla.components.service.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.CookieBanner
 import org.mozilla.focus.GleanMetrics.PrivacySettings
 import org.mozilla.focus.GleanMetrics.TrackingProtectionExceptions

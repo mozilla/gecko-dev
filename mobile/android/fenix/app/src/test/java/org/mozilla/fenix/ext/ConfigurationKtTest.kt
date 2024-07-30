@@ -5,7 +5,7 @@
 package org.mozilla.fenix.ext
 
 import io.mockk.mockk
-import mozilla.telemetry.glean.config.Configuration
+import mozilla.components.service.glean.config.Configuration
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test

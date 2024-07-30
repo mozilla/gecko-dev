@@ -10,11 +10,11 @@ import mozilla.components.feature.contextmenu.facts.ContextMenuFacts
 import mozilla.components.feature.customtabs.CustomTabsFacts
 import mozilla.components.feature.search.telemetry.ads.AdsTelemetry
 import mozilla.components.feature.search.telemetry.incontent.InContentTelemetry
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.base.Component
 import mozilla.components.support.base.facts.Fact
 import mozilla.components.support.base.facts.FactProcessor
 import mozilla.components.support.base.facts.Facts
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.Browser
 import org.mozilla.focus.GleanMetrics.BrowserSearch
 import org.mozilla.focus.GleanMetrics.ContextMenu

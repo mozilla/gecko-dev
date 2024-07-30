@@ -22,10 +22,10 @@ import io.mockk.verify
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.search.SearchEngine.Type.BUNDLED
 import mozilla.components.concept.menu.Orientation
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

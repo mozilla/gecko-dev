@@ -10,7 +10,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.LifecycleOwner
 import mozilla.components.lib.state.ext.observeAsComposableState
-import mozilla.telemetry.glean.private.NoExtras
+import mozilla.components.service.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.HomeBookmarks
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components

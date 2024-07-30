@@ -81,8 +81,8 @@ dependencies {
 
     // We only compile against GeckoView and Glean. It's up to the app to add those dependencies if it wants to
     // send crash reports to Socorro (GV).
-    compileOnly ComponentsDependencies.mozilla_glean
-    testImplementation ComponentsDependencies.mozilla_glean
+    compileOnly project(":service-glean")
+    testImplementation project(":service-glean")
     testImplementation ComponentsDependencies.androidx_work_testing
 
     testImplementation project(':support-test')
@@ -94,7 +94,6 @@ dependencies {
     testImplementation ComponentsDependencies.mozilla_glean_forUnitTests
 }
 
-ext.gleanNamespace = "mozilla.telemetry.glean"
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 apply from: '../../../android-lint.gradle'
 apply from: '../../../publish.gradle'

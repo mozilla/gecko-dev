@@ -26,10 +26,10 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

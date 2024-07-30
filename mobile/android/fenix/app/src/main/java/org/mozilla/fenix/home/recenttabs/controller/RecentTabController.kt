@@ -6,7 +6,7 @@ package org.mozilla.fenix.home.recenttabs.controller
 
 import androidx.navigation.NavController
 import mozilla.components.feature.tabs.TabsUseCases.SelectTabUseCase
-import mozilla.telemetry.glean.private.NoExtras
+import mozilla.components.service.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.RecentTabs
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore

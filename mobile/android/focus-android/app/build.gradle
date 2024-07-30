@@ -228,7 +228,6 @@ tasks.withType(KotlinCompile).configureEach {
 // -------------------------------------------------------------------------------------------------
 // Generate Kotlin code for the Focus Glean metrics.
 // -------------------------------------------------------------------------------------------------
-ext.gleanNamespace = "mozilla.telemetry.glean"
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 apply plugin: "org.mozilla.appservices.nimbus-gradle-plugin"
 
@@ -342,6 +341,9 @@ dependencies {
     implementation project(':lib-auth')
     implementation project(':lib-publicsuffixlist')
 
+    implementation project(':service-glean'), {
+        exclude group: 'org.mozilla.telemetry', module: 'glean-native'
+    }
     implementation project(':service-location')
     implementation project(':service-nimbus')
 
@@ -361,11 +363,6 @@ dependencies {
     implementation project(':support-webextensions')
     implementation project(':support-locale')
     implementation project(':compose-cfr')
-
-    implementation project(":service-glean")
-    implementation ComponentsDependencies.mozilla_glean, {
-        exclude group: 'org.mozilla.telemetry', module: 'glean-native'
-    }
 
     implementation ComponentsDependencies.kotlin_coroutines
     debugImplementation ComponentsDependencies.leakcanary

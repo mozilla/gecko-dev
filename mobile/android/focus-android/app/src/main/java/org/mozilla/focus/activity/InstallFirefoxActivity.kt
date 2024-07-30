@@ -11,9 +11,9 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.webkit.WebView
 import androidx.core.net.toUri
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.utils.Browsers
 import mozilla.components.support.utils.ext.resolveActivityCompat
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.OpenWith
 import org.mozilla.focus.utils.AppConstants
 

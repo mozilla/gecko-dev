@@ -14,8 +14,8 @@ import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.state.search.RegionState
 import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.UpdatableAddressFields
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull

@@ -7,12 +7,12 @@ package mozilla.components.service.nimbus.messaging
 import android.content.Intent
 import androidx.core.net.toUri
 import kotlinx.coroutines.test.runTest
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.service.nimbus.GleanMetrics.Microsurvey
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
-import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

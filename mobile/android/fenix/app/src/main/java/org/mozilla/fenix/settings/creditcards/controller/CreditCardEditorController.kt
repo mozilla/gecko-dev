@@ -12,8 +12,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.concept.storage.NewCreditCardFields
 import mozilla.components.concept.storage.UpdatableCreditCardFields
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.service.sync.autofill.AutofillCreditCardsAddressesStorage
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.CreditCards
 import org.mozilla.fenix.settings.creditcards.CreditCardEditorFragment
 import org.mozilla.fenix.settings.creditcards.interactor.CreditCardEditorInteractor

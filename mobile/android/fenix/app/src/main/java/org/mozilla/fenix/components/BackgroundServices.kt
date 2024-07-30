@@ -39,10 +39,10 @@ import mozilla.components.service.fxa.manager.SCOPE_SYNC
 import mozilla.components.service.fxa.store.SyncStore
 import mozilla.components.service.fxa.store.SyncStoreSupport
 import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
+import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.service.sync.autofill.AutofillCreditCardsAddressesStorage
 import mozilla.components.service.sync.logins.SyncableLoginsStorage
 import mozilla.components.support.utils.RunWhenReadyQueue
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.SyncAuth
