@@ -20,7 +20,15 @@ class DownloadUtilsTest {
     val folder = TemporaryFolder()
 
     private fun assertContentDisposition(expected: String, contentDisposition: String) {
-        assertEquals(expected, DownloadUtils.guessFileName(contentDisposition, null, null, null))
+        assertEquals(
+            expected,
+            DownloadUtils.guessFileName(
+                contentDisposition = contentDisposition,
+                destinationDirectory = folder.root.path,
+                url = null,
+                mimeType = null,
+            ),
+        )
     }
 
     @Test
@@ -33,8 +41,9 @@ class DownloadUtilsTest {
             assertContentDisposition("downloadfile.bin", contentDisposition)
             assertContentDisposition("downloadfile.bin", "$contentDisposition;")
             assertContentDisposition("downloadfile.bin", "$contentDisposition; filename")
-            assertContentDisposition(".bin", "$contentDisposition; filename=")
-            assertContentDisposition(".bin", "$contentDisposition; filename=\"\"")
+            assertContentDisposition("downloadfile.bin", "$contentDisposition; filename=")
+            assertContentDisposition("downloadfile.bin", "$contentDisposition; filename=\"\"")
+            assertContentDisposition("downloadfile.bin", "$contentDisposition; filename=.bin")
 
             // Provided filename field
             assertContentDisposition("filename.jpg", "$contentDisposition; filename=\"filename.jpg\"")
@@ -104,11 +113,62 @@ class DownloadUtilsTest {
     }
 
     @Test
+    fun guessFilename() {
+        assertEquals(
+            "test.zip",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/test.zip",
+                mimeType = "application/zip",
+            ),
+        )
+
+        folder.newFile("test.zip")
+        assertEquals(
+            "test(1).zip",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/test.zip",
+                mimeType = "application/zip",
+            ),
+        )
+
+        folder.newFile("test(1).zip")
+        assertEquals(
+            "test(2).zip",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/test.zip",
+                mimeType = "application/zip",
+            ),
+        )
+    }
+
+    @Test
     fun guessFileName_url() {
-        assertUrl("downloadfile.bin", "http://example.com/")
-        assertUrl("downloadfile.bin", "http://example.com/filename/")
-        assertUrl("filename.jpg", "http://example.com/filename.jpg")
-        assertUrl("filename.jpg", "http://example.com/foo/bar/filename.jpg")
+        assertUrl(
+            destinationDirectory = folder.root.path,
+            expected = "downloadfile.bin",
+            url = "http://example.com/",
+        )
+        assertUrl(
+            destinationDirectory = folder.root.path,
+            expected = "downloadfile.bin",
+            url = "http://example.com/filename/",
+        )
+        assertUrl(
+            destinationDirectory = folder.root.path,
+            expected = "filename.jpg",
+            url = "http://example.com/filename.jpg",
+        )
+        assertUrl(
+            destinationDirectory = folder.root.path,
+            expected = "filename.jpg",
+            url = "http://example.com/foo/bar/filename.jpg",
+        )
     }
 
     @Test
@@ -127,40 +187,162 @@ class DownloadUtilsTest {
         assertEquals("dll", MimeTypeMap.getSingleton().getExtensionFromMimeType("application/x-msdos-program"))
         assertEquals("application/x-msdos-program", MimeTypeMap.getSingleton().getMimeTypeFromExtension("exe"))
 
-        assertEquals("file.jpg", DownloadUtils.guessFileName(null, null, "http://example.com/file.jpg", "image/jpeg"))
+        assertEquals(
+            "file.jpg",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.jpg",
+                mimeType = "image/jpeg",
+            ),
+        )
 
         // This is difference with URLUtil.guessFileName
-        assertEquals("file.jpg", DownloadUtils.guessFileName(null, null, "http://example.com/file.bin", "image/jpeg"))
+        assertEquals(
+            "file.jpg",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.bin",
+                mimeType = "image/jpeg",
+            ),
+        )
 
         assertEquals(
             "Caesium-wahoo-v3.6-b792615ced1b.zip",
-            DownloadUtils.guessFileName(null, null, "https://download.msfjarvis.website/caesium/wahoo/beta/Caesium-wahoo-v3.6-b792615ced1b.zip", "application/zip"),
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "https://download.msfjarvis.website/caesium/wahoo/beta/Caesium-wahoo-v3.6-b792615ced1b.zip",
+                mimeType = "application/zip",
+            ),
         )
         assertEquals(
             "compressed.TAR.GZ",
-            DownloadUtils.guessFileName(null, null, "http://example.com/compressed.TAR.GZ", "application/gzip"),
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/compressed.TAR.GZ",
+                mimeType = "application/gzip",
+            ),
         )
-        assertEquals("file.html", DownloadUtils.guessFileName(null, null, "http://example.com/file?abc", "text/html"))
-        assertEquals("file.html", DownloadUtils.guessFileName(null, null, "http://example.com/file", "text/html"))
-        assertEquals("file.html", DownloadUtils.guessFileName(null, null, "http://example.com/file", "text/html; charset=utf-8"))
-        assertEquals("file.txt", DownloadUtils.guessFileName(null, null, "http://example.com/file.txt", "text/html"))
-        assertEquals("file.data", DownloadUtils.guessFileName(null, null, "http://example.com/file.data", "application/octet-stream"))
-        assertEquals("file.data", DownloadUtils.guessFileName(null, null, "http://example.com/file.data", "binary/octet-stream"))
-        assertEquals("file.data", DownloadUtils.guessFileName(null, null, "http://example.com/file.data", "application/unknown"))
+        assertEquals(
+            "file.html",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file?abc",
+                mimeType = "text/html",
+            ),
+        )
+        assertEquals(
+            "file.html",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file",
+                mimeType = "text/html",
+            ),
+        )
+        assertEquals(
+            "file.html",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file",
+                mimeType = "text/html; charset=utf-8",
+            ),
+        )
+        assertEquals(
+            "file.txt",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.txt",
+                mimeType = "text/html",
+            ),
+        )
+        assertEquals(
+            "file.data",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.data",
+                mimeType = "application/octet-stream",
+            ),
+        )
+        assertEquals(
+            "file.data",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.data",
+                mimeType = "binary/octet-stream",
+            ),
+        )
+        assertEquals(
+            "file.data",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.data",
+                mimeType = "application/unknown",
+            ),
+        )
 
-        assertEquals("file.jpg", DownloadUtils.guessFileName(null, null, "http://example.com/file.zip", "image/jpeg"))
+        assertEquals(
+            "file.jpg",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.zip",
+                mimeType = "image/jpeg",
+            ),
+        )
 
         // extra information in content-type
-        assertEquals("file.jpg", DownloadUtils.guessFileName(null, null, "http://example.com/file.jpg", "application/octet-stream; Charset=utf-8"))
+        assertEquals(
+            "file.jpg",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.jpg",
+                mimeType = "application/octet-stream; Charset=utf-8",
+            ),
+        )
 
         // Should not change to file.dll
-        assertEquals("file.exe", DownloadUtils.guessFileName(null, null, "http://example.com/file.exe", "application/x-msdos-program"))
-        assertEquals("file.exe", DownloadUtils.guessFileName(null, null, "http://example.com/file.exe", "application/vnd.microsoft.portable-executable"))
+        assertEquals(
+            "file.exe",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.exe",
+                mimeType = "application/x-msdos-program",
+            ),
+        )
+        assertEquals(
+            "file.exe",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.exe",
+                mimeType = "application/vnd.microsoft.portable-executable",
+            ),
+        )
 
         Shadows.shadowOf(MimeTypeMap.getSingleton()).clearMappings()
         Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypeMapping("exe", "application/x-msdos-program")
 
-        assertEquals("file.exe", DownloadUtils.guessFileName(null, null, "http://example.com/file.bin", "application/x-msdos-program"))
+        assertEquals(
+            "file.exe",
+            DownloadUtils.guessFileName(
+                contentDisposition = null,
+                destinationDirectory = folder.root.path,
+                url = "http://example.com/file.bin",
+                mimeType = "application/x-msdos-program",
+            ),
+        )
     }
 
     @Test
@@ -182,8 +364,16 @@ class DownloadUtilsTest {
     companion object {
         private val CONTENT_DISPOSITION_TYPES = listOf("attachment", "inline")
 
-        private fun assertUrl(expected: String, url: String) {
-            assertEquals(expected, DownloadUtils.guessFileName(null, null, url, null))
+        private fun assertUrl(destinationDirectory: String, expected: String, url: String) {
+            assertEquals(
+                expected,
+                DownloadUtils.guessFileName(
+                    contentDisposition = null,
+                    destinationDirectory = destinationDirectory,
+                    url = url,
+                    mimeType = null,
+                ),
+            )
         }
     }
 }

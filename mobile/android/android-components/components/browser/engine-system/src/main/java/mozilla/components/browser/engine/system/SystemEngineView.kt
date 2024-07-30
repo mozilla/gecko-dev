@@ -605,7 +605,11 @@ class SystemEngineView @JvmOverloads constructor(
     internal fun createDownloadListener(): DownloadListener {
         return DownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
             session?.internalNotifyObservers {
-                val fileName = DownloadUtils.guessFileName(contentDisposition, null, url, mimetype)
+                val fileName = DownloadUtils.guessFileName(
+                    contentDisposition = contentDisposition,
+                    url = url,
+                    mimeType = mimetype,
+                )
                 val cookie = CookieManager.getInstance().getCookie(url)
                 onExternalResource(url, fileName, contentLength, mimetype, cookie, userAgent)
             }

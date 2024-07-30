@@ -256,7 +256,6 @@ class GeckoEngineSession(
                 // See https://github.com/mozilla-mobile/android-components/issues/12276
                 val fileName = DownloadUtils.guessFileName(
                     disposition,
-                    destinationDirectory = null,
                     url = url,
                     mimeType = contentType,
                 )
@@ -1513,7 +1512,6 @@ class GeckoEngineSession(
                 val url = uri
                 val fileName = DownloadUtils.guessFileName(
                     contentDisposition,
-                    destinationDirectory = null,
                     url = url,
                     mimeType = contentType,
                 )

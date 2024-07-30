@@ -165,7 +165,7 @@ object DownloadUtils {
     @JvmStatic
     fun guessFileName(
         contentDisposition: String?,
-        destinationDirectory: String?,
+        destinationDirectory: String = Environment.DIRECTORY_DOWNLOADS,
         url: String?,
         mimeType: String?,
     ): String {
@@ -184,9 +184,7 @@ object DownloadUtils {
             extractedFileName + createExtension(sanitizedMimeType)
         }
 
-        return destinationDirectory?.let {
-            uniqueFileName(Environment.getExternalStoragePublicDirectory(destinationDirectory), fileName)
-        } ?: fileName
+        return uniqueFileName(Environment.getExternalStoragePublicDirectory(destinationDirectory), fileName)
     }
 
     // Some site add extra information after the mimetype, for example 'application/pdf; qs=0.001'
@@ -265,7 +263,7 @@ object DownloadUtils {
         }
 
         // Finally, if couldn't get filename from URI, get a generic filename
-        if (filename == null) {
+        if (filename.isNullOrEmpty() || filename.startsWith(".")) {
             filename = "downloadfile"
         }
 
