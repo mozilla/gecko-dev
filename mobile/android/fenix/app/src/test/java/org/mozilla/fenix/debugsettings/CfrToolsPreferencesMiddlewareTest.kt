@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.debugsettings
 
-import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -45,7 +44,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown)
         assertTrue(settings.shouldShowJumpBackInCFR)
     }
 
@@ -62,7 +61,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown)
         assertFalse(settings.shouldShowJumpBackInCFR)
     }
 
@@ -79,7 +78,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleHomepageSyncShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageSyncShown)
         assertTrue(settings.showSyncCFR)
     }
 
@@ -96,7 +95,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleHomepageSyncShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageSyncShown)
         assertFalse(settings.showSyncCFR)
     }
 
@@ -113,7 +112,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleHomepageNavToolbarShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageNavToolbarShown)
         assertTrue(settings.shouldShowNavigationBarCFR)
     }
 
@@ -130,7 +129,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleHomepageNavToolbarShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageNavToolbarShown)
         assertFalse(settings.shouldShowNavigationBarCFR)
     }
 
@@ -147,7 +146,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleWallpaperSelectorShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleWallpaperSelectorShown)
         assertTrue(settings.showWallpaperOnboarding)
     }
 
@@ -164,7 +163,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleWallpaperSelectorShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleWallpaperSelectorShown)
         assertFalse(settings.showWallpaperOnboarding)
     }
 
@@ -181,7 +180,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleNavButtonsShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleNavButtonsShown)
         assertTrue(settings.shouldShowNavigationButtonsCFR)
     }
 
@@ -198,7 +197,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleNavButtonsShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleNavButtonsShown)
         assertFalse(settings.shouldShowNavigationButtonsCFR)
     }
 
@@ -215,7 +214,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleTcpShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleTcpShown)
         assertTrue(settings.shouldShowTotalCookieProtectionCFR)
     }
 
@@ -232,7 +231,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleTcpShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleTcpShown)
         assertFalse(settings.shouldShowTotalCookieProtectionCFR)
     }
 
@@ -249,7 +248,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleCookieBannerBlockerShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleCookieBannerBlockerShown)
         assertTrue(settings.shouldShowEraseActionCFR)
     }
 
@@ -266,7 +265,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleCookieBannerBlockerShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleCookieBannerBlockerShown)
         assertFalse(settings.shouldShowEraseActionCFR)
     }
 
@@ -285,7 +284,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleCookieBannersPrivateModeShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleCookieBannersPrivateModeShown)
         assertTrue(settings.shouldShowCookieBannersCFR)
         assertTrue(settings.shouldUseCookieBannerPrivateMode)
     }
@@ -305,7 +304,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleCookieBannersPrivateModeShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleCookieBannersPrivateModeShown)
         assertFalse(settings.shouldShowCookieBannersCFR)
         assertFalse(settings.shouldUseCookieBannerPrivateMode)
     }
@@ -324,7 +323,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleAddPrivateTabToHomeShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleAddPrivateTabToHomeShown)
         assertTrue(settings.shouldShowPrivateModeCfr)
     }
 
@@ -342,7 +341,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleAddPrivateTabToHomeShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleAddPrivateTabToHomeShown)
         assertFalse(settings.shouldShowPrivateModeCfr)
     }
 
@@ -359,7 +358,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleTabAutoCloseBannerShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleTabAutoCloseBannerShown)
         assertTrue(settings.shouldShowAutoCloseTabsBanner)
     }
 
@@ -376,7 +375,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleTabAutoCloseBannerShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleTabAutoCloseBannerShown)
         assertFalse(settings.shouldShowAutoCloseTabsBanner)
     }
 
@@ -393,7 +392,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleInactiveTabsShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleInactiveTabsShown)
         assertTrue(settings.shouldShowInactiveTabsOnboardingPopup)
     }
 
@@ -410,7 +409,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleInactiveTabsShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleInactiveTabsShown)
         assertFalse(settings.shouldShowInactiveTabsOnboardingPopup)
     }
 
@@ -427,7 +426,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleOpenInAppShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleOpenInAppShown)
         assertTrue(settings.shouldShowOpenInAppBanner)
     }
 
@@ -444,7 +443,7 @@ class CfrToolsPreferencesMiddlewareTest {
                 middleware,
             ),
         )
-        store.dispatch(CfrToolsAction.ToggleOpenInAppShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleOpenInAppShown)
         assertFalse(settings.shouldShowOpenInAppBanner)
     }
 }

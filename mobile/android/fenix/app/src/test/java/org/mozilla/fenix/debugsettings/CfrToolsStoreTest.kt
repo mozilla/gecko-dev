@@ -4,14 +4,16 @@
 
 package org.mozilla.fenix.debugsettings
 
-import mozilla.components.support.test.ext.joinBlocking
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mozilla.fenix.debugsettings.cfrs.CfrToolsAction
 import org.mozilla.fenix.debugsettings.cfrs.CfrToolsState
 import org.mozilla.fenix.debugsettings.cfrs.CfrToolsStore
 
+@RunWith(AndroidJUnit4::class)
 class CfrToolsStoreTest {
 
     @Test
@@ -23,7 +25,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.homepageIntroShown)
-        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown)
         assertFalse(store.state.homepageIntroShown)
     }
 
@@ -36,7 +38,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.homepageIntroShown)
-        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown)
         assertTrue(store.state.homepageIntroShown)
     }
 
@@ -49,7 +51,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.homepageSyncShown)
-        store.dispatch(CfrToolsAction.ToggleHomepageSyncShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageSyncShown)
         assertFalse(store.state.homepageSyncShown)
     }
 
@@ -62,7 +64,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.homepageSyncShown)
-        store.dispatch(CfrToolsAction.ToggleHomepageSyncShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageSyncShown)
         assertTrue(store.state.homepageSyncShown)
     }
 
@@ -75,7 +77,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.homepageNavToolbarShown)
-        store.dispatch(CfrToolsAction.ToggleHomepageNavToolbarShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageNavToolbarShown)
         assertFalse(store.state.homepageNavToolbarShown)
     }
 
@@ -88,7 +90,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.homepageNavToolbarShown)
-        store.dispatch(CfrToolsAction.ToggleHomepageNavToolbarShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleHomepageNavToolbarShown)
         assertTrue(store.state.homepageNavToolbarShown)
     }
 
@@ -101,7 +103,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.wallpaperSelectorShown)
-        store.dispatch(CfrToolsAction.ToggleWallpaperSelectorShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleWallpaperSelectorShown)
         assertFalse(store.state.wallpaperSelectorShown)
     }
 
@@ -114,7 +116,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.wallpaperSelectorShown)
-        store.dispatch(CfrToolsAction.ToggleWallpaperSelectorShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleWallpaperSelectorShown)
         assertTrue(store.state.wallpaperSelectorShown)
     }
 
@@ -127,7 +129,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.navButtonsShown)
-        store.dispatch(CfrToolsAction.ToggleNavButtonsShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleNavButtonsShown)
         assertFalse(store.state.navButtonsShown)
     }
 
@@ -140,7 +142,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.navButtonsShown)
-        store.dispatch(CfrToolsAction.ToggleNavButtonsShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleNavButtonsShown)
         assertTrue(store.state.navButtonsShown)
     }
 
@@ -153,7 +155,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.tcpShown)
-        store.dispatch(CfrToolsAction.ToggleTcpShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleTcpShown)
         assertFalse(store.state.tcpShown)
     }
 
@@ -166,7 +168,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.tcpShown)
-        store.dispatch(CfrToolsAction.ToggleTcpShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleTcpShown)
         assertTrue(store.state.tcpShown)
     }
 
@@ -179,7 +181,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.cookieBannerBlockerShown)
-        store.dispatch(CfrToolsAction.ToggleCookieBannerBlockerShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleCookieBannerBlockerShown)
         assertFalse(store.state.cookieBannerBlockerShown)
     }
 
@@ -192,7 +194,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.cookieBannerBlockerShown)
-        store.dispatch(CfrToolsAction.ToggleCookieBannerBlockerShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleCookieBannerBlockerShown)
         assertTrue(store.state.cookieBannerBlockerShown)
     }
 
@@ -205,7 +207,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.cookieBannersPrivateModeShown)
-        store.dispatch(CfrToolsAction.ToggleCookieBannersPrivateModeShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleCookieBannersPrivateModeShown)
         assertFalse(store.state.cookieBannersPrivateModeShown)
     }
 
@@ -218,7 +220,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.cookieBannersPrivateModeShown)
-        store.dispatch(CfrToolsAction.ToggleCookieBannersPrivateModeShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleCookieBannersPrivateModeShown)
         assertTrue(store.state.cookieBannersPrivateModeShown)
     }
 
@@ -231,7 +233,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.addPrivateTabToHomeShown)
-        store.dispatch(CfrToolsAction.ToggleAddPrivateTabToHomeShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleAddPrivateTabToHomeShown)
         assertFalse(store.state.addPrivateTabToHomeShown)
     }
 
@@ -244,7 +246,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.addPrivateTabToHomeShown)
-        store.dispatch(CfrToolsAction.ToggleAddPrivateTabToHomeShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleAddPrivateTabToHomeShown)
         assertTrue(store.state.addPrivateTabToHomeShown)
     }
 
@@ -257,7 +259,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.tabAutoCloseBannerShown)
-        store.dispatch(CfrToolsAction.ToggleTabAutoCloseBannerShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleTabAutoCloseBannerShown)
         assertFalse(store.state.tabAutoCloseBannerShown)
     }
 
@@ -270,7 +272,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.tabAutoCloseBannerShown)
-        store.dispatch(CfrToolsAction.ToggleTabAutoCloseBannerShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleTabAutoCloseBannerShown)
         assertTrue(store.state.tabAutoCloseBannerShown)
     }
 
@@ -283,7 +285,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.inactiveTabsShown)
-        store.dispatch(CfrToolsAction.ToggleInactiveTabsShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleInactiveTabsShown)
         assertFalse(store.state.inactiveTabsShown)
     }
 
@@ -296,7 +298,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.inactiveTabsShown)
-        store.dispatch(CfrToolsAction.ToggleInactiveTabsShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleInactiveTabsShown)
         assertTrue(store.state.inactiveTabsShown)
     }
 
@@ -309,7 +311,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.openInAppShown)
-        store.dispatch(CfrToolsAction.ToggleOpenInAppShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleOpenInAppShown)
         assertFalse(store.state.openInAppShown)
     }
 
@@ -322,7 +324,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.openInAppShown)
-        store.dispatch(CfrToolsAction.ToggleOpenInAppShown).joinBlocking()
+        store.dispatch(CfrToolsAction.ToggleOpenInAppShown)
         assertTrue(store.state.openInAppShown)
     }
 
@@ -335,7 +337,7 @@ class CfrToolsStoreTest {
         )
 
         assertTrue(store.state.pwaShown)
-        store.dispatch(CfrToolsAction.TogglePwaShown).joinBlocking()
+        store.dispatch(CfrToolsAction.TogglePwaShown)
         assertFalse(store.state.pwaShown)
     }
 
@@ -348,7 +350,7 @@ class CfrToolsStoreTest {
         )
 
         assertFalse(store.state.pwaShown)
-        store.dispatch(CfrToolsAction.TogglePwaShown).joinBlocking()
+        store.dispatch(CfrToolsAction.TogglePwaShown)
         assertTrue(store.state.pwaShown)
     }
 }

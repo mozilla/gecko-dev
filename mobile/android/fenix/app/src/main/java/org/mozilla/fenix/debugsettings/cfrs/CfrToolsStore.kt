@@ -8,6 +8,7 @@ import mozilla.components.lib.state.Action
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
+import mozilla.components.lib.state.UiStore
 
 /**
  * Value type that represents the state of the CFR Tools.
@@ -156,7 +157,7 @@ internal object CfrToolsReducer {
 class CfrToolsStore(
     initialState: CfrToolsState = CfrToolsState(),
     middlewares: List<Middleware<CfrToolsState, CfrToolsAction>> = emptyList(),
-) : Store<CfrToolsState, CfrToolsAction>(
+) : UiStore<CfrToolsState, CfrToolsAction>(
     initialState,
     CfrToolsReducer::reduce,
     middlewares,
