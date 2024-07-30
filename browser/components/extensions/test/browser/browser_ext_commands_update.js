@@ -356,7 +356,9 @@ add_task(async function test_update_defined_command() {
 
 add_task(async function updateSidebarCommand() {
   // This test doesn't work with the new sidebar because it relies on the
-  // switcher, which is no longer a thing in the new sidebar.
+  // switcher, which is no longer a thing in the new sidebar. See the
+  // `test_extension_sidebar_shortcuts` task, which covers shortcuts for the
+  // new sidebar separately.
   if (Services.prefs.getBoolPref("sidebar.revamp", false)) {
     info("skipping test because sidebar.revamp is set");
     return;
@@ -432,4 +434,86 @@ add_task(async function updateSidebarCommand() {
   ok(acceltext.endsWith("M"), "The menuitem accel text has been updated");
 
   await extension.unload();
+});
+
+add_task(async function test_extension_sidebar_shortcuts() {
+  // TODO: Bug 1905766 - we can remove the push/pop pref and the need for a new
+  // window in this test once the new sidebar is enabled by default.
+  await SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] });
+
+  const extension = ExtensionTestUtils.loadExtension({
+    useAddonManager: "temporary",
+    manifest: {
+      commands: {
+        _execute_sidebar_action: {
+          suggested_key: {
+            default: "F1",
+          },
+        },
+      },
+      sidebar_action: {
+        default_panel: "sidebar.html",
+      },
+    },
+    background() {
+      browser.test.onMessage.addListener(async (msg, data) => {
+        if (msg == "updateShortcut") {
+          await browser.commands.update(data);
+          return browser.test.sendMessage("done");
+        }
+        throw new Error("Unknown message");
+      });
+    },
+    files: {
+      "sidebar.html": `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"/>
+        <script src="sidebar.js"></script>
+        </head>
+        <body>A Test Sidebar</body>
+        </html>
+      `,
+
+      "sidebar.js": function () {
+        window.onload = () => {
+          browser.test.sendMessage("sidebar");
+        };
+      },
+    },
+  });
+  await extension.startup();
+  // The sidebar panel is shown in the initial window.
+  await extension.awaitMessage("sidebar");
+
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  // The sidebar panel is shown in the new window.
+  await extension.awaitMessage("sidebar");
+  const sidebar = win.document.querySelector("sidebar-main");
+  ok(sidebar, "sidebar is shown");
+  ok(win.SidebarController.isOpen, "sidebar panel is open by default");
+
+  // The sidebar panel is open by default, so let's just close it.
+  EventUtils.synthesizeKey("KEY_F1", {}, win);
+  await sidebar.updateComplete;
+  ok(!win.SidebarController.isOpen, "sidebar is closed");
+
+  // Update shortcut.
+  extension.sendMessage("updateShortcut", {
+    name: "_execute_sidebar_action",
+    shortcut: "F2",
+  });
+  await extension.awaitMessage("done");
+
+  // Re-open the sidebar panel with the new shortcut.
+  EventUtils.synthesizeKey("KEY_F2", {}, win);
+  await sidebar.updateComplete;
+  // The sidebar panel is shown again.
+  await extension.awaitMessage("sidebar");
+  ok(win.SidebarController.isOpen, "sidebar is open");
+
+  await extension.unload();
+  await BrowserTestUtils.closeWindow(win);
+
+  await SpecialPowers.popPrefEnv();
 });
