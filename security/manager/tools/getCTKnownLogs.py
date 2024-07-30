@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,9 +9,8 @@ Parses a JSON file listing the known Certificate Transparency logs
 
 The current log_list.json file available under security/manager/tools
 was originally downloaded from
-https://www.certificate-transparency.org/known-logs
-and edited to include the disqualification time for the disqualified logs using
-https://cs.chromium.org/chromium/src/net/cert/ct_known_logs_static-inc.h
+https://www.gstatic.com/ct/log_list/v3/log_list.json
+See more information at https://certificate.transparency.dev/google/
 """
 
 import argparse
@@ -19,19 +18,19 @@ import base64
 import datetime
 import json
 import os.path
+import ssl
 import sys
 import textwrap
+import time
 from string import Template
+from urllib.request import urlopen
 
-import six
-import urllib3
-
-
-def decodebytes(s):
-    if six.PY3:
-        return base64.decodebytes(six.ensure_binary(s))
-    return base64.decodestring(s)
-
+import buildconfig
+import certifi
+import mozpack.path as mozpath
+import rsa
+from pyasn1.codec.der import decoder
+from pyasn1_modules import pem, rfc2314
 
 OUTPUT_TEMPLATE = """\
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
@@ -46,11 +45,13 @@ OUTPUT_TEMPLATE = """\
 #define $include_guard
 
 #include "CTLog.h"
+#include "prtime.h"
 
 #include <stddef.h>
 
-struct CTLogInfo
-{
+static const PRTime kCTExpirationTime = INT64_C($expiration_time);
+
+struct CTLogInfo {
   // See bug 1338873 about making these fields const.
   const char* name;
   // Index within kCTLogOperatorList.
@@ -63,8 +64,7 @@ struct CTLogInfo
   size_t keyLength;
 };
 
-struct CTLogOperatorInfo
-{
+struct CTLogOperatorInfo {
   // See bug 1338873 about making these fields const.
   const char* name;
   mozilla::ct::CTLogOperatorId id;
@@ -78,7 +78,7 @@ const CTLogOperatorInfo kCTLogOperatorList[] = {
 $operators
 };
 
-#endif // $include_guard
+#endif  // $include_guard
 """
 
 
@@ -116,24 +116,22 @@ def get_operator_index(json_data, target_name):
     return matches[0][1]
 
 
+LOG_INFO_TEMPLATE = """\
+    {$description, $status,
+     $disqualification_time,  // $disqualification_time_comment
+     $operator_index,  // $operator_comment
+$indented_log_key,
+     $log_key_len}"""
+
+
 def get_log_info_structs(json_data):
     """Return array of CTLogInfo initializers for the known logs."""
-    tmpl = Template(
-        textwrap.dedent(
-            """\
-          { $description,
-            $status,
-            $disqualification_time, // $disqualification_time_comment
-            $operator_index, // $operator_comment
-        $indented_log_key,
-            $log_key_len }"""
-        )
-    )
+    tmpl = Template(LOG_INFO_TEMPLATE)
     initializers = []
     for operator in json_data["operators"]:
         operator_name = operator["name"]
         for log in operator["logs"]:
-            log_key = decodebytes(log["key"])
+            log_key = base64.b64decode(log["key"])
             operator_index = get_operator_index(json_data, operator_name)
             if "disqualification_time" in log:
                 status = "mozilla::ct::CTLogStatus::Disqualified"
@@ -152,7 +150,7 @@ def get_log_info_structs(json_data):
             suffix = ","
             if is_test_log:
                 prefix = "#ifdef DEBUG\n"
-                suffix = ",\n#endif // DEBUG"
+                suffix = ",\n#endif  // DEBUG"
             toappend = tmpl.substitute(
                 # Use json.dumps for C-escaping strings.
                 # Not perfect but close enough.
@@ -166,7 +164,7 @@ def get_log_info_structs(json_data):
                 disqualification_time_comment=disqualification_time_comment,
                 # Maximum line width is 80.
                 indented_log_key="\n".join(
-                    ['    "{0}"'.format(l) for l in get_hex_lines(log_key, 74)]
+                    ['     "{0}"'.format(l) for l in get_hex_lines(log_key, 74)]
                 ),
                 log_key_len=len(log_key),
             )
@@ -176,7 +174,7 @@ def get_log_info_structs(json_data):
 
 def get_log_operator_structs(json_data):
     """Return array of CTLogOperatorInfo initializers."""
-    tmpl = Template("  { $name, $id }")
+    tmpl = Template("    {$name, $id}")
     initializers = []
     currentId = 0
     for operator in json_data["operators"]:
@@ -185,11 +183,15 @@ def get_log_operator_structs(json_data):
         is_test_log = "test_only" in operator and operator["test_only"]
         if is_test_log:
             prefix = "#ifdef DEBUG\n"
-            suffix = ",\n#endif // DEBUG"
+            suffix = ",\n#endif  // DEBUG"
         toappend = tmpl.substitute(name=json.dumps(operator["name"]), id=currentId)
         currentId += 1
         initializers.append(prefix + toappend + suffix)
     return initializers
+
+
+TWELVE_WEEKS_IN_SECONDS = 60 * 60 * 24 * 7 * 12
+MICROSECONDS_PER_SECOND = 1000000
 
 
 def generate_cpp_header_file(json_data, out_file):
@@ -198,12 +200,16 @@ def generate_cpp_header_file(json_data, out_file):
     include_guard = filename.replace(".", "_").replace("/", "_")
     log_info_initializers = get_log_info_structs(json_data)
     operator_info_initializers = get_log_operator_structs(json_data)
+    expiration_time = (
+        int(time.time()) + TWELVE_WEEKS_IN_SECONDS
+    ) * MICROSECONDS_PER_SECOND
     out_file.write(
         Template(OUTPUT_TEMPLATE).substitute(
             prog=os.path.basename(sys.argv[0]),
             include_guard=include_guard,
             logs="\n".join(log_info_initializers),
             operators="\n".join(operator_info_initializers),
+            expiration_time=expiration_time,
         )
     )
 
@@ -266,29 +272,59 @@ def patch_in_test_logs(json_data):
     json_data["operators"].append(mozilla_test_operator_2)
 
 
+def get_content_at(url):
+    print("Fetching URL: ", url)
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    f = urlopen(url, context=ssl_context)
+    return f.read()
+
+
+def read_rsa_key(path):
+    """
+    Read the PEM subject public key info at the given path and
+    return it as an RSA public key.
+    """
+    with open(path) as f:
+        spki = pem.readPemFromFile(
+            f, "-----BEGIN PUBLIC KEY-----", "-----END PUBLIC KEY-----"
+        )
+    decoded, _ = decoder.decode(spki, rfc2314.SubjectPublicKeyInfo())
+    return rsa.PublicKey.load_pkcs1(
+        decoded["subjectPublicKey"].asOctets(), format="DER"
+    )
+
+
+class UnsupportedSignatureHashAlgorithmException(Exception):
+    pass
+
+
 def run(args):
     """
     Load the input JSON file and generate the C++ header according to the
     command line arguments.
     """
-    if args.file:
-        print("Reading file: ", args.file)
-        with open(args.file, "rb") as json_file:
+    if args.url:
+        json_text = get_content_at(args.url)
+        signature = get_content_at(args.signature_url)
+        key = read_rsa_key(args.key_file)
+        print("Validating signature...")
+        hash_alg = rsa.verify(json_text, signature, key)
+        if hash_alg != "SHA-256":
+            raise UnsupportedSignatureHashAlgorithmException(
+                "unsupported hash algorithm '%s'" % hash_alg
+            )
+        print("Writing output: ", args.json_file_out)
+        with open(args.json_file_out, "wb") as json_file_out:
+            json_file_out.write(json_text)
+    else:
+        print("Reading file: ", args.json_file)
+        with open(args.json_file, "rb") as json_file:
             json_text = json_file.read()
-    elif args.url:
-        print("Fetching URL: ", args.url)
-        json_request = urllib3.urlopen(args.url)
-        try:
-            json_text = json_request.read()
-        finally:
-            json_request.close()
 
     json_data = json.loads(json_text)
-
-    print("Writing output: ", args.out)
-
     patch_in_test_logs(json_data)
 
+    print("Writing output: ", args.out)
     with open(args.out, "w") as out_file:
         generate_cpp_header_file(json_data, out_file)
 
@@ -300,27 +336,48 @@ def parse_arguments_and_run():
     arg_parser = argparse.ArgumentParser(
         description="Parses a JSON file listing the known "
         "Certificate Transparency logs and generates "
-        "a C++ header file to be included in Firefox.",
-        epilog="Example: python %s --url" % os.path.basename(sys.argv[0]),
-    )
-
-    source_group = arg_parser.add_mutually_exclusive_group(required=True)
-    source_group.add_argument(
-        "--file",
-        nargs="?",
-        const="log_list.json",
-        help="Read the known CT logs JSON data from the "
-        "specified local file (%(const)s by default).",
-    )
-    source_group.add_argument(
-        "--url", help="Download the known CT logs JSON file " "from the specified URL."
+        "a C++ header file to be included in Firefox."
+        "Downloads the JSON file from the known source "
+        "of truth by default, but can also operate on a "
+        "previously-downloaded file. See https://certificate.transparency.dev/google/",
+        epilog="Example: ./mach python %s" % os.path.basename(sys.argv[0]),
     )
 
     arg_parser.add_argument(
+        "--url",
+        default="https://www.gstatic.com/ct/log_list/v3/log_list.json",
+        help="download the known CT logs JSON file from the specified URL (default: %(default)s)",
+    )
+    arg_parser.add_argument(
+        "--signature-url",
+        default="https://www.gstatic.com/ct/log_list/v3/log_list.sig",
+        help="download the signature on the known CT logs JSON file from the specified URL (default: %(default)s)",
+    )
+    arg_parser.add_argument(
+        "--key-file",
+        default=mozpath.join(
+            buildconfig.topsrcdir, "security", "manager", "tools", "log_list_pubkey.pem"
+        ),
+        help="verify the signature on the downloaded CT logs JSON file with the key in the specified file (default: %(default)s)",
+    )
+    arg_parser.add_argument(
+        "--json-file",
+        default=mozpath.join(
+            buildconfig.topsrcdir, "security", "manager", "tools", "log_list.json"
+        ),
+        help="read the known CT logs JSON data from the specified file (default: %(default)s)",
+    )
+    arg_parser.add_argument(
+        "--json-file-out",
+        default=mozpath.join(
+            buildconfig.topsrcdir, "security", "manager", "tools", "log_list.json"
+        ),
+        help="write the known CT logs JSON data to the specified file when downloading it from the given url (default: %(default)s)",
+    )
+    arg_parser.add_argument(
         "--out",
-        default="../../certverifier/CTKnownLogs.h",
-        help="Path and filename of the header file "
-        "to be generated. Defaults to %(default)s",
+        default=mozpath.join(buildconfig.topsrcdir, "security", "ct", "CTKnownLogs.h"),
+        help="path and filename of the header file to be generated (default: %(default)s)",
     )
 
     run(arg_parser.parse_args())

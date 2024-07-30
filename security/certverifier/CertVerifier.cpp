@@ -284,6 +284,9 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
   if (mCTMode == CertificateTransparencyMode::Disabled) {
     return Success;
   }
+  if (time > TimeFromEpochInSeconds(kCTExpirationTime / PR_USEC_PER_SEC)) {
+    return Success;
+  }
   if (ctInfo) {
     ctInfo->enabled = true;
   }
