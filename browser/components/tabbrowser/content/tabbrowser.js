@@ -2924,6 +2924,14 @@
       return t;
     },
 
+    addTabGroup(color, label = "") {
+      let group = document.createXULElement("tab-group", { is: "tab-group" });
+      group.id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
+      group.color = color;
+      group.label = label;
+      this.tabContainer.appendChild(group);
+    },
+
     _determineURIToLoad(uriString, createLazyBrowser) {
       uriString = uriString || "about:blank";
       let aURIObject = null;

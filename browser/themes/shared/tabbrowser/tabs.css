@@ -616,6 +616,7 @@
 }
 
 /* Keyboard focus outline */
+
 #TabsToolbar #firefox-view-button:focus-visible > .toolbarbutton-icon,
 .tabbrowser-tab:is(.keyboard-focused-tab, :focus:not([aria-activedescendant])) > .tab-stack > .tab-background {
   outline: var(--focus-outline);
@@ -646,6 +647,24 @@
 
 .tab-label[attention]:not([selected]) {
   font-weight: bold;
+}
+
+/* Tab Groups */
+
+tab-group {
+  border-bottom: 2px solid var(--tab-group-color);
+}
+
+.tab-group-label {
+  background-color: var(--tab-group-color);
+  border-radius: var(--tab-border-radius);
+  box-sizing: content-box;
+  min-height: 1em;
+  max-width: 10em;
+  /* TODO: pick the right text color depending on group color */
+  color: white;
+  margin: auto 0;
+  padding: 2px;
 }
 
 /* Tab Overflow */
@@ -730,6 +749,7 @@
 }
 
 /* Vertical tabs styling */
+
 #tabbrowser-arrowscrollbox[orient="vertical"] {
   overflow-y: auto;
 
