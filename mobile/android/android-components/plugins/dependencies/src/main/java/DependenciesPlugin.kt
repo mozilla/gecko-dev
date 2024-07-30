@@ -99,7 +99,7 @@ object Versions {
     object Google {
         const val play_review = "2.0.1"
         const val play_services_ads_id = "16.0.0"
-        const val play_services_base = "18.4.0"
+        const val play_services_base = "18.5.0"
         const val play_services_fido = "21.1.0"
     }
 }
