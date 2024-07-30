@@ -311,6 +311,8 @@ skip-if = [
 
 ["test_localeCompare.js"]
 
+["test_locks.js"]
+
 ["test_malformed_utf8.js"]
 
 ["test_messageChannel.js"]

@@ -347,8 +347,12 @@ class BackgroundParentImpl : public PBackgroundParent {
       const nsAString& aGroupName, const nsACString& aEndpointURL,
       const PrincipalInfo& aPrincipalInfo) override;
 
+  mozilla::ipc::IPCResult RecvPLockManagerConstructor(
+      PLockManagerParent* actor, mozilla::NotNull<nsIPrincipal*> aPrincipalInfo,
+      const Maybe<nsID>& aClientId) override;
+
   already_AddRefed<PLockManagerParent> AllocPLockManagerParent(
-      NotNull<nsIPrincipal*> aPrincipal, const nsID& aClientId) final;
+      NotNull<nsIPrincipal*> aPrincipal, const Maybe<nsID>& aClientId) final;
 
   already_AddRefed<PFetchParent> AllocPFetchParent() override;
 };

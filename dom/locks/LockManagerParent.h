@@ -32,7 +32,8 @@ class LockManagerParent final : public PLockManagerParent {
  public:
   NS_INLINE_DECL_REFCOUNTING(LockManagerParent)
 
-  LockManagerParent(NotNull<nsIPrincipal*> aPrincipal, const nsID& aClientId);
+  LockManagerParent(NotNull<nsIPrincipal*> aPrincipal,
+                    const Maybe<nsID>& aClientId);
 
   void ProcessRequestQueue(nsTArray<RefPtr<LockRequestParent>>& aQueue);
   bool IsGrantableRequest(const IPCLockRequest& aRequest);

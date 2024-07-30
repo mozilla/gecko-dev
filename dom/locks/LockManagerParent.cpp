@@ -23,8 +23,14 @@ static StaticAutoPtr<nsTHashMap<PrincipalHashKey, WeakPtr<ManagedLocks>>>
 using IPCResult = mozilla::ipc::IPCResult;
 
 LockManagerParent::LockManagerParent(NotNull<nsIPrincipal*> aPrincipal,
-                                     const nsID& aClientId)
-    : mClientId(NSID_TrimBracketsUTF16(aClientId)), mPrincipal(aPrincipal) {
+                                     const Maybe<nsID>& aClientId)
+    : mPrincipal(aPrincipal) {
+  if (aClientId.isSome()) {
+    mClientId = NSID_TrimBracketsUTF16(aClientId.value());
+  } else {
+    mClientId = EmptyString();
+  }
+
   if (!sManagedLocksMap) {
     sManagedLocksMap =
         new nsTHashMap<PrincipalHashKey, WeakPtr<ManagedLocks>>();

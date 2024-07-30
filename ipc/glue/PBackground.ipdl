@@ -275,7 +275,7 @@ parent:
   async EnsureUtilityProcessAndCreateBridge(RemoteDecodeIn aLocation)
       returns (nsresult rv, Endpoint<PRemoteDecoderManagerChild> aEndpoint);
 
-  async PLockManager(nsIPrincipal aPrincipalInfo, nsID aClientId);
+  async PLockManager(nsIPrincipal aPrincipalInfo, nsID? aClientId);
 
   async PFetch();
 

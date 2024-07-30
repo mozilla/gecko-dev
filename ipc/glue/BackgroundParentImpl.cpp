@@ -1361,9 +1361,27 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvRemoveEndpoint(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvPLockManagerConstructor(
+    PLockManagerParent* aActor, mozilla::NotNull<nsIPrincipal*> aPrincipalInfo,
+    const Maybe<nsID>& aClientId) {
+  AssertIsInMainProcess();
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(aActor);
+
+  // If the IsOtherProcessActor is true, then we're dealing with some kind of
+  // content process, and we do not expect the system principal to send this
+  // kind of constructor message.
+  if (aPrincipalInfo->IsSystemPrincipal() &&
+      BackgroundParent::IsOtherProcessActor(this)) {
+    return IPC_FAIL_NO_REASON(this);
+  }
+
+  return IPC_OK();
+}
+
 already_AddRefed<dom::locks::PLockManagerParent>
 BackgroundParentImpl::AllocPLockManagerParent(NotNull<nsIPrincipal*> aPrincipal,
-                                              const nsID& aClientId) {
+                                              const Maybe<nsID>& aClientId) {
   return MakeAndAddRef<mozilla::dom::locks::LockManagerParent>(aPrincipal,
                                                                aClientId);
 }
