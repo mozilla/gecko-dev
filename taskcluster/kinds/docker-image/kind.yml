@@ -111,6 +111,14 @@ tasks:
         packages:
             - ub22-mercurial
             - ub22-python-zstandard
+    ubuntu2204-arm64-base:
+        symbol: I(ub22-a64-base)
+        definition: debian-base
+        parent: ubuntu2204-arm64-raw
+        packages:
+            - ub22-arm64-mercurial
+            - ub22-arm64-python-zstandard
+        arch: arm64
     # Neither the debian8-*raw nor the debian8-*packages images can have
     # packages dependencies.
     debian8-raw:
