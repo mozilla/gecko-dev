@@ -78,6 +78,12 @@ tasks:
         definition: debian-raw
         args:
             BASE_IMAGE: ubuntu:jammy
+    ubuntu2204-arm64-raw:
+        symbol: I(ub22-a64-raw)
+        definition: debian-raw
+        args:
+            BASE_IMAGE: ubuntu:jammy
+        arch: arm64
     ubuntu2004-packages:
         symbol: I(ub20-pkg)
         definition: debian-packages
