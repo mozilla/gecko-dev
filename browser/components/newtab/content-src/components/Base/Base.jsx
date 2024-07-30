@@ -121,6 +121,8 @@ export class BaseContent extends React.PureComponent {
     this.updateWallpaper = this.updateWallpaper.bind(this);
     this.prefersDarkQuery = null;
     this.handleColorModeChange = this.handleColorModeChange.bind(this);
+    this.shouldDisplayTopicSelectionModal =
+      this.shouldDisplayTopicSelectionModal.bind(this);
     this.state = {
       fixedSearch: false,
       firstVisibleTimestamp: null,
@@ -141,10 +143,12 @@ export class BaseContent extends React.PureComponent {
     global.addEventListener("keydown", this.handleOnKeyDown);
     if (this.props.document.visibilityState === VISIBLE) {
       this.setFirstVisibleTimestamp();
+      this.shouldDisplayTopicSelectionModal();
     } else {
       this._onVisibilityChange = () => {
         if (this.props.document.visibilityState === VISIBLE) {
           this.setFirstVisibleTimestamp();
+          this.shouldDisplayTopicSelectionModal();
           this.props.document.removeEventListener(
             VISIBILITY_CHANGE_EVENT,
             this._onVisibilityChange
@@ -384,6 +388,38 @@ export class BaseContent extends React.PureComponent {
     return 0.2125 * r + 0.7154 * g + 0.0721 * b <= 110;
   }
 
+  shouldDisplayTopicSelectionModal() {
+    const prefs = this.props.Prefs.values;
+    const maybeShowModal =
+      prefs["discoverystream.topicSelection.onboarding.maybeDisplay"];
+    const displayTimeout =
+      prefs["discoverystream.topicSelection.onboarding.displayTimeout"];
+    const lastDisplayed =
+      prefs["discoverystream.topicSelection.onboarding.lastDisplayed"];
+    const displayCount =
+      prefs["discoverystream.topicSelection.onboarding.displayCount"];
+
+    if (!maybeShowModal || !prefs["discoverystream.topicSelection.enabled"]) {
+      return;
+    }
+
+    const day = 24 * 60 * 60 * 1000;
+    const now = new Date().getTime();
+
+    const timeoutOccured = now - parseFloat(lastDisplayed) > displayTimeout;
+    if (displayCount < 3) {
+      if (displayCount === 0 || timeoutOccured) {
+        this.props.dispatch(
+          ac.BroadcastToContent({ type: at.TOPIC_SELECTION_SPOTLIGHT_OPEN })
+        );
+        this.setPref(
+          "discoverystream.topicSelection.onboarding.displayTimeout",
+          day
+        );
+      }
+    }
+  }
+
   render() {
     const { props } = this;
     const { App, DiscoveryStream } = props;
@@ -545,7 +581,11 @@ export class BaseContent extends React.PureComponent {
               </ErrorBoundary>
             )}
           </aside>
-          {mayShowTopicSelection && <TopicSelection />}
+          {/* Only show the modal on currently visible pages (not preloaded) */}
+          {mayShowTopicSelection &&
+            this.props?.document?.visibilityState === VISIBLE && (
+              <TopicSelection />
+            )}
         </div>
       </div>
     );

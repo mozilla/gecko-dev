@@ -129,6 +129,8 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     this.onStoryToggle = this.onStoryToggle.bind(this);
     this.handleWeatherSubmit = this.handleWeatherSubmit.bind(this);
     this.handleWeatherUpdate = this.handleWeatherUpdate.bind(this);
+    this.refreshTopicSelectionCache =
+      this.refreshTopicSelectionCache.bind(this);
     this.state = {
       toggledStories: {},
       weatherQuery: "",
@@ -159,6 +161,15 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
         type: at.DISCOVERY_STREAM_CONFIG_CHANGE,
         data: config,
       })
+    );
+  }
+
+  refreshTopicSelectionCache() {
+    this.props.dispatch(
+      ac.SetPref("discoverystream.topicSelection.onboarding.displayCount", 0)
+    );
+    this.props.dispatch(
+      ac.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", true)
     );
   }
 
@@ -396,6 +407,9 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
         <br />
         <button className="button" onClick={this.syncRemoteSettings}>
           Sync Remote Settings
+        </button>{" "}
+        <button className="button" onClick={this.refreshTopicSelectionCache}>
+          Refresh Topic selection count
         </button>
         <br />
         <button className="button" onClick={this.showPlaceholder}>

@@ -606,6 +606,36 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.topicSelection.onboarding.displayCount",
+    {
+      title: "amount of times that topic selection onboarding has been shown",
+      value: 0,
+    },
+  ],
+  [
+    "discoverystream.topicSelection.onboarding.maybeDisplay",
+    {
+      title:
+        "Whether the onboarding should be shown, based on previous interactions",
+      value: true,
+    },
+  ],
+  [
+    "discoverystream.topicSelection.onboarding.lastDisplayed",
+    {
+      title:
+        "time in ms that onboarding was last shown (stored as string due to contraits of prefs)",
+      value: "",
+    },
+  ],
+  [
+    "discoverystream.topicSelection.onboarding.displayTimeout",
+    {
+      title: "time in ms that the onboarding show be shown next",
+      value: 0,
+    },
+  ],
+  [
     "discoverystream.topicLabels.enabled",
     {
       title: "Enables topic labels for discovery stream",

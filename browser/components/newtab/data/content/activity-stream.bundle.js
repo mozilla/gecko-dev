@@ -217,7 +217,10 @@ for (const type of [
   "SYSTEM_TICK",
   "TELEMETRY_IMPRESSION_STATS",
   "TELEMETRY_USER_EVENT",
-  "TOPIC_SELECTION_SPOTLIGHT_TOGGLE",
+  "TOPIC_SELECTION_IMPRESSION",
+  "TOPIC_SELECTION_MAYBE_LATER",
+  "TOPIC_SELECTION_SPOTLIGHT_CLOSE",
+  "TOPIC_SELECTION_SPOTLIGHT_OPEN",
   "TOPIC_SELECTION_USER_DISMISS",
   "TOPIC_SELECTION_USER_OPEN",
   "TOPIC_SELECTION_USER_SAVE",
@@ -684,6 +687,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     this.onStoryToggle = this.onStoryToggle.bind(this);
     this.handleWeatherSubmit = this.handleWeatherSubmit.bind(this);
     this.handleWeatherUpdate = this.handleWeatherUpdate.bind(this);
+    this.refreshTopicSelectionCache = this.refreshTopicSelectionCache.bind(this);
     this.state = {
       toggledStories: {},
       weatherQuery: ""
@@ -711,6 +715,10 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       type: actionTypes.DISCOVERY_STREAM_CONFIG_CHANGE,
       data: config
     }));
+  }
+  refreshTopicSelectionCache() {
+    this.props.dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.displayCount", 0));
+    this.props.dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", true));
   }
   dispatchSimpleAction(type) {
     this.props.dispatch(actionCreators.OnlyToMain({
@@ -876,7 +884,10 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     }, "Trigger Idle Daily"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
       className: "button",
       onClick: this.syncRemoteSettings
-    }, "Sync Remote Settings"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
+    }, "Sync Remote Settings"), " ", /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.refreshTopicSelectionCache
+    }, "Refresh Topic selection count"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
       className: "button",
       onClick: this.showPlaceholder
     }, "Show Placeholder Cards"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, prefToggles.map(pref => /*#__PURE__*/external_React_default().createElement(Row, {
@@ -4350,8 +4361,8 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
     this.props.dispatch(actionCreators.OnlyToMain({
       type: actionTypes.TOPIC_SELECTION_USER_OPEN
     }));
-    this.props.dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE
+    this.props.dispatch(actionCreators.BroadcastToContent({
+      type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_OPEN
     }));
   }
   render() {
@@ -6651,10 +6662,15 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         };
       }
       return prevState;
-    case actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE:
+    case actionTypes.TOPIC_SELECTION_SPOTLIGHT_OPEN:
       return {
         ...prevState,
-        showTopicSelection: !prevState.showTopicSelection,
+        showTopicSelection: true,
+      };
+    case actionTypes.TOPIC_SELECTION_SPOTLIGHT_CLOSE:
+      return {
+        ...prevState,
+        showTopicSelection: false,
       };
     default:
       return prevState;
@@ -10655,9 +10671,20 @@ function TopicSelection() {
   const inputRef = (0,external_React_namespaceObject.useRef)(null);
   const modalRef = (0,external_React_namespaceObject.useRef)(null);
   const checkboxWrapperRef = (0,external_React_namespaceObject.useRef)(null);
-  const topics = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.topics"]).split(", ");
-  const selectedTopics = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.selectedTopics"]);
-  const topicsHaveBeenPreviouslySet = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.hasBeenUpdatedPreviously"]);
+  const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const topics = prefs["discoverystream.topicSelection.topics"].split(", ");
+  const selectedTopics = prefs["discoverystream.topicSelection.selectedTopics"];
+  const suggestedTopics = prefs["discoverystream.topicSelection.suggestedTopics"]?.split(", ");
+  const displayCount = prefs["discoverystream.topicSelection.onboarding.displayCount"];
+  const topicsHaveBeenPreviouslySet = prefs["discoverystream.topicSelection.hasBeenUpdatedPreviously"];
+  const [isFirstRun] = (0,external_React_namespaceObject.useState)(displayCount === 0);
+  const preselectedTopics = () => {
+    if (selectedTopics) {
+      return selectedTopics.split(", ");
+    }
+    return isFirstRun ? suggestedTopics : [];
+  };
+  const [topicsToSelect, setTopicsToSelect] = (0,external_React_namespaceObject.useState)(preselectedTopics);
   function isFirstSave() {
     // Only return true if the user has not previous set prefs
     // and the selected topics pref is empty
@@ -10667,19 +10694,46 @@ function TopicSelection() {
     }
     return false;
   }
-  const suggestedTopics = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values["discoverystream.topicSelection.suggestedTopics"]).split(", ");
-
-  // TODO: only show suggested topics during the first run
-  // if selectedTopics is empty - default to using the suggestedTopics as a starting value
-  const [topicsToSelect, setTopicsToSelect] = (0,external_React_namespaceObject.useState)(selectedTopics ? selectedTopics.split(", ") : suggestedTopics);
   function handleModalClose() {
     dispatch(actionCreators.OnlyToMain({
       type: actionTypes.TOPIC_SELECTION_USER_DISMISS
     }));
-    dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE
+    dispatch(actionCreators.BroadcastToContent({
+      type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_CLOSE
     }));
   }
+  function handleUserClose(e) {
+    const id = e?.target?.id;
+    if (id === "first-run") {
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.TOPIC_SELECTION_MAYBE_LATER
+      }));
+      dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", true));
+    } else {
+      dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", false));
+    }
+    handleModalClose();
+  }
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const {
+      current
+    } = modalRef;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        observer.unobserve(modalRef.current);
+        dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", false));
+        dispatch(actionCreators.AlsoToMain({
+          type: actionTypes.TOPIC_SELECTION_IMPRESSION
+        }));
+      }
+    });
+    observer.observe(current);
+    return () => {
+      if (current) {
+        observer.unobserve(current);
+      }
+    };
+  }, [modalRef, dispatch]);
 
   // when component mounts, set focus to input
   (0,external_React_namespaceObject.useEffect)(() => {
@@ -10739,6 +10793,8 @@ function TopicSelection() {
   }
   function handleSubmit() {
     const topicsString = topicsToSelect.join(", ");
+    dispatch(actionCreators.SetPref("discoverystream.topicSelection.selectedTopics", topicsString));
+    dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", false));
     dispatch(actionCreators.OnlyToMain({
       type: actionTypes.TOPIC_SELECTION_USER_SAVE,
       data: {
@@ -10747,13 +10803,10 @@ function TopicSelection() {
         first_save: isFirstSave()
       }
     }));
-    dispatch(actionCreators.SetPref("discoverystream.topicSelection.selectedTopics", topicsString));
-    dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_TOGGLE
-    }));
+    handleModalClose();
   }
   return /*#__PURE__*/external_React_default().createElement(ModalOverlayWrapper, {
-    onClose: handleModalClose,
+    onClose: handleUserClose,
     innerClassName: "topic-selection-container"
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "topic-selection-form",
@@ -10761,7 +10814,7 @@ function TopicSelection() {
   }, /*#__PURE__*/external_React_default().createElement("button", {
     className: "dismiss-button",
     title: "dismiss",
-    onClick: handleModalClose
+    onClick: handleUserClose
   }), /*#__PURE__*/external_React_default().createElement("h1", {
     className: "title"
   }, "Select topics you care about"), /*#__PURE__*/external_React_default().createElement("p", {
@@ -10799,10 +10852,11 @@ function TopicSelection() {
   }, "How we protect your data and privacy"), /*#__PURE__*/external_React_default().createElement("moz-button-group", {
     className: "button-group"
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
-    label: "Remove topics",
-    onClick: handleModalClose
+    id: isFirstRun ? "first-run" : "",
+    label: isFirstRun ? "Maybe later" : "Cancel",
+    onClick: handleUserClose
   }), /*#__PURE__*/external_React_default().createElement("moz-button", {
-    label: "Save topics",
+    label: isFirstRun ? "Save topics" : "Save",
     type: "primary",
     onClick: handleSubmit
   })))));
@@ -11044,6 +11098,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     this.updateWallpaper = this.updateWallpaper.bind(this);
     this.prefersDarkQuery = null;
     this.handleColorModeChange = this.handleColorModeChange.bind(this);
+    this.shouldDisplayTopicSelectionModal = this.shouldDisplayTopicSelectionModal.bind(this);
     this.state = {
       fixedSearch: false,
       firstVisibleTimestamp: null,
@@ -11062,10 +11117,12 @@ class BaseContent extends (external_React_default()).PureComponent {
     __webpack_require__.g.addEventListener("keydown", this.handleOnKeyDown);
     if (this.props.document.visibilityState === Base_VISIBLE) {
       this.setFirstVisibleTimestamp();
+      this.shouldDisplayTopicSelectionModal();
     } else {
       this._onVisibilityChange = () => {
         if (this.props.document.visibilityState === Base_VISIBLE) {
           this.setFirstVisibleTimestamp();
+          this.shouldDisplayTopicSelectionModal();
           this.props.document.removeEventListener(Base_VISIBILITY_CHANGE_EVENT, this._onVisibilityChange);
           this._onVisibilityChange = null;
         }
@@ -11271,6 +11328,27 @@ class BaseContent extends (external_React_default()).PureComponent {
   isWallpaperColorDark([r, g, b]) {
     return 0.2125 * r + 0.7154 * g + 0.0721 * b <= 110;
   }
+  shouldDisplayTopicSelectionModal() {
+    const prefs = this.props.Prefs.values;
+    const maybeShowModal = prefs["discoverystream.topicSelection.onboarding.maybeDisplay"];
+    const displayTimeout = prefs["discoverystream.topicSelection.onboarding.displayTimeout"];
+    const lastDisplayed = prefs["discoverystream.topicSelection.onboarding.lastDisplayed"];
+    const displayCount = prefs["discoverystream.topicSelection.onboarding.displayCount"];
+    if (!maybeShowModal || !prefs["discoverystream.topicSelection.enabled"]) {
+      return;
+    }
+    const day = 24 * 60 * 60 * 1000;
+    const now = new Date().getTime();
+    const timeoutOccured = now - parseFloat(lastDisplayed) > displayTimeout;
+    if (displayCount < 3) {
+      if (displayCount === 0 || timeoutOccured) {
+        this.props.dispatch(actionCreators.BroadcastToContent({
+          type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_OPEN
+        }));
+        this.setPref("discoverystream.topicSelection.onboarding.displayTimeout", day);
+      }
+    }
+  }
   render() {
     const {
       props
@@ -11371,7 +11449,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       firstVisibleTimestamp: this.state.firstVisibleTimestamp
     })) : /*#__PURE__*/external_React_default().createElement(Sections_Sections, null)), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null), wallpapersEnabled && this.renderWallpaperAttribution()), /*#__PURE__*/external_React_default().createElement("aside", null, this.props.Notifications?.showNotifications && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Notifications_Notifications, {
       dispatch: this.props.dispatch
-    }))), mayShowTopicSelection && /*#__PURE__*/external_React_default().createElement(TopicSelection, null)));
+    }))), mayShowTopicSelection && this.props?.document?.visibilityState === Base_VISIBLE && /*#__PURE__*/external_React_default().createElement(TopicSelection, null)));
   }
 }
 BaseContent.defaultProps = {

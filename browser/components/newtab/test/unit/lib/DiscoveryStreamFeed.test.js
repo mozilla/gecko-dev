@@ -3382,6 +3382,16 @@ describe("DiscoveryStreamFeed", () => {
     });
   });
 
+  describe("#onAction: TOPIC_SELECTION_MAYBE_LATER", () => {
+    it("should call topicSelectionMaybeLaterEvent", async () => {
+      sandbox.stub(feed, "topicSelectionMaybeLaterEvent").resolves();
+      await feed.onAction({
+        type: at.TOPIC_SELECTION_MAYBE_LATER,
+      });
+      assert.calledOnce(feed.topicSelectionMaybeLaterEvent);
+    });
+  });
+
   describe("#observe", () => {
     it("should call configReset on Pocket button pref change", async () => {
       sandbox.stub(feed, "configReset").returns();

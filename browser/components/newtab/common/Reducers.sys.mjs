@@ -851,10 +851,15 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         };
       }
       return prevState;
-    case at.TOPIC_SELECTION_SPOTLIGHT_TOGGLE:
+    case at.TOPIC_SELECTION_SPOTLIGHT_OPEN:
       return {
         ...prevState,
-        showTopicSelection: !prevState.showTopicSelection,
+        showTopicSelection: true,
+      };
+    case at.TOPIC_SELECTION_SPOTLIGHT_CLOSE:
+      return {
+        ...prevState,
+        showTopicSelection: false,
       };
     default:
       return prevState;

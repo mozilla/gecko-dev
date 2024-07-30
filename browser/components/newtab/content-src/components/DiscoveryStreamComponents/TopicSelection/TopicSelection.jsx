@@ -41,18 +41,23 @@ function TopicSelection() {
   const inputRef = useRef(null);
   const modalRef = useRef(null);
   const checkboxWrapperRef = useRef(null);
-  const topics = useSelector(
-    state => state.Prefs.values["discoverystream.topicSelection.topics"]
-  ).split(", ");
-  const selectedTopics = useSelector(
-    state => state.Prefs.values["discoverystream.topicSelection.selectedTopics"]
-  );
-  const topicsHaveBeenPreviouslySet = useSelector(
-    state =>
-      state.Prefs.values[
-        "discoverystream.topicSelection.hasBeenUpdatedPreviously"
-      ]
-  );
+  const prefs = useSelector(state => state.Prefs.values);
+  const topics = prefs["discoverystream.topicSelection.topics"].split(", ");
+  const selectedTopics = prefs["discoverystream.topicSelection.selectedTopics"];
+  const suggestedTopics =
+    prefs["discoverystream.topicSelection.suggestedTopics"]?.split(", ");
+  const displayCount =
+    prefs["discoverystream.topicSelection.onboarding.displayCount"];
+  const topicsHaveBeenPreviouslySet =
+    prefs["discoverystream.topicSelection.hasBeenUpdatedPreviously"];
+  const [isFirstRun] = useState(displayCount === 0);
+  const preselectedTopics = () => {
+    if (selectedTopics) {
+      return selectedTopics.split(", ");
+    }
+    return isFirstRun ? suggestedTopics : [];
+  };
+  const [topicsToSelect, setTopicsToSelect] = useState(preselectedTopics);
 
   function isFirstSave() {
     // Only return true if the user has not previous set prefs
@@ -70,21 +75,61 @@ function TopicSelection() {
     return false;
   }
 
-  const suggestedTopics = useSelector(
-    state =>
-      state.Prefs.values["discoverystream.topicSelection.suggestedTopics"]
-  ).split(", ");
-
-  // TODO: only show suggested topics during the first run
-  // if selectedTopics is empty - default to using the suggestedTopics as a starting value
-  const [topicsToSelect, setTopicsToSelect] = useState(
-    selectedTopics ? selectedTopics.split(", ") : suggestedTopics
-  );
-
   function handleModalClose() {
     dispatch(ac.OnlyToMain({ type: at.TOPIC_SELECTION_USER_DISMISS }));
-    dispatch(ac.AlsoToMain({ type: at.TOPIC_SELECTION_SPOTLIGHT_TOGGLE }));
+    dispatch(
+      ac.BroadcastToContent({ type: at.TOPIC_SELECTION_SPOTLIGHT_CLOSE })
+    );
   }
+
+  function handleUserClose(e) {
+    const id = e?.target?.id;
+
+    if (id === "first-run") {
+      dispatch(ac.AlsoToMain({ type: at.TOPIC_SELECTION_MAYBE_LATER }));
+      dispatch(
+        ac.SetPref(
+          "discoverystream.topicSelection.onboarding.maybeDisplay",
+          true
+        )
+      );
+    } else {
+      dispatch(
+        ac.SetPref(
+          "discoverystream.topicSelection.onboarding.maybeDisplay",
+          false
+        )
+      );
+    }
+    handleModalClose();
+  }
+
+  useEffect(() => {
+    const { current } = modalRef;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        observer.unobserve(modalRef.current);
+        dispatch(
+          ac.SetPref(
+            "discoverystream.topicSelection.onboarding.maybeDisplay",
+            false
+          )
+        );
+        dispatch(
+          ac.AlsoToMain({
+            type: at.TOPIC_SELECTION_IMPRESSION,
+          })
+        );
+      }
+    });
+    observer.observe(current);
+
+    return () => {
+      if (current) {
+        observer.unobserve(current);
+      }
+    };
+  }, [modalRef, dispatch]);
 
   // when component mounts, set focus to input
   useEffect(() => {
@@ -165,6 +210,15 @@ function TopicSelection() {
   function handleSubmit() {
     const topicsString = topicsToSelect.join(", ");
     dispatch(
+      ac.SetPref("discoverystream.topicSelection.selectedTopics", topicsString)
+    );
+    dispatch(
+      ac.SetPref(
+        "discoverystream.topicSelection.onboarding.maybeDisplay",
+        false
+      )
+    );
+    dispatch(
       ac.OnlyToMain({
         type: at.TOPIC_SELECTION_USER_SAVE,
         data: {
@@ -174,23 +228,19 @@ function TopicSelection() {
         },
       })
     );
-
-    dispatch(
-      ac.SetPref("discoverystream.topicSelection.selectedTopics", topicsString)
-    );
-    dispatch(ac.AlsoToMain({ type: at.TOPIC_SELECTION_SPOTLIGHT_TOGGLE }));
+    handleModalClose();
   }
 
   return (
     <ModalOverlayWrapper
-      onClose={handleModalClose}
+      onClose={handleUserClose}
       innerClassName="topic-selection-container"
     >
       <div className="topic-selection-form" ref={modalRef}>
         <button
           className="dismiss-button"
           title="dismiss"
-          onClick={handleModalClose}
+          onClick={handleUserClose}
         />
         <h1 className="title">Select topics you care about</h1>
         <p className="subtitle">
@@ -228,9 +278,13 @@ function TopicSelection() {
             How we protect your data and privacy
           </a>
           <moz-button-group className="button-group">
-            <moz-button label="Remove topics" onClick={handleModalClose} />
             <moz-button
-              label="Save topics"
+              id={isFirstRun ? "first-run" : ""}
+              label={isFirstRun ? "Maybe later" : "Cancel"}
+              onClick={handleUserClose}
+            />
+            <moz-button
+              label={isFirstRun ? "Save topics" : "Save"}
               type="primary"
               onClick={handleSubmit}
             />

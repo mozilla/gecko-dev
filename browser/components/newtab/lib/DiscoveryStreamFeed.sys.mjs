@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PersistentCache: "resource://activity-stream/lib/PersistentCache.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
 });
 
 // We use importESModule here instead of static import so that
@@ -35,6 +36,13 @@ const SPOCS_FEEDS_UPDATE_TIME = 30 * 60 * 1000; // 30 minutes
 const DEFAULT_RECS_EXPIRE_TIME = 60 * 60 * 1000; // 1 hour
 const MAX_LIFETIME_CAP = 500; // Guard against misconfiguration on the server
 const FETCH_TIMEOUT = 45 * 1000;
+const TOPIC_SELECTION_DISPLAY_COUNT =
+  "discoverystream.topicSelection.onboarding.displayCount";
+const TOPIC_SELECTION_LAST_DISPLAYED =
+  "discoverystream.topicSelection.onboarding.lastDisplayed";
+const TOPIC_SELECTION_DISPLAY_TIMEOUT =
+  "discoverystream.topicSelection.onboarding.displayTimeout";
+
 const SPOCS_URL = "https://spocs.getpocket.com/spocs";
 const FEED_URL =
   "https://getpocket.cdn.mozilla.net/v3/firefox/global-recs?version=3&consumer_key=$apiKey&locale_lang=$locale&region=$region&count=30";
@@ -1850,6 +1858,38 @@ export class DiscoveryStreamFeed {
     this.loadLayout(dispatch, false);
   }
 
+  async retreiveProfileAge() {
+    let profileAccessor = await lazy.ProfileAge();
+    let profileCreateTime = await profileAccessor.created;
+    let timeNow = new Date().getTime();
+    let profileAge = timeNow - profileCreateTime;
+    // Convert milliseconds to days
+    return profileAge / 1000 / 60 / 60 / 24;
+  }
+
+  topicSelectionImpressionEvent() {
+    let counter =
+      this.store.getState().Prefs.values[TOPIC_SELECTION_DISPLAY_COUNT];
+
+    const newCount = counter + 1;
+    this.store.dispatch(ac.SetPref(TOPIC_SELECTION_DISPLAY_COUNT, newCount));
+    this.store.dispatch(
+      ac.SetPref(TOPIC_SELECTION_LAST_DISPLAYED, `${new Date().getTime()}`)
+    );
+  }
+
+  topicSelectionMaybeLaterEvent() {
+    const age = this.retreiveProfileAge();
+    const newProfile = age <= 1;
+    const day = 24 * 60 * 60 * 1000;
+    this.store.dispatch(
+      ac.SetPref(
+        TOPIC_SELECTION_DISPLAY_TIMEOUT,
+        newProfile ? 3 * day : 7 * day
+      )
+    );
+  }
+
   async onPrefChangedAction(action) {
     switch (action.data.name) {
       case PREF_CONFIG:
@@ -1949,6 +1989,9 @@ export class DiscoveryStreamFeed {
           await this.enable({ updateOpenTabs: true, isStartup: true });
         }
         Services.prefs.addObserver(PREF_POCKET_BUTTON, this);
+        break;
+      case at.TOPIC_SELECTION_MAYBE_LATER:
+        this.topicSelectionMaybeLaterEvent();
         break;
       case at.DISCOVERY_STREAM_DEV_SYSTEM_TICK:
       case at.SYSTEM_TICK:
@@ -2172,6 +2215,9 @@ export class DiscoveryStreamFeed {
           await this.onPrefChange();
           this.setupPrefs(false /* isStartup */);
         }
+        break;
+      case at.TOPIC_SELECTION_IMPRESSION:
+        this.topicSelectionImpressionEvent();
         break;
     }
   }
