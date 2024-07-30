@@ -50,9 +50,10 @@ interface nsIProfileLock : nsISupports
 interface nsIToolkitProfile : nsISupports
 {
     /**
-     * The location of the profile directory.
+     * The location of the profile directory. This may not match the current
+     * profile directory if this is the current profile.
      */
-    readonly attribute nsIFile rootDir;
+    attribute nsIFile rootDir;
 
     /**
      * The location of the profile local directory, which may be the same as
