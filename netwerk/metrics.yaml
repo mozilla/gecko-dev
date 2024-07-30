@@ -1252,6 +1252,7 @@ networking:
       - https_first_upgrade_downgrade
       - https_first_schemeless_upgrade
       - https_first_schemeless_upgrade_downgrade
+      - csp_uir
       - https_rr
       - web_extension_upgrade
       - upgrade_exception

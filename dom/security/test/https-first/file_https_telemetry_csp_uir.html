@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <meta charset="UTF-8">
+ <title>HTTPS Telemetry CSP UIR Test</title>
+ <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+</head>
+<body>
+  <script>
+    document.write("<a href='" + document.location.href + "' id='mylink'>Click me</a>");
+  </script>
+</body>
+</html>

@@ -1579,9 +1579,10 @@ interface nsILoadInfo : nsISupports
     HTTPS_FIRST_UPGRADE_DOWNGRADE = (1 << 6),
     HTTPS_FIRST_SCHEMELESS_UPGRADE = (1 << 7),
     HTTPS_FIRST_SCHEMELESS_UPGRADE_DOWNGRADE = (1 << 8),
-    HTTPS_RR = (1 << 9),
-    WEB_EXTENSION_UPGRADE = (1 << 10),
-    UPGRADE_EXCEPTION = (1 << 11),
+    CSP_UIR = (1 << 9),
+    HTTPS_RR = (1 << 10),
+    WEB_EXTENSION_UPGRADE = (1 << 11),
+    UPGRADE_EXCEPTION = (1 << 12),
   };
 
   /**

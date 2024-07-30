@@ -246,7 +246,14 @@ nsDocShellLoadState::nsDocShellLoadState(nsIURI* aURI, uint64_t aLoadIdentifier)
                                 : NOT_REMOTE_TYPE),
       mWasSchemelessInput(false) {
   MOZ_ASSERT(aURI, "Cannot create a LoadState with a null URI!");
-  if (aURI->SchemeIs("https")) {
+
+  // For https telemetry we set a flag indicating whether the load is https.
+  // There are some corner cases, e.g. view-source and also about: pages.
+  // about: pages, when hitting the network, always redirect to https.
+  // Since we record https telemetry only within nsHTTPSChannel, it's fine
+  // to set the flag here.
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
+  if (innerURI->SchemeIs("https") || innerURI->SchemeIs("about")) {
     mHttpsUpgradeTelemetry = nsILoadInfo::ALREADY_HTTPS;
   } else {
     mHttpsUpgradeTelemetry = nsILoadInfo::NO_UPGRADE;

@@ -63,6 +63,7 @@ function verifyGleanValues(
   aHttpsFirstUpgradeDowngrade,
   aHttpsFirstSchemelessUpgrade,
   aHttpsFirstSchemelessUpgradeDowngrade,
+  aCSPUpgradeInsecureRequests,
   aHttpsRR,
   aWebExtensionUpgrade,
   aUpgradeException
@@ -106,6 +107,11 @@ function verifyGleanValues(
     glean.https_first_schemeless_upgrade_downgrade.testGetValue(),
     aHttpsFirstSchemelessUpgradeDowngrade,
     "verify https_first_schemeless_upgrade_downgrade"
+  );
+  is(
+    glean.csp_uir.testGetValue(),
+    aCSPUpgradeInsecureRequests,
+    "verify csp_uir"
   );
   is(glean.https_rr.testGetValue(), aHttpsRR, "verify https_rr");
   is(
@@ -193,6 +199,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -225,6 +232,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -258,6 +266,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -291,6 +300,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -331,6 +341,7 @@ add_task(async function () {
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
     null /* aHttpsRR */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
   );
@@ -378,6 +389,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -418,6 +430,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -513,6 +526,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -546,6 +560,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -577,6 +592,7 @@ add_task(async function () {
     1 /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -610,6 +626,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     1 /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -641,6 +658,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     1 /* aHttpsFirstSchemelessUpgrade */,
     1 /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -680,6 +698,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     1 /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     null /* aUpgradeException */
@@ -754,6 +773,7 @@ add_task(async function () {
     null /* aHttpsFirstUpgradeDowngrade */,
     null /* aHttpsFirstSchemelessUpgrade */,
     null /* aHttpsFirstSchemelessUpgradeDowngrade */,
+    null /* aCSPUpgradeInsecureRequests */,
     null /* aHttpsRR */,
     null /* aWebExtensionUpgrade */,
     1 /* aUpgradeException */

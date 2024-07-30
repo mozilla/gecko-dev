@@ -72,3 +72,13 @@ skip-if = [
   "http2",
   "socketprocess_networking",
 ]
+
+["browser_https_telemetry2.js"]
+support-files = [
+  "file_https_telemetry_csp_uir.html",
+]
+skip-if = [
+  "http3",
+  "http2",
+  "socketprocess_networking",
+]
