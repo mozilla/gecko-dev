@@ -19,19 +19,31 @@ head = "head.js"
 ["test_dataSourceBaseRemoveLine.js"]
 
 ["test_loginDataSourceEnumerateLines.js"]
-skip-if = ["os == 'android'"] # LoginDataSource imports LoginExport which is not available on Android
+skip-if = [
+	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
+	"release_or_beta"] # Bug 1910590
 
 ["test_loginDataSourceOriginPrototype.js"]
-skip-if = ["os == 'android'"] # LoginDataSource imports LoginExport which is not available on Android
+skip-if = [
+	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
+	"release_or_beta"] # Bug 1910590
 
 ["test_loginDataSourcePasswordPrototype.js"]
-skip-if = ["os == 'android'"] # LoginDataSource imports LoginExport which is not available on Android
+skip-if = [
+	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
+	"release_or_beta"] # Bug 1910590
 
 ["test_loginDataSourceReloadDataSource.js"]
-skip-if = ["os == 'android'"] # LoginDataSource imports LoginExport which is not available on Android
+skip-if = [
+	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
+	"release_or_beta"] # Bug 1910590
 
 ["test_loginDataSourceSortLines.js"]
-skip-if = ["os == 'android'"] # LoginDataSource imports LoginExport which is not available on Android
+skip-if = [
+	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
+	"release_or_beta"] # Bug 1910590
 
 ["test_loginDataSourceUsernamePrototype.js"]
-skip-if = ["os == 'android'"] # LoginDataSource imports LoginExport which is not available on Android
+skip-if = [
+	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
+	"release_or_beta"] # Bug 1910590
