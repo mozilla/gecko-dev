@@ -774,10 +774,6 @@ sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs[orient="vertica
   width: var(--collapsed-tab-width);
 }
 
-sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
-  min-width: calc(100% - var(--space-medium));
-}
-
 #newtab-button-container {
   display: none;
 }

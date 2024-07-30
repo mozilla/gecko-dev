@@ -13,17 +13,9 @@
   border-inline-end: 1px solid var(--chrome-content-separator-color);
   background-color: var(--toolbar-bgcolor);
   color: var(--sidebar-text-color);
-
   :host([positionend]) & {
     border-inline-start: 1px solid var(--chrome-content-separator-color);
     border-inline-end: none;
-  }
-
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "sidebar.verticalTabs") {
-    :host([expanded]) & {
-      min-width: 280px;
-    }
   }
 }
 
@@ -31,7 +23,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-inline: var(--space-xsmall);
+  padding-inline-start: var(--space-xsmall);
 }
 
 .expanded-button {
