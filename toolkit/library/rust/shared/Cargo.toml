@@ -49,7 +49,7 @@ audio_thread_priority = { version = "0.32", default-features = false }
 mdns_service = { path="../../../../dom/media/webrtc/transport/mdns_service", optional = true }
 neqo_glue = { path = "../../../../netwerk/socket/neqo_glue" }
 wgpu_bindings = { path = "../../../../gfx/wgpu_bindings" }
-mapped_hyph = { git = "https://github.com/jfkthame/mapped_hyph.git", rev = "c7651a0cffff41996ad13c44f689bd9cd2192c01" }
+mapped_hyph = { git = "https://github.com/jfkthame/mapped_hyph.git", rev = "eff105f6ad7ec9b79816cfc1985a28e5340ad14b" }
 fog_control = { path = "../../../components/glean" }
 app_services_logger = { path = "../../../../services/common/app_services_logger" }
 http_sfv = { path = "../../../../netwerk/base/http-sfv" }
