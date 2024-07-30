@@ -7,11 +7,11 @@
 #ifndef mozilla_dom_BodyConsumer_h
 #define mozilla_dom_BodyConsumer_h
 
-#include "mozilla/dom/AbortSignal.h"
+#include "mozilla/GlobalTeardownObserver.h"
+#include "mozilla/GlobalFreezeObserver.h"
+#include "mozilla/dom/AbortFollower.h"
 #include "mozilla/dom/MutableBlobStorage.h"
 #include "nsIInputStreamPump.h"
-#include "nsIObserver.h"
-#include "nsWeakReference.h"
 
 class nsIThread;
 
@@ -22,12 +22,11 @@ class ThreadSafeWorkerRef;
 
 // In order to keep alive the object all the time, we use a ThreadSafeWorkerRef,
 // if created on workers.
-class BodyConsumer final : public nsIObserver,
-                           public nsSupportsWeakReference,
-                           public AbortFollower {
+class BodyConsumer final : public AbortFollower,
+                           public GlobalTeardownObserver,
+                           public GlobalFreezeObserver {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSIOBSERVER
 
   enum class ConsumeType {
     ArrayBuffer,
@@ -76,8 +75,8 @@ class BodyConsumer final : public nsIObserver,
   void OnBlobResult(BlobImpl* aBlobImpl,
                     ThreadSafeWorkerRef* aWorkerRef = nullptr);
 
-  void ContinueConsumeBody(nsresult aStatus, uint32_t aLength, uint8_t* aResult,
-                           bool aShuttingDown = false);
+  void ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
+                           uint8_t* aResult, bool aShuttingDown = false);
 
   void ContinueConsumeBlobBody(BlobImpl* aBlobImpl, bool aShuttingDown = false);
 
@@ -108,6 +107,17 @@ class BodyConsumer final : public nsIObserver,
   nsresult GetBodyLocalFile(nsIFile** aFile) const;
 
   void AssertIsOnTargetThread() const;
+
+  void MaybeAbortConsumption();
+
+  void DisconnectFromOwner() override {
+    MaybeAbortConsumption();
+    GlobalTeardownObserver::DisconnectFromOwner();
+  }
+  void FrozenCallback(nsIGlobalObject* aGlobal) override {
+    // XXX: But we should not abort on window freeze, see bug 1910124
+    MaybeAbortConsumption();
+  }
 
   nsCOMPtr<nsIThread> mTargetThread;
   nsCOMPtr<nsISerialEventTarget> mMainThreadEventTarget;
