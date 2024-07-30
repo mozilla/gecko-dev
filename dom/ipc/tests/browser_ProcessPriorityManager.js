@@ -15,6 +15,10 @@ const PROCESS_PRIORITY_BACKGROUND = "BACKGROUND";
 // change before we assume that it's just not happening.
 const WAIT_FOR_CHANGE_TIME_MS = 2000;
 
+// This test has to wait WAIT_FOR_CHANGE_TIME_MS multiple times,
+// so give it a little longer to complete.
+requestLongerTimeout(2);
+
 // A convenience function for getting the child ID from a browsing context.
 function browsingContextChildID(bc) {
   return bc.currentWindowGlobal?.domProcess.childID;
@@ -960,4 +964,32 @@ add_task(async function test_audio_background_tab() {
       "Loading a page from the bfcache should keep the tab prioritized."
     );
   });
+});
+
+/**
+ * Test that if a normal tab gets moved to a new window, it gets
+ * PROCESS_PRIORITY_FOREGROUND (since it is the only tab in that window)
+ * See bug 1896172.
+ */
+add_task(async function test_tab_moved_to_new_window() {
+  await BrowserTestUtils.withNewTab(
+    "https://example.com/browser/dom/ipc/tests/file_cross_frame.html",
+    async browser => {
+      let tab = gBrowser.getTabForBrowser(browser);
+      let tabID = browsingContextChildID(tab.linkedBrowser.browsingContext);
+      let delayedStartupPromise = BrowserTestUtils.waitForNewWindow();
+      let win = gBrowser.replaceTabWithWindow(tab);
+      await delayedStartupPromise;
+      // The bug was caused by the closing of the original tab, so wait
+      // for that to happen before checking the priority.
+      await TestUtils.waitForCondition(() => gBrowser.tabs.length === 1);
+      Assert.equal(
+        gTabPriorityWatcher.currentPriority(tabID),
+        PROCESS_PRIORITY_FOREGROUND,
+        "Tab should be in foreground after moving to new window"
+      );
+
+      await BrowserTestUtils.closeWindow(win);
+    }
+  );
 });

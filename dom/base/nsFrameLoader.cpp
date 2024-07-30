@@ -1393,6 +1393,10 @@ nsresult nsFrameLoader::SwapWithOtherRemoteLoader(
       ourContext.AsIPCTabContext());
   Unused << otherBrowserParent->SendSwappedWithOtherRemoteLoader(
       otherContext.AsIPCTabContext());
+  // These might have moved to a new window, so make sure they have
+  // the appropriate priority (bug 1896172)
+  browserParent->RecomputeProcessPriority();
+  otherBrowserParent->RecomputeProcessPriority();
   return NS_OK;
 }
 
