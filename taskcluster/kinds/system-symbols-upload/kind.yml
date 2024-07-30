@@ -22,7 +22,7 @@ tasks:
         worker-type: b-linux-gcp
         worker:
             docker-image: {in-tree: "lint"}
-            max-run-time: 1200
+            max-run-time: 1800
             env:
                 # {level} gets replaced in the upload_symbols transform
                 SYMBOL_SECRET: "project/releng/gecko/build/level-{level}/gecko-symbol-upload"
