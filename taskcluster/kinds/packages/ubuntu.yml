@@ -140,6 +140,20 @@ ub22-python-zstandard:
         dist: jammy
         pre-build-command: debchange -v 0.22.0-1.ub22moz --distribution jammy "Mozilla backport for jammy"
 
+ub22-arm64-python-zstandard:
+    worker-type: b-linux-gcp-aarch64
+    description: "python-zstandard for Ubuntu jammy on ARM64"
+    treeherder:
+        symbol: Ub22a64(python-zstandard)
+    run:
+        tarball:
+            url: https://github.com/indygreg/python-zstandard/releases/download/0.22.0/zstandard-0.22.0.tar.gz
+            sha256: 8226a33c542bcb54cd6bd0a366067b610b41713b64c9abec1bc4533d69f51e70
+        name: python-zstandard
+        dist: jammy
+        arch: arm64
+        pre-build-command: debchange -v 0.22.0-1.ub22moz --distribution jammy "Mozilla backport for jammy"
+
 ub22-mercurial:
     description: "Modern Mercurial for Ubuntu jammy"
     treeherder:
