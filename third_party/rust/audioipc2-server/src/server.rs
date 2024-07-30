@@ -162,9 +162,8 @@ fn cubeb_init_from_context_params() -> cubeb::Result<cubeb::Context> {
     let context_name = Some(params.context_name.as_c_str());
     let backend_name = params.backend_name.as_deref();
     let r = cubeb::Context::init(context_name, backend_name);
-    r.map_err(|e| {
+    r.inspect_err(|e| {
         info!("cubeb::Context::init failed r={:?}", e);
-        e
     })
 }
 

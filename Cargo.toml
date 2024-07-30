@@ -226,6 +226,8 @@ webext-storage = { git = "https://github.com/mozilla/application-services", rev 
 
 # Patch mio 0.8.8 to use windows-sys 0.52 (backport https://github.com/tokio-rs/mio/commit/eea9e3e0c469480e5c59c01e6c3c7e5fd88f0848)
 mio_0_8 = { package = "mio", git = "https://github.com/glandium/mio", rev = "9a2ef335c366044ffe73b1c4acabe50a1daefe05" }
+# Downgrade mio 1.0 to 0.8 until tokio is upgraded to use mio 1.0.
+mio = { path = "build/rust/mio" }
 
 # Patch `gpu-descriptor` 0.3.0 to remove unnecessary `allocator-api2` dep.:
 # Still waiting for the now-merged <https://github.com/zakarumych/gpu-descriptor/pull/40> to be released.

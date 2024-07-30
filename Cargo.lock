@@ -269,7 +269,7 @@ dependencies = [
 [[package]]
 name = "audioipc2"
 version = "0.6.0"
-source = "git+https://github.com/mozilla/audioipc?rev=3495905752a4263827f5d43737f9ca3ed0243ce0#3495905752a4263827f5d43737f9ca3ed0243ce0"
+source = "git+https://github.com/mozilla/audioipc?rev=c200b1efa8d4a567b875b46ce7c395ca172fae5b#c200b1efa8d4a567b875b46ce7c395ca172fae5b"
 dependencies = [
  "arrayvec",
  "ashmem",
@@ -285,7 +285,7 @@ dependencies = [
  "libc",
  "log",
  "memmap2 0.9.3",
- "mio",
+ "mio 1.999.999",
  "scopeguard",
  "serde",
  "serde_bytes",
@@ -297,7 +297,7 @@ dependencies = [
 [[package]]
 name = "audioipc2-client"
 version = "0.6.0"
-source = "git+https://github.com/mozilla/audioipc?rev=3495905752a4263827f5d43737f9ca3ed0243ce0#3495905752a4263827f5d43737f9ca3ed0243ce0"
+source = "git+https://github.com/mozilla/audioipc?rev=c200b1efa8d4a567b875b46ce7c395ca172fae5b#c200b1efa8d4a567b875b46ce7c395ca172fae5b"
 dependencies = [
  "audio_thread_priority",
  "audioipc2",
@@ -308,7 +308,7 @@ dependencies = [
 [[package]]
 name = "audioipc2-server"
 version = "0.6.0"
-source = "git+https://github.com/mozilla/audioipc?rev=3495905752a4263827f5d43737f9ca3ed0243ce0#3495905752a4263827f5d43737f9ca3ed0243ce0"
+source = "git+https://github.com/mozilla/audioipc?rev=c200b1efa8d4a567b875b46ce7c395ca172fae5b#c200b1efa8d4a567b875b46ce7c395ca172fae5b"
 dependencies = [
  "audio_thread_priority",
  "audioipc2",
@@ -3790,6 +3790,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mio"
+version = "1.999.999"
+dependencies = [
+ "mio 0.8.8",
+]
+
+[[package]]
 name = "moz_asserts"
 version = "0.1.0"
 dependencies = [
@@ -3905,7 +3912,7 @@ dependencies = [
  "lmdb-rkv-sys",
  "log",
  "memchr",
- "mio",
+ "mio 0.8.8",
  "nom",
  "num-integer",
  "num-traits",
@@ -5968,7 +5975,7 @@ dependencies = [
  "backtrace",
  "bytes",
  "libc",
- "mio",
+ "mio 0.8.8",
  "num_cpus",
  "pin-project-lite",
  "socket2 0.4.999",
