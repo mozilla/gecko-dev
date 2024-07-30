@@ -56,6 +56,17 @@ static Value StringOrNullValue(JSString* maybeString) {
   return maybeString ? StringValue(maybeString) : NullValue();
 }
 
+static Value ModuleTypeToValue(JS::ModuleType moduleType) {
+  static_assert(size_t(JS::ModuleType::Limit) <= INT32_MAX);
+  return Int32Value(int32_t(moduleType));
+}
+
+static JS::ModuleType ValueToModuleType(const Value& value) {
+  int32_t i = value.toInt32();
+  MOZ_ASSERT(i >= 0 && i <= int32_t(JS::ModuleType::Limit));
+  return static_cast<JS::ModuleType>(i);
+}
+
 #define DEFINE_ATOM_ACCESSOR_METHOD(cls, name, slot) \
   JSAtom* cls::name() const {                        \
     Value value = getReservedSlot(slot);             \
@@ -197,10 +208,7 @@ DEFINE_ATOM_OR_NULL_ACCESSOR_METHOD(ModuleRequestObject, specifier,
                                     SpecifierSlot)
 
 JS::ModuleType ModuleRequestObject::moduleType() const {
-  Value v = getReservedSlot(ModuleTypeSlot);
-  int32_t i = v.toInt32();
-  MOZ_ASSERT(i >= 0 && i <= int32_t(JS::ModuleType::Limit));
-  return static_cast<JS::ModuleType>(i);
+  return ValueToModuleType(getReservedSlot(ModuleTypeSlot));
 }
 
 static bool GetModuleType(JSContext* cx,
@@ -237,21 +245,26 @@ bool ModuleRequestObject::isInstance(HandleValue value) {
 ModuleRequestObject* ModuleRequestObject::create(
     JSContext* cx, Handle<JSAtom*> specifier,
     Handle<ImportAttributeVector> maybeAttributes) {
+  JS::ModuleType moduleType = JS::ModuleType::JavaScript;
+  if (!GetModuleType(cx, maybeAttributes, moduleType)) {
+    return nullptr;
+  }
+
+  return create(cx, specifier, moduleType);
+}
+
+/* static */
+ModuleRequestObject* ModuleRequestObject::create(JSContext* cx,
+                                                 Handle<JSAtom*> specifier,
+                                                 JS::ModuleType moduleType) {
   ModuleRequestObject* self =
       NewObjectWithGivenProto<ModuleRequestObject>(cx, nullptr);
   if (!self) {
     return nullptr;
   }
 
-  JS::ModuleType moduleType = JS::ModuleType::JavaScript;
-  if (!GetModuleType(cx, maybeAttributes, moduleType)) {
-    return nullptr;
-  }
-
   self->initReservedSlot(SpecifierSlot, StringOrNullValue(specifier));
-
-  static_assert(size_t(JS::ModuleType::Limit) <= INT32_MAX);
-  self->initReservedSlot(ModuleTypeSlot, Int32Value(int32_t(moduleType)));
+  self->initReservedSlot(ModuleTypeSlot, ModuleTypeToValue(moduleType));
 
   return self;
 }
@@ -2575,17 +2588,18 @@ bool js::OnModuleEvaluationFailure(JSContext* cx,
 // reference to the referencing private to keep it alive until it is needed.
 class DynamicImportContextObject : public NativeObject {
  public:
-  enum { ReferencingPrivateSlot = 0, SpecifierSlot, SlotCount };
+  enum { ReferencingPrivateSlot = 0, SpecifierSlot, ModuleTypeSlot, SlotCount };
 
   static const JSClass class_;
   static const JSClassOps classOps_;
 
   [[nodiscard]] static DynamicImportContextObject* create(
       JSContext* cx, Handle<Value> referencingPrivate,
-      Handle<JSString*> specifier);
+      Handle<JSString*> specifier, JS::ModuleType moduleType);
 
   Value referencingPrivate() const;
   JSString* specifier() const;
+  JS::ModuleType moduleType() const;
 
   static void clearReferencingPrivate(JSRuntime* runtime,
                                       DynamicImportContextObject* ic);
@@ -2618,7 +2632,7 @@ const JSClassOps DynamicImportContextObject::classOps_ = {
 /* static */
 DynamicImportContextObject* DynamicImportContextObject::create(
     JSContext* cx, Handle<Value> referencingPrivate,
-    Handle<JSString*> specifier) {
+    Handle<JSString*> specifier, JS::ModuleType moduleType) {
   Rooted<DynamicImportContextObject*> self(
       cx, NewObjectWithGivenProto<DynamicImportContextObject>(cx, nullptr));
   if (!self) {
@@ -2629,6 +2643,8 @@ DynamicImportContextObject* DynamicImportContextObject::create(
 
   self->initReservedSlot(ReferencingPrivateSlot, referencingPrivate);
   self->initReservedSlot(SpecifierSlot, StringValue(specifier));
+  self->initReservedSlot(ModuleTypeSlot, ModuleTypeToValue(moduleType));
+
   return self;
 }
 
@@ -2643,6 +2659,10 @@ JSString* DynamicImportContextObject::specifier() const {
   }
 
   return value.toString();
+}
+
+JS::ModuleType DynamicImportContextObject::moduleType() const {
+  return ValueToModuleType(getReservedSlot(ModuleTypeSlot));
 }
 
 /* static */
@@ -2681,9 +2701,8 @@ static bool OnResolvedDynamicModule(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   Rooted<PromiseObject*> promise(cx, TargetFromHandler<PromiseObject>(args));
-  Rooted<ImportAttributeVector> attributes(cx);
   RootedObject moduleRequest(
-      cx, ModuleRequestObject::create(cx, specifier, attributes));
+      cx, ModuleRequestObject::create(cx, specifier, context->moduleType()));
   if (!moduleRequest) {
     return RejectPromiseWithPendingError(cx, promise);
   }
@@ -2751,8 +2770,9 @@ bool js::FinishDynamicModuleImport(JSContext* cx,
   Rooted<JSString*> specifier(
       cx, moduleRequest->as<ModuleRequestObject>().specifier());
   Rooted<DynamicImportContextObject*> context(
-      cx,
-      DynamicImportContextObject::create(cx, referencingPrivate, specifier));
+      cx, DynamicImportContextObject::create(
+              cx, referencingPrivate, specifier,
+              moduleRequest->as<ModuleRequestObject>().moduleType()));
   if (!context) {
     return false;
   }

@@ -79,6 +79,9 @@ class ModuleRequestObject : public NativeObject {
   [[nodiscard]] static ModuleRequestObject* create(
       JSContext* cx, Handle<JSAtom*> specifier,
       Handle<ImportAttributeVector> maybeAttributes);
+  [[nodiscard]] static ModuleRequestObject* create(JSContext* cx,
+                                                   Handle<JSAtom*> specifier,
+                                                   JS::ModuleType moduleType);
 
   JSAtom* specifier() const;
   JS::ModuleType moduleType() const;
