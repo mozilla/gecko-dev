@@ -1170,6 +1170,12 @@ class nsINode : public mozilla::dom::EventTarget {
   inline mozilla::dom::Element* GetAsElementOrParentElement() const;
 
   /**
+   * Get inclusive ancestor element in the flattened tree.
+   */
+  inline mozilla::dom::Element* GetInclusiveFlattenedTreeAncestorElement()
+      const;
+
+  /**
    * Get the root of the subtree this node belongs to.  This never returns
    * null.  It may return 'this' (e.g. for document nodes, and nodes that
    * are the roots of disconnected subtrees).

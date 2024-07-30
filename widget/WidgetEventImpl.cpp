@@ -12,6 +12,7 @@
 #include "TextEvents.h"
 #include "TouchEvents.h"
 
+#include "mozilla/EventForwards.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/Maybe.h"
@@ -88,6 +89,93 @@ bool IsPointerEventMessageOriginallyMouseEventMessage(EventMessage aMessage) {
              dom_w3c_pointer_events_dispatch_click_as_pointer_event() &&
          (aMessage == ePointerClick || aMessage == ePointerAuxClick ||
           aMessage == eContextMenu);
+}
+
+bool IsForbiddenDispatchingToNonElementContent(EventMessage aMessage) {
+  switch (aMessage) {
+    // Keyboard event target should be an Element node
+    case eKeyDown:
+    case eKeyUp:
+    case eKeyPress:
+    // Mouse event target should be an Element node
+    case eMouseMove:
+    case eMouseUp:
+    case eMouseDown:
+    case eMouseEnterIntoWidget:
+    case eMouseExitFromWidget:
+    case eMouseDoubleClick:
+    case eMouseActivate:
+    case eMouseOver:
+    case eMouseOut:
+    case eMouseHitTest:
+    case eMouseEnter:
+    case eMouseLeave:
+    case eMouseTouchDrag:
+    case eMouseLongTap:
+    case eMouseExploreByTouch:
+    // Pointer event target should be an Element node
+    case ePointerClick:
+    case ePointerAuxClick:
+    case ePointerMove:
+    case ePointerUp:
+    case ePointerDown:
+    case ePointerOver:
+    case ePointerOut:
+    case ePointerEnter:
+    case ePointerLeave:
+    case ePointerCancel:
+    case ePointerGotCapture:
+    case ePointerLostCapture:
+    case eContextMenu:
+    // Drag event target should be an Element node
+    case eDragEnter:
+    case eDragOver:
+    case eDragExit:
+    case eDrag:
+    case eDragEnd:
+    case eDragStart:
+    case eDrop:
+    case eDragLeave:
+    // case mouse wheel related message target should be an Element node
+    case eLegacyMouseLineOrPageScroll:
+    case eLegacyMousePixelScroll:
+    case eWheel:
+    // Composition event message target should be an Element node
+    case eCompositionStart:
+    case eCompositionEnd:
+    case eCompositionUpdate:
+    case eCompositionChange:
+    case eCompositionCommitAsIs:
+    case eCompositionCommit:
+    case eCompositionCommitRequestHandled:
+    // Gesture event target should be an Element node
+    case eSwipeGestureMayStart:
+    case eSwipeGestureStart:
+    case eSwipeGestureUpdate:
+    case eSwipeGestureEnd:
+    case eSwipeGesture:
+    case eMagnifyGestureStart:
+    case eMagnifyGestureUpdate:
+    case eMagnifyGesture:
+    case eRotateGestureStart:
+    case eRotateGestureUpdate:
+    case eRotateGesture:
+    case eTapGesture:
+    case ePressTapGesture:
+    case eEdgeUIStarted:
+    case eEdgeUICanceled:
+    case eEdgeUICompleted:
+    // Touch event target should be an Element node
+    case eTouchStart:
+    case eTouchMove:
+    case eTouchEnd:
+    case eTouchCancel:
+    case eTouchPointerCancel:
+      return true;
+
+    default:
+      return false;
+  }
 }
 
 const char* ToChar(EventClassID aEventClassID) {

@@ -1800,22 +1800,31 @@ class PresShell final : public nsStubDocumentObserver,
 
   struct EventTargetInfo {
     EventTargetInfo() = default;
-    EventTargetInfo(nsIFrame* aFrame, nsIContent* aContent)
-        : mFrame(aFrame), mContent(aContent) {}
+    EventTargetInfo(EventMessage aEventMessage, nsIFrame* aFrame,
+                    nsIContent* aContent)
+        : mFrame(aFrame), mContent(aContent), mEventMessage(aEventMessage) {}
 
     [[nodiscard]] bool IsSet() const { return mFrame || mContent; }
     void Clear() {
+      mEventMessage = eVoidEvent;
       mFrame = nullptr;
       mContent = nullptr;
     }
     void ClearFrame() { mFrame = nullptr; }
-    void SetFrameAndContent(nsIFrame* aFrame, nsIContent* aContent) {
+    void UpdateFrameAndContent(nsIFrame* aFrame, nsIContent* aContent) {
+      mFrame = aFrame;
+      mContent = aContent;
+    }
+    void SetFrameAndContent(EventMessage aEventMessage, nsIFrame* aFrame,
+                            nsIContent* aContent) {
+      mEventMessage = aEventMessage;
       mFrame = aFrame;
       mContent = aContent;
     }
 
     nsIFrame* mFrame = nullptr;
     nsCOMPtr<nsIContent> mContent;
+    EventMessage mEventMessage = eVoidEvent;
   };
 
   void PushCurrentEventInfo(const EventTargetInfo& aInfo);
@@ -2638,7 +2647,7 @@ class PresShell final : public nsStubDocumentObserver,
                                    nsEventStatus* aEventStatus,
                                    nsIContent* aTarget) {
       AutoCurrentEventInfoSetter eventInfoSetter(
-          *this, EventTargetInfo(nullptr, aTarget));
+          *this, EventTargetInfo(aGUIEvent->mMessage, nullptr, aTarget));
       if (!mPresShell->GetCurrentEventFrame()) {
         return NS_OK;
       }
@@ -2859,12 +2868,14 @@ class PresShell final : public nsStubDocumentObserver,
             std::forward<EventTargetInfo>(aInfo));
       }
       AutoCurrentEventInfoSetter(EventHandler& aEventHandler,
+                                 EventMessage aEventMessage,
                                  EventTargetData& aEventTargetData)
           : mEventHandler(aEventHandler) {
         MOZ_DIAGNOSTIC_ASSERT(!mEventHandler.mCurrentEventInfoSetter);
         mEventHandler.mCurrentEventInfoSetter = this;
-        mEventHandler.mPresShell->PushCurrentEventInfo(EventTargetInfo(
-            aEventTargetData.GetFrame(), aEventTargetData.GetContent()));
+        mEventHandler.mPresShell->PushCurrentEventInfo(
+            EventTargetInfo(aEventMessage, aEventTargetData.GetFrame(),
+                            aEventTargetData.GetContent()));
       }
       ~AutoCurrentEventInfoSetter() {
         mEventHandler.mPresShell->PopCurrentEventInfo();

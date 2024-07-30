@@ -20,6 +20,31 @@
  * 2. If the event message name becomes too generic, e.g., "eInvalid", that may
  *    conflict with another enum's item name, append something after the "e"
  *    prefix, e.g., "eFormInvalid".
+ *
+ * NOTE: What you need to do when you add new event messages?
+ * - If the new events are dispatched to the DOM, they should be registered in
+ *   dom/events/EventNameList.h
+ * - If the new events are dispatched to the DOM, set proper default values of
+ *   "bubbles" and "cancelable" in WidgetEvent::SetDefaultCancelableAndBubbles()
+ *   defined in widget/BasicEvents.h.
+ * - If the new events should be included into an existing event group, you may
+ *   need to update WidgetEvent::Has*EventMessage() etc defined in
+ *   widget/WidgetEventImpl.cpp.
+ * - If the new events are pointer event messages, update
+ *   IsPointerEventMessage*() defined in widget/WidgetEventImpl.cpp.
+ * - Check whether the trusted events of the new messages are targeted to
+ *   expected EventTarget by WidgetEvent::IsTargeted*(),
+ *   WidgetEvent::IsUsingCoordinates(),
+ *   WidgetEvent::IsAllowedToDispatchDOMEvent(),
+ *   WidgetEvent::CanBeSentToRemoteProcess() etc which are defined in
+ *   widget/WidgetEventImpl.cpp
+ * - If trusted events of the new events may be a content node but are allowed
+ *   to fired only on an Element node, you need to update
+ *   IsForbiddenDispatchingToNonElementContent() defined in
+ *   widget/WidgetEventImpl.cpp.
+ * - Possibly handle them in PresShell::EventHandler,
+ *   EventStateManager::PreHandleEvent and/or
+ *   EventStateManager::PostHandleEvent.
  */
 
 #ifndef NS_EVENT_MESSAGE_FIRST_LAST

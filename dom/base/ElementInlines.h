@@ -42,4 +42,13 @@ inline mozilla::dom::Element* nsINode::GetFlattenedTreeParentElementForStyle()
   return nullptr;
 }
 
+inline mozilla::dom::Element*
+nsINode::GetInclusiveFlattenedTreeAncestorElement() const {
+  nsIContent* content = const_cast<nsIContent*>(nsIContent::FromNode(this));
+  while (content && !content->IsElement()) {
+    content = content->GetFlattenedTreeParent();
+  }
+  return mozilla::dom::Element::FromNodeOrNull(content);
+}
+
 #endif  // mozilla_dom_ElementInlines_h

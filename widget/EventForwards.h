@@ -87,6 +87,18 @@ const char* ToChar(EventMessage aEventMessage);
     EventMessage aMessage);
 
 /**
+ * Return true if aMessage is not allowed to dispatch to a content node except
+ * Element node when we dispatch the event as a trusted event which .
+ *
+ * NOTE: This is currently designed for PresShell to consider whether a content
+ * node is proper event target for aMessage.  So, this may not work the expected
+ * way in other cases.  Therefore, when you use this method in a new place, you
+ * should check whether this returns the expected result for you.
+ */
+[[nodiscard]] bool IsForbiddenDispatchingToNonElementContent(
+    EventMessage aMessage);
+
+/**
  * Event class IDs
  */
 
