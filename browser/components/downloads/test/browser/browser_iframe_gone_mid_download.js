@@ -21,18 +21,19 @@ function test_deleted_iframe(perSitePref, windowOptions = {}) {
 
     ok(iframe.contentWindow, "iframe should have a window");
     let gDownloadLastDir = new DownloadLastDir(iframe.contentWindow);
-    let cw = iframe.contentWindow;
+    let innerWindowID =
+      iframe.browsingContext.currentWindowContext.innerWindowId;
     let promiseIframeWindowGone = new Promise(resolve => {
       Services.obs.addObserver(function obs(subject, topic) {
-        if (subject == cw) {
+        let windowId = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
+        if (windowId == innerWindowID) {
           Services.obs.removeObserver(obs, topic);
           resolve();
         }
-      }, "dom-window-destroyed");
+      }, "inner-window-destroyed");
     });
     iframe.remove();
     await promiseIframeWindowGone;
-    cw = null;
     ok(!iframe.contentWindow, "Managed to destroy iframe");
 
     let someDir = "blah";
