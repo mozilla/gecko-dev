@@ -227,6 +227,24 @@ win64-compiler-rt-18:
             - linux64-clang-18-stage1
             - vs-toolchain
 
+win64-aarch64-compiler-rt-18:
+    description: "Win64 Aarch64 Compiler-rt for Clang 18 toolchain build"
+    treeherder:
+        symbol: TW64(aarch64-crt-18)
+    run:
+        arguments:
+            - build/build-clang/clang-18.json
+        resources:
+            - build/build-clang/clang-18.json
+            - taskcluster/scripts/misc/build-llvm-common.sh
+        toolchain-artifact: public/build/compiler-rt-aarch64-pc-windows-msvc.tar.zst
+    fetches:
+        fetch:
+            - clang-18
+        toolchain:
+            - linux64-clang-18-stage1
+            - vs-toolchain
+
 wasm32-wasi-compiler-rt-18:
     description: "wasm32-wasi Compiler-rt for Clang 18 toolchain build"
     treeherder:
@@ -459,6 +477,26 @@ win64-compiler-rt-trunk:
             - build/build-clang/clang-trunk.json
             - taskcluster/scripts/misc/build-llvm-common.sh
         toolchain-artifact: public/build/compiler-rt-x86_64-pc-windows-msvc.tar.zst
+    fetches:
+        fetch:
+            - clang-trunk
+        toolchain:
+            - linux64-clang-trunk-stage1
+            - vs-toolchain
+
+win64-aarch64-compiler-rt-trunk:
+    description: "Win64 Aarch64 Compiler-rt for Clang trunk toolchain build"
+    attributes:
+        cached_task: false
+    treeherder:
+        symbol: TW64(aarch64-crt-trunk)
+    run:
+        arguments:
+            - build/build-clang/clang-trunk.json
+        resources:
+            - build/build-clang/clang-trunk.json
+            - taskcluster/scripts/misc/build-llvm-common.sh
+        toolchain-artifact: public/build/compiler-rt-aarch64-pc-windows-msvc.tar.zst
     fetches:
         fetch:
             - clang-trunk
