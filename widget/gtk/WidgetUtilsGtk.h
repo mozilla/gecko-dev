@@ -9,6 +9,7 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "mozilla/MozPromise.h"
+
 #include <stdint.h>
 
 typedef struct _GdkDisplay GdkDisplay;
@@ -76,13 +77,6 @@ using FocusRequestPromise = MozPromise<nsCString, bool, false>;
 RefPtr<FocusRequestPromise> RequestWaylandFocusPromise();
 
 bool IsCancelledGError(GError* aGError);
-
-#if defined(MOZ_X11)
-// Used by startup notifications
-nsCString SynthesizeStartupToken();
-void FindLatestUserTime(GdkDisplay* aDisplay, uintptr_t aWindow,
-                        unsigned long* aLatestTime);
-#endif
 
 }  // namespace mozilla::widget
 
