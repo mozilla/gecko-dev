@@ -229,6 +229,8 @@ export class _DiscoveryStreamBase extends React.PureComponent {
       locale,
     });
     const { config } = this.props.DiscoveryStream;
+    const topicSelectionEnabled =
+      this.props.Prefs.values["discoverystream.topicSelection.enabled"];
 
     // Allow rendering without extracting special components
     if (!config.collapsible) {
@@ -326,6 +328,7 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             title={sectionTitle}
             subTitle={subTitle}
             mayHaveSponsoredStories={mayHaveSponsoredStories}
+            mayHaveTopicsSelection={topicSelectionEnabled}
             spocMessageVariant={message?.properties?.spocMessageVariant}
             eventSource="CARDGRID"
           >
