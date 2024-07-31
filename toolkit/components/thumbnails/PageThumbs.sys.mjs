@@ -331,12 +331,7 @@ export var PageThumbs = {
       aArgs.isBackgroundThumb ? "BackgroundThumbnails" : "Thumbnails"
     );
     let contentInfo = await thumbnailsActor.sendQuery(
-      "Browser:Thumbnail:ContentInfo",
-      {
-        isImage: aArgs.isImage,
-        targetWidth: aArgs.targetWidth,
-        backgroundColor: aArgs.backgroundColor,
-      }
+      "Browser:Thumbnail:ContentInfo"
     );
 
     let contentWidth = contentInfo.width;
@@ -479,6 +474,71 @@ export var PageThumbs = {
       await this.captureAndStore(aBrowser);
     }
     return true;
+  },
+
+  /**
+   * Capture a thumbnail for tab previews and draw it to canvas
+   *
+   * @param aBrowser the content window of this browser will be captured.
+   * @param aCanvas the thumbnail will be rendered to this canvas.
+   */
+  async captureTabPreviewThumbnail(aBrowser, aCanvas) {
+    let desiredAspectRatio = aCanvas.width / aCanvas.height;
+
+    let thumbnailsActor =
+      aBrowser.browsingContext.currentWindowGlobal.getActor("Thumbnails");
+    let contentInfo = await thumbnailsActor.sendQuery(
+      "Browser:Thumbnail:ContentInfo"
+    );
+
+    // capture vars
+    let captureX = 0;
+    let captureY = contentInfo.scrollY;
+    let captureWidth = contentInfo.width;
+    let captureHeight = captureWidth / desiredAspectRatio;
+    let captureScale = aCanvas.width / captureWidth;
+
+    // render vars
+    let renderX = 0;
+    let renderY = 0;
+    let renderWidth = aCanvas.width;
+    let renderHeight = aCanvas.height;
+
+    // We're scaling based on width, so when the window is really wide,
+    // the screenshot will be really small.
+    // Some pages might not have enough content to vertically fill our canvas.
+    // In this case, we scale the capture based on height instead and crop
+    // the horizontal edges when rendering.
+    if (contentInfo.documentHeight < captureHeight) {
+      captureY = 0;
+      captureHeight = contentInfo.documentHeight;
+      captureScale = aCanvas.height / captureHeight;
+
+      renderWidth = captureWidth * captureScale;
+      renderHeight = aCanvas.height;
+
+      //canvasY = (aCanvas.height - eventualHeight) / 2;
+
+      renderX = (aCanvas.width - renderWidth) / 2;
+      renderY = (aCanvas.height - renderHeight) / 2;
+    }
+    // Avoid showing a blank space at the bottom of the thumbnail
+    // when the scroll position is  near the bottom of the document.
+    else if (contentInfo.documentHeight - captureY < captureHeight) {
+      captureY = contentInfo.documentHeight - captureHeight;
+    }
+    let snapshotResult = await aBrowser.drawSnapshot(
+      captureX,
+      captureY,
+      captureWidth,
+      captureHeight,
+      captureScale * 2,
+      "transparent",
+      false
+    );
+    aCanvas
+      .getContext("2d")
+      .drawImage(snapshotResult, renderX, renderY, renderWidth, renderHeight);
   },
 
   /**
