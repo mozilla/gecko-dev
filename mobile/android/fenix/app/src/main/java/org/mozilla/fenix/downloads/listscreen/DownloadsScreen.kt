@@ -8,7 +8,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Icon
@@ -26,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
@@ -98,11 +102,14 @@ private fun DownloadsContent(
                 icon = downloadItem.getIcon(),
                 afterListAction = {
                     if (state.isNormalMode) {
+                        Spacer(modifier = Modifier.width(16.dp))
+
                         IconButton(
                             onClick = { onDeleteClick(downloadItem) },
+                            modifier = Modifier.size(24.dp),
                         ) {
                             Icon(
-                                painter = painterResource(id = R.drawable.ic_delete),
+                                painter = painterResource(id = R.drawable.mozac_ic_delete_24),
                                 contentDescription = stringResource(id = R.string.download_delete_item_1),
                                 tint = FirefoxTheme.colors.iconPrimary,
                             )

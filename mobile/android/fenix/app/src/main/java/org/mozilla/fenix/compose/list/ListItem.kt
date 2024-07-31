@@ -54,10 +54,10 @@ import org.mozilla.fenix.compose.ext.thenConditional
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private val LIST_ITEM_HEIGHT = 56.dp
-
 private val ICON_SIZE = 24.dp
+private val DIVIDER_VERTICAL_PADDING = 6.dp
 
-private val TOAST_LENGTH = Toast.LENGTH_SHORT
+private const val TOAST_LENGTH = Toast.LENGTH_SHORT
 
 /**
  * List item used to display a label with an optional description text and an optional
@@ -99,11 +99,22 @@ fun TextListItem(
         minHeight = minHeight,
         onClick = onClick,
     ) {
-        if (iconPainter != null && onIconClick != null) {
+        if (iconPainter == null) {
+            return@ListItem
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        if (onIconClick == null) {
+            Icon(
+                painter = iconPainter,
+                contentDescription = iconDescription,
+                tint = iconTint,
+            )
+        } else {
             IconButton(
                 onClick = onIconClick,
                 modifier = Modifier
-                    .padding(end = 16.dp)
                     .size(ICON_SIZE)
                     .clearAndSetSemantics {},
             ) {
@@ -113,13 +124,6 @@ fun TextListItem(
                     tint = iconTint,
                 )
             }
-        } else if (iconPainter != null) {
-            Icon(
-                painter = iconPainter,
-                contentDescription = iconDescription,
-                modifier = Modifier.padding(end = 16.dp),
-                tint = iconTint,
-            )
         }
     }
 }
@@ -163,44 +167,45 @@ fun FaviconListItem(
                 Image(
                     painter = faviconPainter,
                     contentDescription = null,
-                    modifier = Modifier
-                        .padding(start = 16.dp)
-                        .size(ICON_SIZE),
+                    modifier = Modifier.size(ICON_SIZE),
                 )
             } else {
                 Favicon(
                     url = url,
                     size = ICON_SIZE,
-                    modifier = Modifier.padding(start = 16.dp),
                 )
             }
+
+            Spacer(modifier = Modifier.width(16.dp))
         },
         afterListAction = {
-            if (iconPainter != null && onIconClick != null) {
-                if (showDivider) {
-                    Divider(
-                        modifier = Modifier
-                            .padding(vertical = 12.dp)
-                            .fillMaxHeight()
-                            .width(1.dp),
-                        color = FirefoxTheme.colors.borderSecondary,
-                    )
+            if (iconPainter == null || onIconClick == null) {
+                return@ListItem
+            }
 
-                    Spacer(modifier = Modifier.width(16.dp))
-                }
+            if (showDivider) {
+                Spacer(modifier = Modifier.width(8.dp))
 
-                IconButton(
-                    onClick = onIconClick,
+                Divider(
                     modifier = Modifier
-                        .padding(end = 16.dp)
-                        .size(ICON_SIZE),
-                ) {
-                    Icon(
-                        painter = iconPainter,
-                        contentDescription = iconDescription,
-                        tint = FirefoxTheme.colors.iconPrimary,
-                    )
-                }
+                        .padding(vertical = DIVIDER_VERTICAL_PADDING)
+                        .fillMaxHeight()
+                        .width(1.dp),
+                    color = FirefoxTheme.colors.borderSecondary,
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            IconButton(
+                onClick = onIconClick,
+                modifier = Modifier.size(ICON_SIZE),
+            ) {
+                Icon(
+                    painter = iconPainter,
+                    contentDescription = iconDescription,
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
             }
         },
     )
@@ -262,31 +267,42 @@ fun IconListItem(
             Icon(
                 painter = beforeIconPainter,
                 contentDescription = beforeIconDescription,
-                modifier = Modifier.padding(start = 16.dp),
                 tint = if (enabled) beforeIconTint else FirefoxTheme.colors.iconDisabled,
             )
+
+            Spacer(modifier = Modifier.width(16.dp))
         },
         afterListAction = {
+            if (afterIconPainter == null) {
+                return@ListItem
+            }
+
             val tint = if (enabled) afterIconTint else FirefoxTheme.colors.iconDisabled
 
-            if (afterIconPainter != null && onAfterIconClick != null) {
-                if (showDivider) {
-                    Divider(
-                        modifier = Modifier
-                            .padding(vertical = 12.dp)
-                            .fillMaxHeight()
-                            .width(1.dp),
-                        color = FirefoxTheme.colors.borderSecondary,
-                    )
+            if (showDivider) {
+                Spacer(modifier = Modifier.width(8.dp))
 
-                    Spacer(modifier = Modifier.width(16.dp))
-                }
+                Divider(
+                    modifier = Modifier
+                        .padding(vertical = DIVIDER_VERTICAL_PADDING)
+                        .fillMaxHeight()
+                        .width(1.dp),
+                    color = FirefoxTheme.colors.borderSecondary,
+                )
+            }
 
+            Spacer(modifier = Modifier.width(16.dp))
+
+            if (onAfterIconClick == null) {
+                Icon(
+                    painter = afterIconPainter,
+                    contentDescription = afterIconDescription,
+                    tint = tint,
+                )
+            } else {
                 IconButton(
                     onClick = onAfterIconClick,
-                    modifier = Modifier
-                        .padding(end = 16.dp)
-                        .size(ICON_SIZE),
+                    modifier = Modifier.size(ICON_SIZE),
                     enabled = enabled,
                 ) {
                     Icon(
@@ -295,13 +311,6 @@ fun IconListItem(
                         tint = tint,
                     )
                 }
-            } else if (afterIconPainter != null) {
-                Icon(
-                    painter = afterIconPainter,
-                    contentDescription = afterIconDescription,
-                    modifier = Modifier.padding(end = 16.dp),
-                    tint = tint,
-                )
             }
         },
     )
@@ -344,11 +353,12 @@ fun RadioButtonListItem(
             RadioButton(
                 selected = selected,
                 modifier = Modifier
-                    .padding(horizontal = 16.dp)
                     .size(ICON_SIZE)
                     .clearAndSetSemantics {},
                 onClick = onClick,
             )
+
+            Spacer(modifier = Modifier.width(32.dp))
         },
     )
 }
@@ -378,12 +388,12 @@ fun SelectableListItem(
         description = description,
         modifier = modifier,
         beforeListAction = {
-            Spacer(modifier = Modifier.width(16.dp))
-
             SelectableItemIcon(
                 icon = icon,
                 isSelected = isSelected,
             )
+
+            Spacer(modifier = Modifier.width(16.dp))
         },
         afterListAction = afterListAction,
     )
@@ -394,7 +404,6 @@ fun SelectableListItem(
  *
  * @param icon The icon to be displayed.
  * @param isSelected The selected state of the item.
- * @param modifier [Modifier] to be applied to the composable.
  */
 @Composable
 private fun SelectableItemIcon(
@@ -462,6 +471,7 @@ private fun ListItem(
         modifier = modifier
             .height(IntrinsicSize.Min)
             .defaultMinSize(minHeight = minHeight)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .thenConditional(
                 modifier = Modifier.clickable { onClick?.invoke() },
                 predicate = { onClick != null && enabled },
@@ -471,9 +481,7 @@ private fun ListItem(
         beforeListAction()
 
         Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-                .weight(1f),
+            modifier = Modifier.weight(1f),
         ) {
             Text(
                 text = label,
@@ -638,7 +646,7 @@ private fun FaviconListItemPreview() {
             )
 
             FaviconListItem(
-                label = "Favicon + right icon + clicks",
+                label = "Favicon + right icon + show divider + clicks",
                 url = "",
                 description = "Description text",
                 onClick = { Toast.makeText(context, "list item click", TOAST_LENGTH).show() },
@@ -705,7 +713,10 @@ private fun SelectableListItemPreview() {
                 icon = R.drawable.mozac_ic_folder_24,
                 isSelected = false,
                 afterListAction = {
-                    IconButton(onClick = {}) {
+                    IconButton(
+                        onClick = {},
+                        modifier = Modifier.size(ICON_SIZE),
+                    ) {
                         Icon(
                             painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
                             tint = FirefoxTheme.colors.iconPrimary,
