@@ -32,23 +32,6 @@ nsCString TrackingId::ToString() const {
   return nsPrintfCString("%s-%u", EnumValueToString(mSource), mUniqueInProcId);
 }
 
-static const char* StageToStr(MediaStage aStage) {
-  switch (aStage) {
-    case MediaStage::RequestData:
-      return "RequestData";
-    case MediaStage::RequestDemux:
-      return "RequestDemux";
-    case MediaStage::CopyDemuxedData:
-      return "CopyDemuxedData";
-    case MediaStage::RequestDecode:
-      return "RequestDecode";
-    case MediaStage::CopyDecodedVideo:
-      return "CopyDecodedVideo";
-    default:
-      return "InvalidStage";
-  }
-}
-
 static void AppendMediaInfoFlagToName(nsCString& aName, MediaInfoFlag aFlag) {
   if (aFlag & MediaInfoFlag::KeyFrame) {
     aName.Append("kf,");
@@ -195,7 +178,7 @@ TimeStamp PerformanceRecorderBase::GetCurrentTimeForMeasurement() {
 
 ProfilerString8View PlaybackStage::Name() const {
   if (!mName) {
-    mName.emplace(StageToStr(mStage));
+    mName.emplace(EnumValueToString(mStage));
     mName->Append(":");
     mName->Append(FindMediaResolution(mHeight));
     mName->Append(":");

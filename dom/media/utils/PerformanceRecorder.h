@@ -99,14 +99,10 @@ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(MediaInfoFlag)
  * texture. This records the time which we spend on copying data. This stage
  * is a sub- stage of RequestDecode.
  */
-enum class MediaStage : uint8_t {
-  Invalid,
-  RequestData,
-  RequestDemux,
-  CopyDemuxedData,
-  RequestDecode,
-  CopyDecodedVideo,
-};
+MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(MediaStage, uint8_t,
+                                             (Invalid, RequestData,
+                                              RequestDemux, CopyDemuxedData,
+                                              RequestDecode, CopyDecodedVideo));
 
 class StageBase {
  public:
