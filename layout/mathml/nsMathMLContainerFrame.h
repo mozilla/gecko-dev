@@ -291,6 +291,13 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
   // SaveReflowAndBoundingMetricsFor() from all child frames.
   void ClearSavedChildMetrics();
 
+  nsMargin GetBorderPaddingForPlace(const PlaceFlags& aFlags);
+  static nsMargin GetMarginForPlace(const PlaceFlags& aFlags, nsIFrame* aChild);
+
+  static void InflateReflowAndBoundingMetrics(
+      const nsMargin& aBorderPadding, ReflowOutput& aReflowOutput,
+      nsBoundingMetrics& aBoundingMetrics);
+
   // helper to let the update of presentation data pass through
   // a subtree that may contain non-MathML container frames
   static void PropagatePresentationDataFor(nsIFrame* aFrame,

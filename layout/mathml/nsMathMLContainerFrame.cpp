@@ -93,6 +93,46 @@ void nsMathMLContainerFrame::ClearSavedChildMetrics() {
   }
 }
 
+nsMargin nsMathMLContainerFrame::GetBorderPaddingForPlace(
+    const PlaceFlags& aFlags) {
+  if (aFlags.contains(PlaceFlag::IgnoreBorderPadding)) {
+    return nsMargin();
+  }
+
+  if (aFlags.contains(PlaceFlag::IntrinsicSize)) {
+    // Bug 1910859: Should we provide separate left and right border/padding?
+    return nsMargin(0, IntrinsicISizeOffsets().BorderPadding(), 0, 0);
+  }
+
+  return GetUsedBorderAndPadding();
+}
+
+/* static */
+nsMargin nsMathMLContainerFrame::GetMarginForPlace(const PlaceFlags& aFlags,
+                                                   nsIFrame* aChild) {
+  if (aFlags.contains(PlaceFlag::IntrinsicSize)) {
+    // Bug 1910859: Should we provide separate left and right margin?
+    return nsMargin(0, aChild->IntrinsicISizeOffsets().margin, 0, 0);
+  }
+
+  return aChild->GetUsedMargin();
+}
+
+void nsMathMLContainerFrame::InflateReflowAndBoundingMetrics(
+    const nsMargin& aBorderPadding, ReflowOutput& aReflowOutput,
+    nsBoundingMetrics& aBoundingMetrics) {
+  // Bug 1910858: It is not really clear what is the right way to update the
+  // ink bounding box when adding border or padding. Below, we assume that
+  // border/padding inflate it.
+  aBoundingMetrics.rightBearing += aBorderPadding.LeftRight();
+  aBoundingMetrics.width += aBorderPadding.LeftRight();
+  aReflowOutput.mBoundingMetrics = aBoundingMetrics;
+  aReflowOutput.Width() += aBorderPadding.LeftRight();
+  aReflowOutput.SetBlockStartAscent(aReflowOutput.BlockStartAscent() +
+                                    aBorderPadding.top);
+  aReflowOutput.Height() += aBorderPadding.TopBottom();
+}
+
 // helper to get the preferred size that a container frame should use to fire
 // the stretch on its stretchy child frames.
 void nsMathMLContainerFrame::GetPreferredStretchSize(

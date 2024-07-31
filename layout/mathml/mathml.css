@@ -72,6 +72,10 @@ math[display="inline" i] {
 
 */
 
+/* Fractions */
+mfrac {
+  padding-inline: 1px;
+}
 
 /**************************************************************************/
 /* merror                                                                 */
