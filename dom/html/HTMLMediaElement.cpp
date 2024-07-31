@@ -4,12 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef XP_WIN
-#  include "objbase.h"
-#endif
-
 #include "mozilla/dom/HTMLMediaElement.h"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <type_traits>
 #include <unordered_map>
 
 #include "AudioDeviceInfo.h"
@@ -38,19 +38,21 @@
 #include "MediaShutdownManager.h"
 #include "MediaSourceDecoder.h"
 #include "MediaStreamError.h"
-#include "MediaTrackGraphImpl.h"
-#include "MediaTrackListener.h"
 #include "MediaStreamWindowCapturer.h"
 #include "MediaTrack.h"
+#include "MediaTrackGraphImpl.h"
 #include "MediaTrackList.h"
+#include "MediaTrackListener.h"
 #include "Navigator.h"
+#include "ReferrerInfo.h"
 #include "TimeRanges.h"
+#include "TimeUnits.h"
 #include "VideoFrameContainer.h"
 #include "VideoOutput.h"
 #include "VideoStreamTrack.h"
 #include "base/basictypes.h"
-#include "jsapi.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "jsapi.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AsyncEventDispatcher.h"
@@ -61,16 +63,17 @@
 #include "mozilla/NotNull.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
-#include "mozilla/ScopeExit.h"
+#include "mozilla/SVGObserverUtils.h"
 #include "mozilla/SchedulerGroup.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/SVGObserverUtils.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/dom/AudioTrack.h"
 #include "mozilla/dom/AudioTrackList.h"
 #include "mozilla/dom/BlobURLProtocolHandler.h"
 #include "mozilla/dom/ContentMediaController.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/HTMLAudioElement.h"
@@ -109,7 +112,6 @@
 #include "nsIClassOfService.h"
 #include "nsIContentPolicy.h"
 #include "nsIDocShell.h"
-#include "mozilla/dom/Document.h"
 #include "nsIFrame.h"
 #include "nsIHttpChannel.h"
 #include "nsIObserverService.h"
@@ -132,13 +134,10 @@
 #include "nsURIHashKey.h"
 #include "nsURLHelper.h"
 #include "nsVideoFrame.h"
-#include "ReferrerInfo.h"
-#include "TimeUnits.h"
+#ifdef XP_WIN
+#  include "objbase.h"
+#endif
 #include "xpcpublic.h"
-#include <algorithm>
-#include <cmath>
-#include <limits>
-#include <type_traits>
 
 mozilla::LazyLogModule gMediaElementLog("HTMLMediaElement");
 mozilla::LazyLogModule gMediaElementEventsLog("HTMLMediaElementEvents");
