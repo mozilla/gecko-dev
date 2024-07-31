@@ -50,33 +50,13 @@ class LanguageDialogPreferenceFragment : DialogFragment() {
         val view = ComposeView(requireContext())
         when (args.modelState) {
             ModelState.NOT_DOWNLOADED -> setDownloadLanguageFileDialog(view)
-            ModelState.DOWNLOAD_IN_PROGRESS -> setCancelDownloadFileDialog(view)
+            ModelState.DOWNLOAD_IN_PROGRESS -> {}
             ModelState.DOWNLOADED -> setPrefDeleteLanguageFileDialog(view)
             ModelState.DELETION_IN_PROGRESS -> {}
             ModelState.ERROR_DELETION -> {}
             ModelState.ERROR_DOWNLOAD -> {}
         }
         return view
-    }
-
-    private fun setCancelDownloadFileDialog(composeView: ComposeView) {
-        composeView.apply {
-            setContent {
-                FirefoxTheme {
-                    CancelDownloadFileDialog(
-                        language = args.languageDisplayName,
-                        onConfirmDelete = {
-                            deleteOrDownloadModel(
-                                modelOperation = ModelOperation.DELETE,
-                                languageToManage = args.languageCode,
-                            )
-                            findNavController().popBackStack()
-                        },
-                        onCancel = { findNavController().popBackStack() },
-                    )
-                }
-            }
-        }
     }
 
     private fun setPrefDeleteLanguageFileDialog(composeView: ComposeView) {
