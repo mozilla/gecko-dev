@@ -8,10 +8,10 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/MediaSession.h"
+#include "nsID.h"
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"
 #include "nsTHashMap.h"
-#include "nsID.h"
 
 namespace mozilla::dom {
 
