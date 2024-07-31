@@ -8,8 +8,8 @@
 #define mozilla_SourceBufferAttributes_h_
 
 #include "TimeUnits.h"
-#include "mozilla/dom/SourceBufferBinding.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/dom/SourceBufferBinding.h"
 
 namespace mozilla {
 
