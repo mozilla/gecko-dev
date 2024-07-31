@@ -7,13 +7,14 @@
 #ifndef mozilla_VideoEngine_h
 #define mozilla_VideoEngine_h
 
-#include "MediaEngine.h"
-#include "video_engine/video_capture_factory.h"
-#include "VideoFrameUtils.h"
-#include "mozilla/media/MediaUtils.h"
-#include "modules/video_capture/video_capture.h"
-#include <memory>
 #include <functional>
+#include <memory>
+
+#include "MediaEngine.h"
+#include "VideoFrameUtils.h"
+#include "modules/video_capture/video_capture.h"
+#include "mozilla/media/MediaUtils.h"
+#include "video_engine/video_capture_factory.h"
 
 namespace webrtc {
 class DesktopCaptureImpl;

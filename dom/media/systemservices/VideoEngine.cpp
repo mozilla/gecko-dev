@@ -5,6 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "VideoEngine.h"
+
 #include "libwebrtcglue/SystemTime.h"
 #include "system_wrappers/include/clock.h"
 #include "video_engine/desktop_capture_impl.h"
