@@ -136,7 +136,7 @@
         android:text="@string/mozac_feature_prompt_save_confirmation"
         android:textAlignment="center"
         android:textAllCaps="false"
-        android:textColor="?android:windowBackground"
+        android:textColor="@color/photonWhite"
         android:textSize="16sp"
         app:backgroundTint="@color/button_state_list"
         app:layout_constraintBottom_toBottomOf="parent"
