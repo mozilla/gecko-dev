@@ -13,6 +13,7 @@
 #include "WebAudioUtils.h"
 #include "math.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/PodOperations.h"
@@ -28,16 +29,10 @@ class AudioNodeTrack;
 namespace dom {
 
 struct AudioTimelineEvent {
-  enum Type : uint32_t {
-    SetValue,
-    SetValueAtTime,
-    LinearRamp,
-    ExponentialRamp,
-    SetTarget,
-    SetValueCurve,
-    Track,
-    Cancel
-  };
+  MOZ_DEFINE_ENUM_WITH_BASE_AND_TOSTRING_AT_CLASS_SCOPE(
+      Type, uint32_t,
+      (SetValue, SetValueAtTime, LinearRamp, ExponentialRamp, SetTarget,
+       SetValueCurve, Track, Cancel));
 
   class TimeUnion {
    public:
