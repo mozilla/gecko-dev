@@ -6,9 +6,9 @@
 #ifndef MediaDecoderOwner_h_
 #define MediaDecoderOwner_h_
 
-#include "mozilla/UniquePtr.h"
 #include "MediaInfo.h"
 #include "MediaSegment.h"
+#include "mozilla/UniquePtr.h"
 #include "nsSize.h"
 
 namespace mozilla {
