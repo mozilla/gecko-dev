@@ -26,13 +26,6 @@ namespace mozilla::camera {
 MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING(CaptureDeviceType,
                                     (Camera, Screen, Window, Browser));
 
-struct CaptureDeviceInfo {
-  CaptureDeviceType type;
-
-  CaptureDeviceInfo() : type(CaptureDeviceType::Camera) {}
-  explicit CaptureDeviceInfo(CaptureDeviceType t) : type(t) {}
-};
-
 // Historically the video engine was part of webrtc
 // it was removed (and reimplemented in Talk)
 class VideoEngine {
@@ -104,7 +97,7 @@ class VideoEngine {
   VideoEngine(const CaptureDeviceType& aCaptureDeviceType,
               RefPtr<VideoCaptureFactory> aVideoCaptureFactory);
   int32_t mId;
-  const CaptureDeviceInfo mCaptureDevInfo;
+  const CaptureDeviceType mCaptureDevType;
   RefPtr<VideoCaptureFactory> mVideoCaptureFactory;
   std::shared_ptr<webrtc::VideoCaptureModule::DeviceInfo> mDeviceInfo;
   std::map<int32_t, CaptureEntry> mCaps;
