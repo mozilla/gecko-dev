@@ -8,6 +8,7 @@
 #include "FFmpegLibWrapper.h"
 #include "FFmpegLog.h"
 #include "mozilla/FileUtils.h"
+#include "mozilla/ToString.h"
 #include "nsLocalFile.h"
 #include "nsXPCOMPrivate.h"
 #include "prlink.h"
@@ -124,7 +125,7 @@ bool FFVPXRuntimeLinker::Init() {
   }
   sFFVPXLib.mAVCodecLib = MozAVLink(libFile);
   FFmpegLibWrapper::LinkResult res = sFFVPXLib.Link();
-  FFMPEGP_LOG("Link result: %s", FFmpegLibWrapper::LinkResultToString(res));
+  FFMPEGP_LOG("Link result: %s", ToString(res).c_str());
   if (res == FFmpegLibWrapper::LinkResult::Success) {
     sLinkStatus = LinkStatus_SUCCEEDED;
     return true;

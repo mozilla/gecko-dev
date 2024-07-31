@@ -134,7 +134,7 @@ bool FFmpegRuntimeLinker::Init() {
           break;
       }
       FFMPEGP_LOG("Failed to link %s: %s", lib,
-                  FFmpegLibWrapper::LinkResultToString(res));
+                  FFmpegLibWrapper::EnumValueToString(res));
     }
   }
 

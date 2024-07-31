@@ -6,6 +6,7 @@
 #define __FFmpegLibWrapper_h__
 
 #include "mozilla/Attributes.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/Types.h"
 #include "ffvpx/tx.h"
 
@@ -36,46 +37,11 @@ struct MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS FFmpegLibWrapper {
   // anyway.
   ~FFmpegLibWrapper() = default;
 
-  enum class LinkResult {
-    Success,
-    NoProvidedLib,
-    NoAVCodecVersion,
-    CannotUseLibAV57,
-    BlockedOldLibAVVersion,
-    UnknownFutureLibAVVersion,
-    UnknownFutureFFMpegVersion,
-    UnknownOlderFFMpegVersion,
-    MissingFFMpegFunction,
-    MissingLibAVFunction,
-  };
-
-  static const char* LinkResultToString(LinkResult aResult) {
-    switch (aResult) {
-      case LinkResult::Success:
-        return "Success";
-      case LinkResult::NoProvidedLib:
-        return "NoProvidedLib";
-      case LinkResult::NoAVCodecVersion:
-        return "NoAVCodecVersion";
-      case LinkResult::CannotUseLibAV57:
-        return "CannotUseLibAV57";
-      case LinkResult::BlockedOldLibAVVersion:
-        return "BlockedOldLibAVVersion";
-      case LinkResult::UnknownFutureLibAVVersion:
-        return "UnknownFutureLibAVVersion";
-      case LinkResult::UnknownFutureFFMpegVersion:
-        return "UnknownFutureFFMpegVersion";
-      case LinkResult::UnknownOlderFFMpegVersion:
-        return "UnknownOlderFFMpegVersion";
-      case LinkResult::MissingFFMpegFunction:
-        return "MissingFFMpegFunction";
-      case LinkResult::MissingLibAVFunction:
-        return "MissingLibAVFunction";
-      default:
-        break;
-    }
-    return "Unknown";
-  }
+  MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(
+      LinkResult, (Success, NoProvidedLib, NoAVCodecVersion, CannotUseLibAV57,
+                   BlockedOldLibAVVersion, UnknownFutureLibAVVersion,
+                   UnknownFutureFFMpegVersion, UnknownOlderFFMpegVersion,
+                   MissingFFMpegFunction, MissingLibAVFunction));
 
   // Examine mAVCodecLib, mAVUtilLib and mVALib, and attempt to resolve
   // all symbols.
