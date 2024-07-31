@@ -18,6 +18,8 @@ async function create_h3_server() {
 }
 
 async function http3_setup_tests(http3version, reload) {
+  do_get_profile();
+
   let h3Port;
   let isAndroid = mozinfo.os == "android";
   // On Android, we don't have a way to start the server on the host on demand.
@@ -31,7 +33,6 @@ async function http3_setup_tests(http3version, reload) {
   Assert.notEqual(h3Port, "");
 
   let h3Route = "foo.example.com:" + h3Port;
-  do_get_profile();
 
   Services.prefs.setBoolPref("network.http.http3.enable", true);
   if (isAndroid) {

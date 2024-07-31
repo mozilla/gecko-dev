@@ -21,7 +21,7 @@ add_task(async function pre_setup() {
 });
 
 add_task(async function setup() {
-  await http3_setup_tests("h3");
+  await http3_setup_tests("h3", true);
 });
 
 WebSocketListener.prototype = {
