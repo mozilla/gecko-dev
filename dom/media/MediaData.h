@@ -14,6 +14,7 @@
 #  include "SharedBuffer.h"
 #  include "TimeUnits.h"
 #  include "mozilla/CheckedInt.h"
+#  include "mozilla/DefineEnum.h"
 #  include "mozilla/EnumSet.h"
 #  include "mozilla/Maybe.h"
 #  include "mozilla/PodOperations.h"
@@ -300,21 +301,8 @@ class MediaData {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaData)
 
-  enum class Type : uint8_t { AUDIO_DATA = 0, VIDEO_DATA, RAW_DATA, NULL_DATA };
-  static const char* TypeToStr(Type aType) {
-    switch (aType) {
-      case Type::AUDIO_DATA:
-        return "AUDIO_DATA";
-      case Type::VIDEO_DATA:
-        return "VIDEO_DATA";
-      case Type::RAW_DATA:
-        return "RAW_DATA";
-      case Type::NULL_DATA:
-        return "NULL_DATA";
-      default:
-        MOZ_CRASH("bad value");
-    }
-  }
+  MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING_AT_CLASS_SCOPE(
+      Type, uint8_t, (AUDIO_DATA, VIDEO_DATA, RAW_DATA, NULL_DATA));
 
   MediaData(Type aType, int64_t aOffset, const media::TimeUnit& aTimestamp,
             const media::TimeUnit& aDuration)

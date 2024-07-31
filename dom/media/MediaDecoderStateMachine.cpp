@@ -934,7 +934,8 @@ class MediaDecoderStateMachine::LoopingDecodingState
              ? mMaster->mVideoTrackDecodedDuration->ToMicroseconds()
              : 0,
          mDataWaitingTimestampAdjustment
-             ? MediaData::TypeToStr(mDataWaitingTimestampAdjustment->mType)
+             ? MediaData::EnumValueToString(
+                   mDataWaitingTimestampAdjustment->mType)
              : "none");
     if (ShouldDiscardLoopedData(MediaData::Type::AUDIO_DATA)) {
       DiscardLoopedData(MediaData::Type::AUDIO_DATA);
@@ -1485,8 +1486,8 @@ class MediaDecoderStateMachine::LoopingDecodingState
     MOZ_ASSERT(!mDataWaitingTimestampAdjustment);
     mDataWaitingTimestampAdjustment = aData;
     SLOG("put %s [%" PRId64 ",%" PRId64 "] on waiting",
-         MediaData::TypeToStr(aData->mType), aData->mTime.ToMicroseconds(),
-         aData->GetEndTime().ToMicroseconds());
+         MediaData::EnumValueToString(aData->mType),
+         aData->mTime.ToMicroseconds(), aData->GetEndTime().ToMicroseconds());
     MaybeStopPrerolling();
   }
 
@@ -1999,7 +2000,7 @@ class MediaDecoderStateMachine::AccurateSeekingState
 
     if (aReject.mError == NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA) {
       SLOG("OnSeekRejected reason=WAITING_FOR_DATA type=%s",
-           MediaData::TypeToStr(aReject.mType));
+           MediaData::EnumValueToString(aReject.mType));
       MOZ_ASSERT_IF(aReject.mType == MediaData::Type::AUDIO_DATA,
                     !mMaster->IsRequestingAudioData());
       MOZ_ASSERT_IF(aReject.mType == MediaData::Type::VIDEO_DATA,

@@ -512,7 +512,7 @@ void ExternalEngineStateMachine::OnSeekRejected(
   state->mSeekRequest.Complete();
   if (aReject.mError == NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA) {
     LOG("OnSeekRejected reason=WAITING_FOR_DATA type=%s",
-        MediaData::TypeToStr(aReject.mType));
+        MediaData::EnumValueToString(aReject.mType));
     MOZ_ASSERT_IF(aReject.mType == MediaData::Type::AUDIO_DATA,
                   !IsRequestingAudioData());
     MOZ_ASSERT_IF(aReject.mType == MediaData::Type::VIDEO_DATA,
