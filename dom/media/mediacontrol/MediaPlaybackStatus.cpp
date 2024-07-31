@@ -55,7 +55,7 @@ void MediaPlaybackStatus::DestroyContextInfo(uint64_t aContextId) {
 void MediaPlaybackStatus::UpdateMediaAudibleState(uint64_t aContextId,
                                                   MediaAudibleState aState) {
   LOG("Update audible state '%s' for context %" PRIu64,
-      ToMediaAudibleStateStr(aState), aContextId);
+      EnumValueToString(aState), aContextId);
   MOZ_ASSERT(NS_IsMainThread());
   ContextMediaInfo& info = GetNotNullContextInfo(aContextId);
   if (aState == MediaAudibleState::eAudible) {

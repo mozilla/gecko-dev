@@ -34,10 +34,8 @@ MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(MediaPlaybackState, uint32_t,
  * This enum is used to update controlled media audible audible state to the
  * media controller in the chrome process.
  */
-enum class MediaAudibleState : bool {
-  eInaudible = false,
-  eAudible = true,
-};
+MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(MediaAudibleState, bool,
+                                             (eInaudible, eAudible));
 
 /**
  * MediaPlaybackStatus is an internal module for the media controller, it
