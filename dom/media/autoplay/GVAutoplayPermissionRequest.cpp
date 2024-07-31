@@ -4,9 +4,9 @@
 
 #include "GVAutoplayPermissionRequest.h"
 
-#include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/dom/HTMLMediaElement.h"
 #include "nsGlobalWindowInner.h"
 
 mozilla::LazyLogModule gGVAutoplayRequestLog("GVAutoplay");
