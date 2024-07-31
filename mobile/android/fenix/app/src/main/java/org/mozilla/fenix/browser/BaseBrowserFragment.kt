@@ -944,7 +944,6 @@ abstract class BaseBrowserFragment :
                     override val strongPasswordPromptViewListenerView
                         get() = binding.suggestStrongPasswordBar
                 },
-                isSuggestStrongPasswordEnabled = context.settings().enableSuggestStrongPassword,
                 shouldAutomaticallyShowSuggestedPassword = { context.settings().isFirstTimeEngagingWithSignup },
                 onFirstTimeEngagedWithSignup = {
                     context.settings().isFirstTimeEngagingWithSignup = false

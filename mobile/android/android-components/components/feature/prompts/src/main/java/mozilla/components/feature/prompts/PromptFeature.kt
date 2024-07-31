@@ -193,7 +193,6 @@ class PromptFeature private constructor(
     private val loginDelegate: LoginDelegate = object : LoginDelegate {},
     private val suggestStrongPasswordDelegate: SuggestStrongPasswordDelegate = object :
         SuggestStrongPasswordDelegate {},
-    private val isSuggestStrongPasswordEnabled: Boolean = false,
     private var shouldAutomaticallyShowSuggestedPassword: () -> Boolean = { false },
     private val onFirstTimeEngagedWithSignup: () -> Unit = {},
     private val onSaveLoginWithStrongPassword: (String, String) -> Unit = { _, _ -> },
@@ -249,7 +248,6 @@ class PromptFeature private constructor(
         loginDelegate: LoginDelegate = object : LoginDelegate {},
         suggestStrongPasswordDelegate: SuggestStrongPasswordDelegate = object :
             SuggestStrongPasswordDelegate {},
-        isSuggestStrongPasswordEnabled: Boolean = false,
         shouldAutomaticallyShowSuggestedPassword: () -> Boolean = { false },
         onFirstTimeEngagedWithSignup: () -> Unit = {},
         onSaveLoginWithStrongPassword: (String, String) -> Unit = { _, _ -> },
@@ -282,7 +280,6 @@ class PromptFeature private constructor(
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginDelegate = loginDelegate,
         suggestStrongPasswordDelegate = suggestStrongPasswordDelegate,
-        isSuggestStrongPasswordEnabled = isSuggestStrongPasswordEnabled,
         shouldAutomaticallyShowSuggestedPassword = shouldAutomaticallyShowSuggestedPassword,
         onFirstTimeEngagedWithSignup = onFirstTimeEngagedWithSignup,
         onSaveLoginWithStrongPassword = onSaveLoginWithStrongPassword,
@@ -311,7 +308,6 @@ class PromptFeature private constructor(
         loginDelegate: LoginDelegate = object : LoginDelegate {},
         suggestStrongPasswordDelegate: SuggestStrongPasswordDelegate = object :
             SuggestStrongPasswordDelegate {},
-        isSuggestStrongPasswordEnabled: Boolean = false,
         shouldAutomaticallyShowSuggestedPassword: () -> Boolean = { false },
         onFirstTimeEngagedWithSignup: () -> Unit = {},
         onSaveLoginWithStrongPassword: (String, String) -> Unit = { _, _ -> },
@@ -338,7 +334,6 @@ class PromptFeature private constructor(
         loginExceptionStorage = loginExceptionStorage,
         loginDelegate = loginDelegate,
         suggestStrongPasswordDelegate = suggestStrongPasswordDelegate,
-        isSuggestStrongPasswordEnabled = isSuggestStrongPasswordEnabled,
         shouldAutomaticallyShowSuggestedPassword = shouldAutomaticallyShowSuggestedPassword,
         onFirstTimeEngagedWithSignup = onFirstTimeEngagedWithSignup,
         onSaveLoginWithStrongPassword = onSaveLoginWithStrongPassword,
@@ -629,7 +624,7 @@ class PromptFeature private constructor(
                 if (!isLoginAutofillEnabled()) {
                     return
                 }
-                if (promptRequest.generatedPassword != null && isSuggestStrongPasswordEnabled) {
+                if (promptRequest.generatedPassword != null) {
                     if (shouldAutomaticallyShowSuggestedPassword.invoke()) {
                         onFirstTimeEngagedWithSignup.invoke()
                         handleDialogsRequest(
