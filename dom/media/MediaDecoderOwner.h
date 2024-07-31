@@ -8,6 +8,7 @@
 
 #include "MediaInfo.h"
 #include "MediaSegment.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/UniquePtr.h"
 #include "nsSize.h"
 
@@ -108,19 +109,10 @@ class MediaDecoderOwner {
   virtual void NotifyDecoderPrincipalChanged() = 0;
 
   // The status of the next frame which might be available from the decoder
-  enum NextFrameStatus {
-    // The next frame of audio/video is available
-    NEXT_FRAME_AVAILABLE,
-    // The next frame of audio/video is unavailable because the decoder
-    // is paused while it buffers up data
-    NEXT_FRAME_UNAVAILABLE_BUFFERING,
-    // The next frame of audio/video is unavailable for the decoder is seeking.
-    NEXT_FRAME_UNAVAILABLE_SEEKING,
-    // The next frame of audio/video is unavailable for some other reasons
-    NEXT_FRAME_UNAVAILABLE,
-    // Sentinel value
-    NEXT_FRAME_UNINITIALIZED
-  };
+  MOZ_DEFINE_ENUM_WITH_TOSTRING_AT_CLASS_SCOPE(
+      NextFrameStatus, (NEXT_FRAME_AVAILABLE, NEXT_FRAME_UNAVAILABLE_BUFFERING,
+                        NEXT_FRAME_UNAVAILABLE_SEEKING, NEXT_FRAME_UNAVAILABLE,
+                        NEXT_FRAME_UNINITIALIZED));
 
   // Called by media decoder when the audible state changed
   virtual void SetAudibleState(bool aAudible) = 0;

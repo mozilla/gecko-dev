@@ -503,29 +503,13 @@ void MediaDecoder::OnDecoderDoctorEvent(DecoderDoctorEvent aEvent) {
   diags.StoreEvent(doc, aEvent, __func__);
 }
 
-static const char* NextFrameStatusToStr(
-    MediaDecoderOwner::NextFrameStatus aStatus) {
-  switch (aStatus) {
-    case MediaDecoderOwner::NEXT_FRAME_AVAILABLE:
-      return "NEXT_FRAME_AVAILABLE";
-    case MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE:
-      return "NEXT_FRAME_UNAVAILABLE";
-    case MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_BUFFERING:
-      return "NEXT_FRAME_UNAVAILABLE_BUFFERING";
-    case MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_SEEKING:
-      return "NEXT_FRAME_UNAVAILABLE_SEEKING";
-    case MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED:
-      return "NEXT_FRAME_UNINITIALIZED";
-  }
-  return "UNKNOWN";
-}
-
 void MediaDecoder::OnNextFrameStatus(
     MediaDecoderOwner::NextFrameStatus aStatus) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(!IsShutdown());
   if (mNextFrameStatus != aStatus) {
-    LOG("Changed mNextFrameStatus to %s", NextFrameStatusToStr(aStatus));
+    LOG("Changed mNextFrameStatus to %s",
+        MediaDecoderOwner::EnumValueToString(aStatus));
     mNextFrameStatus = aStatus;
     UpdateReadyState();
   }
