@@ -430,7 +430,7 @@ void BlobURLInputStream::RetrieveBlobData(const MutexAutoLock& aProofOfLock) {
 
   contentChild
       ->SendBlobURLDataRequest(
-          mBlobURLSpec, triggeringPrincipal, loadingPrincipal,
+          mBlobURLSpec, WrapNotNull(triggeringPrincipal), loadingPrincipal,
           loadInfo->GetOriginAttributes(), loadInfo->GetInnerWindowID(),
           NS_ConvertUTF16toUTF8(partKey))
       ->Then(

@@ -1801,7 +1801,7 @@ parent:
                     bool aUserActivation) returns(int32_t? requestedIndex);
 
     async BlobURLDataRequest(nsCString aBlobURL,
-                             nullable nsIPrincipal aTriggeringPrincipal,
+                             nsIPrincipal aTriggeringPrincipal,
                              nullable nsIPrincipal aLoadingPrincipal,
                              OriginAttributes aOriginAttributes,
                              uint64_t aInnerWindowId,
