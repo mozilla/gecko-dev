@@ -376,12 +376,13 @@ fun SelectableListItem(
     ListItem(
         label = label,
         description = description,
-        modifier = modifier.padding(vertical = 4.dp),
+        modifier = modifier,
         beforeListAction = {
+            Spacer(modifier = Modifier.width(16.dp))
+
             SelectableItemIcon(
                 icon = icon,
                 isSelected = isSelected,
-                modifier = Modifier.padding(start = 8.dp),
             )
         },
         afterListAction = afterListAction,
@@ -399,36 +400,30 @@ fun SelectableListItem(
 private fun SelectableItemIcon(
     @DrawableRes icon: Int,
     isSelected: Boolean,
-    modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier.size(48.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (isSelected) {
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = FirefoxTheme.colors.layerAccent,
-                        shape = CircleShape,
-                    )
-                    .size(40.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
-                    contentDescription = null,
-                    tint = PhotonColors.White,
+    if (isSelected) {
+        Box(
+            modifier = Modifier
+                .background(
+                    color = FirefoxTheme.colors.layerAccent,
+                    shape = CircleShape,
                 )
-            }
-        } else {
+                .size(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(
-                painter = painterResource(id = icon),
+                painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
                 contentDescription = null,
-                tint = FirefoxTheme.colors.iconPrimary,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(12.dp),
+                tint = PhotonColors.White,
             )
         }
+    } else {
+        Icon(
+            painter = painterResource(id = icon),
+            contentDescription = null,
+            tint = FirefoxTheme.colors.iconPrimary,
+        )
     }
 }
 
