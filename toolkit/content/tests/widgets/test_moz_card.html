@@ -182,6 +182,19 @@
           contentText: generatedSlotText,
         }
       );
+
+      accordionCard = await generateCard(
+        {
+          type: "accordion",
+          id: "expanded-accordion-card",
+          "data-l10n-id": "generated-id-2",
+          "data-l10n-attrs": "heading",
+          heading: testHeading,
+          expanded: true
+        }
+      );
+      is(accordionCard.expanded, true, "Accordion card should be expanded on initial render");
+      is(accordionCard.detailsEl.open, true, "The details element should be expanded");
     });
 
     add_task(async function testHeadingIconCard() {
