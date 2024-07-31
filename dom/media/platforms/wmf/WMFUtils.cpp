@@ -63,33 +63,6 @@ bool StreamTypeIsAudio(const WMFStreamType& aType) {
   }
 }
 
-// Get a string representation of the stream type. Useful for logging.
-const char* StreamTypeToString(WMFStreamType aStreamType) {
-  switch (aStreamType) {
-    case WMFStreamType::H264:
-      return "H264";
-    case WMFStreamType::VP8:
-      return "VP8";
-    case WMFStreamType::VP9:
-      return "VP9";
-    case WMFStreamType::AV1:
-      return "AV1";
-    case WMFStreamType::HEVC:
-      return "HEVC";
-    case WMFStreamType::MP3:
-      return "MP3";
-    case WMFStreamType::AAC:
-      return "AAC";
-    case WMFStreamType::OPUS:
-      return "OPUS";
-    case WMFStreamType::VORBIS:
-      return "VORBIS";
-    default:
-      MOZ_ASSERT(aStreamType == WMFStreamType::Unknown);
-      return "Unknown";
-  }
-}
-
 WMFStreamType GetStreamTypeFromMimeType(const nsCString& aMimeType) {
   if (MP4Decoder::IsH264(aMimeType)) {
     return WMFStreamType::H264;

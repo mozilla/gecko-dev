@@ -1027,7 +1027,7 @@ nsCString WMFVideoMFTManager::GetDescriptionName() const {
   }();
 
   return nsPrintfCString("wmf %s codec %s video decoder - %s, %s",
-                         StreamTypeToString(mStreamType),
+                         EnumValueToString(mStreamType),
                          hw ? "hardware" : "software", dxvaName, formatName);
 }
 nsCString WMFVideoMFTManager::GetCodecName() const {
