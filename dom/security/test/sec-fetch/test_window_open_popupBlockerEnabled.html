@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Bug 1901139 - Test Sec-Fetch-User for window.open when popup blocker is enabled</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+
+<body>
+<script>
+
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      // Enable popup blocker
+      ["dom.disable_open_during_load", true],
+      ["dom.block_multiple_popups", true],
+    ],
+  });
+});
+
+add_task(async function() {
+  var script = SpecialPowers.loadChromeScript(() => {
+    /* eslint-env mozilla/chrome-script */
+    Services.obs.addObserver(function onExamResp(subject) {
+    let channel = subject.QueryInterface(Ci.nsIHttpChannel);
+      info("request observed: " + channel.URI.spec);
+      if (!channel.URI.spec.startsWith("https://example.org")) {
+        return;
+      }
+
+      try {
+        is(channel.getRequestHeader("Sec-Fetch-User"), "?1", "testing sec-fetch-user");
+      } catch (e) {
+        ok(false, "sec-fetch-user should be set");
+      }
+
+      sendAsyncMessage("test-pass");
+    }, "http-on-stop-request");
+  });
+
+  let promise = new Promise(resolve => script.addMessageListener("test-pass", resolve));
+
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  let win = window.open("https://example.org");
+
+  await promise;
+
+  win.close();
+});
+
+</script>
+</body>
+</html>

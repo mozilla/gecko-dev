@@ -27,3 +27,5 @@ skip-if = [
   "http2",
 ]
 support-files = ["file_websocket_wsh.py"]
+
+["test_window_open_popupBlockerEnabled.html"]

@@ -64,6 +64,26 @@ class nsWindowWatcher : public nsIWindowWatcher,
 
   static bool HaveSpecifiedSize(const mozilla::dom::WindowFeatures& features);
 
+  /**
+   * Creates a load state from the given uri and the parent window.
+   *
+   * If `aParent` is present, his function will set
+   *  - the triggering window id
+   *  - if the triggering window has storage access
+   *  - the source `BrowsingContext``
+   *  - the triggering browsing context's sandbox flags
+   *  - the user gesture activation flag based on the parent document
+   *  - the text directive user activation flag; this will consume the parent
+   *    document's flag and OR's it with the user gesture activation flag.
+   *
+   * Currently, the returned load state is intended to be passed into
+   * `OpenWindowInternal()`.
+   * Note that the triggering principal and referrer info are not set by this
+   * function.
+   */
+  static already_AddRefed<nsDocShellLoadState> CreateLoadState(
+      nsIURI* aUri, nsPIDOMWindowOuter* aParent);
+
  protected:
   virtual ~nsWindowWatcher();
 

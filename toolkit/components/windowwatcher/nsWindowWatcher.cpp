@@ -631,10 +631,16 @@ nsresult nsWindowWatcher::OpenWindowInternal(
     }
   }
 
+  RefPtr<nsDocShellLoadState> loadState = aLoadState;
+  if (!loadState && uriToLoad && aNavigate) {
+    loadState = CreateLoadState(
+        uriToLoad, aParent ? nsPIDOMWindowOuter::From(aParent) : nullptr);
+  }
+
   return nsWindowWatcher::OpenWindowInternal(
       aParent, uriToLoad, aName, aFeatures, aModifiers, aCalledFromJS, aDialog,
       aNavigate, aArgv, aIsPopupSpam, aForceNoOpener, aForceNoReferrer,
-      aPrintKind, aLoadState, aResult);
+      aPrintKind, loadState, aResult);
 }
 
 nsresult nsWindowWatcher::OpenWindowInternal(
@@ -646,6 +652,9 @@ nsresult nsWindowWatcher::OpenWindowInternal(
     PrintKind aPrintKind, nsDocShellLoadState* aLoadState,
     BrowsingContext** aResult) {
   MOZ_ASSERT_IF(aForceNoReferrer, aForceNoOpener);
+  // XXXedgar aNavigate is now used for a sanity check only. We could consider
+  // removing it at some point.
+  MOZ_DIAGNOSTIC_ASSERT((aUri && aNavigate) == !!aLoadState);
 
   nsresult rv = NS_OK;
   bool isNewToplevelWindow = false;
@@ -1301,35 +1310,19 @@ nsresult nsWindowWatcher::OpenWindowInternal(
       targetBC->UseRemoteSubframes() ==
       !!(chromeFlags & nsIWebBrowserChrome::CHROME_FISSION_WINDOW));
 
-  RefPtr<nsDocShellLoadState> loadState = aLoadState;
-  if (aUri && aNavigate && !loadState) {
-    RefPtr<WindowContext> context =
-        parentInnerWin ? parentInnerWin->GetWindowContext() : nullptr;
-    loadState = new nsDocShellLoadState(aUri);
-
-    loadState->SetSourceBrowsingContext(parentBC);
-    loadState->SetAllowFocusMove(true);
-    loadState->SetHasValidUserGestureActivation(
-        context && context->HasValidTransientUserGestureActivation());
-    if (parentBC) {
-      loadState->SetTriggeringSandboxFlags(parentBC->GetSandboxFlags());
-    }
-
-    if (parentInnerWin) {
-      loadState->SetTriggeringWindowId(parentInnerWin->WindowID());
-      loadState->SetTriggeringStorageAccess(
-          parentInnerWin->UsingStorageAccess());
-    }
-
-    if (subjectPrincipal) {
-      loadState->SetTriggeringPrincipal(subjectPrincipal);
-    }
+  if (aLoadState) {
+    // TriggeringPrincipal and ReferrerInfo are set up here because we
+    // rely on the `jsapiChromeGuard` set above to get proper value.
+    // Ideally, aLoadState should contain that value when passed in.
+    if (!aLoadState->TriggeringPrincipal()) {
+      aLoadState->SetTriggeringPrincipal(subjectPrincipal);
 #ifndef ANDROID
-    MOZ_ASSERT(subjectPrincipal,
-               "nsWindowWatcher: triggeringPrincipal required");
+      MOZ_ASSERT(subjectPrincipal,
+                 "nsWindowWatcher: triggeringPrincipal required");
 #endif
+    }
 
-    if (!aForceNoReferrer) {
+    if (!aLoadState->GetReferrerInfo() && !aForceNoReferrer) {
       /* use the URL from the *extant* document, if any. The usual accessor
          GetDocument will synchronously create an about:blank document if
          it has no better answer, and we only care about a real document.
@@ -1342,16 +1335,16 @@ nsresult nsWindowWatcher::OpenWindowInternal(
       }
       if (doc) {
         auto referrerInfo = MakeRefPtr<ReferrerInfo>(*doc);
-        loadState->SetReferrerInfo(referrerInfo);
+        aLoadState->SetReferrerInfo(referrerInfo);
       }
     }
-  }
 
-  if (loadState && cx) {
-    nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(cx);
-    if (win) {
-      nsCOMPtr<nsIContentSecurityPolicy> csp = win->GetCsp();
-      loadState->SetCsp(csp);
+    if (cx) {
+      nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(cx);
+      if (win) {
+        nsCOMPtr<nsIContentSecurityPolicy> csp = win->GetCsp();
+        aLoadState->SetCsp(csp);
+      }
     }
   }
 
@@ -1396,7 +1389,7 @@ nsresult nsWindowWatcher::OpenWindowInternal(
     }
   }
 
-  if (aUri && aNavigate) {
+  if (aLoadState) {
     uint32_t loadFlags = nsIWebNavigation::LOAD_FLAGS_NONE;
     if (windowIsNew) {
       loadFlags |= nsIWebNavigation::LOAD_FLAGS_FIRST_LOAD;
@@ -1413,11 +1406,11 @@ nsresult nsWindowWatcher::OpenWindowInternal(
         loadFlags |= nsIWebNavigation::LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
       }
     }
-    loadState->SetLoadFlags(loadFlags);
-    loadState->SetFirstParty(true);
+    aLoadState->SetLoadFlags(loadFlags);
+    aLoadState->SetFirstParty(true);
 
     // Should this pay attention to errors returned by LoadURI?
-    targetBC->LoadURI(loadState);
+    targetBC->LoadURI(aLoadState);
   }
 
   if (isNewToplevelWindow) {
@@ -2067,6 +2060,39 @@ uint32_t nsWindowWatcher::CalculateChromeFlagsForSystem(
 // public static
 bool nsWindowWatcher::HaveSpecifiedSize(const WindowFeatures& features) {
   return CalcSizeSpec(features, false, CSSToDesktopScale()).SizeSpecified();
+}
+
+/* static */
+already_AddRefed<nsDocShellLoadState> nsWindowWatcher::CreateLoadState(
+    nsIURI* aUri, nsPIDOMWindowOuter* aParent) {
+  MOZ_ASSERT(aUri);
+
+  RefPtr<nsDocShellLoadState> loadState = new nsDocShellLoadState(aUri);
+  loadState->SetAllowFocusMove(true);
+
+  if (aParent) {
+    if (nsCOMPtr<nsPIDOMWindowInner> parentInnerWin =
+            aParent->GetCurrentInnerWindow()) {
+      loadState->SetTriggeringWindowId(parentInnerWin->WindowID());
+      loadState->SetTriggeringStorageAccess(
+          parentInnerWin->UsingStorageAccess());
+    }
+
+    if (RefPtr<BrowsingContext> parentBC = aParent->GetBrowsingContext()) {
+      loadState->SetSourceBrowsingContext(parentBC);
+      loadState->SetTriggeringSandboxFlags(parentBC->GetSandboxFlags());
+    }
+
+    if (RefPtr<Document> parentDoc = aParent->GetDoc()) {
+      loadState->SetHasValidUserGestureActivation(
+          parentDoc->HasValidTransientUserGestureActivation());
+      loadState->SetTextDirectiveUserActivation(
+          parentDoc->ConsumeTextDirectiveUserActivation() ||
+          loadState->HasValidUserGestureActivation());
+    }
+  }
+
+  return loadState.forget();
 }
 
 // static

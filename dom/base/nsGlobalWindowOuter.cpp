@@ -66,6 +66,7 @@
 #include "nsIScriptContext.h"
 #include "nsWindowMemoryReporter.h"
 #include "nsWindowSizes.h"
+#include "nsWindowWatcher.h"
 #include "WindowNamedPropertiesHandler.h"
 #include "nsFrameSelection.h"
 #include "nsNetUtil.h"
@@ -6866,6 +6867,13 @@ nsresult nsGlobalWindowOuter::OpenInternal(
   UserActivation::Modifiers modifiers;
   mBrowsingContext->GetUserActivationModifiersForPopup(&modifiers);
 
+  // Need to create loadState before the user activation is consumed in
+  // BrowsingContext::RevisePopupAbuseLevel() below.
+  RefPtr<nsDocShellLoadState> loadState = aLoadState;
+  if (!loadState && aNavigate && uri) {
+    loadState = nsWindowWatcher::CreateLoadState(uri, this);
+  }
+
   PopupBlocker::PopupControlState abuseLevel =
       PopupBlocker::GetPopupControlState();
   if (checkForPopup) {
@@ -6939,7 +6947,7 @@ nsresult nsGlobalWindowOuter::OpenInternal(
                                 /* aCalledFromScript = */ true, aDialog,
                                 aNavigate, argv, isPopupSpamWindow,
                                 forceNoOpener, forceNoReferrer, wwPrintKind,
-                                aLoadState, getter_AddRefs(domReturn));
+                                loadState, getter_AddRefs(domReturn));
     } else {
       // Force a system caller here so that the window watcher won't screw us
       // up.  We do NOT want this case looking at the JS context on the stack
@@ -6959,7 +6967,7 @@ nsresult nsGlobalWindowOuter::OpenInternal(
                                 /* aCalledFromScript = */ false, aDialog,
                                 aNavigate, aExtraArgument, isPopupSpamWindow,
                                 forceNoOpener, forceNoReferrer, wwPrintKind,
-                                aLoadState, getter_AddRefs(domReturn));
+                                loadState, getter_AddRefs(domReturn));
     }
   }
 
