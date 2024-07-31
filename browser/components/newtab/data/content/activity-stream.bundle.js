@@ -10644,21 +10644,6 @@ function Notifications_Notifications({
 
 
 
-
-// TODO: move strings to newtab.ftl once strings have been approved
-const TOPIC_LABELS = {
-  "newtab-topic-business": "Business",
-  "newtab-topic-arts": "Entertainment",
-  "newtab-topic-food": "Food",
-  "newtab-topic-health": "Health",
-  "newtab-topic-finance": "Money",
-  "newtab-topic-government": "Politics",
-  "newtab-topic-sports": "Sports",
-  "newtab-topic-tech": "Tech",
-  "newtab-topic-travel": "Travel",
-  "newtab-topic-education": "Science",
-  "newtab-topic-society": "Life Hacks"
-};
 const EMOJI_LABELS = {
   business: "💼",
   arts: "🎭",
@@ -10822,10 +10807,12 @@ function TopicSelection() {
     title: "dismiss",
     onClick: handleUserClose
   }), /*#__PURE__*/external_React_default().createElement("h1", {
-    className: "title"
-  }, "Select topics you care about"), /*#__PURE__*/external_React_default().createElement("p", {
-    className: "subtitle"
-  }, "Tell us what you are interested in and we\u2019ll recommend you great stories!"), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "title",
+    "data-l10n-id": "newtab-topic-selection-title"
+  }), /*#__PURE__*/external_React_default().createElement("p", {
+    className: "subtitle",
+    "data-l10n-id": "newtab-topic-selection-subtitle"
+  }), /*#__PURE__*/external_React_default().createElement("div", {
     className: "topic-list",
     ref: checkboxWrapperRef
   }, topics.map((topic, i) => {
@@ -10849,13 +10836,15 @@ function TopicSelection() {
     }, EMOJI_LABELS[`${topic}`]), /*#__PURE__*/external_React_default().createElement("span", {
       className: "topic-checked"
     })), /*#__PURE__*/external_React_default().createElement("span", {
-      className: "topic-item-label"
-    }, TOPIC_LABELS[`newtab-topic-${topic}`]));
+      className: "topic-item-label",
+      "data-l10n-id": `newtab-topic-label-${topic}`
+    }));
   })), /*#__PURE__*/external_React_default().createElement("div", {
     className: "modal-footer"
   }, /*#__PURE__*/external_React_default().createElement("a", {
-    href: "https://support.mozilla.org/en-US/kb/pocket-recommendations-firefox-new-tab"
-  }, "How we protect your data and privacy"), /*#__PURE__*/external_React_default().createElement("moz-button-group", {
+    href: "https://support.mozilla.org/en-US/kb/pocket-recommendations-firefox-new-tab",
+    "data-l10n-id": "newtab-topic-selection-privacy-link"
+  }), /*#__PURE__*/external_React_default().createElement("moz-button-group", {
     className: "button-group"
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     id: isFirstRun ? "first-run" : "",
@@ -10863,6 +10852,10 @@ function TopicSelection() {
     onClick: handleUserClose
   }), /*#__PURE__*/external_React_default().createElement("moz-button", {
     label: isFirstRun ? "Save topics" : "Save",
+    "data-l10n-id": "newtab-topic-selection-cancel-button",
+    onClick: handleModalClose
+  }), /*#__PURE__*/external_React_default().createElement("moz-button", {
+    "data-l10n-id": "newtab-topic-selection-save-button",
     type: "primary",
     onClick: handleSubmit
   })))));
