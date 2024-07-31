@@ -1059,7 +1059,7 @@ ipc::IPCResult ChromiumCDMParent::RecvDecodeFailed(const uint32_t& aStatus) {
           RESULT_DETAIL(
               "ChromiumCDMParent::RecvDecodeFailed with status %s (%" PRIu32
               ")",
-              CdmStatusToString(aStatus), aStatus)),
+              cdm::EnumValueToString(cdm::Status(aStatus)), aStatus)),
       __func__);
   return IPC_OK();
 }
@@ -1170,10 +1170,10 @@ ipc::IPCResult ChromiumCDMParent::RecvOnDecoderInitDone(
   } else {
     mVideoDecoderInitialized = false;
     mInitVideoDecoderPromise.RejectIfExists(
-        MediaResult(
-            NS_ERROR_DOM_MEDIA_FATAL_ERR,
-            RESULT_DETAIL("CDM init decode failed with status %s (%" PRIu32 ")",
-                          CdmStatusToString(aStatus), aStatus)),
+        MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                    RESULT_DETAIL(
+                        "CDM init decode failed with status %s (%" PRIu32 ")",
+                        cdm::EnumValueToString(cdm::Status(aStatus)), aStatus)),
         __func__);
   }
   return IPC_OK();
