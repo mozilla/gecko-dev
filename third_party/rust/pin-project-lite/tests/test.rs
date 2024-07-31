@@ -1,5 +1,6 @@
-#![warn(rust_2018_idioms, single_use_lifetimes)]
-#![allow(dead_code)]
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+#![allow(dead_code, unreachable_pub, clippy::no_effect_underscore_binding)]
 
 #[macro_use]
 mod auxiliary;
@@ -616,6 +617,7 @@ fn attrs() {
     pin_project! {
         /// dox1
         #[derive(Clone)]
+        #[project(!Unpin)]
         #[project = Enum2Proj]
         #[project_ref = Enum2ProjRef]
         /// dox2
@@ -682,11 +684,13 @@ fn pinned_drop() {
             req: Request,
         }
 
+        /// dox1
         impl<T, Request> PinnedDrop for Struct3<'_, T, Request>
         where
             T: Service<Request>,
             T::Error: std::error::Error,
         {
+            /// dox2
             fn drop(mut this: Pin<&mut Self>) {
                 **this.as_mut().project().was_dropped = true;
             }

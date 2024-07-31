@@ -14,10 +14,10 @@ const _: () = {
         Struct: (T, ::pin_project_lite::__private::AlwaysUnpin<U>),
         Unit: (),
     }
-    impl<'__pin, T, U> ::pin_project_lite::__private::Unpin for Enum<T, U> where
-        __Origin<'__pin, T, U>: ::pin_project_lite::__private::Unpin
-    {
-    }
+    impl<'__pin, T, U> ::pin_project_lite::__private::Unpin for Enum<T, U>
+    where
+        __Origin<'__pin, T, U>: ::pin_project_lite::__private::Unpin,
+    {}
     trait MustNotImplDrop {}
     #[allow(clippy::drop_bounds, drop_bounds)]
     impl<T: ::pin_project_lite::__private::Drop> MustNotImplDrop for T {}

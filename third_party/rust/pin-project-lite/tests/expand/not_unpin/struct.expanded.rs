@@ -33,16 +33,6 @@ where
     pinned: ::pin_project_lite::__private::Pin<&'__pin (T)>,
     unpinned: &'__pin (U),
 }
-#[doc(hidden)]
-#[allow(dead_code)]
-#[allow(single_use_lifetimes)]
-#[allow(clippy::mut_mut)]
-#[allow(clippy::redundant_pub_crate)]
-#[allow(clippy::type_repetition_in_bounds)]
-struct StructProjReplace<T, U> {
-    pinned: ::pin_project_lite::__private::PhantomData<T>,
-    unpinned: U,
-}
 #[allow(explicit_outlives_requirements)]
 #[allow(single_use_lifetimes)]
 #[allow(clippy::unknown_clippy_lints)]
@@ -76,44 +66,14 @@ const _: () = {
                 }
             }
         }
-        #[doc(hidden)]
-        #[inline]
-        fn project_replace(
-            self: ::pin_project_lite::__private::Pin<&mut Self>,
-            replacement: Self,
-        ) -> StructProjReplace<T, U> {
-            unsafe {
-                let __self_ptr: *mut Self = self.get_unchecked_mut();
-                let __guard = ::pin_project_lite::__private::UnsafeOverwriteGuard::new(
-                    __self_ptr,
-                    replacement,
-                );
-                let Self { pinned, unpinned } = &mut *__self_ptr;
-                let result = StructProjReplace {
-                    pinned: ::pin_project_lite::__private::PhantomData,
-                    unpinned: ::pin_project_lite::__private::ptr::read(unpinned),
-                };
-                {
-                    (
-                        ::pin_project_lite::__private::UnsafeDropInPlaceGuard::new(
-                            pinned,
-                        ),
-                        (),
-                    );
-                }
-                result
-            }
-        }
     }
-    #[allow(non_snake_case)]
-    struct __Origin<'__pin, T, U> {
-        __dummy_lifetime: ::pin_project_lite::__private::PhantomData<&'__pin ()>,
-        pinned: T,
-        unpinned: ::pin_project_lite::__private::AlwaysUnpin<U>,
-    }
+    #[doc(hidden)]
     impl<'__pin, T, U> ::pin_project_lite::__private::Unpin for Struct<T, U>
     where
-        __Origin<'__pin, T, U>: ::pin_project_lite::__private::Unpin,
+        (
+            ::core::marker::PhantomData<&'__pin ()>,
+            ::core::marker::PhantomPinned,
+        ): ::pin_project_lite::__private::Unpin,
     {}
     trait MustNotImplDrop {}
     #[allow(clippy::drop_bounds, drop_bounds)]

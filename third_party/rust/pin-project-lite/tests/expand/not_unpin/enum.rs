@@ -3,6 +3,9 @@
 use pin_project_lite::pin_project;
 
 pin_project! {
+    #[project(!Unpin)]
+    #[project = EnumProj]
+    #[project_ref = EnumProjRef]
     enum Enum<T, U> {
         Struct {
             #[pin]

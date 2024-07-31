@@ -10,9 +10,29 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [Unreleased]
 
+## [0.2.14] - 2024-03-29
+
+- Document `PinnedDrop`. ([#83](https://github.com/taiki-e/pin-project-lite/pull/83), thanks @jbr)
+
+## [0.2.13] - 2023-08-25
+
+- Allow attributes in impl and method of `PinnedDrop` implementation.
+
+## [0.2.12] - 2023-08-09
+
+- Work around an issue where the projected types/methods appear in the documentation as if they were part of the public API if the visibility is not correctly parsed due to the rustc bug. See [#77](https://github.com/taiki-e/pin-project-lite/issues/77#issuecomment-1671540180) for details.
+
+## [0.2.11] - 2023-08-06
+
+- Add support for `#[project(!Unpin)]`. This is equivalent to pin-project's [!Unpin](https://docs.rs/pin-project/latest/pin_project/attr.pin_project.html#unpin) option. ([#76](https://github.com/taiki-e/pin-project-lite/pull/76), thanks @matheus-consoli)
+
+## [0.2.10] - 2023-07-02
+
+- Inline project methods. ([#74](https://github.com/taiki-e/pin-project-lite/pull/74), thanks @EFanZh)
+
 ## [0.2.9] - 2022-04-26
 
-- Improve compile time of `pin_project!` calls. (#71, thanks @nnethercote)
+- Improve compile time of `pin_project!` calls. ([#71](https://github.com/taiki-e/pin-project-lite/pull/71), thanks @nnethercote)
 
 ## [0.2.8] - 2021-12-31
 
@@ -196,7 +216,12 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 Initial release
 
-[Unreleased]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.9...HEAD
+[Unreleased]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.14...HEAD
+[0.2.14]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.13...v0.2.14
+[0.2.13]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.12...v0.2.13
+[0.2.12]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.11...v0.2.12
+[0.2.11]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.10...v0.2.11
+[0.2.10]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/taiki-e/pin-project-lite/compare/v0.2.6...v0.2.7

@@ -9,6 +9,7 @@ pub struct Struct<T, U> {
 #[allow(clippy::redundant_pub_crate)]
 #[allow(clippy::used_underscore_binding)]
 const _: () = {
+    #[doc(hidden)]
     #[allow(dead_code)]
     #[allow(single_use_lifetimes)]
     #[allow(clippy::unknown_clippy_lints)]
@@ -23,6 +24,7 @@ const _: () = {
         pub pinned: ::pin_project_lite::__private::Pin<&'__pin mut (T)>,
         pub unpinned: &'__pin mut (U),
     }
+    #[doc(hidden)]
     #[allow(dead_code)]
     #[allow(single_use_lifetimes)]
     #[allow(clippy::unknown_clippy_lints)]
@@ -38,6 +40,8 @@ const _: () = {
         pub unpinned: &'__pin (U),
     }
     impl<T, U> Struct<T, U> {
+        #[doc(hidden)]
+        #[inline]
         pub(crate) fn project<'__pin>(
             self: ::pin_project_lite::__private::Pin<&'__pin mut Self>,
         ) -> Projection<'__pin, T, U> {
@@ -49,6 +53,8 @@ const _: () = {
                 }
             }
         }
+        #[doc(hidden)]
+        #[inline]
         pub(crate) fn project_ref<'__pin>(
             self: ::pin_project_lite::__private::Pin<&'__pin Self>,
         ) -> ProjectionRef<'__pin, T, U> {
@@ -67,10 +73,10 @@ const _: () = {
         pinned: T,
         unpinned: ::pin_project_lite::__private::AlwaysUnpin<U>,
     }
-    impl<'__pin, T, U> ::pin_project_lite::__private::Unpin for Struct<T, U> where
-        __Origin<'__pin, T, U>: ::pin_project_lite::__private::Unpin
-    {
-    }
+    impl<'__pin, T, U> ::pin_project_lite::__private::Unpin for Struct<T, U>
+    where
+        __Origin<'__pin, T, U>: ::pin_project_lite::__private::Unpin,
+    {}
     trait MustNotImplDrop {}
     #[allow(clippy::drop_bounds, drop_bounds)]
     impl<T: ::pin_project_lite::__private::Drop> MustNotImplDrop for T {}
