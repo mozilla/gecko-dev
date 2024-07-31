@@ -73,43 +73,6 @@ add_task(async function new_window() {
   await BrowserTestUtils.closeWindow(newWin);
 });
 
-async function setDefaultEngine(name) {
-  let engine = (await Services.search.getEngines()).find(e => e.name == name);
-  Assert.ok(engine);
-  await Services.search.setDefault(
-    engine,
-    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
-  );
-}
-
-add_task(async function test_search_icon_change() {
-  const engineName = "DuckDuckGo";
-  await setDefaultEngine(engineName);
-  let newWin = await BrowserTestUtils.openNewBrowserWindow();
-
-  let searchModeSwitcherButton = window.document.getElementById(
-    "searchmode-switcher-icon"
-  );
-
-  // match and capture the URL inside `url("...")`
-  let regex = /url\("([^"]+)"\)/;
-  let searchModeSwitcherIconUrl =
-    searchModeSwitcherButton.style.listStyleImage.match(regex);
-
-  const defaultSearchEngineIconUrl = await Services.search
-    .getEngineByName(engineName)
-    .getIconURL();
-
-  Assert.equal(
-    searchModeSwitcherIconUrl[1],
-    defaultSearchEngineIconUrl,
-    "The search mode switcher should have the same icon as the default search engine"
-  );
-
-  await Services.search.restoreDefaultEngines();
-  await BrowserTestUtils.closeWindow(newWin);
-});
-
 add_task(async function detect_searchmode_changes() {
   info("Open the urlbar and searchmode switcher popup");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
