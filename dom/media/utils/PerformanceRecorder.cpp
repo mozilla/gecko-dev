@@ -56,38 +56,7 @@ static void AppendMediaInfoFlagToName(nsCString& aName, MediaInfoFlag aFlag) {
 
 static void AppendImageFormatToName(nsCString& aName,
                                     DecodeStage::ImageFormat aFormat) {
-  aName.Append([&] {
-    switch (aFormat) {
-      case DecodeStage::YUV420P:
-        return "yuv420p,";
-      case DecodeStage::YUV422P:
-        return "yuv422p,";
-      case DecodeStage::YUV444P:
-        return "yuv444p,";
-      case DecodeStage::NV12:
-        return "nv12,";
-      case DecodeStage::YV12:
-        return "yv12,";
-      case DecodeStage::NV21:
-        return "nv21,";
-      case DecodeStage::P010:
-        return "p010,";
-      case DecodeStage::P016:
-        return "p016,";
-      case DecodeStage::RGBA32:
-        return "rgba32,";
-      case DecodeStage::RGB24:
-        return "rgb24,";
-      case DecodeStage::GBRP:
-        return "gbrp,";
-      case DecodeStage::ANDROID_SURFACE:
-        return "android.Surface,";
-      case DecodeStage::VAAPI_SURFACE:
-        return "VAAPI.Surface,";
-    }
-    MOZ_ASSERT_UNREACHABLE("Unhandled DecodeStage::ImageFormat");
-    return "";
-  }());
+  aName.AppendPrintf("%s,", DecodeStage::EnumValueToString(aFormat));
 }
 
 static void AppendYUVColorSpaceToName(nsCString& aName,
