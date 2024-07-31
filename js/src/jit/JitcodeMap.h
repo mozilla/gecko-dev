@@ -93,7 +93,7 @@ class JitCodeRange {
   }
 };
 
-typedef Vector<BytecodeLocation, 0, SystemAllocPolicy> BytecodeLocationVector;
+using BytecodeLocationVector = Vector<BytecodeLocation, 0, SystemAllocPolicy>;
 
 class IonEntry;
 class IonICEntry;

@@ -319,7 +319,7 @@ class JSJitProfilingFrameIterator {
 
 class RInstructionResults {
   // Vector of results of recover instructions.
-  typedef mozilla::Vector<HeapPtr<Value>, 1, SystemAllocPolicy> Values;
+  using Values = mozilla::Vector<HeapPtr<Value>, 1, SystemAllocPolicy>;
   UniquePtr<Values> results_;
 
   // The frame pointer is used as a key to check if the current frame already

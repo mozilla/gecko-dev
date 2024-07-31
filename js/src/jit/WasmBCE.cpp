@@ -13,9 +13,8 @@
 using namespace js;
 using namespace js::jit;
 
-typedef js::HashMap<uint32_t, MDefinition*, DefaultHasher<uint32_t>,
-                    SystemAllocPolicy>
-    LastSeenMap;
+using LastSeenMap = js::HashMap<uint32_t, MDefinition*, DefaultHasher<uint32_t>,
+                                SystemAllocPolicy>;
 
 // The Wasm Bounds Check Elimination (BCE) pass looks for bounds checks
 // on SSA values that have already been checked. (in the same block or in a

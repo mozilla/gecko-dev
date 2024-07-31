@@ -189,7 +189,7 @@ class BranchDeadlineSet {
   // We allow branch deadlines to be added and removed in any order, but
   // performance is best in the expected case of near LIFO order.
   //
-  typedef Vector<BufferOffset, 8, LifoAllocPolicy<Fallible>> RangeVector;
+  using RangeVector = Vector<BufferOffset, 8, LifoAllocPolicy<Fallible>>;
 
   // We really just want "RangeVector deadline_[NumRanges];", but each vector
   // needs to be initialized with a LifoAlloc, and C++ doesn't bend that way.
@@ -376,7 +376,7 @@ class BranchDeadlineSet<0u> {
 };
 
 // The allocation unit size for pools.
-typedef int32_t PoolAllocUnit;
+using PoolAllocUnit = int32_t;
 
 // Hysteresis given to short-range branches.
 //
@@ -552,7 +552,7 @@ struct AssemblerBufferWithConstantPools
   };
 
  private:
-  typedef AssemblerBuffer<SliceSize, Inst> Parent;
+  using Parent = AssemblerBuffer<SliceSize, Inst>;
   using typename Parent::Slice;
 
   // The size of a pool guard, in instructions. A branch around the pool.

@@ -267,7 +267,7 @@ class LNewObject : public LInstructionHelper<1, 0, 1> {
 
 template <size_t Defs, size_t Ops>
 class LWasmReinterpretBase : public LInstructionHelper<Defs, Ops, 0> {
-  typedef LInstructionHelper<Defs, Ops, 0> Base;
+  using Base = LInstructionHelper<Defs, Ops, 0>;
 
  protected:
   explicit LWasmReinterpretBase(LNode::Opcode opcode) : Base(opcode) {}
@@ -309,7 +309,7 @@ class LWasmReinterpretToI64 : public LWasmReinterpretBase<INT64_PIECES, 1> {
 namespace details {
 template <size_t Defs, size_t Ops, size_t Temps>
 class RotateBase : public LInstructionHelper<Defs, Ops, Temps> {
-  typedef LInstructionHelper<Defs, Ops, Temps> Base;
+  using Base = LInstructionHelper<Defs, Ops, Temps>;
 
  protected:
   explicit RotateBase(LNode::Opcode opcode) : Base(opcode) {}
@@ -3074,7 +3074,7 @@ class LIsNullOrUndefinedAndBranch
 
 template <size_t Defs, size_t Ops>
 class LWasmSelectBase : public LInstructionHelper<Defs, Ops, 0> {
-  typedef LInstructionHelper<Defs, Ops, 0> Base;
+  using Base = LInstructionHelper<Defs, Ops, 0>;
 
  protected:
   explicit LWasmSelectBase(LNode::Opcode opcode) : Base(opcode) {}
@@ -3180,7 +3180,7 @@ namespace details {
 template <size_t Defs, size_t Temp>
 class LWasmLoadBase : public LInstructionHelper<Defs, 2, Temp> {
  public:
-  typedef LInstructionHelper<Defs, 2, Temp> Base;
+  using Base = LInstructionHelper<Defs, 2, Temp>;
   explicit LWasmLoadBase(LNode::Opcode opcode, const LAllocation& ptr,
                          const LAllocation& memoryBase)
       : Base(opcode) {

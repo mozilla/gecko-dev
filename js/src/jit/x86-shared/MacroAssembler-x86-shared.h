@@ -28,12 +28,12 @@ class MacroAssemblerX86Shared : public Assembler {
 
  public:
 #ifdef JS_CODEGEN_X64
-  typedef X86Encoding::JmpSrc UsesItem;
+  using UsesItem = X86Encoding::JmpSrc;
 #else
-  typedef CodeOffset UsesItem;
+  using UsesItem = CodeOffset;
 #endif
 
-  typedef Vector<UsesItem, 0, SystemAllocPolicy> UsesVector;
+  using UsesVector = Vector<UsesItem, 0, SystemAllocPolicy>;
   static_assert(sizeof(UsesItem) == 4);
 
  protected:
@@ -56,14 +56,14 @@ class MacroAssemblerX86Shared : public Assembler {
   // are compiled.
   using Double = Constant<double>;
   Vector<Double, 0, SystemAllocPolicy> doubles_;
-  typedef HashMap<double, size_t, DefaultHasher<double>, SystemAllocPolicy>
-      DoubleMap;
+  using DoubleMap =
+      HashMap<double, size_t, DefaultHasher<double>, SystemAllocPolicy>;
   DoubleMap doubleMap_;
 
   using Float = Constant<float>;
   Vector<Float, 0, SystemAllocPolicy> floats_;
-  typedef HashMap<float, size_t, DefaultHasher<float>, SystemAllocPolicy>
-      FloatMap;
+  using FloatMap =
+      HashMap<float, size_t, DefaultHasher<float>, SystemAllocPolicy>;
   FloatMap floatMap_;
 
   struct SimdData : public Constant<SimdConstant> {
@@ -74,8 +74,8 @@ class MacroAssemblerX86Shared : public Assembler {
   };
 
   Vector<SimdData, 0, SystemAllocPolicy> simds_;
-  typedef HashMap<SimdConstant, size_t, SimdConstant, SystemAllocPolicy>
-      SimdMap;
+  using SimdMap =
+      HashMap<SimdConstant, size_t, SimdConstant, SystemAllocPolicy>;
   SimdMap simdMap_;
 
   template <class T, class Map>

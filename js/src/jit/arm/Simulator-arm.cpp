@@ -136,7 +136,7 @@ const uint32_t kMaxStopCode = kStopCode - 1;
 
 // The class Instruction enables access to individual fields defined in the ARM
 // architecture instruction set encoding as described in figure A3-1.
-// Note that the Assembler uses typedef int32_t Instr.
+// Note that the Assembler uses using Instr = int32_t.
 //
 // Example: Test whether the instruction at ptr does set the condition code
 // bits.

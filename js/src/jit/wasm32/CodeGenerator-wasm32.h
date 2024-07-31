@@ -69,7 +69,7 @@ class CodeGeneratorWasm32 : public CodeGeneratorShared {
   void generateInvalidateEpilogue() { MOZ_CRASH(); }
 };
 
-typedef CodeGeneratorWasm32 CodeGeneratorSpecific;
+using CodeGeneratorSpecific = CodeGeneratorWasm32;
 
 }  // namespace js::jit
 

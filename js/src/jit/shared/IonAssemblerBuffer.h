@@ -133,7 +133,7 @@ class BufferSlice {
 template <int SliceSize, class Inst>
 class AssemblerBuffer {
  protected:
-  typedef BufferSlice<SliceSize> Slice;
+  using Slice = BufferSlice<SliceSize>;
 
   // Doubly-linked list of BufferSlices, with the most recent in tail position.
   Slice* head;
@@ -411,7 +411,7 @@ class AssemblerBuffer {
     return getInstBackwards(off, prev, bufferSize - prev->length());
   }
 
-  typedef AssemblerBuffer<SliceSize, Inst> ThisClass;
+  using ThisClass = AssemblerBuffer<SliceSize, Inst>;
 
   class AssemblerBufferInstIterator {
     BufferOffset bo_;

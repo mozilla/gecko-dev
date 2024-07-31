@@ -54,7 +54,7 @@ class AutoLockSimulator;
 // When the SingleStepCallback is called, the simulator is about to execute
 // sim->get_pc() and the current machine state represents the completed
 // execution of the previous pc.
-typedef void (*SingleStepCallback)(void* arg, Simulator* sim, void* pc);
+using SingleStepCallback = void (*)(void* arg, Simulator* sim, void* pc);
 
 // VFP rounding modes. See ARM DDI 0406B Page A2-29.
 enum VFPRoundingMode {
@@ -72,7 +72,7 @@ enum VFPRoundingMode {
 
 const uint32_t kVFPRoundingModeMask = 3 << 22;
 
-typedef int32_t Instr;
+using Instr = int32_t;
 class SimInstruction;
 
 // Per thread simulator state.
@@ -566,14 +566,14 @@ class SimulatorProcess {
  private:
   // ICache checking.
   struct ICacheHasher {
-    typedef void* Key;
-    typedef void* Lookup;
+    using Key = void*;
+    using Lookup = void*;
     static HashNumber hash(const Lookup& l);
     static bool match(const Key& k, const Lookup& l);
   };
 
  public:
-  typedef HashMap<void*, CachePage*, ICacheHasher, SystemAllocPolicy> ICacheMap;
+  using ICacheMap = HashMap<void*, CachePage*, ICacheHasher, SystemAllocPolicy>;
 
   static mozilla::Atomic<size_t, mozilla::ReleaseAcquire>
       ICacheCheckingDisableCount;

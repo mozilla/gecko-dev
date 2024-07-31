@@ -19,8 +19,8 @@ namespace js {
 namespace jit {
 
 // VIXL imports.
-typedef vixl::Register ARMRegister;
-typedef vixl::FPRegister ARMFPRegister;
+using ARMRegister = vixl::Register;
+using ARMFPRegister = vixl::FPRegister;
 using vixl::ARMBuffer;
 using vixl::Instruction;
 
@@ -447,7 +447,7 @@ class Assembler : public vixl::Assembler {
  public:
   Assembler() : vixl::Assembler() {}
 
-  typedef vixl::Condition Condition;
+  using Condition = vixl::Condition;
 
   void finish();
   bool appendRawCode(const uint8_t* code, size_t numBytes);

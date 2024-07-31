@@ -214,10 +214,9 @@ struct Register64 {
 
 class RegisterDump {
  public:
-  typedef mozilla::Array<Registers::RegisterContent, Registers::Total> GPRArray;
-  typedef mozilla::Array<FloatRegisters::RegisterContent,
-                         FloatRegisters::TotalPhys>
-      FPUArray;
+  using GPRArray = mozilla::Array<Registers::RegisterContent, Registers::Total>;
+  using FPUArray = mozilla::Array<FloatRegisters::RegisterContent,
+                                  FloatRegisters::TotalPhys>;
 
  protected:  // Silence Clang warning.
   GPRArray regs_;

@@ -359,7 +359,7 @@ class SnapshotWriter {
   // Map RValueAllocations to an offset in the allocWriter_ buffer.  This is
   // useful as value allocations are repeated frequently.
   using RVA = RValueAllocation;
-  typedef HashMap<RVA, uint32_t, RVA::Hasher, SystemAllocPolicy> RValueAllocMap;
+  using RValueAllocMap = HashMap<RVA, uint32_t, RVA::Hasher, SystemAllocPolicy>;
   RValueAllocMap allocMap_;
 
   // This is only used to assert sanity.

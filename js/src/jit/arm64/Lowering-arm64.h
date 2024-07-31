@@ -127,7 +127,7 @@ class LIRGeneratorARM64 : public LIRGeneratorShared {
   void lowerPhi(MPhi* phi);
 };
 
-typedef LIRGeneratorARM64 LIRGeneratorSpecific;
+using LIRGeneratorSpecific = LIRGeneratorARM64;
 
 }  // namespace jit
 }  // namespace js

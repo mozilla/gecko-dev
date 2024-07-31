@@ -462,8 +462,8 @@ class AliasSet {
   }
 };
 
-typedef Vector<MDefinition*, 6, JitAllocPolicy> MDefinitionVector;
-typedef Vector<MInstruction*, 6, JitAllocPolicy> MInstructionVector;
+using MDefinitionVector = Vector<MDefinition*, 6, JitAllocPolicy>;
+using MInstructionVector = Vector<MInstruction*, 6, JitAllocPolicy>;
 
 // When a floating-point value is used by nodes which would prefer to
 // receive integer inputs, we may be able to help by computing our result

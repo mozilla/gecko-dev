@@ -31,7 +31,7 @@ using MInstructionReverseIterator = InlineListReverseIterator<MInstruction>;
 using MPhiIterator = InlineListIterator<MPhi>;
 
 #ifdef DEBUG
-typedef InlineForwardListIterator<MResumePoint> MResumePointIterator;
+using MResumePointIterator = InlineForwardListIterator<MResumePoint>;
 #endif
 
 class LBlock;
@@ -662,7 +662,7 @@ using MBasicBlockIterator = InlineListIterator<MBasicBlock>;
 using ReversePostorderIterator = InlineListIterator<MBasicBlock>;
 using PostorderIterator = InlineListReverseIterator<MBasicBlock>;
 
-typedef Vector<MBasicBlock*, 1, JitAllocPolicy> MIRGraphReturns;
+using MIRGraphReturns = Vector<MBasicBlock*, 1, JitAllocPolicy>;
 
 class MIRGraph {
   InlineList<MBasicBlock> blocks_;

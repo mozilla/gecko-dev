@@ -121,7 +121,7 @@ class LIRGeneratorWasm32 : public LIRGeneratorShared {
   LTableSwitchV* newLTableSwitchV(MTableSwitch*) { MOZ_CRASH(); }
 };
 
-typedef LIRGeneratorWasm32 LIRGeneratorSpecific;
+using LIRGeneratorSpecific = LIRGeneratorWasm32;
 
 }  // namespace js::jit
 

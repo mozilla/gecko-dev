@@ -531,7 +531,7 @@ class MacroAssemblerWasm32 : public Assembler {
 #endif
 };
 
-typedef MacroAssemblerWasm32 MacroAssemblerSpecific;
+using MacroAssemblerSpecific = MacroAssemblerWasm32;
 
 static inline bool GetTempRegForIntArg(uint32_t, uint32_t, Register*) {
   MOZ_CRASH();

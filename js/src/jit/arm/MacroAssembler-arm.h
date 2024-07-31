@@ -1421,7 +1421,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
   void profilerExitFrame();
 };
 
-typedef MacroAssemblerARMCompat MacroAssemblerSpecific;
+using MacroAssemblerSpecific = MacroAssemblerARMCompat;
 
 }  // namespace jit
 }  // namespace js

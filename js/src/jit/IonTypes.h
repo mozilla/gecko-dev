@@ -290,12 +290,12 @@ class SimdConstant {
     Undefined = -1
   };
 
-  typedef int8_t I8x16[16];
-  typedef int16_t I16x8[8];
-  typedef int32_t I32x4[4];
-  typedef int64_t I64x2[2];
-  typedef float F32x4[4];
-  typedef double F64x2[2];
+  using I8x16 = int8_t[16];
+  using I16x8 = int16_t[8];
+  using I32x4 = int32_t[4];
+  using I64x2 = int64_t[2];
+  using F32x4 = float[4];
+  using F64x2 = double[2];
 
  private:
   Type type_;

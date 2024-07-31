@@ -1746,7 +1746,7 @@ class MWasmCallBase {
     MDefinition* def;
     Arg(AnyRegister reg, MDefinition* def) : reg(reg), def(def) {}
   };
-  typedef Vector<Arg, 8, SystemAllocPolicy> Args;
+  using Args = Vector<Arg, 8, SystemAllocPolicy>;
 
  protected:
   wasm::CallSiteDesc desc_;
@@ -2423,7 +2423,7 @@ struct TrapSiteInfo {
   explicit TrapSiteInfo(wasm::BytecodeOffset offset_) : offset(offset_) {}
 };
 
-typedef mozilla::Maybe<TrapSiteInfo> MaybeTrapSiteInfo;
+using MaybeTrapSiteInfo = mozilla::Maybe<TrapSiteInfo>;
 
 // Load an object field stored at a fixed offset from a base pointer.  This
 // field may be any value type, including references.  No barriers are

@@ -41,7 +41,7 @@ class CodeGeneratorX86 : public CodeGeneratorX86Shared {
   void visitOutOfLineTruncateFloat32(OutOfLineTruncateFloat32* ool);
 };
 
-typedef CodeGeneratorX86 CodeGeneratorSpecific;
+using CodeGeneratorSpecific = CodeGeneratorX86;
 
 }  // namespace jit
 }  // namespace js

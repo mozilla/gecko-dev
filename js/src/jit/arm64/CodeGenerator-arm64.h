@@ -114,7 +114,7 @@ class CodeGeneratorARM64 : public CodeGeneratorShared {
   void visitOutOfLineWasmTruncateCheck(OutOfLineWasmTruncateCheck* ool);
 };
 
-typedef CodeGeneratorARM64 CodeGeneratorSpecific;
+using CodeGeneratorSpecific = CodeGeneratorARM64;
 
 // An out-of-line bailout thunk.
 class OutOfLineBailout : public OutOfLineCodeBase<CodeGeneratorARM64> {

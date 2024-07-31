@@ -71,7 +71,7 @@ class LIRGeneratorX86 : public LIRGeneratorX86Shared {
   static bool allowTypedElementHoleCheck() { return true; }
 };
 
-typedef LIRGeneratorX86 LIRGeneratorSpecific;
+using LIRGeneratorSpecific = LIRGeneratorX86;
 
 }  // namespace jit
 }  // namespace js

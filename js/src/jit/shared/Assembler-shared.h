@@ -492,7 +492,7 @@ class CodeLabel {
 #endif
 };
 
-typedef Vector<CodeLabel, 0, SystemAllocPolicy> CodeLabelVector;
+using CodeLabelVector = Vector<CodeLabel, 0, SystemAllocPolicy>;
 
 class CodeLocationLabel {
   uint8_t* raw_ = nullptr;
@@ -531,7 +531,7 @@ struct SymbolicAccess {
   SymbolicAddress target;
 };
 
-typedef Vector<SymbolicAccess, 0, SystemAllocPolicy> SymbolicAccessVector;
+using SymbolicAccessVector = Vector<SymbolicAccess, 0, SystemAllocPolicy>;
 
 // Describes a single wasm or asm.js memory access for the purpose of generating
 // code and metadata.

@@ -473,7 +473,7 @@ class MacroAssemblerNone : public Assembler {
 #endif
 };
 
-typedef MacroAssemblerNone MacroAssemblerSpecific;
+using MacroAssemblerSpecific = MacroAssemblerNone;
 
 static inline bool GetTempRegForIntArg(uint32_t, uint32_t, Register*) {
   MOZ_CRASH();

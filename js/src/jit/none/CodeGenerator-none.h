@@ -70,7 +70,7 @@ class CodeGeneratorNone : public CodeGeneratorShared {
   void generateInvalidateEpilogue() { MOZ_CRASH(); }
 };
 
-typedef CodeGeneratorNone CodeGeneratorSpecific;
+using CodeGeneratorSpecific = CodeGeneratorNone;
 
 }  // namespace jit
 }  // namespace js

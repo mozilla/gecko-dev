@@ -122,7 +122,7 @@ class LIRGeneratorNone : public LIRGeneratorShared {
   LTableSwitchV* newLTableSwitchV(MTableSwitch*) { MOZ_CRASH(); }
 };
 
-typedef LIRGeneratorNone LIRGeneratorSpecific;
+using LIRGeneratorSpecific = LIRGeneratorNone;
 
 }  // namespace jit
 }  // namespace js

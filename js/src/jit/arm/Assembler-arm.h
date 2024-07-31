@@ -1098,9 +1098,8 @@ class InstructionIterator {
 };
 
 class Assembler;
-typedef js::jit::AssemblerBufferWithConstantPools<1024, 4, Instruction,
-                                                  Assembler>
-    ARMBuffer;
+using ARMBuffer =
+    js::jit::AssemblerBufferWithConstantPools<1024, 4, Instruction, Assembler>;
 
 class Assembler : public AssemblerShared {
  public:
@@ -1211,8 +1210,8 @@ class Assembler : public AssemblerShared {
   Instruction* editSrc(BufferOffset bo) { return m_buffer.getInst(bo); }
 
 #ifdef JS_DISASM_ARM
-  typedef disasm::EmbeddedVector<char, disasm::ReasonableBufferSize>
-      DisasmBuffer;
+  using DisasmBuffer =
+      disasm::EmbeddedVector<char, disasm::ReasonableBufferSize>;
 
   static void disassembleInstruction(const Instruction* i,
                                      DisasmBuffer& buffer);

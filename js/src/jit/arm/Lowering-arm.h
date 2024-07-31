@@ -110,7 +110,7 @@ class LIRGeneratorARM : public LIRGeneratorShared {
   void lowerPhi(MPhi* phi);
 };
 
-typedef LIRGeneratorARM LIRGeneratorSpecific;
+using LIRGeneratorSpecific = LIRGeneratorARM;
 
 }  // namespace jit
 }  // namespace js

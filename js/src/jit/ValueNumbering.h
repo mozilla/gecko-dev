@@ -33,7 +33,7 @@ class ValueNumberer {
       static void rekey(Key& k, Key newKey);
     };
 
-    typedef HashSet<MDefinition*, ValueHasher, JitAllocPolicy> ValueSet;
+    using ValueSet = HashSet<MDefinition*, ValueHasher, JitAllocPolicy>;
 
     ValueSet set_;  // Set of visible values
 
@@ -54,8 +54,8 @@ class ValueNumberer {
 #endif
   };
 
-  typedef Vector<MBasicBlock*, 4, JitAllocPolicy> BlockWorklist;
-  typedef Vector<MDefinition*, 4, JitAllocPolicy> DefWorklist;
+  using BlockWorklist = Vector<MBasicBlock*, 4, JitAllocPolicy>;
+  using DefWorklist = Vector<MDefinition*, 4, JitAllocPolicy>;
 
   MIRGenerator* const mir_;
   MIRGraph& graph_;

@@ -104,8 +104,8 @@ class CodeGeneratorShared : public LElementVisitor {
     return *osrEntryOffset_;
   }
 
-  typedef js::Vector<CodegenSafepointIndex, 8, SystemAllocPolicy>
-      SafepointIndices;
+  using SafepointIndices =
+      js::Vector<CodegenSafepointIndex, 8, SystemAllocPolicy>;
 
  protected:
 #ifdef CHECK_OSIPOINT_REGISTERS

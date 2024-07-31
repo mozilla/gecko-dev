@@ -228,8 +228,8 @@ class JitRuntime {
   // Number of Ion compilations which were finished off thread and are
   // waiting to be lazily linked. This is only set while holding the helper
   // thread state lock, but may be read from at other times.
-  typedef mozilla::Atomic<size_t, mozilla::SequentiallyConsistent>
-      NumFinishedOffThreadTasksType;
+  using NumFinishedOffThreadTasksType =
+      mozilla::Atomic<size_t, mozilla::SequentiallyConsistent>;
   NumFinishedOffThreadTasksType numFinishedOffThreadTasks_{0};
 
   // List of Ion compilation waiting to get linked.

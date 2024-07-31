@@ -1162,7 +1162,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared {
   void profilerExitFrame();
 };
 
-typedef MacroAssemblerX86 MacroAssemblerSpecific;
+using MacroAssemblerSpecific = MacroAssemblerX86;
 
 }  // namespace jit
 }  // namespace js
