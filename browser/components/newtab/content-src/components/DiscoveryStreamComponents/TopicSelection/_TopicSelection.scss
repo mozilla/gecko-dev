@@ -81,14 +81,15 @@
   width: fit-content;
 
   .topic-item {
+    align-items: center;
     border-radius: 40px;
-    padding-inline: 6px var(--size-item-small);
-    padding-block: 6px;
     border: 1px solid var(--color-gray-60);
     display: flex;
-    align-items: center;
     justify-self: center;
     max-width: fit-content;
+    padding-block: 6px;
+    padding-inline: 6px var(--size-item-small);
+    position: relative;
 
     &:hover {
       cursor: pointer;
@@ -132,12 +133,10 @@
     }
 
     input[type='checkbox'] {
+      height: 100%;
       opacity: 0;
-      width: 1em;
-      height: 1em;
       position: absolute;
-      inset-inline-start: 0.5em;
-      top: 0.4em;
+      width: 90%;
 
       &:checked~.topic-custom-checkbox {
         background-color: var(--color-accent-primary);
