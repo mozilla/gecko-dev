@@ -7,12 +7,12 @@
 #ifndef mozilla_dom_TextTrack_h
 #define mozilla_dom_TextTrack_h
 
+#include "TimeUnits.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/TextTrackBinding.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsString.h"
-#include "TimeUnits.h"
 
 namespace mozilla::dom {
 
