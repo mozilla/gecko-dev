@@ -21,7 +21,7 @@ add_task(async function () {
     view,
     "div",
     "color"
-  ).valueSpan.querySelector(".ruleview-unmatched-variable");
+  ).valueSpan.querySelector(".ruleview-unmatched");
   const setColor = unsetColor.previousElementSibling;
   is(unsetColor.textContent, " red", "red is unmatched in color");
   is(setColor.textContent, "--color", "--color is not set correctly");
@@ -42,7 +42,7 @@ add_task(async function () {
     view,
     "div",
     "background-color"
-  ).valueSpan.querySelector(".ruleview-unmatched-variable");
+  ).valueSpan.querySelector(".ruleview-unmatched");
   const setVar = unsetVar.nextElementSibling;
   const setVarName = setVar.querySelector(".ruleview-variable");
   is(

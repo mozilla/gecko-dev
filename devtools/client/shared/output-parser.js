@@ -333,7 +333,7 @@ class OutputParser {
         varSubsitutedValue
       );
       firstOpts.class = options.matchedVariableClass;
-      secondOpts.class = options.unmatchedVariableClass;
+      secondOpts.class = options.unmatchedClass;
 
       // Display starting-style value when not in a starting style rule
       if (
@@ -357,7 +357,7 @@ class OutputParser {
       }
     } else {
       // The variable is not set and does not have an initial value, mark it unmatched.
-      firstOpts.class = options.unmatchedVariableClass;
+      firstOpts.class = options.unmatchedClass;
       firstOpts["data-variable"] = STYLE_INSPECTOR_L10N.getFormatStr(
         "rule.variableUnset",
         varName
@@ -2066,7 +2066,7 @@ class OutputParser {
    * @param {String} overrides.shapeSwatchClass: The class to use for the shape swatch.
    * @param {String} overrides.urlClass: The class to be used for url() links.
    * @param {String} overrides.fontFamilyClass: The class to be used for font families.
-   * @param {String} overrides.unmatchedVariableClass: The class to use for a component of
+   * @param {String} overrides.unmatchedClass: The class to use for a component of
    *        a `var(…)` that is not in use.
    * @param {Boolean} overrides.supportsColor: Does the CSS property support colors?
    * @param {String} overrides.baseURI: A string used to resolve relative links.
@@ -2099,7 +2099,7 @@ class OutputParser {
       fontFamilyClass: "",
       baseURI: undefined,
       getVariableData: null,
-      unmatchedVariableClass: null,
+      unmatchedClass: null,
       inStartingStyleRule: false,
     };
 

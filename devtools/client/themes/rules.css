@@ -813,7 +813,7 @@
   }
 
   &.ruleview-selector.unmatched,
-  & .ruleview-unmatched-variable,
+  & .ruleview-unmatched,
   .ruleview-property:is(.unused, .ruleview-overridden) & :is(.ruleview-propertyname, .ruleview-propertyvalue) {
     color: var(--rule-highlight-unmatched-unused-color);
   }
@@ -871,7 +871,7 @@
 
 .ruleview-selector-separator,
 .ruleview-selector.unmatched,
-.ruleview-unmatched-variable,
+.ruleview-unmatched,
 .ruleview-property:is(.unused, .ruleview-overridden) :is(.ruleview-propertyname,.ruleview-propertyvalue) {
   color: var(--theme-text-color-alt);
 }
@@ -880,7 +880,7 @@
     only with colors, so let's add a line-through line */
 :is(
   .ruleview-selector.unmatched,
-  .ruleview-unmatched-variable,
+  .ruleview-unmatched,
   .ruleview-invalid-at-computed-value-time
 ):not(
   /* don't show the strike through when the element is hovered so it's more legible */

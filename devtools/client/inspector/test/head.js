@@ -1026,7 +1026,7 @@ async function assertVariableTooltipForProperty(
       view,
       ruleSelector,
       propertyName
-    ).valueSpan.querySelector(".ruleview-variable,.ruleview-unmatched-variable")
+    ).valueSpan.querySelector(".ruleview-variable,.ruleview-unmatched")
   );
 
   const previewTooltip = await assertShowPreviewTooltip(view, variableEl);

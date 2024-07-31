@@ -154,7 +154,7 @@ function getNodeInfo(node, elementStyle) {
   } else if (
     declaration &&
     (classList.contains("ruleview-variable") ||
-      classList.contains("ruleview-unmatched-variable"))
+      classList.contains("ruleview-unmatched"))
   ) {
     type = VIEW_NODE_VARIABLE_TYPE;
     value = {

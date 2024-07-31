@@ -877,7 +877,7 @@ function testParseVariable(doc, parser) {
 
     const frag = parser.parseCssProperty("color", test.text, {
       getVariableData: getData,
-      unmatchedVariableClass: "unmatched-class",
+      unmatchedClass: "unmatched-class",
       ...(test.parserExtraOptions || {}),
     });
 
@@ -1028,7 +1028,7 @@ function testParseFontFamily(doc, parser) {
     "var(--family, Georgia, serif)",
     {
       getVariableData: () => ({}),
-      unmatchedVariableClass: "unmatched-class",
+      unmatchedClass: "unmatched-class",
       fontFamilyClass: "ruleview-font-family",
     }
   );

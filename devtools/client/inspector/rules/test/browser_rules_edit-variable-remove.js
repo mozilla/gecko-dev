@@ -36,7 +36,7 @@ add_task(async function () {
     view,
     "div",
     "color",
-    "ruleview-unmatched-variable",
+    "ruleview-unmatched",
     "--color is not set"
   );
 });

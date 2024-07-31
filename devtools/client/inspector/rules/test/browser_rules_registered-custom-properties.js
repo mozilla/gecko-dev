@@ -315,7 +315,7 @@ add_task(async function () {
   );
   is(
     getRuleViewProperty(view, "h1", "outline").valueSpan.querySelector(
-      ".ruleview-unmatched-variable"
+      ".ruleview-unmatched"
     ).textContent,
     "--constructed",
     "The --constructed variable is set as unmatched since it's not defined nor registered"
