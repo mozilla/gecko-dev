@@ -5,12 +5,12 @@
 #ifndef DOM_TelemetryProbesReporter_H_
 #define DOM_TelemetryProbesReporter_H_
 
+#include "AudioChannelService.h"
 #include "MediaCodecsSupport.h"
 #include "MediaInfo.h"
-#include "mozilla/Maybe.h"
 #include "mozilla/AwakeTimeStamp.h"
 #include "mozilla/EnumSet.h"
-#include "AudioChannelService.h"
+#include "mozilla/Maybe.h"
 #include "nsISupportsImpl.h"
 
 namespace mozilla {

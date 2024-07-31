@@ -11,8 +11,8 @@
 #include "VideoUtils.h"
 #include "mozilla/EMEUtils.h"
 #include "mozilla/Logging.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "nsThreadUtils.h"
 
