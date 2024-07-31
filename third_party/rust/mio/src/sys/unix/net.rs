@@ -17,12 +17,17 @@ pub(crate) fn new_socket(domain: libc::c_int, socket_type: libc::c_int) -> io::R
         target_os = "android",
         target_os = "dragonfly",
         target_os = "freebsd",
+        target_os = "hurd",
         target_os = "illumos",
         target_os = "linux",
         target_os = "netbsd",
         target_os = "openbsd",
+        target_os = "solaris",
+        target_os = "hermit",
     ))]
     let socket_type = socket_type | libc::SOCK_NONBLOCK | libc::SOCK_CLOEXEC;
+    #[cfg(target_os = "nto")]
+    let socket_type = socket_type | libc::SOCK_CLOEXEC;
 
     let socket = syscall!(socket(domain, socket_type, 0))?;
 
@@ -31,6 +36,7 @@ pub(crate) fn new_socket(domain: libc::c_int, socket_type: libc::c_int) -> io::R
         target_os = "ios",
         target_os = "macos",
         target_os = "tvos",
+        target_os = "visionos",
         target_os = "watchos",
     ))]
     if let Err(err) = syscall!(setsockopt(
@@ -44,18 +50,23 @@ pub(crate) fn new_socket(domain: libc::c_int, socket_type: libc::c_int) -> io::R
         return Err(err);
     }
 
-    // Darwin doesn't have SOCK_NONBLOCK or SOCK_CLOEXEC.
+    // Darwin (and others) doesn't have SOCK_NONBLOCK or SOCK_CLOEXEC.
     #[cfg(any(
         target_os = "ios",
         target_os = "macos",
         target_os = "tvos",
+        target_os = "visionos",
         target_os = "watchos",
+        target_os = "espidf",
+        target_os = "vita",
+        target_os = "nto",
     ))]
     {
         if let Err(err) = syscall!(fcntl(socket, libc::F_SETFL, libc::O_NONBLOCK)) {
             let _ = syscall!(close(socket));
             return Err(err);
         }
+        #[cfg(not(any(target_os = "espidf", target_os = "vita", target_os = "nto")))]
         if let Err(err) = syscall!(fcntl(socket, libc::F_SETFD, libc::FD_CLOEXEC)) {
             let _ = syscall!(close(socket));
             return Err(err);
@@ -95,18 +106,33 @@ pub(crate) fn socket_addr(addr: &SocketAddr) -> (SocketAddrCRepr, libc::socklen_
                 sin_family: libc::AF_INET as libc::sa_family_t,
                 sin_port: addr.port().to_be(),
                 sin_addr,
+                #[cfg(not(any(target_os = "haiku", target_os = "vita")))]
                 sin_zero: [0; 8],
+                #[cfg(target_os = "haiku")]
+                sin_zero: [0; 24],
+                #[cfg(target_os = "vita")]
+                sin_zero: [0; 6],
                 #[cfg(any(
+                    target_os = "aix",
                     target_os = "dragonfly",
                     target_os = "freebsd",
+                    target_os = "haiku",
+                    target_os = "hurd",
                     target_os = "ios",
                     target_os = "macos",
                     target_os = "netbsd",
                     target_os = "openbsd",
                     target_os = "tvos",
+                    target_os = "visionos",
                     target_os = "watchos",
+                    target_os = "espidf",
+                    target_os = "vita",
+                    target_os = "hermit",
+                    target_os = "nto",
                 ))]
                 sin_len: 0,
+                #[cfg(target_os = "vita")]
+                sin_vport: addr.port().to_be(),
             };
 
             let sockaddr = SocketAddrCRepr { v4: sockaddr_in };
@@ -123,17 +149,26 @@ pub(crate) fn socket_addr(addr: &SocketAddr) -> (SocketAddrCRepr, libc::socklen_
                 sin6_flowinfo: addr.flowinfo(),
                 sin6_scope_id: addr.scope_id(),
                 #[cfg(any(
+                    target_os = "aix",
                     target_os = "dragonfly",
                     target_os = "freebsd",
+                    target_os = "haiku",
+                    target_os = "hurd",
                     target_os = "ios",
                     target_os = "macos",
                     target_os = "netbsd",
                     target_os = "openbsd",
                     target_os = "tvos",
+                    target_os = "visionos",
                     target_os = "watchos",
+                    target_os = "espidf",
+                    target_os = "vita",
+                    target_os = "nto",
                 ))]
                 sin6_len: 0,
-                #[cfg(target_os = "illumos")]
+                #[cfg(target_os = "vita")]
+                sin6_vport: addr.port().to_be(),
+                #[cfg(any(target_os = "illumos", target_os = "solaris"))]
                 __sin6_src_id: 0,
             };
 

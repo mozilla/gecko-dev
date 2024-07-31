@@ -16,14 +16,14 @@ pub(super) struct CopyBuffer {
 }
 
 impl CopyBuffer {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(buf_size: usize) -> Self {
         Self {
             read_done: false,
             need_flush: false,
             pos: 0,
             cap: 0,
             amt: 0,
-            buf: vec![0; super::DEFAULT_BUF_SIZE].into_boxed_slice(),
+            buf: vec![0; buf_size].into_boxed_slice(),
         }
     }
 
@@ -40,7 +40,7 @@ impl CopyBuffer {
         buf.set_filled(me.cap);
 
         let res = reader.poll_read(cx, &mut buf);
-        if let Poll::Ready(Ok(_)) = res {
+        if let Poll::Ready(Ok(())) = res {
             let filled_len = buf.filled().len();
             me.read_done = me.cap == filled_len;
             me.cap = filled_len;
@@ -82,25 +82,75 @@ impl CopyBuffer {
         R: AsyncRead + ?Sized,
         W: AsyncWrite + ?Sized,
     {
+        ready!(crate::trace::trace_leaf(cx));
+        #[cfg(any(
+            feature = "fs",
+            feature = "io-std",
+            feature = "net",
+            feature = "process",
+            feature = "rt",
+            feature = "signal",
+            feature = "sync",
+            feature = "time",
+        ))]
+        // Keep track of task budget
+        let coop = ready!(crate::runtime::coop::poll_proceed(cx));
         loop {
-            // If our buffer is empty, then we need to read some data to
-            // continue.
-            if self.pos == self.cap && !self.read_done {
-                self.pos = 0;
-                self.cap = 0;
-
+            // If there is some space left in our buffer, then we try to read some
+            // data to continue, thus maximizing the chances of a large write.
+            if self.cap < self.buf.len() && !self.read_done {
                 match self.poll_fill_buf(cx, reader.as_mut()) {
-                    Poll::Ready(Ok(_)) => (),
-                    Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+                    Poll::Ready(Ok(())) => {
+                        #[cfg(any(
+                            feature = "fs",
+                            feature = "io-std",
+                            feature = "net",
+                            feature = "process",
+                            feature = "rt",
+                            feature = "signal",
+                            feature = "sync",
+                            feature = "time",
+                        ))]
+                        coop.made_progress();
+                    }
+                    Poll::Ready(Err(err)) => {
+                        #[cfg(any(
+                            feature = "fs",
+                            feature = "io-std",
+                            feature = "net",
+                            feature = "process",
+                            feature = "rt",
+                            feature = "signal",
+                            feature = "sync",
+                            feature = "time",
+                        ))]
+                        coop.made_progress();
+                        return Poll::Ready(Err(err));
+                    }
                     Poll::Pending => {
-                        // Try flushing when the reader has no progress to avoid deadlock
-                        // when the reader depends on buffered writer.
-                        if self.need_flush {
-                            ready!(writer.as_mut().poll_flush(cx))?;
-                            self.need_flush = false;
-                        }
+                        // Ignore pending reads when our buffer is not empty, because
+                        // we can try to write data immediately.
+                        if self.pos == self.cap {
+                            // Try flushing when the reader has no progress to avoid deadlock
+                            // when the reader depends on buffered writer.
+                            if self.need_flush {
+                                ready!(writer.as_mut().poll_flush(cx))?;
+                                #[cfg(any(
+                                    feature = "fs",
+                                    feature = "io-std",
+                                    feature = "net",
+                                    feature = "process",
+                                    feature = "rt",
+                                    feature = "signal",
+                                    feature = "sync",
+                                    feature = "time",
+                                ))]
+                                coop.made_progress();
+                                self.need_flush = false;
+                            }
 
-                        return Poll::Pending;
+                            return Poll::Pending;
+                        }
                     }
                 }
             }
@@ -108,6 +158,17 @@ impl CopyBuffer {
             // If our buffer has some data, let's write it out!
             while self.pos < self.cap {
                 let i = ready!(self.poll_write_buf(cx, reader.as_mut(), writer.as_mut()))?;
+                #[cfg(any(
+                    feature = "fs",
+                    feature = "io-std",
+                    feature = "net",
+                    feature = "process",
+                    feature = "rt",
+                    feature = "signal",
+                    feature = "sync",
+                    feature = "time",
+                ))]
+                coop.made_progress();
                 if i == 0 {
                     return Poll::Ready(Err(io::Error::new(
                         io::ErrorKind::WriteZero,
@@ -128,10 +189,25 @@ impl CopyBuffer {
                 "writer returned length larger than input slice"
             );
 
+            // All data has been written, the buffer can be considered empty again
+            self.pos = 0;
+            self.cap = 0;
+
             // If we've written all the data and we've seen EOF, flush out the
             // data and finish the transfer.
-            if self.pos == self.cap && self.read_done {
+            if self.read_done {
                 ready!(writer.as_mut().poll_flush(cx))?;
+                #[cfg(any(
+                    feature = "fs",
+                    feature = "io-std",
+                    feature = "net",
+                    feature = "process",
+                    feature = "rt",
+                    feature = "signal",
+                    feature = "sync",
+                    feature = "time",
+                ))]
+                coop.made_progress();
                 return Poll::Ready(Ok(self.amt));
             }
         }
@@ -198,7 +274,7 @@ cfg_io_util! {
         Copy {
             reader,
             writer,
-            buf: CopyBuffer::new()
+            buf: CopyBuffer::new(super::DEFAULT_BUF_SIZE)
         }.await
     }
 }

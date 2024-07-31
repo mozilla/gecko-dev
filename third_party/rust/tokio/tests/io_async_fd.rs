@@ -13,11 +13,12 @@ use std::{
     task::{Context, Waker},
 };
 
-use nix::unistd::{close, read, write};
+use nix::unistd::{read, write};
 
 use futures::poll;
 
 use tokio::io::unix::{AsyncFd, AsyncFdReadyGuard};
+use tokio::io::Interest;
 use tokio_test::{assert_err, assert_pending};
 
 struct TestWaker {
@@ -57,18 +58,18 @@ impl TestWaker {
 
 #[derive(Debug)]
 struct FileDescriptor {
-    fd: RawFd,
+    fd: std::os::fd::OwnedFd,
 }
 
 impl AsRawFd for FileDescriptor {
     fn as_raw_fd(&self) -> RawFd {
-        self.fd
+        self.fd.as_raw_fd()
     }
 }
 
 impl Read for &FileDescriptor {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        read(self.fd, buf).map_err(io::Error::from)
+        read(self.fd.as_raw_fd(), buf).map_err(io::Error::from)
     }
 }
 
@@ -80,7 +81,7 @@ impl Read for FileDescriptor {
 
 impl Write for &FileDescriptor {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        write(self.fd, buf).map_err(io::Error::from)
+        write(&self.fd, buf).map_err(io::Error::from)
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -95,12 +96,6 @@ impl Write for FileDescriptor {
 
     fn flush(&mut self) -> io::Result<()> {
         (self as &Self).flush()
-    }
-}
-
-impl Drop for FileDescriptor {
-    fn drop(&mut self) {
-        let _ = close(self.fd);
     }
 }
 
@@ -134,15 +129,15 @@ fn socketpair() -> (FileDescriptor, FileDescriptor) {
     .expect("socketpair");
     let fds = (FileDescriptor { fd: fd_a }, FileDescriptor { fd: fd_b });
 
-    set_nonblocking(fds.0.fd);
-    set_nonblocking(fds.1.fd);
+    set_nonblocking(fds.0.fd.as_raw_fd());
+    set_nonblocking(fds.1.fd.as_raw_fd());
 
     fds
 }
 
 fn drain(mut fd: &FileDescriptor) {
     let mut buf = [0u8; 512];
-
+    #[allow(clippy::unused_io_amount)]
     loop {
         match fd.read(&mut buf[..]) {
             Err(e) if e.kind() == ErrorKind::WouldBlock => break,
@@ -579,6 +574,23 @@ fn driver_shutdown_wakes_poll() {
 }
 
 #[test]
+fn driver_shutdown_then_clear_readiness() {
+    let rt = rt();
+
+    let (a, _b) = socketpair();
+    let afd_a = {
+        let _enter = rt.enter();
+        AsyncFd::new(a).unwrap()
+    };
+
+    let mut write_ready = rt.block_on(afd_a.writable()).unwrap();
+
+    std::mem::drop(rt);
+
+    write_ready.clear_ready();
+}
+
+#[test]
 fn driver_shutdown_wakes_poll_race() {
     // TODO: make this a loom test
     for _ in 0..100 {
@@ -684,4 +696,158 @@ async fn clear_ready_matching_clears_ready_mut() {
 
     guard.clear_ready_matching(Ready::WRITABLE);
     assert_eq!(guard.ready(), Ready::EMPTY);
+}
+
+#[tokio::test]
+#[cfg(target_os = "linux")]
+async fn await_error_readiness_timestamping() {
+    use std::net::{Ipv4Addr, SocketAddr};
+
+    use tokio::io::{Interest, Ready};
+
+    let address_a = SocketAddr::from((Ipv4Addr::LOCALHOST, 0));
+    let address_b = SocketAddr::from((Ipv4Addr::LOCALHOST, 0));
+
+    let socket = std::net::UdpSocket::bind(address_a).unwrap();
+
+    socket.set_nonblocking(true).unwrap();
+
+    // configure send timestamps
+    configure_timestamping_socket(&socket).unwrap();
+
+    socket.connect(address_b).unwrap();
+
+    let fd = AsyncFd::new(socket).unwrap();
+
+    tokio::select! {
+        _ = fd.ready(Interest::ERROR) => panic!(),
+        _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+    }
+
+    let buf = b"hello there";
+    fd.get_ref().send(buf).unwrap();
+
+    // the send timestamp should now be in the error queue
+    let guard = fd.ready(Interest::ERROR).await.unwrap();
+    assert_eq!(guard.ready(), Ready::ERROR);
+}
+
+#[cfg(target_os = "linux")]
+fn configure_timestamping_socket(udp_socket: &std::net::UdpSocket) -> std::io::Result<libc::c_int> {
+    // enable software timestamping, and specifically software send timestamping
+    let options = libc::SOF_TIMESTAMPING_SOFTWARE | libc::SOF_TIMESTAMPING_TX_SOFTWARE;
+
+    let res = unsafe {
+        libc::setsockopt(
+            udp_socket.as_raw_fd(),
+            libc::SOL_SOCKET,
+            libc::SO_TIMESTAMP,
+            &options as *const _ as *const libc::c_void,
+            std::mem::size_of_val(&options) as libc::socklen_t,
+        )
+    };
+
+    if res == -1 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(res)
+    }
+}
+
+#[tokio::test]
+#[cfg(target_os = "linux")]
+async fn await_error_readiness_invalid_address() {
+    use std::net::{Ipv4Addr, SocketAddr};
+    use tokio::io::{Interest, Ready};
+
+    let socket_addr = SocketAddr::from((Ipv4Addr::LOCALHOST, 0));
+    let socket = std::net::UdpSocket::bind(socket_addr).unwrap();
+    let socket_fd = socket.as_raw_fd();
+
+    // Enable IP_RECVERR option to receive error messages
+    // https://man7.org/linux/man-pages/man7/ip.7.html has some extra information
+    let recv_err: libc::c_int = 1;
+    unsafe {
+        let res = libc::setsockopt(
+            socket.as_raw_fd(),
+            libc::SOL_IP,
+            libc::IP_RECVERR,
+            &recv_err as *const _ as *const libc::c_void,
+            std::mem::size_of_val(&recv_err) as libc::socklen_t,
+        );
+        if res == -1 {
+            panic!("{:?}", std::io::Error::last_os_error());
+        }
+    }
+
+    // Spawn a separate thread for sending messages
+    tokio::spawn(async move {
+        // Set the destination address. This address is invalid in this context. the OS will notice
+        // that nobody is listening on port this port. Normally this is ignored (UDP is "fire and forget"),
+        // but because IP_RECVERR is enabled, the error will actually be reported to the sending socket
+        let mut dest_addr =
+            unsafe { std::mem::MaybeUninit::<libc::sockaddr_in>::zeroed().assume_init() };
+        dest_addr.sin_family = libc::AF_INET as _;
+        // based on https://en.wikipedia.org/wiki/Ephemeral_port, we should pick a port number
+        // below 1024 to guarantee that other tests don't select this port by accident when they
+        // use port 0 to select an ephemeral port.
+        dest_addr.sin_port = 512u16.to_be(); // Destination port
+
+        // Prepare the message data
+        let message = "Hello, Socket!";
+
+        // Prepare the message structure for sendmsg
+        let mut iov = libc::iovec {
+            iov_base: message.as_ptr() as *mut libc::c_void,
+            iov_len: message.len(),
+        };
+
+        // Prepare the destination address for the sendmsg call
+        let dest_sockaddr: *const libc::sockaddr = &dest_addr as *const _ as *const libc::sockaddr;
+        let dest_addrlen: libc::socklen_t = std::mem::size_of_val(&dest_addr) as libc::socklen_t;
+
+        let mut msg: libc::msghdr = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
+        msg.msg_name = dest_sockaddr as *mut libc::c_void;
+        msg.msg_namelen = dest_addrlen;
+        msg.msg_iov = &mut iov;
+        msg.msg_iovlen = 1;
+
+        if unsafe { libc::sendmsg(socket_fd, &msg, 0) } == -1 {
+            panic!("{:?}", std::io::Error::last_os_error())
+        }
+    });
+
+    let fd = AsyncFd::new(socket).unwrap();
+
+    let guard = fd.ready(Interest::ERROR).await.unwrap();
+    assert_eq!(guard.ready(), Ready::ERROR);
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct InvalidSource;
+
+impl AsRawFd for InvalidSource {
+    fn as_raw_fd(&self) -> RawFd {
+        -1
+    }
+}
+
+#[tokio::test]
+async fn try_new() {
+    let original = Arc::new(InvalidSource);
+
+    let error = AsyncFd::try_new(original.clone()).unwrap_err();
+    let (returned, _cause) = error.into_parts();
+
+    assert!(Arc::ptr_eq(&original, &returned));
+}
+
+#[tokio::test]
+async fn try_with_interest() {
+    let original = Arc::new(InvalidSource);
+
+    let error = AsyncFd::try_with_interest(original.clone(), Interest::READABLE).unwrap_err();
+    let (returned, _cause) = error.into_parts();
+
+    assert!(Arc::ptr_eq(&original, &returned));
 }

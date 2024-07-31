@@ -1,5 +1,5 @@
 #![warn(rust_2018_idioms)]
-#![cfg(all(feature = "full", not(tokio_wasi)))] // Wasi does not support bind()
+#![cfg(all(feature = "full", not(target_os = "wasi")))] // Wasi does not support bind()
 
 use std::time::Duration;
 use tokio::io::{self, copy_bidirectional, AsyncReadExt, AsyncWriteExt};
@@ -137,4 +137,29 @@ async fn immediate_exit_on_read_error() {
     let mut b = tokio_test::io::Builder::new().read_error(error()).build();
 
     assert!(copy_bidirectional(&mut a, &mut b).await.is_err());
+}
+
+#[tokio::test]
+async fn copy_bidirectional_is_cooperative() {
+    tokio::select! {
+        biased;
+        _ = async {
+            loop {
+                let payload = b"here, take this";
+
+                let mut a = tokio_test::io::Builder::new()
+                    .read(payload)
+                    .write(payload)
+                    .build();
+
+                let mut b = tokio_test::io::Builder::new()
+                    .read(payload)
+                    .write(payload)
+                    .build();
+
+                let _ = copy_bidirectional(&mut a, &mut b).await;
+            }
+        } => {},
+        _ = tokio::task::yield_now() => {}
+    }
 }

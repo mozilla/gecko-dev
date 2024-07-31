@@ -27,7 +27,7 @@ cfg_io_util! {
         ) => {
             $(
                 $(#[$outer])*
-                fn $name<'a>(&'a mut self) -> $($fut)*<&'a mut Self> where Self: Unpin {
+                fn $name(&mut self) -> $($fut)*<&mut Self> where Self: Unpin {
                     $($fut)*::new(self)
                 }
             )*
@@ -230,10 +230,13 @@ cfg_io_util! {
         ///     let mut buffer = BytesMut::with_capacity(10);
         ///
         ///     assert!(buffer.is_empty());
+        ///     assert!(buffer.capacity() >= 10);
         ///
-        ///     // read up to 10 bytes, note that the return value is not needed
-        ///     // to access the data that was read as `buffer`'s internal
-        ///     // cursor is updated.
+        ///     // note that the return value is not needed to access the data
+        ///     // that was read as `buffer`'s internal cursor is updated.
+        ///     //
+        ///     // this might read more than 10 bytes if the capacity of `buffer`
+        ///     // is larger than 10.
         ///     f.read_buf(&mut buffer).await?;
         ///
         ///     println!("The bytes: {:?}", &buffer[..]);
@@ -242,8 +245,8 @@ cfg_io_util! {
         /// ```
         fn read_buf<'a, B>(&'a mut self, buf: &'a mut B) -> ReadBuf<'a, Self, B>
         where
-            Self: Sized + Unpin,
-            B: BufMut,
+            Self: Unpin,
+            B: BufMut + ?Sized,
         {
             read_buf(self, buf)
         }
@@ -292,7 +295,8 @@ cfg_io_util! {
         /// #[tokio::main]
         /// async fn main() -> io::Result<()> {
         ///     let mut f = File::open("foo.txt").await?;
-        ///     let mut buffer = [0; 10];
+        ///     let len = 10;
+        ///     let mut buffer = vec![0; len];
         ///
         ///     // read exactly 10 bytes
         ///     f.read_exact(&mut buffer).await?;
@@ -325,6 +329,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is cancel safe. If this method is used as an event in a
+            /// [`tokio::select!`](crate::select) statement and some other branch
+            /// completes first, it is guaranteed that no data were read.
             ///
             /// # Examples
             ///
@@ -363,6 +373,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is cancel safe. If this method is used as an event in a
+            /// [`tokio::select!`](crate::select) statement and some other branch
+            /// completes first, it is guaranteed that no data were read.
             ///
             /// # Examples
             ///
@@ -403,6 +419,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read unsigned 16 bit big-endian integers from a `AsyncRead`:
@@ -440,6 +462,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
             ///
             /// # Examples
             ///
@@ -479,6 +507,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read unsigned 32-bit big-endian integers from a `AsyncRead`:
@@ -517,6 +551,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read signed 32-bit big-endian integers from a `AsyncRead`:
@@ -553,6 +593,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
             ///
             /// # Examples
             ///
@@ -593,6 +639,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read signed 64-bit big-endian integers from a `AsyncRead`:
@@ -629,6 +681,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
             ///
             /// # Examples
             ///
@@ -670,6 +728,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read signed 128-bit big-endian integers from a `AsyncRead`:
@@ -710,6 +774,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read 32-bit floating point type from a `AsyncRead`:
@@ -746,6 +816,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
             ///
             /// # Examples
             ///
@@ -786,6 +862,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read unsigned 16 bit little-endian integers from a `AsyncRead`:
@@ -823,6 +905,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
             ///
             /// # Examples
             ///
@@ -862,6 +950,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read unsigned 32-bit little-endian integers from a `AsyncRead`:
@@ -900,6 +994,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read signed 32-bit little-endian integers from a `AsyncRead`:
@@ -936,6 +1036,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
             ///
             /// # Examples
             ///
@@ -976,6 +1082,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read signed 64-bit little-endian integers from a `AsyncRead`:
@@ -1012,6 +1124,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
             ///
             /// # Examples
             ///
@@ -1053,6 +1171,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read signed 128-bit little-endian integers from a `AsyncRead`:
@@ -1093,6 +1217,12 @@ cfg_io_util! {
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
             ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
+            ///
             /// # Examples
             ///
             /// Read 32-bit floating point type from a `AsyncRead`:
@@ -1129,6 +1259,12 @@ cfg_io_util! {
             /// This method returns the same errors as [`AsyncReadExt::read_exact`].
             ///
             /// [`AsyncReadExt::read_exact`]: AsyncReadExt::read_exact
+            ///
+            /// # Cancel safety
+            ///
+            /// This method is not cancellation safe. If the method is used as the
+            /// event in a [`tokio::select!`](crate::select) statement and some
+            /// other branch completes first, then some data may be lost.
             ///
             /// # Examples
             ///

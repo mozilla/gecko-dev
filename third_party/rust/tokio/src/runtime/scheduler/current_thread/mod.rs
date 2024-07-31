@@ -11,12 +11,12 @@ use crate::util::{waker_ref, RngSeedGenerator, Wake, WakerRef};
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::fmt;
 use std::future::Future;
 use std::sync::atomic::Ordering::{AcqRel, Release};
 use std::task::Poll::{Pending, Ready};
 use std::task::Waker;
 use std::time::Duration;
+use std::{fmt, thread};
 
 /// Executes tasks on the current thread
 pub(crate) struct CurrentThread {
@@ -123,6 +123,7 @@ impl CurrentThread {
         config: Config,
     ) -> (CurrentThread, Arc<Handle>) {
         let worker_metrics = WorkerMetrics::from_config(&config);
+        worker_metrics.set_thread_id(thread::current().id());
 
         // Get the configured global queue interval, or use the default.
         let global_queue_interval = config
@@ -132,7 +133,7 @@ impl CurrentThread {
         let handle = Arc::new(Handle {
             shared: Shared {
                 inject: Inject::new(),
-                owned: OwnedTasks::new(),
+                owned: OwnedTasks::new(1),
                 woken: AtomicBool::new(false),
                 config,
                 scheduler_metrics: SchedulerMetrics::new(),
@@ -172,6 +173,10 @@ impl CurrentThread {
             // available or the future is complete.
             loop {
                 if let Some(core) = self.take_core(handle) {
+                    handle
+                        .shared
+                        .worker_metrics
+                        .set_thread_id(thread::current().id());
                     return core.block_on(future);
                 } else {
                     let notified = self.notify.notified();
@@ -248,7 +253,7 @@ fn shutdown2(mut core: Box<Core>, handle: &Handle) -> Box<Core> {
     // Drain the OwnedTasks collection. This call also closes the
     // collection, ensuring that no tasks are ever pushed after this
     // call returns.
-    handle.shared.owned.close_and_shutdown_all();
+    handle.shared.owned.close_and_shutdown_all(0);
 
     // Drain local queue
     // We already shut down every task, so we just need to drop the task.
@@ -321,7 +326,7 @@ impl Core {
     }
 
     fn submit_metrics(&mut self, handle: &Handle) {
-        self.metrics.submit(&handle.shared.worker_metrics);
+        self.metrics.submit(&handle.shared.worker_metrics, 0);
     }
 }
 
@@ -351,10 +356,7 @@ impl Context {
         let mut driver = core.driver.take().expect("driver missing");
 
         if let Some(f) = &handle.shared.config.before_park {
-            // Incorrect lint, the closures are actually different types so `f`
-            // cannot be passed as an argument to `enter`.
-            #[allow(clippy::redundant_closure)]
-            let (c, _) = self.enter(core, || f());
+            let (c, ()) = self.enter(core, || f());
             core = c;
         }
 
@@ -365,19 +367,19 @@ impl Context {
             core.metrics.about_to_park();
             core.submit_metrics(handle);
 
-            let (c, _) = self.enter(core, || {
+            let (c, ()) = self.enter(core, || {
                 driver.park(&handle.driver);
                 self.defer.wake();
             });
 
             core = c;
+
+            core.metrics.unparked();
+            core.submit_metrics(handle);
         }
 
         if let Some(f) = &handle.shared.config.after_unpark {
-            // Incorrect lint, the closures are actually different types so `f`
-            // cannot be passed as an argument to `enter`.
-            #[allow(clippy::redundant_closure)]
-            let (c, _) = self.enter(core, || f());
+            let (c, ()) = self.enter(core, || f());
             core = c;
         }
 
@@ -391,7 +393,7 @@ impl Context {
 
         core.submit_metrics(handle);
 
-        let (mut core, _) = self.enter(core, || {
+        let (mut core, ()) = self.enter(core, || {
             driver.park_timeout(&handle.driver, Duration::from_millis(0));
             self.defer.wake();
         });
@@ -476,7 +478,7 @@ impl Handle {
 
             traces = trace_current_thread(&self.shared.owned, local, &self.shared.inject)
                 .into_iter()
-                .map(dump::Task::new)
+                .map(|(id, trace)| dump::Task::new(id, trace))
                 .collect();
 
             // Avoid double borrow panic
@@ -506,9 +508,13 @@ impl Handle {
     pub(crate) fn reset_woken(&self) -> bool {
         self.shared.woken.swap(false, AcqRel)
     }
+
+    pub(crate) fn num_alive_tasks(&self) -> usize {
+        self.shared.owned.num_alive_tasks()
+    }
 }
 
-cfg_metrics! {
+cfg_unstable_metrics! {
     impl Handle {
         pub(crate) fn scheduler_metrics(&self) -> &SchedulerMetrics {
             &self.shared.scheduler_metrics
@@ -523,6 +529,10 @@ cfg_metrics! {
             &self.shared.worker_metrics
         }
 
+        pub(crate) fn worker_local_queue_depth(&self, worker: usize) -> usize {
+            self.worker_metrics(worker).queue_depth()
+        }
+
         pub(crate) fn num_blocking_threads(&self) -> usize {
             self.blocking_spawner.num_threads()
         }
@@ -535,8 +545,20 @@ cfg_metrics! {
             self.blocking_spawner.queue_depth()
         }
 
-        pub(crate) fn active_tasks_count(&self) -> usize {
-            self.shared.owned.active_tasks_count()
+        cfg_64bit_metrics! {
+            pub(crate) fn spawned_tasks_count(&self) -> u64 {
+                self.shared.owned.spawned_tasks_count()
+            }
+        }
+    }
+}
+
+cfg_unstable! {
+    use std::num::NonZeroU64;
+
+    impl Handle {
+        pub(crate) fn owned_id(&self) -> NonZeroU64 {
+            self.shared.owned.id
         }
     }
 }
@@ -600,7 +622,7 @@ impl Schedule for Arc<Handle> {
                             // If `None`, the runtime is shutting down, so there is no need to signal shutdown
                             if let Some(core) = core.as_mut() {
                                 core.unhandled_panic = true;
-                                self.shared.owned.close_and_shutdown_all();
+                                self.shared.owned.close_and_shutdown_all(0);
                             }
                         }
                         _ => unreachable!("runtime core not set in CURRENT thread-local"),
@@ -613,7 +635,7 @@ impl Schedule for Arc<Handle> {
 
 impl Wake for Handle {
     fn wake(arc_self: Arc<Self>) {
-        Wake::wake_by_ref(&arc_self)
+        Wake::wake_by_ref(&arc_self);
     }
 
     /// Wake by reference
@@ -688,7 +710,7 @@ impl CoreGuard<'_> {
 
                     let task = context.handle.shared.owned.assert_owner(task);
 
-                    let (c, _) = context.run_task(core, || {
+                    let (c, ()) = context.run_task(core, || {
                         task.run();
                     });
 
@@ -744,7 +766,7 @@ impl Drop for CoreGuard<'_> {
             self.scheduler.core.set(core);
 
             // Wake up other possible threads that could steal the driver.
-            self.scheduler.notify.notify_one()
+            self.scheduler.notify.notify_one();
         }
     }
 }

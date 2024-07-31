@@ -40,7 +40,12 @@ fn main() -> io::Result<()> {
     println!("You'll see our welcome message and anything you type will be printed here.");
 
     loop {
-        poll.poll(&mut events, None)?;
+        if let Err(err) = poll.poll(&mut events, None) {
+            if interrupted(&err) {
+                continue;
+            }
+            return Err(err);
+        }
 
         for event in events.iter() {
             match event.token() {

@@ -1,7 +1,8 @@
 #![warn(rust_2018_idioms)]
-#![cfg(all(feature = "full", not(tokio_wasi)))] // WASI does not support all fs operations
+#![cfg(all(feature = "full", not(target_os = "wasi")))] // WASI does not support all fs operations
 
 use std::io::prelude::*;
+use std::io::IoSlice;
 use tempfile::NamedTempFile;
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt, SeekFrom};
@@ -47,6 +48,40 @@ async fn basic_write_and_shutdown() {
 
     let file = std::fs::read(tempfile.path()).unwrap();
     assert_eq!(file, HELLO);
+}
+
+#[tokio::test]
+async fn write_vectored() {
+    let tempfile = tempfile();
+
+    let mut file = File::create(tempfile.path()).await.unwrap();
+
+    let ret = file
+        .write_vectored(&[IoSlice::new(HELLO), IoSlice::new(HELLO)])
+        .await
+        .unwrap();
+    assert_eq!(ret, HELLO.len() * 2);
+    file.flush().await.unwrap();
+
+    let file = std::fs::read(tempfile.path()).unwrap();
+    assert_eq!(file, [HELLO, HELLO].concat());
+}
+
+#[tokio::test]
+async fn write_vectored_and_shutdown() {
+    let tempfile = tempfile();
+
+    let mut file = File::create(tempfile.path()).await.unwrap();
+
+    let ret = file
+        .write_vectored(&[IoSlice::new(HELLO), IoSlice::new(HELLO)])
+        .await
+        .unwrap();
+    assert_eq!(ret, HELLO.len() * 2);
+    file.shutdown().await.unwrap();
+
+    let file = std::fs::read(tempfile.path()).unwrap();
+    assert_eq!(file, [HELLO, HELLO].concat());
 }
 
 #[tokio::test]
@@ -143,6 +178,28 @@ async fn read_file_from_std() {
 
 fn tempfile() -> NamedTempFile {
     NamedTempFile::new().unwrap()
+}
+
+#[tokio::test]
+async fn set_max_buf_size_read() {
+    let mut tempfile = tempfile();
+    tempfile.write_all(HELLO).unwrap();
+    let mut file = File::open(tempfile.path()).await.unwrap();
+    let mut buf = [0; 1024];
+    file.set_max_buf_size(1);
+
+    // A single read operation reads a maximum of 1 byte.
+    assert_eq!(file.read(&mut buf).await.unwrap(), 1);
+}
+
+#[tokio::test]
+async fn set_max_buf_size_write() {
+    let tempfile = tempfile();
+    let mut file = File::create(tempfile.path()).await.unwrap();
+    file.set_max_buf_size(1);
+
+    // A single write operation writes a maximum of 1 byte.
+    assert_eq!(file.write(HELLO).await.unwrap(), 1);
 }
 
 #[tokio::test]

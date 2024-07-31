@@ -263,7 +263,7 @@ dependencies = [
  "libc",
  "log",
  "mach",
- "windows-sys 0.52.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -285,13 +285,13 @@ dependencies = [
  "libc",
  "log",
  "memmap2",
- "mio 1.999.999",
+ "mio",
  "scopeguard",
  "serde",
  "serde_bytes",
  "serde_derive",
  "slab",
- "windows-sys 0.52.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -1048,7 +1048,7 @@ dependencies = [
  "unic-langid",
  "uuid",
  "warp",
- "windows-sys 0.52.0",
+ "windows-sys",
  "yaml-rust",
  "zip",
 ]
@@ -1702,7 +1702,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a258e46cdc063eb8519c00b9fc845fc47bcfca4130e2f08e88665ceda8474245"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -3761,20 +3761,15 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.8.8"
-source = "git+https://github.com/glandium/mio?rev=9a2ef335c366044ffe73b1c4acabe50a1daefe05#9a2ef335c366044ffe73b1c4acabe50a1daefe05"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4569e456d394deccd22ce1c1913e6ea0e54519f577285001215d33557431afe4"
 dependencies = [
+ "hermit-abi",
  "libc",
  "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
- "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "mio"
-version = "1.999.999"
-dependencies = [
- "mio 0.8.8",
+ "windows-sys",
 ]
 
 [[package]]
@@ -3893,7 +3888,7 @@ dependencies = [
  "lmdb-rkv-sys",
  "log",
  "memchr",
- "mio 0.8.8",
+ "mio",
  "nom",
  "num-integer",
  "num-traits",
@@ -3926,7 +3921,7 @@ dependencies = [
  "url",
  "uuid",
  "winapi",
- "windows-sys 0.52.0",
+ "windows-sys",
  "xml-rs",
  "yoke",
  "zerofrom",
@@ -3986,7 +3981,7 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid",
- "windows-sys 0.52.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -4689,7 +4684,7 @@ dependencies = [
  "mozilla-central-workspace-hack",
  "scroll",
  "thiserror",
- "windows-sys 0.52.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -4814,7 +4809,7 @@ dependencies = [
  "libc",
  "once_cell",
  "socket2 0.5.7",
- "windows-sys 0.52.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -5146,7 +5141,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -5480,7 +5475,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce305eb0b4296696835b71df73eb912e0f1ffd2556a501fcede6e0c50349191c"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -5801,7 +5796,7 @@ dependencies = [
  "cfg-if",
  "fastrand",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -5947,27 +5942,25 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.29.1"
+version = "1.39.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "532826ff75199d5833b9d2c5fe410f29235e25704ee5f0ef599fb51c21f4a4da"
+checksum = "daa4fb1bc778bd6f04cbfc4bb2d06a7396a8f299dc33ea1900cedaa316f467b1"
 dependencies = [
- "autocfg",
  "backtrace",
  "bytes",
  "libc",
- "mio 0.8.8",
- "num_cpus",
+ "mio",
  "pin-project-lite",
- "socket2 0.4.999",
+ "socket2 0.5.7",
  "tokio-macros",
- "windows-sys 0.48.999",
+ "windows-sys",
 ]
 
 [[package]]
 name = "tokio-macros"
-version = "2.1.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "630bdcf245f78637c13ec01ffae6187cca34625e8c63150d424b59e55af2675e"
+checksum = "693d596312e88961bc67d7f1f97af8a70227d9f90c31bba5806eec004978d752"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6922,13 +6915,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
 dependencies = [
  "windows-targets",
-]
-
-[[package]]
-name = "windows-sys"
-version = "0.48.999"
-dependencies = [
- "windows-sys 0.52.0",
 ]
 
 [[package]]

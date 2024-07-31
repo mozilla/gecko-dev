@@ -47,7 +47,7 @@ cfg_io_driver! {
     /// This clears the readiness state until a new readiness event is received.
     ///
     /// This allows the caller to implement additional functions. For example,
-    /// [`TcpListener`] implements poll_accept by using [`poll_read_ready`] and
+    /// [`TcpListener`] implements `poll_accept` by using [`poll_read_ready`] and
     /// [`clear_readiness`].
     ///
     /// ## Platform-specific events
@@ -124,7 +124,7 @@ impl<E: Source> PollEvented<E> {
     }
 
     /// Returns a reference to the registration.
-    #[cfg(any(feature = "net"))]
+    #[cfg(feature = "net")]
     pub(crate) fn registration(&self) -> &Registration {
         &self.registration
     }
@@ -135,6 +135,25 @@ impl<E: Source> PollEvented<E> {
         let mut inner = self.io.take().unwrap(); // As io shouldn't ever be None, just unwrap here.
         self.registration.deregister(&mut inner)?;
         Ok(inner)
+    }
+
+    #[cfg(all(feature = "process", target_os = "linux"))]
+    pub(crate) fn poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        self.registration
+            .poll_read_ready(cx)
+            .map_err(io::Error::from)
+            .map_ok(|_| ())
+    }
+
+    /// Re-register under new runtime with `interest`.
+    #[cfg(all(feature = "process", target_os = "linux"))]
+    pub(crate) fn reregister(&mut self, interest: Interest) -> io::Result<()> {
+        let io = self.io.as_mut().unwrap(); // As io shouldn't ever be None, just unwrap here.
+        let _ = self.registration.deregister(io);
+        self.registration =
+            Registration::new_with_interest_and_handle(io, interest, scheduler::Handle::current())?;
+
+        Ok(())
     }
 }
 
@@ -160,13 +179,42 @@ feature! {
                 let evt = ready!(self.registration.poll_read_ready(cx))?;
 
                 let b = &mut *(buf.unfilled_mut() as *mut [std::mem::MaybeUninit<u8>] as *mut [u8]);
+
+                // used only when the cfgs below apply
+                #[allow(unused_variables)]
                 let len = b.len();
 
                 match self.io.as_ref().unwrap().read(b) {
                     Ok(n) => {
-                        // if we read a partially full buffer, this is sufficient on unix to show
-                        // that the socket buffer has been drained
-                        if n > 0 && (!cfg!(windows) && n < len) {
+                        // When mio is using the epoll or kqueue selector, reading a partially full
+                        // buffer is sufficient to show that the socket buffer has been drained.
+                        //
+                        // This optimization does not work for level-triggered selectors such as
+                        // windows or when poll is used.
+                        //
+                        // Read more:
+                        // https://github.com/tokio-rs/tokio/issues/5866
+                        #[cfg(all(
+                            not(mio_unsupported_force_poll_poll),
+                            any(
+                                // epoll
+                                target_os = "android",
+                                target_os = "illumos",
+                                target_os = "linux",
+                                target_os = "redox",
+                                // kqueue
+                                target_os = "dragonfly",
+                                target_os = "freebsd",
+                                target_os = "ios",
+                                target_os = "macos",
+                                target_os = "netbsd",
+                                target_os = "openbsd",
+                                target_os = "tvos",
+                                target_os = "visionos",
+                                target_os = "watchos",
+                            )
+                        ))]
+                        if 0 < n && n < len {
                             self.registration.clear_readiness(evt);
                         }
 
@@ -196,8 +244,10 @@ feature! {
                 match self.io.as_ref().unwrap().write(buf) {
                     Ok(n) => {
                         // if we write only part of our buffer, this is sufficient on unix to show
-                        // that the socket buffer is full
-                        if n > 0 && (!cfg!(windows) && n < buf.len()) {
+                        // that the socket buffer is full.  Unfortunately this assumption
+                        // fails for level-triggered selectors (like on Windows or poll even for
+                        // UNIX): https://github.com/tokio-rs/tokio/issues/5866
+                        if n > 0 && (!cfg!(windows) && !cfg!(mio_unsupported_force_poll_poll) && n < buf.len()) {
                             self.registration.clear_readiness(evt);
                         }
 

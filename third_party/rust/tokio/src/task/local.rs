@@ -1,8 +1,10 @@
 //! Runs `!Send` futures on the current thread.
 use crate::loom::cell::UnsafeCell;
 use crate::loom::sync::{Arc, Mutex};
+#[cfg(tokio_unstable)]
+use crate::runtime;
 use crate::runtime::task::{self, JoinHandle, LocalOwnedTasks, Task};
-use crate::runtime::{context, ThreadId};
+use crate::runtime::{context, ThreadId, BOX_FUTURE_THRESHOLD};
 use crate::sync::AtomicWaker;
 use crate::util::RcCell;
 
@@ -235,7 +237,7 @@ struct Context {
     unhandled_panic: Cell<bool>,
 }
 
-/// LocalSet state shared between threads.
+/// `LocalSet` state shared between threads.
 struct Shared {
     /// # Safety
     ///
@@ -278,10 +280,43 @@ pin_project! {
 
 tokio_thread_local!(static CURRENT: LocalData = const { LocalData {
     ctx: RcCell::new(),
+    wake_on_schedule: Cell::new(false),
 } });
 
 struct LocalData {
     ctx: RcCell<Context>,
+    wake_on_schedule: Cell<bool>,
+}
+
+impl LocalData {
+    /// Should be called except when we call `LocalSet::enter`.
+    /// Especially when we poll a `LocalSet`.
+    #[must_use = "dropping this guard will reset the entered state"]
+    fn enter(&self, ctx: Rc<Context>) -> LocalDataEnterGuard<'_> {
+        let ctx = self.ctx.replace(Some(ctx));
+        let wake_on_schedule = self.wake_on_schedule.replace(false);
+        LocalDataEnterGuard {
+            local_data_ref: self,
+            ctx,
+            wake_on_schedule,
+        }
+    }
+}
+
+/// A guard for `LocalData::enter()`
+struct LocalDataEnterGuard<'a> {
+    local_data_ref: &'a LocalData,
+    ctx: Option<Rc<Context>>,
+    wake_on_schedule: bool,
+}
+
+impl<'a> Drop for LocalDataEnterGuard<'a> {
+    fn drop(&mut self) {
+        self.local_data_ref.ctx.set(self.ctx.take());
+        self.local_data_ref
+            .wake_on_schedule
+            .set(self.wake_on_schedule)
+    }
 }
 
 cfg_rt! {
@@ -332,7 +367,11 @@ cfg_rt! {
         F: Future + 'static,
         F::Output: 'static,
     {
-        spawn_local_inner(future, None)
+        if cfg!(debug_assertions) && std::mem::size_of::<F>() > BOX_FUTURE_THRESHOLD {
+            spawn_local_inner(Box::pin(future), None)
+        } else {
+            spawn_local_inner(future, None)
+        }
     }
 
 
@@ -357,14 +396,27 @@ const MAX_TASKS_PER_TICK: usize = 61;
 /// How often it check the remote queue first.
 const REMOTE_FIRST_INTERVAL: u8 = 31;
 
-/// Context guard for LocalSet
-pub struct LocalEnterGuard(Option<Rc<Context>>);
+/// Context guard for `LocalSet`
+pub struct LocalEnterGuard {
+    ctx: Option<Rc<Context>>,
+
+    /// Distinguishes whether the context was entered or being polled.
+    /// When we enter it, the value `wake_on_schedule` is set. In this case
+    /// `spawn_local` refers the context, whereas it is not being polled now.
+    wake_on_schedule: bool,
+}
 
 impl Drop for LocalEnterGuard {
     fn drop(&mut self) {
-        CURRENT.with(|LocalData { ctx, .. }| {
-            ctx.set(self.0.take());
-        })
+        CURRENT.with(
+            |LocalData {
+                 ctx,
+                 wake_on_schedule,
+             }| {
+                ctx.set(self.ctx.take());
+                wake_on_schedule.set(self.wake_on_schedule);
+            },
+        );
     }
 }
 
@@ -406,10 +458,20 @@ impl LocalSet {
     ///
     /// [`spawn_local`]: fn@crate::task::spawn_local
     pub fn enter(&self) -> LocalEnterGuard {
-        CURRENT.with(|LocalData { ctx, .. }| {
-            let old = ctx.replace(Some(self.context.clone()));
-            LocalEnterGuard(old)
-        })
+        CURRENT.with(
+            |LocalData {
+                 ctx,
+                 wake_on_schedule,
+                 ..
+             }| {
+                let ctx = ctx.replace(Some(self.context.clone()));
+                let wake_on_schedule = wake_on_schedule.replace(true);
+                LocalEnterGuard {
+                    ctx,
+                    wake_on_schedule,
+                }
+            },
+        )
     }
 
     /// Spawns a `!Send` task onto the local task set.
@@ -468,7 +530,7 @@ impl LocalSet {
     /// This runs the given future on the runtime, blocking until it is
     /// complete, and yielding its resolved result. Any tasks or timers which
     /// the future spawns internally will be executed on the runtime. The future
-    /// may also call [`spawn_local`] to spawn_local additional local futures on the
+    /// may also call [`spawn_local`] to `spawn_local` additional local futures on the
     /// current thread.
     ///
     /// This method should not be called from an asynchronous context.
@@ -540,9 +602,13 @@ impl LocalSet {
     /// allowing it to call [`spawn_local`] to spawn additional `!Send` futures.
     /// Any local futures spawned on the local set will be driven in the
     /// background until the future passed to `run_until` completes. When the future
-    /// passed to `run` finishes, any local futures which have not completed
+    /// passed to `run_until` finishes, any local futures which have not completed
     /// will remain on the local set, and will be driven on subsequent calls to
     /// `run_until` or when [awaiting the local set] itself.
+    ///
+    /// # Cancel safety
+    ///
+    /// This method is cancel safe when `future` is cancel safe.
     ///
     /// # Examples
     ///
@@ -573,11 +639,25 @@ impl LocalSet {
         run_until.await
     }
 
+    #[track_caller]
     pub(in crate::task) fn spawn_named<F>(
         &self,
         future: F,
         name: Option<&str>,
     ) -> JoinHandle<F::Output>
+    where
+        F: Future + 'static,
+        F::Output: 'static,
+    {
+        if cfg!(debug_assertions) && std::mem::size_of::<F>() > BOX_FUTURE_THRESHOLD {
+            self.spawn_named_inner(Box::pin(future), name)
+        } else {
+            self.spawn_named_inner(future, name)
+        }
+    }
+
+    #[track_caller]
+    fn spawn_named_inner<F>(&self, future: F, name: Option<&str>) -> JoinHandle<F::Output>
     where
         F: Future + 'static,
         F::Output: 'static,
@@ -599,9 +679,7 @@ impl LocalSet {
     fn tick(&self) -> bool {
         for _ in 0..MAX_TASKS_PER_TICK {
             // Make sure we didn't hit an unhandled panic
-            if self.context.unhandled_panic.get() {
-                panic!("a spawned task panicked and the LocalSet is configured to shutdown on unhandled panic");
-            }
+            assert!(!self.context.unhandled_panic.get(), "a spawned task panicked and the LocalSet is configured to shutdown on unhandled panic");
 
             match self.next_task() {
                 // Run the task
@@ -642,7 +720,7 @@ impl LocalSet {
                     .queue
                     .lock()
                     .as_mut()
-                    .and_then(|queue| queue.pop_front())
+                    .and_then(VecDeque::pop_front)
             })
         };
 
@@ -664,23 +742,8 @@ impl LocalSet {
     }
 
     fn with<T>(&self, f: impl FnOnce() -> T) -> T {
-        CURRENT.with(|LocalData { ctx, .. }| {
-            struct Reset<'a> {
-                ctx_ref: &'a RcCell<Context>,
-                val: Option<Rc<Context>>,
-            }
-            impl<'a> Drop for Reset<'a> {
-                fn drop(&mut self) {
-                    self.ctx_ref.set(self.val.take());
-                }
-            }
-            let old = ctx.replace(Some(self.context.clone()));
-
-            let _reset = Reset {
-                ctx_ref: ctx,
-                val: old,
-            };
-
+        CURRENT.with(|local_data| {
+            let _guard = local_data.enter(self.context.clone());
             f()
         })
     }
@@ -690,23 +753,8 @@ impl LocalSet {
     fn with_if_possible<T>(&self, f: impl FnOnce() -> T) -> T {
         let mut f = Some(f);
 
-        let res = CURRENT.try_with(|LocalData { ctx, .. }| {
-            struct Reset<'a> {
-                ctx_ref: &'a RcCell<Context>,
-                val: Option<Rc<Context>>,
-            }
-            impl<'a> Drop for Reset<'a> {
-                fn drop(&mut self) {
-                    self.ctx_ref.replace(self.val.take());
-                }
-            }
-            let old = ctx.replace(Some(self.context.clone()));
-
-            let _reset = Reset {
-                ctx_ref: ctx,
-                val: old,
-            };
-
+        let res = CURRENT.try_with(|local_data| {
+            let _guard = local_data.enter(self.context.clone());
             (f.take().unwrap())()
         });
 
@@ -784,6 +832,30 @@ cfg_unstable! {
                 .expect("Unhandled Panic behavior modified after starting LocalSet")
                 .unhandled_panic = behavior;
             self
+        }
+
+        /// Returns the [`Id`] of the current `LocalSet` runtime.
+        ///
+        /// # Examples
+        ///
+        /// ```rust
+        /// use tokio::task;
+        ///
+        /// #[tokio::main]
+        /// async fn main() {
+        ///     let local_set = task::LocalSet::new();
+        ///     println!("Local set id: {}", local_set.id());
+        /// }
+        /// ```
+        ///
+        /// **Note**: This is an [unstable API][unstable]. The public API of this type
+        /// may break in 1.x releases. See [the documentation on unstable
+        /// features][unstable] for details.
+        ///
+        /// [unstable]: crate#unstable-features
+        /// [`Id`]: struct@crate::runtime::Id
+        pub fn id(&self) -> runtime::Id {
+            self.context.shared.local_state.owned.id.into()
         }
     }
 }
@@ -940,7 +1012,10 @@ impl Shared {
     fn schedule(&self, task: task::Notified<Arc<Self>>) {
         CURRENT.with(|localdata| {
             match localdata.ctx.get() {
-                Some(cx) if cx.shared.ptr_eq(self) => unsafe {
+                // If the current `LocalSet` is being polled, we don't need to wake it.
+                // When we `enter` it, then the value `wake_on_schedule` is set to be true.
+                // In this case it is not being polled, so we need to wake it.
+                Some(cx) if cx.shared.ptr_eq(self) && !localdata.wake_on_schedule.get() => unsafe {
                     // Safety: if the current `LocalSet` context points to this
                     // `LocalSet`, then we are on the thread that owns it.
                     cx.shared.local_state.task_push_back(task);
@@ -1036,7 +1111,7 @@ impl LocalState {
         // the LocalSet.
         self.assert_called_from_owner_thread();
 
-        self.local_queue.with_mut(|ptr| (*ptr).push_back(task))
+        self.local_queue.with_mut(|ptr| (*ptr).push_back(task));
     }
 
     unsafe fn take_local_queue(&self) -> VecDeque<task::Notified<Arc<Shared>>> {
@@ -1080,7 +1155,7 @@ impl LocalState {
         // the LocalSet.
         self.assert_called_from_owner_thread();
 
-        self.owned.close_and_shutdown_all()
+        self.owned.close_and_shutdown_all();
     }
 
     #[track_caller]
@@ -1111,7 +1186,7 @@ mod tests {
     // Does a `LocalSet` running on a current-thread runtime...basically work?
     //
     // This duplicates a test in `tests/task_local_set.rs`, but because this is
-    // a lib test, it wil run under Miri, so this is necessary to catch stacked
+    // a lib test, it will run under Miri, so this is necessary to catch stacked
     // borrows violations in the `LocalSet` implementation.
     #[test]
     fn local_current_thread_scheduler() {

@@ -1,3 +1,4 @@
+#![allow(unknown_lints, unexpected_cfgs)]
 #![warn(rust_2018_idioms)]
 #![cfg(feature = "full")]
 
@@ -18,7 +19,7 @@ mod support {
 
 macro_rules! cfg_metrics {
     ($($t:tt)*) => {
-        #[cfg(tokio_unstable)]
+        #[cfg(all(tokio_unstable, target_has_atomic = "64"))]
         {
             $( $t )*
         }
@@ -178,28 +179,38 @@ fn drop_tasks_in_context() {
 }
 
 #[test]
-#[cfg_attr(tokio_wasi, ignore = "Wasi does not support panic recovery")]
+#[cfg_attr(target_os = "wasi", ignore = "Wasi does not support panic recovery")]
 #[should_panic(expected = "boom")]
 fn wake_in_drop_after_panic() {
-    let (tx, rx) = oneshot::channel::<()>();
-
     struct WakeOnDrop(Option<oneshot::Sender<()>>);
 
     impl Drop for WakeOnDrop {
         fn drop(&mut self) {
-            self.0.take().unwrap().send(()).unwrap();
+            let _ = self.0.take().unwrap().send(());
         }
     }
 
     let rt = rt();
 
+    let (tx1, rx1) = oneshot::channel::<()>();
+    let (tx2, rx2) = oneshot::channel::<()>();
+
+    // Spawn two tasks. We don't know the order in which they are dropped, so we
+    // make both tasks identical. When the first task is dropped, we wake up the
+    // second task. This ensures that we trigger a wakeup on a live task while
+    // handling the "boom" panic, no matter the order in which the tasks are
+    // dropped.
     rt.spawn(async move {
-        let _wake_on_drop = WakeOnDrop(Some(tx));
-        // wait forever
-        futures::future::pending::<()>().await;
+        let _wake_on_drop = WakeOnDrop(Some(tx2));
+        let _ = rx1.await;
+        unreachable!()
     });
 
-    let _join = rt.spawn(async move { rx.await });
+    rt.spawn(async move {
+        let _wake_on_drop = WakeOnDrop(Some(tx1));
+        let _ = rx2.await;
+        unreachable!()
+    });
 
     rt.block_on(async {
         tokio::task::yield_now().await;
@@ -239,7 +250,7 @@ fn spawn_two() {
     }
 }
 
-#[cfg_attr(tokio_wasi, ignore = "WASI: std::thread::spawn not supported")]
+#[cfg_attr(target_os = "wasi", ignore = "WASI: std::thread::spawn not supported")]
 #[test]
 fn spawn_remote() {
     let rt = rt();
@@ -276,7 +287,7 @@ fn spawn_remote() {
 }
 
 #[test]
-#[cfg_attr(tokio_wasi, ignore = "Wasi does not support panic recovery")]
+#[cfg_attr(target_os = "wasi", ignore = "Wasi does not support panic recovery")]
 #[should_panic(
     expected = "A Tokio 1.x context was found, but timers are disabled. Call `enable_time` on the runtime builder to enable timers."
 )]
@@ -315,7 +326,7 @@ mod unstable {
     }
 
     #[test]
-    #[cfg_attr(tokio_wasi, ignore = "Wasi does not support panic recovery")]
+    #[cfg_attr(target_os = "wasi", ignore = "Wasi does not support panic recovery")]
     fn spawns_do_nothing() {
         use std::sync::Arc;
 
@@ -344,7 +355,7 @@ mod unstable {
     }
 
     #[test]
-    #[cfg_attr(tokio_wasi, ignore = "Wasi does not support panic recovery")]
+    #[cfg_attr(target_os = "wasi", ignore = "Wasi does not support panic recovery")]
     fn shutdown_all_concurrent_block_on() {
         const N: usize = 2;
         use std::sync::{mpsc, Arc};

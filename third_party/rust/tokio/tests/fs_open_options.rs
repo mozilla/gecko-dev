@@ -1,5 +1,5 @@
 #![warn(rust_2018_idioms)]
-#![cfg(all(feature = "full", not(tokio_wasi)))] // WASI does not support all fs operations
+#![cfg(all(feature = "full", not(target_os = "wasi")))] // WASI does not support all fs operations
 
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -55,8 +55,13 @@ async fn open_options_create_new() {
 #[tokio::test]
 #[cfg(unix)]
 async fn open_options_mode() {
+    let mode = format!("{:?}", OpenOptions::new().mode(0o644));
     // TESTING HACK: use Debug output to check the stored data
-    assert!(format!("{:?}", OpenOptions::new().mode(0o644)).contains("mode: 420 "));
+    assert!(
+        mode.contains("mode: 420 ") || mode.contains("mode: 0o000644 "),
+        "mode is: {}",
+        mode
+    );
 }
 
 #[tokio::test]

@@ -3,7 +3,7 @@ use crate::runtime::coop;
 
 use std::cell::Cell;
 
-#[cfg(any(feature = "rt", feature = "macros"))]
+#[cfg(any(feature = "rt", feature = "macros", feature = "time"))]
 use crate::util::rand::FastRand;
 
 cfg_rt! {
@@ -57,11 +57,11 @@ struct Context {
     #[cfg(feature = "rt")]
     runtime: Cell<EnterRuntime>,
 
-    #[cfg(any(feature = "rt", feature = "macros"))]
+    #[cfg(any(feature = "rt", feature = "macros", feature = "time"))]
     rng: Cell<Option<FastRand>>,
 
     /// Tracks the amount of "work" a task may still do before yielding back to
-    /// the sheduler
+    /// the scheduler
     budget: Cell<coop::Budget>,
 
     #[cfg(all(
@@ -80,27 +80,27 @@ tokio_thread_local! {
             #[cfg(feature = "rt")]
             thread_id: Cell::new(None),
 
-            /// Tracks the current runtime handle to use when spawning,
-            /// accessing drivers, etc...
+            // Tracks the current runtime handle to use when spawning,
+            // accessing drivers, etc...
             #[cfg(feature = "rt")]
             current: current::HandleCell::new(),
 
-            /// Tracks the current scheduler internal context
+            // Tracks the current scheduler internal context
             #[cfg(feature = "rt")]
             scheduler: Scoped::new(),
 
             #[cfg(feature = "rt")]
             current_task_id: Cell::new(None),
 
-            /// Tracks if the current thread is currently driving a runtime.
-            /// Note, that if this is set to "entered", the current scheduler
-            /// handle may not reference the runtime currently executing. This
-            /// is because other runtime handles may be set to current from
-            /// within a runtime.
+            // Tracks if the current thread is currently driving a runtime.
+            // Note, that if this is set to "entered", the current scheduler
+            // handle may not reference the runtime currently executing. This
+            // is because other runtime handles may be set to current from
+            // within a runtime.
             #[cfg(feature = "rt")]
             runtime: Cell::new(EnterRuntime::NotEntered),
 
-            #[cfg(any(feature = "rt", feature = "macros"))]
+            #[cfg(any(feature = "rt", feature = "macros", feature = "time"))]
             rng: Cell::new(None),
 
             budget: Cell::new(coop::Budget::unconstrained()),
@@ -121,7 +121,11 @@ tokio_thread_local! {
     }
 }
 
-#[cfg(any(feature = "macros", all(feature = "sync", feature = "rt")))]
+#[cfg(any(
+    feature = "time",
+    feature = "macros",
+    all(feature = "sync", feature = "rt")
+))]
 pub(crate) fn thread_rng_n(n: u32) -> u32 {
     CONTEXT.with(|ctx| {
         let mut rng = ctx.rng.get().unwrap_or_else(FastRand::new);
@@ -178,7 +182,9 @@ cfg_rt! {
 
     #[track_caller]
     pub(super) fn with_scheduler<R>(f: impl FnOnce(Option<&scheduler::Context>) -> R) -> R {
-        CONTEXT.with(|c| c.scheduler.with(f))
+        let mut f = Some(f);
+        CONTEXT.try_with(|c| c.scheduler.with(f.take().unwrap()))
+            .unwrap_or_else(|_| (f.take().unwrap())(None))
     }
 
     cfg_taskdump! {

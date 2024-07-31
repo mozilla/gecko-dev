@@ -1,3 +1,4 @@
+use super::BOX_FUTURE_THRESHOLD;
 use crate::runtime::blocking::BlockingPool;
 use crate::runtime::scheduler::CurrentThread;
 use crate::runtime::{context, EnterGuard, Handle};
@@ -9,6 +10,10 @@ use std::time::Duration;
 cfg_rt_multi_thread! {
     use crate::runtime::Builder;
     use crate::runtime::scheduler::MultiThread;
+
+    cfg_unstable! {
+        use crate::runtime::scheduler::MultiThreadAlt;
+    }
 }
 
 /// The Tokio runtime.
@@ -17,15 +22,15 @@ cfg_rt_multi_thread! {
 /// blocking pool, necessary for running asynchronous tasks.
 ///
 /// Instances of `Runtime` can be created using [`new`], or [`Builder`].
-/// However, most users will use the `#[tokio::main]` annotation on their
-/// entry point instead.
+/// However, most users will use the [`#[tokio::main]`][main] annotation on
+/// their entry point instead.
 ///
 /// See [module level][mod] documentation for more details.
 ///
 /// # Shutdown
 ///
 /// Shutting down the runtime is done by dropping the value, or calling
-/// [`Runtime::shutdown_background`] or [`Runtime::shutdown_timeout`].
+/// [`shutdown_background`] or [`shutdown_timeout`].
 ///
 /// Tasks spawned through [`Runtime::spawn`] keep running until they yield.
 /// Then they are dropped. They are not *guaranteed* to run to completion, but
@@ -38,11 +43,11 @@ cfg_rt_multi_thread! {
 /// stopped. This can take an indefinite amount of time. The `Drop`
 /// implementation waits forever for this.
 ///
-/// `shutdown_background` and `shutdown_timeout` can be used if waiting forever
-/// is undesired. When the timeout is reached, spawned work that did not stop
-/// in time and threads running it are leaked. The work continues to run until
-/// one of the stopping conditions is fulfilled, but the thread initiating the
-/// shutdown is unblocked.
+/// The [`shutdown_background`] and [`shutdown_timeout`] methods can be used if
+/// waiting forever is undesired. When the timeout is reached, spawned work that
+/// did not stop in time and threads running it are leaked. The work continues
+/// to run until one of the stopping conditions is fulfilled, but the thread
+/// initiating the shutdown is unblocked.
 ///
 /// Once the runtime has been dropped, any outstanding I/O resources bound to
 /// it will no longer function. Calling any method on them will result in an
@@ -50,18 +55,44 @@ cfg_rt_multi_thread! {
 ///
 /// # Sharing
 ///
-/// The Tokio runtime implements `Sync` and `Send` to allow you to wrap it
-/// in a `Arc`. Most fn take `&self` to allow you to call them concurrently
-/// across multiple threads.
+/// There are several ways to establish shared access to a Tokio runtime:
 ///
-/// Calls to `shutdown` and `shutdown_timeout` require exclusive ownership of
-/// the runtime type and this can be achieved via `Arc::try_unwrap` when only
-/// one strong count reference is left over.
+///  * Using an <code>[Arc]\<Runtime></code>.
+///  * Using a [`Handle`].
+///  * Entering the runtime context.
+///
+/// Using an <code>[Arc]\<Runtime></code> or [`Handle`] allows you to do various
+/// things with the runtime such as spawning new tasks or entering the runtime
+/// context. Both types can be cloned to create a new handle that allows access
+/// to the same runtime. By passing clones into different tasks or threads, you
+/// will be able to access the runtime from those tasks or threads.
+///
+/// The difference between <code>[Arc]\<Runtime></code> and [`Handle`] is that
+/// an <code>[Arc]\<Runtime></code> will prevent the runtime from shutting down,
+/// whereas a [`Handle`] does not prevent that. This is because shutdown of the
+/// runtime happens when the destructor of the `Runtime` object runs.
+///
+/// Calls to [`shutdown_background`] and [`shutdown_timeout`] require exclusive
+/// ownership of the `Runtime` type. When using an <code>[Arc]\<Runtime></code>,
+/// this can be achieved via [`Arc::try_unwrap`] when only one strong count
+/// reference is left over.
+///
+/// The runtime context is entered using the [`Runtime::enter`] or
+/// [`Handle::enter`] methods, which use a thread-local variable to store the
+/// current runtime. Whenever you are inside the runtime context, methods such
+/// as [`tokio::spawn`] will use the runtime whose context you are inside.
 ///
 /// [timer]: crate::time
 /// [mod]: index.html
 /// [`new`]: method@Self::new
 /// [`Builder`]: struct@Builder
+/// [`Handle`]: struct@Handle
+/// [main]: macro@crate::main
+/// [`tokio::spawn`]: crate::spawn
+/// [`Arc::try_unwrap`]: std::sync::Arc::try_unwrap
+/// [Arc]: std::sync::Arc
+/// [`shutdown_background`]: method@Runtime::shutdown_background
+/// [`shutdown_timeout`]: method@Runtime::shutdown_timeout
 #[derive(Debug)]
 pub struct Runtime {
     /// Task scheduler
@@ -84,6 +115,9 @@ pub enum RuntimeFlavor {
     CurrentThread,
     /// The flavor that executes tasks across multiple threads.
     MultiThread,
+    /// The flavor that executes tasks across multiple threads.
+    #[cfg(tokio_unstable)]
+    MultiThreadAlt,
 }
 
 /// The runtime scheduler is either a multi-thread or a current-thread executor.
@@ -93,8 +127,12 @@ pub(super) enum Scheduler {
     CurrentThread(CurrentThread),
 
     /// Execute tasks across multiple threads.
-    #[cfg(all(feature = "rt-multi-thread", not(tokio_wasi)))]
+    #[cfg(feature = "rt-multi-thread")]
     MultiThread(MultiThread),
+
+    /// Execute tasks across multiple threads.
+    #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
+    MultiThreadAlt(MultiThreadAlt),
 }
 
 impl Runtime {
@@ -110,40 +148,38 @@ impl Runtime {
         }
     }
 
-    cfg_not_wasi! {
-        /// Creates a new runtime instance with default configuration values.
-        ///
-        /// This results in the multi threaded scheduler, I/O driver, and time driver being
-        /// initialized.
-        ///
-        /// Most applications will not need to call this function directly. Instead,
-        /// they will use the  [`#[tokio::main]` attribute][main]. When a more complex
-        /// configuration is necessary, the [runtime builder] may be used.
-        ///
-        /// See [module level][mod] documentation for more details.
-        ///
-        /// # Examples
-        ///
-        /// Creating a new `Runtime` with default configuration values.
-        ///
-        /// ```
-        /// use tokio::runtime::Runtime;
-        ///
-        /// let rt = Runtime::new()
-        ///     .unwrap();
-        ///
-        /// // Use the runtime...
-        /// ```
-        ///
-        /// [mod]: index.html
-        /// [main]: ../attr.main.html
-        /// [threaded scheduler]: index.html#threaded-scheduler
-        /// [runtime builder]: crate::runtime::Builder
-        #[cfg(feature = "rt-multi-thread")]
-        #[cfg_attr(docsrs, doc(cfg(feature = "rt-multi-thread")))]
-        pub fn new() -> std::io::Result<Runtime> {
-            Builder::new_multi_thread().enable_all().build()
-        }
+    /// Creates a new runtime instance with default configuration values.
+    ///
+    /// This results in the multi threaded scheduler, I/O driver, and time driver being
+    /// initialized.
+    ///
+    /// Most applications will not need to call this function directly. Instead,
+    /// they will use the  [`#[tokio::main]` attribute][main]. When a more complex
+    /// configuration is necessary, the [runtime builder] may be used.
+    ///
+    /// See [module level][mod] documentation for more details.
+    ///
+    /// # Examples
+    ///
+    /// Creating a new `Runtime` with default configuration values.
+    ///
+    /// ```
+    /// use tokio::runtime::Runtime;
+    ///
+    /// let rt = Runtime::new()
+    ///     .unwrap();
+    ///
+    /// // Use the runtime...
+    /// ```
+    ///
+    /// [mod]: index.html
+    /// [main]: ../attr.main.html
+    /// [threaded scheduler]: index.html#threaded-scheduler
+    /// [runtime builder]: crate::runtime::Builder
+    #[cfg(feature = "rt-multi-thread")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "rt-multi-thread")))]
+    pub fn new() -> std::io::Result<Runtime> {
+        Builder::new_multi_thread().enable_all().build()
     }
 
     /// Returns a handle to the runtime's spawner.
@@ -205,7 +241,11 @@ impl Runtime {
         F: Future + Send + 'static,
         F::Output: Send + 'static,
     {
-        self.handle.spawn(future)
+        if cfg!(debug_assertions) && std::mem::size_of::<F>() > BOX_FUTURE_THRESHOLD {
+            self.handle.spawn_named(Box::pin(future), None)
+        } else {
+            self.handle.spawn_named(future, None)
+        }
     }
 
     /// Runs the provided function on an executor dedicated to blocking operations.
@@ -224,6 +264,7 @@ impl Runtime {
     ///     println!("now running on a worker thread");
     /// });
     /// # }
+    /// ```
     #[track_caller]
     pub fn spawn_blocking<F, R>(&self, func: F) -> JoinHandle<R>
     where
@@ -288,6 +329,15 @@ impl Runtime {
     /// [handle]: fn@Handle::block_on
     #[track_caller]
     pub fn block_on<F: Future>(&self, future: F) -> F::Output {
+        if cfg!(debug_assertions) && std::mem::size_of::<F>() > BOX_FUTURE_THRESHOLD {
+            self.block_on_inner(Box::pin(future))
+        } else {
+            self.block_on_inner(future)
+        }
+    }
+
+    #[track_caller]
+    fn block_on_inner<F: Future>(&self, future: F) -> F::Output {
         #[cfg(all(
             tokio_unstable,
             tokio_taskdump,
@@ -309,8 +359,10 @@ impl Runtime {
 
         match &self.scheduler {
             Scheduler::CurrentThread(exec) => exec.block_on(&self.handle.inner, future),
-            #[cfg(all(feature = "rt-multi-thread", not(tokio_wasi)))]
+            #[cfg(feature = "rt-multi-thread")]
             Scheduler::MultiThread(exec) => exec.block_on(&self.handle.inner, future),
+            #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
+            Scheduler::MultiThreadAlt(exec) => exec.block_on(&self.handle.inner, future),
         }
     }
 
@@ -328,12 +380,13 @@ impl Runtime {
     ///
     /// ```
     /// use tokio::runtime::Runtime;
+    /// use tokio::task::JoinHandle;
     ///
-    /// fn function_that_spawns(msg: String) {
+    /// fn function_that_spawns(msg: String) -> JoinHandle<()> {
     ///     // Had we not used `rt.enter` below, this would panic.
     ///     tokio::spawn(async move {
     ///         println!("{}", msg);
-    ///     });
+    ///     })
     /// }
     ///
     /// fn main() {
@@ -343,7 +396,10 @@ impl Runtime {
     ///
     ///     // By entering the context, we tie `tokio::spawn` to this executor.
     ///     let _guard = rt.enter();
-    ///     function_that_spawns(s);
+    ///     let handle = function_that_spawns(s);
+    ///
+    ///     // Wait for the task before we end the test.
+    ///     rt.block_on(handle).unwrap();
     /// }
     /// ```
     pub fn enter(&self) -> EnterGuard<'_> {
@@ -411,7 +467,13 @@ impl Runtime {
     /// }
     /// ```
     pub fn shutdown_background(self) {
-        self.shutdown_timeout(Duration::from_nanos(0))
+        self.shutdown_timeout(Duration::from_nanos(0));
+    }
+
+    /// Returns a view that lets you get information about how the runtime
+    /// is performing.
+    pub fn metrics(&self) -> crate::runtime::RuntimeMetrics {
+        self.handle.metrics()
     }
 }
 
@@ -425,8 +487,14 @@ impl Drop for Runtime {
                 let _guard = context::try_set_current(&self.handle.inner);
                 current_thread.shutdown(&self.handle.inner);
             }
-            #[cfg(all(feature = "rt-multi-thread", not(tokio_wasi)))]
+            #[cfg(feature = "rt-multi-thread")]
             Scheduler::MultiThread(multi_thread) => {
+                // The threaded scheduler drops its tasks on its worker threads, which is
+                // already in the runtime's context.
+                multi_thread.shutdown(&self.handle.inner);
+            }
+            #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
+            Scheduler::MultiThreadAlt(multi_thread) => {
                 // The threaded scheduler drops its tasks on its worker threads, which is
                 // already in the runtime's context.
                 multi_thread.shutdown(&self.handle.inner);
@@ -435,11 +503,6 @@ impl Drop for Runtime {
     }
 }
 
-cfg_metrics! {
-    impl Runtime {
-        /// TODO
-        pub fn metrics(&self) -> crate::runtime::RuntimeMetrics {
-            self.handle.metrics()
-        }
-    }
-}
+impl std::panic::UnwindSafe for Runtime {}
+
+impl std::panic::RefUnwindSafe for Runtime {}

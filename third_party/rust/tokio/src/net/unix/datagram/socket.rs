@@ -4,9 +4,7 @@ use crate::net::unix::SocketAddr;
 use std::fmt;
 use std::io;
 use std::net::Shutdown;
-#[cfg(not(tokio_no_as_fd))]
-use std::os::unix::io::{AsFd, BorrowedFd};
-use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+use std::os::unix::io::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, RawFd};
 use std::os::unix::net;
 use std::path::Path;
 use std::task::{Context, Poll};
@@ -98,10 +96,20 @@ cfg_net_unix! {
 }
 
 impl UnixDatagram {
+    pub(crate) fn from_mio(sys: mio::net::UnixDatagram) -> io::Result<UnixDatagram> {
+        let datagram = UnixDatagram::new(sys)?;
+
+        if let Some(e) = datagram.io.take_error()? {
+            return Err(e);
+        }
+
+        Ok(datagram)
+    }
+
     /// Waits for any of the requested ready states.
     ///
     /// This function is usually paired with `try_recv()` or `try_send()`. It
-    /// can be used to concurrently recv / send to the same socket on a single
+    /// can be used to concurrently `recv` / `send` to the same socket on a single
     /// task without splitting the socket.
     ///
     /// The function may complete without the socket being ready. This is a
@@ -425,14 +433,14 @@ impl UnixDatagram {
         Ok((a, b))
     }
 
-    /// Creates new `UnixDatagram` from a `std::os::unix::net::UnixDatagram`.
+    /// Creates new [`UnixDatagram`] from a [`std::os::unix::net::UnixDatagram`].
     ///
-    /// This function is intended to be used to wrap a UnixDatagram from the
+    /// This function is intended to be used to wrap a `UnixDatagram` from the
     /// standard library in the Tokio equivalent.
     ///
     /// # Notes
     ///
-    /// The caller is responsible for ensuring that the socker is in
+    /// The caller is responsible for ensuring that the socket is in
     /// non-blocking mode. Otherwise all I/O operations on the socket
     /// will block the thread, which will cause unexpected behavior.
     /// Non-blocking mode can be set using [`set_nonblocking`].
@@ -500,7 +508,7 @@ impl UnixDatagram {
     pub fn into_std(self) -> io::Result<std::os::unix::net::UnixDatagram> {
         self.io
             .into_inner()
-            .map(|io| io.into_raw_fd())
+            .map(IntoRawFd::into_raw_fd)
             .map(|raw_fd| unsafe { std::os::unix::net::UnixDatagram::from_raw_fd(raw_fd) })
     }
 
@@ -1133,7 +1141,7 @@ impl UnixDatagram {
 
     /// Attempts to receive a single datagram on the specified address.
     ///
-    /// Note that on multiple calls to a `poll_*` method in the recv direction, only the
+    /// Note that on multiple calls to a `poll_*` method in the `recv` direction, only the
     /// `Waker` from the `Context` passed to the most recent call will be scheduled to
     /// receive a wakeup.
     ///
@@ -1153,6 +1161,7 @@ impl UnixDatagram {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<SocketAddr>> {
+        #[allow(clippy::blocks_in_conditions)]
         let (n, addr) = ready!(self.io.registration().poll_read_io(cx, || {
             // Safety: will not read the maybe uninitialized bytes.
             let b = unsafe {
@@ -1236,7 +1245,7 @@ impl UnixDatagram {
     /// The [`connect`] method will connect this socket to a remote address. This method
     /// resolves to an error if the socket is not connected.
     ///
-    /// Note that on multiple calls to a `poll_*` method in the recv direction, only the
+    /// Note that on multiple calls to a `poll_*` method in the `recv` direction, only the
     /// `Waker` from the `Context` passed to the most recent call will be scheduled to
     /// receive a wakeup.
     ///
@@ -1254,6 +1263,7 @@ impl UnixDatagram {
     ///
     /// [`connect`]: method@Self::connect
     pub fn poll_recv(&self, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>) -> Poll<io::Result<()>> {
+        #[allow(clippy::blocks_in_conditions)]
         let n = ready!(self.io.registration().poll_read_io(cx, || {
             // Safety: will not read the maybe uninitialized bytes.
             let b = unsafe {
@@ -1578,7 +1588,6 @@ impl AsRawFd for UnixDatagram {
     }
 }
 
-#[cfg(not(tokio_no_as_fd))]
 impl AsFd for UnixDatagram {
     fn as_fd(&self) -> BorrowedFd<'_> {
         unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) }

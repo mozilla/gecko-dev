@@ -23,7 +23,7 @@
 //! }
 //! ```
 //!
-//! Wait for SIGHUP on Unix
+//! Wait for `SIGHUP` on Unix
 //!
 //! ```rust,no_run
 //! # #[cfg(unix)] {
@@ -45,7 +45,9 @@
 use crate::sync::watch::Receiver;
 use std::task::{Context, Poll};
 
+#[cfg(feature = "signal")]
 mod ctrl_c;
+#[cfg(feature = "signal")]
 pub use ctrl_c::ctrl_c;
 
 pub(crate) mod registry;
@@ -70,10 +72,8 @@ struct RxFuture {
 }
 
 async fn make_future(mut rx: Receiver<()>) -> Receiver<()> {
-    match rx.changed().await {
-        Ok(()) => rx,
-        Err(_) => panic!("signal sender went away"),
-    }
+    rx.changed().await.expect("signal sender went away");
+    rx
 }
 
 impl RxFuture {

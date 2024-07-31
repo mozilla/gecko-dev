@@ -1,12 +1,12 @@
 #![warn(rust_2018_idioms)]
 #![cfg(feature = "sync")]
 
-#[cfg(tokio_wasm_not_wasi)]
+#[cfg(all(target_family = "wasm", not(target_os = "wasi")))]
 use wasm_bindgen_test::wasm_bindgen_test as test;
-#[cfg(tokio_wasm_not_wasi)]
+#[cfg(all(target_family = "wasm", not(target_os = "wasi")))]
 use wasm_bindgen_test::wasm_bindgen_test as maybe_tokio_test;
 
-#[cfg(not(tokio_wasm_not_wasi))]
+#[cfg(not(all(target_family = "wasm", not(target_os = "wasi"))))]
 use tokio::test as maybe_tokio_test;
 
 use tokio::sync::oneshot;
@@ -17,13 +17,16 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+#[allow(unused)]
 trait AssertSend: Send {}
 impl AssertSend for oneshot::Sender<i32> {}
 impl AssertSend for oneshot::Receiver<i32> {}
 
+#[allow(unused)]
 trait SenderExt {
     fn poll_closed(&mut self, cx: &mut Context<'_>) -> Poll<()>;
 }
+
 impl<T> SenderExt for oneshot::Sender<T> {
     fn poll_closed(&mut self, cx: &mut Context<'_>) -> Poll<()> {
         tokio::pin! {
@@ -179,7 +182,7 @@ fn explicit_close_try_recv() {
 
 #[test]
 #[should_panic]
-#[cfg(not(tokio_wasm))] // wasm currently doesn't support unwinding
+#[cfg(not(target_family = "wasm"))] // wasm currently doesn't support unwinding
 fn close_try_recv_poll() {
     let (_tx, rx) = oneshot::channel::<i32>();
     let mut rx = task::spawn(rx);

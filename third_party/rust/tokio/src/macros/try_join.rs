@@ -14,7 +14,7 @@
 ///
 /// # Notes
 ///
-/// The supplied futures are stored inline and does not require allocating a
+/// The supplied futures are stored inline and do not require allocating a
 /// `Vec`.
 ///
 /// ### Runtime characteristics
@@ -30,7 +30,7 @@
 ///
 /// # Examples
 ///
-/// Basic try_join with two branches.
+/// Basic `try_join` with two branches.
 ///
 /// ```
 /// async fn do_stuff_async() -> Result<(), &'static str> {

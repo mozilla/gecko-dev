@@ -1,3 +1,7 @@
+mod queue;
+mod shutdown;
+mod yield_now;
+
 /// Full runtime loom tests. These are heavy tests and take significant time to
 /// run on CI.
 ///
@@ -412,8 +416,8 @@ async fn multi_gated() {
     }
 
     poll_fn(move |cx| {
+        gate.waker.register_by_ref(cx.waker());
         if gate.count.load(SeqCst) < 2 {
-            gate.waker.register_by_ref(cx.waker());
             Poll::Pending
         } else {
             Poll::Ready(())

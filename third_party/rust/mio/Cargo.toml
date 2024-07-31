@@ -10,14 +10,16 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.70"
 name = "mio"
-version = "0.8.8"
+version = "1.0.1"
 authors = [
     "Carl Lerche <me@carllerche.com>",
     "Thomas de Zeeuw <thomasdezeeuw@gmail.com>",
     "Tokio Contributors <team@tokio.rs>",
 ]
+build = false
 include = [
     "Cargo.toml",
     "LICENSE",
@@ -26,6 +28,10 @@ include = [
     "src/**/*.rs",
     "examples/**/*.rs",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Lightweight non-blocking I/O."
 homepage = "https://github.com/tokio-rs/mio"
 readme = "README.md"
@@ -43,12 +49,14 @@ all-features = true
 rustdoc-args = [
     "--cfg",
     "docsrs",
+    "--generate-link-to-definition",
 ]
 targets = [
     "aarch64-apple-ios",
     "aarch64-linux-android",
     "wasm32-wasi",
     "x86_64-apple-darwin",
+    "x86_64-pc-windows-gnu",
     "x86_64-pc-windows-msvc",
     "x86_64-unknown-dragonfly",
     "x86_64-unknown-freebsd",
@@ -56,6 +64,7 @@ targets = [
     "x86_64-unknown-linux-gnu",
     "x86_64-unknown-netbsd",
     "x86_64-unknown-openbsd",
+    "x86_64-unknown-hermit",
 ]
 
 [package.metadata.playground]
@@ -65,15 +74,21 @@ features = [
     "net",
 ]
 
+[lib]
+name = "mio"
+path = "src/lib.rs"
+
 [[example]]
-name = "tcp_server"
+name = "tcp_listenfd_server"
+path = "examples/tcp_listenfd_server.rs"
 required-features = [
     "os-poll",
     "net",
 ]
 
 [[example]]
-name = "tcp_listenfd_server"
+name = "tcp_server"
+path = "examples/tcp_server.rs"
 required-features = [
     "os-poll",
     "net",
@@ -81,6 +96,7 @@ required-features = [
 
 [[example]]
 name = "udp_server"
+path = "examples/udp_server.rs"
 required-features = [
     "os-poll",
     "net",
@@ -90,12 +106,12 @@ required-features = [
 version = "0.4.8"
 optional = true
 
-[dev-dependencies]
-rand = "0.8"
-
 [dev-dependencies.env_logger]
 version = "0.9.3"
 default-features = false
+
+[dev-dependencies.rand]
+version = "0.8"
 
 [features]
 default = ["log"]
@@ -107,12 +123,18 @@ os-ext = [
 ]
 os-poll = []
 
-[target."cfg(target_os = \"wasi\")".dependencies]
-libc = "0.2.121"
-wasi = "0.11.0"
+[target.'cfg(target_os = "hermit")'.dependencies.libc]
+version = "0.3.9"
+package = "hermit-abi"
 
-[target."cfg(unix)".dependencies]
-libc = "0.2.121"
+[target.'cfg(target_os = "wasi")'.dependencies.libc]
+version = "0.2.149"
+
+[target.'cfg(target_os = "wasi")'.dependencies.wasi]
+version = "0.11.0"
+
+[target."cfg(unix)".dependencies.libc]
+version = "0.2.149"
 
 [target."cfg(windows)".dependencies.windows-sys]
 version = "0.52"
@@ -125,4 +147,12 @@ features = [
     "Win32_Storage_FileSystem",
     "Win32_System_IO",
     "Win32_System_WindowsProgramming",
+]
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = [
+    "cfg(mio_unsupported_force_poll_poll)",
+    "cfg(mio_unsupported_force_waker_pipe)",
 ]

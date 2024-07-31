@@ -10,6 +10,9 @@ use crate::util::TryLock;
 use std::sync::atomic::Ordering::SeqCst;
 use std::time::Duration;
 
+#[cfg(loom)]
+use crate::runtime::park::CURRENT_THREAD_PARK_COUNT;
+
 pub(crate) struct Parker {
     inner: Arc<Inner>,
 }
@@ -22,10 +25,10 @@ struct Inner {
     /// Avoids entering the park if possible
     state: AtomicUsize,
 
-    /// Used to coordinate access to the driver / condvar
+    /// Used to coordinate access to the driver / `condvar`
     mutex: Mutex<()>,
 
-    /// Condvar to block on if the driver is unavailable.
+    /// `Condvar` to block on if the driver is unavailable.
     condvar: Condvar,
 
     /// Resource (I/O, time, ...) driver
@@ -72,7 +75,14 @@ impl Parker {
         assert_eq!(duration, Duration::from_millis(0));
 
         if let Some(mut driver) = self.inner.shared.driver.try_lock() {
-            driver.park_timeout(handle, duration)
+            driver.park_timeout(handle, duration);
+        } else {
+            // https://github.com/tokio-rs/tokio/issues/6536
+            // Hacky, but it's just for loom tests. The counter gets incremented during
+            // `park_timeout`, but we still have to increment the counter if we can't acquire the
+            // lock.
+            #[cfg(loom)]
+            CURRENT_THREAD_PARK_COUNT.with(|count| count.fetch_add(1, SeqCst));
         }
     }
 
@@ -219,7 +229,7 @@ impl Inner {
         // to release `lock`.
         drop(self.mutex.lock());
 
-        self.condvar.notify_one()
+        self.condvar.notify_one();
     }
 
     fn shutdown(&self, handle: &driver::Handle) {

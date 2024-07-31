@@ -1,5 +1,3 @@
-#![allow(clippy::unit_arg)]
-
 use crate::signal::os::{OsExtraData, OsStorage};
 use crate::sync::watch;
 use crate::util::once_cell::OnceCell;
@@ -28,7 +26,7 @@ impl Default for EventInfo {
     }
 }
 
-/// An interface for retrieving the `EventInfo` for a particular eventId.
+/// An interface for retrieving the `EventInfo` for a particular `eventId`.
 pub(crate) trait Storage {
     /// Gets the `EventInfo` for `id` if it exists.
     fn event_info(&self, id: EventId) -> Option<&EventInfo>;
@@ -48,7 +46,7 @@ impl Storage for Vec<EventInfo> {
     where
         F: FnMut(&'a EventInfo),
     {
-        self.iter().for_each(f)
+        self.iter().for_each(f);
     }
 }
 
@@ -61,7 +59,7 @@ pub(crate) trait Init {
 /// Manages and distributes event notifications to any registered listeners.
 ///
 /// Generic over the underlying storage to allow for domain specific
-/// optimizations (e.g. eventIds may or may not be contiguous).
+/// optimizations (e.g. `eventIds` may or may not be contiguous).
 #[derive(Debug)]
 pub(crate) struct Registry<S> {
     storage: S,
@@ -87,7 +85,7 @@ impl<S: Storage> Registry<S> {
     /// any listeners.
     fn record_event(&self, event_id: EventId) {
         if let Some(event_info) = self.storage.event_info(event_id) {
-            event_info.pending.store(true, Ordering::SeqCst)
+            event_info.pending.store(true, Ordering::SeqCst);
         }
     }
 

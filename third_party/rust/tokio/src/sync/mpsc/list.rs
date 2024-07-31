@@ -82,7 +82,7 @@ impl<T> Tx<T> {
     /// Closes the send half of the list.
     ///
     /// Similar process as pushing a value, but instead of writing the value &
-    /// setting the ready flag, the TX_CLOSED flag is set on the block.
+    /// setting the ready flag, the `TX_CLOSED` flag is set on the block.
     pub(crate) fn close(&self) {
         // First, claim a slot for the value. This is the last slot that will be
         // claimed.
@@ -204,7 +204,7 @@ impl<T> Tx<T> {
         // TODO: Unify this logic with Block::grow
         for _ in 0..3 {
             match curr.as_ref().try_push(&mut block, AcqRel, Acquire) {
-                Ok(_) => {
+                Ok(()) => {
                     reused = true;
                     break;
                 }
@@ -216,6 +216,15 @@ impl<T> Tx<T> {
 
         if !reused {
             let _ = Box::from_raw(block.as_ptr());
+        }
+    }
+
+    pub(crate) fn is_closed(&self) -> bool {
+        let tail = self.block_tail.load(Acquire);
+
+        unsafe {
+            let tail_block = &*tail;
+            tail_block.is_closed()
         }
     }
 }
@@ -230,6 +239,24 @@ impl<T> fmt::Debug for Tx<T> {
 }
 
 impl<T> Rx<T> {
+    pub(crate) fn is_empty(&self, tx: &Tx<T>) -> bool {
+        let block = unsafe { self.head.as_ref() };
+        if block.has_value(self.index) {
+            return false;
+        }
+
+        // It is possible that a block has no value "now" but the list is still not empty.
+        // To be sure, it is necessary to check the length of the list.
+        self.len(tx) == 0
+    }
+
+    pub(crate) fn len(&self, tx: &Tx<T>) -> usize {
+        // When all the senders are dropped, there will be a last block in the tail position,
+        // but it will be closed
+        let tail_position = tx.tail_position.load(Acquire);
+        tail_position - self.index - (tx.is_closed() as usize)
+    }
+
     /// Pops the next value off the queue.
     pub(crate) fn pop(&mut self, tx: &Tx<T>) -> Option<block::Read<T>> {
         // Advance `head`, if needed

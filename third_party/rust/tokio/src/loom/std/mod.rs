@@ -6,7 +6,7 @@ mod atomic_u64;
 mod atomic_usize;
 mod barrier;
 mod mutex;
-#[cfg(feature = "parking_lot")]
+#[cfg(all(feature = "parking_lot", not(miri)))]
 mod parking_lot;
 mod unsafe_cell;
 
@@ -56,17 +56,17 @@ pub(crate) mod sync {
     // internal use. Note however that some are not _currently_ named by
     // consuming code.
 
-    #[cfg(feature = "parking_lot")]
+    #[cfg(all(feature = "parking_lot", not(miri)))]
     #[allow(unused_imports)]
     pub(crate) use crate::loom::std::parking_lot::{
         Condvar, Mutex, MutexGuard, RwLock, RwLockReadGuard, WaitTimeoutResult,
     };
 
-    #[cfg(not(feature = "parking_lot"))]
+    #[cfg(not(all(feature = "parking_lot", not(miri))))]
     #[allow(unused_imports)]
     pub(crate) use std::sync::{Condvar, MutexGuard, RwLock, RwLockReadGuard, WaitTimeoutResult};
 
-    #[cfg(not(feature = "parking_lot"))]
+    #[cfg(not(all(feature = "parking_lot", not(miri))))]
     pub(crate) use crate::loom::std::mutex::Mutex;
 
     pub(crate) mod atomic {
@@ -84,6 +84,8 @@ pub(crate) mod sync {
 pub(crate) mod sys {
     #[cfg(feature = "rt-multi-thread")]
     pub(crate) fn num_cpus() -> usize {
+        use std::num::NonZeroUsize;
+
         const ENV_WORKER_THREADS: &str = "TOKIO_WORKER_THREADS";
 
         match std::env::var(ENV_WORKER_THREADS) {
@@ -97,7 +99,9 @@ pub(crate) mod sys {
                 assert!(n > 0, "\"{}\" cannot be set to 0", ENV_WORKER_THREADS);
                 n
             }
-            Err(std::env::VarError::NotPresent) => usize::max(1, num_cpus::get()),
+            Err(std::env::VarError::NotPresent) => {
+                std::thread::available_parallelism().map_or(1, NonZeroUsize::get)
+            }
             Err(std::env::VarError::NotUnicode(e)) => {
                 panic!(
                     "\"{}\" must be valid unicode, error: {:?}",

@@ -27,6 +27,9 @@ use orphan::{OrphanQueue, OrphanQueueImpl, Wait};
 mod reap;
 use reap::Reaper;
 
+#[cfg(all(target_os = "linux", feature = "rt"))]
+mod pidfd_reaper;
+
 use crate::io::{AsyncRead, AsyncWrite, PollEvented, ReadBuf};
 use crate::process::kill::Kill;
 use crate::process::SpawnedChild;
@@ -39,9 +42,7 @@ use std::fmt;
 use std::fs::File;
 use std::future::Future;
 use std::io;
-#[cfg(not(tokio_no_as_fd))]
-use std::os::unix::io::{AsFd, BorrowedFd};
-use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+use std::os::unix::io::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, OwnedFd, RawFd};
 use std::pin::Pin;
 use std::process::{Child as StdChild, ExitStatus, Stdio};
 use std::task::Context;
@@ -91,26 +92,26 @@ impl fmt::Debug for GlobalOrphanQueue {
 
 impl GlobalOrphanQueue {
     pub(crate) fn reap_orphans(handle: &SignalHandle) {
-        get_orphan_queue().reap_orphans(handle)
+        get_orphan_queue().reap_orphans(handle);
     }
 }
 
 impl OrphanQueue<StdChild> for GlobalOrphanQueue {
     fn push_orphan(&self, orphan: StdChild) {
-        get_orphan_queue().push_orphan(orphan)
+        get_orphan_queue().push_orphan(orphan);
     }
 }
 
 #[must_use = "futures do nothing unless polled"]
-pub(crate) struct Child {
-    inner: Reaper<StdChild, GlobalOrphanQueue, Signal>,
+pub(crate) enum Child {
+    SignalReaper(Reaper<StdChild, GlobalOrphanQueue, Signal>),
+    #[cfg(all(target_os = "linux", feature = "rt"))]
+    PidfdReaper(pidfd_reaper::PidfdReaper<StdChild, GlobalOrphanQueue>),
 }
 
 impl fmt::Debug for Child {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("Child")
-            .field("pid", &self.inner.id())
-            .finish()
+        fmt.debug_struct("Child").field("pid", &self.id()).finish()
     }
 }
 
@@ -120,12 +121,24 @@ pub(crate) fn spawn_child(cmd: &mut std::process::Command) -> io::Result<Spawned
     let stdout = child.stdout.take().map(stdio).transpose()?;
     let stderr = child.stderr.take().map(stdio).transpose()?;
 
+    #[cfg(all(target_os = "linux", feature = "rt"))]
+    match pidfd_reaper::PidfdReaper::new(child, GlobalOrphanQueue) {
+        Ok(pidfd_reaper) => {
+            return Ok(SpawnedChild {
+                child: Child::PidfdReaper(pidfd_reaper),
+                stdin,
+                stdout,
+                stderr,
+            })
+        }
+        Err((Some(err), _child)) => return Err(err),
+        Err((None, child_returned)) => child = child_returned,
+    }
+
     let signal = signal(SignalKind::child())?;
 
     Ok(SpawnedChild {
-        child: Child {
-            inner: Reaper::new(child, GlobalOrphanQueue, signal),
-        },
+        child: Child::SignalReaper(Reaper::new(child, GlobalOrphanQueue, signal)),
         stdin,
         stdout,
         stderr,
@@ -134,25 +147,41 @@ pub(crate) fn spawn_child(cmd: &mut std::process::Command) -> io::Result<Spawned
 
 impl Child {
     pub(crate) fn id(&self) -> u32 {
-        self.inner.id()
+        match self {
+            Self::SignalReaper(signal_reaper) => signal_reaper.id(),
+            #[cfg(all(target_os = "linux", feature = "rt"))]
+            Self::PidfdReaper(pidfd_reaper) => pidfd_reaper.id(),
+        }
+    }
+
+    fn std_child(&mut self) -> &mut StdChild {
+        match self {
+            Self::SignalReaper(signal_reaper) => signal_reaper.inner_mut(),
+            #[cfg(all(target_os = "linux", feature = "rt"))]
+            Self::PidfdReaper(pidfd_reaper) => pidfd_reaper.inner_mut(),
+        }
     }
 
     pub(crate) fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
-        self.inner.inner_mut().try_wait()
+        self.std_child().try_wait()
     }
 }
 
 impl Kill for Child {
     fn kill(&mut self) -> io::Result<()> {
-        self.inner.kill()
+        self.std_child().kill()
     }
 }
 
 impl Future for Child {
     type Output = io::Result<ExitStatus>;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        Pin::new(&mut self.inner).poll(cx)
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match Pin::into_inner(self) {
+            Self::SignalReaper(signal_reaper) => Pin::new(signal_reaper).poll(cx),
+            #[cfg(all(target_os = "linux", feature = "rt"))]
+            Self::PidfdReaper(pidfd_reaper) => Pin::new(pidfd_reaper).poll(cx),
+        }
     }
 }
 
@@ -196,14 +225,13 @@ impl AsRawFd for Pipe {
     }
 }
 
-#[cfg(not(tokio_no_as_fd))]
 impl AsFd for Pipe {
     fn as_fd(&self) -> BorrowedFd<'_> {
         unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) }
     }
 }
 
-pub(crate) fn convert_to_stdio(io: ChildStdio) -> io::Result<Stdio> {
+fn convert_to_blocking_file(io: ChildStdio) -> io::Result<File> {
     let mut fd = io.inner.into_inner()?.fd;
 
     // Ensure that the fd to be inherited is set to *blocking* mode, as this
@@ -212,7 +240,11 @@ pub(crate) fn convert_to_stdio(io: ChildStdio) -> io::Result<Stdio> {
     // change it to nonblocking mode.
     set_nonblocking(&mut fd, false)?;
 
-    Ok(Stdio::from(fd))
+    Ok(fd)
+}
+
+pub(crate) fn convert_to_stdio(io: ChildStdio) -> io::Result<Stdio> {
+    convert_to_blocking_file(io).map(Stdio::from)
 }
 
 impl Source for Pipe {
@@ -243,6 +275,12 @@ pub(crate) struct ChildStdio {
     inner: PollEvented<Pipe>,
 }
 
+impl ChildStdio {
+    pub(super) fn into_owned_fd(self) -> io::Result<OwnedFd> {
+        convert_to_blocking_file(self).map(OwnedFd::from)
+    }
+}
+
 impl fmt::Debug for ChildStdio {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.inner.fmt(fmt)
@@ -255,7 +293,6 @@ impl AsRawFd for ChildStdio {
     }
 }
 
-#[cfg(not(tokio_no_as_fd))]
 impl AsFd for ChildStdio {
     fn as_fd(&self) -> BorrowedFd<'_> {
         unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) }

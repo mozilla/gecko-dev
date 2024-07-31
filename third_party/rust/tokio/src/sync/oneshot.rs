@@ -59,7 +59,7 @@
 //! }
 //! ```
 //!
-//! To use a oneshot channel in a `tokio::select!` loop, add `&mut` in front of
+//! To use a `oneshot` channel in a `tokio::select!` loop, add `&mut` in front of
 //! the channel.
 //!
 //! ```
@@ -330,7 +330,7 @@ pub struct Receiver<T> {
 }
 
 pub mod error {
-    //! Oneshot error types.
+    //! `Oneshot` error types.
 
     use std::fmt;
 
@@ -473,6 +473,7 @@ pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
         let location = std::panic::Location::caller();
 
         let resource_span = tracing::trace_span!(
+            parent: None,
             "runtime.resource",
             concrete_type = "Sender|Receiver",
             kind = "Sync",
@@ -554,8 +555,8 @@ impl<T> Sender<T> {
     /// Attempts to send a value on this channel, returning it back if it could
     /// not be sent.
     ///
-    /// This method consumes `self` as only one value may ever be sent on a oneshot
-    /// channel. It is not marked async because sending a message to an oneshot
+    /// This method consumes `self` as only one value may ever be sent on a `oneshot`
+    /// channel. It is not marked async because sending a message to an `oneshot`
     /// channel never requires any form of waiting.  Because of this, the `send`
     /// method can be used in both synchronous and asynchronous code without
     /// problems.
@@ -712,7 +713,7 @@ impl<T> Sender<T> {
         #[cfg(not(all(tokio_unstable, feature = "tracing")))]
         let closed = poll_fn(|cx| self.poll_closed(cx));
 
-        closed.await
+        closed.await;
     }
 
     /// Returns `true` if the associated [`Receiver`] handle has been dropped.
@@ -749,7 +750,7 @@ impl<T> Sender<T> {
         state.is_closed()
     }
 
-    /// Checks whether the oneshot channel has been closed, and if not, schedules the
+    /// Checks whether the `oneshot` channel has been closed, and if not, schedules the
     /// `Waker` in the provided `Context` to receive a notification when the channel is
     /// closed.
     ///
@@ -1071,7 +1072,14 @@ impl<T> Receiver<T> {
 impl<T> Drop for Receiver<T> {
     fn drop(&mut self) {
         if let Some(inner) = self.inner.as_ref() {
-            inner.close();
+            let state = inner.close();
+
+            if state.is_complete() {
+                // SAFETY: we have ensured that the `VALUE_SENT` bit has been set,
+                // so only the receiver can access the value.
+                drop(unsafe { inner.consume_value() });
+            }
+
             #[cfg(all(tokio_unstable, feature = "tracing"))]
             self.resource_span.in_scope(|| {
                 tracing::trace!(
@@ -1201,7 +1209,7 @@ impl<T> Inner<T> {
     }
 
     /// Called by `Receiver` to indicate that the value will never be received.
-    fn close(&self) {
+    fn close(&self) -> State {
         let prev = State::set_closed(&self.state);
 
         if prev.is_tx_task_set() && !prev.is_complete() {
@@ -1209,6 +1217,8 @@ impl<T> Inner<T> {
                 self.tx_task.with_task(Waker::wake_by_ref);
             }
         }
+
+        prev
     }
 
     /// Consumes the value. This function does not check `state`.
@@ -1246,6 +1256,15 @@ impl<T> Drop for Inner<T> {
             unsafe {
                 self.tx_task.drop_task();
             }
+        }
+
+        // SAFETY: we have `&mut self`, and therefore we have
+        // exclusive access to the value.
+        unsafe {
+            // Note: the assertion holds because if the value has been sent by sender,
+            // we must ensure that the value must have been consumed by the receiver before
+            // dropping the `Inner`.
+            debug_assert!(self.consume_value().is_none());
         }
     }
 }

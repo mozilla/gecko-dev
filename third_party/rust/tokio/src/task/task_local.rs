@@ -27,7 +27,7 @@ use std::{fmt, mem, thread};
 /// # fn main() {}
 /// ```
 ///
-/// See [LocalKey documentation][`tokio::task::LocalKey`] for more
+/// See [`LocalKey` documentation][`tokio::task::LocalKey`] for more
 /// information.
 ///
 /// [`tokio::task::LocalKey`]: struct@crate::task::LocalKey
@@ -48,7 +48,6 @@ macro_rules! task_local {
 }
 
 #[doc(hidden)]
-#[cfg(not(tokio_no_const_thread_local))]
 #[macro_export]
 macro_rules! __task_local_inner {
     ($(#[$attr:meta])* $vis:vis $name:ident, $t:ty) => {
@@ -56,22 +55,6 @@ macro_rules! __task_local_inner {
         $vis static $name: $crate::task::LocalKey<$t> = {
             std::thread_local! {
                 static __KEY: std::cell::RefCell<Option<$t>> = const { std::cell::RefCell::new(None) };
-            }
-
-            $crate::task::LocalKey { inner: __KEY }
-        };
-    };
-}
-
-#[doc(hidden)]
-#[cfg(tokio_no_const_thread_local)]
-#[macro_export]
-macro_rules! __task_local_inner {
-    ($(#[$attr:meta])* $vis:vis $name:ident, $t:ty) => {
-        $(#[$attr])*
-        $vis static $name: $crate::task::LocalKey<$t> = {
-            std::thread_local! {
-                static __KEY: std::cell::RefCell<Option<$t>> = std::cell::RefCell::new(None);
             }
 
             $crate::task::LocalKey { inner: __KEY }
@@ -281,16 +264,16 @@ impl<T: 'static> LocalKey<T> {
     }
 }
 
-impl<T: Copy + 'static> LocalKey<T> {
+impl<T: Clone + 'static> LocalKey<T> {
     /// Returns a copy of the task-local value
-    /// if the task-local value implements `Copy`.
+    /// if the task-local value implements `Clone`.
     ///
     /// # Panics
     ///
     /// This function will panic if the task local doesn't have a value set.
     #[track_caller]
     pub fn get(&'static self) -> T {
-        self.with(|v| *v)
+        self.with(|v| v.clone())
     }
 }
 
@@ -346,6 +329,50 @@ pin_project! {
                 });
             }
         }
+    }
+}
+
+impl<T, F> TaskLocalFuture<T, F>
+where
+    T: 'static,
+{
+    /// Returns the value stored in the task local by this `TaskLocalFuture`.
+    ///
+    /// The function returns:
+    ///
+    /// * `Some(T)` if the task local value exists.
+    /// * `None` if the task local value has already been taken.
+    ///
+    /// Note that this function attempts to take the task local value even if
+    /// the future has not yet completed. In that case, the value will no longer
+    /// be available via the task local after the call to `take_value`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # async fn dox() {
+    /// tokio::task_local! {
+    ///     static KEY: u32;
+    /// }
+    ///
+    /// let fut = KEY.scope(42, async {
+    ///     // Do some async work
+    /// });
+    ///
+    /// let mut pinned = Box::pin(fut);
+    ///
+    /// // Complete the TaskLocalFuture
+    /// let _ = pinned.as_mut().await;
+    ///
+    /// // And here, we can take task local value
+    /// let value = pinned.as_mut().take_value();
+    ///
+    /// assert_eq!(value, Some(42));
+    /// # }
+    /// ```
+    pub fn take_value(self: Pin<&mut Self>) -> Option<T> {
+        let this = self.project();
+        this.slot.take()
     }
 }
 

@@ -8,9 +8,7 @@ use crate::net::unix::SocketAddr;
 use std::fmt;
 use std::io::{self, Read, Write};
 use std::net::Shutdown;
-#[cfg(not(tokio_no_as_fd))]
-use std::os::unix::io::{AsFd, BorrowedFd};
-use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+use std::os::unix::io::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, RawFd};
 use std::os::unix::net;
 use std::path::Path;
 use std::pin::Pin;
@@ -41,6 +39,24 @@ cfg_net_unix! {
 }
 
 impl UnixStream {
+    pub(crate) async fn connect_mio(sys: mio::net::UnixStream) -> io::Result<UnixStream> {
+        let stream = UnixStream::new(sys)?;
+
+        // Once we've connected, wait for the stream to be writable as
+        // that's when the actual connection has been initiated. Once we're
+        // writable we check for `take_socket_error` to see if the connect
+        // actually hit an error or not.
+        //
+        // If all that succeeded then we ship everything on up.
+        poll_fn(|cx| stream.io.registration().poll_write_ready(cx)).await?;
+
+        if let Some(e) = stream.io.take_error()? {
+            return Err(e);
+        }
+
+        Ok(stream)
+    }
+
     /// Connects to the socket named by `path`.
     ///
     /// This function will create a new Unix socket and connect to the path
@@ -744,9 +760,9 @@ impl UnixStream {
             .await
     }
 
-    /// Creates new `UnixStream` from a `std::os::unix::net::UnixStream`.
+    /// Creates new [`UnixStream`] from a [`std::os::unix::net::UnixStream`].
     ///
-    /// This function is intended to be used to wrap a UnixStream from the
+    /// This function is intended to be used to wrap a `UnixStream` from the
     /// standard library in the Tokio equivalent.
     ///
     /// # Notes
@@ -830,7 +846,7 @@ impl UnixStream {
     pub fn into_std(self) -> io::Result<std::os::unix::net::UnixStream> {
         self.io
             .into_inner()
-            .map(|io| io.into_raw_fd())
+            .map(IntoRawFd::into_raw_fd)
             .map(|raw_fd| unsafe { std::os::unix::net::UnixStream::from_raw_fd(raw_fd) })
     }
 
@@ -1039,7 +1055,6 @@ impl AsRawFd for UnixStream {
     }
 }
 
-#[cfg(not(tokio_no_as_fd))]
 impl AsFd for UnixStream {
     fn as_fd(&self) -> BorrowedFd<'_> {
         unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) }

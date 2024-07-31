@@ -2,13 +2,13 @@
 #![allow(clippy::disallowed_names)]
 use std::sync::Arc;
 
-#[cfg(tokio_wasm_not_wasi)]
+#[cfg(all(target_family = "wasm", not(target_os = "wasi")))]
 #[cfg(target_pointer_width = "64")]
 use wasm_bindgen_test::wasm_bindgen_test as test;
-#[cfg(tokio_wasm_not_wasi)]
+#[cfg(all(target_family = "wasm", not(target_os = "wasi")))]
 use wasm_bindgen_test::wasm_bindgen_test as maybe_tokio_test;
 
-#[cfg(not(tokio_wasm_not_wasi))]
+#[cfg(not(all(target_family = "wasm", not(target_os = "wasi"))))]
 use tokio::test as maybe_tokio_test;
 
 use tokio::sync::{oneshot, Semaphore};
@@ -158,4 +158,19 @@ async fn a_different_future_is_polled_first_every_time_poll_fn_is_polled() {
 #[allow(clippy::unit_cmp)]
 async fn empty_join() {
     assert_eq!(tokio::join!(), ());
+}
+
+#[tokio::test]
+async fn join_into_future() {
+    struct NotAFuture;
+    impl std::future::IntoFuture for NotAFuture {
+        type Output = ();
+        type IntoFuture = std::future::Ready<()>;
+
+        fn into_future(self) -> Self::IntoFuture {
+            std::future::ready(())
+        }
+    }
+
+    tokio::join!(NotAFuture);
 }

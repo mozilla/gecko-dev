@@ -1,5 +1,6 @@
+#![allow(unknown_lints, unexpected_cfgs)]
 #![warn(rust_2018_idioms)]
-#![cfg(all(feature = "full", not(tokio_wasi)))]
+#![cfg(all(feature = "full", not(target_os = "wasi")))]
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -10,14 +11,14 @@ use tokio_test::{assert_err, assert_ok};
 use futures::future::poll_fn;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 
 macro_rules! cfg_metrics {
     ($($t:tt)*) => {
-        #[cfg(tokio_unstable)]
+        #[cfg(all(tokio_unstable, target_has_atomic = "64"))]
         {
             $( $t )*
         }
@@ -486,6 +487,34 @@ fn max_blocking_threads_set_to_zero() {
         .unwrap();
 }
 
+/// Regression test for #6445.
+///
+/// After #6445, setting `global_queue_interval` to 1 is now technically valid.
+/// This test confirms that there is no regression in `multi_thread_runtime`
+/// when global_queue_interval is set to 1.
+#[test]
+fn global_queue_interval_set_to_one() {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .global_queue_interval(1)
+        .build()
+        .unwrap();
+
+    // Perform a simple work.
+    let cnt = Arc::new(AtomicUsize::new(0));
+    rt.block_on(async {
+        let mut set = tokio::task::JoinSet::new();
+        for _ in 0..10 {
+            let cnt = cnt.clone();
+            set.spawn(async move { cnt.fetch_add(1, Ordering::Relaxed) });
+        }
+
+        while let Some(res) = set.join_next().await {
+            res.unwrap();
+        }
+    });
+    assert_eq!(cnt.load(Relaxed), 10);
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn hang_on_shutdown() {
     let (sync_tx, sync_rx) = std::sync::mpsc::channel::<()>();
@@ -746,11 +775,33 @@ mod unstable {
 
     #[test]
     fn test_disable_lifo_slot() {
+        use std::sync::mpsc::{channel, RecvTimeoutError};
+
         let rt = runtime::Builder::new_multi_thread()
             .disable_lifo_slot()
             .worker_threads(2)
             .build()
             .unwrap();
+
+        // Spawn a background thread to poke the runtime periodically.
+        //
+        // This is necessary because we may end up triggering the issue in:
+        // <https://github.com/tokio-rs/tokio/issues/4730>
+        //
+        // Spawning a task will wake up the second worker, which will then steal
+        // the task. However, the steal will fail if the task is in the LIFO
+        // slot, because the LIFO slot cannot be stolen.
+        //
+        // Note that this only happens rarely. Most of the time, this thread is
+        // not necessary.
+        let (kill_bg_thread, recv) = channel::<()>();
+        let handle = rt.handle().clone();
+        let bg_thread = std::thread::spawn(move || {
+            let one_sec = std::time::Duration::from_secs(1);
+            while recv.recv_timeout(one_sec) == Err(RecvTimeoutError::Timeout) {
+                handle.spawn(async {});
+            }
+        });
 
         rt.block_on(async {
             tokio::spawn(async {
@@ -760,6 +811,27 @@ mod unstable {
             })
             .await
             .unwrap();
-        })
+        });
+
+        drop(kill_bg_thread);
+        bg_thread.join().unwrap();
+    }
+
+    #[test]
+    fn runtime_id_is_same() {
+        let rt = rt();
+
+        let handle1 = rt.handle();
+        let handle2 = rt.handle();
+
+        assert_eq!(handle1.id(), handle2.id());
+    }
+
+    #[test]
+    fn runtime_ids_different() {
+        let rt1 = rt();
+        let rt2 = rt();
+
+        assert_ne!(rt1.handle().id(), rt2.handle().id());
     }
 }

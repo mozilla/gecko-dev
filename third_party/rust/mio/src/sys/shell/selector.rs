@@ -1,6 +1,6 @@
 use std::io;
 #[cfg(unix)]
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::fd::{AsRawFd, RawFd};
 use std::time::Duration;
 
 pub type Event = usize;
@@ -16,11 +16,6 @@ impl Selector {
     }
 
     pub fn select(&self, _: &mut Events, _: Option<Duration>) -> io::Result<()> {
-        os_required!();
-    }
-
-    #[cfg(all(debug_assertions, not(target_os = "wasi")))]
-    pub fn register_waker(&self) -> bool {
         os_required!();
     }
 }

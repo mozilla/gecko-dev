@@ -1,12 +1,12 @@
-use crate::io_source::IoSource;
-use crate::{event, sys, Interest, Registry, Token};
-
 use std::fmt;
 use std::io::{self, IoSlice, IoSliceMut, Read, Write};
 use std::net::Shutdown;
-use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
-use std::os::unix::net;
+use std::os::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, RawFd};
+use std::os::unix::net::{self, SocketAddr};
 use std::path::Path;
+
+use crate::io_source::IoSource;
+use crate::{event, sys, Interest, Registry, Token};
 
 /// A non-blocking Unix stream socket.
 pub struct UnixStream {
@@ -19,7 +19,16 @@ impl UnixStream {
     /// This may return a `WouldBlock` in which case the socket connection
     /// cannot be completed immediately. Usually it means the backlog is full.
     pub fn connect<P: AsRef<Path>>(path: P) -> io::Result<UnixStream> {
-        sys::uds::stream::connect(path.as_ref()).map(UnixStream::from_std)
+        let addr = SocketAddr::from_pathname(path)?;
+        UnixStream::connect_addr(&addr)
+    }
+
+    /// Connects to the socket named by `address`.
+    ///
+    /// This may return a `WouldBlock` in which case the socket connection
+    /// cannot be completed immediately. Usually it means the backlog is full.
+    pub fn connect_addr(address: &SocketAddr) -> io::Result<UnixStream> {
+        sys::uds::stream::connect_addr(address).map(UnixStream::from_std)
     }
 
     /// Creates a new `UnixStream` from a standard `net::UnixStream`.
@@ -50,13 +59,13 @@ impl UnixStream {
     }
 
     /// Returns the socket address of the local half of this connection.
-    pub fn local_addr(&self) -> io::Result<sys::SocketAddr> {
-        sys::uds::stream::local_addr(&self.inner)
+    pub fn local_addr(&self) -> io::Result<SocketAddr> {
+        self.inner.local_addr()
     }
 
     /// Returns the socket address of the remote half of this connection.
-    pub fn peer_addr(&self) -> io::Result<sys::SocketAddr> {
-        sys::uds::stream::peer_addr(&self.inner)
+    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
+        self.inner.peer_addr()
     }
 
     /// Returns the value of the `SO_ERROR` option.
@@ -91,7 +100,7 @@ impl UnixStream {
     /// #
     /// # fn main() -> Result<(), Box<dyn Error>> {
     /// use std::io;
-    /// use std::os::unix::io::AsRawFd;
+    /// use std::os::fd::AsRawFd;
     /// use mio::net::UnixStream;
     ///
     /// let (stream1, stream2) = UnixStream::pair()?;
@@ -241,5 +250,20 @@ impl FromRawFd for UnixStream {
     /// non-blocking mode.
     unsafe fn from_raw_fd(fd: RawFd) -> UnixStream {
         UnixStream::from_std(FromRawFd::from_raw_fd(fd))
+    }
+}
+
+impl From<UnixStream> for net::UnixStream {
+    fn from(stream: UnixStream) -> Self {
+        // Safety: This is safe since we are extracting the raw fd from a well-constructed
+        // mio::net::uds::UnixStream which ensures that we actually pass in a valid file
+        // descriptor/socket
+        unsafe { net::UnixStream::from_raw_fd(stream.into_raw_fd()) }
+    }
+}
+
+impl AsFd for UnixStream {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.inner.as_fd()
     }
 }

@@ -28,7 +28,6 @@ use std::marker::PhantomPinned;
 use std::pin::Pin;
 use std::ptr::NonNull;
 use std::sync::atomic::Ordering::*;
-use std::task::Poll::*;
 use std::task::{Context, Poll, Waker};
 use std::{cmp, fmt};
 
@@ -72,7 +71,7 @@ pub struct AcquireError(());
 pub(crate) struct Acquire<'a> {
     node: Waiter,
     semaphore: &'a Semaphore,
-    num_permits: u32,
+    num_permits: usize,
     queued: bool,
 }
 
@@ -128,7 +127,7 @@ impl Semaphore {
     /// implementation used three bits, so we will continue to reserve them to
     /// avoid a breaking change if additional flags need to be added in the
     /// future.
-    pub(crate) const MAX_PERMITS: usize = std::usize::MAX >> 3;
+    pub(crate) const MAX_PERMITS: usize = usize::MAX >> 3;
     const CLOSED: usize = 1;
     // The least-significant bit in the number of permits is reserved to use
     // as a flag indicating that the semaphore has been closed. Consequently
@@ -178,20 +177,42 @@ impl Semaphore {
     /// Creates a new semaphore with the initial number of permits.
     ///
     /// Maximum number of permits on 32-bit platforms is `1<<29`.
-    ///
-    /// If the specified number of permits exceeds the maximum permit amount
-    /// Then the value will get clamped to the maximum number of permits.
-    #[cfg(all(feature = "parking_lot", not(all(loom, test))))]
-    pub(crate) const fn const_new(mut permits: usize) -> Self {
-        // NOTE: assertions and by extension panics are still being worked on: https://github.com/rust-lang/rust/issues/74925
-        // currently we just clamp the permit count when it exceeds the max
-        permits &= Self::MAX_PERMITS;
+    #[cfg(not(all(loom, test)))]
+    pub(crate) const fn const_new(permits: usize) -> Self {
+        assert!(permits <= Self::MAX_PERMITS);
 
         Self {
             permits: AtomicUsize::new(permits << Self::PERMIT_SHIFT),
             waiters: Mutex::const_new(Waitlist {
                 queue: LinkedList::new(),
                 closed: false,
+            }),
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: tracing::Span::none(),
+        }
+    }
+
+    /// Creates a new closed semaphore with 0 permits.
+    pub(crate) fn new_closed() -> Self {
+        Self {
+            permits: AtomicUsize::new(Self::CLOSED),
+            waiters: Mutex::new(Waitlist {
+                queue: LinkedList::new(),
+                closed: true,
+            }),
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: tracing::Span::none(),
+        }
+    }
+
+    /// Creates a new closed semaphore with 0 permits.
+    #[cfg(not(all(loom, test)))]
+    pub(crate) const fn const_new_closed() -> Self {
+        Self {
+            permits: AtomicUsize::new(Self::CLOSED),
+            waiters: Mutex::const_new(Waitlist {
+                queue: LinkedList::new(),
+                closed: true,
             }),
             #[cfg(all(tokio_unstable, feature = "tracing"))]
             resource_span: tracing::Span::none(),
@@ -241,13 +262,13 @@ impl Semaphore {
         self.permits.load(Acquire) & Self::CLOSED == Self::CLOSED
     }
 
-    pub(crate) fn try_acquire(&self, num_permits: u32) -> Result<(), TryAcquireError> {
+    pub(crate) fn try_acquire(&self, num_permits: usize) -> Result<(), TryAcquireError> {
         assert!(
-            num_permits as usize <= Self::MAX_PERMITS,
+            num_permits <= Self::MAX_PERMITS,
             "a semaphore may not have more than MAX_PERMITS permits ({})",
             Self::MAX_PERMITS
         );
-        let num_permits = (num_permits as usize) << Self::PERMIT_SHIFT;
+        let num_permits = num_permits << Self::PERMIT_SHIFT;
         let mut curr = self.permits.load(Acquire);
         loop {
             // Has the semaphore closed?
@@ -272,7 +293,7 @@ impl Semaphore {
         }
     }
 
-    pub(crate) fn acquire(&self, num_permits: u32) -> Acquire<'_> {
+    pub(crate) fn acquire(&self, num_permits: usize) -> Acquire<'_> {
         Acquire::new(self, num_permits)
     }
 
@@ -347,10 +368,35 @@ impl Semaphore {
         assert_eq!(rem, 0);
     }
 
+    /// Decrease a semaphore's permits by a maximum of `n`.
+    ///
+    /// If there are insufficient permits and it's not possible to reduce by `n`,
+    /// return the number of permits that were actually reduced.
+    pub(crate) fn forget_permits(&self, n: usize) -> usize {
+        if n == 0 {
+            return 0;
+        }
+
+        let mut curr_bits = self.permits.load(Acquire);
+        loop {
+            let curr = curr_bits >> Self::PERMIT_SHIFT;
+            let new = curr.saturating_sub(n);
+            match self.permits.compare_exchange_weak(
+                curr_bits,
+                new << Self::PERMIT_SHIFT,
+                AcqRel,
+                Acquire,
+            ) {
+                Ok(_) => return std::cmp::min(curr, n),
+                Err(actual) => curr_bits = actual,
+            };
+        }
+    }
+
     fn poll_acquire(
         &self,
         cx: &mut Context<'_>,
-        num_permits: u32,
+        num_permits: usize,
         node: Pin<&mut Waiter>,
         queued: bool,
     ) -> Poll<Result<(), AcquireError>> {
@@ -359,7 +405,7 @@ impl Semaphore {
         let needed = if queued {
             node.state.load(Acquire) << Self::PERMIT_SHIFT
         } else {
-            (num_permits as usize) << Self::PERMIT_SHIFT
+            num_permits << Self::PERMIT_SHIFT
         };
 
         let mut lock = None;
@@ -369,7 +415,7 @@ impl Semaphore {
         let mut waiters = loop {
             // Has the semaphore closed?
             if curr & Self::CLOSED > 0 {
-                return Ready(Err(AcquireError::closed()));
+                return Poll::Ready(Err(AcquireError::closed()));
             }
 
             let mut remaining = 0;
@@ -414,7 +460,7 @@ impl Semaphore {
                                 )
                             });
 
-                            return Ready(Ok(()));
+                            return Poll::Ready(Ok(()));
                         } else if lock.is_none() {
                             break self.waiters.lock();
                         }
@@ -426,7 +472,7 @@ impl Semaphore {
         };
 
         if waiters.closed {
-            return Ready(Err(AcquireError::closed()));
+            return Poll::Ready(Err(AcquireError::closed()));
         }
 
         #[cfg(all(tokio_unstable, feature = "tracing"))]
@@ -440,7 +486,7 @@ impl Semaphore {
 
         if node.assign_permits(&mut acquired) {
             self.add_permits_locked(acquired, waiters);
-            return Ready(Ok(()));
+            return Poll::Ready(Ok(()));
         }
 
         assert_eq!(acquired, 0);
@@ -453,8 +499,7 @@ impl Semaphore {
             // Do we need to register the new waker?
             if waker
                 .as_ref()
-                .map(|waker| !waker.will_wake(cx.waker()))
-                .unwrap_or(true)
+                .map_or(true, |waker| !waker.will_wake(cx.waker()))
             {
                 old_waker = std::mem::replace(waker, Some(cx.waker().clone()));
             }
@@ -472,7 +517,7 @@ impl Semaphore {
         drop(waiters);
         drop(old_waker);
 
-        Pending
+        Poll::Pending
     }
 }
 
@@ -486,12 +531,12 @@ impl fmt::Debug for Semaphore {
 
 impl Waiter {
     fn new(
-        num_permits: u32,
+        num_permits: usize,
         #[cfg(all(tokio_unstable, feature = "tracing"))] ctx: trace::AsyncOpTracingCtx,
     ) -> Self {
         Waiter {
             waker: UnsafeCell::new(None),
-            state: AtomicUsize::new(num_permits as usize),
+            state: AtomicUsize::new(num_permits),
             pointers: linked_list::Pointers::new(),
             #[cfg(all(tokio_unstable, feature = "tracing"))]
             ctx,
@@ -530,6 +575,8 @@ impl Future for Acquire<'_> {
     type Output = Result<(), AcquireError>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        ready!(crate::trace::trace_leaf(cx));
+
         #[cfg(all(tokio_unstable, feature = "tracing"))]
         let _resource_span = self.node.ctx.resource_span.clone().entered();
         #[cfg(all(tokio_unstable, feature = "tracing"))]
@@ -550,15 +597,15 @@ impl Future for Acquire<'_> {
         let coop = ready!(crate::runtime::coop::poll_proceed(cx));
 
         let result = match semaphore.poll_acquire(cx, needed, node, *queued) {
-            Pending => {
+            Poll::Pending => {
                 *queued = true;
-                Pending
+                Poll::Pending
             }
-            Ready(r) => {
+            Poll::Ready(r) => {
                 coop.made_progress();
                 r?;
                 *queued = false;
-                Ready(Ok(()))
+                Poll::Ready(Ok(()))
             }
         };
 
@@ -571,7 +618,7 @@ impl Future for Acquire<'_> {
 }
 
 impl<'a> Acquire<'a> {
-    fn new(semaphore: &'a Semaphore, num_permits: u32) -> Self {
+    fn new(semaphore: &'a Semaphore, num_permits: usize) -> Self {
         #[cfg(any(not(tokio_unstable), not(feature = "tracing")))]
         return Self {
             node: Waiter::new(num_permits),
@@ -615,14 +662,14 @@ impl<'a> Acquire<'a> {
         });
     }
 
-    fn project(self: Pin<&mut Self>) -> (Pin<&mut Waiter>, &Semaphore, u32, &mut bool) {
+    fn project(self: Pin<&mut Self>) -> (Pin<&mut Waiter>, &Semaphore, usize, &mut bool) {
         fn is_unpin<T: Unpin>() {}
         unsafe {
             // Safety: all fields other than `node` are `Unpin`
 
             is_unpin::<&Semaphore>();
             is_unpin::<&mut bool>();
-            is_unpin::<u32>();
+            is_unpin::<usize>();
 
             let this = self.get_unchecked_mut();
             (
@@ -653,7 +700,7 @@ impl Drop for Acquire<'_> {
         // Safety: we have locked the wait list.
         unsafe { waiters.queue.remove(node) };
 
-        let acquired_permits = self.num_permits as usize - self.node.state.load(Acquire);
+        let acquired_permits = self.num_permits - self.node.state.load(Acquire);
         if acquired_permits > 0 {
             self.semaphore.add_permits_locked(acquired_permits, waiters);
         }

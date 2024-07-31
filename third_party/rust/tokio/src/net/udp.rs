@@ -180,7 +180,7 @@ impl UdpSocket {
     /// This function is intended to be used to wrap a UDP socket from the
     /// standard library in the Tokio equivalent.
     ///
-    /// This can be used in conjunction with socket2's `Socket` interface to
+    /// This can be used in conjunction with `socket2`'s `Socket` interface to
     /// configure a socket before it's handed off, such as setting options like
     /// `reuse_address` or binding to multiple addresses.
     ///
@@ -251,7 +251,7 @@ impl UdpSocket {
             use std::os::unix::io::{FromRawFd, IntoRawFd};
             self.io
                 .into_inner()
-                .map(|io| io.into_raw_fd())
+                .map(IntoRawFd::into_raw_fd)
                 .map(|raw_fd| unsafe { std::net::UdpSocket::from_raw_fd(raw_fd) })
         }
 
@@ -313,7 +313,7 @@ impl UdpSocket {
     }
 
     /// Connects the UDP socket setting the default destination for send() and
-    /// limiting packets that are read via recv from the address specified in
+    /// limiting packets that are read via `recv` from the address specified in
     /// `addr`.
     ///
     /// # Example
@@ -342,7 +342,7 @@ impl UdpSocket {
 
         for addr in addrs {
             match self.io.connect(addr) {
-                Ok(_) => return Ok(()),
+                Ok(()) => return Ok(()),
                 Err(e) => last_err = Some(e),
             }
         }
@@ -358,7 +358,7 @@ impl UdpSocket {
     /// Waits for any of the requested ready states.
     ///
     /// This function is usually paired with `try_recv()` or `try_send()`. It
-    /// can be used to concurrently recv / send to the same socket on a single
+    /// can be used to concurrently `recv` / `send` to the same socket on a single
     /// task without splitting the socket.
     ///
     /// The function may complete without the socket being ready. This is a
@@ -786,7 +786,7 @@ impl UdpSocket {
     /// The [`connect`] method will connect this socket to a remote address. This method
     /// resolves to an error if the socket is not connected.
     ///
-    /// Note that on multiple calls to a `poll_*` method in the recv direction, only the
+    /// Note that on multiple calls to a `poll_*` method in the `recv` direction, only the
     /// `Waker` from the `Context` passed to the most recent call will be scheduled to
     /// receive a wakeup.
     ///
@@ -804,6 +804,7 @@ impl UdpSocket {
     ///
     /// [`connect`]: method@Self::connect
     pub fn poll_recv(&self, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>) -> Poll<io::Result<()>> {
+        #[allow(clippy::blocks_in_conditions)]
         let n = ready!(self.io.registration().poll_read_io(cx, || {
             // Safety: will not read the maybe uninitialized bytes.
             let b = unsafe {
@@ -825,7 +826,7 @@ impl UdpSocket {
     /// address to which it is connected. On success, returns the number of
     /// bytes read.
     ///
-    /// This method must be called with valid byte array buf of sufficient size
+    /// This method must be called with valid byte array `buf` of sufficient size
     /// to hold the message bytes. If a message is too long to fit in the
     /// supplied buffer, excess bytes may be discarded.
     ///
@@ -881,7 +882,7 @@ impl UdpSocket {
         /// Tries to receive data from the stream into the provided buffer, advancing the
         /// buffer's internal cursor, returning how many bytes were read.
         ///
-        /// This method must be called with valid byte array buf of sufficient size
+        /// This method must be called with valid byte array `buf` of sufficient size
         /// to hold the message bytes. If a message is too long to fit in the
         /// supplied buffer, excess bytes may be discarded.
         ///
@@ -949,7 +950,7 @@ impl UdpSocket {
         /// to which it is connected, advancing the buffer's internal cursor,
         /// returning how many bytes were read.
         ///
-        /// This method must be called with valid byte array buf of sufficient size
+        /// This method must be called with valid byte array `buf` of sufficient size
         /// to hold the message bytes. If a message is too long to fit in the
         /// supplied buffer, excess bytes may be discarded.
         ///
@@ -996,7 +997,7 @@ impl UdpSocket {
         /// Tries to receive a single datagram message on the socket. On success,
         /// returns the number of bytes read and the origin.
         ///
-        /// This method must be called with valid byte array buf of sufficient size
+        /// This method must be called with valid byte array `buf` of sufficient size
         /// to hold the message bytes. If a message is too long to fit in the
         /// supplied buffer, excess bytes may be discarded.
         ///
@@ -1071,7 +1072,7 @@ impl UdpSocket {
         /// Receives a single datagram message on the socket, advancing the
         /// buffer's internal cursor, returning how many bytes were read and the origin.
         ///
-        /// This method must be called with valid byte array buf of sufficient size
+        /// This method must be called with valid byte array `buf` of sufficient size
         /// to hold the message bytes. If a message is too long to fit in the
         /// supplied buffer, excess bytes may be discarded.
         ///
@@ -1311,7 +1312,7 @@ impl UdpSocket {
 
     /// Attempts to receive a single datagram on the socket.
     ///
-    /// Note that on multiple calls to a `poll_*` method in the recv direction, only the
+    /// Note that on multiple calls to a `poll_*` method in the `recv` direction, only the
     /// `Waker` from the `Context` passed to the most recent call will be scheduled to
     /// receive a wakeup.
     ///
@@ -1340,6 +1341,7 @@ impl UdpSocket {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<SocketAddr>> {
+        #[allow(clippy::blocks_in_conditions)]
         let (n, addr) = ready!(self.io.registration().poll_read_io(cx, || {
             // Safety: will not read the maybe uninitialized bytes.
             let b = unsafe {
@@ -1360,7 +1362,7 @@ impl UdpSocket {
     /// Tries to receive a single datagram message on the socket. On success,
     /// returns the number of bytes read and the origin.
     ///
-    /// This method must be called with valid byte array buf of sufficient size
+    /// This method must be called with valid byte array `buf` of sufficient size
     /// to hold the message bytes. If a message is too long to fit in the
     /// supplied buffer, excess bytes may be discarded.
     ///
@@ -1506,8 +1508,8 @@ impl UdpSocket {
     /// # Notes
     ///
     /// On Windows, if the data is larger than the buffer specified, the buffer
-    /// is filled with the first part of the data, and peek_from returns the error
-    /// WSAEMSGSIZE(10040). The excess data is lost.
+    /// is filled with the first part of the data, and `peek_from` returns the error
+    /// `WSAEMSGSIZE(10040)`. The excess data is lost.
     /// Make sure to always use a sufficiently large buffer to hold the
     /// maximum UDP packet size, which can be up to 65536 bytes in size.
     ///
@@ -1555,13 +1557,13 @@ impl UdpSocket {
     ///
     /// # Notes
     ///
-    /// Note that on multiple calls to a `poll_*` method in the recv direction, only the
+    /// Note that on multiple calls to a `poll_*` method in the `recv` direction, only the
     /// `Waker` from the `Context` passed to the most recent call will be scheduled to
     /// receive a wakeup
     ///
     /// On Windows, if the data is larger than the buffer specified, the buffer
     /// is filled with the first part of the data, and peek returns the error
-    /// WSAEMSGSIZE(10040). The excess data is lost.
+    /// `WSAEMSGSIZE(10040)`. The excess data is lost.
     /// Make sure to always use a sufficiently large buffer to hold the
     /// maximum UDP packet size, which can be up to 65536 bytes in size.
     ///
@@ -1595,6 +1597,7 @@ impl UdpSocket {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<SocketAddr>> {
+        #[allow(clippy::blocks_in_conditions)]
         let (n, addr) = ready!(self.io.registration().poll_read_io(cx, || {
             // Safety: will not read the maybe uninitialized bytes.
             let b = unsafe {
@@ -1623,7 +1626,7 @@ impl UdpSocket {
     ///
     /// On Windows, if the data is larger than the buffer specified, the buffer
     /// is filled with the first part of the data, and peek returns the error
-    /// WSAEMSGSIZE(10040). The excess data is lost.
+    /// `WSAEMSGSIZE(10040)`. The excess data is lost.
     /// Make sure to always use a sufficiently large buffer to hold the
     /// maximum UDP packet size, which can be up to 65536 bytes in size.
     ///
@@ -1674,7 +1677,7 @@ impl UdpSocket {
     ///
     /// # Notes
     ///
-    /// Note that on multiple calls to a `poll_*` method in the recv direction, only the
+    /// Note that on multiple calls to a `poll_*` method in the `recv` direction, only the
     /// `Waker` from the `Context` passed to the most recent call will be scheduled to
     /// receive a wakeup.
     ///
@@ -1855,7 +1858,7 @@ impl UdpSocket {
     /// Windows Server 2012+.](https://docs.microsoft.com/en-us/windows/win32/winsock/ipproto-ip-socket-options)
     ///
     /// [`set_tos`]: Self::set_tos
-    // https://docs.rs/socket2/0.4.2/src/socket2/socket.rs.html#1178
+    // https://docs.rs/socket2/0.5.3/src/socket2/socket.rs.html#1464
     #[cfg(not(any(
         target_os = "fuchsia",
         target_os = "redox",
@@ -1882,7 +1885,7 @@ impl UdpSocket {
     ///
     /// **NOTE:** On Windows, `IP_TOS` is only supported on [Windows 8+ or
     /// Windows Server 2012+.](https://docs.microsoft.com/en-us/windows/win32/winsock/ipproto-ip-socket-options)
-    // https://docs.rs/socket2/0.4.2/src/socket2/socket.rs.html#1178
+    // https://docs.rs/socket2/0.5.3/src/socket2/socket.rs.html#1446
     #[cfg(not(any(
         target_os = "fuchsia",
         target_os = "redox",
@@ -1921,7 +1924,7 @@ impl UdpSocket {
     /// works for some socket types, particularly `AF_INET` sockets.
     ///
     /// If `interface` is `None` or an empty string it removes the binding.
-    #[cfg(all(any(target_os = "android", target_os = "fuchsia", target_os = "linux")))]
+    #[cfg(any(target_os = "android", target_os = "fuchsia", target_os = "linux"))]
     #[cfg_attr(
         docsrs,
         doc(cfg(all(any(target_os = "android", target_os = "fuchsia", target_os = "linux"))))
@@ -2021,7 +2024,6 @@ mod sys {
         }
     }
 
-    #[cfg(not(tokio_no_as_fd))]
     impl AsFd for UdpSocket {
         fn as_fd(&self) -> BorrowedFd<'_> {
             unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) }
@@ -2031,7 +2033,6 @@ mod sys {
 
 cfg_windows! {
     use crate::os::windows::io::{AsRawSocket, RawSocket};
-    #[cfg(not(tokio_no_as_fd))]
     use crate::os::windows::io::{AsSocket, BorrowedSocket};
 
     impl AsRawSocket for UdpSocket {
@@ -2040,7 +2041,6 @@ cfg_windows! {
         }
     }
 
-    #[cfg(not(tokio_no_as_fd))]
     impl AsSocket for UdpSocket {
         fn as_socket(&self) -> BorrowedSocket<'_> {
             unsafe { BorrowedSocket::borrow_raw(self.as_raw_socket()) }

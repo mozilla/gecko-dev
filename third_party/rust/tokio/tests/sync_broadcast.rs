@@ -2,7 +2,7 @@
 #![warn(rust_2018_idioms)]
 #![cfg(feature = "sync")]
 
-#[cfg(tokio_wasm_not_wasi)]
+#[cfg(all(target_family = "wasm", not(target_os = "wasi")))]
 use wasm_bindgen_test::wasm_bindgen_test as test;
 
 use tokio::sync::broadcast;
@@ -52,6 +52,7 @@ macro_rules! assert_closed {
     };
 }
 
+#[allow(unused)]
 trait AssertSend: Send + Sync {}
 impl AssertSend for broadcast::Sender<i32> {}
 impl AssertSend for broadcast::Receiver<i32> {}
@@ -276,23 +277,21 @@ fn send_no_rx() {
 
 #[test]
 #[should_panic]
-#[cfg(not(tokio_wasm))] // wasm currently doesn't support unwinding
+#[cfg(not(target_family = "wasm"))] // wasm currently doesn't support unwinding
 fn zero_capacity() {
     broadcast::channel::<()>(0);
 }
 
 #[test]
 #[should_panic]
-#[cfg(not(tokio_wasm))] // wasm currently doesn't support unwinding
+#[cfg(not(target_family = "wasm"))] // wasm currently doesn't support unwinding
 fn capacity_too_big() {
-    use std::usize;
-
     broadcast::channel::<()>(1 + (usize::MAX >> 1));
 }
 
 #[test]
 #[cfg(panic = "unwind")]
-#[cfg(not(tokio_wasm))] // wasm currently doesn't support unwinding
+#[cfg(not(target_family = "wasm"))] // wasm currently doesn't support unwinding
 fn panic_in_clone() {
     use std::panic::{self, AssertUnwindSafe};
 
@@ -563,7 +562,7 @@ fn sender_len() {
 }
 
 #[test]
-#[cfg(not(tokio_wasm_not_wasi))]
+#[cfg(not(all(target_family = "wasm", not(target_os = "wasi"))))]
 fn sender_len_random() {
     use rand::Rng;
 

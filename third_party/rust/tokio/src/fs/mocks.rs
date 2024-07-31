@@ -30,6 +30,7 @@ mock! {
         pub fn open(pb: PathBuf) -> io::Result<Self>;
         pub fn set_len(&self, size: u64) -> io::Result<()>;
         pub fn set_permissions(&self, _perm: Permissions) -> io::Result<()>;
+        pub fn set_max_buf_size(&self, max_buf_size: usize);
         pub fn sync_all(&self) -> io::Result<()>;
         pub fn sync_data(&self) -> io::Result<()>;
         pub fn try_clone(&self) -> io::Result<Self>;
@@ -124,12 +125,12 @@ impl<T> Future for JoinHandle<T> {
     type Output = Result<T, io::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        use std::task::Poll::*;
+        use std::task::Poll;
 
         match Pin::new(&mut self.rx).poll(cx) {
-            Ready(Ok(v)) => Ready(Ok(v)),
-            Ready(Err(e)) => panic!("error = {:?}", e),
-            Pending => Pending,
+            Poll::Ready(Ok(v)) => Poll::Ready(Ok(v)),
+            Poll::Ready(Err(e)) => panic!("error = {:?}", e),
+            Poll::Pending => Poll::Pending,
         }
     }
 }

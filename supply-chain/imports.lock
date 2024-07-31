@@ -594,6 +594,20 @@ user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
+[[publisher.tokio]]
+version = "1.39.2"
+when = "2024-07-27"
+user-id = 6741
+user-login = "Darksonn"
+user-name = "Alice Ryhl"
+
+[[publisher.tokio-macros]]
+version = "2.4.0"
+when = "2024-07-23"
+user-id = 6741
+user-login = "Darksonn"
+user-name = "Alice Ryhl"
+
 [[publisher.tokio-util]]
 version = "0.7.2"
 when = "2022-05-15"

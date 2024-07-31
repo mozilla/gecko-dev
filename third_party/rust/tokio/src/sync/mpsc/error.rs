@@ -19,12 +19,12 @@ impl<T> fmt::Display for SendError<T> {
     }
 }
 
-impl<T> std::error::Error for SendError<T> {}
+impl<T> Error for SendError<T> {}
 
 // ===== TrySendError =====
 
 /// This enumeration is the list of the possible error outcomes for the
-/// [try_send](super::Sender::try_send) method.
+/// [`try_send`](super::Sender::try_send) method.
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum TrySendError<T> {
     /// The data could not be sent on the channel because the channel is

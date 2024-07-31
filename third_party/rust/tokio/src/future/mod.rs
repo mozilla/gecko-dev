@@ -6,6 +6,7 @@
 pub(crate) mod maybe_done;
 
 mod poll_fn;
+#[allow(unused_imports)]
 pub use poll_fn::poll_fn;
 
 cfg_process! {
@@ -20,6 +21,7 @@ cfg_sync! {
 
 cfg_trace! {
     mod trace;
+    #[allow(unused_imports)]
     pub(crate) use trace::InstrumentedFuture as Future;
 }
 

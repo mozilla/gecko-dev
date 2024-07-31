@@ -1,6 +1,7 @@
 use crate::loom::sync::Arc;
 use crate::runtime::context;
 use crate::runtime::scheduler::{self, current_thread, Inject};
+use crate::task::Id;
 
 use backtrace::BacktraceFrame;
 use std::cell::Cell;
@@ -18,7 +19,7 @@ mod tree;
 use symbol::Symbol;
 use tree::Tree;
 
-use super::{Notified, OwnedTasks};
+use super::{Notified, OwnedTasks, Schedule};
 
 type Backtrace = Vec<BacktraceFrame>;
 type SymbolTrace = Vec<Symbol>;
@@ -99,6 +100,16 @@ impl Context {
         unsafe {
             Self::try_with_current(|context| f(&context.collector)).expect(FAIL_NO_THREAD_LOCAL)
         }
+    }
+
+    /// Produces `true` if the current task is being traced; otherwise false.
+    pub(crate) fn is_tracing() -> bool {
+        Self::with_current_collector(|maybe_collector| {
+            let collector = maybe_collector.take();
+            let result = collector.is_some();
+            maybe_collector.set(collector);
+            result
+        })
     }
 }
 
@@ -184,8 +195,10 @@ pub(crate) fn trace_leaf(cx: &mut task::Context<'_>) -> Poll<()> {
             if let Some(scheduler) = scheduler {
                 match scheduler {
                     scheduler::Context::CurrentThread(s) => s.defer.defer(cx.waker()),
-                    #[cfg(all(feature = "rt-multi-thread", not(tokio_wasi)))]
+                    #[cfg(feature = "rt-multi-thread")]
                     scheduler::Context::MultiThread(s) => s.defer.defer(cx.waker()),
+                    #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
+                    scheduler::Context::MultiThreadAlt(_) => unimplemented!(),
                 }
             }
         });
@@ -249,35 +262,26 @@ impl<T: Future> Future for Root<T> {
     }
 }
 
-/// Trace and poll all tasks of the current_thread runtime.
+/// Trace and poll all tasks of the `current_thread` runtime.
 pub(in crate::runtime) fn trace_current_thread(
     owned: &OwnedTasks<Arc<current_thread::Handle>>,
     local: &mut VecDeque<Notified<Arc<current_thread::Handle>>>,
     injection: &Inject<Arc<current_thread::Handle>>,
-) -> Vec<Trace> {
+) -> Vec<(Id, Trace)> {
     // clear the local and injection queues
-    local.clear();
 
-    while let Some(task) = injection.pop() {
-        drop(task);
+    let mut dequeued = Vec::new();
+
+    while let Some(task) = local.pop_back() {
+        dequeued.push(task);
     }
 
-    // notify each task
-    let mut tasks = vec![];
-    owned.for_each(|task| {
-        // set the notified bit
-        task.as_raw().state().transition_to_notified_for_tracing();
-        // store the raw tasks into a vec
-        tasks.push(task.as_raw());
-    });
+    while let Some(task) = injection.pop() {
+        dequeued.push(task);
+    }
 
-    tasks
-        .into_iter()
-        .map(|task| {
-            let ((), trace) = Trace::capture(|| task.poll());
-            trace
-        })
-        .collect()
+    // precondition: We have drained the tasks from the injection queue.
+    trace_owned(owned, dequeued)
 }
 
 cfg_rt_multi_thread! {
@@ -286,7 +290,7 @@ cfg_rt_multi_thread! {
     use crate::runtime::scheduler::multi_thread::Synced;
     use crate::runtime::scheduler::inject::Shared;
 
-    /// Trace and poll all tasks of the current_thread runtime.
+    /// Trace and poll all tasks of the `current_thread` runtime.
     ///
     /// ## Safety
     ///
@@ -296,35 +300,57 @@ cfg_rt_multi_thread! {
         local: &mut multi_thread::queue::Local<Arc<multi_thread::Handle>>,
         synced: &Mutex<Synced>,
         injection: &Shared<Arc<multi_thread::Handle>>,
-    ) -> Vec<Trace> {
+    ) -> Vec<(Id, Trace)> {
+        let mut dequeued = Vec::new();
+
         // clear the local queue
         while let Some(notified) = local.pop() {
-            drop(notified);
+            dequeued.push(notified);
         }
 
         // clear the injection queue
         let mut synced = synced.lock();
         while let Some(notified) = injection.pop(&mut synced.inject) {
-            drop(notified);
+            dequeued.push(notified);
         }
 
         drop(synced);
 
-        // notify each task
-        let mut traces = vec![];
-        owned.for_each(|task| {
-            // set the notified bit
-            task.as_raw().state().transition_to_notified_for_tracing();
-
-            // trace the task
-            let ((), trace) = Trace::capture(|| task.as_raw().poll());
-            traces.push(trace);
-
-            // reschedule the task
-            let _ = task.as_raw().state().transition_to_notified_by_ref();
-            task.as_raw().schedule();
-        });
-
-        traces
+        // precondition: we have drained the tasks from the local and injection
+        // queues.
+        trace_owned(owned, dequeued)
     }
+}
+
+/// Trace the `OwnedTasks`.
+///
+/// # Preconditions
+///
+/// This helper presumes exclusive access to each task. The tasks must not exist
+/// in any other queue.
+fn trace_owned<S: Schedule>(owned: &OwnedTasks<S>, dequeued: Vec<Notified<S>>) -> Vec<(Id, Trace)> {
+    let mut tasks = dequeued;
+    // Notify and trace all un-notified tasks. The dequeued tasks are already
+    // notified and so do not need to be re-notified.
+    owned.for_each(|task| {
+        // Notify the task (and thus make it poll-able) and stash it. This fails
+        // if the task is already notified. In these cases, we skip tracing the
+        // task.
+        if let Some(notified) = task.notify_for_tracing() {
+            tasks.push(notified);
+        }
+        // We do not poll tasks here, since we hold a lock on `owned` and the
+        // task may complete and need to remove itself from `owned`. Polling
+        // such a task here would result in a deadlock.
+    });
+
+    tasks
+        .into_iter()
+        .map(|task| {
+            let local_notified = owned.assert_owner(task);
+            let id = local_notified.task.id();
+            let ((), trace) = Trace::capture(|| local_notified.run());
+            (id, trace)
+        })
+        .collect()
 }

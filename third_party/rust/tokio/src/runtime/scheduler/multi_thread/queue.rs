@@ -36,8 +36,8 @@ pub(crate) struct Steal<T: 'static>(Arc<Inner<T>>);
 pub(crate) struct Inner<T: 'static> {
     /// Concurrently updated by many threads.
     ///
-    /// Contains two `UnsignedShort` values. The LSB byte is the "real" head of
-    /// the queue. The `UnsignedShort` in the MSB is set by a stealer in process
+    /// Contains two `UnsignedShort` values. The `LSB` byte is the "real" head of
+    /// the queue. The `UnsignedShort` in the `MSB` is set by a stealer in process
     /// of stealing values. It represents the first value being stolen in the
     /// batch. The `UnsignedShort` indices are intentionally wider than strictly
     /// required for buffer indexing in order to provide ABA mitigation and make
@@ -121,7 +121,7 @@ impl<T> Local<T> {
 
     /// Returns false if there are any entries in the queue
     ///
-    /// Separate to is_stealable so that refactors of is_stealable to "protect"
+    /// Separate to `is_stealable` so that refactors of `is_stealable` to "protect"
     /// some tasks from stealing won't affect this
     pub(crate) fn has_tasks(&self) -> bool {
         !self.inner.is_empty()
@@ -179,7 +179,7 @@ impl<T> Local<T> {
     /// Pushes a task to the back of the local queue, if there is not enough
     /// capacity in the queue, this triggers the overflow operation.
     ///
-    /// When the queue overflows, half of the curent contents of the queue is
+    /// When the queue overflows, half of the current contents of the queue is
     /// moved to the given Injection queue. This frees up capacity for more
     /// tasks to be pushed into the local queue.
     pub(crate) fn push_back_or_overflow<O: Overflow<T>>(
@@ -546,7 +546,7 @@ impl<T> Steal<T> {
     }
 }
 
-cfg_metrics! {
+cfg_unstable_metrics! {
     impl<T> Steal<T> {
         pub(crate) fn len(&self) -> usize {
             self.0.len() as _

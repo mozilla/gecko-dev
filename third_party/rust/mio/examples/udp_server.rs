@@ -40,7 +40,12 @@ fn main() -> io::Result<()> {
     // Our event loop.
     loop {
         // Poll to check if we have events waiting for us.
-        poll.poll(&mut events, None)?;
+        if let Err(err) = poll.poll(&mut events, None) {
+            if err.kind() == io::ErrorKind::Interrupted {
+                continue;
+            }
+            return Err(err);
+        }
 
         // Process each event.
         for event in events.iter() {

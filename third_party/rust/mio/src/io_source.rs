@@ -1,8 +1,10 @@
 use std::ops::{Deref, DerefMut};
-#[cfg(unix)]
-use std::os::unix::io::AsRawFd;
-#[cfg(target_os = "wasi")]
-use std::os::wasi::io::AsRawFd;
+#[cfg(any(unix, target_os = "wasi"))]
+use std::os::fd::AsRawFd;
+// TODO: once <https://github.com/rust-lang/rust/issues/126198> is fixed this
+// can use `std::os::fd` and be merged with the above.
+#[cfg(target_os = "hermit")]
+use std::os::hermit::io::AsRawFd;
 #[cfg(windows)]
 use std::os::windows::io::AsRawSocket;
 #[cfg(debug_assertions)]
@@ -21,7 +23,7 @@ use crate::{event, Interest, Registry, Token};
 /// Mio supports registering any FD or socket that can be registered with the
 /// underlying OS selector. `IoSource` provides the necessary bridge.
 ///
-/// [`RawFd`]: std::os::unix::io::RawFd
+/// [`RawFd`]: std::os::fd::RawFd
 /// [`RawSocket`]: std::os::windows::io::RawSocket
 ///
 /// # Notes
@@ -32,33 +34,6 @@ use crate::{event, Interest, Registry, Token};
 ///
 /// [`Poll`]: crate::Poll
 /// [`do_io`]: IoSource::do_io
-/*
-///
-/// # Examples
-///
-/// Basic usage.
-///
-/// ```
-/// # use std::error::Error;
-/// # fn main() -> Result<(), Box<dyn Error>> {
-/// use mio::{Interest, Poll, Token};
-/// use mio::IoSource;
-///
-/// use std::net;
-///
-/// let poll = Poll::new()?;
-///
-/// // Bind a std TCP listener.
-/// let listener = net::TcpListener::bind("127.0.0.1:0")?;
-/// // Wrap it in the `IoSource` type.
-/// let mut listener = IoSource::new(listener);
-///
-/// // Register the listener.
-/// poll.registry().register(&mut listener, Token(0), Interest::READABLE)?;
-/// #     Ok(())
-/// # }
-/// ```
-*/
 pub struct IoSource<T> {
     state: IoSourceState,
     inner: T,
@@ -129,7 +104,7 @@ impl<T> DerefMut for IoSource<T> {
     }
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "hermit"))]
 impl<T> event::Source for IoSource<T>
 where
     T: AsRawFd,
@@ -142,9 +117,8 @@ where
     ) -> io::Result<()> {
         #[cfg(debug_assertions)]
         self.selector_id.associate(registry)?;
-        registry
-            .selector()
-            .register(self.inner.as_raw_fd(), token, interests)
+        self.state
+            .register(registry, token, interests, self.inner.as_raw_fd())
     }
 
     fn reregister(
@@ -155,15 +129,14 @@ where
     ) -> io::Result<()> {
         #[cfg(debug_assertions)]
         self.selector_id.check_association(registry)?;
-        registry
-            .selector()
-            .reregister(self.inner.as_raw_fd(), token, interests)
+        self.state
+            .reregister(registry, token, interests, self.inner.as_raw_fd())
     }
 
     fn deregister(&mut self, registry: &Registry) -> io::Result<()> {
         #[cfg(debug_assertions)]
         self.selector_id.remove_association(registry)?;
-        registry.selector().deregister(self.inner.as_raw_fd())
+        self.state.deregister(registry, self.inner.as_raw_fd())
     }
 }
 

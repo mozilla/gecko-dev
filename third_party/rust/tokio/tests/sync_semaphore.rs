@@ -1,6 +1,6 @@
 #![cfg(feature = "sync")]
 
-#[cfg(tokio_wasm_not_wasi)]
+#[cfg(all(target_family = "wasm", not(target_os = "wasi")))]
 use wasm_bindgen_test::wasm_bindgen_test as test;
 
 use std::sync::Arc;
@@ -78,7 +78,7 @@ fn merge() {
 }
 
 #[test]
-#[cfg(not(tokio_wasm))] // No stack unwinding on wasm targets
+#[cfg(not(target_family = "wasm"))] // No stack unwinding on wasm targets
 #[should_panic]
 fn merge_unrelated_permits() {
     let sem1 = Arc::new(Semaphore::new(3));
@@ -86,6 +86,32 @@ fn merge_unrelated_permits() {
     let mut p1 = sem1.try_acquire().unwrap();
     let p2 = sem2.try_acquire().unwrap();
     p1.merge(p2);
+}
+
+#[test]
+fn split() {
+    let sem = Semaphore::new(5);
+    let mut p1 = sem.try_acquire_many(3).unwrap();
+    assert_eq!(sem.available_permits(), 2);
+    assert_eq!(p1.num_permits(), 3);
+    let mut p2 = p1.split(1).unwrap();
+    assert_eq!(sem.available_permits(), 2);
+    assert_eq!(p1.num_permits(), 2);
+    assert_eq!(p2.num_permits(), 1);
+    let p3 = p1.split(0).unwrap();
+    assert_eq!(p3.num_permits(), 0);
+    drop(p1);
+    assert_eq!(sem.available_permits(), 4);
+    let p4 = p2.split(1).unwrap();
+    assert_eq!(p2.num_permits(), 0);
+    assert_eq!(p4.num_permits(), 1);
+    assert!(p2.split(1).is_none());
+    drop(p2);
+    assert_eq!(sem.available_permits(), 4);
+    drop(p3);
+    assert_eq!(sem.available_permits(), 4);
+    drop(p4);
+    assert_eq!(sem.available_permits(), 5);
 }
 
 #[tokio::test]
@@ -118,7 +144,7 @@ fn add_max_amount_permits() {
     assert_eq!(s.available_permits(), tokio::sync::Semaphore::MAX_PERMITS);
 }
 
-#[cfg(not(tokio_wasm))] // wasm currently doesn't support unwinding
+#[cfg(not(target_family = "wasm"))] // wasm currently doesn't support unwinding
 #[test]
 #[should_panic]
 fn add_more_than_max_amount_permits1() {
@@ -126,7 +152,7 @@ fn add_more_than_max_amount_permits1() {
     s.add_permits(tokio::sync::Semaphore::MAX_PERMITS);
 }
 
-#[cfg(not(tokio_wasm))] // wasm currently doesn't support unwinding
+#[cfg(not(target_family = "wasm"))] // wasm currently doesn't support unwinding
 #[test]
 #[should_panic]
 fn add_more_than_max_amount_permits2() {
@@ -135,7 +161,7 @@ fn add_more_than_max_amount_permits2() {
     s.add_permits(1);
 }
 
-#[cfg(not(tokio_wasm))] // wasm currently doesn't support unwinding
+#[cfg(not(target_family = "wasm"))] // wasm currently doesn't support unwinding
 #[test]
 #[should_panic]
 fn panic_when_exceeds_maxpermits() {

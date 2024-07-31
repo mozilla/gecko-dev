@@ -3018,8 +3018,7 @@ delta = "0.8.0 -> 0.8.6"
 [[audits.mio]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
-delta = "0.8.8 -> 0.8.8@git:9a2ef335c366044ffe73b1c4acabe50a1daefe05"
-importable = false
+delta = "0.8.8 -> 1.0.1"
 
 [[audits.moz_cbor]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
@@ -5739,11 +5738,17 @@ user-id = 3618 # David Tolnay (dtolnay)
 start = "2020-06-16"
 end = "2024-04-25"
 
+[[trusted.tokio]]
+criteria = "safe-to-run"
+user-id = 6741 # Alice Ryhl (Darksonn)
+start = "2020-12-25"
+end = "2025-07-30"
+
 [[trusted.tokio-macros]]
 criteria = "safe-to-deploy"
 user-id = 6741 # Alice Ryhl (Darksonn)
 start = "2020-10-26"
-end = "2024-05-05"
+end = "2025-07-30"
 
 [[trusted.tokio-util]]
 criteria = "safe-to-deploy"

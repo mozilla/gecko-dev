@@ -1,11 +1,11 @@
-use crate::io_source::IoSource;
-use crate::net::{SocketAddr, UnixStream};
-use crate::{event, sys, Interest, Registry, Token};
-
-use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
-use std::os::unix::net;
+use std::os::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, RawFd};
+use std::os::unix::net::{self, SocketAddr};
 use std::path::Path;
 use std::{fmt, io};
+
+use crate::io_source::IoSource;
+use crate::net::UnixStream;
+use crate::{event, sys, Interest, Registry, Token};
 
 /// A non-blocking Unix domain socket server.
 pub struct UnixListener {
@@ -13,9 +13,15 @@ pub struct UnixListener {
 }
 
 impl UnixListener {
-    /// Creates a new `UnixListener` bound to the specified socket.
+    /// Creates a new `UnixListener` bound to the specified socket `path`.
     pub fn bind<P: AsRef<Path>>(path: P) -> io::Result<UnixListener> {
-        sys::uds::listener::bind(path.as_ref()).map(UnixListener::from_std)
+        let addr = SocketAddr::from_pathname(path)?;
+        UnixListener::bind_addr(&addr)
+    }
+
+    /// Creates a new `UnixListener` bound to the specified socket `address`.
+    pub fn bind_addr(address: &SocketAddr) -> io::Result<UnixListener> {
+        sys::uds::listener::bind_addr(address).map(UnixListener::from_std)
     }
 
     /// Creates a new `UnixListener` from a standard `net::UnixListener`.
@@ -39,8 +45,8 @@ impl UnixListener {
     }
 
     /// Returns the local socket address of this listener.
-    pub fn local_addr(&self) -> io::Result<sys::SocketAddr> {
-        sys::uds::listener::local_addr(&self.inner)
+    pub fn local_addr(&self) -> io::Result<SocketAddr> {
+        self.inner.local_addr()
     }
 
     /// Returns the value of the `SO_ERROR` option.
@@ -100,5 +106,20 @@ impl FromRawFd for UnixListener {
     /// non-blocking mode.
     unsafe fn from_raw_fd(fd: RawFd) -> UnixListener {
         UnixListener::from_std(FromRawFd::from_raw_fd(fd))
+    }
+}
+
+impl From<UnixListener> for net::UnixListener {
+    fn from(listener: UnixListener) -> Self {
+        // Safety: This is safe since we are extracting the raw fd from a well-constructed
+        // mio::net::uds::UnixListener which ensures that we actually pass in a valid file
+        // descriptor/socket
+        unsafe { net::UnixListener::from_raw_fd(listener.into_raw_fd()) }
+    }
+}
+
+impl AsFd for UnixListener {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.inner.as_fd()
     }
 }

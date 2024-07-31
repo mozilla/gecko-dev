@@ -1,4 +1,6 @@
-use crate::runtime::{context, scheduler, RuntimeFlavor};
+#[cfg(tokio_unstable)]
+use crate::runtime;
+use crate::runtime::{context, scheduler, RuntimeFlavor, RuntimeMetrics};
 
 /// Handle to the runtime.
 ///
@@ -14,6 +16,7 @@ pub struct Handle {
 }
 
 use crate::runtime::task::JoinHandle;
+use crate::runtime::BOX_FUTURE_THRESHOLD;
 use crate::util::error::{CONTEXT_MISSING_ERROR, THREAD_LOCAL_DESTROYED_ERROR};
 
 use std::future::Future;
@@ -186,7 +189,11 @@ impl Handle {
         F: Future + Send + 'static,
         F::Output: Send + 'static,
     {
-        self.spawn_named(future, None)
+        if cfg!(debug_assertions) && std::mem::size_of::<F>() > BOX_FUTURE_THRESHOLD {
+            self.spawn_named(Box::pin(future), None)
+        } else {
+            self.spawn_named(future, None)
+        }
     }
 
     /// Runs the provided function on an executor dedicated to blocking
@@ -226,7 +233,7 @@ impl Handle {
     /// When this is used on a `current_thread` runtime, only the
     /// [`Runtime::block_on`] method can drive the IO and timer drivers, but the
     /// `Handle::block_on` method cannot drive them. This means that, when using
-    /// this method on a current_thread runtime, anything that relies on IO or
+    /// this method on a `current_thread` runtime, anything that relies on IO or
     /// timers will not work unless there is another thread currently calling
     /// [`Runtime::block_on`] on the same runtime.
     ///
@@ -289,6 +296,15 @@ impl Handle {
     /// [`tokio::time`]: crate::time
     #[track_caller]
     pub fn block_on<F: Future>(&self, future: F) -> F::Output {
+        if cfg!(debug_assertions) && std::mem::size_of::<F>() > BOX_FUTURE_THRESHOLD {
+            self.block_on_inner(Box::pin(future))
+        } else {
+            self.block_on_inner(future)
+        }
+    }
+
+    #[track_caller]
+    fn block_on_inner<F: Future>(&self, future: F) -> F::Output {
         #[cfg(all(
             tokio_unstable,
             tokio_taskdump,
@@ -353,21 +369,49 @@ impl Handle {
     pub fn runtime_flavor(&self) -> RuntimeFlavor {
         match self.inner {
             scheduler::Handle::CurrentThread(_) => RuntimeFlavor::CurrentThread,
-            #[cfg(all(feature = "rt-multi-thread", not(tokio_wasi)))]
+            #[cfg(feature = "rt-multi-thread")]
             scheduler::Handle::MultiThread(_) => RuntimeFlavor::MultiThread,
+            #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
+            scheduler::Handle::MultiThreadAlt(_) => RuntimeFlavor::MultiThreadAlt,
         }
     }
-}
 
-cfg_metrics! {
-    use crate::runtime::RuntimeMetrics;
-
-    impl Handle {
-        /// Returns a view that lets you get information about how the runtime
-        /// is performing.
-        pub fn metrics(&self) -> RuntimeMetrics {
-            RuntimeMetrics::new(self.clone())
+    cfg_unstable! {
+        /// Returns the [`Id`] of the current `Runtime`.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use tokio::runtime::Handle;
+        ///
+        /// #[tokio::main(flavor = "current_thread")]
+        /// async fn main() {
+        ///   println!("Current runtime id: {}", Handle::current().id());
+        /// }
+        /// ```
+        ///
+        /// **Note**: This is an [unstable API][unstable]. The public API of this type
+        /// may break in 1.x releases. See [the documentation on unstable
+        /// features][unstable] for details.
+        ///
+        /// [unstable]: crate#unstable-features
+        /// [`Id`]: struct@crate::runtime::Id
+        pub fn id(&self) -> runtime::Id {
+            let owned_id = match &self.inner {
+                scheduler::Handle::CurrentThread(handle) => handle.owned_id(),
+                #[cfg(feature = "rt-multi-thread")]
+                scheduler::Handle::MultiThread(handle) => handle.owned_id(),
+                #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
+                scheduler::Handle::MultiThreadAlt(handle) => handle.owned_id(),
+            };
+            owned_id.into()
         }
+    }
+
+    /// Returns a view that lets you get information about how the runtime
+    /// is performing.
+    pub fn metrics(&self) -> RuntimeMetrics {
+        RuntimeMetrics::new(self.clone())
     }
 }
 
@@ -427,7 +471,7 @@ cfg_taskdump! {
         /// ## Debug Info Must Be Available
         ///
         /// To produce task traces, the application must **not** be compiled
-        /// with split debuginfo. On Linux, including debuginfo within the
+        /// with `split debuginfo`. On Linux, including `debuginfo` within the
         /// application binary is the (correct) default. You can further ensure
         /// this behavior with the following directive in your `Cargo.toml`:
         ///
@@ -439,7 +483,7 @@ cfg_taskdump! {
         /// ## Unstable Features
         ///
         /// This functionality is **unstable**, and requires both the
-        /// `tokio_unstable` and `tokio_taskdump` cfg flags to be set.
+        /// `tokio_unstable` and `tokio_taskdump` `cfg` flags to be set.
         ///
         /// You can do this by setting the `RUSTFLAGS` environment variable
         /// before invoking `cargo`; e.g.:
@@ -451,7 +495,7 @@ cfg_taskdump! {
         /// `.cargo/config.toml`:
         /// ```text
         /// [build]
-        /// rustflags = ["--cfg tokio_unstable", "--cfg tokio_taskdump"]
+        /// rustflags = ["--cfg", "tokio_unstable", "--cfg", "tokio_taskdump"]
         /// ```
         ///
         /// [cargo-config]:
@@ -459,7 +503,7 @@ cfg_taskdump! {
         ///
         /// ## Platform Requirements
         ///
-        /// Task dumps are supported on Linux atop aarch64, x86 and x86_64.
+        /// Task dumps are supported on Linux atop `aarch64`, `x86` and `x86_64`.
         ///
         /// ## Current Thread Runtime Requirements
         ///
@@ -493,7 +537,7 @@ cfg_taskdump! {
         pub async fn dump(&self) -> crate::runtime::Dump {
             match &self.inner {
                 scheduler::Handle::CurrentThread(handle) => handle.dump(),
-                #[cfg(all(feature = "rt-multi-thread", not(tokio_wasi)))]
+                #[cfg(all(feature = "rt-multi-thread", not(target_os = "wasi")))]
                 scheduler::Handle::MultiThread(handle) => {
                     // perform the trace in a separate thread so that the
                     // trace itself does not appear in the taskdump.
@@ -503,7 +547,17 @@ cfg_taskdump! {
                         handle.dump().await
                     }).await
                 },
+                #[cfg(all(tokio_unstable, feature = "rt-multi-thread", not(target_os = "wasi")))]
+                scheduler::Handle::MultiThreadAlt(_) => panic!("task dump not implemented for this runtime flavor"),
             }
+        }
+
+        /// Produces `true` if the current task is being traced for a dump;
+        /// otherwise false. This function is only public for integration
+        /// testing purposes. Do not rely on it.
+        #[doc(hidden)]
+        pub fn is_tracing() -> bool {
+            super::task::trace::Context::is_tracing()
         }
     }
 
@@ -566,20 +620,19 @@ enum TryCurrentErrorKind {
 
 impl fmt::Debug for TryCurrentErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use TryCurrentErrorKind::*;
         match self {
-            NoContext => f.write_str("NoContext"),
-            ThreadLocalDestroyed => f.write_str("ThreadLocalDestroyed"),
+            TryCurrentErrorKind::NoContext => f.write_str("NoContext"),
+            TryCurrentErrorKind::ThreadLocalDestroyed => f.write_str("ThreadLocalDestroyed"),
         }
     }
 }
 
 impl fmt::Display for TryCurrentError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use TryCurrentErrorKind::*;
+        use TryCurrentErrorKind as E;
         match self.kind {
-            NoContext => f.write_str(CONTEXT_MISSING_ERROR),
-            ThreadLocalDestroyed => f.write_str(THREAD_LOCAL_DESTROYED_ERROR),
+            E::NoContext => f.write_str(CONTEXT_MISSING_ERROR),
+            E::ThreadLocalDestroyed => f.write_str(THREAD_LOCAL_DESTROYED_ERROR),
         }
     }
 }

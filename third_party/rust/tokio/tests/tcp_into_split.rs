@@ -1,5 +1,5 @@
 #![warn(rust_2018_idioms)]
-#![cfg(all(feature = "full", not(tokio_wasi)))] // Wasi doesn't support bind
+#![cfg(all(feature = "full", not(target_os = "wasi")))] // Wasi doesn't support bind
 
 use std::io::{Error, ErrorKind, Result};
 use std::io::{Read, Write};
@@ -38,7 +38,7 @@ async fn split() -> Result<()> {
             Ok(())
         },
         async {
-            let mut read_buf = vec![0u8; 32];
+            let mut read_buf = [0u8; 32];
             let peek_len1 = read_half.peek(&mut read_buf[..]).await?;
             let peek_len2 = read_half.peek(&mut read_buf[..]).await?;
             assert_eq!(peek_len1, peek_len2);

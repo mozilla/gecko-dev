@@ -3,6 +3,8 @@ use crate::runtime::io::{ReadyEvent, Registration};
 use crate::runtime::scheduler;
 
 use mio::unix::SourceFd;
+use std::error::Error;
+use std::fmt;
 use std::io;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::{task::Context, task::Poll};
@@ -13,15 +15,15 @@ use std::{task::Context, task::Poll};
 /// `kqueue`, etc), such as a network socket or pipe, and the file descriptor
 /// must have the nonblocking mode set to true.
 ///
-/// Creating an AsyncFd registers the file descriptor with the current tokio
+/// Creating an [`AsyncFd`] registers the file descriptor with the current tokio
 /// Reactor, allowing you to directly await the file descriptor being readable
 /// or writable. Once registered, the file descriptor remains registered until
-/// the AsyncFd is dropped.
+/// the [`AsyncFd`] is dropped.
 ///
-/// The AsyncFd takes ownership of an arbitrary object to represent the IO
+/// The [`AsyncFd`] takes ownership of an arbitrary object to represent the IO
 /// object. It is intended that this object will handle closing the file
 /// descriptor when it is dropped, avoiding resource leaks and ensuring that the
-/// AsyncFd can clean up the registration before closing the file descriptor.
+/// [`AsyncFd`] can clean up the registration before closing the file descriptor.
 /// The [`AsyncFd::into_inner`] function can be used to extract the inner object
 /// to retake control from the tokio IO reactor.
 ///
@@ -176,6 +178,8 @@ use std::{task::Context, task::Poll};
 /// [`AsyncWrite`]: trait@crate::io::AsyncWrite
 pub struct AsyncFd<T: AsRawFd> {
     registration: Registration,
+    // The inner value is always present. the Option is required for `drop` and `into_inner`.
+    // In all other methods `unwrap` is valid, and will never panic.
     inner: Option<T>,
 }
 
@@ -202,7 +206,7 @@ pub struct AsyncFdReadyMutGuard<'a, T: AsRawFd> {
 }
 
 impl<T: AsRawFd> AsyncFd<T> {
-    /// Creates an AsyncFd backed by (and taking ownership of) an object
+    /// Creates an [`AsyncFd`] backed by (and taking ownership of) an object
     /// implementing [`AsRawFd`]. The backing file descriptor is cached at the
     /// time of creation.
     ///
@@ -224,7 +228,7 @@ impl<T: AsRawFd> AsyncFd<T> {
         Self::with_interest(inner, Interest::READABLE | Interest::WRITABLE)
     }
 
-    /// Creates an AsyncFd backed by (and taking ownership of) an object
+    /// Creates an [`AsyncFd`] backed by (and taking ownership of) an object
     /// implementing [`AsRawFd`], with a specific [`Interest`]. The backing
     /// file descriptor is cached at the time of creation.
     ///
@@ -247,15 +251,69 @@ impl<T: AsRawFd> AsyncFd<T> {
         handle: scheduler::Handle,
         interest: Interest,
     ) -> io::Result<Self> {
+        Self::try_new_with_handle_and_interest(inner, handle, interest).map_err(Into::into)
+    }
+
+    /// Creates an [`AsyncFd`] backed by (and taking ownership of) an object
+    /// implementing [`AsRawFd`]. The backing file descriptor is cached at the
+    /// time of creation.
+    ///
+    /// Only configures the [`Interest::READABLE`] and [`Interest::WRITABLE`] interests. For more
+    /// control, use [`AsyncFd::try_with_interest`].
+    ///
+    /// This method must be called in the context of a tokio runtime.
+    ///
+    /// In the case of failure, it returns [`AsyncFdTryNewError`] that contains the original object
+    /// passed to this function.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if there is no current reactor set, or if the `rt`
+    /// feature flag is not enabled.
+    #[inline]
+    #[track_caller]
+    pub fn try_new(inner: T) -> Result<Self, AsyncFdTryNewError<T>>
+    where
+        T: AsRawFd,
+    {
+        Self::try_with_interest(inner, Interest::READABLE | Interest::WRITABLE)
+    }
+
+    /// Creates an [`AsyncFd`] backed by (and taking ownership of) an object
+    /// implementing [`AsRawFd`], with a specific [`Interest`]. The backing
+    /// file descriptor is cached at the time of creation.
+    ///
+    /// In the case of failure, it returns [`AsyncFdTryNewError`] that contains the original object
+    /// passed to this function.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if there is no current reactor set, or if the `rt`
+    /// feature flag is not enabled.
+    #[inline]
+    #[track_caller]
+    pub fn try_with_interest(inner: T, interest: Interest) -> Result<Self, AsyncFdTryNewError<T>>
+    where
+        T: AsRawFd,
+    {
+        Self::try_new_with_handle_and_interest(inner, scheduler::Handle::current(), interest)
+    }
+
+    #[track_caller]
+    pub(crate) fn try_new_with_handle_and_interest(
+        inner: T,
+        handle: scheduler::Handle,
+        interest: Interest,
+    ) -> Result<Self, AsyncFdTryNewError<T>> {
         let fd = inner.as_raw_fd();
 
-        let registration =
-            Registration::new_with_interest_and_handle(&mut SourceFd(&fd), interest, handle)?;
-
-        Ok(AsyncFd {
-            registration,
-            inner: Some(inner),
-        })
+        match Registration::new_with_interest_and_handle(&mut SourceFd(&fd), interest, handle) {
+            Ok(registration) => Ok(AsyncFd {
+                registration,
+                inner: Some(inner),
+            }),
+            Err(cause) => Err(AsyncFdTryNewError { inner, cause }),
+        }
     }
 
     /// Returns a shared reference to the backing object of this [`AsyncFd`].
@@ -271,13 +329,12 @@ impl<T: AsRawFd> AsyncFd<T> {
     }
 
     fn take_inner(&mut self) -> Option<T> {
-        let fd = self.inner.as_ref().map(AsRawFd::as_raw_fd);
+        let inner = self.inner.take()?;
+        let fd = inner.as_raw_fd();
 
-        if let Some(fd) = fd {
-            let _ = self.registration.deregister(&mut SourceFd(&fd));
-        }
+        let _ = self.registration.deregister(&mut SourceFd(&fd));
 
-        self.inner.take()
+        Some(inner)
     }
 
     /// Deregisters this file descriptor and returns ownership of the backing
@@ -319,11 +376,10 @@ impl<T: AsRawFd> AsyncFd<T> {
     ) -> Poll<io::Result<AsyncFdReadyGuard<'a, T>>> {
         let event = ready!(self.registration.poll_read_ready(cx))?;
 
-        Ok(AsyncFdReadyGuard {
+        Poll::Ready(Ok(AsyncFdReadyGuard {
             async_fd: self,
             event: Some(event),
-        })
-        .into()
+        }))
     }
 
     /// Polls for read readiness.
@@ -357,11 +413,10 @@ impl<T: AsRawFd> AsyncFd<T> {
     ) -> Poll<io::Result<AsyncFdReadyMutGuard<'a, T>>> {
         let event = ready!(self.registration.poll_read_ready(cx))?;
 
-        Ok(AsyncFdReadyMutGuard {
+        Poll::Ready(Ok(AsyncFdReadyMutGuard {
             async_fd: self,
             event: Some(event),
-        })
-        .into()
+        }))
     }
 
     /// Polls for write readiness.
@@ -397,11 +452,10 @@ impl<T: AsRawFd> AsyncFd<T> {
     ) -> Poll<io::Result<AsyncFdReadyGuard<'a, T>>> {
         let event = ready!(self.registration.poll_write_ready(cx))?;
 
-        Ok(AsyncFdReadyGuard {
+        Poll::Ready(Ok(AsyncFdReadyGuard {
             async_fd: self,
             event: Some(event),
-        })
-        .into()
+        }))
     }
 
     /// Polls for write readiness.
@@ -435,11 +489,10 @@ impl<T: AsRawFd> AsyncFd<T> {
     ) -> Poll<io::Result<AsyncFdReadyMutGuard<'a, T>>> {
         let event = ready!(self.registration.poll_write_ready(cx))?;
 
-        Ok(AsyncFdReadyMutGuard {
+        Poll::Ready(Ok(AsyncFdReadyMutGuard {
             async_fd: self,
             event: Some(event),
-        })
-        .into()
+        }))
     }
 
     /// Waits for any of the requested ready states, returning a
@@ -797,7 +850,6 @@ impl<T: AsRawFd> AsRawFd for AsyncFd<T> {
     }
 }
 
-#[cfg(not(tokio_no_as_fd))]
 impl<T: AsRawFd> std::os::unix::io::AsFd for AsyncFd<T> {
     fn as_fd(&self) -> std::os::unix::io::BorrowedFd<'_> {
         unsafe { std::os::unix::io::BorrowedFd::borrow_raw(self.as_raw_fd()) }
@@ -830,6 +882,10 @@ impl<'a, Inner: AsRawFd> AsyncFdReadyGuard<'a, Inner> {
     /// _actually observes_ that the file descriptor is _not_ ready. Do not call
     /// it simply because, for example, a read succeeded; it should be called
     /// when a read is observed to block.
+    ///
+    /// This method only clears readiness events that happened before the creation of this guard.
+    /// In other words, if the IO resource becomes ready between the creation of the guard and
+    /// this call to `clear_ready`, then the readiness is not actually cleared.
     pub fn clear_ready(&mut self) {
         if let Some(event) = self.event.take() {
             self.async_fd.registration.clear_readiness(event);
@@ -849,6 +905,10 @@ impl<'a, Inner: AsRawFd> AsyncFdReadyGuard<'a, Inner> {
     /// when a read is observed to block. Only clear the specific readiness that is observed to
     /// block. For example when a read blocks when using a combined interest,
     /// only clear `Ready::READABLE`.
+    ///
+    /// This method only clears readiness events that happened before the creation of this guard.
+    /// In other words, if the IO resource becomes ready between the creation of the guard and
+    /// this call to `clear_ready`, then the readiness is not actually cleared.
     ///
     /// # Examples
     ///
@@ -1014,14 +1074,11 @@ impl<'a, Inner: AsRawFd> AsyncFdReadyGuard<'a, Inner> {
     ) -> Result<io::Result<R>, TryIoError> {
         let result = f(self.async_fd);
 
-        if let Err(e) = result.as_ref() {
-            if e.kind() == io::ErrorKind::WouldBlock {
-                self.clear_ready();
-            }
-        }
-
         match result {
-            Err(err) if err.kind() == io::ErrorKind::WouldBlock => Err(TryIoError(())),
+            Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+                self.clear_ready();
+                Err(TryIoError(()))
+            }
             result => Ok(result),
         }
     }
@@ -1049,6 +1106,10 @@ impl<'a, Inner: AsRawFd> AsyncFdReadyMutGuard<'a, Inner> {
     /// _actually observes_ that the file descriptor is _not_ ready. Do not call
     /// it simply because, for example, a read succeeded; it should be called
     /// when a read is observed to block.
+    ///
+    /// This method only clears readiness events that happened before the creation of this guard.
+    /// In other words, if the IO resource becomes ready between the creation of the guard and
+    /// this call to `clear_ready`, then the readiness is not actually cleared.
     pub fn clear_ready(&mut self) {
         if let Some(event) = self.event.take() {
             self.async_fd.registration.clear_readiness(event);
@@ -1068,6 +1129,10 @@ impl<'a, Inner: AsRawFd> AsyncFdReadyMutGuard<'a, Inner> {
     /// when a read is observed to block. Only clear the specific readiness that is observed to
     /// block. For example when a read blocks when using a combined interest,
     /// only clear `Ready::READABLE`.
+    ///
+    /// This method only clears readiness events that happened before the creation of this guard.
+    /// In other words, if the IO resource becomes ready between the creation of the guard and
+    /// this call to `clear_ready`, then the readiness is not actually cleared.
     ///
     /// # Examples
     ///
@@ -1194,14 +1259,11 @@ impl<'a, Inner: AsRawFd> AsyncFdReadyMutGuard<'a, Inner> {
     ) -> Result<io::Result<R>, TryIoError> {
         let result = f(self.async_fd);
 
-        if let Err(e) = result.as_ref() {
-            if e.kind() == io::ErrorKind::WouldBlock {
-                self.clear_ready();
-            }
-        }
-
         match result {
-            Err(err) if err.kind() == io::ErrorKind::WouldBlock => Err(TryIoError(())),
+            Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+                self.clear_ready();
+                Err(TryIoError(()))
+            }
             result => Ok(result),
         }
     }
@@ -1251,3 +1313,47 @@ impl<'a, T: std::fmt::Debug + AsRawFd> std::fmt::Debug for AsyncFdReadyMutGuard<
 /// [`try_io`]: method@AsyncFdReadyGuard::try_io
 #[derive(Debug)]
 pub struct TryIoError(());
+
+/// Error returned by [`try_new`] or [`try_with_interest`].
+///
+/// [`try_new`]: AsyncFd::try_new
+/// [`try_with_interest`]: AsyncFd::try_with_interest
+pub struct AsyncFdTryNewError<T> {
+    inner: T,
+    cause: io::Error,
+}
+
+impl<T> AsyncFdTryNewError<T> {
+    /// Returns the original object passed to [`try_new`] or [`try_with_interest`]
+    /// alongside the error that caused these functions to fail.
+    ///
+    /// [`try_new`]: AsyncFd::try_new
+    /// [`try_with_interest`]: AsyncFd::try_with_interest
+    pub fn into_parts(self) -> (T, io::Error) {
+        (self.inner, self.cause)
+    }
+}
+
+impl<T> fmt::Display for AsyncFdTryNewError<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.cause, f)
+    }
+}
+
+impl<T> fmt::Debug for AsyncFdTryNewError<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.cause, f)
+    }
+}
+
+impl<T> Error for AsyncFdTryNewError<T> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.cause)
+    }
+}
+
+impl<T> From<AsyncFdTryNewError<T>> for io::Error {
+    fn from(value: AsyncFdTryNewError<T>) -> Self {
+        value.cause
+    }
+}

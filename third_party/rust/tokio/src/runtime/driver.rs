@@ -2,7 +2,10 @@
 
 // Eventually, this file will see significant refactoring / cleanup. For now, we
 // don't need to worry much about dead code with certain feature permutations.
-#![cfg_attr(not(feature = "full"), allow(dead_code))]
+#![cfg_attr(
+    any(not(all(tokio_unstable, feature = "full")), target_family = "wasm"),
+    allow(dead_code)
+)]
 
 use crate::runtime::park::{ParkThread, UnparkThread};
 
@@ -37,6 +40,7 @@ pub(crate) struct Cfg {
     pub(crate) enable_pause_time: bool,
     pub(crate) start_paused: bool,
     pub(crate) nevents: usize,
+    pub(crate) workers: usize,
 }
 
 impl Driver {
@@ -45,7 +49,8 @@ impl Driver {
 
         let clock = create_clock(cfg.enable_pause_time, cfg.start_paused);
 
-        let (time_driver, time_handle) = create_time_driver(cfg.enable_time, io_stack, &clock);
+        let (time_driver, time_handle) =
+            create_time_driver(cfg.enable_time, io_stack, &clock, cfg.workers);
 
         Ok((
             Self { inner: time_driver },
@@ -58,16 +63,20 @@ impl Driver {
         ))
     }
 
+    pub(crate) fn is_enabled(&self) -> bool {
+        self.inner.is_enabled()
+    }
+
     pub(crate) fn park(&mut self, handle: &Handle) {
-        self.inner.park(handle)
+        self.inner.park(handle);
     }
 
     pub(crate) fn park_timeout(&mut self, handle: &Handle, duration: Duration) {
-        self.inner.park_timeout(handle, duration)
+        self.inner.park_timeout(handle, duration);
     }
 
     pub(crate) fn shutdown(&mut self, handle: &Handle) {
-        self.inner.shutdown(handle)
+        self.inner.shutdown(handle);
     }
 }
 
@@ -154,6 +163,13 @@ cfg_io_driver! {
     }
 
     impl IoStack {
+        pub(crate) fn is_enabled(&self) -> bool {
+            match self {
+                IoStack::Enabled(..) => true,
+                IoStack::Disabled(..) => false,
+            }
+        }
+
         pub(crate) fn park(&mut self, handle: &Handle) {
             match self {
                 IoStack::Enabled(v) => v.park(handle),
@@ -216,6 +232,11 @@ cfg_not_io_driver! {
 
         pub(crate) fn shutdown(&mut self, _handle: &Handle) {
             self.0.shutdown();
+        }
+
+        /// This is not a "real" driver, so it is not considered enabled.
+        pub(crate) fn is_enabled(&self) -> bool {
+            false
         }
     }
 }
@@ -287,9 +308,10 @@ cfg_time! {
         enable: bool,
         io_stack: IoStack,
         clock: &Clock,
+        workers: usize,
     ) -> (TimeDriver, TimeHandle) {
         if enable {
-            let (driver, handle) = crate::runtime::time::Driver::new(io_stack, clock);
+            let (driver, handle) = crate::runtime::time::Driver::new(io_stack, clock, workers as u32);
 
             (TimeDriver::Enabled { driver }, Some(handle))
         } else {
@@ -298,6 +320,13 @@ cfg_time! {
     }
 
     impl TimeDriver {
+        pub(crate) fn is_enabled(&self) -> bool {
+            match self {
+                TimeDriver::Enabled { .. } => true,
+                TimeDriver::Disabled(inner) => inner.is_enabled(),
+            }
+        }
+
         pub(crate) fn park(&mut self, handle: &Handle) {
             match self {
                 TimeDriver::Enabled { driver, .. } => driver.park(handle),
@@ -335,6 +364,7 @@ cfg_not_time! {
         _enable: bool,
         io_stack: IoStack,
         _clock: &Clock,
+        _workers: usize,
     ) -> (TimeDriver, TimeHandle) {
         (io_stack, ())
     }

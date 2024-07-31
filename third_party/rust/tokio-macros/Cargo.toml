@@ -10,10 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
-rust-version = "1.56"
+edition = "2021"
+rust-version = "1.70"
 name = "tokio-macros"
-version = "2.1.0"
+version = "2.4.0"
 authors = ["Tokio Contributors <team@tokio.rs>"]
 description = """
 Tokio's proc macros.
@@ -31,7 +31,7 @@ all-features = true
 proc-macro = true
 
 [dependencies.proc-macro2]
-version = "1.0.7"
+version = "1.0.60"
 
 [dependencies.quote]
 version = "1"

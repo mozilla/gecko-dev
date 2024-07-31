@@ -6,7 +6,7 @@ use std::task::{Context, Poll};
 
 use futures::{Stream, StreamExt};
 use tokio::time::{self, Duration, Instant, Interval, MissedTickBehavior};
-use tokio_test::{assert_pending, assert_ready_eq, task};
+use tokio_test::{assert_pending, assert_ready, assert_ready_eq, task};
 
 // Takes the `Interval` task, `start` variable, and optional time deltas
 // For each time delta, it polls the `Interval` and asserts that the result is
@@ -204,6 +204,154 @@ async fn reset() {
     check_interval_poll!(i, start, 1001);
 }
 
+#[tokio::test(start_paused = true)]
+async fn reset_immediately() {
+    let start = Instant::now();
+
+    // This is necessary because the timer is only so granular, and in order for
+    // all our ticks to resolve, the time needs to be 1ms ahead of what we
+    // expect, so that the runtime will see that it is time to resolve the timer
+    time::advance(ms(1)).await;
+
+    let mut i = task::spawn(time::interval_at(start, ms(300)));
+
+    check_interval_poll!(i, start, 0);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    time::advance(ms(200)).await;
+    check_interval_poll!(i, start, 300);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    i.reset_immediately();
+
+    // We add one because when using `reset` method, `Interval` adds the
+    // `period` from `Instant::now()`, which will always be off by one
+    check_interval_poll!(i, start, 401);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    time::advance(ms(200)).await;
+    check_interval_poll!(i, start, 701);
+}
+
+#[tokio::test(start_paused = true)]
+async fn reset_after() {
+    let start = Instant::now();
+
+    // This is necessary because the timer is only so granular, and in order for
+    // all our ticks to resolve, the time needs to be 1ms ahead of what we
+    // expect, so that the runtime will see that it is time to resolve the timer
+    time::advance(ms(1)).await;
+
+    let mut i = task::spawn(time::interval_at(start, ms(300)));
+
+    check_interval_poll!(i, start, 0);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    time::advance(ms(200)).await;
+    check_interval_poll!(i, start, 300);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    i.reset_after(Duration::from_millis(20));
+
+    // We add one because when using `reset` method, `Interval` adds the
+    // `period` from `Instant::now()`, which will always be off by one
+    time::advance(ms(20)).await;
+    check_interval_poll!(i, start, 421);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    time::advance(ms(200)).await;
+    check_interval_poll!(i, start, 721);
+}
+
+#[tokio::test(start_paused = true)]
+async fn reset_at() {
+    let start = Instant::now();
+
+    // This is necessary because the timer is only so granular, and in order for
+    // all our ticks to resolve, the time needs to be 1ms ahead of what we
+    // expect, so that the runtime will see that it is time to resolve the timer
+    time::advance(ms(1)).await;
+
+    let mut i = task::spawn(time::interval_at(start, ms(300)));
+
+    check_interval_poll!(i, start, 0);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    time::advance(ms(200)).await;
+    check_interval_poll!(i, start, 300);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    i.reset_at(Instant::now() + Duration::from_millis(40));
+
+    // We add one because when using `reset` method, `Interval` adds the
+    // `period` from `Instant::now()`, which will always be off by one
+    time::advance(ms(40)).await;
+    check_interval_poll!(i, start, 441);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    time::advance(ms(200)).await;
+    check_interval_poll!(i, start, 741);
+}
+
+#[tokio::test(start_paused = true)]
+async fn reset_at_bigger_than_interval() {
+    let start = Instant::now();
+
+    // This is necessary because the timer is only so granular, and in order for
+    // all our ticks to resolve, the time needs to be 1ms ahead of what we
+    // expect, so that the runtime will see that it is time to resolve the timer
+    time::advance(ms(1)).await;
+
+    let mut i = task::spawn(time::interval_at(start, ms(300)));
+
+    check_interval_poll!(i, start, 0);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    time::advance(ms(200)).await;
+    check_interval_poll!(i, start, 300);
+
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start);
+
+    i.reset_at(Instant::now() + Duration::from_millis(1000));
+
+    // Validate the interval does not tick until 1000ms have passed
+    time::advance(ms(300)).await;
+    check_interval_poll!(i, start);
+    time::advance(ms(300)).await;
+    check_interval_poll!(i, start);
+    time::advance(ms(300)).await;
+    check_interval_poll!(i, start);
+
+    // We add one because when using `reset` method, `Interval` adds the
+    // `period` from `Instant::now()`, which will always be off by one
+    time::advance(ms(100)).await;
+    check_interval_poll!(i, start, 1401);
+
+    time::advance(ms(300)).await;
+    check_interval_poll!(i, start, 1701);
+}
+
 fn poll_next(interval: &mut task::Spawn<time::Interval>) -> Poll<Instant> {
     interval.enter(|cx, mut interval| interval.poll_tick(cx))
 }
@@ -320,4 +468,10 @@ async fn stream_with_interval_poll_tick_no_waking() {
     // `Poll::Pending` and neither does [tokio::time::Interval] reschedule the
     // task when returning `Poll::Ready`.
     assert_eq!(items, vec![]);
+}
+
+#[tokio::test(start_paused = true)]
+async fn interval_doesnt_panic_max_duration_when_polling() {
+    let mut timer = task::spawn(time::interval(Duration::MAX));
+    assert_ready!(timer.enter(|cx, mut timer| timer.poll_tick(cx)));
 }

@@ -65,6 +65,7 @@ enum CombiAbortSource {
 }
 
 #[test]
+#[cfg_attr(panic = "abort", ignore)]
 fn test_combinations() {
     let mut rt = &[
         CombiRuntime::CurrentThread,

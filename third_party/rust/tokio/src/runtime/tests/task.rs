@@ -1,11 +1,10 @@
 use crate::runtime::task::{self, unowned, Id, JoinHandle, OwnedTasks, Schedule, Task};
 use crate::runtime::tests::NoopSchedule;
-use crate::util::TryLock;
 
 use std::collections::VecDeque;
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 struct AssertDropHandle {
     is_dropped: Arc<AtomicBool>,
@@ -117,6 +116,29 @@ fn drop_abort_handle2() {
     drop(abort);
     handle.assert_not_dropped();
     drop(join);
+    handle.assert_dropped();
+}
+
+#[test]
+fn drop_abort_handle_clone() {
+    let (ad, handle) = AssertDrop::new();
+    let (notified, join) = unowned(
+        async {
+            drop(ad);
+            unreachable!()
+        },
+        NoopSchedule,
+        Id::next(),
+    );
+    let abort = join.abort_handle();
+    let abort_clone = abort.clone();
+    drop(join);
+    handle.assert_not_dropped();
+    drop(notified);
+    handle.assert_not_dropped();
+    drop(abort);
+    handle.assert_not_dropped();
+    drop(abort_clone);
     handle.assert_dropped();
 }
 
@@ -242,8 +264,8 @@ fn with(f: impl FnOnce(Runtime)) {
     let _reset = Reset;
 
     let rt = Runtime(Arc::new(Inner {
-        owned: OwnedTasks::new(),
-        core: TryLock::new(Core {
+        owned: OwnedTasks::new(16),
+        core: Mutex::new(Core {
             queue: VecDeque::new(),
         }),
     }));
@@ -256,7 +278,7 @@ fn with(f: impl FnOnce(Runtime)) {
 struct Runtime(Arc<Inner>);
 
 struct Inner {
-    core: TryLock<Core>,
+    core: Mutex<Core>,
     owned: OwnedTasks<Runtime>,
 }
 
@@ -264,7 +286,7 @@ struct Core {
     queue: VecDeque<task::Notified<Runtime>>,
 }
 
-static CURRENT: TryLock<Option<Runtime>> = TryLock::new(None);
+static CURRENT: Mutex<Option<Runtime>> = Mutex::new(None);
 
 impl Runtime {
     fn spawn<T>(&self, future: T) -> JoinHandle<T::Output>
@@ -309,14 +331,13 @@ impl Runtime {
     fn shutdown(&self) {
         let mut core = self.0.core.try_lock().unwrap();
 
-        self.0.owned.close_and_shutdown_all();
+        self.0.owned.close_and_shutdown_all(0);
 
         while let Some(task) = core.queue.pop_back() {
             drop(task);
         }
 
         drop(core);
-
         assert!(self.0.owned.is_empty());
     }
 }
