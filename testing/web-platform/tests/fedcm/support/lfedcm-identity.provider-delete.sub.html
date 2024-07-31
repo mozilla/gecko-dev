@@ -20,7 +20,7 @@ async function deleteCredentials() {
 }
 
 deleteCredentials().then(() => {
-  window.opener.postMessage("created", "*");
+  window.opener.postMessage("deleted", "*");
 })
 
 
