@@ -107,7 +107,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
         setContent {
             FirefoxTheme {
-                MenuDialogBottomSheet(onRequestDismiss = {}) {
+                MenuDialogBottomSheet(onRequestDismiss = { dismiss() }) {
                     val appStore = components.appStore
                     val browserStore = components.core.store
                     val syncStore = components.backgroundServices.syncStore
