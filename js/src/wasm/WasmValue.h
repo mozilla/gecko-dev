@@ -19,6 +19,8 @@
 #ifndef wasm_val_h
 #define wasm_val_h
 
+#include <string.h>
+
 #include "js/Class.h"  // JSClassOps, ClassSpec
 #include "vm/JSObject.h"
 #include "vm/NativeObject.h"  // NativeObject
@@ -55,12 +57,7 @@ struct V128 {
   }
 
   bool operator==(const V128& rhs) const {
-    for (size_t i = 0; i < sizeof(bytes); i++) {
-      if (bytes[i] != rhs.bytes[i]) {
-        return false;
-      }
-    }
-    return true;
+    return memcmp(bytes, rhs.bytes, sizeof(bytes)) == 0;
   }
 
   bool operator!=(const V128& rhs) const { return !(*this == rhs); }
