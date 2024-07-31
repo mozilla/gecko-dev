@@ -178,8 +178,8 @@ void MediaDecoder::SetOutputCaptureState(OutputCaptureState aState,
 
   if (mOutputCaptureState.Ref() != aState) {
     LOG("Capture state change from %s to %s",
-        OutputCaptureStateToStr(mOutputCaptureState.Ref()),
-        OutputCaptureStateToStr(aState));
+        EnumValueToString(mOutputCaptureState.Ref()),
+        EnumValueToString(aState));
   }
   mOutputCaptureState = aState;
   if (mOutputDummyTrack.Ref().get() != aDummyTrack) {
