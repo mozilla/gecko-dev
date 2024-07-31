@@ -1350,6 +1350,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1898923 - UA override for trade-in.vodafone.com
+     * Webcompat issue #127158 - https://webcompat.com/issues/127158
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "bug1898923",
+    platform: "all",
+    domain: "trade-in.vodafone.com",
+    bug: "1898923",
+    config: {
+      matches: ["*://trade-in.vodafone.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
