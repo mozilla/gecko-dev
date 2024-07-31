@@ -5,8 +5,10 @@
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
+const widgetId = "aboutwelcome-button";
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
 });
 
@@ -21,15 +23,27 @@ export const AWToolbarButton = {
     // Otherwise, check if this is a new profile where we need to add it.
     if (AWToolbarButton.hasToolbarButtonEnabled) {
       lazy.CustomizableUI.createWidget({
-        id: "aboutwelcome-button",
+        id: widgetId,
         l10nId: "browser-aboutwelcome-button",
         defaultArea: lazy.CustomizableUI.AREA_BOOKMARKS,
         type: "button",
         onCreated(aNode) {
           aNode.className = "bookmark-item chromeclass-toolbar-additional";
+          lazy.BrowserUsageTelemetry.recordWidgetChange(
+            widgetId,
+            lazy.CustomizableUI.AREA_BOOKMARKS,
+            "create"
+          );
         },
-        onClick(aEvent) {
+        onCommand(aEvent) {
           AWToolbarButton.openWelcome(aEvent.view);
+        },
+        onDestroyed() {
+          lazy.BrowserUsageTelemetry.recordWidgetChange(
+            widgetId,
+            null,
+            "destroy"
+          );
         },
       });
     }
@@ -42,7 +56,7 @@ export const AWToolbarButton = {
       AWToolbarButton.didSeeFinalScreen ||
       !AWToolbarButton.hasToolbarButtonEnabled
     ) {
-      lazy.CustomizableUI.destroyWidget("aboutwelcome-button");
+      lazy.CustomizableUI.destroyWidget(widgetId);
     }
   },
 
