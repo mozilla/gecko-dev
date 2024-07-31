@@ -2046,7 +2046,7 @@ pref("identity.fxaccounts.commands.remoteTabManagement.enabled", true);
 
 // Controls whether or not the client association ping has values set on it
 // when the sync-ui-state:update notification fires.
-pref("identity.fxaccounts.telemetry.clientAssociationPing.enabled", true);
+pref("identity.fxaccounts.telemetry.clientAssociationPing.enabled", false);
 
 // Note: when media.gmp-*.visible is true, provided we're running on a
 // supported platform/OS version, the corresponding CDM appears in the
