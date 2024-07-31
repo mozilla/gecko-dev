@@ -55,13 +55,6 @@ class PanelActionBase {
       this.updateOnChange(tab);
     });
 
-    // eslint-disable-next-line mozilla/balanced-listeners
-    extension.on("add-permissions", () => this.updateOnChange());
-    // eslint-disable-next-line mozilla/balanced-listeners
-    extension.on("remove-permissions", () => this.updateOnChange());
-    // eslint-disable-next-line mozilla/balanced-listeners
-    extension.on("update-ignore-quarantine", () => this.updateOnChange());
-
     // When preloading a popup we temporarily grant active tab permissions to
     // the preloaded popup. If we don't end up opening we need to clear this
     // permission when clearing the popup.
@@ -528,6 +521,13 @@ export class BrowserActionBase extends PanelActionBase {
       default_area,
     };
     this.globals = Object.create(this.defaults);
+
+    // eslint-disable-next-line mozilla/balanced-listeners
+    extension.on("add-permissions", () => this.updateOnChange());
+    // eslint-disable-next-line mozilla/balanced-listeners
+    extension.on("remove-permissions", () => this.updateOnChange());
+    // eslint-disable-next-line mozilla/balanced-listeners
+    extension.on("update-ignore-quarantine", () => this.updateOnChange());
   }
 
   async loadIconData() {
