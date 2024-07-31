@@ -8,15 +8,15 @@
 #define AudioEventTimeline_h_
 
 #include <algorithm>
-#include "mozilla/Assertions.h"
-#include "mozilla/FloatingPoint.h"
-#include "mozilla/PodOperations.h"
-#include "mozilla/ErrorResult.h"
 
 #include "MainThreadUtils.h"
-#include "nsTArray.h"
-#include "math.h"
 #include "WebAudioUtils.h"
+#include "math.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/ErrorResult.h"
+#include "mozilla/FloatingPoint.h"
+#include "mozilla/PodOperations.h"
+#include "nsTArray.h"
 
 // XXX Avoid including this here by moving function bodies to the cpp file
 #include "js/GCAPI.h"
