@@ -1386,6 +1386,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1898941 - UA override for events.webinar.ru
+     * Webcompat issue #121871 - https://webcompat.com/issues/121871
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "bug1898941",
+    platform: "all",
+    domain: "events.webinar.ru",
+    bug: "1898941",
+    config: {
+      matches: ["*://events.webinar.ru/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
