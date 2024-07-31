@@ -138,6 +138,7 @@ class ContextMenusTest : TestSetup() {
             clickContextMenuItem("Share link")
             shareOverlay {
                 verifyShareLinkIntent(genericURL.url)
+                mDevice.pressBack()
             }
         }
     }

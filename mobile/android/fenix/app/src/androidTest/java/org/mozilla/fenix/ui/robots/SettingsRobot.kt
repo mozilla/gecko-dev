@@ -40,6 +40,7 @@ import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.endsWith
 import org.hamcrest.Matchers.allOf
 import org.mozilla.fenix.R
+import org.mozilla.fenix.helpers.AppAndSystemHelper.forceCloseApp
 import org.mozilla.fenix.helpers.AppAndSystemHelper.isPackageInstalled
 import org.mozilla.fenix.helpers.Constants.LISTS_MAXSWIPES
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_PLAY_SERVICES
@@ -480,6 +481,8 @@ class SettingsRobot {
             } catch (e: AssertionFailedError) {
                 Log.i(TAG, "verifyGooglePlayRedirect: AssertionFailedError caught, executing fallback methods")
                 BrowserRobot().verifyRateOnGooglePlayURL()
+            } finally {
+                forceCloseApp(GOOGLE_PLAY_SERVICES)
             }
         } else {
             BrowserRobot().verifyRateOnGooglePlayURL()

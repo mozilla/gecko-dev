@@ -356,6 +356,11 @@ object AppAndSystemHelper {
         forceCloseApp(YOUTUBE_APP)
     }
 
+    /**
+     * Force stops the app from running in the background.
+     *
+     * @param appPackageName The package name of the app to be stopped.
+     */
     fun forceCloseApp(appPackageName: String) {
         Log.i(TAG, "forceCloseApp: Trying to stop the $appPackageName app from running in the background.")
         mDevice.executeShellCommand("am force-stop $appPackageName")

@@ -21,6 +21,7 @@ import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import org.hamcrest.Matchers.allOf
 import org.mozilla.fenix.R
+import org.mozilla.fenix.helpers.AppAndSystemHelper.forceCloseApp
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
@@ -101,10 +102,14 @@ class ShareOverlayRobot {
             sharingApp.clickAndWaitForNewWindow()
             Log.i(TAG, "verifySharingWithSelectedApp: Clicked sharing app: $appName and waited for a new window")
             verifySharedTabsIntent(content, subject)
+            // Close the app after successful verification
+            forceCloseApp(appName)
+        } else {
+            Log.i(TAG, "verifySharingWithSelectedApp: Sharing app: $appName not found.")
         }
     }
 
-    fun verifySharedTabsIntent(text: String, subject: String) {
+    private fun verifySharedTabsIntent(text: String, subject: String) {
         Log.i(TAG, "verifySharedTabsIntent: Trying to verify the intent of the shared tab with text: $text, and subject: $subject")
         Intents.intended(
             allOf(
