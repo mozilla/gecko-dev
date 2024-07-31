@@ -78,7 +78,7 @@ fn u32_fastrand(b: &mut Bencher) {
 fn fill(b: &mut Bencher) {
     let mut rng = fastrand::Rng::new();
     b.iter(|| {
-        // Pick a size that isn't divisble by 8.
+        // Pick a size that isn't divisible by 8.
         let mut bytes = [0u8; 367];
         rng.fill(&mut bytes);
         bytes

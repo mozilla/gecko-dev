@@ -1,6 +1,6 @@
 # fastrand
 
-[![Build](https://github.com/smol-rs/fastrand/workflows/Build%20and%20test/badge.svg)](
+[![Build](https://github.com/smol-rs/fastrand/workflows/CI/badge.svg)](
 https://github.com/smol-rs/fastrand/actions)
 [![License](https://img.shields.io/badge/license-Apache--2.0_OR_MIT-blue.svg)](
 https://github.com/smol-rs/fastrand)
@@ -83,11 +83,16 @@ let rng = fastrand::Rng::new();
 let mut bytes: Vec<u8> = repeat_with(|| rng.u8(..)).take(10_000).collect();
 ```
 
+This crate aims to expose a core set of useful randomness primitives. For more niche algorithms, consider using the [`fastrand-contrib`] crate alongside this one.
+
 # Features
 
 - `std` (enabled by default): Enables the `std` library. This is required for the global
   generator and global entropy. Without this feature, [`Rng`] can only be instantiated using
-  the [`with_seed`](Rng::with_seed) method.
+  the [`with_seed`](https://docs.rs/fastrand/latest/fastrand/struct.Rng.html#method.with_seed) method.
+- `js`: Assumes that WebAssembly targets are being run in a JavaScript environment.
+
+[`fastrand-contrib`]: https://crates.io/crates/fastrand-contrib
 
 ## License
 
