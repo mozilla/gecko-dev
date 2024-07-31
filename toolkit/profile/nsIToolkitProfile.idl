@@ -72,6 +72,14 @@ interface nsIToolkitProfile : nsISupports
     attribute AUTF8String storeID;
 
     /**
+     * Whether to show the selectable profile selector window at startup for
+     * the profile group associated to the nsIToolkitProfile instance.
+     *
+     * @throws NS_ERROR_FAILURE on set if storeID is null.
+     */
+    attribute boolean showProfileSelector;
+
+    /**
      * Removes the profile from the registry of profiles.
      *
      * @param removeFiles
