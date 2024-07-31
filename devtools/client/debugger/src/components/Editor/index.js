@@ -142,6 +142,30 @@ class Editor extends PureComponent {
       editor = this.setupEditor();
     }
 
+    if (!features.codemirrorNext) {
+      const shouldUpdateSize =
+        nextProps.startPanelSize !== this.props.startPanelSize ||
+        nextProps.endPanelSize !== this.props.endPanelSize;
+
+      startOperation();
+      if (shouldUpdateSize) {
+        editor.codeMirror.setSize();
+      }
+      this.setTextContent(nextProps, editor);
+      endOperation();
+
+      if (this.props.selectedSource != nextProps.selectedSource) {
+        this.props.updateViewport();
+        resizeBreakpointGutter(editor.codeMirror);
+        resizeToggleButton(getLineNumberWidth(editor.codeMirror));
+      }
+    } else {
+      // For codemirror 6
+      this.setTextContent(nextProps, editor);
+    }
+  }
+
+  async setTextContent(nextProps, editor) {
     const shouldUpdateText =
       nextProps.selectedSource !== this.props.selectedSource ||
       nextProps.selectedSourceTextContent?.value !==
@@ -152,40 +176,12 @@ class Editor extends PureComponent {
       nextProps.selectedLocation &&
       this.shouldScrollToLocation(nextProps, editor);
 
-    if (!features.codemirrorNext) {
-      const shouldUpdateSize =
-        nextProps.startPanelSize !== this.props.startPanelSize ||
-        nextProps.endPanelSize !== this.props.endPanelSize;
+    if (shouldUpdateText) {
+      await this.setText(nextProps, editor);
+    }
 
-      if (shouldUpdateText || shouldUpdateSize || shouldScroll) {
-        startOperation();
-        if (shouldUpdateText) {
-          this.setText(nextProps, editor);
-        }
-        if (shouldUpdateSize) {
-          editor.codeMirror.setSize();
-        }
-        if (shouldScroll) {
-          this.scrollToLocation(nextProps, editor);
-        }
-        endOperation();
-      }
-
-      if (this.props.selectedSource != nextProps.selectedSource) {
-        this.props.updateViewport();
-        resizeBreakpointGutter(editor.codeMirror);
-        resizeToggleButton(getLineNumberWidth(editor.codeMirror));
-      }
-    } else {
-      // For codemirror 6
-      // eslint-disable-next-line no-lonely-if
-      if (shouldUpdateText) {
-        this.setText(nextProps, editor);
-      }
-
-      if (shouldScroll) {
-        this.scrollToLocation(nextProps, editor);
-      }
+    if (shouldScroll) {
+      this.scrollToLocation(nextProps, editor);
     }
   }
 
@@ -741,7 +737,7 @@ class Editor extends PureComponent {
     editor.scrollTo(line, column);
   }
 
-  setText(props, editor) {
+  async setText(props, editor) {
     const { selectedSource, selectedSourceTextContent, symbols } = props;
 
     if (!editor) {
@@ -779,7 +775,10 @@ class Editor extends PureComponent {
         symbols
       );
     } else {
-      editor.setText(selectedSourceTextContent.value.value);
+      await editor.setText(
+        selectedSourceTextContent.value.value,
+        selectedSource.id
+      );
     }
   }
 
