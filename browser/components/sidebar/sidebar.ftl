@@ -71,20 +71,8 @@ sidebar-menu-synced-tabs-label =
   .label = Tabs from other devices
 sidebar-menu-bookmarks-label =
   .label = Bookmarks
-sidebar-menu-customize-label = Customize sidebar
-
-## Tooltips for sidebar menu items.
-
-sidebar-menu-genai-chat-item = {""}
-  .title = AI chatbot
-sidebar-menu-history-item = {""}
-  .title = History
-sidebar-menu-synced-tabs-item = {""}
-  .title = Tabs from other devices
-sidebar-menu-bookmarks-item = {""}
-  .title = Bookmarks
-sidebar-menu-customize-item = {""}
-  .title = { sidebar-menu-customize-label }
+sidebar-menu-customize-label =
+  .label = Customize sidebar
 
 ## Headings for sidebar menu panels.
 

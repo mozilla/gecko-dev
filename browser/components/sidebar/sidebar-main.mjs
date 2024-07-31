@@ -5,8 +5,8 @@
 import {
   html,
   ifDefined,
+  nothing,
   repeat,
-  when,
 } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
@@ -29,6 +29,13 @@ export default class SidebarMain extends MozLitElement {
     toolButtons: { all: ".tools-and-extensions > moz-button:not([extension])" },
     customizeButton: ".bottom-actions > moz-button[view=viewCustomizeSidebar]",
   };
+
+  get fluentStrings() {
+    if (!this._fluentStrings) {
+      this._fluentStrings = new Localization(["preview/sidebar.ftl"], true);
+    }
+    return this._fluentStrings;
+  }
 
   constructor() {
     super();
@@ -195,21 +202,26 @@ export default class SidebarMain extends MozLitElement {
       return null;
     }
     const isActiveView = this.open && action.view === this.selectedView;
-    const l10nId = action.l10nId?.concat(this.expanded ? "-label" : "-item");
-    const title = this.expanded ? "" : action.tooltiptext;
+    let actionLabel = "";
+    if (action.tooltiptext) {
+      actionLabel = action.tooltiptext;
+    } else if (action.l10nId) {
+      const messages = this.fluentStrings.formatMessagesSync([action.l10nId]);
+      const attributes = messages?.[0]?.attributes;
+      actionLabel = attributes?.find(attr => attr.name === "label")?.value;
+    }
     return html`<moz-button
       class=${this.expanded ? "expanded-button" : ""}
       type=${isActiveView ? "icon" : "icon ghost"}
       aria-pressed="${isActiveView}"
       view=${action.view}
       @click=${() => this.showView(action.view)}
-      title=${ifDefined(title)}
-      data-l10n-id=${ifDefined(l10nId)}
+      title=${!this.expanded ? actionLabel : nothing}
       .iconSrc=${action.iconUrl}
       ?extension=${action.view?.includes("-sidebar-action")}
       extensionId=${ifDefined(action.extensionId)}
     >
-      ${when(this.expanded, () => action.tooltiptext)}
+      ${this.expanded ? actionLabel : nothing}
     </moz-button>`;
   }
 

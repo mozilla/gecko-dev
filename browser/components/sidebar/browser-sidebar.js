@@ -79,7 +79,7 @@ var SidebarController = {
           triggerButtonId: "appMenuViewHistorySidebar",
           keyId: "key_gotoHistory",
           menuL10nId: "menu-view-history-button",
-          revampL10nId: "sidebar-menu-history",
+          revampL10nId: "sidebar-menu-history-label",
           iconUrl: "chrome://browser/content/firefoxview/view-history.svg",
         }),
       ],
@@ -93,7 +93,7 @@ var SidebarController = {
           menuId: "menu_tabsSidebar",
           classAttribute: "sync-ui-item",
           menuL10nId: "menu-view-synced-tabs-sidebar",
-          revampL10nId: "sidebar-menu-synced-tabs",
+          revampL10nId: "sidebar-menu-synced-tabs-label",
           iconUrl: "chrome://browser/content/firefoxview/view-syncedtabs.svg",
         }),
       ],
@@ -105,7 +105,7 @@ var SidebarController = {
           menuId: "menu_bookmarksSidebar",
           keyId: "viewBookmarksSidebarKb",
           menuL10nId: "menu-view-bookmarks",
-          revampL10nId: "sidebar-menu-bookmarks",
+          revampL10nId: "sidebar-menu-bookmarks-label",
           iconUrl: "chrome://browser/skin/bookmark-hollow.svg",
           disabled: true,
         }),
@@ -121,7 +121,7 @@ var SidebarController = {
         menuId: "menu_genaiChatSidebar",
         menuL10nId: "menu-view-genai-chat",
         // Bug 1900915 to expose as conditional tool
-        revampL10nId: "sidebar-menu-genai-chat",
+        revampL10nId: "sidebar-menu-genai-chat-label",
         iconUrl: "chrome://mozapps/skin/extensions/category-discover.svg",
       }
     );
@@ -141,7 +141,7 @@ var SidebarController = {
     } else {
       this._sidebars.set("viewCustomizeSidebar", {
         url: "chrome://browser/content/sidebar/sidebar-customize.html",
-        revampL10nId: "sidebar-menu-customize",
+        revampL10nId: "sidebar-menu-customize-label",
         iconUrl: "chrome://browser/skin/preferences/category-general.svg",
       });
     }
@@ -351,6 +351,9 @@ var SidebarController = {
           this.hide();
           this.showInitially(this.lastOpenedId);
           break;
+        }
+        if (this.revampComponentsLoaded) {
+          this.sidebarMain.requestUpdate();
         }
       }
     }
