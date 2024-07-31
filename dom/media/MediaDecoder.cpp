@@ -6,6 +6,10 @@
 
 #include "MediaDecoder.h"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 #include "AudioDeviceInfo.h"
 #include "DOMMediaStream.h"
 #include "DecoderBenchmark.h"
@@ -18,8 +22,8 @@
 #include "TelemetryProbesReporter.h"
 #include "VideoFrameContainer.h"
 #include "VideoUtils.h"
+#include "WindowRenderer.h"
 #include "mozilla/AbstractThread.h"
-#include "mozilla/dom/DOMTypes.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Preferences.h"
@@ -27,6 +31,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
+#include "mozilla/dom/DOMTypes.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
@@ -35,10 +40,6 @@
 #include "nsPrintfCString.h"
 #include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
-#include "WindowRenderer.h"
-#include <algorithm>
-#include <cmath>
-#include <limits>
 
 using namespace mozilla::dom;
 using namespace mozilla::layers;
