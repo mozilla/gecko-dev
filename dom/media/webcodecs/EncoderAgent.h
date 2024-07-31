@@ -11,6 +11,7 @@
 #include "PEMFactory.h"
 #include "PlatformEncoderModule.h"
 #include "WebCodecsUtils.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TaskQueue.h"
 
@@ -70,15 +71,9 @@ class EncoderAgent final {
   RefPtr<EncodePromise> Dry();
   void DryUntilDrain();
 
-  enum class State {
-    Unconfigured,
-    Configuring,
-    Configured,
-    Encoding,
-    Flushing,
-    ShuttingDown,
-    Error,
-  };
+  MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(
+      State, (Unconfigured, Configuring, Configured, Encoding, Flushing,
+              ShuttingDown, Error));
   void SetState(State aState);
 
   const RefPtr<nsISerialEventTarget> mOwnerThread;

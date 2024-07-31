@@ -403,32 +403,9 @@ void EncoderAgent::SetState(State aState) {
     return false;
   };
 
-  auto stateToString = [](State aState) -> const char* {
-    switch (aState) {
-      case State::Unconfigured:
-        return "Unconfigured";
-      case State::Configuring:
-        return "Configuring";
-      case State::Configured:
-        return "Configured";
-      case State::Encoding:
-        return "Encoding";
-      case State::Flushing:
-        return "Flushing";
-      case State::ShuttingDown:
-        return "ShuttingDown";
-      case State::Error:
-        return "Error";
-      default:
-        break;
-    }
-    MOZ_ASSERT_UNREACHABLE("Unhandled state type");
-    return "Unknown";
-  };
-
   DebugOnly<bool> isValid = validateStateTransition(mState, aState);
   LOGV("EncoderAgent #%zu (%p) state change: %s -> %s", mId, this,
-       stateToString(mState), stateToString(aState));
+       EnumValueToString(mState), EnumValueToString(aState));
   MOZ_ASSERT(isValid);
   mState = aState;
 }
