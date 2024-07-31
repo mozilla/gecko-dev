@@ -200,8 +200,6 @@ class PromptFeature private constructor(
     private val passwordGeneratorColorsProvider: PasswordGeneratorDialogColorsProvider = PasswordGeneratorDialogColorsProvider {
         PasswordGeneratorDialogColors.default()
     },
-    private val hideUpdateFragmentAfterSavingGeneratedPassword: (String, String) -> Boolean = { _, _ -> true },
-    private val removeLastSavedGeneratedPassword: () -> Unit = {},
     private val creditCardDelegate: CreditCardDelegate = object : CreditCardDelegate {},
     private val addressDelegate: AddressDelegate = DefaultAddressDelegate(),
     private val fileUploadsDirCleaner: FileUploadsDirCleaner,
@@ -257,8 +255,6 @@ class PromptFeature private constructor(
         passwordGeneratorColorsProvider: PasswordGeneratorDialogColorsProvider = PasswordGeneratorDialogColorsProvider {
             PasswordGeneratorDialogColors.default()
         },
-        hideUpdateFragmentAfterSavingGeneratedPassword: (String, String) -> Boolean = { _, _ -> true },
-        removeLastSavedGeneratedPassword: () -> Unit = {},
         creditCardDelegate: CreditCardDelegate = object : CreditCardDelegate {},
         addressDelegate: AddressDelegate = DefaultAddressDelegate(),
         fileUploadsDirCleaner: FileUploadsDirCleaner,
@@ -289,8 +285,6 @@ class PromptFeature private constructor(
         onSaveLoginWithStrongPassword = onSaveLoginWithStrongPassword,
         onSaveLogin = onSaveLogin,
         passwordGeneratorColorsProvider = passwordGeneratorColorsProvider,
-        hideUpdateFragmentAfterSavingGeneratedPassword = hideUpdateFragmentAfterSavingGeneratedPassword,
-        removeLastSavedGeneratedPassword = removeLastSavedGeneratedPassword,
         creditCardDelegate = creditCardDelegate,
         addressDelegate = addressDelegate,
         androidPhotoPicker = androidPhotoPicker,
@@ -318,8 +312,6 @@ class PromptFeature private constructor(
         onFirstTimeEngagedWithSignup: () -> Unit = {},
         onSaveLoginWithStrongPassword: (String, String) -> Unit = { _, _ -> },
         onSaveLogin: (Boolean) -> Unit = { _ -> },
-        hideUpdateFragmentAfterSavingGeneratedPassword: (String, String) -> Boolean = { _, _ -> true },
-        removeLastSavedGeneratedPassword: () -> Unit = {},
         creditCardDelegate: CreditCardDelegate = object : CreditCardDelegate {},
         addressDelegate: AddressDelegate = DefaultAddressDelegate(),
         fileUploadsDirCleaner: FileUploadsDirCleaner,
@@ -346,8 +338,6 @@ class PromptFeature private constructor(
         onFirstTimeEngagedWithSignup = onFirstTimeEngagedWithSignup,
         onSaveLoginWithStrongPassword = onSaveLoginWithStrongPassword,
         onSaveLogin = onSaveLogin,
-        hideUpdateFragmentAfterSavingGeneratedPassword = hideUpdateFragmentAfterSavingGeneratedPassword,
-        removeLastSavedGeneratedPassword = removeLastSavedGeneratedPassword,
         creditCardDelegate = creditCardDelegate,
         addressDelegate = addressDelegate,
         fileUploadsDirCleaner = fileUploadsDirCleaner,
@@ -821,7 +811,7 @@ class PromptFeature private constructor(
     /**
      * Called from on [onPromptRequested] to handle requests for showing native dialogs.
      */
-    @Suppress("ComplexMethod", "LongMethod", "ReturnCount")
+    @Suppress("ComplexMethod", "LongMethod")
     @VisibleForTesting(otherwise = PRIVATE)
     internal fun handleDialogsRequest(
         promptRequest: PromptRequest,
@@ -842,7 +832,6 @@ class PromptFeature private constructor(
                     dismissDialogRequest(promptRequest, session)
                     return
                 }
-
                 PasswordGeneratorDialogFragment.newInstance(
                     sessionId = session.id,
                     promptRequestUID = promptRequest.uid,
@@ -891,15 +880,6 @@ class PromptFeature private constructor(
                                 "try attaching a LoginValidationDelegate to PromptFeature",
                         )
                     }
-
-                    return
-                } else if (hideUpdateFragmentAfterSavingGeneratedPassword(
-                        promptRequest.logins[0].username,
-                        promptRequest.logins[0].password,
-                    )
-                ) {
-                    removeLastSavedGeneratedPassword()
-                    dismissDialogRequest(promptRequest, session)
 
                     return
                 }
