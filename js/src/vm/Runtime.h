@@ -102,7 +102,7 @@ struct PcScriptCache;
 class CompileRuntime;
 
 #ifdef JS_SIMULATOR_ARM64
-typedef vixl::Simulator Simulator;
+using vixl::Simulator;
 #elif defined(JS_SIMULATOR)
 class Simulator;
 #endif

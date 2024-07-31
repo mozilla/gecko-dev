@@ -171,8 +171,8 @@ NotableScriptSourceInfo::NotableScriptSourceInfo(const char* filename,
 
 }  // namespace JS
 
-typedef HashSet<ScriptSource*, DefaultHasher<ScriptSource*>, SystemAllocPolicy>
-    SourceSet;
+using SourceSet =
+    HashSet<ScriptSource*, DefaultHasher<ScriptSource*>, SystemAllocPolicy>;
 
 struct StatsClosure {
   RuntimeStats* rtStats;

@@ -92,7 +92,7 @@ class StencilXDR;
 
 class ScriptCounts {
  public:
-  typedef mozilla::Vector<PCCounts, 0, SystemAllocPolicy> PCCountsVector;
+  using PCCountsVector = mozilla::Vector<PCCounts, 0, SystemAllocPolicy>;
 
   inline ScriptCounts();
   inline explicit ScriptCounts(PCCountsVector&& jumpTargets);

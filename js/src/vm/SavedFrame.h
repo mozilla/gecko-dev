@@ -112,8 +112,8 @@ class SavedFrame : public NativeObject {
   struct Lookup;
   struct HashPolicy;
 
-  typedef JS::GCHashSet<WeakHeapPtr<SavedFrame*>, HashPolicy, SystemAllocPolicy>
-      Set;
+  using Set =
+      JS::GCHashSet<WeakHeapPtr<SavedFrame*>, HashPolicy, SystemAllocPolicy>;
 
  private:
   static SavedFrame* create(JSContext* cx);

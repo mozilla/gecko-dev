@@ -4151,7 +4151,7 @@ void js::GetSuspendedGeneratorEnvironmentAndScope(
 
 #ifdef DEBUG
 
-typedef HashSet<PropertyName*> PropertyNameSet;
+using PropertyNameSet = HashSet<PropertyName*>;
 
 static bool RemoveReferencedNames(JSContext* cx, HandleScript script,
                                   PropertyNameSet& remainingNames) {

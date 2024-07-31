@@ -66,7 +66,7 @@ class IonFreeTask;
 namespace wasm {
 
 struct CompileTask;
-typedef Fifo<CompileTask*, 0, SystemAllocPolicy> CompileTaskPtrFifo;
+using CompileTaskPtrFifo = Fifo<CompileTask*, 0, SystemAllocPolicy>;
 
 struct Tier2GeneratorTask : public HelperThreadTask {
   virtual ~Tier2GeneratorTask() = default;
@@ -74,8 +74,8 @@ struct Tier2GeneratorTask : public HelperThreadTask {
 };
 
 using UniqueTier2GeneratorTask = UniquePtr<Tier2GeneratorTask>;
-typedef Vector<Tier2GeneratorTask*, 0, SystemAllocPolicy>
-    Tier2GeneratorTaskPtrVector;
+using Tier2GeneratorTaskPtrVector =
+    Vector<Tier2GeneratorTask*, 0, SystemAllocPolicy>;
 
 }  // namespace wasm
 
@@ -98,17 +98,17 @@ class GlobalHelperThreadState {
 
   bool terminating_ = false;
 
-  typedef Vector<jit::IonCompileTask*, 0, SystemAllocPolicy>
-      IonCompileTaskVector;
+  using IonCompileTaskVector =
+      Vector<jit::IonCompileTask*, 0, SystemAllocPolicy>;
   using IonFreeTaskVector =
       Vector<js::UniquePtr<jit::IonFreeTask>, 0, SystemAllocPolicy>;
   using DelazifyTaskList = mozilla::LinkedList<DelazifyTask>;
   using FreeDelazifyTaskVector =
       Vector<js::UniquePtr<FreeDelazifyTask>, 1, SystemAllocPolicy>;
-  typedef Vector<UniquePtr<SourceCompressionTask>, 0, SystemAllocPolicy>
-      SourceCompressionTaskVector;
-  typedef Vector<PromiseHelperTask*, 0, SystemAllocPolicy>
-      PromiseHelperTaskVector;
+  using SourceCompressionTaskVector =
+      Vector<UniquePtr<SourceCompressionTask>, 0, SystemAllocPolicy>;
+  using PromiseHelperTaskVector =
+      Vector<PromiseHelperTask*, 0, SystemAllocPolicy>;
 
   // Count of running task by each threadType.
   mozilla::EnumeratedArray<ThreadType, size_t,
