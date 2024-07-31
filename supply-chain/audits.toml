@@ -4223,6 +4223,11 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "3.8.0 -> 3.9.0"
 
+[[audits.tempfile]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "3.9.0 -> 3.10.1"
+
 [[audits.termcolor]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"

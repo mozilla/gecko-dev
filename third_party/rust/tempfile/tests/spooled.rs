@@ -305,3 +305,18 @@ fn test_set_len_rollover() {
     assert_eq!(t.read_to_end(&mut buf).unwrap(), 20);
     assert_eq!(buf.as_slice(), b"abcde\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0");
 }
+
+#[test]
+fn test_write_overflow() {
+    let mut t = spooled_tempfile(10);
+    t.seek(SeekFrom::Start(u64::MAX)).unwrap();
+    assert!(t.write(b"abcde").is_err());
+}
+
+#[cfg(target_pointer_width = "32")]
+#[test]
+fn test_set_len_truncation() {
+    let mut t = spooled_tempfile(100);
+    assert!(t.set_len(usize::MAX as u64 + 5).is_ok());
+    assert!(t.is_rolled());
+}

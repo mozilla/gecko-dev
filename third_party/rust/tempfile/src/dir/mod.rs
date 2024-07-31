@@ -12,7 +12,7 @@ use std::ffi::OsStr;
 use std::fs::remove_dir_all;
 use std::mem;
 use std::path::{self, Path, PathBuf};
-use std::{fmt, fs, io};
+use std::{fmt, io};
 
 use crate::error::IoResultExt;
 use crate::Builder;
@@ -468,10 +468,11 @@ impl Drop for TempDir {
     }
 }
 
-pub(crate) fn create(path: PathBuf) -> io::Result<TempDir> {
-    fs::create_dir(&path)
-        .with_err_path(|| &path)
-        .map(|_| TempDir {
-            path: path.into_boxed_path(),
-        })
+pub(crate) fn create(
+    path: PathBuf,
+    permissions: Option<&std::fs::Permissions>,
+) -> io::Result<TempDir> {
+    imp::create(path, permissions)
 }
+
+mod imp;

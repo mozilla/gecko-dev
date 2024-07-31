@@ -197,6 +197,7 @@ pub struct Builder<'a, 'b> {
     prefix: &'a OsStr,
     suffix: &'b OsStr,
     append: bool,
+    permissions: Option<std::fs::Permissions>,
 }
 
 impl<'a, 'b> Default for Builder<'a, 'b> {
@@ -206,6 +207,7 @@ impl<'a, 'b> Default for Builder<'a, 'b> {
             prefix: OsStr::new(".tmp"),
             suffix: OsStr::new(""),
             append: false,
+            permissions: None,
         }
     }
 }
@@ -399,6 +401,89 @@ impl<'a, 'b> Builder<'a, 'b> {
         self
     }
 
+    /// The permissions to create the tempfile or [tempdir](Self::tempdir) with.
+    /// This allows to them differ from the default mode of `0o600` on Unix.
+    ///
+    /// # Security
+    ///
+    /// By default, the permissions of tempfiles on unix are set for it to be
+    /// readable and writable by the owner only, yielding the greatest amount
+    /// of security.
+    /// As this method allows to widen the permissions, security would be
+    /// reduced in such cases.
+    ///
+    /// # Platform Notes
+    /// ## Unix
+    ///
+    /// The actual permission bits set on the tempfile or tempdir will be affected by the
+    /// `umask` applied by the underlying syscall.
+    ///
+    ///
+    /// ## Windows and others
+    ///
+    /// This setting is unsupported and trying to set a file or directory read-only
+    /// will cause an error to be returned..
+    ///
+    /// # Examples
+    ///
+    /// Create a named temporary file that is world-readable.
+    ///
+    /// ```
+    /// # use std::io;
+    /// # fn main() {
+    /// #     if let Err(_) = run() {
+    /// #         ::std::process::exit(1);
+    /// #     }
+    /// # }
+    /// # fn run() -> Result<(), io::Error> {
+    /// # use tempfile::Builder;
+    /// #[cfg(unix)]
+    /// {
+    ///     use std::os::unix::fs::PermissionsExt;
+    ///     let all_read_write = std::fs::Permissions::from_mode(0o666);
+    ///     let tempfile = Builder::new().permissions(all_read_write).tempfile()?;
+    ///     let actual_permissions = tempfile.path().metadata()?.permissions();
+    ///     assert_ne!(
+    ///         actual_permissions.mode() & !0o170000,
+    ///         0o600,
+    ///         "we get broader permissions than the default despite umask"
+    ///     );
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// Create a named temporary directory that is restricted to the owner.
+    ///
+    /// ```
+    /// # use std::io;
+    /// # fn main() {
+    /// #     if let Err(_) = run() {
+    /// #         ::std::process::exit(1);
+    /// #     }
+    /// # }
+    /// # fn run() -> Result<(), io::Error> {
+    /// # use tempfile::Builder;
+    /// #[cfg(unix)]
+    /// {
+    ///     use std::os::unix::fs::PermissionsExt;
+    ///     let owner_rwx = std::fs::Permissions::from_mode(0o700);
+    ///     let tempdir = Builder::new().permissions(owner_rwx).tempdir()?;
+    ///     let actual_permissions = tempdir.path().metadata()?.permissions();
+    ///     assert_eq!(
+    ///         actual_permissions.mode() & !0o170000,
+    ///         0o700,
+    ///         "we get the narrow permissions we asked for"
+    ///     );
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn permissions(&mut self, permissions: std::fs::Permissions) -> &mut Self {
+        self.permissions = Some(permissions);
+        self
+    }
+
     /// Create the named temporary file.
     ///
     /// # Security
@@ -473,7 +558,10 @@ impl<'a, 'b> Builder<'a, 'b> {
             self.prefix,
             self.suffix,
             self.random_len,
-            |path| file::create_named(path, OpenOptions::new().append(self.append)),
+            self.permissions.as_ref(),
+            |path, permissions| {
+                file::create_named(path, OpenOptions::new().append(self.append), permissions)
+            },
         )
     }
 
@@ -545,7 +633,14 @@ impl<'a, 'b> Builder<'a, 'b> {
             dir = &storage;
         }
 
-        util::create_helper(dir, self.prefix, self.suffix, self.random_len, dir::create)
+        util::create_helper(
+            dir,
+            self.prefix,
+            self.suffix,
+            self.random_len,
+            self.permissions.as_ref(),
+            dir::create,
+        )
     }
 
     /// Attempts to create a temporary file (or file-like object) using the
@@ -690,7 +785,8 @@ impl<'a, 'b> Builder<'a, 'b> {
             self.prefix,
             self.suffix,
             self.random_len,
-            move |path| {
+            None,
+            move |path, _permissions| {
                 Ok(NamedTempFile::from_parts(
                     f(&path)?,
                     TempPath::from_path(path),

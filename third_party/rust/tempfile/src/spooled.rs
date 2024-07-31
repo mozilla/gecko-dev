@@ -96,7 +96,7 @@ impl SpooledTempFile {
     }
 
     pub fn set_len(&mut self, size: u64) -> Result<(), io::Error> {
-        if size as usize > self.max_size {
+        if size > self.max_size as u64 {
             self.roll()?; // does nothing if already rolled over
         }
         match &mut self.inner {
@@ -157,7 +157,7 @@ impl Write for SpooledTempFile {
         // roll over to file if necessary
         if matches! {
             &self.inner, SpooledData::InMemory(cursor)
-            if cursor.position() as usize + buf.len() > self.max_size
+            if cursor.position().saturating_add(buf.len() as u64) > self.max_size as u64
         } {
             self.roll()?;
         }
@@ -173,8 +173,10 @@ impl Write for SpooledTempFile {
         if matches! {
             &self.inner, SpooledData::InMemory(cursor)
             // Borrowed from the rust standard library.
-            if cursor.position() as usize + bufs.iter()
-                .fold(0usize, |a, b| a.saturating_add(b.len())) > self.max_size
+            if bufs
+                .iter()
+                .fold(cursor.position(), |a, b| a.saturating_add(b.len() as u64))
+                > self.max_size as u64
         } {
             self.roll()?;
         }

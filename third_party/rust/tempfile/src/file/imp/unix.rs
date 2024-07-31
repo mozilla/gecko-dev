@@ -4,7 +4,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io;
 cfg_if::cfg_if! {
     if #[cfg(not(target_os = "wasi"))] {
-        use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+        use std::os::unix::fs::MetadataExt;
     } else {
         #[cfg(feature = "nightly")]
         use std::os::wasi::fs::MetadataExt;
@@ -19,12 +19,17 @@ use {
     std::fs::hard_link,
 };
 
-pub fn create_named(path: &Path, open_options: &mut OpenOptions) -> io::Result<File> {
+pub fn create_named(
+    path: &Path,
+    open_options: &mut OpenOptions,
+    #[cfg_attr(target_os = "wasi", allow(unused))] permissions: Option<&std::fs::Permissions>,
+) -> io::Result<File> {
     open_options.read(true).write(true).create_new(true);
 
     #[cfg(not(target_os = "wasi"))]
     {
-        open_options.mode(0o600);
+        use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+        open_options.mode(permissions.map(|p| p.mode()).unwrap_or(0o600));
     }
 
     open_options.open(path)
@@ -40,7 +45,7 @@ fn create_unlinked(path: &Path) -> io::Result<File> {
         path = &tmp;
     }
 
-    let f = create_named(path, &mut OpenOptions::new())?;
+    let f = create_named(path, &mut OpenOptions::new(), None)?;
     // don't care whether the path has already been unlinked,
     // but perhaps there are some IO error conditions we should send up?
     let _ = fs::remove_file(path);
@@ -50,6 +55,7 @@ fn create_unlinked(path: &Path) -> io::Result<File> {
 #[cfg(target_os = "linux")]
 pub fn create(dir: &Path) -> io::Result<File> {
     use rustix::{fs::OFlags, io::Errno};
+    use std::os::unix::fs::OpenOptionsExt;
     OpenOptions::new()
         .read(true)
         .write(true)
@@ -77,7 +83,8 @@ fn create_unix(dir: &Path) -> io::Result<File> {
         OsStr::new(".tmp"),
         OsStr::new(""),
         crate::NUM_RAND_CHARS,
-        |path| create_unlinked(&path),
+        None,
+        |path, _| create_unlinked(&path),
     )
 }
 
@@ -141,7 +148,8 @@ pub fn persist(old_path: &Path, new_path: &Path, overwrite: bool) -> io::Result<
 #[cfg(target_os = "redox")]
 pub fn persist(_old_path: &Path, _new_path: &Path, _overwrite: bool) -> io::Result<()> {
     // XXX implement when possible
-    Err(io::Error::from_raw_os_error(syscall::ENOSYS))
+    use rustix::io::Errno;
+    Err(Errno::NOSYS.into())
 }
 
 pub fn keep(_: &Path) -> io::Result<()> {

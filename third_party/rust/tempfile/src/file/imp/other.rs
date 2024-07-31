@@ -9,7 +9,11 @@ fn not_supported<T>() -> io::Result<T> {
     ))
 }
 
-pub fn create_named(_path: &Path, _open_options: &mut OpenOptions) -> io::Result<File> {
+pub fn create_named(
+    _path: &Path,
+    _open_options: &mut OpenOptions,
+    _permissions: Option<&std::fs::Permissions>,
+) -> io::Result<File> {
     not_supported()
 }
 
