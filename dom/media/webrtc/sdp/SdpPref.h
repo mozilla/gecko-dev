@@ -31,7 +31,6 @@ class SdpPref {
     Sipcc,
     WebRtcSdp,
   };
-  static auto ToString(const Parsers& aParser) -> std::string;
 
   // How is the alternate used
   enum class AlternateParseModes {
@@ -40,7 +39,6 @@ class SdpPref {
     Failover,  // Alternate is only run on failure of the primary to parse
     Never,     // Alternate is never run; this is effectively a kill switch
   };
-  static auto ToString(const AlternateParseModes& aMode) -> std::string;
 
  private:
   // Finds the mapping between a pref string and pref value, if none exists the
