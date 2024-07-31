@@ -788,7 +788,8 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
     // browser implementations to determine whether the site is currently open
     // on the top level.
     bool hostIsActive;
-    rv = BounceTrackingState::HasBounceTrackingStateForSite(host, hostIsActive);
+    rv = BounceTrackingState::HasBounceTrackingStateForSite(
+        host, aStateGlobal->OriginAttributesRef(), hostIsActive);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       hostIsActive = false;
     }

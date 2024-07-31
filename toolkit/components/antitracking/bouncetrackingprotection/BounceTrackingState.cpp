@@ -270,7 +270,8 @@ bool BounceTrackingState::ShouldTrackPrincipal(nsIPrincipal* aPrincipal) {
 
 // static
 nsresult BounceTrackingState::HasBounceTrackingStateForSite(
-    const nsACString& aSiteHost, bool& aResult) {
+    const nsACString& aSiteHost, const OriginAttributes& aOriginAttributes,
+    bool& aResult) {
   aResult = false;
   NS_ENSURE_TRUE(aSiteHost.Length(), NS_ERROR_FAILURE);
 
@@ -287,6 +288,12 @@ nsresult BounceTrackingState::HasBounceTrackingStateForSite(
       continue;
     }
     RefPtr<BounceTrackingState> state(btsWeak);
+
+    // Skip BTS of unrelated OA. These are not relevant for the caller as their
+    // state is isolated.
+    if (state->mOriginAttributes != aOriginAttributes) {
+      continue;
+    }
 
     // For each active BTS get the current window's document principal.
     RefPtr<dom::BrowsingContext> browsingContext =

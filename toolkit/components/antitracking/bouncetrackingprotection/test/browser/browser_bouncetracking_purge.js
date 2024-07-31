@@ -120,6 +120,28 @@ add_task(async function test_purging_skip_open_tab_extra_window() {
   bounceTrackingProtection.clearAll();
 });
 
+add_task(async function test_purging_not_skipped_unrelated_container_tab() {
+  initBounceTrackerState();
+
+  info("Open a container tab");
+  let tab = gBrowser.addTab("https://example.com/", {
+    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+    userContextId: 1,
+  });
+  gBrowser.selectedTab = tab;
+  let browser = tab.linkedBrowser;
+  await BrowserTestUtils.browserLoaded(browser, true, "https://example.com/");
+
+  Assert.deepEqual(
+    (await bounceTrackingProtection.testRunPurgeBounceTrackers()).sort(),
+    ["example.net", "example.com"].sort(),
+    "Should purge example.net and example.com. example.org is within the grace period. example.com has an open tab, but it's in an unrelated container."
+  );
+
+  BrowserTestUtils.removeTab(tab);
+  bounceTrackingProtection.clearAll();
+});
+
 add_task(async function test_purging_skip_content_blocking_allow_list() {
   initBounceTrackerState();
 
