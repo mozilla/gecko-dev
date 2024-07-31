@@ -37,8 +37,6 @@ class MacroAssemblerX86Shared : public Assembler {
   static_assert(sizeof(UsesItem) == 4);
 
  protected:
-  // For Double, Float and SimdData, make the move ctors explicit so that MSVC
-  // knows what to use instead of copying these data structures.
   template <class T>
   struct Constant {
     using Pod = T;
@@ -47,9 +45,10 @@ class MacroAssemblerX86Shared : public Assembler {
     UsesVector uses;
 
     explicit Constant(const T& value) : value(value) {}
-    Constant(Constant<T>&& other)
-        : value(other.value), uses(std::move(other.uses)) {}
-    explicit Constant(const Constant<T>&) = delete;
+
+    // Allow move operations, but not copying.
+    Constant(Constant<T>&&) = default;
+    Constant(const Constant<T>&) = delete;
   };
 
   // Containers use SystemAllocPolicy since wasm releases memory after each
