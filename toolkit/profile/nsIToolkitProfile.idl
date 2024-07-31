@@ -67,11 +67,6 @@ interface nsIToolkitProfile : nsISupports
     attribute AUTF8String name;
 
     /**
-     * Identifier for the profile group datastore.
-     */
-    attribute AUTF8String storeID;
-
-    /**
      * Removes the profile from the registry of profiles.
      *
      * @param removeFiles

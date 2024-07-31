@@ -30,8 +30,7 @@ class nsToolkitProfile final
   ~nsToolkitProfile() = default;
 
   nsToolkitProfile(const nsACString& aName, nsIFile* aRootDir,
-                   nsIFile* aLocalDir, bool aFromDB,
-                   const nsACString& aStoreID);
+                   nsIFile* aLocalDir, bool aFromDB);
 
   nsresult RemoveInternal(bool aRemoveFiles, bool aInBackground);
 
@@ -40,7 +39,6 @@ class nsToolkitProfile final
   nsCString mName;
   nsCOMPtr<nsIFile> mRootDir;
   nsCOMPtr<nsIFile> mLocalDir;
-  nsCString mStoreID;
   nsIProfileLock* mLock;
   uint32_t mIndex;
   nsCString mSection;
