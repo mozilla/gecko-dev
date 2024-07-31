@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "file:///BookmarksBarButton.schema.json",
+  "title": "BookmarksBarButton",
+  "description": "A template with a label and a special message action (currently only supports OPEN_URL)",
+  "allOf": [
+    {
+      "$ref": "file:///FxMSCommon.schema.json#/$defs/Message"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "template": {
+      "type": "string",
+      "const": "bookmarks_bar_button"
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Action dispatched by the button."
+            },
+            "data": {
+              "type": "object"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "required": ["targeting"]
+}

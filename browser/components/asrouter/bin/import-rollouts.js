@@ -94,6 +94,10 @@ async function getMessageValidators(skipValidation) {
   );
 
   const messageValidators = {
+    bookmarks_bar_button: await getValidator(
+      "./content-src/templates/OnboardingMessage/BookmarksBarButton.schema.json",
+      { common: true }
+    ),
     cfr_doorhanger: await getValidator(
       "./content-src/templates/CFR/templates/ExtensionDoorhanger.schema.json",
       { common: true }

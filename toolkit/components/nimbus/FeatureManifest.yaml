@@ -3452,3 +3452,15 @@ crlite:
         pref: security.pki.crlite_mode
       description: >-
         How CRLite results will be interpreted.
+
+fxms_bmb_button:
+  description: A feature for the Firefox Messaging System Bookmarks Bar button surface
+  owner: omc@mozilla.com
+  hasExposure: true
+  exposureDescription: >-
+    Exposure is sent if the message is about to be shown after trigger and
+    targeting conditions on the message matched.
+  schema:
+    uri: chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json
+    path: browser/components/asrouter/content-src/schemas/MessagingExperiment.schema.json
+  variables: {}

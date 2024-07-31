@@ -38,4 +38,5 @@ export const MESSAGING_EXPERIMENTS_DEFAULT_FEATURES = [
   "pbNewtab",
   "spotlight",
   "featureCallout",
+  "bookmarksBarButton",
 ];

@@ -95,6 +95,28 @@ const MESSAGES = () => [
     },
   },
   {
+    id: "TEST_BMB_BUTTON",
+    groups: [],
+    template: "bookmarks_bar_button",
+    content: {
+      label: {
+        raw: "Getting Started",
+        tooltiptext: "Getting started with Firefox",
+      },
+      action: {
+        type: "OPEN_URL",
+        data: {
+          args: "https://www.mozilla.org",
+          where: "tab",
+        },
+        navigate: true,
+      },
+    },
+    frequency: { lifetime: 100 },
+    trigger: { id: "defaultBrowserCheck" },
+    targeting: "true",
+  },
+  {
     id: "MULTISTAGE_SPOTLIGHT_MESSAGE",
     groups: ["panel-test-provider"],
     template: "spotlight",
