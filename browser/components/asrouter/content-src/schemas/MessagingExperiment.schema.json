@@ -1131,6 +1131,7 @@
           "type": "string",
           "description": "Which messaging template this message is using.",
           "enum": [
+            "bookmarks_bar_button",
             "cfr_urlbar_chiclet",
             "cfr_doorhanger",
             "milestone_message",

@@ -9,6 +9,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
+  BookmarksBarButton: "resource:///modules/asrouter/BookmarksBarButton.sys.mjs",
   CFRPageActions: "resource:///modules/asrouter/CFRPageActions.sys.mjs",
   FeatureCalloutBroker:
     "resource:///modules/asrouter/FeatureCalloutBroker.sys.mjs",
@@ -54,6 +55,10 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
 
   showSpotlight(message, browser) {
     lazy.Spotlight.showSpotlightDialog(browser, message, () => {});
+  }
+
+  showBookmarksBarButton(message, browser) {
+    lazy.BookmarksBarButton.showBookmarksBarButton(message, browser);
   }
 
   showCFR(message, browser) {
@@ -138,6 +143,9 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
         return;
       case "feature_callout":
         this.showFeatureCallout(message, browser);
+        return;
+      case "bookmarks_bar_button":
+        this.showBookmarksBarButton(message, browser);
         return;
       default:
         console.error(`Unsupported message template ${message.template}`);
