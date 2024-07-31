@@ -285,6 +285,7 @@ describe("<DSCard>", () => {
             received_rank: undefined,
             topic: undefined,
             matches_selected_topic: undefined,
+            selected_topics: undefined,
           },
         })
       );
@@ -300,6 +301,7 @@ describe("<DSCard>", () => {
               type: "organic",
               recommendation_id: undefined,
               topic: undefined,
+              selected_topics: undefined,
             },
           ],
           window_inner_width: 1000,
@@ -333,6 +335,7 @@ describe("<DSCard>", () => {
             received_rank: undefined,
             topic: undefined,
             matches_selected_topic: undefined,
+            selected_topics: undefined,
           },
         })
       );
@@ -348,6 +351,7 @@ describe("<DSCard>", () => {
               type: "spoc",
               recommendation_id: undefined,
               topic: undefined,
+              selected_topics: undefined,
             },
           ],
           window_inner_width: 1000,
@@ -390,6 +394,7 @@ describe("<DSCard>", () => {
             received_rank: undefined,
             topic: undefined,
             matches_selected_topic: undefined,
+            selected_topics: undefined,
           },
         })
       );
@@ -406,6 +411,7 @@ describe("<DSCard>", () => {
               type: "organic",
               recommendation_id: undefined,
               topic: undefined,
+              selected_topics: undefined,
             },
           ],
           window_inner_width: 1000,
@@ -541,6 +547,7 @@ describe("<DSCard>", () => {
             received_rank: undefined,
             topic: undefined,
             matches_selected_topic: undefined,
+            selected_topics: undefined,
           },
         })
       );
@@ -555,6 +562,7 @@ describe("<DSCard>", () => {
               pos: 1,
               recommendation_id: undefined,
               topic: undefined,
+              selected_topics: undefined,
             },
           ],
         })

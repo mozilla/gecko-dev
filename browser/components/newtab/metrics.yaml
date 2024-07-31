@@ -992,6 +992,10 @@ pocket:
       topic:
         description: The topic of the recommendation. Like "entertainment".
         type: string
+      selected_topics:
+        description: >
+          The list of topics the user selected
+        type: string
     send_in_pings:
       - newtab
 
@@ -1036,6 +1040,10 @@ pocket:
         type: string
       topic:
         description: The topic of the recommendation. Like "entertainment".
+        type: string
+      selected_topics:
+        description: >
+          The list of topics the user selected
         type: string
     send_in_pings:
       - newtab
@@ -1107,6 +1115,10 @@ pocket:
         description: >
           Returns value based on if a the topic of the pocket recommendation matches one
           of the user-selected topic categories
+        type: string
+      selected_topics:
+        description: >
+          The list of topics the user selected
         type: string
 
     send_in_pings:

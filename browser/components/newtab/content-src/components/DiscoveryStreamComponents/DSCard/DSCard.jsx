@@ -242,6 +242,7 @@ export class _DSCard extends React.PureComponent {
             received_rank: this.props.received_rank,
             topic: this.props.topic,
             matches_selected_topic: matchesSelectedTopic,
+            selected_topics: this.props.selectedTopics,
           },
         })
       );
@@ -262,6 +263,7 @@ export class _DSCard extends React.PureComponent {
               type: this.props.flightId ? "spoc" : "organic",
               recommendation_id: this.props.recommendation_id,
               topic: this.props.topic,
+              selected_topics: this.props.selectedTopics,
             },
           ],
         })
@@ -299,6 +301,7 @@ export class _DSCard extends React.PureComponent {
             received_rank: this.props.received_rank,
             topic: this.props.topic,
             matches_selected_topic: matchesSelectedTopic,
+            selected_topics: this.props.selectedTopics,
           },
         })
       );
@@ -316,6 +319,7 @@ export class _DSCard extends React.PureComponent {
                 : {}),
               recommendation_id: this.props.recommendation_id,
               topic: this.props.topic,
+              selected_topics: this.props.selectedTopics,
             },
           ],
         })

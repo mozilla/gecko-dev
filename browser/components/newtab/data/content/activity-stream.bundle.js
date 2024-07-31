@@ -2970,7 +2970,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           recommended_at: this.props.recommended_at,
           received_rank: this.props.received_rank,
           topic: this.props.topic,
-          matches_selected_topic: matchesSelectedTopic
+          matches_selected_topic: matchesSelectedTopic,
+          selected_topics: this.props.selectedTopics
         }
       }));
       this.props.dispatch(actionCreators.ImpressionStats({
@@ -2986,7 +2987,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           } : {}),
           type: this.props.flightId ? "spoc" : "organic",
           recommendation_id: this.props.recommendation_id,
-          topic: this.props.topic
+          topic: this.props.topic,
+          selected_topics: this.props.selectedTopics
         }]
       }));
     }
@@ -3020,7 +3022,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           recommended_at: this.props.recommended_at,
           received_rank: this.props.received_rank,
           topic: this.props.topic,
-          matches_selected_topic: matchesSelectedTopic
+          matches_selected_topic: matchesSelectedTopic,
+          selected_topics: this.props.selectedTopics
         }
       }));
       this.props.dispatch(actionCreators.ImpressionStats({
@@ -3033,7 +3036,8 @@ class _DSCard extends (external_React_default()).PureComponent {
             shim: this.props.shim.save
           } : {}),
           recommendation_id: this.props.recommendation_id,
-          topic: this.props.topic
+          topic: this.props.topic,
+          selected_topics: this.props.selectedTopics
         }]
       }));
     }

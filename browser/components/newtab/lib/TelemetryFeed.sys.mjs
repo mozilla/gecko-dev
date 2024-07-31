@@ -729,6 +729,7 @@ export class TelemetryFeed {
           received_rank,
           recommended_at,
           matches_selected_topic,
+          selected_topics,
         } = action.data.value ?? {};
         if (
           action.data.source === "POPULAR_TOPICS" ||
@@ -748,6 +749,7 @@ export class TelemetryFeed {
             newtab_visit_id: session.session_id,
             is_sponsored: card_type === "spoc",
             matches_selected_topic,
+            selected_topics,
             topic,
             position: action.data.action_position,
             tile_id,
@@ -819,12 +821,14 @@ export class TelemetryFeed {
           recommended_at,
           topic,
           matches_selected_topic,
+          selected_topics,
         } = action.data.value ?? {};
         Glean.pocket.save.record({
           newtab_visit_id: session.session_id,
           is_sponsored: card_type === "spoc",
           topic,
           matches_selected_topic,
+          selected_topics,
           position: action.data.action_position,
           tile_id,
           ...(scheduled_corpus_item_id
@@ -1217,6 +1221,7 @@ export class TelemetryFeed {
         position: tile.pos,
         tile_id: tile.id,
         topic: tile.topic,
+        selected_topics: tile.selectedTopics,
         ...(tile.scheduled_corpus_item_id
           ? {
               scheduled_corpus_item_id: tile.scheduled_corpus_item_id,
