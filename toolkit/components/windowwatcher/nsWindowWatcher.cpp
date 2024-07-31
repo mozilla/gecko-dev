@@ -677,6 +677,14 @@ nsresult nsWindowWatcher::OpenWindowInternal(
 
   if (aUri) {
     uriToLoadIsChrome = aUri->SchemeIs("chrome");
+
+    if (aLoadState) {
+      bool equal = false;
+      aUri->Equals(aLoadState->URI(), &equal);
+      MOZ_DIAGNOSTIC_ASSERT(
+          equal,
+          "aLoadState should contain the same URI passed to this function.");
+    }
   }
 
   bool nameSpecified = false;
@@ -1294,11 +1302,7 @@ nsresult nsWindowWatcher::OpenWindowInternal(
       !!(chromeFlags & nsIWebBrowserChrome::CHROME_FISSION_WINDOW));
 
   RefPtr<nsDocShellLoadState> loadState = aLoadState;
-  if (aUri && loadState) {
-    // If a URI was passed to this function, open that, not what was passed in
-    // the original LoadState. See Bug 1515433.
-    loadState->SetURI(aUri);
-  } else if (aUri && aNavigate && !loadState) {
+  if (aUri && aNavigate && !loadState) {
     RefPtr<WindowContext> context =
         parentInnerWin ? parentInnerWin->GetWindowContext() : nullptr;
     loadState = new nsDocShellLoadState(aUri);
