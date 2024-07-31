@@ -3835,7 +3835,7 @@ void MediaDecoderStateMachine::PlayStateChanged() {
                       MEDIA_PLAYBACK);
   PROFILER_MARKER_TEXT(
       "MDSM::PlayStateChanged", MEDIA_PLAYBACK, {},
-      nsPrintfCString("%s", MediaDecoder::ToPlayStateStr(mPlayState.Ref())));
+      nsPrintfCString("%s", MediaDecoder::EnumValueToString(mPlayState.Ref())));
   MOZ_ASSERT(OnTaskQueue());
 
   if (mPlayState != MediaDecoder::PLAY_STATE_PLAYING) {

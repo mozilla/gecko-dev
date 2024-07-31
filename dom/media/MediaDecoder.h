@@ -21,6 +21,7 @@
 #  include "TimeUnits.h"
 #  include "mozilla/Atomics.h"
 #  include "mozilla/CDMProxy.h"
+#  include "mozilla/DefineEnum.h"
 #  include "mozilla/MozPromise.h"
 #  include "mozilla/ReentrantMonitor.h"
 #  include "mozilla/StateMirroring.h"
@@ -123,15 +124,9 @@ class MediaDecoder : public DecoderDoctorLifeLogger<MediaDecoder> {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoder)
 
   // Enumeration for the valid play states (see mPlayState)
-  enum PlayState {
-    PLAY_STATE_LOADING,
-    PLAY_STATE_PAUSED,
-    PLAY_STATE_PLAYING,
-    PLAY_STATE_ENDED,
-    PLAY_STATE_SHUTDOWN
-  };
-
-  static const char* ToPlayStateStr(MediaDecoder::PlayState aState);
+  MOZ_DEFINE_ENUM_WITH_TOSTRING_AT_CLASS_SCOPE(
+      PlayState, (PLAY_STATE_LOADING, PLAY_STATE_PAUSED, PLAY_STATE_PLAYING,
+                  PLAY_STATE_ENDED, PLAY_STATE_SHUTDOWN));
 
   // Must be called exactly once, on the main thread, during startup.
   static void InitStatics();
@@ -604,8 +599,6 @@ class MediaDecoder : public DecoderDoctorLifeLogger<MediaDecoder> {
   virtual void NotifyPrincipalChanged();
 
   MozPromiseRequestHolder<SeekPromise> mSeekRequest;
-
-  const char* PlayStateStr();
 
   void OnMetadataUpdate(TimedMetadata&& aMetadata);
 
