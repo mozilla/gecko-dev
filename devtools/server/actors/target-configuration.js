@@ -31,6 +31,8 @@ const SUPPORTED_OPTIONS = {
   customFormatters: true,
   // Set a custom user agent
   customUserAgent: true,
+  // Is the tracer experimental feature manually enabled by the user?
+  isTracerFeatureEnabled: true,
   // Enable JavaScript
   javascriptEnabled: true,
   // Force a custom device pixel ratio (used in RDM). Set to null to restore origin ratio.

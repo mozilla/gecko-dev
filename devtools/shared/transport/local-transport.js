@@ -36,6 +36,12 @@ function LocalDebuggerTransport(other) {
 
 LocalDebuggerTransport.prototype = {
   /**
+   * Boolean to help identify DevToolsClient instances connected to a LocalDevToolsTransport pipe
+   * and so connected to the same runtime as the frontend.
+   */
+  isLocalTransport: true,
+
+  /**
    * Transmit a message by directly calling the onPacket handler of the other
    * endpoint.
    */

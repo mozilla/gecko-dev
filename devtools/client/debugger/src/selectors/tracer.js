@@ -26,3 +26,9 @@ export function getAllMutationTraces(state) {
 export function getAllTraceCount(state) {
   return state.tracerFrames?.mutableTraces.length || 0;
 }
+export function getRuntimeVersions(state) {
+  return {
+    localPlatformVersion: state.tracerFrames?.localPlatformVersion,
+    remotePlatformVersion: state.tracerFrames?.remotePlatformVersion,
+  };
+}

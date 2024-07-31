@@ -792,6 +792,14 @@ DevToolsClient.prototype = {
     return this._transport;
   },
 
+  /**
+   * Boolean flag to help identify client connected to the current runtime,
+   * via a LocalDevToolsTransport pipe.
+   */
+  get isLocalClient() {
+    return !!this._transport.isLocalTransport;
+  },
+
   dumpPools() {
     for (const pool of this._pools) {
       console.log(`%c${pool.actorID}`, "font-weight: bold;", [

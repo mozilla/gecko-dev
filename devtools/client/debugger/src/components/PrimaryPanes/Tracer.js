@@ -20,6 +20,7 @@ import {
   getAllMutationTraces,
   getAllTraceCount,
   getIsCurrentlyTracing,
+  getRuntimeVersions,
 } from "../../selectors/index";
 const VirtualizedTree = require("resource://devtools/client/shared/components/VirtualizedTree.js");
 const FrameView = createFactory(
@@ -721,6 +722,8 @@ export class Tracer extends Component {
   render() {
     const isZoomed = this.state.renderedTraceCount != this.props.traceCount;
 
+    const { runtimeVersions } = this.props;
+
     return div(
       {
         className: "tracer-container",
@@ -736,6 +739,16 @@ export class Tracer extends Component {
                 className: "tracer-experimental-notice",
               },
               "This panel is experimental. It may change, regress, be dropped or replaced."
+            )
+          : null,
+        runtimeVersions &&
+          runtimeVersions.localPlatformVersion !=
+            runtimeVersions.remotePlatformVersion
+          ? div(
+              {
+                className: "tracer-runtime-version-mismatch",
+              },
+              `Client and remote runtime have different versions (${runtimeVersions.localPlatformVersion} vs ${runtimeVersions.remotePlatformVersion}) . The Tracer may be broken because of protocol changes between these two versions. Please upgrade or downgrade one of the two to use the same major version.`
             )
           : null,
         this.renderSearchInput()
@@ -830,6 +843,7 @@ const mapStateToProps = state => {
     mutationTraces: getAllMutationTraces(state),
     traceCount: getAllTraceCount(state),
     selectedTraceIndex: getSelectedTraceIndex(state),
+    runtimeVersions: getRuntimeVersions(state),
   };
 };
 

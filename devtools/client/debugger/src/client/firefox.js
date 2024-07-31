@@ -11,6 +11,9 @@ import sourceQueue from "../utils/source-queue";
 const {
   TRACER_LOG_METHODS,
 } = require("resource://devtools/shared/specs/tracer.js");
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
 
 let actions;
 let commands;
@@ -94,6 +97,15 @@ export async function onConnect(_commands, _resourceCommand, _actions, store) {
   // to be able to clear the tracer data on tracing start, that, even if the
   // tracer is waiting for next interation/load.
   commands.tracerCommand.on("toggle", onTracingToggled);
+
+  if (!commands.client.isLocalClient) {
+    const localPlatformVersion = AppConstants.MOZ_APP_VERSION;
+    const remotePlatformVersion = await getRemotePlatformVersion();
+    actions.setLocalAndRemoteRuntimeVersion(
+      localPlatformVersion,
+      remotePlatformVersion
+    );
+  }
 }
 
 export function onDisconnect() {
@@ -236,6 +248,12 @@ function onDocumentEventAvailable(events) {
       actions.navigated();
     }
   }
+}
+
+async function getRemotePlatformVersion() {
+  const deviceFront = await commands.client.mainRoot.getFront("device");
+  const description = await deviceFront.getDescription();
+  return description.platformversion;
 }
 
 export { clientCommands };

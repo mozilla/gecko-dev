@@ -225,6 +225,14 @@ class BaseTargetActor extends Actor {
   }
 
   /**
+   * Server side boolean to know if the tracer has been enabled by the user.
+   *
+   * By enabled, we mean the feature has been exposed to the user,
+   * not that the tracer is actively tracing executions.
+   */
+  isTracerFeatureEnabled = false;
+
+  /**
    * Apply target-specific options.
    *
    * This will be called by the watcher when the DevTools target-configuration
@@ -238,6 +246,9 @@ class BaseTargetActor extends Actor {
    *        actor is instantiated.
    */
   updateTargetConfiguration(options = {}, calledFromDocumentCreation = false) {
+    if (typeof options.isTracerFeatureEnabled === "boolean") {
+      this.isTracerFeatureEnabled = options.isTracerFeatureEnabled;
+    }
     // If there is some tracer options, we should start tracing, otherwise we should stop (if we were)
     if (options.tracerOptions) {
       // Ignore the SessionData update if the user requested to start the tracer on next page load and:

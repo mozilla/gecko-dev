@@ -2392,11 +2392,35 @@ async function unregisterServiceWorker(workerUrl) {
  * Toggle the JavavaScript tracer via its toolbox toolbar button.
  */
 async function toggleJsTracer(toolbox) {
-  const { isTracingEnabled } = toolbox.commands.tracerCommand;
+  const { tracerCommand } = toolbox.commands;
+  const { isTracingEnabled } = tracerCommand;
   const { logMethod, traceOnNextInteraction, traceOnNextLoad } =
     toolbox.commands.tracerCommand.getTracingOptions();
+
+  // When the tracer is waiting for user interaction or page load, it won't be made active
+  // right away. The test should manually wait for its activation.
+  const shouldWaitForToggle = !traceOnNextInteraction && !traceOnNextLoad;
+  let onTracingToggled;
+  if (shouldWaitForToggle) {
+    onTracingToggled = new Promise(resolve => {
+      tracerCommand.on("toggle", async function listener() {
+        // Ignore the event, if we are still in the same state as before the click
+        if (tracerCommand.isTracingActive == isTracingEnabled) {
+          return;
+        }
+        tracerCommand.off("toggle", listener);
+        resolve();
+      });
+    });
+  }
+
   const toolbarButton = toolbox.doc.getElementById("command-button-jstracer");
   toolbarButton.click();
+
+  if (shouldWaitForToggle) {
+    info("Waiting for the tracer to be active");
+    await onTracingToggled;
+  }
 
   const {
     TRACER_LOG_METHODS,

@@ -25,6 +25,7 @@ types.addDictType("target-configuration.configuration", {
   serviceWorkersTestingEnabled: "nullable:boolean",
   setTabOffline: "nullable:boolean",
   touchEventsOverride: "nullable:string",
+  isTracerFeatureEnabled: "nullable:boolean",
 });
 
 const targetConfigurationSpec = generateActorSpec({

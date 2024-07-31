@@ -241,6 +241,9 @@ const BOOLEAN_CONFIGURATION_PREFS = {
     name: "pauseOverlay",
     thread: true,
   },
+  "devtools.debugger.features.javascript-tracing": {
+    name: "isTracerFeatureEnabled",
+  },
 };
 
 /**

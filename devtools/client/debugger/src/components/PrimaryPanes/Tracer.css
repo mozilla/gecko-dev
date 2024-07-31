@@ -57,6 +57,24 @@
   fill: var(--theme-icon-checked-color);
 }
 
+.tracer-toolbar .tracer-runtime-version-mismatch {
+  --icon-size: 16px;
+  --icon-inline-padding: 4px;
+
+  background-color: var(--theme-warning-background);
+  color:  var(--theme-warning-color);
+  border-block-end: 1px solid var(--theme-splitter-color);
+  padding: 1em;
+  padding-inline-start: calc(var(--icon-inline-padding) * 2 + var(--icon-size));
+  background-image: url(resource://devtools-shared-images/alert-small.svg);
+  background-position-x: var(--icon-inline-padding);
+  background-position-y: 50%;
+  background-repeat: no-repeat;
+  background-size: var(--icon-size);
+  -moz-context-properties: fill;
+  fill: var(--theme-warning-color);
+}
+
 .tracer-tab .tracer-message {
   display: flex;
   justify-content: center;

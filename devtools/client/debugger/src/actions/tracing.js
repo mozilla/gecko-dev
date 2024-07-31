@@ -67,3 +67,14 @@ export function selectTrace(traceIndex) {
     );
   };
 }
+
+export function setLocalAndRemoteRuntimeVersion(
+  localPlatformVersion,
+  remotePlatformVersion
+) {
+  return {
+    type: "SET_RUNTIME_VERSIONS",
+    localPlatformVersion,
+    remotePlatformVersion,
+  };
+}
