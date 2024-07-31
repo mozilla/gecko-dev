@@ -68,4 +68,10 @@ object TestAssetHelper {
 
         return TestAsset(url, "", pageTitle)
     }
+
+    fun getPDFTestAsset(server: MockWebServer): TestAsset {
+        val url = server.url("/resources/pdfFile.pdf").toString()
+
+        return TestAsset(url, "Page 1", "pdfFile.pdf")
+    }
 }

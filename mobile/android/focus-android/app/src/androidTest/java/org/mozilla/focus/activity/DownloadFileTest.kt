@@ -140,21 +140,6 @@ class DownloadFileTest {
 
     @SmokeTest
     @Test
-    fun openPdfFileTest() {
-        downloadFileName = "washington.pdf"
-        val pdfFileURL = "https://storage.googleapis.com/mobile_test_assets/public/washington.pdf"
-        val pdfFileContent = "Washington Crossing the Delaware"
-        searchScreen {
-        }.loadPage(downloadTestPage) {
-            progressBar.waitUntilGone(waitingTime)
-            clickLinkMatchingText(downloadFileName)
-            verifyPageURL(pdfFileURL)
-            verifyPageContent(pdfFileContent)
-        }
-    }
-
-    @SmokeTest
-    @Test
     fun downloadAndOpenWebmFileTest() {
         downloadFileName = "videoSample.webm"
 
