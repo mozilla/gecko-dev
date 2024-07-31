@@ -130,6 +130,15 @@ add_task(async function test_pinned_horizontal_tabs() {
 
   is(tabbrowser._numPinnedTabs, 1, "One tab is pinned in global tabstrip");
 
+  tabbrowser.unpinTab(tabs[3]);
+  is(tabbrowser._numPinnedTabs, 0, "No tabs are pinned in the global tabstrip");
+  is(
+    verticalPinnedTabsContainer.children.length,
+    0,
+    "No tabs are pinned in vertical pinned tabs container"
+  );
+
+  tabbrowser.pinTab(tabs[3]);
   tabbrowser.pinTab(tabs[1]);
 
   is(

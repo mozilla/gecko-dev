@@ -847,7 +847,7 @@
       }
 
       this.showTab(aTab);
-      if (this.tabContainer.inVerticalTabsMode) {
+      if (this.tabContainer.verticalMode) {
         let wasFocused = document.activeElement == this.selectedTab;
         let oldPosition = aTab._tPos;
         this.tabContainer._invalidateCachedTabs();
@@ -866,7 +866,7 @@
         return;
       }
 
-      if (this.tabContainer.inVerticalTabsMode) {
+      if (this.tabContainer.verticalMode) {
         let wasFocused = document.activeElement == this.selectedTab;
         let oldPosition = aTab._tPos;
         // we remove this attribute first, so that allTabs represents
