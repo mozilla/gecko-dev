@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AudioChannelAgent.h"
+
 #include "AudioChannelService.h"
 #include "mozilla/Preferences.h"
-#include "nsContentUtils.h"
 #include "mozilla/dom/Document.h"
+#include "nsContentUtils.h"
 #include "nsPIDOMWindow.h"
 
 using namespace mozilla::dom;
