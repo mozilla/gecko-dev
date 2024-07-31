@@ -334,6 +334,9 @@
     <color name="bottom_bar_shadow">#1A000000</color>
     <color name="snackbar_error_color">#B52645</color>
 
+    <!-- Prompt colors -->
+    <color name="mozac_feat_prompt_cancel_save_dialog_text_color" tools:ignore="UnusedResources">@color/photonViolet70A80</color>
+
     <!-- Reader View colors -->
     <color name="mozac_feature_readerview_text_color" tools:ignore="UnusedResources">@color/fx_mobile_icon_color_primary</color>
     <color name="mozac_feature_readerview_selected">@color/photonViolet40</color>
