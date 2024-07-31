@@ -9,6 +9,7 @@
 
 #include "MediaResult.h"
 #include "PlatformDecoderModule.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/UniquePtr.h"
@@ -70,15 +71,9 @@ class DecoderAgent final {
   RefPtr<DecodePromise> Dry();
   void DrainUntilDry();
 
-  enum class State {
-    Unconfigured,
-    Configuring,
-    Configured,
-    Decoding,
-    Flushing,
-    ShuttingDown,
-    Error,
-  };
+  MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(
+      State, (Unconfigured, Configuring, Configured, Decoding, Flushing,
+              ShuttingDown, Error));
   void SetState(State aState);
 
   const RefPtr<nsISerialEventTarget> mOwnerThread;
