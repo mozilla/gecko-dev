@@ -59,21 +59,30 @@ Options passed to the `createEngine` function are verified and converted into a 
 
 Below are the options available:
 
-- taskName: The name of the task the pipeline is configured for.
-- timeoutMS: The maximum amount of time in milliseconds the pipeline should wait for a response.
-- modelHubRootUrl: The root URL of the model hub where models are hosted.
-- modelHubUrlTemplate: A template URL for building the full URL for the model.
-- modelId: The identifier for the specific model to be used by the pipeline.
-- modelRevision: The revision for the specific model to be used by the pipeline.
-- tokenizerId: The identifier for the tokenizer associated with the model, used for pre-processing inputs.
-- tokenizerRevision: The revision for the tokenizer associated with the model, used for pre-processing inputs.
-- processorId: The identifier for any processor required by the model, used for additional input processing.
-- processorRevision: The revision for any processor required by the model, used for additional input processing.
-- logLevel: The log level used in the worker
-- runtimeFilename: Name of the runtime wasm file.
+- **taskName**: The name of the task the pipeline is configured for.
+- **engineId**:  The identifier for the engine to be used by the pipeline.
+- **timeoutMS**: The maximum amount of time in milliseconds the pipeline should wait for a response.
+- **modelHubRootUrl**: The root URL of the model hub where models are hosted.
+- **modelHubUrlTemplate**: A template URL for building the full URL for the model.
+- **modelId**: The identifier for the specific model to be used by the pipeline.
+- **modelRevision**: The revision for the specific model to be used by the pipeline.
+- **tokenizerId**: The identifier for the tokenizer associated with the model, used for pre-processing inputs.
+- **tokenizerRevision**: The revision for the tokenizer associated with the model, used for pre-processing inputs.
+- **processorId**: The identifier for any processor required by the model, used for additional input processing.
+- **processorRevision**: The revision for any processor required by the model, used for additional input processing.
+- **logLevel**: The log level used in the worker
+- **runtimeFilename**: Name of the runtime wasm file.
 
 **taskName** and **modelId** are required, the others are optional and will be filled automatically
 using values pulled from Remote Settings when the task id is recognized.
+
+**engineId** is used to manage the lifecycle of the engine. When not provided, it defaults to
+`default-engine`. Everytime a new engine is created using `createEngine` the API will ensure that
+there's a single engine with the given id. If the options of the existing engine are not different,
+the instance is reused. If they differ, the engine is reinitialized with the new options.
+This ensures we don't have too many engines running at once since it takes a lot of resources.
+To make sure your engine is not destroyed or reused elsewhere, set that value with a unique id
+that matches your component.
 
 Some values are also set from the preferences (set in `about:config`):
 

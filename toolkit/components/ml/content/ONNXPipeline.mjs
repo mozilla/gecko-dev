@@ -206,7 +206,7 @@ export class Pipeline {
       lazy.arrayBufferToBlobURL(config.runtime);
     debug("Transformers.js env", transformers.env);
 
-    if (config.pipelineFunction) {
+    if (config.pipelineFunction && config.taskName != "test-echo") {
       debug("Using internal inference function");
 
       // use the model revision of the tokenizer or processor don't have one

@@ -28,6 +28,13 @@ ChromeUtils.defineESModuleGetters(
  */
 export class PipelineOptions {
   /**
+   * The identifier for the engine to be used by the pipeline.
+   *
+   * @type {?string}
+   */
+  engineId = "default-engine";
+
+  /**
    * The name of the task the pipeline is configured for.
    *
    * @type {?string}
@@ -129,6 +136,7 @@ export class PipelineOptions {
    */
   updateOptions(options) {
     const allowedKeys = [
+      "engineId",
       "taskName",
       "modelHubRootUrl",
       "modelHubUrlTemplate",
@@ -157,6 +165,7 @@ export class PipelineOptions {
    */
   getOptions() {
     return {
+      engineId: this.engineId,
       taskName: this.taskName,
       modelHubRootUrl: this.modelHubRootUrl,
       modelHubUrlTemplate: this.modelHubUrlTemplate,
@@ -184,6 +193,42 @@ export class PipelineOptions {
         config[key] = options[key];
       }
     });
+  }
+
+  /**
+   * Checks if this PipelineOptions instance is equal to another.
+   *
+   * @param {PipelineOptions} other - The other PipelineOptions instance to compare with.
+   * @returns {boolean} True if the instances are equal, false otherwise.
+   */
+  equals(other) {
+    if (!(other instanceof PipelineOptions)) {
+      return false;
+    }
+    const options = this.getOptions();
+    const otherOptions = other.getOptions();
+
+    const isEqual = (val1, val2) => {
+      if (val1 === val2) {
+        return true;
+      }
+      if (val1 == null || val2 == null) {
+        return false;
+      }
+      if (typeof val1 !== "object" || typeof val2 !== "object") {
+        return false;
+      }
+      const keys1 = Object.keys(val1);
+      const keys2 = Object.keys(val2);
+      if (keys1.length !== keys2.length) {
+        return false;
+      }
+      return keys1.every(key => isEqual(val1[key], val2[key]));
+    };
+
+    return Object.keys(options).every(key =>
+      isEqual(options[key], otherOptions[key])
+    );
   }
 }
 

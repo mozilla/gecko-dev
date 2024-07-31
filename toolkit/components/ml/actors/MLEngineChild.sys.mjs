@@ -78,15 +78,37 @@ export class MLEngineChild extends JSWindowActorChild {
           logLevel: lazy.LOG_LEVEL,
         });
 
+        // Check if we already have an engine under this id.
+        if (this.#engineDispatchers.has(options.engineId)) {
+          let currentEngineDispatcher = this.#engineDispatchers.get(
+            options.engineId
+          );
+
+          // The option matches, let's reuse the engine
+          if (currentEngineDispatcher.pipelineOptions.equals(options)) {
+            return;
+          }
+
+          // The options do not match, terminate the old one so we have a single engine per id.
+          await currentEngineDispatcher.terminate(
+            /* shutDownIfEmpty */ false,
+            /* replacement */ true
+          );
+          this.#engineDispatchers.delete(options.engineId);
+        }
+
         this.#engineDispatchers.set(
-          options.taskName,
+          options.engineId,
           new EngineDispatcher(this, port, options)
         );
         break;
       }
       case "MLEngine:ForceShutdown": {
         for (const engineDispatcher of this.#engineDispatchers.values()) {
-          return engineDispatcher.terminate();
+          await engineDispatcher.terminate(
+            /* shutDownIfEmpty */ true,
+            /* replacement */ false
+          );
         }
         this.#engineDispatchers = null;
         break;
@@ -117,16 +139,32 @@ export class MLEngineChild extends JSWindowActorChild {
    * @returns {Promise<object>}
    */
   getInferenceOptions(taskName) {
-    return this.sendQuery(`MLEngine:GetInferenceOptions:${taskName}`);
+    return this.sendQuery("MLEngine:GetInferenceOptions", {
+      taskName,
+    });
   }
 
   /**
-   * @param {string} engineName
+   * Removes an engine by its ID. Optionally shuts down if no engines remain.
+   *
+   * @param {string} engineId - The ID of the engine to remove.
+   * @param {boolean} [shutDownIfEmpty] - If true, shuts down the engine process if no engines remain.
+   * @param {boolean} replacement - Flag indicating whether the engine is being replaced.
    */
-  removeEngine(engineName) {
-    this.#engineDispatchers.delete(engineName);
-    if (this.#engineDispatchers.size === 0) {
-      this.sendQuery("MLEngine:DestroyEngineProcess");
+  removeEngine(engineId, shutDownIfEmpty, replacement) {
+    if (!this.#engineDispatchers) {
+      return;
+    }
+    this.#engineDispatchers.delete(engineId);
+
+    this.sendAsyncMessage("MLEngine:Removed", {
+      engineId,
+      shutdown: shutDownIfEmpty,
+      replacement,
+    });
+
+    if (this.#engineDispatchers.size === 0 && shutDownIfEmpty) {
+      this.sendAsyncMessage("MLEngine:DestroyEngineProcess");
     }
   }
 }
@@ -151,7 +189,14 @@ class EngineDispatcher {
   /** @type {string} */
   #taskName;
 
-  /** Creates the inference engine given the wasm runtime and the run options.
+  /** @type {string} */
+  #engineId;
+
+  /** @type {PipelineOptions | null} */
+  pipelineOptions = null;
+
+  /**
+   * Creates the inference engine given the wasm runtime and the run options.
    *
    * The initialization is done in three steps:
    * 1. The wasm runtime is fetched from RS
@@ -175,6 +220,8 @@ class EngineDispatcher {
     mergedOptions.updateOptions(pipelineOptions);
     lazy.console.debug("Inference engine options:", mergedOptions);
 
+    this.pipelineOptions = mergedOptions;
+
     return InferenceEngine.create({
       wasm,
       pipelineOptions: mergedOptions,
@@ -191,6 +238,7 @@ class EngineDispatcher {
     this.mlEngineChild = mlEngineChild;
     this.#taskName = pipelineOptions.taskName;
     this.timeoutMS = pipelineOptions.timeoutMS;
+    this.#engineId = pipelineOptions.engineId;
 
     this.#engine = this.initializeInferenceEngine(
       pipelineOptions,
@@ -264,7 +312,7 @@ class EngineDispatcher {
           break;
         }
         case "EnginePort:Terminate": {
-          this.terminate();
+          await this.terminate(data.shutdown, data.replacement);
           break;
         }
         case "EnginePort:ModelResponse": {
@@ -296,7 +344,10 @@ class EngineDispatcher {
               error,
             });
             // The engine failed to load. Terminate the entire dispatcher.
-            this.terminate();
+            await this.terminate(
+              /* shutDownIfEmpty */ true,
+              /* replacement */ false
+            );
             return;
           }
 
@@ -330,8 +381,11 @@ class EngineDispatcher {
 
   /**
    * Terminates the engine and its worker after a timeout.
+   *
+   * @param {boolean} shutDownIfEmpty - If true, shuts down the engine process if no engines remain.
+   * @param {boolean} replacement - Flag indicating whether the engine is being replaced.
    */
-  async terminate() {
+  async terminate(shutDownIfEmpty, replacement) {
     if (this.#keepAliveTimeout) {
       lazy.clearTimeout(this.#keepAliveTimeout);
       this.#keepAliveTimeout = null;
@@ -340,13 +394,18 @@ class EngineDispatcher {
       // This call will trigger back an EnginePort:Discard that will close the port
       this.#port.postMessage({ type: "EnginePort:EngineTerminated" });
     }
-    this.mlEngineChild.removeEngine(this.#taskName);
     try {
       const engine = await this.#engine;
       engine.terminate();
     } catch (error) {
       lazy.console.error("Failed to get the engine", error);
     }
+
+    this.mlEngineChild.removeEngine(
+      this.#engineId,
+      shutDownIfEmpty,
+      replacement
+    );
   }
 }
 
@@ -369,7 +428,6 @@ let modelHub = null; // This will hold the ModelHub instance to reuse it.
 async function getModelFile({ taskName, url, progressCallback }) {
   // Create the model hub instance if needed
   if (!modelHub) {
-    lazy.console.debug("Creating model hub instance");
     modelHub = new lazy.ModelHub({
       rootUrl: lazy.MODEL_HUB_ROOT_URL,
       urlTemplate: lazy.MODEL_HUB_URL_TEMPLATE,
@@ -452,7 +510,9 @@ class InferenceEngine {
   }
 
   terminate() {
-    this.#worker.terminate();
-    this.#worker = null;
+    if (this.#worker) {
+      this.#worker.terminate();
+      this.#worker = null;
+    }
   }
 }

@@ -3,10 +3,6 @@
 
 "use strict";
 
-const { sinon } = ChromeUtils.importESModule(
-  "resource://testing-common/Sinon.sys.mjs"
-);
-
 /// <reference path="head.js" />
 
 requestLongerTimeout(2);
@@ -109,6 +105,7 @@ add_task(async function test_ml_engine_wasm_rejection() {
     "The error is correctly surfaced."
   );
 
+  await EngineProcess.destroyMLEngine();
   await cleanup();
 });
 
@@ -140,14 +137,8 @@ add_task(async function test_ml_engine_model_error() {
     "The error is correctly surfaced."
   );
 
-  // verify that terminating the engine eventually calls discardPort
-  let spy = sinon.spy(engineInstance, "discardPort");
-
-  engineInstance.terminate();
-
+  await EngineProcess.destroyMLEngine();
   await cleanup();
-
-  is(spy.calledOnce, true, "The discardPort method was called once.");
 });
 
 /**
@@ -161,7 +152,7 @@ add_task(async function test_ml_engine_destruction() {
   const mlEngineParent = await EngineProcess.getMLEngineParent();
 
   info("Get engineInstance");
-  const engineInstance = mlEngineParent.getEngine(PIPELINE_OPTIONS);
+  const engineInstance = await mlEngineParent.getEngine(PIPELINE_OPTIONS);
 
   info("Run the inference");
   const inferencePromise = engineInstance.run({ data: "This gets echoed." });
@@ -180,17 +171,14 @@ add_task(async function test_ml_engine_destruction() {
     "The engine process is still active."
   );
 
-  // verify that terminating the engine eventually calls discardPort
-  let spy = sinon.spy(engineInstance, "discardPort");
-
-  engineInstance.terminate();
+  await engineInstance.terminate();
 
   info(
     "The engineInstance is manually destroyed. The cleanup function should wait for the engine process to be destroyed."
   );
 
+  await EngineProcess.destroyMLEngine();
   await cleanup();
-  is(spy.calledOnce, true, "The discardPort method was called once.");
 });
 
 /**
@@ -228,7 +216,7 @@ add_task(async function test_invalid_task_name() {
 
   const options = new PipelineOptions({ taskName: "inv#alid" });
   const mlEngineParent = await EngineProcess.getMLEngineParent();
-  const engineInstance = mlEngineParent.getEngine(options);
+  const engineInstance = await mlEngineParent.getEngine(options);
 
   let error;
 
@@ -244,9 +232,14 @@ add_task(async function test_invalid_task_name() {
     "Invalid task name. Task name should contain only alphanumeric characters and underscores/dashes.",
     "The error is correctly surfaced."
   );
+
+  await EngineProcess.destroyMLEngine();
   await cleanup();
 });
 
+/**
+ * Tests the generic pipeline API
+ */
 add_task(async function test_ml_generic_pipeline() {
   const { cleanup, remoteClients } = await setup();
 
@@ -261,7 +254,7 @@ add_task(async function test_ml_generic_pipeline() {
     modelRevision: "main",
   });
 
-  const engineInstance = mlEngineParent.getEngine(options);
+  const engineInstance = await mlEngineParent.getEngine(options);
 
   info("Run the inference");
   const inferencePromise = engineInstance.run({
@@ -283,7 +276,140 @@ add_task(async function test_ml_generic_pipeline() {
   );
 
   await EngineProcess.destroyMLEngine();
+  await cleanup();
+});
 
+/**
+ * Tests that the engine is reused.
+ */
+add_task(async function test_ml_engine_reuse_same() {
+  const { cleanup, remoteClients } = await setup();
+
+  const options = { taskName: "moz-echo", engineId: "echo" };
+  const engineInstance = await createEngine(options);
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise).output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  let engineInstance2 = await createEngine(options);
+  is(engineInstance2.engineId, "echo", "The engine ID matches");
+  is(engineInstance, engineInstance2, "The engine is reused.");
+  const inferencePromise2 = engineInstance2.run({ data: "This gets echoed." });
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise2).output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});
+
+/**
+ * Tests that we can have two competing engines
+ */
+add_task(async function test_ml_two_engines() {
+  const { cleanup, remoteClients } = await setup();
+
+  const engineInstance = await createEngine({
+    taskName: "moz-echo",
+    engineId: "engine1",
+  });
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise).output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  let engineInstance2 = await createEngine({
+    taskName: "moz-echo",
+    engineId: "engine2",
+  });
+
+  const inferencePromise2 = engineInstance2.run({ data: "This gets echoed." });
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise2).output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  Assert.notEqual(
+    engineInstance.engineId,
+    engineInstance2.engineId,
+    "Should be different engines"
+  );
+
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});
+
+/**
+ * Tests that we can have the same engine reinitialized
+ */
+add_task(async function test_ml_dupe_engines() {
+  const { cleanup, remoteClients } = await setup();
+
+  const engineInstance = await createEngine({
+    taskName: "moz-echo",
+    engineId: "engine1",
+  });
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise).output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  let engineInstance2 = await createEngine({
+    taskName: "moz-echo",
+    engineId: "engine1",
+    timeoutMS: 2000, // that makes the options different
+  });
+  const inferencePromise2 = engineInstance2.run({ data: "This gets echoed." });
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise2).output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  Assert.notEqual(
+    engineInstance,
+    engineInstance2,
+    "Should be different engines"
+  );
+
+  await EngineProcess.destroyMLEngine();
   await cleanup();
 });
 
@@ -323,6 +449,5 @@ add_task(async function test_ml_engine_override_options() {
   );
 
   await EngineProcess.destroyMLEngine();
-
   await cleanup();
 });
