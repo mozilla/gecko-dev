@@ -1368,6 +1368,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1899067 - UA override for game.granbluefantasy.jp
+     * Webcompat issue #43155 - https://webcompat.com/issues/43155
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "bug1899067",
+    platform: "desktop",
+    domain: "game.granbluefantasy.jp",
+    bug: "1899067",
+    config: {
+      matches: ["*://game.granbluefantasy.jp/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
