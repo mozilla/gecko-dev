@@ -6,11 +6,11 @@
 
 #include "MediaControlUtils.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/ContentChild.h"
-#include "mozilla/StaticPtr.h"
-#include "mozilla/Telemetry.h"
 #include "nsGlobalWindowInner.h"
 
 namespace mozilla::dom {
