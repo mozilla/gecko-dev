@@ -16,21 +16,7 @@ export class ThumbnailsChild extends JSWindowActorChild {
         let [width, height] = lazy.PageThumbUtils.getContentSize(
           this.contentWindow
         );
-        let documentElement = this.document.documentElement;
-        let body = this.document.body;
-        return {
-          width,
-          height,
-          scrollY: this.contentWindow.scrollY,
-          documentHeight: Math.max(
-            documentElement.clientHeight,
-            documentElement.scrollHeight,
-            documentElement.offsetHeight,
-            body.clientHeight,
-            body.scrollHeight,
-            body.offsetHeight
-          ),
-        };
+        return { width, height };
       }
       case "Browser:Thumbnail:CheckState": {
         /**

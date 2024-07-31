@@ -32,23 +32,16 @@
 }
 
 .tab-preview-thumbnail-container {
-  width: 280px;
-  height: 140px;
   border-top: 1px solid var(--panel-border-color);
-  &.hide-thumbnail {
+  &:empty {
     display: none;
   }
   @media (width < 640px) {
     display: none;
   }
+
   > canvas {
     display: block;
     width: 100%;
-    animation: tab-hover-preview-fadein 0.2s ease;
   }
-}
-
-@keyframes tab-hover-preview-fadein {
-  from { opacity: 0; }
-  to { opacity: 100; }
 }

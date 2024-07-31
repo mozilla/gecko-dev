@@ -101,13 +101,12 @@ export default class TabHoverPreviewPanel {
       return;
     }
     let thumbnailCanvas = this._win.document.createElement("canvas");
-    thumbnailCanvas.width = 280 * this._win.devicePixelRatio;
-    thumbnailCanvas.height = 140 * this._win.devicePixelRatio;
 
-    this._win.PageThumbs.captureTabPreviewThumbnail(
-      tab.linkedBrowser,
-      thumbnailCanvas
-    )
+    this._win.PageThumbs.captureToCanvas(tab.linkedBrowser, thumbnailCanvas, {
+      fullViewport: true,
+      targetWidth: 280 * this._win.devicePixelRatio,
+      preserveAspectRatio: true,
+    })
       .then(() => {
         // in case we've changed tabs after capture started, ensure we still want to show the thumbnail
         if (this._tab == tab && this._hasValidThumbnailState(tab)) {
@@ -202,10 +201,6 @@ export default class TabHoverPreviewPanel {
 
     let thumbnailContainer = this._panel.querySelector(
       ".tab-preview-thumbnail-container"
-    );
-    thumbnailContainer.classList.toggle(
-      "hide-thumbnail",
-      !this._hasValidThumbnailState(this._tab)
     );
     if (thumbnailContainer.firstChild != this._thumbnailElement) {
       thumbnailContainer.replaceChildren();
