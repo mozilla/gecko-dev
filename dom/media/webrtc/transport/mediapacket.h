@@ -9,8 +9,9 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "mozilla/UniquePtr.h"
+
 #include "mozilla/Maybe.h"
+#include "mozilla/UniquePtr.h"
 
 class PickleIterator;
 

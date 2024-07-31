@@ -7,6 +7,7 @@
 #include "mediapacket.h"
 
 #include <cstring>
+
 #include "ipc/IPCMessageUtils.h"
 
 namespace mozilla {
