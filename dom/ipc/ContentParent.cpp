@@ -4588,7 +4588,8 @@ mozilla::ipc::IPCResult ContentParent::RecvLoadURIExternal(
     nsIURI* uri, nsIPrincipal* aTriggeringPrincipal,
     nsIPrincipal* aRedirectPrincipal,
     const MaybeDiscarded<BrowsingContext>& aContext,
-    bool aWasExternallyTriggered, bool aHasValidUserGestureActivation) {
+    bool aWasExternallyTriggered, bool aHasValidUserGestureActivation,
+    bool aNewWindowTarget) {
   if (aContext.IsDiscarded()) {
     return IPC_OK();
   }
@@ -4606,7 +4607,7 @@ mozilla::ipc::IPCResult ContentParent::RecvLoadURIExternal(
   BrowsingContext* bc = aContext.get();
   extProtService->LoadURI(uri, aTriggeringPrincipal, aRedirectPrincipal, bc,
                           aWasExternallyTriggered,
-                          aHasValidUserGestureActivation);
+                          aHasValidUserGestureActivation, aNewWindowTarget);
   return IPC_OK();
 }
 
