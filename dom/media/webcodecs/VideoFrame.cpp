@@ -1939,8 +1939,6 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
   }
 
   return ProcessTypedArraysFixed(aDestination, [&](const Span<uint8_t>& aData) {
-    MOZ_ASSERT(!aRv.Failed());
-
     if (aData.size_bytes() < layout.mAllocationSize) {
       p->MaybeRejectWithTypeError("Destination buffer is too small");
       return p.forget();
