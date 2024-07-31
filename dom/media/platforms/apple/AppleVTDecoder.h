@@ -17,8 +17,8 @@
 #include "ReorderQueue.h"
 #include "TimeUnits.h"
 #include "mozilla/Atomics.h"
-#include "mozilla/gfx/Types.h"
 #include "mozilla/ProfilerUtils.h"
+#include "mozilla/gfx/Types.h"
 
 namespace mozilla {
 

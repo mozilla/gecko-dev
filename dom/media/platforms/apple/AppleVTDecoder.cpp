@@ -10,6 +10,7 @@
 #include <IOSurface/IOSurfaceRef.h>
 #include <limits>
 
+#include "AOMDecoder.h"
 #include "AppleDecoderModule.h"
 #include "AppleUtils.h"
 #include "CallbackThreadRegistry.h"
@@ -18,7 +19,6 @@
 #include "MacIOSurfaceImage.h"
 #include "MediaData.h"
 #include "VPXDecoder.h"
-#include "AOMDecoder.h"
 #include "VideoUtils.h"
 #include "gfxMacUtils.h"
 #include "mozilla/ArrayUtils.h"
