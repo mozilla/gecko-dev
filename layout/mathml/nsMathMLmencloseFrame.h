@@ -54,8 +54,8 @@ class nsMathMLmencloseFrame : public nsMathMLContainerFrame {
   friend nsIFrame* NS_NewMathMLmencloseFrame(mozilla::PresShell* aPresShell,
                                              ComputedStyle* aStyle);
 
-  nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
-                 ReflowOutput& aDesiredSize) override;
+  virtual nsresult Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
+                         ReflowOutput& aDesiredSize) override;
 
   virtual nsresult MeasureForWidth(DrawTarget* aDrawTarget,
                                    ReflowOutput& aDesiredSize) override;
@@ -86,8 +86,8 @@ class nsMathMLmencloseFrame : public nsMathMLContainerFrame {
                                  ClassID aID = kClassID);
   virtual ~nsMathMLmencloseFrame();
 
-  nsresult PlaceInternal(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
-                         ReflowOutput& aDesiredSize);
+  nsresult PlaceInternal(DrawTarget* aDrawTarget, bool aPlaceOrigin,
+                         ReflowOutput& aDesiredSize, bool aWidthOnly);
 
   // functions to parse the "notation" attribute.
   nsresult AddNotation(const nsAString& aNotation);

@@ -206,7 +206,8 @@ void nsMathMLmencloseFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // paint the menclosed content
   nsMathMLContainerFrame::BuildDisplayList(aBuilder, aLists);
 
-  nsRect mencloseRect = nsIFrame::GetContentRectRelativeToSelf();
+  nsRect mencloseRect = nsIFrame::GetRect();
+  mencloseRect.x = mencloseRect.y = 0;
 
   if (IsToDraw(NOTATION_RADICAL)) {
     mMathMLChar[mRadicalCharIndex].Display(aBuilder, this, aLists, 0);
@@ -298,31 +299,26 @@ void nsMathMLmencloseFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 /* virtual */
 nsresult nsMathMLmencloseFrame::MeasureForWidth(DrawTarget* aDrawTarget,
                                                 ReflowOutput& aDesiredSize) {
-  return PlaceInternal(
-      aDrawTarget, PlaceFlags(PlaceFlag::IntrinsicSize, PlaceFlag::MeasureOnly),
-      aDesiredSize);
+  return PlaceInternal(aDrawTarget, false, aDesiredSize, true);
 }
 
 /* virtual */
 nsresult nsMathMLmencloseFrame::Place(DrawTarget* aDrawTarget,
-                                      const PlaceFlags& aFlags,
+                                      bool aPlaceOrigin,
                                       ReflowOutput& aDesiredSize) {
-  return PlaceInternal(aDrawTarget, aFlags, aDesiredSize);
+  return PlaceInternal(aDrawTarget, aPlaceOrigin, aDesiredSize, false);
 }
 
 /* virtual */
 nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
-                                              const PlaceFlags& aFlags,
-                                              ReflowOutput& aDesiredSize) {
+                                              bool aPlaceOrigin,
+                                              ReflowOutput& aDesiredSize,
+                                              bool aWidthOnly) {
   ///////////////
   // Measure the size of our content using the base class to format like an
-  // inferred mrow, without border/padding.
+  // inferred mrow.
   ReflowOutput baseSize(aDesiredSize.GetWritingMode());
-  nsresult rv = nsMathMLContainerFrame::Place(
-      aDrawTarget,
-      aFlags +
-          PlaceFlags(PlaceFlag::MeasureOnly, PlaceFlag::IgnoreBorderPadding),
-      baseSize);
+  nsresult rv = nsMathMLContainerFrame::Place(aDrawTarget, false, baseSize);
 
   if (NS_FAILED(rv)) {
     DidReflowChildren(PrincipalChildList().FirstChild());
@@ -465,7 +461,7 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
   ///////////////
   // longdiv notation:
   if (IsToDraw(NOTATION_LONGDIV)) {
-    if (aFlags.contains(PlaceFlag::IntrinsicSize)) {
+    if (aWidthOnly) {
       nscoord longdiv_width = mMathMLChar[mLongDivCharIndex].GetMaxWidth(
           this, aDrawTarget, fontSizeInflation);
 
@@ -507,7 +503,7 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
                               ? &dx_right
                               : &dx_left;
 
-    if (aFlags.contains(PlaceFlag::IntrinsicSize)) {
+    if (aWidthOnly) {
       nscoord radical_width = mMathMLChar[mRadicalCharIndex].GetMaxWidth(
           this, aDrawTarget, fontSizeInflation);
 
@@ -628,20 +624,15 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
 
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
-  // Add padding+border.
-  auto borderPadding = GetBorderPaddingForPlace(aFlags);
-  InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
-                                  mBoundingMetrics);
-
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
 
-  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
+  if (aPlaceOrigin) {
     //////////////////
     // Set position and size of MathMLChars
     if (IsToDraw(NOTATION_LONGDIV))
       mMathMLChar[mLongDivCharIndex].SetRect(nsRect(
-          dx_left - bmLongdivChar.width + borderPadding.left,
+          dx_left - bmLongdivChar.width,
           aDesiredSize.BlockStartAscent() - longdivAscent, bmLongdivChar.width,
           bmLongdivChar.ascent + bmLongdivChar.descent));
 
@@ -651,17 +642,15 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
                         : dx_left - bmRadicalChar.width);
 
       mMathMLChar[mRadicalCharIndex].SetRect(nsRect(
-          dx + borderPadding.left,
-          aDesiredSize.BlockStartAscent() - radicalAscent, bmRadicalChar.width,
-          bmRadicalChar.ascent + bmRadicalChar.descent));
+          dx, aDesiredSize.BlockStartAscent() - radicalAscent,
+          bmRadicalChar.width, bmRadicalChar.ascent + bmRadicalChar.descent));
     }
 
     mContentWidth = bmBase.width;
 
     //////////////////
     // Finish reflowing child frames
-    PositionRowChildFrames(dx_left + borderPadding.left,
-                           aDesiredSize.BlockStartAscent());
+    PositionRowChildFrames(dx_left, aDesiredSize.BlockStartAscent());
   }
 
   return NS_OK;

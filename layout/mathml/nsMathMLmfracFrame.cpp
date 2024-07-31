@@ -130,9 +130,7 @@ nsresult nsMathMLmfracFrame::AttributeChanged(int32_t aNameSpaceID,
 /* virtual */
 nsresult nsMathMLmfracFrame::MeasureForWidth(DrawTarget* aDrawTarget,
                                              ReflowOutput& aDesiredSize) {
-  return PlaceInternal(
-      aDrawTarget, PlaceFlags(PlaceFlag::IntrinsicSize, PlaceFlag::MeasureOnly),
-      aDesiredSize);
+  return PlaceInternal(aDrawTarget, false, aDesiredSize, true);
 }
 
 nscoord nsMathMLmfracFrame::FixInterFrameSpacing(ReflowOutput& aDesiredSize) {
@@ -144,15 +142,15 @@ nscoord nsMathMLmfracFrame::FixInterFrameSpacing(ReflowOutput& aDesiredSize) {
 }
 
 /* virtual */
-nsresult nsMathMLmfracFrame::Place(DrawTarget* aDrawTarget,
-                                   const PlaceFlags& aFlags,
+nsresult nsMathMLmfracFrame::Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
                                    ReflowOutput& aDesiredSize) {
-  return PlaceInternal(aDrawTarget, aFlags, aDesiredSize);
+  return PlaceInternal(aDrawTarget, aPlaceOrigin, aDesiredSize, false);
 }
 
 nsresult nsMathMLmfracFrame::PlaceInternal(DrawTarget* aDrawTarget,
-                                           const PlaceFlags& aFlags,
-                                           ReflowOutput& aDesiredSize) {
+                                           bool aPlaceOrigin,
+                                           ReflowOutput& aDesiredSize,
+                                           bool aWidthOnly) {
   ////////////////////////////////////
   // Get the children's desired sizes
   nsBoundingMetrics bmNum, bmDen;
@@ -163,16 +161,13 @@ nsresult nsMathMLmfracFrame::PlaceInternal(DrawTarget* aDrawTarget,
   if (frameNum) frameDen = frameNum->GetNextSibling();
   if (!frameNum || !frameDen || frameDen->GetNextSibling()) {
     // report an error, encourage people to get their markups in order
-    if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
+    if (aPlaceOrigin) {
       ReportChildCountError();
     }
-    return PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
+    return PlaceAsMrow(aDrawTarget, aPlaceOrigin, aDesiredSize);
   }
   GetReflowAndBoundingMetricsFor(frameNum, sizeNum, bmNum);
   GetReflowAndBoundingMetricsFor(frameDen, sizeDen, bmDen);
-
-  nsMargin numMargin = GetMarginForPlace(aFlags, frameNum),
-           denMargin = GetMarginForPlace(aFlags, frameDen);
 
   nsPresContext* presContext = PresContext();
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
@@ -210,12 +205,13 @@ nsresult nsMathMLmfracFrame::PlaceInternal(DrawTarget* aDrawTarget,
 
   mLineRect.height = mLineThickness;
 
-  // Add lspace & rspace that may come from <mo> if we are an outermost
+  // by default, leave at least one-pixel padding at either end, and add
+  // lspace & rspace that may come from <mo> if we are an outermost
   // embellished container (we fetch values from the core since they may use
   // units that depend on style data, and style changes could have occurred
   // in the core since our last visit there)
-  nscoord leftSpace = 0;
-  nscoord rightSpace = 0;
+  nscoord leftSpace = onePixel;
+  nscoord rightSpace = onePixel;
   if (outermostEmbellished) {
     const bool isRTL = StyleVisibility()->mDirection == StyleDirection::Rtl;
     nsEmbellishData coreData;
@@ -279,8 +275,8 @@ nsresult nsMathMLmfracFrame::PlaceInternal(DrawTarget* aDrawTarget,
           oneDevPixel);
     }
 
-    nscoord actualClearance = (numShift - bmNum.descent - numMargin.bottom) -
-                              (bmDen.ascent + denMargin.top - denShift);
+    nscoord actualClearance =
+        (numShift - bmNum.descent) - (bmDen.ascent - denShift);
     // actualClearance should be >= minClearance
     if (actualClearance < minClearance) {
       nscoord halfGap = (minClearance - actualClearance) / 2;
@@ -316,14 +312,14 @@ nsresult nsMathMLmfracFrame::PlaceInternal(DrawTarget* aDrawTarget,
     }
 
     // adjust numShift to maintain minClearanceNum if needed
-    nscoord actualClearanceNum = (numShift - bmNum.descent - numMargin.bottom) -
-                                 (axisHeight + actualRuleThickness / 2);
+    nscoord actualClearanceNum =
+        (numShift - bmNum.descent) - (axisHeight + actualRuleThickness / 2);
     if (actualClearanceNum < minClearanceNum) {
       numShift += (minClearanceNum - actualClearanceNum);
     }
     // adjust denShift to maintain minClearanceDen if needed
-    nscoord actualClearanceDen = (axisHeight - actualRuleThickness / 2) -
-                                 (bmDen.ascent + denMargin.top - denShift);
+    nscoord actualClearanceDen =
+        (axisHeight - actualRuleThickness / 2) - (bmDen.ascent - denShift);
     if (actualClearanceDen < minClearanceDen) {
       denShift += (minClearanceDen - actualClearanceDen);
     }
@@ -334,59 +330,40 @@ nsresult nsMathMLmfracFrame::PlaceInternal(DrawTarget* aDrawTarget,
 
   // XXX Need revisiting the width. TeX uses the exact width
   // e.g. in $$\huge\frac{\displaystyle\int}{i}$$
-  nscoord width = std::max(bmNum.width + numMargin.LeftRight(),
-                           bmDen.width + denMargin.LeftRight());
-  nscoord dxNum =
-      leftSpace + (width - sizeNum.Width() - numMargin.LeftRight()) / 2;
-  nscoord dxDen =
-      leftSpace + (width - sizeDen.Width() - denMargin.LeftRight()) / 2;
+  nscoord width = std::max(bmNum.width, bmDen.width);
+  nscoord dxNum = leftSpace + (width - sizeNum.Width()) / 2;
+  nscoord dxDen = leftSpace + (width - sizeDen.Width()) / 2;
   width += leftSpace + rightSpace;
 
   mBoundingMetrics.rightBearing =
-      std::max(dxNum + bmNum.rightBearing + numMargin.LeftRight(),
-               dxDen + bmDen.rightBearing + denMargin.LeftRight());
+      std::max(dxNum + bmNum.rightBearing, dxDen + bmDen.rightBearing);
   if (mBoundingMetrics.rightBearing < width - rightSpace)
     mBoundingMetrics.rightBearing = width - rightSpace;
   mBoundingMetrics.leftBearing =
       std::min(dxNum + bmNum.leftBearing, dxDen + bmDen.leftBearing);
   if (mBoundingMetrics.leftBearing > leftSpace)
     mBoundingMetrics.leftBearing = leftSpace;
-  mBoundingMetrics.ascent = bmNum.ascent + numShift + numMargin.top;
-  mBoundingMetrics.descent = bmDen.descent + denShift + denMargin.bottom;
+  mBoundingMetrics.ascent = bmNum.ascent + numShift;
+  mBoundingMetrics.descent = bmDen.descent + denShift;
   mBoundingMetrics.width = width;
 
-  aDesiredSize.SetBlockStartAscent(numMargin.top + sizeNum.BlockStartAscent() +
-                                   numShift);
-  aDesiredSize.Height() = aDesiredSize.BlockStartAscent() + sizeDen.Height() +
-                          denMargin.bottom - sizeDen.BlockStartAscent() +
-                          denShift;
+  aDesiredSize.SetBlockStartAscent(sizeNum.BlockStartAscent() + numShift);
+  aDesiredSize.Height() = aDesiredSize.BlockStartAscent() + sizeDen.Height() -
+                          sizeDen.BlockStartAscent() + denShift;
   aDesiredSize.Width() = mBoundingMetrics.width;
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
-
-  // Add padding+border.
-  auto borderPadding = GetBorderPaddingForPlace(aFlags);
-  InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
-                                  mBoundingMetrics);
-  leftSpace += borderPadding.left;
-  rightSpace += borderPadding.right;
-  width += borderPadding.LeftRight();
-  dxNum += borderPadding.left;
-  dxDen += borderPadding.left;
 
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
 
-  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
+  if (aPlaceOrigin) {
     nscoord dy;
     // place numerator
-    dxNum += numMargin.left;
-    dy = borderPadding.top + numMargin.top;
+    dy = 0;
     FinishReflowChild(frameNum, presContext, sizeNum, nullptr, dxNum, dy,
                       ReflowChildFlags::Default);
     // place denominator
-    dxDen += denMargin.left;
-    dy = aDesiredSize.Height() - sizeDen.Height() - denMargin.bottom -
-         borderPadding.bottom;
+    dy = aDesiredSize.Height() - sizeDen.Height();
     FinishReflowChild(frameDen, presContext, sizeDen, nullptr, dxDen, dy,
                       ReflowChildFlags::Default);
     // place the fraction bar - dy is top of bar

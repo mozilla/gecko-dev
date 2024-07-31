@@ -738,10 +738,9 @@ nsMathMLmoFrame::Stretch(DrawTarget* aDrawTarget,
     }
   }
 
-  // Place our children using the default method and no border/padding.
+  // Place our children using the default method
   // This will allow our child text frame to get its DidReflow()
-  nsresult rv =
-      Place(aDrawTarget, PlaceFlag::IgnoreBorderPadding, aDesiredStretchSize);
+  nsresult rv = Place(aDrawTarget, true, aDesiredStretchSize);
   if (NS_FAILED(rv)) {
     // Make sure the child frames get their DidReflow() calls.
     DidReflowChildren(mFrames.FirstChild());
@@ -839,19 +838,17 @@ nsMathMLmoFrame::Stretch(DrawTarget* aDrawTarget,
   // container and so we put the spacing, otherwise we don't include the
   // spacing, the outermost embellished container will take care of it.
 
-  nscoord leadingSpace = 0, trailingSpace = 0;
   if (!NS_MATHML_OPERATOR_HAS_EMBELLISH_ANCESTOR(mFlags)) {
     // Account the spacing if we are not an accent with explicit attributes
-    if (!isAccent || NS_MATHML_OPERATOR_HAS_LSPACE_ATTR(mFlags)) {
-      leadingSpace = mEmbellishData.leadingSpace;
+    nscoord leadingSpace = mEmbellishData.leadingSpace;
+    if (isAccent && !NS_MATHML_OPERATOR_HAS_LSPACE_ATTR(mFlags)) {
+      leadingSpace = 0;
     }
-    if (!isAccent || NS_MATHML_OPERATOR_HAS_RSPACE_ATTR(mFlags)) {
-      trailingSpace = mEmbellishData.trailingSpace;
+    nscoord trailingSpace = mEmbellishData.trailingSpace;
+    if (isAccent && !NS_MATHML_OPERATOR_HAS_RSPACE_ATTR(mFlags)) {
+      trailingSpace = 0;
     }
-  }
 
-  auto borderPadding = GetBorderPaddingForPlace(PlaceFlags());
-  if (leadingSpace || trailingSpace || !borderPadding.IsAllZero()) {
     mBoundingMetrics.width += leadingSpace + trailingSpace;
     aDesiredStretchSize.Width() = mBoundingMetrics.width;
     aDesiredStretchSize.mBoundingMetrics.width = mBoundingMetrics.width;
@@ -859,29 +856,22 @@ nsMathMLmoFrame::Stretch(DrawTarget* aDrawTarget,
     nscoord dx = StyleVisibility()->mDirection == StyleDirection::Rtl
                      ? trailingSpace
                      : leadingSpace;
-    mBoundingMetrics.leftBearing += dx;
-    mBoundingMetrics.rightBearing += dx;
-    aDesiredStretchSize.mBoundingMetrics.leftBearing += dx;
-    aDesiredStretchSize.mBoundingMetrics.rightBearing += dx;
-
-    // Add border/padding.
-    InflateReflowAndBoundingMetrics(borderPadding, aDesiredStretchSize,
-                                    mBoundingMetrics);
-    dx += borderPadding.left;
-    nscoord dy = borderPadding.top;
-
-    if (dx || dy) {
+    if (dx) {
       // adjust the offsets
+      mBoundingMetrics.leftBearing += dx;
+      mBoundingMetrics.rightBearing += dx;
+      aDesiredStretchSize.mBoundingMetrics.leftBearing += dx;
+      aDesiredStretchSize.mBoundingMetrics.rightBearing += dx;
 
       if (useMathMLChar) {
         nsRect rect;
         mMathMLChar.GetRect(rect);
         mMathMLChar.SetRect(
-            nsRect(rect.x + dx, rect.y + dy, rect.width, rect.height));
+            nsRect(rect.x + dx, rect.y, rect.width, rect.height));
       } else {
         nsIFrame* childFrame = firstChild;
         while (childFrame) {
-          childFrame->SetPosition(childFrame->GetPosition() + nsPoint(dx, dy));
+          childFrame->SetPosition(childFrame->GetPosition() + nsPoint(dx, 0));
           childFrame = childFrame->GetNextSibling();
         }
       }
@@ -940,10 +930,10 @@ void nsMathMLmoFrame::Reflow(nsPresContext* aPresContext,
   nsMathMLTokenFrame::Reflow(aPresContext, aDesiredSize, aReflowInput, aStatus);
 }
 
-nsresult nsMathMLmoFrame::Place(DrawTarget* aDrawTarget,
-                                const PlaceFlags& aFlags,
+nsresult nsMathMLmoFrame::Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
                                 ReflowOutput& aDesiredSize) {
-  nsresult rv = nsMathMLTokenFrame::Place(aDrawTarget, aFlags, aDesiredSize);
+  nsresult rv =
+      nsMathMLTokenFrame::Place(aDrawTarget, aPlaceOrigin, aDesiredSize);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -960,8 +950,7 @@ nsresult nsMathMLmoFrame::Place(DrawTarget* aDrawTarget,
      Stretch() method.
   */
 
-  if (aFlags.contains(PlaceFlag::MeasureOnly) &&
-      StyleFont()->mMathStyle == StyleMathStyle::Normal &&
+  if (!aPlaceOrigin && StyleFont()->mMathStyle == StyleMathStyle::Normal &&
       NS_MATHML_OPERATOR_IS_LARGEOP(mFlags) && UseMathMLChar()) {
     nsBoundingMetrics newMetrics;
     rv = mMathMLChar.Stretch(
@@ -1025,7 +1014,6 @@ void nsMathMLmoFrame::GetIntrinsicISizeMetrics(gfxContext* aRenderingContext,
     aDesiredSize.Width() = mMathMLChar.GetMaxWidth(
         this, aRenderingContext->GetDrawTarget(),
         nsLayoutUtils::FontSizeInflationFor(this), stretchHint);
-    aDesiredSize.Width() += IntrinsicISizeOffsets().BorderPadding();
   } else {
     nsMathMLTokenFrame::GetIntrinsicISizeMetrics(aRenderingContext,
                                                  aDesiredSize);

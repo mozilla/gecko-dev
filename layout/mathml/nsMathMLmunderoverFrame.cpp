@@ -358,7 +358,7 @@ i.e.,:
 
 /* virtual */
 nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
-                                        const PlaceFlags& aFlags,
+                                        bool aPlaceOrigin,
                                         ReflowOutput& aDesiredSize) {
   float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
   if (NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
@@ -366,17 +366,17 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
     // place like sub sup or subsup
     if (mContent->IsMathMLElement(nsGkAtoms::munderover_)) {
       return nsMathMLmmultiscriptsFrame::PlaceMultiScript(
-          PresContext(), aDrawTarget, aFlags, aDesiredSize, this, 0, 0,
+          PresContext(), aDrawTarget, aPlaceOrigin, aDesiredSize, this, 0, 0,
           fontSizeInflation);
     } else if (mContent->IsMathMLElement(nsGkAtoms::munder_)) {
       return nsMathMLmmultiscriptsFrame::PlaceMultiScript(
-          PresContext(), aDrawTarget, aFlags, aDesiredSize, this, 0, 0,
+          PresContext(), aDrawTarget, aPlaceOrigin, aDesiredSize, this, 0, 0,
           fontSizeInflation);
     } else {
       NS_ASSERTION(mContent->IsMathMLElement(nsGkAtoms::mover_),
                    "mContent->NodeInfo()->NameAtom() not recognized");
       return nsMathMLmmultiscriptsFrame::PlaceMultiScript(
-          PresContext(), aDrawTarget, aFlags, aDesiredSize, this, 0, 0,
+          PresContext(), aDrawTarget, aPlaceOrigin, aDesiredSize, this, 0, 0,
           fontSizeInflation);
     }
   }
@@ -426,21 +426,17 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
     }
   }
   if (haveError) {
-    if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
+    if (aPlaceOrigin) {
       ReportChildCountError();
     }
-    return PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
+    return PlaceAsMrow(aDrawTarget, aPlaceOrigin, aDesiredSize);
   }
   GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
-  nsMargin baseMargin = GetMarginForPlace(aFlags, baseFrame);
-  nsMargin underMargin, overMargin;
   if (underFrame) {
     GetReflowAndBoundingMetricsFor(underFrame, underSize, bmUnder);
-    underMargin = GetMarginForPlace(aFlags, underFrame);
   }
   if (overFrame) {
     GetReflowAndBoundingMetricsFor(overFrame, overSize, bmOver);
-    overMargin = GetMarginForPlace(aFlags, overFrame);
   }
 
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
@@ -482,8 +478,7 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
           gfxMathTable::LowerLimitBaselineDropMin, oneDevPixel);
       bigOpSpacing5 = 0;
     }
-    underDelta1 = std::max(
-        bigOpSpacing2, (bigOpSpacing4 - bmUnder.ascent - underMargin.bottom));
+    underDelta1 = std::max(bigOpSpacing2, (bigOpSpacing4 - bmUnder.ascent));
     underDelta2 = bigOpSpacing5;
   } else {
     // No corresponding rule in TeXbook - we are on our own here
@@ -495,7 +490,7 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
     underDelta2 = ruleThickness;
   }
   // empty under?
-  if (bmUnder.ascent + bmUnder.descent + underMargin.TopBottom() <= 0) {
+  if (!(bmUnder.ascent + bmUnder.descent)) {
     underDelta1 = 0;
     underDelta2 = 0;
   }
@@ -521,19 +516,16 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
           gfxMathTable::UpperLimitBaselineRiseMin, oneDevPixel);
       bigOpSpacing5 = 0;
     }
-    overDelta1 = std::max(bigOpSpacing1,
-                          (bigOpSpacing3 - bmOver.descent - overMargin.bottom));
+    overDelta1 = std::max(bigOpSpacing1, (bigOpSpacing3 - bmOver.descent));
     overDelta2 = bigOpSpacing5;
 
     // XXX This is not a TeX rule...
     // delta1 (as computed abvove) can become really big when bmOver.descent is
     // negative,  e.g., if the content is &OverBar. In such case, we use the
     // height
-    if (bmOver.descent + overMargin.bottom < 0) {
+    if (bmOver.descent < 0)
       overDelta1 = std::max(bigOpSpacing1,
-                            (bigOpSpacing3 - (bmOver.ascent + bmOver.descent +
-                                              overMargin.TopBottom())));
-    }
+                            (bigOpSpacing3 - (bmOver.ascent + bmOver.descent)));
   } else {
     // Rule 12, App. G, TeXbook
     // We are going to modify this rule to make it more general.
@@ -570,14 +562,14 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
       accentBaseHeight = mathFont->MathTable()->Constant(
           gfxMathTable::AccentBaseHeight, oneDevPixel);
     }
-    if (bmBase.ascent + baseMargin.top < accentBaseHeight) {
+    if (bmBase.ascent < accentBaseHeight) {
       // also ensure at least accentBaseHeight above the baseline of the base
-      overDelta1 += accentBaseHeight - bmBase.ascent - baseMargin.top;
+      overDelta1 += accentBaseHeight - bmBase.ascent;
     }
     overDelta2 = ruleThickness;
   }
   // empty over?
-  if (bmOver.ascent + bmOver.descent + overMargin.TopBottom() <= 0) {
+  if (!(bmOver.ascent + bmOver.descent)) {
     overDelta1 = 0;
     overDelta2 = 0;
   }
@@ -591,33 +583,30 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
   // Ad-hoc - This is to override fonts which have ready-made _accent_
   // glyphs with negative lbearing and rbearing. We want to position
   // the overscript ourselves
-  nscoord overWidth = bmOver.width + overMargin.LeftRight();
-  if (overWidth <= 0 && (bmOver.rightBearing - bmOver.leftBearing > 0)) {
+  nscoord overWidth = bmOver.width;
+  if (!overWidth && (bmOver.rightBearing - bmOver.leftBearing > 0)) {
     overWidth = bmOver.rightBearing - bmOver.leftBearing;
     dxOver = -bmOver.leftBearing;
   }
 
   if (NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)) {
-    mBoundingMetrics.width = bmBase.width + baseMargin.LeftRight();
+    mBoundingMetrics.width = bmBase.width;
     dxOver += correction;
   } else {
-    mBoundingMetrics.width =
-        std::max(bmBase.width + baseMargin.LeftRight(), overWidth);
+    mBoundingMetrics.width = std::max(bmBase.width, overWidth);
     dxOver += correction / 2;
   }
 
   dxOver += (mBoundingMetrics.width - overWidth) / 2;
-  dxBase = (mBoundingMetrics.width - bmBase.width - baseMargin.LeftRight()) / 2;
+  dxBase = (mBoundingMetrics.width - bmBase.width) / 2;
 
-  mBoundingMetrics.ascent = baseMargin.top + bmBase.ascent + overDelta1 +
-                            bmOver.ascent + bmOver.descent +
-                            overMargin.TopBottom();
-  mBoundingMetrics.descent = bmBase.descent + baseMargin.bottom;
+  mBoundingMetrics.ascent =
+      bmBase.ascent + overDelta1 + bmOver.ascent + bmOver.descent;
+  mBoundingMetrics.descent = bmBase.descent;
   mBoundingMetrics.leftBearing =
       std::min(dxBase + bmBase.leftBearing, dxOver + bmOver.leftBearing);
   mBoundingMetrics.rightBearing =
-      std::max(dxBase + bmBase.rightBearing + baseMargin.LeftRight(),
-               dxOver + bmOver.rightBearing + overMargin.LeftRight());
+      std::max(dxBase + bmBase.rightBearing, dxOver + bmOver.rightBearing);
 
   //////////
   // pass 2, do what <munder> does: attach the underscript on the previous
@@ -627,18 +616,17 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
   // end up like <munder>.
 
   nsBoundingMetrics bmAnonymousBase = mBoundingMetrics;
-  nscoord ascentAnonymousBase = std::max(
-      mBoundingMetrics.ascent + overDelta2,
-      overMargin.TopBottom() + overSize.BlockStartAscent() + bmOver.descent +
-          overDelta1 + baseMargin.top + bmBase.ascent);
-  ascentAnonymousBase = std::max(ascentAnonymousBase,
-                                 baseSize.BlockStartAscent() + baseMargin.top);
+  nscoord ascentAnonymousBase =
+      std::max(mBoundingMetrics.ascent + overDelta2,
+               overSize.BlockStartAscent() + bmOver.descent + overDelta1 +
+                   bmBase.ascent);
+  ascentAnonymousBase =
+      std::max(ascentAnonymousBase, baseSize.BlockStartAscent());
 
   // Width of non-spacing marks is zero so use left and right bearing.
-  nscoord underWidth = bmUnder.width + underMargin.LeftRight();
-  if (underWidth <= 0) {
-    underWidth =
-        bmUnder.rightBearing + underMargin.LeftRight() - bmUnder.leftBearing;
+  nscoord underWidth = bmUnder.width;
+  if (!underWidth) {
+    underWidth = bmUnder.rightBearing - bmUnder.leftBearing;
     dxUnder = -bmUnder.leftBearing;
   }
 
@@ -656,51 +644,40 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
   dxOver += dxAnonymousBase;
   dxBase += dxAnonymousBase;
 
-  mBoundingMetrics.width =
-      std::max(dxAnonymousBase + bmAnonymousBase.width,
-               dxUnder + bmUnder.width + underMargin.LeftRight());
+  mBoundingMetrics.width = std::max(dxAnonymousBase + bmAnonymousBase.width,
+                                    dxUnder + bmUnder.width);
   // At this point, mBoundingMetrics.ascent = bmAnonymousBase.ascent
-  mBoundingMetrics.descent = bmAnonymousBase.descent + underDelta1 +
-                             bmUnder.ascent + bmUnder.descent +
-                             underMargin.TopBottom();
+  mBoundingMetrics.descent =
+      bmAnonymousBase.descent + underDelta1 + bmUnder.ascent + bmUnder.descent;
   mBoundingMetrics.leftBearing =
       std::min(dxAnonymousBase + bmAnonymousBase.leftBearing,
                dxUnder + bmUnder.leftBearing);
   mBoundingMetrics.rightBearing =
       std::max(dxAnonymousBase + bmAnonymousBase.rightBearing,
-               dxUnder + bmUnder.rightBearing + underMargin.LeftRight());
+               dxUnder + bmUnder.rightBearing);
 
   aDesiredSize.SetBlockStartAscent(ascentAnonymousBase);
   aDesiredSize.Height() =
       aDesiredSize.BlockStartAscent() +
       std::max(mBoundingMetrics.descent + underDelta2,
-               bmAnonymousBase.descent + underDelta1 + underMargin.top +
-                   bmUnder.ascent + underSize.Height() -
-                   underSize.BlockStartAscent() + underMargin.bottom);
+               bmAnonymousBase.descent + underDelta1 + bmUnder.ascent +
+                   underSize.Height() - underSize.BlockStartAscent());
   aDesiredSize.Height() =
-      std::max(aDesiredSize.Height(),
-               aDesiredSize.BlockStartAscent() + baseSize.Height() -
-                   baseSize.BlockStartAscent() + baseMargin.bottom);
+      std::max(aDesiredSize.Height(), aDesiredSize.BlockStartAscent() +
+                                          baseSize.Height() -
+                                          baseSize.BlockStartAscent());
   aDesiredSize.Width() = mBoundingMetrics.width;
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
-
-  // Add padding+border.
-  auto borderPadding = GetBorderPaddingForPlace(aFlags);
-  InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
-                                  mBoundingMetrics);
-  dxOver += borderPadding.left + overMargin.left;
-  dxBase += borderPadding.left + baseMargin.left;
-  dxUnder += borderPadding.left + underMargin.left;
 
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
 
-  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
+  if (aPlaceOrigin) {
     nscoord dy;
     // place overscript
     if (overFrame) {
       dy = aDesiredSize.BlockStartAscent() - mBoundingMetrics.ascent +
-           overMargin.top + bmOver.ascent - overSize.BlockStartAscent();
+           bmOver.ascent - overSize.BlockStartAscent();
       FinishReflowChild(overFrame, PresContext(), overSize, nullptr, dxOver, dy,
                         ReflowChildFlags::Default);
     }
@@ -711,7 +688,7 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
     // place underscript
     if (underFrame) {
       dy = aDesiredSize.BlockStartAscent() + mBoundingMetrics.descent -
-           bmUnder.descent - underMargin.bottom - underSize.BlockStartAscent();
+           bmUnder.descent - underSize.BlockStartAscent();
       FinishReflowChild(underFrame, PresContext(), underSize, nullptr, dxUnder,
                         dy, ReflowChildFlags::Default);
     }
