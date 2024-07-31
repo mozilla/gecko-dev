@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "mozilla/DefineEnum.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtr.h"
 
@@ -75,7 +76,8 @@ class MediaPacket {
 
   size_t encrypted_len() const { return encrypted_len_; }
 
-  enum Type { UNCLASSIFIED, SRTP, SRTCP, DTLS, RTP, RTCP, SCTP };
+  MOZ_DEFINE_ENUM_WITH_TOSTRING_AT_CLASS_SCOPE(Type, (UNCLASSIFIED, SRTP, SRTCP,
+                                                      DTLS, RTP, RTCP, SCTP));
 
   void Categorize();
 

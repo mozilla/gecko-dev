@@ -51,10 +51,11 @@
 #ifdef MOZ_GECKO_PROFILER
 #  include "mozilla/ProfilerMarkers.h"
 
-#  define MEDIA_TRANSPORT_HANDLER_PACKET_RECEIVED(aPacket)              \
-    PROFILER_MARKER_TEXT("WebRTC Packet Received", MEDIA_RT, {},        \
-                         ProfilerString8View::WrapNullTerminatedString( \
-                             PacketTypeToString((aPacket).type())));
+#  define MEDIA_TRANSPORT_HANDLER_PACKET_RECEIVED(aPacket) \
+    PROFILER_MARKER_TEXT(                                  \
+        "WebRTC Packet Received", MEDIA_RT, {},            \
+        ProfilerString8View::WrapNullTerminatedString(     \
+            MediaPacket::EnumValueToString((aPacket).type())));
 #else
 #  define MEDIA_TRANSPORT_HANDLER_PACKET_RECEIVED(aPacket)
 #endif
@@ -1687,28 +1688,6 @@ void MediaTransportHandlerSTS::OnStateChange(TransportLayer* aLayer,
 void MediaTransportHandlerSTS::OnRtcpStateChange(TransportLayer* aLayer,
                                                  TransportLayer::State aState) {
   MediaTransportHandler::OnRtcpStateChange(aLayer->flow_id(), aState);
-}
-
-constexpr static const char* PacketTypeToString(MediaPacket::Type type) {
-  switch (type) {
-    case MediaPacket::Type::UNCLASSIFIED:
-      return "UNCLASSIFIED";
-    case MediaPacket::Type::SRTP:
-      return "SRTP";
-    case MediaPacket::Type::SRTCP:
-      return "SRTCP";
-    case MediaPacket::Type::DTLS:
-      return "DTLS";
-    case MediaPacket::Type::RTP:
-      return "RTP";
-    case MediaPacket::Type::RTCP:
-      return "RTCP";
-    case MediaPacket::Type::SCTP:
-      return "SCTP";
-    default:
-      MOZ_ASSERT(false, "unreached");
-      return "";
-  }
 }
 
 void MediaTransportHandlerSTS::PacketReceived(TransportLayer* aLayer,
