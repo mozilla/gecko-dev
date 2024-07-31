@@ -17,6 +17,7 @@
 #include "ReorderQueue.h"
 #include "TimeUnits.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/ProfilerUtils.h"
 #include "mozilla/gfx/Types.h"
 
@@ -111,7 +112,8 @@ class AppleVTDecoder final : public MediaDataDecoder,
   CFDictionaryRef CreateDecoderSpecification();
   CFDictionaryRef CreateDecoderExtensions();
 
-  enum class StreamType { Unknown, H264, VP9, AV1 };
+  MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(StreamType,
+                                                     (Unknown, H264, VP9, AV1));
   const StreamType mStreamType;
   const RefPtr<TaskQueue> mTaskQueue;
   const uint32_t mMaxRefFrames;

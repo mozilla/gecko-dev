@@ -91,10 +91,7 @@ AppleVTDecoder::AppleVTDecoder(const VideoInfo& aConfig,
   MOZ_ASSERT(mStreamType != StreamType::Unknown);
   // TODO: Verify aConfig.mime_type.
   LOG("Creating AppleVTDecoder for %dx%d %s video", mDisplayWidth,
-      mDisplayHeight,
-      mStreamType == StreamType::H264  ? "H.264"
-      : mStreamType == StreamType::VP9 ? "VP9"
-                                       : "AV1");
+      mDisplayHeight, EnumValueToString(mStreamType));
 }
 
 AppleVTDecoder::~AppleVTDecoder() { MOZ_COUNT_DTOR(AppleVTDecoder); }
@@ -380,16 +377,7 @@ void AppleVTDecoder::MaybeRegisterCallbackThread() {
 }
 
 nsCString AppleVTDecoder::GetCodecName() const {
-  switch (mStreamType) {
-    case StreamType::H264:
-      return "h264"_ns;
-    case StreamType::VP9:
-      return "vp9"_ns;
-    case StreamType::AV1:
-      return "av1"_ns;
-    default:
-      return "unknown"_ns;
-  }
+  return nsCString(EnumValueToString(mStreamType));
 }
 
 // Copy and return a decoded frame.
