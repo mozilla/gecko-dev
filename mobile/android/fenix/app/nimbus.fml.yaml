@@ -452,7 +452,7 @@ features:
           show a "close" button for tabs that are currently open on other supported devices
           in the synced tabs tray.
         type: Boolean
-        default: false
+        default: true
 
   suggest-shipped-domains:
     description: Feature that suggests domains from the shipped domain list.
