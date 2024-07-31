@@ -336,11 +336,11 @@ nsString KeySystemConfig::GetDebugInfo() const {
   }
   debugInfo.AppendLiteral("]");
   debugInfo.AppendASCII(
-      nsPrintfCString(" persistent=%s", RequirementToStr(mPersistentState))
+      nsPrintfCString(" persistent=%s", EnumValueToString(mPersistentState))
           .get());
   debugInfo.AppendASCII(
       nsPrintfCString(" distinctive=%s",
-                      RequirementToStr(mDistinctiveIdentifier))
+                      EnumValueToString(mDistinctiveIdentifier))
           .get());
   debugInfo.AppendLiteral(" sessionType=[");
   for (size_t idx = 0; idx < mSessionTypes.Length(); idx++) {
@@ -398,17 +398,6 @@ const char* SessionTypeToStr(KeySystemConfig::SessionType aType) {
     default:
       MOZ_ASSERT_UNREACHABLE("Invalid session type");
       return "Invalid";
-  }
-}
-
-const char* RequirementToStr(KeySystemConfig::Requirement aRequirement) {
-  switch (aRequirement) {
-    case KeySystemConfig::Requirement::Required:
-      return "required";
-    case KeySystemConfig::Requirement::Optional:
-      return "optional";
-    default:
-      return "not-allowed";
   }
 }
 
