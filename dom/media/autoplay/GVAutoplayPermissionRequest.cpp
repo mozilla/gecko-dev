@@ -16,18 +16,6 @@ namespace mozilla::dom {
 using RType = GVAutoplayRequestType;
 using RStatus = GVAutoplayRequestStatus;
 
-const char* ToGVRequestTypeStr(RType aType) {
-  switch (aType) {
-    case RType::eINAUDIBLE:
-      return "inaudible";
-    case RType::eAUDIBLE:
-      return "audible";
-    default:
-      MOZ_ASSERT_UNREACHABLE("Invalid request type.");
-      return "invalid";
-  }
-}
-
 const char* ToGVRequestStatusStr(RStatus aStatus) {
   switch (aStatus) {
     case RStatus::eUNKNOWN:
@@ -50,7 +38,7 @@ const char* ToGVRequestStatusStr(RStatus aStatus) {
   if (MOZ_LOG_TEST(gGVAutoplayRequestLog, mozilla::LogLevel::Debug)) { \
     MOZ_LOG(gGVAutoplayRequestLog, LogLevel::Debug,                    \
             ("Request=%p, Type=%s, " msg, this,                        \
-             ToGVRequestTypeStr(this->mType), ##__VA_ARGS__));         \
+             EnumValueToString(this->mType), ##__VA_ARGS__));          \
   }
 
 #undef LOG
