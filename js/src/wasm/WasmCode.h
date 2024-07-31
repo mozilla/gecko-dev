@@ -209,9 +209,6 @@ class CodeSegment : public ShareableBase<CodeSegment> {
   const uint32_t capacityBytes_;
   const Code* code_;
 
-  bool linkAndMakeExecutable(jit::AutoMarkJitCodeWritableForThread& writable,
-                             const LinkData& linkData, const Code* maybeCode);
-
  public:
   CodeSegment(UniqueCodeBytes bytes, uint32_t lengthBytes,
               uint32_t capacityBytes)
@@ -220,13 +217,52 @@ class CodeSegment : public ShareableBase<CodeSegment> {
         capacityBytes_(capacityBytes),
         code_(nullptr) {}
 
+  // Create a new, empty code segment.  Allocation granularity is
+  // ExecutableCodePageSize (64KB).
   static RefPtr<CodeSegment> createEmpty(size_t capacityBytes);
+
+  // Create a new code segment and copy/link code from `masm` into it.
+  // Allocation granularity is ExecutableCodePageSize (64KB).
   static RefPtr<CodeSegment> createFromMasm(jit::MacroAssembler& masm,
                                             const LinkData& linkData,
                                             const Code* maybeCode);
+
+  // Create a new code segment and copy/link code from `unlinkedBytes` into
+  // it.  Allocation granularity is ExecutableCodePageSize (64KB).
   static RefPtr<CodeSegment> createFromBytes(const uint8_t* unlinkedBytes,
                                              size_t unlinkedBytesLength,
                                              const LinkData& linkData);
+
+  // Allocate code space at a hardware page granularity, taking space from
+  // `code->lazyFuncSegments`, and copy/link code from `masm` into it.  If an
+  // existing segment can satisy the allocation, space is reserved there, and
+  // that segment is returned; else a new segment is created for the
+  // allocation, is added to `code->lazyFuncSegments`, and returned.
+  //
+  // The location/length of the final code is returned in
+  // `*codeStart`/`*codeLength`.  Note that placement is somewhat randomised
+  // inside the page, so `*codeStart` will not be page-aligned.  Also, the
+  // metadata associated with the code block will have to be offset by the
+  // value returned in `*metadataBias`.
+  static RefPtr<CodeSegment> createFromMasmWithBumpAlloc(
+      jit::MacroAssembler& masm, const LinkData& linkData, const Code* code,
+      uint8_t** codeStartOut, uint32_t* codeLengthOut,
+      uint32_t* metadataBiasOut);
+
+  // For this CodeSegment, perform linking on the area
+  // [codeStart, +codeLength), then make all pages that intersect
+  // [pageStart, +codeLength+(codeStart-pageStart)) executable.  See ASCII
+  // art at CodeSegment::createFromMasmWithBumpAlloc (implementation) for the
+  // meaning of pageStart/codeStart/codeLength.
+  bool linkAndMakeExecutableSubRange(
+      jit::AutoMarkJitCodeWritableForThread& writable, const LinkData& linkData,
+      const Code* maybeCode, uint8_t* pageStart, uint8_t* codeStart,
+      uint32_t codeLength);
+
+  // For this CodeSegment, perform linking on the entire code area, then make
+  // it executable.
+  bool linkAndMakeExecutable(jit::AutoMarkJitCodeWritableForThread& writable,
+                             const LinkData& linkData, const Code* maybeCode);
 
   void setCode(const Code& code) { code_ = &code; }
 
@@ -240,12 +276,16 @@ class CodeSegment : public ShareableBase<CodeSegment> {
     return capacityBytes_;
   }
 
-  static size_t AlignBytesNeeded(size_t bytes) {
+  static size_t PageSize() { return gc::SystemPageSize(); }
+  static size_t PageRoundup(uintptr_t bytes) {
     // All new code allocations must be rounded to the system page size
     return AlignBytes(bytes, gc::SystemPageSize());
   }
+  static bool IsPageAligned(uintptr_t bytes) {
+    return bytes == PageRoundup(bytes);
+  }
   bool hasSpace(size_t bytes) const {
-    MOZ_ASSERT(AlignBytesNeeded(bytes) == bytes);
+    MOZ_ASSERT(IsPageAligned(bytes));
     return bytes <= capacityBytes() && lengthBytes_ <= capacityBytes() - bytes;
   }
   void claimSpace(size_t bytes, uint8_t** claimedBase) {
@@ -404,8 +444,18 @@ class CodeBlock {
   const uint8_t* codeBase;
   size_t codeLength;
 
-  // Metadata about the code we've put in the segment. All offsets are
-  // temporarily relative to the segment base, not our block base.
+  // Metadata about the code we have contributed to the segment.
+  //
+  // * `funcToCodeRange` does not involve code locations.
+  //
+  // * `stackMaps` specifies code locations directly, in
+  //   StackMaps::Maplet::nextInsnAddr.
+  //
+  // * All 6 other fields specify a code locations in by carrying an offset
+  //   which is interpreted to be relative to the start of the containing
+  //   segment, *not* relative to `CodeBlock::codeBase`.  That is, the denoted
+  //   address is `segment->base() + ..offset...`.
+  //
   FuncToCodeRangeMap funcToCodeRange;
   CodeRangeVector codeRanges;
   CallSiteVector callSites;
@@ -461,6 +511,9 @@ class CodeBlock {
     return kind == CodeBlockKind::SharedStubs ||
            kind == CodeBlockKind::OptimizedTier;
   }
+
+  // Add an offset to the metadata.  See comment above.
+  void offsetMetadataBy(uint32_t delta);
 
   const uint8_t* base() const { return codeBase; }
   uint32_t length() const { return codeLength; }
@@ -768,6 +821,26 @@ using MetadataAnalysisHashMap =
     HashMap<const char*, uint32_t, mozilla::CStringHasher, SystemAllocPolicy>;
 
 class Code : public ShareableBase<Code> {
+  // A primitive PRNG, as used in early C library implementations.
+  // See https://en.wikipedia.org/wiki/
+  //             Linear_congruential_generator#Parameters_in_common_use.
+  // It is used for randomising code layout so as to avoid icache misses, not
+  // for any security-related reason, which is why we don't care about its
+  // quality too much.  It also gives us repeatability when debugging or
+  // profiling.
+  class SimplePRNG {
+    uint32_t state_;
+
+   public:
+    SimplePRNG() : state_(999) {}
+    // Returns an 11-bit pseudo-random number.
+    uint32_t get11RandomBits() {
+      state_ = state_ * 1103515245 + 12345;
+      // Both the high and low order bits are reputed to be not very random.
+      // Throw them away.
+      return (state_ >> 4) & 0x7FF;
+    }
+  };
   struct ProtectedData {
     // A vector of all of the code blocks owned by this code. Each code block
     // is immutable once added to the vector, but this vector may grow.
@@ -778,9 +851,15 @@ class Code : public ShareableBase<Code> {
     UniqueLinkDataVector blocksLinkData;
 
     // A vector of code segments that we can allocate lazy segments into
-    SharedCodeSegmentVector lazySegments;
+    SharedCodeSegmentVector lazyStubSegments;
     // A sorted vector of LazyFuncExport
     LazyFuncExportVector lazyExports;
+
+    // A vector of code segments that we can lazily allocate functions into
+    SharedCodeSegmentVector lazyFuncSegments;
+
+    // For randomizing code layout.
+    SimplePRNG simplePRNG;
   };
   using ReadGuard = RWExclusiveData<ProtectedData>::ReadGuard;
   using WriteGuard = RWExclusiveData<ProtectedData>::WriteGuard;
@@ -894,6 +973,8 @@ class Code : public ShareableBase<Code> {
   [[nodiscard]] bool getOrCreateInterpEntry(uint32_t funcIndex,
                                             const FuncExport** funcExport,
                                             void** interpEntry) const;
+
+  const RWExclusiveData<ProtectedData>& data() const { return data_; }
 
   bool requestTierUp(uint32_t funcIndex) const;
 
@@ -1045,6 +1126,15 @@ class Code : public ShareableBase<Code> {
 };
 
 void PatchDebugSymbolicAccesses(uint8_t* codeBase, jit::MacroAssembler& masm);
+
+// Allocate executable memory from the pool in `lazySegments`, or if none of
+// those have space, create a new Segment, add it to the vector, and allocate
+// from that.  `*roundedUpAllocationSize` returns the actual allocation size;
+// it is guaranteed to be a multiple of the machine's page size.
+SharedCodeSegment AllocateCodePagesFrom(SharedCodeSegmentVector& lazySegments,
+                                        uint32_t bytesNeeded,
+                                        size_t* offsetInSegment,
+                                        size_t* roundedUpAllocationSize);
 
 }  // namespace wasm
 }  // namespace js

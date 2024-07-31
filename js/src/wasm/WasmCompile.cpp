@@ -982,7 +982,7 @@ bool wasm::CompilePartialTier2(const Code& code, uint32_t funcIndex) {
   Decoder d(bytecode.begin(), bytecode.end(), 0, &error);
   if (!mg.compileFuncDef(funcIndex, funcRange.bytecodeOffset, bodyBegin,
                          bodyEnd) ||
-      !mg.finishFuncDefs() || !mg.finishPartialTier2(code)) {
+      !mg.finishFuncDefs() || !mg.finishPartialTier2()) {
     // The module is already validated, this must be an OOM
     MOZ_RELEASE_ASSERT(!error);
     return false;

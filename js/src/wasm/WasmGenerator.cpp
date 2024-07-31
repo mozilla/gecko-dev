@@ -176,6 +176,10 @@ bool ModuleGenerator::initializePartialTier(const Code& code,
     return false;
   }
 
+  // The implied codeMeta must be consistent with the one we already have.
+  MOZ_ASSERT(&code.codeMeta() == codeMeta_);
+
+  MOZ_ASSERT(!partialTieringCode_);
   partialTieringCode_ = &code;
   return startPartialTier(funcIndex);
 }
@@ -904,15 +908,49 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     codeBlock_->trapSites[trap].shrinkStorageToFit();
   }
 
-  SharedCodeSegment segment = CodeSegment::createFromMasm(
-      *masm_, *linkData_, partialTieringCode_.get());
-  if (!segment) {
-    warnf("failed to allocate executable memory for module");
-    return nullptr;
+  // Allocate the code storage, copy/link the code from `masm_` into it, set up
+  // `codeBlock_->segment / codeBase / codeLength`, and adjust the metadata
+  // offsets on `codeBlock_` accordingly.
+  if (partialTieringCode_) {
+    // We're compiling a single function during tiering.  Place it in its own
+    // hardware page, inside an existing CodeSegment if possible, or allocate a
+    // new one and use that.  Either way, the chosen CodeSegment will be owned
+    // by Code::lazyFuncSegments.
+    MOZ_ASSERT(mode() == CompileMode::LazyTiering);
+
+    // Try to allocate from Code::lazyFuncSegments.
+    uint8_t* codeStart = nullptr;
+    uint32_t codeLength = 0;
+    uint32_t metadataBias = 0;
+    codeBlock_->segment = CodeSegment::createFromMasmWithBumpAlloc(
+        *masm_, *linkData_, partialTieringCode_, &codeStart, &codeLength,
+        &metadataBias);
+    if (!codeBlock_->segment) {
+      warnf("failed to allocate executable memory for module");
+      return nullptr;
+    }
+    codeBlock_->codeBase = codeStart;
+    codeBlock_->codeLength = codeLength;
+
+    // In `codeBlock_`s metadata, we have a bunch of offsets which are
+    // relative to the start of the segment.  But we're placing the code at
+    // `metadataBias` forwards from the start of the segment, so we have to
+    // swizzle the metadata offsets accordingly.
+    codeBlock_->offsetMetadataBy(metadataBias);
+  } else {
+    // Create a new CodeSegment for the code and use that.
+    codeBlock_->segment = CodeSegment::createFromMasm(
+        *masm_, *linkData_, partialTieringCode_.get());
+    if (!codeBlock_->segment) {
+      warnf("failed to allocate executable memory for module");
+      return nullptr;
+    }
+    codeBlock_->codeBase = codeBlock_->segment->base();
+    codeBlock_->codeLength = codeBlock_->segment->lengthBytes();
   }
-  codeBlock_->segment = std::move(segment);
-  codeBlock_->codeBase = codeBlock_->segment->base();
-  codeBlock_->codeLength = codeBlock_->segment->lengthBytes();
+
+  // Add the segment base address to the stack map addresses.  See comments
+  // at the declaration of CodeBlock::funcToCodeRange for explanation.
   codeBlock_->stackMaps.offsetBy(uintptr_t(codeBlock_->segment->base()));
 
   // Check that metadata is consistent with the actual code we generated,
@@ -1308,7 +1346,7 @@ bool ModuleGenerator::finishTier2(const Module& module) {
   return module.finishTier2(std::move(tier2Code), std::move(tier2LinkData));
 }
 
-bool ModuleGenerator::finishPartialTier2(const Code& code) {
+bool ModuleGenerator::finishPartialTier2() {
   MOZ_ASSERT(!compilingTier1());
   MOZ_ASSERT(compileState_ == CompileState::LazyTier2);
   MOZ_ASSERT(tier() == Tier::Optimized);
@@ -1324,7 +1362,8 @@ bool ModuleGenerator::finishPartialTier2(const Code& code) {
     return false;
   }
 
-  return code.finishTier2(std::move(tier2Code), std::move(tier2LinkData));
+  return partialTieringCode_->finishTier2(std::move(tier2Code),
+                                          std::move(tier2LinkData));
 }
 
 void ModuleGenerator::warnf(const char* msg, ...) {

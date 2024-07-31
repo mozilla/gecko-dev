@@ -320,7 +320,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
                             MutableModuleMetadata moduleMeta,
                             JS::OptimizedEncodingListener* maybeTier2Listener);
   [[nodiscard]] bool finishTier2(const Module& module);
-  [[nodiscard]] bool finishPartialTier2(const Code& code);
+  [[nodiscard]] bool finishPartialTier2();
 };
 
 }  // namespace wasm

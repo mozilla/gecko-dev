@@ -49,6 +49,7 @@ class FuncExport {
     MOZ_ASSERT(hasEagerStubs());
     return eagerInterpEntryOffset_;
   }
+  void offsetBy(uint32_t delta) { eagerInterpEntryOffset_ += delta; }
 };
 
 WASM_DECLARE_CACHEABLE_POD(FuncExport);
