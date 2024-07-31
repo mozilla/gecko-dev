@@ -75,6 +75,8 @@ const PREF_POCKET_BUTTON = "extensions.pocket.enabled";
 const PREF_COLLECTION_DISMISSIBLE = "discoverystream.isCollectionDismissible";
 const PREF_SELECTED_TOPICS = "discoverystream.topicSelection.selectedTopics";
 const PREF_TOPIC_SELECTION_ENABLED = "discoverystream.topicSelection.enabled";
+const PREF_TOPIC_SELECTION_PREVIOUS_SELECTED =
+  "discoverystream.topicSelection.hasBeenUpdatedPreviously";
 const PREF_SPOCS_CACHE_TIMEOUT = "discoverystream.spocs.cacheTimeout";
 const PREF_SPOCS_STARTUP_CACHE_ENABLED =
   "discoverystream.spocs.startupCache.enabled";
@@ -643,6 +645,19 @@ export class DiscoveryStreamFeed {
     ) {
       ctaButtonVariant = pocketConfig.ctaButtonVariant;
     }
+
+    const topicSelectionHasBeenUpdatedPreviously =
+      this.store.getState().Prefs.values[
+        PREF_TOPIC_SELECTION_PREVIOUS_SELECTED
+      ];
+
+    // Note: This requires a cache update to react to a pref update
+    const pocketStoriesHeadlineId = topicSelectionHasBeenUpdatedPreviously
+      ? "newtab-section-header-todays-picks"
+      : "newtab-section-header-stories";
+
+    pocketConfig.pocketStoriesHeadlineId = pocketStoriesHeadlineId;
+
     let spocMessageVariant = "";
     if (
       pocketConfig.spocMessageVariant === "variant-a" ||
@@ -728,6 +743,7 @@ export class DiscoveryStreamFeed {
       spocMessageVariant: this.locale.startsWith("en-")
         ? spocMessageVariant
         : "",
+      pocketStoriesHeadlineId: pocketConfig.pocketStoriesHeadlineId,
     });
 
     sendUpdate({
@@ -2272,6 +2288,7 @@ getHardcodedLayout = ({
   ctaButtonSponsors = [],
   ctaButtonVariant = "",
   spocMessageVariant = "",
+  pocketStoriesHeadlineId = "newtab-section-header-stories",
 }) => ({
   lastUpdate: Date.now(),
   spocs: {
@@ -2344,7 +2361,7 @@ getHardcodedLayout = ({
           editorsPicksHeader,
           header: {
             title: {
-              id: "newtab-section-header-stories",
+              id: pocketStoriesHeadlineId,
             },
             subtitle: "",
             link_text: {

@@ -3011,6 +3011,14 @@ main section {
     display: none;
   }
 }
+.lightWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button), .darkWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button) {
+  background-color: var(--newtab-weather-background-color);
+}
+@media (prefers-contrast) {
+  .lightWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button), .darkWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button) {
+    background-color: var(--background-color-box);
+  }
+}
 
 /* stylelint-disable max-nesting-depth */
 .discoverystream-admin-toggle {

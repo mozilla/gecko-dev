@@ -80,6 +80,10 @@ export class _CollapsibleSection extends React.PureComponent {
       titleStyle = { visibility: "hidden" };
     }
     const hasSubtitleClassName = subTitle ? `has-subtitle` : ``;
+    const topicsHaveBeenPreviouslySet =
+      this.props.Prefs.values[
+        "discoverystream.topicSelection.hasBeenUpdatedPreviously"
+      ];
     return (
       <section
         className={`collapsible-section ${this.props.className}${
@@ -119,11 +123,17 @@ export class _CollapsibleSection extends React.PureComponent {
               )}
           </h3>
           {mayHaveTopicsSelection && (
-            <moz-button
-              label="Personalize my feed"
-              type="primary"
-              onClick={this.handleTopicSelectionButtonClick}
-            />
+            <div className="button-topic-selection">
+              <moz-button
+                data-l10n-id={
+                  topicsHaveBeenPreviouslySet
+                    ? "newtab-topic-selection-button-update-interests"
+                    : "newtab-topic-selection-button-pick-interests"
+                }
+                type={topicsHaveBeenPreviouslySet ? "default" : "primary"}
+                onClick={this.handleTopicSelectionButtonClick}
+              />
+            </div>
           )}
         </div>
         <ErrorBoundary className="section-body-fallback">

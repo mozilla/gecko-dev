@@ -205,6 +205,8 @@ newtab-section-expand-section-label =
 newtab-section-header-topsites = Top Sites
 newtab-section-header-recent-activity = Recent activity
 newtab-section-header-stories = Thought-provoking stories
+# "picks" refers to recommended articles
+newtab-section-header-todays-picks = Today’s picks for you
 
 ## Empty Section States: These show when there are no more items in a section. Ex. When there are no more Pocket story recommendations, in the space where there would have been stories, this is shown instead.
 
@@ -424,3 +426,5 @@ newtab-topic-selection-subtitle = Choose two or more topics. Our expert curators
 newtab-topic-selection-save-button = Save
 newtab-topic-selection-cancel-button = Cancel
 newtab-topic-selection-privacy-link = Learn how we protect your data and privacy
+newtab-topic-selection-button-update-interests = Update your interests
+newtab-topic-selection-button-pick-interests = Pick your interests

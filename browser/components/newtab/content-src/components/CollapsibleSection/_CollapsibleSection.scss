@@ -114,4 +114,23 @@
       display: none;
     }
   }
+
+  .button-topic-selection {
+    // Note: the 'primary' theme uses a solid color and does not need this override
+    moz-button[type='default'] {
+      // Bug 1908010 - This overwrites the design system color because of a
+      // know transparency issue with color-mix syntax when a wallpaper is set
+      .lightWallpaper &,
+      .darkWallpaper & {
+        &::part(button) {
+          background-color: var(--newtab-weather-background-color);
+
+          @media (prefers-contrast) {
+            background-color: var(--background-color-box);
+          }
+        }
+
+      }
+    }
+  }
 }
