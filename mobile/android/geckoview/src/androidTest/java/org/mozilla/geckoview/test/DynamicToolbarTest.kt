@@ -765,7 +765,7 @@ class DynamicToolbarTest : BaseSessionTest() {
         // Position the target element underneath the dynamic toolbar.
         mainSession.evaluateJS(
             """
-            document.querySelector('#target').style.top = 'calc(100svh+1px)';
+            document.querySelector('#target').style.top = 'calc(100svh + 1px)';
             document.querySelector('#target').getBoundingClientRect();
             """.trimIndent(),
         )
@@ -831,7 +831,7 @@ class DynamicToolbarTest : BaseSessionTest() {
         // Position the target element out of the layout viewport.
         mainSession.evaluateJS(
             """
-            document.querySelector('#target').style.top = 'calc(100lvh+1px)';
+            document.querySelector('#target').style.top = 'calc(100lvh + 1px)';
             document.querySelector('#target').getBoundingClientRect();
             """.trimIndent(),
         )
@@ -914,7 +914,7 @@ class DynamicToolbarTest : BaseSessionTest() {
             // has 'width: 200%' body element so that it gets scaled by 0.5 initially.
             // Thus the bottom dynamic toolbar is positioned at `200svh`.
             """
-            document.querySelector('#target').style.top = 'calc(200svh+1px)';
+            document.querySelector('#target').style.top = 'calc(200svh + 1px)';
             document.querySelector('#target').getBoundingClientRect();
             """.trimIndent(),
         )
@@ -981,7 +981,7 @@ class DynamicToolbarTest : BaseSessionTest() {
         mainSession.evaluateJS(
             // Similar to the above test, `200lvh` is the bottom of the dynamic toolbar.
             """
-            document.querySelector('#target').style.top = 'calc(200lvh+1px)';
+            document.querySelector('#target').style.top = 'calc(200lvh + 1px)';
             document.querySelector('#target').getBoundingClientRect();
             """.trimIndent(),
         )
