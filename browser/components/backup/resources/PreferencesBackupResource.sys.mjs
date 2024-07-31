@@ -4,6 +4,12 @@
 
 import { BackupResource } from "resource:///modules/backup/BackupResource.sys.mjs";
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+});
+
 /**
  * Class representing files that modify preferences and permissions within a user profile.
  */
@@ -50,6 +56,49 @@ export class PreferencesBackupResource extends BackupResource {
   }
 
   async recover(_manifestEntry, recoveryPath, destProfilePath) {
+    const SEARCH_PREF_FILENAME = "search.json.mozlz4";
+    const RECOVERY_SEARCH_PREF_PATH = PathUtils.join(
+      recoveryPath,
+      SEARCH_PREF_FILENAME
+    );
+
+    if (await IOUtils.exists(RECOVERY_SEARCH_PREF_PATH)) {
+      // search.json.mozlz4 may contain hash values that need to be recomputed
+      // now that the profile directory has changed.
+      let searchPrefs = await IOUtils.readJSON(RECOVERY_SEARCH_PREF_PATH, {
+        decompress: true,
+      });
+
+      searchPrefs.engines = searchPrefs.engines.map(engine => {
+        if (engine._metaData.loadPathHash) {
+          let loadPath = engine._loadPath;
+          engine._metaData.loadPathHash = lazy.SearchUtils.getVerificationHash(
+            loadPath,
+            destProfilePath
+          );
+        }
+        return engine;
+      });
+
+      searchPrefs.metaData.defaultEngineIdHash =
+        lazy.SearchUtils.getVerificationHash(
+          searchPrefs.metaData.defaultEngineId,
+          destProfilePath
+        );
+
+      searchPrefs.metaData.privateDefaultEngineIdHash =
+        lazy.SearchUtils.getVerificationHash(
+          searchPrefs.metaData.privateDefaultEngineId,
+          destProfilePath
+        );
+
+      await IOUtils.writeJSON(
+        PathUtils.join(destProfilePath, SEARCH_PREF_FILENAME),
+        searchPrefs,
+        { compress: true }
+      );
+    }
+
     const simpleCopyFiles = [
       "prefs.js",
       "xulstore.json",
@@ -57,7 +106,6 @@ export class PreferencesBackupResource extends BackupResource {
       "content-prefs.sqlite",
       "containers.json",
       "handlers.json",
-      "search.json.mozlz4",
       "user.js",
       "chrome",
     ];

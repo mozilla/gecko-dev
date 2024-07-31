@@ -335,7 +335,7 @@ export var SearchUtils = {
     return result.substring(0, maxLength);
   },
 
-  getVerificationHash(name) {
+  getVerificationHash(name, profileDir = PathUtils.profileDir) {
     let disclaimer =
       "By modifying this file, I agree that I am doing so " +
       "only within $appName itself, using official, user-driven search " +
@@ -345,7 +345,7 @@ export var SearchUtils = {
       "to accordingly.";
 
     let salt =
-      PathUtils.filename(PathUtils.profileDir) +
+      PathUtils.filename(profileDir) +
       name +
       disclaimer.replace(/\$appName/g, Services.appinfo.name);
 

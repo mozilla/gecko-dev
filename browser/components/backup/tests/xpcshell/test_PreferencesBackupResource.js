@@ -6,6 +6,9 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 const { PreferencesBackupResource } = ChromeUtils.importESModule(
   "resource:///modules/backup/PreferencesBackupResource.sys.mjs"
 );
+const { SearchUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/SearchUtils.sys.mjs"
+);
 
 /**
  * Test that the measure method correctly collects the disk-sizes of things that
@@ -152,6 +155,7 @@ add_task(async function test_backup() {
  * directory into the destination profile directory.
  */
 add_task(async function test_recover() {
+  let sandbox = sinon.createSandbox();
   let preferencesBackupResource = new PreferencesBackupResource();
   let recoveryPath = await IOUtils.createUniqueDirectory(
     PathUtils.tempDir,
@@ -169,13 +173,48 @@ add_task(async function test_recover() {
     { path: "content-prefs.sqlite" },
     { path: "containers.json" },
     { path: "handlers.json" },
-    { path: "search.json.mozlz4" },
     { path: "user.js" },
     { path: ["chrome", "userChrome.css"] },
     { path: ["chrome", "userContent.css"] },
     { path: ["chrome", "childFolder", "someOtherStylesheet.css"] },
   ];
   await createTestFiles(recoveryPath, simpleCopyFiles);
+
+  // We'll now hand-prepare enough of a search.json.mozlz4 file that we can
+  // ensure that PreferencesBackupResource knows how to update the
+  // verification hashes for non-default engines.
+  const TEST_SEARCH_ENGINE_LOAD_PATH = "some/path/on/disk";
+  const TEST_DEFAULT_ENGINE_ID = "bugle";
+  const TEST_PRIVATE_DEFAULT_ENGINE_ID = "goose";
+
+  let fakeSearchPrefs = {
+    metaData: {
+      defaultEngineId: TEST_DEFAULT_ENGINE_ID,
+      defaultEngineIdHash: "default engine original hash",
+      privateDefaultEngineId: TEST_PRIVATE_DEFAULT_ENGINE_ID,
+      privateDefaultEngineIdHash: "private default engine original hash",
+    },
+    engines: [
+      {
+        _loadPath: TEST_SEARCH_ENGINE_LOAD_PATH,
+        _metaData: {
+          loadPathHash: "some pre-existing hash",
+        },
+      },
+    ],
+  };
+
+  const SEARCH_PREFS_FILENAME = "search.json.mozlz4";
+  await IOUtils.writeJSON(
+    PathUtils.join(recoveryPath, SEARCH_PREFS_FILENAME),
+    fakeSearchPrefs,
+    {
+      compress: true,
+    }
+  );
+
+  const EXPECTED_HASH = "this is some newly generated hash";
+  sandbox.stub(SearchUtils, "getVerificationHash").returns(EXPECTED_HASH);
 
   // The backup method is expected to have returned a null ManifestEntry
   let postRecoveryEntry = await preferencesBackupResource.recover(
@@ -191,6 +230,62 @@ add_task(async function test_recover() {
 
   await assertFilesExist(destProfilePath, simpleCopyFiles);
 
+  // Now ensure that the verification was properly recomputed. We should
+  // Have called getVerificationHash 3 times - once each for:
+  //
+  // - The single engine in the engines list
+  // - The defaultEngineId
+  // - The privateDefaultEngineId
+  Assert.equal(
+    SearchUtils.getVerificationHash.callCount,
+    3,
+    "SearchUtils.getVerificationHash was called the right number of times."
+  );
+  Assert.ok(
+    SearchUtils.getVerificationHash
+      .getCall(0)
+      .calledWith(TEST_SEARCH_ENGINE_LOAD_PATH, destProfilePath),
+    "SearchUtils.getVerificationHash first call called with the right arguments."
+  );
+  Assert.ok(
+    SearchUtils.getVerificationHash
+      .getCall(1)
+      .calledWith(TEST_DEFAULT_ENGINE_ID, destProfilePath),
+    "SearchUtils.getVerificationHash second call called with the right arguments."
+  );
+  Assert.ok(
+    SearchUtils.getVerificationHash
+      .getCall(2)
+      .calledWith(TEST_PRIVATE_DEFAULT_ENGINE_ID, destProfilePath),
+    "SearchUtils.getVerificationHash third call called with the right arguments."
+  );
+
+  let recoveredSearchPrefs = await IOUtils.readJSON(
+    PathUtils.join(destProfilePath, SEARCH_PREFS_FILENAME),
+    { decompress: true }
+  );
+  Assert.equal(
+    recoveredSearchPrefs.engines.length,
+    1,
+    "Should still have 1 search engine"
+  );
+  Assert.equal(
+    recoveredSearchPrefs.engines[0]._metaData.loadPathHash,
+    EXPECTED_HASH,
+    "The expected hash was written for the single engine."
+  );
+  Assert.equal(
+    recoveredSearchPrefs.metaData.defaultEngineIdHash,
+    EXPECTED_HASH,
+    "The expected hash was written for the default engine."
+  );
+  Assert.equal(
+    recoveredSearchPrefs.metaData.privateDefaultEngineIdHash,
+    EXPECTED_HASH,
+    "The expected hash was written for the private default engine."
+  );
+
   await maybeRemovePath(recoveryPath);
   await maybeRemovePath(destProfilePath);
+  sandbox.restore();
 });
