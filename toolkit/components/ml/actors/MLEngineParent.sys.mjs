@@ -27,13 +27,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 const RS_RUNTIME_COLLECTION = "ml-onnx-runtime";
 const RS_INFERENCE_OPTIONS_COLLECTION = "ml-inference-options";
-const TERMINATE_TIMEOUT = 2000;
-const TIMEOUT_INTERVAL = 500;
 
 /**
  * The ML engine is in its own content process. This actor handles the
@@ -49,13 +46,6 @@ export class MLEngineParent extends JSWindowActorParent {
 
   /** @type {Promise<WasmRecord> | null} */
   static #wasmRecord = null;
-
-  /**
-   * Locks to prevent race conditions when creating engines.
-   *
-   * @type {Map<string, Promise>}
-   */
-  static engineLocks = new Map();
 
   /**
    * The following constant controls the major version for wasm downloaded from
@@ -88,61 +78,31 @@ export class MLEngineParent extends JSWindowActorParent {
     MLEngineParent.#wasmRecord = null;
   }
 
-  /**
-   * Creates a new MLEngine.
-   *
-   * If there's an existing engine with the same pipelineOptions, it will be reused.
+  /** Creates a new MLEngine.
    *
    * @param {PipelineOptions} pipelineOptions
    * @param {?function(ProgressAndStatusCallbackParams):void} notificationsCallback A function to call to indicate progress status.
-   * @returns {Promise<MLEngine>}
+   * @returns {MLEngine}
    */
-  async getEngine(pipelineOptions, notificationsCallback = null) {
-    const engineId = pipelineOptions.engineId;
-
-    if (MLEngineParent.engineLocks.has(engineId)) {
-      // Wait for the existing lock to resolve
-      await MLEngineParent.engineLocks.get(engineId);
-    }
-    let resolveLock;
-    const lockPromise = new Promise(resolve => {
-      resolveLock = resolve;
+  getEngine(pipelineOptions, notificationsCallback = null) {
+    return new MLEngine({
+      mlEngineParent: this,
+      pipelineOptions,
+      notificationsCallback,
     });
-    MLEngineParent.engineLocks.set(engineId, lockPromise);
-    try {
-      const currentEngine = MLEngine.getInstance(engineId);
-
-      if (currentEngine) {
-        if (currentEngine.pipelineOptions.equals(pipelineOptions)) {
-          lazy.console.debug("Returning existing engine", engineId);
-          return currentEngine;
-        }
-        lazy.console.debug("Existing engine is incompatible");
-        await MLEngine.removeInstance(engineId, false);
-      }
-      lazy.console.debug("Creating a new engine");
-      const engine = new MLEngine({
-        mlEngineParent: this,
-        pipelineOptions,
-        notificationsCallback,
-      });
-
-      // TODO - What happens if the engine is already killed here?
-      return engine;
-    } finally {
-      MLEngineParent.engineLocks.delete(engineId);
-      resolveLock();
-    }
   }
 
-  /**
-   * Validates a taskName
+  /** Extracts the task name from the name and validates it.
    *
    * Throws an exception if the task name is invalid.
    *
-   * @param {string} taskName
+   * @param {string} name
+   * @returns {string}
    */
-  checkTaskName(taskName) {
+  nameToTaskName(name) {
+    // Extract taskName after the specific prefix
+    const taskName = name.split("MLEngine:GetInferenceOptions:")[1];
+
     // Define a regular expression to verify taskName pattern (alphanumeric and underscores/dashes)
     const validTaskNamePattern = /^[a-zA-Z0-9_\-]+$/;
 
@@ -153,11 +113,16 @@ export class MLEngineParent extends JSWindowActorParent {
         "Invalid task name. Task name should contain only alphanumeric characters and underscores/dashes."
       );
     }
+    return taskName;
   }
 
   // eslint-disable-next-line consistent-return
-  async receiveMessage(message) {
-    switch (message.name) {
+  async receiveMessage({ name }) {
+    if (name.startsWith("MLEngine:GetInferenceOptions")) {
+      return MLEngineParent.getInferenceOptions(this.nameToTaskName(name));
+    }
+
+    switch (name) {
       case "MLEngine:Ready":
         if (lazy.EngineProcess.resolveMLEngineParent) {
           lazy.EngineProcess.resolveMLEngineParent(this);
@@ -173,12 +138,6 @@ export class MLEngineParent extends JSWindowActorParent {
         lazy.EngineProcess.destroyMLEngine().catch(error =>
           console.error(error)
         );
-        break;
-      case "MLEngine:GetInferenceOptions":
-        this.checkTaskName(message.json.taskName);
-        return MLEngineParent.getInferenceOptions(message.json.taskName);
-      case "MLEngine:Removed":
-        await MLEngine.removeInstance(message.json.engineId, true);
         break;
     }
   }
@@ -344,13 +303,6 @@ export class MLEngineParent extends JSWindowActorParent {
  */
 class MLEngine {
   /**
-   * The cached engines.
-   *
-   * @type {Map<string, MLEngine>}
-   */
-  static #instances = new Map();
-
-  /**
    * @type {MessagePort | null}
    */
   #port = null;
@@ -370,13 +322,6 @@ class MLEngine {
   engineStatus = "uninitialized";
 
   /**
-   * Unique identifier for the engine.
-   *
-   * @type {string}
-   */
-  engineId;
-
-  /**
    * Callback to call when receiving an initializing progress status.
    *
    * @type {?function(ProgressAndStatusCallbackParams):void}
@@ -384,46 +329,16 @@ class MLEngine {
   notificationsCallback = null;
 
   /**
-   * Removes an instance of the MLEngine with the given engineId.
-   *
-   * @param {string} engineId - The ID of the engine instance to be removed.
-   * @param {boolean} shutdown - Flag indicating whether to shutdown the engine.
-   * @returns {Promise<void>} A promise that resolves once the engine is removed.
-   */
-  static async removeInstance(engineId, shutdown) {
-    for (const [id, engine] of MLEngine.#instances.entries()) {
-      if (engine.engineId == engineId) {
-        await engine.terminate(shutdown);
-        MLEngine.#instances.delete(id);
-      }
-    }
-  }
-
-  /**
-   * Retrieves an instance of the MLEngine with the given engineId.
-   *
-   * @param {string} engineId - The ID of the engine instance to retrieve.
-   * @returns {MLEngine|null} The engine instance with the given ID, or null if not found.
-   */
-  static getInstance(engineId) {
-    return MLEngine.#instances.get(engineId) || null;
-  }
-
-  /**
    * @param {object} config - The configuration object for the instance.
    * @param {object} config.mlEngineParent - The parent machine learning engine associated with this instance.
    * @param {object} config.pipelineOptions - The options for configuring the pipeline associated with this instance.
-   * @param {?function(ProgressAndStatshutdownusCallbackParams):void} config.notificationsCallback - The initialization progress callback function to call.
+   * @param {?function(ProgressAndStatusCallbackParams):void} config.notificationsCallback - The initialization progress callback function to call.
    */
   constructor({ mlEngineParent, pipelineOptions, notificationsCallback }) {
-    const engineId = pipelineOptions.engineId;
-    this.engineId = engineId;
-    MLEngine.#instances.set(engineId, this);
     this.mlEngineParent = mlEngineParent;
     this.pipelineOptions = pipelineOptions;
     this.notificationsCallback = notificationsCallback;
     this.#setupPortCommunication();
-    this.engineStatus = "ready";
   }
 
   /**
@@ -444,12 +359,6 @@ class MLEngine {
     );
   }
 
-  /**
-   * Handles messages received from the port.
-   *
-   * @param {object} event - The message event.
-   * @param {object} event.data - The data of the message event.
-   */
   handlePortMessage = ({ data }) => {
     switch (data.type) {
       case "EnginePort:ModelRequest": {
@@ -518,9 +427,6 @@ class MLEngine {
     }
   };
 
-  /**
-   * Discards the current port and closes the connection.
-   */
   discardPort() {
     if (this.#port) {
       this.#port.postMessage({ type: "EnginePort:Discard" });
@@ -529,51 +435,11 @@ class MLEngine {
     }
   }
 
-  /**
-   * Terminates the engine and optionally shuts it down.
-   *
-   * @param {boolean} shutdown - Whether to shut down the engine.
-   * @returns {Promise<string>} - A promise that resolves when the engine status is 'closed'.
-   */
-  terminate(shutdown) {
-    if (this.#port) {
-      this.#port.postMessage({
-        type: "EnginePort:Terminate",
-        shutdown,
-      });
-    }
-    return this.#waitForStatus("closed");
+  terminate() {
+    this.#port.postMessage({ type: "EnginePort:Terminate" });
   }
 
   /**
-   * Waits for the engine to reach the desired status.
-   *
-   * @param {string} desiredStatus - The desired engine status.
-   * @returns {Promise<string>} - A promise that resolves when the engine reaches the desired status.
-   */
-  #waitForStatus(desiredStatus) {
-    return new Promise((resolve, reject) => {
-      let startTime = Date.now();
-
-      const checkStatus = () => {
-        if (this.engineStatus === desiredStatus) {
-          resolve(`Engine status is now ${desiredStatus}`);
-        } else if (Date.now() - startTime > TERMINATE_TIMEOUT) {
-          reject(
-            `Timeout after ${TERMINATE_TIMEOUT}ms: Engine status did not reach ${desiredStatus}`
-          );
-        } else {
-          lazy.setTimeout(checkStatus, TIMEOUT_INTERVAL);
-        }
-      };
-
-      checkStatus();
-    });
-  }
-
-  /**
-   * Run the inference request
-   *
    * @param {Request} request
    * @returns {Promise<Response>}
    */

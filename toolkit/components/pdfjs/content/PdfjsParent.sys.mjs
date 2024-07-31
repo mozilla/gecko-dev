@@ -28,7 +28,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 const IMAGE_TO_TEXT_TASK = "moz-image-to-text";
-const ML_ENGINE_ID = "pdfjs";
 
 var Svc = {};
 XPCOMUtils.defineLazyServiceGetter(
@@ -200,7 +199,7 @@ export class PdfjsParent extends JSWindowActorParent {
   async #createAIEngine(taskName, aggregator) {
     try {
       return lazy.createEngine(
-        { engineId: ML_ENGINE_ID, taskName },
+        { taskName },
         aggregator?.aggregateCallback.bind(aggregator) || null
       );
     } catch (e) {

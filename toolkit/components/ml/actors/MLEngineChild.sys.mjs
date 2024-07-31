@@ -78,39 +78,15 @@ export class MLEngineChild extends JSWindowActorChild {
           logLevel: lazy.LOG_LEVEL,
         });
 
-        // Check if we already have an engine under this id.
-        if (this.#engineDispatchers.has(options.engineId)) {
-          lazy.console.debug("EngineDispatcher already exists");
-          let currentEngineDispatcher = this.#engineDispatchers.get(
-            options.engineId
-          );
-
-          // The option matches, let's reuse the engine
-          if (currentEngineDispatcher.pipelineOptions.equals(options)) {
-            lazy.console.debug(
-              "PipelineOptions are equal, reusing the same engine"
-            );
-            return;
-          }
-
-          // The options do not match, terminate the old one so we have a single engine per id.
-          lazy.console.debug(
-            "PipelineOptions are not equal, terminating the old one"
-          );
-
-          await currentEngineDispatcher.terminate(/* shutDownIfEmpty */ false);
-          this.#engineDispatchers.delete(options.engineId);
-        }
-
         this.#engineDispatchers.set(
-          options.engineId,
+          options.taskName,
           new EngineDispatcher(this, port, options)
         );
         break;
       }
       case "MLEngine:ForceShutdown": {
         for (const engineDispatcher of this.#engineDispatchers.values()) {
-          await engineDispatcher.terminate(/* shutDownIfEmpty */ true);
+          return engineDispatcher.terminate();
         }
         this.#engineDispatchers = null;
         break;
@@ -141,29 +117,16 @@ export class MLEngineChild extends JSWindowActorChild {
    * @returns {Promise<object>}
    */
   getInferenceOptions(taskName) {
-    return this.sendQuery("MLEngine:GetInferenceOptions", {
-      taskName,
-    });
+    return this.sendQuery(`MLEngine:GetInferenceOptions:${taskName}`);
   }
 
   /**
-   * Removes an engine by its ID. Optionally shuts down if no engines remain.
-   *
-   * @param {string} engineId - The ID of the engine to remove.
-   * @param {boolean} [shutDownIfEmpty] - If true, shuts down the engine process if no engines remain.
+   * @param {string} engineName
    */
-  removeEngine(engineId, shutDownIfEmpty) {
-    if (!this.#engineDispatchers) {
-      return;
-    }
-    lazy.console.debug(`Removing engine ${engineId}`);
-    this.#engineDispatchers.delete(engineId);
-    this.sendAsyncMessage("MLEngine:Removed", { engineId });
-    if (this.#engineDispatchers.size === 0 && shutDownIfEmpty) {
-      lazy.console.debug(
-        "Shutting down by calling MLEngine:DestroyEngineProcess"
-      );
-      this.sendAsyncMessage("MLEngine:DestroyEngineProcess");
+  removeEngine(engineName) {
+    this.#engineDispatchers.delete(engineName);
+    if (this.#engineDispatchers.size === 0) {
+      this.sendQuery("MLEngine:DestroyEngineProcess");
     }
   }
 }
@@ -188,14 +151,7 @@ class EngineDispatcher {
   /** @type {string} */
   #taskName;
 
-  /** @type {string} */
-  #engineId;
-
-  /** @type {PipelineOptions | null} */
-  pipelineOptions = null;
-
-  /**
-   * Creates the inference engine given the wasm runtime and the run options.
+  /** Creates the inference engine given the wasm runtime and the run options.
    *
    * The initialization is done in three steps:
    * 1. The wasm runtime is fetched from RS
@@ -219,8 +175,6 @@ class EngineDispatcher {
     mergedOptions.updateOptions(pipelineOptions);
     lazy.console.debug("Inference engine options:", mergedOptions);
 
-    this.pipelineOptions = mergedOptions;
-
     return InferenceEngine.create({
       wasm,
       pipelineOptions: mergedOptions,
@@ -237,7 +191,6 @@ class EngineDispatcher {
     this.mlEngineChild = mlEngineChild;
     this.#taskName = pipelineOptions.taskName;
     this.timeoutMS = pipelineOptions.timeoutMS;
-    this.#engineId = pipelineOptions.engineId;
 
     this.#engine = this.initializeInferenceEngine(
       pipelineOptions,
@@ -311,7 +264,7 @@ class EngineDispatcher {
           break;
         }
         case "EnginePort:Terminate": {
-          await this.terminate(/* shutDownIfEmpty */ data.shutdown);
+          this.terminate();
           break;
         }
         case "EnginePort:ModelResponse": {
@@ -343,7 +296,7 @@ class EngineDispatcher {
               error,
             });
             // The engine failed to load. Terminate the entire dispatcher.
-            await this.terminate(/* shutDownIfEmpty */ true);
+            this.terminate();
             return;
           }
 
@@ -377,30 +330,23 @@ class EngineDispatcher {
 
   /**
    * Terminates the engine and its worker after a timeout.
-   *
-   * @param {boolean} shutDownIfEmpty - If true, shuts down the engine process if no engines remain.
    */
-  async terminate(shutDownIfEmpty) {
+  async terminate() {
     if (this.#keepAliveTimeout) {
       lazy.clearTimeout(this.#keepAliveTimeout);
       this.#keepAliveTimeout = null;
     }
     if (this.#port) {
-      lazy.console.log(
-        "Terminating the engine by calling EnginePort:EngineTerminated"
-      );
       // This call will trigger back an EnginePort:Discard that will close the port
       this.#port.postMessage({ type: "EnginePort:EngineTerminated" });
-    } else {
-      lazy.console.log("No more port to terminate the engine");
     }
+    this.mlEngineChild.removeEngine(this.#taskName);
     try {
       const engine = await this.#engine;
       engine.terminate();
     } catch (error) {
       lazy.console.error("Failed to get the engine", error);
     }
-    this.mlEngineChild.removeEngine(this.#engineId, shutDownIfEmpty);
   }
 }
 
@@ -506,9 +452,7 @@ class InferenceEngine {
   }
 
   terminate() {
-    if (this.#worker) {
-      this.#worker.terminate();
-      this.#worker = null;
-    }
+    this.#worker.terminate();
+    this.#worker = null;
   }
 }
