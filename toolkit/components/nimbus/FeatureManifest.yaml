@@ -743,6 +743,19 @@ newtabSpocsCache:
       description: >-
         Controls if spocs should be included in startup cache.
 
+topicSelectionOnboarding:
+  description: the about:newtab topic selection onboarding experience.
+  owner: nbarrett@mozilla.com
+  hasExposure: false
+  variables:
+    topicSelectionOnboarding:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.enabled
+      description: >-
+        Turns on and off topic selection onbaording
+
 pocketNewtab:
   description: The Pocket section in newtab
   owner: sdowne@getpocket.com

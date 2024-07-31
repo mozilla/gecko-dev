@@ -11336,11 +11336,13 @@ class BaseContent extends (external_React_default()).PureComponent {
   }
   shouldDisplayTopicSelectionModal() {
     const prefs = this.props.Prefs.values;
+    const pocketEnabled = prefs["feeds.section.topstories"] && prefs["feeds.system.topstories"];
+    const topicSelectionOnboardingEnabled = prefs["discoverystream.topicSelection.onboarding.enabled"] && pocketEnabled;
     const maybeShowModal = prefs["discoverystream.topicSelection.onboarding.maybeDisplay"];
     const displayTimeout = prefs["discoverystream.topicSelection.onboarding.displayTimeout"];
     const lastDisplayed = prefs["discoverystream.topicSelection.onboarding.lastDisplayed"];
     const displayCount = prefs["discoverystream.topicSelection.onboarding.displayCount"];
-    if (!maybeShowModal || !prefs["discoverystream.topicSelection.enabled"]) {
+    if (!maybeShowModal || !prefs["discoverystream.topicSelection.enabled"] || !topicSelectionOnboardingEnabled) {
       return;
     }
     const day = 24 * 60 * 60 * 1000;
@@ -11455,7 +11457,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       firstVisibleTimestamp: this.state.firstVisibleTimestamp
     })) : /*#__PURE__*/external_React_default().createElement(Sections_Sections, null)), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null), wallpapersEnabled && this.renderWallpaperAttribution()), /*#__PURE__*/external_React_default().createElement("aside", null, this.props.Notifications?.showNotifications && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Notifications_Notifications, {
       dispatch: this.props.dispatch
-    }))), mayShowTopicSelection && this.props?.document?.visibilityState === Base_VISIBLE && /*#__PURE__*/external_React_default().createElement(TopicSelection, null)));
+    }))), mayShowTopicSelection && pocketEnabled && /*#__PURE__*/external_React_default().createElement(TopicSelection, null)));
   }
 }
 BaseContent.defaultProps = {

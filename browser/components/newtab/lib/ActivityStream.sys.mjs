@@ -636,6 +636,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.topicSelection.onboarding.enabled",
+    {
+      title: "enabled onboarding experience for topic selection onboarding",
+      value: false,
+    },
+  ],
+  [
     "discoverystream.topicLabels.enabled",
     {
       title: "Enables topic labels for discovery stream",

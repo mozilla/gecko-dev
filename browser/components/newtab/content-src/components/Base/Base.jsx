@@ -390,6 +390,11 @@ export class BaseContent extends React.PureComponent {
 
   shouldDisplayTopicSelectionModal() {
     const prefs = this.props.Prefs.values;
+    const pocketEnabled =
+      prefs["feeds.section.topstories"] && prefs["feeds.system.topstories"];
+    const topicSelectionOnboardingEnabled =
+      prefs["discoverystream.topicSelection.onboarding.enabled"] &&
+      pocketEnabled;
     const maybeShowModal =
       prefs["discoverystream.topicSelection.onboarding.maybeDisplay"];
     const displayTimeout =
@@ -399,7 +404,11 @@ export class BaseContent extends React.PureComponent {
     const displayCount =
       prefs["discoverystream.topicSelection.onboarding.displayCount"];
 
-    if (!maybeShowModal || !prefs["discoverystream.topicSelection.enabled"]) {
+    if (
+      !maybeShowModal ||
+      !prefs["discoverystream.topicSelection.enabled"] ||
+      !topicSelectionOnboardingEnabled
+    ) {
       return;
     }
 
@@ -582,10 +591,7 @@ export class BaseContent extends React.PureComponent {
             )}
           </aside>
           {/* Only show the modal on currently visible pages (not preloaded) */}
-          {mayShowTopicSelection &&
-            this.props?.document?.visibilityState === VISIBLE && (
-              <TopicSelection />
-            )}
+          {mayShowTopicSelection && pocketEnabled && <TopicSelection />}
         </div>
       </div>
     );
