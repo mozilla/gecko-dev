@@ -96,24 +96,6 @@ const char* SuspendTypeToStr(const nsSuspendedTypes& aSuspend) {
   }
 }
 
-const char* AudibleStateToStr(
-    const AudioChannelService::AudibleState& aAudible) {
-  MOZ_ASSERT(aAudible == AudioChannelService::AudibleState::eNotAudible ||
-             aAudible == AudioChannelService::AudibleState::eMaybeAudible ||
-             aAudible == AudioChannelService::AudibleState::eAudible);
-
-  switch (aAudible) {
-    case AudioChannelService::AudibleState::eNotAudible:
-      return "not-audible";
-    case AudioChannelService::AudibleState::eMaybeAudible:
-      return "maybe-audible";
-    case AudioChannelService::AudibleState::eAudible:
-      return "audible";
-    default:
-      return "unknown";
-  }
-}
-
 const char* AudibleChangedReasonToStr(
     const AudioChannelService::AudibleChangedReasons& aReason) {
   MOZ_ASSERT(

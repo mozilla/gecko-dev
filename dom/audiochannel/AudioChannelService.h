@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "AudioChannelAgent.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/Logging.h"
 #include "mozilla/UniquePtr.h"
 #include "nsAttrValue.h"
@@ -88,11 +89,8 @@ class AudioChannelService final : public nsIObserver {
    * eMaybeAudible : agent is not audible now, but it might be audible later
    * eAudible : agent is audible now
    */
-  enum AudibleState : uint8_t {
-    eNotAudible = 0,
-    eMaybeAudible = 1,
-    eAudible = 2
-  };
+  MOZ_DEFINE_ENUM_WITH_BASE_AND_TOSTRING_AT_CLASS_SCOPE(
+      AudibleState, uint8_t, (eNotAudible, eMaybeAudible, eAudible));
 
   enum AudioCaptureState : bool { eCapturing = true, eNotCapturing = false };
 
@@ -234,8 +232,6 @@ class AudioChannelService final : public nsIObserver {
 };
 
 const char* SuspendTypeToStr(const nsSuspendedTypes& aSuspend);
-const char* AudibleStateToStr(
-    const AudioChannelService::AudibleState& aAudible);
 const char* AudibleChangedReasonToStr(
     const AudioChannelService::AudibleChangedReasons& aReason);
 

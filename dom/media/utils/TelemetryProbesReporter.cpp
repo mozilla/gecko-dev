@@ -23,19 +23,6 @@ LazyLogModule gTelemetryProbesReporterLog("TelemetryProbesReporter");
   MOZ_LOG(gTelemetryProbesReporterLog, LogLevel::Debug, \
           ("TelemetryProbesReporter=%p, " msg, this, ##__VA_ARGS__))
 
-static const char* ToAudibilityStr(
-    TelemetryProbesReporter::AudibleState aAudibleState) {
-  switch (aAudibleState) {
-    case TelemetryProbesReporter::AudibleState::eAudible:
-      return "audible";
-    case TelemetryProbesReporter::AudibleState::eNotAudible:
-      return "inaudible";
-    default:
-      MOZ_ASSERT_UNREACHABLE("invalid audibility");
-      return "unknown";
-  }
-}
-
 static const char* ToMutedStr(bool aMuted) {
   return aMuted ? "muted" : "unmuted";
 }
@@ -159,7 +146,8 @@ void TelemetryProbesReporter::OnVisibilityChanged(Visibility aVisibility) {
 
 void TelemetryProbesReporter::OnAudibleChanged(AudibleState aAudibleState) {
   AssertOnMainThreadAndNotShutdown();
-  LOG("Audibility changed, now %s", ToAudibilityStr(aAudibleState));
+  LOG("Audibility changed, now %s",
+      dom::AudioChannelService::EnumValueToString(aAudibleState));
   if (aAudibleState == AudibleState::eNotAudible) {
     if (!mInaudibleAudioPlayTime.IsStarted()) {
       StartInaudibleAudioTimeAccumulator();

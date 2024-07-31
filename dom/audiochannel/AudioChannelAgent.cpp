@@ -158,7 +158,7 @@ AudioChannelAgent::NotifyStartedPlaying(uint8_t aAudible) {
   MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
           ("AudioChannelAgent, NotifyStartedPlaying, this = %p, audible = %s\n",
            this,
-           AudibleStateToStr(
+           AudioChannelService::EnumValueToString(
                static_cast<AudioChannelService::AudibleState>(aAudible))));
 
   mIsRegToService = true;
@@ -190,7 +190,7 @@ AudioChannelAgent::NotifyStartedAudible(uint8_t aAudible, uint32_t aReason) {
       ("AudioChannelAgent, NotifyStartedAudible, this = %p, "
        "audible = %s, reason = %s\n",
        this,
-       AudibleStateToStr(
+       AudioChannelService::EnumValueToString(
            static_cast<AudioChannelService::AudibleState>(aAudible)),
        AudibleChangedReasonToStr(
            static_cast<AudioChannelService::AudibleChangedReasons>(aReason))));

@@ -1619,8 +1619,8 @@ class HTMLMediaElement::AudioChannelAgentCallback final
     MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
             ("HTMLMediaElement::AudioChannelAgentCallback, "
              "NotifyAudioPlaybackChanged, this=%p, current=%s, new=%s",
-             this, AudibleStateToStr(mIsOwnerAudible),
-             AudibleStateToStr(newAudibleState)));
+             this, AudioChannelService::EnumValueToString(mIsOwnerAudible),
+             AudioChannelService::EnumValueToString(newAudibleState)));
     if (mIsOwnerAudible == newAudibleState) {
       return;
     }
