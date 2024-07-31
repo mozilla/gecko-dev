@@ -89,6 +89,19 @@ pub trait Arg {
         F: FnOnce(&CStr) -> io::Result<T>;
 }
 
+/// Runs a closure on `arg` where `A` is mapped to a `&CStr`
+pub fn option_into_with_c_str<T, F, A: Arg>(arg: Option<A>, f: F) -> io::Result<T>
+where
+    A: Sized,
+    F: FnOnce(Option<&CStr>) -> io::Result<T>,
+{
+    if let Some(arg) = arg {
+        arg.into_with_c_str(|p| f(Some(p)))
+    } else {
+        f(None)
+    }
+}
+
 impl Arg for &str {
     #[inline]
     fn as_str(&self) -> io::Result<&str> {

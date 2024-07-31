@@ -121,7 +121,7 @@ fn main() {
     if netbsdlike {
         use_feature("netbsdlike");
     }
-    let apple = os == "macos" || os == "ios" || os == "tvos" || os == "watchos";
+    let apple = os == "macos" || os == "ios" || os == "tvos" || os == "visionos" || os == "watchos";
     if apple {
         use_feature("apple");
     }

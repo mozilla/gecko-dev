@@ -12,6 +12,8 @@ use crate::fd::BorrowedFd;
 use crate::ffi::CStr;
 use crate::io;
 use crate::net::sockopt::Timeout;
+#[cfg(target_os = "linux")]
+use crate::net::xdp::{XdpMmapOffsets, XdpOptionsFlags, XdpRingOffset, XdpStatistics, XdpUmemReg};
 use crate::net::{
     AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RawProtocol, SocketAddrAny, SocketAddrStorage,
     SocketAddrV4, SocketAddrV6, SocketType, UCred,
@@ -23,6 +25,8 @@ use alloc::string::String;
 use core::mem::MaybeUninit;
 use core::time::Duration;
 use linux_raw_sys::general::{__kernel_old_timeval, __kernel_sock_timeval};
+#[cfg(target_os = "linux")]
+use linux_raw_sys::xdp::{xdp_mmap_offsets, xdp_statistics, xdp_statistics_v1};
 #[cfg(target_arch = "x86")]
 use {
     crate::backend::conv::{slice_just_addr, x86_sys},
@@ -797,6 +801,172 @@ pub(crate) fn get_tcp_cork(fd: BorrowedFd<'_>) -> io::Result<bool> {
 #[inline]
 pub(crate) fn get_socket_peercred(fd: BorrowedFd<'_>) -> io::Result<UCred> {
     getsockopt(fd, c::SOL_SOCKET, linux_raw_sys::net::SO_PEERCRED)
+}
+
+#[cfg(target_os = "linux")]
+#[inline]
+pub(crate) fn set_xdp_umem_reg(fd: BorrowedFd<'_>, value: XdpUmemReg) -> io::Result<()> {
+    setsockopt(fd, c::SOL_XDP, c::XDP_UMEM_REG, value)
+}
+
+#[cfg(target_os = "linux")]
+#[inline]
+pub(crate) fn set_xdp_umem_fill_ring_size(fd: BorrowedFd<'_>, value: u32) -> io::Result<()> {
+    setsockopt(fd, c::SOL_XDP, c::XDP_UMEM_FILL_RING, value)
+}
+
+#[cfg(target_os = "linux")]
+#[inline]
+pub(crate) fn set_xdp_umem_completion_ring_size(fd: BorrowedFd<'_>, value: u32) -> io::Result<()> {
+    setsockopt(fd, c::SOL_XDP, c::XDP_UMEM_COMPLETION_RING, value)
+}
+
+#[cfg(target_os = "linux")]
+#[inline]
+pub(crate) fn set_xdp_tx_ring_size(fd: BorrowedFd<'_>, value: u32) -> io::Result<()> {
+    setsockopt(fd, c::SOL_XDP, c::XDP_TX_RING, value)
+}
+
+#[cfg(target_os = "linux")]
+#[inline]
+pub(crate) fn set_xdp_rx_ring_size(fd: BorrowedFd<'_>, value: u32) -> io::Result<()> {
+    setsockopt(fd, c::SOL_XDP, c::XDP_RX_RING, value)
+}
+
+#[cfg(target_os = "linux")]
+#[inline]
+pub(crate) fn get_xdp_mmap_offsets(fd: BorrowedFd<'_>) -> io::Result<XdpMmapOffsets> {
+    // The kernel will write `xdp_mmap_offsets` or `xdp_mmap_offsets_v1` to the
+    // supplied pointer, depending on the kernel version. Both structs only
+    // contain u64 values. By using the larger of both as the parameter, we can
+    // shuffle the values to the non-v1 version returned by
+    // `get_xdp_mmap_offsets` while keeping the return type unaffected by the
+    // kernel version. This works because C will layout all struct members one
+    // after the other.
+
+    let mut optlen = core::mem::size_of::<xdp_mmap_offsets>().try_into().unwrap();
+    debug_assert!(
+        optlen as usize >= core::mem::size_of::<c::c_int>(),
+        "Socket APIs don't ever use `bool` directly"
+    );
+    let mut value = MaybeUninit::<xdp_mmap_offsets>::zeroed();
+    getsockopt_raw(fd, c::SOL_XDP, c::XDP_MMAP_OFFSETS, &mut value, &mut optlen)?;
+
+    if optlen as usize == core::mem::size_of::<c::xdp_mmap_offsets_v1>() {
+        // Safety: All members of xdp_mmap_offsets are u64 and thus are correctly
+        // initialized by `MaybeUninit::<xdp_statistics>::zeroed()`
+        let xpd_mmap_offsets = unsafe { value.assume_init() };
+        Ok(XdpMmapOffsets {
+            rx: XdpRingOffset {
+                producer: xpd_mmap_offsets.rx.producer,
+                consumer: xpd_mmap_offsets.rx.consumer,
+                desc: xpd_mmap_offsets.rx.desc,
+                flags: None,
+            },
+            tx: XdpRingOffset {
+                producer: xpd_mmap_offsets.rx.flags,
+                consumer: xpd_mmap_offsets.tx.producer,
+                desc: xpd_mmap_offsets.tx.consumer,
+                flags: None,
+            },
+            fr: XdpRingOffset {
+                producer: xpd_mmap_offsets.tx.desc,
+                consumer: xpd_mmap_offsets.tx.flags,
+                desc: xpd_mmap_offsets.fr.producer,
+                flags: None,
+            },
+            cr: XdpRingOffset {
+                producer: xpd_mmap_offsets.fr.consumer,
+                consumer: xpd_mmap_offsets.fr.desc,
+                desc: xpd_mmap_offsets.fr.flags,
+                flags: None,
+            },
+        })
+    } else {
+        assert_eq!(
+            optlen as usize,
+            core::mem::size_of::<xdp_mmap_offsets>(),
+            "unexpected getsockopt size"
+        );
+        // Safety: All members of xdp_mmap_offsets are u64 and thus are correctly
+        // initialized by `MaybeUninit::<xdp_statistics>::zeroed()`
+        let xpd_mmap_offsets = unsafe { value.assume_init() };
+        Ok(XdpMmapOffsets {
+            rx: XdpRingOffset {
+                producer: xpd_mmap_offsets.rx.producer,
+                consumer: xpd_mmap_offsets.rx.consumer,
+                desc: xpd_mmap_offsets.rx.desc,
+                flags: Some(xpd_mmap_offsets.rx.flags),
+            },
+            tx: XdpRingOffset {
+                producer: xpd_mmap_offsets.tx.producer,
+                consumer: xpd_mmap_offsets.tx.consumer,
+                desc: xpd_mmap_offsets.tx.desc,
+                flags: Some(xpd_mmap_offsets.tx.flags),
+            },
+            fr: XdpRingOffset {
+                producer: xpd_mmap_offsets.fr.producer,
+                consumer: xpd_mmap_offsets.fr.consumer,
+                desc: xpd_mmap_offsets.fr.desc,
+                flags: Some(xpd_mmap_offsets.fr.flags),
+            },
+            cr: XdpRingOffset {
+                producer: xpd_mmap_offsets.cr.producer,
+                consumer: xpd_mmap_offsets.cr.consumer,
+                desc: xpd_mmap_offsets.cr.desc,
+                flags: Some(xpd_mmap_offsets.cr.flags),
+            },
+        })
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[inline]
+pub(crate) fn get_xdp_statistics(fd: BorrowedFd<'_>) -> io::Result<XdpStatistics> {
+    let mut optlen = core::mem::size_of::<xdp_statistics>().try_into().unwrap();
+    debug_assert!(
+        optlen as usize >= core::mem::size_of::<c::c_int>(),
+        "Socket APIs don't ever use `bool` directly"
+    );
+    let mut value = MaybeUninit::<xdp_statistics>::zeroed();
+    getsockopt_raw(fd, c::SOL_XDP, c::XDP_STATISTICS, &mut value, &mut optlen)?;
+
+    if optlen as usize == core::mem::size_of::<xdp_statistics_v1>() {
+        // Safety: All members of xdp_statistics are u64 and thus are correctly
+        // initialized by `MaybeUninit::<xdp_statistics>::zeroed()`
+        let xdp_statistics = unsafe { value.assume_init() };
+        Ok(XdpStatistics {
+            rx_dropped: xdp_statistics.rx_dropped,
+            rx_invalid_descs: xdp_statistics.rx_dropped,
+            tx_invalid_descs: xdp_statistics.rx_dropped,
+            rx_ring_full: None,
+            rx_fill_ring_empty_descs: None,
+            tx_ring_empty_descs: None,
+        })
+    } else {
+        assert_eq!(
+            optlen as usize,
+            core::mem::size_of::<xdp_statistics>(),
+            "unexpected getsockopt size"
+        );
+        // Safety: All members of xdp_statistics are u64 and thus are correctly
+        // initialized by `MaybeUninit::<xdp_statistics>::zeroed()`
+        let xdp_statistics = unsafe { value.assume_init() };
+        Ok(XdpStatistics {
+            rx_dropped: xdp_statistics.rx_dropped,
+            rx_invalid_descs: xdp_statistics.rx_invalid_descs,
+            tx_invalid_descs: xdp_statistics.tx_invalid_descs,
+            rx_ring_full: Some(xdp_statistics.rx_ring_full),
+            rx_fill_ring_empty_descs: Some(xdp_statistics.rx_fill_ring_empty_descs),
+            tx_ring_empty_descs: Some(xdp_statistics.tx_ring_empty_descs),
+        })
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[inline]
+pub(crate) fn get_xdp_options(fd: BorrowedFd<'_>) -> io::Result<XdpOptionsFlags> {
+    getsockopt(fd, c::SOL_XDP, c::XDP_OPTIONS)
 }
 
 #[inline]

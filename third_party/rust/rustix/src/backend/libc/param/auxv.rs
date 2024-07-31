@@ -45,6 +45,21 @@ pub(crate) fn linux_hwcap() -> (usize, usize) {
     target_os = "linux",
 ))]
 #[inline]
+pub(crate) fn linux_minsigstksz() -> usize {
+    // FIXME: reuse const from libc when available?
+    const AT_MINSIGSTKSZ: c::c_ulong = 51;
+    if let Some(libc_getauxval) = getauxval.get() {
+        unsafe { libc_getauxval(AT_MINSIGSTKSZ) as usize }
+    } else {
+        0
+    }
+}
+
+#[cfg(any(
+    all(target_os = "android", target_pointer_width = "64"),
+    target_os = "linux",
+))]
+#[inline]
 pub(crate) fn linux_execfn() -> &'static CStr {
     if let Some(libc_getauxval) = getauxval.get() {
         unsafe { CStr::from_ptr(libc_getauxval(c::AT_EXECFN).cast()) }

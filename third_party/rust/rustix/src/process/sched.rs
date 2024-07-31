@@ -1,5 +1,6 @@
 use crate::process::Pid;
 use crate::{backend, io};
+use core::{fmt, hash};
 
 /// `CpuSet` represents a bit-mask of CPUs.
 ///
@@ -13,7 +14,7 @@ use crate::{backend, io};
 /// [`sched_setaffinity`]: crate::process::sched_setaffinity
 /// [`sched_getaffinity`]: crate::process::sched_getaffinity
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy)]
 pub struct CpuSet {
     cpu_set: backend::process::types::RawCpuSet,
 }
@@ -72,6 +73,41 @@ impl Default for CpuSet {
     #[inline]
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl fmt::Debug for CpuSet {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "CpuSet {{")?;
+        let mut first = true;
+        for i in 0..CpuSet::MAX_CPU {
+            if self.is_set(i) {
+                if first {
+                    write!(fmt, " ")?;
+                    first = false;
+                } else {
+                    write!(fmt, ", ")?;
+                }
+                write!(fmt, "cpu{}", i)?;
+            }
+        }
+        write!(fmt, " }}")
+    }
+}
+
+impl hash::Hash for CpuSet {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        for i in 0..CpuSet::MAX_CPU {
+            self.is_set(i).hash(state);
+        }
+    }
+}
+
+impl Eq for CpuSet {}
+
+impl PartialEq for CpuSet {
+    fn eq(&self, other: &Self) -> bool {
+        backend::process::cpu_set::CPU_EQUAL(&self.cpu_set, &other.cpu_set)
     }
 }
 

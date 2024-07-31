@@ -684,6 +684,26 @@ pub(crate) fn pidfd_open(pid: Pid, flags: PidfdFlags) -> io::Result<OwnedFd> {
 }
 
 #[cfg(target_os = "linux")]
+pub(crate) fn pidfd_send_signal(pidfd: BorrowedFd<'_>, sig: Signal) -> io::Result<()> {
+    syscall! {
+        fn pidfd_send_signal(
+            pid: c::pid_t,
+            sig: c::c_int,
+            info: *const c::siginfo_t,
+            flags: c::c_int
+        ) via SYS_pidfd_send_signal -> c::c_int
+    }
+    unsafe {
+        ret(pidfd_send_signal(
+            borrowed_fd(pidfd),
+            sig as c::c_int,
+            core::ptr::null(),
+            0,
+        ))
+    }
+}
+
+#[cfg(target_os = "linux")]
 pub(crate) fn pidfd_getfd(
     pidfd: BorrowedFd<'_>,
     targetfd: RawFd,

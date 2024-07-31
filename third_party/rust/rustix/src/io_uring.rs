@@ -632,6 +632,9 @@ bitflags::bitflags! {
         /// `IORING_MSG_RING_CQE_SKIP`
         const CQE_SKIP = sys::IORING_MSG_RING_CQE_SKIP;
 
+        /// `IORING_MSG_RING_FLAGS_PASS`
+        const FLAGS_PASS = sys::IORING_MSG_RING_FLAGS_PASS;
+
         /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
         const _ = !0;
     }
@@ -1157,6 +1160,22 @@ pub struct io_uring_sync_cancel_reg {
     pub flags: IoringAsyncCancelFlags,
     pub timeout: Timespec,
     pub pad: [u64; 4],
+}
+
+impl Default for io_uring_sync_cancel_reg {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            addr: Default::default(),
+            fd: Default::default(),
+            flags: Default::default(),
+            timeout: Timespec {
+                tv_sec: 0,
+                tv_nsec: 0,
+            },
+            pad: Default::default(),
+        }
+    }
 }
 
 /// An io_uring Completion Queue Entry.

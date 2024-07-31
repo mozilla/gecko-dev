@@ -3,6 +3,8 @@
 #![allow(unsafe_code)]
 
 use crate::buffer::split_init;
+#[cfg(target_os = "linux")]
+use crate::net::xdp::SocketAddrXdp;
 #[cfg(unix)]
 use crate::net::SocketAddrUnix;
 use crate::net::{SocketAddr, SocketAddrAny, SocketAddrV4, SocketAddrV6};
@@ -261,6 +263,8 @@ fn _sendto_any(
         SocketAddrAny::V6(v6) => backend::net::syscalls::sendto_v6(fd, buf, flags, v6),
         #[cfg(unix)]
         SocketAddrAny::Unix(unix) => backend::net::syscalls::sendto_unix(fd, buf, flags, unix),
+        #[cfg(target_os = "linux")]
+        SocketAddrAny::Xdp(xdp) => backend::net::syscalls::sendto_xdp(fd, buf, flags, xdp),
     }
 }
 
@@ -377,4 +381,23 @@ pub fn sendto_unix<Fd: AsFd>(
     addr: &SocketAddrUnix,
 ) -> io::Result<usize> {
     backend::net::syscalls::sendto_unix(fd.as_fd(), buf, flags, addr)
+}
+
+/// `sendto(fd, buf, flags, addr, sizeof(struct sockaddr_xdp))`—Writes data
+/// to a socket to a specific XDP address.
+///
+/// # References
+///  - [Linux]
+///
+/// [Linux]: https://man7.org/linux/man-pages/man2/sendto.2.html
+#[cfg(target_os = "linux")]
+#[inline]
+#[doc(alias = "sendto")]
+pub fn sendto_xdp<Fd: AsFd>(
+    fd: Fd,
+    buf: &[u8],
+    flags: SendFlags,
+    addr: &SocketAddrXdp,
+) -> io::Result<usize> {
+    backend::net::syscalls::sendto_xdp(fd.as_fd(), buf, flags, addr)
 }

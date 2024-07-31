@@ -149,8 +149,8 @@ pub enum DynamicClockId<'a> {
 
     /// `CLOCK_BOOTTIME`
     #[cfg(any(
-        freebsdlike,
         linux_kernel,
+        target_os = "freebsd",
         target_os = "fuchsia",
         target_os = "openbsd"
     ))]

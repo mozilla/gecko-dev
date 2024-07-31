@@ -114,6 +114,7 @@ pub fn dup2<Fd: AsFd>(fd: Fd, new: &mut OwnedFd) -> io::Result<()> {
 #[cfg(not(any(
     target_os = "aix",
     target_os = "espidf",
+    target_os = "horizon",
     target_os = "nto",
     target_os = "vita",
     target_os = "wasi"

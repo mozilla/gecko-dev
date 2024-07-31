@@ -15,7 +15,7 @@ use core::sync::atomic::AtomicBool;
 use core::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
 use linux_raw_sys::elf::*;
 use linux_raw_sys::general::{
-    AT_CLKTCK, AT_EXECFN, AT_HWCAP, AT_HWCAP2, AT_NULL, AT_PAGESZ, AT_SYSINFO_EHDR,
+    AT_CLKTCK, AT_EXECFN, AT_HWCAP, AT_HWCAP2, AT_MINSIGSTKSZ, AT_NULL, AT_PAGESZ, AT_SYSINFO_EHDR,
 };
 #[cfg(feature = "runtime")]
 use linux_raw_sys::general::{AT_ENTRY, AT_PHDR, AT_PHENT, AT_PHNUM, AT_RANDOM, AT_SECURE};
@@ -41,6 +41,12 @@ pub(crate) fn linux_hwcap() -> (usize, usize) {
             HWCAP2.load(Ordering::Relaxed),
         )
     }
+}
+
+#[cfg(feature = "param")]
+#[inline]
+pub(crate) fn linux_minsigstksz() -> usize {
+    unsafe { MINSIGSTKSZ.load(Ordering::Relaxed) }
 }
 
 #[cfg(feature = "param")]
@@ -94,6 +100,7 @@ static mut PAGE_SIZE: AtomicUsize = AtomicUsize::new(0);
 static mut CLOCK_TICKS_PER_SECOND: AtomicUsize = AtomicUsize::new(0);
 static mut HWCAP: AtomicUsize = AtomicUsize::new(0);
 static mut HWCAP2: AtomicUsize = AtomicUsize::new(0);
+static mut MINSIGSTKSZ: AtomicUsize = AtomicUsize::new(0);
 static mut SYSINFO_EHDR: AtomicPtr<Elf_Ehdr> = AtomicPtr::new(null_mut());
 // Initialize `EXECFN` to a valid `CStr` pointer so that we don't need to check
 // for null on every `execfn` call.
@@ -147,6 +154,7 @@ unsafe fn init_from_auxp(mut auxp: *const Elf_auxv_t) {
             AT_CLKTCK => CLOCK_TICKS_PER_SECOND.store(a_val as usize, Ordering::Relaxed),
             AT_HWCAP => HWCAP.store(a_val as usize, Ordering::Relaxed),
             AT_HWCAP2 => HWCAP2.store(a_val as usize, Ordering::Relaxed),
+            AT_MINSIGSTKSZ => MINSIGSTKSZ.store(a_val as usize, Ordering::Relaxed),
             AT_EXECFN => EXECFN.store(a_val.cast::<c::c_char>(), Ordering::Relaxed),
             AT_SYSINFO_EHDR => SYSINFO_EHDR.store(a_val.cast::<Elf_Ehdr>(), Ordering::Relaxed),
 

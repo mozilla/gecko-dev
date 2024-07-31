@@ -10,9 +10,8 @@ use crate::backend::c;
 use crate::ffi::CStr;
 use crate::{io, path};
 use core::cmp::Ordering;
-use core::fmt;
 use core::hash::{Hash, Hasher};
-use core::slice;
+use core::{fmt, slice};
 
 /// `struct sockaddr_un`
 #[derive(Clone)]

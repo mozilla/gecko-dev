@@ -7,7 +7,7 @@
 
 use crate::backend::c;
 use crate::backend::conv::{
-    by_mut, by_ref, c_int, c_uint, ret, ret_c_int, ret_c_int_infallible, ret_usize,
+    by_mut, by_ref, c_int, c_uint, ret, ret_c_int, ret_c_int_infallible, ret_usize, slice,
     slice_just_addr, slice_just_addr_mut, zero,
 };
 use crate::fd::BorrowedFd;
@@ -344,4 +344,10 @@ pub(crate) fn setresgid_thread(
     unsafe {
         ret(syscall_readonly!(__NR_setresgid, rgid, egid, sgid))
     }
+}
+
+#[inline]
+pub(crate) fn setgroups_thread(gids: &[crate::ugid::Gid]) -> io::Result<()> {
+    let (addr, len) = slice(gids);
+    unsafe { ret(syscall_readonly!(__NR_setgroups, len, addr)) }
 }

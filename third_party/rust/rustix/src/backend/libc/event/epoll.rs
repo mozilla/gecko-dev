@@ -187,7 +187,7 @@ pub fn add(
     // SAFETY: We're calling `epoll_ctl` via FFI and we know how it
     // behaves. We use our own `Event` struct instead of libc's because
     // ours preserves pointer provenance instead of just using a `u64`,
-    // and we have tests elsehwere for layout equivalence.
+    // and we have tests elsewhere for layout equivalence.
     unsafe {
         let raw_fd = source.as_fd().as_raw_fd();
         ret(c::epoll_ctl(
@@ -197,6 +197,8 @@ pub fn add(
             as_mut_ptr(&mut Event {
                 flags: event_flags,
                 data,
+                #[cfg(target_os = "redox")]
+                _pad: 0,
             })
             .cast(),
         ))
@@ -219,7 +221,7 @@ pub fn modify(
     // SAFETY: We're calling `epoll_ctl` via FFI and we know how it
     // behaves. We use our own `Event` struct instead of libc's because
     // ours preserves pointer provenance instead of just using a `u64`,
-    // and we have tests elsehwere for layout equivalence.
+    // and we have tests elsewhere for layout equivalence.
     unsafe {
         ret(c::epoll_ctl(
             epoll.as_fd().as_raw_fd(),
@@ -228,6 +230,8 @@ pub fn modify(
             as_mut_ptr(&mut Event {
                 flags: event_flags,
                 data,
+                #[cfg(target_os = "redox")]
+                _pad: 0,
             })
             .cast(),
         ))
@@ -295,13 +299,16 @@ impl<'a> Iterator for Iter<'a> {
 /// A record of an event that occurred.
 #[repr(C)]
 #[cfg_attr(
-    any(
-        all(
-            target_arch = "x86",
-            not(target_env = "musl"),
-            not(target_os = "android"),
-        ),
-        target_arch = "x86_64",
+    all(
+        linux_kernel,
+        any(
+            all(
+                target_arch = "x86",
+                not(target_env = "musl"),
+                not(target_os = "android"),
+            ),
+            target_arch = "x86_64",
+        )
     ),
     repr(packed)
 )]
@@ -311,6 +318,9 @@ pub struct Event {
     pub flags: EventFlags,
     /// User data.
     pub data: EventData,
+
+    #[cfg(target_os = "redox")]
+    _pad: u64,
 }
 
 /// Data associated with an [`Event`]. This can either be a 64-bit integer

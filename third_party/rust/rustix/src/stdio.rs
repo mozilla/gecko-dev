@@ -146,9 +146,9 @@ pub unsafe fn take_stdin() -> OwnedFd {
 ///
 /// # Warning
 ///
-/// This function allows reading directly from stdout without coordinating
+/// This function allows writing directly to stdout without coordinating
 /// with the buffering performed by [`std::io::Stdout`], so it could cause
-/// corrupted input.
+/// corrupted output.
 ///
 /// # References
 ///  - [POSIX]
@@ -192,9 +192,9 @@ pub const fn stdout() -> BorrowedFd<'static> {
 ///
 /// # Warning
 ///
-/// This function allows reading directly from stdout without coordinating
+/// This function allows writing directly to stdout without coordinating
 /// with the buffering performed by [`std::io::Stdout`], so it could cause
-/// corrupted input.
+/// corrupted output.
 ///
 /// # References
 ///  - [POSIX]

@@ -143,6 +143,8 @@
 #![doc(alias = "getsockopt")]
 #![doc(alias = "setsockopt")]
 
+#[cfg(target_os = "linux")]
+use crate::net::xdp::{XdpMmapOffsets, XdpOptionsFlags, XdpStatistics, XdpUmemReg};
 #[cfg(not(any(
     apple,
     windows,
@@ -1370,6 +1372,104 @@ pub fn get_tcp_cork<Fd: AsFd>(fd: Fd) -> io::Result<bool> {
 #[doc(alias = "SO_PEERCRED")]
 pub fn get_socket_peercred<Fd: AsFd>(fd: Fd) -> io::Result<super::UCred> {
     backend::net::sockopt::get_socket_peercred(fd.as_fd())
+}
+
+/// `setsockopt(fd, SOL_XDP, XDP_UMEM_REG, value)`
+///
+/// On kernel versions only supporting v1, the flags are ignored.
+///
+/// # References
+///   - [Linux]
+///
+/// [Linux]: https://www.kernel.org/doc/html/next/networking/af_xdp.html#xdp-umem-reg-setsockopt
+#[cfg(target_os = "linux")]
+#[doc(alias = "XDP_UMEM_REG")]
+pub fn set_xdp_umem_reg<Fd: AsFd>(fd: Fd, value: XdpUmemReg) -> io::Result<()> {
+    backend::net::sockopt::set_xdp_umem_reg(fd.as_fd(), value)
+}
+
+/// `setsockopt(fd, SOL_XDP, XDP_UMEM_FILL_RING, value)`
+///
+/// # References
+///   - [Linux]
+///
+/// [Linux]: https://www.kernel.org/doc/html/next/networking/af_xdp.html#xdp-rx-tx-umem-fill-umem-completion-ring-setsockopts
+#[cfg(target_os = "linux")]
+#[doc(alias = "XDP_UMEM_FILL_RING")]
+pub fn set_xdp_umem_fill_ring_size<Fd: AsFd>(fd: Fd, value: u32) -> io::Result<()> {
+    backend::net::sockopt::set_xdp_umem_fill_ring_size(fd.as_fd(), value)
+}
+
+/// `setsockopt(fd, SOL_XDP, XDP_UMEM_COMPLETION_RING, value)`
+///
+/// # References
+///   - [Linux]
+///
+/// [Linux]: https://www.kernel.org/doc/html/next/networking/af_xdp.html#xdp-rx-tx-umem-fill-umem-completion-ring-setsockopts
+#[cfg(target_os = "linux")]
+#[doc(alias = "XDP_UMEM_COMPLETION_RING")]
+pub fn set_xdp_umem_completion_ring_size<Fd: AsFd>(fd: Fd, value: u32) -> io::Result<()> {
+    backend::net::sockopt::set_xdp_umem_completion_ring_size(fd.as_fd(), value)
+}
+
+/// `setsockopt(fd, SOL_XDP, XDP_TX_RING, value)`
+///
+/// # References
+///   - [Linux]
+///
+/// [Linux]: https://www.kernel.org/doc/html/next/networking/af_xdp.html#xdp-rx-tx-umem-fill-umem-completion-ring-setsockopts
+#[cfg(target_os = "linux")]
+#[doc(alias = "XDP_TX_RING")]
+pub fn set_xdp_tx_ring_size<Fd: AsFd>(fd: Fd, value: u32) -> io::Result<()> {
+    backend::net::sockopt::set_xdp_tx_ring_size(fd.as_fd(), value)
+}
+
+/// `setsockopt(fd, SOL_XDP, XDP_RX_RING, value)`
+///
+/// # References
+///   - [Linux]
+///
+/// [Linux]: https://www.kernel.org/doc/html/next/networking/af_xdp.html#xdp-rx-tx-umem-fill-umem-completion-ring-setsockopts
+#[cfg(target_os = "linux")]
+#[doc(alias = "XDP_RX_RING")]
+pub fn set_xdp_rx_ring_size<Fd: AsFd>(fd: Fd, value: u32) -> io::Result<()> {
+    backend::net::sockopt::set_xdp_rx_ring_size(fd.as_fd(), value)
+}
+
+/// `getsockopt(fd, SOL_XDP, XDP_MMAP_OFFSETS)`
+///
+/// # References
+///   - [Linux]
+///
+/// [Linux]: https://www.kernel.org/doc/html/next/networking/af_xdp.html
+#[cfg(target_os = "linux")]
+#[doc(alias = "XDP_MMAP_OFFSETS")]
+pub fn get_xdp_mmap_offsets<Fd: AsFd>(fd: Fd) -> io::Result<XdpMmapOffsets> {
+    backend::net::sockopt::get_xdp_mmap_offsets(fd.as_fd())
+}
+
+/// `getsockopt(fd, SOL_XDP, XDP_STATISTICS)`
+///
+/// # References
+///   - [Linux]
+///
+/// [Linux]: https://www.kernel.org/doc/html/next/networking/af_xdp.html#xdp-statistics-getsockopt
+#[cfg(target_os = "linux")]
+#[doc(alias = "XDP_STATISTICS")]
+pub fn get_xdp_statistics<Fd: AsFd>(fd: Fd) -> io::Result<XdpStatistics> {
+    backend::net::sockopt::get_xdp_statistics(fd.as_fd())
+}
+
+/// `getsockopt(fd, SOL_XDP, XDP_OPTIONS)`
+///
+/// # References
+///   - [Linux]
+///
+/// [Linux]: https://www.kernel.org/doc/html/next/networking/af_xdp.html#xdp-options-getsockopt
+#[cfg(target_os = "linux")]
+#[doc(alias = "XDP_OPTIONS")]
+pub fn get_xdp_options<Fd: AsFd>(fd: Fd) -> io::Result<XdpOptionsFlags> {
+    backend::net::sockopt::get_xdp_options(fd.as_fd())
 }
 
 #[test]

@@ -91,6 +91,16 @@ pub(crate) const MSG_DONTWAIT: c_int = libc::MSG_NONBLOCK;
 #[cfg(feature = "net")]
 pub(crate) const SO_NOSIGPIPE: c_int = 0x0800;
 
+// It is defined as 0 in libc under 64-bit platforms, but is automatically set by kernel.
+// https://github.com/torvalds/linux/blob/v6.7/fs/open.c#L1458-L1459
+#[cfg(linux_kernel)]
+pub(crate) const O_LARGEFILE: c_int = linux_raw_sys::general::O_LARGEFILE as _;
+
+// Gated under `_LARGEFILE_SOURCE` but automatically set by the kernel.
+// https://github.com/illumos/illumos-gate/blob/fb2cb638e5604b214d8ea8d4f01ad2e77b437c17/usr/src/ucbhead/sys/fcntl.h#L64
+#[cfg(target_os = "illumos")]
+pub(crate) const O_LARGEFILE: c_int = 0x2000;
+
 // On PowerPC, the regular `termios` has the `termios2` fields and there is no
 // `termios2`. linux-raw-sys has aliases `termios2` to `termios` to cover this
 // difference, but we still need to manually import it since `libc` doesn't
@@ -166,7 +176,7 @@ pub(super) use libc::{pread64 as pread, pwrite64 as pwrite};
 #[cfg(any(target_os = "linux", target_os = "hurd", target_os = "emscripten"))]
 pub(super) use libc::{preadv64 as preadv, pwritev64 as pwritev};
 
-#[cfg(all(target_os = "linux", target_env = "gnu"))]
+#[cfg(all(target_os = "linux", any(target_env = "gnu", target_env = "uclibc")))]
 pub(super) unsafe fn prlimit(
     pid: libc::pid_t,
     resource: libc::__rlimit_resource_t,

@@ -236,7 +236,7 @@ pub(in crate::backend) unsafe fn try_decode_void<Num: RetNumber>(
 /// # Safety
 ///
 /// This must only be used with syscalls which do not return on success.
-#[cfg(any(feature = "event", feature = "runtime"))]
+#[cfg(any(feature = "event", feature = "runtime", feature = "system"))]
 #[inline]
 pub(in crate::backend) unsafe fn try_decode_error<Num: RetNumber>(raw: RetReg<Num>) -> io::Errno {
     debug_assert!(raw.is_in_range(-4095..0));

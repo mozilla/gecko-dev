@@ -139,7 +139,7 @@ fn _readlinkat(dirfd: BorrowedFd<'_>, path: &CStr, mut buffer: Vec<u8>) -> io::R
 /// significantly trickier to use; most users should use plain [`readlinkat`].
 ///
 /// This version writes bytes into the buffer and returns two slices, one
-/// containing the written bytes, and one containint the remaining
+/// containing the written bytes, and one containing the remaining
 /// uninitialized space. If the number of written bytes is equal to the length
 /// of the buffer, it means the buffer wasn't big enough to hold the full
 /// string, and callers should try again with a bigger buffer.

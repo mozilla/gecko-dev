@@ -15,7 +15,7 @@ mod poll;
 #[cfg(solarish)]
 pub mod port;
 
-#[cfg(linux_kernel)]
+#[cfg(any(linux_kernel, target_os = "redox"))]
 pub use crate::backend::event::epoll;
 #[cfg(any(
     linux_kernel,

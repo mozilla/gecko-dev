@@ -6,9 +6,11 @@ use crate::backend::c;
 use crate::backend::conv::ret_infallible;
 #[cfg(target_os = "linux")]
 use crate::system::RebootCommand;
-#[cfg(linux_kernel)]
-use crate::system::Sysinfo;
 use core::mem::MaybeUninit;
+#[cfg(linux_kernel)]
+use {
+    crate::backend::conv::c_str, crate::fd::BorrowedFd, crate::ffi::CStr, crate::system::Sysinfo,
+};
 #[cfg(not(any(
     target_os = "emscripten",
     target_os = "espidf",
@@ -64,4 +66,56 @@ pub(crate) fn sethostname(name: &[u8]) -> io::Result<()> {
 #[cfg(target_os = "linux")]
 pub(crate) fn reboot(cmd: RebootCommand) -> io::Result<()> {
     unsafe { ret(c::reboot(cmd as i32)) }
+}
+
+#[cfg(linux_kernel)]
+#[inline]
+pub(crate) fn init_module(image: &[u8], param_values: &CStr) -> io::Result<()> {
+    syscall! {
+        fn init_module(
+            module_image: *const c::c_void,
+            len: c::c_ulong,
+            param_values: *const c::c_char
+        ) via SYS_init_module -> c::c_int
+    }
+
+    unsafe {
+        ret(init_module(
+            image.as_ptr().cast(),
+            image.len() as _,
+            c_str(param_values),
+        ))
+    }
+}
+
+#[cfg(linux_kernel)]
+#[inline]
+pub(crate) fn finit_module(
+    fd: BorrowedFd<'_>,
+    param_values: &CStr,
+    flags: c::c_int,
+) -> io::Result<()> {
+    use crate::fd::AsRawFd;
+
+    syscall! {
+        fn finit_module(
+            fd: c::c_int,
+            param_values: *const c::c_char,
+            flags: c::c_int
+        ) via SYS_finit_module -> c::c_int
+    }
+
+    unsafe { ret(finit_module(fd.as_raw_fd(), c_str(param_values), flags)) }
+}
+
+#[cfg(linux_kernel)]
+#[inline]
+pub(crate) fn delete_module(name: &CStr, flags: c::c_int) -> io::Result<()> {
+    syscall! {
+        fn delete_module(
+            name: *const c::c_char,
+            flags: c::c_int
+        ) via SYS_delete_module -> c::c_int
+    }
+    unsafe { ret(delete_module(c_str(name), flags)) }
 }

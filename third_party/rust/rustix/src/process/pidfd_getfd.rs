@@ -40,7 +40,7 @@ bitflags::bitflags! {
 /// returned from `pidfd_getfd`.
 ///
 /// When `pidfd_getfd` is used to debug the target, or the target is not a Rust
-/// aplication, or `pidfd_getfd` is used in any other way, then extra care
+/// application, or `pidfd_getfd` is used in any other way, then extra care
 /// should be taken to avoid unexpected behaviour or crashes.
 ///
 /// For further details, see the references above.

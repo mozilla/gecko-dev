@@ -21,8 +21,8 @@
 use crate::fd::{AsFd, BorrowedFd, OwnedFd};
 use crate::ffi::CStr;
 use crate::fs::{
-    fstat, fstatfs, major, openat, renameat, FileType, FsWord, Mode, OFlags, RawDir, Stat, CWD,
-    PROC_SUPER_MAGIC,
+    fstat, fstatfs, major, openat, renameat, seek, FileType, FsWord, Mode, OFlags, RawDir,
+    SeekFrom, Stat, CWD, PROC_SUPER_MAGIC,
 };
 use crate::io;
 use crate::path::DecInt;
@@ -487,6 +487,9 @@ fn open_and_check_file(
 
     let mut found_file = false;
     let mut found_dot = false;
+
+    // Position the directory iteration at the start.
+    seek(dir, SeekFrom::Start(0))?;
 
     let mut buf = [MaybeUninit::uninit(); 2048];
     let mut iter = RawDir::new(dir, &mut buf);

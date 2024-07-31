@@ -102,8 +102,7 @@ mod compat {
         mask: StatxFlags,
     ) -> io::Result<Statx> {
         match backend::fs::syscalls::statx(dirfd, path, flags, mask) {
-            Err(io::Errno::NOSYS) => statx_error_nosys(),
-            Err(io::Errno::PERM) => statx_error_perm(),
+            Err(err) => statx_error(err),
             result => {
                 STATX_STATE.store(2, Ordering::Relaxed);
                 result
@@ -111,25 +110,20 @@ mod compat {
         }
     }
 
-    /// The first `statx` call failed with `NOSYS` (or something we're treating
-    /// like `NOSYS`).
+    /// The first `statx` call failed. We can get a variety of error codes
+    /// from seccomp configs or faulty FUSE drivers, so we don't trust
+    /// `ENOSYS` or `EPERM` to tell us whether statx is available.
     #[cold]
-    fn statx_error_nosys() -> io::Result<Statx> {
-        STATX_STATE.store(1, Ordering::Relaxed);
-        Err(io::Errno::NOSYS)
-    }
-
-    /// The first `statx` call failed with `PERM`.
-    #[cold]
-    fn statx_error_perm() -> io::Result<Statx> {
-        // Some old versions of Docker have `statx` fail with `PERM` when it
-        // isn't recognized. Check whether `statx` really is available, and if
-        // so, fail with `PERM`, and if not, treat it like `NOSYS`.
+    fn statx_error(err: io::Errno) -> io::Result<Statx> {
         if backend::fs::syscalls::is_statx_available() {
+            // Statx is available. Record this, and fail with the error
+            // code of the initial `statx` call.
             STATX_STATE.store(2, Ordering::Relaxed);
-            Err(io::Errno::PERM)
+            Err(err)
         } else {
-            statx_error_nosys()
+            // Statx is not available. Record this, and fail with `NOSYS`.
+            STATX_STATE.store(1, Ordering::Relaxed);
+            Err(io::Errno::NOSYS)
         }
     }
 }

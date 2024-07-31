@@ -65,7 +65,7 @@ pub fn ioctl_fionbio<Fd: AsFd>(fd: Fd, value: bool) -> io::Result<()> {
 /// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=ioctl&sektion=2#GENERIC%09IOCTLS
 /// [NetBSD]: https://man.netbsd.org/ioctl.2#GENERIC%20IOCTLS
 /// [OpenBSD]: https://man.openbsd.org/ioctl.2#GENERIC_IOCTLS
-#[cfg(not(any(target_os = "espidf", target_os = "vita")))]
+#[cfg(not(any(target_os = "espidf", target_os = "horizon", target_os = "vita")))]
 #[inline]
 #[doc(alias = "FIONREAD")]
 pub fn ioctl_fionread<Fd: AsFd>(fd: Fd) -> io::Result<u64> {

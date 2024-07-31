@@ -588,6 +588,19 @@ pub(crate) fn pidfd_open(pid: Pid, flags: PidfdFlags) -> io::Result<OwnedFd> {
     unsafe { ret_owned_fd(syscall_readonly!(__NR_pidfd_open, pid, flags)) }
 }
 
+#[inline]
+pub(crate) fn pidfd_send_signal(fd: BorrowedFd<'_>, sig: Signal) -> io::Result<()> {
+    unsafe {
+        ret(syscall_readonly!(
+            __NR_pidfd_send_signal,
+            fd,
+            sig,
+            pass_usize(0),
+            pass_usize(0)
+        ))
+    }
+}
+
 #[cfg(feature = "alloc")]
 #[inline]
 pub(crate) fn getgroups(buf: &mut [Gid]) -> io::Result<usize> {

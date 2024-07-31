@@ -8,6 +8,8 @@ pub(crate) mod ext;
     target_os = "wasi"
 )))]
 pub(crate) mod msghdr;
+#[cfg(linux_kernel)]
+pub(crate) mod netdevice;
 pub(crate) mod read_sockaddr;
 pub(crate) mod send_recv;
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]

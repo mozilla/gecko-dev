@@ -16,6 +16,8 @@ mod types;
 #[cfg(windows)]
 mod wsa;
 
+#[cfg(linux_kernel)]
+pub mod netdevice;
 pub mod sockopt;
 
 pub use crate::maybe_polyfill::net::{

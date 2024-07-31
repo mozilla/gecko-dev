@@ -213,20 +213,9 @@ pub fn setsid() -> io::Result<Pid> {
 pub fn getgroups() -> io::Result<Vec<Gid>> {
     // This code would benefit from having a better way to read into
     // uninitialized memory, but that requires `unsafe`.
-    let mut buffer = Vec::with_capacity(8);
-    buffer.resize(buffer.capacity(), Gid::ROOT);
-
-    loop {
-        let ngroups = backend::process::syscalls::getgroups(&mut buffer)?;
-
-        let ngroups = ngroups as usize;
-        assert!(ngroups <= buffer.len());
-        if ngroups < buffer.len() {
-            buffer.resize(ngroups, Gid::ROOT);
-            return Ok(buffer);
-        }
-        // Use `Vec` reallocation strategy to grow capacity exponentially.
-        buffer.reserve(1);
-        buffer.resize(buffer.capacity(), Gid::ROOT);
-    }
+    let mut buffer = Vec::with_capacity(0);
+    let ngroups = backend::process::syscalls::getgroups(&mut buffer)?;
+    buffer.resize(ngroups, Gid::ROOT);
+    backend::process::syscalls::getgroups(&mut buffer)?;
+    Ok(buffer)
 }

@@ -141,3 +141,40 @@ pub use std::os::unix::fs::{DirEntryExt, FileExt, FileTypeExt, MetadataExt, Open
 #[cfg(feature = "std")]
 #[cfg(all(wasi_ext, target_os = "wasi"))]
 pub use std::os::wasi::fs::{DirEntryExt, FileExt, FileTypeExt, MetadataExt, OpenOptionsExt};
+
+/// Extension trait for accessing timestamp fields of `Stat`.
+///
+/// Rustix's `Stat` type on some platforms has unsigned `st_mtime`,
+/// `st_atime`, and `st_ctime` fields. This is incorrect, as Unix defines
+/// these fields to be signed, with negative values representing dates before
+/// the Unix epoch. Until the next semver bump, these unsigned fields are
+/// deprecated, and this trait provides accessors which return their values
+/// as signed integers.
+#[cfg(all(unix, not(any(target_os = "aix", target_os = "nto"))))]
+pub trait StatExt {
+    /// Return the value of the `st_atime` field, casted to the correct type.
+    fn atime(&self) -> i64;
+    /// Return the value of the `st_mtime` field, casted to the correct type.
+    fn mtime(&self) -> i64;
+    /// Return the value of the `st_ctime` field, casted to the correct type.
+    fn ctime(&self) -> i64;
+}
+
+#[cfg(all(unix, not(any(target_os = "aix", target_os = "nto"))))]
+#[allow(deprecated)]
+impl StatExt for Stat {
+    #[inline]
+    fn atime(&self) -> i64 {
+        self.st_atime as i64
+    }
+
+    #[inline]
+    fn mtime(&self) -> i64 {
+        self.st_mtime as i64
+    }
+
+    #[inline]
+    fn ctime(&self) -> i64 {
+        self.st_ctime as i64
+    }
+}

@@ -6,9 +6,13 @@
 #![allow(unsafe_code)]
 
 use crate::backend::c;
+#[cfg(target_os = "linux")]
+use crate::backend::net::write_sockaddr::encode_sockaddr_xdp;
 use crate::backend::net::write_sockaddr::{encode_sockaddr_v4, encode_sockaddr_v6};
 
 use crate::io::{self, IoSlice, IoSliceMut};
+#[cfg(target_os = "linux")]
+use crate::net::xdp::SocketAddrXdp;
 use crate::net::{RecvAncillaryBuffer, SendAncillaryBuffer, SocketAddrV4, SocketAddrV6};
 use crate::utils::as_ptr;
 
@@ -124,6 +128,27 @@ pub(crate) fn with_unix_msghdr<R>(
     f(c::msghdr {
         msg_name: as_ptr(&addr.unix) as _,
         msg_namelen: addr.addr_len() as _,
+        msg_iov: iov.as_ptr() as _,
+        msg_iovlen: msg_iov_len(iov.len()),
+        msg_control: control.as_control_ptr().cast(),
+        msg_controllen: msg_control_len(control.control_len()),
+        msg_flags: 0,
+    })
+}
+
+/// Create a message header intended to send with an XDP address.
+#[cfg(target_os = "linux")]
+pub(crate) fn with_xdp_msghdr<R>(
+    addr: &SocketAddrXdp,
+    iov: &[IoSlice<'_>],
+    control: &mut SendAncillaryBuffer<'_, '_, '_>,
+    f: impl FnOnce(c::msghdr) -> R,
+) -> R {
+    let encoded = encode_sockaddr_xdp(addr);
+
+    f(c::msghdr {
+        msg_name: as_ptr(&encoded) as _,
+        msg_namelen: size_of::<SocketAddrXdp>() as _,
         msg_iov: iov.as_ptr() as _,
         msg_iovlen: msg_iov_len(iov.len()),
         msg_control: control.as_control_ptr().cast(),

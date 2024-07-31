@@ -588,6 +588,9 @@ impl AddressFamily {
     /// `AF_VSOCK`
     #[cfg(any(apple, target_os = "emscripten", target_os = "fuchsia"))]
     pub const VSOCK: Self = Self(c::AF_VSOCK as _);
+    /// `AF_XDP`
+    #[cfg(target_os = "linux")]
+    pub const XDP: Self = Self(c::AF_XDP as _);
 
     /// Constructs a `AddressFamily` from a raw integer.
     #[inline]
@@ -1445,6 +1448,289 @@ bitflags! {
     }
 }
 
+/// `AF_XDP` related types and constants.
+#[cfg(target_os = "linux")]
+pub mod xdp {
+    use super::{bitflags, c};
+
+    bitflags! {
+        /// `XDP_OPTIONS_*` constants returned by [`get_xdp_options`].
+        ///
+        /// [`get_xdp_options`]: crate::net::sockopt::get_xdp_options
+        #[repr(transparent)]
+        #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+        pub struct XdpOptionsFlags: u32 {
+            /// `XDP_OPTIONS_ZEROCOPY`
+            const XDP_OPTIONS_ZEROCOPY = bitcast!(c::XDP_OPTIONS_ZEROCOPY);
+        }
+    }
+
+    // Constant needs to be cast because bindgen does generate a u32 but the struct
+    // expects a u16. https://github.com/torvalds/linux/blob/v6.6/include/uapi/linux/if_xdp.h#L15-L44
+    bitflags! {
+        /// `XDP_*` constants for use in [`SockaddrXdp`].
+        #[repr(transparent)]
+        #[derive(Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Hash, Debug)]
+        pub struct SockaddrXdpFlags: u16 {
+            /// `XDP_SHARED_UMEM`
+            const XDP_SHARED_UMEM = bitcast!(c::XDP_SHARED_UMEM as u16);
+            /// `XDP_COPY`
+            const XDP_COPY = bitcast!(c::XDP_COPY  as u16);
+            /// `XDP_COPY`
+            const XDP_ZEROCOPY = bitcast!(c::XDP_ZEROCOPY as u16);
+            /// `XDP_USE_NEED_WAKEUP`
+            const XDP_USE_NEED_WAKEUP = bitcast!(c::XDP_USE_NEED_WAKEUP as u16);
+            // requires kernel 6.6
+            /// `XDP_USE_SG`
+            const XDP_USE_SG = bitcast!(c::XDP_USE_SG as u16);
+        }
+    }
+
+    bitflags! {
+        /// `XDP_RING_*` constants for use in fill and/or Tx ring.
+        #[repr(transparent)]
+        #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+        pub struct XdpRingFlags: u32 {
+            /// `XDP_RING_NEED_WAKEUP`
+            const XDP_RING_NEED_WAKEUP = bitcast!(c::XDP_RING_NEED_WAKEUP);
+        }
+    }
+
+    bitflags! {
+        /// `XDP_UMEM_*` constants for use in [`XdpUmemReg`].
+        #[repr(transparent)]
+        #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+        pub struct XdpUmemRegFlags: u32 {
+            /// `XDP_UMEM_UNALIGNED_CHUNK_FLAG`
+            const XDP_UMEM_UNALIGNED_CHUNK_FLAG = bitcast!(c::XDP_UMEM_UNALIGNED_CHUNK_FLAG);
+        }
+    }
+
+    /// A XDP socket address.
+    ///
+    /// Used to bind to XDP socket.
+    ///
+    /// Not ABI compatible with `struct sockaddr_xdp`
+    // https://github.com/torvalds/linux/blob/v6.6/include/uapi/linux/if_xdp.h#L38-L44
+    #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash, Debug)]
+    pub struct SocketAddrXdp {
+        /// Flags.
+        sxdp_flags: SockaddrXdpFlags,
+        /// Interface index.
+        sxdp_ifindex: u32,
+        /// Queue ID.
+        sxdp_queue_id: u32,
+        /// Shared UMEM file descriptor.
+        sxdp_shared_umem_fd: u32,
+    }
+
+    impl SocketAddrXdp {
+        /// Construct a new XDP address.
+        #[inline]
+        pub fn new(
+            flags: SockaddrXdpFlags,
+            interface_index: u32,
+            queue_id: u32,
+            share_umem_fd: u32,
+        ) -> Self {
+            Self {
+                sxdp_flags: flags,
+                sxdp_ifindex: interface_index,
+                sxdp_queue_id: queue_id,
+                sxdp_shared_umem_fd: share_umem_fd,
+            }
+        }
+
+        /// Return flags.
+        #[inline]
+        pub fn flags(&self) -> SockaddrXdpFlags {
+            self.sxdp_flags
+        }
+
+        /// Set flags.
+        #[inline]
+        pub fn set_flags(&mut self, flags: SockaddrXdpFlags) {
+            self.sxdp_flags = flags;
+        }
+
+        /// Return interface index.
+        #[inline]
+        pub fn interface_index(&self) -> u32 {
+            self.sxdp_ifindex
+        }
+
+        /// Set interface index.
+        #[inline]
+        pub fn set_interface_index(&mut self, interface_index: u32) {
+            self.sxdp_ifindex = interface_index;
+        }
+
+        /// Return queue ID.
+        #[inline]
+        pub fn queue_id(&self) -> u32 {
+            self.sxdp_queue_id
+        }
+
+        /// Set queue ID.
+        #[inline]
+        pub fn set_queue_id(&mut self, queue_id: u32) {
+            self.sxdp_queue_id = queue_id;
+        }
+
+        /// Return shared UMEM file descriptor.
+        #[inline]
+        pub fn shared_umem_fd(&self) -> u32 {
+            self.sxdp_shared_umem_fd
+        }
+
+        /// Set shared UMEM file descriptor.
+        #[inline]
+        pub fn set_shared_umem_fd(&mut self, shared_umem_fd: u32) {
+            self.sxdp_shared_umem_fd = shared_umem_fd;
+        }
+    }
+
+    /// XDP ring offset.
+    ///
+    /// Used to mmap rings from kernel.
+    ///
+    /// Not ABI compatible with `struct xdp_ring_offset`.
+    // https://github.com/torvalds/linux/blob/v6.6/include/uapi/linux/if_xdp.h#L49-L54
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct XdpRingOffset {
+        /// Producer offset.
+        pub producer: u64,
+        /// Consumer offset.
+        pub consumer: u64,
+        /// Descriptors offset.
+        pub desc: u64,
+        /// Flags offset.
+        ///
+        /// Is `None` if the kernel version (<5.4) does not yet support flags.
+        pub flags: Option<u64>,
+    }
+
+    /// XDP mmap offsets.
+    ///
+    /// Not ABI compatible with `struct xdp_mmap_offsets`
+    // https://github.com/torvalds/linux/blob/v6.6/include/uapi/linux/if_xdp.h#L56-L61
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct XdpMmapOffsets {
+        /// Rx ring offsets.
+        pub rx: XdpRingOffset,
+        /// Tx ring offsets.
+        pub tx: XdpRingOffset,
+        /// Fill ring offsets.
+        pub fr: XdpRingOffset,
+        /// Completion ring offsets.
+        pub cr: XdpRingOffset,
+    }
+
+    /// XDP umem registration.
+    ///
+    /// `struct xdp_umem_reg`
+    // https://github.com/torvalds/linux/blob/v6.6/include/uapi/linux/if_xdp.h#L73-L79
+    #[repr(C)]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct XdpUmemReg {
+        /// Start address of UMEM.
+        pub addr: u64,
+        /// Umem length in bytes.
+        pub len: u64,
+        /// Chunk size in bytes.
+        pub chunk_size: u32,
+        /// Headroom in bytes.
+        pub headroom: u32,
+        /// Flags.
+        ///
+        /// Requires kernel version 5.4.
+        pub flags: XdpUmemRegFlags,
+    }
+
+    /// XDP statistics.
+    ///
+    /// Not ABI compatible with `struct xdp_statistics`
+    // https://github.com/torvalds/linux/blob/v6.6/include/uapi/linux/if_xdp.h#L81-L88
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct XdpStatistics {
+        /// Rx dropped.
+        pub rx_dropped: u64,
+        /// Rx invalid descriptors.
+        pub rx_invalid_descs: u64,
+        /// Tx invalid descriptors.
+        pub tx_invalid_descs: u64,
+        /// Rx ring full.
+        ///
+        /// Is `None` if the kernel version (<5.9) does not yet support flags.
+        pub rx_ring_full: Option<u64>,
+        /// Rx fill ring empty descriptors.
+        ///
+        /// Is `None` if the kernel version (<5.9) does not yet support flags.
+        pub rx_fill_ring_empty_descs: Option<u64>,
+        /// Tx ring empty descriptors.
+        ///
+        /// Is `None` if the kernel version (<5.9) does not yet support flags.
+        pub tx_ring_empty_descs: Option<u64>,
+    }
+
+    /// XDP options.
+    ///
+    /// Requires kernel version 5.3.
+    /// `struct xdp_options`
+    // https://github.com/torvalds/linux/blob/v6.6/include/uapi/linux/if_xdp.h#L90-L92
+    #[repr(C)]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct XdpOptions {
+        /// Flags.
+        pub flags: XdpOptionsFlags,
+    }
+
+    /// XDP rx/tx frame descriptor.
+    ///
+    /// `struct xdp_desc`
+    // https://github.com/torvalds/linux/blob/v6.6/include/uapi/linux/if_xdp.h#L109-L113
+    #[repr(C)]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct XdpDesc {
+        /// Offset from the start of the UMEM.
+        pub addr: u64,
+        /// Length of packet in bytes.
+        pub len: u32,
+        /// Options.
+        pub options: XdpDescOptions,
+    }
+
+    #[cfg(target_os = "linux")]
+    bitflags! {
+        #[repr(transparent)]
+        #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+        /// `XDP_*` constants for use in [`XdpDesc`].
+        ///
+        /// Requires kernel version 6.6.
+        pub struct XdpDescOptions: u32 {
+            /// `XDP_PKT_CONTD`
+            const XDP_PKT_CONTD = bitcast!(c::XDP_PKT_CONTD);
+        }
+    }
+
+    /// Offset for mmapping rx ring.
+    pub const XDP_PGOFF_RX_RING: u64 = c::XDP_PGOFF_RX_RING as u64;
+    /// Offset for mmapping tx ring.
+    pub const XDP_PGOFF_TX_RING: u64 = c::XDP_PGOFF_TX_RING as u64;
+    /// Offset for mmapping fill ring.
+    pub const XDP_UMEM_PGOFF_FILL_RING: u64 = c::XDP_UMEM_PGOFF_FILL_RING;
+    /// Offset for mmapping completion ring.
+    pub const XDP_UMEM_PGOFF_COMPLETION_RING: u64 = c::XDP_UMEM_PGOFF_COMPLETION_RING;
+
+    /// Offset used to shift the [`XdpDesc`] addr to the right to extract the
+    /// address offset in unaligned mode.
+    pub const XSK_UNALIGNED_BUF_OFFSET_SHIFT: u64 = c::XSK_UNALIGNED_BUF_OFFSET_SHIFT as u64;
+    /// Mask used to binary `and` the [`XdpDesc`] addr to extract the address
+    /// without the offset carried in the upper 16 bits of the address in
+    /// unaligned mode.
+    pub const XSK_UNALIGNED_BUF_ADDR_MASK: u64 = c::XSK_UNALIGNED_BUF_ADDR_MASK;
+}
+
 /// UNIX credentials of socket peer, for use with [`get_socket_peercred`]
 /// [`SendAncillaryMessage::ScmCredentials`] and
 /// [`RecvAncillaryMessage::ScmCredentials`].
@@ -1466,6 +1752,7 @@ pub struct UCred {
 
 #[test]
 fn test_sizes() {
+    use crate::backend::c;
     use c::c_int;
     use core::mem::transmute;
 
@@ -1492,4 +1779,11 @@ fn test_sizes() {
 
     #[cfg(linux_kernel)]
     assert_eq_size!(UCred, libc::ucred);
+
+    #[cfg(target_os = "linux")]
+    assert_eq_size!(super::xdp::XdpUmemReg, c::xdp_umem_reg);
+    #[cfg(target_os = "linux")]
+    assert_eq_size!(super::xdp::XdpOptions, c::xdp_options);
+    #[cfg(target_os = "linux")]
+    assert_eq_size!(super::xdp::XdpDesc, c::xdp_desc);
 }

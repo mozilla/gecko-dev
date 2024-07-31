@@ -30,7 +30,6 @@ use crate::fs::AtFlags;
 #[cfg(not(any(
     netbsdlike,
     solarish,
-    target_os = "aix",
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "nto",
@@ -140,7 +139,12 @@ fn open_via_syscall(path: &CStr, oflags: OFlags, mode: Mode) -> io::Result<Owned
 pub(crate) fn open(path: &CStr, oflags: OFlags, mode: Mode) -> io::Result<OwnedFd> {
     // Work around <https://sourceware.org/bugzilla/show_bug.cgi?id=17523>.
     // glibc versions before 2.25 don't handle `O_TMPFILE` correctly.
-    #[cfg(all(unix, target_env = "gnu", not(target_os = "hurd")))]
+    #[cfg(all(
+        unix,
+        target_env = "gnu",
+        not(target_os = "hurd"),
+        not(target_os = "freebsd")
+    ))]
     if oflags.contains(OFlags::TMPFILE) && crate::backend::if_glibc_is_less_than_2_25() {
         return open_via_syscall(path, oflags, mode);
     }
@@ -203,7 +207,12 @@ pub(crate) fn openat(
 ) -> io::Result<OwnedFd> {
     // Work around <https://sourceware.org/bugzilla/show_bug.cgi?id=17523>.
     // glibc versions before 2.25 don't handle `O_TMPFILE` correctly.
-    #[cfg(all(unix, target_env = "gnu", not(target_os = "hurd")))]
+    #[cfg(all(
+        unix,
+        target_env = "gnu",
+        not(target_os = "hurd"),
+        not(target_os = "freebsd")
+    ))]
     if oflags.contains(OFlags::TMPFILE) && crate::backend::if_glibc_is_less_than_2_25() {
         return openat_via_syscall(dirfd, path, oflags, mode);
     }
@@ -802,8 +811,8 @@ pub(crate) fn utimensat(
     flags: AtFlags,
 ) -> io::Result<()> {
     // Old 32-bit version: libc has `utimensat` but it is not y2038 safe by
-    // default. But there may be a `__utimensat16` we can use.
-    #[cfg(fix_y2038)]
+    // default. But there may be a `__utimensat64` we can use.
+    #[cfg(all(fix_y2038, not(apple)))]
     {
         #[cfg(target_env = "gnu")]
         if let Some(libc_utimensat) = __utimensat64.get() {
@@ -874,6 +883,10 @@ pub(crate) fn utimensat(
             ));
         }
 
+        // Convert `times`. We only need this in the child, but do it before
+        // calling `fork` because it might fail.
+        let (attrbuf_size, times, attrs) = times_to_attrlist(times)?;
+
         // `setattrlistat` was introduced in 10.13 along with `utimensat`, so
         // if we don't have `utimensat`, we don't have `setattrlistat` either.
         // Emulate it using `fork`, and `fchdir` and [`setattrlist`].
@@ -895,8 +908,6 @@ pub(crate) fn utimensat(
                 if flags.contains(AtFlags::SYMLINK_NOFOLLOW) {
                     flags_arg |= FSOPT_NOFOLLOW;
                 }
-
-                let (attrbuf_size, times, attrs) = times_to_attrlist(times);
 
                 if setattrlist(
                     c_str(path),
@@ -954,7 +965,7 @@ pub(crate) fn utimensat(
     }
 }
 
-#[cfg(fix_y2038)]
+#[cfg(all(fix_y2038, not(apple)))]
 fn utimensat_old(
     dirfd: BorrowedFd<'_>,
     path: &CStr,
@@ -1505,7 +1516,7 @@ fn libc_statvfs_to_statvfs(from: c::statvfs) -> StatVfs {
 pub(crate) fn futimens(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()> {
     // Old 32-bit version: libc has `futimens` but it is not y2038 safe by
     // default. But there may be a `__futimens64` we can use.
-    #[cfg(fix_y2038)]
+    #[cfg(all(fix_y2038, not(apple)))]
     {
         #[cfg(target_env = "gnu")]
         if let Some(libc_futimens) = __futimens64.get() {
@@ -1556,7 +1567,7 @@ pub(crate) fn futimens(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()>
         }
 
         // Otherwise use `fsetattrlist`.
-        let (attrbuf_size, times, attrs) = times_to_attrlist(times);
+        let (attrbuf_size, times, attrs) = times_to_attrlist(times)?;
 
         ret(fsetattrlist(
             borrowed_fd(fd),
@@ -1568,7 +1579,7 @@ pub(crate) fn futimens(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()>
     }
 }
 
-#[cfg(fix_y2038)]
+#[cfg(all(fix_y2038, not(apple)))]
 fn futimens_old(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()> {
     let old_times = [
         c::timespec {
@@ -1604,7 +1615,6 @@ fn futimens_old(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()> {
     apple,
     netbsdlike,
     solarish,
-    target_os = "aix",
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "nto",
@@ -1778,6 +1788,7 @@ pub(crate) fn sendfile(
 
 /// Convert from a Linux `statx` value to rustix's `Stat`.
 #[cfg(all(linux_kernel, target_pointer_width = "32"))]
+#[allow(deprecated)] // for `st_[amc]time` u64->i64 transition
 fn statx_to_stat(x: crate::fs::Statx) -> io::Result<Stat> {
     Ok(Stat {
         st_dev: crate::fs::makedev(x.stx_dev_major, x.stx_dev_minor).into(),
@@ -1789,23 +1800,11 @@ fn statx_to_stat(x: crate::fs::Statx) -> io::Result<Stat> {
         st_size: x.stx_size.try_into().map_err(|_| io::Errno::OVERFLOW)?,
         st_blksize: x.stx_blksize.into(),
         st_blocks: x.stx_blocks.into(),
-        st_atime: x
-            .stx_atime
-            .tv_sec
-            .try_into()
-            .map_err(|_| io::Errno::OVERFLOW)?,
+        st_atime: bitcast!(i64::from(x.stx_atime.tv_sec)),
         st_atime_nsec: x.stx_atime.tv_nsec as _,
-        st_mtime: x
-            .stx_mtime
-            .tv_sec
-            .try_into()
-            .map_err(|_| io::Errno::OVERFLOW)?,
+        st_mtime: bitcast!(i64::from(x.stx_mtime.tv_sec)),
         st_mtime_nsec: x.stx_mtime.tv_nsec as _,
-        st_ctime: x
-            .stx_ctime
-            .tv_sec
-            .try_into()
-            .map_err(|_| io::Errno::OVERFLOW)?,
+        st_ctime: bitcast!(i64::from(x.stx_ctime.tv_sec)),
         st_ctime_nsec: x.stx_ctime.tv_nsec as _,
         st_ino: x.stx_ino.into(),
     })
@@ -1827,23 +1826,11 @@ fn statx_to_stat(x: crate::fs::Statx) -> io::Result<Stat> {
     result.st_size = x.stx_size.try_into().map_err(|_| io::Errno::OVERFLOW)?;
     result.st_blksize = x.stx_blksize.into();
     result.st_blocks = x.stx_blocks.try_into().map_err(|_e| io::Errno::OVERFLOW)?;
-    result.st_atime = x
-        .stx_atime
-        .tv_sec
-        .try_into()
-        .map_err(|_| io::Errno::OVERFLOW)?;
+    result.st_atime = bitcast!(i64::from(x.stx_atime.tv_sec));
     result.st_atime_nsec = x.stx_atime.tv_nsec as _;
-    result.st_mtime = x
-        .stx_mtime
-        .tv_sec
-        .try_into()
-        .map_err(|_| io::Errno::OVERFLOW)?;
+    result.st_mtime = bitcast!(i64::from(x.stx_mtime.tv_sec));
     result.st_mtime_nsec = x.stx_mtime.tv_nsec as _;
-    result.st_ctime = x
-        .stx_ctime
-        .tv_sec
-        .try_into()
-        .map_err(|_| io::Errno::OVERFLOW)?;
+    result.st_ctime = bitcast!(i64::from(x.stx_ctime.tv_sec));
     result.st_ctime_nsec = x.stx_ctime.tv_nsec as _;
     result.st_ino = x.stx_ino.into();
 
@@ -1852,6 +1839,7 @@ fn statx_to_stat(x: crate::fs::Statx) -> io::Result<Stat> {
 
 /// Convert from a Linux `stat64` value to rustix's `Stat`.
 #[cfg(all(linux_kernel, target_pointer_width = "32"))]
+#[allow(deprecated)] // for `st_[amc]time` u64->i64 transition
 fn stat64_to_stat(s64: c::stat64) -> io::Result<Stat> {
     Ok(Stat {
         st_dev: s64.st_dev.try_into().map_err(|_| io::Errno::OVERFLOW)?,
@@ -1863,17 +1851,17 @@ fn stat64_to_stat(s64: c::stat64) -> io::Result<Stat> {
         st_size: s64.st_size.try_into().map_err(|_| io::Errno::OVERFLOW)?,
         st_blksize: s64.st_blksize.try_into().map_err(|_| io::Errno::OVERFLOW)?,
         st_blocks: s64.st_blocks.try_into().map_err(|_| io::Errno::OVERFLOW)?,
-        st_atime: s64.st_atime.try_into().map_err(|_| io::Errno::OVERFLOW)?,
+        st_atime: bitcast!(i64::from(s64.st_atime)),
         st_atime_nsec: s64
             .st_atime_nsec
             .try_into()
             .map_err(|_| io::Errno::OVERFLOW)?,
-        st_mtime: s64.st_mtime.try_into().map_err(|_| io::Errno::OVERFLOW)?,
+        st_mtime: bitcast!(i64::from(s64.st_mtime)),
         st_mtime_nsec: s64
             .st_mtime_nsec
             .try_into()
             .map_err(|_| io::Errno::OVERFLOW)?,
-        st_ctime: s64.st_ctime.try_into().map_err(|_| io::Errno::OVERFLOW)?,
+        st_ctime: bitcast!(i64::from(s64.st_ctime)),
         st_ctime_nsec: s64
             .st_ctime_nsec
             .try_into()
@@ -1899,17 +1887,17 @@ fn stat64_to_stat(s64: c::stat64) -> io::Result<Stat> {
     result.st_size = s64.st_size.try_into().map_err(|_| io::Errno::OVERFLOW)?;
     result.st_blksize = s64.st_blksize.try_into().map_err(|_| io::Errno::OVERFLOW)?;
     result.st_blocks = s64.st_blocks.try_into().map_err(|_| io::Errno::OVERFLOW)?;
-    result.st_atime = s64.st_atime.try_into().map_err(|_| io::Errno::OVERFLOW)?;
+    result.st_atime = i64::from(s64.st_atime) as _;
     result.st_atime_nsec = s64
         .st_atime_nsec
         .try_into()
         .map_err(|_| io::Errno::OVERFLOW)?;
-    result.st_mtime = s64.st_mtime.try_into().map_err(|_| io::Errno::OVERFLOW)?;
+    result.st_mtime = i64::from(s64.st_mtime) as _;
     result.st_mtime_nsec = s64
         .st_mtime_nsec
         .try_into()
         .map_err(|_| io::Errno::OVERFLOW)?;
-    result.st_ctime = s64.st_ctime.try_into().map_err(|_| io::Errno::OVERFLOW)?;
+    result.st_ctime = i64::from(s64.st_ctime) as _;
     result.st_ctime_nsec = s64
         .st_ctime_nsec
         .try_into()
@@ -2147,7 +2135,7 @@ pub(crate) fn fcntl_global_nocache(fd: BorrowedFd<'_>, value: bool) -> io::Resul
 /// Convert `times` from a `futimens`/`utimensat` argument into `setattrlist`
 /// arguments.
 #[cfg(apple)]
-fn times_to_attrlist(times: &Timestamps) -> (c::size_t, [c::timespec; 2], Attrlist) {
+fn times_to_attrlist(times: &Timestamps) -> io::Result<(c::size_t, [c::timespec; 2], Attrlist)> {
     // ABI details.
     const ATTR_CMN_MODTIME: u32 = 0x0000_0400;
     const ATTR_CMN_ACCTIME: u32 = 0x0000_1000;
@@ -2156,7 +2144,8 @@ fn times_to_attrlist(times: &Timestamps) -> (c::size_t, [c::timespec; 2], Attrli
     let mut times = times.clone();
 
     // If we have any `UTIME_NOW` elements, replace them with the current time.
-    if times.last_access.tv_nsec == c::UTIME_NOW || times.last_modification.tv_nsec == c::UTIME_NOW
+    if times.last_access.tv_nsec == c::UTIME_NOW.into()
+        || times.last_modification.tv_nsec == c::UTIME_NOW.into()
     {
         let now = {
             let mut tv = c::timeval {
@@ -2172,11 +2161,17 @@ fn times_to_attrlist(times: &Timestamps) -> (c::size_t, [c::timespec; 2], Attrli
                 tv_nsec: (tv.tv_usec * 1000) as _,
             }
         };
-        if times.last_access.tv_nsec == c::UTIME_NOW {
-            times.last_access = now;
+        if times.last_access.tv_nsec == c::UTIME_NOW.into() {
+            times.last_access = crate::timespec::Timespec {
+                tv_sec: now.tv_sec.into(),
+                tv_nsec: now.tv_nsec as _,
+            };
         }
-        if times.last_modification.tv_nsec == c::UTIME_NOW {
-            times.last_modification = now;
+        if times.last_modification.tv_nsec == c::UTIME_NOW.into() {
+            times.last_modification = crate::timespec::Timespec {
+                tv_sec: now.tv_sec.into(),
+                tv_nsec: now.tv_nsec as _,
+            };
         }
     }
 
@@ -2198,19 +2193,33 @@ fn times_to_attrlist(times: &Timestamps) -> (c::size_t, [c::timespec; 2], Attrli
         tv_nsec: 0,
     }; 2];
     let mut times_index = 0;
-    if times.last_modification.tv_nsec != c::UTIME_OMIT {
+    if times.last_modification.tv_nsec != c::UTIME_OMIT.into() {
         attrs.commonattr |= ATTR_CMN_MODTIME;
-        return_times[times_index] = times.last_modification;
+        return_times[times_index] = c::timespec {
+            tv_sec: times
+                .last_modification
+                .tv_sec
+                .try_into()
+                .map_err(|_| io::Errno::OVERFLOW)?,
+            tv_nsec: times.last_modification.tv_nsec as _,
+        };
         times_index += 1;
         times_size += size_of::<c::timespec>();
     }
-    if times.last_access.tv_nsec != c::UTIME_OMIT {
+    if times.last_access.tv_nsec != c::UTIME_OMIT.into() {
         attrs.commonattr |= ATTR_CMN_ACCTIME;
-        return_times[times_index] = times.last_access;
+        return_times[times_index] = c::timespec {
+            tv_sec: times
+                .last_access
+                .tv_sec
+                .try_into()
+                .map_err(|_| io::Errno::OVERFLOW)?,
+            tv_nsec: times.last_access.tv_nsec as _,
+        };
         times_size += size_of::<c::timespec>();
     }
 
-    (times_size, return_times, attrs)
+    Ok((times_size, return_times, attrs))
 }
 
 /// Support type for `Attrlist`.
@@ -2245,15 +2254,24 @@ pub(crate) fn getxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Result
     }
 
     #[cfg(apple)]
-    unsafe {
-        ret_usize(c::getxattr(
-            path.as_ptr(),
-            name.as_ptr(),
-            value_ptr.cast::<c::c_void>(),
-            value.len(),
-            0,
-            0,
-        ))
+    {
+        // Passing an empty to slice to getxattr leads to ERANGE on macOS. Pass null
+        // instead.
+        let ptr = if value.is_empty() {
+            core::ptr::null_mut()
+        } else {
+            value_ptr.cast::<c::c_void>()
+        };
+        unsafe {
+            ret_usize(c::getxattr(
+                path.as_ptr(),
+                name.as_ptr(),
+                ptr,
+                value.len(),
+                0,
+                0,
+            ))
+        }
     }
 }
 
@@ -2272,15 +2290,25 @@ pub(crate) fn lgetxattr(path: &CStr, name: &CStr, value: &mut [u8]) -> io::Resul
     }
 
     #[cfg(apple)]
-    unsafe {
-        ret_usize(c::getxattr(
-            path.as_ptr(),
-            name.as_ptr(),
-            value_ptr.cast::<c::c_void>(),
-            value.len(),
-            0,
-            c::XATTR_NOFOLLOW,
-        ))
+    {
+        // Passing an empty to slice to getxattr leads to ERANGE on macOS. Pass null
+        // instead.
+        let ptr = if value.is_empty() {
+            core::ptr::null_mut()
+        } else {
+            value_ptr.cast::<c::c_void>()
+        };
+
+        unsafe {
+            ret_usize(c::getxattr(
+                path.as_ptr(),
+                name.as_ptr(),
+                ptr,
+                value.len(),
+                0,
+                c::XATTR_NOFOLLOW,
+            ))
+        }
     }
 }
 
@@ -2299,15 +2327,24 @@ pub(crate) fn fgetxattr(fd: BorrowedFd<'_>, name: &CStr, value: &mut [u8]) -> io
     }
 
     #[cfg(apple)]
-    unsafe {
-        ret_usize(c::fgetxattr(
-            borrowed_fd(fd),
-            name.as_ptr(),
-            value_ptr.cast::<c::c_void>(),
-            value.len(),
-            0,
-            0,
-        ))
+    {
+        // Passing an empty to slice to getxattr leads to ERANGE on macOS. Pass null
+        // instead.
+        let ptr = if value.is_empty() {
+            core::ptr::null_mut()
+        } else {
+            value_ptr.cast::<c::c_void>()
+        };
+        unsafe {
+            ret_usize(c::fgetxattr(
+                borrowed_fd(fd),
+                name.as_ptr(),
+                ptr,
+                value.len(),
+                0,
+                0,
+            ))
+        }
     }
 }
 
