@@ -571,15 +571,10 @@ class VideoData : public MediaData {
 };
 
 // See https://w3c.github.io/encrypted-media/#scheme-cenc
-enum class CryptoScheme : uint8_t {
-  None,
-  Cenc,
-  Cbcs,
-  Cbcs_1_9,
-};
+MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(CryptoScheme, uint8_t,
+                                             (None, Cenc, Cbcs, Cbcs_1_9));
 using CryptoSchemeSet = EnumSet<CryptoScheme, uint8_t>;
 
-const char* CryptoSchemeToString(const CryptoScheme& aScheme);
 nsCString CryptoSchemeSetToString(const CryptoSchemeSet& aSchemes);
 CryptoScheme StringToCryptoScheme(const nsAString& aString);
 

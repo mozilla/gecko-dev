@@ -884,7 +884,7 @@ void MFCDMParent::GetCapabilities(const nsString& aKeySystem,
                                   convertCodecToFourCC(codec), nsCString(""),
                                   additionalFeature, isHardwareDecryption);
         MFCDM_PARENT_SLOG("clearlead %s IV 8 bytes %s %s",
-                          CryptoSchemeToString(scheme), codec.get(),
+                          EnumValueToString(scheme), codec.get(),
                           rv ? "supported" : "not supported");
         if (rv) {
           supportedScheme += scheme;
@@ -896,7 +896,7 @@ void MFCDMParent::GetCapabilities(const nsString& aKeySystem,
                              nsCString(""), additionalFeature,
                              isHardwareDecryption);
         MFCDM_PARENT_SLOG("clearlead %s IV 16 bytes %s %s",
-                          CryptoSchemeToString(scheme), codec.get(),
+                          EnumValueToString(scheme), codec.get(),
                           rv ? "supported" : "not supported");
 
         if (rv) {

@@ -597,22 +597,6 @@ void MediaRawDataWriter::PopFront(size_t aSize) {
   mTarget->mBuffer.PopFront(aSize);
 }
 
-const char* CryptoSchemeToString(const CryptoScheme& aScheme) {
-  switch (aScheme) {
-    case CryptoScheme::None:
-      return "none";
-    case CryptoScheme::Cenc:
-      return "cenc";
-    case CryptoScheme::Cbcs:
-      return "cbcs";
-    case CryptoScheme::Cbcs_1_9:
-      return "cbcs-1-9";
-    default:
-      MOZ_ASSERT_UNREACHABLE("not supported scheme!");
-      return "not supported scheme!";
-  }
-}
-
 nsCString CryptoSchemeSetToString(const CryptoSchemeSet& aSchemes) {
   nsAutoCString rv;
   if (aSchemes.contains(CryptoScheme::Cenc)) {

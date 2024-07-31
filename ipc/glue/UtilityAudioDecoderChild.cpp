@@ -225,14 +225,14 @@ void UtilityAudioDecoderChild::GetKeySystemCapabilities(
             for (const auto& scheme : v.encryptionSchemes()) {
               EME_LOG("  capabilities: video=%s, scheme=%s",
                       NS_ConvertUTF16toUTF8(v.contentType()).get(),
-                      CryptoSchemeToString(scheme));
+                      EnumValueToString(scheme));
             }
           }
           for (const auto& a : capabilities.audioCapabilities()) {
             for (const auto& scheme : a.encryptionSchemes()) {
               EME_LOG("  capabilities: audio=%s, scheme=%s",
                       NS_ConvertUTF16toUTF8(a.contentType()).get(),
-                      CryptoSchemeToString(scheme));
+                      EnumValueToString(scheme));
             }
           }
           auto* info = cdmInfo.AppendElement(fallible);
