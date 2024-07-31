@@ -133,6 +133,8 @@ private fun TranslationOptions(
 ) {
     SwitchWithLabel(
         label = translationSwitchItem.textLabel,
+        checked = translationSwitchItem.isChecked,
+        modifier = Modifier.padding(start = 72.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
         description = if (translationSwitchItem.isChecked) {
             translationSwitchItem.type.descriptionId?.let {
                 stringResource(
@@ -143,15 +145,12 @@ private fun TranslationOptions(
             null
         },
         enabled = translationSwitchItem.isEnabled,
-        checked = translationSwitchItem.isChecked,
-        onCheckedChange = { checked ->
-            translationSwitchItem.onStateChange.invoke(
-                translationSwitchItem.type,
-                checked,
-            )
-        },
-        modifier = Modifier.padding(start = 72.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
-    )
+    ) { checked ->
+        translationSwitchItem.onStateChange.invoke(
+            translationSwitchItem.type,
+            checked,
+        )
+    }
 
     if (translationSwitchItem.type.hasDivider) {
         Divider(Modifier.padding(top = 4.dp, bottom = 4.dp))

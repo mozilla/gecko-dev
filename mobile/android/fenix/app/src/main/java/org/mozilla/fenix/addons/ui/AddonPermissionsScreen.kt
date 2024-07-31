@@ -185,19 +185,18 @@ private fun AllSitesToggle(
     onRemoveAllSitesPermissions: () -> Unit,
 ) {
     SwitchWithLabel(
+        label = stringResource(R.string.addons_permissions_allow_for_all_sites),
+        checked = enabledAllowForAll,
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        label = stringResource(R.string.addons_permissions_allow_for_all_sites),
         description = stringResource(R.string.addons_permissions_allow_for_all_sites_subtitle),
-        checked = enabledAllowForAll,
-        onCheckedChange = { enabled ->
-            if (enabled) {
-                onAddAllSitesPermissions()
-            } else {
-                onRemoveAllSitesPermissions()
-            }
-        },
-    )
+    ) { enabled ->
+        if (enabled) {
+            onAddAllSitesPermissions()
+        } else {
+            onRemoveAllSitesPermissions()
+        }
+    }
 }
 
 @Composable
@@ -233,36 +232,35 @@ private fun OptionalPermissionSwitch(
     removeOptionalPermission: (AddonPermissionsUpdateRequest) -> Unit,
 ) {
     SwitchWithLabel(
-        modifier = modifier,
         label = localizedPermission.localizedName,
         checked = localizedPermission.permission.granted,
+        modifier = modifier,
         enabled = isEnabled,
-        onCheckedChange = { enabled ->
-            if (enabled) {
-                addOptionalPermission(
-                    AddonPermissionsUpdateRequest(
-                        optionalPermissions = if (!isOriginPermission) {
-                            listOf(localizedPermission.permission.name)
-                        } else { emptyList() },
-                        originPermissions = if (isOriginPermission) {
-                            listOf(localizedPermission.permission.name)
-                        } else { emptyList() },
-                    ),
-                )
-            } else {
-                removeOptionalPermission(
-                    AddonPermissionsUpdateRequest(
-                        optionalPermissions = if (!isOriginPermission) {
-                            listOf(localizedPermission.permission.name)
-                        } else { emptyList() },
-                        originPermissions = if (isOriginPermission) {
-                            listOf(localizedPermission.permission.name)
-                        } else { emptyList() },
-                    ),
-                )
-            }
-        },
-    )
+    ) { enabled ->
+        if (enabled) {
+            addOptionalPermission(
+                AddonPermissionsUpdateRequest(
+                    optionalPermissions = if (!isOriginPermission) {
+                        listOf(localizedPermission.permission.name)
+                    } else { emptyList() },
+                    originPermissions = if (isOriginPermission) {
+                        listOf(localizedPermission.permission.name)
+                    } else { emptyList() },
+                ),
+            )
+        } else {
+            removeOptionalPermission(
+                AddonPermissionsUpdateRequest(
+                    optionalPermissions = if (!isOriginPermission) {
+                        listOf(localizedPermission.permission.name)
+                    } else { emptyList() },
+                    originPermissions = if (isOriginPermission) {
+                        listOf(localizedPermission.permission.name)
+                    } else { emptyList() },
+                ),
+            )
+        }
+    }
 }
 
 @Composable

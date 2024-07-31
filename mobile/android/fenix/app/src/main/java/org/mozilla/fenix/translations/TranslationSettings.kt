@@ -64,17 +64,16 @@ fun TranslationSettings(
         LazyColumn {
             items(translationSwitchList) { item: TranslationSwitchItem ->
                 SwitchWithLabel(
-                    checked = item.isChecked,
-                    onCheckedChange = { checked ->
-                        item.onStateChange.invoke(
-                            item.type,
-                            checked,
-                        )
-                    },
                     label = item.textLabel,
+                    checked = item.isChecked,
                     modifier = Modifier
                         .padding(start = 72.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
-                )
+                ) { checked ->
+                    item.onStateChange.invoke(
+                        item.type,
+                        checked,
+                    )
+                }
 
                 if (item.type.hasDivider && showHeader && pageSettingsError == null) {
                     Divider(Modifier.padding(top = 8.dp, bottom = 8.dp))

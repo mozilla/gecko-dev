@@ -37,7 +37,7 @@ fun CfrTools() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(all = FirefoxTheme.space.small),
+            .padding(vertical = FirefoxTheme.space.small),
         verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
     ) {
         ResetCfrTool()
@@ -66,7 +66,9 @@ private fun ResetCfrTool() {
         verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = FirefoxTheme.space.small),
         ) {
             Text(
                 text = stringResource(R.string.debug_drawer_cfr_tools_reset_cfr_title),
@@ -250,12 +252,12 @@ private fun CfrToggle(
 ) {
     SwitchWithLabel(
         label = title,
-        description = description,
         checked = checked,
-        onCheckedChange = {
-            onCfrToggle()
-        },
-    )
+        modifier = Modifier.padding(horizontal = FirefoxTheme.space.small),
+        description = description,
+    ) {
+        onCfrToggle()
+    }
 }
 
 /**
@@ -269,6 +271,7 @@ private fun CfrSectionTitle(
 ) {
     Text(
         text = text,
+        modifier = Modifier.padding(horizontal = FirefoxTheme.space.small),
         color = FirefoxTheme.colors.textAccent,
         style = FirefoxTheme.typography.headline6,
     )

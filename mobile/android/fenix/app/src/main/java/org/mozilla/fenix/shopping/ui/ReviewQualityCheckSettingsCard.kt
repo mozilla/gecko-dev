@@ -74,9 +74,9 @@ private fun SettingsContent(
 
         if (productRecommendationsEnabled != null) {
             SwitchWithLabel(
+                label = stringResource(R.string.review_quality_check_settings_recommended_products),
                 checked = productRecommendationsEnabled,
                 onCheckedChange = onProductRecommendationsEnabledStateChange,
-                label = stringResource(R.string.review_quality_check_settings_recommended_products),
             )
 
             Spacer(modifier = Modifier.height(16.dp))
