@@ -180,6 +180,243 @@ class NV12BufferReader final : public YUVBufferReaderBase {
 };
 
 /*
+ * The followings are helpers to create a VideoFrame from a given buffer
+ */
+
+static Result<RefPtr<gfx::DataSourceSurface>, MediaResult> AllocateBGRASurface(
+    gfx::DataSourceSurface* aSurface) {
+  MOZ_ASSERT(aSurface);
+
+  // Memory allocation relies on CreateDataSourceSurfaceWithStride so we still
+  // need to do this even if the format is SurfaceFormat::BGR{A, X}.
+
+  gfx::DataSourceSurface::ScopedMap surfaceMap(aSurface,
+                                               gfx::DataSourceSurface::READ);
+  if (!surfaceMap.IsMapped()) {
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "The source surface is not readable"_ns));
+  }
+
+  RefPtr<gfx::DataSourceSurface> bgraSurface =
+      gfx::Factory::CreateDataSourceSurfaceWithStride(
+          aSurface->GetSize(), gfx::SurfaceFormat::B8G8R8A8,
+          surfaceMap.GetStride());
+  if (!bgraSurface) {
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "Failed to allocate a BGRA surface"_ns));
+  }
+
+  gfx::DataSourceSurface::ScopedMap bgraMap(bgraSurface,
+                                            gfx::DataSourceSurface::WRITE);
+  if (!bgraMap.IsMapped()) {
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "The allocated BGRA surface is not writable"_ns));
+  }
+
+  gfx::SwizzleData(surfaceMap.GetData(), surfaceMap.GetStride(),
+                   aSurface->GetFormat(), bgraMap.GetData(),
+                   bgraMap.GetStride(), bgraSurface->GetFormat(),
+                   bgraSurface->GetSize());
+
+  return bgraSurface;
+}
+
+static Result<RefPtr<layers::Image>, MediaResult> CreateImageFromRawData(
+    const gfx::IntSize& aSize, int32_t aStride, gfx::SurfaceFormat aFormat,
+    const Span<uint8_t>& aBuffer) {
+  MOZ_ASSERT(!aSize.IsEmpty());
+
+  // Wrap the source buffer into a DataSourceSurface.
+  RefPtr<gfx::DataSourceSurface> surface =
+      gfx::Factory::CreateWrappingDataSourceSurface(aBuffer.data(), aStride,
+                                                    aSize, aFormat);
+  if (!surface) {
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "Failed to wrap the raw data into a surface"_ns));
+  }
+
+  // Gecko favors BGRA so we convert surface into BGRA format first.
+  RefPtr<gfx::DataSourceSurface> bgraSurface;
+  MOZ_TRY_VAR(bgraSurface, AllocateBGRASurface(surface));
+  MOZ_ASSERT(bgraSurface);
+
+  return RefPtr<layers::Image>(
+      new layers::SourceSurfaceImage(bgraSurface.get()));
+}
+
+static Result<RefPtr<layers::Image>, MediaResult> CreateRGBAImageFromBuffer(
+    const VideoFrame::Format& aFormat, const gfx::IntSize& aSize,
+    const Span<uint8_t>& aBuffer) {
+  const gfx::SurfaceFormat format = aFormat.ToSurfaceFormat();
+  MOZ_ASSERT(format == gfx::SurfaceFormat::R8G8B8A8 ||
+             format == gfx::SurfaceFormat::R8G8B8X8 ||
+             format == gfx::SurfaceFormat::B8G8R8A8 ||
+             format == gfx::SurfaceFormat::B8G8R8X8);
+  // TODO: Use aFormat.SampleBytes() instead?
+  CheckedInt<int32_t> stride(BytesPerPixel(format));
+  stride *= aSize.Width();
+  if (!stride.isValid()) {
+    return Err(MediaResult(NS_ERROR_INVALID_ARG,
+                           "Image size exceeds implementation's limit"_ns));
+  }
+  return CreateImageFromRawData(aSize, stride.value(), format, aBuffer);
+}
+
+static Result<RefPtr<layers::Image>, MediaResult> CreateYUVImageFromBuffer(
+    const VideoFrame::Format& aFormat, const VideoColorSpaceInit& aColorSpace,
+    const gfx::IntSize& aSize, const Span<uint8_t>& aBuffer) {
+  if (aFormat.PixelFormat() == VideoPixelFormat::I420 ||
+      aFormat.PixelFormat() == VideoPixelFormat::I420A) {
+    UniquePtr<I420BufferReader> reader;
+    if (aFormat.PixelFormat() == VideoPixelFormat::I420) {
+      reader.reset(
+          new I420BufferReader(aBuffer, aSize.Width(), aSize.Height()));
+    } else {
+      reader.reset(
+          new I420ABufferReader(aBuffer, aSize.Width(), aSize.Height()));
+    }
+
+    layers::PlanarYCbCrData data;
+    data.mPictureRect = gfx::IntRect(0, 0, reader->mWidth, reader->mHeight);
+
+    // Y plane.
+    data.mYChannel = const_cast<uint8_t*>(reader->DataY());
+    data.mYStride = reader->mStrideY;
+    data.mYSkip = 0;
+    // Cb plane.
+    data.mCbChannel = const_cast<uint8_t*>(reader->DataU());
+    data.mCbSkip = 0;
+    // Cr plane.
+    data.mCrChannel = const_cast<uint8_t*>(reader->DataV());
+    data.mCbSkip = 0;
+    // A plane.
+    if (aFormat.PixelFormat() == VideoPixelFormat::I420A) {
+      data.mAlpha.emplace();
+      data.mAlpha->mChannel =
+          const_cast<uint8_t*>(reader->AsI420ABufferReader()->DataA());
+      data.mAlpha->mSize = data.mPictureRect.Size();
+      // No values for mDepth and mPremultiplied.
+    }
+
+    // CbCr plane vector.
+    MOZ_RELEASE_ASSERT(reader->mStrideU == reader->mStrideV);
+    data.mCbCrStride = reader->mStrideU;
+    data.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
+    // Color settings.
+    if (!aColorSpace.mFullRange.IsNull()) {
+      data.mColorRange = ToColorRange(aColorSpace.mFullRange.Value());
+    }
+    MOZ_RELEASE_ASSERT(!aColorSpace.mMatrix.IsNull());
+    data.mYUVColorSpace = ToColorSpace(aColorSpace.mMatrix.Value());
+    if (!aColorSpace.mTransfer.IsNull()) {
+      data.mTransferFunction =
+          ToTransferFunction(aColorSpace.mTransfer.Value());
+    }
+    if (!aColorSpace.mPrimaries.IsNull()) {
+      data.mColorPrimaries = ToPrimaries(aColorSpace.mPrimaries.Value());
+    }
+
+    RefPtr<layers::PlanarYCbCrImage> image =
+        new layers::RecyclingPlanarYCbCrImage(new layers::BufferRecycleBin());
+    nsresult r = image->CopyData(data);
+    if (NS_FAILED(r)) {
+      return Err(MediaResult(
+          r,
+          nsPrintfCString(
+              "Failed to create I420%s image",
+              (aFormat.PixelFormat() == VideoPixelFormat::I420A ? "A" : ""))));
+    }
+    // Manually cast type to make Result work.
+    return RefPtr<layers::Image>(image.forget());
+  }
+
+  if (aFormat.PixelFormat() == VideoPixelFormat::NV12) {
+    NV12BufferReader reader(aBuffer, aSize.Width(), aSize.Height());
+
+    layers::PlanarYCbCrData data;
+    data.mPictureRect = gfx::IntRect(0, 0, reader.mWidth, reader.mHeight);
+
+    // Y plane.
+    data.mYChannel = const_cast<uint8_t*>(reader.DataY());
+    data.mYStride = reader.mStrideY;
+    data.mYSkip = 0;
+    // Cb plane.
+    data.mCbChannel = const_cast<uint8_t*>(reader.DataUV());
+    data.mCbSkip = 1;
+    // Cr plane.
+    data.mCrChannel = data.mCbChannel + 1;
+    data.mCrSkip = 1;
+    // CbCr plane vector.
+    data.mCbCrStride = reader.mStrideUV;
+    data.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
+    // Color settings.
+    if (!aColorSpace.mFullRange.IsNull()) {
+      data.mColorRange = ToColorRange(aColorSpace.mFullRange.Value());
+    }
+    MOZ_RELEASE_ASSERT(!aColorSpace.mMatrix.IsNull());
+    data.mYUVColorSpace = ToColorSpace(aColorSpace.mMatrix.Value());
+    if (!aColorSpace.mTransfer.IsNull()) {
+      data.mTransferFunction =
+          ToTransferFunction(aColorSpace.mTransfer.Value());
+    }
+    if (!aColorSpace.mPrimaries.IsNull()) {
+      data.mColorPrimaries = ToPrimaries(aColorSpace.mPrimaries.Value());
+    }
+
+    RefPtr<layers::NVImage> image = new layers::NVImage();
+    nsresult r = image->SetData(data);
+    if (NS_FAILED(r)) {
+      return Err(MediaResult(r, "Failed to create NV12 image"_ns));
+    }
+    // Manually cast type to make Result work.
+    return RefPtr<layers::Image>(image.forget());
+  }
+
+  return Err(MediaResult(
+      NS_ERROR_DOM_NOT_SUPPORTED_ERR,
+      nsPrintfCString("%s is unsupported",
+                      dom::GetEnumString(aFormat.PixelFormat()).get())));
+}
+
+static Result<RefPtr<layers::Image>, MediaResult> CreateImageFromBuffer(
+    const VideoFrame::Format& aFormat, const VideoColorSpaceInit& aColorSpace,
+    const gfx::IntSize& aSize, const Span<uint8_t>& aBuffer) {
+  switch (aFormat.PixelFormat()) {
+    case VideoPixelFormat::I420:
+    case VideoPixelFormat::I420A:
+    case VideoPixelFormat::NV12:
+      return CreateYUVImageFromBuffer(aFormat, aColorSpace, aSize, aBuffer);
+    case VideoPixelFormat::I420P10:
+    case VideoPixelFormat::I420P12:
+    case VideoPixelFormat::I420AP10:
+    case VideoPixelFormat::I420AP12:
+    case VideoPixelFormat::I422:
+    case VideoPixelFormat::I422P10:
+    case VideoPixelFormat::I422P12:
+    case VideoPixelFormat::I422A:
+    case VideoPixelFormat::I422AP10:
+    case VideoPixelFormat::I422AP12:
+    case VideoPixelFormat::I444:
+    case VideoPixelFormat::I444P10:
+    case VideoPixelFormat::I444P12:
+    case VideoPixelFormat::I444A:
+    case VideoPixelFormat::I444AP10:
+    case VideoPixelFormat::I444AP12:
+      // Not yet support for now.
+      break;
+    case VideoPixelFormat::RGBA:
+    case VideoPixelFormat::RGBX:
+    case VideoPixelFormat::BGRA:
+    case VideoPixelFormat::BGRX:
+      return CreateRGBAImageFromBuffer(aFormat, aSize, aBuffer);
+  }
+  return Err(MediaResult(
+      NS_ERROR_DOM_NOT_SUPPORTED_ERR,
+      nsPrintfCString("%s is unsupported",
+                      dom::GetEnumString(aFormat.PixelFormat()).get())));
+}
+
+/*
  * The followings are helpers defined in
  * https://w3c.github.io/webcodecs/#videoframe-algorithms
  */
@@ -735,243 +972,6 @@ ValidateVideoFrameInit(const VideoFrameInit& aInit,
   MOZ_TRY_VAR(displaySize, MaybeGetDisplaySize(aInit));
 
   return std::make_pair(visibleRect, displaySize);
-}
-
-/*
- * The followings are helpers to create a VideoFrame from a given buffer
- */
-
-static Result<RefPtr<gfx::DataSourceSurface>, MediaResult> AllocateBGRASurface(
-    gfx::DataSourceSurface* aSurface) {
-  MOZ_ASSERT(aSurface);
-
-  // Memory allocation relies on CreateDataSourceSurfaceWithStride so we still
-  // need to do this even if the format is SurfaceFormat::BGR{A, X}.
-
-  gfx::DataSourceSurface::ScopedMap surfaceMap(aSurface,
-                                               gfx::DataSourceSurface::READ);
-  if (!surfaceMap.IsMapped()) {
-    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                           "The source surface is not readable"_ns));
-  }
-
-  RefPtr<gfx::DataSourceSurface> bgraSurface =
-      gfx::Factory::CreateDataSourceSurfaceWithStride(
-          aSurface->GetSize(), gfx::SurfaceFormat::B8G8R8A8,
-          surfaceMap.GetStride());
-  if (!bgraSurface) {
-    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                           "Failed to allocate a BGRA surface"_ns));
-  }
-
-  gfx::DataSourceSurface::ScopedMap bgraMap(bgraSurface,
-                                            gfx::DataSourceSurface::WRITE);
-  if (!bgraMap.IsMapped()) {
-    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                           "The allocated BGRA surface is not writable"_ns));
-  }
-
-  gfx::SwizzleData(surfaceMap.GetData(), surfaceMap.GetStride(),
-                   aSurface->GetFormat(), bgraMap.GetData(),
-                   bgraMap.GetStride(), bgraSurface->GetFormat(),
-                   bgraSurface->GetSize());
-
-  return bgraSurface;
-}
-
-static Result<RefPtr<layers::Image>, MediaResult> CreateImageFromRawData(
-    const gfx::IntSize& aSize, int32_t aStride, gfx::SurfaceFormat aFormat,
-    const Span<uint8_t>& aBuffer) {
-  MOZ_ASSERT(!aSize.IsEmpty());
-
-  // Wrap the source buffer into a DataSourceSurface.
-  RefPtr<gfx::DataSourceSurface> surface =
-      gfx::Factory::CreateWrappingDataSourceSurface(aBuffer.data(), aStride,
-                                                    aSize, aFormat);
-  if (!surface) {
-    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                           "Failed to wrap the raw data into a surface"_ns));
-  }
-
-  // Gecko favors BGRA so we convert surface into BGRA format first.
-  RefPtr<gfx::DataSourceSurface> bgraSurface;
-  MOZ_TRY_VAR(bgraSurface, AllocateBGRASurface(surface));
-  MOZ_ASSERT(bgraSurface);
-
-  return RefPtr<layers::Image>(
-      new layers::SourceSurfaceImage(bgraSurface.get()));
-}
-
-static Result<RefPtr<layers::Image>, MediaResult> CreateRGBAImageFromBuffer(
-    const VideoFrame::Format& aFormat, const gfx::IntSize& aSize,
-    const Span<uint8_t>& aBuffer) {
-  const gfx::SurfaceFormat format = aFormat.ToSurfaceFormat();
-  MOZ_ASSERT(format == gfx::SurfaceFormat::R8G8B8A8 ||
-             format == gfx::SurfaceFormat::R8G8B8X8 ||
-             format == gfx::SurfaceFormat::B8G8R8A8 ||
-             format == gfx::SurfaceFormat::B8G8R8X8);
-  // TODO: Use aFormat.SampleBytes() instead?
-  CheckedInt<int32_t> stride(BytesPerPixel(format));
-  stride *= aSize.Width();
-  if (!stride.isValid()) {
-    return Err(MediaResult(NS_ERROR_INVALID_ARG,
-                           "Image size exceeds implementation's limit"_ns));
-  }
-  return CreateImageFromRawData(aSize, stride.value(), format, aBuffer);
-}
-
-static Result<RefPtr<layers::Image>, MediaResult> CreateYUVImageFromBuffer(
-    const VideoFrame::Format& aFormat, const VideoColorSpaceInit& aColorSpace,
-    const gfx::IntSize& aSize, const Span<uint8_t>& aBuffer) {
-  if (aFormat.PixelFormat() == VideoPixelFormat::I420 ||
-      aFormat.PixelFormat() == VideoPixelFormat::I420A) {
-    UniquePtr<I420BufferReader> reader;
-    if (aFormat.PixelFormat() == VideoPixelFormat::I420) {
-      reader.reset(
-          new I420BufferReader(aBuffer, aSize.Width(), aSize.Height()));
-    } else {
-      reader.reset(
-          new I420ABufferReader(aBuffer, aSize.Width(), aSize.Height()));
-    }
-
-    layers::PlanarYCbCrData data;
-    data.mPictureRect = gfx::IntRect(0, 0, reader->mWidth, reader->mHeight);
-
-    // Y plane.
-    data.mYChannel = const_cast<uint8_t*>(reader->DataY());
-    data.mYStride = reader->mStrideY;
-    data.mYSkip = 0;
-    // Cb plane.
-    data.mCbChannel = const_cast<uint8_t*>(reader->DataU());
-    data.mCbSkip = 0;
-    // Cr plane.
-    data.mCrChannel = const_cast<uint8_t*>(reader->DataV());
-    data.mCbSkip = 0;
-    // A plane.
-    if (aFormat.PixelFormat() == VideoPixelFormat::I420A) {
-      data.mAlpha.emplace();
-      data.mAlpha->mChannel =
-          const_cast<uint8_t*>(reader->AsI420ABufferReader()->DataA());
-      data.mAlpha->mSize = data.mPictureRect.Size();
-      // No values for mDepth and mPremultiplied.
-    }
-
-    // CbCr plane vector.
-    MOZ_RELEASE_ASSERT(reader->mStrideU == reader->mStrideV);
-    data.mCbCrStride = reader->mStrideU;
-    data.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
-    // Color settings.
-    if (!aColorSpace.mFullRange.IsNull()) {
-      data.mColorRange = ToColorRange(aColorSpace.mFullRange.Value());
-    }
-    MOZ_RELEASE_ASSERT(!aColorSpace.mMatrix.IsNull());
-    data.mYUVColorSpace = ToColorSpace(aColorSpace.mMatrix.Value());
-    if (!aColorSpace.mTransfer.IsNull()) {
-      data.mTransferFunction =
-          ToTransferFunction(aColorSpace.mTransfer.Value());
-    }
-    if (!aColorSpace.mPrimaries.IsNull()) {
-      data.mColorPrimaries = ToPrimaries(aColorSpace.mPrimaries.Value());
-    }
-
-    RefPtr<layers::PlanarYCbCrImage> image =
-        new layers::RecyclingPlanarYCbCrImage(new layers::BufferRecycleBin());
-    nsresult r = image->CopyData(data);
-    if (NS_FAILED(r)) {
-      return Err(MediaResult(
-          r,
-          nsPrintfCString(
-              "Failed to create I420%s image",
-              (aFormat.PixelFormat() == VideoPixelFormat::I420A ? "A" : ""))));
-    }
-    // Manually cast type to make Result work.
-    return RefPtr<layers::Image>(image.forget());
-  }
-
-  if (aFormat.PixelFormat() == VideoPixelFormat::NV12) {
-    NV12BufferReader reader(aBuffer, aSize.Width(), aSize.Height());
-
-    layers::PlanarYCbCrData data;
-    data.mPictureRect = gfx::IntRect(0, 0, reader.mWidth, reader.mHeight);
-
-    // Y plane.
-    data.mYChannel = const_cast<uint8_t*>(reader.DataY());
-    data.mYStride = reader.mStrideY;
-    data.mYSkip = 0;
-    // Cb plane.
-    data.mCbChannel = const_cast<uint8_t*>(reader.DataUV());
-    data.mCbSkip = 1;
-    // Cr plane.
-    data.mCrChannel = data.mCbChannel + 1;
-    data.mCrSkip = 1;
-    // CbCr plane vector.
-    data.mCbCrStride = reader.mStrideUV;
-    data.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
-    // Color settings.
-    if (!aColorSpace.mFullRange.IsNull()) {
-      data.mColorRange = ToColorRange(aColorSpace.mFullRange.Value());
-    }
-    MOZ_RELEASE_ASSERT(!aColorSpace.mMatrix.IsNull());
-    data.mYUVColorSpace = ToColorSpace(aColorSpace.mMatrix.Value());
-    if (!aColorSpace.mTransfer.IsNull()) {
-      data.mTransferFunction =
-          ToTransferFunction(aColorSpace.mTransfer.Value());
-    }
-    if (!aColorSpace.mPrimaries.IsNull()) {
-      data.mColorPrimaries = ToPrimaries(aColorSpace.mPrimaries.Value());
-    }
-
-    RefPtr<layers::NVImage> image = new layers::NVImage();
-    nsresult r = image->SetData(data);
-    if (NS_FAILED(r)) {
-      return Err(MediaResult(r, "Failed to create NV12 image"_ns));
-    }
-    // Manually cast type to make Result work.
-    return RefPtr<layers::Image>(image.forget());
-  }
-
-  return Err(MediaResult(
-      NS_ERROR_DOM_NOT_SUPPORTED_ERR,
-      nsPrintfCString("%s is unsupported",
-                      dom::GetEnumString(aFormat.PixelFormat()).get())));
-}
-
-static Result<RefPtr<layers::Image>, MediaResult> CreateImageFromBuffer(
-    const VideoFrame::Format& aFormat, const VideoColorSpaceInit& aColorSpace,
-    const gfx::IntSize& aSize, const Span<uint8_t>& aBuffer) {
-  switch (aFormat.PixelFormat()) {
-    case VideoPixelFormat::I420:
-    case VideoPixelFormat::I420A:
-    case VideoPixelFormat::NV12:
-      return CreateYUVImageFromBuffer(aFormat, aColorSpace, aSize, aBuffer);
-    case VideoPixelFormat::I420P10:
-    case VideoPixelFormat::I420P12:
-    case VideoPixelFormat::I420AP10:
-    case VideoPixelFormat::I420AP12:
-    case VideoPixelFormat::I422:
-    case VideoPixelFormat::I422P10:
-    case VideoPixelFormat::I422P12:
-    case VideoPixelFormat::I422A:
-    case VideoPixelFormat::I422AP10:
-    case VideoPixelFormat::I422AP12:
-    case VideoPixelFormat::I444:
-    case VideoPixelFormat::I444P10:
-    case VideoPixelFormat::I444P12:
-    case VideoPixelFormat::I444A:
-    case VideoPixelFormat::I444AP10:
-    case VideoPixelFormat::I444AP12:
-      // Not yet support for now.
-      break;
-    case VideoPixelFormat::RGBA:
-    case VideoPixelFormat::RGBX:
-    case VideoPixelFormat::BGRA:
-    case VideoPixelFormat::BGRX:
-      return CreateRGBAImageFromBuffer(aFormat, aSize, aBuffer);
-  }
-  return Err(MediaResult(
-      NS_ERROR_DOM_NOT_SUPPORTED_ERR,
-      nsPrintfCString("%s is unsupported",
-                      dom::GetEnumString(aFormat.PixelFormat()).get())));
 }
 
 // https://w3c.github.io/webcodecs/#dom-videoframe-videoframe-data-init
