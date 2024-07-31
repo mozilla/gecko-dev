@@ -1,9 +1,9 @@
 use core::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
-use bounds::Bounded;
-use ops::checked::*;
-use ops::saturating::Saturating;
-use {Num, NumCast};
+use crate::bounds::Bounded;
+use crate::ops::checked::*;
+use crate::ops::saturating::Saturating;
+use crate::{Num, NumCast};
 
 /// Generic trait for primitive integers.
 ///
@@ -404,7 +404,6 @@ macro_rules! prim_int_impl {
                 <$T>::count_zeros(self)
             }
 
-            #[cfg(has_leading_trailing_ones)]
             #[inline]
             fn leading_ones(self) -> u32 {
                 <$T>::leading_ones(self)
@@ -415,7 +414,6 @@ macro_rules! prim_int_impl {
                 <$T>::leading_zeros(self)
             }
 
-            #[cfg(has_leading_trailing_ones)]
             #[inline]
             fn trailing_ones(self) -> u32 {
                 <$T>::trailing_ones(self)
@@ -461,7 +459,6 @@ macro_rules! prim_int_impl {
                 <$T>::swap_bytes(self)
             }
 
-            #[cfg(has_reverse_bits)]
             #[inline]
             fn reverse_bits(self) -> Self {
                 <$T>::reverse_bits(self)
@@ -500,20 +497,18 @@ prim_int_impl!(u8, i8, u8);
 prim_int_impl!(u16, i16, u16);
 prim_int_impl!(u32, i32, u32);
 prim_int_impl!(u64, i64, u64);
-#[cfg(has_i128)]
 prim_int_impl!(u128, i128, u128);
 prim_int_impl!(usize, isize, usize);
 prim_int_impl!(i8, i8, u8);
 prim_int_impl!(i16, i16, u16);
 prim_int_impl!(i32, i32, u32);
 prim_int_impl!(i64, i64, u64);
-#[cfg(has_i128)]
 prim_int_impl!(i128, i128, u128);
 prim_int_impl!(isize, isize, usize);
 
 #[cfg(test)]
 mod tests {
-    use int::PrimInt;
+    use crate::int::PrimInt;
 
     #[test]
     pub fn reverse_bits() {
@@ -554,7 +549,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(has_i128)]
     pub fn reverse_bits_i128() {
         use core::i128;
 

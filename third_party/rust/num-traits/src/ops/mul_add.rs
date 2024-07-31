@@ -24,13 +24,13 @@ pub trait MulAdd<A = Self, B = Self> {
     /// The resulting type after applying the fused multiply-add.
     type Output;
 
-    /// Performs the fused multiply-add operation.
+    /// Performs the fused multiply-add operation `(self * a) + b`
     fn mul_add(self, a: A, b: B) -> Self::Output;
 }
 
-/// The fused multiply-add assignment operation.
+/// The fused multiply-add assignment operation `*self = (*self * a) + b`
 pub trait MulAddAssign<A = Self, B = Self> {
-    /// Performs the fused multiply-add operation.
+    /// Performs the fused multiply-add assignment operation `*self = (*self * a) + b`
     fn mul_add_assign(&mut self, a: A, b: B);
 }
 
@@ -40,7 +40,7 @@ impl MulAdd<f32, f32> for f32 {
 
     #[inline]
     fn mul_add(self, a: Self, b: Self) -> Self::Output {
-        <Self as ::Float>::mul_add(self, a, b)
+        <Self as crate::Float>::mul_add(self, a, b)
     }
 }
 
@@ -50,7 +50,7 @@ impl MulAdd<f64, f64> for f64 {
 
     #[inline]
     fn mul_add(self, a: Self, b: Self) -> Self::Output {
-        <Self as ::Float>::mul_add(self, a, b)
+        <Self as crate::Float>::mul_add(self, a, b)
     }
 }
 
@@ -67,15 +67,14 @@ macro_rules! mul_add_impl {
     )*}
 }
 
-mul_add_impl!(MulAdd for isize usize i8 u8 i16 u16 i32 u32 i64 u64);
-#[cfg(has_i128)]
-mul_add_impl!(MulAdd for i128 u128);
+mul_add_impl!(MulAdd for isize i8 i16 i32 i64 i128);
+mul_add_impl!(MulAdd for usize u8 u16 u32 u64 u128);
 
 #[cfg(any(feature = "std", feature = "libm"))]
 impl MulAddAssign<f32, f32> for f32 {
     #[inline]
     fn mul_add_assign(&mut self, a: Self, b: Self) {
-        *self = <Self as ::Float>::mul_add(*self, a, b)
+        *self = <Self as crate::Float>::mul_add(*self, a, b)
     }
 }
 
@@ -83,7 +82,7 @@ impl MulAddAssign<f32, f32> for f32 {
 impl MulAddAssign<f64, f64> for f64 {
     #[inline]
     fn mul_add_assign(&mut self, a: Self, b: Self) {
-        *self = <Self as ::Float>::mul_add(*self, a, b)
+        *self = <Self as crate::Float>::mul_add(*self, a, b)
     }
 }
 
@@ -98,9 +97,8 @@ macro_rules! mul_add_assign_impl {
     )*}
 }
 
-mul_add_assign_impl!(MulAddAssign for isize usize i8 u8 i16 u16 i32 u32 i64 u64);
-#[cfg(has_i128)]
-mul_add_assign_impl!(MulAddAssign for i128 u128);
+mul_add_assign_impl!(MulAddAssign for isize i8 i16 i32 i64 i128);
+mul_add_assign_impl!(MulAddAssign for usize u8 u16 u32 u64 u128);
 
 #[cfg(test)]
 mod tests {

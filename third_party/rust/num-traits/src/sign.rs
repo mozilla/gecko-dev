@@ -1,8 +1,8 @@
 use core::num::Wrapping;
 use core::ops::Neg;
 
-use float::FloatCore;
-use Num;
+use crate::float::FloatCore;
+use crate::Num;
 
 /// Useful functions for signed numbers (i.e. numbers that can be negative).
 pub trait Signed: Sized + Num + Neg<Output = Self> {
@@ -72,10 +72,7 @@ macro_rules! signed_impl {
     )*)
 }
 
-signed_impl!(isize i8 i16 i32 i64);
-
-#[cfg(has_i128)]
-signed_impl!(i128);
+signed_impl!(isize i8 i16 i32 i64 i128);
 
 impl<T: Signed> Signed for Wrapping<T>
 where
@@ -202,9 +199,7 @@ macro_rules! empty_trait_impl {
     )*)
 }
 
-empty_trait_impl!(Unsigned for usize u8 u16 u32 u64);
-#[cfg(has_i128)]
-empty_trait_impl!(Unsigned for u128);
+empty_trait_impl!(Unsigned for usize u8 u16 u32 u64 u128);
 
 impl<T: Unsigned> Unsigned for Wrapping<T> where Wrapping<T>: Num {}
 
@@ -214,11 +209,8 @@ fn unsigned_wrapping_is_unsigned() {
     require_unsigned(&Wrapping(42_u32));
 }
 
-// Commenting this out since it doesn't compile on Rust 1.8,
-// because on this version Wrapping doesn't implement Neg and therefore can't
-// implement Signed.
-// #[test]
-// fn signed_wrapping_is_signed() {
-//     fn require_signed<T: Signed>(_: &T) {}
-//     require_signed(&Wrapping(-42));
-// }
+#[test]
+fn signed_wrapping_is_signed() {
+    fn require_signed<T: Signed>(_: &T) {}
+    require_signed(&Wrapping(-42));
+}

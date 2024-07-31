@@ -1,9 +1,7 @@
 use core::num::Wrapping;
 use core::{f32, f64};
-#[cfg(has_i128)]
-use core::{i128, u128};
-use core::{i16, i32, i64, i8, isize};
-use core::{u16, u32, u64, u8, usize};
+use core::{i128, i16, i32, i64, i8, isize};
+use core::{u128, u16, u32, u64, u8, usize};
 
 /// Numbers which have upper and lower bounds
 pub trait Bounded {
@@ -61,7 +59,6 @@ bounded_impl!(u8, u8::MIN, u8::MAX);
 bounded_impl!(u16, u16::MIN, u16::MAX);
 bounded_impl!(u32, u32::MIN, u32::MAX);
 bounded_impl!(u64, u64::MIN, u64::MAX);
-#[cfg(has_i128)]
 bounded_impl!(u128, u128::MIN, u128::MAX);
 
 bounded_impl!(isize, isize::MIN, isize::MAX);
@@ -69,7 +66,6 @@ bounded_impl!(i8, i8::MIN, i8::MAX);
 bounded_impl!(i16, i16::MIN, i16::MAX);
 bounded_impl!(i32, i32::MIN, i32::MAX);
 bounded_impl!(i64, i64::MIN, i64::MAX);
-#[cfg(has_i128)]
 bounded_impl!(i128, i128::MIN, i128::MAX);
 
 impl<T: Bounded> Bounded for Wrapping<T> {
@@ -130,7 +126,6 @@ fn wrapping_bounded() {
     test_wrapping_bounded!(usize u8 u16 u32 u64 isize i8 i16 i32 i64);
 }
 
-#[cfg(has_i128)]
 #[test]
 fn wrapping_bounded_i128() {
     macro_rules! test_wrapping_bounded {

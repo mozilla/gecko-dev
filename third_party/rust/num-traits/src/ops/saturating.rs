@@ -28,9 +28,8 @@ macro_rules! deprecated_saturating_impl {
     )*}
 }
 
-deprecated_saturating_impl!(Saturating for isize usize i8 u8 i16 u16 i32 u32 i64 u64);
-#[cfg(has_i128)]
-deprecated_saturating_impl!(Saturating for i128 u128);
+deprecated_saturating_impl!(Saturating for isize i8 i16 i32 i64 i128);
+deprecated_saturating_impl!(Saturating for usize u8 u16 u32 u64 u128);
 
 macro_rules! saturating_impl {
     ($trait_name:ident, $method:ident, $t:ty) => {
@@ -55,7 +54,6 @@ saturating_impl!(SaturatingAdd, saturating_add, u16);
 saturating_impl!(SaturatingAdd, saturating_add, u32);
 saturating_impl!(SaturatingAdd, saturating_add, u64);
 saturating_impl!(SaturatingAdd, saturating_add, usize);
-#[cfg(has_i128)]
 saturating_impl!(SaturatingAdd, saturating_add, u128);
 
 saturating_impl!(SaturatingAdd, saturating_add, i8);
@@ -63,7 +61,6 @@ saturating_impl!(SaturatingAdd, saturating_add, i16);
 saturating_impl!(SaturatingAdd, saturating_add, i32);
 saturating_impl!(SaturatingAdd, saturating_add, i64);
 saturating_impl!(SaturatingAdd, saturating_add, isize);
-#[cfg(has_i128)]
 saturating_impl!(SaturatingAdd, saturating_add, i128);
 
 /// Performs subtraction that saturates at the numeric bounds instead of overflowing.
@@ -78,7 +75,6 @@ saturating_impl!(SaturatingSub, saturating_sub, u16);
 saturating_impl!(SaturatingSub, saturating_sub, u32);
 saturating_impl!(SaturatingSub, saturating_sub, u64);
 saturating_impl!(SaturatingSub, saturating_sub, usize);
-#[cfg(has_i128)]
 saturating_impl!(SaturatingSub, saturating_sub, u128);
 
 saturating_impl!(SaturatingSub, saturating_sub, i8);
@@ -86,7 +82,6 @@ saturating_impl!(SaturatingSub, saturating_sub, i16);
 saturating_impl!(SaturatingSub, saturating_sub, i32);
 saturating_impl!(SaturatingSub, saturating_sub, i64);
 saturating_impl!(SaturatingSub, saturating_sub, isize);
-#[cfg(has_i128)]
 saturating_impl!(SaturatingSub, saturating_sub, i128);
 
 /// Performs multiplication that saturates at the numeric bounds instead of overflowing.
@@ -101,7 +96,6 @@ saturating_impl!(SaturatingMul, saturating_mul, u16);
 saturating_impl!(SaturatingMul, saturating_mul, u32);
 saturating_impl!(SaturatingMul, saturating_mul, u64);
 saturating_impl!(SaturatingMul, saturating_mul, usize);
-#[cfg(has_i128)]
 saturating_impl!(SaturatingMul, saturating_mul, u128);
 
 saturating_impl!(SaturatingMul, saturating_mul, i8);
@@ -109,7 +103,6 @@ saturating_impl!(SaturatingMul, saturating_mul, i16);
 saturating_impl!(SaturatingMul, saturating_mul, i32);
 saturating_impl!(SaturatingMul, saturating_mul, i64);
 saturating_impl!(SaturatingMul, saturating_mul, isize);
-#[cfg(has_i128)]
 saturating_impl!(SaturatingMul, saturating_mul, i128);
 
 // TODO: add SaturatingNeg for signed integer primitives once the saturating_neg() API is stable.

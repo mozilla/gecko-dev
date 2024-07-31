@@ -12,43 +12,42 @@
 //!
 //! ## Compatibility
 //!
-//! The `num-traits` crate is tested for rustc 1.8 and greater.
+//! The `num-traits` crate is tested for rustc 1.60 and greater.
 
 #![doc(html_root_url = "https://docs.rs/num-traits/0.2")]
 #![deny(unconditional_recursion)]
 #![no_std]
+
+// Need to explicitly bring the crate in for inherent float methods
 #[cfg(feature = "std")]
 extern crate std;
-
-// Only `no_std` builds actually use `libm`.
-#[cfg(all(not(feature = "std"), feature = "libm"))]
-extern crate libm;
 
 use core::fmt;
 use core::num::Wrapping;
 use core::ops::{Add, Div, Mul, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
-pub use bounds::Bounded;
+pub use crate::bounds::Bounded;
 #[cfg(any(feature = "std", feature = "libm"))]
-pub use float::Float;
-pub use float::FloatConst;
+pub use crate::float::Float;
+pub use crate::float::FloatConst;
 // pub use real::{FloatCore, Real}; // NOTE: Don't do this, it breaks `use num_traits::*;`.
-pub use cast::{cast, AsPrimitive, FromPrimitive, NumCast, ToPrimitive};
-pub use identities::{one, zero, One, Zero};
-pub use int::PrimInt;
-pub use ops::checked::{
+pub use crate::cast::{cast, AsPrimitive, FromPrimitive, NumCast, ToPrimitive};
+pub use crate::identities::{one, zero, ConstOne, ConstZero, One, Zero};
+pub use crate::int::PrimInt;
+pub use crate::ops::bytes::{FromBytes, ToBytes};
+pub use crate::ops::checked::{
     CheckedAdd, CheckedDiv, CheckedMul, CheckedNeg, CheckedRem, CheckedShl, CheckedShr, CheckedSub,
 };
-pub use ops::euclid::{CheckedEuclid, Euclid};
-pub use ops::inv::Inv;
-pub use ops::mul_add::{MulAdd, MulAddAssign};
-pub use ops::saturating::{Saturating, SaturatingAdd, SaturatingMul, SaturatingSub};
-pub use ops::wrapping::{
+pub use crate::ops::euclid::{CheckedEuclid, Euclid};
+pub use crate::ops::inv::Inv;
+pub use crate::ops::mul_add::{MulAdd, MulAddAssign};
+pub use crate::ops::saturating::{Saturating, SaturatingAdd, SaturatingMul, SaturatingSub};
+pub use crate::ops::wrapping::{
     WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
 };
-pub use pow::{checked_pow, pow, Pow};
-pub use sign::{abs, abs_sub, signum, Signed, Unsigned};
+pub use crate::pow::{checked_pow, pow, Pow};
+pub use crate::sign::{abs, abs_sub, signum, Signed, Unsigned};
 
 #[macro_use]
 mod macros;
@@ -172,9 +171,8 @@ macro_rules! int_trait_impl {
         }
     )*)
 }
-int_trait_impl!(Num for usize u8 u16 u32 u64 isize i8 i16 i32 i64);
-#[cfg(has_i128)]
-int_trait_impl!(Num for u128 i128);
+int_trait_impl!(Num for usize u8 u16 u32 u64 u128);
+int_trait_impl!(Num for isize i8 i16 i32 i64 i128);
 
 impl<T: Num> Num for Wrapping<T>
 where
@@ -199,7 +197,7 @@ pub struct ParseFloatError {
 }
 
 impl fmt::Display for ParseFloatError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self.kind {
             FloatErrorKind::Empty => "cannot parse float from empty string",
             FloatErrorKind::Invalid => "invalid float literal",
@@ -255,11 +253,7 @@ macro_rules! float_trait_impl {
 
                 fn slice_shift_char(src: &str) -> Option<(char, &str)> {
                     let mut chars = src.chars();
-                    if let Some(ch) = chars.next() {
-                        Some((ch, chars.as_str()))
-                    } else {
-                        None
-                    }
+                    Some((chars.next()?, chars.as_str()))
                 }
 
                 let (is_positive, src) =  match slice_shift_char(src) {
@@ -282,13 +276,13 @@ macro_rules! float_trait_impl {
                     match c.to_digit(radix) {
                         Some(digit) => {
                             // shift significand one digit left
-                            sig = sig * (radix as $t);
+                            sig *= radix as $t;
 
                             // add/subtract current digit depending on sign
                             if is_positive {
-                                sig = sig + ((digit as isize) as $t);
+                                sig += (digit as isize) as $t;
                             } else {
-                                sig = sig - ((digit as isize) as $t);
+                                sig -= (digit as isize) as $t;
                             }
 
                             // Detect overflow by comparing to last value, except
@@ -330,7 +324,7 @@ macro_rules! float_trait_impl {
                         match c.to_digit(radix) {
                             Some(digit) => {
                                 // Decrease power one order of magnitude
-                                power = power / (radix as $t);
+                                power /= radix as $t;
                                 // add/subtract current digit depending on sign
                                 sig = if is_positive {
                                     sig + (digit as $t) * power
@@ -424,6 +418,7 @@ pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
 ///
 /// **Panics** in debug mode if `!(min == min)`. (This occurs if `min` is `NAN`.)
 #[inline]
+#[allow(clippy::eq_op)]
 pub fn clamp_min<T: PartialOrd>(input: T, min: T) -> T {
     debug_assert!(min == min, "min must not be NAN");
     if input < min {
@@ -441,6 +436,7 @@ pub fn clamp_min<T: PartialOrd>(input: T, min: T) -> T {
 ///
 /// **Panics** in debug mode if `!(max == max)`. (This occurs if `max` is `NAN`.)
 #[inline]
+#[allow(clippy::eq_op)]
 pub fn clamp_max<T: PartialOrd>(input: T, max: T) -> T {
     debug_assert!(max == max, "max must not be NAN");
     if input > max {
@@ -625,7 +621,6 @@ fn check_numassign_ops() {
     assert_eq!(compute(1, 2), 1)
 }
 
-#[cfg(has_int_assignop_ref)]
 #[test]
 fn check_numassignref_ops() {
     fn compute<T: NumAssignRef + Copy>(mut x: T, y: &T) -> T {

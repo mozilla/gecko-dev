@@ -1,8 +1,6 @@
 use core::ops::{Add, Mul, Sub};
-#[cfg(has_i128)]
-use core::{i128, u128};
-use core::{i16, i32, i64, i8, isize};
-use core::{u16, u32, u64, u8, usize};
+use core::{i128, i16, i32, i64, i8, isize};
+use core::{u128, u16, u32, u64, u8, usize};
 
 macro_rules! overflowing_impl {
     ($trait_name:ident, $method:ident, $t:ty) => {
@@ -27,7 +25,6 @@ overflowing_impl!(OverflowingAdd, overflowing_add, u16);
 overflowing_impl!(OverflowingAdd, overflowing_add, u32);
 overflowing_impl!(OverflowingAdd, overflowing_add, u64);
 overflowing_impl!(OverflowingAdd, overflowing_add, usize);
-#[cfg(has_i128)]
 overflowing_impl!(OverflowingAdd, overflowing_add, u128);
 
 overflowing_impl!(OverflowingAdd, overflowing_add, i8);
@@ -35,7 +32,6 @@ overflowing_impl!(OverflowingAdd, overflowing_add, i16);
 overflowing_impl!(OverflowingAdd, overflowing_add, i32);
 overflowing_impl!(OverflowingAdd, overflowing_add, i64);
 overflowing_impl!(OverflowingAdd, overflowing_add, isize);
-#[cfg(has_i128)]
 overflowing_impl!(OverflowingAdd, overflowing_add, i128);
 
 /// Performs substraction with a flag for overflow.
@@ -50,7 +46,6 @@ overflowing_impl!(OverflowingSub, overflowing_sub, u16);
 overflowing_impl!(OverflowingSub, overflowing_sub, u32);
 overflowing_impl!(OverflowingSub, overflowing_sub, u64);
 overflowing_impl!(OverflowingSub, overflowing_sub, usize);
-#[cfg(has_i128)]
 overflowing_impl!(OverflowingSub, overflowing_sub, u128);
 
 overflowing_impl!(OverflowingSub, overflowing_sub, i8);
@@ -58,7 +53,6 @@ overflowing_impl!(OverflowingSub, overflowing_sub, i16);
 overflowing_impl!(OverflowingSub, overflowing_sub, i32);
 overflowing_impl!(OverflowingSub, overflowing_sub, i64);
 overflowing_impl!(OverflowingSub, overflowing_sub, isize);
-#[cfg(has_i128)]
 overflowing_impl!(OverflowingSub, overflowing_sub, i128);
 
 /// Performs multiplication with a flag for overflow.
@@ -73,7 +67,6 @@ overflowing_impl!(OverflowingMul, overflowing_mul, u16);
 overflowing_impl!(OverflowingMul, overflowing_mul, u32);
 overflowing_impl!(OverflowingMul, overflowing_mul, u64);
 overflowing_impl!(OverflowingMul, overflowing_mul, usize);
-#[cfg(has_i128)]
 overflowing_impl!(OverflowingMul, overflowing_mul, u128);
 
 overflowing_impl!(OverflowingMul, overflowing_mul, i8);
@@ -81,7 +74,6 @@ overflowing_impl!(OverflowingMul, overflowing_mul, i16);
 overflowing_impl!(OverflowingMul, overflowing_mul, i32);
 overflowing_impl!(OverflowingMul, overflowing_mul, i64);
 overflowing_impl!(OverflowingMul, overflowing_mul, isize);
-#[cfg(has_i128)]
 overflowing_impl!(OverflowingMul, overflowing_mul, i128);
 
 #[test]

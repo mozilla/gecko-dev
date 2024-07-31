@@ -1,3 +1,51 @@
+# Release 0.2.19 (2024-05-03)
+
+- [Upgrade to 2021 edition, **MSRV 1.60**][310]
+- [The new `Float::clamp` limits values by minimum and maximum][305]
+
+**Contributors**: @cuviper, @michaelciraci
+
+[305]: https://github.com/rust-num/num-traits/pull/305
+[310]: https://github.com/rust-num/num-traits/pull/310
+
+# Release 0.2.18 (2024-02-07)
+
+- [The new `Euclid::div_rem_euclid` and `CheckedEuclid::checked_div_rem_euclid` methods][291]
+  compute and return the quotient and remainder at the same time.
+- [The new `TotalOrder` trait implements the IEEE 754 `totalOrder` predicate.][295]
+- [The new `ConstZero` and `ConstOne` traits offered associated constants][303],
+  extending the non-const `Zero` and `One` traits for types that have constant values.
+
+**Contributors**: @andrewjradcliffe, @cuviper, @tarcieri, @tdelabro, @waywardmonkeys
+
+[291]: https://github.com/rust-num/num-traits/pull/291
+[295]: https://github.com/rust-num/num-traits/pull/295
+[303]: https://github.com/rust-num/num-traits/pull/303
+
+# Release 0.2.17 (2023-10-07)
+
+- [Fix a doc warning about custom classes with newer rustdoc.][286]
+
+**Contributors**: @robamu
+
+[286]: https://github.com/rust-num/num-traits/pull/286
+
+# Release 0.2.16 (2023-07-20)
+
+- [Upgrade to 2018 edition, **MSRV 1.31**][240]
+- [The new `ToBytes` and `FromBytes` traits][224] convert to and from byte
+  representations of a value, with little, big, and native-endian options.
+- [The new `Float::is_subnormal` method checks for subnormal values][279], with
+  a non-zero magnitude that is less than the normal minimum positive value.
+- Several other improvements to documentation and testing.
+
+**Contributors**: @ctrlcctrlv, @cuviper, @flier, @GuillaumeGomez, @kaidokert,
+@rs017991, @vicsn
+
+[224]: https://github.com/rust-num/num-traits/pull/224
+[240]: https://github.com/rust-num/num-traits/pull/240
+[279]: https://github.com/rust-num/num-traits/pull/279
+
 # Release 0.2.15 (2022-05-02)
 
 - [The new `Euclid` trait calculates Euclidean division][195], where the

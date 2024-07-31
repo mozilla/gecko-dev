@@ -1,6 +1,6 @@
+use crate::{CheckedMul, One};
 use core::num::Wrapping;
 use core::ops::Mul;
-use {CheckedMul, One};
 
 /// Binary operator for raising a value to a power.
 pub trait Pow<RHS> {
@@ -99,22 +99,14 @@ pow_impl!(i64, u16, u32, i64::pow);
 pow_impl!(i64, u32, u32, i64::pow);
 pow_impl!(i64, usize);
 
-#[cfg(has_i128)]
 pow_impl!(u128, u8, u32, u128::pow);
-#[cfg(has_i128)]
 pow_impl!(u128, u16, u32, u128::pow);
-#[cfg(has_i128)]
 pow_impl!(u128, u32, u32, u128::pow);
-#[cfg(has_i128)]
 pow_impl!(u128, usize);
 
-#[cfg(has_i128)]
 pow_impl!(i128, u8, u32, i128::pow);
-#[cfg(has_i128)]
 pow_impl!(i128, u16, u32, i128::pow);
-#[cfg(has_i128)]
 pow_impl!(i128, u32, u32, i128::pow);
-#[cfg(has_i128)]
 pow_impl!(i128, usize);
 
 pow_impl!(usize, u8, u32, usize::pow);
@@ -133,9 +125,7 @@ pow_impl!(Wrapping<u32>);
 pow_impl!(Wrapping<i32>);
 pow_impl!(Wrapping<u64>);
 pow_impl!(Wrapping<i64>);
-#[cfg(has_i128)]
 pow_impl!(Wrapping<u128>);
-#[cfg(has_i128)]
 pow_impl!(Wrapping<i128>);
 pow_impl!(Wrapping<usize>);
 pow_impl!(Wrapping<isize>);
@@ -155,7 +145,7 @@ pow_impl!(Wrapping<isize>);
 #[cfg(any(feature = "std", feature = "libm"))]
 mod float_impls {
     use super::Pow;
-    use Float;
+    use crate::Float;
 
     pow_impl!(f32, i8, i32, <f32 as Float>::powi);
     pow_impl!(f32, u8, i32, <f32 as Float>::powi);
@@ -232,18 +222,8 @@ pub fn checked_pow<T: Clone + One + CheckedMul>(mut base: T, mut exp: usize) -> 
         return Some(T::one());
     }
 
-    macro_rules! optry {
-        ($expr:expr) => {
-            if let Some(val) = $expr {
-                val
-            } else {
-                return None;
-            }
-        };
-    }
-
     while exp & 1 == 0 {
-        base = optry!(base.checked_mul(&base));
+        base = base.checked_mul(&base)?;
         exp >>= 1;
     }
     if exp == 1 {
@@ -253,9 +233,9 @@ pub fn checked_pow<T: Clone + One + CheckedMul>(mut base: T, mut exp: usize) -> 
     let mut acc = base.clone();
     while exp > 1 {
         exp >>= 1;
-        base = optry!(base.checked_mul(&base));
+        base = base.checked_mul(&base)?;
         if exp & 1 == 1 {
-            acc = optry!(acc.checked_mul(&base));
+            acc = acc.checked_mul(&base)?;
         }
     }
     Some(acc)

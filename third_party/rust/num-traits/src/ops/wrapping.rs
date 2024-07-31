@@ -32,7 +32,6 @@ wrapping_impl!(WrappingAdd, wrapping_add, u16);
 wrapping_impl!(WrappingAdd, wrapping_add, u32);
 wrapping_impl!(WrappingAdd, wrapping_add, u64);
 wrapping_impl!(WrappingAdd, wrapping_add, usize);
-#[cfg(has_i128)]
 wrapping_impl!(WrappingAdd, wrapping_add, u128);
 
 wrapping_impl!(WrappingAdd, wrapping_add, i8);
@@ -40,7 +39,6 @@ wrapping_impl!(WrappingAdd, wrapping_add, i16);
 wrapping_impl!(WrappingAdd, wrapping_add, i32);
 wrapping_impl!(WrappingAdd, wrapping_add, i64);
 wrapping_impl!(WrappingAdd, wrapping_add, isize);
-#[cfg(has_i128)]
 wrapping_impl!(WrappingAdd, wrapping_add, i128);
 
 /// Performs subtraction that wraps around on overflow.
@@ -55,7 +53,6 @@ wrapping_impl!(WrappingSub, wrapping_sub, u16);
 wrapping_impl!(WrappingSub, wrapping_sub, u32);
 wrapping_impl!(WrappingSub, wrapping_sub, u64);
 wrapping_impl!(WrappingSub, wrapping_sub, usize);
-#[cfg(has_i128)]
 wrapping_impl!(WrappingSub, wrapping_sub, u128);
 
 wrapping_impl!(WrappingSub, wrapping_sub, i8);
@@ -63,7 +60,6 @@ wrapping_impl!(WrappingSub, wrapping_sub, i16);
 wrapping_impl!(WrappingSub, wrapping_sub, i32);
 wrapping_impl!(WrappingSub, wrapping_sub, i64);
 wrapping_impl!(WrappingSub, wrapping_sub, isize);
-#[cfg(has_i128)]
 wrapping_impl!(WrappingSub, wrapping_sub, i128);
 
 /// Performs multiplication that wraps around on overflow.
@@ -78,7 +74,6 @@ wrapping_impl!(WrappingMul, wrapping_mul, u16);
 wrapping_impl!(WrappingMul, wrapping_mul, u32);
 wrapping_impl!(WrappingMul, wrapping_mul, u64);
 wrapping_impl!(WrappingMul, wrapping_mul, usize);
-#[cfg(has_i128)]
 wrapping_impl!(WrappingMul, wrapping_mul, u128);
 
 wrapping_impl!(WrappingMul, wrapping_mul, i8);
@@ -86,7 +81,6 @@ wrapping_impl!(WrappingMul, wrapping_mul, i16);
 wrapping_impl!(WrappingMul, wrapping_mul, i32);
 wrapping_impl!(WrappingMul, wrapping_mul, i64);
 wrapping_impl!(WrappingMul, wrapping_mul, isize);
-#[cfg(has_i128)]
 wrapping_impl!(WrappingMul, wrapping_mul, i128);
 
 macro_rules! wrapping_unary_impl {
@@ -127,14 +121,12 @@ wrapping_unary_impl!(WrappingNeg, wrapping_neg, u16);
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, u32);
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, u64);
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, usize);
-#[cfg(has_i128)]
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, u128);
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, i8);
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, i16);
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, i32);
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, i64);
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, isize);
-#[cfg(has_i128)]
 wrapping_unary_impl!(WrappingNeg, wrapping_neg, i128);
 
 macro_rules! wrapping_shift_impl {
@@ -172,7 +164,6 @@ wrapping_shift_impl!(WrappingShl, wrapping_shl, u16);
 wrapping_shift_impl!(WrappingShl, wrapping_shl, u32);
 wrapping_shift_impl!(WrappingShl, wrapping_shl, u64);
 wrapping_shift_impl!(WrappingShl, wrapping_shl, usize);
-#[cfg(has_i128)]
 wrapping_shift_impl!(WrappingShl, wrapping_shl, u128);
 
 wrapping_shift_impl!(WrappingShl, wrapping_shl, i8);
@@ -180,7 +171,6 @@ wrapping_shift_impl!(WrappingShl, wrapping_shl, i16);
 wrapping_shift_impl!(WrappingShl, wrapping_shl, i32);
 wrapping_shift_impl!(WrappingShl, wrapping_shl, i64);
 wrapping_shift_impl!(WrappingShl, wrapping_shl, isize);
-#[cfg(has_i128)]
 wrapping_shift_impl!(WrappingShl, wrapping_shl, i128);
 
 /// Performs a right shift that does not panic.
@@ -207,7 +197,6 @@ wrapping_shift_impl!(WrappingShr, wrapping_shr, u16);
 wrapping_shift_impl!(WrappingShr, wrapping_shr, u32);
 wrapping_shift_impl!(WrappingShr, wrapping_shr, u64);
 wrapping_shift_impl!(WrappingShr, wrapping_shr, usize);
-#[cfg(has_i128)]
 wrapping_shift_impl!(WrappingShr, wrapping_shr, u128);
 
 wrapping_shift_impl!(WrappingShr, wrapping_shr, i8);
@@ -215,7 +204,6 @@ wrapping_shift_impl!(WrappingShr, wrapping_shr, i16);
 wrapping_shift_impl!(WrappingShr, wrapping_shr, i32);
 wrapping_shift_impl!(WrappingShr, wrapping_shr, i64);
 wrapping_shift_impl!(WrappingShr, wrapping_shr, isize);
-#[cfg(has_i128)]
 wrapping_shift_impl!(WrappingShr, wrapping_shr, i128);
 
 // Well this is a bit funny, but all the more appropriate.
@@ -297,8 +285,7 @@ fn test_wrapping_traits() {
     assert_eq!(wrapping_add(255, 1), (Wrapping(255u8) + Wrapping(1u8)).0);
     assert_eq!(wrapping_sub(0, 1), (Wrapping(0u8) - Wrapping(1u8)).0);
     assert_eq!(wrapping_mul(255, 2), (Wrapping(255u8) * Wrapping(2u8)).0);
-    // TODO: Test for Wrapping::Neg. Not possible yet since core::ops::Neg was
-    // only added to core::num::Wrapping<_> in Rust 1.10.
+    assert_eq!(wrapping_neg(255), (-Wrapping(255u8)).0);
     assert_eq!(wrapping_shl(255, 8), (Wrapping(255u8) << 8).0);
     assert_eq!(wrapping_shr(255, 8), (Wrapping(255u8) >> 8).0);
 }
@@ -321,8 +308,11 @@ fn wrapping_is_wrappingmul() {
     require_wrappingmul(&Wrapping(42));
 }
 
-// TODO: Test for Wrapping::Neg. Not possible yet since core::ops::Neg was
-// only added to core::num::Wrapping<_> in Rust 1.10.
+#[test]
+fn wrapping_is_wrappingneg() {
+    fn require_wrappingneg<T: WrappingNeg>(_: &T) {}
+    require_wrappingneg(&Wrapping(42));
+}
 
 #[test]
 fn wrapping_is_wrappingshl() {
