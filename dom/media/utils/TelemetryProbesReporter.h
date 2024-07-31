@@ -9,6 +9,7 @@
 #include "MediaCodecsSupport.h"
 #include "MediaInfo.h"
 #include "mozilla/AwakeTimeStamp.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/Maybe.h"
 #include "nsISupportsImpl.h"
@@ -47,11 +48,9 @@ class TelemetryProbesReporter final {
   explicit TelemetryProbesReporter(TelemetryProbesReporterOwner* aOwner);
   ~TelemetryProbesReporter() = default;
 
-  enum class Visibility {
-    eInitial,
-    eVisible,
-    eInvisible,
-  };
+  MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(Visibility,
+                                                     (eInitial, eVisible,
+                                                      eInvisible));
 
   static MediaContent MediaInfoToMediaContent(const MediaInfo& aInfo);
 
