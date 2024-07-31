@@ -886,7 +886,11 @@ void nsMathMLContainerFrame::UpdateIntrinsicISize(
     // Include the additional width added by FixInterFrameSpacing to ensure
     // consistent width calculations.
     AddInterFrameSpacingToSize(desiredSize, this);
-    mIntrinsicISize = desiredSize.ISize(GetWritingMode());
+
+    // ReflowOuput::mSize corresponds to the border box, but callers
+    // expect padding/border are not included.
+    mIntrinsicISize = desiredSize.ISize(GetWritingMode()) -
+                      IntrinsicISizeOffsets().BorderPadding();
   }
 }
 
@@ -1058,10 +1062,12 @@ static nscoord GetThinSpace(const nsStyleFont* aStyleFont) {
 
 class nsMathMLContainerFrame::RowChildFrameIterator {
  public:
-  explicit RowChildFrameIterator(nsMathMLContainerFrame* aParentFrame)
+  explicit RowChildFrameIterator(nsMathMLContainerFrame* aParentFrame,
+                                 const PlaceFlags& aFlags)
       : mParentFrame(aParentFrame),
         mReflowOutput(aParentFrame->GetWritingMode()),
         mX(0),
+        mFlags(aFlags),
         mChildFrameType(eMathMLFrameType_UNKNOWN),
         mCarrySpace(0),
         mFromFrameType(eMathMLFrameType_UNKNOWN),
@@ -1081,6 +1087,7 @@ class nsMathMLContainerFrame::RowChildFrameIterator {
   RowChildFrameIterator& operator++() {
     // add child size + italic correction
     mX += mReflowOutput.mBoundingMetrics.width + mItalicCorrection;
+    mX += mMargin.LeftRight();
 
     if (!mRTL) {
       mChildFrame = mChildFrame->GetNextSibling();
@@ -1109,6 +1116,7 @@ class nsMathMLContainerFrame::RowChildFrameIterator {
   nscoord Descent() const {
     return mReflowOutput.Height() - mReflowOutput.BlockStartAscent();
   }
+  const nsMargin& Margin() const { return mMargin; }
   const nsBoundingMetrics& BoundingMetrics() const {
     return mReflowOutput.mBoundingMetrics;
   }
@@ -1118,6 +1126,8 @@ class nsMathMLContainerFrame::RowChildFrameIterator {
   nsIFrame* mChildFrame;
   ReflowOutput mReflowOutput;
   nscoord mX;
+  const PlaceFlags& mFlags;
+  nsMargin mMargin;
 
   nscoord mItalicCorrection;
   eMathMLFrameType mChildFrameType;
@@ -1130,6 +1140,7 @@ class nsMathMLContainerFrame::RowChildFrameIterator {
     GetReflowAndBoundingMetricsFor(mChildFrame, mReflowOutput,
                                    mReflowOutput.mBoundingMetrics,
                                    &mChildFrameType);
+    mMargin = GetMarginForPlace(mFlags, mChildFrame);
     nscoord leftCorrection, rightCorrection;
     GetItalicCorrection(mReflowOutput.mBoundingMetrics, leftCorrection,
                         rightCorrection);
@@ -1157,16 +1168,26 @@ nsresult nsMathMLContainerFrame::Place(DrawTarget* aDrawTarget,
   // This is needed in case this frame is empty (i.e., no child frames)
   mBoundingMetrics = nsBoundingMetrics();
 
-  RowChildFrameIterator child(this);
+  RowChildFrameIterator child(this, aFlags);
   nscoord ascent = 0, descent = 0;
   while (child.Frame()) {
-    if (descent < child.Descent()) descent = child.Descent();
-    if (ascent < child.Ascent()) ascent = child.Ascent();
+    nscoord topMargin = child.Margin().top;
+    nscoord bottomMargin = child.Margin().bottom;
+    ascent = std::max(ascent, child.Ascent() + topMargin);
+    descent = std::max(descent, child.Descent() + bottomMargin);
+
     // add the child size
     mBoundingMetrics.width = child.X();
-    mBoundingMetrics += child.BoundingMetrics();
+    nsBoundingMetrics childBm = child.BoundingMetrics();
+    childBm.ascent += topMargin;
+    childBm.descent += bottomMargin;
+    childBm.rightBearing += child.Margin().LeftRight();
+    childBm.width += child.Margin().LeftRight();
+    mBoundingMetrics += childBm;
+
     ++child;
   }
+
   // Add the italic correction at the end (including the last child).
   // This gives a nice gap between math and non-math frames, and still
   // gives the same math inter-spacing in case this frame connects to
@@ -1178,14 +1199,18 @@ nsresult nsMathMLContainerFrame::Place(DrawTarget* aDrawTarget,
   aDesiredSize.SetBlockStartAscent(ascent);
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
+  // Add padding+border.
+  auto borderPadding = GetBorderPaddingForPlace(aFlags);
+  InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
+                                  mBoundingMetrics);
+
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
 
   //////////////////
   // Place Children
-
   if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
-    PositionRowChildFrames(0, aDesiredSize.BlockStartAscent());
+    PositionRowChildFrames(borderPadding.left, aDesiredSize.BlockStartAscent());
   }
 
   return NS_OK;
@@ -1199,9 +1224,9 @@ nsresult nsMathMLContainerFrame::PlaceAsMrow(DrawTarget* aDrawTarget,
 
 void nsMathMLContainerFrame::PositionRowChildFrames(nscoord aOffsetX,
                                                     nscoord aBaseline) {
-  RowChildFrameIterator child(this);
+  RowChildFrameIterator child(this, PlaceFlags());
   while (child.Frame()) {
-    nscoord dx = aOffsetX + child.X();
+    nscoord dx = aOffsetX + child.X() + child.Margin().left;
     nscoord dy = aBaseline - child.Ascent();
     FinishReflowChild(child.Frame(), PresContext(), child.GetReflowOutput(),
                       nullptr, dx, dy, ReflowChildFlags::Default);
