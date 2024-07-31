@@ -17,7 +17,6 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.flow
-import org.mozilla.fenix.ext.filterExistsOnDisk
 
 /**
  * Middleware for loading and mapping download items from the browser store.

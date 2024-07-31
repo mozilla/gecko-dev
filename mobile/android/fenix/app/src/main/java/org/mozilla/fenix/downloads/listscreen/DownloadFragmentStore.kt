@@ -4,33 +4,12 @@
 
 package org.mozilla.fenix.downloads.listscreen
 
-import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.lib.state.Action
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.UiStore
 import org.mozilla.fenix.downloads.listscreen.DownloadFragmentState.Mode
-
-/**
- * Class representing a downloads entry
- * @property id Unique id of the download item
- * @property url The full url to the content that should be downloaded
- * @property fileName File name of the download item
- * @property filePath Full path of the download item
- * @property formattedSize The formatted size of the download item
- * @property contentType The type of file the download is
- * @property status The status that represents every state that a download can be in
- */
-data class DownloadItem(
-    val id: String,
-    val url: String,
-    val fileName: String?,
-    val filePath: String,
-    val formattedSize: String,
-    val contentType: String?,
-    val status: DownloadState.Status,
-)
 
 /**
  * The [Store] for holding the [DownloadFragmentState] and applying [DownloadFragmentAction]s.
@@ -52,7 +31,6 @@ class DownloadFragmentStore(
 /**
  * Actions to dispatch through the `DownloadStore` to modify `DownloadState` through the reducer.
  */
-
 sealed interface DownloadFragmentAction : Action {
     /**
      * [DownloadFragmentAction] to initialize the state.
