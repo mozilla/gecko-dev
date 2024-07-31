@@ -11,33 +11,13 @@
  * and create derivative works of this document.
  */
 
-dictionary VideoFrameCallbackMetadata {
-  required DOMHighResTimeStamp presentationTime;
-  required DOMHighResTimeStamp expectedDisplayTime;
-
-  required unsigned long width;
-  required unsigned long height;
-  required double mediaTime;
-
-  required unsigned long presentedFrames;
-
-  //TODO(Bug 1908246)
-  //double processingDuration;
-
-  //TODO(Bug 1908245)
-  //DOMHighResTimeStamp captureTime;
-  //DOMHighResTimeStamp receiveTime;
-  //unsigned long rtpTimestamp;
-};
-
-callback VideoFrameRequestCallback =
-    undefined(DOMHighResTimeStamp now, VideoFrameCallbackMetadata metadata);
-
 [Exposed=Window,
- InstrumentedProps=(onenterpictureinpicture,
+ InstrumentedProps=(cancelVideoFrameCallback,
+                    onenterpictureinpicture,
                     onleavepictureinpicture,
                     playsInline,
-                    requestPictureInPicture)]
+                    requestPictureInPicture,
+                    requestVideoFrameCallback)]
 interface HTMLVideoElement : HTMLMediaElement {
   [HTMLConstructor] constructor();
 
@@ -104,13 +84,4 @@ partial interface HTMLVideoElement {
 // https://w3c.github.io/picture-in-picture/#htmlvideoelement-extensions
 partial interface HTMLVideoElement {
   [CEReactions, SetterThrows] attribute boolean disablePictureInPicture;
-};
-
-// https://wicg.github.io/video-rvfc
-partial interface HTMLVideoElement {
-  [Pref="media.rvfc.enabled", Throws]
-  unsigned long requestVideoFrameCallback(VideoFrameRequestCallback callback);
-
-  [Pref="media.rvfc.enabled"]
-  undefined cancelVideoFrameCallback(unsigned long handle);
 };
