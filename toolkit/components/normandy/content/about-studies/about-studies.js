@@ -228,7 +228,7 @@ class StudyList extends React.Component {
         type: study.experimentType,
         sortDate: new Date(study.lastSeen),
       });
-      if (!study.active && !study.isRollout) {
+      if (!study.active) {
         inactiveStudies.push(clonedStudy);
       } else {
         activeStudies.push(clonedStudy);
@@ -283,7 +283,8 @@ class StudyList extends React.Component {
           }
           if (
             study.type === "nimbus" ||
-            study.type === "messaging_experiment"
+            study.type === "messaging_experiment" ||
+            study.type === "rollout"
           ) {
             return r(MessagingSystemListItem, {
               key: study.slug,
