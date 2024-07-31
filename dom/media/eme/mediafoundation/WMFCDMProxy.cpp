@@ -235,7 +235,7 @@ void WMFCDMProxy::CreateSession(uint32_t aCreateSessionToken,
   const auto sessionType = ConvertToKeySystemConfigSessionType(aSessionType);
   EME_LOG("WMFCDMProxy::CreateSession(this=%p, pid=%" PRIu32
           "), sessionType=%s",
-          this, aPromiseId, SessionTypeToStr(sessionType));
+          this, aPromiseId, KeySystemConfig::EnumValueToString(sessionType));
   mCDM->CreateSession(aPromiseId, sessionType, aInitDataType, aInitData)
       ->Then(
           mMainThread, __func__,
@@ -272,7 +272,7 @@ void WMFCDMProxy::LoadSession(PromiseId aPromiseId,
   const auto sessionType = ConvertToKeySystemConfigSessionType(aSessionType);
   EME_LOG("WMFCDMProxy::LoadSession(this=%p, pid=%" PRIu32
           "), sessionType=%s, sessionId=%s",
-          this, aPromiseId, SessionTypeToStr(sessionType),
+          this, aPromiseId, KeySystemConfig::EnumValueToString(sessionType),
           NS_ConvertUTF16toUTF8(aSessionId).get());
   PERFORM_ON_CDM(LoadSession, aPromiseId, sessionType, aSessionId);
 }

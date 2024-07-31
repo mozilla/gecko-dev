@@ -35,10 +35,9 @@ struct KeySystemConfig {
 
   // EME MediaKeySessionType:
   // https://www.w3.org/TR/encrypted-media/#dom-mediakeysessiontype
-  enum class SessionType {
-    Temporary = 1,
-    PersistentLicense = 2,
-  };
+  MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(SessionType,
+                                                     (Temporary,
+                                                      PersistentLicense));
 
   using EMECodecString = nsCString;
   static constexpr auto EME_CODEC_AAC = "aac"_ns;
@@ -262,7 +261,6 @@ struct KeySystemConfigRequest final {
 
 KeySystemConfig::SessionType ConvertToKeySystemConfigSessionType(
     dom::MediaKeySessionType aType);
-const char* SessionTypeToStr(KeySystemConfig::SessionType aType);
 
 }  // namespace mozilla
 
