@@ -7,12 +7,12 @@
 #ifndef DOM_MEDIA_MEDIACONTROL_MEDIACONTROLUTILS_H_
 #define DOM_MEDIA_MEDIACONTROL_MEDIACONTROLUTILS_H_
 
+#include "MediaController.h"
 #include "imgIEncoder.h"
 #include "imgITools.h"
-#include "MediaController.h"
+#include "mozilla/Logging.h"
 #include "mozilla/dom/ChromeUtilsBinding.h"
 #include "mozilla/dom/MediaControllerBinding.h"
-#include "mozilla/Logging.h"
 #include "nsReadableUtils.h"
 #include "nsServiceManagerUtils.h"
 
