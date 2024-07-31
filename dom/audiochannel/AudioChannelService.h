@@ -7,16 +7,15 @@
 #ifndef mozilla_dom_audiochannelservice_h__
 #define mozilla_dom_audiochannelservice_h__
 
-#include "nsIObserver.h"
-#include "nsTObserverArray.h"
-#include "nsTArray.h"
+#include <functional>
 
 #include "AudioChannelAgent.h"
-#include "nsAttrValue.h"
 #include "mozilla/Logging.h"
 #include "mozilla/UniquePtr.h"
-
-#include <functional>
+#include "nsAttrValue.h"
+#include "nsIObserver.h"
+#include "nsTArray.h"
+#include "nsTObserverArray.h"
 
 class nsPIDOMWindowOuter;
 struct PRLogModuleInfo;

@@ -7,22 +7,19 @@
 #include "AudioChannelService.h"
 
 #include "base/basictypes.h"
-
+#include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/Document.h"
-
+#include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
+#include "nsHashPropertyBag.h"
 #include "nsIObserverService.h"
 #include "nsISupportsPrimitives.h"
-#include "nsThreadUtils.h"
-#include "nsHashPropertyBag.h"
-#include "nsComponentManagerUtils.h"
 #include "nsPIDOMWindow.h"
 #include "nsServiceManagerUtils.h"
-
-#include "mozilla/Preferences.h"
+#include "nsThreadUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
