@@ -1332,6 +1332,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1897724 - UA override for app.homewyse.com
+     * Webcompat issue #137164 - https://webcompat.com/issues/137164
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "bug1897724",
+    platform: "all",
+    domain: "app.homewyse.com",
+    bug: "1897724",
+    config: {
+      matches: ["*://app.homewyse.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
