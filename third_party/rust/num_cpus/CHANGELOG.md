@@ -1,3 +1,13 @@
+## v1.16.0
+
+### Features
+
+- add support for AIX operating system
+
+### Fixes
+
+- update hermit-abi to 0.3.0
+
 ## v1.15.0
 
 ### Fixes
