@@ -929,7 +929,7 @@
     <string name="open_new_tab_snackbar">Preklopi</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Vstopanje v celozaslonski način</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Vstopanje v celozaslonski način</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Takoj preklopi na povezavo v novem zavihku</string>
@@ -1120,4 +1120,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Pripomoček dodan na začetni zaslon</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Za izhod iz celozaslonskega načina povlecite z vrha in uporabite potezo za pomik nazaj</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Za izhod iz celozaslonskega načina povlecite z vrha in pritisnite Nazaj</string>
 </resources>

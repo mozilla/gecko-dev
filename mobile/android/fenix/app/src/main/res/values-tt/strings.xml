@@ -64,6 +64,11 @@
     <!-- Title for info card on private homescreen in True Private Browsing Mode. -->
     <string name="felt_privacy_desc_card_title">Бу җиһазда эз калдырмау</string>
 
+    <!-- Clickable portion of the explanation for private browsing that links the user to our
+        about privacy page.
+        This string is used in felt_privacy_info_card_subtitle as the second parameter.-->
+    <string name="felt_privacy_info_card_subtitle_link_text">Активлыгымны кемнәр күрә ала?</string>
+
     <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
     <string name="private_mode_cfr_pos_button_text">Өй экранына өстәү</string>
     <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
@@ -230,6 +235,8 @@
     <string name="browser_menu_bookmark_this_page">Бу битне кыстыргычларга өстәү</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
     <string name="browser_menu_edit_bookmark">Кыстыргычны үзгәртү</string>
+    <!-- Browser menu label that the saves the currently visited page as a PDF -->
+    <string name="browser_menu_save_as_pdf">PDF буларак саклау…</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Битне тәрҗемә итү…</string>
     <!-- Browser menu label for the print feature -->
@@ -320,6 +327,8 @@
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text">Firefox хосусыйлык аңлатмасы</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_title_nimbus_2">Сезне иминлектә тоту безгә бик ошый</string>
     <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
     This is part of the string with the key "juno_onboarding_default_browser_description". -->
     <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">хосусыйлык аңлатмасы</string>
@@ -337,6 +346,9 @@
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">Хәзер түгел</string>
 
+    <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Firefox виджетын өстәү</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Хәзер түгел</string>
 
@@ -361,10 +373,20 @@
     <string name="preferences_category_about">Хакында</string>
     <!-- Preference category for settings related to changing the default search engine -->
     <string name="preferences_category_select_default_search_engine">Бер вариантны сайлагыз</string>
+    <!-- Preference for settings related to managing search shortcuts for the quick search menu -->
+    <string name="preferences_manage_search_shortcuts_2">Альтернатив эзләү системалары белән идарә итү</string>
+    <!-- Summary for preference for settings related to managing search shortcuts for the quick search menu -->
+    <string name="preferences_manage_search_shortcuts_summary">Эзләү менюсында күрсәтелүче системаларны үзгәртү</string>
+    <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
+    <string name="preferences_category_engines_in_search_menu">Эзләү менюсында күренүче эзләү системалары</string>
     <!-- Preference for settings related to changing the default search engine -->
     <string name="preferences_default_search_engine">Стандарт эзләү системасы</string>
     <!-- Preference for settings related to Search -->
     <string name="preferences_search">Эзләү</string>
+    <!-- Preference for settings related to Search engines -->
+    <string name="preferences_search_engines">Эзләү системалары</string>
+    <!-- Preference for settings related to Search engines suggestions-->
+    <string name="preferences_search_engines_suggestions">Эзләү системаларыннан тәкъдимнәр</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Google Play-да бәяләү</string>
     <!-- Preference linking to about page for Fenix
@@ -392,10 +414,20 @@
     <!-- Preference for enabling "HTTPS-Only" mode -->
     <string name="preferences_https_only_title">Тик-HTTPS режимы</string>
 
+    <!-- Label for cookie banner section in quick settings panel. -->
+    <string name="cookie_banner_blocker">Куки баннерларын тыючы</string>
+    <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
+    <string name="preferences_cookie_banner_reduction_private_mode">Хосусый гизү режимындагы куки баннерларын тыючы</string>
     <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_off_for_site">Бу сайт өчен cүнгән</string>
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Баш тарту</string>
+    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Cорау җибәрү</string>
+    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Бу сайтның тәэмин ителүен сорыйсызмы?</string>
+    <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
+    <string name="cookie_banner_handling_report_site_snack_bar_text_2">Cорау җибәрелде</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_on_for_site">Бу сайт өчен кабынган</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -407,6 +439,14 @@
     <string name="preferences_https_only_on_all">Барлык табларда да кабынган</string>
     <!-- Summary of https only preference if https only is set to on in private tabs only -->
     <string name="preferences_https_only_on_private">Хосусый табларда кабынган</string>
+    <!-- Text displayed that links to website containing documentation about "HTTPS-Only" mode -->
+    <string name="preferences_http_only_learn_more">Күбрәк белү</string>
+    <!-- Option for the https only setting -->
+    <string name="preferences_https_only_in_all_tabs">Барлык табларда да кабызу</string>
+    <!-- Option for the https only setting -->
+    <string name="preferences_https_only_in_private_tabs">Хосусый табларда гына кабызу</string>
+    <!-- Title shown in the error page for when trying to access a http website while https only mode is enabled. -->
+    <string name="errorpage_httpsonly_title">Хәвефсез сайт юк</string>
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">Кулайлык</string>
     <!-- Preference to override the Sync token server -->
@@ -806,7 +846,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Җыентык исеме</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Исемен үзгәртү</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Исемен үзгәртү</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Бетерү</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -935,8 +975,16 @@
     <string name="phone_feature_recommended">Киңәш ителә</string>
     <!-- Button label for clearing all the information of site permissions-->
     <string name="clear_permissions">Рөхсәтләрне бетерү</string>
+    <!-- Text for the OK button on Clear permissions dialog -->
+    <string name="clear_permissions_positive">ОК</string>
+    <!-- Text for the cancel button on Clear permissions dialog -->
+    <string name="clear_permissions_negative">Баш тарту</string>
     <!-- Button label for clearing a site permission-->
     <string name="clear_permission">Рөхсәтне бетерү</string>
+    <!-- Text for the OK button on Clear permission dialog -->
+    <string name="clear_permission_positive">ОК</string>
+    <!-- Text for the cancel button on Clear permission dialog -->
+    <string name="clear_permission_negative">Баш тарту</string>
     <!-- Button label for clearing all the information on all sites-->
     <string name="clear_permissions_on_all_sites">Барлык сайтлар өчен дә бирелгән рөхсәтләрне чистарту</string>
     <!-- Preference for altering video and audio autoplay for all websites -->
@@ -967,6 +1015,12 @@
     <string name="preference_exceptions">Чыгармалар</string>
     <!-- Summary of tracking protection preference if tracking protection is set to off -->
     <string name="tracking_protection_off">Сүнгән</string>
+    <!-- Summary of tracking protection preference if tracking protection is set to standard -->
+    <string name="tracking_protection_standard">Стандарт</string>
+    <!-- Summary of tracking protection preference if tracking protection is set to strict -->
+    <string name="tracking_protection_strict">Катгый</string>
+    <!-- Summary of tracking protection preference if tracking protection is set to custom -->
+    <string name="tracking_protection_custom">Үзгә</string>
     <!-- Label for global setting that indicates that all video and audio autoplay is allowed -->
     <string name="preference_option_autoplay_allowed2">Аудио һәм видеоны рөхсәт итү</string>
     <!-- Label for site specific setting that indicates that all video and audio autoplay is allowed -->
@@ -1031,6 +1085,11 @@
     <!-- Snackbar action to view the collection the user just created or updated -->
     <string name="create_collection_view">Карау</string>
 
+    <!-- Text for the OK button from collection dialogs -->
+    <string name="create_collection_positive">ОК</string>
+    <!-- Text for the cancel button from collection dialogs -->
+    <string name="create_collection_negative">Баш тарту</string>
+
     <!-- Default name for a new collection in "name new collection" step of the collection creator. %d is a placeholder for the number of collections-->
     <string name="create_collection_default_name">%d җыентыгы</string>
 
@@ -1040,6 +1099,12 @@
     <!-- Content description (not visible, for screen readers etc.):
         "Share" button. Opens the share menu when pressed. -->
     <string name="share_button_content_description">Уртаклашу</string>
+    <!-- Text for the Save to PDF feature in the share menu -->
+    <string name="share_save_to_pdf">PDF буларак саклау</string>
+    <!-- Text for error message when generating a PDF file Text. -->
+    <string name="unable_to_save_to_pdf_error">PDF-ны төзеп булмады</string>
+    <!-- Text for standard error snackbar dismiss button. -->
+    <string name="standard_snackbar_error_dismiss">Ябу</string>
     <!-- Sub-header in the dialog to share a link to another sync device -->
     <string name="share_device_subheader">Җиһазга җибәрү</string>
     <!-- Sub-header in the dialog to share a link to an app from the full list -->
@@ -1532,7 +1597,7 @@
     <!-- Title text displayed in the rename top site dialog. -->
     <string name="top_sites_rename_dialog_title">Исем</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">ОК</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">ОК</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Баш тарту</string>
 

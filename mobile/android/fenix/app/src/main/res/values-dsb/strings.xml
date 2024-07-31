@@ -638,7 +638,7 @@
     <!-- Preference title for switch preference to suggest bookmarks when searching -->
     <string name="preferences_search_bookmarks">Cytańske znamjenja pśepytaś</string>
     <!-- Preference title for switch preference to suggest synced tabs when searching -->
-    <string name="preferences_search_synced_tabs">Synchronizěrowane rejtarki pytaś</string>
+    <string name="preferences_search_synced_tabs">Synchronizěrowane rejtariki pytaś</string>
     <!-- Preference for account settings -->
     <string name="preferences_account_settings">Kontowe nastajenja</string>
     <!-- Preference for enabling url autocomplete-->
@@ -799,7 +799,7 @@
     <!-- Preference for syncing passwords -->
     <string name="preferences_sync_logins_2">Gronidła</string>
     <!-- Preference for syncing tabs -->
-    <string name="preferences_sync_tabs_2">Wócynjone rejtarki</string>
+    <string name="preferences_sync_tabs_2">Wócynjone rejtariki</string>
     <!-- Preference for signing out -->
     <string name="preferences_sign_out">Wótzjawiś</string>
     <!-- Preference displays and allows changing current FxA device name -->
@@ -941,7 +941,7 @@
     %s will be replaced by app name. -->
     <string name="open_all_warning_message">Gaž to wócynjaśo, wjele rejtarikow %s spómałšujo, mjaztym až se boki zacytaju. Cośo napšawdu pókšacowaś?</string>
     <!-- Dialog button text for confirming open all tabs -->
-    <string name="open_all_warning_confirm">Rejtarki wócyniś</string>
+    <string name="open_all_warning_confirm">Wócynjone rejtariki</string>
     <!-- Dialog button text for canceling open all tabs -->
     <string name="open_all_warning_cancel">Pśetergnuś</string>
 
@@ -964,7 +964,7 @@
     %d is a placeholder for the number of tabs selected. -->
     <string name="recently_closed_tab">Rejtariki: %d</string>
     <!-- Recently closed tabs screen message when there are no recently closed tabs -->
-    <string name="recently_closed_empty_message">How njejsu rowno zacynjone rejtarki</string>
+    <string name="recently_closed_empty_message">How njejsu rowno zacynjone rejtariki</string>
 
     <!-- Tab Management -->
     <!-- Title of preference for tabs management -->
@@ -1048,7 +1048,7 @@
     <!-- Title for the list of tabs in the current private session -->
     <string name="tabs_header_private_tabs_title">Priwatne rejtariki</string>
     <!-- Title for the list of tabs in the synced tabs -->
-    <string name="tabs_header_synced_tabs_title">Synchronizěrowane rejtarki</string>
+    <string name="tabs_header_synced_tabs_title">Synchronizěrowane rejtariki</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Rejtarik pśidaś</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1531,7 +1531,7 @@
     <!-- Title for the Delete browsing data preference -->
     <string name="preferences_delete_browsing_data">Pśeglědowańske daty wulašowaś</string>
     <!-- Title for the tabs item in Delete browsing data -->
-    <string name="preferences_delete_browsing_data_tabs_title_2">Wócynjone rejtarki</string>
+    <string name="preferences_delete_browsing_data_tabs_title_2">Wócynjone rejtariki</string>
     <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
     <string name="preferences_delete_browsing_data_tabs_subtitle">Rejtariki: %d</string>
     <!-- Title for the data and history items in Delete browsing data -->
@@ -2159,7 +2159,7 @@
     <string name="synced_tabs_sign_in_button">Pla Sync pśizjawiś</string>
 
     <!-- The text displayed when a synced device has no tabs to show in the list of Synced Tabs. -->
-    <string name="synced_tabs_no_open_tabs">Žedne wócynjone rejtarki</string>
+    <string name="synced_tabs_no_open_tabs">Žedne wócynjone rejtariki</string>
 
     <!-- Content description for expanding a group of synced tabs. -->
     <string name="synced_tabs_expand_group">Kupku synchronizěrowanych rejtarikow pokazaś</string>

@@ -107,6 +107,17 @@
     <string name="erase_action_cfr_message">Барои оғоз кардани ҷаласаи хусусии нав дар ин ҷой зер кунед. Таърих ва кукиҳои худро нест кунед — ҳамаашро нест кунед.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Бо имкони паймоиши нав сомонаҳоро тезтар тамошо кунед</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Вақте ки шумо саҳифаҳоро ба поён варақ мегардонед, ин навор барои таъмини фазои иловагӣ пинҳон карда мешавад.</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Вақте ки шумо саҳифаҳоро ба поён варақ мегардонед, ин навор дар сомона барои таъмини фазои иловагӣ пинҳон карда мешавад.</string>
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Барои гузариш аз саҳифа ба саҳифа дар таърихи ин варақа, ақрабақҳоро зер карда, доред.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Дастрасии камера лозим аст. Ба «Танзимоти Android» гузаред, ба «Иҷозатҳо» зарба занед, пас ба «Иҷозат додан» зарба занед.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -246,6 +257,8 @@
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Фармоишдиҳии намоиши хониш</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Фармоишдиҳии намоиши хониш</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Илова кардан</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -275,6 +288,8 @@
 
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Гузариш ба версияи мизи кории сомона</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Гузариш ба версияи мобилии сомона</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Воситаҳо</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -423,6 +438,9 @@
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Вақте ки шумо ба низом ворид шуда, ҳамоҳанг месозед, шумо бехатартар мешавед. «Firefox» ниҳонвожаҳо, хатбаракҳо ва чизҳои дигари шуморо рамзгузорӣ мекунад.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3">Дар раванди ҳамоҳангсозӣ браузери «Firefox» ниҳонвожаҳо, хатбаракҳо ва чизҳои дигари шуморо рамзгузорӣ мекунад.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Ворид шудан</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -896,6 +914,12 @@
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Барои кушодани варақаҳо аз болои навори абзорҳо ба боло бо ангуш молед</string>
 
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">Барои пинҳон кардани навори нишонӣ ва навори абзорҳо, ба боло ё поён ҳаракат кунед</string>
+
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Барои иваз кардани варақаҳо аз болои навори нишонӣ ба тарафи лозимӣ бо ангуш молед</string>
+
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
     <string name="library_downloads">Боргириҳо</string>
@@ -1083,7 +1107,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Номи пайваст</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Иваз кардани ном</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Иваз кардани ном</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Тоза кардан</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -1733,6 +1757,8 @@
 
     <!-- Preference for fingerprinting protection for the custom protection settings -->
     <string name="etp_suspected_fingerprinters_title">Хонандаи нақши ангуштони номаълум</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Муҳофизати хонандаи нақши ангуштонро барои боздоштани хонандаҳои нақши ангуштони шубҳанок фаъол месозад.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_title">Хонандаи нақши ангуштони маълум</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
@@ -2168,8 +2194,10 @@
     <string name="top_sites_rename_dialog_title">Ном</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Номи миёнбур</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">Нишонии URL-и миёнбур</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">ХУБ</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">ХУБ</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Бекор кардан</string>
 
@@ -2179,6 +2207,17 @@
     <string name="top_sites_menu_sponsor_privacy">Сарпарастони мо ва махфияти шумо</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">Сарпарастӣ</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">Таҳрир кардан</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">Таҳрир кардани миёнбур</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">Нигоҳ доштан</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">Нишонии URL-и дурустро ворид намоед</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">Нишонии URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
@@ -2607,6 +2646,10 @@
     <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Дар ҳоли иҷро мебошад</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">Дар ҳоли иҷро мебошад</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Қатъ кардани боргирии «%1$s» (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Боргирӣ кардан</string>
 
@@ -2636,6 +2679,9 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Бекор кардан</string>
 
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title">Боргирии «%1$s»-ро бекор мекунед?</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
     <string name="cancel_download_language_file_dialog_positive_button_text">Ҳа</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
@@ -2704,11 +2750,17 @@
 
     <!-- Micro survey -->
 
+    <!-- Microsurvey -->
+    <!-- Prompt view -->
+    <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
+    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Ба мо барои беҳтар кардани браузери «Firefox» кумак расонед. Ин танҳо як дақиқа мегирад.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Идома додан</string>
     <!-- Survey view -->
     <!-- The survey header -->
     <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Ин саволномаро пур намоед</string>
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header_2">Лутфан, саволномаро пур намоед</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Огоҳномаи махфият</string>
     <!-- The privacy notice link -->
@@ -2718,6 +2770,8 @@
     <!-- The close button label text -->
     <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Пӯшидан</string>
 
+    <!-- The survey completion header -->
+    <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Саволнома ба поён расид</string>
     <!-- The survey completion confirmation text -->
     <string name="micro_survey_feedback_confirmation">Ташаккур барои изҳори назари шумо!</string>
 
@@ -2734,12 +2788,21 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ман онро истифода намебарам</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Шумо аз саҳифаи асосии браузери «Firefox» то чӣ андоза қаноатмандед?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Ба беҳтар кардани чоп дар «Firefox» кумак кунед. Ин танҳо як сония мегирад</string>
 
 
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Шумо аз вазифаи чоп дар «Firefox» то чӣ андоза қаноатмандед?</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Шумо аз саҳифаи асосии браузери «Firefox» то чӣ андоза қаноатмандед?</string>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Ангораи браузери «Firefox»</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Нишонаи хусусияти саволнома</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Кушодани саволнома</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->

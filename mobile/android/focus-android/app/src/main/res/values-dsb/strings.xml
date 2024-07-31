@@ -22,7 +22,7 @@
     <string name="feedback_erase2">Pśeglědowańska historija jo se wulašowała</string>
 
     <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
-    <string name="feedback_erase_custom_tab">Pśeglědowańska historija rejtarka jo se wulašowała.</string>
+    <string name="feedback_erase_custom_tab">Pśeglědowańska historija rejtarika jo se wulašowała.</string>
 
     <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">Pytanje za %1$s</string>
@@ -421,7 +421,7 @@
     <!-- If the user has multiple tabs open we will show an addition "floating action button" showing how many tabs are open.
      This string is not displayed and read only by screenreaders. %1$s will be replaced with the number of open tabs. This
       button will only be visible when there is more than one tab open (>= 2). -->
-    <string name="content_description_tab_counter">Wócynjone rejtarki: %1$s</string>
+    <string name="content_description_tab_counter">Wócynjone rejtariki: %1$s</string>
 
     <!-- Content description (not visible, for screen readers etc.): Lock icon showed in the URL bar for
      https pages.. -->
@@ -915,13 +915,14 @@
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user. -->
-    <string name="tip_open_in_new_tab">Wótkaz w nowem rejtarku wócyniś\nTłocćo dłujko na wótkaz na boku</string>
+    <string name="tip_open_in_new_tab">Wótkaz w nowem rejtariku wócyniś\n
+        Tłocćo dłujko na wótkaz na boku</string>
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
     <string name="tip_disable_tips2">Tipy na startowej wobrazowce znjemóžniś</string>
 
     <!-- Label for the snackbar when a user opens a new tab -->
-    <string name="new_tab_opened_snackbar">Nowy rejtark jo se wócynił</string>
+    <string name="new_tab_opened_snackbar">Nowy rejtarik jo se wócynił</string>
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Pśešaltowaś</string>
@@ -930,7 +931,7 @@
     <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Połna wobrazowka se pokazujo</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
-    <string name="preference_open_new_tab">Ned k wótkazoju w nowem rejtarku pśejś</string>
+    <string name="preference_open_new_tab">Ned k wótkazoju w nowem rejtariku pśejś</string>
 
     <!-- Preference title for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
     <string name="preference_safe_browsing_title">Ptencielnje tšašne a wobšudnikojske sedła blokěrowaś</string>
@@ -959,13 +960,13 @@
     <string name="preference_category_block_cookies">Cośo cookieje blokěrowaś?</string>
 
     <!-- Title for the tab crash report screen-->
-    <string name="tab_crash_report_title">Rejtark jo wowalił</string>
+    <string name="tab_crash_report_title">Rejtarik jo wowalił</string>
     <!-- Headline for the tab crash report screen -->
-    <string name="tab_crash_report_headline">Bóžko mamy problem z toś tym rejtarkom.</string>
+    <string name="tab_crash_report_headline">Bóžko mamy problem z toś tym rejtarikom.</string>
     <!-- Subtitle for the tab crash report screen -->
-    <string name="tab_crash_report_description">Ako priwatny wobglědowak njeskładujomy nigda a njamóžomy toś ten rejtark wótnowiś.</string>
+    <string name="tab_crash_report_description">Ako priwatny wobglědowak njeskładujomy nigda a njamóžomy toś ten rejtarik wótnowiś.</string>
     <!-- Label for button to close the tab-->
-    <string name="tab_crash_report_close_tab_button_label">Rejtark zacyniś</string>
+    <string name="tab_crash_report_close_tab_button_label">Rejtarik zacyniś</string>
 
 
 
