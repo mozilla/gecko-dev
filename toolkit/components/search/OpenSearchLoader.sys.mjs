@@ -166,6 +166,11 @@ function loadEngineXML(sourceURI, lastModified) {
     Ci.nsIContentPolicy.TYPE_DOCUMENT
   );
 
+  // we collect https telemetry for all top-level (document) loads.
+  chan.loadInfo.httpsUpgradeTelemetry = sourceURI.schemeIs("https")
+    ? Ci.nsILoadInfo.ALREADY_HTTPS
+    : Ci.nsILoadInfo.NO_UPGRADE;
+
   if (lastModified && chan instanceof Ci.nsIHttpChannel) {
     chan.setRequestHeader("If-Modified-Since", lastModified, false);
   }
