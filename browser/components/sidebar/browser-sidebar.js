@@ -37,9 +37,8 @@ var SidebarController = {
       const viewItem = document.getElementById(sidebar.menuId);
       viewItem.hidden = !visible;
 
-      let menuItem = document.getElementById(config.elementId);
       // Add/remove switcher menu item.
-      if (visible && !menuItem) {
+      if (visible) {
         switcherMenuitem = this.createMenuItem(commandID, sidebar);
         switcherMenuitem.setAttribute("id", config.elementId);
         switcherMenuitem.removeAttribute("type");
@@ -68,10 +67,6 @@ var SidebarController = {
       return this._sidebars;
     }
 
-    return this.generateSidebarsMap();
-  },
-
-  generateSidebarsMap() {
     this._sidebars = new Map([
       [
         "viewHistorySidebar",
@@ -203,7 +198,6 @@ var SidebarController = {
   _switcherTarget: null,
   _switcherArrow: null,
   _inited: false,
-  _switcherListenersAdded: false,
 
   /**
    * @type {MutationObserver | null}
@@ -302,18 +296,15 @@ var SidebarController = {
       }
     } else {
       this._switcherCloseButton = document.getElementById("sidebar-close");
-      if (!this._switcherListenersAdded) {
-        this._switcherCloseButton.addEventListener("command", () => {
-          this.hide();
-        });
-        this._switcherTarget.addEventListener("command", () => {
-          this.toggleSwitcherPanel();
-        });
-        this._switcherTarget.addEventListener("keydown", event => {
-          this.handleKeydown(event);
-        });
-        this._switcherListenersAdded = true;
-      }
+      this._switcherCloseButton.addEventListener("command", () => {
+        this.hide();
+      });
+      this._switcherTarget.addEventListener("command", () => {
+        this.toggleSwitcherPanel();
+      });
+      this._switcherTarget.addEventListener("keydown", event => {
+        this.handleKeydown(event);
+      });
     }
 
     this._inited = true;
@@ -515,45 +506,6 @@ var SidebarController = {
     if (content && content.updatePosition) {
       content.updatePosition();
     }
-  },
-
-  /**
-   * Show/hide new sidebar based on sidebar.revamp pref
-   */
-  async toggleRevampSidebar() {
-    if (this.isOpen) {
-      this.hide();
-    }
-    // Reset sidebars map but preserve any existing extensions
-    let extensionsArr = [];
-    for (const [commandID, sidebar] of this.sidebars.entries()) {
-      if (sidebar.hasOwnProperty("extensionId")) {
-        extensionsArr.push({ commandID, sidebar });
-      }
-    }
-    this.sidebars = this.generateSidebarsMap();
-    for (const extension of extensionsArr) {
-      this.sidebars.set(extension.commandID, extension.sidebar);
-    }
-    if (!this.sidebarRevampEnabled) {
-      this.sidebarMain.hidden = true;
-      document.getElementById("sidebar-header").hidden = false;
-      this.showSwitcherPanel();
-      // Disable vertical tabs if revamped sidebar is turned off
-      if (this.sidebarVerticalTabsEnabled) {
-        Services.prefs.setBoolPref("sidebar.verticalTabs", false);
-      }
-    } else {
-      this.sidebarMain.hidden = false;
-      this.hideSwitcherPanel();
-    }
-    this.init();
-    this.promiseInitialized.then(() => {
-      if (!this.sidebars.get(this.lastOpenedId)) {
-        this.lastOpenedId = this.DEFAULT_SIDEBAR_ID;
-      }
-      this.show(this.lastOpenedId);
-    });
   },
 
   /**
@@ -1199,7 +1151,7 @@ var SidebarController = {
     // until about:blank has loaded (which does not happen as long as the
     // element is hidden).
     this.browser.setAttribute("src", "about:blank");
-    this.browser.docShell?.createAboutBlankDocumentViewer(null, null);
+    this.browser.docShell.createAboutBlankDocumentViewer(null, null);
 
     this._box.removeAttribute("checked");
     this._box.hidden = this._splitter.hidden = true;
@@ -1254,11 +1206,6 @@ var SidebarController = {
       arrowScrollbox.setAttribute("orient", "vertical");
       tabStrip.setAttribute("orient", "vertical");
       verticalTabs.append(tabStrip);
-
-      // Enable revamped sidebar if vertical tabs is enabled
-      if (!this.sidebarRevampEnabled) {
-        Services.prefs.setBoolPref("sidebar.revamp", true);
-      }
     } else {
       arrowScrollbox.setAttribute("orient", "horizontal");
       tabStrip.setAttribute("orient", "horizontal");
@@ -1294,8 +1241,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarRevampEnabled",
   "sidebar.revamp",
-  false,
-  SidebarController.toggleRevampSidebar.bind(SidebarController)
+  false
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
