@@ -15,12 +15,9 @@ namespace dom {
 MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(GVAutoplayRequestType, bool,
                                              (eINAUDIBLE, eAUDIBLE));
 
-enum class GVAutoplayRequestStatus : uint32_t {
-  eUNKNOWN,
-  eALLOWED,
-  eDENIED,
-  ePENDING,
-};
+MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(GVAutoplayRequestStatus, uint32_t,
+                                             (eUNKNOWN, eALLOWED, eDENIED,
+                                              ePENDING));
 
 }  // namespace dom
 }  // namespace mozilla
