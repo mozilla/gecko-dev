@@ -4362,9 +4362,14 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
     });
   }
   handleTopicSelectionButtonClick() {
+    const maybeDisplay = this.props.Prefs.values["discoverystream.topicSelection.onboarding.maybeDisplay"];
     this.props.dispatch(actionCreators.OnlyToMain({
       type: actionTypes.TOPIC_SELECTION_USER_OPEN
     }));
+    if (maybeDisplay) {
+      // if still part of onboarding, remove user from onboarding flow
+      this.props.dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", false));
+    }
     this.props.dispatch(actionCreators.BroadcastToContent({
       type: actionTypes.TOPIC_SELECTION_SPOTLIGHT_OPEN
     }));
@@ -10672,6 +10677,7 @@ function TopicSelection() {
   const displayCount = prefs["discoverystream.topicSelection.onboarding.displayCount"];
   const topicsHaveBeenPreviouslySet = prefs["discoverystream.topicSelection.hasBeenUpdatedPreviously"];
   const [isFirstRun] = (0,external_React_namespaceObject.useState)(displayCount === 0);
+  const displayCountRef = (0,external_React_namespaceObject.useRef)(displayCount);
   const preselectedTopics = () => {
     if (selectedTopics) {
       return selectedTopics.split(", ");
@@ -10708,20 +10714,35 @@ function TopicSelection() {
     }
     handleModalClose();
   }
+
+  // By doing this, the useEffect that sets up the IntersectionObserver
+  // will not re-run every time displayCount changes,
+  // but the observer callback will always have access
+  // to the latest displayCount value through the ref.
+  (0,external_React_namespaceObject.useEffect)(() => {
+    displayCountRef.current = displayCount;
+  }, [displayCount]);
   (0,external_React_namespaceObject.useEffect)(() => {
     const {
       current
     } = modalRef;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        observer.unobserve(modalRef.current);
-        dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", false));
-        dispatch(actionCreators.AlsoToMain({
-          type: actionTypes.TOPIC_SELECTION_IMPRESSION
-        }));
-      }
-    });
-    observer.observe(current);
+    let observer;
+    if (current) {
+      observer = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          // if the user has seen the modal more than 3 times,
+          // automatically remove them from onboarding
+          if (displayCountRef.current > 3) {
+            dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", false));
+          }
+          observer.unobserve(modalRef.current);
+          dispatch(actionCreators.AlsoToMain({
+            type: actionTypes.TOPIC_SELECTION_IMPRESSION
+          }));
+        }
+      });
+      observer.observe(current);
+    }
     return () => {
       if (current) {
         observer.unobserve(current);

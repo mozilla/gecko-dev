@@ -50,7 +50,22 @@ export class _CollapsibleSection extends React.PureComponent {
   }
 
   handleTopicSelectionButtonClick() {
+    const maybeDisplay =
+      this.props.Prefs.values[
+        "discoverystream.topicSelection.onboarding.maybeDisplay"
+      ];
+
     this.props.dispatch(ac.OnlyToMain({ type: at.TOPIC_SELECTION_USER_OPEN }));
+
+    if (maybeDisplay) {
+      // if still part of onboarding, remove user from onboarding flow
+      this.props.dispatch(
+        ac.SetPref(
+          "discoverystream.topicSelection.onboarding.maybeDisplay",
+          false
+        )
+      );
+    }
     this.props.dispatch(
       ac.BroadcastToContent({ type: at.TOPIC_SELECTION_SPOTLIGHT_OPEN })
     );

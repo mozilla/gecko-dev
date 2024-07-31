@@ -36,6 +36,7 @@ function TopicSelection() {
   const topicsHaveBeenPreviouslySet =
     prefs["discoverystream.topicSelection.hasBeenUpdatedPreviously"];
   const [isFirstRun] = useState(displayCount === 0);
+  const displayCountRef = useRef(displayCount);
   const preselectedTopics = () => {
     if (selectedTopics) {
       return selectedTopics.split(", ");
@@ -89,25 +90,40 @@ function TopicSelection() {
     handleModalClose();
   }
 
+  // By doing this, the useEffect that sets up the IntersectionObserver
+  // will not re-run every time displayCount changes,
+  // but the observer callback will always have access
+  // to the latest displayCount value through the ref.
+  useEffect(() => {
+    displayCountRef.current = displayCount;
+  }, [displayCount]);
+
   useEffect(() => {
     const { current } = modalRef;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        observer.unobserve(modalRef.current);
-        dispatch(
-          ac.SetPref(
-            "discoverystream.topicSelection.onboarding.maybeDisplay",
-            false
-          )
-        );
-        dispatch(
-          ac.AlsoToMain({
-            type: at.TOPIC_SELECTION_IMPRESSION,
-          })
-        );
-      }
-    });
-    observer.observe(current);
+    let observer;
+    if (current) {
+      observer = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          // if the user has seen the modal more than 3 times,
+          // automatically remove them from onboarding
+          if (displayCountRef.current > 3) {
+            dispatch(
+              ac.SetPref(
+                "discoverystream.topicSelection.onboarding.maybeDisplay",
+                false
+              )
+            );
+          }
+          observer.unobserve(modalRef.current);
+          dispatch(
+            ac.AlsoToMain({
+              type: at.TOPIC_SELECTION_IMPRESSION,
+            })
+          );
+        }
+      });
+      observer.observe(current);
+    }
 
     return () => {
       if (current) {
