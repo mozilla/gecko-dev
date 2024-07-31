@@ -863,8 +863,10 @@ export class NetworkObserver {
       this.#setupResponseListener(httpActivity);
     }
 
-    if (this.#authPromptListenerEnabled) {
+    const wrapper = ChannelWrapper.get(httpActivity.channel);
+    if (this.#authPromptListenerEnabled && !wrapper.hasNetworkAuthListener) {
       new lazy.NetworkAuthListener(httpActivity.channel, httpActivity.owner);
+      wrapper.hasNetworkAuthListener = true;
     }
   }
 
