@@ -14,7 +14,7 @@
 #include "prmem.h"
 #include "prio.h"
 #include "mozilla/Logging.h"
-#include "mozilla/Mutex.h"
+#include "mozilla/StaticMutex.h"
 
 namespace mozilla {
 namespace net {
@@ -25,7 +25,7 @@ LazyLogModule gFuzzingLog("nsFuzzingNecko");
   MOZ_LOG(mozilla::net::gFuzzingLog, mozilla::LogLevel::Verbose, args)
 
 // Mutex for modifying our hash tables
-Mutex gConnRecvMutex("ConnectRecvMutex");
+StaticMutex gConnRecvMutex;
 
 // This structure will be created by addNetworkFuzzingBuffer below
 // and then added to the gNetworkFuzzingBuffers structure.
@@ -71,7 +71,7 @@ void addNetworkFuzzingBuffer(const uint8_t* data, size_t size, bool readFirst,
     MOZ_CRASH("Unsupported buffer size");
   }
 
-  MutexAutoLock lock(gConnRecvMutex);
+  StaticMutexAutoLock lock(gConnRecvMutex);
 
   NetworkFuzzingBuffer* buf = new NetworkFuzzingBuffer();
   buf->buf = data;
@@ -95,7 +95,7 @@ void addNetworkFuzzingBuffer(const uint8_t* data, size_t size, bool readFirst,
  */
 bool signalNetworkFuzzingDone() {
   FUZZING_LOG(("[signalNetworkFuzzingDone] Called."));
-  MutexAutoLock lock(gConnRecvMutex);
+  StaticMutexAutoLock lock(gConnRecvMutex);
   bool rv = false;
 
   if (fuzzingNoWaitRequired) {
@@ -143,7 +143,7 @@ static PRStatus FuzzyConnect(PRFileDesc* fd, const PRNetAddr* addr,
   MOZ_RELEASE_ASSERT(fd->identity == sFuzzyLayerIdentity);
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  MutexAutoLock lock(gConnRecvMutex);
+  StaticMutexAutoLock lock(gConnRecvMutex);
 
   NetworkFuzzingBuffer* buf = gNetworkFuzzingBuffers.PopFront();
   if (!buf) {
@@ -167,7 +167,7 @@ static PRInt32 FuzzySendTo(PRFileDesc* fd, const void* buf, PRInt32 amount,
   MOZ_RELEASE_ASSERT(fd->identity == sFuzzyLayerIdentity);
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  MutexAutoLock lock(gConnRecvMutex);
+  StaticMutexAutoLock lock(gConnRecvMutex);
 
   NetworkFuzzingBuffer* fuzzBuf = gConnectedNetworkFuzzingBuffers.Get(fd);
   if (!fuzzBuf) {
@@ -206,7 +206,7 @@ static PRInt32 FuzzySend(PRFileDesc* fd, const void* buf, PRInt32 amount,
   MOZ_RELEASE_ASSERT(fd->identity == sFuzzyLayerIdentity);
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  MutexAutoLock lock(gConnRecvMutex);
+  StaticMutexAutoLock lock(gConnRecvMutex);
 
   NetworkFuzzingBuffer* fuzzBuf = gConnectedNetworkFuzzingBuffers.Get(fd);
   if (!fuzzBuf) {
@@ -233,7 +233,7 @@ static PRInt32 FuzzyRecv(PRFileDesc* fd, void* buf, PRInt32 amount,
                          PRIntn flags, PRIntervalTime timeout) {
   MOZ_RELEASE_ASSERT(fd->identity == sFuzzyLayerIdentity);
 
-  MutexAutoLock lock(gConnRecvMutex);
+  StaticMutexAutoLock lock(gConnRecvMutex);
 
   NetworkFuzzingBuffer* fuzzBuf = gConnectedNetworkFuzzingBuffers.Get(fd);
   if (!fuzzBuf) {
@@ -309,7 +309,7 @@ static PRStatus FuzzyClose(PRFileDesc* fd) {
 
   layer->dtor(layer);
 
-  MutexAutoLock lock(gConnRecvMutex);
+  StaticMutexAutoLock lock(gConnRecvMutex);
 
   NetworkFuzzingBuffer* fuzzBuf = nullptr;
   if (gConnectedNetworkFuzzingBuffers.Remove(fd, &fuzzBuf)) {
