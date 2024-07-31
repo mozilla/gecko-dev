@@ -288,6 +288,7 @@ nsresult BounceTrackingState::HasBounceTrackingStateForSite(
     }
     RefPtr<BounceTrackingState> state(btsWeak);
 
+    // For each active BTS get the current window's document principal.
     RefPtr<dom::BrowsingContext> browsingContext =
         state->CurrentBrowsingContext();
 
@@ -296,26 +297,20 @@ nsresult BounceTrackingState::HasBounceTrackingStateForSite(
       continue;
     }
 
-    RefPtr<dom::Element> embedderElement =
-        browsingContext->GetEmbedderElement();
-    if (!embedderElement) {
+    RefPtr<dom::WindowGlobalParent> currentWindow =
+        browsingContext->Canonical()->GetCurrentWindowGlobal();
+    if (!currentWindow) {
       continue;
     }
 
-    nsCOMPtr<nsIBrowser> browser = embedderElement->AsBrowser();
-    if (!browser) {
+    nsCOMPtr<nsIPrincipal> principal = currentWindow->DocumentPrincipal();
+    if (NS_WARN_IF(!principal)) {
       continue;
     }
 
-    nsCOMPtr<nsIPrincipal> contentPrincipal;
-    nsresult rv =
-        browser->GetContentPrincipal(getter_AddRefs(contentPrincipal));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      continue;
-    }
-
+    // Lastly, check if the site matches.
     nsAutoCString baseDomain;
-    rv = contentPrincipal->GetBaseDomain(baseDomain);
+    nsresult rv = principal->GetBaseDomain(baseDomain);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       continue;
     }
