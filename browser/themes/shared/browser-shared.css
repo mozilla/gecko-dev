@@ -458,7 +458,6 @@ body {
 }
 
 toolbarpaletteitem > #personal-bookmarks > #PlacesToolbar,
-toolbarpaletteitem:has(> toolbarbutton.fxms-bmb-button),
 #personal-bookmarks:is([overflowedItem=true], [cui-areatype="panel"]) > #PlacesToolbar {
   display: none;
 }

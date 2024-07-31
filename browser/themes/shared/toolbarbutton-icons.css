@@ -300,7 +300,3 @@
   stroke: var(--toolbarbutton-icon-fill);
   list-style-image: url("chrome://global/skin/icons/content-analysis.svg");
 }
-
-.fxms-bmb-button {
-  list-style-image: url("chrome://branding/content/about-logo.png");
-}

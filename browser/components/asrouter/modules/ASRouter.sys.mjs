@@ -35,7 +35,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ASRouterTriggerListeners:
     "resource:///modules/asrouter/ASRouterTriggerListeners.sys.mjs",
   AttributionCode: "resource:///modules/AttributionCode.sys.mjs",
-  BookmarksBarButton: "resource:///modules/asrouter/BookmarksBarButton.sys.mjs",
   Downloader: "resource://services-settings/Attachments.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   FeatureCalloutBroker:
@@ -1477,9 +1476,6 @@ export class _ASRouter {
           message,
           this.dispatchCFRAction
         );
-        break;
-      case "bookmarks_bar_button":
-        lazy.BookmarksBarButton.showBookmarksBarButton(browser, message);
         break;
     }
 
