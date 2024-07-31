@@ -1724,7 +1724,7 @@ static bool AddIntlExtras(JSContext* cx, unsigned argc, Value* vp) {
      * coincides with the end of a line.
      */
     int startline = lineno;
-    typedef Vector<char, 32> CharBuffer;
+    using CharBuffer = Vector<char, 32>;
     RootedObject globalLexical(cx, &cx->global()->lexicalEnvironment());
     CharBuffer buffer(cx);
     do {
@@ -4127,12 +4127,12 @@ static bool CreateErrorReport(JSContext* cx, unsigned argc, Value* vp) {
 #define LAZY_STANDARD_CLASSES
 
 /* A class for easily testing the inner/outer object callbacks. */
-typedef struct ComplexObject {
+struct ComplexObject {
   bool isInner;
   bool frozen;
   JSObject* inner;
   JSObject* outer;
-} ComplexObject;
+};
 
 static bool sandbox_enumerate(JSContext* cx, JS::HandleObject obj,
                               JS::MutableHandleIdVector properties,
@@ -7545,7 +7545,7 @@ struct SharedObjectMailbox {
   Value val;
 };
 
-typedef ExclusiveData<SharedObjectMailbox> SOMailbox;
+using SOMailbox = ExclusiveData<SharedObjectMailbox>;
 
 // Never null after successful initialization.
 static SOMailbox* sharedObjectMailbox;
@@ -7769,11 +7769,11 @@ static bool SetSharedObject(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-typedef Vector<uint8_t, 0, SystemAllocPolicy> Uint8Vector;
+using Uint8Vector = Vector<uint8_t, 0, SystemAllocPolicy>;
 
 class StreamCacheEntry : public AtomicRefCounted<StreamCacheEntry>,
                          public JS::OptimizedEncodingListener {
-  typedef AtomicRefCounted<StreamCacheEntry> AtomicBase;
+  using AtomicBase = AtomicRefCounted<StreamCacheEntry>;
 
   Uint8Vector bytes_;
   ExclusiveData<Uint8Vector> optimized_;
@@ -7819,7 +7819,7 @@ class StreamCacheEntry : public AtomicRefCounted<StreamCacheEntry>,
   }
 };
 
-typedef RefPtr<StreamCacheEntry> StreamCacheEntryPtr;
+using StreamCacheEntryPtr = RefPtr<StreamCacheEntry>;
 
 class StreamCacheEntryObject : public NativeObject {
   static const unsigned CACHE_ENTRY_SLOT = 0;

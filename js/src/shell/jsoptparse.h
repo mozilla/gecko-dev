@@ -187,7 +187,7 @@ struct MultiStringOption : public ValuedOption {
 } /* namespace detail */
 
 class MultiStringRange {
-  typedef detail::StringArg StringArg;
+  using StringArg = detail::StringArg;
   const StringArg* cur;
   const StringArg* end;
 
@@ -233,9 +233,9 @@ class OptionParser {
   };
 
  private:
-  typedef Vector<detail::Option*, 0, detail::OptionAllocPolicy> Options;
-  typedef detail::Option Option;
-  typedef detail::BoolOption BoolOption;
+  using Options = Vector<detail::Option*, 0, detail::OptionAllocPolicy>;
+  using Option = detail::Option;
+  using BoolOption = detail::BoolOption;
 
   Options options;
   Options arguments;

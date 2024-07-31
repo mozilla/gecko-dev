@@ -13,12 +13,10 @@
 
 // #define FUZZ
 
-typedef js::HashMap<uint32_t, uint32_t, js::DefaultHasher<uint32_t>,
-                    js::SystemAllocPolicy>
-    IntMap;
-typedef js::HashSet<uint32_t, js::DefaultHasher<uint32_t>,
-                    js::SystemAllocPolicy>
-    IntSet;
+using IntMap = js::HashMap<uint32_t, uint32_t, js::DefaultHasher<uint32_t>,
+                           js::SystemAllocPolicy>;
+using IntSet =
+    js::HashSet<uint32_t, js::DefaultHasher<uint32_t>, js::SystemAllocPolicy>;
 
 /*
  * The rekeying test as conducted by adding only keys masked with 0x0000FFFF
@@ -314,7 +312,7 @@ struct MoveOnlyType {
   }
 
   struct HashPolicy {
-    typedef MoveOnlyType Lookup;
+    using Lookup = MoveOnlyType;
 
     static js::HashNumber hash(const Lookup& lookup) { return lookup.val; }
 
@@ -329,9 +327,8 @@ struct MoveOnlyType {
 };
 
 BEGIN_TEST(testHashSetOfMoveOnlyType) {
-  typedef js::HashSet<MoveOnlyType, MoveOnlyType::HashPolicy,
-                      js::SystemAllocPolicy>
-      Set;
+  using Set = js::HashSet<MoveOnlyType, MoveOnlyType::HashPolicy,
+                          js::SystemAllocPolicy>;
 
   Set set;
 

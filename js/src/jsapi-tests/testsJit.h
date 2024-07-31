@@ -9,7 +9,7 @@
 
 #include "jit/MacroAssembler.h"
 
-typedef void (*EnterTest)();
+using EnterTest = void (*)();
 
 // On entry to the JIT code, save every register.
 void PrepareJit(js::jit::MacroAssembler& masm);

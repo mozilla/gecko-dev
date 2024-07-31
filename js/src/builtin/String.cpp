@@ -2190,7 +2190,7 @@ int js::StringFindPattern(const JSLinearString* text, const JSLinearString* pat,
   return StringMatch(text, pat, start);
 }
 
-typedef Vector<JSLinearString*, 16, SystemAllocPolicy> LinearStringVector;
+using LinearStringVector = Vector<JSLinearString*, 16, SystemAllocPolicy>;
 
 template <typename TextChar, typename PatChar>
 static int RopeMatchImpl(const AutoCheckCannotGC& nogc,

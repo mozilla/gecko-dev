@@ -28,7 +28,7 @@ static inline bool EqualContainers(const Container1& lhs,
                 "Must be trivially destructible");                     \
   namespace js {                                                       \
   namespace wasm {                                                     \
-  typedef Vector<Type, 0, SystemAllocPolicy> VectorName;
+  using VectorName = Vector<Type, 0, SystemAllocPolicy>;
 
 using mozilla::MallocSizeOf;
 

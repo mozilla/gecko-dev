@@ -506,15 +506,12 @@ extern JS_PUBLIC_API JSLinearString* GetErrorTypeName(JSContext* cx,
                                                       int16_t exnType);
 
 /* Implemented in CrossCompartmentWrapper.cpp. */
-typedef enum NukeReferencesToWindow {
-  NukeWindowReferences,
-  DontNukeWindowReferences
-} NukeReferencesToWindow;
+enum NukeReferencesToWindow { NukeWindowReferences, DontNukeWindowReferences };
 
-typedef enum NukeReferencesFromTarget {
+enum NukeReferencesFromTarget {
   NukeAllReferences,
   NukeIncomingReferences,
-} NukeReferencesFromTarget;
+};
 
 /*
  * These filters are designed to be ephemeral stack classes, and thus don't
@@ -709,8 +706,8 @@ extern JS_PUBLIC_API bool IsSavedFrame(JSObject* obj);
 #if defined(XP_WIN)
 // Parameters use void* types to avoid #including windows.h. The return value of
 // this function is returned from the exception handler.
-typedef long (*JitExceptionHandler)(void* exceptionRecord,  // PEXECTION_RECORD
-                                    void* context);         // PCONTEXT
+using JitExceptionHandler = long (*)(void* exceptionRecord,  // PEXECTION_RECORD
+                                     void* context);         // PCONTEXT
 
 /**
  * Windows uses "structured exception handling" to handle faults. When a fault

@@ -886,7 +886,7 @@ RegExpRunStatus ExecuteRaw(jit::JitCode* code, const CharT* chars,
   static_assert(static_cast<int32_t>(RegExpRunStatus::Success_NotFound) ==
                 v8::internal::RegExp::kInternalRegExpFailure);
 
-  typedef int (*RegExpCodeSignature)(InputOutputData*);
+  using RegExpCodeSignature = int (*)(InputOutputData*);
   auto function = reinterpret_cast<RegExpCodeSignature>(code->raw());
   {
     JS::AutoSuppressGCAnalysis nogc;

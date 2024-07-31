@@ -816,12 +816,12 @@ JS_PUBLIC_API bool JS_RefreshCrossCompartmentWrappers(JSContext* cx,
   return RemapAllWrappersForObject(cx, obj, obj);
 }
 
-typedef struct JSStdName {
+struct JSStdName {
   size_t atomOffset; /* offset of atom pointer in JSAtomState */
   JSProtoKey key;
   bool isDummy() const { return key == JSProto_Null; }
   bool isSentinel() const { return key == JSProto_LIMIT; }
-} JSStdName;
+};
 
 static const JSStdName* LookupStdName(const JSAtomState& names, JSAtom* name,
                                       const JSStdName* table) {
