@@ -13,6 +13,7 @@
 #include "MediaEngine.h"
 #include "VideoFrameUtils.h"
 #include "modules/video_capture/video_capture.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/media/MediaUtils.h"
 #include "video_engine/video_capture_factory.h"
 
@@ -22,32 +23,14 @@ class DesktopCaptureImpl;
 
 namespace mozilla::camera {
 
-enum class CaptureDeviceType { Camera, Screen, Window, Browser };
+MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING(CaptureDeviceType,
+                                    (Camera, Screen, Window, Browser));
 
 struct CaptureDeviceInfo {
   CaptureDeviceType type;
 
   CaptureDeviceInfo() : type(CaptureDeviceType::Camera) {}
   explicit CaptureDeviceInfo(CaptureDeviceType t) : type(t) {}
-
-  const char* TypeName() const {
-    switch (type) {
-      case CaptureDeviceType::Camera: {
-        return "Camera";
-      }
-      case CaptureDeviceType::Screen: {
-        return "Screen";
-      }
-      case CaptureDeviceType::Window: {
-        return "Window";
-      }
-      case CaptureDeviceType::Browser: {
-        return "Browser";
-      }
-    }
-    assert(false);
-    return "UNKOWN-CaptureDeviceType!";
-  }
 };
 
 // Historically the video engine was part of webrtc

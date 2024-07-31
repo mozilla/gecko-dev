@@ -52,7 +52,8 @@ int32_t VideoEngine::CreateVideoCapture(const char* aDeviceUniqueIdUTF8) {
   MOZ_ASSERT(aDeviceUniqueIdUTF8);
 
   int32_t id = GenerateId();
-  LOG(("CaptureDeviceInfo.type=%s id=%d", mCaptureDevInfo.TypeName(), id));
+  LOG(("CaptureDeviceInfo.type=%s id=%d",
+       EnumValueToString(mCaptureDevInfo.type), id));
 
   for (auto& it : mCaps) {
     if (it.second.VideoCapture() &&
@@ -117,8 +118,7 @@ VideoEngine::GetOrCreateVideoCaptureDeviceInfo() {
   LOG(("%s", __PRETTY_FUNCTION__));
   webrtc::Timestamp currentTime = webrtc::Timestamp::Micros(0);
 
-  const char* capDevTypeName =
-      CaptureDeviceInfo(mCaptureDevInfo.type).TypeName();
+  const char* capDevTypeName = EnumValueToString(mCaptureDevInfo.type);
 
   if (mDeviceInfo) {
     LOG(("Device cache available."));
@@ -237,7 +237,7 @@ VideoEngine::VideoEngine(const CaptureDeviceType& aCaptureDeviceType,
   MOZ_ASSERT(mVideoCaptureFactory);
   LOG(("%s", __PRETTY_FUNCTION__));
   LOG(("Creating new VideoEngine with CaptureDeviceType %s",
-       mCaptureDevInfo.TypeName()));
+       EnumValueToString(mCaptureDevInfo.type)));
 }
 
 VideoEngine::~VideoEngine() {
