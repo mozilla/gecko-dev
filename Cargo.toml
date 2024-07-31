@@ -133,6 +133,9 @@ redox_users = { path = "build/rust/redox_users" }
 # Patch redox_syscall to an empty crate
 redox_syscall = { path = "build/rust/redox_syscall" }
 
+# Patch hermit-abi to an empty crate
+hermit-abi = { path = "build/rust/hermit-abi" }
+
 # Patch base64 0.13 to 0.21
 base64 = { path = "build/rust/base64" }
 
