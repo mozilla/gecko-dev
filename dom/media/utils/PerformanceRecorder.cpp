@@ -173,31 +173,9 @@ void PlaybackStage::AddFlag(MediaInfoFlag aFlag) { mFlag |= aFlag; }
 
 ProfilerString8View CaptureStage::Name() const {
   if (!mName) {
-    auto imageTypeToStr = [](ImageType aType) -> const char* {
-      switch (aType) {
-        case ImageType::I420:
-          return "I420";
-        case ImageType::YUY2:
-          return "YUY2";
-        case ImageType::YV12:
-          return "YV12";
-        case ImageType::UYVY:
-          return "UYVY";
-        case ImageType::NV12:
-          return "NV12";
-        case ImageType::NV21:
-          return "NV21";
-        case ImageType::MJPEG:
-          return "MJPEG";
-        case ImageType::Unknown:
-          return "(unknown image type)";
-        default:
-          return "(unimplemented image type)";
-      };
-    };
     mName = Some(nsPrintfCString(
         "CaptureVideoFrame %s %dx%d %s %s", mSource.Data(), mWidth, mHeight,
-        imageTypeToStr(mImageType), mTrackingId.ToString().get()));
+        EnumValueToString(mImageType), mTrackingId.ToString().get()));
   }
   return *mName;
 }

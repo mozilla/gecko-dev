@@ -149,16 +149,8 @@ class PlaybackStage : public StageBase {
 
 class CaptureStage : public StageBase {
  public:
-  enum class ImageType : uint8_t {
-    Unknown,
-    I420,
-    YUY2,
-    YV12,
-    UYVY,
-    NV12,
-    NV21,
-    MJPEG,
-  };
+  MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING_AT_CLASS_SCOPE(
+      ImageType, uint8_t, (Unknown, I420, YUY2, YV12, UYVY, NV12, NV21, MJPEG));
 
   CaptureStage(nsCString aSource, TrackingId aTrackingId, int32_t aWidth,
                int32_t aHeight, ImageType aImageType)
