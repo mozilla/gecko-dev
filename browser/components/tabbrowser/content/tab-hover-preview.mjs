@@ -203,6 +203,10 @@ export default class TabHoverPreviewPanel {
     let thumbnailContainer = this._panel.querySelector(
       ".tab-preview-thumbnail-container"
     );
+    thumbnailContainer.classList.toggle(
+      "hide-thumbnail",
+      !this._hasValidThumbnailState(this._tab)
+    );
     if (thumbnailContainer.firstChild != this._thumbnailElement) {
       thumbnailContainer.replaceChildren();
       if (this._thumbnailElement) {
