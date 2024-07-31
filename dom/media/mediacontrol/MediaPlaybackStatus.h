@@ -5,6 +5,7 @@
 #ifndef DOM_MEDIA_MEDIACONTROL_MEDIAPLAYBACKSTATUS_H_
 #define DOM_MEDIA_MEDIACONTROL_MEDIAPLAYBACKSTATUS_H_
 
+#include "mozilla/DefineEnum.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/MediaSession.h"
@@ -25,12 +26,9 @@ namespace mozilla::dom {
  * `eStopped`: media has unregistered from the content media controller, we can
  *             not control it anymore
  */
-enum class MediaPlaybackState : uint32_t {
-  eStarted,
-  ePlayed,
-  ePaused,
-  eStopped,
-};
+MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(MediaPlaybackState, uint32_t,
+                                             (eStarted, ePlayed, ePaused,
+                                              eStopped));
 
 /**
  * This enum is used to update controlled media audible audible state to the

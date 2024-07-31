@@ -16,7 +16,7 @@ namespace mozilla::dom {
 void MediaPlaybackStatus::UpdateMediaPlaybackState(uint64_t aContextId,
                                                    MediaPlaybackState aState) {
   LOG("Update playback state '%s' for context %" PRIu64,
-      ToMediaPlaybackStateStr(aState), aContextId);
+      EnumValueToString(aState), aContextId);
   MOZ_ASSERT(NS_IsMainThread());
 
   ContextMediaInfo& info = GetNotNullContextInfo(aContextId);

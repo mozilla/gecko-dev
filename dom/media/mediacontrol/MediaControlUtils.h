@@ -53,22 +53,6 @@ inline MediaControlKey ConvertMediaSessionActionToControlKey(
   }
 }
 
-inline const char* ToMediaPlaybackStateStr(MediaPlaybackState aState) {
-  switch (aState) {
-    case MediaPlaybackState::eStarted:
-      return "started";
-    case MediaPlaybackState::ePlayed:
-      return "played";
-    case MediaPlaybackState::ePaused:
-      return "paused";
-    case MediaPlaybackState::eStopped:
-      return "stopped";
-    default:
-      MOZ_ASSERT_UNREACHABLE("Invalid media state.");
-      return "Unknown";
-  }
-}
-
 inline const char* ToMediaAudibleStateStr(MediaAudibleState aState) {
   switch (aState) {
     case MediaAudibleState::eInaudible:
