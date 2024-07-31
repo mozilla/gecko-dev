@@ -2909,7 +2909,7 @@ RefPtr<MediaFormatReader::SeekPromise> MediaFormatReader::Seek(
   MOZ_ASSERT(OnTaskQueue());
 
   LOG("aTarget=(%" PRId64 "), track=%s", aTarget.GetTime().ToMicroseconds(),
-      SeekTarget::TrackToStr(aTarget.GetTrack()));
+      SeekTarget::EnumValueToString(aTarget.GetTrack()));
 
   MOZ_DIAGNOSTIC_ASSERT(mSeekPromise.IsEmpty());
   MOZ_DIAGNOSTIC_ASSERT(mPendingSeekTime.isNothing());

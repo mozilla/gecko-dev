@@ -8,6 +8,7 @@
 #define SEEK_TARGET_H
 
 #include "TimeUnits.h"
+#include "mozilla/DefineEnum.h"
 
 namespace mozilla {
 
@@ -23,11 +24,8 @@ struct SeekTarget {
     Accurate,
     NextFrame,
   };
-  enum Track {
-    All,
-    AudioOnly,
-    VideoOnly,
-  };
+  MOZ_DEFINE_ENUM_WITH_TOSTRING_AT_CLASS_SCOPE(Track,
+                                               (All, AudioOnly, VideoOnly));
   SeekTarget()
       : mTime(media::TimeUnit::Invalid()),
         mType(SeekTarget::Invalid),
@@ -60,20 +58,6 @@ struct SeekTarget {
   bool IsAllTracks() const { return mTargetTrack == Track::All; }
   Type GetType() const { return mType; }
   Track GetTrack() const { return mTargetTrack; }
-
-  static const char* TrackToStr(Track aTrack) {
-    switch (aTrack) {
-      case Track::All:
-        return "all tracks";
-      case Track::AudioOnly:
-        return "audio only";
-      case Track::VideoOnly:
-        return "video only";
-      default:
-        MOZ_ASSERT_UNREACHABLE("Not defined track!");
-        return "none";
-    }
-  }
 
  private:
   // Seek target time.
