@@ -15,11 +15,11 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/ProfilerMarkerTypes.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/TypedEnumBits.h"
 #include "nsStringFwd.h"
 #include "nsTPriorityQueue.h"
-#include "mozilla/ProfilerMarkers.h"
 
 namespace mozilla {
 namespace gfx {
