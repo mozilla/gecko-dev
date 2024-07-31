@@ -2200,20 +2200,31 @@ PopupBlocker::PopupControlState BrowsingContext::RevisePopupAbuseLevel(
   PopupBlocker::PopupControlState abuse = aControl;
   switch (abuse) {
     case PopupBlocker::openControlled:
-    case PopupBlocker::openBlocked:
     case PopupBlocker::openOverridden:
       if (IsPopupAllowed()) {
+        // Go down one state enum step:
+        //   openControlled (1) -> openAllowed (0)
+        //   openOverridden (4) -> openAbused (3)
         abuse = PopupBlocker::PopupControlState(abuse - 1);
       }
       break;
     case PopupBlocker::openAbused:
       if (IsPopupAllowed() ||
           (doc && doc->HasValidTransientUserGestureActivation())) {
-        // Skip PopupBlocker::openBlocked
+        // Always go down to openControlled:
+        //   openAbused (3)  -> openControlled (1), skip openBlocked (2)
         abuse = PopupBlocker::openControlled;
       }
       break;
     case PopupBlocker::openAllowed:
+      break;
+    case PopupBlocker::openBlocked:
+      if (IsPopupAllowed() || (StaticPrefs::dom_popup_experimental() && doc &&
+                               doc->HasValidTransientUserGestureActivation())) {
+        // Go down one state enum step:
+        //   openBlocked (2) -> openControlled (1)
+        abuse = PopupBlocker::openControlled;
+      }
       break;
     default:
       NS_WARNING("Strange PopupControlState!");

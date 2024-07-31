@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test for triggering popup by postMessage</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<button id="target">click me</button>
+<script>
+function sendMouseEvent(element, eventName, button) {
+  synthesizeMouseAtCenter(element, {type: eventName, button});
+}
+
+add_setup(async function() {
+  // Deny popup permission.
+  const DENY_ACTION = SpecialPowers.Ci.nsIPermissionManager.DENY_ACTION;
+  let xorigin = SimpleTest.getTestFileURL("").replace(location.hostname, 'mochi.xorigin-test');
+  await SpecialPowers.pushPermissions([
+    {'type': 'popup', 'allow': DENY_ACTION,
+     'context': document},
+    {'type': 'popup', 'allow': DENY_ACTION,
+     'context': xorigin}
+  ]);
+
+  await new Promise(resolve => SimpleTest.waitForFocus(resolve));
+
+  // Set popup preferences.
+  await SpecialPowers.pushPrefEnv({ set: [["dom.block_multiple_popups", true]] });
+  await SpecialPowers.pushPrefEnv({ set: [["dom.popup.experimental", true]] });
+});
+
+const LEFT_BUTTON = 0;
+const MIDDLE_BUTTON = 1;
+const RIGHT_BUTTON = 2;
+let target = document.getElementById("target");
+
+let waits = [];
+target.addEventListener("mouseup", () => {
+  waits.push(Promise.withResolvers());
+  window.postMessage({ openPopup: waits.length - 1 }, "*");
+});
+
+window.addEventListener("message", (e) => {
+  if (e.data.openPopup != null) {
+    let w = window.open("");
+    ok(w, "Should allow popup");
+    if (w) {
+      w.close();
+    }
+
+    let w2 = window.open("");
+    ok(!w2, "Should block another popup");
+    if (w2) {
+      w2.close();
+    }
+
+    waits[e.data.openPopup].resolve();
+  }
+});
+
+
+add_task(async function testMouseInitiated() {
+  sendMouseEvent(target, "mousedown", LEFT_BUTTON);
+  sendMouseEvent(target, "mouseup", LEFT_BUTTON);
+
+  await Promise.all(waits.map(x => x.promise));
+});
+</script>
+</body>
+</html>

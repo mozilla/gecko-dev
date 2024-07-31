@@ -18,6 +18,8 @@ prefs = ["formhelper.autozoom.force-disable.test-only=true"]
 
 ["test_popup_blocker_pointer_event.html"]
 
+["test_popup_blocker_postmessage.html"]
+
 ["test_useractivation_has_been_activated.html"]
 
 ["test_useractivation_key_events.html"]
