@@ -10,10 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
-rust-version = "1.49.0"
+edition = "2021"
+rust-version = "1.56.0"
 name = "parking_lot_core"
-version = "0.9.9"
+version = "0.9.10"
 authors = ["Amanieu d'Antras <amanieu@gmail.com>"]
 description = "An advanced API for creating custom synchronization primitives."
 keywords = [
@@ -57,10 +57,10 @@ deadlock_detection = [
 nightly = []
 
 [target."cfg(target_os = \"redox\")".dependencies.redox_syscall]
-version = "0.4"
+version = "0.5"
 
 [target."cfg(unix)".dependencies.libc]
 version = "0.2.95"
 
 [target."cfg(windows)".dependencies.windows-targets]
-version = "0.48.0"
+version = "0.52.0"

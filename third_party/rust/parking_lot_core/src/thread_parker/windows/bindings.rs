@@ -1,5 +1,5 @@
 //! Manual bindings to the win32 API to avoid dependencies on windows-sys or winapi
-//! as these bindings will **never** change and parking_lot_core is a foundational
+//! as these bindings will **never** change and `parking_lot_core` is a foundational
 //! dependency for the Rust ecosystem, so the dependencies used by it have an
 //! outsize affect
 

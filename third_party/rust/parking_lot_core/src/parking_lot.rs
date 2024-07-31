@@ -1103,7 +1103,7 @@ pub mod deadlock {
     pub(super) use super::deadlock_impl::DeadlockData;
 
     /// Acquire a resource identified by key in the deadlock detector
-    /// Noop if deadlock_detection feature isn't enabled.
+    /// Noop if `deadlock_detection` feature isn't enabled.
     ///
     /// # Safety
     ///
@@ -1115,7 +1115,7 @@ pub mod deadlock {
     }
 
     /// Release a resource identified by key in the deadlock detector.
-    /// Noop if deadlock_detection feature isn't enabled.
+    /// Noop if `deadlock_detection` feature isn't enabled.
     ///
     /// # Panics
     ///

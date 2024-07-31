@@ -3374,7 +3374,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.999",
+ "windows-targets",
 ]
 
 [[package]]
@@ -4446,15 +4446,15 @@ dependencies = [
 
 [[package]]
 name = "parking_lot_core"
-version = "0.9.9"
+version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c42a9226546d68acdd9c0a280d17ce19bfe27a46bf68784e4066115788d008e"
+checksum = "1e401f977ab385c9e4e3ab30627d6f26d00e2c73eef317493c4ec6d468726cf8"
 dependencies = [
  "cfg-if",
  "libc",
- "redox_syscall",
+ "redox_syscall 0.5.999",
  "smallvec",
- "windows-targets 0.48.999",
+ "windows-targets",
 ]
 
 [[package]]
@@ -4900,6 +4900,13 @@ dependencies = [
 [[package]]
 name = "redox_syscall"
 version = "0.4.999"
+dependencies = [
+ "redox_syscall 0.5.999",
+]
+
+[[package]]
+name = "redox_syscall"
+version = "0.5.999"
 
 [[package]]
 name = "redox_users"
@@ -5800,7 +5807,7 @@ checksum = "01ce4141aa927a6d1bd34a041795abd0db1cccba5d5f24b009f694bdf3a1f3fa"
 dependencies = [
  "cfg-if",
  "fastrand",
- "redox_syscall",
+ "redox_syscall 0.4.999",
  "rustix",
  "windows-sys 0.52.0",
 ]
@@ -6913,7 +6920,7 @@ version = "0.52.0"
 dependencies = [
  "mozbuild",
  "windows-core",
- "windows-targets 0.52.999",
+ "windows-targets",
 ]
 
 [[package]]
@@ -6922,7 +6929,7 @@ version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
 dependencies = [
- "windows-targets 0.52.999",
+ "windows-targets",
 ]
 
 [[package]]
@@ -6938,14 +6945,7 @@ version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
 dependencies = [
- "windows-targets 0.52.999",
-]
-
-[[package]]
-name = "windows-targets"
-version = "0.48.999"
-dependencies = [
- "windows-targets 0.52.999",
+ "windows-targets",
 ]
 
 [[package]]

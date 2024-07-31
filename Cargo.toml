@@ -110,7 +110,6 @@ mozilla-central-workspace-hack = { path = "build/workspace-hack" }
 # windows-targets replacement. It avoids the large dependencies of the original
 # crate, which we don't really need as we require MSVC anyways.
 windows-targets = { path = "build/rust/windows-targets" }
-windows-targets_0_48 = { package = "windows-targets", path = "build/rust/windows-targets-0.48" }
 
 # Patch windows-sys from 0.48.0 to 0.52.0
 windows-sys = { path = "build/rust/windows-sys" }
@@ -132,6 +131,7 @@ redox_users = { path = "build/rust/redox_users" }
 
 # Patch redox_syscall to an empty crate
 redox_syscall = { path = "build/rust/redox_syscall" }
+redox_syscall_0_4 = { package = "redox_syscall", path = "build/rust/redox_syscall-0.4" }
 
 # Patch hermit-abi to an empty crate
 hermit-abi = { path = "build/rust/hermit-abi" }
