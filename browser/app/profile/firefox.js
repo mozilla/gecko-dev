@@ -1840,7 +1840,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.region-stories-config",
 // List of regions that support the new recommendations BFF, also requires region-stories-config
 pref("browser.newtabpage.activity-stream.discoverystream.region-bff-config", "US,DE,CA,GB,IE,CH,AT,BE,IN,FR,IT,ES");
 // Using merino for recommendations in nightly only
-#ifdef NIGHTLY_BUILD
+#if defined(EARLY_BETA_OR_EARLIER)
   pref("browser.newtabpage.activity-stream.discoverystream.merino-provider.enabled", true);
 #else
   pref("browser.newtabpage.activity-stream.discoverystream.merino-provider.enabled", false);
@@ -1880,7 +1880,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.onboardingExperience.en
 pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.locale-thumbs-config", "en-US, en-GB, en-CA");
 
 // List of regions that get thumbs up/down on recommended stories by default.
-#ifdef NIGHTLY_BUILD
+#ifdef EARLY_BETA_OR_EARLIER
   pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.region-thumbs-config", "US, CA");
 #else
   pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.region-thumbs-config", "");
