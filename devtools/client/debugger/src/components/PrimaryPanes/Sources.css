@@ -144,7 +144,7 @@ html[dir="rtl"] .sources-list .tree .node > div {
   color: inherit;
 }
 
-.sources-list .tree .blackboxed {
+.sources-list .tree .tree-node:not(.focused) .blackboxed {
   color: #806414;
 }
 
