@@ -505,9 +505,6 @@ static Result<CombinedBufferLayout, MediaResult> ComputeLayoutAndAllocationSize(
                           aFormat.PlaneName(p))));
     }
 
-    // TODO: Spec here is wrong so we do differently:
-    // https://github.com/w3c/webcodecs/issues/511
-    // This comment should be removed once the issue is resolved.
     ComputedPlaneLayout layout{.mDestinationOffset = 0,
                                .mDestinationStride = 0,
                                .mSourceTop = sourceTop.value(),
@@ -1054,9 +1051,6 @@ static Result<RefPtr<VideoFrame>, MediaResult> CreateVideoFrameFromBuffer(
   // visible* is same as parsedRect here. The display{Width, Height} is
   // visible{Width, Height} if it's not set.
 
-  // TODO: Spec should assign aInit.mFormat to inner format value:
-  // https://github.com/w3c/webcodecs/issues/509.
-  // This comment should be removed once the issue is resolved.
   return MakeRefPtr<VideoFrame>(aGlobal, data, Some(aInit.mFormat), codedSize,
                                 parsedRect,
                                 displaySize ? *displaySize : parsedRect.Size(),
@@ -1990,9 +1984,7 @@ already_AddRefed<Promise> VideoFrame::CopyTo(
     }
 
     MOZ_ASSERT(layout.mComputedLayouts.Length() == planes.Length());
-    // TODO: Spec doesn't resolve with a value. See
-    // https://github.com/w3c/webcodecs/issues/510 This comment should be
-    // removed once the issue is resolved.
+
     p->MaybeResolve(planeLayouts);
     return p.forget();
   });
