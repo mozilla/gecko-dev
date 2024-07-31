@@ -7,58 +7,33 @@
 #ifndef mozilla_dom_AnimationFrameProvider_h
 #define mozilla_dom_AnimationFrameProvider_h
 
-#include "MainThreadUtils.h"
-#include "mozilla/Assertions.h"
 #include "mozilla/dom/AnimationFrameProviderBinding.h"
-#include "mozilla/dom/HTMLVideoElement.h"
 #include "mozilla/dom/RequestCallbackManager.h"
 
 namespace mozilla::dom {
+
+class HTMLVideoElement;
 
 using FrameRequest = RequestCallbackEntry<FrameRequestCallback>;
 using FrameRequestManagerBase = RequestCallbackManager<FrameRequestCallback>;
 
 class FrameRequestManager final : public FrameRequestManagerBase {
  public:
-  FrameRequestManager() = default;
-  ~FrameRequestManager() = default;
+  FrameRequestManager();
+  ~FrameRequestManager();
 
   using FrameRequestManagerBase::Cancel;
   using FrameRequestManagerBase::Schedule;
   using FrameRequestManagerBase::Take;
 
-  void Schedule(HTMLVideoElement* aElement) {
-    if (!mVideoCallbacks.Contains(aElement)) {
-      mVideoCallbacks.AppendElement(aElement);
-    }
-  }
-
-  bool Cancel(HTMLVideoElement* aElement) {
-    return mVideoCallbacks.RemoveElement(aElement);
-  }
-
+  void Schedule(HTMLVideoElement*);
+  bool Cancel(HTMLVideoElement*);
   bool IsEmpty() const {
     return FrameRequestManagerBase::IsEmpty() && mVideoCallbacks.IsEmpty();
   }
-
-  void Take(nsTArray<RefPtr<HTMLVideoElement>>& aVideoCallbacks) {
-    MOZ_ASSERT(NS_IsMainThread());
-    aVideoCallbacks = std::move(mVideoCallbacks);
-  }
-
-  void Unlink() {
-    FrameRequestManagerBase::Unlink();
-    mVideoCallbacks.Clear();
-  }
-
-  void Traverse(nsCycleCollectionTraversalCallback& aCB) {
-    FrameRequestManagerBase::Traverse(aCB);
-    for (auto& i : mVideoCallbacks) {
-      NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(
-          aCB, "FrameRequestManager::mVideoCallbacks[i]");
-      aCB.NoteXPCOMChild(ToSupports(i));
-    }
-  }
+  void Take(nsTArray<RefPtr<HTMLVideoElement>>&);
+  void Unlink();
+  void Traverse(nsCycleCollectionTraversalCallback&);
 
  private:
   nsTArray<RefPtr<HTMLVideoElement>> mVideoCallbacks;

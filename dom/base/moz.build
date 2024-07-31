@@ -321,6 +321,7 @@ if CONFIG["COMPILE_ENVIRONMENT"]:
 UNIFIED_SOURCES += [
     "!UseCounterMetrics.cpp",
     "AbstractRange.cpp",
+    "AnimationFrameProvider.cpp",
     "AnonymousContent.cpp",
     "Attr.cpp",
     "AttrArray.cpp",
