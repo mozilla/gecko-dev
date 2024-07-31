@@ -198,6 +198,10 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
       return mPid;
     }
 
+    protected IChildProcess getChild() {
+      return mChild;
+    }
+
     private GeckoResult<IChildProcess> completeFailedBind(
         @NonNull final ServiceAllocator.BindException e) {
       XPCOMEventTarget.assertOnLauncherThread();
@@ -263,7 +267,6 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
       final IChildProcess child = IChildProcess.Stub.asInterface(service);
       try {
         mPid = child.getPid();
-        onBinderConnected(child);
       } catch (final DeadObjectException e) {
         unbindService();
 
@@ -287,10 +290,6 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
         mPendingBind = null;
       }
     }
-
-    // Subclasses of ChildConnection can override this method to make any IChildProcess calls
-    // specific to their process type immediately after connection.
-    protected void onBinderConnected(@NonNull final IChildProcess child) throws RemoteException {}
 
     @Override
     protected void onReleaseResources() {
@@ -328,7 +327,7 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
 
     // Unique ID used to identify each GPU process instance. Will always be non-zero,
     // and unlike the process' pid cannot be the same value for successive instances.
-    private int mUniqueGpuProcessId;
+    private final int mUniqueGpuProcessId;
     // Static counter used to initialize each instance's mUniqueGpuProcessId
     private static int sUniqueGpuProcessIdCounter = 0;
 
@@ -343,17 +342,24 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
       mUniqueGpuProcessId = sUniqueGpuProcessIdCounter++;
     }
 
-    @Override
-    protected void onBinderConnected(@NonNull final IChildProcess child) throws RemoteException {
-      mCompositorSurfaceManager = new CompositorSurfaceManager(child.getCompositorSurfaceManager());
-      mSurfaceAllocator = child.getSurfaceAllocator(mUniqueGpuProcessId);
-    }
-
     public CompositorSurfaceManager getCompositorSurfaceManager() {
+      if (mCompositorSurfaceManager == null && getChild() != null) {
+        try {
+          mCompositorSurfaceManager =
+              new CompositorSurfaceManager(getChild().getCompositorSurfaceManager());
+        } catch (final RemoteException ignored) {
+        }
+      }
       return mCompositorSurfaceManager;
     }
 
     public ISurfaceAllocator getSurfaceAllocator() {
+      if (mSurfaceAllocator == null && getChild() != null) {
+        try {
+          mSurfaceAllocator = getChild().getSurfaceAllocator(mUniqueGpuProcessId);
+        } catch (final RemoteException ignored) {
+        }
+      }
       return mSurfaceAllocator;
     }
   }
