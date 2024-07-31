@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
@@ -84,6 +85,12 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
         super.onCreateDialog(savedInstanceState).apply {
             setOnShowListener {
+                window?.navigationBarColor = if (browsingModeManager.mode.isPrivate) {
+                    ContextCompat.getColor(context, R.color.fx_mobile_private_layer_color_3)
+                } else {
+                    ContextCompat.getColor(context, R.color.fx_mobile_layer_color_3)
+                }
+
                 val bottomSheet = findViewById<View?>(R.id.design_bottom_sheet)
                 bottomSheet?.setBackgroundResource(android.R.color.transparent)
                 BottomSheetBehavior.from(bottomSheet).apply {
