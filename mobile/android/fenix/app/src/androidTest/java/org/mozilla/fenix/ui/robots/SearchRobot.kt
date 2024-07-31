@@ -403,9 +403,7 @@ class SearchRobot {
 
         fun submitQuery(query: String, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             sessionLoadedIdlingResource = SessionLoadedIdlingResource()
-            Log.i(TAG, "submitQuery: Waiting for $waitingTime ms for the search wrapper to exist")
-            searchWrapper().waitForExists(waitingTime)
-            Log.i(TAG, "submitQuery: Waited for $waitingTime ms for the search wrapper to exist")
+
             Log.i(TAG, "submitQuery: Trying to set the edit mode toolbar text to: $query")
             browserToolbarEditView().setText(query)
             Log.i(TAG, "submitQuery: Edit mode toolbar text was set to: $query")
