@@ -12,6 +12,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/BaseProfilerMarkersPrerequisites.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/ProfilerMarkerTypes.h"
@@ -29,23 +30,11 @@ enum class ColorRange : uint8_t;
 }  // namespace gfx
 
 struct TrackingId {
-  enum class Source : uint8_t {
-    Unimplemented,
-    AudioDestinationNode,
-    Camera,
-    Canvas,
-    ChannelDecoder,
-    HLSDecoder,
-    MediaCapabilities,
-    MediaElementDecoder,
-    MediaElementStream,
-    MSEDecoder,
-    RTCRtpReceiver,
-    Screen,
-    Tab,
-    Window,
-    LAST
-  };
+  MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING_AT_CLASS_SCOPE(
+      Source, uint8_t,
+      (Unimplemented, AudioDestinationNode, Camera, Canvas, ChannelDecoder,
+       HLSDecoder, MediaCapabilities, MediaElementDecoder, MediaElementStream,
+       MSEDecoder, RTCRtpReceiver, Screen, Tab, Window, LAST));
   enum class TrackAcrossProcesses : uint8_t {
     Yes,
     No,

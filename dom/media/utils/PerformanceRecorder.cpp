@@ -13,45 +13,6 @@
 
 namespace mozilla {
 
-static const char* SourceToStr(TrackingId::Source aSource) {
-  switch (aSource) {
-    case TrackingId::Source::Unimplemented:
-      MOZ_ASSERT_UNREACHABLE("Unimplemented TrackingId Source");
-      return "Unimplemented";
-    case TrackingId::Source::AudioDestinationNode:
-      return "AudioDestinationNode";
-    case TrackingId::Source::Camera:
-      return "CameraCapture";
-    case TrackingId::Source::Canvas:
-      return "CanvasCapture";
-    case TrackingId::Source::ChannelDecoder:
-      return "ChannelDecoder";
-    case TrackingId::Source::HLSDecoder:
-      return "HLSDecoder";
-    case TrackingId::Source::MediaCapabilities:
-      return "MediaCapabilities";
-    case TrackingId::Source::MediaElementDecoder:
-      return "MediaElementDecoderCapture";
-    case TrackingId::Source::MediaElementStream:
-      return "MediaElementStreamCapture";
-    case TrackingId::Source::MSEDecoder:
-      return "MSEDecoder";
-    case TrackingId::Source::RTCRtpReceiver:
-      return "RTCRtpReceiver";
-    case TrackingId::Source::Screen:
-      return "ScreenCapture";
-    case TrackingId::Source::Tab:
-      return "TabCapture";
-    case TrackingId::Source::Window:
-      return "WindowCapture";
-    case TrackingId::Source::LAST:
-      MOZ_ASSERT_UNREACHABLE("Invalid TrackingId Source");
-      return "Invalid";
-  }
-  MOZ_ASSERT_UNREACHABLE("Unexpected TrackingId Source");
-  return "Unexpected";
-}
-
 TrackingId::TrackingId() : mSource(Source::Unimplemented), mUniqueInProcId(0) {}
 
 TrackingId::TrackingId(
@@ -65,10 +26,10 @@ TrackingId::TrackingId(
 
 nsCString TrackingId::ToString() const {
   if (mProcId) {
-    return nsPrintfCString("%s-%u-%u", SourceToStr(mSource), *mProcId,
+    return nsPrintfCString("%s-%u-%u", EnumValueToString(mSource), *mProcId,
                            mUniqueInProcId);
   }
-  return nsPrintfCString("%s-%u", SourceToStr(mSource), mUniqueInProcId);
+  return nsPrintfCString("%s-%u", EnumValueToString(mSource), mUniqueInProcId);
 }
 
 static const char* StageToStr(MediaStage aStage) {
