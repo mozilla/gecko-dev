@@ -8,6 +8,7 @@
 
 #  include "AudioConfig.h"
 #  include "AudioSampleFormat.h"
+#  include "EncoderConfig.h"
 #  include "ImageTypes.h"
 #  include "MediaResult.h"
 #  include "SharedBuffer.h"
@@ -24,7 +25,6 @@
 #  include "mozilla/gfx/Rect.h"
 #  include "nsString.h"
 #  include "nsTArray.h"
-#  include "EncoderConfig.h"
 
 namespace mozilla {
 
