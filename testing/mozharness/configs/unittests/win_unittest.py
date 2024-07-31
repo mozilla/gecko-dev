@@ -18,6 +18,10 @@ REQUIRE_GPU = False
 if "REQUIRE_GPU" in os.environ:
     REQUIRE_GPU = os.environ["REQUIRE_GPU"] == "1"
 
+USE_HARDWARE = False
+if "USE_HARDWARE" in os.environ:
+    USE_HARDWARE = os.environ["USE_HARDWARE"] == "1"
+
 PYWIN32 = "pywin32==306"
 
 XPCSHELL_NAME = "xpcshell.exe"
@@ -321,7 +325,7 @@ config = {
             ],
             "architectures": ["32bit", "64bit"],
             "halt_on_failure": True,
-            "enabled": True if REQUIRE_GPU else False,
+            "enabled": True if REQUIRE_GPU and not USE_HARDWARE else False,
             "fatal_exit_code": 4,
         },
     ],

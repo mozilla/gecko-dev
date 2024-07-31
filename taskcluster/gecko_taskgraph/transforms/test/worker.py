@@ -158,10 +158,8 @@ def set_worker_type(config, tasks):
                 if task[
                     "virtualization"
                 ] == "virtual-with-gpu" and test_platform.startswith("windows1"):
-                    # some unittests can run on hardware, no need for --requires-gpu
-                    if not test_platform.startswith("windows11-64-2009-hw-ref"):
-                        # add in `--requires-gpu` to the mozharness options
-                        task["mozharness"]["extra-options"].append("--requires-gpu")
+                    # add in `--requires-gpu` to the mozharness options
+                    task["mozharness"]["extra-options"].append("--requires-gpu")
 
             # now we have the right platform set the worker type accordingly
             task["worker-type"] = win_worker_type_platform[task["virtualization"]]

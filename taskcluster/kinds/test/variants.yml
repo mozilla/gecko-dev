@@ -361,6 +361,7 @@ media-gpu:
             env:
                 MOZHARNESS_TEST_TAG:
                     - "media-gpu"
+                USE_HARDWARE: "1"
         virtualization: virtual-with-gpu
         mozharness:
             extra-options:
