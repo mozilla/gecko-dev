@@ -94,11 +94,9 @@ class AudioChannelService final : public nsIObserver {
 
   enum AudioCaptureState : bool { eCapturing = true, eNotCapturing = false };
 
-  enum AudibleChangedReasons : uint32_t {
-    eVolumeChanged = 0,
-    eDataAudibleChanged = 1,
-    ePauseStateChanged = 2
-  };
+  MOZ_DEFINE_ENUM_WITH_BASE_AND_TOSTRING_AT_CLASS_SCOPE(
+      AudibleChangedReasons, uint32_t,
+      (eVolumeChanged, eDataAudibleChanged, ePauseStateChanged));
 
   /**
    * Returns the AudioChannelServce singleton.
@@ -232,8 +230,6 @@ class AudioChannelService final : public nsIObserver {
 };
 
 const char* SuspendTypeToStr(const nsSuspendedTypes& aSuspend);
-const char* AudibleChangedReasonToStr(
-    const AudioChannelService::AudibleChangedReasons& aReason);
 
 }  // namespace mozilla::dom
 

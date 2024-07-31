@@ -54,7 +54,8 @@ class AudioPlaybackRunnable final : public Runnable {
 
     MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
             ("AudioPlaybackRunnable, active = %s, reason = %s\n",
-             mActive ? "true" : "false", AudibleChangedReasonToStr(mReason)));
+             mActive ? "true" : "false",
+             AudioChannelService::EnumValueToString(mReason)));
 
     return NS_OK;
   }
@@ -91,27 +92,6 @@ const char* SuspendTypeToStr(const nsSuspendedTypes& aSuspend) {
       return "none";
     case nsISuspendedTypes::SUSPENDED_BLOCK:
       return "block";
-    default:
-      return "unknown";
-  }
-}
-
-const char* AudibleChangedReasonToStr(
-    const AudioChannelService::AudibleChangedReasons& aReason) {
-  MOZ_ASSERT(
-      aReason == AudioChannelService::AudibleChangedReasons::eVolumeChanged ||
-      aReason ==
-          AudioChannelService::AudibleChangedReasons::eDataAudibleChanged ||
-      aReason ==
-          AudioChannelService::AudibleChangedReasons::ePauseStateChanged);
-
-  switch (aReason) {
-    case AudioChannelService::AudibleChangedReasons::eVolumeChanged:
-      return "volume";
-    case AudioChannelService::AudibleChangedReasons::eDataAudibleChanged:
-      return "data-audible";
-    case AudioChannelService::AudibleChangedReasons::ePauseStateChanged:
-      return "pause-state";
     default:
       return "unknown";
   }

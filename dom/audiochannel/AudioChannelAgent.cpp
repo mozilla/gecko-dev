@@ -192,7 +192,7 @@ AudioChannelAgent::NotifyStartedAudible(uint8_t aAudible, uint32_t aReason) {
        this,
        AudioChannelService::EnumValueToString(
            static_cast<AudioChannelService::AudibleState>(aAudible)),
-       AudibleChangedReasonToStr(
+       AudioChannelService::EnumValueToString(
            static_cast<AudioChannelService::AudibleChangedReasons>(aReason))));
 
   RefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
