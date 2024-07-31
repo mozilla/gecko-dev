@@ -6,6 +6,7 @@ prefs = [
 ]
 
 ["browser_chat_contextmenu.js"]
+["browser_chat_nimbus.js"]
 ["browser_chat_request.js"]
 ["browser_chat_shortcuts.js"]
 ["browser_chat_sidebar.js"]

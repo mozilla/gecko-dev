@@ -9,6 +9,9 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ASRouterTargeting: "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
@@ -21,6 +24,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "chatHideLocalhost",
   "browser.ml.chat.hideLocalhost"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "chatNimbus",
+  "browser.ml.chat.nimbus"
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -171,6 +179,31 @@ export const GenAI = {
 
     // Detect about:preferences to add controls
     Services.obs.addObserver(this, "experimental-pane-loaded");
+
+    // Handle nimbus feature pref setting
+    const featureId = "chatbot";
+    lazy.NimbusFeatures[featureId].onUpdate(() => {
+      const feature = { featureId };
+      const enrollment =
+        lazy.ExperimentAPI.getRolloutMetaData(feature) ??
+        lazy.ExperimentAPI.getExperimentMetaData(feature);
+      if (!enrollment?.slug) {
+        return;
+      }
+
+      // Set prefs on any branch if we have a new enrollment slug, otherwise
+      // only set default branch as those only last for the session
+      const anyBranch = enrollment.slug != lazy.chatNimbus;
+      const setPref = ([pref, { branch = "user", value = null }]) => {
+        if (anyBranch || branch == "default") {
+          lazy.PrefUtils.setPref("browser.ml.chat." + pref, value, { branch });
+        }
+      };
+      setPref(["nimbus", { value: enrollment.slug }]);
+      Object.entries(
+        lazy.NimbusFeatures[featureId].getVariable("prefs")
+      ).forEach(setPref);
+    });
   },
 
   /**

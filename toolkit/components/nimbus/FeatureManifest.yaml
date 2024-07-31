@@ -3453,6 +3453,18 @@ crlite:
       description: >-
         How CRLite results will be interpreted.
 
+chatbot:
+  description: AI chatbot feature configuration
+  owner: elee@mozilla.com
+  hasExposure: false
+  variables:
+    prefs:
+      type: json
+      description: >-
+        The prefs to set under browser.ml.chat.* with object keys as the
+        sub-pref and values objects indicating the desired branch and value
+        defaulting to clearing the user branch value.
+
 fxms_bmb_button:
   description: A feature for the Firefox Messaging System Bookmarks Bar button surface
   owner: omc@mozilla.com
