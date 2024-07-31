@@ -8,6 +8,7 @@
 #define mozilla_SourceBufferAttributes_h_
 
 #include "TimeUnits.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/dom/SourceBufferBinding.h"
 
@@ -17,11 +18,10 @@ class SourceBufferAttributes {
  public:
   // Current state as per Segment Parser Loop Algorithm
   // http://w3c.github.io/media-source/index.html#sourcebuffer-segment-parser-loop
-  enum class AppendState {
-    WAITING_FOR_SEGMENT,
-    PARSING_INIT_SEGMENT,
-    PARSING_MEDIA_SEGMENT,
-  };
+  MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(AppendState,
+                                                     (WAITING_FOR_SEGMENT,
+                                                      PARSING_INIT_SEGMENT,
+                                                      PARSING_MEDIA_SEGMENT));
 
   explicit SourceBufferAttributes(bool aGenerateTimestamp)
       : mGenerateTimestamps(aGenerateTimestamp),
