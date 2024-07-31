@@ -52,8 +52,6 @@ import mozilla.components.feature.top.sites.TopSitesFrecencyConfig
 import mozilla.components.feature.top.sites.TopSitesProviderConfig
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.service.fxa.manager.SyncEnginesStorage
-import mozilla.components.service.glean.Glean
-import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.net.ConceptFetchHttpUploader
 import mozilla.components.service.sync.logins.LoginsApiException
 import mozilla.components.support.base.ext.areNotificationsEnabledSafe
@@ -72,6 +70,8 @@ import mozilla.components.support.rustlog.RustLog
 import mozilla.components.support.utils.BrowsersCache
 import mozilla.components.support.utils.logElapsedTime
 import mozilla.components.support.webextensions.WebExtensionSupport
+import mozilla.telemetry.glean.Glean
+import mozilla.telemetry.glean.config.Configuration
 import org.mozilla.fenix.GleanMetrics.Addons
 import org.mozilla.fenix.GleanMetrics.Addresses
 import org.mozilla.fenix.GleanMetrics.AndroidAutofill
@@ -212,7 +212,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         )
 
         // Set the metric configuration from Nimbus.
-        Glean.applyServerKnobsConfig(FxNimbus.features.glean.value().metricsEnabled)
+        Glean.applyServerKnobsConfig(FxNimbus.features.glean.value().metricsEnabled.toString())
 
         Glean.initialize(
             applicationContext = this,

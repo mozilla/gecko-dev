@@ -135,10 +135,12 @@ dependencies {
     implementation project(':ui-tabcounter')
     implementation project(':ui-widgets')
 
-    // Add a dependency on service-glean to simplify the testing workflow
+    // Add a dependency on glean to simplify the testing workflow
     // for engineers that want to test Gecko metrics exfiltrated via the Glean
     // SDK. See bug 1592935 for more context.
-    implementation project(':service-glean')
+    implementation project(":service-glean")
+    implementation ComponentsDependencies.mozilla_glean
+    
     implementation project(':service-location')
     implementation project(':service-digitalassetlinks')
     implementation project(':service-sync-logins')

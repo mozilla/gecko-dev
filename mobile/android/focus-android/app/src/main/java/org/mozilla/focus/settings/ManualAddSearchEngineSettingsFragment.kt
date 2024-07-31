@@ -31,8 +31,8 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.Request.Redirect.FOLLOW
 import mozilla.components.feature.search.ext.createSearchEngine
-import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.ktx.util.URLStringUtils
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.SearchEngines
 import org.mozilla.focus.R
 import org.mozilla.focus.ext.components

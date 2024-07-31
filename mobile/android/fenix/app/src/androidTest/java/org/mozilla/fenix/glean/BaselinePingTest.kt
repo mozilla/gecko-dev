@@ -18,10 +18,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.engine.gecko.fetch.GeckoViewFetchClient
-import mozilla.components.service.glean.Glean
-import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.net.ConceptFetchHttpUploader
-import mozilla.components.service.glean.testing.GleanTestLocalServer
+import mozilla.telemetry.glean.Glean
+import mozilla.telemetry.glean.config.Configuration
+import mozilla.telemetry.glean.testing.GleanTestLocalServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.json.JSONObject
 import org.junit.Assert.assertFalse

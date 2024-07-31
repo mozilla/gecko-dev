@@ -8,8 +8,6 @@ import android.app.Application
 import android.content.Context
 import android.net.Uri
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
-import mozilla.components.service.glean.Glean
-import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.net.ConceptFetchHttpUploader
 import mozilla.components.service.nimbus.Nimbus
 import mozilla.components.service.nimbus.NimbusApi
@@ -19,6 +17,8 @@ import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.rusthttp.RustHttpConfig
 import mozilla.components.support.rustlog.RustLog
+import mozilla.telemetry.glean.Glean
+import mozilla.telemetry.glean.config.Configuration
 import org.mozilla.samples.glean.GleanMetrics.Basic
 import org.mozilla.samples.glean.GleanMetrics.Custom
 import org.mozilla.samples.glean.GleanMetrics.GleanBuildInfo

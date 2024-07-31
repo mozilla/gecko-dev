@@ -9,7 +9,7 @@ import io.mockk.mockk
 import io.mockk.verifySequence
 import mozilla.components.browser.state.action.AppLifecycleAction
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.service.glean.testing.GleanTestRule
+import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

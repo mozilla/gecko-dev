@@ -39,10 +39,10 @@ import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
 import mozilla.components.feature.addons.ui.AddonFilePicker
-import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.ktx.android.view.showKeyboard
 import mozilla.components.ui.widgets.withCenterAlignedButtons
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
@@ -385,7 +385,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
             /* Advanced preferences */
             resources.getString(R.string.pref_key_addons) -> {
-                Addons.openAddonsInSettings.record(mozilla.components.service.glean.private.NoExtras())
+                Addons.openAddonsInSettings.record(NoExtras())
                 SettingsFragmentDirections.actionSettingsFragmentToAddonsFragment()
             }
 

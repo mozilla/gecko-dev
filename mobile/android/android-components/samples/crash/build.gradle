@@ -35,6 +35,7 @@ android {
 dependencies {
     implementation project(':lib-crash')
     implementation project(':lib-fetch-httpurlconnection')
+    implementation ComponentsDependencies.mozilla_glean
     implementation project(':service-glean')
     implementation project(':support-base')
     implementation project(':support-utils')

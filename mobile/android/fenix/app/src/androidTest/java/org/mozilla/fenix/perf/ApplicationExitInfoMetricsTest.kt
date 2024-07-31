@@ -13,7 +13,7 @@ import android.os.Process
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ActivityTestRule
-import mozilla.components.service.glean.testing.GleanTestLocalServer
+import mozilla.telemetry.glean.testing.GleanTestLocalServer
 import org.hamcrest.CoreMatchers.anyOf
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat

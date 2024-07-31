@@ -48,8 +48,9 @@ android {
 }
 
 dependencies {
-    implementation project(':service-glean')
+    implementation ComponentsDependencies.mozilla_glean
 }
 
+ext.gleanNamespace = "mozilla.telemetry.glean"
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 

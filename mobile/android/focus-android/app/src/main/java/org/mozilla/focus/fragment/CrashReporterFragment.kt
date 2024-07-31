@@ -8,7 +8,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.fragment.app.Fragment
-import mozilla.components.service.glean.private.NoExtras
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.CrashReporter
 import org.mozilla.focus.R
 import org.mozilla.focus.databinding.FragmentCrashReporterBinding

@@ -57,6 +57,7 @@ android {
 }
 
 dependencies {
+    implementation ComponentsDependencies.mozilla_glean
     implementation project(':service-glean')
     implementation project(':service-nimbus')
     implementation project(':support-base')
@@ -87,4 +88,5 @@ dependencies {
     androidTestImplementation ComponentsDependencies.testing_mockwebserver
 }
 
+ext.gleanNamespace = "mozilla.telemetry.glean"
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"

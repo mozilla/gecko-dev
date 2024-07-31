@@ -5,8 +5,8 @@
 package org.mozilla.fenix.components.metrics
 
 import android.content.Context
-import mozilla.components.service.glean.Glean
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.telemetry.glean.Glean
 import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.ext.components
 

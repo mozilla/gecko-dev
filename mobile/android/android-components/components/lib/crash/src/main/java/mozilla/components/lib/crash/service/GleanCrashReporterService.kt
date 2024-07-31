@@ -30,7 +30,7 @@ import mozilla.components.lib.crash.GleanMetrics.Crash as GleanCrash
  * A [CrashReporterService] implementation for recording metrics with Glean.  The purpose of this
  * crash reporter is to collect crash count metrics by capturing [Crash.UncaughtExceptionCrash],
  * [Throwable] and [Crash.NativeCodeCrash] events and record to the respective
- * [mozilla.components.service.glean.private.CounterMetricType].
+ * [mozilla.telemetry.glean.private.CounterMetricType].
  */
 class GleanCrashReporterService(
     val context: Context,
