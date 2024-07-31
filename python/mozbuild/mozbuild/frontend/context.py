@@ -705,25 +705,6 @@ class WasmFlags(TargetCompileFlags):
                 ["-I%s/dist/include" % context.config.topobjdir],
                 ("WASM_CXXFLAGS", "WASM_CFLAGS"),
             ),
-            (
-                "OS_INCLUDES",
-                list(
-                    itertools.chain(
-                        *(
-                            context.config.substs.get(v, [])
-                            for v in (
-                                "NSPR_CFLAGS",
-                                "NSS_CFLAGS",
-                                "MOZ_JPEG_CFLAGS",
-                                "MOZ_PNG_CFLAGS",
-                                "MOZ_ZLIB_CFLAGS",
-                                "MOZ_PIXMAN_CFLAGS",
-                            )
-                        )
-                    )
-                ),
-                ("WASM_CXXFLAGS", "WASM_CFLAGS"),
-            ),
             ("DEBUG", self._debug_flags(), ("WASM_CFLAGS", "WASM_CXXFLAGS")),
             (
                 "CLANG_PLUGIN",
