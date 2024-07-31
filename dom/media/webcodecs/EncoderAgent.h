@@ -8,11 +8,11 @@
 #define DOM_MEDIA_WEBCODECS_EncoderAgent_H
 
 #include "MediaResult.h"
-#include "PlatformEncoderModule.h"
 #include "PEMFactory.h"
+#include "PlatformEncoderModule.h"
+#include "WebCodecsUtils.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TaskQueue.h"
-#include "WebCodecsUtils.h"
 
 class nsISerialEventTarget;
 
