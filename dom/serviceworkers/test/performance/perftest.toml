@@ -14,4 +14,7 @@ support-files = [
 ["test_fetch.html"]
 
 ["test_registration.html"]
-skip-if = ["tsan"] # 1885378
+skip-if = [
+  "os == 'android'", # 1910127
+  "tsan", # 1885378
+]
