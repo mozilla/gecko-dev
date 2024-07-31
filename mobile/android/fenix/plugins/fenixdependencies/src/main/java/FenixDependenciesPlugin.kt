@@ -18,7 +18,6 @@ object FenixVersions {
     const val falcon = "2.2.0"
     const val fastlane = "2.1.1"
 
-    const val androidx_activity = "1.7.2"
     const val androidx_benchmark = "1.2.4"
     const val androidx_profileinstaller = "1.3.1"
     const val androidx_splash_screen = "1.0.1"
@@ -46,7 +45,6 @@ object FenixDependencies {
     const val androidx_benchmark_macro_junit4 = "androidx.benchmark:benchmark-macro-junit4:${FenixVersions.androidx_benchmark}"
     const val androidx_core_splashscreen = "androidx.core:core-splashscreen:${FenixVersions.androidx_splash_screen}"
     const val androidx_profileinstaller = "androidx.profileinstaller:profileinstaller:${FenixVersions.androidx_profileinstaller}"
-    const val androidx_activity_ktx = "androidx.activity:activity-ktx:${FenixVersions.androidx_activity}"
     const val androidx_viewpager2 = "androidx.viewpager2:viewpager2:${FenixVersions.androidx_viewpager2}"
 
     const val google_accompanist_drawablepainter = "com.google.accompanist:accompanist-drawablepainter:${FenixVersions.google_accompanist}"

@@ -27,6 +27,7 @@ dependencies {
     implementation project(':support-base')
 
     implementation ComponentsDependencies.kotlin_coroutines
+    implementation ComponentsDependencies.androidx_activity
     implementation ComponentsDependencies.androidx_annotation
     implementation ComponentsDependencies.androidx_core
     implementation ComponentsDependencies.androidx_core_ktx

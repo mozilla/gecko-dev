@@ -54,6 +54,7 @@ tasks.withType(KotlinCompile).configureEach {
 dependencies {
     implementation ComponentsDependencies.kotlin_coroutines
 
+    implementation ComponentsDependencies.androidx_activity
     implementation ComponentsDependencies.androidx_appcompat
     implementation ComponentsDependencies.androidx_cardview
     implementation ComponentsDependencies.androidx_core_ktx

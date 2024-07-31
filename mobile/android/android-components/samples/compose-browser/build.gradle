@@ -72,7 +72,7 @@ dependencies {
 
     implementation project(':ui-icons')
 
-    implementation ComponentsDependencies.androidx_activity_compose
+    implementation ComponentsDependencies.androidx_activity
     implementation ComponentsDependencies.androidx_appcompat
     implementation ComponentsDependencies.androidx_core_ktx
     implementation ComponentsDependencies.androidx_compose_ui
