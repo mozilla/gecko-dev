@@ -160,6 +160,8 @@ treeherder:
         'W-b': 'Web platform tests (backlog)'
         'W-b-nofis': 'Web platform tests (backlog) without fission enabled'
         'W-pb': 'Web platform tests with private browsing enabled'
+        'W-emewmf': 'Web platform tests with Windows Media Foundation based CDM enabled'
+        'W-emewmf-cf': 'Web platform tests confirm failure with Windows Media Foundation based CDM enabled'
         'X': 'Xpcshell tests'
         'X-cf': 'Xpcshell tests confirm failure'
         'X-condprof': 'Xpcshell tests with a conditioned profile'

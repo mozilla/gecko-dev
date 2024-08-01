@@ -188,16 +188,23 @@ web-platform-tests-eme:
     description: "Web platform EME test run"
     suite: web-platform-tests
     treeherder-symbol: W(eme)
-    virtualization: virtual
     tier: default
     chunks: 1
     max-run-time: 1800
-    variants: []
+    variants:
+        - eme-wmf
     run-on-projects:
-        by-test-platform:
-            android.*: []
-            .*wayland.*: []
-            default: built-projects
+        by-variant:
+            eme-wmf:
+                by-test-platform:
+                    windows1.*-64.*: ['autoland', 'mozilla-central']
+                    default: []
+            default:
+                by-test-platform:
+                    android.*: []
+                    .*wayland.*: []
+                    windows1.*: []
+                    default: built-projects
     mozharness:
         chunked: true
         extra-options:

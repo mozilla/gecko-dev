@@ -345,6 +345,30 @@ wmf-media-engine:
                 - "--setpref=media.wmf.media-engine.bypass-gfx-blocklist=true"
                 - "--setpref=media.eme.mfcdm.origin-filter.enabled=0"
 
+# For EME wpts, where we need non-local connection to the license server
+eme-wmf:
+    description: "{description} with Windows Media Foundation based CDM enabled for EME wpt"
+    component: "Core::Audio/Video: Playback"
+    expiration: "2025-06-30"
+    when:
+        $eval: '"windows1" in task["test-platform"]'
+    suffix: "emewmf"
+    mozinfo: "emewmf"
+    replace:
+        tier: 2
+    merge:
+        worker:
+            env:
+                MOZ_DISABLE_NONLOCAL_CONNECTIONS:
+                    '0'
+        virtualization: virtual-with-gpu
+        mozharness:
+            extra-options:
+                - "--setpref=media.eme.playready.enabled=true"
+                - "--setpref=media.wmf.media-engine.enabled=2"
+                - "--setpref=media.wmf.media-engine.bypass-gfx-blocklist=true"
+                - "--setpref=media.eme.mfcdm.origin-filter.enabled=0"
+
 media-gpu:
     description: "{description} for running media tests on the GPU worker"
     component: "Core::Audio/Video: Playback"
