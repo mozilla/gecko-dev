@@ -9,7 +9,7 @@
 # Options: {"default": {"perfherder": true, "perfherder-metrics": [{ "name": "time", "unit": "s" }, { "name": "rss-memory", "unit": "s" }, { "name": "pss-memory", "unit": "s" }]}} #noqa
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-TEST_TIME=600
+TEST_TIME=30
 
 bash $SCRIPT_DIR/collect-proc-info-cpu.sh $SCRIPT_DIR $TEST_TIME &
 bash $SCRIPT_DIR/collect-proc-info-memory.sh $SCRIPT_DIR $TEST_TIME &

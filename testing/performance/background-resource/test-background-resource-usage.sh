@@ -3,48 +3,90 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ACTIVITY="org.mozilla.fenix.HomeActivity"
+TOOLBAR_BOUNDS_ID="toolbar"
+TABS_TRAY_BUTTON_BOUNDS_ID="counter_box"
+
 XML_FILE=$TESTING_DIR/window_dump.xml
 XMLSTARLET_CMD=${XMLSTARLET:-xmlstarlet}
 TEST_TIME=$1
 
 URL_MOZILLA="https://www.mozilla.org/"
 
+if [[ $BROWSER_BINARY == *"chrome"* ]]; then
+  ACTIVITY="com.google.android.apps.chrome.Main"
+  TOOLBAR_BOUNDS_ID="search_box_text"
+  TABS_TRAY_BUTTON_BOUNDS_ID="tab_switcher_button"
+fi
+
+TAP_X=0
+TAP_Y=0
+
+calculate_tap_coords() {
+    x1=$(($(echo "$1" | awk -F'[][]' '{print $2}' | awk -F',' '{print $1}')))
+    x2=$(($(echo "$1" | awk -F'[][]' '{print $4}' | awk -F',' '{print $1}')))
+    sum_x=$(($x1+$x2))
+
+    y1=$(($(echo "$1" | awk -F'[][]' '{print $2}' | awk -F',' '{print $2}')))
+    y2=$(($(echo "$1" | awk -F'[][]' '{print $4}' | awk -F',' '{print $2}')))
+    sum_y=$(($y1+$y2))
+
+    TAP_X=$(($sum_x/2))
+    TAP_Y=$(($sum_y/2))
+}
+
+tap_at_coords(){
+    adb shell input tap $TAP_X $TAP_Y
+}
+
+adb shell pm clear $BROWSER_BINARY
 adb shell am start -n "$BROWSER_BINARY/$ACTIVITY"
 sleep 4
+
+if [[ $BROWSER_BINARY == *"chrome"* ]]; then
+    # navigate away from the first run prompt
+    adb shell uiautomator dump
+    adb pull /sdcard/window_dump.xml $XML_FILE
+    sleep 1
+
+    DISMISS_BOUNDS=$($XMLSTARLET_CMD sel -t -v 'string(//node[@resource-id = "'$BROWSER_BINARY':id/signin_fre_dismiss_button"]/@bounds)' "$XML_FILE")
+    sleep 1
+
+    calculate_tap_coords $DISMISS_BOUNDS
+    tap_at_coords
+    sleep 2
+
+    # navigate away from privacy notice
+    adb shell uiautomator dump
+    adb pull /sdcard/window_dump.xml $XML_FILE
+    sleep 1
+
+    DISMISS_BOUNDS=$($XMLSTARLET_CMD sel -t -v 'string(//node[@resource-id = "'$BROWSER_BINARY':id/ack_button"]/@bounds)' "$XML_FILE")
+    sleep 1
+
+    calculate_tap_coords $DISMISS_BOUNDS
+    tap_at_coords
+    sleep 1
+fi
 
 adb shell uiautomator dump
 adb pull /sdcard/window_dump.xml $XML_FILE
 sleep 1
 
 # calculate toolbar coordinates
-TOOLBAR_BOUNDS=$($XMLSTARLET_CMD sel -t -v '//node[@resource-id = "'$BROWSER_BINARY':id/toolbar"]/@bounds' $XML_FILE)
+TOOLBAR_BOUNDS=$($XMLSTARLET_CMD sel -t -v '//node[@resource-id = "'$BROWSER_BINARY':id/'$TOOLBAR_BOUNDS_ID'"]/@bounds' $XML_FILE)
 sleep 1
 
-toolbar_x1=$(($(echo "$TOOLBAR_BOUNDS" | awk -F'[][]' '{print $2}' | awk -F',' '{print $1}')))
-toolbar_x2=$(($(echo "$TOOLBAR_BOUNDS" | awk -F'[][]' '{print $4}' | awk -F',' '{print $1}')))
-sum_toolbar_x=$(($toolbar_x1+$toolbar_x2))
-
-toolbar_y1=$(($(echo "$TOOLBAR_BOUNDS" | awk -F'[][]' '{print $2}' | awk -F',' '{print $2}')))
-toolbar_y2=$(($(echo "$TOOLBAR_BOUNDS" | awk -F'[][]' '{print $4}' | awk -F',' '{print $2}')))
-sum_toolbar_y=$(($toolbar_y1+$toolbar_y2))
-
-TOOLBAR_X_COORDINATE=$(($sum_toolbar_x/2))
-TOOLBAR_Y_COORDINATE=$(($sum_toolbar_y/2))
+calculate_tap_coords $TOOLBAR_BOUNDS
+TOOLBAR_X_COORDINATE=$TAP_X
+TOOLBAR_Y_COORDINATE=$TAP_Y
 
 # calculate tabs tray coordinates
-TABS_TRAY_BUTTON_BOUNDS=$($XMLSTARLET_CMD sel -t -v '//node[@resource-id = "'$BROWSER_BINARY':id/counter_box"]/@bounds' $XML_FILE)
+TABS_TRAY_BUTTON_BOUNDS=$($XMLSTARLET_CMD sel -t -v '//node[@resource-id = "'$BROWSER_BINARY':id/'$TABS_TRAY_BUTTON_BOUNDS_ID'"]/@bounds' $XML_FILE)
 sleep 1
 
-tabs_tray_x1=$(($(echo "$TABS_TRAY_BUTTON_BOUNDS" | awk -F'[][]' '{print $2}' | awk -F',' '{print $1}')))
-tabs_tray_x2=$(($(echo "$TABS_TRAY_BUTTON_BOUNDS" | awk -F'[][]' '{print $4}' | awk -F',' '{print $1}')))
-sum_tabs_tray_x=$(($tabs_tray_x1+$tabs_tray_x2))
-
-tabs_tray_y1=$(($(echo "$TABS_TRAY_BUTTON_BOUNDS" | awk -F'[][]' '{print $2}' | awk -F',' '{print $2}')))
-tabs_tray_y2=$(($(echo "$TABS_TRAY_BUTTON_BOUNDS" | awk -F'[][]' '{print $4}' | awk -F',' '{print $2}')))
-sum_tabs_tray_y=$(($tabs_tray_y1+$tabs_tray_y2))
-
-TABS_TRAY_BUTTON_X_COORDINATE=$(($sum_tabs_tray_x/2))
-TABS_TRAY_BUTTON_Y_COORDINATE=$(($sum_tabs_tray_y/2))
+calculate_tap_coords $TABS_TRAY_BUTTON_BOUNDS
+TABS_TRAY_BUTTON_X_COORDINATE=$TAP_X
+TABS_TRAY_BUTTON_Y_COORDINATE=$TAP_Y
 
 adb shell input tap $TABS_TRAY_BUTTON_X_COORDINATE $TABS_TRAY_BUTTON_Y_COORDINATE
 sleep 2
@@ -53,19 +95,16 @@ adb shell uiautomator dump
 adb pull /sdcard/window_dump.xml $XML_FILE
 
 # calculate new tab button coordinates
-ADD_TAB_BUTTON_BOUNDS=$($XMLSTARLET_CMD sel -t -v '//node[@content-desc="Add tab"]/@bounds' $XML_FILE)
+if [[ $BROWSER_BINARY == *"chrome"* ]]; then
+    ADD_TAB_BUTTON_BOUNDS=$($XMLSTARLET_CMD sel -t -v '//node[@resource-id="new_tab_view_button"]/@bounds' $XML_FILE)
+else
+    ADD_TAB_BUTTON_BOUNDS=$($XMLSTARLET_CMD sel -t -v '//node[@content-desc="Add tab"]/@bounds' $XML_FILE)
+fi
 sleep 1
 
-add_tab_x1=$(($(echo "$ADD_TAB_BUTTON_BOUNDS" | awk -F'[][]' '{print $2}' | awk -F',' '{print $1}')))
-add_tab_x2=$(($(echo "$ADD_TAB_BUTTON_BOUNDS" | awk -F'[][]' '{print $4}' | awk -F',' '{print $1}')))
-sum_add_tab_x=$(($add_tab_x1+$add_tab_x2))
-
-add_tab_y1=$(($(echo "$ADD_TAB_BUTTON_BOUNDS" | awk -F'[][]' '{print $2}' | awk -F',' '{print $2}')))
-add_tab_y2=$(($(echo "$ADD_TAB_BUTTON_BOUNDS" | awk -F'[][]' '{print $4}' | awk -F',' '{print $2}')))
-sum_add_tab_y=$(($add_tab_y1+$add_tab_y2))
-
-ADD_TAB_BUTTON_X_COORDINATE=$(($sum_add_tab_x/2))
-ADD_TAB_BUTTON_Y_COORDINATE=$(($sum_add_tab_y/2))
+calculate_tap_coords $ADD_TAB_BUTTON_BOUNDS
+ADD_TAB_BUTTON_X_COORDINATE=$TAP_X
+ADD_TAB_BUTTON_Y_COORDINATE=$TAP_Y
 
 rm $XML_FILE
 
