@@ -41,7 +41,7 @@ class TimeoutHandler : public nsISupports {
 
   // filename, line number and JS language version string of the
   // caller of setTimeout()
-  const JSCallingLocation mCaller;
+  const JSCallingLocation mCaller = {};
 
  private:
   TimeoutHandler(const TimeoutHandler&) = delete;
