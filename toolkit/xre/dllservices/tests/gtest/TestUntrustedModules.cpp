@@ -6,6 +6,7 @@
 #include "gtest/gtest.h"
 
 #include "js/RegExp.h"
+#include "js/shadow/Object.h"
 #include "mozilla/BinarySearch.h"
 #include "mozilla/gtest/MozAssertions.h"
 #include "mozilla/SpinEventLoopUntil.h"
@@ -185,12 +186,16 @@ class UntrustedModulesFixture : public TelemetryTestFixture {
 
   virtual void SetUp() override {
     wprintf(L"UntrustedModulesFixture::Setup top\n");
+    ::InitOnceExecuteOnce(&sInitLoadOnce, InitialModuleLoadOnce, nullptr,
+                          nullptr);
+    // Run this after InitialModulesLoadOnce to make sure mCleanGlobal (which
+    // gets created here) doesn't get GC'd.
     TelemetryTestFixture::SetUp();
     wprintf(
         L"UntrustedModulesFixture::Setup after base call, mCleanGlobal is %p\n",
         mCleanGlobal);
-    ::InitOnceExecuteOnce(&sInitLoadOnce, InitialModuleLoadOnce, nullptr,
-                          nullptr);
+    wprintf(L"UntrustedModulesFixture::Setup mCleanGlobal->shape is %p\n",
+            reinterpret_cast<const JS::shadow::Object*>(mCleanGlobal)->shape);
     wprintf(L"UntrustedModulesFixture::Setup bottom\n");
   }
 
@@ -423,9 +428,16 @@ BOOL CALLBACK UntrustedModulesFixture::InitialModuleLoadOnce(PINIT_ONCE, void*,
 
 TEST_F(UntrustedModulesFixture, Serialize) {
   MOZ_SEH_TRY {
-    AutoJSContextWithGlobal cx(mCleanGlobal);
+    wprintf(L"UntrustedModulesFixture::Serialize top, mCleanGlobal is %p\n",
+            mCleanGlobal);
+    wprintf(
+        L"UntrustedModulesFixture::Serialize top mCleanGlobal->shape is %p\n",
+        reinterpret_cast<const JS::shadow::Object*>(mCleanGlobal)->shape);
 
-    wprintf(L"UntrustedModulesFixture::Serialize top\n");
+    AutoJSContextWithGlobal cx(mCleanGlobal);
+    wprintf(
+        L"UntrustedModulesFixture::Serialize after AutoJSContextWithGlobal\n");
+
     // clang-format off
     const char16_t kPattern[] = u"{\"structVersion\":1,"
       u"\"modules\":\\[{"
