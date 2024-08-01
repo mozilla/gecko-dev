@@ -14,18 +14,12 @@ SourceLocation::SourceLocation() = default;
 SourceLocation::~SourceLocation() = default;
 
 SourceLocation::SourceLocation(nsCString&& aResource, uint32_t aLine,
-                               uint32_t aCol, nsCString&& aSourceLine)
-    : mResource(std::move(aResource)),
-      mLine(aLine),
-      mColumn(aCol),
-      mSourceLine(std::move(aSourceLine)) {}
+                               uint32_t aCol)
+    : mResource(std::move(aResource)), mLine(aLine), mColumn(aCol) {}
 
 SourceLocation::SourceLocation(nsCOMPtr<nsIURI>&& aResource, uint32_t aLine,
-                               uint32_t aCol, nsCString&& aSourceLine)
-    : mResource(std::move(aResource)),
-      mLine(aLine),
-      mColumn(aCol),
-      mSourceLine(std::move(aSourceLine)) {}
+                               uint32_t aCol)
+    : mResource(std::move(aResource)), mLine(aLine), mColumn(aCol) {}
 
 JSCallingLocation JSCallingLocation::Get() {
   return Get(nsContentUtils::GetCurrentJSContext());

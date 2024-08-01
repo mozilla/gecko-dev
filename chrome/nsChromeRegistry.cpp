@@ -75,9 +75,9 @@ void nsChromeRegistry::LogMessageWithContext(nsIURI* aURL, uint32_t aLineNumber,
   nsCString spec;
   if (aURL) aURL->GetSpec(spec);
 
-  rv = error->Init(NS_ConvertUTF8toUTF16(formatted.get()),
-                   NS_ConvertUTF8toUTF16(spec), u""_ns, aLineNumber, 0, flags,
-                   "chrome registration"_ns, false /* from private window */,
+  rv = error->Init(NS_ConvertUTF8toUTF16(formatted.get()), spec, aLineNumber, 0,
+                   flags, "chrome registration"_ns,
+                   false /* from private window */,
                    true /* from chrome context */);
 
   if (NS_FAILED(rv)) return;

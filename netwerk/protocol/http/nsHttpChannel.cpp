@@ -8038,9 +8038,9 @@ nsresult nsHttpChannel::LogConsoleError(const char* aTag) {
   nsCOMPtr<nsIScriptError> error(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
   NS_ENSURE_TRUE(error, NS_ERROR_OUT_OF_MEMORY);
 
-  rv = error->InitWithSourceURI(errorText, mURI, u""_ns, 0, 0,
-                                nsIScriptError::errorFlag,
-                                "Invalid HTTP Status Lines"_ns, innerWindowID);
+  rv =
+      error->InitWithSourceURI(errorText, mURI, 0, 0, nsIScriptError::errorFlag,
+                               "Invalid HTTP Status Lines"_ns, innerWindowID);
   NS_ENSURE_SUCCESS(rv, rv);
   console->LogMessage(error);
   return NS_OK;

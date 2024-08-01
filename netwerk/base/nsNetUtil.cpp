@@ -2066,7 +2066,7 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
 }
 
 nsresult NS_GetSanitizedURIStringFromURI(nsIURI* aUri,
-                                         nsAString& aSanitizedSpec) {
+                                         nsACString& aSanitizedSpec) {
   aSanitizedSpec.Truncate();
 
   nsCOMPtr<nsISensitiveInfoHiddenURI> safeUri = do_QueryInterface(aUri);
@@ -2079,7 +2079,7 @@ nsresult NS_GetSanitizedURIStringFromURI(nsIURI* aUri,
   }
 
   if (NS_SUCCEEDED(rv)) {
-    aSanitizedSpec.Assign(NS_ConvertUTF8toUTF16(cSpec));
+    aSanitizedSpec.Assign(cSpec);
   }
   return rv;
 }

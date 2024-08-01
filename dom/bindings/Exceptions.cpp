@@ -226,7 +226,7 @@ class JSStackFrame final : public nsIStackFrame, public xpc::JSStackFrameBase {
 
   nsCOMPtr<nsIStackFrame> mCaller;
   nsCOMPtr<nsIStackFrame> mAsyncCaller;
-  nsString mFilename;
+  nsCString mFilename;
   nsString mFunname;
   nsString mAsyncCause;
   int32_t mSourceId;
@@ -383,12 +383,12 @@ static void GetValueIfNotCached(
 }
 
 NS_IMETHODIMP JSStackFrame::GetFilenameXPCOM(JSContext* aCx,
-                                             nsAString& aFilename) {
+                                             nsACString& aFilename) {
   GetFilename(aCx, aFilename);
   return NS_OK;
 }
 
-void JSStackFrame::GetFilename(JSContext* aCx, nsAString& aFilename) {
+void JSStackFrame::GetFilename(JSContext* aCx, nsACString& aFilename) {
   if (!mStack) {
     aFilename.Truncate();
     return;
@@ -404,7 +404,7 @@ void JSStackFrame::GetFilename(JSContext* aCx, nsAString& aFilename) {
     return;
   }
 
-  nsAutoJSString str;
+  nsAutoJSCString str;
   if (!str.init(aCx, filename)) {
     JS_ClearPendingException(aCx);
     aFilename.Truncate();
@@ -539,11 +539,6 @@ int32_t JSStackFrame::GetColumnNumber(JSContext* aCx) {
 NS_IMETHODIMP
 JSStackFrame::GetColumnNumberXPCOM(JSContext* aCx, int32_t* aColumnNumber) {
   *aColumnNumber = GetColumnNumber(aCx);
-  return NS_OK;
-}
-
-NS_IMETHODIMP JSStackFrame::GetSourceLine(nsACString& aSourceLine) {
-  aSourceLine.Truncate();
   return NS_OK;
 }
 
@@ -717,7 +712,7 @@ JSStackFrame::ToStringXPCOM(JSContext* aCx, nsACString& _retval) {
 void JSStackFrame::ToString(JSContext* aCx, nsACString& _retval) {
   _retval.Truncate();
 
-  nsString filename;
+  nsCString filename;
   GetFilename(aCx, filename);
 
   if (filename.IsEmpty()) {
@@ -734,7 +729,7 @@ void JSStackFrame::ToString(JSContext* aCx, nsACString& _retval) {
   int32_t lineno = GetLineNumber(aCx);
 
   static const char format[] = "JS frame :: %s :: %s :: line %d";
-  _retval.AppendPrintf(format, NS_ConvertUTF16toUTF8(filename).get(),
+  _retval.AppendPrintf(format, filename.get(),
                        NS_ConvertUTF16toUTF8(funname).get(), lineno);
 }
 

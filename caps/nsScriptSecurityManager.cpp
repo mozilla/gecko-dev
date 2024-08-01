@@ -1151,12 +1151,11 @@ nsresult nsScriptSecurityManager::ReportError(const char* aMessageTag,
   // using category of "SOP" so we can link to MDN
   if (aInnerWindowID != 0) {
     rv = error->InitWithWindowID(
-        message, u""_ns, u""_ns, 0, 0, nsIScriptError::errorFlag, "SOP"_ns,
+        message, ""_ns, 0, 0, nsIScriptError::errorFlag, "SOP"_ns,
         aInnerWindowID, true /* From chrome context */);
   } else {
-    rv = error->Init(message, u""_ns, u""_ns, 0, 0, nsIScriptError::errorFlag,
-                     "SOP"_ns, aFromPrivateWindow,
-                     true /* From chrome context */);
+    rv = error->Init(message, ""_ns, 0, 0, nsIScriptError::errorFlag, "SOP"_ns,
+                     aFromPrivateWindow, true /* From chrome context */);
   }
   NS_ENSURE_SUCCESS(rv, rv);
   console->LogMessage(error);

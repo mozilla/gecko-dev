@@ -189,8 +189,7 @@ void xpc::ErrorBase::Init(JSErrorBase* aReport) {
   if (!aReport->filename) {
     mFileName.SetIsVoid(true);
   } else {
-    CopyUTF8toUTF16(mozilla::MakeStringSpan(aReport->filename.c_str()),
-                    mFileName);
+    mFileName.Assign(aReport->filename.c_str());
   }
 
   mSourceId = aReport->sourceId;
@@ -219,8 +218,6 @@ void xpc::ErrorReport::Init(JSErrorReport* aReport, const char* aToStringResult,
   if (mErrorMsg.IsEmpty()) {
     mErrorMsg.AssignLiteral("<unknown>");
   }
-
-  mSourceLine.Assign(aReport->linebuf(), aReport->linebufLength());
 
   if (aReport->errorMessageName) {
     mErrorMsgName.AssignASCII(aReport->errorMessageName);
@@ -263,7 +260,7 @@ void xpc::ErrorReport::Init(JSContext* aCx, mozilla::dom::Exception* aException,
 static LazyLogModule gJSDiagnostics("JSDiagnostics");
 
 void xpc::ErrorBase::AppendErrorDetailsTo(nsCString& error) {
-  AppendUTF16toUTF8(mFileName, error);
+  error = mFileName;
   error.AppendLiteral(", line ");
   error.AppendInt(mLineNumber, 10);
   error.AppendLiteral(": ");
@@ -324,8 +321,8 @@ void xpc::ErrorReport::LogToConsoleWithStack(
   LogToStderr();
 
   MOZ_LOG(gJSDiagnostics, IsWarning() ? LogLevel::Warning : LogLevel::Error,
-          ("file %s, line %u\n%s", NS_ConvertUTF16toUTF8(mFileName).get(),
-           mLineNumber, NS_ConvertUTF16toUTF8(mErrorMsg).get()));
+          ("file %s, line %u\n%s", mFileName.get(), mLineNumber,
+           NS_ConvertUTF16toUTF8(mErrorMsg).get()));
 
   // Log to the console. We do this last so that we can simply return if
   // there's no console service without affecting the other reporting
@@ -341,8 +338,8 @@ void xpc::ErrorReport::LogToConsoleWithStack(
   uint32_t flags =
       mIsWarning ? nsIScriptError::warningFlag : nsIScriptError::errorFlag;
   nsresult rv = errorObject->InitWithWindowID(
-      mErrorMsg, mFileName, mSourceLine, mLineNumber, mColumn, flags, mCategory,
-      mWindowID, mCategory.Equals("chrome javascript"_ns));
+      mErrorMsg, mFileName, mLineNumber, mColumn, flags, mCategory, mWindowID,
+      mCategory.Equals("chrome javascript"_ns));
   NS_ENSURE_SUCCESS_VOID(rv);
 
   rv = errorObject->InitSourceId(mSourceId);

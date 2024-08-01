@@ -20,13 +20,11 @@ struct SourceLocation {
   mozilla::Variant<nsCString, nsCOMPtr<nsIURI>> mResource{VoidCString()};
   uint32_t mLine = 0;
   uint32_t mColumn = 1;
-  nsCString mSourceLine;
 
   SourceLocation();
-  explicit SourceLocation(nsCString&&, uint32_t aLine = 0, uint32_t aCol = 1,
-                          nsCString&& aSourceLine = {});
+  explicit SourceLocation(nsCString&&, uint32_t aLine = 0, uint32_t aCol = 1);
   explicit SourceLocation(nsCOMPtr<nsIURI>&&, uint32_t aLine = 0,
-                          uint32_t aCol = 1, nsCString&& aSourceLine = {});
+                          uint32_t aCol = 1);
 
   ~SourceLocation();
 

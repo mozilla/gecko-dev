@@ -75,7 +75,6 @@ SPConsoleListener.prototype = {
       errorMessage: null,
       cssSelectors: null,
       sourceName: null,
-      sourceLine: null,
       lineNumber: null,
       columnNumber: null,
       category: null,
@@ -88,7 +87,6 @@ SPConsoleListener.prototype = {
       m.errorMessage = msg.errorMessage;
       m.cssSelectors = msg.cssSelectors;
       m.sourceName = msg.sourceName;
-      m.sourceLine = msg.sourceLine;
       m.lineNumber = msg.lineNumber;
       m.columnNumber = msg.columnNumber;
       m.category = msg.category;

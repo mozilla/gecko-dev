@@ -440,7 +440,6 @@ async function throwScriptError(options = {}) {
     scriptError.initWithWindowID(
       options.text,
       options.sourceName || "sourceName",
-      null,
       options.lineNumber || 0,
       options.columnNumber || 0,
       flag,

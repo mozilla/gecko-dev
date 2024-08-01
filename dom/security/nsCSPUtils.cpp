@@ -230,13 +230,13 @@ void CSP_LogMessage(const nsAString& aMessage, const nsACString& aSourceName,
 
   nsresult rv;
   if (aInnerWindowID > 0) {
-    rv = error->InitWithWindowID(cspMsg, NS_ConvertUTF8toUTF16(aSourceName),
-                                 aSourceLine, aLineNumber, aColumnNumber,
-                                 aFlags, category, aInnerWindowID);
+    rv =
+        error->InitWithWindowID(cspMsg, aSourceName, aLineNumber, aColumnNumber,
+                                aFlags, category, aInnerWindowID);
   } else {
-    rv = error->Init(cspMsg, NS_ConvertUTF8toUTF16(aSourceName), aSourceLine,
-                     aLineNumber, aColumnNumber, aFlags, category,
-                     aFromPrivateWindow, true /* from chrome context */);
+    rv = error->Init(cspMsg, aSourceName, aLineNumber, aColumnNumber, aFlags,
+                     category, aFromPrivateWindow,
+                     true /* from chrome context */);
   }
   if (NS_FAILED(rv)) {
     return;

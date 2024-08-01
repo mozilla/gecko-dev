@@ -193,7 +193,7 @@ nsresult nsObserverService::FilterHttpOnTopics(const char* aTopic) {
     nsCOMPtr<nsIScriptError> error(
         do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
     error->Init(u"http-on-* observers only work in the parent process"_ns,
-                u""_ns, u""_ns, 0, 0, nsIScriptError::warningFlag,
+                ""_ns, 0, 0, nsIScriptError::warningFlag,
                 "chrome javascript"_ns, false /* from private window */,
                 true /* from chrome context */);
     console->LogMessage(error);

@@ -28,7 +28,7 @@ interface mixin ExceptionMembers
   // etc.
 
   // null indicates "no data"
-  readonly attribute DOMString               filename;
+  readonly attribute UTF8String              filename;
   // Valid line numbers begin at '1'. '0' indicates unknown.
   readonly attribute unsigned long           lineNumber;
   // Valid column numbers begin at 0.

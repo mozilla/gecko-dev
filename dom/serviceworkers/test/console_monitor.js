@@ -18,7 +18,6 @@ ConsoleListener.prototype = {
       cssSelectors: aMsg.cssSelectors,
       errorMessage: aMsg.errorMessage,
       sourceName: aMsg.sourceName,
-      sourceLine: aMsg.sourceLine,
       lineNumber: aMsg.lineNumber,
       columnNumber: aMsg.columnNumber,
       category: aMsg.category,

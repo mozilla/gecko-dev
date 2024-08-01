@@ -637,12 +637,10 @@ nsresult FontFaceSetImpl::LogMessage(gfxUserFontEntry* aUserFontEntry,
 
   // try to give the user an indication of where the rule came from
   StyleLockedFontFaceRule* rule = FindRuleForUserFontEntry(aUserFontEntry);
-  nsString href;
-  nsAutoCString text;
+  nsAutoCString href;
   uint32_t line = 0;
   uint32_t column = 0;
   if (rule) {
-    Servo_FontFaceRule_GetCssText(rule, &text);
     Servo_FontFaceRule_GetSourceLocation(rule, &line, &column);
     // FIXME We need to figure out an approach to get the style sheet
     // of this raw rule. See bug 1450903.
@@ -666,8 +664,7 @@ nsresult FontFaceSetImpl::LogMessage(gfxUserFontEntry* aUserFontEntry,
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = scriptError->InitWithWindowID(NS_ConvertUTF8toUTF16(message),
-                                     href,                         // file
-                                     NS_ConvertUTF8toUTF16(text),  // src line
+                                     href,  // file
                                      line, column,
                                      aFlags,        // flags
                                      "CSS Loader",  // category (make separate?)

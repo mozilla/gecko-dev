@@ -1029,30 +1029,29 @@ class ContentParent final : public PContentParent,
   mozilla::ipc::IPCResult RecvConsoleMessage(const nsAString& aMessage);
 
   mozilla::ipc::IPCResult RecvScriptError(
-      const nsAString& aMessage, const nsAString& aSourceName,
-      const nsAString& aSourceLine, const uint32_t& aLineNumber,
-      const uint32_t& aColNumber, const uint32_t& aFlags,
-      const nsACString& aCategory, const bool& aIsFromPrivateWindow,
-      const uint64_t& aInnerWindowId, const bool& aIsFromChromeContext);
+      const nsAString& aMessage, const nsACString& aSourceName,
+      const uint32_t& aLineNumber, const uint32_t& aColNumber,
+      const uint32_t& aFlags, const nsACString& aCategory,
+      const bool& aIsFromPrivateWindow, const uint64_t& aInnerWindowId,
+      const bool& aIsFromChromeContext);
 
   mozilla::ipc::IPCResult RecvReportFrameTimingData(
       const LoadInfoArgs& loadInfoArgs, const nsAString& entryName,
       const nsAString& initiatorType, UniquePtr<PerformanceTimingData>&& aData);
 
   mozilla::ipc::IPCResult RecvScriptErrorWithStack(
-      const nsAString& aMessage, const nsAString& aSourceName,
-      const nsAString& aSourceLine, const uint32_t& aLineNumber,
-      const uint32_t& aColNumber, const uint32_t& aFlags,
-      const nsACString& aCategory, const bool& aIsFromPrivateWindow,
-      const bool& aIsFromChromeContext, const ClonedMessageData& aStack);
+      const nsAString& aMessage, const nsACString& aSourceName,
+      const uint32_t& aLineNumber, const uint32_t& aColNumber,
+      const uint32_t& aFlags, const nsACString& aCategory,
+      const bool& aIsFromPrivateWindow, const bool& aIsFromChromeContext,
+      const ClonedMessageData& aStack);
 
  private:
   mozilla::ipc::IPCResult RecvScriptErrorInternal(
-      const nsAString& aMessage, const nsAString& aSourceName,
-      const nsAString& aSourceLine, const uint32_t& aLineNumber,
-      const uint32_t& aColNumber, const uint32_t& aFlags,
-      const nsACString& aCategory, const bool& aIsFromPrivateWindow,
-      const bool& aIsFromChromeContext,
+      const nsAString& aMessage, const nsACString& aSourceName,
+      const uint32_t& aLineNumber, const uint32_t& aColNumber,
+      const uint32_t& aFlags, const nsACString& aCategory,
+      const bool& aIsFromPrivateWindow, const bool& aIsFromChromeContext,
       const ClonedMessageData* aStack = nullptr);
 
  public:

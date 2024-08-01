@@ -42,8 +42,8 @@ class MOZ_STACK_CLASS ErrorReporter final {
   static bool ShouldReportErrors(const StyleSheet*, const Loader*);
   static uint64_t FindInnerWindowId(const StyleSheet*, const Loader*);
 
-  void OutputError(const nsACString& aSource, const nsACString& aSelectors,
-                   uint32_t aLineNumber, uint32_t aColNumber, nsIURI* aURI);
+  void OutputError(const nsACString& aSelectors, uint32_t aLineNumber,
+                   uint32_t aColNumber, nsIURI* aURI);
   void ClearError();
 
   // In all overloads of ReportUnexpected, aMessage is a stringbundle

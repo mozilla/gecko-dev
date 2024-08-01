@@ -15,7 +15,7 @@ native StackFrameRef(already_AddRefed<nsIStackFrame>);
 interface nsIStackFrame : nsISupports
 {
     [implicit_jscontext, binaryname(FilenameXPCOM)]
-    readonly attribute AString                 filename;
+    readonly attribute AUTF8String             filename;
     [implicit_jscontext, binaryname(NameXPCOM)]
     readonly attribute AString                 name;
     // Unique identifier of the script source for the frame, or zero.
@@ -26,7 +26,6 @@ interface nsIStackFrame : nsISupports
     readonly attribute int32_t                 lineNumber;
     [implicit_jscontext, binaryname(ColumnNumberXPCOM)]
     readonly attribute int32_t                 columnNumber;
-    readonly attribute AUTF8String             sourceLine;
     [implicit_jscontext, binaryname(AsyncCauseXPCOM)]
     readonly attribute AString                 asyncCause;
     [implicit_jscontext, binaryname(AsyncCallerXPCOM)]
@@ -49,7 +48,7 @@ interface nsIStackFrame : nsISupports
 
     // Infallible things to be called from C++.
     [notxpcom, nostdcall]
-    void getFilename(in JSContext aCx, out AString aFilename);
+    void getFilename(in JSContext aCx, out AUTF8String aFilename);
     [notxpcom, nostdcall]
     void getName(in JSContext aCx, out AString aName);
     [notxpcom, nostdcall]

@@ -11,7 +11,7 @@ use l10nregistry::{
 };
 use log::warn;
 use nserror::{nsresult, NS_ERROR_NOT_AVAILABLE};
-use nsstring::{nsCStr, nsString};
+use nsstring::{nsCStr, nsCString, nsString};
 use std::fmt::{self, Write};
 use unic_langid::LanguageIdentifier;
 use xpcom::interfaces;
@@ -55,7 +55,7 @@ impl ErrorReporter for GeckoEnvironment {
                     &error.to_string(),
                     false,
                     true,
-                    Some(nsString::from(&resource_id.value)),
+                    Some(nsCString::from(&resource_id.value)),
                     loc.map_or((0, 0), |(l, c)| (l as u32, c as u32)),
                     interfaces::nsIScriptError::errorFlag as u32,
                 ),
@@ -95,7 +95,7 @@ fn log_simple_console_error(
     error: &impl fmt::Display,
     from_private_window: bool,
     from_chrome_context: bool,
-    path: Option<nsString>,
+    path: Option<nsCString>,
     pos: (u32, u32),
     error_flags: u32,
 ) -> Result<(), nsresult> {
@@ -115,10 +115,9 @@ fn log_simple_console_error(
         script_error
             .Init(
                 &*error_str,
-                &*path.unwrap_or(nsString::new()), /* aSourceName */
-                &*nsString::new(),                 /* aSourceLine */
-                pos.0,                             /* aLineNumber */
-                pos.1,                             /* aColNumber */
+                &*path.unwrap_or_else(nsCString::new), /* aSourceName */
+                pos.0,                                 /* aLineNumber */
+                pos.1,                                 /* aColNumber */
                 error_flags,
                 &*category,
                 from_private_window,

@@ -270,9 +270,9 @@ bool ReportWrapperDenial(JSContext* cx, HandleId id, WrapperDenialType type,
         "access from a given global object will be reported.",
         NS_LossyConvertUTF16toASCII(propertyName).get());
   }
-  nsString filenameStr(NS_ConvertASCIItoUTF16(filename.get()));
   nsresult rv = errorObject->InitWithWindowID(
-      NS_ConvertASCIItoUTF16(errorMessage.ref()), filenameStr, u""_ns, line,
+      NS_ConvertASCIItoUTF16(errorMessage.ref()),
+      nsDependentCString(filename.get() ? filename.get() : ""), line,
       column.oneOriginValue(), nsIScriptError::warningFlag, "XPConnect",
       windowId);
   NS_ENSURE_SUCCESS(rv, true);

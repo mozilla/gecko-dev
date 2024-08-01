@@ -1515,12 +1515,14 @@ bool Gecko_ErrorReportingEnabled(const StyleSheet* aSheet,
   return true;
 }
 
-void Gecko_ReportUnexpectedCSSError(
-    const uint64_t aWindowId, nsIURI* aURI, const char* message,
-    const char* param, uint32_t paramLen, const char* prefix,
-    const char* prefixParam, uint32_t prefixParamLen, const char* suffix,
-    const char* source, uint32_t sourceLen, const char* selectors,
-    uint32_t selectorsLen, uint32_t lineNumber, uint32_t colNumber) {
+void Gecko_ReportUnexpectedCSSError(const uint64_t aWindowId, nsIURI* aURI,
+                                    const char* message, const char* param,
+                                    uint32_t paramLen, const char* prefix,
+                                    const char* prefixParam,
+                                    uint32_t prefixParamLen, const char* suffix,
+                                    const char* selectors,
+                                    uint32_t selectorsLen, uint32_t lineNumber,
+                                    uint32_t colNumber) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   ErrorReporter reporter(aWindowId);
@@ -1548,10 +1550,8 @@ void Gecko_ReportUnexpectedCSSError(
   if (suffix) {
     reporter.ReportUnexpected(suffix);
   }
-  nsDependentCSubstring sourceValue(source, sourceLen);
   nsDependentCSubstring selectorsValue(selectors, selectorsLen);
-  reporter.OutputError(sourceValue, selectorsValue, lineNumber + 1, colNumber,
-                       aURI);
+  reporter.OutputError(selectorsValue, lineNumber + 1, colNumber, aURI);
 }
 
 void Gecko_ContentList_AppendAll(nsSimpleContentList* aList,

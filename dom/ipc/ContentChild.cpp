@@ -487,7 +487,8 @@ NS_IMPL_ISUPPORTS(ConsoleListener, nsIConsoleListener)
 // errors in particular share the memory for long lines with
 // repeated errors, but the IPC communication we're about to do
 // will break that sharing, so we better truncate now.
-static void TruncateString(nsAString& aString) {
+template <typename CharT>
+static void TruncateString(nsTSubstring<CharT>& aString) {
   if (aString.Length() > 1000) {
     aString.Truncate(1000);
   }
@@ -501,7 +502,8 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage) {
 
   nsCOMPtr<nsIScriptError> scriptError = do_QueryInterface(aMessage);
   if (scriptError) {
-    nsAutoString msg, sourceName, sourceLine;
+    nsAutoString msg;
+    nsAutoCString sourceName;
     nsCString category;
     uint32_t lineNum, colNum, flags;
     bool fromPrivateWindow, fromChromeContext;
@@ -512,9 +514,6 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage) {
     rv = scriptError->GetSourceName(sourceName);
     NS_ENSURE_SUCCESS(rv, rv);
     TruncateString(sourceName);
-    rv = scriptError->GetSourceLine(sourceLine);
-    NS_ENSURE_SUCCESS(rv, rv);
-    TruncateString(sourceLine);
 
     rv = scriptError->GetCategory(getter_Copies(category));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -559,15 +558,15 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage) {
           return NS_ERROR_FAILURE;
         }
 
-        mChild->SendScriptErrorWithStack(
-            msg, sourceName, sourceLine, lineNum, colNum, flags, category,
-            fromPrivateWindow, fromChromeContext, cloned);
+        mChild->SendScriptErrorWithStack(msg, sourceName, lineNum, colNum,
+                                         flags, category, fromPrivateWindow,
+                                         fromChromeContext, cloned);
         return NS_OK;
       }
     }
 
-    mChild->SendScriptError(msg, sourceName, sourceLine, lineNum, colNum, flags,
-                            category, fromPrivateWindow, 0, fromChromeContext);
+    mChild->SendScriptError(msg, sourceName, lineNum, colNum, flags, category,
+                            fromPrivateWindow, 0, fromChromeContext);
     return NS_OK;
   }
 
@@ -4234,11 +4233,11 @@ mozilla::ipc::IPCResult ContentChild::RecvDiscardWindowContext(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvScriptError(
-    const nsString& aMessage, const nsString& aSourceName,
-    const nsString& aSourceLine, const uint32_t& aLineNumber,
-    const uint32_t& aColNumber, const uint32_t& aFlags,
-    const nsCString& aCategory, const bool& aFromPrivateWindow,
-    const uint64_t& aInnerWindowId, const bool& aFromChromeContext) {
+    const nsString& aMessage, const nsCString& aSourceName,
+    const uint32_t& aLineNumber, const uint32_t& aColNumber,
+    const uint32_t& aFlags, const nsCString& aCategory,
+    const bool& aFromPrivateWindow, const uint64_t& aInnerWindowId,
+    const bool& aFromChromeContext) {
   nsresult rv = NS_OK;
   nsCOMPtr<nsIConsoleService> consoleService =
       do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
@@ -4249,8 +4248,8 @@ mozilla::ipc::IPCResult ContentChild::RecvScriptError(
   NS_ENSURE_TRUE(scriptError,
                  IPC_FAIL(this, "Failed to construct nsIScriptError"));
 
-  scriptError->InitWithWindowID(aMessage, aSourceName, aSourceLine, aLineNumber,
-                                aColNumber, aFlags, aCategory, aInnerWindowId,
+  scriptError->InitWithWindowID(aMessage, aSourceName, aLineNumber, aColNumber,
+                                aFlags, aCategory, aInnerWindowId,
                                 aFromChromeContext);
   rv = consoleService->LogMessage(scriptError);
   NS_ENSURE_SUCCESS(rv, IPC_FAIL(this, "Failed to log script error"));

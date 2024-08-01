@@ -316,13 +316,12 @@ class BlobURLsReporter final : public nsIMemoryReporter {
     JSContext* cx = frame ? nsContentUtils::GetCurrentJSContext() : nullptr;
 
     while (frame) {
-      nsString fileNameUTF16;
-      frame->GetFilename(cx, fileNameUTF16);
+      nsCString fileName;
+      frame->GetFilename(cx, fileName);
 
       int32_t lineNumber = frame->GetLineNumber(cx);
 
-      if (!fileNameUTF16.IsEmpty()) {
-        NS_ConvertUTF16toUTF8 fileName(fileNameUTF16);
+      if (!fileName.IsEmpty()) {
         stack += "js(";
         if (!origin.IsEmpty()) {
           // Make the file name root-relative for conciseness if possible.

@@ -1123,15 +1123,13 @@ static nsresult JSErrorToXPCException(JSContext* cx, const char* toStringResult,
       bestMessage.AssignLiteral("JavaScript Error");
     }
 
-    const char16_t* linebuf = report->linebuf();
     uint32_t flags = report->isWarning() ? nsIScriptError::warningFlag
                                          : nsIScriptError::errorFlag;
 
     data = new nsScriptError();
     data->nsIScriptError::InitWithWindowID(
-        bestMessage, NS_ConvertUTF8toUTF16(report->filename.c_str()),
-        linebuf ? nsDependentString(linebuf, report->linebufLength())
-                : EmptyString(),
+        bestMessage,
+        nsDependentCString(report->filename ? report->filename.c_str() : ""),
         report->lineno, report->column.oneOriginValue(), flags,
         "XPConnect JavaScript"_ns,
         nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx));

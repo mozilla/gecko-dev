@@ -86,7 +86,7 @@ class Exception : public nsIException, public nsWrapperCache {
     CreateErrorMessage(name, aRetVal);
   }
 
-  void GetFilename(JSContext* aCx, nsAString& aFilename);
+  void GetFilename(JSContext* aCx, nsACString& aFilename);
 
   uint32_t SourceId(JSContext* aCx) const;
 

@@ -81,7 +81,6 @@ function logConsoleMessage(options = {}) {
     scriptError.initWithWindowID(
       _options.message,
       _options.sourceName || "sourceName",
-      null,
       _options.lineNumber || 0,
       _options.columnNumber || 0,
       levelToFlags[level],

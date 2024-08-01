@@ -593,7 +593,7 @@ void RemoteWorkerChild::ErrorPropagationOnMainThread(
   if (aIsErrorEvent) {
     ErrorData data(
         aReport->mIsWarning, aReport->mLineNumber, aReport->mColumnNumber,
-        aReport->mMessage, aReport->mFilename, aReport->mLine,
+        aReport->mMessage, aReport->mFilename,
         TransformIntoNewArray(aReport->mNotes, [](const WorkerErrorNote& note) {
           return ErrorDataNote(note.mLineNumber, note.mColumnNumber,
                                note.mMessage, note.mFilename);

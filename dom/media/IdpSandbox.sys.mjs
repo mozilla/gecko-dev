@@ -260,7 +260,6 @@ IdpSandbox.prototype = {
     scriptError.initWithWindowID(
       e.message,
       e.fileName,
-      null,
       e.lineNumber,
       e.columnNumber,
       Ci.nsIScriptError.errorFlag,

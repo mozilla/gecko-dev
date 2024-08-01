@@ -30,7 +30,6 @@ function logWebRTCMsg(msg, file, line, flag, win) {
   scriptError.initWithWindowID(
     `WebRTC: ${msg}`,
     file,
-    null,
     line,
     0,
     flag,

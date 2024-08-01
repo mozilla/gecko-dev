@@ -23,7 +23,6 @@ rawPackets.set(`Unknown property ‘such-unknown-property’.  Declaration dropp
     "errorMessage": "Unknown property ‘such-unknown-property’.  Declaration dropped.",
     "sourceName": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-css-message.html",
     "sourceId": null,
-    "lineText": "",
     "lineNumber": 3,
     "columnNumber": 27,
     "category": "CSS Parser",
@@ -38,8 +37,8 @@ rawPackets.set(`Unknown property ‘such-unknown-property’.  Declaration dropp
     "chromeContext": false,
     "isForwardedFromContentProcess": false
   },
-  "resourceType": "css-message",
   "cssSelectors": "p",
+  "resourceType": "css-message",
   "isAlreadyExistingResource": false
 });
 
@@ -48,7 +47,6 @@ rawPackets.set(`Error in parsing value for ‘padding-top’.  Declaration dropp
     "errorMessage": "Error in parsing value for ‘padding-top’.  Declaration dropped.",
     "sourceName": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-css-message.html",
     "sourceId": null,
-    "lineText": "",
     "lineNumber": 3,
     "columnNumber": 18,
     "category": "CSS Parser",
@@ -63,8 +61,8 @@ rawPackets.set(`Error in parsing value for ‘padding-top’.  Declaration dropp
     "chromeContext": false,
     "isForwardedFromContentProcess": false
   },
-  "resourceType": "css-message",
   "cssSelectors": "p",
+  "resourceType": "css-message",
   "isAlreadyExistingResource": false
 });
 

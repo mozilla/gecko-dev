@@ -222,7 +222,7 @@ void Exception::GetName(nsAString& aName) {
   }
 }
 
-void Exception::GetFilename(JSContext* aCx, nsAString& aFilename) {
+void Exception::GetFilename(JSContext* aCx, nsACString& aFilename) {
   if (mLocation) {
     mLocation->GetFilename(aCx, aFilename);
     return;

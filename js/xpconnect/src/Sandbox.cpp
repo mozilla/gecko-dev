@@ -2010,12 +2010,12 @@ static nsresult AssembleSandboxMemoryReporterName(JSContext* cx,
 
   // Append the caller's location information.
   if (frame) {
-    nsString location;
+    nsAutoCString location;
     frame->GetFilename(cx, location);
     int32_t lineNumber = frame->GetLineNumber(cx);
 
     sandboxName.AppendLiteral(" (from: ");
-    sandboxName.Append(NS_ConvertUTF16toUTF8(location));
+    sandboxName.Append(location);
     sandboxName.Append(':');
     sandboxName.AppendInt(lineNumber);
     sandboxName.Append(')');

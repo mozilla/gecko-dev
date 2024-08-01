@@ -48,7 +48,8 @@ static void SandboxLogJSStack(void) {
   // using or something.
   JSContext* cx = frame ? nsContentUtils::GetCurrentJSContext() : nullptr;
   for (int i = 0; frame != nullptr; ++i) {
-    nsAutoString fileName, funName;
+    nsAutoCString fileName;
+    nsAutoString funName;
     int32_t lineNumber;
 
     // Don't stop unwinding if an attribute can't be read.
@@ -62,9 +63,7 @@ static void SandboxLogJSStack(void) {
       SANDBOX_LOG("JS frame %d: %s %s line %d", i,
                   funName.IsVoid() ? "(anonymous)"
                                    : NS_ConvertUTF16toUTF8(funName).get(),
-                  fileName.IsVoid() ? "(no file)"
-                                    : NS_ConvertUTF16toUTF8(fileName).get(),
-                  lineNumber);
+                  fileName.IsVoid() ? "(no file)" : fileName.get(), lineNumber);
     }
 
     frame = frame->GetCaller(cx);

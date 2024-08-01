@@ -11,11 +11,9 @@
 #include "nsIContentSecurityPolicy.h"
 #include "nsILoadInfo.h"
 #include "nsIURI.h"
-#include "nsLiteralString.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsUnicharUtils.h"
-#include "mozilla/Logging.h"
 
 class nsIChannel;
 

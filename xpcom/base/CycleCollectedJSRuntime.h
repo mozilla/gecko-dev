@@ -502,7 +502,7 @@ class CycleCollectedJSRuntime {
     // complicated garbage-collection scenarios, e.g. a JSContext being killed
     // while we still hold onto an exception thrown from it.
     struct ErrorDetails {
-      nsString mFilename;
+      nsCString mFilename;
       nsString mMessage;
       nsString mStack;
       JSExnType mType;

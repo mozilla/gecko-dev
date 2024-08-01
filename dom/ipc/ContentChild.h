@@ -709,11 +709,11 @@ class ContentChild final : public PContentChild,
       uint64_t aContextId, DiscardWindowContextResolver&& aResolve);
 
   mozilla::ipc::IPCResult RecvScriptError(
-      const nsString& aMessage, const nsString& aSourceName,
-      const nsString& aSourceLine, const uint32_t& aLineNumber,
-      const uint32_t& aColNumber, const uint32_t& aFlags,
-      const nsCString& aCategory, const bool& aFromPrivateWindow,
-      const uint64_t& aInnerWindowId, const bool& aFromChromeContext);
+      const nsString& aMessage, const nsCString& aSourceName,
+      const uint32_t& aLineNumber, const uint32_t& aColNumber,
+      const uint32_t& aFlags, const nsCString& aCategory,
+      const bool& aFromPrivateWindow, const uint64_t& aInnerWindowId,
+      const bool& aFromChromeContext);
 
   mozilla::ipc::IPCResult RecvReportFrameTimingData(
       const LoadInfoArgs& loadInfoArgs, const nsString& entryName,

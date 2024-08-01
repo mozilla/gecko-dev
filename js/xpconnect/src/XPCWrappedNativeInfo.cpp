@@ -202,8 +202,7 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
       auto location = JSCallingLocation::Get(cx);
       nsCOMPtr<nsIScriptError> error(
           do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-      error->Init(NS_ConvertUTF8toUTF16(errorMsg),
-                  NS_ConvertUTF8toUTF16(location.FileName()), u""_ns,
+      error->Init(NS_ConvertUTF8toUTF16(errorMsg), location.FileName(),
                   location.mLine, location.mColumn, nsIScriptError::warningFlag,
                   "chrome javascript"_ns, false /* from private window */,
                   true /* from chrome context */);

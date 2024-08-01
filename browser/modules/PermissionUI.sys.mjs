@@ -706,7 +706,6 @@ class SitePermsAddonInstallRequest extends PermissionPromptForRequest {
         scriptError.initWithWindowID(
           errorMessage,
           null,
-          null,
           0,
           0,
           0,

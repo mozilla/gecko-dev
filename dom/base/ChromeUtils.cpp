@@ -187,23 +187,22 @@ void ChromeUtils::ReleaseAssert(GlobalObject& aGlobal, bool aCondition,
   }
 
   // Extract the current stack from the JS runtime to embed in the crash reason.
-  nsAutoString filename;
+  nsAutoCString filename;
   uint32_t lineNo = 0;
 
   if (nsCOMPtr<nsIStackFrame> location = GetCurrentJSStack(1)) {
     location->GetFilename(aGlobal.Context(), filename);
     lineNo = location->GetLineNumber(aGlobal.Context());
   } else {
-    filename.Assign(u"<unknown>"_ns);
+    filename.Assign("<unknown>"_ns);
   }
 
   // Convert to utf-8 for adding as the MozCrashReason.
-  NS_ConvertUTF16toUTF8 filenameUtf8(filename);
   NS_ConvertUTF16toUTF8 messageUtf8(aMessage);
 
   // Actually crash.
   MOZ_CRASH_UNSAFE_PRINTF("Failed ChromeUtils.releaseAssert(\"%s\") @ %s:%u",
-                          messageUtf8.get(), filenameUtf8.get(), lineNo);
+                          messageUtf8.get(), filename.get(), lineNo);
 }
 
 /* static */

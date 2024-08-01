@@ -137,7 +137,7 @@ nsresult NS_GetURIWithNewRef(nsIURI* aInput, const nsACString& aRef,
 nsresult NS_GetURIWithoutRef(nsIURI* aInput, nsIURI** aOutput);
 
 nsresult NS_GetSanitizedURIStringFromURI(nsIURI* aUri,
-                                         nsAString& aSanitizedSpec);
+                                         nsACString& aSanitizedSpec);
 
 /*
  * How to create a new Channel, using NS_NewChannel,

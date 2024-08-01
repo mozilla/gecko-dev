@@ -1348,7 +1348,7 @@ nsXPCComponents_Utils::ReportError(HandleValue error, HandleValue stack,
     }
   }
 
-  nsString fileName;
+  nsCString fileName;
   uint32_t lineNo = 0;
 
   if (!scripterr) {
@@ -1374,7 +1374,7 @@ nsXPCComponents_Utils::ReportError(HandleValue error, HandleValue stack,
       }
 
       RootedString source(cx);
-      nsAutoJSString str;
+      nsAutoJSCString str;
       if (GetSavedFrameSource(cx, principals, stackObj, &source) ==
               SavedFrameResult::Ok &&
           str.init(cx, source)) {
@@ -1409,22 +1409,14 @@ nsXPCComponents_Utils::ReportError(HandleValue error, HandleValue stack,
   JSErrorReport* err = errorObj ? JS_ErrorFromException(cx, errorObj) : nullptr;
   if (err) {
     // It's a proper JS Error
-    nsAutoString fileUni;
-    CopyUTF8toUTF16(mozilla::MakeStringSpan(err->filename.c_str()), fileUni);
-
-    const char16_t* linebuf = err->linebuf();
     uint32_t flags = err->isWarning() ? nsIScriptError::warningFlag
                                       : nsIScriptError::errorFlag;
-
     nsresult rv = scripterr->InitWithWindowID(
         err->message() ? NS_ConvertUTF8toUTF16(err->message().c_str())
                        : EmptyString(),
-        fileUni,
-        linebuf ? nsDependentString(linebuf, err->linebufLength())
-                : EmptyString(),
+        nsDependentCString(err->filename ? err->filename.c_str() : ""),
         err->lineno, err->column.oneOriginValue(), flags,
-        "XPConnect JavaScript", innerWindowID,
-        innerWindowID == 0 ? true : false);
+        "XPConnect JavaScript", innerWindowID, innerWindowID == 0);
     NS_ENSURE_SUCCESS(rv, NS_OK);
 
     console->LogMessage(scripterr);
@@ -1442,9 +1434,9 @@ nsXPCComponents_Utils::ReportError(HandleValue error, HandleValue stack,
     return NS_OK;
   }
 
-  nsresult rv = scripterr->InitWithWindowID(
-      msg, fileName, u""_ns, lineNo, 0, 0, "XPConnect JavaScript",
-      innerWindowID, innerWindowID == 0 ? true : false);
+  nsresult rv = scripterr->InitWithWindowID(msg, fileName, lineNo, 0, 0,
+                                            "XPConnect JavaScript",
+                                            innerWindowID, innerWindowID == 0);
   NS_ENSURE_SUCCESS(rv, NS_OK);
 
   console->LogMessage(scripterr);
@@ -1471,11 +1463,8 @@ nsXPCComponents_Utils::EvalInSandbox(
     filename.Assign(filenameArg);
   } else {
     // Get the current source info.
-    nsCOMPtr<nsIStackFrame> frame = dom::GetCurrentJSStack();
-    if (frame) {
-      nsString frameFile;
-      frame->GetFilename(cx, frameFile);
-      CopyUTF16toUTF8(frameFile, filename);
+    if (nsCOMPtr<nsIStackFrame> frame = dom::GetCurrentJSStack()) {
+      frame->GetFilename(cx, filename);
       lineNo = frame->GetLineNumber(cx);
     }
   }

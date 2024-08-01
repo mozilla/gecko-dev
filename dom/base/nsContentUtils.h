@@ -1387,13 +1387,6 @@ class nsContentUtils {
   static bool PrefetchPreloadEnabled(nsIDocShell* aDocShell);
 
   static void ExtractErrorValues(JSContext* aCx, JS::Handle<JS::Value> aValue,
-                                 nsAString& aSourceSpecOut, uint32_t* aLineOut,
-                                 uint32_t* aColumnOut, nsString& aMessageOut);
-
-  // Variant on `ExtractErrorValues` with a `nsACString`. This
-  // method is provided for backwards compatibility. Prefer the
-  // faster method above for your code.
-  static void ExtractErrorValues(JSContext* aCx, JS::Handle<JS::Value> aValue,
                                  nsACString& aSourceSpecOut, uint32_t* aLineOut,
                                  uint32_t* aColumnOut, nsString& aMessageOut);
 

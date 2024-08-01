@@ -1139,7 +1139,7 @@ nsresult nsExpatDriver::HandleError() {
   nsresult rv = NS_ERROR_FAILURE;
   if (serr) {
     rv = serr->InitWithSourceURI(
-        errorText, mURIs.SafeElementAt(0), mLastLine,
+        errorText, mURIs.SafeElementAt(0),
         lineNumber.unverified_safe_because(RLBOX_SAFE_PRINT),
         colNumber.unverified_safe_because(RLBOX_SAFE_PRINT),
         nsIScriptError::errorFlag, "malformed-xml", mInnerWindowID);

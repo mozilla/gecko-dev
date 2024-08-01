@@ -12,7 +12,7 @@ interface nsIWorkerDebuggerListener : nsISupports
 {
   void onClose();
 
-  void onError(in AString filename, in unsigned long lineno,
+  void onError(in ACString filename, in unsigned long lineno,
                in AString message);
 
   void onMessage(in AString message);

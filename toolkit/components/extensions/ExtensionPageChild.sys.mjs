@@ -48,7 +48,6 @@ const initializeBackgroundPage = context => {
     consoleMsg.initWithWindowID(
       text,
       filename,
-      null,
       lineNumber,
       columnNumber,
       Ci.nsIScriptError.warningFlag,

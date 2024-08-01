@@ -5188,7 +5188,7 @@ void WorkerPrivate::SetDebuggerImmediate(dom::Function& aHandler,
   }
 }
 
-void WorkerPrivate::ReportErrorToDebugger(const nsAString& aFilename,
+void WorkerPrivate::ReportErrorToDebugger(const nsACString& aFilename,
                                           uint32_t aLineno,
                                           const nsAString& aMessage) {
   mDebugger->ReportErrorToDebugger(aFilename, aLineno, aMessage);

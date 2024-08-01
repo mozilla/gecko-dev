@@ -1292,9 +1292,9 @@ nsresult EventSourceImpl::PrintErrorOnConsole(
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = errObj->InitWithWindowID(
-      message, NS_ConvertUTF8toUTF16(mCallingLocation.FileName()), u""_ns,
-      mCallingLocation.mLine, mCallingLocation.mColumn,
-      nsIScriptError::errorFlag, "Event Source", mInnerWindowID);
+      message, mCallingLocation.FileName(), mCallingLocation.mLine,
+      mCallingLocation.mColumn, nsIScriptError::errorFlag, "Event Source",
+      mInnerWindowID);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // print the error message directly to the JS console

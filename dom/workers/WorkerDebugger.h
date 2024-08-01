@@ -39,7 +39,7 @@ class WorkerDebugger : public nsIWorkerDebugger {
 
   void PostMessageToDebugger(const nsAString& aMessage);
 
-  void ReportErrorToDebugger(const nsAString& aFilename, uint32_t aLineno,
+  void ReportErrorToDebugger(const nsACString& aFilename, uint32_t aLineno,
                              const nsAString& aMessage);
 
  private:
@@ -47,7 +47,7 @@ class WorkerDebugger : public nsIWorkerDebugger {
 
   void PostMessageToDebuggerOnMainThread(const nsAString& aMessage);
 
-  void ReportErrorToDebuggerOnMainThread(const nsAString& aFilename,
+  void ReportErrorToDebuggerOnMainThread(const nsACString& aFilename,
                                          uint32_t aLineno,
                                          const nsAString& aMessage);
 

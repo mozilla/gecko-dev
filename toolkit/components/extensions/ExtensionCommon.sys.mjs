@@ -748,7 +748,6 @@ export class BaseContext {
             new ScriptError(
               message,
               fileName,
-              null,
               lineNumber,
               columnNumber,
               Ci.nsIScriptError.errorFlag,

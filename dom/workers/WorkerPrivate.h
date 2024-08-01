@@ -406,7 +406,7 @@ class WorkerPrivate final
 
   void SetDebuggerImmediate(Function& aHandler, ErrorResult& aRv);
 
-  void ReportErrorToDebugger(const nsAString& aFilename, uint32_t aLineno,
+  void ReportErrorToDebugger(const nsACString& aFilename, uint32_t aLineno,
                              const nsAString& aMessage);
 
   bool NotifyInternal(WorkerStatus aStatus);

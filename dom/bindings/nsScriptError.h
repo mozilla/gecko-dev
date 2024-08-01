@@ -28,16 +28,15 @@ class nsScriptErrorNote final : public nsIScriptErrorNote {
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISCRIPTERRORNOTE
 
-  void Init(const nsAString& message, const nsAString& sourceName,
+  void Init(const nsAString& message, const nsACString& sourceName,
             uint32_t sourceId, uint32_t lineNumber, uint32_t columnNumber);
 
  private:
   virtual ~nsScriptErrorNote();
 
   nsString mMessage;
-  nsString mSourceName;
+  nsCString mSourceName;
   nsString mCssSelectors;
-  nsString mSourceLine;
   uint32_t mSourceId;
   uint32_t mLineNumber;
   uint32_t mColumnNumber;
@@ -62,8 +61,7 @@ class nsScriptErrorBase : public nsIScriptError {
 
   void InitializeOnMainThread();
 
-  void InitializationHelper(const nsAString& message,
-                            const nsAString& sourceLine, uint32_t lineNumber,
+  void InitializationHelper(const nsAString& message, uint32_t lineNumber,
                             uint32_t columnNumber, uint32_t flags,
                             const nsACString& category, uint64_t aInnerWindowID,
                             bool aFromChromeContext);
@@ -71,11 +69,10 @@ class nsScriptErrorBase : public nsIScriptError {
   nsCOMArray<nsIScriptErrorNote> mNotes;
   nsString mMessage;
   nsString mMessageName;
-  nsString mSourceName;
+  nsCString mSourceName;
   nsString mCssSelectors;
   uint32_t mSourceId;
   uint32_t mLineNumber;
-  nsString mSourceLine;
   uint32_t mColumnNumber;
   uint32_t mFlags;
   nsCString mCategory;

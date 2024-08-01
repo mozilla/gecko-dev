@@ -102,7 +102,7 @@ struct ErrorDataNote {
   uint32_t lineNumber;
   uint32_t columnNumber;
   nsString message;
-  nsString filename;
+  nsCString filename;
 };
 
 struct ErrorData {
@@ -110,8 +110,7 @@ struct ErrorData {
   uint32_t lineNumber;
   uint32_t columnNumber;
   nsString message;
-  nsString filename;
-  nsString line;
+  nsCString filename;
   ErrorDataNote[] notes;
 };
 

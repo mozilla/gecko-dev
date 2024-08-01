@@ -13,7 +13,7 @@ interface ErrorEvent : Event
   constructor(DOMString type, optional ErrorEventInit eventInitDict = {});
 
   readonly attribute DOMString message;
-  readonly attribute DOMString filename;
+  readonly attribute UTF8String filename;
   readonly attribute unsigned long lineno;
   readonly attribute unsigned long colno;
   readonly attribute any error;
@@ -22,7 +22,7 @@ interface ErrorEvent : Event
 dictionary ErrorEventInit : EventInit
 {
   DOMString message = "";
-  DOMString filename = "";
+  UTF8String filename = "";
   unsigned long lineno = 0;
   unsigned long colno = 0;
   any error;

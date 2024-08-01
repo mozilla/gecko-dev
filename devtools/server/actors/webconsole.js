@@ -11,9 +11,6 @@ const {
   webconsoleSpec,
 } = require("resource://devtools/shared/specs/webconsole.js");
 
-const {
-  DevToolsServer,
-} = require("resource://devtools/server/devtools-server.js");
 const { ThreadActor } = require("resource://devtools/server/actors/thread.js");
 const { ObjectActor } = require("resource://devtools/server/actors/object.js");
 const {
@@ -1414,14 +1411,6 @@ class WebConsoleActor extends Actor {
    */
   preparePageErrorForRemote(pageError) {
     const stack = this.prepareStackForRemote(pageError.stack);
-    let lineText = pageError.sourceLine;
-    if (
-      lineText &&
-      lineText.length > DevToolsServer.LONG_STRING_INITIAL_LENGTH
-    ) {
-      lineText = lineText.substr(0, DevToolsServer.LONG_STRING_INITIAL_LENGTH);
-    }
-
     let notesArray = null;
     const notes = pageError.notes;
     if (notes?.length) {
@@ -1458,7 +1447,6 @@ class WebConsoleActor extends Actor {
       exceptionDocURL: ErrorDocs.GetURL(pageError),
       sourceName,
       sourceId: this.getActorIdForInternalSourceId(sourceId),
-      lineText,
       lineNumber,
       columnNumber,
       category: pageError.category,

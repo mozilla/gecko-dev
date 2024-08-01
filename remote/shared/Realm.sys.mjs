@@ -362,7 +362,7 @@ export class WindowRealm extends Realm {
    *     The JavaScript stack trace.
    */
   reportError(message, stack) {
-    const { column, line, source: sourceLine } = stack;
+    const { column, line } = stack;
 
     const scriptErrorClass = Cc["@mozilla.org/scripterror;1"];
     const scriptError = scriptErrorClass.createInstance(Ci.nsIScriptError);
@@ -370,7 +370,6 @@ export class WindowRealm extends Realm {
     scriptError.initWithWindowID(
       message,
       this.#window.document.baseURI,
-      sourceLine,
       line,
       column,
       Ci.nsIScriptError.errorFlag,

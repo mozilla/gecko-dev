@@ -6,9 +6,6 @@
 
 const nsIConsoleListenerWatcher = require("resource://devtools/server/actors/resources/utils/nsi-console-listener-watcher.js");
 const {
-  DevToolsServer,
-} = require("resource://devtools/server/devtools-server.js");
-const {
   createStringGrip,
 } = require("resource://devtools/server/actors/object/utils.js");
 const {
@@ -90,14 +87,6 @@ class CSSMessageWatcher extends nsIConsoleListenerWatcher {
    */
   buildResource(targetActor, error) {
     const stack = this.prepareStackForRemote(targetActor, error.stack);
-    let lineText = error.sourceLine;
-    if (
-      lineText &&
-      lineText.length > DevToolsServer.LONG_STRING_INITIAL_LENGTH
-    ) {
-      lineText = lineText.substr(0, DevToolsServer.LONG_STRING_INITIAL_LENGTH);
-    }
-
     const notesArray = this.prepareNotesForRemote(targetActor, error.notes);
 
     // If there is no location information in the error but we have a stack,
@@ -114,7 +103,6 @@ class CSSMessageWatcher extends nsIConsoleListenerWatcher {
       errorMessage: createStringGrip(targetActor, error.errorMessage),
       sourceName,
       sourceId: getActorIdForInternalSourceId(targetActor, sourceId),
-      lineText,
       lineNumber,
       columnNumber,
       category: error.category,

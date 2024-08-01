@@ -4837,33 +4837,33 @@ mozilla::ipc::IPCResult ContentParent::RecvReportFrameTimingData(
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvScriptError(
-    const nsAString& aMessage, const nsAString& aSourceName,
-    const nsAString& aSourceLine, const uint32_t& aLineNumber,
-    const uint32_t& aColNumber, const uint32_t& aFlags,
-    const nsACString& aCategory, const bool& aIsFromPrivateWindow,
-    const uint64_t& aInnerWindowId, const bool& aIsFromChromeContext) {
-  return RecvScriptErrorInternal(aMessage, aSourceName, aSourceLine,
-                                 aLineNumber, aColNumber, aFlags, aCategory,
-                                 aIsFromPrivateWindow, aIsFromChromeContext);
+    const nsAString& aMessage, const nsACString& aSourceName,
+    const uint32_t& aLineNumber, const uint32_t& aColNumber,
+    const uint32_t& aFlags, const nsACString& aCategory,
+    const bool& aIsFromPrivateWindow, const uint64_t& aInnerWindowId,
+    const bool& aIsFromChromeContext) {
+  return RecvScriptErrorInternal(aMessage, aSourceName, aLineNumber, aColNumber,
+                                 aFlags, aCategory, aIsFromPrivateWindow,
+                                 aIsFromChromeContext);
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvScriptErrorWithStack(
-    const nsAString& aMessage, const nsAString& aSourceName,
-    const nsAString& aSourceLine, const uint32_t& aLineNumber,
-    const uint32_t& aColNumber, const uint32_t& aFlags,
-    const nsACString& aCategory, const bool& aIsFromPrivateWindow,
-    const bool& aIsFromChromeContext, const ClonedMessageData& aStack) {
-  return RecvScriptErrorInternal(
-      aMessage, aSourceName, aSourceLine, aLineNumber, aColNumber, aFlags,
-      aCategory, aIsFromPrivateWindow, aIsFromChromeContext, &aStack);
+    const nsAString& aMessage, const nsACString& aSourceName,
+    const uint32_t& aLineNumber, const uint32_t& aColNumber,
+    const uint32_t& aFlags, const nsACString& aCategory,
+    const bool& aIsFromPrivateWindow, const bool& aIsFromChromeContext,
+    const ClonedMessageData& aStack) {
+  return RecvScriptErrorInternal(aMessage, aSourceName, aLineNumber, aColNumber,
+                                 aFlags, aCategory, aIsFromPrivateWindow,
+                                 aIsFromChromeContext, &aStack);
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
-    const nsAString& aMessage, const nsAString& aSourceName,
-    const nsAString& aSourceLine, const uint32_t& aLineNumber,
-    const uint32_t& aColNumber, const uint32_t& aFlags,
-    const nsACString& aCategory, const bool& aIsFromPrivateWindow,
-    const bool& aIsFromChromeContext, const ClonedMessageData* aStack) {
+    const nsAString& aMessage, const nsACString& aSourceName,
+    const uint32_t& aLineNumber, const uint32_t& aColNumber,
+    const uint32_t& aFlags, const nsACString& aCategory,
+    const bool& aIsFromPrivateWindow, const bool& aIsFromChromeContext,
+    const ClonedMessageData* aStack) {
   nsresult rv;
   nsCOMPtr<nsIConsoleService> consoleService =
       do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
@@ -4903,8 +4903,8 @@ mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
     msg = new nsScriptError();
   }
 
-  rv = msg->Init(aMessage, aSourceName, aSourceLine, aLineNumber, aColNumber,
-                 aFlags, aCategory, aIsFromPrivateWindow, aIsFromChromeContext);
+  rv = msg->Init(aMessage, aSourceName, aLineNumber, aColNumber, aFlags,
+                 aCategory, aIsFromPrivateWindow, aIsFromChromeContext);
   if (NS_FAILED(rv)) return IPC_OK();
 
   msg->SetIsForwardedFromContentProcess(true);

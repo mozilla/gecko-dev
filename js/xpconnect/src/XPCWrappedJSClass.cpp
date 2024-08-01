@@ -645,7 +645,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
             // try to get filename, lineno from the first
             // stack frame location.
             int32_t lineNumber = 0;
-            nsString sourceName;
+            nsAutoCString sourceName;
 
             nsCOMPtr<nsIStackFrame> location = xpc_exception->GetLocation();
             if (location) {
@@ -657,8 +657,8 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
             }
 
             nsresult rv = scriptError->InitWithWindowID(
-                NS_ConvertUTF8toUTF16(newMessage), sourceName, u""_ns,
-                lineNumber, 0, 0, "XPConnect JavaScript",
+                NS_ConvertUTF8toUTF16(newMessage), sourceName, lineNumber, 0, 0,
+                "XPConnect JavaScript",
                 nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx));
             if (NS_FAILED(rv)) {
               scriptError = nullptr;

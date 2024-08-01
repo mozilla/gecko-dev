@@ -993,7 +993,6 @@ class WindowGlobalTargetActor extends BaseTargetActor {
     scriptError.initWithWindowID(
       text,
       null,
-      null,
       0,
       0,
       flags,

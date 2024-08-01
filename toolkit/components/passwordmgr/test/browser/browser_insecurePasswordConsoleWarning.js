@@ -86,7 +86,7 @@ add_task(async function testInsecurePasswordWarning() {
     let promiseConsoleMessages = new Promise(resolve => {
       warningPatternHandler = function (warning, originMessage) {
         Assert.ok(warning, "Handling a warning pattern");
-        let fullMessage = `[${warning.msg} {file: "${testURL}" line: 0 column: 0 source: "0"}]`;
+        let fullMessage = `[${warning.msg} {file: "${testURL}" line: 0}]`;
         Assert.equal(
           originMessage,
           fullMessage,

@@ -1223,10 +1223,7 @@ void StackFrameToStackEntry(JSContext* aCx, nsIStackFrame* aStackFrame,
                             ConsoleStackEntry& aStackEntry) {
   MOZ_ASSERT(aStackFrame);
 
-  nsAutoString filename;
-  aStackFrame->GetFilename(aCx, filename);
-  CopyUTF16toUTF8(filename, aStackEntry.mFilename);
-
+  aStackFrame->GetFilename(aCx, aStackEntry.mFilename);
   aStackEntry.mSourceId = aStackFrame->GetSourceId(aCx);
   aStackEntry.mLineNumber = aStackFrame->GetLineNumber(aCx);
   aStackEntry.mColumnNumber = aStackFrame->GetColumnNumber(aCx);
@@ -2747,10 +2744,10 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
   nsCOMPtr<nsIStackFrame> stack(aStack);
 
   while (stack) {
-    nsAutoString filename;
+    nsAutoCString filename;
     stack->GetFilename(aCx, filename);
 
-    message.Append(filename);
+    AppendUTF8toUTF16(filename, message);
     message.AppendLiteral(" ");
 
     message.AppendInt(stack->GetLineNumber(aCx));

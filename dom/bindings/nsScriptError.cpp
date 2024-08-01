@@ -97,7 +97,7 @@ nsScriptErrorBase::GetErrorMessage(nsAString& aResult) {
 }
 
 NS_IMETHODIMP
-nsScriptErrorBase::GetSourceName(nsAString& aResult) {
+nsScriptErrorBase::GetSourceName(nsACString& aResult) {
   aResult.Assign(mSourceName);
   return NS_OK;
 }
@@ -117,12 +117,6 @@ nsScriptErrorBase::SetCssSelectors(const nsAString& aCssSelectors) {
 NS_IMETHODIMP
 nsScriptErrorBase::GetSourceId(uint32_t* result) {
   *result = mSourceId;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsScriptErrorBase::GetSourceLine(nsAString& aResult) {
-  aResult.Assign(mSourceLine);
   return NS_OK;
 }
 
@@ -194,9 +188,11 @@ nsScriptErrorBase::SetErrorMessageName(const nsAString& aErrorMessageName) {
   return NS_OK;
 }
 
-static void AssignSourceNameHelper(nsString& aSourceNameDest,
-                                   const nsAString& aSourceNameSrc) {
-  if (aSourceNameSrc.IsEmpty()) return;
+static void AssignSourceNameHelper(nsCString& aSourceNameDest,
+                                   const nsACString& aSourceNameSrc) {
+  if (aSourceNameSrc.IsEmpty()) {
+    return;
+  }
 
   aSourceNameDest.Assign(aSourceNameSrc);
 
@@ -209,7 +205,7 @@ static void AssignSourceNameHelper(nsString& aSourceNameDest,
 }
 
 static void AssignSourceNameHelper(nsIURI* aSourceURI,
-                                   nsString& aSourceNameDest) {
+                                   nsCString& aSourceNameDest) {
   if (!aSourceURI) return;
 
   if (NS_FAILED(NS_GetSanitizedURIStringFromURI(aSourceURI, aSourceNameDest))) {
@@ -218,13 +214,12 @@ static void AssignSourceNameHelper(nsIURI* aSourceURI,
 }
 
 NS_IMETHODIMP
-nsScriptErrorBase::Init(const nsAString& message, const nsAString& sourceName,
-                        const nsAString& sourceLine, uint32_t lineNumber,
-                        uint32_t columnNumber, uint32_t flags,
-                        const nsACString& category, bool fromPrivateWindow,
-                        bool fromChromeContext) {
-  InitializationHelper(message, sourceLine, lineNumber, columnNumber, flags,
-                       category, 0 /* inner Window ID */, fromChromeContext);
+nsScriptErrorBase::Init(const nsAString& message, const nsACString& sourceName,
+                        uint32_t lineNumber, uint32_t columnNumber,
+                        uint32_t flags, const nsACString& category,
+                        bool fromPrivateWindow, bool fromChromeContext) {
+  InitializationHelper(message, lineNumber, columnNumber, flags, category,
+                       0 /* inner Window ID */, fromChromeContext);
   AssignSourceNameHelper(mSourceName, sourceName);
 
   mIsFromPrivateWindow = fromPrivateWindow;
@@ -233,12 +228,11 @@ nsScriptErrorBase::Init(const nsAString& message, const nsAString& sourceName,
 }
 
 void nsScriptErrorBase::InitializationHelper(
-    const nsAString& message, const nsAString& sourceLine, uint32_t lineNumber,
-    uint32_t columnNumber, uint32_t flags, const nsACString& category,
-    uint64_t aInnerWindowID, bool aFromChromeContext) {
+    const nsAString& message, uint32_t lineNumber, uint32_t columnNumber,
+    uint32_t flags, const nsACString& category, uint64_t aInnerWindowID,
+    bool aFromChromeContext) {
   mMessage.Assign(message);
   mLineNumber = lineNumber;
-  mSourceLine.Assign(sourceLine);
   mColumnNumber = columnNumber;
   mFlags = flags;
   mCategory = category;
@@ -249,14 +243,13 @@ void nsScriptErrorBase::InitializationHelper(
 
 NS_IMETHODIMP
 nsScriptErrorBase::InitWithWindowID(const nsAString& message,
-                                    const nsAString& sourceName,
-                                    const nsAString& sourceLine,
+                                    const nsACString& sourceName,
                                     uint32_t lineNumber, uint32_t columnNumber,
                                     uint32_t flags, const nsACString& category,
                                     uint64_t aInnerWindowID,
                                     bool aFromChromeContext) {
-  InitializationHelper(message, sourceLine, lineNumber, columnNumber, flags,
-                       category, aInnerWindowID, aFromChromeContext);
+  InitializationHelper(message, lineNumber, columnNumber, flags, category,
+                       aInnerWindowID, aFromChromeContext);
   AssignSourceNameHelper(mSourceName, sourceName);
 
   if (aInnerWindowID && NS_IsMainThread()) InitializeOnMainThread();
@@ -266,12 +259,11 @@ nsScriptErrorBase::InitWithWindowID(const nsAString& message,
 
 NS_IMETHODIMP
 nsScriptErrorBase::InitWithSanitizedSource(
-    const nsAString& message, const nsAString& sourceName,
-    const nsAString& sourceLine, uint32_t lineNumber, uint32_t columnNumber,
-    uint32_t flags, const nsACString& category, uint64_t aInnerWindowID,
-    bool aFromChromeContext) {
-  InitializationHelper(message, sourceLine, lineNumber, columnNumber, flags,
-                       category, aInnerWindowID, aFromChromeContext);
+    const nsAString& message, const nsACString& sourceName, uint32_t lineNumber,
+    uint32_t columnNumber, uint32_t flags, const nsACString& category,
+    uint64_t aInnerWindowID, bool aFromChromeContext) {
+  InitializationHelper(message, lineNumber, columnNumber, flags, category,
+                       aInnerWindowID, aFromChromeContext);
   mSourceName = sourceName;
 
   if (aInnerWindowID && NS_IsMainThread()) InitializeOnMainThread();
@@ -281,14 +273,13 @@ nsScriptErrorBase::InitWithSanitizedSource(
 
 NS_IMETHODIMP
 nsScriptErrorBase::InitWithSourceURI(const nsAString& message,
-                                     nsIURI* sourceURI,
-                                     const nsAString& sourceLine,
-                                     uint32_t lineNumber, uint32_t columnNumber,
-                                     uint32_t flags, const nsACString& category,
+                                     nsIURI* sourceURI, uint32_t lineNumber,
+                                     uint32_t columnNumber, uint32_t flags,
+                                     const nsACString& category,
                                      uint64_t aInnerWindowID,
                                      bool aFromChromeContext) {
-  InitializationHelper(message, sourceLine, lineNumber, columnNumber, flags,
-                       category, aInnerWindowID, aFromChromeContext);
+  InitializationHelper(message, lineNumber, columnNumber, flags, category,
+                       aInnerWindowID, aFromChromeContext);
   AssignSourceNameHelper(sourceURI, mSourceName);
 
   if (aInnerWindowID && NS_IsMainThread()) InitializeOnMainThread();
@@ -297,8 +288,7 @@ nsScriptErrorBase::InitWithSourceURI(const nsAString& message,
 }
 
 static nsresult ToStringHelper(const char* aSeverity, const nsString& aMessage,
-                               const nsString& aSourceName,
-                               const nsString* aSourceLine,
+                               const nsCString& aSourceName,
                                uint32_t aLineNumber, uint32_t aColumnNumber,
                                nsACString& /*UTF8*/ aResult) {
   static const char format0[] =
@@ -311,15 +301,15 @@ static nsresult ToStringHelper(const char* aSeverity, const nsString& aMessage,
   char* tempSourceName = nullptr;
   char* tempSourceLine = nullptr;
 
-  if (!aMessage.IsEmpty()) tempMessage = ToNewUTF8String(aMessage);
-  if (!aSourceName.IsEmpty())
+  if (!aMessage.IsEmpty()) {
+    tempMessage = ToNewUTF8String(aMessage);
+  }
+  if (!aSourceName.IsEmpty()) {
     // Use at most 512 characters from mSourceName.
-    tempSourceName = ToNewUTF8String(StringHead(aSourceName, 512));
-  if (aSourceLine && !aSourceLine->IsEmpty())
-    // Use at most 512 characters from mSourceLine.
-    tempSourceLine = ToNewUTF8String(StringHead(*aSourceLine, 512));
+    tempSourceName = ToNewCString(StringHead(aSourceName, 512));
+  }
 
-  if (nullptr != tempSourceName && nullptr != tempSourceLine) {
+  if (tempSourceName && tempSourceLine) {
     temp = JS_smprintf(format0, aSeverity, tempMessage, tempSourceName,
                        aLineNumber, aColumnNumber, tempSourceLine);
   } else if (!aSourceName.IsEmpty()) {
@@ -329,9 +319,9 @@ static nsresult ToStringHelper(const char* aSeverity, const nsString& aMessage,
     temp = JS_smprintf(format2, aSeverity, tempMessage);
   }
 
-  if (nullptr != tempMessage) free(tempMessage);
-  if (nullptr != tempSourceName) free(tempSourceName);
-  if (nullptr != tempSourceLine) free(tempSourceLine);
+  if (tempMessage) free(tempMessage);
+  if (tempSourceName) free(tempSourceName);
+  if (tempSourceLine) free(tempSourceLine);
 
   if (!temp) return NS_ERROR_OUT_OF_MEMORY;
 
@@ -347,8 +337,8 @@ nsScriptErrorBase::ToString(nsACString& /*UTF8*/ aResult) {
   const char* severity =
       !(mFlags & nsIScriptError::warningFlag) ? error : warning;
 
-  return ToStringHelper(severity, mMessage, mSourceName, &mSourceLine,
-                        mLineNumber, mColumnNumber, aResult);
+  return ToStringHelper(severity, mMessage, mSourceName, mLineNumber,
+                        mColumnNumber, aResult);
 }
 
 NS_IMETHODIMP
@@ -472,7 +462,7 @@ nsScriptErrorNote::nsScriptErrorNote()
 nsScriptErrorNote::~nsScriptErrorNote() = default;
 
 void nsScriptErrorNote::Init(const nsAString& message,
-                             const nsAString& sourceName, uint32_t sourceId,
+                             const nsACString& sourceName, uint32_t sourceId,
                              uint32_t lineNumber, uint32_t columnNumber) {
   mMessage.Assign(message);
   AssignSourceNameHelper(mSourceName, sourceName);
@@ -489,7 +479,7 @@ nsScriptErrorNote::GetErrorMessage(nsAString& aResult) {
 }
 
 NS_IMETHODIMP
-nsScriptErrorNote::GetSourceName(nsAString& aResult) {
+nsScriptErrorNote::GetSourceName(nsACString& aResult) {
   aResult.Assign(mSourceName);
   return NS_OK;
 }
@@ -514,8 +504,8 @@ nsScriptErrorNote::GetColumnNumber(uint32_t* result) {
 
 NS_IMETHODIMP
 nsScriptErrorNote::ToString(nsACString& /*UTF8*/ aResult) {
-  return ToStringHelper("JavaScript Note", mMessage, mSourceName, nullptr,
-                        mLineNumber, mColumnNumber, aResult);
+  return ToStringHelper("JavaScript Note", mMessage, mSourceName, mLineNumber,
+                        mColumnNumber, aResult);
 }
 
 NS_IMPL_ISUPPORTS(nsScriptErrorNote, nsIScriptErrorNote)

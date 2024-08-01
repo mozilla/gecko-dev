@@ -476,8 +476,6 @@ impl ErrorReporter {
         let pre_param = pre_param.map(|p| p.into_str());
         let param_ptr = param.as_ref().map_or(ptr::null(), |p| p.as_ptr());
         let pre_param_ptr = pre_param.as_ref().map_or(ptr::null(), |p| p.as_ptr());
-        // The CSS source text is unused and will be removed in bug 1381188.
-        let source = "";
         unsafe {
             bindings::Gecko_ReportUnexpectedCSSError(
                 self.window_id,
@@ -489,8 +487,6 @@ impl ErrorReporter {
                 pre_param_ptr as *const _,
                 pre_param.as_ref().map_or(0, |p| p.len()) as u32,
                 suffix as *const _,
-                source.as_ptr() as *const _,
-                source.len() as u32,
                 selector_list_ptr,
                 desugared_selector_list
                     .as_ref()

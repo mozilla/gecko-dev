@@ -355,12 +355,11 @@ exports.customFormatterBody = customFormatterBody;
 function logCustomFormatterError(window, errorMsg, script) {
   const scriptErrorClass = Cc["@mozilla.org/scripterror;1"];
   const scriptError = scriptErrorClass.createInstance(Ci.nsIScriptError);
-  const { url, source, startLine, startColumn } = script ?? {};
+  const { url, startLine, startColumn } = script ?? {};
 
   scriptError.initWithWindowID(
     `Custom formatter failed: ${errorMsg}`,
     url,
-    source,
     startLine,
     startColumn,
     Ci.nsIScriptError.errorFlag,

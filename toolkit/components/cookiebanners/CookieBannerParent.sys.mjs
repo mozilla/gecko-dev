@@ -111,9 +111,8 @@ export class CookieBannerParent extends JSWindowActorParent {
     consoleMsg.initWithWindowID(
       message.value,
       this.manager.documentURI?.spec,
-      null,
-      null,
-      null,
+      0,
+      0,
       Ci.nsIScriptError.warningFlag,
       "cookiebannerhandling",
       this.manager?.innerWindowId

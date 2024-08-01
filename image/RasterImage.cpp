@@ -1729,15 +1729,13 @@ void RasterImage::ReportDecoderError() {
 
   if (consoleService && errorObject) {
     nsAutoString msg(u"Image corrupt or truncated."_ns);
-    nsAutoString src;
+    nsAutoCString src;
     if (GetURI()) {
-      nsAutoCString uri;
-      if (!GetSpecTruncatedTo1k(uri)) {
+      if (!GetSpecTruncatedTo1k(src)) {
         msg += u" URI in this note truncated due to length."_ns;
       }
-      CopyUTF8toUTF16(uri, src);
     }
-    if (NS_SUCCEEDED(errorObject->InitWithWindowID(msg, src, u""_ns, 0, 0,
+    if (NS_SUCCEEDED(errorObject->InitWithWindowID(msg, src, 0, 0,
                                                    nsIScriptError::errorFlag,
                                                    "Image", InnerWindowID()))) {
       consoleService->LogMessage(errorObject);

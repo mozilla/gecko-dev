@@ -720,7 +720,7 @@ void InitGlobalObjectOptions(JS::RealmOptions& aOptions,
 class ErrorBase {
  public:
   nsString mErrorMsg;
-  nsString mFileName;
+  nsCString mFileName;
   uint32_t mSourceId;
   // Line number (1-origin).
   uint32_t mLineNumber;
@@ -755,7 +755,6 @@ class ErrorReport : public ErrorBase {
   nsTArray<ErrorNote> mNotes;
 
   nsCString mCategory;
-  nsString mSourceLine;
   nsString mErrorMsgName;
   uint64_t mWindowID;
   bool mIsWarning;

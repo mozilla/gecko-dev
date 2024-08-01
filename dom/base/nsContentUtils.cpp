@@ -4531,7 +4531,7 @@ void nsContentUtils::LogSimpleConsoleError(const nsAString& aErrorText,
     nsCOMPtr<nsIConsoleService> console =
         do_GetService(NS_CONSOLESERVICE_CONTRACTID);
     if (console && NS_SUCCEEDED(scriptError->Init(
-                       aErrorText, u""_ns, u""_ns, 0, 0, aErrorFlags, aCategory,
+                       aErrorText, ""_ns, 0, 0, aErrorFlags, aCategory,
                        aFromPrivateWindow, aFromChromeContext))) {
       console->LogMessage(scriptError);
     }
@@ -4591,17 +4591,15 @@ nsresult nsContentUtils::ReportToConsoleByWindowID(
       do_CreateInstance(NS_SCRIPTERROR_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  NS_ConvertUTF8toUTF16 sourceLine(aLocation.mSourceLine);
   if (aLocation.mResource.is<nsCOMPtr<nsIURI>>()) {
     nsIURI* uri = aLocation.mResource.as<nsCOMPtr<nsIURI>>();
-    rv = errorObject->InitWithSourceURI(aErrorText, uri, sourceLine,
-                                        aLocation.mLine, aLocation.mColumn,
-                                        aErrorFlags, aCategory, aInnerWindowID);
+    rv = errorObject->InitWithSourceURI(aErrorText, uri, aLocation.mLine,
+                                        aLocation.mColumn, aErrorFlags,
+                                        aCategory, aInnerWindowID);
   } else {
     rv = errorObject->InitWithWindowID(
-        aErrorText, NS_ConvertUTF8toUTF16(aLocation.mResource.as<nsCString>()),
-        sourceLine, aLocation.mLine, aLocation.mColumn, aErrorFlags, aCategory,
-        aInnerWindowID);
+        aErrorText, aLocation.mResource.as<nsCString>(), aLocation.mLine,
+        aLocation.mColumn, aErrorFlags, aCategory, aInnerWindowID);
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -11016,7 +11014,7 @@ bool nsContentUtils::IsOverridingWindowName(const nsAString& aName) {
 
 template <prototypes::ID PrototypeID, class NativeType, typename T>
 static Result<Ok, nsresult> ExtractExceptionValues(
-    JSContext* aCx, JS::Handle<JSObject*> aObj, nsAString& aSourceSpecOut,
+    JSContext* aCx, JS::Handle<JSObject*> aObj, nsACString& aSourceSpecOut,
     uint32_t* aLineOut, uint32_t* aColumnOut, nsString& aMessageOut) {
   AssertStaticUnwrapOK<PrototypeID>();
   RefPtr<T> exn;
@@ -11040,16 +11038,6 @@ static Result<Ok, nsresult> ExtractExceptionValues(
 /* static */
 void nsContentUtils::ExtractErrorValues(
     JSContext* aCx, JS::Handle<JS::Value> aValue, nsACString& aSourceSpecOut,
-    uint32_t* aLineOut, uint32_t* aColumnOut, nsString& aMessageOut) {
-  nsAutoString sourceSpec;
-  ExtractErrorValues(aCx, aValue, sourceSpec, aLineOut, aColumnOut,
-                     aMessageOut);
-  CopyUTF16toUTF8(sourceSpec, aSourceSpecOut);
-}
-
-/* static */
-void nsContentUtils::ExtractErrorValues(
-    JSContext* aCx, JS::Handle<JS::Value> aValue, nsAString& aSourceSpecOut,
     uint32_t* aLineOut, uint32_t* aColumnOut, nsString& aMessageOut) {
   MOZ_ASSERT(aLineOut);
   MOZ_ASSERT(aColumnOut);

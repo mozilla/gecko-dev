@@ -181,7 +181,6 @@ async function testMessages() {
   scriptErrorMessage.initWithWindowID(
     "Error from Services.console.logMessage",
     gBrowser.currentURI.prePath,
-    null,
     0,
     0,
     Ci.nsIScriptError.warningFlag,

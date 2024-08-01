@@ -116,9 +116,10 @@ nsresult JSEventHandler::HandleEvent(Event* aEvent) {
   if (mTypedHandler.Type() == TypedEventHandler::eOnError) {
     MOZ_ASSERT_IF(mEventName, mEventName == nsGkAtoms::onerror);
 
-    nsString errorMsg, file;
+    nsString errorMsg;
+    nsCString file;
     EventOrString msgOrEvent;
-    Optional<nsAString> fileName;
+    Optional<nsACString> fileName;
     Optional<uint32_t> lineNumber;
     Optional<uint32_t> columnNumber;
     Optional<JS::Handle<JS::Value>> error;

@@ -3703,9 +3703,9 @@ nsresult HttpBaseChannel::AddSecurityMessage(
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIScriptError> error(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-  error->InitWithSourceURI(
-      errorText, mURI, u""_ns, 0, 0, nsIScriptError::warningFlag,
-      NS_ConvertUTF16toUTF8(aMessageCategory), innerWindowID);
+  error->InitWithSourceURI(errorText, mURI, 0, 0, nsIScriptError::warningFlag,
+                           NS_ConvertUTF16toUTF8(aMessageCategory),
+                           innerWindowID);
 
   console->LogMessage(error);
 

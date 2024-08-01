@@ -1344,11 +1344,9 @@ void WorkerDebuggerGlobalScope::SetImmediate(Function& aHandler,
 
 void WorkerDebuggerGlobalScope::ReportError(JSContext* aCx,
                                             const nsAString& aMessage) {
-  JS::AutoFilename chars;
-  uint32_t lineno = 0;
-  JS::DescribeScriptedCaller(aCx, &chars, &lineno);
-  nsString filename(NS_ConvertUTF8toUTF16(chars.get()));
-  mWorkerPrivate->ReportErrorToDebugger(filename, lineno, aMessage);
+  auto caller = JSCallingLocation::Get(aCx);
+  mWorkerPrivate->ReportErrorToDebugger(caller.FileName(), caller.mLine,
+                                        aMessage);
 }
 
 void WorkerDebuggerGlobalScope::RetrieveConsoleEvents(

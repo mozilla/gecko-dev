@@ -794,10 +794,9 @@ void nsContentSecurityUtils::NotifyEvalUsage(bool aIsSystemPrincipal,
     return;
   }
 
-  rv = error->InitWithWindowID(message, fileNameA, u""_ns, aLineNumber,
-                               aColumnNumber, nsIScriptError::errorFlag,
-                               "BrowserEvalUsage", aWindowID,
-                               true /* From chrome context */);
+  rv = error->InitWithWindowID(message, aFileName, aLineNumber, aColumnNumber,
+                               nsIScriptError::errorFlag, "BrowserEvalUsage",
+                               aWindowID, true /* From chrome context */);
   if (NS_FAILED(rv)) {
     return;
   }

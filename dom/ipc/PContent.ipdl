@@ -1206,7 +1206,7 @@ parent:
     async SetGeolocationHigherAccuracy(bool enable);
 
     async ConsoleMessage(nsString message);
-    async ScriptErrorWithStack(nsString message, nsString sourceName, nsString sourceLine,
+    async ScriptErrorWithStack(nsString message, nsCString sourceName,
                                uint32_t lineNumber, uint32_t colNumber, uint32_t flags,
                                nsCString category, bool isFromPrivateWindow,
                                bool isFromChromeContext, ClonedMessageData stack);
@@ -1828,7 +1828,7 @@ parent:
     [LazySend] async CleanupPendingLoadState(uint64_t aLoadIdentifier);
 
 both:
-    async ScriptError(nsString message, nsString sourceName, nsString sourceLine,
+    async ScriptError(nsString message, nsCString sourceName,
                       uint32_t lineNumber, uint32_t colNumber, uint32_t flags,
                       nsCString category, bool isFromPrivateWindow, uint64_t innerWindowId,
                       bool isFromChromeContext);

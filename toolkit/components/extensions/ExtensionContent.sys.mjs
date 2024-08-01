@@ -730,7 +730,6 @@ class Script {
             new ScriptError(
               error.toString(),
               error.fileName,
-              null,
               error.lineNumber,
               error.columnNumber,
               Ci.nsIScriptError.errorFlag,
