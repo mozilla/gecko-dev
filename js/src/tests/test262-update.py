@@ -30,6 +30,8 @@ UNSUPPORTED_FEATURES = set(
         "source-phase-imports",
         "source-phase-imports-module-source",
         "Math.sumPrecise",
+        "Atomics.pause",
+        "RegExp.escape",
     ]
 )
 FEATURE_CHECK_NEEDED = {
