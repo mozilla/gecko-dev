@@ -2238,31 +2238,6 @@ static inline bool GetTempRegForIntArg(uint32_t usedIntArgs,
   return true;
 }
 
-#if defined(JS_CODEGEN_ARM_HARDFP) || defined(JS_SIMULATOR_ARM)
-
-static inline bool GetFloat32ArgReg(uint32_t usedIntArgs,
-                                    uint32_t usedFloatArgs,
-                                    FloatRegister* out) {
-  MOZ_ASSERT(ARMFlags::UseHardFpABI());
-  if (usedFloatArgs >= NumFloatArgRegs) {
-    return false;
-  }
-  *out = VFPRegister(usedFloatArgs, VFPRegister::Single);
-  return true;
-}
-static inline bool GetDoubleArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs,
-                                   FloatRegister* out) {
-  MOZ_ASSERT(ARMFlags::UseHardFpABI());
-  MOZ_ASSERT((usedFloatArgs % 2) == 0);
-  if (usedFloatArgs >= NumFloatArgRegs) {
-    return false;
-  }
-  *out = VFPRegister(usedFloatArgs >> 1, VFPRegister::Double);
-  return true;
-}
-
-#endif
-
 class DoubleEncoder {
   struct DoubleEntry {
     uint32_t dblTop;

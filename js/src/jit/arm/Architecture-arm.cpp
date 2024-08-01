@@ -209,13 +209,7 @@ static auto ParseARMHwCapFlags(const char* armHwCap) {
     /*NOTREACHED*/
   }
 
-  auto capabilities = ParseARMCpuFeatures(armHwCap, /* override = */ true);
-
-#ifdef JS_CODEGEN_ARM_HARDFP
-  capabilities += ARMCapability::UseHardFpABI;
-#endif
-
-  return capabilities;
+  return ParseARMCpuFeatures(armHwCap, /* override = */ true);
 }
 
 #ifndef JS_SIMULATOR_ARM
@@ -318,11 +312,6 @@ static auto ReadARMHwCapFlags() {
 
   // If compiled to use specialized features then these features can be
   // assumed to be present otherwise the compiler would fail to run.
-
-#  ifdef JS_CODEGEN_ARM_HARDFP
-  // Compiled to use the hardfp ABI.
-  capabilities += ARMCapability::UseHardFpABI;
-#  endif
 
 #  if defined(__VFP_FP__) && !defined(__SOFTFP__)
   // Compiled to use VFP instructions so assume VFP support.

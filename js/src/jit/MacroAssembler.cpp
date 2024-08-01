@@ -4452,15 +4452,8 @@ void MacroAssembler::setupABICallHelper() {
   abiArgs_ = ABIArgGeneratorT();
 
 #if defined(JS_CODEGEN_ARM)
-  // On ARM, we need to know what ABI we are using, either in the
-  // simulator, or based on the configure flags.
-#  if defined(JS_SIMULATOR_ARM)
+  // On ARM, we need to know what ABI we are using.
   abiArgs_.setUseHardFp(ARMFlags::UseHardFpABI());
-#  elif defined(JS_CODEGEN_ARM_HARDFP)
-  abiArgs_.setUseHardFp(true);
-#  else
-  abiArgs_.setUseHardFp(false);
-#  endif
 #endif
 
 #if defined(JS_CODEGEN_MIPS32)

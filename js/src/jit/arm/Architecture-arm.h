@@ -18,13 +18,6 @@
 
 #include "js/Utility.h"
 
-// GCC versions 4.6 and above define __ARM_PCS_VFP to denote a hard-float
-// ABI target. The iOS toolchain doesn't define anything specific here,
-// but iOS always supports VFP.
-#if defined(__ARM_PCS_VFP) || defined(XP_IOS)
-#  define JS_CODEGEN_ARM_HARDFP
-#endif
-
 namespace js {
 namespace jit {
 
@@ -763,7 +756,10 @@ class ARMFlags final {
   }
 #else
   static constexpr bool UseHardFpABI() {
-#  if defined(JS_CODEGEN_ARM_HARDFP)
+// GCC versions 4.6 and above define __ARM_PCS_VFP to denote a hard-float
+// ABI target. The iOS toolchain doesn't define anything specific here, but
+// iOS always supports VFP.
+#  if defined(__ARM_PCS_VFP) || defined(XP_IOS)
     return true;
 #  else
     return false;
