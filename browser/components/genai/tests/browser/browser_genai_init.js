@@ -46,6 +46,10 @@ add_task(async function test_preferences_observer() {
 
   await BrowserTestUtils.withNewTab("about:preferences#experimental", () => {
     Assert.equal(stub.callCount, 1, "Would have built genai preferences");
+
+    GenAI.init();
+
+    Assert.equal(stub.callCount, 2, "Would have handled existing tab");
   });
 
   sandbox.restore();

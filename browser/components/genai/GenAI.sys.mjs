@@ -9,6 +9,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ASRouterTargeting: "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
+  EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
@@ -177,9 +178,6 @@ export const GenAI = {
     // Access this getter for its side effect of observing provider pref change
     lazy.chatProvider;
 
-    // Detect about:preferences to add controls
-    Services.obs.addObserver(this, "experimental-pane-loaded");
-
     // Handle nimbus feature pref setting
     const featureId = "chatbot";
     lazy.NimbusFeatures[featureId].onUpdate(() => {
@@ -203,6 +201,16 @@ export const GenAI = {
       Object.entries(
         lazy.NimbusFeatures[featureId].getVariable("prefs")
       ).forEach(setPref);
+    });
+
+    // Detect about:preferences to add controls
+    Services.obs.addObserver(this, "experimental-pane-loaded");
+    // Check existing windows that might have preferences before init
+    lazy.EveryWindow.readyWindows.forEach(window => {
+      const content = window.gBrowser.selectedBrowser.contentWindow;
+      if (content?.location.href.startsWith("about:preferences")) {
+        this.buildPreferences(content);
+      }
     });
   },
 
