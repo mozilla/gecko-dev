@@ -651,6 +651,9 @@ enum class ARMCapability : uint32_t {
   // Flag when HWCAP_IDIVA is set.
   IDivA,
 
+  // Flag when HWCAP_FPHP is set (floating point half-precision).
+  FPHP,
+
   // Flag when signaled alignment faults are to be fixed up.
   FixupFault,
 
@@ -721,6 +724,10 @@ class ARMFlags final {
     MOZ_ASSERT(IsInitialized());
     return capabilities.contains(ARMCapability::VFPv3);
   }
+  static bool HasVFPv4() {
+    MOZ_ASSERT(IsInitialized());
+    return capabilities.contains(ARMCapability::VFPv4);
+  }
   static bool HasNEON() {
     MOZ_ASSERT(IsInitialized());
     return capabilities.contains(ARMCapability::Neon);
@@ -728,6 +735,10 @@ class ARMFlags final {
   static bool HasIDIV() {
     MOZ_ASSERT(IsInitialized());
     return capabilities.contains(ARMCapability::IDivA);
+  }
+  static bool HasFPHalfPrecision() {
+    MOZ_ASSERT(IsInitialized());
+    return capabilities.contains(ARMCapability::FPHP);
   }
 
   // Returns true when cpu alignment faults are enabled and signaled, and thus

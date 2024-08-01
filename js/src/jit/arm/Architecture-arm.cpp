@@ -37,6 +37,7 @@
 #  define HWCAP_IDIVA (1 << 17)
 #  define HWCAP_IDIVT (1 << 18)
 #  define HWCAP_VFPD32 (1 << 19) /* set if VFP has 32 regs (not 16) */
+#  define HWCAP_FPHP (1 << 22)
 #  define AT_HWCAP 16
 #else
 #  include <asm/hwcap.h>
@@ -45,6 +46,9 @@
 #  endif
 #  if !defined(HWCAP_VFPD32)
 #    define HWCAP_VFPD32 (1 << 19) /* set if VFP has 32 regs (not 16) */
+#  endif
+#  if !defined(HWCAP_FPHP)
+#    define HWCAP_FPHP (1 << 22)
 #  endif
 #endif
 
@@ -96,6 +100,8 @@ static auto ParseARMCpuFeatures(const char* features, bool override = false) {
       capabilities += ARMCapability::IDivA;
     } else if (name == "vfpd32") {
       capabilities += ARMCapability::VFPD32;
+    } else if (name == "fphp") {
+      capabilities += ARMCapability::FPHP;
     } else if (name == "armv7") {
       capabilities += ARMCapability::ARMv7;
     } else if (name == "align") {
@@ -165,6 +171,11 @@ static auto CanonicalizeARMHwCapabilities(ARMCapabilities capabilities) {
     capabilities += ARMCapability::VFPD32;
   }
 
+  // If VFPv4 is supported, then half-precision floating point is supported.
+  if (capabilities.contains(ARMCapability::VFPv4)) {
+    capabilities += ARMCapability::FPHP;
+  }
+
   return capabilities;
 }
 
@@ -198,6 +209,7 @@ static auto ParseARMHwCapFlags(const char* armHwCap) {
         "  idiva    \n"
         "  idivt    \n"
         "  vfpd32   \n"
+        "  fphp     \n"
         "  armv7    \n"
         "  align    - unaligned accesses will trap and be emulated\n"
 #ifdef JS_SIMULATOR_ARM
@@ -237,6 +249,9 @@ static auto FlagsToARMCapabilities(uint32_t flags) {
   }
   if (flags & HWCAP_IDIVA) {
     capabilities += ARMCapability::IDivA;
+  }
+  if (flags & HWCAP_FPHP) {
+    capabilities += ARMCapability::FPHP;
   }
 
   return capabilities;
