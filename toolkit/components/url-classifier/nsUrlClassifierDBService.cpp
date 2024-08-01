@@ -59,6 +59,7 @@
 #include "nsIUploadChannel.h"
 #include "nsStringStream.h"
 #include "nsNetUtil.h"
+#include "nsThreadUtils.h"
 #include "nsToolkitCompsCID.h"
 
 namespace mozilla {
@@ -231,12 +232,52 @@ class nsUrlClassifierDBService::FeatureHolder final {
   }
 
   ~FeatureHolder() {
-    for (FeatureData& featureData : mFeatureData) {
-      NS_ReleaseOnMainThread("FeatureHolder:mFeatureData",
-                             featureData.mFeature.forget());
+    class FeatureHolderRelease final : public mozilla::Runnable {
+     public:
+      explicit FeatureHolderRelease(nsTArray<nsCOMPtr<nsISupports>>&& aDoomed)
+          : Runnable("FeatureHolderRelease"), mDoomed(std::move(aDoomed)) {}
+
+      NS_IMETHOD Run() override {
+        mDoomed.Clear();
+        return NS_OK;
+      }
+
+     private:
+      ~FeatureHolderRelease() {
+        // If we still have some references, let's forget them to avoid crashes.
+        // Probably we are shutdown.
+        for (nsCOMPtr<nsISupports>& doomed : mDoomed) {
+          mozilla::Unused << doomed.forget().take();
+        }
+      }
+
+      nsTArray<nsCOMPtr<nsISupports>> mDoomed;
+    };
+
+    nsTArray<nsCOMPtr<nsISupports>> arrayToRelease;
+
+    if (mURI) {
+      arrayToRelease.AppendElement(mURI.forget());
     }
 
-    NS_ReleaseOnMainThread("FeatureHolder:mURI", mURI.forget());
+    for (FeatureData& featureData : mFeatureData) {
+      if (featureData.mFeature) {
+        arrayToRelease.AppendElement(featureData.mFeature.forget());
+      }
+    }
+
+    if (arrayToRelease.IsEmpty()) {
+      return;
+    }
+
+    if (NS_IsMainThread()) {
+      arrayToRelease.Clear();
+      return;
+    }
+
+    RefPtr<FeatureHolderRelease> runnable(
+        new FeatureHolderRelease(std::move(arrayToRelease)));
+    NS_DispatchToMainThread(runnable.forget());
   }
 
   TableData* GetOrCreateTableData(const nsACString& aTable) {
