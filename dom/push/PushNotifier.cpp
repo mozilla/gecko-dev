@@ -390,21 +390,16 @@ nsresult PushErrorDispatcher::NotifyWorkers() {
     // For system subscriptions, log the error directly to the browser console.
     return nsContentUtils::ReportToConsoleNonLocalized(
         mMessage, mFlags, "Push"_ns, nullptr, /* aDocument */
-        nullptr,                              /* aURI */
-        u""_ns,                               /* aLine */
-        0,                                    /* aLineNumber */
-        0,                                    /* aColumnNumber */
-        nsContentUtils::eOMIT_LOCATION);
+        SourceLocation());
   }
 
   // For service worker subscriptions, report the error to all clients.
   RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
   if (swm) {
-    swm->ReportToAllClients(mScope, mMessage,
-                            NS_ConvertUTF8toUTF16(mScope), /* aFilename */
-                            u""_ns,                        /* aLine */
-                            0,                             /* aLineNumber */
-                            0,                             /* aColumnNumber */
+    swm->ReportToAllClients(mScope, mMessage, mScope, /* aFilename */
+                            u""_ns,                   /* aLine */
+                            0,                        /* aLineNumber */
+                            0,                        /* aColumnNumber */
                             mFlags);
   }
   return NS_OK;
@@ -426,12 +421,8 @@ nsresult PushErrorDispatcher::HandleNoChildProcesses() {
     return rv;
   }
   return nsContentUtils::ReportToConsoleNonLocalized(
-      mMessage, mFlags, "Push"_ns, nullptr, /* aDocument */
-      scopeURI,                             /* aURI */
-      u""_ns,                               /* aLine */
-      0,                                    /* aLineNumber */
-      0,                                    /* aColumnNumber */
-      nsContentUtils::eOMIT_LOCATION);
+      mMessage, mFlags, "Push"_ns, /* aDocument = */ nullptr,
+      SourceLocation(scopeURI.get()));
 }
 
 }  // namespace mozilla::dom

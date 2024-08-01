@@ -13,7 +13,7 @@ namespace mozilla::dom {
 DeprecationReportBody::DeprecationReportBody(
     nsIGlobalObject* aGlobal, const nsAString& aId,
     const Nullable<uint64_t>& aDate, const nsAString& aMessage,
-    const nsAString& aSourceFile, const Nullable<uint32_t>& aLineNumber,
+    const nsACString& aSourceFile, const Nullable<uint32_t>& aLineNumber,
     const Nullable<uint32_t>& aColumnNumber)
     : ReportBody(aGlobal),
       mId(aId),
@@ -42,7 +42,7 @@ void DeprecationReportBody::GetMessage(nsAString& aMessage) const {
   aMessage = mMessage;
 }
 
-void DeprecationReportBody::GetSourceFile(nsAString& aSourceFile) const {
+void DeprecationReportBody::GetSourceFile(nsACString& aSourceFile) const {
   aSourceFile = mSourceFile;
 }
 
@@ -62,7 +62,7 @@ void DeprecationReportBody::ToJSON(JSONWriter& aWriter) const {
   if (mSourceFile.IsEmpty()) {
     aWriter.NullProperty("sourceFile");
   } else {
-    aWriter.StringProperty("sourceFile", NS_ConvertUTF16toUTF8(mSourceFile));
+    aWriter.StringProperty("sourceFile", mSourceFile);
   }
 
   if (mLineNumber.IsNull()) {

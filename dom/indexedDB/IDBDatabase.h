@@ -23,6 +23,7 @@ class nsIGlobalObject;
 
 namespace mozilla {
 
+struct JSCallingLocation;
 class ErrorResult;
 class EventChainPostVisitor;
 
@@ -229,8 +230,7 @@ class IDBDatabase final : public DOMEventTargetHelper {
 
   void NoteInactiveTransactionDelayed();
 
-  void LogWarning(const char* aMessageName, const nsAString& aFilename,
-                  uint32_t aLineNumber, uint32_t aColumnNumber);
+  void LogWarning(const char* aMessageName, const JSCallingLocation&);
 
   // Only accessed by IDBObjectStore.
   nsresult RenameObjectStore(int64_t aObjectStoreId, const nsAString& aName);

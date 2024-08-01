@@ -577,7 +577,8 @@ void ReportingHeader::LogToConsoleInternal(nsIHttpChannel* aChannel,
   }
 
   rv = nsContentUtils::ReportToConsoleByWindowID(
-      localizedMsg, nsIScriptError::infoFlag, "Reporting"_ns, windowID, aURI);
+      localizedMsg, nsIScriptError::infoFlag, "Reporting"_ns, windowID,
+      SourceLocation(aURI));
   Unused << NS_WARN_IF(NS_FAILED(rv));
 }
 

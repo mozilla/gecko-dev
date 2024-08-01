@@ -191,7 +191,7 @@ void CSP_LogStrMessage(const nsAString& aMsg) {
   console->LogStringMessage(msg.get());
 }
 
-void CSP_LogMessage(const nsAString& aMessage, const nsAString& aSourceName,
+void CSP_LogMessage(const nsAString& aMessage, const nsACString& aSourceName,
                     const nsAString& aSourceLine, uint32_t aLineNumber,
                     uint32_t aColumnNumber, uint32_t aFlags,
                     const nsACString& aCategory, uint64_t aInnerWindowID,
@@ -230,13 +230,13 @@ void CSP_LogMessage(const nsAString& aMessage, const nsAString& aSourceName,
 
   nsresult rv;
   if (aInnerWindowID > 0) {
-    rv = error->InitWithWindowID(cspMsg, aSourceName, aSourceLine, aLineNumber,
-                                 aColumnNumber, aFlags, category,
-                                 aInnerWindowID);
+    rv = error->InitWithWindowID(cspMsg, NS_ConvertUTF8toUTF16(aSourceName),
+                                 aSourceLine, aLineNumber, aColumnNumber,
+                                 aFlags, category, aInnerWindowID);
   } else {
-    rv = error->Init(cspMsg, aSourceName, aSourceLine, aLineNumber,
-                     aColumnNumber, aFlags, category, aFromPrivateWindow,
-                     true /* from chrome context */);
+    rv = error->Init(cspMsg, NS_ConvertUTF8toUTF16(aSourceName), aSourceLine,
+                     aLineNumber, aColumnNumber, aFlags, category,
+                     aFromPrivateWindow, true /* from chrome context */);
   }
   if (NS_FAILED(rv)) {
     return;
@@ -262,7 +262,7 @@ CSPDirective CSP_StringToCSPDirective(const nsAString& aDir) {
  * Combines CSP_LogMessage and CSP_GetLocalizedStr into one call.
  */
 void CSP_LogLocalizedStr(const char* aName, const nsTArray<nsString>& aParams,
-                         const nsAString& aSourceName,
+                         const nsACString& aSourceName,
                          const nsAString& aSourceLine, uint32_t aLineNumber,
                          uint32_t aColumnNumber, uint32_t aFlags,
                          const nsACString& aCategory, uint64_t aInnerWindowID,

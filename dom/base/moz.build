@@ -137,6 +137,7 @@ EXPORTS.mozilla += [
     "ScriptableContentIterator.h",
     "ScrollingMetrics.h",
     "SelectionChangeEventDispatcher.h",
+    "SourceLocation.h",
     "TextInputProcessor.h",
     "UseCounter.h",
 ]
@@ -461,6 +462,7 @@ UNIFIED_SOURCES += [
     "SelectionChangeEventDispatcher.cpp",
     "SerializedStackHolder.cpp",
     "ShadowRoot.cpp",
+    "SourceLocation.cpp",
     "StaticRange.cpp",
     "StorageAccessPermissionRequest.cpp",
     "StructuredCloneBlob.cpp",

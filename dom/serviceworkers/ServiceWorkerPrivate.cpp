@@ -1575,8 +1575,8 @@ void ServiceWorkerPrivate::ErrorReceived(const ErrorValue& aError) {
   ServiceWorkerInfo* info = mInfo;
 
   swm->HandleError(nullptr, info->Principal(), info->Scope(),
-                   NS_ConvertUTF8toUTF16(info->ScriptSpec()), u""_ns, u""_ns,
-                   u""_ns, 0, 0, nsIScriptError::errorFlag, JSEXN_ERR);
+                   info->ScriptSpec(), u""_ns, ""_ns, u""_ns, 0, 0,
+                   nsIScriptError::errorFlag, JSEXN_ERR);
 }
 
 void ServiceWorkerPrivate::Terminated() {

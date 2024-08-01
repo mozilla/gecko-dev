@@ -815,7 +815,8 @@ nsresult SheetLoadData::VerifySheetReadyToParse(
     nsCOMPtr<nsIURI> referrer = ReferrerInfo()->GetOriginalReferrer();
     nsContentUtils::ReportToConsole(
         errorFlag, "CSS Loader"_ns, mLoader->mDocument,
-        nsContentUtils::eCSS_PROPERTIES, errorMessage, strings, referrer);
+        nsContentUtils::eCSS_PROPERTIES, errorMessage, strings,
+        SourceLocation(referrer.get()));
 
     if (errorFlag == nsIScriptError::errorFlag) {
       LOG_WARN(

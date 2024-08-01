@@ -38,7 +38,7 @@ struct CSPViolationData {
   // @param aSample Will be truncated if necessary.
   CSPViolationData(uint32_t aViolatedPolicyIndex, Resource&& aResource,
                    const CSPDirective aEffectiveDirective,
-                   const nsAString& aSourceFile, uint32_t aLineNumber,
+                   const nsACString& aSourceFile, uint32_t aLineNumber,
                    uint32_t aColumnNumber, Element* aElement,
                    const nsAString& aSample);
 
@@ -50,7 +50,7 @@ struct CSPViolationData {
   const Resource mResource;
   const CSPDirective mEffectiveDirective;
   // String representation of the URL. The empty string represents a null-URL.
-  const nsString mSourceFile;
+  const nsCString mSourceFile;
   const uint32_t mLineNumber;
   const uint32_t mColumnNumber;
   RefPtr<Element> mElement;

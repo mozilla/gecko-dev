@@ -6639,7 +6639,8 @@ void HttpBaseChannel::LogORBError(
   if (contentWindowId) {
     nsContentUtils::ReportToConsoleByWindowID(
         u"A resource is blocked by OpaqueResponseBlocking, please check browser console for details."_ns,
-        nsIScriptError::warningFlag, "ORB"_ns, contentWindowId, mURI);
+        nsIScriptError::warningFlag, "ORB"_ns, contentWindowId,
+        SourceLocation(mURI.get()));
   }
 
   AutoTArray<nsString, 2> params;

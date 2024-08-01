@@ -40,6 +40,8 @@ dictionary SecurityPolicyViolationEventInit : EventInit
     DOMString      violatedDirective = "";
     DOMString      effectiveDirective = "";
     DOMString      originalPolicy = "";
+    // TODO: We could avoid some string copies if these were USVStrings or
+    // UTF8Strings, see https://github.com/w3c/webappsec-csp/issues/674
     DOMString      sourceFile = "";
     DOMString      sample = "";
     SecurityPolicyViolationEventDisposition disposition = "enforce";

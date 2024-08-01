@@ -453,7 +453,7 @@ nsresult PrototypeDocumentContentSink::ResumeWalk() {
     nsContentUtils::ReportToConsoleNonLocalized(
         u"Failed to load document from prototype document."_ns,
         nsIScriptError::errorFlag, "Prototype Document"_ns, mDocument,
-        mDocumentURI);
+        SourceLocation{mDocumentURI.get()});
   }
   return rv;
 }
@@ -594,10 +594,10 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
           if (piProto->mTarget.EqualsLiteral("xml-stylesheet")) {
             AutoTArray<nsString, 1> params = {piProto->mTarget};
 
-            nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                            "XUL Document"_ns, nullptr,
-                                            nsContentUtils::eXUL_PROPERTIES,
-                                            "PINotInProlog", params, docURI);
+            nsContentUtils::ReportToConsole(
+                nsIScriptError::warningFlag, "XUL Document"_ns, nullptr,
+                nsContentUtils::eXUL_PROPERTIES, "PINotInProlog", params,
+                SourceLocation(docURI.get()));
           }
 
           nsIContent* parent = element.get();

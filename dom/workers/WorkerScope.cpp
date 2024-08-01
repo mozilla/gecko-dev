@@ -170,7 +170,8 @@ bool WorkerScriptTimeoutHandler::Call(const char* aExecutionReason) {
 
   JSContext* cx = aes.cx();
   JS::CompileOptions options(cx);
-  options.setFileAndLine(mFileName.get(), mLineNo).setNoScriptRval(true);
+  options.setFileAndLine(mCaller.FileName().get(), mCaller.mLine)
+      .setNoScriptRval(true);
   options.setIntroductionType("domTimer");
 
   JS::Rooted<JS::Value> unused(cx);
@@ -1156,9 +1157,7 @@ namespace {
 
 class ReportFetchListenerWarningRunnable final : public Runnable {
   const nsCString mScope;
-  nsString mSourceSpec;
-  uint32_t mLine;
-  uint32_t mColumn;
+  mozilla::JSCallingLocation mCaller;
 
  public:
   explicit ReportFetchListenerWarningRunnable(const nsString& aScope)
@@ -1169,7 +1168,7 @@ class ReportFetchListenerWarningRunnable final : public Runnable {
     JSContext* cx = workerPrivate->GetJSContext();
     MOZ_ASSERT(cx);
 
-    nsJSUtils::GetCallingLocation(cx, mSourceSpec, &mLine, &mColumn);
+    mCaller = JSCallingLocation::Get(cx);
   }
 
   NS_IMETHOD
@@ -1178,7 +1177,8 @@ class ReportFetchListenerWarningRunnable final : public Runnable {
 
     ServiceWorkerManager::LocalizeAndReportToAllClients(
         mScope, "ServiceWorkerNoFetchHandler", nsTArray<nsString>{},
-        nsIScriptError::warningFlag, mSourceSpec, u""_ns, mLine, mColumn);
+        nsIScriptError::warningFlag, mCaller.FileName(), u""_ns, mCaller.mLine,
+        mCaller.mColumn);
 
     return NS_OK;
   }

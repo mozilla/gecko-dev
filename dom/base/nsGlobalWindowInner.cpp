@@ -6063,7 +6063,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
   nsAutoMicroTask mt;
   AutoEntryScript aes(mGlobal, aExecutionReason, true);
   JS::CompileOptions options(aes.cx());
-  options.setFileAndLine(mFileName.get(), mLineNo);
+  options.setFileAndLine(mCaller.FileName().get(), mCaller.mLine);
   options.setNoScriptRval(true);
   options.setIntroductionType("domTimer");
   JS::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());

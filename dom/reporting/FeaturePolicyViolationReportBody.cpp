@@ -13,7 +13,7 @@ namespace mozilla::dom {
 
 FeaturePolicyViolationReportBody::FeaturePolicyViolationReportBody(
     nsIGlobalObject* aGlobal, const nsAString& aFeatureId,
-    const nsAString& aSourceFile, const Nullable<int32_t>& aLineNumber,
+    const nsACString& aSourceFile, const Nullable<int32_t>& aLineNumber,
     const Nullable<int32_t>& aColumnNumber, const nsAString& aDisposition)
     : ReportBody(aGlobal),
       mFeatureId(aFeatureId),
@@ -35,7 +35,7 @@ void FeaturePolicyViolationReportBody::GetFeatureId(
 }
 
 void FeaturePolicyViolationReportBody::GetSourceFile(
-    nsAString& aSourceFile) const {
+    nsACString& aSourceFile) const {
   aSourceFile = mSourceFile;
 }
 
@@ -58,7 +58,7 @@ void FeaturePolicyViolationReportBody::ToJSON(JSONWriter& aWriter) const {
   if (mSourceFile.IsEmpty()) {
     aWriter.NullProperty("sourceFile");
   } else {
-    aWriter.StringProperty("sourceFile", NS_ConvertUTF16toUTF8(mSourceFile));
+    aWriter.StringProperty("sourceFile", mSourceFile);
   }
 
   if (mLineNumber.IsNull()) {

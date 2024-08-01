@@ -232,7 +232,7 @@ void HTMLFormElement::ReportInvalidUnfocusableElements(
       nsContentUtils::ReportToConsole(
           nsIScriptError::errorFlag, "DOM"_ns, element->GetOwnerDocument(),
           nsContentUtils::eDOM_PROPERTIES, messageName.get(), params,
-          element->GetBaseURI());
+          SourceLocation(element->GetBaseURI()));
     }
   }
 }
@@ -1659,7 +1659,7 @@ nsresult HTMLFormElement::GetActionURL(nsIURI** aActionURL,
 
     CSP_LogLocalizedStr(
         "upgradeInsecureRequest", params,
-        u""_ns,  // aSourceFile
+        ""_ns,   // aSourceFile
         u""_ns,  // aScriptSample
         0,       // aLineNumber
         1,       // aColumnNumber

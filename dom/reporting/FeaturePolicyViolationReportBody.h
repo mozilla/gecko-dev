@@ -17,7 +17,7 @@ class FeaturePolicyViolationReportBody final : public ReportBody {
  public:
   FeaturePolicyViolationReportBody(nsIGlobalObject* aGlobal,
                                    const nsAString& aFeatureId,
-                                   const nsAString& aSourceFile,
+                                   const nsACString& aSourceFile,
                                    const Nullable<int32_t>& aLineNumber,
                                    const Nullable<int32_t>& aColumnNumber,
                                    const nsAString& aDisposition);
@@ -27,7 +27,7 @@ class FeaturePolicyViolationReportBody final : public ReportBody {
 
   void GetFeatureId(nsAString& aFeatureId) const;
 
-  void GetSourceFile(nsAString& aSourceFile) const;
+  void GetSourceFile(nsACString& aSourceFile) const;
 
   Nullable<int32_t> GetLineNumber() const;
 
@@ -42,7 +42,7 @@ class FeaturePolicyViolationReportBody final : public ReportBody {
   ~FeaturePolicyViolationReportBody();
 
   const nsString mFeatureId;
-  const nsString mSourceFile;
+  const nsCString mSourceFile;
   const Nullable<int32_t> mLineNumber;
   const Nullable<int32_t> mColumnNumber;
   const nsString mDisposition;

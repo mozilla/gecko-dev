@@ -1447,7 +1447,7 @@ already_AddRefed<ServiceWorkerManager> ServiceWorkerManager::GetInstance() {
 
 void ServiceWorkerManager::ReportToAllClients(
     const nsCString& aScope, const nsString& aMessage,
-    const nsString& aFilename, const nsString& aLine, uint32_t aLineNumber,
+    const nsCString& aFilename, const nsString& aLine, uint32_t aLineNumber,
     uint32_t aColumnNumber, uint32_t aFlags) {
   ConsoleUtils::ReportForServiceWorkerScope(
       NS_ConvertUTF8toUTF16(aScope), aMessage, aFilename, aLineNumber,
@@ -1458,7 +1458,7 @@ void ServiceWorkerManager::ReportToAllClients(
 void ServiceWorkerManager::LocalizeAndReportToAllClients(
     const nsCString& aScope, const char* aStringKey,
     const nsTArray<nsString>& aParamArray, uint32_t aFlags,
-    const nsString& aFilename, const nsString& aLine, uint32_t aLineNumber,
+    const nsCString& aFilename, const nsString& aLine, uint32_t aLineNumber,
     uint32_t aColumnNumber) {
   RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
   if (!swm) {
@@ -1479,8 +1479,8 @@ void ServiceWorkerManager::LocalizeAndReportToAllClients(
 
 void ServiceWorkerManager::HandleError(
     JSContext* aCx, nsIPrincipal* aPrincipal, const nsCString& aScope,
-    const nsString& aWorkerURL, const nsString& aMessage,
-    const nsString& aFilename, const nsString& aLine, uint32_t aLineNumber,
+    const nsCString& aWorkerURL, const nsString& aMessage,
+    const nsCString& aFilename, const nsString& aLine, uint32_t aLineNumber,
     uint32_t aColumnNumber, uint32_t aFlags, JSExnType aExnType) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);

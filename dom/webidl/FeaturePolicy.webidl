@@ -20,7 +20,7 @@ interface FeaturePolicy {
  Exposed=Window]
 interface FeaturePolicyViolationReportBody : ReportBody {
   readonly attribute DOMString featureId;
-  readonly attribute DOMString? sourceFile;
+  readonly attribute UTF8String? sourceFile;
   readonly attribute long? lineNumber;
   readonly attribute long? columnNumber;
   readonly attribute DOMString disposition;

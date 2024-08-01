@@ -19,7 +19,7 @@ dictionary CSPReportProperties {
   SecurityPolicyViolationEventDisposition disposition = "report";
   long status-code = 0;
 
-  DOMString source-file;
+  UTF8String source-file;
   DOMString script-sample;
   long line-number;
   long column-number;

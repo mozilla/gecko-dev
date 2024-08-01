@@ -8,7 +8,6 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/HoldDropJSObjects.h"
-#include "nsJSUtils.h"
 
 namespace mozilla::dom {
 
@@ -16,22 +15,12 @@ namespace mozilla::dom {
 // TimeoutHandler
 //-----------------------------------------------------------------------------
 
-TimeoutHandler::TimeoutHandler(JSContext* aCx) : TimeoutHandler() {
-  nsJSUtils::GetCallingLocation(aCx, mFileName, &mLineNo, &mColumn);
-}
-
 bool TimeoutHandler::Call(const char* /* unused */) { return false; }
 
-void TimeoutHandler::GetLocation(const char** aFileName, uint32_t* aLineNo,
-                                 uint32_t* aColumn) {
-  *aFileName = mFileName.get();
-  *aLineNo = mLineNo;
-  *aColumn = mColumn;
-}
-
 void TimeoutHandler::GetDescription(nsACString& aOutString) {
-  aOutString.AppendPrintf("<generic handler> (%s:%d:%d)", mFileName.get(),
-                          mLineNo, mColumn);
+  aOutString.AppendPrintf("<generic handler> (%s:%d:%d)",
+                          mCaller.FileName().get(), mCaller.mLine,
+                          mCaller.mColumn);
 }
 
 //-----------------------------------------------------------------------------
@@ -53,11 +42,11 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(ScriptTimeoutHandler)
   if (MOZ_UNLIKELY(cb.WantDebugInfo())) {
     nsAutoCString name("ScriptTimeoutHandler");
     name.AppendLiteral(" [");
-    name.Append(tmp->mFileName);
+    name.Append(tmp->mCaller.FileName());
     name.Append(':');
-    name.AppendInt(tmp->mLineNo);
+    name.AppendInt(tmp->mCaller.mLine);
     name.Append(':');
-    name.AppendInt(tmp->mColumn);
+    name.AppendInt(tmp->mCaller.mColumn);
     name.Append(']');
     cb.DescribeRefCountedNode(tmp->mRefCnt.get(), name.get());
   } else {
@@ -82,12 +71,13 @@ void ScriptTimeoutHandler::GetDescription(nsACString& aOutString) {
   if (mExpr.Length() > 15) {
     aOutString.AppendPrintf(
         "<string handler (truncated): \"%s...\"> (%s:%d:%d)",
-        NS_ConvertUTF16toUTF8(Substring(mExpr, 0, 13)).get(), mFileName.get(),
-        mLineNo, mColumn);
+        NS_ConvertUTF16toUTF8(Substring(mExpr, 0, 13)).get(),
+        mCaller.FileName().get(), mCaller.mLine, mCaller.mColumn);
   } else {
     aOutString.AppendPrintf("<string handler: \"%s\"> (%s:%d:%d)",
-                            NS_ConvertUTF16toUTF8(mExpr).get(), mFileName.get(),
-                            mLineNo, mColumn);
+                            NS_ConvertUTF16toUTF8(mExpr).get(),
+                            mCaller.FileName().get(), mCaller.mLine,
+                            mCaller.mColumn);
   }
 }
 

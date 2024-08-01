@@ -346,9 +346,7 @@ class EventSourceImpl final : public nsIChannelEventSink,
   //   be the same as the Event Source owner window.
   // These attributes are used for error reporting. Should only be accessed on
   // target thread
-  nsString mScriptFile;
-  uint32_t mScriptLine;
-  uint32_t mScriptColumn;
+  JSCallingLocation mCallingLocation;
   uint64_t mInnerWindowID;
 
  private:
@@ -389,8 +387,6 @@ EventSourceImpl::EventSourceImpl(EventSource* aEventSource,
       mIsMainThread(NS_IsMainThread()),
       mIsShutDown(false),
       mSharedData(SharedData{aEventSource}, "EventSourceImpl::mSharedData"),
-      mScriptLine(0),
-      mScriptColumn(1),
       mInnerWindowID(0),
       mCookieJarSettings(aCookieJarSettings),
       mTargetThread(NS_GetCurrentThread()) {
@@ -645,8 +641,7 @@ void EventSourceImpl::Init(nsIGlobalObject* aWindowGlobal,
   }
   // The conditional here is historical and not necessarily sane.
   if (JSContext* cx = nsContentUtils::GetCurrentJSContext()) {
-    nsJSUtils::GetCallingLocation(cx, mScriptFile, &mScriptLine,
-                                  &mScriptColumn);
+    mCallingLocation = JSCallingLocation::Get();
     mInnerWindowID = nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx);
   }
 
@@ -1296,9 +1291,10 @@ nsresult EventSourceImpl::PrintErrorOnConsole(
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = errObj->InitWithWindowID(message, mScriptFile, u""_ns, mScriptLine,
-                                mScriptColumn, nsIScriptError::errorFlag,
-                                "Event Source", mInnerWindowID);
+  rv = errObj->InitWithWindowID(
+      message, NS_ConvertUTF8toUTF16(mCallingLocation.FileName()), u""_ns,
+      mCallingLocation.mLine, mCallingLocation.mColumn,
+      nsIScriptError::errorFlag, "Event Source", mInnerWindowID);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // print the error message directly to the JS console

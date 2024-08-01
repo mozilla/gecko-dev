@@ -32,7 +32,7 @@ class CSPViolationReportBody final : public ReportBody {
 
   void GetOriginalPolicy(nsAString& aPolicy) const;
 
-  void GetSourceFile(nsAString& aFile) const;
+  void GetSourceFile(nsACString& aFile) const;
 
   void GetSample(nsAString& aSample) const;
 
@@ -55,7 +55,7 @@ class CSPViolationReportBody final : public ReportBody {
   const nsString mReferrer;
   const nsString mEffectiveDirective;
   const nsString mOriginalPolicy;
-  const nsString mSourceFile;
+  const nsCString mSourceFile;
   const nsString mSample;
   const mozilla::dom::SecurityPolicyViolationEventDisposition mDisposition;
   const uint16_t mStatusCode;

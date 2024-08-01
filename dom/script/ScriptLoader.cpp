@@ -3627,8 +3627,9 @@ void ScriptLoader::ReportErrorToConsole(ScriptLoadRequest* aRequest,
 
   nsContentUtils::ReportToConsole(
       nsIScriptError::warningFlag, "Script Loader"_ns, mDocument,
-      nsContentUtils::eDOM_PROPERTIES, message, params, nullptr, u""_ns, lineNo,
-      columnNo.oneOriginValue());
+      nsContentUtils::eDOM_PROPERTIES, message, params,
+      SourceLocation{mDocument->GetDocumentURI(), lineNo,
+                     columnNo.oneOriginValue()});
 }
 
 void ScriptLoader::ReportWarningToConsole(
@@ -3639,8 +3640,9 @@ void ScriptLoader::ReportWarningToConsole(
       aRequest->GetScriptLoadContext()->GetScriptColumnNumber();
   nsContentUtils::ReportToConsole(
       nsIScriptError::warningFlag, "Script Loader"_ns, mDocument,
-      nsContentUtils::eDOM_PROPERTIES, aMessageName, aParams, nullptr, u""_ns,
-      lineNo, columnNo.oneOriginValue());
+      nsContentUtils::eDOM_PROPERTIES, aMessageName, aParams,
+      SourceLocation{mDocument->GetDocumentURI(), lineNo,
+                     columnNo.oneOriginValue()});
 }
 
 void ScriptLoader::ReportPreloadErrorsToConsole(ScriptLoadRequest* aRequest) {

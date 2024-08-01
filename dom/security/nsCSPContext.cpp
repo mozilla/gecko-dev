@@ -212,15 +212,7 @@ bool nsCSPContext::permitsInternal(
       // preload - the decision may be wrong due to the inability to get the
       // nonce, and will incorrectly fail the unit tests.
       if (aSendViolationReports) {
-        uint32_t lineNumber = 0;
-        uint32_t columnNumber = 1;
-        nsAutoString spec;
-        JSContext* cx = nsContentUtils::GetCurrentJSContext();
-        if (cx) {
-          nsJSUtils::GetCallingLocation(cx, spec, &lineNumber, &columnNumber);
-          // If GetCallingLocation fails linenumber & columnNumber are set to
-          // (0, 1) anyway so we can skip checking if that is the case.
-        }
+        auto loc = JSCallingLocation::Get();
 
         using Resource = CSPViolationData::Resource;
         Resource resource =
@@ -231,9 +223,9 @@ bool nsCSPContext::permitsInternal(
         CSPViolationData cspViolationData{p,
                                           std::move(resource),
                                           aDir,
-                                          spec,
-                                          lineNumber,
-                                          columnNumber,
+                                          loc.FileName(),
+                                          loc.mLine,
+                                          loc.mColumn,
                                           aTriggeringElement,
                                           /* aSample */ u""_ns};
 
@@ -553,21 +545,16 @@ void nsCSPContext::reportInlineViolation(
                                 STYLE_HASH_VIOLATION_OBSERVER_TOPIC);
   }
 
-  nsAutoString sourceFile;
-  uint32_t lineNumber;
-  uint32_t columnNumber;
-
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
-  if (!cx || !nsJSUtils::GetCallingLocation(cx, sourceFile, &lineNumber,
-                                            &columnNumber)) {
-    // use selfURI as the sourceFile
+  auto loc = JSCallingLocation::Get();
+  if (!loc) {
+    nsCString sourceFile;
+    // use selfURI as the source
     if (mSelfURI) {
-      nsAutoCString cSourceFile;
-      mSelfURI->GetSpec(cSourceFile);
-      sourceFile.Assign(NS_ConvertUTF8toUTF16(cSourceFile));
+      mSelfURI->GetSpec(sourceFile);
+      loc.mResource = AsVariant(std::move(sourceFile));
     }
-    lineNumber = aLineNumber;
-    columnNumber = aColumnNumber;
+    loc.mLine = aLineNumber;
+    loc.mColumn = aColumnNumber;
   }
 
   CSPViolationData cspViolationData{
@@ -575,9 +562,9 @@ void nsCSPContext::reportInlineViolation(
       CSPViolationData::Resource{
           CSPViolationData::BlockedContentSource::Inline},
       aEffectiveDirective,
-      sourceFile,
-      lineNumber,
-      columnNumber,
+      loc.FileName(),
+      loc.mLine,
+      loc.mColumn,
       aTriggeringElement,
       aSample};
 
@@ -730,7 +717,7 @@ nsCSPContext::GetAllowsInline(CSPDirective aDirective, bool aHasUnsafeHash,
 NS_IMETHODIMP
 nsCSPContext::LogViolationDetails(
     uint16_t aViolationType, Element* aTriggeringElement,
-    nsICSPEventListener* aCSPEventListener, const nsAString& aSourceFile,
+    nsICSPEventListener* aCSPEventListener, const nsACString& aSourceFile,
     const nsAString& aScriptSample, int32_t aLineNum, int32_t aColumnNum,
     const nsAString& aNonce, const nsAString& aContent) {
   EnsureIPCPoliciesRead();
@@ -895,7 +882,7 @@ nsCSPContext::EnsureEventTarget(nsIEventTarget* aEventTarget) {
 
 struct ConsoleMsgQueueElem {
   nsString mMsg;
-  nsString mSourceName;
+  nsCString mSourceName;
   nsString mSourceLine;
   uint32_t mLineNumber;
   uint32_t mColumnNumber;
@@ -927,7 +914,7 @@ void nsCSPContext::flushConsoleMessages() {
 
 void nsCSPContext::logToConsole(const char* aName,
                                 const nsTArray<nsString>& aParams,
-                                const nsAString& aSourceName,
+                                const nsACString& aSourceName,
                                 const nsAString& aSourceLine,
                                 uint32_t aLineNumber, uint32_t aColumnNumber,
                                 uint32_t aSeverityFlag) {
@@ -936,12 +923,12 @@ void nsCSPContext::logToConsole(const char* aName,
   nsDependentCString category(aName);
 
   // Fallback
-  nsAutoString sourceName(aSourceName);
-  if (sourceName.IsEmpty() && mSelfURI) {
-    nsAutoCString spec;
+  nsAutoCString spec;
+  if (aSourceName.IsEmpty() && mSelfURI) {
     mSelfURI->GetSpec(spec);
-    CopyUTF8toUTF16(spec, sourceName);
   }
+
+  const auto& sourceName = aSourceName.IsEmpty() ? spec : aSourceName;
 
   // let's check if we have to queue up console messages
   if (mQueueUpMessages) {
@@ -949,7 +936,7 @@ void nsCSPContext::logToConsole(const char* aName,
     CSP_GetLocalizedStr(aName, aParams, msg);
     ConsoleMsgQueueElem& elem = *mConsoleMsgQueue.AppendElement();
     elem.mMsg = msg;
-    elem.mSourceName = PromiseFlatString(sourceName);
+    elem.mSourceName = sourceName;
     elem.mSourceLine = PromiseFlatString(aSourceLine);
     elem.mLineNumber = aLineNumber;
     elem.mColumnNumber = aColumnNumber;
@@ -959,8 +946,7 @@ void nsCSPContext::logToConsole(const char* aName,
   }
 
   bool privateWindow = false;
-  nsCOMPtr<Document> doc = do_QueryReferent(mLoadingContext);
-  if (doc) {
+  if (nsCOMPtr<Document> doc = do_QueryReferent(mLoadingContext)) {
     privateWindow =
         doc->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing();
   }
@@ -1082,11 +1068,12 @@ nsresult nsCSPContext::GatherSecurityPolicyViolationEventData(
     nsCOMPtr<nsIURI> sourceURI;
     NS_NewURI(getter_AddRefs(sourceURI), aCSPViolationData.mSourceFile);
     if (sourceURI) {
-      nsAutoCString spec;
-      StripURIForReporting(mSelfURI, sourceURI, aEffectiveDirective, spec);
-      CopyUTF8toUTF16(spec, aViolationEventInit.mSourceFile);
+      nsAutoCString stripped;
+      StripURIForReporting(mSelfURI, sourceURI, aEffectiveDirective, stripped);
+      CopyUTF8toUTF16(stripped, aViolationEventInit.mSourceFile);
     } else {
-      aViolationEventInit.mSourceFile = aCSPViolationData.mSourceFile;
+      CopyUTF8toUTF16(aCSPViolationData.mSourceFile,
+                      aViolationEventInit.mSourceFile);
     }
   }
 
@@ -1160,7 +1147,8 @@ bool nsCSPContext::ShouldThrottleReport(
 
   // Rate limit reached
   if (!mWarnedAboutTooManyReports) {
-    logToConsole("tooManyReports", {}, aViolationEventInit.mSourceFile,
+    logToConsole("tooManyReports", {},
+                 NS_ConvertUTF16toUTF8(aViolationEventInit.mSourceFile),
                  aViolationEventInit.mSample, aViolationEventInit.mLineNumber,
                  aViolationEventInit.mColumnNumber, nsIScriptError::errorFlag);
     mWarnedAboutTooManyReports = true;
@@ -1251,7 +1239,8 @@ nsresult nsCSPContext::SendReportsToURIs(
   // source-file
   if (!aViolationEventInit.mSourceFile.IsEmpty()) {
     report.mCsp_report.mSource_file.Construct();
-    report.mCsp_report.mSource_file.Value() = aViolationEventInit.mSourceFile;
+    CopyUTF16toUTF8(aViolationEventInit.mSourceFile,
+                    report.mCsp_report.mSource_file.Value());
   }
 
   // script-sample
@@ -1291,7 +1280,8 @@ nsresult nsCSPContext::SendReportsToURIs(
       AutoTArray<nsString, 1> params = {reportURIs[r]};
       CSPCONTEXTLOG(("Could not create nsIURI for report URI %s",
                      reportURICstring.get()));
-      logToConsole("triedToSendReport", params, aViolationEventInit.mSourceFile,
+      logToConsole("triedToSendReport", params,
+                   NS_ConvertUTF16toUTF8(aViolationEventInit.mSourceFile),
                    aViolationEventInit.mSample, aViolationEventInit.mLineNumber,
                    aViolationEventInit.mColumnNumber,
                    nsIScriptError::errorFlag);
@@ -1323,10 +1313,11 @@ nsresult nsCSPContext::SendReportsToURIs(
 
     if (!isHttpScheme) {
       AutoTArray<nsString, 1> params = {reportURIs[r]};
-      logToConsole(
-          "reportURInotHttpsOrHttp2", params, aViolationEventInit.mSourceFile,
-          aViolationEventInit.mSample, aViolationEventInit.mLineNumber,
-          aViolationEventInit.mColumnNumber, nsIScriptError::errorFlag);
+      logToConsole("reportURInotHttpsOrHttp2", params,
+                   NS_ConvertUTF16toUTF8(aViolationEventInit.mSourceFile),
+                   aViolationEventInit.mSample, aViolationEventInit.mLineNumber,
+                   aViolationEventInit.mColumnNumber,
+                   nsIScriptError::errorFlag);
       continue;
     }
 
@@ -1396,7 +1387,8 @@ nsresult nsCSPContext::SendReportsToURIs(
       AutoTArray<nsString, 1> params = {reportURIs[r]};
       CSPCONTEXTLOG(("AsyncOpen failed for report URI %s",
                      NS_ConvertUTF16toUTF8(params[0]).get()));
-      logToConsole("triedToSendReport", params, aViolationEventInit.mSourceFile,
+      logToConsole("triedToSendReport", params,
+                   NS_ConvertUTF16toUTF8(aViolationEventInit.mSourceFile),
                    aViolationEventInit.mSample, aViolationEventInit.mLineNumber,
                    aViolationEventInit.mColumnNumber,
                    nsIScriptError::errorFlag);
@@ -1907,7 +1899,7 @@ nsCSPContext::GetCSPSandboxFlags(uint32_t* aOutSandboxFlags) {
            NS_ConvertUTF16toUTF8(policy).get()));
 
       AutoTArray<nsString, 1> params = {policy};
-      logToConsole("ignoringReportOnlyDirective", params, u""_ns, u""_ns, 0, 1,
+      logToConsole("ignoringReportOnlyDirective", params, ""_ns, u""_ns, 0, 1,
                    nsIScriptError::warningFlag);
     }
   }

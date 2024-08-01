@@ -13,6 +13,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsString.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/SourceLocation.h"
 #include "mozilla/dom/FunctionBinding.h"
 
 namespace mozilla::dom {
@@ -23,11 +24,6 @@ namespace mozilla::dom {
 class TimeoutHandler : public nsISupports {
  public:
   MOZ_CAN_RUN_SCRIPT virtual bool Call(const char* /* unused */);
-  // Get the location of the script.
-  // Note: The memory pointed to by aFileName is owned by the
-  // nsITimeoutHandler and should not be freed by the caller.
-  virtual void GetLocation(const char** aFileName, uint32_t* aLineNo,
-                           uint32_t* aColumn);
   // Append a UTF-8 string to aOutString that describes the callback function,
   // for use in logging or profiler markers.
   // The string contains the function name and its source location, if
@@ -37,16 +33,15 @@ class TimeoutHandler : public nsISupports {
   virtual void MarkForCC() {}
 
  protected:
-  TimeoutHandler() : mFileName(""), mLineNo(0), mColumn(1) {}
-  explicit TimeoutHandler(JSContext* aCx);
+  TimeoutHandler() = default;
+  explicit TimeoutHandler(JSContext* aCx)
+      : mCaller(JSCallingLocation::Get(aCx)) {}
 
   virtual ~TimeoutHandler() = default;
 
   // filename, line number and JS language version string of the
   // caller of setTimeout()
-  nsCString mFileName;
-  uint32_t mLineNo;
-  uint32_t mColumn;
+  const JSCallingLocation mCaller;
 
  private:
   TimeoutHandler(const TimeoutHandler&) = delete;

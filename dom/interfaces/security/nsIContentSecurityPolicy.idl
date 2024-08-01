@@ -230,7 +230,7 @@ interface nsIContentSecurityPolicy : nsISerializable
   void logViolationDetails(in unsigned short violationType,
                            in Element triggeringElement,
                            in nsICSPEventListener aCSPEventListener,
-                           in AString sourceFile,
+                           in ACString sourceFile,
                            in AString scriptSample,
                            in int32_t lineNum,
                            in int32_t columnNum,

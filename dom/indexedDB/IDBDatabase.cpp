@@ -732,12 +732,7 @@ void IDBDatabase::AbortTransactions(bool aShouldWarn) {
 
   for (IDBTransaction* transaction : transactionsThatNeedWarning) {
     MOZ_ASSERT(transaction);
-
-    nsString filename;
-    uint32_t lineNo, column;
-    transaction->GetCallerLocation(filename, &lineNo, &column);
-
-    LogWarning(kWarningMessage, filename, lineNo, column);
+    LogWarning(kWarningMessage, transaction->GetCallerLocation());
   }
 }
 
@@ -879,15 +874,13 @@ void IDBDatabase::NoteInactiveTransactionDelayed() {
 }
 
 void IDBDatabase::LogWarning(const char* aMessageName,
-                             const nsAString& aFilename, uint32_t aLineNumber,
-                             uint32_t aColumnNumber) {
+                             const JSCallingLocation& aLoc) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aMessageName);
 
   ScriptErrorHelper::DumpLocalizedMessage(
-      nsDependentCString(aMessageName), aFilename, aLineNumber, aColumnNumber,
-      nsIScriptError::warningFlag, mFactory->IsChrome(),
-      mFactory->InnerWindowID());
+      nsDependentCString(aMessageName), aLoc, nsIScriptError::warningFlag,
+      mFactory->IsChrome(), mFactory->InnerWindowID());
 }
 
 NS_IMPL_ADDREF_INHERITED(IDBDatabase, DOMEventTargetHelper)

@@ -10,6 +10,7 @@
 #include "js/RootingAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/SourceLocation.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/IDBRequestBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -69,11 +70,9 @@ class IDBRequest : public DOMEventTargetHelper {
   JS::Heap<JS::Value> mResultVal;
   RefPtr<DOMException> mError;
 
-  nsString mFilename;
+  JSCallingLocation mCallerLocation;
   uint64_t mLoggingSerialNumber;
   nsresult mErrorCode;
-  uint32_t mLineNo;
-  uint32_t mColumn;
   bool mHaveResultOrErrorCode;
 
  public:
@@ -88,9 +87,6 @@ class IDBRequest : public DOMEventTargetHelper {
   [[nodiscard]] static MovingNotNull<RefPtr<IDBRequest>> Create(
       JSContext* aCx, IDBIndex* aSource, IDBDatabase* aDatabase,
       SafeRefPtr<IDBTransaction> aTransaction);
-
-  static void CaptureCaller(JSContext* aCx, nsAString& aFilename,
-                            uint32_t* aLineNo, uint32_t* aColumn);
 
   static uint64_t NextSerialNumber();
 
@@ -174,8 +170,7 @@ class IDBRequest : public DOMEventTargetHelper {
 
   DOMException* GetError(ErrorResult& aRv);
 
-  void GetCallerLocation(nsAString& aFilename, uint32_t* aLineNo,
-                         uint32_t* aColumn) const;
+  const JSCallingLocation& GetCallerLocation() const { return mCallerLocation; }
 
   bool IsPending() const { return !mHaveResultOrErrorCode; }
 

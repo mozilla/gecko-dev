@@ -2671,9 +2671,10 @@ void nsHtml5StreamParser::ContinueAfterScriptsOrEncodingCommitment(
       nsContentUtils::ReportToConsole(
           nsIScriptError::warningFlag, "DOM Events"_ns,
           mExecutor->GetDocument(), nsContentUtils::eDOM_PROPERTIES,
-          "SpeculationFailed2", nsTArray<nsString>(), nullptr, u""_ns,
-          speculation->GetStartLineNumber(),
-          speculation->GetStartColumnNumber());
+          "SpeculationFailed2", nsTArray<nsString>(),
+          SourceLocation(mExecutor->GetDocument()->GetDocumentURI(),
+                         speculation->GetStartLineNumber(),
+                         speculation->GetStartColumnNumber()));
 
       nsHtml5OwningUTF16Buffer* buffer = mFirstBuffer->next;
       while (buffer) {

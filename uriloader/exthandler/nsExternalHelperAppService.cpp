@@ -1058,7 +1058,7 @@ nsExternalHelperAppService::LoadURI(nsIURI* aURI,
     nsContentUtils::ReportToConsoleByWindowID(
         localizedMsg, nsIScriptError::errorFlag, "Security"_ns,
         windowContext->InnerWindowId(),
-        windowContext->Canonical()->GetDocumentURI());
+        SourceLocation(windowContext->Canonical()->GetDocumentURI()));
 
     return NS_OK;
   }

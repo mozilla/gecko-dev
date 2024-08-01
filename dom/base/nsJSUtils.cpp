@@ -48,34 +48,6 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-bool nsJSUtils::GetCallingLocation(JSContext* aContext, nsACString& aFilename,
-                                   uint32_t* aLineno, uint32_t* aColumn) {
-  JS::AutoFilename filename;
-  JS::ColumnNumberOneOrigin column;
-  if (!JS::DescribeScriptedCaller(aContext, &filename, aLineno, &column)) {
-    return false;
-  }
-  if (aColumn) {
-    *aColumn = column.oneOriginValue();
-  }
-
-  return aFilename.Assign(filename.get(), fallible);
-}
-
-bool nsJSUtils::GetCallingLocation(JSContext* aContext, nsAString& aFilename,
-                                   uint32_t* aLineno, uint32_t* aColumn) {
-  JS::AutoFilename filename;
-  JS::ColumnNumberOneOrigin column;
-  if (!JS::DescribeScriptedCaller(aContext, &filename, aLineno, &column)) {
-    return false;
-  }
-  if (aColumn) {
-    *aColumn = column.oneOriginValue();
-  }
-
-  return aFilename.Assign(NS_ConvertUTF8toUTF16(filename.get()), fallible);
-}
-
 uint64_t nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(JSContext* aContext) {
   if (!aContext) return 0;
 

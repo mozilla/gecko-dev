@@ -185,6 +185,8 @@ void HTMLScriptElement::FreezeExecutionAttrs(const Document* aOwnerDoc) {
   // because it will return the base URL when the attr value is "".
   nsAutoString src;
   if (GetAttr(nsGkAtoms::src, src)) {
+    SourceLocation loc{OwnerDoc()->GetDocumentURI(), GetScriptLineNumber(),
+                       GetScriptColumnNumber().oneOriginValue()};
     // Empty src should be treated as invalid URL.
     if (!src.IsEmpty()) {
       nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(mUri), src,
@@ -193,20 +195,16 @@ void HTMLScriptElement::FreezeExecutionAttrs(const Document* aOwnerDoc) {
       if (!mUri) {
         AutoTArray<nsString, 2> params = {u"src"_ns, src};
 
-        nsContentUtils::ReportToConsole(
-            nsIScriptError::warningFlag, "HTML"_ns, OwnerDoc(),
-            nsContentUtils::eDOM_PROPERTIES, "ScriptSourceInvalidUri", params,
-            nullptr, u""_ns, GetScriptLineNumber(),
-            GetScriptColumnNumber().oneOriginValue());
+        nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "HTML"_ns,
+                                        OwnerDoc(),
+                                        nsContentUtils::eDOM_PROPERTIES,
+                                        "ScriptSourceInvalidUri", params, loc);
       }
     } else {
       AutoTArray<nsString, 1> params = {u"src"_ns};
-
       nsContentUtils::ReportToConsole(
           nsIScriptError::warningFlag, "HTML"_ns, OwnerDoc(),
-          nsContentUtils::eDOM_PROPERTIES, "ScriptSourceEmpty", params, nullptr,
-          u""_ns, GetScriptLineNumber(),
-          GetScriptColumnNumber().oneOriginValue());
+          nsContentUtils::eDOM_PROPERTIES, "ScriptSourceEmpty", params, loc);
     }
 
     // At this point mUri will be null for invalid URLs.

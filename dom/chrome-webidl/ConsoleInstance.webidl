@@ -16,7 +16,7 @@ dictionary ConsoleEvent {
   DOMString consoleID = "";
   DOMString addonId = "";
   DOMString level = "";
-  DOMString filename = "";
+  UTF8String filename = "";
   // Unique identifier within the process for the script source this event is
   // associated with, or zero.
   unsigned long sourceId = 0;
@@ -52,7 +52,7 @@ dictionary ConsoleProfileEvent {
 // This dictionary is used to manage stack trace data.
 [GenerateConversionToJS]
 dictionary ConsoleStackEntry {
-  DOMString filename = "";
+  UTF8String filename = "";
   // Unique identifier within the process for the script source this entry is
   // associated with, or zero.
   unsigned long sourceId = 0;
@@ -173,7 +173,8 @@ enum ConsoleLevel { "log", "warning", "error" };
 partial interface ConsoleInstance {
   [ChromeOnly]
   undefined reportForServiceWorkerScope(DOMString scope, DOMString message,
-                                        DOMString filename, unsigned long lineNumber,
+                                        UTF8String filename,
+                                        unsigned long lineNumber,
                                         unsigned long columnNumber,
                                         ConsoleLevel level);
 };

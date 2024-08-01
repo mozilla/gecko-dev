@@ -79,9 +79,11 @@ void ConsoleReportCollector::FlushReportsToConsole(uint64_t aInnerWindowID,
       }
     }
 
+    SourceLocation loc{std::move(uri), report.mLineNumber,
+                       report.mColumnNumber};
+
     nsContentUtils::ReportToConsoleByWindowID(
-        errorText, report.mErrorFlags, report.mCategory, aInnerWindowID, uri,
-        u""_ns, report.mLineNumber, report.mColumnNumber);
+        errorText, report.mErrorFlags, report.mCategory, aInnerWindowID, loc);
   }
 }
 
@@ -129,9 +131,8 @@ void ConsoleReportCollector::FlushReportsToConsoleForServiceWorkerScope(
     }
 
     ConsoleUtils::ReportForServiceWorkerScope(
-        NS_ConvertUTF8toUTF16(aScope), errorText,
-        NS_ConvertUTF8toUTF16(report.mSourceFileURI), report.mLineNumber,
-        report.mColumnNumber, level);
+        NS_ConvertUTF8toUTF16(aScope), errorText, report.mSourceFileURI,
+        report.mLineNumber, report.mColumnNumber, level);
   }
 }
 

@@ -19,7 +19,7 @@ CSPViolationReportBody::CSPViolationReportBody(
       mReferrer(aEvent.mReferrer),
       mEffectiveDirective(aEvent.mEffectiveDirective),
       mOriginalPolicy(aEvent.mOriginalPolicy),
-      mSourceFile(aEvent.mSourceFile),
+      mSourceFile(NS_ConvertUTF16toUTF8(aEvent.mSourceFile)),
       mSample(aEvent.mSample),
       mDisposition(aEvent.mDisposition),
       mStatusCode(aEvent.mStatusCode),
@@ -54,7 +54,7 @@ void CSPViolationReportBody::GetOriginalPolicy(nsAString& aPolicy) const {
   aPolicy = mOriginalPolicy;
 }
 
-void CSPViolationReportBody::GetSourceFile(nsAString& aFile) const {
+void CSPViolationReportBody::GetSourceFile(nsACString& aFile) const {
   aFile = mSourceFile;
 }
 
@@ -115,8 +115,7 @@ void CSPViolationReportBody::ToJSON(JSONWriter& aJSONWriter) const {
   if (mSourceFile.IsEmpty()) {
     aJSONWriter.NullProperty("sourceFile");
   } else {
-    aJSONWriter.StringProperty("sourceFile",
-                               NS_ConvertUTF16toUTF8(mSourceFile));
+    aJSONWriter.StringProperty("sourceFile", mSourceFile);
   }
 
   if (mSample.IsEmpty()) {

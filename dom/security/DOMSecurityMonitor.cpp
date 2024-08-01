@@ -34,12 +34,8 @@ void DOMSecurityMonitor::AuditParsingOfHTMLXMLFragments(
   // check if there is a JS caller, if not, then we can can return early here
   // because we only care about calls to the fragment parser (e.g. innerHTML)
   // originating from JS code.
-  nsAutoString filename;
-  uint32_t lineNum = 0;
-  uint32_t columnNum = 1;
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
-  if (!cx ||
-      !nsJSUtils::GetCallingLocation(cx, filename, &lineNum, &columnNum)) {
+  auto loc = mozilla::JSCallingLocation::Get();
+  if (!loc) {
     return;
   }
 
@@ -88,7 +84,7 @@ void DOMSecurityMonitor::AuditParsingOfHTMLXMLFragments(
   };
 
   for (const nsLiteralCString& allowlistEntry : htmlFragmentAllowlist) {
-    if (StringBeginsWith(NS_ConvertUTF16toUTF8(filename), allowlistEntry)) {
+    if (StringBeginsWith(loc.FileName(), allowlistEntry)) {
       return;
     }
   }
@@ -104,8 +100,8 @@ void DOMSecurityMonitor::AuditParsingOfHTMLXMLFragments(
           "Do not call the fragment parser (e.g innerHTML()) in chrome code "
           "or in about: pages, (uri: %s), (caller: %s, line: %d, col: %d), "
           "(fragment: %s)",
-          uriSpec.get(), NS_ConvertUTF16toUTF8(filename).get(), lineNum,
-          columnNum, NS_ConvertUTF16toUTF8(aFragment).get());
+          uriSpec.get(), loc.FileName().get(), loc.mLine, loc.mColumn,
+          NS_ConvertUTF16toUTF8(aFragment).get());
 
   xpc_DumpJSStack(true, true, false);
   MOZ_ASSERT(false);

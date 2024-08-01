@@ -268,7 +268,7 @@ bool ConsoleInstance::ShouldLog(ConsoleLogLevel aLevel) {
 
 void ConsoleInstance::ReportForServiceWorkerScope(const nsAString& aScope,
                                                   const nsAString& aMessage,
-                                                  const nsAString& aFilename,
+                                                  const nsACString& aFilename,
                                                   uint32_t aLineNumber,
                                                   uint32_t aColumnNumber,
                                                   ConsoleLevel aLevel) {

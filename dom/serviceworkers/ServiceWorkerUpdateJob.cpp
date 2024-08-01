@@ -387,7 +387,7 @@ void ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
         message, nsContentUtils::eDOM_PROPERTIES,
         "ServiceWorkerScopePathMismatch", reportScope, reportMaxPrefix);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to format localized string");
-    swm->ReportToAllClients(mScope, message, u""_ns, u""_ns, 0, 0,
+    swm->ReportToAllClients(mScope, message, ""_ns, u""_ns, 0, 0,
                             nsIScriptError::errorFlag);
     FailUpdateJob(NS_ERROR_DOM_SECURITY_ERR);
     return;

@@ -46,14 +46,14 @@ static constexpr auto kOther = "other"_ns;
 TEST(FilenameEvalParser, ResourceChrome)
 {
   {
-    constexpr auto str = u"chrome://firegestures/content/browser.js"_ns;
+    constexpr auto str = "chrome://firegestures/content/browser.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kChromeURI && ret.second.isSome() &&
                 ret.second.value() == str);
   }
   {
-    constexpr auto str = u"resource://firegestures/content/browser.js"_ns;
+    constexpr auto str = "resource://firegestures/content/browser.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kResourceURI && ret.second.isSome() &&
@@ -64,25 +64,25 @@ TEST(FilenameEvalParser, ResourceChrome)
 TEST(FilenameEvalParser, BlobData)
 {
   {
-    constexpr auto str = u"blob://000-000"_ns;
+    constexpr auto str = "blob://000-000"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kBlobUri && !ret.second.isSome());
   }
   {
-    constexpr auto str = u"blob:000-000"_ns;
+    constexpr auto str = "blob:000-000"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kBlobUri && !ret.second.isSome());
   }
   {
-    constexpr auto str = u"data://blahblahblah"_ns;
+    constexpr auto str = "data://blahblahblah"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kDataUri && !ret.second.isSome());
   }
   {
-    constexpr auto str = u"data:blahblahblah"_ns;
+    constexpr auto str = "data:blahblahblah"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kDataUri && !ret.second.isSome());
@@ -93,20 +93,20 @@ TEST(FilenameEvalParser, MozExtension)
 {
   {  // Test shield.mozilla.org replacing
     constexpr auto str =
-        u"jar:file:///c:/users/bob/appdata/roaming/mozilla/firefox/profiles/"
-        u"foo/"
+        "jar:file:///c:/users/bob/appdata/roaming/mozilla/firefox/profiles/"
+        "foo/"
         "extensions/federated-learning@shield.mozilla.org.xpi!/experiments/"
         "study/api.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kMozillaExtensionFile &&
                 ret.second.value() ==
-                    u"federated-learning@s!/experiments/study/api.js"_ns);
+                    "federated-learning@s!/experiments/study/api.js"_ns);
   }
   {  // Test mozilla.org replacing
     constexpr auto str =
-        u"jar:file:///c:/users/bob/appdata/roaming/mozilla/firefox/profiles/"
-        u"foo/"
+        "jar:file:///c:/users/bob/appdata/roaming/mozilla/firefox/profiles/"
+        "foo/"
         "extensions/federated-learning@shigeld.mozilla.org.xpi!/experiments/"
         "study/api.js"_ns;
     FilenameTypeAndDetails ret =
@@ -114,20 +114,19 @@ TEST(FilenameEvalParser, MozExtension)
     ASSERT_TRUE(
         ret.first == kMozillaExtensionFile &&
         ret.second.value() ==
-            nsLiteralString(
-                u"federated-learning@shigeld.m!/experiments/study/api.js"));
+            "federated-learning@shigeld.m!/experiments/study/api.js"_ns);
   }
   {  // Test truncating
     constexpr auto str =
-        u"jar:file:///c:/users/bob/appdata/roaming/mozilla/firefox/profiles/"
-        u"foo/"
+        "jar:file:///c:/users/bob/appdata/roaming/mozilla/firefox/profiles/"
+        "foo/"
         "extensions/federated-learning@shigeld.mozilla.org.xpi!/experiments/"
         "study/apiiiiiiiiiiiiiiiiiiiiiiiiiiiiii.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kMozillaExtensionFile &&
                 ret.second.value() ==
-                    u"federated-learning@shigeld.m!/experiments/"
+                    "federated-learning@shigeld.m!/experiments/"
                     "study/apiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"_ns);
   }
 }
@@ -135,26 +134,26 @@ TEST(FilenameEvalParser, MozExtension)
 TEST(FilenameEvalParser, UserChromeJS)
 {
   {
-    constexpr auto str = u"firegestures/content/browser.uc.js"_ns;
+    constexpr auto str = "firegestures/content/browser.uc.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
   }
   {
-    constexpr auto str = u"firegestures/content/browser.uc.js?"_ns;
+    constexpr auto str = "firegestures/content/browser.uc.js?"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
   }
   {
-    constexpr auto str = u"firegestures/content/browser.uc.js?243244224"_ns;
+    constexpr auto str = "firegestures/content/browser.uc.js?243244224"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kSuspectedUserChromeJS && !ret.second.isSome());
   }
   {
     constexpr auto str =
-        u"file:///b:/fxprofiles/mark/chrome/"
+        "file:///b:/fxprofiles/mark/chrome/"
         "addbookmarkherewithmiddleclick.uc.js?1558444389291"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
@@ -165,14 +164,14 @@ TEST(FilenameEvalParser, UserChromeJS)
 TEST(FilenameEvalParser, SingleFile)
 {
   {
-    constexpr auto str = u"browser.uc.js?2456"_ns;
+    constexpr auto str = "browser.uc.js?2456"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kSingleString && ret.second.isSome() &&
                 ret.second.value() == str);
   }
   {
-    constexpr auto str = u"debugger"_ns;
+    constexpr auto str = "debugger"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kSingleString && ret.second.isSome() &&
@@ -183,24 +182,13 @@ TEST(FilenameEvalParser, SingleFile)
 TEST(FilenameEvalParser, Other)
 {
   {
-    constexpr auto str = u"firegestures--content"_ns;
+    constexpr auto str = "firegestures--content"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
   }
   {
-    constexpr auto str = u"gallop://thing/fire"_ns;
-    FilenameTypeAndDetails ret =
-        nsContentSecurityUtils::FilenameToFilenameType(str, false);
-#if defined(XP_WIN)
-    ASSERT_TRUE(ret.first == kSanitizedWindowsURL &&
-                ret.second.value() == u"gallop"_ns);
-#else
-    ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
-#endif
-  }
-  {
-    constexpr auto str = u"gallop://fire"_ns;
+    constexpr auto str = "gallop://thing/fire"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
@@ -211,7 +199,18 @@ TEST(FilenameEvalParser, Other)
 #endif
   }
   {
-    constexpr auto str = u"firegestures/content"_ns;
+    constexpr auto str = "gallop://fire"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+#if defined(XP_WIN)
+    ASSERT_TRUE(ret.first == kSanitizedWindowsURL &&
+                ret.second.value() == u"gallop"_ns);
+#else
+    ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
+#endif
+  }
+  {
+    constexpr auto str = "firegestures/content"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
@@ -222,7 +221,7 @@ TEST(FilenameEvalParser, Other)
 #endif
   }
   {
-    constexpr auto str = u"firegestures\\content"_ns;
+    constexpr auto str = "firegestures\\content"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
@@ -233,7 +232,7 @@ TEST(FilenameEvalParser, Other)
 #endif
   }
   {
-    constexpr auto str = u"/home/tom/files/thing"_ns;
+    constexpr auto str = "/home/tom/files/thing"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
@@ -244,7 +243,7 @@ TEST(FilenameEvalParser, Other)
 #endif
   }
   {
-    constexpr auto str = u"file://c/uers/tom/file.txt"_ns;
+    constexpr auto str = "file://c/uers/tom/file.txt"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
@@ -255,7 +254,7 @@ TEST(FilenameEvalParser, Other)
 #endif
   }
   {
-    constexpr auto str = u"c:/uers/tom/file.txt"_ns;
+    constexpr auto str = "c:/uers/tom/file.txt"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
@@ -266,7 +265,7 @@ TEST(FilenameEvalParser, Other)
 #endif
   }
   {
-    constexpr auto str = u"http://example.com/"_ns;
+    constexpr auto str = "http://example.com/"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
@@ -277,7 +276,7 @@ TEST(FilenameEvalParser, Other)
 #endif
   }
   {
-    constexpr auto str = u"http://example.com/thing.html"_ns;
+    constexpr auto str = "http://example.com/thing.html"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
@@ -327,13 +326,13 @@ TEST(FilenameEvalParser, WebExtensionPathParser)
     w->SetActive(true, eR);
 
     constexpr auto str =
-        u"moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/path/to/file.js"_ns;
+        "moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/path/to/file.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, true);
 
     ASSERT_TRUE(ret.first == kExtensionURI &&
                 ret.second.value() ==
-                    u"moz-extension://[gtesttestextension@mozilla.org: "
+                    "moz-extension://[gtesttestextension@mozilla.org: "
                     "gtest Test Extension]P=0/path/to/file.js"_ns);
 
     w->SetActive(false, eR);
@@ -376,13 +375,13 @@ TEST(FilenameEvalParser, WebExtensionPathParser)
     w->SetActive(true, eR);
 
     constexpr auto str =
-        u"moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/path/to/file.js"_ns;
+        "moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/path/to/file.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, true);
 
     ASSERT_TRUE(ret.first == kExtensionURI &&
                 ret.second.value() ==
-                    u"moz-extension://[gtesttestextension@mozilla.org: "
+                    "moz-extension://[gtesttestextension@mozilla.org: "
                     "gtest Test Extension]P=1/path/to/file.js"_ns);
 
     w->SetActive(false, eR);
@@ -391,31 +390,30 @@ TEST(FilenameEvalParser, WebExtensionPathParser)
   }
   {
     constexpr auto str =
-        u"moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/path/to/file.js"_ns;
+        "moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/path/to/file.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kExtensionURI && !ret.second.isSome());
   }
   {
     constexpr auto str =
-        u"moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/file.js"_ns;
+        "moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/file.js"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, true);
     ASSERT_TRUE(
         ret.first == kExtensionURI &&
         ret.second.value() ==
-            nsLiteralString(
-                u"moz-extension://[failed finding addon by host]/file.js"));
+            "moz-extension://[failed finding addon by host]/file.js"_ns);
   }
   {
     constexpr auto str =
-        u"moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/path/to/"
+        "moz-extension://e37c3c08-beac-a04b-8032-c4f699a1a856/path/to/"
         "file.js?querystringx=6"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, true);
     ASSERT_TRUE(ret.first == kExtensionURI &&
                 ret.second.value() ==
-                    u"moz-extension://[failed finding addon "
+                    "moz-extension://[failed finding addon "
                     "by host]/path/to/file.js"_ns);
   }
 }
@@ -423,31 +421,31 @@ TEST(FilenameEvalParser, WebExtensionPathParser)
 TEST(FilenameEvalParser, AboutPageParser)
 {
   {
-    constexpr auto str = u"about:about"_ns;
+    constexpr auto str = "about:about"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kAboutUri &&
-                ret.second.value() == u"about:about"_ns);
+                ret.second.value() == "about:about"_ns);
   }
   {
-    constexpr auto str = u"about:about?hello"_ns;
+    constexpr auto str = "about:about?hello"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kAboutUri &&
-                ret.second.value() == u"about:about"_ns);
+                ret.second.value() == "about:about"_ns);
   }
   {
-    constexpr auto str = u"about:about#mom"_ns;
+    constexpr auto str = "about:about#mom"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kAboutUri &&
-                ret.second.value() == u"about:about"_ns);
+                ret.second.value() == "about:about"_ns);
   }
   {
-    constexpr auto str = u"about:about?hello=there#mom"_ns;
+    constexpr auto str = "about:about?hello=there#mom"_ns;
     FilenameTypeAndDetails ret =
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
     ASSERT_TRUE(ret.first == kAboutUri &&
-                ret.second.value() == u"about:about"_ns);
+                ret.second.value() == "about:about"_ns);
   }
 }

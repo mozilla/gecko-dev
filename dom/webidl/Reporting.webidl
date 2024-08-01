@@ -52,7 +52,7 @@ interface DeprecationReportBody : ReportBody {
   // here.
   readonly attribute DOMTimeStamp? anticipatedRemoval;
   readonly attribute DOMString message;
-  readonly attribute DOMString? sourceFile;
+  readonly attribute UTF8String? sourceFile;
   readonly attribute unsigned long? lineNumber;
   readonly attribute unsigned long? columnNumber;
 };
@@ -78,7 +78,7 @@ interface CSPViolationReportBody : ReportBody {
   readonly attribute USVString? blockedURL;
   readonly attribute DOMString effectiveDirective;
   readonly attribute DOMString originalPolicy;
-  readonly attribute USVString? sourceFile;
+  readonly attribute UTF8String? sourceFile;
   readonly attribute DOMString? sample;
   readonly attribute SecurityPolicyViolationEventDisposition disposition;
   readonly attribute unsigned short statusCode;

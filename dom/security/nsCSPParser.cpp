@@ -183,7 +183,7 @@ void nsCSPParser::logWarningErrorToConsole(uint32_t aSeverityFlag,
   // send console messages off to the context and let the context
   // deal with it (potentially messages need to be queued up)
   mCSPContext->logToConsole(aProperty, aParams,
-                            u""_ns,          // aSourceName
+                            ""_ns,           // aSourceName
                             u""_ns,          // aSourceLine
                             0,               // aLineNumber
                             1,               // aColumnNumber

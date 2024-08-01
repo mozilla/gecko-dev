@@ -860,7 +860,8 @@ void ReferrerInfo::LogMessageToConsole(
   }
 
   rv = nsContentUtils::ReportToConsoleByWindowID(
-      localizedMsg, nsIScriptError::infoFlag, "Security"_ns, windowID, uri);
+      localizedMsg, nsIScriptError::infoFlag, "Security"_ns, windowID,
+      SourceLocation(std::move(uri)));
   Unused << NS_WARN_IF(NS_FAILED(rv));
 }
 

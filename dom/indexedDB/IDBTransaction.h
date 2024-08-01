@@ -9,6 +9,7 @@
 
 #include "FlippedOnce.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/SourceLocation.h"
 #include "mozilla/dom/IDBTransactionBinding.h"
 #include "mozilla/dom/quota/CheckedUnsafePtr.h"
 #include "mozilla/DOMEventTargetHelper.h"
@@ -115,9 +116,7 @@ class IDBTransaction final
                                   ///< transaction can auto-commit when the last
                                   ///< pending request finished.
 
-  const nsString mFilename;
-  const uint32_t mLineNo;
-  const uint32_t mColumn;
+  const JSCallingLocation mCallerLocation;
 
   ReadyState mReadyState = ReadyState::Active;
   FlippedOnce<false> mStarted;
@@ -239,8 +238,10 @@ class IDBTransaction final
     return mAbortCode;
   }
 
-  void GetCallerLocation(nsAString& aFilename, uint32_t* aLineNo,
-                         uint32_t* aColumn) const;
+  const JSCallingLocation& GetCallerLocation() const {
+    AssertIsOnOwningThread();
+    return mCallerLocation;
+  }
 
   // 'Get' prefix is to avoid name collisions with the enum
   Mode GetMode() const {
@@ -349,8 +350,8 @@ class IDBTransaction final
  public:
   IDBTransaction(IDBDatabase* aDatabase,
                  const nsTArray<nsString>& aObjectStoreNames, Mode aMode,
-                 Durability aDurability, nsString aFilename, uint32_t aLineNo,
-                 uint32_t aColumn, CreatedFromFactoryFunction aDummy);
+                 Durability aDurability, JSCallingLocation&& aCallerLocation,
+                 CreatedFromFactoryFunction aDummy);
 
  private:
   ~IDBTransaction();

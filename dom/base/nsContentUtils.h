@@ -31,6 +31,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/SourceLocation.h"
 #include "mozilla/CORSMode.h"
 #include "mozilla/CallState.h"
 #include "mozilla/Maybe.h"
@@ -1274,29 +1275,13 @@ class nsContentUtils {
    *   @param aErrorFlags See nsIScriptError.
    *   @param aCategory Name of module reporting error.
    *   @param aDocument Reference to the document which triggered the message.
-   *   @param [aURI=nullptr] (Optional) URI of resource containing error.
-   *   @param [aSourceLine=u""_ns] (Optional) The text of the line that
-              contains the error (may be empty).
-   *   @param [aLineNumber=0] (Optional) Line number within resource
-              containing error.
-   *   @param [aColumnNumber=0] (Optional) Column number within resource
-              containing error.
-              If aURI is null, then aDocument->GetDocumentURI() is used.
-   *   @param [aLocationMode] (Optional) Specifies the behavior if
-              error location information is omitted.
+   *   @param aLocation message location. Pass the empty location to omit it.
    */
-  enum MissingErrorLocationMode {
-    // Don't show location information in the error console.
-    eOMIT_LOCATION,
-    // Get location information from the currently executing script.
-    eUSE_CALLING_LOCATION
-  };
   static nsresult ReportToConsoleNonLocalized(
       const nsAString& aErrorText, uint32_t aErrorFlags,
       const nsACString& aCategory, const Document* aDocument,
-      nsIURI* aURI = nullptr, const nsString& aSourceLine = u""_ns,
-      uint32_t aLineNumber = 0, uint32_t aColumnNumber = 0,
-      MissingErrorLocationMode aLocationMode = eUSE_CALLING_LOCATION);
+      const mozilla::SourceLocation& aLocation =
+          mozilla::JSCallingLocation::Get());
 
   /**
    * Report a non-localized error message to the error console base on the
@@ -1306,23 +1291,13 @@ class nsContentUtils {
    *   @param aCategory Name of module reporting error.
    *   @param [aInnerWindowID] Inner window ID for document which triggered the
    *          message.
-   *   @param [aURI=nullptr] (Optional) URI of resource containing error.
-   *   @param [aSourceLine=u""_ns] (Optional) The text of the line that
-              contains the error (may be empty).
-   *   @param [aLineNumber=0] (Optional) Line number within resource
-              containing error.
-   *   @param [aColumnNumber=1] (Optional) Column number within resource
-              containing error.
-              If aURI is null, then aDocument->GetDocumentURI() is used.
-   *   @param [aLocationMode] (Optional) Specifies the behavior if
-              error location information is omitted.
+   *   @param aLocation message location. Pass the empty location to omit it.
    */
   static nsresult ReportToConsoleByWindowID(
       const nsAString& aErrorText, uint32_t aErrorFlags,
       const nsACString& aCategory, uint64_t aInnerWindowID,
-      nsIURI* aURI = nullptr, const nsString& aSourceLine = u""_ns,
-      uint32_t aLineNumber = 0, uint32_t aColumnNumber = 1,
-      MissingErrorLocationMode aLocationMode = eUSE_CALLING_LOCATION);
+      const mozilla::SourceLocation& aLocation =
+          mozilla::JSCallingLocation::Get());
 
   /**
    * Report a localized error message to the error console.
@@ -1333,14 +1308,7 @@ class nsContentUtils {
    *   @param aMessageName Name of localized message.
    *   @param [aParams=empty-array] (Optional) Parameters to be substituted into
               localized message.
-   *   @param [aURI=nullptr] (Optional) URI of resource containing error.
-   *   @param [aSourceLine=u""_ns] (Optional) The text of the line that
-              contains the error (may be empty).
-   *   @param [aLineNumber=0] (Optional) Line number within resource
-              containing error.
-   *   @param [aColumnNumber=0] (Optional) Column number within resource
-              containing error.
-              If aURI is null, then aDocument->GetDocumentURI() is used.
+   *   @param aLocation message location. Pass the empty location to omit it.
    */
   enum PropertiesFile {
     eCSS_PROPERTIES,
@@ -1364,8 +1332,8 @@ class nsContentUtils {
       uint32_t aErrorFlags, const nsACString& aCategory,
       const Document* aDocument, PropertiesFile aFile, const char* aMessageName,
       const nsTArray<nsString>& aParams = nsTArray<nsString>(),
-      nsIURI* aURI = nullptr, const nsString& aSourceLine = u""_ns,
-      uint32_t aLineNumber = 0, uint32_t aColumnNumber = 0);
+      const mozilla::SourceLocation& aLocation =
+          mozilla::JSCallingLocation::Get());
 
   static void ReportEmptyGetElementByIdArg(const Document* aDoc);
 

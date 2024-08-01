@@ -1478,7 +1478,7 @@ void LogWarningFullscreenWindowRaise(Element* aElement) {
   Unused << nsContentUtils::ReportToConsoleByWindowID(
       localizedMsg, nsIScriptError::warningFlag, "DOM"_ns,
       windowGlobalParent->InnerWindowId(),
-      windowGlobalParent->GetDocumentURI());
+      SourceLocation(windowGlobalParent->GetDocumentURI()));
 }
 
 // Ensure that when an embedded popup with a noautofocus attribute

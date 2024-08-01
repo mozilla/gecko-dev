@@ -10,6 +10,7 @@
 
 #include "mozilla/EventQueue.h"
 #include "mozilla/StaticPrefs_privacy.h"
+#include "mozilla/SourceLocation.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/Document.h"
@@ -21,13 +22,11 @@
 #include "nsIURI.h"
 #include "nsIOService.h"
 #include "nsGlobalWindowOuter.h"
-#include "nsJSUtils.h"
 #include "mozIThirdPartyUtil.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
 using mozilla::dom::BrowsingContext;
-using mozilla::dom::ContentChild;
 using mozilla::dom::Document;
 
 static const uint32_t kMaxConsoleOutputDelayMs = 100;
@@ -58,20 +57,16 @@ void ReportUnblockingToConsole(
   MOZ_ASSERT(aWindowID);
   MOZ_ASSERT(aPrincipal);
 
-  nsAutoString sourceLine;
-  uint32_t lineNumber = 0, columnNumber = 1;
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
-  if (cx) {
-    nsJSUtils::GetCallingLocation(cx, sourceLine, &lineNumber, &columnNumber);
-  }
-
+  // Grab the calling location now since the runnable will run without a JS
+  // context on the stack.
+  auto location = JSCallingLocation::Get();
   nsCOMPtr<nsIPrincipal> principal(aPrincipal);
   nsAutoString trackingOrigin(aTrackingOrigin);
 
   RefPtr<Runnable> runnable = NS_NewRunnableFunction(
       "ReportUnblockingToConsoleDelayed",
-      [aWindowID, sourceLine, lineNumber, columnNumber, principal,
-       trackingOrigin, aReason]() {
+      [aWindowID, loc = std::move(location), principal, trackingOrigin,
+       aReason]() {
         const char* messageWithSameOrigin = nullptr;
 
         switch (aReason) {
@@ -105,8 +100,7 @@ void ReportUnblockingToConsole(
 
         nsContentUtils::ReportToConsoleByWindowID(
             errorText, nsIScriptError::warningFlag,
-            ANTITRACKING_CONSOLE_CATEGORY, aWindowID, nullptr, sourceLine,
-            lineNumber, columnNumber);
+            ANTITRACKING_CONSOLE_CATEGORY, aWindowID, loc);
       });
 
   RunConsoleReportingRunnable(runnable.forget());
@@ -148,18 +142,13 @@ void ReportBlockingToConsole(uint64_t aWindowID, nsIURI* aURI,
     return;
   }
 
-  nsAutoString sourceLine;
-  uint32_t lineNumber = 0, columnNumber = 1;
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
-  if (cx) {
-    nsJSUtils::GetCallingLocation(cx, sourceLine, &lineNumber, &columnNumber);
-  }
+  auto location = JSCallingLocation::Get();
 
   nsCOMPtr<nsIURI> uri(aURI);
 
   RefPtr<Runnable> runnable = NS_NewRunnableFunction(
-      "ReportBlockingToConsoleDelayed", [aWindowID, sourceLine, lineNumber,
-                                         columnNumber, uri, aRejectedReason]() {
+      "ReportBlockingToConsoleDelayed",
+      [aWindowID, loc = std::move(location), uri, aRejectedReason]() {
         const char* message = nullptr;
         nsAutoCString category;
         // When changing this list, please make sure to update the corresponding
@@ -215,8 +204,7 @@ void ReportBlockingToConsole(uint64_t aWindowID, nsIURI* aURI,
         NS_ENSURE_SUCCESS_VOID(rv);
 
         nsContentUtils::ReportToConsoleByWindowID(
-            errorText, nsIScriptError::warningFlag, category, aWindowID,
-            nullptr, sourceLine, lineNumber, columnNumber);
+            errorText, nsIScriptError::warningFlag, category, aWindowID, loc);
       });
 
   RunConsoleReportingRunnable(runnable.forget());

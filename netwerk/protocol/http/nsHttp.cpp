@@ -803,14 +803,10 @@ Maybe<nsCString> CallingScriptLocationString() {
     return Nothing();
   }
 
-  nsAutoCString fileNameString;
-  uint32_t line = 0, col = 0;
-  if (!nsJSUtils::GetCallingLocation(cx, fileNameString, &line, &col)) {
-    return Nothing();
-  }
-
+  auto location = JSCallingLocation::Get(cx);
   nsCString logString = ""_ns;
-  logString.AppendPrintf("%s:%u:%u", fileNameString.get(), line, col);
+  logString.AppendPrintf("%s:%u:%u", location.FileName().get(), location.mLine,
+                         location.mColumn);
   return Some(logString);
 }
 

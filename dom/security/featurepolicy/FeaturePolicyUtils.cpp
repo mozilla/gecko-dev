@@ -222,14 +222,12 @@ void FeaturePolicyUtils::ReportViolation(Document* aDocument,
     return;
   }
 
-  nsAutoString fileName;
   Nullable<int32_t> lineNumber;
   Nullable<int32_t> columnNumber;
-  uint32_t line = 0;
-  uint32_t column = 0;
-  if (nsJSUtils::GetCallingLocation(cx, fileName, &line, &column)) {
-    lineNumber.SetValue(static_cast<int32_t>(line));
-    columnNumber.SetValue(static_cast<int32_t>(column));
+  auto loc = JSCallingLocation::Get();
+  if (loc) {
+    lineNumber.SetValue(static_cast<int32_t>(loc.mLine));
+    columnNumber.SetValue(static_cast<int32_t>(loc.mColumn));
   }
 
   nsPIDOMWindowInner* window = aDocument->GetInnerWindow();
@@ -239,8 +237,8 @@ void FeaturePolicyUtils::ReportViolation(Document* aDocument,
 
   RefPtr<FeaturePolicyViolationReportBody> body =
       new FeaturePolicyViolationReportBody(window->AsGlobal(), aFeatureName,
-                                           fileName, lineNumber, columnNumber,
-                                           u"enforce"_ns);
+                                           loc.FileName(), lineNumber,
+                                           columnNumber, u"enforce"_ns);
 
   ReportingUtils::Report(window->AsGlobal(), nsGkAtoms::featurePolicyViolation,
                          u"default"_ns, NS_ConvertUTF8toUTF16(spec), body);

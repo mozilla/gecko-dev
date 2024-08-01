@@ -8,14 +8,11 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRunnable.h"
-#include "mozilla/BasePrincipal.h"
 #include "mozilla/ErrorResult.h"
-#include "nsIParentChannel.h"
 #include "nsGlobalWindowInner.h"
 #include "nsContentSecurityUtils.h"
 #include "nsContentUtils.h"
 #include "nsCOMPtr.h"
-#include "nsJSUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -28,8 +25,7 @@ nsresult CheckInternal(nsIContentSecurityPolicy* aCSP,
                        nsICSPEventListener* aCSPEventListener,
                        nsIPrincipal* aSubjectPrincipal,
                        const nsAString& aExpression,
-                       const nsAString& aFileNameString, uint32_t aLineNum,
-                       uint32_t aColumnNum, bool* aAllowed) {
+                       const JSCallingLocation& aCaller, bool* aAllowed) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aAllowed);
 
@@ -61,8 +57,9 @@ nsresult CheckInternal(nsIContentSecurityPolicy* aCSP,
   if (reportViolation) {
     aCSP->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_EVAL,
                               nullptr,  // triggering element
-                              aCSPEventListener, aFileNameString, aExpression,
-                              aLineNum, aColumnNum, u""_ns, u""_ns);
+                              aCSPEventListener, aCaller.FileName(),
+                              aExpression, aCaller.mLine, aCaller.mColumn,
+                              u""_ns, u""_ns);
   }
 
   return NS_OK;
@@ -72,22 +69,19 @@ class WorkerCSPCheckRunnable final : public WorkerMainThreadRunnable {
  public:
   WorkerCSPCheckRunnable(WorkerPrivate* aWorkerPrivate,
                          const nsAString& aExpression,
-                         const nsAString& aFileNameString, uint32_t aLineNum,
-                         uint32_t aColumnNum)
+                         JSCallingLocation&& aCaller)
       : WorkerMainThreadRunnable(aWorkerPrivate, "CSP Eval Check"_ns),
         mExpression(aExpression),
-        mFileNameString(aFileNameString),
-        mLineNum(aLineNum),
-        mColumnNum(aColumnNum),
+        mCaller(std::move(aCaller)),
         mEvalAllowed(false) {}
 
   bool MainThreadRun() override {
     MOZ_ASSERT(mWorkerRef);
     WorkerPrivate* workerPrivate = mWorkerRef->Private();
-    mResult = CheckInternal(
-        workerPrivate->GetCsp(), workerPrivate->CSPEventListener(),
-        workerPrivate->GetLoadingPrincipal(), mExpression, mFileNameString,
-        mLineNum, mColumnNum, &mEvalAllowed);
+    mResult = CheckInternal(workerPrivate->GetCsp(),
+                            workerPrivate->CSPEventListener(),
+                            workerPrivate->GetLoadingPrincipal(), mExpression,
+                            mCaller, &mEvalAllowed);
     return true;
   }
 
@@ -99,9 +93,7 @@ class WorkerCSPCheckRunnable final : public WorkerMainThreadRunnable {
 
  private:
   const nsString mExpression;
-  const nsString mFileNameString;
-  const uint32_t mLineNum;
-  const uint32_t mColumnNum;
+  const JSCallingLocation mCaller;
   bool mEvalAllowed;
   nsresult mResult;
 };
@@ -131,19 +123,10 @@ nsresult CSPEvalChecker::CheckForWindow(JSContext* aCx,
 
   nsresult rv = NS_OK;
 
-  // Get the calling location.
-  uint32_t lineNum = 0;
-  uint32_t columnNum = 1;
-  nsAutoString fileNameString;
-  if (!nsJSUtils::GetCallingLocation(aCx, fileNameString, &lineNum,
-                                     &columnNum)) {
-    fileNameString.AssignLiteral("unknown");
-  }
-
+  auto location = JSCallingLocation::Get(aCx);
   nsCOMPtr<nsIContentSecurityPolicy> csp = doc->GetCsp();
   rv = CheckInternal(csp, nullptr /* no CSPEventListener for window */,
-                     doc->NodePrincipal(), aExpression, fileNameString, lineNum,
-                     columnNum, aAllowEval);
+                     doc->NodePrincipal(), aExpression, location, aAllowEval);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     *aAllowEval = false;
     return rv;
@@ -164,17 +147,8 @@ nsresult CSPEvalChecker::CheckForWorker(JSContext* aCx,
   // The value is set at any "return", but better to have a default value here.
   *aAllowEval = false;
 
-  // Get the calling location.
-  uint32_t lineNum = 0;
-  uint32_t columnNum = 1;
-  nsAutoString fileNameString;
-  if (!nsJSUtils::GetCallingLocation(aCx, fileNameString, &lineNum,
-                                     &columnNum)) {
-    fileNameString.AssignLiteral("unknown");
-  }
-
   RefPtr<WorkerCSPCheckRunnable> r = new WorkerCSPCheckRunnable(
-      aWorkerPrivate, aExpression, fileNameString, lineNum, columnNum);
+      aWorkerPrivate, aExpression, JSCallingLocation::Get(aCx));
   ErrorResult error;
   r->Dispatch(aWorkerPrivate, Canceling, error);
   if (NS_WARN_IF(error.Failed())) {

@@ -74,7 +74,7 @@ class nsCSPContext : public nsIContentSecurityPolicy {
   void flushConsoleMessages();
 
   void logToConsole(const char* aName, const nsTArray<nsString>& aParams,
-                    const nsAString& aSourceName, const nsAString& aSourceLine,
+                    const nsACString& aSourceName, const nsAString& aSourceLine,
                     uint32_t aLineNumber, uint32_t aColumnNumber,
                     uint32_t aSeverityFlag);
 

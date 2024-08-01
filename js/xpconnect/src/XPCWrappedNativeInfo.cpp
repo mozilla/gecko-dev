@@ -11,6 +11,7 @@
 #include "js/Wrapper.h"
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/SourceLocation.h"
 #include "nsIScriptError.h"
 #include "nsPrintfCString.h"
 #include "nsPointerHashKeys.h"
@@ -198,14 +199,13 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
       nsPrintfCString errorMsg("Use of %s in content process is deprecated.",
                                intfNameChars);
 
-      nsAutoString filename;
-      uint32_t lineno = 0, column = 1;
-      nsJSUtils::GetCallingLocation(cx, filename, &lineno, &column);
+      auto location = JSCallingLocation::Get(cx);
       nsCOMPtr<nsIScriptError> error(
           do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-      error->Init(NS_ConvertUTF8toUTF16(errorMsg), filename, u""_ns, lineno,
-                  column, nsIScriptError::warningFlag, "chrome javascript"_ns,
-                  false /* from private window */,
+      error->Init(NS_ConvertUTF8toUTF16(errorMsg),
+                  NS_ConvertUTF8toUTF16(location.FileName()), u""_ns,
+                  location.mLine, location.mColumn, nsIScriptError::warningFlag,
+                  "chrome javascript"_ns, false /* from private window */,
                   true /* from chrome context */);
       console->LogMessage(error);
     }

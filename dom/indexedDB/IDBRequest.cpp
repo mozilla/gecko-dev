@@ -44,8 +44,6 @@ using namespace mozilla::ipc;
 IDBRequest::IDBRequest(IDBDatabase* aDatabase)
     : DOMEventTargetHelper(aDatabase),
       mLoggingSerialNumber(0),
-      mLineNo(0),
-      mColumn(0),
       mHaveResultOrErrorCode(false) {
   MOZ_ASSERT(aDatabase);
   aDatabase->AssertIsOnOwningThread();
@@ -56,8 +54,6 @@ IDBRequest::IDBRequest(IDBDatabase* aDatabase)
 IDBRequest::IDBRequest(nsIGlobalObject* aGlobal)
     : DOMEventTargetHelper(aGlobal),
       mLoggingSerialNumber(0),
-      mLineNo(0),
-      mColumn(0),
       mHaveResultOrErrorCode(false) {
   InitMembers();
 }
@@ -73,8 +69,6 @@ void IDBRequest::InitMembers() {
   mResultVal.setUndefined();
   mLoggingSerialNumber = NextSerialNumber();
   mErrorCode = NS_OK;
-  mLineNo = 0;
-  mColumn = 0;
   mHaveResultOrErrorCode = false;
 }
 
@@ -87,7 +81,7 @@ MovingNotNull<RefPtr<IDBRequest>> IDBRequest::Create(
   aDatabase->AssertIsOnOwningThread();
 
   RefPtr<IDBRequest> request = new IDBRequest(aDatabase);
-  CaptureCaller(aCx, request->mFilename, &request->mLineNo, &request->mColumn);
+  request->mCallerLocation = JSCallingLocation::Get(aCx);
 
   request->mTransaction = std::move(aTransaction);
 
@@ -141,15 +135,6 @@ void IDBRequest::SetLoggingSerialNumber(uint64_t aLoggingSerialNumber) {
   MOZ_ASSERT(aLoggingSerialNumber > mLoggingSerialNumber);
 
   mLoggingSerialNumber = aLoggingSerialNumber;
-}
-
-void IDBRequest::CaptureCaller(JSContext* aCx, nsAString& aFilename,
-                               uint32_t* aLineNo, uint32_t* aColumn) {
-  MOZ_ASSERT(aFilename.IsEmpty());
-  MOZ_ASSERT(aLineNo);
-  MOZ_ASSERT(aColumn);
-
-  nsJSUtils::GetCallingLocation(aCx, aFilename, aLineNo, aColumn);
 }
 
 void IDBRequest::GetSource(
@@ -212,17 +197,6 @@ DOMException* IDBRequest::GetErrorAfterResult() const {
 }
 
 #endif  // DEBUG
-
-void IDBRequest::GetCallerLocation(nsAString& aFilename, uint32_t* aLineNo,
-                                   uint32_t* aColumn) const {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(aLineNo);
-  MOZ_ASSERT(aColumn);
-
-  aFilename = mFilename;
-  *aLineNo = mLineNo;
-  *aColumn = mColumn;
-}
 
 IDBRequestReadyState IDBRequest::ReadyState() const {
   AssertIsOnOwningThread();
@@ -335,7 +309,7 @@ RefPtr<IDBOpenDBRequest> IDBOpenDBRequest::Create(
 
   RefPtr<IDBOpenDBRequest> request =
       new IDBOpenDBRequest(std::move(aFactory), aGlobal);
-  CaptureCaller(aCx, request->mFilename, &request->mLineNo, &request->mColumn);
+  request->mCallerLocation = JSCallingLocation::Get(aCx);
 
   if (!NS_IsMainThread()) {
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();

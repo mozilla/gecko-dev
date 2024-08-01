@@ -682,7 +682,7 @@ class ConsoleCallDataWorkerRunnable final : public ConsoleWorkerRunnable {
         frame = *mCallData->mTopStackFrame;
       }
 
-      nsString id = frame.mFilename;
+      nsCString id = frame.mFilename;
       nsString innerID;
       if (aWorkerPrivate->IsSharedWorker()) {
         innerID = u"SharedWorker"_ns;
@@ -690,12 +690,12 @@ class ConsoleCallDataWorkerRunnable final : public ConsoleWorkerRunnable {
         innerID = u"ServiceWorker"_ns;
         // Use scope as ID so the webconsole can decide if the message should
         // show up per tab
-        CopyASCIItoUTF16(aWorkerPrivate->ServiceWorkerScope(), id);
+        id = aWorkerPrivate->ServiceWorkerScope();
       } else {
         innerID = u"Worker"_ns;
       }
 
-      mCallData->SetIDs(id, innerID);
+      mCallData->SetIDs(NS_ConvertUTF8toUTF16(id), innerID);
     }
 
     mClonedData.mGlobal = aGlobal;
@@ -1223,7 +1223,9 @@ void StackFrameToStackEntry(JSContext* aCx, nsIStackFrame* aStackFrame,
                             ConsoleStackEntry& aStackEntry) {
   MOZ_ASSERT(aStackFrame);
 
-  aStackFrame->GetFilename(aCx, aStackEntry.mFilename);
+  nsAutoString filename;
+  aStackFrame->GetFilename(aCx, filename);
+  CopyUTF16toUTF8(filename, aStackEntry.mFilename);
 
   aStackEntry.mSourceId = aStackFrame->GetSourceId(aCx);
   aStackEntry.mLineNumber = aStackFrame->GetLineNumber(aCx);
@@ -1412,12 +1414,12 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
     } else if (!mPassedInnerID.IsEmpty()) {
       callData->SetIDs(u"jsm"_ns, mPassedInnerID);
     } else {
-      nsAutoString filename;
+      nsAutoCString filename;
       if (callData->mTopStackFrame.isSome()) {
         filename = callData->mTopStackFrame->mFilename;
       }
 
-      callData->SetIDs(u"jsm"_ns, filename);
+      callData->SetIDs(u"jsm"_ns, NS_ConvertUTF8toUTF16(filename));
     }
 
     GetOrCreateMainThreadData()->ProcessCallData(aCx, callData, aData);
@@ -1604,7 +1606,7 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
         do_QueryInterface(filenameURI);
     nsAutoCString spec;
     if (safeURI && NS_SUCCEEDED(safeURI->GetSensitiveInfoHiddenSpec(spec))) {
-      CopyUTF8toUTF16(spec, event.mFilename);
+      event.mFilename = spec;
     }
   }
 

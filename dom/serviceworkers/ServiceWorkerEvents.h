@@ -140,11 +140,9 @@ class FetchEvent final : public ExtendableEvent {
   RefPtr<Promise> mHandled;
   RefPtr<Promise> mPreloadResponse;
   nsCString mScriptSpec;
-  nsCString mPreventDefaultScriptSpec;
   nsString mClientId;
   nsString mResultingClientId;
-  uint32_t mPreventDefaultLineNumber;
-  uint32_t mPreventDefaultColumnNumber;
+  JSCallingLocation mPreventDefaultLocation;
   bool mWaitToRespond;
 
  protected:

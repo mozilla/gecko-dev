@@ -475,14 +475,14 @@ MOZ_CAN_RUN_SCRIPT bool InterruptCallback(JSContext* aCx) {
 
 class LogViolationDetailsRunnable final : public WorkerMainThreadRunnable {
   uint16_t mViolationType;
-  nsString mFileName;
+  nsCString mFileName;
   uint32_t mLineNum;
   uint32_t mColumnNum;
   nsString mScriptSample;
 
  public:
   LogViolationDetailsRunnable(WorkerPrivate* aWorker, uint16_t aViolationType,
-                              const nsString& aFileName, uint32_t aLineNum,
+                              const nsCString& aFileName, uint32_t aLineNum,
                               uint32_t aColumnNum,
                               const nsAString& aScriptSample)
       : WorkerMainThreadRunnable(aWorker,
@@ -531,22 +531,11 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
   }
 
   if (reportViolation) {
-    nsString fileName;
-    uint32_t lineNum = 0;
-    JS::ColumnNumberOneOrigin columnNum;
-
-    JS::AutoFilename file;
-    if (JS::DescribeScriptedCaller(aCx, &file, &lineNum, &columnNum) &&
-        file.get()) {
-      CopyUTF8toUTF16(MakeStringSpan(file.get()), fileName);
-    } else {
-      MOZ_ASSERT(!JS_IsExceptionPending(aCx));
-    }
-
+    auto caller = JSCallingLocation::Get(aCx);
     RefPtr<LogViolationDetailsRunnable> runnable =
-        new LogViolationDetailsRunnable(worker, violationType, fileName,
-                                        lineNum, columnNum.oneOriginValue(),
-                                        scriptSample);
+        new LogViolationDetailsRunnable(worker, violationType,
+                                        caller.FileName(), caller.mLine,
+                                        caller.mColumn, scriptSample);
 
     ErrorResult rv;
     runnable->Dispatch(worker, Killing, rv);

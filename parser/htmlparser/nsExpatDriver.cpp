@@ -521,9 +521,11 @@ void nsExpatDriver::HandleStartElementForSystemPrincipal(
     error.AppendLiteral("> created from entity value.");
 
     nsContentUtils::ReportToConsoleNonLocalized(
-        error, nsIScriptError::warningFlag, "XML Document"_ns, doc, nullptr,
-        u""_ns, lineNumber.unverified_safe_because(RLBOX_SAFE_PRINT),
-        colNumber.unverified_safe_because(RLBOX_SAFE_PRINT));
+        error, nsIScriptError::warningFlag, "XML Document"_ns, doc,
+        mozilla::SourceLocation(
+            doc->GetDocumentURI(),
+            lineNumber.unverified_safe_because(RLBOX_SAFE_PRINT),
+            colNumber.unverified_safe_because(RLBOX_SAFE_PRINT)));
   }
 }
 

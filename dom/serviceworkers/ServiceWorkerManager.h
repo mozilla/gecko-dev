@@ -180,7 +180,7 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
    * localizing the error.
    */
   void ReportToAllClients(const nsCString& aScope, const nsString& aMessage,
-                          const nsString& aFilename, const nsString& aLine,
+                          const nsCString& aFilename, const nsString& aLine,
                           uint32_t aLineNumber, uint32_t aColumnNumber,
                           uint32_t aFlags);
 
@@ -204,14 +204,14 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   static void LocalizeAndReportToAllClients(
       const nsCString& aScope, const char* aStringKey,
       const nsTArray<nsString>& aParamArray, uint32_t aFlags = 0x0,
-      const nsString& aFilename = u""_ns, const nsString& aLine = u""_ns,
+      const nsCString& aFilename = ""_ns, const nsString& aLine = u""_ns,
       uint32_t aLineNumber = 0, uint32_t aColumnNumber = 0);
 
   // Always consumes the error by reporting to consoles of all controlled
   // documents.
   void HandleError(JSContext* aCx, nsIPrincipal* aPrincipal,
-                   const nsCString& aScope, const nsString& aWorkerURL,
-                   const nsString& aMessage, const nsString& aFilename,
+                   const nsCString& aScope, const nsCString& aWorkerURL,
+                   const nsString& aMessage, const nsCString& aFilename,
                    const nsString& aLine, uint32_t aLineNumber,
                    uint32_t aColumnNumber, uint32_t aFlags, JSExnType aExnType);
 

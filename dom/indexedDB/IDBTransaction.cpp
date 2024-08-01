@@ -90,8 +90,7 @@ auto IDBTransaction::DoWithTransactionChild(const Func& aFunc) const {
 IDBTransaction::IDBTransaction(IDBDatabase* const aDatabase,
                                const nsTArray<nsString>& aObjectStoreNames,
                                const Mode aMode, const Durability aDurability,
-                               nsString aFilename, const uint32_t aLineNo,
-                               const uint32_t aColumn,
+                               JSCallingLocation&& aCallerLocation,
                                CreatedFromFactoryFunction /*aDummy*/)
     : DOMEventTargetHelper(aDatabase),
       mDatabase(aDatabase),
@@ -102,9 +101,7 @@ IDBTransaction::IDBTransaction(IDBDatabase* const aDatabase,
       mNextRequestId(0),
       mAbortCode(NS_OK),
       mPendingRequestCount(0),
-      mFilename(std::move(aFilename)),
-      mLineNo(aLineNo),
-      mColumn(aColumn),
+      mCallerLocation(std::move(aCallerLocation)),
       mMode(aMode),
       mDurability(aDurability),
       mRegistered(false),
@@ -177,13 +174,10 @@ SafeRefPtr<IDBTransaction> IDBTransaction::CreateVersionChange(
 
   const nsTArray<nsString> emptyObjectStoreNames;
 
-  nsString filename;
-  uint32_t lineNo, column;
-  aOpenRequest->GetCallerLocation(filename, &lineNo, &column);
   // XXX: What should we have as durability hint here?
   auto transaction = MakeSafeRefPtr<IDBTransaction>(
       aDatabase, emptyObjectStoreNames, Mode::VersionChange,
-      Durability::Default, std::move(filename), lineNo, column,
+      Durability::Default, JSCallingLocation(aOpenRequest->GetCallerLocation()),
       CreatedFromFactoryFunction{});
 
   transaction->NoteActiveTransaction();
@@ -209,12 +203,9 @@ SafeRefPtr<IDBTransaction> IDBTransaction::Create(
   MOZ_ASSERT(aMode == Mode::ReadOnly || aMode == Mode::ReadWrite ||
              aMode == Mode::ReadWriteFlush || aMode == Mode::Cleanup);
 
-  nsString filename;
-  uint32_t lineNo, column;
-  IDBRequest::CaptureCaller(aCx, filename, &lineNo, &column);
   auto transaction = MakeSafeRefPtr<IDBTransaction>(
-      aDatabase, aObjectStoreNames, aMode, aDurability, std::move(filename),
-      lineNo, column, CreatedFromFactoryFunction{});
+      aDatabase, aObjectStoreNames, aMode, aDurability,
+      JSCallingLocation::Get(aCx), CreatedFromFactoryFunction{});
 
   if (!NS_IsMainThread()) {
     WorkerPrivate* const workerPrivate = GetCurrentThreadWorkerPrivate();
@@ -460,18 +451,6 @@ void IDBTransaction::MaybeNoteInactiveTransaction() {
     mDatabase->NoteInactiveTransaction();
     mNotedActiveTransaction = false;
   }
-}
-
-void IDBTransaction::GetCallerLocation(nsAString& aFilename,
-                                       uint32_t* const aLineNo,
-                                       uint32_t* const aColumn) const {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(aLineNo);
-  MOZ_ASSERT(aColumn);
-
-  aFilename = mFilename;
-  *aLineNo = mLineNo;
-  *aColumn = mColumn;
 }
 
 RefPtr<IDBObjectStore> IDBTransaction::CreateObjectStore(

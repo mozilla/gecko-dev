@@ -26,7 +26,7 @@ class ConsoleUtils final {
   // Main-thread only, reports a console message from a ServiceWorker.
   static void ReportForServiceWorkerScope(const nsAString& aScope,
                                           const nsAString& aMessage,
-                                          const nsAString& aFilename,
+                                          const nsACString& aFilename,
                                           uint32_t aLineNumber,
                                           uint32_t aColumnNumber, Level aLevel);
 
@@ -40,7 +40,7 @@ class ConsoleUtils final {
 
   void ReportForServiceWorkerScopeInternal(const nsAString& aScope,
                                            const nsAString& aMessage,
-                                           const nsAString& aFilename,
+                                           const nsACString& aFilename,
                                            uint32_t aLineNumber,
                                            uint32_t aColumnNumber,
                                            Level aLevel);

@@ -73,41 +73,17 @@ void WebAudioUtils::LogToDeveloperConsole(uint64_t aWindowID,
     return;
   }
 
-  nsCOMPtr<nsIConsoleService> console(
-      do_GetService("@mozilla.org/consoleservice;1"));
-  if (!console) {
-    NS_WARNING("Failed to log message to console.");
-    return;
-  }
-
-  nsAutoString spec;
-  uint32_t aLineNumber = 0, aColumnNumber = 1;
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
-  if (cx) {
-    nsJSUtils::GetCallingLocation(cx, spec, &aLineNumber, &aColumnNumber);
-  }
-
-  nsresult rv;
-  nsCOMPtr<nsIScriptError> errorObject =
-      do_CreateInstance(NS_SCRIPTERROR_CONTRACTID, &rv);
-  if (!errorObject) {
-    NS_WARNING("Failed to log message to console.");
-    return;
-  }
-
   nsAutoString result;
-  rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES, aKey,
-                                          result);
+  nsresult rv = nsContentUtils::GetLocalizedString(
+      nsContentUtils::eDOM_PROPERTIES, aKey, result);
 
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to log message to console.");
     return;
   }
 
-  errorObject->InitWithWindowID(result, spec, u""_ns, aLineNumber,
-                                aColumnNumber, nsIScriptError::warningFlag,
-                                "Web Audio", aWindowID);
-  console->LogMessage(errorObject);
+  nsContentUtils::ReportToConsoleByWindowID(result, nsIScriptError::warningFlag,
+                                            "Web Audio"_ns, aWindowID);
 }
 
 }  // namespace dom

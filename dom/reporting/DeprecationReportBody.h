@@ -17,7 +17,8 @@ class DeprecationReportBody final : public ReportBody {
  public:
   DeprecationReportBody(nsIGlobalObject* aGlobal, const nsAString& aId,
                         const Nullable<uint64_t>& aDate,
-                        const nsAString& aMessage, const nsAString& aSourceFile,
+                        const nsAString& aMessage,
+                        const nsACString& aSourceFile,
                         const Nullable<uint32_t>& aLineNumber,
                         const Nullable<uint32_t>& aColumnNumber);
 
@@ -30,7 +31,7 @@ class DeprecationReportBody final : public ReportBody {
 
   void GetMessage(nsAString& aMessage) const;
 
-  void GetSourceFile(nsAString& aSourceFile) const;
+  void GetSourceFile(nsACString& aSourceFile) const;
 
   Nullable<uint32_t> GetLineNumber() const;
 
@@ -45,7 +46,7 @@ class DeprecationReportBody final : public ReportBody {
   const nsString mId;
   const Nullable<uint64_t> mDate;
   const nsString mMessage;
-  const nsString mSourceFile;
+  const nsCString mSourceFile;
   const Nullable<uint32_t> mLineNumber;
   const Nullable<uint32_t> mColumnNumber;
 };

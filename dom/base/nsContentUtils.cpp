@@ -4542,8 +4542,7 @@ void nsContentUtils::LogSimpleConsoleError(const nsAString& aErrorText,
 nsresult nsContentUtils::ReportToConsole(
     uint32_t aErrorFlags, const nsACString& aCategory,
     const Document* aDocument, PropertiesFile aFile, const char* aMessageName,
-    const nsTArray<nsString>& aParams, nsIURI* aURI,
-    const nsString& aSourceLine, uint32_t aLineNumber, uint32_t aColumnNumber) {
+    const nsTArray<nsString>& aParams, const SourceLocation& aLoc) {
   nsresult rv;
   nsAutoString errorText;
   if (!aParams.IsEmpty()) {
@@ -4552,10 +4551,8 @@ nsresult nsContentUtils::ReportToConsole(
     rv = GetLocalizedString(aFile, aMessageName, errorText);
   }
   NS_ENSURE_SUCCESS(rv, rv);
-
   return ReportToConsoleNonLocalized(errorText, aErrorFlags, aCategory,
-                                     aDocument, aURI, aSourceLine, aLineNumber,
-                                     aColumnNumber);
+                                     aDocument, aLoc);
 }
 
 /* static */
@@ -4567,55 +4564,44 @@ void nsContentUtils::ReportEmptyGetElementByIdArg(const Document* aDoc) {
 /* static */
 nsresult nsContentUtils::ReportToConsoleNonLocalized(
     const nsAString& aErrorText, uint32_t aErrorFlags,
-    const nsACString& aCategory, const Document* aDocument, nsIURI* aURI,
-    const nsString& aSourceLine, uint32_t aLineNumber, uint32_t aColumnNumber,
-    MissingErrorLocationMode aLocationMode) {
-  uint64_t innerWindowID = 0;
-  if (aDocument) {
-    if (!aURI) {
-      aURI = aDocument->GetDocumentURI();
-    }
-    innerWindowID = aDocument->InnerWindowID();
+    const nsACString& aCategory, const Document* aDocument,
+    const SourceLocation& aLoc) {
+  uint64_t innerWindowID = aDocument ? aDocument->InnerWindowID() : 0;
+  if (aLoc || !aDocument || !aDocument->GetDocumentURI()) {
+    return ReportToConsoleByWindowID(aErrorText, aErrorFlags, aCategory,
+                                     innerWindowID, aLoc);
   }
-
   return ReportToConsoleByWindowID(aErrorText, aErrorFlags, aCategory,
-                                   innerWindowID, aURI, aSourceLine,
-                                   aLineNumber, aColumnNumber, aLocationMode);
+                                   innerWindowID,
+                                   SourceLocation(aDocument->GetDocumentURI()));
 }
 
 /* static */
 nsresult nsContentUtils::ReportToConsoleByWindowID(
     const nsAString& aErrorText, uint32_t aErrorFlags,
-    const nsACString& aCategory, uint64_t aInnerWindowID, nsIURI* aURI,
-    const nsString& aSourceLine, uint32_t aLineNumber, uint32_t aColumnNumber,
-    MissingErrorLocationMode aLocationMode) {
+    const nsACString& aCategory, uint64_t aInnerWindowID,
+    const SourceLocation& aLocation) {
   nsresult rv;
   if (!sConsoleService) {  // only need to bother null-checking here
     rv = CallGetService(NS_CONSOLESERVICE_CONTRACTID, &sConsoleService);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsAutoString spec;
-  if (!aLineNumber && aLocationMode == eUSE_CALLING_LOCATION) {
-    JSContext* cx = GetCurrentJSContext();
-    if (cx) {
-      nsJSUtils::GetCallingLocation(cx, spec, &aLineNumber, &aColumnNumber);
-    }
-  }
-
   nsCOMPtr<nsIScriptError> errorObject =
       do_CreateInstance(NS_SCRIPTERROR_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!spec.IsEmpty()) {
-    rv = errorObject->InitWithWindowID(aErrorText,
-                                       spec,  // file name
-                                       aSourceLine, aLineNumber, aColumnNumber,
-                                       aErrorFlags, aCategory, aInnerWindowID);
+  NS_ConvertUTF8toUTF16 sourceLine(aLocation.mSourceLine);
+  if (aLocation.mResource.is<nsCOMPtr<nsIURI>>()) {
+    nsIURI* uri = aLocation.mResource.as<nsCOMPtr<nsIURI>>();
+    rv = errorObject->InitWithSourceURI(aErrorText, uri, sourceLine,
+                                        aLocation.mLine, aLocation.mColumn,
+                                        aErrorFlags, aCategory, aInnerWindowID);
   } else {
-    rv = errorObject->InitWithSourceURI(aErrorText, aURI, aSourceLine,
-                                        aLineNumber, aColumnNumber, aErrorFlags,
-                                        aCategory, aInnerWindowID);
+    rv = errorObject->InitWithWindowID(
+        aErrorText, NS_ConvertUTF8toUTF16(aLocation.mResource.as<nsCString>()),
+        sourceLine, aLocation.mLine, aLocation.mColumn, aErrorFlags, aCategory,
+        aInnerWindowID);
   }
   NS_ENSURE_SUCCESS(rv, rv);
 

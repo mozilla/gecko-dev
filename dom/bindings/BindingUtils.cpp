@@ -4048,7 +4048,7 @@ static const char* kDeprecatedOperations[] = {
 
 void ReportDeprecation(nsIGlobalObject* aGlobal, nsIURI* aURI,
                        DeprecatedOperations aOperation,
-                       const nsAString& aFileName,
+                       const nsACString& aFileName,
                        const Nullable<uint32_t>& aLineNumber,
                        const Nullable<uint32_t>& aColumnNumber) {
   MOZ_ASSERT(aURI);
@@ -4156,21 +4156,18 @@ void MaybeReportDeprecation(const GlobalObject& aGlobal,
     return;
   }
 
-  nsAutoString fileName;
+  auto location = JSCallingLocation::Get(aGlobal.Context());
   Nullable<uint32_t> lineNumber;
   Nullable<uint32_t> columnNumber;
-  uint32_t line = 0;
-  uint32_t column = 1;
-  if (nsJSUtils::GetCallingLocation(aGlobal.Context(), fileName, &line,
-                                    &column)) {
-    lineNumber.SetValue(line);
-    columnNumber.SetValue(column);
+  if (location) {
+    lineNumber.SetValue(location.mLine);
+    columnNumber.SetValue(location.mColumn);
   }
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   MOZ_ASSERT(global);
 
-  ReportDeprecation(global, uri, aOperation, fileName, lineNumber,
+  ReportDeprecation(global, uri, aOperation, location.FileName(), lineNumber,
                     columnNumber);
 }
 

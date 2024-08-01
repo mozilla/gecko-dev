@@ -45,7 +45,7 @@ ConsoleUtils::~ConsoleUtils() = default;
 /* static */
 void ConsoleUtils::ReportForServiceWorkerScope(const nsAString& aScope,
                                                const nsAString& aMessage,
-                                               const nsAString& aFilename,
+                                               const nsACString& aFilename,
                                                uint32_t aLineNumber,
                                                uint32_t aColumnNumber,
                                                Level aLevel) {
@@ -62,7 +62,7 @@ void ConsoleUtils::ReportForServiceWorkerScope(const nsAString& aScope,
 
 void ConsoleUtils::ReportForServiceWorkerScopeInternal(
     const nsAString& aScope, const nsAString& aMessage,
-    const nsAString& aFilename, uint32_t aLineNumber, uint32_t aColumnNumber,
+    const nsACString& aFilename, uint32_t aLineNumber, uint32_t aColumnNumber,
     Level aLevel) {
   MOZ_ASSERT(NS_IsMainThread());
 
