@@ -2361,66 +2361,26 @@ void nsRefreshDriver::UpdateAnimationsAndSendEvents() {
   }
 }
 
-void nsRefreshDriver::RunVideoAndFrameRequestCallbacks(TimeStamp aNowTime) {
-  if (!mNeedToRunFrameRequestCallbacks) {
-    return;
-  }
-  mNeedToRunFrameRequestCallbacks = false;
-  const bool tickThrottledFrameRequests = [&] {
-    if (mThrottled) {
-      // We always tick throttled frame requests if the entire refresh driver is
-      // throttled, because in that situation throttled frame requests tick at
-      // the same frequency as non-throttled frame requests.
-      return true;
-    }
-    if (aNowTime >= mNextThrottledFrameRequestTick) {
-      mNextThrottledFrameRequestTick =
-          aNowTime + mThrottledFrameRequestInterval;
-      return true;
-    }
-    return false;
-  }();
-
-  if (NS_WARN_IF(!mPresContext)) {
-    return;
-  }
-  // Grab all of our documents that can fire frame request callbacks up front.
-  AutoTArray<RefPtr<Document>, 8> docs;
-  auto ShouldCollect = [](const Document* aDoc) {
-    return aDoc->ShouldFireFrameRequestCallbacks();
-  };
-  if (ShouldCollect(mPresContext->Document())) {
-    docs.AppendElement(mPresContext->Document());
-  }
-  mPresContext->Document()->CollectDescendantDocuments(docs, ShouldCollect);
-
-  // First check for and run video frame callbacks. These can trigger new frame
-  // request callbacks that we need to handle in the following pass.
+void nsRefreshDriver::RunVideoFrameCallbacks(
+    const nsTArray<RefPtr<Document>>& aDocs, TimeStamp aNowTime) {
+  // For each fully active Document in docs, for each associated video element
+  // for that Document, run the video frame request callbacks passing now as the
+  // timestamp.
   Maybe<TimeStamp> nextTickHint;
-  for (Document* doc : docs) {
-    if (!tickThrottledFrameRequests && doc->ShouldThrottleFrameRequests()) {
-      // Skip throttled docs if it's not time to un-throttle them yet.
-      // FIXME(emilio): It's a bit subtle to just set this to true here, but
-      // matches pre-existing behavior for throttled docs. It seems at least we
-      // should EnsureTimerStarted too? But that kinda defeats the throttling, a
-      // little bit? For now, preserve behavior.
-      mNeedToRunFrameRequestCallbacks = true;
-      continue;
-    }
+  for (Document* doc : aDocs) {
     nsTArray<RefPtr<HTMLVideoElement>> videoElms;
     doc->TakeVideoFrameRequestCallbacks(videoElms);
     if (videoElms.IsEmpty()) {
       continue;
     }
-    if (!nextTickHint) {
-      nextTickHint = GetNextTickHint();
-    }
-    AUTO_PROFILER_TRACING_MARKER_INNERWINDOWID(
-        "Paint", "requestVideoFrame callbacks", GRAPHICS, doc->InnerWindowID());
+
     DOMHighResTimeStamp timeStamp = 0;
     DOMHighResTimeStamp nextTickTimeStamp = 0;
-    if (nsPIDOMWindowInner* innerWindow = doc->GetInnerWindow()) {
+    if (auto* innerWindow = doc->GetInnerWindow()) {
       if (Performance* perf = innerWindow->GetPerformance()) {
+        if (!nextTickHint) {
+          nextTickHint = GetNextTickHint();
+        }
         timeStamp = perf->TimeStampToDOMHighResForRendering(aNowTime);
         nextTickTimeStamp =
             nextTickHint
@@ -2429,6 +2389,9 @@ void nsRefreshDriver::RunVideoAndFrameRequestCallbacks(TimeStamp aNowTime) {
       }
       // else window is partially torn down already
     }
+
+    AUTO_PROFILER_TRACING_MARKER_INNERWINDOWID(
+        "Paint", "requestVideoFrame callbacks", GRAPHICS, doc->InnerWindowID());
     for (const auto& videoElm : videoElms) {
       nsTArray<VideoFrameRequest> callbacks;
       VideoFrameCallbackMetadata metadata;
@@ -2465,40 +2428,37 @@ void nsRefreshDriver::RunVideoAndFrameRequestCallbacks(TimeStamp aNowTime) {
       }
     }
   }
+}
 
-  // Next check for and run frame request callbacks.
-  for (Document* doc : docs) {
-    if (!tickThrottledFrameRequests && doc->ShouldThrottleFrameRequests()) {
-      // Skip throttled docs if it's not time to un-throttle them yet.
-      MOZ_ASSERT(mNeedToRunFrameRequestCallbacks);
-      continue;
-    }
-    AutoTArray<FrameRequest, 8> callbacks;
+void nsRefreshDriver::RunFrameRequestCallbacks(
+    const nsTArray<RefPtr<Document>>& aDocs, TimeStamp aNowTime) {
+  for (Document* doc : aDocs) {
+    nsTArray<FrameRequest> callbacks;
     doc->TakeFrameRequestCallbacks(callbacks);
     if (callbacks.IsEmpty()) {
       continue;
     }
-    AUTO_PROFILER_TRACING_MARKER_INNERWINDOWID(
-        "Paint", "requestAnimationFrame callbacks", GRAPHICS,
-        doc->InnerWindowID());
-    TimeStamp startTime = TimeStamp::Now();
-    nsCOMPtr<nsIGlobalObject> global;
+
     DOMHighResTimeStamp timeStamp = 0;
-    if (nsPIDOMWindowInner* innerWindow = doc->GetInnerWindow()) {
+    RefPtr innerWindow = nsGlobalWindowInner::Cast(doc->GetInnerWindow());
+    if (innerWindow) {
       if (Performance* perf = innerWindow->GetPerformance()) {
         timeStamp = perf->TimeStampToDOMHighResForRendering(aNowTime);
       }
-      global = nsGlobalWindowInner::Cast(innerWindow);
       // else window is partially torn down already
     }
 
+    AUTO_PROFILER_TRACING_MARKER_INNERWINDOWID(
+        "Paint", "requestAnimationFrame callbacks", GRAPHICS,
+        doc->InnerWindowID());
+    const TimeStamp startTime = TimeStamp::Now();
     for (const auto& callback : callbacks) {
       if (doc->IsCanceledFrameRequestCallback(callback.mHandle)) {
         continue;
       }
 
       CallbackDebuggerNotificationGuard guard(
-          global, DebuggerNotificationType::RequestAnimationFrameCallback);
+          innerWindow, DebuggerNotificationType::RequestAnimationFrameCallback);
 
       // MOZ_KnownLive is OK, because the stack array frameRequestCallbacks
       // keeps callback alive and the mCallback strong reference can't be
@@ -2515,6 +2475,67 @@ void nsRefreshDriver::RunVideoAndFrameRequestCallbacks(TimeStamp aNowTime) {
           .AccumulateRawDuration(TimeStamp::Now() - startTime);
     }
   }
+}
+
+void nsRefreshDriver::RunVideoAndFrameRequestCallbacks(TimeStamp aNowTime) {
+  if (!mNeedToRunFrameRequestCallbacks) {
+    return;
+  }
+  mNeedToRunFrameRequestCallbacks = false;
+  const bool tickThrottledFrameRequests = [&] {
+    if (mThrottled) {
+      // We always tick throttled frame requests if the entire refresh driver is
+      // throttled, because in that situation throttled frame requests tick at
+      // the same frequency as non-throttled frame requests.
+      return true;
+    }
+    if (aNowTime >= mNextThrottledFrameRequestTick) {
+      mNextThrottledFrameRequestTick =
+          aNowTime + mThrottledFrameRequestInterval;
+      return true;
+    }
+    return false;
+  }();
+
+  if (NS_WARN_IF(!mPresContext)) {
+    return;
+  }
+  // Grab all of our documents that can fire frame request callbacks up front.
+  AutoTArray<RefPtr<Document>, 8> docs;
+  auto ShouldCollect = [](const Document* aDoc) {
+    // TODO(emilio): Consider removing HasFrameRequestCallbacks() to deal with
+    // callbacks posted from other documents more per spec?
+    //
+    // If we do that we also need to tweak the throttling code to not set
+    // mNeedToRunFrameRequestCallbacks unnecessarily... Check what other engines
+    // do too.
+    return aDoc->HasFrameRequestCallbacks() &&
+           aDoc->ShouldFireFrameRequestCallbacks();
+  };
+  if (ShouldCollect(mPresContext->Document())) {
+    docs.AppendElement(mPresContext->Document());
+  }
+  mPresContext->Document()->CollectDescendantDocuments(docs, ShouldCollect);
+  // Skip throttled docs if it's not time to un-throttle them yet.
+  if (!tickThrottledFrameRequests) {
+    const size_t sizeBefore = docs.Length();
+    docs.RemoveElementsBy(
+        [](Document* aDoc) { return aDoc->ShouldThrottleFrameRequests(); });
+    if (sizeBefore != docs.Length()) {
+      // FIXME(emilio): It's a bit subtle to just set this to true here, but
+      // matches pre-existing behavior for throttled docs. It seems at least we
+      // should EnsureTimerStarted too? But that kinda defeats the throttling, a
+      // little bit? For now, preserve behavior.
+      mNeedToRunFrameRequestCallbacks = true;
+    }
+  }
+
+  if (docs.IsEmpty()) {
+    return;
+  }
+
+  RunVideoFrameCallbacks(docs, aNowTime);
+  RunFrameRequestCallbacks(docs, aNowTime);
 }
 
 static StaticAutoPtr<AutoTArray<RefPtr<Task>, 8>> sPendingIdleTasks;
@@ -2734,9 +2755,22 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
   // Step 12. For each doc of docs, run the fullscreen steps for doc.
   RunFullscreenSteps();
 
-  // Step 14. For each doc of docs, run the video frame callbacks and animation
-  // frame callbacks for doc.
+  // TODO: Step 13. For each doc of docs, if the user agent detects that the
+  // backing storage associated with a CanvasRenderingContext2D or an
+  // OffscreenCanvasRenderingContext2D, context, has been lost, then it must run
+  // the context lost steps for each such context.
+
+  // Step 13.5. (https://wicg.github.io/video-rvfc/#video-rvfc-procedures):
+  //
+  //   For each fully active Document in docs, for each associated video element
+  //   for that Document, run the video frame request callbacks passing now as
+  //   the timestamp.
+  //
+  // Step 14. For each doc of docs, run the animation frame callbacks for doc,
+  // passing in the relative high resolution time given frameTimestamp and doc's
+  // relevant global object as the timestamp.
   RunVideoAndFrameRequestCallbacks(aNowTime);
+
   MaybeIncreaseMeasuredTicksSinceLoading();
 
   // Step 17. For each doc of docs, if the focused area of doc is not a
