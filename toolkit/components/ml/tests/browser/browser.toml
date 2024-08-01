@@ -1,4 +1,5 @@
 [DEFAULT]
+run-if = ["nightly_build"] # Bug 1890946 - enable the inference engine in release
 prefs = ["browser.ml.modelHubRootUrl='chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data'"]
 support-files = [
   "head.js",
@@ -9,7 +10,7 @@ support-files = [
 lineno = "7"
 
 ["browser_ml_engine.js"]
-skip-if = ["os == 'linux'"]    # see bug 1911083
+skip-if = ["os == 'linux' && verify"]
 lineno = "10"
 
 ["browser_ml_utils.js"]
