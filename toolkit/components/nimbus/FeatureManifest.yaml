@@ -743,11 +743,25 @@ newtabSpocsCache:
       description: >-
         Controls if spocs should be included in startup cache.
 
-topicSelectionOnboarding:
-  description: the about:newtab topic selection onboarding experience.
+newtabTopicSelection:
+  description: the about:newtab topic selection experience.
   owner: nbarrett@mozilla.com
   hasExposure: false
   variables:
+    availableTopics:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.topics
+      description: >-
+        List of available topics to select for topic selection
+    suggestedTopics:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.suggestedTopics
+      description: >-
+        List of pre-selected topics to display on first run of topic selection modal
     topicSelectionOnboarding:
       type: boolean
       setPref:
@@ -755,6 +769,18 @@ topicSelectionOnboarding:
         pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.enabled
       description: >-
         Turns on and off topic selection onbaording
+    regionTopicsConfig:
+      description: A comma-separated list of regions that get topics selection by default.
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config
+    localeTopicsConfig:
+      description: A comma-separated list of locales that get topics selection by default.
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.locale-topics-config
 
 pocketNewtab:
   description: The Pocket section in newtab
@@ -980,32 +1006,6 @@ pocketNewtab:
         browser.newtabpage.activity-stream.discoverystream.spocs.personalized
       description: >-
         Enables Pocket sponsored content personalization.
-    regionTopicsConfig:
-      description: A comma-separated list of regions that get topics selection by default.
-      type: string
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config
-    localeTopicsConfig:
-      description: A comma-separated list of locales that get topics selection by default.
-      type: string
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.locale-topics-config
-    availableTopics:
-      type: string
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.topics
-      description: >-
-        List of available topics to select for topic selection
-    suggestedTopics:
-      type: string
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.suggestedTopics
-      description: >-
-        List of pre-selected topics to display on first run of topic selection modal
     discoveryStreamConfig:
       description: A JSON blob of discovery stream configuration.
       type: string
