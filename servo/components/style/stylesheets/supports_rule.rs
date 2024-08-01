@@ -224,14 +224,26 @@ impl SupportsCondition {
     }
 }
 
+#[cfg(feature = "gecko")]
 fn eval_font_format(kw: &FontFaceSourceFormatKeyword) -> bool {
     use crate::gecko_bindings::bindings;
     unsafe { bindings::Gecko_IsFontFormatSupported(*kw) }
 }
 
+#[cfg(feature = "gecko")]
 fn eval_font_tech(flag: &FontFaceSourceTechFlags) -> bool {
     use crate::gecko_bindings::bindings;
     unsafe { bindings::Gecko_IsFontTechSupported(*flag) }
+}
+
+#[cfg(feature = "servo")]
+fn eval_font_format(_: &FontFaceSourceFormatKeyword) -> bool {
+    false
+}
+
+#[cfg(feature = "servo")]
+fn eval_font_tech(_: &FontFaceSourceTechFlags) -> bool {
+    false
 }
 
 /// supports_condition | declaration

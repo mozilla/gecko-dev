@@ -11,6 +11,7 @@ use crate::custom_properties::{
     CustomPropertiesBuilder, DeferFontRelativeCustomPropertyResolution,
 };
 use crate::dom::TElement;
+#[cfg(feature = "gecko")]
 use crate::font_metrics::FontMetricsOrientation;
 use crate::logical_geometry::WritingMode;
 use crate::properties::{
@@ -26,13 +27,13 @@ use crate::style_adjuster::StyleAdjuster;
 use crate::stylesheets::container_rule::ContainerSizeQuery;
 use crate::stylesheets::{layer_rule::LayerOrder, Origin};
 use crate::stylist::Stylist;
+#[cfg(feature = "gecko")]
 use crate::values::specified::length::FontBaseSize;
 use crate::values::{computed, specified};
 use fxhash::FxHashMap;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
-use std::mem;
 
 /// Whether we're resolving a style with the purposes of reparenting for ::first-line.
 #[derive(Copy, Clone)]
@@ -418,12 +419,15 @@ fn tweak_when_ignoring_colors(
     }
 
     // Always honor colors if forced-color-adjust is set to none.
-    let forced = context
-        .builder
-        .get_inherited_text()
-        .clone_forced_color_adjust();
-    if forced == computed::ForcedColorAdjust::None {
-        return;
+    #[cfg(feature = "gecko")]
+    {
+        let forced = context
+            .builder
+            .get_inherited_text()
+            .clone_forced_color_adjust();
+        if forced == computed::ForcedColorAdjust::None {
+            return;
+        }
     }
 
     // Don't override background-color on ::-moz-color-swatch. It is set as an
@@ -802,9 +806,11 @@ impl<'b> Cascade<'b> {
         apply!(FontWeight);
         apply!(FontStretch);
         apply!(FontStyle);
+        #[cfg(feature = "gecko")]
         apply!(FontSizeAdjust);
 
         apply!(ColorScheme);
+        #[cfg(feature = "gecko")]
         apply!(ForcedColorAdjust);
 
         // Compute the line height.
@@ -1310,7 +1316,7 @@ impl<'b> Cascade<'b> {
                 return s;
             }
             if b < a {
-                mem::swap(&mut a, &mut b);
+                std::mem::swap(&mut a, &mut b);
                 invert_scale_factor = true;
             }
             let mut e = b - a;

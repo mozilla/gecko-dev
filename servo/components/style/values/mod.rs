@@ -715,12 +715,16 @@ impl ToCss for KeyframesName {
             return dest.write_str("none");
         }
 
-        self.0.with_str(|s| {
-            if CustomIdent::is_valid(s, &["none"]) {
-                serialize_identifier(s, dest)
+        let mut serialize = |string: &_| {
+            if CustomIdent::is_valid(string, &["none"]) {
+                serialize_identifier(string, dest)
             } else {
-                s.to_css(dest)
+                string.to_css(dest)
             }
-        })
+        };
+        #[cfg(feature = "gecko")]
+        return self.0.with_str(serialize);
+        #[cfg(feature = "servo")]
+        return serialize(self.0.as_ref());
     }
 }

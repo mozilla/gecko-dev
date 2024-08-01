@@ -7,12 +7,15 @@
 
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::TElement;
-use crate::properties::longhands::contain::computed_value::T as Contain;
-use crate::properties::longhands::container_type::computed_value::T as ContainerType;
-use crate::properties::longhands::content_visibility::computed_value::T as ContentVisibility;
+#[cfg(feature = "gecko")]
+use crate::properties::longhands::{
+    contain::computed_value::T as Contain,
+    container_type::computed_value::T as ContainerType,
+    content_visibility::computed_value::T as ContentVisibility,
+    overflow_x::computed_value::T as Overflow
+};
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::longhands::float::computed_value::T as Float;
-use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
 
@@ -157,6 +160,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// This makes the element not be a flex container, with all that it
     /// implies, but it should be safe. It matches blink, see
     /// https://bugzilla.mozilla.org/show_bug.cgi?id=1786147#c10
+    #[cfg(feature = "gecko")]
     fn adjust_for_webkit_line_clamp(&mut self) {
         use crate::properties::longhands::_moz_box_orient::computed_value::T as BoxOrient;
         use crate::values::specified::box_::{DisplayInside, DisplayOutside};
@@ -281,6 +285,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .add_flags(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
         }
 
+        #[cfg(feature = "gecko")]
         if box_style
             .clone_effective_containment()
             .contains(Contain::STYLE)
@@ -408,6 +413,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// column-rule-style: none causes a computed column-rule-width of zero
     /// at computed value time.
+    #[cfg(feature = "gecko")]
     fn adjust_for_column_rule_width(&mut self) {
         let column_style = self.style.get_column();
         if !column_style.clone_column_rule_style().none_or_hidden() {
@@ -455,6 +461,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    #[cfg(feature = "gecko")]
     fn adjust_for_contain(&mut self) {
         let box_style = self.style.get_box();
         let container_type = box_style.clone_container_type();
@@ -512,6 +519,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// an auto value
     ///
     /// <https://github.com/w3c/csswg-drafts/issues/8407>
+    #[cfg(feature = "gecko")]
     fn adjust_for_contain_intrinsic_size(&mut self) {
         let content_visibility = self.style.get_box().clone_content_visibility();
         if content_visibility != ContentVisibility::Auto {
@@ -948,17 +956,19 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
         self.adjust_for_top_layer();
         self.blockify_if_necessary(layout_parent_style, element);
+        #[cfg(feature = "gecko")]
         self.adjust_for_webkit_line_clamp();
         self.adjust_for_position();
         self.adjust_for_overflow();
-        self.adjust_for_contain();
-        self.adjust_for_contain_intrinsic_size();
         #[cfg(feature = "gecko")]
         {
+            self.adjust_for_contain();
+            self.adjust_for_contain_intrinsic_size();
             self.adjust_for_table_text_align();
             self.adjust_for_justify_items();
         }
         self.adjust_for_border_width();
+        #[cfg(feature = "gecko")]
         self.adjust_for_column_rule_width();
         self.adjust_for_outline_width();
         self.adjust_for_writing_mode(layout_parent_style);

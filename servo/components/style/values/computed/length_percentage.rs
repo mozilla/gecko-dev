@@ -25,6 +25,7 @@
 //! our expectations.
 
 use super::{Context, Length, Percentage, ToComputedValue};
+#[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::GeckoFontMetrics;
 use crate::values::animated::{Animate, Context as AnimatedContext, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -998,6 +999,7 @@ impl specified::CalcLengthPercentage {
 
     /// Compute the value into pixel length as CSSFloat, using the get_font_metrics function
     /// if provided to resolve font-relative dimensions.
+    #[cfg(feature = "gecko")]
     pub fn to_computed_pixel_length_with_font_metrics(
         &self,
         get_font_metrics: Option<impl Fn() -> GeckoFontMetrics>,

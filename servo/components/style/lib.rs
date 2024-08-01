@@ -34,6 +34,7 @@ extern crate debug_unreachable;
 #[macro_use]
 extern crate derive_more;
 #[macro_use]
+#[cfg(feature = "gecko")]
 extern crate gecko_profiler;
 #[cfg(feature = "gecko")]
 #[macro_use]
@@ -68,6 +69,7 @@ extern crate servo_atoms;
 extern crate static_assertions;
 #[macro_use]
 extern crate style_derive;
+#[cfg(feature = "gecko")]
 #[macro_use]
 extern crate thin_vec;
 #[macro_use]

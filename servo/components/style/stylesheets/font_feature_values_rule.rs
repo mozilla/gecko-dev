@@ -24,7 +24,7 @@ use cssparser::{
 };
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use thin_vec::ThinVec;
+#[cfg(feature = "gecko")] use thin_vec::ThinVec;
 
 /// A @font-feature-values block declaration.
 /// It is `<ident>: <integer>+`.

@@ -70,6 +70,7 @@ macro_rules! system_font_methods {
     Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
 )]
 #[allow(missing_docs)]
+#[cfg(feature = "gecko")]
 pub enum SystemFont {
     /// https://drafts.csswg.org/css-fonts/#valdef-font-caption
     Caption,
@@ -97,6 +98,26 @@ pub enum SystemFont {
     MozField,
     #[css(skip)]
     End, // Just for indexing purposes.
+}
+
+// We don't parse system fonts in servo, but in the interest of not
+// littering a lot of code with `if engine == "gecko"` conditionals,
+// we have a dummy system font module that does nothing
+
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem
+)]
+#[allow(missing_docs)]
+#[cfg(feature = "servo")]
+/// void enum for system font, can never exist
+pub enum SystemFont {}
+
+#[allow(missing_docs)]
+#[cfg(feature = "servo")]
+impl SystemFont {
+    pub fn parse(_: &mut Parser) -> Result<Self, ()> {
+        Err(())
+    }
 }
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
@@ -557,6 +578,7 @@ impl KeywordInfo {
     /// text-zoom.
     fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
         debug_assert_ne!(self.kw, FontSizeKeyword::None);
+        #[cfg(feature="gecko")]
         debug_assert_ne!(self.kw, FontSizeKeyword::Math);
         let base = context.maybe_zoom_text(self.kw.to_length(context).0);
         base * self.factor + context.maybe_zoom_text(self.offset)

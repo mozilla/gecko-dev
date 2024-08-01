@@ -29,7 +29,13 @@ use crate::traversal::{DomTraversal, PerLevelTraversalData};
 use std::collections::VecDeque;
 
 /// The minimum stack size for a thread in the styling pool, in kilobytes.
+#[cfg(feature = "gecko")]
 pub const STYLE_THREAD_STACK_SIZE_KB: usize = 256;
+
+/// The minimum stack size for a thread in the styling pool, in kilobytes.
+/// Servo requires a bigger stack in debug builds.
+#[cfg(feature = "servo")]
+pub const STYLE_THREAD_STACK_SIZE_KB: usize = 512;
 
 /// The stack margin. If we get this deep in the stack, we will skip recursive
 /// optimizations to ensure that there is sufficient room for non-recursive work.
@@ -74,6 +80,7 @@ fn distribute_one_chunk<'a, 'scope, E, D>(
     D: DomTraversal<E>,
 {
     scope.spawn_fifo(move |scope| {
+        #[cfg(feature = "gecko")]
         gecko_profiler_label!(Layout, StyleComputation);
         let mut tlc = tls.ensure(create_thread_local_context);
         let mut context = StyleContext {

@@ -278,6 +278,7 @@ pub enum TextTransformCase {
     /// Capitalize each word.
     Capitalize,
     /// Automatic italicization of math variables.
+    #[cfg(feature = "gecko")]
     MathAuto,
 }
 
@@ -296,11 +297,16 @@ pub enum TextTransformCase {
     ToResolvedValue,
     ToShmem,
 )]
-#[css(bitflags(
+#[cfg_attr(feature = "gecko", css(bitflags(
     single = "none,math-auto",
     mixed = "uppercase,lowercase,capitalize,full-width,full-size-kana",
     validate_mixed = "Self::validate_mixed_flags",
-))]
+)))]
+#[cfg_attr(not(feature = "gecko"), css(bitflags(
+    single = "none",
+    mixed = "uppercase,lowercase,capitalize,full-width,full-size-kana",
+    validate_mixed = "Self::validate_mixed_flags",
+)))]
 #[repr(C)]
 /// Specified value for the text-transform property.
 /// (The spec grammar gives
@@ -798,6 +804,7 @@ pub enum MozControlCharacterVisibility {
     Visible,
 }
 
+#[cfg(feature = "gecko")]
 impl Default for MozControlCharacterVisibility {
     fn default() -> Self {
         if static_prefs::pref!("layout.css.control-characters.visible") {

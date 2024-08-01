@@ -576,8 +576,11 @@ impl Color {
     /// Returns whether this color is allowed in forced-colors mode.
     pub fn honored_in_forced_colors_mode(&self, allow_transparent: bool) -> bool {
         match *self {
+            #[cfg(feature = "gecko")]
             Self::InheritFromBodyQuirk => false,
-            Self::CurrentColor | Color::System(..) => true,
+            Self::CurrentColor => true,
+            #[cfg(feature = "gecko")]
+            Self::System(..) => true,
             Self::Absolute(ref absolute) => allow_transparent && absolute.color.is_transparent(),
             Self::LightDark(ref ld) => {
                 ld.light.honored_in_forced_colors_mode(allow_transparent) &&

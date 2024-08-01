@@ -128,6 +128,7 @@
                 "pre-line" => (Wrap::Wrap, Collapse::PreserveBreaks),
                 // TODO: deprecate/remove -moz-pre-space; the white-space-collapse: preserve-spaces value
                 // should serve this purpose?
+                #[cfg(feature = "gecko")]
                 "-moz-pre-space" => (Wrap::Wrap, Collapse::PreserveSpaces),
             };
             Ok(expanded! {
@@ -180,6 +181,7 @@
                         Collapse::Collapse => return dest.write_str("normal"),
                         Collapse::Preserve => return dest.write_str("pre-wrap"),
                         Collapse::PreserveBreaks => return dest.write_str("pre-line"),
+                        #[cfg(feature = "gecko")]
                         Collapse::PreserveSpaces => return dest.write_str("-moz-pre-space"),
                         _ => (),
                     }

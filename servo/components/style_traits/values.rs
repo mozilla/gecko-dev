@@ -7,6 +7,7 @@
 use app_units::Au;
 use cssparser::ToCss as CssparserToCss;
 use cssparser::{serialize_string, ParseError, Parser, Token, UnicodeRange};
+#[cfg(feature = "gecko")]
 use nsstring::nsCString;
 use servo_arc::Arc;
 use std::fmt::{self, Write};

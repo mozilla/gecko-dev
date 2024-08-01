@@ -6,6 +6,7 @@
 
 use crate::data::ElementData;
 use crate::dom::{TElement, TNode};
+#[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::ServoElementSnapshotTable;
 use crate::invalidation::element::element_wrapper::ElementWrapper;
 use crate::invalidation::element::invalidation_map::{
