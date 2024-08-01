@@ -9,7 +9,7 @@ use serde::ser::{Serialize, Serializer};
 use servo_arc::ThinArc;
 use std::ops::Deref;
 use std::ptr::NonNull;
-use std::{iter, mem};
+use std::{iter, mem, hash::{Hash, Hasher}};
 
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf};
 
@@ -151,6 +151,12 @@ impl<T: MallocSizeOf> MallocUnconditionalSizeOf for ArcSlice<T> {
             size += el.size_of(ops);
         }
         size
+    }
+}
+
+impl<T: Hash> Hash for ArcSlice<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        T::hash_slice(&**self, state)
     }
 }
 

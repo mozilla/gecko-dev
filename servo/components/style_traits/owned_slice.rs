@@ -12,7 +12,7 @@ use serde::ser::{Serialize, Serializer};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
-use std::{fmt, iter, mem, slice};
+use std::{fmt, iter, mem, slice, hash::{Hash, Hasher}};
 use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 /// A struct that basically replaces a `Box<[T]>`, but which cbindgen can
@@ -194,5 +194,11 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for OwnedSlice<T> {
     {
         let r = Box::<[T]>::deserialize(deserializer)?;
         Ok(r.into())
+    }
+}
+
+impl<T: Hash> Hash for OwnedSlice<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        T::hash_slice(&**self, state)
     }
 }

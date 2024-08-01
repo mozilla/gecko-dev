@@ -24,8 +24,6 @@ use cssparser::{serialize_identifier, CssStringWriter, Parser};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use num_traits::abs;
 use num_traits::cast::AsPrimitive;
-#[cfg(feature = "servo")]
-use std::hash::{Hash, Hasher};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
@@ -699,20 +697,11 @@ impl Parse for SingleFontFamily {
 
 /// A list of font families.
 #[derive(Clone, Debug, ToComputedValue, ToResolvedValue, ToShmem, PartialEq, Eq)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize, Hash))]
 #[repr(C)]
 pub struct FontFamilyList {
     /// The actual list of font families specified.
     pub list: crate::ArcSlice<SingleFontFamily>,
-}
-
-#[cfg(feature = "servo")]
-impl Hash for FontFamilyList {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for font in self.iter() {
-            font.hash(state);
-        }
-    }
 }
 
 impl FontFamilyList {
