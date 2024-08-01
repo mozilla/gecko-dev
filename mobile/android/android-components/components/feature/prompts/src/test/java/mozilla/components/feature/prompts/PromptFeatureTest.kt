@@ -416,6 +416,7 @@ class PromptFeatureTest {
                 exitFullscreenUsecase = mock(),
                 loginValidationDelegate = mock(),
                 isSaveLoginEnabled = { true },
+                hideUpdateFragmentAfterSavingGeneratedPassword = { _, _ -> false },
                 fileUploadsDirCleaner = mock(),
                 onNeedToRequestPermissions = { },
             ),
@@ -460,6 +461,40 @@ class PromptFeatureTest {
 
         store.waitUntilIdle()
 
+        verify(feature).dismissDialogRequest(promptRequest, session)
+    }
+
+    @Test
+    fun `GIVEN hideUpdateFragmentAfterSavingGeneratedPassword is true WHEN saveLoginPrompt request is handled THEN dismiss saveLoginPrompt`() {
+        val loginUsername = "username"
+        val loginPassword = "password"
+        val entry: LoginEntry = mock()
+        `when`(entry.username).thenReturn(loginUsername)
+        `when`(entry.password).thenReturn(loginPassword)
+        val promptRequest = PromptRequest.SaveLoginPrompt(2, listOf(entry), { }, { })
+
+        var onRemoveLastSavedPasswordCalled = false
+        val feature = spy(
+            PromptFeature(
+                activity = mock(),
+                store = store,
+                fragmentManager = fragmentManager,
+                tabsUseCases = mock(),
+                loginValidationDelegate = mock(),
+                isSaveLoginEnabled = { true },
+                hideUpdateFragmentAfterSavingGeneratedPassword = { _, _ -> true },
+                removeLastSavedGeneratedPassword = { onRemoveLastSavedPasswordCalled = true },
+                fileUploadsDirCleaner = mock(),
+                onNeedToRequestPermissions = {},
+            ),
+        )
+        val session = tab()!!
+
+        feature.handleDialogsRequest(promptRequest, session)
+
+        store.waitUntilIdle()
+
+        assertTrue(onRemoveLastSavedPasswordCalled)
         verify(feature).dismissDialogRequest(promptRequest, session)
     }
 
@@ -2622,6 +2657,7 @@ class PromptFeatureTest {
             shareDelegate = mock(),
             loginValidationDelegate = mock(),
             isSaveLoginEnabled = { true },
+            hideUpdateFragmentAfterSavingGeneratedPassword = { _, _ -> false },
             fileUploadsDirCleaner = mock(),
             onNeedToRequestPermissions = { },
         )

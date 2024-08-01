@@ -321,6 +321,8 @@ abstract class BaseBrowserFragment :
 
     private lateinit var savedLoginsLauncher: ActivityResultLauncher<Intent>
 
+    private var lastSavedGeneratedPassword: String? = null
+
     // Registers a photo picker activity launcher in single-select mode.
     private val singleMediaPicker =
         AndroidPhotoPicker.singleMediaPicker(
@@ -961,6 +963,13 @@ abstract class BaseBrowserFragment :
                     )
                 },
                 passwordGeneratorColorsProvider = passwordGeneratorColorsProvider,
+                hideUpdateFragmentAfterSavingGeneratedPassword = { username, password ->
+                    hideUpdateFragmentAfterSavingGeneratedPassword(
+                        username,
+                        password,
+                    )
+                },
+                removeLastSavedGeneratedPassword = { removeLastSavedGeneratedPassword() },
                 creditCardDelegate = object : CreditCardDelegate {
                     override val creditCardPickerView
                         get() = binding.creditCardSelectBar
@@ -1988,6 +1997,7 @@ abstract class BaseBrowserFragment :
     final override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(KEY_CUSTOM_TAB_SESSION_ID, customTabSessionId)
+        outState.putString(LAST_SAVED_GENERATED_PASSWORD, lastSavedGeneratedPassword)
     }
 
     /**
@@ -2000,6 +2010,7 @@ abstract class BaseBrowserFragment :
                 customTabSessionId = it
             }
         }
+        lastSavedGeneratedPassword = savedInstanceState?.getString(LAST_SAVED_GENERATED_PASSWORD)
     }
 
     /**
@@ -2363,6 +2374,7 @@ abstract class BaseBrowserFragment :
         private const val REQUEST_CODE_APP_PERMISSIONS = 3
         private const val METRIC_SOURCE = "page_action_menu"
         private const val TOAST_METRIC_SOURCE = "add_bookmark_toast"
+        private const val LAST_SAVED_GENERATED_PASSWORD = "last_saved_generated_password"
 
         val onboardingLinksList: List<String> = listOf(
             SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVATE_NOTICE),
@@ -2424,6 +2436,7 @@ abstract class BaseBrowserFragment :
         url: String,
         password: String,
     ) {
+        lastSavedGeneratedPassword = password
         val loginToSave = LoginEntry(
             origin = url,
             httpRealm = url,
@@ -2451,6 +2464,17 @@ abstract class BaseBrowserFragment :
                 }
             }
         }
+    }
+
+    private fun hideUpdateFragmentAfterSavingGeneratedPassword(
+        username: String,
+        password: String,
+    ): Boolean {
+        return username.isEmpty() && password == lastSavedGeneratedPassword
+    }
+
+    private fun removeLastSavedGeneratedPassword() {
+        lastSavedGeneratedPassword = null
     }
 
     private fun navigateToSavedLoginsFragment() {
