@@ -193,7 +193,7 @@ TEST(FilenameEvalParser, Other)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
     ASSERT_TRUE(ret.first == kSanitizedWindowsURL &&
-                ret.second.value() == u"gallop"_ns);
+                ret.second.value() == "gallop"_ns);
 #else
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
 #endif
@@ -204,7 +204,7 @@ TEST(FilenameEvalParser, Other)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
     ASSERT_TRUE(ret.first == kSanitizedWindowsURL &&
-                ret.second.value() == u"gallop"_ns);
+                ret.second.value() == "gallop"_ns);
 #else
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
 #endif
@@ -215,7 +215,7 @@ TEST(FilenameEvalParser, Other)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
     ASSERT_TRUE(ret.first == kSanitizedWindowsPath &&
-                ret.second.value() == u"content"_ns);
+                ret.second.value() == "content"_ns);
 #else
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
 #endif
@@ -226,7 +226,7 @@ TEST(FilenameEvalParser, Other)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
     ASSERT_TRUE(ret.first == kSanitizedWindowsPath &&
-                ret.second.value() == u"content"_ns);
+                ret.second.value() == "content"_ns);
 #else
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
 #endif
@@ -248,7 +248,7 @@ TEST(FilenameEvalParser, Other)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
     ASSERT_TRUE(ret.first == kSanitizedWindowsURL &&
-                ret.second.value() == u"file://.../file.txt"_ns);
+                ret.second.value() == "file://.../file.txt"_ns);
 #else
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
 #endif
@@ -259,7 +259,7 @@ TEST(FilenameEvalParser, Other)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
     ASSERT_TRUE(ret.first == kSanitizedWindowsPath &&
-                ret.second.value() == u"file.txt"_ns);
+                ret.second.value() == "file.txt"_ns);
 #else
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
 #endif
@@ -270,7 +270,7 @@ TEST(FilenameEvalParser, Other)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
     ASSERT_TRUE(ret.first == kSanitizedWindowsURL &&
-                ret.second.value() == u"http"_ns);
+                ret.second.value() == "http"_ns);
 #else
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
 #endif
@@ -281,7 +281,7 @@ TEST(FilenameEvalParser, Other)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
     ASSERT_TRUE(ret.first == kSanitizedWindowsURL &&
-                ret.second.value() == u"http"_ns);
+                ret.second.value() == "http"_ns);
 #else
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
 #endif
