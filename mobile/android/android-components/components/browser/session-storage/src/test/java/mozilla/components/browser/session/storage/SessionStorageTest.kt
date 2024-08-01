@@ -4,7 +4,9 @@
 
 package mozilla.components.browser.session.storage
 
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.state.ext.getUrl
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.EngineState
 import mozilla.components.browser.state.state.ReaderState
@@ -22,6 +24,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
@@ -110,6 +113,46 @@ class SessionStorageTest {
         // The selected tab was not restored so the most recently accessed restored tab
         // should be selected.
         assertEquals("tab4", restoredState.selectedTabId)
+    }
+
+    @Test
+    fun `Tabs with unreadable URI are not restored when restoring browser state`() {
+        // Build the state
+
+        val engineSessionState1 = FakeEngineSessionState("engineState1")
+
+        val tab1 = createTab("content://readable", id = "tab1").copy(
+            engineState = EngineState(engineSessionState = engineSessionState1),
+        )
+        val tab2 = createTab("content://unreadable", id = "tab2", contextId = "context")
+
+        val state = BrowserState(
+            tabs = listOf(tab1, tab2),
+            selectedTabId = tab2.id,
+        )
+
+        // Persist the state
+
+        val engine = FakeEngine()
+        val context = testContext
+
+        val storage = spy(SessionStorage(context, engine))
+        doReturn(true).`when`(storage).isUriReadable(tab1.getUrl()!!.toUri())
+        doReturn(false).`when`(storage).isUriReadable(tab2.getUrl()!!.toUri())
+        val persisted = storage.save(state)
+        assertTrue(persisted)
+
+        // Read it back and filter using predicate
+        val restoredState = storage.restore()
+        assertNotNull(restoredState!!)
+
+        // Only the tab with readable URI should be restored
+        assertEquals(1, restoredState.tabs.size)
+        tab1.assertSameAs(restoredState.tabs[0])
+
+        // The selected tab was not restored so the most recently accessed restored tab
+        // should be selected.
+        assertEquals(tab1.id, restoredState.selectedTabId)
     }
 
     @Test

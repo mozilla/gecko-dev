@@ -192,3 +192,22 @@ internal fun generateFileName(fileExtension: String = ""): String {
         "$randomId$timeStamp"
     }
 }
+
+/**
+ * Checks that the given URI is readable
+ * @param contentResolver the contentResolver that will be used to check the permission
+ * @return true is the URI is readable
+ */
+fun Uri.isReadable(contentResolver: ContentResolver): Boolean {
+    try {
+        val projection = arrayOf("_id") // Minimal projection
+        val isReadable = contentResolver.query(this, projection, null, null, null)?.use {
+            true
+        } ?: false
+        Logger.debug("Read permission was ${if (!isReadable) "not" else ""}granted on this URI")
+        return isReadable
+    } catch (e: SecurityException) {
+        Logger.debug("Read permission was not granted on this URI", e)
+        return false
+    }
+}

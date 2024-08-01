@@ -7,16 +7,19 @@ package org.mozilla.fenix
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import androidx.annotation.VisibleForTesting
 import mozilla.components.feature.intent.ext.sanitize
 import mozilla.components.feature.intent.processing.IntentProcessor
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.EXTRA_ACTIVITY_REFERRER_CATEGORY
 import mozilla.components.support.utils.EXTRA_ACTIVITY_REFERRER_PACKAGE
 import mozilla.components.support.utils.INTENT_TYPE_PDF
 import mozilla.components.support.utils.ext.getApplicationInfoCompat
+import mozilla.components.support.utils.toSafeIntent
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.HomeActivity.Companion.PRIVATE_BROWSING_MODE
 import org.mozilla.fenix.components.IntentProcessorType
@@ -32,6 +35,8 @@ import org.mozilla.fenix.shortcut.NewTabShortcutIntentProcessor
  * Processes incoming intents and sends them to the corresponding activity.
  */
 class IntentReceiverActivity : Activity() {
+
+    private val logger = Logger("IntentReceiverActivity")
 
     @VisibleForTesting
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,12 +83,24 @@ class IntentReceiverActivity : Activity() {
         if (intent.type == INTENT_TYPE_PDF) {
             val referrerIsFenix = this.isIntentInternal()
             Events.openedExtPdf.record(Events.OpenedExtPdfExtra(referrerIsFenix))
+            if (!referrerIsFenix) {
+                intent.toSafeIntent().data?.let(::persistUriReadPermission)
+            }
         }
 
         val processor = getIntentProcessors(private).firstOrNull { it.process(intent) }
         val intentProcessorType = components.intentProcessors.getType(processor)
 
         launch(intent, intentProcessorType)
+    }
+
+    private fun persistUriReadPermission(uri: Uri) {
+        try {
+            val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            contentResolver.takePersistableUriPermission(uri, takeFlags)
+        } catch (securityException: SecurityException) {
+            logger.debug("UriPermission could not be persisted", securityException)
+        }
     }
 
     @VisibleForTesting

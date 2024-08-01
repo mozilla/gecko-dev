@@ -22,7 +22,6 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.state.recover.TabState
-import mozilla.components.browser.state.state.recover.isContentUri
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
@@ -315,7 +314,7 @@ class TabsUseCases(
             val now = System.currentTimeMillis()
             val state = storage.restore {
                 val lastActiveTime = maxOf(it.state.lastAccess, it.state.createdAt)
-                now - lastActiveTime <= tabTimeoutInMs && !it.isContentUri()
+                now - lastActiveTime <= tabTimeoutInMs
             }
             if (state != null) {
                 withContext(Dispatchers.Main) {

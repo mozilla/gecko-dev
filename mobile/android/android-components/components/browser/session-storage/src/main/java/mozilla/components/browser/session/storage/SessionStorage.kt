@@ -5,20 +5,24 @@
 package mozilla.components.browser.session.storage
 
 import android.content.Context
+import android.net.Uri
 import android.util.AtomicFile
 import androidx.annotation.CheckResult
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
+import androidx.core.net.toUri
 import mozilla.components.browser.session.storage.serialize.BrowserStateReader
 import mozilla.components.browser.session.storage.serialize.BrowserStateWriter
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.recover.RecoverableTab
+import mozilla.components.browser.state.state.recover.isContentUri
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.engine.Engine
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.android.net.isReadable
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -48,9 +52,18 @@ class SessionStorage(
     fun restore(predicate: (RecoverableTab) -> Boolean = { true }): RecoverableBrowserState? {
         synchronized(sessionFileLock) {
             val file = getFileForEngine(context, engine)
-            return stateReader.read(engine, file, predicate)
+
+            return stateReader.read(engine, file) { tab ->
+                // Tab whose url is a contentUri which is not readable won't be restored
+                // e.g. Pdfs opened from a different app that only provided transient permission for
+                // a specific session, that has already expired
+                predicate(tab) && (!tab.isContentUri() || isUriReadable(tab.state.url.toUri()))
+            }
         }
     }
+
+    @VisibleForTesting
+    internal fun isUriReadable(uri: Uri): Boolean = uri.isReadable(context.contentResolver)
 
     /**
      * Clears the state saved on disk.
