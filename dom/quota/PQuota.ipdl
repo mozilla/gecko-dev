@@ -41,17 +41,6 @@ struct StorageNameParams
 {
 };
 
-struct InitializePersistentOriginParams
-{
-  PrincipalInfo principalInfo;
-};
-
-struct InitializeTemporaryOriginParams
-{
-  PersistenceType persistenceType;
-  PrincipalInfo principalInfo;
-};
-
 struct GetFullOriginMetadataParams
 {
   PersistenceType persistenceType;
@@ -111,8 +100,6 @@ struct ListOriginsParams
 union RequestParams
 {
   StorageNameParams;
-  InitializePersistentOriginParams;
-  InitializeTemporaryOriginParams;
   GetFullOriginMetadataParams;
   ResetOriginParams;
   PersistedParams;
@@ -143,6 +130,13 @@ parent:
       returns(BoolResponse response);
 
   async InitializeStorage()
+      returns(BoolResponse response);
+
+  async InitializePersistentOrigin(PrincipalInfo principalInfo)
+      returns(BoolResponse response);
+
+  async InitializeTemporaryOrigin(PersistenceType persistenceType,
+                                  PrincipalInfo principalInfo)
       returns(BoolResponse response);
 
   async InitializePersistentClient(PrincipalInfo principalInfo,

@@ -5316,6 +5316,53 @@ RefPtr<UniversalDirectoryLock> QuotaManager::CreateDirectoryLockInternal(
                                            aClientType, aExclusive, aCategory);
 }
 
+RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
+    const PrincipalInfo& aPrincipalInfo) {
+  AssertIsOnOwningThread();
+
+  QM_TRY_UNWRAP(PrincipalMetadata principalMetadata,
+                GetInfoFromValidatedPrincipalInfo(aPrincipalInfo),
+                CreateAndRejectBoolPromise);
+
+  // XXX Resolve the promise immediately if the persistent origin is already
+  // initialized (this can't be done yet because there's currently no way to
+  // check if a persistent origin is already initialized on the PBackground
+  // thread).
+
+  RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
+      Nullable<PersistenceType>(PERSISTENCE_TYPE_PERSISTENT),
+      OriginScope::FromOrigin(principalMetadata.mOrigin),
+      Nullable<Client::Type>(), /* aExclusive */ false);
+
+  return directoryLock->Acquire()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [self = RefPtr(this), aPrincipalInfo,
+       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+        if (aValue.IsReject()) {
+          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
+        }
+
+        return self->InitializePersistentOrigin(aPrincipalInfo,
+                                                std::move(directoryLock));
+      });
+}
+
+RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
+    const PrincipalInfo& aPrincipalInfo,
+    RefPtr<UniversalDirectoryLock> aDirectoryLock) {
+  AssertIsOnOwningThread();
+
+  auto initializePersistentOriginOp = CreateInitializePersistentOriginOp(
+      WrapMovingNotNullUnchecked(this), aPrincipalInfo,
+      std::move(aDirectoryLock));
+
+  RegisterNormalOriginOp(*initializePersistentOriginOp);
+
+  initializePersistentOriginOp->RunImmediately();
+
+  return initializePersistentOriginOp->OnResults();
+}
+
 Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
 QuotaManager::EnsurePersistentOriginIsInitializedInternal(
     const OriginMetadata& aOriginMetadata) {
@@ -5376,6 +5423,53 @@ QuotaManager::EnsurePersistentOriginIsInitializedInternal(
       aOriginMetadata.mOrigin, OriginInitialization::PersistentOrigin,
       "dom::quota::FirstOriginInitializationAttempt::PersistentOrigin"_ns,
       innerFunc);
+}
+
+RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
+    PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo) {
+  AssertIsOnOwningThread();
+
+  QM_TRY_UNWRAP(PrincipalMetadata principalMetadata,
+                GetInfoFromValidatedPrincipalInfo(aPrincipalInfo),
+                CreateAndRejectBoolPromise);
+
+  // XXX Resolve the promise immediately if the temporary origin is already
+  // initialized (this can't be done yet because there's currently no way to
+  // check if a temporary origin is already initialized on the PBackground
+  // thread).
+
+  RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
+      Nullable<PersistenceType>(aPersistenceType),
+      OriginScope::FromOrigin(principalMetadata.mOrigin),
+      Nullable<Client::Type>(), /* aExclusive */ false);
+
+  return directoryLock->Acquire()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [self = RefPtr(this), aPersistenceType, aPrincipalInfo,
+       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+        if (aValue.IsReject()) {
+          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
+        }
+
+        return self->InitializeTemporaryOrigin(aPersistenceType, aPrincipalInfo,
+                                               std::move(directoryLock));
+      });
+}
+
+RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
+    PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo,
+    RefPtr<UniversalDirectoryLock> aDirectoryLock) {
+  AssertIsOnOwningThread();
+
+  auto initializeTemporaryOriginOp = CreateInitializeTemporaryOriginOp(
+      WrapMovingNotNullUnchecked(this), aPersistenceType, aPrincipalInfo,
+      std::move(aDirectoryLock));
+
+  RegisterNormalOriginOp(*initializeTemporaryOriginOp);
+
+  initializeTemporaryOriginOp->RunImmediately();
+
+  return initializeTemporaryOriginOp->OnResults();
 }
 
 bool QuotaManager::IsTemporaryOriginInitializedInternal(
