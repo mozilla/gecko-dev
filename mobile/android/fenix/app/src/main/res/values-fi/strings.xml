@@ -293,10 +293,16 @@
     <string name="browser_menu_switch_to_mobile_site">Siirry mobiilisivustolle</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Työkalut</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">Lukunäkymä, käännä, tulosta, jaa, avaa sovellus</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">Lukunäkymä, tulosta, jaa, avaa sovellus</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Tallenna</string>
 
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Lisää kirjanmerkki, pikakuvake, etusivu, kokoelma, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Lisää tämä sivu kirjanmerkkeihin</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -1110,7 +1116,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Kokoelman nimi</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Nimeä uudelleen</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Nimeä uudelleen</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Poista</string>
 
@@ -1242,6 +1248,15 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Kirjoita hakuehdot</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Siirry taaksepäin</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Lisää uusi kansio</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Sulje kirjanmerkit</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Etsi kirjanmerkeistä</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2201,7 +2216,7 @@
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Pikavalinnan nimi</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">OK</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Peruuta</string>
 
@@ -2211,6 +2226,11 @@
     <string name="top_sites_menu_sponsor_privacy">Tukijamme ja yksityisyytesi</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">Sponsoroitu</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">Muokkaa</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">Tallenna</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->

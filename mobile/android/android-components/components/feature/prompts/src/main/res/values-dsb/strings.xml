@@ -129,7 +129,10 @@
 
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Wužywajśo mócne, pśipadnje generěrowane gronidło, aby swóje konta šćitał. Dostańśo malsny pśistup k swójim gronidłam, gaž jo w swójom konśe składujośo.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Wužywajśo mócne, pśipadnje generěrowane gronidło, aby swóje konta šćitał. Dostańśo malsny pśistup k swójim gronidłam, gaž jo w swójom konśe składujośo.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Wužywajśo mócne, pśipadnje generěrowane gronidło, aby swóje konta šćitał. Buźo se do wašogo konta za pśichodne wužywanje składowaś.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Gronidło wužywaś</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->

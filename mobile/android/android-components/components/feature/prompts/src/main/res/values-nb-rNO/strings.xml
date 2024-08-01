@@ -49,7 +49,9 @@
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
     <string name="mozac_feature_prompt_login_update_headline_2">Oppdatere passord?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline">Vil du legge til brukernavn til lagret passord?</string>
+    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">Vil du legge til brukernavn til lagret passord?</string>
+    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
+    <string name="mozac_feature_prompt_login_add_username_headline_2">Oppdatere brukernavn?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
     <string name="mozac_feature_prompts_content_description_input_label">Etikett for utfylling av et skrivefelt</string>
@@ -135,6 +137,9 @@
     <!-- Title for showing the suggest strong password updated confirmation snackbar -->
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Passord oppdatert</string>
 
+
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Brukernavn oppdatert</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Send data på nytt til dette nettstedet?</string>

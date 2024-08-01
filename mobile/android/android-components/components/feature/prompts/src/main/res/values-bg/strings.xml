@@ -127,7 +127,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Използвате силна парола?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Защитете профилите си, като използвате силна, произволно генерирана парола. Получете бърз достъп до паролите си, като ги запишете в профила си.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Защитете профилите си, като използвате силна, произволно генерирана парола. Получете бърз достъп до паролите си, като ги запишете в профила си.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Защитете профилите си, като използвате силна, произволно генерирана парола. Ще бъде запазен в профила ви за бъдеща употреба.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Използване на парола</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->

@@ -147,6 +147,9 @@
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Mot de passe mis à jour</string>
 
 
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Nom d’utilisateur mis à jour</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Renvoyer les données à ce site ?</string>
     <string name="mozac_feature_prompt_repost_message">Actualiser cette page pourrait répéter des actions récentes, telles que l’envoi d’un paiement ou la publication d’un commentaire.</string>

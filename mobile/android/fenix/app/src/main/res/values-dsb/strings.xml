@@ -289,10 +289,16 @@
     <string name="browser_menu_switch_to_mobile_site">K mobilnemu sedłoju</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Rědy</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">Cytański naglěd, pśełožyś, śišćaś, źěliś, nałoženje wócyniś</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">Cytański naglěd, śišćaś, źěliś, nałoženje wócyniś</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Składowaś</string>
 
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Cytańske znamje pśidaś, zwězanje, startowy bok, zběrka, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Toś ten bok ako cytańske znamje składowaś</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -1231,6 +1237,17 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Pytańske wuraze zapódaś</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Slědk nawigěrowaś</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Nowy zarědnik pśidaś</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Cytańske znamjenja zacyniś</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Cytańske znamjenja pśepytaś</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Zapiskowy meni za %s</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

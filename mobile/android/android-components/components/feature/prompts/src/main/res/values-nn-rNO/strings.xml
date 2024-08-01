@@ -127,7 +127,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Bruke sterkt passord?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Beskytt kontoen din ved å bruke eit sterkt, tilfeldig generert passord. Få rask tilgang til passorda dine ved å lagre det i kontoen din.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Beskytt kontoen din ved å bruke eit sterkt, tilfeldig generert passord. Få rask tilgang til passorda dine ved å lagre det i kontoen din.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Vern kontoen din ved å bruke eit sterkt, tilfeldig generert passord. Det vert lagra i kontoen din for framtitig bruk.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Bruk passord</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->

@@ -295,10 +295,16 @@
     <string name="browser_menu_switch_to_mobile_site">Εναλλαγή σε έκδοση για κινητά</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Εργαλεία</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">Προβολή ανάγνωσης, μετάφραση, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">Προβολή ανάγνωσης, εκτύπωση, κοινή χρήση, άνοιγμα εφαρμογής</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Αποθήκευση</string>
 
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Προσθήκη σελιδοδείκτη, συντόμευση, αρχική, συλλογή, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Προσθήκη στους σελιδοδείκτες</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -1243,6 +1249,17 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Εισαγωγή όρων αναζήτησης</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Πλοήγηση προς τα πίσω</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Προσθήκη νέου φακέλου</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Κλείσιμο σελιδοδεικτών</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Αναζήτηση σελιδοδεικτών</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Μενού στοιχείων για «%s»</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

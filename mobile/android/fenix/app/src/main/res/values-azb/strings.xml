@@ -132,6 +132,9 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">سایتدا، داها چوخ مرور فضاسی اوچون آشاغیا حرکت ائتدیگینیز زمان، بو بار گیزله‌نیر.</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">بو تاغین گئچمیشینده صفحه‌لر آراسیندا گئچیش ائتمک اوچون فلش‌لره دوْخونون و باسیلیْ توتون.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">کامئرا ال چاتماسی لازیم.اندروید تنظیم‌لرینه گئدین، ایجازه‌لره توخونون و ایجازه وئرین.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -277,6 +280,8 @@
     <string name="browser_menu_open_app_link">اپده آچ</string>
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">اوخوجو گؤرونوشو اؤزللشدیر</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">اوْخوجو گؤرونوشو اؤزللشدیر</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">اکله</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -303,12 +308,20 @@
 
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">دسکتاپ سایتا گئچ</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">موبایل سایتا گئچین</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">آلت‌لر</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">اوْخویوجو گؤرونوشو، ترجمه، پرینت، پایلاشما، اَپ آچما</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">اوْخویوجو گؤرونوشو، پرینت، پایلاشما، اَپ آچما</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ساخلا</string>
 
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">بوکمارک، شورتکات، آنا یارپاق، مجموعه، پی دی اف آرتیرماق</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">بو صفحه‌نی بوکمارک ائله</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -454,7 +467,10 @@
     <string name="juno_onboarding_sign_in_title_2">جهازلار آراسیندا گئچیش ائلین زامان رمزلنمیش قالین.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">گیریش و دؤنگل ائتدیگینیز زامان داها گوونلی اولورسوز. فایرفاکس رمزلری، بوکمارکلاری و آیری شئی‌لری رمزلشدیریر.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">گیریش و دؤنگل ائتدیگینیز زامان داها گوونلی اولورسوز. فایرفاکس رمزلری، بوکمارکلاری و آیری شئی‌لری رمزلشدیریر.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3">فایرفاکس، دؤنگل ائتدیگینیز زمان، رمزلریزی، بوکمارک‌لاریزی و داها چوْخونو رمزلشدیریر.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">گیریش</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -1146,7 +1162,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">مجموعه آدیْ</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">یئنی‌دن آدلاندیْر</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">یئنی‌دن آدلاندیْر</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">قالدیر</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -1280,6 +1296,18 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">آختاریش شرطلرینی گیر</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">دالیا گئدین</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">یئنی پوشه آرتیر</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">بوکمارک‌لاری باغلا</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">بوکمارک‌لاردا آختار</string>
+
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">%s اوچون مورد منوسو</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1830,13 +1858,34 @@
     <string name="etp_suspected_fingerprinters_description">مشکوک بارماق ایزلرینی دایاندیرماق اوچون بارماق ایزی قوْرونماسینیْ گوجلندیریر.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_title">تانینمیش بارماق ایزلری</string>
+    <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
+         as we use it on the UI to indicate which trackers have been partially unblocked.  -->
+    <string name="preference_etp_smartblock_description">آشاغیدا اشاره اوْلونان بعضی ایزله‌ییجی‌لر، اوْنلارلا تعامل ساخلاماغیز اوچون بو صفحه‌ده مسدودیت‌لری رفع اوْلموش.</string>
     <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
     <string name="preference_etp_smartblock_learn_more">آرتیق بیلین</string>
 
+    <!-- Content description (not visible, for screen readers etc.):
+    Enhanced tracking protection exception preference icon for ETP settings. -->
+    <string name="preference_etp_exceptions_icon_description">گلیشمیش ایزله‌مه قوْروماسیْ استثنا ترجیحی سیمگه‌سی</string>
+
+    <!-- About page link text to open support link -->
+    <string name="about_support">آرخالاما</string>
     <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
     <string name="about_crashes">سینماق‌لار</string>
     <!-- About page link text to open privacy notice link -->
     <string name="about_privacy_notice">گیزلیلیک بیلدیریمی</string>
+
+    <!-- About page link text to open know your rights link -->
+    <string name="about_know_your_rights">حق‌لری بیل</string>
+
+    <!-- About page link text to open a screen with libraries that are used -->
+    <string name="about_other_open_source_libraries">ایشه آلدیغیز کتابخانالار</string>
+
+    <!-- Toast shown to the user when they are activating the secret dev menu
+        The first parameter is number of long clicks left to enable the menu -->
+    <string name="about_debug_menu_toast_progress">سازلاما منوسو: گوجلندیرمک اوچون %1$d کلیک قالیب</string>
+
+    <string name="about_debug_menu_toast_done">خطا منوسو گوجلندیریلدی</string>
 
     <!-- Browser long press popup menu -->
     <!-- Copy the current url -->

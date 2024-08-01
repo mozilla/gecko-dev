@@ -296,13 +296,13 @@
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Leseansicht, Übersetzen, Drucken, Teilen, App öffnen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-    <string name="browser_menu_tools_description">Leseansicht, drucken, teilen, App öffnen</string>
+    <string name="browser_menu_tools_description">Leseansicht, Drucken, Teilen, App öffnen</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Speichern</string>
 
     <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-    <string name="browser_menu_save_description">Lesezeichen, Verknüpfung, Start, Sammlung, PDF . hinzufügen</string>
+    <string name="browser_menu_save_description">Lesezeichen hinzufügen, Verknüpfung, Start, Sammlung, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Lesezeichen für diese Seite hinzufügen</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->

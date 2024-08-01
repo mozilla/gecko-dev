@@ -1122,7 +1122,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">收藏集名称</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">重命名</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">重命名</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">移除</string>
 
@@ -2231,7 +2231,7 @@
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">快捷方式名称</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">确定</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">确定</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">取消</string>
 
@@ -2739,7 +2739,7 @@
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">调试工具</string>
     <!-- Content description (not visible, for screen readers etc.): Navigate back within the debug drawer. -->
-    <string name="debug_drawer_back_button_content_description">向前导航</string>
+    <string name="debug_drawer_back_button_content_description">浏览上一页</string>
 
     <!-- Content description (not visible, for screen readers etc.): Open debug drawer. -->
     <string name="debug_drawer_fab_content_description">打开调试抽屉</string>

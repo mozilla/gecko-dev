@@ -127,7 +127,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Sylne hesło wužiwać?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Wužiwajće sylne, připadnje generěrowane hesło, zo byšće swoje konta škitał. Dóstańće spěšny přistup k swojim hesłam, hdyž jo w swojim konće składujeće.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Wužiwajće sylne, připadnje generěrowane hesło, zo byšće swoje konta škitał. Dóstańće spěšny přistup k swojim hesłam, hdyž jo w swojim konće składujeće.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Wužiwajće sylne, připadnje generěrowane hesło, zo byšće swoje konta škitał. Budźe so do wašeho konta za přichodne wužiwanje składować.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Hesło wužiwać</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
