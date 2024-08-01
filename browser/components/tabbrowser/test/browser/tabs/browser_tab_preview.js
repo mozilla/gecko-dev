@@ -707,7 +707,6 @@ add_task(async function wheelTests() {
   while (gBrowser.tabs.length > 1) {
     BrowserTestUtils.removeTab(gBrowser.tabs[0]);
   }
-  await SpecialPowers.popPrefEnv();
 
   // Move the mouse outside of the tab strip.
   EventUtils.synthesizeMouseAtCenter(document.documentElement, {
