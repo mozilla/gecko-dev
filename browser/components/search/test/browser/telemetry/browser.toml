@@ -38,6 +38,7 @@ support-files = ["searchTelemetryAd_searchbox_with_content.html", "serp.css"]
 ["browser_search_telemetry_adblock_count.js"]
 
 ["browser_search_telemetry_categorization_experiment_info.js"]
+skip-if = ["artifact"] # Bug 1883857 - experimentInfo object is not accessible in artifact builds
 support-files = ["searchTelemetryDomainCategorizationReporting.html"]
 
 ["browser_search_telemetry_categorization_missing_impression.js"]
