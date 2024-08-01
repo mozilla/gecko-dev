@@ -8598,7 +8598,7 @@ void nsTextFrame::MarkIntrinsicISizesDirty() {
 // XXX this doesn't handle characters shaped by line endings. We need to
 // temporarily override the "current line ending" settings.
 void nsTextFrame::AddInlineMinISizeForFlow(gfxContext* aRenderingContext,
-                                           nsIFrame::InlineMinISizeData* aData,
+                                           InlineMinISizeData* aData,
                                            TextRunType aTextRunType) {
   uint32_t flowEndInTextRun;
   gfxSkipCharsIterator iter =
@@ -8840,7 +8840,7 @@ static bool IsUnreflowedLetterFrame(nsIFrame* aFrame) {
 // first-line changing min-width
 /* virtual */
 void nsTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
-                                    nsIFrame::InlineMinISizeData* aData) {
+                                    InlineMinISizeData* aData) {
   // Check if this textframe belongs to a first-letter frame that has not yet
   // been reflowed; if so, we need to deal with splitting off a continuation
   // before we can measure the advance correctly.
@@ -8886,9 +8886,9 @@ void nsTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
 
 // XXX this doesn't handle characters shaped by line endings. We need to
 // temporarily override the "current line ending" settings.
-void nsTextFrame::AddInlinePrefISizeForFlow(
-    gfxContext* aRenderingContext, nsIFrame::InlinePrefISizeData* aData,
-    TextRunType aTextRunType) {
+void nsTextFrame::AddInlinePrefISizeForFlow(gfxContext* aRenderingContext,
+                                            InlinePrefISizeData* aData,
+                                            TextRunType aTextRunType) {
   if (IsUnreflowedLetterFrame(GetParent())) {
     MaybeSplitFramesForFirstLetter();
   }
@@ -9007,7 +9007,7 @@ void nsTextFrame::AddInlinePrefISizeForFlow(
 // first-line and first-letter changing pref-width
 /* virtual */
 void nsTextFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
-                                     nsIFrame::InlinePrefISizeData* aData) {
+                                     InlinePrefISizeData* aData) {
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
 

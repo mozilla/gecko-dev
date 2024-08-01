@@ -5998,7 +5998,7 @@ void nsIFrame::MarkSubtreeDirty() {
 
 /* virtual */
 void nsIFrame::AddInlineMinISize(gfxContext* aRenderingContext,
-                                 nsIFrame::InlineMinISizeData* aData) {
+                                 InlineMinISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(
       aRenderingContext, this, IntrinsicISizeType::MinISize);
   aData->DefaultAddInlineMinISize(this, isize);

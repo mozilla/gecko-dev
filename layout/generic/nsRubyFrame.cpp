@@ -52,7 +52,7 @@ nsresult nsRubyFrame::GetFrameName(nsAString& aResult) const {
 
 /* virtual */
 void nsRubyFrame::AddInlineMinISize(gfxContext* aRenderingContext,
-                                    nsIFrame::InlineMinISizeData* aData) {
+                                    InlineMinISizeData* aData) {
   auto handleChildren = [aRenderingContext](auto frame, auto data) {
     for (RubySegmentEnumerator e(static_cast<nsRubyFrame*>(frame)); !e.AtEnd();
          e.Next()) {
@@ -64,7 +64,7 @@ void nsRubyFrame::AddInlineMinISize(gfxContext* aRenderingContext,
 
 /* virtual */
 void nsRubyFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
-                                     nsIFrame::InlinePrefISizeData* aData) {
+                                     InlinePrefISizeData* aData) {
   auto handleChildren = [aRenderingContext](auto frame, auto data) {
     for (RubySegmentEnumerator e(static_cast<nsRubyFrame*>(frame)); !e.AtEnd();
          e.Next()) {

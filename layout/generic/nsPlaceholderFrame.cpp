@@ -46,8 +46,8 @@ NS_QUERYFRAME_TAIL_INHERITING(nsIFrame)
 #endif
 
 /* virtual */
-void nsPlaceholderFrame::AddInlineMinISize(
-    gfxContext* aRenderingContext, nsIFrame::InlineMinISizeData* aData) {
+void nsPlaceholderFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+                                           InlineMinISizeData* aData) {
   // Override AddInlineMinISize so that *nothing* happens. In
   // particular, we don't want to zero out |aData->mTrailingWhitespace|,
   // since nsLineLayout skips placeholders when trimming trailing
@@ -63,8 +63,8 @@ void nsPlaceholderFrame::AddInlineMinISize(
 }
 
 /* virtual */
-void nsPlaceholderFrame::AddInlinePrefISize(
-    gfxContext* aRenderingContext, nsIFrame::InlinePrefISizeData* aData) {
+void nsPlaceholderFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+                                            InlinePrefISizeData* aData) {
   // Override AddInlinePrefISize so that *nothing* happens. In
   // particular, we don't want to zero out |aData->mTrailingWhitespace|,
   // since nsLineLayout skips placeholders when trimming trailing

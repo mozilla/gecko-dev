@@ -445,7 +445,7 @@ class nsTextFrame : public nsIFrame {
   };
 
   void AddInlineMinISizeForFlow(gfxContext* aRenderingContext,
-                                nsIFrame::InlineMinISizeData* aData,
+                                InlineMinISizeData* aData,
                                 TextRunType aTextRunType);
   void AddInlinePrefISizeForFlow(gfxContext* aRenderingContext,
                                  InlinePrefISizeData* aData,

@@ -159,15 +159,15 @@ static nscoord CalculateColumnPrefISize(
 //       computing min isize of ruby frame, which may cause problem.
 //       See bug 1134945.
 /* virtual */
-void nsRubyBaseContainerFrame::AddInlineMinISize(
-    gfxContext* aRenderingContext, nsIFrame::InlineMinISizeData* aData) {
+void nsRubyBaseContainerFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+                                                 InlineMinISizeData* aData) {
   AutoRubyTextContainerArray textContainers(this);
 
   for (uint32_t i = 0, iend = textContainers.Length(); i < iend; i++) {
     if (textContainers[i]->IsSpanContainer()) {
       // Since spans are not breakable internally, use our pref isize
       // directly if there is any span.
-      nsIFrame::InlinePrefISizeData data;
+      InlinePrefISizeData data;
       data.SetLineContainer(aData->LineContainer());
       data.mSkipWhitespace = aData->mSkipWhitespace;
       data.mTrailingWhitespace = aData->mTrailingWhitespace;
@@ -212,8 +212,8 @@ void nsRubyBaseContainerFrame::AddInlineMinISize(
 }
 
 /* virtual */
-void nsRubyBaseContainerFrame::AddInlinePrefISize(
-    gfxContext* aRenderingContext, nsIFrame::InlinePrefISizeData* aData) {
+void nsRubyBaseContainerFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+                                                  InlinePrefISizeData* aData) {
   AutoRubyTextContainerArray textContainers(this);
 
   nscoord sum = 0;
@@ -227,7 +227,7 @@ void nsRubyBaseContainerFrame::AddInlinePrefISize(
   for (uint32_t i = 0, iend = textContainers.Length(); i < iend; i++) {
     if (textContainers[i]->IsSpanContainer()) {
       nsIFrame* frame = textContainers[i]->PrincipalChildList().FirstChild();
-      nsIFrame::InlinePrefISizeData data;
+      InlinePrefISizeData data;
       frame->AddInlinePrefISize(aRenderingContext, &data);
       MOZ_ASSERT(data.mPrevLines == 0, "Shouldn't have prev lines");
       sum = std::max(sum, data.mCurrentLine);
