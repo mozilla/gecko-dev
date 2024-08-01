@@ -406,6 +406,7 @@
 
 .tab-icon-overlay {
   position: relative;
+  padding: 2px;
 
   &[crashed] {
     list-style-image: url("chrome://browser/skin/tabbrowser/crashed.svg");
@@ -436,19 +437,20 @@
     }
 
     &:is([pinned], [sharing]) {
-      top: -5.5px;
-      inset-inline-end: -6px;
-      z-index: 1; /* Overlay tab title */
-      padding: 2px;
       stroke: var(--tab-icon-overlay-stroke, light-dark(white, black));
       color: var(--tab-icon-overlay-fill, light-dark(black, white));
     }
   }
 
+  &:not([indicator-replaces-favicon]) {
+    top: -5.5px;
+    inset-inline-end: -6px;
+    z-index: 1; /* Overlay tab title */
+  }
+
   &[indicator-replaces-favicon] {
     border-radius: 2px;
     fill-opacity: 0.75;
-    padding: 2px;
 
     &:hover {
       background-color: color-mix(in srgb, currentColor 15%, transparent);
