@@ -160,5 +160,6 @@ button {
   img {
     width: var(--icon-size-default);
     height: var(--icon-size-default);
+    pointer-events: none;
   }
 }
