@@ -1,13 +1,72 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+const CONFIG = [
+  {
+    identifier: "get-engine",
+    base: {
+      urls: {
+        search: {
+          base: "https://example.com",
+          params: [
+            {
+              name: "config",
+              value: "1",
+            },
+          ],
+          searchTermParamName: "search",
+        },
+        suggestions: {
+          base: "https://example.com",
+          params: [
+            {
+              name: "config",
+              value: "1",
+            },
+          ],
+          searchTermParamName: "suggest",
+        },
+      },
+    },
+  },
+  {
+    identifier: "post-engine",
+    base: {
+      urls: {
+        search: {
+          base: "https://example.com",
+          method: "POST",
+          params: [
+            {
+              name: "config",
+              value: "1",
+            },
+          ],
+          searchTermParamName: "search",
+        },
+        suggestions: {
+          base: "https://example.com",
+          method: "POST",
+          params: [
+            {
+              name: "config",
+              value: "1",
+            },
+          ],
+          searchTermParamName: "suggest",
+        },
+      },
+    },
+  },
+];
+
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("method-extensions");
+  await SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 });
 
 add_task(async function test_get_extension() {
-  let engine = Services.search.getEngineByName("Get Engine");
+  let engine = Services.search.getEngineByName("get-engine");
   Assert.notEqual(engine, null, "Should have found an engine");
 
   let url = engine.wrappedJSObject._getURLOfType(SearchUtils.URL_TYPE.SEARCH);
@@ -32,7 +91,7 @@ add_task(async function test_get_extension() {
 });
 
 add_task(async function test_post_extension() {
-  let engine = Services.search.getEngineByName("Post Engine");
+  let engine = Services.search.getEngineByName("post-engine");
   Assert.ok(!!engine, "Should have found an engine");
 
   let url = engine.wrappedJSObject._getURLOfType(SearchUtils.URL_TYPE.SEARCH);

@@ -359,7 +359,6 @@ add_setup(async () => {
   );
   getVariableStub.returns(null);
 
-  SearchTestUtils.useMockIdleService();
   Services.fog.initializeFOG();
   sinon.stub(
     Services.search.wrappedJSObject,

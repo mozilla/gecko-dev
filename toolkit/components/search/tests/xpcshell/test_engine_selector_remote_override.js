@@ -60,10 +60,7 @@ const TEST_CONFIG_OVERRIDE = [
 const engineSelector = new SearchEngineSelector();
 
 add_setup(async function () {
-  const settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
-  sinon.stub(settings, "get").returns(TEST_CONFIG);
-  const overrides = await RemoteSettings(SearchUtils.SETTINGS_OVERRIDES_KEY);
-  sinon.stub(overrides, "get").returns(TEST_CONFIG_OVERRIDE);
+  SearchTestUtils.setRemoteSettingsConfig(TEST_CONFIG, TEST_CONFIG_OVERRIDE);
 });
 
 add_task(async function test_engine_selector() {

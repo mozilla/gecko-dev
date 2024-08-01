@@ -7,16 +7,37 @@
 
 "use strict";
 
+const CONFIG = [
+  { identifier: "default-engine" },
+  {
+    identifier: "an-engine",
+    variants: [{ environment: { regions: ["an"] } }],
+  },
+  { identifier: "tr-engine" },
+  {
+    specificDefaults: [
+      {
+        default: "an-engine",
+        environment: { regions: ["an"] },
+      },
+      {
+        default: "tr-engine",
+        environment: { regions: ["tr"] },
+      },
+    ],
+  },
+];
+
 add_setup(async function () {
   Region._setHomeRegion("an", false);
-  await SearchTestUtils.useTestEngines("test-extensions");
+  await SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 });
 
 add_task(async function test_appDefaultEngine() {
   await Promise.all([Services.search.init(), promiseAfterSettings()]);
   Assert.equal(
     Services.search.appDefaultEngine.name,
-    "Multilocale AN",
+    "an-engine",
     "Should have returned the correct app default engine"
   );
 });
@@ -34,7 +55,7 @@ add_task(async function test_changeRegion() {
     Services.search.appDefaultEngine.name,
     // Very important this default is not the first one in the list (which is
     // the next fallback if the config one can't be found).
-    "Special",
+    "tr-engine",
     "Should have returned the correct engine for the new locale"
   );
 });

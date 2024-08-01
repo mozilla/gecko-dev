@@ -13,52 +13,16 @@ ChromeUtils.defineESModuleGetters(this, {
 });
 
 const ENGINE_ORDERS_CONFIG = [
-  {
-    recordType: "engine",
-    identifier: "b-engine",
-    base: {},
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: true,
-        },
-      },
-    ],
-  },
-  {
-    recordType: "engine",
-    identifier: "a-engine",
-    base: {},
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: true,
-        },
-      },
-    ],
-  },
-  {
-    recordType: "engine",
-    identifier: "c-engine",
-    base: {},
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: true,
-        },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
+  { identifier: "default-engine" },
+  { identifier: "b-engine" },
+  { identifier: "a-engine" },
+  { identifier: "c-engine" },
   {
     recordType: "engineOrders",
     orders: [
       {
         environment: { distributions: ["distro"] },
-        order: ["a-engine", "b-engine", "c-engine"],
+        order: ["default-engine", "a-engine", "b-engine", "c-engine"],
       },
       {
         environment: {
@@ -66,23 +30,22 @@ const ENGINE_ORDERS_CONFIG = [
           locales: ["en-CA"],
           regions: ["CA"],
         },
-        order: ["c-engine", "b-engine", "a-engine"],
+        order: ["default-engine", "c-engine", "b-engine", "a-engine"],
       },
       {
         environment: {
           distributions: ["distro-2"],
         },
-        order: ["a-engine", "b-engine"],
+        order: ["default-engine", "a-engine", "b-engine"],
       },
     ],
   },
 ];
 
 const STARTS_WITH_WIKI_CONFIG = [
+  { identifier: "default-engine" },
   {
-    recordType: "engine",
     identifier: "wiki-ca",
-    base: {},
     variants: [
       {
         environment: {
@@ -93,9 +56,7 @@ const STARTS_WITH_WIKI_CONFIG = [
     ],
   },
   {
-    recordType: "engine",
     identifier: "wiki-uk",
-    base: {},
     variants: [
       {
         environment: {
@@ -106,9 +67,7 @@ const STARTS_WITH_WIKI_CONFIG = [
     ],
   },
   {
-    recordType: "engine",
     identifier: "engine-1",
-    base: {},
     variants: [
       {
         environment: {
@@ -118,9 +77,7 @@ const STARTS_WITH_WIKI_CONFIG = [
     ],
   },
   {
-    recordType: "engine",
     identifier: "engine-2",
-    base: {},
     variants: [
       {
         environment: {
@@ -128,10 +85,6 @@ const STARTS_WITH_WIKI_CONFIG = [
         },
       },
     ],
-  },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
   },
   {
     recordType: "engineOrders",
@@ -141,76 +94,29 @@ const STARTS_WITH_WIKI_CONFIG = [
           locales: ["en-CA"],
           regions: ["CA"],
         },
-        order: ["wiki*", "engine-1", "engine-2"],
+        order: ["default-engine", "wiki*", "engine-1", "engine-2"],
       },
       {
         environment: {
           locales: ["en-GB"],
           regions: ["GB"],
         },
-        order: ["wiki*", "engine-1", "engine-2"],
+        order: ["default-engine", "wiki*", "engine-1", "engine-2"],
       },
     ],
   },
 ];
 
 const DEFAULTS_CONFIG = [
+  { identifier: "b-engine" },
+  { identifier: "a-engine" },
+  { identifier: "default-engine" },
+  { identifier: "default-private-engine" },
   {
-    recordType: "engine",
-    identifier: "b-engine",
-    base: {},
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: true,
-        },
-      },
-    ],
-  },
-  {
-    recordType: "engine",
-    identifier: "a-engine",
-    base: {},
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: true,
-        },
-      },
-    ],
-  },
-  {
-    recordType: "engine",
-    identifier: "default-engine",
-    base: {},
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: true,
-        },
-      },
-    ],
-  },
-  {
-    recordType: "engine",
-    identifier: "default-private-engine",
-    base: {},
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: true,
-        },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
     globalDefault: "default-engine",
     globalDefaultPrivate: "default-private-engine",
-    specificDefaults: [],
   },
   {
-    recordType: "engineOrders",
     orders: [
       {
         environment: {
@@ -224,10 +130,6 @@ const DEFAULTS_CONFIG = [
 ];
 
 const engineSelector = new SearchEngineSelector();
-let settings;
-let settingOverrides;
-let configStub;
-let overrideStub;
 
 /**
  * This function asserts if the actual engine identifiers returned equals
@@ -249,7 +151,7 @@ async function assertActualEnginesEqualsExpected(
   message
 ) {
   engineSelector._configuration = null;
-  configStub.returns(config);
+  SearchTestUtils.setRemoteSettingsConfig(config, []);
 
   let { engines } = await engineSelector.fetchEngineConfiguration(userEnv);
   let actualEngineOrders = engines.map(engine => engine.identifier);
@@ -257,14 +159,6 @@ async function assertActualEnginesEqualsExpected(
   info(`${message}`);
   Assert.deepEqual(actualEngineOrders, expectedEngineOrders, message);
 }
-
-add_setup(async function () {
-  settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
-  configStub = sinon.stub(settings, "get");
-  settingOverrides = await RemoteSettings(SearchUtils.SETTINGS_OVERRIDES_KEY);
-  overrideStub = sinon.stub(settingOverrides, "get");
-  overrideStub.returns([]);
-});
 
 add_task(async function test_selector_match_engine_orders() {
   await assertActualEnginesEqualsExpected(
@@ -274,7 +168,7 @@ add_task(async function test_selector_match_engine_orders() {
       region: "FR",
       distroID: "distro",
     },
-    ["a-engine", "b-engine", "c-engine"],
+    ["default-engine", "a-engine", "b-engine", "c-engine"],
     "Should match engine orders with the distro distribution."
   );
 
@@ -285,7 +179,7 @@ add_task(async function test_selector_match_engine_orders() {
       region: "CA",
       distroID: "distro",
     },
-    ["c-engine", "b-engine", "a-engine"],
+    ["default-engine", "c-engine", "b-engine", "a-engine"],
     "Should match engine orders with the distro distribution, en-CA locale and CA region."
   );
 
@@ -296,7 +190,7 @@ add_task(async function test_selector_match_engine_orders() {
       region: "CA",
       distroID: "distro-2",
     },
-    ["a-engine", "b-engine", "c-engine"],
+    ["default-engine", "a-engine", "b-engine", "c-engine"],
     "Should order the first two engines correctly for distro-2 distribution"
   );
 
@@ -306,7 +200,7 @@ add_task(async function test_selector_match_engine_orders() {
       locale: "en-CA",
       region: "CA",
     },
-    ["b-engine", "a-engine", "c-engine"],
+    ["default-engine", "b-engine", "a-engine", "c-engine"],
     "Should be in the same engine order as the config when there's no engine order environments matched."
   );
 });
@@ -318,7 +212,7 @@ add_task(async function test_selector_match_engine_orders_starts_with() {
       locale: "en-CA",
       region: "CA",
     },
-    ["wiki-ca", "engine-1", "engine-2"],
+    ["default-engine", "wiki-ca", "engine-1", "engine-2"],
     "Should list the wiki-ca engine and other engines in correct orders with the en-CA and CA locale region environment."
   );
 
@@ -328,7 +222,7 @@ add_task(async function test_selector_match_engine_orders_starts_with() {
       locale: "en-GB",
       region: "GB",
     },
-    ["wiki-uk", "engine-1", "engine-2"],
+    ["default-engine", "wiki-uk", "engine-1", "engine-2"],
     "Should list the wiki-ca engine and other engines in correct orders with the en-CA and CA locale region environment."
   );
 });

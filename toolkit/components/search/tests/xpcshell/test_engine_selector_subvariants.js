@@ -3,11 +3,21 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+const STATIC_ENGINE_INFO = {
+  identifier: "engine-1",
+  name: "engine-1",
+  classification: "general",
+  urls: {
+    search: {
+      base: "https://www.example.com/search",
+      searchTermParamName: "q",
+    },
+  },
+};
+
 const CONFIG = [
   {
-    recordType: "engine",
-    identifier: "engine-1",
-    base: {},
+    ...STATIC_ENGINE_INFO,
     variants: [
       {
         environment: {
@@ -27,19 +37,9 @@ const CONFIG = [
       },
     ],
   },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
 ];
 
 const engineSelector = new SearchEngineSelector();
-let settings;
-let configStub;
 
 /**
  * This function asserts if the actual engines returned equals the expected
@@ -61,16 +61,11 @@ async function assertActualEnginesEqualsExpected(
   message
 ) {
   engineSelector._configuration = null;
-  configStub.returns(config);
+  SearchTestUtils.setRemoteSettingsConfig(config);
   let { engines } = await engineSelector.fetchEngineConfiguration(userEnv);
 
   Assert.deepEqual(engines, expectedEngines, message);
 }
-
-add_setup(async function () {
-  settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
-  configStub = sinon.stub(settings, "get");
-});
 
 add_task(async function test_no_subvariants_match() {
   await assertActualEnginesEqualsExpected(
@@ -83,6 +78,7 @@ add_task(async function test_no_subvariants_match() {
       {
         identifier: "engine-1",
         partnerCode: "variant-partner-code",
+        ...STATIC_ENGINE_INFO,
       },
     ],
     "Should match no subvariants."
@@ -100,6 +96,7 @@ add_task(async function test_matching_subvariant_with_properties() {
       {
         identifier: "engine-1",
         partnerCode: "subvariant-partner-code",
+        ...STATIC_ENGINE_INFO,
       },
     ],
     "Should match subvariant with subvariant properties."
@@ -115,9 +112,9 @@ add_task(async function test_matching_variant_and_subvariant_with_properties() {
     },
     [
       {
-        identifier: "engine-1",
         partnerCode: "variant-partner-code",
         telemetrySuffix: "subvariant-telemetry",
+        ...STATIC_ENGINE_INFO,
       },
     ],
     "Should match subvariant with subvariant properties."
@@ -135,6 +132,7 @@ add_task(async function test_matching_two_subvariant_with_properties() {
       {
         identifier: "engine-1",
         partnerCode: "subvariant-partner-code",
+        ...STATIC_ENGINE_INFO,
       },
     ],
     "Should match the last subvariant with subvariant properties."

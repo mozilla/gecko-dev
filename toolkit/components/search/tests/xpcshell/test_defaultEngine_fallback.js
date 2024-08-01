@@ -313,8 +313,7 @@ add_task(
         entry.base.classification = "unknown";
       }
     }
-    const settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
-    settings.get.returns(searchConfig.data);
+    SearchTestUtils.setRemoteSettingsConfig(searchConfig.data);
     Services.search.wrappedJSObject.reset();
     await Services.search.init();
 

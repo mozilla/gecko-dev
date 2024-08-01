@@ -7,35 +7,12 @@
 
 "use strict";
 
-const SEARCH_CONFIG_V2_UPDATED = [
-  {
-    recordType: "engine",
-    identifier: "plainengine",
-    base: {
-      name: "Plain",
-      urls: {
-        search: {
-          base: "https://duckduckgo.com/",
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "plainengine",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
+const CONF_WITH_TEMP = [
+  { identifier: "permanent_engine" },
+  { identifier: "temp_engine" },
 ];
+
+const CONF_WITHOUT_TEMP = [{ identifier: "permanent_engine" }];
 
 async function startup() {
   let settingsFileWritten = promiseAfterSettings();
@@ -45,21 +22,12 @@ async function startup() {
   return ss;
 }
 
-async function updateConfig(config) {
-  const settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
-  settings.get.restore();
-
-  config == "test-extensions"
-    ? await SearchTestUtils.useTestEngines("test-extensions")
-    : sinon.stub(settings, "get").returns(config);
-}
-
 async function visibleEngines(ss) {
   return (await ss.getVisibleEngines()).map(e => e._name);
 }
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("test-extensions");
+  SearchTestUtils.setRemoteSettingsConfig(CONF_WITH_TEMP);
   // This is only needed as otherwise events will not be properly notified
   // due to https://searchfox.org/mozilla-central/rev/5f0a7ca8968ac5cef8846e1d970ef178b8b76dcc/toolkit/components/search/SearchSettings.sys.mjs#41-42
   let settingsFileWritten = promiseAfterSettings();
@@ -71,36 +39,36 @@ add_setup(async function () {
 add_task(async function () {
   let ss = await startup();
   Assert.ok(
-    (await visibleEngines(ss)).includes("Special"),
+    (await visibleEngines(ss)).includes("temp_engine"),
     "Should have both engines on first startup"
   );
 
   let settingsFileWritten = promiseAfterSettings();
-  let engine = await ss.getEngineByName("Special");
+  let engine = await ss.getEngineByName("temp_engine");
   await ss.removeEngine(engine);
   await settingsFileWritten;
 
   Assert.ok(
-    !(await visibleEngines(ss)).includes("Special"),
-    "Special has been remove, only Plain should remain"
+    !(await visibleEngines(ss)).includes("temp_engine"),
+    "temp_engine has been removed, only permanent_engine should remain"
   );
 
   ss._removeObservers();
-  await updateConfig(SEARCH_CONFIG_V2_UPDATED);
+  SearchTestUtils.setRemoteSettingsConfig(CONF_WITHOUT_TEMP);
   ss = await startup();
 
   Assert.ok(
-    !(await visibleEngines(ss)).includes("Special"),
-    "Updated to new configuration that doesnt have Special"
+    !(await visibleEngines(ss)).includes("temp_engine"),
+    "Updated to new configuration that doesnt have temp_engine"
   );
 
   ss._removeObservers();
-  await updateConfig("test-extensions");
+  SearchTestUtils.setRemoteSettingsConfig(CONF_WITH_TEMP);
 
   ss = await startup();
 
   Assert.ok(
-    !(await visibleEngines(ss)).includes("Special"),
-    "Configuration now includes Special but we should remember its removal"
+    !(await visibleEngines(ss)).includes("temp_engine"),
+    "Configuration now includes temp_engine but we should remember its removal"
   );
 });

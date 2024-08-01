@@ -59,16 +59,10 @@ add_setup(async () => {
     ],
   });
 
-  SearchTestUtils.useMockIdleService();
   await SearchTestUtils.updateRemoteSettingsConfig(CONFIG_DEFAULT_V2);
   Services.telemetry.clearScalars();
 
   registerCleanupFunction(async () => {
-    let settingsWritten = SearchTestUtils.promiseSearchNotification(
-      "write-settings-to-disk-complete"
-    );
-    await SearchTestUtils.updateRemoteSettingsConfig();
-    await settingsWritten;
     await UrlbarTestUtils.formHistory.clear();
   });
 });

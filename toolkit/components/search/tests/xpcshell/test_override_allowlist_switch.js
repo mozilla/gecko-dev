@@ -153,14 +153,11 @@ const CONFIG_SIMPLE_EVERYWHERE_V2 = [
 
 let lastEngineId;
 let extension;
-let configStub;
 let notificationBoxStub;
 
 add_setup(async function () {
   let server = useHttpServer();
   server.registerContentType("sjs", "sjs");
-  SearchTestUtils.useMockIdleService();
-  configStub = await SearchTestUtils.useTestEngines("simple-engines");
   Services.locale.availableLocales = [
     ...Services.locale.availableLocales,
     "en",
@@ -193,7 +190,6 @@ add_task(async function test_app_provided_engine_deployment_extended() {
     await SearchTestUtils.updateRemoteSettingsConfig(
       CONFIG_SIMPLE_EVERYWHERE_V2
     );
-    configStub.returns(CONFIG_SIMPLE_EVERYWHERE_V2);
   });
 
   await assertCorrectlySwitchedWhenRemoved(async () => {
@@ -202,7 +198,6 @@ add_task(async function test_app_provided_engine_deployment_extended() {
     await SearchTestUtils.updateRemoteSettingsConfig(
       CONFIG_SIMPLE_LOCALE_DE_V2
     );
-    configStub.returns(CONFIG_SIMPLE_LOCALE_DE_V2);
   });
 });
 
@@ -219,7 +214,6 @@ add_task(
       await SearchTestUtils.updateRemoteSettingsConfig(
         CONFIG_SIMPLE_EVERYWHERE_V2
       );
-      configStub.returns(CONFIG_SIMPLE_EVERYWHERE_V2);
     }, true);
 
     await assertCorrectlySwitchedWhenRemoved(async () => {
@@ -228,7 +222,6 @@ add_task(
       await SearchTestUtils.updateRemoteSettingsConfig(
         CONFIG_SIMPLE_LOCALE_DE_V2
       );
-      configStub.returns(CONFIG_SIMPLE_LOCALE_DE_V2);
     }, true);
   }
 );
@@ -240,7 +233,7 @@ add_task(
         "Change configuration with restart to include engine in user's environment"
       );
 
-      configStub.returns(CONFIG_SIMPLE_EVERYWHERE_V2);
+      SearchTestUtils.setRemoteSettingsConfig(CONFIG_SIMPLE_EVERYWHERE_V2);
       await promiseAfterSettings();
       Services.search.wrappedJSObject.reset();
       await Services.search.init();
@@ -250,8 +243,7 @@ add_task(
       info(
         "Change configuration with restart to remove engine from user's environment"
       );
-
-      configStub.returns(CONFIG_SIMPLE_LOCALE_DE_V2);
+      SearchTestUtils.setRemoteSettingsConfig(CONFIG_SIMPLE_LOCALE_DE_V2);
       await promiseAfterSettings();
       Services.search.wrappedJSObject.reset();
       await Services.search.init();
@@ -284,7 +276,7 @@ add_task(
         "Change configuration with restart to include engine in user's environment"
       );
 
-      configStub.returns(CONFIG_SIMPLE_EVERYWHERE_V2);
+      SearchTestUtils.setRemoteSettingsConfig(CONFIG_SIMPLE_EVERYWHERE_V2);
       await promiseAfterSettings();
       Services.search.wrappedJSObject.reset();
       await Services.search.init();
@@ -295,7 +287,7 @@ add_task(
         "Change configuration with restart to remove engine from user's environment"
       );
 
-      configStub.returns(CONFIG_SIMPLE_LOCALE_DE_V2);
+      SearchTestUtils.setRemoteSettingsConfig(CONFIG_SIMPLE_LOCALE_DE_V2);
       await promiseAfterSettings();
       Services.search.wrappedJSObject.reset();
       // Simulate the add-on manager starting up and telling the
@@ -327,7 +319,7 @@ add_task(
         "Change configuration with restart to include engine in user's environment"
       );
 
-      configStub.returns(CONFIG_SIMPLE_EVERYWHERE_V2);
+      SearchTestUtils.setRemoteSettingsConfig(CONFIG_SIMPLE_EVERYWHERE_V2);
       await promiseAfterSettings();
       Services.search.wrappedJSObject.reset();
       await Services.search.init();
@@ -338,7 +330,7 @@ add_task(
         "Change configuration with restart to remove engine from user's environment"
       );
 
-      configStub.returns(CONFIG_SIMPLE_LOCALE_DE_V2);
+      SearchTestUtils.setRemoteSettingsConfig(CONFIG_SIMPLE_LOCALE_DE_V2);
       await promiseAfterSettings();
       Services.search.wrappedJSObject.reset();
       await Services.search.init();

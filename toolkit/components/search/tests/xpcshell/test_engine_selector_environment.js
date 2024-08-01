@@ -438,10 +438,6 @@ const CONFIG_DEVICE_TYPE_LAYOUT = [
 ];
 
 const engineSelector = new SearchEngineSelector();
-let settings;
-let settingOverrides;
-let configStub;
-let overrideStub;
 
 /**
  * This function asserts if the actual engine identifiers returned equals
@@ -463,20 +459,12 @@ async function assertActualEnginesEqualsExpected(
   message
 ) {
   engineSelector._configuration = null;
-  configStub.returns(config);
+  SearchTestUtils.setRemoteSettingsConfig(config, []);
 
   let { engines } = await engineSelector.fetchEngineConfiguration(userEnv);
   let actualEngines = engines.map(engine => engine.identifier);
   Assert.deepEqual(actualEngines, expectedEngines, message);
 }
-
-add_setup(async function () {
-  settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
-  configStub = sinon.stub(settings, "get");
-  settingOverrides = await RemoteSettings(SearchUtils.SETTINGS_OVERRIDES_KEY);
-  overrideStub = sinon.stub(settingOverrides, "get");
-  overrideStub.returns([]);
-});
 
 add_task(async function test_selector_match_experiment() {
   await assertActualEnginesEqualsExpected(

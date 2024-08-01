@@ -54,6 +54,11 @@ support-files = [
   "method-extensions/search-config-v2.json",
 ]
 
+["test_configExpansion.js"]
+support-files = [
+  "../../schema/search-config-v2-schema.json",
+]
+
 ["test_defaultEngine.js"]
 
 ["test_defaultEngine_experiments.js"]

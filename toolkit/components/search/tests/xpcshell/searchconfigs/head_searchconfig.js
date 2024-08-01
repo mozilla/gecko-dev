@@ -49,8 +49,7 @@ async function maybeSetupConfig() {
     const url = SearchUtils.ENGINES_URLS[SEARCH_CONFIG];
     const response = await fetch(url);
     const config = await response.json();
-    const settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
-    sinon.stub(settings, "get").returns(config.data);
+    SearchTestUtils.setRemoteSettingsConfig(config.data);
   }
 }
 

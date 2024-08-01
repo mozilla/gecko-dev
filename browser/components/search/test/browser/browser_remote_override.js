@@ -61,7 +61,6 @@ const TEST_CONFIG_OVERRIDE = [
 SearchTestUtils.init(this);
 
 add_setup(async () => {
-  SearchTestUtils.useMockIdleService();
   await SearchTestUtils.updateRemoteSettingsConfig(
     TEST_CONFIG,
     TEST_CONFIG_OVERRIDE
@@ -74,14 +73,6 @@ add_setup(async () => {
     "override-tsfx",
     "Should have the expected engine set as default"
   );
-
-  registerCleanupFunction(async () => {
-    let settingsWritten = SearchTestUtils.promiseSearchNotification(
-      "write-settings-to-disk-complete"
-    );
-    await SearchTestUtils.updateRemoteSettingsConfig();
-    await settingsWritten;
-  });
 });
 
 add_task(async function test_remote_override() {

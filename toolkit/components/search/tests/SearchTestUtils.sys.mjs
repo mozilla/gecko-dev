@@ -33,6 +33,20 @@ class _SearchTestUtils {
   #isMochitest = null;
 
   /**
+   * Whether the fake idle service is registered and needs to be cleaned up.
+   *
+   * @type {boolean}
+   */
+  #idleServiceCID = null;
+
+  /**
+   * All stubs of remote settings that will be cleaned up by their key.
+   *
+   * @type {object}
+   */
+  #stubs = new Map();
+
+  /**
    * Initialises the test utils, setting up the scope and working out if these
    * are mochitest or xpcshell-test.
    *
@@ -44,6 +58,25 @@ class _SearchTestUtils {
     this.#isMochitest = !Services.env.exists("XPCSHELL_TEST_PROFILE_DIR");
     if (this.#isMochitest) {
       lazy.AddonTestUtils.initMochitest(testScope);
+
+      testScope.registerCleanupFunction(async () => {
+        this.#stubs.forEach(stub => stub.restore());
+
+        if (this.#stubs.size) {
+          this.#stubs = new Map();
+
+          let settingsWritten = SearchTestUtils.promiseSearchNotification(
+            "write-settings-to-disk-complete"
+          );
+          await this.updateRemoteSettingsConfig();
+          await settingsWritten;
+        }
+
+        if (this.#idleServiceCID) {
+          MockRegistrar.unregister(this.#idleServiceCID);
+          this.#idleServiceCID = null;
+        }
+      });
     }
   }
 
@@ -142,7 +175,7 @@ class _SearchTestUtils {
 
   /**
    * For xpcshell tests, configures loading engines from test data located in
-   * particular folders.
+   * particular folders. Will be replaced by `setRemoteSettingsConfig`.
    *
    * @param {string} [folder]
    *   The folder name to use.
@@ -150,13 +183,11 @@ class _SearchTestUtils {
    *   The subfolder to use, if any.
    * @param {Array} [configData]
    *   An array which contains the configuration to set.
-   * @returns {object}
-   *   An object that is a sinon stub for the configuration getter.
    */
   async useTestEngines(folder = "data", subFolder = null, configData = null) {
-    const settings = await lazy.RemoteSettings(lazy.SearchUtils.SETTINGS_KEY);
     if (configData) {
-      return lazy.sinon.stub(settings, "get").returns(configData);
+      this.#stubConfig(lazy.SearchUtils.SETTINGS_KEY, configData);
+      return;
     }
 
     let workDir = Services.dirsvc.get("CurWorkD", Ci.nsIFile);
@@ -171,32 +202,162 @@ class _SearchTestUtils {
 
     let response = await fetch(configFileName);
     let json = await response.json();
-    return lazy.sinon.stub(settings, "get").returns(json.data);
+    this.#stubConfig(lazy.SearchUtils.SETTINGS_KEY, json.data);
   }
 
   /**
-   * For mochitests, configures loading engines from test data located in
-   * particular folders. This will cleanup at the end of the test.
+   * Stubs the get property of the remote settings client with a
+   * given Key. Configuration does not get expanded.
    *
-   * This will be removed when the new search config generation for tests is done.
-   *
-   * @param {nsIFile} testDir
-   *   The test directory to use.
+   * @param {string} [key]
+   *   The remote settings key of the configuration to be stubbed.
+   * @param {object[]} [config]
+   *   The configuration that will be returned by the stub.
    */
-  async useMochitestEngines(testDir) {
-    // Replace the path we load search engines from with
-    // the path to our test data.
-    let resProt = Services.io
-      .getProtocolHandler("resource")
-      .QueryInterface(Ci.nsIResProtocolHandler);
-    let originalSubstitution = resProt.getSubstitution("search-extensions");
-    resProt.setSubstitution(
-      "search-extensions",
-      Services.io.newURI("file://" + testDir.path)
-    );
-    this.#testScope.registerCleanupFunction(() => {
-      resProt.setSubstitution("search-extensions", originalSubstitution);
-    });
+  #stubConfig(key, config) {
+    if (!config) {
+      if (this.#stubs.has(key)) {
+        this.#stubs.get(key).restore();
+        this.#stubs.delete(key);
+      }
+      return;
+    }
+
+    if (!this.#stubs.has(key)) {
+      let settings = lazy.RemoteSettings(key);
+      this.#stubs.set(key, lazy.sinon.stub(settings, "get").returns(config));
+    } else {
+      this.#stubs.get(key).returns(config);
+    }
+  }
+
+  /**
+   * Expands a partial search config by the minumum number of properties
+   * to be a valid config and loads it to make test cases less verbose.
+   * Does not modify the input.
+   *
+   * defaultEngines and engineOrders are not required. The first
+   * engine will be set to default if defaultEngines is not specified.
+   *
+   * Engine objects only require an identifier and there needs to be at least
+   * one engine. The name defaults to the identifier, the classification
+   * to general, the search url to https://www.example.com/search?q=query
+   * and the environment to allRegionsAndLocales.
+   *
+   * The recordType is detected automatically and thus optional.
+   *
+   * @param {object[]} [partialConfig]
+   *  The partial search config that will be expanded.
+   * @returns {object[]}
+   *  The expanded search config.
+   */
+  expandPartialConfig(partialConfig) {
+    if (!partialConfig) {
+      return partialConfig;
+    }
+    let fullConfig = structuredClone(partialConfig);
+    let numEngines = 0;
+    let defaultEngines;
+    let engineOrders;
+
+    for (let obj of fullConfig) {
+      obj.recordType = this.#detectRecordType(obj);
+
+      switch (obj.recordType) {
+        case "engine":
+          if (!obj.base) {
+            obj.base = {};
+          }
+          if (!obj.base.name) {
+            obj.base.name = obj.identifier;
+          }
+          if (!obj.base.classification) {
+            obj.base.classification = "general";
+          }
+          if (!obj.base.urls) {
+            obj.base.urls = {
+              search: {
+                base: "https://www.example.com/search",
+                searchTermParamName: "q",
+              },
+            };
+          }
+
+          if (!obj.variants) {
+            obj.variants = [{ environment: { allRegionsAndLocales: true } }];
+          }
+          numEngines++;
+          break;
+        case "defaultEngines":
+          defaultEngines = obj;
+          break;
+        case "engineOrders":
+          engineOrders = obj;
+          break;
+      }
+    }
+
+    if (!numEngines) {
+      throw new Error("One engine is required.");
+    }
+
+    if (!engineOrders) {
+      engineOrders = {
+        recordType: "engineOrders",
+        orders: [],
+      };
+      fullConfig.push(engineOrders);
+    }
+
+    if (!defaultEngines) {
+      defaultEngines = { recordType: "defaultEngines" };
+      fullConfig.push(defaultEngines);
+    }
+
+    if (!defaultEngines.globalDefault) {
+      let firstEngine = fullConfig.find(r => r.recordType == "engine");
+      defaultEngines.globalDefault = firstEngine.identifier;
+    }
+    if (!defaultEngines.specificDefaults) {
+      defaultEngines.specificDefaults = [];
+    }
+
+    return fullConfig;
+  }
+
+  /**
+   * Detects the recordType of a partial search config object based
+   * on its properties.
+   *
+   * @param {object} [partialObject]
+   *  The partial search config object whose recordType will be detected.
+   * @returns {string}
+   *   The detected recordType.
+   */
+  #detectRecordType(partialObject) {
+    const identifyingProperties = {
+      engine: ["identifier"],
+      defaultEngines: ["specificDefaults", "globalDefault"],
+      engineOrders: ["orders"],
+    };
+
+    let detectedType = partialObject.recordType;
+    for (let recordType in identifyingProperties) {
+      if (identifyingProperties[recordType].some(p => p in partialObject)) {
+        if (detectedType && detectedType != recordType) {
+          throw new Error("Ambiguous recordType");
+        }
+        detectedType = recordType;
+      }
+    }
+
+    if (!detectedType) {
+      throw new Error(
+        "Could not detect recordType. Identifier is mandatory for engine recordTypes."
+      );
+    }
+
+    return detectedType;
   }
 
   /**
@@ -500,22 +661,50 @@ class _SearchTestUtils {
       "@mozilla.org/widget/useridleservice;1",
       this.idleService
     );
-    this.#testScope.registerCleanupFunction(() => {
-      MockRegistrar.unregister(fakeIdleService);
-    });
+    this.#idleServiceCID = fakeIdleService;
+  }
+
+  /**
+   * Sets the search configuration and search overrides configuration without
+   * reloading the engines.
+   * If parameters are not specified, the appropriate configuration is
+   * reset to the data stored in remote settings.
+   *
+   * This is useful for example in xpcshell-tests before the search service
+   * is initialized.
+   *
+   * @param {object[]} [partialConfig]
+   *   The replacement configuration. Will be expanded via `expandPartialConfig`.
+   * @param {object[]} [overridesConfig]
+   *   The replacement overrides configuration.
+   */
+  setRemoteSettingsConfig(partialConfig, overridesConfig) {
+    let config = this.expandPartialConfig(partialConfig);
+    this.#stubConfig(lazy.SearchUtils.SETTINGS_KEY, config);
+    this.#stubConfig(lazy.SearchUtils.SETTINGS_OVERRIDES_KEY, overridesConfig);
   }
 
   /**
    * Simulates an update to the RemoteSettings configuration.
-   * If parameters are not specified, then the appropriate configuration is
+   * If parameters are not specified, the appropriate configuration is
    * reset to the data stored in remote settings.
    *
-   * @param {object[]} [config]
-   *   The replacement configuration.
+   * This is useful if the search service has already been initialized.
+   * Note that the search service is always initialized in mochitests.
+   *
+   * @param {object[]} [partialConfig]
+   *   The replacement configuration. Will be expanded via `expandPartialConfig`.
    * @param {object[]} [overridesConfig]
    *   The replacement overrides configuration.
    */
-  async updateRemoteSettingsConfig(config, overridesConfig) {
+  async updateRemoteSettingsConfig(partialConfig, overridesConfig) {
+    if (!this.#idleServiceCID) {
+      this.useMockIdleService();
+    }
+    let config = this.expandPartialConfig(partialConfig);
+    this.#stubConfig(lazy.SearchUtils.SETTINGS_KEY, config);
+    this.#stubConfig(lazy.SearchUtils.SETTINGS_OVERRIDES_KEY, overridesConfig);
+
     if (!config) {
       let settings = lazy.RemoteSettings(lazy.SearchUtils.SETTINGS_KEY);
       config = await settings.get();

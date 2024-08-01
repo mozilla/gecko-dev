@@ -673,7 +673,6 @@ add_task(async function selected_result_trending() {
 
   let defaultEngine = await Services.search.getDefault();
 
-  SearchTestUtils.useMockIdleService();
   await SearchTestUtils.updateRemoteSettingsConfig([
     {
       recordType: "engine",
@@ -758,7 +757,6 @@ add_task(async function selected_result_trending_rich() {
 
   let defaultEngine = await Services.search.getDefault();
 
-  SearchTestUtils.useMockIdleService();
   await SearchTestUtils.updateRemoteSettingsConfig([
     {
       recordType: "engine",

@@ -66,16 +66,7 @@ add_setup(async () => {
     ],
   });
 
-  SearchTestUtils.useMockIdleService();
   await SearchTestUtils.updateRemoteSettingsConfig(CONFIG_V2);
-
-  registerCleanupFunction(async () => {
-    let settingsWritten = SearchTestUtils.promiseSearchNotification(
-      "write-settings-to-disk-complete"
-    );
-    await SearchTestUtils.updateRemoteSettingsConfig();
-    await settingsWritten;
-  });
 });
 
 add_task(async function test_trending_results() {
