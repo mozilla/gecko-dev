@@ -10872,12 +10872,8 @@ function TopicSelection() {
     className: "button-group"
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     id: isFirstRun ? "first-run" : "",
-    label: isFirstRun ? "Maybe later" : "Cancel",
+    "data-l10n-id": isFirstRun ? "newtab-topic-selection-button-maybe-later" : "newtab-topic-selection-cancel-button",
     onClick: handleUserClose
-  }), /*#__PURE__*/external_React_default().createElement("moz-button", {
-    label: isFirstRun ? "Save topics" : "Save",
-    "data-l10n-id": "newtab-topic-selection-cancel-button",
-    onClick: handleModalClose
   }), /*#__PURE__*/external_React_default().createElement("moz-button", {
     "data-l10n-id": "newtab-topic-selection-save-button",
     type: "primary",

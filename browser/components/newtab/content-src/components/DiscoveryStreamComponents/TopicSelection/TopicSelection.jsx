@@ -283,13 +283,12 @@ function TopicSelection() {
           <moz-button-group className="button-group">
             <moz-button
               id={isFirstRun ? "first-run" : ""}
-              label={isFirstRun ? "Maybe later" : "Cancel"}
+              data-l10n-id={
+                isFirstRun
+                  ? "newtab-topic-selection-button-maybe-later"
+                  : "newtab-topic-selection-cancel-button"
+              }
               onClick={handleUserClose}
-            />
-            <moz-button
-              label={isFirstRun ? "Save topics" : "Save"}
-              data-l10n-id="newtab-topic-selection-cancel-button"
-              onClick={handleModalClose}
             />
             <moz-button
               data-l10n-id="newtab-topic-selection-save-button"
