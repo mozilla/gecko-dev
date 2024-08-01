@@ -842,7 +842,7 @@ void CodeGeneratorARM::emitBigIntDiv(LBigIntDiv* ins, Register dividend,
                                      Label* fail) {
   // Callers handle division by zero and integer overflow.
 
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     masm.ma_sdiv(dividend, divisor, /* result= */ dividend);
 
     // Create and return the result.
@@ -882,7 +882,7 @@ void CodeGeneratorARM::emitBigIntMod(LBigIntMod* ins, Register dividend,
                                      Label* fail) {
   // Callers handle division by zero and integer overflow.
 
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     {
       ScratchRegisterScope scratch(masm);
       masm.ma_smod(dividend, divisor, /* result= */ dividend, scratch);

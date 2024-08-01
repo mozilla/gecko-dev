@@ -319,8 +319,8 @@ class Simulator {
   //
   // AllowUnaligned means "allow the unaligned access if other conditions are
   // met".  The "other conditions" vary with the instruction: For all
-  // instructions the base condition is !HasAlignmentFault(), ie, the chip is
-  // configured to allow unaligned accesses.  For instructions like VLD1
+  // instructions the base condition is !ARMFlags::HasAlignmentFault(), ie, the
+  // chip is configured to allow unaligned accesses.  For instructions like VLD1
   // there is an additional constraint that the alignment attribute in the
   // instruction must be set to "default alignment".
 

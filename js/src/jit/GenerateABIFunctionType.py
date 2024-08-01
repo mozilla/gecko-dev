@@ -193,7 +193,7 @@ def arm32_simulator_dispatch(func_types):
         contents += f"  auto target = reinterpret_cast<Prototype_{func_type_name(func_type)}>(external);\\\n"
         contents += f"  {cpp_arg_type(ret)} ret;\\\n"
         if func_type_has_floats(func_type):
-            contents += "  if (UseHardFpABI()) {\\\n"
+            contents += "  if (ARMFlags::UseHardFpABI()) {\\\n"
             contents += f"    ret = target({hard_fp_args});\\\n"
             contents += "  } else {\\\n"
             contents += f"    ret = target({soft_fp_args});\\\n"

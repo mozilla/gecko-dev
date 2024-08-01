@@ -306,7 +306,7 @@ void MacroAssemblerARM::ma_nop() { as_nop(); }
 BufferOffset MacroAssemblerARM::ma_movPatchable(Imm32 imm_, Register dest,
                                                 Assembler::Condition c) {
   int32_t imm = imm_.value;
-  if (HasMOVWT()) {
+  if (ARMFlags::HasMOVWT()) {
     BufferOffset offset = as_movw(dest, Imm16(imm & 0xffff), c);
     as_movt(dest, Imm16(imm >> 16 & 0xffff), c);
     return offset;
@@ -375,7 +375,7 @@ void MacroAssemblerARM::ma_mov(Imm32 imm, Register dest,
   }
 
   // Try movw/movt.
-  if (HasMOVWT()) {
+  if (ARMFlags::HasMOVWT()) {
     // ARMv7 supports movw/movt. movw zero-extends its 16 bit argument,
     // so we can set the register this way. movt leaves the bottom 16
     // bits in tact, so we always need a movw.
@@ -1262,7 +1262,7 @@ void MacroAssemblerARM::ma_vpush(VFPRegister r) {
 
 // Barriers
 void MacroAssemblerARM::ma_dmb(BarrierOption option) {
-  if (HasDMBDSBISB()) {
+  if (ARMFlags::HasDMBDSBISB()) {
     as_dmb(option);
   } else {
     as_dmb_trap();
@@ -1270,7 +1270,7 @@ void MacroAssemblerARM::ma_dmb(BarrierOption option) {
 }
 
 void MacroAssemblerARM::ma_dsb(BarrierOption option) {
-  if (HasDMBDSBISB()) {
+  if (ARMFlags::HasDMBDSBISB()) {
     as_dsb(option);
   } else {
     as_dsb_trap();
@@ -1400,7 +1400,7 @@ static inline uint32_t DoubleLowWord(double d) {
 
 void MacroAssemblerARM::ma_vimm(double value, FloatRegister dest,
                                 Condition cc) {
-  if (HasVFPv3()) {
+  if (ARMFlags::HasVFPv3()) {
     if (DoubleLowWord(value) == 0) {
       if (DoubleHighWord(value) == 0) {
         // To zero a register, load 1.0, then execute dN <- dN - dN
@@ -1423,7 +1423,7 @@ void MacroAssemblerARM::ma_vimm(double value, FloatRegister dest,
 void MacroAssemblerARM::ma_vimm_f32(float value, FloatRegister dest,
                                     Condition cc) {
   VFPRegister vd = VFPRegister(dest).singleOverlay();
-  if (HasVFPv3()) {
+  if (ARMFlags::HasVFPv3()) {
     if (IsPositiveZero(value)) {
       // To zero a register, load 1.0, then execute sN <- sN - sN.
       as_vimm(vd, VFPImm::One, cc);
@@ -4462,7 +4462,7 @@ void MacroAssembler::callWithABIPost(uint32_t stackAdjust, ABIType result,
 
   // Calls to native functions in wasm pass through a thunk which already
   // fixes up the return value for us.
-  if (!callFromWasm && !UseHardFpABI()) {
+  if (!callFromWasm && !ARMFlags::UseHardFpABI()) {
     switch (result) {
       case ABIType::Float64:
         // Move double from r0/r1 to ReturnFloatReg.
@@ -5832,7 +5832,7 @@ inline void EmitRemainderOrQuotient(bool isRemainder, MacroAssembler& masm,
   // Currently this helper can't handle this situation.
   MOZ_ASSERT(lhsOutput != rhs);
 
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     if (isRemainder) {
       masm.remainder32(rhs, lhsOutput, isUnsigned);
     } else {
@@ -5892,7 +5892,7 @@ void MacroAssembler::flexibleDivMod32(Register rhs, Register lhsOutput,
   // Currently this helper can't handle this situation.
   MOZ_ASSERT(lhsOutput != rhs);
 
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     mov(lhsOutput, remOutput);
     remainder32(rhs, remOutput, isUnsigned);
     quotient32(rhs, lhsOutput, isUnsigned);
@@ -6256,7 +6256,7 @@ void MacroAssemblerARM::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
       // FP loads can't use VLDR as that has stringent alignment checks and will
       // SIGBUS on unaligned accesses.  Choose a different strategy depending on
       // the available hardware. We don't gate Wasm on the presence of NEON.
-      if (HasNEON()) {
+      if (ARMFlags::HasNEON()) {
         // NEON available: The VLD1 multiple-single-elements variant will only
         // trap if SCTRL.A==1, but we already assume (for integer accesses) that
         // the hardware/OS handles that transparently.
@@ -6364,7 +6364,7 @@ void MacroAssemblerARM::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
       ma_add(memoryBase, ptr, scratch);
 
       // See comments above at wasmLoadImpl for more about this logic.
-      if (HasNEON()) {
+      if (ARMFlags::HasNEON()) {
         if (byteSize == 4 && (val.code() & 1)) {
           ScratchFloat32Scope fscratch(asMasm());
           as_vmov(fscratch, val);

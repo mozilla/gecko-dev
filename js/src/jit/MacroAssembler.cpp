@@ -4455,7 +4455,7 @@ void MacroAssembler::setupABICallHelper() {
   // On ARM, we need to know what ABI we are using, either in the
   // simulator, or based on the configure flags.
 #  if defined(JS_SIMULATOR_ARM)
-  abiArgs_.setUseHardFp(UseHardFpABI());
+  abiArgs_.setUseHardFp(ARMFlags::UseHardFpABI());
 #  elif defined(JS_CODEGEN_ARM_HARDFP)
   abiArgs_.setUseHardFp(true);
 #  else

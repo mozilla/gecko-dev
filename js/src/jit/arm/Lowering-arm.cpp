@@ -356,7 +356,7 @@ void LIRGeneratorARM::lowerDivI(MDiv* div) {
     }
   }
 
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     LDivI* lir = new (alloc())
         LDivI(useRegister(div->lhs()), useRegister(div->rhs()), temp());
     if (div->fallible()) {
@@ -430,7 +430,7 @@ void LIRGeneratorARM::lowerModI(MMod* mod) {
     }
   }
 
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     LModI* lir =
         new (alloc()) LModI(useRegister(mod->lhs()), useRegister(mod->rhs()));
     if (mod->fallible()) {
@@ -570,7 +570,7 @@ void LIRGeneratorARM::lowerBigIntRsh(MBigIntRsh* ins) {
 
 void LIRGeneratorARM::lowerBigIntDiv(MBigIntDiv* ins) {
   LDefinition temp1, temp2;
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     temp1 = temp();
     temp2 = temp();
   } else {
@@ -585,7 +585,7 @@ void LIRGeneratorARM::lowerBigIntDiv(MBigIntDiv* ins) {
 
 void LIRGeneratorARM::lowerBigIntMod(MBigIntMod* ins) {
   LDefinition temp1, temp2;
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     temp1 = temp();
     temp2 = temp();
   } else {
@@ -613,7 +613,7 @@ void LIRGeneratorARM::lowerUDiv(MDiv* div) {
   MDefinition* lhs = div->getOperand(0);
   MDefinition* rhs = div->getOperand(1);
 
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     LUDiv* lir = new (alloc()) LUDiv;
     lir->setOperand(0, useRegister(lhs));
     lir->setOperand(1, useRegister(rhs));
@@ -638,7 +638,7 @@ void LIRGeneratorARM::lowerUMod(MMod* mod) {
   MDefinition* lhs = mod->getOperand(0);
   MDefinition* rhs = mod->getOperand(1);
 
-  if (HasIDIV()) {
+  if (ARMFlags::HasIDIV()) {
     LUMod* lir = new (alloc()) LUMod;
     lir->setOperand(0, useRegister(lhs));
     lir->setOperand(1, useRegister(rhs));
@@ -821,7 +821,7 @@ void LIRGeneratorARM::lowerTruncateFToInt32(MTruncateToInt32* ins) {
 
 void LIRGenerator::visitAtomicExchangeTypedArrayElement(
     MAtomicExchangeTypedArrayElement* ins) {
-  MOZ_ASSERT(HasLDSTREXBHD());
+  MOZ_ASSERT(ARMFlags::HasLDSTREXBHD());
 
   MOZ_ASSERT(ins->elements()->type() == MIRType::Elements);
   MOZ_ASSERT(ins->index()->type() == MIRType::IntPtr);
@@ -1012,7 +1012,7 @@ void LIRGenerator::visitWasmCompareExchangeHeap(MWasmCompareExchangeHeap* ins) {
   }
 
   MOZ_ASSERT(ins->access().type() < Scalar::Float32);
-  MOZ_ASSERT(HasLDSTREXBHD(), "by HasPlatformSupport() constraints");
+  MOZ_ASSERT(ARMFlags::HasLDSTREXBHD(), "by HasPlatformSupport() constraints");
 
   LWasmCompareExchangeHeap* lir = new (alloc())
       LWasmCompareExchangeHeap(useRegister(base), useRegister(ins->oldValue()),
@@ -1039,7 +1039,7 @@ void LIRGenerator::visitWasmAtomicExchangeHeap(MWasmAtomicExchangeHeap* ins) {
   }
 
   MOZ_ASSERT(ins->access().type() < Scalar::Float32);
-  MOZ_ASSERT(HasLDSTREXBHD(), "by HasPlatformSupport() constraints");
+  MOZ_ASSERT(ARMFlags::HasLDSTREXBHD(), "by HasPlatformSupport() constraints");
 
   const LAllocation base = useRegister(ins->base());
   const LAllocation value = useRegister(ins->value());
@@ -1063,7 +1063,7 @@ void LIRGenerator::visitWasmAtomicBinopHeap(MWasmAtomicBinopHeap* ins) {
   }
 
   MOZ_ASSERT(ins->access().type() < Scalar::Float32);
-  MOZ_ASSERT(HasLDSTREXBHD(), "by HasPlatformSupport() constraints");
+  MOZ_ASSERT(ARMFlags::HasLDSTREXBHD(), "by HasPlatformSupport() constraints");
 
   MDefinition* base = ins->base();
   MOZ_ASSERT(base->type() == MIRType::Int32);

@@ -754,7 +754,7 @@ void Assembler::Bind(uint8_t* rawCode, const CodeLabel& label) {
   if (mode == CodeLabel::MoveImmediate) {
     uint32_t imm = uint32_t(rawCode + target);
     Instruction* inst = (Instruction*)(rawCode + offset);
-    if (HasMOVWT()) {
+    if (ARMFlags::HasMOVWT()) {
       Assembler::PatchMovwt(inst, imm);
     } else {
       Assembler::WritePoolEntry(inst, Always, imm);
@@ -1313,12 +1313,12 @@ BufferOffset Assembler::as_uxth(Register dest, Register src, int rotate,
 }
 
 static uint32_t EncodeMovW(Register dest, Imm16 imm, Assembler::Condition c) {
-  MOZ_ASSERT(HasMOVWT());
+  MOZ_ASSERT(ARMFlags::HasMOVWT());
   return 0x03000000 | c | imm.encode() | RD(dest);
 }
 
 static uint32_t EncodeMovT(Register dest, Imm16 imm, Assembler::Condition c) {
-  MOZ_ASSERT(HasMOVWT());
+  MOZ_ASSERT(ARMFlags::HasMOVWT());
   return 0x03400000 | c | imm.encode() | RD(dest);
 }
 
@@ -2154,7 +2154,7 @@ BufferOffset Assembler::as_vdtm(LoadStore st, Register rn, VFPRegister vd,
 }
 
 BufferOffset Assembler::as_vldr_unaligned(VFPRegister vd, Register rn) {
-  MOZ_ASSERT(HasNEON());
+  MOZ_ASSERT(ARMFlags::HasNEON());
   if (vd.isDouble()) {
     // vld1 (multiple single elements) with align=0, size=3, numregs=1
     return writeInst(0xF42007CF | RN(rn) | VD(vd));
@@ -2166,7 +2166,7 @@ BufferOffset Assembler::as_vldr_unaligned(VFPRegister vd, Register rn) {
 }
 
 BufferOffset Assembler::as_vstr_unaligned(VFPRegister vd, Register rn) {
-  MOZ_ASSERT(HasNEON());
+  MOZ_ASSERT(ARMFlags::HasNEON());
   if (vd.isDouble()) {
     // vst1 (multiple single elements) with align=0, size=3, numregs=1
     return writeInst(0xF40007CF | RN(rn) | VD(vd));

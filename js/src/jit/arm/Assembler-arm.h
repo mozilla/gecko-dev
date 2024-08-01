@@ -1704,8 +1704,8 @@ class Assembler : public AssemblerShared {
 #endif
   }
 
-  static bool SupportsFloatingPoint() { return HasVFP(); }
-  static bool SupportsUnalignedAccesses() { return HasARMv7(); }
+  static bool SupportsFloatingPoint() { return ARMFlags::HasVFP(); }
+  static bool SupportsUnalignedAccesses() { return ARMFlags::HasARMv7(); }
   // Note, returning false here is technically wrong, but one has to go via the
   // as_vldr_unaligned and as_vstr_unaligned instructions to get proper behavior
   // and those are NEON-specific and have to be asked for specifically.
@@ -2243,7 +2243,7 @@ static inline bool GetTempRegForIntArg(uint32_t usedIntArgs,
 static inline bool GetFloat32ArgReg(uint32_t usedIntArgs,
                                     uint32_t usedFloatArgs,
                                     FloatRegister* out) {
-  MOZ_ASSERT(UseHardFpABI());
+  MOZ_ASSERT(ARMFlags::UseHardFpABI());
   if (usedFloatArgs >= NumFloatArgRegs) {
     return false;
   }
@@ -2252,7 +2252,7 @@ static inline bool GetFloat32ArgReg(uint32_t usedIntArgs,
 }
 static inline bool GetDoubleArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs,
                                    FloatRegister* out) {
-  MOZ_ASSERT(UseHardFpABI());
+  MOZ_ASSERT(ARMFlags::UseHardFpABI());
   MOZ_ASSERT((usedFloatArgs % 2) == 0);
   if (usedFloatArgs >= NumFloatArgRegs) {
     return false;

@@ -1489,7 +1489,7 @@ void BaseCompiler::beginCall(
   if (call.usesSystemAbi) {
     // Call-outs need to use the appropriate system ABI.
 #if defined(JS_CODEGEN_ARM)
-    call.hardFP = UseHardFpABI();
+    call.hardFP = ARMFlags::UseHardFpABI();
     call.abi.setUseHardFp(call.hardFP);
 #endif
   } else {
@@ -12070,7 +12070,7 @@ bool js::wasm::BaselinePlatformSupport() {
   // X% of devices in the market implement SDIV and UDIV.  However,
   // they are definitely implemented on the Cortex-A7 and Cortex-A15
   // and on all ARMv8 systems.
-  if (!HasIDIV()) {
+  if (!ARMFlags::HasIDIV()) {
     return false;
   }
 #endif
