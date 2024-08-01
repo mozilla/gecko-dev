@@ -181,7 +181,7 @@ export class Tracer extends Component {
       if (!this.props.isTracing) {
         return div(
           { className: "tracer-message" },
-          "Tracer is off, or pending for next interation/load."
+          "Tracer is off, or pending for next interaction/load."
         );
       }
       return div(
