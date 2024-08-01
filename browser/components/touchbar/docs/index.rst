@@ -98,7 +98,7 @@ Clarification on some of these properties is warranted.
   ``kInputTypes.POPOVER``, any input type except another ``kInputTypes.POPOVER``
   can be used.
 
-.. _in that file: https://searchfox.org/mozilla-central/rev/ebe492edacc75bb122a2b380e4cafcca3470864c/browser/components/touchbar/MacTouchBar.jsm#82
+.. _in that file: https://searchfox.org/mozilla-central/rev/669fac9888b173c02baa4c036e980c0c204dfe02/browser/components/touchbar/MacTouchBar.sys.mjs#76
 
 Input types
 -----------
