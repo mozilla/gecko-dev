@@ -60,6 +60,7 @@ export const INITIAL_STATE = {
     layout: [],
     isPrivacyInfoModalVisible: false,
     isCollectionDismissible: false,
+    topicsLoading: false,
     feeds: {
       data: {
         // "https://foo.com/feed1": {lastUpdated: 123, data: [], personalized: false}
@@ -670,6 +671,11 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
       return {
         ...prevState,
         isCollectionDismissible: action.data.value,
+      };
+    case at.DISCOVERY_STREAM_TOPICS_LOADING:
+      return {
+        ...prevState,
+        topicsLoading: action.data,
       };
     case at.DISCOVERY_STREAM_PREFS_SETUP:
       return {

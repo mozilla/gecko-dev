@@ -335,7 +335,7 @@ export class _CardGrid extends React.PureComponent {
       hideDescriptions,
       DiscoveryStream,
     } = this.props;
-    const { saveToPocketCard } = DiscoveryStream;
+    const { saveToPocketCard, topicsLoading } = DiscoveryStream;
     const showRecentSaves = prefs.showRecentSaves && recentSavesEnabled;
     const isOnboardingExperienceDismissed =
       prefs[PREF_ONBOARDING_EXPERIENCE_DISMISSED];
@@ -353,7 +353,8 @@ export class _CardGrid extends React.PureComponent {
     for (let index = 0; index < items; index++) {
       const rec = recs[index];
       cards.push(
-        !rec ||
+        topicsLoading ||
+          !rec ||
           rec.placeholder ||
           (rec.flight_id &&
             !spocsStartupCacheEnabled &&

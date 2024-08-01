@@ -36,6 +36,7 @@ const SPOCS_FEEDS_UPDATE_TIME = 30 * 60 * 1000; // 30 minutes
 const DEFAULT_RECS_EXPIRE_TIME = 60 * 60 * 1000; // 1 hour
 const MAX_LIFETIME_CAP = 500; // Guard against misconfiguration on the server
 const FETCH_TIMEOUT = 45 * 1000;
+const TOPIC_LOADING_TIMEOUT = 1 * 1000;
 const TOPIC_SELECTION_DISPLAY_COUNT =
   "discoverystream.topicSelection.onboarding.displayCount";
 const TOPIC_SELECTION_LAST_DISPLAYED =
@@ -1925,10 +1926,27 @@ export class DiscoveryStreamFeed {
         this.store.dispatch(
           ac.BroadcastToContent({ type: at.DISCOVERY_STREAM_LAYOUT_RESET })
         );
+        // Ensure at least a little bit of loading is seen, if this is too fast,
+        // it's not clear to the user what just happened.
+        this.store.dispatch(
+          ac.BroadcastToContent({
+            type: at.DISCOVERY_STREAM_TOPICS_LOADING,
+            data: true,
+          })
+        );
+        setTimeout(() => {
+          this.store.dispatch(
+            ac.BroadcastToContent({
+              type: at.DISCOVERY_STREAM_TOPICS_LOADING,
+              data: false,
+            })
+          );
+        }, TOPIC_LOADING_TIMEOUT);
         this.loadLayout(
           a => this.store.dispatch(ac.BroadcastToContent(a)),
           false
         );
+
         // when topics have been updated, make a new request from merino and clear impression cap
         this.writeDataPref(PREF_REC_IMPRESSIONS, {});
         await this.resetContentFeed();
