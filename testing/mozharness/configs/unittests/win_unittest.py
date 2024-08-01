@@ -328,6 +328,18 @@ config = {
             "enabled": True if REQUIRE_GPU and not USE_HARDWARE else False,
             "fatal_exit_code": 4,
         },
+        {
+            "name": "ensure display refresh rate == 60",
+            "cmd": [
+                "powershell",
+                "-command",
+                'if (-Not ((Get-WmiObject win32_videocontroller).CurrentRefreshRate | Out-String).contains("60")) { echo "Screen refresh rate != 60: " + ((Get-WmiObject win32_videocontroller).CurrentRefreshRate | Out-String); exit 4; }',
+            ],
+            "architectures": ["32bit", "64bit"],
+            "halt_on_failure": True,
+            "enabled": True if REQUIRE_GPU and USE_HARDWARE else False,
+            "fatal_exit_code": 4,
+        },
     ],
     "vcs_output_timeout": 1000,
     "minidump_save_path": "%(abs_work_dir)s/../minidumps",

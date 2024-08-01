@@ -60,6 +60,18 @@ config = {
             "architectures": ["32bit", "64bit"],
             "halt_on_failure": True,
             "enabled": True,
-        }
+        },
+        {
+            "name": "ensure display refresh rate == 60",
+            "cmd": [
+                "powershell",
+                "-command",
+                'if (-Not ((Get-WmiObject win32_videocontroller).CurrentRefreshRate | Out-String).contains("60")) { echo "Screen refresh rate != 60: " + ((Get-WmiObject win32_videocontroller).CurrentRefreshRate | Out-String); exit 4; }',
+            ],
+            "architectures": ["32bit", "64bit"],
+            "halt_on_failure": True,
+            "enabled": True,
+            "fatal_exit_code": 4,
+        },
     ],
 }
