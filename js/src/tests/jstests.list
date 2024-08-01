@@ -663,6 +663,7 @@ skip script test262/built-ins/RegExp/property-escapes/generated/strings/RGI_Emoj
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1859752
 skip script test262/intl402/Locale/likely-subtags.js
 skip script test262/intl402/Locale/prototype/minimize/removing-likely-subtags-first-adds-likely-subtags.js
+skip script test262/intl402/NumberFormat/prototype/format/useGrouping-extended-en-IN.js
 
 # Failures in AsyncFromSyncIteratorPrototype, see bug 1877862.
 skip script test262/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined-poisoned-return.js
@@ -718,8 +719,9 @@ skip script non262/Tuple/prototype/concat/concat-with-array.js
 skip script test262/language/statements/class/decorator/syntax/class-valid/decorator-member-expr-private-identifier.js
 skip script test262/language/expressions/class/decorator/syntax/class-valid/decorator-member-expr-private-identifier.js
 
-# https://github.com/tc39/test262/pull/4099
-skip script test262/intl402/Temporal/PlainYearMonth/from/reference-day-chinese.js
+# https://github.com/tc39/test262/pull/4181
+skip script test262/built-ins/TypedArray/prototype/reduce/resizable-buffer-shrink-mid-iteration.js
+skip script test262/built-ins/TypedArray/prototype/reduce/resizable-buffer-grow-mid-iteration.js
 
 
 ##############################################
@@ -1280,7 +1282,7 @@ skip script test262/intl402/Temporal/PlainDate/prototype/until/until-across-luni
 
 # Tailored to the Temporal polyfill. Not necessarily applicable for other implementations.
 skip script test262/staging/Intl402/Temporal/old/addition-across-lunisolar-leap-months.js
-skip script test262/staging/Intl402/Temporal/old/japanese-era.js
+skip script test262/staging/Intl402/Temporal/old/japanese-before-era.js
 skip script test262/staging/Intl402/Temporal/old/islamic-calendars.js
 
 # Time zone identifier canonicalization.
