@@ -9,7 +9,7 @@ support-files = [
 lineno = "7"
 
 ["browser_ml_engine.js"]
-skip-if = ["os == 'linux' && verify"]
+skip-if = ["os == 'linux'"]    # see bug 1911083
 lineno = "10"
 
 ["browser_ml_utils.js"]
