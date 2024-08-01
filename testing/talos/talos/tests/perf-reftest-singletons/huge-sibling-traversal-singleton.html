@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>1000x1000</title>
+<script src="util.js"></script>
+<style>
+  body {
+    width: 1000px;
+    height: 1000px;
+    font-size: 0;
+    margin: 0;
+  }
+  div {
+    width: 1px;
+    height: 1px;
+    display: inline-block;
+
+    &:nth-child(3n + 2) {
+      background-color: red;
+    }
+
+    &:nth-child(3n + 1) {
+      background-color: blue;
+    }
+
+    &:nth-child(3n) {
+      background-color: green;
+    }
+  }
+</style>
+<body>
+<script>
+window.onload = function() {
+  flush_layout();
+  perf_start();
+  for (let i = 0; i < 1000 * 1000; i++) {
+    document.body.appendChild(document.createElement("div"));
+  }
+  flush_layout();
+  perf_finish();
+};
+</script>

@@ -530,7 +530,7 @@ talos-perf-reftest-singletons:
             (linux|windows11-64|macos)(?!.*shippable).*: []
             (linux|windows11-64|macosx1015)(?!.*-qr).*: []
             default: [trunk]
-    max-run-time: 1500
+    max-run-time: 2000
     mozharness:
         extra-options:
             - --suite=perf-reftest-singletons
