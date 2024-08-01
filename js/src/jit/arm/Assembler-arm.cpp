@@ -2116,6 +2116,24 @@ BufferOffset Assembler::as_vcvtFixed(VFPRegister vd, bool isSigned,
                               (!isSigned) << 16 | imm5 | c);
 }
 
+BufferOffset Assembler::as_vcvtb_s2h(VFPRegister vd, VFPRegister vm,
+                                     Condition c) {
+  MOZ_ASSERT(ARMFlags::HasFPHalfPrecision());
+  MOZ_ASSERT(vd.isSingle());
+  MOZ_ASSERT(vm.isSingle());
+
+  return writeVFPInst(IsSingle, c | 0x02B30040 | VM(vm) | VD(vd));
+}
+
+BufferOffset Assembler::as_vcvtb_h2s(VFPRegister vd, VFPRegister vm,
+                                     Condition c) {
+  MOZ_ASSERT(ARMFlags::HasFPHalfPrecision());
+  MOZ_ASSERT(vd.isSingle());
+  MOZ_ASSERT(vm.isSingle());
+
+  return writeVFPInst(IsSingle, c | 0x02B20040 | VM(vm) | VD(vd));
+}
+
 // Transfer between VFP and memory.
 static uint32_t EncodeVdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
                            Assembler::Condition c) {

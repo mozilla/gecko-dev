@@ -1649,6 +1649,13 @@ class Assembler : public AssemblerShared {
   BufferOffset as_vcvtFixed(VFPRegister vd, bool isSigned, uint32_t fixedPoint,
                             bool toFixed, Condition c = Always);
 
+  // Convert between single- and half-precision. Both registers are single
+  // precision.
+  BufferOffset as_vcvtb_s2h(VFPRegister vd, VFPRegister vm,
+                            Condition c = Always);
+  BufferOffset as_vcvtb_h2s(VFPRegister vd, VFPRegister vm,
+                            Condition c = Always);
+
   // Transfer between VFP and memory.
   BufferOffset as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
                        Condition c = Always /* vfp doesn't have a wb option*/);

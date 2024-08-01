@@ -41,6 +41,7 @@
 #include "js/UniquePtr.h"
 #include "js/Utility.h"
 #include "threading/LockGuard.h"
+#include "vm/Float16.h"
 #include "vm/JSContext.h"
 #include "vm/Runtime.h"
 #include "vm/SharedMem.h"
@@ -3554,6 +3555,9 @@ void Simulator::decodeTypeVFP(SimInstruction* instr) {
           // vmov.f32 immediate.
           set_s_register_from_float(vd, instr->float32ImmedVmov());
         }
+      } else if ((instr->opc2Value() & ~0x1) == 0x2 &&
+                 (instr->opc3Value() & 0x1)) {
+        decodeVCVTBetweenFloatingPointAndHalf(instr);
       } else {
         decodeVCVTBetweenFloatingPointAndIntegerFrac(instr);
       }
@@ -4049,6 +4053,71 @@ void Simulator::decodeVCVTBetweenFloatingPointAndIntegerFrac(
     }
   } else {
     MOZ_CRASH();  // Not implemented, fixed to float.
+  }
+}
+
+void Simulator::decodeVCVTBetweenFloatingPointAndHalf(SimInstruction* instr) {
+  MOZ_ASSERT(instr->bit(4) == 0 && instr->opc1Value() == 0x7);
+  MOZ_ASSERT((instr->opc2Value() & ~0x1) == 0x2 && (instr->opc3Value() & 0x1));
+
+  bool top_half = (instr->bit(7) == 1);
+  bool to_half = (instr->bit(16) == 1);
+
+  VFPRegPrecision dst_precision = kSinglePrecision;
+  VFPRegPrecision src_precision = kSinglePrecision;
+  if (instr->szValue() == 1) {
+    if (to_half) {
+      src_precision = kDoublePrecision;
+    } else {
+      dst_precision = kDoublePrecision;
+    }
+  }
+
+  int dst = instr->VFPDRegValue(dst_precision);
+  int src = instr->VFPMRegValue(src_precision);
+
+  if (to_half) {
+    uint32_t f16bits;
+    if (src_precision == kSinglePrecision) {
+      float val;
+      get_float_from_s_register(src, &val);
+      f16bits = js::float16{val}.toRawBits();
+    } else {
+      double val;
+      get_double_from_d_register(src, &val);
+      f16bits = js::float16{val}.toRawBits();
+    }
+
+    float val;
+    get_float_from_s_register(dst, &val);
+    uint32_t f32bits = mozilla::BitwiseCast<uint32_t>(val);
+
+    if (top_half) {
+      f32bits = (f16bits << 16) | (f32bits & 0xffff);
+    } else {
+      f32bits = (f32bits & 0xffff'0000) | f16bits;
+    }
+
+    float rval;
+    mozilla::BitwiseCast(f32bits, &rval);
+
+    set_s_register_from_float(dst, rval);
+  } else {
+    float val;
+    get_float_from_s_register(src, &val);
+    uint32_t f32bits = mozilla::BitwiseCast<uint32_t>(val);
+
+    if (top_half) {
+      f32bits >>= 16;
+    }
+
+    auto rval = js::float16::fromRawBits(uint16_t(f32bits));
+
+    if (dst_precision == kSinglePrecision) {
+      set_s_register_from_float(dst, static_cast<float>(rval));
+    } else {
+      set_d_register_from_double(dst, static_cast<double>(rval));
+    }
   }
 }
 
