@@ -86,10 +86,11 @@ that matches your component.
 
 Some values are also set from the preferences (set in `about:config`):
 
-- browser.ml.logLevel
-- browser.ml.modelHubRootUrl
-- browser.ml.modelHubUrlTemplate
-- browser.ml.modelCacheTimeout
+- **browser.ml.logLevel**: Set to "All" to see all logs, which are useful for debugging.
+- **browser.ml.modelHubRootUrl**: Model hub root URL used to download models
+- **browser.ml.modelHubUrlTemplate**: Model URL template
+- **browser.ml.modelCacheTimeout**: Model cache timeout in ms
+- **browser.ml.modelCacheMaxSizeBytes**: Maximum disk size for ML model cache (in bytes)
 
 
 Using the Hugging Face model hub

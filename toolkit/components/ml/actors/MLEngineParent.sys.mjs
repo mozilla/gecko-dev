@@ -29,6 +29,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
 });
 
 const RS_RUNTIME_COLLECTION = "ml-onnx-runtime";
@@ -69,6 +70,20 @@ export class MLEngineParent extends JSWindowActorParent {
   static WASM_MAJOR_VERSION = 1;
 
   /**
+   * The modelhub used to retrieve files.
+   *
+   * @type {ModelHub}
+   */
+  modelHub = null;
+
+  /**
+   * The callback to call for updating about notifications such as dowload progress status.
+   *
+   * @type {?function(ProgressAndStatusCallbackParams):void}
+   */
+  notificationsCallback = null;
+
+  /**
    * Remote settings isn't available in tests, so provide mocked responses.
    *
    * @param {RemoteSettingsClient} remoteClients
@@ -99,6 +114,9 @@ export class MLEngineParent extends JSWindowActorParent {
    */
   async getEngine(pipelineOptions, notificationsCallback = null) {
     const engineId = pipelineOptions.engineId;
+
+    // Allow notifications callback changes eveb when reusing engine.
+    this.notificationsCallback = notificationsCallback;
 
     if (MLEngineParent.engineLocks.has(engineId)) {
       // Wait for the existing lock to resolve
@@ -173,6 +191,10 @@ export class MLEngineParent extends JSWindowActorParent {
         break;
       case "MLEngine:GetWasmArrayBuffer":
         return MLEngineParent.getWasmArrayBuffer();
+
+      case "MLEngine:GetModelFile":
+        return this.getModelFile(message.data);
+
       case "MLEngine:DestroyEngineProcess":
         lazy.EngineProcess.destroyMLEngine().catch(error =>
           console.error(error)
@@ -192,6 +214,53 @@ export class MLEngineParent extends JSWindowActorParent {
         }
         break;
     }
+  }
+
+  /**
+   * Retrieves a model file as an ArrayBuffer from the specified URL.
+   * This function normalizes the URL, extracts the organization, model name, and file path,
+   * then fetches the model file using the ModelHub API. The `modelHub` instance is created
+   * only once and reused for subsequent calls to optimize performance.
+   *
+   * @param {object} config
+   * @param {string} config.taskName - name of the inference task.
+   * @param {string} config.url - The URL of the model file to fetch. Can be a path relative to
+   * the model hub root or an absolute URL.
+   * @param {string} config.rootUrl - The URL of the model file to fetch. Can be a path relative to
+   * the model hub root or an absolute URL.
+   * @param {string} config.urlTemplate - The URL of the model file to fetch. Can be a path relative to
+   * the model hub root or an absolute URL.
+   * @returns {Promise<[ArrayBuffer, object]>} The file content and headers
+   */
+  async getModelFile({ taskName, url, rootUrl, urlTemplate }) {
+    // Create the model hub instance if needed
+    if (!this.modelHub) {
+      lazy.console.debug("Creating model hub instance");
+      this.modelHub = new lazy.ModelHub({
+        rootUrl,
+        urlTemplate,
+      });
+    }
+
+    if (url.startsWith(rootUrl)) {
+      url = url.slice(rootUrl.length);
+      // Make sure we get a front slash
+      if (!url.startsWith("/")) {
+        url = `/${url}`;
+      }
+    }
+
+    // Parsing url to get model name, and file path.
+    // if this errors out, it will be caught in the worker
+    const parsedUrl = this.modelHub.parseUrl(url);
+
+    const [data, headers] = await this.modelHub.getModelFileAsArrayBuffer({
+      taskName,
+      ...parsedUrl,
+      progressCallback: this.notificationsCallback?.bind(this),
+    });
+
+    return [data, headers];
   }
 
   /** Gets the wasm file from remote settings.
@@ -232,7 +301,7 @@ export class MLEngineParent extends JSWindowActorParent {
 
   /** Gets the inference options from remote settings given a task name.
    *
-   * @type {string} taskName - name of the inference :wtask
+   * @param {string} taskName - name of the inference :wtask
    * @returns {Promise<ModelRevisionRecord>}
    */
   static async getInferenceOptions(taskName) {

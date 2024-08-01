@@ -513,7 +513,7 @@ add_task(async function testTooFewParts() {
  */
 async function initializeCache() {
   const randomSuffix = Math.floor(Math.random() * 10000);
-  return await IndexedDBCache.init(`modelFiles-${randomSuffix}`);
+  return await IndexedDBCache.init({ dbName: `modelFiles-${randomSuffix}` });
 }
 
 /**
@@ -984,7 +984,9 @@ add_task(async function test_listFilesUsingNonExistingTaskName() {
  */
 add_task(async function test_initDbFromNonExisting() {
   const randomSuffix = Math.floor(Math.random() * 10000);
-  const cache = await IndexedDBCache.init(`modelFiles-${randomSuffix}`);
+  const cache = await IndexedDBCache.init({
+    dbName: `modelFiles-${randomSuffix}`,
+  });
 
   Assert.notEqual(cache, null);
 
@@ -1013,7 +1015,7 @@ add_task(async function test_initDbFromExistingEmpty() {
   const db = await openDB();
   db.close();
 
-  const cache = await IndexedDBCache.init(dbName, newVersion);
+  const cache = await IndexedDBCache.init({ dbName, version: newVersion });
 
   Assert.notEqual(cache, null);
   Assert.equal(cache.db.version, newVersion);
@@ -1059,7 +1061,7 @@ add_task(async function test_initDbFromExistingNoChange() {
   const dbName = `modelFiles-${randomSuffix}`;
 
   // Create version 1
-  let cache = await IndexedDBCache.init(dbName, 1);
+  let cache = await IndexedDBCache.init({ dbName, version: 1 });
 
   Assert.notEqual(cache, null);
   Assert.equal(cache.db.version, 1);
@@ -1082,7 +1084,7 @@ add_task(async function test_initDbFromExistingNoChange() {
   cache.db.close();
 
   // Create version 2
-  cache = await IndexedDBCache.init(dbName, 2);
+  cache = await IndexedDBCache.init({ dbName, version: 2 });
 
   Assert.notEqual(cache, null);
   Assert.equal(cache.db.version, 2);
@@ -1109,7 +1111,7 @@ add_task(async function test_initDbFromExistingIndexChanges() {
 
   const blob = createBlob();
   // Create version 2
-  let cache = await IndexedDBCache.init(dbName, dbVersion);
+  let cache = await IndexedDBCache.init({ dbName, version: dbVersion });
 
   Assert.notEqual(cache, null);
   Assert.equal(cache.db.version, 2);
@@ -1148,7 +1150,7 @@ add_task(async function test_initDbFromExistingIndexChanges() {
   db.close();
 
   // Create version 4
-  cache = await IndexedDBCache.init(dbName, dbVersion + 2);
+  cache = await IndexedDBCache.init({ dbName, version: dbVersion + 2 });
 
   Assert.notEqual(cache, null);
   Assert.equal(cache.db.version, 4);
@@ -1185,7 +1187,7 @@ add_task(async function test_initDbFromExistingElseWhereStoreChanges() {
 
   const blob = createBlob();
   // Create version 2
-  const cache1 = await IndexedDBCache.init(dbName, dbVersion);
+  const cache1 = await IndexedDBCache.init({ dbName, version: dbVersion });
 
   Assert.notEqual(cache1, null);
   Assert.equal(cache1.db.version, 2);
@@ -1193,7 +1195,7 @@ add_task(async function test_initDbFromExistingElseWhereStoreChanges() {
   // Cache1 is not closed by design of this test
 
   // Create version 3
-  const cache2 = await IndexedDBCache.init(dbName, dbVersion + 1);
+  const cache2 = await IndexedDBCache.init({ dbName, version: dbVersion + 1 });
 
   Assert.notEqual(cache2, null);
   Assert.equal(cache2.db.version, 3);

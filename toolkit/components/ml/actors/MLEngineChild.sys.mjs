@@ -22,7 +22,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BasePromiseWorker: "resource://gre/modules/PromiseWorker.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
-  ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
   PipelineOptions: "chrome://global/content/ml/EngineProcess.sys.mjs",
 });
 
@@ -145,6 +144,16 @@ export class MLEngineChild extends JSWindowActorChild {
   }
 
   /**
+   * Retrieves a model file as an ArrayBuffer and headers by communicating with the parent actor.
+   *
+   * @param {object} config - The configuration accepted by the parent function.
+   * @returns {Promise<[ArrayBuffer, object]>} The file content and headers
+   */
+  getModelFile(config) {
+    return this.sendQuery("MLEngine:GetModelFile", config);
+  }
+
+  /**
    * Removes an engine by its ID. Optionally shuts down if no engines remain.
    *
    * @param {string} engineId - The ID of the engine to remove.
@@ -215,6 +224,7 @@ class EngineDispatcher {
     let remoteSettingsOptions = await this.mlEngineChild.getInferenceOptions(
       this.#taskName
     );
+
     // Merge the RemoteSettings inference options with the pipeline options provided.
     let mergedOptions = new lazy.PipelineOptions(remoteSettingsOptions);
     mergedOptions.updateOptions(pipelineOptions);
@@ -226,6 +236,7 @@ class EngineDispatcher {
       wasm,
       pipelineOptions: mergedOptions,
       notificationsCallback,
+      getModelFileFn: this.mlEngineChild.getModelFile.bind(this.mlEngineChild),
     });
   }
 
@@ -409,47 +420,23 @@ class EngineDispatcher {
   }
 }
 
-let modelHub = null; // This will hold the ModelHub instance to reuse it.
-
 /**
- * Retrieves a model file as an ArrayBuffer from the specified URL.
- * This function normalizes the URL, extracts the organization, model name, and file path,
- * then fetches the model file using the ModelHub API. The `modelHub` instance is created
- * only once and reused for subsequent calls to optimize performance.
+ * Wrapper for a function that fetches a model file as an ArrayBuffer from a specified URL and task name.
  *
  * @param {object} config
  * @param {string} config.taskName - name of the inference task.
  * @param {string} config.url - The URL of the model file to fetch. Can be a path relative to
  * the model hub root or an absolute URL.
- * @param {?function(ProgressAndStatusCallbackParams):void} config.progressCallback The callback to call for notifying about download progress status.
+ * @param {?function(object):Promise<[ArrayBuffer, object]>} config.getModelFileFn - A function that actually retrieves the model data and headers.
  * @returns {Promise} A promise that resolves to a Meta object containing the URL, response headers,
  * and data as an ArrayBuffer. The data is marked for transfer to avoid cloning.
  */
-async function getModelFile({ taskName, url, progressCallback }) {
-  // Create the model hub instance if needed
-  if (!modelHub) {
-    modelHub = new lazy.ModelHub({
-      rootUrl: lazy.MODEL_HUB_ROOT_URL,
-      urlTemplate: lazy.MODEL_HUB_URL_TEMPLATE,
-    });
-  }
-
-  if (url.startsWith(lazy.MODEL_HUB_ROOT_URL)) {
-    url = url.slice(lazy.MODEL_HUB_ROOT_URL.length);
-    // Make sure we get a front slash
-    if (!url.startsWith("/")) {
-      url = `/${url}`;
-    }
-  }
-
-  // Parsing url to get model name, and file path.
-  // if this errors out, it will be caught in the worker
-  const parsedUrl = modelHub.parseUrl(url);
-
-  let [data, headers] = await modelHub.getModelFileAsArrayBuffer({
+async function getModelFile({ taskName, url, getModelFileFn }) {
+  const [data, headers] = await getModelFileFn({
     taskName,
-    ...parsedUrl,
-    progressCallback,
+    url,
+    rootUrl: lazy.MODEL_HUB_ROOT_URL,
+    urlTemplate: lazy.MODEL_HUB_URL_TEMPLATE,
   });
   return new lazy.BasePromiseWorker.Meta([url, headers, data], {
     transfers: [data],
@@ -470,9 +457,15 @@ class InferenceEngine {
    * @param {ArrayBuffer} config.wasm
    * @param {PipelineOptions} config.pipelineOptions
    * @param {?function(ProgressAndStatusCallbackParams):void} config.notificationsCallback The callback to call for updating about notifications such as dowload progress status.
+   * @param {?function(object):Promise<[ArrayBuffer, object]>} config.getModelFileFn - A function that actually retrieves the model data and headers.
    * @returns {InferenceEngine}
    */
-  static async create({ wasm, pipelineOptions, notificationsCallback }) {
+  static async create({
+    wasm,
+    pipelineOptions,
+    notificationsCallback, // eslint-disable-line no-unused-vars
+    getModelFileFn,
+  }) {
     /** @type {BasePromiseWorker} */
     const worker = new lazy.BasePromiseWorker(
       "chrome://global/content/ml/MLEngine.worker.mjs",
@@ -481,8 +474,8 @@ class InferenceEngine {
         getModelFile: async url =>
           getModelFile({
             url,
-            progressCallback: notificationsCallback,
             taskName: pipelineOptions.taskName,
+            getModelFileFn,
           }),
       }
     );
