@@ -839,17 +839,20 @@ nsMathMLmoFrame::Stretch(DrawTarget* aDrawTarget,
   // container and so we put the spacing, otherwise we don't include the
   // spacing, the outermost embellished container will take care of it.
 
+  nscoord leadingSpace = 0, trailingSpace = 0;
   if (!NS_MATHML_OPERATOR_HAS_EMBELLISH_ANCESTOR(mFlags)) {
     // Account the spacing if we are not an accent with explicit attributes
-    nscoord leadingSpace = mEmbellishData.leadingSpace;
-    if (isAccent && !NS_MATHML_OPERATOR_HAS_LSPACE_ATTR(mFlags)) {
-      leadingSpace = 0;
+    if (!isAccent || NS_MATHML_OPERATOR_HAS_LSPACE_ATTR(mFlags)) {
+      leadingSpace = mEmbellishData.leadingSpace;
     }
-    nscoord trailingSpace = mEmbellishData.trailingSpace;
-    if (isAccent && !NS_MATHML_OPERATOR_HAS_RSPACE_ATTR(mFlags)) {
-      trailingSpace = 0;
+    if (!isAccent || NS_MATHML_OPERATOR_HAS_RSPACE_ATTR(mFlags)) {
+      trailingSpace = mEmbellishData.trailingSpace;
     }
+  }
 
+  flags = PlaceFlags();
+  auto borderPadding = GetBorderPaddingForPlace(flags);
+  if (leadingSpace || trailingSpace || !borderPadding.IsAllZero()) {
     mBoundingMetrics.width += leadingSpace + trailingSpace;
     aDesiredStretchSize.Width() = mBoundingMetrics.width;
     aDesiredStretchSize.mBoundingMetrics.width = mBoundingMetrics.width;
@@ -857,22 +860,29 @@ nsMathMLmoFrame::Stretch(DrawTarget* aDrawTarget,
     nscoord dx = StyleVisibility()->mDirection == StyleDirection::Rtl
                      ? trailingSpace
                      : leadingSpace;
-    if (dx) {
+    mBoundingMetrics.leftBearing += dx;
+    mBoundingMetrics.rightBearing += dx;
+    aDesiredStretchSize.mBoundingMetrics.leftBearing += dx;
+    aDesiredStretchSize.mBoundingMetrics.rightBearing += dx;
+
+    // Add border/padding.
+    InflateReflowAndBoundingMetrics(borderPadding, aDesiredStretchSize,
+                                    mBoundingMetrics);
+    dx += borderPadding.left;
+    nscoord dy = borderPadding.top;
+
+    if (dx || dy) {
       // adjust the offsets
-      mBoundingMetrics.leftBearing += dx;
-      mBoundingMetrics.rightBearing += dx;
-      aDesiredStretchSize.mBoundingMetrics.leftBearing += dx;
-      aDesiredStretchSize.mBoundingMetrics.rightBearing += dx;
 
       if (useMathMLChar) {
         nsRect rect;
         mMathMLChar.GetRect(rect);
         mMathMLChar.SetRect(
-            nsRect(rect.x + dx, rect.y, rect.width, rect.height));
+            nsRect(rect.x + dx, rect.y + dy, rect.width, rect.height));
       } else {
         nsIFrame* childFrame = firstChild;
         while (childFrame) {
-          childFrame->SetPosition(childFrame->GetPosition() + nsPoint(dx, 0));
+          childFrame->SetPosition(childFrame->GetPosition() + nsPoint(dx, dy));
           childFrame = childFrame->GetNextSibling();
         }
       }
@@ -1016,6 +1026,7 @@ void nsMathMLmoFrame::GetIntrinsicISizeMetrics(gfxContext* aRenderingContext,
     aDesiredSize.Width() = mMathMLChar.GetMaxWidth(
         this, aRenderingContext->GetDrawTarget(),
         nsLayoutUtils::FontSizeInflationFor(this), stretchHint);
+    aDesiredSize.Width() += IntrinsicISizeOffsets().BorderPadding();
   } else {
     nsMathMLTokenFrame::GetIntrinsicISizeMetrics(aRenderingContext,
                                                  aDesiredSize);
