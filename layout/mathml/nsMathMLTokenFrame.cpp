@@ -149,22 +149,15 @@ void nsMathMLTokenFrame::Reflow(nsPresContext* aPresContext,
 // pass, it is not computed here because our children may be text frames
 // that do not implement the GetBoundingMetrics() interface.
 /* virtual */
-nsresult nsMathMLTokenFrame::Place(DrawTarget* aDrawTarget,
-                                   const PlaceFlags& aFlags,
+nsresult nsMathMLTokenFrame::Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
                                    ReflowOutput& aDesiredSize) {
   mBoundingMetrics = nsBoundingMetrics();
   for (nsIFrame* childFrame : PrincipalChildList()) {
     ReflowOutput childSize(aDesiredSize.GetWritingMode());
-    nsBoundingMetrics bmChild;
-    GetReflowAndBoundingMetricsFor(childFrame, childSize, bmChild, nullptr);
-    auto childMargin = GetMarginForPlace(aFlags, childFrame);
-    bmChild.ascent += childMargin.top;
-    bmChild.descent += childMargin.bottom;
-    bmChild.rightBearing += childMargin.LeftRight();
-    bmChild.width += childMargin.LeftRight();
-
+    GetReflowAndBoundingMetricsFor(childFrame, childSize,
+                                   childSize.mBoundingMetrics, nullptr);
     // compute and cache the bounding metrics
-    mBoundingMetrics += bmChild;
+    mBoundingMetrics += childSize.mBoundingMetrics;
   }
 
   RefPtr<nsFontMetrics> fm =
@@ -178,24 +171,17 @@ nsresult nsMathMLTokenFrame::Place(DrawTarget* aDrawTarget,
   aDesiredSize.Height() = aDesiredSize.BlockStartAscent() +
                           std::max(mBoundingMetrics.descent, descent);
 
-  // Add padding+border.
-  auto borderPadding = GetBorderPaddingForPlace(aFlags);
-  InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
-                                  mBoundingMetrics);
-
-  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
-    nscoord dx = borderPadding.left;
+  if (aPlaceOrigin) {
+    nscoord dy, dx = 0;
     for (nsIFrame* childFrame : PrincipalChildList()) {
       ReflowOutput childSize(aDesiredSize.GetWritingMode());
       GetReflowAndBoundingMetricsFor(childFrame, childSize,
                                      childSize.mBoundingMetrics);
-      auto childMargin = GetMarginForPlace(aFlags, childFrame);
 
       // place and size the child; (dx,0) makes the caret happy - bug 188146
-      nscoord dy = childSize.Height() == 0
-                       ? 0
-                       : aDesiredSize.BlockStartAscent() -
-                             childSize.BlockStartAscent() + childMargin.top;
+      dy = childSize.Height() == 0
+               ? 0
+               : aDesiredSize.BlockStartAscent() - childSize.BlockStartAscent();
       FinishReflowChild(childFrame, PresContext(), childSize, nullptr, dx, dy,
                         ReflowChildFlags::Default);
       dx += childSize.Width();

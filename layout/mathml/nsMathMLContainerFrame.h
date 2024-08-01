@@ -133,37 +133,11 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
   // Additional methods
 
  protected:
-  enum class PlaceFlag : uint8_t {
-    // If MeasureOnly is set, compute your desired size using the information
-    // from GetReflowAndBoundingMetricsFor. However, child frames or other
-    // elements should not be repositioned.
-    // If MeasureOnly is not set, reflow is finished. You should position all
-    // your children, and return your desired size. You should now use
-    // FinishReflowChild() on your children to complete post-reflow operations.
-    MeasureOnly,
-
-    // If IntrinsicSize is set, the function is actually used to determine
-    // intrinsic size (and consequently MeasureOnly is expected to be set too).
-    // - It will use nsMathMLChar::GetMaxWidth instead of nsMathMLChar::Stretch.
-    // - It will use IntrinsicISizeOffsets() for padding/border/margin instead
-    //   of GetUsedBorder/Padding/Margin().
-    // - etc
-    IntrinsicSize,
-
-    // If IgnoreBorderPadding is set, the function will complete without
-    // adding the border/padding around the math layout. This can be used for
-    // elements like <msqrt> that first layout their children as an <mrow>,
-    // place some radical symbol on top of them and finally add its
-    // padding/border around that radical symbol.
-    IgnoreBorderPadding,
-  };
-  using PlaceFlags = mozilla::EnumSet<PlaceFlag>;
-
   /* Place :
    * This method is used to measure or position child frames and other
-   * elements.  It may be called any number of times with MeasureOnly
-   * true, and the final call of the Reflow process before
-   * returning from Reflow() or Stretch() will have MeasureOnly false
+   * elements.  It may be called any number of times with aPlaceOrigin
+   * false to measure, and the final call of the Reflow process before
+   * returning from Reflow() or Stretch() will have aPlaceOrigin true
    * to position the elements.
    *
    * IMPORTANT: This method uses GetReflowAndBoundingMetricsFor() which must
@@ -172,8 +146,15 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
    * The Place() method will use this information to compute the desired size
    * of the frame.
    *
-   * @param aFlags [in] Flags to indicate the way the Place method should
-   *        behave. See document for PlaceFlag above.
+   * @param aPlaceOrigin [in]
+   *        If aPlaceOrigin is false, compute your desired size using the
+   *        information from GetReflowAndBoundingMetricsFor.  However, child
+   *        frames or other elements should not be repositioned.
+   *
+   *        If aPlaceOrigin is true, reflow is finished. You should position
+   *        all your children, and return your desired size. You should now
+   *        use FinishReflowChild() on your children to complete post-reflow
+   *        operations.
    *
    * @param aDesiredSize [out] parameter where you should return your desired
    *        size and your ascent/descent info. Compute your desired size using
@@ -181,7 +162,7 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
    *        any space you want for border/padding in the desired size you
    *        return.
    */
-  virtual nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
+  virtual nsresult Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
                          ReflowOutput& aDesiredSize);
 
   // MeasureForWidth:
@@ -216,7 +197,7 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
    * (typically invalid markup) was encountered during reflow. Parameters are
    * the same as Place().
    */
-  nsresult PlaceAsMrow(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
+  nsresult PlaceAsMrow(DrawTarget* aDrawTarget, bool aPlaceOrigin,
                        ReflowOutput& aDesiredSize);
 
   /*
@@ -255,8 +236,6 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
                    ReflowOutput& aDesiredSize, const ReflowInput& aReflowInput,
                    nsReflowStatus& aStatus);
 
-  nsMargin GetBorderPaddingForPlace(const PlaceFlags& aFlags);
-
  protected:
   // helper to add the inter-spacing when <math> is the immediate parent.
   // Since we don't (yet) handle the root <math> element ourselves, we need to
@@ -292,12 +271,6 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
   // helper method to clear metrics saved with
   // SaveReflowAndBoundingMetricsFor() from all child frames.
   void ClearSavedChildMetrics();
-
-  static nsMargin GetMarginForPlace(const PlaceFlags& aFlags, nsIFrame* aChild);
-
-  static void InflateReflowAndBoundingMetrics(
-      const nsMargin& aBorderPadding, ReflowOutput& aReflowOutput,
-      nsBoundingMetrics& aBoundingMetrics);
 
   // helper to let the update of presentation data pass through
   // a subtree that may contain non-MathML container frames

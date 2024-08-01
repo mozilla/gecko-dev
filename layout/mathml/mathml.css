@@ -72,17 +72,22 @@ math[display="inline" i] {
 
 */
 
-/* Fractions */
-mfrac {
-  padding-inline: 1px;
-}
 
 /**************************************************************************/
 /* merror                                                                 */
 /**************************************************************************/
 
 merror {
-  border: 1px solid red;
+  display: block;
+  font-family: sans-serif;
+  font-weight: bold;
+  white-space: pre;
+  margin: 1em;
+  padding: 1em;
+  border-width: thin;
+  border-style: inset;
+  border-color: red;
+  font-size: 14pt;
   background-color: lightyellow;
 }
 

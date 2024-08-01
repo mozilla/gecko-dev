@@ -46,8 +46,8 @@ class nsMathMLmoFrame final : public nsMathMLTokenFrame {
                       const ReflowInput& aReflowInput,
                       nsReflowStatus& aStatus) override;
 
-  nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
-                 ReflowOutput& aDesiredSize) override;
+  virtual nsresult Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
+                         ReflowOutput& aDesiredSize) override;
 
   virtual void MarkIntrinsicISizesDirty() override;
 

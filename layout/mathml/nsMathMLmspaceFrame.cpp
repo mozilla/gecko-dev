@@ -95,11 +95,11 @@ void nsMathMLmspaceFrame::Reflow(nsPresContext* aPresContext,
 
   ProcessAttributes(aPresContext);
 
-  const auto& borderPadding = GetUsedBorderAndPadding();
+  auto borderPadding = aReflowInput.ComputedPhysicalBorderPadding();
   mBoundingMetrics = nsBoundingMetrics();
   mBoundingMetrics.width = mWidth + borderPadding.LeftRight();
-  mBoundingMetrics.ascent = mHeight + borderPadding.top;
-  mBoundingMetrics.descent = mDepth + borderPadding.bottom;
+  mBoundingMetrics.ascent = mHeight + borderPadding.Side(eSideTop);
+  mBoundingMetrics.descent = mDepth + borderPadding.Side(eSideBottom);
   mBoundingMetrics.leftBearing = 0;
   mBoundingMetrics.rightBearing = mBoundingMetrics.width;
 
@@ -116,7 +116,7 @@ nsresult nsMathMLmspaceFrame::MeasureForWidth(DrawTarget* aDrawTarget,
   ProcessAttributes(PresContext());
   mBoundingMetrics = nsBoundingMetrics();
   auto offsets = IntrinsicISizeOffsets();
-  mBoundingMetrics.width = mWidth + offsets.BorderPadding();
+  mBoundingMetrics.width = mWidth + offsets.padding + offsets.border;
   aDesiredSize.Width() = std::max(0, mBoundingMetrics.width);
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
   return NS_OK;

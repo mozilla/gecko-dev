@@ -1423,7 +1423,10 @@ class LogicalMargin {
     return *this;
   }
 
-  bool IsAllZero() const { return mMargin.IsAllZero(); }
+  bool IsAllZero() const {
+    return (mMargin.left == 0 && mMargin.top == 0 && mMargin.right == 0 &&
+            mMargin.bottom == 0);
+  }
 
   bool operator==(const LogicalMargin& aMargin) const {
     CHECK_WRITING_MODE(aMargin.GetWritingMode());

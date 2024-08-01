@@ -31,14 +31,16 @@ class nsMathMLmmultiscriptsFrame final : public nsMathMLContainerFrame {
   NS_IMETHOD
   TransmitAutomaticData() override;
 
-  nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
-                 ReflowOutput& aDesiredSize) override;
+  virtual nsresult Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
+                         ReflowOutput& aDesiredSize) override;
 
-  static nsresult PlaceMultiScript(
-      nsPresContext* aPresContext, DrawTarget* aDrawTarget,
-      const PlaceFlags& aFlags, ReflowOutput& aDesiredSize,
-      nsMathMLContainerFrame* aFrame, nscoord aUserSubScriptShift,
-      nscoord aUserSupScriptShift, float aFontSizeInflation);
+  static nsresult PlaceMultiScript(nsPresContext* aPresContext,
+                                   DrawTarget* aDrawTarget, bool aPlaceOrigin,
+                                   ReflowOutput& aDesiredSize,
+                                   nsMathMLContainerFrame* aForFrame,
+                                   nscoord aUserSubScriptShift,
+                                   nscoord aUserSupScriptShift,
+                                   float aFontSizeInflation);
 
   uint8_t ScriptIncrement(nsIFrame* aFrame) override;
 

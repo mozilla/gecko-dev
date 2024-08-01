@@ -27,7 +27,7 @@ class nsMathMLmunderoverFrame final : public nsMathMLContainerFrame,
   friend nsIFrame* NS_NewMathMLmunderoverFrame(mozilla::PresShell* aPresShell,
                                                ComputedStyle* aStyle);
 
-  nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
+  nsresult Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
                  ReflowOutput& aDesiredSize) override;
 
   NS_IMETHOD InheritAutomaticData(nsIFrame* aParent) override;
