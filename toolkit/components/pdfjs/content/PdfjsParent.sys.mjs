@@ -19,8 +19,10 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
+  EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
   IndexedDBCache: "chrome://global/content/ml/ModelHub.sys.mjs",
   MultiProgressAggregator: "chrome://global/content/ml/Utils.sys.mjs",
+  Progress: "chrome://global/content/ml/Utils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PdfJsTelemetry: "resource://pdf.js/PdfJsTelemetry.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
@@ -143,7 +145,7 @@ export class PdfjsParent extends JSWindowActorParent {
     }
     try {
       const engine = await this.#createAIEngine(service, null);
-      return engine.run(request);
+      return await engine.run(request);
     } catch (e) {
       console.error("Failed to run AI engine", e);
       return { error: true };
@@ -154,28 +156,44 @@ export class PdfjsParent extends JSWindowActorParent {
     if (service !== IMAGE_TO_TEXT_TASK) {
       throw new Error("Invalid service");
     }
+    const { promise, resolve } = Promise.withResolvers();
+    const self = this;
+    const aggregator = new lazy.MultiProgressAggregator({
+      progressCallback({ ok, total, totalLoaded, statusText }) {
+        const finished = statusText === lazy.Progress.ProgressStatusText.DONE;
+        if (listenToProgress) {
+          self.sendAsyncMessage("PDFJS:Child:handleEvent", {
+            type: "loadAIEngineProgress",
+            detail: {
+              service,
+              ok,
+              total,
+              totalLoaded,
+              finished,
+            },
+          });
+        }
+        if (finished) {
+          // Once we're done, we can remove the progress callback.
+          this.progressCallback = null;
+          resolve(ok);
+        }
+      },
+      watchedTypes: [
+        lazy.Progress.ProgressType.DOWNLOAD,
+        lazy.Progress.ProgressType.LOAD_FROM_CACHE,
+      ],
+    });
 
-    const aggregator = listenToProgress
-      ? new lazy.MultiProgressAggregator({
-          progressCallback: ({ ok, total, totalLoaded, statusText }) => {
-            this.sendAsyncMessage("PDFJS:Child:handleEvent", {
-              type: "loadAIEngineProgress",
-              detail: {
-                service,
-                ok,
-                total,
-                totalLoaded,
-                finished: statusText === "done",
-              },
-            });
-          },
-        })
-      : null;
-    const engine = await this.#createAIEngine(
-      Cu.isInAutomation ? "moz-echo" : service,
-      aggregator
-    );
-    return !!engine;
+    if (Cu.isInAutomation) {
+      return !!(await this.#createAIEngine("moz-eco", null));
+    }
+
+    const [engine, ok] = await Promise.all([
+      this.#createAIEngine(service, aggregator),
+      promise,
+    ]);
+    return !!engine && ok;
   }
 
   async _mlDelete({ data: service }) {
@@ -185,6 +203,7 @@ export class PdfjsParent extends JSWindowActorParent {
     try {
       // TODO: Temporary workaround to delete the model from the cache.
       //       See bug 1908941.
+      await lazy.EngineProcess.destroyMLEngine();
       const cache = await lazy.IndexedDBCache.init();
       await cache.deleteModels({
         model: "mozilla/distilvit",
@@ -199,12 +218,12 @@ export class PdfjsParent extends JSWindowActorParent {
 
   async #createAIEngine(taskName, aggregator) {
     try {
-      return lazy.createEngine(
+      return await lazy.createEngine(
         { engineId: ML_ENGINE_ID, taskName },
         aggregator?.aggregateCallback.bind(aggregator) || null
       );
     } catch (e) {
-      console.error("Failed to load AI engine", e);
+      console.error("Failed to create AI engine", e);
       return null;
     }
   }
