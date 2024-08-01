@@ -1099,6 +1099,8 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   height: calc(var(--urlbar-min-height) - 2px - 2 * var(--urlbar-container-padding));
   border-radius: var(--urlbar-icon-border-radius);
   padding: var(--urlbar-icon-padding);
+  -moz-context-properties: fill;
+  fill: var(--text-color-deemphasized);
 }
 
 #searchmode-switcher-title {
