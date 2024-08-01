@@ -299,26 +299,28 @@ void nsMathMLmencloseFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 /* virtual */
 nsresult nsMathMLmencloseFrame::MeasureForWidth(DrawTarget* aDrawTarget,
                                                 ReflowOutput& aDesiredSize) {
-  return PlaceInternal(aDrawTarget, false, aDesiredSize, true);
+  PlaceFlags flags(PlaceFlag::IntrinsicSize, PlaceFlag::MeasureOnly);
+  return PlaceInternal(aDrawTarget, flags, aDesiredSize);
 }
 
 /* virtual */
 nsresult nsMathMLmencloseFrame::Place(DrawTarget* aDrawTarget,
-                                      bool aPlaceOrigin,
+                                      const PlaceFlags& aFlags,
                                       ReflowOutput& aDesiredSize) {
-  return PlaceInternal(aDrawTarget, aPlaceOrigin, aDesiredSize, false);
+  return PlaceInternal(aDrawTarget, aFlags, aDesiredSize);
 }
 
 /* virtual */
 nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
-                                              bool aPlaceOrigin,
-                                              ReflowOutput& aDesiredSize,
-                                              bool aWidthOnly) {
+                                              const PlaceFlags& aFlags,
+                                              ReflowOutput& aDesiredSize) {
   ///////////////
   // Measure the size of our content using the base class to format like an
-  // inferred mrow.
+  // inferred mrow, without border/padding.
   ReflowOutput baseSize(aDesiredSize.GetWritingMode());
-  nsresult rv = nsMathMLContainerFrame::Place(aDrawTarget, false, baseSize);
+  PlaceFlags flags =
+      aFlags + PlaceFlag::MeasureOnly + PlaceFlag::IgnoreBorderPadding;
+  nsresult rv = nsMathMLContainerFrame::Place(aDrawTarget, flags, baseSize);
 
   if (NS_FAILED(rv)) {
     DidReflowChildren(PrincipalChildList().FirstChild());
@@ -461,7 +463,7 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
   ///////////////
   // longdiv notation:
   if (IsToDraw(NOTATION_LONGDIV)) {
-    if (aWidthOnly) {
+    if (aFlags.contains(PlaceFlag::IntrinsicSize)) {
       nscoord longdiv_width = mMathMLChar[mLongDivCharIndex].GetMaxWidth(
           this, aDrawTarget, fontSizeInflation);
 
@@ -503,7 +505,7 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
                               ? &dx_right
                               : &dx_left;
 
-    if (aWidthOnly) {
+    if (aFlags.contains(PlaceFlag::IntrinsicSize)) {
       nscoord radical_width = mMathMLChar[mRadicalCharIndex].GetMaxWidth(
           this, aDrawTarget, fontSizeInflation);
 
@@ -627,7 +629,7 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
 
-  if (aPlaceOrigin) {
+  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
     //////////////////
     // Set position and size of MathMLChars
     if (IsToDraw(NOTATION_LONGDIV))

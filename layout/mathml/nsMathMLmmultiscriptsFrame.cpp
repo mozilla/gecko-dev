@@ -93,24 +93,24 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData() {
 
 /* virtual */
 nsresult nsMathMLmmultiscriptsFrame::Place(DrawTarget* aDrawTarget,
-                                           bool aPlaceOrigin,
+                                           const PlaceFlags& aFlags,
                                            ReflowOutput& aDesiredSize) {
   nscoord subScriptShift = 0;
   nscoord supScriptShift = 0;
   float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
 
-  return PlaceMultiScript(PresContext(), aDrawTarget, aPlaceOrigin,
-                          aDesiredSize, this, subScriptShift, supScriptShift,
+  return PlaceMultiScript(PresContext(), aDrawTarget, aFlags, aDesiredSize,
+                          this, subScriptShift, supScriptShift,
                           fontSizeInflation);
 }
 
 // exported routine that both munderover and mmultiscripts share.
 // munderover uses this when movablelimits is set.
 nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
-    nsPresContext* aPresContext, DrawTarget* aDrawTarget, bool aPlaceOrigin,
-    ReflowOutput& aDesiredSize, nsMathMLContainerFrame* aFrame,
-    nscoord aUserSubScriptShift, nscoord aUserSupScriptShift,
-    float aFontSizeInflation) {
+    nsPresContext* aPresContext, DrawTarget* aDrawTarget,
+    const PlaceFlags& aFlags, ReflowOutput& aDesiredSize,
+    nsMathMLContainerFrame* aFrame, nscoord aUserSubScriptShift,
+    nscoord aUserSupScriptShift, float aFontSizeInflation) {
   nsAtom* tag = aFrame->GetContent()->NodeInfo()->NameAtom();
 
   // This function deals with both munderover etc. as well as msubsup etc.
@@ -139,7 +139,7 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
       aFrame->ReportErrorToConsole("NoBase");
     else
       aFrame->ReportChildCountError();
-    return aFrame->PlaceAsMrow(aDrawTarget, aPlaceOrigin, aDesiredSize);
+    return aFrame->PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
   }
 
   // get x-height (an ex)
@@ -290,24 +290,24 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
   while (childFrame) {
     if (childFrame->GetContent()->IsMathMLElement(nsGkAtoms::mprescripts_)) {
       if (tag != nsGkAtoms::mmultiscripts_) {
-        if (aPlaceOrigin) {
+        if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
           aFrame->ReportInvalidChildError(nsGkAtoms::mprescripts_);
         }
-        return aFrame->PlaceAsMrow(aDrawTarget, aPlaceOrigin, aDesiredSize);
+        return aFrame->PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
       }
       if (prescriptsFrame) {
         // duplicate <mprescripts/> found
         // report an error, encourage people to get their markups in order
-        if (aPlaceOrigin) {
+        if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
           aFrame->ReportErrorToConsole("DuplicateMprescripts");
         }
-        return aFrame->PlaceAsMrow(aDrawTarget, aPlaceOrigin, aDesiredSize);
+        return aFrame->PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
       }
       if (!isSubScript) {
-        if (aPlaceOrigin) {
+        if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
           aFrame->ReportErrorToConsole("SubSupMismatch");
         }
-        return aFrame->PlaceAsMrow(aDrawTarget, aPlaceOrigin, aDesiredSize);
+        return aFrame->PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
       }
 
       prescriptsFrame = childFrame;
@@ -481,7 +481,7 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
       (count != 3 && tag == nsGkAtoms::msubsup_) || !baseFrame ||
       (!isSubScript && tag == nsGkAtoms::mmultiscripts_)) {
     // report an error, encourage people to get their markups in order
-    if (aPlaceOrigin) {
+    if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
       if ((count != 2 &&
            (tag == nsGkAtoms::msup_ || tag == nsGkAtoms::msub_)) ||
           (count != 3 && tag == nsGkAtoms::msubsup_)) {
@@ -492,7 +492,7 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
         aFrame->ReportErrorToConsole("SubSupMismatch");
       }
     }
-    return aFrame->PlaceAsMrow(aDrawTarget, aPlaceOrigin, aDesiredSize);
+    return aFrame->PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
   }
 
   // we left out the width of prescripts, so ...
@@ -543,7 +543,7 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
   // The list of frames is in the order: {base} {postscripts} {prescripts}
   // We go over the list in a circular manner, starting at <prescripts/>
 
-  if (aPlaceOrigin) {
+  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
     nscoord dx = 0, dy = 0;
 
     // With msub and msup there is only one element and

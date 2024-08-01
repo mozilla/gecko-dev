@@ -103,9 +103,10 @@ void nsMathMLContainerFrame::GetPreferredStretchSize(
     // when our actual size is ok, just use it
     aPreferredStretchSize = mBoundingMetrics;
   } else if (aOptions & STRETCH_CONSIDER_EMBELLISHMENTS) {
-    // compute our up-to-date size using Place()
+    // compute our up-to-date size using Place(), without border/padding.
     ReflowOutput reflowOutput(GetWritingMode());
-    Place(aDrawTarget, false, reflowOutput);
+    PlaceFlags flags(PlaceFlag::MeasureOnly, PlaceFlag::IgnoreBorderPadding);
+    Place(aDrawTarget, flags, reflowOutput);
     aPreferredStretchSize = reflowOutput.mBoundingMetrics;
   } else {
     // compute a size that includes embellishments iff the container stretches
@@ -296,7 +297,8 @@ nsMathMLContainerFrame::Stretch(DrawTarget* aDrawTarget,
         }
 
         // re-position all our children
-        nsresult rv = Place(aDrawTarget, true, aDesiredStretchSize);
+        PlaceFlags flags;
+        nsresult rv = Place(aDrawTarget, flags, aDesiredStretchSize);
         if (NS_FAILED(rv)) {
           // Make sure the child frames get their DidReflow() calls.
           DidReflowChildren(mFrames.FirstChild());
@@ -378,14 +380,18 @@ nsresult nsMathMLContainerFrame::FinalizeReflow(DrawTarget* aDrawTarget,
       !NS_MATHML_IS_EMBELLISH_OPERATOR(mEmbellishData.flags) ||
       (mEmbellishData.coreFrame != this && !mPresentationData.baseFrame &&
        mEmbellishData.direction == NS_STRETCH_DIRECTION_UNSUPPORTED);
-  nsresult rv = Place(aDrawTarget, placeOrigin, aDesiredSize);
+  PlaceFlags flags;
+  if (!placeOrigin) {
+    flags += PlaceFlag::MeasureOnly;
+  }
+  nsresult rv = Place(aDrawTarget, flags, aDesiredSize);
 
   // Place() will call FinishReflowChild() when placeOrigin is true but if
   // it returns before reaching FinishReflowChild() due to errors we need
   // to fulfill the reflow protocol by calling DidReflow for the child frames
   // that still needs it here (or we may crash - bug 366012).
-  // If placeOrigin is false we should reach Place() with aPlaceOrigin == true
-  // through Stretch() eventually.
+  // If placeOrigin is false we should reach Place() with
+  // PlaceFlag::MeasureOnly unset through Stretch() eventually.
   if (NS_FAILED(rv)) {
     GatherAndStoreOverflow(&aDesiredSize);
     DidReflowChildren(PrincipalChildList().FirstChild());
@@ -865,9 +871,6 @@ void nsMathMLContainerFrame::GetIntrinsicISizeMetrics(
       containerFrame->GetIntrinsicISizeMetrics(aRenderingContext,
                                                childDesiredSize);
     } else {
-      // XXX This includes margin while Reflow currently doesn't consider
-      // margin, so we may end up with too much space, but, with stretchy
-      // characters, this is an approximation anyway.
       nscoord width = nsLayoutUtils::IntrinsicForContainer(
           aRenderingContext, childFrame, IntrinsicISizeType::PrefISize);
 
@@ -894,7 +897,8 @@ void nsMathMLContainerFrame::GetIntrinsicISizeMetrics(
   nsresult rv =
       MeasureForWidth(aRenderingContext->GetDrawTarget(), aDesiredSize);
   if (NS_FAILED(rv)) {
-    PlaceAsMrow(aRenderingContext->GetDrawTarget(), false, aDesiredSize);
+    PlaceFlags flags(PlaceFlag::IntrinsicSize, PlaceFlag::MeasureOnly);
+    PlaceAsMrow(aRenderingContext->GetDrawTarget(), flags, aDesiredSize);
   }
 
   ClearSavedChildMetrics();
@@ -903,7 +907,8 @@ void nsMathMLContainerFrame::GetIntrinsicISizeMetrics(
 /* virtual */
 nsresult nsMathMLContainerFrame::MeasureForWidth(DrawTarget* aDrawTarget,
                                                  ReflowOutput& aDesiredSize) {
-  return Place(aDrawTarget, false, aDesiredSize);
+  PlaceFlags flags(PlaceFlag::IntrinsicSize, PlaceFlag::MeasureOnly);
+  return Place(aDrawTarget, flags, aDesiredSize);
 }
 
 // see spacing table in Chapter 18, TeXBook (p.170)
@@ -1107,7 +1112,7 @@ class nsMathMLContainerFrame::RowChildFrameIterator {
 
 /* virtual */
 nsresult nsMathMLContainerFrame::Place(DrawTarget* aDrawTarget,
-                                       bool aPlaceOrigin,
+                                       const PlaceFlags& aFlags,
                                        ReflowOutput& aDesiredSize) {
   // This is needed in case this frame is empty (i.e., no child frames)
   mBoundingMetrics = nsBoundingMetrics();
@@ -1139,7 +1144,7 @@ nsresult nsMathMLContainerFrame::Place(DrawTarget* aDrawTarget,
   //////////////////
   // Place Children
 
-  if (aPlaceOrigin) {
+  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
     PositionRowChildFrames(0, aDesiredSize.BlockStartAscent());
   }
 
@@ -1147,9 +1152,9 @@ nsresult nsMathMLContainerFrame::Place(DrawTarget* aDrawTarget,
 }
 
 nsresult nsMathMLContainerFrame::PlaceAsMrow(DrawTarget* aDrawTarget,
-                                             bool aPlaceOrigin,
+                                             const PlaceFlags& aFlags,
                                              ReflowOutput& aDesiredSize) {
-  return nsMathMLContainerFrame::Place(aDrawTarget, aPlaceOrigin, aDesiredSize);
+  return nsMathMLContainerFrame::Place(aDrawTarget, aFlags, aDesiredSize);
 }
 
 void nsMathMLContainerFrame::PositionRowChildFrames(nscoord aOffsetX,

@@ -738,9 +738,10 @@ nsMathMLmoFrame::Stretch(DrawTarget* aDrawTarget,
     }
   }
 
-  // Place our children using the default method
+  // Place our children using the default method and no border/padding.
   // This will allow our child text frame to get its DidReflow()
-  nsresult rv = Place(aDrawTarget, true, aDesiredStretchSize);
+  PlaceFlags flags = PlaceFlag::IgnoreBorderPadding;
+  nsresult rv = Place(aDrawTarget, flags, aDesiredStretchSize);
   if (NS_FAILED(rv)) {
     // Make sure the child frames get their DidReflow() calls.
     DidReflowChildren(mFrames.FirstChild());
@@ -930,10 +931,10 @@ void nsMathMLmoFrame::Reflow(nsPresContext* aPresContext,
   nsMathMLTokenFrame::Reflow(aPresContext, aDesiredSize, aReflowInput, aStatus);
 }
 
-nsresult nsMathMLmoFrame::Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
+nsresult nsMathMLmoFrame::Place(DrawTarget* aDrawTarget,
+                                const PlaceFlags& aFlags,
                                 ReflowOutput& aDesiredSize) {
-  nsresult rv =
-      nsMathMLTokenFrame::Place(aDrawTarget, aPlaceOrigin, aDesiredSize);
+  nsresult rv = nsMathMLTokenFrame::Place(aDrawTarget, aFlags, aDesiredSize);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -950,7 +951,8 @@ nsresult nsMathMLmoFrame::Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
      Stretch() method.
   */
 
-  if (!aPlaceOrigin && StyleFont()->mMathStyle == StyleMathStyle::Normal &&
+  if (aFlags.contains(PlaceFlag::MeasureOnly) &&
+      StyleFont()->mMathStyle == StyleMathStyle::Normal &&
       NS_MATHML_OPERATOR_IS_LARGEOP(mFlags) && UseMathMLChar()) {
     nsBoundingMetrics newMetrics;
     rv = mMathMLChar.Stretch(
