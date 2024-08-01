@@ -946,27 +946,24 @@
     </description>
   </hbox>
   <vbox data-subcategory="reports">
-    <html:span flex="1">
+    <hbox>
       <checkbox id="submitHealthReportBox"
                 data-l10n-id="collection-health-report"
                 class="tail-with-learn-more"/>
       <html:a id="FHRLearnMore"
              class="learnMore"
              data-l10n-id="collection-health-report-link"/>
-      <vbox class="indent">
-        <hbox align="center">
-          <checkbox id="addonRecommendationEnabled"
-                    class="tail-with-learn-more"
-                    data-l10n-id="addon-recommendations"/>
-          <html:a is="moz-support-link"
-                  id="addonRecommendationLearnMore"
-                  class="learnMore"
-                  data-l10n-id="addon-recommendations-link"
-                  support-page="personalized-addons"
-          />
-        </hbox>
-      </vbox>
-    </html:span>
+    </hbox>
+    <hbox class="indent">
+      <checkbox id="addonRecommendationEnabled"
+                class="tail-with-learn-more"
+                data-l10n-id="addon-recommendations"/>
+      <html:a is="moz-support-link"
+              id="addonRecommendationLearnMore"
+              class="learnMore"
+              data-l10n-id="addon-recommendations-link"
+              support-page="personalized-addons"/>
+    </hbox>
 #ifndef MOZ_TELEMETRY_REPORTING
   <description id="TelemetryDisabledDesc"
     class="indent tip-caption" control="telemetryGroup"
