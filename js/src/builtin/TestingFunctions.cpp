@@ -9445,6 +9445,12 @@ static bool FdLibM_Pow(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+static bool HadOutOfMemory(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  args.rval().setBoolean(cx->runtime()->hadOutOfMemory);
+  return true;
+}
+
 // clang-format off
 static const JSFunctionSpecWithHelp TestingFunctions[] = {
     JS_FN_HELP("gc", ::GC, 0, 0,
@@ -10540,6 +10546,11 @@ JS_FN_HELP("isSmallFunction", IsSmallFunction, 1, 0,
     JS_FN_HELP("getPrefValue", GetPrefValue, 1, 0,
 "getPrefValue(name)",
 "  Return the value of the JS pref with the given name."),
+
+  JS_FN_HELP("hadOutOfMemory", HadOutOfMemory, 0, 0,
+"hadOutOfMemory()",
+"  Return the runtime's internal hadOutOfMemory flag that is set when\n"
+"  out of memory is hit with an exception being propagated. "),
 
   JS_FS_HELP_END
 };

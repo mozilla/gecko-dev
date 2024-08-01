@@ -140,6 +140,10 @@ int js::shell::FuzzJSRuntimeFuzz(const uint8_t* buf, size_t size) {
     return 1;
   }
 
+  // Also make sure to reset this flag, as the fuzzing implementation might
+  // use it to discard differential test results in the next run.
+  gCx->runtime()->hadOutOfMemory = false;
+
   // The fuzzing module is required to handle any exceptions
   CrashOnPendingException();
 
