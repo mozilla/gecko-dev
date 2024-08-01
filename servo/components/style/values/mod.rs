@@ -715,7 +715,7 @@ impl ToCss for KeyframesName {
             return dest.write_str("none");
         }
 
-        let mut serialize = |string: &_| {
+        let serialize = |string: &_| {
             if CustomIdent::is_valid(string, &["none"]) {
                 serialize_identifier(string, dest)
             } else {
