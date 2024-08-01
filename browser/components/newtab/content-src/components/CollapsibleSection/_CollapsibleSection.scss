@@ -125,6 +125,14 @@
         &::part(button) {
           background-color: var(--newtab-weather-background-color);
 
+          &:hover {
+            background-color: var(--newtab-button-static-hover-background);
+          }
+
+          &:hover:active {
+            background-color: var(--newtab-button-static-active-background);
+          }
+
           @media (prefers-contrast) {
             background-color: var(--background-color-box);
           }

@@ -3014,6 +3014,12 @@ main section {
 .lightWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button), .darkWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button) {
   background-color: var(--newtab-weather-background-color);
 }
+.lightWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button):hover, .darkWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button):hover {
+  background-color: var(--newtab-button-static-hover-background);
+}
+.lightWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button):hover:active, .darkWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button):hover:active {
+  background-color: var(--newtab-button-static-active-background);
+}
 @media (prefers-contrast) {
   .lightWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button), .darkWallpaper .collapsible-section .button-topic-selection moz-button[type=default]::part(button) {
     background-color: var(--background-color-box);
