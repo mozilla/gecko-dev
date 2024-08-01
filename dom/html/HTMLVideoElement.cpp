@@ -79,6 +79,7 @@ NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(HTMLVideoElement,
 NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLVideoElement)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(HTMLVideoElement)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mVideoFrameRequestManager)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mVisualCloneTarget)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mVisualCloneTargetPromise)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mVisualCloneSource)
@@ -87,6 +88,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END_INHERITED(HTMLMediaElement)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLVideoElement,
                                                   HTMLMediaElement)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mVideoFrameRequestManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mVisualCloneTarget)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mVisualCloneTargetPromise)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mVisualCloneSource)
@@ -151,6 +153,16 @@ void HTMLVideoElement::Invalidate(ImageSizeChanged aImageSizeChanged,
         mVisualCloneTarget->GetVideoFrameContainer();
     if (container) {
       container->Invalidate();
+    }
+  }
+
+  if (mVideoFrameRequestManager.IsEmpty()) {
+    return;
+  }
+
+  if (RefPtr<ImageContainer> imageContainer = GetImageContainer()) {
+    if (imageContainer->HasCurrentImage()) {
+      OwnerDoc()->ScheduleVideoFrameCallbacks(this);
     }
   }
 }
@@ -675,6 +687,109 @@ void HTMLVideoElement::OnVisibilityChange(Visibility aNewVisibility) {
     mCanAutoplayFlag = true;
     return;
   }
+}
+
+void HTMLVideoElement::ResetState() {
+  HTMLMediaElement::ResetState();
+  mLastPresentedFrameID = layers::kContainerFrameID_Invalid;
+}
+
+void HTMLVideoElement::TakeVideoFrameRequestCallbacks(
+    const TimeStamp& aNowTime, const Maybe<TimeStamp>& aNextTickTime,
+    VideoFrameCallbackMetadata& aMd, nsTArray<VideoFrameRequest>& aCallbacks) {
+  MOZ_ASSERT(aCallbacks.IsEmpty());
+
+  // Attempt to find the next image to be presented on this tick. Note that
+  // composited will be accurate only if the element is visible.
+  AutoTArray<ImageContainer::OwningImage, 4> images;
+  if (RefPtr<layers::ImageContainer> container = GetImageContainer()) {
+    container->GetCurrentImages(&images);
+  }
+
+  // If we did not find any current images, we must have fired too early, or we
+  // are in the process of shutting down. Wait for the next invalidation.
+  if (images.IsEmpty()) {
+    return;
+  }
+
+  gfx::IntSize frameSize;
+  ImageContainer::FrameID frameID = layers::kContainerFrameID_Invalid;
+  bool composited = false;
+
+  // We are guaranteed that the images are in timestamp order. It is possible we
+  // are already behind if the compositor notifications have not been processed
+  // yet, so as per the standard, this is a best effort attempt at synchronizing
+  // with the state of the GPU process.
+  for (const auto& image : images) {
+    if (image.mTimeStamp <= aNowTime) {
+      // Image should already have been composited. Because we might not be in
+      // the display list, we cannot rely upon its mComposited status, and
+      // should just assume it has indeed been composited.
+      frameSize = image.mImage->GetSize();
+      frameID = image.mFrameID;
+      composited = true;
+    } else if (!aNextTickTime || image.mTimeStamp <= aNextTickTime.ref()) {
+      // Image should be the next to be composited. mComposited will be false
+      // if the compositor hasn't rendered the frame yet or notified us of the
+      // render yet, but it is in progress. If it is true, then we know the
+      // next vsync will display the frame.
+      frameSize = image.mImage->GetSize();
+      frameID = image.mFrameID;
+      composited = false;
+    } else {
+      // Image is for a future composition.
+      break;
+    }
+  }
+
+  // If all of the available images are for future compositions, we must have
+  // fired too early. Wait for the next invalidation.
+  if (frameID == layers::kContainerFrameID_Invalid ||
+      frameID == mLastPresentedFrameID) {
+    return;
+  }
+
+  // If we have already displayed the expected frame, we need to make the
+  // display time match the presentation time to indicate it is already
+  // complete.
+  if (composited) {
+    aMd.mExpectedDisplayTime = aMd.mPresentationTime;
+  }
+
+  MOZ_ASSERT(!frameSize.IsEmpty());
+
+  aMd.mWidth = frameSize.width;
+  aMd.mHeight = frameSize.height;
+  aMd.mMediaTime = CurrentTime();
+
+  // Presented frames is a bit of a misnomer from a rendering perspective,
+  // because we still need to advance regardless of composition. Video elements
+  // that are outside of the DOM, or are not visible, still advance the video in
+  // the background, and presumably the caller still needs some way to know how
+  // many frames we have advanced.
+  aMd.mPresentedFrames = frameID;
+
+  // TODO(Bug 1908246): We should set processingDuration.
+  // TODO(Bug 1908245): We should set captureTime, receiveTime and rtpTimestamp
+  // for WebRTC.
+
+  mLastPresentedFrameID = frameID;
+  mVideoFrameRequestManager.Take(aCallbacks);
+}
+
+uint32_t HTMLVideoElement::RequestVideoFrameCallback(
+    VideoFrameRequestCallback& aCallback, ErrorResult& aRv) {
+  uint32_t handle = 0;
+  aRv = mVideoFrameRequestManager.Schedule(aCallback, &handle);
+  return handle;
+}
+
+bool HTMLVideoElement::IsVideoFrameCallbackCancelled(uint32_t aHandle) {
+  return mVideoFrameRequestManager.IsCanceled(aHandle);
+}
+
+void HTMLVideoElement::CancelVideoFrameCallback(uint32_t aHandle) {
+  mVideoFrameRequestManager.Cancel(aHandle);
 }
 
 }  // namespace mozilla::dom
