@@ -10271,5 +10271,6 @@ UniquePtr<MozContainerSurfaceLock> nsWindow::LockSurface() {
   if (mIsDestroyed) {
     return nullptr;
   }
+  LOG_WAYLAND("nsWindow::LockSurface()");
   return MakeUnique<MozContainerSurfaceLock>(mContainer);
 }

@@ -55,6 +55,7 @@ extern mozilla::LazyLogModule gWidgetLog;
 extern mozilla::LazyLogModule gWidgetDragLog;
 extern mozilla::LazyLogModule gWidgetPopupLog;
 extern mozilla::LazyLogModule gWidgetVsync;
+extern mozilla::LazyLogModule gWidgetWaylandLog;
 
 #  define LOG(str, ...)                               \
     MOZ_LOG(IsPopup() ? gWidgetPopupLog : gWidgetLog, \
@@ -70,6 +71,8 @@ extern mozilla::LazyLogModule gWidgetVsync;
 #  define LOG_ENABLED()                                         \
     (MOZ_LOG_TEST(gWidgetPopupLog, mozilla::LogLevel::Debug) || \
      MOZ_LOG_TEST(gWidgetLog, mozilla::LogLevel::Debug))
+#  define LOG_WAYLAND(...) \
+    MOZ_LOG(gWidgetWaylandLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 
 #else
 

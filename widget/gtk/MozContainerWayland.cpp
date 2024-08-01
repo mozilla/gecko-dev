@@ -263,6 +263,8 @@ static void after_frame_clock_after_paint(GdkFrameClock* clock,
   MozContainerSurfaceLock lock(container);
   struct wl_surface* surface = lock.GetSurface();
   if (surface) {
+    LOGWAYLAND("%s [%p]\n", __FUNCTION__,
+               (void*)moz_container_get_nsWindow(container));
     wl_surface_commit(surface);
   }
 }
