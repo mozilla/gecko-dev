@@ -942,6 +942,10 @@ add_task(async function test_forceEnroll() {
         );
       }
     );
+
+    // Cleanup for multiple test runs
+    ExperimentManager.store._deleteForTests(experiment.slug);
+    ExperimentManager.store._deleteForTests(rollout.slug);
   });
 
   sandbox.restore();
