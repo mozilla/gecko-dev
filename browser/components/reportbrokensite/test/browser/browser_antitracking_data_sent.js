@@ -103,7 +103,7 @@ add_task(async function testSendingMoreInfo() {
             actual[0].includes("trackertest.org")
           );
         },
-        pos: "0:0",
+        pos: "0:1",
         uri: REPORTABLE_PAGE_URL3,
       },
     ],
