@@ -151,7 +151,7 @@ struct FloatingPoint final : private detail::FloatingPointTrait<T> {
   static_assert((kExponentBits & kSignificandBits) == 0,
                 "exponent bits shouldn't overlap significand bits");
 
-  static_assert((kSignBit | kExponentBits | kSignificandBits) == ~Bits(0),
+  static_assert((kSignBit | kExponentBits | kSignificandBits) == Bits(~0),
                 "all bits accounted for");
 };
 

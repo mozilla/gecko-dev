@@ -3904,22 +3904,6 @@ bool js::DefineTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
   return result.succeed();
 }
 
-template <typename T>
-struct FloatingPoint {
-  using Bits = typename mozilla::FloatingPoint<T>::Bits;
-  static constexpr Bits kSignBit = mozilla::FloatingPoint<T>::kSignBit;
-  static constexpr Bits NegativeInfinity =
-      kSignBit | mozilla::FloatingPoint<T>::kExponentBits;
-};
-
-template <>
-struct FloatingPoint<js::float16> {
-  using Bits = uint16_t;
-  static constexpr Bits kSignBit = 0x8000;
-  static constexpr Bits PositiveInfinity = 0x7C00;
-  static constexpr Bits NegativeInfinity = kSignBit | PositiveInfinity;
-};
-
 template <typename T, typename U>
 static constexpr typename std::enable_if_t<
     std::numeric_limits<T>::is_integer && !std::numeric_limits<T>::is_signed, U>
@@ -3941,14 +3925,15 @@ static constexpr
     UnsignedSortValue(UnsignedT val) {
   // Flip sign bit for positive numbers; flip all bits for negative numbers,
   // except negative NaNs.
-  using FloatingPoint = ::FloatingPoint<T>;
+  using FloatingPoint = mozilla::FloatingPoint<T>;
   static_assert(std::is_same_v<typename FloatingPoint::Bits, UnsignedT>,
                 "FloatingPoint::Bits matches the unsigned int representation");
 
   // FF80'0000 is negative infinity, (FF80'0000, FFFF'FFFF] are all NaNs with
   // the sign-bit set (and the equivalent holds for double and float16 values).
   // So any value larger than negative infinity is a negative NaN.
-  if (val > FloatingPoint::NegativeInfinity) {
+  constexpr UnsignedT NegativeInfinity = mozilla::InfinityBits<T, 1>::value;
+  if (val > NegativeInfinity) {
     return val;
   }
   if (val & FloatingPoint::kSignBit) {
@@ -3990,21 +3975,26 @@ static constexpr
 template <typename T, typename U>
 static constexpr typename std::enable_if_t<std::is_same_v<T, js::float16>, U>
 ToCountingSortKey(U val) {
-  using FloatingPoint = ::FloatingPoint<T>;
+  using FloatingPoint = mozilla::FloatingPoint<T>;
+  static_assert(std::is_same_v<typename FloatingPoint::Bits, U>,
+                "FloatingPoint::Bits matches the unsigned int representation");
+
+  constexpr U PositiveInfinity = mozilla::InfinityBits<T, 0>::value;
+  constexpr U NegativeInfinity = mozilla::InfinityBits<T, 1>::value;
 
   // Any value larger than negative infinity is a negative NaN. Place those at
   // the very end.
-  if (val > FloatingPoint::NegativeInfinity) {
+  if (val > NegativeInfinity) {
     return val;
   }
 
   // Map negative values, starting at negative infinity which is mapped to zero.
   if (val & FloatingPoint::kSignBit) {
-    return FloatingPoint::NegativeInfinity - val;
+    return NegativeInfinity - val;
   }
 
   // Map positive values right after the last negative value (negative zero).
-  return val + (FloatingPoint::PositiveInfinity + 1);
+  return val + (PositiveInfinity + 1);
 }
 
 /**
@@ -4013,20 +4003,25 @@ ToCountingSortKey(U val) {
 template <typename T, typename U>
 static constexpr typename std::enable_if_t<std::is_same_v<T, js::float16>, U>
 FromCountingSortKey(U val) {
-  using FloatingPoint = ::FloatingPoint<T>;
+  using FloatingPoint = mozilla::FloatingPoint<T>;
+  static_assert(std::is_same_v<typename FloatingPoint::Bits, U>,
+                "FloatingPoint::Bits matches the unsigned int representation");
+
+  constexpr U PositiveInfinity = mozilla::InfinityBits<T, 0>::value;
+  constexpr U NegativeInfinity = mozilla::InfinityBits<T, 1>::value;
 
   // Negative NaN are unchanged.
-  if (val > FloatingPoint::NegativeInfinity) {
+  if (val > NegativeInfinity) {
     return val;
   }
 
   // Any value larger than 0x7C00 was a positive number, including positive NaN.
-  if (val > FloatingPoint::PositiveInfinity) {
-    return val - (FloatingPoint::PositiveInfinity + 1);
+  if (val > PositiveInfinity) {
+    return val - (PositiveInfinity + 1);
   }
 
   // Any other value was a negative number, excluding negative NaN.
-  return FloatingPoint::NegativeInfinity - val;
+  return NegativeInfinity - val;
 }
 
 template <typename T>

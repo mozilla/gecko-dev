@@ -7,6 +7,8 @@
 #ifndef vm_Float16_h
 #define vm_Float16_h
 
+#include "mozilla/FloatingPoint.h"
+
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -297,6 +299,15 @@ class std::numeric_limits<js::float16> {
   static constexpr auto denorm_min() noexcept {
     return js::float16::fromRawBits(0x0001);
   }
+};
+
+template <>
+struct mozilla::detail::FloatingPointTrait<js::float16> {
+ protected:
+  using Bits = uint16_t;
+
+  static constexpr unsigned kExponentWidth = 5;
+  static constexpr unsigned kSignificandWidth = 10;
 };
 
 #endif  // vm_Float16_h
