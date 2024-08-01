@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.debugsettings.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.draggable2D
 import androidx.compose.foundation.gestures.rememberDraggable2DState
@@ -24,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -38,6 +40,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.FloatingActionButton
@@ -68,6 +71,7 @@ private const val INITIAL_FAB_OFFSET_Y = 0f
  * @param onDrawerBackButtonClick Invoked when the user taps on the back button in the app bar.
  */
 @OptIn(ExperimentalFoundationApi::class)
+@Suppress("LongMethod")
 @Composable
 fun DebugOverlay(
     navController: NavHostController,
@@ -81,6 +85,7 @@ fun DebugOverlay(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var debugDrawerFabOffsetX by remember { mutableStateOf(INITIAL_FAB_OFFSET_X) }
     var debugDrawerFabOffsetY by remember { mutableStateOf(INITIAL_FAB_OFFSET_Y) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(drawerStatus) {
         if (drawerStatus == DrawerStatus.Open) {
@@ -95,6 +100,12 @@ fun DebugOverlay(
             .collect {
                 onDrawerClose()
             }
+    }
+
+    BackHandler(enabled = drawerStatus == DrawerStatus.Open) {
+        scope.launch {
+            drawerState.close()
+        }
     }
 
     Box(
