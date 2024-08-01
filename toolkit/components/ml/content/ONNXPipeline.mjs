@@ -2,11 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// This import does not use Chromutils because the next version of the library
-// will require an async import, which is not supported by importESModule,
-// so we'll just add await here.
+/* eslint-disable-next-line mozilla/reject-import-system-module-from-non-system */
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
-import * as transformers from "chrome://global/content/ml/transformers-dev.js";
+// Conditional import - transformers will be lazily await on first usage in the Pipeline constructor.
+let transformersPromise;
+let transformers = null;
+
+if (AppConstants.NIGHTLY_BUILD) {
+  transformersPromise = import(
+    "chrome://global/content/ml/transformers-dev.js"
+  );
+} else {
+  transformersPromise = import("chrome://global/content/ml/transformers.js");
+}
 
 /**
  * Lazy initialization container.
@@ -140,11 +149,11 @@ async function imageToText(request, model, tokenizer, processor, _config) {
 const ENGINE_CONFIGURATION = {
   "moz-image-to-text": {
     modelId: "mozilla/distilvit",
-    modelClass: transformers.AutoModelForVision2Seq,
+    modelClass: "AutoModelForVision2Seq",
     tokenizerId: "mozilla/distilvit",
-    tokenizerClass: transformers.AutoTokenizer,
+    tokenizerClass: "AutoTokenizer",
     processorId: "mozilla/distilvit",
-    processorClass: transformers.AutoProcessor,
+    processorClass: "AutoProcessor",
     pipelineFunction: imageToText,
   },
   "moz-echo": {
@@ -223,15 +232,18 @@ export class Pipeline {
         debug(
           `Loading model ${config.modelId} with class ${config.modelClass}`
         );
-        this.#model = config.modelClass.from_pretrained(config.modelId, {
-          revision: config.modelRevision,
-        });
+        this.#model = transformers[config.modelClass].from_pretrained(
+          config.modelId,
+          {
+            revision: config.modelRevision,
+          }
+        );
       }
       if (config.tokenizerClass && config.tokenizerId) {
         debug(
           `Loading tokenizer ${config.tokenizerId} with class ${config.tokenizerClass}`
         );
-        this.#tokenizer = config.tokenizerClass.from_pretrained(
+        this.#tokenizer = transformers[config.tokenizerClass].from_pretrained(
           config.tokenizerId,
           { revision: config.tokenizerRevision }
         );
@@ -240,7 +252,7 @@ export class Pipeline {
         debug(
           `Loading processor ${config.processorId} with class ${config.processorClass}`
         );
-        this.#processor = config.processorClass.from_pretrained(
+        this.#processor = transformers[config.processorClass].from_pretrained(
           config.processorId,
           { revision: config.processorRevision }
         );
@@ -291,6 +303,10 @@ export class Pipeline {
 
     // Overriding the defaults with the options
     options.applyToConfig(config);
+
+    if (!transformers) {
+      transformers = await transformersPromise;
+    }
     return new Pipeline(modelCache, config);
   }
 

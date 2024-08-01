@@ -10,9 +10,9 @@ toolkit.jar:
     content/global/ml/ModelHub.sys.mjs         (content/ModelHub.sys.mjs)
     content/global/ml/ONNXPipeline.mjs         (content/ONNXPipeline.mjs)
     content/global/ml/Utils.sys.mjs            (content/Utils.sys.mjs)
-#ifdef NIGHTLY_BUILD
     content/global/ml/ort.js                   (vendor/ort.js)
-    content/global/ml/ort-dev.js               (vendor/ort-dev.js)
     content/global/ml/transformers.js          (vendor/transformers.js)
+#ifdef NIGHTLY_BUILD
+    content/global/ml/ort-dev.js               (vendor/ort-dev.js)
     content/global/ml/transformers-dev.js      (vendor/transformers-dev.js)
 #endif

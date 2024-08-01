@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// known to be loaded early in the startup process, and should be loaded eagerly
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-
 const lazy = {};
 ChromeUtils.defineESModuleGetters(
   lazy,
@@ -285,10 +282,6 @@ export class EngineProcess {
    * @returns {Promise<MLEngineParent>}
    */
   static async getMLEngineParent() {
-    // Bug 1890946 - enable the inference engine in release
-    if (!AppConstants.NIGHTLY_BUILD) {
-      throw new Error("MLEngine is only available in Nightly builds.");
-    }
     // the pref is off by default
     if (!Services.prefs.getBoolPref("browser.ml.enable")) {
       throw new Error("MLEngine is disabled. Check the browser.ml prefs.");
