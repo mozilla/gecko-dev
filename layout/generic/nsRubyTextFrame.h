@@ -27,19 +27,18 @@ class nsRubyTextFrame final : public nsRubyContentFrame {
   NS_DECL_FRAMEARENA_HELPERS(nsRubyTextFrame)
   NS_DECL_QUERYFRAME
 
-  // nsIFrame overrides
-  virtual bool CanContinueTextRun() const override;
+  bool CanContinueTextRun() const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
-  virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
-                                const nsDisplayListSet& aLists) override;
+  void BuildDisplayList(nsDisplayListBuilder* aBuilder,
+                        const nsDisplayListSet& aLists) override;
 
-  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
-                      const ReflowInput& aReflowInput,
-                      nsReflowStatus& aStatus) override;
+  void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
+              const ReflowInput& aReflowInput,
+              nsReflowStatus& aStatus) override;
 
   bool IsCollapsed() const {
     return HasAnyStateBits(NS_RUBY_TEXT_FRAME_COLLAPSED);

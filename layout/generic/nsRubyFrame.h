@@ -28,17 +28,16 @@ class nsRubyFrame final : public nsInlineFrame {
   NS_DECL_FRAMEARENA_HELPERS(nsRubyFrame)
   NS_DECL_QUERYFRAME
 
-  // nsIFrame overrides
-  virtual void AddInlineMinISize(gfxContext* aRenderingContext,
-                                 InlineMinISizeData* aData) override;
-  virtual void AddInlinePrefISize(gfxContext* aRenderingContext,
-                                  InlinePrefISizeData* aData) override;
-  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
-                      const ReflowInput& aReflowInput,
-                      nsReflowStatus& aStatus) override;
+  void AddInlineMinISize(gfxContext* aRenderingContext,
+                         InlineMinISizeData* aData) override;
+  void AddInlinePrefISize(gfxContext* aRenderingContext,
+                          InlinePrefISizeData* aData) override;
+  void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
+              const ReflowInput& aReflowInput,
+              nsReflowStatus& aStatus) override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   mozilla::RubyBlockLeadings GetBlockLeadings() const { return mLeadings; }

@@ -28,12 +28,11 @@ class nsRubyBaseContainerFrame final : public nsContainerFrame {
   NS_DECL_FRAMEARENA_HELPERS(nsRubyBaseContainerFrame)
   NS_DECL_QUERYFRAME
 
-  // nsIFrame overrides
-  virtual bool CanContinueTextRun() const override;
-  virtual void AddInlineMinISize(gfxContext* aRenderingContext,
-                                 InlineMinISizeData* aData) override;
-  virtual void AddInlinePrefISize(gfxContext* aRenderingContext,
-                                  InlinePrefISizeData* aData) override;
+  bool CanContinueTextRun() const override;
+  void AddInlineMinISize(gfxContext* aRenderingContext,
+                         InlineMinISizeData* aData) override;
+  void AddInlinePrefISize(gfxContext* aRenderingContext,
+                          InlinePrefISizeData* aData) override;
   SizeComputationResult ComputeSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
       const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
@@ -41,16 +40,16 @@ class nsRubyBaseContainerFrame final : public nsContainerFrame {
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
       mozilla::ComputeSizeFlags aFlags) override;
-  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
-                      const ReflowInput& aReflowInput,
-                      nsReflowStatus& aStatus) override;
+  void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
+              const ReflowInput& aReflowInput,
+              nsReflowStatus& aStatus) override;
 
   Maybe<nscoord> GetNaturalBaselineBOffset(
       mozilla::WritingMode aWM, BaselineSharingGroup aBaselineGroup,
       BaselineExportContext) const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   void UpdateDescendantLeadings(const mozilla::RubyBlockLeadings& aLeadings) {

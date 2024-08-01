@@ -28,7 +28,7 @@ class nsRubyBaseFrame final : public nsRubyContentFrame {
   NS_DECL_QUERYFRAME
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
  protected:
