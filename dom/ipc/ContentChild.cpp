@@ -1738,6 +1738,13 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
         ContentProcessSandboxParams::ForThisProcess(aBroker));
   }
 #  elif defined(XP_WIN)
+  // Mozilla libraries that are required for WMF software encoding. We preload
+  // them here - where failure is non-fatal - to let third-party software
+  // discover them early after an update. We thereby mitigate fatal failures
+  // elsewhere (bug 1905690).
+  ::LoadLibraryW(L"mozavcodec.dll");
+  ::LoadLibraryW(L"mozavutil.dll");
+
   if (GetEffectiveContentSandboxLevel() > 7) {
     // Library required for timely audio processing.
     ::LoadLibraryW(L"avrt.dll");
@@ -1746,9 +1753,7 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
     ::LoadLibraryW(L"softokn3.dll");
     // Library required by DirectWrite in some fall-back scenarios.
     ::LoadLibraryW(L"textshaping.dll");
-    // Libraries that are required for WMF software encoding.
-    ::LoadLibraryW(L"mozavcodec.dll");
-    ::LoadLibraryW(L"mozavutil.dll");
+    // Microsoft libraries that are required for WMF software encoding.
     ::LoadLibraryW(L"mfplat.dll");
     ::LoadLibraryW(L"mf.dll");
     ::LoadLibraryW(L"dxva2.dll");
