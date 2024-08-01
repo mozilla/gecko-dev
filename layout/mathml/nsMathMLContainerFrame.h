@@ -255,6 +255,8 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
                    ReflowOutput& aDesiredSize, const ReflowInput& aReflowInput,
                    nsReflowStatus& aStatus);
 
+  nsMargin GetBorderPaddingForPlace(const PlaceFlags& aFlags);
+
  protected:
   // helper to add the inter-spacing when <math> is the immediate parent.
   // Since we don't (yet) handle the root <math> element ourselves, we need to
@@ -291,7 +293,6 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
   // SaveReflowAndBoundingMetricsFor() from all child frames.
   void ClearSavedChildMetrics();
 
-  nsMargin GetBorderPaddingForPlace(const PlaceFlags& aFlags);
   static nsMargin GetMarginForPlace(const PlaceFlags& aFlags, nsIFrame* aChild);
 
   static void InflateReflowAndBoundingMetrics(
