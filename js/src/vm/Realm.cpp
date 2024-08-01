@@ -12,6 +12,7 @@
 #include <stddef.h>
 
 #include "jsfriendapi.h"
+#include "jsmath.h"
 
 #include "builtin/WrappedFunctionObject.h"
 #include "debugger/DebugAPI.h"
@@ -763,4 +764,12 @@ JS_PUBLIC_API Realm* JS::GetFunctionRealm(JSContext* cx, HandleObject objArg) {
     // Step 5.
     return cx->realm();
   }
+}
+
+JS_PUBLIC_API void JS::ResetRealmMathRandomSeed(JSContext* cx) {
+  MOZ_ASSERT(cx->realm());
+  auto rng = cx->realm()->getOrCreateRandomNumberGenerator();
+  mozilla::Array<uint64_t, 2> seed;
+  GenerateXorShift128PlusSeed(seed);
+  rng.setState(seed[0], seed[1]);
 }
