@@ -53,8 +53,8 @@ class ScriptErrorRunnable final : public mozilla::Runnable {
 
   static void DumpLocalizedMessage(
       const nsACString& aMessageName,
-      const mozilla::JSCallingLocation& aCallingLocation, uint32_t aSeverityFlag,
-      bool aIsChrome, uint64_t aInnerWindowID) {
+      const mozilla::JSCallingLocation& aCallingLocation,
+      uint32_t aSeverityFlag, bool aIsChrome, uint64_t aInnerWindowID) {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(!aMessageName.IsEmpty());
 
@@ -112,11 +112,12 @@ namespace mozilla::dom::indexedDB {
 
 /*static*/
 void ScriptErrorHelper::Dump(const nsAString& aMessage,
-                             const JSCallingLocation& aCallingLocation, uint32_t aSeverityFlag,
-                             bool aIsChrome, uint64_t aInnerWindowID) {
+                             const JSCallingLocation& aCallingLocation,
+                             uint32_t aSeverityFlag, bool aIsChrome,
+                             uint64_t aInnerWindowID) {
   if (NS_IsMainThread()) {
-    ScriptErrorRunnable::Dump(aMessage, aCallingLocation, aSeverityFlag, aIsChrome,
-                              aInnerWindowID);
+    ScriptErrorRunnable::Dump(aMessage, aCallingLocation, aSeverityFlag,
+                              aIsChrome, aInnerWindowID);
   } else {
     RefPtr<ScriptErrorRunnable> runnable = new ScriptErrorRunnable(
         aMessage, aCallingLocation, aSeverityFlag, aIsChrome, aInnerWindowID);
@@ -125,17 +126,17 @@ void ScriptErrorHelper::Dump(const nsAString& aMessage,
 }
 
 /*static*/
-void ScriptErrorHelper::DumpLocalizedMessage(const nsACString& aMessageName,
-                                             const JSCallingLocation& aCallingLocation,
-                                             uint32_t aSeverityFlag,
-                                             bool aIsChrome,
-                                             uint64_t aInnerWindowID) {
+void ScriptErrorHelper::DumpLocalizedMessage(
+    const nsACString& aMessageName, const JSCallingLocation& aCallingLocation,
+    uint32_t aSeverityFlag, bool aIsChrome, uint64_t aInnerWindowID) {
   if (NS_IsMainThread()) {
-    ScriptErrorRunnable::DumpLocalizedMessage(aMessageName, aCallingLocation, aSeverityFlag,
-                                              aIsChrome, aInnerWindowID);
+    ScriptErrorRunnable::DumpLocalizedMessage(aMessageName, aCallingLocation,
+                                              aSeverityFlag, aIsChrome,
+                                              aInnerWindowID);
   } else {
-    RefPtr<ScriptErrorRunnable> runnable = new ScriptErrorRunnable(
-        aMessageName, aCallingLocation, aSeverityFlag, aIsChrome, aInnerWindowID);
+    RefPtr<ScriptErrorRunnable> runnable =
+        new ScriptErrorRunnable(aMessageName, aCallingLocation, aSeverityFlag,
+                                aIsChrome, aInnerWindowID);
     MOZ_ALWAYS_SUCCEEDS(SchedulerGroup::Dispatch(runnable.forget()));
   }
 }
