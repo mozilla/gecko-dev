@@ -160,7 +160,7 @@ if CONFIG["MOZ_LINUX_32_SSE2_STARTUP_ERROR"]:
     DEFINES["MOZ_LINUX_32_SSE2_STARTUP_ERROR"] = True
     COMPILE_FLAGS["OS_CXXFLAGS"] = [
         f
-        for f in COMPILE_FLAGS.get("OS_CXXFLAGS", [])
+        for f in COMPILE_FLAGS["OS_CXXFLAGS"]
         if not f.startswith("-march=") and f not in ("-msse", "-msse2", "-mfpmath=sse")
     ] + [
         "-mno-sse",
