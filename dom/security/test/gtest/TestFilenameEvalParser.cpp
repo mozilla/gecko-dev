@@ -237,7 +237,7 @@ TEST(FilenameEvalParser, Other)
         nsContentSecurityUtils::FilenameToFilenameType(str, false);
 #if defined(XP_WIN)
     ASSERT_TRUE(ret.first == kSanitizedWindowsPath &&
-                ret.second.value() == u"thing"_ns);
+                ret.second.value() == "thing"_ns);
 #else
     ASSERT_TRUE(ret.first == kOther && !ret.second.isSome());
 #endif
