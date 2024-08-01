@@ -214,6 +214,33 @@ void MacroAssemblerARM::convertInt32ToFloat32(const Address& src,
   as_vcvt(dest, VFPRegister(scratch).sintOverlay());
 }
 
+void MacroAssemblerARM::convertFloat32ToFloat16(FloatRegister src,
+                                                FloatRegister dest) {
+  MOZ_ASSERT(ARMFlags::HasFPHalfPrecision());
+  MOZ_ASSERT(src.isSingle());
+  MOZ_ASSERT(dest.isSingle());
+
+  as_vcvtb_s2h(dest, src);
+}
+
+void MacroAssemblerARM::convertFloat16ToFloat32(FloatRegister src,
+                                                FloatRegister dest) {
+  MOZ_ASSERT(ARMFlags::HasFPHalfPrecision());
+  MOZ_ASSERT(src.isSingle());
+  MOZ_ASSERT(dest.isSingle());
+
+  as_vcvtb_h2s(dest, src);
+}
+
+void MacroAssemblerARM::convertInt32ToFloat16(Register src,
+                                              FloatRegister dest) {
+  // Convert Int32 to Float32.
+  convertInt32ToFloat32(src, dest);
+
+  // Convert Float32 to Float16.
+  convertFloat32ToFloat16(dest, dest);
+}
+
 bool MacroAssemblerARM::alu_dbl(Register src1, Imm32 imm, Register dest,
                                 ALUOp op, SBit s, Condition c) {
   if ((s == SetCC && !condsAreSafe(op)) || !can_dbl(op)) {
@@ -1922,6 +1949,22 @@ FaultingCodeOffset MacroAssemblerARMCompat::loadFloat32(const BaseIndex& src,
   BufferOffset boffset = ma_vldr(Address(scratch, offset),
                                  VFPRegister(dest).singleOverlay(), scratch2);
   return FaultingCodeOffset(boffset.getOffset());
+}
+
+FaultingCodeOffset MacroAssemblerARMCompat::loadFloat16(const Address& address,
+                                                        FloatRegister dest,
+                                                        Register scratch) {
+  auto fco = load16ZeroExtend(address, scratch);
+  ma_vxfer(scratch, dest);
+  return fco;
+}
+
+FaultingCodeOffset MacroAssemblerARMCompat::loadFloat16(const BaseIndex& src,
+                                                        FloatRegister dest,
+                                                        Register scratch) {
+  auto fco = load16ZeroExtend(src, scratch);
+  ma_vxfer(scratch, dest);
+  return fco;
 }
 
 void MacroAssemblerARMCompat::store8(Imm32 imm, const Address& address) {

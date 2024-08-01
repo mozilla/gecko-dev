@@ -25,11 +25,17 @@ void MacroAssembler::move64(Imm64 imm, Register64 dest) {
 }
 
 void MacroAssembler::moveFloat16ToGPR(FloatRegister src, Register dest) {
-  MOZ_CRASH("Not supported for this target");
+  ma_vxfer(src, dest);
+
+  // Ensure the hi-word is zeroed.
+  as_uxth(dest, dest, 0);
 }
 
 void MacroAssembler::moveGPRToFloat16(Register src, FloatRegister dest) {
-  MOZ_CRASH("Not supported for this target");
+  // Ensure the hi-word is zeroed.
+  as_uxth(src, src, 0);
+
+  ma_vxfer(src, dest);
 }
 
 void MacroAssembler::moveFloat32ToGPR(FloatRegister src, Register dest) {
@@ -2543,12 +2549,18 @@ FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat32(
 }
 
 FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
-    FloatRegister src, const Address& dest, Register) {
-  MOZ_CRASH("Not supported for this target");
+    FloatRegister src, const Address& dest, Register scratch) {
+  ma_vxfer(src, scratch);
+
+  // store16 uses |strh|, which supports unaligned access.
+  return store16(scratch, dest);
 }
 FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
-    FloatRegister src, const BaseIndex& dest, Register) {
-  MOZ_CRASH("Not supported for this target");
+    FloatRegister src, const BaseIndex& dest, Register scratch) {
+  ma_vxfer(src, scratch);
+
+  // store16 uses |strh|, which supports unaligned access.
+  return store16(scratch, dest);
 }
 
 void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
