@@ -11,6 +11,7 @@ label {
 }
 
 input {
+  -moz-theme: non-native;
   font-size: inherit;
   min-height: var(--radio-size);
   min-width: var(--radio-size);
