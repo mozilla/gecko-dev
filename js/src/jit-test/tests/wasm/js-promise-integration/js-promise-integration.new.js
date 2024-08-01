@@ -235,7 +235,8 @@ test(t => {
 
 // TODO: Test suspension with funcref.
 
-test(t => {
+const androidForArm = getBuildConfiguration("android") && getBuildConfiguration("arm");
+!androidForArm && test(t => {
   // The call stack of this test looks like:
   // export1 -> import1 -> export2 -> import2
   // Where export1 is "promising" and import2 is "suspending". Returning a
