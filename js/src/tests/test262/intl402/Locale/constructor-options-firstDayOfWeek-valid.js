@@ -48,7 +48,7 @@ const validFirstDayOfWeekOptions = [
   [6, "en-u-fw-sat"],
   [7, "en-u-fw-sun"],
   [0, "en-u-fw-sun"],
-  [true, "en-u-fw-true"],
+  [true, "en-u-fw"],
   [false, "en-u-fw-false"],
   [null, "en-u-fw-null"],
   ["primidi", "en-u-fw-primidi"],

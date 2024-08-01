@@ -20,7 +20,7 @@ let resizeTo;
 // resizeTo. To be called by a method of the view being collected.
 // Note that rab, values, resizeAfter, and resizeTo may need to be reset before
 // calling this.
-function ResizeBufferMidIteration(n) {
+function ResizeMidIteration(n) {
   CollectValuesAndResize(n, values, rab, resizeAfter, resizeTo);
   return false;
 }
@@ -37,7 +37,7 @@ for (let ctor of ctors) {
   values = [];
   resizeAfter = 2;
   resizeTo = 5 * ctor.BYTES_PER_ELEMENT;
-  assert.sameValue(fixedLength.findIndex(ResizeBufferMidIteration), -1);
+  assert.sameValue(fixedLength.findIndex(ResizeMidIteration), -1);
   assert.compareArray(values, [
     0,
     2,
@@ -51,7 +51,7 @@ for (let ctor of ctors) {
   values = [];
   resizeAfter = 1;
   resizeTo = 5 * ctor.BYTES_PER_ELEMENT;
-  assert.sameValue(fixedLengthWithOffset.findIndex(ResizeBufferMidIteration), -1);
+  assert.sameValue(fixedLengthWithOffset.findIndex(ResizeMidIteration), -1);
   assert.compareArray(values, [
     4,
     6
@@ -63,7 +63,7 @@ for (let ctor of ctors) {
   values = [];
   resizeAfter = 2;
   resizeTo = 5 * ctor.BYTES_PER_ELEMENT;
-  assert.sameValue(lengthTracking.findIndex(ResizeBufferMidIteration), -1);
+  assert.sameValue(lengthTracking.findIndex(ResizeMidIteration), -1);
   assert.compareArray(values, [
     0,
     2,
@@ -77,7 +77,7 @@ for (let ctor of ctors) {
   values = [];
   resizeAfter = 1;
   resizeTo = 5 * ctor.BYTES_PER_ELEMENT;
-  assert.sameValue(lengthTrackingWithOffset.findIndex(ResizeBufferMidIteration), -1);
+  assert.sameValue(lengthTrackingWithOffset.findIndex(ResizeMidIteration), -1);
   assert.compareArray(values, [
     4,
     6

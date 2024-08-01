@@ -5,8 +5,7 @@
 /*---
 esid: sec-array.prototype.filter
 description: >
-  Array.p.filter behaves correctly on receivers backed by resizable
-  buffers
+  Array.p.filter behaves correctly on TypedArrays backed by resizable buffers.
 includes: [compareArray.js, resizableArrayBufferUtils.js]
 features: [resizable-arraybuffer]
 ---*/

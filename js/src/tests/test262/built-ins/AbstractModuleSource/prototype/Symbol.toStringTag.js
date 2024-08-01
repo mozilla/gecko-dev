@@ -24,8 +24,11 @@ includes: [propertyHelper.js]
 assert.sameValue(typeof $262.AbstractModuleSource, 'function');
 verifyProperty($262.AbstractModuleSource.prototype, Symbol.toStringTag, {
   enumerable: false,
-  configurable: false,
-  writable: false,
+  configurable: true,
+  set: undefined,
+  value: undefined,
+}, {
+  restore: true,
 });
 
 // Return undefined if this value does not have a [[ModuleSourceClassName]] internal slot.

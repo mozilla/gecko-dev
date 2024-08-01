@@ -244,7 +244,7 @@ var TemporalHelpers = {
    * Return the canonical era code.
    */
   canonicalizeCalendarEra(calendarId, eraName) {
-    assert.sameValue(typeof calendarId, "string");
+    assert.sameValue(typeof calendarId, "string", "calendar must be string in canonicalizeCalendarEra");
 
     if (calendarId === "iso8601") {
       assert.sameValue(eraName, undefined);
@@ -255,7 +255,7 @@ var TemporalHelpers = {
     if (eraName === undefined) {
       return undefined;
     }
-    assert.sameValue(typeof eraName, "string");
+    assert.sameValue(typeof eraName, "string", "eraName must be string or undefined in canonicalizeCalendarEra");
 
     for (let {era, aliases = []} of TemporalHelpers.CalendarEras[calendarId]) {
       if (era === eraName || aliases.includes(eraName)) {

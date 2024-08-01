@@ -4,6 +4,7 @@
 /*---
 esid: sec-uint8array.prototype.setfromhex
 description: Uint8Array.prototype.setFromHex decodes and writes pairs which occur prior to bad data
+includes: [compareArray.js]
 features: [uint8array-base64, TypedArray]
 ---*/
 

@@ -1,8 +1,5 @@
-commit 7b154389cef54d6b0a14a03b52f20db1aa3ab05c
-Author: Frank Tang <ftang@chromium.org>
-Date:   Tue Jul 9 13:51:47 2024 -0700
+commit 616dcadff406451eb249c6170253c5ff7486a3ea
+Author: Sosuke Suzuki <aosukeke@gmail.com>
+Date:   Tue Jul 30 14:24:39 2024 +0900
 
-    Update firstDay test to latest spec after PR 79
-    
-    Spec Changes merged
-    https://github.com/tc39/proposal-intl-locale-info/pull/79
+    Fix escaped `a`
