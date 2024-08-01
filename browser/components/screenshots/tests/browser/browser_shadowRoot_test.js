@@ -16,11 +16,11 @@ add_task(async function test_selectingElementsInShadowRoots() {
         async () => {
           let firstTestPageDiv = content.document
             .querySelector("div")
-            .shadowRoot.querySelector("#testPageElement");
+            .openOrClosedShadowRoot.querySelector("#testPageElement");
 
-          let secondTestPageDiv = firstTestPageDiv.shadowRoot
+          let secondTestPageDiv = firstTestPageDiv.openOrClosedShadowRoot
             .querySelector("div")
-            .shadowRoot.querySelector("#nestedTestPageElement");
+            .openOrClosedShadowRoot.querySelector("#nestedTestPageElement");
 
           return [
             firstTestPageDiv.getBoundingClientRect(),
