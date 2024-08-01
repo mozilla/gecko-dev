@@ -38,7 +38,6 @@ support-files = ["searchTelemetryAd_searchbox_with_content.html", "serp.css"]
 ["browser_search_telemetry_adblock_count.js"]
 
 ["browser_search_telemetry_categorization_experiment_info.js"]
-skip-if = ["artifact"]
 support-files = ["searchTelemetryDomainCategorizationReporting.html"]
 
 ["browser_search_telemetry_categorization_missing_impression.js"]
