@@ -20,7 +20,6 @@ add_task(async function customScriptError() {
   scriptError.init(
     "foo",
     "file.js",
-    null,
     1,
     2,
     Ci.nsIScriptError.warningFlag,
@@ -74,13 +73,13 @@ add_task(async function callFunctionAndLogExceptionWithChromeGlobal() {
 
   Assert.equal(lastMessage.errorMessage, "Error: custom exception");
   Assert.equal(lastMessage.sourceName, _TEST_FILE);
-  Assert.equal(lastMessage.lineNumber, 56);
+  Assert.equal(lastMessage.lineNumber, 55);
   Assert.equal(lastMessage.columnNumber, 13);
   Assert.equal(lastMessage.flags, Ci.nsIScriptError.errorFlag);
   Assert.equal(lastMessage.category, "chrome javascript");
   Assert.ok(lastMessage.stack, "It has a stack");
   Assert.equal(lastMessage.stack.source, _TEST_FILE);
-  Assert.equal(lastMessage.stack.line, 56);
+  Assert.equal(lastMessage.stack.line, 55);
   Assert.equal(lastMessage.stack.column, 13);
   Assert.ok(!!lastMessage.stack.parent, "stack has a parent frame");
   Assert.equal(
@@ -115,13 +114,13 @@ add_task(async function callFunctionAndLogExceptionWithContentGlobal() {
 
   Assert.equal(lastMessage.errorMessage, "Error: another custom exception");
   Assert.equal(lastMessage.sourceName, _TEST_FILE);
-  Assert.equal(lastMessage.lineNumber, 97);
+  Assert.equal(lastMessage.lineNumber, 96);
   Assert.equal(lastMessage.columnNumber, 13);
   Assert.equal(lastMessage.flags, Ci.nsIScriptError.errorFlag);
   Assert.equal(lastMessage.category, "content javascript");
   Assert.ok(lastMessage.stack, "It has a stack");
   Assert.equal(lastMessage.stack.source, _TEST_FILE);
-  Assert.equal(lastMessage.stack.line, 97);
+  Assert.equal(lastMessage.stack.line, 96);
   Assert.equal(lastMessage.stack.column, 13);
   Assert.ok(!!lastMessage.stack.parent, "stack has a parent frame");
   Assert.ok(
