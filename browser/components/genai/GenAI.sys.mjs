@@ -300,6 +300,7 @@ export const GenAI = {
                     document.createXULElement("toolbarbutton")
                   );
                   button.className = "subviewbutton";
+                  button.setAttribute("tabindex", "0");
                   button.textContent = promptObj.label;
                   return button;
                 },
