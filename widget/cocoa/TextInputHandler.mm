@@ -5195,7 +5195,7 @@ void IMEInputHandler::ShowTextSubstitutionPanel() {
     return NSMakeRect(0, 0, 0, 0);
   }();
 
-  if (!Destroyed()) {
+  if (Destroyed()) {
     return;
   }
 
