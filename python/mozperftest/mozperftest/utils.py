@@ -13,6 +13,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -631,3 +632,15 @@ def get_pretty_app_name(app):
     # for the binary to allow us to get the version/app info
     # so that we can get a pretty name on desktop.
     return PRETTY_APP_NAMES[app]
+
+
+def archive_folder(folder_to_archive, output_path, archive_name=None):
+    """Archives the specified folder into a tar.gz file."""
+    if not archive_name:
+        archive_name = folder_to_archive.name
+
+    full_archive_path = output_path / (archive_name + ".tgz")
+    with tarfile.open(str(full_archive_path), "w:gz") as tar:
+        tar.add(folder_to_archive, arcname=archive_name)
+
+    return full_archive_path

@@ -5,6 +5,7 @@
 ACTIVITY="org.mozilla.fenix.HomeActivity"
 XML_FILE=$TESTING_DIR/window_dump.xml
 XMLSTARLET_CMD=${XMLSTARLET:-xmlstarlet}
+TEST_TIME=$1
 
 URL_MOZILLA="https://www.mozilla.org/"
 
@@ -134,14 +135,12 @@ function appToBackground() {
     sleep 2
 }
 
+surfingSingleSite $URL_MOZILLA
+appToBackground
+
 # at this point our system is ready, the buttons' coordinates are generated
 # test starts after this line
 touch $TESTING_DIR/test_start.signal
-
-surfingSingleSite $URL_MOZILLA
-appToBackground
-sleep 600 # wait 10 mins in the background
-
-tail -8 $TESTING_DIR/tmp.txt
+sleep $(($TEST_TIME+10)) # wait 10 mins in the background
 touch $TESTING_DIR/test_end.signal
 adb shell am force-stop $BROWSER_BINARY

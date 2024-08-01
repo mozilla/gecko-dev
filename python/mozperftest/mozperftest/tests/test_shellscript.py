@@ -2,6 +2,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+import pathlib
 from unittest import mock
 
 import mozunit
@@ -10,6 +11,7 @@ import pytest
 from mozperftest.environment import TEST
 from mozperftest.test.shellscript import ShellScriptRunner, UnknownScriptError
 from mozperftest.tests.support import EXAMPLE_SHELL_TEST, get_running_env
+from mozperftest.utils import temp_dir
 
 
 def running_env(**kw):
@@ -18,7 +20,7 @@ def running_env(**kw):
 
 def test_shell_script_metric_parsing():
     mach_cmd, metadata, env = running_env(
-        app="firefox", tests=[str(EXAMPLE_SHELL_TEST)]
+        app="firefox", tests=[str(EXAMPLE_SHELL_TEST)], output=None
     )
 
     runner = ShellScriptRunner(env, mach_cmd)
@@ -42,25 +44,65 @@ def test_shell_script_metric_parsing():
     assert len(parsed_metrics[1]["values"]) == 1
 
 
+@pytest.mark.parametrize(
+    "on_try_setting",
+    [
+        [True],
+        [False],
+    ],
+)
+@mock.patch("mozperftest.test.shellscript.temp_dir")
 @mock.patch("mozperftest.test.shellscript.ShellScriptRunner.parse_metrics")
 @mock.patch("mozperftest.test.shellscript.mozprocess.run_and_wait")
-def test_shell_script(mocked_mozprocess, mocked_metrics):
-    mach_cmd, metadata, env = running_env(
-        app="firefox", tests=[str(EXAMPLE_SHELL_TEST)]
-    )
+def test_shell_script(
+    mocked_mozprocess, mocked_metrics, mocked_temp_dir, on_try_setting
+):
+    with mock.patch(
+        "mozperftest.test.shellscript.ON_TRY", new=on_try_setting
+    ), temp_dir() as tmp_output_dir, temp_dir() as tmp_testing_dir:
+        mach_cmd, metadata, env = running_env(
+            app="firefox", tests=[str(EXAMPLE_SHELL_TEST)], output=tmp_output_dir
+        )
 
-    mocked_metrics.return_value = [
-        {"name": "metric1", "values": [1, 2]},
-    ]
+        mocked_metrics.return_value = [
+            {"name": "metric1", "values": [1, 2]},
+        ]
 
-    customscript = env.layers[TEST]
-    metadata.binary = "a_binary"
-    with customscript as c:
-        c(metadata)
+        with pathlib.Path(tmp_testing_dir, "tmp.txt").open("w") as f:
+            f.write("sample output")
+        mocked_temp_dir.return_value.__enter__.return_value = tmp_testing_dir
 
-    res = metadata.get_results()
-    assert len(res) == 1
-    assert "metric1" == res[0]["results"][0]["name"]
+        customscript = env.layers[TEST]
+        metadata.binary = "a_binary"
+        with customscript as c:
+            c(metadata)
+
+        # Check that the output is handled properly
+        if on_try_setting:
+            assert (
+                len(
+                    list(
+                        pathlib.Path(tmp_output_dir).glob(
+                            f"{metadata.script['name']}.tgz"
+                        )
+                    )
+                )
+                == 1
+            )
+        else:
+            tmp_output_dir_path = pathlib.Path(tmp_output_dir)
+            assert len(list(tmp_output_dir_path.glob("custom-script-test"))) == 1
+
+            run_folders = list(
+                pathlib.Path(tmp_output_dir_path / "custom-script-test").glob("*")
+            )
+            assert len(run_folders) == 1
+            assert len(list(run_folders[0].glob("*"))) == 1
+
+        # Check that the results are properly parsed
+        res = metadata.get_results()
+        assert len(res) == 1
+        assert "metric1" == res[0]["results"][0]["name"]
 
 
 def test_shell_script_unknown_type_error():

@@ -3,13 +3,16 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import json
 import os
+import pathlib
 import platform
+import shutil
 import signal
+import time
 
 import mozprocess
 
 from mozperftest.layers import Layer
-from mozperftest.utils import temp_dir
+from mozperftest.utils import ON_TRY, archive_folder, temp_dir
 
 
 class UnknownScriptError(Exception):
@@ -143,6 +146,23 @@ class ShellScriptRunner(Layer):
                 output_timeout_handler=output_timeout_handler,
                 text=False,
             )
+
+            if self.get_arg("output"):
+                if ON_TRY:
+                    # In CI, make an archive of the files and upload those
+                    archive_folder(
+                        pathlib.Path(testing_dir),
+                        pathlib.Path(self.get_arg("output")),
+                        archive_name=test["name"],
+                    )
+                else:
+                    output_dir = pathlib.Path(
+                        self.get_arg("output"),
+                        test["name"],
+                        f"run-{str(time.time()).split('.')[0]}",
+                    )
+                    self.info(f"Copying testing directory to {output_dir}")
+                    shutil.copytree(testing_dir, output_dir)
 
         metadata.add_result(
             {

@@ -14,6 +14,7 @@ import pytest
 
 from mozperftest.tests.support import EXAMPLE_TESTS_DIR, requests_content, temp_file
 from mozperftest.utils import (
+    archive_folder,
     build_test_list,
     checkout_python_script,
     convert_day,
@@ -28,6 +29,7 @@ from mozperftest.utils import (
     load_class,
     load_class_from_path,
     silence,
+    temp_dir,
 )
 
 
@@ -39,14 +41,12 @@ def test_silence():
 def test_host_platform():
     plat = host_platform()
 
-    # a bit useless... :)
     if sys.platform.startswith("darwin"):
         assert plat == "darwin"
+    elif sys.maxsize > 2**32:
+        assert "64" in plat
     else:
-        if sys.maxsize > 2**32:
-            assert "64" in plat
-        else:
-            assert "64" not in plat
+        assert "64" not in plat
 
 
 def get_raise(*args, **kw):
@@ -263,6 +263,18 @@ def test_create_path():
         assert path.exists()
     finally:
         shutil.rmtree(path.parent.parent)
+
+
+def test_archive_folder():
+    with temp_dir() as input_dir, temp_dir():
+        input_dir_path = Path(input_dir)
+        output_dir_path = Path(input_dir)
+
+        archive_folder(input_dir_path, output_dir_path)
+        assert len(list(output_dir_path.glob(f"{input_dir_path.name}.tgz"))) == 1
+
+        archive_folder(input_dir_path, output_dir_path, archive_name="testing")
+        assert len(list(output_dir_path.glob("testing.tgz"))) == 1
 
 
 if __name__ == "__main__":

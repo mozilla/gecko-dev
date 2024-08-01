@@ -382,12 +382,12 @@ hw-a51-record-websites:
             --hooks testing/performance/hooks_recording.py
             testing/performance/perftest_record.js
 
-hw-a51-background-cpu-fenix:
+hw-a51-background-resource-fenix:
     worker-type: t-bitbar-gw-perf-a51
     run-on-projects: [mozilla-central]
-    description: Run background CPU test on Fenix on a Samsung A51
+    description: Run background resource test with Fenix on a Samsung A51
     treeherder:
-        symbol: perftest-fenix(background-cpu)
+        symbol: perftest-fenix(background-rsrc)
         tier: 2
     platform: android-hw-a51-11-0-aarch64-shippable/opt
     attributes:
@@ -405,8 +405,9 @@ hw-a51-background-cpu-fenix:
             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
             cd $GECKO_PATH &&
             python3 python/mozperftest/mozperftest/runner.py
-            testing/performance/background-cpu/main.sh
+            testing/performance/background-resource/main.sh
             --app fenix
             --android
             --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
-            --hooks testing/performance/background-cpu/hooks_background_cpu.py
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks testing/performance/background-resource/hooks_background_resource.py
