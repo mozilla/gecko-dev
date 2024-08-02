@@ -5,9 +5,10 @@ const { GenAI } = ChromeUtils.importESModule(
   "resource:///modules/GenAI.sys.mjs"
 );
 
-registerCleanupFunction(() =>
-  Services.prefs.clearUserPref("browser.ml.chat.provider")
-);
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("browser.ml.chat.provider");
+  Services.prefs.clearUserPref("browser.ml.chat.providers");
+});
 
 /**
  * Check various provider ids are converted
@@ -31,4 +32,37 @@ add_task(async function test_provider_id() {
     "http://mochi.test:8888"
   );
   Assert.equal(GenAI.getProviderId(), "custom", "Used custom pref");
+});
+
+/**
+ * Check that providers can be hidden
+ */
+add_task(async function test_hide_providers() {
+  GenAI.init();
+  const chatgpt = GenAI.chatProviders.get("https://chatgpt.com");
+
+  Assert.ok(!chatgpt.hidden, "ChatGPT shown by default");
+
+  Services.prefs.setStringPref("browser.ml.chat.providers", "");
+
+  Assert.ok(chatgpt.hidden, "ChatGPT hidden");
+});
+
+/**
+ * Check that providers can be ordered
+ */
+add_task(async function test_providers_order() {
+  Services.prefs.setStringPref(
+    "browser.ml.chat.providers",
+    "huggingchat,chatgpt"
+  );
+
+  const shown = [];
+  GenAI.chatProviders.forEach(val => {
+    if (!val.hidden) {
+      shown.push(val.id);
+    }
+  });
+
+  Assert.equal(shown, "huggingchat,chatgpt", "Providers reordered");
 });
