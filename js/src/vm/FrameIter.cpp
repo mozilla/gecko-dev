@@ -202,15 +202,13 @@ void JitFrameIter::settle() {
 
     MOZ_ASSERT(wasmFrame.done());
     uint8_t* prevFP = wasmFrame.unwoundCallerFP();
-    jit::FrameType prevFrameType = wasmFrame.unwoundJitFrameType();
 
     if (mustUnwindActivation_) {
       act_->setJSExitFP(prevFP);
     }
 
     iter_.destroy();
-    iter_.construct<jit::JSJitFrameIter>(act_, prevFrameType, prevFP,
-                                         mustUnwindActivation_);
+    iter_.construct<jit::JSJitFrameIter>(act_, prevFP, mustUnwindActivation_);
     MOZ_ASSERT(!asJSJit().done());
     return;
   }

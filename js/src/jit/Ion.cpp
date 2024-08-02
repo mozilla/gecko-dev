@@ -2325,18 +2325,13 @@ static void InvalidateActivation(JS::GCContext* gcx,
 
   for (OnlyJSJitFrameIter iter(activations); !iter.done(); ++iter, ++frameno) {
     const JSJitFrameIter& frame = iter.frame();
-    MOZ_ASSERT_IF(frameno == 1, frame.isExitFrame() ||
-                                    frame.type() == FrameType::Bailout ||
-                                    frame.type() == FrameType::JSJitToWasm);
+    MOZ_ASSERT_IF(frameno == 1,
+                  frame.isExitFrame() || frame.type() == FrameType::Bailout);
 
 #ifdef JS_JITSPEW
     switch (frame.type()) {
       case FrameType::Exit:
         JitSpew(JitSpew_IonInvalidate, "#%zu exit frame @ %p", frameno,
-                frame.fp());
-        break;
-      case FrameType::JSJitToWasm:
-        JitSpew(JitSpew_IonInvalidate, "#%zu wasm exit frame @ %p", frameno,
                 frame.fp());
         break;
       case FrameType::BaselineJS:

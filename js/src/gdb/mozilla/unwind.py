@@ -49,7 +49,6 @@ SizeOfFramePrefix = {
     "FrameType::BaselineStub": "BaselineStubFrameLayout",
     "FrameType::CppToJSJit": "JitFrameLayout",
     "FrameType::WasmToJSJit": "JitFrameLayout",
-    "FrameType::JSJitToWasm": "JitFrameLayout",
     "FrameType::Rectifier": "RectifierFrameLayout",
     "FrameType::IonAccessorIC": "IonAccessorICFrameLayout",
     "FrameType::IonICCall": "IonICCallFrameLayout",

@@ -38,20 +38,16 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation)
   MOZ_ASSERT(!TlsContext.get()->inUnsafeCallWithABI);
 }
 
-JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
-                               FrameType frameType, uint8_t* fp, bool unwinding)
-    : current_(fp), type_(frameType), activation_(activation) {
+JSJitFrameIter::JSJitFrameIter(const JitActivation* activation, uint8_t* fp,
+                               bool unwinding)
+    : current_(fp), type_(FrameType::Exit), activation_(activation) {
   // This constructor is only used when resuming iteration after iterating Wasm
   // frames in the same JitActivation so ignore activation_->bailoutData().
-  //
-  // Note: FrameType::JSJitToWasm is used for JIT => Wasm calls through the Wasm
-  // JIT entry trampoline. FrameType::Exit is used for direct Ion => Wasm calls.
   if (unwinding) {
     MOZ_ASSERT(fp == activation->jsExitFP());
   } else {
     MOZ_ASSERT(fp > activation->jsOrWasmExitFP());
   }
-  MOZ_ASSERT(type_ == FrameType::JSJitToWasm || type_ == FrameType::Exit);
   MOZ_ASSERT(!TlsContext.get()->inUnsafeCallWithABI);
 }
 
@@ -408,9 +404,6 @@ void JSJitFrameIter::dump() const {
       break;
     case FrameType::Exit:
       fprintf(stderr, " Exit frame\n");
-      break;
-    case FrameType::JSJitToWasm:
-      fprintf(stderr, " Wasm exit frame\n");
       break;
   };
   fputc('\n', stderr);
@@ -815,7 +808,6 @@ void JSJitProfilingFrameIterator::moveToNextFrame(CommonFrameLayout* frame) {
     case FrameType::TrampolineNative:
     case FrameType::Exit:
     case FrameType::Bailout:
-    case FrameType::JSJitToWasm:
       // Rectifier and Baseline Interpreter entry frames are handled before
       // this switch. The other frame types can't call JS functions directly.
       break;

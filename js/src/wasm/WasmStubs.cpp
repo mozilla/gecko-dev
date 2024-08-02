@@ -932,29 +932,40 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
   //
   // GenerateJitEntryPrologue has additionally pushed the caller's frame
   // pointer. The stack pointer is now JitStackAlignment-aligned.
+  //
+  // We initialize an ExitFooterFrame (with ExitFrameType::WasmGenericJitEntry)
+  // immediately below the frame pointer to ensure FP is a valid JS JIT exit
+  // frame.
 
   MOZ_ASSERT(masm.framePushed() == 0);
 
-  unsigned normalBytesNeeded = StackArgBytesForWasmABI(funcType);
+  unsigned normalBytesNeeded =
+      ExitFooterFrame::Size() + StackArgBytesForWasmABI(funcType);
 
   MIRTypeVector coerceArgTypes;
   MOZ_ALWAYS_TRUE(coerceArgTypes.append(MIRType::Int32));
   MOZ_ALWAYS_TRUE(coerceArgTypes.append(MIRType::Pointer));
   MOZ_ALWAYS_TRUE(coerceArgTypes.append(MIRType::Pointer));
-  unsigned oolBytesNeeded = StackArgBytesForWasmABI(coerceArgTypes);
+  unsigned oolBytesNeeded =
+      ExitFooterFrame::Size() + StackArgBytesForWasmABI(coerceArgTypes);
 
   unsigned bytesNeeded = std::max(normalBytesNeeded, oolBytesNeeded);
 
   // Note the jit caller ensures the stack is aligned *after* the call
   // instruction.
-  unsigned frameSizeExclFP = StackDecrementForCall(
-      WasmStackAlignment, masm.framePushed(), bytesNeeded);
+  unsigned frameSize = StackDecrementForCall(WasmStackAlignment,
+                                             masm.framePushed(), bytesNeeded);
 
   // Reserve stack space for wasm ABI arguments, set up like this:
   // <-- ABI args | padding
-  masm.reserveStack(frameSizeExclFP);
+  masm.reserveStack(frameSize);
 
-  uint32_t frameSize = masm.framePushed();
+  MOZ_ASSERT(masm.framePushed() == frameSize);
+
+  // Initialize the ExitFooterFrame.
+  static_assert(ExitFooterFrame::Size() == sizeof(uintptr_t));
+  masm.storePtr(ImmWord(uint32_t(ExitFrameType::WasmGenericJitEntry)),
+                Address(FramePointer, -int32_t(ExitFooterFrame::Size())));
 
   GenerateJitEntryLoadInstance(masm);
 
@@ -1198,9 +1209,6 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
   CallFuncExport(masm, fe, funcPtr);
   masm.assertStackAlignment(WasmStackAlignment);
 
-  // Pop arguments.
-  masm.freeStackTo(frameSize - frameSizeExclFP);
-
   GenPrintf(DebugChannel::Function, masm, "wasm-function[%d]; returns ",
             fe.funcIndex());
 
@@ -1234,18 +1242,11 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
         break;
       }
       case ValType::I64: {
-        Label fail, done;
         GenPrintI64(DebugChannel::Function, masm, ReturnReg64);
-        GenerateBigIntInitialization(masm, 0, ReturnReg64, scratchG, fe, &fail);
+        MOZ_ASSERT(masm.framePushed() == frameSize);
+        GenerateBigIntInitialization(masm, 0, ReturnReg64, scratchG, fe,
+                                     &exception);
         masm.boxNonDouble(JSVAL_TYPE_BIGINT, scratchG, JSReturnOperand);
-        masm.jump(&done);
-        masm.bind(&fail);
-        // Fixup the stack for the exception tail so that we can share it.
-        masm.reserveStack(frameSizeExclFP);
-        masm.jump(&exception);
-        masm.bind(&done);
-        // Un-fixup the stack for the benefit of the assertion below.
-        masm.setFramePushed(0);
         break;
       }
       case ValType::V128: {
@@ -1263,9 +1264,11 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
     }
   }
 
-  GenPrintf(DebugChannel::Function, masm, "\n");
+  // Pop frame.
+  masm.moveToStackPtr(FramePointer);
+  masm.setFramePushed(0);
 
-  MOZ_ASSERT(masm.framePushed() == 0);
+  GenPrintf(DebugChannel::Function, masm, "\n");
 
   AssertExpectedSP(masm);
   GenerateJitEntryEpilogue(masm, offsets);
@@ -1318,14 +1321,14 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
     // No widening is required, as the return value is used as a bool.
     masm.branchTest32(Assembler::NonZero, ReturnReg, ReturnReg,
                       &rejoinBeforeCall);
+
+    MOZ_ASSERT(masm.framePushed() == frameSize);
     hasFallThroughForException = true;
   }
 
-  // Prepare to throw: reload InstanceReg from the frame.
-  masm.bind(&exception);
-  masm.setFramePushed(frameSize);
   if (exception.used() || hasFallThroughForException) {
-    masm.freeStackTo(frameSize);
+    masm.bind(&exception);
+    masm.setFramePushed(frameSize);
     GenerateJitEntryThrow(masm, frameSize);
   }
 

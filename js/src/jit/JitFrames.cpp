@@ -1429,14 +1429,6 @@ static void TraceRectifierFrame(JSTracer* trc, const JSJitFrameIter& frame) {
   TraceRoot(trc, &layout->thisv(), "rectifier-thisv");
 }
 
-static void TraceJSJitToWasmFrame(JSTracer* trc, const JSJitFrameIter& frame) {
-  // This is doing a subset of TraceIonJSFrame, since the callee doesn't
-  // have a script.
-  JitFrameLayout* layout = (JitFrameLayout*)frame.fp();
-  layout->replaceCalleeToken(TraceCalleeToken(trc, layout->calleeToken()));
-  TraceThisAndArguments(trc, frame, layout);
-}
-
 static void TraceTrampolineNativeFrame(JSTracer* trc,
                                        const JSJitFrameIter& frame) {
   auto* layout = (TrampolineNativeFrameLayout*)frame.fp();
@@ -1506,9 +1498,6 @@ static void TraceJitActivation(JSTracer* trc, JitActivation* activation) {
           // Ignore: this is a special marker used to let the
           // JitFrameIter know the frame above is a wasm frame, handled
           // in the next iteration.
-          break;
-        case FrameType::JSJitToWasm:
-          TraceJSJitToWasmFrame(trc, jitFrame);
           break;
         default:
           MOZ_CRASH("unexpected frame type");

@@ -69,7 +69,8 @@ class WasmFrameIter {
   Frame* fp_;
   Instance* instance_;
   uint8_t* unwoundCallerFP_;
-  mozilla::Maybe<jit::FrameType> unwoundJitFrameType_;
+  // Whether unwoundCallerFP_ is a JS JIT exit frame.
+  bool hasUnwoundJitFrame_ = false;
   Unwind unwind_;
   void** unwoundAddressOfReturnAddress_;
   uint8_t* resumePCinCurrentFrame_;
@@ -98,7 +99,6 @@ class WasmFrameIter {
   void** unwoundAddressOfReturnAddress() const;
   bool debugEnabled() const;
   DebugFrame* debugFrame() const;
-  jit::FrameType unwoundJitFrameType() const;
   bool hasUnwoundJitFrame() const;
   uint8_t* unwoundCallerFP() const { return unwoundCallerFP_; }
   Frame* frame() const { return fp_; }
