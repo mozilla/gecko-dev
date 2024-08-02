@@ -15076,7 +15076,7 @@
   # issue (bug 1682304 and 1704373).
 -   name: security.sandbox.cig.prespawn.enabled
     type: RelaxedAtomicBool
-    value: false
+    value: @IS_NIGHTLY_BUILD@
     mirror: always
 
   # This controls the depth of stack trace that is logged when Windows sandbox
