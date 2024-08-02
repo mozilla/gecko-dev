@@ -300,9 +300,15 @@ if (AppConstants.NIGHTLY_BUILD) {
       // directly by developers via the chrome URI (bug 1888491)
       { file: "chrome://browser/content/backup/debug.html" },
 
-      // The Transformers.js prod lib is not used in Nightly builds
-      { file: "chrome://global/content/ml/transformers.js" },
+      // ONNX runtime production version not used in Nightly builds
       { file: "chrome://global/content/ml/ort.js" },
+    ]
+  );
+} else {
+  allowlist.push(
+    ...[
+      // ONNX runtime dev version not used in non-Nightly builds
+      { file: "chrome://global/content/ml/ort.js-dev" },
     ]
   );
 }
