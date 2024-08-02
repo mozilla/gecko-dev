@@ -90,8 +90,6 @@ gfxFontEntry::~gfxFontEntry() {
   // Should not be dropped by stylo
   MOZ_ASSERT(!gfxFontUtils::IsInServoTraversal());
 
-  AutoWriteLock lock(mLock);
-
   hb_blob_destroy(mCOLR.exchange(nullptr));
   hb_blob_destroy(mCPAL.exchange(nullptr));
 
@@ -114,8 +112,7 @@ gfxFontEntry::~gfxFontEntry() {
     }
   }
 
-  mFontTableCache.reset(nullptr);
-
+  delete mFontTableCache.exchange(nullptr);
   delete mSVGGlyphs.exchange(nullptr);
   delete[] mUVSData.exchange(nullptr);
 
@@ -516,29 +513,48 @@ hb_blob_t* gfxFontEntry::FontTableHashEntry::GetBlob() const {
 }
 
 bool gfxFontEntry::GetExistingFontTable(uint32_t aTag, hb_blob_t** aBlob) {
-  AutoReadLock lock(mLock);
-
+  // Accessing the mFontTableCache pointer is atomic, so we don't need to take
+  // a write lock even if we're initializing it here...
+  MOZ_PUSH_IGNORE_THREAD_SAFETY
   if (MOZ_UNLIKELY(!mFontTableCache)) {
+    // We do this here rather than on fontEntry construction
+    // because not all shapers will access the table cache at all.
+    //
+    // We're not holding a write lock, so make sure to atomically update
+    // the cache pointer.
+    auto* newCache = new FontTableCache(8);
+    if (MOZ_UNLIKELY(!mFontTableCache.compareExchange(nullptr, newCache))) {
+      delete newCache;
+    }
+  }
+  FontTableCache* cache = GetFontTableCache();
+  MOZ_POP_THREAD_SAFETY
+
+  // ...but we do need a lock to read the actual hashtable contents.
+  AutoReadLock lock(mLock);
+  FontTableHashEntry* entry = cache->GetEntry(aTag);
+  if (!entry) {
     return false;
   }
 
-  if (const auto* entry = mFontTableCache->GetEntry(aTag)) {
-    *aBlob = entry->GetBlob();
-    return true;
-  }
-
-  return false;
+  *aBlob = entry->GetBlob();
+  return true;
 }
 
 hb_blob_t* gfxFontEntry::ShareFontTableAndGetBlob(uint32_t aTag,
                                                   nsTArray<uint8_t>* aBuffer) {
-  AutoWriteLock lock(mLock);
-
+  MOZ_PUSH_IGNORE_THREAD_SAFETY
   if (MOZ_UNLIKELY(!mFontTableCache)) {
-    mFontTableCache = MakeUnique<FontTableCache>(8);
+    auto* newCache = new FontTableCache(8);
+    if (MOZ_UNLIKELY(!mFontTableCache.compareExchange(nullptr, newCache))) {
+      delete newCache;
+    }
   }
+  FontTableCache* cache = GetFontTableCache();
+  MOZ_POP_THREAD_SAFETY
 
-  FontTableHashEntry* entry = mFontTableCache->PutEntry(aTag);
+  AutoWriteLock lock(mLock);
+  FontTableHashEntry* entry = cache->PutEntry(aTag);
   if (MOZ_UNLIKELY(!entry)) {  // OOM
     return nullptr;
   }
@@ -549,8 +565,7 @@ hb_blob_t* gfxFontEntry::ShareFontTableAndGetBlob(uint32_t aTag,
     return nullptr;
   }
 
-  return entry->ShareTableAndGetBlob(std::move(*aBuffer),
-                                     mFontTableCache.get());
+  return entry->ShareTableAndGetBlob(std::move(*aBuffer), cache);
 }
 
 already_AddRefed<gfxCharacterMap> gfxFontEntry::GetCMAPFromFontInfo(
@@ -1414,7 +1429,7 @@ void gfxFontEntry::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
     AutoReadLock lock(mLock);
     if (mFontTableCache) {
       aSizes->mFontTableCacheSize +=
-          mFontTableCache->SizeOfIncludingThis(aMallocSizeOf);
+          GetFontTableCache()->SizeOfIncludingThis(aMallocSizeOf);
     }
   }
 
