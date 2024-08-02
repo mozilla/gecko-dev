@@ -199,12 +199,7 @@ class FileSaver {
     );
   }
 
-  async save({
-    blobUrl,
-    filename,
-    originalUrl,
-    options: { openInExternalApp },
-  }) {
+  async save({ blobUrl, filename, originalUrl }) {
     try {
       const isPrivate = lazy.PrivateBrowsingUtils.isBrowserPrivate(
         this.#browser
@@ -227,7 +222,7 @@ class FileSaver {
           originalUrl,
           isPrivate,
           skipConfirmation: true,
-          requestExternalApp: !!openInExternalApp,
+          requestExternalApp: false,
         });
       }
       lazy.PdfJsTelemetry.onGeckoview("download_succeeded");

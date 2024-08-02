@@ -899,7 +899,7 @@ class BaseCMapReaderFactory {
     name
   }) {
     if (!this.baseUrl) {
-      throw new Error('The CMap "baseUrl" parameter must be specified, ensure that ' + 'the "cMapUrl" and "cMapPacked" API parameters are provided.');
+      throw new Error("Ensure that the `cMapUrl` and `cMapPacked` API parameters are provided.");
     }
     if (!name) {
       throw new Error("CMap name must be specified.");
@@ -927,7 +927,7 @@ class BaseStandardFontDataFactory {
     filename
   }) {
     if (!this.baseUrl) {
-      throw new Error('The standard font "baseUrl" parameter must be specified, ensure that ' + 'the "standardFontDataUrl" API parameter is provided.');
+      throw new Error("Ensure that the `standardFontDataUrl` API parameter is provided.");
     }
     if (!filename) {
       throw new Error("Font filename must be specified.");
@@ -2202,6 +2202,7 @@ class AnnotationEditorUIManager {
   #editorsToRescale = new Set();
   #enableHighlightFloatingButton = false;
   #enableUpdatedAddImage = false;
+  #enableNewAltTextWhenAddingImage = false;
   #filterFactory = null;
   #focusMainContainerTimeoutId = null;
   #highlightColors = null;
@@ -2228,6 +2229,7 @@ class AnnotationEditorUIManager {
   #boundOnEditingAction = this.onEditingAction.bind(this);
   #boundOnPageChanging = this.onPageChanging.bind(this);
   #boundOnScaleChanging = this.onScaleChanging.bind(this);
+  #boundOnSetPreference = this.onSetPreference.bind(this);
   #boundOnRotationChanging = this.onRotationChanging.bind(this);
   #previousStates = {
     isEditing: false,
@@ -2301,16 +2303,27 @@ class AnnotationEditorUIManager {
       checker: arrowChecker
     }]]));
   }
-  constructor(container, viewer, altTextManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, enableUpdatedAddImage, mlManager) {
-    this._signal = this.#abortController.signal;
+  constructor(container, viewer, altTextManager, eventBus, pdfDocument, pageColors, highlightColors, enableHighlightFloatingButton, enableUpdatedAddImage, enableNewAltTextWhenAddingImage, mlManager) {
+    const signal = this._signal = this.#abortController.signal;
     this.#container = container;
     this.#viewer = viewer;
     this.#altTextManager = altTextManager;
     this._eventBus = eventBus;
-    this._eventBus._on("editingaction", this.#boundOnEditingAction);
-    this._eventBus._on("pagechanging", this.#boundOnPageChanging);
-    this._eventBus._on("scalechanging", this.#boundOnScaleChanging);
-    this._eventBus._on("rotationchanging", this.#boundOnRotationChanging);
+    this._eventBus._on("editingaction", this.#boundOnEditingAction, {
+      signal
+    });
+    this._eventBus._on("pagechanging", this.#boundOnPageChanging, {
+      signal
+    });
+    this._eventBus._on("scalechanging", this.#boundOnScaleChanging, {
+      signal
+    });
+    this._eventBus._on("rotationchanging", this.#boundOnRotationChanging, {
+      signal
+    });
+    this._eventBus._on("setpreference", this.#boundOnSetPreference, {
+      signal
+    });
     this.#addSelectionListener();
     this.#addDragAndDropListeners();
     this.#addKeyboardManager();
@@ -2320,6 +2333,7 @@ class AnnotationEditorUIManager {
     this.#highlightColors = highlightColors || null;
     this.#enableHighlightFloatingButton = enableHighlightFloatingButton;
     this.#enableUpdatedAddImage = enableUpdatedAddImage;
+    this.#enableNewAltTextWhenAddingImage = enableNewAltTextWhenAddingImage;
     this.#mlManager = mlManager || null;
     this.viewParameters = {
       realScale: PixelsPerInch.PDF_TO_CSS_UNITS,
@@ -2331,10 +2345,6 @@ class AnnotationEditorUIManager {
     this.#abortController?.abort();
     this.#abortController = null;
     this._signal = null;
-    this._eventBus._off("editingaction", this.#boundOnEditingAction);
-    this._eventBus._off("pagechanging", this.#boundOnPageChanging);
-    this._eventBus._off("scalechanging", this.#boundOnScaleChanging);
-    this._eventBus._off("rotationchanging", this.#boundOnRotationChanging);
     for (const layer of this.#allLayers.values()) {
       layer.destroy();
     }
@@ -2356,14 +2366,14 @@ class AnnotationEditorUIManager {
       this.#translationTimeoutId = null;
     }
   }
-  async mlGuess(data) {
-    return this.#mlManager?.guess(data) || null;
-  }
-  async isMLEnabledFor(name) {
-    return !!(await this.#mlManager?.isEnabledFor(name));
+  get mlManager() {
+    return this.#mlManager;
   }
   get useNewAltTextFlow() {
     return this.#enableUpdatedAddImage;
+  }
+  get useNewAltTextWhenAddingImage() {
+    return this.#enableNewAltTextWhenAddingImage;
   }
   get hcmFilter() {
     return shadow(this, "hcmFilter", this.#pageColors ? this.#filterFactory.addHCMFilter(this.#pageColors.foreground, this.#pageColors.background) : "none");
@@ -2380,8 +2390,8 @@ class AnnotationEditorUIManager {
   setMainHighlightColorPicker(colorPicker) {
     this.#mainHighlightColorPicker = colorPicker;
   }
-  editAltText(editor) {
-    this.#altTextManager?.editAltText(this, editor);
+  editAltText(editor, firstTime = false) {
+    this.#altTextManager?.editAltText(this, editor, firstTime);
   }
   switchToMode(mode, callback) {
     this._eventBus.on("annotationeditormodechanged", callback, {
@@ -2399,6 +2409,16 @@ class AnnotationEditorUIManager {
       name,
       value
     });
+  }
+  onSetPreference({
+    name,
+    value
+  }) {
+    switch (name) {
+      case "enableNewAltTextWhenAddingImage":
+        this.#enableNewAltTextWhenAddingImage = value;
+        break;
+    }
   }
   onPageChanging({
     pageNumber
@@ -3506,16 +3526,21 @@ class AnnotationEditorUIManager {
 ;// CONCATENATED MODULE: ./src/display/editor/alt_text.js
 
 class AltText {
-  #altText = "";
+  #altText = null;
   #altTextDecorative = false;
   #altTextButton = null;
   #altTextTooltip = null;
   #altTextTooltipTimeout = null;
   #altTextWasFromKeyBoard = false;
+  #badge = null;
   #editor = null;
+  #guessedText = null;
+  #textWithDisclaimer = null;
+  #useNewAltTextFlow = false;
   static _l10nPromise = null;
   constructor(editor) {
     this.#editor = editor;
+    this.#useNewAltTextFlow = editor._uiManager.useNewAltTextFlow;
   }
   static initialize(l10nPromise) {
     AltText._l10nPromise ||= l10nPromise;
@@ -3523,7 +3548,13 @@ class AltText {
   async render() {
     const altText = this.#altTextButton = document.createElement("button");
     altText.className = "altText";
-    const msg = await AltText._l10nPromise.get("pdfjs-editor-alt-text-button-label");
+    let msg;
+    if (this.#useNewAltTextFlow) {
+      altText.classList.add("new");
+      msg = await AltText._l10nPromise.get("pdfjs-editor-new-alt-text-missing-button-label");
+    } else {
+      msg = await AltText._l10nPromise.get("pdfjs-editor-alt-text-button-label");
+    }
     altText.textContent = msg;
     altText.setAttribute("aria-label", msg);
     altText.tabIndex = "0";
@@ -3563,7 +3594,54 @@ class AltText {
     this.#altTextWasFromKeyBoard = false;
   }
   isEmpty() {
+    if (this.#useNewAltTextFlow) {
+      return this.#altText === null;
+    }
     return !this.#altText && !this.#altTextDecorative;
+  }
+  hasData() {
+    if (this.#useNewAltTextFlow) {
+      return this.#altText !== null || !!this.#guessedText;
+    }
+    return this.isEmpty();
+  }
+  get guessedText() {
+    return this.#guessedText;
+  }
+  async setGuessedText(guessedText) {
+    if (this.#altText !== null) {
+      return;
+    }
+    this.#guessedText = guessedText;
+    this.#textWithDisclaimer = await AltText._l10nPromise.get("pdfjs-editor-new-alt-text-generated-alt-text-with-disclaimer")({
+      generatedAltText: guessedText
+    });
+    this.#setState();
+  }
+  toggleAltTextBadge(visibility = false) {
+    if (!this.#useNewAltTextFlow || this.#altText) {
+      this.#badge?.remove();
+      this.#badge = null;
+      return;
+    }
+    if (!this.#badge) {
+      const badge = this.#badge = document.createElement("div");
+      badge.className = "noAltTextBadge";
+      this.#editor.div.append(badge);
+    }
+    this.#badge.classList.toggle("hidden", !visibility);
+  }
+  serialize(isForCopying) {
+    let altText = this.#altText;
+    if (!isForCopying && this.#guessedText === altText) {
+      altText = this.#textWithDisclaimer;
+    }
+    return {
+      altText,
+      decorative: this.#altTextDecorative,
+      guessedText: this.#guessedText,
+      textWithDisclaimer: this.#textWithDisclaimer
+    };
   }
   get data() {
     return {
@@ -3573,13 +3651,22 @@ class AltText {
   }
   set data({
     altText,
-    decorative
+    decorative,
+    guessedText,
+    textWithDisclaimer,
+    cancel = false
   }) {
+    if (guessedText) {
+      this.#guessedText = guessedText;
+      this.#textWithDisclaimer = textWithDisclaimer;
+    }
     if (this.#altText === altText && this.#altTextDecorative === decorative) {
       return;
     }
-    this.#altText = altText;
-    this.#altTextDecorative = decorative;
+    if (!cancel) {
+      this.#altText = altText;
+      this.#altTextDecorative = decorative;
+    }
     this.#setState();
   }
   toggle(enabled = false) {
@@ -3596,21 +3683,41 @@ class AltText {
     this.#altTextButton?.remove();
     this.#altTextButton = null;
     this.#altTextTooltip = null;
+    this.#badge?.remove();
+    this.#badge = null;
   }
   async #setState() {
     const button = this.#altTextButton;
     if (!button) {
       return;
     }
-    if (!this.#altText && !this.#altTextDecorative) {
-      button.classList.remove("done");
-      this.#altTextTooltip?.remove();
-      return;
+    if (this.#useNewAltTextFlow) {
+      const type = this.#altText && "added" || this.#altText === null && this.guessedText && "to-review" || "missing";
+      button.classList.toggle("done", !!this.#altText);
+      AltText._l10nPromise.get(`pdfjs-editor-new-alt-text-${type}-button-label`).then(msg => {
+        button.setAttribute("aria-label", msg);
+        for (const child of button.childNodes) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            child.textContent = msg;
+            break;
+          }
+        }
+      });
+      if (!this.#altText) {
+        this.#altTextTooltip?.remove();
+        return;
+      }
+    } else {
+      if (!this.#altText && !this.#altTextDecorative) {
+        button.classList.remove("done");
+        this.#altTextTooltip?.remove();
+        return;
+      }
+      button.classList.add("done");
+      AltText._l10nPromise.get("pdfjs-editor-alt-text-edit-button-label").then(msg => {
+        button.setAttribute("aria-label", msg);
+      });
     }
-    button.classList.add("done");
-    AltText._l10nPromise.get("pdfjs-editor-alt-text-edit-button-label").then(msg => {
-      button.setAttribute("aria-label", msg);
-    });
     let tooltip = this.#altTextTooltip;
     if (!tooltip) {
       this.#altTextTooltip = tooltip = document.createElement("span");
@@ -3672,7 +3779,6 @@ class AnnotationEditor {
   #savedDimensions = null;
   #boundFocusin = this.focusin.bind(this);
   #boundFocusout = this.focusout.bind(this);
-  #editToolbar = null;
   #focusedResizerName = "";
   #hasBeenClicked = false;
   #initialPosition = null;
@@ -3683,6 +3789,7 @@ class AnnotationEditor {
   #prevDragX = 0;
   #prevDragY = 0;
   #telemetryTimeouts = null;
+  _editToolbar = null;
   _initialOptions = Object.create(null);
   _isVisible = true;
   _uiManager = null;
@@ -3767,7 +3874,8 @@ class AnnotationEditor {
     fakeEditor._uiManager.addToAnnotationStorage(fakeEditor);
   }
   static initialize(l10n, _uiManager, options) {
-    AnnotationEditor._l10nPromise ||= new Map(["pdfjs-editor-alt-text-button-label", "pdfjs-editor-alt-text-edit-button-label", "pdfjs-editor-alt-text-decorative-tooltip", "pdfjs-editor-resizer-label-topLeft", "pdfjs-editor-resizer-label-topMiddle", "pdfjs-editor-resizer-label-topRight", "pdfjs-editor-resizer-label-middleRight", "pdfjs-editor-resizer-label-bottomRight", "pdfjs-editor-resizer-label-bottomMiddle", "pdfjs-editor-resizer-label-bottomLeft", "pdfjs-editor-resizer-label-middleLeft"].map(str => [str, l10n.get(str.replaceAll(/([A-Z])/g, c => `-${c.toLowerCase()}`))]));
+    AnnotationEditor._l10nPromise ||= new Map(["pdfjs-editor-alt-text-button-label", "pdfjs-editor-alt-text-edit-button-label", "pdfjs-editor-alt-text-decorative-tooltip", "pdfjs-editor-new-alt-text-added-button-label", "pdfjs-editor-new-alt-text-missing-button-label", "pdfjs-editor-new-alt-text-to-review-button-label", "pdfjs-editor-resizer-label-topLeft", "pdfjs-editor-resizer-label-topMiddle", "pdfjs-editor-resizer-label-topRight", "pdfjs-editor-resizer-label-middleRight", "pdfjs-editor-resizer-label-bottomRight", "pdfjs-editor-resizer-label-bottomMiddle", "pdfjs-editor-resizer-label-bottomLeft", "pdfjs-editor-resizer-label-middleLeft"].map(str => [str, l10n.get(str.replaceAll(/([A-Z])/g, c => `-${c.toLowerCase()}`))]));
+    AnnotationEditor._l10nPromise.set("pdfjs-editor-new-alt-text-generated-alt-text-with-disclaimer", l10n.get.bind(l10n, "pdfjs-editor-new-alt-text-generated-alt-text-with-disclaimer"));
     if (options?.strings) {
       for (const str of options.strings) {
         AnnotationEditor._l10nPromise.set(str, l10n.get(str));
@@ -4277,22 +4385,22 @@ class AnnotationEditor {
     this.#altText?.finish();
   }
   async addEditToolbar() {
-    if (this.#editToolbar || this.#isInEditMode) {
-      return this.#editToolbar;
+    if (this._editToolbar || this.#isInEditMode) {
+      return this._editToolbar;
     }
-    this.#editToolbar = new EditorToolbar(this);
-    this.div.append(this.#editToolbar.render());
+    this._editToolbar = new EditorToolbar(this);
+    this.div.append(this._editToolbar.render());
     if (this.#altText) {
-      this.#editToolbar.addAltTextButton(await this.#altText.render());
+      this._editToolbar.addAltTextButton(await this.#altText.render());
     }
-    return this.#editToolbar;
+    return this._editToolbar;
   }
   removeEditToolbar() {
-    if (!this.#editToolbar) {
+    if (!this._editToolbar) {
       return;
     }
-    this.#editToolbar.remove();
-    this.#editToolbar = null;
+    this._editToolbar.remove();
+    this._editToolbar = null;
     this.#altText?.destroy();
   }
   getClientDimensions() {
@@ -4319,8 +4427,20 @@ class AnnotationEditor {
     }
     this.#altText.data = data;
   }
+  get guessedAltText() {
+    return this.#altText?.guessedText;
+  }
+  async setGuessedAltText(text) {
+    await this.#altText?.setGuessedText(text);
+  }
+  serializeAltText(isForCopying) {
+    return this.#altText?.serialize(isForCopying);
+  }
   hasAltText() {
-    return !this.#altText?.isEmpty();
+    return !!this.#altText && !this.#altText.isEmpty();
+  }
+  hasAltTextData() {
+    return this.#altText?.hasData() ?? false;
   }
   render() {
     this.div = document.createElement("div");
@@ -4678,15 +4798,16 @@ class AnnotationEditor {
   select() {
     this.makeResizable();
     this.div?.classList.add("selectedEditor");
-    if (!this.#editToolbar) {
+    if (!this._editToolbar) {
       this.addEditToolbar().then(() => {
         if (this.div?.classList.contains("selectedEditor")) {
-          this.#editToolbar?.show();
+          this._editToolbar?.show();
         }
       });
       return;
     }
-    this.#editToolbar?.show();
+    this._editToolbar?.show();
+    this.#altText?.toggleAltTextBadge(false);
   }
   unselect() {
     this.#resizersDiv?.classList.add("hidden");
@@ -4696,7 +4817,8 @@ class AnnotationEditor {
         preventScroll: true
       });
     }
-    this.#editToolbar?.hide();
+    this._editToolbar?.hide();
+    this.#altText?.toggleAltTextBadge(true);
   }
   updateParams(type, value) {}
   disableEditing() {}
@@ -9580,7 +9702,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.5.128",
+    apiVersion: "4.5.195",
     data,
     password,
     disableAutoFetch,
@@ -10305,12 +10427,11 @@ class LoopbackPort {
     this.#listeners.clear();
   }
 }
-const PDFWorkerUtil = {
-  isWorkerDisabled: false,
-  fakeWorkerId: 0
-};
 class PDFWorker {
+  static #fakeWorkerId = 0;
+  static #isWorkerDisabled = false;
   static #workerPorts;
+  static {}
   constructor({
     name = null,
     port = null,
@@ -10344,7 +10465,7 @@ class PDFWorker {
     throw new Error("Not implemented: _initializeFromPort");
   }
   _initialize() {
-    if (PDFWorkerUtil.isWorkerDisabled || PDFWorker.#mainThreadWorkerMessageHandler) {
+    if (PDFWorker.#isWorkerDisabled || PDFWorker.#mainThreadWorkerMessageHandler) {
       this._setupFakeWorker();
       return;
     }
@@ -10409,9 +10530,9 @@ class PDFWorker {
     this._setupFakeWorker();
   }
   _setupFakeWorker() {
-    if (!PDFWorkerUtil.isWorkerDisabled) {
+    if (!PDFWorker.#isWorkerDisabled) {
       warn("Setting up fake worker.");
-      PDFWorkerUtil.isWorkerDisabled = true;
+      PDFWorker.#isWorkerDisabled = true;
     }
     PDFWorker._setupFakeWorkerGlobal.then(WorkerMessageHandler => {
       if (this.destroyed) {
@@ -10420,7 +10541,7 @@ class PDFWorker {
       }
       const port = new LoopbackPort();
       this._port = port;
-      const id = `fake${PDFWorkerUtil.fakeWorkerId++}`;
+      const id = `fake${PDFWorker.#fakeWorkerId++}`;
       const workerHandler = new MessageHandler(id + "_worker", id, port);
       WorkerMessageHandler.setup(workerHandler, port);
       this._messageHandler = new MessageHandler(id, id + "_worker", port);
@@ -11251,8 +11372,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.5.128";
-const build = "33493301b";
+const version = "4.5.195";
+const build = "a372bf8f4";
 
 ;// CONCATENATED MODULE: ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -16991,7 +17112,6 @@ class StampEditor extends AnnotationEditor {
   #bitmapFile = null;
   #bitmapFileName = "";
   #canvas = null;
-  #hasMLBeenQueried = false;
   #observer = null;
   #resizeTimeoutId = null;
   #isSvg = false;
@@ -17024,6 +17144,12 @@ class StampEditor extends AnnotationEditor {
       bitmapFile: item.getAsFile()
     });
   }
+  altTextFinish() {
+    if (this._uiManager.useNewAltTextFlow) {
+      this.div.hidden = false;
+    }
+    super.altTextFinish();
+  }
   #getBitmapFetched(data, fromId = false) {
     if (!data) {
       this.remove();
@@ -17042,9 +17168,55 @@ class StampEditor extends AnnotationEditor {
   #getBitmapDone() {
     this.#bitmapPromise = null;
     this._uiManager.enableWaiting(false);
-    if (this.#canvas) {
-      this.div.focus();
+    if (!this.#canvas) {
+      return;
     }
+    if (this._uiManager.useNewAltTextWhenAddingImage && this._uiManager.useNewAltTextFlow && this.#bitmap) {
+      this._editToolbar.hide();
+      this._uiManager.editAltText(this, true);
+      return;
+    }
+    if (!this._uiManager.useNewAltTextWhenAddingImage && this._uiManager.useNewAltTextFlow && this.#bitmap) {
+      this.mlGuessAltText();
+    }
+    this.div.focus();
+  }
+  async mlGuessAltText(imageData = null, updateAltTextData = true) {
+    if (this.hasAltTextData()) {
+      return null;
+    }
+    const {
+      mlManager
+    } = this._uiManager;
+    if (!mlManager || !(await mlManager.isEnabledFor("altText"))) {
+      return null;
+    }
+    const {
+      data,
+      width,
+      height
+    } = imageData || this.copyCanvas(null, true).imageData;
+    const response = await mlManager.guess({
+      name: "altText",
+      request: {
+        data,
+        width,
+        height,
+        channels: data.length / (width * height)
+      }
+    });
+    if (!response || response.error || !response.output) {
+      return null;
+    }
+    const altText = response.output;
+    await this.setGuessedAltText(altText);
+    if (updateAltTextData && !this.hasAltTextData()) {
+      this.altTextData = {
+        alt: altText,
+        decorative: false
+      };
+    }
+    return altText;
   }
   #getBitmap() {
     if (this.#bitmapId) {
@@ -17181,7 +17353,9 @@ class StampEditor extends AnnotationEditor {
     this._uiManager.enableWaiting(false);
     const canvas = this.#canvas = document.createElement("canvas");
     div.append(canvas);
-    div.hidden = false;
+    if (!this._uiManager.useNewAltTextWhenAddingImage || !this._uiManager.useNewAltTextFlow) {
+      div.hidden = false;
+    }
     this.#drawBitmap(width, height);
     this.#createObserver();
     if (!this.#hasBeenAddedInUndoStack) {
@@ -17194,6 +17368,71 @@ class StampEditor extends AnnotationEditor {
     if (this.#bitmapFileName) {
       canvas.setAttribute("aria-label", this.#bitmapFileName);
     }
+  }
+  copyCanvas(maxDimension, createImageData = false) {
+    if (!maxDimension) {
+      maxDimension = 224;
+    }
+    const {
+      width: bitmapWidth,
+      height: bitmapHeight
+    } = this.#bitmap;
+    const canvas = document.createElement("canvas");
+    let bitmap = this.#bitmap;
+    let width = bitmapWidth,
+      height = bitmapHeight;
+    if (bitmapWidth > maxDimension || bitmapHeight > maxDimension) {
+      const ratio = Math.min(maxDimension / bitmapWidth, maxDimension / bitmapHeight);
+      width = Math.floor(bitmapWidth * ratio);
+      height = Math.floor(bitmapHeight * ratio);
+      if (!this.#isSvg) {
+        bitmap = this.#scaleBitmap(width, height);
+      }
+    }
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.filter = this._uiManager.hcmFilter;
+    let white = "white",
+      black = "#cfcfd8";
+    if (this._uiManager.hcmFilter !== "none") {
+      black = "black";
+    } else if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
+      white = "#8f8f9d";
+      black = "#42414d";
+    }
+    const boxDim = 15;
+    const pattern = new OffscreenCanvas(boxDim * 2, boxDim * 2);
+    const patternCtx = pattern.getContext("2d");
+    patternCtx.fillStyle = white;
+    patternCtx.fillRect(0, 0, boxDim * 2, boxDim * 2);
+    patternCtx.fillStyle = black;
+    patternCtx.fillRect(0, 0, boxDim, boxDim);
+    patternCtx.fillRect(boxDim, boxDim, boxDim, boxDim);
+    ctx.fillStyle = ctx.createPattern(pattern, "repeat");
+    ctx.fillRect(0, 0, width, height);
+    if (createImageData) {
+      const offscreen = new OffscreenCanvas(width, height);
+      const offscreenCtx = offscreen.getContext("2d", {
+        willReadFrequently: true
+      });
+      offscreenCtx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, width, height);
+      const data = offscreenCtx.getImageData(0, 0, width, height).data;
+      ctx.drawImage(offscreen, 0, 0);
+      return {
+        canvas,
+        imageData: {
+          width,
+          height,
+          data
+        }
+      };
+    }
+    ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, width, height);
+    return {
+      canvas,
+      imageData: null
+    };
   }
   #setDimensions(width, height) {
     const [parentWidth, parentHeight] = this.parentDimensions;
@@ -17239,37 +17478,6 @@ class StampEditor extends AnnotationEditor {
     }
     return bitmap;
   }
-  async #mlGuessAltText(bitmap, width, height) {
-    if (this.#hasMLBeenQueried) {
-      return;
-    }
-    this.#hasMLBeenQueried = true;
-    const isMLEnabled = await this._uiManager.isMLEnabledFor("altText");
-    if (!isMLEnabled || this.hasAltText()) {
-      return;
-    }
-    const offscreen = new OffscreenCanvas(width, height);
-    const ctx = offscreen.getContext("2d", {
-      willReadFrequently: true
-    });
-    ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, width, height);
-    const response = await this._uiManager.mlGuess({
-      service: "moz-image-to-text",
-      request: {
-        data: ctx.getImageData(0, 0, width, height).data,
-        width,
-        height,
-        channels: 4
-      }
-    });
-    const altText = response?.output || "";
-    if (this.parent && altText && !this.hasAltText()) {
-      this.altTextData = {
-        altText,
-        decorative: false
-      };
-    }
-  }
   #drawBitmap(width, height) {
     width = Math.ceil(width);
     height = Math.ceil(height);
@@ -17280,7 +17488,6 @@ class StampEditor extends AnnotationEditor {
     canvas.width = width;
     canvas.height = height;
     const bitmap = this.#isSvg ? this.#bitmap : this.#scaleBitmap(width, height);
-    this.#mlGuessAltText(bitmap, width, height);
     const ctx = canvas.getContext("2d");
     ctx.filter = this._uiManager.hcmFilter;
     ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, width, height);
@@ -17375,13 +17582,13 @@ class StampEditor extends AnnotationEditor {
     };
     if (isForCopying) {
       serialized.bitmapUrl = this.#serializeBitmap(true);
-      serialized.accessibilityData = this.altTextData;
+      serialized.accessibilityData = this.serializeAltText(true);
       return serialized;
     }
     const {
       decorative,
       altText
-    } = this.altTextData;
+    } = this.serializeAltText(false);
     if (!decorative && altText) {
       serialized.accessibilityData = {
         type: "Figure",
@@ -18236,8 +18443,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.5.128";
-const pdfjsBuild = "33493301b";
+const pdfjsVersion = "4.5.195";
+const pdfjsBuild = "a372bf8f4";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

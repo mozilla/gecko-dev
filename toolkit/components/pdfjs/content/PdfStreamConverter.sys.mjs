@@ -343,7 +343,7 @@ class ChromeActions {
   }
 
   download(data) {
-    const { originalUrl, options } = data;
+    const { originalUrl } = data;
     const blobUrl = data.blobUrl || originalUrl;
     let { filename } = data;
     if (
@@ -352,13 +352,11 @@ class ChromeActions {
     ) {
       filename = "document.pdf";
     }
-
     const actor = getActor(this.domWindow);
     actor.sendAsyncMessage("PDFJS:Parent:saveURL", {
       blobUrl,
       originalUrl,
       filename,
-      options: options || {},
     });
   }
 

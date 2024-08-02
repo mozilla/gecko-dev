@@ -638,6 +638,10 @@ const defaultOptions = {
     value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
+  enableAltTextModelDownload: {
+    value: true,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
   enableGuessAltText: {
     value: true,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
@@ -648,6 +652,10 @@ const defaultOptions = {
   },
   enableHighlightFloatingButton: {
     value: false,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
+  enableNewAltTextWhenAddingImage: {
+    value: true,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
   enablePermissions: {
@@ -812,14 +820,19 @@ const defaultOptions = {
     kind: OptionKind.WORKER
   }
 };
-const userOptions = new Map();
 class AppOptions {
   static eventBus;
+  static #opts = new Map();
+  static {
+    for (const name in defaultOptions) {
+      this.#opts.set(name, defaultOptions[name].value);
+    }
+  }
   constructor() {
     throw new Error("Cannot initialize AppOptions.");
   }
   static get(name) {
-    return userOptions.has(name) ? userOptions.get(name) : defaultOptions[name]?.value;
+    return this.#opts.get(name);
   }
   static getAll(kind = null, defaultOnly = false) {
     const options = Object.create(null);
@@ -828,16 +841,14 @@ class AppOptions {
       if (kind && !(kind & defaultOpt.kind)) {
         continue;
       }
-      options[name] = !defaultOnly && userOptions.has(name) ? userOptions.get(name) : defaultOpt.value;
+      options[name] = !defaultOnly ? this.#opts.get(name) : defaultOpt.value;
     }
     return options;
   }
   static set(name, value) {
-    const defaultOpt = defaultOptions[name];
-    if (!defaultOpt || !(typeof value === typeof defaultOpt.value || Type[(typeof value).toUpperCase()] & defaultOpt.type)) {
-      return;
-    }
-    userOptions.set(name, value);
+    this.setAll({
+      [name]: value
+    });
   }
   static setAll(options, prefs = false) {
     let events;
@@ -847,18 +858,16 @@ class AppOptions {
       if (!defaultOpt || !(typeof userOpt === typeof defaultOpt.value || Type[(typeof userOpt).toUpperCase()] & defaultOpt.type)) {
         continue;
       }
-      if (prefs) {
-        const {
-          kind
-        } = defaultOpt;
-        if (!(kind & OptionKind.BROWSER || kind & OptionKind.PREFERENCE)) {
-          continue;
-        }
-        if (this.eventBus && kind & OptionKind.EVENT_DISPATCH) {
-          (events ||= new Map()).set(name, userOpt);
-        }
+      const {
+        kind
+      } = defaultOpt;
+      if (prefs && !(kind & OptionKind.BROWSER || kind & OptionKind.PREFERENCE)) {
+        continue;
       }
-      userOptions.set(name, userOpt);
+      if (this.eventBus && kind & OptionKind.EVENT_DISPATCH) {
+        (events ||= new Map()).set(name, userOpt);
+      }
+      this.#opts.set(name, userOpt);
     }
     if (events) {
       for (const [name, value] of events) {
@@ -1450,9 +1459,11 @@ class BasePreferences {
     defaultZoomValue: "",
     disablePageLabels: false,
     enableAltText: false,
+    enableAltTextModelDownload: true,
     enableGuessAltText: true,
     enableHighlightEditor: false,
     enableHighlightFloatingButton: false,
+    enableNewAltTextWhenAddingImage: true,
     enablePermissions: false,
     enablePrintAutoRotate: true,
     enableScripting: true,
@@ -1704,7 +1715,6 @@ class DownloadManager {
       blobUrl,
       originalUrl: url,
       filename,
-      options
     });
   }
 }
@@ -1822,42 +1832,79 @@ class FirefoxScripting {
 }
 class MLManager {
   #enabled = null;
+  #ready = null;
   eventBus = null;
-  constructor(options) {
-    this.enable({
-      ...options,
-      listenToProgress: false
-    });
-  }
-  async isEnabledFor(name) {
-    return !!(await this.#enabled?.get(name));
-  }
-  deleteModel(service) {
-    return FirefoxCom.requestAsync("mlDelete", service);
-  }
-  guess(data) {
-    return FirefoxCom.requestAsync("mlGuess", data);
-  }
-  enable({
+  hasProgress = false;
+  static #AI_ALT_TEXT_MODEL_NAME = "moz-image-to-text";
+  constructor({
     altTextLearnMoreUrl,
     enableGuessAltText,
-    listenToProgress
+    enableAltTextModelDownload
   }) {
-    if (enableGuessAltText) {
-      this.#loadAltTextEngine(listenToProgress);
-    }
     this.altTextLearnMoreUrl = altTextLearnMoreUrl;
+    this.enableAltTextModelDownload = enableAltTextModelDownload;
+    this.enableGuessAltText = enableGuessAltText;
+  }
+  async isEnabledFor(name) {
+    return this.enableGuessAltText && !!(await this.#enabled?.get(name));
+  }
+  isReady(name) {
+    return this.#ready?.has(name) ?? false;
+  }
+  async deleteModel(name) {
+    if (name !== "altText") {
+      return;
+    }
+    this.enableAltTextModelDownload = false;
+    this.#ready?.delete(name);
+    this.#enabled?.delete(name);
+    await Promise.all([this.toggleService("altText", false), FirefoxCom.requestAsync("mlDelete", MLManager.#AI_ALT_TEXT_MODEL_NAME)]);
+  }
+  async loadModel(name) {
+    if (name === "altText" && this.enableAltTextModelDownload) {
+      await this.#loadAltTextEngine(false);
+    }
+  }
+  async downloadModel(name) {
+    if (name !== "altText") {
+      return null;
+    }
+    this.enableAltTextModelDownload = true;
+    return this.#loadAltTextEngine(true);
+  }
+  async guess(data) {
+    if (data?.name !== "altText") {
+      return null;
+    }
+    data.service = MLManager.#AI_ALT_TEXT_MODEL_NAME;
+    return FirefoxCom.requestAsync("mlGuess", data);
+  }
+  async toggleService(name, enabled) {
+    if (name !== "altText") {
+      return;
+    }
+    this.enableGuessAltText = enabled;
+    if (enabled && this.enableAltTextModelDownload) {
+      await this.#loadAltTextEngine(false);
+    }
   }
   async #loadAltTextEngine(listenToProgress) {
     if (this.#enabled?.has("altText")) {
       return;
     }
+    this.#ready ||= new Set();
     const promise = FirefoxCom.requestAsync("loadAIEngine", {
-      service: "moz-image-to-text",
+      service: MLManager.#AI_ALT_TEXT_MODEL_NAME,
       listenToProgress
+    }).then(ok => {
+      if (ok) {
+        this.#ready.add("altText");
+      }
+      return ok;
     });
     (this.#enabled ||= new Map()).set("altText", promise);
     if (listenToProgress) {
+      this.hasProgress = true;
       const callback = ({
         detail
       }) => {
@@ -1866,16 +1913,19 @@ class MLManager {
           detail
         });
         if (detail.finished) {
+          this.hasProgress = false;
           window.removeEventListener("loadAIEngineProgress", callback);
         }
       };
       window.addEventListener("loadAIEngineProgress", callback);
       promise.then(ok => {
         if (!ok) {
+          this.hasProgress = false;
           window.removeEventListener("loadAIEngineProgress", callback);
         }
       });
     }
+    await promise;
   }
 }
 class ExternalServices extends BaseExternalServices {
@@ -1954,6 +2004,440 @@ class ExternalServices extends BaseExternalServices {
   }
   dispatchGlobalEvent(event) {
     FirefoxCom.request("dispatchGlobalEvent", event);
+  }
+}
+
+;// CONCATENATED MODULE: ./web/new_alt_text_manager.js
+
+class NewAltTextManager {
+  #boundCancel = this.#cancel.bind(this);
+  #createAutomaticallyButton;
+  #currentEditor = null;
+  #cancelButton;
+  #descriptionContainer;
+  #dialog;
+  #disclaimer;
+  #downloadModel;
+  #downloadModelDescription;
+  #eventBus;
+  #firstTime = false;
+  #guessedAltText;
+  #isEditing = null;
+  #imagePreview;
+  #imageData;
+  #isAILoading = false;
+  #wasAILoading = false;
+  #learnMore;
+  #notNowButton;
+  #overlayManager;
+  #textarea;
+  #title;
+  #uiManager;
+  #previousAltText = null;
+  #telemetryData = null;
+  constructor({
+    descriptionContainer,
+    dialog,
+    imagePreview,
+    cancelButton,
+    disclaimer,
+    notNowButton,
+    saveButton,
+    textarea,
+    learnMore,
+    errorCloseButton,
+    createAutomaticallyButton,
+    downloadModel,
+    downloadModelDescription,
+    title
+  }, overlayManager, eventBus) {
+    this.#cancelButton = cancelButton;
+    this.#createAutomaticallyButton = createAutomaticallyButton;
+    this.#descriptionContainer = descriptionContainer;
+    this.#dialog = dialog;
+    this.#disclaimer = disclaimer;
+    this.#notNowButton = notNowButton;
+    this.#imagePreview = imagePreview;
+    this.#textarea = textarea;
+    this.#learnMore = learnMore;
+    this.#title = title;
+    this.#downloadModel = downloadModel;
+    this.#downloadModelDescription = downloadModelDescription;
+    this.#overlayManager = overlayManager;
+    this.#eventBus = eventBus;
+    dialog.addEventListener("close", this.#close.bind(this));
+    dialog.addEventListener("contextmenu", event => {
+      if (event.target !== this.#textarea) {
+        event.preventDefault();
+      }
+    });
+    cancelButton.addEventListener("click", this.#boundCancel);
+    notNowButton.addEventListener("click", this.#boundCancel);
+    saveButton.addEventListener("click", this.#save.bind(this));
+    errorCloseButton.addEventListener("click", () => {
+      this.#toggleError(false);
+    });
+    createAutomaticallyButton.addEventListener("click", async () => {
+      const checked = createAutomaticallyButton.getAttribute("aria-pressed") !== "true";
+      if (this.#uiManager) {
+        this.#uiManager.setPreference("enableGuessAltText", checked);
+        await this.#uiManager.mlManager.toggleService("altText", checked);
+      }
+      this.#toggleGuessAltText(checked, false);
+    });
+    textarea.addEventListener("focus", () => {
+      this.#wasAILoading = this.#isAILoading;
+      this.#toggleLoading(false);
+    });
+    textarea.addEventListener("blur", () => {
+      if (textarea.value) {
+        return;
+      }
+      this.#toggleLoading(this.#wasAILoading);
+    });
+    textarea.addEventListener("input", () => {
+      this.#toggleTitle();
+      this.#toggleDisclaimer();
+    });
+    this.#overlayManager.register(dialog);
+  }
+  #toggleLoading(value) {
+    if (!this.#uiManager || this.#isAILoading === value) {
+      return;
+    }
+    this.#isAILoading = value;
+    this.#descriptionContainer.classList.toggle("loading", value);
+  }
+  #toggleError(value) {
+    if (!this.#uiManager) {
+      return;
+    }
+    this.#dialog.classList.toggle("error", value);
+  }
+  #toggleTitle() {
+    const isEditing = this.#isAILoading || !!this.#textarea.value;
+    if (this.#isEditing === isEditing) {
+      return;
+    }
+    this.#isEditing = isEditing;
+    this.#title.setAttribute("data-l10n-id", `pdfjs-editor-new-alt-text-dialog-${isEditing ? "edit" : "add"}-label`);
+  }
+  async #toggleGuessAltText(value, isInitial = false) {
+    if (!this.#uiManager) {
+      return;
+    }
+    this.#dialog.classList.toggle("aiDisabled", !value);
+    this.#createAutomaticallyButton.setAttribute("aria-pressed", value);
+    if (value) {
+      const {
+        altTextLearnMoreUrl
+      } = this.#uiManager.mlManager;
+      if (altTextLearnMoreUrl) {
+        this.#learnMore.href = altTextLearnMoreUrl;
+      }
+      this.#mlGuessAltText(isInitial);
+    } else {
+      this.#toggleLoading(false);
+      this.#isAILoading = false;
+      this.#toggleTitle();
+      this.#toggleDisclaimer();
+    }
+  }
+  #toggleNotNow() {
+    this.#notNowButton.classList.toggle("hidden", !this.#firstTime);
+    this.#cancelButton.classList.toggle("hidden", this.#firstTime);
+  }
+  #toggleAI(value) {
+    this.#dialog.classList.toggle("noAi", !value);
+    this.#toggleTitle();
+  }
+  #toggleDisclaimer(value = null) {
+    if (!this.#uiManager) {
+      return;
+    }
+    const hidden = value === null ? !this.#guessedAltText || this.#guessedAltText !== this.#textarea.value : !value;
+    this.#disclaimer.classList.toggle("hidden", hidden);
+  }
+  async #mlGuessAltText(isInitial) {
+    if (this.#isAILoading) {
+      return;
+    }
+    if (this.#textarea.value) {
+      return;
+    }
+    if (isInitial && this.#previousAltText !== null) {
+      return;
+    }
+    this.#guessedAltText = this.#currentEditor.guessedAltText;
+    if (this.#previousAltText === null && this.#guessedAltText) {
+      this.#addAltText(this.#guessedAltText);
+      this.#toggleDisclaimer();
+      this.#toggleTitle();
+      return;
+    }
+    this.#toggleLoading(true);
+    this.#toggleTitle();
+    this.#toggleDisclaimer(true);
+    let hasError = false;
+    try {
+      const altText = await this.#currentEditor.mlGuessAltText(this.#imageData, false);
+      if (altText === null) {
+        throw new Error("No valid response from the AI service.");
+      }
+      this.#guessedAltText = altText;
+      this.#wasAILoading = this.#isAILoading;
+      if (this.#isAILoading) {
+        this.#addAltText(altText);
+      }
+    } catch (e) {
+      console.error(e);
+      hasError = true;
+    }
+    this.#toggleLoading(false);
+    if (hasError && this.#uiManager) {
+      this.#toggleError(true);
+      this.#toggleTitle();
+      this.#toggleDisclaimer();
+    }
+  }
+  #addAltText(altText) {
+    if (!this.#uiManager || this.#textarea.value) {
+      return;
+    }
+    this.#textarea.value = altText;
+  }
+  #setProgress() {
+    this.#downloadModel.classList.toggle("hidden", false);
+    const callback = async ({
+      detail: {
+        finished,
+        total,
+        totalLoaded
+      }
+    }) => {
+      const ONE_MEGA_BYTES = 1e6;
+      totalLoaded = Math.min(0.99 * total, totalLoaded);
+      const totalSize = this.#downloadModelDescription.ariaValueMax = Math.round(total / ONE_MEGA_BYTES);
+      const downloadedSize = this.#downloadModelDescription.ariaValueNow = Math.round(totalLoaded / ONE_MEGA_BYTES);
+      this.#downloadModelDescription.setAttribute("data-l10n-args", JSON.stringify({
+        totalSize,
+        downloadedSize
+      }));
+      if (!finished) {
+        return;
+      }
+      this.#eventBus._off("loadaiengineprogress", callback);
+      this.#downloadModel.classList.toggle("hidden", true);
+      this.#toggleAI(true);
+      if (!this.#uiManager) {
+        return;
+      }
+      const {
+        mlManager
+      } = this.#uiManager;
+      mlManager.toggleService("altText", true);
+      this.#toggleGuessAltText(await mlManager.isEnabledFor("altText"), true);
+    };
+    this.#eventBus._on("loadaiengineprogress", callback);
+  }
+  async editAltText(uiManager, editor, firstTime) {
+    if (this.#currentEditor || !editor) {
+      return;
+    }
+    if (firstTime && editor.hasAltTextData()) {
+      editor.altTextFinish();
+      return;
+    }
+    this.#firstTime = firstTime;
+    let {
+      mlManager
+    } = uiManager;
+    let hasAI = !!mlManager;
+    if (mlManager && !mlManager.isReady("altText")) {
+      hasAI = false;
+      if (mlManager.hasProgress) {
+        this.#setProgress();
+      } else {
+        mlManager = null;
+      }
+    } else {
+      this.#downloadModel.classList.toggle("hidden", true);
+    }
+    const isAltTextEnabledPromise = mlManager?.isEnabledFor("altText");
+    this.#currentEditor = editor;
+    this.#uiManager = uiManager;
+    this.#uiManager.removeEditListeners();
+    ({
+      altText: this.#previousAltText
+    } = editor.altTextData);
+    this.#textarea.value = this.#previousAltText ?? "";
+    const AI_MAX_IMAGE_DIMENSION = 224;
+    let canvas;
+    if (mlManager) {
+      ({
+        canvas,
+        imageData: this.#imageData
+      } = editor.copyCanvas(AI_MAX_IMAGE_DIMENSION, true));
+      if (hasAI) {
+        this.#toggleGuessAltText(await isAltTextEnabledPromise, true);
+      }
+    } else {
+      ({
+        canvas
+      } = editor.copyCanvas(AI_MAX_IMAGE_DIMENSION, false));
+    }
+    canvas.setAttribute("role", "presentation");
+    this.#imagePreview.append(canvas);
+    this.#toggleNotNow();
+    this.#toggleAI(hasAI);
+    this.#toggleError(false);
+    try {
+      await this.#overlayManager.open(this.#dialog);
+    } catch (ex) {
+      this.#close();
+      throw ex;
+    }
+  }
+  #cancel() {
+    this.#currentEditor.altTextData = {
+      cancel: true
+    };
+    this.#finish();
+  }
+  #finish() {
+    if (this.#overlayManager.active === this.#dialog) {
+      this.#overlayManager.close(this.#dialog);
+    }
+  }
+  #close() {
+    const canvas = this.#imagePreview.firstChild;
+    canvas.remove();
+    canvas.width = canvas.height = 0;
+    this.#imageData = null;
+    this.#currentEditor._reportTelemetry(this.#telemetryData || {
+      action: "alt_text_cancel"
+    });
+    this.#telemetryData = null;
+    this.#toggleLoading(false);
+    this.#uiManager?.addEditListeners();
+    this.#currentEditor.altTextFinish();
+    this.#uiManager?.setSelected(this.#currentEditor);
+    this.#currentEditor = null;
+    this.#uiManager = null;
+  }
+  #save() {
+    const altText = this.#textarea.value.trim();
+    this.#currentEditor.altTextData = {
+      altText,
+      decorative: false
+    };
+    this.#telemetryData = {
+      action: "alt_text_save",
+      alt_text_description: !!altText,
+      alt_text_edit: !!this.#previousAltText && this.#previousAltText !== altText,
+      alt_text_decorative: false,
+      alt_text_altered: this.#guessedAltText && this.#guessedAltText !== altText
+    };
+    this.#finish();
+  }
+  destroy() {
+    this.#uiManager = null;
+    this.#finish();
+  }
+}
+class ImageAltTextSettings {
+  #aiModelSettings;
+  #createModelButton;
+  #dialog;
+  #eventBus;
+  #mlManager;
+  #overlayManager;
+  #showAltTextDialogButton;
+  constructor({
+    dialog,
+    createModelButton,
+    aiModelSettings,
+    learnMore,
+    closeButton,
+    deleteModelButton,
+    downloadModelButton,
+    showAltTextDialogButton
+  }, overlayManager, eventBus, mlManager) {
+    this.#dialog = dialog;
+    this.#aiModelSettings = aiModelSettings;
+    this.#createModelButton = createModelButton;
+    this.#showAltTextDialogButton = showAltTextDialogButton;
+    this.#overlayManager = overlayManager;
+    this.#eventBus = eventBus;
+    this.#mlManager = mlManager;
+    const {
+      altTextLearnMoreUrl
+    } = mlManager;
+    if (altTextLearnMoreUrl) {
+      learnMore.href = altTextLearnMoreUrl;
+    }
+    dialog.addEventListener("contextmenu", noContextMenu);
+    createModelButton.addEventListener("click", async e => {
+      const checked = this.#togglePref("enableGuessAltText", e);
+      await mlManager.toggleService("altText", checked);
+    });
+    showAltTextDialogButton.addEventListener("click", this.#togglePref.bind(this, "enableNewAltTextWhenAddingImage"));
+    deleteModelButton.addEventListener("click", async () => {
+      await mlManager.deleteModel("altText");
+      aiModelSettings.classList.toggle("download", true);
+      createModelButton.disabled = true;
+      createModelButton.setAttribute("aria-pressed", false);
+      this.#setPref("enableGuessAltText", false);
+      this.#setPref("enableAltTextModelDownload", false);
+    });
+    downloadModelButton.addEventListener("click", async () => {
+      downloadModelButton.disabled = true;
+      downloadModelButton.firstChild.setAttribute("data-l10n-id", "pdfjs-editor-alt-text-settings-downloading-model-button");
+      await mlManager.downloadModel("altText");
+      aiModelSettings.classList.toggle("download", false);
+      downloadModelButton.firstChild.setAttribute("data-l10n-id", "pdfjs-editor-alt-text-settings-download-model-button");
+      createModelButton.disabled = false;
+      createModelButton.setAttribute("aria-pressed", true);
+      this.#setPref("enableGuessAltText", true);
+      mlManager.toggleService("altText", true);
+      this.#setPref("enableAltTextModelDownload", true);
+      downloadModelButton.disabled = false;
+    });
+    closeButton.addEventListener("click", this.#finish.bind(this));
+    this.#overlayManager.register(dialog);
+  }
+  async open({
+    enableGuessAltText,
+    enableNewAltTextWhenAddingImage
+  }) {
+    const {
+      enableAltTextModelDownload
+    } = this.#mlManager;
+    this.#createModelButton.disabled = !enableAltTextModelDownload;
+    this.#createModelButton.setAttribute("aria-pressed", enableAltTextModelDownload && enableGuessAltText);
+    this.#showAltTextDialogButton.setAttribute("aria-pressed", enableNewAltTextWhenAddingImage);
+    this.#aiModelSettings.classList.toggle("download", !enableAltTextModelDownload);
+    await this.#overlayManager.open(this.#dialog);
+  }
+  #togglePref(name, {
+    target
+  }) {
+    const checked = target.getAttribute("aria-pressed") !== "true";
+    this.#setPref(name, checked);
+    target.setAttribute("aria-pressed", checked);
+    return checked;
+  }
+  #setPref(name, value) {
+    this.#eventBus.dispatch("setpreference", {
+      source: this,
+      name,
+      value
+    });
+  }
+  #finish() {
+    if (this.#overlayManager.active === this.#dialog) {
+      this.#overlayManager.close(this.#dialog);
+    }
   }
 }
 
@@ -7668,8 +8152,8 @@ class TextLayerBuilder {
     const {
       div
     } = this;
-    div.addEventListener("mousedown", evt => {
-      end.classList.add("active");
+    div.addEventListener("mousedown", () => {
+      div.classList.add("selecting");
     });
     div.addEventListener("copy", event => {
       if (!this.#enablePermissions) {
@@ -7698,10 +8182,30 @@ class TextLayerBuilder {
       signal
     } = this.#selectionChangeAbortController;
     const reset = (end, textLayer) => {
-      end.classList.remove("active");
+      textLayer.classList.remove("selecting");
     };
+    let isPointerDown = false;
+    document.addEventListener("pointerdown", () => {
+      isPointerDown = true;
+    }, {
+      signal
+    });
     document.addEventListener("pointerup", () => {
+      isPointerDown = false;
       this.#textLayers.forEach(reset);
+    }, {
+      signal
+    });
+    window.addEventListener("blur", () => {
+      isPointerDown = false;
+      this.#textLayers.forEach(reset);
+    }, {
+      signal
+    });
+    document.addEventListener("keyup", () => {
+      if (!isPointerDown) {
+        this.#textLayers.forEach(reset);
+      }
     }, {
       signal
     });
@@ -7722,7 +8226,7 @@ class TextLayerBuilder {
       }
       for (const [textLayerDiv, endDiv] of this.#textLayers) {
         if (activeTextLayers.has(textLayerDiv)) {
-          endDiv.classList.add("active");
+          textLayerDiv.classList.add("selecting");
         } else {
           reset(endDiv, textLayerDiv);
         }
@@ -8578,6 +9082,7 @@ class PDFViewer {
   #enableHighlightFloatingButton = false;
   #enablePermissions = false;
   #enableUpdatedAddImage = false;
+  #enableNewAltTextWhenAddingImage = false;
   #eventAbortController = null;
   #mlManager = null;
   #onPageRenderedCallback = null;
@@ -8591,7 +9096,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.5.128";
+    const viewerVersion = "4.5.195";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -8613,6 +9118,7 @@ class PDFViewer {
     this.#annotationEditorHighlightColors = options.annotationEditorHighlightColors || null;
     this.#enableHighlightFloatingButton = options.enableHighlightFloatingButton === true;
     this.#enableUpdatedAddImage = options.enableUpdatedAddImage === true;
+    this.#enableNewAltTextWhenAddingImage = options.enableNewAltTextWhenAddingImage === true;
     this.imageResourcesPath = options.imageResourcesPath || "";
     this.enablePrintAutoRotate = options.enablePrintAutoRotate || false;
     this.maxCanvasPixels = options.maxCanvasPixels;
@@ -9005,12 +9511,15 @@ class PDFViewer {
         if (pdfDocument.isPureXfa) {
           console.warn("Warning: XFA-editing is not implemented.");
         } else if (isValidAnnotationEditorMode(mode)) {
-          this.#annotationEditorUIManager = new AnnotationEditorUIManager(this.container, viewer, this.#altTextManager, eventBus, pdfDocument, pageColors, this.#annotationEditorHighlightColors, this.#enableHighlightFloatingButton, this.#enableUpdatedAddImage, this.#mlManager);
+          this.#annotationEditorUIManager = new AnnotationEditorUIManager(this.container, viewer, this.#altTextManager, eventBus, pdfDocument, pageColors, this.#annotationEditorHighlightColors, this.#enableHighlightFloatingButton, this.#enableUpdatedAddImage, this.#enableNewAltTextWhenAddingImage, this.#mlManager);
           eventBus.dispatch("annotationeditoruimanager", {
             source: this,
             uiManager: this.#annotationEditorUIManager
           });
           if (mode !== AnnotationEditorType.NONE) {
+            if (mode === AnnotationEditorType.STAMP) {
+              this.#mlManager?.loadModel("altText");
+            }
             this.#annotationEditorUIManager.updateMode(mode);
           }
         } else {
@@ -10022,6 +10531,9 @@ class PDFViewer {
     if (!this.pdfDocument) {
       return;
     }
+    if (mode === AnnotationEditorType.STAMP) {
+      this.#mlManager?.loadModel("altText");
+    }
     const {
       eventBus
     } = this;
@@ -10191,6 +10703,10 @@ class SecondaryToolbar {
       eventDetails: {
         mode: SpreadMode.EVEN
       },
+      close: true
+    }, {
+      element: options.imageAltTextSettingsButton,
+      eventName: "imagealttextsettings",
       close: true
     }, {
       element: options.documentPropertiesButton,
@@ -10430,25 +10946,6 @@ class Toolbar {
       }
     }];
     this.#bindListeners(buttons);
-    if (options.editorHighlightColorPicker) {
-      eventBus._on("annotationeditoruimanager", ({
-        uiManager
-      }) => {
-        this.#setAnnotationEditorUIManager(uiManager, options.editorHighlightColorPicker);
-      }, {
-        once: true
-      });
-    }
-    eventBus._on("showannotationeditorui", ({
-      mode
-    }) => {
-      switch (mode) {
-        case AnnotationEditorType.HIGHLIGHT:
-          options.editorHighlightButton.click();
-          break;
-      }
-    });
-    eventBus._on("toolbardensity", this.#updateToolbarDensity.bind(this));
     this.#updateToolbarDensity({
       value: toolbarDensity
     });
@@ -10495,6 +10992,8 @@ class Toolbar {
       eventBus
     } = this;
     const {
+      editorHighlightColorPicker,
+      editorHighlightButton,
       pageNumber,
       scaleSelect
     } = this.#opts;
@@ -10541,6 +11040,25 @@ class Toolbar {
     });
     scaleSelect.oncontextmenu = noContextMenu;
     eventBus._on("annotationeditormodechanged", this.#editorModeChanged.bind(this));
+    eventBus._on("showannotationeditorui", ({
+      mode
+    }) => {
+      switch (mode) {
+        case AnnotationEditorType.HIGHLIGHT:
+          editorHighlightButton.click();
+          break;
+      }
+    });
+    eventBus._on("toolbardensity", this.#updateToolbarDensity.bind(this));
+    if (editorHighlightColorPicker) {
+      eventBus._on("annotationeditoruimanager", ({
+        uiManager
+      }) => {
+        this.#setAnnotationEditorUIManager(uiManager, editorHighlightColorPicker);
+      }, {
+        once: true
+      });
+    }
   }
   #editorModeChanged({
     mode
@@ -10722,6 +11240,7 @@ class ViewHistory {
 
 
 
+
 const FORCE_PAGES_LOADED_TIMEOUT = 10000;
 const ViewOnLoad = {
   UNKNOWN: -1,
@@ -10760,6 +11279,7 @@ const PDFViewerApplication = {
   eventBus: null,
   l10n: null,
   annotationEditorParams: null,
+  imageAltTextSettings: null,
   isInitialViewSet: false,
   isViewerEmbedded: window.parent !== window,
   url: "",
@@ -10799,6 +11319,7 @@ const PDFViewerApplication = {
     if (AppOptions.get("enableAltText")) {
       this.mlManager = new MLManager({
         enableGuessAltText: AppOptions.get("enableGuessAltText"),
+        enableAltTextModelDownload: AppOptions.get("enableAltTextModelDownload"),
         altTextLearnMoreUrl: AppOptions.get("altTextLearnMoreUrl")
       });
     }
@@ -10933,7 +11454,12 @@ const PDFViewerApplication = {
       background: AppOptions.get("pageColorsBackground"),
       foreground: AppOptions.get("pageColorsForeground")
     } : null;
-    const altTextManager = appConfig.altTextDialog ? new AltTextManager(appConfig.altTextDialog, container, this.overlayManager, eventBus) : null;
+    let altTextManager;
+    if (AppOptions.get("enableUpdatedAddImage")) {
+      altTextManager = appConfig.newAltTextDialog ? new NewAltTextManager(appConfig.newAltTextDialog, this.overlayManager, eventBus) : null;
+    } else {
+      altTextManager = appConfig.altTextDialog ? new AltTextManager(appConfig.altTextDialog, container, this.overlayManager, eventBus) : null;
+    }
     const enableHWA = AppOptions.get("enableHWA");
     const pdfViewer = new PDFViewer({
       container,
@@ -10952,6 +11478,7 @@ const PDFViewerApplication = {
       annotationEditorHighlightColors: AppOptions.get("highlightEditorColors"),
       enableHighlightFloatingButton: AppOptions.get("enableHighlightFloatingButton"),
       enableUpdatedAddImage: AppOptions.get("enableUpdatedAddImage"),
+      enableNewAltTextWhenAddingImage: AppOptions.get("enableNewAltTextWhenAddingImage"),
       imageResourcesPath: AppOptions.get("imageResourcesPath"),
       enablePrintAutoRotate: AppOptions.get("enablePrintAutoRotate"),
       maxCanvasPixels: AppOptions.get("maxCanvasPixels"),
@@ -11000,6 +11527,9 @@ const PDFViewerApplication = {
         }
       }
     }
+    if (this.mlManager && appConfig.secondaryToolbar?.imageAltTextSettingsButton) {
+      this.imageAltTextSettings = new ImageAltTextSettings(appConfig.altTextSettingsDialog, this.overlayManager, eventBus, this.mlManager);
+    }
     if (appConfig.documentProperties) {
       this.pdfDocumentProperties = new PDFDocumentProperties(appConfig.documentProperties, this.overlayManager, eventBus, l10n, () => this._docFilename);
     }
@@ -11014,6 +11544,10 @@ const PDFViewerApplication = {
       this.toolbar = new Toolbar(appConfig.toolbar, eventBus, AppOptions.get("toolbarDensity"));
     }
     if (appConfig.secondaryToolbar) {
+      if (AppOptions.get("enableAltText")) {
+        appConfig.secondaryToolbar.imageAltTextSettingsButton?.classList.remove("hidden");
+        appConfig.secondaryToolbar.imageAltTextSettingsSeparator?.classList.remove("hidden");
+      }
       this.secondaryToolbar = new SecondaryToolbar(appConfig.secondaryToolbar, eventBus);
     }
     if (this.supportsFullscreen && appConfig.secondaryToolbar?.presentationModeButton) {
@@ -11089,7 +11623,7 @@ const PDFViewerApplication = {
       appConfig.secondaryToolbar?.presentationModeButton.classList.add("hidden");
     }
     if (this.supportsIntegratedFind) {
-      appConfig.toolbar?.viewFind?.classList.add("hidden");
+      appConfig.findBar?.toggleButton?.classList.add("hidden");
     }
     this.setTitleUsingUrl(file, file);
     this.externalServices.initPassiveLoading();
@@ -11814,10 +12348,9 @@ const PDFViewerApplication = {
     this.pdfPresentationMode?.request();
   },
   triggerPrinting() {
-    if (!this.supportsPrinting) {
-      return;
+    if (this.supportsPrinting) {
+      window.print();
     }
-    window.print();
   },
   bindEvents() {
     if (this._eventBusAbortController) {
@@ -11826,14 +12359,18 @@ const PDFViewerApplication = {
     this._eventBusAbortController = new AbortController();
     const {
       eventBus,
+      externalServices,
+      pdfDocumentProperties,
+      pdfViewer,
+      preferences,
       _eventBusAbortController: {
         signal
       }
     } = this;
-    eventBus._on("resize", webViewerResize, {
+    eventBus._on("resize", onResize.bind(this), {
       signal
     });
-    eventBus._on("hashchange", webViewerHashchange, {
+    eventBus._on("hashchange", onHashchange.bind(this), {
       signal
     });
     eventBus._on("beforeprint", this.beforePrint.bind(this), {
@@ -11842,118 +12379,121 @@ const PDFViewerApplication = {
     eventBus._on("afterprint", this.afterPrint.bind(this), {
       signal
     });
-    eventBus._on("pagerender", webViewerPageRender, {
+    eventBus._on("pagerender", onPageRender.bind(this), {
       signal
     });
-    eventBus._on("pagerendered", webViewerPageRendered, {
+    eventBus._on("pagerendered", onPageRendered.bind(this), {
       signal
     });
-    eventBus._on("updateviewarea", webViewerUpdateViewarea, {
+    eventBus._on("updateviewarea", onUpdateViewarea.bind(this), {
       signal
     });
-    eventBus._on("pagechanging", webViewerPageChanging, {
+    eventBus._on("pagechanging", onPageChanging.bind(this), {
       signal
     });
-    eventBus._on("scalechanging", webViewerScaleChanging, {
+    eventBus._on("scalechanging", onScaleChanging.bind(this), {
       signal
     });
-    eventBus._on("rotationchanging", webViewerRotationChanging, {
+    eventBus._on("rotationchanging", onRotationChanging.bind(this), {
       signal
     });
-    eventBus._on("sidebarviewchanged", webViewerSidebarViewChanged, {
+    eventBus._on("sidebarviewchanged", onSidebarViewChanged.bind(this), {
       signal
     });
-    eventBus._on("pagemode", webViewerPageMode, {
+    eventBus._on("pagemode", onPageMode.bind(this), {
       signal
     });
-    eventBus._on("namedaction", webViewerNamedAction, {
+    eventBus._on("namedaction", onNamedAction.bind(this), {
       signal
     });
-    eventBus._on("presentationmodechanged", webViewerPresentationModeChanged, {
+    eventBus._on("presentationmodechanged", evt => pdfViewer.presentationModeState = evt.state, {
       signal
     });
-    eventBus._on("presentationmode", webViewerPresentationMode, {
+    eventBus._on("presentationmode", this.requestPresentationMode.bind(this), {
       signal
     });
-    eventBus._on("switchannotationeditormode", webViewerSwitchAnnotationEditorMode, {
+    eventBus._on("switchannotationeditormode", evt => pdfViewer.annotationEditorMode = evt, {
       signal
     });
-    eventBus._on("switchannotationeditorparams", webViewerSwitchAnnotationEditorParams, {
+    eventBus._on("switchannotationeditorparams", evt => pdfViewer.annotationEditorParams = evt, {
       signal
     });
-    eventBus._on("print", webViewerPrint, {
+    eventBus._on("print", this.triggerPrinting.bind(this), {
       signal
     });
-    eventBus._on("download", webViewerDownload, {
+    eventBus._on("download", this.downloadOrSave.bind(this), {
       signal
     });
-    eventBus._on("firstpage", webViewerFirstPage, {
+    eventBus._on("firstpage", () => this.page = 1, {
       signal
     });
-    eventBus._on("lastpage", webViewerLastPage, {
+    eventBus._on("lastpage", () => this.page = this.pagesCount, {
       signal
     });
-    eventBus._on("nextpage", webViewerNextPage, {
+    eventBus._on("nextpage", () => pdfViewer.nextPage(), {
       signal
     });
-    eventBus._on("previouspage", webViewerPreviousPage, {
+    eventBus._on("previouspage", () => pdfViewer.previousPage(), {
       signal
     });
-    eventBus._on("zoomin", webViewerZoomIn, {
+    eventBus._on("zoomin", this.zoomIn.bind(this), {
       signal
     });
-    eventBus._on("zoomout", webViewerZoomOut, {
+    eventBus._on("zoomout", this.zoomOut.bind(this), {
       signal
     });
-    eventBus._on("zoomreset", webViewerZoomReset, {
+    eventBus._on("zoomreset", this.zoomReset.bind(this), {
       signal
     });
-    eventBus._on("pagenumberchanged", webViewerPageNumberChanged, {
+    eventBus._on("pagenumberchanged", onPageNumberChanged.bind(this), {
       signal
     });
-    eventBus._on("scalechanged", webViewerScaleChanged, {
+    eventBus._on("scalechanged", evt => pdfViewer.currentScaleValue = evt.value, {
       signal
     });
-    eventBus._on("rotatecw", webViewerRotateCw, {
+    eventBus._on("rotatecw", this.rotatePages.bind(this, 90), {
       signal
     });
-    eventBus._on("rotateccw", webViewerRotateCcw, {
+    eventBus._on("rotateccw", this.rotatePages.bind(this, -90), {
       signal
     });
-    eventBus._on("optionalcontentconfig", webViewerOptionalContentConfig, {
+    eventBus._on("optionalcontentconfig", evt => pdfViewer.optionalContentConfigPromise = evt.promise, {
       signal
     });
-    eventBus._on("switchscrollmode", webViewerSwitchScrollMode, {
+    eventBus._on("switchscrollmode", evt => pdfViewer.scrollMode = evt.mode, {
       signal
     });
-    eventBus._on("scrollmodechanged", webViewerScrollModeChanged, {
+    eventBus._on("scrollmodechanged", onViewerModesChanged.bind(this, "scrollMode"), {
       signal
     });
-    eventBus._on("switchspreadmode", webViewerSwitchSpreadMode, {
+    eventBus._on("switchspreadmode", evt => pdfViewer.spreadMode = evt.mode, {
       signal
     });
-    eventBus._on("spreadmodechanged", webViewerSpreadModeChanged, {
+    eventBus._on("spreadmodechanged", onViewerModesChanged.bind(this, "spreadMode"), {
       signal
     });
-    eventBus._on("documentproperties", webViewerDocumentProperties, {
+    eventBus._on("imagealttextsettings", onImageAltTextSettings.bind(this), {
       signal
     });
-    eventBus._on("findfromurlhash", webViewerFindFromUrlHash, {
+    eventBus._on("documentproperties", () => pdfDocumentProperties?.open(), {
       signal
     });
-    eventBus._on("updatefindmatchescount", webViewerUpdateFindMatchesCount, {
+    eventBus._on("findfromurlhash", onFindFromUrlHash.bind(this), {
       signal
     });
-    eventBus._on("updatefindcontrolstate", webViewerUpdateFindControlState, {
+    eventBus._on("updatefindmatchescount", onUpdateFindMatchesCount.bind(this), {
       signal
     });
-    eventBus._on("annotationeditorstateschanged", webViewerAnnotationEditorStatesChanged, {
+    eventBus._on("updatefindcontrolstate", onUpdateFindControlState.bind(this), {
       signal
     });
-    eventBus._on("reporttelemetry", webViewerReportTelemetry, {
+    eventBus._on("annotationeditorstateschanged", evt => externalServices.updateEditorStates(evt), {
       signal
     });
-    eventBus._on("setpreference", webViewerSetPreference, {
+    eventBus._on("reporttelemetry", evt => externalServices.reportTelemetry(evt.details), {
+      signal
+    });
+    eventBus._on("setpreference", evt => preferences.set(evt.name, evt.value), {
       signal
     });
   },
@@ -11967,13 +12507,14 @@ const PDFViewerApplication = {
       appConfig: {
         mainContainer
       },
+      pdfViewer,
       _windowAbortController: {
         signal
       }
     } = this;
     function addWindowResolutionChange(evt = null) {
       if (evt) {
-        webViewerResolutionChange(evt);
+        pdfViewer.refresh();
       }
       const mediaQueryList = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
       mediaQueryList.addEventListener("change", addWindowResolutionChange, {
@@ -11982,36 +12523,34 @@ const PDFViewerApplication = {
       });
     }
     addWindowResolutionChange();
-    window.addEventListener("wheel", webViewerWheel, {
+    window.addEventListener("wheel", onWheel.bind(this), {
       passive: false,
       signal
     });
-    window.addEventListener("touchstart", webViewerTouchStart, {
+    window.addEventListener("touchstart", onTouchStart.bind(this), {
       passive: false,
       signal
     });
-    window.addEventListener("touchmove", webViewerTouchMove, {
+    window.addEventListener("touchmove", onTouchMove.bind(this), {
       passive: false,
       signal
     });
-    window.addEventListener("touchend", webViewerTouchEnd, {
+    window.addEventListener("touchend", onTouchEnd.bind(this), {
       passive: false,
       signal
     });
-    window.addEventListener("click", webViewerClick, {
+    window.addEventListener("click", onClick.bind(this), {
       signal
     });
-    window.addEventListener("keydown", webViewerKeyDown, {
+    window.addEventListener("keydown", onKeyDown.bind(this), {
       signal
     });
-    window.addEventListener("keyup", webViewerKeyUp, {
+    window.addEventListener("keyup", onKeyUp.bind(this), {
       signal
     });
-    window.addEventListener("resize", () => {
-      eventBus.dispatch("resize", {
-        source: window
-      });
-    }, {
+    window.addEventListener("resize", () => eventBus.dispatch("resize", {
+      source: window
+    }), {
       signal
     });
     window.addEventListener("hashchange", () => {
@@ -12022,24 +12561,20 @@ const PDFViewerApplication = {
     }, {
       signal
     });
-    window.addEventListener("beforeprint", () => {
-      eventBus.dispatch("beforeprint", {
-        source: window
-      });
-    }, {
+    window.addEventListener("beforeprint", () => eventBus.dispatch("beforeprint", {
+      source: window
+    }), {
       signal
     });
-    window.addEventListener("afterprint", () => {
-      eventBus.dispatch("afterprint", {
-        source: window
-      });
-    }, {
+    window.addEventListener("afterprint", () => eventBus.dispatch("afterprint", {
+      source: window
+    }), {
       signal
     });
-    window.addEventListener("updatefromsandbox", event => {
+    window.addEventListener("updatefromsandbox", evt => {
       eventBus.dispatch("updatefromsandbox", {
         source: window,
-        detail: event.detail
+        detail: evt.detail
       });
     }, {
       signal
@@ -12118,32 +12653,32 @@ const PDFViewerApplication = {
   }
 };
 initCom(PDFViewerApplication);
-function webViewerPageRender({
+function onPageRender({
   pageNumber
 }) {
-  if (pageNumber === PDFViewerApplication.page) {
-    PDFViewerApplication.toolbar?.updateLoadingIndicatorState(true);
+  if (pageNumber === this.page) {
+    this.toolbar?.updateLoadingIndicatorState(true);
   }
 }
-function webViewerPageRendered({
+function onPageRendered({
   pageNumber,
   error
 }) {
-  if (pageNumber === PDFViewerApplication.page) {
-    PDFViewerApplication.toolbar?.updateLoadingIndicatorState(false);
+  if (pageNumber === this.page) {
+    this.toolbar?.updateLoadingIndicatorState(false);
   }
-  if (PDFViewerApplication.pdfSidebar?.visibleView === SidebarView.THUMBS) {
-    const pageView = PDFViewerApplication.pdfViewer.getPageView(pageNumber - 1);
-    const thumbnailView = PDFViewerApplication.pdfThumbnailViewer?.getThumbnail(pageNumber - 1);
+  if (this.pdfSidebar?.visibleView === SidebarView.THUMBS) {
+    const pageView = this.pdfViewer.getPageView(pageNumber - 1);
+    const thumbnailView = this.pdfThumbnailViewer?.getThumbnail(pageNumber - 1);
     if (pageView) {
       thumbnailView?.setImage(pageView);
     }
   }
   if (error) {
-    PDFViewerApplication._otherError("pdfjs-rendering-error", error);
+    this._otherError("pdfjs-rendering-error", error);
   }
 }
-function webViewerPageMode({
+function onPageMode({
   mode
 }) {
   let view;
@@ -12168,42 +12703,39 @@ function webViewerPageMode({
       console.error('Invalid "pagemode" hash parameter: ' + mode);
       return;
   }
-  PDFViewerApplication.pdfSidebar?.switchView(view, true);
+  this.pdfSidebar?.switchView(view, true);
 }
-function webViewerNamedAction(evt) {
+function onNamedAction(evt) {
   switch (evt.action) {
     case "GoToPage":
-      PDFViewerApplication.appConfig.toolbar?.pageNumber.select();
+      this.appConfig.toolbar?.pageNumber.select();
       break;
     case "Find":
-      if (!PDFViewerApplication.supportsIntegratedFind) {
-        PDFViewerApplication.findBar?.toggle();
+      if (!this.supportsIntegratedFind) {
+        this.findBar?.toggle();
       }
       break;
     case "Print":
-      PDFViewerApplication.triggerPrinting();
+      this.triggerPrinting();
       break;
     case "SaveAs":
-      PDFViewerApplication.downloadOrSave();
+      this.downloadOrSave();
       break;
   }
 }
-function webViewerPresentationModeChanged(evt) {
-  PDFViewerApplication.pdfViewer.presentationModeState = evt.state;
-}
-function webViewerSidebarViewChanged({
+function onSidebarViewChanged({
   view
 }) {
-  PDFViewerApplication.pdfRenderingQueue.isThumbnailViewEnabled = view === SidebarView.THUMBS;
-  if (PDFViewerApplication.isInitialViewSet) {
-    PDFViewerApplication.store?.set("sidebarView", view).catch(() => {});
+  this.pdfRenderingQueue.isThumbnailViewEnabled = view === SidebarView.THUMBS;
+  if (this.isInitialViewSet) {
+    this.store?.set("sidebarView", view).catch(() => {});
   }
 }
-function webViewerUpdateViewarea({
+function onUpdateViewarea({
   location
 }) {
-  if (PDFViewerApplication.isInitialViewSet) {
-    PDFViewerApplication.store?.setMultiple({
+  if (this.isInitialViewSet) {
+    this.store?.setMultiple({
       page: location.pageNumber,
       zoom: location.scale,
       scrollLeft: location.left,
@@ -12211,27 +12743,21 @@ function webViewerUpdateViewarea({
       rotation: location.rotation
     }).catch(() => {});
   }
-  if (PDFViewerApplication.appConfig.secondaryToolbar) {
-    const href = PDFViewerApplication.pdfLinkService.getAnchorUrl(location.pdfOpenParams);
-    PDFViewerApplication.appConfig.secondaryToolbar.viewBookmarkButton.href = href;
+  if (this.appConfig.secondaryToolbar) {
+    this.appConfig.secondaryToolbar.viewBookmarkButton.href = this.pdfLinkService.getAnchorUrl(location.pdfOpenParams);
   }
 }
-function webViewerScrollModeChanged(evt) {
-  if (PDFViewerApplication.isInitialViewSet && !PDFViewerApplication.pdfViewer.isInPresentationMode) {
-    PDFViewerApplication.store?.set("scrollMode", evt.mode).catch(() => {});
+function onViewerModesChanged(name, evt) {
+  if (this.isInitialViewSet && !this.pdfViewer.isInPresentationMode) {
+    this.store?.set(name, evt.mode).catch(() => {});
   }
 }
-function webViewerSpreadModeChanged(evt) {
-  if (PDFViewerApplication.isInitialViewSet && !PDFViewerApplication.pdfViewer.isInPresentationMode) {
-    PDFViewerApplication.store?.set("spreadMode", evt.mode).catch(() => {});
-  }
-}
-function webViewerResize() {
+function onResize() {
   const {
     pdfDocument,
     pdfViewer,
     pdfRenderingQueue
-  } = PDFViewerApplication;
+  } = this;
   if (pdfRenderingQueue.printing && window.matchMedia("print").matches) {
     return;
   }
@@ -12244,85 +12770,36 @@ function webViewerResize() {
   }
   pdfViewer.update();
 }
-function webViewerHashchange(evt) {
+function onHashchange(evt) {
   const hash = evt.hash;
   if (!hash) {
     return;
   }
-  if (!PDFViewerApplication.isInitialViewSet) {
-    PDFViewerApplication.initialBookmark = hash;
-  } else if (!PDFViewerApplication.pdfHistory?.popStateInProgress) {
-    PDFViewerApplication.pdfLinkService.setHash(hash);
+  if (!this.isInitialViewSet) {
+    this.initialBookmark = hash;
+  } else if (!this.pdfHistory?.popStateInProgress) {
+    this.pdfLinkService.setHash(hash);
   }
 }
-function webViewerPresentationMode() {
-  PDFViewerApplication.requestPresentationMode();
-}
-function webViewerSwitchAnnotationEditorMode(evt) {
-  PDFViewerApplication.pdfViewer.annotationEditorMode = evt;
-}
-function webViewerSwitchAnnotationEditorParams(evt) {
-  PDFViewerApplication.pdfViewer.annotationEditorParams = evt;
-}
-function webViewerPrint() {
-  PDFViewerApplication.triggerPrinting();
-}
-function webViewerDownload() {
-  PDFViewerApplication.downloadOrSave();
-}
-function webViewerFirstPage() {
-  PDFViewerApplication.page = 1;
-}
-function webViewerLastPage() {
-  PDFViewerApplication.page = PDFViewerApplication.pagesCount;
-}
-function webViewerNextPage() {
-  PDFViewerApplication.pdfViewer.nextPage();
-}
-function webViewerPreviousPage() {
-  PDFViewerApplication.pdfViewer.previousPage();
-}
-function webViewerZoomIn() {
-  PDFViewerApplication.zoomIn();
-}
-function webViewerZoomOut() {
-  PDFViewerApplication.zoomOut();
-}
-function webViewerZoomReset() {
-  PDFViewerApplication.zoomReset();
-}
-function webViewerPageNumberChanged(evt) {
-  const pdfViewer = PDFViewerApplication.pdfViewer;
+function onPageNumberChanged(evt) {
+  const {
+    pdfViewer
+  } = this;
   if (evt.value !== "") {
-    PDFViewerApplication.pdfLinkService.goToPage(evt.value);
+    this.pdfLinkService.goToPage(evt.value);
   }
   if (evt.value !== pdfViewer.currentPageNumber.toString() && evt.value !== pdfViewer.currentPageLabel) {
-    PDFViewerApplication.toolbar?.setPageNumber(pdfViewer.currentPageNumber, pdfViewer.currentPageLabel);
+    this.toolbar?.setPageNumber(pdfViewer.currentPageNumber, pdfViewer.currentPageLabel);
   }
 }
-function webViewerScaleChanged(evt) {
-  PDFViewerApplication.pdfViewer.currentScaleValue = evt.value;
+function onImageAltTextSettings() {
+  this.imageAltTextSettings?.open({
+    enableGuessAltText: AppOptions.get("enableGuessAltText"),
+    enableNewAltTextWhenAddingImage: AppOptions.get("enableNewAltTextWhenAddingImage")
+  });
 }
-function webViewerRotateCw() {
-  PDFViewerApplication.rotatePages(90);
-}
-function webViewerRotateCcw() {
-  PDFViewerApplication.rotatePages(-90);
-}
-function webViewerOptionalContentConfig(evt) {
-  PDFViewerApplication.pdfViewer.optionalContentConfigPromise = evt.promise;
-}
-function webViewerSwitchScrollMode(evt) {
-  PDFViewerApplication.pdfViewer.scrollMode = evt.mode;
-}
-function webViewerSwitchSpreadMode(evt) {
-  PDFViewerApplication.pdfViewer.spreadMode = evt.mode;
-}
-function webViewerDocumentProperties() {
-  PDFViewerApplication.pdfDocumentProperties?.open();
-}
-function webViewerFindFromUrlHash(evt) {
-  PDFViewerApplication.eventBus.dispatch("find", {
+function onFindFromUrlHash(evt) {
+  this.eventBus.dispatch("find", {
     source: evt.source,
     type: "",
     query: evt.query,
@@ -12333,24 +12810,24 @@ function webViewerFindFromUrlHash(evt) {
     matchDiacritics: true
   });
 }
-function webViewerUpdateFindMatchesCount({
+function onUpdateFindMatchesCount({
   matchesCount
 }) {
-  if (PDFViewerApplication.supportsIntegratedFind) {
-    PDFViewerApplication.externalServices.updateFindMatchesCount(matchesCount);
+  if (this.supportsIntegratedFind) {
+    this.externalServices.updateFindMatchesCount(matchesCount);
   } else {
-    PDFViewerApplication.findBar?.updateResultsCount(matchesCount);
+    this.findBar?.updateResultsCount(matchesCount);
   }
 }
-function webViewerUpdateFindControlState({
+function onUpdateFindControlState({
   state,
   previous,
   entireWord,
   matchesCount,
   rawQuery
 }) {
-  if (PDFViewerApplication.supportsIntegratedFind) {
-    PDFViewerApplication.externalServices.updateFindControlState({
+  if (this.supportsIntegratedFind) {
+    this.externalServices.updateFindControlState({
       result: state,
       findPrevious: previous,
       entireWord,
@@ -12358,104 +12835,97 @@ function webViewerUpdateFindControlState({
       rawQuery
     });
   } else {
-    PDFViewerApplication.findBar?.updateUIState(state, previous, matchesCount);
+    this.findBar?.updateUIState(state, previous, matchesCount);
   }
 }
-function webViewerScaleChanging(evt) {
-  PDFViewerApplication.toolbar?.setPageScale(evt.presetValue, evt.scale);
-  PDFViewerApplication.pdfViewer.update();
+function onScaleChanging(evt) {
+  this.toolbar?.setPageScale(evt.presetValue, evt.scale);
+  this.pdfViewer.update();
 }
-function webViewerRotationChanging(evt) {
-  if (PDFViewerApplication.pdfThumbnailViewer) {
-    PDFViewerApplication.pdfThumbnailViewer.pagesRotation = evt.pagesRotation;
+function onRotationChanging(evt) {
+  if (this.pdfThumbnailViewer) {
+    this.pdfThumbnailViewer.pagesRotation = evt.pagesRotation;
   }
-  PDFViewerApplication.forceRendering();
-  PDFViewerApplication.pdfViewer.currentPageNumber = evt.pageNumber;
+  this.forceRendering();
+  this.pdfViewer.currentPageNumber = evt.pageNumber;
 }
-function webViewerPageChanging({
+function onPageChanging({
   pageNumber,
   pageLabel
 }) {
-  PDFViewerApplication.toolbar?.setPageNumber(pageNumber, pageLabel);
-  PDFViewerApplication.secondaryToolbar?.setPageNumber(pageNumber);
-  if (PDFViewerApplication.pdfSidebar?.visibleView === SidebarView.THUMBS) {
-    PDFViewerApplication.pdfThumbnailViewer?.scrollThumbnailIntoView(pageNumber);
+  this.toolbar?.setPageNumber(pageNumber, pageLabel);
+  this.secondaryToolbar?.setPageNumber(pageNumber);
+  if (this.pdfSidebar?.visibleView === SidebarView.THUMBS) {
+    this.pdfThumbnailViewer?.scrollThumbnailIntoView(pageNumber);
   }
-  const currentPage = PDFViewerApplication.pdfViewer.getPageView(pageNumber - 1);
-  PDFViewerApplication.toolbar?.updateLoadingIndicatorState(currentPage?.renderingState === RenderingStates.RUNNING);
+  const currentPage = this.pdfViewer.getPageView(pageNumber - 1);
+  this.toolbar?.updateLoadingIndicatorState(currentPage?.renderingState === RenderingStates.RUNNING);
 }
-function webViewerResolutionChange(evt) {
-  PDFViewerApplication.pdfViewer.refresh();
-}
-function webViewerWheel(evt) {
+function onWheel(evt) {
   const {
     pdfViewer,
     supportsMouseWheelZoomCtrlKey,
     supportsMouseWheelZoomMetaKey,
     supportsPinchToZoom
-  } = PDFViewerApplication;
+  } = this;
   if (pdfViewer.isInPresentationMode) {
     return;
   }
   const deltaMode = evt.deltaMode;
   let scaleFactor = Math.exp(-evt.deltaY / 100);
   const isBuiltInMac = FeatureTest.platform.isMac;
-  const isPinchToZoom = evt.ctrlKey && !PDFViewerApplication._isCtrlKeyDown && deltaMode === WheelEvent.DOM_DELTA_PIXEL && evt.deltaX === 0 && (Math.abs(scaleFactor - 1) < 0.05 || isBuiltInMac) && evt.deltaZ === 0;
+  const isPinchToZoom = evt.ctrlKey && !this._isCtrlKeyDown && deltaMode === WheelEvent.DOM_DELTA_PIXEL && evt.deltaX === 0 && (Math.abs(scaleFactor - 1) < 0.05 || isBuiltInMac) && evt.deltaZ === 0;
   const origin = [evt.clientX, evt.clientY];
   if (isPinchToZoom || evt.ctrlKey && supportsMouseWheelZoomCtrlKey || evt.metaKey && supportsMouseWheelZoomMetaKey) {
     evt.preventDefault();
-    if (PDFViewerApplication._isScrolling || document.visibilityState === "hidden" || PDFViewerApplication.overlayManager.active) {
+    if (this._isScrolling || document.visibilityState === "hidden" || this.overlayManager.active) {
       return;
     }
     if (isPinchToZoom && supportsPinchToZoom) {
-      scaleFactor = PDFViewerApplication._accumulateFactor(pdfViewer.currentScale, scaleFactor, "_wheelUnusedFactor");
-      PDFViewerApplication.updateZoom(null, scaleFactor, origin);
+      scaleFactor = this._accumulateFactor(pdfViewer.currentScale, scaleFactor, "_wheelUnusedFactor");
+      this.updateZoom(null, scaleFactor, origin);
     } else {
       const delta = normalizeWheelEventDirection(evt);
       let ticks = 0;
       if (deltaMode === WheelEvent.DOM_DELTA_LINE || deltaMode === WheelEvent.DOM_DELTA_PAGE) {
-        if (Math.abs(delta) >= 1) {
-          ticks = Math.sign(delta);
-        } else {
-          ticks = PDFViewerApplication._accumulateTicks(delta, "_wheelUnusedTicks");
-        }
+        ticks = Math.abs(delta) >= 1 ? Math.sign(delta) : this._accumulateTicks(delta, "_wheelUnusedTicks");
       } else {
         const PIXELS_PER_LINE_SCALE = 30;
-        ticks = PDFViewerApplication._accumulateTicks(delta / PIXELS_PER_LINE_SCALE, "_wheelUnusedTicks");
+        ticks = this._accumulateTicks(delta / PIXELS_PER_LINE_SCALE, "_wheelUnusedTicks");
       }
-      PDFViewerApplication.updateZoom(ticks, null, origin);
+      this.updateZoom(ticks, null, origin);
     }
   }
 }
-function webViewerTouchStart(evt) {
-  if (PDFViewerApplication.pdfViewer.isInPresentationMode || evt.touches.length < 2) {
+function onTouchStart(evt) {
+  if (this.pdfViewer.isInPresentationMode || evt.touches.length < 2) {
     return;
   }
   evt.preventDefault();
-  if (evt.touches.length !== 2 || PDFViewerApplication.overlayManager.active) {
-    PDFViewerApplication._touchInfo = null;
+  if (evt.touches.length !== 2 || this.overlayManager.active) {
+    this._touchInfo = null;
     return;
   }
   let [touch0, touch1] = evt.touches;
   if (touch0.identifier > touch1.identifier) {
     [touch0, touch1] = [touch1, touch0];
   }
-  PDFViewerApplication._touchInfo = {
+  this._touchInfo = {
     touch0X: touch0.pageX,
     touch0Y: touch0.pageY,
     touch1X: touch1.pageX,
     touch1Y: touch1.pageY
   };
 }
-function webViewerTouchMove(evt) {
-  if (!PDFViewerApplication._touchInfo || evt.touches.length !== 2) {
+function onTouchMove(evt) {
+  if (!this._touchInfo || evt.touches.length !== 2) {
     return;
   }
   const {
     pdfViewer,
     _touchInfo,
     supportsPinchToZoom
-  } = PDFViewerApplication;
+  } = this;
   let [touch0, touch1] = evt.touches;
   if (touch0.identifier > touch1.identifier) {
     [touch0, touch1] = [touch1, touch0];
@@ -12514,46 +12984,46 @@ function webViewerTouchMove(evt) {
   const distance = Math.hypot(page0X - page1X, page0Y - page1Y) || 1;
   const pDistance = Math.hypot(pTouch0X - pTouch1X, pTouch0Y - pTouch1Y) || 1;
   if (supportsPinchToZoom) {
-    const newScaleFactor = PDFViewerApplication._accumulateFactor(pdfViewer.currentScale, distance / pDistance, "_touchUnusedFactor");
-    PDFViewerApplication.updateZoom(null, newScaleFactor, origin);
+    const newScaleFactor = this._accumulateFactor(pdfViewer.currentScale, distance / pDistance, "_touchUnusedFactor");
+    this.updateZoom(null, newScaleFactor, origin);
   } else {
     const PIXELS_PER_LINE_SCALE = 30;
-    const ticks = PDFViewerApplication._accumulateTicks((distance - pDistance) / PIXELS_PER_LINE_SCALE, "_touchUnusedTicks");
-    PDFViewerApplication.updateZoom(ticks, null, origin);
+    const ticks = this._accumulateTicks((distance - pDistance) / PIXELS_PER_LINE_SCALE, "_touchUnusedTicks");
+    this.updateZoom(ticks, null, origin);
   }
 }
-function webViewerTouchEnd(evt) {
-  if (!PDFViewerApplication._touchInfo) {
+function onTouchEnd(evt) {
+  if (!this._touchInfo) {
     return;
   }
   evt.preventDefault();
-  PDFViewerApplication._touchInfo = null;
-  PDFViewerApplication._touchUnusedTicks = 0;
-  PDFViewerApplication._touchUnusedFactor = 1;
+  this._touchInfo = null;
+  this._touchUnusedTicks = 0;
+  this._touchUnusedFactor = 1;
 }
-function webViewerClick(evt) {
-  if (!PDFViewerApplication.secondaryToolbar?.isOpen) {
+function onClick(evt) {
+  if (!this.secondaryToolbar?.isOpen) {
     return;
   }
-  const appConfig = PDFViewerApplication.appConfig;
-  if (PDFViewerApplication.pdfViewer.containsElement(evt.target) || appConfig.toolbar?.container.contains(evt.target) && evt.target !== appConfig.secondaryToolbar?.toggleButton) {
-    PDFViewerApplication.secondaryToolbar.close();
+  const appConfig = this.appConfig;
+  if (this.pdfViewer.containsElement(evt.target) || appConfig.toolbar?.container.contains(evt.target) && evt.target !== appConfig.secondaryToolbar?.toggleButton) {
+    this.secondaryToolbar.close();
   }
 }
-function webViewerKeyUp(evt) {
+function onKeyUp(evt) {
   if (evt.key === "Control") {
-    PDFViewerApplication._isCtrlKeyDown = false;
+    this._isCtrlKeyDown = false;
   }
 }
-function webViewerKeyDown(evt) {
-  PDFViewerApplication._isCtrlKeyDown = evt.key === "Control";
-  if (PDFViewerApplication.overlayManager.active) {
+function onKeyDown(evt) {
+  this._isCtrlKeyDown = evt.key === "Control";
+  if (this.overlayManager.active) {
     return;
   }
   const {
     eventBus,
     pdfViewer
-  } = PDFViewerApplication;
+  } = this;
   const isViewerInPresentationMode = pdfViewer.isInPresentationMode;
   let handled = false,
     ensureViewerFocused = false;
@@ -12561,16 +13031,16 @@ function webViewerKeyDown(evt) {
   if (cmd === 1 || cmd === 8 || cmd === 5 || cmd === 12) {
     switch (evt.keyCode) {
       case 70:
-        if (!PDFViewerApplication.supportsIntegratedFind && !evt.shiftKey) {
-          PDFViewerApplication.findBar?.open();
+        if (!this.supportsIntegratedFind && !evt.shiftKey) {
+          this.findBar?.open();
           handled = true;
         }
         break;
       case 71:
-        if (!PDFViewerApplication.supportsIntegratedFind) {
+        if (!this.supportsIntegratedFind) {
           const {
             state
-          } = PDFViewerApplication.findController;
+          } = this.findController;
           if (state) {
             const newState = {
               source: window,
@@ -12589,34 +13059,34 @@ function webViewerKeyDown(evt) {
       case 107:
       case 187:
       case 171:
-        PDFViewerApplication.zoomIn();
+        this.zoomIn();
         handled = true;
         break;
       case 173:
       case 109:
       case 189:
-        PDFViewerApplication.zoomOut();
+        this.zoomOut();
         handled = true;
         break;
       case 48:
       case 96:
         if (!isViewerInPresentationMode) {
-          setTimeout(function () {
-            PDFViewerApplication.zoomReset();
+          setTimeout(() => {
+            this.zoomReset();
           });
           handled = false;
         }
         break;
       case 38:
-        if (isViewerInPresentationMode || PDFViewerApplication.page > 1) {
-          PDFViewerApplication.page = 1;
+        if (isViewerInPresentationMode || this.page > 1) {
+          this.page = 1;
           handled = true;
           ensureViewerFocused = true;
         }
         break;
       case 40:
-        if (isViewerInPresentationMode || PDFViewerApplication.page < PDFViewerApplication.pagesCount) {
-          PDFViewerApplication.page = PDFViewerApplication.pagesCount;
+        if (isViewerInPresentationMode || this.page < this.pagesCount) {
+          this.page = this.pagesCount;
           handled = true;
           ensureViewerFocused = true;
         }
@@ -12626,9 +13096,9 @@ function webViewerKeyDown(evt) {
   if (cmd === 3 || cmd === 10) {
     switch (evt.keyCode) {
       case 80:
-        PDFViewerApplication.requestPresentationMode();
+        this.requestPresentationMode();
         handled = true;
-        PDFViewerApplication.externalServices.reportTelemetry({
+        this.externalServices.reportTelemetry({
           type: "buttons",
           data: {
             id: "presentationModeKeyboard"
@@ -12636,8 +13106,8 @@ function webViewerKeyDown(evt) {
         });
         break;
       case 71:
-        if (PDFViewerApplication.appConfig.toolbar) {
-          PDFViewerApplication.appConfig.toolbar.pageNumber.select();
+        if (this.appConfig.toolbar) {
+          this.appConfig.toolbar.pageNumber.select();
           handled = true;
         }
         break;
@@ -12662,8 +13132,8 @@ function webViewerKeyDown(evt) {
       turnOnlyIfPageFit = false;
     switch (evt.keyCode) {
       case 38:
-        if (PDFViewerApplication.supportsCaretBrowsingMode) {
-          PDFViewerApplication.moveCaret(true, false);
+        if (this.supportsCaretBrowsingMode) {
+          this.moveCaret(true, false);
           handled = true;
           break;
         }
@@ -12680,7 +13150,7 @@ function webViewerKeyDown(evt) {
         turnPage = -1;
         break;
       case 37:
-        if (PDFViewerApplication.supportsCaretBrowsingMode) {
+        if (this.supportsCaretBrowsingMode) {
           return;
         }
         if (pdfViewer.isHorizontalScrollbarEnabled) {
@@ -12691,18 +13161,18 @@ function webViewerKeyDown(evt) {
         turnPage = -1;
         break;
       case 27:
-        if (PDFViewerApplication.secondaryToolbar?.isOpen) {
-          PDFViewerApplication.secondaryToolbar.close();
+        if (this.secondaryToolbar?.isOpen) {
+          this.secondaryToolbar.close();
           handled = true;
         }
-        if (!PDFViewerApplication.supportsIntegratedFind && PDFViewerApplication.findBar?.opened) {
-          PDFViewerApplication.findBar.close();
+        if (!this.supportsIntegratedFind && this.findBar?.opened) {
+          this.findBar.close();
           handled = true;
         }
         break;
       case 40:
-        if (PDFViewerApplication.supportsCaretBrowsingMode) {
-          PDFViewerApplication.moveCaret(false, false);
+        if (this.supportsCaretBrowsingMode) {
+          this.moveCaret(false, false);
           handled = true;
           break;
         }
@@ -12720,7 +13190,7 @@ function webViewerKeyDown(evt) {
         turnPage = 1;
         break;
       case 39:
-        if (PDFViewerApplication.supportsCaretBrowsingMode) {
+        if (this.supportsCaretBrowsingMode) {
           return;
         }
         if (pdfViewer.isHorizontalScrollbarEnabled) {
@@ -12731,30 +13201,30 @@ function webViewerKeyDown(evt) {
         turnPage = 1;
         break;
       case 36:
-        if (isViewerInPresentationMode || PDFViewerApplication.page > 1) {
-          PDFViewerApplication.page = 1;
+        if (isViewerInPresentationMode || this.page > 1) {
+          this.page = 1;
           handled = true;
           ensureViewerFocused = true;
         }
         break;
       case 35:
-        if (isViewerInPresentationMode || PDFViewerApplication.page < PDFViewerApplication.pagesCount) {
-          PDFViewerApplication.page = PDFViewerApplication.pagesCount;
+        if (isViewerInPresentationMode || this.page < this.pagesCount) {
+          this.page = this.pagesCount;
           handled = true;
           ensureViewerFocused = true;
         }
         break;
       case 83:
-        PDFViewerApplication.pdfCursorTools?.switchTool(CursorTool.SELECT);
+        this.pdfCursorTools?.switchTool(CursorTool.SELECT);
         break;
       case 72:
-        PDFViewerApplication.pdfCursorTools?.switchTool(CursorTool.HAND);
+        this.pdfCursorTools?.switchTool(CursorTool.HAND);
         break;
       case 82:
-        PDFViewerApplication.rotatePages(90);
+        this.rotatePages(90);
         break;
       case 115:
-        PDFViewerApplication.pdfSidebar?.toggle();
+        this.pdfSidebar?.toggle();
         break;
     }
     if (turnPage !== 0 && (!turnOnlyIfPageFit || pdfViewer.currentScaleValue === "page-fit")) {
@@ -12777,15 +13247,15 @@ function webViewerKeyDown(evt) {
         handled = true;
         break;
       case 38:
-        PDFViewerApplication.moveCaret(true, true);
+        this.moveCaret(true, true);
         handled = true;
         break;
       case 40:
-        PDFViewerApplication.moveCaret(false, true);
+        this.moveCaret(false, true);
         handled = true;
         break;
       case 82:
-        PDFViewerApplication.rotatePages(-90);
+        this.rotatePages(-90);
         break;
     }
   }
@@ -12806,28 +13276,14 @@ function beforeUnload(evt) {
   evt.returnValue = "";
   return false;
 }
-function webViewerAnnotationEditorStatesChanged(data) {
-  PDFViewerApplication.externalServices.updateEditorStates(data);
-}
-function webViewerReportTelemetry({
-  details
-}) {
-  PDFViewerApplication.externalServices.reportTelemetry(details);
-}
-function webViewerSetPreference({
-  name,
-  value
-}) {
-  PDFViewerApplication.preferences.set(name, value);
-}
 
 ;// CONCATENATED MODULE: ./web/viewer.js
 
 
 
 
-const pdfjsVersion = "4.5.128";
-const pdfjsBuild = "33493301b";
+const pdfjsVersion = "4.5.195";
+const pdfjsBuild = "a372bf8f4";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
@@ -12847,7 +13303,6 @@ function getViewerConfiguration() {
       next: document.getElementById("next"),
       zoomIn: document.getElementById("zoomIn"),
       zoomOut: document.getElementById("zoomOut"),
-      viewFind: document.getElementById("viewFind"),
       print: document.getElementById("print"),
       editorFreeTextButton: document.getElementById("editorFreeText"),
       editorFreeTextParamsToolbar: document.getElementById("editorFreeTextParamsToolbar"),
@@ -12881,6 +13336,8 @@ function getViewerConfiguration() {
       spreadNoneButton: document.getElementById("spreadNone"),
       spreadOddButton: document.getElementById("spreadOdd"),
       spreadEvenButton: document.getElementById("spreadEven"),
+      imageAltTextSettingsButton: document.getElementById("imageAltTextSettings"),
+      imageAltTextSettingsSeparator: document.getElementById("imageAltTextSettingsSeparator"),
       documentPropertiesButton: document.getElementById("documentProperties")
     },
     sidebar: {
@@ -12945,6 +13402,35 @@ function getViewerConfiguration() {
       textarea: document.getElementById("descriptionTextarea"),
       cancelButton: document.getElementById("altTextCancel"),
       saveButton: document.getElementById("altTextSave")
+    },
+    newAltTextDialog: {
+      dialog: document.getElementById("newAltTextDialog"),
+      title: document.getElementById("newAltTextTitle"),
+      descriptionContainer: document.getElementById("newAltTextDescriptionContainer"),
+      textarea: document.getElementById("newAltTextDescriptionTextarea"),
+      disclaimer: document.getElementById("newAltTextDisclaimer"),
+      learnMore: document.getElementById("newAltTextLearnMore"),
+      imagePreview: document.getElementById("newAltTextImagePreview"),
+      createAutomatically: document.getElementById("newAltTextCreateAutomatically"),
+      createAutomaticallyButton: document.getElementById("newAltTextCreateAutomaticallyButton"),
+      downloadModel: document.getElementById("newAltTextDownloadModel"),
+      downloadModelDescription: document.getElementById("newAltTextDownloadModelDescription"),
+      error: document.getElementById("newAltTextError"),
+      errorCloseButton: document.getElementById("newAltTextCloseButton"),
+      cancelButton: document.getElementById("newAltTextCancel"),
+      notNowButton: document.getElementById("newAltTextNotNow"),
+      saveButton: document.getElementById("newAltTextSave")
+    },
+    altTextSettingsDialog: {
+      dialog: document.getElementById("altTextSettingsDialog"),
+      createModelButton: document.getElementById("createModelButton"),
+      aiModelSettings: document.getElementById("aiModelSettings"),
+      learnMore: document.getElementById("altTextSettingsLearnMore"),
+      deleteModelButton: document.getElementById("deleteModelButton"),
+      downloadModelButton: document.getElementById("downloadModelButton"),
+      showAltTextDialogButton: document.getElementById("showAltTextDialogButton"),
+      altTextSettingsCloseButton: document.getElementById("altTextSettingsCloseButton"),
+      closeButton: document.getElementById("altTextSettingsCloseButton")
     },
     annotationEditorParams: {
       editorFreeTextFontSize: document.getElementById("editorFreeTextFontSize"),

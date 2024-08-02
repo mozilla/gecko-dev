@@ -56,7 +56,11 @@ let gFindTypes = [
 ];
 
 export class PdfjsParent extends JSWindowActorParent {
-  #mutablePreferences = new Set(["enableGuessAltText"]);
+  #mutablePreferences = new Set([
+    "enableGuessAltText",
+    "enableAltTextModelDownload",
+    "enableNewAltTextWhenAddingImage",
+  ]);
 
   constructor() {
     super();

@@ -12,6 +12,7 @@ const pdfUrl = TESTROOT + "file_pdfjs_test.pdf";
 const altTextPref = "pdfjs.enableAltText";
 const guessAltTextPref = "pdfjs.enableGuessAltText";
 const browserMLPref = "browser.ml.enable";
+const annotationEditorModePref = "pdfjs.annotationEditorMode";
 
 async function setupRemoteClient() {
   const { removeMocks, remoteClients } = await createAndMockMLRemoteSettings({
@@ -66,12 +67,15 @@ add_task(async function test() {
           [altTextPref, true],
           [browserMLPref, true],
           [guessAltTextPref, true],
+          [annotationEditorModePref, 0],
         ],
       });
 
       const setRC = await setupRemoteClient();
 
       await waitForPdfJS(browser, pdfUrl);
+      await enableEditor(browser, "Stamp", 1);
+
       const isEnabled = await SpecialPowers.spawn(browser, [], () => {
         const viewer = content.wrappedJSObject.PDFViewerApplication;
         return viewer.mlManager.isEnabledFor("altText");
