@@ -127,7 +127,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Sterk wachtwurd brûke?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Beskermje jo accounts mei in sterk, willekeurich oanmakke wachtwurd. Krij rappe tagong ta jo wachtwurden troch it op te slaan yn jo account.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Beskermje jo accounts mei in sterk, willekeurich oanmakke wachtwurd. Krij rappe tagong ta jo wachtwurden troch it op te slaan yn jo account.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Beskermje jo accounts mei in sterk, willekeurich oanmakke wachtwurd. Dit wurdt foar takomstich gebrûk yn jo account bewarre.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Wachtwurd brûke</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->

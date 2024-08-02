@@ -1878,6 +1878,8 @@
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">حق‌لری بیل</string>
 
+    <!-- About page link text to open licensing information link -->
+    <string name="about_licensing_information">مجوز بیلگی‌لری</string>
     <!-- About page link text to open a screen with libraries that are used -->
     <string name="about_other_open_source_libraries">ایشه آلدیغیز کتابخانالار</string>
 
@@ -1890,6 +1892,42 @@
     <!-- Browser long press popup menu -->
     <!-- Copy the current url -->
     <string name="browser_toolbar_long_press_popup_copy">کپی</string>
+
+    <!-- Paste & go the text in the clipboard. '&amp;' is replaced with the ampersand symbol: & -->
+    <string name="browser_toolbar_long_press_popup_paste_and_go">یاپیشدیر و گئت</string>
+    <!-- Paste the text in the clipboard -->
+    <string name="browser_toolbar_long_press_popup_paste">یاپیشدیر</string>
+    <!-- Snackbar message shown after an URL has been copied to clipboard. -->
+    <string name="browser_toolbar_url_copied_to_clipboard_snackbar">اینترنت آدرسی کلیپبوردا کپی اوْلوندو</string>
+
+    <!-- Title text for the Add To Homescreen dialog -->
+    <string name="add_to_homescreen_title">آنا اکرانا آرتیر</string>
+    <!-- Cancel button text for the Add to Homescreen dialog -->
+    <string name="add_to_homescreen_cancel">لغو</string>
+    <!-- Add button text for the Add to Homescreen dialog -->
+    <string name="add_to_homescreen_add">اکله</string>
+    <!-- Continue to website button text for the first-time Add to Homescreen dialog -->
+    <string name="add_to_homescreen_continue">سایتا ادامه وئر</string>
+    <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
+    <string name="add_to_homescreen_text_placeholder">شورتکات آدیْ</string>
+    <!-- Describes the add to homescreen functionality -->
+    <string name="add_to_homescreen_description_2">You can easily add this website to your device’s Home screen to have instant access and browse faster with an app-like experience.</string>
+
+    <!-- Preference for managing the settings for logins and passwords in Fenix -->
+    <string name="preferences_passwords_logins_and_passwords_2">رمز‌لر</string>
+
+    <!-- Preference for managing the saving of logins and passwords in Fenix -->
+    <string name="preferences_passwords_save_logins_2">رمزلری ساخلا</string>
+    <!-- Preference option for asking to save passwords in Fenix -->
+    <string name="preferences_passwords_save_logins_ask_to_save">ساخلاماغیْ سوْروش</string>
+    <!-- Preference option for never saving passwords in Fenix -->
+    <string name="preferences_passwords_save_logins_never_save">هئچ زمان ساخلاما</string>
+    <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
+    <string name="preferences_passwords_autofill2">%1$s ایله اتوماتیک دوْلدور</string>
+    <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
+    <string name="preferences_passwords_autofill_description">%1$s استفاده ائلین زمان سایتلاردا قوللانیجیْ آدلاریْ و رمزلری دوْلدورون و یاددا ساخلایین</string>
+    <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
+    <string name="preferences_android_autofill">آیریْ اَپ‌لرده اتوماتیک دوْلدور</string>
 
     <!-- Translations feature-->
 

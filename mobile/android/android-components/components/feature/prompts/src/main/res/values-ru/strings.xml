@@ -128,7 +128,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Использовать надёжный пароль?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Защитите свои аккаунты с помощью надёжных, сгенерированных случайным образом паролей. Получите быстрый доступ к своим паролям, сохранив их в своем аккаунте.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Защитите свои аккаунты с помощью надёжных, сгенерированных случайным образом паролей. Получите быстрый доступ к своим паролям, сохранив их в своем аккаунте.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Защитите свои аккаунты с помощью надежного пароля, сгенерированного случайным образом. Он будет сохранен в вашем аккаунте для использования в будущем.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Использовать пароль</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->

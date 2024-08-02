@@ -1117,7 +1117,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">ਭੰਡਾਰ ਦਾ ਨਾਂ</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">ਨਾਂ ਬਦਲੋ</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">ਨਾਂ ਬਦਲੋ</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">ਹਟਾਓ</string>
 
@@ -1248,6 +1248,17 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">ਖੋਜ ਸ਼ਬਦ ਦਿਓ</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">ਪਿੱਛੇ ਵੱਲ ਨੈਵੀਗੇਟ ਕਰੋ</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">ਨਵਾਂ ਫੋਲਡਰ ਜੋੜੋ</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">ਬੁੱਕਮਾਰਕ ਨੂੰ ਬੰਦ ਕਰੋ</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">ਬੁੱਕਮਾਰਕ ਖੋਜੋ</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">%s ਲਈ ਆਈਟਮ ਮੇਨੂ</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2202,8 +2213,10 @@
     <string name="top_sites_rename_dialog_title">ਨਾਂ</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">ਸ਼ਾਰਟਕੱਟ ਨਾਂ</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">ਸ਼ਾਰਟਕੱਟ URL</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">ਠੀਕ ਹੈ</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">ਠੀਕ ਹੈ</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">ਰੱਦ ਕਰੋ</string>
 
@@ -2213,6 +2226,17 @@
     <string name="top_sites_menu_sponsor_privacy">ਸਾਡੇ ਸਪਾਂਸਰ ਅਤੇ ਤੁਹਾਡੀ ਪਰਦੇਦਾਰੀ</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">ਸਪੌਂਸਰ ਕੀਤੇ</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">ਸੋਧੋ</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">ਸ਼ਾਰਟਕੱਟ ਨੂੰ ਸੋਧੋ</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">ਸੰਭਾਲੋ</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">ਵਾਜਬ URL ਦਿਓ</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->

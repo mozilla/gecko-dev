@@ -136,7 +136,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Utiliser un mot de passe compliqué ?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Protégez vos comptes en utilisant un mot de passe compliqué, généré aléatoirement. Accédez rapidement à vos mots de passe en les enregistrant dans votre compte.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protégez vos comptes en utilisant un mot de passe compliqué, généré aléatoirement. Accédez rapidement à vos mots de passe en les enregistrant dans votre compte.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protégez vos comptes en utilisant un mot de passe robuste, généré aléatoirement. Il sera enregistré dans votre compte pour de futures utilisations.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Utiliser ce mot de passe</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->

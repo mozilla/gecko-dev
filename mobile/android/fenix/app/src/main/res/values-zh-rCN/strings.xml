@@ -2655,7 +2655,7 @@
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="download_languages_header_preference">下载完整语言包以提高翻译速度，并可离线翻译。%1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
-    <string name="download_languages_header_learn_more_preference">了解更多</string>
+    <string name="download_languages_header_learn_more_preference">详细了解</string>
     <!-- The subhead of the download language preference screen will appear above the pivot language. -->
     <string name="download_languages_available_languages_preference">可用语言</string>
     <!-- Text that will appear beside a core or pivot language package name to show that the language is necessary for the translation feature to function. -->

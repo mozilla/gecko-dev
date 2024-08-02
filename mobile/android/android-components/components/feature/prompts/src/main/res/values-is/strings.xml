@@ -129,7 +129,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Nota sterkt lykilorð?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Verndaðu reikningana þína með því að nota sterkt lykilorð sem búið er til af handahófi. Hafðu lykilorðin þín innan handar með því að vista þau á reikningnum þínum.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Verndaðu reikningana þína með því að nota sterkt lykilorð sem búið er til af handahófi. Hafðu lykilorðin þín innan handar með því að vista þau á reikningnum þínum.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Verndaðu reikningana þína með því að nota sterkt lykilorð sem búið er til af handahófi. Það verður vistað á reikningnum þínum til notkunar í framtíðinni.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Nota lykilorð</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->

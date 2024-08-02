@@ -1043,7 +1043,7 @@
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
     <string name="errorpage_httpsonly_message2"><![CDATA[%1$s 尽可能尝试使用 HTTPS 连接以提高安全性。
-     <a href="%2$s">了解更多</a> <br/><br/>
+     <a href="%2$s">详细了解</a> <br/><br/>
      通过“设置”>“隐私与安全”>“安全”更改此设置。]]></string>
 
     <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
