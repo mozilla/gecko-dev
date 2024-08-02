@@ -898,8 +898,7 @@ class gfxFontEntry {
   };
 
   using FontTableCache = nsTHashtable<FontTableHashEntry>;
-  mozilla::Atomic<FontTableCache*> mFontTableCache;
-  FontTableCache* GetFontTableCache() const { return mFontTableCache; }
+  mozilla::UniquePtr<FontTableCache> mFontTableCache MOZ_GUARDED_BY(mLock);
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(gfxFontEntry::RangeFlags)
