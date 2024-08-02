@@ -8206,6 +8206,7 @@ addons:
         - WebExtensions
   installed_addons:
     type: string_list
+    lifetime: application
     description: |
       A list of all installed add-ons on the device.
     send_in_pings:
@@ -8229,6 +8230,7 @@ addons:
         - WebExtensions
   enabled_addons:
     type: string_list
+    lifetime: application
     description: |
       A list of all enabled add-ons on the device.
     send_in_pings:
