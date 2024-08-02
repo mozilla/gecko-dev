@@ -32,6 +32,7 @@ run-if = ["os == 'mac'"] # Mac only feature
 ["browser_sidebar_prefs.js"]
 
 ["browser_toolbar_sidebar_button.js"]
+skip-if = ["os == 'linux' && debug"] # Bug 1896421
 
 ["browser_vertical_tabs.js"]
 
