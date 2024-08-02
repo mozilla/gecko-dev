@@ -94,10 +94,14 @@ export class _CollapsibleSection extends React.PureComponent {
       titleStyle = { visibility: "hidden" };
     }
     const hasSubtitleClassName = subTitle ? `has-subtitle` : ``;
-    const topicsHaveBeenPreviouslySet =
+    const hasBeenUpdatedPreviously =
       this.props.Prefs.values[
         "discoverystream.topicSelection.hasBeenUpdatedPreviously"
       ];
+    const selectedTopics =
+      this.props.Prefs.values["discoverystream.topicSelection.selectedTopics"];
+    const topicsHaveBeenPreviouslySet =
+      hasBeenUpdatedPreviously || selectedTopics;
     return (
       <section
         className={`collapsible-section ${this.props.className}${

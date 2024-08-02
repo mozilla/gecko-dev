@@ -49,12 +49,6 @@ function TopicSelection({ supportUrl }) {
     // Only return true if the user has not previous set prefs
     // and the selected topics pref is empty
     if (selectedTopics === "" && !topicsHaveBeenPreviouslySet) {
-      dispatch(
-        ac.SetPref(
-          "discoverystream.topicSelection.hasBeenUpdatedPreviously",
-          true
-        )
-      );
       return true;
     }
 
@@ -219,6 +213,14 @@ function TopicSelection({ supportUrl }) {
         false
       )
     );
+    if (!topicsHaveBeenPreviouslySet) {
+      dispatch(
+        ac.SetPref(
+          "discoverystream.topicSelection.hasBeenUpdatedPreviously",
+          true
+        )
+      );
+    }
     dispatch(
       ac.OnlyToMain({
         type: at.TOPIC_SELECTION_USER_SAVE,

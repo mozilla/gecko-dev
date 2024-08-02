@@ -4409,7 +4409,9 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
       };
     }
     const hasSubtitleClassName = subTitle ? `has-subtitle` : ``;
-    const topicsHaveBeenPreviouslySet = this.props.Prefs.values["discoverystream.topicSelection.hasBeenUpdatedPreviously"];
+    const hasBeenUpdatedPreviously = this.props.Prefs.values["discoverystream.topicSelection.hasBeenUpdatedPreviously"];
+    const selectedTopics = this.props.Prefs.values["discoverystream.topicSelection.selectedTopics"];
+    const topicsHaveBeenPreviouslySet = hasBeenUpdatedPreviously || selectedTopics;
     return /*#__PURE__*/external_React_default().createElement("section", {
       className: `collapsible-section ${this.props.className}${active ? " active" : ""}`
       // Note: data-section-id is used for web extension api tests in mozilla central
@@ -10690,7 +10692,6 @@ function TopicSelection({
     // Only return true if the user has not previous set prefs
     // and the selected topics pref is empty
     if (selectedTopics === "" && !topicsHaveBeenPreviouslySet) {
-      dispatch(actionCreators.SetPref("discoverystream.topicSelection.hasBeenUpdatedPreviously", true));
       return true;
     }
     return false;
@@ -10811,6 +10812,9 @@ function TopicSelection({
     const topicsString = topicsToSelect.join(", ");
     dispatch(actionCreators.SetPref("discoverystream.topicSelection.selectedTopics", topicsString));
     dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", false));
+    if (!topicsHaveBeenPreviouslySet) {
+      dispatch(actionCreators.SetPref("discoverystream.topicSelection.hasBeenUpdatedPreviously", true));
+    }
     dispatch(actionCreators.OnlyToMain({
       type: actionTypes.TOPIC_SELECTION_USER_SAVE,
       data: {

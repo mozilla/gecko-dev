@@ -652,10 +652,14 @@ export class DiscoveryStreamFeed {
         PREF_TOPIC_SELECTION_PREVIOUS_SELECTED
       ];
 
+    const selectedTopics =
+      this.store.getState().Prefs.values[PREF_SELECTED_TOPICS];
+
     // Note: This requires a cache update to react to a pref update
-    const pocketStoriesHeadlineId = topicSelectionHasBeenUpdatedPreviously
-      ? "newtab-section-header-todays-picks"
-      : "newtab-section-header-stories";
+    const pocketStoriesHeadlineId =
+      topicSelectionHasBeenUpdatedPreviously || selectedTopics
+        ? "newtab-section-header-todays-picks"
+        : "newtab-section-header-stories";
 
     pocketConfig.pocketStoriesHeadlineId = pocketStoriesHeadlineId;
 
