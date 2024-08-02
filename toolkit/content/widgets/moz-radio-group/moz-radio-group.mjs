@@ -198,11 +198,9 @@ export class MozRadioGroup extends MozLitElement {
   render() {
     return html`
       <moz-fieldset
-        part="fieldset"
         role="radiogroup"
         ?disabled=${this.disabled}
         label=${this.label}
-        exportparts="inputs"
       >
         <slot
           @slotchange=${this.syncStateToRadioButtons}
@@ -350,7 +348,7 @@ export class MozRadio extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/content/elements/moz-radio.css"
       />
-      <label part="label">${this.inputTemplate()}${this.labelTemplate()}</label>
+      <label>${this.inputTemplate()}${this.labelTemplate()}</label>
     `;
   }
 }

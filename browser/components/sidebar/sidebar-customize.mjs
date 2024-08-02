@@ -34,7 +34,7 @@ export class SidebarCustomize extends SidebarPage {
   };
 
   static queries = {
-    toolInputs: { all: ".customize-group moz-checkbox" },
+    toolInputs: { all: ".customize-firefox-tools moz-checkbox" },
     extensionLinks: { all: ".extension-link" },
     positionInputs: { all: ".position-setting" },
     visibilityInputs: { all: ".visibility-setting" },
@@ -170,21 +170,21 @@ export class SidebarCustomize extends SidebarPage {
     return html`
       ${this.stylesheet()}
       <link rel="stylesheet" href="chrome://browser/content/sidebar/sidebar-customize.css"></link>
-      <div class="sidebar-panel">
+      <div class="container">
         <sidebar-panel-header data-l10n-id="sidebar-menu-customize-header" data-l10n-attrs="heading" view="viewCustomizeSidebar">
         </sidebar-panel-header>
-        <moz-fieldset class="customize-group" data-l10n-id="sidebar-customize-firefox-tools-header">
+        <moz-fieldset class="customize-firefox-tools" data-l10n-id="sidebar-customize-firefox-tools-header">
           ${this.getWindow()
             .SidebarController.getTools()
             .map(tool => this.inputTemplate(tool))}
         </moz-fieldset>
         ${when(
           extensions.length,
-          () => html`<div class="customize-group">
-            <h4
-              class="customize-extensions-heading"
+          () => html`<div class="customize-extensions">
+            <h5
+              class="heading-medium customize-extensions-heading"
               data-l10n-id="sidebar-customize-extensions-header"
-            ></h4>
+            ></h5>
             <div role="list" class="extensions">
               ${extensions.map((extension, index) =>
                 this.extensionTemplate(extension, index)
@@ -192,84 +192,81 @@ export class SidebarCustomize extends SidebarPage {
             </div>
           </div>`
         )}
-        <div class="customize-group">
-          <moz-radio-group
-            @change=${this.#handleVisibilityChange}
-            name="visibility"
-            data-l10n-id="sidebar-customize-settings-header"
-          >
-            <moz-radio
-              class="visibility-setting"
-              value="always-show"
-              ?checked=${this.visibility === "always-show"}
-              iconsrc="chrome://browser/skin/sidebar-expanded.svg"
-              data-l10n-id="sidebar-visibility-always-show"
-            ></moz-radio>
-            <moz-radio
-              class="visibility-setting"
-              value="hide-sidebar"
-              ?checked=${this.visibility === "hide-sidebar"}
-            iconsrc="chrome://browser/skin/sidebar-hidden.svg"
-              data-l10n-id="sidebar-visibility-hide-sidebar"
-            ></moz-radio>
-          </moz-radio-group>
-          <moz-radio-group
-              @change=${this.reversePosition}
-              name="position">
-            <moz-radio
-              class="position-setting"
-              id="position-left"
-              value=${!this.getWindow().RTL_UI}
-              ?checked=${
-                this.getWindow().RTL_UI
-                  ? !this.getWindow().SidebarController._positionStart
-                  : this.getWindow().SidebarController._positionStart
-              }
-              iconsrc="chrome://browser/skin/sidebar-expanded.svg"
-              data-l10n-id="sidebar-position-left"
-            ></moz-radio>
-            <moz-radio
-              class="position-setting"
-              id="position-right"
-              value=${this.getWindow().RTL_UI}
-              ?checked=${
-                this.getWindow().RTL_UI
-                  ? this.getWindow().SidebarController._positionStart
-                  : !this.getWindow().SidebarController._positionStart
-              }
-              iconsrc="chrome://browser/skin/sidebar-right.svg"
-              data-l10n-id="sidebar-position-right"
-            ></moz-radio>
-          </moz-radio-group>
-        </div>
-        <div class="customize-group">
-          <moz-radio-group
-              @change=${this.#handleTabDirectionChange}
-              name="tabDirection"
-              data-l10n-id="sidebar-customize-tabs-header">
-            <moz-radio
-              class="vertical-tabs-setting"
-              id="vertical-tabs"
-              value=${true}
-              ?checked=${
-                this.getWindow().SidebarController.sidebarVerticalTabsEnabled
-              }
-              iconsrc="chrome://browser/skin/sidebar-collapsed.svg"
-              data-l10n-id="sidebar-vertical-tabs"
-            ></moz-radio>
-            <moz-radio
-              class="vertical-tabs-setting"
-              id="horizontal-tabs"
-              value=${false}
-              ?checked=${
-                this.getWindow().SidebarController
-                  .sidebarVerticalTabsEnabled === false
-              }
-              iconsrc="chrome://browser/skin/sidebar-horizontal-tabs.svg"
-              data-l10n-id="sidebar-horizontal-tabs"
-            ></moz-radio>
-          </moz-radio-group>
-        </div>
+        <moz-radio-group
+          @change=${this.#handleVisibilityChange}
+          name="visibility"
+          data-l10n-id="sidebar-customize-settings-header"
+        >
+          <moz-radio
+            class="visibility-setting"
+            value="always-show"
+            ?checked=${this.visibility === "always-show"}
+            iconsrc="chrome://browser/content/sidebar/sidebar-expanded.svg"
+            data-l10n-id="sidebar-visibility-always-show"
+          ></moz-radio>
+          <moz-radio
+            class="visibility-setting"
+            value="hide-sidebar"
+            ?checked=${this.visibility === "hide-sidebar"}
+            iconsrc="chrome://browser/content/sidebar/sidebar-hidden.svg"
+            data-l10n-id="sidebar-visibility-hide-sidebar"
+          ></moz-radio>
+        </moz-radio-group>
+        <hr>
+        <moz-radio-group
+            @change=${this.reversePosition}
+            name="position">
+          <moz-radio
+            class="position-setting"
+            id="position-left"
+            value=${!this.getWindow().RTL_UI}
+            ?checked=${
+              this.getWindow().RTL_UI
+                ? !this.getWindow().SidebarController._positionStart
+                : this.getWindow().SidebarController._positionStart
+            }
+            iconsrc="chrome://browser/content/sidebar/sidebar-collapsed.svg"
+            data-l10n-id="sidebar-position-left"
+          ></moz-radio>
+          <moz-radio
+            class="position-setting"
+            id="position-right"
+            value=${this.getWindow().RTL_UI}
+            ?checked=${
+              this.getWindow().RTL_UI
+                ? this.getWindow().SidebarController._positionStart
+                : !this.getWindow().SidebarController._positionStart
+            }
+            iconsrc="chrome://browser/skin/sidebars.svg"
+            data-l10n-id="sidebar-position-right"
+          ></moz-radio>
+        </moz-radio-group>
+        <moz-radio-group
+            @change=${this.#handleTabDirectionChange}
+            name="tabDirection"
+            data-l10n-id="sidebar-customize-tabs-header">
+          <moz-radio
+            class="vertical-tabs-setting"
+            id="vertical-tabs"
+            value=${true}
+            ?checked=${
+              this.getWindow().SidebarController.sidebarVerticalTabsEnabled
+            }
+            iconsrc="chrome://browser/content/sidebar/sidebar-collapsed.svg"
+            data-l10n-id="sidebar-vertical-tabs"
+          ></moz-radio>
+          <moz-radio
+            class="vertical-tabs-setting"
+            id="horizontal-tabs"
+            value=${false}
+            ?checked=${
+              this.getWindow().SidebarController.sidebarVerticalTabsEnabled ===
+              false
+            }
+            iconsrc="chrome://browser/content/sidebar/sidebar-horizontal-tabs.svg"
+            data-l10n-id="sidebar-horizontal-tabs"
+          ></moz-radio>
+        </moz-radio-group>
         <div id="manage-settings">
           <img src="chrome://browser/skin/preferences/category-general.svg" class="icon" role="presentation" />
           <a

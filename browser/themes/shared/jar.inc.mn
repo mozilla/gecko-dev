@@ -193,11 +193,6 @@
   skin/classic/browser/reload-to-stop.svg             (../shared/icons/reload-to-stop.svg)
   skin/classic/browser/save.svg                       (../shared/icons/save.svg)
   skin/classic/browser/screenshot.svg                 (../shared/icons/screenshot.svg)
-  skin/classic/browser/sidebar-collapsed.svg          (../shared/icons/sidebar-collapsed.svg)
-  skin/classic/browser/sidebar-expanded.svg           (../shared/icons/sidebar-expanded.svg)
-  skin/classic/browser/sidebar-hidden.svg             (../shared/icons/sidebar-hidden.svg)
-  skin/classic/browser/sidebar-horizontal-tabs.svg    (../shared/icons/sidebar-horizontal-tabs.svg)
-  skin/classic/browser/sidebar-right.svg              (../shared/icons/sidebar-right.svg)
   skin/classic/browser/sidebars.svg                   (../shared/icons/sidebars.svg)
   skin/classic/browser/sidebars-right.svg             (../shared/icons/sidebars-right.svg)
 #ifndef MOZ_WIDGET_GTK

@@ -27,8 +27,6 @@
       "popup_border": "rgb(240,240,244)",
       "popup_highlight": "#e0e0e6",
       "popup_highlight_text": "#15141a",
-      "sidebar": "rgb(255, 255, 255)",
-      "sidebar_text": "rgb(21, 20, 26)",
       "tab_line": "transparent",
       "toolbar": "#f9f9fb",
       "toolbar_top_separator": "transparent",

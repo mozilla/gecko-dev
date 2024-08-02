@@ -107,10 +107,9 @@ export default class FxviewSearchTextbox extends MozLitElement {
   render() {
     return html`
     <link rel="stylesheet" href="chrome://browser/content/firefoxview/fxview-search-textbox.css" />
-    <div class="search-container" part="container">
+    <div class="search-container">
       <div class="search-icon"></div>
       <input
-        part="input"
         type="search"
         .placeholder=${ifDefined(this.placeholder)}
         .size=${ifDefined(this.size)}

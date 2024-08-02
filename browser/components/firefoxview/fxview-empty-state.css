@@ -15,7 +15,7 @@
   flex-direction: column;
   text-align: center;
   gap: 22px;
-  min-height: 264px;
+  height: 264px;
 }
 
 [slot="main"].selectedTab .header {

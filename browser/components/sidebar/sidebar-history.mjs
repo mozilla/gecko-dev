@@ -167,7 +167,7 @@ export class SidebarHistory extends SidebarPage {
   render() {
     return html`
       ${this.stylesheet()}
-      <div class="sidebar-panel">
+      <div class="container">
         <sidebar-panel-header
           data-l10n-id="sidebar-menu-history-header"
           data-l10n-attrs="heading"

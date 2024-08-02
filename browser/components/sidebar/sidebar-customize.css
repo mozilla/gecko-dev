@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-.sidebar-panel {
+.container {
+  padding-inline: var(--space-small);
   font: menu;
 
   > * + * {
@@ -34,73 +35,31 @@
   height: var(--icon-size-default);
 }
 
-.extensions {
-  display: flex;
-  flex-direction: column;
-  margin-top: var(--space-small);
-  border: 0.5px solid var(--panel-separator-color);
-  border-radius: var(--border-radius-medium);
-  background-color: var(--toolbar-bgcolor);
-  color: var(--toolbar-color);
-  padding-inline: var(--space-xsmall);
-}
+.customize-extensions {
+  .extensions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-large);
+    margin-top: var(--space-small);
+  }
 
-.extension-item {
-  display: flex;
-  height: 2.6em;
-  gap: var(--space-small);
-  align-items: center;
-  padding-block: var(--space-xsmall);
-  box-sizing: border-box;
-
-  &:not(:last-of-type){
-    border-bottom: 0.5px solid var(--panel-separator-color);
+  .extension-item {
+    display: flex;
+    gap: var(--space-small);
+    align-items: center;
   }
 }
 
 .customize-extensions-heading {
   margin: 0;
-  font-weight: inherit;
 }
 
-moz-radio-group,
-moz-fieldset {
+moz-radio-group {
   display: block;
-
-  &::part(inputs) {
-    border: 0.5px solid var(--panel-separator-color);
-    border-radius: var(--border-radius-medium);
-    background-color: var(--toolbar-bgcolor);
-    color: var(--toolbar-color);
-    gap: 0;
-    padding-inline: var(--space-xsmall);
-  }
-}
-
-moz-radio,
-moz-checkbox {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  height: 2.6em;
-  padding-block: var(--space-xsmall);
-  box-sizing: border-box;
-
-  &:not(:last-of-type) {
-    border-bottom: 0.5px solid var(--panel-separator-color);
-  }
-
-  &::part(label) {
-    width: 100%;
-  }
 }
 
 #manage-settings {
   display: flex;
   align-items: center;
-  gap: var(--space-large);
-}
-
-.customize-group {
-  margin-block-end: var(--space-xlarge);
+  gap: var(--space-small);
 }

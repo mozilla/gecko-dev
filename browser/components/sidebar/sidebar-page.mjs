@@ -7,10 +7,6 @@ import { html } from "chrome://global/content/vendor/lit.all.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/sidebar/sidebar-panel-header.mjs";
 
-const { LightweightThemeConsumer } = ChromeUtils.importESModule(
-  "resource://gre/modules/LightweightThemeConsumer.sys.mjs"
-);
-
 export class SidebarPage extends MozLitElement {
   constructor() {
     super();
@@ -21,8 +17,6 @@ export class SidebarPage extends MozLitElement {
     super.connectedCallback();
     this.ownerGlobal.addEventListener("beforeunload", this.clearDocument);
     this.ownerGlobal.addEventListener("unload", this.clearDocument);
-
-    new LightweightThemeConsumer(document);
   }
 
   disconnectedCallback() {

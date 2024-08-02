@@ -229,10 +229,6 @@ export default class SidebarMain extends MozLitElement {
     return html`
       <link
         rel="stylesheet"
-        href="chrome://browser/content/sidebar/sidebar.css"
-      />
-      <link
-        rel="stylesheet"
         href="chrome://browser/content/sidebar/sidebar-main.css"
       />
       <div class="wrapper">

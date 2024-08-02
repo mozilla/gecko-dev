@@ -3,62 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 @import url("chrome://global/skin/global.css");
-@import url("chrome://browser/skin/browser-custom-colors.css") not (-moz-platform: linux);
 
 :root {
-  background-color: transparent;
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  height: 100%;
+  background-color: var(--lwt-sidebar-background-color);
+  color: var(--lwt-sidebar-text-color);
 }
 
 moz-card {
   margin-block-start: var(--space-medium);
-  background-color: var(--toolbar-bgcolor);
-  color: var(--toolbar-color);
-  box-shadow: none;
-  border: 0.5px solid var(--panel-separator-color);
-  border-radius: var(--border-radius-medium);
-
-  &::part(summary) {
-    padding-block: var(--space-medium);
-  }
 
   &.phone::part(icon),
   &.mobile::part(icon) {
-    background-image: url("chrome://browser/skin/device-phone.svg");
+    background-image: url('chrome://browser/skin/device-phone.svg');
   }
 
   &.desktop::part(icon) {
-    background-image: url("chrome://browser/skin/device-desktop.svg");
+    background-image: url('chrome://browser/skin/device-desktop.svg');
   }
 
   &.tablet::part(icon) {
-    background-image: url("chrome://browser/skin/device-tablet.svg");
+    background-image: url('chrome://browser/skin/device-tablet.svg');
   }
 }
 
-.sidebar-panel {
-  background-color: var(--sidebar-background-color);
-  color: var(--sidebar-text-color);
-  padding: var(--space-large);
-  height: 100%;
-  box-sizing: border-box;
-  width: 100%;
-}
-
-fxview-search-textbox {
-  &::part(input) {
-    background-color: var(--toolbar-field-background-color);
-    color: var(--toolbar-field-color);
-    border-radius: 2em;
-    border: none;
-  }
-
-  &::part(container) {
-    width: 100%;
-  }
+.container {
+  padding-inline: var(--space-small);
 }

@@ -27,13 +27,13 @@ export default class MozFieldset extends MozLitElement {
       <fieldset
         aria-describedby=${ifDefined(this.description ? "description" : null)}
       >
-        <legend part="label">${this.label}</legend>
+        <legend class="heading-medium">${this.label}</legend>
         ${this.description
           ? html`<p id="description" class="text-deemphasized">
               ${this.description}
             </p>`
           : ""}
-        <div id="inputs" part="inputs">
+        <div id="inputs">
           <slot></slot>
         </div>
       </fieldset>
