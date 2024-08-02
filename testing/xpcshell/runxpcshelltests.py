@@ -1587,6 +1587,14 @@ class XPCShellTests(object):
 
         mozinfo.update(self.mozInfo)
 
+        # TODO: remove this when crashreporter is fixed on mac via bug 1910777
+        if self.mozInfo["os"] == "mac":
+            (release, versioninfo, machine) = platform.mac_ver()
+            versionNums = release.split(".")[:2]
+            os_version = "%s.%s" % (versionNums[0], versionNums[1].ljust(2, "0"))
+            if os_version == "14.40":
+                self.mozInfo["crashreporter"] = False
+
         return True
 
     @property
