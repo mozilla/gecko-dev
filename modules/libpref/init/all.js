@@ -2492,9 +2492,9 @@ pref("font.size.monospace.x-math", 13);
   pref("font.name-list.sans-serif.th", "Thonburi");
   pref("font.name-list.monospace.th", "Menlo, Ayuthaya");
 
-  pref("font.name-list.serif.x-armn", "Mshtakan");
-  pref("font.name-list.sans-serif.x-armn", "Mshtakan");
-  pref("font.name-list.monospace.x-armn", "Menlo, Mshtakan");
+  pref("font.name-list.serif.x-armn", "Noto Sans Armenian");
+  pref("font.name-list.sans-serif.x-armn", "Noto Sans Armenian");
+  pref("font.name-list.monospace.x-armn", "Menlo, Noto Sans Armenian");
 
   // SolaimanLipi, Rupali http://ekushey.org/?page/mac_download
   pref("font.name-list.serif.x-beng", "Bangla MN");
