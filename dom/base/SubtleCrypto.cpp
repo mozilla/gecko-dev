@@ -102,7 +102,7 @@ already_AddRefed<Promise> SubtleCrypto::DeriveKey(
 
 already_AddRefed<Promise> SubtleCrypto::DeriveBits(
     JSContext* cx, const ObjectOrString& algorithm, CryptoKey& baseKey,
-    uint32_t length, ErrorResult& aRv){
+    const Nullable<uint32_t>& length, ErrorResult& aRv){
     SUBTLECRYPTO_METHOD_BODY(DeriveBits, aRv, cx, algorithm, baseKey, length)}
 
 already_AddRefed<Promise> SubtleCrypto::WrapKey(

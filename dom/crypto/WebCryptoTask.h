@@ -126,7 +126,8 @@ class WebCryptoTask : public CancelableRunnable {
       const Sequence<nsString>& aKeyUsages);
   static WebCryptoTask* CreateDeriveBitsTask(JSContext* aCx,
                                              const ObjectOrString& aAlgorithm,
-                                             CryptoKey& aKey, uint32_t aLength);
+                                             CryptoKey& aKey,
+                                             const Nullable<uint32_t>& aLength);
 
   static WebCryptoTask* CreateWrapKeyTask(JSContext* aCx,
                                           const nsAString& aFormat,
