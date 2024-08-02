@@ -257,10 +257,11 @@ void CertVerifier::LoadKnownCTLogs() {
       continue;
     }
 
+    CTLogVerifier logVerifier;
     const CTLogOperatorInfo& logOperator =
         kCTLogOperatorList[log.operatorIndex];
-    CTLogVerifier logVerifier(logOperator.id, log.state, log.timestamp);
-    rv = logVerifier.Init(publicKey);
+    rv = logVerifier.Init(publicKey, logOperator.id, log.status,
+                          log.disqualificationTime);
     if (rv != Success) {
       MOZ_ASSERT_UNREACHABLE("Failed initializing a known CT Log");
       continue;
@@ -363,25 +364,40 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
 
   if (MOZ_LOG_TEST(gCertVerifierLog, LogLevel::Debug)) {
     size_t validCount = 0;
-    size_t retiredLogCount = 0;
+    size_t unknownLogCount = 0;
+    size_t disqualifiedLogCount = 0;
+    size_t invalidSignatureCount = 0;
+    size_t invalidTimestampCount = 0;
     for (const VerifiedSCT& verifiedSct : result.verifiedScts) {
-      switch (verifiedSct.logState) {
-        case CTLogState::Admissible:
+      switch (verifiedSct.status) {
+        case VerifiedSCT::Status::Valid:
           validCount++;
           break;
-        case CTLogState::Retired:
-          retiredLogCount++;
+        case VerifiedSCT::Status::ValidFromDisqualifiedLog:
+          disqualifiedLogCount++;
           break;
+        case VerifiedSCT::Status::UnknownLog:
+          unknownLogCount++;
+          break;
+        case VerifiedSCT::Status::InvalidSignature:
+          invalidSignatureCount++;
+          break;
+        case VerifiedSCT::Status::InvalidTimestamp:
+          invalidTimestampCount++;
+          break;
+        case VerifiedSCT::Status::None:
+        default:
+          MOZ_ASSERT_UNREACHABLE("Unexpected SCT verification status");
       }
     }
-    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-            ("SCT verification result: "
-             "valid=%zu unknownLog=%zu retiredLog=%zu "
-             "invalidSignature=%zu invalidTimestamp=%zu "
-             "decodingErrors=%zu\n",
-             validCount, result.sctsFromUnknownLogs, retiredLogCount,
-             result.sctsWithInvalidSignatures, result.sctsWithInvalidTimestamps,
-             result.decodingErrors));
+    MOZ_LOG(
+        gCertVerifierLog, LogLevel::Debug,
+        ("SCT verification result: "
+         "valid=%zu unknownLog=%zu disqualifiedLog=%zu "
+         "invalidSignature=%zu invalidTimestamp=%zu "
+         "decodingErrors=%zu\n",
+         validCount, unknownLogCount, disqualifiedLogCount,
+         invalidSignatureCount, invalidTimestampCount, result.decodingErrors));
   }
 
   BackCert endEntityBackCert(endEntityInput, EndEntityOrCA::MustBeEndEntity,

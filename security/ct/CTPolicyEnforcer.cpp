@@ -29,8 +29,8 @@ static size_t GetRequiredEmbeddedSctsCount(
 // Whether a valid embedded SCT is present in the list.
 static bool HasValidEmbeddedSct(const VerifiedSCTList& verifiedScts) {
   for (const VerifiedSCT& verifiedSct : verifiedScts) {
-    if (verifiedSct.logState == CTLogState::Admissible &&
-        verifiedSct.origin == SCTOrigin::Embedded) {
+    if (verifiedSct.status == VerifiedSCT::Status::Valid &&
+        verifiedSct.origin == VerifiedSCT::Origin::Embedded) {
       return true;
     }
   }
@@ -40,9 +40,9 @@ static bool HasValidEmbeddedSct(const VerifiedSCTList& verifiedScts) {
 // Whether a valid non-embedded SCT is present in the list.
 static bool HasValidNonEmbeddedSct(const VerifiedSCTList& verifiedScts) {
   for (const VerifiedSCT& verifiedSct : verifiedScts) {
-    if (verifiedSct.logState == CTLogState::Admissible &&
-        (verifiedSct.origin == SCTOrigin::TLSExtension ||
-         verifiedSct.origin == SCTOrigin::OCSPResponse)) {
+    if (verifiedSct.status == VerifiedSCT::Status::Valid &&
+        (verifiedSct.origin == VerifiedSCT::Origin::TLSExtension ||
+         verifiedSct.origin == VerifiedSCT::Origin::OCSPResponse)) {
       return true;
     }
   }
@@ -133,7 +133,7 @@ static uint64_t GetEffectiveCertIssuanceTime(
     const VerifiedSCTList& verifiedScts) {
   uint64_t result = UINT64_MAX;
   for (const VerifiedSCT& verifiedSct : verifiedScts) {
-    if (verifiedSct.logState == CTLogState::Admissible) {
+    if (verifiedSct.status == VerifiedSCT::Status::Valid) {
       result = std::min(result, verifiedSct.sct.timestamp);
     }
   }
@@ -142,18 +142,18 @@ static uint64_t GetEffectiveCertIssuanceTime(
 
 // Checks if the log that issued the given SCT is "once or currently qualified"
 // (i.e. was qualified at the time of the certificate issuance). In addition,
-// makes sure the SCT is before the retirement timestamp.
+// makes sure the SCT is before the disqualification.
 static bool LogWasQualifiedForSct(const VerifiedSCT& verifiedSct,
                                   uint64_t certIssuanceTime) {
-  switch (verifiedSct.logState) {
-    case CTLogState::Admissible:
-      return true;
-    case CTLogState::Retired: {
-      uint64_t logRetirementTime = verifiedSct.logTimestamp;
-      return certIssuanceTime < logRetirementTime &&
-             verifiedSct.sct.timestamp < logRetirementTime;
-    }
+  if (verifiedSct.status == VerifiedSCT::Status::Valid) {
+    return true;
   }
+  if (verifiedSct.status == VerifiedSCT::Status::ValidFromDisqualifiedLog) {
+    uint64_t logDisqualificationTime = verifiedSct.logDisqualificationTime;
+    return certIssuanceTime < logDisqualificationTime &&
+           verifiedSct.sct.timestamp < logDisqualificationTime;
+  }
+  return false;
 }
 
 // "A certificate is CT Qualified if it is presented with at least two SCTs
@@ -198,7 +198,7 @@ static void CheckNonEmbeddedCompliance(const VerifiedSCTList& verifiedScts,
   size_t validSctsCount;
   CountLogsForSelectedScts(
       verifiedScts, validSctsCount, [](const VerifiedSCT& verifiedSct) -> bool {
-        return verifiedSct.logState == CTLogState::Admissible;
+        return verifiedSct.status == VerifiedSCT::Status::Valid;
       });
 
   compliant = validSctsCount >= 2;
@@ -227,7 +227,7 @@ static void CheckEmbeddedCompliance(const VerifiedSCTList& verifiedScts,
   CountLogsForSelectedScts(
       verifiedScts, embeddedSctsCount,
       [certIssuanceTime](const VerifiedSCT& verifiedSct) -> bool {
-        return verifiedSct.origin == SCTOrigin::Embedded &&
+        return verifiedSct.origin == VerifiedSCT::Origin::Embedded &&
                LogWasQualifiedForSct(verifiedSct, certIssuanceTime);
       });
 

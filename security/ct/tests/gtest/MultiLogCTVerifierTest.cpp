@@ -30,9 +30,10 @@ class MultiLogCTVerifierTest : public ::testing::Test {
       abort();
     }
 
-    CTLogVerifier log(mLogOperatorID, CTLogState::Admissible, 0);
-    ;
-    ASSERT_EQ(Success, log.Init(InputForBuffer(GetTestPublicKey())));
+    CTLogVerifier log;
+    ASSERT_EQ(Success,
+              log.Init(InputForBuffer(GetTestPublicKey()), mLogOperatorID,
+                       CTLogStatus::Included, 0 /*disqualification time*/));
     mVerifier.AddLog(std::move(log));
 
     mTestCert = GetDEREncodedX509Cert();
@@ -48,10 +49,10 @@ class MultiLogCTVerifierTest : public ::testing::Test {
   }
 
   void CheckForSingleValidSCTInResult(const CTVerifyResult& result,
-                                      SCTOrigin origin) {
+                                      VerifiedSCT::Origin origin) {
     EXPECT_EQ(0U, result.decodingErrors);
     ASSERT_EQ(1U, result.verifiedScts.size());
-    EXPECT_EQ(CTLogState::Admissible, result.verifiedScts[0].logState);
+    EXPECT_EQ(VerifiedSCT::Status::Valid, result.verifiedScts[0].status);
     EXPECT_EQ(origin, result.verifiedScts[0].origin);
     EXPECT_EQ(mLogOperatorID, result.verifiedScts[0].logOperatorId);
   }
@@ -82,7 +83,7 @@ class MultiLogCTVerifierTest : public ::testing::Test {
               mVerifier.Verify(InputForBuffer(cert), InputForBuffer(issuerSPKI),
                                InputForBuffer(sctList), Input(), Input(), mNow,
                                result));
-    CheckForSingleValidSCTInResult(result, SCTOrigin::Embedded);
+    CheckForSingleValidSCTInResult(result, VerifiedSCT::Origin::Embedded);
   }
 
  protected:
@@ -156,7 +157,7 @@ TEST_F(MultiLogCTVerifierTest, VerifiesSCTFromOCSP) {
             mVerifier.Verify(InputForBuffer(mTestCert), Input(), Input(),
                              InputForBuffer(sctList), Input(), mNow, result));
 
-  CheckForSingleValidSCTInResult(result, SCTOrigin::OCSPResponse);
+  CheckForSingleValidSCTInResult(result, VerifiedSCT::Origin::OCSPResponse);
 }
 
 TEST_F(MultiLogCTVerifierTest, VerifiesSCTFromTLS) {
@@ -169,7 +170,7 @@ TEST_F(MultiLogCTVerifierTest, VerifiesSCTFromTLS) {
             mVerifier.Verify(InputForBuffer(mTestCert), Input(), Input(),
                              Input(), InputForBuffer(sctList), mNow, result));
 
-  CheckForSingleValidSCTInResult(result, SCTOrigin::TLSExtension);
+  CheckForSingleValidSCTInResult(result, VerifiedSCT::Origin::TLSExtension);
 }
 
 TEST_F(MultiLogCTVerifierTest, VerifiesSCTFromMultipleSources) {
@@ -187,17 +188,20 @@ TEST_F(MultiLogCTVerifierTest, VerifiesSCTFromMultipleSources) {
   size_t tlsExtensionCount = 0;
   size_t ocspResponseCount = 0;
   for (const VerifiedSCT& verifiedSct : result.verifiedScts) {
-    EXPECT_EQ(CTLogState::Admissible, verifiedSct.logState);
+    EXPECT_EQ(VerifiedSCT::Status::Valid, verifiedSct.status);
     switch (verifiedSct.origin) {
-      case SCTOrigin::Embedded:
+      case VerifiedSCT::Origin::Embedded:
         embeddedCount++;
         break;
-      case SCTOrigin::TLSExtension:
+      case VerifiedSCT::Origin::TLSExtension:
         tlsExtensionCount++;
         break;
-      case SCTOrigin::OCSPResponse:
+      case VerifiedSCT::Origin::OCSPResponse:
         ocspResponseCount++;
         break;
+      case VerifiedSCT::Origin::Unknown:
+      default:
+        ASSERT_TRUE(false);
     }
   }
   EXPECT_EQ(embeddedCount, 0u);
@@ -215,15 +219,17 @@ TEST_F(MultiLogCTVerifierTest, IdentifiesSCTFromUnknownLog) {
                              Input(), InputForBuffer(sctList), mNow, result));
 
   EXPECT_EQ(0U, result.decodingErrors);
-  EXPECT_EQ(0U, result.verifiedScts.size());
-  EXPECT_EQ(1U, result.sctsFromUnknownLogs);
+  ASSERT_EQ(1U, result.verifiedScts.size());
+  EXPECT_EQ(VerifiedSCT::Status::UnknownLog, result.verifiedScts[0].status);
 }
 
 TEST_F(MultiLogCTVerifierTest, IdentifiesSCTFromDisqualifiedLog) {
   MultiLogCTVerifier verifier;
-  const uint64_t retiredTime = 12345u;
-  CTLogVerifier log(mLogOperatorID, CTLogState::Retired, retiredTime);
-  ASSERT_EQ(Success, log.Init(InputForBuffer(GetTestPublicKey())));
+  CTLogVerifier log;
+  const uint64_t disqualificationTime = 12345u;
+  ASSERT_EQ(Success,
+            log.Init(InputForBuffer(GetTestPublicKey()), mLogOperatorID,
+                     CTLogStatus::Disqualified, disqualificationTime));
   verifier.AddLog(std::move(log));
 
   Buffer sct(GetTestSignedCertificateTimestamp());
@@ -237,8 +243,10 @@ TEST_F(MultiLogCTVerifierTest, IdentifiesSCTFromDisqualifiedLog) {
 
   EXPECT_EQ(0U, result.decodingErrors);
   ASSERT_EQ(1U, result.verifiedScts.size());
-  EXPECT_EQ(CTLogState::Retired, result.verifiedScts[0].logState);
-  EXPECT_EQ(retiredTime, result.verifiedScts[0].logTimestamp);
+  EXPECT_EQ(VerifiedSCT::Status::ValidFromDisqualifiedLog,
+            result.verifiedScts[0].status);
+  EXPECT_EQ(disqualificationTime,
+            result.verifiedScts[0].logDisqualificationTime);
   EXPECT_EQ(mLogOperatorID, result.verifiedScts[0].logOperatorId);
 }
 

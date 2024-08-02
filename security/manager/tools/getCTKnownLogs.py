@@ -51,19 +51,14 @@ OUTPUT_TEMPLATE = """\
 
 static const PRTime kCTExpirationTime = INT64_C($expiration_time);
 
-namespace mozilla::ct {
-
-enum class CTLogState {
-  Admissible,  // Qualified, Usable, or ReadOnly
-  Retired,
-};
-
 struct CTLogInfo {
   // See bug 1338873 about making these fields const.
   const char* name;
-  CTLogState state;
-  uint64_t timestamp;
   // Index within kCTLogOperatorList.
+  mozilla::ct::CTLogStatus status;
+  // 0 for qualified logs, disqualification time for disqualified logs
+  // (in milliseconds, measured since the epoch, ignoring leap seconds).
+  uint64_t disqualificationTime;
   size_t operatorIndex;
   const char* key;
   size_t keyLength;
@@ -83,13 +78,11 @@ const CTLogOperatorInfo kCTLogOperatorList[] = {
 $operators
 };
 
-}  // namespace mozilla::ct
-
 #endif  // $include_guard
 """
 
 
-def get_timestamp(time_str):
+def get_disqualification_time(time_str):
     """
     Convert a time string such as "2017-01-01T00:00:00Z" to an integer
     representing milliseconds since the epoch.
@@ -124,32 +117,11 @@ def get_operator_index(json_data, target_name):
 
 
 LOG_INFO_TEMPLATE = """\
-    {$description, $state,
-     $timestamp,  // $timestamp_comment
-     $operator_index,$spaces  // $operator_comment
+    {$description, $status,
+     $disqualification_time,  // $disqualification_time_comment
+     $operator_index,  // $operator_comment
 $indented_log_key,
      $log_key_len}"""
-
-
-class UnhandledLogStateException(Exception):
-    pass
-
-
-def map_state(state):
-    """
-    Maps a log state string to the appropriate CTLogState enum value or None,
-    if the log state indicates that the log should not be included.  Valid
-    states to be included are 'qualified', 'usable', 'readonly', or 'retired'.
-    Valid states that are not to be included are 'pending' or 'rejected'.
-    """
-    if state == "qualified" or state == "usable" or state == "readonly":
-        return "CTLogState::Admissible"
-    elif state == "retired":
-        return "CTLogState::Retired"
-    elif state == "pending" or state == "rejected":
-        return None
-    else:
-        raise UnhandledLogStateException("unhandled log state '%s'" % state)
 
 
 def get_log_info_structs(json_data):
@@ -161,20 +133,24 @@ def get_log_info_structs(json_data):
         for log in operator["logs"]:
             log_key = base64.b64decode(log["key"])
             operator_index = get_operator_index(json_data, operator_name)
-            state = list(log["state"].keys())[0]
-            timestamp_comment = log["state"][state]["timestamp"]
-            timestamp = get_timestamp(timestamp_comment)
-            state = map_state(state)
-            if state is None:
-                continue
+            if "disqualification_time" in log:
+                status = "mozilla::ct::CTLogStatus::Disqualified"
+                disqualification_time = get_disqualification_time(
+                    log["disqualification_time"]
+                )
+                disqualification_time_comment = 'Date.parse("{0}")'.format(
+                    log["disqualification_time"]
+                )
+            else:
+                status = "mozilla::ct::CTLogStatus::Included"
+                disqualification_time = 0
+                disqualification_time_comment = "no disqualification time"
             is_test_log = "test_only" in operator and operator["test_only"]
             prefix = ""
             suffix = ","
             if is_test_log:
                 prefix = "#ifdef DEBUG\n"
                 suffix = ",\n#endif  // DEBUG"
-            num_spaces = len(str(timestamp)) - len(str(operator_index))
-            spaces = " " * num_spaces
             toappend = tmpl.substitute(
                 # Use json.dumps for C-escaping strings.
                 # Not perfect but close enough.
@@ -183,10 +159,9 @@ def get_log_info_structs(json_data):
                 operator_comment="operated by {0}".
                 # The comment must not contain "/".
                 format(operator_name).replace("/", "|"),
-                state=state,
-                timestamp=timestamp,
-                spaces=spaces,
-                timestamp_comment=timestamp_comment,
+                status=status,
+                disqualification_time=disqualification_time,
+                disqualification_time_comment=disqualification_time_comment,
                 # Maximum line width is 80.
                 indented_log_key="\n".join(
                     ['     "{0}"'.format(l) for l in get_hex_lines(log_key, 74)]
@@ -259,11 +234,7 @@ def patch_in_test_logs(json_data):
             tIqVYR3uJtYlnauRCE42yxwkBCy/Fosv5fGPmRcxuLP+SSP6clHEMdUDrNoYCjXt
             jQIDAQAB
         """,
-                "state": {
-                    "qualified": {
-                        "timestamp": "2024-07-22T16:44:26Z",
-                    },
-                },
+                "operated_by": [max_id + 1],
             },
             {
                 "description": "Mozilla Test EC Log",
@@ -272,11 +243,7 @@ def patch_in_test_logs(json_data):
             MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAET7+7u2Hg+PmxpgpZrIcE4uwFC0I+
             PPcukj8sT3lLRVwqadIzRWw2xBGdBwbgDu3I0ZOQ15kbey0HowTqoEqmwA==
         """,
-                "state": {
-                    "qualified": {
-                        "timestamp": "2024-07-22T16:44:26Z",
-                    },
-                },
+                "operated_by": [max_id + 1],
             },
         ],
     }
@@ -297,11 +264,7 @@ def patch_in_test_logs(json_data):
             gys1uJMPdLqQqovHYWckKrH9bWIUDRjEwLjGj8N0hFcyStfehuZVLx0eGR1xIWjT
             uwIDAQAB
         """,
-                "state": {
-                    "qualified": {
-                        "timestamp": "2024-07-22T16:44:26Z",
-                    },
-                },
+                "operated_by": [max_id + 2],
             }
         ],
     }
@@ -340,11 +303,7 @@ def run(args):
     Load the input JSON file and generate the C++ header according to the
     command line arguments.
     """
-    if args.json_file:
-        print("Reading file: ", args.json_file)
-        with open(args.json_file, "rb") as json_file:
-            json_text = json_file.read()
-    else:
+    if args.url:
         json_text = get_content_at(args.url)
         signature = get_content_at(args.signature_url)
         key = read_rsa_key(args.key_file)
@@ -357,6 +316,10 @@ def run(args):
         print("Writing output: ", args.json_file_out)
         with open(args.json_file_out, "wb") as json_file_out:
             json_file_out.write(json_text)
+    else:
+        print("Reading file: ", args.json_file)
+        with open(args.json_file, "rb") as json_file:
+            json_text = json_file.read()
 
     json_data = json.loads(json_text)
     patch_in_test_logs(json_data)
@@ -399,11 +362,10 @@ def parse_arguments_and_run():
     )
     arg_parser.add_argument(
         "--json-file",
-        nargs="?",
-        const=mozpath.join(
+        default=mozpath.join(
             buildconfig.topsrcdir, "security", "manager", "tools", "log_list.json"
         ),
-        help="read the known CT logs JSON data from the specified file (default: %(const)s)",
+        help="read the known CT logs JSON data from the specified file (default: %(default)s)",
     )
     arg_parser.add_argument(
         "--json-file-out",
