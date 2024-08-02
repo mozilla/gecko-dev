@@ -11,15 +11,24 @@
 namespace mozilla {
 namespace ct {
 
-VerifiedSCT::VerifiedSCT()
-    : status(Status::None),
-      origin(Origin::Unknown),
-      logOperatorId(-1),
-      logDisqualificationTime(UINT64_MAX) {}
+VerifiedSCT::VerifiedSCT(SignedCertificateTimestamp&& sct, SCTOrigin origin,
+                         CTLogOperatorId logOperatorId, CTLogState logState,
+                         uint64_t logTimestamp)
+    : sct(std::move(sct)),
+      origin(origin),
+      logOperatorId(logOperatorId),
+      logState(logState),
+      logTimestamp(logTimestamp) {}
 
 void CTVerifyResult::Reset() {
   verifiedScts.clear();
   decodingErrors = 0;
+  sctsFromUnknownLogs = 0;
+  sctsWithInvalidSignatures = 0;
+  sctsWithInvalidTimestamps = 0;
+  embeddedSCTs = 0;
+  sctsFromTLSHandshake = 0;
+  sctsFromOCSP = 0;
 }
 
 }  // namespace ct

@@ -9,6 +9,7 @@
 
 #include <memory>
 
+#include "CTKnownLogs.h"
 #include "CTLog.h"
 #include "CTUtils.h"
 #include "SignedCertificateTimestamp.h"
@@ -28,28 +29,25 @@ namespace ct {
 // on error.
 class CTLogVerifier {
  public:
-  CTLogVerifier();
+  // |operatorId| The numeric ID of the log operator.
+  // |logState| "Qualified", "Usable", "ReadOnly", or "Retired".
+  // |timestamp| timestamp associated with logState.
+  CTLogVerifier(CTLogOperatorId operatorId, CTLogState logState,
+                uint64_t timestamp);
 
-  // Initializes the verifier with log-specific information. Only the public
-  // key is used for verification, other parameters are purely informational.
+  // Initializes the verifier with the given subjectPublicKeyInfo.
   // |subjectPublicKeyInfo| is a DER-encoded SubjectPublicKeyInfo.
-  // |operatorId| The numeric ID of the log operator as assigned at
-  // https://www.certificate-transparency.org/known-logs .
-  // |logStatus| Either "Included" or "Disqualified".
-  // |disqualificationTime| Disqualification timestamp (for disqualified logs).
   // An error is returned if |subjectPublicKeyInfo| refers to an unsupported
   // public key.
-  pkix::Result Init(pkix::Input subjectPublicKeyInfo,
-                    CTLogOperatorId operatorId, CTLogStatus logStatus,
-                    uint64_t disqualificationTime);
+  pkix::Result Init(pkix::Input subjectPublicKeyInfo);
 
   // Returns the log's key ID, which is a SHA256 hash of its public key.
   // See RFC 6962, Section 3.2.
   const Buffer& keyId() const { return mKeyId; }
 
   CTLogOperatorId operatorId() const { return mOperatorId; }
-  bool isDisqualified() const { return mDisqualified; }
-  uint64_t disqualificationTime() const { return mDisqualificationTime; }
+  CTLogState state() const { return mState; }
+  uint64_t timestamp() const { return mTimestamp; }
 
   // Verifies that |sct| contains a valid signature for |entry|.
   // |sct| must be signed by the verifier's log.
@@ -78,8 +76,8 @@ class CTLogVerifier {
   Buffer mKeyId;
   DigitallySigned::SignatureAlgorithm mSignatureAlgorithm;
   CTLogOperatorId mOperatorId;
-  bool mDisqualified;
-  uint64_t mDisqualificationTime;
+  CTLogState mState;
+  uint64_t mTimestamp;
 };
 
 }  // namespace ct
