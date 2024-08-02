@@ -585,7 +585,7 @@ MacOSWebAuthnService::MakeCredential(uint64_t aTransactionId,
         NSString* userNameNS = nsCocoaUtils::ToNSString(userName);
 
         nsAutoString userDisplayName;
-        Unused << aArgs->GetUserName(userDisplayName);
+        Unused << aArgs->GetUserDisplayName(userDisplayName);
         NSString* userDisplayNameNS = nsCocoaUtils::ToNSString(userDisplayName);
 
         nsTArray<int32_t> coseAlgs;
