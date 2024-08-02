@@ -12,8 +12,7 @@
   padding-inline-end: 0;
   border-inline-end: 1px solid var(--chrome-content-separator-color);
   background-color: var(--toolbar-bgcolor);
-  color: var(--sidebar-text-color);
-
+  color: var(--toolbar-color);
   :host([positionend]) & {
     border-inline-start: 1px solid var(--chrome-content-separator-color);
     border-inline-end: none;

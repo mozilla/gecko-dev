@@ -33,7 +33,6 @@
       let description = fieldset.shadowRoot.querySelector("fieldset > #description");
 
       is(legend.innerText, "Test label", "legend is set");
-      ok(legend.classList.contains("heading-medium"), "legend is styled");
       is(description.innerText, "Test description", "description is set");
       ok(description.classList.contains("text-deemphasized"), "description is styled");
       is(

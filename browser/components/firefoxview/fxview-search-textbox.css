@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 .search-container {
-  border: 1px solid var(--fxview-border);
-  border-radius: var(--border-radius-small);
   color: var(--fxview-text-primary-color);
   display: inline-flex;
   overflow: hidden;
@@ -40,7 +38,8 @@
 }
 
 input {
-  border: none;
+  border: 1px solid var(--fxview-border);
+  border-radius: var(--border-radius-small);
   padding: 8px 32px;
   width: 100%;
 }

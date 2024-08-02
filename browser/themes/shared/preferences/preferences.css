@@ -1210,6 +1210,10 @@ richlistitem .text-link:hover {
   margin-top: var(--space-xlarge);
 }
 
+#pane-experimental-featureGates moz-fieldset::part(label) {
+  font-size: var(--font-size-large);
+}
+
 .featureGateDescription {
   white-space: pre-wrap;
 }
