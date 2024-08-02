@@ -652,7 +652,8 @@ TextureFlags D3D11TextureData::GetTextureFlags() const {
   return TextureFlags::WAIT_HOST_USAGE_END;
 }
 
-void D3D11TextureData::RegisterQuery(RefPtr<ID3D11Query> aQuery) {
+void D3D11TextureData::RegisterQuery(RefPtr<ID3D11Query> aQuery,
+                                     bool aOnlyForOverlay) {
   MOZ_ASSERT(XRE_IsGPUProcess());
   MOZ_ASSERT(GpuProcessD3D11QueryMap::Get());
 
@@ -663,6 +664,7 @@ void D3D11TextureData::RegisterQuery(RefPtr<ID3D11Query> aQuery) {
   if (mGpuProcessQueryId.isNothing()) {
     mGpuProcessQueryId = Some(GpuProcessQueryId::GetNext());
   }
+  mGpuProcessQueryId.ref().mOnlyForOverlay = aOnlyForOverlay;
   GpuProcessD3D11QueryMap::Get()->Register(mGpuProcessQueryId.ref(), aQuery);
 }
 

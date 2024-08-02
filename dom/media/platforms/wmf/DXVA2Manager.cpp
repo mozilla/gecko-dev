@@ -876,8 +876,12 @@ D3D11DXVA2Manager::CopyToImage(IMFSample* aVideoSample,
       auto* data = client->GetInternalData()->AsD3D11TextureData();
       MOZ_ASSERT(data);
       if (data) {
+        // If GPU is not NVIDIA GPU, ID3D11Query is used only for video overlay.
+        // See Bug 1910990 Intel GPU does not use ID3D11Query for waiting video
+        // frame copy.
+        const bool onlyForOverlay = mVendorID != 0x10DE;
         // Wait query happens only just before blitting for video overlay.
-        data->RegisterQuery(query);
+        data->RegisterQuery(query, onlyForOverlay);
       } else {
         gfxCriticalNoteOnce << "D3D11TextureData does not exist";
       }
