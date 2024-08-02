@@ -36,13 +36,13 @@ add_task(async function () {
 async function testTopLeft(inspector, view) {
   const id = "#topleft";
   const rules = await assertPseudoElementRulesNumbers(id, inspector, view, {
-    elementRulesNb: 4,
-    firstLineRulesNb: 2,
-    firstLetterRulesNb: 1,
-    selectionRulesNb: 1,
-    markerRulesNb: 0,
-    afterRulesNb: 1,
-    beforeRulesNb: 2,
+    elementRules: 4,
+    firstLineRules: 2,
+    firstLetterRules: 1,
+    selectionRules: 1,
+    markerRules: 0,
+    afterRules: 1,
+    beforeRules: 2,
   });
 
   const gutters = assertGutters(view);
@@ -183,13 +183,13 @@ async function testTopLeft(inspector, view) {
 
 async function testTopRight(inspector, view) {
   await assertPseudoElementRulesNumbers("#topright", inspector, view, {
-    elementRulesNb: 4,
-    firstLineRulesNb: 1,
-    firstLetterRulesNb: 1,
-    selectionRulesNb: 0,
-    markerRulesNb: 0,
-    beforeRulesNb: 2,
-    afterRulesNb: 1,
+    elementRules: 4,
+    firstLineRules: 1,
+    firstLetterRules: 1,
+    selectionRules: 0,
+    markerRules: 0,
+    beforeRules: 2,
+    afterRules: 1,
   });
 
   const gutters = assertGutters(view);
@@ -210,25 +210,25 @@ async function testTopRight(inspector, view) {
 
 async function testBottomRight(inspector, view) {
   await assertPseudoElementRulesNumbers("#bottomright", inspector, view, {
-    elementRulesNb: 4,
-    firstLineRulesNb: 1,
-    firstLetterRulesNb: 1,
-    selectionRulesNb: 0,
-    markerRulesNb: 0,
-    beforeRulesNb: 3,
-    afterRulesNb: 1,
+    elementRules: 4,
+    firstLineRules: 1,
+    firstLetterRules: 1,
+    selectionRules: 0,
+    markerRules: 0,
+    beforeRules: 3,
+    afterRules: 1,
   });
 }
 
 async function testBottomLeft(inspector, view) {
   await assertPseudoElementRulesNumbers("#bottomleft", inspector, view, {
-    elementRulesNb: 4,
-    firstLineRulesNb: 1,
-    firstLetterRulesNb: 1,
-    selectionRulesNb: 0,
-    markerRulesNb: 0,
-    beforeRulesNb: 2,
-    afterRulesNb: 1,
+    elementRules: 4,
+    firstLineRules: 1,
+    firstLetterRules: 1,
+    selectionRules: 0,
+    markerRules: 0,
+    beforeRules: 2,
+    afterRules: 1,
   });
 }
 
@@ -238,13 +238,13 @@ async function testParagraph(inspector, view) {
     inspector,
     view,
     {
-      elementRulesNb: 3,
-      firstLineRulesNb: 1,
-      firstLetterRulesNb: 1,
-      selectionRulesNb: 2,
-      markerRulesNb: 0,
-      beforeRulesNb: 0,
-      afterRulesNb: 0,
+      elementRules: 3,
+      firstLineRules: 1,
+      firstLetterRules: 1,
+      selectionRules: 2,
+      markerRules: 0,
+      beforeRules: 0,
+      afterRules: 0,
     }
   );
 
@@ -281,13 +281,13 @@ async function testBody(inspector, view) {
 
 async function testList(inspector, view) {
   await assertPseudoElementRulesNumbers("#list", inspector, view, {
-    elementRulesNb: 4,
-    firstLineRulesNb: 1,
-    firstLetterRulesNb: 1,
-    selectionRulesNb: 0,
-    markerRulesNb: 1,
-    beforeRulesNb: 1,
-    afterRulesNb: 1,
+    elementRules: 4,
+    firstLineRules: 1,
+    firstLetterRules: 1,
+    selectionRules: 0,
+    markerRules: 1,
+    beforeRules: 1,
+    afterRules: 1,
   });
 
   assertGutters(view);
@@ -296,7 +296,7 @@ async function testList(inspector, view) {
 async function testBackdrop(inspector, view) {
   info("Test ::backdrop for dialog element");
   await assertPseudoElementRulesNumbers("dialog", inspector, view, {
-    elementRulesNb: 3,
+    elementRules: 3,
     backdropRules: 1,
   });
 
@@ -306,7 +306,7 @@ async function testBackdrop(inspector, view) {
     inspector,
     view,
     {
-      elementRulesNb: 3,
+      elementRules: 3,
       backdropRules: 1,
     }
   );
@@ -342,7 +342,7 @@ async function testBackdrop(inspector, view) {
   await onInspectorUpdated;
 
   await assertPseudoElementRulesNumbers("canvas", inspector, view, {
-    elementRulesNb: 3,
+    elementRules: 3,
     backdropRules: 1,
   });
 
@@ -364,7 +364,7 @@ async function testBackdrop(inspector, view) {
     "Test ::backdrop rules are not displayed when elements are not fullscreen"
   );
   await assertPseudoElementRulesNumbers("canvas", inspector, view, {
-    elementRulesNb: 3,
+    elementRules: 3,
     backdropRules: 0,
   });
 }
@@ -375,8 +375,8 @@ async function testCustomHighlight(inspector, view) {
     inspector,
     view,
     {
-      elementRulesNb: 4,
-      highlightRulesNb: 3,
+      elementRules: 4,
+      highlightRules: 3,
     }
   );
 
@@ -424,10 +424,10 @@ async function testSlider(inspector, view) {
     inspector,
     view,
     {
-      elementRulesNb: 3,
-      sliderFillRulesNb: 1,
-      sliderThumbRulesNb: 1,
-      sliderTrackRulesNb: 1,
+      elementRules: 3,
+      sliderFillRules: 1,
+      sliderThumbRules: 1,
+      sliderTrackRules: 1,
     }
   );
   assertGutters(view);
@@ -440,10 +440,10 @@ async function testSlider(inspector, view) {
     inspector,
     view,
     {
-      elementRulesNb: 3,
-      sliderFillRulesNb: 0,
-      sliderThumbRulesNb: 0,
-      sliderTrackRulesNb: 0,
+      elementRules: 3,
+      sliderFillRules: 0,
+      sliderThumbRules: 0,
+      sliderTrackRules: 0,
     }
   );
 }
@@ -454,8 +454,8 @@ async function testUrlFragmentTextDirective(inspector, view) {
     inspector,
     view,
     {
-      elementRulesNb: 3,
-      targetTextRulesNb: 1,
+      elementRules: 3,
+      targetTextRules: 1,
     }
   );
   assertGutters(view);
@@ -530,64 +530,18 @@ async function assertPseudoElementRulesNumbers(
 
   is(
     rules.elementRules.length,
-    ruleNbs.elementRulesNb || 0,
+    ruleNbs.elementRules || 0,
     selector + " has the correct number of non pseudo element rules"
   );
-  is(
-    rules.firstLineRules.length,
-    ruleNbs.firstLineRulesNb || 0,
-    selector + " has the correct number of ::first-line rules"
-  );
-  is(
-    rules.firstLetterRules.length,
-    ruleNbs.firstLetterRulesNb || 0,
-    selector + " has the correct number of ::first-letter rules"
-  );
-  is(
-    rules.selectionRules.length,
-    ruleNbs.selectionRulesNb || 0,
-    selector + " has the correct number of ::selection rules"
-  );
-  is(
-    rules.markerRules.length,
-    ruleNbs.markerRulesNb || 0,
-    selector + " has the correct number of ::marker rules"
-  );
-  is(
-    rules.beforeRules.length,
-    ruleNbs.beforeRulesNb || 0,
-    selector + " has the correct number of ::before rules"
-  );
-  is(
-    rules.afterRules.length,
-    ruleNbs.afterRulesNb || 0,
-    selector + " has the correct number of ::after rules"
-  );
-  is(
-    rules.highlightRules.length,
-    ruleNbs.highlightRulesNb || 0,
-    selector + " has the correct number of ::highlight rules"
-  );
-  is(
-    rules.sliderFillRules.length,
-    ruleNbs.sliderFillRulesNb || 0,
-    selector + " has the correct number of ::slider-fill rules"
-  );
-  is(
-    rules.sliderThumbRules.length,
-    ruleNbs.sliderThumbRulesNb || 0,
-    selector + " has the correct number of ::slider-thumb rules"
-  );
-  is(
-    rules.sliderTrackRules.length,
-    ruleNbs.sliderTrackRulesNb || 0,
-    selector + " has the correct number of ::slider-track rules"
-  );
-  is(
-    rules.targetTextRules.length,
-    ruleNbs.targetTextRulesNb || 0,
-    selector + " has the correct number of ::target-text rules"
-  );
+
+  // Go through all the pseudo element types and assert that we have the expected number
+  for (const key in PSEUDO_DICT) {
+    is(
+      rules[key].length,
+      ruleNbs[key] || 0,
+      `${selector} has the correct number of ${key} rules`
+    );
+  }
 
   // If we do have pseudo element rules displayed, ensure we don't mark their selectors
   // as matched or unmatched
