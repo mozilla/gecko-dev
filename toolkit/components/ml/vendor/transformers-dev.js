@@ -1699,10 +1699,11 @@ __webpack_require__.r(__webpack_exports__);
 
 // NOTE: Import order matters here. We need to import `onnxruntime-node` before `onnxruntime-web`.
 // In either case, we select the default export if it exists, otherwise we use the named export.
+//import * as ONNX_NODE from 'onnxruntime-node';
+//import * as ONNX_WEB from 'onnxruntime-web';
 
 
 const ONNX_WEB = ort;
-const ONNX_NODE = null;
 
 
 /** @type {import('onnxruntime-web')} The ONNX runtime module. */
