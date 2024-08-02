@@ -28,7 +28,10 @@
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
     min-width: 200px;
-    width: 400px;
+  }
+
+  &[sidebarcommand="viewGenaiChatSidebar"] {
+    min-width: 400px;
   }
 }
 
