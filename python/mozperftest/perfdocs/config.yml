@@ -47,3 +47,4 @@ suites:
             "Service Worker Caching": ""
             "Service Worker Fetch": ""
             "Service Worker Registration": ""
+            "Service Worker Update": ""

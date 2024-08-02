@@ -147,6 +147,11 @@ service-worker:
             dom/serviceworkers/test/performance/test_registration.html
             --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox-bin
             --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts &&
+            python3 python/mozperftest/mozperftest/runner.py
+            dom/serviceworkers/test/performance/test_update.html
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox-bin
+            --flavor mochitest
             --output $MOZ_FETCHES_DIR/../artifacts
 
 http3:

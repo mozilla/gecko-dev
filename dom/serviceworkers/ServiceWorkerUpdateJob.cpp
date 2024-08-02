@@ -16,6 +16,7 @@
 #include "ServiceWorkerRegistrationInfo.h"
 #include "ServiceWorkerScriptCache.h"
 #include "mozilla/dom/WorkerCommon.h"
+#include "mozilla/ProfilerMarkers.h"
 
 namespace mozilla::dom {
 
@@ -212,6 +213,9 @@ void ServiceWorkerUpdateJob::FailUpdateJob(nsresult aRv) {
 }
 
 void ServiceWorkerUpdateJob::AsyncExecute() {
+  AUTO_PROFILER_MARKER_TEXT("ServiceWorkerUpdateJob::AsyncExecute", DOM, {},
+                            ""_ns);
+
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(GetType() == Type::Update);
 
@@ -265,6 +269,8 @@ void ServiceWorkerUpdateJob::SetRegistration(
 }
 
 void ServiceWorkerUpdateJob::Update() {
+  AUTO_PROFILER_MARKER_TEXT("ServiceWorkerUpdateJob::Update", DOM, {}, ""_ns);
+
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!Canceled());
 
@@ -462,6 +468,8 @@ void ServiceWorkerUpdateJob::ContinueUpdateAfterScriptEval(
 }
 
 void ServiceWorkerUpdateJob::Install() {
+  AUTO_PROFILER_MARKER_TEXT("ServiceWorkerUpdateJob::Install", DOM, {}, ""_ns);
+
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(!Canceled());
 

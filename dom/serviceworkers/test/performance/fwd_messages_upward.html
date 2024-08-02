@@ -1,0 +1,15 @@
+<html>
+<head>
+  <title>Controlled doc for test_update.html</title>
+</head>
+<body>
+<script>
+
+  "use strict";
+
+  navigator.serviceWorker.onmessage = (e) => {
+    window.parent.postMessage(e.data, "*");
+  };
+
+</script>
+</body>

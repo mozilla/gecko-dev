@@ -27,13 +27,16 @@ Add files to `perftest.toml
 <https://searchfox.org/mozilla-central/source/dom/serviceworkers/test/performance/perftest.toml>`_
 as usual for mochitests.
 
-Modify linux.yml, macosx.yml, and windows.yml under `taskcluster/kinds/perftest
+Modify linux.yml, macosx.yml, and windows11.yml under `taskcluster/kinds/perftest
 <https://searchfox.org/mozilla-central/source/taskcluster/kinds/perftest>`_.
 Currently, each test needs to be added individually to the run command (`here
 <https://searchfox.org/mozilla-central/rev/91cc8848427fdbbeb324e6ca56a0d08d32d3c308/taskcluster/ci/perftest/linux.yml#121-149>`_,
 for example).  kind.yml can be ignored–it provides some defaults.
 
-Modify the documentation using:
+Add your new test to `perfdocs/config.yml
+<https://searchfox.org/mozilla-central/source/python/mozperftest/perfdocs/config.yml>`_.
+
+Modify the generated documentation using:
 
 ``$ ./mach lint -l perfdocs . --fix --warnings --outgoing``
 

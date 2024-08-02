@@ -1,10 +1,12 @@
 [DEFAULT]
 support-files = [
+  "fwd_messages_upward.html",
   "intercepted.txt",
   "perfutils.js",
   "sw_cacher.js",
   "sw_empty.js",
   "sw_intercept_target.js",
+  "sw_serverupdate.sjs",
   "target.txt",
   "time_fetch.html",
 ]
@@ -14,6 +16,12 @@ support-files = [
 ["test_fetch.html"]
 
 ["test_registration.html"]
+skip-if = [
+  "os == 'android'", # 1910127
+  "tsan", # 1885378
+]
+
+["test_update.html"]
 skip-if = [
   "os == 'android'", # 1910127
   "tsan", # 1885378

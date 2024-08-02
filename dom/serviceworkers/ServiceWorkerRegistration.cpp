@@ -14,7 +14,6 @@
 #include "mozilla/dom/PushManager.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/dom/ServiceWorker.h"
-#include "mozilla/dom/ServiceWorkerRegistrationBinding.h"
 #include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -209,6 +208,9 @@ ServiceWorkerUpdateViaCache ServiceWorkerRegistration::GetUpdateViaCache(
 }
 
 already_AddRefed<Promise> ServiceWorkerRegistration::Update(ErrorResult& aRv) {
+  AUTO_PROFILER_MARKER_TEXT("ServiceWorkerRegistration::Update", DOM, {},
+                            ""_ns);
+
   nsIGlobalObject* global = GetParentObject();
   if (!global) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
@@ -260,6 +262,9 @@ already_AddRefed<Promise> ServiceWorkerRegistration::Update(ErrorResult& aRv) {
       [outer,
        self](const IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult&
                  aResult) {
+        AUTO_PROFILER_MARKER_TEXT("ServiceWorkerRegistration::Update (inner)",
+                                  DOM, {}, ""_ns);
+
         if (aResult.type() ==
             IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult::
                 TCopyableErrorResult) {

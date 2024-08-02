@@ -84,6 +84,23 @@ test_registration.html
 
 **Test registration, activation, and unregistration.**
 
+test_update.html
+================
+
+:owner: DOM LWS
+:name: Service Worker Update
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:Vacuous update,unit:ms,shouldAlert:True, name:Server update,unit:ms,shouldAlert:True, name:Main callback,unit:ms,shouldAlert:True, name:SW callback,unit:ms,shouldAlert:True, name:Update internals,unit:ms,shouldAlert:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor plain
+
+**Test updating.**
+
 
 netwerk/test/perf
 -----------------

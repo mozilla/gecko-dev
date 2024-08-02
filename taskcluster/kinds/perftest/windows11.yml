@@ -65,6 +65,11 @@ service-worker:
             dom/serviceworkers/test/performance/test_registration.html
             --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
             --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts &&
+            python3.exe python/mozperftest/mozperftest/runner.py
+            dom/serviceworkers/test/performance/test_registration.html
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox.exe
+            --flavor mochitest
             --output $MOZ_FETCHES_DIR/../artifacts
 
 domcount:
