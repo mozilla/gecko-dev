@@ -83,8 +83,8 @@ export class SidebarCustomize extends SidebarPage {
   }
 
   openFirefoxSettings(e) {
-    e.preventDefault();
     if (e.type == "click" || (e.type == "keydown" && e.code == "Enter")) {
+      e.preventDefault();
       this.getWindow().openPreferences();
     }
   }

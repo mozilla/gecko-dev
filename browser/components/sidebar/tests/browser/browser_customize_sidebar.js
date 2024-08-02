@@ -262,3 +262,26 @@ add_task(async function test_vertical_tabs_setting() {
 
   Services.prefs.clearUserPref(TAB_DIRECTION_PREF);
 });
+
+add_task(async function test_keyboard_navigation_away_from_settings_link() {
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const panel = await showCustomizePanel(win);
+  const manageSettingsLink = panel.shadowRoot.querySelector(
+    "#manage-settings a[href='about:preferences']"
+  );
+  manageSettingsLink.focus();
+
+  Assert.equal(
+    panel.shadowRoot.activeElement,
+    manageSettingsLink,
+    "Settings link is focused"
+  );
+  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, win);
+  Assert.notEqual(
+    panel.shadowRoot.activeElement,
+    manageSettingsLink,
+    "Settings link is not focused"
+  );
+
+  await BrowserTestUtils.closeWindow(win);
+});
