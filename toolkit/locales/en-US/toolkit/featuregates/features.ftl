@@ -51,18 +51,10 @@ experimental-features-auto-pip =
     .label = Picture-in-Picture: auto-open on tab switch
 experimental-features-auto-pip-description = Enable Picture-in-Picture on active videos when switching tabs.
 
-# Updated sidebar settings
-sidebar-title =
-    .label = Sidebar
-sidebar-description = Easily access your history, tabs from other devices, sidebar extensions, and more as you browse. <a data-l10n-name="connect">Share feedback</a>
-vertical-tabs-title =
-    .label = Vertical tabs
-vertical-tabs-description = Move your tabs from the top of the browser to the side. Requires you also try the sidebar. <a data-l10n-name="connect">Share feedback</a>
 
+experimental-features-group-browsing =
+  .label = Browsing
 experimental-features-group-developer-tools =
   .label = Developer Tools
 experimental-features-group-webpage-display =
   .label = Webpage Display
-experimental-features-group-customize-browsing =
-  .label = Customize your browsing
-experimental-features-group-customize-browsing-description = If you try these features, <a data-l10n-name="connect">share your thoughts on Connect</a>
