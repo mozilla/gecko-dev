@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.utils
 
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
@@ -26,6 +27,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.databinding.BrowserToolbarPopupWindowBinding
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.isToolbarAtBottom
 import java.lang.ref.WeakReference
 
 /**
@@ -122,13 +124,32 @@ object ToolbarPopupWindow {
             }
         }
 
+        val popupVerticalOffset = calculatePopupVerticalOffset(context, toolbarLayout, popupWindow)
+
         toolbarLayout.get()?.let {
             popupWindow.showAsDropDown(
                 it,
                 context.resources.getDimensionPixelSize(R.dimen.context_menu_x_offset),
-                0,
+                popupVerticalOffset,
                 Gravity.START,
             )
+        }
+    }
+
+    /**
+     * Calculates if the popup should be shown above or below the toolbar.
+     */
+    private fun calculatePopupVerticalOffset(
+        context: Context,
+        toolbarLayout: WeakReference<View>,
+        popupWindow: PopupWindow,
+    ): Int {
+        return if (context.isToolbarAtBottom()) {
+            toolbarLayout.get()?.let { toolbar ->
+                -(toolbar.height + popupWindow.height)
+            } ?: 0
+        } else {
+            0
         }
     }
 
