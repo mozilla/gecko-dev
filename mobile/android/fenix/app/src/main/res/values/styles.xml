@@ -346,7 +346,7 @@
     </style>
 
     <!-- Fade animation for theme switching -->
-    <style name="WindowAnimationTransition">
+    <style name="WindowAnimationTransition" parent="android:Animation.Activity">
         <item name="android:windowEnterAnimation">@anim/fade_in</item>
         <item name="android:windowExitAnimation">@anim/fade_out</item>
     </style>
