@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-07-23T21:58:20.688453+00:00'
+updated_at: '2024-08-02T14:33:27.873770+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -2666,7 +2666,7 @@ modules:
     machine_name: core_static_analysis_rewriting_for_c
 
   - name: 'Core: storage'
-    description: Storage APIs with a SQLite backend
+    description: Storage APIs, SQLite backend
     includes:
       - third_party/sqlite3/**/*
       - storage/**/*
@@ -2682,6 +2682,7 @@ modules:
     peers:
       - *asuth
       - *janv
+      - *lina
     machine_name: core_storage
 
   - name: 'Core: String'
@@ -4371,5 +4372,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 2ad8582c39af4d47fcd7c7be987e8cd5a514aba9
-  export: 66a6ee3b820843d5fc8e78e50d0a545233a4f876
+  config: 6410cc12ee3bad1c67d4d797975e16bb4339cab7
+  export: c3de175b04f17bbfeff4fd79b44521be63f74b51
