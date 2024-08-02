@@ -14,13 +14,10 @@ browser.jar:
     content/browser/sidebar/sidebar-page.mjs
     content/browser/sidebar/sidebar-panel-header.css
     content/browser/sidebar/sidebar-panel-header.mjs
+    content/browser/sidebar/sidebar-syncedtabs.css
     content/browser/sidebar/sidebar-syncedtabs.html
     content/browser/sidebar/sidebar-syncedtabs.mjs
     content/browser/sidebar/sidebar-tab-list.css
     content/browser/sidebar/sidebar-tab-list.mjs
     content/browser/sidebar/sidebar-tab-row.css
     content/browser/sidebar/sidebar.css
-    content/browser/sidebar/sidebar-collapsed.svg (content/sidebar-collapsed.svg)
-    content/browser/sidebar/sidebar-expanded.svg (content/sidebar-expanded.svg)
-    content/browser/sidebar/sidebar-hidden.svg (content/sidebar-hidden.svg)
-    content/browser/sidebar/sidebar-horizontal-tabs.svg (content/sidebar-horizontal-tabs.svg)

@@ -38,7 +38,7 @@
       "ntp_background": "rgb(43, 42, 51)",
       "ntp_card_background": "rgb(66,65,77)",
       "ntp_text": "rgb(251, 251, 254)",
-      "sidebar": "#38383D",
+      "sidebar": "rgb(28, 27, 34)",
       "sidebar_text": "rgb(249, 249, 250)",
       "sidebar_border": "rgba(255, 255, 255, 0.1)",
       "button": "rgba(0, 0, 0, .33)",

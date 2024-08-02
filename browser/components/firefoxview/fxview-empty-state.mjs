@@ -71,7 +71,7 @@ class FxviewEmptyState extends MozLitElement {
        <card-container hideHeader="true" exportparts="image" ?isInnerCard="${
          this.isInnerCard
        }" id="card-container" isEmptyState="true" role="group" aria-labelledby="header" aria-describedby="description">
-         <div slot="main" class=${classMap({
+         <div slot="main" part="container" class=${classMap({
            selectedTab: this.isSelectedTab,
            imageHidden: !this.mainImageUrl,
          })}>
@@ -80,6 +80,7 @@ class FxviewEmptyState extends MozLitElement {
                image: true,
                greyscale: this.errorGrayscale,
              })}
+              part="image"
               role="presentation"
               alt=""
               ?hidden=${!this.mainImageUrl}
@@ -87,6 +88,7 @@ class FxviewEmptyState extends MozLitElement {
            </div>
            <div class="main">
              <h2
+               part="header"
                id="header"
                class="header heading-large"
                ?hidden=${!this.headerLabel}

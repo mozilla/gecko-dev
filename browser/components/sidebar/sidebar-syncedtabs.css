@@ -1,0 +1,24 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+fxview-empty-state {
+  &::part(container) {
+    margin-block-start: var(--space-medium);
+    background-color: var(--toolbar-bgcolor);
+    color: var(--toolbar-color);
+    border: 0.5px solid var(--panel-separator-color);
+    border-radius: var(--border-radius-medium);
+    padding-block: 83px;
+    padding-inline: var(--space-medium);
+  }
+
+  &::part(header) {
+    font-size: var(--font-size-large);
+  }
+
+  &::part(image) {
+    fill: var(--toolbar-bgcolor);
+    stroke: var(--toolbar-color);
+  }
+}

@@ -115,6 +115,7 @@ export default class MozCheckbox extends MozLitElement {
       <label
         is="moz-label"
         for="moz-checkbox"
+        part="label"
         shownaccesskey=${ifDefined(this.accessKey)}
       >
         <input

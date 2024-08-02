@@ -16,5 +16,6 @@
 
   h4 {
     margin-block: var(--space-large);
+    font-size: var(--font-size-large);
   }
 }
