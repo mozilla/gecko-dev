@@ -90,23 +90,6 @@ if test -n "${MOZ_CONFIGURE_OPTIMIZE_FLAGS}"; then
     MOZ_OPTIMIZE_FLAGS=${MOZ_CONFIGURE_OPTIMIZE_FLAGS}
 fi
 
-if test "$COMPILE_ENVIRONMENT"; then
-if test -n "$MOZ_OPTIMIZE"; then
-    AC_MSG_CHECKING([for valid optimization flags])
-    _SAVE_CFLAGS=$CFLAGS
-    CFLAGS="$CFLAGS $MOZ_OPTIMIZE_FLAGS"
-    AC_TRY_COMPILE([#include <stdio.h>],
-        [printf("Hello World\n");],
-        _results=yes,
-        _results=no)
-    AC_MSG_RESULT([$_results])
-    if test "$_results" = "no"; then
-        AC_MSG_ERROR([These compiler flags are invalid: $MOZ_OPTIMIZE_FLAGS])
-    fi
-    CFLAGS=$_SAVE_CFLAGS
-fi
-fi # COMPILE_ENVIRONMENT
-
 AC_SUBST_LIST(MOZ_OPTIMIZE_FLAGS)
 
 dnl ========================================================

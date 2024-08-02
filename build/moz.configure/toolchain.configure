@@ -3878,3 +3878,20 @@ dtrace = check_header(
 
 set_config("HAVE_DTRACE", True, when=dtrace)
 set_define("INCLUDE_MOZILLA_DTRACE", True, when=dtrace)
+
+
+@depends(
+    try_compile(
+        includes=["stdio.h"],
+        body='puts("demat");',
+        flags=moz_optimize_flags,
+        language="C",
+        check_msg="for valid C compiler optimization flags",
+    ),
+    moz_optimize_flags,
+    when=moz_optimize,
+)
+@imports(_from="mozbuild.shellutil", _import="quote")
+def check_optimization_flags(check_result, moz_optimize_flags):
+    if not check_result:
+        die(f"Invalid C compiler optimization flags: {quote(*moz_optimize_flags)}")
