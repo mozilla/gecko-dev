@@ -264,9 +264,11 @@ struct ParamTraits<mozilla::layers::GpuProcessQueryId> {
 
   static void Write(MessageWriter* writer, const paramType& param) {
     WriteParam(writer, param.mId);
+    WriteParam(writer, param.mOnlyForOverlay);
   }
   static bool Read(MessageReader* reader, paramType* result) {
-    return ReadParam(reader, &result->mId);
+    return ReadParam(reader, &result->mId) &&
+           ReadParam(reader, &result->mOnlyForOverlay);
   }
 };
 

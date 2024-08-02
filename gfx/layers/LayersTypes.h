@@ -467,6 +467,8 @@ struct GpuProcessTextureId {
 // QueryId allocated in GPU process
 struct GpuProcessQueryId {
   uint64_t mId = 0;
+  // Workaround for Bug 1910990.
+  bool mOnlyForOverlay = false;
 
   static GpuProcessQueryId GetNext();
 
