@@ -827,6 +827,16 @@ html {
       .multi-select-container {
         margin-inline: 0 10px;
 
+        .multi-select-item {
+          display: block;
+
+          p {
+            margin-block: 0.5em 0;
+            margin-inline-start: calc(16px + var(--checkbox-margin-inline)); // width of checkbox and its inline margin
+            font-size: 12px;
+          }
+        }
+
         @media only screen and (width <= 800px) {
           flex-direction: column;
           align-self: center;
@@ -836,6 +846,10 @@ html {
           padding: 0 30px;
           margin-inline: 0;
           box-sizing: content-box;
+
+          .multi-select-item p {
+            margin-inline-start: 0;
+          }
         }
       }
 

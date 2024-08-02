@@ -1638,6 +1638,14 @@ html {
 .onboardingContainer .screen[pos=split] .multi-select-container {
   margin-inline: 0 10px;
 }
+.onboardingContainer .screen[pos=split] .multi-select-container .multi-select-item {
+  display: block;
+}
+.onboardingContainer .screen[pos=split] .multi-select-container .multi-select-item p {
+  margin-block: 0.5em 0;
+  margin-inline-start: calc(16px + var(--checkbox-margin-inline));
+  font-size: 12px;
+}
 @media only screen and (width <= 800px) {
   .onboardingContainer .screen[pos=split] .multi-select-container {
     flex-direction: column;
@@ -1648,6 +1656,9 @@ html {
     padding: 0 30px;
     margin-inline: 0;
     box-sizing: content-box;
+  }
+  .onboardingContainer .screen[pos=split] .multi-select-container .multi-select-item p {
+    margin-inline-start: 0;
   }
 }
 .onboardingContainer .screen[pos=split] .tiles-theme-container {

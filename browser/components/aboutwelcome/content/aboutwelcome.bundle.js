@@ -1440,6 +1440,7 @@ const MultiSelect = ({
   })) : null, items.map(({
     id,
     label,
+    description,
     icon,
     type = "checkbox",
     group,
@@ -1457,11 +1458,16 @@ const MultiSelect = ({
     checked: activeMultiSelect?.includes(id),
     style: getValidStyle(icon?.style, MULTI_SELECT_ICON_STYLES),
     onChange: handleChange,
-    ref: el => refs.current[id] = el
+    ref: el => refs.current[id] = el,
+    "aria-describedby": description ? `${id}-description` : null
   }), label ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: label
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
     htmlFor: id
+  })) : null, description ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+    text: description
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    id: `${id}-description`
   })) : null)));
 };
 
