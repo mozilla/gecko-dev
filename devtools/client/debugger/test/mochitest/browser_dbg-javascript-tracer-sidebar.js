@@ -14,6 +14,8 @@ add_task(async function () {
 
   info("Force the log method to be the debugger sidebar");
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-debugger-sidebar");
+  info("Also enable values recording");
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-log-values");
 
   info("Enable the tracing");
   await toggleJsTracer(dbg.toolbox);
@@ -53,6 +55,39 @@ add_task(async function () {
   is(traces[0].textContent, "λ main simple1.js:1:16");
   is(traces[1].textContent, "λ foo simple2.js:1:12");
   is(traces[2].textContent, "λ bar simple2.js:3:4");
+
+  info("Select the trace for the call to `foo`");
+  EventUtils.synthesizeMouseAtCenter(traces[1], {}, dbg.win);
+
+  const inlinePreviews = [
+    {
+      identifier: "x:",
+      value: "1",
+    },
+    {
+      identifier: "y:",
+      value: "2",
+    },
+  ];
+  await waitForAllElements(dbg, "inlinePreviewLabels", inlinePreviews.length);
+
+  const labels = findAllElements(dbg, "inlinePreviewLabels");
+  const values = findAllElements(dbg, "inlinePreviewValues");
+  let index = 0;
+  const fnName = "foo";
+  for (const { identifier, value } of inlinePreviews) {
+    is(
+      labels[index].innerText,
+      identifier,
+      `${identifier} in ${fnName} has correct inline preview label`
+    );
+    is(
+      values[index].innerText,
+      value,
+      `${identifier} in ${fnName} has correct inline preview value`
+    );
+    index++;
+  }
 
   // Trigger a click in the content page to verify we do trace DOM events
   BrowserTestUtils.synthesizeMouseAtCenter(
@@ -95,4 +130,5 @@ add_task(async function () {
 
   info("Reset back to the default value");
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-console");
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-log-values");
 });

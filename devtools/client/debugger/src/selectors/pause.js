@@ -272,9 +272,15 @@ export function isMapScopesEnabled(state) {
 }
 
 export function getInlinePreviews(state, thread, frameId) {
-  return getThreadPauseState(state.pause, thread).inlinePreview[
-    getGeneratedFrameId(frameId)
-  ];
+  if (state.tracerFrames?.previews) {
+    return state.tracerFrames?.previews;
+  }
+  if (frameId) {
+    return getThreadPauseState(state.pause, thread).inlinePreview[
+      getGeneratedFrameId(frameId)
+    ];
+  }
+  return null;
 }
 
 // This is only used by tests

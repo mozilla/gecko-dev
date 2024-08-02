@@ -321,7 +321,8 @@ class ResourcesTracingListener {
       ]);
     }
 
-    let args = undefined;
+    let args = undefined,
+      argNames = undefined;
     // Log arguments, but only when this feature is enabled as it introduce
     // some significant overhead in perf as well as memory as it may hold the objects in memory.
     // Also prevent trying to log function call arguments if we aren't logging a frame
@@ -337,6 +338,7 @@ class ResourcesTracingListener {
         const dbgObj = makeDebuggeeValue(this.targetActor, arg);
         args.push(createValueGripForTarget(this.targetActor, dbgObj));
       }
+      argNames = frame.callee.script.parameterNames;
     }
 
     // In order for getActorIdForInternalSourceId to work reliably,
@@ -359,6 +361,7 @@ class ResourcesTracingListener {
       ChromeUtils.dateNow(),
       depth,
       args,
+      argNames,
     ]);
     this.throttleEmitTraces();
 

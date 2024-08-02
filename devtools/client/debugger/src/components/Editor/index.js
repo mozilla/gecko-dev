@@ -34,6 +34,7 @@ import {
   isSourceMapIgnoreListEnabled,
   isSourceOnSourceMapIgnoreList,
   isMapScopesEnabled,
+  getSelectedTraceIndex,
 } from "../../selectors/index";
 
 // Redux actions
@@ -852,6 +853,7 @@ class Editor extends PureComponent {
       selectedSource,
       conditionalPanelLocation,
       isPaused,
+      isTraceSelected,
       inlinePreviewEnabled,
       highlightedLineRange,
       blackboxedRanges,
@@ -897,7 +899,7 @@ class Editor extends PureComponent {
               selectedSource,
             })
           : null,
-        isPaused &&
+        (isPaused || isTraceSelected) &&
           inlinePreviewEnabled &&
           (!selectedSource.isOriginal ||
             selectedSource.isPrettyPrinted ||
@@ -965,7 +967,7 @@ class Editor extends PureComponent {
       React.createElement(ColumnBreakpoints, {
         editor,
       }),
-      isPaused &&
+      (isPaused || isTraceSelected) &&
         inlinePreviewEnabled &&
         (!selectedSource.isOriginal ||
           (selectedSource.isOriginal && selectedSource.isPrettyPrinted) ||
@@ -1033,6 +1035,7 @@ const mapStateToProps = state => {
     conditionalPanelLocation: getConditionalPanelLocation(state),
     symbols: getSymbols(state, selectedLocation),
     isPaused: getIsCurrentThreadPaused(state),
+    isTraceSelected: getSelectedTraceIndex(state) != null,
     skipPausing: getSkipPausing(state),
     inlinePreviewEnabled: getInlinePreview(state),
     blackboxedRanges: getBlackBoxRanges(state),

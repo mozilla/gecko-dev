@@ -29,13 +29,7 @@ class InlinePreviews extends Component {
     return {
       editor: PropTypes.object.isRequired,
       previews: PropTypes.object,
-      selectedFrame: PropTypes.object.isRequired,
-      selectedSource: PropTypes.object.isRequired,
     };
-  }
-
-  shouldComponentUpdate({ previews }) {
-    return hasPreviews(previews);
   }
 
   componentDidMount() {
@@ -49,8 +43,6 @@ class InlinePreviews extends Component {
   renderInlinePreviewMarker() {
     const {
       editor,
-      selectedFrame,
-      selectedSource,
       previews,
       openElementInInspector,
       highlightDomElement,
@@ -61,12 +53,7 @@ class InlinePreviews extends Component {
       return;
     }
 
-    if (
-      !editor ||
-      !selectedFrame ||
-      selectedFrame.location.source.id !== selectedSource.id ||
-      !hasPreviews(previews)
-    ) {
+    if (!previews) {
       editor.removeLineContentMarker(markerTypes.INLINE_PREVIEW_MARKER);
       return;
     }
@@ -94,6 +81,7 @@ class InlinePreviews extends Component {
               React.createElement(InlinePreview, {
                 line,
                 key: `${line}-${preview.name}`,
+                type: preview.type,
                 variable: preview.name,
                 value: preview.value,
                 openElementInInspector,
@@ -119,18 +107,13 @@ class InlinePreviews extends Component {
   }
 
   render() {
-    const { editor, selectedFrame, selectedSource, previews } = this.props;
+    const { editor, previews } = this.props;
 
     if (features.codemirrorNext) {
       return null;
     }
 
-    // Render only if currently open file is the one where debugger is paused
-    if (
-      !selectedFrame ||
-      selectedFrame.location.source.id !== selectedSource.id ||
-      !hasPreviews(previews)
-    ) {
+    if (!previews) {
       return null;
     }
     const previewsObj = previews;
@@ -151,20 +134,23 @@ class InlinePreviews extends Component {
   }
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
   const thread = getCurrentThread(state);
   const selectedFrame = getSelectedFrame(state, thread);
-
-  if (!selectedFrame) {
+  const previews = getInlinePreviews(state, thread, selectedFrame?.id);
+  // When we are paused, render only if currently open file is the one where debugger is paused
+  if (
+    (selectedFrame &&
+      selectedFrame.location.source.id !== props.selectedSource.id) ||
+    !hasPreviews(previews)
+  ) {
     return {
-      selectedFrame: null,
       previews: null,
     };
   }
 
   return {
-    selectedFrame,
-    previews: getInlinePreviews(state, thread, selectedFrame.id),
+    previews,
   };
 };
 

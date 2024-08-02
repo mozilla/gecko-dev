@@ -194,6 +194,8 @@ function getBindingValues(
     previews.push({
       line,
       column,
+      // This attribute helps distinguish pause from trace previews
+      type: "paused",
       name: displayName,
       value: displayValue,
     });

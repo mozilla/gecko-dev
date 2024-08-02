@@ -18,10 +18,36 @@
 }
 
 .inline-preview-label {
-  padding: 0px 2px 0px 4px;
+  padding-inline: 2px;
   border-radius: 2px 0 0 2px;
-  color: var(--theme-inline-preview-label-color);
-  background-color: var(--theme-inline-preview-label-background);
+
+  &.paused {
+    color: var(--theme-inline-preview-label-pause-color);
+    background-color: var(--theme-inline-preview-label-pause-background);
+  }
+
+  &.trace {
+    color: var(--theme-inline-preview-label-trace-color);
+    background-color: var(--theme-inline-preview-label-trace-background);
+
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      padding: 0px 4px;
+      margin-top: -1px;
+      vertical-align: middle;
+
+      background-image: url("chrome://devtools/content/debugger/images/trace.svg");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+
+      -moz-context-properties: fill;
+      fill: var(--theme-inline-preview-label-trace-color);
+    }
+  }
 }
 
 .inline-preview-value {
