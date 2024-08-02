@@ -266,15 +266,7 @@
         return this._tabbox;
       }
 
-      let parent = this.parentNode;
-      while (parent) {
-        if (parent.localName == "tabbox") {
-          break;
-        }
-        parent = parent.parentNode;
-      }
-
-      return (this._tabbox = parent);
+      return (this._tabbox = this.closest("tabbox"));
     }
 
     /**
@@ -368,23 +360,23 @@
         return;
       }
 
-      this.parentNode.ariaFocusedItem = null;
+      this.container.ariaFocusedItem = null;
 
-      if (this == this.parentNode.selectedItem) {
+      if (this == this.container.selectedItem) {
         // This tab is already selected and we will fall
         // through to mousedown behavior which sets focus on the current tab,
         // Only a click on an already selected tab should focus the tab itself.
         return;
       }
 
-      let stopwatchid = this.parentNode.getAttribute("stopwatchid");
+      let stopwatchid = this.container.getAttribute("stopwatchid");
       if (stopwatchid) {
         TelemetryStopwatch.start(stopwatchid);
       }
 
       // Call this before setting the 'ignorefocus' attribute because this
       // will pass on focus if the formerly selected tab was focused as well.
-      this.closest("tabs")._selectNewTab(this);
+      this.container._selectNewTab(this);
 
       var isTabFocused = false;
       try {
@@ -411,7 +403,7 @@
       }
       switch (event.keyCode) {
         case KeyEvent.DOM_VK_LEFT: {
-          let direction = window.getComputedStyle(this.parentNode).direction;
+          let direction = window.getComputedStyle(this.container).direction;
           this.container.advanceSelectedTab(
             direction == "ltr" ? -1 : 1,
             this.arrowKeysShouldWrap
@@ -421,7 +413,7 @@
         }
 
         case KeyEvent.DOM_VK_RIGHT: {
-          let direction = window.getComputedStyle(this.parentNode).direction;
+          let direction = window.getComputedStyle(this.container).direction;
           this.container.advanceSelectedTab(
             direction == "ltr" ? 1 : -1,
             this.arrowKeysShouldWrap
@@ -462,9 +454,13 @@
       return this.getAttribute("value") || "";
     }
 
+    get container() {
+      return this.closest("tabs");
+    }
+
+    // nsIDOMXULSelectControlItemElement
     get control() {
-      var parent = this.parentNode;
-      return parent.localName == "tabs" ? parent : null;
+      return this.container;
     }
 
     get selected() {
