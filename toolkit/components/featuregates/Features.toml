@@ -14,32 +14,8 @@
 # based on the order of appearance in this file. Settings within
 # a group will also be determined by their order in this file.
 
-[sidebar]
-group = "experimental-features-group-customize-browsing"
-title = "sidebar-title"
-description = "sidebar-description"
-description-links = {connect= "https://connect.mozilla.org/t5/discussions/firefox-sidebar-and-vertical-tabs-try-them-out-in-nightly/m-p/63231#M22243"}
-restart-required = false
-preference = "sidebar.revamp"
-type = "boolean"
-bug-numbers = [1906140]
-is-public-jexl = "nightly_build"
-default-value-jexl = "false"
-
-[vertical-tabs]
-group = "experimental-features-group-customize-browsing"
-title = "vertical-tabs-title"
-description = "vertical-tabs-description"
-description-links = {connect= "https://connect.mozilla.org/t5/discussions/firefox-sidebar-and-vertical-tabs-try-them-out-in-nightly/m-p/63231#M22243"}
-restart-required = false
-preference = "sidebar.verticalTabs"
-type = "boolean"
-bug-numbers = [1906140]
-is-public-jexl = "nightly_build"
-default-value-jexl = "false"
-
 [genai-chat]
-group = "experimental-features-group-customize-browsing"
+group = "experimental-features-group-browsing"
 title = "genai-settings-chat-title"
 description = "genai-settings-chat-description"
 description-links = {connect= "https://connect.mozilla.org/t5/discussions/share-your-feedback-on-the-ai-services-experiment-in-nightly/m-p/60519#M21202"}
@@ -51,7 +27,7 @@ is-public-jexl = "nightly_build"
 default-value-jexl = "false"
 
 [url-bar-ime-search]
-group = "experimental-features-group-customize-browsing"
+group = "experimental-features-group-browsing"
 title = "experimental-features-ime-search"
 description = "experimental-features-ime-search-description"
 restart-required = false
@@ -62,7 +38,7 @@ is-public-jexl = "true"
 default-value-jexl = "false"
 
 [auto-pip]
-group = "experimental-features-group-customize-browsing"
+group = "experimental-features-group-browsing"
 title = "experimental-features-auto-pip"
 description = "experimental-features-auto-pip-description"
 restart-required = false
@@ -73,7 +49,7 @@ is-public-jexl = "true"
 default-value-jexl = "false"
 
 [webrtc-global-mute-toggles]
-group = "experimental-features-group-customize-browsing"
+group = "experimental-features-group-browsing"
 title = "experimental-features-webrtc-global-mute-toggles"
 description = "experimental-features-webrtc-global-mute-toggles-description"
 restart-required = false
@@ -84,7 +60,7 @@ is-public-jexl = "nightly_build"
 default-value-jexl = "false"
 
 [cookie-samesite-none-requires-secure]
-group = "experimental-features-group-customize-browsing"
+group = "experimental-features-group-browsing"
 title = "experimental-features-cookie-samesite-none-requires-secure2"
 description = "experimental-features-cookie-samesite-none-requires-secure2-description"
 restart-required = false
