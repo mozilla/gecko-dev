@@ -102,6 +102,7 @@ web-platform-tests:
             - --exclude-tag=webgpu
             - --exclude-tag=canvas
             - --exclude-tag=webcodecs
+            - --exclude-tag=eme
 
 web-platform-tests-backlog:
     description: "Web platform test (backlog) run"
@@ -138,6 +139,7 @@ web-platform-tests-backlog:
             - --backlog
             - --exclude-tag=webgpu
             - --exclude-tag=webcodecs
+            - --exclude-tag=eme
 
 web-platform-tests-privatebrowsing:
     description: "Web platform privatebrowsing test run"
@@ -477,6 +479,7 @@ web-platform-tests-reftest-backlog:
             - --backlog
             - --exclude-tag=webgpu
             - --exclude-tag=webcodecs
+            - --exclude-tag=eme
 
 web-platform-tests-wdspec:
     description: "Web platform webdriver-spec run"
