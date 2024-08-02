@@ -272,7 +272,7 @@ who = "Henrik Skupin <mail@hskupin.info>"
 criteria = "safe-to-run"
 user-id = 22262
 start = "2020-11-03"
-end = "2024-03-31"
+end = "2025-01-31"
 notes = "Maintained by the DevTools team at Mozilla and has no unsafe code."
 
 [[wildcard-audits.minidump-common]]
@@ -288,7 +288,7 @@ who = "Henrik Skupin <mail@hskupin.info>"
 criteria = "safe-to-run"
 user-id = 22262
 start = "2020-11-03"
-end = "2024-03-31"
+end = "2025-01-31"
 notes = "Maintained by the DevTools team at Mozilla and has no unsafe code."
 
 [[wildcard-audits.mozprofile]]
@@ -296,7 +296,7 @@ who = "Henrik Skupin <mail@hskupin.info>"
 criteria = "safe-to-deploy"
 user-id = 22262
 start = "2020-11-03"
-end = "2024-03-31"
+end = "2025-01-31"
 notes = "Maintained by the DevTools team at Mozilla and has no unsafe code."
 
 [[wildcard-audits.mozrunner]]
@@ -304,7 +304,7 @@ who = "Henrik Skupin <mail@hskupin.info>"
 criteria = "safe-to-deploy"
 user-id = 22262
 start = "2020-11-03"
-end = "2024-03-31"
+end = "2025-01-31"
 notes = "Maintained by the DevTools team at Mozilla and has no unsafe code."
 
 [[wildcard-audits.mozversion]]
@@ -312,7 +312,7 @@ who = "Henrik Skupin <mail@hskupin.info>"
 criteria = "safe-to-run"
 user-id = 22262
 start = "2020-11-03"
-end = "2024-03-31"
+end = "2025-01-31"
 notes = "Maintained by the DevTools team at Mozilla and has no unsafe code."
 
 [[wildcard-audits.nss-gk-api]]
@@ -528,7 +528,7 @@ who = "Henrik Skupin <mail@hskupin.info>"
 criteria = "safe-to-deploy"
 user-id = 22262
 start = "2020-11-03"
-end = "2024-03-31"
+end = "2025-01-31"
 notes = "Maintained by the DevTools team at Mozilla and has no unsafe code."
 
 [[audits.aa-stroke]]
