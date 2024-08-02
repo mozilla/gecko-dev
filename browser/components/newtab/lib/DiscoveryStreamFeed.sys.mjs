@@ -2385,7 +2385,7 @@ getHardcodedLayout = ({
             link_text: {
               id: "newtab-pocket-learn-more",
             },
-            link_url: "https://getpocket.com/firefox/new_tab_learn_more",
+            link_url: "",
             icon: "chrome://global/skin/icons/pocket.svg",
           },
           properties: {

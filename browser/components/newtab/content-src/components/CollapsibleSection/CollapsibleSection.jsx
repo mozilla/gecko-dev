@@ -77,7 +77,6 @@ export class _CollapsibleSection extends React.PureComponent {
     const {
       id,
       collapsed,
-      learnMore,
       title,
       subTitle,
       mayHaveSponsoredStories,
@@ -114,15 +113,6 @@ export class _CollapsibleSection extends React.PureComponent {
           >
             <span className="section-title">
               <FluentOrText message={title} />
-            </span>
-            <span className="learn-more-link-wrapper">
-              {learnMore && (
-                <span className="learn-more-link">
-                  <FluentOrText message={learnMore.link.message}>
-                    <a href={learnMore.link.href} />
-                  </FluentOrText>
-                </span>
-              )}
             </span>
             {subTitle && (
               <span className="section-sub-title">

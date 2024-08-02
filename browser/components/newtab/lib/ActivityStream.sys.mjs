@@ -669,6 +669,20 @@ export const PREFS_CONFIG = new Map([
       value: true,
     },
   ],
+  [
+    "support.url",
+    {
+      title: "Link to HNT's support page",
+      getValue: () => {
+        // Services.urlFormatter completes the in-product SUMO page URL:
+        // https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/new-tab
+        const baseUrl = Services.urlFormatter.formatURLPref(
+          "app.support.baseURL"
+        );
+        return `${baseUrl}new-tab`;
+      },
+    },
+  ],
 ]);
 
 // Array of each feed's FEEDS_CONFIG factory and values to add to PREFS_CONFIG

@@ -482,6 +482,7 @@ export class BaseContent extends React.PureComponent {
     const mayHaveSponsoredStories = prefs["system.showSponsored"];
     const mayHaveWeather = prefs["system.showWeather"];
     const { mayHaveSponsoredTopSites } = prefs;
+    const supportUrl = prefs["support.url"];
 
     const hasThumbsUpDownLayout =
       prefs["discoverystream.thumbsUpDown.searchTopsitesCompact"];
@@ -591,7 +592,9 @@ export class BaseContent extends React.PureComponent {
             )}
           </aside>
           {/* Only show the modal on currently visible pages (not preloaded) */}
-          {mayShowTopicSelection && pocketEnabled && <TopicSelection />}
+          {mayShowTopicSelection && pocketEnabled && (
+            <TopicSelection supportUrl={supportUrl} />
+          )}
         </div>
       </div>
     );

@@ -4386,7 +4386,6 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
     const {
       id,
       collapsed,
-      learnMore,
       title,
       subTitle,
       mayHaveSponsoredStories,
@@ -4425,15 +4424,7 @@ class _CollapsibleSection extends (external_React_default()).PureComponent {
       className: "section-title"
     }, /*#__PURE__*/external_React_default().createElement(FluentOrText, {
       message: title
-    })), /*#__PURE__*/external_React_default().createElement("span", {
-      className: "learn-more-link-wrapper"
-    }, learnMore && /*#__PURE__*/external_React_default().createElement("span", {
-      className: "learn-more-link"
-    }, /*#__PURE__*/external_React_default().createElement(FluentOrText, {
-      message: learnMore.link.message
-    }, /*#__PURE__*/external_React_default().createElement("a", {
-      href: learnMore.link.href
-    })))), subTitle && /*#__PURE__*/external_React_default().createElement("span", {
+    })), subTitle && /*#__PURE__*/external_React_default().createElement("span", {
       className: "section-sub-title"
     }, /*#__PURE__*/external_React_default().createElement(FluentOrText, {
       message: subTitle
@@ -10673,7 +10664,9 @@ const EMOJI_LABELS = {
   education: "🧪",
   society: "💡"
 };
-function TopicSelection() {
+function TopicSelection({
+  supportUrl
+}) {
   const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
   const inputRef = (0,external_React_namespaceObject.useRef)(null);
   const modalRef = (0,external_React_namespaceObject.useRef)(null);
@@ -10874,7 +10867,7 @@ function TopicSelection() {
   })), /*#__PURE__*/external_React_default().createElement("div", {
     className: "modal-footer"
   }, /*#__PURE__*/external_React_default().createElement("a", {
-    href: "https://support.mozilla.org/en-US/kb/pocket-recommendations-firefox-new-tab",
+    href: supportUrl,
     "data-l10n-id": "newtab-topic-selection-privacy-link"
   }), /*#__PURE__*/external_React_default().createElement("moz-button-group", {
     className: "button-group"
@@ -11427,6 +11420,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     const {
       mayHaveSponsoredTopSites
     } = prefs;
+    const supportUrl = prefs["support.url"];
     const hasThumbsUpDownLayout = prefs["discoverystream.thumbsUpDown.searchTopsitesCompact"];
     const hasThumbsUpDown = prefs["discoverystream.thumbsUpDown.enabled"];
     const featureClassName = [weatherEnabled && mayHaveWeather && "has-weather",
@@ -11478,7 +11472,9 @@ class BaseContent extends (external_React_default()).PureComponent {
       firstVisibleTimestamp: this.state.firstVisibleTimestamp
     })) : /*#__PURE__*/external_React_default().createElement(Sections_Sections, null)), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null), wallpapersEnabled && this.renderWallpaperAttribution()), /*#__PURE__*/external_React_default().createElement("aside", null, this.props.Notifications?.showNotifications && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Notifications_Notifications, {
       dispatch: this.props.dispatch
-    }))), mayShowTopicSelection && pocketEnabled && /*#__PURE__*/external_React_default().createElement(TopicSelection, null)));
+    }))), mayShowTopicSelection && pocketEnabled && /*#__PURE__*/external_React_default().createElement(TopicSelection, {
+      supportUrl: supportUrl
+    })));
   }
 }
 BaseContent.defaultProps = {
