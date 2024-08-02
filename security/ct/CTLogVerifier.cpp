@@ -105,30 +105,14 @@ class SignatureParamsTrustDomain final : public TrustDomain {
   DigitallySigned::SignatureAlgorithm mSignatureAlgorithm;
 };
 
-CTLogVerifier::CTLogVerifier()
+CTLogVerifier::CTLogVerifier(CTLogOperatorId operatorId, CTLogState state,
+                             uint64_t timestamp)
     : mSignatureAlgorithm(DigitallySigned::SignatureAlgorithm::Anonymous),
-      mOperatorId(-1),
-      mDisqualified(false),
-      mDisqualificationTime(UINT64_MAX) {}
+      mOperatorId(operatorId),
+      mState(state),
+      mTimestamp(timestamp) {}
 
-Result CTLogVerifier::Init(Input subjectPublicKeyInfo,
-                           CTLogOperatorId operatorId, CTLogStatus logStatus,
-                           uint64_t disqualificationTime) {
-  switch (logStatus) {
-    case CTLogStatus::Included:
-      mDisqualified = false;
-      mDisqualificationTime = UINT64_MAX;
-      break;
-    case CTLogStatus::Disqualified:
-      mDisqualified = true;
-      mDisqualificationTime = disqualificationTime;
-      break;
-    case CTLogStatus::Unknown:
-    default:
-      assert(false);
-      return Result::FATAL_ERROR_INVALID_ARGS;
-  }
-
+Result CTLogVerifier::Init(Input subjectPublicKeyInfo) {
   SignatureParamsTrustDomain trustDomain;
   Result rv = CheckSubjectPublicKeyInfo(subjectPublicKeyInfo, trustDomain,
                                         EndEntityOrCA::MustBeEndEntity);
@@ -172,7 +156,6 @@ Result CTLogVerifier::Init(Input subjectPublicKeyInfo,
     return rv;
   }
 
-  mOperatorId = operatorId;
   return Success;
 }
 

@@ -30,9 +30,7 @@ class CTObjectsExtractorTest : public ::testing::Test {
     mCaCertSPKI = ExtractCertSPKI(mCaCert);
 
     Buffer logPublicKey = GetTestPublicKey();
-    ASSERT_EQ(Success,
-              mLog.Init(InputForBuffer(logPublicKey), -1 /*operator id*/,
-                        CTLogStatus::Included, 0 /*disqualification time*/));
+    ASSERT_EQ(Success, mLog.Init(InputForBuffer(logPublicKey)));
   }
 
  protected:
@@ -40,7 +38,7 @@ class CTObjectsExtractorTest : public ::testing::Test {
   Buffer mEmbeddedCert;
   Buffer mCaCert;
   Buffer mCaCertSPKI;
-  CTLogVerifier mLog;
+  CTLogVerifier mLog = CTLogVerifier(-1, CTLogState::Admissible, 0);
 };
 
 TEST_F(CTObjectsExtractorTest, ExtractPrecert) {

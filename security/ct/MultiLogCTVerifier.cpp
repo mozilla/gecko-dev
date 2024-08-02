@@ -14,13 +14,6 @@ namespace ct {
 
 using namespace mozilla::pkix;
 
-// Note: this moves |verifiedSct| to the target list in |result|.
-static void StoreVerifiedSct(CTVerifyResult& result, VerifiedSCT&& verifiedSct,
-                             VerifiedSCT::Status status) {
-  verifiedSct.status = status;
-  result.verifiedScts.push_back(std::move(verifiedSct));
-}
-
 void MultiLogCTVerifier::AddLog(CTLogVerifier&& log) {
   mLogs.push_back(std::move(log));
 }
@@ -43,8 +36,8 @@ Result MultiLogCTVerifier::Verify(Input cert, Input issuerSubjectPublicKeyInfo,
     if (rv != Success) {
       return rv;
     }
-    rv = VerifySCTs(sctListFromCert, precertEntry,
-                    VerifiedSCT::Origin::Embedded, time, result);
+    rv = VerifySCTs(sctListFromCert, precertEntry, SCTOrigin::Embedded, time,
+                    result);
     if (rv != Success) {
       return rv;
     }
@@ -55,8 +48,8 @@ Result MultiLogCTVerifier::Verify(Input cert, Input issuerSubjectPublicKeyInfo,
 
   // Verify SCTs from a stapled OCSP response
   if (sctListFromOCSPResponse.GetLength() > 0) {
-    rv = VerifySCTs(sctListFromOCSPResponse, x509Entry,
-                    VerifiedSCT::Origin::OCSPResponse, time, result);
+    rv = VerifySCTs(sctListFromOCSPResponse, x509Entry, SCTOrigin::OCSPResponse,
+                    time, result);
     if (rv != Success) {
       return rv;
     }
@@ -64,8 +57,8 @@ Result MultiLogCTVerifier::Verify(Input cert, Input issuerSubjectPublicKeyInfo,
 
   // Verify SCTs from a TLS extension
   if (sctListFromTLSExtension.GetLength() > 0) {
-    rv = VerifySCTs(sctListFromTLSExtension, x509Entry,
-                    VerifiedSCT::Origin::TLSExtension, time, result);
+    rv = VerifySCTs(sctListFromTLSExtension, x509Entry, SCTOrigin::TLSExtension,
+                    time, result);
     if (rv != Success) {
       return rv;
     }
@@ -106,7 +99,7 @@ void DecodeSCTs(Input encodedSctList,
 
 Result MultiLogCTVerifier::VerifySCTs(Input encodedSctList,
                                       const LogEntry& expectedEntry,
-                                      VerifiedSCT::Origin origin, Time time,
+                                      SCTOrigin origin, Time time,
                                       CTVerifyResult& result) {
   std::vector<SignedCertificateTimestamp> decodedSCTs;
   DecodeSCTs(encodedSctList, decodedSCTs, result.decodingErrors);
@@ -122,15 +115,23 @@ Result MultiLogCTVerifier::VerifySCTs(Input encodedSctList,
 
 Result MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
                                            const LogEntry& expectedEntry,
-                                           VerifiedSCT::Origin origin,
-                                           Time time, CTVerifyResult& result) {
-  VerifiedSCT verifiedSct;
-  verifiedSct.origin = origin;
-  verifiedSct.sct = std::move(sct);
+                                           SCTOrigin origin, Time time,
+                                           CTVerifyResult& result) {
+  switch (origin) {
+    case SCTOrigin::Embedded:
+      result.embeddedSCTs++;
+      break;
+    case SCTOrigin::TLSExtension:
+      result.sctsFromTLSHandshake++;
+      break;
+    case SCTOrigin::OCSPResponse:
+      result.sctsFromOCSP++;
+      break;
+  }
 
   CTLogVerifier* matchingLog = nullptr;
   for (auto& log : mLogs) {
-    if (log.keyId() == verifiedSct.sct.logId) {
+    if (log.keyId() == sct.logId) {
       matchingLog = &log;
       break;
     }
@@ -138,25 +139,20 @@ Result MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
 
   if (!matchingLog) {
     // SCT does not match any known log.
-    StoreVerifiedSct(result, std::move(verifiedSct),
-                     VerifiedSCT::Status::UnknownLog);
+    result.sctsFromUnknownLogs++;
     return Success;
   }
 
-  verifiedSct.logOperatorId = matchingLog->operatorId();
-
-  if (!matchingLog->SignatureParametersMatch(verifiedSct.sct.signature)) {
+  if (!matchingLog->SignatureParametersMatch(sct.signature)) {
     // SCT signature parameters do not match the log's.
-    StoreVerifiedSct(result, std::move(verifiedSct),
-                     VerifiedSCT::Status::InvalidSignature);
+    result.sctsWithInvalidSignatures++;
     return Success;
   }
 
-  Result rv = matchingLog->Verify(expectedEntry, verifiedSct.sct);
+  Result rv = matchingLog->Verify(expectedEntry, sct);
   if (rv != Success) {
     if (rv == Result::ERROR_BAD_SIGNATURE) {
-      StoreVerifiedSct(result, std::move(verifiedSct),
-                       VerifiedSCT::Status::InvalidSignature);
+      result.sctsWithInvalidSignatures++;
       return Success;
     }
     return rv;
@@ -168,25 +164,15 @@ Result MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
   // pkix::Time, we need to round it either up or down. In our case, rounding up
   // (towards the future) is more "secure", although practically
   // it does not matter.
-  Time sctTime =
-      TimeFromEpochInSeconds((verifiedSct.sct.timestamp + 999u) / 1000u);
+  Time sctTime = TimeFromEpochInSeconds((sct.timestamp + 999u) / 1000u);
   if (sctTime > time) {
-    StoreVerifiedSct(result, std::move(verifiedSct),
-                     VerifiedSCT::Status::InvalidTimestamp);
+    result.sctsWithInvalidTimestamps++;
     return Success;
   }
 
-  // SCT verified ok, see if the log is qualified. Since SCTs from
-  // disqualified logs are treated as valid under certain circumstances (see
-  // the CT Policy), the log qualification check must be the last one we do.
-  if (matchingLog->isDisqualified()) {
-    verifiedSct.logDisqualificationTime = matchingLog->disqualificationTime();
-    StoreVerifiedSct(result, std::move(verifiedSct),
-                     VerifiedSCT::Status::ValidFromDisqualifiedLog);
-    return Success;
-  }
-
-  StoreVerifiedSct(result, std::move(verifiedSct), VerifiedSCT::Status::Valid);
+  VerifiedSCT verifiedSct(std::move(sct), origin, matchingLog->operatorId(),
+                          matchingLog->state(), matchingLog->timestamp());
+  result.verifiedScts.push_back(std::move(verifiedSct));
   return Success;
 }
 
