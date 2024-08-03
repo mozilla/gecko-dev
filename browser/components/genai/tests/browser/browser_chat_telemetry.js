@@ -17,17 +17,6 @@ add_task(async function test_default_telemetry() {
     "Default no provider for test"
   );
   Assert.equal(
-    Glean.genaiChatbot.shortcuts.testGetValue() ?? true,
-    true,
-    "Default shortcuts for test"
-  );
-  Assert.equal(
-    Glean.genaiChatbot.shortcutsCustom.testGetValue() ??
-      AppConstants.NIGHTLY_BUILD,
-    AppConstants.NIGHTLY_BUILD,
-    "Default shortcuts_custom for test"
-  );
-  Assert.equal(
     Glean.genaiChatbot.sidebar.testGetValue() ?? true,
     true,
     "Default sidebar for test"

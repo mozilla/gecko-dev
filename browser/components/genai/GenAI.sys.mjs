@@ -23,18 +23,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "chatHideFromLabs",
-  "browser.ml.chat.hideFromLabs",
-  false
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "chatHideLabsShortcuts",
-  "browser.ml.chat.hideLabsShortcuts",
-  false
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "chatHideLocalhost",
   "browser.ml.chat.hideLocalhost",
   null,
@@ -73,9 +61,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "chatShortcuts",
-  "browser.ml.chat.shortcuts",
-  null,
-  (_pref, _old, val) => onChatShortcutsChange(val)
+  "browser.ml.chat.shortcuts"
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -189,11 +175,14 @@ export const GenAI = {
    * Handle startup tasks like telemetry, adding listeners.
    */
   init() {
+    Glean.genaiChatbot.enabled.set(lazy.chatEnabled);
+    Glean.genaiChatbot.provider.set(this.getProviderId());
+    Glean.genaiChatbot.sidebar.set(lazy.chatSidebar);
+
     // Access getters for side effects of observing pref changes
     lazy.chatHideLocalhost;
     lazy.chatProvider;
     lazy.chatProviders;
-    lazy.chatShortcuts;
 
     // Apply initial ordering of providers
     reorderChatProviders();
@@ -232,13 +221,6 @@ export const GenAI = {
         this.buildPreferences(content);
       }
     });
-
-    // Record glean metrics after applying nimbus prefs
-    Glean.genaiChatbot.enabled.set(lazy.chatEnabled);
-    Glean.genaiChatbot.provider.set(this.getProviderId());
-    Glean.genaiChatbot.shortcuts.set(lazy.chatShortcuts);
-    Glean.genaiChatbot.shortcutsCustom.set(lazy.chatShortcutsCustom);
-    Glean.genaiChatbot.sidebar.set(lazy.chatSidebar);
   },
 
   /**
@@ -258,17 +240,15 @@ export const GenAI = {
    * @param {MozBrowser} browser providing context
    * @param {string} selection text
    * @param {Function} itemAdder creates and returns the item
-   * @param {string} entry name
    * @param {Function} cleanup optional on item activation
    * @returns {object} context used for selecting prompts
    */
-  async addAskChatItems(browser, selection, itemAdder, entry, cleanup) {
+  async addAskChatItems(browser, selection, itemAdder, cleanup) {
     // Prepare context used for both targeting and handling prompts
     const window = browser.ownerGlobal;
     const tab = window.gBrowser.getTabForBrowser(browser);
     const uri = browser.currentURI;
     const context = {
-      entry,
       provider: lazy.chatProvider,
       selection,
       tabTitle: (tab._labelIsContentTitle && tab.label) || "",
@@ -341,7 +321,6 @@ export const GenAI = {
                   button.textContent = promptObj.label;
                   return button;
                 },
-                "shortcuts",
                 hide
               );
 
@@ -367,10 +346,6 @@ export const GenAI = {
                 () => shortcuts.removeAttribute("active"),
                 { once: true }
               );
-              Glean.genaiChatbot.shortcutsExpanded.record({
-                auto: false,
-                selection: shortcuts.selection.length,
-              });
             }
           });
         }
@@ -380,18 +355,10 @@ export const GenAI = {
         if (shortcuts.timeout) {
           lazy.clearTimeout(shortcuts.timeout);
         }
-        // Save the latest selection so it can be used by timeout and popup
-        shortcuts.selection = data.selection;
         shortcuts.timeout = lazy.setTimeout(() => {
-          // Pref might have changed since the timeout started
-          if (!lazy.chatShortcuts || shortcuts.hasAttribute("shown")) {
-            return;
-          }
-
+          // Save the latest selection so it can be used by the popup
+          shortcuts.selection = data.selection;
           shortcuts.toggleAttribute("shown");
-          Glean.genaiChatbot.shortcutsDisplayed.record({
-            selection: shortcuts.selection.length,
-          });
 
           // Position the shortcuts relative to the browser's top-left corner
           const rect = browser.getBoundingClientRect();
@@ -426,8 +393,7 @@ export const GenAI = {
     await this.addAskChatItems(
       nsContextMenu.browser,
       nsContextMenu.selectionInfo.fullText ?? "",
-      promptObj => menu.appendItem(promptObj.label),
-      "menu"
+      promptObj => menu.appendItem(promptObj.label)
     );
     nsContextMenu.showItem(menu, menu.itemCount > 0);
   },
@@ -496,11 +462,7 @@ export const GenAI = {
    * @param {object} context of how the prompt should be handled
    */
   async handleAskChat(promptObj, context) {
-    Glean.genaiChatbot[
-      context.entry == "menu"
-        ? "contextmenuPromptClick"
-        : "shortcutsPromptClick"
-    ].record({
+    Glean.genaiChatbot.contextmenuPromptClick.record({
       prompt: promptObj.id ?? "custom",
       provider: this.getProviderId(),
       selection: context.selection?.length ?? 0,
@@ -545,29 +507,14 @@ export const GenAI = {
    * @param {Window} window for about:preferences
    */
   buildPreferences({ document, Preferences }) {
-    // Section can be hidden by featuregate targeting
     const providerEl = document.getElementById("genai-chat-provider");
     if (!providerEl) {
-      return;
-    }
-
-    // Some experiments might want to hide shortcuts
-    const shortcutsEl = document.getElementById("genai-chat-shortcuts");
-    if (lazy.chatHideLabsShortcuts || lazy.chatHideFromLabs) {
-      shortcutsEl.remove();
-    }
-
-    // Page can load (restore at startup) just before default prefs apply
-    if (lazy.chatHideFromLabs) {
-      providerEl.parentNode.remove();
-      document.getElementById("genai-chat").remove();
       return;
     }
 
     const enabled = Preferences.get("browser.ml.chat.enabled");
     const onEnabledChange = () => {
       providerEl.disabled = !enabled.value;
-      shortcutsEl.disabled = !enabled.value;
 
       // Update enabled telemetry
       Glean.genaiChatbot.enabled.set(enabled.value);
@@ -640,23 +587,6 @@ export const GenAI = {
     };
     onProviderChange();
     provider.on("change", onProviderChange);
-
-    const shortcuts = Preferences.add({
-      id: "browser.ml.chat.shortcuts",
-      type: "bool",
-    });
-    const onShortcutsChange = () => {
-      // Update shortcuts telemetry
-      Glean.genaiChatbot.shortcuts.set(shortcuts.value);
-      if (onShortcutsChange.canChange) {
-        Glean.genaiChatbot.shortcutsCheckboxClick.record({
-          enabled: shortcuts.value,
-        });
-      }
-      onShortcutsChange.canChange = true;
-    };
-    onShortcutsChange();
-    shortcuts.on("change", onShortcutsChange);
   },
 
   // nsIObserver
@@ -675,21 +605,6 @@ function onChatProviderChange(value) {
     Services.wm
       .getMostRecentWindow("navigator:browser")
       ?.SidebarController.show("viewGenaiChatSidebar");
-  }
-}
-
-/**
- * Ensure the chat shortcuts get hidden.
- *
- * @param {bool} value New pref value
- */
-function onChatShortcutsChange(value) {
-  if (!value) {
-    lazy.EveryWindow.readyWindows.forEach(window =>
-      window.document
-        .querySelectorAll(".content-shortcuts")
-        .forEach(shortcuts => shortcuts.removeAttribute("shown"))
-    );
   }
 }
 
