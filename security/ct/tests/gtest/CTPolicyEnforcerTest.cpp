@@ -44,26 +44,32 @@ class CTPolicyEnforcerTest : public ::testing::Test {
   }
 
   void AddSct(VerifiedSCTList& verifiedScts, size_t logNo,
-              CTLogOperatorId operatorId, SCTOrigin origin, uint64_t timestamp,
-              CTLogState logState = CTLogState::Admissible) {
-    SignedCertificateTimestamp sct;
-    sct.version = SignedCertificateTimestamp::Version::V1;
-    sct.timestamp = timestamp;
+              CTLogOperatorId operatorId, VerifiedSCT::Origin origin,
+              uint64_t timestamp,
+              VerifiedSCT::Status status = VerifiedSCT::Status::Valid) {
+    VerifiedSCT verifiedSct;
+    verifiedSct.status = status;
+    verifiedSct.origin = origin;
+    verifiedSct.logOperatorId = operatorId;
+    verifiedSct.logDisqualificationTime =
+        status == VerifiedSCT::Status::ValidFromDisqualifiedLog
+            ? DISQUALIFIED_AT
+            : UINT64_MAX;
+    verifiedSct.sct.version = SignedCertificateTimestamp::Version::V1;
+    verifiedSct.sct.timestamp = timestamp;
     Buffer logId;
     GetLogId(logId, logNo);
-    sct.logId = std::move(logId);
-    VerifiedSCT verifiedSct(std::move(sct), origin, operatorId, logState,
-                            LOG_TIMESTAMP);
+    verifiedSct.sct.logId = std::move(logId);
     verifiedScts.push_back(std::move(verifiedSct));
   }
 
-  void AddMultipleScts(VerifiedSCTList& verifiedScts, size_t logsCount,
-                       uint8_t operatorsCount, SCTOrigin origin,
-                       uint64_t timestamp,
-                       CTLogState logState = CTLogState::Admissible) {
+  void AddMultipleScts(
+      VerifiedSCTList& verifiedScts, size_t logsCount, uint8_t operatorsCount,
+      VerifiedSCT::Origin origin, uint64_t timestamp,
+      VerifiedSCT::Status status = VerifiedSCT::Status::Valid) {
     for (size_t logNo = 0; logNo < logsCount; logNo++) {
       CTLogOperatorId operatorId = logNo % operatorsCount;
-      AddSct(verifiedScts, logNo, operatorId, origin, timestamp, logState);
+      AddSct(verifiedScts, logNo, operatorId, origin, timestamp, status);
     }
   }
 
@@ -93,9 +99,9 @@ class CTPolicyEnforcerTest : public ::testing::Test {
   CTLogOperatorList NO_OPERATORS;
   CTLogOperatorList OPERATORS_1_AND_2;
 
-  const SCTOrigin ORIGIN_EMBEDDED = SCTOrigin::Embedded;
-  const SCTOrigin ORIGIN_TLS = SCTOrigin::TLSExtension;
-  const SCTOrigin ORIGIN_OCSP = SCTOrigin::OCSPResponse;
+  const VerifiedSCT::Origin ORIGIN_EMBEDDED = VerifiedSCT::Origin::Embedded;
+  const VerifiedSCT::Origin ORIGIN_TLS = VerifiedSCT::Origin::TLSExtension;
+  const VerifiedSCT::Origin ORIGIN_OCSP = VerifiedSCT::Origin::OCSPResponse;
 
   // 4 years of cert lifetime requires 5 SCTs for the embedded case.
   const size_t DEFAULT_MONTHS = 4 * 12L;
@@ -104,10 +110,10 @@ class CTPolicyEnforcerTest : public ::testing::Test {
   const uint64_t TIMESTAMP_1 = 1439596800000L;
 
   // Date.parse("2016-04-15T00:00:00Z")
-  const uint64_t LOG_TIMESTAMP = 1460678400000L;
+  const uint64_t DISQUALIFIED_AT = 1460678400000L;
 
   // Date.parse("2016-04-01T00:00:00Z")
-  const uint64_t BEFORE_RETIREMENT = 1459468800000L;
+  const uint64_t BEFORE_DISQUALIFIED = 1459468800000L;
 
   // Date.parse("2016-04-16T00:00:00Z")
   const uint64_t AFTER_DISQUALIFIED = 1460764800000L;
@@ -200,23 +206,23 @@ TEST_F(CTPolicyEnforcerTest, DoesNotConformToCTPolicyNotEnoughFreshSCTs) {
   // SCT from before disqualification.
   scts.clear();
   AddSct(scts, LOG_1, OPERATOR_1, ORIGIN_TLS, TIMESTAMP_1);
-  AddSct(scts, LOG_2, OPERATOR_2, ORIGIN_TLS, BEFORE_RETIREMENT,
-         CTLogState::Retired);
+  AddSct(scts, LOG_2, OPERATOR_2, ORIGIN_TLS, BEFORE_DISQUALIFIED,
+         VerifiedSCT::Status::ValidFromDisqualifiedLog);
   CheckCompliance(scts, DEFAULT_MONTHS, NO_OPERATORS,
                   CTPolicyCompliance::NotEnoughScts);
   // SCT from after disqualification.
   scts.clear();
   AddSct(scts, LOG_1, OPERATOR_1, ORIGIN_TLS, TIMESTAMP_1);
   AddSct(scts, LOG_2, OPERATOR_2, ORIGIN_TLS, AFTER_DISQUALIFIED,
-         CTLogState::Retired);
+         VerifiedSCT::Status::ValidFromDisqualifiedLog);
   CheckCompliance(scts, DEFAULT_MONTHS, NO_OPERATORS,
                   CTPolicyCompliance::NotEnoughScts);
 
   // Embedded SCT from before disqualification.
   scts.clear();
   AddSct(scts, LOG_1, OPERATOR_1, ORIGIN_TLS, TIMESTAMP_1);
-  AddSct(scts, LOG_2, OPERATOR_2, ORIGIN_EMBEDDED, BEFORE_RETIREMENT,
-         CTLogState::Retired);
+  AddSct(scts, LOG_2, OPERATOR_2, ORIGIN_EMBEDDED, BEFORE_DISQUALIFIED,
+         VerifiedSCT::Status::ValidFromDisqualifiedLog);
   CheckCompliance(scts, DEFAULT_MONTHS, NO_OPERATORS,
                   CTPolicyCompliance::NotEnoughScts);
 
@@ -224,7 +230,7 @@ TEST_F(CTPolicyEnforcerTest, DoesNotConformToCTPolicyNotEnoughFreshSCTs) {
   scts.clear();
   AddSct(scts, LOG_1, OPERATOR_1, ORIGIN_TLS, TIMESTAMP_1);
   AddSct(scts, LOG_2, OPERATOR_2, ORIGIN_EMBEDDED, AFTER_DISQUALIFIED,
-         CTLogState::Retired);
+         VerifiedSCT::Status::ValidFromDisqualifiedLog);
   CheckCompliance(scts, DEFAULT_MONTHS, NO_OPERATORS,
                   CTPolicyCompliance::NotEnoughScts);
 }
@@ -238,8 +244,8 @@ TEST_F(CTPolicyEnforcerTest,
   AddSct(scts, LOG_2, OPERATOR_1, ORIGIN_EMBEDDED, TIMESTAMP_1);
   AddSct(scts, LOG_3, OPERATOR_1, ORIGIN_EMBEDDED, TIMESTAMP_1);
   AddSct(scts, LOG_4, OPERATOR_1, ORIGIN_EMBEDDED, TIMESTAMP_1);
-  AddSct(scts, LOG_5, OPERATOR_2, ORIGIN_EMBEDDED, BEFORE_RETIREMENT,
-         CTLogState::Retired);
+  AddSct(scts, LOG_5, OPERATOR_2, ORIGIN_EMBEDDED, BEFORE_DISQUALIFIED,
+         VerifiedSCT::Status::ValidFromDisqualifiedLog);
 
   CheckCompliance(scts, DEFAULT_MONTHS, NO_OPERATORS,
                   CTPolicyCompliance::Compliant);
@@ -255,7 +261,7 @@ TEST_F(CTPolicyEnforcerTest,
   AddSct(scts, LOG_3, OPERATOR_1, ORIGIN_EMBEDDED, TIMESTAMP_1);
   AddSct(scts, LOG_4, OPERATOR_1, ORIGIN_EMBEDDED, TIMESTAMP_1);
   AddSct(scts, LOG_5, OPERATOR_2, ORIGIN_EMBEDDED, AFTER_DISQUALIFIED,
-         CTLogState::Retired);
+         VerifiedSCT::Status::ValidFromDisqualifiedLog);
 
   CheckCompliance(scts, DEFAULT_MONTHS, NO_OPERATORS,
                   CTPolicyCompliance::NotEnoughScts);
@@ -267,7 +273,7 @@ TEST_F(CTPolicyEnforcerTest,
 
   // 5 embedded SCTs required for DEFAULT_MONTHS.
   AddSct(scts, LOG_1, OPERATOR_1, ORIGIN_EMBEDDED, AFTER_DISQUALIFIED,
-         CTLogState::Retired);
+         VerifiedSCT::Status::ValidFromDisqualifiedLog);
   AddSct(scts, LOG_2, OPERATOR_1, ORIGIN_EMBEDDED, AFTER_DISQUALIFIED);
   AddSct(scts, LOG_3, OPERATOR_1, ORIGIN_EMBEDDED, AFTER_DISQUALIFIED);
   AddSct(scts, LOG_4, OPERATOR_1, ORIGIN_EMBEDDED, AFTER_DISQUALIFIED);
