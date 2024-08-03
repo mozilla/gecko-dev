@@ -985,11 +985,7 @@ def unpack_file(filename):
         with tarfile.open(filename) as tar:
             safe_extract(tar)
     elif os.path.isfile(filename) and filename.endswith(".tar.zst"):
-        try:
-            import zstandard
-        except:
-            log.error("Didn't install zstandard. Can't extract '%s'" % filename)
-            return False
+        import zstandard
 
         base_file = filename.replace(".tar.zst", "")
         clean_path(base_file)
