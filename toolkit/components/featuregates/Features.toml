@@ -23,18 +23,7 @@ restart-required = false
 preference = "browser.ml.chat.enabled"
 type = "boolean"
 bug-numbers = [1894999]
-is-public-jexl = "nightly_build"
-default-value-jexl = "false"
-
-[url-bar-ime-search]
-group = "experimental-features-group-browsing"
-title = "experimental-features-ime-search"
-description = "experimental-features-ime-search-description"
-restart-required = false
-preference = "browser.urlbar.keepPanelOpenDuringImeComposition"
-type = "boolean"
-bug-numbers = [1673971]
-is-public-jexl = "true"
+is-public-jexl = "!'browser.ml.chat.hideFromLabs'|preferenceValue"
 default-value-jexl = "false"
 
 [auto-pip]
@@ -45,6 +34,17 @@ restart-required = false
 preference = "media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled"
 type = "boolean"
 bug-numbers = [1647800]
+is-public-jexl = "true"
+default-value-jexl = "false"
+
+[url-bar-ime-search]
+group = "experimental-features-group-browsing"
+title = "experimental-features-ime-search"
+description = "experimental-features-ime-search-description"
+restart-required = false
+preference = "browser.urlbar.keepPanelOpenDuringImeComposition"
+type = "boolean"
+bug-numbers = [1673971]
 is-public-jexl = "true"
 default-value-jexl = "false"
 
