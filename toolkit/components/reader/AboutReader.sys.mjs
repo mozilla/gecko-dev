@@ -1686,6 +1686,11 @@ AboutReader.prototype = {
 
   _handleColorsTabClick(option) {
     let doc = this._doc;
+    let deck = doc.querySelector("named-deck");
+    if (option == deck.getAttribute("selected-view")) {
+      return;
+    }
+
     if (option == "customtheme") {
       this._setColorSchemePref("custom");
       lazy.AsyncPrefs.set("reader.color_scheme", "custom");
@@ -1700,8 +1705,7 @@ AboutReader.prototype = {
           lastSelectedTheme = label.className.split("-")[0];
         }
       });
-    }
-    if (option == "fxtheme") {
+    } else if (option == "fxtheme") {
       this._setColorSchemePref(lastSelectedTheme);
       lazy.AsyncPrefs.set("reader.color_scheme", lastSelectedTheme);
       // set the last selected button to checked.
