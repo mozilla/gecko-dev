@@ -1,6 +1,7 @@
 /**
  * NOTE: Do not modify this file by hand.
  * Content was generated from source .webidl files.
+ * If you're updating some of the sources, see README for instructions.
  */
 
 /// <reference no-default-lib="true" />
@@ -323,6 +324,10 @@ interface CanvasRenderingContext2DSettings {
     willReadFrequently?: boolean;
 }
 
+interface CaretPositionFromPointOptions {
+    shadowRoots?: ShadowRoot[];
+}
+
 interface CaretStateChangedEventInit extends EventInit {
     boundingClientRect?: DOMRectReadOnly | null;
     caretVisible?: boolean;
@@ -409,6 +414,7 @@ interface CollectedData {
 
 interface CompileScriptOptionsDictionary {
     charset?: string;
+    filename?: string;
     hasReturnValue?: boolean;
     lazilyParse?: boolean;
 }
@@ -757,6 +763,7 @@ interface FailedCertSecurityInfo {
     certChainStrings?: string[];
     certValidityRangeNotAfter?: DOMTimeStamp;
     certValidityRangeNotBefore?: DOMTimeStamp;
+    channelStatus?: number;
     errorCodeString?: string;
     errorMessage?: string;
     hasHPKP?: boolean;
@@ -1337,7 +1344,7 @@ interface IdentityProviderConfig {
     configURL?: string;
     data?: string;
     effectiveQueryURL?: string;
-    loginTarget?: string;
+    loginTarget?: IdentityLoginTargetType;
     loginURL?: string;
     nonce?: string;
     origin?: string;
@@ -1357,6 +1364,26 @@ interface ImageBitmapOptions {
 
 interface ImageCaptureErrorEventInit extends EventInit {
     imageCaptureError?: ImageCaptureError | null;
+}
+
+interface ImageDecodeOptions {
+    completeFramesOnly?: boolean;
+    frameIndex?: number;
+}
+
+interface ImageDecodeResult {
+    complete: boolean;
+    image: VideoFrame;
+}
+
+interface ImageDecoderInit {
+    colorSpaceConversion?: ColorSpaceConversion;
+    data: ImageBufferSource;
+    desiredHeight?: number;
+    desiredWidth?: number;
+    preferAnimation?: boolean;
+    transfer?: ArrayBuffer[];
+    type: string;
 }
 
 interface ImageEncodeOptions {
@@ -1463,6 +1490,11 @@ interface InvokeEventInit extends EventInit {
     invoker?: Element | null;
 }
 
+interface KeySystemTrackConfiguration {
+    encryptionScheme?: string | null;
+    robustness?: string;
+}
+
 interface KeyboardEventInit extends EventModifierInit {
     charCode?: number;
     code?: string;
@@ -1542,6 +1574,7 @@ interface LoadURIOptions {
     postData?: InputStream | null;
     referrerInfo?: ReferrerInfo | null;
     remoteTypeOverride?: string | null;
+    textDirectiveUserActivation?: boolean;
     triggeringPrincipal?: Principal | null;
     triggeringRemoteType?: string | null;
     triggeringSandboxFlags?: number;
@@ -1600,6 +1633,26 @@ interface MediaCacheStreamDebugInfo {
     streamLength?: number;
 }
 
+interface MediaCapabilitiesDecodingInfo extends MediaCapabilitiesInfo {
+    keySystemAccess: MediaKeySystemAccess | null;
+}
+
+interface MediaCapabilitiesInfo {
+    powerEfficient: boolean;
+    smooth: boolean;
+    supported: boolean;
+}
+
+interface MediaCapabilitiesKeySystemConfiguration {
+    audio?: KeySystemTrackConfiguration;
+    distinctiveIdentifier?: MediaKeysRequirement;
+    initDataType?: string;
+    keySystem: string;
+    persistentState?: MediaKeysRequirement;
+    sessionTypes?: string[];
+    video?: KeySystemTrackConfiguration;
+}
+
 interface MediaConfiguration {
     audio?: AudioConfiguration;
     video?: VideoConfiguration;
@@ -1642,6 +1695,7 @@ interface MediaDecoderStateMachineDecodingStateDebugInfo {
 }
 
 interface MediaDecodingConfiguration extends MediaConfiguration {
+    keySystemConfiguration?: MediaCapabilitiesKeySystemConfiguration;
     type: MediaDecodingType;
 }
 
@@ -1914,10 +1968,6 @@ interface MoveOptions {
     noOverwrite?: boolean;
 }
 
-interface MozApplicationEventInit extends EventInit {
-    application?: DOMApplication | null;
-}
-
 interface MozDocumentMatcherInit {
     allFrames?: boolean;
     checkPermissions?: boolean;
@@ -1993,12 +2043,59 @@ interface MutationObservingInfo extends MutationObserverInit {
     observedNode?: Node | null;
 }
 
+interface NavigateEventInit extends EventInit {
+    canIntercept?: boolean;
+    destination: NavigationDestination;
+    downloadRequest?: string | null;
+    formData?: FormData | null;
+    hasUAVisualTransition?: boolean;
+    hashChange?: boolean;
+    info?: any;
+    navigationType?: NavigationType;
+    signal: AbortSignal;
+    userInitiated?: boolean;
+}
+
+interface NavigationCurrentEntryChangeEventInit extends EventInit {
+    from: NavigationHistoryEntry;
+    navigationType?: NavigationType | null;
+}
+
+interface NavigationInterceptOptions {
+    focusReset?: NavigationFocusReset;
+    handler?: NavigationInterceptHandler;
+    scroll?: NavigationScrollBehavior;
+}
+
+interface NavigationNavigateOptions extends NavigationOptions {
+    history?: NavigationHistoryBehavior;
+    state?: any;
+}
+
+interface NavigationOptions {
+    info?: any;
+}
+
 interface NavigationPreloadState {
     enabled?: boolean;
     headerValue?: string;
 }
 
+interface NavigationReloadOptions extends NavigationOptions {
+    state?: any;
+}
+
+interface NavigationResult {
+    committed?: Promise<NavigationHistoryEntry>;
+    finished?: Promise<NavigationHistoryEntry>;
+}
+
+interface NavigationUpdateCurrentEntryOptions {
+    state: any;
+}
+
 interface NetErrorInfo {
+    channelStatus?: number;
     errorCodeString?: string;
 }
 
@@ -3567,7 +3664,6 @@ interface UIEventInit extends EventInit {
 interface UniFFIScaffoldingCallResult {
     code: UniFFIScaffoldingCallCode;
     data?: UniFFIScaffoldingValue;
-    internalErrorMessage?: string;
 }
 
 interface UserProximityEventInit extends EventInit {
@@ -3693,7 +3789,18 @@ interface VideoFrameBufferInit {
     visibleRect?: DOMRectInit;
 }
 
+interface VideoFrameCallbackMetadata {
+    expectedDisplayTime: DOMHighResTimeStamp;
+    height: number;
+    mediaTime: number;
+    presentationTime: DOMHighResTimeStamp;
+    presentedFrames: number;
+    width: number;
+}
+
 interface VideoFrameCopyToOptions {
+    colorSpace?: PredefinedColorSpace;
+    format?: VideoPixelFormat;
     layout?: PlaneLayout[];
     rect?: DOMRectInit;
 }
@@ -3761,7 +3868,6 @@ interface WebExtensionInit {
 interface WebGLContextAttributes {
     alpha?: GLboolean;
     antialias?: GLboolean;
-    colorSpace?: PredefinedColorSpace;
     depth?: GLboolean;
     failIfMajorPerformanceCaveat?: GLboolean;
     powerPreference?: WebGLPowerPreference;
@@ -5009,6 +5115,27 @@ declare var CDATASection: {
     isInstance: IsInstance<CDATASection>;
 };
 
+interface CSPViolationReportBody extends ReportBody {
+    readonly blockedURL: string | null;
+    readonly columnNumber: number | null;
+    readonly disposition: SecurityPolicyViolationEventDisposition;
+    readonly documentURL: string;
+    readonly effectiveDirective: string;
+    readonly lineNumber: number | null;
+    readonly originalPolicy: string;
+    readonly referrer: string | null;
+    readonly sample: string | null;
+    readonly sourceFile: string | null;
+    readonly statusCode: number;
+    toJSON(): any;
+}
+
+declare var CSPViolationReportBody: {
+    prototype: CSPViolationReportBody;
+    new(): CSPViolationReportBody;
+    isInstance: IsInstance<CSPViolationReportBody>;
+};
+
 interface CSSAnimation extends Animation {
     readonly animationName: string;
     addEventListener<K extends keyof AnimationEventMap>(type: K, listener: (this: CSSAnimation, ev: AnimationEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
@@ -5223,9 +5350,12 @@ declare var CSSNamespaceRule: {
     isInstance: IsInstance<CSSNamespaceRule>;
 };
 
+interface CSSPageDescriptors {
+}
+
 interface CSSPageRule extends CSSGroupingRule {
     selectorText: string;
-    readonly style: CSSStyleDeclaration;
+    readonly style: CSSPageDescriptors;
 }
 
 declare var CSSPageRule: {
@@ -5449,6 +5579,7 @@ declare var CallbackDebuggerNotification: {
 
 interface CanonicalBrowsingContext extends BrowsingContext {
     readonly activeSessionHistoryEntry: nsISHEntry | null;
+    crossGroupOpener: CanonicalBrowsingContext | null;
     readonly currentRemoteType: string | null;
     readonly currentURI: URI | null;
     readonly currentWindowGlobal: WindowGlobalParent | null;
@@ -5477,7 +5608,6 @@ interface CanonicalBrowsingContext extends BrowsingContext {
     print(aPrintSettings: nsIPrintSettings): Promise<void>;
     reload(aReloadFlags: number): void;
     resetScalingZoom(): void;
-    setCrossGroupOpener(crossGroupOpener: CanonicalBrowsingContext): void;
     startApzAutoscroll(aAnchorX: number, aAnchorY: number, aScrollId: number, aPresShellId: number): boolean;
     stop(aStopFlags: number): void;
     stopApzAutoscroll(aScrollId: number, aPresShellId: number): void;
@@ -5738,7 +5868,7 @@ interface ChannelWrapper extends EventTarget {
     readonly documentURI: URI | null;
     readonly documentURL: string | null;
     readonly errorString: string | null;
-    readonly finalURI: URI;
+    readonly finalURI: URI | null;
     readonly finalURL: string;
     readonly frameAncestors: MozFrameAncestorInfo[] | null;
     readonly frameId: number;
@@ -6846,7 +6976,7 @@ interface Document extends Node, DocumentOrShadowRoot, FontFaceSource, GeometryU
     blockParsing(promise: any, options?: BlockParsingOptions): Promise<any>;
     blockUnblockOnload(block: boolean): void;
     captureEvents(): void;
-    caretPositionFromPoint(x: number, y: number): CaretPosition | null;
+    caretPositionFromPoint(x: number, y: number, options?: CaretPositionFromPointOptions): CaretPosition | null;
     clear(): void;
     clearUserGestureActivation(): void;
     close(): void;
@@ -6908,10 +7038,11 @@ interface Document extends Node, DocumentOrShadowRoot, FontFaceSource, GeometryU
     createEvent(eventInterface: "MouseEvent"): MouseEvent;
     createEvent(eventInterface: "MouseEvents"): MouseEvent;
     createEvent(eventInterface: "MouseScrollEvent"): MouseScrollEvent;
-    createEvent(eventInterface: "MozApplicationEvent"): MozApplicationEvent;
     createEvent(eventInterface: "MozSharedMapChangeEvent"): MozSharedMapChangeEvent;
     createEvent(eventInterface: "MutationEvent"): MutationEvent;
     createEvent(eventInterface: "MutationEvents"): MutationEvent;
+    createEvent(eventInterface: "NavigateEvent"): NavigateEvent;
+    createEvent(eventInterface: "NavigationCurrentEntryChangeEvent"): NavigationCurrentEntryChangeEvent;
     createEvent(eventInterface: "NotifyPaintEvent"): NotifyPaintEvent;
     createEvent(eventInterface: "OfflineAudioCompletionEvent"): OfflineAudioCompletionEvent;
     createEvent(eventInterface: "PageTransitionEvent"): PageTransitionEvent;
@@ -7144,9 +7275,13 @@ interface EXT_color_buffer_half_float {
     readonly UNSIGNED_NORMALIZED_EXT: 0x8C17;
 }
 
+interface EXT_depth_clamp {
+    readonly DEPTH_CLAMP_EXT: 0x864F;
+}
+
 interface EXT_disjoint_timer_query {
     beginQueryEXT(target: GLenum, query: WebGLQuery): void;
-    createQueryEXT(): WebGLQuery | null;
+    createQueryEXT(): WebGLQuery;
     deleteQueryEXT(query: WebGLQuery | null): void;
     endQueryEXT(target: GLenum): void;
     getQueryEXT(target: GLenum, pname: GLenum): any;
@@ -8126,36 +8261,6 @@ declare var GPUBuffer: {
 };
 
 /** Available only in secure contexts. */
-interface GPUBufferUsage {
-    readonly MAP_READ: 0x0001;
-    readonly MAP_WRITE: 0x0002;
-    readonly COPY_SRC: 0x0004;
-    readonly COPY_DST: 0x0008;
-    readonly INDEX: 0x0010;
-    readonly VERTEX: 0x0020;
-    readonly UNIFORM: 0x0040;
-    readonly STORAGE: 0x0080;
-    readonly INDIRECT: 0x0100;
-    readonly QUERY_RESOLVE: 0x0200;
-}
-
-declare var GPUBufferUsage: {
-    prototype: GPUBufferUsage;
-    new(): GPUBufferUsage;
-    readonly MAP_READ: 0x0001;
-    readonly MAP_WRITE: 0x0002;
-    readonly COPY_SRC: 0x0004;
-    readonly COPY_DST: 0x0008;
-    readonly INDEX: 0x0010;
-    readonly VERTEX: 0x0020;
-    readonly UNIFORM: 0x0040;
-    readonly STORAGE: 0x0080;
-    readonly INDIRECT: 0x0100;
-    readonly QUERY_RESOLVE: 0x0200;
-    isInstance: IsInstance<GPUBufferUsage>;
-};
-
-/** Available only in secure contexts. */
 interface GPUCanvasContext {
     readonly canvas: HTMLCanvasElement | OffscreenCanvas;
     configure(configuration: GPUCanvasConfiguration): void;
@@ -8167,26 +8272,6 @@ declare var GPUCanvasContext: {
     prototype: GPUCanvasContext;
     new(): GPUCanvasContext;
     isInstance: IsInstance<GPUCanvasContext>;
-};
-
-/** Available only in secure contexts. */
-interface GPUColorWrite {
-    readonly RED: 0x1;
-    readonly GREEN: 0x2;
-    readonly BLUE: 0x4;
-    readonly ALPHA: 0x8;
-    readonly ALL: 0xF;
-}
-
-declare var GPUColorWrite: {
-    prototype: GPUColorWrite;
-    new(): GPUColorWrite;
-    readonly RED: 0x1;
-    readonly GREEN: 0x2;
-    readonly BLUE: 0x4;
-    readonly ALPHA: 0x8;
-    readonly ALL: 0xF;
-    isInstance: IsInstance<GPUColorWrite>;
 };
 
 /** Available only in secure contexts. */
@@ -8346,20 +8431,6 @@ declare var GPUInternalError: {
     isInstance: IsInstance<GPUInternalError>;
 };
 
-/** Available only in secure contexts. */
-interface GPUMapMode {
-    readonly READ: 0x0001;
-    readonly WRITE: 0x0002;
-}
-
-declare var GPUMapMode: {
-    prototype: GPUMapMode;
-    new(): GPUMapMode;
-    readonly READ: 0x0001;
-    readonly WRITE: 0x0002;
-    isInstance: IsInstance<GPUMapMode>;
-};
-
 interface GPUObjectBase {
     label: string | null;
 }
@@ -8483,7 +8554,6 @@ declare var GPUSampler: {
 
 /** Available only in secure contexts. */
 interface GPUShaderModule extends GPUObjectBase {
-    compilationInfo(): Promise<GPUCompilationInfo>;
     getCompilationInfo(): Promise<GPUCompilationInfo>;
 }
 
@@ -8491,22 +8561,6 @@ declare var GPUShaderModule: {
     prototype: GPUShaderModule;
     new(): GPUShaderModule;
     isInstance: IsInstance<GPUShaderModule>;
-};
-
-/** Available only in secure contexts. */
-interface GPUShaderStage {
-    readonly VERTEX: 0x1;
-    readonly FRAGMENT: 0x2;
-    readonly COMPUTE: 0x4;
-}
-
-declare var GPUShaderStage: {
-    prototype: GPUShaderStage;
-    new(): GPUShaderStage;
-    readonly VERTEX: 0x1;
-    readonly FRAGMENT: 0x2;
-    readonly COMPUTE: 0x4;
-    isInstance: IsInstance<GPUShaderStage>;
 };
 
 /** Available only in secure contexts. */
@@ -8580,26 +8634,6 @@ declare var GPUTexture: {
     prototype: GPUTexture;
     new(): GPUTexture;
     isInstance: IsInstance<GPUTexture>;
-};
-
-/** Available only in secure contexts. */
-interface GPUTextureUsage {
-    readonly COPY_SRC: 0x01;
-    readonly COPY_DST: 0x02;
-    readonly TEXTURE_BINDING: 0x04;
-    readonly STORAGE_BINDING: 0x08;
-    readonly RENDER_ATTACHMENT: 0x10;
-}
-
-declare var GPUTextureUsage: {
-    prototype: GPUTextureUsage;
-    new(): GPUTextureUsage;
-    readonly COPY_SRC: 0x01;
-    readonly COPY_DST: 0x02;
-    readonly TEXTURE_BINDING: 0x04;
-    readonly STORAGE_BINDING: 0x08;
-    readonly RENDER_ATTACHMENT: 0x10;
-    isInstance: IsInstance<GPUTextureUsage>;
 };
 
 /** Available only in secure contexts. */
@@ -8807,6 +8841,7 @@ interface GeolocationCoordinates {
     readonly latitude: number;
     readonly longitude: number;
     readonly speed: number | null;
+    toJSON(): any;
 }
 
 declare var GeolocationCoordinates: {
@@ -8819,6 +8854,7 @@ declare var GeolocationCoordinates: {
 interface GeolocationPosition {
     readonly coords: GeolocationCoordinates;
     readonly timestamp: EpochTimeStamp;
+    toJSON(): any;
 }
 
 declare var GeolocationPosition: {
@@ -9139,6 +9175,7 @@ interface GlobalEventHandlersEventMap {
     "change": Event;
     "click": Event;
     "close": Event;
+    "contentvisibilityautostatechange": Event;
     "contextlost": Event;
     "contextmenu": Event;
     "contextrestored": Event;
@@ -9238,6 +9275,7 @@ interface GlobalEventHandlers {
     onchange: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     onclick: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     onclose: ((this: GlobalEventHandlers, ev: Event) => any) | null;
+    oncontentvisibilityautostatechange: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     oncontextlost: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     oncontextmenu: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     oncontextrestored: ((this: GlobalEventHandlers, ev: Event) => any) | null;
@@ -9664,6 +9702,7 @@ declare var HTMLDataListElement: {
 };
 
 interface HTMLDetailsElement extends HTMLElement {
+    name: string;
     open: boolean;
     addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLDetailsElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
@@ -11153,8 +11192,10 @@ interface HTMLVideoElement extends HTMLMediaElement {
     readonly videoHeight: number;
     readonly videoWidth: number;
     width: number;
+    cancelVideoFrameCallback(handle: number): void;
     cloneElementVisually(target: HTMLVideoElement): Promise<void>;
     getVideoPlaybackQuality(): VideoPlaybackQuality;
+    requestVideoFrameCallback(callback: VideoFrameRequestCallback): number;
     stopCloningElementVisually(): void;
     addEventListener<K extends keyof HTMLMediaElementEventMap>(type: K, listener: (this: HTMLVideoElement, ev: HTMLMediaElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
@@ -11591,6 +11632,24 @@ declare var ImageData: {
     isInstance: IsInstance<ImageData>;
 };
 
+/** Available only in secure contexts. */
+interface ImageDecoder {
+    readonly complete: boolean;
+    readonly completed: Promise<undefined>;
+    readonly tracks: ImageTrackList;
+    readonly type: string;
+    close(): void;
+    decode(options?: ImageDecodeOptions): Promise<ImageDecodeResult>;
+    reset(): void;
+}
+
+declare var ImageDecoder: {
+    prototype: ImageDecoder;
+    new(init: ImageDecoderInit): ImageDecoder;
+    isInstance: IsInstance<ImageDecoder>;
+    isTypeSupported(type: string): Promise<boolean>;
+};
+
 interface ImageDocument extends HTMLDocument {
     readonly imageIsOverflowing: boolean;
     readonly imageIsResized: boolean;
@@ -11606,6 +11665,35 @@ declare var ImageDocument: {
     prototype: ImageDocument;
     new(): ImageDocument;
     isInstance: IsInstance<ImageDocument>;
+};
+
+/** Available only in secure contexts. */
+interface ImageTrack {
+    readonly animated: boolean;
+    readonly frameCount: number;
+    readonly repetitionCount: number;
+    selected: boolean;
+}
+
+declare var ImageTrack: {
+    prototype: ImageTrack;
+    new(): ImageTrack;
+    isInstance: IsInstance<ImageTrack>;
+};
+
+/** Available only in secure contexts. */
+interface ImageTrackList {
+    readonly length: number;
+    readonly ready: Promise<undefined>;
+    readonly selectedIndex: number;
+    readonly selectedTrack: ImageTrack | null;
+    [index: number]: ImageTrack;
+}
+
+declare var ImageTrackList: {
+    prototype: ImageTrackList;
+    new(): ImageTrackList;
+    isInstance: IsInstance<ImageTrackList>;
 };
 
 interface InputEvent extends UIEvent {
@@ -12760,7 +12848,7 @@ declare var MathMLElement: {
 };
 
 interface MediaCapabilities {
-    decodingInfo(configuration: MediaDecodingConfiguration): Promise<MediaCapabilitiesInfo>;
+    decodingInfo(configuration: MediaDecodingConfiguration): Promise<MediaCapabilitiesDecodingInfo>;
     encodingInfo(configuration: MediaEncodingConfiguration): Promise<MediaCapabilitiesInfo>;
 }
 
@@ -12768,18 +12856,6 @@ declare var MediaCapabilities: {
     prototype: MediaCapabilities;
     new(): MediaCapabilities;
     isInstance: IsInstance<MediaCapabilities>;
-};
-
-interface MediaCapabilitiesInfo {
-    readonly powerEfficient: boolean;
-    readonly smooth: boolean;
-    readonly supported: boolean;
-}
-
-declare var MediaCapabilitiesInfo: {
-    prototype: MediaCapabilitiesInfo;
-    new(): MediaCapabilitiesInfo;
-    isInstance: IsInstance<MediaCapabilitiesInfo>;
 };
 
 interface MediaControllerEventMap {
@@ -13480,16 +13556,6 @@ declare var MouseScrollEvent: {
     isInstance: IsInstance<MouseScrollEvent>;
 };
 
-interface MozApplicationEvent extends Event {
-    readonly application: DOMApplication | null;
-}
-
-declare var MozApplicationEvent: {
-    prototype: MozApplicationEvent;
-    new(type: string, eventInitDict?: MozApplicationEventInit): MozApplicationEvent;
-    isInstance: IsInstance<MozApplicationEvent>;
-};
-
 interface MozCanvasPrintState {
     readonly context: nsISupports;
     done(): void;
@@ -13731,6 +13797,125 @@ declare var NamedNodeMap: {
     isInstance: IsInstance<NamedNodeMap>;
 };
 
+interface NavigateEvent extends Event {
+    readonly canIntercept: boolean;
+    readonly destination: NavigationDestination;
+    readonly downloadRequest: string | null;
+    readonly formData: FormData | null;
+    readonly hasUAVisualTransition: boolean;
+    readonly hashChange: boolean;
+    readonly info: any;
+    readonly navigationType: NavigationType;
+    readonly signal: AbortSignal;
+    readonly userInitiated: boolean;
+    intercept(options?: NavigationInterceptOptions): void;
+    scroll(): void;
+}
+
+declare var NavigateEvent: {
+    prototype: NavigateEvent;
+    new(type: string, eventInitDict: NavigateEventInit): NavigateEvent;
+    isInstance: IsInstance<NavigateEvent>;
+};
+
+interface NavigationEventMap {
+    "currententrychange": Event;
+    "navigate": Event;
+    "navigateerror": Event;
+    "navigatesuccess": Event;
+}
+
+interface Navigation extends EventTarget {
+    readonly activation: NavigationActivation | null;
+    readonly canGoBack: boolean;
+    readonly canGoForward: boolean;
+    readonly currentEntry: NavigationHistoryEntry | null;
+    oncurrententrychange: ((this: Navigation, ev: Event) => any) | null;
+    onnavigate: ((this: Navigation, ev: Event) => any) | null;
+    onnavigateerror: ((this: Navigation, ev: Event) => any) | null;
+    onnavigatesuccess: ((this: Navigation, ev: Event) => any) | null;
+    readonly transition: NavigationTransition | null;
+    back(options?: NavigationOptions): NavigationResult;
+    entries(): NavigationHistoryEntry[];
+    forward(options?: NavigationOptions): NavigationResult;
+    navigate(url: string | URL, options?: NavigationNavigateOptions): NavigationResult;
+    reload(options?: NavigationReloadOptions): NavigationResult;
+    traverseTo(key: string, options?: NavigationOptions): NavigationResult;
+    updateCurrentEntry(options: NavigationUpdateCurrentEntryOptions): void;
+    addEventListener<K extends keyof NavigationEventMap>(type: K, listener: (this: Navigation, ev: NavigationEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+    addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+    removeEventListener<K extends keyof NavigationEventMap>(type: K, listener: (this: Navigation, ev: NavigationEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+    removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+}
+
+declare var Navigation: {
+    prototype: Navigation;
+    new(): Navigation;
+    isInstance: IsInstance<Navigation>;
+};
+
+interface NavigationActivation {
+    readonly entry: NavigationHistoryEntry;
+    readonly from: NavigationHistoryEntry | null;
+    readonly navigationType: NavigationType;
+}
+
+declare var NavigationActivation: {
+    prototype: NavigationActivation;
+    new(): NavigationActivation;
+    isInstance: IsInstance<NavigationActivation>;
+};
+
+interface NavigationCurrentEntryChangeEvent extends Event {
+    readonly from: NavigationHistoryEntry;
+    readonly navigationType: NavigationType | null;
+}
+
+declare var NavigationCurrentEntryChangeEvent: {
+    prototype: NavigationCurrentEntryChangeEvent;
+    new(type: string, eventInitDict: NavigationCurrentEntryChangeEventInit): NavigationCurrentEntryChangeEvent;
+    isInstance: IsInstance<NavigationCurrentEntryChangeEvent>;
+};
+
+interface NavigationDestination {
+    readonly id: string;
+    readonly index: number;
+    readonly key: string;
+    readonly sameDocument: boolean;
+    readonly url: string;
+    getState(): any;
+}
+
+declare var NavigationDestination: {
+    prototype: NavigationDestination;
+    new(): NavigationDestination;
+    isInstance: IsInstance<NavigationDestination>;
+};
+
+interface NavigationHistoryEntryEventMap {
+    "dispose": Event;
+}
+
+interface NavigationHistoryEntry extends EventTarget {
+    readonly id: string;
+    readonly index: number;
+    readonly key: string;
+    ondispose: ((this: NavigationHistoryEntry, ev: Event) => any) | null;
+    readonly sameDocument: boolean;
+    readonly url: string | null;
+    getState(): any;
+    addEventListener<K extends keyof NavigationHistoryEntryEventMap>(type: K, listener: (this: NavigationHistoryEntry, ev: NavigationHistoryEntryEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+    addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+    removeEventListener<K extends keyof NavigationHistoryEntryEventMap>(type: K, listener: (this: NavigationHistoryEntry, ev: NavigationHistoryEntryEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+    removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+}
+
+declare var NavigationHistoryEntry: {
+    prototype: NavigationHistoryEntry;
+    new(): NavigationHistoryEntry;
+    isInstance: IsInstance<NavigationHistoryEntry>;
+};
+
 /** Available only in secure contexts. */
 interface NavigationPreloadManager {
     disable(): Promise<void>;
@@ -13743,6 +13928,18 @@ declare var NavigationPreloadManager: {
     prototype: NavigationPreloadManager;
     new(): NavigationPreloadManager;
     isInstance: IsInstance<NavigationPreloadManager>;
+};
+
+interface NavigationTransition {
+    readonly finished: Promise<undefined>;
+    readonly from: NavigationHistoryEntry;
+    readonly navigationType: NavigationType;
+}
+
+declare var NavigationTransition: {
+    prototype: NavigationTransition;
+    new(): NavigationTransition;
+    isInstance: IsInstance<NavigationTransition>;
 };
 
 interface Navigator extends GlobalPrivacyControl, NavigatorAutomationInformation, NavigatorConcurrentHardware, NavigatorContentUtils, NavigatorGPU, NavigatorGeolocation, NavigatorID, NavigatorLanguage, NavigatorLocks, NavigatorOnLine, NavigatorStorage {
@@ -14088,7 +14285,7 @@ interface OES_texture_half_float_linear {
 
 interface OES_vertex_array_object {
     bindVertexArrayOES(arrayObject: WebGLVertexArrayObject | null): void;
-    createVertexArrayOES(): WebGLVertexArrayObject | null;
+    createVertexArrayOES(): WebGLVertexArrayObject;
     deleteVertexArrayOES(arrayObject: WebGLVertexArrayObject | null): void;
     isVertexArrayOES(arrayObject: WebGLVertexArrayObject | null): GLboolean;
     readonly VERTEX_ARRAY_BINDING_OES: 0x85B5;
@@ -14431,6 +14628,7 @@ interface PeerConnectionImpl {
     readonly currentLocalDescription: string;
     readonly currentOfferer: boolean | null;
     readonly currentRemoteDescription: string;
+    readonly duplicateFingerprintQuirk: boolean;
     readonly fingerprint: string;
     readonly iceConnectionState: RTCIceConnectionState;
     readonly iceGatheringState: RTCIceGatheringState;
@@ -14623,7 +14821,7 @@ interface PerformanceNavigationTiming extends PerformanceResourceTiming {
     readonly loadEventEnd: DOMHighResTimeStamp;
     readonly loadEventStart: DOMHighResTimeStamp;
     readonly redirectCount: number;
-    readonly type: NavigationType;
+    readonly type: NavigationTimingType;
     readonly unloadEventEnd: DOMHighResTimeStamp;
     readonly unloadEventStart: DOMHighResTimeStamp;
     toJSON(): any;
@@ -14672,6 +14870,7 @@ declare var PerformancePaintTiming: {
 interface PerformanceResourceTiming extends PerformanceEntry {
     readonly connectEnd: DOMHighResTimeStamp;
     readonly connectStart: DOMHighResTimeStamp;
+    readonly contentType: string;
     readonly decodedBodySize: number;
     readonly domainLookupEnd: DOMHighResTimeStamp;
     readonly domainLookupStart: DOMHighResTimeStamp;
@@ -14685,6 +14884,7 @@ interface PerformanceResourceTiming extends PerformanceEntry {
     readonly requestStart: DOMHighResTimeStamp;
     readonly responseEnd: DOMHighResTimeStamp;
     readonly responseStart: DOMHighResTimeStamp;
+    readonly responseStatus: number;
     readonly secureConnectionStart: DOMHighResTimeStamp;
     /** Available only in secure contexts. */
     readonly serverTiming: PerformanceServerTiming[];
@@ -15326,6 +15526,7 @@ interface RTCDTMFSenderEventMap {
 }
 
 interface RTCDTMFSender extends EventTarget {
+    readonly canInsertDTMF: boolean;
     ontonechange: ((this: RTCDTMFSender, ev: Event) => any) | null;
     readonly toneBuffer: string;
     insertDTMF(tones: string, duration?: number, interToneGap?: number): void;
@@ -16162,11 +16363,6 @@ declare var SVGAnimatedNumberList: {
     new(): SVGAnimatedNumberList;
     isInstance: IsInstance<SVGAnimatedNumberList>;
 };
-
-interface SVGAnimatedPathData {
-    readonly animatedPathSegList: SVGPathSegList;
-    readonly pathSegList: SVGPathSegList;
-}
 
 interface SVGAnimatedPoints {
     readonly animatedPoints: SVGPointList;
@@ -17255,8 +17451,7 @@ declare var SVGNumberList: {
     isInstance: IsInstance<SVGNumberList>;
 };
 
-interface SVGPathElement extends SVGGeometryElement, SVGAnimatedPathData {
-    getPathSegAtLength(distance: number): number;
+interface SVGPathElement extends SVGGeometryElement {
     addEventListener<K extends keyof SVGElementEventMap>(type: K, listener: (this: SVGPathElement, ev: SVGElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
     removeEventListener<K extends keyof SVGElementEventMap>(type: K, listener: (this: SVGPathElement, ev: SVGElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
@@ -17268,159 +17463,6 @@ declare var SVGPathElement: {
     new(): SVGPathElement;
     isInstance: IsInstance<SVGPathElement>;
 };
-
-interface SVGPathSeg {
-    readonly pathSegType: number;
-    readonly pathSegTypeAsLetter: string;
-    readonly PATHSEG_UNKNOWN: 0;
-    readonly PATHSEG_CLOSEPATH: 1;
-    readonly PATHSEG_MOVETO_ABS: 2;
-    readonly PATHSEG_MOVETO_REL: 3;
-    readonly PATHSEG_LINETO_ABS: 4;
-    readonly PATHSEG_LINETO_REL: 5;
-    readonly PATHSEG_CURVETO_CUBIC_ABS: 6;
-    readonly PATHSEG_CURVETO_CUBIC_REL: 7;
-    readonly PATHSEG_CURVETO_QUADRATIC_ABS: 8;
-    readonly PATHSEG_CURVETO_QUADRATIC_REL: 9;
-    readonly PATHSEG_ARC_ABS: 10;
-    readonly PATHSEG_ARC_REL: 11;
-    readonly PATHSEG_LINETO_HORIZONTAL_ABS: 12;
-    readonly PATHSEG_LINETO_HORIZONTAL_REL: 13;
-    readonly PATHSEG_LINETO_VERTICAL_ABS: 14;
-    readonly PATHSEG_LINETO_VERTICAL_REL: 15;
-    readonly PATHSEG_CURVETO_CUBIC_SMOOTH_ABS: 16;
-    readonly PATHSEG_CURVETO_CUBIC_SMOOTH_REL: 17;
-    readonly PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS: 18;
-    readonly PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL: 19;
-}
-
-interface SVGPathSegArcAbs extends SVGPathSeg {
-    angle: number;
-    largeArcFlag: boolean;
-    r1: number;
-    r2: number;
-    sweepFlag: boolean;
-    x: number;
-    y: number;
-}
-
-interface SVGPathSegArcRel extends SVGPathSeg {
-    angle: number;
-    largeArcFlag: boolean;
-    r1: number;
-    r2: number;
-    sweepFlag: boolean;
-    x: number;
-    y: number;
-}
-
-interface SVGPathSegClosePath extends SVGPathSeg {
-}
-
-interface SVGPathSegCurvetoCubicAbs extends SVGPathSeg {
-    x: number;
-    x1: number;
-    x2: number;
-    y: number;
-    y1: number;
-    y2: number;
-}
-
-interface SVGPathSegCurvetoCubicRel extends SVGPathSeg {
-    x: number;
-    x1: number;
-    x2: number;
-    y: number;
-    y1: number;
-    y2: number;
-}
-
-interface SVGPathSegCurvetoCubicSmoothAbs extends SVGPathSeg {
-    x: number;
-    x2: number;
-    y: number;
-    y2: number;
-}
-
-interface SVGPathSegCurvetoCubicSmoothRel extends SVGPathSeg {
-    x: number;
-    x2: number;
-    y: number;
-    y2: number;
-}
-
-interface SVGPathSegCurvetoQuadraticAbs extends SVGPathSeg {
-    x: number;
-    x1: number;
-    y: number;
-    y1: number;
-}
-
-interface SVGPathSegCurvetoQuadraticRel extends SVGPathSeg {
-    x: number;
-    x1: number;
-    y: number;
-    y1: number;
-}
-
-interface SVGPathSegCurvetoQuadraticSmoothAbs extends SVGPathSeg {
-    x: number;
-    y: number;
-}
-
-interface SVGPathSegCurvetoQuadraticSmoothRel extends SVGPathSeg {
-    x: number;
-    y: number;
-}
-
-interface SVGPathSegLinetoAbs extends SVGPathSeg {
-    x: number;
-    y: number;
-}
-
-interface SVGPathSegLinetoHorizontalAbs extends SVGPathSeg {
-    x: number;
-}
-
-interface SVGPathSegLinetoHorizontalRel extends SVGPathSeg {
-    x: number;
-}
-
-interface SVGPathSegLinetoRel extends SVGPathSeg {
-    x: number;
-    y: number;
-}
-
-interface SVGPathSegLinetoVerticalAbs extends SVGPathSeg {
-    y: number;
-}
-
-interface SVGPathSegLinetoVerticalRel extends SVGPathSeg {
-    y: number;
-}
-
-interface SVGPathSegList {
-    readonly length: number;
-    readonly numberOfItems: number;
-    getItem(index: number): SVGPathSeg;
-    [index: number]: SVGPathSeg;
-}
-
-declare var SVGPathSegList: {
-    prototype: SVGPathSegList;
-    new(): SVGPathSegList;
-    isInstance: IsInstance<SVGPathSegList>;
-};
-
-interface SVGPathSegMovetoAbs extends SVGPathSeg {
-    x: number;
-    y: number;
-}
-
-interface SVGPathSegMovetoRel extends SVGPathSeg {
-    x: number;
-    y: number;
-}
 
 interface SVGPatternElement extends SVGElement, SVGFitToViewBox, SVGURIReference {
     readonly height: SVGAnimatedLength;
@@ -18154,7 +18196,6 @@ interface Selection {
     removeRange(range: Range): void;
     removeSelectionListener(listenerToRemove: nsISelectionListener): void;
     resetColors(): void;
-    scrollIntoView(aRegion: number, aIsSynchronous: boolean, aVPercent: number, aHPercent: number): void;
     selectAllChildren(node: Node): void;
     setBaseAndExtent(anchorNode: Node, anchorOffset: number, focusNode: Node, focusOffset: number): void;
     setColors(aForegroundColor: string, aBackgroundColor: string, aAltForegroundColor: string, aAltBackgroundColor: string): void;
@@ -19292,6 +19333,17 @@ declare var TestInterfaceSetlikeNode: {
     prototype: TestInterfaceSetlikeNode;
     new(): TestInterfaceSetlikeNode;
     isInstance: IsInstance<TestInterfaceSetlikeNode>;
+};
+
+interface TestReflectedHTMLAttribute {
+    reflectedHTMLAttribute: Element[] | null;
+    setReflectedHTMLAttributeValue(seq: Element[]): void;
+}
+
+declare var TestReflectedHTMLAttribute: {
+    prototype: TestReflectedHTMLAttribute;
+    new(): TestReflectedHTMLAttribute;
+    isInstance: IsInstance<TestReflectedHTMLAttribute>;
 };
 
 interface TestTrialInterface {
@@ -20668,7 +20720,7 @@ interface WebExtensionPolicy {
     readonly readyPromise: any;
     readonly temporarilyInstalled: boolean;
     readonly type: string;
-    canAccessURI(uri: URI, explicit?: boolean): boolean;
+    canAccessURI(uri: URI, explicit?: boolean, checkRestricted?: boolean, allowFilePermission?: boolean): boolean;
     canAccessWindow(window: WindowProxy): boolean;
     getURL(path?: string): string;
     hasPermission(permission: string): boolean;
@@ -21297,10 +21349,10 @@ interface WebGL2RenderingContextBase {
     compressedTexSubImage3D(target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, srcData: ArrayBufferView, srcOffset?: GLuint, srcLengthOverride?: GLuint): void;
     copyBufferSubData(readTarget: GLenum, writeTarget: GLenum, readOffset: GLintptr, writeOffset: GLintptr, size: GLsizeiptr): void;
     copyTexSubImage3D(target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, x: GLint, y: GLint, width: GLsizei, height: GLsizei): void;
-    createQuery(): WebGLQuery | null;
-    createSampler(): WebGLSampler | null;
-    createTransformFeedback(): WebGLTransformFeedback | null;
-    createVertexArray(): WebGLVertexArrayObject | null;
+    createQuery(): WebGLQuery;
+    createSampler(): WebGLSampler;
+    createTransformFeedback(): WebGLTransformFeedback;
+    createVertexArray(): WebGLVertexArrayObject;
     deleteQuery(query: WebGLQuery | null): void;
     deleteSampler(sampler: WebGLSampler | null): void;
     deleteSync(sync: WebGLSync | null): void;
@@ -22131,12 +22183,12 @@ interface WebGLRenderingContextBase {
     compileShader(shader: WebGLShader): void;
     copyTexImage2D(target: GLenum, level: GLint, internalformat: GLenum, x: GLint, y: GLint, width: GLsizei, height: GLsizei, border: GLint): void;
     copyTexSubImage2D(target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, x: GLint, y: GLint, width: GLsizei, height: GLsizei): void;
-    createBuffer(): WebGLBuffer | null;
-    createFramebuffer(): WebGLFramebuffer | null;
-    createProgram(): WebGLProgram | null;
-    createRenderbuffer(): WebGLRenderbuffer | null;
+    createBuffer(): WebGLBuffer;
+    createFramebuffer(): WebGLFramebuffer;
+    createProgram(): WebGLProgram;
+    createRenderbuffer(): WebGLRenderbuffer;
     createShader(type: GLenum): WebGLShader | null;
-    createTexture(): WebGLTexture | null;
+    createTexture(): WebGLTexture;
     cullFace(mode: GLenum): void;
     deleteBuffer(buffer: WebGLBuffer | null): void;
     deleteFramebuffer(framebuffer: WebGLFramebuffer | null): void;
@@ -22803,6 +22855,7 @@ interface Window extends EventTarget, AnimationFrameProvider, GlobalCrypto, Glob
     readonly mozInnerScreenX: number;
     readonly mozInnerScreenY: number;
     name: string;
+    readonly navigation: Navigation;
     readonly navigator: Navigator;
     ondevicelight: ((this: Window, ev: Event) => any) | null;
     ondevicemotion: ((this: Window, ev: Event) => any) | null;
@@ -24032,6 +24085,21 @@ declare namespace TestUtils {
     function gc(): Promise<void>;
 }
 
+declare namespace GPUBufferUsage {
+}
+
+declare namespace GPUMapMode {
+}
+
+declare namespace GPUTextureUsage {
+}
+
+declare namespace GPUShaderStage {
+}
+
+declare namespace GPUColorWrite {
+}
+
 declare namespace WebrtcGlobalInformation {
     var aecDebug: boolean;
     var aecDebugLogDir: string;
@@ -24053,12 +24121,12 @@ declare namespace ChromeUtils {
     function base64URLDecode(string: string, options: Base64URLDecodeOptions): ArrayBuffer;
     function base64URLEncode(source: BufferSource, options: Base64URLEncodeOptions): string;
     function clearRecentJSDevError(): void;
+    function clearScriptCache(): void;
+    function clearScriptCacheByBaseDomain(baseDomain: string): void;
+    function clearScriptCacheByPrincipal(principal: Principal): void;
     function clearStyleSheetCache(): void;
     function clearStyleSheetCacheByBaseDomain(baseDomain: string): void;
     function clearStyleSheetCacheByPrincipal(principal: Principal): void;
-    function clearScriptCache(): void;
-    function clearScriptCacheByBaseDomain(baseDomain: UTF8String): void;
-    function clearScriptCacheByPrincipal(principal: Principal): void;
     function collectPerfStats(): Promise<string>;
     function collectScrollingData(): Promise<InteractionData>;
     function compileScript(url: string, options?: CompileScriptOptionsDictionary): Promise<PrecompiledScript>;
@@ -24136,6 +24204,7 @@ declare namespace InspectorUtils {
     function getCSSPropertyPrefs(): PropertyPref[];
     function getCSSPseudoElementNames(): string[];
     function getCSSRegisteredProperties(document: Document): InspectorCSSPropertyDefinition[];
+    function getCSSRegisteredProperty(document: Document, name: string): InspectorCSSPropertyDefinition | null;
     function getCSSStyleRules(element: Element, pseudo?: string, relevantLinkVisited?: boolean, withStartingStyle?: boolean): CSSStyleRule[];
     function getCSSValuesForProperty(property: string): string[];
     function getChildrenForNode(node: Node, showingAnonymousContent: boolean, includeAssignedNodes: boolean): Node[];
@@ -24410,6 +24479,10 @@ interface MutationCallback {
     (mutations: MutationRecord[], observer: MutationObserver): void;
 }
 
+interface NavigationInterceptHandler {
+    (): void | PromiseLike<void>;
+}
+
 interface NavigatorUserMediaErrorCallback {
     (error: MediaStreamError): void;
 }
@@ -24516,6 +24589,10 @@ interface ValidateAssertionCallback {
 
 interface VideoFrameOutputCallback {
     (output: VideoFrame): void;
+}
+
+interface VideoFrameRequestCallback {
+    (now: DOMHighResTimeStamp, metadata: VideoFrameCallbackMetadata): void;
 }
 
 interface VoidFunction {
@@ -24762,6 +24839,7 @@ declare var mozInnerScreenX: number;
 declare var mozInnerScreenY: number;
 /** @deprecated */
 declare const name: void;
+declare var navigation: Navigation;
 declare var navigator: Navigator;
 declare var ondevicelight: ((this: Window, ev: Event) => any) | null;
 declare var ondevicemotion: ((this: Window, ev: Event) => any) | null;
@@ -24892,6 +24970,7 @@ declare var oncanplaythrough: ((this: Window, ev: Event) => any) | null;
 declare var onchange: ((this: Window, ev: Event) => any) | null;
 declare var onclick: ((this: Window, ev: Event) => any) | null;
 declare var onclose: ((this: Window, ev: Event) => any) | null;
+declare var oncontentvisibilityautostatechange: ((this: Window, ev: Event) => any) | null;
 declare var oncontextlost: ((this: Window, ev: Event) => any) | null;
 declare var oncontextmenu: ((this: Window, ev: Event) => any) | null;
 declare var oncontextrestored: ((this: Window, ev: Event) => any) | null;
@@ -25089,6 +25168,7 @@ type HeadersInit = string[][] | Record<string, string>;
 type HistogramID = string;
 type HistogramKey = string;
 type ImageBitmapSource = CanvasImageSource | Blob | CanvasRenderingContext2D | ImageData;
+type ImageBufferSource = ArrayBufferView | ArrayBuffer | ReadableStream;
 type Int32List = Int32Array | GLint[];
 type KeyFormat = string;
 type KeyType = string;
@@ -25236,6 +25316,7 @@ type IDBCursorDirection = "next" | "nextunique" | "prev" | "prevunique";
 type IDBRequestReadyState = "done" | "pending";
 type IDBTransactionDurability = "default" | "relaxed" | "strict";
 type IDBTransactionMode = "cleanup" | "readonly" | "readwrite" | "readwriteflush" | "versionchange";
+type IdentityLoginTargetType = "popup" | "redirect";
 type ImageOrientation = "flipY" | "from-image" | "none";
 type ImportESModuleTargetGlobal = "contextual" | "current" | "devtools" | "shared";
 type InspectorPropertyType = "color" | "gradient" | "timing-function";
@@ -25263,7 +25344,11 @@ type MediaSourceReadyState = "closed" | "ended" | "open";
 type MediaStreamTrackState = "ended" | "live";
 type MozContentPolicyType = "beacon" | "csp_report" | "fetch" | "font" | "image" | "imageset" | "main_frame" | "media" | "object" | "object_subrequest" | "other" | "ping" | "script" | "speculative" | "stylesheet" | "sub_frame" | "web_manifest" | "websocket" | "xml_dtd" | "xmlhttprequest" | "xslt";
 type MozUrlClassificationFlags = "any_basic_tracking" | "any_social_tracking" | "any_strict_tracking" | "cryptomining" | "cryptomining_content" | "emailtracking" | "emailtracking_content" | "fingerprinting" | "fingerprinting_content" | "socialtracking" | "socialtracking_facebook" | "socialtracking_linkedin" | "socialtracking_twitter" | "tracking" | "tracking_ad" | "tracking_analytics" | "tracking_content" | "tracking_social";
-type NavigationType = "back_forward" | "navigate" | "prerender" | "reload";
+type NavigationFocusReset = "after-transition" | "manual";
+type NavigationHistoryBehavior = "auto" | "push" | "replace";
+type NavigationScrollBehavior = "after-transition" | "manual";
+type NavigationTimingType = "back_forward" | "navigate" | "prerender" | "reload";
+type NavigationType = "push" | "reload" | "replace" | "traverse";
 type NotificationDirection = "auto" | "ltr" | "rtl";
 type NotificationPermission = "default" | "denied" | "granted";
 type OffscreenRenderingContextId = "2d" | "bitmaprenderer" | "webgl" | "webgl2" | "webgpu";
@@ -25362,12 +25447,12 @@ type VREye = "left" | "right";
 type VideoColorPrimaries = "bt2020" | "bt470bg" | "bt709" | "smpte170m" | "smpte432";
 type VideoEncoderBitrateMode = "constant" | "quantizer" | "variable";
 type VideoMatrixCoefficients = "bt2020-ncl" | "bt470bg" | "bt709" | "rgb" | "smpte170m";
-type VideoPixelFormat = "BGRA" | "BGRX" | "I420" | "I420A" | "I422" | "I444" | "NV12" | "RGBA" | "RGBX";
+type VideoPixelFormat = "BGRA" | "BGRX" | "I420" | "I420A" | "I420AP10" | "I420AP12" | "I420P10" | "I420P12" | "I422" | "I422A" | "I422AP10" | "I422AP12" | "I422P10" | "I422P12" | "I444" | "I444A" | "I444AP10" | "I444AP12" | "I444P10" | "I444P12" | "NV12" | "RGBA" | "RGBX";
 type VideoTransferCharacteristics = "bt709" | "hlg" | "iec61966-2-1" | "linear" | "pq" | "smpte170m";
 type VisibilityState = "hidden" | "visible";
 type WakeLockType = "screen";
 type WebGLPowerPreference = "default" | "high-performance" | "low-power";
-type WebIDLProcType = "browser" | "extension" | "file" | "forkServer" | "gmpPlugin" | "gpu" | "ipdlUnitTest" | "preallocated" | "privilegedabout" | "privilegedmozilla" | "rdd" | "remoteSandboxBroker" | "socket" | "unknown" | "utility" | "vr" | "web" | "webIsolated" | "webServiceWorker" | "withCoopCoep";
+type WebIDLProcType = "browser" | "extension" | "file" | "forkServer" | "gmpPlugin" | "gpu" | "inference" | "ipdlUnitTest" | "preallocated" | "privilegedabout" | "privilegedmozilla" | "rdd" | "remoteSandboxBroker" | "socket" | "unknown" | "utility" | "vr" | "web" | "webIsolated" | "webServiceWorker" | "withCoopCoep";
 type WebIDLUtilityActorName = "audioDecoder_AppleMedia" | "audioDecoder_Generic" | "audioDecoder_WMF" | "jSOracle" | "mfMediaEngineCDM" | "unknown" | "windowsFileDialog" | "windowsUtils";
 type WebTransportCongestionControl = "default" | "low-latency" | "throughput";
 type WebTransportErrorSource = "session" | "stream";
@@ -25576,6 +25661,10 @@ interface IDBObjectStore {
     createIndex(name: string, keyPath: string | Iterable<string>, optionalParameters?: IDBIndexParameters): IDBIndex;
 }
 
+interface ImageTrackList {
+    [Symbol.iterator](): IterableIterator<ImageTrack>;
+}
+
 interface IntlUtils {
     getDisplayNames(locales: Iterable<string>, options?: DisplayNameOptions): DisplayNameResult;
 }
@@ -25703,10 +25792,6 @@ interface SVGNumberList {
     [Symbol.iterator](): IterableIterator<SVGNumber>;
 }
 
-interface SVGPathSegList {
-    [Symbol.iterator](): IterableIterator<SVGPathSeg>;
-}
-
 interface SVGPointList {
     [Symbol.iterator](): IterableIterator<SVGPoint>;
 }
@@ -25795,6 +25880,10 @@ interface TestInterfaceSetlike extends Set<string> {
 }
 
 interface TestInterfaceSetlikeNode extends Set<Node> {
+}
+
+interface TestReflectedHTMLAttribute {
+    setReflectedHTMLAttributeValue(seq: Iterable<Element>): void;
 }
 
 interface TextTrackCueList {

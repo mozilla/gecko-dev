@@ -1,6 +1,7 @@
 /**
  * NOTE: Do not modify this file by hand.
  * Content was generated from source XPCOM .idl files.
+ * If you're updating some of the sources, see README for instructions.
  */
 
 declare global {

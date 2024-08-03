@@ -4,9 +4,12 @@
 
 import json
 import os
+import shutil
 
 import mozpack.path as mozpath
 from mach.decorators import Command, CommandArgument, SubCommand
+
+targets = ["dom", "nsresult", "services", "xpcom"]
 
 
 @Command("ts", category="misc", description="Run TypeScript and related commands.")
@@ -23,9 +26,15 @@ def ts(ctx):
 
 
 @SubCommand("ts", "build", description="Build typelibs.")
-@CommandArgument("lib", choices=["dom", "nsresult", "services", "xpcom"])
-def buld(ctx, lib):
-    """Command to build one of the typelibs."""
+@CommandArgument("lib", choices=targets, nargs="?")
+def build(ctx, lib):
+    """Command to build the target typelibs."""
+
+    if lib is None:
+        for t in targets:
+            if rv := build(ctx, t):
+                return rv
+        return 0
 
     types_dir = mozpath.join(ctx.distdir, "@types")
     lib_dts = mozpath.join(types_dir, f"lib.gecko.{lib}.d.ts")
@@ -87,11 +96,24 @@ def setup(ctx):
     return ctx._sub_mach(["npm", "ci"])
 
 
-@SubCommand("ts", "update", description="Update tools/@types lib references.")
+@SubCommand("ts", "update", description="Update tools/@types libraries.")
 def update(ctx):
-    types_dir = mozpath.join(ctx.distdir, "@types")
-    index_dts = mozpath.join(ctx.topsrcdir, "tools/@types/index.d.ts")
-    return node(ctx, "update_refs", index_dts, types_dir)
+    typelib_dir = mozpath.join(ctx.topsrcdir, "tools/@types")
+
+    for lib in targets:
+        file = f"lib.gecko.{lib}.d.ts"
+        path = mozpath.join(ctx.distdir, "@types", file)
+        if not os.path.exists(path):
+            print(f"[ERROR] {path} not found. Did you run `mach ts build`?")
+            return 1
+
+        # This command inherently goes in a confusing direction, we're copying:
+        # from `<topobjdir>/dist/@types` files generated with `mach ts build`,
+        # into `<topsrcdir>/tools/@types` typelib dir back in your source tree.
+        print(f"[INFO] Updating {typelib_dir}/{file}")
+        shutil.copy(path, typelib_dir)
+
+    print("[WARNING] Your source tree was updated, you should commit the changes.")
 
 
 def node(ctx, script, *args):

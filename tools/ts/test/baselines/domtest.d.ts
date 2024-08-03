@@ -1,6 +1,7 @@
 /**
  * NOTE: Do not modify this file by hand.
  * Content was generated from source .webidl files.
+ * If you're updating some of the sources, see README for instructions.
  */
 
 /// <reference no-default-lib="true" />
@@ -65,6 +66,9 @@ interface TestInterfaceJSUnionableDictionary {
 }
 
 interface AnyCallback {
+}
+
+interface Element {
 }
 
 
@@ -351,6 +355,17 @@ declare var TestInterfaceSetlikeNode: {
     isInstance: IsInstance<TestInterfaceSetlikeNode>;
 };
 
+interface TestReflectedHTMLAttribute {
+    reflectedHTMLAttribute: Element[] | null;
+    setReflectedHTMLAttributeValue(seq: Element[]): void;
+}
+
+declare var TestReflectedHTMLAttribute: {
+    prototype: TestReflectedHTMLAttribute;
+    new(): TestReflectedHTMLAttribute;
+    isInstance: IsInstance<TestReflectedHTMLAttribute>;
+};
+
 interface TestTrialInterface {
 }
 
@@ -455,6 +470,10 @@ interface TestInterfaceSetlike extends Set<string> {
 }
 
 interface TestInterfaceSetlikeNode extends Set<Node> {
+}
+
+interface TestReflectedHTMLAttribute {
+    setReflectedHTMLAttributeValue(seq: Iterable<Element>): void;
 }
 
 /////////////////////////////

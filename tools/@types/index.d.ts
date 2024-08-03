@@ -1,6 +1,6 @@
 /**
  * NOTE: Do not modify this file by hand.
- * Run `mach ts update` to reference typelibs generated in <objdir>.
+ * If you're updating some of the sources, see README for instructions.
  */
 
 /// <reference types="./lib.gecko.dom.d.ts" />

@@ -15,6 +15,7 @@ const fs = require("fs");
 const HEADER = `/**
  * NOTE: Do not modify this file by hand.
  * Content was generated from services.json.
+ * If you're updating some of the sources, see README for instructions.
  */
 `;
 

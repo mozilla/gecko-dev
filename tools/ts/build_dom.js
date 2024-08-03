@@ -18,6 +18,7 @@ const TAGLIST = require.resolve("../../parser/htmlparser/nsHTMLTagList.h");
 const HEADER = `/**
  * NOTE: Do not modify this file by hand.
  * Content was generated from source .webidl files.
+ * If you're updating some of the sources, see README for instructions.
  */
 
 /// <reference no-default-lib="true" />

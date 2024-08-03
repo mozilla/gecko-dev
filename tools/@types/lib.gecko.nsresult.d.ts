@@ -1,6 +1,7 @@
 /**
  * NOTE: Do not modify this file by hand.
  * Content was generated from xpc.msg and error_list.json.
+ * If you're updating some of the sources, see README for instructions.
  */
 
 interface nsIXPCComponents_Results {
