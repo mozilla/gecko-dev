@@ -1962,8 +1962,12 @@ pref("browser.ml.chat.prompts.0", '{"label":"Summarize","value":"Please summariz
 pref("browser.ml.chat.prompts.1", '{"label":"Simplify Language","value":"Please rewrite the selection in plain, clear language suitable for a general audience without specialized knowledge. Use all of the following tactics: simple vocabulary; short sentences; active voice; headers and bulleted lists for scannability. Maintain meaning and factual accuracy.","id":"simplify"}');
 pref("browser.ml.chat.prompts.2", '{"label":"Quiz Me","value":"Please quiz me on this selection. Ask me a variety of types of questions, for example multiple choice, true or false, and short answer. Wait for my response before moving on to the next question.","id":"quiz","targeting":"!provider|regExpMatch(\'gemini\')"}');
 pref("browser.ml.chat.provider", "");
-pref("browser.ml.chat.shortcuts", false);
+pref("browser.ml.chat.shortcuts", true);
+#ifdef NIGHTLY_BUILD
+pref("browser.ml.chat.shortcuts.custom", true);
+#else
 pref("browser.ml.chat.shortcuts.custom", false);
+#endif
 pref("browser.ml.chat.sidebar", true);
 
 pref("security.protectionspopup.recordEventTelemetry", true);
