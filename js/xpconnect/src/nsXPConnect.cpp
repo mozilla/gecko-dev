@@ -260,7 +260,7 @@ void xpc::ErrorReport::Init(JSContext* aCx, mozilla::dom::Exception* aException,
 static LazyLogModule gJSDiagnostics("JSDiagnostics");
 
 void xpc::ErrorBase::AppendErrorDetailsTo(nsCString& error) {
-  error = mFileName;
+  error.Append(mFileName);
   error.AppendLiteral(", line ");
   error.AppendInt(mLineNumber, 10);
   error.AppendLiteral(": ");
