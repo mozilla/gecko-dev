@@ -166,6 +166,7 @@ class TestSessionRestore(SessionStoreTestCase):
             self.marionette.execute_script(
                 """
                 const window = BrowserWindowTracker.getTopWindow();
+                window.SidebarController.toolbarButton.click();
                 return window.SidebarController.sidebarContainer.hidden;
                 """
             ),

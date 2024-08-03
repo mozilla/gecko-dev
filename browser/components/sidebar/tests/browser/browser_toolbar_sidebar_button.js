@@ -201,4 +201,4 @@ add_task(async function test_states_for_hide_sidebar() {
   await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
   await SpecialPowers.popPrefEnv();
-}).skip(); //bug 1896421
+});
