@@ -611,6 +611,8 @@ class BaseBootstrapper(object):
 
         if modern:
             print("Your version of Rust (%s) is new enough." % version)
+            if sys.platform.startswith("haiku"):
+                return
 
         elif version:
             print("Your version of Rust (%s) is too old." % version)
