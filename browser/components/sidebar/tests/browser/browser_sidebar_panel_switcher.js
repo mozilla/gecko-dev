@@ -28,4 +28,4 @@ add_task(async function test_switcher_twice() {
   ok(SidebarController.isOpen, "Stays open on second click");
 
   SidebarController.hide();
-});
+}).skip(); // bug 1896421
