@@ -127,7 +127,11 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Defnyddio cyfrinair cryf?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Diogelwch eich cyfrifon trwy ddefnyddio cyfrinair cryf wedi\'i gynhyrchu ar hap. Cewch fynediad cyflym i\'ch cyfrineiriau trwy eu cadw yn eich cyfrif.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Diogelwch eich cyfrifon trwy ddefnyddio cyfrinair cryf wedi\'i gynhyrchu ar hap. Cewch fynediad cyflym i\'ch cyfrineiriau trwy eu cadw yn eich cyfrif.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Gwarchodwch eich cyfrifon trwy ddefnyddio cyfrinair cryf wedi\'i gynhyrchu ar hap. Bydd yn cael ei gadw yn eich cyfrif i\'w ddefnyddio yn y dyfodol.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Defnyddiwch gyfrinair</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -139,7 +143,7 @@
 
 
     <!-- Title for showing the username updated confirmation snackbar -->
-    <string name="mozac_feature_prompt_login_snackbar_username_updated">Enw defnyddiwr wedi\'i ddiweddaru</string>
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Diweddarwyd yr enw defnyddiwr</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Ail-anfon data i’r wefan hon?</string>
