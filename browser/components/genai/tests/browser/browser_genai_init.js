@@ -52,5 +52,6 @@ add_task(async function test_preferences_observer() {
     Assert.equal(stub.callCount, 2, "Would have handled existing tab");
   });
 
+  GenAI.uninit();
   sandbox.restore();
 });

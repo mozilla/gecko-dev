@@ -246,6 +246,10 @@ export const GenAI = {
     Glean.genaiChatbot.sidebar.set(lazy.chatSidebar);
   },
 
+  uninit() {
+    Services.obs.removeObserver(this, "experimental-pane-loaded");
+  },
+
   /**
    * Convert provider to id.
    *
