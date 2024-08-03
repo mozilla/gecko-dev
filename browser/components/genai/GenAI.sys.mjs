@@ -16,6 +16,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
+ChromeUtils.defineLazyGetter(
+  lazy,
+  "l10n",
+  () => new Localization(["browser/genai.ftl"])
+);
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "chatEnabled",
@@ -349,10 +354,16 @@ export const GenAI = {
               if (lazy.chatShortcutsCustom) {
                 vbox.appendChild(document.createXULElement("toolbarseparator"));
                 const input = vbox.appendChild(document.createElement("input"));
-                input.placeholder = `Ask ${
-                  this.chatProviders.get(lazy.chatProvider)?.name ??
-                  "AI chatbot"
-                }…`;
+                const provider = this.chatProviders.get(
+                  lazy.chatProvider
+                )?.name;
+                document.l10n.setAttributes(
+                  input,
+                  provider
+                    ? "genai-input-ask-provider"
+                    : "genai-input-ask-generic",
+                  { provider }
+                );
                 input.style.margin = "var(--arrowpanel-menuitem-margin)";
                 input.addEventListener("mouseover", () => input.focus());
                 input.addEventListener("change", () => {
@@ -418,9 +429,12 @@ export const GenAI = {
     if (!lazy.chatEnabled || lazy.chatProvider == "") {
       return;
     }
-    menu.label = `Ask ${
-      this.chatProviders.get(lazy.chatProvider)?.name ?? "AI Chatbot"
-    }`;
+    const provider = this.chatProviders.get(lazy.chatProvider)?.name;
+    menu.ownerDocument.l10n.setAttributes(
+      menu,
+      provider ? "genai-menu-ask-provider" : "genai-menu-ask-generic",
+      { provider }
+    );
     menu.menupopup?.remove();
     await this.addAskChatItems(
       nsContextMenu.browser,
@@ -437,9 +451,10 @@ export const GenAI = {
    * @param {object} context data used for targeting
    * @returns {promise} array of matching prompt objects
    */
-  getContextualPrompts(context) {
+  async getContextualPrompts(context) {
     // Treat prompt objects as messages to reuse targeting capabilities
     const messages = [];
+    const toFormat = [];
     Services.prefs.getChildList("browser.ml.chat.prompts.").forEach(pref => {
       try {
         const promptObj = {
@@ -457,10 +472,20 @@ export const GenAI = {
           }
         } catch (ex) {}
         messages.push(promptObj);
+        if (promptObj.l10nId) {
+          toFormat.push(promptObj);
+        }
       } catch (ex) {
         console.error("Failed to get prompt pref " + pref, ex);
       }
     });
+
+    // Apply localized attributes for prompts
+    (await lazy.l10n.formatMessages(toFormat.map(obj => obj.l10nId))).forEach(
+      (msg, idx) =>
+        msg?.attributes.forEach(attr => (toFormat[idx][attr.name] = attr.value))
+    );
+
     return lazy.ASRouterTargeting.findMatchingMessage({
       messages,
       returnAll: true,

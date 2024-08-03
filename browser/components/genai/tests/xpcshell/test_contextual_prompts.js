@@ -56,3 +56,24 @@ add_task(async function test_prompt_context() {
     "Prompt not added for contextual targeting"
   );
 });
+
+/**
+ * Check that prompts can be localized
+ */
+add_task(async function test_prompt_l10n() {
+  Services.prefs.setStringPref(
+    "browser.ml.chat.prompts.test",
+    JSON.stringify({
+      l10nId: "genai-prompts-summarize",
+      label: "bad",
+      test: true,
+    })
+  );
+  const custom = (await GenAI.getContextualPrompts(DEFAULT_CONTEXT)).find(
+    prompt => prompt.id == null
+  );
+
+  Assert.ok(custom.test, "Found the custom prompt");
+  Assert.notEqual(custom.label, "bad", "Localized label takes priority");
+  Assert.ok(custom.value, "Got localized prompt");
+});

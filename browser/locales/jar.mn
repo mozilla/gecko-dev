@@ -14,7 +14,6 @@
   preview/enUS-searchFeatures.ftl                  (../components/urlbar/content/enUS-searchFeatures.ftl)
   preview/shopping.ftl                             (../components/shopping/content/shopping.ftl)
   preview/onboarding.ftl                           (../components/aboutwelcome/content/onboarding.ftl)
-  preview/genai.ftl                                (../locales-preview/genai.ftl)
   preview/translations.ftl                         (../locales-preview/translations.ftl)
   preview/credentialChooser.ftl                    (../../toolkit/components/credentialmanagement/credentialChooser.ftl)
   browser                                          (%browser/**/*.ftl)
