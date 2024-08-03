@@ -24,7 +24,9 @@ ChromeUtils.defineLazyGetter(
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "chatEnabled",
-  "browser.ml.chat.enabled"
+  "browser.ml.chat.enabled",
+  null,
+  (_pref, _old, val) => onChatEnabledChange(val)
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -195,6 +197,7 @@ export const GenAI = {
    */
   init() {
     // Access getters for side effects of observing pref changes
+    lazy.chatEnabled;
     lazy.chatHideLocalhost;
     lazy.chatProvider;
     lazy.chatProviders;
@@ -692,6 +695,24 @@ export const GenAI = {
     this.buildPreferences(window);
   },
 };
+
+/**
+ * Ensure the chat sidebar get closed.
+ *
+ * @param {bool} value New pref value
+ */
+function onChatEnabledChange(value) {
+  if (!value) {
+    lazy.EveryWindow.readyWindows.forEach(({ SidebarController }) => {
+      if (
+        SidebarController.isOpen &&
+        SidebarController.currentID == "viewGenaiChatSidebar"
+      ) {
+        SidebarController.hide();
+      }
+    });
+  }
+}
 
 /**
  * Ensure the chat sidebar is shown to reflect changed provider.
