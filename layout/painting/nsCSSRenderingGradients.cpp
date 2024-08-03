@@ -1005,11 +1005,40 @@ void nsCSSGradientRenderer::Paint(gfxContext& aContext, const nsRect& aDest,
   // CreateGradientStops (also the implied backend type) Note that GradientStop
   // is a simple struct with a stop value (while GradientStops has the surface).
   nsTArray<gfx::GradientStop> rawStops(mStops.Length());
-  rawStops.SetLength(mStops.Length());
-  for (uint32_t i = 0; i < mStops.Length(); i++) {
-    rawStops[i].color = ToDeviceColor(mStops[i].mColor);
-    rawStops[i].color.a *= aOpacity;
-    rawStops[i].offset = stopScale * (mStops[i].mPosition - stopOrigin);
+  StyleColorInterpolationMethod styleColorInterpolationMethod =
+      mGradient->ColorInterpolationMethod();
+  if (styleColorInterpolationMethod.space != StyleColorSpace::Srgb ||
+      gfxPlatform::GetCMSMode() == CMSMode::All) {
+    class MOZ_STACK_CLASS GradientStopInterpolator final
+        : public ColorStopInterpolator<GradientStopInterpolator> {
+     public:
+      GradientStopInterpolator(
+          const nsTArray<ColorStop>& aStops,
+          const StyleColorInterpolationMethod& aStyleColorInterpolationMethod,
+          bool aExtendLastStop, nsTArray<gfx::GradientStop>& aResult)
+          : ColorStopInterpolator(aStops, aStyleColorInterpolationMethod,
+                                  aExtendLastStop),
+            mStops(aResult) {}
+      void CreateStop(float aPosition, gfx::DeviceColor aColor) {
+        mStops.AppendElement(gfx::GradientStop{aPosition, aColor});
+      }
+
+     private:
+      nsTArray<gfx::GradientStop>& mStops;
+    };
+
+    bool extendLastStop = !isRepeat && styleColorInterpolationMethod.hue ==
+                                           StyleHueInterpolationMethod::Longer;
+    GradientStopInterpolator interpolator(mStops, styleColorInterpolationMethod,
+                                          extendLastStop, rawStops);
+    interpolator.CreateStops();
+  } else {
+    rawStops.SetLength(mStops.Length());
+    for (uint32_t i = 0; i < mStops.Length(); i++) {
+      rawStops[i].color = ToDeviceColor(mStops[i].mColor);
+      rawStops[i].color.a *= aOpacity;
+      rawStops[i].offset = stopScale * (mStops[i].mPosition - stopOrigin);
+    }
   }
   RefPtr<mozilla::gfx::GradientStops> gs =
       gfxGradientCache::GetOrCreateGradientStops(
