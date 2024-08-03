@@ -318,6 +318,18 @@ struct MOZ_EMPTY_BASES RectTyped
 typedef RectTyped<UnknownUnits> Rect;
 typedef RectTyped<UnknownUnits, double> RectDouble;
 
+template <class Units, class D>
+RectTyped<Units> NarrowToFloat(const RectTyped<Units, D>& aRect) {
+  return RectTyped<Units>(float(aRect.x), float(aRect.y), float(aRect.width),
+                          float(aRect.height));
+}
+
+template <class Units, class F>
+RectTyped<Units, double> WidenToDouble(const RectTyped<Units, F>& aRect) {
+  return RectTyped<Units, double>(double(aRect.x), double(aRect.y),
+                                  double(aRect.width), double(aRect.height));
+}
+
 template <class Units>
 IntRectTyped<Units> RoundedToInt(const RectTyped<Units>& aRect) {
   RectTyped<Units> copy(aRect);

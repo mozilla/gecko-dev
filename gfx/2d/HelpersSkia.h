@@ -275,6 +275,13 @@ static inline Rect SkRectToRect(const SkRect& aRect) {
               SkScalarToFloat(aRect.width()), SkScalarToFloat(aRect.height()));
 }
 
+static inline RectDouble SkRectToRectDouble(const SkRect& aRect) {
+  double x = SkScalarToDouble(aRect.x());
+  double y = SkScalarToDouble(aRect.y());
+  return RectDouble(x, y, SkScalarToDouble(aRect.right()) - x,
+                    SkScalarToDouble(aRect.bottom()) - y);
+}
+
 static inline SkTileMode ExtendModeToTileMode(ExtendMode aMode, Axis aAxis) {
   switch (aMode) {
     case ExtendMode::CLAMP:

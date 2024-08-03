@@ -622,7 +622,10 @@ class DrawTargetWebgl : public DrawTarget, public SupportsWeakPtr {
 
   ColorPattern GetClearPattern() const;
 
-  bool RectContainsViewport(const Rect& aRect) const;
+  template <typename R>
+  RectDouble TransformDouble(const R& aRect) const;
+
+  Maybe<Rect> RectClippedToViewport(const RectDouble& aRect) const;
 
   bool ShouldAccelPath(const DrawOptions& aOptions,
                        const StrokeOptions* aStrokeOptions);
