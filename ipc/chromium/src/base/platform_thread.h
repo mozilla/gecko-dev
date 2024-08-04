@@ -24,7 +24,7 @@ typedef void* PlatformThreadHandle;  // HANDLE
 #else
 #  include <pthread.h>
 typedef pthread_t PlatformThreadHandle;
-#  if defined(XP_LINUX) || defined(XP_OPENBSD) || defined(XP_SOLARIS) || \
+#  if defined(XP_LINUX) || defined(XP_OPENBSD) || defined(XP_SOLARIS) || defined(XP_HAIKU) || \
       defined(__GLIBC__)
 #    include <unistd.h>
 typedef pid_t PlatformThreadId;
