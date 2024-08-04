@@ -220,7 +220,7 @@ MOZ_NoReturn(int aLine) {
       MOZ_NoReturn(line);         \
     } while (false)
 
-#elif __wasi__
+#elif __wasi__ || defined(__HAIKU__)
 
 #  define MOZ_REALLY_CRASH(line) __builtin_trap()
 
