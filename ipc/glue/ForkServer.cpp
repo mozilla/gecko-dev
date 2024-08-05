@@ -299,6 +299,13 @@ bool ForkServer::RunForkServer(int* aArgc, char*** aArgv) {
   NS_LogTerm();
 
   MOZ_ASSERT(forkserver.mAppProcBuilder);
+
+  // Bug 1909125: Refcount logging may be special FDs which are reserved
+  // for use when starting a child process. Make sure to close these files
+  // before the dup2 sequence in InitAppProcess to ensure they are not
+  // clobbered.
+  nsTraceRefcnt::CloseLogFilesAfterFork();
+
   // |messageloop| has been destroyed.  So, we can intialized the
   // process safely.  Message loops may allocates some file
   // descriptors.  If it is destroyed later, it may mess up this
@@ -307,7 +314,7 @@ bool ForkServer::RunForkServer(int* aArgc, char*** aArgv) {
   forkserver.mAppProcBuilder.reset();
 
   // Open log files again with right names and the new PID.
-  nsTraceRefcnt::ResetLogFiles((*aArgv)[*aArgc - 1]);
+  nsTraceRefcnt::ReopenLogFilesAfterFork((*aArgv)[*aArgc - 1]);
 
   return false;
 }

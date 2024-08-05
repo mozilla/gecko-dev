@@ -262,15 +262,6 @@ class AppProcessBuilder {
 };
 
 void InitForkServerProcess();
-
-/**
- * Make a FD not being closed when create a new content process.
- *
- * AppProcessBuilder would close most unrelated FDs for new content
- * processes.  You may want to reserve some of FDs to keep using them
- * in content processes.
- */
-void RegisterForkServerNoCloseFD(int aFd);
 #endif
 
 // Attempts to kill the process identified by the given process
