@@ -7,7 +7,7 @@ package org.mozilla.fenix.library.bookmarks.ui
 /**
  * Items that can be represented in the Bookmarks list.
  */
-sealed class BookmarkItem {
+internal sealed class BookmarkItem {
 
     /**
      * An item representing a site that is bookmarked.
