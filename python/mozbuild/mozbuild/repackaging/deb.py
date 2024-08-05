@@ -295,6 +295,7 @@ def _get_build_variables(
         "DEB_MANPAGE_DATE": application_ini_data["timestamp"].strftime("%B %d, %Y"),
         "DEB_ARCH_NAME": _DEB_ARCH[arch],
         "DEB_DEPENDS": depends,
+        "Icon": deb_pkg_name,
     }
 
 
