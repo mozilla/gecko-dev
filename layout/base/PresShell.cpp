@@ -9832,6 +9832,11 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
     timeStart = TimeStamp::Now();
   }
 
+  // set up a cache that saves all nodes contained in each selection,
+  // allowing a fast lookup in `nsTextFrame::IsFrameSelected()`.
+  // This cache only lives throughout this reflow call.
+  SelectionNodeCache cache(*this);
+
   // Schedule a paint, but don't actually mark this frame as changed for
   // retained DL building purposes. If any child frames get moved, then
   // they will schedule paint again. We could probaby skip this, and just

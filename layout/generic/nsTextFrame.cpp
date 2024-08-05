@@ -7504,7 +7504,8 @@ bool nsTextFrame::IsFrameSelected() const {
                "use the public IsSelected() instead");
   if (mIsSelected == nsTextFrame::SelectionState::Unknown) {
     const bool isSelected =
-        GetContent()->IsSelected(GetContentOffset(), GetContentEnd());
+        GetContent()->IsSelected(GetContentOffset(), GetContentEnd(),
+                                 PresShell()->GetSelectionNodeCache());
     mIsSelected = isSelected ? nsTextFrame::SelectionState::Selected
                              : nsTextFrame::SelectionState::NotSelected;
   } else {

@@ -356,10 +356,9 @@ class IsItemInRangeComparator {
   nsContentUtils::NodeIndexCache* mCache;
 };
 
-bool nsINode::IsSelected(const uint32_t aStartOffset,
-                         const uint32_t aEndOffset) const {
+bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
+                         SelectionNodeCache* aCache) const {
   MOZ_ASSERT(aStartOffset <= aEndOffset);
-
   const nsINode* n = GetClosestCommonInclusiveAncestorForRangeInSelection(this);
   NS_ASSERTION(n || !IsMaybeSelected(),
                "A node without a common inclusive ancestor for a range in "
@@ -386,6 +385,10 @@ bool nsINode::IsSelected(const uint32_t aStartOffset,
         }
       }
     }
+  }
+  if (aCache && aCache->MaybeCollectNodesAndCheckIfFullySelectedInAnyOf(
+                    this, ancestorSelections)) {
+    return true;
   }
 
   nsContentUtils::NodeIndexCache cache;

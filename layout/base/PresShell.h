@@ -1752,6 +1752,12 @@ class PresShell final : public nsStubDocumentObserver,
 
   void ClearTemporarilyVisibleForScrolledIntoViewDescendantFlags() const;
 
+  // A cache that contains all fully selected nodes per selection instance.
+  // Only non-null during reflow.
+  dom::SelectionNodeCache* GetSelectionNodeCache() {
+    return mSelectionNodeCache;
+  }
+
  private:
   ~PresShell();
 
@@ -3260,6 +3266,13 @@ class PresShell final : public nsStubDocumentObserver,
   // The last TimeStamp when the keyup event did not exit fullscreen because it
   // was consumed.
   TimeStamp mLastConsumedEscapeKeyUpForFullscreen;
+
+  // The `SelectionNodeCache` is tightly coupled with the PresShell.
+  // It should only be possible to create a cache from within a PresShell.
+  // The created cache sets itself into `this`. Therefore, it's necessary to use
+  // `friend` here to avoid having setters.
+  friend dom::SelectionNodeCache;
+  dom::SelectionNodeCache* mSelectionNodeCache{nullptr};
 
   struct CapturingContentInfo final {
     CapturingContentInfo()
