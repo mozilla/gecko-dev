@@ -6488,6 +6488,7 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
 
   if (frame) {
     // We can paint directly into the widget using its layer manager.
+    SelectionNodeCache cache(*this);
     nsLayoutUtils::PaintFrame(nullptr, frame, nsRegion(), bgcolor,
                               nsDisplayListBuilderMode::Painting, flags);
     return;
