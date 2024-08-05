@@ -35,6 +35,7 @@ internal const val MAIN_MENU_ROUTE = "main_menu"
  * @param isTranslationSupported Whether or not translation is supported.
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
+ * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onHelpButtonClick Invoked when the user clicks on the help button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
@@ -65,6 +66,7 @@ internal fun MainMenu(
     isDesktopMode: Boolean,
     isTranslationSupported: Boolean,
     showQuitMenu: Boolean,
+    isExtensionsProcessDisabled: Boolean,
     onMozillaAccountButtonClick: () -> Unit,
     onHelpButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
@@ -105,6 +107,7 @@ internal fun MainMenu(
             accessPoint = accessPoint,
             isDesktopMode = isDesktopMode,
             isTranslationSupported = isTranslationSupported,
+            isExtensionsProcessDisabled = isExtensionsProcessDisabled,
             onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
             onFindInPageMenuClick = onFindInPageMenuClick,
             onToolsMenuClick = onToolsMenuClick,
@@ -197,6 +200,7 @@ private fun ToolsAndActionsMenuGroup(
     accessPoint: MenuAccessPoint,
     isDesktopMode: Boolean,
     isTranslationSupported: Boolean,
+    isExtensionsProcessDisabled: Boolean,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -259,6 +263,16 @@ private fun ToolsAndActionsMenuGroup(
 
         MenuItem(
             label = stringResource(id = R.string.browser_menu_extensions),
+            description = if (isExtensionsProcessDisabled) {
+                stringResource(R.string.browser_menu_extensions_disabled_description)
+            } else {
+                null
+            },
+            descriptionState = if (isExtensionsProcessDisabled) {
+                MenuItemState.WARNING
+            } else {
+                MenuItemState.ENABLED
+            },
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_extension_24),
             onClick = onExtensionsMenuClick,
             afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
@@ -347,6 +361,7 @@ private fun MenuDialogPreview() {
                 isDesktopMode = false,
                 isTranslationSupported = true,
                 showQuitMenu = true,
+                isExtensionsProcessDisabled = true,
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
                 onSettingsButtonClick = {},
@@ -385,6 +400,7 @@ private fun MenuDialogPrivatePreview() {
                 isDesktopMode = false,
                 isTranslationSupported = true,
                 showQuitMenu = true,
+                isExtensionsProcessDisabled = false,
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
                 onSettingsButtonClick = {},

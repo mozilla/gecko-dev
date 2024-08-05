@@ -35,6 +35,7 @@ private val MENU_ITEM_HEIGHT_WITH_DESC = 56.dp
  * @param beforeIconDescription Content description of the icon.
  * @param description An optional description text below the label.
  * @param state The state of the menu item to display.
+ * @param descriptionState The state of menu item description to display.
  * @param onClick Invoked when the user clicks on the item.
  * @param showDivider Whether or not to display a vertical divider line before the [IconButton]
  * at the end.
@@ -50,6 +51,7 @@ internal fun MenuItem(
     beforeIconDescription: String? = null,
     description: String? = null,
     state: MenuItemState = MenuItemState.ENABLED,
+    descriptionState: MenuItemState = MenuItemState.ENABLED,
     onClick: (() -> Unit)? = null,
     showDivider: Boolean = false,
     afterIconPainter: Painter? = null,
@@ -57,6 +59,7 @@ internal fun MenuItem(
     onAfterIconClick: (() -> Unit)? = null,
 ) {
     val labelTextColor = getLabelTextColor(state = state)
+    val descriptionTextColor = getDescriptionTextColor(state = descriptionState)
     val iconTint = getIconTint(state = state)
     val enabled = state != MenuItemState.DISABLED
 
@@ -65,6 +68,7 @@ internal fun MenuItem(
         labelTextColor = labelTextColor,
         maxLabelLines = 2,
         description = description,
+        descriptionTextColor = descriptionTextColor,
         enabled = enabled,
         minHeight = if (description != null) {
             MENU_ITEM_HEIGHT_WITH_DESC
@@ -140,6 +144,16 @@ private fun getLabelTextColor(state: MenuItemState): Color {
         MenuItemState.ACTIVE -> FirefoxTheme.colors.textAccent
         MenuItemState.WARNING -> FirefoxTheme.colors.textCritical
         else -> FirefoxTheme.colors.textPrimary
+    }
+}
+
+@Composable
+private fun getDescriptionTextColor(state: MenuItemState): Color {
+    return when (state) {
+        MenuItemState.ACTIVE -> FirefoxTheme.colors.textAccent
+        MenuItemState.WARNING -> FirefoxTheme.colors.textCritical
+        MenuItemState.DISABLED -> FirefoxTheme.colors.textDisabled
+        else -> FirefoxTheme.colors.textSecondary
     }
 }
 

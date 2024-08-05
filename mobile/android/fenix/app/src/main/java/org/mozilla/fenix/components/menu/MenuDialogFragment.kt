@@ -143,6 +143,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
                     val translateLanguageCode = selectedTab?.translationsState?.translationEngineState
                         ?.requestedTranslationPair?.toLanguage
+                    val isExtensionsProcessDisabled = browserStore.state.extensionsProcessDisabled
 
                     val navHostController = rememberNavController()
                     val coroutineScope = rememberCoroutineScope()
@@ -253,6 +254,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 isDesktopMode = isDesktopMode,
                                 isTranslationSupported = isTranslationSupported,
                                 showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
+                                isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                 onMozillaAccountButtonClick = {
                                     store.dispatch(
                                         MenuAction.Navigate.MozillaAccount(

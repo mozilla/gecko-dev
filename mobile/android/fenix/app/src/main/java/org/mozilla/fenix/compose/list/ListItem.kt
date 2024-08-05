@@ -218,6 +218,7 @@ fun FaviconListItem(
  * @param label The label in the list item.
  * @param modifier [Modifier] to be applied to the layout.
  * @param labelTextColor [Color] to be applied to the label.
+ * @param descriptionTextColor [Color] to be applied to the description.
  * @param maxLabelLines An optional maximum number of lines for the label text to span.
  * @param description An optional description text below the label.
  * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
@@ -240,6 +241,7 @@ fun IconListItem(
     label: String,
     modifier: Modifier = Modifier,
     labelTextColor: Color = FirefoxTheme.colors.textPrimary,
+    descriptionTextColor: Color = FirefoxTheme.colors.textSecondary,
     maxLabelLines: Int = 1,
     description: String? = null,
     enabled: Boolean = true,
@@ -258,6 +260,7 @@ fun IconListItem(
         label = label,
         modifier = modifier,
         labelTextColor = labelTextColor,
+        descriptionTextColor = descriptionTextColor,
         maxLabelLines = maxLabelLines,
         description = description,
         enabled = enabled,
@@ -443,6 +446,7 @@ private fun SelectableItemIcon(
  * @param label The label in the list item.
  * @param modifier [Modifier] to be applied to the layout.
  * @param labelTextColor [Color] to be applied to the label.
+ * @param descriptionTextColor [Color] to be applied to the description.
  * @param maxLabelLines An optional maximum number of lines for the label text to span.
  * @param description An optional description text below the label.
  * @param maxDescriptionLines An optional maximum number of lines for the description text to span.
@@ -458,6 +462,7 @@ private fun ListItem(
     label: String,
     modifier: Modifier = Modifier,
     labelTextColor: Color = FirefoxTheme.colors.textPrimary,
+    descriptionTextColor: Color = FirefoxTheme.colors.textSecondary,
     maxLabelLines: Int = 1,
     description: String? = null,
     maxDescriptionLines: Int = 1,
@@ -494,7 +499,7 @@ private fun ListItem(
             description?.let {
                 Text(
                     text = description,
-                    color = if (enabled) FirefoxTheme.colors.textSecondary else FirefoxTheme.colors.textDisabled,
+                    color = if (enabled) descriptionTextColor else FirefoxTheme.colors.textDisabled,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = maxDescriptionLines,
                     style = FirefoxTheme.typography.body2,
