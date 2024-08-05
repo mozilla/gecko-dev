@@ -4,94 +4,97 @@
 
 package org.mozilla.fenix.home.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import mozilla.components.lib.state.ext.observeAsComposableState
-import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.components
+import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.home.HomeSectionHeader
-import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.ext.shouldShowRecentTabs
+import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
+import org.mozilla.fenix.home.fake.FakeHomepagePreview
+import org.mozilla.fenix.home.pocket.PocketStoriesInteractor
+import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
+import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
+import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
 import org.mozilla.fenix.home.recenttabs.view.RecentTabMenuItem
 import org.mozilla.fenix.home.recenttabs.view.RecentTabs
-import org.mozilla.fenix.home.sessioncontrol.SessionControlInteractor
+import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
+import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
+import org.mozilla.fenix.home.sessioncontrol.CustomizeHomeIteractor
+import org.mozilla.fenix.home.sessioncontrol.MessageCardInteractor
+import org.mozilla.fenix.home.sessioncontrol.TabSessionInteractor
+import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
+import org.mozilla.fenix.home.sessioncontrol.WallpaperInteractor
 import org.mozilla.fenix.home.sessioncontrol.viewholders.FeltPrivacyModeInfoCard
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescription
+import org.mozilla.fenix.home.store.HomepageState
+import org.mozilla.fenix.home.toolbar.ToolbarInteractor
 import org.mozilla.fenix.home.topsites.TopSiteColors
 import org.mozilla.fenix.home.topsites.TopSites
+import org.mozilla.fenix.search.toolbar.SearchSelectorInteractor
+import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.WallpaperState
 
 /**
  * Top level composable for the homepage.
  *
- * @param interactor The [SessionControlInteractor] for the homepage.
+ * @param state State representing the homepage.
+ * @param privateBrowsingInteractor for interactions in private browsing mode.
+ * @param topSiteInteractor For interactions with the top sites UI.
+ * @param recentTabInteractor For interactions with the recent tab UI.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
 @Composable
-fun Homepage(
-    interactor: SessionControlInteractor,
+internal fun Homepage(
+    state: HomepageState,
+    privateBrowsingInteractor: PrivateBrowsingInteractor,
+    topSiteInteractor: TopSiteInteractor,
+    recentTabInteractor: RecentTabInteractor,
     onTopSitesItemBound: () -> Unit,
 ) {
-    val appStore = components.appStore
-    val settings = LocalContext.current.settings()
-
-    val isPrivateMode by appStore.observeAsState(initialValue = false) { it.mode.isPrivate }
-    val topSites by appStore.observeAsState(initialValue = emptyList()) { state ->
-        state.topSites
-    }
-    val wallpaperState by appStore.observeAsState(initialValue = WallpaperState.default) { state ->
-        state.wallpaperState
-    }
-
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        if (isPrivateMode) {
-            if (settings.feltPrivateBrowsingEnabled) {
-                FeltPrivacyModeInfoCard(
-                    onLearnMoreClick = interactor::onLearnMoreClicked,
-                )
-            } else {
-                PrivateBrowsingDescription(
-                    onLearnMoreClick = interactor::onLearnMoreClicked,
-                )
-            }
-        } else {
-            val showTopSites = settings.showTopSitesFeature && topSites.isNotEmpty()
-            if (showTopSites) {
-                TopSites(
-                    topSites = topSites,
-                    topSiteColors = TopSiteColors.colors(wallpaperState = wallpaperState),
-                    onTopSiteClick = { topSite ->
-                        interactor.onSelectTopSite(
-                            topSite = topSite,
-                            position = topSites.indexOf(topSite),
+        with(state) {
+            when (this) {
+                is HomepageState.Private -> {
+                    if (feltPrivateBrowsingEnabled) {
+                        FeltPrivacyModeInfoCard(
+                            onLearnMoreClick = privateBrowsingInteractor::onLearnMoreClicked,
                         )
-                    },
-                    onTopSiteLongClick = interactor::onTopSiteLongClicked,
-                    onOpenInPrivateTabClicked = interactor::onOpenInPrivateTabClicked,
-                    onEditTopSiteClicked = interactor::onEditTopSiteClicked,
-                    onRemoveTopSiteClicked = interactor::onRemoveTopSiteClicked,
-                    onSettingsClicked = interactor::onSettingsClicked,
-                    onSponsorPrivacyClicked = interactor::onSponsorPrivacyClicked,
-                    onTopSitesItemBound = onTopSitesItemBound,
-                )
-            }
+                    } else {
+                        PrivateBrowsingDescription(
+                            onLearnMoreClick = privateBrowsingInteractor::onLearnMoreClicked,
+                        )
+                    }
+                }
 
-            val showRecentTabs = appStore.state.shouldShowRecentTabs(settings)
-            if (showRecentTabs) {
-                RecentTabsSection(
-                    interactor = interactor,
-                    wallpaperState = wallpaperState,
-                )
+                is HomepageState.Normal -> {
+                    if (showTopSites) {
+                        TopSites(
+                            topSites = topSites,
+                            topSiteColors = topSiteColors,
+                            interactor = topSiteInteractor,
+                            onTopSitesItemBound = onTopSitesItemBound,
+                        )
+                    }
+
+                    if (showRecentTabs) {
+                        RecentTabsSection(
+                            interactor = recentTabInteractor,
+                            itemCardBackgroundColor = cardBackgroundColor,
+                            recentTabs = recentTabs,
+                        )
+                    }
+                }
             }
         }
     }
@@ -100,31 +103,77 @@ fun Homepage(
 @Composable
 private fun RecentTabsSection(
     interactor: RecentTabInteractor,
-    wallpaperState: WallpaperState,
+    itemCardBackgroundColor: Color,
+    recentTabs: List<RecentTab>,
 ) {
-    val recentTabs = components.appStore.observeAsComposableState { state -> state.recentTabs }
-
     Spacer(modifier = Modifier.height(40.dp))
 
     HomeSectionHeader(
         headerText = stringResource(R.string.recent_tabs_header),
         description = stringResource(R.string.recent_tabs_show_all_content_description_2),
-        onShowAllClick = {
-            interactor.onRecentTabShowAllClicked()
-        },
+        onShowAllClick = interactor::onRecentTabShowAllClicked,
     )
 
     Spacer(Modifier.height(16.dp))
 
     RecentTabs(
-        recentTabs = recentTabs.value ?: emptyList(),
-        backgroundColor = wallpaperState.wallpaperCardColor,
-        onRecentTabClick = { interactor.onRecentTabClicked(it) },
+        recentTabs = recentTabs,
+        backgroundColor = itemCardBackgroundColor,
+        onRecentTabClick = { tab -> interactor.onRecentTabClicked(tab) },
         menuItems = listOf(
             RecentTabMenuItem(
                 title = stringResource(id = R.string.recent_tab_menu_item_remove),
-                onClick = { tab -> interactor.onRemoveRecentTab(tab) },
+                onClick = interactor::onRemoveRecentTab,
             ),
         ),
     )
+}
+
+@Composable
+@LightDarkPreview
+private fun HomepagePreview() {
+    FirefoxTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = FirefoxTheme.colors.layer1),
+        ) {
+            Homepage(
+                HomepageState.Normal(
+                    showTopSites = true,
+                    topSiteColors = TopSiteColors.colors(),
+                    topSites = FakeHomepagePreview.topSites(),
+                    showRecentTabs = true,
+                    recentTabs = FakeHomepagePreview.recentTabs(),
+                    cardBackgroundColor = WallpaperState.default.wallpaperCardColor,
+                ),
+                topSiteInteractor = FakeHomepagePreview.topSitesInteractor,
+                privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,
+                recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
+                onTopSitesItemBound = {},
+            )
+        }
+    }
+}
+
+@Composable
+@LightDarkPreview
+private fun PrivateHomepagePreview() {
+    FirefoxTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = FirefoxTheme.colors.layer1),
+        ) {
+            Homepage(
+                HomepageState.Private(
+                    feltPrivateBrowsingEnabled = false,
+                ),
+                topSiteInteractor = FakeHomepagePreview.topSitesInteractor,
+                privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,
+                recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
+                onTopSitesItemBound = {},
+            )
+        }
+    }
 }
