@@ -109,14 +109,21 @@
          noautofocus="true"
          hidden="true" />
 
-  <panel id="searchmode-switcher-popup" noautofocus="true" orient="vertical" type="arrow">
+  <panel id="searchmode-switcher-popup"
+         class="panel-no-padding"
+         orient="vertical"
+         type="autocomplete-richlistbox"
+         role="menu"
+         aria-labelledby="searchmode-switcher-popup-description">
     <label data-l10n-id="urlbar-searchmode-popup-description" id="searchmode-switcher-popup-description" />
     <toolbarseparator />
     <vbox class="panel-subview-body"></vbox>
     <toolbarseparator />
-    <toolbarbutton oncommand="window.openPreferences('paneSearch');"
-                   class="subviewbutton subviewbutton-iconic"
-                   id="searchmode-switcher-popup-search-settings-button">
+    <toolbarbutton class="subviewbutton subviewbutton-iconic panel-subview-footer-button"
+                   data-action="openpreferences"
+                   id="searchmode-switcher-popup-search-settings-button"
+                   role="button"
+                   tabindex="0">
       <image id="searchmode-switcher-popup-search-settings-icon" />
       <label data-l10n-id="urlbar-searchmode-popup-search-settings" />
     </toolbarbutton>

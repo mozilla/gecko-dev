@@ -398,23 +398,19 @@ urlbar-firefox-suggest-contextual-opt-in-dismiss = Not now
 
 ## Searchmode Switcher button
 
+# Variables:
+#   $engine (String): the current default search engine.
 urlbar-searchmode-button =
-    .label = Pick a Search Engine
-    .tooltiptext = Pick a Search Engine
+    .label = { $engine }, Pick a Search Engine
+    .tooltiptext = { $engine }, Pick a Search Engine
 urlbar-searchmode-dropmarker =
     .tooltiptext = Pick a Search Engine
-# Variables:
-#   $restrict (Character): the character used to filter results of type.
 urlbar-searchmode-bookmarks =
-    .label = Bookmarks ({ $restrict })
-# Variables:
-#   $restrict (Character): the character used to filter results of type.
+    .label = Bookmarks
 urlbar-searchmode-tabs =
-    .label = Tabs ({ $restrict })
-# Variables:
-#   $restrict (Character): the character used to filter results of type.
+    .label = Tabs
 urlbar-searchmode-history =
-    .label = History ({ $restrict })
+    .label = History
 
 urlbar-searchmode-popup-description = This time search with:
 urlbar-searchmode-popup-search-settings = Search Settings
