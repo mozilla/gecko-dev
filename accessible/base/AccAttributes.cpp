@@ -92,6 +92,25 @@ void AccAttributes::StringFromValueAndName(nsAtom* aAttrName,
               "Hmm, should we have used a DeleteEntry() for this instead?");
           aValueString.Append(u"[ ]");
         }
+      },
+      [&aValueString](const nsTArray<TextOffsetAttribute>& val) {
+        if (const size_t len = val.Length()) {
+          for (size_t i = 0; i < len - 1; i++) {
+            aValueString.AppendPrintf("(%d, %d, ", val[i].mStartOffset,
+                                      val[i].mEndOffset);
+            aValueString.Append(nsAtomString(val[i].mAttribute));
+            aValueString.Append(u"), ");
+          }
+          aValueString.AppendPrintf("(%d, %d, ", val[len - 1].mStartOffset,
+                                    val[len - 1].mEndOffset);
+          aValueString.Append(nsAtomString(val[len - 1].mAttribute));
+          aValueString += ')';
+        } else {
+          // The array is empty
+          NS_WARNING(
+              "Hmm, should we have used a DeleteEntry() for this instead?");
+          aValueString.Append(u"[ ]");
+        }
       });
 }
 
@@ -190,6 +209,11 @@ void AccAttributes::CopyTo(AccAttributes* aDest) const {
               "Trying to copy an AccAttributes containing a matrix");
         },
         [](const nsTArray<uint64_t>& val) {
+          // We don't copy arrays.
+          MOZ_ASSERT_UNREACHABLE(
+              "Trying to copy an AccAttributes containing an array");
+        },
+        [](const nsTArray<TextOffsetAttribute>& val) {
           // We don't copy arrays.
           MOZ_ASSERT_UNREACHABLE(
               "Trying to copy an AccAttributes containing an array");

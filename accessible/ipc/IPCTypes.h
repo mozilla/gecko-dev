@@ -99,6 +99,23 @@ struct ParamTraits<mozilla::a11y::Color> {
 };
 
 template <>
+struct ParamTraits<mozilla::a11y::TextOffsetAttribute> {
+  typedef mozilla::a11y::TextOffsetAttribute paramType;
+
+  static void Write(MessageWriter* aWriter, const paramType& aParam) {
+    WriteParam(aWriter, aParam.mStartOffset);
+    WriteParam(aWriter, aParam.mEndOffset);
+    WriteParam(aWriter, aParam.mAttribute);
+  }
+
+  static bool Read(MessageReader* aReader, paramType* aResult) {
+    return ReadParam(aReader, &(aResult->mStartOffset)) &&
+           ReadParam(aReader, &(aResult->mEndOffset)) &&
+           ReadParam(aReader, &(aResult->mAttribute));
+  }
+};
+
+template <>
 struct ParamTraits<mozilla::a11y::AccAttributes*> {
   typedef mozilla::a11y::AccAttributes paramType;
 
