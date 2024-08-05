@@ -1440,6 +1440,29 @@ impl ClipStore {
         Some(inner_rect)
     }
 
+    // Directly construct a clip node range, ready for rendering, from an interned clip handle.
+    // Typically useful for drawing specific clips on custom pattern / child render tasks that
+    // aren't primitives.
+    // TODO(gw): For now, we assume they are local clips only - in future we might want to support
+    //           non-local clips.
+    pub fn push_clip_instance(
+        &mut self,
+        handle: ClipDataHandle,
+    ) -> ClipNodeRange {
+        let first = self.clip_node_instances.len() as u32;
+
+        self.clip_node_instances.push(ClipNodeInstance {
+            handle,
+            flags: ClipNodeFlags::SAME_COORD_SYSTEM | ClipNodeFlags::SAME_SPATIAL_NODE,
+            visible_tiles: None,
+        });
+
+        ClipNodeRange {
+            first,
+            count: 1,
+        }
+    }
+
     /// The main interface external code uses. Given a local primitive, positioning
     /// information, and a clip chain id, build an optimized clip chain instance.
     pub fn build_clip_chain_instance(

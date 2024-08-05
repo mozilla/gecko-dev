@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::ColorF;
+use api::{units::DeviceRect, ColorF};
 
-use crate::{render_task_graph::RenderTaskId, renderer::GpuBufferBuilder, scene::SceneProperties};
+use crate::{clip::ClipStore, render_task_graph::{RenderTaskGraphBuilder, RenderTaskId}, renderer::GpuBufferBuilder, scene::SceneProperties, spatial_tree::SpatialTree};
 
 #[repr(u32)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -57,22 +57,48 @@ impl Default for PatternTextureInput {
     }
 }
 
+impl PatternTextureInput {
+    pub fn new(task_id: RenderTaskId) -> Self {
+        PatternTextureInput {
+            task_id,
+        }
+    }
+}
+
 pub struct PatternBuilderContext<'a> {
     pub scene_properties: &'a SceneProperties,
+    pub spatial_tree: &'a SpatialTree,
 }
 
 pub struct PatternBuilderState<'a> {
     pub frame_gpu_data: &'a mut GpuBufferBuilder,
+    pub rg_builder: &'a mut RenderTaskGraphBuilder,
+    pub clip_store: &'a mut ClipStore,
 }
 
 pub trait PatternBuilder {
     fn build(
         &self,
+        _sub_rect: Option<DeviceRect>,
         _ctx: &PatternBuilderContext,
         _state: &mut PatternBuilderState,
     ) -> Pattern;
+
+    fn get_base_color(
+        &self,
+        _ctx: &PatternBuilderContext,
+    ) -> ColorF;
+
+    fn use_shared_pattern(
+        &self,
+    ) -> bool;
+
+    fn can_use_nine_patch(&self) -> bool {
+        true
+    }
 }
 
+#[cfg_attr(feature = "capture", derive(Serialize))]
 #[derive(Clone, Debug)]
 pub struct Pattern {
     pub kind: PatternKind,
@@ -83,6 +109,18 @@ pub struct Pattern {
 }
 
 impl Pattern {
+    pub fn texture(task_id: RenderTaskId, color: ColorF) -> Self {
+        Pattern {
+            kind: PatternKind::ColorOrTexture,
+            shader_input: PatternShaderInput::default(),
+            texture_input: PatternTextureInput::new(task_id),
+            base_color: color,
+            // TODO(gw): We may want to add support to render tasks to query
+            //           if they are known to be opaque.
+            is_opaque: false,
+        }
+    }
+
     pub fn color(color: ColorF) -> Self {
         Pattern {
             kind: PatternKind::ColorOrTexture,

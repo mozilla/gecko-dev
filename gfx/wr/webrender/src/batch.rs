@@ -829,7 +829,7 @@ impl BatchBuilder {
             PrimitiveCommand::Instance { prim_instance_index, gpu_buffer_address } => {
                 (prim_instance_index, Some(gpu_buffer_address.as_int()))
             }
-            PrimitiveCommand::Quad { pattern, pattern_input, prim_instance_index, gpu_buffer_address, quad_flags, edge_flags, transform_id } => {
+            PrimitiveCommand::Quad { pattern, pattern_input, prim_instance_index, gpu_buffer_address, quad_flags, edge_flags, transform_id, src_color_task_id } => {
                 let prim_instance = &prim_instances[prim_instance_index.0 as usize];
                 let prim_info = &prim_instance.vis;
                 let bounding_rect = &prim_info.clip_chain.pic_coverage_rect;
@@ -837,10 +837,6 @@ impl BatchBuilder {
 
                 if segments.is_empty() {
                     let z_id = z_generator.next();
-                    // TODO: Some pattern types will sample from render tasks.
-                    // At the moment quads only use a render task as source for
-                    // segments which have been pre-rendered and masked.
-                    let src_color_task_id = RenderTaskId::INVALID;
 
                     quad::add_to_batch(
                         *pattern,
@@ -851,7 +847,7 @@ impl BatchBuilder {
                         *quad_flags,
                         *edge_flags,
                         INVALID_SEGMENT_INDEX as u8,
-                        src_color_task_id,
+                        *src_color_task_id,
                         z_id,
                         render_tasks,
                         gpu_buffer_builder,
