@@ -28,13 +28,15 @@ class FenixSnackbarBehavior<V : View>(
 ) : CoordinatorLayout.Behavior<V>(context, null) {
 
     // Priority list of possible anchors for the snackbar.
-    private val dependenciesIds = listOf(
-        R.id.startDownloadDialogContainer,
-        R.id.viewDynamicDownloadDialog,
-        R.id.toolbar_navbar_container,
-        R.id.toolbarLayout, // old homescreen address bar is still used in tests
-        R.id.toolbar,
-    )
+    private val dependenciesIds = buildList {
+        add(R.id.startDownloadDialogContainer)
+        add(R.id.viewDynamicDownloadDialog)
+        add(R.id.toolbar_navbar_container)
+        if (toolbarPosition == ToolbarPosition.BOTTOM) {
+            add(R.id.toolbarLayout)
+            add(R.id.toolbar)
+        }
+    }
 
     private var currentAnchorId: Int? = View.NO_ID
 
@@ -64,7 +66,7 @@ class FenixSnackbarBehavior<V : View>(
         val params = snackbar.layoutParams as CoordinatorLayout.LayoutParams
 
         snackbar.post {
-            if (dependency == null || (dependency.id == R.id.toolbar && toolbarPosition == ToolbarPosition.TOP)) {
+            if (dependency == null) {
                 // Position the snackbar at the bottom of the screen.
                 params.anchorId = View.NO_ID
                 params.anchorGravity = Gravity.NO_GRAVITY
