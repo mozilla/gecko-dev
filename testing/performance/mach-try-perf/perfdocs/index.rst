@@ -128,6 +128,45 @@ To use mach try perf simply call ``./mach try perf``. This will open an interfac
 
 Select the categories you'd like to run, hit enter, and wait for the tool to finish the pushes. **Note that it can take some time to do both pushes, and you might not see logging for some time.**
 
+
+Retrigger
+---------
+After the push is done, you will receive a Treeherder link that you can open to view your push. Access the Treeherder link to see all your tests.
+
+To launch a retrigger, first select the task that you want to retrigger:
+
+ .. image:: ./th_select_task.png
+    :width: 300
+
+
+Then, click the rotating arrow icon in the task action bar, or press 'r' on your keyboard:
+
+ .. image:: ./th_retrigger.png
+    :width: 300
+
+
+Additionally, you can add the flag ``--rebuild=2-20`` to the try perf command to specify how many times you want to run the tests. If you want to learn more about retriggering please `visit this page <../treeherder-try/index.html#retrigger-r>`__.
+
+
+Add new jobs (mass retriggers)
+------------------------------
+
+The add new job function can be used to retrigger many tasks multiple times. To add a new job, follow these steps:
+ * Navigate to the push you want to add jobs on Treeherder.
+ * Click on the arrow drop-down on the top right of the push.
+ * Select the ``Custom push action`` from the menu.
+
+ .. image:: ./th_custom_push_action.png
+    :width: 500
+
+You can copy the values from the ``target-tasks.json`` file from your ``Decision`` task and paste them into the ``task`` option. This method is useful for mass retriggers if needed.
+After you have pasted the json values, press the ``Trigger`` button.
+
+ .. image:: ./th_custom_job_action.png
+    :width: 500
+
+Ideally, you should be able to use compare view to be more specific in the retriggers you do for tasks/tests that show a difference that they want to double-check.
+
 .. _Running Alert Tests:
 
 Running Alert Tests
