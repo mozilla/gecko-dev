@@ -9,13 +9,12 @@
 #include "nsISelectionListener.h"
 #include "mozilla/WeakPtr.h"
 
-class nsRange;
-
 namespace mozilla {
 
 class PresShell;
 
 namespace dom {
+class AbstractRange;
 class Element;
 class Selection;
 }  // namespace dom
@@ -115,7 +114,7 @@ class SelectionManager : public nsISelectionListener {
    * to unnecessarily push a cache update for all Accessibles in the entire
    * selection.
    */
-  void SpellCheckRangeChanged(const nsRange& aRange);
+  void SpellCheckRangeChanged(const dom::AbstractRange& aRange);
 
   ~SelectionManager();
 

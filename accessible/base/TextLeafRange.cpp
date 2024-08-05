@@ -14,6 +14,7 @@
 #include "mozilla/a11y/LocalAccessible.h"
 #include "mozilla/BinarySearch.h"
 #include "mozilla/Casting.h"
+#include "mozilla/dom/AbstractRange.h"
 #include "mozilla/dom/CharacterData.h"
 #include "mozilla/dom/HTMLInputElement.h"
 #include "mozilla/PresShell.h"
@@ -27,7 +28,6 @@
 #include "nsIAccessiblePivot.h"
 #include "nsILineIterator.h"
 #include "nsINode.h"
-#include "nsRange.h"
 #include "nsStyleStructInlines.h"
 #include "nsTArray.h"
 #include "nsTextFrame.h"
@@ -444,10 +444,9 @@ class BlockRule : public PivotRule {
  * offsets. See the documentation for dom::Selection::GetRangesForIntervalArray
  * for information about the aAllowAdjacent argument.
  */
-static nsTArray<nsRange*> FindDOMSpellingErrors(LocalAccessible* aAcc,
-                                                int32_t aRenderedStart,
-                                                int32_t aRenderedEnd,
-                                                bool aAllowAdjacent = false) {
+static nsTArray<dom::AbstractRange*> FindDOMSpellingErrors(
+    LocalAccessible* aAcc, int32_t aRenderedStart, int32_t aRenderedEnd,
+    bool aAllowAdjacent = false) {
   if (!aAcc->IsTextLeaf() || !aAcc->HasOwnContent()) {
     return {};
   }
@@ -465,9 +464,9 @@ static nsTArray<nsRange*> FindDOMSpellingErrors(LocalAccessible* aAcc,
       aRenderedEnd == nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT
           ? dom::CharacterData::FromNode(node)->TextLength()
           : RenderedToContentOffset(aAcc, aRenderedEnd);
-  nsTArray<nsRange*> domRanges;
-  domSel->GetDynamicRangesForIntervalArray(node, contentStart, node, contentEnd,
-                                           aAllowAdjacent, &domRanges);
+  nsTArray<dom::AbstractRange*> domRanges;
+  domSel->GetAbstractRangesForIntervalArray(
+      node, contentStart, node, contentEnd, aAllowAdjacent, &domRanges);
   return domRanges;
 }
 
@@ -1513,7 +1512,7 @@ TextLeafPoint TextLeafPoint::FindSpellingErrorSameAcc(
                                     /* aAllowAdjacent */ true);
     nsINode* node = acc->GetNode();
     if (aDirection == eDirNext) {
-      for (nsRange* domRange : domRanges) {
+      for (dom::AbstractRange* domRange : domRanges) {
         if (domRange->GetStartContainer() == node) {
           int32_t matchOffset = static_cast<int32_t>(ContentToRenderedOffset(
               acc, static_cast<int32_t>(domRange->StartOffset())));
@@ -1532,7 +1531,7 @@ TextLeafPoint TextLeafPoint::FindSpellingErrorSameAcc(
         }
       }
     } else {
-      for (nsRange* domRange : Reversed(domRanges)) {
+      for (dom::AbstractRange* domRange : Reversed(domRanges)) {
         if (domRange->GetEndContainer() == node) {
           int32_t matchOffset = static_cast<int32_t>(ContentToRenderedOffset(
               acc, static_cast<int32_t>(domRange->EndOffset())));
@@ -1672,7 +1671,7 @@ nsTArray<int32_t> TextLeafPoint::GetSpellingErrorOffsets(
   // start, one for the end. That is, the array is of the form:
   // [r1start, r1end, r2start, r2end, ...]
   nsTArray<int32_t> offsets(domRanges.Length() * 2);
-  for (nsRange* domRange : domRanges) {
+  for (dom::AbstractRange* domRange : domRanges) {
     if (domRange->GetStartContainer() == node) {
       offsets.AppendElement(static_cast<int32_t>(ContentToRenderedOffset(
           aAcc, static_cast<int32_t>(domRange->StartOffset()))));
@@ -1699,8 +1698,8 @@ nsTArray<int32_t> TextLeafPoint::GetSpellingErrorOffsets(
 }
 
 /* static */
-void TextLeafPoint::UpdateCachedSpellingError(dom::Document* aDocument,
-                                              const nsRange& aRange) {
+void TextLeafPoint::UpdateCachedSpellingError(
+    dom::Document* aDocument, const dom::AbstractRange& aRange) {
   DocAccessible* docAcc = GetExistingDocAccessible(aDocument);
   if (!docAcc) {
     return;
