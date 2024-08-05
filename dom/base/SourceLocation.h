@@ -40,6 +40,22 @@ struct JSCallingLocation : SourceLocation {
 
   static JSCallingLocation Get();
   static JSCallingLocation Get(JSContext*);
+
+  class MOZ_STACK_CLASS AutoFallback {
+   public:
+    explicit AutoFallback(const JSCallingLocation* aFallback)
+        : mOldFallback(GetFallback()) {
+      SetFallback(aFallback);
+    }
+    ~AutoFallback() { SetFallback(mOldFallback); }
+
+   private:
+    const JSCallingLocation* mOldFallback;
+  };
+
+ private:
+  static const JSCallingLocation* GetFallback();
+  static void SetFallback(const JSCallingLocation*);
 };
 
 }  // namespace mozilla
