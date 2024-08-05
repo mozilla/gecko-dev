@@ -17,8 +17,6 @@ import mozilla.components.ui.widgets.behavior.EngineViewScrollingBehavior
 import mozilla.components.ui.widgets.behavior.ViewPosition
 import org.mozilla.fenix.R
 
-// TODO the gecko view/engine view height needs changing behind based on this bottom toolbar height FXDROID-2057.
-
 /**
  *  A helper class to add a bottom toolbar container view to the given [parent].
  *

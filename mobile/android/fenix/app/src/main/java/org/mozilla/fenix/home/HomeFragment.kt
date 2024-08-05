@@ -16,6 +16,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
+import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,8 +39,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getColor
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -556,7 +557,7 @@ class HomeFragment : Fragment() {
                 toolbarView = binding.toolbarLayout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
                 reinitializeNavBar = ::reinitializeNavBar,
-                reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt(requireContext()) },
+                reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt() },
             )
             toolbarView?.updateButtonVisibility()
         }
@@ -566,7 +567,7 @@ class HomeFragment : Fragment() {
             updateMicrosurveyPromptForConfigurationChange(
                 parent = binding.homeLayout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
-                reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt(requireContext()) },
+                reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt() },
             )
         }
 
@@ -615,6 +616,8 @@ class HomeFragment : Fragment() {
             content = {
                 FirefoxTheme {
                     Column {
+                        Divider()
+
                         if (!activity.isMicrosurveyPromptDismissed.value &&
                             !context.settings().shouldShowNavigationBarCFR
                         ) {
@@ -622,6 +625,10 @@ class HomeFragment : Fragment() {
                                 if (it == null) {
                                     binding.bottomBarShadow.visibility = View.VISIBLE
                                 } else {
+                                    if (isToolbarAtBottom) {
+                                        updateToolbarViewUIForMicrosurveyPrompt()
+                                    }
+
                                     MicrosurveyRequestPrompt(
                                         microsurvey = it,
                                         activity = activity,
@@ -639,10 +646,12 @@ class HomeFragment : Fragment() {
                                                 MicrosurveyAction.Dismissed(it.id),
                                             )
                                             context.settings().shouldShowMicrosurveyPrompt = false
+                                            activity.isMicrosurveyPromptDismissed.value = true
+
+                                            resetToolbarViewUI()
+                                            reinitializeNavBar()
                                         },
                                     )
-
-                                    binding.bottomBarShadow.visibility = View.GONE
                                 }
                             }
                         }
@@ -791,7 +800,9 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun initializeMicrosurveyPrompt(context: Context) {
+    private fun initializeMicrosurveyPrompt() {
+        val context = requireContext()
+
         val isToolbarAtTheBottom = context.isToolbarAtBottom()
         // The toolbar view has already been added directly to the container.
         // See initializeNavBar for more details on improving this.
@@ -805,8 +816,9 @@ class HomeFragment : Fragment() {
             content = {
                 FirefoxTheme {
                     Column {
-                        val activity = requireActivity() as HomeActivity
+                        Divider()
 
+                        val activity = requireActivity() as HomeActivity
                         val shouldShowNavBarCFR =
                             context.shouldAddNavigationBar() && context.settings().shouldShowNavigationBarCFR
 
@@ -815,6 +827,10 @@ class HomeFragment : Fragment() {
                                 if (it == null) {
                                     binding.bottomBarShadow.visibility = View.VISIBLE
                                 } else {
+                                    if (isToolbarAtTheBottom) {
+                                        updateToolbarViewUIForMicrosurveyPrompt()
+                                    }
+
                                     MicrosurveyRequestPrompt(
                                         microsurvey = it,
                                         activity = activity,
@@ -830,10 +846,12 @@ class HomeFragment : Fragment() {
                                                 MicrosurveyAction.Dismissed(it.id),
                                             )
                                             context.settings().shouldShowMicrosurveyPrompt = false
+                                            activity.isMicrosurveyPromptDismissed.value = true
+
+                                            resetToolbarViewUI()
+                                            initializeMicrosurveyPrompt()
                                         },
                                     )
-
-                                    binding.bottomBarShadow.visibility = View.GONE
                                 }
                             }
                         }
@@ -848,6 +866,28 @@ class HomeFragment : Fragment() {
             },
         )
     }
+
+    private fun updateToolbarViewUIForMicrosurveyPrompt() {
+        updateToolbarViewUI(R.drawable.home_bottom_bar_background_no_divider, View.GONE, 0.0f)
+    }
+
+    private fun resetToolbarViewUI() {
+        _binding?.homeLayout?.removeView(bottomToolbarContainerView.toolbarContainerView)
+        updateToolbarViewUI(
+            R.drawable.home_bottom_bar_background,
+            View.VISIBLE,
+            requireContext().resources.getDimension(R.dimen.browser_fragment_toolbar_elevation),
+        )
+    }
+
+    private fun updateToolbarViewUI(@DrawableRes id: Int, visibility: Int, elevation: Float) {
+        _binding?.bottomBar?.background = compatDrawableFor(id)
+        _binding?.bottomBarShadow?.visibility = visibility
+        _binding?.toolbarLayout?.elevation = elevation
+    }
+
+    private fun compatDrawableFor(@DrawableRes id: Int) =
+        ResourcesCompat.getDrawable(resources, id, null)
 
     private var currentMicrosurvey: MicrosurveyUIData? = null
 
@@ -868,7 +908,7 @@ class HomeFragment : Fragment() {
                             }
                             reinitializeNavBar()
                         } else {
-                            initializeMicrosurveyPrompt(requireContext())
+                            initializeMicrosurveyPrompt()
                         }
                     }
                 }
@@ -1315,12 +1355,7 @@ class HomeFragment : Fragment() {
         super.onPause()
         if (browsingModeManager.mode == BrowsingMode.Private) {
             activity?.window?.setBackgroundDrawable(
-                ColorDrawable(
-                    ContextCompat.getColor(
-                        requireContext(),
-                        R.color.fx_mobile_private_layer_color_1,
-                    ),
-                ),
+                ColorDrawable(getColor(requireContext(), R.color.fx_mobile_private_layer_color_1)),
             )
         }
 
