@@ -24,20 +24,26 @@ add_task(async function test_no_shortcuts() {
 add_task(async function test_show_shortcuts() {
   Services.fog.testResetFOG();
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.ml.chat.shortcuts", true],
-      ["browser.ml.chat.shortcutsDebounce", 0],
-    ],
+    set: [["browser.ml.chat.shortcuts", true]],
   });
   await BrowserTestUtils.withNewTab("data:text/plain,hi", async browser => {
     await SimpleTest.promiseFocus(browser);
+    const selectPromise = SpecialPowers.spawn(browser, [], () => {
+      ContentTaskUtils.waitForCondition(() => content.getSelection());
+    });
     goDoCommand("cmd_selectAll");
+    await selectPromise;
+    BrowserTestUtils.synthesizeMouseAtCenter(
+      browser,
+      { type: "mouseup" },
+      browser
+    );
     const shortcuts = await TestUtils.waitForCondition(() =>
       document.querySelector(".content-shortcuts[shown]")
     );
     Assert.ok(shortcuts, "Shortcuts added on select");
     let events = Glean.genaiChatbot.shortcutsDisplayed.testGetValue();
-    Assert.ok(events.length, "Shortcuts shown");
+    Assert.equal(events.length, 1, "Shortcuts shown once");
     Assert.equal(events[0].extra.selection, 2, "Selected hi");
 
     const popup = document.getElementById("ask-chat-shortcuts");
