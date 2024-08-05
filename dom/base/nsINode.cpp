@@ -366,7 +366,7 @@ bool nsINode::IsSelected(const uint32_t aStartOffset,
                "Selection is for sure not selected.");
 
   // Collect the selection objects for potential ranges.
-  nsTHashSet<Selection*> ancestorSelections;
+  AutoTArray<Selection*, 1> ancestorSelections;
   for (; n; n = GetClosestCommonInclusiveAncestorForRangeInSelection(
                 n->GetParentNode())) {
     const LinkedList<AbstractRange>* ranges =
@@ -380,8 +380,8 @@ bool nsINode::IsSelected(const uint32_t aStartOffset,
       // Looks like that IsInSelection() assert fails sometimes...
       if (range->IsInAnySelection()) {
         for (const WeakPtr<Selection>& selection : range->GetSelections()) {
-          if (selection) {
-            ancestorSelections.Insert(selection);
+          if (selection && !ancestorSelections.Contains(selection)) {
+            ancestorSelections.AppendElement(selection);
           }
         }
       }
