@@ -29,14 +29,7 @@ rawPackets.set(`GET request`, {
   "cause": {
     "loadingDocumentUri": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
     "type": "img",
-    "stacktraceAvailable": true,
-    "lastFrame": {
-      "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
-      "lineNumber": 3,
-      "columnNumber": 1,
-      "functionName": "triggerPacket",
-      "asyncCause": null
-    }
+    "stacktraceAvailable": false
   },
   "httpVersion": "HTTP/1.1",
   "status": "404",
@@ -68,14 +61,7 @@ rawPackets.set(`GET request update`, {
   "cause": {
     "loadingDocumentUri": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
     "type": "img",
-    "stacktraceAvailable": true,
-    "lastFrame": {
-      "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
-      "lineNumber": 3,
-      "columnNumber": 1,
-      "functionName": "triggerPacket",
-      "asyncCause": null
-    }
+    "stacktraceAvailable": false
   },
   "httpVersion": "HTTP/1.1",
   "status": "404",

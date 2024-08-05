@@ -105,7 +105,6 @@ nsImageLoadingContent::nsImageLoadingContent()
       mRequestGeneration(0),
       mLoadingEnabled(true),
       mLoading(false),
-      mNewRequestsWillNeedAnimationReset(false),
       mUseUrgentStartForChannel(false),
       mLazyLoading(false),
       mStateChangerDepth(0),
@@ -971,7 +970,6 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
   if (NS_SUCCEEDED(rv)) {
     CloneScriptedRequests(req);
     TrackImage(req);
-    ResetAnimationIfNeeded();
     return NS_OK;
   }
 
@@ -1167,7 +1165,6 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
 
     CloneScriptedRequests(req);
     TrackImage(req);
-    ResetAnimationIfNeeded();
 
     // Handle cases when we just ended up with a request but it's already done.
     // In that situation we have to synchronously switch that request to being
@@ -1483,10 +1480,6 @@ RefPtr<imgRequestProxy>& nsImageLoadingContent::PrepareCurrentRequest(
   // Get rid of anything that was there previously.
   ClearCurrentRequest(NS_BINDING_ABORTED, Some(OnNonvisible::DiscardImages));
 
-  if (mNewRequestsWillNeedAnimationReset) {
-    mCurrentRequestFlags |= REQUEST_NEEDS_ANIMATION_RESET;
-  }
-
   if (aImageLoadType == eImageLoadType_Imageset) {
     mCurrentRequestFlags |= REQUEST_IS_IMAGESET;
   }
@@ -1499,10 +1492,6 @@ RefPtr<imgRequestProxy>& nsImageLoadingContent::PreparePendingRequest(
     ImageLoadType aImageLoadType) {
   // Get rid of anything that was there previously.
   ClearPendingRequest(NS_BINDING_ABORTED, Some(OnNonvisible::DiscardImages));
-
-  if (mNewRequestsWillNeedAnimationReset) {
-    mPendingRequestFlags |= REQUEST_NEEDS_ANIMATION_RESET;
-  }
 
   if (aImageLoadType == eImageLoadType_Imageset) {
     mPendingRequestFlags |= REQUEST_IS_IMAGESET;
@@ -1562,7 +1551,6 @@ void nsImageLoadingContent::MakePendingRequestCurrent() {
   mPendingRequestFlags = 0;
   mCurrentRequestRegistered = mPendingRequestRegistered;
   mPendingRequestRegistered = false;
-  ResetAnimationIfNeeded();
 }
 
 void nsImageLoadingContent::ClearCurrentRequest(
@@ -1604,16 +1592,6 @@ void nsImageLoadingContent::ClearPendingRequest(
   mPendingRequest->CancelAndForgetObserver(aReason);
   mPendingRequest = nullptr;
   mPendingRequestFlags = 0;
-}
-
-void nsImageLoadingContent::ResetAnimationIfNeeded() {
-  if (mCurrentRequest &&
-      (mCurrentRequestFlags & REQUEST_NEEDS_ANIMATION_RESET)) {
-    nsCOMPtr<imgIContainer> container;
-    mCurrentRequest->GetImage(getter_AddRefs(container));
-    if (container) container->ResetAnimation();
-    mCurrentRequestFlags &= ~REQUEST_NEEDS_ANIMATION_RESET;
-  }
 }
 
 bool nsImageLoadingContent::HaveSize(imgIRequest* aImage) {

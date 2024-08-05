@@ -158,8 +158,6 @@ add_task(async function block_pending_request_test() {
 
     let img = content.document.createElement("img");
     img.src = "https://example.com/tests/image/test/mochitest/shaver.png";
-
-    let req = img.getRequest(Ci.nsIImageLoadingContent.CURRENT_REQUEST);
     img.addObserver(observer);
 
     content.document.body.appendChild(img);
@@ -169,6 +167,7 @@ add_task(async function block_pending_request_test() {
     info("Size Available now!");
     img.removeObserver(observer);
 
+    let req = img.getRequest(Ci.nsIImageLoadingContent.CURRENT_REQUEST);
     // Now we change to load from http:// site, which will be blocked.
     img.src = "http://example.com/tests/image/test/mochitest/shaver.png";
 

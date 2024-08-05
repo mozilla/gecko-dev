@@ -32,14 +32,14 @@ void HTMLPictureElement::RemoveChildNode(nsIContent* aKid, bool aNotify) {
   MOZ_ASSERT(aKid);
 
   if (auto* img = HTMLImageElement::FromNode(aKid)) {
-    img->PictureSourceRemoved();
+    img->PictureSourceRemoved(aNotify);
   } else if (auto* source = HTMLSourceElement::FromNode(aKid)) {
     // Find all img siblings after this <source> to notify them of its demise
     nsCOMPtr<nsIContent> nextSibling = source->GetNextSibling();
     if (nextSibling && nextSibling->GetParentNode() == this) {
       do {
         if (auto* img = HTMLImageElement::FromNode(nextSibling)) {
-          img->PictureSourceRemoved(source);
+          img->PictureSourceRemoved(aNotify, source);
         }
       } while ((nextSibling = nextSibling->GetNextSibling()));
     }
@@ -57,14 +57,14 @@ void HTMLPictureElement::InsertChildBefore(nsIContent* aKid,
   }
 
   if (auto* img = HTMLImageElement::FromNode(aKid)) {
-    img->PictureSourceAdded();
+    img->PictureSourceAdded(aNotify);
   } else if (auto* source = HTMLSourceElement::FromNode(aKid)) {
     // Find all img siblings after this <source> to notify them of its insertion
     nsCOMPtr<nsIContent> nextSibling = source->GetNextSibling();
     if (nextSibling && nextSibling->GetParentNode() == this) {
       do {
         if (auto* img = HTMLImageElement::FromNode(nextSibling)) {
-          img->PictureSourceAdded(source);
+          img->PictureSourceAdded(aNotify, source);
         }
       } while ((nextSibling = nextSibling->GetNextSibling()));
     }

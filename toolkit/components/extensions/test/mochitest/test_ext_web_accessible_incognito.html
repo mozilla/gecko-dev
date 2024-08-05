@@ -146,10 +146,10 @@ add_task(async function test_web_accessible_resources_incognito() {
   await pb_extension.startup();
 
   consoleMonitor.start([
-    {message: /may not load or link to.*image.png/},
     {message: /may not load or link to.*test_script.js/},
     {message: /\<script\> source URI is not allowed in this document/},
     {message: /may not load or link to.*accessible.html/},
+    {message: /may not load or link to.*image.png/},
   ]);
 
   pb_extension.sendMessage("start", baseUrl);

@@ -425,13 +425,6 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
       const Maybe<OnNonvisible>& aNonvisibleAction = Nothing());
 
   /**
-   * Reset animation of the current request if
-   * |mNewRequestsWillNeedAnimationReset| was true when the request was
-   * prepared.
-   */
-  void ResetAnimationIfNeeded();
-
-  /**
    * Static helper method to tell us if we have the size of a request. The
    * image may be null.
    */
@@ -467,13 +460,11 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
   uint8_t mPendingRequestFlags = 0;
 
   enum {
-    // Set if the request needs ResetAnimation called on it.
-    REQUEST_NEEDS_ANIMATION_RESET = 1 << 0,
     // Set if the request is currently tracked with the document.
-    REQUEST_IS_TRACKED = 1 << 1,
+    REQUEST_IS_TRACKED = 1 << 0,
     // Set if this is an imageset request, such as from <img srcset> or
     // <picture>
-    REQUEST_IS_IMAGESET = 1 << 2,
+    REQUEST_IS_IMAGESET = 1 << 1,
   };
 
   // If the image was blocked or if there was an error loading, it's nice to
@@ -564,16 +555,6 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
    * document of a state change.  These are maintained by UpdateImageState.
    */
   bool mLoading : 1;
-
-  /**
-   * A hack to get animations to reset, see bug 594771. On requests
-   * that originate from setting .src, we mark them for needing their animation
-   * reset when they are ready. mNewRequestsWillNeedAnimationReset is set to
-   * true while preparing such requests (as a hack around needing to change an
-   * interface), and the other two booleans store which of the current
-   * and pending requests are of the sort that need their animation restarted.
-   */
-  bool mNewRequestsWillNeedAnimationReset : 1;
 
   /**
    * Flag to indicate whether the channel should be mark as urgent-start.
