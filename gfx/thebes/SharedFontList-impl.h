@@ -18,8 +18,8 @@
 // This is split out from SharedFontList.h because that header is included
 // quite widely (via gfxPlatformFontList.h, gfxTextRun.h, etc), and other code
 // such as the generated DOM bindings code gets upset at (indirect) inclusion
-// of <windows.h> via SharedMemoryBasic.h. So this header, which defines the
-// actual shared-memory FontList class, is included only by the .cpp files that
+// of <windows.h> via SharedMemory.h. So this header, which defines the actual
+// shared-memory FontList class, is included only by the .cpp files that
 // implement or directly interface with the font list, to avoid polluting other
 // headers.
 

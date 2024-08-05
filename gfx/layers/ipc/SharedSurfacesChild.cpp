@@ -220,7 +220,7 @@ nsresult SharedSurfacesChild::ShareInternal(SourceSurfaceSharedData* aSurface,
   // Attempt to share a handle with the GPU process. The handle may or may not
   // be available -- it will only be available if it is either not yet finalized
   // and/or if it has been finalized but never used for drawing in process.
-  ipc::SharedMemoryBasic::Handle handle = ipc::SharedMemoryBasic::NULLHandle();
+  ipc::SharedMemory::Handle handle = ipc::SharedMemory::NULLHandle();
   nsresult rv = aSurface->CloneHandle(handle);
   if (rv == NS_ERROR_NOT_AVAILABLE) {
     // It is at least as expensive to copy the image to the GPU process if we

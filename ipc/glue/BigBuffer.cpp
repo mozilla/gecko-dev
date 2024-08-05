@@ -6,14 +6,14 @@
 
 #include "mozilla/ipc/BigBuffer.h"
 
-#include "mozilla/ipc/SharedMemoryBasic.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "nsDebug.h"
 
 namespace mozilla::ipc {
 
 BigBuffer::BigBuffer(Adopt, SharedMemory* aSharedMemory, size_t aSize)
     : mSize(aSize), mData(AsVariant(RefPtr{aSharedMemory})) {
-  MOZ_RELEASE_ASSERT(aSharedMemory && aSharedMemory->memory(),
+  MOZ_RELEASE_ASSERT(aSharedMemory && aSharedMemory->Memory(),
                      "shared memory must be non-null and mapped");
   MOZ_RELEASE_ASSERT(mSize <= aSharedMemory->Size(),
                      "shared memory region isn't large enough");
@@ -24,12 +24,12 @@ BigBuffer::BigBuffer(Adopt, uint8_t* aData, size_t aSize)
 
 uint8_t* BigBuffer::Data() {
   return mData.is<0>() ? mData.as<0>().get()
-                       : reinterpret_cast<uint8_t*>(mData.as<1>()->memory());
+                       : reinterpret_cast<uint8_t*>(mData.as<1>()->Memory());
 }
 const uint8_t* BigBuffer::Data() const {
   return mData.is<0>()
              ? mData.as<0>().get()
-             : reinterpret_cast<const uint8_t*>(mData.as<1>()->memory());
+             : reinterpret_cast<const uint8_t*>(mData.as<1>()->Memory());
 }
 
 auto BigBuffer::TryAllocBuffer(size_t aSize) -> Maybe<Storage> {
@@ -40,7 +40,7 @@ auto BigBuffer::TryAllocBuffer(size_t aSize) -> Maybe<Storage> {
     return Some(AsVariant(std::move(mem)));
   }
 
-  RefPtr<SharedMemory> shmem = new SharedMemoryBasic();
+  RefPtr<SharedMemory> shmem = new SharedMemory();
   size_t capacity = SharedMemory::PageAlignedSize(aSize);
   if (!shmem->Create(capacity) || !shmem->Map(capacity)) {
     return {};
@@ -80,7 +80,7 @@ bool IPC::ParamTraits<mozilla::ipc::BigBuffer>::Read(MessageReader* aReader,
   }
 
   if (isShmem) {
-    RefPtr<SharedMemory> shmem = new SharedMemoryBasic();
+    RefPtr<SharedMemory> shmem = new SharedMemory();
     size_t capacity = SharedMemory::PageAlignedSize(size);
     if (!shmem->ReadHandle(aReader) || !shmem->Map(capacity)) {
       aReader->FatalError("Failed to read data shmem");

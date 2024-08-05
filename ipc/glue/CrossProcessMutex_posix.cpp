@@ -43,7 +43,7 @@ CrossProcessMutex::CrossProcessMutex(const char*)
   // they specifically are not on Linux.
   MOZ_RELEASE_ASSERT(false);
 #endif
-  mSharedBuffer = new ipc::SharedMemoryBasic;
+  mSharedBuffer = new ipc::SharedMemory;
   if (!mSharedBuffer->Create(sizeof(MutexData))) {
     MOZ_CRASH();
   }
@@ -52,7 +52,7 @@ CrossProcessMutex::CrossProcessMutex(const char*)
     MOZ_CRASH();
   }
 
-  MutexData* data = static_cast<MutexData*>(mSharedBuffer->memory());
+  MutexData* data = static_cast<MutexData*>(mSharedBuffer->Memory());
 
   if (!data) {
     MOZ_CRASH();
@@ -69,7 +69,7 @@ CrossProcessMutex::CrossProcessMutex(const char*)
 
 CrossProcessMutex::CrossProcessMutex(CrossProcessMutexHandle aHandle)
     : mMutex(nullptr), mCount(nullptr) {
-  mSharedBuffer = new ipc::SharedMemoryBasic;
+  mSharedBuffer = new ipc::SharedMemory;
 
   if (!mSharedBuffer->IsHandleValid(aHandle)) {
     MOZ_CRASH();
@@ -84,7 +84,7 @@ CrossProcessMutex::CrossProcessMutex(CrossProcessMutexHandle aHandle)
     MOZ_CRASH();
   }
 
-  MutexData* data = static_cast<MutexData*>(mSharedBuffer->memory());
+  MutexData* data = static_cast<MutexData*>(mSharedBuffer->Memory());
 
   if (!data) {
     MOZ_CRASH();
@@ -125,7 +125,7 @@ void CrossProcessMutex::Unlock() {
 }
 
 CrossProcessMutexHandle CrossProcessMutex::CloneHandle() {
-  CrossProcessMutexHandle result = ipc::SharedMemoryBasic::NULLHandle();
+  CrossProcessMutexHandle result = ipc::SharedMemory::NULLHandle();
 
   if (mSharedBuffer) {
     result = mSharedBuffer->CloneHandle();

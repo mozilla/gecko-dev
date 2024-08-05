@@ -101,11 +101,11 @@ bool CanvasTranslator::IsInTaskQueue() const {
   return gfx::CanvasRenderThread::IsInCanvasRenderThread();
 }
 
-static bool CreateAndMapShmem(RefPtr<ipc::SharedMemoryBasic>& aShmem,
+static bool CreateAndMapShmem(RefPtr<ipc::SharedMemory>& aShmem,
                               Handle&& aHandle,
                               ipc::SharedMemory::OpenRights aOpenRights,
                               size_t aSize) {
-  auto shmem = MakeRefPtr<ipc::SharedMemoryBasic>();
+  auto shmem = MakeRefPtr<ipc::SharedMemory>();
   if (!shmem->SetHandle(std::move(aHandle), aOpenRights) ||
       !shmem->Map(aSize)) {
     return false;
@@ -166,14 +166,14 @@ mozilla::ipc::IPCResult CanvasTranslator::RecvInitTranslator(
   mBackendType = aBackendType;
   mOtherPid = OtherPid();
 
-  mHeaderShmem = MakeAndAddRef<ipc::SharedMemoryBasic>();
+  mHeaderShmem = MakeAndAddRef<ipc::SharedMemory>();
   if (!CreateAndMapShmem(mHeaderShmem, std::move(aReadHandle),
                          ipc::SharedMemory::RightsReadWrite, sizeof(Header))) {
     Deactivate();
     return IPC_FAIL(this, "Failed to map canvas header shared memory.");
   }
 
-  mHeader = static_cast<Header*>(mHeaderShmem->memory());
+  mHeader = static_cast<Header*>(mHeaderShmem->Memory());
 
   mWriterSemaphore.reset(CrossProcessSemaphore::Create(std::move(aWriterSem)));
   mWriterSemaphore->CloseHandle();
@@ -246,7 +246,7 @@ ipc::IPCResult CanvasTranslator::RecvRestartTranslation() {
 }
 
 ipc::IPCResult CanvasTranslator::RecvAddBuffer(
-    ipc::SharedMemoryBasic::Handle&& aBufferHandle, uint64_t aBufferSize) {
+    ipc::SharedMemory::Handle&& aBufferHandle, uint64_t aBufferSize) {
   if (mDeactivated) {
     // The other side might have sent a resume message before we deactivated.
     return IPC_OK();
@@ -258,16 +258,15 @@ ipc::IPCResult CanvasTranslator::RecvAddBuffer(
         std::move(aBufferHandle), aBufferSize));
     PostCanvasTranslatorEvents(lock);
   } else {
-    DispatchToTaskQueue(
-        NewRunnableMethod<ipc::SharedMemoryBasic::Handle&&, size_t>(
-            "CanvasTranslator::AddBuffer", this, &CanvasTranslator::AddBuffer,
-            std::move(aBufferHandle), aBufferSize));
+    DispatchToTaskQueue(NewRunnableMethod<ipc::SharedMemory::Handle&&, size_t>(
+        "CanvasTranslator::AddBuffer", this, &CanvasTranslator::AddBuffer,
+        std::move(aBufferHandle), aBufferSize));
   }
 
   return IPC_OK();
 }
 
-bool CanvasTranslator::AddBuffer(ipc::SharedMemoryBasic::Handle&& aBufferHandle,
+bool CanvasTranslator::AddBuffer(ipc::SharedMemory::Handle&& aBufferHandle,
                                  size_t aBufferSize) {
   MOZ_ASSERT(IsInTaskQueue());
   if (mHeader->readerState == State::Failed) {
@@ -309,7 +308,7 @@ bool CanvasTranslator::AddBuffer(ipc::SharedMemoryBasic::Handle&& aBufferHandle,
 }
 
 ipc::IPCResult CanvasTranslator::RecvSetDataSurfaceBuffer(
-    ipc::SharedMemoryBasic::Handle&& aBufferHandle, uint64_t aBufferSize) {
+    ipc::SharedMemory::Handle&& aBufferHandle, uint64_t aBufferSize) {
   if (mDeactivated) {
     // The other side might have sent a resume message before we deactivated.
     return IPC_OK();
@@ -322,18 +321,17 @@ ipc::IPCResult CanvasTranslator::RecvSetDataSurfaceBuffer(
                                                     aBufferSize));
     PostCanvasTranslatorEvents(lock);
   } else {
-    DispatchToTaskQueue(
-        NewRunnableMethod<ipc::SharedMemoryBasic::Handle&&, size_t>(
-            "CanvasTranslator::SetDataSurfaceBuffer", this,
-            &CanvasTranslator::SetDataSurfaceBuffer, std::move(aBufferHandle),
-            aBufferSize));
+    DispatchToTaskQueue(NewRunnableMethod<ipc::SharedMemory::Handle&&, size_t>(
+        "CanvasTranslator::SetDataSurfaceBuffer", this,
+        &CanvasTranslator::SetDataSurfaceBuffer, std::move(aBufferHandle),
+        aBufferSize));
   }
 
   return IPC_OK();
 }
 
 bool CanvasTranslator::SetDataSurfaceBuffer(
-    ipc::SharedMemoryBasic::Handle&& aBufferHandle, size_t aBufferSize) {
+    ipc::SharedMemory::Handle&& aBufferHandle, size_t aBufferSize) {
   MOZ_ASSERT(IsInTaskQueue());
   if (mHeader->readerState == State::Failed) {
     // We failed before we got to the pause event.
@@ -390,7 +388,7 @@ void CanvasTranslator::GetDataSurface(uint64_t aSurfaceRef) {
     return;
   }
 
-  uint8_t* dst = static_cast<uint8_t*>(mDataSurfaceShmem->memory());
+  uint8_t* dst = static_cast<uint8_t*>(mDataSurfaceShmem->Memory());
   const uint8_t* src = map->GetData();
   const uint8_t* endSrc = src + (srcSize.height * srcStride);
   while (src < endSrc) {

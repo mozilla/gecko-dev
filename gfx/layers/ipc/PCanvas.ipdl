@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  * vim: sw=2 ts=8 et : */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ include "mozilla/layers/CanvasTranslator.h";
 
 [MoveOnly] using mozilla::CrossProcessSemaphoreHandle from "mozilla/ipc/CrossProcessSemaphore.h";
 using mozilla::layers::TextureType from "mozilla/layers/LayersTypes.h";
-[MoveOnly] using mozilla::ipc::SharedMemoryBasic::Handle from "mozilla/ipc/SharedMemoryBasic.h";
+[MoveOnly] using mozilla::ipc::SharedMemory::Handle from "mozilla/ipc/SharedMemory.h";
 using mozilla::gfx::BackendType from "mozilla/gfx/Types.h";
 
 namespace mozilla {

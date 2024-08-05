@@ -57,7 +57,6 @@ EXPORTS.mozilla.ipc += [
     "ScopedPort.h",
     "SerializedStructuredCloneBuffer.h",
     "SharedMemory.h",
-    "SharedMemoryBasic.h",
     "Shmem.h",
     "ShmemMessageUtils.h",
     "SideVariant.h",
@@ -115,12 +114,11 @@ else:
     ]
 
 if CONFIG["OS_ARCH"] == "Darwin":
-    EXPORTS.mozilla.ipc += ["SharedMemoryBasic_mach.h"]
-    SOURCES += [
-        "SharedMemoryBasic_mach.mm",
-    ]
+    EXPORTS.mozilla.ipc += ["SharedMemoryImpl_mach.h"]
+    SOURCES += ["SharedMemoryImpl_mach.cpp"]
 else:
-    EXPORTS.mozilla.ipc += ["SharedMemoryBasic_chromium.h"]
+    EXPORTS.mozilla.ipc += ["SharedMemoryImpl_chromium.h"]
+    SOURCES += ["SharedMemoryImpl_chromium.cpp"]
 
 if CONFIG["OS_ARCH"] == "Linux":
     UNIFIED_SOURCES += [

@@ -6,7 +6,7 @@
 #ifndef MOZILLA_IPC_RAWSHMEM_H_
 #define MOZILLA_IPC_RAWSHMEM_H_
 
-#include "mozilla/ipc/SharedMemoryBasic.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/Span.h"
 #include <utility>
 
@@ -35,10 +35,10 @@ class UnsafeSharedMemoryHandle {
   CreateAndMap(size_t aSize);
 
  private:
-  UnsafeSharedMemoryHandle(SharedMemoryBasic::Handle&& aHandle, uint64_t aSize)
+  UnsafeSharedMemoryHandle(SharedMemory::Handle&& aHandle, uint64_t aSize)
       : mHandle(std::move(aHandle)), mSize(aSize) {}
 
-  SharedMemoryBasic::Handle mHandle;
+  SharedMemory::Handle mHandle;
   uint64_t mSize;
 };
 
@@ -93,9 +93,9 @@ class WritableSharedMemoryMapping {
 
  private:
   explicit WritableSharedMemoryMapping(
-      RefPtr<mozilla::ipc::SharedMemoryBasic>&& aRef);
+      RefPtr<mozilla::ipc::SharedMemory>&& aRef);
 
-  RefPtr<mozilla::ipc::SharedMemoryBasic> mRef;
+  RefPtr<mozilla::ipc::SharedMemory> mRef;
 };
 
 }  // namespace mozilla::ipc

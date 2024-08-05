@@ -10,7 +10,6 @@
 
 #include "mozilla/RefPtr.h"
 #include "mozilla/ipc/SharedMemory.h"
-#include "mozilla/ipc/SharedMemoryBasic.h"
 
 #ifdef XP_LINUX
 #  include <errno.h>
@@ -285,13 +284,13 @@ TEST(IPCSharedMemory, IsZero)
 #ifndef FUZZING
 TEST(IPCSharedMemory, BasicIsZero)
 {
-  auto shm = MakeRefPtr<ipc::SharedMemoryBasic>();
+  auto shm = MakeRefPtr<ipc::SharedMemory>();
 
   static constexpr size_t kSize = 65536;
   ASSERT_TRUE(shm->Create(kSize));
   ASSERT_TRUE(shm->Map(kSize));
 
-  auto* mem = reinterpret_cast<char*>(shm->memory());
+  auto* mem = reinterpret_cast<char*>(shm->Memory());
   for (size_t i = 0; i < kSize; ++i) {
     ASSERT_EQ(mem[i], 0) << "offset " << i;
   }
