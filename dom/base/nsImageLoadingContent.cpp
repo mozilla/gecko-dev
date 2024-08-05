@@ -951,20 +951,16 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
   // Shouldn't that be done before the start of the load?
   // XXX what about shouldProcess?
 
-  // If we have a current request without a size, we know we will replace it
-  // with the PrepareNextRequest below. If the new current request is for a
-  // different URI, then we need to reject any outstanding promises.
-  if (mCurrentRequest && !HaveSize(mCurrentRequest)) {
-    nsCOMPtr<nsIURI> uri;
-    aChannel->GetOriginalURI(getter_AddRefs(uri));
-    MaybeAgeRequestGeneration(uri);
-  }
-
   // Our state might change. Watch it.
   AutoStateChanger changer(this, true);
 
   // Do the load.
   RefPtr<imgRequestProxy>& req = PrepareNextRequest(eImageLoadType_Normal);
+  if (req && &req == &mCurrentRequest) {
+    nsCOMPtr<nsIURI> uri;
+    aChannel->GetOriginalURI(getter_AddRefs(uri));
+    MaybeAgeRequestGeneration(uri);
+  }
   nsresult rv = loader->LoadImageWithChannel(aChannel, this, doc, aListener,
                                              getter_AddRefs(req));
   if (NS_SUCCEEDED(rv)) {
@@ -1105,13 +1101,6 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
     }
   }
 
-  // If we have a current request without a size, we know we will replace it
-  // with the PrepareNextRequest below. If the new current request is for a
-  // different URI, then we need to reject any outstanding promises.
-  if (mCurrentRequest && !HaveSize(mCurrentRequest)) {
-    MaybeAgeRequestGeneration(aNewURI);
-  }
-
   // From this point on, our image state could change. Watch it.
   AutoStateChanger changer(this, aNotify);
 
@@ -1127,6 +1116,10 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
       aLoadFlags | nsContentUtils::CORSModeToLoadImageFlags(GetCORSMode());
 
   RefPtr<imgRequestProxy>& req = PrepareNextRequest(aImageLoadType);
+  if (req && &req == &mCurrentRequest) {
+    MaybeAgeRequestGeneration(aNewURI);
+  }
+
   nsCOMPtr<nsIPrincipal> triggeringPrincipal;
   bool result = nsContentUtils::QueryTriggeringPrincipal(
       element, aTriggeringPrincipal, getter_AddRefs(triggeringPrincipal));
