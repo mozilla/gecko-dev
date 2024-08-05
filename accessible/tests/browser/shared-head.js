@@ -386,6 +386,10 @@ function wrapWithIFrame(doc, options = {}) {
     src = `data:${mimeType};charset=utf-8,${encodeURIComponent(doc)}`;
   }
 
+  if (options.urlSuffix) {
+    src += options.urlSuffix;
+  }
+
   iframeAttrs = {
     id: DEFAULT_IFRAME_ID,
     src,
@@ -427,20 +431,25 @@ function snippetToURL(doc, options = {}) {
     </html>`
   );
 
-  return `data:text/html;charset=utf-8,${encodedDoc}`;
+  let url = `data:text/html;charset=utf-8,${encodedDoc}`;
+  if (!gIsIframe && options.urlSuffix) {
+    url += options.urlSuffix;
+  }
+  return url;
 }
 
 function accessibleTask(doc, task, options = {}) {
   return async function () {
     gIsRemoteIframe = options.remoteIframe;
     gIsIframe = options.iframe || gIsRemoteIframe;
+    const urlSuffix = options.urlSuffix || "";
     let url;
     if (options.chrome && doc.endsWith("html")) {
       // Load with a chrome:// URL so this loads as a chrome document in the
       // parent process.
-      url = `${CURRENT_DIR}${doc}`;
+      url = `${CURRENT_DIR}${doc}${urlSuffix}`;
     } else if (doc.endsWith("html") && !gIsIframe) {
-      url = `${CURRENT_CONTENT_DIR}${doc}`;
+      url = `${CURRENT_CONTENT_DIR}${doc}${urlSuffix}`;
     } else {
       url = snippetToURL(doc, options);
     }
@@ -607,6 +616,9 @@ function accessibleTask(doc, task, options = {}) {
  *           body
  *         - {Object} iframeDocBodyAttrs
  *           a set of attributes to be applied to a iframe content document body
+ *         - {String} urlSuffix
+ *           String to append to the document URL. For example, this could be
+ *           "#test" to scroll to the "test" id in the document.
  */
 function addAccessibleTask(doc, task, options = {}) {
   const {
