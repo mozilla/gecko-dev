@@ -317,6 +317,8 @@ skip-if = ["true"] # Bug 1616418 Bug 1549985
 
 ["browser_tab_a11y_description.js"]
 
+["browser_tab_groups.js"]
+
 ["browser_tab_label_during_reload.js"]
 
 ["browser_tab_label_picture_in_picture.js"]

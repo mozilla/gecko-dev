@@ -850,7 +850,6 @@
       if (this.tabContainer.verticalMode) {
         let wasFocused = document.activeElement == this.selectedTab;
         let oldPosition = aTab._tPos;
-        this.tabContainer._invalidateCachedTabs();
         this.verticalPinnedTabsContainer.appendChild(aTab);
         this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
       } else {
@@ -873,7 +872,6 @@
         // the moving of a tab from the vertical pinned tabs container
         // and back into arrowscrollbox.
         aTab.removeAttribute("pinned");
-        this.tabContainer._invalidateCachedTabs();
         this.tabContainer.arrowScrollbox.prepend(aTab);
         this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
       } else {
@@ -2930,6 +2928,7 @@
       group.color = color;
       group.label = label;
       this.tabContainer.appendChild(group);
+      return group;
     },
 
     _determineURIToLoad(uriString, createLazyBrowser) {
@@ -5331,13 +5330,29 @@
         neighbor.after(aTab);
       }
 
-      // We want to clear _allTabs after moving nodes because the order of
-      // vertical tabs may have changed.
-      this.tabContainer._invalidateCachedTabs();
       this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
     },
 
+    moveTabToGroup(aTab, aGroup) {
+      if (aTab.pinned) {
+        return;
+      }
+      if (aTab.group && aTab.group.id === aGroup.id) {
+        return;
+      }
+      let wasFocused = document.activeElement == this.selectedTab;
+      aGroup.appendChild(aTab);
+
+      // pass -1 to oldPosition because a move occurred even if position
+      // hasn't changed
+      this._updateAfterMoveTabTo(aTab, -1, wasFocused);
+    },
+
     _updateAfterMoveTabTo(aTab, oldPosition, wasFocused = null) {
+      // We want to clear _allTabs after moving nodes because the order of
+      // vertical tabs may have changed.
+      this.tabContainer._invalidateCachedTabs();
+
       this._updateTabsAfterInsert();
 
       if (wasFocused) {

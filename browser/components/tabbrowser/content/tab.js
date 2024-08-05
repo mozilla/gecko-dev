@@ -320,6 +320,13 @@
       return this.querySelector(".tab-close-button");
     }
 
+    get group() {
+      if (this.parentElement.tagName == "tab-group") {
+        return this.parentElement;
+      }
+      return null;
+    }
+
     updateLastAccessed(aDate) {
       this._lastAccessed = this.selected ? Infinity : aDate || Date.now();
     }
