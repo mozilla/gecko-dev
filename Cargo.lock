@@ -3381,8 +3381,7 @@ dependencies = [
 [[package]]
 name = "lmdb-rkv-sys"
 version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61b9ce6b3be08acefa3003c57b7565377432a89ec24476bbe72e11d101f852fe"
+source = "git+https://github.com/kenz-gelsoft/lmdb-rs?rev=c246a7b064a067feaf9d611c20b418af261477d0#c246a7b064a067feaf9d611c20b418af261477d0"
 dependencies = [
  "cc",
  "libc",
