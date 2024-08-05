@@ -1082,11 +1082,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
-      * - **browsertime-benchmark-custom-car-motionmark-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-benchmark-firefox-motionmark-1-3**
         - ✅
         - ✅
@@ -1382,11 +1377,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - mozilla-release
         - mozilla-beta
       * - **browsertime-benchmark-chrome-motionmark-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-motionmark-1-3**
         - ❌
         - ❌
         - ❌
@@ -2182,11 +2172,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
-      * - **browsertime-benchmark-custom-car-motionmark-animometer-ramp**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-benchmark-firefox-motionmark-animometer-ramp**
         - ✅
         - ✅
@@ -2437,11 +2422,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
-      * - **browsertime-benchmark-custom-car-motionmark-animometer-ramp**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-benchmark-firefox-motionmark-animometer-ramp**
         - ✅
         - ✅
@@ -3223,11 +3203,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
-      * - **browsertime-benchmark-custom-car-motionmark-htmlsuite-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-benchmark-firefox-motionmark-htmlsuite-1-3**
         - ✅
         - ✅
@@ -3527,11 +3502,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
-      * - **browsertime-benchmark-custom-car-motionmark-htmlsuite-1-3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-benchmark-firefox-motionmark-htmlsuite-1-3**
         - ✅
         - ✅
@@ -3824,11 +3794,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
-      * - **browsertime-benchmark-custom-car-motionmark-htmlsuite-ramp**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-benchmark-firefox-motionmark-htmlsuite-ramp**
         - ✅
         - ✅
@@ -4080,11 +4045,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
-      * - **browsertime-benchmark-custom-car-motionmark-htmlsuite-ramp**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-benchmark-firefox-motionmark-htmlsuite-ramp**
         - ✅
         - ✅
@@ -4413,11 +4373,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - mozilla-release
         - mozilla-beta
       * - **browsertime-benchmark-chrome-speedometer**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-speedometer**
         - ❌
         - ❌
         - ❌
@@ -4771,11 +4726,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - mozilla-release
         - mozilla-beta
       * - **browsertime-benchmark-chrome-speedometer**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-speedometer**
         - ❌
         - ❌
         - ❌
@@ -5148,11 +5098,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
-      * - **browsertime-benchmark-custom-car-speedometer3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-benchmark-firefox-speedometer3**
         - ✅
         - ✅
@@ -5509,11 +5454,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - mozilla-release
         - mozilla-beta
       * - **browsertime-benchmark-chrome-speedometer3**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-custom-car-speedometer3**
         - ❌
         - ❌
         - ❌
@@ -16081,11 +16021,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
-      * - **browsertime-tp6-essential-custom-car-amazon**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-tp6-essential-firefox-amazon**
         - ✅
         - ✅
@@ -16444,11 +16379,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6-essential-chrome-bing-search**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-tp6-essential-custom-car-bing-search**
         - ❌
         - ❌
         - ❌
@@ -17097,11 +17027,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6-essential-chrome-cnn**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-tp6-essential-custom-car-cnn**
         - ❌
         - ❌
         - ❌
@@ -18753,11 +18678,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
-      * - **browsertime-tp6-essential-custom-car-fandom**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-tp6-essential-firefox-fandom**
         - ✅
         - ✅
@@ -19929,11 +19849,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
-      * - **browsertime-tp6-essential-custom-car-google-slides**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-tp6-essential-firefox-google-slides**
         - ✅
         - ✅
@@ -21024,11 +20939,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6-essential-chrome-instagram**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-tp6-essential-custom-car-instagram**
         - ❌
         - ❌
         - ❌
@@ -25003,11 +24913,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
-      * - **browsertime-tp6-essential-custom-car-twitter**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-tp6-essential-firefox-twitter**
         - ✅
         - ✅
@@ -25848,11 +25753,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
-      * - **browsertime-tp6-essential-custom-car-wikipedia**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-tp6-essential-firefox-wikipedia**
         - ✅
         - ✅
@@ -26186,11 +26086,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6-essential-chrome-yahoo-mail**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-tp6-essential-custom-car-yahoo-mail**
         - ❌
         - ❌
         - ❌
@@ -29119,11 +29014,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
-      * - **browsertime-tp6-essential-custom-car-amazon**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-tp6-essential-firefox-amazon**
         - ✅
         - ✅
@@ -30248,11 +30138,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6-essential-chrome-cnn**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-tp6-essential-custom-car-cnn**
         - ❌
         - ❌
         - ❌
@@ -32737,11 +32622,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
-      * - **browsertime-tp6-essential-custom-car-instagram**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
       * - **browsertime-tp6-essential-firefox-instagram**
         - ✅
         - ✅
@@ -33913,11 +33793,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6-essential-chrome-wikipedia**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **browsertime-tp6-essential-custom-car-wikipedia**
         - ❌
         - ❌
         - ❌

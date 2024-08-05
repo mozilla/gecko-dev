@@ -21,7 +21,7 @@ task-defaults:
             safari-tp:
                 - macosx1400.*
             custom-car:
-                - .*64.*shippable.*
+                - (macosx1400|linux|windows.*-64).*shippable.*
             default: []
     test-manifest-loader: null  # don't load tests in the taskgraph
     tier: 3
@@ -53,10 +53,6 @@ task-defaults:
                             - win64-custom-car
                             - win64-minidump-stackwalk
                             - win64-fix-stacks
-                        macosx1015.*:
-                            - macosx64-custom-car
-                            - macosx64-minidump-stackwalk
-                            - macosx64-fix-stacks
                         macosx1400.*:
                             - macosx-arm64-custom-car
                             - macosx64-aarch64-minidump-stackwalk
@@ -76,9 +72,6 @@ task-defaults:
                         windows.*-64.*:
                             - win64-minidump-stackwalk
                             - win64-fix-stacks
-                        macosx1015.*:
-                            - macosx64-minidump-stackwalk
-                            - macosx64-fix-stacks
                         macosx1400.*:
                             - macosx64-aarch64-minidump-stackwalk
                             - macosx64-aarch64-fix-stacks
@@ -96,7 +89,7 @@ browsertime-tp6:
                 safari:
                     - .*macos.*shippable.*
                 custom-car:
-                    - .*64.*shippable.*
+                    - (macosx1400|linux|windows.*-64).*shippable.*
                 default: []
         max-run-time:
             by-subtest:
@@ -312,7 +305,7 @@ browsertime-tp7:
                 safari:
                     - .*macos.*shippable.*
                 custom-car:
-                    - .*64.*shippable.*
+                    - (macosx1400|linux|windows.*-64).*shippable.*
                 default: []
         max-run-time:
             by-subtest:
@@ -990,7 +983,7 @@ browsertime-indexeddb:
             chrome:
                 - .*shippable.*
             custom-car:
-                - .*64.*shippable.*
+                - (macosx1400|linux|windows.*-64).*shippable.*
             default: []
     raptor:
         apps: [firefox, chrome]

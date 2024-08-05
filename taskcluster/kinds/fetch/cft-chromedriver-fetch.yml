@@ -23,14 +23,6 @@ win64-cft-chromedriver:
         platform: win64
         artifact-name: cft-cd-win64.tar.bz2
 
-mac-cft-chromedriver:
-    description: 'MacOSX Chrome-for-Testing Chromedriver Fetch'
-    attributes:
-        cached_task: false
-    fetch:
-        platform: mac
-        artifact-name: cft-cd-mac.tar.bz2
-
 mac-cft-chromedriver-arm:
     description: 'MacOS (arm) Chrome-for-Testing Chromedriver fetch'
     attributes:

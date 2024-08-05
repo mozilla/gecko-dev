@@ -423,7 +423,6 @@ def setup_browsertime(config, tasks):
 
         chromium_fetches = {
             "linux.*": ["linux64-cft-chromedriver"],
-            "macosx1015.*": ["mac-cft-chromedriver"],
             "macosx1400.*": ["mac-cft-chromedriver-arm"],
             "windows.*-64.*": ["win64-cft-chromedriver"],
             "android.*": ["linux64-cft-chromedriver"],

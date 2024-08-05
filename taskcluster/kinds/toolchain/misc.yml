@@ -200,51 +200,16 @@ macosx64-xz:
             - macosx64-clang-toolchain
             - macosx64-sdk-toolchain
 
-macosx64-custom-car:
-    description: "Custom chromium-as-release build for mac"
-    worker-type: b-osx-1015
-    attributes:
-        cached_task: false
-    treeherder:
-        symbol: TM(custom-car)
-    worker:
-        max-run-time: 40000
-    use-python: default
-    run-on-projects: []
-    run:
-        script: build-custom-car.sh
-        arguments: [
-            car_macosx.tar.zst,
-            blink_symbol_level=0,
-            chrome_pgo_phase=2,
-            dcheck_always_on=false,
-            enable_nacl=false,
-            enable_resource_allowlist_generation=false,
-            is_chrome_branded=false,
-            is_clang=true,
-            is_component_build=false,
-            is_debug=false,
-            is_official_build=true,
-            symbol_level=0,
-            target_cpu="x64",
-            use_v8_context_snapshot=false,
-            v8_symbol_level=0
-        ]
-        toolchain-artifact: public/build/car_macosx.tar.zst
-    fetches:
-        toolchain:
-            - macosx64-sdk-14.4
-
 macosx-arm64-custom-car:
     description: "Custom chromium-as-release build for mac (apple silicon)"
-    worker-type: b-osx-1015
+    worker-type: b-osx-arm64
     attributes:
         cached_task: false
     treeherder:
         symbol: TM(custom-car-arm)
         tier: 2
     worker:
-        max-run-time: 50000
+        max-run-time: 25000
     use-python: default
     run-on-projects: []
     run:

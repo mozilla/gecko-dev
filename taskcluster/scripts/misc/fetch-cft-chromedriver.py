@@ -38,12 +38,6 @@ CHROME_FOR_TESTING_INFO = {
         "result": "cft-cd-win64.tar.bz2",
         "chromedriver": "chromedriver_win32.zip",
     },
-    "mac": {
-        "platform": "mac-x64",
-        "dir": "cft-chromedriver-mac",
-        "result": "cft-cd-mac.tar.bz2",
-        "chromedriver": "chromedriver_mac64.zip",
-    },
     "mac-arm": {
         "platform": "mac-arm64",
         "dir": "cft-chromedriver-mac",
