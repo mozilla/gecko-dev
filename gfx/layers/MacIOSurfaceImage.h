@@ -62,6 +62,7 @@ class MacIOSurfaceRecycleAllocator {
 
   already_AddRefed<MacIOSurface> Allocate(
       const gfx::IntSize aYSize, const gfx::IntSize& aCbCrSize,
+      gfx::ChromaSubsampling aChromaSubsampling,
       gfx::YUVColorSpace aYUVColorSpace,
       gfx::TransferFunction aTransferFunction, gfx::ColorRange aColorRange,
       gfx::ColorDepth aColorDepth);

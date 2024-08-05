@@ -97,7 +97,8 @@ uint32_t MacIOSurfaceTextureHostOGL::NumSubTextures() {
       return 1;
     }
     case gfx::SurfaceFormat::NV12:
-    case gfx::SurfaceFormat::P010: {
+    case gfx::SurfaceFormat::P010:
+    case gfx::SurfaceFormat::NV16: {
       return 2;
     }
     default: {
@@ -173,6 +174,21 @@ void MacIOSurfaceTextureHostOGL::PushResourceUpdates(
       (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
       break;
     }
+    case gfx::SurfaceFormat::NV16: {
+      MOZ_ASSERT(aImageKeys.length() == 2);
+      MOZ_ASSERT(mSurface->GetPlaneCount() == 2);
+      wr::ImageDescriptor descriptor0(
+          gfx::IntSize(mSurface->GetDevicePixelWidth(0),
+                       mSurface->GetDevicePixelHeight(0)),
+          gfx::SurfaceFormat::A16);
+      wr::ImageDescriptor descriptor1(
+          gfx::IntSize(mSurface->GetDevicePixelWidth(1),
+                       mSurface->GetDevicePixelHeight(1)),
+          gfx::SurfaceFormat::R16G16);
+      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0);
+      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
+      break;
+    }
     default: {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     }
@@ -225,6 +241,16 @@ void MacIOSurfaceTextureHostOGL::PushDisplayItems(
       MOZ_ASSERT(aImageKeys.length() == 2);
       MOZ_ASSERT(mSurface->GetPlaneCount() == 2);
       aBuilder.PushP010Image(
+          aBounds, aClip, true, aImageKeys[0], aImageKeys[1],
+          wr::ColorDepth::Color10, wr::ToWrYuvColorSpace(GetYUVColorSpace()),
+          wr::ToWrColorRange(GetColorRange()), aFilter, preferCompositorSurface,
+          /* aSupportsExternalCompositing */ true);
+      break;
+    }
+    case gfx::SurfaceFormat::NV16: {
+      MOZ_ASSERT(aImageKeys.length() == 2);
+      MOZ_ASSERT(mSurface->GetPlaneCount() == 2);
+      aBuilder.PushNV16Image(
           aBounds, aClip, true, aImageKeys[0], aImageKeys[1],
           wr::ColorDepth::Color10, wr::ToWrYuvColorSpace(GetYUVColorSpace()),
           wr::ToWrColorRange(GetColorRange()), aFilter, preferCompositorSurface,

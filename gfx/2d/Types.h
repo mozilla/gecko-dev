@@ -73,19 +73,25 @@ enum class SurfaceFormat : int8_t {
   R16G16,
 
   // These ones are their own special cases.
-  YUV420,  // Sometimes called YU12. 3 planes of 8 bit Y, then Cb, then Cr.
-  NV12,    // 2 planes. YUV 4:2:0 image with a plane of 8 bit Y samples
-           // followed by an interleaved U/V plane containing 8 bit 2x2
-           // subsampled colour difference samples.
-  P016,    // Similar to NV12, but with 16 bits plane values
-  P010,    // Identical to P016 but the 6 least significant bits are 0.
-           // With DXGI in theory entirely compatible, however practice has
-           // shown that it's not the case.
-  YUY2,    // Sometimes called YUYV. Single plane / packed YUV 4:2:2 8 bit
-           // samples interleaved as Y`0 Cb Y`1 Cr. Since 4 pixels require
-           // 64 bits, this can also be considered a 16bpp format, but each
-           // component is only 8 bits. We sometimes pack RGBA data into
-           // this format.
+  YUV420,     // Sometimes called YU12. 3 planes of 8 bit Y, then Cb, then Cr.
+              // 4:2:0 chroma subsampling.
+  YUV422P10,  // 3 planes like YUV420, but with 4:2:2 chroma subampling and
+              // 16 bit plane values where the 6 least significant bits are 0.
+  NV12,       // 2 planes. YUV 4:2:0 image with a plane of 8 bit Y samples
+              // followed by an interleaved U/V plane containing 8 bit 2x2
+              // subsampled colour difference samples.
+  P016,       // Similar to NV12, but with 16 bits plane values
+  P010,       // Identical to P016 but the 6 least significant bits are 0.
+              // With DXGI in theory entirely compatible, however practice has
+              // shown that it's not the case.
+  NV16,       // Similar to NV12, but with 4:2:2 chroma subsampling. Technically
+              // 8 bit, but we only use it for 10 bit, and it's really only here
+              // to support the macOS bi-planar 422 formats.
+  YUY2,       // Sometimes called YUYV. Single plane / packed YUV 4:2:2 8 bit
+              // samples interleaved as Y`0 Cb Y`1 Cr. Since 4 pixels require
+              // 64 bits, this can also be considered a 16bpp format, but each
+              // component is only 8 bits. We sometimes pack RGBA data into
+              // this format.
   HSV,
   Lab,
   Depth,
@@ -152,9 +158,11 @@ inline std::optional<SurfaceFormatInfo> Info(const SurfaceFormat aFormat) {
       break;
 
     case SurfaceFormat::YUV420:
+    case SurfaceFormat::YUV422P10:
     case SurfaceFormat::NV12:
     case SurfaceFormat::P016:
     case SurfaceFormat::P010:
+    case SurfaceFormat::NV16:
     case SurfaceFormat::YUY2:
       info.hasColor = true;
       info.hasAlpha = false;
@@ -207,9 +215,11 @@ inline std::optional<SurfaceFormatInfo> Info(const SurfaceFormat aFormat) {
       break;
 
     case SurfaceFormat::YUV420:
+    case SurfaceFormat::YUV422P10:
     case SurfaceFormat::NV12:
     case SurfaceFormat::P016:
     case SurfaceFormat::P010:
+    case SurfaceFormat::NV16:
     case SurfaceFormat::YUY2:
     case SurfaceFormat::UNKNOWN:
       break;  // No bytesPerPixel per se.

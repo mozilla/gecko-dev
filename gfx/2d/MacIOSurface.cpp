@@ -126,9 +126,58 @@ size_t CreatePlaneDictionary(CFTypeRefPtr<CFMutableDictionaryRef>& aDict,
   return totalBytes;
 }
 
+// Helper function to set common color IOSurface properties.
+void SetIOSurfaceCommonProperties(
+    CFTypeRefPtr<IOSurfaceRef> surfaceRef,
+    MacIOSurface::YUVColorSpace aColorSpace,
+    MacIOSurface::TransferFunction aTransferFunction) {
+  // Setup the correct YCbCr conversion matrix, color primaries, and transfer
+  // functions on the IOSurface, in case we pass this directly to CoreAnimation.
+  // For keys and values, we'd like to use values specified by the API, but
+  // those are only defined for CVImageBuffers. Luckily, when an image buffer is
+  // converted into an IOSurface, the keys are transformed but the values are
+  // the same. Since we are creating the IOSurface directly, we use hard-coded
+  // keys derived from inspecting the extracted IOSurfaces in the copying case,
+  // but we use the API-defined values from CVImageBuffer.
+  if (aColorSpace == MacIOSurface::YUVColorSpace::BT601) {
+    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceYCbCrMatrix"),
+                      kCVImageBufferYCbCrMatrix_ITU_R_601_4);
+  } else if (aColorSpace == MacIOSurface::YUVColorSpace::BT709) {
+    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceYCbCrMatrix"),
+                      kCVImageBufferYCbCrMatrix_ITU_R_709_2);
+    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceColorPrimaries"),
+                      kCVImageBufferColorPrimaries_ITU_R_709_2);
+  } else {
+    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceYCbCrMatrix"),
+                      kCVImageBufferYCbCrMatrix_ITU_R_2020);
+    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceColorPrimaries"),
+                      kCVImageBufferColorPrimaries_ITU_R_2020);
+  }
+
+  // Transfer function is applied independently from the colorSpace.
+  IOSurfaceSetValue(
+      surfaceRef.get(), CFSTR("IOSurfaceTransferFunction"),
+      gfxMacUtils::CFStringForTransferFunction(aTransferFunction));
+
+#ifdef XP_MACOSX
+  // Override the color space to be the same as the main display, so that
+  // CoreAnimation won't try to do any color correction (from the IOSurface
+  // space, to the display). In the future we may want to try specifying this
+  // correctly, but probably only once we do the same for videos drawn through
+  // our gfx code.
+  auto colorSpace = CFTypeRefPtr<CGColorSpaceRef>::WrapUnderCreateRule(
+      CGDisplayCopyColorSpace(CGMainDisplayID()));
+  auto colorData = CFTypeRefPtr<CFDataRef>::WrapUnderCreateRule(
+      CGColorSpaceCopyICCData(colorSpace.get()));
+  IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceColorSpace"),
+                    colorData.get());
+#endif
+}
+
 /* static */
-already_AddRefed<MacIOSurface> MacIOSurface::CreateNV12OrP010Surface(
-    const IntSize& aYSize, const IntSize& aCbCrSize, YUVColorSpace aColorSpace,
+already_AddRefed<MacIOSurface> MacIOSurface::CreateBiPlanarSurface(
+    const IntSize& aYSize, const IntSize& aCbCrSize,
+    ChromaSubsampling aChromaSubsampling, YUVColorSpace aColorSpace,
     TransferFunction aTransferFunction, ColorRange aColorRange,
     ColorDepth aColorDepth) {
   MOZ_ASSERT(aColorSpace == YUVColorSpace::BT601 ||
@@ -152,25 +201,41 @@ already_AddRefed<MacIOSurface> MacIOSurface::CreateNV12OrP010Surface(
   AddDictionaryInt(props, kIOSurfaceHeight, aYSize.height);
   ::CFDictionaryAddValue(props.get(), kIOSurfaceIsGlobal, kCFBooleanTrue);
 
-  if (aColorRange == ColorRange::LIMITED) {
+  if (aChromaSubsampling == ChromaSubsampling::HALF_WIDTH_AND_HEIGHT) {
+    // 4:2:0 subsampling.
     if (aColorDepth == ColorDepth::COLOR_8) {
-      AddDictionaryInt(
-          props, kIOSurfacePixelFormat,
-          (uint32_t)kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange);
+      if (aColorRange == ColorRange::LIMITED) {
+        AddDictionaryInt(
+            props, kIOSurfacePixelFormat,
+            (uint32_t)kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange);
+      } else {
+        AddDictionaryInt(
+            props, kIOSurfacePixelFormat,
+            (uint32_t)kCVPixelFormatType_420YpCbCr8BiPlanarFullRange);
+      }
     } else {
-      AddDictionaryInt(
-          props, kIOSurfacePixelFormat,
-          (uint32_t)kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange);
+      if (aColorRange == ColorRange::LIMITED) {
+        AddDictionaryInt(
+            props, kIOSurfacePixelFormat,
+            (uint32_t)kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange);
+      } else {
+        AddDictionaryInt(
+            props, kIOSurfacePixelFormat,
+            (uint32_t)kCVPixelFormatType_420YpCbCr10BiPlanarFullRange);
+      }
     }
   } else {
-    if (aColorDepth == ColorDepth::COLOR_8) {
+    // 4:2:2 subsampling. We can only handle 10-bit color.
+    MOZ_ASSERT(aColorDepth == ColorDepth::COLOR_10,
+               "macOS bi-planar 4:2:2 formats must be 10-bit color.");
+    if (aColorRange == ColorRange::LIMITED) {
       AddDictionaryInt(
           props, kIOSurfacePixelFormat,
-          (uint32_t)kCVPixelFormatType_420YpCbCr8BiPlanarFullRange);
+          (uint32_t)kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange);
     } else {
       AddDictionaryInt(
           props, kIOSurfacePixelFormat,
-          (uint32_t)kCVPixelFormatType_420YpCbCr10BiPlanarFullRange);
+          (uint32_t)kCVPixelFormatType_422YpCbCr10BiPlanarFullRange);
     }
   }
 
@@ -201,47 +266,7 @@ already_AddRefed<MacIOSurface> MacIOSurface::CreateNV12OrP010Surface(
     return nullptr;
   }
 
-  // Setup the correct YCbCr conversion matrix, color primaries, and transfer
-  // functions on the IOSurface, in case we pass this directly to CoreAnimation.
-  // For keys and values, we'd like to use values specified by the API, but
-  // those are only defined for CVImageBuffers. Luckily, when an image buffer is
-  // converted into an IOSurface, the keys are transformed but the values are
-  // the same. Since we are creating the IOSurface directly, we use hard-coded
-  // keys derived from inspecting the extracted IOSurfaces in the copying case,
-  // but we use the API-defined values from CVImageBuffer.
-  if (aColorSpace == YUVColorSpace::BT601) {
-    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceYCbCrMatrix"),
-                      kCVImageBufferYCbCrMatrix_ITU_R_601_4);
-  } else if (aColorSpace == YUVColorSpace::BT709) {
-    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceYCbCrMatrix"),
-                      kCVImageBufferYCbCrMatrix_ITU_R_709_2);
-    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceColorPrimaries"),
-                      kCVImageBufferColorPrimaries_ITU_R_709_2);
-  } else {
-    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceYCbCrMatrix"),
-                      kCVImageBufferYCbCrMatrix_ITU_R_2020);
-    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceColorPrimaries"),
-                      kCVImageBufferColorPrimaries_ITU_R_2020);
-  }
-
-  // Transfer function is applied independently from the colorSpace.
-  IOSurfaceSetValue(
-      surfaceRef.get(), CFSTR("IOSurfaceTransferFunction"),
-      gfxMacUtils::CFStringForTransferFunction(aTransferFunction));
-
-#ifdef XP_MACOSX
-  // Override the color space to be the same as the main display, so that
-  // CoreAnimation won't try to do any color correction (from the IOSurface
-  // space, to the display). In the future we may want to try specifying this
-  // correctly, but probably only once we do the same for videos drawn through
-  // our gfx code.
-  auto colorSpace = CFTypeRefPtr<CGColorSpaceRef>::WrapUnderCreateRule(
-      CGDisplayCopyColorSpace(CGMainDisplayID()));
-  auto colorData = CFTypeRefPtr<CFDataRef>::WrapUnderCreateRule(
-      CGColorSpaceCopyICCData(colorSpace.get()));
-  IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceColorSpace"),
-                    colorData.get());
-#endif
+  SetIOSurfaceCommonProperties(surfaceRef, aColorSpace, aTransferFunction);
 
   RefPtr<MacIOSurface> ioSurface =
       new MacIOSurface(std::move(surfaceRef), false, aColorSpace);
@@ -250,8 +275,9 @@ already_AddRefed<MacIOSurface> MacIOSurface::CreateNV12OrP010Surface(
 }
 
 /* static */
-already_AddRefed<MacIOSurface> MacIOSurface::CreateYUY2Surface(
-    const IntSize& aSize, YUVColorSpace aColorSpace, ColorRange aColorRange) {
+already_AddRefed<MacIOSurface> MacIOSurface::CreateSinglePlanarSurface(
+    const IntSize& aSize, YUVColorSpace aColorSpace,
+    TransferFunction aTransferFunction, ColorRange aColorRange) {
   MOZ_ASSERT(aColorSpace == YUVColorSpace::BT601 ||
              aColorSpace == YUVColorSpace::BT709);
   MOZ_ASSERT(aColorRange == ColorRange::LIMITED ||
@@ -284,29 +310,7 @@ already_AddRefed<MacIOSurface> MacIOSurface::CreateYUY2Surface(
     return nullptr;
   }
 
-  // Setup the correct YCbCr conversion matrix on the IOSurface, in case we pass
-  // this directly to CoreAnimation.
-  if (aColorSpace == YUVColorSpace::BT601) {
-    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceYCbCrMatrix"),
-                      CFSTR("ITU_R_601_4"));
-  } else {
-    IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceYCbCrMatrix"),
-                      CFSTR("ITU_R_709_2"));
-  }
-
-#ifdef XP_MACOSX
-  // Override the color space to be the same as the main display, so that
-  // CoreAnimation won't try to do any color correction (from the IOSurface
-  // space, to the display). In the future we may want to try specifying this
-  // correctly, but probably only once we do the same for videos drawn through
-  // our gfx code.
-  auto colorSpace = CFTypeRefPtr<CGColorSpaceRef>::WrapUnderCreateRule(
-      CGDisplayCopyColorSpace(CGMainDisplayID()));
-  auto colorData = CFTypeRefPtr<CFDataRef>::WrapUnderCreateRule(
-      CGColorSpaceCopyICCData(colorSpace.get()));
-  IOSurfaceSetValue(surfaceRef.get(), CFSTR("IOSurfaceColorSpace"),
-                    colorData.get());
-#endif
+  SetIOSurfaceCommonProperties(surfaceRef, aColorSpace, aTransferFunction);
 
   RefPtr<MacIOSurface> ioSurface =
       new MacIOSurface(std::move(surfaceRef), false, aColorSpace);
@@ -467,6 +471,9 @@ SurfaceFormat MacIOSurface::GetFormat() const {
     case kCVPixelFormatType_422YpCbCr8_yuvs:
     case kCVPixelFormatType_422YpCbCr8FullRange:
       return SurfaceFormat::YUY2;
+    case kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange:
+    case kCVPixelFormatType_422YpCbCr10BiPlanarFullRange:
+      return SurfaceFormat::NV16;
     case kCVPixelFormatType_32BGRA:
       return HasAlpha() ? SurfaceFormat::B8G8R8A8 : SurfaceFormat::B8G8R8X8;
     default:
@@ -487,6 +494,8 @@ ColorDepth MacIOSurface::GetColorDepth() const {
   switch (GetPixelFormat()) {
     case kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange:
     case kCVPixelFormatType_420YpCbCr10BiPlanarFullRange:
+    case kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange:
+    case kCVPixelFormatType_422YpCbCr10BiPlanarFullRange:
       return ColorDepth::COLOR_10;
     default:
       return ColorDepth::COLOR_8;
@@ -540,6 +549,25 @@ bool MacIOSurface::BindTexImage(mozilla::gl::GLContext* aGL, size_t aPlane,
     type = LOCAL_GL_UNSIGNED_SHORT;
     if (aOutReadFormat) {
       *aOutReadFormat = mozilla::gfx::SurfaceFormat::P010;
+    }
+  } else if (pixelFormat == kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange ||
+             pixelFormat == kCVPixelFormatType_422YpCbCr10BiPlanarFullRange) {
+    MOZ_ASSERT(GetPlaneCount() == 2);
+    MOZ_ASSERT(aPlane < 2);
+
+    // The LOCAL_GL_LUMINANCE and LOCAL_GL_LUMINANCE_ALPHA are the deprecated
+    // format. So, use LOCAL_GL_RED and LOCAL_GL_RB if we use core profile.
+    // https://www.khronos.org/opengl/wiki/Image_Format#Legacy_Image_Formats
+    if (aPlane == 0) {
+      internalFormat = format =
+          (isCompatibilityProfile) ? (LOCAL_GL_LUMINANCE) : (LOCAL_GL_RED);
+    } else {
+      internalFormat = format =
+          (isCompatibilityProfile) ? (LOCAL_GL_LUMINANCE_ALPHA) : (LOCAL_GL_RG);
+    }
+    type = LOCAL_GL_UNSIGNED_SHORT;
+    if (aOutReadFormat) {
+      *aOutReadFormat = mozilla::gfx::SurfaceFormat::NV16;
     }
   } else if (pixelFormat == kCVPixelFormatType_422YpCbCr8_yuvs ||
              pixelFormat == kCVPixelFormatType_422YpCbCr8FullRange) {

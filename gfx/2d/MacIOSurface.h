@@ -48,6 +48,7 @@ class MacIOSurface final
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::BackendType BackendType;
   typedef mozilla::gfx::IntSize IntSize;
+  typedef mozilla::gfx::ChromaSubsampling ChromaSubsampling;
   typedef mozilla::gfx::YUVColorSpace YUVColorSpace;
   typedef mozilla::gfx::ColorSpace2 ColorSpace2;
   typedef mozilla::gfx::TransferFunction TransferFunction;
@@ -60,12 +61,14 @@ class MacIOSurface final
 
   static already_AddRefed<MacIOSurface> CreateIOSurface(int aWidth, int aHeight,
                                                         bool aHasAlpha = true);
-  static already_AddRefed<MacIOSurface> CreateNV12OrP010Surface(
+  static already_AddRefed<MacIOSurface> CreateBiPlanarSurface(
       const IntSize& aYSize, const IntSize& aCbCrSize,
-      YUVColorSpace aColorSpace, TransferFunction aTransferFunction,
-      ColorRange aColorRange, ColorDepth aColorDepth);
-  static already_AddRefed<MacIOSurface> CreateYUY2Surface(
-      const IntSize& aSize, YUVColorSpace aColorSpace, ColorRange aColorRange);
+      ChromaSubsampling aChromaSubsampling, YUVColorSpace aColorSpace,
+      TransferFunction aTransferFunction, ColorRange aColorRange,
+      ColorDepth aColorDepth);
+  static already_AddRefed<MacIOSurface> CreateSinglePlanarSurface(
+      const IntSize& aSize, YUVColorSpace aColorSpace,
+      TransferFunction aTransferFunction, ColorRange aColorRange);
   static void ReleaseIOSurface(MacIOSurface* aIOSurface);
   static already_AddRefed<MacIOSurface> LookupSurface(
       IOSurfaceID aSurfaceID, bool aHasAlpha = true,
@@ -115,7 +118,9 @@ class MacIOSurface final
   bool IsFullRange() const {
     OSType format = GetPixelFormat();
     return (format == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange ||
-            format == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange);
+            format == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange ||
+            format == kCVPixelFormatType_422YpCbCr10BiPlanarFullRange ||
+            format == kCVPixelFormatType_422YpCbCr8FullRange);
   }
   mozilla::gfx::ColorRange GetColorRange() const {
     if (IsFullRange()) return mozilla::gfx::ColorRange::FULL;
