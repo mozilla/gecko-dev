@@ -1467,32 +1467,27 @@ bool TextLeafPoint::IsInSpellingError() const {
   if (!acc->mCachedFields) {
     return false;
   }
-  auto spellingErrors = acc->mCachedFields->GetAttribute<nsTArray<int32_t>>(
-      CacheKey::SpellingErrors);
+  auto spellingErrors =
+      acc->mCachedFields->GetAttribute<nsTArray<TextOffsetAttribute>>(
+          CacheKey::SpellingErrors);
   if (!spellingErrors) {
     return false;
   }
+  auto compare = [this](const TextOffsetAttribute& aItem) {
+    if (aItem.mStartOffset <= mOffset &&
+        (mOffset < aItem.mEndOffset || aItem.mEndOffset == -1)) {
+      return 0;
+    }
+    if (aItem.mStartOffset > mOffset) {
+      return -1;
+    }
+    return 1;
+  };
   size_t index;
-  const bool foundOrigin = BinarySearch(
-      *spellingErrors, 0, spellingErrors->Length(), mOffset, &index);
-  // In spellingErrors, even indices are start offsets, odd indices are end
-  // offsets.
-  const bool foundStart = index % 2 == 0;
-  if (foundOrigin) {
-    // mOffset is a spelling error boundary. If it's a start offset, we're in a
-    // spelling error.
-    return foundStart;
-  }
-  // index points at the next spelling error boundary after mOffset.
-  if (index == 0) {
-    return false;  // No spelling errors before mOffset.
-  }
-  if (foundStart) {
-    // We're not in a spelling error because it starts after mOffset.
-    return false;
-  }
-  // A spelling error ends after mOffset.
-  return true;
+  // With our compare function, BinarySearchIf will return true if it finds any
+  // item which includes mOffset.
+  return BinarySearchIf(*spellingErrors, 0, spellingErrors->Length(), compare,
+                        &index);
 }
 
 TextLeafPoint TextLeafPoint::FindSpellingErrorSameAcc(
@@ -1558,42 +1553,59 @@ TextLeafPoint TextLeafPoint::FindSpellingErrorSameAcc(
   if (!acc->mCachedFields) {
     return TextLeafPoint();
   }
-  auto spellingErrors = acc->mCachedFields->GetAttribute<nsTArray<int32_t>>(
-      CacheKey::SpellingErrors);
+  auto spellingErrors =
+      acc->mCachedFields->GetAttribute<nsTArray<TextOffsetAttribute>>(
+          CacheKey::SpellingErrors);
   if (!spellingErrors) {
     return TextLeafPoint();
   }
+  auto compare = [this](const TextOffsetAttribute& aItem) {
+    // We want to match both start and end offsets, so we use <=
+    // aItem.mEndOffset.
+    if (aItem.mStartOffset <= mOffset &&
+        (mOffset <= aItem.mEndOffset || aItem.mEndOffset == -1)) {
+      return 0;
+    }
+    if (aItem.mStartOffset > mOffset) {
+      return -1;
+    }
+    return 1;
+  };
   size_t index;
-  if (BinarySearch(*spellingErrors, 0, spellingErrors->Length(), mOffset,
-                   &index)) {
-    // mOffset is in spellingErrors.
-    if (aIncludeOrigin) {
+  if (BinarySearchIf(*spellingErrors, 0, spellingErrors->Length(), compare,
+                     &index)) {
+    // mOffset is within or the end of a spelling error.
+    if (aIncludeOrigin && ((*spellingErrors)[index].mStartOffset == mOffset ||
+                           (*spellingErrors)[index].mEndOffset == mOffset)) {
       return *this;
     }
+    // Check the boundaries of the spelling error containing mOffset.
     if (aDirection == eDirNext) {
-      // We don't want the origin, so move to the next spelling error boundary
-      // after mOffset.
+      if ((*spellingErrors)[index].mEndOffset > mOffset) {
+        MOZ_ASSERT((*spellingErrors)[index].mEndOffset != -1);
+        return TextLeafPoint(mAcc, (*spellingErrors)[index].mEndOffset);
+      }
+      // We don't want the origin, so move to the next spelling error after
+      // mOffset.
       ++index;
+    } else if ((*spellingErrors)[index].mStartOffset < mOffset &&
+               (*spellingErrors)[index].mStartOffset != -1) {
+      return TextLeafPoint(mAcc, (*spellingErrors)[index].mStartOffset);
     }
   }
-  // index points at the next spelling error boundary after mOffset.
+  // index points at the next spelling error after mOffset.
   if (aDirection == eDirNext) {
     if (spellingErrors->Length() == index) {
       return TextLeafPoint();  // No spelling error boundary after us.
     }
-    return TextLeafPoint(mAcc, (*spellingErrors)[index]);
+    return TextLeafPoint(mAcc, (*spellingErrors)[index].mStartOffset);
   }
   if (index == 0) {
     return TextLeafPoint();  // No spelling error boundary before us.
   }
-  // Decrement index so it points at a spelling error boundary before mOffset.
+  // Decrement index so it points at a spelling error before mOffset.
   --index;
-  if ((*spellingErrors)[index] == -1) {
-    MOZ_ASSERT(index == 0);
-    // A spelling error starts before mAcc.
-    return TextLeafPoint();
-  }
-  return TextLeafPoint(mAcc, (*spellingErrors)[index]);
+  return TextLeafPoint(mAcc, (*spellingErrors)[index].mEndOffset);
 }
 
 TextLeafPoint TextLeafPoint::NeighborLeafPoint(
@@ -1662,37 +1674,35 @@ LayoutDeviceIntRect TextLeafPoint::ComputeBoundsFromFrame() const {
 }
 
 /* static */
-nsTArray<int32_t> TextLeafPoint::GetSpellingErrorOffsets(
+nsTArray<TextOffsetAttribute> TextLeafPoint::GetSpellingErrorOffsets(
     LocalAccessible* aAcc) {
   nsINode* node = aAcc->GetNode();
   auto domRanges = FindDOMSpellingErrors(
       aAcc, 0, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT);
-  // Our offsets array will contain two offsets for each range: one for the
-  // start, one for the end. That is, the array is of the form:
-  // [r1start, r1end, r2start, r2end, ...]
-  nsTArray<int32_t> offsets(domRanges.Length() * 2);
+  nsTArray<TextOffsetAttribute> offsets(domRanges.Length());
   for (dom::AbstractRange* domRange : domRanges) {
+    TextOffsetAttribute& data = *offsets.AppendElement();
     if (domRange->GetStartContainer() == node) {
-      offsets.AppendElement(static_cast<int32_t>(ContentToRenderedOffset(
-          aAcc, static_cast<int32_t>(domRange->StartOffset()))));
+      data.mStartOffset = static_cast<int32_t>(ContentToRenderedOffset(
+          aAcc, static_cast<int32_t>(domRange->StartOffset())));
     } else {
       // This range overlaps aAcc, but starts before it.
       // This can only happen for the first range.
       MOZ_ASSERT(domRange == *domRanges.begin() && offsets.IsEmpty());
       // Using -1 here means this won't be treated as the start of a spelling
       // error range, while still indicating that we're within a spelling error.
-      offsets.AppendElement(-1);
+      data.mStartOffset = -1;
     }
     if (domRange->GetEndContainer() == node) {
-      offsets.AppendElement(static_cast<int32_t>(ContentToRenderedOffset(
-          aAcc, static_cast<int32_t>(domRange->EndOffset()))));
+      data.mEndOffset = static_cast<int32_t>(ContentToRenderedOffset(
+          aAcc, static_cast<int32_t>(domRange->EndOffset())));
     } else {
       // This range overlaps aAcc, but ends after it.
       // This can only happen for the last range.
       MOZ_ASSERT(domRange == *domRanges.rbegin());
-      // We don't append -1 here because this would just make things harder for
-      // a binary search.
+      data.mEndOffset = -1;
     }
+    data.mAttribute = nsGkAtoms::spelling;
   }
   return offsets;
 }

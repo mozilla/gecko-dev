@@ -141,7 +141,8 @@ class TextLeafPoint final {
    * should only be used when pushing the cache. Most callers will want
    * FindTextAttrsStart instead.
    */
-  static nsTArray<int32_t> GetSpellingErrorOffsets(LocalAccessible* aAcc);
+  static nsTArray<TextOffsetAttribute> GetSpellingErrorOffsets(
+      LocalAccessible* aAcc);
 
   /**
    * Queue a cache update for a spelling error in a given DOM range.
