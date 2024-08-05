@@ -9,7 +9,8 @@
  BOUNDARY_FLAG_STOP_IN_EDITABLE, BOUNDARY_FLAG_SKIP_LIST_ITEM_MARKER,
  readablePoint, testPointEqual, textBoundaryGenerator, testBoundarySequence,
  isFinalValueCorrect, isFinalValueCorrect, testInsertText, testDeleteText,
- testCopyText, testPasteText, testCutText, testSetTextContents */
+ testCopyText, testPasteText, testCutText, testSetTextContents,
+ textAttrRangesMatch */
 
 // Load the shared-head file first.
 Services.scriptloader.loadSubScript(
@@ -273,4 +274,42 @@ async function testCutText(acc, startOffset, endOffset, staticContentOffset) {
   let evt = (await evtPromise)[0];
   evt.QueryInterface(nsIAccessibleTextChangeEvent);
   is(evt.start, staticContentOffset + startOffset);
+}
+
+/**
+ * Check if the given ranges match the ranges in the given text accessible which
+ * expose the given attribute names/values.
+ */
+function textAttrRangesMatch(acc, ranges, attrs) {
+  acc.QueryInterface(nsIAccessibleText);
+  let offset = 0;
+  let expectedRanges = [...ranges];
+  let charCount = acc.characterCount;
+  while (offset < charCount) {
+    let start = {};
+    let end = {};
+    let attributes = acc.getTextAttributes(false, offset, start, end);
+    offset = end.value;
+    let matched = true;
+    for (const attr in attrs) {
+      try {
+        if (attributes.getStringProperty(attr) != attrs[attr]) {
+          // Attribute value doesn't match.
+          matched = false;
+        }
+      } catch (err) {
+        // Attribute doesn't exist.
+        matched = false;
+      }
+    }
+    if (!matched) {
+      continue;
+    }
+    let expected = expectedRanges.shift();
+    if (!expected || expected[0] != start.value || expected[1] != end.value) {
+      return false;
+    }
+  }
+
+  return !expectedRanges.length;
 }
