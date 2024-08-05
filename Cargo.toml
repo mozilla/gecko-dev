@@ -238,4 +238,5 @@ mio_0_8 = { package = "mio", git = "https://github.com/glandium/mio", rev = "9a2
 gpu-descriptor = { git = "https://github.com/zakarumych/gpu-descriptor", rev = "7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d" }
 
 # Patch for porting to Haiku OS.
+glslopt = { git = "https://github.com/kenz-gelsoft/glslopt-rs", rev = "f9fb33cdab7d55ee0b06fbde64f61be74bd4ef2b" }
 lmdb-rkv-sys = { package = "lmdb-rkv-sys", git = "https://github.com/kenz-gelsoft/lmdb-rs", rev = "c246a7b064a067feaf9d611c20b418af261477d0" }
