@@ -741,10 +741,7 @@ class TestResolver(MozbuildObject):
                     if flavor != "devtools" and test.get("flavor") != flavor:
                         continue
 
-                test_subsuite = test.get("subsuite", "undefined")
-                if not test_subsuite:  # sometimes test['subsuite'] == ''
-                    test_subsuite = "undefined"
-                if subsuite and test_subsuite != subsuite:
+                if subsuite and test.get("subsuite", "undefined") != subsuite:
                     continue
 
                 test_tags = set(test.get("tags", "").split())

@@ -46,7 +46,6 @@ export function ReadTopManifest(aFileURL, aFilter, aManifestID) {
 
 // Note: If you materially change the reftest manifest parsing,
 // please keep the parser in layout/tools/reftest/__init__.py in sync.
-// (in particular keep CONDITIONS_JS_TO_MP in sync)
 // eslint-disable-next-line complexity
 function ReadManifest(aURL, aFilter, aManifestID) {
   // Ensure each manifest is only read once. This assumes that manifests that
@@ -87,10 +86,6 @@ function ReadManifest(aURL, aFilter, aManifestID) {
     }
     return sandbox;
   }
-  var reftest_tests = Services.prefs.getStringPref("reftest.tests", {});
-  var reftest_tests_len = Object.keys(reftest_tests).length;
-  var reftest_manifests = Services.prefs.getStringPref("reftest.manifests", {});
-  var reftest_manifests_len = Object.keys(reftest_manifests).length;
 
   var lineNo = 0;
   var urlprefix = "";
@@ -447,9 +442,7 @@ function ReadManifest(aURL, aFilter, aManifestID) {
             newManifestID = included;
           }
         }
-        if (reftest_tests_len && !reftest_manifests_len) {
-          ReadManifest(incURI, aFilter, newManifestID);
-        }
+        ReadManifest(incURI, aFilter, newManifestID);
       }
     } else if (items[0] == TYPE_LOAD || items[0] == TYPE_SCRIPT) {
       let type = items[0];
