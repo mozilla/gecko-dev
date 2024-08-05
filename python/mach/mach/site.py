@@ -1299,6 +1299,14 @@ def _create_venv_with_pthfile(
 
     _ensure_python_exe(Path(target_venv.python_path).parent)
 
+    if sys.platform.startswith("haiku"):
+        non_packaged = os.path.join(virtualenv_root, "non-packaged")
+        os.makedirs(non_packaged, exist_ok=True)
+        for dir in ("bin", "lib"):
+            src = os.path.join(virtualenv_root, dir)
+            dst = os.path.join(non_packaged, dir)
+            os.symlink(src, dst, target_is_directory=True)
+
     platlib_site_packages_dir = target_venv.resolve_sysconfig_packages_path("platlib")
     pthfile_contents = "\n".join(pthfile_lines)
     with open(os.path.join(platlib_site_packages_dir, PTH_FILENAME), "w") as f:

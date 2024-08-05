@@ -539,6 +539,8 @@ def split_triplet(triplet, allow_wasi=False):
         canonical_os = canonical_kernel = "DragonFly"
     elif os.startswith("freebsd"):
         canonical_os = canonical_kernel = "FreeBSD"
+    elif os.startswith("haiku"):
+        canonical_os = canonical_kernel = "Haiku"
     elif os.startswith("netbsd"):
         canonical_os = canonical_kernel = "NetBSD"
     elif os.startswith("openbsd"):
