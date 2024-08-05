@@ -397,9 +397,7 @@ class ChromeActions {
       supportsCaretBrowsingMode: Services.prefs.getBoolPref(
         caretBrowsingModePref
       ),
-      toolbarDensity: isMobile
-        ? 0
-        : Services.prefs.getIntPref(toolbarDensityPref),
+      toolbarDensity: Services.prefs.getIntPref(toolbarDensityPref, 0),
     };
   }
 
