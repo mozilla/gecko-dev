@@ -229,15 +229,17 @@ class TextLeafPoint final {
   TextLeafPoint FindClusterSameAcc(nsDirection aDirection,
                                    bool aIncludeOrigin) const;
 
-  bool IsInSpellingError() const;
+  void AddTextOffsetAttributes(AccAttributes* aAttrs) const;
 
   /**
-   * Find a spelling error boundary in the same Accessible. This function
+   * Find a text offset attribute boundary in the same Accessible. This function
    * searches for either start or end points, since either means a change in
-   * text attributes.
+   * text attributes. This only considers attributes such as spelling errors
+   * which are mapped to DOM selections. Most callers will want
+   * FindTextAttrsStart instead.
    */
-  TextLeafPoint FindSpellingErrorSameAcc(nsDirection aDirection,
-                                         bool aIncludeOrigin) const;
+  TextLeafPoint FindTextOffsetAttributeSameAcc(nsDirection aDirection,
+                                               bool aIncludeOrigin) const;
 
   // Return the point immediately succeeding or preceding this leaf depending
   // on given direction.
