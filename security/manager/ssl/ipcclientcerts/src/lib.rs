@@ -485,6 +485,21 @@ extern "C" fn C_SetAttributeValue(
     CKR_FUNCTION_NOT_SUPPORTED
 }
 
+const RELEVANT_ATTRIBUTES: &[CK_ATTRIBUTE_TYPE] = &[
+    CKA_CLASS,
+    CKA_EC_PARAMS,
+    CKA_ID,
+    CKA_ISSUER,
+    CKA_KEY_TYPE,
+    CKA_LABEL,
+    CKA_MODULUS,
+    CKA_PRIVATE,
+    CKA_SERIAL_NUMBER,
+    CKA_SUBJECT,
+    CKA_TOKEN,
+    CKA_VALUE,
+];
+
 /// This gets called to initialize a search for objects matching a given list of attributes. This
 /// module implements this by gathering the attributes and passing them to the `ManagerProxy` to
 /// start the search.
@@ -499,6 +514,9 @@ extern "C" fn C_FindObjectsInit(
     let mut attrs = Vec::new();
     for i in 0..ulCount {
         let attr = unsafe { &*pTemplate.offset(i as isize) };
+        if !RELEVANT_ATTRIBUTES.contains(&attr.type_) {
+            return CKR_ATTRIBUTE_TYPE_INVALID;
+        }
         let slice = unsafe {
             std::slice::from_raw_parts(attr.pValue as *const u8, attr.ulValueLen as usize)
         };
