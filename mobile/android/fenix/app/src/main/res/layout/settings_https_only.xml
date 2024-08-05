@@ -67,7 +67,8 @@
         <org.mozilla.fenix.settings.PreferenceBackedRadioButton
             android:id="@+id/https_only_all_tabs"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:background="?android:attr/selectableItemBackground"
             android:button="@null"
             android:drawablePadding="@dimen/radio_button_preference_drawable_padding"
@@ -86,6 +87,7 @@
             android:id="@+id/https_only_private_tabs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:background="?android:attr/selectableItemBackground"
             android:button="@null"
             android:drawablePadding="@dimen/radio_button_preference_drawable_padding"
