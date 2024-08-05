@@ -91,7 +91,7 @@ tasks:
                         # Debug builds can't be attributable
                         debug: [dmg, mar, pkg]
                         default: [dmg-attrib, mar, pkg]
-                linux.*: [mar]
+                linux.*: [mar, desktop-file]
                 win32\b.*: [mar, installer]
                 win64\b.*: [mar, installer]
         fetches:
