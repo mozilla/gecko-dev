@@ -216,6 +216,9 @@ class MenuNavigationMiddleware(
                                 ),
                                 showPage = true,
                             ),
+                            navOptions = NavOptions.Builder()
+                                .setPopUpTo(R.id.browserFragment, false)
+                                .build(),
                         )
                     }
                 }
