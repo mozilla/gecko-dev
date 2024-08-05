@@ -11,7 +11,7 @@ task-defaults:
             android-hw-.*: geckoview-test_runner.apk
             default: null
     tier: default
-    test-manifest-loader: null  # don't load tests in the taskgraph
+    test-manifest-loader: default
     mozharness:
         script:
             by-test-platform:
@@ -96,6 +96,7 @@ crashtest-qr:
     description: "Crashtest Webrender run"
     schedules-component: crashtest
     treeherder-symbol: R(C)
+    test-manifest-loader: null  # don't load tests in the taskgraph
     chunks: 1
     variants:
         - no-fission
@@ -112,6 +113,7 @@ jsreftest:
     schedules-component: jsreftest
     treeherder-symbol: R(J)
     instance-size: default
+    test-manifest-loader: null  # don't load tests in the taskgraph
     chunks:
         by-test-platform:
             android-hw.*\/debug: 12
@@ -257,6 +259,7 @@ reftest-qr:
     description: "Reftest webrender run"
     treeherder-symbol: R(R)
     chunks: 2
+    test-manifest-loader: null  # don't load tests in the taskgraph
     variants:
         - no-fission
         - webrender-sw+no-fission

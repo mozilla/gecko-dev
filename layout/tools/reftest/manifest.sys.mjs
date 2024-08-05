@@ -46,6 +46,7 @@ export function ReadTopManifest(aFileURL, aFilter, aManifestID) {
 
 // Note: If you materially change the reftest manifest parsing,
 // please keep the parser in layout/tools/reftest/__init__.py in sync.
+// (in particular keep CONDITIONS_JS_TO_MP in sync)
 // eslint-disable-next-line complexity
 function ReadManifest(aURL, aFilter, aManifestID) {
   // Ensure each manifest is only read once. This assumes that manifests that
@@ -87,6 +88,9 @@ function ReadManifest(aURL, aFilter, aManifestID) {
     return sandbox;
   }
 
+  var mozharness_test_paths = Services.prefs.getBoolPref(
+    "reftest.mozharness_test_paths"
+  );
   var lineNo = 0;
   var urlprefix = "";
   var defaults = [];
@@ -442,7 +446,14 @@ function ReadManifest(aURL, aFilter, aManifestID) {
             newManifestID = included;
           }
         }
-        ReadManifest(incURI, aFilter, newManifestID);
+        if (mozharness_test_paths) {
+          g.logger.info(
+            "Not recursively reading when MOZHARNESS_TEST_PATHS is set: " +
+              items[1]
+          );
+        } else {
+          ReadManifest(incURI, aFilter, newManifestID);
+        }
       }
     } else if (items[0] == TYPE_LOAD || items[0] == TYPE_SCRIPT) {
       let type = items[0];
