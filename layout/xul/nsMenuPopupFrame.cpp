@@ -2160,13 +2160,19 @@ nsMargin nsMenuPopupFrame::GetMargin() const {
     margin.top += auOffset;
     margin.bottom += auOffset;
   }
-  margin.top += mExtraMargin.y;
-  margin.left += mExtraMargin.x;
   // TODO(emilio): We should consider make these properly mirrored (that is,
-  // changing -= to += here), but some tests rely on the old behavior of the
-  // anchor moving physically to the bottom / right regardless of alignment...
+  // changing -= to += here, and removing the rtl special case), but some tests
+  // rely on the old behavior of the anchor moving physically regardless of
+  // alignment...
+  margin.top += mExtraMargin.y;
   margin.bottom -= mExtraMargin.y;
-  margin.right -= mExtraMargin.x;
+  if (IsDirectionRTL()) {
+    margin.left += mExtraMargin.x;
+    margin.right -= mExtraMargin.x;
+  } else {
+    margin.left -= mExtraMargin.x;
+    margin.right += mExtraMargin.x;
+  }
   return margin;
 }
 
