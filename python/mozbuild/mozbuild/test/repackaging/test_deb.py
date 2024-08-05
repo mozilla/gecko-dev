@@ -17,7 +17,7 @@ import mozpack.path as mozpath
 import mozunit
 import pytest
 
-from mozbuild.repackaging import deb
+from mozbuild.repackaging import deb, desktop_file
 
 _APPLICATION_INI_CONTENT = """[App]
 Vendor=Mozilla
@@ -552,7 +552,7 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
             }
         )
 
-    monkeypatch.setattr(deb.requests, "get", responsive)
+    monkeypatch.setattr(desktop_file.requests, "get", responsive)
 
     output_stream = StringIO()
     logger = logging.getLogger("mozbuild:test:repackaging")
@@ -576,7 +576,7 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
     fluent_resource_loader = Mock()
 
     monkeypatch.setattr(
-        deb.json,
+        desktop_file.json,
         "load",
         lambda f: {"zh-TW": {"platforms": ["linux"], "revision": "default"}},
     )
@@ -587,7 +587,7 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
     release_product = "firefox"
     release_type = "nightly"
 
-    desktop_entry_file_text = deb._generate_browser_desktop_entry_file_text(
+    desktop_entry_file_text = desktop_file.generate_browser_desktop_entry_file_text(
         log,
         build_variables,
         release_product,
@@ -604,7 +604,7 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
     release_product = "devedition"
     release_type = "beta"
 
-    desktop_entry_file_text = deb._generate_browser_desktop_entry_file_text(
+    desktop_entry_file_text = desktop_file.generate_browser_desktop_entry_file_text(
         log,
         build_variables,
         release_product,
@@ -618,10 +618,10 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
     def outage(url):
         return Mock(**{"status_code": 500})
 
-    monkeypatch.setattr(deb.requests, "get", outage)
+    monkeypatch.setattr(desktop_file.requests, "get", outage)
 
-    with pytest.raises(deb.HgServerError):
-        desktop_entry_file_text = deb._generate_browser_desktop_entry_file_text(
+    with pytest.raises(desktop_file.HgServerError):
+        desktop_entry_file_text = desktop_file.generate_browser_desktop_entry_file_text(
             log,
             build_variables,
             release_product,
