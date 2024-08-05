@@ -20,7 +20,9 @@ ChromeUtils.defineLazyGetter(lazy, "SearchModeSwitcherL10n", () => {
  */
 export class SearchModeSwitcher {
   #engineListNeedsRebuild = true;
-  #input = null;
+  #popup;
+  #input;
+  #toolbarbutton;
 
   constructor(input) {
     this.#input = input;
@@ -31,17 +33,25 @@ export class SearchModeSwitcher {
     ]);
     Services.obs.addObserver(this, "browser-search-engine-modified", true);
 
-    let toolbarbutton = input.document.querySelector(
+    this.#popup = input.document.getElementById("searchmode-switcher-popup");
+
+    this.#toolbarbutton = input.document.querySelector(
       "#urlbar-searchmode-switcher"
     );
-    toolbarbutton.addEventListener("mousedown", this);
-    toolbarbutton.addEventListener("keypress", this);
+    this.#toolbarbutton.addEventListener("mousedown", this);
+    this.#toolbarbutton.addEventListener("keypress", this);
 
     let closebutton = input.document.querySelector(
       "#searchmode-switcher-close"
     );
     closebutton.addEventListener("mousedown", this);
     closebutton.addEventListener("keypress", this);
+
+    let prefsbutton = input.document.querySelector(
+      "#searchmode-switcher-popup-search-settings-button"
+    );
+    prefsbutton.addEventListener("mousedown", this);
+    prefsbutton.addEventListener("keypress", this);
 
     input.window.addEventListener(
       "MozAfterPaint",
@@ -57,8 +67,18 @@ export class SearchModeSwitcher {
    *        The event that triggered the opening of the popup.
    */
   async openPanel(event) {
+    if (
+      (event.type == "click" && event.button != 0) ||
+      (event.type == "keypress" &&
+        event.charCode != KeyEvent.DOM_VK_SPACE &&
+        event.keyCode != KeyEvent.DOM_VK_RETURN &&
+        event.keyCode != KeyEvent.DOM_VK_DOWN)
+    ) {
+      return; // Left click, down arrow, space or enter only
+    }
+
     let anchor = event.target;
-    event.stopPropagation();
+    event.preventDefault();
 
     if (this.#input.document.documentElement.hasAttribute("customizing")) {
       return;
@@ -71,21 +91,45 @@ export class SearchModeSwitcher {
     if (anchor.getAttribute("open") != "true") {
       this.#input.view.hideTemporarily();
 
-      this.#getPopup().addEventListener(
+      this.#popup.addEventListener(
         "popuphidden",
         () => {
           anchor.removeAttribute("open");
+          anchor.setAttribute("aria-expanded", false);
           this.#input.view.restoreVisibility();
         },
         { once: true }
       );
       anchor.setAttribute("open", true);
+      anchor.setAttribute("aria-expanded", true);
 
-      lazy.PanelMultiView.openPopup(this.#getPopup(), anchor, {
+      this.#popup.addEventListener(
+        "popupshown",
+        () => {
+          this.#popup.querySelector("toolbarbutton").focus();
+        },
+        { once: true }
+      );
+
+      lazy.PanelMultiView.openPopup(this.#popup, anchor, {
         position: "bottomleft topleft",
         triggerEvent: event,
       }).catch(console.error);
     }
+  }
+
+  #openPreferences(event) {
+    if (
+      (event.type == "click" && event.button != 0) ||
+      (event.type == "keypress" &&
+        event.charCode != KeyEvent.DOM_VK_SPACE &&
+        event.keyCode != KeyEvent.DOM_VK_RETURN)
+    ) {
+      return; // Left click, space or enter only
+    }
+
+    this.#input.window.openPreferences("paneSearch");
+    this.#popup.hidePopup();
   }
 
   /**
@@ -95,7 +139,6 @@ export class SearchModeSwitcher {
    *        The event that triggered the searchMode exit.
    */
   exitSearchMode(event) {
-    event.stopPropagation();
     event.preventDefault();
     this.#input.searchMode = null;
   }
@@ -119,6 +162,10 @@ export class SearchModeSwitcher {
         this.exitSearchMode(event);
         break;
       }
+      case "openpreferences": {
+        this.#openPreferences(event);
+        break;
+      }
     }
   }
 
@@ -131,76 +178,75 @@ export class SearchModeSwitcher {
     }
   }
 
-  #popup = null;
-
-  #getPopup() {
-    if (!this.#popup) {
-      this.#popup = this.#input.document.getElementById(
-        "searchmode-switcher-popup"
-      );
-    }
-    return this.#popup;
-  }
-
   async #updateSearchIcon() {
     try {
       await lazy.UrlbarSearchUtils.init();
     } catch {
       // We should still work if the SearchService is not working.
     }
-    let button = this.#input.document.getElementById(
-      "searchmode-switcher-icon"
+    let { label, icon } = await this.#getDisplayedEngineDetails(
+      this.#input.searchMode
     );
-    let iconURL = await this.#getIconForSearchMode(this.#input.searchMode);
-    if (iconURL) {
-      button.style.listStyleImage = `url(${iconURL})`;
-    }
-    let label = this.#input.document.getElementById(
+    let iconUrl = icon ? `url(${icon})` : "";
+    this.#input.document.getElementById(
+      "searchmode-switcher-icon"
+    ).style.listStyleImage = iconUrl;
+    this.#input.document.l10n.setAttributes(
+      this.#toolbarbutton,
+      "urlbar-searchmode-button",
+      { engine: label }
+    );
+    let labelEl = this.#input.document.getElementById(
       "searchmode-switcher-title"
     );
     if (!this.#input.searchMode) {
-      label.replaceChildren();
-    } else if (this.#input.searchMode?.engineName) {
-      label.textContent = this.#input.searchMode.engineName;
-    } else if (this.#input.searchMode?.source) {
-      // Certainly the wrong way to do this, the same string is used
-      // as a <label and as a <toolbarbutton label= and not sure
-      // how to define an l10n ID to be used both ways.
-      let mode = lazy.UrlbarUtils.LOCAL_SEARCH_MODES.find(
-        m => m.source == this.#input.searchMode.source
-      );
-      let [str] = await lazy.SearchModeSwitcherL10n.formatMessages([
-        {
-          id: mode.uiLabel,
-          args: { restrict: mode.restrict },
-        },
-      ]);
-      label.textContent = str.attributes[0].value;
+      labelEl.replaceChildren();
+    } else if (this.#input.searchMode) {
+      labelEl.textContent = label;
     }
   }
 
-  async #getIconForSearchMode(searchMode = null) {
+  async #getSearchModeLabel(source) {
+    let mode = lazy.UrlbarUtils.LOCAL_SEARCH_MODES.find(
+      m => m.source == source
+    );
+    let [str] = await lazy.SearchModeSwitcherL10n.formatMessages([
+      { id: mode.uiLabel },
+    ]);
+    return str.attributes[0].value;
+  }
+
+  async #getDisplayedEngineDetails(searchMode = null) {
     if (!searchMode || searchMode.engineName) {
       let engine = searchMode
         ? lazy.UrlbarSearchUtils.getEngineByName(searchMode.engineName)
         : lazy.UrlbarSearchUtils.getDefaultEngine();
-      return engine.getIconURL();
+      return { label: engine.name, icon: await engine.getIconURL() };
     }
 
     let mode = lazy.UrlbarUtils.LOCAL_SEARCH_MODES.find(
       m => m.source == searchMode.source
     );
-    return mode.icon;
+    return {
+      label: await this.#getSearchModeLabel(searchMode.source),
+      icon: mode.icon,
+    };
   }
 
   async #rebuildSearchModeList() {
-    let container = this.#getPopup().querySelector(".panel-subview-body");
+    let container = this.#popup.querySelector(".panel-subview-body");
     container.replaceChildren();
     let engines = await Services.search.getVisibleEngines();
     let frag = this.#input.document.createDocumentFragment();
     let remoteContainer = this.#input.document.createXULElement("vbox");
     remoteContainer.className = "remote-options";
     frag.appendChild(remoteContainer);
+
+    let fireCommand = e => {
+      if (e.keyCode == KeyEvent.DOM_VK_RETURN) {
+        e.target.doCommand();
+      }
+    };
 
     for (let engine of engines) {
       if (engine.hideOneOffButton) {
@@ -211,11 +257,13 @@ export class SearchModeSwitcher {
       menuitem.setAttribute("class", "subviewbutton subviewbutton-iconic");
       menuitem.setAttribute("label", engine.name);
       menuitem.setAttribute("tabindex", "0");
+      menuitem.setAttribute("role", "menuitem");
       menuitem.engine = engine;
-      menuitem.setAttribute(
-        "oncommand",
-        "gURLBar.searchModeSwitcher.search(event, { engine: this.engine })"
-      );
+      menuitem.addEventListener("keypress", fireCommand);
+      menuitem.addEventListener("command", () => {
+        this.search({ engine });
+      });
+
       menuitem.setAttribute("image", await engine.getIconURL());
       remoteContainer.appendChild(menuitem);
     }
@@ -232,18 +280,21 @@ export class SearchModeSwitcher {
       let button = this.#input.document.createXULElement("toolbarbutton");
       button.id = `search-button-${name}`;
       button.setAttribute("class", "subviewbutton subviewbutton-iconic");
-      let iconUrl = await this.#getIconForSearchMode({
+      button.setAttribute("tabindex", "0");
+      button.setAttribute("role", "menuitem");
+      let { icon } = await this.#getDisplayedEngineDetails({
         source,
         pref,
         restrict,
       });
-      if (iconUrl) {
-        button.setAttribute("image", iconUrl);
+      if (icon) {
+        button.setAttribute("image", icon);
       }
-      button.setAttribute(
-        "oncommand",
-        "gURLBar.searchModeSwitcher.search(event, { restrict: this.restrict })"
-      );
+      button.addEventListener("keypress", fireCommand);
+      button.addEventListener("command", () => {
+        this.search({ restrict });
+      });
+
       this.#input.document.l10n.setAttributes(
         button,
         `urlbar-searchmode-${name}`,
@@ -258,7 +309,7 @@ export class SearchModeSwitcher {
     container.appendChild(frag);
   }
 
-  search(event, { engine = null, restrict = null } = {}) {
+  search({ engine = null, restrict = null } = {}) {
     let gBrowser = this.#input.window.gBrowser;
     let search = "";
     let opts = null;
@@ -270,6 +321,6 @@ export class SearchModeSwitcher {
       opts = { searchModeEntry: "searchbutton" };
     }
     this.#input.search(search, opts);
-    this.#getPopup().hidePopup();
+    this.#popup.hidePopup();
   }
 }

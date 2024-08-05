@@ -614,6 +614,10 @@ TextPropertyEditor.prototype = {
         ),
       inStartingStyleRule: this.rule.isInStartingStyle(),
     };
+
+    if (this.rule.darkColorScheme !== undefined) {
+      parserOptions.isDarkColorScheme = this.rule.darkColorScheme;
+    }
     const frag = outputParser.parseCssProperty(name, val, parserOptions);
 
     // Save the initial value as the last committed value,

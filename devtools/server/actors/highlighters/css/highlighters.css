@@ -250,7 +250,19 @@
   color: var(--grey-40);
 }
 
+/* CSS Flexbox Highlighter */
+
+.flexbox-root {
+  position: absolute;
+  overflow: hidden;
+}
+
 /* CSS Grid Highlighter */
+
+.css-grid-root {
+  position: absolute;
+  overflow: hidden;
+}
 
 .css-grid-canvas {
   position: absolute;
@@ -268,6 +280,8 @@
 .css-grid-cells {
   opacity: 0.5;
   stroke: none;
+  /* Set in css-grid.js */
+  fill: var(--grid-color);
 }
 
 .css-grid-area-infobar-name,

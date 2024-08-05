@@ -23,6 +23,7 @@ UNIFIED_SOURCES = [
     "DebuggerMemory.cpp",
     "DebugScript.cpp",
     "Environment.cpp",
+    "ExecutionTracer.cpp",
     "Frame.cpp",
     "NoExecute.cpp",
     "Object.cpp",

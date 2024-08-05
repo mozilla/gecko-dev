@@ -302,6 +302,10 @@ class FlexboxHighlighter extends AutoRefreshHighlighter {
     return pattern;
   }
 
+  getNode(id) {
+    return this.markup.content.root.getElementById(this.ID_CLASS_PREFIX + id);
+  }
+
   /**
    * The AutoRefreshHighlighter's _hasMoved method returns true only if the
    * element's quads have changed. Override it so it also returns true if the
@@ -829,12 +833,6 @@ class FlexboxHighlighter extends AutoRefreshHighlighter {
   _update() {
     setIgnoreLayoutChanges(true);
 
-    const root = this.getElement("root");
-
-    // Hide the root element and force the reflow in order to get the proper window's
-    // dimensions without increasing them.
-    root.setAttribute("style", "display: none");
-    this.win.document.documentElement.offsetWidth;
     this._winDimensions = getWindowDimensions(this.win);
     const { width, height } = this._winDimensions;
 
@@ -870,10 +868,9 @@ class FlexboxHighlighter extends AutoRefreshHighlighter {
     this._showFlexbox();
     this.prevColor = this.color;
 
-    root.setAttribute(
-      "style",
-      `position: absolute; width: ${width}px; height: ${height}px; overflow: hidden`
-    );
+    const root = this.getNode("root");
+    root.style.setProperty("width", `${width}px`);
+    root.style.setProperty("height", `${height}px`);
 
     setIgnoreLayoutChanges(false, this.highlighterEnv.document.documentElement);
     return true;

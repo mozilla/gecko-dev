@@ -40,10 +40,6 @@ class nsIPrincipal;
 #  include "AndroidLocationProvider.h"
 #endif
 
-#ifdef MOZ_GPSD
-#  include "GpsdLocationProvider.h"
-#endif
-
 #ifdef MOZ_ENABLE_DBUS
 #  include "mozilla/WidgetUtilsGtk.h"
 #  include "GeoclueLocationProvider.h"
@@ -543,7 +539,7 @@ nsresult nsGeolocationService::Init() {
         .EnumGet(glean::geolocation::LinuxProviderLabel::ePortal)
         .Set(true);
   }
-  // Geoclue includes GPS data so it has higher priority than raw GPSD
+
   if (!mProvider && StaticPrefs::geo_provider_use_geoclue()) {
     nsCOMPtr<nsIGeolocationProvider> gcProvider = new GeoclueLocationProvider();
     MOZ_LOG(gGeolocationLog, LogLevel::Debug,
@@ -559,16 +555,6 @@ nsresult nsGeolocationService::Init() {
           .Set(true);
     }
   }
-#    ifdef MOZ_GPSD
-  if (!mProvider && Preferences::GetBool("geo.provider.use_gpsd", false)) {
-    mProvider = new GpsdLocationProvider();
-    MOZ_LOG(gGeolocationLog, LogLevel::Debug,
-            ("Selected GpsdLocationProvider"));
-    glean::geolocation::linux_provider
-        .EnumGet(glean::geolocation::LinuxProviderLabel::eGpsd)
-        .Set(true);
-  }
-#    endif
 #  endif
 #endif
 

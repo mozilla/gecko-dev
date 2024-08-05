@@ -290,6 +290,19 @@ PACKAGE_FORMATS = {
         },
         "output": "target.langpack.deb",
     },
+    "desktop-file": {
+        "args": [
+            "desktop-file",
+            "--flavor",
+            "flatpak",
+            "--release-product",
+            "firefox",
+            "--release-type",
+            "{release_type}",
+        ],
+        "inputs": {},
+        "output": "target.flatpak.desktop",
+    },
 }
 MOZHARNESS_EXPANSIONS = [
     "package-name",

@@ -95,6 +95,14 @@ Native code can opt into this to support debugger who wants to perform
 side-effect-free evaluation.
 
 
+### `nativeTracing`
+A boolean value used to enable the native tracing, which will collect
+information about frames entered and left and provide them via
+collectNativeTrace (see below). Setting this to false will clear the
+trace if no other debuggers are tracing the context, otherwise the trace
+will be left running.
+
+
 ## Debugger Handler Functions
 
 Each `Debugger` instance inherits accessor properties with which you can
@@ -554,6 +562,79 @@ designated by <i>global</i>, even if it is not a debuggee.
 ### `disableUnlimitedStacksCapturing(global)`
 Disallow to capture more than 50 stacktraces for the realm for the global object
 designated by <i>global</i>, unless it is a debuggee.
+
+### `collectNativeTrace()`
+.. container:: blockIndicator note
+
+   Note: `collectNativeTrace()` and all related native tracing members are
+   being actively developed and experimented with, and should be considered in
+   the prototyping phase. The long-term goal for this project is for Firefox
+   to have both a live tracer which can be used to see the structure of a
+   program as it executes in real time (bug 1910182 tracks the development of
+   the native backend for this), as well as a recorded trace which is covered
+   by this method.
+
+Collects all of the tracing data collected by the native tracer, returns it
+as a JS object, and sets `nativeTracing` to `false` The table is structured as
+follows:
+
+```js
+{
+  // a dictionary of strings which can be referenced from `events`
+  "atoms": {...},
+
+  // a dictionary of script URLs keyed by script source id
+  "scriptURLs": {...},
+
+  // an array of TracingEvent, detailed below
+  "events": [...],
+}
+```
+.. container:: blockIndicator note
+
+   Note: Both `atoms` and `scriptURLs` are populated from a ring buffer which
+   can wrap around and overwrite old data. In practice this case tends to not
+   occur, but it should be noted that entries in the `events` array may
+   reference entries in in `atoms` and `scriptURLs` which do not exist.
+   `events` itself also comes from a separate ring buffer, so after a certain
+   amount of activity, old events will be overwritten.
+
+A `TracingEvent` is just a plain JS array. The first element specifies the kind
+of the event, and the rest of the array is structured differently based on that
+kind. The event kind is one of the following:
+
+- `Debugger.TRACING_EVENT_KIND_FUNCTION_ENTER` (event is a `FunctionFrameInfo`)
+- `Debugger.TRACING_EVENT_KIND_FUNCTION_LEAVE` (event is a `FunctionFrameInfo`)
+- `Debugger.TRACING_EVENT_KIND_LABEL_ENTER` (event is a `LabelFrameInfo`)
+- `Debugger.TRACING_EVENT_KIND_LABEL_LEAVE` (event is a `LabelFrameInfo`)
+
+Events may also contain information about the implementation of the function
+executing. This references one of the following values:
+
+- `Debugger.IMPLEMENTATION_INTERPRETER`
+- `Debugger.IMPLEMENTATION_BASELINE`
+- `Debugger.IMPLEMENTATION_ION`
+- `Debugger.IMPLEMENTATION_WASM`
+
+```js
+// FunctionFrameInfo:
+[
+  kind, // The kind of the entry (see above)
+  lineNumber, // The line number of the function in the script source
+  column, // The 1-based column of the function in the script source
+  scriptId, // The ID of the script source. Indexes into the `scriptURLs` array (0 means the script was missing)
+  functionName, // The function name, as an index into the `atoms` array
+  implementation, // See the IMPLEMENTATION_* constants above
+  time, // When this entry was recorded, in milliseconds since the Epoch
+]
+
+// LabelFrameInfo:
+[
+  kind, // See above
+  label, // A string (the label)
+  time, // When this entry was recorded, in milliseconds since the Epoch
+]
+```
 
 ## Static methods of the Debugger Object
 

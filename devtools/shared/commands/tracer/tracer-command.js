@@ -106,6 +106,10 @@ class TracerCommand extends EventEmitter {
         "devtools.debugger.javascript-tracing-function-return",
         false
       ),
+      useNativeTracing: Services.prefs.getBoolPref(
+        "devtools.debugger.javascript-tracing-native",
+        false
+      ),
     };
   }
 

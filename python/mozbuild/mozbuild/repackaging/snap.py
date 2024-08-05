@@ -11,8 +11,8 @@ from urllib.request import urlretrieve
 
 from mozbuild.repackaging.application_ini import get_application_ini_values
 from mozbuild.repackaging.snapcraft_transform import (
-    DesktopFileTransform,
     SnapcraftTransform,
+    SnapDesktopFile,
 )
 
 UPSTREAM = "https://github.com/{}/raw/{}/"
@@ -25,6 +25,7 @@ DEPS = [
 
 
 def repackage_snap(
+    log,
     srcdir,
     objdir,
     snapdir,
@@ -60,12 +61,9 @@ def repackage_snap(
     shutil.copy(
         os.path.join(srcdir, "browser/branding/nightly/default256.png"), snapdir
     )
-    source_desktop = os.path.join(
-        srcdir, "taskcluster/docker/firefox-snap/firefox.desktop"
-    )
     with open(os.path.join(snapdir, "firefox.desktop"), "w") as desktop_file:
         desktop_file.write(
-            DesktopFileTransform(source_desktop, icon="default256.png").repack()
+            SnapDesktopFile(log, appname=appname, branchname=branchname).repack()
         )
 
     source_yaml = os.path.join(snapdir, "original.snapcraft.yaml")

@@ -356,17 +356,16 @@ class IsItemInRangeComparator {
   nsContentUtils::NodeIndexCache* mCache;
 };
 
-bool nsINode::IsSelected(const uint32_t aStartOffset,
-                         const uint32_t aEndOffset) const {
+bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
+                         SelectionNodeCache* aCache) const {
   MOZ_ASSERT(aStartOffset <= aEndOffset);
-
   const nsINode* n = GetClosestCommonInclusiveAncestorForRangeInSelection(this);
   NS_ASSERTION(n || !IsMaybeSelected(),
                "A node without a common inclusive ancestor for a range in "
                "Selection is for sure not selected.");
 
   // Collect the selection objects for potential ranges.
-  nsTHashSet<Selection*> ancestorSelections;
+  AutoTArray<Selection*, 1> ancestorSelections;
   for (; n; n = GetClosestCommonInclusiveAncestorForRangeInSelection(
                 n->GetParentNode())) {
     const LinkedList<AbstractRange>* ranges =
@@ -380,12 +379,16 @@ bool nsINode::IsSelected(const uint32_t aStartOffset,
       // Looks like that IsInSelection() assert fails sometimes...
       if (range->IsInAnySelection()) {
         for (const WeakPtr<Selection>& selection : range->GetSelections()) {
-          if (selection) {
-            ancestorSelections.Insert(selection);
+          if (selection && !ancestorSelections.Contains(selection)) {
+            ancestorSelections.AppendElement(selection);
           }
         }
       }
     }
+  }
+  if (aCache && aCache->MaybeCollectNodesAndCheckIfFullySelectedInAnyOf(
+                    this, ancestorSelections)) {
+    return true;
   }
 
   nsContentUtils::NodeIndexCache cache;

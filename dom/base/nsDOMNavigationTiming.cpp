@@ -488,37 +488,6 @@ void nsDOMNavigationTiming::NotifyLargestContentfulRenderForRootContentDocument(
       mNavigationStart + TimeDuration::FromMilliseconds(aRenderTime);
 }
 
-void nsDOMNavigationTiming::NotifyDOMContentFlushedForRootContentDocument() {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!mNavigationStart.IsNull());
-
-  if (!mDOMContentFlushed.IsNull()) {
-    return;
-  }
-
-  mDOMContentFlushed = TimeStamp::Now();
-
-  if (profiler_thread_is_being_profiled_for_markers() ||
-      PAGELOAD_LOG_ENABLED()) {
-    TimeDuration elapsed = mDOMContentFlushed - mNavigationStart;
-    nsPrintfCString marker(
-        "DOMContentFlushed after %dms for URL %s, %s",
-        int(elapsed.ToMilliseconds()),
-        nsContentUtils::TruncatedURLForDisplay(mLoadedURI).get(),
-        mDocShellHasBeenActiveSinceNavigationStart
-            ? "foreground tab"
-            : "this tab was inactive some of the time between navigation start "
-              "and DOMContentFlushed");
-    PAGELOAD_LOG(("%s", marker.get()));
-    PROFILER_MARKER_TEXT(
-        "DOMContentFlushed", DOM,
-        MarkerOptions(
-            MarkerTiming::Interval(mNavigationStart, mDOMContentFlushed),
-            MarkerInnerWindowIdFromDocShell(mDocShell)),
-        marker);
-  }
-}
-
 void nsDOMNavigationTiming::NotifyDocShellStateChanged(
     DocShellState aDocShellState) {
   mDocShellHasBeenActiveSinceNavigationStart &=
@@ -595,7 +564,6 @@ nsDOMNavigationTiming::nsDOMNavigationTiming(nsDocShell* aDocShell,
       mNavigationStart(aOther->mNavigationStart),
       mNonBlankPaint(aOther->mNonBlankPaint),
       mContentfulComposite(aOther->mContentfulComposite),
-      mDOMContentFlushed(aOther->mDOMContentFlushed),
       mBeforeUnloadStart(aOther->mBeforeUnloadStart),
       mUnloadStart(aOther->mUnloadStart),
       mUnloadEnd(aOther->mUnloadEnd),
@@ -629,7 +597,6 @@ void mozilla::ipc::IPDLParamTraits<nsDOMNavigationTiming*>::Write(
   WriteIPDLParam(aWriter, aActor, aParam->mNavigationStart);
   WriteIPDLParam(aWriter, aActor, aParam->mNonBlankPaint);
   WriteIPDLParam(aWriter, aActor, aParam->mContentfulComposite);
-  WriteIPDLParam(aWriter, aActor, aParam->mDOMContentFlushed);
   WriteIPDLParam(aWriter, aActor, aParam->mBeforeUnloadStart);
   WriteIPDLParam(aWriter, aActor, aParam->mUnloadStart);
   WriteIPDLParam(aWriter, aActor, aParam->mUnloadEnd);
@@ -669,7 +636,6 @@ bool mozilla::ipc::IPDLParamTraits<nsDOMNavigationTiming*>::Read(
       !ReadIPDLParam(aReader, aActor, &timing->mNavigationStart) ||
       !ReadIPDLParam(aReader, aActor, &timing->mNonBlankPaint) ||
       !ReadIPDLParam(aReader, aActor, &timing->mContentfulComposite) ||
-      !ReadIPDLParam(aReader, aActor, &timing->mDOMContentFlushed) ||
       !ReadIPDLParam(aReader, aActor, &timing->mBeforeUnloadStart) ||
       !ReadIPDLParam(aReader, aActor, &timing->mUnloadStart) ||
       !ReadIPDLParam(aReader, aActor, &timing->mUnloadEnd) ||

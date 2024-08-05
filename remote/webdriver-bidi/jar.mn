@@ -14,6 +14,7 @@ remote.jar:
   content/webdriver-bidi/modules/Intercept.sys.mjs (modules/Intercept.sys.mjs)
   content/webdriver-bidi/modules/ModuleRegistry.sys.mjs (modules/ModuleRegistry.sys.mjs)
   content/webdriver-bidi/modules/WindowGlobalBiDiModule.sys.mjs (modules/WindowGlobalBiDiModule.sys.mjs)
+  content/webdriver-bidi/modules/RootBiDiModule.sys.mjs (modules/RootBiDiModule.sys.mjs)
 
   # WebDriver BiDi root modules
   content/webdriver-bidi/modules/root/browser.sys.mjs (modules/root/browser.sys.mjs)

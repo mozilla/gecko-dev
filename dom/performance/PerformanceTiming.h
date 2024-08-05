@@ -415,16 +415,6 @@ class PerformanceTiming final : public nsWrapperCache {
         mPerformance->GetRTPCallerType());
   }
 
-  DOMTimeMilliSec TimeToDOMContentFlushed() const {
-    if (!StaticPrefs::dom_enable_performance()) {
-      return 0;
-    }
-    return nsRFPService::ReduceTimePrecisionAsMSecs(
-        GetDOMTiming()->GetTimeToDOMContentFlushed(),
-        mPerformance->GetRandomTimelineSeed(),
-        mPerformance->GetRTPCallerType());
-  }
-
   DOMTimeMilliSec TimeToFirstInteractive() const {
     if (!StaticPrefs::dom_enable_performance()) {
       return 0;

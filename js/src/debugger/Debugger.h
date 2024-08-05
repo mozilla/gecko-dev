@@ -656,6 +656,9 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
   // See JS::dbg::ShouldAvoidSideEffects.
   bool shouldAvoidSideEffects;
 
+  // Whether to enable native tracing on the Debuggee.
+  bool nativeTracing;
+
   template <typename T>
   struct DebuggerLinkAccess {
     static mozilla::DoublyLinkedListElement<T>& Get(T* aThis) {
@@ -921,6 +924,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
 
   static const JSPropertySpec properties[];
   static const JSFunctionSpec methods[];
+  static const JSPropertySpec static_properties[];
   static const JSFunctionSpec static_methods[];
 
   /**

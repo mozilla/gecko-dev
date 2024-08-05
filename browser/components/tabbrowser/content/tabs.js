@@ -1139,6 +1139,13 @@
       // remove arrowScrollbox periphery element
       children.pop();
 
+      // explode tab groups
+      Array.from(children).forEach((node, index) => {
+        if (node.tagName == "tab-group") {
+          children.splice(index, 1, ...node.tabs);
+        }
+      });
+
       let allChildren = [...verticalPinnedTabsContainer.children, ...children];
       this._allTabs = allChildren;
       return allChildren;

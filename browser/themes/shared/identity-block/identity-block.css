@@ -29,6 +29,14 @@
   }
 }
 
+/* stylelint-disable-next-line media-query-no-invalid */
+@media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
+  #identity-box[pageproxystate="invalid"],
+  #identity-box.chromeUI {
+    display: none;
+  }
+}
+
 .identity-box-button {
   padding-inline: var(--urlbar-icon-padding);
   border-radius: var(--urlbar-icon-border-radius);

@@ -1177,25 +1177,6 @@ def telemetry_on_by_default(reporting, is_nightly):
 set_define("MOZ_TELEMETRY_ON_BY_DEFAULT", True, when=telemetry_on_by_default)
 
 
-# gpsd support
-# ==============================================================
-system_lib_option(
-    "--enable-gpsd",
-    env="MOZ_GPSD",
-    help="Enable gpsd support",
-    when=use_pkg_config,
-)
-
-
-@depends("--enable-gpsd", when=use_pkg_config)
-def gpsd(value):
-    return bool(value)
-
-
-system_gpsd = pkg_check_modules("MOZ_GPSD", "libgps >= 3.11", when=gpsd)
-
-set_config("MOZ_GPSD", depends_if(system_gpsd)(lambda _: True))
-
 # Miscellaneous programs
 # ==============================================================
 

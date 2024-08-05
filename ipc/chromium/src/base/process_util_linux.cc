@@ -62,23 +62,6 @@ static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
 namespace base {
 
 #if defined(MOZ_ENABLE_FORKSERVER)
-static mozilla::StaticAutoPtr<std::vector<int> > sNoCloseFDs;
-
-void RegisterForkServerNoCloseFD(int fd) {
-  if (!sNoCloseFDs) {
-    sNoCloseFDs = new std::vector<int>();
-  }
-  sNoCloseFDs->push_back(fd);
-}
-
-static bool IsNoCloseFd(int fd) {
-  if (!sNoCloseFDs) {
-    return false;
-  }
-  return std::any_of(sNoCloseFDs->begin(), sNoCloseFDs->end(),
-                     [fd](int regfd) -> bool { return regfd == fd; });
-}
-
 AppProcessBuilder::AppProcessBuilder() {}
 
 static void ReplaceEnviroment(const LaunchOptions& options) {
@@ -172,7 +155,7 @@ void AppProcessBuilder::InitAppProcess(int* argcp, char*** argvp) {
   }
 
   CloseSuperfluousFds(&shuffle_, [](void* ctx, int fd) {
-    return static_cast<decltype(&shuffle_)>(ctx)->MapsTo(fd) || IsNoCloseFd(fd);
+    return static_cast<decltype(&shuffle_)>(ctx)->MapsTo(fd);
   });
   // Without this, the destructor of |shuffle_| would try to close FDs
   // created by it, but they have been closed by

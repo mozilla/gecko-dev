@@ -7,7 +7,8 @@
     android:id="@android:id/title"
     style="@style/PreferenceSectionHeader"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/section_header_height"
+    android:layout_height="wrap_content"
+    android:minHeight="@dimen/section_header_height"
     android:layout_marginStart="@dimen/top_bar_alignment_margin_start"
     android:gravity="start|center_vertical"
     app:allowDividerAbove="true" />

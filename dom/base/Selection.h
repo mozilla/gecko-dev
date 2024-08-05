@@ -56,6 +56,71 @@ namespace mozilla {
 
 namespace dom {
 
+/**
+ * This cache allows to store all selected nodes during a reflow operation.
+ *
+ * All fully selected nodes are stored in a hash set per-selection instance.
+ * This allows fast paths in `nsINode::IsSelected()` and
+ * `Selection::LookupSelection()`. For partially selected nodes, the old
+ * mechanisms are used. This is okay, because for partially selected nodes
+ * no expensive node traversal is necessary.
+ *
+ * This cache is designed to be used in a context where no script is allowed
+ * to run. It assumes that the selection itself, or any range therein, does not
+ * change during its lifetime.
+ *
+ * By design, this class can only be instantiated in the `PresShell`.
+ */
+class MOZ_RAII SelectionNodeCache final {
+ public:
+  ~SelectionNodeCache();
+  /**
+   * Returns true if `aNode` is fully selected by any of the given selections.
+   *
+   * This method will collect all fully selected nodes of `aSelections` and
+   * store them internally (therefore this method isn't const).
+   */
+  bool MaybeCollectNodesAndCheckIfFullySelectedInAnyOf(
+      const nsINode* aNode, const nsTArray<Selection*>& aSelections);
+
+  /**
+   * Returns true if `aNode` is fully selected by any range in `aSelection`.
+   *
+   * This method collects all fully selected nodes from `aSelection` and store
+   * them internally.
+   */
+  bool MaybeCollectNodesAndCheckIfFullySelected(const nsINode* aNode,
+                                                const Selection* aSelection) {
+    return MaybeCollect(aSelection).Contains(aNode);
+  }
+
+ private:
+  /**
+   * This class is supposed to be only created by the PresShell.
+   */
+  friend PresShell;
+  explicit SelectionNodeCache(PresShell& aOwningPresShell);
+  /**
+   * Collects all nodes from a given list of selections.
+   *
+   * This method assumes that the selections itself won't change during this
+   * object's lifetime. It's not possible to 'update' the cached selected ranges
+   * by calling this method again.
+   */
+  void MaybeCollect(const nsTArray<Selection*>& aSelections);
+  /**
+   * Iterates all ranges in `aSelection` and collects its fully selected nodes
+   * into a hash set, which is also returned.
+   *
+   * If `aSelection` is already cached, the hash set is returned directly.
+   */
+  const nsTHashSet<const nsINode*>& MaybeCollect(const Selection* aSelection);
+
+  nsTHashMap<const Selection*, nsTHashSet<const nsINode*>> mSelectedNodes;
+
+  PresShell& mOwningPresShell;
+};
+
 // Note, the ownership of mozilla::dom::Selection depends on which way the
 // object is created. When nsFrameSelection has created Selection,
 // addreffing/releasing the Selection object is aggregated to nsFrameSelection.

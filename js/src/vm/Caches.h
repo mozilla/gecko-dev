@@ -526,6 +526,87 @@ class StringToAtomCache {
   }
 };
 
+// Holds a handful of caches used for tracing JS execution. These effectively
+// hold onto IDs which let the tracer know that it has already recorded the
+// entity in question. They need to be cleared on a compacting GC since they
+// are keyed by pointers. However the IDs must continue incrementing until
+// the tracer is turned off since entries containing the IDs in question may
+// linger in the ExecutionTracer's buffer through a GC.
+class TracingCaches {
+  uint32_t shapeId_ = 0;
+  uint32_t atomId_ = 0;
+  using TracingPointerCache =
+      HashMap<uintptr_t, uint32_t, DefaultHasher<uintptr_t>, SystemAllocPolicy>;
+  TracingPointerCache shapes_;
+  TracingPointerCache atoms_;
+
+  // NOTE: this cache does not need to be cleared on compaction, but still
+  // needs to be cleared at the end of tracing.
+  using TracingU32Set =
+      HashSet<uint32_t, DefaultHasher<uint32_t>, SystemAllocPolicy>;
+  TracingU32Set scriptSourcesSeen_;
+
+ public:
+  void clearOnCompaction() {
+    atoms_.clear();
+    shapes_.clear();
+  }
+
+  void clearAll() {
+    shapeId_ = 0;
+    atomId_ = 0;
+    scriptSourcesSeen_.clear();
+    atoms_.clear();
+    shapes_.clear();
+  }
+
+  enum class GetOrPutResult {
+    OOM,
+    NewlyAdded,
+    WasPresent,
+  };
+
+  GetOrPutResult getOrPutAtom(JSAtom* atom, uint32_t* id) {
+    TracingPointerCache::AddPtr p =
+        atoms_.lookupForAdd(reinterpret_cast<uintptr_t>(atom));
+    if (p) {
+      *id = p->value();
+      return GetOrPutResult::WasPresent;
+    }
+    *id = atomId_++;
+    if (!atoms_.add(p, reinterpret_cast<uintptr_t>(atom), *id)) {
+      return GetOrPutResult::OOM;
+    }
+    return GetOrPutResult::NewlyAdded;
+  }
+
+  GetOrPutResult getOrPutShape(Shape* shape, uint32_t* id) {
+    TracingPointerCache::AddPtr p =
+        shapes_.lookupForAdd(reinterpret_cast<uintptr_t>(shape));
+    if (p) {
+      *id = p->value();
+      return GetOrPutResult::WasPresent;
+    }
+    *id = shapeId_++;
+    if (!shapes_.add(p, reinterpret_cast<uintptr_t>(shape), *id)) {
+      return GetOrPutResult::OOM;
+    }
+    return GetOrPutResult::NewlyAdded;
+  }
+
+  // NOTE: scriptSourceId is js::ScriptSource::id value.
+  GetOrPutResult putScriptSourceIfMissing(uint32_t scriptSourceId) {
+    TracingU32Set::AddPtr p = scriptSourcesSeen_.lookupForAdd(scriptSourceId);
+    if (p) {
+      return GetOrPutResult::WasPresent;
+    }
+    if (!scriptSourcesSeen_.add(p, scriptSourceId)) {
+      return GetOrPutResult::OOM;
+    }
+    return GetOrPutResult::NewlyAdded;
+  }
+};
+
 class RuntimeCaches {
  public:
   MegamorphicCache megamorphicCache;
@@ -533,6 +614,7 @@ class RuntimeCaches {
   UncompressedSourceCache uncompressedSourceCache;
   EvalCache evalCache;
   StringToAtomCache stringToAtomCache;
+  TracingCaches tracingCaches;
 
   // Delazification: Cache binding for runtime objects which are used during
   // delazification to quickly resolve NameLocation of bindings without linearly
@@ -555,6 +637,7 @@ class RuntimeCaches {
       megamorphicSetPropCache->bumpGeneration();
     }
     scopeCache.purge();
+    tracingCaches.clearOnCompaction();
   }
 
   void purgeStencils() {

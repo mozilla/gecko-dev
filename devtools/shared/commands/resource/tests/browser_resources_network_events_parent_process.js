@@ -21,8 +21,8 @@ const createParentProcessRequests = async () => {
 const EXPECTED_METHOD_NAME = "createParentProcessRequests";
 const EXPECTED_REQUEST_LINE_1 = 12;
 const EXPECTED_REQUEST_COL_1 = 9;
-const EXPECTED_REQUEST_LINE_2 = 17;
-const EXPECTED_REQUEST_COL_2 = 3;
+// const EXPECTED_REQUEST_LINE_2 = 17;
+// const EXPECTED_REQUEST_COL_2 = 3;
 
 // Test the ResourceCommand API around NETWORK_EVENT for the parent process
 
@@ -133,13 +133,20 @@ add_task(async function testParentProcessRequests() {
   ok(!firstImageRequest.fromCache, "The first image request isn't cached");
   ok(firstImageRequest.chromeContext, "The first image request is privileged");
 
-  const firstImageStacktrace = receivedStacktraces[1].lastFrame;
   is(receivedStacktraces[1].resourceId, firstImageRequest.stacktraceResourceId);
+  const firstImageStacktrace = receivedStacktraces[1].lastFrame;
+  // TODO(bug 1911435).
+  todo(
+    !!firstImageStacktrace,
+    "After bug 1076583, image load is async and we can't get a stack trace"
+  );
+  /*
   is(firstImageStacktrace.filename, gTestPath);
   is(firstImageStacktrace.lineNumber, EXPECTED_REQUEST_LINE_2);
   is(firstImageStacktrace.columnNumber, EXPECTED_REQUEST_COL_2);
   is(firstImageStacktrace.functionName, EXPECTED_METHOD_NAME);
   is(firstImageStacktrace.asyncCause, null);
+  */
 
   info("Assert the second image request");
   const secondImageRequest = receivedNetworkEvents[2];

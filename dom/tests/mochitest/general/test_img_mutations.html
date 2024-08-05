@@ -49,39 +49,50 @@
       }
     }
     function expectEvents(loads, errors, callback) {
-      if (!loads && !errors) {
-        setTimeout(callback, 0);
-      } else {
-        expectingLoads += loads;
-        expectingErrors += errors;
-        info("Waiting for " + expectingLoads + " load and " + expectingErrors + " error events");
-        afterExpectCallback = callback;
-      }
+      let p = new Promise(resolve => {
+        if (!loads && !errors) {
+          setTimeout(resolve, 0);
+        } else {
+          expectingLoads += loads;
+          expectingErrors += errors;
+          info("Waiting for " + expectingLoads + " load and " + expectingErrors + " error events");
+          afterExpectCallback = resolve;
+        }
+      });
+      return p.then(() => callback && callback());
     }
 
     //
     // Test that img.src still does some work synchronously per the older spec (bug 1076583)
     //
-    tests.push(function test1() {
+    tests.push(async function test1() {
       info("test 1");
       img.src = testPNG50;
-      is(img.currentSrc, testPNG50, "Should have synchronously selected source");
+      is(img.currentSrc, "", "Should not have synchronously selected source");
+
+      await expectEvents(1, 0);
+      is(img.currentSrc, testPNG50, "Should now have testPNG50 as current request");
 
       // Assigning a wrong URL should not trigger error event (bug 1321300).
       img.src = '//:0'; // Wrong URL
+      is(img.currentSrc, "", "Should have dropped current request sync");
 
       img.src = "non_existent_image.404";
-      ok(img.currentSrc.endsWith("non_existent_image.404"), "Should have synchronously selected source");
+      is(img.currentSrc, "", "Should still have empty current request");
+
+      await expectEvents(0, 1);
+      ok(img.currentSrc.endsWith("non_existent_image.404"), "Should have asynchronously selected source");
 
       img.removeAttribute("src");
-      is(img.currentSrc, '', "Should have dropped currentSrc");
+      is(img.currentSrc, "", "Should have dropped currentSrc sync");
 
       // Load another image while previous load is still pending
       img.src = testPNG200;
-      is(img.currentSrc, testPNG200, "Should have synchronously selected source");
+      is(img.currentSrc, "", "Should asynchronously load selected source");
 
-      // No events should have fired synchronously, now we should get just one load (and no 404 error)
-      expectEvents(1, 0, nextTest);
+      await expectEvents(1, 0);
+      is(img.currentSrc, testPNG200, "Should have asynchronously loaded selected source");
+      nextTest();
     });
 
 
@@ -193,26 +204,25 @@
     });
 
     // Removing srcset attr should async switch back to src
-    tests.push(function () {
+    tests.push(async function () {
       info("test 10");
       is(img.currentSrc, testPNG200, "Should have testPNG200 as current request");
 
       img.removeAttribute("srcset");
-      is(img.currentSrc, testPNG200, "Should still have testPNG200 as current request");
+      is(img.currentSrc, testPNG100, "Should testPNG100 as current request (hits sync load case for src)");
 
-      expectEvents(1, 0, function() {
-        is(img.currentSrc, testPNG100, "Should now have testPNG100 as current request");
+      await expectEvents(1, 0);
+      is(img.currentSrc, testPNG100, "Should now have testPNG100 as current request");
 
-        expectEvents(0, 0, nextTest);
-      });
+      expectEvents(0, 0, nextTest);
     });
 
     function nextTest() {
       if (tests.length) {
         // Spin event loop to make sure no unexpected image events are
         // pending (unexpected events will assert in the handlers)
-        setTimeout(function() {
-          (tests.shift())();
+        setTimeout(async function() {
+          await (tests.shift())();
         }, 0);
       } else {
         // Remove the event listeners to prevent the prefenv being popped from

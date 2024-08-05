@@ -11,6 +11,7 @@ test "$BUILD_NUMBER"
 test "$CANDIDATES_DIR"
 test "$L10N_CHANGESETS"
 test "$FLATPAK_BRANCH"
+test "$DESKTOP_FILE_URL"
 
 # Optional env variables
 : WORKSPACE                     "${WORKSPACE:=/home/worker/workspace}"
@@ -70,7 +71,7 @@ for locale in $locales; do
 done
 
 envsubst < "$SCRIPT_DIRECTORY/org.mozilla.firefox.appdata.xml.in" > "${WORKSPACE}/org.mozilla.firefox.appdata.xml"
-cp -v "$SCRIPT_DIRECTORY/org.mozilla.firefox.desktop" "$WORKSPACE"
+$CURL -o "$WORKSPACE/org.mozilla.firefox.desktop" "$DESKTOP_FILE_URL"
 cp -v "$SCRIPT_DIRECTORY/launch-script.sh" "$WORKSPACE"
 cp -v "$SCRIPT_DIRECTORY/firefox-symbolic.svg" "$WORKSPACE"
 cd "${WORKSPACE}"

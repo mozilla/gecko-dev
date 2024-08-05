@@ -49,6 +49,26 @@ class FenixSnackbarBehaviorTest {
     }
 
     @Test
+    fun `GIVEN a toolbar shown at top WHEN the snackbar is shown THEN don't anchor it`() {
+        dependency.id = R.id.toolbar
+        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+
+        assertSnackbarIsPlacedAtTheBottomOfTheScreen()
+    }
+
+    @Test
+    fun `GIVEN a toolbar layout shown at top WHEN the snackbar is shown THEN don't anchor it`() {
+        dependency.id = R.id.toolbarLayout
+        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+
+        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
+
+        assertSnackbarIsPlacedAtTheBottomOfTheScreen()
+    }
+
+    @Test
     fun `GIVEN the dynamic download dialog is shown WHEN the snackbar is shown THEN place the snackbar above the dialog`() {
         dependency.id = R.id.viewDynamicDownloadDialog
         val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)

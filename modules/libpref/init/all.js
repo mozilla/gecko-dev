@@ -3236,10 +3236,6 @@ pref("geo.provider.network.timeout", 60000);
   pref("geo.provider.ms-windows-location", true);
 #endif
 
-#if defined(MOZ_WIDGET_GTK) && defined(MOZ_GPSD)
-  pref("geo.provider.use_gpsd", true);
-#endif
-
 // Region
 pref("browser.region.log", false);
 pref("browser.region.network.url", "https://location.services.mozilla.com/v1/country?key=%MOZILLA_API_KEY%");

@@ -313,15 +313,26 @@
               </box>
             </box>
             <toolbarbutton id="urlbar-searchmode-switcher"
-                           data-l10n-id="urlbar-searchmode-button"
                            data-action="openpopup"
-                           align="center" noautofocus="true" tooltip="dynamic-shortcut-tooltip" class="chromeclass-toolbar-additional">
+                           align="center"
+                           role="button"
+                           aria-haspopup="menu"
+                           aria-expanded="false"
+                           tooltip="dynamic-shortcut-tooltip"
+                           class="chromeclass-toolbar-additional">
               <image id="searchmode-switcher-icon" />
-              <label id="searchmode-switcher-title" />
-              <image id="searchmode-switcher-dropmarker" data-l10n-id="urlbar-searchmode-dropmarker"
+              <image id="searchmode-switcher-dropmarker"
+                     data-l10n-id="urlbar-searchmode-dropmarker"
                      class="toolbarbutton-icon toolbarbutton-combined-buttons-dropmarker" />
-              <toolbarbutton id="searchmode-switcher-close" data-action="exitsearchmode" noautofocus="true" class="toolbarbutton-icon close-button" />
             </toolbarbutton>
+            <box id="searchmode-switcher-chicklet">
+              <label id="searchmode-switcher-title" />
+              <toolbarbutton id="searchmode-switcher-close"
+                             data-action="exitsearchmode"
+                             role="button"
+                             tooltip="dynamic-shortcut-tooltip"
+                             class="toolbarbutton-icon close-button" />
+            </box>
             <box id="urlbar-label-box" align="center">
               <label id="urlbar-label-switchtab" class="urlbar-label" data-l10n-id="urlbar-switch-to-tab"/>
               <label id="urlbar-label-extension" class="urlbar-label" data-l10n-id="urlbar-extension"/>

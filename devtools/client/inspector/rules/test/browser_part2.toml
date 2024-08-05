@@ -193,6 +193,8 @@ skip-if = [
 
 ["browser_rules_layer.js"]
 
+["browser_rules_light_dark.js"]
+
 ["browser_rules_lineNumbers.js"]
 
 ["browser_rules_linear-easing-swatch.js"]

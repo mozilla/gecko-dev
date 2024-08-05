@@ -17,7 +17,7 @@ import mozpack.path as mozpath
 import mozunit
 import pytest
 
-from mozbuild.repackaging import deb
+from mozbuild.repackaging import deb, desktop_file
 
 _APPLICATION_INI_CONTENT = """[App]
 Vendor=Mozilla
@@ -95,6 +95,7 @@ def test_extract_application_ini_data_from_directory():
                 "DEB_PKG_NAME": "firefox-nightly-try",
                 "DEB_PKG_VERSION": "112.0a1~20230222000000",
                 "DEB_MANPAGE_DATE": "February 22, 2023",
+                "Icon": "firefox-nightly-try",
             },
             does_not_raise(),
         ),
@@ -118,6 +119,7 @@ def test_extract_application_ini_data_from_directory():
                 "DEB_PKG_NAME": "firefox-nightly-try-l10n-fr",
                 "DEB_PKG_VERSION": "112.0a1~20230222000000",
                 "DEB_MANPAGE_DATE": "February 22, 2023",
+                "Icon": "firefox-nightly-try-l10n-fr",
             },
             does_not_raise(),
         ),
@@ -141,6 +143,7 @@ def test_extract_application_ini_data_from_directory():
                 "DEB_PKG_NAME": "firefox-nightly-try",
                 "DEB_PKG_VERSION": "112.0b1~build1",
                 "DEB_MANPAGE_DATE": "February 22, 2023",
+                "Icon": "firefox-nightly-try",
             },
             does_not_raise(),
         ),
@@ -164,6 +167,7 @@ def test_extract_application_ini_data_from_directory():
                 "DEB_PKG_NAME": "firefox-nightly-try",
                 "DEB_PKG_VERSION": "112.0~build2",
                 "DEB_MANPAGE_DATE": "February 22, 2023",
+                "Icon": "firefox-nightly-try",
             },
             does_not_raise(),
         ),
@@ -187,6 +191,7 @@ def test_extract_application_ini_data_from_directory():
                 "DEB_PKG_NAME": "firefox-devedition",
                 "DEB_PKG_VERSION": "120.0b9~build1",
                 "DEB_MANPAGE_DATE": "February 22, 2023",
+                "Icon": "firefox-devedition",
             },
             does_not_raise(),
         ),
@@ -210,6 +215,7 @@ def test_extract_application_ini_data_from_directory():
                 "DEB_PKG_NAME": "firefox-devedition-l10n-ach",
                 "DEB_PKG_VERSION": "120.0b9~build1",
                 "DEB_MANPAGE_DATE": "February 22, 2023",
+                "Icon": "firefox-devedition-l10n-ach",
             },
             does_not_raise(),
         ),
@@ -233,6 +239,7 @@ def test_extract_application_ini_data_from_directory():
                 "DEB_PKG_NAME": "firefox-devedition-l10n-ach",
                 "DEB_PKG_VERSION": "120.0b9~build1",
                 "DEB_MANPAGE_DATE": "February 22, 2023",
+                "Icon": "firefox-devedition-l10n-ach",
             },
             does_not_raise(),
         ),
@@ -256,6 +263,7 @@ def test_extract_application_ini_data_from_directory():
                 "DEB_PKG_NAME": "firefox-aurora-l10n-ach",
                 "DEB_PKG_VERSION": "120.0b9~build1",
                 "DEB_MANPAGE_DATE": "February 22, 2023",
+                "Icon": "firefox-aurora-l10n-ach",
             },
             pytest.raises(AssertionError),
         ),
@@ -521,7 +529,7 @@ def test_inject_deb_desktop_entry_file(monkeypatch):
 
     monkeypatch.setattr(
         deb,
-        "_generate_browser_desktop_entry_file_text",
+        "generate_browser_desktop_entry_file_text",
         mock_generate_browser_desktop_entry_file_text,
     )
 
@@ -552,7 +560,7 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
             }
         )
 
-    monkeypatch.setattr(deb.requests, "get", responsive)
+    monkeypatch.setattr(desktop_file.requests, "get", responsive)
 
     output_stream = StringIO()
     logger = logging.getLogger("mozbuild:test:repackaging")
@@ -576,18 +584,19 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
     fluent_resource_loader = Mock()
 
     monkeypatch.setattr(
-        deb.json,
+        desktop_file.json,
         "load",
         lambda f: {"zh-TW": {"platforms": ["linux"], "revision": "default"}},
     )
 
     build_variables = {
         "DEB_PKG_NAME": "firefox-nightly",
+        "Icon": "firefox-nightly",
     }
     release_product = "firefox"
     release_type = "nightly"
 
-    desktop_entry_file_text = deb._generate_browser_desktop_entry_file_text(
+    desktop_entry_file_text = desktop_file.generate_browser_desktop_entry_file_text(
         log,
         build_variables,
         release_product,
@@ -600,11 +609,12 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
 
     build_variables = {
         "DEB_PKG_NAME": "firefox-devedition",
+        "Icon": "firefox-devedition",
     }
     release_product = "devedition"
     release_type = "beta"
 
-    desktop_entry_file_text = deb._generate_browser_desktop_entry_file_text(
+    desktop_entry_file_text = desktop_file.generate_browser_desktop_entry_file_text(
         log,
         build_variables,
         release_product,
@@ -618,10 +628,10 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
     def outage(url):
         return Mock(**{"status_code": 500})
 
-    monkeypatch.setattr(deb.requests, "get", outage)
+    monkeypatch.setattr(desktop_file.requests, "get", outage)
 
-    with pytest.raises(deb.HgServerError):
-        desktop_entry_file_text = deb._generate_browser_desktop_entry_file_text(
+    with pytest.raises(desktop_file.RemoteVCSError):
+        desktop_entry_file_text = desktop_file.generate_browser_desktop_entry_file_text(
             log,
             build_variables,
             release_product,
