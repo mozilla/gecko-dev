@@ -81,6 +81,7 @@ import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.concept.storage.LoginEntry
+import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.app.links.AppLinksFeature
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.contextmenu.ContextMenuFeature
@@ -216,6 +217,8 @@ import org.mozilla.fenix.microsurvey.ui.ext.toMicrosurveyUIData
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.biometric.BiometricPromptFeature
+import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
+import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.ext.toDisplayTitle
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -303,6 +306,8 @@ abstract class BaseBrowserFragment :
     private val readerViewBinding = ViewBoundFeatureWrapper<ReaderViewBinding>()
     private val openInFirefoxBinding = ViewBoundFeatureWrapper<OpenInFirefoxBinding>()
     private val findInPageBinding = ViewBoundFeatureWrapper<FindInPageBinding>()
+    private val snackbarBinding = ViewBoundFeatureWrapper<SnackbarBinding>()
+    private val standardSnackbarErrorBinding = ViewBoundFeatureWrapper<StandardSnackbarErrorBinding>()
 
     private var pipFeature: PictureInPictureFeature? = null
 
@@ -667,6 +672,30 @@ abstract class BaseBrowserFragment :
             ),
             owner = this,
             view = view,
+        )
+
+        snackbarBinding.set(
+            feature = SnackbarBinding(
+                context = context,
+                browserStore = context.components.core.store,
+                appStore = context.components.appStore,
+                snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),
+                navController = findNavController(),
+                sendTabUseCases = SendTabUseCases(requireComponents.backgroundServices.accountManager),
+                customTabSessionId = customTabSessionId,
+            ),
+            owner = this,
+            view = view,
+        )
+
+        standardSnackbarErrorBinding.set(
+            feature = StandardSnackbarErrorBinding(
+                requireActivity(),
+                binding.dynamicSnackbarContainer,
+                requireActivity().components.appStore,
+            ),
+            owner = viewLifecycleOwner,
+            view = binding.root,
         )
 
         val allowScreenshotsInPrivateMode = context.settings().allowScreenshotsInPrivateMode
