@@ -371,8 +371,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   static void DispatchIdleTaskAfterTickUnlessExists(mozilla::Task* aTask);
   static void CancelIdleTask(mozilla::Task* aTask);
 
-  void NotifyDOMContentLoaded();
-
   // Schedule a refresh so that any delayed events will run soon.
   void RunDelayedEventsSoon();
 
@@ -635,9 +633,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   // next tick by the refresh driver. This flag will be reset at the
   // start of every tick.
   bool mResizeSuppressed : 1;
-
-  // True if the next tick should notify DOMContentFlushed.
-  bool mNotifyDOMContentFlushed : 1;
 
   // True if we need to flush in order to update intersection observations in
   // all our documents.

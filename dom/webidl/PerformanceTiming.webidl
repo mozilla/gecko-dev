@@ -44,12 +44,6 @@ interface PerformanceTiming {
   [Pref="dom.performance.time_to_contentful_paint.enabled"]
   readonly attribute unsigned long long timeToContentfulPaint;
 
-  // This is a Mozilla proprietary extension and not part of the
-  // performance/navigation timing specification. It marks the
-  // completion of the first presentation flush after DOMContentLoaded.
-  [Pref="dom.performance.time_to_dom_content_flushed.enabled"]
-  readonly attribute unsigned long long timeToDOMContentFlushed;
-
   // This is a Chrome proprietary extension and not part of the
   // performance/navigation timing specification.
   // Returns 0 if a time-to-interactive measurement has not happened.

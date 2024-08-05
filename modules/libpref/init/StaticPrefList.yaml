@@ -3349,12 +3349,6 @@
   value: false
   mirror: always
 
-# Is support for PerformanceTiming.timeToDOMContentFlushed enabled?
-- name: dom.performance.time_to_dom_content_flushed.enabled
-  type: bool
-  value: false
-  mirror: always
-
 # Is support for PerformanceTiming.timeToFirstInteractive enabled?
 - name: dom.performance.time_to_first_interactive.enabled
   type: bool

@@ -2869,16 +2869,6 @@ void nsPresContext::NotifyPaintStatusReset() {
   mHadNonTickContentfulPaint = false;
 }
 
-void nsPresContext::NotifyDOMContentFlushed() {
-  NS_ENSURE_TRUE_VOID(mPresShell);
-  if (IsRootContentDocumentCrossProcess()) {
-    RefPtr<nsDOMNavigationTiming> timing = mDocument->GetNavigationTiming();
-    if (timing) {
-      timing->NotifyDOMContentFlushedForRootContentDocument();
-    }
-  }
-}
-
 nscoord nsPresContext::GfxUnitsToAppUnits(gfxFloat aGfxUnits) const {
   return mDeviceContext->GfxUnitsToAppUnits(aGfxUnits);
 }

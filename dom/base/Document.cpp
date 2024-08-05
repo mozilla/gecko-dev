@@ -8376,9 +8376,6 @@ void Document::UnblockDOMContentLoaded() {
           ("DOCUMENT %p UnblockDOMContentLoaded", this));
 
   mDidFireDOMContentLoaded = true;
-  if (PresShell* presShell = GetPresShell()) {
-    presShell->GetRefreshDriver()->NotifyDOMContentLoaded();
-  }
 
   MOZ_ASSERT(mReadyState == READYSTATE_INTERACTIVE);
   if (!mSynchronousDOMContentLoaded) {

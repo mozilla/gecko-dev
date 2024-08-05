@@ -1040,7 +1040,6 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   void NotifyNonBlankPaint();
   void NotifyContentfulPaint();
   void NotifyPaintStatusReset();
-  void NotifyDOMContentFlushed();
 
   bool HasEverBuiltInvisibleText() const { return mHasEverBuiltInvisibleText; }
   void SetBuiltInvisibleText() { mHasEverBuiltInvisibleText = true; }
