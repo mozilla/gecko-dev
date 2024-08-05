@@ -56,6 +56,7 @@ class Rule {
     this.pseudoElement = options.pseudoElement || "";
     this.isSystem = options.isSystem;
     this.isUnmatched = options.isUnmatched || false;
+    this.darkColorScheme = options.darkColorScheme;
     this.inherited = options.inherited || null;
     this.keyframes = options.keyframes || null;
     this.userAdded = options.rule.userAdded;
@@ -637,6 +638,8 @@ class Rule {
    */
   refresh(options) {
     this.matchedSelectorIndexes = options.matchedSelectorIndexes || [];
+    const colorSchemeChanged = this.darkColorScheme !== options.darkColorScheme;
+    this.darkColorScheme = options.darkColorScheme;
 
     const newTextProps = this._getTextProperties();
 
@@ -678,6 +681,17 @@ class Rule {
         prop.updateEditor();
       } else {
         delete prop._visited;
+      }
+
+      // Valid properties that aren't disabled might need to get updated in some condition
+      if (
+        prop.enabled &&
+        prop.isValid() &&
+        // Update if it's using light-dark and the color scheme changed
+        colorSchemeChanged &&
+        prop.value.includes("light-dark")
+      ) {
+        prop.updateEditor();
       }
     }
 

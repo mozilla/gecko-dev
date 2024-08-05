@@ -634,6 +634,7 @@ class PageStyleActor extends Actor {
    *                - isSystem Boolean
    *                - inherited Boolean
    *                - pseudoElement String
+   *                - darkColorScheme Boolean
    */
   _getAllElementRules(node, inherited, options) {
     const { bindingElement, pseudo } = CssLogic.getBindingElementAndPseudo(
@@ -650,12 +651,11 @@ class PageStyleActor extends Actor {
     const showInheritedStyles =
       inherited && this._hasInheritedProps(bindingElement.style);
 
-    const rule = {
-      rule: elementStyle,
+    const rule = this._getRuleItem(elementStyle, node.rawNode, {
       pseudoElement: null,
       isSystem: false,
       inherited: false,
-    };
+    });
 
     // First any inline styles
     if (showElementStyles) {
@@ -715,6 +715,27 @@ class PageStyleActor extends Actor {
     }
 
     return rules;
+  }
+
+  /**
+   * @param {DOMNode} rawNode
+   * @param {StyleRuleActor} styleRuleActor
+   * @param {Object} params
+   * @param {Boolean} params.inherited
+   * @param {Boolean} params.isSystem
+   * @param {String|null} params.pseudoElement
+   * @returns Object
+   */
+  _getRuleItem(rule, rawNode, { inherited, isSystem, pseudoElement }) {
+    return {
+      rule,
+      pseudoElement,
+      isSystem,
+      inherited,
+      // We can't compute the value for the whole document as the color scheme
+      // can be set at the node level (e.g. with `color-scheme`)
+      darkColorScheme: InspectorUtils.isUsedColorSchemeDark(rawNode),
+    };
   }
 
   _nodeIsTextfieldLike(node) {
@@ -841,12 +862,13 @@ class PageStyleActor extends Actor {
 
       const ruleActor = this._styleRef(domRule);
 
-      rules.push({
-        rule: ruleActor,
-        inherited,
-        isSystem,
-        pseudoElement: pseudo,
-      });
+      rules.push(
+        this._getRuleItem(ruleActor, node, {
+          inherited,
+          isSystem,
+          pseudoElement: pseudo,
+        })
+      );
     }
     return rules;
   }
