@@ -9,7 +9,6 @@ use minidump_writer::{
     errors::*,
     maps_reader::{MappingEntry, MappingInfo, SystemMappingInfo},
     minidump_writer::MinidumpWriter,
-    module_reader::{BuildId, ReadFromModule},
     ptrace_dumper::PtraceDumper,
     thread_info::Pid,
 };
@@ -685,11 +684,7 @@ fn with_deleted_binary() {
         .unwrap();
     let binary_copy = binary_copy_dir.as_ref().join("binary_copy");
 
-    let path: String = if let Ok(p) = std::env::var("TEST_HELPER") {
-        p
-    } else {
-        std::env!("CARGO_BIN_EXE_test").into()
-    };
+    let path: &'static str = std::env!("CARGO_BIN_EXE_test");
 
     std::fs::copy(path, &binary_copy).expect("Failed to copy binary");
     let mem_slice = std::fs::read(&binary_copy).expect("Failed to read binary");
@@ -705,8 +700,8 @@ fn with_deleted_binary() {
 
     let pid = child.id() as i32;
 
-    let BuildId(mut build_id) =
-        BuildId::read_from_module(mem_slice.as_slice()).expect("Failed to get build_id");
+    let mut build_id = PtraceDumper::elf_file_identifier_from_mapped_file(&mem_slice)
+        .expect("Failed to get build_id");
 
     std::fs::remove_file(&binary_copy).expect("Failed to remove binary");
 
@@ -738,7 +733,7 @@ fn with_deleted_binary() {
     let main_module = module_list
         .main_module()
         .expect("Could not get main module");
-    //assert_eq!(main_module.code_file(), binary_copy.to_string_lossy());
+    assert_eq!(main_module.code_file(), binary_copy.to_string_lossy());
 
     let did = main_module
         .debug_identifier()

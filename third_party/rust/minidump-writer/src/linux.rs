@@ -11,7 +11,6 @@ mod dumper_cpu_info;
 pub mod errors;
 pub mod maps_reader;
 pub mod minidump_writer;
-pub mod module_reader;
 pub mod ptrace_dumper;
 pub(crate) mod sections;
 pub mod thread_info;

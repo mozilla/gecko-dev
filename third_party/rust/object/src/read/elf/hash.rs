@@ -1,14 +1,12 @@
 use core::mem;
 
 use crate::elf;
-use crate::endian::{U32, U64};
-use crate::read::{ReadError, ReadRef, Result, SymbolIndex};
+use crate::read::{ReadError, ReadRef, Result};
+use crate::{U32, U64};
 
 use super::{FileHeader, Sym, SymbolTable, Version, VersionTable};
 
 /// A SysV symbol hash table in an ELF file.
-///
-/// Returned by [`SectionHeader::hash`](super::SectionHeader::hash).
 #[derive(Debug)]
 pub struct HashTable<'data, Elf: FileHeader> {
     buckets: &'data [U32<Elf::Endian>],
@@ -18,8 +16,8 @@ pub struct HashTable<'data, Elf: FileHeader> {
 impl<'data, Elf: FileHeader> HashTable<'data, Elf> {
     /// Parse a SysV hash table.
     ///
-    /// `data` should be from an [`elf::SHT_HASH`] section, or from a
-    /// segment pointed to via the [`elf::DT_HASH`] entry.
+    /// `data` should be from a `SHT_HASH` section, or from a
+    /// segment pointed to via the `DT_HASH` entry.
     ///
     /// The header is read at offset 0 in the given `data`.
     pub fn parse(endian: Elf::Endian, data: &'data [u8]) -> Result<Self> {
@@ -41,14 +39,6 @@ impl<'data, Elf: FileHeader> HashTable<'data, Elf> {
         self.chains.len() as u32
     }
 
-    fn bucket(&self, endian: Elf::Endian, hash: u32) -> SymbolIndex {
-        SymbolIndex(self.buckets[(hash as usize) % self.buckets.len()].get(endian) as usize)
-    }
-
-    fn chain(&self, endian: Elf::Endian, index: SymbolIndex) -> SymbolIndex {
-        SymbolIndex(self.chains[index.0].get(endian) as usize)
-    }
-
     /// Use the hash table to find the symbol table entry with the given name, hash and version.
     pub fn find<R: ReadRef<'data>>(
         &self,
@@ -58,13 +48,13 @@ impl<'data, Elf: FileHeader> HashTable<'data, Elf> {
         version: Option<&Version<'_>>,
         symbols: &SymbolTable<'data, Elf, R>,
         versions: &VersionTable<'data, Elf>,
-    ) -> Option<(SymbolIndex, &'data Elf::Sym)> {
+    ) -> Option<(usize, &'data Elf::Sym)> {
         // Get the chain start from the bucket for this hash.
-        let mut index = self.bucket(endian, hash);
+        let mut index = self.buckets[(hash as usize) % self.buckets.len()].get(endian) as usize;
         // Avoid infinite loop.
         let mut i = 0;
         let strings = symbols.strings();
-        while index != SymbolIndex(0) && i < self.chains.len() {
+        while index != 0 && i < self.chains.len() {
             if let Ok(symbol) = symbols.symbol(index) {
                 if symbol.name(endian, strings) == Ok(name)
                     && versions.matches(endian, index, version)
@@ -72,7 +62,7 @@ impl<'data, Elf: FileHeader> HashTable<'data, Elf> {
                     return Some((index, symbol));
                 }
             }
-            index = self.chain(endian, index);
+            index = self.chains.get(index)?.get(endian) as usize;
             i += 1;
         }
         None
@@ -80,8 +70,6 @@ impl<'data, Elf: FileHeader> HashTable<'data, Elf> {
 }
 
 /// A GNU symbol hash table in an ELF file.
-///
-/// Returned by [`SectionHeader::gnu_hash`](super::SectionHeader::gnu_hash).
 #[derive(Debug)]
 pub struct GnuHashTable<'data, Elf: FileHeader> {
     symbol_base: u32,
@@ -94,15 +82,15 @@ pub struct GnuHashTable<'data, Elf: FileHeader> {
 impl<'data, Elf: FileHeader> GnuHashTable<'data, Elf> {
     /// Parse a GNU hash table.
     ///
-    /// `data` should be from an [`elf::SHT_GNU_HASH`] section, or from a
-    /// segment pointed to via the [`elf::DT_GNU_HASH`] entry.
+    /// `data` should be from a `SHT_GNU_HASH` section, or from a
+    /// segment pointed to via the `DT_GNU_HASH` entry.
     ///
     /// The header is read at offset 0 in the given `data`.
     ///
     /// The header does not contain a length field, and so all of `data`
     /// will be used as the hash table values. It does not matter if this
     /// is longer than needed, and this will often the case when accessing
-    /// the hash table via the [`elf::DT_GNU_HASH`] entry.
+    /// the hash table via the `DT_GNU_HASH` entry.
     pub fn parse(endian: Elf::Endian, data: &'data [u8]) -> Result<Self> {
         let mut offset = 0;
         let header = data
@@ -166,10 +154,6 @@ impl<'data, Elf: FileHeader> GnuHashTable<'data, Elf> {
         None
     }
 
-    fn bucket(&self, endian: Elf::Endian, hash: u32) -> SymbolIndex {
-        SymbolIndex(self.buckets[(hash as usize) % self.buckets.len()].get(endian) as usize)
-    }
-
     /// Use the hash table to find the symbol table entry with the given name, hash, and version.
     pub fn find<R: ReadRef<'data>>(
         &self,
@@ -179,7 +163,7 @@ impl<'data, Elf: FileHeader> GnuHashTable<'data, Elf> {
         version: Option<&Version<'_>>,
         symbols: &SymbolTable<'data, Elf, R>,
         versions: &VersionTable<'data, Elf>,
-    ) -> Option<(SymbolIndex, &'data Elf::Sym)> {
+    ) -> Option<(usize, &'data Elf::Sym)> {
         let word_bits = mem::size_of::<Elf::Word>() as u32 * 8;
 
         // Test against bloom filter.
@@ -206,17 +190,17 @@ impl<'data, Elf: FileHeader> GnuHashTable<'data, Elf> {
         }
 
         // Get the chain start from the bucket for this hash.
-        let mut index = self.bucket(endian, hash);
-        if index == SymbolIndex(0) {
+        let mut index = self.buckets[(hash as usize) % self.buckets.len()].get(endian) as usize;
+        if index == 0 {
             return None;
         }
 
         // Test symbols in the chain.
         let strings = symbols.strings();
-        let symbols = symbols.symbols().get(index.0..)?;
+        let symbols = symbols.symbols().get(index..)?;
         let values = self
             .values
-            .get(index.0.checked_sub(self.symbol_base as usize)?..)?;
+            .get(index.checked_sub(self.symbol_base as usize)?..)?;
         for (symbol, value) in symbols.iter().zip(values.iter()) {
             let value = value.get(endian);
             if value | 1 == hash | 1 {
@@ -229,7 +213,7 @@ impl<'data, Elf: FileHeader> GnuHashTable<'data, Elf> {
             if value & 1 != 0 {
                 break;
             }
-            index.0 += 1;
+            index += 1;
         }
         None
     }

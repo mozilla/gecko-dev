@@ -305,6 +305,7 @@ pub struct DyldCacheHeader<E: Endian> {
     pub images_count: U32<E>, // offset: 0x1c
     /// base address of dyld when cache was built
     pub dyld_base_address: U64<E>, // offset: 0x20
+    ///
     reserved1: [u8; 32], // offset: 0x28
     /// file offset of where local symbols are stored
     pub local_symbols_offset: U64<E>, // offset: 0x48
@@ -312,14 +313,23 @@ pub struct DyldCacheHeader<E: Endian> {
     pub local_symbols_size: U64<E>, // offset: 0x50
     /// unique value for each shared cache file
     pub uuid: [u8; 16], // offset: 0x58
+    ///
     reserved2: [u8; 32], // offset: 0x68
+    ///
     reserved3: [u8; 32], // offset: 0x88
+    ///
     reserved4: [u8; 32], // offset: 0xa8
+    ///
     reserved5: [u8; 32], // offset: 0xc8
+    ///
     reserved6: [u8; 32], // offset: 0xe8
+    ///
     reserved7: [u8; 32], // offset: 0x108
+    ///
     reserved8: [u8; 32], // offset: 0x128
+    ///
     reserved9: [u8; 32], // offset: 0x148
+    ///
     reserved10: [u8; 32], // offset: 0x168
     /// file offset to first dyld_subcache_info
     pub subcaches_offset: U32<E>, // offset: 0x188
@@ -327,6 +337,7 @@ pub struct DyldCacheHeader<E: Endian> {
     pub subcaches_count: U32<E>, // offset: 0x18c
     /// the UUID of the .symbols subcache
     pub symbols_subcache_uuid: [u8; 16], // offset: 0x190
+    ///
     reserved11: [u8; 32], // offset: 0x1a0
     /// file offset to first dyld_cache_image_info
     /// Use this  instead of images_offset if mapping_offset is at least 0x1c4.
@@ -340,10 +351,15 @@ pub struct DyldCacheHeader<E: Endian> {
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct DyldCacheMappingInfo<E: Endian> {
+    ///
     pub address: U64<E>,
+    ///
     pub size: U64<E>,
+    ///
     pub file_offset: U64<E>,
+    ///
     pub max_prot: U32<E>,
+    ///
     pub init_prot: U32<E>,
 }
 
@@ -351,36 +367,27 @@ pub struct DyldCacheMappingInfo<E: Endian> {
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct DyldCacheImageInfo<E: Endian> {
+    ///
     pub address: U64<E>,
+    ///
     pub mod_time: U64<E>,
+    ///
     pub inode: U64<E>,
+    ///
     pub path_file_offset: U32<E>,
+    ///
     pub pad: U32<E>,
 }
 
-/// Added in dyld-940, which shipped with macOS 12 / iOS 15.
-/// Originally called `dyld_subcache_entry`, renamed to `dyld_subcache_entry_v1`
-/// in dyld-1042.1.
+/// Corresponds to a struct whose source code has not been published as of Nov 2021.
+/// Added in the dyld cache version which shipped with macOS 12 / iOS 15.
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
-pub struct DyldSubCacheEntryV1<E: Endian> {
+pub struct DyldSubCacheInfo<E: Endian> {
     /// The UUID of this subcache.
     pub uuid: [u8; 16],
-    /// The offset of this subcache from the main cache base address.
-    pub cache_vm_offset: U64<E>,
-}
-
-/// Added in dyld-1042.1, which shipped with macOS 13 / iOS 16.
-/// Called `dyld_subcache_entry` as of dyld-1042.1.
-#[derive(Debug, Clone, Copy)]
-#[repr(C)]
-pub struct DyldSubCacheEntryV2<E: Endian> {
-    /// The UUID of this subcache.
-    pub uuid: [u8; 16],
-    /// The offset of this subcache from the main cache base address.
-    pub cache_vm_offset: U64<E>,
-    /// The file name suffix of the subCache file, e.g. ".25.data" or ".03.development".
-    pub file_suffix: [u8; 32],
+    /// The size of this subcache plus all previous subcaches.
+    pub cumulative_size: U64<E>,
 }
 
 // Definitions from "/usr/include/mach-o/loader.h".
@@ -1971,8 +1978,6 @@ pub const PLATFORM_IOSSIMULATOR: u32 = 7;
 pub const PLATFORM_TVOSSIMULATOR: u32 = 8;
 pub const PLATFORM_WATCHOSSIMULATOR: u32 = 9;
 pub const PLATFORM_DRIVERKIT: u32 = 10;
-pub const PLATFORM_XROS: u32 = 11;
-pub const PLATFORM_XROSSIMULATOR: u32 = 12;
 
 /* Known values for the tool field above. */
 pub const TOOL_CLANG: u32 = 1;
@@ -3246,8 +3251,7 @@ unsafe_impl_endian_pod!(
     DyldCacheHeader,
     DyldCacheMappingInfo,
     DyldCacheImageInfo,
-    DyldSubCacheEntryV1,
-    DyldSubCacheEntryV2,
+    DyldSubCacheInfo,
     MachHeader32,
     MachHeader64,
     LoadCommand,

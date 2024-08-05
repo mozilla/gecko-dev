@@ -5,8 +5,6 @@ use crate::pe;
 use crate::read::{Bytes, Error, ReadError, Result};
 
 /// An iterator over the relocation blocks in the `.reloc` section of a PE file.
-///
-/// Returned by [`DataDirectories::relocation_blocks`](super::DataDirectories::relocation_blocks).
 #[derive(Debug, Default, Clone, Copy)]
 pub struct RelocationBlockIterator<'data> {
     data: Bytes<'data>,

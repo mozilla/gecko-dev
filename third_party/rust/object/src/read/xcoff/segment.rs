@@ -3,21 +3,19 @@
 use core::fmt::Debug;
 use core::str;
 
-use crate::read::{self, ObjectSegment, ReadRef, Result, SegmentFlags};
+use crate::read::{self, ObjectSegment, ReadRef, Result};
 use crate::xcoff;
 
 use super::{FileHeader, XcoffFile};
 
-/// An iterator for the segments in an [`XcoffFile32`](super::XcoffFile32).
+/// An iterator over the segments of an `XcoffFile32`.
 pub type XcoffSegmentIterator32<'data, 'file, R = &'data [u8]> =
     XcoffSegmentIterator<'data, 'file, xcoff::FileHeader32, R>;
-/// An iterator for the segments in an [`XcoffFile64`](super::XcoffFile64).
+/// An iterator over the segments of an `XcoffFile64`.
 pub type XcoffSegmentIterator64<'data, 'file, R = &'data [u8]> =
     XcoffSegmentIterator<'data, 'file, xcoff::FileHeader64, R>;
 
-/// An iterator for the segments in an [`XcoffFile`].
-///
-/// This is a stub that doesn't implement any functionality.
+/// An iterator over the segments of an `XcoffFile`.
 #[derive(Debug)]
 pub struct XcoffSegmentIterator<'data, 'file, Xcoff, R = &'data [u8]>
 where
@@ -40,16 +38,14 @@ where
     }
 }
 
-/// A segment in an [`XcoffFile32`](super::XcoffFile32).
+/// A segment of an `XcoffFile32`.
 pub type XcoffSegment32<'data, 'file, R = &'data [u8]> =
     XcoffSegment<'data, 'file, xcoff::FileHeader32, R>;
-/// A segment in an [`XcoffFile64`](super::XcoffFile64).
+/// A segment of an `XcoffFile64`.
 pub type XcoffSegment64<'data, 'file, R = &'data [u8]> =
     XcoffSegment<'data, 'file, xcoff::FileHeader64, R>;
 
-/// A loadable section in an [`XcoffFile`].
-///
-/// This is a stub that doesn't implement any functionality.
+/// A loadable section of an `XcoffFile`.
 #[derive(Debug)]
 pub struct XcoffSegment<'data, 'file, Xcoff, R = &'data [u8]>
 where
@@ -111,7 +107,7 @@ where
         unreachable!();
     }
 
-    fn flags(&self) -> SegmentFlags {
+    fn flags(&self) -> crate::SegmentFlags {
         unreachable!();
     }
 }

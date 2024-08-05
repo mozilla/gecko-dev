@@ -1,8 +1,7 @@
 use core::slice;
 
-use crate::endian::LittleEndian as LE;
-use crate::pe;
 use crate::read::{Error, ReadError, ReadRef, Result};
+use crate::{pe, LittleEndian as LE};
 
 use super::{
     DelayLoadImportTable, ExportTable, ImportTable, RelocationBlockIterator, ResourceDirectory,
@@ -10,8 +9,6 @@ use super::{
 };
 
 /// The table of data directories in a PE file.
-///
-/// Returned by [`ImageNtHeaders::parse`](super::ImageNtHeaders::parse).
 #[derive(Debug, Clone, Copy)]
 pub struct DataDirectories<'data> {
     entries: &'data [pe::ImageDataDirectory],

@@ -331,18 +331,6 @@ pub const STYP_TYPCHK: u16 = 0x4000;
 /// when either of the counts exceeds 65,534.
 pub const STYP_OVRFLO: u16 = 0x8000;
 
-pub const SSUBTYP_DWINFO: u32 = 0x10000;
-pub const SSUBTYP_DWLINE: u32 = 0x20000;
-pub const SSUBTYP_DWPBNMS: u32 = 0x30000;
-pub const SSUBTYP_DWPBTYP: u32 = 0x40000;
-pub const SSUBTYP_DWARNGE: u32 = 0x50000;
-pub const SSUBTYP_DWABREV: u32 = 0x60000;
-pub const SSUBTYP_DWSTR: u32 = 0x70000;
-pub const SSUBTYP_DWRNGES: u32 = 0x80000;
-pub const SSUBTYP_DWLOC: u32 = 0x90000;
-pub const SSUBTYP_DWFRAME: u32 = 0xA0000;
-pub const SSUBTYP_DWMAC: u32 = 0xB0000;
-
 pub const SIZEOF_SYMBOL: usize = 18;
 
 #[derive(Debug, Clone, Copy)]
@@ -396,7 +384,7 @@ pub const N_ABS: i16 = -1;
 /// An undefined external symbol.
 pub const N_UNDEF: i16 = 0;
 
-// Values for `n_type`.
+// Vlaues for `n_type`.
 //
 /// Values for visibility as they would appear when encoded in the high 4 bits
 /// of the 16-bit unsigned n_type field of symbol table entries. Valid for

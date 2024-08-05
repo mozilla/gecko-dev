@@ -4,4 +4,40 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-RUST_PROGRAMS = ["minidump-analyzer"]
+GeckoProgram("minidump-analyzer", linkage=None)
+
+if CONFIG["OS_TARGET"] == "WINNT":
+    DEFINES["UNICODE"] = True
+    DEFINES["_UNICODE"] = True
+
+    if CONFIG["TARGET_CPU"] == "x86_64":
+        UNIFIED_SOURCES += [
+            "MozStackFrameSymbolizer.cpp",
+            "Win64ModuleUnwindMetadata.cpp",
+        ]
+
+        OS_LIBS += ["dbghelp", "imagehlp"]
+
+if CONFIG["OS_TARGET"] == "WINNT" and CONFIG["CC_TYPE"] in ("gcc", "clang"):
+    # This allows us to use wmain as the entry point on mingw
+    LDFLAGS += [
+        "-municode",
+    ]
+
+UNIFIED_SOURCES += [
+    "minidump-analyzer.cpp",
+]
+
+USE_LIBS += [
+    "breakpad_processor",
+    "jsoncpp",
+]
+
+LOCAL_INCLUDES += [
+    "/toolkit/components/jsoncpp/include",
+]
+
+if CONFIG["OS_TARGET"] != "WINNT":
+    DisableStlWrapping()
+
+include("/toolkit/crashreporter/crashreporter.mozbuild")

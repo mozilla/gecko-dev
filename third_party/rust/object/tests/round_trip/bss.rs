@@ -66,8 +66,8 @@ fn coff_x86_64_bss() {
     assert_eq!(symbol.kind(), SymbolKind::Data);
     assert_eq!(symbol.section_index(), Some(bss_index));
     assert_eq!(symbol.scope(), SymbolScope::Linkage);
-    assert!(!symbol.is_weak());
-    assert!(!symbol.is_undefined());
+    assert_eq!(symbol.is_weak(), false);
+    assert_eq!(symbol.is_undefined(), false);
     assert_eq!(symbol.address(), 0);
 
     let symbol = symbols.next().unwrap();
@@ -76,8 +76,8 @@ fn coff_x86_64_bss() {
     assert_eq!(symbol.kind(), SymbolKind::Data);
     assert_eq!(symbol.section_index(), Some(bss_index));
     assert_eq!(symbol.scope(), SymbolScope::Linkage);
-    assert!(!symbol.is_weak());
-    assert!(!symbol.is_undefined());
+    assert_eq!(symbol.is_weak(), false);
+    assert_eq!(symbol.is_undefined(), false);
     assert_eq!(symbol.address(), 24);
 
     let symbol = symbols.next();
@@ -125,6 +125,13 @@ fn elf_x86_64_bss() {
 
     let mut sections = object.sections();
 
+    let section = sections.next().unwrap();
+    println!("{:?}", section);
+    assert_eq!(section.name(), Ok(""));
+    assert_eq!(section.kind(), SectionKind::Metadata);
+    assert_eq!(section.address(), 0);
+    assert_eq!(section.size(), 0);
+
     let bss = sections.next().unwrap();
     println!("{:?}", bss);
     let bss_index = bss.index();
@@ -137,12 +144,16 @@ fn elf_x86_64_bss() {
 
     let symbol = symbols.next().unwrap();
     println!("{:?}", symbol);
+    assert_eq!(symbol.name(), Ok(""));
+
+    let symbol = symbols.next().unwrap();
+    println!("{:?}", symbol);
     assert_eq!(symbol.name(), Ok("v1"));
     assert_eq!(symbol.kind(), SymbolKind::Data);
     assert_eq!(symbol.section_index(), Some(bss_index));
     assert_eq!(symbol.scope(), SymbolScope::Linkage);
-    assert!(!symbol.is_weak());
-    assert!(!symbol.is_undefined());
+    assert_eq!(symbol.is_weak(), false);
+    assert_eq!(symbol.is_undefined(), false);
     assert_eq!(symbol.address(), 0);
     assert_eq!(symbol.size(), 18);
 
@@ -152,8 +163,8 @@ fn elf_x86_64_bss() {
     assert_eq!(symbol.kind(), SymbolKind::Data);
     assert_eq!(symbol.section_index(), Some(bss_index));
     assert_eq!(symbol.scope(), SymbolScope::Linkage);
-    assert!(!symbol.is_weak());
-    assert!(!symbol.is_undefined());
+    assert_eq!(symbol.is_weak(), false);
+    assert_eq!(symbol.is_undefined(), false);
     assert_eq!(symbol.address(), 24);
     assert_eq!(symbol.size(), 34);
 
@@ -225,8 +236,8 @@ fn macho_x86_64_bss() {
     assert_eq!(symbol.kind(), SymbolKind::Data);
     assert_eq!(symbol.section_index(), Some(bss_index));
     assert_eq!(symbol.scope(), SymbolScope::Linkage);
-    assert!(!symbol.is_weak());
-    assert!(!symbol.is_undefined());
+    assert_eq!(symbol.is_weak(), false);
+    assert_eq!(symbol.is_undefined(), false);
     assert_eq!(symbol.address(), 0);
 
     let symbol = symbols.next().unwrap();
@@ -235,8 +246,8 @@ fn macho_x86_64_bss() {
     assert_eq!(symbol.kind(), SymbolKind::Data);
     assert_eq!(symbol.section_index(), Some(bss_index));
     assert_eq!(symbol.scope(), SymbolScope::Linkage);
-    assert!(!symbol.is_weak());
-    assert!(!symbol.is_undefined());
+    assert_eq!(symbol.is_weak(), false);
+    assert_eq!(symbol.is_undefined(), false);
     assert_eq!(symbol.address(), 24);
 
     let symbol = symbols.next();

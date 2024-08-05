@@ -9,21 +9,16 @@ type Error = Box<dyn error::Error + std::marker::Send + std::marker::Sync>;
 pub type Result<T> = result::Result<T, Error>;
 
 fn build_command() -> Command {
-    let mut cmd;
-    if let Some(binary) = std::env::var_os("TEST_HELPER") {
-        cmd = Command::new(binary);
-    } else {
-        cmd = Command::new("cargo");
-        cmd.args(["run", "-q", "--bin", "test"]);
+    let mut cmd = Command::new("cargo");
 
-        // In normal cases where the host and target are the same this won't matter,
-        // but tests will fail if you are eg running in a cross container which will
-        // likely be x86_64 but may be targetting aarch64 or i686, which will result
-        // in tests failing, or at the least not testing what you think
-        cmd.args(["--target", current_platform::CURRENT_PLATFORM, "--"]);
-    }
+    cmd.env("RUST_BACKTRACE", "1")
+        .args(["run", "-q", "--bin", "test"]);
 
-    cmd.env("RUST_BACKTRACE", "1");
+    // In normal cases where the host and target are the same this won't matter,
+    // but tests will fail if you are eg running in a cross container which will
+    // likely be x86_64 but may be targetting aarch64 or i686, which will result
+    // in tests failing, or at the least not testing what you think
+    cmd.args(["--target", current_platform::CURRENT_PLATFORM, "--"]);
 
     cmd
 }

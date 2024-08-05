@@ -4,7 +4,7 @@ use crate::elf;
 use crate::endian;
 use crate::pod::Pod;
 
-/// A trait for generic access to [`elf::CompressionHeader32`] and [`elf::CompressionHeader64`].
+/// A trait for generic access to `CompressionHeader32` and `CompressionHeader64`.
 #[allow(missing_docs)]
 pub trait CompressionHeader: Debug + Pod {
     type Word: Into<u64>;

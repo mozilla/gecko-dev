@@ -1,14 +1,18 @@
 #[cfg(target_os = "android")]
 use crate::linux::android::late_process_mappings;
-use crate::linux::{
-    auxv_reader::{AuxvType, ProcfsAuxvIter},
-    errors::{DumperError, InitError, ThreadInfoError},
-    maps_reader::MappingInfo,
-    module_reader,
-    thread_info::{Pid, ThreadInfo},
-};
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use crate::thread_info;
+use crate::{
+    linux::{
+        auxv_reader::{AuxvType, ProcfsAuxvIter},
+        errors::{DumperError, InitError, ThreadInfoError},
+        maps_reader::MappingInfo,
+        thread_info::{Pid, ThreadInfo},
+        LINUX_GATE_LIBRARY_NAME,
+    },
+    minidump_format::GUID,
+};
+use goblin::elf;
 use nix::{
     errno::Errno,
     sys::{ptrace, signal, wait},
@@ -129,8 +133,9 @@ impl PtraceDumper {
         Ok(())
     }
 
-    /// Copies content of |num_of_bytes| bytes from a given process |child|, starting from |src|.
-    /// This method uses ptrace to extract the content from the target process.
+    /// Copies content of |length| bytes from a given process |child|,
+    /// starting from |src|, into |dest|. This method uses ptrace to extract
+    /// the content from the target process. Always returns true.
     pub fn copy_from_process(
         child: Pid,
         src: *mut c_void,
@@ -557,64 +562,111 @@ impl PtraceDumper {
         })
     }
 
-    pub fn from_process_memory_for_index<T: module_reader::ReadFromModule>(
-        &self,
-        idx: usize,
-    ) -> Result<T, DumperError> {
-        assert!(idx < self.mappings.len());
-
-        self.from_process_memory_for_mapping(&self.mappings[idx])
+    fn parse_build_id<'data>(
+        elf_obj: &elf::Elf<'data>,
+        mem_slice: &'data [u8],
+    ) -> Option<&'data [u8]> {
+        if let Some(mut notes) = elf_obj.iter_note_headers(mem_slice) {
+            while let Some(Ok(note)) = notes.next() {
+                if (note.name == "GNU") && (note.n_type == elf::note::NT_GNU_BUILD_ID) {
+                    return Some(note.desc);
+                }
+            }
+        }
+        if let Some(mut notes) = elf_obj.iter_note_sections(mem_slice, Some(".note.gnu.build-id")) {
+            while let Some(Ok(note)) = notes.next() {
+                if (note.name == "GNU") && (note.n_type == elf::note::NT_GNU_BUILD_ID) {
+                    return Some(note.desc);
+                }
+            }
+        }
+        None
     }
 
-    pub fn from_process_memory_for_mapping<T: module_reader::ReadFromModule>(
-        &self,
-        mapping: &MappingInfo,
-    ) -> Result<T, DumperError> {
-        if std::process::id()
-            .try_into()
-            .map(|v: Pid| v == self.pid)
-            .unwrap_or(false)
-        {
-            let mem_slice = unsafe {
-                std::slice::from_raw_parts(mapping.start_address as *const u8, mapping.size)
-            };
-            T::read_from_module(module_reader::ModuleMemoryAtAddress(
-                mem_slice,
-                mapping.start_address as u64,
-            ))
+    pub fn elf_file_identifier_from_mapped_file(mem_slice: &[u8]) -> Result<Vec<u8>, DumperError> {
+        let elf_obj = elf::Elf::parse(mem_slice)?;
+
+        if let Some(build_id) = Self::parse_build_id(&elf_obj, mem_slice) {
+            // Look for a build id note first.
+            Ok(build_id.to_vec())
         } else {
-            struct ProcessModuleMemory {
-                pid: Pid,
-                start_address: u64,
-            }
+            // Fall back on hashing the first page of the text section.
 
-            impl module_reader::ModuleMemory for ProcessModuleMemory {
-                type Memory = Vec<u8>;
-
-                fn read_module_memory(
-                    &self,
-                    offset: u64,
-                    length: u64,
-                ) -> std::io::Result<Self::Memory> {
-                    // Leave bounds checks to `copy_from_process`
-                    PtraceDumper::copy_from_process(
-                        self.pid,
-                        (self.start_address + offset) as _,
-                        length as usize,
-                    )
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+            // Attempt to locate the .text section of an ELF binary and generate
+            // a simple hash by XORing the first page worth of bytes into |result|.
+            for section in elf_obj.section_headers {
+                if section.sh_type != elf::section_header::SHT_PROGBITS {
+                    continue;
                 }
-
-                fn base_address(&self) -> Option<u64> {
-                    Some(self.start_address)
+                if section.sh_flags & u64::from(elf::section_header::SHF_ALLOC) != 0
+                    && section.sh_flags & u64::from(elf::section_header::SHF_EXECINSTR) != 0
+                {
+                    let text_section =
+                        &mem_slice[section.sh_offset as usize..][..section.sh_size as usize];
+                    // Only provide mem::size_of(MDGUID) bytes to keep identifiers produced by this
+                    // function backwards-compatible.
+                    let max_len = std::cmp::min(text_section.len(), 4096);
+                    let mut result = vec![0u8; std::mem::size_of::<GUID>()];
+                    let mut offset = 0;
+                    while offset < max_len {
+                        for idx in 0..std::mem::size_of::<GUID>() {
+                            if offset + idx >= text_section.len() {
+                                break;
+                            }
+                            result[idx] ^= text_section[offset + idx];
+                        }
+                        offset += std::mem::size_of::<GUID>();
+                    }
+                    return Ok(result);
                 }
             }
-
-            T::read_from_module(ProcessModuleMemory {
-                pid: self.pid,
-                start_address: mapping.start_address as u64,
-            })
+            Err(DumperError::NoBuildIDFound)
         }
-        .map_err(|e| e.into())
+    }
+
+    pub fn elf_identifier_for_mapping_index(&mut self, idx: usize) -> Result<Vec<u8>, DumperError> {
+        assert!(idx < self.mappings.len());
+
+        Self::elf_identifier_for_mapping(&mut self.mappings[idx], self.pid)
+    }
+
+    pub fn elf_identifier_for_mapping(
+        mapping: &mut MappingInfo,
+        pid: Pid,
+    ) -> Result<Vec<u8>, DumperError> {
+        if !MappingInfo::is_mapped_file_safe_to_open(&mapping.name) {
+            return Err(DumperError::NotSafeToOpenMapping(
+                mapping.name.clone().unwrap_or_default(),
+            ));
+        }
+
+        // Special-case linux-gate because it's not a real file.
+        if mapping.name.as_deref() == Some(LINUX_GATE_LIBRARY_NAME.as_ref()) {
+            if pid == std::process::id().try_into()? {
+                let mem_slice = unsafe {
+                    std::slice::from_raw_parts(mapping.start_address as *const u8, mapping.size)
+                };
+                return Self::elf_file_identifier_from_mapped_file(mem_slice);
+            } else {
+                let mem_slice = Self::copy_from_process(
+                    pid,
+                    mapping.start_address as *mut libc::c_void,
+                    mapping.size,
+                )?;
+                return Self::elf_file_identifier_from_mapped_file(&mem_slice);
+            }
+        }
+
+        let (filename, old_name) = mapping.fixup_deleted_file(pid)?;
+
+        let mem_slice = MappingInfo::get_mmap(&Some(filename), mapping.offset)?;
+        let build_id = Self::elf_file_identifier_from_mapped_file(&mem_slice)?;
+
+        // This means we switched from "/my/binary" to "/proc/1234/exe", change the mapping to
+        // remove the " (deleted)" portion.
+        if let Some(old_name) = old_name {
+            mapping.name = Some(old_name.into());
+        }
+        Ok(build_id)
     }
 }

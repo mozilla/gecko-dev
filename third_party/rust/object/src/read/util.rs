@@ -4,7 +4,7 @@ use core::fmt;
 use core::marker::PhantomData;
 
 use crate::pod::{from_bytes, slice_from_bytes, Pod};
-use crate::read::ReadRef;
+use crate::ReadRef;
 
 /// A newtype for byte slices.
 ///
@@ -269,7 +269,7 @@ pub(crate) fn data_range(
 
 /// A table of zero-terminated strings.
 ///
-/// This is used by most file formats for strings such as section names and symbol names.
+/// This is used for most file formats.
 #[derive(Debug, Clone, Copy)]
 pub struct StringTable<'data, R = &'data [u8]>
 where
