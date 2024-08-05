@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { Module } from "chrome://remote/content/shared/messagehandler/Module.sys.mjs";
+import { RootBiDiModule } from "chrome://remote/content/webdriver-bidi/modules/RootBiDiModule.sys.mjs";
 
 const lazy = {};
 
@@ -298,7 +298,7 @@ const SameSite = {
  */
 /* eslint-enable jsdoc/valid-types */
 
-class NetworkModule extends Module {
+class NetworkModule extends RootBiDiModule {
   #beforeStopRequestListener;
   #blockedRequests;
   #decodedBodySizeMap;
@@ -1590,10 +1590,9 @@ class NetworkModule extends Module {
 
       const protocolEventName = "network.authRequired";
 
-      const isListening = this.messageHandler.eventsDispatcher.hasListener(
-        protocolEventName,
-        { contextId: request.contextId }
-      );
+      const isListening = this._hasListener(protocolEventName, {
+        contextId: request.contextId,
+      });
       if (!isListening) {
         // If there are no listeners subscribed to this event and this context,
         // bail out.
@@ -1670,10 +1669,9 @@ class NetworkModule extends Module {
       this.#getContextInfo(browsingContext)
     );
 
-    const isListening = this.messageHandler.eventsDispatcher.hasListener(
-      protocolEventName,
-      { contextId: request.contextId }
-    );
+    const isListening = this._hasListener(protocolEventName, {
+      contextId: request.contextId,
+    });
     if (!isListening) {
       // If there are no listeners subscribed to this event and this context,
       // bail out.
@@ -1753,10 +1751,9 @@ class NetworkModule extends Module {
       this.#getContextInfo(browsingContext)
     );
 
-    const isListening = this.messageHandler.eventsDispatcher.hasListener(
-      protocolEventName,
-      { contextId: request.contextId }
-    );
+    const isListening = this._hasListener(protocolEventName, {
+      contextId: request.contextId,
+    });
     if (!isListening) {
       // If there are no listeners subscribed to this event and this context,
       // bail out.
@@ -1815,10 +1812,9 @@ class NetworkModule extends Module {
       this.#getContextInfo(browsingContext)
     );
 
-    const isListening = this.messageHandler.eventsDispatcher.hasListener(
-      protocolEventName,
-      { contextId: request.contextId }
-    );
+    const isListening = this._hasListener(protocolEventName, {
+      contextId: request.contextId,
+    });
     if (!isListening) {
       // If there are no listeners subscribed to this event and this context,
       // bail out.

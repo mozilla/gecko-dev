@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { Module } from "chrome://remote/content/shared/messagehandler/Module.sys.mjs";
+import { RootBiDiModule } from "chrome://remote/content/webdriver-bidi/modules/RootBiDiModule.sys.mjs";
 
 const lazy = {};
 
@@ -35,7 +35,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  *     Array of UserContextInfo for the current user contexts.
  */
 
-class BrowserModule extends Module {
+class BrowserModule extends RootBiDiModule {
   constructor(messageHandler) {
     super(messageHandler);
   }
