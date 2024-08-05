@@ -241,7 +241,7 @@ void SelectionManager::SpellCheckRangeChanged(
   if (IPCAccessibilityActive()) {
     dom::Document* doc = aRange.GetStartContainer()->OwnerDoc();
     MOZ_ASSERT(doc);
-    TextLeafPoint::UpdateCachedSpellingError(doc, aRange);
+    TextLeafPoint::UpdateCachedTextOffsetAttributes(doc, aRange);
   }
 }
 

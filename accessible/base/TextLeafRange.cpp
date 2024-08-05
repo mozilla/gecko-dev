@@ -1489,10 +1489,10 @@ void TextLeafPoint::AddTextOffsetAttributes(AccAttributes* aAttrs) const {
   if (!acc->mCachedFields) {
     return;
   }
-  auto spellingErrors =
+  auto offsetAttrs =
       acc->mCachedFields->GetAttribute<nsTArray<TextOffsetAttribute>>(
-          CacheKey::SpellingErrors);
-  if (!spellingErrors) {
+          CacheKey::TextOffsetAttributes);
+  if (!offsetAttrs) {
     return;
   }
   auto compare = [this](const TextOffsetAttribute& aItem) {
@@ -1508,9 +1508,9 @@ void TextLeafPoint::AddTextOffsetAttributes(AccAttributes* aAttrs) const {
   // With our compare function, EqualRange will find any item which includes
   // mOffset.
   auto [lower, upper] =
-      EqualRange(*spellingErrors, 0, spellingErrors->Length(), compare);
+      EqualRange(*offsetAttrs, 0, offsetAttrs->Length(), compare);
   for (auto i = lower; i < upper; ++i) {
-    expose((*spellingErrors)[i].mAttribute);
+    expose((*offsetAttrs)[i].mAttribute);
   }
 }
 
@@ -1602,10 +1602,10 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
   if (!acc->mCachedFields) {
     return TextLeafPoint();
   }
-  auto spellingErrors =
+  auto offsetAttrs =
       acc->mCachedFields->GetAttribute<nsTArray<TextOffsetAttribute>>(
-          CacheKey::SpellingErrors);
-  if (!spellingErrors) {
+          CacheKey::TextOffsetAttributes);
+  if (!offsetAttrs) {
     return TextLeafPoint();
   }
   auto compare = [this](const TextOffsetAttribute& aItem) {
@@ -1621,40 +1621,39 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
     return 1;
   };
   size_t index;
-  if (BinarySearchIf(*spellingErrors, 0, spellingErrors->Length(), compare,
-                     &index)) {
-    // mOffset is within or the end of a spelling error.
-    if (aIncludeOrigin && ((*spellingErrors)[index].mStartOffset == mOffset ||
-                           (*spellingErrors)[index].mEndOffset == mOffset)) {
+  if (BinarySearchIf(*offsetAttrs, 0, offsetAttrs->Length(), compare, &index)) {
+    // mOffset is within or the end of an offset attribute.
+    if (aIncludeOrigin && ((*offsetAttrs)[index].mStartOffset == mOffset ||
+                           (*offsetAttrs)[index].mEndOffset == mOffset)) {
       return *this;
     }
-    // Check the boundaries of the spelling error containing mOffset.
+    // Check the boundaries of the offset attribute containing mOffset.
     if (aDirection == eDirNext) {
-      if ((*spellingErrors)[index].mEndOffset > mOffset) {
-        MOZ_ASSERT((*spellingErrors)[index].mEndOffset != -1);
-        return TextLeafPoint(mAcc, (*spellingErrors)[index].mEndOffset);
+      if ((*offsetAttrs)[index].mEndOffset > mOffset) {
+        MOZ_ASSERT((*offsetAttrs)[index].mEndOffset != -1);
+        return TextLeafPoint(mAcc, (*offsetAttrs)[index].mEndOffset);
       }
-      // We don't want the origin, so move to the next spelling error after
+      // We don't want the origin, so move to the next offset attribute after
       // mOffset.
       ++index;
-    } else if ((*spellingErrors)[index].mStartOffset < mOffset &&
-               (*spellingErrors)[index].mStartOffset != -1) {
-      return TextLeafPoint(mAcc, (*spellingErrors)[index].mStartOffset);
+    } else if ((*offsetAttrs)[index].mStartOffset < mOffset &&
+               (*offsetAttrs)[index].mStartOffset != -1) {
+      return TextLeafPoint(mAcc, (*offsetAttrs)[index].mStartOffset);
     }
   }
-  // index points at the next spelling error after mOffset.
+  // index points at the next offset attribute after mOffset.
   if (aDirection == eDirNext) {
-    if (spellingErrors->Length() == index) {
-      return TextLeafPoint();  // No spelling error boundary after us.
+    if (offsetAttrs->Length() == index) {
+      return TextLeafPoint();  // No offset attribute boundary after us.
     }
-    return TextLeafPoint(mAcc, (*spellingErrors)[index].mStartOffset);
+    return TextLeafPoint(mAcc, (*offsetAttrs)[index].mStartOffset);
   }
   if (index == 0) {
-    return TextLeafPoint();  // No spelling error boundary before us.
+    return TextLeafPoint();  // No offset attribute boundary before us.
   }
-  // Decrement index so it points at a spelling error before mOffset.
+  // Decrement index so it points at an offset attribute before mOffset.
   --index;
-  return TextLeafPoint(mAcc, (*spellingErrors)[index].mEndOffset);
+  return TextLeafPoint(mAcc, (*offsetAttrs)[index].mEndOffset);
 }
 
 TextLeafPoint TextLeafPoint::NeighborLeafPoint(
@@ -1723,7 +1722,7 @@ LayoutDeviceIntRect TextLeafPoint::ComputeBoundsFromFrame() const {
 }
 
 /* static */
-nsTArray<TextOffsetAttribute> TextLeafPoint::GetSpellingErrorOffsets(
+nsTArray<TextOffsetAttribute> TextLeafPoint::GetTextOffsetAttributes(
     LocalAccessible* aAcc) {
   nsINode* node = aAcc->GetNode();
   auto ranges = FindDOMTextOffsetAttributes(
@@ -1744,9 +1743,9 @@ nsTArray<TextOffsetAttribute> TextLeafPoint::GetSpellingErrorOffsets(
         // This range overlaps aAcc, but starts before it.
         // This can only happen for the first range.
         MOZ_ASSERT(domRange == *domRanges.begin());
-        // Using -1 here means this won't be treated as the start of a spelling
-        // error range, while still indicating that we're within a spelling
-        // error.
+        // Using -1 here means this won't be treated as the start of an
+        // attribute range, while still indicating that we're within a text
+        // offset attribute.
         data.mStartOffset = -1;
       }
       if (domRange->GetEndContainer() == node) {
@@ -1765,7 +1764,7 @@ nsTArray<TextOffsetAttribute> TextLeafPoint::GetSpellingErrorOffsets(
 }
 
 /* static */
-void TextLeafPoint::UpdateCachedSpellingError(
+void TextLeafPoint::UpdateCachedTextOffsetAttributes(
     dom::Document* aDocument, const dom::AbstractRange& aRange) {
   DocAccessible* docAcc = GetExistingDocAccessible(aDocument);
   if (!docAcc) {
@@ -1778,7 +1777,8 @@ void TextLeafPoint::UpdateCachedSpellingError(
   }
   for (Accessible* acc = startAcc; acc; acc = NextLeaf(acc)) {
     if (acc->IsTextLeaf()) {
-      docAcc->QueueCacheUpdate(acc->AsLocal(), CacheDomain::Spelling);
+      docAcc->QueueCacheUpdate(acc->AsLocal(),
+                               CacheDomain::TextOffsetAttributes);
     }
     if (acc == endAcc) {
       // Subtle: We check this here rather than in the loop condition because
@@ -1863,11 +1863,11 @@ TextLeafPoint TextLeafPoint::FindTextAttrsStart(nsDirection aDirection,
   }
   TextLeafPoint lastPoint = *this;
   for (;;) {
-    if (TextLeafPoint spelling = lastPoint.FindTextOffsetAttributeSameAcc(
+    if (TextLeafPoint offsetAttr = lastPoint.FindTextOffsetAttributeSameAcc(
             aDirection, aIncludeOrigin && lastPoint.mAcc == mAcc)) {
-      // A spelling error starts or ends somewhere in the Accessible we're
+      // An offset attribute starts or ends somewhere in the Accessible we're
       // considering. This causes an attribute change, so return that point.
-      return spelling;
+      return offsetAttr;
     }
     TextLeafPoint point;
     point.mAcc = aDirection == eDirNext ? lastPoint.mAcc->NextSibling()
@@ -1897,7 +1897,7 @@ TextLeafPoint TextLeafPoint::FindTextAttrsStart(nsDirection aDirection,
     }
     lastPoint = point;
     if (aDirection == eDirPrevious) {
-      // On the next iteration, we want to search for spelling errors from the
+      // On the next iteration, we want to search for offset attributes from the
       // end of this Accessible.
       lastPoint.mOffset =
           static_cast<int32_t>(nsAccUtils::TextLength(point.mAcc));
