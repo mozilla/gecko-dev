@@ -26,10 +26,22 @@ pub enum Architecture {
     Riscv64,
     S390x,
     Sbf,
+    Sharc,
+    Sparc,
+    Sparc32Plus,
     Sparc64,
     Wasm32,
     Wasm64,
     Xtensa,
+}
+
+/// A CPU sub-architecture.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum SubArchitecture {
+    Arm64E,
+    Arm64EC,
 }
 
 impl Architecture {
@@ -59,6 +71,9 @@ impl Architecture {
             Architecture::Riscv64 => Some(AddressSize::U64),
             Architecture::S390x => Some(AddressSize::U64),
             Architecture::Sbf => Some(AddressSize::U64),
+            Architecture::Sharc => Some(AddressSize::U32),
+            Architecture::Sparc => Some(AddressSize::U32),
+            Architecture::Sparc32Plus => Some(AddressSize::U32),
             Architecture::Sparc64 => Some(AddressSize::U64),
             Architecture::Wasm32 => Some(AddressSize::U32),
             Architecture::Wasm64 => Some(AddressSize::U64),
@@ -100,6 +115,21 @@ pub enum BinaryFormat {
     Pe,
     Wasm,
     Xcoff,
+}
+
+impl BinaryFormat {
+    /// The target's native binary format for relocatable object files.
+    ///
+    /// Defaults to `Elf` for unknown platforms.
+    pub fn native_object() -> BinaryFormat {
+        if cfg!(target_os = "windows") {
+            BinaryFormat::Coff
+        } else if cfg!(target_os = "macos") {
+            BinaryFormat::MachO
+        } else {
+            BinaryFormat::Elf
+        }
+    }
 }
 
 /// The kind of a section.
@@ -177,6 +207,11 @@ pub enum SectionKind {
     ///
     /// Example Mach-O sections: `__DWARF/__debug_info`
     Debug,
+    /// Debug strings.
+    ///
+    /// This is the same as either `Debug` or `OtherString`, depending on the file format.
+    /// This value is only used in the API for writing files. It is never returned when reading files.
+    DebugString,
     /// Information for the linker.
     ///
     /// Example COFF sections: `.drectve`
@@ -244,8 +279,6 @@ pub enum ComdatKind {
 pub enum SymbolKind {
     /// The symbol kind is unknown.
     Unknown,
-    /// The symbol is a null placeholder.
-    Null,
     /// The symbol is for executable code.
     Text,
     /// The symbol is for a data object.
@@ -291,6 +324,8 @@ pub enum SymbolScope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum RelocationKind {
+    /// The operation is unknown.
+    Unknown,
     /// S + A
     Absolute,
     /// S + A - P
@@ -311,19 +346,6 @@ pub enum RelocationKind {
     SectionOffset,
     /// The index of the section containing the symbol.
     SectionIndex,
-    /// Some other ELF relocation. The value is dependent on the architecture.
-    Elf(u32),
-    /// Some other Mach-O relocation. The value is dependent on the architecture.
-    MachO {
-        /// The relocation type.
-        value: u8,
-        /// Whether the relocation is relative to the place.
-        relative: bool,
-    },
-    /// Some other COFF relocation. The value is dependent on the architecture.
-    Coff(u16),
-    /// Some other XCOFF relocation.
-    Xcoff(u8),
 }
 
 /// Information about how the result of the relocation operation is encoded in the place.
@@ -333,6 +355,8 @@ pub enum RelocationKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum RelocationEncoding {
+    /// The relocation encoding is unknown.
+    Unknown,
     /// Generic encoding.
     Generic,
 
@@ -367,6 +391,30 @@ pub enum RelocationEncoding {
     ///
     /// The `RelocationKind` must be PC relative.
     LoongArchBranch,
+
+    /// SHARC+ 48-bit Type A instruction
+    ///
+    /// Represents these possible variants, each with a corresponding
+    /// `R_SHARC_*` constant:
+    ///
+    /// * 24-bit absolute address
+    /// * 32-bit absolute address
+    /// * 6-bit relative address
+    /// * 24-bit relative address
+    /// * 6-bit absolute address in the immediate value field
+    /// * 16-bit absolute address in the immediate value field
+    SharcTypeA,
+
+    /// SHARC+ 32-bit Type B instruction
+    ///
+    /// Represents these possible variants, each with a corresponding
+    /// `R_SHARC_*` constant:
+    ///
+    /// * 6-bit absolute address in the immediate value field
+    /// * 7-bit absolute address in the immediate value field
+    /// * 16-bit absolute address
+    /// * 6-bit relative address
+    SharcTypeB,
 }
 
 /// File flags that are specific to each file format.
@@ -497,5 +545,46 @@ pub enum SymbolFlags<Section, Symbol> {
         ///
         /// Only valid if `x_smtyp` is `XTY_LD`.
         containing_csect: Option<Symbol>,
+    },
+}
+
+/// Relocation fields that are specific to each file format and architecture.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum RelocationFlags {
+    /// Format independent representation.
+    Generic {
+        /// The operation used to calculate the result of the relocation.
+        kind: RelocationKind,
+        /// Information about how the result of the relocation operation is encoded in the place.
+        encoding: RelocationEncoding,
+        /// The size in bits of the place of relocation.
+        size: u8,
+    },
+    /// ELF relocation fields.
+    Elf {
+        /// `r_type` field in the ELF relocation.
+        r_type: u32,
+    },
+    /// Mach-O relocation fields.
+    MachO {
+        /// `r_type` field in the Mach-O relocation.
+        r_type: u8,
+        /// `r_pcrel` field in the Mach-O relocation.
+        r_pcrel: bool,
+        /// `r_length` field in the Mach-O relocation.
+        r_length: u8,
+    },
+    /// COFF relocation fields.
+    Coff {
+        /// `typ` field in the COFF relocation.
+        typ: u16,
+    },
+    /// XCOFF relocation fields.
+    Xcoff {
+        /// `r_rtype` field in the XCOFF relocation.
+        r_rtype: u8,
+        /// `r_rsize` field in the XCOFF relocation.
+        r_rsize: u8,
     },
 }

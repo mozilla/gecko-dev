@@ -1,5 +1,6 @@
 use super::*;
 use crate::linux::maps_reader::MappingInfo;
+use crate::linux::module_reader::{BuildId, SoName};
 
 /// Write information about the mappings in effect. Because we are using the
 /// minidump format, the information about the mappings is pretty limited.
@@ -23,9 +24,8 @@ pub fn write(
         {
             continue;
         }
-        // Note: elf_identifier_for_mapping_index() can manipulate the |mapping.name|.
-        let identifier = dumper
-            .elf_identifier_for_mapping_index(map_idx)
+        let BuildId(identifier) = dumper
+            .from_process_memory_for_index(map_idx)
             .unwrap_or_default();
 
         // If the identifier is all 0, its an uninteresting mapping (bmc#1676109)
@@ -33,14 +33,19 @@ pub fn write(
             continue;
         }
 
-        let module = fill_raw_module(buffer, &dumper.mappings[map_idx], &identifier)?;
+        let soname = dumper
+            .from_process_memory_for_index(map_idx)
+            .ok()
+            .map(|SoName(n)| n);
+
+        let module = fill_raw_module(buffer, &dumper.mappings[map_idx], &identifier, soname)?;
         modules.push(module);
     }
 
     // Next write all the mappings provided by the caller
     for user in &config.user_mapping_list {
         // GUID was provided by caller.
-        let module = fill_raw_module(buffer, &user.mapping, &user.identifier)?;
+        let module = fill_raw_module(buffer, &user.mapping, &user.identifier, None)?;
         modules.push(module);
     }
 
@@ -63,6 +68,7 @@ fn fill_raw_module(
     buffer: &mut DumpBuf,
     mapping: &MappingInfo,
     identifier: &[u8],
+    soname: Option<String>,
 ) -> Result<MDRawModule, errors::SectionMappingsError> {
     let cv_record = if identifier.is_empty() {
         // Just zeroes
@@ -84,7 +90,7 @@ fn fill_raw_module(
     };
 
     let (file_path, _, so_version) = mapping
-        .get_mapping_effective_path_name_and_version()
+        .get_mapping_effective_path_name_and_version(soname)
         .map_err(|e| errors::SectionMappingsError::GetEffectivePathError(mapping.clone(), e))?;
     let name_header = write_string_to_location(buffer, file_path.to_string_lossy().as_ref())?;
 

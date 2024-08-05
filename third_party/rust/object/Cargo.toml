@@ -11,12 +11,17 @@
 
 [package]
 edition = "2018"
-rust-version = "1.60"
+rust-version = "1.65"
 name = "object"
-version = "0.32.0"
-exclude = [
-    "/.github",
-    "/testfiles",
+version = "0.36.1"
+include = [
+    "/Cargo.toml",
+    "/CHANGELOG.md",
+    "/README.md",
+    "/LICENSE-APACHE",
+    "/LICENSE-MIT",
+    "/src",
+    "/tests",
 ]
 description = "A unified interface for reading and writing object file formats."
 readme = "README.md"
@@ -73,22 +78,33 @@ version = "2.4.1"
 default-features = false
 
 [dependencies.ruzstd]
-version = "0.4.0"
+version = "0.7.0"
 optional = true
 
 [dependencies.wasmparser]
-version = "0.110.0"
+version = "0.212.0"
 optional = true
+default-features = false
 
 [features]
 all = [
     "read",
     "write",
+    "build",
     "std",
     "compression",
     "wasm",
 ]
 archive = []
+build = [
+    "build_core",
+    "write_std",
+    "elf",
+]
+build_core = [
+    "read_core",
+    "write_core",
+]
 cargo-all = []
 coff = []
 compression = [
@@ -103,6 +119,7 @@ default = [
 doc = [
     "read_core",
     "write_std",
+    "build_core",
     "std",
     "compression",
     "archive",

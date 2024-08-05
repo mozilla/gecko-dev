@@ -17,6 +17,9 @@ use crate::read::{
 /// A table of symbol entries in a COFF or PE file.
 ///
 /// Also includes the string table used for the symbol names.
+///
+/// Returned by [`CoffHeader::symbols`] and
+/// [`ImageNtHeaders::symbols`](crate::read::pe::ImageNtHeaders::symbols).
 #[derive(Debug)]
 pub struct SymbolTable<'data, R = &'data [u8], Coff = pe::ImageFileHeader>
 where
@@ -89,13 +92,13 @@ impl<'data, R: ReadRef<'data>, Coff: CoffHeader> SymbolTable<'data, R, Coff> {
     pub fn iter<'table>(&'table self) -> SymbolIterator<'data, 'table, R, Coff> {
         SymbolIterator {
             symbols: self,
-            index: 0,
+            index: SymbolIndex(0),
         }
     }
 
     /// Return the symbol table entry at the given index.
     #[inline]
-    pub fn symbol(&self, index: usize) -> Result<&'data Coff::ImageSymbol> {
+    pub fn symbol(&self, index: SymbolIndex) -> Result<&'data Coff::ImageSymbol> {
         self.get::<Coff::ImageSymbol>(index, 0)
     }
 
@@ -103,7 +106,7 @@ impl<'data, R: ReadRef<'data>, Coff: CoffHeader> SymbolTable<'data, R, Coff> {
     ///
     /// Note that the index is of the symbol, not the first auxiliary record.
     #[inline]
-    pub fn aux_function(&self, index: usize) -> Result<&'data pe::ImageAuxSymbolFunction> {
+    pub fn aux_function(&self, index: SymbolIndex) -> Result<&'data pe::ImageAuxSymbolFunction> {
         self.get::<pe::ImageAuxSymbolFunction>(index, 1)
     }
 
@@ -111,15 +114,16 @@ impl<'data, R: ReadRef<'data>, Coff: CoffHeader> SymbolTable<'data, R, Coff> {
     ///
     /// Note that the index is of the symbol, not the first auxiliary record.
     #[inline]
-    pub fn aux_section(&self, index: usize) -> Result<&'data pe::ImageAuxSymbolSection> {
+    pub fn aux_section(&self, index: SymbolIndex) -> Result<&'data pe::ImageAuxSymbolSection> {
         self.get::<pe::ImageAuxSymbolSection>(index, 1)
     }
 
     /// Return the auxiliary file name for the symbol table entry at the given index.
     ///
     /// Note that the index is of the symbol, not the first auxiliary record.
-    pub fn aux_file_name(&self, index: usize, aux_count: u8) -> Result<&'data [u8]> {
+    pub fn aux_file_name(&self, index: SymbolIndex, aux_count: u8) -> Result<&'data [u8]> {
         let entries = index
+            .0
             .checked_add(1)
             .and_then(|x| Some(x..x.checked_add(aux_count.into())?))
             .and_then(|x| self.symbols.get(x))
@@ -133,8 +137,9 @@ impl<'data, R: ReadRef<'data>, Coff: CoffHeader> SymbolTable<'data, R, Coff> {
     }
 
     /// Return the symbol table entry or auxiliary record at the given index and offset.
-    pub fn get<T: Pod>(&self, index: usize, offset: usize) -> Result<&'data T> {
+    pub fn get<T: Pod>(&self, index: SymbolIndex, offset: usize) -> Result<&'data T> {
         let bytes = index
+            .0
             .checked_add(offset)
             .and_then(|x| self.symbols.get(x))
             .read_error("Invalid COFF symbol index")?;
@@ -171,27 +176,28 @@ where
     Coff: CoffHeader,
 {
     symbols: &'table SymbolTable<'data, R, Coff>,
-    index: usize,
+    index: SymbolIndex,
 }
 
 impl<'data, 'table, R: ReadRef<'data>, Coff: CoffHeader> Iterator
     for SymbolIterator<'data, 'table, R, Coff>
 {
-    type Item = (usize, &'data Coff::ImageSymbol);
+    type Item = (SymbolIndex, &'data Coff::ImageSymbol);
 
     fn next(&mut self) -> Option<Self::Item> {
         let index = self.index;
         let symbol = self.symbols.symbol(index).ok()?;
-        self.index += 1 + symbol.number_of_aux_symbols() as usize;
+        self.index.0 += 1 + symbol.number_of_aux_symbols() as usize;
         Some((index, symbol))
     }
 }
 
-/// A symbol table of a `CoffBigFile`.
+/// A symbol table in a [`CoffBigFile`](super::CoffBigFile).
 pub type CoffBigSymbolTable<'data, 'file, R = &'data [u8]> =
     CoffSymbolTable<'data, 'file, R, pe::AnonObjectHeaderBigobj>;
 
-/// A symbol table of a `CoffFile`.
+/// A symbol table in a [`CoffFile`](super::CoffFile)
+/// or [`PeFile`](crate::read::pe::PeFile).
 #[derive(Debug, Clone, Copy)]
 pub struct CoffSymbolTable<'data, 'file, R = &'data [u8], Coff = pe::ImageFileHeader>
 where
@@ -213,14 +219,11 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbolTable<'data>
     type SymbolIterator = CoffSymbolIterator<'data, 'file, R, Coff>;
 
     fn symbols(&self) -> Self::SymbolIterator {
-        CoffSymbolIterator {
-            file: self.file,
-            index: 0,
-        }
+        CoffSymbolIterator::new(self.file)
     }
 
     fn symbol_by_index(&self, index: SymbolIndex) -> Result<Self::Symbol> {
-        let symbol = self.file.symbols.symbol(index.0)?;
+        let symbol = self.file.symbols.symbol(index)?;
         Ok(CoffSymbol {
             file: self.file,
             index,
@@ -229,18 +232,39 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbolTable<'data>
     }
 }
 
-/// An iterator over the symbols of a `CoffBigFile`.
+/// An iterator for the symbols in a [`CoffBigFile`](super::CoffBigFile).
 pub type CoffBigSymbolIterator<'data, 'file, R = &'data [u8]> =
     CoffSymbolIterator<'data, 'file, R, pe::AnonObjectHeaderBigobj>;
 
-/// An iterator over the symbols of a `CoffFile`.
+/// An iterator for the symbols in a [`CoffFile`](super::CoffFile)
+/// or [`PeFile`](crate::read::pe::PeFile).
 pub struct CoffSymbolIterator<'data, 'file, R = &'data [u8], Coff = pe::ImageFileHeader>
 where
     R: ReadRef<'data>,
     Coff: CoffHeader,
 {
-    pub(crate) file: &'file CoffCommon<'data, R, Coff>,
-    pub(crate) index: usize,
+    file: &'file CoffCommon<'data, R, Coff>,
+    index: SymbolIndex,
+}
+
+impl<'data, 'file, R, Coff> CoffSymbolIterator<'data, 'file, R, Coff>
+where
+    R: ReadRef<'data>,
+    Coff: CoffHeader,
+{
+    pub(crate) fn new(file: &'file CoffCommon<'data, R, Coff>) -> Self {
+        Self {
+            file,
+            index: SymbolIndex(0),
+        }
+    }
+
+    pub(crate) fn empty(file: &'file CoffCommon<'data, R, Coff>) -> Self {
+        Self {
+            file,
+            index: SymbolIndex(file.symbols.len()),
+        }
+    }
 }
 
 impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> fmt::Debug
@@ -259,20 +283,24 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> Iterator
     fn next(&mut self) -> Option<Self::Item> {
         let index = self.index;
         let symbol = self.file.symbols.symbol(index).ok()?;
-        self.index += 1 + symbol.number_of_aux_symbols() as usize;
+        self.index.0 += 1 + symbol.number_of_aux_symbols() as usize;
         Some(CoffSymbol {
             file: self.file,
-            index: SymbolIndex(index),
+            index,
             symbol,
         })
     }
 }
 
-/// A symbol of a `CoffBigFile`.
+/// A symbol in a [`CoffBigFile`](super::CoffBigFile).
+///
+/// Most functionality is provided by the [`ObjectSymbol`] trait implementation.
 pub type CoffBigSymbol<'data, 'file, R = &'data [u8]> =
     CoffSymbol<'data, 'file, R, pe::AnonObjectHeaderBigobj>;
 
-/// A symbol of a `CoffFile`.
+/// A symbol in a [`CoffFile`](super::CoffFile) or [`PeFile`](crate::read::pe::PeFile).
+///
+/// Most functionality is provided by the [`ObjectSymbol`] trait implementation.
 #[derive(Debug, Clone, Copy)]
 pub struct CoffSymbol<'data, 'file, R = &'data [u8], Coff = pe::ImageFileHeader>
 where
@@ -287,7 +315,13 @@ where
 impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> CoffSymbol<'data, 'file, R, Coff> {
     #[inline]
     /// Get the raw `ImageSymbol` struct.
+    #[deprecated(note = "Use `coff_symbol` instead")]
     pub fn raw_symbol(&self) -> &'data Coff::ImageSymbol {
+        self.symbol
+    }
+
+    /// Get the raw `ImageSymbol` struct.
+    pub fn coff_symbol(&self) -> &'data Coff::ImageSymbol {
         self.symbol
     }
 }
@@ -309,7 +343,7 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbol<'data>
         if self.symbol.has_aux_file_name() {
             self.file
                 .symbols
-                .aux_file_name(self.index.0, self.symbol.number_of_aux_symbols())
+                .aux_file_name(self.index, self.symbol.number_of_aux_symbols())
         } else {
             self.symbol.name(self.file.symbols.strings())
         }
@@ -323,21 +357,9 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbol<'data>
     }
 
     fn address(&self) -> u64 {
-        // Only return an address for storage classes that we know use an address.
-        match self.symbol.storage_class() {
-            pe::IMAGE_SYM_CLASS_STATIC
-            | pe::IMAGE_SYM_CLASS_WEAK_EXTERNAL
-            | pe::IMAGE_SYM_CLASS_LABEL => {}
-            pe::IMAGE_SYM_CLASS_EXTERNAL => {
-                if self.symbol.section_number() == pe::IMAGE_SYM_UNDEFINED {
-                    // Undefined or common data, neither of which have an address.
-                    return 0;
-                }
-            }
-            _ => return 0,
-        }
         self.symbol
             .address(self.file.image_base, &self.file.sections)
+            .unwrap_or(None)
             .unwrap_or(0)
     }
 
@@ -346,7 +368,7 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbol<'data>
             pe::IMAGE_SYM_CLASS_STATIC => {
                 // Section symbols may duplicate the size from the section table.
                 if self.symbol.has_aux_section() {
-                    if let Ok(aux) = self.file.symbols.aux_section(self.index.0) {
+                    if let Ok(aux) = self.file.symbols.aux_section(self.index) {
                         u64::from(aux.length.get(LE))
                     } else {
                         0
@@ -362,7 +384,7 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbol<'data>
                     u64::from(self.symbol.value())
                 } else if self.symbol.has_aux_function() {
                     // Function symbols may have a size.
-                    if let Ok(aux) = self.file.symbols.aux_function(self.index.0) {
+                    if let Ok(aux) = self.file.symbols.aux_function(self.index) {
                         u64::from(aux.total_size.get(LE))
                     } else {
                         0
@@ -384,7 +406,7 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbol<'data>
         };
         match self.symbol.storage_class() {
             pe::IMAGE_SYM_CLASS_STATIC => {
-                if self.symbol.value() == 0 && self.symbol.number_of_aux_symbols() > 0 {
+                if self.symbol.has_aux_section() {
                     SymbolKind::Section
                 } else {
                     derived_kind
@@ -401,12 +423,16 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbol<'data>
     fn section(&self) -> SymbolSection {
         match self.symbol.section_number() {
             pe::IMAGE_SYM_UNDEFINED => {
-                if self.symbol.storage_class() == pe::IMAGE_SYM_CLASS_EXTERNAL
-                    && self.symbol.value() == 0
-                {
+                if self.symbol.storage_class() == pe::IMAGE_SYM_CLASS_EXTERNAL {
+                    if self.symbol.value() == 0 {
+                        SymbolSection::Undefined
+                    } else {
+                        SymbolSection::Common
+                    }
+                } else if self.symbol.storage_class() == pe::IMAGE_SYM_CLASS_SECTION {
                     SymbolSection::Undefined
                 } else {
-                    SymbolSection::Common
+                    SymbolSection::Unknown
                 }
             }
             pe::IMAGE_SYM_ABSOLUTE => SymbolSection::Absolute,
@@ -472,7 +498,7 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbol<'data>
 
     fn flags(&self) -> SymbolFlags<SectionIndex, SymbolIndex> {
         if self.symbol.has_aux_section() {
-            if let Ok(aux) = self.file.symbols.aux_section(self.index.0) {
+            if let Ok(aux) = self.file.symbols.aux_section(self.index) {
                 let number = if Coff::is_type_bigobj() {
                     u32::from(aux.number.get(LE)) | (u32::from(aux.high_number.get(LE)) << 16)
                 } else {
@@ -492,7 +518,7 @@ impl<'data, 'file, R: ReadRef<'data>, Coff: CoffHeader> ObjectSymbol<'data>
     }
 }
 
-/// A trait for generic access to `ImageSymbol` and `ImageSymbolEx`.
+/// A trait for generic access to [`pe::ImageSymbol`] and [`pe::ImageSymbolEx`].
 #[allow(missing_docs)]
 pub trait ImageSymbol: Debug + Pod {
     fn raw_name(&self) -> &[u8; 8];
@@ -527,26 +553,43 @@ pub trait ImageSymbol: Debug + Pod {
 
     /// Return the symbol address.
     ///
-    /// This takes into account the image base and the section address.
-    fn address(&self, image_base: u64, sections: &SectionTable<'_>) -> Result<u64> {
-        let section_number = self.section_number() as usize;
-        let section = sections.section(section_number)?;
+    /// This takes into account the image base and the section address,
+    /// and only returns an address for symbols that have an address.
+    fn address(&self, image_base: u64, sections: &SectionTable<'_>) -> Result<Option<u64>> {
+        // Only return an address for storage classes that we know use an address.
+        match self.storage_class() {
+            pe::IMAGE_SYM_CLASS_STATIC
+            | pe::IMAGE_SYM_CLASS_WEAK_EXTERNAL
+            | pe::IMAGE_SYM_CLASS_LABEL
+            | pe::IMAGE_SYM_CLASS_EXTERNAL => {}
+            _ => return Ok(None),
+        }
+        let Some(section_index) = self.section() else {
+            return Ok(None);
+        };
+        let section = sections.section(section_index)?;
         let virtual_address = u64::from(section.virtual_address.get(LE));
         let value = u64::from(self.value());
-        Ok(image_base + virtual_address + value)
+        Ok(Some(image_base + virtual_address + value))
+    }
+
+    /// Return the section index for the symbol.
+    fn section(&self) -> Option<SectionIndex> {
+        let section_number = self.section_number();
+        if section_number > 0 {
+            Some(SectionIndex(section_number as usize))
+        } else {
+            None
+        }
     }
 
     /// Return true if the symbol is a definition of a function or data object.
     fn is_definition(&self) -> bool {
-        let section_number = self.section_number();
-        if section_number == pe::IMAGE_SYM_UNDEFINED {
+        if self.section_number() <= 0 {
             return false;
         }
         match self.storage_class() {
-            pe::IMAGE_SYM_CLASS_STATIC => {
-                // Exclude section symbols.
-                !(self.value() == 0 && self.number_of_aux_symbols() > 0)
-            }
+            pe::IMAGE_SYM_CLASS_STATIC => !self.has_aux_section(),
             pe::IMAGE_SYM_CLASS_EXTERNAL | pe::IMAGE_SYM_CLASS_WEAK_EXTERNAL => true,
             _ => false,
         }
@@ -566,7 +609,7 @@ pub trait ImageSymbol: Debug + Pod {
     fn has_aux_section(&self) -> bool {
         self.number_of_aux_symbols() > 0
             && self.storage_class() == pe::IMAGE_SYM_CLASS_STATIC
-            && self.value() == 0
+            && self.typ() == 0
     }
 
     fn base_type(&self) -> u16 {

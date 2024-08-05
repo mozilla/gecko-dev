@@ -1,21 +1,21 @@
 use core::fmt::Debug;
-use core::{mem, slice, str};
+use core::{slice, str};
 
 use crate::elf;
 use crate::endian::{self, Endianness};
-use crate::pod::Pod;
-use crate::read::{self, Bytes, ObjectSegment, ReadError, ReadRef, SegmentFlags};
+use crate::pod::{self, Pod};
+use crate::read::{self, ObjectSegment, ReadError, ReadRef, SegmentFlags};
 
 use super::{ElfFile, FileHeader, NoteIterator};
 
-/// An iterator over the segments of an `ElfFile32`.
+/// An iterator for the segments in an [`ElfFile32`](super::ElfFile32).
 pub type ElfSegmentIterator32<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     ElfSegmentIterator<'data, 'file, elf::FileHeader32<Endian>, R>;
-/// An iterator over the segments of an `ElfFile64`.
+/// An iterator for the segments in an [`ElfFile64`](super::ElfFile64).
 pub type ElfSegmentIterator64<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     ElfSegmentIterator<'data, 'file, elf::FileHeader64<Endian>, R>;
 
-/// An iterator over the segments of an `ElfFile`.
+/// An iterator for the segments in an [`ElfFile`].
 #[derive(Debug)]
 pub struct ElfSegmentIterator<'data, 'file, Elf, R = &'data [u8]>
 where
@@ -46,14 +46,16 @@ where
     }
 }
 
-/// A segment of an `ElfFile32`.
+/// A segment in an [`ElfFile32`](super::ElfFile32).
 pub type ElfSegment32<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     ElfSegment<'data, 'file, elf::FileHeader32<Endian>, R>;
-/// A segment of an `ElfFile64`.
+/// A segment in an [`ElfFile64`](super::ElfFile64).
 pub type ElfSegment64<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     ElfSegment<'data, 'file, elf::FileHeader64<Endian>, R>;
 
-/// A segment of an `ElfFile`.
+/// A segment in an [`ElfFile`].
+///
+/// Most functionality is provided by the [`ObjectSegment`] trait implementation.
 #[derive(Debug)]
 pub struct ElfSegment<'data, 'file, Elf, R = &'data [u8]>
 where
@@ -65,6 +67,16 @@ where
 }
 
 impl<'data, 'file, Elf: FileHeader, R: ReadRef<'data>> ElfSegment<'data, 'file, Elf, R> {
+    /// Get the ELF file containing this segment.
+    pub fn elf_file(&self) -> &'file ElfFile<'data, Elf, R> {
+        self.file
+    }
+
+    /// Get the raw ELF program header for the segment.
+    pub fn elf_program_header(&self) -> &'data Elf::ProgramHeader {
+        self.segment
+    }
+
     fn bytes(&self) -> read::Result<&'data [u8]> {
         self.segment
             .data(self.file.endian, self.file.data)
@@ -135,7 +147,7 @@ where
     }
 }
 
-/// A trait for generic access to `ProgramHeader32` and `ProgramHeader64`.
+/// A trait for generic access to [`elf::ProgramHeader32`] and [`elf::ProgramHeader64`].
 #[allow(missing_docs)]
 pub trait ProgramHeader: Debug + Pod {
     type Elf: FileHeader<ProgramHeader = Self, Endian = Self::Endian, Word = Self::Word>;
@@ -178,8 +190,7 @@ pub trait ProgramHeader: Debug + Pod {
         endian: Self::Endian,
         data: R,
     ) -> Result<&'data [T], ()> {
-        let mut data = self.data(endian, data).map(Bytes)?;
-        data.read_slice(data.len() / mem::size_of::<T>())
+        pod::slice_from_all_bytes(self.data(endian, data)?)
     }
 
     /// Return the segment data in the given virtual address range
@@ -217,6 +228,28 @@ pub trait ProgramHeader: Debug + Pod {
             .data_as_array(endian, data)
             .read_error("Invalid ELF dynamic segment offset or size")?;
         Ok(Some(dynamic))
+    }
+
+    /// Return the data in an interpreter segment.
+    ///
+    /// Returns `Ok(None)` if the segment is not `PT_INTERP`.
+    /// Returns `Err` for invalid values.
+    fn interpreter<'data, R: ReadRef<'data>>(
+        &self,
+        endian: Self::Endian,
+        data: R,
+    ) -> read::Result<Option<&'data [u8]>> {
+        if self.p_type(endian) != elf::PT_INTERP {
+            return Ok(None);
+        }
+        let data = self
+            .data(endian, data)
+            .read_error("Invalid ELF interpreter segment offset or size")?;
+        let len = data
+            .iter()
+            .position(|&b| b == 0)
+            .read_error("Invalid ELF interpreter segment data")?;
+        Ok(Some(&data[..len]))
     }
 
     /// Return a note iterator for the segment data.

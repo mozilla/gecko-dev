@@ -12,9 +12,9 @@ use uuid::Uuid;
 const UUID_SIZE: usize = 16;
 const PAGE_SIZE: usize = 4096;
 
-fn get_symbol_map<'a: 'b, 'b, T>(object_file: &'b T) -> HashMap<u32, &'a str>
+fn get_symbol_map<'a, T>(object_file: &T) -> HashMap<u32, &'a str>
 where
-    T: Object<'a, 'b>,
+    T: Object<'a>,
 {
     object_file
         .dynamic_symbols()

@@ -57,6 +57,27 @@ user-id = 128763
 user-login = "martinthomson"
 user-name = "Martin Thomson"
 
+[[publisher.breakpad-symbols]]
+version = "0.21.1"
+when = "2024-03-01"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
+[[publisher.breakpad-symbols]]
+version = "0.21.2"
+when = "2024-06-03"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
+[[publisher.breakpad-symbols]]
+version = "0.22.0"
+when = "2024-07-03"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
 [[publisher.bumpalo]]
 version = "3.15.4"
 when = "2024-03-07"
@@ -77,6 +98,13 @@ when = "2023-01-31"
 user-id = 6741
 user-login = "Darksonn"
 user-name = "Alice Ryhl"
+
+[[publisher.cachemap2]]
+version = "0.3.0"
+when = "2024-01-19"
+user-id = 106639
+user-login = "afranchuk"
+user-name = "Alex Franchuk"
 
 [[publisher.cc]]
 version = "1.0.89"
@@ -211,6 +239,27 @@ user-id = 4333
 user-login = "joshtriplett"
 user-name = "Josh Triplett"
 
+[[publisher.framehop]]
+version = "0.9.0"
+when = "2024-02-07"
+user-id = 20227
+user-login = "mstange"
+user-name = "Markus Stange"
+
+[[publisher.framehop]]
+version = "0.11.2"
+when = "2024-05-06"
+user-id = 20227
+user-login = "mstange"
+user-name = "Markus Stange"
+
+[[publisher.framehop]]
+version = "0.12.1"
+when = "2024-06-04"
+user-id = 20227
+user-login = "mstange"
+user-name = "Markus Stange"
+
 [[publisher.freetype]]
 version = "0.7.0"
 when = "2020-07-14"
@@ -330,6 +379,13 @@ user-id = 2915
 user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
+[[publisher.macho-unwind-info]]
+version = "0.4.0"
+when = "2024-01-17"
+user-id = 20227
+user-login = "mstange"
+user-name = "Markus Stange"
+
 [[publisher.memchr]]
 version = "2.7.4"
 when = "2024-06-14"
@@ -344,12 +400,75 @@ user-id = 359
 user-login = "seanmonstar"
 user-name = "Sean McArthur"
 
+[[publisher.minidump]]
+version = "0.21.1"
+when = "2024-03-01"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
+[[publisher.minidump]]
+version = "0.21.2"
+when = "2024-06-03"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
+[[publisher.minidump]]
+version = "0.22.0"
+when = "2024-07-03"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
 [[publisher.minidump-common]]
 version = "0.21.1"
 when = "2024-03-01"
 user-id = 72814
 user-login = "gabrielesvelto"
 user-name = "Gabriele Svelto"
+
+[[publisher.minidump-common]]
+version = "0.21.2"
+when = "2024-06-03"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
+[[publisher.minidump-common]]
+version = "0.22.0"
+when = "2024-07-03"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
+[[publisher.minidump-unwind]]
+version = "0.21.1"
+when = "2024-03-01"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
+[[publisher.minidump-unwind]]
+version = "0.21.2"
+when = "2024-06-03"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
+[[publisher.minidump-unwind]]
+version = "0.22.0"
+when = "2024-07-03"
+user-id = 72814
+user-login = "gabrielesvelto"
+user-name = "Gabriele Svelto"
+
+[[publisher.mio]]
+version = "0.6.21"
+when = "2019-11-27"
+user-id = 10
+user-login = "carllerche"
+user-name = "Carl Lerche"
 
 [[publisher.nss-gk-api]]
 version = "0.3.0"
@@ -414,6 +533,13 @@ user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
+[[publisher.pe-unwind-info]]
+version = "0.2.3"
+when = "2024-03-04"
+user-id = 106639
+user-login = "afranchuk"
+user-name = "Alex Franchuk"
+
 [[publisher.presser]]
 version = "0.3.1"
 when = "2022-10-16"
@@ -425,6 +551,13 @@ version = "0.16.2"
 when = "2024-03-19"
 user-id = 213776
 user-login = "divviup-github-automation"
+
+[[publisher.proc-macro2]]
+version = "1.0.74"
+when = "2024-01-02"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
 
 [[publisher.proc-macro2]]
 version = "1.0.84"
@@ -558,6 +691,13 @@ when = "2024-01-19"
 user-id = 2017
 user-login = "mbrubeck"
 user-name = "Matt Brubeck"
+
+[[publisher.syn]]
+version = "2.0.46"
+when = "2024-01-02"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
 
 [[publisher.syn]]
 version = "2.0.68"
@@ -814,7 +954,7 @@ who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 user-id = 696 # Nick Fitzgerald (fitzgen)
 start = "2020-01-14"
-end = "2024-04-21"
+end = "2025-07-30"
 notes = "I am an author of this crate."
 
 [[audits.bytecode-alliance.wildcard-audits.bumpalo]]
@@ -822,14 +962,14 @@ who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 user-id = 696 # Nick Fitzgerald (fitzgen)
 start = "2019-03-16"
-end = "2024-03-10"
+end = "2025-07-30"
 
 [[audits.bytecode-alliance.wildcard-audits.derive_arbitrary]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 user-id = 696 # Nick Fitzgerald (fitzgen)
 start = "2020-01-14"
-end = "2024-04-27"
+end = "2025-07-30"
 notes = "I am an author of this crate"
 
 [[audits.bytecode-alliance.wildcard-audits.wasm-encoder]]
@@ -1082,6 +1222,15 @@ who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 delta = "0.31.1 -> 0.32.0"
 notes = "Various new features and refactorings as one would expect from an object parsing crate, all looks good."
+
+[[audits.bytecode-alliance.audits.object]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "0.32.0 -> 0.33.0"
+notes = """
+No `unsafe` code in this update. Lots of changes but all
+object-file-format-related, everything looks good.
+"""
 
 [[audits.bytecode-alliance.audits.percent-encoding]]
 who = "Alex Crichton <alex@alexcrichton.com>"
@@ -1422,24 +1571,6 @@ aggregated-from = "https://fuchsia.googlesource.com/fuchsia/+/refs/heads/main/th
 who = "ChromeOS"
 criteria = "safe-to-run"
 version = "0.3.2"
-aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
-
-[[audits.google.audits.tracing]]
-who = "ChromeOS"
-criteria = "safe-to-run"
-version = "0.1.35"
-aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
-
-[[audits.google.audits.tracing-attributes]]
-who = "ChromeOS"
-criteria = "safe-to-run"
-version = "0.1.22"
-aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
-
-[[audits.google.audits.tracing-core]]
-who = "ChromeOS"
-criteria = "safe-to-run"
-version = "0.1.29"
 aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
 
 [[audits.google.audits.try-lock]]

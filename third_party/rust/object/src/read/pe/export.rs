@@ -1,8 +1,9 @@
 use alloc::vec::Vec;
 use core::fmt::Debug;
 
+use crate::endian::{LittleEndian as LE, U16Bytes, U32Bytes};
+use crate::pe;
 use crate::read::{ByteString, Bytes, Error, ReadError, ReadRef, Result};
-use crate::{pe, LittleEndian as LE, U16Bytes, U32Bytes};
 
 /// Where an export is pointing to.
 #[derive(Clone, Copy)]
@@ -80,6 +81,8 @@ impl<'a> Debug for ExportTarget<'a> {
 }
 
 /// A partially parsed PE export table.
+///
+/// Returned by [`DataDirectories::export_table`](super::DataDirectories::export_table).
 #[derive(Debug, Clone)]
 pub struct ExportTable<'data> {
     data: Bytes<'data>,

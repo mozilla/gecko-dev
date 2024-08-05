@@ -1,22 +1,24 @@
 use core::fmt::Debug;
 use core::{iter, result, slice, str};
 
-use crate::{
-    xcoff, BigEndian as BE, CompressedData, CompressedFileRange, Pod, SectionFlags, SectionKind,
+use crate::endian::BigEndian as BE;
+use crate::pod::Pod;
+use crate::read::{
+    self, CompressedData, CompressedFileRange, Error, ObjectSection, ReadError, ReadRef,
+    RelocationMap, Result, SectionFlags, SectionIndex, SectionKind,
 };
-
-use crate::read::{self, Error, ObjectSection, ReadError, ReadRef, Result, SectionIndex};
+use crate::xcoff;
 
 use super::{AuxHeader, FileHeader, Rel, XcoffFile, XcoffRelocationIterator};
 
-/// An iterator over the sections of an `XcoffFile32`.
+/// An iterator for the sections in an [`XcoffFile32`](super::XcoffFile32).
 pub type XcoffSectionIterator32<'data, 'file, R = &'data [u8]> =
     XcoffSectionIterator<'data, 'file, xcoff::FileHeader32, R>;
-/// An iterator over the sections of an `XcoffFile64`.
+/// An iterator for the sections in an [`XcoffFile64`](super::XcoffFile64).
 pub type XcoffSectionIterator64<'data, 'file, R = &'data [u8]> =
     XcoffSectionIterator<'data, 'file, xcoff::FileHeader64, R>;
 
-/// An iterator over the sections of an `XcoffFile`.
+/// An iterator for the sections in an [`XcoffFile`].
 #[derive(Debug)]
 pub struct XcoffSectionIterator<'data, 'file, Xcoff, R = &'data [u8]>
 where
@@ -43,14 +45,16 @@ where
     }
 }
 
-/// A section of an `XcoffFile32`.
+/// A section in an [`XcoffFile32`](super::XcoffFile32).
 pub type XcoffSection32<'data, 'file, R = &'data [u8]> =
     XcoffSection<'data, 'file, xcoff::FileHeader32, R>;
-/// A section of an `XcoffFile64`.
+/// A section in an [`XcoffFile64`](super::XcoffFile64).
 pub type XcoffSection64<'data, 'file, R = &'data [u8]> =
     XcoffSection<'data, 'file, xcoff::FileHeader64, R>;
 
-/// A section of an `XcoffFile`.
+/// A section in an [`XcoffFile`].
+///
+/// Most functionality is provided by the [`ObjectSection`] trait implementation.
 #[derive(Debug)]
 pub struct XcoffSection<'data, 'file, Xcoff, R = &'data [u8]>
 where
@@ -63,6 +67,21 @@ where
 }
 
 impl<'data, 'file, Xcoff: FileHeader, R: ReadRef<'data>> XcoffSection<'data, 'file, Xcoff, R> {
+    /// Get the XCOFF file containing this section.
+    pub fn xcoff_file(&self) -> &'file XcoffFile<'data, Xcoff, R> {
+        self.file
+    }
+
+    /// Get the raw XCOFF section header.
+    pub fn xcoff_section(&self) -> &'data Xcoff::SectionHeader {
+        self.section
+    }
+
+    /// Get the raw XCOFF relocation entries for this section.
+    pub fn xcoff_relocations(&self) -> Result<&'data [Xcoff::Rel]> {
+        self.section.relocations(self.file.data)
+    }
+
     fn bytes(&self) -> Result<&'data [u8]> {
         self.section
             .data(self.file.data)
@@ -134,11 +153,11 @@ where
         self.data().map(CompressedData::none)
     }
 
-    fn name_bytes(&self) -> read::Result<&[u8]> {
+    fn name_bytes(&self) -> read::Result<&'data [u8]> {
         Ok(self.section.name())
     }
 
-    fn name(&self) -> read::Result<&str> {
+    fn name(&self) -> read::Result<&'data str> {
         let name = self.name_bytes()?;
         str::from_utf8(name)
             .ok()
@@ -180,11 +199,15 @@ where
     }
 
     fn relocations(&self) -> Self::RelocationIterator {
-        let rel = self.section.relocations(self.file.data).unwrap_or(&[]);
+        let rel = self.xcoff_relocations().unwrap_or(&[]);
         XcoffRelocationIterator {
             file: self.file,
             relocations: rel.iter(),
         }
+    }
+
+    fn relocation_map(&self) -> read::Result<RelocationMap> {
+        RelocationMap::new(self.file, self)
     }
 
     fn flags(&self) -> SectionFlags {
@@ -199,6 +222,8 @@ where
 }
 
 /// The table of section headers in an XCOFF file.
+///
+/// Returned by [`FileHeader::sections`].
 #[derive(Debug, Clone, Copy)]
 pub struct SectionTable<'data, Xcoff: FileHeader> {
     sections: &'data [Xcoff::SectionHeader],
@@ -260,7 +285,7 @@ where
     }
 }
 
-/// A trait for generic access to `SectionHeader32` and `SectionHeader64`.
+/// A trait for generic access to [`xcoff::SectionHeader32`] and [`xcoff::SectionHeader64`].
 #[allow(missing_docs)]
 pub trait SectionHeader: Debug + Pod {
     type Word: Into<u64>;

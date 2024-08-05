@@ -10,6 +10,9 @@ use crate::read::{self, Bytes, Error, ReadError};
 use super::FileHeader;
 
 /// An iterator over the notes in an ELF section or segment.
+///
+/// Returned [`ProgramHeader::notes`](super::ProgramHeader::notes)
+/// and [`SectionHeader::notes`](super::SectionHeader::notes).
 #[derive(Debug)]
 pub struct NoteIterator<'data, Elf>
 where
@@ -84,7 +87,7 @@ where
     }
 }
 
-/// A parsed `NoteHeader`.
+/// A parsed [`NoteHeader`].
 #[derive(Debug)]
 pub struct Note<'data, Elf>
 where
@@ -141,7 +144,7 @@ impl<'data, Elf: FileHeader> Note<'data, Elf> {
         self.desc
     }
 
-    /// Return an iterator for properties if this note's type is `NT_GNU_PROPERTY_TYPE_0`.
+    /// Return an iterator for properties if this note's type is [`elf::NT_GNU_PROPERTY_TYPE_0`].
     pub fn gnu_properties(
         &self,
         endian: Elf::Endian,
@@ -160,7 +163,7 @@ impl<'data, Elf: FileHeader> Note<'data, Elf> {
     }
 }
 
-/// A trait for generic access to `NoteHeader32` and `NoteHeader64`.
+/// A trait for generic access to [`elf::NoteHeader32`] and [`elf::NoteHeader64`].
 #[allow(missing_docs)]
 pub trait NoteHeader: Debug + Pod {
     type Endian: endian::Endian;
@@ -208,7 +211,9 @@ impl<Endian: endian::Endian> NoteHeader for elf::NoteHeader64<Endian> {
     }
 }
 
-/// An iterator over the properties in a `NT_GNU_PROPERTY_TYPE_0` note.
+/// An iterator for the properties in a [`elf::NT_GNU_PROPERTY_TYPE_0`] note.
+///
+/// Returned by [`Note::gnu_properties`].
 #[derive(Debug)]
 pub struct GnuPropertyIterator<'data, Endian: endian::Endian> {
     endian: Endian,
@@ -236,7 +241,7 @@ impl<'data, Endian: endian::Endian> GnuPropertyIterator<'data, Endian> {
     }
 }
 
-/// A property in a `NT_GNU_PROPERTY_TYPE_0` note.
+/// A property in a [`elf::NT_GNU_PROPERTY_TYPE_0`] note.
 #[derive(Debug)]
 pub struct GnuProperty<'data> {
     pr_type: u32,

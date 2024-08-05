@@ -12,6 +12,17 @@ use std::os::unix::process::ExitStatusExt;
 mod common;
 use common::*;
 
+/// These tests generally aren't consistent in resource-deprived environments like CI runners and
+/// android emulators.
+macro_rules! disabled_on_ci_and_android {
+    () => {
+        if std::env::var("CI").is_ok() || cfg!(target_os = "android") {
+            println!("disabled on CI and android, but otherwise works locally");
+            return;
+        }
+    };
+}
+
 #[test]
 fn test_setup() {
     spawn_child("setup", &[]);
@@ -104,11 +115,7 @@ fn test_mappings_include_linux_gate() {
 
 #[test]
 fn test_linux_gate_mapping_id() {
-    if std::env::var("CI").is_ok() {
-        println!("disabled on CI, but works locally");
-        return;
-    }
-
+    disabled_on_ci_and_android!();
     spawn_child("linux_gate_mapping_id", &[]);
 }
 
@@ -118,8 +125,12 @@ fn test_merged_mappings() {
     let page_size = std::num::NonZeroUsize::new(page_size.unwrap() as usize).unwrap();
     let map_size = std::num::NonZeroUsize::new(3 * page_size.get()).unwrap();
 
-    let path: &'static str = std::env!("CARGO_BIN_EXE_test");
-    let file = std::fs::File::open(path).unwrap();
+    let path: String = if let Ok(p) = std::env::var("TEST_HELPER") {
+        p
+    } else {
+        std::env!("CARGO_BIN_EXE_test").into()
+    };
+    let file = std::fs::File::open(&path).unwrap();
 
     // mmap two segments out of the helper binary, one
     // enclosed in the other, but with different protections.
@@ -153,13 +164,14 @@ fn test_merged_mappings() {
 
     spawn_child(
         "merged_mappings",
-        &[path, &format!("{mapped}"), &format!("{map_size}")],
+        &[&path, &format!("{mapped}"), &format!("{map_size}")],
     );
 }
 
 #[test]
 // Ensure that the linux-gate VDSO is included in the mapping list.
 fn test_file_id() {
+    disabled_on_ci_and_android!();
     spawn_child("file_id", &[]);
 }
 
@@ -176,10 +188,7 @@ fn test_find_mapping() {
 
 #[test]
 fn test_copy_from_process_self() {
-    if std::env::var("CI").is_ok() {
-        println!("disabled on CI, but works locally");
-        return;
-    }
+    disabled_on_ci_and_android!();
 
     let stack_var: libc::c_long = 0x11223344;
     let heap_var: Box<libc::c_long> = Box::new(0x55667788);

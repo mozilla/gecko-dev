@@ -359,6 +359,8 @@ pub const IMAGE_FILE_MACHINE_AMD64: u16 = 0x8664;
 pub const IMAGE_FILE_MACHINE_M32R: u16 = 0x9041;
 /// ARM64 Little-Endian
 pub const IMAGE_FILE_MACHINE_ARM64: u16 = 0xAA64;
+/// ARM64EC ("Emulation Compatible")
+pub const IMAGE_FILE_MACHINE_ARM64EC: u16 = 0xA641;
 pub const IMAGE_FILE_MACHINE_CEE: u16 = 0xC0EE;
 /// RISCV32
 pub const IMAGE_FILE_MACHINE_RISCV32: u16 = 0x5032;

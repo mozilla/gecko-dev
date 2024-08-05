@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use crate::read::{Bytes, ReadError, ReadRef, Result, StringTable};
+use crate::read::{Bytes, ReadError, ReadRef, Result, StringTable, SymbolIndex};
 use crate::{elf, endian};
 
 use super::FileHeader;
@@ -33,13 +33,14 @@ impl VersionIndex {
 
 /// A version definition or requirement.
 ///
-/// This is derived from entries in the `SHT_GNU_verdef` and `SHT_GNU_verneed` sections.
+/// This is derived from entries in the [`elf::SHT_GNU_VERDEF`] and [`elf::SHT_GNU_VERNEED`] sections.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Version<'data> {
     name: &'data [u8],
     hash: u32,
     // Used to keep track of valid indices in `VersionTable`.
     valid: bool,
+    file: Option<&'data [u8]>,
 }
 
 impl<'data> Version<'data> {
@@ -52,13 +53,24 @@ impl<'data> Version<'data> {
     pub fn hash(&self) -> u32 {
         self.hash
     }
+
+    /// Return the filename of the library containing this version.
+    ///
+    /// This is the `vn_file` field of the associated entry in [`elf::SHT_GNU_VERNEED`].
+    /// or `None` if the version info was parsed from a [`elf::SHT_GNU_VERDEF`] section.
+    pub fn file(&self) -> Option<&'data [u8]> {
+        self.file
+    }
 }
 
 /// A table of version definitions and requirements.
 ///
 /// It allows looking up the version information for a given symbol index.
 ///
-/// This is derived from entries in the `SHT_GNU_versym`, `SHT_GNU_verdef` and `SHT_GNU_verneed` sections.
+/// This is derived from entries in the [`elf::SHT_GNU_VERSYM`], [`elf::SHT_GNU_VERDEF`]
+/// and [`elf::SHT_GNU_VERNEED`] sections.
+///
+/// Returned by [`SectionTable::versions`](super::SectionTable::versions).
 #[derive(Debug, Clone)]
 pub struct VersionTable<'data, Elf: FileHeader> {
     symbols: &'data [elf::Versym<Elf::Endian>],
@@ -125,12 +137,13 @@ impl<'data, Elf: FileHeader> VersionTable<'data, Elf> {
                         name: verdaux.name(endian, strings)?,
                         hash: verdef.vd_hash.get(endian),
                         valid: true,
+                        file: None,
                     };
                 }
             }
         }
         if let Some(mut verneeds) = verneeds {
-            while let Some((_, mut vernauxs)) = verneeds.next()? {
+            while let Some((verneed, mut vernauxs)) = verneeds.next()? {
                 while let Some(vernaux) = vernauxs.next()? {
                     let index = vernaux.vna_other.get(endian) & elf::VERSYM_VERSION;
                     if index <= elf::VER_NDX_GLOBAL {
@@ -141,6 +154,7 @@ impl<'data, Elf: FileHeader> VersionTable<'data, Elf> {
                         name: vernaux.name(endian, strings)?,
                         hash: vernaux.vna_hash.get(endian),
                         valid: true,
+                        file: Some(verneed.file(endian, strings)?),
                     };
                 }
             }
@@ -158,8 +172,8 @@ impl<'data, Elf: FileHeader> VersionTable<'data, Elf> {
     }
 
     /// Return version index for a given symbol index.
-    pub fn version_index(&self, endian: Elf::Endian, index: usize) -> VersionIndex {
-        let version_index = match self.symbols.get(index) {
+    pub fn version_index(&self, endian: Elf::Endian, index: SymbolIndex) -> VersionIndex {
+        let version_index = match self.symbols.get(index.0) {
             Some(x) => x.0.get(endian),
             // Ideally this would be VER_NDX_LOCAL for undefined symbols,
             // but currently there are no checks that need this distinction.
@@ -188,7 +202,12 @@ impl<'data, Elf: FileHeader> VersionTable<'data, Elf> {
     /// Returns false for any error.
     ///
     /// Note: this function hasn't been fully tested and is likely to be incomplete.
-    pub fn matches(&self, endian: Elf::Endian, index: usize, need: Option<&Version<'_>>) -> bool {
+    pub fn matches(
+        &self,
+        endian: Elf::Endian,
+        index: SymbolIndex,
+        need: Option<&Version<'_>>,
+    ) -> bool {
         let version_index = self.version_index(endian, index);
         let def = match self.version(version_index) {
             Ok(def) => def,
@@ -210,7 +229,7 @@ impl<'data, Elf: FileHeader> VersionTable<'data, Elf> {
     }
 }
 
-/// An iterator over the entries in an ELF `SHT_GNU_verdef` section.
+/// An iterator for the entries in an ELF [`elf::SHT_GNU_VERDEF`] section.
 #[derive(Debug, Clone)]
 pub struct VerdefIterator<'data, Elf: FileHeader> {
     endian: Elf::Endian,
@@ -257,7 +276,7 @@ impl<'data, Elf: FileHeader> VerdefIterator<'data, Elf> {
     }
 }
 
-/// An iterator over the auxiliary records for an entry in an ELF `SHT_GNU_verdef` section.
+/// An iterator for the auxiliary records for an entry in an ELF [`elf::SHT_GNU_VERDEF`] section.
 #[derive(Debug, Clone)]
 pub struct VerdauxIterator<'data, Elf: FileHeader> {
     endian: Elf::Endian,
@@ -293,7 +312,7 @@ impl<'data, Elf: FileHeader> VerdauxIterator<'data, Elf> {
     }
 }
 
-/// An iterator over the entries in an ELF `SHT_GNU_verneed` section.
+/// An iterator for the entries in an ELF [`elf::SHT_GNU_VERNEED`] section.
 #[derive(Debug, Clone)]
 pub struct VerneedIterator<'data, Elf: FileHeader> {
     endian: Elf::Endian,
@@ -345,7 +364,7 @@ impl<'data, Elf: FileHeader> VerneedIterator<'data, Elf> {
     }
 }
 
-/// An iterator over the auxiliary records for an entry in an ELF `SHT_GNU_verneed` section.
+/// An iterator for the auxiliary records for an entry in an ELF [`elf::SHT_GNU_VERNEED`] section.
 #[derive(Debug, Clone)]
 pub struct VernauxIterator<'data, Elf: FileHeader> {
     endian: Elf::Endian,

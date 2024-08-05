@@ -6,7 +6,7 @@ use crate::endian;
 use crate::pod::Pod;
 use crate::read::{ReadError, Result, StringTable};
 
-/// A trait for generic access to `Dyn32` and `Dyn64`.
+/// A trait for generic access to [`elf::Dyn32`] and [`elf::Dyn64`].
 #[allow(missing_docs)]
 pub trait Dyn: Debug + Pod {
     type Word: Into<u64>;
