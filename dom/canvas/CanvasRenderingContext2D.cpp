@@ -1622,6 +1622,21 @@ bool CanvasRenderingContext2D::EnsureTarget(ErrorResult& aError,
     newTarget->ClearRect(canvasRect);
   }
 
+  // Ensure any Path state is compatible with the type of DrawTarget used. This
+  // may require making a copy with the correct type if they (rarely) mismatch.
+  if (mPathBuilder &&
+      mPathBuilder->GetBackendType() != newTarget->GetBackendType()) {
+    RefPtr<Path> path = mPathBuilder->Finish();
+    mPathBuilder = newTarget->CreatePathBuilder(path->GetFillRule());
+    path->StreamToSink(mPathBuilder);
+  }
+  if (mPath && mPath->GetBackendType() != newTarget->GetBackendType()) {
+    RefPtr<PathBuilder> builder =
+        newTarget->CreatePathBuilder(mPath->GetFillRule());
+    mPath->StreamToSink(builder);
+    mPath = builder->Finish();
+  }
+
   mTarget = std::move(newTarget);
   mBufferProvider = std::move(newProvider);
   mBufferNeedsClear = false;
