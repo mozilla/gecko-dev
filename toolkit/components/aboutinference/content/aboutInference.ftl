@@ -21,3 +21,4 @@ about-inference-memory = Memory
 about-inference-pid = PID
 about-inference-file = File
 about-inference-size = Size
+about-inference-learn-more = Learn more about the platform here.

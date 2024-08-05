@@ -10,6 +10,9 @@ of the browser. To try out some inference tasks, you can refer to the
 `1000+ models <https://huggingface.co/models?library=transformers.js>`_
 that are available in the Hugging Face Hub that are compatible with this runtime.
 
+To learn about the different inference tasks refer to this Hugging Face
+documentation: `Tasks <https://huggingface.co/tasks>`_
+
 To enable the engine, flip the `browser.ml.enable` preference to `true` in `about:config`.
 
 Running the pipeline API
@@ -30,8 +33,7 @@ In the example below, a text summarization task is performed using the `summariz
     taskName: "summarization",
     modelId: "mozilla/text_summarization",
     modelRevision: "main"
-    }
-  );
+  };
 
   const engine = await createEngine(options);
 
@@ -48,6 +50,12 @@ In the example below, a text summarization task is performed using the `summariz
   const res = await engine.run(request);
   console.log(res[0]["summary_text"]);
 
+
+You can use the browser console or toolbox to run this example.
+To enable the browser console, flip the following option in `about:config`: **devtools.chrome.enabled**.
+To get access to the full toolbox, set the **devtools.debugger.remote-enabled** option.
+We recommend using the toolbox to get access to more tools. You will get a security warning
+when starting it, when the toolbox connects to the browser.
 
 When running this code, Firefox will look for models in the Mozilla model hub located at https://model-hub.mozilla.org
 which contains a curated list of models.
@@ -105,6 +113,39 @@ set to `1`, then set in `about:config` these two values:
 - `browser.ml.modelHubUrlTemplate` to `{model}/resolve/{revision}`
 
 The inference engine will then look for models in the Hugging Face model hub.
+
+
+To run against a Hugging Face model, visit `https://huggingface.co/models?library=transformers.js`_ and select on
+the top left corner `tasks`. You can pick a task and then choose a model.
+
+For example, models for the `summarization` tasks compatible with our inference engine are listed `here <https://huggingface.co/models?pipeline_tag=summarization&library=transformers.js&sort=trending>`_.
+
+Let's say you want to pick the `Xenova/distilbart-cnn-6-6` model. All you have to do is use the id when calling our
+`createEngine` pipeline:
+
+.. code-block:: javascript
+
+  const { createEngine } = ChromeUtils.importESModule("chrome://global/content/ml/EngineProcess.sys.mjs");
+
+  const options = {
+    taskName: "summarization",
+    modelId: "Xenova/distilbart-cnn-6-6",
+  };
+
+  const engine = await createEngine(options);
+
+  const text = 'The tower is 324 metres (1,063 ft) tall, about the same height as an 81-storey building, ' +
+  'and the tallest structure in Paris. Its base is square, measuring 125 metres (410 ft) on each side. ' +
+  'During its construction, the Eiffel Tower surpassed the Washington Monument to become the tallest ' +
+  'man-made structure in the world, a title it held for 41 years until the Chrysler Building in New ' +
+  'York City was finished in 1930. It was the first structure to reach a height of 300 metres. Due to ' +
+  'the addition of a broadcasting aerial at the top of the tower in 1957, it is now taller than the ' +
+  'Chrysler Building by 5.2 metres (17 ft). Excluding transmitters, the Eiffel Tower is the second ' +
+  'tallest free-standing structure in France after the Millau Viaduct.';
+
+  const request = { args:  [text], options: { max_length: 100 } };
+  const res = await engine.run(request);
+  console.log(res[0]["summary_text"]);
 
 
 Running the internal APIs
@@ -191,4 +232,4 @@ In the code above, **progressData** is an object of type `ProgressAndStatusCallb
 about:inference
 :::::::::::::::
 
-In Nightly, you can use `about:inference <about:inference>`_ to check the status of the engine and manage downloads of models.
+In Nightly, you can use `about:inference <about:inference>`_ to check the status of the engine, manage downloads of models and more.
