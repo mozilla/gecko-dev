@@ -163,7 +163,7 @@ class RenderDXGIYCbCrTextureHost final : public RenderTextureHostSWGL {
 
   // RenderTextureHostSWGL
   gfx::SurfaceFormat GetFormat() const override {
-    return gfx::SurfaceFormat::YUV;
+    return gfx::SurfaceFormat::YUV420;
   }
   gfx::ColorDepth GetColorDepth() const override { return mColorDepth; }
   size_t GetPlaneCount() const override { return 3; }

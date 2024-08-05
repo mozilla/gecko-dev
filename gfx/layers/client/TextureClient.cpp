@@ -1928,7 +1928,7 @@ bool UpdateYCbCrTextureClient(TextureClient* aTexture,
                               const PlanarYCbCrData& aData) {
   MOZ_ASSERT(aTexture);
   MOZ_ASSERT(aTexture->IsLocked());
-  MOZ_ASSERT(aTexture->GetFormat() == gfx::SurfaceFormat::YUV,
+  MOZ_ASSERT(aTexture->GetFormat() == gfx::SurfaceFormat::YUV420,
              "This textureClient can only use YCbCr data");
   MOZ_ASSERT(!aTexture->IsImmutable());
   MOZ_ASSERT(aTexture->IsValid());

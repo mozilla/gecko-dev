@@ -634,8 +634,8 @@ class Log final {
         case SurfaceFormat::A8:
           mMessage << "SurfaceFormat::A8";
           break;
-        case SurfaceFormat::YUV:
-          mMessage << "SurfaceFormat::YUV";
+        case SurfaceFormat::YUV420:
+          mMessage << "SurfaceFormat::YUV420";
           break;
         case SurfaceFormat::UNKNOWN:
           mMessage << "SurfaceFormat::UNKNOWN";

@@ -155,7 +155,7 @@ gfx::SurfaceFormat WebRenderTextureHost::GetReadFormat() const {
 
 int32_t WebRenderTextureHost::GetRGBStride() {
   gfx::SurfaceFormat format = GetFormat();
-  if (GetFormat() == gfx::SurfaceFormat::YUV) {
+  if (GetFormat() == gfx::SurfaceFormat::YUV420) {
     // XXX this stride is used until yuv image rendering by webrender is used.
     // Software converted RGB buffers strides are aliened to 16
     return gfx::GetAlignedStride<16>(

@@ -41,7 +41,7 @@ bool RenderTextureHostSWGL::UpdatePlanes(RenderCompositor* aCompositor) {
         MOZ_ASSERT(colorDepth == gfx::ColorDepth::COLOR_8);
         internalFormat = LOCAL_GL_RGBA8;
         break;
-      case gfx::SurfaceFormat::YUV:
+      case gfx::SurfaceFormat::YUV420:
         switch (colorDepth) {
           case gfx::ColorDepth::COLOR_8:
             internalFormat = LOCAL_GL_R8;
@@ -69,7 +69,7 @@ bool RenderTextureHostSWGL::UpdatePlanes(RenderCompositor* aCompositor) {
         MOZ_ASSERT(colorDepth == gfx::ColorDepth::COLOR_10);
         internalFormat = i > 0 ? LOCAL_GL_RG16 : LOCAL_GL_R16;
         break;
-      case gfx::SurfaceFormat::YUV422:
+      case gfx::SurfaceFormat::YUY2:
         MOZ_ASSERT(colorDepth == gfx::ColorDepth::COLOR_8);
         internalFormat = LOCAL_GL_RGB_RAW_422_APPLE;
         break;
@@ -178,10 +178,10 @@ bool RenderTextureHostSWGL::LockSWGLCompositeSurface(
     aInfo->textures[i] = mPlanes[i].mTexture;
   }
   switch (GetFormat()) {
-    case gfx::SurfaceFormat::YUV:
+    case gfx::SurfaceFormat::YUV420:
     case gfx::SurfaceFormat::NV12:
     case gfx::SurfaceFormat::P010:
-    case gfx::SurfaceFormat::YUV422: {
+    case gfx::SurfaceFormat::YUY2: {
       aInfo->yuv_planes = mPlanes.size();
       auto colorSpace = GetYUVColorSpace();
       aInfo->color_space = ToWrYuvRangedColorSpace(colorSpace);

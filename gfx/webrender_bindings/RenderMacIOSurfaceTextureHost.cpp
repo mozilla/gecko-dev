@@ -32,10 +32,10 @@ static bool CreateTextureForPlane(uint8_t aPlaneID, gl::GLContext* aGL,
 
   gfx::SurfaceFormat readFormat = gfx::SurfaceFormat::UNKNOWN;
   bool result = aSurface->BindTexImage(aGL, aPlaneID, &readFormat);
-  // If this is a yuv format, the Webrender only supports YUV422 interleaving
+  // If this is a yuv format, the Webrender only supports YUY2 interleaving
   // format.
-  MOZ_ASSERT(aSurface->GetFormat() != gfx::SurfaceFormat::YUV422 ||
-             readFormat == gfx::SurfaceFormat::YUV422);
+  MOZ_ASSERT(aSurface->GetFormat() != gfx::SurfaceFormat::YUY2 ||
+             readFormat == gfx::SurfaceFormat::YUY2);
 
   return result;
 }

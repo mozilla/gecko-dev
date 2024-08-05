@@ -1030,7 +1030,7 @@ ShaderConfigOGL CompositorOGL::GetShaderConfigFor(Effect* aEffect,
           source->GetFormat() == gfx::SurfaceFormat::R8G8B8A8 ||
               source->GetFormat() == gfx::SurfaceFormat::R8G8B8X8 ||
               source->GetFormat() == gfx::SurfaceFormat::R5G6B5_UINT16 ||
-              source->GetFormat() == gfx::SurfaceFormat::YUV422);
+              source->GetFormat() == gfx::SurfaceFormat::YUY2);
       config = ShaderConfigFromTargetAndFormat(source->GetTextureTarget(),
                                                source->GetFormat());
       if (!texturedEffect->mPremultiplied) {

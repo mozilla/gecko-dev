@@ -211,7 +211,8 @@ RefPtr<TextureHost> TextureHostWrapperD3D11::CreateFromBufferTexture(
   }
 
   auto* bufferTexture = aTextureHost->AsBufferTextureHost();
-  if (!bufferTexture || bufferTexture->GetFormat() != gfx::SurfaceFormat::YUV) {
+  if (!bufferTexture ||
+      bufferTexture->GetFormat() != gfx::SurfaceFormat::YUV420) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return nullptr;
   }

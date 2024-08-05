@@ -323,7 +323,7 @@ TextureHost* WebRenderImageHost::GetAsTextureHostForComposite(
         StaticPrefs::gfx_video_convert_yuv_to_nv12_image_host_win() &&
         identifier.mSupportsD3D11NV12 &&
         KnowsCompositor::SupportsD3D11(identifier) &&
-        texture->GetFormat() == gfx::SurfaceFormat::YUV;
+        texture->GetFormat() == gfx::SurfaceFormat::YUV420;
     if (tryConvertToNV12) {
       PROFILER_MARKER_TEXT("WebRenderImageHost", GRAPHICS, {},
                            "Try ConvertToNV12"_ns);
@@ -339,7 +339,7 @@ TextureHost* WebRenderImageHost::GetAsTextureHostForComposite(
       }
     } else if (profiler_thread_is_being_profiled_for_markers() &&
                StaticPrefs::gfx_video_convert_yuv_to_nv12_image_host_win() &&
-               texture->GetFormat() == gfx::SurfaceFormat::YUV) {
+               texture->GetFormat() == gfx::SurfaceFormat::YUV420) {
       nsPrintfCString str("No ConvertToNV12 D3D11 %d NV12 %d",
                           KnowsCompositor::SupportsD3D11(identifier),
                           identifier.mSupportsD3D11NV12);

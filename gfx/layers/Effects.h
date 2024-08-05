@@ -140,12 +140,12 @@ inline already_AddRefed<TexturedEffect> CreateTexturedEffect(
     case gfx::SurfaceFormat::R8G8B8A8:
       result = new EffectRGB(aSource, isAlphaPremultiplied, aSamplingFilter);
       break;
-    case gfx::SurfaceFormat::YUV:
+    case gfx::SurfaceFormat::YUV420:
     case gfx::SurfaceFormat::NV12:
     case gfx::SurfaceFormat::P010:
     case gfx::SurfaceFormat::P016:
       MOZ_ASSERT_UNREACHABLE(
-          "gfx::SurfaceFormat::YUV/NV12/P010/P016 is invalid");
+          "gfx::SurfaceFormat::YUV420/NV12/P010/P016 is invalid");
       break;
     default:
       NS_WARNING("unhandled program type");
@@ -164,7 +164,7 @@ inline already_AddRefed<TexturedEffect> CreateTexturedEffect(
   RefPtr<TexturedEffect> result;
 
   switch (aHost->GetReadFormat()) {
-    case gfx::SurfaceFormat::YUV:
+    case gfx::SurfaceFormat::YUV420:
       result = new EffectYCbCr(aSource, aHost->GetYUVColorSpace(),
                                aHost->GetColorRange(), aHost->GetColorDepth(),
                                aSamplingFilter);

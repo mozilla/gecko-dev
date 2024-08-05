@@ -73,15 +73,19 @@ enum class SurfaceFormat : int8_t {
   R16G16,
 
   // These ones are their own special cases.
-  YUV,
-  NV12,    // YUV 4:2:0 image with a plane of 8 bit Y samples followed by
-           // an interleaved U/V plane containing 8 bit 2x2 subsampled
-           // colour difference samples.
+  YUV420,  // Sometimes called YU12. 3 planes of 8 bit Y, then Cb, then Cr.
+  NV12,    // 2 planes. YUV 4:2:0 image with a plane of 8 bit Y samples
+           // followed by an interleaved U/V plane containing 8 bit 2x2
+           // subsampled colour difference samples.
   P016,    // Similar to NV12, but with 16 bits plane values
   P010,    // Identical to P016 but the 6 least significant bits are 0.
            // With DXGI in theory entirely compatible, however practice has
            // shown that it's not the case.
-  YUV422,  // Single plane YUV 4:2:2 interleaved as Y`0 Cb Y`1 Cr.
+  YUY2,    // Sometimes called YUYV. Single plane / packed YUV 4:2:2 8 bit
+           // samples interleaved as Y`0 Cb Y`1 Cr. Since 4 pixels require
+           // 64 bits, this can also be considered a 16bpp format, but each
+           // component is only 8 bits. We sometimes pack RGBA data into
+           // this format.
   HSV,
   Lab,
   Depth,
@@ -147,11 +151,11 @@ inline std::optional<SurfaceFormatInfo> Info(const SurfaceFormat aFormat) {
       info.hasAlpha = true;
       break;
 
-    case SurfaceFormat::YUV:
+    case SurfaceFormat::YUV420:
     case SurfaceFormat::NV12:
     case SurfaceFormat::P016:
     case SurfaceFormat::P010:
-    case SurfaceFormat::YUV422:
+    case SurfaceFormat::YUY2:
       info.hasColor = true;
       info.hasAlpha = false;
       info.isYuv = true;
@@ -202,11 +206,11 @@ inline std::optional<SurfaceFormatInfo> Info(const SurfaceFormat aFormat) {
       info.bytesPerPixel = 3 * sizeof(float);
       break;
 
-    case SurfaceFormat::YUV:
+    case SurfaceFormat::YUV420:
     case SurfaceFormat::NV12:
     case SurfaceFormat::P016:
     case SurfaceFormat::P010:
-    case SurfaceFormat::YUV422:
+    case SurfaceFormat::YUY2:
     case SurfaceFormat::UNKNOWN:
       break;  // No bytesPerPixel per se.
   }
@@ -296,11 +300,11 @@ inline bool IsOpaque(SurfaceFormat aFormat) {
     case SurfaceFormat::HSV:
     case SurfaceFormat::Lab:
     case SurfaceFormat::Depth:
-    case SurfaceFormat::YUV:
+    case SurfaceFormat::YUV420:
     case SurfaceFormat::NV12:
     case SurfaceFormat::P010:
     case SurfaceFormat::P016:
-    case SurfaceFormat::YUV422:
+    case SurfaceFormat::YUY2:
       return true;
     default:
       return false;

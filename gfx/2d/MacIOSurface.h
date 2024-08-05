@@ -64,7 +64,7 @@ class MacIOSurface final
       const IntSize& aYSize, const IntSize& aCbCrSize,
       YUVColorSpace aColorSpace, TransferFunction aTransferFunction,
       ColorRange aColorRange, ColorDepth aColorDepth);
-  static already_AddRefed<MacIOSurface> CreateYUV422Surface(
+  static already_AddRefed<MacIOSurface> CreateYUY2Surface(
       const IntSize& aSize, YUVColorSpace aColorSpace, ColorRange aColorRange);
   static void ReleaseIOSurface(MacIOSurface* aIOSurface);
   static already_AddRefed<MacIOSurface> LookupSurface(

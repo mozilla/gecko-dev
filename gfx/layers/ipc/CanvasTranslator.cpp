@@ -1424,10 +1424,10 @@ CanvasTranslator::MaybeRecycleDataSurfaceForSurfaceDescriptor(
   bool isYuvVideo = false;
   if (aTextureHost->AsMacIOSurfaceTextureHost()) {
     if (aTextureHost->GetFormat() == SurfaceFormat::NV12 ||
-        aTextureHost->GetFormat() == SurfaceFormat::YUV422) {
+        aTextureHost->GetFormat() == SurfaceFormat::YUY2) {
       isYuvVideo = true;
     }
-  } else if (aTextureHost->GetFormat() == gfx::SurfaceFormat::YUV) {
+  } else if (aTextureHost->GetFormat() == gfx::SurfaceFormat::YUV420) {
     isYuvVideo = true;
   }
 

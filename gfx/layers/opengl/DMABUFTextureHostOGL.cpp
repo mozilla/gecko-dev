@@ -114,7 +114,7 @@ void DMABUFTextureHostOGL::PushResourceUpdates(
       (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
       break;
     }
-    case gfx::SurfaceFormat::YUV: {
+    case gfx::SurfaceFormat::YUV420: {
       MOZ_ASSERT(aImageKeys.length() == 3);
       MOZ_ASSERT(mSurface->GetTextureCount() == 3);
       wr::ImageDescriptor descriptor0(
@@ -167,7 +167,7 @@ void DMABUFTextureHostOGL::PushDisplayItems(
                              preferCompositorSurface);
       break;
     }
-    case gfx::SurfaceFormat::YUV: {
+    case gfx::SurfaceFormat::YUV420: {
       MOZ_ASSERT(aImageKeys.length() == 3);
       MOZ_ASSERT(mSurface->GetTextureCount() == 3);
       // Those images can only be generated at present by the VAAPI vp8 decoder

@@ -55,7 +55,7 @@ class RenderExternalTextureHost final : public RenderTextureHostSWGL {
   uint8_t* GetBuffer() const { return mBuffer; }
   bool InitializeIfNeeded();
   bool IsReadyForDeletion();
-  bool IsYUV() const { return mFormat == gfx::SurfaceFormat::YUV; }
+  bool IsYUV() const { return mFormat == gfx::SurfaceFormat::YUV420; }
   size_t PlaneCount() const { return IsYUV() ? 3 : 1; }
   void UpdateTexture(size_t aIndex);
   void UpdateTextures();

@@ -67,14 +67,14 @@ DXGIYCbCrTextureAllocationHelper::DXGIYCbCrTextureAllocationHelper(
     const PlanarYCbCrData& aData, TextureFlags aTextureFlags,
     ID3D11Device* aDevice)
     : ITextureClientAllocationHelper(
-          gfx::SurfaceFormat::YUV, aData.mPictureRect.Size(),
+          gfx::SurfaceFormat::YUV420, aData.mPictureRect.Size(),
           BackendSelector::Content, aTextureFlags, ALLOC_DEFAULT),
       mData(aData),
       mDevice(aDevice) {}
 
 bool DXGIYCbCrTextureAllocationHelper::IsCompatible(
     TextureClient* aTextureClient) {
-  MOZ_ASSERT(aTextureClient->GetFormat() == gfx::SurfaceFormat::YUV);
+  MOZ_ASSERT(aTextureClient->GetFormat() == gfx::SurfaceFormat::YUV420);
 
   DXGIYCbCrTextureData* dxgiData =
       aTextureClient->GetInternalData()->AsDXGIYCbCrTextureData();

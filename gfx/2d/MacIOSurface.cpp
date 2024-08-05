@@ -250,7 +250,7 @@ already_AddRefed<MacIOSurface> MacIOSurface::CreateNV12OrP010Surface(
 }
 
 /* static */
-already_AddRefed<MacIOSurface> MacIOSurface::CreateYUV422Surface(
+already_AddRefed<MacIOSurface> MacIOSurface::CreateYUY2Surface(
     const IntSize& aSize, YUVColorSpace aColorSpace, ColorRange aColorRange) {
   MOZ_ASSERT(aColorSpace == YUVColorSpace::BT601 ||
              aColorSpace == YUVColorSpace::BT709);
@@ -466,7 +466,7 @@ SurfaceFormat MacIOSurface::GetFormat() const {
       return SurfaceFormat::P010;
     case kCVPixelFormatType_422YpCbCr8_yuvs:
     case kCVPixelFormatType_422YpCbCr8FullRange:
-      return SurfaceFormat::YUV422;
+      return SurfaceFormat::YUY2;
     case kCVPixelFormatType_32BGRA:
       return HasAlpha() ? SurfaceFormat::B8G8R8A8 : SurfaceFormat::B8G8R8X8;
     default:
@@ -477,7 +477,7 @@ SurfaceFormat MacIOSurface::GetFormat() const {
 
 SurfaceFormat MacIOSurface::GetReadFormat() const {
   SurfaceFormat format = GetFormat();
-  if (format == SurfaceFormat::YUV422) {
+  if (format == SurfaceFormat::YUY2) {
     return SurfaceFormat::R8G8B8X8;
   }
   return format;
@@ -561,7 +561,7 @@ bool MacIOSurface::BindTexImage(mozilla::gl::GLContext* aGL, size_t aPlane,
     } else {
       format = LOCAL_GL_RGB_422_APPLE;
       if (aOutReadFormat) {
-        *aOutReadFormat = mozilla::gfx::SurfaceFormat::YUV422;
+        *aOutReadFormat = mozilla::gfx::SurfaceFormat::YUY2;
       }
     }
     internalFormat = LOCAL_GL_RGB;

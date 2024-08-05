@@ -1585,7 +1585,7 @@ gfx::SurfaceFormat DMABufSurfaceYUV::GetFormat() {
     case SURFACE_NV12:
       return gfx::SurfaceFormat::NV12;
     case SURFACE_YUV420:
-      return gfx::SurfaceFormat::YUV;
+      return gfx::SurfaceFormat::YUV420;
     default:
       NS_WARNING("DMABufSurfaceYUV::GetFormat(): Wrong surface format!");
       return gfx::SurfaceFormat::UNKNOWN;

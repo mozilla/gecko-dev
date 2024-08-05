@@ -93,7 +93,7 @@ uint32_t MacIOSurfaceTextureHostOGL::NumSubTextures() {
     case gfx::SurfaceFormat::R8G8B8A8:
     case gfx::SurfaceFormat::B8G8R8A8:
     case gfx::SurfaceFormat::B8G8R8X8:
-    case gfx::SurfaceFormat::YUV422: {
+    case gfx::SurfaceFormat::YUY2: {
       return 1;
     }
     case gfx::SurfaceFormat::NV12:
@@ -132,7 +132,7 @@ void MacIOSurfaceTextureHostOGL::PushResourceUpdates(
       (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
       break;
     }
-    case gfx::SurfaceFormat::YUV422: {
+    case gfx::SurfaceFormat::YUY2: {
       // This is the special buffer format. The buffer contents could be a
       // converted RGB interleaving data or a YCbCr interleaving data depending
       // on the different platform setting. (e.g. It will be RGB at OpenGL 2.1
@@ -199,7 +199,7 @@ void MacIOSurfaceTextureHostOGL::PushDisplayItems(
                          /* aSupportsExternalCompositing */ true);
       break;
     }
-    case gfx::SurfaceFormat::YUV422: {
+    case gfx::SurfaceFormat::YUY2: {
       MOZ_ASSERT(aImageKeys.length() == 1);
       MOZ_ASSERT(mSurface->GetPlaneCount() == 0);
       // Those images can only be generated at present by the Apple H264 decoder

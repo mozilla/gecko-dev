@@ -70,7 +70,7 @@ class MOZ_RAII DefaultTextureClientAllocationHelper
 YCbCrTextureClientAllocationHelper::YCbCrTextureClientAllocationHelper(
     const PlanarYCbCrData& aData, const gfx::IntSize& aYSize,
     const gfx::IntSize& aCbCrSize, TextureFlags aTextureFlags)
-    : ITextureClientAllocationHelper(gfx::SurfaceFormat::YUV, aYSize,
+    : ITextureClientAllocationHelper(gfx::SurfaceFormat::YUV420, aYSize,
                                      BackendSelector::Content, aTextureFlags,
                                      ALLOC_DEFAULT),
       mData(aData),
@@ -84,7 +84,7 @@ YCbCrTextureClientAllocationHelper::YCbCrTextureClientAllocationHelper(
 
 bool YCbCrTextureClientAllocationHelper::IsCompatible(
     TextureClient* aTextureClient) {
-  MOZ_ASSERT(aTextureClient->GetFormat() == gfx::SurfaceFormat::YUV);
+  MOZ_ASSERT(aTextureClient->GetFormat() == gfx::SurfaceFormat::YUV420);
 
   BufferTextureData* bufferData =
       aTextureClient->GetInternalData()->AsBufferTextureData();

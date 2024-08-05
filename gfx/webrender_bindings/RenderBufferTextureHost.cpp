@@ -27,7 +27,7 @@ RenderBufferTextureHost::RenderBufferTextureHost(
     case layers::BufferDescriptor::TYCbCrDescriptor: {
       const layers::YCbCrDescriptor& ycbcr = mDescriptor.get_YCbCrDescriptor();
       mSize = ycbcr.display().Size();
-      mFormat = gfx::SurfaceFormat::YUV;
+      mFormat = gfx::SurfaceFormat::YUV420;
       break;
     }
     case layers::BufferDescriptor::TRGBDescriptor: {
@@ -57,7 +57,7 @@ wr::WrExternalImage RenderBufferTextureHost::Lock(uint8_t aChannelIndex,
       }
       return InvalidToWrExternalImage();
     }
-    if (mFormat != gfx::SurfaceFormat::YUV) {
+    if (mFormat != gfx::SurfaceFormat::YUV420) {
       mSurface = gfx::Factory::CreateWrappingDataSourceSurface(
           GetBuffer(),
           layers::ImageDataSerializer::GetRGBStride(
@@ -126,11 +126,11 @@ void RenderBufferTextureHost::Unlock() {
 
 RenderBufferTextureHost::RenderBufferData
 RenderBufferTextureHost::GetBufferDataForRender(uint8_t aChannelIndex) {
-  MOZ_ASSERT(mFormat != gfx::SurfaceFormat::YUV || aChannelIndex < 3);
-  MOZ_ASSERT(mFormat == gfx::SurfaceFormat::YUV || aChannelIndex < 1);
+  MOZ_ASSERT(mFormat != gfx::SurfaceFormat::YUV420 || aChannelIndex < 3);
+  MOZ_ASSERT(mFormat == gfx::SurfaceFormat::YUV420 || aChannelIndex < 1);
   MOZ_ASSERT(mLocked);
 
-  if (mFormat != gfx::SurfaceFormat::YUV) {
+  if (mFormat != gfx::SurfaceFormat::YUV420) {
     MOZ_ASSERT(mSurface);
 
     return RenderBufferData(mMap.mData,
@@ -170,7 +170,7 @@ size_t RenderBufferTextureHost::GetPlaneCount() const {
 gfx::SurfaceFormat RenderBufferTextureHost::GetFormat() const {
   switch (mDescriptor.type()) {
     case layers::BufferDescriptor::TYCbCrDescriptor:
-      return gfx::SurfaceFormat::YUV;
+      return gfx::SurfaceFormat::YUV420;
     default:
       return mDescriptor.get_RGBDescriptor().format();
   }

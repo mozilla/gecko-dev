@@ -402,7 +402,7 @@ class DXGIYCbCrTextureHostD3D11 : public TextureHost {
   void DeallocateDeviceData() override {}
 
   gfx::SurfaceFormat GetFormat() const override {
-    return gfx::SurfaceFormat::YUV;
+    return gfx::SurfaceFormat::YUV420;
   }
 
   gfx::ColorDepth GetColorDepth() const override { return mColorDepth; }

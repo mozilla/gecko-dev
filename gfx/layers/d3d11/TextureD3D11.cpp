@@ -744,7 +744,7 @@ DXGIYCbCrTextureData* DXGIYCbCrTextureData::Create(
 
 void DXGIYCbCrTextureData::FillInfo(TextureData::Info& aInfo) const {
   aInfo.size = mSize;
-  aInfo.format = gfx::SurfaceFormat::YUV;
+  aInfo.format = gfx::SurfaceFormat::YUV420;
   aInfo.supportsMoz2D = false;
   aInfo.hasSynchronization = false;
 }

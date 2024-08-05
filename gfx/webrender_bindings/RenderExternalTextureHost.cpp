@@ -26,7 +26,7 @@ RenderExternalTextureHost::RenderExternalTextureHost(
     case layers::BufferDescriptor::TYCbCrDescriptor: {
       const layers::YCbCrDescriptor& ycbcr = mDescriptor.get_YCbCrDescriptor();
       mSize = ycbcr.display().Size();
-      mFormat = gfx::SurfaceFormat::YUV;
+      mFormat = gfx::SurfaceFormat::YUV420;
       break;
     }
     case layers::BufferDescriptor::TRGBDescriptor: {

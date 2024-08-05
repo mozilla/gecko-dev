@@ -130,7 +130,7 @@ gfx::SurfaceFormat FormatFromBufferDescriptor(
     case BufferDescriptor::TRGBDescriptor:
       return aDescriptor.get_RGBDescriptor().format();
     case BufferDescriptor::TYCbCrDescriptor:
-      return gfx::SurfaceFormat::YUV;
+      return gfx::SurfaceFormat::YUV420;
     default:
       MOZ_CRASH("GFX: FormatFromBufferDescriptor");
   }

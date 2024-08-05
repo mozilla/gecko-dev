@@ -27,7 +27,7 @@ static nsresult CopyFromLockedMacIOSurface(MacIOSurface* aSurface,
   size_t bytesPerRow = aSurface->GetBytesPerRow();
   SurfaceFormat ioFormat = aSurface->GetFormat();
 
-  if ((ioFormat == SurfaceFormat::NV12 || ioFormat == SurfaceFormat::YUV422) &&
+  if ((ioFormat == SurfaceFormat::NV12 || ioFormat == SurfaceFormat::YUY2) &&
       (aSize.width > PlanarYCbCrImage::MAX_DIMENSION ||
        aSize.height > PlanarYCbCrImage::MAX_DIMENSION)) {
     return NS_ERROR_FAILURE;
@@ -78,7 +78,7 @@ static nsresult CopyFromLockedMacIOSurface(MacIOSurface* aSurface,
     return result;
   }
 
-  if (ioFormat == SurfaceFormat::YUV422) {
+  if (ioFormat == SurfaceFormat::YUY2) {
     if (aSize.width == ALIGNED_32(aSize.width)) {
       // Optimization when width is aligned to 32.
       libyuv::ConvertToARGB((uint8_t*)aSurface->GetBaseAddress(),
@@ -167,7 +167,7 @@ already_AddRefed<SourceSurface> CreateSourceSurfaceFromMacIOSurface(
   SurfaceFormat ioFormat = aSurface->GetFormat();
 
   SurfaceFormat format =
-      (ioFormat == SurfaceFormat::NV12 || ioFormat == SurfaceFormat::YUV422)
+      (ioFormat == SurfaceFormat::NV12 || ioFormat == SurfaceFormat::YUY2)
           ? SurfaceFormat::B8G8R8X8
           : SurfaceFormat::B8G8R8A8;
 
@@ -215,7 +215,7 @@ nsresult CreateSurfaceDescriptorBufferFromMacIOSurface(
   SurfaceFormat ioFormat = aSurface->GetFormat();
 
   SurfaceFormat format =
-      (ioFormat == SurfaceFormat::NV12 || ioFormat == SurfaceFormat::YUV422)
+      (ioFormat == SurfaceFormat::NV12 || ioFormat == SurfaceFormat::YUY2)
           ? SurfaceFormat::B8G8R8X8
           : SurfaceFormat::B8G8R8A8;
 
