@@ -442,7 +442,8 @@ class ProvidersManager {
       this.#notifySearchSessionEnd(
         this.providersByNotificationType.onSearchSessionEnd,
         queryContext,
-        controller
+        controller,
+        details
       );
     }
 
@@ -500,9 +501,19 @@ class ProvidersManager {
     }
   }
 
-  #notifySearchSessionEnd(searchSessionEndProviders, queryContext, controller) {
+  #notifySearchSessionEnd(
+    searchSessionEndProviders,
+    queryContext,
+    controller,
+    details
+  ) {
     for (const provider of searchSessionEndProviders) {
-      provider.tryMethod("onSearchSessionEnd", queryContext, controller);
+      provider.tryMethod(
+        "onSearchSessionEnd",
+        queryContext,
+        controller,
+        details
+      );
     }
   }
 

@@ -228,52 +228,46 @@ class ProviderQuickSuggest extends UrlbarProvider {
     }
   }
 
-  onLegacyEngagement(state, queryContext, details, controller) {
-    // Ignore engagements on other results that didn't end the session.
-    if (details.result?.providerName != this.name && details.isSessionOngoing) {
-      return;
+  onImpression(state, queryContext, controller, providerVisibleResults) {
+    // Legacy Suggest telemetry should be recorded when a Suggest result is
+    // visible at the end of an engagement on any result.
+    this.#sessionResult =
+      state == "engagement" ? providerVisibleResults[0].result : null;
+  }
+
+  onEngagement(queryContext, controller, details) {
+    if (details.isSessionOngoing) {
+      // When the session remains ongoing -- e.g., a result is dismissed --
+      // tests expect legacy telemetry to be recorded immediately on engagement,
+      // not deferred until the session ends, so record it now.
+      this.#recordEngagement(queryContext, details.result, details);
     }
 
+    let feature = this.#getFeatureByResult(details.result);
+    if (feature?.handleCommand) {
+      feature.handleCommand(
+        controller.view,
+        details.result,
+        details.selType,
+        this._trimmedSearchString
+      );
+    } else if (details.selType == "dismiss") {
+      // Handle dismissals.
+      this.#dismissResult(controller, details.result);
+    }
+
+    feature?.onEngagement?.(queryContext, controller, details);
+  }
+
+  onSearchSessionEnd(queryContext, controller, details) {
     // Reset the Merino session ID when a session ends. By design for the user's
     // privacy, we don't keep it around between engagements.
-    if (!details.isSessionOngoing) {
-      this.#merino?.resetSession();
-    }
+    this.#merino?.resetSession();
 
-    // Impression and clicked telemetry are both recorded on engagement. We
-    // define "impression" to mean a quick suggest result was present in the
-    // view when any result was picked.
-    if (state == "engagement" && queryContext) {
-      // Get the result that's visible in the view. `details.result` is the
-      // engaged result, if any; if it's from this provider, then that's the
-      // visible result. Otherwise fall back to #getVisibleResultFromLastQuery.
-      let { result } = details;
-      if (result?.providerName != this.name) {
-        result = this.#getVisibleResultFromLastQuery(controller.view);
-      }
+    // Record legacy Suggest telemetry.
+    this.#recordEngagement(queryContext, this.#sessionResult, details);
 
-      this.#recordEngagement(queryContext, result, details);
-    }
-
-    if (details.result?.providerName == this.name) {
-      let feature = this.#getFeatureByResult(details.result);
-      if (feature?.handleCommand) {
-        feature.handleCommand(
-          controller.view,
-          details.result,
-          details.selType,
-          this._trimmedSearchString
-        );
-      } else if (details.selType == "dismiss") {
-        // Handle dismissals.
-        this.#dismissResult(controller, details.result);
-      }
-
-      if (state == "engagement" && feature?.onEngagement) {
-        feature.onEngagement(queryContext, controller, details);
-      }
-    }
-
+    this.#sessionResult = null;
     this.#resultFromLastQuery = null;
   }
 
@@ -451,22 +445,6 @@ class ProviderQuickSuggest extends UrlbarProvider {
     );
   }
 
-  #getVisibleResultFromLastQuery(view) {
-    let result = this.#resultFromLastQuery;
-
-    if (
-      result?.rowIndex >= 0 &&
-      view?.visibleResults?.[result.rowIndex] == result
-    ) {
-      // The result was visible.
-      return result;
-    }
-
-    // Find a visible result. Quick suggest results typically appear last in the
-    // view, so do a reverse search.
-    return view?.visibleResults?.findLast(r => r.providerName == this.name);
-  }
-
   #dismissResult(controller, result) {
     if (!result.payload.isBlockable) {
       this.logger.info("Dismissals disabled, ignoring dismissal");
@@ -493,8 +471,8 @@ class ProviderQuickSuggest extends UrlbarProvider {
    *   end of the engagement or that was dismissed. Null if no quick suggest
    *   result was present.
    * @param {object} details
-   *   The `details` object that was passed to `onLegacyEngagement()`. It must
-   *   look like this: `{ selType, selIndex }`
+   *   The `details` object that was passed to `onEngagement()` or
+   *   `onSearchSessionEnd()`.
    */
   #recordEngagement(queryContext, result, details) {
     let resultSelType = "";
@@ -785,8 +763,8 @@ class ProviderQuickSuggest extends UrlbarProvider {
    *   True if the main part of the result's row was clicked; false if a button
    *   like help or dismiss was clicked or if no part of the row was clicked.
    * @param {object} options.details
-   *   The `details` object that was passed to `onLegacyEngagement()`. It must
-   *   look like this: `{ selType, selIndex }`
+   *   The `details` object that was passed to `onEngagement()` or
+   *   `onSearchSessionEnd()`.
    */
   #recordNavSuggestionTelemetry({
     queryContext,
@@ -945,8 +923,12 @@ class ProviderQuickSuggest extends UrlbarProvider {
     return this.#merino;
   }
 
-  // The result we added during the most recent query.
+  // The result we added during the most recent query. It may not be visible.
   #resultFromLastQuery = null;
+
+  // The result from this provider that was visible at the end of the current
+  // search session, if the session ended in an engagement.
+  #sessionResult;
 
   // The Merino client.
   #merino = null;

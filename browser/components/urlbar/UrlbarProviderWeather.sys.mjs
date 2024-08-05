@@ -212,7 +212,7 @@ class ProviderWeather extends UrlbarProvider {
    *   A non-empty string means the user picked the weather row or some part of
    *   it, and both impression and click telemetry will be recorded. The
    *   non-empty-string values come from the `details.selType` passed in to
-   *   `onLegacyEngagement()`; see `TelemetryEvent.typeFromElement()`.
+   *   `onEngagement()`; see `TelemetryEvent.typeFromElement()`.
    */
   #recordEngagementTelemetry(result, isPrivate, selType) {
     // Indexes recorded in quick suggest telemetry are 1-based, so add 1 to the

@@ -149,16 +149,31 @@ add_task(async function canceledQueries() {
 });
 
 function endEngagement({ controller, context = null, state = "engagement" }) {
-  UrlbarProviderQuickSuggest.onLegacyEngagement(
-    state,
-    context ||
-      createContext("endEngagement", {
-        providers: [UrlbarProviderQuickSuggest.name],
-        isPrivate: false,
-      }),
-    { selIndex: -1 },
-    controller
-  );
+  context ||= createContext("endEngagement", {
+    providers: [UrlbarProviderQuickSuggest.name],
+    isPrivate: false,
+  });
+  let details = { selIndex: -1, result: { payload: {} } };
+
+  switch (state) {
+    case "engagement":
+      UrlbarProviderQuickSuggest.onEngagement(context, controller, details);
+      UrlbarProviderQuickSuggest.onSearchSessionEnd(
+        context,
+        controller,
+        details
+      );
+      break;
+    case "abandonment":
+      UrlbarProviderQuickSuggest.onSearchSessionEnd(
+        context,
+        controller,
+        details
+      );
+      break;
+    default:
+      throw new Error("Unrecognized engagement state: " + state);
+  }
 
   Assert.strictEqual(
     gClient.sessionID,
