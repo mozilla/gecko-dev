@@ -158,12 +158,15 @@ class TracerActor extends Actor {
     switch (this.logMethod) {
       case TRACER_LOG_METHODS.STDOUT:
         ListenerClass = StdoutTracingListener;
+        // Currently only the profiler output is supported with the native tracer.
+        options.useNativeTracing = false;
         break;
       case TRACER_LOG_METHODS.CONSOLE:
       case TRACER_LOG_METHODS.DEBUGGER_SIDEBAR:
         // Console and debugger sidebar are both using JSTRACE_STATE/JSTRACE_TRACE resources
         // to receive tracing data.
         ListenerClass = ResourcesTracingListener;
+        options.useNativeTracing = false;
         break;
       case TRACER_LOG_METHODS.PROFILER:
         ListenerClass = ProfilerTracingListener;
@@ -194,6 +197,8 @@ class TracerActor extends Actor {
         traceOnNextInteraction: !!options.traceOnNextInteraction,
         // Notify about frame exit / function call returning
         traceFunctionReturn: !!options.traceFunctionReturn,
+        // Use the native tracing implementation
+        useNativeTracing: !!options.useNativeTracing,
         // Ignore frames beyond the given depth
         maxDepth: options.maxDepth,
         // Stop the tracing after a number of top level frames
@@ -214,7 +219,9 @@ class TracerActor extends Actor {
     // Remove before stopping to prevent receiving the stop notification
     lazy.JSTracer.removeTracingListener(this.tracingListener);
     // Save the result of the stop request for the profiler and the getProfile RDP method
-    this.#stopResult = this.tracingListener.stop();
+    this.#stopResult = this.tracingListener.stop(
+      lazy.JSTracer.maybeGetNativeTrace()
+    );
     this.tracingListener = null;
 
     lazy.JSTracer.stopTracing();

@@ -70,10 +70,61 @@ class ProfilerTracingListener {
   /**
    * Stop the record and return the gecko profiler data.
    *
+   * @param {Object} nativeTrace
+   *         If we're using native tracing, this contains a table of what the
+   *         native tracer has collected.
    * @return {Object}
    *         The Gecko profile object.
    */
-  stop() {
+  stop(nativeTrace) {
+    if (nativeTrace) {
+      const KIND_INDEX = 0;
+
+      const LINENO_INDEX = 1;
+      const COLUMN_INDEX = 2;
+      const SCRIPT_ID_INDEX = 3;
+      const FUNCTION_NAME_ID_INDEX = 4;
+      const IMPLEMENTATION_INDEX = 5;
+      const TIME_INDEX = 6;
+
+      const LABEL_INDEX = 1;
+      const LABEL_TIME_INDEX = 2;
+
+      const IMPLEMENTATION_STRINGS = ["interpreter", "baseline", "ion", "wasm"];
+
+      for (const entry of nativeTrace.events) {
+        const kind = entry[KIND_INDEX];
+        switch (kind) {
+          case Debugger.TRACING_EVENT_KIND_FUNCTION_ENTER: {
+            this.#onFramePush(
+              {
+                name: nativeTrace.atoms[entry[FUNCTION_NAME_ID_INDEX]],
+                url: nativeTrace.scriptURLs[entry[SCRIPT_ID_INDEX]],
+                lineNumber: entry[LINENO_INDEX],
+                columnNumber: entry[COLUMN_INDEX],
+                category: IMPLEMENTATION_STRINGS[entry[IMPLEMENTATION_INDEX]],
+                sourceId: entry[SCRIPT_ID_INDEX],
+              },
+              entry[TIME_INDEX]
+            );
+            break;
+          }
+          case Debugger.TRACING_EVENT_KIND_FUNCTION_LEAVE: {
+            this.#onFramePop(entry[TIME_INDEX], false);
+            break;
+          }
+          case Debugger.TRACING_EVENT_KIND_LABEL_ENTER: {
+            this.#logDOMEvent(entry[LABEL_INDEX], entry[LABEL_TIME_INDEX]);
+            break;
+          }
+          case Debugger.TRACING_EVENT_KIND_LABEL_LEAVE: {
+            this.#onFramePop(entry[LABEL_TIME_INDEX], false);
+            break;
+          }
+        }
+      }
+    }
+
     // Create the profile to return.
     const profile = this.#getEmptyProfile();
     profile.meta.categories = this.#categories;
@@ -413,7 +464,7 @@ class ProfilerTracingListener {
       this.#logDOMEvent(currentDOMEvent);
     }
 
-    const frameIndex = this.#getOrCreateFrame({
+    this.#onFramePush({
       // formatedDisplayName has a lambda at the beginning, remove it.
       name: formatedDisplayName.replace("λ ", ""),
       url,
@@ -422,16 +473,6 @@ class ProfilerTracingListener {
       category: frame.implementation,
       sourceId: script.source.id,
     });
-    this.#currentStackIndex = this.#getOrCreateStack(
-      frameIndex,
-      this.#currentStackIndex
-    );
-
-    this.#thread.samples.data.push([
-      this.#currentStackIndex,
-      ChromeUtils.dateNow() - this.#startTime,
-      0, // eventDelay
-    ]);
 
     return false;
   }
@@ -440,8 +481,14 @@ class ProfilerTracingListener {
    * Called when a DOM Event just fired (and some listener in JS is about to run).
    *
    * @param {String} domEventName
+   * @param {Number|undefined} [time=undefined]
+   *          The time at which this event occurred
    */
-  #logDOMEvent(domEventName) {
+  #logDOMEvent(domEventName, time = undefined) {
+    if (time === undefined) {
+      time = ChromeUtils.dateNow();
+    }
+
     const frameIndex = this.#getOrCreateLabelFrame(domEventName);
     this.#currentStackIndex = this.#getOrCreateStack(
       frameIndex,
@@ -450,7 +497,7 @@ class ProfilerTracingListener {
 
     this.#thread.samples.data.push([
       this.#currentStackIndex,
-      ChromeUtils.dateNow() - this.#startTime,
+      time - this.#startTime,
       0, // eventDelay
     ]);
   }
@@ -510,11 +557,44 @@ class ProfilerTracingListener {
   }
 
   /**
-   * Called when a function call ends and returns.
+   * Called when a new function is called.
+   *
+   * @param {Object} frameInfo
+   * @param {Number|undefined} [time=undefined]
+   *          The time at which this event occurred
    */
-  #onFramePop() {
+  #onFramePush(frameInfo, time) {
+    if (time === undefined) {
+      time = ChromeUtils.dateNow();
+    }
+
+    const frameIndex = this.#getOrCreateFrame(frameInfo);
+    this.#currentStackIndex = this.#getOrCreateStack(
+      frameIndex,
+      this.#currentStackIndex
+    );
+
+    this.#thread.samples.data.push([
+      this.#currentStackIndex,
+      time - this.#startTime,
+      0, // eventDelay
+    ]);
+  }
+
+  /**
+   * Called when a function call ends and returns.
+   * @param {Number|undefined} [time=undefined]
+   *          The time at which this event occurred
+   * @param {Boolean} [autoPopLabels=false]
+   *          Whether we should automatically pop label frames if we're popping a root
+   */
+  #onFramePop(time = undefined, autoPopLabels = true) {
     if (this.#currentStackIndex === null) {
       return;
+    }
+
+    if (time === undefined) {
+      time = ChromeUtils.dateNow();
     }
 
     this.#currentStackIndex =
@@ -526,13 +606,13 @@ class ProfilerTracingListener {
     // so that the frontend considers that the last executed frame stops its execution.
     this.#thread.samples.data.push([
       this.#currentStackIndex,
-      ChromeUtils.dateNow() - this.#startTime,
+      time - this.#startTime,
       0, // eventDelay
     ]);
 
     // If we popped and now are on a label frame, with a null line,
     // automatically also pop that label frame.
-    if (this.#currentStackIndex !== null) {
+    if (autoPopLabels && this.#currentStackIndex !== null) {
       const currentFrameIndex =
         this.#thread.stackTable.data[this.#currentStackIndex][
           INDEXES.stacks.frame
@@ -540,7 +620,7 @@ class ProfilerTracingListener {
       const currentFrameLine =
         this.#thread.frameTable.data[currentFrameIndex][INDEXES.frames.line];
       if (currentFrameLine == null) {
-        this.#onFramePop();
+        this.#onFramePop(time);
       }
     }
   }
