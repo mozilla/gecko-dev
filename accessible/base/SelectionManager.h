@@ -6,6 +6,7 @@
 #ifndef mozilla_a11y_SelectionManager_h__
 #define mozilla_a11y_SelectionManager_h__
 
+#include "nsISelectionController.h"
 #include "nsISelectionListener.h"
 #include "mozilla/WeakPtr.h"
 
@@ -108,13 +109,16 @@ class SelectionManager : public nsISelectionListener {
   }
 
   /**
-   * Called by mozInlineSpellChecker when a spell check range is added/removed.
-   * nsISelectionListener isn't sufficient for spelling errors, since it only
-   * tells us that there was a change, not which range changed. We don't want
-   * to unnecessarily push a cache update for all Accessibles in the entire
-   * selection.
+   * Called by DOM when a selection range is added/removed.
+   * We need this because nsISelectionListener isn't sufficient for spelling
+   * errors, etc., since it only tells us that there was a change, not which
+   * range changed. We don't want to unnecessarily push a cache update for all
+   * Accessibles in the entire selection.
+   * Returns false if these notifications aren't required for this selection
+   * type at this time.
    */
-  void SpellCheckRangeChanged(const dom::AbstractRange& aRange);
+  static bool SelectionRangeChanged(SelectionType aType,
+                                    const dom::AbstractRange& aRange);
 
   ~SelectionManager();
 
@@ -131,7 +135,6 @@ class SelectionManager : public nsISelectionListener {
   int32_t mCaretOffset;
   HyperTextAccessible* mAccWithCaret;
   WeakPtr<dom::Selection> mCurrCtrlNormalSel;
-  WeakPtr<dom::Selection> mCurrCtrlSpellSel;
 };
 
 }  // namespace a11y

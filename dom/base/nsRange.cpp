@@ -51,6 +51,10 @@
 #include "nsComputedDOMStyle.h"
 #include "mozilla/dom/InspectorFontFace.h"
 
+#ifdef ACCESSIBILITY
+#  include "nsAccessibilityService.h"
+#endif
+
 namespace mozilla {
 extern LazyLogModule sSelectionAPILog;
 extern void LogStackForSelectionAPI();
@@ -961,12 +965,19 @@ void nsRange::NotifySelectionListenersAfterRangeSet() {
   // one Selection present  (which will barely ever be the case).
   if (IsPartOfOneSelectionOnly()) {
     RefPtr<Selection> selection = mSelections[0].get();
+#ifdef ACCESSIBILITY
+    a11y::SelectionManager::SelectionRangeChanged(selection->GetType(), *this);
+#endif
     selection->NotifySelectionListeners(calledByJSRestorer.SavedValue());
   } else {
     nsTArray<WeakPtr<Selection>> copiedSelections = mSelections.Clone();
     for (const auto& weakSelection : copiedSelections) {
       RefPtr<Selection> selection = weakSelection.get();
       if (MOZ_LIKELY(selection)) {
+#ifdef ACCESSIBILITY
+        a11y::SelectionManager::SelectionRangeChanged(selection->GetType(),
+                                                      *this);
+#endif
         selection->NotifySelectionListeners(calledByJSRestorer.SavedValue());
       }
     }
