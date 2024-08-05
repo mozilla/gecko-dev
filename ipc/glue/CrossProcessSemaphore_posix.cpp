@@ -28,7 +28,7 @@ namespace mozilla {
 /* static */
 CrossProcessSemaphore* CrossProcessSemaphore::Create(const char*,
                                                      uint32_t aInitialValue) {
-  RefPtr<ipc::SharedMemory> sharedBuffer = new ipc::SharedMemory;
+  RefPtr<ipc::SharedMemoryBasic> sharedBuffer = new ipc::SharedMemoryBasic;
   if (!sharedBuffer->Create(sizeof(SemaphoreData))) {
     return nullptr;
   }
@@ -37,7 +37,7 @@ CrossProcessSemaphore* CrossProcessSemaphore::Create(const char*,
     return nullptr;
   }
 
-  SemaphoreData* data = static_cast<SemaphoreData*>(sharedBuffer->Memory());
+  SemaphoreData* data = static_cast<SemaphoreData*>(sharedBuffer->memory());
 
   if (!data) {
     return nullptr;
@@ -61,7 +61,7 @@ CrossProcessSemaphore* CrossProcessSemaphore::Create(const char*,
 /* static */
 CrossProcessSemaphore* CrossProcessSemaphore::Create(
     CrossProcessSemaphoreHandle aHandle) {
-  RefPtr<ipc::SharedMemory> sharedBuffer = new ipc::SharedMemory;
+  RefPtr<ipc::SharedMemoryBasic> sharedBuffer = new ipc::SharedMemoryBasic;
 
   if (!sharedBuffer->IsHandleValid(aHandle)) {
     return nullptr;
@@ -78,7 +78,7 @@ CrossProcessSemaphore* CrossProcessSemaphore::Create(
 
   sharedBuffer->CloseHandle();
 
-  SemaphoreData* data = static_cast<SemaphoreData*>(sharedBuffer->Memory());
+  SemaphoreData* data = static_cast<SemaphoreData*>(sharedBuffer->memory());
 
   if (!data) {
     return nullptr;
@@ -147,7 +147,7 @@ void CrossProcessSemaphore::Signal() {
 }
 
 CrossProcessSemaphoreHandle CrossProcessSemaphore::CloneHandle() {
-  CrossProcessSemaphoreHandle result = ipc::SharedMemory::NULLHandle();
+  CrossProcessSemaphoreHandle result = ipc::SharedMemoryBasic::NULLHandle();
 
   if (mSharedBuffer) {
     result = mSharedBuffer->CloneHandle();

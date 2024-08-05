@@ -32,7 +32,7 @@ namespace gfx {
 
 void SourceSurfaceSharedDataWrapper::Init(const IntSize& aSize, int32_t aStride,
                                           SurfaceFormat aFormat,
-                                          SharedMemory::Handle aHandle,
+                                          SharedMemoryBasic::Handle aHandle,
                                           base::ProcessId aCreatorPid) {
   MOZ_ASSERT(!mBuf);
   mSize = aSize;
@@ -41,7 +41,7 @@ void SourceSurfaceSharedDataWrapper::Init(const IntSize& aSize, int32_t aStride,
   mCreatorPid = aCreatorPid;
 
   size_t len = GetAlignedDataLength();
-  mBuf = MakeAndAddRef<SharedMemory>();
+  mBuf = MakeAndAddRef<SharedMemoryBasic>();
   if (!mBuf->SetHandle(std::move(aHandle), ipc::SharedMemory::RightsReadOnly)) {
     MOZ_CRASH("Invalid shared memory handle!");
   }
@@ -153,7 +153,7 @@ bool SourceSurfaceSharedData::Init(const IntSize& aSize, int32_t aStride,
   mFormat = aFormat;
 
   size_t len = GetAlignedDataLength();
-  mBuf = new SharedMemory();
+  mBuf = new SharedMemoryBasic();
   if (NS_WARN_IF(!mBuf->Create(len)) || NS_WARN_IF(!mBuf->Map(len))) {
     mBuf = nullptr;
     return false;
@@ -190,12 +190,13 @@ uint8_t* SourceSurfaceSharedData::GetDataInternal() const {
   if (MOZ_UNLIKELY(mOldBuf)) {
     MOZ_ASSERT(mMapCount > 0);
     MOZ_ASSERT(mFinalized);
-    return static_cast<uint8_t*>(mOldBuf->Memory());
+    return static_cast<uint8_t*>(mOldBuf->memory());
   }
-  return static_cast<uint8_t*>(mBuf->Memory());
+  return static_cast<uint8_t*>(mBuf->memory());
 }
 
-nsresult SourceSurfaceSharedData::CloneHandle(SharedMemory::Handle& aHandle) {
+nsresult SourceSurfaceSharedData::CloneHandle(
+    SharedMemoryBasic::Handle& aHandle) {
   MutexAutoLock lock(mMutex);
   MOZ_ASSERT(mHandleCount > 0);
 
@@ -240,15 +241,15 @@ bool SourceSurfaceSharedData::ReallocHandle() {
   }
 
   size_t len = GetAlignedDataLength();
-  RefPtr<SharedMemory> buf = new SharedMemory();
+  RefPtr<SharedMemoryBasic> buf = new SharedMemoryBasic();
   if (NS_WARN_IF(!buf->Create(len)) || NS_WARN_IF(!buf->Map(len))) {
     return false;
   }
 
   size_t copyLen = GetDataLength();
-  memcpy(buf->Memory(), mBuf->Memory(), copyLen);
+  memcpy(buf->memory(), mBuf->memory(), copyLen);
 #ifdef SHARED_SURFACE_PROTECT_FINALIZED
-  buf->Protect(static_cast<char*>(buf->Memory()), len, RightsRead);
+  buf->Protect(static_cast<char*>(buf->memory()), len, RightsRead);
 #endif
 
   if (mMapCount > 0 && !mOldBuf) {
@@ -266,7 +267,7 @@ void SourceSurfaceSharedData::Finalize() {
 
 #ifdef SHARED_SURFACE_PROTECT_FINALIZED
   size_t len = GetAlignedDataLength();
-  mBuf->Protect(static_cast<char*>(mBuf->Memory()), len, RightsRead);
+  mBuf->Protect(static_cast<char*>(mBuf->memory()), len, RightsRead);
 #endif
 
   mFinalized = true;

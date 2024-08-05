@@ -14,7 +14,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/ThreadLocal.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryBasic.h"
 #include "mozilla/layers/LayersTypes.h"
 
 #include <vector>
@@ -368,7 +368,7 @@ class DrawTargetWebgl : public DrawTarget, public SupportsWeakPtr {
   // Skia DT pointing to the same pixel data, but without any applied clips.
   RefPtr<DrawTargetSkia> mSkiaNoClip;
   // The Shmem backing the Skia DT, if applicable.
-  RefPtr<mozilla::ipc::SharedMemory> mShmem;
+  RefPtr<mozilla::ipc::SharedMemoryBasic> mShmem;
   // The currently cached snapshot of the WebGL context
   RefPtr<SourceSurfaceWebgl> mSnapshot;
   // The mappable size of mShmem.
@@ -591,9 +591,9 @@ class DrawTargetWebgl : public DrawTarget, public SupportsWeakPtr {
     return stream.str();
   }
 
-  mozilla::ipc::SharedMemory::Handle TakeShmemHandle() const {
+  mozilla::ipc::SharedMemoryBasic::Handle TakeShmemHandle() const {
     return mShmem ? mShmem->TakeHandle()
-                  : mozilla::ipc::SharedMemory::NULLHandle();
+                  : mozilla::ipc::SharedMemoryBasic::NULLHandle();
   }
 
   uint32_t GetShmemSize() const { return mShmemSize; }

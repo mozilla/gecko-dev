@@ -182,7 +182,8 @@ class SourceSurfaceCanvasRecording final : public gfx::SourceSurface {
 
 class CanvasDataShmemHolder {
  public:
-  CanvasDataShmemHolder(ipc::SharedMemory* aShmem, CanvasChild* aCanvasChild)
+  CanvasDataShmemHolder(ipc::SharedMemoryBasic* aShmem,
+                        CanvasChild* aCanvasChild)
       : mMutex("CanvasChild::DataShmemHolder::mMutex"),
         mShmem(aShmem),
         mCanvasChild(aCanvasChild) {}
@@ -267,7 +268,7 @@ class CanvasDataShmemHolder {
 
  private:
   Mutex mMutex;
-  RefPtr<ipc::SharedMemory> mShmem;
+  RefPtr<ipc::SharedMemoryBasic> mShmem;
   RefPtr<CanvasChild> mCanvasChild MOZ_GUARDED_BY(mMutex);
   RefPtr<dom::ThreadSafeWorkerRef> mWorkerRef MOZ_GUARDED_BY(mMutex);
 };
@@ -460,7 +461,7 @@ bool CanvasChild::EnsureDataSurfaceShmem(gfx::IntSize aSize,
 
   if (!mDataSurfaceShmemAvailable || mDataSurfaceShmem->Size() < sizeRequired) {
     RecordEvent(RecordedPauseTranslation());
-    auto dataSurfaceShmem = MakeRefPtr<ipc::SharedMemory>();
+    auto dataSurfaceShmem = MakeRefPtr<ipc::SharedMemoryBasic>();
     if (!dataSurfaceShmem->Create(sizeRequired) ||
         !dataSurfaceShmem->Map(sizeRequired)) {
       return false;
@@ -528,7 +529,7 @@ already_AddRefed<gfx::DataSourceSurface> CanvasChild::GetDataSurface(
     auto it = mTextureInfo.find(aTextureId);
     if (it != mTextureInfo.end() && it->second.mSnapshotShmem) {
       const auto shmemPtr =
-          reinterpret_cast<uint8_t*>(it->second.mSnapshotShmem->Memory());
+          reinterpret_cast<uint8_t*>(it->second.mSnapshotShmem->memory());
       MOZ_ASSERT(shmemPtr);
       mRecorder->RecordEvent(RecordedPrepareShmem(aTextureId));
       auto checkpoint = CreateCheckpoint();
@@ -570,7 +571,7 @@ already_AddRefed<gfx::DataSourceSurface> CanvasChild::GetDataSurface(
 
   mDataSurfaceShmemAvailable = false;
 
-  auto* data = static_cast<uint8_t*>(mDataSurfaceShmem->Memory());
+  auto* data = static_cast<uint8_t*>(mDataSurfaceShmem->memory());
 
   RefPtr<gfx::DataSourceSurface> dataSurface =
       gfx::Factory::CreateWrappingDataSourceSurface(
@@ -597,8 +598,8 @@ already_AddRefed<gfx::SourceSurface> CanvasChild::WrapSurface(
 }
 
 void CanvasChild::ReturnDataSurfaceShmem(
-    already_AddRefed<ipc::SharedMemory> aDataSurfaceShmem) {
-  RefPtr<ipc::SharedMemory> data = aDataSurfaceShmem;
+    already_AddRefed<ipc::SharedMemoryBasic> aDataSurfaceShmem) {
+  RefPtr<ipc::SharedMemoryBasic> data = aDataSurfaceShmem;
   // We can only reuse the latest data surface shmem.
   if (data == mDataSurfaceShmem) {
     MOZ_ASSERT(!mDataSurfaceShmemAvailable);
@@ -648,7 +649,7 @@ ipc::IPCResult CanvasChild::RecvSnapshotShmem(
     SnapshotShmemResolver&& aResolve) {
   auto it = mTextureInfo.find(aTextureId);
   if (it != mTextureInfo.end()) {
-    auto shmem = MakeRefPtr<ipc::SharedMemory>();
+    auto shmem = MakeRefPtr<ipc::SharedMemoryBasic>();
     if (NS_WARN_IF(!shmem->SetHandle(std::move(aShmemHandle),
                                      ipc::SharedMemory::RightsReadOnly)) ||
         NS_WARN_IF(!shmem->Map(aShmemSize))) {

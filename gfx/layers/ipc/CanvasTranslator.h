@@ -298,7 +298,7 @@ class CanvasTranslator final : public gfx::InlineTranslator,
     const Tag mTag;
 
    private:
-    ipc::SharedMemory::Handle mBufferHandle;
+    ipc::SharedMemoryBasic::Handle mBufferHandle;
     const size_t mBufferSize;
 
    public:
@@ -308,7 +308,7 @@ class CanvasTranslator final : public gfx::InlineTranslator,
                  mTag == Tag::ClearCachedResources);
     }
     CanvasTranslatorEvent(const Tag aTag,
-                          ipc::SharedMemory::Handle&& aBufferHandle,
+                          ipc::SharedMemoryBasic::Handle&& aBufferHandle,
                           size_t aBufferSize)
         : mTag(aTag),
           mBufferHandle(std::move(aBufferHandle)),
@@ -321,13 +321,13 @@ class CanvasTranslator final : public gfx::InlineTranslator,
     }
 
     static UniquePtr<CanvasTranslatorEvent> AddBuffer(
-        ipc::SharedMemory::Handle&& aBufferHandle, size_t aBufferSize) {
+        ipc::SharedMemoryBasic::Handle&& aBufferHandle, size_t aBufferSize) {
       return MakeUnique<CanvasTranslatorEvent>(
           Tag::AddBuffer, std::move(aBufferHandle), aBufferSize);
     }
 
     static UniquePtr<CanvasTranslatorEvent> SetDataSurfaceBuffer(
-        ipc::SharedMemory::Handle&& aBufferHandle, size_t aBufferSize) {
+        ipc::SharedMemoryBasic::Handle&& aBufferHandle, size_t aBufferSize) {
       return MakeUnique<CanvasTranslatorEvent>(
           Tag::SetDataSurfaceBuffer, std::move(aBufferHandle), aBufferSize);
     }
@@ -336,12 +336,12 @@ class CanvasTranslator final : public gfx::InlineTranslator,
       return MakeUnique<CanvasTranslatorEvent>(Tag::ClearCachedResources);
     }
 
-    ipc::SharedMemory::Handle TakeBufferHandle() {
+    ipc::SharedMemoryBasic::Handle TakeBufferHandle() {
       if (mTag == Tag::AddBuffer || mTag == Tag::SetDataSurfaceBuffer) {
         return std::move(mBufferHandle);
       }
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-      return mozilla::ipc::SharedMemory::NULLHandle();
+      return mozilla::ipc::SharedMemoryBasic::NULLHandle();
     }
 
     size_t BufferSize() {
@@ -437,20 +437,20 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   using State = CanvasDrawEventRecorder::State;
   using Header = CanvasDrawEventRecorder::Header;
 
-  RefPtr<ipc::SharedMemory> mHeaderShmem;
+  RefPtr<ipc::SharedMemoryBasic> mHeaderShmem;
   Header* mHeader = nullptr;
 
   struct CanvasShmem {
-    RefPtr<ipc::SharedMemory> shmem;
+    RefPtr<ipc::SharedMemoryBasic> shmem;
     auto Size() { return shmem->Size(); }
     gfx::MemReader CreateMemReader() {
-      return {static_cast<char*>(shmem->Memory()), Size()};
+      return {static_cast<char*>(shmem->memory()), Size()};
     }
   };
   std::queue<CanvasShmem> mCanvasShmems;
   CanvasShmem mCurrentShmem;
   gfx::MemReader mCurrentMemReader{0, 0};
-  RefPtr<ipc::SharedMemory> mDataSurfaceShmem;
+  RefPtr<ipc::SharedMemoryBasic> mDataSurfaceShmem;
   UniquePtr<CrossProcessSemaphore> mWriterSemaphore;
   UniquePtr<CrossProcessSemaphore> mReaderSemaphore;
   TextureType mTextureType = TextureType::Unknown;

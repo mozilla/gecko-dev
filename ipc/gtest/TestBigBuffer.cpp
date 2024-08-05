@@ -69,7 +69,7 @@ TEST(BigBuffer, BigSize)
   BigBuffer in{Span(data)};
   EXPECT_NE(in.GetSharedMemory(), nullptr);
   EXPECT_EQ(in.Size(), size);
-  EXPECT_EQ(in.GetSharedMemory()->Memory(), in.Data());
+  EXPECT_EQ(in.GetSharedMemory()->memory(), in.Data());
 
   BigBuffer out;
   ASSERT_TRUE(SerializeAndDeserialize(std::move(in), &out));
@@ -78,7 +78,7 @@ TEST(BigBuffer, BigSize)
   EXPECT_EQ(in.Size(), 0u);
   EXPECT_NE(out.GetSharedMemory(), nullptr);
   EXPECT_EQ(out.Size(), size);
-  EXPECT_EQ(out.GetSharedMemory()->Memory(), out.Data());
+  EXPECT_EQ(out.GetSharedMemory()->memory(), out.Data());
 
   EXPECT_TRUE(out.AsSpan() == Span(data));
 }

@@ -26,7 +26,7 @@ using gfx::ReadElement;
 using gfx::ReferencePtr;
 using gfx::SurfaceFormat;
 using gfx::WriteElement;
-using ipc::SharedMemory;
+using ipc::SharedMemoryBasic;
 
 const EventType CANVAS_BEGIN_TRANSACTION = EventType::LAST;
 const EventType CANVAS_END_TRANSACTION = EventType(EventType::LAST + 1);

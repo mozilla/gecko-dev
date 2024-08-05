@@ -39,7 +39,7 @@
 #include "nsTArray.h"
 #include "nsString.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryBasic.h"
 #include "TiedFields.h"
 
 // Manual reflection of WebIDL typedefs that are different from their
