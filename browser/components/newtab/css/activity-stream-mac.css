@@ -5583,6 +5583,18 @@ main section {
   justify-content: space-between;
   align-items: center;
 }
+.topic-selection-container .modal-footer > a {
+  color: var(--link-color);
+}
+.topic-selection-container .modal-footer > a:hover {
+  color: var(--link-color-hover);
+}
+.topic-selection-container .modal-footer > a:hover:active {
+  color: var(--link-color-active);
+}
+.topic-selection-container .modal-footer > a:visited {
+  color: var(--link-color-visited);
+}
 .topic-selection-container .modal-footer .button-group {
   gap: var(--space-medium);
   display: flex;

@@ -64,6 +64,22 @@
     justify-content: space-between;
     align-items: center;
 
+    > a {
+      color: var(--link-color);
+
+      &:hover {
+        color: var(--link-color-hover);
+      }
+
+      &:hover:active {
+        color: var(--link-color-active);
+      }
+
+      &:visited {
+        color: var(--link-color-visited);
+      }
+    }
+
     .button-group {
       gap: var(--space-medium);
       display: flex;
