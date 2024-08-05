@@ -32,7 +32,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.utils.KeyboardState
@@ -47,7 +46,7 @@ private const val NON_TABLET_WIDTH_FRACTION = 1.0f
  * Initial microsurvey prompt displayed to the user to request completion of feedback.
  *
  * @param microsurvey Contains the required microsurvey data for the UI.
- * @param activity [HomeActivity] used to have access to [isMicrosurveyPromptDismissed]
+ * @param activity [HomeActivity] used to have access to [HomeActivity.isMicrosurveyPromptDismissed]
  * @param onStartSurveyClicked Handles the on click event of the start survey button.
  * @param onCloseButtonClicked Invoked when the user clicks on the close button.
  */
@@ -55,14 +54,12 @@ private const val NON_TABLET_WIDTH_FRACTION = 1.0f
 fun MicrosurveyRequestPrompt(
     microsurvey: MicrosurveyUIData,
     activity: HomeActivity,
-    onStartSurveyClicked: () -> Unit = {},
+    onStartSurveyClicked: () -> Unit,
     onCloseButtonClicked: () -> Unit,
 ) {
     val isKeyboardVisible by keyboardAsState()
     var isMicrosurveyVisible by remember { mutableStateOf(true) }
     isMicrosurveyVisible = isKeyboardVisible == KeyboardState.Closed
-
-    activity.isMicrosurveyPromptDismissed = remember { mutableStateOf(false) }
 
     // Animation properties for the microsurvey's visibility transitions.
     AnimatedVisibility(
@@ -74,8 +71,6 @@ fun MicrosurveyRequestPrompt(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
         ) {
-            Divider()
-
             Column(
                 modifier = Modifier
                     .padding(all = 16.dp)
@@ -87,10 +82,7 @@ fun MicrosurveyRequestPrompt(
                         },
                     ),
             ) {
-                Header(microsurvey.promptTitle) {
-                    onCloseButtonClicked()
-                    activity.isMicrosurveyPromptDismissed.value = true
-                }
+                Header(microsurvey.promptTitle) { onCloseButtonClicked() }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -107,9 +99,7 @@ private fun Header(
     title: String,
     onCloseButtonClicked: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    Row(modifier = Modifier.fillMaxWidth()) {
         Image(
             painter = painterResource(R.drawable.ic_firefox),
             contentDescription = stringResource(id = R.string.microsurvey_app_icon_content_description),

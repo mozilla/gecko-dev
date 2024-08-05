@@ -37,6 +37,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.content.getSystemService
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -172,6 +173,7 @@ import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarController
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarMenuController
 import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
 import org.mozilla.fenix.components.toolbar.NewTabMenu
+import org.mozilla.fenix.components.toolbar.ToolbarContainerView
 import org.mozilla.fenix.components.toolbar.ToolbarIntegration
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
@@ -595,11 +597,7 @@ abstract class BaseBrowserFragment :
         }
 
         if (context.settings().microsurveyFeatureEnabled) {
-            listenForMicrosurveyMessage(
-                browserToolbar = browserToolbarView.view,
-                view = view,
-                context = context,
-            )
+            listenForMicrosurveyMessage(context)
         }
 
         toolbarIntegration.set(
@@ -1493,8 +1491,14 @@ abstract class BaseBrowserFragment :
             content = {
                 FirefoxTheme {
                     Column {
+                        Divider()
+
                         if (!activity.isMicrosurveyPromptDismissed.value) {
                             currentMicrosurvey?.let {
+                                if (isToolbarAtBottom) {
+                                    updateBrowserToolbarForMicrosurveyPrompt(browserToolbar)
+                                }
+
                                 MicrosurveyRequestPrompt(
                                     microsurvey = it,
                                     activity = activity,
@@ -1509,7 +1513,9 @@ abstract class BaseBrowserFragment :
                                         context.components.appStore.dispatch(
                                             MicrosurveyAction.Dismissed(it.id),
                                         )
+
                                         context.settings().shouldShowMicrosurveyPrompt = false
+                                        activity.isMicrosurveyPromptDismissed.value = true
 
                                         resumeDownloadDialogState(
                                             getCurrentTab()?.id,
@@ -1718,12 +1724,12 @@ abstract class BaseBrowserFragment :
         }
     }
 
-    private fun initializeMicrosurveyPrompt(
-        browserToolbar: BrowserToolbar,
-        view: View,
-        context: Context,
-    ) {
+    private fun initializeMicrosurveyPrompt() {
+        val context = requireContext()
+        val view = requireView()
+
         val isToolbarAtBottom = context.isToolbarAtBottom()
+        val browserToolbar = browserToolbarView.view
         // The toolbar view has already been added directly to the container.
         // See initializeNavBar for more details on improving this.
         if (isToolbarAtBottom) {
@@ -1737,10 +1743,16 @@ abstract class BaseBrowserFragment :
             content = {
                 FirefoxTheme {
                     Column {
+                        Divider()
+
                         val activity = requireActivity() as HomeActivity
 
                         if (!activity.isMicrosurveyPromptDismissed.value) {
                             currentMicrosurvey?.let {
+                                if (isToolbarAtBottom) {
+                                    updateBrowserToolbarForMicrosurveyPrompt(browserToolbar)
+                                }
+
                                 MicrosurveyRequestPrompt(
                                     microsurvey = it,
                                     activity = activity,
@@ -1755,7 +1767,9 @@ abstract class BaseBrowserFragment :
                                         context.components.appStore.dispatch(
                                             MicrosurveyAction.Dismissed(it.id),
                                         )
+
                                         context.settings().shouldShowMicrosurveyPrompt = false
+                                        activity.isMicrosurveyPromptDismissed.value = true
 
                                         resumeDownloadDialogState(
                                             getCurrentTab()?.id,
@@ -1798,16 +1812,22 @@ abstract class BaseBrowserFragment :
         )
     }
 
+    private fun updateBrowserToolbarForMicrosurveyPrompt(browserToolbar: BrowserToolbar) {
+        val drawable = ResourcesCompat.getDrawable(
+            resources,
+            R.drawable.toolbar_background_no_divider,
+            null,
+        )
+        browserToolbar.background = drawable
+        browserToolbar.elevation = 0.0f
+    }
+
     private var currentMicrosurvey: MicrosurveyUIData? = null
 
     /**
      * Listens for the microsurvey message and initializes the microsurvey prompt if one is available.
      */
-    private fun listenForMicrosurveyMessage(
-        browserToolbar: BrowserToolbar,
-        view: View,
-        context: Context,
-    ) {
+    private fun listenForMicrosurveyMessage(context: Context) {
         binding.root.consumeFrom(context.components.appStore, viewLifecycleOwner) { state ->
             state.messaging.messageToShow[FenixMessageSurfaceId.MICROSURVEY]?.let { message ->
                 if (message.id != currentMicrosurvey?.id) {
@@ -1821,11 +1841,7 @@ abstract class BaseBrowserFragment :
                             }
                             reinitializeNavBar()
                         } else {
-                            initializeMicrosurveyPrompt(
-                                browserToolbar = browserToolbar,
-                                view = view,
-                                context = context,
-                            )
+                            initializeMicrosurveyPrompt()
                         }
                     }
                 }
@@ -2298,7 +2314,7 @@ abstract class BaseBrowserFragment :
                 toolbarView = browserToolbarView.view,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
                 reinitializeNavBar = ::reinitializeNavBar,
-                reinitializeMicrosurveyPrompt = ::reinitializeMicrosurveyPrompt,
+                reinitializeMicrosurveyPrompt = ::initializeMicrosurveyPrompt,
             )
             reinitializeEngineView()
         }
@@ -2308,7 +2324,7 @@ abstract class BaseBrowserFragment :
             updateMicrosurveyPromptForConfigurationChange(
                 parent = binding.browserLayout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
-                reinitializeMicrosurveyPrompt = ::reinitializeMicrosurveyPrompt,
+                reinitializeMicrosurveyPrompt = ::initializeMicrosurveyPrompt,
             )
         }
     }
@@ -2319,14 +2335,6 @@ abstract class BaseBrowserFragment :
             view = requireView(),
             context = requireContext(),
             activity = requireActivity() as HomeActivity,
-        )
-    }
-
-    private fun reinitializeMicrosurveyPrompt() {
-        initializeMicrosurveyPrompt(
-            browserToolbar = browserToolbarView.view,
-            view = requireView(),
-            context = requireContext(),
         )
     }
 
@@ -2455,7 +2463,7 @@ abstract class BaseBrowserFragment :
         status: DownloadState.Status,
     ): Boolean {
         val isValidStatus = status in listOf(DownloadState.Status.COMPLETED, DownloadState.Status.FAILED)
-        val isSameTab = downloadState.sessionId == getCurrentTab()?.id ?: false
+        val isSameTab = downloadState.sessionId == (getCurrentTab()?.id ?: false)
 
         return isValidStatus && isSameTab
     }
