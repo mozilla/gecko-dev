@@ -967,11 +967,13 @@ bool NativeLayerCA::ShouldSpecializeVideo(const MutexAutoLock& aProofOfLock) {
     return true;
   }
 
-  CFTypeRefPtr<IOSurfaceRef> surface = macIOSurface->GetIOSurfaceRef();
-  OSType pixelFormat = IOSurfaceGetPixelFormat(surface.get());
-  if (pixelFormat == kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange ||
-      pixelFormat == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange) {
-    // HDR videos require specialized video layers.
+  if (macIOSurface->GetColorDepth() == gfx::ColorDepth::COLOR_10) {
+    // 10-bit videos require specialized video layers.
+    return true;
+  }
+
+  if (macIOSurface->GetPlaneCount() > 1) {
+    // Multi-planar surfaces require specialized video layers.
     return true;
   }
 
@@ -980,12 +982,6 @@ bool NativeLayerCA::ShouldSpecializeVideo(const MutexAutoLock& aProofOfLock) {
 
   if (!StaticPrefs::gfx_core_animation_specialize_video()) {
     // Pref must be set.
-    return false;
-  }
-
-  if (pixelFormat != kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange &&
-      pixelFormat != kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) {
-    // The video is not in one of the formats that qualifies for detachment.
     return false;
   }
 
