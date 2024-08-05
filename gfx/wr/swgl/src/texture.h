@@ -190,7 +190,7 @@ vec4 texelFetchFloat(sampler2D sampler, ivec2 P) {
 }
 
 template <typename S>
-SI vec4 fetchOffsetsYUV422(S sampler, I32 offset) {
+SI vec4 fetchOffsetsYUY2(S sampler, I32 offset) {
   // Layout is 2 pixel chunks (occupying 4 bytes) organized as: G0, B, G1, R.
   // Offset is aligned to a chunk rather than a pixel, and selector specifies
   // pixel within the chunk.
@@ -208,9 +208,9 @@ SI vec4 fetchOffsetsYUV422(S sampler, I32 offset) {
 }
 
 template <typename S>
-vec4 texelFetchYUV422(S sampler, ivec2 P) {
+vec4 texelFetchYUY2(S sampler, ivec2 P) {
   I32 offset = P.x + P.y * sampler->stride;
-  return fetchOffsetsYUV422(sampler, offset);
+  return fetchOffsetsYUY2(sampler, offset);
 }
 
 vec4 texelFetch(sampler2D sampler, ivec2 P, int lod) {
@@ -229,8 +229,8 @@ vec4 texelFetch(sampler2D sampler, ivec2 P, int lod) {
       return texelFetchR16(sampler, P);
     case TextureFormat::RG16:
       return texelFetchRG16(sampler, P);
-    case TextureFormat::YUV422:
-      return texelFetchYUV422(sampler, P);
+    case TextureFormat::YUY2:
+      return texelFetchYUY2(sampler, P);
     default:
       assert(false);
       return vec4();
@@ -320,8 +320,8 @@ vec4 texelFetch(sampler2DRect sampler, ivec2 P) {
       return texelFetchR16(sampler, P);
     case TextureFormat::RG16:
       return texelFetchRG16(sampler, P);
-    case TextureFormat::YUV422:
-      return texelFetchYUV422(sampler, P);
+    case TextureFormat::YUY2:
+      return texelFetchYUY2(sampler, P);
     default:
       assert(false);
       return vec4();
@@ -875,8 +875,8 @@ struct WidePlanarYUV8 {
 };
 
 template <typename S>
-SI WidePlanarYUV8 textureLinearPlanarYUV422(S sampler, ivec2 i) {
-  assert(sampler->format == TextureFormat::YUV422);
+SI WidePlanarYUV8 textureLinearPlanarYUY2(S sampler, ivec2 i) {
+  assert(sampler->format == TextureFormat::YUY2);
 
   ivec2 frac = i;
   i >>= 7;
@@ -949,9 +949,9 @@ SI WidePlanarYUV8 textureLinearPlanarYUV422(S sampler, ivec2 i) {
 }
 
 template <typename S>
-vec4 textureLinearYUV422(S sampler, vec2 P) {
+vec4 textureLinearYUY2(S sampler, vec2 P) {
   ivec2 i(linearQuantize(P, 128, sampler));
-  auto planar = textureLinearPlanarYUV422(sampler, i);
+  auto planar = textureLinearPlanarYUY2(sampler, i);
   auto y = CONVERT(planar.y, Float) * (1.0f / 255.0f);
   auto u = CONVERT(planar.u, Float) * (1.0f / 255.0f);
   auto v = CONVERT(planar.v, Float) * (1.0f / 255.0f);
@@ -973,8 +973,8 @@ SI vec4 texture(sampler2D sampler, vec2 P) {
         return textureLinearR16(sampler, P);
       case TextureFormat::RG16:
         return textureLinearRG16(sampler, P);
-      case TextureFormat::YUV422:
-        return textureLinearYUV422(sampler, P);
+      case TextureFormat::YUY2:
+        return textureLinearYUY2(sampler, P);
       default:
         assert(false);
         return vec4();
@@ -999,8 +999,8 @@ vec4 texture(sampler2DRect sampler, vec2 P) {
         return textureLinearR16(sampler, P);
       case TextureFormat::RG16:
         return textureLinearRG16(sampler, P);
-      case TextureFormat::YUV422:
-        return textureLinearYUV422(sampler, P);
+      case TextureFormat::YUY2:
+        return textureLinearYUY2(sampler, P);
       default:
         assert(false);
         return vec4();

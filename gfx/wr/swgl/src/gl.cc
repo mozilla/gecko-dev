@@ -284,7 +284,7 @@ static TextureFormat gl_format_to_texture_format(int type) {
     case GL_RG16:
       return TextureFormat::RG16;
     case GL_RGB_RAW_422_APPLE:
-      return TextureFormat::YUV422;
+      return TextureFormat::YUY2;
     default:
       assert(0);
       return TextureFormat::RGBA8;

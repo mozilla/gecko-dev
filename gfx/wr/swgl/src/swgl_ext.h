@@ -1014,8 +1014,8 @@ static ALWAYS_INLINE PackedRGBA8 sampleYUV(S0 sampler0, ivec2 uv0,
       return convertYUV(rgb_from_ycbcr, highHalf(planar.rg), lowHalf(planar.rg),
                         lowHalf(planar.ba));
     }
-    case TextureFormat::YUV422: {
-      auto planar = textureLinearPlanarYUV422(sampler0, uv0);
+    case TextureFormat::YUY2: {
+      auto planar = textureLinearPlanarYUY2(sampler0, uv0);
       return convertYUV(rgb_from_ycbcr, planar.y, planar.u, planar.v);
     }
     default:
