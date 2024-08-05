@@ -12,8 +12,8 @@ import requests
 from redo import retry
 
 
-class HgServerError(Exception):
-    """Raised when Hg responds with an error code that is not 404 (i.e. when there is an outage)"""
+class RemoteVCSError(Exception):
+    """Raised when vcs server (e.g., hg or git) responds with an error code that is not 404 (i.e. when there is an outage)"""
 
     def __init__(self, msg) -> None:
         super().__init__(msg)
@@ -27,12 +27,30 @@ def generate_browser_desktop_entry_file_text(
     fluent_localization,
     fluent_resource_loader,
 ):
+    desktop_entry = generate_browser_desktop_entry(
+        log,
+        build_variables,
+        release_product,
+        release_type,
+        fluent_localization,
+        fluent_resource_loader,
+    )
+    desktop_entry_file_text = "\n".join(desktop_entry)
+    return desktop_entry_file_text
+
+
+def generate_browser_desktop_entry(
+    log,
+    build_variables,
+    release_product,
+    release_type,
+    fluent_localization,
+    fluent_resource_loader,
+):
     localizations = _create_fluent_localizations(
         fluent_resource_loader, fluent_localization, release_type, release_product, log
     )
-    desktop_entry = _generate_browser_desktop_entry(build_variables, localizations)
-    desktop_entry_file_text = "\n".join(desktop_entry)
-    return desktop_entry_file_text
+    return _generate_browser_desktop_entry(build_variables, localizations)
 
 
 def _create_fluent_localizations(
@@ -103,7 +121,7 @@ def _create_fluent_localizations(
                     params,
                     mgs,
                 )
-                raise HgServerError(mgs.format(**params))
+                raise RemoteVCSError(mgs.format(**params))
 
             with open(localized_desktop_entry_filename, "w", encoding="utf-8") as f:
                 f.write(response.text)
@@ -231,13 +249,20 @@ def _generate_browser_desktop_entry(build_variables, localizations):
             },
             {
                 "key": "Icon",
-                "value": build_variables["DEB_PKG_NAME"],
+                "value": build_variables["Icon"],
             },
             {
                 "key": "StartupWMClass",
                 "value": "firefox-aurora"
                 if build_variables["DEB_PKG_NAME"] == "firefox-devedition"
-                else build_variables["DEB_PKG_NAME"],
+                else build_variables.get(
+                    "StartupWMClass", build_variables["DEB_PKG_NAME"]
+                ),
+            },
+            {
+                "key": "DBusActivatable",
+                "value": build_variables.get("DBusActivatable", "false"),
+                "condition": "DBusActivatable" in build_variables,
             },
             {
                 "key": "Categories",
@@ -311,6 +336,8 @@ def _desktop_entry_section(header, attributes, localizations):
         attribute for attribute in attributes if not attribute.get("l10n")
     ]
     for attribute in non_l10n_attributes:
+        if not attribute.get("condition", True):
+            continue
         desktop_entry_section.append(
             _desktop_entry_attribute(attribute["key"], attribute["value"])
         )

@@ -620,7 +620,7 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
 
     monkeypatch.setattr(desktop_file.requests, "get", outage)
 
-    with pytest.raises(desktop_file.HgServerError):
+    with pytest.raises(desktop_file.RemoteVCSError):
         desktop_entry_file_text = desktop_file.generate_browser_desktop_entry_file_text(
             log,
             build_variables,
