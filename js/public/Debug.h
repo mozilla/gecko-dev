@@ -29,6 +29,27 @@ class Debugger;
 extern JS_PUBLIC_API bool JS_DefineDebuggerObject(JSContext* cx,
                                                   JS::HandleObject obj);
 
+// If the JS execution tracer is running, this will generate a
+// ENTRY_KIND_LABEL_ENTER entry with the specified label.
+// The consumer of the trace can then, for instance, correlate all code running
+// after this entry and before the corresponding ENTRY_KIND_LABEL_LEAVE with the
+// provided label.
+// If the tracer is not running, this does nothing.
+extern JS_PUBLIC_API void JS_TracerEnterLabelLatin1(JSContext* cx,
+                                                    const char* label);
+extern JS_PUBLIC_API void JS_TracerEnterLabelTwoByte(JSContext* cx,
+                                                     const char16_t* label);
+
+// If the JS execution tracer is running, this will generate a
+// ENTRY_KIND_LABEL_LEAVE entry with the specified label.
+// It is up to the consumer to decide what to do with a ENTRY_KIND_LABEL_LEAVE
+// entry is encountered without a corresponding ENTRY_KIND_LABEL_ENTER.
+// If the tracer is not running, this does nothing.
+extern JS_PUBLIC_API void JS_TracerLeaveLabelLatin1(JSContext* cx,
+                                                    const char* label);
+extern JS_PUBLIC_API void JS_TracerLeaveLabelTwoByte(JSContext* cx,
+                                                     const char16_t* label);
+
 namespace JS {
 namespace dbg {
 

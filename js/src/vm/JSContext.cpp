@@ -31,6 +31,7 @@
 #include "jstypes.h"
 
 #include "builtin/RegExp.h"  // js::RegExpSearcherLastLimitSentinel
+#include "debugger/ExecutionTracer.h"
 #include "frontend/FrontendContext.h"
 #include "gc/GC.h"
 #include "irregexp/RegExpAPI.h"
@@ -1361,6 +1362,37 @@ void AutoEnterOOMUnsafeRegion::crash_impl(size_t size, const char* reason) {
 void ExternalValueArray::trace(JSTracer* trc) {
   if (Value* vp = begin()) {
     TraceRootRange(trc, length(), vp, "js::ExternalValueArray");
+  }
+}
+
+bool JSContext::addExecutionTracingConsumer(const js::Debugger* dbg) {
+  if (!executionTracer_) {
+    executionTracer_ = js::MakeUnique<ExecutionTracer>();
+    if (!executionTracer_) {
+      return false;
+    }
+
+    if (!executionTracer_->init()) {
+      executionTracer_ = nullptr;
+      return false;
+    }
+
+    if (!executionTracingConsumers_.put(dbg)) {
+      executionTracer_ = nullptr;
+      return false;
+    }
+
+    return true;
+  }
+
+  return executionTracingConsumers_.put(dbg);
+}
+
+void JSContext::removeExecutionTracingConsumer(const js::Debugger* dbg) {
+  executionTracingConsumers_.remove(dbg);
+  if (executionTracingConsumers_.empty()) {
+    caches().tracingCaches.clearAll();
+    executionTracer_ = nullptr;
   }
 }
 

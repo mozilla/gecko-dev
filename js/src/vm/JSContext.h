@@ -45,6 +45,7 @@ namespace js {
 class AutoAllocInAtomsZone;
 class AutoMaybeLeaveAtomsZone;
 class AutoRealm;
+class ExecutionTracer;
 struct PortableBaselineStack;
 
 namespace jit {
@@ -935,6 +936,28 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   // evaluation, and which debugger initiated the evaluation. This debugger
   // has other references on the stack and does not need to be traced.
   js::ContextData<js::Debugger*> insideExclusiveDebuggerOnEval;
+
+  // This holds onto the JS execution tracer, a system which when turned on
+  // records function calls and other information about the JS which has been
+  // run under this context.
+  js::UniquePtr<js::ExecutionTracer> executionTracer_;
+
+  // Holds all of the consumers of the trace - each consumer is a Debugger
+  // object - when the first consumer is added, the tracer will be initialized,
+  // and when the last consumer is removed, the tracer will be cleaned up.
+  js::HashSet<const js::Debugger*, js::PointerHasher<const js::Debugger*>,
+              js::SystemAllocPolicy>
+      executionTracingConsumers_;
+
+  // For the following methods, see the comments over executionTracer_ and
+  // executionTracingConsumers_
+  bool hasExecutionTracer() const { return !!executionTracer_; }
+  js::ExecutionTracer& getExecutionTracer() const {
+    MOZ_ASSERT(hasExecutionTracer());
+    return *executionTracer_;
+  }
+  bool addExecutionTracingConsumer(const js::Debugger* dbg);
+  void removeExecutionTracingConsumer(const js::Debugger* dbg);
 
 }; /* struct JSContext */
 

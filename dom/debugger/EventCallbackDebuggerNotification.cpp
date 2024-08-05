@@ -7,6 +7,7 @@
 #include "EventCallbackDebuggerNotification.h"
 
 #include "DebuggerNotificationManager.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/dom/Worker.h"
 #include "mozilla/dom/XMLHttpRequestEventTarget.h"
@@ -53,6 +54,16 @@ void EventCallbackDebuggerNotificationGuard::DispatchToManager(
       mEventTarget->GetDebuggerNotificationType());
 
   if (notificationType) {
+    CycleCollectedJSContext* ccjcx = CycleCollectedJSContext::Get();
+    if (ccjcx) {
+      nsAutoString eventType;
+      mEvent->GetType(eventType);
+      if (aPhase == CallbackDebuggerNotificationPhase::Pre) {
+        JS_TracerEnterLabelTwoByte(ccjcx->Context(), eventType.get());
+      } else {
+        JS_TracerLeaveLabelTwoByte(ccjcx->Context(), eventType.get());
+      }
+    }
     aManager->Dispatch<EventCallbackDebuggerNotification>(
         DebuggerNotificationType::DomEvent,
         // The DOM event will always be live during event dispatch.
