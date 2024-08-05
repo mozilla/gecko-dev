@@ -175,8 +175,6 @@ class BrowsingContextModule extends RootBiDiModule {
     this.#contextListener.on("attached", this.#onContextAttached);
     this.#contextListener.on("discarded", this.#onContextDiscarded);
 
-    // Create the navigation listener and listen to "fragment-navigated" and
-    // "navigation-started" events.
     this.#navigationListener = new lazy.NavigationListener(
       this.messageHandler.navigationManager
     );
@@ -1133,6 +1131,7 @@ class BrowsingContextModule extends RootBiDiModule {
         });
       },
       {
+        targetURI,
         wait,
       }
     );
@@ -1539,6 +1538,8 @@ class BrowsingContextModule extends RootBiDiModule {
    * @param {Function} startNavigationFn
    *     A callback that starts a navigation.
    * @param {object} options
+   * @param {string=} options.targetURI
+   *     The target URI for the navigation.
    * @param {WaitCondition} options.wait
    *     The WaitCondition to use to wait for the navigation.
    *
@@ -1546,7 +1547,7 @@ class BrowsingContextModule extends RootBiDiModule {
    *     A Promise that resolves to navigate results when the navigation is done.
    */
   async #awaitNavigation(webProgress, startNavigationFn, options) {
-    const { wait } = options;
+    const { targetURI, wait } = options;
 
     const context = webProgress.browsingContext;
     const browserId = context.browserId;
@@ -1555,6 +1556,7 @@ class BrowsingContextModule extends RootBiDiModule {
     const listener = new lazy.ProgressListener(webProgress, {
       expectNavigation: true,
       resolveWhenStarted,
+      targetURI,
       // In case the webprogress is already navigating, always wait for an
       // explicit start flag.
       waitForExplicitStart: true,

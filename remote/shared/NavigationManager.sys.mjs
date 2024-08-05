@@ -294,7 +294,9 @@ class NavigationRegistry extends EventEmitter {
 
     let navigation = this.#navigations.get(navigableId);
     if (navigation && !navigation.finished) {
-      if (navigation.url === url) {
+      // Bug 1908952. As soon as we have support for the "url" field in case of beforeunload
+      // prompt being open, we can remove "!navigation.url" check.
+      if (!navigation.url || navigation.url === url) {
         // If we are already monitoring a navigation for this navigable and the same url,
         // for which we did not receive a navigation-stopped event, this navigation
         // is already tracked and we don't want to create another id & event.
