@@ -36,6 +36,7 @@ async function performTest() {
   testParseVariable(doc, parser);
   testParseColorVariable(doc, parser);
   testParseFontFamily(doc, parser);
+  testParseLightDark(doc, parser);
 
   host.destroy();
 }
@@ -1050,4 +1051,368 @@ function testParseFontFamily(doc, parser) {
     `</span>`,
     "Got expected output for font-family with custom properties"
   );
+}
+
+function testParseLightDark(doc, parser) {
+  const TESTS = [
+    {
+      message:
+        "Not passing isDarkColorScheme doesn't add unmatched classes to parameters",
+      propertyName: "color",
+      propertyValue: "light-dark(red, blue)",
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+        `<span data-color="red">` +
+          `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>red</span>` +
+        `</span>, ` +
+        `<span data-color="blue">` +
+          `<span class="test-class" style="background-color:blue" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>blue</span>` +
+        `</span>` +
+      `)`,
+    },
+    {
+      message: "in light mode, the second parameter gets the unmatched class",
+      propertyName: "color",
+      propertyValue: "light-dark(red, blue)",
+      isDarkColorScheme: false,
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+        `<span data-color="red">` +
+          `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>red</span>` +
+        `</span>, ` +
+        `<span data-color="blue" class="unmatched-class">` +
+          `<span class="test-class" style="background-color:blue" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>blue</span>` +
+        `</span>` +
+      `)`,
+    },
+    {
+      message: "in dark mode, the first parameter gets the unmatched class",
+      propertyName: "color",
+      propertyValue: "light-dark(red, blue)",
+      isDarkColorScheme: true,
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+        `<span data-color="red" class="unmatched-class">` +
+          `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>red</span>` +
+        `</span>, ` +
+        `<span data-color="blue">` +
+          `<span class="test-class" style="background-color:blue" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>blue</span>` +
+        `</span>` +
+      `)`,
+    },
+    {
+      message: "light-dark gets parsed as expected in shorthands in light mode",
+      propertyName: "border",
+      propertyValue: "1px solid light-dark(red, blue)",
+      isDarkColorScheme: false,
+      expected:
+        // prettier-ignore
+        `1px solid light-dark(` +
+        `<span data-color="red">` +
+          `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>red</span>` +
+        `</span>, ` +
+        `<span data-color="blue" class="unmatched-class">` +
+          `<span class="test-class" style="background-color:blue" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>blue</span>` +
+        `</span>` +
+      `)`,
+    },
+    {
+      message: "light-dark gets parsed as expected in shorthands in dark mode",
+      propertyName: "border",
+      propertyValue: "1px solid light-dark(red, blue)",
+      isDarkColorScheme: true,
+      expected:
+        // prettier-ignore
+        `1px solid light-dark(` +
+        `<span data-color="red" class="unmatched-class">` +
+          `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>red</span>` +
+        `</span>, ` +
+        `<span data-color="blue">` +
+          `<span class="test-class" style="background-color:blue" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+          `<span>blue</span>` +
+        `</span>` +
+      `)`,
+    },
+    {
+      message: "Nested light-dark gets parsed as expected in light mode",
+      propertyName: "background",
+      propertyValue:
+        "linear-gradient(45deg, light-dark(red, blue), light-dark(pink, cyan))",
+      isDarkColorScheme: false,
+      expected:
+        // prettier-ignore
+        `linear-gradient(` +
+          `<span data-angle="45deg"><span>45deg</span></span>, ` +
+          `light-dark(` +
+            `<span data-color="red">` +
+              `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>`+
+              `<span>red</span>`+
+            `</span>, `+
+            `<span data-color="blue" class="unmatched-class">` +
+              `<span class="test-class" style="background-color:blue" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+              `<span>blue</span>` +
+            `</span>` +
+          `), ` +
+          `light-dark(` +
+            `<span data-color="pink">` +
+              `<span class="test-class" style="background-color:pink" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+              `<span>pink</span>` +
+            `</span>, ` +
+            `<span data-color="cyan" class="unmatched-class">` +
+              `<span class="test-class" style="background-color:cyan" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+              `<span>cyan</span>` +
+            `</span>` +
+          `)` +
+        `)`,
+    },
+    {
+      message: "Nested light-dark gets parsed as expected in dark mode",
+      propertyName: "background",
+      propertyValue:
+        "linear-gradient(33deg, light-dark(red, blue), light-dark(pink, cyan))",
+      isDarkColorScheme: true,
+      expected:
+        // prettier-ignore
+        `linear-gradient(` +
+          `<span data-angle="33deg"><span>33deg</span></span>, ` +
+          `light-dark(` +
+            `<span data-color="red" class="unmatched-class">` +
+              `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>`+
+              `<span>red</span>`+
+            `</span>, `+
+            `<span data-color="blue">` +
+              `<span class="test-class" style="background-color:blue" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+              `<span>blue</span>` +
+            `</span>` +
+          `), ` +
+          `light-dark(` +
+            `<span data-color="pink" class="unmatched-class">` +
+              `<span class="test-class" style="background-color:pink" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+              `<span>pink</span>` +
+            `</span>, ` +
+            `<span data-color="cyan">` +
+              `<span class="test-class" style="background-color:cyan" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+              `<span>cyan</span>` +
+            `</span>` +
+          `)` +
+        `)`,
+    },
+    {
+      message:
+        "in light mode, the second parameter gets the unmatched class when it's a variable",
+      propertyName: "color",
+      propertyValue: "light-dark(var(--x), var(--y))",
+      isDarkColorScheme: false,
+      variables: { "--x": "red", "--y": "blue" },
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+          `<span data-color="red">` +
+            `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>var(` +
+              `<span data-variable="--x = red">--x</span>` +
+            `)</span>` +
+          `</span>, ` +
+          `<span data-color="blue" class="unmatched-class">` +
+            `<span class="test-class" style="background-color:blue" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>var(` +
+              `<span data-variable="--y = blue">--y</span>` +
+            `)</span>` +
+          `</span>` +
+        `)`,
+    },
+    {
+      message:
+        "in light mode, the second parameter gets the unmatched class when some param are not parsed",
+      propertyName: "color",
+      // Using `notacolor` so we don't get a wrapping Node for it (contrary to colors).
+      // The value is still valid at parse time since we're using a variable,
+      // so the OutputParser will actually parse the different parts
+      propertyValue: "light-dark(var(--x),notacolor)",
+      isDarkColorScheme: false,
+      variables: { "--x": "red" },
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+          `<span data-color="red">` +
+            `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>` +
+              `var(<span data-variable="--x = red">--x</span>)` +
+            `</span>` +
+          `</span>,` +
+          `<span class="unmatched-class">notacolor</span>` +
+        `)`,
+    },
+    {
+      message:
+        "in dark mode, the first parameter gets the unmatched class when some param are not parsed",
+      propertyName: "color",
+      // Using `notacolor` so we don't get a wrapping Node for it (contrary to colors).
+      // The value is still valid at parse time since we're using a variable,
+      // so the OutputParser will actually parse the different parts
+      propertyValue: "light-dark(notacolor,var(--x))",
+      isDarkColorScheme: true,
+      variables: { "--x": "red" },
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+          `<span class="unmatched-class">notacolor</span>,` +
+          `<span data-color="red">` +
+            `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>` +
+              `var(<span data-variable="--x = red">--x</span>)` +
+            `</span>` +
+          `</span>` +
+        `)`,
+    },
+    {
+      message:
+        "in light mode, the second parameter gets the unmatched class, comments are stripped out and whitespace are preserved",
+      propertyName: "color",
+      propertyValue:
+        "light-dark( /* 1st param */ var(--x) /* delim */ , /*  2nd param */ notacolor /* delim */ )",
+      isDarkColorScheme: false,
+      variables: { "--x": "red" },
+      expected:
+        // prettier-ignore
+        `light-dark(  ` +
+          `<span data-color="red">` +
+            `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>` +
+              `var(<span data-variable="--x = red">--x</span>)` +
+            `</span>` +
+          `</span>  ,  ` +
+          `<span class="unmatched-class">notacolor</span>  ` +
+        `)`,
+    },
+    {
+      message:
+        "in dark mode, the first parameter gets the unmatched class, comments are stripped out and whitespace are preserved",
+      propertyName: "color",
+      propertyValue:
+        "light-dark( /* 1st param */ notacolor /* delim */ , /*  2nd param */ var(--x) /* delim */ )",
+      isDarkColorScheme: true,
+      variables: { "--x": "red" },
+      expected:
+        // prettier-ignore
+        `light-dark(  ` +
+          `<span class="unmatched-class">notacolor</span>  ,  ` +
+          `<span data-color="red">` +
+            `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>` +
+              `var(<span data-variable="--x = red">--x</span>)` +
+            `</span>` +
+          `</span>  ` +
+        `)`,
+    },
+    {
+      message:
+        "in light mode with a single parameter, we don't strike through any parameter (TODO wrap with IACVT - Bug 1910845)",
+      propertyName: "color",
+      propertyValue: "light-dark(var(--x))",
+      isDarkColorScheme: false,
+      variables: { "--x": "red" },
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+          `<span data-color="red">` +
+            `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>` +
+              `var(<span data-variable="--x = red">--x</span>)` +
+            `</span>` +
+          `</span>` +
+        `)`,
+    },
+    {
+      message:
+        "in dark mode with a single parameter, we don't strike through any parameter (TODO wrap with IACVT - Bug 1910845)",
+      propertyName: "color",
+      propertyValue: "light-dark(var(--x))",
+      isDarkColorScheme: true,
+      variables: { "--x": "red" },
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+          `<span data-color="red">` +
+            `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>` +
+              `var(<span data-variable="--x = red">--x</span>)` +
+            `</span>` +
+          `</span>` +
+        `)`,
+    },
+    {
+      message:
+        "in light mode with 3 parameters, we don't strike through any parameter (TODO wrap with IACVT - Bug 1910845)",
+      propertyName: "color",
+      propertyValue: "light-dark(var(--x),a,b)",
+      isDarkColorScheme: false,
+      variables: { "--x": "red" },
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+          `<span data-color="red">` +
+            `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>` +
+              `var(<span data-variable="--x = red">--x</span>)` +
+            `</span>` +
+          `</span>,a,b` +
+        `)`,
+    },
+    {
+      message:
+        "in dark mode with 3 parameters, we don't strike through any parameter (TODO wrap with IACVT - Bug 1910845)",
+      propertyName: "color",
+      propertyValue: "light-dark(var(--x),a,b)",
+      isDarkColorScheme: true,
+      variables: { "--x": "red" },
+      expected:
+        // prettier-ignore
+        `light-dark(` +
+          `<span data-color="red">` +
+            `<span class="test-class" style="background-color:red" tabindex="0" role="button" data-color-function="light-dark"></span>` +
+            `<span>` +
+              `var(<span data-variable="--x = red">--x</span>)` +
+            `</span>` +
+          `</span>,a,b` +
+        `)`,
+    },
+  ];
+
+  for (const test of TESTS) {
+    const frag = parser.parseCssProperty(
+      test.propertyName,
+      test.propertyValue,
+      {
+        isDarkColorScheme: test.isDarkColorScheme,
+        unmatchedClass: "unmatched-class",
+        colorSwatchClass: COLOR_TEST_CLASS,
+        getVariableData: varName => {
+          if (typeof test.variables[varName] === "string") {
+            return { value: test.variables[varName] };
+          }
+
+          return test.variables[varName] || {};
+        },
+      }
+    );
+
+    const target = doc.querySelector("div");
+    target.appendChild(frag);
+
+    is(target.innerHTML, test.expected, test.message);
+    target.innerHTML = "";
+  }
 }

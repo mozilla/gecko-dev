@@ -222,7 +222,7 @@ class OutputParser {
       } else if (token.tokenType === "ParenthesisBlock") {
         ++depth;
       } else if (token.tokenType === "CloseParenthesis") {
-        this.#onCloseParenthesis();
+        this.#onCloseParenthesis(options);
         --depth;
         if (depth === 0) {
           break;
@@ -732,7 +732,7 @@ class OutputParser {
           break;
 
         case "CloseParenthesis":
-          this.#onCloseParenthesis();
+          this.#onCloseParenthesis(options);
 
           if (stopAtCloseParen && this.#stack.length === 0) {
             done = true;
@@ -794,7 +794,7 @@ class OutputParser {
     // In such case, go through the stack and handle each items until we have nothing left.
     if (this.#stack.length) {
       while (this.#stack.length !== 0) {
-        this.#onCloseParenthesis();
+        this.#onCloseParenthesis(options);
       }
     }
 
@@ -807,11 +807,105 @@ class OutputParser {
     return result;
   }
 
-  #onCloseParenthesis() {
+  #onCloseParenthesis(options) {
     if (!this.#stack.length) {
       return;
     }
 
+    const stackEntry = this.#stack.at(-1);
+    if (
+      stackEntry.lowerCaseFunctionName === "light-dark" &&
+      typeof options.isDarkColorScheme === "boolean" &&
+      // light-dark takes exactly two parameters, so if we don't get exactly 1 separator
+      // at this point, that means that the value is valid at parse time, but is invalid
+      // at computed value time.
+      // TODO: We might want to add a class to indicate that this is invalid at computed
+      // value time (See Bug 1910845)
+      stackEntry.separatorIndexes.length === 1
+    ) {
+      const stackEntryParts = this.#getCurrentStackParts();
+      const separatorIndex = stackEntry.separatorIndexes[0];
+      let startIndex;
+      let endIndex;
+      if (options.isDarkColorScheme) {
+        // If we're using a dark color scheme, we want to mark the first param as
+        // not used.
+
+        // The first "part" is `light-dark(`, so we can start after that.
+        // We want to filter out white space character before the first parameter
+        for (startIndex = 1; startIndex < separatorIndex; startIndex++) {
+          const part = stackEntryParts[startIndex];
+          if (typeof part !== "string" || part.trim() !== "") {
+            break;
+          }
+        }
+
+        // same for the end of the parameter, we want to filter out whitespaces
+        // after the parameter and before the comma
+        for (
+          endIndex = separatorIndex - 1;
+          endIndex >= startIndex;
+          endIndex--
+        ) {
+          const part = stackEntryParts[endIndex];
+          if (typeof part !== "string" || part.trim() !== "") {
+            // We found a non-whitespace part, we need to include it, so increment the endIndex
+            endIndex++;
+            break;
+          }
+        }
+      } else {
+        // If we're not using a dark color scheme, we want to mark the second param as
+        // not used.
+
+        // We want to filter out white space character after the comma and before the
+        // second parameter
+        for (
+          startIndex = separatorIndex + 1;
+          startIndex < stackEntryParts.length;
+          startIndex++
+        ) {
+          const part = stackEntryParts[startIndex];
+          if (typeof part !== "string" || part.trim() !== "") {
+            break;
+          }
+        }
+
+        // same for the end of the parameter, we want to filter out whitespaces
+        // after the parameter and before the closing parenthesis (which is not yet
+        // included in stackEntryParts)
+        for (
+          endIndex = stackEntryParts.length - 1;
+          endIndex > separatorIndex;
+          endIndex--
+        ) {
+          const part = stackEntryParts[endIndex];
+          if (typeof part !== "string" || part.trim() !== "") {
+            // We found a non-whitespace part, we need to include it, so increment the endIndex
+            endIndex++;
+            break;
+          }
+        }
+      }
+
+      const parts = stackEntryParts.slice(startIndex, endIndex);
+
+      // If the item we need to mark is already an element (e.g. a parsed color),
+      // just add a class to it.
+      if (parts.length === 1 && Element.isInstance(parts[0])) {
+        parts[0].classList.add(options.unmatchedClass);
+      } else {
+        // Otherwise, we need to wrap our parts into a specific element so we can
+        // style them
+        const node = this.#createNode("span", {
+          class: options.unmatchedClass,
+        });
+        node.append(...parts);
+        stackEntryParts.splice(startIndex, parts.length, node);
+      }
+    }
+
+    // Our job is done here, pop last stack entry
     const { parts } = this.#stack.pop();
     // Put all the parts in the "new" last stack, or the main parsed array if there
     // is no more entry in the stack
@@ -2137,6 +2231,7 @@ class OutputParser {
    *          - {RegisteredPropertyResource|undefined} registeredProperty: The registered
    *            property data (syntax, initial value, inherits). Undefined if the variable
    *            is not a registered property.
+   * @param {Boolean} overrides.isDarkColorScheme: Is the currently applied color scheme dark.
    * @return {Object} Overridden options object
    */
   #mergeOptions(overrides) {
@@ -2161,6 +2256,7 @@ class OutputParser {
       getVariableData: null,
       unmatchedClass: null,
       inStartingStyleRule: false,
+      isDarkColorScheme: null,
     };
 
     for (const item in overrides) {
