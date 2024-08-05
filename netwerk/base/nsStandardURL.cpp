@@ -660,8 +660,13 @@ void nsStandardURL::CoalescePath(netCoalesceFlags coalesceFlag, char* path) {
     mDirectory.mLen = static_cast<int32_t>(lastSlash) + 1;
 
     // basename length includes everything after the last slash
-    // until hash, query, or the null char
+    // until hash, query, or the null char. However, if there was an extension
+    // we must make sure to update the length.
     mBasename.mLen = static_cast<int32_t>(endOfBasename - mDirectory.mLen);
+    if (mExtension.mLen >= 0) {
+      mBasename.mLen -= 1;  // Length of the . character
+      mBasename.mLen -= mExtension.mLen;
+    }
     mBasename.mPos = mDirectory.mPos + mDirectory.mLen;
 
     // Adjust the positions of extension, query, and ref as needed
