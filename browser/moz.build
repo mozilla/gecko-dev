@@ -45,9 +45,6 @@ DEFINES["APP_VERSION"] = CONFIG["MOZ_APP_VERSION"]
 for cdm in CONFIG["MOZ_EME_MODULES"]:
     DEFINES["MOZ_%s_EME" % cdm.upper()] = True
 
-if CONFIG["MOZ_GPSD"]:
-    DEFINES["MOZ_GPSD"] = True
-
 if CONFIG["MOZ_UPDATE_AGENT"]:
     DEFINES["MOZ_UPDATE_AGENT"] = True
 

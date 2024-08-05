@@ -67,7 +67,6 @@ geolocation:
       - none
       - portal
       - geoclue
-      - gpsd
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1905928
     data_reviews:
