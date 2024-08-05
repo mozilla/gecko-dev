@@ -275,6 +275,7 @@ void Http3Session::Shutdown() {
 
   bool isEchRetry = mError == mozilla::psm::GetXPCOMFromNSSError(
                                   SSL_ERROR_ECH_RETRY_WITH_ECH);
+  bool isNSSError = psm::IsNSSErrorCode(-1 * NS_ERROR_GET_CODE(mError));
   bool allowToRetryWithDifferentIPFamily =
       mBeforeConnectedError &&
       gHttpHandler->ConnMgr()->AllowToRetryDifferentIPFamilyForHttp3(mConnInfo,
@@ -283,9 +284,7 @@ void Http3Session::Shutdown() {
        allowToRetryWithDifferentIPFamily));
   if ((mBeforeConnectedError ||
        (mError == NS_ERROR_NET_HTTP3_PROTOCOL_ERROR)) &&
-      (mError !=
-       mozilla::psm::GetXPCOMFromNSSError(SSL_ERROR_BAD_CERT_DOMAIN)) &&
-      !isEchRetry && !mConnInfo->GetWebTransport() &&
+      !isNSSError && !isEchRetry && !mConnInfo->GetWebTransport() &&
       !allowToRetryWithDifferentIPFamily && !mDontExclude) {
     gHttpHandler->ExcludeHttp3(mConnInfo);
   }
@@ -299,6 +298,8 @@ void Http3Session::Shutdown() {
       if (isEchRetry) {
         // We have to propagate this error to nsHttpTransaction, so the
         // transaction will be restarted with a new echConfig.
+        stream->Close(mError);
+      } else if (isNSSError) {
         stream->Close(mError);
       } else {
         if (allowToRetryWithDifferentIPFamily && mNetAddr) {
