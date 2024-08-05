@@ -4,10 +4,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # vim: set expandtab tabstop=4 shiftwidth=4:
 
-from configparser import ConfigParser
-from io import StringIO
-
 import yaml
+from fluent.runtime.fallback import FluentLocalization, FluentResourceLoader
+
+from mozbuild.repackaging.desktop_file import generate_browser_desktop_entry
 
 # We need to change string representation of YAML such that when dumping the
 # modified representation we end up with the same way to represent blocks
@@ -144,29 +144,22 @@ class SnapcraftTransform:
         return snap
 
 
-class DesktopFileTransform:
-    DESKTOP_ENTRY = "Desktop Entry"
-
-    def __init__(self, source_file, icon):
-        self.desktop = ConfigParser()
-        # required to keep case on entries
-        self.desktop.optionxform = lambda option: option
-        self.desktop.read(source_file)
-
-        self.icon = icon
+class SnapDesktopFile:
+    def __init__(self, log, appname, branchname):
+        build_variables = {
+            "DEB_PKG_NAME": appname,
+            "DBusActivatable": "false",
+            "Icon": "/default256.png",
+            "StartupWMClass": "{}-{}".format(appname, branchname),
+        }
+        self.desktop = generate_browser_desktop_entry(
+            log,
+            build_variables,
+            appname,  # release_product,
+            branchname,  # release_type,
+            FluentLocalization,
+            FluentResourceLoader,
+        )
 
     def repack(self):
-        assert self.desktop.has_section(self.DESKTOP_ENTRY)
-        self.disable_dbus_activatable()
-        self.change_icon()
-
-        output = StringIO()
-        self.desktop.write(output)
-        return output.getvalue()
-
-    def disable_dbus_activatable(self):
-        if "DBusActivatable" in self.desktop[self.DESKTOP_ENTRY]:
-            self.desktop[self.DESKTOP_ENTRY]["DBusActivatable"] = "false"
-
-    def change_icon(self):
-        self.desktop[self.DESKTOP_ENTRY]["Icon"] = "/{}".format(self.icon)
+        return "\n".join(self.desktop)

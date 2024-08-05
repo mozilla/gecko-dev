@@ -2853,6 +2853,7 @@ def repackage_mar(command_context, input, mar, output, arch, mar_channel_id):
     "repackage",
     "snap",
     description="Repackage into Snap format for developer testing",
+    virtualenv_name="repackage-snap",
 )
 @CommandArgument(
     "--snapcraft",
@@ -3024,6 +3025,7 @@ def repackage_snap(
 
     # Create the package
     snappath = repackage_snap(
+        log=command_context.log,
         srcdir=command_context.topsrcdir,
         objdir=command_context.topobjdir,
         snapdir=snapdir,
