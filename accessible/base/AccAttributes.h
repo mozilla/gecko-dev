@@ -74,6 +74,7 @@ struct TextOffsetAttribute {
   // is -1, the attribute ends after this leaf, crossing Accessibles.
   int32_t mEndOffset;
   // The attribute:
+  // nsGkAtoms::mark: Semantic highlights such as text fragments.
   // nsGkAtoms::spelling: spelling errors
   RefPtr<nsAtom> mAttribute;
 

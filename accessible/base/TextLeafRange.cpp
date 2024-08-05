@@ -467,6 +467,7 @@ FindDOMTextOffsetAttributes(LocalAccessible* aAcc, int32_t aRenderedStart,
   const std::pair<mozilla::SelectionType, nsStaticAtom*>
       kSelectionTypesToAttributes[] = {
           {SelectionType::eSpellCheck, nsGkAtoms::spelling},
+          {SelectionType::eTargetText, nsGkAtoms::mark},
       };
   result.SetCapacity(ArrayLength(kSelectionTypesToAttributes));
   for (auto [selType, attr] : kSelectionTypesToAttributes) {
@@ -1472,6 +1473,8 @@ void TextLeafPoint::AddTextOffsetAttributes(AccAttributes* aAttrs) const {
   auto expose = [aAttrs](nsAtom* aAttr) {
     if (aAttr == nsGkAtoms::spelling) {
       aAttrs->SetAttribute(nsGkAtoms::invalid, aAttr);
+    } else if (aAttr == nsGkAtoms::mark) {
+      aAttrs->SetAttribute(aAttr, true);
     }
   };
 
