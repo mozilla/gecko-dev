@@ -59,7 +59,7 @@ dictionary L10nMessage {
  *    - formatMessages     - format multiple compound messages
  *
  */
-[Func="Document::DocumentSupportsL10n", Exposed=Window]
+[Func="IsChromeOrUAWidget", Exposed=Window]
 interface Localization {
   /**
    * Constructor arguments:

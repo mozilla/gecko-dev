@@ -24,7 +24,7 @@
  *
  */
 
-[Func="Document::DocumentSupportsL10n", Exposed=Window]
+[Func="IsChromeOrUAWidget", Exposed=Window]
 interface DOMLocalization : Localization {
   /**
    * Constructor arguments:
