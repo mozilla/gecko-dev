@@ -189,6 +189,14 @@ var sdputils = {
     return updated_sdp;
   },
 
+  removeCodecs(sdp, codecs) {
+    var updated_sdp = sdp;
+    codecs.forEach(codec => {
+      updated_sdp = this.removeCodec(updated_sdp, codec);
+    });
+    return updated_sdp;
+  },
+
   removeAllButPayloadType(sdp, pt) {
     return sdp.replace(
       new RegExp("m=(\\w+ \\w+) UDP/TLS/RTP/SAVPF .*" + pt + ".*\\r\\n", "gi"),

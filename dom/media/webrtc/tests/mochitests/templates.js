@@ -567,12 +567,9 @@ function PC_LOCAL_REMOVE_ALL_BUT_H264_FROM_OFFER(test) {
     -1,
     "H.264 should be present in the SDP offer"
   );
-  test.originalOffer.sdp = sdputils.removeCodec(
-    sdputils.removeCodec(
-      sdputils.removeCodec(test.originalOffer.sdp, 120),
-      121,
-      97
-    )
+  test.originalOffer.sdp = sdputils.removeCodecs(
+    test.originalOffer.sdp,
+    [120, 121, 97]
   );
   info("Updated H264 only offer: " + JSON.stringify(test.originalOffer));
 }
