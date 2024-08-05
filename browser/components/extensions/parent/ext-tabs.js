@@ -160,6 +160,7 @@ const allProperties = new Set([
   "hidden",
   "isArticle",
   "mutedInfo",
+  "openerTabId",
   "pinned",
   "sharingState",
   "status",
@@ -503,6 +504,11 @@ this.tabs = class extends ExtensionAPIPersistent {
         }
       };
 
+      let openerTabIdChangeListener = (_, { nativeTab, openerTabId }) => {
+        let tab = tabManager.getWrapper(nativeTab);
+        fireForTab(tab, { openerTabId }, nativeTab);
+      };
+
       let listeners = new Map();
       if (filter.properties.has("status") || filter.properties.has("url")) {
         listeners.set("status", statusListener);
@@ -531,6 +537,10 @@ this.tabs = class extends ExtensionAPIPersistent {
         tabTracker.on("tab-isarticle", isArticleChangeListener);
       }
 
+      if (filter.properties.has("openerTabId")) {
+        tabTracker.on("tab-openerTabId", openerTabIdChangeListener);
+      }
+
       return {
         unregister() {
           for (let [name, listener] of listeners) {
@@ -539,6 +549,10 @@ this.tabs = class extends ExtensionAPIPersistent {
 
           if (filter.properties.has("isArticle")) {
             tabTracker.off("tab-isarticle", isArticleChangeListener);
+          }
+
+          if (filter.properties.has("openerTabId")) {
+            tabTracker.off("tab-openerTabId", openerTabIdChangeListener);
           }
         },
         convert(_fire, _context) {
@@ -939,14 +953,7 @@ this.tabs = class extends ExtensionAPIPersistent {
             }
           }
           if (updateProperties.openerTabId !== null) {
-            let opener = tabTracker.getTab(updateProperties.openerTabId);
-            if (opener.ownerDocument !== nativeTab.ownerDocument) {
-              return Promise.reject({
-                message:
-                  "Opener tab must be in the same window as the tab being updated",
-              });
-            }
-            tabTracker.setOpener(nativeTab, opener);
+            tabTracker.setOpener(nativeTab, updateProperties.openerTabId);
           }
           if (updateProperties.successorTabId !== null) {
             let successor = null;

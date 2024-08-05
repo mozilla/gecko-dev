@@ -429,17 +429,29 @@ class TabTracker extends TabTrackerBase {
   }
 
   /**
-   * Sets the opener of `tab` to the ID `openerTab`. Both tabs must be in the
-   * same window, or this function will throw a type error.
+   * Sets the opener of `tab` to the ID `openerTabId`. Both tabs must be in the
+   * same window, or this function will throw an error. if `openerTabId` is `-1`
+   * the opener tab is cleared.
    *
-   * @param {Element} tab The tab for which to set the owner.
-   * @param {Element} openerTab The opener of <tab>.
+   * @param {Element} nativeTab The tab for which to set the owner.
+   * @param {number} openerTabId The openerTabId of <tab>.
    */
-  setOpener(tab, openerTab) {
-    if (tab.ownerDocument !== openerTab.ownerDocument) {
-      throw new Error("Tab must be in the same window as its opener");
+  setOpener(nativeTab, openerTabId) {
+    let nativeOpenerTab = null;
+
+    if (openerTabId > -1) {
+      nativeOpenerTab = tabTracker.getTab(openerTabId);
+      if (nativeTab.ownerDocument !== nativeOpenerTab.ownerDocument) {
+        throw new ExtensionError(
+          "Opener tab must be in the same window as the tab being updated"
+        );
+      }
     }
-    tab.openerTab = openerTab;
+
+    if (nativeTab.openerTab !== nativeOpenerTab) {
+      nativeTab.openerTab = nativeOpenerTab;
+      this.emit("tab-openerTabId", { nativeTab, openerTabId });
+    }
   }
 
   deferredForTabOpen(nativeTab) {

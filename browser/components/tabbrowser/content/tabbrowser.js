@@ -2739,7 +2739,8 @@
       }
       let openerTab =
         (openerBrowser && this.getTabForBrowser(openerBrowser)) ||
-        (relatedToCurrent && this.selectedTab);
+        (relatedToCurrent && this.selectedTab) ||
+        null;
 
       // When overflowing, new tabs are scrolled into view smoothly, which
       // doesn't go well together with the width transition. So we skip the
