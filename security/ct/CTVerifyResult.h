@@ -9,48 +9,33 @@
 
 #include <vector>
 
+#include "CTKnownLogs.h"
 #include "CTLog.h"
 #include "SignedCertificateTimestamp.h"
 
 namespace mozilla {
 namespace ct {
 
+enum class SCTOrigin {
+  Embedded,
+  TLSExtension,
+  OCSPResponse,
+};
+
 // Holds a verified Signed Certificate Timestamp along with the verification
 // status (e.g. valid/invalid) and additional information related to the
 // verification.
 struct VerifiedSCT {
-  VerifiedSCT();
+  VerifiedSCT(SignedCertificateTimestamp&& sct, SCTOrigin origin,
+              CTLogOperatorId logOperatorId, CTLogState logState,
+              uint64_t logTimestamp);
 
   // The original SCT.
   SignedCertificateTimestamp sct;
-
-  enum class Status {
-    None,
-    // The SCT is from a known log, and the signature is valid.
-    Valid,
-    // The SCT is from a known disqualified log, and the signature is valid.
-    // For the disqualification time of the log see |logDisqualificationTime|.
-    ValidFromDisqualifiedLog,
-    // The SCT is from an unknown log and can not be verified.
-    UnknownLog,
-    // The SCT is from a known log, but the signature is invalid.
-    InvalidSignature,
-    // The SCT signature is valid, but the timestamp is in the future.
-    // Such SCTs are considered invalid (see RFC 6962, Section 5.2).
-    InvalidTimestamp,
-  };
-
-  enum class Origin {
-    Unknown,
-    Embedded,
-    TLSExtension,
-    OCSPResponse,
-  };
-
-  Status status;
-  Origin origin;
+  SCTOrigin origin;
   CTLogOperatorId logOperatorId;
-  uint64_t logDisqualificationTime;
+  CTLogState logState;
+  uint64_t logTimestamp;
 };
 
 typedef std::vector<VerifiedSCT> VerifiedSCTList;
@@ -74,6 +59,19 @@ class CTVerifyResult {
   // standard.
   // |decodingErrors| field counts the errors of the above kind.
   size_t decodingErrors;
+  // The number of SCTs encountered from unknown logs.
+  size_t sctsFromUnknownLogs;
+  // The number of SCTs encountered with invalid signatures.
+  size_t sctsWithInvalidSignatures;
+  // The number of SCTs encountered with timestamps in the future.
+  size_t sctsWithInvalidTimestamps;
+
+  // The number of SCTs that were embedded in the certificate.
+  size_t embeddedSCTs;
+  // The number of SCTs included in the TLS handshake.
+  size_t sctsFromTLSHandshake;
+  // The number of SCTs delivered via OCSP.
+  size_t sctsFromOCSP;
 
   void Reset();
 };

@@ -23,14 +23,12 @@ class CTLogVerifierTest : public ::testing::Test {
       abort();
     }
 
-    ASSERT_EQ(Success,
-              mLog.Init(InputForBuffer(GetTestPublicKey()), -1 /*operator id*/,
-                        CTLogStatus::Included, 0 /*disqualification time*/));
+    ASSERT_EQ(Success, mLog.Init(InputForBuffer(GetTestPublicKey())));
     ASSERT_EQ(GetTestPublicKeyId(), mLog.keyId());
   }
 
  protected:
-  CTLogVerifier mLog;
+  CTLogVerifier mLog = CTLogVerifier(-1, CTLogState::Admissible, 0);
 };
 
 TEST_F(CTLogVerifierTest, VerifiesCertSCT) {
@@ -108,10 +106,8 @@ TEST_F(CTLogVerifierTest, ExcessDataInPublicKey) {
   std::string extra = "extra";
   key.insert(key.end(), extra.begin(), extra.end());
 
-  CTLogVerifier log;
-  EXPECT_NE(Success,
-            log.Init(InputForBuffer(key), -1 /*operator id*/,
-                     CTLogStatus::Included, 0 /*disqualification time*/));
+  CTLogVerifier log(-1, CTLogState::Admissible, 0);
+  EXPECT_NE(Success, log.Init(InputForBuffer(key)));
 }
 
 }  // namespace ct

@@ -13,24 +13,12 @@
 namespace mozilla {
 namespace ct {
 
-// Signed integer sufficient to store the numeric ID of CT log operators
-// as assigned at https://www.certificate-transparency.org/known-logs .
+// Signed integer sufficient to store the numeric ID of CT log operators.
 // The assigned IDs are 0-based positive integers, so you can use special
 // values (such as -1) to indicate a "null" or unknown log ID.
 typedef int16_t CTLogOperatorId;
 
 typedef std::vector<CTLogOperatorId> CTLogOperatorList;
-
-// Current status of a CT log in regard to its inclusion in the
-// Known Logs List such as https://www.certificate-transparency.org/known-logs
-enum class CTLogStatus {
-  // Status unknown or unavailable.
-  Unknown,
-  // Included in the list of known logs.
-  Included,
-  // Previously included, but disqualified at some point of time.
-  Disqualified,
-};
 
 }  // namespace ct
 }  // namespace mozilla
