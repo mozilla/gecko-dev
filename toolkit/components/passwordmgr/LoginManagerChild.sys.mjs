@@ -1803,16 +1803,10 @@ export class LoginManagerChild extends JSWindowActorChild {
     const isPrimaryPasswordSet = this.#getIsPrimaryPasswordSet();
 
     let document;
-    let formLike;
-
     if (HTMLFormElement.isInstance(event.target)) {
       document = event.target.ownerDocument;
-      formLike = lazy.LoginFormFactory.createFromForm(event.target);
     } else {
       document = event.target;
-      formLike = lazy.LoginFormFactory.createFromDocumentRoot(
-        document.documentElement
-      );
     }
 
     lazy.log(
@@ -1834,16 +1828,24 @@ export class LoginManagerChild extends JSWindowActorChild {
     }
 
     if (document.visibilityState == "visible" || isPrimaryPasswordSet) {
-      this._processDOMPossibleUsernameInputAddedEvent(formLike);
+      this._processDOMPossibleUsernameInputAddedEvent(event);
     } else {
       // wait until the document becomes visible before handling this event
       this._deferHandlingEventUntilDocumentVisible(event, document, () => {
-        this._processDOMPossibleUsernameInputAddedEvent(formLike);
+        this._processDOMPossibleUsernameInputAddedEvent(event);
       });
     }
   }
 
-  _processDOMPossibleUsernameInputAddedEvent(formLike) {
+  _processDOMPossibleUsernameInputAddedEvent(event) {
+    let formLike;
+    if (HTMLFormElement.isInstance(event.target)) {
+      formLike = lazy.LoginFormFactory.createFromForm(event.target);
+    } else {
+      formLike = lazy.LoginFormFactory.createFromDocumentRoot(
+        event.target.documentElement
+      );
+    }
     // If the form contains a passoword field, `getUsernameFieldFromUsernameOnlyForm` returns
     // null, so we don't trigger autofill for those forms here. In this function,
     // we only care about username-only forms. For forms contain a password, they'll be handled
