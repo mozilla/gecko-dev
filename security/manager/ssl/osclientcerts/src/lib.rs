@@ -594,6 +594,21 @@ fn trace_attr(prefix: &str, attr: &CK_ATTRIBUTE) {
     );
 }
 
+const RELEVANT_ATTRIBUTES: &[CK_ATTRIBUTE_TYPE] = &[
+    CKA_CLASS,
+    CKA_EC_PARAMS,
+    CKA_ID,
+    CKA_ISSUER,
+    CKA_KEY_TYPE,
+    CKA_LABEL,
+    CKA_MODULUS,
+    CKA_PRIVATE,
+    CKA_SERIAL_NUMBER,
+    CKA_SUBJECT,
+    CKA_TOKEN,
+    CKA_VALUE,
+];
+
 /// This gets called to initialize a search for objects matching a given list of attributes. This
 /// module implements this by gathering the attributes and passing them to the `ManagerProxy` to
 /// start the search.
@@ -611,10 +626,19 @@ extern "C" fn C_FindObjectsInit(
     for i in 0..ulCount as usize {
         let attr = unsafe { &*pTemplate.add(i) };
         trace_attr("  ", attr);
+        // Copy out the attribute type to avoid making a reference to an unaligned field.
+        let attr_type = attr.type_;
+        if !RELEVANT_ATTRIBUTES.contains(&attr_type) {
+            log_with_thread_id!(
+                debug,
+                "C_FindObjectsInit: irrelevant attribute, returning CKR_ATTRIBUTE_TYPE_INVALID"
+            );
+            return CKR_ATTRIBUTE_TYPE_INVALID;
+        }
         let slice = unsafe {
             std::slice::from_raw_parts(attr.pValue as *const u8, attr.ulValueLen as usize)
         };
-        attrs.push((attr.type_, slice.to_owned()));
+        attrs.push((attr_type, slice.to_owned()));
     }
     let mut module_state_guard = try_to_get_module_state_guard!();
     let manager = module_state_guard_to_manager!(module_state_guard);
