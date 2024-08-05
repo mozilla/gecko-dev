@@ -40,7 +40,7 @@ static inline void profiler_init(void* stackTop) {}
 static inline void profiler_shutdown(
     IsFastShutdown aIsFastShutdown = IsFastShutdown::No) {}
 
-static inline void profiler_lookup_async_signal_dump_directory() {}
+static inline void profiler_lookup_download_directory() {}
 
 #else  // !MOZ_GECKO_PROFILER
 
@@ -138,7 +138,7 @@ void profiler_ensure_started(
 // third option, by giving us a hook to look for the download directory when
 // the time is right. This might be triggered internally (e.g. when we start
 // profiling), or externally, e.g. after the directory service is initialised.
-void profiler_lookup_async_signal_dump_directory();
+void profiler_lookup_download_directory();
 
 //---------------------------------------------------------------------------
 // Control the profiler
