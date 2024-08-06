@@ -601,3 +601,12 @@ add_task(async function wheelTests() {
     type: "mouseover",
   });
 });
+
+add_task(async function appearsAsTooltipToAccessibilityToolsTests() {
+  const previewPanel = document.getElementById("tab-preview-panel");
+  Assert.equal(
+    previewPanel.getAttribute("role"),
+    "tooltip",
+    "The panel appears as a tooltip to assistive technology"
+  );
+});
