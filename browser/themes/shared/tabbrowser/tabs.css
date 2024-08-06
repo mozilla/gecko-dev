@@ -57,7 +57,7 @@
    * taking all the toolbar space. */
   flex: 1000 1000;
 
-  &[positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
+  &:not([orient="vertical"])[positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
     /* Add padding to match the shadow's blur radius so the
        shadow doesn't get clipped when either the first or
        last tab is selected */
@@ -367,9 +367,10 @@
     animation: var(--tab-sharing-icon-animation);
     animation-delay: -1.5s;
   }
-
-  &[selected]:not([src], [pinned], [crashed], [pictureinpicture]),
-  &:not([src], [pinned], [crashed], [sharing], [pictureinpicture]),
+  /* Hide the generic favicon only in horizontal mode. In vertical mode, tabs may not
+  have labels (collapsed state) or we want icons and labels to line up vertically
+  (expanded state).  */
+  #tabbrowser-tabs:not([orient="vertical"]) &:not([src], [pinned], [crashed], [sharing], [pictureinpicture]),
   &[busy] {
     display: none;
   }
@@ -763,7 +764,6 @@ tab-group {
   &::part(scrollbox) {
     scrollbar-width: thin;
     overflow-y: auto;
-    padding-inline-end: 0;
   }
 
   &[overflowing="true"]:not([scrolledtoend="true"]) {
