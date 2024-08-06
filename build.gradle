@@ -125,7 +125,7 @@ allprojects {
         buildId = getBuildId()
 
         buildToolsVersion = mozconfig.substs.ANDROID_BUILD_TOOLS_VERSION
-        compileSdkVersion = tryInt(mozconfig.substs.ANDROID_TARGET_SDK)
+        compileSdkVersion = tryInt(mozconfig.substs.ANDROID_COMPILE_SDK)
         targetSdkVersion = tryInt(mozconfig.substs.ANDROID_TARGET_SDK)
         minSdkVersion = tryInt(mozconfig.substs.MOZ_ANDROID_MIN_SDK_VERSION)
         manifestPlaceholders = [
