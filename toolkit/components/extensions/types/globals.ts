@@ -1,20 +1,3 @@
-/**
- * Gecko globals.
- */
-declare global {
-  const Cc: nsXPCComponents_Classes;
-  const Ci: nsIXPCComponents_Interfaces;
-  const Cr: nsIXPCComponents_Results;
-  const Components: nsIXPCComponents;
-
-  // Resolve typed generic overloads before the generated ones.
-  const Cu: nsXPCComponents_Utils & nsIXPCComponents_Utils;
-
-  const Glean: GleanImpl;
-  const GleanPings: GleanPingsImpl;
-  const Services: JSServices;
-  const uneval: (any) => string;
-}
 
 // Exports for all modules redirected here by a catch-all rule in tsconfig.json.
 export var
