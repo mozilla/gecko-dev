@@ -2615,7 +2615,7 @@ void CompilationStencil::assertBorrowingFromExtensibleCompilationStencil(
 
 CompilationStencil::CompilationStencil(
     UniquePtr<ExtensibleCompilationStencil>&& extensibleStencil)
-    : alloc(LifoAllocChunkSize) {
+    : alloc(LifoAllocChunkSize, js::BackgroundMallocArena) {
   ownedBorrowStencil = std::move(extensibleStencil);
 
   storageType = StorageType::OwnedExtensible;
@@ -3010,21 +3010,21 @@ bool CompilationStencil::deserializeStencils(
 }
 
 ExtensibleCompilationStencil::ExtensibleCompilationStencil(ScriptSource* source)
-    : alloc(CompilationStencil::LifoAllocChunkSize),
+    : alloc(CompilationStencil::LifoAllocChunkSize, js::BackgroundMallocArena),
       source(source),
       parserAtoms(alloc) {}
 
 ExtensibleCompilationStencil::ExtensibleCompilationStencil(
     CompilationInput& input)
     : canLazilyParse(CanLazilyParse(input.options)),
-      alloc(CompilationStencil::LifoAllocChunkSize),
+      alloc(CompilationStencil::LifoAllocChunkSize, js::BackgroundMallocArena),
       source(input.source),
       parserAtoms(alloc) {}
 
 ExtensibleCompilationStencil::ExtensibleCompilationStencil(
     const JS::ReadOnlyCompileOptions& options, RefPtr<ScriptSource> source)
     : canLazilyParse(CanLazilyParse(options)),
-      alloc(CompilationStencil::LifoAllocChunkSize),
+      alloc(CompilationStencil::LifoAllocChunkSize, js::BackgroundMallocArena),
       source(std::move(source)),
       parserAtoms(alloc) {}
 

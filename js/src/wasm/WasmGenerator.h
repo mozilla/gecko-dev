@@ -164,7 +164,7 @@ struct CompileTask : public HelperThreadTask {
         compilerEnv(compilerEnv),
         compileState(compileState),
         state(state),
-        lifo(defaultChunkSize) {}
+        lifo(defaultChunkSize, js::MallocArena) {}
 
   virtual ~CompileTask() = default;
 

@@ -1405,7 +1405,7 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
         moduleFunctionNode_(moduleFunctionNode),
         moduleFunctionName_(FunctionName(moduleFunctionNode)),
         standardLibraryMathNames_(fc),
-        validationLifo_(VALIDATION_LIFO_DEFAULT_CHUNK_SIZE),
+        validationLifo_(VALIDATION_LIFO_DEFAULT_CHUNK_SIZE, js::MallocArena),
         funcDefs_(fc),
         tables_(fc),
         globalMap_(fc),

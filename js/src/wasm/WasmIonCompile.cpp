@@ -9928,7 +9928,8 @@ bool wasm::IonDumpFunction(const CompilerEnvironment& compilerEnv,
                            const FuncCompileInput& func,
                            IonDumpContents contents, GenericPrinter& out,
                            UniqueChars* error) {
-  LifoAlloc lifo(TempAllocator::PreferredLifoChunkSize);
+  LifoAlloc lifo(TempAllocator::PreferredLifoChunkSize,
+                 js::BackgroundMallocArena);
   TempAllocator alloc(&lifo);
   JitContext jitContext;
   Decoder d(func.begin, func.end, func.lineOrBytecode, error);

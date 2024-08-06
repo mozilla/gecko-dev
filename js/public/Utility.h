@@ -352,7 +352,21 @@ struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion {
 
 namespace js {
 
+// The following two arenas require a little bit of clarification. We have
+// observed that, particularly on devices with heterogeneous CPU architectures
+// where background work can run on significantly slower cores than main thread
+// work, the lock contention in the allocator can be a big problem for the
+// main thread. So we introduced an arena for background allocations which can
+// reduce that contention.
+//
+// The general rule for these is: if it's easy to determine at the time of
+// authorship that an allocation will be *off* the main thread, use the
+// BackgroundMallocArena, and vice versa. If it is hard to determine, just make
+// a guess, and that will be fine. Do not spend too much time on this, and
+// don't do anything fancy at runtime to try to determine which to use.
 extern JS_PUBLIC_DATA arena_id_t MallocArena;
+extern JS_PUBLIC_DATA arena_id_t BackgroundMallocArena;
+
 extern JS_PUBLIC_DATA arena_id_t ArrayBufferContentsArena;
 extern JS_PUBLIC_DATA arena_id_t StringBufferArena;
 

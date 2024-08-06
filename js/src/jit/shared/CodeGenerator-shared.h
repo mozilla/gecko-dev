@@ -32,7 +32,7 @@ class IonIC;
 class OutOfLineTruncateSlow;
 
 class CodeGeneratorShared : public LElementVisitor {
-  js::Vector<OutOfLineCode*, 0, SystemAllocPolicy> outOfLineCode_;
+  js::Vector<OutOfLineCode*, 0, BackgroundSystemAllocPolicy> outOfLineCode_;
 
   MacroAssembler& ensureMasm(MacroAssembler* masm, TempAllocator& alloc,
                              CompileRealm* realm);
@@ -61,24 +61,26 @@ class CodeGeneratorShared : public LElementVisitor {
   // Amount of bytes allocated for incoming args. Used for Wasm return calls.
   uint32_t inboundStackArgBytes_;
 
-  js::Vector<CodegenSafepointIndex, 0, SystemAllocPolicy> safepointIndices_;
-  js::Vector<OsiIndex, 0, SystemAllocPolicy> osiIndices_;
+  js::Vector<CodegenSafepointIndex, 0, BackgroundSystemAllocPolicy>
+      safepointIndices_;
+  js::Vector<OsiIndex, 0, BackgroundSystemAllocPolicy> osiIndices_;
 
   // Allocated data space needed at runtime.
-  js::Vector<uint8_t, 0, SystemAllocPolicy> runtimeData_;
+  js::Vector<uint8_t, 0, BackgroundSystemAllocPolicy> runtimeData_;
 
   // Vector mapping each IC index to its offset in runtimeData_.
-  js::Vector<uint32_t, 0, SystemAllocPolicy> icList_;
+  js::Vector<uint32_t, 0, BackgroundSystemAllocPolicy> icList_;
 
   // IC data we need at compile-time. Discarded after creating the IonScript.
   struct CompileTimeICInfo {
     CodeOffset icOffsetForJump;
     CodeOffset icOffsetForPush;
   };
-  js::Vector<CompileTimeICInfo, 0, SystemAllocPolicy> icInfo_;
+  js::Vector<CompileTimeICInfo, 0, BackgroundSystemAllocPolicy> icInfo_;
 
  protected:
-  js::Vector<NativeToBytecode, 0, SystemAllocPolicy> nativeToBytecodeList_;
+  js::Vector<NativeToBytecode, 0, BackgroundSystemAllocPolicy>
+      nativeToBytecodeList_;
   UniquePtr<uint8_t> nativeToBytecodeMap_;
   uint32_t nativeToBytecodeMapSize_;
   uint32_t nativeToBytecodeTableOffset_;

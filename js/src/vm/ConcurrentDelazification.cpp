@@ -215,7 +215,8 @@ bool DelazificationContext::delazify() {
   // to use it, as it could be purged by a GC in the mean time.
   StencilScopeBindingCache scopeCache(merger_);
 
-  LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
+  LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
+                          js::BackgroundMallocArena);
 
   while (!strategy_->done()) {
     if (isInterrupted_) {

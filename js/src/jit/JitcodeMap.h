@@ -449,7 +449,8 @@ class JitcodeGlobalTable {
   EntryTree tree_;
 
  public:
-  JitcodeGlobalTable() : alloc_(LIFO_CHUNK_SIZE), tree_(&alloc_) {}
+  JitcodeGlobalTable()
+      : alloc_(LIFO_CHUNK_SIZE, js::BackgroundMallocArena), tree_(&alloc_) {}
 
   bool empty() const {
     MOZ_ASSERT(entries_.empty() == tree_.empty());

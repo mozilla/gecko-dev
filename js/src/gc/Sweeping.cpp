@@ -462,7 +462,8 @@ void BackgroundFreeTask::run(AutoLockHelperThreadState& lock) {
 
 void GCRuntime::freeFromBackgroundThread(AutoLockHelperThreadState& lock) {
   do {
-    LifoAlloc lifoBlocks(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
+    LifoAlloc lifoBlocks(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
+                         js::BackgroundMallocArena);
     lifoBlocks.transferFrom(&lifoBlocksToFree.ref());
 
     Nursery::BufferSet buffers;

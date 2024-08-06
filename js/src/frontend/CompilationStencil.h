@@ -1223,7 +1223,7 @@ struct CompilationStencil {
 
   // Construct a CompilationStencil
   explicit CompilationStencil(ScriptSource* source)
-      : alloc(LifoAllocChunkSize), source(source) {}
+      : alloc(LifoAllocChunkSize, js::BackgroundMallocArena), source(source) {}
 
   // Take the ownership of on-heap ExtensibleCompilationStencil and
   // borrow from it.
@@ -1389,7 +1389,8 @@ struct ExtensibleCompilationStencil {
   ExtensibleCompilationStencil(ExtensibleCompilationStencil&& other) noexcept
       : canLazilyParse(other.canLazilyParse),
         functionKey(other.functionKey),
-        alloc(CompilationStencil::LifoAllocChunkSize),
+        alloc(CompilationStencil::LifoAllocChunkSize,
+              js::BackgroundMallocArena),
         source(std::move(other.source)),
         scriptData(std::move(other.scriptData)),
         scriptExtra(std::move(other.scriptExtra)),

@@ -1956,7 +1956,7 @@ bool wasm::EnsureBuiltinThunksInitialized(
     return false;
   }
 
-  LifoAlloc lifo(BUILTIN_THUNK_LIFO_SIZE);
+  LifoAlloc lifo(BUILTIN_THUNK_LIFO_SIZE, js::MallocArena);
   TempAllocator tempAlloc(&lifo);
   WasmMacroAssembler masm(tempAlloc);
   AutoCreatedBy acb(masm, "wasm::EnsureBuiltinThunksInitialized");

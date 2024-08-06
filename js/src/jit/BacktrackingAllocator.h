@@ -572,7 +572,8 @@ class VirtualRegister {
 
 // A sequence of code positions, for tellings BacktrackingAllocator::splitAt
 // where to split.
-using SplitPositionVector = js::Vector<CodePosition, 4, SystemAllocPolicy>;
+using SplitPositionVector =
+    js::Vector<CodePosition, 4, BackgroundSystemAllocPolicy>;
 
 class BacktrackingAllocator : protected RegisterAllocator {
   friend class JSONSpewer;
@@ -599,7 +600,8 @@ class BacktrackingAllocator : protected RegisterAllocator {
     size_t priority_;
   };
 
-  PriorityQueue<QueueItem, QueueItem, 0, SystemAllocPolicy> allocationQueue;
+  PriorityQueue<QueueItem, QueueItem, 0, BackgroundSystemAllocPolicy>
+      allocationQueue;
 
   // This is a set of LiveRange.  They must be non-overlapping.  Attempts
   // to add an overlapping range will cause AvlTree::insert to MOZ_CRASH().
@@ -659,9 +661,9 @@ class BacktrackingAllocator : protected RegisterAllocator {
   // All allocated slots of each width.
   SpillSlotList normalSlots, doubleSlots, quadSlots;
 
-  Vector<LiveBundle*, 4, SystemAllocPolicy> spilledBundles;
+  Vector<LiveBundle*, 4, BackgroundSystemAllocPolicy> spilledBundles;
 
-  using LiveBundleVector = Vector<LiveBundle*, 4, SystemAllocPolicy>;
+  using LiveBundleVector = Vector<LiveBundle*, 4, BackgroundSystemAllocPolicy>;
 
   // Misc accessors
   bool compilingWasm() { return mir->outerInfo().compilingWasm(); }

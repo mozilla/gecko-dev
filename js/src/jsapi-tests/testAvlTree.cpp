@@ -213,7 +213,7 @@ BEGIN_TEST(testAvlTree_main) {
   static const int UNIV_MAX = 5999;
   static const int UNIV_SIZE = UNIV_MAX - UNIV_MIN + 1;
 
-  LifoAlloc alloc(4096);
+  LifoAlloc alloc(4096, js::MallocArena);
   AvlTreeTestIF<CmpInt, CmpInt> tree(&alloc);
   std::set<int> should_be_in_tree;
 

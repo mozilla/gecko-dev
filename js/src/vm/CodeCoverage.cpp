@@ -383,7 +383,7 @@ void LCovSource::writeScript(JSScript* script, const char* scriptName) {
 }
 
 LCovRealm::LCovRealm(JS::Realm* realm)
-    : alloc_(4096), outTN_(&alloc_), sources_(alloc_) {
+    : alloc_(4096, js::MallocArena), outTN_(&alloc_), sources_(alloc_) {
   // Record realm name. If we wait until finalization, the embedding may not be
   // able to provide us the name anymore.
   writeRealmName(realm);

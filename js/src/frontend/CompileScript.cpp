@@ -99,7 +99,8 @@ static already_AddRefed<JS::Stencil> CompileGlobalScriptToStencilImpl(
   frontend::CompilationInput compilationInput(options);
 
   frontend::NoScopeBindingCache scopeCache;
-  LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
+  LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
+                          js::BackgroundMallocArena);
   RefPtr<JS::Stencil> stencil_ = frontend::CompileGlobalScriptToStencil(
       nullptr, fc, tempLifoAlloc, compilationInput, &scopeCache, data,
       scopeKind);
@@ -120,7 +121,8 @@ static already_AddRefed<JS::Stencil> CompileModuleScriptToStencilImpl(
   frontend::CompilationInput compilationInput(options);
 
   NoScopeBindingCache scopeCache;
-  js::LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
+  js::LifoAlloc tempLifoAlloc(JSContext::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
+                              js::BackgroundMallocArena);
   RefPtr<JS::Stencil> stencil = ParseModuleToStencil(
       nullptr, fc, tempLifoAlloc, compilationInput, &scopeCache, srcBuf);
   // CompilationInput initialized with ParseModuleToStencil only

@@ -110,7 +110,7 @@ BEGIN_TEST(testAssemblerBuffer_BranchDeadlineSet) {
   using DLSet = js::jit::BranchDeadlineSet<3>;
   using js::jit::BufferOffset;
 
-  js::LifoAlloc alloc(1024);
+  js::LifoAlloc alloc(1024, js::MallocArena);
   DLSet dls(alloc);
 
   CHECK(dls.empty());
@@ -519,7 +519,7 @@ END_TEST(testAssemblerBuffer_AssemblerBufferWithConstantPools_ShortBranch)
 BEGIN_TEST(testAssemblerBuffer_ARM64) {
   using namespace js::jit;
 
-  js::LifoAlloc lifo(4096);
+  js::LifoAlloc lifo(4096, js::MallocArena);
   TempAllocator alloc(&lifo);
   JitContext jc(cx);
   StackMacroAssembler masm(cx, alloc);

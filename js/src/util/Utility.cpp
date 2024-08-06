@@ -94,6 +94,7 @@ void InitLargeAllocLimit() {
 #endif
 
 JS_PUBLIC_DATA arena_id_t js::MallocArena;
+JS_PUBLIC_DATA arena_id_t js::BackgroundMallocArena;
 JS_PUBLIC_DATA arena_id_t js::ArrayBufferContentsArena;
 JS_PUBLIC_DATA arena_id_t js::StringBufferArena;
 
@@ -101,6 +102,7 @@ void js::InitMallocAllocator() {
   arena_params_t mallocArenaParams;
   mallocArenaParams.mMaxDirtyIncreaseOverride = 5;
   MallocArena = moz_create_arena_with_params(&mallocArenaParams);
+  BackgroundMallocArena = moz_create_arena_with_params(&mallocArenaParams);
 
   arena_params_t params;
   params.mMaxDirtyIncreaseOverride = 5;

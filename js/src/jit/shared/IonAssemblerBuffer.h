@@ -165,7 +165,7 @@ class AssemblerBuffer {
         maxSize(MaxCodeBytesPerBuffer),
         finger(nullptr),
         finger_offset(0),
-        lifoAlloc_(8192) {}
+        lifoAlloc_(8192, js::BackgroundMallocArena) {}
 
  public:
   bool isAligned(size_t alignment) const {

@@ -1664,8 +1664,8 @@ static AbortReason IonCompile(JSContext* cx, HandleScript script,
                               jsbytecode* osrPc) {
   cx->check(script);
 
-  auto alloc =
-      cx->make_unique<LifoAlloc>(TempAllocator::PreferredLifoChunkSize);
+  auto alloc = cx->make_unique<LifoAlloc>(TempAllocator::PreferredLifoChunkSize,
+                                          js::MallocArena);
   if (!alloc) {
     return AbortReason::Error;
   }

@@ -558,7 +558,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
                                     size_t* stubBlockIndex) const {
   MOZ_ASSERT(funcExportIndices.length());
 
-  LifoAlloc lifo(LAZY_STUB_LIFO_DEFAULT_CHUNK_SIZE);
+  LifoAlloc lifo(LAZY_STUB_LIFO_DEFAULT_CHUNK_SIZE, js::MallocArena);
   TempAllocator alloc(&lifo);
   JitContext jitContext;
   WasmMacroAssembler masm(alloc);

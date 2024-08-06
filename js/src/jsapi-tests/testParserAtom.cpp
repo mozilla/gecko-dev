@@ -22,7 +22,7 @@ BEGIN_TEST(testParserAtom_empty) {
   using js::frontend::TaggedParserAtomIndex;
 
   js::AutoReportFrontendContext fc(cx);
-  js::LifoAlloc alloc(512);
+  js::LifoAlloc alloc(512, js::MallocArena);
   ParserAtomsTable atomTable(alloc);
 
   const char ascii[] = {};
@@ -49,7 +49,7 @@ BEGIN_TEST(testParserAtom_tiny1_ASCII) {
   using js::frontend::WellKnownParserAtoms;
 
   js::AutoReportFrontendContext fc(cx);
-  js::LifoAlloc alloc(512);
+  js::LifoAlloc alloc(512, js::MallocArena);
   ParserAtomsTable atomTable(alloc);
 
   char16_t a = 'a';
@@ -77,7 +77,7 @@ BEGIN_TEST(testParserAtom_tiny1_nonASCII) {
   using js::frontend::WellKnownParserAtoms;
 
   js::AutoReportFrontendContext fc(cx);
-  js::LifoAlloc alloc(512);
+  js::LifoAlloc alloc(512, js::MallocArena);
   ParserAtomsTable atomTable(alloc);
 
   {
@@ -191,7 +191,7 @@ BEGIN_TEST(testParserAtom_tiny1_invalidUTF8) {
   using js::frontend::WellKnownParserAtoms;
 
   js::AutoReportFrontendContext fc(cx);
-  js::LifoAlloc alloc(512);
+  js::LifoAlloc alloc(512, js::MallocArena);
   ParserAtomsTable atomTable(alloc);
 
   {
@@ -326,7 +326,7 @@ BEGIN_TEST(testParserAtom_tiny2) {
   using js::frontend::WellKnownParserAtoms;
 
   js::AutoReportFrontendContext fc(cx);
-  js::LifoAlloc alloc(512);
+  js::LifoAlloc alloc(512, js::MallocArena);
   ParserAtomsTable atomTable(alloc);
 
   const char ascii[] = {'a', '0'};
@@ -360,7 +360,7 @@ BEGIN_TEST(testParserAtom_int) {
   using js::frontend::WellKnownParserAtoms;
 
   js::AutoReportFrontendContext fc(cx);
-  js::LifoAlloc alloc(512);
+  js::LifoAlloc alloc(512, js::MallocArena);
   ParserAtomsTable atomTable(alloc);
 
   {
