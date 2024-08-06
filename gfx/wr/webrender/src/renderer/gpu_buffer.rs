@@ -359,11 +359,11 @@ impl<T> GpuBufferBuilderImpl<T> where T: Texel + std::convert::From<DeviceIntRec
                     DeviceIntRect::new(
                         DeviceIntPoint::new(
                             target_rect.min.x + (top_left.x * size.width as f32).round() as i32,
-                            target_rect.min.y + (top_left.y * size.height as f32).round() as i32,
+                            target_rect.min.y + (top_left.y * size.width as f32).round() as i32,
                         ),
                         DeviceIntPoint::new(
                             target_rect.min.x + (bottom_right.x * size.width as f32).round() as i32,
-                            target_rect.min.y + (bottom_right.y * size.height as f32).round() as i32,
+                            target_rect.min.y + (bottom_right.x * size.width as f32).round() as i32,
                         ),
                     )
                 }

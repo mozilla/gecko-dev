@@ -7853,7 +7853,7 @@ fn get_surface_rects(
     })
 }
 
-pub fn calculate_uv_rect_kind(
+fn calculate_uv_rect_kind(
     clipped: DeviceRect,
     unclipped: DeviceRect,
 ) -> UvRectKind {

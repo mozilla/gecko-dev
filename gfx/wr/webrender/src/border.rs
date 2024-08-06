@@ -175,28 +175,24 @@ pub fn ensure_no_corner_overlap(
     let bottom_right_radius = &mut radius.bottom_right;
     let bottom_left_radius = &mut radius.bottom_left;
 
-    if size.width > 0.0 {
-        let sum = top_left_radius.width + top_right_radius.width;
-        if size.width < sum {
-            ratio = f32::min(ratio, size.width / sum);
-        }
-
-        let sum = bottom_left_radius.width + bottom_right_radius.width;
-        if size.width < sum {
-            ratio = f32::min(ratio, size.width / sum);
-        }
+    let sum = top_left_radius.width + top_right_radius.width;
+    if size.width < sum {
+        ratio = f32::min(ratio, size.width / sum);
     }
 
-    if size.height > 0.0 {
-        let sum = top_left_radius.height + bottom_left_radius.height;
-        if size.height < sum {
-            ratio = f32::min(ratio, size.height / sum);
-        }
+    let sum = bottom_left_radius.width + bottom_right_radius.width;
+    if size.width < sum {
+        ratio = f32::min(ratio, size.width / sum);
+    }
 
-        let sum = top_right_radius.height + bottom_right_radius.height;
-        if size.height < sum {
-            ratio = f32::min(ratio, size.height / sum);
-        }
+    let sum = top_left_radius.height + bottom_left_radius.height;
+    if size.height < sum {
+        ratio = f32::min(ratio, size.height / sum);
+    }
+
+    let sum = top_right_radius.height + bottom_right_radius.height;
+    if size.height < sum {
+        ratio = f32::min(ratio, size.height / sum);
     }
 
     if ratio < 1. {

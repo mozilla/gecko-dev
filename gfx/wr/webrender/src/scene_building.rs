@@ -474,7 +474,7 @@ pub struct SceneBuilder<'a> {
     pub config: FrameBuilderConfig,
 
     /// Reference to the set of data that is interned across display lists.
-    pub interners: &'a mut Interners,
+    interners: &'a mut Interners,
 
     /// Helper struct to map spatial nodes to external scroll offsets.
     external_scroll_mapper: ScrollOffsetMapper,
@@ -1777,7 +1777,6 @@ impl<'a> SceneBuilder<'a> {
                     info.spread_radius,
                     info.border_radius,
                     info.clip_mode,
-                    self.spatial_tree.is_root_coord_system(spatial_node_index),
                 );
             }
             DisplayItem::Border(ref info) => {
@@ -1992,7 +1991,7 @@ impl<'a> SceneBuilder<'a> {
 
     /// Convenience interface that creates a primitive entry and adds it
     /// to the draw list.
-    pub fn add_nonshadowable_primitive<P>(
+    fn add_nonshadowable_primitive<P>(
         &mut self,
         spatial_node_index: SpatialNodeIndex,
         clip_node_id: ClipNodeId,

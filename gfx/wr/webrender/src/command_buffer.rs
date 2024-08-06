@@ -121,7 +121,6 @@ pub enum PrimitiveCommand {
     Quad {
         pattern: PatternKind,
         pattern_input: PatternShaderInput,
-        src_color_task_id: RenderTaskId,
         // TODO(gw): Used for bounding rect only, could possibly remove
         prim_instance_index: PrimitiveInstanceIndex,
         gpu_buffer_address: GpuBufferAddress,
@@ -153,7 +152,6 @@ impl PrimitiveCommand {
     pub fn quad(
         pattern: PatternKind,
         pattern_input: PatternShaderInput,
-        src_color_task_id: RenderTaskId,
         prim_instance_index: PrimitiveInstanceIndex,
         gpu_buffer_address: GpuBufferAddress,
         transform_id: TransformPaletteId,
@@ -163,7 +161,6 @@ impl PrimitiveCommand {
         PrimitiveCommand::Quad {
             pattern,
             pattern_input,
-            src_color_task_id,
             prim_instance_index,
             gpu_buffer_address,
             transform_id,
@@ -245,12 +242,11 @@ impl CommandBuffer {
                 self.commands.push(Command::draw_instance(prim_instance_index));
                 self.commands.push(Command::data((gpu_buffer_address.u as u32) << 16 | gpu_buffer_address.v as u32));
             }
-            PrimitiveCommand::Quad { pattern, pattern_input, prim_instance_index, gpu_buffer_address, transform_id, quad_flags, edge_flags, src_color_task_id } => {
+            PrimitiveCommand::Quad { pattern, pattern_input, prim_instance_index, gpu_buffer_address, transform_id, quad_flags, edge_flags } => {
                 self.commands.push(Command::draw_quad(prim_instance_index));
                 self.commands.push(Command::data(pattern as u32));
                 self.commands.push(Command::data(pattern_input.0 as u32));
                 self.commands.push(Command::data(pattern_input.1 as u32));
-                self.commands.push(Command::data(src_color_task_id.index));
                 self.commands.push(Command::data((gpu_buffer_address.u as u32) << 16 | gpu_buffer_address.v as u32));
                 self.commands.push(Command::data(transform_id.0));
                 self.commands.push(Command::data((quad_flags.bits() as u32) << 16 | edge_flags.bits() as u32));
@@ -301,7 +297,6 @@ impl CommandBuffer {
                         cmd_iter.next().unwrap().0 as i32,
                         cmd_iter.next().unwrap().0 as i32,
                     );
-                    let src_color_task_id = RenderTaskId { index: cmd_iter.next().unwrap().0 };
                     let data = cmd_iter.next().unwrap();
                     let transform_id = TransformPaletteId(cmd_iter.next().unwrap().0);
                     let bits = cmd_iter.next().unwrap().0;
@@ -314,7 +309,6 @@ impl CommandBuffer {
                     let cmd = PrimitiveCommand::quad(
                         pattern,
                         pattern_input,
-                        src_color_task_id,
                         prim_instance_index,
                         gpu_buffer_address,
                         transform_id,

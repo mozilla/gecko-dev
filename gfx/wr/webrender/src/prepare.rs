@@ -12,7 +12,7 @@ use api::units::*;
 use euclid::Scale;
 use smallvec::SmallVec;
 use crate::composite::CompositorSurfaceKind;
-use crate::command_buffer::{CommandBufferIndex, PrimitiveCommand};
+use crate::command_buffer::{PrimitiveCommand, CommandBufferIndex};
 use crate::image_tiling::{self, Repetition};
 use crate::border::{get_max_scale_for_border, build_border_instances};
 use crate::clip::{ClipStore, ClipNodeRange};
@@ -23,7 +23,7 @@ use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureCont
 use crate::gpu_cache::{GpuCacheHandle, GpuDataRequest};
 use crate::gpu_types::BrushFlags;
 use crate::internal_types::{FastHashMap, PlaneSplitAnchor, Filter};
-use crate::picture::{ClusterFlags, PictureCompositeMode, PicturePrimitive, SliceId};
+use crate::picture::{PicturePrimitive, SliceId, ClusterFlags, PictureCompositeMode};
 use crate::picture::{PrimitiveList, PrimitiveCluster, SurfaceIndex, TileCacheInstance, SubpixelMode, Picture3DContext};
 use crate::prim_store::line_dec::MAX_LINE_DECORATION_RESOLUTION;
 use crate::prim_store::*;
@@ -33,7 +33,7 @@ use crate::render_backend::DataStores;
 use crate::render_task_graph::RenderTaskId;
 use crate::render_task_cache::RenderTaskCacheKeyKind;
 use crate::render_task_cache::{RenderTaskCacheKey, to_cache_size, RenderTaskParent};
-use crate::render_task::{EmptyTask, MaskSubPass, RenderTask, RenderTaskKind, SubPass};
+use crate::render_task::{RenderTaskKind, RenderTask, SubPass, MaskSubPass, EmptyTask};
 use crate::segment::SegmentBuilder;
 use crate::util::{clamp_to_scale_factor, pack_as_float, ScaleOffset};
 use crate::visibility::{compute_conservative_visible_rect, PrimitiveVisibility, VisibilityState};
@@ -321,26 +321,8 @@ fn prepare_interned_prim_for_render(
     let device_pixel_scale = frame_state.surfaces[pic_context.surface_index.0].device_pixel_scale;
 
     match &mut prim_instance.kind {
-        PrimitiveInstanceKind::BoxShadow { data_handle } => {
-            let prim_data = &mut data_stores.box_shadow[*data_handle];
-
-            quad::prepare_quad(
-                prim_data,
-                &prim_data.kind.outer_shadow_rect,
-                prim_instance_index,
-                prim_spatial_node_index,
-                &prim_instance.vis.clip_chain,
-                device_pixel_scale,
-                frame_context,
-                pic_context,
-                targets,
-                &data_stores.clip,
-                frame_state,
-                pic_state,
-                scratch,
-            );
-
-            return;
+        PrimitiveInstanceKind::BoxShadow { .. } => {
+            unreachable!("Native box shadow prims are not enabled yet");
         }
         PrimitiveInstanceKind::LineDecoration { data_handle, ref mut render_task, .. } => {
             profile_scope!("LineDecoration");
@@ -977,8 +959,7 @@ fn prepare_interned_prim_for_render(
                     &mut frame_state.frame_gpu_data.f32,
                     prim_local_rect,
                     prim_instance.vis.clip_chain.local_clip_rect,
-                    pattern.base_color,
-                    pattern.texture_input.task_id,
+                    &pattern,
                     &[],
                     ScaleOffset::identity(),
                 );

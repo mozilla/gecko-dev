@@ -574,7 +574,6 @@ pub struct PrimitiveTemplate {
 impl PatternBuilder for PrimitiveTemplate {
     fn build(
         &self,
-        _sub_rect: Option<DeviceRect>,
         ctx: &PatternBuilderContext,
         _state: &mut PatternBuilderState,
     ) -> crate::pattern::Pattern {
@@ -585,24 +584,6 @@ impl PatternBuilder for PrimitiveTemplate {
                 Pattern::color(color)
             }
         }
-    }
-
-    fn get_base_color(
-        &self,
-        ctx: &PatternBuilderContext,
-    ) -> ColorF {
-        match self.kind {
-            PrimitiveTemplateKind::Clear => ColorF::BLACK,
-            PrimitiveTemplateKind::Rectangle { ref color, .. } => {
-                ctx.scene_properties.resolve_color(color)
-            }
-        }
-    }
-
-    fn use_shared_pattern(
-        &self,
-    ) -> bool {
-        true
     }
 }
 
