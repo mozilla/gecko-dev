@@ -169,6 +169,17 @@ ul.children + .tag-line::before {
   cursor: default;
 }
 
+/* Change selected line style when editing an attribute */
+.tag-line[selected]:has(.styleinspector-propertyeditor:focus) .theme-selected {
+  background-color: var(--theme-body-alternate-emphasized-background);
+  color: unset;
+
+  /* revert the icon to the color it has when the line doesn't have the "selection" background */
+  & ~ .theme-twisty {
+    fill: var(--theme-icon-dimmed-color);
+  }
+}
+
 .tag-line[selected] + .children,
 .tag-line[selected] ~ .tag-line {
   background-image: linear-gradient(to top, var(--markup-outline), var(--markup-outline));
@@ -408,8 +419,7 @@ ul.children + .tag-line::before {
 
 .styleinspector-propertyeditor {
   vertical-align: top;
-  margin: -1px 0;
-  border: 1px solid #CCC;
+  border: none;
 }
 
 .reveal-link {
@@ -453,25 +463,88 @@ ul.children + .tag-line::before {
   color: var(--markup-hidden-tag-color);
 }
 
-/* Selected nodes in the tree should have light selected text.
+@layer markup-base {
+  .tag {
+    color: var(--theme-highlight-blue);
+  }
+  .attr-name {
+    color: var(--theme-highlight-red);
+  }
+  .attr-value {
+    color: var(--theme-highlight-purple);
+  }
+  .pseudo {
+    color: var(--theme-highlight-blue);
+  }
+}
+
+/* Make focusable elements stand out a bit more when they're focused */
+.tag-line :is(
+  [editable],
+  /* tag is not always editable (e.g. for `html`, `DOCTYPE`, …), but is always focusable */
+  .tag
+):focus-visible {
+  border-radius: 2px;
+  outline: var(--theme-focus-outline);
+  outline-offset: var(--theme-outline-offset);
+}
+
+/* Selected nodes in the tree should have light selected text (unless there's an active
+   inplace editor input).
    theme-selected doesn't work in this case since the text is a
    sibling of the class, not a child. */
-.theme-selected ~ .editor,
-.theme-selected ~ .editor.comment,
-.theme-selected ~ .editor .tag,
-.theme-selected ~ .editor .theme-fg-color1,
-.theme-selected ~ .editor .theme-fg-color2,
-.theme-selected ~ .editor .theme-fg-color3 {
+.tag-line[selected]:not(:has(.styleinspector-propertyeditor:focus)) :is(
+  .editor,
+  .editor.comment,
+  .editor :is(.attr-name, .attr-value, .tag, .pseudo)
+) {
   color: var(--theme-selection-color);
+
+  & :is([editable], .tag):focus-visible {
+    /* When an editable item in the markup view is focused, we want to make it stand out
+       Since the node is selected, we have a blue background on the whole node, so we set
+       the default body background, and set the original color we have when the line is
+       not selected.
+       This is done by using revert-layer, so we'll get colors set in <@layer markup-base>,
+       and not the one set in this rule's parent rule.
+    */
+    color: revert-layer;
+    background-color: var(--theme-body-background);
+
+    outline-offset: 2px;
+
+    /* Better style for attributes spanning multiple lines */
+    box-decoration-break: clone;
+    mix-blend-mode: lighten;
+    .theme-dark & {
+      mix-blend-mode: darken;
+    }
+
+    /* We also need to take care of items that don't have their color set in <@layer markup-base> */
+    &:not(.attr-name, .attr-value, .tag, .pseudo) {
+      color: var(--theme-body-color);
+
+      @media (prefers-color-scheme: dark) {
+        color: var(--theme-text-color-strong);
+      }
+    }
+
+    & * {
+      color: revert-layer;
+    }
+  }
 }
 
 /* Selected nodes being flashed in the tree should have dark selected text. Here we target
    nodes with theme-selected text colors and apply a dark, accessible text color for when
    the yellow flashing background is applied. */
-.theme-selected.theme-bg-contrast ~ .editor,
-.theme-selected ~ .editor .theme-fg-contrast {
-  color: var(--theme-contrast-color);
+.tag-line[selected] :is(
+  .theme-selected.theme-bg-contrast ~ .editor,
+  .theme-selected ~ .editor .theme-fg-contrast
+) {
+  color: var(--theme-contrast-color) !important;
 }
+
 
 /* Applicable to the DOCTYPE */
 .doctype {

@@ -15,7 +15,7 @@ function ReadOnlyEditor(container, node) {
   this.buildMarkup();
 
   if (node.isPseudoElement) {
-    this.tag.classList.add("theme-fg-color3");
+    this.tag.classList.add("pseudo", "force-color-on-flash");
     if (node.isMarkerPseudoElement) {
       this.tag.textContent = "::marker";
     } else if (node.isBeforePseudoElement) {

@@ -246,6 +246,8 @@ function editableItem(options, callback) {
   // Mark the element editable field for tab
   // navigation while editing.
   element._editable = true;
+  // And an attribute that can be used to target
+  element.setAttribute("editable", "");
 
   // Save the trigger type so we can dispatch this later
   element._trigger = trigger;

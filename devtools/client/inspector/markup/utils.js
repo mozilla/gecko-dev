@@ -4,6 +4,8 @@
 
 "use strict";
 
+const FLASH_TARGETS_SELECTOR = "[class*=theme-fg-color], .force-color-on-flash";
+
 /**
  * Apply a 'flashed' background and foreground color to elements. Intended
  * to be used with flashElementOff as a way of drawing attention to an element.
@@ -32,10 +34,9 @@ function flashElementOn(
   backgroundElt.classList.add(backgroundClass);
 
   foregroundElt.classList.add("theme-fg-contrast");
-  [].forEach.call(
-    foregroundElt.querySelectorAll("[class*=theme-fg-color]"),
-    span => span.classList.add("theme-fg-contrast")
-  );
+  foregroundElt
+    .querySelectorAll(FLASH_TARGETS_SELECTOR)
+    .forEach(span => span.classList.add("theme-fg-contrast"));
 }
 
 /**
@@ -68,10 +69,9 @@ function flashElementOff(
   foregroundElt.classList.remove("theme-fg-contrast");
   // Make sure the foreground animation class is removed
   foregroundElt.classList.remove("flash-out");
-  [].forEach.call(
-    foregroundElt.querySelectorAll("[class*=theme-fg-color]"),
-    span => span.classList.remove("theme-fg-contrast")
-  );
+  foregroundElt
+    .querySelectorAll(FLASH_TARGETS_SELECTOR)
+    .forEach(span => span.classList.remove("theme-fg-contrast"));
 }
 
 /**
