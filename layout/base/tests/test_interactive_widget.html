@@ -1,0 +1,287 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>interactive-widget tests</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="/tests/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"></script>
+  <script type="text/javascript" src="/tests/gfx/layers/apz/test/mochitest/apz_test_utils.js"></script>
+  <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
+  <style>
+  textarea {
+    height: 100px;
+    width: 100px;
+  }
+  </style>
+</head>
+<body>
+<textarea></textarea>
+<p id="display"></p>
+<div id="content" style="display: none"></div>
+<pre id="test"></pre>
+<script>
+async function getViewportMetrics() {
+  return SpecialPowers.spawn(parent, [], () => {
+    return [ content.window.innerHeight, content.window.visualViewport.height ];
+  });
+}
+
+let initial_window_height, initial_visual_viewport_height;
+
+// setup a meta viewport tag in the top document.
+add_task(async () => {
+  await SpecialPowers.spawn(parent, [], async () => {
+    const initial_scale = content.window.visualViewport.scale;
+
+    const meta = content.document.createElement("meta");
+    meta.setAttribute("id", "interactive-widget");
+    meta.setAttribute("name", "viewport");
+    meta.setAttribute("content", "width=device-width, initial-scale=1, user-scalable=no");
+    content.document.documentElement.appendChild(meta);
+
+    const eventPromise =  new Promise(resolve => content.window.addEventListener("resize", resolve));
+    // Flush the viewport change.
+    content.document.documentElement.getBoundingClientRect();
+
+    // If this top level content is rendered as `scale < 1.0`, it means there
+    // was no meta viewport tag at all, so that adding the above meta viewport
+    // tag will fire a resize event, thus we need to wait for the event here.
+    // Otherwise, we will wait for the event in the first `resizes-content`
+    // test and the test will fail.
+    //
+    // NOTE: We need this `scale < 1.0` check for --run-until-failure option.
+    if (initial_scale < 1.0) {
+      await eventPromise;
+    }
+  });
+
+  SimpleTest.registerCleanupFunction(async () => {
+    await SpecialPowers.spawn(parent, [], () => {
+      const meta = content.document.querySelector("#interactive-widget");
+      meta.remove();
+    });
+  });
+  [ initial_window_height, initial_visual_viewport_height ] = await getViewportMetrics();
+});
+
+async function setupInteractiveWidget(aValue) {
+  await SpecialPowers.spawn(parent, [aValue], async (value) => {
+    const meta = content.document.querySelector("#interactive-widget");
+    meta.setAttribute("content", `width=device-width, initial-scale=1, user-scalable=no, interactive-widget=${value}`);
+
+    // Flush the viewport change.
+    content.document.documentElement.getBoundingClientRect();
+
+    // A dummy Promise to make sure that SpecialPowers.spawn's Promise will
+    // never be resolved until these script have run in the parent context.
+    await new Promise(resolve => resolve());
+  });
+}
+
+// SpecialPowers.spawn doesn't provide any reasonable way to make sure event
+// listeners have been set in the given context (bug 1743857), so here we post
+// a message just before setting up a resize event listener and return two
+// Promises, one will be resolved when we received the message, the other will
+// be resolved when we got a resize event.
+function setupResizeEventListener(aInteractiveWidget) {
+  const ready = new Promise(resolve => {
+    window.addEventListener("message", msg => {
+      if (msg.data == "interactive-widget:ready") {
+        resolve(msg.data)
+      }
+    }, { once: true });
+  });
+
+  const resizePromise = SpecialPowers.spawn(parent, [aInteractiveWidget], async (interactiveWidget) => {
+    // #testframe is the iframe id where our mochitest harness loads each test
+    // document, but if this test runs solely just like ./mach test TEST_PATH,
+    // the test document gets loaded in the top level content.
+    const target = content.document.querySelector("#testframe") ?
+      content.document.querySelector("#testframe").contentWindow : content.window;
+
+    let eventPromise;
+    if (interactiveWidget == "resizes-content") {
+      eventPromise =  new Promise(resolve => content.window.addEventListener("resize", resolve));
+    } else if (interactiveWidget == "resizes-visual") {
+      eventPromise = new Promise(resolve => content.window.visualViewport.addEventListener("resize", resolve));
+    } else {
+      ok(false, `Unexpected interactive-widget=${interactiveWidget}`);
+    }
+    target.postMessage("interactive-widget:ready", "*");
+    await eventPromise;
+  });
+
+  return [ ready, resizePromise ];
+}
+
+// A utility function to hide the software keyboard.
+// This function needs to be called while the software keyboard is shown on
+// `resizes-content' or `resizes-visual` mode.
+async function hideKeyboard() {
+  const interactiveWidget = await SpecialPowers.spawn(parent, [], () => {
+    const meta = content.document.querySelector("#interactive-widget");
+    return meta.getAttribute("content").match(/interactive-widget=([\w-].+?)[,\s]*$/)[1];
+  });
+
+  let [ readyPromise, resizePromise ] = setupResizeEventListener(interactiveWidget);
+  await readyPromise;
+
+  // Tap outside the textarea to hide the software keyboard.
+  await synthesizeNativeTap(document.querySelector("textarea"), 150, 50);
+  await resizePromise;
+
+  await SimpleTest.promiseWaitForCondition(
+    async () => {
+      let [ current_window_height, current_visual_viewport_height ] = await getViewportMetrics();
+      return current_window_height == initial_window_height &&
+             current_visual_viewport_height == initial_visual_viewport_height;
+    },
+    "Waiting for restoring the initial state");
+}
+
+// `resizes-content` test
+add_task(async () => {
+  await setupInteractiveWidget("resizes-content");
+
+  // Setup a resize event listener in the top level document.
+  let [ readyPromise, resizePromise ] = setupResizeEventListener("resizes-content");
+  // Make sure the event listener has been set.
+  await readyPromise;
+
+  // Tap the textarea to show the software keyboard.
+  await synthesizeNativeTap(document.querySelector("textarea"), 50, 50);
+
+  await resizePromise;
+
+  // Now the software keyboard has appeared, before running the next test we
+  // need to hide the keyboard.
+  SimpleTest.registerCurrentTaskCleanupFunction(async () => await hideKeyboard());
+
+  await promiseAfterPaint();
+
+  await SimpleTest.promiseWaitForCondition(
+    () => document.activeElement == document.querySelector("textarea"),
+    "Waiting for focus");
+
+  let [ window_height, visual_viewport_height ] = await getViewportMetrics();
+  ok(window_height < initial_window_height,
+     `The layout viewport got resized to ${window_height} from ${initial_window_height}`);
+  ok(visual_viewport_height < initial_visual_viewport_height,
+     `The visual viewport got resized to ${visual_viewport_height} from ${initial_visual_viewport_height}`);
+});
+
+// `resizes-visual` test
+add_task(async () => {
+  await setupInteractiveWidget("resizes-visual");
+
+  // Setup a resize event listener in the top level document.
+  let [ readyPromise, resizePromise ] = setupResizeEventListener("resizes-visual");
+  // Make sure the event listener has been set.
+  await readyPromise;
+
+  // Tap the textarea to show the software keyboard.
+  await synthesizeNativeTap(document.querySelector("textarea"), 50, 50);
+
+  await resizePromise;
+
+  // Now the software keyboard has appeared, before running the next test we
+  // need to hide the keyboard.
+  SimpleTest.registerCurrentTaskCleanupFunction(async () => await hideKeyboard());
+
+  await promiseAfterPaint();
+  await SimpleTest.promiseWaitForCondition(
+    () => document.activeElement == document.querySelector("textarea"),
+    "Waiting for focus");
+
+  let [ window_height, visual_viewport_height ] = await getViewportMetrics();
+  is(window_height, initial_window_height,
+     "The layout viewport is not resized on resizes-visual");
+  ok(visual_viewport_height < initial_visual_viewport_height,
+     `The visual viewport got resized to ${visual_viewport_height} from ${initial_visual_viewport_height}`);
+});
+
+// Append an element in the top level document that the element will be the
+// underneath the software keyboard.
+async function appendSpacer() {
+  await SpecialPowers.spawn(parent, [], async () => {
+    const div = content.document.createElement("div");
+    div.setAttribute("id", "interactive-widget-test-spacer");
+    div.style = "height: 200vh; position: absolute; top: 90vh;";
+    content.document.body.appendChild(div);
+
+    // Flush the change.
+    content.document.documentElement.getBoundingClientRect();
+
+    // A dummy Promise to make sure that SpecialPowers.spawn's Promise will
+    // never be resolved until these script have run in the parent context.
+    await new Promise(resolve => resolve());
+  });
+
+  SimpleTest.registerCurrentTaskCleanupFunction(async () => {
+    await SpecialPowers.spawn(parent, [], async () => {
+      const div = content.document.querySelector("#interactive-widget-test-spacer");
+      div.remove();
+      // Flush the change.
+      content.document.documentElement.getBoundingClientRect();
+
+      // A dummy Promise to make sure that SpecialPowers.spawn's Promise will
+      // never be resolved until these script have run in the parent context.
+      await new Promise(resolve => resolve());
+    });
+  });
+}
+
+// `overlays-content` test
+add_task(async () => {
+  await setupInteractiveWidget("overlays-content");
+
+  await appendSpacer();
+
+  // Tap the textarea to show the software keyboard.
+  await synthesizeNativeTap(document.querySelector("textarea"), 50, 50);
+
+  // Now the software keyboard has appeared, before running the next test we
+  // need to hide the keyboard.
+  SimpleTest.registerCurrentTaskCleanupFunction(async () => {
+    // Switch back to `resizes-content` mode so that we can receive a resize
+    // event when the keyboard gets hidden.
+    await setupInteractiveWidget("resizes-content");
+    await hideKeyboard();
+  });
+
+  await promiseAfterPaint();
+  await SimpleTest.promiseWaitForCondition(
+    () => document.activeElement == document.querySelector("textarea"),
+    "Waiting for focus");
+
+  let [ window_height, visual_viewport_height ] = await getViewportMetrics();
+  is(window_height, initial_window_height,
+     "The layout viewport is not resized on overlays-content");
+  is(visual_viewport_height, initial_visual_viewport_height,
+     "The visual viewport is not resized on overlays-content");
+
+  // Call a scrollIntoView() on an element underneath the keyboard and see if
+  // the current scroll position changes.
+  const scrollPosition = await SpecialPowers.spawn(parent, [], () => {
+    return content.window.scrollY;
+  });
+  await SpecialPowers.spawn(parent, [], async () => {
+    const div = content.document.querySelector("#interactive-widget-test-spacer");
+    div.scrollIntoView({ behavior: "instant" });
+
+    // Though two rAFs ensure there's at least one scroll event if there is,
+    // we use two additional rAFs just in case.
+    await new Promise(resolve => content.window.requestAnimationFrame(resolve));
+    await new Promise(resolve => content.window.requestAnimationFrame(resolve));
+    await new Promise(resolve => content.window.requestAnimationFrame(resolve));
+    await new Promise(resolve => content.window.requestAnimationFrame(resolve));
+  });
+
+  const newScrollPosition = await SpecialPowers.spawn(parent, [], () => {
+    return content.window.scrollY;
+  });
+  is(scrollPosition, newScrollPosition, "The scrollIntoView() call has no effect");
+});
+</script>
+</body>
+</html>
