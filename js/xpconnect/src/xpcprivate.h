@@ -379,6 +379,7 @@ class XPCJSContext final : public mozilla::CycleCollectedJSContext,
     IDX_CRYPTO,
     IDX_INDEXEDDB,
     IDX_STRUCTUREDCLONE,
+    IDX_LOCKS,
     IDX_TOTAL_COUNT  // just a count of the above
   };
 

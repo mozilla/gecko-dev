@@ -8,7 +8,6 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
  * being associated with a content global.
  */
 add_task(async function test_locks() {
-  Cu.importGlobalProperties(["locks"]);
   Assert.ok(locks, "The locks global was imported.");
   let { promise: firstPromise, resolve: firstResolve } =
     Promise.withResolvers();

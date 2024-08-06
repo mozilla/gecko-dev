@@ -815,5 +815,6 @@ module.exports = {
     crypto: false,
     indexedDB: false,
     structuredClone: false,
+    locks: false,
   },
 };
