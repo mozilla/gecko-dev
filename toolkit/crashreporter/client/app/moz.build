@@ -15,3 +15,6 @@ GeneratedFile(
 )
 
 RustProgram("crashreporter")
+
+COMPILE_FLAGS["BASE_INCLUDES"] = []
+HOST_COMPILE_FLAGS["BASE_INCLUDES"] = []
