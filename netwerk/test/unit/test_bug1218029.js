@@ -47,6 +47,13 @@ var tests = [
     consume: [0],
     dataChunks: ["E", "E"],
   },
+  {
+    data: "123456789",
+    chunks: [2, 3, 4],
+    status: Cr.NS_OK,
+    consume: [1, 2, 6],
+    dataChunks: ["12", "2345", "456789", ""],
+  },
 ];
 
 /**

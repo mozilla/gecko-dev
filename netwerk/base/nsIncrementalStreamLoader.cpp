@@ -157,7 +157,8 @@ nsresult nsIncrementalStreamLoader::WriteSegmentFun(
       // Adopting elems back (at least its portion).
       self->mData.replaceRawBuffer(elems, length);
       if (consumedCount > 0) {
-        self->mData.erase(self->mData.begin() + consumedCount);
+        self->mData.erase(self->mData.begin(),
+                          self->mData.begin() + consumedCount);
       }
     }
   }
