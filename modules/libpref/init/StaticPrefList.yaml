@@ -5787,8 +5787,6 @@
   value: true
 #elif defined(MOZ_WIDGET_ANDROID)
   value: true
-#elif defined(XP_WIN)
-  value: @IS_NIGHTLY_BUILD@
 #else
   value: false
 #endif
@@ -6148,7 +6146,7 @@
 # Whether to disable the automatic detection and use of direct2d.
 - name: gfx.direct2d.disabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: false
   mirror: once
 
 # Whether to attempt to enable Direct2D regardless of automatic detection or
