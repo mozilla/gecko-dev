@@ -20,7 +20,9 @@ static const nsLiteralCString kPermissionTypes[] = {
     // and "midi-sysex" (and yes, this is confusing).
     "midi"_ns,
     "storage-access"_ns,
-    "screen-wake-lock"_ns
+    "screen-wake-lock"_ns,
+    "camera"_ns,
+    "microphone"_ns
     // clang-format on
 };
 

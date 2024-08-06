@@ -79,7 +79,9 @@ RefPtr<PermissionStatus> CreatePermissionStatus(
     }
     case PermissionName::Storage_access:
       return new StorageAccessPermissionStatus(aWindow);
+    case PermissionName::Camera:
     case PermissionName::Geolocation:
+    case PermissionName::Microphone:
     case PermissionName::Notifications:
     case PermissionName::Push:
     case PermissionName::Persistent_storage:
