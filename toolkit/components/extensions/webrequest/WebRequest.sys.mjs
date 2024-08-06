@@ -947,6 +947,13 @@ HttpObserverManager = {
             return;
           }
         }
+        // ChannelWrapper::Matches does not only match the filter, it also
+        // checks whether the extension is allowed to modify the request.
+        // Regardless of extension permissions, if channel.canModify is false,
+        // then the request is not matched.
+        // There is one exception: When opts.isProxy is set (in onAuthRequired)
+        // AND the extension has the "proxy" permission, then the extension is
+        // allowed to handle the request regardless of channel.canModify.
         if (!channel.matches(opts.filter, opts.policy, extraData)) {
           return;
         }
@@ -1001,7 +1008,7 @@ HttpObserverManager = {
           }
         }
 
-        if (opts.requestBody && channel.canModify) {
+        if (opts.requestBody) {
           requestBody =
             requestBody ||
             lazy.WebRequestUpload.createRequestBody(channel.channel);
@@ -1011,13 +1018,7 @@ HttpObserverManager = {
         try {
           let result = callback(data);
 
-          // isProxy is set during onAuth if the auth request is for a proxy.
-          // We allow handling proxy auth regardless of canModify.
-          if (
-            (channel.canModify || data.isProxy) &&
-            typeof result === "object" &&
-            opts.blocking
-          ) {
+          if (typeof result === "object" && opts.blocking) {
             handlerResults.push({ opts, result });
           }
         } catch (e) {
@@ -1086,18 +1087,16 @@ HttpObserverManager = {
           }
         }
 
-        if (
-          kind === "onAuthRequired" &&
-          result.authCredentials &&
-          channel.authPromptCallback
-        ) {
-          channel.authPromptCallback(result.authCredentials);
-        }
+        if (kind === "onAuthRequired") {
+          if (result.authCredentials && channel.authPromptCallback) {
+            channel.authPromptCallback(result.authCredentials);
+          }
 
-        // We allow proxy auth to cancel or handle authCredentials regardless of
-        // canModify, but ensure we do nothing else.
-        if (!channel.canModify) {
-          continue;
+          // We allow proxy auth to cancel or handle authCredentials regardless
+          // of canModify, but ensure we do nothing else.
+          if (!channel.canModify) {
+            continue;
+          }
         }
 
         if (result.cancel) {
