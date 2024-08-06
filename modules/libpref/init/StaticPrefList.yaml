@@ -5971,6 +5971,11 @@
   value: true
   mirror: always
 
+- name: gfx.canvas.remote.use-draw-image-fast-path-d3d
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: gfx.canvas.remote.recycle-used-data-surface
   type: RelaxedAtomicBool
   value: true
