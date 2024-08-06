@@ -57,8 +57,6 @@ import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.PagerIndicator
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
-import org.mozilla.fenix.home.fake.FakeHomepagePreview
-import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.WallpaperState
@@ -71,40 +69,6 @@ private const val TOP_SITES_ITEM_SIZE = 84
 private const val TOP_SITES_ROW_WIDTH = TOP_SITES_PER_ROW * TOP_SITES_ITEM_SIZE
 private const val TOP_SITES_FAVICON_CARD_SIZE = 60
 private const val TOP_SITES_FAVICON_SIZE = 36
-
-/**
- * A list of top sites.
- *
- * @param topSites List of [TopSite] to display.
- * @param topSiteColors The color set defined by [TopSiteColors] used to style a top site.
- * @param interactor The interactor which handles user actions with the widget.
- * @param onTopSitesItemBound Invoked during the composition of a top site item.
- */
-@Composable
-fun TopSites(
-    topSites: List<TopSite>,
-    topSiteColors: TopSiteColors = TopSiteColors.colors(),
-    interactor: TopSiteInteractor,
-    onTopSitesItemBound: () -> Unit,
-) {
-    TopSites(
-        topSites = topSites,
-        topSiteColors = topSiteColors,
-        onTopSiteClick = { topSite ->
-            interactor.onSelectTopSite(
-                topSite = topSite,
-                position = topSites.indexOf(topSite),
-            )
-        },
-        onTopSiteLongClick = interactor::onTopSiteLongClicked,
-        onOpenInPrivateTabClicked = interactor::onOpenInPrivateTabClicked,
-        onEditTopSiteClicked = interactor::onEditTopSiteClicked,
-        onRemoveTopSiteClicked = interactor::onRemoveTopSiteClicked,
-        onSettingsClicked = interactor::onSettingsClicked,
-        onSponsorPrivacyClicked = interactor::onSponsorPrivacyClicked,
-        onTopSitesItemBound = onTopSitesItemBound,
-    )
-}
 
 /**
  * A list of top sites.
@@ -534,7 +498,52 @@ private fun TopSitesPreview() {
     FirefoxTheme {
         Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
             TopSites(
-                topSites = FakeHomepagePreview.topSites(),
+                topSites = mutableListOf<TopSite>().apply {
+                    for (index in 0 until 2) {
+                        add(
+                            TopSite.Pinned(
+                                id = index.toLong(),
+                                title = "Mozilla$index",
+                                url = "mozilla.com",
+                                createdAt = 0L,
+                            ),
+                        )
+                    }
+
+                    for (index in 0 until 2) {
+                        add(
+                            TopSite.Provided(
+                                id = index.toLong(),
+                                title = "Mozilla$index",
+                                url = "mozilla.com",
+                                clickUrl = "https://mozilla.com/click",
+                                imageUrl = "https://test.com/image2.jpg",
+                                impressionUrl = "https://example.com",
+                                createdAt = 0L,
+                            ),
+                        )
+                    }
+
+                    for (index in 0 until 2) {
+                        add(
+                            TopSite.Default(
+                                id = index.toLong(),
+                                title = "Mozilla$index",
+                                url = "mozilla.com",
+                                createdAt = 0L,
+                            ),
+                        )
+                    }
+
+                    add(
+                        TopSite.Default(
+                            id = null,
+                            title = "Top Articles",
+                            url = "https://getpocket.com/fenix-top-articles",
+                            createdAt = 0L,
+                        ),
+                    )
+                },
                 onTopSiteClick = {},
                 onTopSiteLongClick = {},
                 onOpenInPrivateTabClicked = {},
