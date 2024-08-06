@@ -15,6 +15,7 @@
 #include "nsIWidgetListener.h"
 #include "Units.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/CallState.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/UniquePtr.h"
 
@@ -24,6 +25,9 @@ class nsIFrame;
 
 namespace mozilla {
 class PresShell;
+namespace dom {
+class BrowserParent;
+}  // namespace dom
 namespace widget {
 struct InitData;
 enum class TransparencyMode : uint8_t;
@@ -429,6 +433,7 @@ class nsView final : public nsIWidgetListener {
       mozilla::ScreenIntCoord aHeight) override;
   virtual void DynamicToolbarOffsetChanged(
       mozilla::ScreenIntCoord aOffset) override;
+  virtual void KeyboardHeightChanged(mozilla::ScreenIntCoord aHeight) override;
 #endif
   virtual bool RequestWindowClose(nsIWidget* aWidget) override;
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
@@ -513,6 +518,10 @@ class nsView final : public nsIWidgetListener {
 
   // Update the cached RootViewManager for all view manager descendents.
   void InvalidateHierarchy();
+
+  void CallOnAllRemoteChildren(
+      const std::function<mozilla::CallState(mozilla::dom::BrowserParent*)>&
+          aCallback);
 
   nsViewManager* mViewManager;
   nsView* mParent;

@@ -246,6 +246,7 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
       mCurAppUnitsPerDevPixel(0),
       mDynamicToolbarMaxHeight(0),
       mDynamicToolbarHeight(0),
+      mKeyboardHeight(0),
       mPageSize(-1, -1),
       mPageScale(0.0),
       mPPScale(1.0f),
@@ -716,13 +717,15 @@ nsresult nsPresContext::Init(nsDeviceContext* aDeviceContext) {
   mEventManager->SetPresContext(this);
 
 #if defined(MOZ_WIDGET_ANDROID)
-  if (IsRootContentDocumentCrossProcess() &&
-      MOZ_LIKELY(
-          !Preferences::HasUserValue("layout.dynamic-toolbar-max-height"))) {
-    if (BrowserChild* browserChild =
-            BrowserChild::GetFrom(mDocument->GetDocShell())) {
-      mDynamicToolbarMaxHeight = browserChild->GetDynamicToolbarMaxHeight();
-      mDynamicToolbarHeight = mDynamicToolbarMaxHeight;
+  if (IsRootContentDocumentCrossProcess()) {
+    if (BrowserChild* browserChild = BrowserChild::GetFrom(GetDocShell())) {
+      mKeyboardHeight = browserChild->GetKeyboardHeight();
+
+      if (MOZ_LIKELY(!Preferences::HasUserValue(
+              "layout.dynamic-toolbar-max-height"))) {
+        mDynamicToolbarMaxHeight = browserChild->GetDynamicToolbarMaxHeight();
+        mDynamicToolbarHeight = mDynamicToolbarMaxHeight;
+      }
     }
   }
 #endif
@@ -3039,6 +3042,11 @@ void nsPresContext::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
 
   mPresShell->StyleSet()->InvalidateForViewportUnits(
       ServoStyleSet::OnlyDynamic::Yes);
+}
+
+void nsPresContext::UpdateKeyboardHeight(ScreenIntCoord aHeight) {
+  MOZ_ASSERT(IsRootContentDocumentCrossProcess());
+  mKeyboardHeight = aHeight;
 }
 
 DynamicToolbarState nsPresContext::GetDynamicToolbarState() const {

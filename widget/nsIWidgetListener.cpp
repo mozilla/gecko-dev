@@ -40,6 +40,7 @@ void nsIWidgetListener::SafeAreaInsetsChanged(const mozilla::ScreenIntMargin&) {
 void nsIWidgetListener::DynamicToolbarMaxHeightChanged(ScreenIntCoord aHeight) {
 }
 void nsIWidgetListener::DynamicToolbarOffsetChanged(ScreenIntCoord aOffset) {}
+void nsIWidgetListener::KeyboardHeightChanged(ScreenIntCoord aHeight) {}
 #endif
 
 void nsIWidgetListener::MacFullscreenMenubarOverlapChanged(

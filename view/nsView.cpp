@@ -921,23 +921,8 @@ void nsView::DynamicToolbarMaxHeightChanged(ScreenIntCoord aHeight) {
   MOZ_ASSERT(this == mViewManager->GetRootView(),
              "Should be called for the root view");
 
-  PresShell* presShell = mViewManager->GetPresShell();
-  if (!presShell) {
-    return;
-  }
-
-  dom::Document* document = presShell->GetDocument();
-  if (!document) {
-    return;
-  }
-
-  nsPIDOMWindowOuter* window = document->GetWindow();
-  if (!window) {
-    return;
-  }
-
-  nsContentUtils::CallOnAllRemoteChildren(
-      window, [&aHeight](dom::BrowserParent* aBrowserParent) -> CallState {
+  CallOnAllRemoteChildren(
+      [aHeight](dom::BrowserParent* aBrowserParent) -> CallState {
         aBrowserParent->DynamicToolbarMaxHeightChanged(aHeight);
         return CallState::Continue;
       });
@@ -948,30 +933,31 @@ void nsView::DynamicToolbarOffsetChanged(ScreenIntCoord aOffset) {
              "Should be only called for the browser parent process");
   MOZ_ASSERT(this == mViewManager->GetRootView(),
              "Should be called for the root view");
-
-  PresShell* presShell = mViewManager->GetPresShell();
-  if (!presShell) {
-    return;
-  }
-
-  dom::Document* document = presShell->GetDocument();
-  if (!document) {
-    return;
-  }
-
-  nsPIDOMWindowOuter* window = document->GetWindow();
-  if (!window) {
-    return;
-  }
-
-  nsContentUtils::CallOnAllRemoteChildren(
-      window, [&aOffset](dom::BrowserParent* aBrowserParent) -> CallState {
+  CallOnAllRemoteChildren(
+      [aOffset](dom::BrowserParent* aBrowserParent) -> CallState {
         // Skip background tabs.
         if (!aBrowserParent->GetDocShellIsActive()) {
           return CallState::Continue;
         }
 
         aBrowserParent->DynamicToolbarOffsetChanged(aOffset);
+        return CallState::Stop;
+      });
+}
+
+void nsView::KeyboardHeightChanged(ScreenIntCoord aHeight) {
+  MOZ_ASSERT(XRE_IsParentProcess(),
+             "Should be only called for the browser parent process");
+  MOZ_ASSERT(this == mViewManager->GetRootView(),
+             "Should be called for the root view");
+  CallOnAllRemoteChildren(
+      [aHeight](dom::BrowserParent* aBrowserParent) -> CallState {
+        // Skip background tabs.
+        if (!aBrowserParent->GetDocShellIsActive()) {
+          return CallState::Continue;
+        }
+
+        aBrowserParent->KeyboardHeightChanged(aHeight);
         return CallState::Stop;
       });
 }
@@ -1092,6 +1078,24 @@ void nsView::SafeAreaInsetsChanged(const ScreenIntMargin& aSafeAreaInsets) {
   // https://github.com/w3c/csswg-drafts/issues/4670
   // Actually we don't set this value on sub document. This behaviour is
   // same as Blink.
+  CallOnAllRemoteChildren([windowSafeAreaInsets](
+                              dom::BrowserParent* aBrowserParent) -> CallState {
+    Unused << aBrowserParent->SendSafeAreaInsetsChanged(windowSafeAreaInsets);
+    return CallState::Continue;
+  });
+}
+
+bool nsView::IsPrimaryFramePaintSuppressed() {
+  return StaticPrefs::layout_show_previous_page() && mFrame &&
+         mFrame->PresShell()->IsPaintingSuppressed();
+}
+
+void nsView::CallOnAllRemoteChildren(
+    const std::function<CallState(dom::BrowserParent*)>& aCallback) {
+  PresShell* presShell = mViewManager->GetPresShell();
+  if (!presShell) {
+    return;
+  }
 
   dom::Document* document = presShell->GetDocument();
   if (!document) {
@@ -1103,16 +1107,5 @@ void nsView::SafeAreaInsetsChanged(const ScreenIntMargin& aSafeAreaInsets) {
     return;
   }
 
-  nsContentUtils::CallOnAllRemoteChildren(
-      window,
-      [windowSafeAreaInsets](dom::BrowserParent* aBrowserParent) -> CallState {
-        Unused << aBrowserParent->SendSafeAreaInsetsChanged(
-            windowSafeAreaInsets);
-        return CallState::Continue;
-      });
-}
-
-bool nsView::IsPrimaryFramePaintSuppressed() {
-  return StaticPrefs::layout_show_previous_page() && mFrame &&
-         mFrame->PresShell()->IsPaintingSuppressed();
+  nsContentUtils::CallOnAllRemoteChildren(window, aCallback);
 }

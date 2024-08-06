@@ -1213,6 +1213,12 @@ void BrowserParent::DynamicToolbarOffsetChanged(ScreenIntCoord aOffset) {
     Unused << SendDynamicToolbarOffsetChanged(aOffset);
   }
 }
+
+void BrowserParent::KeyboardHeightChanged(ScreenIntCoord aHeight) {
+  if (!mIsDestroyed) {
+    Unused << SendKeyboardHeightChanged(aHeight);
+  }
+}
 #endif
 
 void BrowserParent::HandleAccessKey(const WidgetKeyboardEvent& aEvent,
