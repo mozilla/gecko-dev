@@ -29,8 +29,28 @@ export class BackupUIChild extends JSWindowActorChild {
     if (event.type == "BackupUI:InitWidget") {
       this.#inittedWidgets.add(event.target);
       this.sendAsyncMessage("RequestState");
-    } else if (event.type == "BackupUI:ToggleScheduledBackups") {
-      this.sendAsyncMessage("ToggleScheduledBackups", event.detail);
+    } else if (event.type == "BackupUI:EnableScheduledBackups") {
+      /** @type {import("../content/turn-on-scheduled-backups.mjs").default} */
+      const target = event.target;
+
+      const result = await this.sendQuery(
+        "EnableScheduledBackups",
+        event.detail
+      );
+      if (result.success) {
+        target.close();
+      } else {
+        target.enableBackupErrorCode = result.errorCode;
+      }
+    } else if (event.type == "BackupUI:DisableScheduledBackups") {
+      /** @type {import("../content/turn-off-scheduled-backups.mjs").default} */
+      const target = event.target;
+
+      this.sendAsyncMessage("DisableScheduledBackups", event.detail);
+      // backups will always end up disabled even if there was an error
+      // with other bookkeeping related to turning off backups
+
+      target.close();
     } else if (event.type == "BackupUI:ShowFilepicker") {
       let targetNodeName = event.target.nodeName;
       let { path, filename, iconURL } = await this.sendQuery("ShowFilepicker", {
@@ -79,10 +99,36 @@ export class BackupUIChild extends JSWindowActorChild {
       }
     } else if (event.type == "BackupUI:RestoreFromBackupChooseFile") {
       this.sendAsyncMessage("RestoreFromBackupChooseFile");
-    } else if (event.type == "BackupUI:ToggleEncryption") {
-      this.sendAsyncMessage("ToggleEncryption", event.detail);
+    } else if (event.type == "BackupUI:EnableEncryption") {
+      /** @type {import("../content/enable-backup-encryption.mjs").default} */
+      const target = event.target;
+
+      const result = await this.sendQuery("EnableEncryption", event.detail);
+      if (result.success) {
+        target.close();
+      } else {
+        target.enableEncryptionErrorCode = result.errorCode;
+      }
+    } else if (event.type == "BackupUI:DisableEncryption") {
+      /** @type {import("../content/disable-backup-encryption.mjs").default} */
+      const target = event.target;
+
+      const result = await this.sendQuery("DisableEncryption", event.detail);
+      if (result.success) {
+        target.close();
+      } else {
+        target.disableEncryptionErrorCode = result.errorCode;
+      }
     } else if (event.type == "BackupUI:RerunEncryption") {
-      this.sendAsyncMessage("RerunEncryption", event.detail);
+      /** @type {import("../content/enable-backup-encryption.mjs").default} */
+      const target = event.target;
+
+      const result = await this.sendQuery("RerunEncryption", event.detail);
+      if (result.success) {
+        target.close();
+      } else {
+        target.rerunEncryptionErrorCode = result.errorCode;
+      }
     } else if (event.type == "BackupUI:ShowBackupLocation") {
       this.sendAsyncMessage("ShowBackupLocation");
     } else if (event.type == "BackupUI:EditBackupLocation") {

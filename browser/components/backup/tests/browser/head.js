@@ -9,6 +9,7 @@ const { BackupService } = ChromeUtils.importESModule(
 
 const { MockFilePicker } = SpecialPowers;
 
+/** @type {{sinon: import("@types/sinon").SinonApi}} */
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );

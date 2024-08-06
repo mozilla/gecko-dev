@@ -5,45 +5,64 @@
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-message-bar.mjs";
+
+const ERROR_L10N_ID = "backup-error-retry";
+
 /**
  * The widget for disabling password protection if the backup is already
  * encrypted.
  */
 export default class DisableBackupEncryption extends MozLitElement {
+  static properties = {
+    // managed by BackupUIChild
+    disableEncryptionErrorCode: { type: Number },
+  };
+
   static get queries() {
     return {
       cancelButtonEl: "#backup-disable-encryption-cancel-button",
       confirmButtonEl: "#backup-disable-encryption-confirm-button",
+      errorEl: "#disable-backup-encryption-error",
     };
   }
 
-  /**
-   * Dispatches the BackupUI:InitWidget custom event upon being attached to the
-   * DOM, which registers with BackupUIChild for BackupService state updates.
-   */
-  connectedCallback() {
-    super.connectedCallback();
-    this.dispatchEvent(
-      new CustomEvent("BackupUI:InitWidget", { bubbles: true })
-    );
+  constructor() {
+    super();
+    this.disableEncryptionErrorCode = 0;
   }
 
-  handleCancel() {
+  close() {
     this.dispatchEvent(
       new CustomEvent("dialogCancel", {
         bubbles: true,
         composed: true,
       })
     );
+    this.reset();
+  }
+
+  reset() {
+    this.disableEncryptionErrorCode = 0;
   }
 
   handleConfirm() {
     this.dispatchEvent(
-      new CustomEvent("disableEncryption", {
+      new CustomEvent("BackupUI:DisableEncryption", {
         bubbles: true,
-        composed: true,
       })
     );
+  }
+
+  errorTemplate() {
+    return html`
+      <moz-message-bar
+        id="disable-backup-encryption-error"
+        type="error"
+        .messageL10nId="${ERROR_L10N_ID}"
+      ></moz-message-bar>
+    `;
   }
 
   contentTemplate() {
@@ -73,12 +92,13 @@ export default class DisableBackupEncryption extends MozLitElement {
               data-l10n-id="disable-backup-encryption-support-link"
             ></a>
           </div>
+          ${this.disableEncryptionErrorCode ? this.errorTemplate() : null}
         </main>
 
         <moz-button-group id="backup-disable-encryption-button-group">
           <moz-button
             id="backup-disable-encryption-cancel-button"
-            @click=${this.handleCancel}
+            @click=${this.close}
             data-l10n-id="disable-backup-encryption-cancel-button"
           ></moz-button>
           <moz-button
