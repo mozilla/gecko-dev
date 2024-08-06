@@ -9883,13 +9883,13 @@
 # Enable/disable overflow/underflow events in content
 - name: layout.overflow-underflow.content.enabled
   type: bool
-  value: @IS_NOT_EARLY_BETA_OR_EARLIER@
+  value: false
   mirror: always
 
 # Enable/disable overflow/underflow events in addon content
 - name: layout.overflow-underflow.content.enabled_in_addons
   type: bool
-  value: true
+  value: false
   mirror: always
 
 - name: layout.visibility.min-recompute-interval-ms
