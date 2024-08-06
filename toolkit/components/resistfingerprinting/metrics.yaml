@@ -1476,6 +1476,25 @@ characteristics:
     data_sensitivity:
       - interaction
 
+  webglinfo:
+    type: text
+    description: >
+      A JSON blob that contains information about the graphics hardware exposed by WebGL.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896101
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
   prefs_network_cookie_cookiebehavior: # network.cookie.cookieBehavior
     type: quantity
     unit: int
