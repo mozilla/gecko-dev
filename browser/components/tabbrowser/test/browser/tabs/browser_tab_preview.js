@@ -714,6 +714,15 @@ add_task(async function wheelTests() {
   });
 });
 
+add_task(async function appearsAsTooltipToAccessibilityToolsTests() {
+  const previewPanel = document.getElementById("tab-preview-panel");
+  Assert.equal(
+    previewPanel.getAttribute("role"),
+    "tooltip",
+    "The panel appears as a tooltip to assistive technology"
+  );
+});
+
 /**
  * Verify that if the browser document title (i.e. tab label) changes,
  * the tab preview panel is updated
