@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "third_party/googletest/src/include/gtest/gtest.h"
+#include "gtest/gtest.h"
 
 #include "./vpx_config.h"
 #if CONFIG_VP8_ENCODER || CONFIG_VP9_ENCODER

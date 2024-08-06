@@ -900,6 +900,19 @@ static void write_tile_info(const VP9_COMMON *const cm,
 }
 
 int vp9_get_refresh_mask(VP9_COMP *cpi) {
+  if (cpi->ext_ratectrl.ready &&
+      (cpi->ext_ratectrl.funcs.rc_type & VPX_RC_GOP) != 0 &&
+      cpi->ext_ratectrl.funcs.get_gop_decision != NULL) {
+    GF_GROUP *const gf_group = &cpi->twopass.gf_group;
+    const int this_gf_index = gf_group->index;
+    const int update_ref_idx = gf_group->update_ref_idx[this_gf_index];
+
+    if (update_ref_idx != INVALID_IDX) {
+      return (1 << update_ref_idx);
+    } else {
+      return 0;
+    }
+  }
   if (vp9_preserve_existing_gf(cpi)) {
     // We have decided to preserve the previously existing golden frame as our
     // new ARF frame. However, in the short term we leave it in the GF slot and,

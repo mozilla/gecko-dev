@@ -43,11 +43,9 @@ vpx_codec_err_t vp9_extrc_get_encodeframe_decision(
     EXT_RATECTRL *ext_ratectrl, int gop_index,
     vpx_rc_encodeframe_decision_t *encode_frame_decision);
 
-vpx_codec_err_t vp9_extrc_update_encodeframe_result(
-    EXT_RATECTRL *ext_ratectrl, int64_t bit_count,
-    const YV12_BUFFER_CONFIG *source_frame,
-    const YV12_BUFFER_CONFIG *coded_frame, uint32_t bit_depth,
-    uint32_t input_bit_depth, const int actual_encoding_qindex);
+vpx_codec_err_t vp9_extrc_update_encodeframe_result(EXT_RATECTRL *ext_ratectrl,
+                                                    int64_t bit_count,
+                                                    int actual_encoding_qindex);
 
 vpx_codec_err_t vp9_extrc_get_key_frame_decision(
     EXT_RATECTRL *ext_ratectrl,

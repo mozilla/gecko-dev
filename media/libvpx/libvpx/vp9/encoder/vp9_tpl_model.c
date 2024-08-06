@@ -25,8 +25,214 @@
 #include "vpx/vpx_codec.h"
 #include "vpx/vpx_ext_ratectrl.h"
 
+static int init_gop_frames_rc(VP9_COMP *cpi, GF_PICTURE *gf_picture,
+                              const GF_GROUP *gf_group, int *tpl_group_frames) {
+  VP9_COMMON *cm = &cpi->common;
+  int frame_idx = 0;
+  int i;
+  int extend_frame_count = 0;
+  int pframe_qindex = cpi->tpl_stats[2].base_qindex;
+  int frame_gop_offset = 0;
+
+  int added_overlay = 0;
+
+  RefCntBuffer *frame_bufs = cm->buffer_pool->frame_bufs;
+  int8_t recon_frame_index[REFS_PER_FRAME + MAX_ARF_LAYERS];
+
+  memset(recon_frame_index, -1, sizeof(recon_frame_index));
+
+  for (i = 0; i < FRAME_BUFFERS; ++i) {
+    if (frame_bufs[i].ref_count == 0) {
+      alloc_frame_mvs(cm, i);
+      if (vpx_realloc_frame_buffer(&frame_bufs[i].buf, cm->width, cm->height,
+                                   cm->subsampling_x, cm->subsampling_y,
+#if CONFIG_VP9_HIGHBITDEPTH
+                                   cm->use_highbitdepth,
+#endif
+                                   VP9_ENC_BORDER_IN_PIXELS, cm->byte_alignment,
+                                   NULL, NULL, NULL))
+        vpx_internal_error(&cm->error, VPX_CODEC_MEM_ERROR,
+                           "Failed to allocate frame buffer");
+
+      recon_frame_index[frame_idx] = i;
+      ++frame_idx;
+
+      if (frame_idx >= REFS_PER_FRAME + cpi->oxcf.enable_auto_arf) break;
+    }
+  }
+
+  for (i = 0; i < REFS_PER_FRAME + 1; ++i) {
+    assert(recon_frame_index[i] >= 0);
+    cpi->tpl_recon_frames[i] = &frame_bufs[recon_frame_index[i]].buf;
+  }
+
+  *tpl_group_frames = 0;
+
+  int ref_table[3];
+
+  if (gf_group->index == 1 && gf_group->update_type[1] == ARF_UPDATE) {
+    if (gf_group->update_type[0] == KF_UPDATE) {
+      // This is the only frame in ref buffer. We need it to be on
+      // gf_picture[0].
+      for (i = 0; i < 3; ++i) ref_table[i] = -REFS_PER_FRAME;
+
+      gf_picture[0].frame =
+          &cm->buffer_pool->frame_bufs[gf_group->update_ref_idx[0]].buf;
+      ref_table[gf_group->update_ref_idx[0]] = 0;
+
+      for (i = 0; i < 3; ++i) gf_picture[0].ref_frame[i] = -REFS_PER_FRAME;
+      gf_picture[0].update_type = gf_group->update_type[0];
+    } else {
+      for (i = 0; i < REFS_PER_FRAME; i++) {
+        if (cm->ref_frame_map[i] != -1) {
+          gf_picture[-i].frame =
+              &cm->buffer_pool->frame_bufs[cm->ref_frame_map[i]].buf;
+          ref_table[i] = -i;
+        } else {
+          ref_table[i] = -REFS_PER_FRAME;
+        }
+      }
+      for (i = 0; i < 3; ++i) {
+        gf_picture[0].ref_frame[i] = ref_table[i];
+      }
+    }
+    ++*tpl_group_frames;
+
+    // Initialize base layer ARF frame
+    gf_picture[1].frame = cpi->Source;
+    for (i = 0; i < 3; ++i) gf_picture[1].ref_frame[i] = ref_table[i];
+    gf_picture[1].update_type = gf_group->update_type[1];
+    ref_table[gf_group->update_ref_idx[1]] = 1;
+
+    ++*tpl_group_frames;
+  } else {
+    assert(gf_group->index == 0);
+    if (gf_group->update_type[0] == KF_UPDATE) {
+      // This is the only frame in ref buffer. We need it to be on
+      // gf_picture[0].
+      gf_picture[0].frame = cpi->Source;
+      for (i = 0; i < 3; ++i) gf_picture[0].ref_frame[i] = -REFS_PER_FRAME;
+      gf_picture[0].update_type = gf_group->update_type[0];
+
+      for (i = 0; i < 3; ++i) ref_table[i] = -REFS_PER_FRAME;
+      ref_table[gf_group->update_ref_idx[0]] = 0;
+    } else {
+      // Initialize ref table
+      for (i = 0; i < REFS_PER_FRAME; i++) {
+        if (cm->ref_frame_map[i] != -1) {
+          gf_picture[-i].frame =
+              &cm->buffer_pool->frame_bufs[cm->ref_frame_map[i]].buf;
+          ref_table[i] = -i;
+        } else {
+          ref_table[i] = -REFS_PER_FRAME;
+        }
+      }
+      for (i = 0; i < 3; ++i) {
+        gf_picture[0].ref_frame[i] = ref_table[i];
+      }
+      gf_picture[0].update_type = gf_group->update_type[0];
+      if (gf_group->update_type[0] != OVERLAY_UPDATE &&
+          gf_group->update_ref_idx[0] != -1) {
+        ref_table[gf_group->update_ref_idx[0]] = 0;
+      }
+    }
+    ++*tpl_group_frames;
+  }
+
+  int has_arf =
+      gf_group->gf_group_size > 1 && gf_group->update_type[1] == ARF_UPDATE &&
+      gf_group->update_type[gf_group->gf_group_size] == OVERLAY_UPDATE;
+
+  // Initialize P frames
+  for (frame_idx = *tpl_group_frames; frame_idx < MAX_ARF_GOP_SIZE;
+       ++frame_idx) {
+    if (frame_idx >= gf_group->gf_group_size && !has_arf) break;
+    struct lookahead_entry *buf;
+    frame_gop_offset = gf_group->frame_gop_index[frame_idx];
+    buf = vp9_lookahead_peek(cpi->lookahead, frame_gop_offset - 1);
+
+    if (buf == NULL) break;
+
+    gf_picture[frame_idx].frame = &buf->img;
+    for (i = 0; i < 3; ++i) {
+      gf_picture[frame_idx].ref_frame[i] = ref_table[i];
+    }
+
+    if (gf_group->update_type[frame_idx] != OVERLAY_UPDATE &&
+        gf_group->update_ref_idx[frame_idx] != -1) {
+      ref_table[gf_group->update_ref_idx[frame_idx]] = frame_idx;
+    }
+
+    gf_picture[frame_idx].update_type = gf_group->update_type[frame_idx];
+
+    ++*tpl_group_frames;
+
+    // The length of group of pictures is baseline_gf_interval, plus the
+    // beginning golden frame from last GOP, plus the last overlay frame in
+    // the same GOP.
+    if (frame_idx == gf_group->gf_group_size) {
+      added_overlay = 1;
+
+      ++frame_idx;
+      ++frame_gop_offset;
+      break;
+    }
+
+    if (frame_idx == gf_group->gf_group_size - 1 &&
+        gf_group->update_type[gf_group->gf_group_size] != OVERLAY_UPDATE) {
+      ++frame_idx;
+      ++frame_gop_offset;
+      break;
+    }
+  }
+
+  int lst_index = frame_idx - 1;
+  // Extend two frames outside the current gf group.
+  for (; has_arf && frame_idx < MAX_LAG_BUFFERS && extend_frame_count < 2;
+       ++frame_idx) {
+    struct lookahead_entry *buf =
+        vp9_lookahead_peek(cpi->lookahead, frame_gop_offset - 1);
+
+    if (buf == NULL) break;
+
+    cpi->tpl_stats[frame_idx].base_qindex = pframe_qindex;
+
+    gf_picture[frame_idx].frame = &buf->img;
+    gf_picture[frame_idx].ref_frame[0] = gf_picture[lst_index].ref_frame[0];
+    gf_picture[frame_idx].ref_frame[1] = gf_picture[lst_index].ref_frame[1];
+    gf_picture[frame_idx].ref_frame[2] = gf_picture[lst_index].ref_frame[2];
+
+    if (gf_picture[frame_idx].ref_frame[0] >
+            gf_picture[frame_idx].ref_frame[1] &&
+        gf_picture[frame_idx].ref_frame[0] >
+            gf_picture[frame_idx].ref_frame[2]) {
+      gf_picture[frame_idx].ref_frame[0] = lst_index;
+    } else if (gf_picture[frame_idx].ref_frame[1] >
+                   gf_picture[frame_idx].ref_frame[0] &&
+               gf_picture[frame_idx].ref_frame[1] >
+                   gf_picture[frame_idx].ref_frame[2]) {
+      gf_picture[frame_idx].ref_frame[1] = lst_index;
+    } else {
+      gf_picture[frame_idx].ref_frame[2] = lst_index;
+    }
+
+    gf_picture[frame_idx].update_type = LF_UPDATE;
+    lst_index = frame_idx;
+    ++*tpl_group_frames;
+    ++extend_frame_count;
+    ++frame_gop_offset;
+  }
+
+  return extend_frame_count + added_overlay;
+}
+
 static int init_gop_frames(VP9_COMP *cpi, GF_PICTURE *gf_picture,
                            const GF_GROUP *gf_group, int *tpl_group_frames) {
+  if (cpi->ext_ratectrl.ready &&
+      (cpi->ext_ratectrl.funcs.rc_type & VPX_RC_GOP) != 0) {
+    return init_gop_frames_rc(cpi, gf_picture, gf_group, tpl_group_frames);
+  }
+
   VP9_COMMON *cm = &cpi->common;
   int frame_idx = 0;
   int i;
@@ -190,8 +396,8 @@ static void init_tpl_stats_before_propagation(
       vpx_calloc(tpl_gop_frames, sizeof(*tpl_gop_stats->frame_stats_list)));
   tpl_gop_stats->size = tpl_gop_frames;
   for (frame_idx = 0; frame_idx < tpl_gop_frames; ++frame_idx) {
-    const int mi_rows = tpl_stats[frame_idx].height;
-    const int mi_cols = tpl_stats[frame_idx].width;
+    const int mi_rows = tpl_stats[frame_idx].mi_rows;
+    const int mi_cols = tpl_stats[frame_idx].mi_cols;
     CHECK_MEM_ERROR(
         error_info, tpl_gop_stats->frame_stats_list[frame_idx].block_stats_list,
         vpx_calloc(
@@ -398,19 +604,21 @@ static void tpl_model_store(TplDepStats *tpl_stats, int mi_row, int mi_col,
 static void tpl_store_before_propagation(VpxTplBlockStats *tpl_block_stats,
                                          TplDepStats *tpl_stats, int mi_row,
                                          int mi_col, BLOCK_SIZE bsize,
-                                         int stride, int64_t recon_error,
-                                         int64_t rate_cost, int ref_frame_idx) {
+                                         int src_stride, int64_t recon_error,
+                                         int64_t rate_cost, int ref_frame_idx,
+                                         int mi_rows, int mi_cols) {
   const int mi_height = num_8x8_blocks_high_lookup[bsize];
   const int mi_width = num_8x8_blocks_wide_lookup[bsize];
-  const TplDepStats *src_stats = &tpl_stats[mi_row * stride + mi_col];
+  const TplDepStats *src_stats = &tpl_stats[mi_row * src_stride + mi_col];
   int idx, idy;
 
   for (idy = 0; idy < mi_height; ++idy) {
     for (idx = 0; idx < mi_width; ++idx) {
+      if (mi_row + idy >= mi_rows || mi_col + idx >= mi_cols) continue;
       VpxTplBlockStats *tpl_block_stats_ptr =
-          &tpl_block_stats[(mi_row + idy) * stride + mi_col + idx];
-      tpl_block_stats_ptr->row = mi_row * 8;
-      tpl_block_stats_ptr->col = mi_col * 8;
+          &tpl_block_stats[(mi_row + idy) * mi_cols + mi_col + idx];
+      tpl_block_stats_ptr->row = mi_row * 8 + idy * 8;
+      tpl_block_stats_ptr->col = mi_col * 8 + idx * 8;
       tpl_block_stats_ptr->inter_cost = src_stats->inter_cost;
       tpl_block_stats_ptr->intra_cost = src_stats->intra_cost;
       // inter/intra_cost here is calculated with SATD which should be close
@@ -1260,7 +1468,8 @@ static void mc_flow_dispenser(VP9_COMP *cpi, GF_PICTURE *gf_picture,
       tpl_store_before_propagation(
           tpl_frame_stats_before_propagation->block_stats_list,
           tpl_frame->tpl_stats_ptr, mi_row, mi_col, bsize, tpl_frame->stride,
-          recon_error, rate_cost, ref_frame_idx);
+          recon_error, rate_cost, ref_frame_idx, tpl_frame->mi_rows,
+          tpl_frame->mi_cols);
 
       tpl_model_update(cpi->tpl_stats, tpl_frame->tpl_stats_ptr, mi_row, mi_col,
                        bsize);
@@ -1511,7 +1720,7 @@ void vp9_estimate_tpl_qp_gop(VP9_COMP *cpi) {
   const int is_src_frame_alt_ref = cpi->rc.is_src_frame_alt_ref;
   const int refresh_frame_context = cpi->common.refresh_frame_context;
 
-  for (idx = 1; idx <= gop_length; ++idx) {
+  for (idx = gf_index; idx <= gop_length; ++idx) {
     TplDepFrame *tpl_frame = &cpi->tpl_stats[idx];
     int target_rate = cpi->twopass.gf_group.bit_allocation[idx];
     cpi->twopass.gf_group.index = idx;
@@ -1519,6 +1728,7 @@ void vp9_estimate_tpl_qp_gop(VP9_COMP *cpi) {
     vp9_configure_buffer_updates(cpi, idx);
     if (cpi->tpl_with_external_rc) {
       VP9_COMMON *cm = &cpi->common;
+      if (idx == gop_length) break;
       if (cpi->ext_ratectrl.ready &&
           (cpi->ext_ratectrl.funcs.rc_type & VPX_RC_QP) != 0 &&
           cpi->ext_ratectrl.funcs.get_encodeframe_decision != NULL) {
@@ -1526,7 +1736,7 @@ void vp9_estimate_tpl_qp_gop(VP9_COMP *cpi) {
         const GF_GROUP *gf_group = &cpi->twopass.gf_group;
         vpx_rc_encodeframe_decision_t encode_frame_decision;
         codec_status = vp9_extrc_get_encodeframe_decision(
-            &cpi->ext_ratectrl, gf_group->index - 1, &encode_frame_decision);
+            &cpi->ext_ratectrl, gf_group->index, &encode_frame_decision);
         if (codec_status != VPX_CODEC_OK) {
           vpx_internal_error(&cm->error, codec_status,
                              "vp9_extrc_get_encodeframe_decision() failed");
@@ -1577,7 +1787,7 @@ void vp9_setup_tpl_stats(VP9_COMP *cpi) {
   if (cpi->ext_ratectrl.ready &&
       cpi->ext_ratectrl.funcs.send_tpl_gop_stats != NULL) {
     // Intra search on key frame
-    if (gf_picture[0].update_type == KF_UPDATE) {
+    if (gf_picture[0].update_type != OVERLAY_UPDATE) {
       mc_flow_dispenser(cpi, gf_picture, 0, cpi->tpl_bsize);
     }
     // TPL stats has extra frames from next GOP. Trim those extra frames for

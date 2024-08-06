@@ -1244,7 +1244,6 @@ void vp8_init_second_pass(VP8_COMP *cpi) {
   vp8_new_framerate(cpi, 10000000.0 * cpi->twopass.total_stats.count /
                              cpi->twopass.total_stats.duration);
 
-  cpi->output_framerate = cpi->framerate;
   cpi->twopass.bits_left = (int64_t)(cpi->twopass.total_stats.duration *
                                      cpi->oxcf.target_bandwidth / 10000000.0);
   cpi->twopass.bits_left -= (int64_t)(cpi->twopass.total_stats.duration *
@@ -2712,9 +2711,10 @@ static void find_next_key_frame(VP8_COMP *cpi, FIRSTPASS_STATS *this_frame) {
         else if (cpi->twopass.kf_group_bits < av_group_bits) {
           int64_t bits_below_av = av_group_bits - cpi->twopass.kf_group_bits;
 
-          cpi->twopass.kf_group_bits += (int64_t)(
-              (double)bits_below_av * (double)(buffer_lvl - opt_buffer_lvl) /
-              (double)(high_water_mark - opt_buffer_lvl));
+          cpi->twopass.kf_group_bits +=
+              (int64_t)((double)bits_below_av *
+                        (double)(buffer_lvl - opt_buffer_lvl) /
+                        (double)(high_water_mark - opt_buffer_lvl));
         }
       }
     }

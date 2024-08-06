@@ -14,7 +14,7 @@
 
 #if !CONFIG_SHARED
 #include <string>
-#include "third_party/googletest/src/include/gtest/gtest.h"
+#include "gtest/gtest.h"
 #if VPX_ARCH_ARM
 #include "vpx_ports/arm.h"
 #endif

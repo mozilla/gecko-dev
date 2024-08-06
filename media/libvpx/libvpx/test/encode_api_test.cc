@@ -17,9 +17,10 @@
 #include <initializer_list>
 #include <vector>
 
-#include "third_party/googletest/src/include/gtest/gtest.h"
+#include "gtest/gtest.h"
 #include "test/acm_random.h"
 #include "test/video_source.h"
+#include "test/y4m_video_source.h"
 
 #include "./vpx_config.h"
 #include "vpx/vp8cx.h"
@@ -547,6 +548,108 @@ TEST(EncodeAPI, AomediaIssue3509VbrMinSection101PercentVP8) {
   // Free resources.
   vpx_img_free(image);
   ASSERT_EQ(vpx_codec_destroy(&enc), VPX_CODEC_OK);
+}
+
+TEST(EncodeAPI, OssFuzz69100) {
+  // Initialize libvpx encoder.
+  vpx_codec_iface_t *const iface = vpx_codec_vp8_cx();
+  vpx_codec_ctx_t enc;
+  vpx_codec_enc_cfg_t cfg;
+
+  ASSERT_EQ(vpx_codec_enc_config_default(iface, &cfg, 0), VPX_CODEC_OK);
+
+  cfg.g_w = 64;
+  cfg.g_h = 64;
+  cfg.g_lag_in_frames = 25;
+  cfg.g_timebase.num = 1;
+  cfg.g_timebase.den = 6240592;
+  cfg.rc_target_bitrate = 1202607620;
+  cfg.kf_max_dist = 24377;
+
+  ASSERT_EQ(vpx_codec_enc_init(&enc, iface, &cfg, 0), VPX_CODEC_OK);
+
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_CPUUSED, 1), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_ARNR_MAXFRAMES, 0), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_ARNR_STRENGTH, 3), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control_(&enc, VP8E_SET_ARNR_TYPE, 3),
+            VPX_CODEC_OK);  // deprecated
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_NOISE_SENSITIVITY, 0),
+            VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_TOKEN_PARTITIONS, 0),
+            VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_STATIC_THRESHOLD, 0),
+            VPX_CODEC_OK);
+
+  libvpx_test::RandomVideoSource video;
+  video.set_limit(30);
+  video.SetSize(cfg.g_w, cfg.g_h);
+  video.SetImageFormat(VPX_IMG_FMT_I420);
+  video.Begin();
+  do {
+    ASSERT_EQ(vpx_codec_encode(&enc, video.img(), video.pts(), video.duration(),
+                               /*flags=*/0, VPX_DL_GOOD_QUALITY),
+              VPX_CODEC_OK);
+    video.Next();
+  } while (video.img() != nullptr);
+
+  ASSERT_EQ(vpx_codec_destroy(&enc), VPX_CODEC_OK);
+}
+
+void EncodeOssFuzz69906(int cpu_used, vpx_enc_deadline_t deadline) {
+  char str[80];
+  snprintf(str, sizeof(str), "cpu_used: %d deadline: %d", cpu_used,
+           static_cast<int>(deadline));
+  SCOPED_TRACE(str);
+
+  // Initialize libvpx encoder.
+  vpx_codec_iface_t *const iface = vpx_codec_vp8_cx();
+  vpx_codec_ctx_t enc;
+  vpx_codec_enc_cfg_t cfg;
+
+  ASSERT_EQ(vpx_codec_enc_config_default(iface, &cfg, 0), VPX_CODEC_OK);
+
+  cfg.g_w = 4097;
+  cfg.g_h = 16;
+  cfg.rc_target_bitrate = 1237084865;
+  cfg.kf_max_dist = 4336;
+
+  ASSERT_EQ(vpx_codec_enc_init(&enc, iface, &cfg, 0), VPX_CODEC_OK);
+
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_CPUUSED, cpu_used), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_ARNR_MAXFRAMES, 0), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_ARNR_STRENGTH, 3), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control_(&enc, VP8E_SET_ARNR_TYPE, 3),
+            VPX_CODEC_OK);  // deprecated
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_NOISE_SENSITIVITY, 0),
+            VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_TOKEN_PARTITIONS, 0),
+            VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_STATIC_THRESHOLD, 0),
+            VPX_CODEC_OK);
+
+  libvpx_test::Y4mVideoSource video("repro-oss-fuzz-69906.y4m", /*start=*/0,
+                                    /*limit=*/3);
+  video.Begin();
+  do {
+    ASSERT_EQ(vpx_codec_encode(&enc, video.img(), video.pts(), video.duration(),
+                               /*flags=*/0, deadline),
+              VPX_CODEC_OK);
+    video.Next();
+  } while (video.img() != nullptr);
+
+  ASSERT_EQ(vpx_codec_destroy(&enc), VPX_CODEC_OK);
+}
+
+TEST(EncodeAPI, OssFuzz69906) {
+  // Note the original bug report was for speed 1, good quality. The remainder
+  // of the settings are for added coverage.
+  for (int cpu_used = 0; cpu_used <= 5; ++cpu_used) {
+    EncodeOssFuzz69906(cpu_used, VPX_DL_GOOD_QUALITY);
+  }
+
+  for (int cpu_used = -16; cpu_used <= -5; ++cpu_used) {
+    EncodeOssFuzz69906(cpu_used, VPX_DL_REALTIME);
+  }
 }
 #endif  // CONFIG_VP8_ENCODER
 
@@ -1733,6 +1836,86 @@ TEST(EncodeAPI, AomediaIssue3509VbrMinSection101PercentVP9) {
   ASSERT_EQ(
       vpx_codec_encode(&enc, image, 0, /*duration=*/300, 0, VPX_DL_REALTIME),
       VPX_CODEC_OK);
+
+  // Free resources.
+  vpx_img_free(image);
+  ASSERT_EQ(vpx_codec_destroy(&enc), VPX_CODEC_OK);
+}
+
+TEST(EncodeAPI, Chromium352414650) {
+  // Initialize libvpx encoder.
+  vpx_codec_iface_t *const iface = vpx_codec_vp9_cx();
+  vpx_codec_ctx_t enc;
+  vpx_codec_enc_cfg_t cfg;
+
+  ASSERT_EQ(vpx_codec_enc_config_default(iface, &cfg, 0), VPX_CODEC_OK);
+
+  cfg.g_w = 1024;
+  cfg.g_h = 1024;
+  cfg.g_profile = 0;
+  cfg.g_pass = VPX_RC_ONE_PASS;
+  cfg.g_lag_in_frames = 0;
+  cfg.rc_max_quantizer = 58;
+  cfg.rc_min_quantizer = 2;
+  cfg.g_threads = 4;
+  cfg.rc_resize_allowed = 0;
+  cfg.rc_dropframe_thresh = 0;
+  cfg.g_timebase.num = 1;
+  cfg.g_timebase.den = 1000000;
+  cfg.kf_min_dist = 0;
+  cfg.kf_max_dist = 10000;
+  cfg.rc_end_usage = VPX_CBR;
+  cfg.rc_target_bitrate = 754974;
+  cfg.ts_number_layers = 3;
+  cfg.ts_periodicity = 4;
+  cfg.ts_layer_id[0] = 0;
+  cfg.ts_layer_id[1] = 2;
+  cfg.ts_layer_id[2] = 1;
+  cfg.ts_layer_id[3] = 2;
+  cfg.ts_rate_decimator[0] = 4;
+  cfg.ts_rate_decimator[1] = 2;
+  cfg.ts_rate_decimator[2] = 1;
+  cfg.layer_target_bitrate[0] = 2147483;
+  cfg.layer_target_bitrate[1] = 3006476;
+  cfg.layer_target_bitrate[2] = 4294967;
+  cfg.temporal_layering_mode = VP9E_TEMPORAL_LAYERING_MODE_0212;
+  cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT;
+
+  ASSERT_EQ(vpx_codec_enc_init(&enc, iface, &cfg, 0), VPX_CODEC_OK);
+
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_CPUUSED, 7), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP9E_SET_TILE_COLUMNS, 2), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP9E_SET_ROW_MT, 1), VPX_CODEC_OK);
+
+  vpx_svc_extra_cfg_t svc_cfg = {};
+  svc_cfg.max_quantizers[0] = svc_cfg.max_quantizers[1] =
+      svc_cfg.max_quantizers[2] = 58;
+  svc_cfg.min_quantizers[0] = svc_cfg.min_quantizers[1] =
+      svc_cfg.min_quantizers[2] = 2;
+  svc_cfg.scaling_factor_num[0] = svc_cfg.scaling_factor_num[1] =
+      svc_cfg.scaling_factor_num[2] = 1;
+  svc_cfg.scaling_factor_den[0] = svc_cfg.scaling_factor_den[1] =
+      svc_cfg.scaling_factor_den[2] = 1;
+  ASSERT_EQ(vpx_codec_control(&enc, VP9E_SET_SVC_PARAMETERS, &svc_cfg),
+            VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP9E_SET_SVC, 1), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP9E_SET_AQ_MODE, 3), VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP8E_SET_STATIC_THRESHOLD, 1),
+            VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP9E_SET_COLOR_SPACE, VPX_CS_SMPTE_170),
+            VPX_CODEC_OK);
+  ASSERT_EQ(vpx_codec_control(&enc, VP9E_SET_COLOR_RANGE, VPX_CR_STUDIO_RANGE),
+            VPX_CODEC_OK);
+
+  // Create input image.
+  vpx_image_t *const image =
+      CreateImage(VPX_BITS_8, VPX_IMG_FMT_I420, cfg.g_w, cfg.g_h);
+  ASSERT_NE(image, nullptr);
+
+  // Encode frame.
+  ASSERT_EQ(vpx_codec_encode(&enc, image, 0, /*duration=*/500000,
+                             VPX_EFLAG_FORCE_KF, VPX_DL_REALTIME),
+            VPX_CODEC_OK);
 
   // Free resources.
   vpx_img_free(image);

@@ -9,12 +9,12 @@
  */
 #include <climits>
 #include <vector>
-#include "third_party/googletest/src/include/gtest/gtest.h"
+#include "gtest/gtest.h"
 #include "test/codec_factory.h"
 #include "test/encode_test_driver.h"
 #include "test/i420_video_source.h"
-#include "test/video_source.h"
 #include "test/util.h"
+#include "test/video_source.h"
 #include "vpx_config.h"
 
 // Enable(1) or Disable(0) writing of the compressed bitstream.

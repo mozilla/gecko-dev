@@ -14,11 +14,11 @@
 
 #include "./vpx_config.h"
 
+#include "gtest/gtest.h"
 #include "test/codec_factory.h"
 #include "test/encode_test_driver.h"
 #include "test/util.h"
 #include "test/yuv_video_source.h"
-#include "third_party/googletest/src/include/gtest/gtest.h"
 #if CONFIG_VP9_DECODER
 #include "vpx/vp8dx.h"
 #endif
@@ -52,12 +52,30 @@ class RateControllerForTest {
       gop_decision.use_alt_ref = 1;
       gop_decision.gop_coding_frames =
           kShowFrameCount - 1 + gop_decision.use_alt_ref;
+      // key frame
+      gop_decision.update_type[0] = VPX_RC_KF_UPDATE;
+      gop_decision.update_ref_index[0] = 0;
+      gop_decision.ref_frame_list[0] = get_kf_ref_frame();
+      // arf
+      gop_decision.update_type[1] = VPX_RC_ARF_UPDATE;
+      gop_decision.update_ref_index[1] = 1;
+      gop_decision.ref_frame_list[1] = get_arf_ref_frame();
+      // leafs
+      for (int i = 2; i < gop_decision.gop_coding_frames; ++i) {
+        gop_decision.update_type[i] = VPX_RC_LF_UPDATE;
+        gop_decision.update_ref_index[i] = 2;
+        gop_decision.ref_frame_list[i] = get_leaf_ref_frame(i);
+      }
     } else {
       // Pad a overlay-only GOP as the last GOP.
       EXPECT_EQ(current_gop_, 1);
       gop_decision.use_key_frame = 0;
       gop_decision.use_alt_ref = 0;
       gop_decision.gop_coding_frames = 1;
+
+      gop_decision.update_type[0] = VPX_RC_OVERLAY_UPDATE;
+      gop_decision.update_ref_index[0] = 1;
+      gop_decision.ref_frame_list[0] = get_ovl_ref_frame();
     }
     return gop_decision;
   }
@@ -73,6 +91,50 @@ class RateControllerForTest {
       return kLeafQp;
     }
   }
+
+ private:
+  vpx_rc_ref_frame_t get_kf_ref_frame() const {
+    vpx_rc_ref_frame_t ref_frame;
+    ref_frame.index[0] = -1;
+    ref_frame.index[1] = -1;
+    ref_frame.index[2] = -1;
+    ref_frame.name[0] = VPX_RC_INVALID_REF_FRAME;
+    ref_frame.name[1] = VPX_RC_INVALID_REF_FRAME;
+    ref_frame.name[2] = VPX_RC_INVALID_REF_FRAME;
+    return ref_frame;
+  }
+  vpx_rc_ref_frame_t get_arf_ref_frame() const {
+    vpx_rc_ref_frame_t ref_frame;
+    ref_frame.index[0] = 0;
+    ref_frame.index[1] = -1;
+    ref_frame.index[2] = -1;
+    ref_frame.name[0] = VPX_RC_GOLDEN_FRAME;
+    ref_frame.name[1] = VPX_RC_INVALID_REF_FRAME;
+    ref_frame.name[2] = VPX_RC_INVALID_REF_FRAME;
+    return ref_frame;
+  }
+  vpx_rc_ref_frame_t get_leaf_ref_frame(int count) const {
+    vpx_rc_ref_frame_t ref_frame;
+    ref_frame.index[0] = 0;
+    ref_frame.index[1] = 1;
+    ref_frame.index[2] = count > 2 ? 2 : -1;
+    ref_frame.name[0] = VPX_RC_GOLDEN_FRAME;
+    ref_frame.name[1] = VPX_RC_ALTREF_FRAME;
+    ref_frame.name[2] =
+        count > 2 ? VPX_RC_LAST_FRAME : VPX_RC_INVALID_REF_FRAME;
+    return ref_frame;
+  }
+  vpx_rc_ref_frame_t get_ovl_ref_frame() const {
+    vpx_rc_ref_frame_t ref_frame;
+    ref_frame.index[0] = 1;
+    ref_frame.index[1] = -1;
+    ref_frame.index[2] = -1;
+    ref_frame.name[0] = VPX_RC_ALTREF_FRAME;
+    ref_frame.name[1] = VPX_RC_INVALID_REF_FRAME;
+    ref_frame.name[2] = VPX_RC_INVALID_REF_FRAME;
+    return ref_frame;
+  }
+
   int current_gop_;
 };
 

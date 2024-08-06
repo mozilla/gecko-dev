@@ -2347,49 +2347,90 @@ static INLINE void gf_group_set_inter_normal_frame(GF_GROUP *gf_group,
   gf_group->layer_depth[frame_index] = 2;
 }
 
+static INLINE void set_gf_frame_type(vpx_rc_frame_update_type_t update_type,
+                                     int show_frame_count, GF_GROUP *gf_group,
+                                     int *frame_index, int *show_frame_index) {
+  if (update_type == VPX_RC_KF_UPDATE) {
+    gf_group_set_key_frame(gf_group, *frame_index, *show_frame_index);
+    ++(*frame_index);
+    ++(*show_frame_index);
+  } else if (update_type == VPX_RC_OVERLAY_UPDATE) {
+    gf_group_set_overlay_frame(gf_group, *frame_index, *show_frame_index);
+    ++(*frame_index);
+    ++(*show_frame_index);
+  } else if (update_type == VPX_RC_ARF_UPDATE) {
+    gf_group_set_arf_frame(gf_group, *frame_index, show_frame_count);
+    ++(*frame_index);
+  } else if (update_type == VPX_RC_LF_UPDATE) {
+    gf_group_set_inter_normal_frame(gf_group, *frame_index, *show_frame_index);
+    ++(*frame_index);
+    ++(*show_frame_index);
+  } else {
+    assert(0);
+  }
+}
+
 static void ext_rc_define_gf_group_structure(
     const vpx_rc_gop_decision_t *gop_decision, GF_GROUP *gf_group) {
-  const int key_frame = gop_decision->use_key_frame;
-  const int show_frame_count =
-      gop_decision->gop_coding_frames - gop_decision->use_alt_ref;
+  const int gop_coding_frames = gop_decision->gop_coding_frames;
+
+  const int show_frame_count = gop_coding_frames - gop_decision->use_alt_ref;
   int frame_index = 0;
   int show_frame_index = 0;
-  if (key_frame) {
-    gf_group_set_key_frame(gf_group, frame_index, show_frame_index);
-  } else {
-    gf_group_set_overlay_frame(gf_group, frame_index, show_frame_index);
-  }
-  ++frame_index;
-  ++show_frame_index;
 
-  if (gop_decision->use_alt_ref) {
-    assert(frame_index < gop_decision->gop_coding_frames);
-    gf_group_set_arf_frame(gf_group, frame_index, show_frame_count);
-    ++frame_index;
-    // We don't increment show_frame_index here because arf is not a show frame
-  }
+  for (int i = frame_index; i < gop_coding_frames; i++) {
+    set_gf_frame_type(gop_decision->update_type[i], show_frame_count, gf_group,
+                      &frame_index, &show_frame_index);
 
-  for (; frame_index < gop_decision->gop_coding_frames; frame_index++) {
-    gf_group_set_inter_normal_frame(gf_group, frame_index, show_frame_index);
-    ++show_frame_index;
-  }
+    gf_group->update_ref_idx[i] = gop_decision->update_ref_index[i];
 
+    gf_group->ext_rc_ref[i].last_index = 0;
+    gf_group->ext_rc_ref[i].golden_index = 0;
+    gf_group->ext_rc_ref[i].altref_index = 0;
+    for (int ref_frame = 0; ref_frame < 3; ref_frame++) {
+      const vpx_rc_ref_frame_t *const ext_ref_frame =
+          &gop_decision->ref_frame_list[i];
+      const int ref_index = ext_ref_frame->index[ref_frame];
+      gf_group->ref_frame_list[i][ref_frame] = ext_ref_frame->index[ref_frame];
+      switch (ext_ref_frame->name[ref_frame]) {
+        case VPX_RC_LAST_FRAME:
+          gf_group->ext_rc_ref[i].last_index = ref_index;
+          break;
+        case VPX_RC_GOLDEN_FRAME:
+          gf_group->ext_rc_ref[i].golden_index = ref_index;
+          break;
+        case VPX_RC_ALTREF_FRAME:
+          gf_group->ext_rc_ref[i].altref_index = ref_index;
+          break;
+        default: break;
+      }
+    }
+    if (gf_group->update_type[i] == OVERLAY_UPDATE) {
+      // From ext_rc, overlay may not update any ref. But here we force it to
+      // update its arf's slot. This is probably OK since the arf and this
+      // overlay frame should be very similar.
+      gf_group->update_ref_idx[i] = gf_group->ext_rc_ref[i].altref_index;
+    }
+  }
   // max_layer_depth is hardcoded to match the behavior of
   // define_gf_group_structure()
   // TODO(angiebird): Check whether max_layer_depth has performance impact.
   gf_group->max_layer_depth = 2;
   gf_group->allowed_max_layer_depth = 1;
-  gf_group->gf_group_size = gop_decision->gop_coding_frames;
+  gf_group->gf_group_size = gop_coding_frames;
 
   // TODO(b/345523905): Why do we need to set an overlay frame in the end?
   assert(show_frame_count == show_frame_index);
   if (gop_decision->use_alt_ref) {
     gf_group_set_overlay_frame(gf_group, gf_group->gf_group_size,
                                show_frame_index);
+  } else {
+    gf_group_set_inter_normal_frame(gf_group, gf_group->gf_group_size,
+                                    show_frame_index);
   }
 
   gf_group->frame_start = 0;
-  gf_group->frame_end = gf_group->gf_group_size - 1;
+  gf_group->frame_end = gf_group->gf_group_size - gop_decision->use_alt_ref;
 }
 
 static void allocate_gf_group_bits(VP9_COMP *cpi, int64_t gf_group_bits,
@@ -2994,13 +3035,11 @@ static void define_gf_group(VP9_COMP *cpi, int gf_start_show_idx) {
           // we should refactor the code so that this part is not used by
           // ext_ratectrl.
           break;
-        } else {
-          vpx_internal_error(&cm->error, VPX_CODEC_ERROR,
-                             "In define_gf_group(), frame_stats is NULL when "
-                             "calculating gf_group_err.");
-
-          break;
         }
+        vpx_internal_error(&cm->error, VPX_CODEC_ERROR,
+                           "In define_gf_group(), frame_stats is NULL when "
+                           "calculating gf_group_err.");
+        break;
       }
       // Accumulate error score of frames in this gf group.
       gf_group_err += calc_norm_frame_score(oxcf, frame_info, frame_stats,
@@ -3074,6 +3113,10 @@ static void define_gf_group(VP9_COMP *cpi, int gf_start_show_idx) {
   // Decide GOP structure.
   if (gop_decision_ready) {
     ext_rc_define_gf_group_structure(&gop_decision, &twopass->gf_group);
+    // Set the fb idx for the first frame in this GOP.
+    cpi->lst_fb_idx = twopass->gf_group.ext_rc_ref[0].last_index;
+    cpi->gld_fb_idx = twopass->gf_group.ext_rc_ref[0].golden_index;
+    cpi->alt_fb_idx = twopass->gf_group.ext_rc_ref[0].altref_index;
   } else {
     define_gf_group_structure(cpi);
   }
@@ -3431,8 +3474,9 @@ static void find_next_key_frame(VP9_COMP *cpi, int kf_show_idx) {
 
     // Default allocation based on bits left and relative
     // complexity of the section.
-    twopass->kf_group_bits = (int64_t)(
-        twopass->bits_left * (kf_group_err / twopass->normalized_score_left));
+    twopass->kf_group_bits =
+        (int64_t)(twopass->bits_left *
+                  (kf_group_err / twopass->normalized_score_left));
 
     // Clip based on maximum per frame rate defined by the user.
     max_grp_bits = (int64_t)max_bits * (int64_t)rc->frames_to_key;

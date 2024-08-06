@@ -24,10 +24,10 @@
 #include <memory>
 #include <string>
 
-#include "test/acm_random.h"
 #if !defined(_WIN32)
-#include "third_party/googletest/src/include/gtest/gtest.h"
+#include "gtest/gtest.h"
 #endif
+#include "test/acm_random.h"
 #include "vpx/vpx_encoder.h"
 
 namespace libvpx_test {

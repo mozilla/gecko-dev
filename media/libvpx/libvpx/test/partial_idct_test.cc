@@ -14,7 +14,7 @@
 #include <limits>
 #include <tuple>
 
-#include "third_party/googletest/src/include/gtest/gtest.h"
+#include "gtest/gtest.h"
 
 #include "./vp9_rtcd.h"
 #include "./vpx_dsp_rtcd.h"

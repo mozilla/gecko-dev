@@ -223,3 +223,6 @@ SUPPORT
   This library is an open source project supported by its community. Please
   email webm-discuss@webmproject.org for help.
 
+BUG REPORTS
+  Bug reports can be filed in the libvpx issue tracker:
+  https://issues.webmproject.org/.

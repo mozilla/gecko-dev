@@ -136,8 +136,10 @@ bool VP9RateControlRTC::UpdateRateControl(
   oxcf->content = rc_cfg.is_screen ? VP9E_CONTENT_SCREEN : VP9E_CONTENT_DEFAULT;
   oxcf->ss_number_layers = rc_cfg.ss_number_layers;
   oxcf->ts_number_layers = rc_cfg.ts_number_layers;
-  oxcf->temporal_layering_mode = (VP9E_TEMPORAL_LAYERING_MODE)(
-      (rc_cfg.ts_number_layers > 1) ? rc_cfg.ts_number_layers : 0);
+  oxcf->temporal_layering_mode =
+      (VP9E_TEMPORAL_LAYERING_MODE)((rc_cfg.ts_number_layers > 1)
+                                        ? rc_cfg.ts_number_layers
+                                        : 0);
 
   cpi_->oxcf.rc_max_intra_bitrate_pct = rc_cfg.max_intra_bitrate_pct;
   cpi_->oxcf.rc_max_inter_bitrate_pct = rc_cfg.max_inter_bitrate_pct;
