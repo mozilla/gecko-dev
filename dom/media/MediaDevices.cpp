@@ -247,17 +247,6 @@ RefPtr<MediaDeviceSetRefCnt> MediaDevices::FilterExposedDevices(
       !Preferences::GetBool("media.setsinkid.enabled") ||
       !FeaturePolicyUtils::IsFeatureAllowed(doc, u"speaker-selection"_ns);
 
-  if (doc->ShouldResistFingerprinting(RFPTarget::MediaDevices)) {
-    RefPtr fakeEngine = new MediaEngineFake();
-    fakeEngine->EnumerateDevices(MediaSourceEnum::Microphone,
-                                 MediaSinkEnum::Other, exposed);
-    fakeEngine->EnumerateDevices(MediaSourceEnum::Camera, MediaSinkEnum::Other,
-                                 exposed);
-    dropMics = dropCams = true;
-    // Speakers are not handled specially with resistFingerprinting because
-    // they are exposed only when explicitly and individually allowed by the
-    // user.
-  }
   bool legacy = StaticPrefs::media_devices_enumerate_legacy_enabled();
   bool outputIsDefault = true;  // First output is the default.
   bool haveDefaultOutput = false;
@@ -321,6 +310,45 @@ RefPtr<MediaDeviceSetRefCnt> MediaDevices::FilterExposedDevices(
     }
     exposed->AppendElement(device);
   }
+
+  if (doc->ShouldResistFingerprinting(RFPTarget::MediaDevices)) {
+    // We expose a single device of each kind.
+    // Legacy mode also achieves the same thing.
+    bool micVariantSeen = false, camVariantSeen = false;
+    for (uint32_t i = 0; i < exposed->Length(); i++) {
+      RefPtr<mozilla::MediaDevice> device = exposed->ElementAt(i);
+      if (device->mKind == MediaDeviceKind::Audioinput) {
+        if (micVariantSeen) {
+          exposed->RemoveElementAt(i);
+          i--;
+        }
+        micVariantSeen = true;
+      } else if (device->mKind == dom::MediaDeviceKind::Videoinput) {
+        if (camVariantSeen) {
+          exposed->RemoveElementAt(i);
+          i--;
+        }
+        camVariantSeen = true;
+      }
+    }
+
+    if (!micVariantSeen || !camVariantSeen) {
+      RefPtr fakeEngine = new MediaEngineFake();
+      RefPtr fakeDevices = new MediaDeviceSetRefCnt();
+      if (!micVariantSeen) {
+        fakeEngine->EnumerateDevices(MediaSourceEnum::Microphone,
+                                     MediaSinkEnum::Other, fakeDevices);
+        exposed->InsertElementAt(0, fakeDevices->LastElement());
+      }
+
+      if (!camVariantSeen) {
+        fakeEngine->EnumerateDevices(MediaSourceEnum::Camera,
+                                     MediaSinkEnum::Other, fakeDevices);
+        exposed->InsertElementAt(1, fakeDevices->LastElement());
+      }
+    }
+  }
+
   return exposed;
 }
 

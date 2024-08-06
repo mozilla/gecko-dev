@@ -48,6 +48,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/KeyboardEventBinding.h"
 #include "mozilla/dom/WindowGlobalParent.h"
+#include "mozilla/dom/MediaDeviceInfoBinding.h"
 #include "mozilla/fallible.h"
 #include "mozilla/XorShift128PlusRNG.h"
 
@@ -2278,4 +2279,36 @@ Maybe<RFPTarget> nsRFPService::GetOverriddenFingerprintingSettingsForURI(
   }
 
   return result;
+}
+
+/* static */
+void nsRFPService::GetMediaDeviceName(nsString& aName,
+                                      dom::MediaDeviceKind aKind) {
+  switch (aKind) {
+    case dom::MediaDeviceKind::Audioinput:
+      aName.Assign(u"Internal Microphone"_ns);
+      break;
+    case dom::MediaDeviceKind::Videoinput:
+      aName = u"Internal Camera"_ns;
+      break;
+    case dom::MediaDeviceKind::Audiooutput:
+      aName = u"Internal Speaker"_ns;
+      break;
+  }
+}
+
+/* static */
+void nsRFPService::GetMediaDeviceGroup(nsString& aGroup,
+                                       dom::MediaDeviceKind aKind) {
+  switch (aKind) {
+    case dom::MediaDeviceKind::Audioinput:
+      aGroup.Assign(u"Audio Device Group"_ns);
+      break;
+    case dom::MediaDeviceKind::Videoinput:
+      aGroup = u"Video Device Group"_ns;
+      break;
+    case dom::MediaDeviceKind::Audiooutput:
+      aGroup = u"Speaker Device Group"_ns;
+      break;
+  }
 }

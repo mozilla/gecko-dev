@@ -2754,7 +2754,8 @@ enum class GetUserMediaSecurityState {
 
 /**
  * This function is used in getUserMedia when privacy.resistFingerprinting is
- * true. Only mediaSource of audio/video constraint will be kept.
+ * true. Only mediaSource of audio/video constraint will be kept. On mobile
+ * facing mode is also kept.
  */
 static void ReduceConstraint(
     OwningBooleanOrMediaTrackConstraints& aConstraint) {
@@ -2768,12 +2769,19 @@ static void ReduceConstraint(
     return;
   }
 
-  // Keep mediaSource, ignore all other constraints.
+  // Keep mediaSource.
   Maybe<nsString> mediaSource;
   if (aConstraint.GetAsMediaTrackConstraints().mMediaSource.WasPassed()) {
     mediaSource =
         Some(aConstraint.GetAsMediaTrackConstraints().mMediaSource.Value());
   }
+
+  Maybe<OwningStringOrStringSequenceOrConstrainDOMStringParameters> facingMode;
+  if (aConstraint.GetAsMediaTrackConstraints().mFacingMode.WasPassed()) {
+    facingMode =
+        Some(aConstraint.GetAsMediaTrackConstraints().mFacingMode.Value());
+  }
+
   aConstraint.Uninit();
   if (mediaSource) {
     aConstraint.SetAsMediaTrackConstraints().mMediaSource.Construct(
@@ -2781,6 +2789,14 @@ static void ReduceConstraint(
   } else {
     Unused << aConstraint.SetAsMediaTrackConstraints();
   }
+
+#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_UIKIT)
+  if (facingMode) {
+    aConstraint.SetAsMediaTrackConstraints().mFacingMode.Construct(*facingMode);
+  } else {
+    Unused << aConstraint.SetAsMediaTrackConstraints();
+  }
+#endif
 }
 
 /**
@@ -3250,22 +3266,39 @@ RefPtr<LocalDeviceSetPromise> MediaManager::AnonymizeDevices(
         MakeRefPtr<MediaMgrError>(MediaMgrError::Name::NotAllowedError),
         __func__);
   }
-  bool persist = IsActivelyCapturingOrHasAPermission(windowId);
+  bool resistFingerprinting =
+      aWindow->AsGlobal()->ShouldResistFingerprinting(RFPTarget::MediaDevices);
+  bool persist =
+      IsActivelyCapturingOrHasAPermission(windowId) && !resistFingerprinting;
   return media::GetPrincipalKey(principalInfo, persist)
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
-          [rawDevices = std::move(aDevices),
-           windowId](const nsCString& aOriginKey) {
+          [rawDevices = std::move(aDevices), windowId,
+           resistFingerprinting](const nsCString& aOriginKey) {
             MOZ_ASSERT(!aOriginKey.IsEmpty());
             RefPtr anonymized = new LocalMediaDeviceSetRefCnt();
             for (const RefPtr<MediaDevice>& device : *rawDevices) {
+              nsString name = device->mRawName;
+              if (name.Find(u"AirPods"_ns) != -1) {
+                name = u"AirPods"_ns;
+              }
+
               nsString id = device->mRawID;
+              if (resistFingerprinting) {
+                nsRFPService::GetMediaDeviceName(name, device->mKind);
+                id = name;
+                id.AppendInt(windowId);
+              }
               // An empty id represents a virtual default device, for which
               // the exposed deviceId is the empty string.
               if (!id.IsEmpty()) {
                 nsContentUtils::AnonymizeId(id, aOriginKey);
               }
+
               nsString groupId = device->mRawGroupID;
+              if (resistFingerprinting) {
+                nsRFPService::GetMediaDeviceGroup(groupId, device->mKind);
+              }
               // Use window id to salt group id in order to make it session
               // based as required by the spec. This does not provide unique
               // group ids through out a browser restart. However, this is not
@@ -3273,11 +3306,6 @@ RefPtr<LocalDeviceSetPromise> MediaManager::AnonymizeDevices(
               // after a browser restart the fingerprint is not bigger.
               groupId.AppendInt(windowId);
               nsContentUtils::AnonymizeId(groupId, aOriginKey);
-
-              nsString name = device->mRawName;
-              if (name.Find(u"AirPods"_ns) != -1) {
-                name = u"AirPods"_ns;
-              }
               anonymized->EmplaceBack(
                   new LocalMediaDevice(device, id, groupId, name));
             }
