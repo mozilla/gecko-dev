@@ -13,6 +13,7 @@ use crate::ArcSlice;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 
+mod animation;
 mod color;
 mod counters;
 

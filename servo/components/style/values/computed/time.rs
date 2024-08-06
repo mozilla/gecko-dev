@@ -5,6 +5,7 @@
 //! Computed time values.
 
 use crate::values::CSSFloat;
+use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -22,11 +23,6 @@ impl Time {
         Time { seconds }
     }
 
-    /// Returns `0s`.
-    pub fn zero() -> Self {
-        Self::from_seconds(0.0)
-    }
-
     /// Returns the amount of seconds this time represents.
     #[inline]
     pub fn seconds(&self) -> CSSFloat {
@@ -41,5 +37,15 @@ impl ToCss for Time {
     {
         self.seconds().to_css(dest)?;
         dest.write_char('s')
+    }
+}
+
+impl Zero for Time {
+    fn zero() -> Self {
+        Self::from_seconds(0.0)
+    }
+
+    fn is_zero(&self) -> bool {
+        self.seconds == 0.
     }
 }

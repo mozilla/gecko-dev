@@ -13958,6 +13958,8 @@ if (IsCSSPropertyPrefEnabled("layout.css.scroll-driven-animations.enabled")) {
   gCSSProperties["-moz-animation"].subproperties.push("animation-timeline");
   gCSSProperties["-webkit-animation"].subproperties.push("animation-timeline");
 
+  gCSSProperties["animation-duration"].initial_values.push("auto");
+
   gCSSProperties["animation-timeline"] = {
     domProp: "animationTimeline",
     inherited: false,

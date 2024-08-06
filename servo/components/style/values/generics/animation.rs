@@ -6,8 +6,75 @@
 
 use crate::values::generics::length::GenericLengthPercentageOrAuto;
 use crate::values::specified::animation::{ScrollAxis, ScrollFunction, TimelineName};
+use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
+
+/// The `animation-duration` property.
+///
+/// https://drafts.csswg.org/css-animations-2/#animation-duration
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericAnimationDuration<T> {
+    /// The initial value. However, we serialize this as 0s if the preference is disabled.
+    Auto,
+    /// The time value, <time [0s,∞]>.
+    Time(T),
+}
+
+pub use self::GenericAnimationDuration as AnimationDuration;
+
+impl<T> AnimationDuration<T> {
+    /// Returns the `auto` value.
+    pub fn auto() -> Self {
+        Self::Auto
+    }
+
+    /// Returns true if it is `auto`.
+    pub fn is_auto(&self) -> bool {
+        matches!(*self, Self::Auto)
+    }
+}
+
+impl<T: Zero> Zero for AnimationDuration<T> {
+    fn zero() -> Self {
+        Self::Time(T::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        match *self {
+            Self::Time(ref t) => t.is_zero(),
+            _ => false,
+        }
+    }
+}
+
+impl<T: ToCss + Zero> ToCss for AnimationDuration<T> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            Self::Auto => {
+                if static_prefs::pref!("layout.css.scroll-driven-animations.enabled") {
+                    dest.write_str("auto")
+                } else {
+                    Self::Time(T::zero()).to_css(dest)
+                }
+            },
+            Self::Time(ref t) => t.to_css(dest),
+        }
+    }
+}
 
 /// The view() notation.
 /// https://drafts.csswg.org/scroll-animations-1/#view-notation

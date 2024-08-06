@@ -1452,6 +1452,12 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         self.mTransitionPropertyCount > 0
     }
 
+    /// Returns whether animation-timeline is initial value. We need this information to resolve
+    /// animation-duration.
+    pub fn has_initial_animation_timeline(&self) -> bool {
+        self.mAnimationTimelineCount == 1 && self.animation_timeline_at(0).is_auto()
+    }
+
     pub fn animations_equals(&self, other: &Self) -> bool {
         return self.mAnimationNameCount == other.mAnimationNameCount
             && self.mAnimationDelayCount == other.mAnimationDelayCount

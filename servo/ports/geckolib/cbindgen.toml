@@ -95,6 +95,7 @@ include = [
   "AnimationFillMode",
   "AnimationPlayState",
   "AnimationComposition",
+  "AnimationDuration",
   "Appearance",
   "Au",
   "BreakBetween",

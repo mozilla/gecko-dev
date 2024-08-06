@@ -4,9 +4,10 @@
 
 //! Computed values for properties related to animations and transitions
 
-use crate::values::computed::{Context, LengthPercentage, ToComputedValue};
+use crate::values::computed::{Context, LengthPercentage, Time, ToComputedValue};
 use crate::values::generics::animation as generics;
 use crate::values::specified::animation as specified;
+use crate::values::CSSFloat;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -14,6 +15,20 @@ pub use crate::values::specified::animation::{
     AnimationComposition, AnimationDirection, AnimationFillMode, AnimationName, AnimationPlayState,
     ScrollAxis, TimelineName, TransitionBehavior, TransitionProperty,
 };
+
+/// A computed value for the `animation-duration` property.
+pub type AnimationDuration = generics::GenericAnimationDuration<Time>;
+
+impl AnimationDuration {
+    /// Returns the amount of seconds this time represents.
+    #[inline]
+    pub fn seconds(&self) -> CSSFloat {
+        match *self {
+            Self::Auto => 0.0,
+            Self::Time(ref t) => t.seconds(),
+        }
+    }
+}
 
 /// A computed value for the `animation-iteration-count` property.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]

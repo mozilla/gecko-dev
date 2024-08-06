@@ -224,16 +224,15 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "animation-duration",
-    "Time",
-    "computed::Time::zero()",
+    "AnimationDuration",
+    "computed::AnimationDuration::auto()",
     engines="gecko servo",
-    initial_specified_value="specified::Time::zero()",
-    parse_method="parse_non_negative",
+    initial_specified_value="specified::AnimationDuration::auto()",
     vector=True,
     need_index=True,
     animation_type="none",
     extra_prefixes=animation_extra_prefixes,
-    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration",
+    spec="https://drafts.csswg.org/css-animations-2/#animation-duration",
     affects="",
 )}
 

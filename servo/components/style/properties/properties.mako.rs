@@ -1614,6 +1614,13 @@ pub mod style_structs {
                 })
             }
 
+            /// Returns whether animation-timeline is initial value. We need this information to
+            /// resolve animation-duration.
+            #[cfg(feature = "servo")]
+            pub fn has_initial_animation_timeline(&self) -> bool {
+                self.animation_timeline_count() == 1 && self.animation_timeline_at(0).is_auto()
+            }
+
             /// Returns whether there is any named progress timeline specified with
             /// scroll-timeline-name other than `none`.
             #[cfg(feature = "gecko")]

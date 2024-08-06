@@ -29,9 +29,9 @@ pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
 pub use self::align::{JustifyContent, JustifyItems, JustifySelf, SelfAlignment};
 pub use self::angle::{AllowUnitlessZeroAngle, Angle};
 pub use self::animation::{
-    AnimationComposition, AnimationDirection, AnimationFillMode, AnimationIterationCount,
-    AnimationName, AnimationPlayState, AnimationTimeline, ScrollAxis, TimelineName,
-    TransitionBehavior, TransitionProperty, ViewTimelineInset,
+    AnimationComposition, AnimationDirection, AnimationDuration, AnimationFillMode,
+    AnimationIterationCount, AnimationName, AnimationPlayState, AnimationTimeline, ScrollAxis,
+    TimelineName, TransitionBehavior, TransitionProperty, ViewTimelineInset,
 };
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
