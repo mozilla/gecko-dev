@@ -67,15 +67,7 @@ export var GeckoViewConsole = {
       const consoleMsg = Cc["@mozilla.org/scripterror;1"].createInstance(
         Ci.nsIScriptError
       );
-      consoleMsg.init(
-        joinedArguments,
-        null,
-        null,
-        0,
-        0,
-        flag,
-        "content javascript"
-      );
+      consoleMsg.init(joinedArguments, null, 0, 0, flag, "content javascript");
       Services.console.logMessage(consoleMsg);
     } else if (aMessage.level == "trace") {
       const args = aMessage.arguments;
