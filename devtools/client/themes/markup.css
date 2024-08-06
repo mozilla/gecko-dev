@@ -12,6 +12,8 @@
   --markup-drag-line: var(--grey-40);
   --markup-drop-line: var(--blue-55);
   --markup-overflow-causing-background-color: rgba(128, 0, 215, 0.15);
+  --markup-new-attr-size: 2ch;
+  --markup-new-attr-focused-margin-inline: 1ch 2px;
 }
 
 .theme-dark:root {
@@ -345,11 +347,22 @@ ul.children + .tag-line::before {
 }
 
 .newattr {
-  margin-right: -13px;
-}
+  /* offset the element so it doesn't take any space when not focused */
+  margin-inline-start: calc(-1 * var(--markup-new-attr-size));
 
-.newattr:before {
-  content: "\00a0\00a0";
+  &::before {
+    content: "\00a0\00a0" / "";
+  }
+
+  &:focus-visible {
+    margin-inline: var(--markup-new-attr-focused-margin-inline);
+    background-image: url("chrome://devtools/skin/images/add.svg");
+    background-repeat: no-repeat;
+    background-size: 90%;
+    background-position: center;
+    -moz-context-properties: fill;
+    fill: var(--theme-icon-color);
+  }
 }
 
 .attr-value .link {
@@ -380,10 +393,6 @@ ul.children + .tag-line::before {
   [role="treeitem"][aria-selected="true"] & {
     fill: var(--theme-selection-color);
   }
-}
-
-.newattr:focus {
-  margin-right: 0;
 }
 
 .flash-out {
