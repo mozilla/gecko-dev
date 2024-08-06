@@ -1480,7 +1480,6 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::CanSkipAwait:
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     case JSOp::AddDisposable:
-    case JSOp::DisposeDisposables:
 #endif
       return true;
 
@@ -1502,6 +1501,10 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::Throw:
     case JSOp::ThrowWithStack:
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    case JSOp::TakeDisposeCapability:
+    case JSOp::GetDisposableRecord:
+    case JSOp::CreateSuppressedError:
+    case JSOp::ThrowWithoutJump:
     case JSOp::ThrowWithStackWithoutJump:
 #endif
     case JSOp::Goto:

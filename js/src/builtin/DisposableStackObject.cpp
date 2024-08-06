@@ -176,6 +176,91 @@ inline void DisposableStackObject::setState(DisposableState state) {
 }
 
 // Explicit Resource Management Proposal
+// DisposeResources ( disposeCapability, completion )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
+template <typename ClearFn>
+MOZ_ALWAYS_INLINE bool DisposeResources(
+    JSContext* cx, JS::Handle<ListObject*> disposeCapability, ClearFn clear) {
+  uint32_t index = disposeCapability->length();
+
+  // hadError and latestException correspond to the completion value.
+  MOZ_ASSERT(!cx->isExceptionPending());
+  bool hadError = false;
+  JS::Rooted<JS::Value> latestException(cx);
+
+  // Step 3. For each element resource of
+  // disposeCapability.[[DisposableResourceStack]], in reverse list order, do
+  while (index) {
+    --index;
+    JS::Value val = disposeCapability->get(index);
+
+    MOZ_ASSERT(val.isObject());
+
+    JS::Rooted<DisposableRecordObject*> resource(
+        cx, &val.toObject().as<DisposableRecordObject>());
+
+    // Step 3.a. Let value be resource.[[ResourceValue]].
+    JS::Rooted<JS::Value> value(cx, resource->getObject());
+
+    // Step 3.b. Let hint be resource.[[Hint]].
+    // Step 3.c. Let method be resource.[[DisposeMethod]].
+    JS::Rooted<JS::Value> method(cx, resource->getMethod());
+
+    // Step 3.e. If method is not undefined, then
+    if (method.isUndefined()) {
+      continue;
+    }
+
+    // Step 3.e.i. Let result be Completion(Call(method, value)).
+    JS::Rooted<JS::Value> rval(cx);
+    if (!Call(cx, method, value, &rval)) {
+      // Step 3.e.iii. If result is a throw completion, then
+      if (hadError) {
+        // Step 3.e.iii.1.a. Set result to result.[[Value]].
+        JS::Rooted<JS::Value> result(cx);
+        if (!cx->getPendingException(&result)) {
+          return false;
+        }
+        cx->clearPendingException();
+
+        // Step 3.e.iii.1.b. Let suppressed be completion.[[Value]].
+        JS::Rooted<JS::Value> suppressed(cx, latestException);
+
+        // Steps 3.e.iii.1.c-e.
+        ErrorObject* errorObj = CreateSuppressedError(cx, result, suppressed);
+        if (!errorObj) {
+          return false;
+        }
+        // Step 3.e.iii.1.f. Set completion to ThrowCompletion(error).
+        latestException.set(ObjectValue(*errorObj));
+      } else {
+        // Step 3.e.iii.2. Else,
+        // Step 3.e.iii.2.a. Set completion to result.
+        hadError = true;
+        if (cx->isExceptionPending()) {
+          if (!cx->getPendingException(&latestException)) {
+            return false;
+          }
+          cx->clearPendingException();
+        }
+      }
+    }
+  }
+
+  // Step 6. Set disposeCapability.[[DisposableResourceStack]] to a new empty
+  // List.
+  clear();
+
+  // Step 7. Return ? completion.
+  if (hadError) {
+    cx->setPendingException(latestException, ShouldCaptureStack::Maybe);
+    return false;
+  }
+
+  return true;
+}
+
+// Explicit Resource Management Proposal
 // 27.3.3.3 DisposableStack.prototype.dispose ( )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposablestack.prototype.dispose
 // Step 4-5.

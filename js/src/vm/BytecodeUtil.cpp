@@ -2144,6 +2144,23 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
 #  ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
       case JSOp::AddDisposable:
         return decompilePCForStackOperand(pc, -1);
+
+      case JSOp::TakeDisposeCapability:
+        if (defIndex == 0) {
+          return write("DISPOSECAPABILITY");
+        }
+        MOZ_ASSERT(defIndex == 1);
+        return write("COUNT");
+
+      case JSOp::GetDisposableRecord:
+        if (defIndex == 0) {
+          return write("HINT");
+        }
+        if (defIndex == 1) {
+          return write("METHOD");
+        }
+        MOZ_ASSERT(defIndex == 2);
+        return write("VALUE");
 #  endif
 
       default:

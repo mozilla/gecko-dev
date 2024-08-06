@@ -51,8 +51,11 @@ namespace jit {
   _(NonSyntacticGlobalThis)                                     \
   /* TODO: To be implemented (Bug 1899501) */                   \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(AddDisposable))             \
-  IF_EXPLICIT_RESOURCE_MANAGEMENT(_(DisposeDisposables))        \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(_(ThrowWithoutJump))          \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(ThrowWithStackWithoutJump)) \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(_(TakeDisposeCapability))     \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(_(GetDisposableRecord))       \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(_(CreateSuppressedError))     \
   /* Records and Tuples */                                      \
   IF_RECORD_TUPLE(_(InitRecord))                                \
   IF_RECORD_TUPLE(_(AddRecordProperty))                         \

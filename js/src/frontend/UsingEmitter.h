@@ -9,6 +9,8 @@
 #include "mozilla/Maybe.h"
 
 #include "frontend/TryEmitter.h"
+#include "vm/CompletionKind.h"
+#include "vm/DisposeJumpKind.h"
 #include "vm/UsingHint.h"
 
 namespace js::frontend {
@@ -24,6 +26,10 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   // TODO: add state transition graph and state
   // management for this emitter. (Bug 1904346)
+
+  [[nodiscard]] bool emitDisposeLoop(
+      CompletionKind initialCompletion = CompletionKind::Normal,
+      DisposeJumpKind jumpKind = DisposeJumpKind::JumpOnError);
 
  public:
   explicit UsingEmitter(BytecodeEmitter* bce);

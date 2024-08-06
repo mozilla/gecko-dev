@@ -1782,36 +1782,6 @@ ErrorObject* js::CreateSuppressedError(JSContext* cx,
   return errorObj;
 }
 
-bool js::DisposeDisposablesOnScopeLeave(JSContext* cx,
-                                        JS::Handle<JSObject*> env) {
-  MOZ_ASSERT(env->is<LexicalEnvironmentObject>() ||
-             env->is<ModuleEnvironmentObject>());
-
-  JS::Value maybeDisposables =
-      env->is<LexicalEnvironmentObject>()
-          ? env->as<LexicalEnvironmentObject>().getDisposables()
-          : env->as<ModuleEnvironmentObject>().getDisposables();
-
-  MOZ_ASSERT(maybeDisposables.isObject() || maybeDisposables.isUndefined());
-
-  if (!maybeDisposables.isObject()) {
-    return !cx->isExceptionPending();
-  }
-
-  auto clearFn = [env]() {
-    if (env->is<LexicalEnvironmentObject>()) {
-      env->as<LexicalEnvironmentObject>().clearDisposables();
-    } else {
-      env->as<ModuleEnvironmentObject>().clearDisposables();
-    }
-  };
-
-  JS::Rooted<ListObject*> disposables(
-      cx, &maybeDisposables.toObject().as<ListObject>());
-
-  return DisposeResources(cx, disposables, clearFn);
-}
-
 // Explicit Resource Management Proposal
 // 7.5.4 AddDisposableResource ( disposeCapability, V, hint [ , method ] )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
@@ -2197,6 +2167,13 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     END_CASE(LeaveWith)
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    CASE(ThrowWithoutJump) {
+      ReservedRooted<Value> v(&rootValue0);
+      POP_COPY_TO(v);
+      MOZ_ALWAYS_FALSE(ThrowOperation(cx, v));
+    }
+    END_CASE(ThrowWithoutJump)
+
     CASE(ThrowWithStackWithoutJump) {
       ReservedRooted<Value> v(&rootValue0);
       ReservedRooted<Value> stack(&rootValue1);
@@ -2236,27 +2213,60 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     }
     END_CASE(AddDisposable)
 
-    CASE(DisposeDisposables) {
+    CASE(TakeDisposeCapability) {
       ReservedRooted<JSObject*> env(&rootObject0,
                                     REGS.fp()->environmentChain());
-      DisposeJumpKind jumpKind = DisposeJumpKind(GET_UINT8(REGS.pc));
-      bool ok = DisposeDisposablesOnScopeLeave(cx, env);
-      if (jumpKind == DisposeJumpKind::JumpOnError) {
-        if (!ok) {
-          goto error;
-        }
+      JS::Value maybeDisposables =
+          env->is<LexicalEnvironmentObject>()
+              ? env->as<LexicalEnvironmentObject>().getDisposables()
+              : env->as<ModuleEnvironmentObject>().getDisposables();
+
+      MOZ_ASSERT(maybeDisposables.isObject() || maybeDisposables.isUndefined());
+
+      if (maybeDisposables.isUndefined()) {
+        PUSH_UNDEFINED();
+        PUSH_INT32(0);
       } else {
-        MOZ_ASSERT(jumpKind == DisposeJumpKind::NoJumpOnError);
-        // The NoJumpOnError mode for this bytecode is used
-        // in the special case of For-of iterator close when there
-        // is an exception during the loop. Hence, if we reach this
-        // point in the execution we must have an exception
-        // pending and the bytecode following this must handle the
-        // exception.
-        MOZ_ASSERT(!ok, "NoJumpOnError used without a pending exception");
+        PUSH_OBJECT(maybeDisposables.toObject());
+        PUSH_INT32(maybeDisposables.toObject().as<ListObject>().length());
+        if (env->is<LexicalEnvironmentObject>()) {
+          env->as<LexicalEnvironmentObject>().clearDisposables();
+        } else {
+          env->as<ModuleEnvironmentObject>().clearDisposables();
+        }
       }
     }
-    END_CASE(DisposeDisposables)
+    END_CASE(TakeDisposeCapability)
+
+    CASE(GetDisposableRecord) {
+      ReservedRooted<JS::Value> disposeCapability(&rootValue0);
+      ReservedRooted<JS::Value> index(&rootValue1);
+      POP_COPY_TO(index);
+      POP_COPY_TO(disposeCapability);
+      JS::Rooted<ListObject*> disposables(
+          cx, &disposeCapability.toObject().as<ListObject>());
+      uint32_t idx = index.toInt32();
+      MOZ_ASSERT(idx < disposables->length());
+      DisposableRecordObject* disposableRecord =
+          &disposables->get(idx).toObject().as<DisposableRecordObject>();
+      PUSH_INT32(int32_t(disposableRecord->getHint()));
+      PUSH_OBJECT(disposableRecord->getMethod().toObject());
+      PUSH_OBJECT(disposableRecord->getObject().toObject());
+    }
+    END_CASE(GetDisposableRecord)
+
+    CASE(CreateSuppressedError) {
+      ReservedRooted<JS::Value> error(&rootValue0);
+      ReservedRooted<JS::Value> suppressed(&rootValue1);
+      POP_COPY_TO(suppressed);
+      POP_COPY_TO(error);
+      ErrorObject* errorObj = CreateSuppressedError(cx, error, suppressed);
+      if (!errorObj) {
+        goto error;
+      }
+      PUSH_OBJECT(*errorObj);
+    }
+    END_CASE(CreateSuppressedError)
 #endif
 
     CASE(Return) {

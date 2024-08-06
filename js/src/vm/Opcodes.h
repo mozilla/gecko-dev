@@ -2620,6 +2620,19 @@
      */ \
     MACRO(Throw, throw_, NULL, 1, 1, 0, JOF_BYTE) \
     /*
+     * Throw `exc` without jumping to error handling code.
+     *
+     * This sets the pending exception to `exc` but unlike Throw it doesnt jump
+     * to error-handling code. This is used in Disposable Scopes with for-of loops
+     * to set the updated pending exception in the error case of for-of loops.
+     *
+     *   Category: Control flow
+     *   Type: Exceptions
+     *   Operands:
+     *   Stack: exc =>
+     */ \
+    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(ThrowWithoutJump, throw_without_jump, NULL, 1, 1, 0, JOF_BYTE)) \
+    /*
      * Throw `exc`. (ノಠ益ಠ)ノ彡┴──┴
      *
      * This sets the pending exception to `exc`, the pending exception stack
@@ -2652,6 +2665,19 @@
      *   Stack: exc, stack =>
      */ \
     IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(ThrowWithStackWithoutJump, throw_with_stack_without_jump, NULL, 1, 2, 0, JOF_BYTE)) \
+    /*
+     * Create a suppressed error object and push it on the stack.
+     *
+     * Implements: [DisposeResources ( disposeCapability, completion )][1], step 3.e.iii.1.a-f.
+     *
+     * [1] https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
+     *
+     *   Category: Control flow
+     *   Type: Exceptions
+     *   Operands:
+     *   Stack: error, suppressed => suppressedError
+     */ \
+    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(CreateSuppressedError, create_suppressed_error, NULL, 1, 2, 1, JOF_BYTE)) \
     /*
      * Create and throw an Error object.
      *
@@ -3416,19 +3442,29 @@
      */ \
     IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(AddDisposable, add_disposable, NULL, 2, 1, 1, JOF_UINT8)) \
     /*
-     * Retrieve the disposable objects from the currenct lexical environment object
-     * and dispose them.
-     *
-     * Implements: [DisposeResources ( disposeCapability, completion )][1], step 1-4
-     *
-     * [1] https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
+     * Get the dispose capability of the present environment object and the
+     * length of the same. In case the dispose capability of the environment
+     * has already been cleared or if no disposables have been
+     * pushed to the capability, it shall push undefined as the dispose
+     * capability and 0 as the length. After extracting a non-empty dispose
+     * capability, the dispose capability is cleared from the present
+     * environment object by setting it to undefined value.
      *
      *   Category: Variables and scopes
      *   Type: Entering and leaving environments
-     *   Operands: DisposeJumpKind jumpKind
-     *   Stack: =>
+     *   Operands:
+     *   Stack: => disposeCapability, count
      */ \
-    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(DisposeDisposables, dispose_disposables, NULL, 2, 0, 0, JOF_UINT8)) \
+    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(TakeDisposeCapability, take_dispose_capability, NULL, 1, 0, 2, JOF_BYTE)) \
+    /*
+     * Get the disposable record contents from the given dispose capability and given index.
+     *
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
+     *   Operands:
+     *   Stack: disposeCapability, index => hint, method, value
+     */ \
+    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(GetDisposableRecord, get_disposable_record, NULL, 1, 2, 3, JOF_BYTE)) \
     /*
      * Push the current VariableEnvironment (the environment on the environment
      * chain designated to receive new variables).
@@ -3693,16 +3729,13 @@
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 #  define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
-    IF_RECORD_TUPLE(/* empty */, MACRO(239))     \
-    IF_RECORD_TUPLE(/* empty */, MACRO(240))     \
-    IF_RECORD_TUPLE(/* empty */, MACRO(241))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(242))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(243))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(244))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(245))     \
-    MACRO(246)                                   \
-    MACRO(247)                                   \
-    MACRO(248)                                   \
+    IF_RECORD_TUPLE(/* empty */, MACRO(246))     \
+    IF_RECORD_TUPLE(/* empty */, MACRO(247))     \
+    IF_RECORD_TUPLE(/* empty */, MACRO(248))     \
     MACRO(249)                                   \
     MACRO(250)                                   \
     MACRO(251)                                   \

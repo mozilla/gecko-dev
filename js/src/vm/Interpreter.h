@@ -647,8 +647,6 @@ bool OptimizeGetIterator(JSContext* cx, HandleValue arg, bool* result);
 bool GetDisposeMethod(JSContext* cx, JS::Handle<JS::Value> obj, UsingHint hint,
                       JS::MutableHandle<JS::Value> disposeMethod);
 
-bool DisposeDisposablesOnScopeLeave(JSContext* cx, JS::Handle<JSObject*> env);
-
 ErrorObject* CreateSuppressedError(JSContext* cx, JS::Handle<JS::Value> error,
                                    JS::Handle<JS::Value> suppressed);
 

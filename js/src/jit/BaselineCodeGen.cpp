@@ -4882,9 +4882,22 @@ bool BaselineCodeGen<Handler>::emit_AddDisposable() {
 }
 
 template <typename Handler>
-bool BaselineCodeGen<Handler>::emit_DisposeDisposables() {
-  // TODO: DisposeDisposables to be implemented for Baseline (Bug 1899500)
-  MOZ_CRASH("DisposeDisposables has not been implemented for baseline");
+bool BaselineCodeGen<Handler>::emit_TakeDisposeCapability() {
+  // TODO: TakeDisposeCapability to be implemented for Baseline (Bug 1899500)
+  MOZ_CRASH("TakeDisposeCapability has not been implemented for baseline");
+}
+
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_GetDisposableRecord() {
+  // TODO: GetDisposableRecord to be implemented for Baseline (Bug 1899500)
+  MOZ_CRASH("GetDisposableRecord has not been implemented for baseline");
+}
+
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_CreateSuppressedError() {
+  // TODO: CreateSuppressedError to be implemented for Baseline (Bug
+  // 1899500)
+  MOZ_CRASH("CreateSuppressedError has not been implemented for baseline");
 }
 
 template <typename Handler>
@@ -4892,6 +4905,12 @@ bool BaselineCodeGen<Handler>::emit_ThrowWithStackWithoutJump() {
   // TODO: ThrowWithStackWithoutJump to be implemented for Baseline (Bug
   // 1899500)
   MOZ_CRASH("ThrowWithStackWithoutJump has not been implemented for baseline");
+}
+
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_ThrowWithoutJump() {
+  // TODO: ThrowWithoutJump to be implemented for Baseline (Bug 1899500)
+  MOZ_CRASH("ThrowWithoutJump has not been implemented for baseline");
 }
 #endif
 
