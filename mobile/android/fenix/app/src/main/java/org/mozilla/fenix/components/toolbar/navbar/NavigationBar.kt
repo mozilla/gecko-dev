@@ -72,6 +72,8 @@ import org.mozilla.fenix.theme.ThemeManager
  * @param onTabsButtonClick Invoked when the user clicks on the tabs button in the navigation bar.
  * @param onTabsButtonLongPress Invoked when the user long-presses the tabs button in the navigation bar.
  * @param onMenuButtonClick Invoked when the user clicks on the menu button in the navigation bar.
+ * @param onVisibilityUpdated Invoked when the visibility of the navigation bar changes
+ * informing if the navigation bar is visible.
  * @param isMenuRedesignEnabled Whether or not the menu redesign is enabled.
  */
 @Suppress("LongParameterList")
@@ -92,6 +94,7 @@ fun BrowserNavBar(
     onTabsButtonClick: () -> Unit,
     onTabsButtonLongPress: () -> Unit,
     onMenuButtonClick: () -> Unit,
+    onVisibilityUpdated: (Boolean) -> Unit,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
     val tabCount = browserStore.observeAsState(initialValue = 0) { browserState ->
@@ -106,7 +109,9 @@ fun BrowserNavBar(
         it.selectedTab?.content?.canGoForward ?: false
     }
 
-    NavBar {
+    NavBar(
+        onVisibilityUpdated = onVisibilityUpdated,
+    ) {
         BackButton(
             onBackButtonClick = onBackButtonClick,
             onBackButtonLongPress = onBackButtonLongPress,
@@ -241,6 +246,8 @@ fun HomeNavBar(
  * @param backgroundColor Custom background color of the navigation bar.
  * When `null`, [FirefoxTheme.layer1] will be used.
  * @param buttonTint Custom button tint color of the navigation bar. When `null`, [Color.White] will be used.
+ * @param onVisibilityUpdated Invoked when the visibility of the navigation bar changes
+ * informing if the navigation bar is visible.
  * @param isMenuRedesignEnabled Whether or not the menu redesign is enabled.
  */
 @Composable
@@ -257,6 +264,7 @@ fun CustomTabNavBar(
     onMenuButtonClick: () -> Unit,
     @ColorInt backgroundColor: Int? = null,
     @ColorInt buttonTint: Int? = null,
+    onVisibilityUpdated: (Boolean) -> Unit,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
     // A follow up: https://bugzilla.mozilla.org/show_bug.cgi?id=1888573
@@ -271,6 +279,7 @@ fun CustomTabNavBar(
 
     NavBar(
         background = background,
+        onVisibilityUpdated = onVisibilityUpdated,
     ) {
         BackButton(
             onBackButtonClick = onBackButtonClick,
@@ -300,9 +309,18 @@ fun CustomTabNavBar(
     }
 }
 
+/**
+ * Navigation bar parent handling the basic configuration and behavior.
+ *
+ * @param background The background color of the navigation bar.
+ * @param onVisibilityUpdated Invoked when the visibility of the navigation bar changes informing if
+ * the navigation bar is visible.
+ * @param content The content of the navigation bar.
+ */
 @Composable
 private fun NavBar(
     background: Color = FirefoxTheme.colors.layer1,
+    onVisibilityUpdated: (Boolean) -> Unit = {},
     content: @Composable RowScope.() -> Unit,
 ) {
     val keyboardState by keyboardAsState()
@@ -318,6 +336,8 @@ private fun NavBar(
             content = content,
         )
     }
+
+    onVisibilityUpdated(keyboardState == KeyboardState.Opened)
 }
 
 @Composable
@@ -492,6 +512,7 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
         onTabsButtonLongPress = {},
         onMenuButtonClick = {},
         isMenuRedesignEnabled = false,
+        onVisibilityUpdated = {},
     )
 }
 
@@ -526,6 +547,7 @@ private fun CustomTabNavBarPreviewRoot(isPrivateMode: Boolean) {
         isMenuRedesignEnabled = false,
         backgroundColor = FirefoxTheme.colors.layer1.toArgb(),
         buttonTint = FirefoxTheme.colors.iconPrimary.toArgb(),
+        onVisibilityUpdated = {},
     )
 }
 

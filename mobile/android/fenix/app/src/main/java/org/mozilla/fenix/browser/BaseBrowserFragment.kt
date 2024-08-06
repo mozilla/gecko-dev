@@ -198,6 +198,7 @@ import org.mozilla.fenix.ext.breadcrumb
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.hideToolbar
+import org.mozilla.fenix.ext.isKeyboardVisible
 import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.ext.isToolbarAtBottom
 import org.mozilla.fenix.ext.nav
@@ -1707,6 +1708,9 @@ abstract class BaseBrowserFragment :
                         ),
                     )
                 },
+                onVisibilityUpdated = {
+                    configureEngineViewWithDynamicToolbarsMaxHeight()
+                },
             )
         }
     }
@@ -2109,6 +2113,40 @@ abstract class BaseBrowserFragment :
      */
     protected fun getAppropriateLayoutGravity(): Int =
         requireComponents.settings.toolbarPosition.androidGravity
+
+    /**
+     * Configure the engine view to know where to place website's dynamic elements
+     * depending on the space taken by any dynamic toolbar.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    internal fun configureEngineViewWithDynamicToolbarsMaxHeight() {
+        val toolbarHeights = view?.let { probeToolbarHeights(it) } ?: return
+        getEngineView().setDynamicToolbarMaxHeight(toolbarHeights.first + toolbarHeights.second)
+    }
+
+    /**
+     * Get an instant reading of the top toolbar height and the bottom toolbar height.
+     */
+    private fun probeToolbarHeights(rootView: View): Pair<Int, Int> {
+        val context = rootView.context
+        // Avoid any change for scenarios where the toolbar is not shown / not dynamic
+        if (fullScreenFeature.get()?.isFullScreen == true) return 0 to 0
+        if (!isToolbarDynamic(context)) return 0 to 0
+
+        val topToolbarHeight = context.settings().getTopToolbarHeight(
+            includeTabStrip = customTabSessionId == null && context.isTabStripEnabled(),
+        )
+        val navbarHeight = context.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
+        val isKeyboardShown = rootView.isKeyboardVisible()
+        val bottomToolbarHeight = context.settings().getBottomToolbarHeight(context).minus(
+            when (isKeyboardShown) {
+                true -> navbarHeight // When keyboard is shown the navbar is expected to be hidden. Ignore it's height.
+                false -> 0
+            },
+        )
+
+        return topToolbarHeight to bottomToolbarHeight
+    }
 
     /**
      * Updates the site permissions rules based on user settings.
