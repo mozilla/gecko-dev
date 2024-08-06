@@ -1630,6 +1630,7 @@ if (!build_with_mozilla) {
 }
 
 rtc_library("ssl_adapter") {
+if (!build_with_mozilla) {
   visibility = [ "*" ]
   sources = [
     "openssl_adapter.cc",
@@ -1678,6 +1679,7 @@ rtc_library("ssl_adapter") {
   } else {
     configs += [ ":external_ssl_library" ]
   }
+}
 }
 
 rtc_source_set("gtest_prod") {
