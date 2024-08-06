@@ -4269,7 +4269,7 @@
 
 - name: dom.text_fragments.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
   rust: true
 
