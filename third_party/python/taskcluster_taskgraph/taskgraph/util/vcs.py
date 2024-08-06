@@ -445,6 +445,9 @@ class GitRepository(Repository):
             cmd = ["log", "--format=format:", revision_argument]
 
         cmd.append("--name-only")
+        cmd.append(
+            "--no-renames"
+        )  # Consider renames as deletion of old, addition of new.
         cmd.append("--diff-filter=" + diff_filter.upper())
 
         files = self.run(*cmd).splitlines()

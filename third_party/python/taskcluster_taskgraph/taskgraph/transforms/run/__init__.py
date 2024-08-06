@@ -251,7 +251,9 @@ def use_fetches(config, tasks):
         for kind in sorted(fetches):
             artifacts = fetches[kind]
             if kind in ("fetch", "toolchain"):
-                for artifact in sorted(artifacts):
+                for artifact in sorted(
+                    artifacts, key=lambda a: a if isinstance(a, str) else a["artifact"]
+                ):
                     # Convert name only fetch entries to full fledged ones for
                     # easier processing.
                     if isinstance(artifact, str):
