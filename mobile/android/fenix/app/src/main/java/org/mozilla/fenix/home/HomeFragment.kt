@@ -477,6 +477,7 @@ class HomeFragment : Fragment() {
             pocketStoriesController = DefaultPocketStoriesController(
                 homeActivity = activity,
                 appStore = components.appStore,
+                settings = components.settings,
             ),
             privateBrowsingController = DefaultPrivateBrowsingController(
                 activity = activity,
