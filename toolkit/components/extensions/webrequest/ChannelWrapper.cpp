@@ -511,24 +511,6 @@ bool ChannelWrapper::IsServiceWorkerScript(const nsCOMPtr<nsIChannel>& chan) {
   return false;
 }
 
-static inline bool IsSystemPrincipal(nsIPrincipal* aPrincipal) {
-  return BasePrincipal::Cast(aPrincipal)->Is<SystemPrincipal>();
-}
-
-bool ChannelWrapper::IsSystemLoad() const {
-  if (nsCOMPtr<nsILoadInfo> loadInfo = GetLoadInfo()) {
-    if (nsIPrincipal* prin = loadInfo->GetLoadingPrincipal()) {
-      return IsSystemPrincipal(prin);
-    }
-
-    // loadingPrincipal is only non-null for top-level loads.
-    // In practice we would never encounter a system principal for a top-level
-    // load that passes through ChannelWrapper, at least not for HTTP channels.
-    MOZ_ASSERT(Type() == MozContentPolicyType::Main_frame);
-  }
-  return false;
-}
-
 bool ChannelWrapper::CanModify() const {
   if (!HaveChannel()) {
     return false;
@@ -539,7 +521,7 @@ bool ChannelWrapper::CanModify() const {
 
   if (nsCOMPtr<nsILoadInfo> loadInfo = GetLoadInfo()) {
     if (nsIPrincipal* prin = loadInfo->GetLoadingPrincipal()) {
-      if (IsSystemPrincipal(prin)) {
+      if (prin->IsSystemPrincipal()) {
         return false;
       }
 

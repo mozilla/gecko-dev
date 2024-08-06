@@ -206,8 +206,6 @@ class ChannelWrapper final : public DOMEventTargetHelper,
 
   static bool IsServiceWorkerScript(const nsCOMPtr<nsIChannel>& aChannel);
 
-  bool IsSystemLoad() const;
-
   void GetOriginURL(nsCString& aRetVal) const;
 
   void GetDocumentURL(nsCString& aRetVal) const;

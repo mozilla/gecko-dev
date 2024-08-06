@@ -284,13 +284,6 @@ interface ChannelWrapper : EventTarget {
   readonly attribute boolean isServiceWorkerScript;
 
   /**
-   * True if this load was triggered by a system caller. This currently always
-   * false if the request has no LoadInfo or is a top-level document load.
-   */
-  [Cached, Pure]
-  readonly attribute boolean isSystemLoad;
-
-  /**
    * The URL of the principal that triggered this load. This is equivalent to
    * the LoadInfo's triggeringPrincipal, and will only ever be null for
    * requests without LoadInfo.
@@ -322,8 +315,8 @@ interface ChannelWrapper : EventTarget {
 
   /**
    * True if extensions may modify this request. This is currently false only
-   * if the request belongs to a document which has access to the
-   * mozAddonManager API.
+   * if this load was triggered by a system caller, from a restricted domain
+   * and/or a document that has access to the mozAddonManager API.
    */
   [Cached, GetterThrows, Pure]
   readonly attribute boolean canModify;
