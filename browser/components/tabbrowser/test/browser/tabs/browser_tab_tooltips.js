@@ -4,10 +4,12 @@ const MOUSE_OFFSET = 7;
 // Normal tooltips are positioned vertically at least this amount
 const MIN_VERTICAL_TOOLTIP_OFFSET = 18;
 
-function openTooltip(node, tooltip) {
+function openTooltip(node) {
   let tooltipShownPromise = BrowserTestUtils.waitForEvent(
-    tooltip,
-    "popupshown"
+    document,
+    "popupshown",
+    false,
+    event => event.originalTarget.nodeName == "tooltip"
   );
   window.windowUtils.disableNonTestMouseEvents(true);
   EventUtils.synthesizeMouse(node, 2, 2, { type: "mouseover" });
@@ -20,10 +22,12 @@ function openTooltip(node, tooltip) {
   return tooltipShownPromise;
 }
 
-function closeTooltip(node, tooltip) {
+function closeTooltip() {
   let tooltipHiddenPromise = BrowserTestUtils.waitForEvent(
-    tooltip,
-    "popuphidden"
+    document,
+    "popuphidden",
+    false,
+    event => event.originalTarget.nodeName == "tooltip"
   );
   EventUtils.synthesizeMouse(document.documentElement, 2, 2, {
     type: "mousemove",
@@ -44,8 +48,8 @@ add_task(async function () {
     "data:text/html,<html><head><title>A Tab</title></head><body>Hello</body></html>";
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, tabUrl);
 
-  let tooltip = document.getElementById("tabbrowser-tab-tooltip");
-  await openTooltip(tab, tooltip);
+  let event = await openTooltip(tab);
+  let tooltip = event.originalTarget;
 
   let tabRect = tab.getBoundingClientRect();
   let tooltipRect = tooltip.getBoundingClientRect();
@@ -67,9 +71,10 @@ add_task(async function () {
     "tooltip position attribute for tab"
   );
 
-  await closeTooltip(tab, tooltip);
+  await closeTooltip();
 
-  await openTooltip(tab.closeButton, tooltip);
+  event = await openTooltip(tab.closeButton);
+  tooltip = event.originalTarget;
 
   let closeButtonRect = tab.closeButton.getBoundingClientRect();
   tooltipRect = tooltip.getBoundingClientRect();
@@ -90,7 +95,7 @@ add_task(async function () {
     "tooltip position attribute for close button"
   );
 
-  await closeTooltip(tab, tooltip);
+  await closeTooltip();
 
   BrowserTestUtils.removeTab(tab);
 });
@@ -101,8 +106,8 @@ add_task(async function () {
     "data:text/html,<html><head><title>A Tab</title></head><body>Hello</body></html>";
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, tabUrl);
 
-  let tooltip = document.getElementById("tabbrowser-tab-tooltip");
-  await openTooltip(tab, tooltip);
+  let event = await openTooltip(tab);
+  let tooltip = event.originalTarget;
 
   EventUtils.synthesizeWheel(tab, 4, 4, {
     deltaMode: WheelEvent.DOM_DELTA_LINE,

@@ -5110,6 +5110,9 @@
 
       this.tabContainer._updateCloseButtons();
       this.tabContainer._updateHiddenTabsStatus();
+      if (aTab.multiselected) {
+        this._updateMultiselectedTabCloseButtonTooltip();
+      }
 
       let event = document.createEvent("Events");
       event.initEvent("TabShow", true, false);
@@ -5133,6 +5136,9 @@
 
       this.tabContainer._updateCloseButtons();
       this.tabContainer._updateHiddenTabsStatus();
+      if (aTab.multiselected) {
+        this._updateMultiselectedTabCloseButtonTooltip();
+      }
 
       // Splice this tab out of any lines of succession before any events are
       // dispatched.
@@ -5499,6 +5505,19 @@
       );
     },
 
+    /**
+     * Update accessible names of close buttons in the (multi) selected tabs
+     * collection with how many tabs they will close
+     */
+    _updateMultiselectedTabCloseButtonTooltip() {
+      const tabCount = gBrowser.selectedTabs.length;
+      gBrowser.selectedTabs.forEach(selectedTab => {
+        document.l10n.setArgs(selectedTab.querySelector(".tab-close-button"), {
+          tabCount,
+        });
+      });
+    },
+
     addToMultiSelectedTabs(aTab) {
       if (aTab.multiselected) {
         return;
@@ -5513,6 +5532,8 @@
       } else {
         this._multiSelectChangeAdditions.add(aTab);
       }
+
+      this._updateMultiselectedTabCloseButtonTooltip();
     },
 
     /**
@@ -5535,6 +5556,8 @@
       for (let i = lowerIndex; i <= higherIndex; i++) {
         this.addToMultiSelectedTabs(tabs[i]);
       }
+
+      this._updateMultiselectedTabCloseButtonTooltip();
     },
 
     removeFromMultiSelectedTabs(aTab) {
@@ -5550,6 +5573,13 @@
       } else {
         this._multiSelectChangeRemovals.add(aTab);
       }
+      // Update labels for Close buttons of the remaining multiselected tabs:
+      this._updateMultiselectedTabCloseButtonTooltip();
+      // Update the label for the Close button of the tab being removed
+      // from the multiselection:
+      document.l10n.setArgs(aTab.querySelector(".tab-close-button"), {
+        tabCount: 1,
+      });
     },
 
     clearMultiSelectedTabs() {
@@ -6060,12 +6090,7 @@
       const tabCount = this.selectedTabs.includes(tab)
         ? this.selectedTabs.length
         : 1;
-      if (tab.mOverCloseButton) {
-        tooltip.label = "";
-        document.l10n.setAttributes(tooltip, "tabbrowser-close-tabs-tooltip", {
-          tabCount,
-        });
-      } else if (tab._overPlayingIcon) {
+      if (tab._overPlayingIcon) {
         let l10nId;
         const l10nArgs = { tabCount };
         if (tab.selected) {
