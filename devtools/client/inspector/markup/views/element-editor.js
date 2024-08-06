@@ -194,6 +194,7 @@ ElementEditor.prototype = {
     this.newAttr.editMode = editableField({
       element: this.newAttr,
       multiline: true,
+      inputClass: "newattr-input",
       maxWidth: () => getAutocompleteMaxWidth(this.newAttr, this.container.elt),
       trigger: "dblclick",
       stopOnReturn: true,

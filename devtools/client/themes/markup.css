@@ -429,6 +429,12 @@ ul.children + .tag-line::before {
 .styleinspector-propertyeditor {
   vertical-align: top;
   border: none;
+
+  &.newattr-input {
+    margin-inline: var(--markup-new-attr-focused-margin-inline);
+    /* Apply the same size as the new attr button so we don't shift the layout when dislaying the input */
+    min-width: var(--markup-new-attr-size);
+  }
 }
 
 .reveal-link {

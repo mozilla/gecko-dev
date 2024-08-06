@@ -96,6 +96,8 @@ function isKeyIn(key, ...keys) {
  * @param {Object} options: Options for the editable field
  * @param {Element} options.element:
  *        (required) The span to be edited on focus.
+ * @param {String} options.inputClass:
+ *        An optional class to be added to the input.
  * @param {Function} options.canEdit:
  *        Will be called before creating the inplace editor.  Editor
  *        won't be created if canEdit returns false.
@@ -425,6 +427,8 @@ class InplaceEditor extends EventEmitter {
    *        Optional aria-label attribute value that will be added to the input.
    * @param {String} options.inputAriaLabelledBy
    *        Optional aria-labelledby attribute value that will be added to the input.
+   * @param {String} options.inputClass:
+   *        Optional class to be added to the input.
    */
   #createInput(options = {}) {
     this.input = this.doc.createElementNS(
@@ -442,6 +446,9 @@ class InplaceEditor extends EventEmitter {
     }
 
     this.input.classList.add("styleinspector-propertyeditor");
+    if (options.inputClass) {
+      this.input.classList.add(options.inputClass);
+    }
     this.input.value = this.initial;
     if (options.inputAriaLabel) {
       this.input.setAttribute("aria-label", options.inputAriaLabel);

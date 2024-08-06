@@ -18,7 +18,7 @@ add_task(async function () {
   await testAdvanceCharCommit(doc);
   await testAdvanceCharsFunction(doc);
   await testEscapeCancel(doc);
-  await testInputAriaLabel(doc);
+  await testInputAttributes(doc);
 
   host.destroy();
   gBrowser.removeCurrentTab();
@@ -155,7 +155,7 @@ function testEscapeCancel(doc) {
   });
 }
 
-function testInputAriaLabel(doc) {
+function testInputAttributes(doc) {
   info("Testing that inputAriaLabel works as expected");
   doc.body.innerHTML = "";
 
@@ -189,6 +189,22 @@ function testInputAriaLabel(doc) {
     input.getAttribute("aria-labelledby"),
     "TEST_ARIA_LABELLED_BY",
     "Input has expected aria-labelledby"
+  );
+
+  info("Testing that inputClass works as expected");
+  doc.body.innerHTML = "";
+  element = createSpan(doc);
+  editableField({
+    element,
+    inputClass: "TEST_INPUT_CLASS",
+  });
+
+  info("Clicking on the inplace-editor field to turn to edit mode");
+  element.click();
+  input = doc.querySelector("input");
+  ok(
+    input.classList.contains("TEST_INPUT_CLASS"),
+    "Input has expected TEST_INPUT_CLASS class"
   );
 }
 
