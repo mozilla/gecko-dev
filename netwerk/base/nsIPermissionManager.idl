@@ -39,9 +39,20 @@ interface nsIPermissionManager : nsISupports
   /**
    * Predefined return values for the testPermission method and for
    * the permission param of the add method
-   * NOTE: UNKNOWN_ACTION (0) is reserved to represent the
+   * NOTES:
+   *
+   * UNKNOWN_ACTION (0) is reserved to represent the
    * default permission when no entry is found for a host, and
    * should not be used by consumers to indicate otherwise.
+   * If no other entries are found, it translates into "prompt"
+   * in the permissions.query() API.
+   *
+   * PROMPT_ACTION (3) is not persisted for most permissions.
+   * Except for camera and microphone, where persisting it means
+   * "Always Ask" (the user leaves "☐ Remember this decision"
+   * unchecked in the permission grant). It translates into
+   * "granted" in permissions.query() to prevent websites from
+   * asking users to escalate permissions further.
    *
    * MAX_VALID_ACTION is the highest value (used to validate prefs)
    */

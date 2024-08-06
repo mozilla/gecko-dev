@@ -69,14 +69,18 @@
         await SpecialPowers.popPermissions();
         return SpecialPowers.pushPermissions(permissions);
       },
-      checkPermissions(expectedState) {
+      checkPermissions(expectedState, mediaExpectedState = expectedState) {
         const promisesToQuery = PERMISSIONS.map(({ name: expectedName }) => {
           return iframeWindow.navigator.permissions
             .query({ name: expectedName })
             .then(
               ({ state, name }) => {
-                is(state, expectedState, `correct state for '${expectedName}'`)
-                is(name, expectedName, `correct name for '${expectedName}'`)
+                is(name, expectedName, `correct name for '${expectedName}'`);
+                if (['camera', 'microphone'].includes(expectedName)) {
+                  is(state, mediaExpectedState, `correct state for '${expectedName}'`);
+                } else {
+                  is(state, expectedState, `correct state for '${expectedName}'`);
+                }
               },
               () => ok(false, `query should not have rejected for '${name}'`)
             );
@@ -229,30 +233,27 @@
     });
   }
 
-  window.onload = () => {
-    createIframe()
-      .then(createPermissionTester)
-      .then((tester) => {
-        return tester
-          .checkUnsupportedPermissions()
-          .then(() => tester.setPermissions(UNKNOWN_ACTION))
-          .then(() => tester.checkPermissions('prompt'))
-          .then(() => tester.setPermissions(PROMPT_ACTION))
-          .then(() => tester.checkPermissions('prompt'))
-          .then(() => tester.setPermissions(ALLOW_ACTION))
-          .then(() => tester.checkPermissions('granted'))
-          .then(() => tester.setPermissions(DENY_ACTION))
-          .then(() => tester.checkPermissions('denied'))
-          .then(() => tester.testStatusOnChange())
-          .then(() => tester.testInvalidQuery())
-          .then(() => tester.testNotFullyActiveDoc())
-          .then(() => tester.testNotFullyActiveChange());
-      })
-      .then(SimpleTest.finish)
-      .catch((e) => {
-        ok(false, `Unexpected error ${e}`);
-        SimpleTest.finish();
-      });
+  window.onload = async () => {
+    try {
+      const tester = createPermissionTester(await createIframe());
+      await tester.checkUnsupportedPermissions();
+      await tester.setPermissions(UNKNOWN_ACTION);
+      await tester.checkPermissions('prompt');
+      await tester.setPermissions(PROMPT_ACTION);
+      await tester.checkPermissions('prompt', 'granted');
+      await tester.setPermissions(ALLOW_ACTION);
+      await tester.checkPermissions('granted');
+      await tester.setPermissions(DENY_ACTION);
+      await tester.checkPermissions('denied');
+      await tester.testStatusOnChange();
+      await tester.testInvalidQuery();
+      await tester.testNotFullyActiveDoc();
+      await tester.testNotFullyActiveChange();
+    } catch(e) {
+      ok(false, `Unexpected error ${e}`);
+    } finally {
+      SimpleTest.finish();
+    }
   };
   </script>
 </body>

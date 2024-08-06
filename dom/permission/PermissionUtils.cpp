@@ -58,7 +58,8 @@ Maybe<PermissionName> TypeToPermissionName(const nsACString& aType) {
   return Nothing();
 }
 
-PermissionState ActionToPermissionState(uint32_t aAction) {
+PermissionState ActionToPermissionState(uint32_t aAction,
+                                        PermissionName aName) {
   switch (aAction) {
     case nsIPermissionManager::ALLOW_ACTION:
       return PermissionState::Granted;
@@ -66,8 +67,18 @@ PermissionState ActionToPermissionState(uint32_t aAction) {
     case nsIPermissionManager::DENY_ACTION:
       return PermissionState::Denied;
 
-    default:
     case nsIPermissionManager::PROMPT_ACTION:
+      if (aName == PermissionName::Camera ||
+          aName == PermissionName::Microphone) {
+        // A persisted PROMPT_ACTION means the user chose "Always Ask"
+        // which shows as "granted" to prevent websites from asking the user to
+        // escalate permission further.
+        // Revisit if https://github.com/w3c/permissions/issues/414 reopens
+        return PermissionState::Granted;
+      }
+      return PermissionState::Prompt;
+
+    default:
       return PermissionState::Prompt;
   }
 }
