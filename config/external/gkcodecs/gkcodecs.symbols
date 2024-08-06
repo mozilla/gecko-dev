@@ -8,6 +8,7 @@ aom_codec_decode
 aom_codec_destroy
 aom_codec_destroy
 aom_codec_enc_config_default
+aom_codec_enc_config_set
 aom_codec_enc_init_ver
 aom_codec_encode
 aom_codec_err_to_string
