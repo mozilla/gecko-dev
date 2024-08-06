@@ -1081,3 +1081,31 @@ add_task(async function test_bug1874118() {
   uri = Services.io.newURI("/C|/foo/bar", null, base);
   Assert.equal(uri.spec, "file:///C:/foo/bar");
 });
+
+add_task(async function test_bug1911529() {
+  let testcases = [
+    [
+      "https://github.com/coder/coder/edit/main/docs/./enterprise.md",
+      "https://github.com/coder/coder/edit/main/docs/enterprise.md",
+      "enterprise",
+    ],
+    ["https://domain.com/.", "https://domain.com/", ""],
+    ["https://domain.com/%2e", "https://domain.com/", ""],
+    ["https://domain.com/%2e%2E", "https://domain.com/", ""],
+    ["https://domain.com/%2e%2E/.", "https://domain.com/", ""],
+    ["https://domain.com/./test.md", "https://domain.com/test.md", "test"],
+    [
+      "https://domain.com/dir/sub/%2e%2e/%2e/test.md",
+      "https://domain.com/dir/test.md",
+      "test",
+    ],
+    ["https://domain.com/dir/..", "https://domain.com/", ""],
+  ];
+
+  for (let t of testcases) {
+    let uri = Services.io.newURI(t[0]);
+    let uri2 = Services.io.newURI(t[1]);
+    Assert.ok(uri.equals(uri2), `${uri} must equal ${uri2}`);
+    Assert.equal(t[2], uri.QueryInterface(Ci.nsIURL).fileBaseName);
+  }
+});

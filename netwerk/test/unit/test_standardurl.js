@@ -614,7 +614,7 @@ add_test(function test_pathPercentEncodedDot() {
   Assert.equal(url.spec, "http://example.com/%2e.bar");
   Assert.equal(url.directory, "/");
   Assert.equal(url.fileName, "%2e.bar");
-  Assert.equal(url.fileBaseName, "%2e.bar");
+  Assert.equal(url.fileBaseName, "%2e");
   Assert.equal(url.fileExtension, "bar");
 
   url = stringToURL("http://example.com/%2eX/X%2e/%2eX");
