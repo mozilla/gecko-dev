@@ -59,6 +59,8 @@ static void ProcessViewportToken(ViewportMetaData& aData,
     aData.mUserScalable.Assign(value);
   } else if (key_atom == nsGkAtoms::viewport_fit) {
     aData.mViewportFit.Assign(value);
+  } else if (key_atom == nsGkAtoms::interactive_widget) {
+    aData.mInteractiveWidgetMode.Assign(value);
   }
 }
 
