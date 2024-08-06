@@ -757,6 +757,7 @@ class PromptDelegateTest : BaseSessionTest(
 
         mainSession.evaluateJS(
             """
+            document.documentElement.style.paddingTop = "50px";
             this.c = document.getElementById('colorexample');
             """.trimIndent(),
         )
@@ -804,6 +805,7 @@ class PromptDelegateTest : BaseSessionTest(
 
         mainSession.evaluateJS(
             """
+            document.documentElement.style.paddingTop = "50px";
             this.c = document.getElementById('colorexample');
             this.c.setAttribute('list', 'colorlist');
             """.trimIndent(),
@@ -838,7 +840,8 @@ class PromptDelegateTest : BaseSessionTest(
 
         mainSession.evaluateJS(
             """
-            document.body.addEventListener("click", () => {
+            document.documentElement.style.paddingTop = "50px";
+            document.addEventListener("click", () => {
                 document.getElementById('dateexample').showPicker();
             });
             """.trimIndent(),
