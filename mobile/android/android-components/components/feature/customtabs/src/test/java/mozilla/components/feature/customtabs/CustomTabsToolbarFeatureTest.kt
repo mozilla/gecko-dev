@@ -126,7 +126,6 @@ class CustomTabsToolbarFeatureTest {
         assertFalse(toolbar.display.onUrlClicked.invoke())
     }
 
-    @Suppress("DEPRECATION")
     @Test
     @Config(sdk = [28])
     fun `initialize updates toolbar, window and text color on SDK 28`() {
@@ -167,7 +166,6 @@ class CustomTabsToolbarFeatureTest {
         assertEquals(Color.WHITE, toolbar.display.colors.text)
     }
 
-    @Suppress("DEPRECATION")
     @Test
     fun `initialize updates toolbar, window and text color`() {
         val tab = createCustomTab(

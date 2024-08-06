@@ -24,7 +24,6 @@ import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.hardware.camera2.CameraManager
 import android.net.Uri
 import android.os.Build
-import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import android.provider.ContactsContract
 import android.view.accessibility.AccessibilityManager
@@ -46,10 +45,10 @@ import java.io.File
 
 /**
  * The (visible) version name of the application, as specified by the <manifest> tag's versionName
- * attribute. E.g. "2.0". Returns an empty string if versionName is null.
+ * attribute. E.g. "2.0".
  */
 val Context.appVersionName: String
-    get() = packageManager.getPackageInfoCompat(packageName, 0).versionName ?: ""
+    get() = packageManager.getPackageInfoCompat(packageName, 0).versionName
 
 /**
  * Returns the name (label) of the application or the package name as a fallback.
@@ -332,18 +331,6 @@ inline fun Context.runOnlyInMainProcess(block: () -> Unit) {
 @ColorInt
 fun Context.getColorFromAttr(@AttrRes attr: Int) =
     ContextCompat.getColor(this, theme.resolveAttribute(attr))
-
-/**
- * Returns the color int corresponding to the Android statusBarColor attribute.
- */
-@ColorInt
-fun Context.getStatusBarColor() =
-    if (SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-        @Suppress("DEPRECATION")
-        ContextCompat.getColor(this, theme.resolveAttribute(android.R.attr.statusBarColor))
-    } else {
-        null
-    }
 
 /**
  * Returns a tinted drawable for the given resource ID.

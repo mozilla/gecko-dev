@@ -17,7 +17,7 @@ import mozilla.components.support.utils.ColorUtils.isDark
  */
 fun Window.setStatusBarTheme(@ColorInt color: Int) {
     createWindowInsetsController().isAppearanceLightStatusBars = !isDark(color)
-    setStatusBarColorCompat(color)
+    statusBarColor = color
 }
 
 /**
@@ -29,10 +29,13 @@ fun Window.setNavigationBarTheme(
     @ColorInt navBarDividerColor: Int? = null,
 ) {
     navBarColor?.let {
-        setNavigationBarColorCompat(it)
+        navigationBarColor = it
         createWindowInsetsController().isAppearanceLightNavigationBars = !isDark(it)
     }
-    setNavigationBarDividerColorCompat(navBarDividerColor)
+
+    if (SDK_INT >= Build.VERSION_CODES.P) {
+        navigationBarDividerColor = navBarDividerColor ?: 0
+    }
 }
 
 /**
@@ -40,40 +43,4 @@ fun Window.setNavigationBarTheme(
  */
 fun Window.createWindowInsetsController(): WindowInsetsControllerCompat {
     return WindowInsetsControllerCompat(this, this.decorView)
-}
-
-/**
- * Sets the status bar color.
- *
- * @param color The color to set as the status bar color.
- */
-fun Window.setStatusBarColorCompat(@ColorInt color: Int) {
-    if (SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-        @Suppress("DEPRECATION")
-        statusBarColor = color
-    }
-}
-
-/**
- * Sets the navigation bar color.
- *
- * @param color The color to set as the navigation bar color.
- */
-fun Window.setNavigationBarColorCompat(@ColorInt color: Int) {
-    if (SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-        @Suppress("DEPRECATION")
-        navigationBarColor = color
-    }
-}
-
-/**
- * Sets the navigation bar divider color.
- *
- * @param color The color to set as the navigation bar divider color.
- */
-fun Window.setNavigationBarDividerColorCompat(@ColorInt color: Int?) {
-    if (SDK_INT >= Build.VERSION_CODES.P && SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-        @Suppress("DEPRECATION")
-        navigationBarDividerColor = color ?: 0
-    }
 }

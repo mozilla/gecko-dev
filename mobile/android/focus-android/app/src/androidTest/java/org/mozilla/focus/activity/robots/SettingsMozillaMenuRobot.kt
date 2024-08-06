@@ -42,7 +42,7 @@ class SettingsMozillaMenuRobot {
     fun verifyVersionNumbers() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val packageInfo = context.packageManager.getPackageInfoCompat(context.packageName, 0)
-        val versionName = packageInfo.versionName ?: ""
+        val versionName = packageInfo.versionName
         val gvBuildId = org.mozilla.geckoview.BuildConfig.MOZ_APP_BUILDID
         val gvVersion = org.mozilla.geckoview.BuildConfig.MOZ_APP_VERSION
 

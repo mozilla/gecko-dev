@@ -18,10 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import mozilla.components.support.ktx.android.content.getColorFromAttr
-import mozilla.components.support.ktx.android.content.getStatusBarColor
 import mozilla.components.support.ktx.android.view.createWindowInsetsController
-import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
-import mozilla.components.support.ktx.android.view.setStatusBarColorCompat
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -90,10 +87,10 @@ abstract class ThemeManager(
 
         private fun updateLightSystemBars(window: Window, context: Context) {
             if (SDK_INT >= Build.VERSION_CODES.M) {
-                context.getStatusBarColor()?.let { window.setStatusBarColorCompat(it) }
+                window.statusBarColor = context.getColorFromAttr(android.R.attr.statusBarColor)
                 window.createWindowInsetsController().isAppearanceLightStatusBars = true
             } else {
-                window.setStatusBarColorCompat(Color.BLACK)
+                window.statusBarColor = Color.BLACK
             }
 
             if (SDK_INT >= Build.VERSION_CODES.O) {
@@ -116,7 +113,7 @@ abstract class ThemeManager(
         }
 
         private fun updateNavigationBar(window: Window, context: Context) {
-            window.setNavigationBarColorCompat(context.getColorFromAttr(R.attr.layer1))
+            window.navigationBarColor = context.getColorFromAttr(R.attr.layer1)
         }
     }
 }
