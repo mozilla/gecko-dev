@@ -21,7 +21,6 @@ enum MozContentPolicyType {
   "object",
   "object_subrequest",
   "xmlhttprequest",
-  "fetch",
   "xslt",
   "ping",
   "beacon",
