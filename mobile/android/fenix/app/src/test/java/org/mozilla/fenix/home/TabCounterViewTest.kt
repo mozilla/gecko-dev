@@ -131,7 +131,6 @@ class TabCounterViewTest {
     @Test
     fun `WHEN state updated while in private mode THEN call toggleCounterMask(true)`() {
         setupToolbarView()
-        every { settings.feltPrivateBrowsingEnabled } returns true
         every { testContext.settings() } returns settings
         val browserState = BrowserState(
             tabs = listOf(
@@ -153,7 +152,6 @@ class TabCounterViewTest {
     @Test
     fun `WHEN state updated while in normal mode THEN call toggleCounterMask(false)`() {
         setupToolbarView()
-        every { settings.feltPrivateBrowsingEnabled } returns true
         every { testContext.settings() } returns settings
         val browserState = BrowserState(
             tabs = listOf(

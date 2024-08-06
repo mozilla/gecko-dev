@@ -20,7 +20,6 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
 import org.mozilla.fenix.ext.nav
-import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.tabstray.Page
 
 /**
@@ -73,10 +72,7 @@ class TabCounterView(
         }
 
         tabCounter.setCountWithAnimation(tabCount)
-
-        if (context.settings().feltPrivateBrowsingEnabled) {
-            tabCounter.toggleCounterMask(isPrivate)
-        }
+        tabCounter.toggleCounterMask(isPrivate)
     }
 
     /**

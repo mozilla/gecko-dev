@@ -32,7 +32,6 @@ open class TabCounterToolbarButton(
     private val showTabs: () -> Unit,
     private val store: BrowserStore,
     private val menu: TabCounterMenu? = null,
-    private val showMaskInPrivateMode: Boolean = false,
 ) : Toolbar.Action {
 
     private var reference = WeakReference<TabCounter>(null)
@@ -72,7 +71,7 @@ open class TabCounterToolbarButton(
 
             contentDescription = parent.context.getString(R.string.mozac_feature_tabs_toolbar_tabs_button)
 
-            toggleCounterMask(showMaskInPrivateMode && isPrivate(store))
+            toggleCounterMask(isPrivate(store))
         }
 
         // Set selectableItemBackgroundBorderless

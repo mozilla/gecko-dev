@@ -35,7 +35,6 @@ import org.mozilla.fenix.theme.Theme
  *
  * @param tabCount The number of tabs to display in the tab counter.
  * @param isPrivateMode Whether the browser is in private mode.
- * @param isFeltPrivateBrowsingEnabled Whether the felt private browsing feature is enabled.
  * @param onClick Invoked when the tab counter is clicked.
  * @param menu Optional menu to show when the tab counter is long clicked.
  * @param onLongPress Optional callback for when the tab counter is long clicked.
@@ -44,7 +43,6 @@ import org.mozilla.fenix.theme.Theme
 fun ToolbarTabCounterButton(
     tabCount: Int,
     isPrivateMode: Boolean,
-    isFeltPrivateBrowsingEnabled: Boolean,
     onClick: () -> Unit,
     menu: TabCounterMenu? = null,
     onLongPress: () -> Unit = {},
@@ -69,7 +67,7 @@ fun ToolbarTabCounterButton(
 
                     contentDescription = context.getString(R.string.mozac_feature_tabs_toolbar_tabs_button)
 
-                    toggleCounterMask(isFeltPrivateBrowsingEnabled && isPrivateMode)
+                    toggleCounterMask(isPrivateMode)
                     setBackgroundResource(
                         context.theme.resolveAttribute(
                             android.R.attr.selectableItemBackgroundBorderless,
@@ -102,7 +100,6 @@ private fun ToolbarTabCounterButtonPreview() {
             ToolbarTabCounterButton(
                 tabCount = 5,
                 isPrivateMode = false,
-                isFeltPrivateBrowsingEnabled = false,
                 onClick = {},
             )
         }
@@ -122,7 +119,6 @@ private fun ToolbarTabCounterButtonWithFeltPrivacyPreview() {
             ToolbarTabCounterButton(
                 tabCount = 5,
                 isPrivateMode = true,
-                isFeltPrivateBrowsingEnabled = true,
                 onClick = {},
             )
         }

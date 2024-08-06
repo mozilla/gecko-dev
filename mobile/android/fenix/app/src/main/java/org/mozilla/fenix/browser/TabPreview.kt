@@ -95,7 +95,6 @@ class TabPreview @JvmOverloads constructor(
 
                             BrowserNavBar(
                                 isPrivateMode = browserStore.state.selectedTab?.content?.private ?: false,
-                                isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
                                 browserStore = browserStore,
                                 menuButton = MenuButton(context).apply {
                                     setColorFilter(

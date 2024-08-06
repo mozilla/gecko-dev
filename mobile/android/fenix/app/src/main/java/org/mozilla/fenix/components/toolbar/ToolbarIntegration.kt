@@ -149,7 +149,6 @@ class DefaultToolbarIntegration(
             },
             store = store,
             menu = buildTabCounterMenu(),
-            showMaskInPrivateMode = context.settings().feltPrivateBrowsingEnabled,
             visible = { !context.shouldAddNavigationBar() },
         )
 

@@ -90,7 +90,6 @@ class TabCounterToolbarButtonTest {
                 showTabs = showTabs,
                 store = BrowserStore(),
                 menu = tabCounterMenu,
-                showMaskInPrivateMode = false,
             ),
         )
 
@@ -110,7 +109,6 @@ class TabCounterToolbarButtonTest {
                 showTabs = showTabs,
                 store = store,
                 menu = tabCounterMenu,
-                showMaskInPrivateMode = true,
             ),
         )
 

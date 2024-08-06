@@ -1609,7 +1609,6 @@ abstract class BaseBrowserFragment :
         ) {
             BrowserNavBar(
                 isPrivateMode = activity.browsingModeManager.mode.isPrivate,
-                isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
                 browserStore = context.components.core.store,
                 menuButton = menuButton,
                 newTabMenu = NewTabMenu(
