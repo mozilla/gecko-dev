@@ -3,10 +3,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs",
   FirefoxRelay: "resource://gre/modules/FirefoxRelay.sys.mjs",
+  WebNavigationFrames: "resource://gre/modules/WebNavigationFrames.sys.mjs",
+});
+
+XPCOMUtils.defineLazyServiceGetters(lazy, {
+  BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
 });
 
 export class ContextMenuParent extends JSWindowActorParent {
@@ -18,14 +26,14 @@ export class ContextMenuParent extends JSWindowActorParent {
     // loads nsContextMenu.js. In that case, try to find the chromeEventHandler,
     // since that'll likely be the "top" <xul:browser>, and then use its window's
     // nsContextMenu instance instead.
-    if (!win.openContextMenu) {
+    if (!win.nsContextMenu) {
       let topBrowser = browser.ownerGlobal.docShell.chromeEventHandler;
       win = topBrowser.ownerGlobal;
     }
 
     message.data.context.showRelay &&= lazy.FirefoxRelay.isEnabled;
 
-    win.openContextMenu(message, browser, this);
+    this.#openContextMenu(message.data, win, browser);
   }
 
   hiding() {
@@ -113,5 +121,114 @@ export class ContextMenuParent extends JSWindowActorParent {
     return this.sendQuery("ContextMenu:SearchFieldBookmarkData", {
       targetIdentifier,
     });
+  }
+
+  /**
+   * Handles opening of the context menu for the appropraite browser.
+   *
+   * @param {object} data
+   *   The data for the context menu, received from the child.
+   * @param {DOMWindow} win
+   *   The window in which the context menu is to be opened.
+   * @param {Browser} browser
+   *   The browser the context menu is being opened for.
+   */
+  #openContextMenu(data, win, browser) {
+    if (lazy.BrowserHandler.kiosk) {
+      // Don't display context menus in kiosk mode
+      return;
+    }
+    let wgp = this.manager;
+
+    if (!wgp.isCurrentGlobal) {
+      // Don't display context menus for unloaded documents
+      return;
+    }
+
+    // NOTE: We don't use `wgp.documentURI` here as we want to use the failed
+    // channel URI in the case we have loaded an error page.
+    let documentURIObject = wgp.browsingContext.currentURI;
+
+    let frameReferrerInfo = data.frameReferrerInfo;
+    if (frameReferrerInfo) {
+      frameReferrerInfo =
+        lazy.E10SUtils.deserializeReferrerInfo(frameReferrerInfo);
+    }
+
+    let linkReferrerInfo = data.linkReferrerInfo;
+    if (linkReferrerInfo) {
+      linkReferrerInfo =
+        lazy.E10SUtils.deserializeReferrerInfo(linkReferrerInfo);
+    }
+
+    let frameID = lazy.WebNavigationFrames.getFrameId(wgp.browsingContext);
+
+    win.nsContextMenu.contentData = {
+      context: data.context,
+      browser,
+      actor: this,
+      editFlags: data.editFlags,
+      spellInfo: data.spellInfo,
+      principal: wgp.documentPrincipal,
+      storagePrincipal: wgp.documentStoragePrincipal,
+      documentURIObject,
+      docLocation: documentURIObject.spec,
+      charSet: data.charSet,
+      referrerInfo: lazy.E10SUtils.deserializeReferrerInfo(data.referrerInfo),
+      frameReferrerInfo,
+      linkReferrerInfo,
+      contentType: data.contentType,
+      contentDisposition: data.contentDisposition,
+      frameID,
+      frameOuterWindowID: frameID,
+      frameBrowsingContext: wgp.browsingContext,
+      selectionInfo: data.selectionInfo,
+      disableSetDesktopBackground: data.disableSetDesktopBackground,
+      showRelay: data.showRelay,
+      loginFillInfo: data.loginFillInfo,
+      userContextId: wgp.browsingContext.originAttributes.userContextId,
+      webExtContextData: data.webExtContextData,
+      cookieJarSettings: wgp.cookieJarSettings,
+    };
+
+    let popup = win.document.getElementById("contentAreaContextMenu");
+    let context = win.nsContextMenu.contentData.context;
+
+    // Fill in some values in the context from the WindowGlobalParent actor.
+    context.principal = wgp.documentPrincipal;
+    context.storagePrincipal = wgp.documentStoragePrincipal;
+    context.frameID = frameID;
+    context.frameOuterWindowID = wgp.outerWindowId;
+    context.frameBrowsingContextID = wgp.browsingContext.id;
+
+    // We don't have access to the original event here, as that happened in
+    // another process. Therefore we synthesize a new MouseEvent to propagate the
+    // inputSource to the subsequently triggered popupshowing event.
+    let newEvent = new PointerEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      screenX: context.screenXDevPx / win.devicePixelRatio,
+      screenY: context.screenYDevPx / win.devicePixelRatio,
+      button: 2,
+      pointerType: (() => {
+        switch (context.inputSource) {
+          case MouseEvent.MOZ_SOURCE_MOUSE:
+            return "mouse";
+          case MouseEvent.MOZ_SOURCE_PEN:
+            return "pen";
+          case MouseEvent.MOZ_SOURCE_ERASER:
+            return "eraser";
+          case MouseEvent.MOZ_SOURCE_CURSOR:
+            return "cursor";
+          case MouseEvent.MOZ_SOURCE_TOUCH:
+            return "touch";
+          case MouseEvent.MOZ_SOURCE_KEYBOARD:
+            return "keyboard";
+          default:
+            return "";
+        }
+      })(),
+    });
+    popup.openPopupAtScreen(newEvent.screenX, newEvent.screenY, true, newEvent);
   }
 }

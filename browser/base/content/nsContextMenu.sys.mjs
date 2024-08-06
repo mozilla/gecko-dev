@@ -23,7 +23,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ReaderMode: "resource://gre/modules/ReaderMode.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
-  WebNavigationFrames: "resource://gre/modules/WebNavigationFrames.sys.mjs",
   WebsiteFilter: "resource:///modules/policies/WebsiteFilter.sys.mjs",
 });
 
@@ -37,10 +36,6 @@ ChromeUtils.defineLazyGetter(lazy, "ReferrerInfo", () =>
     "init"
   )
 );
-
-XPCOMUtils.defineLazyServiceGetters(lazy, {
-  BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
-});
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -86,109 +81,6 @@ XPCOMUtils.defineLazyServiceGetter(
 
 const PASSWORD_FIELDNAME_HINTS = ["current-password", "new-password"];
 const USERNAME_FIELDNAME_HINT = "username";
-
-export function openContextMenu(aMessage, aBrowser, aActor) {
-  if (lazy.BrowserHandler.kiosk) {
-    // Don't display context menus in kiosk mode
-    return;
-  }
-  let data = aMessage.data;
-  let browser = aBrowser;
-  let actor = aActor;
-  let wgp = actor.manager;
-
-  if (!wgp.isCurrentGlobal) {
-    // Don't display context menus for unloaded documents
-    return;
-  }
-
-  // NOTE: We don't use `wgp.documentURI` here as we want to use the failed
-  // channel URI in the case we have loaded an error page.
-  let documentURIObject = wgp.browsingContext.currentURI;
-
-  let frameReferrerInfo = data.frameReferrerInfo;
-  if (frameReferrerInfo) {
-    frameReferrerInfo =
-      lazy.E10SUtils.deserializeReferrerInfo(frameReferrerInfo);
-  }
-
-  let linkReferrerInfo = data.linkReferrerInfo;
-  if (linkReferrerInfo) {
-    linkReferrerInfo = lazy.E10SUtils.deserializeReferrerInfo(linkReferrerInfo);
-  }
-
-  let frameID = lazy.WebNavigationFrames.getFrameId(wgp.browsingContext);
-
-  nsContextMenu.contentData = {
-    context: data.context,
-    browser,
-    actor,
-    editFlags: data.editFlags,
-    spellInfo: data.spellInfo,
-    principal: wgp.documentPrincipal,
-    storagePrincipal: wgp.documentStoragePrincipal,
-    documentURIObject,
-    docLocation: documentURIObject.spec,
-    charSet: data.charSet,
-    referrerInfo: lazy.E10SUtils.deserializeReferrerInfo(data.referrerInfo),
-    frameReferrerInfo,
-    linkReferrerInfo,
-    contentType: data.contentType,
-    contentDisposition: data.contentDisposition,
-    frameID,
-    frameOuterWindowID: frameID,
-    frameBrowsingContext: wgp.browsingContext,
-    selectionInfo: data.selectionInfo,
-    disableSetDesktopBackground: data.disableSetDesktopBackground,
-    showRelay: data.showRelay,
-    loginFillInfo: data.loginFillInfo,
-    userContextId: wgp.browsingContext.originAttributes.userContextId,
-    webExtContextData: data.webExtContextData,
-    cookieJarSettings: wgp.cookieJarSettings,
-  };
-
-  let popup = browser.ownerDocument.getElementById("contentAreaContextMenu");
-  let context = nsContextMenu.contentData.context;
-
-  // Fill in some values in the context from the WindowGlobalParent actor.
-  context.principal = wgp.documentPrincipal;
-  context.storagePrincipal = wgp.documentStoragePrincipal;
-  context.frameID = frameID;
-  context.frameOuterWindowID = wgp.outerWindowId;
-  context.frameBrowsingContextID = wgp.browsingContext.id;
-
-  let win = browser.ownerGlobal;
-
-  // We don't have access to the original event here, as that happened in
-  // another process. Therefore we synthesize a new MouseEvent to propagate the
-  // inputSource to the subsequently triggered popupshowing event.
-  let newEvent = new PointerEvent("contextmenu", {
-    bubbles: true,
-    cancelable: true,
-    screenX: context.screenXDevPx / win.devicePixelRatio,
-    screenY: context.screenYDevPx / win.devicePixelRatio,
-    button: 2,
-    pointerType: (() => {
-      switch (context.inputSource) {
-        case MouseEvent.MOZ_SOURCE_MOUSE:
-          return "mouse";
-        case MouseEvent.MOZ_SOURCE_PEN:
-          return "pen";
-        case MouseEvent.MOZ_SOURCE_ERASER:
-          return "eraser";
-        case MouseEvent.MOZ_SOURCE_CURSOR:
-          return "cursor";
-        case MouseEvent.MOZ_SOURCE_TOUCH:
-          return "touch";
-        case MouseEvent.MOZ_SOURCE_KEYBOARD:
-          return "keyboard";
-        default:
-          return "";
-      }
-    })(),
-  });
-  popup.openPopupAtScreen(newEvent.screenX, newEvent.screenY, true, newEvent);
-}
 
 export class nsContextMenu {
   /**
