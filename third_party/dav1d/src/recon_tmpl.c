@@ -402,7 +402,8 @@ static int decode_coefs(Dav1dTaskContext *const t,
 
     // find end-of-block (eob)
     int eob_bin;
-    const int tx2dszctx = imin(t_dim->lw, TX_32X32) + imin(t_dim->lh, TX_32X32);
+    const int slw = imin(t_dim->lw, TX_32X32), slh = imin(t_dim->lh, TX_32X32);
+    const int tx2dszctx = slw + slh;
     const enum TxClass tx_class = dav1d_tx_type_class[*txtp];
     const int is_1d = tx_class != TX_CLASS_2D;
     switch (tx2dszctx) {
@@ -449,10 +450,9 @@ static int decode_coefs(Dav1dTaskContext *const t,
     if (eob) {
         uint16_t (*const lo_cdf)[4] = ts->cdf.coef.base_tok[t_dim->ctx][chroma];
         uint8_t *const levels = t->scratch.levels; // bits 0-5: tok, 6-7: lo_tok
-        const int sw = imin(t_dim->w, 8), sh = imin(t_dim->h, 8);
 
         /* eob */
-        unsigned ctx = 1 + (eob > sw * sh * 2) + (eob > sw * sh * 4);
+        unsigned ctx = 1 + (eob > 2 << tx2dszctx) + (eob > 4 << tx2dszctx);
         int eob_tok = dav1d_msac_decode_symbol_adapt4(&ts->msac, eob_cdf[ctx], 2);
         int tok = eob_tok + 1;
         int level_tok = tok * 0x41;
@@ -460,6 +460,7 @@ static int decode_coefs(Dav1dTaskContext *const t,
 
 #define DECODE_COEFS_CLASS(tx_class) \
         unsigned x, y; \
+        uint8_t *level; \
         if (tx_class == TX_CLASS_2D) \
             rc = scan[eob], x = rc >> shift, y = rc & mask; \
         else if (tx_class == TX_CLASS_H) \
@@ -480,7 +481,11 @@ static int decode_coefs(Dav1dTaskContext *const t,
                        ts->msac.rng); \
         } \
         cf[rc] = tok << 11; \
-        levels[x * stride + y] = (uint8_t) level_tok; \
+        if (TX_CLASS_2D) \
+            level = levels + rc; \
+        else \
+            level = levels + x * stride + y; \
+        *level = (uint8_t) level_tok; \
         for (int i = eob - 1; i > 0; i--) { /* ac */ \
             unsigned rc_i; \
             if (tx_class == TX_CLASS_2D) \
@@ -490,7 +495,10 @@ static int decode_coefs(Dav1dTaskContext *const t,
             else /* tx_class == TX_CLASS_V */ \
                 x = i & mask, y = i >> shift, rc_i = (x << shift2) | y; \
             assert(x < 32 && y < 32); \
-            uint8_t *const level = levels + x * stride + y; \
+            if (TX_CLASS_2D) \
+                level = levels + rc; \
+            else \
+                level = levels + x * stride + y; \
             ctx = get_lo_ctx(level, tx_class, &mag, lo_ctx_offsets, x, y, stride); \
             if (tx_class == TX_CLASS_2D) \
                 y |= x; \
@@ -547,26 +555,26 @@ static int decode_coefs(Dav1dTaskContext *const t,
             const uint8_t (*const lo_ctx_offsets)[5] =
                 dav1d_lo_ctx_offsets[nonsquare_tx + (tx & nonsquare_tx)];
             scan = dav1d_scans[tx];
-            const ptrdiff_t stride = 4 * sh;
-            const unsigned shift = t_dim->lh < 4 ? t_dim->lh + 2 : 5, shift2 = 0;
-            const unsigned mask = 4 * sh - 1;
-            memset(levels, 0, stride * (4 * sw + 2));
+            const ptrdiff_t stride = 4 << slh;
+            const unsigned shift = slh + 2, shift2 = 0;
+            const unsigned mask = (4 << slh) - 1;
+            memset(levels, 0, stride * ((4 << slw) + 2));
             DECODE_COEFS_CLASS(TX_CLASS_2D);
         }
         case TX_CLASS_H: {
             const uint8_t (*const lo_ctx_offsets)[5] = NULL;
             const ptrdiff_t stride = 16;
-            const unsigned shift = t_dim->lh + 2, shift2 = 0;
-            const unsigned mask = 4 * sh - 1;
-            memset(levels, 0, stride * (4 * sh + 2));
+            const unsigned shift = slh + 2, shift2 = 0;
+            const unsigned mask = (4 << slh) - 1;
+            memset(levels, 0, stride * ((4 << slh) + 2));
             DECODE_COEFS_CLASS(TX_CLASS_H);
         }
         case TX_CLASS_V: {
             const uint8_t (*const lo_ctx_offsets)[5] = NULL;
             const ptrdiff_t stride = 16;
-            const unsigned shift = t_dim->lw + 2, shift2 = t_dim->lh + 2;
-            const unsigned mask = 4 * sw - 1;
-            memset(levels, 0, stride * (4 * sw + 2));
+            const unsigned shift = slw + 2, shift2 = slh + 2;
+            const unsigned mask = (4 << slw) - 1;
+            memset(levels, 0, stride * ((4 << slw) + 2));
             DECODE_COEFS_CLASS(TX_CLASS_V);
         }
 #undef DECODE_COEFS_CLASS
