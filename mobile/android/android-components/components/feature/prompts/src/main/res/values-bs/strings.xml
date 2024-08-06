@@ -127,7 +127,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Koristiti jaku lozinku?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Zaštitite svoje račune korištenjem jake, nasumično generisane lozinke. Dobijte brzi pristup svojim lozinkama tako što ćete ih sačuvati na svoj račun.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Zaštitite svoje račune korištenjem jake, nasumično generisane lozinke. Dobijte brzi pristup svojim lozinkama tako što ćete ih sačuvati na svoj račun.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Zaštitite svoje račune korištenjem jake, nasumično generisane lozinke. Bit će sačuvan na vašem računu za buduću upotrebu.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Koristi lozinku</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
