@@ -15,6 +15,7 @@
 #include "nsIDOMEventListener.h"
 #include "nsIObserver.h"
 #include "Units.h"
+#include "UnitTransforms.h"
 
 class nsViewportInfo;
 
@@ -96,10 +97,11 @@ class MobileViewportManager final : public nsIDOMEventListener,
    * presShell is initialized. */
   void SetInitialViewport();
 
-  const mozilla::LayoutDeviceIntSize& DisplaySize() const {
-    return mDisplaySize;
+  mozilla::LayoutDeviceIntSize DisplaySize() const {
+    return mozilla::ViewAs<mozilla::LayoutDevicePixel>(
+        GetLayoutDisplaySize(),
+        mozilla::PixelCastJustification::LayoutDeviceIsScreenForBounds);
   };
-
   /*
    * Shrink the content to fit it to the display width if no initial-scale is
    * specified and if the content is still wider than the display width.
@@ -135,6 +137,8 @@ class MobileViewportManager final : public nsIDOMEventListener,
   mozilla::CSSSize GetIntrinsicCompositionSize() const;
 
   mozilla::ParentLayerSize GetCompositionSizeWithoutDynamicToolbar() const;
+
+  void UpdateKeyboardHeight(mozilla::ScreenIntCoord aKeyboardHeight);
 
   static mozilla::LazyLogModule gLog;
 
@@ -199,10 +203,19 @@ class MobileViewportManager final : public nsIDOMEventListener,
   mozilla::ScreenIntSize GetCompositionSize(
       const mozilla::ScreenIntSize& aDisplaySize) const;
 
+  /*
+   * Returns the display size for layout. It varies depending on the
+   * interactive-widget value.
+   */
+  mozilla::ScreenIntSize GetLayoutDisplaySize() const;
+
   RefPtr<mozilla::MVMContext> mContext;
   ManagerType mManagerType;
   bool mIsFirstPaint;
   bool mPainted;
+  // True if this MobileViewportManager needs to update the visual viewport size
+  // even if the layout viewport size is unchanged.
+  bool mInvalidViewport;
   mozilla::LayoutDeviceIntSize mDisplaySize;
   mozilla::CSSSize mMobileViewportSize;
   mozilla::Maybe<float> mRestoreResolution;
@@ -215,6 +228,11 @@ class MobileViewportManager final : public nsIDOMEventListener,
    * FrameMetrics.mFixedLayerMargins to conform with this value.
    */
   nsSize mVisualViewportSizeUpdatedByDynamicToolbar;
+
+  /*
+   * The software keyboard height.
+   */
+  mozilla::ScreenIntCoord mKeyboardHeight;
 };
 
 #endif
