@@ -86,6 +86,10 @@ talos-profiling:
 talos-ref-hw:
     - talos-webgl
 
+# Bug 1909894, windows 10 + sp3 temporarily
+browsertime-benchmark:
+    - browsertime-benchmark
+
 browsertime:
     - browsertime-tp6
     - browsertime-tp7
