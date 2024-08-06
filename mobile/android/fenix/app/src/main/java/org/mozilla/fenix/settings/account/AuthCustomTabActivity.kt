@@ -29,4 +29,12 @@ class AuthCustomTabActivity : ExternalAppBrowserActivity() {
         val accountManager = components.backgroundServices.accountManager
         accountManager.register(accountStateObserver, this, true)
     }
+
+    override fun onDestroy() {
+        // Manually unregister here because we call `Activity#finish` in the observer
+        // which then leaks
+        components.backgroundServices.accountManager.unregister(accountStateObserver)
+
+        super.onDestroy()
+    }
 }
