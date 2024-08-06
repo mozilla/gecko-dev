@@ -20,10 +20,12 @@ import mozilla.components.feature.toolbar.ToolbarFeature
 import mozilla.components.feature.toolbar.ToolbarPresenter
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.ktx.android.view.hideKeyboard
+import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.ThemeManager
 
@@ -139,20 +141,6 @@ class DefaultToolbarIntegration(
     }
 
     private fun addTabCounterBrowserAction() {
-        val tabCounterMenu = FenixTabCounterMenu(
-            context = context,
-            onItemTapped = {
-                interactor.onTabCounterMenuItemTapped(it)
-            },
-            iconColor = if (isPrivate) {
-                ContextCompat.getColor(context, R.color.fx_mobile_private_icon_color_primary)
-            } else {
-                null
-            },
-        ).also {
-            it.updateMenu(context.settings().toolbarPosition)
-        }
-
         val tabCounterAction = TabCounterToolbarButton(
             lifecycleOwner = lifecycleOwner,
             showTabs = {
@@ -160,7 +148,7 @@ class DefaultToolbarIntegration(
                 interactor.onTabCounterClicked()
             },
             store = store,
-            menu = tabCounterMenu,
+            menu = buildTabCounterMenu(),
             showMaskInPrivateMode = context.settings().feltPrivateBrowsingEnabled,
             visible = { !context.shouldAddNavigationBar() },
         )
@@ -185,4 +173,22 @@ class DefaultToolbarIntegration(
         cfrPresenter.stop()
         super.stop()
     }
+
+    private fun buildTabCounterMenu(): TabCounterMenu? =
+        when ((context.settings().navigationToolbarEnabled && context.isTablet())) {
+            true -> null
+            false -> FenixTabCounterMenu(
+                context = context,
+                onItemTapped = {
+                    interactor.onTabCounterMenuItemTapped(it)
+                },
+                iconColor = if (isPrivate) {
+                    ContextCompat.getColor(context, R.color.fx_mobile_private_icon_color_primary)
+                } else {
+                    null
+                },
+            ).also {
+                it.updateMenu(context.settings().toolbarPosition)
+            }
+        }
 }
