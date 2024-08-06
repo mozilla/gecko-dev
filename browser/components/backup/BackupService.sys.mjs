@@ -649,6 +649,14 @@ export class BackupService extends EventTarget {
   #encState = undefined;
 
   /**
+   * The AbortController used to abort any queued requests to create or delete
+   * backups that might be waiting on the WRITE_BACKUP_LOCK_NAME lock.
+   *
+   * @type {AbortController}
+   */
+  #backupWriteAbortController = null;
+
+  /**
    * The path of the default parent directory for saving backups.
    * The current default is the Documents directory.
    *
@@ -841,6 +849,16 @@ export class BackupService extends EventTarget {
   }
 
   /**
+   * The name of the exclusive Web Lock that will be requested and held when
+   * creating or deleting a backup.
+   *
+   * @type {string}
+   */
+  static get WRITE_BACKUP_LOCK_NAME() {
+    return "write-backup";
+  }
+
+  /**
    * Returns a reference to a BackupService singleton. If this is the first time
    * that this getter is accessed, this causes the BackupService singleton to be
    * be instantiated.
@@ -897,6 +915,7 @@ export class BackupService extends EventTarget {
     let { promise, resolve } = Promise.withResolvers();
     this.#postRecoveryPromise = promise;
     this.#postRecoveryResolver = resolve;
+    this.#backupWriteAbortController = new AbortController();
   }
 
   /**
@@ -1069,205 +1088,221 @@ export class BackupService extends EventTarget {
       return null;
     }
 
-    this.#backupInProgress = true;
-    const backupTimer = Glean.browserBackup.totalBackupTime.start();
+    return locks.request(
+      BackupService.WRITE_BACKUP_LOCK_NAME,
+      { signal: this.#backupWriteAbortController.signal },
+      async () => {
+        this.#backupInProgress = true;
+        const backupTimer = Glean.browserBackup.totalBackupTime.start();
 
-    try {
-      lazy.logConsole.debug(`Creating backup for profile at ${profilePath}`);
-
-      let archiveDestFolderPath = await this.resolveArchiveDestFolderPath(
-        lazy.backupDirPref
-      );
-      lazy.logConsole.debug(
-        `Destination for archive: ${archiveDestFolderPath}`
-      );
-
-      let manifest = await this.#createBackupManifest();
-
-      // First, check to see if a `backups` directory already exists in the
-      // profile.
-      let backupDirPath = PathUtils.join(
-        profilePath,
-        BackupService.PROFILE_FOLDER_NAME,
-        BackupService.SNAPSHOTS_FOLDER_NAME
-      );
-      lazy.logConsole.debug("Creating backups folder");
-
-      // ignoreExisting: true is the default, but we're being explicit that it's
-      // okay if this folder already exists.
-      await IOUtils.makeDirectory(backupDirPath, {
-        ignoreExisting: true,
-        createAncestors: true,
-      });
-
-      let stagingPath = await this.#prepareStagingFolder(backupDirPath);
-
-      // Sort resources be priority.
-      let sortedResources = Array.from(this.#resources.values()).sort(
-        (a, b) => {
-          return b.priority - a.priority;
-        }
-      );
-
-      let encState = await this.loadEncryptionState(profilePath);
-      let encryptionEnabled = !!encState;
-      lazy.logConsole.debug("Encryption enabled: ", encryptionEnabled);
-
-      // Perform the backup for each resource.
-      for (let resourceClass of sortedResources) {
         try {
           lazy.logConsole.debug(
-            `Backing up resource with key ${resourceClass.key}. ` +
-              `Requires encryption: ${resourceClass.requiresEncryption}`
+            `Creating backup for profile at ${profilePath}`
           );
 
-          if (resourceClass.requiresEncryption && !encryptionEnabled) {
-            lazy.logConsole.debug(
-              "Encryption is not currently enabled. Skipping."
-            );
-            continue;
-          }
+          let archiveDestFolderPath = await this.resolveArchiveDestFolderPath(
+            lazy.backupDirPref
+          );
+          lazy.logConsole.debug(
+            `Destination for archive: ${archiveDestFolderPath}`
+          );
 
-          let resourcePath = PathUtils.join(stagingPath, resourceClass.key);
-          await IOUtils.makeDirectory(resourcePath);
+          let manifest = await this.#createBackupManifest();
 
-          // `backup` on each BackupResource should return us a ManifestEntry
-          // that we eventually write to a JSON manifest file, but for now,
-          // we're just going to log it.
-          let manifestEntry = await new resourceClass().backup(
-            resourcePath,
+          // First, check to see if a `backups` directory already exists in the
+          // profile.
+          let backupDirPath = PathUtils.join(
             profilePath,
-            encryptionEnabled
+            BackupService.PROFILE_FOLDER_NAME,
+            BackupService.SNAPSHOTS_FOLDER_NAME
+          );
+          lazy.logConsole.debug("Creating backups folder");
+
+          // ignoreExisting: true is the default, but we're being explicit that it's
+          // okay if this folder already exists.
+          await IOUtils.makeDirectory(backupDirPath, {
+            ignoreExisting: true,
+            createAncestors: true,
+          });
+
+          let stagingPath = await this.#prepareStagingFolder(backupDirPath);
+
+          // Sort resources be priority.
+          let sortedResources = Array.from(this.#resources.values()).sort(
+            (a, b) => {
+              return b.priority - a.priority;
+            }
           );
 
-          if (manifestEntry === undefined) {
-            lazy.logConsole.error(
-              `Backup of resource with key ${resourceClass.key} returned undefined
-              as its ManifestEntry instead of null or an object`
-            );
-          } else {
-            lazy.logConsole.debug(
-              `Backup of resource with key ${resourceClass.key} completed`,
-              manifestEntry
-            );
-            manifest.resources[resourceClass.key] = manifestEntry;
+          let encState = await this.loadEncryptionState(profilePath);
+          let encryptionEnabled = !!encState;
+          lazy.logConsole.debug("Encryption enabled: ", encryptionEnabled);
+
+          // Perform the backup for each resource.
+          for (let resourceClass of sortedResources) {
+            try {
+              lazy.logConsole.debug(
+                `Backing up resource with key ${resourceClass.key}. ` +
+                  `Requires encryption: ${resourceClass.requiresEncryption}`
+              );
+
+              if (resourceClass.requiresEncryption && !encryptionEnabled) {
+                lazy.logConsole.debug(
+                  "Encryption is not currently enabled. Skipping."
+                );
+                continue;
+              }
+
+              let resourcePath = PathUtils.join(stagingPath, resourceClass.key);
+              await IOUtils.makeDirectory(resourcePath);
+
+              // `backup` on each BackupResource should return us a ManifestEntry
+              // that we eventually write to a JSON manifest file, but for now,
+              // we're just going to log it.
+              let manifestEntry = await new resourceClass().backup(
+                resourcePath,
+                profilePath,
+                encryptionEnabled
+              );
+
+              if (manifestEntry === undefined) {
+                lazy.logConsole.error(
+                  `Backup of resource with key ${resourceClass.key} returned undefined
+                as its ManifestEntry instead of null or an object`
+                );
+              } else {
+                lazy.logConsole.debug(
+                  `Backup of resource with key ${resourceClass.key} completed`,
+                  manifestEntry
+                );
+                manifest.resources[resourceClass.key] = manifestEntry;
+              }
+            } catch (e) {
+              lazy.logConsole.error(
+                `Failed to backup resource: ${resourceClass.key}`,
+                e
+              );
+            }
           }
-        } catch (e) {
-          lazy.logConsole.error(
-            `Failed to backup resource: ${resourceClass.key}`,
-            e
+
+          // Ensure that the manifest abides by the current schema, and log
+          // an error if somehow it doesn't. We'll want to collect telemetry for
+          // this case to make sure it's not happening in the wild. We debated
+          // throwing an exception here too, but that's not meaningfully better
+          // than creating a backup that's not schema-compliant. At least in this
+          // case, a user so-inclined could theoretically repair the manifest
+          // to make it valid.
+          let manifestSchema = await BackupService.MANIFEST_SCHEMA;
+          let schemaValidationResult = lazy.JsonSchema.validate(
+            manifest,
+            manifestSchema
           );
+          if (!schemaValidationResult.valid) {
+            lazy.logConsole.error(
+              "Backup manifest does not conform to schema:",
+              manifest,
+              manifestSchema,
+              schemaValidationResult
+            );
+            // TODO: Collect telemetry for this case. (bug 1891817)
+          }
+
+          // Write the manifest to the staging folder.
+          let manifestPath = PathUtils.join(
+            stagingPath,
+            BackupService.MANIFEST_FILE_NAME
+          );
+          await IOUtils.writeJSON(manifestPath, manifest);
+
+          let renamedStagingPath = await this.#finalizeStagingFolder(
+            stagingPath
+          );
+          lazy.logConsole.log(
+            "Wrote backup to staging directory at ",
+            renamedStagingPath
+          );
+
+          // Record the total size of the backup staging directory
+          let totalSizeKilobytes = await BackupResource.getDirectorySize(
+            renamedStagingPath
+          );
+          let totalSizeBytesNearestMebibyte = MeasurementUtils.fuzzByteSize(
+            totalSizeKilobytes * BYTES_IN_KILOBYTE,
+            1 * BYTES_IN_MEBIBYTE
+          );
+          lazy.logConsole.debug(
+            "total staging directory size in bytes: " +
+              totalSizeBytesNearestMebibyte
+          );
+
+          Glean.browserBackup.totalBackupSize.accumulate(
+            totalSizeBytesNearestMebibyte / BYTES_IN_MEBIBYTE
+          );
+
+          let compressedStagingPath = await this.#compressStagingFolder(
+            renamedStagingPath,
+            backupDirPath
+          ).finally(async () => {
+            await IOUtils.remove(renamedStagingPath, { recursive: true });
+          });
+
+          // Now create the single-file archive. For now, we'll stash this in the
+          // backups folder while it gets written. Once that's done, we'll attempt
+          // to move it to the user's configured backup path.
+          let archiveTmpPath = PathUtils.join(backupDirPath, "archive.html");
+          lazy.logConsole.log(
+            "Exporting single-file archive to ",
+            archiveTmpPath
+          );
+          await this.createArchive(
+            archiveTmpPath,
+            BackupService.ARCHIVE_TEMPLATE,
+            compressedStagingPath,
+            this.#encState,
+            manifest.meta
+          ).finally(async () => {
+            await IOUtils.remove(compressedStagingPath);
+          });
+
+          // Record the size of the complete single-file archive
+          let archiveSizeKilobytes = await BackupResource.getFileSize(
+            archiveTmpPath
+          );
+          let archiveSizeBytesNearestMebibyte = MeasurementUtils.fuzzByteSize(
+            archiveSizeKilobytes * BYTES_IN_KILOBYTE,
+            1 * BYTES_IN_MEBIBYTE
+          );
+          lazy.logConsole.debug(
+            "backup archive size in bytes: " + archiveSizeBytesNearestMebibyte
+          );
+
+          Glean.browserBackup.compressedArchiveSize.accumulate(
+            archiveSizeBytesNearestMebibyte / BYTES_IN_MEBIBYTE
+          );
+
+          let archivePath = await this.finalizeSingleFileArchive(
+            archiveTmpPath,
+            archiveDestFolderPath,
+            manifest.meta
+          );
+
+          let nowSeconds = Math.floor(Date.now() / 1000);
+          Services.prefs.setIntPref(
+            LAST_BACKUP_TIMESTAMP_PREF_NAME,
+            nowSeconds
+          );
+          this.#_state.lastBackupDate = nowSeconds;
+          Glean.browserBackup.totalBackupTime.stopAndAccumulate(backupTimer);
+
+          return { manifest, archivePath };
+        } catch {
+          Glean.browserBackup.totalBackupTime.cancel(backupTimer);
+          return null;
+        } finally {
+          this.#backupInProgress = false;
         }
       }
-
-      // Ensure that the manifest abides by the current schema, and log
-      // an error if somehow it doesn't. We'll want to collect telemetry for
-      // this case to make sure it's not happening in the wild. We debated
-      // throwing an exception here too, but that's not meaningfully better
-      // than creating a backup that's not schema-compliant. At least in this
-      // case, a user so-inclined could theoretically repair the manifest
-      // to make it valid.
-      let manifestSchema = await BackupService.MANIFEST_SCHEMA;
-      let schemaValidationResult = lazy.JsonSchema.validate(
-        manifest,
-        manifestSchema
-      );
-      if (!schemaValidationResult.valid) {
-        lazy.logConsole.error(
-          "Backup manifest does not conform to schema:",
-          manifest,
-          manifestSchema,
-          schemaValidationResult
-        );
-        // TODO: Collect telemetry for this case. (bug 1891817)
-      }
-
-      // Write the manifest to the staging folder.
-      let manifestPath = PathUtils.join(
-        stagingPath,
-        BackupService.MANIFEST_FILE_NAME
-      );
-      await IOUtils.writeJSON(manifestPath, manifest);
-
-      let renamedStagingPath = await this.#finalizeStagingFolder(stagingPath);
-      lazy.logConsole.log(
-        "Wrote backup to staging directory at ",
-        renamedStagingPath
-      );
-
-      // Record the total size of the backup staging directory
-      let totalSizeKilobytes = await BackupResource.getDirectorySize(
-        renamedStagingPath
-      );
-      let totalSizeBytesNearestMebibyte = MeasurementUtils.fuzzByteSize(
-        totalSizeKilobytes * BYTES_IN_KILOBYTE,
-        1 * BYTES_IN_MEBIBYTE
-      );
-      lazy.logConsole.debug(
-        "total staging directory size in bytes: " +
-          totalSizeBytesNearestMebibyte
-      );
-
-      Glean.browserBackup.totalBackupSize.accumulate(
-        totalSizeBytesNearestMebibyte / BYTES_IN_MEBIBYTE
-      );
-
-      let compressedStagingPath = await this.#compressStagingFolder(
-        renamedStagingPath,
-        backupDirPath
-      ).finally(async () => {
-        await IOUtils.remove(renamedStagingPath, { recursive: true });
-      });
-
-      // Now create the single-file archive. For now, we'll stash this in the
-      // backups folder while it gets written. Once that's done, we'll attempt
-      // to move it to the user's configured backup path.
-      let archiveTmpPath = PathUtils.join(backupDirPath, "archive.html");
-      lazy.logConsole.log("Exporting single-file archive to ", archiveTmpPath);
-      await this.createArchive(
-        archiveTmpPath,
-        BackupService.ARCHIVE_TEMPLATE,
-        compressedStagingPath,
-        this.#encState,
-        manifest.meta
-      ).finally(async () => {
-        await IOUtils.remove(compressedStagingPath);
-      });
-
-      // Record the size of the complete single-file archive
-      let archiveSizeKilobytes = await BackupResource.getFileSize(
-        archiveTmpPath
-      );
-      let archiveSizeBytesNearestMebibyte = MeasurementUtils.fuzzByteSize(
-        archiveSizeKilobytes * BYTES_IN_KILOBYTE,
-        1 * BYTES_IN_MEBIBYTE
-      );
-      lazy.logConsole.debug(
-        "backup archive size in bytes: " + archiveSizeBytesNearestMebibyte
-      );
-
-      Glean.browserBackup.compressedArchiveSize.accumulate(
-        archiveSizeBytesNearestMebibyte / BYTES_IN_MEBIBYTE
-      );
-
-      let archivePath = await this.finalizeSingleFileArchive(
-        archiveTmpPath,
-        archiveDestFolderPath,
-        manifest.meta
-      );
-
-      let nowSeconds = Math.floor(Date.now() / 1000);
-      Services.prefs.setIntPref(LAST_BACKUP_TIMESTAMP_PREF_NAME, nowSeconds);
-      this.#_state.lastBackupDate = nowSeconds;
-      Glean.browserBackup.totalBackupTime.stopAndAccumulate(backupTimer);
-
-      return { manifest, archivePath };
-    } catch {
-      Glean.browserBackup.totalBackupTime.cancel(backupTimer);
-      return null;
-    } finally {
-      this.#backupInProgress = false;
-    }
+    );
   }
 
   /**
@@ -3121,6 +3156,7 @@ export class BackupService extends EventTarget {
       }
       case "quit-application-granted": {
         this.uninitBackupScheduler();
+        this.#backupWriteAbortController.abort();
         break;
       }
     }
@@ -3279,38 +3315,44 @@ export class BackupService extends EventTarget {
    * @returns {Promise<undefined>}
    */
   async deleteLastBackup() {
-    if (this.#_state.lastBackupFileName) {
-      let backupFilePath = PathUtils.join(
-        lazy.backupDirPref,
-        this.#_state.lastBackupFileName
-      );
+    return locks.request(
+      BackupService.WRITE_BACKUP_LOCK_NAME,
+      { signal: this.#backupWriteAbortController.signal },
+      async () => {
+        if (this.#_state.lastBackupFileName) {
+          let backupFilePath = PathUtils.join(
+            lazy.backupDirPref,
+            this.#_state.lastBackupFileName
+          );
 
-      lazy.logConsole.log(
-        "Attempting to delete last backup file at ",
-        backupFilePath
-      );
-      await IOUtils.remove(backupFilePath, { ignoreAbsent: true });
+          lazy.logConsole.log(
+            "Attempting to delete last backup file at ",
+            backupFilePath
+          );
+          await IOUtils.remove(backupFilePath, { ignoreAbsent: true });
 
-      this.#_state.lastBackupDate = null;
-      Services.prefs.clearUserPref(LAST_BACKUP_TIMESTAMP_PREF_NAME);
+          this.#_state.lastBackupDate = null;
+          Services.prefs.clearUserPref(LAST_BACKUP_TIMESTAMP_PREF_NAME);
 
-      this.#_state.lastBackupFileName = "";
-      Services.prefs.clearUserPref(LAST_BACKUP_FILE_NAME_PREF_NAME);
+          this.#_state.lastBackupFileName = "";
+          Services.prefs.clearUserPref(LAST_BACKUP_FILE_NAME_PREF_NAME);
 
-      this.stateUpdate();
-    } else {
-      lazy.logConsole.log(
-        "Not deleting last backup file, since none is known about."
-      );
-    }
+          this.stateUpdate();
+        } else {
+          lazy.logConsole.log(
+            "Not deleting last backup file, since none is known about."
+          );
+        }
 
-    if (await IOUtils.exists(lazy.backupDirPref)) {
-      // See if there are any other files lingering around in the destination
-      // folder. If not, delete that folder too.
-      let children = await IOUtils.getChildren(lazy.backupDirPref);
-      if (!children.length) {
-        await IOUtils.remove(lazy.backupDirPref);
+        if (await IOUtils.exists(lazy.backupDirPref)) {
+          // See if there are any other files lingering around in the destination
+          // folder. If not, delete that folder too.
+          let children = await IOUtils.getChildren(lazy.backupDirPref);
+          if (!children.length) {
+            await IOUtils.remove(lazy.backupDirPref);
+          }
+        }
       }
-    }
+    );
   }
 }
