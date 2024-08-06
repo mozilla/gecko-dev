@@ -1218,7 +1218,13 @@ const LocalFiraSans = new FontFace(
   "url('chrome://pocket/content/panels/fonts/FiraSans-Regular.woff') format('woff')"
 );
 
-(async () => {
+if (document.readyState === "loading") {
+  window.addEventListener("load", startPopulating);
+} else {
+  startPopulating();
+}
+
+async function startPopulating() {
   const errors = [];
 
   await LocalFiraSans.load()
@@ -1280,4 +1286,4 @@ const LocalFiraSans = new FontFace(
       },
     })
   );
-})();
+}
