@@ -10,9 +10,9 @@ menu-view-genai-chat =
 # Variables:
 #   $date (string) - Date to be formatted based on locale
 sidebar-history-date-today =
-  .heading = Today — { DATETIME($date, dateStyle: "full") }
+  .heading = Today - { DATETIME($date, dateStyle: "full") }
 sidebar-history-date-yesterday =
-  .heading = Yesterday — { DATETIME($date, dateStyle: "full") }
+  .heading = Yesterday - { DATETIME($date, dateStyle: "full") }
 sidebar-history-date-this-month =
   .heading = { DATETIME($date, dateStyle: "full") }
 sidebar-history-date-prev-month =
@@ -44,7 +44,7 @@ sidebar-vertical-tabs =
 sidebar-horizontal-tabs =
   .label = Horizontal tabs
 sidebar-customize-tabs-header =
-  .label = Tab Settings
+  .label = Tab settings
 sidebar-customize-settings-header =
   .label = Sidebar settings
 sidebar-visibility-always-show =
