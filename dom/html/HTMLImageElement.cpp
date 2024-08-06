@@ -369,9 +369,7 @@ void HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
   // NOTE(emilio): When not notifying, we come from the parser or some other
   // internal caller, in which cases we can skip the load since we are about to
   // get bound to a tree.
-  if (forceReload && aNotify) {
-    // Per spec, full selection runs when this changes, even though it doesn't
-    // directly affect the source selection.
+  if (forceReload) {
     mUseUrgentStartForChannel = UserActivation::IsHandlingUserInput();
     UpdateSourceSyncAndQueueImageTask(true);
   }
@@ -412,10 +410,8 @@ void HTMLImageElement::AfterMaybeChangeAttr(
   if (mResponsiveSelector && mResponsiveSelector->Content() == this) {
     mResponsiveSelector->SetDefaultSource(mSrcURI, mSrcTriggeringPrincipal);
   }
-  if (aNotify) {
-    mUseUrgentStartForChannel = UserActivation::IsHandlingUserInput();
-    UpdateSourceSyncAndQueueImageTask(true);
-  }
+  mUseUrgentStartForChannel = UserActivation::IsHandlingUserInput();
+  UpdateSourceSyncAndQueueImageTask(true);
 }
 
 void HTMLImageElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
@@ -466,7 +462,8 @@ nsresult HTMLImageElement::BindToTree(BindContext& aContext, nsINode& aParent) {
 
   UpdateFormOwner();
 
-  const bool srcsetOrPicture = HaveSrcsetOrInPicture();
+  const bool inPicture = IsInPicture();
+  const bool srcsetOrPicture = inPicture || HasAttr(nsGkAtoms::srcset);
   if (srcsetOrPicture && aContext.InComposedDoc() && !mInDocResponsiveContent) {
     aContext.OwnerDoc().AddResponsiveContent(this);
     mInDocResponsiveContent = true;
@@ -474,16 +471,10 @@ nsresult HTMLImageElement::BindToTree(BindContext& aContext, nsINode& aParent) {
 
   // Mark channel as urgent-start before load image if the image load is
   // initiated by a user interaction.
-  mUseUrgentStartForChannel = UserActivation::IsHandlingUserInput();
-  // Run selection algorithm when an img element is inserted into a document
-  // in order to react to changes in the environment. See note of
-  // https://html.spec.whatwg.org/#img-environment-changes
-  //
-  // We skip loading when our attributes were set from parser land (see the
-  // aNotify checks in the various attribute mutation functions), so trigger a
-  // aAlwaysLoad=false load now to check if things changed.
-  UpdateSourceSyncAndQueueImageTask(false);
-
+  if (inPicture) {
+    mUseUrgentStartForChannel = UserActivation::IsHandlingUserInput();
+    UpdateSourceSyncAndQueueImageTask(false);
+  }
   return NS_OK;
 }
 
@@ -879,9 +870,7 @@ void HTMLImageElement::PictureSourceSrcsetChanged(nsIContent* aSourceNode,
 
   // This always triggers the image update steps per the spec, even if we are
   // not using this source.
-  if (aNotify) {
-    UpdateSourceSyncAndQueueImageTask(true);
-  }
+  UpdateSourceSyncAndQueueImageTask(true);
 }
 
 void HTMLImageElement::PictureSourceSizesChanged(nsIContent* aSourceNode,
@@ -901,9 +890,7 @@ void HTMLImageElement::PictureSourceSizesChanged(nsIContent* aSourceNode,
 
   // This always triggers the image update steps per the spec, even if
   // we are not using this source.
-  if (aNotify) {
-    UpdateSourceSyncAndQueueImageTask(true);
-  }
+  UpdateSourceSyncAndQueueImageTask(true);
 }
 
 void HTMLImageElement::PictureSourceMediaOrTypeChanged(nsIContent* aSourceNode,
@@ -913,9 +900,7 @@ void HTMLImageElement::PictureSourceMediaOrTypeChanged(nsIContent* aSourceNode,
 
   // This always triggers the image update steps per the spec, even if
   // we are not switching to/from this source
-  if (aNotify) {
-    UpdateSourceSyncAndQueueImageTask(true);
-  }
+  UpdateSourceSyncAndQueueImageTask(true);
 }
 
 void HTMLImageElement::PictureSourceDimensionChanged(
@@ -937,19 +922,14 @@ void HTMLImageElement::PictureSourceAdded(bool aNotify,
   MOZ_ASSERT(!aSourceNode || IsPreviousSibling(aSourceNode, this),
              "Should not be getting notifications for non-previous-siblings");
 
-  if (aNotify) {
-    UpdateSourceSyncAndQueueImageTask(true);
-  }
+  UpdateSourceSyncAndQueueImageTask(true);
 }
 
 void HTMLImageElement::PictureSourceRemoved(bool aNotify,
                                             HTMLSourceElement* aSourceNode) {
   MOZ_ASSERT(!aSourceNode || IsPreviousSibling(aSourceNode, this),
              "Should not be getting notifications for non-previous-siblings");
-
-  if (aNotify) {
-    UpdateSourceSyncAndQueueImageTask(true, aSourceNode);
-  }
+  UpdateSourceSyncAndQueueImageTask(true, aSourceNode);
 }
 
 bool HTMLImageElement::UpdateResponsiveSource(
