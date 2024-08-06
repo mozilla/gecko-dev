@@ -721,7 +721,8 @@ void HTMLImageElement::UpdateSourceSyncAndQueueImageTask(
     if (!mSrcURI) {
       // NOTE(emilio): we need to also do a sync check for empty / invalid src,
       // see https://github.com/whatwg/html/issues/2429
-      return true;
+      // But do it sync only when there's a current request.
+      return !!mCurrentRequest;
     }
     return nsContentUtils::IsImageAvailable(
         this, mSrcURI, mSrcTriggeringPrincipal, GetCORSMode());
