@@ -12,6 +12,7 @@ import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.RestoreCompleteAction
 import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.action.TabListAction.RestoreAction.RestoreLocation
 import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.selector.findNormalOrPrivateTabByUrl
 import mozilla.components.browser.state.selector.findNormalOrPrivateTabByUrlIgnoringFragment
@@ -280,22 +281,40 @@ class TabsUseCases(
     ) {
         /**
          * Restores the given list of [RecoverableTab]s.
+         *
+         * @param tabs The list of tabs to restore.
+         * @param selectTabId The ID of the selected tab in [tabs]. Or `null` if no selection was restored.
+         * @param restoreLocation [RestoreLocation] indicating where to restore [tabs].
          */
-        operator fun invoke(tabs: List<RecoverableTab>, selectTabId: String? = null) {
+        operator fun invoke(
+            tabs: List<RecoverableTab>,
+            selectTabId: String? = null,
+            restoreLocation: RestoreLocation = RestoreLocation.END,
+        ) {
             store.dispatch(
                 TabListAction.RestoreAction(
                     tabs = tabs,
                     selectedTabId = selectTabId,
-                    restoreLocation = TabListAction.RestoreAction.RestoreLocation.END,
+                    restoreLocation = restoreLocation,
                 ),
             )
         }
 
         /**
          * Restores the given [RecoverableBrowserState].
+         *
+         * @param state The [RecoverableBrowserState] to be restored.
+         * @param restoreLocation [RestoreLocation] indicating where to restore [state].
          */
-        operator fun invoke(state: RecoverableBrowserState) {
-            invoke(state.tabs, state.selectedTabId)
+        operator fun invoke(
+            state: RecoverableBrowserState,
+            restoreLocation: RestoreLocation = RestoreLocation.END,
+        ) {
+            invoke(
+                tabs = state.tabs,
+                selectTabId = state.selectedTabId,
+                restoreLocation = restoreLocation,
+            )
         }
 
         /**
@@ -318,7 +337,10 @@ class TabsUseCases(
             }
             if (state != null) {
                 withContext(Dispatchers.Main) {
-                    invoke(state)
+                    invoke(
+                        state = state,
+                        restoreLocation = RestoreLocation.BEGINNING,
+                    )
                 }
             }
             store.dispatch(RestoreCompleteAction)
