@@ -15,8 +15,11 @@ exclude: true
 
 ## v131
 - Added [`GeckoDisplay.windowInsetsChanged`][131.1].
+- Added [`GeckoView.addWindowInsetsListener`][131.2] and [`GeckoView.removeWindowInsetsListener`][131.3] to allow listening WindowInsets changes of Activity's root window with multiple listeners.
 
 [131.1]: {{javadoc_uri}}/GeckoDisplay.html#windowInsetsChanged
+[131.2]: {{javadoc_uri}}/GeckoView.html#addWindowInsetsListener
+[131.3]: {{javadoc_uri}}/GeckoView.html#removeWindowInsetsListener
 
 ## v130
 - ⚠️ Removed [`TranslationState`][127.4] constructor, please use the new [`TranslationState`][127.3] constructor with `hasVisibleChange`. ([bug 1895275]({{bugzilla}}1895275))
@@ -1598,4 +1601,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 8efb2ef74259a40c7b94f8a8699e989edff2bb39
+[api-version]: b5bac8a734b241d5e3d21f1aaa61ee81f75e32c4
