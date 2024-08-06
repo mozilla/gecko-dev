@@ -866,20 +866,22 @@ void AudioInputProcessing::PacketizeAndProcess(AudioProcessingTrack* aTrack,
       }
     } else {
       channelCountInput = mPacketizerInput->mChannels;
-      // Deinterleave the input data
-      // Prepare an array pointing to deinterleaved channels.
+      webrtc::InterleavedView<const float> interleaved(
+          packet, mPacketizerInput->mPacketSize, channelCountInput);
+      webrtc::DeinterleavedView<float> deinterleaved(
+          mDeinterleavedBuffer.Data(), mPacketizerInput->mPacketSize,
+          channelCountInput);
+
+      Deinterleave(interleaved, deinterleaved);
+
+      // Set up pointers into the deinterleaved data for code below
       deinterleavedPacketizedInputDataChannelPointers.SetLength(
           channelCountInput);
-      offset = 0;
       for (size_t i = 0;
            i < deinterleavedPacketizedInputDataChannelPointers.Length(); ++i) {
         deinterleavedPacketizedInputDataChannelPointers[i] =
-            mDeinterleavedBuffer.Data() + offset;
-        offset += mPacketizerInput->mPacketSize;
+            deinterleaved[i].data();
       }
-      // Deinterleave to mInputBuffer, pointed to by inputBufferChannelPointers.
-      Deinterleave(packet, mPacketizerInput->mPacketSize, channelCountInput,
-                   deinterleavedPacketizedInputDataChannelPointers.Elements());
     }
 
     StreamConfig inputConfig(aTrack->mSampleRate, channelCountInput);
