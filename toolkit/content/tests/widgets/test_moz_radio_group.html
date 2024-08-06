@@ -591,6 +591,62 @@
       await firstRadioButton.updateComplete;
       verifyElementStates("enabled");
     });
+
+    add_task(async function testButtonDescriptions() {
+      const ATTR_DESCRIPTION = "This description is set via an attribute."
+      const SLOTTED_DESCRIPTION = "This description is set via a slot."
+
+      let template = html`
+        <moz-radio-group name="test-name" label="Radio group label">
+          <moz-radio checked value="first" label="First" description=${ATTR_DESCRIPTION}></moz-radio>
+          <moz-radio value="second" label="Second">
+            <span slot="description">${SLOTTED_DESCRIPTION}</span>
+          </moz-radio>
+          <moz-radio checked value="third" label="Third" description=${ATTR_DESCRIPTION}>
+            <span slot="description">${SLOTTED_DESCRIPTION}</span>
+          </moz-radio>
+        </moz-radio-group>
+      `;
+
+      let { radioButtons } = await renderRadioElements(template);
+      let [firstButton, secondButton, thirdButton] = radioButtons;
+
+      is(
+        firstButton.radioButton.getAttribute("aria-describedby"),
+        "description",
+        "Radio input is described by the description element."
+      );
+      is(
+        firstButton.descriptionEl.innerText,
+        ATTR_DESCRIPTION,
+        "Description element has the expected text when set via an attribute."
+      );
+
+      is(
+        secondButton.radioButton.getAttribute("aria-describedby"),
+        "description",
+        "Radio input is described by the description element."
+      );
+      let slottedText = secondButton.descriptionEl
+        .querySelector("slot[name=description]")
+        .assignedElements()[0].innerText;
+      is(
+        slottedText,
+        SLOTTED_DESCRIPTION,
+        "Description element has the expected text when set via a slot."
+      );
+
+      is(
+        thirdButton.radioButton.getAttribute("aria-describedby"),
+        "description",
+        "Radio input is described by the description element."
+      );
+      is(
+        thirdButton.descriptionEl.innerText,
+        ATTR_DESCRIPTION,
+        "Attribute text takes precedence over slotted text."
+      );
+    });
   </script>
 </head>
 <body>

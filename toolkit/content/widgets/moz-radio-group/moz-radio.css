@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@import url("chrome://global/skin/design-system/text-and-typography.css");
+
 :host {
   --radio-size: var(--size-item-small);
+  --radio-space-offset: calc(var(--radio-size) + var(--space-small));
 }
 
 label {
@@ -27,7 +30,7 @@ input,
 .label-content {
   position: relative;
   padding-inline-start: var(--space-small);
-  width: calc(100% - (var(--radio-size) + var(--space-small)));
+  width: calc(100% - var(--radio-space-offset));
 }
 
 .label-content,
@@ -46,4 +49,8 @@ input,
   & + .text {
     text-indent: calc(var(--icon-size-default) + var(--space-small));
   }
+}
+
+.description {
+  margin-inline-start: var(--radio-space-offset);
 }

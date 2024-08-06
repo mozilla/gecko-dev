@@ -219,11 +219,13 @@ customElements.define("moz-radio-group", MozRadioGroup);
  *
  * @tagname moz-radio
  * @property {boolean} checked - Whether or not the input is selected.
+ * @property {string} description - Description for the input.
  * @property {boolean} disabled - Whether or not the input is disabled.
+ * @property {string} iconSrc - Path to an icon displayed next to the input.
+ * @property {number} inputTabIndex - Tabindex of the input element.
  * @property {string} label - Label for the radio input.
  * @property {string} name
  *  Name of the input control, set by the associated moz-radio-group element.
- * @property {number} inputTabIndex - Tabindex of the input element.
  * @property {number} value - Value of the radio input.
  */
 export class MozRadio extends MozLitElement {
@@ -231,11 +233,12 @@ export class MozRadio extends MozLitElement {
 
   static properties = {
     checked: { type: Boolean, reflect: true },
+    description: { type: String, fluent: true },
     disabled: { type: Boolean, reflect: true },
     iconSrc: { type: String },
+    inputTabIndex: { type: Number, state: true },
     label: { type: String, fluent: true },
     name: { type: String, attribute: false },
-    inputTabIndex: { type: Number, state: true },
     value: { type: String },
   };
 
@@ -243,6 +246,7 @@ export class MozRadio extends MozLitElement {
     radioButton: "#radio-button",
     labelEl: "label",
     icon: ".icon",
+    descriptionEl: "#description",
   };
 
   constructor() {
@@ -330,6 +334,7 @@ export class MozRadio extends MozLitElement {
       name=${this.name}
       .checked=${this.checked}
       aria-checked=${this.checked}
+      aria-describedby="description"
       tabindex=${this.inputTabIndex}
       ?disabled=${this.disabled || this.#controller.disabled}
       @click=${this.handleClick}
@@ -344,6 +349,14 @@ export class MozRadio extends MozLitElement {
     </span>`;
   }
 
+  descriptionTemplate() {
+    return html`
+      <span id="description" class="description text-deemphasized">
+        ${this.description ?? html`<slot name="description"></slot>`}
+      </span>
+    `;
+  }
+
   render() {
     return html`
       <link
@@ -351,6 +364,7 @@ export class MozRadio extends MozLitElement {
         href="chrome://global/content/elements/moz-radio.css"
       />
       <label part="label">${this.inputTemplate()}${this.labelTemplate()}</label>
+      ${this.descriptionTemplate()}
     `;
   }
 }
