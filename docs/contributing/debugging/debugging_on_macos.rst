@@ -148,7 +148,8 @@ These steps were last updated for Xcode 15:
    debugging purposes" below. Select the "Arguments" tab in the scheme
    editor, and click the '+' below the "Arguments passed on launch"
    field. Add "-P *profilename*", where *profilename* is the name of a
-   profile you created previously.
+   profile you created previously. Repeat that to also add the argument
+   "-no-remote".
 #. Also in the "Arguments" panel, you may want to add an environment
    variable MOZ_DEBUG_CHILD_PROCESS set to the value 1 to help with
    debugging e10s.

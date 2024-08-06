@@ -369,6 +369,7 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
                     "artifact-reference": "<build/public/build/mozharness.zip>"
                 },
                 "MOZILLA_BUILD_URL": {"task-reference": installer},
+                "MOZ_NO_REMOTE": "1",
                 "NEED_XVFB": "false",
                 "XPCOM_DEBUG_BREAK": "warn",
                 "NO_FAIL_ON_TEST_ERRORS": "1",

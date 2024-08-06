@@ -65,7 +65,7 @@ followed by the command line you'd like to run, like this:
 
 .. code:: bash
 
-   $ lldb -- obj-ff-dbg/dist/Nightly.app/Contents/MacOS/firefox -profile /path/to/profile
+   $ lldb -- obj-ff-dbg/dist/Nightly.app/Contents/MacOS/firefox -no-remote -profile /path/to/profile
 
 Then set breakpoints you need and start the process:
 
