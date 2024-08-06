@@ -228,6 +228,7 @@ dependencies {
 
     implementation ComponentsDependencies.play_services_fido
     implementation "org.yaml:snakeyaml:2.2"
+    implementation 'androidx.core:core:1.12.0'
 
     implementation ComponentsDependencies.androidx_lifecycle_common
     implementation ComponentsDependencies.androidx_lifecycle_process

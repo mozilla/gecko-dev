@@ -56,6 +56,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import java.io.InputStream;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -95,7 +96,8 @@ public class GeckoView extends FrameLayout implements GeckoDisplay.NewSurfacePro
   private @Nullable ActivityContextDelegate mActivityDelegate;
   private GeckoSession.PrintDelegate mPrintDelegate;
 
-  private class Display implements SurfaceViewWrapper.Listener {
+  private class Display
+      implements SurfaceViewWrapper.Listener, androidx.core.view.OnApplyWindowInsetsListener {
     private final int[] mOrigin = new int[2];
 
     private GeckoDisplay mDisplay;
@@ -191,6 +193,39 @@ public class GeckoView extends FrameLayout implements GeckoDisplay.NewSurfacePro
                 cutout.getSafeInsetLeft());
           }
         }
+      }
+    }
+
+    @Override // OnApplyWindowInsetsListener
+    public WindowInsetsCompat onApplyWindowInsets(
+        @NonNull final View view, @NonNull final WindowInsetsCompat insets) {
+      final WindowInsetsCompat updatedInsets =
+          WindowInsetsCompat.toWindowInsetsCompat(
+              view.onApplyWindowInsets(insets.toWindowInsets()));
+      if (mDisplay != null) {
+        mDisplay.windowInsetsChanged(updatedInsets);
+      }
+      return updatedInsets;
+    }
+
+    // Attach this class as a WindowInsets listener to tell the software keyboard
+    // changes.
+    public void attachWindowInsetsListener(final Activity activity) {
+      try {
+        final View rootView = activity.getWindow().getDecorView().getRootView();
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, this);
+      } catch (final Exception e) {
+        Log.e(LOGTAG, "Failed to attach WindowInsetsListener: ", e);
+      }
+    }
+
+    // Detach as the listener.
+    public void detachWindowInsetsListener(final Activity activity) {
+      try {
+        final View rootView = activity.getWindow().getDecorView().getRootView();
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, null);
+      } catch (final Exception e) {
+        Log.e(LOGTAG, "Failed to detach WindowInsetsListener: ", e);
       }
     }
 
@@ -629,11 +664,16 @@ public class GeckoView extends FrameLayout implements GeckoDisplay.NewSurfacePro
     }
 
     super.onAttachedToWindow();
+
+    // This needs to be called after the `super.onAttachedToWindow()`.
+    mDisplay.attachWindowInsetsListener(getActivityFromContext(getContext()));
   }
 
   @Override
   public void onDetachedFromWindow() {
     super.onDetachedFromWindow();
+
+    mDisplay.detachWindowInsetsListener(getActivityFromContext(getContext()));
 
     if (mSession == null) {
       return;

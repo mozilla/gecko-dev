@@ -284,6 +284,7 @@ public class GeckoSession {
   private float mViewportLeft;
   private float mViewportTop;
   private float mViewportZoom = 1.0f;
+  private int mKeyboardHeight = 0; // The software keyboard height, 0 if it's hidden.
 
   //
   // NOTE: These values are also defined in
@@ -7894,6 +7895,16 @@ public class GeckoSession {
     if (mAttachedCompositor) {
       mCompositor.onSafeAreaInsetsChanged(top, right, bottom, left);
     }
+  }
+
+  /* package */ void onKeyboardHeight(final int height) {
+    ThreadUtils.assertOnUiThread();
+
+    if (mKeyboardHeight == height) {
+      return;
+    }
+
+    mKeyboardHeight = height;
   }
 
   /* package */ void setPointerIcon(
