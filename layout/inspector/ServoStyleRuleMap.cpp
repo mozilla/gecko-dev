@@ -88,7 +88,8 @@ void ServoStyleRuleMap::RuleRemoved(StyleSheet& aStyleSheet,
     case StyleCssRuleType::Container:
     case StyleCssRuleType::Document:
     case StyleCssRuleType::Scope:
-    case StyleCssRuleType::StartingStyle: {
+    case StyleCssRuleType::StartingStyle:
+    case StyleCssRuleType::PositionTry: {
       // See the comment in SheetRemoved.
       mTable.Clear();
       break;
@@ -151,6 +152,7 @@ void ServoStyleRuleMap::FillTableFromRule(css::Rule& aRule) {
     case StyleCssRuleType::CounterStyle:
     case StyleCssRuleType::FontFeatureValues:
     case StyleCssRuleType::FontPaletteValues:
+    case StyleCssRuleType::PositionTry:
       break;
   }
 }
