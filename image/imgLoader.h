@@ -26,6 +26,7 @@
 #include "nsIChannel.h"
 #include "nsIThreadRetargetableStreamListener.h"
 #include "imgIRequest.h"
+#include "mozilla/dom/CacheExpirationTime.h"
 
 class imgLoader;
 class imgRequestProxy;
@@ -65,17 +66,17 @@ class imgCacheEntry {
 
   void UpdateLoadTime();
 
-  uint32_t GetExpiryTime() const { return mExpiryTime; }
-  void AccumulateExpiryTime(uint32_t aExpiryTime, bool aForceTouch = false) {
-    // 0 means "doesn't expire".
-    // Otherwise, calculate the minimum value.
-    if (aExpiryTime == 0) {
+  const CacheExpirationTime& GetExpiryTime() const { return mExpiryTime; }
+
+  void AccumulateExpiryTime(const CacheExpirationTime& aExpiryTime,
+                            bool aForceTouch = false) {
+    if (aExpiryTime.IsNever()) {
       if (aForceTouch) {
         Touch();
       }
       return;
     }
-    if (mExpiryTime == 0 || aExpiryTime < mExpiryTime) {
+    if (mExpiryTime.IsNever() || aExpiryTime.IsShorterThan(mExpiryTime)) {
       mExpiryTime = aExpiryTime;
       Touch();
     } else {
@@ -130,7 +131,7 @@ class imgCacheEntry {
   uint32_t mDataSize;
   int32_t mTouchedTime;
   uint32_t mLoadTime;
-  uint32_t mExpiryTime;
+  CacheExpirationTime mExpiryTime;
   nsExpirationState mExpirationState;
   bool mMustValidate : 1;
   bool mEvicted : 1;

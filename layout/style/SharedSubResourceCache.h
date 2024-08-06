@@ -33,6 +33,7 @@
 #include "nsRefPtrHashtable.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/StoragePrincipalHelper.h"
+#include "mozilla/dom/CacheExpirationTime.h"
 #include "mozilla/dom/Document.h"
 #include "nsContentUtils.h"
 #include "mozilla/StaticPtr.h"
@@ -163,7 +164,7 @@ class SharedSubResourceCache {
 
   struct CompleteSubResource {
     RefPtr<Value> mResource;
-    uint32_t mExpirationTime = 0;
+    CacheExpirationTime mExpirationTime = CacheExpirationTime::Never();
     bool mWasSyncLoad = false;
 
     inline bool Expired() const;
@@ -485,8 +486,7 @@ void SharedSubResourceCache<Traits, Derived>::LoadStarted(
 template <typename Traits, typename Derived>
 bool SharedSubResourceCache<Traits, Derived>::CompleteSubResource::Expired()
     const {
-  return mExpirationTime &&
-         mExpirationTime <= nsContentUtils::SecondsFromPRTime(PR_Now());
+  return mExpirationTime.IsExpired();
 }
 
 template <typename Traits, typename Derived>

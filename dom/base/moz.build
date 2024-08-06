@@ -157,6 +157,7 @@ EXPORTS.mozilla.dom += [
     "BodyConsumer.h",
     "BodyUtil.h",
     "BorrowedAttrInfo.h",
+    "CacheExpirationTime.h",
     "CCGCScheduler.h",
     "CharacterData.h",
     "ChildIterator.h",

@@ -13,6 +13,7 @@
 #include "js/TypeDecls.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/dom/CacheExpirationTime.h"
 #include "mozilla/dom/SRIMetadata.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
@@ -114,17 +115,10 @@ class ScriptLoadRequest : public nsISupports,
 
   bool IsCacheable() const;
 
-  uint32_t ExpirationTime() const { return mExpirationTime; }
+  CacheExpirationTime ExpirationTime() const { return mExpirationTime; }
 
-  void SetMinimumExpirationTime(uint32_t aExpirationTime) {
-    // 0 means "doesn't expire".
-    // Otherwise, calculate the minimum value.
-    if (aExpirationTime == 0) {
-      return;
-    }
-    if (mExpirationTime == 0 || aExpirationTime < mExpirationTime) {
-      mExpirationTime = aExpirationTime;
-    }
+  void SetMinimumExpirationTime(const CacheExpirationTime& aExpirationTime) {
+    mExpirationTime.SetMinimum(aExpirationTime);
   }
 
   virtual bool IsTopLevel() const { return true; };
@@ -284,7 +278,7 @@ class ScriptLoadRequest : public nsISupports,
   // imported modules
   enum mozilla::dom::ReferrerPolicy mReferrerPolicy;
 
-  uint32_t mExpirationTime = 0;
+  CacheExpirationTime mExpirationTime = CacheExpirationTime::Never();
 
   RefPtr<ScriptFetchOptions> mFetchOptions;
   const SRIMetadata mIntegrity;

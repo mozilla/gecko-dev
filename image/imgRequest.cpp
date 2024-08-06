@@ -602,8 +602,7 @@ void imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry,
   if (!info.mExpirationTime) {
     // If the channel doesn't support caching, then ensure this expires the
     // next time it is used.
-    info.mExpirationTime.emplace(nsContentUtils::SecondsFromPRTime(PR_Now()) -
-                                 1);
+    info.mExpirationTime.emplace(CacheExpirationTime::AlreadyExpired());
   }
   aCacheEntry->AccumulateExpiryTime(*info.mExpirationTime, aForceTouch);
   // Cache entries default to not needing to validate. We ensure that

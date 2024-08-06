@@ -164,13 +164,7 @@ bool ScriptLoadRequest::IsCacheable() const {
     return false;
   }
 
-  if (mExpirationTime == 0) {
-    return true;
-  }
-
-  uint32_t now = nsContentUtils::SecondsFromPRTime(PR_Now());
-
-  return mExpirationTime > now;
+  return !mExpirationTime.IsExpired();
 }
 
 void ScriptLoadRequest::CacheEntryFound(LoadedScript* aLoadedScript) {

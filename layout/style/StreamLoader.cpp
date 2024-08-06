@@ -9,6 +9,7 @@
 #include "mozilla/Encoding.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/TaskQueue.h"
+#include "mozilla/dom/CacheExpirationTime.h"
 #include "nsContentUtils.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIChannel.h"
@@ -37,17 +38,6 @@ StreamLoader::~StreamLoader() {
 NS_IMPL_ISUPPORTS(StreamLoader, nsIStreamListener,
                   nsIThreadRetargetableStreamListener, nsIChannelEventSink,
                   nsIInterfaceRequestor)
-
-static uint32_t CalculateExpirationTime(nsIRequest* aRequest, nsIURI* aURI) {
-  auto info = nsContentUtils::GetSubresourceCacheValidationInfo(aRequest, aURI);
-
-  // For now, we never cache entries that we have to revalidate, or whose
-  // channel don't support caching.
-  if (info.mMustRevalidate || !info.mExpirationTime) {
-    return nsContentUtils::SecondsFromPRTime(PR_Now()) - 1;
-  }
-  return *info.mExpirationTime;
-}
 
 /* nsIRequestObserver implementation */
 NS_IMETHODIMP
@@ -87,8 +77,9 @@ StreamLoader::OnStartRequest(nsIRequest* aRequest) {
     rr->RetargetDeliveryTo(queue);
   }
 
-  mSheetLoadData->AccumulateExpirationTime(
-      CalculateExpirationTime(aRequest, mSheetLoadData->mURI));
+  mSheetLoadData->SetMinimumExpirationTime(
+      nsContentUtils::GetSubresourceCacheExpirationTime(aRequest,
+                                                        mSheetLoadData->mURI));
 
   // We need to block block resolution of parse promise until we receive
   // OnStopRequest on Main thread. This is necessary because parse promise
@@ -268,8 +259,9 @@ StreamLoader::GetInterface(const nsIID& aIID, void** aResult) {
 nsresult StreamLoader::AsyncOnChannelRedirect(
     nsIChannel* aOld, nsIChannel* aNew, uint32_t aFlags,
     nsIAsyncVerifyRedirectCallback* aCallback) {
-  mSheetLoadData->AccumulateExpirationTime(
-      CalculateExpirationTime(aOld, mSheetLoadData->mURI));
+  mSheetLoadData->SetMinimumExpirationTime(
+      nsContentUtils::GetSubresourceCacheExpirationTime(aOld,
+                                                        mSheetLoadData->mURI));
 
   aCallback->OnRedirectVerifyCallback(NS_OK);
 
