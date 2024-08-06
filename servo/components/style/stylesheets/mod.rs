@@ -424,6 +424,9 @@ impl From<CssRuleType> for CssRuleTypes {
 }
 
 impl CssRuleTypes {
+    /// Rules where !important declarations are forbidden.
+    pub const IMPORTANT_FORBIDDEN: Self = Self(CssRuleType::PositionTry.bit() | CssRuleType::Keyframe.bit());
+
     /// Returns whether the rule is in the current set.
     #[inline]
     pub fn contains(self, ty: CssRuleType) -> bool {
