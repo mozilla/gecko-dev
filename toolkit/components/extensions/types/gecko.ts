@@ -91,7 +91,4 @@ interface XULBrowserElement extends XULFrameElement, FrameLoader {
   remoteType: string;
 }
 
-// https://github.com/microsoft/TypeScript-DOM-lib-generator/issues/1736
-interface Localization {
-  formatValuesSync(aKeys: L10nKey[]): (string | null)[];
-}
+type nsQIResult<iid> = import("gecko/lib.gecko.xpcom").nsQIResult<iid>;

@@ -1,4 +1,0 @@
-{
-  "extends": "../tools/@types/tsconfig.json",
-  "include": ["**/*.sys.mjs"]
-}

@@ -3009,6 +3009,7 @@ function ignoreEvent(context, name) {
       scriptError.init(
         msg,
         frame.filename,
+        null,
         frame.lineNumber,
         frame.columnNumber,
         Ci.nsIScriptError.warningFlag,
