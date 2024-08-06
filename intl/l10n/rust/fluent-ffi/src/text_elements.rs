@@ -25,7 +25,7 @@ impl<'a> TextElementsCollector<'a> {
         Self {
             current_id: None,
             current_attr: None,
-            elements: elements,
+            elements,
         }
     }
 
@@ -87,11 +87,11 @@ impl<'a> TextElementsCollector<'a> {
                     id: self
                         .current_id
                         .as_ref()
-                        .map_or_else(|| nsCString::new(), nsCString::from),
+                        .map_or_else(nsCString::new, nsCString::from),
                     attr: self
                         .current_attr
                         .as_ref()
-                        .map_or_else(|| nsCString::new(), nsCString::from),
+                        .map_or_else(nsCString::new, nsCString::from),
                     text: nsCString::from(*value),
                 });
             }
