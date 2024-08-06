@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import DEFAULT_RULES_AND_POSITION_TRY %>
 
 <%helpers:shorthand name="flex-flow"
                     engines="gecko servo",
@@ -781,7 +780,6 @@
     engines="gecko servo"
     sub_properties="align-self justify-self"
     spec="https://drafts.csswg.org/css-align/#place-self-property"
-    rule_types_allowed="Style PositionTry"
 >
     use crate::values::specified::align::{AlignSelf, JustifySelf, SelfAlignment, AxisDirection};
 
@@ -868,7 +866,6 @@ ${helpers.four_sides_shorthand(
     "specified::LengthPercentageOrAuto::parse",
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-logical/#propdef-inset",
-    rule_types_allowed=DEFAULT_RULES_AND_POSITION_TRY,
     allow_quirks="No",
 )}
 
@@ -878,8 +875,7 @@ ${helpers.two_properties_shorthand(
     "inset-block-end",
     "specified::LengthPercentageOrAuto::parse",
     engines="gecko servo",
-    spec="https://drafts.csswg.org/css-logical/#propdef-inset-block",
-    rule_types_allowed=DEFAULT_RULES_AND_POSITION_TRY,
+    spec="https://drafts.csswg.org/css-logical/#propdef-inset-block"
 )}
 
 ${helpers.two_properties_shorthand(
@@ -888,8 +884,7 @@ ${helpers.two_properties_shorthand(
     "inset-inline-end",
     "specified::LengthPercentageOrAuto::parse",
     engines="gecko servo",
-    spec="https://drafts.csswg.org/css-logical/#propdef-inset-inline",
-    rule_types_allowed=DEFAULT_RULES_AND_POSITION_TRY,
+    spec="https://drafts.csswg.org/css-logical/#propdef-inset-inline"
 )}
 
 ${helpers.two_properties_shorthand(

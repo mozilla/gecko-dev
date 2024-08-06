@@ -642,11 +642,6 @@ impl StylesheetInvalidationSet {
                 // figure out the styling order.
                 self.invalidate_fully();
             },
-            PositionTry(..) => {
-                // Potential change in sizes/positions of anchored elements. TODO(dshin, bug 1910616):
-                // We should probably make an effort to see if this position-try is referenced.
-                self.invalidate_fully();
-            },
         }
     }
 }

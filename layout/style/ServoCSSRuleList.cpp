@@ -27,7 +27,6 @@
 #include "mozilla/dom/CSSStartingStyleRule.h"
 #include "mozilla/dom/CSSStyleRule.h"
 #include "mozilla/dom/CSSSupportsRule.h"
-#include "mozilla/dom/CSSPositionTryRule.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/StyleSheet.h"
@@ -105,7 +104,6 @@ css::Rule* ServoCSSRuleList::GetRule(uint32_t aIndex) {
       CASE_RULE_UNLOCKED(Container, Container)
       CASE_RULE_UNLOCKED(Scope, Scope)
       CASE_RULE_UNLOCKED(StartingStyle, StartingStyle)
-      CASE_RULE_LOCKED(PositionTry, PositionTry)
 #undef CASE_RULE_LOCKED
 #undef CASE_RULE_UNLOCKED
 #undef CASE_RULE_WITH_PREFIX
@@ -293,7 +291,6 @@ void ServoCSSRuleList::SetRawContents(RefPtr<StyleLockedCssRules> aNewRules,
       RULE_CASE_UNLOCKED(Container, Container)
       RULE_CASE_UNLOCKED(Scope, Scope)
       RULE_CASE_UNLOCKED(StartingStyle, StartingStyle)
-      RULE_CASE_LOCKED(PositionTry, PositionTry)
       case StyleCssRuleType::Keyframe:
         MOZ_ASSERT_UNREACHABLE("keyframe rule cannot be here");
         break;

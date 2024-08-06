@@ -422,9 +422,9 @@ macro_rules! font_feature_values_blocks {
                             while let Some(declaration) = iter.next() {
                                 if let Err((error, slice)) = declaration {
                                     let location = error.location;
-                                    // TODO(emilio): Maybe add a more specific error kind for
-                                    // font-feature-values descriptors.
-                                    let error = ContextualParseError::UnsupportedPropertyDeclaration(slice, error, &[]);
+                                    let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
+                                        slice, error
+                                    );
                                     self.context.log_css_error(location, error);
                                 }
                             }
