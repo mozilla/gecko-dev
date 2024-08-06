@@ -68,6 +68,8 @@ skip-if = ["os == 'mac' && debug"] # ADB start() fails on linux 32, see Bug 1499
 
 ["browser_aboutdebugging_addons_remote_runtime.js"]
 
+["browser_aboutdebugging_addons_remote_runtime_close_reopen.js"]
+
 ["browser_aboutdebugging_addons_temporary_addon_buttons.js"]
 skip-if = ["os == 'win'"] # On windows the AddonManager locks the XPI file loaded as a temporary extension and we can not test the reload of the extension.
 

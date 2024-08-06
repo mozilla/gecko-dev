@@ -51,8 +51,8 @@ async function createCommandsDictionary(descriptorFront) {
     watcherFront,
 
     // Expose for tests
-    waitForRequestsToSettle() {
-      return descriptorFront.client.waitForRequestsToSettle();
+    waitForRequestsToSettle(options) {
+      return descriptorFront.client.waitForRequestsToSettle(options);
     },
 
     // Boolean flag to know if the DevtoolsClient should be closed
