@@ -425,7 +425,7 @@ bool nsTransitionManager::ConsiderInitiatingTransition(
   }
 
   TimingParams timing = TimingParamsFromCSSParams(
-      aDuration, aDelay, 1.0 /* iteration count */,
+      Some(aDuration), aDelay, 1.0 /* iteration count */,
       StyleAnimationDirection::Normal, StyleAnimationFillMode::Backwards);
 
   const StyleComputedTimingFunction& tf =

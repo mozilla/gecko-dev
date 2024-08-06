@@ -302,7 +302,7 @@ static already_AddRefed<CSSAnimation> BuildAnimation(
 
   const StyleAnimationDuration& duration = aStyle.GetAnimationDuration(animIdx);
   TimingParams timing = TimingParamsFromCSSParams(
-      duration.IsAuto() ? 0.0f : duration.AsTime().ToMilliseconds(),
+      duration.IsAuto() ? Nothing() : Some(duration.AsTime().ToMilliseconds()),
       aStyle.GetAnimationDelay(animIdx).ToMilliseconds(),
       aStyle.GetAnimationIterationCount(animIdx),
       aStyle.GetAnimationDirection(animIdx),

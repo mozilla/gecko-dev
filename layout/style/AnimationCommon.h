@@ -211,7 +211,7 @@ inline dom::CompositeOperation StyleToDom(StyleAnimationComposition aStyle) {
 }
 
 inline TimingParams TimingParamsFromCSSParams(
-    float aDuration, float aDelay, float aIterationCount,
+    Maybe<float> aDuration, float aDelay, float aIterationCount,
     StyleAnimationDirection aDirection, StyleAnimationFillMode aFillMode) {
   MOZ_ASSERT(aIterationCount >= 0.0 && !std::isnan(aIterationCount),
              "aIterations should be nonnegative & finite, as ensured by "
