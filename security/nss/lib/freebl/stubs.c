@@ -813,6 +813,10 @@ freebl_InitNSSUtil(void *lib)
     return SECSuccess;
 }
 
+#ifndef RTLD_NOLOAD
+    #define RTLD_NOLOAD 0
+#endif
+
 /*
  * fetch the library if it's loaded. For NSS it should already be loaded
  */

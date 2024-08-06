@@ -35,6 +35,14 @@ endif
 
 
 #
+# Force the Haiku machines to use BeOS.
+#
+
+ifeq ($(OS_ARCH),Haiku)
+	OS_ARCH = BeOS
+endif
+
+#
 # Force the older BSD/OS versions to use the new arch name.
 #
 

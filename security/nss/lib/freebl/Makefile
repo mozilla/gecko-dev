@@ -366,7 +366,7 @@ endif
 # to bind the blapi function references in FREEBLVector vector
 # (ldvector.c) to the blapi functions defined in the freebl
 # shared libraries.
-ifeq (,$(filter-out BSD_OS FreeBSD Linux NetBSD OpenBSD, $(OS_TARGET)))
+ifeq (,$(filter-out BSD_OS FreeBSD Linux NetBSD OpenBSD BeOS, $(OS_TARGET)))
     MKSHLIB += -Wl,-Bsymbolic
 endif
 

@@ -5,9 +5,9 @@
 
 include $(CORE_DEPTH)/coreconf/UNIX.mk
 
-XP_DEFINE := $(XP_DEFINE:-DXP_UNIX=-DXP_BEOS)
+XP_DEFINE := $(XP_DEFINE:-DXP_UNIX=-DXP_BEOS -DXP_HAIKU)
 
-USE_PTHREADS = 
+USE_PTHREADS = 1
 
 ifeq ($(USE_PTHREADS),1)
 	IMPL_STRATEGY = _PTH
@@ -27,7 +27,11 @@ else
 	CPU_ARCH	= x86
 endif
 
-MKSHLIB		= $(CC) -nostart -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so)
+ifeq ($(USE_64),1)
+	CPU_ARCH	= x86_64
+endif
+
+MKSHLIB		= $(CC) -shared -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so)
 ifdef BUILD_OPT
 	OPTIMIZER	= -O2
 endif
@@ -44,4 +48,17 @@ endif
 ARCH			= beos
 
 DSO_CFLAGS		= -fPIC
-DSO_LDOPTS		=
+DSO_LDOPTS		= -shared
+
+SKIP_SHLIBSIGN=1
+USE_SYSTEM_ZLIB = 1
+ZLIB_LIBS = -lz
+NSS_USE_SYSTEM_SQLITE=1
+NSS_DISABLE_GTESTS=1
+
+MKSHLIB			= $(CC) $(DSO_LDOPTS)
+ifdef MAPFILE
+	MKSHLIB += -Wl,--version-script,$(MAPFILE)
+endif
+PROCESS_MAP_FILE = grep -v ';-' $< | \
+        sed -e 's,;+,,' -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,;,' > $@
