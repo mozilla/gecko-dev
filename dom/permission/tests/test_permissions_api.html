@@ -27,7 +27,7 @@
 
   SimpleTest.waitForExplicitFinish();
 
-  const PERMISSIONS = [{
+  const OTHER_PERMISSIONS = [{
     name: 'geolocation',
     type: 'geo'
   }, {
@@ -42,7 +42,9 @@
   }, {
     name: 'midi',
     type: 'midi'
-  }, {
+  }, ];
+
+  const MEDIA_PERMISSIONS = [{
     name: 'camera',
     type: 'camera'
   }, {
@@ -50,8 +52,10 @@
     type: 'microphone'
   }, ];
 
+  const PERMISSIONS = [...OTHER_PERMISSIONS, ...MEDIA_PERMISSIONS];
+
   const UNSUPPORTED_PERMISSIONS = [
-    'foobarbaz', // Not in spec, for testing only.
+    { name: 'foobarbaz' }, // Not in spec, for testing only.
   ];
 
   // Create a closure, so that tests are run on the correct window object.
@@ -69,8 +73,8 @@
         await SpecialPowers.popPermissions();
         return SpecialPowers.pushPermissions(permissions);
       },
-      checkPermissions(expectedState, mediaExpectedState = expectedState) {
-        const promisesToQuery = PERMISSIONS.map(({ name: expectedName }) => {
+      checkPermissions(permissions, expectedState, mediaExpectedState = expectedState) {
+        const promisesToQuery = permissions.map(({ name: expectedName }) => {
           return iframeWindow.navigator.permissions
             .query({ name: expectedName })
             .then(
@@ -87,8 +91,8 @@
           });
         return Promise.all(promisesToQuery);
       },
-      checkUnsupportedPermissions() {
-        const promisesToQuery = UNSUPPORTED_PERMISSIONS.map(({ name }) => {
+      checkUnsupportedPermissions(permissions) {
+        const promisesToQuery = permissions.map(({ name }) => {
           return iframeWindow.navigator.permissions
             .query({ name })
             .then(
@@ -236,21 +240,28 @@
   window.onload = async () => {
     try {
       const tester = createPermissionTester(await createIframe());
-      await tester.checkUnsupportedPermissions();
+      await tester.checkUnsupportedPermissions(UNSUPPORTED_PERMISSIONS);
       await tester.setPermissions(UNKNOWN_ACTION);
-      await tester.checkPermissions('prompt');
+      await tester.checkPermissions(PERMISSIONS, 'prompt');
       await tester.setPermissions(PROMPT_ACTION);
-      await tester.checkPermissions('prompt', 'granted');
+      await tester.checkPermissions(PERMISSIONS, 'prompt', 'granted');
       await tester.setPermissions(ALLOW_ACTION);
-      await tester.checkPermissions('granted');
+      await tester.checkPermissions(PERMISSIONS, 'granted');
       await tester.setPermissions(DENY_ACTION);
-      await tester.checkPermissions('denied');
+      await tester.checkPermissions(PERMISSIONS, 'denied');
       await tester.testStatusOnChange();
       await tester.testInvalidQuery();
       await tester.testNotFullyActiveDoc();
       await tester.testNotFullyActiveChange();
-    } catch(e) {
-      ok(false, `Unexpected error ${e}`);
+
+      await SpecialPowers.pushPrefEnv({
+        set: [
+          ["permissions.media.query.enabled", false]
+        ]
+      });
+      await tester.setPermissions(UNKNOWN_ACTION);
+      await tester.checkUnsupportedPermissions(MEDIA_PERMISSIONS);
+      await tester.checkPermissions(OTHER_PERMISSIONS, 'prompt');
     } finally {
       SimpleTest.finish();
     }

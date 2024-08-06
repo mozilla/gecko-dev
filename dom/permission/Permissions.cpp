@@ -14,6 +14,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/StorageAccessPermissionStatus.h"
+#include "mozilla/StaticPrefs_permissions.h"
 #include "PermissionUtils.h"
 
 namespace mozilla::dom {
@@ -79,13 +80,27 @@ RefPtr<PermissionStatus> CreatePermissionStatus(
     }
     case PermissionName::Storage_access:
       return new StorageAccessPermissionStatus(aWindow);
-    case PermissionName::Camera:
     case PermissionName::Geolocation:
-    case PermissionName::Microphone:
     case PermissionName::Notifications:
     case PermissionName::Push:
     case PermissionName::Persistent_storage:
     case PermissionName::Screen_wake_lock:
+      return new PermissionStatus(aWindow, rootDesc.mName);
+    case PermissionName::Camera:
+      if (!StaticPrefs::permissions_media_query_enabled()) {
+        aRv.ThrowTypeError(
+            "'camera' (value of 'name' member of PermissionDescriptor) is not "
+            "a valid value for enumeration PermissionName.");
+        return nullptr;
+      }
+      return new PermissionStatus(aWindow, rootDesc.mName);
+    case PermissionName::Microphone:
+      if (!StaticPrefs::permissions_media_query_enabled()) {
+        aRv.ThrowTypeError(
+            "'microphone' (value of 'name' member of PermissionDescriptor) is "
+            "not a valid value for enumeration PermissionName.");
+        return nullptr;
+      }
       return new PermissionStatus(aWindow, rootDesc.mName);
     default:
       MOZ_ASSERT_UNREACHABLE("Unhandled type");

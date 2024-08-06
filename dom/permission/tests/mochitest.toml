@@ -6,6 +6,7 @@ support-files = [
 prefs = [
   "dom.security.featurePolicy.header.enabled=true",
   "dom.security.featurePolicy.webidl.enabled=true",
+  "permissions.media.query.enabled=true",
 ]
 
 ["test_cross_origin_iframe.html"]
