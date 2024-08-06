@@ -9,11 +9,14 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES
 import android.view.View
 import android.view.WindowManager
+import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.ViewCompat
 import androidx.core.view.ViewCompat.onApplyWindowInsets
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import mozilla.components.support.base.log.logger.Logger
+
+private const val IMMERSIVE_MODE_WINDOW_INSETS_LISTENER = "IMMERSIVE_MODE_WINDOW_INSETS_LISTENER"
 
 /**
  * Attempts to enter immersive mode - fullscreen with the status bar and navigation buttons hidden,
@@ -22,19 +25,26 @@ import mozilla.components.support.base.log.logger.Logger
  * This will automatically register and use an inset listener: [View.OnApplyWindowInsetsListener]
  * to restore immersive mode if interactions with various other widgets like the keyboard or dialogs
  * got the activity out of immersive mode without [exitImmersiveMode] being called.
+ *
+ * @param setListenerFunction is an optional function to setup an WindowInsets listener:
+ * [View.OnApplyWindowInsetsListener] to allow having multiple listeners at the same time.
  */
 fun Activity.enterImmersiveMode(
     insetsController: WindowInsetsControllerCompat = window.createWindowInsetsController(),
+    setOnApplyWindowInsetsListener: (String, OnApplyWindowInsetsListener) ->
+    Unit = { _, listener -> ViewCompat.setOnApplyWindowInsetsListener(window.decorView, listener) },
 ) {
     insetsController.hideInsets()
 
-    ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insetsCompat ->
+    val insetsListener = OnApplyWindowInsetsListener { view, insetsCompat ->
         if (insetsCompat.isVisible(WindowInsetsCompat.Type.statusBars())) {
             insetsController.hideInsets()
         }
         // Allow the decor view to have a chance to process the incoming WindowInsets.
         onApplyWindowInsets(view, insetsCompat)
     }
+
+    setOnApplyWindowInsetsListener(IMMERSIVE_MODE_WINDOW_INSETS_LISTENER, insetsListener)
 
     if (SDK_INT >= VERSION_CODES.P) {
         window.setFlags(
@@ -60,13 +70,16 @@ private fun WindowInsetsControllerCompat.hideInsets() {
  *
  * @param insetsController is an optional [WindowInsetsControllerCompat] object for controlling the
  * window insets.
+ * @param removeListenerFunction is an optional function which was used for [enterImmersiveMode].
  */
 fun Activity.exitImmersiveMode(
     insetsController: WindowInsetsControllerCompat = window.createWindowInsetsController(),
+    unregisterOnApplyWindowInsetsListener: (String) ->
+    Unit = { ViewCompat.setOnApplyWindowInsetsListener(window.decorView, null) },
 ) {
     insetsController.show(WindowInsetsCompat.Type.systemBars())
 
-    ViewCompat.setOnApplyWindowInsetsListener(window.decorView, null)
+    unregisterOnApplyWindowInsetsListener(IMMERSIVE_MODE_WINDOW_INSETS_LISTENER)
 
     if (SDK_INT >= VERSION_CODES.P) {
         window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)

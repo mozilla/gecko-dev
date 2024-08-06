@@ -105,4 +105,15 @@ class DummyEngineView(context: Context) : View(context), EngineView {
     }
 
     override var selectionActionDelegate: SelectionActionDelegate? = null
+
+    override fun addWindowInsetsListener(
+        key: String,
+        listener: androidx.core.view.OnApplyWindowInsetsListener?,
+    ) {
+        // no-op
+    }
+
+    override fun removeWindowInsetsListener(key: String) {
+        // no-op
+    }
 }

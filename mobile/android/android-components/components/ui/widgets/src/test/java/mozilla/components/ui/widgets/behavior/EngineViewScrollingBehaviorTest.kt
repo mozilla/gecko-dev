@@ -571,5 +571,10 @@ class EngineViewScrollingBehaviorTest {
         override fun render(session: EngineSession) {}
         override fun release() {}
         override var selectionActionDelegate: SelectionActionDelegate? = null
+        override fun addWindowInsetsListener(
+            key: String,
+            listener: androidx.core.view.OnApplyWindowInsetsListener?,
+        ) {}
+        override fun removeWindowInsetsListener(key: String) {}
     }
 }
