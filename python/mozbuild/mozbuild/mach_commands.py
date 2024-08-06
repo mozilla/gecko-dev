@@ -1405,12 +1405,6 @@ def _get_desktop_run_parser():
         "--app", help="Path to executable to run (default: output of ./mach build)"
     )
     group.add_argument(
-        "--remote",
-        "-r",
-        action="store_true",
-        help="Do not pass the --no-remote argument by default.",
-    )
-    group.add_argument(
         "--background",
         "-b",
         action="store_true",
@@ -1934,7 +1928,6 @@ def _run_desktop(
     params,
     packaged,
     app,
-    remote,
     background,
     noprofile,
     disable_e10s,
@@ -2018,9 +2011,6 @@ def _run_desktop(
 
     if params:
         args.extend(params)
-
-    if not remote:
-        args.append("-no-remote")
 
     if not background and sys.platform == "darwin":
         args.append("-foreground")
@@ -3153,7 +3143,7 @@ def repackage_snap_install(command_context, snap_file, snap_name, sudo=None):
         logging.INFO,
         "repackage-snap-install-howto-run",
         {},
-        "Example usage: snap run {} --no-remote".format(snap_name),
+        "Example usage: snap run {}".format(snap_name),
     )
 
     return 0

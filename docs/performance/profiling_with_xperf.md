@@ -121,7 +121,7 @@ simultaneous capture of non-heap data.
 
 To start a trace session, launching a new Firefox instance:
 
-`xperf -on base  xperf -start heapsession -heap -PidNewProcess "./firefox.exe -P test -no-remote" -stackwalk HeapAlloc+HeapRealloc -BufferSize 512 -MinBuffers 128 -MaxBuffers 512`
+`xperf -on base  xperf -start heapsession -heap -PidNewProcess "./firefox.exe -P test" -stackwalk HeapAlloc+HeapRealloc -BufferSize 512 -MinBuffers 128 -MaxBuffers 512`
 
 To stop a session and merge the resulting files:
 
