@@ -45,7 +45,7 @@
       ok(confirmButton, "Confirm button should be found");
 
       let content = document.getElementById("content");
-      let promise = BrowserTestUtils.waitForEvent(content, "BackupUI:EnableScheduledBackups");
+      let promise = BrowserTestUtils.waitForEvent(content, "turnOnScheduledBackups");
 
       confirmButton.click()
 

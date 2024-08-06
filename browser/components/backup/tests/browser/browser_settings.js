@@ -99,10 +99,7 @@ add_task(async function test_disable_backup_encryption_confirm() {
     );
 
     let confirmButton = disableBackupEncryption.confirmButtonEl;
-    let promise = BrowserTestUtils.waitForEvent(
-      window,
-      "BackupUI:DisableEncryption"
-    );
+    let promise = BrowserTestUtils.waitForEvent(window, "disableEncryption");
 
     Assert.ok(confirmButton, "Confirm button should be found");
 

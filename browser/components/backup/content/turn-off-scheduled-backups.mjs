@@ -17,7 +17,18 @@ export default class TurnOffScheduledBackups extends MozLitElement {
     };
   }
 
-  close() {
+  /**
+   * Dispatches the BackupUI:InitWidget custom event upon being attached to the
+   * DOM, which registers with BackupUIChild for BackupService state updates.
+   */
+  connectedCallback() {
+    super.connectedCallback();
+    this.dispatchEvent(
+      new CustomEvent("BackupUI:InitWidget", { bubbles: true })
+    );
+  }
+
+  handleCancel() {
     this.dispatchEvent(
       new CustomEvent("dialogCancel", {
         bubbles: true,
@@ -28,8 +39,9 @@ export default class TurnOffScheduledBackups extends MozLitElement {
 
   handleConfirm() {
     this.dispatchEvent(
-      new CustomEvent("BackupUI:DisableScheduledBackups", {
+      new CustomEvent("turnOffScheduledBackups", {
         bubbles: true,
+        composed: true,
       })
     );
   }
@@ -65,7 +77,7 @@ export default class TurnOffScheduledBackups extends MozLitElement {
         <moz-button-group id="backup-turn-off-scheduled-button-group">
           <moz-button
             id="backup-turn-off-scheduled-cancel-button"
-            @click=${this.close}
+            @click=${this.handleCancel}
             data-l10n-id="turn-off-scheduled-backups-cancel-button"
           ></moz-button>
           <moz-button

@@ -3,10 +3,6 @@
 
 "use strict";
 
-const { ERRORS } = ChromeUtils.importESModule(
-  "chrome://browser/content/backup/backup-constants.mjs"
-);
-
 const SCHEDULED_BACKUPS_ENABLED_PREF = "browser.backup.scheduled.enabled";
 
 add_setup(async () => {
@@ -47,7 +43,7 @@ add_task(async function test_turn_on_scheduled_backups_confirm() {
     let confirmButton = turnOnScheduledBackups.confirmButtonEl;
     let promise = BrowserTestUtils.waitForEvent(
       window,
-      "BackupUI:EnableScheduledBackups"
+      "turnOnScheduledBackups"
     );
 
     Assert.ok(confirmButton, "Confirm button should be found");
@@ -90,7 +86,6 @@ add_task(async function test_turn_on_custom_location_filepicker() {
     MockFilePicker.returnValue = MockFilePicker.returnOK;
 
     // After setting up mocks, start testing components
-    /** @type {import("../../content/backup-settings.mjs").default} */
     let settings = browser.contentDocument.querySelector("backup-settings");
     let turnOnButton = settings.scheduledBackupsButtonEl;
 
@@ -153,7 +148,7 @@ add_task(async function test_turn_on_custom_location_filepicker() {
 
     let confirmButtonPromise = BrowserTestUtils.waitForEvent(
       window,
-      "BackupUI:EnableScheduledBackups"
+      "turnOnScheduledBackups"
     );
 
     confirmButton.click();
@@ -239,7 +234,7 @@ add_task(async function test_turn_on_scheduled_backups_encryption() {
 
     let promise = BrowserTestUtils.waitForEvent(
       window,
-      "BackupUI:EnableScheduledBackups"
+      "turnOnScheduledBackups"
     );
 
     confirmButton.click();
@@ -285,7 +280,7 @@ add_task(async function test_turn_on_scheduled_backups_encryption_error() {
 
     let encryptionStub = sandbox
       .stub(BackupService.prototype, "enableEncryption")
-      .throws(new Error("test error", { cause: ERRORS.INVALID_PASSWORD }));
+      .throws();
 
     // Enable passwords
     let passwordsCheckbox = turnOnScheduledBackups.passwordOptionsCheckboxEl;
@@ -322,7 +317,7 @@ add_task(async function test_turn_on_scheduled_backups_encryption_error() {
 
     let promise = BrowserTestUtils.waitForEvent(
       window,
-      "BackupUI:EnableScheduledBackups"
+      "turnOnScheduledBackups"
     );
 
     confirmButton.click();
@@ -342,16 +337,6 @@ add_task(async function test_turn_on_scheduled_backups_encryption_error() {
     Assert.ok(
       !scheduledPrefVal,
       "Scheduled backups pref should still be false"
-    );
-
-    await BrowserTestUtils.waitForCondition(
-      () => !!turnOnScheduledBackups.errorEl,
-      "Error should be displayed to the user"
-    );
-
-    Assert.ok(
-      turnOnScheduledBackups.errorEl,
-      "Error should be displayed to the user"
     );
 
     sandbox.restore();

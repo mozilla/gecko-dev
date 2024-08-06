@@ -18,6 +18,22 @@
     );
 
     /**
+     * Tests that adding a enable-backup-encryption element to the DOM causes it to
+     * fire a BackupUI:InitWidget event.
+     */
+    add_task(async function test_initWidget() {
+      let enableBackupEncryption = document.createElement("enable-backup-encryption");
+      let content = document.getElementById("content");
+
+      let sawInitWidget = BrowserTestUtils.waitForEvent(content, "BackupUI:InitWidget");
+      content.appendChild(enableBackupEncryption);
+      await sawInitWidget;
+      ok(true, "Saw BackupUI:InitWidget");
+
+      enableBackupEncryption.remove();
+    });
+
+    /**
      * Tests that pressing the confirm button for the set-password type dialog will dispatch the expected events.
      */
     add_task(async function test_type_set_password_confirm() {
@@ -45,14 +61,12 @@
       ok(!confirmButton.disabled, "Confirm button should no longer be disabled");
 
       let content = document.getElementById("content");
-      let encryptionPromise = BrowserTestUtils.waitForEvent(content, "BackupUI:EnableEncryption");
+      let encryptionPromise = BrowserTestUtils.waitForEvent(content, "enableEncryption");
 
       confirmButton.click()
 
       await encryptionPromise;
       ok(true, "Detected event after selecting the confirm button");
-
-      enableBackupEncryption.reset();
     })
 
     /**
@@ -85,14 +99,12 @@
       ok(!confirmButton.disabled, "Confirm button should no longer be disabled");
 
       let content = document.getElementById("content");
-      let encryptionPromise = BrowserTestUtils.waitForEvent(content, "BackupUI:RerunEncryption");
+      let encryptionPromise = BrowserTestUtils.waitForEvent(content, "rerunEncryption");
 
       confirmButton.click()
 
       await encryptionPromise;
       ok(true, "Detected event after selecting the confirm button");
-
-      enableBackupEncryption.reset();
     })
 
     /**
@@ -114,8 +126,6 @@
 
       await promise;
       ok(true, "Detected event after selecting the cancel button");
-
-      enableBackupEncryption.reset();
     })
   </script>
 </head>

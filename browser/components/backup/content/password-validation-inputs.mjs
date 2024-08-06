@@ -48,7 +48,17 @@ export default class PasswordValidationInputs extends MozLitElement {
     this._tooltipFocus = false;
   }
 
-  reset() {
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener("resetInputs", this.handleReset);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener("resetInputs", this.handleReset);
+  }
+
+  handleReset() {
     this.formEl.reset();
     this._showRules = false;
     this._hasCommon = false;

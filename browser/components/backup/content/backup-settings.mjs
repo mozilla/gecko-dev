@@ -93,14 +93,44 @@ export default class BackupSettings extends MozLitElement {
       new CustomEvent("BackupUI:InitWidget", { bubbles: true })
     );
 
+    this.addEventListener("turnOnScheduledBackups", this);
+    this.addEventListener("turnOffScheduledBackups", this);
     this.addEventListener("dialogCancel", this);
     this.addEventListener("getBackupFileInfo", this);
+    this.addEventListener("enableEncryption", this);
+    this.addEventListener("rerunEncryption", this);
+    this.addEventListener("disableEncryption", this);
     this.addEventListener("restoreFromBackupConfirm", this);
     this.addEventListener("restoreFromBackupChooseFile", this);
   }
 
   handleEvent(event) {
     switch (event.type) {
+      case "turnOnScheduledBackups":
+        this.turnOnScheduledBackupsDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:ToggleScheduledBackups", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              ...event.detail,
+              isScheduledBackupsEnabled: true,
+            },
+          })
+        );
+        break;
+      case "turnOffScheduledBackups":
+        this.turnOffScheduledBackupsDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:ToggleScheduledBackups", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              isScheduledBackupsEnabled: false,
+            },
+          })
+        );
+        break;
       case "dialogCancel":
         if (this.turnOnScheduledBackupsDialogEl.open) {
           this.turnOnScheduledBackupsDialogEl.close();
@@ -141,6 +171,43 @@ export default class BackupSettings extends MozLitElement {
             composed: true,
             detail: {
               backupFile: event.detail.backupFile,
+            },
+          })
+        );
+        break;
+      case "enableEncryption":
+        this.enableBackupEncryptionDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:ToggleEncryption", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              ...event.detail,
+              isEncryptionEnabled: true,
+            },
+          })
+        );
+        break;
+      case "rerunEncryption":
+        this.enableBackupEncryptionDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:RerunEncryption", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              ...event.detail,
+            },
+          })
+        );
+        break;
+      case "disableEncryption":
+        this.disableBackupEncryptionDialogEl.close();
+        this.dispatchEvent(
+          new CustomEvent("BackupUI:ToggleEncryption", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              isEncryptionEnabled: false,
             },
           })
         );

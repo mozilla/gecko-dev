@@ -2753,7 +2753,6 @@ export class BackupService extends EventTarget {
       lazy.logConsole.error(
         `Failed to set parent directory ${parentDirPath}. ${e}`
       );
-      throw e;
     }
   }
 

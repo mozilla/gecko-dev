@@ -82,37 +82,50 @@ export class BackupUIParent extends JSWindowActorParent {
   async receiveMessage(message) {
     if (message.name == "RequestState") {
       this.sendState();
-    } else if (message.name == "EnableScheduledBackups") {
-      try {
-        let { parentDirPath, password } = message.data;
+    } else if (message.name == "ToggleScheduledBackups") {
+      let { isScheduledBackupsEnabled, parentDirPath, password } = message.data;
+
+      if (isScheduledBackupsEnabled) {
         if (parentDirPath) {
           this.#bs.setParentDirPath(parentDirPath);
+          /**
+           * TODO: display an error and do not attempt to toggle scheduled backups if there
+           * is a problem with setting the parent directory (bug 1901308).
+           */
         }
+
         if (password) {
-          await this.#bs.enableEncryption(password);
+          try {
+            await this.#bs.enableEncryption(password);
+          } catch (e) {
+            /**
+             * TODO: display en error and do not attempt to toggle scheduled backups if there is a
+             * problem with enabling encryption (bug 1901308)
+             */
+            return null;
+          }
         }
-        this.#bs.setScheduledBackups(true);
-      } catch (e) {
-        lazy.logConsole.error(`Failed to enable scheduled backups`, e);
-        return { success: false, errorCode: e.cause || lazy.ERRORS.UNKNOWN };
+      } else {
+        try {
+          if (this.#bs.state.encryptionEnabled) {
+            await this.#bs.disableEncryption();
+          }
+          await this.#bs.deleteLastBackup();
+        } catch (e) {
+          // no-op so that scheduled backups can still be turned off
+        }
       }
+
+      this.#bs.setScheduledBackups(isScheduledBackupsEnabled);
+
+      return true;
+
       /**
        * TODO: (Bug 1900125) we should create a backup at the specified dir path once we turn on
        * scheduled backups. The backup folder in the chosen directory should contain
        * the archive file, which we create using BackupService.createArchive implemented in
        * Bug 1897498.
        */
-      return { success: true };
-    } else if (message.name == "DisableScheduledBackups") {
-      try {
-        if (this.#bs.state.encryptionEnabled) {
-          await this.#bs.disableEncryption();
-        }
-        await this.#bs.deleteLastBackup();
-      } catch (e) {
-        // no-op so that scheduled backups can still be turned off
-      }
-      this.#bs.setScheduledBackups(false);
     } else if (message.name == "ShowFilepicker") {
       let { win, filter, displayDirectoryPath } = message.data;
 
@@ -178,45 +191,52 @@ export class BackupUIParent extends JSWindowActorParent {
         return { success: false, errorCode: e.cause || lazy.ERRORS.UNKNOWN };
       }
       return { success: true };
-    } else if (message.name == "EnableEncryption") {
-      try {
-        await this.#bs.enableEncryption(message.data.password);
-      } catch (e) {
-        lazy.logConsole.error(`Failed to enable encryption`, e);
-        return { success: false, errorCode: e.cause || lazy.ERRORS.UNKNOWN };
-      }
-      /**
-       * TODO: (Bug 1901640) after enabling encryption, recreate the backup,
-       * this time with sensitive data.
-       */
-      return { success: true };
-    } else if (message.name == "DisableEncryption") {
-      try {
-        await this.#bs.disableEncryption();
-      } catch (e) {
-        lazy.logConsole.error(`Failed to disable encryption`, e);
-        return { success: false, errorCode: e.cause || lazy.ERRORS.UNKNOWN };
-      }
-      /**
-       * TODO: (Bug 1901640) after disabling encryption, recreate the backup,
-       * this time without sensitive data.
-       */
-      return { success: true };
-    } else if (message.name == "RerunEncryption") {
-      try {
-        let { password } = message.data;
+    } else if (message.name == "ToggleEncryption") {
+      let { isEncryptionEnabled, password } = message.data;
 
+      if (!isEncryptionEnabled) {
+        try {
+          await this.#bs.disableEncryption();
+          /**
+           * TODO: (Bug 1901640) after disabling encryption, recreate the backup,
+           * this time without sensitive data.
+           */
+        } catch (e) {
+          /**
+           * TODO: (Bug 1901308) maybe display an error if there is a problem with
+           * disabling encryption.
+           */
+        }
+      } else {
+        try {
+          await this.#bs.enableEncryption(password);
+          /**
+           * TODO: (Bug 1901640) after enabling encryption, recreate the backup,
+           * this time with sensitive data.
+           */
+        } catch (e) {
+          /**
+           * TODO: (Bug 1901308) maybe display an error if there is a problem with
+           * enabling encryption.
+           */
+        }
+      }
+    } else if (message.name == "RerunEncryption") {
+      let { password } = message.data;
+
+      try {
         await this.#bs.disableEncryption();
         await this.#bs.enableEncryption(password);
+        /**
+         * TODO: (Bug 1901640) after enabling encryption, recreate the backup,
+         * this time with the new password.
+         */
       } catch (e) {
-        lazy.logConsole.error(`Failed to rerun encryption`, e);
-        return { success: false, errorCode: e.cause || lazy.ERRORS.UNKNOWN };
+        /**
+         * TODO: (Bug 1901308) maybe display an error if there is a problem with
+         * re-encryption.
+         */
       }
-      /**
-       * TODO: (Bug 1901640) after enabling encryption, recreate the backup,
-       * this time with the new password.
-       */
-      return { success: true };
     } else if (message.name == "ShowBackupLocation") {
       this.#bs.showBackupLocation();
     } else if (message.name == "EditBackupLocation") {

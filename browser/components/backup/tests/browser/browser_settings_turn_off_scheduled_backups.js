@@ -37,7 +37,7 @@ async function turnOffScheduledBackupsHelper(browser, taskFn) {
   let confirmButton = turnOffScheduledBackups.confirmButtonEl;
   let promise = BrowserTestUtils.waitForEvent(
     window,
-    "BackupUI:DisableScheduledBackups"
+    "turnOffScheduledBackups"
   );
 
   Assert.ok(confirmButton, "Confirm button should be found");
