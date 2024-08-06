@@ -916,18 +916,28 @@ async function checkSharingUI(
   // First check the icon above the control center (i) icon.
   let permissionBox = doc.getElementById("identity-permission-box");
   let webrtcSharingIcon = doc.getElementById("webrtc-sharing-icon");
-  ok(webrtcSharingIcon.hasAttribute("sharing"), "sharing attribute is set");
+  let expectOn = aExpected.audio || aExpected.video || aExpected.screen;
+  if (expectOn) {
+    ok(webrtcSharingIcon.hasAttribute("sharing"), "sharing attribute is set");
+  } else {
+    ok(
+      !webrtcSharingIcon.hasAttribute("sharing"),
+      "sharing attribute is not set"
+    );
+  }
   let sharing = webrtcSharingIcon.getAttribute("sharing");
-  if (aExpected.screen && !IsIndicatorDisabled) {
-    is(sharing, "screen", "showing screen icon in the identity block");
-  } else if (aExpected.video == STATE_CAPTURE_ENABLED && !IsIndicatorDisabled) {
-    is(sharing, "camera", "showing camera icon in the identity block");
-  } else if (aExpected.audio == STATE_CAPTURE_ENABLED && !IsIndicatorDisabled) {
-    is(sharing, "microphone", "showing mic icon in the identity block");
-  } else if (aExpected.video && !IsIndicatorDisabled) {
-    is(sharing, "camera", "showing camera icon in the identity block");
-  } else if (aExpected.audio && !IsIndicatorDisabled) {
-    is(sharing, "microphone", "showing mic icon in the identity block");
+  if (!IsIndicatorDisabled) {
+    if (aExpected.screen) {
+      is(sharing, "screen", "showing screen icon in the identity block");
+    } else if (aExpected.video == STATE_CAPTURE_ENABLED) {
+      is(sharing, "camera", "showing camera icon in the identity block");
+    } else if (aExpected.audio == STATE_CAPTURE_ENABLED) {
+      is(sharing, "microphone", "showing mic icon in the identity block");
+    } else if (aExpected.video) {
+      is(sharing, "camera", "showing camera icon in the identity block");
+    } else if (aExpected.audio) {
+      is(sharing, "microphone", "showing mic icon in the identity block");
+    }
   }
 
   let allStreamsPaused = Object.values(aExpected).every(isPaused);
@@ -1003,6 +1013,11 @@ async function checkSharingUI(
         true,
         "should not show " + id + " state label in the permission panel"
       );
+      isnot(
+        scope,
+        SitePermissions.SCOPE_PERSISTENT,
+        "persistent permission not shown"
+      );
     } else {
       // This will happen if there are persistent permissions set.
       ok(
@@ -1011,6 +1026,14 @@ async function checkSharingUI(
       );
       is(item.length, 1, "should not show more than 1 " + id + " item");
       is(icon.length, 1, "should not show more than 1 " + id + " icon");
+
+      // Note: To pass, this one needs state and/or scope passed into
+      // checkSharingUI() for values other than ALLOW and SCOPE_TEMPORARY
+      is(
+        stateLabel?.textContent,
+        SitePermissions.getCurrentStateLabel(state, id, scope),
+        "should show correct item label for " + id
+      );
     }
   }
   aWin.gPermissionPanel._permissionPopup.hidePopup();
@@ -1020,7 +1043,9 @@ async function checkSharingUI(
   );
 
   // Check the global indicators.
-  await assertWebRTCIndicatorStatus(aExpectedGlobal || aExpected);
+  if (expectOn) {
+    await assertWebRTCIndicatorStatus(aExpectedGlobal || aExpected);
+  }
 }
 
 async function checkNotSharing() {

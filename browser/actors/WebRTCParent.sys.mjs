@@ -671,6 +671,15 @@ function prompt(aActor, aBrowser, aRequest) {
             ? lazy.SitePermissions.SCOPE_PERSISTENT
             : lazy.SitePermissions.SCOPE_TEMPORARY;
           if (reqAudioInput) {
+            if (!isPersistent) {
+              // After a temporary block, having permissions.query() calls
+              // persistently report "granted" would be misleading
+              maybeClearAlwaysAsk(
+                principal,
+                "microphone",
+                notification.browser
+              );
+            }
             lazy.SitePermissions.setForPrincipal(
               principal,
               "microphone",
@@ -680,6 +689,11 @@ function prompt(aActor, aBrowser, aRequest) {
             );
           }
           if (reqVideoInput) {
+            if (!isPersistent && !sharingScreen) {
+              // After a temporary block, having permissions.query() calls
+              // persistently report "granted" would be misleading
+              maybeClearAlwaysAsk(principal, "camera", notification.browser);
+            }
             lazy.SitePermissions.setForPrincipal(
               principal,
               sharingScreen ? "screen" : "camera",
@@ -1134,12 +1148,8 @@ function prompt(aActor, aBrowser, aRequest) {
               ({ deviceIndex }) => deviceIndex == videoDeviceIndex
             );
             aActor.activateDevicePerm(aRequest.windowID, mediaSource, rawId);
-            if (remember) {
-              lazy.SitePermissions.setForPrincipal(
-                principal,
-                "camera",
-                lazy.SitePermissions.ALLOW
-              );
+            if (!sharingScreen) {
+              persistGrantOrPromptPermission(principal, "camera", remember);
             }
           }
         }
@@ -1155,13 +1165,7 @@ function prompt(aActor, aBrowser, aRequest) {
               ({ deviceIndex }) => deviceIndex == audioDeviceIndex
             );
             aActor.activateDevicePerm(aRequest.windowID, mediaSource, rawId);
-            if (remember) {
-              lazy.SitePermissions.setForPrincipal(
-                principal,
-                "microphone",
-                lazy.SitePermissions.ALLOW
-              );
-            }
+            persistGrantOrPromptPermission(principal, "microphone", remember);
           }
         } else if (reqAudioInput === "AudioCapture") {
           // Only one device possible for audio capture.
@@ -1496,4 +1500,54 @@ function clearTemporaryGrants(browser, clearCamera, clearMicrophone) {
     .forEach(perm =>
       lazy.SitePermissions.removeFromPrincipal(null, perm.id, browser)
     );
+}
+
+/**
+ * Persist an ALLOW state if the remember option is true.
+ * Otherwise, persist PROMPT so that we can later tell the site
+ * that permission was granted once before.
+ * This makes Firefox seem much more like Chrome to sites that
+ * expect a one-off, persistent permission grant for cam/mic.
+ *
+ * @param principal - Principal to add permission to.
+ * @param {string} permissionName - name of permission.
+ * @param remember - whether the grant should be persisted.
+ */
+function persistGrantOrPromptPermission(principal, permissionName, remember) {
+  // There are cases like unsafe delegation where a prompt appears
+  // even in ALLOW state, so make sure to not overwrite it (there's
+  // no remember checkbox in those cases)
+  if (
+    lazy.SitePermissions.getForPrincipal(principal, permissionName).state ==
+    lazy.SitePermissions.ALLOW
+  ) {
+    return;
+  }
+
+  lazy.SitePermissions.setForPrincipal(
+    principal,
+    permissionName,
+    remember ? lazy.SitePermissions.ALLOW : lazy.SitePermissions.PROMPT
+  );
+}
+
+/**
+ * Clears any persisted PROMPT (aka Always Ask) permission.
+ * @param principal - Principal to remove permission from.
+ * @param {string} permissionName - name of permission.
+ * @param browser - Browser element to clear permission for.
+ */
+function maybeClearAlwaysAsk(principal, permissionName, browser) {
+  // For the "Always Ask" user choice, only persisted PROMPT is used,
+  // so no need to scan through temporary permissions.
+  if (
+    lazy.SitePermissions.getForPrincipal(principal, permissionName).state ==
+    lazy.SitePermissions.PROMPT
+  ) {
+    lazy.SitePermissions.removeFromPrincipal(
+      principal,
+      permissionName,
+      browser
+    );
+  }
 }

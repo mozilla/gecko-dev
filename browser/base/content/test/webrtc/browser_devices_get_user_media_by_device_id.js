@@ -78,5 +78,9 @@ add_task(async function test_get_user_media_by_device_id() {
     await observerPromise;
     checkDeviceSelectors(["microphone", "camera"]);
     await allowStreamsThenClose();
+
+    const browser = gBrowser.selectedBrowser;
+    PermissionTestUtils.remove(browser.currentURI, "camera");
+    PermissionTestUtils.remove(browser.currentURI, "microphone");
   });
 });

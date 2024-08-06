@@ -77,6 +77,9 @@ var gTests = [
       await checkSharingUI({ audio: true });
       await closeStream();
       Services.prefs.clearUserPref(CAMERA_PREF);
+      let browser = gBrowser.selectedBrowser;
+      PermissionTestUtils.remove(browser.currentURI, "camera");
+      PermissionTestUtils.remove(browser.currentURI, "microphone");
     },
   },
 

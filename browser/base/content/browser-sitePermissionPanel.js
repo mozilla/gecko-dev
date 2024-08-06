@@ -468,8 +468,8 @@ var gPermissionPanel = {
 
     if (this._sharingState?.webRTC) {
       let webrtcState = this._sharingState.webRTC;
-      // If WebRTC device or screen permissions are in use, we need to find
-      // the associated permission item to set the sharingState field.
+      // If WebRTC device or screen are in use, we need to find
+      // the associated ALLOW permission item to set the sharingState field.
       for (let id of ["camera", "microphone", "screen"]) {
         if (webrtcState[id]) {
           let found = false;
@@ -477,14 +477,14 @@ var gPermissionPanel = {
             let [permId] = permission.id.split(
               SitePermissions.PERM_KEY_DELIMITER
             );
-            if (permId != id) {
+            if (permId != id || permission.state != SitePermissions.ALLOW) {
               continue;
             }
             found = true;
             permission.sharingState = webrtcState[id];
           }
           if (!found) {
-            // If the permission item we were looking for doesn't exist,
+            // If the ALLOW permission item we were looking for doesn't exist,
             // the user has temporarily allowed sharing and we need to add
             // an item in the permissions array to reflect this.
             permissions.push({
@@ -979,8 +979,12 @@ var gPermissionPanel = {
         return null;
       }
     } else if (item) {
-      // If we have a single-key (not device specific) webRTC permission it
-      // overrides any existing (device specific) permission items.
+      if (permission.state == SitePermissions.PROMPT) {
+        return null;
+      }
+      // If we have a single-key (not device specific) webRTC permission
+      // other than PROMPT, it overrides any existing (device specific)
+      // permission items.
       item.remove();
     }
 

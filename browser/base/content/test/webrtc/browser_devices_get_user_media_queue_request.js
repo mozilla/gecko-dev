@@ -204,7 +204,14 @@ var gTests = [
         "expected camera to be shared"
       );
       await indicator;
-      await checkSharingUI({ audio: false, video: true });
+      await checkSharingUI(
+        { audio: false, video: true },
+        undefined,
+        undefined,
+        {
+          audio: { state: SitePermissions.BLOCK },
+        }
+      );
 
       SitePermissions.removeFromPrincipal(
         null,
@@ -266,7 +273,14 @@ var gTests = [
         "expected microphone to be shared"
       );
       await indicator;
-      await checkSharingUI({ audio: true, video: false });
+      await checkSharingUI(
+        { audio: true, video: false },
+        undefined,
+        undefined,
+        {
+          video: { state: SitePermissions.PROMPT },
+        }
+      );
 
       // Clean up the active microphone in the activePerms map
       webrtcUI.activePerms.delete(gBrowser.selectedBrowser.outerWindowID);
@@ -353,7 +367,14 @@ var gTests = [
         "expected microphone to be shared"
       );
       await indicator;
-      await checkSharingUI({ video: false, audio: true });
+      await checkSharingUI(
+        { video: false, audio: true },
+        undefined,
+        undefined,
+        {
+          video: { state: SitePermissions.PROMPT },
+        }
+      );
 
       await promise;
       await observerPromise;

@@ -97,6 +97,10 @@ var gTests = [
       await getStreamAndCheckBackgroundAnim(true, true, "camera");
       await getStreamAndCheckBackgroundAnim(false, true, "camera");
       await getStreamAndCheckBackgroundAnim(true, false, "microphone");
+
+      let browser = gBrowser.selectedBrowser;
+      PermissionTestUtils.remove(browser.currentURI, "camera");
+      PermissionTestUtils.remove(browser.currentURI, "microphone");
     },
   },
 ];
