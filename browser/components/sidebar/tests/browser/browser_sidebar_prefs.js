@@ -142,3 +142,53 @@ add_task(async function test_conditional_tools() {
 
   await BrowserTestUtils.closeWindow(win);
 });
+
+/**
+ * Check that the new sidebar is hidden/shown automatically (without a browser restart)
+ * when flipping the sidebar.revamp pref
+ */
+add_task(async function test_flip_revamp_pref() {
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const sidebar = win.document.querySelector("sidebar-main");
+  await sidebar.updateComplete;
+
+  let verticalTabs = win.document.querySelector("#vertical-tabs");
+  ok(
+    !BrowserTestUtils.isVisible(verticalTabs),
+    "Vertical tabs slot is not visible initially"
+  );
+  // Open history sidebar
+  await toggleSidebarPanel(win, "viewHistorySidebar");
+
+  await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", true]] });
+  ok(BrowserTestUtils.isVisible(verticalTabs), "Vertical tabs slot is visible");
+
+  ok(sidebar, "Revamped sidebar is shown initially.");
+
+  await SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", false]] });
+
+  await TestUtils.waitForCondition(() => {
+    let isSidebarMainShown = !win.document.querySelector("sidebar-main").hidden;
+    let isSwitcherPanelShown =
+      !win.document.getElementById("sidebar-header").hidden;
+    // Vertical tabs pref should be turned off when revamp pref is turned off
+    let isVerticalTabsShown = BrowserTestUtils.isVisible(verticalTabs);
+    return !isSidebarMainShown && isSwitcherPanelShown && !isVerticalTabsShown;
+  }, "The new sidebar is hidden and the old sidebar is shown.");
+
+  ok(true, "The new sidebar is hidden and the old sidebar is shown.");
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.revamp", true]],
+  });
+  await sidebar.updateComplete;
+  await TestUtils.waitForCondition(() => {
+    let isSidebarMainShown = !document.querySelector("sidebar-main").hidden;
+    let isSwitcherPanelShown =
+      !win.document.getElementById("sidebar-header").hidden;
+    return isSidebarMainShown && !isSwitcherPanelShown;
+  }, "The old sidebar is hidden and the new sidebar is shown.");
+
+  ok(true, "The old sidebar is hidden and the new sidebar is shown.");
+  await BrowserTestUtils.closeWindow(win);
+});
