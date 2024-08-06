@@ -577,13 +577,20 @@ nsFocusManager::ClearFocus(mozIDOMWindowProxy* aWindow) {
 
   if (IsSameOrAncestor(window, GetFocusedBrowsingContext())) {
     RefPtr<BrowsingContext> bc = window->GetBrowsingContext();
-    bool isAncestor = (GetFocusedBrowsingContext() != bc);
-    uint64_t actionId = GenerateFocusActionId();
-    if (Blur(bc, nullptr, isAncestor, true, false, actionId)) {
+    RefPtr<BrowsingContext> focusedBC = GetFocusedBrowsingContext();
+    const bool isAncestor = (focusedBC != bc);
+    RefPtr<BrowsingContext> ancestorBC = isAncestor ? bc : nullptr;
+    if (Blur(focusedBC, ancestorBC, isAncestor, true, false,
+             GenerateFocusActionId())) {
       // if we are clearing the focus on an ancestor of the focused window,
       // the ancestor will become the new focused window, so focus it
       if (isAncestor) {
-        Focus(window, nullptr, 0, true, false, false, true, actionId);
+        // Intentionally use a new actionId here because the above
+        // Blur() will clear the focus of the ancestors of focusedBC, and
+        // this Focus() call might need to update the focus of those ancestors,
+        // so it needs to have a newer actionId to make that happen.
+        Focus(window, nullptr, 0, true, false, false, true,
+              GenerateFocusActionId());
       }
     }
   } else {
