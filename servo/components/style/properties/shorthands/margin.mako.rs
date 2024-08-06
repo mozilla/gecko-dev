@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import DEFAULT_RULES_AND_PAGE %>
+<% from data import DEFAULT_RULES_AND_PAGE, POSITION_TRY_RULE, DEFAULT_RULES_AND_POSITION_TRY %>
 
 ${helpers.four_sides_shorthand(
     "margin",
@@ -11,7 +11,7 @@ ${helpers.four_sides_shorthand(
     "specified::LengthPercentageOrAuto::parse",
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-box/#propdef-margin",
-    rule_types_allowed=DEFAULT_RULES_AND_PAGE,
+    rule_types_allowed=DEFAULT_RULES_AND_PAGE | POSITION_TRY_RULE,
     allow_quirks="Yes",
 )}
 
@@ -21,7 +21,8 @@ ${helpers.two_properties_shorthand(
     "margin-block-end",
     "specified::LengthPercentageOrAuto::parse",
     engines="gecko servo",
-    spec="https://drafts.csswg.org/css-logical/#propdef-margin-block"
+    spec="https://drafts.csswg.org/css-logical/#propdef-margin-block",
+    rule_types_allowed=DEFAULT_RULES_AND_POSITION_TRY
 )}
 
 ${helpers.two_properties_shorthand(
@@ -30,7 +31,8 @@ ${helpers.two_properties_shorthand(
     "margin-inline-end",
     "specified::LengthPercentageOrAuto::parse",
     engines="gecko servo",
-    spec="https://drafts.csswg.org/css-logical/#propdef-margin-inline"
+    spec="https://drafts.csswg.org/css-logical/#propdef-margin-inline",
+    rule_types_allowed=DEFAULT_RULES_AND_POSITION_TRY
 )}
 
 ${helpers.four_sides_shorthand(
