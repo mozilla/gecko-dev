@@ -256,6 +256,15 @@
 
       await SpecialPowers.pushPrefEnv({
         set: [
+          ["privacy.resistFingerprinting", true]
+        ]
+      });
+      await tester.setPermissions(PROMPT_ACTION);
+      await tester.checkPermissions(PERMISSIONS, 'prompt', 'prompt');
+      await SpecialPowers.popPrefEnv();
+
+      await SpecialPowers.pushPrefEnv({
+        set: [
           ["permissions.media.query.enabled", false]
         ]
       });

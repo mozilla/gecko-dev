@@ -7,6 +7,7 @@ prefs = [
   "dom.security.featurePolicy.header.enabled=true",
   "dom.security.featurePolicy.webidl.enabled=true",
   "permissions.media.query.enabled=true",
+  "privacy.resistFingerprinting=false",
 ]
 
 ["test_cross_origin_iframe.html"]

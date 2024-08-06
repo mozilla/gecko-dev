@@ -12,6 +12,7 @@
 #include "mozilla/Maybe.h"
 
 namespace mozilla::dom {
+class Document;
 
 const nsLiteralCString& PermissionNameToType(PermissionName aName);
 
@@ -25,7 +26,8 @@ const nsLiteralCString& PermissionNameToType(PermissionName aName);
  */
 Maybe<PermissionName> TypeToPermissionName(const nsACString& aType);
 
-PermissionState ActionToPermissionState(uint32_t aAction, PermissionName aName);
+PermissionState ActionToPermissionState(uint32_t aAction, PermissionName aName,
+                                        const Document& aDocument);
 
 }  // namespace mozilla::dom
 
