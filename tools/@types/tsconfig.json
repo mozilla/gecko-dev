@@ -1,7 +1,0 @@
-{
-  "compilerOptions": {
-    "noEmit": true,
-    "target": "es2022",
-    "types": ["gecko"]
-  }
-}

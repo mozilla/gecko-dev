@@ -61,7 +61,7 @@ export var WebNavigationFrames = {
     // frameId 0 means the top-level frame; anything else is a child frame.
     let frame = BrowsingContext.get(frameId || bc.id);
     if (frame && frame.top === bc) {
-      return getFrameDetail(/** @type {CanonicalBrowsingContext} */ (frame));
+      return getFrameDetail(frame);
     }
     return null;
   },

@@ -1364,7 +1364,7 @@ class RulesetsStore {
    *
    * @param {Extension} extension
    *
-   * @returns {Promise<StoreData|null>}
+   * @returns {Promise<StoreData|void>}
    */
   async #readStoreData(extension) {
     // TODO(Bug 1803363): record into Glean telemetry DNR RulesetsStore store load time.

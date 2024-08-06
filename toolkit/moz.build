@@ -94,9 +94,6 @@ with Files("mozapps/preferences/**"):
 with Files("l10n-registry.manifest"):
     BUG_COMPONENT = ("Core", "Localization")
 
-with Files("jsconfig.json"):
-    BUG_COMPONENT = ("Developer Infrastructure", "Lint and Formatting")
-
 GeneratedFile(
     "content/neterror/aboutNetErrorCodes.js",
     script="content/neterror/gen_aboutneterror_codes.py",

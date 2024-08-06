@@ -96,6 +96,7 @@ function logScriptError(message) {
   consoleMessage.init(
     message,
     stack.fileName,
+    null,
     stack.lineNumber,
     0,
     Ci.nsIScriptError.errorFlag,
