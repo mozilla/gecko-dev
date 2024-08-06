@@ -489,12 +489,16 @@ export class UserCharacteristicsPageService {
   async populateWebGlInfo(window, document) {
     const results = {
       glVersion: 2,
-      parameters: {},
+      parameters: {
+        v1: [],
+        v2: [],
+        extensions: [],
+      },
       shader_precision: {
         FRAGMENT_SHADER: {},
         VERTEX_SHADER: {},
       },
-      debugShaders: {},
+      debug_shaders: {},
       debug_params: {},
     };
 
@@ -575,39 +579,42 @@ export class UserCharacteristicsPageService {
       },
     };
 
-    const TypedArrayConstructor = Object.getPrototypeOf(Int32Array);
+    const attemptToArray = value => {
+      if (ArrayBuffer.isView(value)) {
+        return Array.from(value);
+      }
+      return value;
+    };
     function getParam(param, ext = gl) {
       const constant = ext[param];
-      let value = gl.getParameter(constant);
-      if (value instanceof TypedArrayConstructor) {
-        value = Array.from(value);
-      }
+      const value = attemptToArray(gl.getParameter(constant));
       return value;
     }
 
     // Get all parameters available in WebGL1
     if (results.glVersion >= 1) {
       for (const parameter of PARAMS.v1) {
-        results.parameters[parameter] = getParam(parameter);
+        results.parameters.v1.push(getParam(parameter));
       }
     }
 
     // Get all parameters available in WebGL2
     if (results.glVersion === 2) {
       for (const parameter of PARAMS.v2) {
-        results.parameters[parameter] = getParam(parameter);
+        results.parameters.v2.push(getParam(parameter));
       }
     }
 
     // Get all extension parameters
     for (const extension in PARAMS.extensions) {
-      for (const parameter of PARAMS.extensions[extension]) {
-        const ext = gl.getExtension(extension);
-        if (!ext) {
-          continue;
-        }
-        results.parameters[parameter] = getParam(parameter, ext);
+      const ext = gl.getExtension(extension);
+      if (!ext) {
+        results.parameters.extensions.push(null);
+        continue;
       }
+      results.parameters.extensions.push(
+        PARAMS.extensions[extension].map(param => getParam(param, ext))
+      );
     }
 
     for (const shaderType of ["FRAGMENT_SHADER", "VERTEX_SHADER"]) {
@@ -697,7 +704,7 @@ export class UserCharacteristicsPageService {
         return hashHex;
       }
 
-      results.debugShaders = {
+      results.debug_shaders = {
         fs: await sha1(
           translationExt.getTranslatedShaderSource(fragmentShader)
         ),
