@@ -474,6 +474,12 @@ class nsWindow final : public nsBaseWidget {
 
   static nsWindow* GetWindow(GdkWindow* window);
 
+  /**
+   * Dispatch accessible window activate event for the top level window
+   * accessible.
+   */
+  void DispatchActivateEventAccessible();
+
  protected:
   virtual ~nsWindow();
 
@@ -956,12 +962,6 @@ class nsWindow final : public nsBaseWidget {
    * @param  aEventType  [in] the accessible event type to dispatch
    */
   void DispatchEventToRootAccessible(uint32_t aEventType);
-
-  /**
-   * Dispatch accessible window activate event for the top level window
-   * accessible.
-   */
-  void DispatchActivateEventAccessible();
 
   /**
    * Dispatch accessible window deactivate event for the top level window
