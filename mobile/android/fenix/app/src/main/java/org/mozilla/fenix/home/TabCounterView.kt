@@ -30,36 +30,18 @@ import org.mozilla.fenix.tabstray.Page
  * @param browsingModeManager [BrowsingModeManager] used for fetching the current browsing mode.
  * @param navController [NavController] used for navigation.
  * @param tabCounter The [TabCounter] that will be setup with event handlers.
+ * @param showLongPressMenu Whether a popup menu should be shown when long pressing on this or not.
  */
 class TabCounterView(
     private val context: Context,
     private val browsingModeManager: BrowsingModeManager,
     private val navController: NavController,
     private val tabCounter: TabCounter,
+    private val showLongPressMenu: Boolean,
 ) {
 
     init {
-        val tabCounterMenu = FenixTabCounterMenu(
-            context = context,
-            onItemTapped = ::onItemTapped,
-            iconColor = if (browsingModeManager.mode == BrowsingMode.Private) {
-                ContextCompat.getColor(context, R.color.fx_mobile_private_icon_color_primary)
-            } else {
-                null
-            },
-        )
-
-        tabCounterMenu.updateMenu(
-            showOnly = when (browsingModeManager.mode) {
-                BrowsingMode.Normal -> BrowsingMode.Private
-                BrowsingMode.Private -> BrowsingMode.Normal
-            },
-        )
-
-        tabCounter.setOnLongClickListener {
-            tabCounterMenu.menuController.show(anchor = it)
-            true
-        }
+        setupLongPressMenu()
 
         tabCounter.setOnClickListener {
             StartOnHome.openTabsTray.record(NoExtras())
@@ -105,6 +87,32 @@ class TabCounterView(
             browsingModeManager.mode = BrowsingMode.Normal
         } else if (item is TabCounterMenu.Item.NewPrivateTab) {
             browsingModeManager.mode = BrowsingMode.Private
+        }
+    }
+
+    private fun setupLongPressMenu() {
+        if (showLongPressMenu) {
+            val tabCounterMenu = FenixTabCounterMenu(
+                context = context,
+                onItemTapped = ::onItemTapped,
+                iconColor = if (browsingModeManager.mode == BrowsingMode.Private) {
+                    ContextCompat.getColor(context, R.color.fx_mobile_private_icon_color_primary)
+                } else {
+                    null
+                },
+            )
+
+            tabCounterMenu.updateMenu(
+                showOnly = when (browsingModeManager.mode) {
+                    BrowsingMode.Normal -> BrowsingMode.Private
+                    BrowsingMode.Private -> BrowsingMode.Normal
+                },
+            )
+
+            tabCounter.setOnLongClickListener {
+                tabCounterMenu.menuController.show(anchor = it)
+                true
+            }
         }
     }
 }

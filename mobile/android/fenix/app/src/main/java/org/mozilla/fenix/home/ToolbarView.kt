@@ -119,6 +119,7 @@ class ToolbarView(
         browsingModeManager = homeActivity.browsingModeManager,
         navController = homeFragment.findNavController(),
         tabCounter = binding.tabButton,
+        showLongPressMenu = !(context.settings().navigationToolbarEnabled && context.isTablet()),
     )
 
     /**

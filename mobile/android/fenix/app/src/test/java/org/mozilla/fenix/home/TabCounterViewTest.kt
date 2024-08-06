@@ -62,17 +62,11 @@ class TabCounterViewTest {
             settings = settings,
             modeDidChange = modeDidChange,
         )
-
-        tabCounterView = TabCounterView(
-            context = testContext,
-            browsingModeManager = browsingModeManager,
-            navController = navController,
-            tabCounter = tabCounter,
-        )
     }
 
     @Test
     fun `WHEN tab counter is clicked THEN navigate to tabs tray and record metrics`() {
+        setupToolbarView()
         every { navController.currentDestination?.id } returns R.id.homeFragment
 
         assertNull(StartOnHome.openTabsTray.testGetValue())
@@ -91,6 +85,7 @@ class TabCounterViewTest {
 
     @Test
     fun `WHEN New tab menu item is tapped THEN set browsing mode to normal`() {
+        setupToolbarView()
         tabCounterView.onItemTapped(TabCounterMenu.Item.NewTab)
 
         assertEquals(BrowsingMode.Normal, browsingModeManager.mode)
@@ -98,6 +93,7 @@ class TabCounterViewTest {
 
     @Test
     fun `WHEN New private tab menu item is tapped THEN set browsing mode to private`() {
+        setupToolbarView()
         tabCounterView.onItemTapped(TabCounterMenu.Item.NewPrivateTab)
 
         assertEquals(BrowsingMode.Private, browsingModeManager.mode)
@@ -105,6 +101,7 @@ class TabCounterViewTest {
 
     @Test
     fun `WHEN tab counter is updated THEN set the tab counter to the correct number of tabs`() {
+        setupToolbarView()
         every { testContext.settings() } returns settings
 
         val browserState = BrowserState(
@@ -133,6 +130,7 @@ class TabCounterViewTest {
 
     @Test
     fun `WHEN state updated while in private mode THEN call toggleCounterMask(true)`() {
+        setupToolbarView()
         every { settings.feltPrivateBrowsingEnabled } returns true
         every { testContext.settings() } returns settings
         val browserState = BrowserState(
@@ -154,6 +152,7 @@ class TabCounterViewTest {
 
     @Test
     fun `WHEN state updated while in normal mode THEN call toggleCounterMask(false)`() {
+        setupToolbarView()
         every { settings.feltPrivateBrowsingEnabled } returns true
         every { testContext.settings() } returns settings
         val browserState = BrowserState(
@@ -170,5 +169,31 @@ class TabCounterViewTest {
         verifyOrder {
             tabCounter.toggleCounterMask(false)
         }
+    }
+
+    @Test
+    fun `GIVEN the popup menu is enabled WHEN setting up the View THEN set a long press click listener to handle show the menu`() {
+        setupToolbarView()
+
+        verify { tabCounter.setOnLongClickListener(any()) }
+    }
+
+    @Test
+    fun `GIVEN the popup menu is disabled WHEN setting up the View THEN don't set any long press click listeners`() {
+        setupToolbarView(showLongPressMenu = false)
+
+        verify(exactly = 0) { tabCounter.setOnLongClickListener(any()) }
+    }
+
+    private fun setupToolbarView(
+        showLongPressMenu: Boolean = true,
+    ) {
+        tabCounterView = TabCounterView(
+            context = testContext,
+            browsingModeManager = browsingModeManager,
+            navController = navController,
+            tabCounter = tabCounter,
+            showLongPressMenu = showLongPressMenu,
+        )
     }
 }
