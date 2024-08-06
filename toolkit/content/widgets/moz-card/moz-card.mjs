@@ -48,6 +48,7 @@ export default class MozCard extends MozLitElement {
   constructor() {
     super();
     this.type = "default";
+    this.expanded = false;
   }
 
   headingTemplate() {
