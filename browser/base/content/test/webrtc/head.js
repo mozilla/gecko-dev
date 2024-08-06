@@ -21,6 +21,11 @@ const SHOW_GLOBAL_MUTE_TOGGLES = Services.prefs.getBoolPref(
   false
 );
 
+const SHOW_ALWAYS_ASK = Services.prefs.getBoolPref(
+  "permissions.media.show_always_ask.enabled",
+  false
+);
+
 let IsIndicatorDisabled =
   AppConstants.isPlatformAndVersionAtLeast("macosx", 14.0) &&
   !Services.prefs.getBoolPref(
@@ -1013,11 +1018,13 @@ async function checkSharingUI(
         true,
         "should not show " + id + " state label in the permission panel"
       );
-      isnot(
-        scope,
-        SitePermissions.SCOPE_PERSISTENT,
-        "persistent permission not shown"
-      );
+      if (state != SitePermissions.PROMPT || SHOW_ALWAYS_ASK) {
+        isnot(
+          scope,
+          SitePermissions.SCOPE_PERSISTENT,
+          "persistent permission not shown"
+        );
+      }
     } else {
       // This will happen if there are persistent permissions set.
       ok(
@@ -1034,6 +1041,13 @@ async function checkSharingUI(
         SitePermissions.getCurrentStateLabel(state, id, scope),
         "should show correct item label for " + id
       );
+      if (!SHOW_ALWAYS_ASK) {
+        isnot(
+          state,
+          state == SitePermissions.PROMPT,
+          "always ask permission should be hidden"
+        );
+      }
     }
   }
   aWin.gPermissionPanel._permissionPopup.hidePopup();

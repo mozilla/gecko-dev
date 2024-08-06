@@ -164,17 +164,23 @@ var gPermissionPanel = {
       gBrowser.selectedBrowser
     );
     for (let permission of permissions) {
-      if (permission.state != SitePermissions.UNKNOWN) {
-        hasPermissions = true;
+      // Don't show persisted PROMPT permissions (unless a pref says to).
+      // These would appear as "Always Ask ✖" which have utility, but might confuse
+      if (
+        permission.state == SitePermissions.UNKNOWN ||
+        (permission.state == SitePermissions.PROMPT && !this._gumShowAlwaysAsk)
+      ) {
+        continue;
+      }
+      hasPermissions = true;
 
-        if (
-          permission.state == SitePermissions.BLOCK ||
-          permission.state == SitePermissions.AUTOPLAY_BLOCKED_ALL
-        ) {
-          let icon = permissionAnchors[permission.id];
-          if (icon) {
-            icon.setAttribute("showing", "true");
-          }
+      if (
+        permission.state == SitePermissions.BLOCK ||
+        permission.state == SitePermissions.AUTOPLAY_BLOCKED_ALL
+      ) {
+        let icon = permissionAnchors[permission.id];
+        if (icon) {
+          icon.setAttribute("showing", "true");
         }
       }
     }
@@ -524,6 +530,12 @@ var gPermissionPanel = {
           anchor.appendChild(permContainer);
         }
       } else if (["camera", "screen", "microphone", "speaker"].includes(id)) {
+        if (
+          permission.state == SitePermissions.PROMPT &&
+          !this._gumShowAlwaysAsk
+        ) {
+          continue;
+        }
         item = this._createWebRTCPermissionItem(permission, id, key);
         if (!item) {
           continue;
@@ -1121,3 +1133,10 @@ function hasMicCamGracePeriodsSolely(browser) {
   }
   return { micGrace: micGrace && !micGrant, camGrace: camGrace && !camGrant };
 }
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  gPermissionPanel,
+  "_gumShowAlwaysAsk",
+  "permissions.media.show_always_ask.enabled",
+  false
+);
