@@ -6,6 +6,13 @@
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 /**
+ * Log level set by the pipeline.
+ *
+ * @type {string}
+ */
+let _logLevel = "Error";
+
+/**
  * Lazy initialization container.
  *
  * @type {object}
@@ -14,7 +21,7 @@ const lazy = {};
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
   return console.createInstance({
-    maxLogLevelPref: "browser.ml.logLevel",
+    maxLogLevel: _logLevel, // we can't use maxLogLevelPref in workers.
     prefix: "ML:ONNXPipeline",
   });
 });
@@ -195,6 +202,8 @@ export class Pipeline {
   constructor(modelCache, config) {
     let start = Date.now();
     this.#modelCache = modelCache;
+
+    _logLevel = config.logLevel || "Error";
 
     // Setting up the Transformers.js environment
     // See https://huggingface.co/docs/transformers.js/api/env
