@@ -19,6 +19,7 @@ struct CacheExpirationTime {
  private:
   uint32_t mTime;
 
+  static constexpr uint32_t kAlreadyExpired = 0;
   static constexpr uint32_t kNever = nsICacheEntry::NO_EXPIRATION_TIME;
 
   constexpr CacheExpirationTime() : mTime(kNever) {}
@@ -30,8 +31,8 @@ struct CacheExpirationTime {
   }
 
  public:
-  static CacheExpirationTime AlreadyExpired() {
-    return CacheExpirationTime(SecondsFromPRTime(PR_Now()) - 1);
+  static constexpr CacheExpirationTime AlreadyExpired() {
+    return CacheExpirationTime(kAlreadyExpired);
   }
 
   static constexpr CacheExpirationTime Never() {
