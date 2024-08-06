@@ -196,3 +196,5 @@ lineno = "172"
 
 ["browser_timezone.js"]
 lineno = "176"
+
+["browser_exslt_timezone_load.js"]
