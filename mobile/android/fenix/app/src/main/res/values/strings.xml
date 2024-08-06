@@ -2658,8 +2658,6 @@
     <string name="micro_survey_privacy_notice_2">Privacy notice</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Submit</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Close</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Survey complete</string>
     <!-- The survey completion confirmation text -->

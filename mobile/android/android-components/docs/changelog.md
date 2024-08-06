@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 130.0 (In Development)
+# 131.0 (In Development)
+
+# 130.0
 
 * **ui-widgets**
   * ⚠️ **Breaking change**: `SnackbarDelegate` now supports passing whether the snackbar should be shown/styled for an error. [Bug 1906657](https://bugzilla.mozilla.org/show_bug.cgi?id=1906657)
