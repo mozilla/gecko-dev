@@ -6,7 +6,11 @@ import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-message-bar.mjs";
+// eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/backup/password-validation-inputs.mjs";
+
+import { ERRORS } from "chrome://browser/content/backup/backup-constants.mjs";
 
 /**
  * Valid attributes for the enable-backup-encryption dialog type.
@@ -23,14 +27,30 @@ const VALID_L10N_IDS = new Map([
   [VALID_TYPES.CHANGE_PASSWORD, "change-backup-encryption-header"],
 ]);
 
+const ERROR_L10N_IDS = Object.freeze({
+  [ERRORS.INVALID_PASSWORD]: "backup-error-password-requirements",
+  [ERRORS.UNKNOWN]: "backup-error-retry",
+});
+
+/**
+ * @param {number} errorCode Error code from backup-constants.mjs
+ * @returns {string} Localization ID for error message
+ */
+function getErrorL10nId(errorCode) {
+  return ERROR_L10N_IDS[errorCode] ?? ERROR_L10N_IDS[ERRORS.UNKNOWN];
+}
+
 /**
  * The widget for enabling password protection if the backup is not yet
  * encrypted.
  */
 export default class EnableBackupEncryption extends MozLitElement {
   static properties = {
+    // internal state
     _inputPassValue: { type: String, state: true },
     _passwordsMatch: { type: Boolean, state: true },
+
+    // passed from parents
     supportBaseLink: { type: String },
     /**
      * The "type" attribute changes the layout.
@@ -38,6 +58,10 @@ export default class EnableBackupEncryption extends MozLitElement {
      * @see VALID_TYPES
      */
     type: { type: String, reflect: true },
+
+    // managed by BackupUIChild
+    enableEncryptionErrorCode: { type: Number },
+    rerunEncryptionErrorCode: { type: Number },
   };
 
   static get queries() {
@@ -48,6 +72,7 @@ export default class EnableBackupEncryption extends MozLitElement {
       textHeaderEl: "#backup-enable-encryption-header",
       textDescriptionEl: "#backup-enable-encryption-description",
       passwordInputsEl: "#backup-enable-encryption-password-inputs",
+      errorEl: "#enable-backup-encryption-error",
     };
   }
 
@@ -57,18 +82,13 @@ export default class EnableBackupEncryption extends MozLitElement {
     this.type = VALID_TYPES.SET_PASSWORD;
     this._inputPassValue = "";
     this._passwordsMatch = false;
+    this.enableEncryptionErrorCode = 0;
+    this.rerunEncryptionErrorCode = 0;
   }
 
-  /**
-   * Dispatches the BackupUI:InitWidget custom event upon being attached to the
-   * DOM, which registers with BackupUIChild for BackupService state updates.
-   */
   connectedCallback() {
     super.connectedCallback();
-    this.dispatchEvent(
-      new CustomEvent("BackupUI:InitWidget", { bubbles: true })
-    );
-
+    // Listening to events from child <password-validation-inputs>
     this.addEventListener("ValidPasswordsDetected", this);
     this.addEventListener("InvalidPasswordsDetected", this);
   }
@@ -84,23 +104,29 @@ export default class EnableBackupEncryption extends MozLitElement {
     }
   }
 
-  handleCancel() {
+  close() {
     this.dispatchEvent(
       new CustomEvent("dialogCancel", {
         bubbles: true,
         composed: true,
       })
     );
-    this.resetChanges();
+    this.reset();
+  }
+
+  reset() {
+    this._inputPassValue = "";
+    this._passwordsMatch = false;
+    this.passwordInputsEl.reset();
+    this.enableEncryptionErrorCode = 0;
   }
 
   handleConfirm() {
     switch (this.type) {
       case VALID_TYPES.SET_PASSWORD:
         this.dispatchEvent(
-          new CustomEvent("enableEncryption", {
+          new CustomEvent("BackupUI:EnableEncryption", {
             bubbles: true,
-            composed: true,
             detail: {
               password: this._inputPassValue,
             },
@@ -109,9 +135,8 @@ export default class EnableBackupEncryption extends MozLitElement {
         break;
       case VALID_TYPES.CHANGE_PASSWORD:
         this.dispatchEvent(
-          new CustomEvent("rerunEncryption", {
+          new CustomEvent("BackupUI:RerunEncryption", {
             bubbles: true,
-            composed: true,
             detail: {
               password: this._inputPassValue,
             },
@@ -119,16 +144,6 @@ export default class EnableBackupEncryption extends MozLitElement {
         );
         break;
     }
-    this.resetChanges();
-  }
-
-  resetChanges() {
-    this._inputPassValue = "";
-    this._passwordsMatch = false;
-
-    this.passwordInputsEl.dispatchEvent(
-      new CustomEvent("resetInputs", { bubbles: true, composed: true })
-    );
   }
 
   descriptionTemplate() {
@@ -155,7 +170,7 @@ export default class EnableBackupEncryption extends MozLitElement {
       <moz-button-group id="backup-enable-encryption-button-group">
         <moz-button
           id="backup-enable-encryption-cancel-button"
-          @click=${this.handleCancel}
+          @click=${this.close}
           data-l10n-id="enable-backup-encryption-cancel-button"
         ></moz-button>
         <moz-button
@@ -166,6 +181,19 @@ export default class EnableBackupEncryption extends MozLitElement {
           ?disabled=${!this._passwordsMatch}
         ></moz-button>
       </moz-button-group>
+    `;
+  }
+
+  errorTemplate() {
+    let messageId = this.enableEncryptionErrorCode
+      ? getErrorL10nId(this.enableEncryptionErrorCode)
+      : getErrorL10nId(this.rerunEncryptionErrorCode);
+    return html`
+      <moz-message-bar
+        id="enable-backup-encryption-error"
+        type="error"
+        .messageL10nId="${messageId}"
+      ></moz-message-bar>
     `;
   }
 
@@ -190,6 +218,10 @@ export default class EnableBackupEncryption extends MozLitElement {
             .supportBaseLink=${this.supportBaseLink}
           >
           </password-validation-inputs>
+
+          ${this.enableEncryptionErrorCode || this.rerunEncryptionErrorCode
+            ? this.errorTemplate()
+            : null}
         </div>
         ${this.buttonGroupTemplate()}
       </div>

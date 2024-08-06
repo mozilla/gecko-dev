@@ -81,6 +81,10 @@ turn-on-scheduled-backups-encryption-repeat-password-label = Repeat password
 turn-on-scheduled-backups-cancel-button = Cancel
 turn-on-scheduled-backups-confirm-button = Turn on backup
 
+# Tell the user there was an error accessing the user's selected backup
+# folder. The folder may be invalid or inaccessible.
+turn-on-scheduled-backups-error-file-system = There was a problem with your selected backup folder. Choose a different folder and try again.
+
 ## These strings are displayed in a modal when users want to turn off scheduled backups.
 
 turn-off-scheduled-backups-header = Turn off backup?
@@ -194,6 +198,17 @@ disable-backup-encryption-support-link = What will be backed up?
 
 disable-backup-encryption-cancel-button = Cancel
 disable-backup-encryption-confirm-button = Remove password
+
+## These strings are used to tell users when errors occur when using
+## the backup system
+
+backup-error-password-requirements = Your password doesn’t meet the requirements. Please try another password.
+
+# This error message will be shown to the user when something went wrong with
+# the backup system but we do not have any more specific idea of what went
+# wrong. This message invites the user to try an action again because there
+# is a chance that the action will succeed if retried.
+backup-error-retry = Something went wrong. Please try again.
 
 ## These strings are inserted into the generated single-file backup archive.
 ## The single-file backup archive is a specially-crafted, static HTML file

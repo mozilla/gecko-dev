@@ -6,7 +6,27 @@ import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-message-bar.mjs";
+// eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/backup/password-validation-inputs.mjs";
+
+import { ERRORS } from "chrome://browser/content/backup/backup-constants.mjs";
+
+const ENABLE_ERROR_L10N_IDS = Object.freeze({
+  [ERRORS.FILE_SYSTEM_ERROR]: "turn-on-scheduled-backups-error-file-system",
+  [ERRORS.INVALID_PASSWORD]: "backup-error-password-requirements",
+  [ERRORS.UNKNOWN]: "backup-error-retry",
+});
+
+/**
+ * @param {number} errorCode Error code from backup-constants.mjs
+ * @returns {string} Localization ID for error message
+ */
+function getEnableErrorL10nId(errorCode) {
+  return (
+    ENABLE_ERROR_L10N_IDS[errorCode] ?? ENABLE_ERROR_L10N_IDS[ERRORS.UNKNOWN]
+  );
+}
 
 /**
  * The widget for showing available options when users want to turn on
@@ -16,16 +36,22 @@ export default class TurnOnScheduledBackups extends MozLitElement {
   #placeholderIconURL = "chrome://global/skin/icons/page-portrait.svg";
 
   static properties = {
+    // passed in from parents
     defaultIconURL: { type: String, reflect: true },
     defaultLabel: { type: String, reflect: true },
     defaultPath: { type: String, reflect: true },
-    _newIconURL: { type: String },
-    _newLabel: { type: String },
-    _newPath: { type: String },
+    supportBaseLink: { type: String },
+
+    // internal state
+    _newIconURL: { type: String, state: true },
+    _newLabel: { type: String, state: true },
+    _newPath: { type: String, state: true },
     _showPasswordOptions: { type: Boolean, reflect: true, state: true },
     _passwordsMatch: { type: Boolean, state: true },
     _inputPassValue: { type: String, state: true },
-    supportBaseLink: { type: String },
+
+    // managed by BackupUIChild
+    enableBackupErrorCode: { type: Number },
   };
 
   static get queries() {
@@ -37,6 +63,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
       filePathInputDefaultEl: "#backup-location-filepicker-input-default",
       passwordOptionsCheckboxEl: "#sensitive-data-checkbox-input",
       passwordOptionsExpandedEl: "#passwords",
+      errorEl: "#enable-backup-encryption-error",
     };
   }
 
@@ -50,19 +77,19 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     this._newPath = "";
     this._showPasswordOptions = false;
     this._passwordsMatch = false;
+    this.enableBackupErrorCode = 0;
   }
 
-  /**
-   * Dispatches the BackupUI:InitWidget custom event upon being attached to the
-   * DOM, which registers with BackupUIChild for BackupService state updates.
-   */
   connectedCallback() {
     super.connectedCallback();
     this.dispatchEvent(
       new CustomEvent("BackupUI:InitWidget", { bubbles: true })
     );
 
+    // listen to events from BackupUIChild
     this.addEventListener("BackupUI:SelectNewFilepickerPath", this);
+
+    // listen to events from <password-validation-inputs>
     this.addEventListener("ValidPasswordsDetected", this);
     this.addEventListener("InvalidPasswordsDetected", this);
   }
@@ -94,14 +121,14 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     );
   }
 
-  handleCancel() {
+  close() {
     this.dispatchEvent(
       new CustomEvent("dialogCancel", {
         bubbles: true,
         composed: true,
       })
     );
-    this.resetChanges();
+    this.reset();
   }
 
   handleConfirm() {
@@ -114,13 +141,11 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     }
 
     this.dispatchEvent(
-      new CustomEvent("turnOnScheduledBackups", {
+      new CustomEvent("BackupUI:EnableScheduledBackups", {
         bubbles: true,
-        composed: true,
         detail,
       })
     );
-    this.resetChanges();
   }
 
   handleTogglePasswordOptions() {
@@ -128,7 +153,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     this._passwordsMatch = false;
   }
 
-  resetChanges() {
+  reset() {
     this._newPath = "";
     this._newIconURL = "";
     this._newLabel = "";
@@ -136,11 +161,12 @@ export default class TurnOnScheduledBackups extends MozLitElement {
     this.passwordOptionsCheckboxEl.checked = false;
     this._passwordsMatch = false;
     this._inputPassValue = "";
+    this.enableBackupErrorCode = 0;
 
     if (this.passwordOptionsExpandedEl) {
-      this.passwordOptionsExpandedEl.dispatchEvent(
-        new CustomEvent("resetInputs", { bubbles: true, composed: true })
-      );
+      /** @type {import("./password-validation-inputs.mjs").default} */
+      const passwordElement = this.passwordOptionsExpandedEl;
+      passwordElement.reset();
     }
   }
 
@@ -177,6 +203,16 @@ export default class TurnOnScheduledBackups extends MozLitElement {
         value=${filename}
         style=${`background-image: url(${iconURL})`}
       />
+    `;
+  }
+
+  errorTemplate() {
+    return html`
+      <moz-message-bar
+        id="enable-backup-encryption-error"
+        type="error"
+        .messageL10nId="${getEnableErrorL10nId(this.enableBackupErrorCode)}"
+      ></moz-message-bar>
     `;
   }
 
@@ -269,12 +305,13 @@ export default class TurnOnScheduledBackups extends MozLitElement {
             ></a>
           </div>
           ${this.allOptionsTemplate()}
+          ${this.enableBackupErrorCode ? this.errorTemplate() : null}
         </main>
 
         <moz-button-group id="backup-turn-on-scheduled-button-group">
           <moz-button
             id="backup-turn-on-scheduled-cancel-button"
-            @click=${this.handleCancel}
+            @click=${this.close}
             data-l10n-id="turn-on-scheduled-backups-cancel-button"
           ></moz-button>
           <moz-button

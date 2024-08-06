@@ -91,7 +91,7 @@ add_task(async function test_enable_backup_encryption_checkbox_confirm() {
 
     let encryptionPromise = BrowserTestUtils.waitForEvent(
       window,
-      "enableEncryption"
+      "BackupUI:EnableEncryption"
     );
 
     confirmButton.click();
@@ -185,7 +185,10 @@ add_task(
       await settings.updateComplete;
       confirmButton = settings.enableBackupEncryptionEl.confirmButtonEl;
 
-      let promise = BrowserTestUtils.waitForEvent(window, "rerunEncryption");
+      let promise = BrowserTestUtils.waitForEvent(
+        window,
+        "BackupUI:RerunEncryption"
+      );
       confirmButton.click();
       await promise;
 
