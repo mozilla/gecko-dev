@@ -31,11 +31,12 @@ class BitmapKtTest {
     fun `WHEN withRoundedCorners is called THEN returned bitmap's corners should be transparent and center with color`() {
         val dimen = 200
         val fillColor = Color.RED
+        val config = Bitmap.Config.ARGB_8888
 
-        val bitmap = Bitmap.createBitmap(dimen, dimen, Bitmap.Config.ARGB_8888).apply {
+        val bitmap = Bitmap.createBitmap(dimen, dimen, config).apply {
             eraseColor(fillColor)
         }
-        val roundedBitmap = bitmap.withRoundedCorners(40f)
+        val roundedBitmap = bitmap.withRoundedCorners(40f, config)
 
         fun assertCornersAreTransparent() {
             val cornerLocations = listOf(0, dimen - 1)
