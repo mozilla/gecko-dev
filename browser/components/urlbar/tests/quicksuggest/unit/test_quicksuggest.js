@@ -1643,8 +1643,8 @@ add_task(async function rustProviders() {
           "suggest.quicksuggest.sponsored": true,
         },
         expectedUrls: [
-          "http://example.com/amp",
-          "http://example.com/wikipedia",
+          "https://example.com/amp",
+          "https://example.com/wikipedia",
         ],
       },
       {
@@ -1652,14 +1652,14 @@ add_task(async function rustProviders() {
           "suggest.quicksuggest.nonsponsored": true,
           "suggest.quicksuggest.sponsored": false,
         },
-        expectedUrls: ["http://example.com/wikipedia"],
+        expectedUrls: ["https://example.com/wikipedia"],
       },
       {
         prefs: {
           "suggest.quicksuggest.nonsponsored": false,
           "suggest.quicksuggest.sponsored": true,
         },
-        expectedUrls: ["http://example.com/amp"],
+        expectedUrls: ["https://example.com/amp"],
       },
       {
         prefs: {

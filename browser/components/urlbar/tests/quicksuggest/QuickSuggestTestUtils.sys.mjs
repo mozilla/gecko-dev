@@ -393,7 +393,7 @@ class _QuickSuggestTestUtils {
    */
   ampRemoteSettings({
     keywords = ["amp"],
-    url = "http://example.com/amp",
+    url = "https://example.com/amp",
     title = "Amp Suggestion",
     score = 0.3,
   } = {}) {
@@ -403,8 +403,8 @@ class _QuickSuggestTestUtils {
       title,
       score,
       id: 1,
-      click_url: "http://example.com/amp-click",
-      impression_url: "http://example.com/amp-impression",
+      click_url: "https://example.com/amp-click",
+      impression_url: "https://example.com/amp-impression",
       advertiser: "Amp",
       iab_category: "22 - Shopping",
       icon: "1234",
@@ -420,7 +420,7 @@ class _QuickSuggestTestUtils {
    */
   wikipediaRemoteSettings({
     keywords = ["wikipedia"],
-    url = "http://example.com/wikipedia",
+    url = "https://example.com/wikipedia",
     title = "Wikipedia Suggestion",
     score = 0.2,
   } = {}) {
@@ -430,8 +430,8 @@ class _QuickSuggestTestUtils {
       title,
       score,
       id: 2,
-      click_url: "http://example.com/wikipedia-click",
-      impression_url: "http://example.com/wikipedia-impression",
+      click_url: "https://example.com/wikipedia-click",
+      impression_url: "https://example.com/wikipedia-impression",
       advertiser: "Wikipedia",
       iab_category: "5 - Education",
       icon: "1234",
@@ -447,7 +447,7 @@ class _QuickSuggestTestUtils {
    */
   amoRemoteSettings({
     keywords = ["amo"],
-    url = "http://example.com/amo",
+    url = "https://example.com/amo",
     title = "Amo Suggestion",
     score = 0.2,
   } = {}) {
@@ -725,8 +725,8 @@ class _QuickSuggestTestUtils {
    *   substrings. For example:
    *   ```js
    *   {
-   *     url: "http://example.com/foo-%YYYYMMDDHH%",
-   *     sponsoredClickUrl: "http://example.com/bar-%YYYYMMDDHH%",
+   *     url: "https://example.com/foo-%YYYYMMDDHH%",
+   *     sponsoredClickUrl: "https://example.com/bar-%YYYYMMDDHH%",
    *   }
    *   ```
    */

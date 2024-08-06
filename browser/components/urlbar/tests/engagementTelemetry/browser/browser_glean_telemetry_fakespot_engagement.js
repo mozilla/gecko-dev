@@ -4,6 +4,9 @@
 
 // Tests the `fakespot_engagement` event.
 
+const FAKESPOT_URL = "https://example.com/fakespot";
+const AMP_URL = "https://example.com/amp";
+
 add_setup(async function test_setup() {
   Services.fog.testResetFOG();
 
@@ -17,8 +20,8 @@ add_setup(async function test_setup() {
         type: "fakespot-suggestions",
         attachment: [
           {
-            url: "https://example.com/maybe-good-item",
-            title: "Maybe Good Item",
+            url: FAKESPOT_URL,
+            title: "Fakespot suggestion",
             rating: 4.8,
             total_reviews: 1234567,
             fakespot_grade: "A",
@@ -29,19 +32,8 @@ add_setup(async function test_setup() {
       },
       {
         type: "data",
-        attachment: [
-          {
-            id: 1,
-            url: "https://example.com/sponsored",
-            title: "Sponsored suggestion",
-            keywords: ["sponsored"],
-            click_url: "https://example.com/click",
-            impression_url: "https://example.com/impression",
-            advertiser: "TestAdvertiser",
-            iab_category: "22 - Shopping",
-            icon: "1234",
-          },
-        ],
+        // eslint-disable-next-line mozilla/valid-lazy
+        attachment: [lazy.QuickSuggestTestUtils.ampRemoteSettings()],
       },
     ],
     prefs: [["fakespot.featureGate", true]],
@@ -53,14 +45,20 @@ add_setup(async function test_setup() {
   });
 });
 
+// Clicks a Fakespot suggestion.
 add_task(async function engagement_fakespot() {
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      value: "maybe",
+      value: "fakespot",
     });
 
-    await selectRowByProvider("UrlbarProviderQuickSuggest");
+    Assert.ok(
+      await getRowByURL(FAKESPOT_URL),
+      "Fakespot row should be present"
+    );
+
+    await selectRowByURL(FAKESPOT_URL);
     await doEnter();
 
     assertGleanTelemetry("fakespot_engagement", [
@@ -71,14 +69,21 @@ add_task(async function engagement_fakespot() {
   Services.fog.testResetFOG();
 });
 
-add_task(async function engagement_notFakespot() {
+// Clicks a non-Fakespot suggestion without matching Fakespot.
+add_task(async function engagement_other_fakespotAbsent() {
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      value: "sponsored",
+      value: "amp",
     });
 
-    await selectRowByURL("https://example.com/sponsored");
+    Assert.ok(
+      !(await getRowByURL(FAKESPOT_URL)),
+      "Fakespot row should be absent"
+    );
+    Assert.ok(await getRowByURL(AMP_URL), "AMP row should be present");
+
+    await selectRowByURL(AMP_URL);
     await doEnter();
 
     assertGleanTelemetry("fakespot_engagement", []);
@@ -87,14 +92,48 @@ add_task(async function engagement_notFakespot() {
   Services.fog.testResetFOG();
 });
 
+// Clicks a non-Fakespot suggestion after also matching Fakespot.
+add_task(async function engagement_other_fakespotPresent() {
+  let visitUrl = "https://example.com/some-other-suggestion";
+  await PlacesTestUtils.addVisits([visitUrl]);
+
+  await BrowserTestUtils.withNewTab("about:blank", async () => {
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "suggestion",
+    });
+
+    Assert.ok(
+      await getRowByURL(FAKESPOT_URL),
+      "Fakespot row should be present"
+    );
+    Assert.ok(
+      await getRowByURL(visitUrl),
+      "Visit/history row should be present"
+    );
+
+    await selectRowByURL(visitUrl);
+    await doEnter();
+
+    assertGleanTelemetry("fakespot_engagement", []);
+  });
+
+  Services.fog.testResetFOG();
+});
+
+// Abandons the search session after after matching Fakespot.
 add_task(async function abandonment() {
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      value: "maybe",
+      value: "fakespot",
     });
 
-    await selectRowByProvider("UrlbarProviderQuickSuggest");
+    Assert.ok(
+      await getRowByURL(FAKESPOT_URL),
+      "Fakespot row should be present"
+    );
+
     await doBlur();
 
     assertGleanTelemetry("fakespot_engagement", []);
@@ -102,3 +141,13 @@ add_task(async function abandonment() {
 
   Services.fog.testResetFOG();
 });
+
+async function getRowByURL(url) {
+  for (let i = 0; i < UrlbarTestUtils.getResultCount(window); i++) {
+    const detail = await UrlbarTestUtils.getDetailsOfResultAt(window, i);
+    if (detail.url === url) {
+      return detail;
+    }
+  }
+  return null;
+}
