@@ -109,6 +109,15 @@ Initialize GeckoView in an Activity
     view.setSession(session);
     session.loadUri("about:buildconfig"); // Or any other URL...
 
+**4. Set the** `windowSoftInputMode <https://developer.android.com/guide/topics/manifest/activity-element#wsoft>`_ **to** ``adjustResize`` **for** `interactive-widget <https://drafts.csswg.org/css-viewport/#interactive-widget-section>`_ **:**
+
+.. code-block:: xml
+
+    <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+        <activity android:name=".YourActivity"
+                  android:windowSoftInputMode="stateUnspecified|adjustResize" />
+    </manifest>
+
 You're done!
 ==============
 

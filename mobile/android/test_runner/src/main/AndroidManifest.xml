@@ -20,6 +20,7 @@
         <uses-library android:name="android.test.runner" android:required="false"/>
         <activity android:name=".TestRunnerActivity"
             android:configChanges="orientation|screenSize"
+            android:windowSoftInputMode="stateUnspecified|adjustResize"
             android:exported="true"/>
         <activity-alias android:name=".App" android:targetActivity=".TestRunnerActivity"
             android:exported="true">
