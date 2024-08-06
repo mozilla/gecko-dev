@@ -10,6 +10,7 @@
 #include <stdint.h>              // uint32_t
 #include "mozilla/Assertions.h"  // MOZ_ASSERT
 #include "prtime.h"              // PRTime, PR_USEC_PER_SEC
+#include "nsICacheEntry.h"       // nsICacheEntry
 
 /*
  * The expiration time for sub resource cache.
@@ -18,7 +19,7 @@ struct CacheExpirationTime {
  private:
   uint32_t mTime;
 
-  static constexpr uint32_t kNever = 0;
+  static constexpr uint32_t kNever = nsICacheEntry::NO_EXPIRATION_TIME;
 
   constexpr CacheExpirationTime() : mTime(kNever) {}
 
@@ -51,8 +52,6 @@ struct CacheExpirationTime {
   bool IsNever() const { return mTime == kNever; }
 
   bool IsShorterThan(const CacheExpirationTime& aOther) const {
-    MOZ_ASSERT(!IsNever());
-    MOZ_ASSERT(!aOther.IsNever());
     return mTime < aOther.mTime;
   }
 
