@@ -546,7 +546,8 @@ class IconLoader {
         canUseForTab: !iconInfo.isRichIcon,
         expiration: undefined,
         iconURL: iconInfo.iconUri.spec,
-        canStoreIcon: iconInfo.beforePageShow,
+        canStoreIcon:
+          iconInfo.beforePageShow && iconInfo.iconUri.schemeIs("data"),
         beforePageShow: iconInfo.beforePageShow,
       });
       return;
