@@ -87,9 +87,9 @@
 #include "nsThreadUtils.h"   // for NS_IsMainThread
 #include "nsViewportInfo.h"  // for ViewportMinScale(), ViewportMaxScale()
 #include "prsystem.h"        // for PR_GetPhysicalMemorySize
-#include "mozilla/ipc/SharedMemoryBasic.h"  // for SharedMemoryBasic
-#include "ScrollSnap.h"                     // for ScrollSnapUtils
-#include "ScrollAnimationPhysics.h"         // for ComputeAcceleratedWheelDelta
+#include "mozilla/ipc/SharedMemory.h"  // for SharedMemory
+#include "ScrollSnap.h"                // for ScrollSnapUtils
+#include "ScrollAnimationPhysics.h"    // for ComputeAcceleratedWheelDelta
 #include "SmoothMsdScrollAnimation.h"
 #include "SmoothScrollAnimation.h"
 #include "WheelScrollAnimation.h"

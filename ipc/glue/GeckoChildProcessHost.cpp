@@ -15,7 +15,7 @@
 #include "chrome/common/process_watcher.h"
 #ifdef XP_DARWIN
 #  include <mach/mach_traps.h>
-#  include "SharedMemoryBasic.h"
+#  include "SharedMemory.h"
 #  include "base/rand_util.h"
 #  include "chrome/common/mach_ipc_mac.h"
 #  include "mozilla/StaticPrefs_media.h"

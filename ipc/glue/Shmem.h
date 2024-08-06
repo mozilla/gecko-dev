@@ -35,9 +35,8 @@
  *  means is OS specific.)
  *
  *  (4a) The child receives the special IPC message, and using the
- *  |SharedMemory{Basic}::Handle| it was passed, creates a
- *  |mozilla::ipc::SharedMemory| in the child
- *  process.
+ *  |SharedMemory::Handle| it was passed, creates a |mozilla::ipc::SharedMemory|
+ *  in the child process.
  *
  *  (4b) After sending the "shmem-created" IPC message, IPDL-generated
  *  code in the parent returns a |mozilla::ipc::Shmem| back to the C++

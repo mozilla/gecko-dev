@@ -7,9 +7,10 @@
 #ifndef MOZILLA_GFX_SOURCESURFACESHAREDDATA_H_
 #define MOZILLA_GFX_SOURCESURFACESHAREDDATA_H_
 
+#include "base/process.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/ipc/SharedMemoryBasic.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "nsExpirationTracker.h"
 
 namespace mozilla {
@@ -29,11 +30,11 @@ class SourceSurfaceSharedData;
  * original surface is a signal which feeds into SharedSurfacesParent to decide
  * to release the SourceSurfaceSharedDataWrapper.
  *
- * If it is in a different process, mBuf is a new SharedMemoryBasic object which
+ * If it is in a different process, mBuf is a new SharedMemory object which
  * mapped in the given shared memory handle as read only memory.
  */
 class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
-  typedef mozilla::ipc::SharedMemoryBasic SharedMemoryBasic;
+  typedef mozilla::ipc::SharedMemory SharedMemory;
 
  public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SourceSurfaceSharedDataWrapper,
@@ -47,7 +48,7 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
         mCreatorRef(true) {}
 
   void Init(const IntSize& aSize, int32_t aStride, SurfaceFormat aFormat,
-            SharedMemoryBasic::Handle aHandle, base::ProcessId aCreatorPid);
+            SharedMemory::Handle aHandle, base::ProcessId aCreatorPid);
 
   void Init(SourceSurfaceSharedData* aSurface);
 
@@ -61,7 +62,7 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
   IntSize GetSize() const override { return mSize; }
   SurfaceFormat GetFormat() const override { return mFormat; }
 
-  uint8_t* GetData() override { return static_cast<uint8_t*>(mBuf->memory()); }
+  uint8_t* GetData() override { return static_cast<uint8_t*>(mBuf->Memory()); }
 
   bool OnHeap() const override { return false; }
 
@@ -111,7 +112,7 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
   int32_t mStride;
   uint32_t mConsumers;
   IntSize mSize;
-  RefPtr<SharedMemoryBasic> mBuf;
+  RefPtr<SharedMemory> mBuf;
   SurfaceFormat mFormat;
   base::ProcessId mCreatorPid;
   bool mCreatorRef;
@@ -122,7 +123,7 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
  * source surface.
  */
 class SourceSurfaceSharedData : public DataSourceSurface {
-  typedef mozilla::ipc::SharedMemoryBasic SharedMemoryBasic;
+  typedef mozilla::ipc::SharedMemory SharedMemory;
 
  public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SourceSurfaceSharedData, override)
@@ -200,7 +201,7 @@ class SourceSurfaceSharedData : public DataSourceSurface {
    *   NS_ERROR_NOT_AVAILABLE -- handle was closed, need to reallocate.
    *   NS_ERROR_FAILURE -- failed to create a handle to share.
    */
-  nsresult CloneHandle(SharedMemoryBasic::Handle& aHandle);
+  nsresult CloneHandle(SharedMemory::Handle& aHandle);
 
   /**
    * Indicates the buffer is not expected to be shared with any more processes.
@@ -331,8 +332,8 @@ class SourceSurfaceSharedData : public DataSourceSurface {
   int32_t mHandleCount;
   Maybe<IntRect> mDirtyRect;
   IntSize mSize;
-  RefPtr<SharedMemoryBasic> mBuf;
-  RefPtr<SharedMemoryBasic> mOldBuf;
+  RefPtr<SharedMemory> mBuf;
+  RefPtr<SharedMemory> mOldBuf;
   SurfaceFormat mFormat;
   bool mClosed : 1;
   bool mFinalized : 1;

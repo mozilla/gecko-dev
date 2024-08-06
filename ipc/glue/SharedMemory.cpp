@@ -4,15 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <math.h>
-
-#include "nsString.h"
-#include "nsIMemoryReporter.h"
 #include "mozilla/ipc/SharedMemory.h"
-#include "mozilla/Atomics.h"
 
-namespace mozilla {
-namespace ipc {
+#include "mozilla/Atomics.h"
+#include "nsIMemoryReporter.h"
+
+#ifdef FUZZING
+#  include "mozilla/ipc/SharedMemoryFuzzer.h"
+#endif
+
+namespace mozilla::ipc {
 
 static Atomic<size_t> gShmemAllocated;
 static Atomic<size_t> gShmemMapped;
@@ -49,36 +50,85 @@ SharedMemory::SharedMemory() : mAllocSize(0), mMappedSize(0) {
   }
 }
 
-/*static*/
-size_t SharedMemory::PageAlignedSize(size_t aSize) {
-  size_t pageSize = SystemPageSize();
-  size_t nPagesNeeded = size_t(ceil(double(aSize) / double(pageSize)));
-  return pageSize * nPagesNeeded;
-}
+SharedMemory::~SharedMemory() {
+  Unmap();
+  CloseHandle();
 
-void SharedMemory::Created(size_t aNBytes) {
-  mAllocSize = aNBytes;
-  gShmemAllocated += mAllocSize;
-}
-
-void SharedMemory::Mapped(size_t aNBytes) {
-  mMappedSize = aNBytes;
-  gShmemMapped += mMappedSize;
-}
-
-void SharedMemory::Unmapped() {
-  MOZ_ASSERT(gShmemMapped >= mMappedSize, "Can't unmap more than mapped");
-  gShmemMapped -= mMappedSize;
-  mMappedSize = 0;
-}
-
-/*static*/
-void SharedMemory::Destroyed() {
   MOZ_ASSERT(gShmemAllocated >= mAllocSize,
              "Can't destroy more than allocated");
   gShmemAllocated -= mAllocSize;
   mAllocSize = 0;
 }
 
-}  // namespace ipc
-}  // namespace mozilla
+bool SharedMemory::WriteHandle(IPC::MessageWriter* aWriter) {
+  Handle handle = CloneHandle();
+  if (!handle) {
+    return false;
+  }
+  IPC::WriteParam(aWriter, std::move(handle));
+  return true;
+}
+
+bool SharedMemory::ReadHandle(IPC::MessageReader* aReader) {
+  Handle handle;
+  return IPC::ReadParam(aReader, &handle) && IsHandleValid(handle) &&
+         SetHandle(std::move(handle), RightsReadWrite);
+}
+
+void SharedMemory::Protect(char* aAddr, size_t aSize, int aRights) {
+  char* memStart = reinterpret_cast<char*>(Memory());
+  if (!memStart) MOZ_CRASH("SharedMemory region points at NULL!");
+  char* memEnd = memStart + Size();
+
+  char* protStart = aAddr;
+  if (!protStart) MOZ_CRASH("trying to Protect() a NULL region!");
+  char* protEnd = protStart + aSize;
+
+  if (!(memStart <= protStart && protEnd <= memEnd)) {
+    MOZ_CRASH("attempt to Protect() a region outside this SharedMemory");
+  }
+
+  // checks alignment etc.
+  SystemProtect(aAddr, aSize, aRights);
+}
+
+size_t SharedMemory::PageAlignedSize(size_t aSize) {
+  size_t pageSize = SystemPageSize();
+  size_t nPagesNeeded = size_t(ceil(double(aSize) / double(pageSize)));
+  return pageSize * nPagesNeeded;
+}
+
+bool SharedMemory::Create(size_t aNBytes) {
+  bool ok = CreateImpl(aNBytes);
+  if (ok) {
+    mAllocSize = aNBytes;
+    gShmemAllocated += mAllocSize;
+  }
+  return ok;
+}
+
+bool SharedMemory::Map(size_t aNBytes, void* fixedAddress) {
+  bool ok = MapImpl(aNBytes, fixedAddress);
+  if (ok) {
+    mMappedSize = aNBytes;
+    gShmemMapped += mMappedSize;
+  }
+  return ok;
+}
+
+void SharedMemory::Unmap() {
+  MOZ_ASSERT(gShmemMapped >= mMappedSize, "Can't unmap more than mapped");
+  UnmapImpl(mMappedSize);
+  gShmemMapped -= mMappedSize;
+  mMappedSize = 0;
+}
+
+void* SharedMemory::Memory() const {
+#ifdef FUZZING
+  return SharedMemoryFuzzer::MutateSharedMemory(MemoryImpl(), mAllocSize);
+#else
+  return MemoryImpl();
+#endif
+}
+
+}  // namespace mozilla::ipc

@@ -304,7 +304,7 @@ bool DrawTargetWebgl::Init(const IntSize& size, const SurfaceFormat format,
     return false;
   }
 
-  auto shmem = MakeRefPtr<mozilla::ipc::SharedMemoryBasic>();
+  auto shmem = MakeRefPtr<mozilla::ipc::SharedMemory>();
   if (NS_WARN_IF(!shmem->Create(shmemSize)) ||
       NS_WARN_IF(!shmem->Map(shmemSize))) {
     return false;
@@ -316,7 +316,7 @@ bool DrawTargetWebgl::Init(const IntSize& size, const SurfaceFormat format,
   mSkia = new DrawTargetSkia;
   auto stride = layers::ImageDataSerializer::ComputeRGBStride(
       SurfaceFormat::B8G8R8A8, size.width);
-  if (!mSkia->Init(reinterpret_cast<uint8_t*>(mShmem->memory()), size, stride,
+  if (!mSkia->Init(reinterpret_cast<uint8_t*>(mShmem->Memory()), size, stride,
                    SurfaceFormat::B8G8R8A8, true)) {
     return false;
   }

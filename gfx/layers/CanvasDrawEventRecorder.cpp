@@ -21,12 +21,12 @@ namespace mozilla {
 namespace layers {
 
 struct ShmemAndHandle {
-  RefPtr<ipc::SharedMemoryBasic> shmem;
+  RefPtr<ipc::SharedMemory> shmem;
   Handle handle;
 };
 
 static Maybe<ShmemAndHandle> CreateAndMapShmem(size_t aSize) {
-  auto shmem = MakeRefPtr<ipc::SharedMemoryBasic>();
+  auto shmem = MakeRefPtr<ipc::SharedMemory>();
   if (!shmem->Create(aSize) || !shmem->Map(aSize)) {
     return Nothing();
   }
@@ -66,7 +66,7 @@ bool CanvasDrawEventRecorder::Init(TextureType aTextureType,
     return false;
   }
 
-  mHeader = static_cast<Header*>(header->shmem->memory());
+  mHeader = static_cast<Header*>(header->shmem->Memory());
   mHeader->eventCount = 0;
   mHeader->writerWaitCount = 0;
   mHeader->writerState = State::Processing;

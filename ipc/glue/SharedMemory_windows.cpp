@@ -4,12 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <windows.h>
-
 #include "mozilla/ipc/SharedMemory.h"
 
-namespace mozilla {
-namespace ipc {
+#include <windows.h>
+
+namespace mozilla::ipc {
 
 void SharedMemory::SystemProtect(char* aAddr, size_t aSize, int aRights) {
   if (!SystemProtectFallible(aAddr, aSize, aRights)) {
@@ -37,5 +36,4 @@ size_t SharedMemory::SystemPageSize() {
   return si.dwPageSize;
 }
 
-}  // namespace ipc
-}  // namespace mozilla
+}  // namespace mozilla::ipc

@@ -7,7 +7,7 @@
 #ifndef mozilla_ipc_DataPipe_h
 #define mozilla_ipc_DataPipe_h
 
-#include "mozilla/ipc/SharedMemoryBasic.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/ipc/NodeController.h"
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
@@ -30,7 +30,7 @@ class DataPipeBase {
  protected:
   explicit DataPipeBase(bool aReceiverSide, nsresult aError);
   DataPipeBase(bool aReceiverSide, ScopedPort aPort,
-               SharedMemoryBasic::Handle aShmemHandle, SharedMemory* aShmem,
+               SharedMemory::Handle aShmemHandle, SharedMemory* aShmem,
                uint32_t aCapacity, nsresult aPeerStatus, uint32_t aOffset,
                uint32_t aAvailable);
 
@@ -103,7 +103,7 @@ class DataPipeSender final : public nsIAsyncOutputStream,
 
   explicit DataPipeSender(nsresult aError)
       : data_pipe_detail::DataPipeBase(/* aReceiverSide */ false, aError) {}
-  DataPipeSender(ScopedPort aPort, SharedMemoryBasic::Handle aShmemHandle,
+  DataPipeSender(ScopedPort aPort, SharedMemory::Handle aShmemHandle,
                  SharedMemory* aShmem, uint32_t aCapacity, nsresult aPeerStatus,
                  uint32_t aOffset, uint32_t aAvailable)
       : data_pipe_detail::DataPipeBase(
@@ -143,7 +143,7 @@ class DataPipeReceiver final : public nsIAsyncInputStream,
 
   explicit DataPipeReceiver(nsresult aError)
       : data_pipe_detail::DataPipeBase(/* aReceiverSide */ true, aError) {}
-  DataPipeReceiver(ScopedPort aPort, SharedMemoryBasic::Handle aShmemHandle,
+  DataPipeReceiver(ScopedPort aPort, SharedMemory::Handle aShmemHandle,
                    SharedMemory* aShmem, uint32_t aCapacity,
                    nsresult aPeerStatus, uint32_t aOffset, uint32_t aAvailable)
       : data_pipe_detail::DataPipeBase(

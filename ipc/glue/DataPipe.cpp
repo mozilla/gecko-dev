@@ -71,7 +71,7 @@ static void DoNotifyOnUnlock(DataPipeAutoLock& aLock,
 class DataPipeLink : public NodeController::PortObserver {
  public:
   DataPipeLink(bool aReceiverSide, std::shared_ptr<Mutex> aMutex,
-               ScopedPort aPort, SharedMemoryBasic::Handle aShmemHandle,
+               ScopedPort aPort, SharedMemory::Handle aShmemHandle,
                SharedMemory* aShmem, uint32_t aCapacity, nsresult aPeerStatus,
                uint32_t aOffset, uint32_t aAvailable)
       : mMutex(std::move(aMutex)),
@@ -165,7 +165,7 @@ class DataPipeLink : public NodeController::PortObserver {
   std::shared_ptr<Mutex> mMutex;
 
   ScopedPort mPort MOZ_GUARDED_BY(*mMutex);
-  SharedMemoryBasic::Handle mShmemHandle MOZ_GUARDED_BY(*mMutex);
+  SharedMemory::Handle mShmemHandle MOZ_GUARDED_BY(*mMutex);
   const RefPtr<SharedMemory> mShmem;
   const uint32_t mCapacity;
   const bool mReceiverSide;
@@ -245,7 +245,7 @@ DataPipeBase::DataPipeBase(bool aReceiverSide, nsresult aError)
       mStatus(NS_SUCCEEDED(aError) ? NS_BASE_STREAM_CLOSED : aError) {}
 
 DataPipeBase::DataPipeBase(bool aReceiverSide, ScopedPort aPort,
-                           SharedMemoryBasic::Handle aShmemHandle,
+                           SharedMemory::Handle aShmemHandle,
                            SharedMemory* aShmem, uint32_t aCapacity,
                            nsresult aPeerStatus, uint32_t aOffset,
                            uint32_t aAvailable)
@@ -318,7 +318,7 @@ nsresult DataPipeBase::ProcessSegmentsInternal(
 
     // Extract an iterator over the next contiguous region of the shared memory
     // buffer which will be used .
-    char* start = static_cast<char*>(link->mShmem->memory()) + link->mOffset;
+    char* start = static_cast<char*>(link->mShmem->Memory()) + link->mOffset;
     char* iter = start;
     char* end = start + std::min({aCount - *aProcessedCount, link->mAvailable,
                                   link->mCapacity - link->mOffset});
@@ -480,16 +480,16 @@ bool DataPipeRead(IPC::MessageReader* aReader, RefPtr<T>* aResult) {
     aReader->FatalError("failed to read DataPipe port");
     return false;
   }
-  SharedMemoryBasic::Handle shmemHandle;
+  SharedMemory::Handle shmemHandle;
   if (!ReadParam(aReader, &shmemHandle)) {
     aReader->FatalError("failed to read DataPipe shmem");
     return false;
   }
-  // Due to the awkward shared memory API provided by SharedMemoryBasic, we need
-  // to transfer ownership into the `shmem` here, then steal it back later in
-  // the function. Bug 1797039 tracks potential changes to the RawShmem API
-  // which could improve this situation.
-  RefPtr shmem = new SharedMemoryBasic();
+  // Due to the awkward shared memory API provided by SharedMemory, we need to
+  // transfer ownership into the `shmem` here, then steal it back later in the
+  // function. Bug 1797039 tracks potential changes to the RawShmem API which
+  // could improve this situation.
+  RefPtr shmem = new SharedMemory();
   if (!shmem->SetHandle(std::move(shmemHandle),
                         SharedMemory::RightsReadWrite)) {
     aReader->FatalError("failed to create DataPipe shmem from handle");
@@ -717,7 +717,7 @@ nsresult NewDataPipe(uint32_t aCapacity, DataPipeSender** aSender,
   auto [senderPort, receiverPort] = controller->CreatePortPair();
 
   // Create and allocate the shared memory region.
-  auto shmem = MakeRefPtr<SharedMemoryBasic>();
+  auto shmem = MakeRefPtr<SharedMemory>();
   size_t alignedCapacity = SharedMemory::PageAlignedSize(aCapacity);
   if (!shmem->Create(alignedCapacity) || !shmem->Map(alignedCapacity)) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -726,8 +726,8 @@ nsresult NewDataPipe(uint32_t aCapacity, DataPipeSender** aSender,
   // We'll first clone then take the handle from the region so that the sender &
   // receiver each have a handle. This avoids the need to duplicate the handle
   // when serializing, when errors are non-recoverable.
-  SharedMemoryBasic::Handle senderShmemHandle = shmem->CloneHandle();
-  SharedMemoryBasic::Handle receiverShmemHandle = shmem->TakeHandle();
+  SharedMemory::Handle senderShmemHandle = shmem->CloneHandle();
+  SharedMemory::Handle receiverShmemHandle = shmem->TakeHandle();
   if (!senderShmemHandle || !receiverShmemHandle) {
     return NS_ERROR_OUT_OF_MEMORY;
   }

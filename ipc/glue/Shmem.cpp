@@ -7,7 +7,7 @@
 #include "Shmem.h"
 
 #include "ProtocolUtils.h"
-#include "SharedMemoryBasic.h"
+#include "SharedMemory.h"
 #include "ShmemMessageUtils.h"
 #include "chrome/common/ipc_message_utils.h"
 #include "mozilla/Unused.h"
@@ -63,7 +63,7 @@ class ShmemDestroyed : public IPC::Message {
 };
 
 static already_AddRefed<SharedMemory> NewSegment() {
-  return MakeAndAddRef<SharedMemoryBasic>();
+  return MakeAndAddRef<SharedMemory>();
 }
 
 static already_AddRefed<SharedMemory> CreateSegment(size_t aNBytes) {
@@ -116,13 +116,13 @@ static already_AddRefed<SharedMemory> ReadSegment(
 
 static void Protect(SharedMemory* aSegment) {
   MOZ_ASSERT(aSegment, "null segment");
-  aSegment->Protect(reinterpret_cast<char*>(aSegment->memory()),
+  aSegment->Protect(reinterpret_cast<char*>(aSegment->Memory()),
                     aSegment->Size(), RightsNone);
 }
 
 static void Unprotect(SharedMemory* aSegment) {
   MOZ_ASSERT(aSegment, "null segment");
-  aSegment->Protect(reinterpret_cast<char*>(aSegment->memory()),
+  aSegment->Protect(reinterpret_cast<char*>(aSegment->Memory()),
                     aSegment->Size(), RightsRead | RightsWrite);
 }
 
@@ -153,7 +153,7 @@ void Shmem::RevokeRights() {
 #endif  // if defined(DEBUG)
 
 Shmem::Shmem(SharedMemory* aSegment, id_t aId, size_t aSize, bool aUnsafe)
-    : mSegment(aSegment), mData(aSegment->memory()), mSize(aSize), mId(aId) {
+    : mSegment(aSegment), mData(aSegment->Memory()), mSize(aSize), mId(aId) {
 #ifdef DEBUG
   mUnsafe = aUnsafe;
   Unprotect(mSegment);

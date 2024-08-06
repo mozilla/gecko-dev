@@ -13,8 +13,7 @@
 #  include "prenv.h"
 #endif
 
-namespace mozilla {
-namespace ipc {
+namespace mozilla::ipc {
 
 #if defined(XP_MACOSX) && defined(__x86_64__)
 std::atomic<size_t> sPageSizeOverride = 0;
@@ -51,5 +50,4 @@ size_t SharedMemory::SystemPageSize() {
 #endif
 }
 
-}  // namespace ipc
-}  // namespace mozilla
+}  // namespace mozilla::ipc

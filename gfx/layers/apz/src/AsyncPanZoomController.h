@@ -42,7 +42,7 @@ namespace mozilla {
 
 namespace ipc {
 
-class SharedMemoryBasic;
+class SharedMemory;
 
 }  // namespace ipc
 

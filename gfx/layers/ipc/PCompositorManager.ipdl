@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  * vim: sw=2 ts=8 et :
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -14,7 +14,7 @@ include "mozilla/layers/WebRenderMessageUtils.h";
 using mozilla::TimeDuration from "mozilla/TimeStamp.h";
 using mozilla::CSSToLayoutDeviceScale from "Units.h";
 using mozilla::gfx::IntSize from "mozilla/gfx/2D.h";
-[MoveOnly] using mozilla::ipc::SharedMemoryBasic::Handle from "mozilla/ipc/SharedMemoryBasic.h";
+[MoveOnly] using mozilla::ipc::SharedMemory::Handle from "mozilla/ipc/SharedMemory.h";
 using mozilla::layers::CompositorOptions from "mozilla/layers/LayersMessageUtils.h";
 using mozilla::wr::ExternalImageId from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::MemoryReport from "mozilla/webrender/WebRenderTypes.h";

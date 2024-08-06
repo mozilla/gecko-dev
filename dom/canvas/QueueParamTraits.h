@@ -13,7 +13,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/ipc/ProtocolUtils.h"
-#include "mozilla/ipc/SharedMemoryBasic.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/Logging.h"
 #include "mozilla/TimeStamp.h"
 #include "nsExceptionHandler.h"
