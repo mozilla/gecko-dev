@@ -460,7 +460,7 @@ add_task(async function pick() {
 // Tests picking elements in a dynamic result.
 add_task(async function shouldNavigate() {
   /**
-   * A dummy provider that providers results with a `shouldNavigate` property.
+   * A dummy provider that providers results with a `url` property.
    */
   class TestShouldNavigateProvider extends TestProvider {
     /**
@@ -470,7 +470,6 @@ add_task(async function shouldNavigate() {
     async startQuery(context, addCallback) {
       for (let result of this.results) {
         result.payload.searchString = context.searchString;
-        result.payload.shouldNavigate = true;
         result.payload.url = DUMMY_PAGE;
         addCallback(this, result);
       }

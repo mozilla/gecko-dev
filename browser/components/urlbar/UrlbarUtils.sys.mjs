@@ -570,38 +570,34 @@ export var UrlbarUtils = {
   },
 
   /**
-   * Extracts an url from a result, if possible.
+   * Extracts the URL from a result.
    *
-   * @param {UrlbarResult} result The result to extract from.
-   * @returns {object} a {url, postData} object, or null if a url can't be built
-   *          from this result.
+   * @param {UrlbarResult} result
+   *   The result to extract from.
+   * @returns {object}
+   *   An object: `{ url, postData }`
+   *   `url` will be null if the result doesn't have a URL. `postData` will be
+   *   null if the result doesn't have post data.
    */
   getUrlFromResult(result) {
-    switch (result.type) {
-      case UrlbarUtils.RESULT_TYPE.URL:
-      case UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
-      case UrlbarUtils.RESULT_TYPE.TAB_SWITCH:
-        return { url: result.payload.url, postData: null };
-      case UrlbarUtils.RESULT_TYPE.KEYWORD:
-        return {
-          url: result.payload.url,
-          postData: result.payload.postData
-            ? this.getPostDataStream(result.payload.postData)
-            : null,
-        };
-      case UrlbarUtils.RESULT_TYPE.SEARCH: {
-        if (result.payload.engine) {
-          const engine = Services.search.getEngineByName(result.payload.engine);
-          let [url, postData] = this.getSearchQueryUrl(
-            engine,
-            result.payload.suggestion || result.payload.query
-          );
-          return { url, postData };
-        }
-        break;
-      }
+    if (
+      result.type == UrlbarUtils.RESULT_TYPE.SEARCH &&
+      result.payload.engine
+    ) {
+      const engine = Services.search.getEngineByName(result.payload.engine);
+      let [url, postData] = this.getSearchQueryUrl(
+        engine,
+        result.payload.suggestion || result.payload.query
+      );
+      return { url, postData };
     }
-    return { url: null, postData: null };
+
+    return {
+      url: result.payload.url ?? null,
+      postData: result.payload.postData
+        ? this.getPostDataStream(result.payload.postData)
+        : null,
+    };
   },
 
   /**
@@ -1722,6 +1718,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       satisfiesAutofillThreshold: {
         type: "boolean",
       },
+      searchUrlDomainWithoutSuffix: {
+        type: "string",
+      },
       suggestion: {
         type: "string",
       },
@@ -2089,12 +2088,6 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
     properties: {
       dynamicType: {
         type: "string",
-      },
-      // If `shouldNavigate` is `true` and the payload contains a `url`
-      // property, when the result is selected the browser will navigate to the
-      // `url`.
-      shouldNavigate: {
-        type: "boolean",
       },
     },
   },

@@ -816,10 +816,10 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
           return false;
         }
 
-        // For tab-to-search results, result.payload.url is the engine's domain
-        // with the public suffix already stripped, for example "www.mozilla.".
+        // `searchUrlDomainWithoutSuffix` is the engine's domain with the public
+        // suffix already stripped, for example "www.mozilla.".
         let [engineDomain] = UrlbarUtils.stripPrefixAndTrim(
-          result.payload.url,
+          result.payload.searchUrlDomainWithoutSuffix,
           {
             stripWww: true,
           }

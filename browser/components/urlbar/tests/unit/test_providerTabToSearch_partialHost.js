@@ -71,7 +71,7 @@ add_task(async function test() {
         makeSearchResult(context, {
           engineName: "TestEngine",
           engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-          uri: "en.example.",
+          searchUrlDomainWithoutSuffix: "en.example.",
           providesSearchMode: true,
           query: "",
           providerName: "TabToSearch",
@@ -114,7 +114,7 @@ add_task(async function test() {
         makeSearchResult(context, {
           engineName: engine2.name,
           engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-          uri: "www.it.mochi.",
+          searchUrlDomainWithoutSuffix: "www.it.mochi.",
           providesSearchMode: true,
           query: "",
           providerName: "TabToSearch",
@@ -162,7 +162,7 @@ add_task(async function test() {
         makeSearchResult(context, {
           engineName: "TestEngine3",
           engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-          uri: "search.foo.",
+          searchUrlDomainWithoutSuffix: "search.foo.",
           providesSearchMode: true,
           query: "",
           providerName: "TabToSearch",

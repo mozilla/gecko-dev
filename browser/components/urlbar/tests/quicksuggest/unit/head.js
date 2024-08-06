@@ -425,7 +425,6 @@ function makeWeatherResult({
       forecast: MerinoTestUtils.WEATHER_SUGGESTION.forecast.summary,
       high: MerinoTestUtils.WEATHER_SUGGESTION.forecast.high[temperatureUnit],
       low: MerinoTestUtils.WEATHER_SUGGESTION.forecast.low[temperatureUnit],
-      shouldNavigate: true,
     },
   };
 

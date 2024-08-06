@@ -614,10 +614,9 @@ useful in this case.
 URL Navigation
 ~~~~~~~~~~~~~~
 
-If a result's payload includes a string ``url`` property and a boolean
-``shouldNavigate: true`` property, then picking the result will navigate to the
-URL. The ``onLegacyEngagement`` method of the result's provider will still be called
-before navigation.
+If a result's payload includes a string ``url`` property, picking the result
+will navigate to the URL. The ``onEngagement`` method of the result's provider
+will be called before navigation.
 
 Text Highlighting
 ~~~~~~~~~~~~~~~~~

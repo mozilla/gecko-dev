@@ -361,7 +361,6 @@ export class Weather extends BaseFeature {
           forecast: suggestion.forecast.summary,
           high: suggestion.forecast.high[unit],
           low: suggestion.forecast.low[unit],
-          shouldNavigate: true,
         }
       ),
       {

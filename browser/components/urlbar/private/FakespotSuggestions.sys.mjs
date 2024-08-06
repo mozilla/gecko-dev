@@ -130,7 +130,6 @@ export class FakespotSuggestions extends BaseFeature {
       totalReviews: Number(suggestion.totalReviews),
       fakespotGrade: suggestion.fakespotGrade,
       fakespotProvider: this.#parseProvider(suggestion),
-      shouldNavigate: true,
       dynamicType: "fakespot",
     };
 

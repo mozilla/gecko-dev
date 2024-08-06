@@ -711,6 +711,9 @@ function makeRemoteTabResult(
  *   If the window to test is a private window.
  * @param {boolean} [options.isPrivateEngine]
  *   If the engine is a private engine.
+ * @param {string} [options.searchUrlDomainWithoutSuffix]
+ *   For tab-to-search results, the search engine domain without the public
+ *   suffix.
  * @param {number} [options.type]
  *   The type of the search result. Defaults to UrlbarUtils.RESULT_TYPE.SEARCH.
  * @param {number} [options.source]
@@ -739,6 +742,7 @@ function makeSearchResult(
     providerName,
     inPrivateWindow,
     isPrivateEngine,
+    searchUrlDomainWithoutSuffix,
     heuristic = false,
     trending = false,
     isRichSuggestion = false,
@@ -786,10 +790,11 @@ function makeSearchResult(
     payload.url = uri;
   }
   if (providerName == "TabToSearch") {
-    payload.satisfiesAutofillThreshold = satisfiesAutofillThreshold;
-    if (payload.url.startsWith("www.")) {
-      payload.url = payload.url.substring(4);
+    if (searchUrlDomainWithoutSuffix.startsWith("www.")) {
+      searchUrlDomainWithoutSuffix = searchUrlDomainWithoutSuffix.substring(4);
     }
+    payload.searchUrlDomainWithoutSuffix = searchUrlDomainWithoutSuffix;
+    payload.satisfiesAutofillThreshold = satisfiesAutofillThreshold;
     payload.isGeneralPurposeEngine = false;
   }
 

@@ -1238,19 +1238,13 @@ export class UrlbarInput {
         return;
       }
       case lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC: {
-        if (url) {
-          break;
-        }
-        url = result.payload.url;
-        // Keep the searchMode for telemetry since handleRevert sets it to null.
-        const searchMode = this.searchMode;
-        // Do not revert the Urlbar if we're going to navigate. We want the URL
-        // populated so we can navigate to it.
-        if (!url || !result.payload.shouldNavigate) {
+        if (!url) {
+          // If we're not loading a URL, the engagement is done. First revert
+          // and then record the engagement since providers expect the urlbar to
+          // be reverted when they're notified of the engagement, but before
+          // reverting, copy the search mode since it's nulled on revert.
+          const { searchMode } = this;
           this.handleRevert();
-        }
-        // If we won't be navigating, this is the end of the engagement.
-        if (!url || !result.payload.shouldNavigate) {
           this.controller.engagementEvent.record(event, {
             result,
             element,

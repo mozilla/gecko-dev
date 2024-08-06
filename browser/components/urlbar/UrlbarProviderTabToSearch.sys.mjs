@@ -404,16 +404,12 @@ class ProviderTabToSearch extends UrlbarProvider {
 }
 
 function makeOnboardingResult(engine, satisfiesAutofillThreshold = false) {
-  let [url] = UrlbarUtils.stripPrefixAndTrim(engine.searchUrlDomain, {
-    stripWww: true,
-  });
-  url = url.substr(0, url.length - engine.searchUrlPublicSuffix.length);
   let result = new lazy.UrlbarResult(
     UrlbarUtils.RESULT_TYPE.DYNAMIC,
     UrlbarUtils.RESULT_SOURCE.SEARCH,
     {
       engine: engine.name,
-      url,
+      searchUrlDomainWithoutSuffix: searchUrlDomainWithoutSuffix(engine),
       providesSearchMode: true,
       icon: UrlbarUtils.ICON.SEARCH_GLASS,
       dynamicType: DYNAMIC_RESULT_TYPE,
@@ -426,17 +422,13 @@ function makeOnboardingResult(engine, satisfiesAutofillThreshold = false) {
 }
 
 function makeResult(context, engine, satisfiesAutofillThreshold = false) {
-  let [url] = UrlbarUtils.stripPrefixAndTrim(engine.searchUrlDomain, {
-    stripWww: true,
-  });
-  url = url.substr(0, url.length - engine.searchUrlPublicSuffix.length);
   let result = new lazy.UrlbarResult(
     UrlbarUtils.RESULT_TYPE.SEARCH,
     UrlbarUtils.RESULT_SOURCE.SEARCH,
     ...lazy.UrlbarResult.payloadAndSimpleHighlights(context.tokens, {
       engine: engine.name,
       isGeneralPurposeEngine: engine.isGeneralPurposeEngine,
-      url,
+      searchUrlDomainWithoutSuffix: searchUrlDomainWithoutSuffix(engine),
       providesSearchMode: true,
       icon: UrlbarUtils.ICON.SEARCH_GLASS,
       query: "",
@@ -445,6 +437,13 @@ function makeResult(context, engine, satisfiesAutofillThreshold = false) {
   );
   result.suggestedIndex = 1;
   return result;
+}
+
+function searchUrlDomainWithoutSuffix(engine) {
+  let [value] = UrlbarUtils.stripPrefixAndTrim(engine.searchUrlDomain, {
+    stripWww: true,
+  });
+  return value.substr(0, value.length - engine.searchUrlPublicSuffix.length);
 }
 
 export var UrlbarProviderTabToSearch = new ProviderTabToSearch();

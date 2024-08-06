@@ -106,7 +106,9 @@ add_task(
         makeSearchResult(context, {
           engineName: engine.name,
           engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
-          uri: UrlbarUtils.stripPublicSuffixFromHost(engine.searchUrlDomain),
+          searchUrlDomainWithoutSuffix: UrlbarUtils.stripPublicSuffixFromHost(
+            engine.searchUrlDomain
+          ),
           providesSearchMode: true,
           query: "",
           providerName: "TabToSearch",
