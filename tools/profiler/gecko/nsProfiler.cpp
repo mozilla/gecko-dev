@@ -668,6 +668,44 @@ nsProfiler::DumpProfileToFileAsync(const nsACString& aFilename,
   return NS_OK;
 }
 
+RefPtr<nsProfiler::GatheringPromiseFileDump>
+nsProfiler::DumpProfileToFileAsyncNoJs(const nsACString& aFilename,
+                                       double aSinceTime) {
+  if (!profiler_is_active()) {
+    return GatheringPromiseFileDump::CreateAndReject(NS_ERROR_FAILURE,
+                                                     __func__);
+  }
+
+  nsCString filename(aFilename);
+
+  return StartGathering(aSinceTime)
+      ->Then(
+          GetMainThreadSerialEventTarget(), __func__,
+          [filename](const mozilla::ProfileAndAdditionalInformation& aResult) {
+            if (aResult.mProfile.Length() >=
+                size_t(std::numeric_limits<std::streamsize>::max())) {
+              return GatheringPromiseFileDump::CreateAndReject(
+                  NS_ERROR_FILE_TOO_BIG, __func__);
+            }
+
+            std::ofstream stream;
+            stream.open(filename.get());
+            if (!stream.is_open()) {
+              return GatheringPromiseFileDump::CreateAndReject(
+                  NS_ERROR_FILE_UNRECOGNIZED_PATH, __func__);
+            }
+
+            stream.write(aResult.mProfile.get(),
+                         std::streamsize(aResult.mProfile.Length()));
+            stream.close();
+            return GatheringPromiseFileDump::CreateAndResolve(void_t(),
+                                                              __func__);
+          },
+          [](nsresult aRv) {
+            return GatheringPromiseFileDump::CreateAndReject(aRv, __func__);
+          });
+}
+
 NS_IMETHODIMP
 nsProfiler::GetSymbolTable(const nsACString& aDebugPath,
                            const nsACString& aBreakpadID, JSContext* aCx,

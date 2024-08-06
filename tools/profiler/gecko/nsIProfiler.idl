@@ -10,11 +10,14 @@
 #include "nsTArrayForwardDeclare.h"
 #include "nsStringFwd.h"
 #include "mozilla/MozPromise.h"
+#include "mozilla/ipc/IPCCore.h"
 %}
 
 [ref] native nsCString(const nsCString);
 [ref] native StringArrayRef(const nsTArray<nsCString>);
 native ProfileDataBufferMozPromise(RefPtr<mozilla::MozPromise<FallibleTArray<uint8_t>, nsresult, true>>);
+
+native ProfileFileDumpMozPromise(RefPtr<mozilla::MozPromise<mozilla::void_t, nsresult, true>>);
 
 /**
  * Start-up parameters for subprocesses are passed through nsIObserverService,
@@ -105,6 +108,15 @@ interface nsIProfiler : nsISupports
   [implicit_jscontext]
   Promise dumpProfileToFileAsync(in ACString aFilename,
                                  [optional] in double aSinceTime);
+
+
+  /**
+   * Asynchronously dump the profile collected so far to a file. This is
+   * essentially the same as `dumpProfileToFileAsync`, but rather than returning
+   * a javascript Promise, it instead returns a MozPromise, meaning that we do
+   * not require a js context.
+   */
+  [notxpcom, nostdcall] ProfileFileDumpMozPromise dumpProfileToFileAsyncNoJs(in ACString aFilename, in double aSinceTime);
 
   /**
    * Synchronously dump the profile collected so far in this process to a file.
