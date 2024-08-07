@@ -134,27 +134,38 @@ nsresult GetClearResetOriginParams(nsIPrincipal* aPrincipal,
   return NS_OK;
 }
 
-class BoolResponsePromiseResolveOrRejectCallback {
- public:
-  using PromiseType = BoolResponsePromise;
-  using RequestType = Request;
+template <typename ResponseType>
+struct ResponseTypeTraits;
 
-  explicit BoolResponsePromiseResolveOrRejectCallback(
-      RefPtr<RequestType> aRequest)
+template <>
+struct ResponseTypeTraits<BoolResponse> {
+  static constexpr auto kType = BoolResponse::Tbool;
+
+  static RefPtr<nsVariant> CreateVariant(const BoolResponse& aResponse) {
+    RefPtr<nsVariant> variant = new nsVariant();
+    variant->SetAsBool(aResponse.get_bool());
+    return variant;
+  }
+};
+
+template <typename RequestType, typename PromiseType, typename ResponseType>
+class ResponsePromiseResolveOrRejectCallback {
+ public:
+  explicit ResponsePromiseResolveOrRejectCallback(RefPtr<RequestType> aRequest)
       : mRequest(std::move(aRequest)) {}
 
-  void operator()(const PromiseType::ResolveOrRejectValue& aValue) {
+  void operator()(const typename PromiseType::ResolveOrRejectValue& aValue) {
     if (aValue.IsResolve()) {
-      const BoolResponse& response = aValue.ResolveValue();
+      const ResponseType& response = aValue.ResolveValue();
 
       switch (response.type()) {
-        case BoolResponse::Tnsresult:
+        case ResponseType::Tnsresult:
           mRequest->SetError(response.get_nsresult());
           break;
 
-        case BoolResponse::Tbool: {
-          RefPtr<nsVariant> variant = new nsVariant();
-          variant->SetAsBool(response.get_bool());
+        case ResponseTypeTraits<ResponseType>::kType: {
+          RefPtr<nsVariant> variant =
+              ResponseTypeTraits<ResponseType>::CreateVariant(response);
 
           mRequest->SetResult(variant);
           break;
@@ -171,6 +182,10 @@ class BoolResponsePromiseResolveOrRejectCallback {
  private:
   RefPtr<RequestType> mRequest;
 };
+
+using BoolResponsePromiseResolveOrRejectCallback =
+    ResponsePromiseResolveOrRejectCallback<Request, BoolResponsePromise,
+                                           BoolResponse>;
 
 }  // namespace
 
