@@ -269,6 +269,7 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
 
   bool firstPrescriptsPair = false;
   nsBoundingMetrics bmBase, bmSubScript, bmSupScript, bmMultiSub, bmMultiSup;
+  nsMargin baseMargin, subScriptMargin, supScriptMargin;
   multiSubSize.SetBlockStartAscent(-0x7FFFFFFF);
   multiSupSize.SetBlockStartAscent(-0x7FFFFFFF);
   bmMultiSub.ascent = bmMultiSup.ascent = -0x7FFFFFFF;
@@ -316,6 +317,7 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
       // base
       baseFrame = childFrame;
       GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
+      baseMargin = GetMarginForPlace(aFlags, baseFrame);
 
       if (tag != nsGkAtoms::msub_) {
         // Apply italics correction if there is the potential for a
@@ -329,8 +331,9 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
 
       // we update boundingMetrics.{ascent,descent} with that
       // of the baseFrame only after processing all the sup/sub pairs
-      boundingMetrics.width = bmBase.width;
-      boundingMetrics.rightBearing = bmBase.rightBearing;
+      boundingMetrics.width = bmBase.width + baseMargin.LeftRight();
+      boundingMetrics.rightBearing =
+          bmBase.rightBearing + baseMargin.LeftRight();
       boundingMetrics.leftBearing = bmBase.leftBearing;  // until overwritten
     } else {
       // super/subscript block
@@ -339,23 +342,31 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
         subScriptFrame = childFrame;
         GetReflowAndBoundingMetricsFor(subScriptFrame, subScriptSize,
                                        bmSubScript);
+        subScriptMargin = GetMarginForPlace(aFlags, subScriptFrame);
+
         if (!mathFont) {
           // get the subdrop from the subscript font
           GetSubDropFromChild(subScriptFrame, subDrop, aFontSizeInflation);
         }
 
         // parameter v, Rule 18a, App. G, TeXbook
-        minSubScriptShift = bmBase.descent + subDrop;
+        minSubScriptShift = bmBase.descent + baseMargin.bottom + subDrop;
         trySubScriptShift = std::max(minSubScriptShift, subScriptShift);
-        multiSubSize.SetBlockStartAscent(std::max(
-            multiSubSize.BlockStartAscent(), subScriptSize.BlockStartAscent()));
-        bmMultiSub.ascent = std::max(bmMultiSub.ascent, bmSubScript.ascent);
-        bmMultiSub.descent = std::max(bmMultiSub.descent, bmSubScript.descent);
+        multiSubSize.SetBlockStartAscent(
+            std::max(multiSubSize.BlockStartAscent(),
+                     subScriptSize.BlockStartAscent() + subScriptMargin.top));
+        bmMultiSub.ascent = std::max(bmMultiSub.ascent,
+                                     bmSubScript.ascent + subScriptMargin.top);
+        bmMultiSub.descent = std::max(
+            bmMultiSub.descent, bmSubScript.descent + subScriptMargin.bottom);
         multiSubSize.Height() =
             std::max(multiSubSize.Height(),
-                     subScriptSize.Height() - subScriptSize.BlockStartAscent());
-        if (bmSubScript.width) width = bmSubScript.width + scriptSpace;
-        rightBearing = bmSubScript.rightBearing;
+                     subScriptSize.Height() - subScriptSize.BlockStartAscent() +
+                         subScriptMargin.bottom);
+        if (bmSubScript.width) {
+          width = bmSubScript.width + subScriptMargin.LeftRight() + scriptSpace;
+        }
+        rightBearing = bmSubScript.rightBearing + subScriptMargin.LeftRight();
 
         if (tag == nsGkAtoms::msub_) {
           boundingMetrics.rightBearing = boundingMetrics.width + rightBearing;
@@ -370,7 +381,8 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
             // = h(x) - 4/5 * sigma_5, Rule 18b, App. G, TeXbook
             subscriptTopMax = NSToCoordRound((4.0f / 5.0f) * xHeight);
           }
-          nscoord minShiftFromXHeight = bmSubScript.ascent - subscriptTopMax;
+          nscoord minShiftFromXHeight =
+              bmSubScript.ascent + subScriptMargin.top - subscriptTopMax;
           maxSubScriptShift = std::max(trySubScriptShift, minShiftFromXHeight);
 
           maxSubScriptShift = std::max(maxSubScriptShift, trySubScriptShift);
@@ -381,12 +393,13 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
         supScriptFrame = childFrame;
         GetReflowAndBoundingMetricsFor(supScriptFrame, supScriptSize,
                                        bmSupScript);
+        supScriptMargin = GetMarginForPlace(aFlags, supScriptFrame);
         if (!mathFont) {
           // get the supdrop from the supscript font
           GetSupDropFromChild(supScriptFrame, supDrop, aFontSizeInflation);
         }
         // parameter u, Rule 18a, App. G, TeXbook
-        minSupScriptShift = bmBase.ascent - supDrop;
+        minSupScriptShift = bmBase.ascent + baseMargin.top - supDrop;
         nscoord superscriptBottomMin;
         if (mathFont) {
           superscriptBottomMin = mathFont->MathTable()->Constant(
@@ -396,23 +409,31 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
           // = d(x) + 1/4 * sigma_5, Rule 18c, App. G, TeXbook
           superscriptBottomMin = NSToCoordRound((1.0f / 4.0f) * xHeight);
         }
-        minShiftFromXHeight = bmSupScript.descent + superscriptBottomMin;
+        minShiftFromXHeight =
+            bmSupScript.descent + supScriptMargin.bottom + superscriptBottomMin;
         trySupScriptShift = std::max(
             minSupScriptShift, std::max(minShiftFromXHeight, supScriptShift));
-        multiSupSize.SetBlockStartAscent(std::max(
-            multiSupSize.BlockStartAscent(), supScriptSize.BlockStartAscent()));
-        bmMultiSup.ascent = std::max(bmMultiSup.ascent, bmSupScript.ascent);
-        bmMultiSup.descent = std::max(bmMultiSup.descent, bmSupScript.descent);
+        multiSupSize.SetBlockStartAscent(
+            std::max(multiSupSize.BlockStartAscent(),
+                     supScriptSize.BlockStartAscent() + supScriptMargin.top));
+        bmMultiSup.ascent = std::max(bmMultiSup.ascent,
+                                     bmSupScript.ascent + supScriptMargin.top);
+        bmMultiSup.descent = std::max(
+            bmMultiSup.descent, bmSupScript.descent + supScriptMargin.bottom);
         multiSupSize.Height() =
             std::max(multiSupSize.Height(),
-                     supScriptSize.Height() - supScriptSize.BlockStartAscent());
+                     supScriptSize.Height() - supScriptSize.BlockStartAscent() +
+                         supScriptMargin.bottom);
 
         if (bmSupScript.width)
-          width = std::max(width, bmSupScript.width + scriptSpace);
+          width =
+              std::max(width, bmSupScript.width + supScriptMargin.LeftRight() +
+                                  scriptSpace);
 
         if (!prescriptsFrame) {  // we are still looping over base & postscripts
           rightBearing = std::max(rightBearing,
-                                  italicCorrection + bmSupScript.rightBearing);
+                                  italicCorrection + bmSupScript.rightBearing +
+                                      supScriptMargin.LeftRight());
           boundingMetrics.rightBearing = boundingMetrics.width + rightBearing;
           boundingMetrics.width += width;
         } else {
@@ -438,8 +459,10 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
             GetRuleThickness(aDrawTarget, fm, ruleSize);
             subSuperscriptGapMin = 4 * ruleSize;
           }
-          nscoord gap = (trySupScriptShift - bmSupScript.descent) -
-                        (bmSubScript.ascent - trySubScriptShift);
+          nscoord gap =
+              (trySupScriptShift - bmSupScript.descent -
+               supScriptMargin.bottom) -
+              (subScriptMargin.top + bmSubScript.ascent - trySubScriptShift);
           if (gap < subSuperscriptGapMin) {
             // adjust trySubScriptShift to get a gap of subSuperscriptGapMin
             trySubScriptShift += subSuperscriptGapMin - gap;
@@ -456,7 +479,8 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
                 NSToCoordRound((4.0f / 5.0f) * xHeight);
           }
           gap = superscriptBottomMaxWithSubscript -
-                (trySupScriptShift - bmSupScript.descent);
+                (trySupScriptShift - bmSupScript.descent -
+                 supScriptMargin.bottom);
           if (gap > 0) {
             trySupScriptShift += gap;
             trySubScriptShift -= gap;
@@ -506,34 +530,40 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
 
   // we left out the base during our bounding box updates, so ...
   if (tag == nsGkAtoms::msub_) {
-    boundingMetrics.ascent =
-        std::max(bmBase.ascent, bmMultiSub.ascent - maxSubScriptShift);
+    boundingMetrics.ascent = std::max(bmBase.ascent + baseMargin.top,
+                                      bmMultiSub.ascent - maxSubScriptShift);
   } else {
-    boundingMetrics.ascent =
-        std::max(bmBase.ascent, (bmMultiSup.ascent + maxSupScriptShift));
+    boundingMetrics.ascent = std::max(bmBase.ascent + baseMargin.top,
+                                      (bmMultiSup.ascent + maxSupScriptShift));
   }
   if (tag == nsGkAtoms::msup_) {
-    boundingMetrics.descent =
-        std::max(bmBase.descent, bmMultiSup.descent - maxSupScriptShift);
+    boundingMetrics.descent = std::max(bmBase.descent + baseMargin.bottom,
+                                       bmMultiSup.descent - maxSupScriptShift);
   } else {
     boundingMetrics.descent =
-        std::max(bmBase.descent, (bmMultiSub.descent + maxSubScriptShift));
+        std::max(bmBase.descent + baseMargin.bottom,
+                 (bmMultiSub.descent + maxSubScriptShift));
   }
-  aFrame->SetBoundingMetrics(boundingMetrics);
 
   // get the reflow metrics ...
   aDesiredSize.SetBlockStartAscent(
-      std::max(baseSize.BlockStartAscent(),
+      std::max(baseSize.BlockStartAscent() + baseMargin.top,
                std::max(multiSubSize.BlockStartAscent() - maxSubScriptShift,
                         multiSupSize.BlockStartAscent() + maxSupScriptShift)));
   aDesiredSize.Height() =
       aDesiredSize.BlockStartAscent() +
-      std::max(baseSize.Height() - baseSize.BlockStartAscent(),
-               std::max(multiSubSize.Height() + maxSubScriptShift,
-                        multiSupSize.Height() - maxSupScriptShift));
+      std::max(
+          baseSize.Height() - baseSize.BlockStartAscent() + baseMargin.bottom,
+          std::max(multiSubSize.Height() + maxSubScriptShift,
+                   multiSupSize.Height() - maxSupScriptShift));
   aDesiredSize.Width() = boundingMetrics.width;
   aDesiredSize.mBoundingMetrics = boundingMetrics;
 
+  // Add padding+border.
+  auto borderPadding = aFrame->GetBorderPaddingForPlace(aFlags);
+  InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize, boundingMetrics);
+
+  aFrame->SetBoundingMetrics(boundingMetrics);
   aFrame->SetReference(nsPoint(0, aDesiredSize.BlockStartAscent()));
 
   //////////////////
@@ -544,7 +574,10 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
   // We go over the list in a circular manner, starting at <prescripts/>
 
   if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
-    nscoord dx = 0, dy = 0;
+    const bool isRTL =
+        aFrame->StyleVisibility()->mDirection == StyleDirection::Rtl;
+    nscoord dx = isRTL ? borderPadding.right : borderPadding.left;
+    nscoord dy = 0;
 
     // With msub and msup there is only one element and
     // subscriptFrame/supScriptFrame have already been set above where
@@ -561,13 +594,18 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
         // place the base ...
         childFrame = baseFrame;
         dy = aDesiredSize.BlockStartAscent() - baseSize.BlockStartAscent();
+        baseMargin = GetMarginForPlace(aFlags, baseFrame);
+        dx += isRTL ? baseMargin.right : baseMargin.left;
         FinishReflowChild(
             baseFrame, aPresContext, baseSize, nullptr,
             aFrame->MirrorIfRTL(aDesiredSize.Width(), baseSize.Width(), dx), dy,
             ReflowChildFlags::Default);
         dx += bmBase.width;
+        dx += isRTL ? baseMargin.left : baseMargin.right;
       } else if (prescriptsFrame == childFrame) {
         // Clear reflow flags of prescripts frame.
+        // FIXME (bug 1909417): We should call FinishReflowChild at the same
+        // position as baseFrame.
         prescriptsFrame->DidReflow(aPresContext, nullptr);
       } else {
         // process each sup/sub pair
@@ -580,20 +618,28 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
 
           // get the ascent/descent of sup/subscripts stored in their rects
           // rect.x = descent, rect.y = ascent
-          if (subScriptFrame)
+          if (subScriptFrame) {
             GetReflowAndBoundingMetricsFor(subScriptFrame, subScriptSize,
                                            bmSubScript);
-          if (supScriptFrame)
+            subScriptMargin = GetMarginForPlace(aFlags, subScriptFrame);
+          }
+          if (supScriptFrame) {
             GetReflowAndBoundingMetricsFor(supScriptFrame, supScriptSize,
                                            bmSupScript);
+            supScriptMargin = GetMarginForPlace(aFlags, supScriptFrame);
+          }
 
-          width = std::max(subScriptSize.Width(), supScriptSize.Width());
+          width = std::max(subScriptSize.Width() + subScriptMargin.LeftRight(),
+                           supScriptSize.Width() + supScriptMargin.LeftRight());
 
           if (subScriptFrame) {
-            nscoord x = dx;
+            nscoord x =
+                dx + (isRTL ? subScriptMargin.right : subScriptMargin.left);
             // prescripts should be right aligned
             // https://bugzilla.mozilla.org/show_bug.cgi?id=928675
-            if (isPreScript) x += width - subScriptSize.Width();
+            if (isPreScript) {
+              x += width - subScriptSize.Width() - subScriptMargin.LeftRight();
+            }
             dy = aDesiredSize.BlockStartAscent() -
                  subScriptSize.BlockStartAscent() + maxSubScriptShift;
             FinishReflowChild(subScriptFrame, aPresContext, subScriptSize,
@@ -604,9 +650,10 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
           }
 
           if (supScriptFrame) {
-            nscoord x = dx;
+            nscoord x =
+                dx + (isRTL ? supScriptMargin.right : supScriptMargin.left);
             if (isPreScript) {
-              x += width - supScriptSize.Width();
+              x += width - supScriptSize.Width() - supScriptMargin.LeftRight();
             } else {
               // post superscripts are shifted by the italic correction value
               x += italicCorrection;
