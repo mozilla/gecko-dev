@@ -8,20 +8,10 @@
 #define DOM_QUOTA_QUOTAUSAGEREQUESTBASE_H_
 
 #include "NormalOriginOperationBase.h"
-#include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/dom/quota/PQuotaUsageRequestParent.h"
 
-class nsIFile;
+namespace mozilla::dom::quota {
 
-namespace mozilla {
-
-template <typename V, typename E>
-class Result;
-
-namespace dom::quota {
-
-struct OriginMetadata;
-class UsageInfo;
 class UsageRequestResponse;
 
 class QuotaUsageRequestBase : public NormalOriginOperationBase,
@@ -31,19 +21,10 @@ class QuotaUsageRequestBase : public NormalOriginOperationBase,
                         const char* aName)
       : NormalOriginOperationBase(std::move(aQuotaManager), aName) {}
 
-  mozilla::Result<UsageInfo, nsresult> GetUsageForOrigin(
-      QuotaManager& aQuotaManager, PersistenceType aPersistenceType,
-      const OriginMetadata& aOriginMetadata);
-
   // Subclasses use this override to set the IPDL response value.
   virtual void GetResponse(UsageRequestResponse& aResponse) = 0;
 
  private:
-  mozilla::Result<UsageInfo, nsresult> GetUsageForOriginEntries(
-      QuotaManager& aQuotaManager, PersistenceType aPersistenceType,
-      const OriginMetadata& aOriginMetadata, nsIFile& aDirectory,
-      bool aInitialized);
-
   void SendResults() override;
 
   // IPDL methods.
@@ -52,7 +33,6 @@ class QuotaUsageRequestBase : public NormalOriginOperationBase,
   mozilla::ipc::IPCResult RecvCancel() final;
 };
 
-}  // namespace dom::quota
-}  // namespace mozilla
+}  // namespace mozilla::dom::quota
 
 #endif  // DOM_QUOTA_QUOTAUSAGEREQUESTBASE_H_
