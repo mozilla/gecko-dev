@@ -18,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
+import kotlin.collections.removeFirst as removeFirstKt
 
 @RunWith(FenixRobolectricTestRunner::class)
 class WifiConnectionMonitorTest {
@@ -179,7 +180,7 @@ class WifiConnectionMonitorTest {
             wifiConnectionMonitor.addOnWifiConnectedChangedListener {
                 // Altering callbacks while looping.
                 if (wifiConnectionMonitor.callbacks.isNotEmpty()) {
-                    wifiConnectionMonitor.callbacks.removeFirst()
+                    wifiConnectionMonitor.callbacks.removeFirstKt()
                 }
             }
 
