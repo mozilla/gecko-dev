@@ -1,6 +1,13 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+const { GenAI } = ChromeUtils.importESModule(
+  "resource:///modules/GenAI.sys.mjs"
+);
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
+
 /**
  * Check that shortcuts aren't shown by default
  */
@@ -69,4 +76,42 @@ add_task(async function test_show_shortcuts() {
 
     SidebarController.hide();
   });
+});
+
+/**
+ * Check that only plain clicks would show shortcuts
+ */
+add_task(async function test_plain_clicks() {
+  const sandbox = sinon.createSandbox();
+  const stub = sandbox
+    .stub(GenAI, "handleShortcutsMessage")
+    .withArgs("GenAI:ShowShortcuts");
+
+  await BrowserTestUtils.withNewTab("data:text/plain,click", async browser => {
+    await BrowserTestUtils.synthesizeMouseAtCenter(
+      browser,
+      { type: "mouseup" },
+      browser
+    );
+
+    Assert.equal(stub.callCount, 1, "Plain click handled");
+
+    await BrowserTestUtils.synthesizeMouseAtCenter(
+      browser,
+      { button: 1, type: "mouseup" },
+      browser
+    );
+
+    Assert.equal(stub.callCount, 1, "Middle click ignored");
+
+    await BrowserTestUtils.synthesizeMouseAtCenter(
+      browser,
+      { shiftKey: true, type: "mouseup" },
+      browser
+    );
+
+    Assert.equal(stub.callCount, 1, "Modified click ignored");
+  });
+
+  sandbox.restore();
 });
