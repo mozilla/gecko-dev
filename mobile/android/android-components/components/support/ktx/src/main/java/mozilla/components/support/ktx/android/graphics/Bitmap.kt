@@ -5,6 +5,7 @@
 package mozilla.components.support.ktx.android.graphics
 
 import android.graphics.Bitmap
+import android.graphics.Bitmap.Config
 import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -35,7 +36,7 @@ private const val BITMAP_COMPRESSION_QUALITY = 100
  * - Wrap your bitmap's ImageView with a layout that masks your view with rounded corners (e.g. CardView)
  */
 @CheckResult
-fun Bitmap.withRoundedCorners(cornerRadiusPx: Float): Bitmap {
+fun Bitmap.withRoundedCorners(cornerRadiusPx: Float, config: Config): Bitmap {
     val roundedBitmap = Bitmap.createBitmap(width, height, config)
     val canvas = Canvas(roundedBitmap)
     val paint = Paint().apply {
