@@ -546,7 +546,7 @@ def category_reset():
                 "Benchmarks windows firefox": {
                     "raptor": [
                         "'browsertime 'benchmark",
-                        "!-32 'windows 'shippable",
+                        "!-32 !10-64 'windows 'shippable",
                         "!chrom !geckoview !fenix !safari !m-car !safari-tp",
                         "!bytecode",
                         "!live",
@@ -756,7 +756,7 @@ def category_reset():
                 "Responsiveness windows firefox": {
                     "raptor": [
                         "'browsertime 'responsive",
-                        "!-32 'windows 'shippable",
+                        "!-32 !10-64 'windows 'shippable",
                         "!chrom !geckoview !fenix !safari !m-car !safari-tp",
                         "!bytecode",
                         "!live",
@@ -778,7 +778,7 @@ def category_reset():
                 "Responsiveness windows firefox": {
                     "raptor": [
                         "'browsertime 'responsive",
-                        "!-32 'windows 'shippable",
+                        "!-32 !10-64 'windows 'shippable",
                         "!chrom !geckoview !fenix !safari !m-car !safari-tp",
                         "!bytecode",
                         "!profil",
@@ -787,7 +787,7 @@ def category_reset():
                 "Pageload windows live-sites": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "!-32 'windows 'shippable",
+                        "!-32 !10-64 'windows 'shippable",
                         "'live",
                         "!bytecode",
                         "!profil",
@@ -800,7 +800,7 @@ def category_reset():
                 "Graphics, & Media Playback windows": {
                     "raptor": [
                         "'browsertime 'youtube-playback",
-                        "!-32 'windows 'shippable",
+                        "!-32 !10-64 'windows 'shippable",
                         "!bytecode",
                         "!profil",
                         "!chrom",
@@ -810,7 +810,7 @@ def category_reset():
                     ],
                     "talos": [
                         "'talos 'svgr | 'bcv | 'webgl",
-                        "!-32 'windows 'shippable",
+                        "!-32 !10-64 'windows 'shippable",
                         "!profil",
                         "!swr",
                     ],

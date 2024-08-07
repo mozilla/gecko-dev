@@ -229,7 +229,7 @@ class ClassificationProvider:
                 "platform": Platforms.ANDROID.value,
             },
             Platforms.WINDOWS.value: {
-                "query": "!-32 'windows 'shippable",
+                "query": "!-32 !10-64 'windows 'shippable",
                 "platform": Platforms.DESKTOP.value,
             },
             Platforms.LINUX.value: {
