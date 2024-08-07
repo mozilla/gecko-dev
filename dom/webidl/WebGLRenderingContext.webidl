@@ -52,6 +52,9 @@ dictionary WebGLContextAttributes {
     GLboolean preserveDrawingBuffer = false;
     GLboolean failIfMajorPerformanceCaveat = false;
     WebGLPowerPreference powerPreference = "default";
+
+    [Func="nsRFPService::IsSoftwareRenderingOptionExposed"]
+    GLboolean forceSoftwareRendering = false;
 };
 
 [Exposed=(Window,Worker),

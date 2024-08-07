@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "nsISupports.idl"
+#include "nsIPrincipal.idl"
 
 webidl BrowsingContext;
 
@@ -13,7 +14,7 @@ interface nsIUserCharacteristicsPageService : nsISupports {
      * Create the UserCharacteristics about: page as a HiddenFrame
      * and begin the data collection.
      */
-    Promise createContentPage();
+    Promise createContentPage(in nsIPrincipal principal);
 
     /*
      * Called when the UserCharacteristics about: page has been loaded

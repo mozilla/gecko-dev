@@ -427,6 +427,7 @@ nsIXPConnect* nsContentUtils::sXPConnect;
 nsIScriptSecurityManager* nsContentUtils::sSecurityManager;
 nsIPrincipal* nsContentUtils::sSystemPrincipal;
 nsIPrincipal* nsContentUtils::sNullSubjectPrincipal;
+nsIPrincipal* nsContentUtils::sFingerprintingProtectionPrincipal;
 nsIConsoleService* nsContentUtils::sConsoleService;
 
 static nsTHashMap<RefPtr<nsAtom>, EventNameMapping>* sAtomEventTable;
@@ -819,6 +820,15 @@ nsresult nsContentUtils::Init() {
   }
 
   nullPrincipal.forget(&sNullSubjectPrincipal);
+
+  RefPtr<nsIPrincipal> fingerprintingProtectionPrincipal =
+      BasePrincipal::CreateContentPrincipal(
+          "about:fingerprintingprotection"_ns);
+  if (!fingerprintingProtectionPrincipal) {
+    return NS_ERROR_FAILURE;
+  }
+
+  fingerprintingProtectionPrincipal.forget(&sFingerprintingProtectionPrincipal);
 
   if (!InitializeEventTable()) return NS_ERROR_FAILURE;
 
@@ -1974,6 +1984,7 @@ void nsContentUtils::Shutdown() {
   NS_IF_RELEASE(sSecurityManager);
   NS_IF_RELEASE(sSystemPrincipal);
   NS_IF_RELEASE(sNullSubjectPrincipal);
+  NS_IF_RELEASE(sFingerprintingProtectionPrincipal);
 
   sBidiKeyboard = nullptr;
 

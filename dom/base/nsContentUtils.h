@@ -2127,6 +2127,13 @@ class nsContentUtils {
   }
 
   /**
+   * Gets the about:fingerprintingprotection principal.
+   */
+  static nsIPrincipal* GetFingerprintingProtectionPrincipal() {
+    return sFingerprintingProtectionPrincipal;
+  }
+
+  /**
    * *aResourcePrincipal is a principal describing who may access the contents
    * of a resource. The resource can only be consumed by a principal that
    * subsumes *aResourcePrincipal. MAKE SURE THAT NOTHING EVER ACTS WITH THE
@@ -3608,6 +3615,7 @@ class nsContentUtils {
   static nsIScriptSecurityManager* sSecurityManager;
   static nsIPrincipal* sSystemPrincipal;
   static nsIPrincipal* sNullSubjectPrincipal;
+  static nsIPrincipal* sFingerprintingProtectionPrincipal;
 
   static nsIConsoleService* sConsoleService;
 

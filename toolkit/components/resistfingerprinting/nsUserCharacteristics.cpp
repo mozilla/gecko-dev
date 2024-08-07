@@ -100,7 +100,9 @@ RefPtr<PopulatePromise> ContentPageStuff() {
 
   RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
   RefPtr<mozilla::dom::Promise> promise;
-  nsresult rv = ucp->CreateContentPage(getter_AddRefs(promise));
+  nsresult rv = ucp->CreateContentPage(
+      nsContentUtils::GetFingerprintingProtectionPrincipal(),
+      getter_AddRefs(promise));
   if (NS_FAILED(rv)) {
     MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Error,
             ("Could not create Content Page"));
