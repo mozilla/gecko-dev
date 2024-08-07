@@ -755,7 +755,6 @@ class MOZ_RAII InlinableNativeIRGenerator {
   AttachDecision tryAttachObjectIsPrototypeOf();
   AttachDecision tryAttachObjectKeys();
   AttachDecision tryAttachObjectToString();
-  AttachDecision tryAttachBigInt();
   AttachDecision tryAttachBigIntAsIntN();
   AttachDecision tryAttachBigIntAsUintN();
   AttachDecision tryAttachSetHas();

@@ -35,7 +35,6 @@
   _(AtomicsXor)                                    \
   _(AtomicsIsLockFree)                             \
                                                    \
-  _(BigInt)                                        \
   _(BigIntAsIntN)                                  \
   _(BigIntAsUintN)                                 \
                                                    \

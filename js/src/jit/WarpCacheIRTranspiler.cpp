@@ -4856,16 +4856,6 @@ bool WarpCacheIRTranspiler::emitAtomicsIsLockFreeResult(
   return true;
 }
 
-bool WarpCacheIRTranspiler::emitInt32ToBigIntResult(Int32OperandId inputId) {
-  MDefinition* input = getOperand(inputId);
-
-  auto* ins = MInt32ToBigInt::New(alloc(), input);
-  add(ins);
-
-  pushResult(ins);
-  return true;
-}
-
 bool WarpCacheIRTranspiler::emitBigIntAsIntNResult(Int32OperandId bitsId,
                                                    BigIntOperandId bigIntId) {
   MDefinition* bits = getOperand(bitsId);

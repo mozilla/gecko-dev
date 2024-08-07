@@ -126,7 +126,6 @@ namespace jit {
   _(CodePointAt, js::jit::CodePointAt)                                         \
   _(ConcatStrings, js::ConcatStrings<CanGC>)                                   \
   _(CreateAsyncFromSyncIterator, js::CreateAsyncFromSyncIterator)              \
-  _(CreateBigIntFromInt32, js::jit::CreateBigIntFromInt32)                     \
   _(CreateBigIntFromInt64, js::jit::CreateBigIntFromInt64)                     \
   _(CreateBigIntFromUint64, js::jit::CreateBigIntFromUint64)                   \
   _(CreateGenerator, js::jit::CreateGenerator)                                 \
