@@ -76,4 +76,33 @@ async function testSteps() {
   info("Verifying result");
 
   verifyResult(result, resultAfterInstall);
+
+  info("Getting origin usage");
+
+  Services.prefs.setIntPref(
+    "dom.quotaManager.originOperations.pauseOnIOThreadMs",
+    1000
+  );
+
+  request = getOriginUsage(principal);
+
+  info("Cancelling request");
+
+  request.cancel();
+
+  try {
+    result = await requestFinished(request);
+    ok(false, "Should have thrown");
+  } catch (e) {
+    ok(true, "Should have thrown");
+    Assert.strictEqual(
+      e.resultCode,
+      NS_ERROR_FAILURE,
+      "Threw right result code"
+    );
+  }
+
+  Services.prefs.clearUserPref(
+    "dom.quotaManager.originOperations.pauseOnIOThreadMs"
+  );
 }
