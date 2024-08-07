@@ -42,6 +42,7 @@ const KNOWN_ERROR_TITLE_IDS = new Set([
   "unsafeContentType-title",
   "netReset-title",
   "netTimeout-title",
+  "serverError-title",
   "unknownProtocolFound-title",
   "proxyConnectFailure-title",
   "proxyResolveFailure-title",
@@ -745,6 +746,7 @@ function getNetErrorDescParts() {
     case "netInterrupt":
     case "netReset":
     case "netTimeout":
+    case "serverError":
       return [
         ["li", "neterror-load-error-try-again"],
         ["li", "neterror-load-error-connection"],

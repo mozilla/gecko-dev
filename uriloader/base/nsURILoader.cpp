@@ -444,9 +444,9 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request) {
     rv = httpChannel->GetRequestSucceeded(&requestSucceeded);
     if (NS_FAILED(rv) || !requestSucceeded) {
       LOG(
-          ("  Returning NS_ERROR_FILE_NOT_FOUND from "
+          ("  Returning NS_ERROR_NET_ERROR_RESPONSE from "
            "nsDocumentOpenInfo::DispatchContent due to failed HTTP response"));
-      return NS_ERROR_FILE_NOT_FOUND;
+      return NS_ERROR_NET_ERROR_RESPONSE;
     }
   }
 

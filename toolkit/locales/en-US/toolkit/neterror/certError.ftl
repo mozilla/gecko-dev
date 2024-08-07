@@ -125,6 +125,7 @@ contentEncodingError-title = Content Encoding Error
 unsafeContentType-title = Unsafe File Type
 netReset-title = The connection was reset
 netTimeout-title = The connection has timed out
+serverError-title = Looks like there’s a problem with this site
 unknownProtocolFound-title = The address wasn’t understood
 proxyConnectFailure-title = The proxy server is refusing connections
 proxyResolveFailure-title = Unable to find the proxy server

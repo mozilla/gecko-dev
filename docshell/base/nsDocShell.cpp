@@ -3360,6 +3360,9 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
       nestedURI = do_QueryInterface(tempURI);
     }
     error = "unknownProtocolFound";
+  } else if (NS_ERROR_NET_ERROR_RESPONSE == aError) {
+    NS_ENSURE_ARG_POINTER(aURI);
+    error = "serverError";
   } else if (NS_ERROR_FILE_NOT_FOUND == aError) {
     NS_ENSURE_ARG_POINTER(aURI);
     error = "fileNotFound";
@@ -6146,6 +6149,7 @@ nsresult nsDocShell::FilterStatusForErrorPage(
 
   if (aStatus == NS_ERROR_NET_TIMEOUT ||
       aStatus == NS_ERROR_NET_TIMEOUT_EXTERNAL ||
+      aStatus == NS_ERROR_NET_ERROR_RESPONSE ||
       aStatus == NS_ERROR_PROXY_GATEWAY_TIMEOUT ||
       aStatus == NS_ERROR_REDIRECT_LOOP ||
       aStatus == NS_ERROR_UNKNOWN_SOCKET_TYPE ||
