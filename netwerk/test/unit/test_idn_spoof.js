@@ -655,7 +655,7 @@ let testCases = [
   // Tibetan transliteration characters.
   ["xn--com-lum.test.pl", "com\u0f8c.test.pl", kUnsafe],
   // Arabic letter KASHMIRI YEH
-  ["xn--fgb.com", "\u0620.com", kUnsafe, "DISABLED"],
+  ["xn--fgb.com", "\u0620.com", kUnsafe, "macosx"],
 // #endif
 
   // Hyphens (http://unicode.org/cldr/utility/confusables.jsp?a=-)
@@ -1027,7 +1027,10 @@ add_task(async function test_chrome_spoofs() {
     try {
       result = idnService.convertToDisplayIDN(test[0]);
     } catch (e) {}
-    let expectedFail = test.length == 4 && test[3] == "DISABLED";
+    // If test[3] is set to a platform, the test is expected to pass only on that platform
+    let expectedFail =
+      test.length == 4 &&
+      (test[3] == "DISABLED" || test[3] != AppConstants.platform);
     if (test[2] == kSafe) {
       checkEquals(
         result,
