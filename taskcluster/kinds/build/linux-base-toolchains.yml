@@ -120,6 +120,7 @@ linux64-base-toolchains-clang/opt:
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
         tooltool-downloads: public
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-binutils-2.31.1
@@ -130,6 +131,7 @@ linux64-base-toolchains-clang/opt:
             - linux64-nasm-2.14.02
             - linux64-node-12
             - linux64-pkgconf
+            - linux64-sccache
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi-clang-8.0
 
@@ -159,6 +161,7 @@ linux64-base-toolchains-clang/debug:
         custom-build-variant-cfg: debug
         mozconfig-variant: debug
         tooltool-downloads: public
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-binutils-2.31.1
@@ -169,5 +172,6 @@ linux64-base-toolchains-clang/debug:
             - linux64-nasm-2.14.02
             - linux64-node-12
             - linux64-pkgconf
+            - linux64-sccache
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi-clang-8.0

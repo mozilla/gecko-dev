@@ -28,6 +28,9 @@ unic-langid = { version = "0.9.1" }
 uuid = { version = "1", features = ["v4", "serde"] }
 zip = { version = "2.1.2", default-features = false }
 
+# Workarounds for https://github.com/rust-lang/rust/issues/58393
+lmdb-rkv-sys = "0.11"
+
 [target."cfg(target_os = \"macos\")".dependencies]
 block = "0.1"
 cocoa = { package = "cocoabind", path = "../cocoabind" }

@@ -1033,6 +1033,7 @@ dependencies = [
  "gtkbind",
  "intl-memoizer",
  "libloading",
+ "lmdb-rkv-sys",
  "log",
  "mozbuild",
  "mozilla-central-workspace-hack",
