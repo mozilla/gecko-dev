@@ -3,7 +3,7 @@
 
 All notable changes to this program are documented in this file.
 
-## 0.35.0 (2024-08-05, ``)
+## 0.35.0 (2024-08-06, `9f0a0036bea4`)
 
 ### Known problems
 
@@ -29,6 +29,8 @@ All notable changes to this program are documented in this file.
   crash situation needs to be investigated. See our documentation for
   [crash reports] in how to share these with us.
 
+  Implemented by [Razvan Cojocaru].
+
 ### Changed
 
 - The validation of the `unhandledPromptBehavior` capability has been enhanced
@@ -40,12 +42,17 @@ All notable changes to this program are documented in this file.
 - The [Switch To Frame] command now correctly raises an "invalid argument"
   error when the `id` parameter is missing.
 
+  Implemented by [James Hendry].
+
 ### Removed
 
 - Removed support for session negotiation using the deprecated
   `desiredCapabilities` and `requiredCapabilities`.
+
+  Implemented by [James Hendry].
+
 - Removed support for the `moz:useNonSpecCompliantPointerOrigin` capability,
-  which has not bee supported since Firefox 116.
+  which has not been supported since Firefox 116.
 
 ## 0.34.0 (2024-01-03, `c44f0d09630a`)
 
