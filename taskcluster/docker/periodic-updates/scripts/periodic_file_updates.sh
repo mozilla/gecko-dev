@@ -14,7 +14,7 @@ Usage: $(basename "$0") [-p product]
            # Use archive.m.o instead of the taskcluster index to get xpcshell
            [--use-ftp-builds]
            # One (or more) of the following actions must be specified.
-           --hsts | --hpkp | --remote-settings | --suffix-list | --mobile-experiments | --ct-logs
+           --hsts | --hpkp | --remote-settings | --suffix-list | --mobile-experiments
            -b branch
 
 EOF
@@ -79,9 +79,6 @@ EXPERIMENTER_URL="https://experimenter.services.mozilla.com/api/v6/experiments-f
 FENIX_INITIAL_EXPERIMENTS="mobile/android/fenix/app/src/main/res/raw/initial_experiments.json"
 FOCUS_INITIAL_EXPERIMENTS="mobile/android/focus-android/app/src/main/res/raw/initial_experiments.json"
 MOBILE_EXPERIMENTS_UPDATED=false
-
-DO_CT_LOGS=false
-CT_LOG_UPDATE_SCRIPT="${SCRIPTDIR}/getCTKnownLogs.py"
 
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-.}"
 # Defaults
@@ -415,11 +412,6 @@ function compare_mobile_experiments() {
   fi
 }
 
-function update_ct_logs() {
-  echo "INFO: Updating CT logs..."
-  "${REPODIR}"/mach python "${CT_LOG_UPDATE_SCRIPT}"
-}
-
 # Clones an hg repo
 function clone_repo {
   cd "${BASEDIR}"
@@ -507,7 +499,6 @@ while [ $# -gt 0 ]; do
     --remote-settings) DO_REMOTE_SETTINGS=true ;;
     --suffix-list) DO_SUFFIX_LIST=true ;;
     --mobile-experiments) DO_MOBILE_EXPERIMENTS=true ;;
-    --ct-logs) DO_CT_LOGS=true ;;
     -r) REPODIR="$2"; shift ;;
     --use-mozilla-central) USE_MC=true ;;
     --use-ftp-builds) USE_TC=false ;;
@@ -526,7 +517,7 @@ if [ "${BRANCH}" == "" ]; then
 fi
 
 # Must choose at least one update action.
-if [ "$DO_HSTS" == "false" ] && [ "$DO_HPKP" == "false" ] && [ "$DO_REMOTE_SETTINGS" == "false" ] && [ "$DO_SUFFIX_LIST" == "false" ] && [ "$DO_MOBILE_EXPERIMENTS" == false ] && [ "$DO_CT_LOGS" == false ]
+if [ "$DO_HSTS" == "false" ] && [ "$DO_HPKP" == "false" ] && [ "$DO_REMOTE_SETTINGS" == "false" ] && [ "$DO_SUFFIX_LIST" == "false" ] && [ "$DO_MOBILE_EXPERIMENTS" == false ]
 then
   echo "Error: you must specify at least one action from: --hsts, --hpkp, --remote-settings, or --suffix-list" >&2
   usage
@@ -612,12 +603,9 @@ if [ "${DO_MOBILE_EXPERIMENTS}" == "true" ]; then
     MOBILE_EXPERIMENTS_UPDATED=true
   fi
 fi
-if [ "${DO_CT_LOGS}" == "true" ]; then
-  update_ct_logs
-fi
 
 
-if [ "${HSTS_UPDATED}" == "false" ] && [ "${HPKP_UPDATED}" == "false" ] && [ "${REMOTE_SETTINGS_UPDATED}" == "false" ] && [ "${SUFFIX_LIST_UPDATED}" == "false" ] && [ "${MOBILE_EXPERIMENTS_UPDATED}" == "false" ] && [ "${DO_CT_LOGS}" == "false" ]; then
+if [ "${HSTS_UPDATED}" == "false" ] && [ "${HPKP_UPDATED}" == "false" ] && [ "${REMOTE_SETTINGS_UPDATED}" == "false" ] && [ "${SUFFIX_LIST_UPDATED}" == "false" ] && [ "${MOBILE_EXPERIMENTS_UPDATED}" == "false" ]; then
   echo "INFO: no updates required. Exiting."
   exit 0
 else
@@ -656,13 +644,6 @@ if [ "${MOBILE_EXPERIMENTS_UPDATED}" == "true" ]
 then
   stage_mobile_experiments_files
   COMMIT_MESSAGE="${COMMIT_MESSAGE} mobile-experiments"
-fi
-
-if [ "${DO_CT_LOGS}" == "true" ]
-then
-  # CT log files are already updated in-place in the tree, so
-  # there's no need to stage them.
-  COMMIT_MESSAGE="${COMMIT_MESSAGE} ct-logs"
 fi
 
 if [ ${DONTBUILD} == true ]; then
