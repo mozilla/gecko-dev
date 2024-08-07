@@ -87,7 +87,8 @@ class SubtleCrypto final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<Promise> DeriveBits(JSContext* cx,
                                        const ObjectOrString& algorithm,
-                                       CryptoKey& baseKey, uint32_t length,
+                                       CryptoKey& baseKey,
+                                       const Nullable<uint32_t>& length,
                                        ErrorResult& aRv);
 
   already_AddRefed<Promise> WrapKey(JSContext* cx, const nsAString& format,

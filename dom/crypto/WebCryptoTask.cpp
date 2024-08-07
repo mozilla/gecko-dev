@@ -2481,8 +2481,8 @@ class GenerateSymmetricKeyTask : public WebCryptoTask {
 class DeriveX25519BitsTask : public ReturnArrayBufferViewTask {
  public:
   DeriveX25519BitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
-                       CryptoKey& aKey, uint32_t aLength)
-      : mLength(Some(aLength)), mPrivKey(aKey.GetPrivateKey()) {
+                       CryptoKey& aKey, const Nullable<uint32_t>& aLength)
+      : mLength(aLength), mPrivKey(aKey.GetPrivateKey()) {
     Init(aCx, aAlgorithm, aKey);
   }
 
@@ -2504,12 +2504,12 @@ class DeriveX25519BitsTask : public ReturnArrayBufferViewTask {
 
     // If specified, length must be a multiple of 8 bigger than zero
     // (otherwise, the full output of the key derivation is used).
-    if (mLength) {
-      if (*mLength == 0 || *mLength % 8) {
+    if (!mLength.IsNull()) {
+      if (mLength.Value() == 0 || mLength.Value() % 8) {
         mEarlyRv = NS_ERROR_DOM_DATA_ERR;
         return;
       }
-      *mLength = *mLength >> 3;  // bits to bytes
+      mLength.SetValue(mLength.Value() >> 3);  // bits to bytes
     }
 
     // Retrieve the peer's public key.
@@ -2532,7 +2532,7 @@ class DeriveX25519BitsTask : public ReturnArrayBufferViewTask {
   }
 
  private:
-  Maybe<size_t> mLength;
+  Nullable<uint32_t> mLength;
   UniqueSECKEYPrivateKey mPrivKey;
   UniqueSECKEYPublicKey mPubKey;
 
@@ -2563,11 +2563,11 @@ class DeriveX25519BitsTask : public ReturnArrayBufferViewTask {
     // data, so mResult manages one copy, while symKey manages another.
     ATTEMPT_BUFFER_ASSIGN(mResult, PK11_GetKeyData(symKey.get()));
 
-    if (mLength) {
-      if (*mLength > mResult.Length()) {
+    if (!mLength.IsNull()) {
+      if (mLength.Value() > mResult.Length()) {
         return NS_ERROR_DOM_OPERATION_ERR;
       }
-      if (!mResult.SetLength(*mLength, fallible)) {
+      if (!mResult.SetLength(mLength.Value(), fallible)) {
         return NS_ERROR_DOM_UNKNOWN_ERR;
       }
     }
@@ -2785,7 +2785,7 @@ void GenerateAsymmetricKeyTask::Cleanup() { mKeyPair = nullptr; }
 class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
  public:
   DeriveHkdfBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
-                     CryptoKey& aKey, uint32_t aLength)
+                     CryptoKey& aKey, const Nullable<uint32_t>& aLength)
       : mMechanism(CKM_INVALID_MECHANISM) {
     Init(aCx, aAlgorithm, aKey, aLength);
   }
@@ -2796,13 +2796,14 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
     size_t length;
     mEarlyRv = GetKeyLengthForAlgorithm(aCx, aTargetAlgorithm, length);
 
+    const Nullable<uint32_t> keyLength(length);
     if (NS_SUCCEEDED(mEarlyRv)) {
-      Init(aCx, aAlgorithm, aKey, length);
+      Init(aCx, aAlgorithm, aKey, keyLength);
     }
   }
 
   void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
-            uint32_t aLength) {
+            const Nullable<uint32_t>& aLength) {
     Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_HKDF);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_HKDF);
 
@@ -2818,8 +2819,8 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
       return;
     }
 
-    // length must be greater than zero and multiple of eight.
-    if (aLength == 0 || aLength % 8 != 0) {
+    // length must be non-null and greater than zero and multiple of eight.
+    if (aLength.IsNull() || aLength.Value() == 0 || aLength.Value() % 8 != 0) {
       mEarlyRv = NS_ERROR_DOM_OPERATION_ERR;
       return;
     }
@@ -2852,8 +2853,8 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
 
     ATTEMPT_BUFFER_INIT(mSalt, params.mSalt)
     ATTEMPT_BUFFER_INIT(mInfo, params.mInfo)
-    mLengthInBytes = ceil((double)aLength / 8);
-    mLengthInBits = aLength;
+    mLengthInBytes = ceil((double)aLength.Value() / 8);
+    mLengthInBits = aLength.Value();
   }
 
  private:
@@ -2931,7 +2932,7 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
 class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
  public:
   DerivePbkdfBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
-                      CryptoKey& aKey, uint32_t aLength)
+                      CryptoKey& aKey, const Nullable<uint32_t>& aLength)
       : mHashOidTag(SEC_OID_UNKNOWN) {
     Init(aCx, aAlgorithm, aKey, aLength);
   }
@@ -2942,13 +2943,14 @@ class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
     size_t length;
     mEarlyRv = GetKeyLengthForAlgorithm(aCx, aTargetAlgorithm, length);
 
+    const Nullable<uint32_t> keyLength(length);
     if (NS_SUCCEEDED(mEarlyRv)) {
-      Init(aCx, aAlgorithm, aKey, length);
+      Init(aCx, aAlgorithm, aKey, keyLength);
     }
   }
 
   void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
-            uint32_t aLength) {
+            const Nullable<uint32_t>& aLength) {
     Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_PBKDF2);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_PBKDF2);
 
@@ -2964,8 +2966,8 @@ class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
       return;
     }
 
-    // length must be a multiple of 8 bigger than zero.
-    if (aLength == 0 || aLength % 8) {
+    // length must be non-null and greater than zero and multiple of eight.
+    if (aLength.IsNull() || aLength.Value() == 0 || aLength.Value() % 8) {
       mEarlyRv = NS_ERROR_DOM_OPERATION_ERR;
       return;
     }
@@ -2997,7 +2999,7 @@ class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
     }
 
     ATTEMPT_BUFFER_INIT(mSalt, params.mSalt)
-    mLength = aLength >> 3;  // bits to bytes
+    mLength = aLength.Value() >> 3;  // bits to bytes
     mIterations = params.mIterations;
   }
 
@@ -3101,16 +3103,22 @@ class DeriveKeyTask : public DeriveBitsTask {
 class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
  public:
   DeriveEcdhBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
-                     CryptoKey& aKey, uint32_t aLength)
-      : mLengthInBits(Some(aLength)), mPrivKey(aKey.GetPrivateKey()) {
+                     CryptoKey& aKey, const Nullable<uint32_t>& aLength)
+      : mLengthInBits(aLength), mPrivKey(aKey.GetPrivateKey()) {
     Init(aCx, aAlgorithm, aKey);
   }
 
   DeriveEcdhBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
                      CryptoKey& aKey, const ObjectOrString& aTargetAlgorithm)
       : mPrivKey(aKey.GetPrivateKey()) {
+    Maybe<size_t> lengthInBits;
     mEarlyRv = GetKeyLengthForAlgorithmIfSpecified(aCx, aTargetAlgorithm,
-                                                   mLengthInBits);
+                                                   lengthInBits);
+    if (lengthInBits.isNothing()) {
+      mLengthInBits.SetNull();
+    } else {
+      mLengthInBits.SetValue(*lengthInBits);
+    }
     if (NS_SUCCEEDED(mEarlyRv)) {
       Init(aCx, aAlgorithm, aKey);
     }
@@ -3128,8 +3136,8 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
 
     // If specified, length must be bigger than zero
     // (otherwise, the full output of the key derivation is used).
-    if (mLengthInBits) {
-      if (*mLengthInBits == 0) {
+    if (!mLengthInBits.IsNull()) {
+      if (mLengthInBits.Value() == 0) {
         mEarlyRv = NS_ERROR_DOM_DATA_ERR;
         return;
       }
@@ -3163,7 +3171,7 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
   }
 
  private:
-  Maybe<size_t> mLengthInBits;
+  Nullable<uint32_t> mLengthInBits;
   UniqueSECKEYPrivateKey mPrivKey;
   UniqueSECKEYPublicKey mPubKey;
 
@@ -3189,21 +3197,21 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
     // data, so mResult manages one copy, while symKey manages another.
     ATTEMPT_BUFFER_ASSIGN(mResult, PK11_GetKeyData(symKey.get()));
 
-    if (mLengthInBits) {
-      size_t mLengthInBytes =
-          ceil((double)*mLengthInBits / 8);  // bits to bytes
-      if (mLengthInBytes > mResult.Length()) {
+    if (!mLengthInBits.IsNull()) {
+      size_t length = mLengthInBits.Value();
+      size_t lengthInBytes = ceil((double)length / 8);  // bits to bytes
+      if (lengthInBytes > mResult.Length()) {
         return NS_ERROR_DOM_OPERATION_ERR;
       }
 
-      if (!mResult.SetLength(mLengthInBytes, fallible)) {
+      if (!mResult.SetLength(lengthInBytes, fallible)) {
         return NS_ERROR_DOM_UNKNOWN_ERR;
       }
 
       // If the number of bits to derive is not a multiple of 8 we need to
       // zero out the remaining bits that were derived but not requested.
-      if (*mLengthInBits % 8) {
-        mResult[mResult.Length() - 1] &= 0xff << (8 - (*mLengthInBits % 8));
+      if (length % 8) {
+        mResult[mResult.Length() - 1] &= 0xff << (8 - (length % 8));
       }
     }
 
@@ -3558,7 +3566,7 @@ WebCryptoTask* WebCryptoTask::CreateDeriveKeyTask(
 
 WebCryptoTask* WebCryptoTask::CreateDeriveBitsTask(
     JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
-    uint32_t aLength) {
+    const Nullable<uint32_t>& aLength) {
   Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_DERIVEBITS);
 
   // Ensure baseKey is usable for this operation

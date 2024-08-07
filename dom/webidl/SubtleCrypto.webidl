@@ -217,7 +217,7 @@ interface SubtleCrypto {
   [NewObject]
   Promise<any> deriveBits(AlgorithmIdentifier algorithm,
                           CryptoKey baseKey,
-                          unsigned long length);
+                          optional unsigned long? length = null);
 
   [NewObject]
   Promise<any> importKey(KeyFormat format,
