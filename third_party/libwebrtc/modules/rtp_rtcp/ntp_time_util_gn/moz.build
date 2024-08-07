@@ -30,62 +30,8 @@ LOCAL_INCLUDES += [
     "/tools/profiler/public"
 ]
 
-SOURCES += [
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/flexfec_03_header_reader_writer.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/flexfec_receiver.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_sender.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_format_vp8.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_sender_egress.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_sender_video.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/ulpfec_generator.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.cc"
-]
-
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/absolute_capture_time_interpolator.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/absolute_capture_time_sender.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/active_decode_targets_helper.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/capture_clock_offset_updater.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/create_video_rtp_depacketizer.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/dtmf_queue.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/fec_private_tables_bursty.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/fec_private_tables_random.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/flexfec_header_reader_writer.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/flexfec_sender.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/forward_error_correction.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/forward_error_correction_internal.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/frame_object.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/packet_loss_stats.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/packet_sequencer.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/receive_statistics_impl.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/remote_ntp_time_estimator.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_nack_stats.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_receiver.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_descriptor_authentication.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_format.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_format_h264.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_format_video_generic.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_format_vp9.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_header_extension_size.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_packet_history.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_packet_send_info.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_packetizer_av1.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_sender.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_sender_audio.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_sequence_number_map.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/source_tracker.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/tmmbr_help.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/ulpfec_header_reader_writer.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/ulpfec_receiver.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/video_rtp_depacketizer.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/video_rtp_depacketizer_av1.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/video_rtp_depacketizer_generic.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/video_rtp_depacketizer_raw.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/video_rtp_depacketizer_vp8.cc"
+    "/third_party/libwebrtc/modules/rtp_rtcp/source/ntp_time_util.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -113,7 +59,6 @@ if CONFIG["OS_TARGET"] == "Android":
     DEFINES["__STDC_FORMAT_MACROS"] = True
 
     OS_LIBS += [
-        "GLESv2",
         "log"
     ]
 
@@ -283,4 +228,4 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("rtp_rtcp_gn")
+Library("ntp_time_util_gn")
