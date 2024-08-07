@@ -41,6 +41,9 @@ with Files("tryselect/**"):
 with Files("tryselect/selectors/release.py"):
     BUG_COMPONENT = ("Release Engineering", "General")
 
+with Files("ts/**"):
+    BUG_COMPONENT = ("Developer Infrastructure", "Lint and Formatting")
+
 with Files("update-packaging/**"):
     BUG_COMPONENT = ("Release Engineering", "General")
 
