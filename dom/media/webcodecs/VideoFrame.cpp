@@ -1101,12 +1101,12 @@ static void InitializeVisibleRectAndDisplaySize(
 
 // https://w3c.github.io/webcodecs/#videoframe-initialize-frame-with-resource-and-size
 static Result<already_AddRefed<VideoFrame>, nsCString>
-InitializeFrameWithResourceAndSize(
-    nsIGlobalObject* aGlobal, const VideoFrameInit& aInit,
-    already_AddRefed<layers::SourceSurfaceImage> aImage) {
+InitializeFrameWithResourceAndSize(nsIGlobalObject* aGlobal,
+                                   const VideoFrameInit& aInit,
+                                   already_AddRefed<layers::Image> aImage) {
   MOZ_ASSERT(aInit.mTimestamp.WasPassed());
 
-  RefPtr<layers::SourceSurfaceImage> image(aImage);
+  RefPtr<layers::Image> image(aImage);
   MOZ_ASSERT(image);
 
   RefPtr<gfx::SourceSurface> surface = image->GetAsSourceSurface();
