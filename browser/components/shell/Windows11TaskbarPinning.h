@@ -29,7 +29,6 @@ struct Win11PinToTaskBarResult {
 };
 
 Win11PinToTaskBarResult PinCurrentAppToTaskbarWin11(
-    bool aCheckOnly, const nsAString& aAppUserModelId,
-    nsAutoString aShortcutPath);
+    bool aCheckOnly, const nsAString& aAppUserModelId);
 
 #endif  // SHELL_WINDOWS11TASKBARPINNING_H__

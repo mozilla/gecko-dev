@@ -9,10 +9,14 @@
 #include "nsWindowsHelpers.h"
 #include "MainThreadUtils.h"
 #include "nsThreadUtils.h"
+#include <shobjidl.h>
 #include <strsafe.h>
 
 #include "mozilla/Result.h"
 #include "mozilla/ResultVariant.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/WinHeaderOnlyUtils.h"
+#include "mozilla/widget/WinTaskbar.h"
 
 #include "mozilla/Logging.h"
 
@@ -27,6 +31,7 @@ static mozilla::LazyLogModule sLog("Windows11TaskbarPinning");
 
 #  include <inspectable.h>
 #  include <roapi.h>
+#  include <shlobj_core.h>
 #  include <windows.services.store.h>
 #  include <windows.foundation.h>
 #  include <windows.ui.shell.h>
@@ -101,8 +106,7 @@ static Result<ComPtr<ITaskbarManager>, HRESULT> InitializeTaskbar() {
 }
 
 Win11PinToTaskBarResult PinCurrentAppToTaskbarWin11(
-    bool aCheckOnly, const nsAString& aAppUserModelId,
-    nsAutoString aShortcutPath) {
+    bool aCheckOnly, const nsAString& aAppUserModelId) {
   MOZ_DIAGNOSTIC_ASSERT(!NS_IsMainThread(),
                         "PinCurrentAppToTaskbarWin11 should be called off main "
                         "thread only. It blocks, waiting on things to execute "
@@ -137,12 +141,38 @@ Win11PinToTaskBarResult PinCurrentAppToTaskbarWin11(
   // Everything related to the taskbar and pinning must be done on the main /
   // user interface thread or Windows will cause them to fail.
   NS_DispatchToMainThread(NS_NewRunnableFunction(
-      "PinCurrentAppToTaskbarWin11", [&event, &hr, &resultStatus, aCheckOnly] {
-        auto CompletedOperations =
-            [&event, &resultStatus](Win11PinToTaskBarResultStatus status) {
-              resultStatus = status;
-              event.Set();
-            };
+      "PinCurrentAppToTaskbarWin11", [&event, &hr, &resultStatus, aCheckOnly,
+                                      aumid = nsString(aAppUserModelId)] {
+        // We eventualy want to call SetCurrentProcessExplicitAppUserModelID()
+        // on the main thread as it is not thread safe and pinning is called
+        // numerous times in many different places. This is a hack used
+        // explicitly for the purpose of re-enabling private browser pinning
+        // as a stopgap and should not be replicated elsewhere.
+        // GenerateAppUserModelId needs to be called on the main thread as
+        // it checks against preferences.
+        nsAutoString primaryAumid;
+        mozilla::widget::WinTaskbar::GenerateAppUserModelID(primaryAumid,
+                                                            false);
+        auto CompletedOperations = [&event, &resultStatus,
+                                    primaryAumid = nsString(primaryAumid)](
+                                       Win11PinToTaskBarResultStatus status) {
+          // Set AUMID back and ensure the icon is set correctly
+          HRESULT hr =
+              SetCurrentProcessExplicitAppUserModelID(primaryAumid.get());
+          if (FAILED(hr)) {
+            TASKBAR_PINNING_LOG(LogLevel::Debug,
+                                "Taskbar: reverting AUMID after pinning "
+                                "operation failed. HRESULT = 0x%lx",
+                                hr);
+          }
+          resultStatus = status;
+          event.Set();
+        };
+
+        hr = SetCurrentProcessExplicitAppUserModelID(aumid.get());
+        if (FAILED(hr)) {
+          return CompletedOperations(Win11PinToTaskBarResultStatus::Failed);
+        }
 
         auto result = InitializeTaskbar();
         if (result.isErr()) {
@@ -209,12 +239,22 @@ Win11PinToTaskBarResult PinCurrentAppToTaskbarWin11(
         // be alive until the async functions complete, so they can be used as
         // references.
         auto isPinnedCallback = Callback<IAsyncOperationCompletedHandler<
-            bool>>([taskbar, &event, &resultStatus, &hr](
+            bool>>([taskbar, &event, &resultStatus, &hr,
+                    primaryAumid = nsString(primaryAumid)](
                        IAsyncOperation<bool>* asyncInfo,
                        AsyncStatus status) mutable -> HRESULT {
           auto CompletedOperations =
-              [&event,
-               &resultStatus](Win11PinToTaskBarResultStatus status) -> HRESULT {
+              [&event, &resultStatus,
+               primaryAumid](Win11PinToTaskBarResultStatus status) -> HRESULT {
+            // Set AUMID back and ensure the icon is set correctly
+            HRESULT hr =
+                SetCurrentProcessExplicitAppUserModelID(primaryAumid.get());
+            if (FAILED(hr)) {
+              TASKBAR_PINNING_LOG(LogLevel::Debug,
+                                  "Taskbar: reverting AUMID after pinning "
+                                  "operation failed. HRESULT = 0x%lx",
+                                  hr);
+            }
             resultStatus = status;
             event.Set();
             return S_OK;
@@ -336,8 +376,7 @@ Win11PinToTaskBarResult PinCurrentAppToTaskbarWin11(
 #else  // MINGW32 implementation below
 
 Win11PinToTaskBarResult PinCurrentAppToTaskbarWin11(
-    bool aCheckOnly, const nsAString& aAppUserModelId,
-    nsAutoString aShortcutPath) {
+    bool aCheckOnly, const nsAString& aAppUserModelId) {
   return {S_OK, Win11PinToTaskBarResultStatus::NotSupported};
 }
 
