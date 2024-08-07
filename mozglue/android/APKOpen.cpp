@@ -393,6 +393,11 @@ Java_org_mozilla_gecko_mozglue_GeckoLoader_nativeRun(
     ElfLoader::Singleton.ExpectShutdown(true);
 #endif
   } else {
+    if (argc < 2) {
+      FreeArgv(argv, argc);
+      return;
+    }
+
     SetGeckoProcessType(argv[--argc]);
     SetGeckoChildID(argv[--argc]);
 
@@ -416,6 +421,12 @@ extern "C" APKOPEN_EXPORT mozglueresult ChildProcessInit(int argc,
                                                          char* argv[]) {
   EnsureBaseProfilerInitialized();
 
+  if (argc < 2) {
+    return FAILURE;
+  }
+  SetGeckoProcessType(argv[--argc]);
+  SetGeckoChildID(argv[--argc]);
+
   if (loadNSSLibs() != SUCCESS) {
     return FAILURE;
   }
@@ -425,9 +436,6 @@ extern "C" APKOPEN_EXPORT mozglueresult ChildProcessInit(int argc,
   if (loadGeckoLibs().isErr()) {
     return FAILURE;
   }
-
-  SetGeckoProcessType(argv[--argc]);
-  SetGeckoChildID(argv[--argc]);
 
   XREChildData childData;
   return NS_FAILED(gBootstrap->XRE_InitChildProcess(argc, argv, &childData));

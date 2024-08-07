@@ -249,6 +249,8 @@ void ForkServer::OnMessageReceived(UniquePtr<IPC::Message> message) {
  * arguments from the chrome process.
  */
 bool ForkServer::RunForkServer(int* aArgc, char*** aArgv) {
+  MOZ_ASSERT(XRE_IsForkServerProcess(), "fork server process only");
+
 #ifdef DEBUG
   if (getenv("MOZ_FORKSERVER_WAIT_GDB")) {
     printf(
@@ -261,12 +263,6 @@ bool ForkServer::RunForkServer(int* aArgc, char*** aArgv) {
 #endif
 
   SetProcessTitleInit(*aArgv);
-
-  // The last two arguments are the GeckoChildID and "forkserver".
-  MOZ_ASSERT(!strcmp((*aArgv)[*aArgc - 1], "forkserver"),
-             "last argument is not \"forkserver\"");
-  SetGeckoProcessType("forkserver");
-  SetGeckoChildID((*aArgv)[*aArgc - 2]);
 
   // Do this before NS_LogInit() to avoid log files taking lower
   // FDs.
@@ -319,8 +315,17 @@ bool ForkServer::RunForkServer(int* aArgc, char*** aArgv) {
   forkserver.mAppProcBuilder->InitAppProcess(aArgc, aArgv);
   forkserver.mAppProcBuilder.reset();
 
+  // Update our GeckoProcessType and GeckoChildID, removing the arguments.
+  if (*aArgc < 2) {
+    MOZ_CRASH("forked process missing process type and childid arguments");
+  }
+  SetGeckoProcessType((*aArgv)[--*aArgc]);
+  SetGeckoChildID((*aArgv)[--*aArgc]);
+  MOZ_ASSERT(!XRE_IsForkServerProcess(),
+             "fork server created another fork server?");
+
   // Open log files again with right names and the new PID.
-  nsTraceRefcnt::ReopenLogFilesAfterFork((*aArgv)[*aArgc - 1]);
+  nsTraceRefcnt::ReopenLogFilesAfterFork(XRE_GetProcessTypeString());
 
   return false;
 }
