@@ -5386,6 +5386,10 @@ int32_t WorkerPrivate::SetTimeout(JSContext* aCx, TimeoutHandler* aHandler,
   auto data = mWorkerThreadAccessible.Access();
   MOZ_ASSERT(aHandler);
 
+  if (StaticPrefs::dom_workers_throttling_enabled()) {
+    // todo(aiunusov): change the logic of setTimeout accordingly
+  }
+
   // Reasons that doesn't support cancellation will get -1 as their ids.
   int32_t timerId = -1;
   if (aReason == Timeout::Reason::eTimeoutOrInterval) {

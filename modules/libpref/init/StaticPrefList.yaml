@@ -4084,6 +4084,11 @@
   value: true
   mirror: always
 
+- name: dom.workers.throttling.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: dom.workers.serialized-sab-access
   type: RelaxedAtomicBool
   value: false
