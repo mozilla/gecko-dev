@@ -59,6 +59,7 @@
 #include "mozilla/net/SocketProcessHost.h"
 #include "mozilla/net/SocketProcessParent.h"
 #include "mozilla/net/SSLTokensCache.h"
+#include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/Unused.h"
 #include "nsContentSecurityManager.h"
 #include "nsContentUtils.h"
@@ -1251,6 +1252,22 @@ nsIOService::NewWebTransport(nsIWebTransport** result) {
   nsCOMPtr<nsIWebTransport> webTransport = new WebTransportSessionProxy();
 
   webTransport.forget(result);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsIOService::OriginAttributesForNetworkState(
+    nsIChannel* aChannel, JSContext* cx, JS::MutableHandle<JS::Value> _retval) {
+  OriginAttributes attrs;
+  if (!StoragePrincipalHelper::GetOriginAttributesForNetworkState(aChannel,
+                                                                  attrs)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (NS_WARN_IF(!mozilla::dom::ToJSValue(cx, attrs, _retval))) {
+    return NS_ERROR_FAILURE;
+  }
+
   return NS_OK;
 }
 

@@ -168,6 +168,14 @@ interface nsIIOService : nsISupports
      */
     nsIWebTransport newWebTransport();
 
+
+    /**
+     * Calls GetOriginAttributesForNetworkState
+     * see StoragePrincipalHelper.h
+     */
+    [implicit_jscontext]
+    jsval originAttributesForNetworkState(in nsIChannel aChannel);
+
     /**
      * Returns true if networking is in "offline" mode. When in offline mode,
      * attempts to access the network will fail (although this does not
