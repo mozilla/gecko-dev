@@ -30,19 +30,6 @@ LOCAL_INCLUDES += [
     "/tools/profiler/public"
 ]
 
-SOURCES += [
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc"
-]
-
-UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/aimd_rate_control.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/bwe_defines.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/inter_arrival.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/overuse_detector.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/overuse_estimator.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.cc"
-]
-
 if not CONFIG["MOZ_DEBUG"]:
 
     DEFINES["DYNAMIC_ANNOTATIONS_ENABLED"] = "0"
@@ -155,10 +142,6 @@ if CONFIG["TARGET_CPU"] == "aarch64":
 
 if CONFIG["TARGET_CPU"] == "arm":
 
-    CXXFLAGS += [
-        "-mfpu=neon"
-    ]
-
     DEFINES["WEBRTC_ARCH_ARM"] = True
     DEFINES["WEBRTC_ARCH_ARM_V7"] = True
     DEFINES["WEBRTC_HAS_NEON"] = True
@@ -211,12 +194,6 @@ if CONFIG["OS_TARGET"] == "Android" and CONFIG["TARGET_CPU"] == "arm":
         "unwind"
     ]
 
-if CONFIG["OS_TARGET"] == "Android" and CONFIG["TARGET_CPU"] == "x86":
-
-    CXXFLAGS += [
-        "-msse2"
-    ]
-
 if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "aarch64":
 
     DEFINES["_GNU_SOURCE"] = True
@@ -227,14 +204,10 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "arm":
 
 if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86":
 
-    CXXFLAGS += [
-        "-msse2"
-    ]
-
     DEFINES["_GNU_SOURCE"] = True
 
 if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("remote_bitrate_estimator_gn")
+Library("rtp_transport_feedback_generator_gn")

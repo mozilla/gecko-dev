@@ -30,17 +30,9 @@ LOCAL_INCLUDES += [
     "/tools/profiler/public"
 ]
 
-SOURCES += [
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc"
-]
-
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/aimd_rate_control.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/bwe_defines.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/inter_arrival.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/overuse_detector.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/overuse_estimator.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.cc"
+    "/third_party/libwebrtc/modules/remote_bitrate_estimator/packet_arrival_map.cc",
+    "/third_party/libwebrtc/modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -237,4 +229,4 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("remote_bitrate_estimator_gn")
+Library("transport_sequence_number_feedback_generator_gn")
