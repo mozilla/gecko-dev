@@ -277,8 +277,6 @@ add_task(async function () {
     "color",
     {
       header: "--my-color = white",
-      // Computed value isn't displayed when it's the same as we put in the header
-      computed: null,
       // The starting-style value is displayed in the tooltip
       startingStyle: "--my-color = black",
     }
@@ -294,8 +292,6 @@ add_task(async function () {
     {
       // The displayed value is the one set in the starting-style rule
       header: "--my-color = black",
-      // Computed value isn't displayed in starting-style rule
-      computed: null,
       // The starting-style section is not displayed when hovering starting-style rule
       startingStyle: null,
     }
@@ -314,7 +310,6 @@ add_task(async function () {
     "--check-my-overridden-color",
     {
       header: "--my-overridden-color = white",
-      computed: "white",
       // The starting-style rule is overridden, so we don't show a starting-style section in the tooltip
       startingStyle: null,
     }
@@ -326,8 +321,6 @@ add_task(async function () {
     {
       // the value is the one from the regular rule, not the one from the starting-style rule
       header: "--my-overridden-color = white",
-      // Computed value isn't displayed in starting-style rule
-      computed: null,
       startingStyle: null,
     }
   );
@@ -341,7 +334,6 @@ add_task(async function () {
     "--check-my-registered-color",
     {
       header: "--my-registered-color = white",
-      computed: "rgb(255, 255, 255)",
       // The starting-style value is displayed in the tooltip
       startingStyle: "--my-registered-color = black",
       // registered property data is displayed
@@ -360,8 +352,6 @@ add_task(async function () {
     {
       // The displayed value is the one set in the starting-style rule
       header: "--my-registered-color = black",
-      // Computed value isn't displayed in starting-style rule
-      computed: null,
       // The starting-style section is not displayed when hovering starting-style rule
       startingStyle: null,
       // registered property data is displayed

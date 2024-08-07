@@ -81,7 +81,7 @@ add_task(async function () {
           getNames: () => [],
           getValues: () => [],
         },
-        getCssVariables: () => new Map(CSS_VARIABLES),
+        cssVariables: new Map(CSS_VARIABLES),
         done: resolve,
         popup,
       },
