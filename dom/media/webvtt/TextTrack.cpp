@@ -302,7 +302,7 @@ void TextTrack::GetCurrentCuesAndOtherCues(
       aCurrentCues->AddCue(*cue);
     } else {
       // As the spec didn't have a restriction for the negative duration, it
-      // does happen sometime if user sets it explictly. It would be treated as
+      // does happen sometime if user sets it explicitly. It would be treated as
       // a `missing cue` later in the `TimeMarchesOn` but it won't be displayed.
       if (cue->EndTime() < cue->StartTime()) {
         // Add cue into `otherCue` only when its start time is contained by the

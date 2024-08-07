@@ -37,7 +37,7 @@ class InputType {
 
   // Custom deleter for UniquePtr<InputType> to avoid freeing memory
   // pre-allocated for InputType, but we still need to call the destructor
-  // explictly.
+  // explicitly.
   struct DoNotDelete {
     void operator()(InputType* p) { p->~InputType(); }
   };

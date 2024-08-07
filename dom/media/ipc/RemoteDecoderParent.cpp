@@ -25,7 +25,7 @@ RemoteDecoderParent::RemoteDecoderParent(
   MOZ_COUNT_CTOR(RemoteDecoderParent);
   MOZ_ASSERT(OnManagerThread());
   // We hold a reference to ourselves to keep us alive until IPDL
-  // explictly destroys us. There may still be refs held by
+  // explicitly destroys us. There may still be refs held by
   // tasks, but no new ones should be added after we're
   // destroyed.
   mIPDLSelfRef = this;

@@ -1791,7 +1791,7 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
 
     // What follows is a bit of a hack.  The editor uses the public DOM APIs
     // for its content manipulations, and it causes it to fail some security
-    // checks deep inside when initializing. So we explictly make it clear that
+    // checks deep inside when initializing. So we explicitly make it clear that
     // we're native code.
     // Note that any script that's directly trying to access our value
     // has to be going through some scriptable object to do that and that

@@ -8266,7 +8266,7 @@ bool BaseCompiler::emitArrayFill() {
   // - .. to spill/reload from a spill slot, we need a register to point at
   //   the instance.  That makes it even worse on x86 since there's no
   //   reserved instance reg; hence we have to use one of our 3 for it.  This
-  //   is indicated explictly in the code below.
+  //   is indicated explicitly in the code below.
   //
   // There are many comment lines indicating the current disposition of the 3
   // regs.

@@ -586,8 +586,8 @@ class ProfileBufferEntryWriter {
 //
 // Usage: `aEW.WriteObject(123);`.
 //
-// Raw pointers, though trivially-copyable, are explictly forbidden when writing
-// (to avoid unexpected leaks/UAFs), instead use one of
+// Raw pointers, though trivially-copyable, are explicitly forbidden when
+// writing (to avoid unexpected leaks/UAFs), instead use one of
 // `WrapProfileBufferLiteralCStringPointer`, `WrapProfileBufferUnownedCString`,
 // or `WrapProfileBufferRawPointer` as needed.
 template <typename T>

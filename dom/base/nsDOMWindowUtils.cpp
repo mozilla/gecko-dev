@@ -1561,7 +1561,7 @@ nsDOMWindowUtils::GetTranslationNodes(nsINode* aRoot,
 
   uint32_t limit = 15000;
 
-  // We begin iteration with content->GetNextNode because we want to explictly
+  // We begin iteration with content->GetNextNode because we want to explicitly
   // skip the root tag from being a translation node.
   nsIContent* content = root;
   while ((limit > 0) && (content = content->GetNextNode(root))) {
