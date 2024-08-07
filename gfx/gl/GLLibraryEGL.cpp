@@ -868,26 +868,27 @@ std::shared_ptr<EglDisplay> GLLibraryEGL::DefaultDisplay(
   auto ret = mDefaultDisplay.lock();
   if (ret) return ret;
 
-  ret = CreateDisplayLocked(false, out_failureId, lock);
+  ret = CreateDisplayLocked(false, false, out_failureId, lock);
   mDefaultDisplay = ret;
   return ret;
 }
 
 std::shared_ptr<EglDisplay> GLLibraryEGL::CreateDisplay(
-    const bool forceAccel, nsACString* const out_failureId) {
+    const bool forceAccel, const bool forceSoftware,
+    nsACString* const out_failureId) {
   StaticMutexAutoLock lock(sMutex);
-  return CreateDisplayLocked(forceAccel, out_failureId, lock);
+  return CreateDisplayLocked(forceAccel, forceSoftware, out_failureId, lock);
 }
 
 std::shared_ptr<EglDisplay> GLLibraryEGL::CreateDisplayLocked(
-    const bool forceAccel, nsACString* const out_failureId,
-    const StaticMutexAutoLock& aProofOfLock) {
+    const bool forceAccel, const bool forceSoftware,
+    nsACString* const out_failureId, const StaticMutexAutoLock& aProofOfLock) {
   std::shared_ptr<EglDisplay> ret;
 
   if (IsExtensionSupported(EGLLibExtension::ANGLE_platform_angle_d3d)) {
     nsCString accelAngleFailureId;
     bool accelAngleSupport = IsAccelAngleSupported(&accelAngleFailureId);
-    bool shouldTryAccel = forceAccel || accelAngleSupport;
+    bool shouldTryAccel = (forceAccel || accelAngleSupport) && !forceSoftware;
     bool shouldTryWARP = !forceAccel;  // Only if ANGLE not supported or fails
 
     // If WARP preferred, will override ANGLE support
@@ -932,7 +933,7 @@ std::shared_ptr<EglDisplay> GLLibraryEGL::CreateDisplayLocked(
   } else {
     void* nativeDisplay = EGL_DEFAULT_DISPLAY;
 #ifdef MOZ_WIDGET_GTK
-    if (!ret && !gfx::gfxVars::WebglUseHardware()) {
+    if (!ret && (!gfx::gfxVars::WebglUseHardware() || forceSoftware)) {
       // Initialize a swrast egl device such as llvmpipe
       ret = GetAndInitSoftwareDisplay(*this, aProofOfLock);
     }

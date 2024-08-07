@@ -887,6 +887,11 @@ static already_AddRefed<GLContextGLX> CreateOffscreenPixmapContext(
 
   auto fullDesc = GLContextDesc{desc};
   fullDesc.isOffscreen = true;
+
+  if (fullDesc.flags & CreateContextFlags::FORBID_HARDWARE) {
+    fullDesc.flags |= CreateContextFlags::REQUIRE_COMPAT_PROFILE;
+  }
+
   return GLContextGLX::CreateGLContext(fullDesc, display, pixmap, config,
                                        drawable);
 }
