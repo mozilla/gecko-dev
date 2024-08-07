@@ -2089,6 +2089,8 @@ static void DumpHelp() {
       "  --profile <path>   Start with profile at <path>.\n"
       "  --migration        Start with migration wizard.\n"
       "  --ProfileManager   Start with ProfileManager.\n"
+      "  --origin-to-force-quic-on <origin>\n"
+      "                     Force to use QUIC for the specified origin.\n"
 #ifdef MOZ_HAS_REMOTE
       "  --no-remote        Do not accept or send remote commands; implies\n"
       "                     --new-instance.\n"
@@ -3696,6 +3698,7 @@ class XREMain {
 #endif
 
   bool mStartOffline = false;
+  nsAutoCString mOriginToForceQUIC;
 #if defined(MOZ_HAS_REMOTE)
   bool mDisableRemoteClient = false;
   bool mDisableRemoteServer = false;
@@ -4354,6 +4357,13 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
   ar = CheckArg("offline");
   if (ar || EnvHasValue("XRE_START_OFFLINE")) {
     mStartOffline = true;
+  }
+
+  const char* origin = nullptr;
+  if (!PR_GetEnv("MOZ_FORCE_QUIC_ON") &&
+      ARG_FOUND == CheckArg("origin-to-force-quic-on", &origin,
+                            CheckArgFlag::RemoveArg)) {
+    mOriginToForceQUIC.Assign(origin);
   }
 
   // On Windows, to get working console arrangements so help/version/etc
@@ -5366,6 +5376,10 @@ nsresult XREMain::XRE_mainRun() {
       NS_ENSURE_TRUE(io, NS_ERROR_FAILURE);
       io->SetManageOfflineStatus(false);
       io->SetOffline(true);
+    }
+
+    if (!mOriginToForceQUIC.IsEmpty()) {
+      PR_SetEnv(ToNewCString("MOZ_FORCE_QUIC_ON="_ns + mOriginToForceQUIC));
     }
 
 #ifdef XP_WIN

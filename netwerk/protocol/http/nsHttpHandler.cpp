@@ -380,6 +380,24 @@ nsresult nsHttpHandler::Init() {
       return qlogDir->HumanReadablePath();
     };
     mHttp3QlogDir = initQLogDir();
+
+    if (const char* origin = PR_GetEnv("MOZ_FORCE_QUIC_ON")) {
+      nsCCharSeparatedTokenizer tokens(nsDependentCString(origin), ':');
+      nsAutoCString host;
+      int32_t port = 443;
+      if (tokens.hasMoreTokens()) {
+        host = tokens.nextToken();
+        if (tokens.hasMoreTokens()) {
+          nsresult res;
+          int32_t tmp = tokens.nextToken().ToInteger(&res);
+          if (NS_SUCCEEDED(res)) {
+            port = tmp;
+          }
+        }
+        mAltSvcMappingTemptativeMap.InsertOrUpdate(
+            host, MakeUnique<nsCString>(nsPrintfCString("h3=:%d", port)));
+      }
+    }
   }
 
   // monitor some preference changes
