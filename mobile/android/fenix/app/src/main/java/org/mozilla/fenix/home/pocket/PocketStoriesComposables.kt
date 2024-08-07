@@ -13,6 +13,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,7 +68,6 @@ import org.mozilla.fenix.compose.ListItemTabLargePlaceholder
 import org.mozilla.fenix.compose.ListItemTabSurface
 import org.mozilla.fenix.compose.SelectableChip
 import org.mozilla.fenix.compose.SelectableChipColors
-import org.mozilla.fenix.compose.StaggeredHorizontalGrid
 import org.mozilla.fenix.compose.TabSubtitleWithInterdot
 import org.mozilla.fenix.compose.ext.onShown
 import org.mozilla.fenix.compose.inComposePreview
@@ -366,7 +367,7 @@ private fun alignColumnToTitlePadding(screenWidth: Dp, contentPadding: Dp) =
  * @param categoryColors The color set defined by [SelectableChipColors] used to style Pocket categories.
  * @param onCategoryClick Callback for when the user taps a category.
  */
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun PocketStoriesCategories(
     categories: List<PocketRecommendedStoriesCategory>,
@@ -381,9 +382,9 @@ fun PocketStoriesCategories(
             testTag = "pocket.categories"
         },
     ) {
-        StaggeredHorizontalGrid(
-            horizontalItemsSpacing = 16.dp,
-            verticalItemsSpacing = 16.dp,
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             categories.filter { it.name != POCKET_STORIES_DEFAULT_CATEGORY_NAME }.forEach { category ->
                 SelectableChip(
