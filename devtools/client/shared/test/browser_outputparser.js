@@ -636,6 +636,17 @@ function testParseVariable(doc, parser) {
         "</span>",
     },
     {
+      text: "var(--seen)",
+      variables: {
+        "--seen": { value: "var(--base)", computedValue: "1em" },
+      },
+      expected:
+        // prettier-ignore
+        "<span>var(" +
+          '<span data-variable="--seen = var(--base)" data-variable-computed="1em">--seen</span>)' +
+        "</span>",
+    },
+    {
       text: "var(--not-seen)",
       variables: {},
       expected:

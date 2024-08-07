@@ -166,6 +166,7 @@ function getNodeInfo(node, elementStyle) {
       sheetHref: rule.domRule.href,
       textProperty: declaration,
       variable: node.dataset.variable,
+      variableComputed: node.dataset.variableComputed,
       startingStyleVariable: node.dataset.startingStyleVariable,
       registeredProperty: {
         initialValue: node.dataset.registeredPropertyInitialValue,

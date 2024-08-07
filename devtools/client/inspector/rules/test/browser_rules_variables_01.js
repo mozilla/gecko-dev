@@ -22,51 +22,34 @@ add_task(async function () {
     "div",
     "color"
   ).valueSpan.querySelector(".ruleview-unmatched");
-  const setColor = unsetColor.previousElementSibling;
   is(unsetColor.textContent, " red", "red is unmatched in color");
-  is(setColor.textContent, "--color", "--color is not set correctly");
-  is(
-    setColor.dataset.variable,
-    "--color = chartreuse",
-    "--color's dataset.variable is not set correctly"
-  );
-  let previewTooltip = await assertShowPreviewTooltip(view, setColor);
-  await assertTooltipHiddenOnMouseOut(previewTooltip, setColor);
 
-  ok(
-    previewTooltip.panel.textContent.includes("--color = chartreuse"),
-    "CSS variable preview tooltip shows the expected CSS variable"
-  );
+  await assertVariableTooltipForProperty(view, "div", "color", {
+    header: "--color = chartreuse",
+    // Computed value isn't displayed when it's the same as we put in the header
+    computed: null,
+  });
 
-  const unsetVar = getRuleViewProperty(
-    view,
-    "div",
-    "background-color"
-  ).valueSpan.querySelector(".ruleview-unmatched");
-  const setVar = unsetVar.nextElementSibling;
-  const setVarName = setVar.querySelector(".ruleview-variable");
-  is(
-    unsetVar.textContent,
-    "--not-set",
-    "--not-set is unmatched in background-color"
-  );
-  is(setVar.textContent, " var(--bg)", "var(--bg) parsed incorrectly");
-  is(setVarName.textContent, "--bg", "--bg is not set correctly");
-  is(
-    setVarName.dataset.variable,
-    "--bg = seagreen",
-    "--bg's dataset.variable is not set correctly"
-  );
-  previewTooltip = await assertShowPreviewTooltip(view, setVarName);
+  await assertVariableTooltipForProperty(view, "div", "background-color", {
+    index: 0,
+    header: "--not-set is not set",
+    isMatched: false,
+  });
 
-  ok(
-    !previewTooltip.panel.textContent.includes("--color = chartreuse"),
-    "CSS variable preview tooltip no longer shows the previous CSS variable"
-  );
-  ok(
-    previewTooltip.panel.textContent.includes("--bg = seagreen"),
-    "CSS variable preview tooltip shows the new CSS variable"
-  );
+  await assertVariableTooltipForProperty(view, "div", "background-color", {
+    index: 1,
+    header: "--bg = seagreen",
+    // Computed value isn't displayed when it's the same as we put in the header
+    computed: null,
+  });
 
-  await assertTooltipHiddenOnMouseOut(previewTooltip, setVarName);
+  await assertVariableTooltipForProperty(view, "div", "outline-color", {
+    header: "--nested = var(--color)",
+    computed: "chartreuse",
+  });
+
+  await assertVariableTooltipForProperty(view, "div", "border-color", {
+    header: "--nested-with-function = var(--theme-color)",
+    computed: "light-dark(chartreuse, seagreen)",
+  });
 });
