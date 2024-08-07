@@ -51,6 +51,7 @@ add_task(async function test_show_shortcuts() {
     Assert.ok(shortcuts, "Shortcuts added on select");
     let events = Glean.genaiChatbot.shortcutsDisplayed.testGetValue();
     Assert.equal(events.length, 1, "Shortcuts shown once");
+    Assert.ok(events[0].extra.delay, "Waited some time");
     Assert.equal(events[0].extra.selection, 2, "Selected hi");
 
     const popup = document.getElementById("ask-chat-shortcuts");

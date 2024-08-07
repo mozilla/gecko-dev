@@ -392,7 +392,8 @@ export const GenAI = {
 
         shortcuts.toggleAttribute("shown");
         Glean.genaiChatbot.shortcutsDisplayed.record({
-          selection: shortcuts.selection.length,
+          delay: data.delay,
+          selection: data.selection.length,
         });
 
         // Position the shortcuts relative to the browser's top-left corner
