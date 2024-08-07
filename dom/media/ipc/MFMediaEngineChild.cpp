@@ -209,6 +209,7 @@ mozilla::ipc::IPCResult MFMediaEngineChild::RecvUpdateStatisticData(
 
 mozilla::ipc::IPCResult MFMediaEngineChild::RecvNotifyResizing(
     uint32_t aWidth, uint32_t aHeight) {
+  AssertOnManagerThread();
   mOwner->NotifyResizing(aWidth, aHeight);
   return IPC_OK();
 }
@@ -390,6 +391,7 @@ void MFMediaEngineWrapper::NotifyError(const MediaResult& aError) {
 }
 
 void MFMediaEngineWrapper::NotifyResizing(uint32_t aWidth, uint32_t aHeight) {
+  AssertOnManagerThread();
   WLOG("Video resizing, new size [%u,%u]", aWidth, aHeight);
   mOwner->NotifyResizing(aWidth, aHeight);
 }
