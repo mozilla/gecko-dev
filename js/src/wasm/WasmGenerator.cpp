@@ -804,12 +804,12 @@ static void CheckCodeBlock(const CodeBlock& codeBlock) {
 
 #  if (defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86) ||   \
        defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_ARM) || \
-       defined(JS_CODEGEN_LOONG64))
+       defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_MIPS64))
   // Check that each trapsite is associated with a plausible instruction.  The
   // required instruction kind depends on the trapsite kind.
   //
-  // NOTE: currently only enabled on x86_{32,64} and arm{32,64}.  Ideally it
-  // should be extended to riscv, loongson, mips.
+  // NOTE: currently enabled on x86_{32,64}, arm{32,64}, loongson64 and mips64.
+  // Ideally it should be extended to riscv64 too.
   //
   for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
     const TrapSiteVector& trapSites = codeBlock.trapSites[trap];

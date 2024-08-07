@@ -1444,6 +1444,181 @@ Maybe<TrapMachineInsn> SummarizeTrapInstruction(const uint8_t* insnAddr) {
   return Nothing();
 }
 
+// ================================================================ mips64 ====
+
+#  elif defined(JS_CODEGEN_MIPS64)
+
+Maybe<TrapMachineInsn> SummarizeTrapInstruction(const uint8_t* insnAddr) {
+  // Check instruction alignment.
+  MOZ_ASSERT(0 == (uintptr_t(insnAddr) & 3));
+
+  const uint32_t insn = *(uint32_t*)insnAddr;
+
+#    define INSN(_maxIx, _minIx) \
+      ((insn >> (_minIx)) & ((uint32_t(1) << ((_maxIx) - (_minIx) + 1)) - 1))
+
+  // MIPS64R2 instruction encoding document:
+  // https://scc.ustc.edu.cn/_upload/article/files/c6/06/45556c084631b2855f0022175eaf/W020100308600769158777.pdf#G254.1001018
+
+  // MacroAssembler::wasmTrapInstruction uses this to create SIGILL.
+  // teq zero, zero, 0x6
+  if (insn == 0x000001b4) {
+    return Some(TrapMachineInsn::OfficialUD);
+  }
+
+  // MIPS64 Encoding of the Opcode Field of memory access instructions.
+  // +--------+--------------------------------------------------------+
+  // |  bits  |                          28..26                        |
+  // +--------+------+------+------+-------+------+------+------+------+
+  // | 31..29 |  000 | 001  | 010  |  011  |  100 |  101 |  110 |  111 |
+  // +--------+------+------+------+-------+------+------+------+------+
+  // |   010  |      |      |      | COP1X |      |      |      |      |
+  // |   011  |      |      |  LDL |  LDR  |      |      |      |      |
+  // |   100  |  LB  |  LH  |  LWL |   LW  |  LBU |  LHU |  LWR |  LWU |
+  // |   101  |  SB  |  SH  |  SWL |   SW  |  SDL |  SDR |  SWR |      |
+  // |   110  |  LL  | LWC1 | LWC2 |       |  LLD | LDC1 | LDC2 |  LD  |
+  // |   111  |  SC  | SWC1 | SWC2 |       |  SCD | SDC1 | SDC2 |  SD  |
+  // +--------+------+------+------+-------+------+------+------+------+
+  if (INSN(31, 29) == 0b010) {
+    // MIPS64 COP1X Encoding of Function Field of memory access instructions.
+    // +--------+-----------------------------------------------------+
+    // |  bits  |                          2..0                       |
+    // +--------+-------+-------+-----+-----+-----+-------+-----+-----+
+    // |  5..3  |  000  |  001  | 010 | 011 | 100 |  101  | 110 | 111 |
+    // +--------+-------+-------+-----+-----+-----+-------+-----+-----+
+    // |   000  | LWXC1 | LDXC1 |     |     |     | LUXC1 |     |     |
+    // |   001  | SWXC1 | SDXC1 |     |     |     | SUXC1 |     |     |
+    // +--------+-------+-------+-----+-----+-----+-------+-----+-----+
+    switch (INSN(5, 0)) {
+      // lwxc1
+      case 0b000000:
+        return Some(TrapMachineInsn::Load32);
+      // ldxc1
+      case 0b000001:
+      // luxc1
+      case 0b000101:
+        return Some(TrapMachineInsn::Load64);
+      // swxc1
+      case 0b001000:
+        return Some(TrapMachineInsn::Store32);
+      // sdxc1
+      case 0b001001:
+      // suxc1
+      case 0b001101:
+        return Some(TrapMachineInsn::Store64);
+      default:
+        break;
+    }
+  } else if (INSN(31, 29) == 0b011) {
+    switch (INSN(28, 26)) {
+      // ldl
+      case 0b010:
+      // ldr
+      case 0b011:
+        return Some(TrapMachineInsn::Load64);
+      default:
+        break;
+    }
+  } else if (INSN(31, 29) == 0b100) {
+    switch (INSN(28, 26)) {
+      // lb
+      case 0b000:
+        return Some(TrapMachineInsn::Load8);
+      // lh
+      case 0b001:
+        return Some(TrapMachineInsn::Load16);
+      // lwl
+      case 0b010:
+      // lw
+      case 0b011:
+        return Some(TrapMachineInsn::Load32);
+      // lbu
+      case 0b100:
+        return Some(TrapMachineInsn::Load8);
+      // lhu
+      case 0b101:
+        return Some(TrapMachineInsn::Load16);
+      // lwr
+      case 0b110:
+      // lwu
+      case 0b111:
+        return Some(TrapMachineInsn::Load32);
+    }
+  } else if (INSN(31, 29) == 0b101) {
+    switch (INSN(28, 26)) {
+      // sb
+      case 0b000:
+        return Some(TrapMachineInsn::Store8);
+      // sh
+      case 0b001:
+        return Some(TrapMachineInsn::Store16);
+      // swl
+      case 0b010:
+      // sw
+      case 0b011:
+        return Some(TrapMachineInsn::Store32);
+      // sdl
+      case 0b100:
+      // sdr
+      case 0b101:
+        return Some(TrapMachineInsn::Store64);
+      // swr
+      case 0b110:
+        return Some(TrapMachineInsn::Store32);
+      // cache
+      case 0b111:
+        break;
+    }
+  } else if (INSN(31, 29) == 0b110) {
+    switch (INSN(28, 26)) {
+      // ll
+      case 0b000:
+      // lwc1
+      case 0b001:
+      // lwc2
+      case 0b010:
+        return Some(TrapMachineInsn::Load32);
+      // pref
+      case 0b011:
+        break;
+      // lld
+      case 0b100:
+      // ldc1
+      case 0b101:
+      // ldc2
+      case 0b110:
+      // ld
+      case 0b111:
+        return Some(TrapMachineInsn::Load64);
+    }
+  } else if (INSN(31, 29) == 0b111) {
+    switch (INSN(28, 26)) {
+      // sc
+      case 0b000:
+      // swc1
+      case 0b001:
+      // swc2
+      case 0b010:
+        return Some(TrapMachineInsn::Store32);
+      // reserved encoding
+      case 0b011:
+        break;
+      // scd
+      case 0b100:
+      // sdc1
+      case 0b101:
+      // sdc2
+      case 0b110:
+      // sd
+      case 0b111:
+        return Some(TrapMachineInsn::Store64);
+    }
+  }
+
+#    undef INSN
+  return Nothing();
+}
+
 // ================================================================== none ====
 
 #  elif defined(JS_CODEGEN_NONE)
