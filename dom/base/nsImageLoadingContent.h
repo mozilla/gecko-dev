@@ -391,8 +391,9 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
    * request.
    *
    * @param aImageLoadType The ImageLoadType for this request
+   * @param aNewURI The uri that we're going to load
    */
-  RefPtr<imgRequestProxy>& PrepareNextRequest(ImageLoadType aImageLoadType);
+  RefPtr<imgRequestProxy>& PrepareNextRequest(ImageLoadType, nsIURI* aNewURI);
 
   /**
    * Returns a COMPtr reference to the current/pending image requests, cleaning
@@ -401,9 +402,11 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
    * Clear*Request(NS_BINDING_ABORTED) instead.
    *
    * @param aImageLoadType The ImageLoadType for this request
+   * @param aNewURI The uri that we're going to load
    */
-  RefPtr<imgRequestProxy>& PrepareCurrentRequest(ImageLoadType aImageLoadType);
-  RefPtr<imgRequestProxy>& PreparePendingRequest(ImageLoadType aImageLoadType);
+  RefPtr<imgRequestProxy>& PrepareCurrentRequest(ImageLoadType,
+                                                 nsIURI* aNewURI);
+  RefPtr<imgRequestProxy>& PreparePendingRequest(ImageLoadType);
 
   /**
    * Switch our pending request to be our current request.

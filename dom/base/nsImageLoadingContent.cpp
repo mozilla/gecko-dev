@@ -951,20 +951,13 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
   // Shouldn't that be done before the start of the load?
   // XXX what about shouldProcess?
 
-  // If we have a current request without a size, we know we will replace it
-  // with the PrepareNextRequest below. If the new current request is for a
-  // different URI, then we need to reject any outstanding promises.
-  if (mCurrentRequest && !HaveSize(mCurrentRequest)) {
-    nsCOMPtr<nsIURI> uri;
-    aChannel->GetOriginalURI(getter_AddRefs(uri));
-    MaybeAgeRequestGeneration(uri);
-  }
-
   // Our state might change. Watch it.
   AutoStateChanger changer(this, true);
 
   // Do the load.
-  RefPtr<imgRequestProxy>& req = PrepareNextRequest(eImageLoadType_Normal);
+  nsCOMPtr<nsIURI> uri;
+  aChannel->GetOriginalURI(getter_AddRefs(uri));
+  RefPtr<imgRequestProxy>& req = PrepareNextRequest(eImageLoadType_Normal, uri);
   nsresult rv = loader->LoadImageWithChannel(aChannel, this, doc, aListener,
                                              getter_AddRefs(req));
   if (NS_SUCCEEDED(rv)) {
@@ -1105,13 +1098,6 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
     }
   }
 
-  // If we have a current request without a size, we know we will replace it
-  // with the PrepareNextRequest below. If the new current request is for a
-  // different URI, then we need to reject any outstanding promises.
-  if (mCurrentRequest && !HaveSize(mCurrentRequest)) {
-    MaybeAgeRequestGeneration(aNewURI);
-  }
-
   // From this point on, our image state could change. Watch it.
   AutoStateChanger changer(this, aNotify);
 
@@ -1126,7 +1112,8 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
   nsLoadFlags loadFlags =
       aLoadFlags | nsContentUtils::CORSModeToLoadImageFlags(GetCORSMode());
 
-  RefPtr<imgRequestProxy>& req = PrepareNextRequest(aImageLoadType);
+  RefPtr<imgRequestProxy>& req = PrepareNextRequest(aImageLoadType, aNewURI);
+
   nsCOMPtr<nsIPrincipal> triggeringPrincipal;
   bool result = nsContentUtils::QueryTriggeringPrincipal(
       element, aTriggeringPrincipal, getter_AddRefs(triggeringPrincipal));
@@ -1464,19 +1451,23 @@ void nsImageLoadingContent::CancelPendingEvent() {
 }
 
 RefPtr<imgRequestProxy>& nsImageLoadingContent::PrepareNextRequest(
-    ImageLoadType aImageLoadType) {
+    ImageLoadType aImageLoadType, nsIURI* aNewURI) {
   MaybeForceSyncDecoding(/* aPrepareNextRequest */ true);
 
   // We only want to cancel the existing current request if size is not
   // available. bz says the web depends on this behavior.
   // Otherwise, we get rid of any half-baked request that might be sitting there
   // and make this one current.
-  return HaveSize(mCurrentRequest) ? PreparePendingRequest(aImageLoadType)
-                                   : PrepareCurrentRequest(aImageLoadType);
+  return HaveSize(mCurrentRequest)
+             ? PreparePendingRequest(aImageLoadType)
+             : PrepareCurrentRequest(aImageLoadType, aNewURI);
 }
 
 RefPtr<imgRequestProxy>& nsImageLoadingContent::PrepareCurrentRequest(
-    ImageLoadType aImageLoadType) {
+    ImageLoadType aImageLoadType, nsIURI* aNewURI) {
+  if (mCurrentRequest) {
+    MaybeAgeRequestGeneration(aNewURI);
+  }
   // Get rid of anything that was there previously.
   ClearCurrentRequest(NS_BINDING_ABORTED, Some(OnNonvisible::DiscardImages));
 
@@ -1531,7 +1522,6 @@ void nsImageLoadingContent::MakePendingRequestCurrent() {
   // URI, then we need to reject any outstanding promises.
   nsCOMPtr<nsIURI> uri;
   mPendingRequest->GetURI(getter_AddRefs(uri));
-  MaybeAgeRequestGeneration(uri);
 
   // Lock mCurrentRequest for the duration of this method.  We do this because
   // PrepareCurrentRequest() might unlock mCurrentRequest.  If mCurrentRequest
@@ -1544,7 +1534,7 @@ void nsImageLoadingContent::MakePendingRequestCurrent() {
                                ? eImageLoadType_Imageset
                                : eImageLoadType_Normal;
 
-  PrepareCurrentRequest(loadType) = mPendingRequest;
+  PrepareCurrentRequest(loadType, uri) = mPendingRequest;
   MakePendingScriptedRequestsCurrent();
   mPendingRequest = nullptr;
   mCurrentRequestFlags = mPendingRequestFlags;
