@@ -16,6 +16,7 @@ exclude: true
 ## v131
 - Added [`GeckoDisplay.windowInsetsChanged`][131.1].
 - Added [`GeckoView.addWindowInsetsListener`][131.2] and [`GeckoView.removeWindowInsetsListener`][131.3] to allow listening WindowInsets changes of Activity's root window with multiple listeners.
+- ⚠️Increased `compileSdkVersion` to 35 (Android 15)
 
 [131.1]: {{javadoc_uri}}/GeckoDisplay.html#windowInsetsChanged
 [131.2]: {{javadoc_uri}}/GeckoView.html#addWindowInsetsListener
