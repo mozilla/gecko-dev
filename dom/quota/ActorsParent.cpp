@@ -885,32 +885,6 @@ Result<bool, nsresult> MaybeUpdateLastAccessTimeForOrigin(
 
 }  // namespace
 
-BackgroundThreadObject::BackgroundThreadObject()
-    : mOwningThread(GetCurrentSerialEventTarget()) {
-  AssertIsOnOwningThread();
-}
-
-BackgroundThreadObject::BackgroundThreadObject(
-    nsISerialEventTarget* aOwningThread)
-    : mOwningThread(aOwningThread) {}
-
-#ifdef DEBUG
-
-void BackgroundThreadObject::AssertIsOnOwningThread() const {
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(mOwningThread);
-  bool current;
-  MOZ_ASSERT(NS_SUCCEEDED(mOwningThread->IsOnCurrentThread(&current)));
-  MOZ_ASSERT(current);
-}
-
-#endif  // DEBUG
-
-nsISerialEventTarget* BackgroundThreadObject::OwningThread() const {
-  MOZ_ASSERT(mOwningThread);
-  return mOwningThread;
-}
-
 void ReportInternalError(const char* aFile, uint32_t aLine, const char* aStr) {
   // Get leaf of file path
   for (const char* p = aFile; *p; ++p) {

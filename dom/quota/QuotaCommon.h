@@ -1280,27 +1280,6 @@ extern const nsLiteralCString kQuotaExternalError;
 #  define kQuotaExternalError
 #endif
 
-class BackgroundThreadObject {
- protected:
-  nsCOMPtr<nsISerialEventTarget> mOwningThread;
-
- public:
-  void AssertIsOnOwningThread() const
-#ifdef DEBUG
-      ;
-#else
-  {
-  }
-#endif
-
-  nsISerialEventTarget* OwningThread() const;
-
- protected:
-  BackgroundThreadObject();
-
-  explicit BackgroundThreadObject(nsISerialEventTarget* aOwningThread);
-};
-
 MOZ_COLD void ReportInternalError(const char* aFile, uint32_t aLine,
                                   const char* aStr);
 
