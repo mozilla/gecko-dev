@@ -221,6 +221,29 @@ static Result<RefPtr<gfx::DataSourceSurface>, MediaResult> AllocateBGRASurface(
   return bgraSurface;
 }
 
+static Result<RefPtr<layers::Image>, MediaResult> CreateImageFromSourceSurface(
+    gfx::SourceSurface* aSource) {
+  MOZ_ASSERT(aSource);
+
+  if (aSource->GetSize().IsEmpty()) {
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "Surface has non positive width or height"_ns));
+  }
+
+  RefPtr<gfx::DataSourceSurface> surface = aSource->GetDataSurface();
+  if (!surface) {
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                           "Failed to get the data surface"_ns));
+  }
+
+  // Gecko favors BGRA so we convert surface into BGRA format first.
+  RefPtr<gfx::DataSourceSurface> bgraSurface;
+  MOZ_TRY_VAR(bgraSurface, AllocateBGRASurface(surface));
+
+  return RefPtr<layers::Image>(
+      new layers::SourceSurfaceImage(bgraSurface.get()));
+}
+
 static Result<RefPtr<layers::Image>, MediaResult> CreateImageFromRawData(
     const gfx::IntSize& aSize, int32_t aStride, gfx::SurfaceFormat aFormat,
     const Span<uint8_t>& aBuffer) {
@@ -1546,14 +1569,21 @@ already_AddRefed<VideoFrame> VideoFrame::Constructor(
     return nullptr;
   }
 
-  RefPtr<layers::SourceSurfaceImage> image =
-      new layers::SourceSurfaceImage(surface.get());
-  auto r = InitializeFrameWithResourceAndSize(global, aInit, image.forget());
-  if (r.isErr()) {
-    aRv.ThrowTypeError(r.unwrapErr());
+  auto imageResult = CreateImageFromSourceSurface(surface);
+  if (imageResult.isErr()) {
+    auto err = imageResult.unwrapErr();
+    aRv.ThrowTypeError(err.Message());
     return nullptr;
   }
-  return r.unwrap();
+
+  RefPtr<layers::Image> image = imageResult.unwrap();
+  auto frameResult =
+      InitializeFrameWithResourceAndSize(global, aInit, image.forget());
+  if (frameResult.isErr()) {
+    aRv.ThrowTypeError(frameResult.unwrapErr());
+    return nullptr;
+  }
+  return frameResult.unwrap();
 }
 
 /* static */
