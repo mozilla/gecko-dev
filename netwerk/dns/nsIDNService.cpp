@@ -325,6 +325,13 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
       return false;
     }
 
+    // Combining Diacritic marks (U+0300-U+0339) after a script other than
+    // Latin-Greek-Cyrillic is unsafe
+    if (ch >= 0x300 && ch <= 0x339 && lastScript != Script::LATIN &&
+        lastScript != Script::GREEK && lastScript != Script::CYRILLIC) {
+      return false;
+    }
+
     if (ch == 0x307 &&
         (previousChar == 'i' || previousChar == 'j' || previousChar == 'l')) {
       return false;

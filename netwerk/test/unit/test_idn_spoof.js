@@ -326,10 +326,10 @@ let testCases = [
   ["xn--googl-3we.xn--3e0b707e", "xn--googl-3we.\ud55c\uad6d", kSafe],
 
   // Combining Diacritic marks after a script other than Latin-Greek-Cyrillic
-  ["xn--rsa2568fvxya.com", "\ud55c\u0307\uae00.com", kUnsafe, "DISABLED"],  // 한́글.com
-  ["xn--rsa0336bjom.com", "\u6f22\u0307\u5b57.com", kUnsafe, "DISABLED"],  // 漢̇字.com
+  ["xn--rsa2568fvxya.com", "\ud55c\u0307\uae00.com", kUnsafe],  // 한́글.com
+  ["xn--rsa0336bjom.com", "\u6f22\u0307\u5b57.com", kUnsafe],  // 漢̇字.com
   // नागरी́.com
-  ["xn--lsa922apb7a6do.com", "\u0928\u093e\u0917\u0930\u0940\u0301.com", kUnsafe, "DISABLED"],
+  ["xn--lsa922apb7a6do.com", "\u0928\u093e\u0917\u0930\u0940\u0301.com", kUnsafe],
 
   // Similarity checks against the list of top domains. "digklmo68.com" and
   // 'digklmo68.co.uk" are listed for unittest in the top domain list.
