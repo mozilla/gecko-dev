@@ -32,6 +32,13 @@ add_task(async function() {
   test("BIG", "big | bigger | BIGGER", false);
   test("red", "<invalid-syntax>", false);
   test("whatever 10px, 1em red", "*", true);
+
+  info("CSS-wide keyword are considered to be matching the syntax");
+  test("initial", "<color>", true);
+  test("inherit", "<color>", true);
+  test("unset", "<color>", true);
+  test("revert", "<color>", true);
+  test("revert-layer", "<color>", true);
 });
 </script>
 </body>
