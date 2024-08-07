@@ -8,6 +8,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/MozPromise.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/fs/TargetPtrHolder.h"
 #include "mozilla/dom/quota/OriginOperationCallbacks.h"
 #include "mozilla/dom/quota/QuotaManager.h"
@@ -97,6 +98,12 @@ void OriginOperationBase::RunImmediately() {
                QM_TRY(MOZ_TO_RESULT(selfHolder->DoDirectoryWork(
                           *selfHolder->mQuotaManager)),
                       CreateAndRejectBoolPromise);
+
+               uint32_t pauseOnIOThreadMs = StaticPrefs::
+                   dom_quotaManager_originOperations_pauseOnIOThreadMs();
+               if (pauseOnIOThreadMs > 0) {
+                 PR_Sleep(PR_MillisecondsToInterval(pauseOnIOThreadMs));
+               }
 
                return BoolPromise::CreateAndResolve(true, __func__);
              })
