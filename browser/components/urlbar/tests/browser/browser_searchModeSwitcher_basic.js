@@ -48,6 +48,54 @@ function updateEngine(fun) {
   return updated;
 }
 
+add_task(async function disabled_unified_button() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
+
+  await TestUtils.waitForCondition(() => {
+    return !BrowserTestUtils.isVisible(
+      gURLBar.querySelector("#urlbar-searchmode-switcher")
+    );
+  });
+
+  Assert.equal(
+    BrowserTestUtils.isVisible(
+      gURLBar.querySelector("#urlbar-searchmode-switcher")
+    ),
+    false,
+    "Unified Search Button should not be visible."
+  );
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "",
+  });
+
+  Assert.equal(
+    BrowserTestUtils.isVisible(
+      gURLBar.querySelector("#urlbar-searchmode-switcher")
+    ),
+    false,
+    "Unified Search Button should not be visible."
+  );
+
+  await UrlbarTestUtils.enterSearchMode(window, {
+    source: UrlbarUtils.RESULT_SOURCE.BOOKMARKS,
+  });
+
+  Assert.equal(
+    BrowserTestUtils.isVisible(
+      gURLBar.querySelector("#searchmode-switcher-chicklet")
+    ),
+    false,
+    "Chicklet associated with Unified Search Button should not be visible."
+  );
+
+  await UrlbarTestUtils.exitSearchMode(window);
+  await SpecialPowers.popPrefEnv();
+});
+
 add_task(async function new_window() {
   let oldEngine = Services.search.getEngineByName("Bing");
   await updateEngine(() => {

@@ -1119,8 +1119,11 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   margin-inline-end: var(--urlbar-icon-padding);
   display: none;
 
-  #urlbar[searchmode] & {
-    display: inline-flex;
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
+    #urlbar[searchmode] & {
+      display: inline-flex;
+    }
   }
 }
 
