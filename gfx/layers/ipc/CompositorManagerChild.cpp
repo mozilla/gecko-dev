@@ -218,7 +218,7 @@ void CompositorManagerChild::ActorDestroy(ActorDestroyReason aReason) {
 }
 
 void CompositorManagerChild::HandleFatalError(const char* aMsg) {
-  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherPid());
+  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherChildID());
 }
 
 void CompositorManagerChild::ProcessingError(Result aCode,

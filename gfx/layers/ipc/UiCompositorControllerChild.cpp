@@ -212,7 +212,7 @@ void UiCompositorControllerChild::ProcessingError(Result aCode,
 }
 
 void UiCompositorControllerChild::HandleFatalError(const char* aMsg) {
-  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherPid());
+  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherChildID());
 }
 
 mozilla::ipc::IPCResult

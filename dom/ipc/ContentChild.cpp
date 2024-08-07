@@ -1558,8 +1558,8 @@ mozilla::ipc::IPCResult ContentChild::RecvInitProcessHangMonitor(
 }
 
 mozilla::ipc::IPCResult ContentChild::GetResultForRenderingInitFailure(
-    base::ProcessId aOtherPid) {
-  if (aOtherPid == base::GetCurrentProcId() || aOtherPid == OtherPid()) {
+    GeckoChildID aOtherChildID) {
+  if (aOtherChildID == XRE_GetChildID() || aOtherChildID == OtherChildID()) {
     // If we are talking to ourselves, or the UI process, then that is a fatal
     // protocol error.
     return IPC_FAIL_NO_REASON(this);
@@ -1593,17 +1593,17 @@ mozilla::ipc::IPCResult ContentChild::RecvInitRendering(
   // there are localized failures (e.g. failed to spawn a thread), then it
   // should MOZ_RELEASE_ASSERT or MOZ_CRASH as necessary instead.
   if (!CompositorManagerChild::Init(std::move(aCompositor), namespaces[0])) {
-    return GetResultForRenderingInitFailure(aCompositor.OtherPid());
+    return GetResultForRenderingInitFailure(aCompositor.OtherChildID());
   }
   if (!CompositorManagerChild::CreateContentCompositorBridge(namespaces[1])) {
-    return GetResultForRenderingInitFailure(aCompositor.OtherPid());
+    return GetResultForRenderingInitFailure(aCompositor.OtherChildID());
   }
   if (!ImageBridgeChild::InitForContent(std::move(aImageBridge),
                                         namespaces[2])) {
-    return GetResultForRenderingInitFailure(aImageBridge.OtherPid());
+    return GetResultForRenderingInitFailure(aImageBridge.OtherChildID());
   }
   if (!gfx::VRManagerChild::InitForContent(std::move(aVRBridge))) {
-    return GetResultForRenderingInitFailure(aVRBridge.OtherPid());
+    return GetResultForRenderingInitFailure(aVRBridge.OtherChildID());
   }
   RemoteDecoderManagerChild::InitForGPUProcess(std::move(aVideoManager));
 
@@ -1630,17 +1630,17 @@ mozilla::ipc::IPCResult ContentChild::RecvReinitRendering(
 
   // Re-establish singleton bridges to the compositor.
   if (!CompositorManagerChild::Init(std::move(aCompositor), namespaces[0])) {
-    return GetResultForRenderingInitFailure(aCompositor.OtherPid());
+    return GetResultForRenderingInitFailure(aCompositor.OtherChildID());
   }
   if (!CompositorManagerChild::CreateContentCompositorBridge(namespaces[1])) {
-    return GetResultForRenderingInitFailure(aCompositor.OtherPid());
+    return GetResultForRenderingInitFailure(aCompositor.OtherChildID());
   }
   if (!ImageBridgeChild::ReinitForContent(std::move(aImageBridge),
                                           namespaces[2])) {
-    return GetResultForRenderingInitFailure(aImageBridge.OtherPid());
+    return GetResultForRenderingInitFailure(aImageBridge.OtherChildID());
   }
   if (!gfx::VRManagerChild::InitForContent(std::move(aVRBridge))) {
-    return GetResultForRenderingInitFailure(aVRBridge.OtherPid());
+    return GetResultForRenderingInitFailure(aVRBridge.OtherChildID());
   }
   gfxPlatform::GetPlatform()->CompositorUpdated();
 
@@ -3332,12 +3332,11 @@ mozilla::ipc::IPCResult ContentChild::RecvGetFilesResponse(
 
 /* static */
 void ContentChild::FatalErrorIfNotUsingGPUProcess(const char* const aErrorMsg,
-                                                  base::ProcessId aOtherPid) {
+                                                  GeckoChildID aChildID) {
   // If we're communicating with the same process or the UI process then we
   // want to crash normally. Otherwise we want to just warn as the other end
   // must be the GPU process and it crashing shouldn't be fatal for us.
-  if (aOtherPid == base::GetCurrentProcId() ||
-      (GetSingleton() && GetSingleton()->OtherPid() == aOtherPid)) {
+  if (aChildID == XRE_GetChildID() || aChildID == 0) {
     mozilla::ipc::FatalError(aErrorMsg, false);
   } else {
     nsAutoCString formattedMessage("IPDL error: \"");

@@ -120,7 +120,7 @@ void VsyncBridgeChild::ProcessingError(Result aCode, const char* aReason) {
 }
 
 void VsyncBridgeChild::HandleFatalError(const char* aMsg) {
-  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherPid());
+  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherChildID());
 }
 
 }  // namespace gfx

@@ -176,7 +176,7 @@ bool VideoBridgeChild::IsSameProcess() const {
 }
 
 void VideoBridgeChild::HandleFatalError(const char* aMsg) {
-  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherPid());
+  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherChildID());
 }
 
 mozilla::ipc::IPCResult VideoBridgeChild::RecvPing(PingResolver&& aResolver) {

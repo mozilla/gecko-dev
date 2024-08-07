@@ -910,7 +910,7 @@ void RemoteDecoderManagerChild::DeallocateSurfaceDescriptor(
 }
 
 void RemoteDecoderManagerChild::HandleFatalError(const char* aMsg) {
-  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherPid());
+  dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherChildID());
 }
 
 void RemoteDecoderManagerChild::SetSupported(

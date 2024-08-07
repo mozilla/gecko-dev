@@ -566,7 +566,7 @@ class ContentChild final : public PContentChild,
    * GPU process crashes.
    */
   static void FatalErrorIfNotUsingGPUProcess(const char* const aErrorMsg,
-                                             base::ProcessId aOtherPid);
+                                             GeckoChildID aOtherChildID);
 
   using AnonymousTemporaryFileCallback = std::function<void(PRFileDesc*)>;
   nsresult AsyncOpenAnonymousTemporaryFile(
@@ -626,7 +626,7 @@ class ContentChild final : public PContentChild,
   void ShutdownInternal();
 
   mozilla::ipc::IPCResult GetResultForRenderingInitFailure(
-      base::ProcessId aOtherPid);
+      GeckoChildID aOtherChildID);
 
   virtual void ActorDestroy(ActorDestroyReason why) override;
 

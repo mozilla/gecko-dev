@@ -142,7 +142,7 @@ void BroadcastChannelService::PostMessage(BroadcastChannelParent* aParent,
       continue;
     }
 
-    if (parent->OtherPid() == aParent->OtherPid()) {
+    if (parent->OtherChildID() == aParent->OtherChildID()) {
       ++selectedActorsOnSamePid;
     }
 
