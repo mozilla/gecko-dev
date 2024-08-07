@@ -1227,6 +1227,17 @@
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Picatz de tèrmes de recèrca</string>
 
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Tornar</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Apondre un dossièr novèl</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Tampar los marcapaginas</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Cercar dins los marcapaginas</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Menú del marcapagina %s</string>
+
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Anar als paramètres</string>
@@ -1688,6 +1699,8 @@
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Minaires de criptomonedas</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Generadors d’emprentas numericas</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Generadors d’emprentas numericas coneguts</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Detalhs</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1714,6 +1727,8 @@
     <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Generadors d’emprentas numericas</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Empacha la culhida de donadas unicas identificables quant a vòstre periferic que pòdon èsser utilizadas pel seguiment.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Empacha la culhida de donadas unicas identificables quant a vòstre periferic que pòdon èsser utilizadas pel seguiment.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Contengut utilizat pel seguiment</string>
 
@@ -1741,6 +1756,10 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Escafa los cookies definits per redireccion cap als sites web coneguts per far seguiment</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Generadors d’emprentas numericas suspècte</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Generadors d’emprentas numericas coneguts</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">D’unes traçadors marcats cai-jos son estats parcialament desblocats per aquesta pagina pr’amor qu’avètz interagit amb eles *.</string>
@@ -2206,6 +2225,8 @@ Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp
     <string name="top_sites_edit_dialog_title">Modificar acorchi</string>
     <!-- Button caption to confirm the edit of the top site. -->
     <string name="top_sites_edit_dialog_save">Enregistrar</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">Picatz una URL valida</string>
     <!-- Label for the URL edit field in the edit top site dialog. -->
     <string name="top_sites_edit_dialog_url_title">URL</string>
 
@@ -2812,6 +2833,15 @@ Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Aisinas CFR</string>
+
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Reïnicializar los CFR</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Per sortir del mòde ecran complèt, lisatz d’ennaut e utilizatz lo gèst de retorn</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Per sortir del mòde ecran complèt, lisatz d’ennaut e utilizatz quichatz retorn</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
