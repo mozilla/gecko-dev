@@ -358,7 +358,7 @@ i.e.,:
 
 /* virtual */
 nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
-                                        bool aPlaceOrigin,
+                                        const PlaceFlags& aFlags,
                                         ReflowOutput& aDesiredSize) {
   float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
   if (NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
@@ -366,17 +366,17 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
     // place like sub sup or subsup
     if (mContent->IsMathMLElement(nsGkAtoms::munderover_)) {
       return nsMathMLmmultiscriptsFrame::PlaceMultiScript(
-          PresContext(), aDrawTarget, aPlaceOrigin, aDesiredSize, this, 0, 0,
+          PresContext(), aDrawTarget, aFlags, aDesiredSize, this, 0, 0,
           fontSizeInflation);
     } else if (mContent->IsMathMLElement(nsGkAtoms::munder_)) {
       return nsMathMLmmultiscriptsFrame::PlaceMultiScript(
-          PresContext(), aDrawTarget, aPlaceOrigin, aDesiredSize, this, 0, 0,
+          PresContext(), aDrawTarget, aFlags, aDesiredSize, this, 0, 0,
           fontSizeInflation);
     } else {
       NS_ASSERTION(mContent->IsMathMLElement(nsGkAtoms::mover_),
                    "mContent->NodeInfo()->NameAtom() not recognized");
       return nsMathMLmmultiscriptsFrame::PlaceMultiScript(
-          PresContext(), aDrawTarget, aPlaceOrigin, aDesiredSize, this, 0, 0,
+          PresContext(), aDrawTarget, aFlags, aDesiredSize, this, 0, 0,
           fontSizeInflation);
     }
   }
@@ -426,10 +426,10 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
     }
   }
   if (haveError) {
-    if (aPlaceOrigin) {
+    if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
       ReportChildCountError();
     }
-    return PlaceAsMrow(aDrawTarget, aPlaceOrigin, aDesiredSize);
+    return PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
   }
   GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
   if (underFrame) {
@@ -672,7 +672,7 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
 
-  if (aPlaceOrigin) {
+  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
     nscoord dy;
     // place overscript
     if (overFrame) {

@@ -313,9 +313,13 @@ void nsMathMLmpaddedFrame::Reflow(nsPresContext* aPresContext,
 }
 
 /* virtual */
-nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
+nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget,
+                                     const PlaceFlags& aFlags,
                                      ReflowOutput& aDesiredSize) {
-  nsresult rv = nsMathMLContainerFrame::Place(aDrawTarget, false, aDesiredSize);
+  // First perform normal row layout without border/padding.
+  PlaceFlags flags =
+      aFlags + PlaceFlag::MeasureOnly + PlaceFlag::IgnoreBorderPadding;
+  nsresult rv = nsMathMLContainerFrame::Place(aDrawTarget, flags, aDesiredSize);
   if (NS_FAILED(rv)) {
     DidReflowChildren(PrincipalChildList().FirstChild());
     return rv;
@@ -424,7 +428,7 @@ nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
 
-  if (aPlaceOrigin) {
+  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
     // Finish reflowing child frames, positioning their origins.
     PositionRowChildFrames(dx, aDesiredSize.BlockStartAscent() - voffset);
   }
@@ -436,5 +440,6 @@ nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
 nsresult nsMathMLmpaddedFrame::MeasureForWidth(DrawTarget* aDrawTarget,
                                                ReflowOutput& aDesiredSize) {
   ProcessAttributes();
-  return Place(aDrawTarget, false, aDesiredSize);
+  PlaceFlags flags(PlaceFlag::IntrinsicSize, PlaceFlag::MeasureOnly);
+  return Place(aDrawTarget, flags, aDesiredSize);
 }
