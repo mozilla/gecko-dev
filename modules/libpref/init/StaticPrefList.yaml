@@ -8019,6 +8019,13 @@
     type: bool
     value: false
     mirror: always
+
+  # Experimental support for RegExp.escape in JavaScript.
+-   name: javascript.options.experimental.regexp_escape
+    type: bool
+    value: false
+    mirror: always
+    set_spidermonkey_pref: startup
 #endif  // NIGHTLY_BUILD
 
 #ifdef ENABLE_JSON_PARSE_WITH_SOURCE

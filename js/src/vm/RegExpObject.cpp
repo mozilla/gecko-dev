@@ -172,7 +172,7 @@ static bool FinishRegExpClassInit(JSContext* cx, JS::HandleObject ctor,
 static const ClassSpec RegExpObjectClassSpec = {
     GenericCreateConstructor<js::regexp_construct, 2, gc::AllocKind::FUNCTION>,
     GenericCreatePrototype<RegExpObject>,
-    nullptr,
+    js::regexp_static_methods,
     js::regexp_static_props,
     js::regexp_methods,
     js::regexp_properties,

@@ -973,7 +973,8 @@ const JSPropertySpec js::regexp_properties[] = {
     JS_PSG("sticky", regexp_sticky, 0),
     JS_PSG("unicode", regexp_unicode, 0),
     JS_PSG("unicodeSets", regexp_unicodeSets, 0),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 const JSFunctionSpec js::regexp_methods[] = {
     JS_SELF_HOSTED_FN("toSource", "$RegExpToString", 0, 0),
@@ -986,7 +987,305 @@ const JSFunctionSpec js::regexp_methods[] = {
     JS_SELF_HOSTED_SYM_FN(replace, "RegExpReplace", 2, 0),
     JS_SELF_HOSTED_SYM_FN(search, "RegExpSearch", 1, 0),
     JS_SELF_HOSTED_SYM_FN(split, "RegExpSplit", 2, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
+
+#ifdef NIGHTLY_BUILD
+static constexpr JS::Latin1Char SHOULD_HEX_ESCAPE = JSString::MAX_LATIN1_CHAR;
+
+/**
+ * Ascii escape map.
+ *
+ * 1. If a character is mapped to zero (0x00), then no escape sequence is used.
+ * 2. Else,
+ *   a. If a character is mapped to SHOULD_HEX_ESCAPE, then hex-escape.
+ *   b. Else, escape with `\` followed by the mapped value.
+ */
+static constexpr auto AsciiRegExpEscapeMap() {
+  std::array<JS::Latin1Char, 128> result = {};
+
+  // SyntaxCharacter or U+002F (SOLIDUS)
+  result['^'] = '^';
+  result['$'] = '$';
+  result['\\'] = '\\';
+  result['.'] = '.';
+  result['*'] = '*';
+  result['+'] = '+';
+  result['?'] = '?';
+  result['('] = '(';
+  result[')'] = ')';
+  result['['] = '[';
+  result[']'] = ']';
+  result['{'] = '{';
+  result['}'] = '}';
+  result['|'] = '|';
+  result['/'] = '/';
+
+  // ControlEscape Code Point Values
+  result['\t'] = 't';
+  result['\n'] = 'n';
+  result['\v'] = 'v';
+  result['\f'] = 'f';
+  result['\r'] = 'r';
+
+  // Other punctuators ",-=<>#&!%:;@~'`" or 0x0022 (QUOTATION MARK)
+  result[','] = SHOULD_HEX_ESCAPE;
+  result['-'] = SHOULD_HEX_ESCAPE;
+  result['='] = SHOULD_HEX_ESCAPE;
+  result['<'] = SHOULD_HEX_ESCAPE;
+  result['>'] = SHOULD_HEX_ESCAPE;
+  result['#'] = SHOULD_HEX_ESCAPE;
+  result['&'] = SHOULD_HEX_ESCAPE;
+  result['!'] = SHOULD_HEX_ESCAPE;
+  result['%'] = SHOULD_HEX_ESCAPE;
+  result[':'] = SHOULD_HEX_ESCAPE;
+  result[';'] = SHOULD_HEX_ESCAPE;
+  result['@'] = SHOULD_HEX_ESCAPE;
+  result['~'] = SHOULD_HEX_ESCAPE;
+  result['\''] = SHOULD_HEX_ESCAPE;
+  result['`'] = SHOULD_HEX_ESCAPE;
+  result['"'] = SHOULD_HEX_ESCAPE;
+
+  // WhiteSpace or LineTerminator
+  result[' '] = SHOULD_HEX_ESCAPE;
+
+  return result;
+}
+
+/**
+ * EncodeForRegExpEscape ( c )
+ *
+ * https://tc39.es/proposal-regex-escaping/#sec-encodeforregexpescape
+ */
+template <typename CharT>
+[[nodiscard]] static bool EncodeForRegExpEscape(
+    mozilla::Span<const CharT> chars, JSStringBuilder& sb) {
+  MOZ_ASSERT(sb.empty());
+
+  const size_t length = chars.size();
+  if (length == 0) {
+    return true;
+  }
+
+  static constexpr auto asciiEscapeMap = AsciiRegExpEscapeMap();
+
+  // Number of characters added when escaping.
+  static constexpr size_t EscapeAddLength = 2 - 1;
+  static constexpr size_t HexEscapeAddLength = 4 - 1;
+  static constexpr size_t UnicodeEscapeAddLength = 6 - 1;
+
+  // Initial scan to determine if escape sequences are needed and to compute
+  // the output length.
+  size_t outLength = length;
+
+  // Leading Ascii alpha-numeric character is hex-escaped.
+  size_t scanStart = 0;
+  if (mozilla::IsAsciiAlphanumeric(chars[0])) {
+    outLength += HexEscapeAddLength;
+    scanStart = 1;
+  }
+
+  for (size_t i = scanStart; i < length; i++) {
+    CharT ch = chars[i];
+
+    JS::Latin1Char escape = 0;
+    if (mozilla::IsAscii(ch)) {
+      escape = asciiEscapeMap[ch];
+    } else {
+      // Surrogate pair.
+      if (unicode::IsLeadSurrogate(ch) && i + 1 < length &&
+          unicode::IsTrailSurrogate(chars[i + 1])) {
+        i += 1;
+        continue;
+      }
+
+      // WhiteSpace or LineTerminator or unmatched surrogate.
+      if (unicode::IsSpace(ch) || unicode::IsSurrogate(ch)) {
+        escape = SHOULD_HEX_ESCAPE;
+      }
+    }
+    if (!escape) {
+      continue;
+    }
+
+    if (mozilla::IsAscii(escape)) {
+      outLength += EscapeAddLength;
+    } else if (ch <= JSString::MAX_LATIN1_CHAR) {
+      outLength += HexEscapeAddLength;
+    } else {
+      outLength += UnicodeEscapeAddLength;
+    }
+  }
+
+  // Return if no escape sequences are needed.
+  if (outLength == length) {
+    return true;
+  }
+  MOZ_ASSERT(outLength > length);
+
+  // Inflating is fallible, so we have to convert to two-byte upfront.
+  if constexpr (std::is_same_v<CharT, char16_t>) {
+    if (!sb.ensureTwoByteChars()) {
+      return false;
+    }
+  }
+
+  // Allocate memory for the output using the final length.
+  if (!sb.reserve(outLength)) {
+    return false;
+  }
+
+  // NB: Lower case hex digits.
+  static constexpr char HexDigits[] = "0123456789abcdef";
+  static_assert(std::char_traits<char>::length(HexDigits) == 16);
+
+  // Append |ch| as an escaped character.
+  auto appendEscape = [&](JS::Latin1Char ch) {
+    MOZ_ASSERT(mozilla::IsAscii(ch));
+
+    sb.infallibleAppend('\\');
+    sb.infallibleAppend(ch);
+  };
+
+  // Append |ch| as a hex-escape sequence.
+  auto appendHexEscape = [&](CharT ch) {
+    MOZ_ASSERT(ch <= JSString::MAX_LATIN1_CHAR);
+
+    sb.infallibleAppend('\\');
+    sb.infallibleAppend('x');
+    sb.infallibleAppend(HexDigits[(ch >> 4) & 0xf]);
+    sb.infallibleAppend(HexDigits[ch & 0xf]);
+  };
+
+  // Append |ch| as a Unicode-escape sequence.
+  auto appendUnicodeEscape = [&](char16_t ch) {
+    MOZ_ASSERT(ch > JSString::MAX_LATIN1_CHAR);
+
+    sb.infallibleAppend('\\');
+    sb.infallibleAppend('u');
+    sb.infallibleAppend(HexDigits[(ch >> 12) & 0xf]);
+    sb.infallibleAppend(HexDigits[(ch >> 8) & 0xf]);
+    sb.infallibleAppend(HexDigits[(ch >> 4) & 0xf]);
+    sb.infallibleAppend(HexDigits[ch & 0xf]);
+  };
+
+  // Index after the last character which produced an escape sequence.
+  size_t startUnescaped = 0;
+
+  // Append unescaped characters from |startUnescaped| (inclusive) to |end|
+  // (exclusive).
+  auto appendUnescaped = [&](size_t end) {
+    MOZ_ASSERT(startUnescaped <= end && end <= length);
+
+    if (startUnescaped < end) {
+      auto unescaped = chars.FromTo(startUnescaped, end);
+      sb.infallibleAppend(unescaped.data(), unescaped.size());
+    }
+    startUnescaped = end + 1;
+  };
+
+  // Leading Ascii alpha-numeric character is hex-escaped.
+  size_t start = 0;
+  if (mozilla::IsAsciiAlphanumeric(chars[0])) {
+    appendHexEscape(chars[0]);
+
+    start = 1;
+    startUnescaped = 1;
+  }
+
+  for (size_t i = start; i < length; i++) {
+    CharT ch = chars[i];
+
+    JS::Latin1Char escape = 0;
+    if (mozilla::IsAscii(ch)) {
+      escape = asciiEscapeMap[ch];
+    } else {
+      // Surrogate pair.
+      if (unicode::IsLeadSurrogate(ch) && i + 1 < length &&
+          unicode::IsTrailSurrogate(chars[i + 1])) {
+        i += 1;
+        continue;
+      }
+
+      // WhiteSpace or LineTerminator or unmatched surrogate.
+      if (unicode::IsSpace(ch) || unicode::IsSurrogate(ch)) {
+        escape = SHOULD_HEX_ESCAPE;
+      }
+    }
+    if (!escape) {
+      continue;
+    }
+
+    appendUnescaped(i);
+
+    if (mozilla::IsAscii(escape)) {
+      appendEscape(escape);
+    } else if (ch <= JSString::MAX_LATIN1_CHAR) {
+      appendHexEscape(ch);
+    } else {
+      appendUnicodeEscape(ch);
+    }
+  }
+
+  if (startUnescaped) {
+    appendUnescaped(length);
+  }
+
+  MOZ_ASSERT(sb.length() == outLength, "all characters were written");
+  return true;
+}
+
+[[nodiscard]] static bool EncodeForRegExpEscape(JSLinearString* string,
+                                                JSStringBuilder& sb) {
+  JS::AutoCheckCannotGC nogc;
+  if (string->hasLatin1Chars()) {
+    auto chars = mozilla::Span(string->latin1Range(nogc));
+    return EncodeForRegExpEscape(chars, sb);
+  }
+  auto chars = mozilla::Span(string->twoByteRange(nogc));
+  return EncodeForRegExpEscape(chars, sb);
+}
+
+/**
+ * RegExp.escape ( S )
+ *
+ * https://tc39.es/proposal-regex-escaping/
+ */
+static bool regexp_escape(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  // Step 1.
+  if (!args.get(0).isString()) {
+    return ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_SEARCH_STACK,
+                            args.get(0), nullptr, "not a string");
+  }
+
+  Rooted<JSLinearString*> string(cx, args[0].toString()->ensureLinear(cx));
+  if (!string) {
+    return false;
+  }
+
+  // Step 2-5.
+  JSStringBuilder sb(cx);
+  if (!EncodeForRegExpEscape(string, sb)) {
+    return false;
+  }
+
+  // Return the input string if no escape sequences were added.
+  if (sb.empty()) {
+    args.rval().setString(string);
+    return true;
+  }
+
+  auto* result = sb.finishString();
+  if (!result) {
+    return false;
+  }
+
+  args.rval().setString(result);
+  return true;
+}
+#endif
 
 #define STATIC_PAREN_GETTER_CODE(parenNum)                        \
   if (!res->createParen(cx, parenNum, args.rval())) return false; \
@@ -1086,7 +1385,15 @@ const JSPropertySpec js::regexp_static_props[] = {
     JS_PSG("$`", static_leftContext_getter, JSPROP_PERMANENT),
     JS_PSG("$'", static_rightContext_getter, JSPROP_PERMANENT),
     JS_SELF_HOSTED_SYM_GET(species, "$RegExpSpecies", 0),
-    JS_PS_END};
+    JS_PS_END,
+};
+
+const JSFunctionSpec js::regexp_static_methods[] = {
+#ifdef NIGHTLY_BUILD
+    JS_FN("escape", regexp_escape, 1, 0),
+#endif
+    JS_FS_END,
+};
 
 /*
  * ES 2017 draft rev 6a13789aa9e7c6de4e96b7d3e24d9e6eba6584ad 21.2.5.2.2

@@ -2259,6 +2259,14 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
        id == NameToId(cx->names().fromHex))) {
     return true;
   }
+
+  // It's gently surprising that this is JSProto_Function, but the trick
+  // to realize is that this is a -constructor function-, not a function
+  // on the prototype; and the proto of the constructor is JSProto_Function.
+  if (key == JSProto_Function && !JS::Prefs::experimental_regexp_escape() &&
+      id == NameToId(cx->names().escape)) {
+    return true;
+  }
 #endif
 
 #ifdef ENABLE_JSON_PARSE_WITH_SOURCE

@@ -162,6 +162,7 @@ extern int32_t GetFirstDollarIndexRawFlat(const JSLinearString* text);
 [[nodiscard]] extern bool regexp_construct(JSContext* cx, unsigned argc,
                                            Value* vp);
 extern const JSPropertySpec regexp_static_props[];
+extern const JSFunctionSpec regexp_static_methods[];
 extern const JSPropertySpec regexp_properties[];
 extern const JSFunctionSpec regexp_methods[];
 
