@@ -1494,7 +1494,9 @@ abstract class BaseBrowserFragment :
                     Column {
                         Divider()
 
-                        if (!activity.isMicrosurveyPromptDismissed.value) {
+                        if (!activity.isMicrosurveyPromptDismissed.value &&
+                            !(context.isTablet() && context.settings().shouldShowTabletNavigationCFR)
+                        ) {
                             currentMicrosurvey?.let {
                                 if (isToolbarAtBottom) {
                                     updateBrowserToolbarForMicrosurveyPrompt(browserToolbar)

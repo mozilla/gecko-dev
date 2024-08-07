@@ -46,11 +46,13 @@ import mozilla.components.concept.engine.EngineSession.CookieBannerHandlingStatu
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.GleanMetrics.AddressToolbar
 import org.mozilla.fenix.GleanMetrics.CookieBanners
 import org.mozilla.fenix.GleanMetrics.Shopping
 import org.mozilla.fenix.GleanMetrics.TrackingProtection
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.SupportUtils.SumoTopic.TOTAL_COOKIE_PROTECTION
 import org.mozilla.fenix.shopping.DefaultShoppingExperienceFeature
@@ -83,7 +85,7 @@ internal var CFR_MINIMUM_NUMBER_OPENED_TABS = 5
  * @param onShoppingCfrDisplayed Triggered when CFR is displayed to the user.
  * @param shoppingExperienceFeature Used to determine if [ShoppingExperienceFeature] is enabled.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "LongMethod")
 class BrowserToolbarCFRPresenter(
     private val context: Context,
     private val browserStore: BrowserStore,
@@ -175,6 +177,23 @@ class BrowserToolbarCFRPresenter(
                 }
             }
 
+            ToolbarCFR.TABLET_NAVIGATION -> {
+                scope = browserStore.flowScoped { flow ->
+                    flow
+                        .mapNotNull { it.selectedTab }
+                        .map { it.content.progress }
+                        .transformWhile { progress ->
+                            emit(progress)
+                            progress != 100
+                        }
+                        .filter { popup == null && it == 100 }
+                        .collect {
+                            scope?.cancel()
+                            showTabletNavigationCFR()
+                        }
+                }
+            }
+
             ToolbarCFR.NONE -> {
                 // no-op
             }
@@ -222,6 +241,9 @@ class BrowserToolbarCFRPresenter(
         isPrivate && settings.shouldShowCookieBannersCFR && settings.shouldUseCookieBannerPrivateMode -> {
             ToolbarCFR.COOKIE_BANNERS
         }
+
+        context.isTablet() &&
+            settings.shouldShowTabletNavigationCFR -> ToolbarCFR.TABLET_NAVIGATION
 
         shoppingExperienceFeature.isEnabled &&
             settings.shouldShowReviewQualityCheckCFR -> whichShoppingCFR()
@@ -481,11 +503,58 @@ class BrowserToolbarCFRPresenter(
             show()
         }
     }
+
+    @VisibleForTesting
+    @Suppress("LongMethod")
+    internal fun showTabletNavigationCFR() {
+        CFRPopup(
+            anchor = toolbar.findViewById(
+                R.id.mozac_browser_toolbar_navigation_actions,
+            ),
+            properties = CFRPopupProperties(
+                popupAlignment = INDICATOR_CENTERED_IN_ANCHOR,
+                popupBodyColors = listOf(
+                    getColor(context, R.color.fx_mobile_layer_color_gradient_end),
+                    getColor(context, R.color.fx_mobile_layer_color_gradient_start),
+                ),
+                popupVerticalOffset = CFR_TO_ANCHOR_VERTICAL_PADDING.dp,
+                dismissButtonColor = getColor(context, R.color.fx_mobile_icon_color_oncolor),
+                indicatorDirection = CFRPopup.IndicatorDirection.UP,
+            ),
+            onDismiss = {
+                AddressToolbar.tabletNavigationCfrDismissed.record(NoExtras())
+                settings.shouldShowTabletNavigationCFR = false
+                settings.lastCfrShownTimeInMillis = System.currentTimeMillis()
+            },
+            title = {
+                FirefoxTheme {
+                    Text(
+                        text = context.getString(R.string.tablet_nav_bar_cfr_title),
+                        color = FirefoxTheme.colors.textOnColorPrimary,
+                        style = FirefoxTheme.typography.subtitle2,
+                    )
+                }
+            },
+            text = {
+                FirefoxTheme {
+                    Text(
+                        text = context.getString(R.string.tablet_nav_bar_cfr_message),
+                        color = FirefoxTheme.colors.textOnColorPrimary,
+                        style = FirefoxTheme.typography.body2,
+                    )
+                }
+            },
+        ).run {
+            AddressToolbar.tabletNavigationCfrShown.record(NoExtras())
+            popup = this
+            show()
+        }
+    }
 }
 
 /**
  * The CFR to be shown in the toolbar.
  */
 private enum class ToolbarCFR {
-    TCP, SHOPPING, SHOPPING_OPTED_IN, ERASE, COOKIE_BANNERS, NONE
+    TCP, SHOPPING, SHOPPING_OPTED_IN, ERASE, COOKIE_BANNERS, TABLET_NAVIGATION, NONE
 }
