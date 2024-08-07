@@ -45,10 +45,10 @@ import java.io.File
 
 /**
  * The (visible) version name of the application, as specified by the <manifest> tag's versionName
- * attribute. E.g. "2.0".
+ * attribute. E.g. "2.0". Returns an empty string if versionName is null.
  */
 val Context.appVersionName: String
-    get() = packageManager.getPackageInfoCompat(packageName, 0).versionName
+    get() = packageManager.getPackageInfoCompat(packageName, 0).versionName ?: ""
 
 /**
  * Returns the name (label) of the application or the package name as a fallback.
