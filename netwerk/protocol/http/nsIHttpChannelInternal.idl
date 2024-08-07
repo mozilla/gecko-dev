@@ -529,4 +529,6 @@ interface nsIHttpChannelInternal : nsISupports
      */
     [must_use] void setResponseOverride(
         in nsIReplacedHttpResponse aReplacedHttpResponse);
+
+    readonly attribute nsresult lastTransportStatus;
 };

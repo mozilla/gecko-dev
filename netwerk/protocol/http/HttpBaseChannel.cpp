@@ -6688,5 +6688,10 @@ HttpBaseChannel::GetRenderBlocking(bool* aRenderBlocking) {
   return NS_OK;
 }
 
+NS_IMETHODIMP HttpBaseChannel::GetLastTransportStatus(
+    nsresult* aLastTransportStatus) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 }  // namespace net
 }  // namespace mozilla

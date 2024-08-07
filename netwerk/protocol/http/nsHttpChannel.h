@@ -160,6 +160,7 @@ class nsHttpChannel final : public HttpBaseChannel,
   NS_IMETHOD GetNavigationStartTimeStamp(TimeStamp* aTimeStamp) override;
   NS_IMETHOD SetNavigationStartTimeStamp(TimeStamp aTimeStamp) override;
   NS_IMETHOD CancelByURLClassifier(nsresult aErrorCode) override;
+  NS_IMETHOD GetLastTransportStatus(nsresult* aLastTransportStatus) override;
   // nsISupportsPriority
   NS_IMETHOD SetPriority(int32_t value) override;
   // nsIClassOfService
@@ -603,6 +604,7 @@ class nsHttpChannel final : public HttpBaseChannel,
   nsCOMPtr<nsITransportSecurityInfo> mCachedSecurityInfo;
   uint32_t mPostID{0};
   uint32_t mRequestTime{0};
+  nsresult mLastTransportStatus{NS_OK};
 
   nsTArray<StreamFilterRequest> mStreamFilterRequests;
 
