@@ -68,8 +68,8 @@ class AndroidAssetFinder {
     private fun PackageManager.getSignatures(packageName: String): Array<Signature> {
         val packageInfo = getPackageSignatureInfo(packageName) ?: return emptyArray()
 
-        val signatures = if (SDK_INT >= Build.VERSION_CODES.P) {
-            val signingInfo = packageInfo.signingInfo ?: return emptyArray()
+        return if (SDK_INT >= Build.VERSION_CODES.P) {
+            val signingInfo = packageInfo.signingInfo
             if (signingInfo.hasMultipleSigners()) {
                 signingInfo.apkContentsSigners
             } else {
@@ -82,10 +82,8 @@ class AndroidAssetFinder {
             }
         } else {
             @Suppress("Deprecation")
-            packageInfo.signatures ?: emptyArray()
+            packageInfo.signatures
         }
-
-        return signatures
     }
 
     @SuppressLint("PackageManagerGetSignatures")

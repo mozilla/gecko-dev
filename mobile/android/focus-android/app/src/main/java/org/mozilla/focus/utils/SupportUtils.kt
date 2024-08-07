@@ -85,11 +85,11 @@ object SupportUtils {
     }
 
     /**
-     * Returns the version name of this package or an empty string if versionName is null.
+     * Returns the version name of this package.
      */
     fun getAppVersion(context: Context): String {
         try {
-            return context.packageManager.getPackageInfoCompat(context.packageName, 0).versionName ?: ""
+            return context.packageManager.getPackageInfoCompat(context.packageName, 0).versionName
         } catch (e: PackageManager.NameNotFoundException) {
             // This should be impossible - we should always be able to get information about ourselves:
             throw IllegalStateException("Unable find package details for Focus", e)
