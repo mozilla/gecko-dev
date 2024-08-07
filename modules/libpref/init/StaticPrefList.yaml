@@ -12078,7 +12078,7 @@
 # This pref will only be consulted if CHIPS itself is enabled
 - name: network.cookie.chips.partitionLimitEnabled
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 # CHIPS partition limit DryRun mode disables purging/rejection
