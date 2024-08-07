@@ -615,10 +615,9 @@ abstract class BaseBrowserFragment :
                 sessionId = customTabSessionId,
                 view = binding.findInPageView,
                 engineView = binding.engineView,
-                toolbarInfo = FindInPageIntegration.ToolbarInfo(
-                    toolbar = browserToolbarView.layout,
-                    isToolbarDynamic = isToolbarDynamic(context),
-                    isToolbarPlacedAtTop = context.settings().toolbarPosition == ToolbarPosition.TOP,
+                toolbars = listOf(
+                    _bottomToolbarContainerView?.toolbarContainerView,
+                    browserToolbarView.layout as? ViewGroup?,
                 ),
             ),
             owner = this,
