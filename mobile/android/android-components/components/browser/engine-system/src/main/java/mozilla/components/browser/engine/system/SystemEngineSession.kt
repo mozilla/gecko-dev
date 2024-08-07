@@ -282,6 +282,7 @@ class SystemEngineSession(
             // Explicitly set global defaults.
 
             cacheMode = LOAD_NO_CACHE
+            databaseEnabled = false
 
             setDeprecatedWebSettings(this)
 
@@ -304,8 +305,6 @@ class SystemEngineSession(
         webSettings.saveFormData = false
         // Deprecated in API18.
         webSettings.savePassword = false
-        // Deprecated in API35; default value is false.
-        webSettings.databaseEnabled = false
     }
 
     private fun setUseWideViewPort(settings: WebSettings, useWideViewPort: Boolean?) {

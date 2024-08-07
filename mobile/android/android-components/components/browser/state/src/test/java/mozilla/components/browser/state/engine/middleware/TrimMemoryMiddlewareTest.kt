@@ -192,8 +192,6 @@ class TrimMemoryMiddlewareTest {
 
     @Test
     fun `TrimMemoryMiddleware - TRIM_MEMORY_RUNNING_CRITICAL`() {
-        @Suppress("DEPRECATION") // Apps are not notified of these levels since API level 34.
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1909473
         store.dispatch(
             SystemAction.LowMemoryAction(
                 level = ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL,

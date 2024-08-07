@@ -28,11 +28,8 @@ import mozilla.components.feature.search.widget.BaseVoiceSearchActivity
 import mozilla.components.lib.auth.canUseBiometricFeature
 import mozilla.components.lib.crash.Crash
 import mozilla.components.support.base.feature.UserInteractionHandler
-import mozilla.components.support.ktx.android.content.getStatusBarColor
+import mozilla.components.support.ktx.android.content.getColorFromAttr
 import mozilla.components.support.ktx.android.view.createWindowInsetsController
-import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
-import mozilla.components.support.ktx.android.view.setNavigationBarDividerColorCompat
-import mozilla.components.support.ktx.android.view.setStatusBarColorCompat
 import mozilla.components.support.locale.LocaleAwareAppCompatActivity
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.StatusBarUtils
@@ -110,7 +107,7 @@ open class MainActivity : LocaleAwareAppCompatActivity() {
         window.decorView.systemUiVisibility =
             View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 
-        window.setStatusBarColorCompat(ContextCompat.getColor(this, android.R.color.transparent))
+        window.statusBarColor = ContextCompat.getColor(this, android.R.color.transparent)
         when (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
             Configuration.UI_MODE_NIGHT_UNDEFINED, // We assume light here per Android doc's recommendation
             Configuration.UI_MODE_NIGHT_NO,
@@ -396,21 +393,20 @@ open class MainActivity : LocaleAwareAppCompatActivity() {
 
     private fun updateLightSystemBars() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            window.context.getStatusBarColor()?.let { window.setStatusBarColorCompat(it) }
+            window.statusBarColor = getColorFromAttr(android.R.attr.statusBarColor)
             window.createWindowInsetsController().isAppearanceLightStatusBars = true
         } else {
-            window.setStatusBarColorCompat(Color.BLACK)
+            window.statusBarColor = Color.BLACK
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // API level can display handle light navigation bar color
             window.createWindowInsetsController().isAppearanceLightNavigationBars = true
-            window.setNavigationBarColorCompat(ContextCompat.getColor(this, android.R.color.transparent))
+            window.navigationBarColor = ContextCompat.getColor(this, android.R.color.transparent)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                window.setNavigationBarDividerColorCompat(
-                    ContextCompat.getColor(this, android.R.color.transparent),
-                )
+                window.navigationBarDividerColor =
+                    ContextCompat.getColor(this, android.R.color.transparent)
             }
         }
     }
