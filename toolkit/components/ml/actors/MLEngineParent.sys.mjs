@@ -532,7 +532,7 @@ class MLEngine {
       notificationsCallback,
     });
 
-    mlEngine.setupPortCommunication();
+    await mlEngine.setupPortCommunication();
 
     return mlEngine;
   }
@@ -591,12 +591,15 @@ class MLEngine {
 
   /**
    * Create a MessageChannel to communicate with the engine directly.
+   * And ensure the engine is fully initialized with all required files for the current model version downloaded.
    */
-  setupPortCommunication() {
+  async setupPortCommunication() {
     const { port1: childPort, port2: parentPort } = new MessageChannel();
     const transferables = [childPort];
     this.#port = parentPort;
-    this.#port.onmessage = this.handlePortMessage;
+    const newPortResolvers = Promise.withResolvers();
+    this.#port.onmessage = message =>
+      this.handlePortMessage(message, newPortResolvers);
     this.mlEngineParent.sendAsyncMessage(
       "MLEngine:NewPort",
       {
@@ -605,6 +608,7 @@ class MLEngine {
       },
       transferables
     );
+    await newPortResolvers.promise;
 
     this.setEngineStatus("ready");
   }
@@ -614,9 +618,19 @@ class MLEngine {
    *
    * @param {object} event - The message event.
    * @param {object} event.data - The data of the message event.
+   * @param {object} newPortResolvers - An object containing a promise for mlEngine new port setup, along with two functions to resolve or reject it.
    */
-  handlePortMessage = ({ data }) => {
+  handlePortMessage = ({ data }, newPortResolvers) => {
     switch (data.type) {
+      case "EnginePort:EngineReady": {
+        if (data.error) {
+          newPortResolvers.reject(data.error);
+        } else {
+          newPortResolvers.resolve();
+        }
+
+        break;
+      }
       case "EnginePort:ModelRequest": {
         if (this.#port) {
           this.getModel().then(

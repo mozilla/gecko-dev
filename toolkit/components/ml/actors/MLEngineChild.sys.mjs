@@ -65,41 +65,7 @@ export class MLEngineChild extends JSWindowActorChild {
   async receiveMessage({ name, data }) {
     switch (name) {
       case "MLEngine:NewPort": {
-        const { port, pipelineOptions } = data;
-
-        // Override some options using prefs
-        let options = new lazy.PipelineOptions(pipelineOptions);
-
-        options.updateOptions({
-          modelHubRootUrl: lazy.MODEL_HUB_ROOT_URL,
-          modelHubUrlTemplate: lazy.MODEL_HUB_URL_TEMPLATE,
-          timeoutMS: lazy.CACHE_TIMEOUT_MS,
-          logLevel: lazy.LOG_LEVEL,
-        });
-
-        // Check if we already have an engine under this id.
-        if (this.#engineDispatchers.has(options.engineId)) {
-          let currentEngineDispatcher = this.#engineDispatchers.get(
-            options.engineId
-          );
-
-          // The option matches, let's reuse the engine
-          if (currentEngineDispatcher.pipelineOptions.equals(options)) {
-            return;
-          }
-
-          // The options do not match, terminate the old one so we have a single engine per id.
-          await currentEngineDispatcher.terminate(
-            /* shutDownIfEmpty */ false,
-            /* replacement */ true
-          );
-          this.#engineDispatchers.delete(options.engineId);
-        }
-
-        this.#engineDispatchers.set(
-          options.engineId,
-          await EngineDispatcher.initialize(this, port, options)
-        );
+        await this.#onNewPortCreated(data);
         break;
       }
       case "MLEngine:ForceShutdown": {
@@ -112,6 +78,67 @@ export class MLEngineChild extends JSWindowActorChild {
         this.#engineDispatchers = null;
         break;
       }
+    }
+  }
+
+  /**
+   * Handles the actions to be performed after a new port has been created.
+   * Specifically, it ensures that the engine dispatcher is created if not already present,
+   * and notifies the parent through the port once the engine dispatcher is ready.
+   *
+   * @param {object} config - Configuration object.
+   * @param {MessagePort} config.port - The port of the channel.
+   * @param {PipelineOptions} config.pipelineOptions - The options for the pipeline.
+   * @returns {Promise<void>} - A promise that resolves once the necessary actions are complete.
+   */
+  async #onNewPortCreated({ port, pipelineOptions }) {
+    try {
+      // Override some options using prefs
+      let options = new lazy.PipelineOptions(pipelineOptions);
+
+      options.updateOptions({
+        modelHubRootUrl: lazy.MODEL_HUB_ROOT_URL,
+        modelHubUrlTemplate: lazy.MODEL_HUB_URL_TEMPLATE,
+        timeoutMS: lazy.CACHE_TIMEOUT_MS,
+        logLevel: lazy.LOG_LEVEL,
+      });
+
+      // Check if we already have an engine under this id.
+      if (this.#engineDispatchers.has(options.engineId)) {
+        let currentEngineDispatcher = this.#engineDispatchers.get(
+          options.engineId
+        );
+
+        // The option matches, let's reuse the engine
+        if (currentEngineDispatcher.pipelineOptions.equals(options)) {
+          port.postMessage({
+            type: "EnginePort:EngineReady",
+            error: null,
+          });
+          return;
+        }
+
+        // The options do not match, terminate the old one so we have a single engine per id.
+        await currentEngineDispatcher.terminate(
+          /* shutDownIfEmpty */ false,
+          /* replacement */ true
+        );
+        this.#engineDispatchers.delete(options.engineId);
+      }
+
+      this.#engineDispatchers.set(
+        options.engineId,
+        await EngineDispatcher.initialize(this, port, options)
+      );
+      port.postMessage({
+        type: "EnginePort:EngineReady",
+        error: null,
+      });
+    } catch (error) {
+      port.postMessage({
+        type: "EnginePort:EngineReady",
+        error,
+      });
     }
   }
 
@@ -276,6 +303,13 @@ class EngineDispatcher {
   }
 
   /**
+   * Resolves the engine to fully initialize it.
+   */
+  async ensureInferenceEngineIsReady() {
+    this.#engine = await this.#engine;
+  }
+
+  /**
    * Initialize an Engine Dispatcher
    *
    * @param {MLEngineChild} mlEngineChild
@@ -288,6 +322,11 @@ class EngineDispatcher {
       port,
       pipelineOptions
     );
+
+    // In unit tests, maintain the current behavior of resolving during execution instead of initialization.
+    if (!Cu.isInAutomation) {
+      await dispatcher.ensureInferenceEngineIsReady();
+    }
 
     return dispatcher;
   }
@@ -363,9 +402,8 @@ class EngineDispatcher {
         }
         case "EnginePort:Run": {
           const { requestId, request } = data;
-          let engine;
           try {
-            engine = await this.#engine;
+            await this.ensureInferenceEngineIsReady();
           } catch (error) {
             port.postMessage({
               type: "EnginePort:RunResponse",
@@ -389,7 +427,7 @@ class EngineDispatcher {
             port.postMessage({
               type: "EnginePort:RunResponse",
               requestId,
-              response: await engine.run(request),
+              response: await this.#engine.run(request),
               error: null,
             });
           } catch (error) {

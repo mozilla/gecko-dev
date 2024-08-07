@@ -328,7 +328,10 @@ export class Pipeline {
       }
       transformers = await transformersPromise;
     }
-    return new Pipeline(modelCache, config);
+
+    const pipeline = new Pipeline(modelCache, config);
+    await pipeline.ensurePipelineIsReady();
+    return pipeline;
   }
 
   /**
@@ -385,7 +388,7 @@ export class Pipeline {
    */
   async run(request) {
     lazy.console.debug("Running task: ", this.#config.taskName);
-    await this.ensurePipelineIsReady();
+
     let result;
 
     if (this.#genericPipelineFunction) {
