@@ -354,9 +354,9 @@ export class Pipeline {
           lazy.console.debug("Initializing model, tokenizer and processor");
 
           try {
-            this.#model = await this.#model;
-            this.#tokenizer = await this.#tokenizer;
-            this.#processor = await this.#processor;
+            [this.#model, this.#tokenizer, this.#processor] = await Promise.all(
+              [this.#model, this.#tokenizer, this.#processor]
+            );
             this.#isReady = true;
           } catch (error) {
             lazy.console.debug("Error initializing pipeline", error);
