@@ -475,12 +475,19 @@ The *query* object may have the following properties:
 
 * `class`
 
-  If present, only return objects whose internal `[[Class]]`'s name
-  matches the given string. Note that in some cases, the prototype object
-  for a given constructor has the same `[[Class]]` as the instances that
-  refer to it, but cannot itself be used as a valid instance of the
-  class. Code gathering objects by class name may need to examine them
+  If present with a string value, only return objects whose internal
+  `[[Class]]`'s name matches the given string. Note that in some cases,
+  the prototype object for a given constructor has the same `[[Class]]` as
+  the instances that refer to it, but cannot itself be used as a valid instance
+  of the class. Code gathering objects by class name may need to examine them
   further before trying to use them.
+
+  If present with a [`Debugger.Object`][object] value, only return objects
+  which has given object as constructor or prototype in the prototype chain.
+  Note that objects with dynamic prototype (e.g. `Proxy`) cannot be matched with
+  this query, given accessing the prototype for such object can have some
+  side effects. Also note that, currently an object with `null` prototype
+  cannot be matched with this query.
 
 All properties of *query* are optional. Passing an empty object returns all
 objects in debuggee globals.
