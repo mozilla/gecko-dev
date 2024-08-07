@@ -15,6 +15,7 @@ using namespace mozilla::startup;
 namespace mozilla {
 namespace startup {
 GeckoProcessType sChildProcessType = GeckoProcessType_Default;
+GeckoChildID sGeckoChildID = 0;
 }  // namespace startup
 
 void SetGeckoProcessType(const char* aProcessTypeString) {
@@ -53,6 +54,10 @@ void SetGeckoProcessType(const char* aProcessTypeString) {
 #undef GECKO_PROCESS_TYPE
 
   MOZ_CRASH("aProcessTypeString is not valid.");
+}
+
+void SetGeckoChildID(const char* aGeckoChildIDString) {
+  sGeckoChildID = atoi(aGeckoChildIDString);
 }
 
 }  // namespace mozilla

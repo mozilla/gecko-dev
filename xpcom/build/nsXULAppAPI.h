@@ -288,8 +288,6 @@ struct XRE_AndroidChildFds {
 void XRE_SetAndroidChildFds(JNIEnv* env, const XRE_AndroidChildFds& fds);
 #endif  // defined(MOZ_WIDGET_ANDROID)
 
-void XRE_SetProcessType(const char* aProcessTypeString);
-
 nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
                               const XREChildData* aChildData);
 
@@ -303,6 +301,11 @@ GeckoProcessType XRE_GetProcessType();
  * process.
  */
 const char* XRE_GetProcessTypeString();
+
+/**
+ * Return the GeckoChildID of the current process, or `0` for the main process.
+ */
+GeckoChildID XRE_GetChildID();
 
 /**
  * Returns true when called in the e10s parent process.  Does *NOT* return true

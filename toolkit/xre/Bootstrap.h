@@ -103,10 +103,6 @@ class Bootstrap {
   virtual int XRE_XPCShellMain(int argc, char** argv, char** envp,
                                const XREShellData* aShellData) = 0;
 
-  virtual GeckoProcessType XRE_GetProcessType() = 0;
-
-  virtual void XRE_SetProcessType(const char* aProcessTypeString) = 0;
-
   virtual nsresult XRE_InitChildProcess(int argc, char* argv[],
                                         const XREChildData* aChildData) = 0;
 

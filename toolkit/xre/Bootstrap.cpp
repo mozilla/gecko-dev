@@ -58,14 +58,6 @@ class BootstrapImpl final : public Bootstrap {
     return ::XRE_XPCShellMain(argc, argv, envp, aShellData);
   }
 
-  virtual GeckoProcessType XRE_GetProcessType() override {
-    return ::XRE_GetProcessType();
-  }
-
-  virtual void XRE_SetProcessType(const char* aProcessTypeString) override {
-    ::XRE_SetProcessType(aProcessTypeString);
-  }
-
   virtual nsresult XRE_InitChildProcess(
       int argc, char* argv[], const XREChildData* aChildData) override {
     return ::XRE_InitChildProcess(argc, argv, aChildData);

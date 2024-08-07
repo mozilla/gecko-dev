@@ -35,6 +35,7 @@
 #include "mozilla/arm.h"
 #include "mozilla/Bootstrap.h"
 #include "mozilla/Printf.h"
+#include "mozilla/ProcessType.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Try.h"
@@ -392,12 +393,14 @@ Java_org_mozilla_gecko_mozglue_GeckoLoader_nativeRun(
     ElfLoader::Singleton.ExpectShutdown(true);
 #endif
   } else {
+    SetGeckoProcessType(argv[--argc]);
+    SetGeckoChildID(argv[--argc]);
+
     gBootstrap->XRE_SetAndroidChildFds(jenv,
                                        {prefsFd, prefMapFd, ipcFd, crashFd});
-    gBootstrap->XRE_SetProcessType(argv[argc - 1]);
 
     XREChildData childData;
-    gBootstrap->XRE_InitChildProcess(argc - 1, argv, &childData);
+    gBootstrap->XRE_InitChildProcess(argc, argv, &childData);
   }
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -423,7 +426,8 @@ extern "C" APKOPEN_EXPORT mozglueresult ChildProcessInit(int argc,
     return FAILURE;
   }
 
-  gBootstrap->XRE_SetProcessType(argv[--argc]);
+  SetGeckoProcessType(argv[--argc]);
+  SetGeckoChildID(argv[--argc]);
 
   XREChildData childData;
   return NS_FAILED(gBootstrap->XRE_InitChildProcess(argc, argv, &childData));

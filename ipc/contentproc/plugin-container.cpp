@@ -7,6 +7,7 @@
 #include "nsXPCOM.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/Bootstrap.h"
+#include "mozilla/ProcessType.h"
 #include "XREChildData.h"
 
 #ifdef XP_WIN
@@ -26,8 +27,9 @@
 int content_process_main(mozilla::Bootstrap* bootstrap, int argc,
                          char* argv[]) {
   // Check for the absolute minimum number of args we need to move
-  // forward here. We expect the last arg to be the child process type.
-  if (argc < 1) {
+  // forward here. We expect the last arg to be the child process type, and the
+  // second-last argument to be the gecko child id.
+  if (argc < 2) {
     return 3;
   }
 
@@ -45,10 +47,11 @@ int content_process_main(mozilla::Bootstrap* bootstrap, int argc,
   }
 #endif
 
-  bootstrap->XRE_SetProcessType(argv[--argc]);
+  mozilla::SetGeckoProcessType(argv[--argc]);
+  mozilla::SetGeckoChildID(argv[--argc]);
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
-  if (bootstrap->XRE_GetProcessType() == GeckoProcessType_RemoteSandboxBroker) {
+  if (mozilla::GetGeckoProcessType() == GeckoProcessType_RemoteSandboxBroker) {
     childData.sandboxBrokerServices =
         mozilla::sandboxing::GetInitializedBrokerServices();
   }

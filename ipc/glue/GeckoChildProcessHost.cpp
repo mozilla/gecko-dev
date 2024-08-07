@@ -144,6 +144,9 @@ struct LaunchResults {
 typedef mozilla::MozPromise<LaunchResults, LaunchError, true>
     ProcessLaunchPromise;
 
+// Monotonic counter used to generate a unique ChildID for each process as it is
+// created. The parent process is given the ChildID of `0`, and each child
+// process is given a non-zero ID.
 static Atomic<int32_t> gChildCounter;
 
 static inline nsISerialEventTarget* IOThread() {
@@ -170,10 +173,10 @@ class BaseProcessLauncher {
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
         mDisableOSActivityMode(aHost->mDisableOSActivityMode),
 #endif
-        mTmpDirName(aHost->mTmpDirName),
-        mChildId(++gChildCounter) {
+        mTmpDirName(aHost->mTmpDirName) {
     SprintfLiteral(mPidString, "%" PRIPID, base::GetCurrentProcId());
     aHost->mInitialChannelId.ToProvidedString(mInitialChannelIdString);
+    SprintfLiteral(mChildIDString, "%d", aHost->mChildID);
 
     // Compute the serial event target we'll use for launching.
     nsCOMPtr<nsIEventTarget> threadOrPool = GetIPCLauncher();
@@ -245,10 +248,10 @@ class BaseProcessLauncher {
 #endif
   nsCString mTmpDirName;
   LaunchResults mResults = LaunchResults();
-  int32_t mChildId;
   TimeStamp mStartTimeStamp = TimeStamp::Now();
   char mPidString[32];
   char mInitialChannelIdString[NSID_LENGTH];
+  char mChildIDString[32];
 
   // Set during launch.
   IPC::Channel::ChannelHandle mClientChannelHandle;
@@ -382,6 +385,7 @@ mozilla::StaticMutex GeckoChildProcessHost::sMutex;
 GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
                                              bool aIsFileContent)
     : mProcessType(aProcessType),
+      mChildID(++gChildCounter),
       mIsFileContent(aIsFileContent),
       mMonitor("mozilla.ipc.GeckoChildProcessHost.mMonitor"),
       mLaunchOptions(MakeUnique<base::LaunchOptions>()),
@@ -404,6 +408,7 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
 #endif
       mDestroying(false) {
   MOZ_COUNT_CTOR(GeckoChildProcessHost);
+  MOZ_RELEASE_ASSERT(mChildID > 0, "gChildCounter overflowed");
   StaticMutexAutoLock lock(sMutex);
   if (!sGeckoChildProcessHosts) {
     sGeckoChildProcessHosts = new mozilla::LinkedList<GeckoChildProcessHost>();
@@ -439,9 +444,7 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
 #endif
 }
 
-GeckoChildProcessHost::~GeckoChildProcessHost()
-
-{
+GeckoChildProcessHost::~GeckoChildProcessHost() {
   AssertIOThread();
   MOZ_RELEASE_ASSERT(mDestroying);
 
@@ -967,7 +970,7 @@ void BaseProcessLauncher::GetChildLogName(const char* origLogName,
 
   // Append child-specific postfix to name
   buffer.AppendLiteral(".child-");
-  buffer.AppendInt(mChildId);
+  buffer.AppendASCII(mChildIDString);
 }
 
 // Windows needs a single dedicated thread for process launching,
@@ -1353,6 +1356,7 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
   }
 #  endif  // MOZ_WIDGET_COCOA
 
+  mChildArgv.push_back(mChildIDString);
   mChildArgv.push_back(ChildProcessType());
   return Ok();
 }
@@ -1738,6 +1742,9 @@ Result<Ok, LaunchError> WindowsProcessLauncher::DoSetup() {
 
   mCmdLine->AppendLooseValue(
       UTF8ToWide(CrashReporter::GetChildNotificationPipe()));
+
+  // Gecko child id
+  mCmdLine->AppendLooseValue(UTF8ToWide(mChildIDString));
 
   // Process type
   mCmdLine->AppendLooseValue(UTF8ToWide(ChildProcessType()));

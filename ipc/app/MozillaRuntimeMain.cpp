@@ -68,9 +68,10 @@ int main(int argc, char* argv[]) {
   if (UseForkServer(argc, argv)) {
     ret = RunForkServer(std::move(bootstrap), argc, argv);
   } else {
-    // Set the process type. We don't remove the arg here as that will be done
-    // later in common code.
+    // Set the process type and gecko child id. We don't remove the args here as
+    // that will be done later in common code.
     SetGeckoProcessType(argv[argc - 1]);
+    SetGeckoChildID(argv[argc - 2]);
 
     // Register an external module to report on otherwise uncatchable
     // exceptions. Note that in child processes this must be called after Gecko

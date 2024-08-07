@@ -153,6 +153,11 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
   // GetProcId on a zero or (on Windows) invalid handle.
   ProcessId GetChildProcessId();
 
+  // Return the child's GeckoChildID. This is a unique identifier given out to
+  // each process started with `GeckoChildProcessHost` which will only ever
+  // identify this process.
+  GeckoChildID GetChildID() const { return mChildID; }
+
   GeckoProcessType GetProcessType() { return mProcessType; }
 
 #ifdef XP_DARWIN
@@ -213,6 +218,7 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
  protected:
   virtual ~GeckoChildProcessHost();
   GeckoProcessType mProcessType;
+  GeckoChildID mChildID;
   bool mIsFileContent;
   Monitor mMonitor;
   FilePath mProcessPath;
