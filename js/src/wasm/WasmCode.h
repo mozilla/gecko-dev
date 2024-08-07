@@ -65,8 +65,6 @@
 #include "wasm/WasmTypeDef.h"
 #include "wasm/WasmValType.h"
 
-using js::CodeMetadataForAsmJS;
-
 struct JS_PUBLIC_API JSContext;
 class JSFunction;
 
@@ -117,8 +115,9 @@ struct LinkData : LinkDataCacheablePod {
   };
   using InternalLinkVector = Vector<InternalLink, 0, SystemAllocPolicy>;
 
-  struct SymbolicLinkArray : EnumeratedArray<SymbolicAddress, Uint32Vector,
-                                             size_t(SymbolicAddress::Limit)> {
+  struct SymbolicLinkArray
+      : mozilla::EnumeratedArray<SymbolicAddress, Uint32Vector,
+                                 size_t(SymbolicAddress::Limit)> {
     bool isEmpty() const {
       for (const Uint32Vector& symbolicLinks : *this) {
         if (symbolicLinks.length() != 0) {
@@ -319,8 +318,8 @@ enum class TierUpState : uint32_t {
 };
 
 struct FuncState {
-  Atomic<const CodeBlock*> bestTier;
-  Atomic<TierUpState> tierUpState;
+  mozilla::Atomic<const CodeBlock*> bestTier;
+  mozilla::Atomic<TierUpState> tierUpState;
 };
 using FuncStatesPointer = mozilla::UniquePtr<FuncState[], JS::FreePolicy>;
 
@@ -409,7 +408,7 @@ class FuncToCodeRangeMap {
 #endif
   }
 
-  size_t sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     return funcToCodeRange_.sizeOfExcludingThis(mallocSizeOf);
   }
 
@@ -539,7 +538,7 @@ class CodeBlock {
   void disassemble(JSContext* cx, int kindSelection,
                    PrintCallback printString) const;
 
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
+  void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t* code,
                      size_t* data) const;
 
   WASM_DECLARE_FRIEND_SERIALIZE_ARGS(CodeBlock, const wasm::LinkData& data);
@@ -567,8 +566,8 @@ class ThreadSafeCodeBlockMap {
   // vector pointed to by mutableCodeBlocks_
 
   RawCodeBlockVector* mutableCodeBlocks_;
-  Atomic<const RawCodeBlockVector*> readonlyCodeBlocks_;
-  Atomic<size_t> numActiveLookups_;
+  mozilla::Atomic<const RawCodeBlockVector*> readonlyCodeBlocks_;
+  mozilla::Atomic<size_t> numActiveLookups_;
 
   struct CodeBlockPC {
     const void* pc;
@@ -905,7 +904,7 @@ class Code : public ShareableBase<Code> {
   // hasCompleteTier2_ as true first.  Once hasCompleteTier2_ is true, it stays
   // true.
   mutable const CodeBlock* completeTier2_;
-  mutable Atomic<bool> hasCompleteTier2_;
+  mutable mozilla::Atomic<bool> hasCompleteTier2_;
 
   // State for every defined function (not imported) in this module. This is
   // only needed if we're doing partial tiering.
@@ -953,7 +952,7 @@ class Code : public ShareableBase<Code> {
   // tier2.
   [[nodiscard]] bool createTier2LazyEntryStubs(
       const WriteGuard& guard, const CodeBlock& tier2Code,
-      Maybe<size_t>* outStubBlockIndex) const;
+      mozilla::Maybe<size_t>* outStubBlockIndex) const;
   [[nodiscard]] bool appendProfilingLabels(
       const ExclusiveData<CacheableCharsVector>::Guard& labels,
       const CodeBlock& codeBlock) const;
@@ -1112,7 +1111,7 @@ class Code : public ShareableBase<Code> {
   // about:memory reporting:
 
   void addSizeOfMiscIfNotSeen(
-      MallocSizeOf mallocSizeOf, CodeMetadata::SeenSet* seenCodeMeta,
+      mozilla::MallocSizeOf mallocSizeOf, CodeMetadata::SeenSet* seenCodeMeta,
       CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
       Code::SeenSet* seenCode, size_t* code, size_t* data) const;
 

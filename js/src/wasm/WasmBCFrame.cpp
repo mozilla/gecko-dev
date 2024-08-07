@@ -31,6 +31,9 @@
 namespace js {
 namespace wasm {
 
+using mozilla::Maybe;
+using mozilla::Some;
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // BaseLocalIter methods.

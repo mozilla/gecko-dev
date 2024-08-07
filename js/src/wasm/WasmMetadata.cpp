@@ -219,7 +219,7 @@ size_t ModuleMetadata::sizeOfExcludingThis(
 
 bool ModuleMetadata::addDefinedFunc(
     ValTypeVector&& params, ValTypeVector&& results, bool declareForRef,
-    Maybe<CacheableName>&& optionalExportedName) {
+    mozilla::Maybe<CacheableName>&& optionalExportedName) {
   uint32_t typeIndex = codeMeta->types->length();
   FuncType funcType(std::move(params), std::move(results));
   if (!codeMeta->types->addType(std::move(funcType))) {

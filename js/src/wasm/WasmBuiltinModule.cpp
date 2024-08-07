@@ -33,6 +33,10 @@
 using namespace js;
 using namespace js::wasm;
 
+using mozilla::Maybe;
+using mozilla::Nothing;
+using mozilla::Some;
+
 BuiltinModuleFuncs* BuiltinModuleFuncs::singleton_ = nullptr;
 
 [[nodiscard]] bool BuiltinModuleFunc::init(const RefPtr<TypeContext>& types,
@@ -320,7 +324,7 @@ static const char* JSStringModuleName = "wasm:js-string";
 #endif  // ENABLE_WASM_JS_STRING_BUILTINS
 
 Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
-    Span<const char> importName, BuiltinModuleIds enabledBuiltins) {
+    mozilla::Span<const char> importName, BuiltinModuleIds enabledBuiltins) {
 #ifdef ENABLE_WASM_JS_STRING_BUILTINS
   if (enabledBuiltins.jsString &&
       importName == mozilla::MakeStringSpan(JSStringModuleName)) {

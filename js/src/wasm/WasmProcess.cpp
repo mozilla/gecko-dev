@@ -34,7 +34,7 @@
 using namespace js;
 using namespace wasm;
 
-Atomic<bool> wasm::CodeExists(false);
+mozilla::Atomic<bool> wasm::CodeExists(false);
 
 // Per-process map from values of program-counter (pc) to CodeBlocks.
 //
@@ -48,7 +48,8 @@ Atomic<bool> wasm::CodeExists(false);
 // startup or shutdown and thus racily perform wasm::LookupCodeBlock() from
 // the crashing thread.
 
-static Atomic<ThreadSafeCodeBlockMap*> sThreadSafeCodeBlockMap(nullptr);
+static mozilla::Atomic<ThreadSafeCodeBlockMap*> sThreadSafeCodeBlockMap(
+    nullptr);
 
 bool wasm::RegisterCodeBlock(const CodeBlock* cs) {
   if (cs->length() == 0) {

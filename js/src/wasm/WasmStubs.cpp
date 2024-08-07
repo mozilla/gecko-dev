@@ -38,6 +38,11 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
+using mozilla::DebugOnly;
+using mozilla::Maybe;
+using mozilla::Nothing;
+using mozilla::Some;
+
 using MIRTypeVector = Vector<jit::MIRType, 8, SystemAllocPolicy>;
 using ABIArgMIRTypeIter = jit::ABIArgIter<MIRTypeVector>;
 

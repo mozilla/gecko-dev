@@ -50,6 +50,8 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
+using mozilla::Atomic;
+
 uint32_t wasm::ObservedCPUFeatures() {
   enum Arch {
     X86 = 0x1,

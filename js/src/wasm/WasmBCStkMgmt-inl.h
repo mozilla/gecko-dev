@@ -1134,10 +1134,10 @@ bool BaseCompiler::popConstPositivePowerOfTwo(int32_t* c, uint_fast8_t* power,
     return false;
   }
   *c = v.i32val();
-  if (*c <= cutoff || !IsPowerOfTwo(static_cast<uint32_t>(*c))) {
+  if (*c <= cutoff || !mozilla::IsPowerOfTwo(static_cast<uint32_t>(*c))) {
     return false;
   }
-  *power = FloorLog2(*c);
+  *power = mozilla::FloorLog2(*c);
   stk_.popBack();
   return true;
 }
@@ -1149,10 +1149,10 @@ bool BaseCompiler::popConstPositivePowerOfTwo(int64_t* c, uint_fast8_t* power,
     return false;
   }
   *c = v.i64val();
-  if (*c <= cutoff || !IsPowerOfTwo(static_cast<uint64_t>(*c))) {
+  if (*c <= cutoff || !mozilla::IsPowerOfTwo(static_cast<uint64_t>(*c))) {
     return false;
   }
-  *power = FloorLog2(*c);
+  *power = mozilla::FloorLog2(*c);
   stk_.popBack();
   return true;
 }

@@ -33,6 +33,7 @@ using namespace js;
 using namespace js::wasm;
 
 using mozilla::Err;
+using mozilla::Maybe;
 using mozilla::Ok;
 
 namespace js {

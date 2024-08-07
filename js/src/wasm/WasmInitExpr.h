@@ -35,7 +35,7 @@ struct CodeMetadata;
 // final value was from a simple instruction such as i32.const.
 [[nodiscard]] bool DecodeConstantExpression(Decoder& d, CodeMetadata* codeMeta,
                                             ValType expected,
-                                            Maybe<LitVal>* literal);
+                                            mozilla::Maybe<LitVal>* literal);
 
 enum class InitExprKind {
   None,

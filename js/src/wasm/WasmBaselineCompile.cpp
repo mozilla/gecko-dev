@@ -83,6 +83,10 @@ namespace wasm {
 
 using namespace js::jit;
 
+using mozilla::Maybe;
+using mozilla::Nothing;
+using mozilla::Some;
+
 ////////////////////////////////////////////////////////////
 //
 // Out of line code management.
@@ -507,7 +511,7 @@ bool BaseCompiler::beginFunction() {
         fr.storeLocalI64(RegI64(i->gpr64()), l);
         break;
       case MIRType::WasmAnyRef: {
-        DebugOnly<uint32_t> offs = fr.localOffsetFromSp(l);
+        mozilla::DebugOnly<uint32_t> offs = fr.localOffsetFromSp(l);
         MOZ_ASSERT(0 == (offs % sizeof(void*)));
         fr.storeLocalRef(RegRef(i->gpr()), l);
         // We should have just visited this local in the preceding loop.

@@ -29,6 +29,9 @@
 using namespace js;
 using namespace js::wasm;
 
+using mozilla::CheckedInt32;
+using mozilla::MallocSizeOf;
+
 /* static */
 CacheableName CacheableName::fromUTF8Chars(UniqueChars&& utf8Chars) {
   size_t length = strlen(utf8Chars.get());

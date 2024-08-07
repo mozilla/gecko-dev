@@ -41,10 +41,6 @@ namespace wasm {
 class ArgTypeVector;
 class BytecodeOffset;
 
-using jit::Label;
-using jit::MIRType;
-using jit::Register;
-
 // Definitions for stackmaps.
 
 using ExitStubMapVector = Vector<bool, 32, SystemAllocPolicy>;
@@ -341,7 +337,7 @@ class StackMaps {
     return nullptr;
   }
 
-  size_t sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     return mapping_.sizeOfExcludingThis(mallocSizeOf);
   }
 };
@@ -375,14 +371,14 @@ static inline size_t StackArgAreaSizeUnaligned(
   // presented in some type that has methods length() and operator[].  So we
   // have to wrap up |saSig|'s array of types in this API-matching class.
   class MOZ_STACK_CLASS ItemsAndLength {
-    const MIRType* items_;
+    const jit::MIRType* items_;
     size_t length_;
 
    public:
-    ItemsAndLength(const MIRType* items, size_t length)
+    ItemsAndLength(const jit::MIRType* items, size_t length)
         : items_(items), length_(length) {}
     size_t length() const { return length_; }
-    MIRType operator[](size_t i) const { return items_[i]; }
+    jit::MIRType operator[](size_t i) const { return items_[i]; }
   };
 
   // Assert, at least crudely, that we're not accidentally going to run off
@@ -390,7 +386,8 @@ static inline size_t StackArgAreaSizeUnaligned(
   // iterating.
   MOZ_ASSERT(saSig.numArgs <
              sizeof(saSig.argTypes) / sizeof(saSig.argTypes[0]));
-  MOZ_ASSERT(saSig.argTypes[saSig.numArgs] == MIRType::None /*the end marker*/);
+  MOZ_ASSERT(saSig.argTypes[saSig.numArgs] ==
+             jit::MIRType::None /*the end marker*/);
 
   ItemsAndLength itemsAndLength(saSig.argTypes, saSig.numArgs);
   return StackArgAreaSizeUnaligned(itemsAndLength);
@@ -465,8 +462,9 @@ static inline size_t AlignStackArgAreaSize(size_t unalignedSize) {
 // due to an incremental GC being in progress, the write that follows this
 // pre-barrier guard must also be guarded against null.
 template <class Addr>
-void EmitWasmPreBarrierGuard(jit::MacroAssembler& masm, Register instance,
-                             Register scratch, Addr addr, Label* skipBarrier,
+void EmitWasmPreBarrierGuard(jit::MacroAssembler& masm, jit::Register instance,
+                             jit::Register scratch, Addr addr,
+                             jit::Label* skipBarrier,
                              BytecodeOffset* trapOffset);
 
 // Before storing a GC pointer value in memory, call out-of-line prebarrier
@@ -477,15 +475,17 @@ void EmitWasmPreBarrierGuard(jit::MacroAssembler& masm, Register instance,
 //
 // It is OK for `instance` and `scratch` to be the same register.
 void EmitWasmPreBarrierCallImmediate(jit::MacroAssembler& masm,
-                                     Register instance, Register scratch,
-                                     Register valueAddr, size_t valueOffset);
+                                     jit::Register instance,
+                                     jit::Register scratch,
+                                     jit::Register valueAddr,
+                                     size_t valueOffset);
 // The equivalent of EmitWasmPreBarrierCallImmediate, but for a jit::BaseIndex.
 // Will clobber `scratch1` and `scratch2`.
 //
 // It is OK for `instance` and `scratch1` to be the same register.
-void EmitWasmPreBarrierCallIndex(jit::MacroAssembler& masm, Register instance,
-                                 Register scratch1, Register scratch2,
-                                 jit::BaseIndex addr);
+void EmitWasmPreBarrierCallIndex(jit::MacroAssembler& masm,
+                                 jit::Register instance, jit::Register scratch1,
+                                 jit::Register scratch2, jit::BaseIndex addr);
 
 // After storing a GC pointer value in memory, skip to `skipBarrier` if a
 // postbarrier is not needed.  If the location being set is in an heap-allocated
@@ -496,9 +496,9 @@ void EmitWasmPreBarrierCallIndex(jit::MacroAssembler& masm, Register instance,
 // `otherScratch` cannot be a designated scratch register.
 
 void EmitWasmPostBarrierGuard(jit::MacroAssembler& masm,
-                              const mozilla::Maybe<Register>& object,
-                              Register otherScratch, Register setValue,
-                              Label* skipBarrier);
+                              const mozilla::Maybe<jit::Register>& object,
+                              jit::Register otherScratch,
+                              jit::Register setValue, jit::Label* skipBarrier);
 
 #ifdef DEBUG
 // Check (approximately) whether `nextPC` is a valid code address for a

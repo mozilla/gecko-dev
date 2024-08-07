@@ -37,8 +37,6 @@ class OptimizedEncodingListener;
 namespace js {
 namespace wasm {
 
-using mozilla::DebugOnly;
-
 struct CompileTask;
 using CompileTaskPtrVector = Vector<CompileTask*, 0, SystemAllocPolicy>;
 
@@ -199,7 +197,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   const CompileState compileState_;
   UniqueChars* const error_;
   UniqueCharsVector* const warnings_;
-  const Atomic<bool>* const cancelled_;
+  const mozilla::Atomic<bool>* const cancelled_;
   const CodeMetadata* const codeMeta_;
   const CompilerEnvironment* const compilerEnv_;
 
@@ -219,7 +217,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   UniqueCodeBlock codeBlock_;
   UniqueLinkData linkData_;
   LifoAlloc lifo_;
-  Maybe<MacroAssemblerScope> masmScope_;
+  mozilla::Maybe<MacroAssemblerScope> masmScope_;
   jit::WasmMacroAssembler* masm_;
   uint32_t debugStubCodeOffset_;
   uint32_t requestTierUpStubCodeOffset_;
@@ -238,7 +236,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   uint32_t batchedBytecode_;
 
   // Assertions
-  DebugOnly<bool> finishedFuncDefs_;
+  mozilla::DebugOnly<bool> finishedFuncDefs_;
 
   bool funcIsCompiledInBlock(uint32_t funcIndex) const;
   const CodeRange& funcCodeRangeInBlock(uint32_t funcIndex) const;
@@ -289,8 +287,9 @@ class MOZ_STACK_CLASS ModuleGenerator {
  public:
   ModuleGenerator(const CodeMetadata& codeMeta,
                   const CompilerEnvironment& compilerEnv,
-                  CompileState compilerState, const Atomic<bool>* cancelled,
-                  UniqueChars* error, UniqueCharsVector* warnings);
+                  CompileState compilerState,
+                  const mozilla::Atomic<bool>* cancelled, UniqueChars* error,
+                  UniqueCharsVector* warnings);
   ~ModuleGenerator();
   [[nodiscard]] bool initializeCompleteTier(
       CodeMetadataForAsmJS* codeMetaForAsmJS = nullptr);

@@ -312,7 +312,7 @@ uint64_t wasm::RoundUpToNextValidARMImmediate(uint64_t i) {
 }
 
 Pages wasm::ClampedMaxPages(IndexType t, Pages initialPages,
-                            const Maybe<Pages>& sourceMaxPages,
+                            const mozilla::Maybe<Pages>& sourceMaxPages,
                             bool useHugeMemory) {
   Pages clampedMaxPages;
 

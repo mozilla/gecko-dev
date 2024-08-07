@@ -64,11 +64,11 @@ class ElemSegmentFlags {
     encoded_ = uint32_t(kind) | uint32_t(payload);
   }
 
-  static Maybe<ElemSegmentFlags> construct(uint32_t encoded) {
+  static mozilla::Maybe<ElemSegmentFlags> construct(uint32_t encoded) {
     if (encoded > uint32_t(Flags::AllFlags)) {
-      return Nothing();
+      return mozilla::Nothing();
     }
-    return Some(ElemSegmentFlags(encoded));
+    return mozilla::Some(ElemSegmentFlags(encoded));
   }
 
   uint32_t encoded() const { return encoded_; }
@@ -85,22 +85,22 @@ class ElemSegmentFlags {
 // OpIter specialized for validation.
 
 class NothingVector {
-  Nothing unused_;
+  mozilla::Nothing unused_;
 
  public:
   bool reserve(size_t size) { return true; }
   bool resize(size_t length) { return true; }
-  Nothing& operator[](size_t) { return unused_; }
-  Nothing& back() { return unused_; }
+  mozilla::Nothing& operator[](size_t) { return unused_; }
+  mozilla::Nothing& back() { return unused_; }
   size_t length() const { return 0; }
-  bool append(Nothing& nothing) { return true; }
-  void infallibleAppend(Nothing& nothing) {}
+  bool append(mozilla::Nothing& nothing) { return true; }
+  void infallibleAppend(mozilla::Nothing& nothing) {}
 };
 
 struct ValidatingPolicy {
-  using Value = Nothing;
+  using Value = mozilla::Nothing;
   using ValueVector = NothingVector;
-  using ControlItem = Nothing;
+  using ControlItem = mozilla::Nothing;
 };
 
 template <typename Policy>

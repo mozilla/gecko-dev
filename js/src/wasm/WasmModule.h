@@ -100,7 +100,7 @@ class Module : public JS::WasmModule {
   // This flag is only used for testing purposes and is cleared on success or
   // failure. The field is racily polled from various threads.
 
-  mutable Atomic<bool> testingTier2Active_;
+  mutable mozilla::Atomic<bool> testingTier2Active_;
 
   // Cached malloc allocation size for GC memory tracking.
 
@@ -180,7 +180,7 @@ class Module : public JS::WasmModule {
 
   // about:memory reporting:
 
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf,
+  void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf,
                      CodeMetadata::SeenSet* seenCodeMeta,
                      CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
                      Code::SeenSet* seenCode, size_t* code, size_t* data) const;

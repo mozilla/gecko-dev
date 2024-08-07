@@ -42,6 +42,7 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
+using mozilla::EnumeratedArray;
 using mozilla::MakeEnumeratedRange;
 
 bool CompiledCode::swap(MacroAssembler& masm) {
@@ -72,7 +73,7 @@ ModuleGenerator::MacroAssemblerScope::MacroAssemblerScope(LifoAlloc& lifo)
 ModuleGenerator::ModuleGenerator(const CodeMetadata& codeMeta,
                                  const CompilerEnvironment& compilerEnv,
                                  CompileState compileState,
-                                 const Atomic<bool>* cancelled,
+                                 const mozilla::Atomic<bool>* cancelled,
                                  UniqueChars* error,
                                  UniqueCharsVector* warnings)
     : compileArgs_(codeMeta.compileArgs.get()),
@@ -210,7 +211,7 @@ static bool InRange(uint32_t caller, uint32_t callee) {
 using OffsetMap =
     HashMap<uint32_t, uint32_t, DefaultHasher<uint32_t>, SystemAllocPolicy>;
 using TrapMaybeOffsetArray =
-    EnumeratedArray<Trap, Maybe<uint32_t>, size_t(Trap::Limit)>;
+    EnumeratedArray<Trap, mozilla::Maybe<uint32_t>, size_t(Trap::Limit)>;
 
 bool ModuleGenerator::linkCallSites() {
   AutoCreatedBy acb(*masm_, "linkCallSites");
@@ -957,7 +958,7 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
 
   // Free the macro assembler scope, and reset our masm pointer
   masm_ = nullptr;
-  masmScope_ = Nothing();
+  masmScope_ = mozilla::Nothing();
 
   *linkData = std::move(linkData_);
   return std::move(codeBlock_);

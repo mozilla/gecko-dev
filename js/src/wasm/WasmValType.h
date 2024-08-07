@@ -32,8 +32,6 @@
 namespace js {
 namespace wasm {
 
-using mozilla::Maybe;
-
 class RecGroup;
 class TypeDef;
 class TypeContext;
@@ -929,7 +927,7 @@ extern bool ToRefType(JSContext* cx, HandleValue v, RefType* out);
 extern UniqueChars ToString(RefType type, const TypeContext* types);
 extern UniqueChars ToString(ValType type, const TypeContext* types);
 extern UniqueChars ToString(StorageType type, const TypeContext* types);
-extern UniqueChars ToString(const Maybe<ValType>& type,
+extern UniqueChars ToString(const mozilla::Maybe<ValType>& type,
                             const TypeContext* types);
 
 }  // namespace wasm

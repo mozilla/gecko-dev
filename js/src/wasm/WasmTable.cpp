@@ -494,7 +494,7 @@ void Table::assertRangeNotNull(uint32_t index, uint32_t length) const {
 }
 #endif  // DEBUG
 
-size_t Table::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+size_t Table::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
   if (isFunction()) {
     return functions_.sizeOfExcludingThis(mallocSizeOf);
   }

@@ -149,7 +149,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   GlobalDescVector globals;
 
   // The start function for the module, if any
-  Maybe<uint32_t> startFuncIndex;
+  mozilla::Maybe<uint32_t> startFuncIndex;
 
   // Info about elem segments needed only for validation and compilation.
   // Should have the same length as ModuleMetadata::elemSegments, and each
@@ -160,7 +160,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // The number of data segments this module will have. Pre-declared before the
   // code section so that we can validate instructions that reference data
   // segments.
-  Maybe<uint32_t> dataCount;
+  mozilla::Maybe<uint32_t> dataCount;
 
   // asm.js tables are homogenous and only store functions of the same type.
   // This maps from a function type to the table index to use for an indirect
@@ -171,13 +171,13 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   BranchHintCollection branchHints;
 
   // Name section information
-  Maybe<Name> moduleName;
+  mozilla::Maybe<Name> moduleName;
   NameVector funcNames;
   // namePayload points at the name section's CustomSection::payload so that
   // the Names (which are use payload-relative offsets) can be used
   // independently of the Module without duplicating the name section.
   SharedBytes namePayload;
-  Maybe<uint32_t> nameCustomSectionIndex;
+  mozilla::Maybe<uint32_t> nameCustomSectionIndex;
 
   // Bytecode ranges for custom sections.
   CustomSectionRangeVector customSectionRanges;
@@ -422,10 +422,10 @@ struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
     return !!codeMeta && codeMeta->init();
   }
 
-  bool addDefinedFunc(
-      ValTypeVector&& params, ValTypeVector&& results,
-      bool declareForRef = false,
-      Maybe<CacheableName>&& optionalExportedName = mozilla::Nothing());
+  bool addDefinedFunc(ValTypeVector&& params, ValTypeVector&& results,
+                      bool declareForRef = false,
+                      mozilla::Maybe<CacheableName>&& optionalExportedName =
+                          mozilla::Nothing());
   bool addImportedFunc(ValTypeVector&& params, ValTypeVector&& results,
                        CacheableName&& importModName,
                        CacheableName&& importFieldName);

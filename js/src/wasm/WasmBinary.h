@@ -37,9 +37,6 @@
 namespace js {
 namespace wasm {
 
-using mozilla::DebugOnly;
-using mozilla::Maybe;
-
 // The Opcode compactly and safely represents the primary opcode plus any
 // extension, with convenient predicates and accessors.
 
@@ -340,7 +337,7 @@ class Decoder {
 
   template <typename UInt>
   [[nodiscard]] bool readVarU(UInt* out) {
-    DebugOnly<const uint8_t*> before = cur_;
+    mozilla::DebugOnly<const uint8_t*> before = cur_;
     const unsigned numBits = sizeof(UInt) * CHAR_BIT;
     const unsigned remainderBits = numBits % 7;
     const unsigned numBitsInSevens = numBits - remainderBits;
@@ -588,7 +585,7 @@ class Decoder {
   // The Name section has its own optional subsections.
 
   [[nodiscard]] bool startNameSubsection(NameType nameType,
-                                         Maybe<uint32_t>* endOffset);
+                                         mozilla::Maybe<uint32_t>* endOffset);
   [[nodiscard]] bool finishNameSubsection(uint32_t endOffset);
   [[nodiscard]] bool skipNameSubsection();
 

@@ -117,7 +117,7 @@ void wasm::Realm::ensureProfilingLabels(bool profilingEnabled) {
   }
 }
 
-void wasm::Realm::addSizeOfExcludingThis(MallocSizeOf mallocSizeOf,
+void wasm::Realm::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                          size_t* realmTables) {
   *realmTables += instances_.sizeOfExcludingThis(mallocSizeOf);
 }

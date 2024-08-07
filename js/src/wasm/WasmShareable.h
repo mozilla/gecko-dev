@@ -26,8 +26,6 @@
 namespace js {
 namespace wasm {
 
-using mozilla::MallocSizeOf;
-
 // This reusable base class factors out the logic for a resource that is shared
 // by multiple instances/modules but should only be counted once when computing
 // about:memory stats.
@@ -39,7 +37,7 @@ template <class T>
 struct ShareableBase : AtomicRefCounted<T> {
   using SeenSet = wasm::SeenSet<T>;
 
-  size_t sizeOfIncludingThisIfNotSeen(MallocSizeOf mallocSizeOf,
+  size_t sizeOfIncludingThisIfNotSeen(mozilla::MallocSizeOf mallocSizeOf,
                                       SeenSet* seen) const {
     const T* self = static_cast<const T*>(this);
     typename SeenSet::AddPtr p = seen->lookupForAdd(self);
@@ -60,7 +58,7 @@ struct ShareableBytes : ShareableBase<ShareableBytes> {
 
   ShareableBytes() = default;
   explicit ShareableBytes(Bytes&& bytes) : bytes(std::move(bytes)) {}
-  size_t sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     return bytes.sizeOfExcludingThis(mallocSizeOf);
   }
   const uint8_t* begin() const { return bytes.begin(); }

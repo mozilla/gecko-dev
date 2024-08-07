@@ -57,7 +57,7 @@ SharedModule CompileBuffer(const CompileArgs& args,
 
 bool CompileCompleteTier2(const Bytes& bytecode, const Module& module,
                           UniqueChars* error, UniqueCharsVector* warnings,
-                          Atomic<bool>* cancelled);
+                          mozilla::Atomic<bool>* cancelled);
 
 // Attempt to compile the second tier for the given functions of a wasm::Module.
 
@@ -96,8 +96,8 @@ SharedModule CompileStreaming(const CompileArgs& args, const Bytes& envBytes,
                               const Bytes& codeBytes,
                               const ExclusiveBytesPtr& codeBytesEnd,
                               const ExclusiveStreamEndData& streamEnd,
-                              const Atomic<bool>& cancelled, UniqueChars* error,
-                              UniqueCharsVector* warnings);
+                              const mozilla::Atomic<bool>& cancelled,
+                              UniqueChars* error, UniqueCharsVector* warnings);
 
 // What to print out from dumping a function from Ion.
 enum class IonDumpContents {

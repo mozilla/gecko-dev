@@ -97,7 +97,9 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
+using mozilla::Maybe;
 using mozilla::Nothing;
+using mozilla::Some;
 using mozilla::Span;
 
 static bool ThrowCompileOutOfMemory(JSContext* cx) {
@@ -453,7 +455,7 @@ struct MOZ_STACK_CLASS SerializeListener : JS::OptimizedEncodingListener {
   MozExternalRefCountType MOZ_XPCOM_ABI AddRef() override { return 0; }
   MozExternalRefCountType MOZ_XPCOM_ABI Release() override { return 0; }
 
-  DebugOnly<bool> called = false;
+  mozilla::DebugOnly<bool> called = false;
   Bytes* serialized;
   explicit SerializeListener(Bytes* serialized) : serialized(serialized) {}
 
@@ -4876,7 +4878,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
   UniqueCharsVector warnings_;
 
   // Set on stream thread and read racily on helper thread to abort compilation:
-  Atomic<bool> streamFailed_;
+  mozilla::Atomic<bool> streamFailed_;
 
   // Called on some thread before consumeChunk(), streamEnd(), streamError()):
 

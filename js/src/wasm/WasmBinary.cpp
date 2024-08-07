@@ -277,7 +277,7 @@ bool Decoder::skipCustomSection(CodeMetadata* codeMeta) {
 }
 
 bool Decoder::startNameSubsection(NameType nameType,
-                                  Maybe<uint32_t>* endOffset) {
+                                  mozilla::Maybe<uint32_t>* endOffset) {
   MOZ_ASSERT(!*endOffset);
 
   const uint8_t* const initialPosition = cur_;
@@ -296,7 +296,7 @@ bool Decoder::startNameSubsection(NameType nameType,
     return fail("bad name subsection payload length");
   }
 
-  *endOffset = Some(currentOffset() + payloadLength);
+  *endOffset = mozilla::Some(currentOffset() + payloadLength);
   return true;
 
 rewind:

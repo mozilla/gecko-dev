@@ -42,10 +42,6 @@
 namespace js {
 namespace wasm {
 
-using mozilla::Maybe;
-using mozilla::Nothing;
-using mozilla::Span;
-
 class FuncType;
 
 // A Module can either be asm.js or wasm.
@@ -80,8 +76,10 @@ struct CacheableName {
 
   bool isEmpty() const { return bytes_.length() == 0; }
 
-  Span<char> utf8Bytes() { return Span<char>(bytes_); }
-  Span<const char> utf8Bytes() const { return Span<const char>(bytes_); }
+  mozilla::Span<char> utf8Bytes() { return mozilla::Span<char>(bytes_); }
+  mozilla::Span<const char> utf8Bytes() const {
+    return mozilla::Span<const char>(bytes_);
+  }
 
   static CacheableName fromUTF8Chars(UniqueChars&& utf8Chars);
   [[nodiscard]] static bool fromUTF8Chars(const char* utf8Chars,
@@ -101,8 +99,8 @@ using CacheableNameVector = Vector<CacheableName, 0, SystemAllocPolicy>;
 
 // A hash policy for names.
 struct NameHasher {
-  using Key = Span<const char>;
-  using Lookup = Span<const char>;
+  using Key = mozilla::Span<const char>;
+  using Lookup = mozilla::Span<const char>;
 
   static HashNumber hash(const Lookup& aLookup) {
     return mozilla::HashString(aLookup.data(), aLookup.Length());
@@ -496,7 +494,7 @@ struct ModuleElemSegment {
   Kind kind;
   uint32_t tableIndex;
   RefType elemType;
-  Maybe<InitExpr> offsetIfActive;
+  mozilla::Maybe<InitExpr> offsetIfActive;
 
   // We store either an array of indices or the full bytecode of the element
   // expressions, depending on the encoding used for the element segment.
@@ -549,7 +547,7 @@ static_assert(InvalidMemoryIndex > MaxMemories, "Invariant");
 
 struct DataSegmentRange {
   uint32_t memoryIndex;
-  Maybe<InitExpr> offsetIfActive;
+  mozilla::Maybe<InitExpr> offsetIfActive;
   uint32_t bytecodeOffset;
   uint32_t length;
 };
@@ -558,7 +556,7 @@ using DataSegmentRangeVector = Vector<DataSegmentRange, 0, SystemAllocPolicy>;
 
 struct DataSegment : AtomicRefCounted<DataSegment> {
   uint32_t memoryIndex;
-  Maybe<InitExpr> offsetIfActive;
+  mozilla::Maybe<InitExpr> offsetIfActive;
   Bytes bytes;
 
   DataSegment() = default;
@@ -651,7 +649,7 @@ struct Limits {
   // The initial and maximum limit. The unit is pages for memories and elements
   // for tables.
   uint64_t initial;
-  Maybe<uint64_t> maximum;
+  mozilla::Maybe<uint64_t> maximum;
 
   // `shared` is Shareable::False for tables but may be Shareable::True for
   // memories.
@@ -660,7 +658,8 @@ struct Limits {
   WASM_CHECK_CACHEABLE_POD(indexType, initial, maximum, shared);
 
   Limits() = default;
-  explicit Limits(uint64_t initial, const Maybe<uint64_t>& maximum = Nothing(),
+  explicit Limits(uint64_t initial,
+                  const mozilla::Maybe<uint64_t>& maximum = mozilla::Nothing(),
                   Shareable shared = Shareable::False)
       : indexType(IndexType::I32),
         initial(initial),
@@ -696,7 +695,7 @@ struct MemoryDesc {
   Pages initialPages() const { return Pages(limits.initial); }
 
   // The maximum length of this memory in pages.
-  Maybe<Pages> maximumPages() const {
+  mozilla::Maybe<Pages> maximumPages() const {
     return limits.maximum.map([](uint64_t x) { return Pages(x); });
   }
 
@@ -730,11 +729,12 @@ struct TableDesc {
   bool isImported;
   bool isExported;
   bool isAsmJS;
-  Maybe<InitExpr> initExpr;
+  mozilla::Maybe<InitExpr> initExpr;
 
   TableDesc() = default;
-  TableDesc(Limits limits, RefType elemType, Maybe<InitExpr>&& initExpr,
-            bool isAsmJS, bool isImported = false, bool isExported = false)
+  TableDesc(Limits limits, RefType elemType,
+            mozilla::Maybe<InitExpr>&& initExpr, bool isAsmJS,
+            bool isImported = false, bool isExported = false)
       : limits(limits),
         elemType(elemType),
         isImported(isImported),
@@ -757,7 +757,7 @@ struct TableDesc {
     return limits.initial;
   }
 
-  Maybe<uint32_t> maximumLength() const {
+  mozilla::Maybe<uint32_t> maximumLength() const {
     // Note the conversion to uint32_t.
     return limits.maximum;
   }

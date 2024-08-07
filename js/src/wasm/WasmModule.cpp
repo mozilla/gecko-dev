@@ -87,7 +87,7 @@ static void ReportTier2ResultsOffThread(bool success,
 class Module::Tier2GeneratorTaskImpl : public Tier2GeneratorTask {
   SharedBytes bytecode_;
   SharedModule module_;
-  Atomic<bool> cancelled_;
+  mozilla::Atomic<bool> cancelled_;
 
  public:
   Tier2GeneratorTaskImpl(const ShareableBytes& bytecode, Module& module)
@@ -245,7 +245,7 @@ bool wasm::GetOptimizedEncodingBuildId(JS::BuildIdCharVector* buildId) {
 }
 
 /* virtual */
-void Module::addSizeOfMisc(MallocSizeOf mallocSizeOf,
+void Module::addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf,
                            CodeMetadata::SeenSet* seenCodeMeta,
                            CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
                            Code::SeenSet* seenCode, size_t* code,
@@ -411,9 +411,9 @@ bool Module::instantiateFunctions(JSContext* cx,
 
 template <typename T>
 static bool CheckLimits(JSContext* cx, T declaredMin,
-                        const Maybe<T>& declaredMax, T defaultMax,
-                        T actualLength, const Maybe<T>& actualMax, bool isAsmJS,
-                        const char* kind) {
+                        const mozilla::Maybe<T>& declaredMax, T defaultMax,
+                        T actualLength, const mozilla::Maybe<T>& actualMax,
+                        bool isAsmJS, const char* kind) {
   if (isAsmJS) {
     MOZ_ASSERT(actualLength >= declaredMin);
     MOZ_ASSERT(!declaredMax);

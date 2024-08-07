@@ -36,8 +36,10 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
+using mozilla::CheckedInt32;
 using mozilla::CheckedUint32;
 using mozilla::IsPowerOfTwo;
+using mozilla::MallocSizeOf;
 
 // [SMDOC] Immediate type signature encoding
 //

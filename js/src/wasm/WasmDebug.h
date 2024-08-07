@@ -180,7 +180,7 @@ class DebugState {
 
   // about:memory reporting:
 
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf,
+  void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf,
                      CodeMetadata::SeenSet* seenCodeMeta,
                      CodeMetadataForAsmJS::SeenSet* seenCodeMetaForAsmJS,
                      Code::SeenSet* seenCode, size_t* code, size_t* data) const;

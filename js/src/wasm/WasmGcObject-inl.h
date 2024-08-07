@@ -339,7 +339,7 @@ MOZ_ALWAYS_INLINE WasmArrayObject* WasmArrayObject::createArray(
     js::gc::Heap initialHeap, uint32_t numElements) {
   MOZ_ASSERT(typeDefData->arrayElemSize ==
              typeDefData->typeDef->arrayType().elementType_.size());
-  CheckedUint32 storageBytes =
+  mozilla::CheckedUint32 storageBytes =
       calcStorageBytesChecked(typeDefData->arrayElemSize, numElements);
   if (!storageBytes.isValid() ||
       storageBytes.value() > uint32_t(wasm::MaxArrayPayloadBytes)) {

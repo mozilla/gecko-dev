@@ -35,9 +35,6 @@
 namespace js {
 namespace wasm {
 
-using mozilla::CheckedInt32;
-using mozilla::MallocSizeOf;
-
 class RecGroup;
 
 //=========================================================================
@@ -396,16 +393,16 @@ using StructTypeVector = Vector<StructType, 0, SystemAllocPolicy>;
 // Given that, it follows from (3) that all fields fall completely within
 // either the inline or outline areas; no field crosses the boundary.
 class StructLayout {
-  CheckedInt32 sizeSoFar = 0;
+  mozilla::CheckedInt32 sizeSoFar = 0;
   uint32_t structAlignment = 1;
 
  public:
   // The field adders return the offset of the the field.
-  CheckedInt32 addField(StorageType type);
+  mozilla::CheckedInt32 addField(StorageType type);
 
   // The close method rounds up the structure size to the appropriate
   // alignment and returns that size.
-  CheckedInt32 close();
+  mozilla::CheckedInt32 close();
 };
 
 //=========================================================================
@@ -1117,7 +1114,7 @@ class TypeContext : public AtomicRefCounted<TypeContext> {
   TypeContext() = default;
   ~TypeContext();
 
-  size_t sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     return types_.sizeOfExcludingThis(mallocSizeOf) +
            moduleIndices_.shallowSizeOfExcludingThis(mallocSizeOf);
   }

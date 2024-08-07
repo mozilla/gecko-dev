@@ -88,23 +88,23 @@ struct Control {
 
 // A vector of Nothing values, used for reading opcodes.
 class BaseNothingVector {
-  Nothing unused_;
+  mozilla::Nothing unused_;
 
  public:
   bool reserve(size_t size) { return true; }
   bool resize(size_t length) { return true; }
-  Nothing& operator[](size_t) { return unused_; }
-  Nothing& back() { return unused_; }
+  mozilla::Nothing& operator[](size_t) { return unused_; }
+  mozilla::Nothing& back() { return unused_; }
   size_t length() const { return 0; }
-  bool append(Nothing& nothing) { return true; }
-  void infallibleAppend(Nothing& nothing) {}
+  bool append(mozilla::Nothing& nothing) { return true; }
+  void infallibleAppend(mozilla::Nothing& nothing) {}
 };
 
 // The baseline compiler tracks values on a stack of its own -- it needs to scan
 // that stack for spilling -- and thus has no need for the values maintained by
 // the iterator.
 struct BaseCompilePolicy {
-  using Value = Nothing;
+  using Value = mozilla::Nothing;
   using ValueVector = BaseNothingVector;
 
   // The baseline compiler uses the iterator's control stack, attaching
@@ -1355,17 +1355,17 @@ struct BaseCompiler final {
   // stored. This register is consumed by this function.
   // `value` is the value that was stored in the field. This register is
   // preserved by this function.
-  [[nodiscard]] bool emitPostBarrierImprecise(const Maybe<RegRef>& object,
-                                              RegPtr valueAddr, RegRef value);
-  [[nodiscard]] bool emitPostBarrierPrecise(const Maybe<RegRef>& object,
-                                            RegPtr valueAddr, RegRef prevValue,
-                                            RegRef value);
+  [[nodiscard]] bool emitPostBarrierImprecise(
+      const mozilla::Maybe<RegRef>& object, RegPtr valueAddr, RegRef value);
+  [[nodiscard]] bool emitPostBarrierPrecise(
+      const mozilla::Maybe<RegRef>& object, RegPtr valueAddr, RegRef prevValue,
+      RegRef value);
 
   // Emits a store to a JS object pointer at the address `valueAddr`, which is
   // inside the GC cell `object`.
   //
   // Preserves `object` and `value`. Consumes `valueAddr`.
-  [[nodiscard]] bool emitBarrieredStore(const Maybe<RegRef>& object,
+  [[nodiscard]] bool emitBarrieredStore(const mozilla::Maybe<RegRef>& object,
                                         RegPtr valueAddr, RegRef value,
                                         PreBarrierKind preBarrierKind,
                                         PostBarrierKind postBarrierKind);

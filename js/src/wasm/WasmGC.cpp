@@ -257,7 +257,7 @@ void wasm::EmitWasmPreBarrierCallIndex(MacroAssembler& masm, Register instance,
 }
 
 void wasm::EmitWasmPostBarrierGuard(MacroAssembler& masm,
-                                    const Maybe<Register>& object,
+                                    const mozilla::Maybe<Register>& object,
                                     Register otherScratch, Register setValue,
                                     Label* skipBarrier) {
   // If there is a containing object and it is in the nursery, no barrier.

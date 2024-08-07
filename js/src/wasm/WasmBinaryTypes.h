@@ -11,10 +11,6 @@
 
 #include "wasm/WasmSerialize.h"
 
-using mozilla::Maybe;
-using mozilla::Nothing;
-using mozilla::Some;
-
 namespace js {
 namespace wasm {
 
@@ -35,7 +31,7 @@ struct SectionRange {
 
 WASM_DECLARE_CACHEABLE_POD(SectionRange);
 
-using MaybeSectionRange = Maybe<SectionRange>;
+using MaybeSectionRange = mozilla::Maybe<SectionRange>;
 
 }  // namespace wasm
 }  // namespace js

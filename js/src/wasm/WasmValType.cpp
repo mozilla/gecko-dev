@@ -336,7 +336,7 @@ UniqueChars wasm::ToString(StorageType type, const TypeContext* types) {
   return DuplicateString(literal);
 }
 
-UniqueChars wasm::ToString(const Maybe<ValType>& type,
+UniqueChars wasm::ToString(const mozilla::Maybe<ValType>& type,
                            const TypeContext* types) {
   return type ? ToString(type.ref(), types) : JS_smprintf("%s", "void");
 }

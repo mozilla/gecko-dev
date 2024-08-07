@@ -76,7 +76,7 @@ class BuiltinModuleFunc {
   // Initialize this builtin. Must only be called once.
   [[nodiscard]] bool init(const RefPtr<TypeContext>& types,
                           mozilla::Span<const ValType> params,
-                          Maybe<ValType> result, bool usesMemory,
+                          mozilla::Maybe<ValType> result, bool usesMemory,
                           const SymbolicAddressSignature* sig,
                           const char* exportName);
 
@@ -118,9 +118,9 @@ class BuiltinModuleFuncs {
   }
 };
 
-Maybe<BuiltinModuleId> ImportMatchesBuiltinModule(
+mozilla::Maybe<BuiltinModuleId> ImportMatchesBuiltinModule(
     mozilla::Span<const char> importName, BuiltinModuleIds enabledBuiltins);
-Maybe<const BuiltinModuleFunc*> ImportMatchesBuiltinModuleFunc(
+mozilla::Maybe<const BuiltinModuleFunc*> ImportMatchesBuiltinModuleFunc(
     mozilla::Span<const char> importName, BuiltinModuleId module);
 
 // Compile and return the builtin module for a particular

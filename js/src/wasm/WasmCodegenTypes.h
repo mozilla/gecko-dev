@@ -42,8 +42,6 @@ class ABIArgIterBase;
 
 namespace wasm {
 
-using mozilla::EnumeratedArray;
-
 struct CodeMetadata;
 struct TableDesc;
 struct V128;
@@ -273,7 +271,7 @@ WASM_DECLARE_CACHEABLE_POD(TrapSite);
 WASM_DECLARE_POD_VECTOR(TrapSite, TrapSiteVector)
 
 struct TrapSiteVectorArray
-    : EnumeratedArray<Trap, TrapSiteVector, size_t(Trap::Limit)> {
+    : mozilla::EnumeratedArray<Trap, TrapSiteVector, size_t(Trap::Limit)> {
   bool empty() const;
   void clear();
   void swap(TrapSiteVectorArray& rhs);
@@ -961,7 +959,7 @@ class CalleeDesc {
     struct {
       uint32_t instanceDataOffset_;
       uint32_t minLength_;
-      Maybe<uint32_t> maxLength_;
+      mozilla::Maybe<uint32_t> maxLength_;
       CallIndirectId callIndirectId_;
     } table;
     SymbolicAddress builtin_;
@@ -1005,7 +1003,7 @@ class CalleeDesc {
     MOZ_ASSERT(which_ == WasmTable);
     return u.table.minLength_;
   }
-  Maybe<uint32_t> wasmTableMaxLength() const {
+  mozilla::Maybe<uint32_t> wasmTableMaxLength() const {
     MOZ_ASSERT(which_ == WasmTable);
     return u.table.maxLength_;
   }

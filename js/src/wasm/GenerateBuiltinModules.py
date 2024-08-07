@@ -139,9 +139,9 @@ def main(c_out, yaml_path):
         # `Some(X)` if present, or else `Nothing()`.
         result_valtype = ""
         if "result" in op:
-            result_valtype = f"Some({specTypeToValType(op['result'])})\n"
+            result_valtype = f"mozilla::Some({specTypeToValType(op['result'])})\n"
         else:
-            result_valtype = "Nothing()"
+            result_valtype = "mozilla::Nothing()"
         contents += f"#define DECLARE_BUILTIN_MODULE_FUNC_RESULT_VALTYPE_{op['op']} {result_valtype}\n"
 
         # Define DECLARE_BUILTIN_MODULE_FUNC_RESULT_MIRTYPE_<op> as:

@@ -97,6 +97,7 @@ using mozilla::HashGeneric;
 using mozilla::IsNegativeZero;
 using mozilla::IsPositiveZero;
 using mozilla::IsPowerOfTwo;
+using mozilla::Maybe;
 using mozilla::Nothing;
 using mozilla::PodZero;
 using mozilla::PositiveInfinity;

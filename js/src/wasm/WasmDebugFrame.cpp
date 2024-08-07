@@ -137,9 +137,9 @@ bool DebugFrame::updateReturnJSValue(JSContext* cx) {
   flags_.hasCachedReturnJSValue = true;
   ResultType resultType = ResultType::Vector(
       instance()->codeMeta().getFuncType(funcIndex()).results());
-  Maybe<char*> stackResultsLoc;
+  mozilla::Maybe<char*> stackResultsLoc;
   if (ABIResultIter::HasStackResults(resultType)) {
-    stackResultsLoc = Some(static_cast<char*>(stackResultsPointer_));
+    stackResultsLoc = mozilla::Some(static_cast<char*>(stackResultsPointer_));
   }
   DebugCodegen(DebugChannel::Function,
                "wasm-function[%d] updateReturnJSValue [", funcIndex());

@@ -34,6 +34,10 @@
 using namespace js;
 using namespace js::wasm;
 
+using mozilla::Maybe;
+using mozilla::Nothing;
+using mozilla::Some;
+
 class MOZ_STACK_CLASS InitExprInterpreter {
  public:
   explicit InitExprInterpreter(JSContext* cx,
@@ -705,6 +709,6 @@ bool InitExpr::clone(const InitExpr& src) {
   return true;
 }
 
-size_t InitExpr::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+size_t InitExpr::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
   return bytecode_.sizeOfExcludingThis(mallocSizeOf);
 }

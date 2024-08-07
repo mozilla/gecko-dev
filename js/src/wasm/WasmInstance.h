@@ -50,8 +50,6 @@ class StoreBuffer;
 
 namespace wasm {
 
-using mozilla::Atomic;
-
 struct FuncDefInstanceData;
 class FuncImport;
 struct FuncImportInstanceData;
@@ -118,10 +116,10 @@ class alignas(16) Instance {
   // Usually equal to cx->stackLimitForJitCode(JS::StackForUntrustedScript),
   // but can be racily set to trigger immediate trap as an opportunity to
   // CheckForInterrupt without an additional branch.
-  Atomic<JS::NativeStackLimit, mozilla::Relaxed> stackLimit_;
+  mozilla::Atomic<JS::NativeStackLimit, mozilla::Relaxed> stackLimit_;
 
   // Set to 1 when wasm should call CheckForInterrupt.
-  Atomic<uint32_t, mozilla::Relaxed> interrupt_;
+  mozilla::Atomic<uint32_t, mozilla::Relaxed> interrupt_;
 
   // Boolean value set to true when instance code is executed on a suspendable
   // stack. Aligned to int32_t to be used on JIT code.
@@ -472,7 +470,7 @@ class alignas(16) Instance {
 
   // about:memory reporting:
 
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf,
+  void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf,
                      SeenSet<CodeMetadata>* seenCodeMeta,
                      SeenSet<CodeMetadataForAsmJS>* seenCodeMetaForAsmJS,
                      SeenSet<Code>* seenCode, SeenSet<Table>* seenTables,
@@ -632,7 +630,8 @@ class alignas(16) Instance {
 };
 
 bool ResultsToJSValue(JSContext* cx, ResultType type, void* registerResultLoc,
-                      Maybe<char*> stackResultsLoc, MutableHandleValue rval,
+                      mozilla::Maybe<char*> stackResultsLoc,
+                      MutableHandleValue rval,
                       CoercionLevel level = CoercionLevel::Spec);
 
 // Report an error to `cx` and mark it as a 'trap' so that it cannot be caught
