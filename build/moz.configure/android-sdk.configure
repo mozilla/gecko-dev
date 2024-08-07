@@ -58,7 +58,8 @@ def android_sdk_version():
     # If you think you can't handle the whole set of changes, please reach out to the Release
     # Engineering team.
     return namespace(
-        build_tools_version="34.0.0",
+        build_tools_version="35.0.0",
+        compile_sdk_version="35",
         target_sdk_version="34",
         min_sdk_version="21",
     )
@@ -155,3 +156,4 @@ set_config("ANDROID_SDK_ROOT", android_sdk_root)
 
 set_config("ANDROID_BUILD_TOOLS_VERSION", android_sdk_version.build_tools_version)
 set_config("ANDROID_TARGET_SDK", android_sdk_version.target_sdk_version)
+set_config("ANDROID_COMPILE_SDK", android_sdk_version.compile_sdk_version)
