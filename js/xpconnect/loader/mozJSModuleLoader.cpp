@@ -874,9 +874,19 @@ nsresult mozJSModuleLoader::LoadSingleModuleScriptOnWorker(
   NS_ENSURE_SUCCESS(rv, rv);
 
   CompileOptions options(aCx);
-  ScriptPreloader::FillCompileOptionsForCachedStencil(options);
+  // NOTE: ScriptPreloader::FillCompileOptionsForCachedStencil shouldn't be
+  //       used here because the module is put into the worker global's
+  //       module map, instead of the shared global's module map, where the
+  //       worker module loader doesn't support lazy source.
+  //       Accessing the source requires the synchronous communication with the
+  //       main thread, and supporting it requires too much complexity compared
+  //       to the benefit.
+  options.setNoScriptRval(true);
   options.setFileAndLine(location.BeginReading(), 1);
   SetModuleOptions(options);
+
+  // Worker global doesn't have the source hook.
+  MOZ_ASSERT(!options.sourceIsLazy);
 
   JS::SourceText<mozilla::Utf8Unit> srcBuf;
   if (!srcBuf.init(aCx, data.get(), data.Length(),

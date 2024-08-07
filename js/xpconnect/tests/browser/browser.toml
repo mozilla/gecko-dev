@@ -26,3 +26,9 @@ support-files = [
 ["browser_weak_xpcwjs.js"]
 
 ["browser_weak_xpcwn.js"]
+
+["browser_worker_import_esm_source.js"]
+support-files = [
+  "worker_import_esm_source.mjs",
+  "worker_source.mjs",
+]
