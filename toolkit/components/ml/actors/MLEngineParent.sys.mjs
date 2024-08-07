@@ -77,6 +77,14 @@ export class MLEngineParent extends JSWindowActorParent {
   modelHub = null;
 
   /**
+   * Tracks the most recent revision for each task and model pair that are marked for deletion.
+   * Keys are task names and model names. Values contain their respective revisions.
+   *
+   * @type {Map<string, object>}
+   */
+  #modelFilesInUse = new Map();
+
+  /**
    * The callback to call for updating about notifications such as dowload progress status.
    *
    * @type {?function(ProgressAndStatusCallbackParams):void}
@@ -115,7 +123,7 @@ export class MLEngineParent extends JSWindowActorParent {
   async getEngine(pipelineOptions, notificationsCallback = null) {
     const engineId = pipelineOptions.engineId;
 
-    // Allow notifications callback changes eveb when reusing engine.
+    // Allow notifications callback changes even when reusing engine.
     this.notificationsCallback = notificationsCallback;
 
     if (MLEngineParent.engineLocks.has(engineId)) {
@@ -217,6 +225,43 @@ export class MLEngineParent extends JSWindowActorParent {
   }
 
   /**
+   * Deletes all previous revisions for the current task and model used by the engine.
+   *
+   * @returns {Promise<void>}
+   */
+  async deletePreviousModelRevisions() {
+    if (!this.modelHub) {
+      lazy.console.debug(
+        "Ignored attempt to delete previous models when the engine is not fully initialized."
+      );
+    }
+
+    const deletePromises = [];
+
+    for (const [
+      key,
+      { taskName, model, revision },
+    ] of this.#modelFilesInUse.entries()) {
+      lazy.console.debug("Deleting previous version for ", {
+        taskName,
+        model,
+        revision,
+      });
+      deletePromises.push(
+        this.modelHub
+          .deleteNonMatchingModelRevisions({
+            taskName,
+            model,
+            targetRevision: revision,
+          })
+          .then(() => this.#modelFilesInUse.delete(key))
+      );
+    }
+
+    await Promise.all(deletePromises);
+  }
+
+  /**
    * Retrieves a model file as an ArrayBuffer from the specified URL.
    * This function normalizes the URL, extracts the organization, model name, and file path,
    * then fetches the model file using the ModelHub API. The `modelHub` instance is created
@@ -258,6 +303,12 @@ export class MLEngineParent extends JSWindowActorParent {
       taskName,
       ...parsedUrl,
       progressCallback: this.notificationsCallback?.bind(this),
+    });
+
+    // Keep the latest revision for each task, model
+    this.#modelFilesInUse.set(`${taskName}-${parsedUrl.model}`, {
+      taskName,
+      ...parsedUrl,
     });
 
     return [data, headers];
@@ -533,6 +584,9 @@ class MLEngine {
     });
 
     await mlEngine.setupPortCommunication();
+
+    // Delete previous model revisions.
+    await mlEngine.mlEngineParent.deletePreviousModelRevisions();
 
     return mlEngine;
   }

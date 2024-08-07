@@ -730,13 +730,16 @@ export class IndexedDBCache {
    * @param {?string} config.taskName - name of the inference task to delete.
    *                                    If null, delete specified models for all tasks.
    *
+   * @param {?function(IDBCursor):boolean} config.filterFn - A function to execute for each model file candidate for deletion.
+   * It should return a truthy value to delete the model file, and a falsy value otherwise.
+   *
    * @throws {Error} If a revision is defined, the model must also be defined.
    *                 If the model is not defined, the revision should also not be defined.
    *                 Otherwise, an error will be thrown.
 
    * @returns {Promise<void>}
    */
-  async deleteModels({ taskName, model, revision }) {
+  async deleteModels({ taskName, model, revision, filterFn }) {
     const tasks = await this.#getData({
       storeName: this.taskStoreName,
       ...this.#getFileQuery({ taskName, model, revision }),
@@ -745,6 +748,9 @@ export class IndexedDBCache {
     let deletePromises = [];
     const filesToMaybeDelete = new Set();
     for (const { taskName, model, revision, file } of tasks) {
+      if (filterFn && !filterFn({ taskName, model, revision, file })) {
+        continue;
+      }
       filesToMaybeDelete.add(JSON.stringify([model, revision, file]));
       deletePromises.push(
         this.#deleteData(this.taskStoreName, [taskName, model, revision, file])
@@ -1044,6 +1050,32 @@ export class ModelHub {
     }
 
     return null;
+  }
+
+  /**
+   * Deletes all model files for the specified task and model, except for the specified revision.
+   *
+   * @param {object} config - Configuration object.
+   * @param {string} config.taskName - The name of the inference task.
+   * @param {string} config.model - The model name (organization/name).
+   * @param {string} config.targetRevision - The revision to keep.
+   *
+   * @returns {Promise<void>}
+   */
+  async deleteNonMatchingModelRevisions({ taskName, model, targetRevision }) {
+    // Ensure all required parameters are provided
+    if (!taskName || !model || !targetRevision) {
+      throw new Error("taskName, model, and targetRevision are required.");
+    }
+
+    await this.#initCache();
+
+    // Delete models with revisions that do not match the targetRevision
+    return this.cache.deleteModels({
+      taskName,
+      model,
+      filterFn: record => record.revision !== targetRevision,
+    });
   }
 
   /**
