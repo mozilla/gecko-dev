@@ -39,8 +39,14 @@ static bool BigIntConstructor(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Steps 3-4.
-  BigInt* bi =
-      v.isNumber() ? NumberToBigInt(cx, v.toNumber()) : ToBigInt(cx, v);
+  BigInt* bi;
+  if (!v.isNumber()) {
+    bi = ToBigInt(cx, v);
+  } else if (v.isInt32()) {
+    bi = BigInt::createFromInt64(cx, int64_t(v.toInt32()));
+  } else {
+    bi = NumberToBigInt(cx, v.toDouble());
+  }
   if (!bi) {
     return false;
   }
