@@ -12321,6 +12321,12 @@
   value: true
   mirror: always
 
+# Whether network error logging is enabled.
+- name: network.http.network_error_logging.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Hard code the User-Agent string's CPU architecture. This pref can be removed
 # after we're confident there are no webcompat problems.
 #

@@ -620,6 +620,8 @@ class nsHttpChannel final : public HttpBaseChannel,
   // This is true when one end marker is output, so that we never output more
   // than one.
   bool mEndMarkerAdded = false;
+  // Is set to true when the NEL report is queued.
+  bool mReportedNEL = false;
 
   // Total time the channel spent suspended. This value is reported to
   // telemetry in nsHttpChannel::OnStartRequest().

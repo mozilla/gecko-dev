@@ -21,6 +21,7 @@ XPIDL_SOURCES += [
     "nsIHttpChannelInternal.idl",
     "nsIHttpHeaderVisitor.idl",
     "nsIHttpProtocolHandler.idl",
+    "nsINetworkErrorLogging.idl",
     "nsIObliviousHttp.idl",
     "nsIObliviousHttpChannel.idl",
     "nsIRaceCacheWithNetwork.idl",
@@ -215,6 +216,7 @@ if CONFIG["MOZ_AUTH_EXTENSION"]:
 
 EXTRA_JS_MODULES += [
     "HPKEConfigManager.sys.mjs",
+    "NetworkErrorLogging.sys.mjs",
     "WellKnownOpportunisticUtils.sys.mjs",
 ]
 
