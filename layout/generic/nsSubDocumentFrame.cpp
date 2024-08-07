@@ -326,9 +326,8 @@ void nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     return;
   }
 
-  const bool pointerEventsNone =
-      Style()->PointerEvents() == StylePointerEvents::None;
-  if (aBuilder->IsForEventDelivery() && pointerEventsNone) {
+  const bool forEvents = aBuilder->IsForEventDelivery();
+  if (forEvents && Style()->PointerEvents() == StylePointerEvents::None) {
     // If we are pointer-events:none then we don't need to HitTest background or
     // anything else.
     return;
@@ -349,6 +348,10 @@ void nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   }
   decorations.MoveTo(aLists);
 
+  if (forEvents && !ContentReactsToPointerEvents()) {
+    return;
+  }
+
   if (HidesContent()) {
     return;
   }
@@ -356,8 +359,7 @@ void nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // If we're passing pointer events to children then we have to descend into
   // subdocuments no matter what, to determine which parts are transparent for
   // hit-testing or event regions.
-  bool needToDescend = aBuilder->GetDescendIntoSubdocuments();
-  if (!mInnerView || !needToDescend) {
+  if (!mInnerView || !aBuilder->GetDescendIntoSubdocuments()) {
     return;
   }
 
@@ -417,7 +419,7 @@ void nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
       ignoreViewportScrolling = presShell->IgnoringViewportScrolling();
     }
 
-    aBuilder->EnterPresShell(subdocRootFrame, pointerEventsNone);
+    aBuilder->EnterPresShell(subdocRootFrame, !ContentReactsToPointerEvents());
     aBuilder->IncrementPresShellPaintCount(presShell);
   } else {
     visible = aBuilder->GetVisibleRect();
@@ -1213,6 +1215,21 @@ void nsSubDocumentFrame::SubdocumentIntrinsicSizeOrRatioChanged() {
   }
 }
 
+bool nsSubDocumentFrame::ContentReactsToPointerEvents() const {
+  if (Style()->PointerEvents() == StylePointerEvents::None) {
+    return false;
+  }
+  if (mIsInObjectOrEmbed) {
+    if (nsCOMPtr<nsIObjectLoadingContent> iolc = do_QueryInterface(mContent)) {
+      const auto* olc = static_cast<nsObjectLoadingContent*>(iolc.get());
+      if (olc->IsSyntheticImageDocument()) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 // Return true iff |aManager| is a "temporary layer manager".  They're
 // used for small software rendering tasks, like drawWindow.  That's
 // currently implemented by a BasicLayerManager without a backing
@@ -1221,9 +1238,8 @@ nsDisplayRemote::nsDisplayRemote(nsDisplayListBuilder* aBuilder,
                                  nsSubDocumentFrame* aFrame)
     : nsPaintedDisplayItem(aBuilder, aFrame),
       mEventRegionsOverride(EventRegionsOverride::NoOverride) {
-  const bool frameIsPointerEventsNone =
-      aFrame->Style()->PointerEvents() == StylePointerEvents::None;
-  if (aBuilder->IsInsidePointerEventsNoneDoc() || frameIsPointerEventsNone) {
+  if (aBuilder->IsInsidePointerEventsNoneDoc() ||
+      !aFrame->ContentReactsToPointerEvents()) {
     mEventRegionsOverride |= EventRegionsOverride::ForceEmptyHitRegion;
   }
   if (nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(

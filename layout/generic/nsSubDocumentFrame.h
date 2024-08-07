@@ -104,6 +104,8 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   nsRect GetDestRect(const nsRect& aConstraintRect);
   mozilla::ScreenIntSize GetSubdocumentSize();
 
+  bool ContentReactsToPointerEvents() const;
+
   // nsIReflowCallback
   bool ReflowFinished() override;
   void ReflowCallbackCanceled() override;
